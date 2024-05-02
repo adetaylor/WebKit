@@ -31,8 +31,6 @@
 #import <mach-o/dyld.h>
 #import <wtf/Vector.h>
 
-NS_ASSUME_NONNULL_BEGIN
-
 #if PLATFORM(IOS) || PLATFORM(VISION)
 @interface NSTask : NSObject
 - (instancetype)init;
@@ -45,6 +43,20 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, getter=isRunning) BOOL running;
 @end
 #endif
+
+#if USE(APPLE_INTERNAL_SDK)
+// AppServerSupport cannot be safely imported within modules, so avoid putting
+// this SPI declaration in headers.
+#import <AppServerSupport/OSLaunchdJob.h>
+#else
+#import <Foundation/NSError.h>
+@interface OSLaunchdJob : NSObject
+- (instancetype)initWithPlist:(xpc_object_t)plist;
+- (BOOL)submit:(NSError **)errorOut;
+@end
+#endif
+
+NS_ASSUME_NONNULL_BEGIN
 
 namespace TestWebKitAPI {
 
