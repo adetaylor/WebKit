@@ -36,7 +36,7 @@
 
 namespace WebCore {
 
-class CSSGridLineNamesValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSGridLineNamesValue final : public CSSValue {
 public:
     static Ref<CSSGridLineNamesValue> create(std::span<const String>);
 

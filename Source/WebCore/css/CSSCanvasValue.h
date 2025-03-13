@@ -36,7 +36,7 @@ namespace Style {
 class BuilderState;
 }
 
-class CSSCanvasValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSCanvasValue final : public CSSValue {
 public:
     static Ref<CSSCanvasValue> create(String name) { return adoptRef(*new CSSCanvasValue(WTFMove(name))); }
     ~CSSCanvasValue();

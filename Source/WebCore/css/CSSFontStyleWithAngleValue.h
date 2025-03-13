@@ -31,7 +31,7 @@
 namespace WebCore {
 
 // This class is currently only used for oblique. If we use it for more styles in the future we'll need to store the keyword.
-class CSSFontStyleWithAngleValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSFontStyleWithAngleValue final : public CSSValue {
 public:
     using ObliqueAngle = CSS::Angle<CSS::Range{-90, 90}>;
 

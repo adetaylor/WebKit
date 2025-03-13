@@ -20,7 +20,6 @@ css/CSSRuleList.h
 css/CSSStyleProperties.h
 css/CSSStyleSheet.cpp
 css/CSSStyleSheet.h
-css/CSSValueList.h
 css/MediaList.h
 css/SelectorChecker.h
 css/SelectorFilter.h

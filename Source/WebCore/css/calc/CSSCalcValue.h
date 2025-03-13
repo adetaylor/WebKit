@@ -62,7 +62,7 @@ enum CSSValueID : uint16_t;
 
 enum class CSSUnitType : uint8_t;
 
-class CSSCalcValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSCalcValue final : public CSSValue {
 public:
     static RefPtr<CSSCalcValue> parse(CSSParserTokenRange&, const CSSParserContext&, Calculation::Category, CSS::Range, CSSCalcSymbolsAllowed, CSSPropertyParserOptions);
 

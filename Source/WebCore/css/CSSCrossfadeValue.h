@@ -37,7 +37,7 @@ namespace Style {
 class BuilderState;
 }
 
-class CSSCrossfadeValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSCrossfadeValue final : public CSSValue {
 public:
     static Ref<CSSCrossfadeValue> create(Ref<CSSValue>&& fromValueOrNone, Ref<CSSValue>&& toValueOrNone, Ref<CSSPrimitiveValue>&& percentageValue, bool isPrefixed = false);
 

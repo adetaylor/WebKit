@@ -31,7 +31,7 @@
 
 namespace WebCore {
 
-class CSSReflectValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSReflectValue final : public CSSValue {
 public:
     static Ref<CSSReflectValue> create(CSSValueID direction, Ref<CSSPrimitiveValue> offset, RefPtr<CSSValue> mask);
 

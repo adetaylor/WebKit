@@ -39,7 +39,7 @@ namespace WebCore {
 
 class CSSParserToken;
 
-class CSSCustomPropertyValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSCustomPropertyValue final : public CSSValue {
 public:
     struct NumericSyntaxValue {
         double value;

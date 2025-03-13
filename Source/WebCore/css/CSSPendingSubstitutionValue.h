@@ -36,7 +36,7 @@ namespace WebCore {
 
 class CSSProperty;
 
-class CSSPendingSubstitutionValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSPendingSubstitutionValue final : public CSSValue {
 public:
     static Ref<CSSPendingSubstitutionValue> create(CSSPropertyID shorthandPropertyId, Ref<CSSVariableReferenceValue>&& shorthandValue)
     {

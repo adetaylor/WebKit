@@ -32,7 +32,7 @@ namespace WebCore {
 
 class CSSPrimitiveValue;
 
-class CSSBorderImageWidthValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSBorderImageWidthValue final : public CSSValue {
 public:
     static Ref<CSSBorderImageWidthValue> create(Quad, bool overridesBorderWidths);
     ~CSSBorderImageWidthValue();

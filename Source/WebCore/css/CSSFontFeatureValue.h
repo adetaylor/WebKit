@@ -31,7 +31,7 @@
 
 namespace WebCore {
 
-class CSSFontFeatureValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSFontFeatureValue final : public CSSValue {
 public:
     static Ref<CSSFontFeatureValue> create(FontTag&& tag, Ref<CSSPrimitiveValue>&& value)
     {

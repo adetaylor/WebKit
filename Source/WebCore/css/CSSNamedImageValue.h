@@ -36,7 +36,7 @@ namespace Style {
 class BuilderState;
 }
 
-class CSSNamedImageValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSNamedImageValue final : public CSSValue {
 public:
     static Ref<CSSNamedImageValue> create(String name)
     {

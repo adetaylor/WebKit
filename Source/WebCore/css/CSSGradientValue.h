@@ -34,7 +34,7 @@ namespace Style {
 class BuilderState;
 }
 
-class CSSGradientValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSGradientValue final : public CSSValue {
 public:
     static Ref<CSSGradientValue> create(CSS::Gradient&& gradient)
     {

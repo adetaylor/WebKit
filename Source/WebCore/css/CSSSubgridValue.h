@@ -34,7 +34,7 @@
 
 namespace WebCore {
 
-class CSSSubgridValue final : public CSSValueContainingVector {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSSubgridValue final : public CSSValueContainingVector {
 public:
     static Ref<CSSSubgridValue> create(CSSValueListBuilder);
 

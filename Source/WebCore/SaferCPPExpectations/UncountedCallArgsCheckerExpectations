@@ -411,7 +411,6 @@ css/CSSCounterStyleDescriptors.cpp
 css/CSSCounterStyleRegistry.cpp
 css/CSSCounterStyleRule.h
 css/CSSCounterValue.cpp
-css/CSSCounterValue.h
 css/CSSCrossfadeValue.cpp
 css/CSSCursorImageValue.cpp
 css/CSSFontFace.cpp
@@ -421,7 +420,6 @@ css/CSSFontFaceSet.cpp
 css/CSSFontFeatureValue.cpp
 css/CSSFontSelector.cpp
 css/CSSFontStyleRangeValue.cpp
-css/CSSFontStyleRangeValue.h
 css/CSSFontValue.cpp
 css/CSSGridIntegerRepeatValue.cpp
 css/CSSGridLineValue.cpp
@@ -429,14 +427,12 @@ css/CSSGroupingRule.cpp
 css/CSSImageSetOptionValue.cpp
 css/CSSImageSetValue.cpp
 css/CSSImageValue.cpp
-css/CSSImageValue.h
 css/CSSImportRule.cpp
 css/CSSKeyframeRule.cpp
 css/CSSKeyframeRule.h
 css/CSSKeyframesRule.cpp
 css/CSSNestedDeclarations.cpp
 css/CSSOffsetRotateValue.cpp
-css/CSSOffsetRotateValue.h
 css/CSSPageRule.cpp
 css/CSSPendingSubstitutionValue.cpp
 css/CSSPrimitiveValue.cpp
@@ -444,10 +440,8 @@ css/CSSPrimitiveValueMappings.h
 css/CSSProperty.h
 css/CSSPropertyRule.cpp
 css/CSSReflectValue.cpp
-css/CSSReflectValue.h
 css/CSSRuleList.h
 css/CSSScrollValue.cpp
-css/CSSScrollValue.h
 css/CSSSegmentedFontFace.cpp
 css/CSSSelector.cpp
 css/CSSStyleProperties.cpp
@@ -459,7 +453,6 @@ css/CSSValueList.cpp
 css/CSSValuePair.cpp
 css/CSSVariableReferenceValue.cpp
 css/CSSViewValue.cpp
-css/CSSViewValue.h
 css/ComputedStyleExtractor.cpp
 css/DeprecatedCSSOMPrimitiveValue.h
 css/DeprecatedCSSOMRGBColor.h

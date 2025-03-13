@@ -31,7 +31,7 @@
 
 namespace WebCore {
 
-class CSSColorSchemeValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSColorSchemeValue final : public CSSValue {
 public:
     static Ref<CSSColorSchemeValue> create(CSS::ColorScheme);
 

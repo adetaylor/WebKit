@@ -30,7 +30,7 @@
 
 namespace WebCore {
 
-class CSSOffsetRotateValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSOffsetRotateValue final : public CSSValue {
 public:
     static Ref<CSSOffsetRotateValue> create(RefPtr<CSSPrimitiveValue>&& modifier, RefPtr<CSSPrimitiveValue>&& angle)
     {

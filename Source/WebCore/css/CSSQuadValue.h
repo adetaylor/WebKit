@@ -29,7 +29,7 @@
 
 namespace WebCore {
 
-class CSSQuadValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSQuadValue final : public CSSValue {
 public:
     static Ref<CSSQuadValue> create(Quad);
     static Ref<CSSQuadValue> create(Ref<CSSValue>);

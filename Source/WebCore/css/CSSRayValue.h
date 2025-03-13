@@ -36,7 +36,7 @@ namespace WebCore {
 
 // Class containing the value of a ray() function, as used in offset-path:
 // https://drafts.fxtf.org/motion-1/#funcdef-offset-path-ray.
-class CSSRayValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSRayValue final : public CSSValue {
 public:
     static Ref<CSSRayValue> create(CSS::RayFunction ray, CSSBoxType coordinateBox = CSSBoxType::BoxMissing)
     {

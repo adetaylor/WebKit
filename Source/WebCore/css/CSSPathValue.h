@@ -37,7 +37,7 @@ namespace WebCore {
 
 // `CSSPathValue` is used to represent a path for the `d` property from SVG.
 // https://svgwg.org/svg2-draft/paths.html#DProperty
-class CSSPathValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSPathValue final : public CSSValue {
 public:
     static Ref<CSSPathValue> create(CSS::PathFunction path)
     {

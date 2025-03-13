@@ -30,7 +30,7 @@ namespace WebCore {
 static constexpr size_t CSSValueListBuilderInlineCapacity = 4;
 using CSSValueListBuilder = Vector<Ref<CSSValue>, CSSValueListBuilderInlineCapacity>;
 
-class CSSValueContainingVector : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSValueContainingVector : public CSSValue {
 public:
     unsigned size() const { return m_size; }
     const CSSValue& operator[](unsigned index) const;
@@ -97,7 +97,7 @@ private:
     MallocSpan<const CSSValue*> m_additionalStorage;
 };
 
-class CSSValueList final : public CSSValueContainingVector {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSValueList final : public CSSValueContainingVector {
 public:
     static Ref<CSSValueList> create(UChar separator, CSSValueListBuilder);
 

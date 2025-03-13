@@ -36,7 +36,7 @@
 
 namespace WebCore {
 
-class CSSGridTemplateAreasValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSGridTemplateAreasValue final : public CSSValue {
 public:
     static Ref<CSSGridTemplateAreasValue> create(NamedGridAreaMap, size_t rowCount, size_t columnCount);
 

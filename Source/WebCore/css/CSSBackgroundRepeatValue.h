@@ -31,7 +31,7 @@ namespace WebCore {
 
 enum CSSValueID : uint16_t;
 
-class CSSBackgroundRepeatValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSBackgroundRepeatValue final : public CSSValue {
 public:
     static Ref<CSSBackgroundRepeatValue> create(CSSValueID repeatXValue, CSSValueID repeatYValue);
 

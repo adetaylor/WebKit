@@ -30,7 +30,7 @@
 
 namespace WebCore {
 
-class CSSGridLineValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSGridLineValue final : public CSSValue {
 public:
     static Ref<CSSGridLineValue> create(RefPtr<CSSPrimitiveValue>&&, RefPtr<CSSPrimitiveValue>&&, RefPtr<CSSPrimitiveValue>&&);
 

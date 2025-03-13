@@ -31,7 +31,7 @@
 
 namespace WebCore {
 
-class CSSFontVariationValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSFontVariationValue final : public CSSValue {
 public:
     static Ref<CSSFontVariationValue> create(FontTag tag, Ref<CSSPrimitiveValue>&& value)
     {

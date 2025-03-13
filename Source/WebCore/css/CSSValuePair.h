@@ -30,7 +30,7 @@
 
 namespace WebCore {
 
-class CSSValuePair final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSValuePair final : public CSSValue {
 public:
     static Ref<CSSValuePair> create(Ref<CSSValue>, Ref<CSSValue>);
     static Ref<CSSValuePair> createSlashSeparated(Ref<CSSValue>, Ref<CSSValue>);

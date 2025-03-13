@@ -29,7 +29,7 @@
 
 namespace WebCore {
 
-class CSSRatioValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSRatioValue final : public CSSValue {
 public:
     static Ref<CSSRatioValue> create(CSS::Ratio&&);
 

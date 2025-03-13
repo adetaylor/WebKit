@@ -35,7 +35,7 @@ namespace WebCore {
 
 // Class containing the value of a scroll() function, as used in animation-timeline:
 // https://drafts.csswg.org/scroll-animations-1/#funcdef-scroll.
-class CSSScrollValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSScrollValue final : public CSSValue {
 public:
     static Ref<CSSScrollValue> create()
     {

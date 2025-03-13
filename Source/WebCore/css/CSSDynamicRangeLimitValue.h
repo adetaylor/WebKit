@@ -29,7 +29,7 @@
 
 namespace WebCore {
 
-class CSSDynamicRangeLimitValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSDynamicRangeLimitValue final : public CSSValue {
 public:
     static Ref<CSSDynamicRangeLimitValue> create(CSS::DynamicRangeLimit);
 

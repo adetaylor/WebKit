@@ -44,7 +44,7 @@ enum class LineBoxContain : uint8_t {
 };
 
 // Used for text-CSSLineBoxContain and box-CSSLineBoxContain
-class CSSLineBoxContainValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSLineBoxContainValue final : public CSSValue {
 public:
     static Ref<CSSLineBoxContainValue> create(OptionSet<LineBoxContain> value)
     {

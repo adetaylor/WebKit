@@ -32,7 +32,7 @@ namespace WebCore {
 
 class CSSPrimitiveValue;
 
-class CSSBorderImageSliceValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSBorderImageSliceValue final : public CSSValue {
 public:
     static Ref<CSSBorderImageSliceValue> create(Quad, bool fill);
     ~CSSBorderImageSliceValue();

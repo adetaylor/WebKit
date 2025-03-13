@@ -40,7 +40,7 @@ namespace Style {
 class BuilderState;
 }
 
-class CSSImageValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSImageValue final : public CSSValue {
 public:
     static Ref<CSSImageValue> create();
     static Ref<CSSImageValue> create(ResolvedURL, LoadedFromOpaqueSource, AtomString = { });

@@ -35,7 +35,7 @@
 
 namespace WebCore {
 
-class CSSTransformListValue final : public CSSValueContainingVector {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSTransformListValue final : public CSSValueContainingVector {
 public:
     static Ref<CSSTransformListValue> create(CSSValueListBuilder);
     static Ref<CSSTransformListValue> create(Ref<CSSValue>);

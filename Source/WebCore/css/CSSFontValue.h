@@ -28,7 +28,7 @@ class CSSPrimitiveValue;
 class CSSValue;
 class CSSValueList;
 
-class CSSFontValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSFontValue final : public CSSValue {
 public:
     static Ref<CSSFontValue> create()
     {

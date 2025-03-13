@@ -30,7 +30,7 @@
 
 namespace WebCore {
 
-class CSSEasingFunctionValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSEasingFunctionValue final : public CSSValue {
 public:
     static Ref<CSSEasingFunctionValue> create(CSS::EasingFunction);
 

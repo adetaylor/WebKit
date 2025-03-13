@@ -33,7 +33,7 @@ namespace WebCore {
 
 class Element;
 
-class CSSAttrValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSAttrValue final : public CSSValue {
 public:
     static Ref<CSSAttrValue> create(String attributeName, RefPtr<CSSValue>&& fallback = nullptr);
     const String attributeName() const { return m_attributeName; }

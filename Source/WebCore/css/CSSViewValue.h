@@ -35,7 +35,7 @@ namespace WebCore {
 
 // Class containing the value of a view() function, as used in animation-timeline:
 // https://drafts.csswg.org/scroll-animations-1/#funcdef-view.
-class CSSViewValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSViewValue final : public CSSValue {
 public:
     static Ref<CSSViewValue> create()
     {

@@ -29,7 +29,7 @@
 
 namespace WebCore {
 
-class CSSAppleColorFilterPropertyValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSAppleColorFilterPropertyValue final : public CSSValue {
 public:
     static Ref<CSSAppleColorFilterPropertyValue> create(CSS::AppleColorFilterProperty);
 

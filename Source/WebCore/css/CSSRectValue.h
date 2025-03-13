@@ -29,7 +29,7 @@
 
 namespace WebCore {
 
-class CSSRectValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSRectValue final : public CSSValue {
 public:
     static Ref<CSSRectValue> create(Rect);
 

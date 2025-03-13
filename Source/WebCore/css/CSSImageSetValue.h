@@ -35,7 +35,7 @@ namespace Style {
 class BuilderState;
 }
 
-class CSSImageSetValue final : public CSSValueContainingVector {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSImageSetValue final : public CSSValueContainingVector {
 public:
     static Ref<CSSImageSetValue> create(CSSValueListBuilder);
 

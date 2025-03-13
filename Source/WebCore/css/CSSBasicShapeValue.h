@@ -35,7 +35,7 @@
 
 namespace WebCore {
 
-class CSSBasicShapeValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSBasicShapeValue final : public CSSValue {
 public:
     static Ref<CSSBasicShapeValue> create(CSS::BasicShape shape)
     {

@@ -29,7 +29,7 @@
 
 namespace WebCore {
 
-class CSSTextShadowPropertyValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSTextShadowPropertyValue final : public CSSValue {
 public:
     static Ref<CSSTextShadowPropertyValue> create(CSS::TextShadowProperty);
 

@@ -31,7 +31,7 @@ namespace WebCore {
 
 enum CSSValueID : uint16_t;
 
-class CSSFunctionValue final : public CSSValueContainingVector {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSFunctionValue final : public CSSValueContainingVector {
 public:
     static Ref<CSSFunctionValue> create(CSSValueID name, CSSValueListBuilder arguments);
     static Ref<CSSFunctionValue> create(CSSValueID name);

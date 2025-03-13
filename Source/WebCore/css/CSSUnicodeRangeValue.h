@@ -30,7 +30,7 @@
 
 namespace WebCore {
 
-class CSSUnicodeRangeValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSUnicodeRangeValue final : public CSSValue {
 public:
     static Ref<CSSUnicodeRangeValue> create(char32_t from, char32_t to)
     {

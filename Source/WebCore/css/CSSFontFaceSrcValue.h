@@ -39,7 +39,7 @@ class SVGFontFaceElement;
 class ScriptExecutionContext;
 class WeakPtrImplWithEventTargetData;
 
-class CSSFontFaceSrcLocalValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSFontFaceSrcLocalValue final : public CSSValue {
 public:
     static Ref<CSSFontFaceSrcLocalValue> create(AtomString fontFaceName);
     ~CSSFontFaceSrcLocalValue();
@@ -106,7 +106,7 @@ inline ASCIILiteral cssTextFromFontTech(FontTechnology tech)
     }
 }
 
-class CSSFontFaceSrcResourceValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSFontFaceSrcResourceValue final : public CSSValue {
 public:
     static Ref<CSSFontFaceSrcResourceValue> create(ResolvedURL, String format, Vector<FontTechnology>&& technologies, LoadedFromOpaqueSource = LoadedFromOpaqueSource::No);
 

@@ -30,7 +30,7 @@
 
 namespace WebCore {
 
-class CSSCounterValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSCounterValue final : public CSSValue {
 public:
     static Ref<CSSCounterValue> create(AtomString identifier, AtomString separator, RefPtr<CSSValue> counterStyle);
 

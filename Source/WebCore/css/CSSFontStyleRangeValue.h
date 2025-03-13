@@ -31,7 +31,7 @@
 
 namespace WebCore {
 
-class CSSFontStyleRangeValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSFontStyleRangeValue final : public CSSValue {
 public:
     static Ref<CSSFontStyleRangeValue> create(Ref<CSSPrimitiveValue>&& fontStyleValue)
     {

@@ -66,7 +66,7 @@ template<> inline float roundForImpreciseConversion(double value)
     return static_cast<float>(value);
 }
 
-class CSSPrimitiveValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSPrimitiveValue final : public CSSValue {
 public:
     static constexpr bool isLength(CSSUnitType);
 

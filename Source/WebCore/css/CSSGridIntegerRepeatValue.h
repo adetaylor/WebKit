@@ -43,7 +43,7 @@ namespace WebCore {
 //                          [ <line-names>? <track-size> ]+ <line-names>? )
 // <fixed-repeat> = repeat( [ <positive-integer> ],
 //                          [ <line-names>? <fixed-size> ]+ <line-names>? )
-class CSSGridIntegerRepeatValue final : public CSSValueContainingVector {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSGridIntegerRepeatValue final : public CSSValueContainingVector {
 public:
     static Ref<CSSGridIntegerRepeatValue> create(Ref<CSSPrimitiveValue>&& repetitions, CSSValueListBuilder);
 

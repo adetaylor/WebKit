@@ -29,7 +29,7 @@
 
 namespace WebCore {
 
-class CSSFilterPropertyValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSFilterPropertyValue final : public CSSValue {
 public:
     static Ref<CSSFilterPropertyValue> create(CSS::FilterProperty);
 

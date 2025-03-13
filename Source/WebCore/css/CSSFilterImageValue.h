@@ -39,7 +39,7 @@ class BuilderState;
 
 class StyleImage;
 
-class CSSFilterImageValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSFilterImageValue final : public CSSValue {
 public:
     static Ref<CSSFilterImageValue> create(Ref<CSSValue>&& imageValueOrNone, CSS::FilterProperty&& filter)
     {

@@ -48,7 +48,7 @@ class BuilderState;
 
 enum CSSPropertyID : uint16_t;
 
-class CSSVariableReferenceValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSVariableReferenceValue final : public CSSValue {
 public:
     static Ref<CSSVariableReferenceValue> create(const CSSParserTokenRange&, const CSSParserContext&);
     static Ref<CSSVariableReferenceValue> create(Ref<CSSVariableData>&&);

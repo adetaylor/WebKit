@@ -32,7 +32,7 @@
 
 namespace WebCore {
 
-class CSSImageSetOptionValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSImageSetOptionValue final : public CSSValue {
 public:
     static Ref<CSSImageSetOptionValue> create(Ref<CSSValue>&&);
     static Ref<CSSImageSetOptionValue> create(Ref<CSSValue>&&, Ref<CSSPrimitiveValue>&&);

@@ -29,7 +29,7 @@
 
 namespace WebCore {
 
-class CSSBoxShadowPropertyValue final : public CSSValue {
+class SUPPRESS_REFCOUNTED_WITHOUT_VIRTUAL_DESTRUCTOR CSSBoxShadowPropertyValue final : public CSSValue {
 public:
     static Ref<CSSBoxShadowPropertyValue> create(CSS::BoxShadowProperty);
 
