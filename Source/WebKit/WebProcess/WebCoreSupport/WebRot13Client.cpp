@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2011, 2013 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,36 +23,23 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "config.h"
+#include "WebRot13Client.h"
+#include "WebProcess.h"
+#include <wtf/TZoneMallocInlines.h>
 
-#include "Supplementable.h"
-#include <wtf/CheckedRef.h>
-#include <wtf/Forward.h>
-#include <wtf/RefCounted.h>
-#include <wtf/TZoneMalloc.h>
+namespace WebKit {
+using namespace WebCore;
 
-namespace WebCore {
+WTF_MAKE_TZONE_ALLOCATED_IMPL(WebRot13Client);
 
-class DeferredPromise;
-class Navigator;
+WebRot13Client::~WebRot13Client()
+{
+}
 
-class NavigatorRot13 final : public Supplement<Navigator> {
-    WTF_MAKE_TZONE_ALLOCATED(NavigatorRot13);
-public:
-    explicit NavigatorRot13(Navigator& navigator)
-        : m_navigator(navigator)
-    {
-    }
+String WebRot13Client::rot13(const String& plaintext, unsigned long rotation)
+{
+return m_page.get().getRot13().rot13(plaintext, rotation);
+}
 
-    static void rot13(Navigator&, const String& plaintext, unsigned long rotation, Ref<DeferredPromise>&&);
-
-private:
-    static NavigatorRot13& from(Navigator&);
-    static ASCIILiteral supplementName() { return "NavigatorRot13"_s; }
-
-    void rot13(const String&, unsigned long, Ref<DeferredPromise>&&);
-
-    CheckedRef<Navigator> m_navigator;
-};
-
-} // namespace WebCore
+} // namespace WebKit

@@ -15416,9 +15416,9 @@ void WebPageProxy::requestCookieConsent(CompletionHandler<void(CookieConsentDeci
     m_uiClient->requestCookieConsent(WTFMove(completion));
 }
 
-void WebPageProxy::rot13(const WTF::String& plaintext, CompletionHandler<void(Rot13Result)>&& completion)
+void WebPageProxy::rot13(const WebCore::Rot13Request& request, CompletionHandler<void(Rot13Result)>&& completion)
 {
-    m_uiClient->rot13(plaintext, WTFMove(completion));
+    m_uiClient->rot13(request, WTFMove(completion));
 }
 
 #if ENABLE(IMAGE_ANALYSIS) && ENABLE(VIDEO)

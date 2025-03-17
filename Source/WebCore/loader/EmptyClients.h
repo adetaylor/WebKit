@@ -223,7 +223,7 @@ class EmptyChromeClient : public ChromeClient {
     RefPtr<Icon> createIconForFiles(const Vector<String>& /* filenames */) final;
 
     void requestCookieConsent(CompletionHandler<void(CookieConsentDecisionResult)>&&) final;
-    void rot13(const String& plaintext, CompletionHandler<void(Rot13Result)>&&) final;
+    void rot13(const WebCore::Rot13Request& request, CompletionHandler<void(Rot13Result)>&&) final;
 };
 
 DiagnosticLoggingClient& emptyDiagnosticLoggingClient();

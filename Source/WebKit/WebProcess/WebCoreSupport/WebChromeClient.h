@@ -28,6 +28,8 @@
 
 #include <WebCore/ChromeClient.h>
 #include <WebCore/HTMLVideoElement.h>
+#include <WebCore/Rot13Request.h>
+#include <WebCore/Rot13Result.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakRef.h>
 
@@ -35,12 +37,13 @@ namespace WebCore {
 class HTMLImageElement;
 class RegistrableDomain;
 enum class CookieConsentDecisionResult : uint8_t;
-enum class Rot13Result : uint8_t;
 enum class DidFilterLinkDecoration : bool;
 enum class IsLoggedIn : uint8_t;
 enum class StorageAccessPromptWasShown : bool;
 enum class StorageAccessWasGranted : uint8_t;
 struct TextRecognitionOptions;
+struct Rot13Request;
+struct Rot13Result;
 }
 
 namespace API {
@@ -513,7 +516,7 @@ private:
 #endif
 
     void requestCookieConsent(CompletionHandler<void(WebCore::CookieConsentDecisionResult)>&&) final;
-    void rot13(const String&, CompletionHandler<void(WebCore::Rot13Result)>&&) final;
+    void rot13(const WebCore::Rot13Request&, CompletionHandler<void(WebCore::Rot13Result)>&&) final;
     
     bool isUsingUISideCompositing() const;
 

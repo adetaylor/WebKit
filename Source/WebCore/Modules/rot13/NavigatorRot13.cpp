@@ -28,11 +28,13 @@
 
 #include "Chrome.h"
 #include "ChromeClient.h"
+#include "Modules/rot13/Rot13Request.h"
 #include "Rot13Result.h"
 #include "ExceptionCode.h"
 #include "JSDOMPromiseDeferred.h"
 #include "Navigator.h"
 #include "Page.h"
+#include "wtf/Compiler.h"
 #include <WebCore/IDLTypes.h>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -40,29 +42,26 @@ namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(NavigatorRot13);
 
-void NavigatorRot13::rot13(Navigator& navigator, const String& plaintext, Ref<DeferredPromise>&& promise)
+void NavigatorRot13::rot13(Navigator& navigator, const String& plaintext, unsigned long rotation, Ref<DeferredPromise>&& promise)
 {
-    from(navigator).rot13(WTFMove(plaintext), WTFMove(promise));
+    from(navigator).rot13(WTFMove(plaintext), rotation, WTFMove(promise));
 }
 
-void NavigatorRot13::rot13(const String& plaintext, Ref<DeferredPromise>&& promise)
+void NavigatorRot13::rot13(const String& plaintext, unsigned long rotation, Ref<DeferredPromise>&& promise)
 {
-    String ciphertext = plaintext;
-
     RefPtr frame = m_navigator->frame();
     if (!frame || !frame->isMainFrame() || !frame->page()) {
         promise->reject(ExceptionCode::NotAllowedError);
         return;
     }
 
-    frame->page()->chrome().client().rot13(plaintext, [promise = WTFMove(promise), ciphertext = WTFMove(ciphertext)] (Rot13Result result) {
-        switch (result) {
-        case Rot13Result::Failure:
+    Rot13Request request(plaintext, rotation);
+
+    frame->page()->chrome().client().rot13(request, [promise = WTFMove(promise)] (Rot13Result result) {
+        if (result.success) {
+            promise->resolve<IDLDOMString>(result.ciphertext);
+        } else {
             promise->reject(ExceptionCode::NotSupportedError);
-            break;
-        case Rot13Result::Success:
-            promise->resolve<IDLDOMString>(ciphertext);
-            break;
         }
     });
 }

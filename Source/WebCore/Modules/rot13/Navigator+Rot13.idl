@@ -26,5 +26,5 @@
 [
     ImplementedBy=NavigatorRot13,
 ] partial interface Navigator {
-    Promise<USVString> rot13(USVString plaintext);
+    Promise<USVString> rot13(USVString plaintext, unsigned long rotation);
 };

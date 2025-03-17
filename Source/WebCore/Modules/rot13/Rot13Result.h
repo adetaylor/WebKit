@@ -25,11 +25,26 @@
 
 #pragma once
 
+#include <wtf/ArgumentCoder.h>
+
 namespace WebCore {
 
-enum class Rot13Result : uint8_t {
-    Success,
-    Failure,
+struct Rot13Result {
+    WTF_MAKE_STRUCT_FAST_ALLOCATED;
+    Rot13Result(const Rot13Result&) = delete;
+    Rot13Result& operator=(const Rot13Result&) = delete;
+    Rot13Result() = default;
+    Rot13Result(Rot13Result&&) = default;
+    Rot13Result& operator=(Rot13Result&&) = default;
+    Rot13Result(bool success, String ciphertext)
+        : success(success)
+        , ciphertext(ciphertext)
+    {
+    }
+    WEBCORE_EXPORT Rot13Result isolatedCopy() const &&;
+
+    bool success;
+    String ciphertext;
 };
 
 } // namespace WebCore

@@ -61,6 +61,7 @@
 #import <WebCore/ContextMenu.h>
 #import <WebCore/ContextMenuController.h>
 #import <WebCore/CookieConsentDecisionResult.h>
+#import <WebCore/Rot13Request.h>
 #import <WebCore/Rot13Result.h>
 #import <WebCore/Cursor.h>
 #import <WebCore/DataListSuggestionPicker.h>
@@ -1192,8 +1193,8 @@ void WebChromeClient::requestCookieConsent(CompletionHandler<void(CookieConsentD
     completion(CookieConsentDecisionResult::NotSupported);
 }
 
-void WebChromeClient::rot13(const String& plaintext, CompletionHandler<void(Rot13Result)>&& completion)
+void WebChromeClient::rot13(const Rot13Request& request, CompletionHandler<void(Rot13Result)>&& completion)
 {
-    UNUSED_PARAM(plaintext);
-    completion(Rot13Result::Failure);
+    UNUSED_PARAM(request);
+    completion(Rot13Result(false, String::fromLatin1("")));
 }

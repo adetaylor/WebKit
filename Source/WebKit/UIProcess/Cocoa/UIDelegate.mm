@@ -24,6 +24,9 @@
  */
 
 #import "config.h"
+#include <WebCore/Rot13Request.h>
+#include <WebCore/Rot13Result.h>
+#include "wtf/Compiler.h"
 #import "UIDelegate.h"
 
 #import "APIArray.h"
@@ -846,12 +849,24 @@ void UIDelegate::UIClient::requestCookieConsent(CompletionHandler<void(WebCore::
     }).get()];
 }
 
-void UIDelegate::UIClient::rot13(const String& plaintext, CompletionHandler<void(WebCore::Rot13Result)>&& completion) {
-    RefPtr uiDelegate = m_uiDelegate.get();
-    if (!uiDelegate)
-        return completion(WebCore::Rot13Result::Failure);
-    // TODO ADE
-    return completion(WebCore::Rot13Result::Success);
+void UIDelegate::UIClient::rot13(const WebCore::Rot13Request& request, CompletionHandler<void(WebCore::Rot13Result)>&& completion) {
+    StringBuffer<UChar> ciphertext(request.plaintext.length());
+    // There may be overflows etc. below. This is toy code.
+    for (unsigned i=0;i<request.plaintext.length();i++) {
+        UChar c = request.plaintext.characterAt(i);
+        if (c>= u'a' && c <= u'z') {
+            int off = c - u'a';
+            off = (off + request.rotation) % 26;
+            ciphertext[i] = u'a' + off;
+        } else if (c >= u'A' && c <= u'Z') {
+            int off = c - u'A';
+            off = (off + request.rotation) % 26;
+            ciphertext[i] = u'A' + off;
+        } else {
+            ciphertext[i] = c;
+        }
+    }
+    completion(WebCore::Rot13Result(true, String::adopt(WTFMove(ciphertext))));
 }
 
 bool UIDelegate::UIClient::focusFromServiceWorker(WebKit::WebPageProxy& proxy)

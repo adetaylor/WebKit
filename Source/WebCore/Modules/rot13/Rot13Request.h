@@ -25,34 +25,27 @@
 
 #pragma once
 
-#include "Supplementable.h"
-#include <wtf/CheckedRef.h>
-#include <wtf/Forward.h>
-#include <wtf/RefCounted.h>
-#include <wtf/TZoneMalloc.h>
+#include <wtf/ArgumentCoder.h>
 
 namespace WebCore {
 
-class DeferredPromise;
-class Navigator;
-
-class NavigatorRot13 final : public Supplement<Navigator> {
-    WTF_MAKE_TZONE_ALLOCATED(NavigatorRot13);
-public:
-    explicit NavigatorRot13(Navigator& navigator)
-        : m_navigator(navigator)
+struct Rot13Request {
+    WTF_MAKE_STRUCT_FAST_ALLOCATED;
+    Rot13Request(const Rot13Request&) = delete;
+    Rot13Request& operator=(const Rot13Request&) = delete;
+    Rot13Request() = default;
+    Rot13Request(Rot13Request&&) = default;
+    Rot13Request& operator=(Rot13Request&&) = default;
+    Rot13Request(String plaintext, unsigned int rotation)
+        : plaintext(plaintext)
+        , rotation(rotation)
     {
     }
 
-    static void rot13(Navigator&, const String& plaintext, unsigned long rotation, Ref<DeferredPromise>&&);
+    WEBCORE_EXPORT Rot13Request isolatedCopy() const &&;
 
-private:
-    static NavigatorRot13& from(Navigator&);
-    static ASCIILiteral supplementName() { return "NavigatorRot13"_s; }
-
-    void rot13(const String&, unsigned long, Ref<DeferredPromise>&&);
-
-    CheckedRef<Navigator> m_navigator;
+    String plaintext;
+    unsigned int rotation;
 };
 
 } // namespace WebCore

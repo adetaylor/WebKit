@@ -37,6 +37,7 @@
 #include "ColorChooser.h"
 #include "ContextMenuClient.h"
 #include "CookieConsentDecisionResult.h"
+#include "Rot13Request.h"
 #include "Rot13Result.h"
 #include "CookieJar.h"
 #include "CredentialRequestCoordinatorClient.h"
@@ -637,10 +638,10 @@ void EmptyChromeClient::requestCookieConsent(CompletionHandler<void(CookieConsen
     completion(CookieConsentDecisionResult::NotSupported);
 }
 
-void EmptyChromeClient::rot13(const String& plaintext, CompletionHandler<void(Rot13Result)>&& completion)
+void EmptyChromeClient::rot13(const WebCore::Rot13Request& request, CompletionHandler<void(Rot13Result)>&& completion)
 {
-    UNUSED_PARAM(plaintext);
-    completion(Rot13Result::Failure);
+    UNUSED_PARAM(request);
+    completion(Rot13Result(false, WTF::String::fromLatin1("")));
 }
 
 RefPtr<Icon> EmptyChromeClient::createIconForFiles(const Vector<String>& /* filenames */)

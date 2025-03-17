@@ -80,6 +80,7 @@
 #include <WebCore/ColorChooser.h>
 #include <WebCore/ContentRuleListResults.h>
 #include <WebCore/CookieConsentDecisionResult.h>
+#include <WebCore/Rot13Request.h>
 #include <WebCore/Rot13Result.h>
 #include <WebCore/DataListSuggestionPicker.h>
 #include <WebCore/DatabaseTracker.h>
@@ -110,6 +111,7 @@
 #include <WebCore/TextRecognitionOptions.h>
 #include <WebCore/ViewportConfiguration.h>
 #include <WebCore/WindowFeatures.h>
+#include <wtf/Compiler.h>
 #include <wtf/JSONValues.h>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -1899,9 +1901,9 @@ void WebChromeClient::requestCookieConsent(CompletionHandler<void(CookieConsentD
     protectedPage()->sendWithAsyncReply(Messages::WebPageProxy::RequestCookieConsent(), WTFMove(completion));
 }
 
-void WebChromeClient::rot13(const String& plaintext, CompletionHandler<void(Rot13Result)>&& completion)
+void WebChromeClient::rot13(const Rot13Request& request, CompletionHandler<void(Rot13Result)>&& completion)
 {
-    protectedPage()->sendWithAsyncReply(Messages::WebPageProxy::Rot13(plaintext), WTFMove(completion));
+    protectedPage()->sendWithAsyncReply(Messages::WebPageProxy::Rot13(request), WTFMove(completion));
 }
 
 bool WebChromeClient::isUsingUISideCompositing() const

@@ -133,12 +133,17 @@ enum class WebCore::CookieConsentDecisionResult : uint8_t {
     Dissent,
 };
 
-header: <WebCore/Rot13Result.h>
-enum class WebCore::Rot13Result : uint8_t {
-    Failure,
-    Success,
+header: <WebCore/Rot13Request.h>
+struct WebCore::Rot13Request {
+    String plaintext;
+    unsigned rotation;
 };
 
+header: <WebCore/Rot13Result.h>
+struct WebCore::Rot13Result {
+    bool success;
+    String ciphertext;
+};
 
 header: <WebCore/IDBResultData.h>
 enum class WebCore::IDBResultType : uint8_t {

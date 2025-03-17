@@ -32,6 +32,7 @@
 #include "WebHitTestResultData.h"
 #include "wtf/Compiler.h"
 #include <WebCore/CookieConsentDecisionResult.h>
+#include <WebCore/Rot13Request.h>
 #include <WebCore/Rot13Result.h>
 #include <WebCore/FloatRect.h>
 #include <WebCore/ModalContainerTypes.h>
@@ -159,7 +160,7 @@ public:
     virtual void decidePolicyForNotificationPermissionRequest(WebKit::WebPageProxy&, SecurityOrigin&, CompletionHandler<void(bool allowed)>&& completionHandler) { completionHandler(false); }
     virtual void requestStorageAccessConfirm(WebKit::WebPageProxy&, WebKit::WebFrameProxy*, const WebCore::RegistrableDomain& requestingDomain, const WebCore::RegistrableDomain& currentDomain, std::optional<WebCore::OrganizationStorageAccessPromptQuirk>&&, CompletionHandler<void(bool)>&& completionHandler) { completionHandler(true); }
     virtual void requestCookieConsent(CompletionHandler<void(WebCore::CookieConsentDecisionResult)>&& completionHandler) { completionHandler(WebCore::CookieConsentDecisionResult::NotSupported); }
-    virtual void rot13(const WTF::String& plaintext, CompletionHandler<void(WebCore::Rot13Result)>&& completionHandler) { UNUSED_PARAM(plaintext); completionHandler(WebCore::Rot13Result::Failure); }
+    virtual void rot13(const WebCore::Rot13Request& request, CompletionHandler<void(WebCore::Rot13Result)>&& completionHandler) { completionHandler(WebCore::Rot13Result(false, request.plaintext)); }
 
     // Printing.
     virtual float headerHeight(WebKit::WebPageProxy&, WebKit::WebFrameProxy&) { return 0; }

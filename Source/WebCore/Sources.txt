@@ -112,6 +112,8 @@ Modules/compression/ZStream.cpp
 Modules/contact-picker/ContactsManager.cpp
 Modules/contact-picker/NavigatorContacts.cpp
 Modules/cookie-consent/NavigatorCookieConsent.cpp
+Modules/rot13/shared/Rot13Result.cpp
+Modules/rot13/shared/Rot13Request.cpp
 Modules/rot13/NavigatorRot13.cpp
 Modules/cookie-store/ExtendableCookieChangeEvent.cpp
 Modules/cookie-store/CookieChangeEvent.cpp

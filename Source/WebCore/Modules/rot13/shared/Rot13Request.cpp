@@ -23,36 +23,19 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "config.h"
+#include "Rot13Request.h"
 
-#include "Supplementable.h"
-#include <wtf/CheckedRef.h>
-#include <wtf/Forward.h>
-#include <wtf/RefCounted.h>
-#include <wtf/TZoneMalloc.h>
+#include <wtf/text/MakeString.h>
 
 namespace WebCore {
 
-class DeferredPromise;
-class Navigator;
+Rot13Request Rot13Request::isolatedCopy() const &&
+{
+    Rot13Request result;
+    result.plaintext = plaintext.isolatedCopy();
+    result.rotation = rotation;
+    return result;
+}
 
-class NavigatorRot13 final : public Supplement<Navigator> {
-    WTF_MAKE_TZONE_ALLOCATED(NavigatorRot13);
-public:
-    explicit NavigatorRot13(Navigator& navigator)
-        : m_navigator(navigator)
-    {
-    }
-
-    static void rot13(Navigator&, const String& plaintext, unsigned long rotation, Ref<DeferredPromise>&&);
-
-private:
-    static NavigatorRot13& from(Navigator&);
-    static ASCIILiteral supplementName() { return "NavigatorRot13"_s; }
-
-    void rot13(const String&, unsigned long, Ref<DeferredPromise>&&);
-
-    CheckedRef<Navigator> m_navigator;
-};
-
-} // namespace WebCore
+}  // namespace WebCore

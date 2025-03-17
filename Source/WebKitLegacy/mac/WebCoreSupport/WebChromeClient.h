@@ -28,6 +28,7 @@
  */
 
 #import <WebCore/ChromeClient.h>
+#include <WebCore/Rot13Result.h>
 #import <WebCore/FocusDirection.h>
 #import <wtf/Forward.h>
 #import <wtf/TZoneMalloc.h>
@@ -250,7 +251,7 @@ private:
     void registerBlobPathForTesting(const String&, CompletionHandler<void()>&&) final;
 
     void requestCookieConsent(CompletionHandler<void(WebCore::CookieConsentDecisionResult)>&&) final;
-    void rot13(const String&, CompletionHandler<void(WebCore::Rot13Result)>&&) final;
+    void rot13(const WebCore::Rot13Request& request, CompletionHandler<void(WebCore::Rot13Result)>&&) final;
 
 #if ENABLE(VIDEO_PRESENTATION_MODE)
     bool m_mockVideoPresentationModeEnabled { false };
