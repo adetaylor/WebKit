@@ -250,6 +250,7 @@ private:
     void registerBlobPathForTesting(const String&, CompletionHandler<void()>&&) final;
 
     void requestCookieConsent(CompletionHandler<void(WebCore::CookieConsentDecisionResult)>&&) final;
+    void rot13(const String&, CompletionHandler<void(WebCore::Rot13Result)>&&) final;
 
 #if ENABLE(VIDEO_PRESENTATION_MODE)
     bool m_mockVideoPresentationModeEnabled { false };

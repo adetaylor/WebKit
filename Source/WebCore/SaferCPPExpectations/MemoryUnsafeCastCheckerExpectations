@@ -11,6 +11,7 @@ Modules/beacon/NavigatorBeacon.cpp
 Modules/cache/WindowOrWorkerGlobalScopeCaches.cpp
 Modules/contact-picker/NavigatorContacts.cpp
 Modules/cookie-consent/NavigatorCookieConsent.cpp
+Modules/rot13/NavigatorRot13.cpp
 Modules/credentialmanagement/NavigatorCredentials.cpp
 Modules/encryptedmedia/MediaKeySystemController.cpp
 Modules/gamepad/NavigatorGamepad.cpp

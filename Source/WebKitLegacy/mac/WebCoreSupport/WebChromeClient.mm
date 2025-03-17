@@ -28,6 +28,7 @@
  */
 
 #import "WebChromeClient.h"
+#include "wtf/Compiler.h"
 
 #import "DOMElementInternal.h"
 #import "DOMHTMLInputElementInternal.h"
@@ -60,6 +61,7 @@
 #import <WebCore/ContextMenu.h>
 #import <WebCore/ContextMenuController.h>
 #import <WebCore/CookieConsentDecisionResult.h>
+#import <WebCore/Rot13Result.h>
 #import <WebCore/Cursor.h>
 #import <WebCore/DataListSuggestionPicker.h>
 #import <WebCore/DocumentFullscreen.h>
@@ -1188,4 +1190,10 @@ void WebChromeClient::registerBlobPathForTesting(const String&, CompletionHandle
 void WebChromeClient::requestCookieConsent(CompletionHandler<void(CookieConsentDecisionResult)>&& completion)
 {
     completion(CookieConsentDecisionResult::NotSupported);
+}
+
+void WebChromeClient::rot13(const String& plaintext, CompletionHandler<void(Rot13Result)>&& completion)
+{
+    UNUSED_PARAM(plaintext);
+    completion(Rot13Result::Failure);
 }

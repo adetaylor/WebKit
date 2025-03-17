@@ -30,6 +30,7 @@ set(WebCore_PRIVATE_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/Modules/compression"
     "${WEBCORE_DIR}/Modules/contact-picker"
     "${WEBCORE_DIR}/Modules/cookie-consent"
+    "${WEBCORE_DIR}/Modules/rot13"
     "${WEBCORE_DIR}/Modules/cookie-store"
     "${WEBCORE_DIR}/Modules/credentialmanagement"
     "${WEBCORE_DIR}/Modules/encryptedmedia"
@@ -320,6 +321,8 @@ set(WebCore_NON_SVG_IDL_FILES
 
     Modules/cookie-consent/Navigator+CookieConsent.idl
     Modules/cookie-consent/RequestCookieConsentOptions.idl
+
+    Modules/rot13/Navigator+Rot13.idl
 
     Modules/cookie-store/CookieChangeEvent.idl
     Modules/cookie-store/CookieChangeEventInit.idl

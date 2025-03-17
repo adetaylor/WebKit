@@ -80,6 +80,7 @@
 #include <WebCore/ColorChooser.h>
 #include <WebCore/ContentRuleListResults.h>
 #include <WebCore/CookieConsentDecisionResult.h>
+#include <WebCore/Rot13Result.h>
 #include <WebCore/DataListSuggestionPicker.h>
 #include <WebCore/DatabaseTracker.h>
 #include <WebCore/DocumentFullscreen.h>
@@ -1896,6 +1897,11 @@ void WebChromeClient::beginSystemPreview(const URL& url, const SecurityOriginDat
 void WebChromeClient::requestCookieConsent(CompletionHandler<void(CookieConsentDecisionResult)>&& completion)
 {
     protectedPage()->sendWithAsyncReply(Messages::WebPageProxy::RequestCookieConsent(), WTFMove(completion));
+}
+
+void WebChromeClient::rot13(const String& plaintext, CompletionHandler<void(Rot13Result)>&& completion)
+{
+    protectedPage()->sendWithAsyncReply(Messages::WebPageProxy::Rot13(plaintext), WTFMove(completion));
 }
 
 bool WebChromeClient::isUsingUISideCompositing() const

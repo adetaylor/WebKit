@@ -846,6 +846,14 @@ void UIDelegate::UIClient::requestCookieConsent(CompletionHandler<void(WebCore::
     }).get()];
 }
 
+void UIDelegate::UIClient::rot13(const String& plaintext, CompletionHandler<void(WebCore::Rot13Result)>&& completion) {
+    RefPtr uiDelegate = m_uiDelegate.get();
+    if (!uiDelegate)
+        return completion(WebCore::Rot13Result::Failure);
+    // TODO ADE
+    return completion(WebCore::Rot13Result::Success);
+}
+
 bool UIDelegate::UIClient::focusFromServiceWorker(WebKit::WebPageProxy& proxy)
 {
     RefPtr uiDelegate = m_uiDelegate.get();

@@ -351,6 +351,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     Modules/contact-picker/ContactsRequestData.h
 
     Modules/cookie-consent/CookieConsentDecisionResult.h
+    Modules/rot13/Rot13Result.h
 
     Modules/cookie-store/CookieChangeSubscription.h
     Modules/cookie-store/CookieStoreGetOptions.h

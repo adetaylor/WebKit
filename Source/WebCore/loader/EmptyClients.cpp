@@ -37,6 +37,7 @@
 #include "ColorChooser.h"
 #include "ContextMenuClient.h"
 #include "CookieConsentDecisionResult.h"
+#include "Rot13Result.h"
 #include "CookieJar.h"
 #include "CredentialRequestCoordinatorClient.h"
 #include "DOMPasteAccess.h"
@@ -90,6 +91,7 @@
 #include "VisitedLinkStore.h"
 #include "WebRTCProvider.h"
 #include "WebTransportSession.h"
+#include "wtf/Compiler.h"
 #include <JavaScriptCore/HeapInlines.h>
 #include <pal/SessionID.h>
 #include <wtf/NeverDestroyed.h>
@@ -633,6 +635,12 @@ void EmptyChromeClient::showShareSheet(ShareDataWithParsedURL&, CompletionHandle
 void EmptyChromeClient::requestCookieConsent(CompletionHandler<void(CookieConsentDecisionResult)>&& completion)
 {
     completion(CookieConsentDecisionResult::NotSupported);
+}
+
+void EmptyChromeClient::rot13(const String& plaintext, CompletionHandler<void(Rot13Result)>&& completion)
+{
+    UNUSED_PARAM(plaintext);
+    completion(Rot13Result::Failure);
 }
 
 RefPtr<Icon> EmptyChromeClient::createIconForFiles(const Vector<String>& /* filenames */)

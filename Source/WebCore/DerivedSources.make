@@ -297,6 +297,7 @@ JS_BINDING_IDLS := \
     $(WebCore)/Modules/contact-picker/Navigator+Contacts.idl \
     $(WebCore)/Modules/cookie-consent/Navigator+CookieConsent.idl \
     $(WebCore)/Modules/cookie-consent/RequestCookieConsentOptions.idl \
+    $(WebCore)/Modules/rot13/Navigator+Rot13.idl \
     $(WebCore)/Modules/cookie-store/CookieChangeEvent.idl \
     $(WebCore)/Modules/cookie-store/CookieChangeEventInit.idl \
     $(WebCore)/Modules/cookie-store/CookieInit.idl \

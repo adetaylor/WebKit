@@ -15416,6 +15416,11 @@ void WebPageProxy::requestCookieConsent(CompletionHandler<void(CookieConsentDeci
     m_uiClient->requestCookieConsent(WTFMove(completion));
 }
 
+void WebPageProxy::rot13(const WTF::String& plaintext, CompletionHandler<void(Rot13Result)>&& completion)
+{
+    m_uiClient->rot13(plaintext, WTFMove(completion));
+}
+
 #if ENABLE(IMAGE_ANALYSIS) && ENABLE(VIDEO)
 void WebPageProxy::beginTextRecognitionForVideoInElementFullScreen(MediaPlayerIdentifier identifier, FloatRect bounds)
 {

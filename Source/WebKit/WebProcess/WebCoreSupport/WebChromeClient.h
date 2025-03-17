@@ -35,6 +35,7 @@ namespace WebCore {
 class HTMLImageElement;
 class RegistrableDomain;
 enum class CookieConsentDecisionResult : uint8_t;
+enum class Rot13Result : uint8_t;
 enum class DidFilterLinkDecoration : bool;
 enum class IsLoggedIn : uint8_t;
 enum class StorageAccessPromptWasShown : bool;
@@ -512,6 +513,7 @@ private:
 #endif
 
     void requestCookieConsent(CompletionHandler<void(WebCore::CookieConsentDecisionResult)>&&) final;
+    void rot13(const String&, CompletionHandler<void(WebCore::Rot13Result)>&&) final;
     
     bool isUsingUISideCompositing() const;
 

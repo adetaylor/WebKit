@@ -148,6 +148,7 @@ enum class AXLoadingEvent : uint8_t;
 enum class AXNotification;
 enum class AXTextChange : uint8_t;
 enum class CookieConsentDecisionResult : uint8_t;
+enum class Rot13Result : uint8_t;
 enum class DidFilterLinkDecoration : bool { No, Yes };
 enum class IsLoggedIn : uint8_t;
 enum class LinkDecorationFilteringTrigger : uint8_t;
@@ -693,6 +694,7 @@ public:
     virtual void didAddOrRemoveViewportConstrainedObjects() { }
 
     virtual void requestCookieConsent(CompletionHandler<void(CookieConsentDecisionResult)>&&) = 0;
+    virtual void rot13(const String& plaintext, CompletionHandler<void(Rot13Result)>&&) = 0;
 
     virtual bool isUsingUISideCompositing() const { return false; }
     
