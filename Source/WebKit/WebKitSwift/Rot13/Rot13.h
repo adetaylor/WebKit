@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,14 +23,13 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#import <WebKitSwift/LinearMediaKitExtras.h>
-#import <WebKitSwift/RealityKitBridging.h>
-#import <WebKitSwift/WKIntelligenceReplacementTextEffectCoordinator.h>
-#import <WebKitSwift/WKIntelligenceSmartReplyTextEffectCoordinator.h>
-#import <WebKitSwift/WKIntelligenceTextEffectCoordinator.h>
-#import <WebKitSwift/WKSLinearMediaPlayer.h>
-#import <WebKitSwift/WKSLinearMediaTypes.h>
-#import <WebKitSwift/WKSPreviewWindowController.h>
-#import <WebKitSwift/WKSTextAnimationSourceDelegate.h>
-#import <WebKitSwift/WKStageMode.h>
-#import <WebKitSwift/Rot13.h>
+#import <Foundation/Foundation.h>
+#import <objc/NSObject.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface Rot13 : NSObject
+    - (void)rot13PlainText:(NSString *)plainText rotation:(int)rotation completionHandler:(void (^)(bool, NSString *))completionHandler;
+@end
+
+NS_ASSUME_NONNULL_END

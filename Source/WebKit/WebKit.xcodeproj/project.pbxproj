@@ -1562,6 +1562,7 @@
 		5CB7AFE723C6820700E49CF3 /* ResourceLoadInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB7AFE623C681B000E49CF3 /* ResourceLoadInfo.h */; };
 		5CB7AFE823C69B6100E49CF3 /* _WKResourceLoadInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB7AFE323C67D3700E49CF3 /* _WKResourceLoadInfo.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CB9310926E8439A0032B1C0 /* PrivateClickMeasurementXPCUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB9310726E841CB0032B1C0 /* PrivateClickMeasurementXPCUtilities.h */; };
+		5CB9672F2D8ACEBC006DC95A /* Rot13.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C76132C2D8AC99F004F4EEF /* Rot13.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CBC9B8E1C652CA000A8FDCF /* NetworkDataTask.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CBC9B891C6524A500A8FDCF /* NetworkDataTask.h */; };
 		5CBD595C2280EDF4002B22AA /* _WKCustomHeaderFields.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C5D2388227A1892000B9BDA /* _WKCustomHeaderFields.mm */; };
 		5CD286511E7235990094FDC8 /* WKContentRuleListStore.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CD2864D1E722F440094FDC8 /* WKContentRuleListStore.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -1570,6 +1571,7 @@
 		5CD286551E7235B80094FDC8 /* WKContentRuleListInternal.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CD2864C1E722F440094FDC8 /* WKContentRuleListInternal.h */; };
 		5CD286571E7235C90094FDC8 /* WKContentRuleListStoreInternal.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CD2864F1E722F440094FDC8 /* WKContentRuleListStoreInternal.h */; };
 		5CD286581E7235D10094FDC8 /* WKContentRuleListStorePrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CD286501E722F440094FDC8 /* WKContentRuleListStorePrivate.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		5CDBAE322D8AD474008B536F /* Rot13.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C76132D2D8AC99F004F4EEF /* Rot13.swift */; };
 		5CE3491228E2396900196304 /* WKFrameMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE3491028E238E400196304 /* WKFrameMac.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CE4B60029CE548D0038F565 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8DC2EF5B0486A6940098B216 /* WebKit.framework */; };
 		5CE4B60D29CF87680038F565 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8DC2EF5B0486A6940098B216 /* WebKit.framework */; };
@@ -6297,6 +6299,8 @@
 		5C6E7D87232361E700C2159D /* WKWebsiteDataStoreConfigurationRef.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WKWebsiteDataStoreConfigurationRef.cpp; sourceTree = "<group>"; };
 		5C74300E21500492004BFA17 /* WKWebProcess.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WKWebProcess.h; sourceTree = "<group>"; };
 		5C74300F21500492004BFA17 /* WKWebProcess.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WKWebProcess.cpp; sourceTree = "<group>"; };
+		5C76132C2D8AC99F004F4EEF /* Rot13.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Rot13.h; sourceTree = "<group>"; };
+		5C76132D2D8AC99F004F4EEF /* Rot13.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rot13.swift; sourceTree = "<group>"; };
 		5C7706731D111D8B0012700F /* WebSocketProvider.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WebSocketProvider.cpp; path = Network/WebSocketProvider.cpp; sourceTree = "<group>"; };
 		5C7C88DC1D0F41A0009D2F6D /* WebSocketProvider.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WebSocketProvider.h; path = Network/WebSocketProvider.h; sourceTree = "<group>"; };
 		5C7FB46E21E97C0B009E3241 /* WebCookieJar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebCookieJar.cpp; sourceTree = "<group>"; };
@@ -13443,6 +13447,15 @@
 			path = Cocoa;
 			sourceTree = "<group>";
 		};
+		5C76132E2D8AC99F004F4EEF /* Rot13 */ = {
+			isa = PBXGroup;
+			children = (
+				5C76132C2D8AC99F004F4EEF /* Rot13.h */,
+				5C76132D2D8AC99F004F4EEF /* Rot13.swift */,
+			);
+			path = Rot13;
+			sourceTree = "<group>";
+		};
 		5CB930F126E7EE890032B1C0 /* cocoa */ = {
 			isa = PBXGroup;
 			children = (
@@ -13951,6 +13964,7 @@
 				A14F9B332B68467F00AD9C56 /* MarketplaceKit */,
 				B66F88BE2B6D1D6000FB1734 /* Preview */,
 				5260053F2C707686005D813A /* RealityKit */,
+				5C76132E2D8AC99F004F4EEF /* Rot13 */,
 				EE0D3CDE2D3709BE00072978 /* StageMode */,
 				449A79EE2BAE299C0033BF53 /* TextAnimation */,
 				F48EC3512B75837200D1B886 /* TextExtraction */,
@@ -18254,6 +18268,7 @@
 			files = (
 				A1098E682BB6410800449EE0 /* LinearMediaKitExtras.h in Headers */,
 				5289527F2C7077B000D0357E /* RealityKitBridging.h in Headers */,
+				5CB9672F2D8ACEBC006DC95A /* Rot13.h in Headers */,
 				A14F9B672B686E0200AD9C56 /* WebKitSwift.h in Headers */,
 				0735F3202D3761A10003D029 /* WKIntelligenceReplacementTextEffectCoordinator.h in Headers */,
 				0735F3242D38C7790003D029 /* WKIntelligenceSmartReplyTextEffectCoordinator.h in Headers */,
@@ -20620,6 +20635,7 @@
 				0785E8002CBCDFFD00F68126 /* PlatformIntelligenceTextEffectView.swift in Sources */,
 				B66F88C02B6D1F2300FB1734 /* PreviewWindowController.swift in Sources */,
 				528952812C70797900D0357E /* RKEntity.swift in Sources */,
+				5CDBAE322D8AD474008B536F /* Rot13.swift in Sources */,
 				440DB5B72C1914DC0021639B /* TextAnimationManager.swift in Sources */,
 				077FD1A02CC7569200C5D9E0 /* WKIntelligenceReplacementTextEffectCoordinator.swift in Sources */,
 				0735F3222D38B09E0003D029 /* WKIntelligenceSmartReplyTextEffectCoordinator.swift in Sources */,

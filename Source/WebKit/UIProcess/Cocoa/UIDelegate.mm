@@ -87,6 +87,9 @@
 
 #import <pal/cocoa/AVFoundationSoftLink.h>
 
+#import "WebKitSwiftSoftLink.h"
+#import "WebKitSwift/Rot13.h"
+
 namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(UIDelegate);
@@ -850,23 +853,18 @@ void UIDelegate::UIClient::requestCookieConsent(CompletionHandler<void(WebCore::
 }
 
 void UIDelegate::UIClient::rot13(const WebCore::Rot13Request& request, CompletionHandler<void(WebCore::Rot13Result)>&& completion) {
-    StringBuffer<UChar> ciphertext(request.plaintext.length());
-    // There may be overflows etc. below. This is toy code.
-    for (unsigned i=0;i<request.plaintext.length();i++) {
-        UChar c = request.plaintext.characterAt(i);
-        if (c>= u'a' && c <= u'z') {
-            int off = c - u'a';
-            off = (off + request.rotation) % 26;
-            ciphertext[i] = u'a' + off;
-        } else if (c >= u'A' && c <= u'Z') {
-            int off = c - u'A';
-            off = (off + request.rotation) % 26;
-            ciphertext[i] = u'A' + off;
-        } else {
-            ciphertext[i] = c;
-        }
+    RetainPtr<Rot13> rot13Instance = adoptNS([allocRot13Instance() init]);
+    if (!rot13Instance) {
+        WebCore::Rot13Result result(false, WTF::String::fromLatin1(""));
+        completion(WTFMove(result));
+    } else {
+        [rot13Instance rot13PlainText:request.plaintext rotation:request.rotation completionHandler:^(bool success, NSString* ciphertext) {
+            WebCore::Rot13Result result;
+            result.success = success;
+            result.ciphertext = ciphertext;
+            completion(WTFMove(result));
+        }];
     }
-    completion(WebCore::Rot13Result(true, String::adopt(WTFMove(ciphertext))));
 }
 
 bool UIDelegate::UIClient::focusFromServiceWorker(WebKit::WebPageProxy& proxy)
