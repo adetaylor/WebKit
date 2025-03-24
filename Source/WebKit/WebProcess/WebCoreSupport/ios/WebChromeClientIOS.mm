@@ -36,7 +36,7 @@
 #import "WebFrame.h"
 #import "WebIconUtilities.h"
 #import "WebPage.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import <WebCore/AudioSession.h>
 #import <WebCore/ContentChangeObserver.h>
 #import <WebCore/Icon.h>
@@ -95,13 +95,13 @@ void WebChromeClient::didLayout(LayoutType type)
 void WebChromeClient::didStartOverflowScroll()
 {
     // FIXME: This is only relevant for legacy touch-driven overflow in the web process (see ScrollAnimatorIOS::handleTouchEvent), and should be removed.
-    protectedPage()->send(Messages::WebPageProxy::ScrollingNodeScrollWillStartScroll(std::nullopt));
+    protectedPage()->send(Messages::WebPageProxyMessageHandler::ScrollingNodeScrollWillStartScroll(std::nullopt));
 }
 
 void WebChromeClient::didEndOverflowScroll()
 {
     // FIXME: This is only relevant for legacy touch-driven overflow in the web process (see ScrollAnimatorIOS::handleTouchEvent), and should be removed.
-    protectedPage()->send(Messages::WebPageProxy::ScrollingNodeScrollDidEndScroll(std::nullopt));
+    protectedPage()->send(Messages::WebPageProxyMessageHandler::ScrollingNodeScrollDidEndScroll(std::nullopt));
 }
 
 bool WebChromeClient::hasStablePageScaleFactor() const
@@ -137,7 +137,7 @@ void WebChromeClient::webAppOrientationsUpdated()
 void WebChromeClient::showPlaybackTargetPicker(bool hasVideo, WebCore::RouteSharingPolicy policy, const String& routingContextUID)
 {
     auto page = protectedPage();
-    page->send(Messages::WebPageProxy::ShowPlaybackTargetPicker(hasVideo, page->rectForElementAtInteractionLocation(), policy, routingContextUID));
+    page->send(Messages::WebPageProxyMessageHandler::ShowPlaybackTargetPicker(hasVideo, page->rectForElementAtInteractionLocation(), policy, routingContextUID));
 }
 
 Seconds WebChromeClient::eventThrottlingDelay()
@@ -174,7 +174,7 @@ bool WebChromeClient::showDataDetectorsUIForElement(const Element& element, cons
     request.includeLinkIndicator = true;
     auto page = protectedPage();
     auto positionInformation = page->positionInformation(request);
-    page->send(Messages::WebPageProxy::ShowDataDetectorsUIForPositionInformation(positionInformation));
+    page->send(Messages::WebPageProxyMessageHandler::ShowDataDetectorsUIForPositionInformation(positionInformation));
     return true;
 }
 

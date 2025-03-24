@@ -30,7 +30,7 @@
 #include "MomentumEventDispatcher.h"
 #include "WebEventConversion.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include "WebProcessProxyMessages.h"
 #include "WebTouchEvent.h"
@@ -317,7 +317,7 @@ void EventDispatcher::dispatchGestureEvent(FrameIdentifier frameID, PageIdentifi
 
 void EventDispatcher::sendDidReceiveEvent(PageIdentifier pageID, WebEventType eventType, bool didHandleEvent)
 {
-    WebProcess::singleton().protectedParentProcessConnection()->send(Messages::WebPageProxy::DidReceiveEvent(eventType, didHandleEvent, std::nullopt), pageID);
+    WebProcess::singleton().protectedParentProcessConnection()->send(Messages::WebPageProxyMessageHandler::DidReceiveEvent(eventType, didHandleEvent, std::nullopt), pageID);
 }
 
 void EventDispatcher::notifyScrollingTreesDisplayDidRefresh(PlatformDisplayID displayID)

@@ -539,7 +539,7 @@ $(PROJECT_DIR)/UIProcess/WebFrameProxy.messages.in
 $(PROJECT_DIR)/UIProcess/WebFullScreenManagerProxy.messages.in
 $(PROJECT_DIR)/UIProcess/WebGeolocationManagerProxy.messages.in
 $(PROJECT_DIR)/UIProcess/WebLockRegistryProxy.messages.in
-$(PROJECT_DIR)/UIProcess/WebPageProxy.messages.in
+$(PROJECT_DIR)/UIProcess/WebPageProxyMessageHandler.messages.in
 $(PROJECT_DIR)/UIProcess/WebPasteboardProxy.messages.in
 $(PROJECT_DIR)/UIProcess/WebPermissionControllerProxy.messages.in
 $(PROJECT_DIR)/UIProcess/WebProcessPool.messages.in

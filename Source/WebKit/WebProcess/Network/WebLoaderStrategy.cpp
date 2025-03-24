@@ -38,7 +38,7 @@
 #include "WebLocalFrameLoaderClient.h"
 #include "WebPage.h"
 #include "WebPageInlines.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include "WebProcessPoolMessages.h"
 #include "WebResourceLoader.h"

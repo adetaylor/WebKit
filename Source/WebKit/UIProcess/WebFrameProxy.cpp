@@ -45,7 +45,7 @@
 #include "WebNavigationState.h"
 #include "WebPageMessages.h"
 #include "WebPageProxy.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebPasteboardProxy.h"
 #include "WebProcessMessages.h"
 #include "WebProcessPool.h"

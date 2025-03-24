@@ -42,7 +42,7 @@
 #include "WebFrameProxy.h"
 #include "WebPageMessages.h"
 #include "WebPageProxy.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcessActivityState.h"
 #include "WebProcessMessages.h"
 #include "WebProcessProxy.h"
@@ -135,48 +135,48 @@ RemotePageProxy::~RemotePageProxy()
 
 void RemotePageProxy::didReceiveMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
-    if (decoder.messageName() == Messages::WebPageProxy::DecidePolicyForResponse::name()) {
-        IPC::handleMessageAsync<Messages::WebPageProxy::DecidePolicyForResponse>(connection, decoder, this, &RemotePageProxy::decidePolicyForResponse);
+    if (decoder.messageName() == Messages::WebPageProxyMessageHandler::DecidePolicyForResponse::name()) {
+        IPC::handleMessageAsync<Messages::WebPageProxyMessageHandler::DecidePolicyForResponse>(connection, decoder, this, &RemotePageProxy::decidePolicyForResponse);
         return;
     }
 
-    if (decoder.messageName() == Messages::WebPageProxy::DidCommitLoadForFrame::name()) {
-        IPC::handleMessage<Messages::WebPageProxy::DidCommitLoadForFrame>(connection, decoder, this, &RemotePageProxy::didCommitLoadForFrame);
+    if (decoder.messageName() == Messages::WebPageProxyMessageHandler::DidCommitLoadForFrame::name()) {
+        IPC::handleMessage<Messages::WebPageProxyMessageHandler::DidCommitLoadForFrame>(connection, decoder, this, &RemotePageProxy::didCommitLoadForFrame);
         return;
     }
 
-    if (decoder.messageName() == Messages::WebPageProxy::DecidePolicyForNavigationActionAsync::name()) {
-        IPC::handleMessageAsync<Messages::WebPageProxy::DecidePolicyForNavigationActionAsync>(connection, decoder, this, &RemotePageProxy::decidePolicyForNavigationActionAsync);
+    if (decoder.messageName() == Messages::WebPageProxyMessageHandler::DecidePolicyForNavigationActionAsync::name()) {
+        IPC::handleMessageAsync<Messages::WebPageProxyMessageHandler::DecidePolicyForNavigationActionAsync>(connection, decoder, this, &RemotePageProxy::decidePolicyForNavigationActionAsync);
         return;
     }
 
-    if (decoder.messageName() == Messages::WebPageProxy::DidChangeProvisionalURLForFrame::name()) {
-        IPC::handleMessage<Messages::WebPageProxy::DidChangeProvisionalURLForFrame>(connection, decoder, this, &RemotePageProxy::didChangeProvisionalURLForFrame);
+    if (decoder.messageName() == Messages::WebPageProxyMessageHandler::DidChangeProvisionalURLForFrame::name()) {
+        IPC::handleMessage<Messages::WebPageProxyMessageHandler::DidChangeProvisionalURLForFrame>(connection, decoder, this, &RemotePageProxy::didChangeProvisionalURLForFrame);
         return;
     }
 
-    if (decoder.messageName() == Messages::WebPageProxy::DidFailProvisionalLoadForFrame::name()) {
-        IPC::handleMessage<Messages::WebPageProxy::DidFailProvisionalLoadForFrame>(connection, decoder, this, &RemotePageProxy::didFailProvisionalLoadForFrame);
+    if (decoder.messageName() == Messages::WebPageProxyMessageHandler::DidFailProvisionalLoadForFrame::name()) {
+        IPC::handleMessage<Messages::WebPageProxyMessageHandler::DidFailProvisionalLoadForFrame>(connection, decoder, this, &RemotePageProxy::didFailProvisionalLoadForFrame);
         return;
     }
 
-    if (decoder.messageName() == Messages::WebPageProxy::DidStartProvisionalLoadForFrame::name()) {
-        IPC::handleMessage<Messages::WebPageProxy::DidStartProvisionalLoadForFrame>(connection, decoder, this, &RemotePageProxy::didStartProvisionalLoadForFrame);
+    if (decoder.messageName() == Messages::WebPageProxyMessageHandler::DidStartProvisionalLoadForFrame::name()) {
+        IPC::handleMessage<Messages::WebPageProxyMessageHandler::DidStartProvisionalLoadForFrame>(connection, decoder, this, &RemotePageProxy::didStartProvisionalLoadForFrame);
         return;
     }
 
-    if (decoder.messageName() == Messages::WebPageProxy::HandleMessage::name()) {
-        IPC::handleMessage<Messages::WebPageProxy::HandleMessage>(connection, decoder, this, &RemotePageProxy::handleMessage);
+    if (decoder.messageName() == Messages::WebPageProxyMessageHandler::HandleMessage::name()) {
+        IPC::handleMessage<Messages::WebPageProxyMessageHandler::HandleMessage>(connection, decoder, this, &RemotePageProxy::handleMessage);
         return;
     }
 
-    if (decoder.messageName() == Messages::WebPageProxy::IsPlayingMediaDidChange::name()) {
-        IPC::handleMessage<Messages::WebPageProxy::IsPlayingMediaDidChange>(connection, decoder, this, &RemotePageProxy::isPlayingMediaDidChange);
+    if (decoder.messageName() == Messages::WebPageProxyMessageHandler::IsPlayingMediaDidChange::name()) {
+        IPC::handleMessage<Messages::WebPageProxyMessageHandler::IsPlayingMediaDidChange>(connection, decoder, this, &RemotePageProxy::isPlayingMediaDidChange);
         return;
     }
 
     if (RefPtr page = m_page.get())
-        page->didReceiveMessage(connection, decoder);
+        page->passMessageToHandler(connection, decoder);
 }
 
 void RemotePageProxy::handleMessage(const String& messageName, const WebKit::UserData& messageBody)
@@ -243,11 +243,11 @@ void RemotePageProxy::didChangeProvisionalURLForFrame(WebCore::FrameIdentifier f
 
 bool RemotePageProxy::didReceiveSyncMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& encoder)
 {
-    if (decoder.messageName() == Messages::WebPageProxy::DecidePolicyForNavigationActionSync::name())
-        return IPC::handleMessageSynchronous<Messages::WebPageProxy::DecidePolicyForNavigationActionSync>(connection, decoder, encoder, this, &RemotePageProxy::decidePolicyForNavigationActionSync);
+    if (decoder.messageName() == Messages::WebPageProxyMessageHandler::DecidePolicyForNavigationActionSync::name())
+        return IPC::handleMessageSynchronous<Messages::WebPageProxyMessageHandler::DecidePolicyForNavigationActionSync>(connection, decoder, encoder, this, &RemotePageProxy::decidePolicyForNavigationActionSync);
 
     if (RefPtr page = m_page.get())
-        return page->didReceiveSyncMessage(connection, decoder, encoder);
+        return page->passSyncMessageToHandler(connection, decoder, encoder);
 
     return false;
 }

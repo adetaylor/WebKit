@@ -32,7 +32,7 @@
 #include "UserMessage.h"
 #include "WebKitUserMessage.h"
 #include "WebKitWebPagePrivate.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcessExtensionManager.h"
 #include <WebCore/Editor.h>
 #include <WebCore/HTMLInputElement.h>
@@ -66,7 +66,7 @@ void WebPage::platformInitialize(const WebPageCreationParameters&)
         m_accessibilityRootObject = AccessibilityRootAtspi::create(*page);
         m_accessibilityRootObject->registerObject([&](const String& plugID) {
             if (!plugID.isEmpty())
-                send(Messages::WebPageProxy::BindAccessibilityTree(plugID));
+                send(Messages::WebPageProxyMessageHandler::BindAccessibilityTree(plugID));
         });
     }
 #endif
@@ -195,7 +195,7 @@ void WebPage::setInputMethodState(Element* element)
         return;
 
     m_inputMethodState = state;
-    send(Messages::WebPageProxy::SetInputMethodState(state));
+    send(Messages::WebPageProxyMessageHandler::SetInputMethodState(state));
 }
 
 String WebPage::platformUserAgent(const URL& url) const

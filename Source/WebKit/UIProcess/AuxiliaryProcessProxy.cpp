@@ -59,7 +59,7 @@
 #include "ExtensionCapabilityGrant.h"
 #endif
 
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 
 namespace WebKit {
 

@@ -37,7 +37,7 @@
 #include "WebLoaderStrategy.h"
 #include "WebMouseEvent.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include "WebWheelEvent.h"
 #include <WebCore/BitmapImage.h>
@@ -364,8 +364,8 @@ void PluginView::pluginScaleFactorDidChange()
         return;
     auto scaleFactor = pageScaleFactor();
     RefPtr webPage = m_webPage.get();
-    webPage->send(Messages::WebPageProxy::PluginScaleFactorDidChange(scaleFactor));
-    webPage->send(Messages::WebPageProxy::PluginZoomFactorDidChange(scaleFactor));
+    webPage->send(Messages::WebPageProxyMessageHandler::PluginScaleFactorDidChange(scaleFactor));
+    webPage->send(Messages::WebPageProxyMessageHandler::PluginZoomFactorDidChange(scaleFactor));
 }
 
 void PluginView::webPageDestroyed()
@@ -428,7 +428,7 @@ void PluginView::initializePlugin()
         if (RefPtr frameView = frame->view())
             frameView->setNeedsLayoutAfterViewConfigurationChange();
         if (frame->isMainFrame() && plugin->isFullFramePlugin())
-            WebFrame::fromCoreFrame(*frame)->protectedPage()->send(Messages::WebPageProxy::MainFramePluginHandlesPageScaleGestureDidChange(plugin->handlesPageScaleFactor(), plugin->minScaleFactor(), plugin->maxScaleFactor()));
+            WebFrame::fromCoreFrame(*frame)->protectedPage()->send(Messages::WebPageProxyMessageHandler::MainFramePluginHandlesPageScaleGestureDidChange(plugin->handlesPageScaleFactor(), plugin->minScaleFactor(), plugin->maxScaleFactor()));
     }
 }
 

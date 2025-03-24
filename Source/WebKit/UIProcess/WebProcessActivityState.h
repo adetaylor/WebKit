@@ -26,6 +26,7 @@
 #pragma once
 
 #include <wtf/WeakRef.h>
+#include "ProcessThrottler.h"
 
 namespace WebKit {
 

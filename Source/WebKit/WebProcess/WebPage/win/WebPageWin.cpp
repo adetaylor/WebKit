@@ -30,7 +30,7 @@
 #include "EditorState.h"
 #include "WebFrame.h"
 #include "WebKeyboardEvent.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/BackForwardController.h>
 #include <WebCore/Editor.h>

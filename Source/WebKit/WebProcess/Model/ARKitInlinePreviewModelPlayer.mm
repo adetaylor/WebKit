@@ -95,7 +95,7 @@ void ARKitInlinePreviewModelPlayer::getCamera(CompletionHandler<void(std::option
         completionHandler(*result);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementGetCamera(*modelIdentifier), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementGetCamera(*modelIdentifier), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::setCamera(WebCore::HTMLModelElementCamera camera, CompletionHandler<void(bool success)>&& completionHandler)
@@ -116,7 +116,7 @@ void ARKitInlinePreviewModelPlayer::setCamera(WebCore::HTMLModelElementCamera ca
         completionHandler(success);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementSetCamera(*modelIdentifier, camera), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementSetCamera(*modelIdentifier, camera), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::isPlayingAnimation(CompletionHandler<void(std::optional<bool>&&)>&& completionHandler)
@@ -142,7 +142,7 @@ void ARKitInlinePreviewModelPlayer::isPlayingAnimation(CompletionHandler<void(st
         completionHandler(*result);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementIsPlayingAnimation(*modelIdentifier), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementIsPlayingAnimation(*modelIdentifier), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::setAnimationIsPlaying(bool isPlaying, CompletionHandler<void(bool success)>&& completionHandler)
@@ -163,7 +163,7 @@ void ARKitInlinePreviewModelPlayer::setAnimationIsPlaying(bool isPlaying, Comple
         completionHandler(success);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementSetAnimationIsPlaying(*modelIdentifier, isPlaying), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementSetAnimationIsPlaying(*modelIdentifier, isPlaying), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::isLoopingAnimation(CompletionHandler<void(std::optional<bool>&&)>&& completionHandler)
@@ -189,7 +189,7 @@ void ARKitInlinePreviewModelPlayer::isLoopingAnimation(CompletionHandler<void(st
         completionHandler(*result);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementIsLoopingAnimation(*modelIdentifier), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementIsLoopingAnimation(*modelIdentifier), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::setIsLoopingAnimation(bool isLooping, CompletionHandler<void(bool success)>&& completionHandler)
@@ -210,7 +210,7 @@ void ARKitInlinePreviewModelPlayer::setIsLoopingAnimation(bool isLooping, Comple
         completionHandler(success);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementSetIsLoopingAnimation(*modelIdentifier, isLooping), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementSetIsLoopingAnimation(*modelIdentifier, isLooping), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::animationDuration(CompletionHandler<void(std::optional<Seconds>&&)>&& completionHandler)
@@ -236,7 +236,7 @@ void ARKitInlinePreviewModelPlayer::animationDuration(CompletionHandler<void(std
         completionHandler(*result);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementAnimationDuration(*modelIdentifier), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementAnimationDuration(*modelIdentifier), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::animationCurrentTime(CompletionHandler<void(std::optional<Seconds>&&)>&& completionHandler)
@@ -262,7 +262,7 @@ void ARKitInlinePreviewModelPlayer::animationCurrentTime(CompletionHandler<void(
         completionHandler(*result);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementAnimationCurrentTime(*modelIdentifier), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementAnimationCurrentTime(*modelIdentifier), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::setAnimationCurrentTime(Seconds currentTime, CompletionHandler<void(bool success)>&& completionHandler)
@@ -283,7 +283,7 @@ void ARKitInlinePreviewModelPlayer::setAnimationCurrentTime(Seconds currentTime,
         completionHandler(success);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementSetAnimationCurrentTime(*modelIdentifier, currentTime), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementSetAnimationCurrentTime(*modelIdentifier, currentTime), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::hasAudio(CompletionHandler<void(std::optional<bool>&&)>&& completionHandler)
@@ -309,7 +309,7 @@ void ARKitInlinePreviewModelPlayer::hasAudio(CompletionHandler<void(std::optiona
         completionHandler(*result);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementHasAudio(*modelIdentifier), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementHasAudio(*modelIdentifier), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::isMuted(CompletionHandler<void(std::optional<bool>&&)>&& completionHandler)
@@ -335,7 +335,7 @@ void ARKitInlinePreviewModelPlayer::isMuted(CompletionHandler<void(std::optional
         completionHandler(*result);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementIsMuted(*modelIdentifier), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementIsMuted(*modelIdentifier), WTFMove(remoteCompletionHandler));
 }
 
 void ARKitInlinePreviewModelPlayer::setIsMuted(bool isMuted, CompletionHandler<void(bool success)>&& completionHandler)
@@ -356,7 +356,7 @@ void ARKitInlinePreviewModelPlayer::setIsMuted(bool isMuted, CompletionHandler<v
         completionHandler(success);
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementSetIsMuted(*modelIdentifier, isMuted), WTFMove(remoteCompletionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementSetIsMuted(*modelIdentifier, isMuted), WTFMove(remoteCompletionHandler));
 }
 
 Vector<RetainPtr<id>> ARKitInlinePreviewModelPlayer::accessibilityChildren()

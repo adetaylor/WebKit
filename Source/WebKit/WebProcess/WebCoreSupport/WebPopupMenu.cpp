@@ -24,7 +24,7 @@
 
 #include "PlatformPopupMenuData.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/LocalFrameView.h>
 #include <WebCore/NotImplemented.h>
@@ -109,7 +109,7 @@ void WebPopupMenu::show(const IntRect& rect, LocalFrameView& view, int selectedI
     PlatformPopupMenuData platformData;
     setUpPlatformData(pageCoordinates, platformData);
 
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::ShowPopupMenuFromFrame(view.frame().frameID(), pageCoordinates, static_cast<uint64_t>(m_popupClient->menuStyle().textDirection()), items, selectedIndex, platformData), m_page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::ShowPopupMenuFromFrame(view.frame().frameID(), pageCoordinates, static_cast<uint64_t>(m_popupClient->menuStyle().textDirection()), items, selectedIndex, platformData), m_page->identifier());
 }
 
 void WebPopupMenu::hide()
@@ -117,7 +117,7 @@ void WebPopupMenu::hide()
     if (!m_page || !m_popupClient)
         return;
 
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::HidePopupMenu(), m_page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::HidePopupMenu(), m_page->identifier());
     m_page->setActivePopupMenu(nullptr);
     m_popupClient->popupDidHide();
 }

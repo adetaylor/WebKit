@@ -28,7 +28,7 @@
 
 #include "MessageSenderInlines.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebPermissionControllerMessages.h"
 #include "WebPermissionControllerProxyMessages.h"
 #include "WebProcess.h"

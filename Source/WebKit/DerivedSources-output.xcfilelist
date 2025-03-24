@@ -539,8 +539,8 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebNotificationManagerMessageReceive
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebNotificationManagerMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebPageMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebPageMessages.h
-$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebPageProxyMessageReceiver.cpp
-$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebPageProxyMessages.h
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebPageProxyMessageHandlerMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebPageProxyMessageHandlerMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebPageTestingMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebPageTestingMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebPageUpdatePreferences.cpp

@@ -51,7 +51,7 @@
 #import "WebKeyboardEvent.h"
 #import "WebMouseEvent.h"
 #import "WebPageOverlay.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import "WebPasteboardOverrides.h"
 #import "WebPreferencesStore.h"
 #import "WebProcess.h"
@@ -299,7 +299,7 @@ bool WebPage::executeKeypressCommandsInternal(const Vector<WebCore::KeypressComm
                     eventWasHandled |= performedNonEditingBehavior;
                 }
             } else {
-                auto sendResult = WebProcess::singleton().protectedParentProcessConnection()->sendSync(Messages::WebPageProxy::ExecuteSavedCommandBySelector(commands[i].commandName), m_identifier);
+                auto sendResult = WebProcess::singleton().protectedParentProcessConnection()->sendSync(Messages::WebPageProxyMessageHandler::ExecuteSavedCommandBySelector(commands[i].commandName), m_identifier);
                 auto [commandWasHandledByUIProcess] = sendResult.takeReplyOr(false);
                 eventWasHandled |= commandWasHandledByUIProcess;
             }
@@ -556,7 +556,7 @@ void WebPage::requestAcceptsFirstMouse(int eventNumber, const WebKit::WebMouseEv
     if (WebProcess::singleton().parentProcessConnection()->inSendSync()) {
         // In case we're already inside a sendSync message, it's possible that the page is in a
         // transitionary state, so any hit-testing could cause crashes  so we just return early in that case.
-        send(Messages::WebPageProxy::HandleAcceptsFirstMouse(false));
+        send(Messages::WebPageProxyMessageHandler::HandleAcceptsFirstMouse(false));
         return;
     }
 
@@ -575,7 +575,7 @@ void WebPage::requestAcceptsFirstMouse(int eventNumber, const WebKit::WebMouseEv
 #endif
         result = !!hitResult.scrollbar();
 
-    send(Messages::WebPageProxy::HandleAcceptsFirstMouse(result));
+    send(Messages::WebPageProxyMessageHandler::HandleAcceptsFirstMouse(result));
 }
 
 void WebPage::setTopOverhangImage(WebImage* image)
@@ -637,7 +637,7 @@ void WebPage::updateHeaderAndFooterLayersForDeviceScaleChange(float scaleFactor)
 #if ENABLE(TELEPHONE_NUMBER_DETECTION)
 void WebPage::handleTelephoneNumberClick(const String& number, const IntPoint& point, const IntRect& rect)
 {
-    send(Messages::WebPageProxy::ShowTelephoneNumberMenu(number, point, rect));
+    send(Messages::WebPageProxyMessageHandler::ShowTelephoneNumberMenu(number, point, rect));
 }
 #endif
 
@@ -658,7 +658,7 @@ void WebPage::handleSelectionServiceClick(WebCore::FrameIdentifier frameID, Fram
         return;
 
     flushPendingEditorStateUpdate();
-    send(Messages::WebPageProxy::ShowContextMenuFromFrame(webFrame->info(), ContextMenuContextData(point, WTFMove(selectionString), phoneNumbers, selection.selection().isContentEditable()), UserData()));
+    send(Messages::WebPageProxyMessageHandler::ShowContextMenuFromFrame(webFrame->info(), ContextMenuContextData(point, WTFMove(selectionString), phoneNumbers, selection.selection().isContentEditable()), UserData()));
 }
 
 void WebPage::handleImageServiceClick(WebCore::FrameIdentifier frameID, const IntPoint& point, Image& image, HTMLImageElement& element)
@@ -667,7 +667,7 @@ void WebPage::handleImageServiceClick(WebCore::FrameIdentifier frameID, const In
     if (!webFrame)
         return;
 
-    send(Messages::WebPageProxy::ShowContextMenuFromFrame(webFrame->info(), ContextMenuContextData {
+    send(Messages::WebPageProxyMessageHandler::ShowContextMenuFromFrame(webFrame->info(), ContextMenuContextData {
         point,
         image,
         element.isContentEditable(),
@@ -684,7 +684,7 @@ void WebPage::handlePDFServiceClick(WebCore::FrameIdentifier frameID, const IntP
     if (!webFrame)
         return;
 
-    send(Messages::WebPageProxy::ShowContextMenuFromFrame(webFrame->info(), ContextMenuContextData {
+    send(Messages::WebPageProxyMessageHandler::ShowContextMenuFromFrame(webFrame->info(), ContextMenuContextData {
         point,
         element.isContentEditable(),
         element.renderBox()->absoluteContentQuad().enclosingBoundingBox(),
@@ -733,7 +733,7 @@ void WebPage::performImmediateActionHitTestAtLocation(WebCore::FrameIdentifier f
     RefPtr currentFrameView = localCurrentFrame->view();
 
     if (!currentFrameView || !currentFrameView->renderView()) {
-        send(Messages::WebPageProxy::DidPerformImmediateActionHitTest(WebHitTestResultData(), false, UserData()));
+        send(Messages::WebPageProxyMessageHandler::DidPerformImmediateActionHitTest(WebHitTestResultData(), false, UserData()));
         return;
     }
 
@@ -848,7 +848,7 @@ void WebPage::performImmediateActionHitTestAtLocation(WebCore::FrameIdentifier f
     injectedBundleContextMenuClient().prepareForImmediateAction(*this, hitTestResult, userData);
 
     immediateActionResult.elementBoundingBox = immediateActionResult.elementBoundingBox.toRectWithExtentsClippedToNumericLimits();
-    send(Messages::WebPageProxy::DidPerformImmediateActionHitTest(immediateActionResult, immediateActionHitTestPreventsDefault, UserData(WebProcess::singleton().transformObjectsToHandles(userData.get()).get())));
+    send(Messages::WebPageProxyMessageHandler::DidPerformImmediateActionHitTest(immediateActionResult, immediateActionHitTestPreventsDefault, UserData(WebProcess::singleton().transformObjectsToHandles(userData.get()).get())));
 }
 
 std::optional<WebCore::SimpleRange> WebPage::lookupTextAtLocation(FrameIdentifier frameID, FloatPoint locationInViewCoordinates)
@@ -1051,19 +1051,19 @@ void WebPage::createPDFHUD(PDFPluginBase& plugin, const IntRect& boundingBox)
 {
     auto addResult = m_pdfPlugInsWithHUD.add(plugin.identifier(), plugin);
     if (addResult.isNewEntry)
-        send(Messages::WebPageProxy::CreatePDFHUD(plugin.identifier(), boundingBox));
+        send(Messages::WebPageProxyMessageHandler::CreatePDFHUD(plugin.identifier(), boundingBox));
 }
 
 void WebPage::updatePDFHUDLocation(PDFPluginBase& plugin, const IntRect& boundingBox)
 {
     if (m_pdfPlugInsWithHUD.contains(plugin.identifier()))
-        send(Messages::WebPageProxy::UpdatePDFHUDLocation(plugin.identifier(), boundingBox));
+        send(Messages::WebPageProxyMessageHandler::UpdatePDFHUDLocation(plugin.identifier(), boundingBox));
 }
 
 void WebPage::removePDFHUD(PDFPluginBase& plugin)
 {
     if (m_pdfPlugInsWithHUD.remove(plugin.identifier()))
-        send(Messages::WebPageProxy::RemovePDFHUD(plugin.identifier()));
+        send(Messages::WebPageProxyMessageHandler::RemovePDFHUD(plugin.identifier()));
 }
 
 #endif // ENABLE(PDF_PLUGIN)

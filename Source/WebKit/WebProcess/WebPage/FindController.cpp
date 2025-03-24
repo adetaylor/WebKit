@@ -33,7 +33,7 @@
 #include "WebFrame.h"
 #include "WebImage.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/DocumentInlines.h>
 #include <WebCore/DocumentMarkerController.h>
 #include <WebCore/FloatQuad.h>
@@ -391,7 +391,7 @@ void FindController::getImageForFindMatch(uint32_t matchIndex)
     if (!handle || !selectionSnapshot->parameters())
         return;
 
-    m_webPage->send(Messages::WebPageProxy::DidGetImageForFindMatch(*selectionSnapshot->parameters(), WTFMove(*handle), matchIndex));
+    m_webPage->send(Messages::WebPageProxyMessageHandler::DidGetImageForFindMatch(*selectionSnapshot->parameters(), WTFMove(*handle), matchIndex));
 }
 
 void FindController::selectFindMatch(uint32_t matchIndex)
@@ -467,7 +467,7 @@ bool FindController::updateFindIndicator(bool isShowingOverlay, bool shouldAnima
 
     m_findIndicatorRect = enclosingIntRect(indicator->selectionRectInRootViewCoordinates());
 #if PLATFORM(COCOA)
-    m_webPage->send(Messages::WebPageProxy::SetTextIndicatorFromFrame(frame->frameID(), indicator->data(), static_cast<uint64_t>(isShowingOverlay ? WebCore::TextIndicatorLifetime::Permanent : WebCore::TextIndicatorLifetime::Temporary)));
+    m_webPage->send(Messages::WebPageProxyMessageHandler::SetTextIndicatorFromFrame(frame->frameID(), indicator->data(), static_cast<uint64_t>(isShowingOverlay ? WebCore::TextIndicatorLifetime::Permanent : WebCore::TextIndicatorLifetime::Temporary)));
 #endif
     m_isShowingFindIndicator = true;
 
@@ -479,7 +479,7 @@ void FindController::hideFindIndicator()
     if (!m_isShowingFindIndicator)
         return;
 
-    m_webPage->send(Messages::WebPageProxy::ClearTextIndicator());
+    m_webPage->send(Messages::WebPageProxyMessageHandler::ClearTextIndicator());
     m_isShowingFindIndicator = false;
     didHideFindIndicator();
 }

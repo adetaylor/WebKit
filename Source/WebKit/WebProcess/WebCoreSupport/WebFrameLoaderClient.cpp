@@ -34,7 +34,7 @@
 #include "WebFrame.h"
 #include "WebMouseEvent.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/FrameLoader.h>
 #include <WebCore/HitTestResult.h>
@@ -188,7 +188,7 @@ void WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction(const Navigat
         shouldUseSyncIPCForFragmentNavigations = !linkedOnOrAfterSDKWithBehavior(SDKAlignedBehavior::AsyncFragmentNavigationPolicyDecision);
 #endif
         if (navigationAction.processingUserGesture() || navigationAction.isFromNavigationAPI() || shouldUseSyncIPCForFragmentNavigations) {
-            auto sendResult = webPage->sendSync(Messages::WebPageProxy::DecidePolicyForNavigationActionSync(*navigationActionData));
+            auto sendResult = webPage->sendSync(Messages::WebPageProxyMessageHandler::DecidePolicyForNavigationActionSync(*navigationActionData));
             if (!sendResult.succeeded()) {
                 WebFrameLoaderClient_RELEASE_LOG_ERROR(WEBFRAMELOADERCLIENT_DISPATCHDECIDEPOLICYFORNAVIGATIONACTION_SYNC_IPC_FAILED, (uint8_t)sendResult.error());
                 m_frame->didReceivePolicyDecision(listenerID, PolicyDecision { });
@@ -200,13 +200,13 @@ void WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction(const Navigat
             m_frame->didReceivePolicyDecision(listenerID, PolicyDecision { policyDecision.isNavigatingToAppBoundDomain, policyDecision.policyAction, { }, policyDecision.downloadID });
             return;
         }
-        webPage->sendWithAsyncReply(Messages::WebPageProxy::DecidePolicyForNavigationActionAsync(*navigationActionData), [] (PolicyDecision&&) { });
+        webPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::DecidePolicyForNavigationActionAsync(*navigationActionData), [] (PolicyDecision&&) { });
         m_frame->didReceivePolicyDecision(listenerID, PolicyDecision { std::nullopt, PolicyAction::Use });
         return;
     }
 
     ASSERT(policyDecisionMode == PolicyDecisionMode::Asynchronous);
-    webPage->sendWithAsyncReply(Messages::WebPageProxy::DecidePolicyForNavigationActionAsync(*navigationActionData), [weakFrame = WeakPtr { m_frame }, listenerID, webPageID = WebFrameLoaderClient_WEBPAGEID] (PolicyDecision&& policyDecision) {
+    webPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::DecidePolicyForNavigationActionAsync(*navigationActionData), [weakFrame = WeakPtr { m_frame }, listenerID, webPageID = WebFrameLoaderClient_WEBPAGEID] (PolicyDecision&& policyDecision) {
         RefPtr frame = weakFrame.get();
         if (!frame)
             return;
@@ -220,13 +220,13 @@ void WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction(const Navigat
 void WebFrameLoaderClient::updateSandboxFlags(SandboxFlags sandboxFlags)
 {
     if (RefPtr webPage = m_frame->page())
-        webPage->send(Messages::WebPageProxy::UpdateSandboxFlags(m_frame->frameID(), sandboxFlags));
+        webPage->send(Messages::WebPageProxyMessageHandler::UpdateSandboxFlags(m_frame->frameID(), sandboxFlags));
 }
 
 void WebFrameLoaderClient::updateOpener(const WebCore::Frame& newOpener)
 {
     if (RefPtr webPage = m_frame->page())
-        webPage->send(Messages::WebPageProxy::UpdateOpener(m_frame->frameID(), newOpener.frameID()));
+        webPage->send(Messages::WebPageProxyMessageHandler::UpdateOpener(m_frame->frameID(), newOpener.frameID()));
 }
 
 }

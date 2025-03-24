@@ -28,7 +28,7 @@
 
 #include "MessageSenderInlines.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/Page.h>
 #include <wtf/RefPtr.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -56,13 +56,13 @@ bool WebProcessSyncClient::siteIsolationEnabled()
 void WebProcessSyncClient::broadcastProcessSyncDataToOtherProcesses(const WebCore::ProcessSyncData& data)
 {
     ASSERT(siteIsolationEnabled());
-    protectedPage()->send(Messages::WebPageProxy::BroadcastProcessSyncData(data));
+    protectedPage()->send(Messages::WebPageProxyMessageHandler::BroadcastProcessSyncData(data));
 }
 
 void WebProcessSyncClient::broadcastTopDocumentSyncDataToOtherProcesses(WebCore::DocumentSyncData& data)
 {
     ASSERT(siteIsolationEnabled());
-    protectedPage()->send(Messages::WebPageProxy::BroadcastTopDocumentSyncData(data));
+    protectedPage()->send(Messages::WebPageProxyMessageHandler::BroadcastTopDocumentSyncData(data));
 }
 
 } // namespace WebKit

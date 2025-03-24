@@ -99,7 +99,7 @@
 #import "WebIOSEventFactory.h"
 #import "WebPageMessages.h"
 #import "WebPageProxy.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import "WebProcessProxy.h"
 #import "_WKActivatedElementInfoInternal.h"
 #import "_WKDragActionsInternal.h"
@@ -3244,7 +3244,7 @@ ALLOW_DEPRECATED_DECLARATIONS_END
     if (![self _hasValidOutstandingPositionInformationRequest:request])
         [self requestAsynchronousPositionInformationUpdate:request];
 
-    bool receivedResponse = process->protectedConnection()->waitForAndDispatchImmediately<Messages::WebPageProxy::DidReceivePositionInformation>(_page->webPageIDInMainFrameProcess(), 1_s, IPC::WaitForOption::InterruptWaitingIfSyncMessageArrives) == IPC::Error::NoError;
+    bool receivedResponse = process->protectedConnection()->waitForAndDispatchImmediately<Messages::WebPageProxyMessageHandler::DidReceivePositionInformation>(_page->webPageIDInMainFrameProcess(), 1_s, IPC::WaitForOption::InterruptWaitingIfSyncMessageArrives) == IPC::Error::NoError;
     _hasValidPositionInformation = receivedResponse && _positionInformation.canBeValid;
     return _hasValidPositionInformation;
 }
@@ -6006,7 +6006,7 @@ static void logTextInteraction(const char* methodName, UIGestureRecognizer *loup
     _pendingAutocorrectionContextHandler = WTFMove(completionHandler);
     _page->requestAutocorrectionContext();
 
-    if (_page->legacyMainFrameProcess().connection().waitForAndDispatchImmediately<Messages::WebPageProxy::HandleAutocorrectionContext>(_page->webPageIDInMainFrameProcess(), 1_s, IPC::WaitForOption::DispatchIncomingSyncMessagesWhileWaiting) != IPC::Error::NoError)
+    if (_page->legacyMainFrameProcess().connection().waitForAndDispatchImmediately<Messages::WebPageProxyMessageHandler::HandleAutocorrectionContext>(_page->webPageIDInMainFrameProcess(), 1_s, IPC::WaitForOption::DispatchIncomingSyncMessagesWhileWaiting) != IPC::Error::NoError)
         RELEASE_LOG(TextInput, "Timed out while waiting for autocorrection context.");
 
     if (_autocorrectionContextNeedsUpdate)

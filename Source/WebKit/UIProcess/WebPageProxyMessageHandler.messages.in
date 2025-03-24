@@ -26,7 +26,7 @@ Copyright (C) 2010-2024 Apple Inc. All rights reserved.
     DispatchedTo=UI,
     SharedPreferencesNeedsConnection
 ]
-messages -> WebPageProxy {
+messages -> WebPageProxyMessageHandler {
     # UI messages
     CreateNewPage(struct WebCore::WindowFeatures windowFeatures, struct WebKit::NavigationActionData navigationActionData) -> (std::optional<WebCore::PageIdentifier> newPageID, std::optional<WebKit::WebPageCreationParameters> newPageParameters) Synchronous
     ShowPage()

@@ -32,7 +32,7 @@
 #include "WebFrame.h"
 #include "WebLoaderStrategy.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/ResourceError.h>
 #include <WebCore/ResourceLoader.h>
@@ -71,7 +71,7 @@ Ref<WebPage> WebURLSchemeHandlerProxy::protectedPage()
 void WebURLSchemeHandlerProxy::loadSynchronously(WebCore::ResourceLoaderIdentifier loadIdentifier, WebFrame& webFrame, const ResourceRequest& request, ResourceResponse& response, ResourceError& error, Vector<uint8_t>& data)
 {
     data.shrink(0);
-    auto sendResult = protectedPage()->sendSync(Messages::WebPageProxy::LoadSynchronousURLSchemeTask(URLSchemeTaskParameters { m_identifier, loadIdentifier, request, webFrame.info() }));
+    auto sendResult = protectedPage()->sendSync(Messages::WebPageProxyMessageHandler::LoadSynchronousURLSchemeTask(URLSchemeTaskParameters { m_identifier, loadIdentifier, request, webFrame.info() }));
     if (sendResult.succeeded())
         std::tie(response, error, data) = sendResult.takeReply();
     else

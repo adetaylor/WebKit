@@ -28,7 +28,7 @@
 
 #include "MessageSenderInlines.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/Element.h>
 #include <WebCore/LocalFrame.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -64,7 +64,7 @@ void WebValidationMessageClient::showValidationMessage(const Element& anchor, co
 
     m_currentAnchor = anchor;
     m_currentAnchorRect = anchor.boundingBoxInRootViewCoordinates();
-    Ref { *m_page }->send(Messages::WebPageProxy::ShowValidationMessage(m_currentAnchorRect, message));
+    Ref { *m_page }->send(Messages::WebPageProxyMessageHandler::ShowValidationMessage(m_currentAnchorRect, message));
 }
 
 void WebValidationMessageClient::hideValidationMessage(const Element& anchor)
@@ -75,7 +75,7 @@ void WebValidationMessageClient::hideValidationMessage(const Element& anchor)
 
     m_currentAnchor = nullptr;
     m_currentAnchorRect = { };
-    page->send(Messages::WebPageProxy::HideValidationMessage());
+    page->send(Messages::WebPageProxyMessageHandler::HideValidationMessage());
 }
 
 void WebValidationMessageClient::hideAnyValidationMessage()
@@ -86,7 +86,7 @@ void WebValidationMessageClient::hideAnyValidationMessage()
 
     m_currentAnchor = nullptr;
     m_currentAnchorRect = { };
-    page->send(Messages::WebPageProxy::HideValidationMessage());
+    page->send(Messages::WebPageProxyMessageHandler::HideValidationMessage());
 }
 
 bool WebValidationMessageClient::isValidationMessageVisible(const Element& anchor)

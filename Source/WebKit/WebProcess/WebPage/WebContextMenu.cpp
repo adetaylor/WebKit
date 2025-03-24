@@ -30,7 +30,7 @@
 #include "UserData.h"
 #include "WebFrame.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/ContextMenu.h>
 #include <WebCore/ContextMenuController.h>

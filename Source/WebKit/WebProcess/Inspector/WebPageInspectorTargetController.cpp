@@ -29,7 +29,7 @@
 #include "MessageSenderInlines.h"
 #include "WebPage.h"
 #include "WebPageInspectorTargetFrontendChannel.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <wtf/TZoneMallocInlines.h>
 
 namespace WebKit {
@@ -56,14 +56,14 @@ void WebPageInspectorTargetController::addTarget(Inspector::InspectorTarget& tar
     auto addResult = m_targets.set(target.identifier(), &target);
     ASSERT_UNUSED(addResult, addResult.isNewEntry);
 
-    protectedPage()->send(Messages::WebPageProxy::CreateInspectorTarget(target.identifier(), target.type()));
+    protectedPage()->send(Messages::WebPageProxyMessageHandler::CreateInspectorTarget(target.identifier(), target.type()));
 }
 
 void WebPageInspectorTargetController::removeTarget(Inspector::InspectorTarget& target)
 {
     ASSERT_WITH_MESSAGE(target.identifier() != m_pageTarget.identifier(), "Should never remove the main target.");
 
-    protectedPage()->send(Messages::WebPageProxy::DestroyInspectorTarget(target.identifier()));
+    protectedPage()->send(Messages::WebPageProxyMessageHandler::DestroyInspectorTarget(target.identifier()));
 
     m_targets.remove(target.identifier());
 }

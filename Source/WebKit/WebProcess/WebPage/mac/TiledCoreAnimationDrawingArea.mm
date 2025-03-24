@@ -40,7 +40,7 @@
 #import "WebPage.h"
 #import "WebPageCreationParameters.h"
 #import "WebPageInlines.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import "WebPreferencesKeys.h"
 #import "WebPreferencesStore.h"
 #import "WebProcess.h"
@@ -314,7 +314,7 @@ void TiledCoreAnimationDrawingArea::sendPendingNewlyReachedPaintingMilestones()
     if (!m_pendingNewlyReachedPaintingMilestones)
         return;
 
-    Ref { m_webPage.get() }->send(Messages::WebPageProxy::DidReachLayoutMilestone(std::exchange(m_pendingNewlyReachedPaintingMilestones, { }), WallTime::now()));
+    Ref { m_webPage.get() }->send(Messages::WebPageProxyMessageHandler::DidReachLayoutMilestone(std::exchange(m_pendingNewlyReachedPaintingMilestones, { }), WallTime::now()));
 }
 
 void TiledCoreAnimationDrawingArea::dispatchAfterEnsuringDrawing(IPC::AsyncReplyID callbackID)
@@ -417,7 +417,7 @@ void TiledCoreAnimationDrawingArea::handleActivityStateChangeCallbacks()
     m_shouldHandleActivityStateChangeCallbacks = false;
 
     if (m_activityStateChangeID != ActivityStateChangeAsynchronous)
-        Ref { m_webPage.get() }->send(Messages::WebPageProxy::DidUpdateActivityState());
+        Ref { m_webPage.get() }->send(Messages::WebPageProxyMessageHandler::DidUpdateActivityState());
 
     for (auto& callback : std::exchange(m_nextActivityStateChangeCallbacks, { }))
         callback();

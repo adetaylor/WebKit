@@ -28,7 +28,7 @@
 
 #include "MessageSenderInlines.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <wtf/TZoneMallocInlines.h>
 
 namespace WebKit {
@@ -44,7 +44,7 @@ WebPageInspectorTargetFrontendChannel::WebPageInspectorTargetFrontendChannel(Web
 
 void WebPageInspectorTargetFrontendChannel::sendMessageToFrontend(const String& message)
 {
-    Ref { m_page.get() }->send(Messages::WebPageProxy::SendMessageToInspectorFrontend(m_targetId, message));
+    Ref { m_page.get() }->send(Messages::WebPageProxyMessageHandler::SendMessageToInspectorFrontend(m_targetId, message));
 }
 
 } // namespace WebKit

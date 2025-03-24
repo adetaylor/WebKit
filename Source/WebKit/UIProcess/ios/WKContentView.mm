@@ -55,7 +55,7 @@
 #import "WebKit2Initialize.h"
 #import "WebPageGroup.h"
 #import "WebPageMessages.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import "WebProcessPool.h"
 #import "_WKFrameHandleInternal.h"
 #import "_WKWebViewPrintFormatterInternal.h"

@@ -47,7 +47,7 @@
 #include "RemoteWorkerType.h"
 #include "ServiceWorkerFetchTask.h"
 #include "WebPageProxy.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcessProxy.h"
 #include "WebSWOriginStore.h"
 #include "WebSWRegistrationStore.h"

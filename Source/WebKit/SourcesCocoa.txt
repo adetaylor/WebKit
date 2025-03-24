@@ -912,7 +912,7 @@ WebInspectorUIMessageReceiver.cpp
 WebInspectorUIProxyMessageReceiver.cpp
 WebNotificationManagerMessageReceiver.cpp
 WebPageMessageReceiver.cpp
-WebPageProxyMessageReceiver.cpp
+WebPageProxyMessageHandlerMessageReceiver.cpp
 WebPageTestingMessageReceiver.cpp
 WebPasteboardProxyMessageReceiver.cpp
 WebPaymentCoordinatorMessageReceiver.cpp

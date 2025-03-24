@@ -72,7 +72,7 @@
 #include "WebPageGroupProxy.h"
 #include "WebPageInlines.h"
 #include "WebPageProxy.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebPaymentCoordinator.h"
 #include "WebPermissionController.h"
 #include "WebPlatformStrategies.h"
@@ -1075,7 +1075,7 @@ void WebProcess::removeWebFrame(FrameIdentifier frameID, WebPage* page)
     if (frame->wasRemovedInAnotherProcess() || page->isClosed())
         return;
 
-    page->send(Messages::WebPageProxy::DidDestroyFrame(frameID));
+    page->send(Messages::WebPageProxyMessageHandler::DidDestroyFrame(frameID));
 }
 
 WebPageGroupProxy* WebProcess::webPageGroup(const WebPageGroupData& pageGroupData)

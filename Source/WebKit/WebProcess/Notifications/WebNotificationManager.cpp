@@ -38,7 +38,7 @@
 #include "ServiceWorkerNotificationHandler.h"
 #include "WebNotification.h"
 #include "WebNotificationManagerMessages.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/DeprecatedGlobalSettings.h>
 #include <WebCore/Document.h>
 #include <WebCore/Notification.h>

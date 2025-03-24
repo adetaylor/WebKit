@@ -32,7 +32,7 @@
 #import "MessageSenderInlines.h"
 #import "SmartMagnificationControllerMessages.h"
 #import "WebPage.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import <WebCore/Editor.h>
 #import <WebCore/FocusController.h>
 #import <WebCore/GraphicsContext.h>

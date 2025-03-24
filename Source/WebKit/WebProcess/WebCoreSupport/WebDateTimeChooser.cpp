@@ -27,7 +27,7 @@
 #include "WebDateTimeChooser.h"
 
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/DateTimeChooserClient.h>
 #include <WebCore/DateTimeChooserParameters.h>
@@ -58,7 +58,7 @@ void WebDateTimeChooser::endChooser()
     if (!page)
         return;
 
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::EndDateTimePicker(), page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::EndDateTimePicker(), page->identifier());
 }
 
 void WebDateTimeChooser::showChooser(const WebCore::DateTimeChooserParameters& params)
@@ -68,7 +68,7 @@ void WebDateTimeChooser::showChooser(const WebCore::DateTimeChooserParameters& p
         return;
 
     page->setActiveDateTimeChooser(*this);
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::ShowDateTimePicker(params), page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::ShowDateTimePicker(params), page->identifier());
 }
 
 } // namespace WebKit

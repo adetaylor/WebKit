@@ -29,7 +29,7 @@
 
 #include "ColorControlSupportsAlpha.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/ColorChooserClient.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -45,7 +45,7 @@ WebColorChooser::WebColorChooser(WebPage* page, ColorChooserClient* client, cons
 {
     m_page->setActiveColorChooser(this);
     auto supportsAlpha = m_colorChooserClient->supportsAlpha() ? ColorControlSupportsAlpha::Yes : ColorControlSupportsAlpha::No;
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::ShowColorPicker(initialColor, m_colorChooserClient->elementRectRelativeToRootView(), supportsAlpha, m_colorChooserClient->suggestedColors()), m_page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::ShowColorPicker(initialColor, m_colorChooserClient->elementRectRelativeToRootView(), supportsAlpha, m_colorChooserClient->suggestedColors()), m_page->identifier());
 }
 
 WebColorChooser::~WebColorChooser()
@@ -81,7 +81,7 @@ void WebColorChooser::reattachColorChooser(const Color& color)
     RefPtr colorChooserClient = m_colorChooserClient.get();
     ASSERT(colorChooserClient);
     auto supportsAlpha = colorChooserClient->supportsAlpha() ? ColorControlSupportsAlpha::Yes : ColorControlSupportsAlpha::No;
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::ShowColorPicker(color, colorChooserClient->elementRectRelativeToRootView(), supportsAlpha, colorChooserClient->suggestedColors()), m_page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::ShowColorPicker(color, colorChooserClient->elementRectRelativeToRootView(), supportsAlpha, colorChooserClient->suggestedColors()), m_page->identifier());
 }
 
 void WebColorChooser::setSelectedColor(const Color& color)
@@ -92,7 +92,7 @@ void WebColorChooser::setSelectedColor(const Color& color)
     if (m_page->activeColorChooser() != this)
         return;
 
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::SetColorPickerColor(color), m_page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::SetColorPickerColor(color), m_page->identifier());
 }
 
 void WebColorChooser::endChooser()
@@ -100,7 +100,7 @@ void WebColorChooser::endChooser()
     if (!m_page)
         return;
 
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::EndColorPicker(), m_page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::EndColorPicker(), m_page->identifier());
 }
 
 } // namespace WebKit

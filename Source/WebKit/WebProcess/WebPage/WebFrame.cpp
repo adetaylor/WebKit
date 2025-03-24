@@ -49,7 +49,7 @@
 #include "WebEventFactory.h"
 #include "WebImage.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include "WebRemoteFrameClient.h"
 #include "WebsitePoliciesData.h"
@@ -145,7 +145,7 @@ Ref<WebFrame> WebFrame::createSubframe(WebPage& page, WebFrame& parent, const At
     }, frameID, effectiveSandboxFlags, ownerElement, WebCore::FrameTreeSyncData::create());
     frame->m_coreFrame = coreFrame.get();
 
-    page.send(Messages::WebPageProxy::DidCreateSubframe(parent.frameID(), coreFrame->frameID(), frameName, effectiveSandboxFlags, ownerElement.scrollingMode()));
+    page.send(Messages::WebPageProxyMessageHandler::DidCreateSubframe(parent.frameID(), coreFrame->frameID(), frameName, effectiveSandboxFlags, ownerElement.scrollingMode()));
 
     coreFrame->tree().setSpecifiedName(frameName);
     ASSERT(ownerElement.document().frame());
@@ -1166,7 +1166,7 @@ String WebFrame::mimeTypeForResourceWithURL(const URL& url) const
 void WebFrame::updateRemoteFrameSize(WebCore::IntSize size)
 {
     if (m_page)
-        m_page->send(Messages::WebPageProxy::UpdateRemoteFrameSize(m_frameID, size));
+        m_page->send(Messages::WebPageProxyMessageHandler::UpdateRemoteFrameSize(m_frameID, size));
 }
 
 void WebFrame::setTextDirection(const String& direction)
@@ -1423,7 +1423,7 @@ String WebFrame::frameTextForTesting(bool includeSubframes)
             continue;
         auto frameName = makeAtomString("\n--------\nFrame: '"_s, childWebFrame->name(), "'\n--------\n"_s);
         if (is<RemoteFrame>(*child))
-            builder.append(frameName, m_page->sendSync(Messages::WebPageProxy::FrameTextForTesting(child->frameID())).takeReplyOr("Sending WebPageProxy::FrameTextForTesting failed"_s));
+            builder.append(frameName, m_page->sendSync(Messages::WebPageProxyMessageHandler::FrameTextForTesting(child->frameID())).takeReplyOr("Sending WebPageProxy::FrameTextForTesting failed"_s));
         else if (!childWebFrame->innerText().isNull())
             builder.append(frameName, childWebFrame->frameTextForTesting(includeSubframes));
     }

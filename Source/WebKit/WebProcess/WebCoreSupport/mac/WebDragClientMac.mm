@@ -31,7 +31,7 @@
 #import "MessageSenderInlines.h"
 #import "PasteboardTypes.h"
 #import "WebPage.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import <WebCore/CachedImage.h>
 #import <WebCore/Document.h>
 #import <WebCore/DragController.h>
@@ -103,7 +103,7 @@ void WebDragClient::startDrag(DragItem dragItem, DataTransfer&, Frame& frame)
         return;
 
     m_page->willStartDrag();
-    m_page->send(Messages::WebPageProxy::StartDrag(dragItem, WTFMove(*handle)));
+    m_page->send(Messages::WebPageProxyMessageHandler::StartDrag(dragItem, WTFMove(*handle)));
 }
 
 void WebDragClient::didConcludeEditDrag()
@@ -180,7 +180,7 @@ void WebDragClient::declareAndWriteDragImage(const String& pasteboardName, Eleme
             filename = downloadFilename;
     }
 
-    m_page->send(Messages::WebPageProxy::SetPromisedDataForImage(pasteboardName, WTFMove(*imageHandle), filename, extension, title, String([[response URL] absoluteString]), WTF::userVisibleString(url), WTFMove(*archiveHandle), element.document().originIdentifierForPasteboard()));
+    m_page->send(Messages::WebPageProxyMessageHandler::SetPromisedDataForImage(pasteboardName, WTFMove(*imageHandle), filename, extension, title, String([[response URL] absoluteString]), WTF::userVisibleString(url), WTFMove(*archiveHandle), element.document().originIdentifierForPasteboard()));
 }
 
 #else

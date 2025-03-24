@@ -63,7 +63,7 @@
 #include "ShouldGrandfatherStatistics.h"
 #include "StorageAccessStatus.h"
 #include "WebCookieManager.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcessPoolMessages.h"
 #include "WebPushMessage.h"
 #include "WebResourceLoadStatisticsStore.h"

@@ -28,7 +28,7 @@
 
 #include "DrawingArea.h"
 #include "WebPageProxy.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/NotImplemented.h>
 #include <WebCore/PlatformScreen.h>
 #include <WebCore/PointerCharacteristics.h>

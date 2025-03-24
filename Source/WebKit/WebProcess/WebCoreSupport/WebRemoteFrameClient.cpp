@@ -28,7 +28,7 @@
 
 #include "MessageSenderInlines.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/FrameLoadRequest.h>
 #include <WebCore/FrameTree.h>
 #include <WebCore/HitTestResult.h>
@@ -68,7 +68,7 @@ void WebRemoteFrameClient::sizeDidChange(IntSize size)
 void WebRemoteFrameClient::postMessageToRemote(FrameIdentifier source, const String& sourceOrigin, FrameIdentifier target, std::optional<SecurityOriginData> targetOrigin, const MessageWithMessagePorts& message)
 {
     if (auto* page = m_frame->page())
-        page->send(Messages::WebPageProxy::PostMessageToRemote(source, sourceOrigin, target, targetOrigin, message));
+        page->send(Messages::WebPageProxyMessageHandler::PostMessageToRemote(source, sourceOrigin, target, targetOrigin, message));
 }
 
 void WebRemoteFrameClient::changeLocation(FrameLoadRequest&& request)
@@ -88,7 +88,7 @@ String WebRemoteFrameClient::renderTreeAsText(size_t baseIndent, OptionSet<Rende
     RefPtr page = m_frame->page();
     if (!page)
         return "Test Error - Missing page"_s;
-    auto sendResult = page->sendSync(Messages::WebPageProxy::RenderTreeAsTextForTesting(m_frame->frameID(), baseIndent, behavior));
+    auto sendResult = page->sendSync(Messages::WebPageProxyMessageHandler::RenderTreeAsTextForTesting(m_frame->frameID(), baseIndent, behavior));
     if (!sendResult.succeeded())
         return "Test Error - sending WebPageProxy::RenderTreeAsTextForTesting failed"_s;
     auto [result] = sendResult.takeReply();
@@ -101,7 +101,7 @@ String WebRemoteFrameClient::layerTreeAsText(size_t baseIndent, OptionSet<LayerT
     if (!page)
         return "Test Error - Missing page"_s;
     options.add(LayerTreeAsTextOptions::IncludeRootLayers);
-    auto sendResult = page->sendSync(Messages::WebPageProxy::LayerTreeAsTextForTesting(m_frame->frameID(), baseIndent, options));
+    auto sendResult = page->sendSync(Messages::WebPageProxyMessageHandler::LayerTreeAsTextForTesting(m_frame->frameID(), baseIndent, options));
     if (!sendResult.succeeded())
         return "Test Error - sending WebPageProxy::LayerTreeAsTextForTesting failed"_s;
     auto [result] = sendResult.takeReply();
@@ -122,7 +122,7 @@ void WebRemoteFrameClient::unbindRemoteAccessibilityFrames(int processIdentifier
 void WebRemoteFrameClient::updateRemoteFrameAccessibilityOffset(WebCore::FrameIdentifier frameID, WebCore::IntPoint offset)
 {
     if (RefPtr page = m_frame->page())
-        page->send(Messages::WebPageProxy::UpdateRemoteFrameAccessibilityOffset(frameID, offset));
+        page->send(Messages::WebPageProxyMessageHandler::UpdateRemoteFrameAccessibilityOffset(frameID, offset));
 }
 
 void WebRemoteFrameClient::bindRemoteAccessibilityFrames(int processIdentifier, WebCore::FrameIdentifier frameID, Vector<uint8_t>&& dataToken, CompletionHandler<void(Vector<uint8_t>, int)>&& completionHandler)
@@ -133,7 +133,7 @@ void WebRemoteFrameClient::bindRemoteAccessibilityFrames(int processIdentifier, 
         return;
     }
 
-    auto sendResult = page->sendSync(Messages::WebPageProxy::BindRemoteAccessibilityFrames(processIdentifier, frameID, WTFMove(dataToken)));
+    auto sendResult = page->sendSync(Messages::WebPageProxyMessageHandler::BindRemoteAccessibilityFrames(processIdentifier, frameID, WTFMove(dataToken)));
     if (!sendResult.succeeded()) {
         completionHandler({ }, 0);
         return;
@@ -157,19 +157,19 @@ void WebRemoteFrameClient::closePage()
 void WebRemoteFrameClient::focus()
 {
     if (auto* page = m_frame->page())
-        page->send(Messages::WebPageProxy::FocusRemoteFrame(m_frame->frameID()));
+        page->send(Messages::WebPageProxyMessageHandler::FocusRemoteFrame(m_frame->frameID()));
 }
 
 void WebRemoteFrameClient::unfocus()
 {
     if (auto* page = m_frame->page())
-        page->send(Messages::WebPageProxy::SetFocus(false));
+        page->send(Messages::WebPageProxyMessageHandler::SetFocus(false));
 }
 
 void WebRemoteFrameClient::documentURLForConsoleLog(CompletionHandler<void(const URL&)>&& completionHandler)
 {
     if (auto* page = m_frame->page())
-        page->sendWithAsyncReply(Messages::WebPageProxy::DocumentURLForConsoleLog(m_frame->frameID()), WTFMove(completionHandler));
+        page->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::DocumentURLForConsoleLog(m_frame->frameID()), WTFMove(completionHandler));
     else
         completionHandler({ });
 }
@@ -207,7 +207,7 @@ void WebRemoteFrameClient::applyWebsitePolicies(WebsitePoliciesData&& websitePol
 void WebRemoteFrameClient::updateScrollingMode(ScrollbarMode scrollingMode)
 {
     if (auto* page = m_frame->page())
-        page->send(Messages::WebPageProxy::UpdateScrollingMode(m_frame->frameID(), scrollingMode));
+        page->send(Messages::WebPageProxyMessageHandler::UpdateScrollingMode(m_frame->frameID(), scrollingMode));
 }
 
 }

@@ -28,7 +28,7 @@
 
 #include "WebErrors.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/DocumentLoader.h>
 #include <WebCore/FrameDestructionObserverInlines.h>

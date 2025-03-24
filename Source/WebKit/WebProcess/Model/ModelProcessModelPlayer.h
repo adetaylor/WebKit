@@ -29,7 +29,7 @@
 
 #import "ModelIdentifier.h"
 #import "WebPage.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import <WebCore/ModelPlayer.h>
 #import <WebCore/ModelPlayerClient.h>
 #import <WebCore/ModelPlayerIdentifier.h>

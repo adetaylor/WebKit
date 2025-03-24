@@ -43,7 +43,7 @@
 #import "WebHitTestResultData.h"
 #import "WebLoaderStrategy.h"
 #import "WebPage.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import "WebPasteboardProxyMessages.h"
 #import "WebProcess.h"
 #import <CoreFoundation/CoreFoundation.h>
@@ -606,7 +606,7 @@ void PDFPluginBase::performWebSearch(const String& query)
     if (!query)
         return;
 
-    m_frame->protectedPage()->send(Messages::WebPageProxy::SearchTheWeb(query));
+    m_frame->protectedPage()->send(Messages::WebPageProxyMessageHandler::SearchTheWeb(query));
 }
 
 void PDFPluginBase::addArchiveResource()
@@ -1216,7 +1216,7 @@ void PDFPluginBase::notifyCursorChanged(WebCore::PlatformCursorType cursorType)
     if (!m_frame || !m_frame->page())
         return;
 
-    m_frame->protectedPage()->send(Messages::WebPageProxy::SetCursor(WebCore::Cursor::fromType(cursorType)));
+    m_frame->protectedPage()->send(Messages::WebPageProxyMessageHandler::SetCursor(WebCore::Cursor::fromType(cursorType)));
 }
 
 bool PDFPluginBase::supportsForms() const

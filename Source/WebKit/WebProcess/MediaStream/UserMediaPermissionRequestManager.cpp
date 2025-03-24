@@ -27,7 +27,7 @@
 #include "MessageSenderInlines.h"
 #include "WebFrame.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/CaptureDevice.h>
 #include <WebCore/Document.h>
 #include <WebCore/FrameDestructionObserverInlines.h>
@@ -99,7 +99,7 @@ void UserMediaPermissionRequestManager::sendUserMediaRequest(UserMediaRequest& u
     ASSERT(webFrame);
 
     auto* topLevelDocumentOrigin = userRequest.topLevelDocumentOrigin();
-    protectedPage()->send(Messages::WebPageProxy::RequestUserMediaPermissionForFrame(userRequest.identifier(), webFrame->info(), userRequest.userMediaDocumentOrigin()->data(), topLevelDocumentOrigin->data(), userRequest.request()));
+    protectedPage()->send(Messages::WebPageProxyMessageHandler::RequestUserMediaPermissionForFrame(userRequest.identifier(), webFrame->info(), userRequest.userMediaDocumentOrigin()->data(), topLevelDocumentOrigin->data(), userRequest.request()));
 }
 
 void UserMediaPermissionRequestManager::cancelUserMediaRequest(UserMediaRequest& request)
@@ -164,7 +164,7 @@ void UserMediaPermissionRequestManager::enumerateMediaDevices(Document& document
         return;
     }
 
-    protectedPage()->sendWithAsyncReply(Messages::WebPageProxy::EnumerateMediaDevicesForFrame { WebFrame::fromCoreFrame(*frame)->frameID(), document.securityOrigin().data(), document.topOrigin().data() }, WTFMove(completionHandler));
+    protectedPage()->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::EnumerateMediaDevicesForFrame { WebFrame::fromCoreFrame(*frame)->frameID(), document.securityOrigin().data(), document.topOrigin().data() }, WTFMove(completionHandler));
 }
 
 #if USE(GSTREAMER)
@@ -200,7 +200,7 @@ UserMediaClient::DeviceChangeObserverToken UserMediaPermissionRequestManager::ad
         updateCaptureDevices(ShouldNotify::No);
         WebCore::RealtimeMediaSourceCenter::singleton().addDevicesChangedObserver(*this);
 #else
-        protectedPage()->send(Messages::WebPageProxy::BeginMonitoringCaptureDevices());
+        protectedPage()->send(Messages::WebPageProxyMessageHandler::BeginMonitoringCaptureDevices());
 #endif
     }
     return identifier;

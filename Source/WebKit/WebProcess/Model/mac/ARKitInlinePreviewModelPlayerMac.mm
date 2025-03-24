@@ -32,7 +32,7 @@
 #import "Logging.h"
 #import "MessageSenderInlines.h"
 #import "WebPage.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import <WebCore/Model.h>
 #import <pal/spi/cocoa/QuartzCoreSPI.h>
 #import <pal/spi/mac/SystemPreviewSPI.h>
@@ -60,7 +60,7 @@ ARKitInlinePreviewModelPlayerMac::~ARKitInlinePreviewModelPlayerMac()
 {
     if (m_inlinePreview) {
         if (auto* page = this->page())
-            page->send(Messages::WebPageProxy::ModelElementDestroyRemotePreview([m_inlinePreview uuid].UUIDString));
+            page->send(Messages::WebPageProxyMessageHandler::ModelElementDestroyRemotePreview([m_inlinePreview uuid].UUIDString));
     }
     clearFile();
 }
@@ -196,7 +196,7 @@ void ARKitInlinePreviewModelPlayerMac::createPreviewsForModelWithURL(const URL& 
     };
 
     // Then, create the UIProcess preview.
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementCreateRemotePreview([m_inlinePreview uuid].UUIDString, m_size), WTFMove(completionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementCreateRemotePreview([m_inlinePreview uuid].UUIDString, m_size), WTFMove(completionHandler));
 }
 
 void ARKitInlinePreviewModelPlayerMac::didCreateRemotePreviewForModelWithURL(const URL& url)
@@ -232,7 +232,7 @@ void ARKitInlinePreviewModelPlayerMac::didCreateRemotePreviewForModelWithURL(con
     };
 
     // Now that both the WebProcess and UIProcess previews are created, load the file into the remote preview.
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementLoadRemotePreview([m_inlinePreview uuid].UUIDString, URL::fileURLWithFileSystemPath(m_filePath)), WTFMove(completionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementLoadRemotePreview([m_inlinePreview uuid].UUIDString, URL::fileURLWithFileSystemPath(m_filePath)), WTFMove(completionHandler));
 }
 
 void ARKitInlinePreviewModelPlayerMac::sizeDidChange(WebCore::LayoutSize size)
@@ -265,7 +265,7 @@ void ARKitInlinePreviewModelPlayerMac::sizeDidChange(WebCore::LayoutSize size)
         [strongSelf->m_inlinePreview setFrameWithinFencedTransaction:CGRectMake(0, 0, size.width(), size.height())];
     };
 
-    strongPage->sendWithAsyncReply(Messages::WebPageProxy::ModelElementSizeDidChange(uuid, size), WTFMove(completionHandler));
+    strongPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ModelElementSizeDidChange(uuid, size), WTFMove(completionHandler));
 }
 
 PlatformLayer* ARKitInlinePreviewModelPlayerMac::layer()
@@ -286,19 +286,19 @@ bool ARKitInlinePreviewModelPlayerMac::supportsDragging()
 void ARKitInlinePreviewModelPlayerMac::handleMouseDown(const LayoutPoint& flippedLocationInElement, MonotonicTime timestamp)
 {
     if (auto* page = this->page())
-        page->send(Messages::WebPageProxy::HandleMouseDownForModelElement([m_inlinePreview uuid].UUIDString, flippedLocationInElement, timestamp));
+        page->send(Messages::WebPageProxyMessageHandler::HandleMouseDownForModelElement([m_inlinePreview uuid].UUIDString, flippedLocationInElement, timestamp));
 }
 
 void ARKitInlinePreviewModelPlayerMac::handleMouseMove(const LayoutPoint& flippedLocationInElement, MonotonicTime timestamp)
 {
     if (auto* page = this->page())
-        page->send(Messages::WebPageProxy::HandleMouseMoveForModelElement([m_inlinePreview uuid].UUIDString, flippedLocationInElement, timestamp));
+        page->send(Messages::WebPageProxyMessageHandler::HandleMouseMoveForModelElement([m_inlinePreview uuid].UUIDString, flippedLocationInElement, timestamp));
 }
 
 void ARKitInlinePreviewModelPlayerMac::handleMouseUp(const LayoutPoint& flippedLocationInElement, MonotonicTime timestamp)
 {
     if (auto* page = this->page())
-        page->send(Messages::WebPageProxy::HandleMouseUpForModelElement([m_inlinePreview uuid].UUIDString, flippedLocationInElement, timestamp));
+        page->send(Messages::WebPageProxyMessageHandler::HandleMouseUpForModelElement([m_inlinePreview uuid].UUIDString, flippedLocationInElement, timestamp));
 }
 
 String ARKitInlinePreviewModelPlayerMac::inlinePreviewUUIDForTesting() const

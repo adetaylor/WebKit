@@ -30,6 +30,7 @@
 #include "RemotePageProxy.h"
 #include "WebPageProxy.h"
 #include "WebProcessProxy.h"
+#include "WebProcessPool.h"
 
 namespace WebKit {
 

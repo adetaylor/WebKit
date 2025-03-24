@@ -33,7 +33,7 @@
 #include "CoordinatedSceneState.h"
 #include "DrawingArea.h"
 #include "WebPageInlines.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/AsyncScrollingCoordinator.h>
 #include <WebCore/Chrome.h>

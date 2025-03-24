@@ -29,7 +29,7 @@
 #if ENABLE(ARKIT_INLINE_PREVIEW_IOS)
 
 #import "WebPage.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import <WebCore/GraphicsLayer.h>
 #import <wtf/WeakHashSet.h>
 
@@ -107,7 +107,7 @@ void ARKitInlinePreviewModelPlayerIOS::enterFullscreen()
         return;
 
     if (auto modelIdentifier = this->modelIdentifier())
-        strongPage->send(Messages::WebPageProxy::TakeModelElementFullscreen(*modelIdentifier));
+        strongPage->send(Messages::WebPageProxyMessageHandler::TakeModelElementFullscreen(*modelIdentifier));
 }
 
 void ARKitInlinePreviewModelPlayerIOS::setInteractionEnabled(bool isInteractionEnabled)
@@ -117,7 +117,7 @@ void ARKitInlinePreviewModelPlayerIOS::setInteractionEnabled(bool isInteractionE
         return;
 
     if (auto modelIdentifier = this->modelIdentifier())
-        strongPage->send(Messages::WebPageProxy::ModelElementSetInteractionEnabled(*modelIdentifier, isInteractionEnabled));
+        strongPage->send(Messages::WebPageProxyMessageHandler::ModelElementSetInteractionEnabled(*modelIdentifier, isInteractionEnabled));
 }
 
 void ARKitInlinePreviewModelPlayerIOS::handleMouseDown(const WebCore::LayoutPoint&, MonotonicTime)

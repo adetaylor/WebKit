@@ -31,7 +31,7 @@
 #include "URLSchemeTaskParameters.h"
 #include "WebFrame.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include "WebURLSchemeHandlerProxy.h"
 #include <WebCore/NetworkLoadMetrics.h>
@@ -80,7 +80,7 @@ void WebURLSchemeTaskProxy::startLoading()
     Ref urlSchemeHandler = m_urlSchemeHandler.get();
     RefPtr frame = m_frame;
     ASSERT(frame);
-    urlSchemeHandler->page().send(Messages::WebPageProxy::StartURLSchemeTask(URLSchemeTaskParameters { urlSchemeHandler->identifier(), *m_coreLoader->identifier(), m_request, frame->info() }));
+    urlSchemeHandler->page().send(Messages::WebPageProxyMessageHandler::StartURLSchemeTask(URLSchemeTaskParameters { urlSchemeHandler->identifier(), *m_coreLoader->identifier(), m_request, frame->info() }));
 }
 
 void WebURLSchemeTaskProxy::stopLoading()
@@ -88,7 +88,7 @@ void WebURLSchemeTaskProxy::stopLoading()
     ASSERT(m_coreLoader);
     WEBURLSCHEMETASKPROXY_RELEASE_LOG("stopLoading");
     Ref urlSchemeHandler = m_urlSchemeHandler.get();
-    urlSchemeHandler->page().send(Messages::WebPageProxy::StopURLSchemeTask(urlSchemeHandler->identifier(), *m_coreLoader->identifier()));
+    urlSchemeHandler->page().send(Messages::WebPageProxyMessageHandler::StopURLSchemeTask(urlSchemeHandler->identifier(), *m_coreLoader->identifier()));
     m_coreLoader = nullptr;
     m_frame = nullptr;
 

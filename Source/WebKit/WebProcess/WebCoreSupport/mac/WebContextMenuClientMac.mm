@@ -30,7 +30,7 @@
 
 #import "MessageSenderInlines.h"
 #import "WebPage.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import <WebCore/DictionaryLookup.h>
 #import <WebCore/Editor.h>
 #import <WebCore/LocalFrame.h>
@@ -64,14 +64,14 @@ void WebContextMenuClient::stopSpeaking()
 void WebContextMenuClient::searchWithGoogle(const LocalFrame* frame)
 {
     auto searchString = frame->editor().selectedText().trim(deprecatedIsSpaceOrNewline);
-    m_page->send(Messages::WebPageProxy::SearchTheWeb(searchString));
+    m_page->send(Messages::WebPageProxyMessageHandler::SearchTheWeb(searchString));
 }
 
 #if HAVE(TRANSLATION_UI_SERVICES)
 
 void WebContextMenuClient::handleTranslation(const WebCore::TranslationContextMenuInfo& info)
 {
-    m_page->send(Messages::WebPageProxy::HandleContextMenuTranslation(info));
+    m_page->send(Messages::WebPageProxyMessageHandler::HandleContextMenuTranslation(info));
 }
 
 #endif // HAVE(TRANSLATION_UI_SERVICES)

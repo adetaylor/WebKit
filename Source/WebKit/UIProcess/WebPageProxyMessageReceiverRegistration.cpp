@@ -26,7 +26,7 @@
 #include "config.h"
 #include "WebPageProxyMessageReceiverRegistration.h"
 
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcessProxy.h"
 
 namespace WebKit {
@@ -39,21 +39,21 @@ WebPageProxyMessageReceiverRegistration::~WebPageProxyMessageReceiverRegistratio
 void WebPageProxyMessageReceiverRegistration::startReceivingMessages(WebProcessProxy& process, WebCore::PageIdentifier webPageID, IPC::MessageReceiver& messageReceiver)
 {
     stopReceivingMessages();
-    process.addMessageReceiver(Messages::WebPageProxy::messageReceiverName(), webPageID, messageReceiver);
+    process.addMessageReceiver(Messages::WebPageProxyMessageHandler::messageReceiverName(), webPageID, messageReceiver);
     m_data = { { webPageID, process } };
 }
 
 void WebPageProxyMessageReceiverRegistration::stopReceivingMessages()
 {
     if (auto data = std::exchange(m_data, std::nullopt))
-        data->protectedProcess()->removeMessageReceiver(Messages::WebPageProxy::messageReceiverName(), data->webPageID);
+        data->protectedProcess()->removeMessageReceiver(Messages::WebPageProxyMessageHandler::messageReceiverName(), data->webPageID);
 }
 
 void WebPageProxyMessageReceiverRegistration::transferMessageReceivingFrom(WebPageProxyMessageReceiverRegistration& oldRegistration, IPC::MessageReceiver& newReceiver)
 {
     ASSERT(!m_data);
     if (auto data = std::exchange(oldRegistration.m_data, std::nullopt)) {
-        data->protectedProcess()->removeMessageReceiver(Messages::WebPageProxy::messageReceiverName(), data->webPageID);
+        data->protectedProcess()->removeMessageReceiver(Messages::WebPageProxyMessageHandler::messageReceiverName(), data->webPageID);
         startReceivingMessages(data->process, data->webPageID, newReceiver);
     } else {
         stopReceivingMessages();

@@ -27,7 +27,7 @@
 #include "WebDataListSuggestionPicker.h"
 
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/DataListSuggestionsClient.h>
 #include <WebCore/LocalFrameView.h>
@@ -53,7 +53,7 @@ void WebDataListSuggestionPicker::handleKeydownWithIdentifier(const String& key)
     if (!page)
         return;
 
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::HandleKeydownInDataList(key), page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::HandleKeydownInDataList(key), page->identifier());
 }
 
 void WebDataListSuggestionPicker::didSelectOption(const String& selectedOption)
@@ -74,7 +74,7 @@ void WebDataListSuggestionPicker::close()
     if (!page)
         return;
 
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::EndDataListSuggestions(), page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::EndDataListSuggestions(), page->identifier());
 }
 
 void WebDataListSuggestionPicker::displayWithActivationType(WebCore::DataListSuggestionActivationType type)
@@ -103,7 +103,7 @@ void WebDataListSuggestionPicker::displayWithActivationType(WebCore::DataListSug
     page->setActiveDataListSuggestionPicker(*this);
 
     WebCore::DataListSuggestionInformation info { type, WTFMove(suggestions), WTFMove(elementRectInRootViewCoordinates) };
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxy::ShowDataListSuggestions(info), page->identifier());
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPageProxyMessageHandler::ShowDataListSuggestions(info), page->identifier());
 }
 
 void WebDataListSuggestionPicker::detach()

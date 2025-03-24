@@ -35,7 +35,7 @@
 #import "MessageSenderInlines.h"
 #import "TextCheckerState.h"
 #import "WebPage.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import "WebProcess.h"
 #import <WebCore/Editor.h>
 #import <WebCore/FocusController.h>
@@ -110,14 +110,14 @@ void WebEditorClient::showSubstitutionsPanel(bool)
 
 bool WebEditorClient::substitutionsPanelIsShowing()
 {
-    auto sendResult = Ref { *m_page }->sendSync(Messages::WebPageProxy::SubstitutionsPanelIsShowing());
+    auto sendResult = Ref { *m_page }->sendSync(Messages::WebPageProxyMessageHandler::SubstitutionsPanelIsShowing());
     auto [isShowing] = sendResult.takeReplyOr(false);
     return isShowing;
 }
 
 void WebEditorClient::toggleSmartInsertDelete()
 {
-    Ref { *m_page }->send(Messages::WebPageProxy::toggleSmartInsertDelete());
+    Ref { *m_page }->send(Messages::WebPageProxyMessageHandler::toggleSmartInsertDelete());
 }
 
 bool WebEditorClient::isAutomaticQuoteSubstitutionEnabled()
@@ -130,7 +130,7 @@ bool WebEditorClient::isAutomaticQuoteSubstitutionEnabled()
 
 void WebEditorClient::toggleAutomaticQuoteSubstitution()
 {
-    Ref { *m_page }->send(Messages::WebPageProxy::toggleAutomaticQuoteSubstitution());
+    Ref { *m_page }->send(Messages::WebPageProxyMessageHandler::toggleAutomaticQuoteSubstitution());
 }
 
 bool WebEditorClient::isAutomaticLinkDetectionEnabled()
@@ -140,7 +140,7 @@ bool WebEditorClient::isAutomaticLinkDetectionEnabled()
 
 void WebEditorClient::toggleAutomaticLinkDetection()
 {
-    Ref { *m_page }->send(Messages::WebPageProxy::toggleAutomaticLinkDetection());
+    Ref { *m_page }->send(Messages::WebPageProxyMessageHandler::toggleAutomaticLinkDetection());
 }
 
 bool WebEditorClient::isAutomaticDashSubstitutionEnabled()
@@ -153,7 +153,7 @@ bool WebEditorClient::isAutomaticDashSubstitutionEnabled()
 
 void WebEditorClient::toggleAutomaticDashSubstitution()
 {
-    Ref { *m_page }->send(Messages::WebPageProxy::toggleAutomaticDashSubstitution());
+    Ref { *m_page }->send(Messages::WebPageProxyMessageHandler::toggleAutomaticDashSubstitution());
 }
 
 bool WebEditorClient::isAutomaticTextReplacementEnabled()
@@ -166,7 +166,7 @@ bool WebEditorClient::isAutomaticTextReplacementEnabled()
 
 void WebEditorClient::toggleAutomaticTextReplacement()
 {
-    Ref { *m_page }->send(Messages::WebPageProxy::toggleAutomaticTextReplacement());
+    Ref { *m_page }->send(Messages::WebPageProxyMessageHandler::toggleAutomaticTextReplacement());
 }
 
 bool WebEditorClient::isAutomaticSpellingCorrectionEnabled()

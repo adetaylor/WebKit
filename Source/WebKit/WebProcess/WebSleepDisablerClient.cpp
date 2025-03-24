@@ -28,7 +28,7 @@
 
 #include "MessageSenderInlines.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <wtf/TZoneMallocInlines.h>
 
@@ -39,13 +39,13 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(WebSleepDisablerClient);
 void WebSleepDisablerClient::didCreateSleepDisabler(WebCore::SleepDisablerIdentifier identifier, const String& reason, bool display, std::optional<WebCore::PageIdentifier> pageID)
 {
     if (auto* webPage = pageID ? WebProcess::singleton().webPage(*pageID) : nullptr)
-        webPage->send(Messages::WebPageProxy::DidCreateSleepDisabler(identifier, reason, display));
+        webPage->send(Messages::WebPageProxyMessageHandler::DidCreateSleepDisabler(identifier, reason, display));
 }
 
 void WebSleepDisablerClient::didDestroySleepDisabler(WebCore::SleepDisablerIdentifier identifier, std::optional<WebCore::PageIdentifier> pageID)
 {
     if (auto* webPage = pageID ? WebProcess::singleton().webPage(*pageID) : nullptr)
-        webPage->send(Messages::WebPageProxy::DidDestroySleepDisabler(identifier));
+        webPage->send(Messages::WebPageProxyMessageHandler::DidDestroySleepDisabler(identifier));
 }
 
 } // namespace WebKit

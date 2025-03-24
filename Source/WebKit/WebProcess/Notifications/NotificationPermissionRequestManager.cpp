@@ -29,7 +29,7 @@
 #include "MessageSenderInlines.h"
 #include "NotificationManagerMessageHandlerMessages.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/Notification.h>
 #include <WebCore/Page.h>
@@ -82,7 +82,7 @@ void NotificationPermissionRequestManager::startRequest(const SecurityOriginData
     if (!addResult.isNewEntry)
         return;
 
-    m_page->sendWithAsyncReply(Messages::WebPageProxy::RequestNotificationPermission(securityOrigin.toString()), [this, protectedThis = Ref { *this }, securityOrigin, permissionHandler = WTFMove(permissionHandler)](bool allowed) mutable {
+    m_page->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::RequestNotificationPermission(securityOrigin.toString()), [this, protectedThis = Ref { *this }, securityOrigin, permissionHandler = WTFMove(permissionHandler)](bool allowed) mutable {
 
         auto innerPermissionHandler = [this, protectedThis = Ref { *this }, securityOrigin, permissionHandler = WTFMove(permissionHandler)] (bool allowed) mutable {
             WebProcess::singleton().protectedNotificationManager()->didUpdateNotificationDecision(securityOrigin.toString(), allowed);

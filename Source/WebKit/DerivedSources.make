@@ -172,7 +172,7 @@ MESSAGE_RECEIVERS = \
 	UIProcess/DrawingAreaProxy \
 	UIProcess/Network/NetworkProcessProxy \
 	UIProcess/Network/CustomProtocols/LegacyCustomProtocolManagerProxy \
-	UIProcess/WebPageProxy \
+	UIProcess/WebPageProxyMessageHandler \
 	UIProcess/VisitedLinkStore \
 	UIProcess/ios/WebDeviceOrientationUpdateProviderProxy \
 	UIProcess/ios/SmartMagnificationController \

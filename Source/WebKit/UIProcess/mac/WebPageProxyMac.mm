@@ -52,7 +52,7 @@
 #import "WebContextMenuProxyMac.h"
 #import "WebPageMessages.h"
 #import "WebPageProxyInternals.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import "WebPreferencesKeys.h"
 #import "WebProcessProxy.h"
 #import <WebCore/AttributedString.h>
@@ -379,7 +379,7 @@ bool WebPageProxy::acceptsFirstMouse(int eventNumber, const WebKit::WebMouseEven
         return false;
 
     legacyMainFrameProcess->send(Messages::WebPage::RequestAcceptsFirstMouse(eventNumber, event), webPageIDInMainFrameProcess(), IPC::SendOption::DispatchMessageEvenWhenWaitingForUnboundedSyncReply);
-    bool receivedReply = legacyMainFrameProcess->protectedConnection()->waitForAndDispatchImmediately<Messages::WebPageProxy::HandleAcceptsFirstMouse>(webPageIDInMainFrameProcess(), 3_s, IPC::WaitForOption::InterruptWaitingIfSyncMessageArrives) == IPC::Error::NoError;
+    bool receivedReply = legacyMainFrameProcess->protectedConnection()->waitForAndDispatchImmediately<Messages::WebPageProxyMessageHandler::HandleAcceptsFirstMouse>(webPageIDInMainFrameProcess(), 3_s, IPC::WaitForOption::InterruptWaitingIfSyncMessageArrives) == IPC::Error::NoError;
 
     if (!receivedReply)
         return false;

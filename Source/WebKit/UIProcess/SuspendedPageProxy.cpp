@@ -36,7 +36,7 @@
 #include "WebFrameProxy.h"
 #include "WebPageMessages.h"
 #include "WebPageProxy.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcessMessages.h"
 #include "WebProcessPool.h"
 #include <wtf/DebugUtilities.h>
@@ -82,25 +82,25 @@ static const MessageNameSet& messageNamesToIgnoreWhileSuspended()
     static NeverDestroyed<MessageNameSet> messageNames;
     static std::once_flag onceFlag;
     std::call_once(onceFlag, [] {
-        messageNames.get().add(IPC::MessageName::WebPageProxy_BackForwardAddItem);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_ClearAllEditCommands);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidChangeContentSize);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidChangeMainDocument);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidChangeProgress);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidCommitLoadForFrame);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidFinishDocumentLoadForFrame);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidFinishProgress);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidFirstLayoutForFrame);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidFirstVisuallyNonEmptyLayoutForFrame);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidNavigateWithNavigationData);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidReachLayoutMilestone);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidRestoreScrollPosition);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidStartProgress);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_DidStartProvisionalLoadForFrame);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_EditorStateChanged);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_PageExtendedBackgroundColorDidChange);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_SetRenderTreeSize);
-        messageNames.get().add(IPC::MessageName::WebPageProxy_SetNetworkRequestsInProgress);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_BackForwardAddItem);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_ClearAllEditCommands);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidChangeContentSize);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidChangeMainDocument);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidChangeProgress);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidCommitLoadForFrame);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidFinishDocumentLoadForFrame);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidFinishProgress);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidFirstLayoutForFrame);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidFirstVisuallyNonEmptyLayoutForFrame);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidNavigateWithNavigationData);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidReachLayoutMilestone);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidRestoreScrollPosition);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidStartProgress);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_DidStartProvisionalLoadForFrame);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_EditorStateChanged);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_PageExtendedBackgroundColorDidChange);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_SetRenderTreeSize);
+        messageNames.get().add(IPC::MessageName::WebPageProxyMessageHandler_SetNetworkRequestsInProgress);
     });
 
     return messageNames;
@@ -294,10 +294,10 @@ WebPageProxy* SuspendedPageProxy::page() const
 
 void SuspendedPageProxy::didReceiveMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
-    ASSERT(decoder.messageReceiverName() == Messages::WebPageProxy::messageReceiverName());
+    ASSERT(decoder.messageReceiverName() == Messages::WebPageProxyMessageHandler::messageReceiverName());
 
-    if (decoder.messageName() == Messages::WebPageProxy::DidDestroyNavigation::name()) {
-        IPC::handleMessage<Messages::WebPageProxy::DidDestroyNavigation>(connection, decoder, this, &SuspendedPageProxy::didDestroyNavigation);
+    if (decoder.messageName() == Messages::WebPageProxyMessageHandler::DidDestroyNavigation::name()) {
+        IPC::handleMessage<Messages::WebPageProxyMessageHandler::DidDestroyNavigation>(connection, decoder, this, &SuspendedPageProxy::didDestroyNavigation);
         return;
     }
 

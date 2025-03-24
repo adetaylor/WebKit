@@ -57,7 +57,7 @@
 #include "WebKeyboardEvent.h"
 #include "WebMouseEvent.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <CoreGraphics/CoreGraphics.h>
 #include <PDFKit/PDFKit.h>
 #include <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
@@ -2125,7 +2125,7 @@ bool UnifiedPDFPlugin::handleContextMenuEvent(const WebMouseEvent& event)
     if (!contextMenu)
         return false;
 
-    webPage->sendWithAsyncReply(Messages::WebPageProxy::ShowPDFContextMenu { *contextMenu, identifier() }, [eventPosition = event.position(), weakThis = WeakPtr { *this }](std::optional<int32_t>&& selectedItemTag) {
+    webPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::ShowPDFContextMenu { *contextMenu, identifier() }, [eventPosition = event.position(), weakThis = WeakPtr { *this }](std::optional<int32_t>&& selectedItemTag) {
         RefPtr protectedThis = weakThis.get();
         if (!protectedThis)
             return;
@@ -3544,7 +3544,7 @@ bool UnifiedPDFPlugin::showDefinitionForSelection(PDFSelection *selection)
     RefPtr page = m_frame->page();
 
     auto dictionaryPopupInfo = dictionaryPopupInfoForSelection(selection, TextIndicatorPresentationTransition::Bounce);
-    page->send(Messages::WebPageProxy::DidPerformDictionaryLookup(dictionaryPopupInfo));
+    page->send(Messages::WebPageProxyMessageHandler::DidPerformDictionaryLookup(dictionaryPopupInfo));
     return true;
 }
 

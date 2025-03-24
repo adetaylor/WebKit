@@ -44,7 +44,7 @@
 #include "WebKitWebHitTestResultPrivate.h"
 #include "WebKitWebPagePrivate.h"
 #include "WebKitWebProcessEnumTypes.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <WebCore/ContextMenuContext.h>
 #include <WebCore/Document.h>
@@ -929,7 +929,7 @@ void webkit_web_page_send_message_to_view(WebKitWebPage* webPage, WebKitUserMess
     // We sink the reference in case of being floating.
     GRefPtr<WebKitUserMessage> adoptedMessage = message;
     if (!callback) {
-        webPage->priv->webPage->send(Messages::WebPageProxy::SendMessageToWebView(webkitUserMessageGetMessage(message)));
+        webPage->priv->webPage->send(Messages::WebPageProxyMessageHandler::SendMessageToWebView(webkitUserMessageGetMessage(message)));
         return;
     }
 
@@ -947,7 +947,7 @@ void webkit_web_page_send_message_to_view(WebKitWebPage* webPage, WebKitUserMess
             break;
         }
     };
-    webPage->priv->webPage->sendWithAsyncReply(Messages::WebPageProxy::SendMessageToWebViewWithReply(webkitUserMessageGetMessage(message)), WTFMove(completionHandler));
+    webPage->priv->webPage->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::SendMessageToWebViewWithReply(webkitUserMessageGetMessage(message)), WTFMove(completionHandler));
 }
 
 /**

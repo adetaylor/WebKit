@@ -30,7 +30,7 @@
 
 #include "Logging.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include <wtf/Function.h>
 #include <wtf/HashMap.h>

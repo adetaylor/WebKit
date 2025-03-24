@@ -32,7 +32,7 @@
 #include "MessageSenderInlines.h"
 #include "WebFrame.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/DocumentInlines.h>
 #include <WebCore/FrameDestructionObserverInlines.h>
 #include <WebCore/FrameLoader.h>
@@ -92,7 +92,7 @@ void MediaKeySystemPermissionRequestManager::sendMediaKeySystemRequest(MediaKeyS
     auto webFrame = WebFrame::fromCoreFrame(*frame);
     ASSERT(webFrame);
 
-    Ref { m_page.get() }->send(Messages::WebPageProxy::RequestMediaKeySystemPermissionForFrame(userRequest.identifier(), webFrame->frameID(), document->clientOrigin(), userRequest.keySystem()));
+    Ref { m_page.get() }->send(Messages::WebPageProxyMessageHandler::RequestMediaKeySystemPermissionForFrame(userRequest.identifier(), webFrame->frameID(), document->clientOrigin(), userRequest.keySystem()));
 }
 
 void MediaKeySystemPermissionRequestManager::cancelMediaKeySystemRequest(MediaKeySystemRequest& request)

@@ -25,7 +25,7 @@
 #include "MessageSenderInlines.h"
 #include "UserMediaPermissionRequestManager.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/UserMediaController.h>
 #include <WebCore/UserMediaRequest.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -82,7 +82,7 @@ void WebUserMediaClient::updateCaptureState(const WebCore::Document& document, b
 
 void WebUserMediaClient::setShouldListenToVoiceActivity(bool shouldListen)
 {
-    protectedPage()->send(Messages::WebPageProxy::SetShouldListenToVoiceActivity { shouldListen });
+    protectedPage()->send(Messages::WebPageProxyMessageHandler::SetShouldListenToVoiceActivity { shouldListen });
 }
 
 } // namespace WebKit;

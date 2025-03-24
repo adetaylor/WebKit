@@ -28,7 +28,7 @@
 
 #include "MessageSenderInlines.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 
 namespace WebKit {
 using namespace WebCore;
@@ -42,47 +42,47 @@ WebAlternativeTextClient::~WebAlternativeTextClient()
 {
 #if USE(AUTOCORRECTION_PANEL)
     if (m_page)
-        m_page->send(Messages::WebPageProxy::DismissCorrectionPanel(ReasonForDismissingAlternativeText::Ignored));
+        m_page->send(Messages::WebPageProxyMessageHandler::DismissCorrectionPanel(ReasonForDismissingAlternativeText::Ignored));
 #endif
 }
 
 #if USE(AUTOCORRECTION_PANEL)
 void WebAlternativeTextClient::showCorrectionAlternative(AlternativeTextType type, const FloatRect& boundingBoxOfReplacedString, const String& replacedString, const String& replacementString, const Vector<String>& alternativeReplacementStrings)
 {
-    m_page->send(Messages::WebPageProxy::ShowCorrectionPanel(type, boundingBoxOfReplacedString, replacedString, replacementString, alternativeReplacementStrings));
+    m_page->send(Messages::WebPageProxyMessageHandler::ShowCorrectionPanel(type, boundingBoxOfReplacedString, replacedString, replacementString, alternativeReplacementStrings));
 }
 
 void WebAlternativeTextClient::dismissAlternative(ReasonForDismissingAlternativeText reason)
 {
-    m_page->send(Messages::WebPageProxy::DismissCorrectionPanel(reason));
+    m_page->send(Messages::WebPageProxyMessageHandler::DismissCorrectionPanel(reason));
 }
 
 String WebAlternativeTextClient::dismissAlternativeSoon(ReasonForDismissingAlternativeText reason)
 {
-    auto sendResult = m_page->sendSync(Messages::WebPageProxy::DismissCorrectionPanelSoon(reason));
+    auto sendResult = m_page->sendSync(Messages::WebPageProxyMessageHandler::DismissCorrectionPanelSoon(reason));
     auto [result] = sendResult.takeReplyOr(String { });
     return result;
 }
 
 void WebAlternativeTextClient::recordAutocorrectionResponse(AutocorrectionResponse response, const String& replacedString, const String& replacementString)
 {
-    m_page->send(Messages::WebPageProxy::RecordAutocorrectionResponse(response, replacedString, replacementString));
+    m_page->send(Messages::WebPageProxyMessageHandler::RecordAutocorrectionResponse(response, replacedString, replacementString));
 }
 #endif
 
 void WebAlternativeTextClient::removeDictationAlternatives(WebCore::DictationContext dictationContext)
 {
-    m_page->send(Messages::WebPageProxy::RemoveDictationAlternatives(dictationContext));
+    m_page->send(Messages::WebPageProxyMessageHandler::RemoveDictationAlternatives(dictationContext));
 }
 
 void WebAlternativeTextClient::showDictationAlternativeUI(const WebCore::FloatRect& boundingBoxOfDictatedText, WebCore::DictationContext dictationContext)
 {
-    m_page->send(Messages::WebPageProxy::ShowDictationAlternativeUI(boundingBoxOfDictatedText, dictationContext));
+    m_page->send(Messages::WebPageProxyMessageHandler::ShowDictationAlternativeUI(boundingBoxOfDictatedText, dictationContext));
 }
 
 Vector<String> WebAlternativeTextClient::dictationAlternatives(WebCore::DictationContext dictationContext)
 {
-    auto sendResult = m_page->sendSync(Messages::WebPageProxy::DictationAlternatives(dictationContext));
+    auto sendResult = m_page->sendSync(Messages::WebPageProxyMessageHandler::DictationAlternatives(dictationContext));
     auto [result] = sendResult.takeReplyOr(Vector<String> { });
     return result;
 }

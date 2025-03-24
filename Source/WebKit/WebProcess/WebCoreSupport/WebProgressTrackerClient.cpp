@@ -29,7 +29,7 @@
 #include "APIInjectedBundlePageLoaderClient.h"
 #include "MessageSenderInlines.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/LocalFrame.h>
 #include <WebCore/Page.h>
 #include <WebCore/ProgressTracker.h>
@@ -52,7 +52,7 @@ void WebProgressTrackerClient::progressStarted(LocalFrame& originatingProgressFr
 
     Ref page = *m_webPage;
     page->setMainFrameProgressCompleted(false);
-    page->send(Messages::WebPageProxy::DidStartProgress());
+    page->send(Messages::WebPageProxyMessageHandler::DidStartProgress());
 }
 
 void WebProgressTrackerClient::progressEstimateChanged(LocalFrame& originatingProgressFrame)
@@ -62,7 +62,7 @@ void WebProgressTrackerClient::progressEstimateChanged(LocalFrame& originatingPr
 
     Ref page = *m_webPage;
     double progress = page->corePage()->progress().estimatedProgress();
-    page->send(Messages::WebPageProxy::DidChangeProgress(progress));
+    page->send(Messages::WebPageProxyMessageHandler::DidChangeProgress(progress));
 }
 
 void WebProgressTrackerClient::progressFinished(LocalFrame& originatingProgressFrame)
@@ -76,7 +76,7 @@ void WebProgressTrackerClient::progressFinished(LocalFrame& originatingProgressF
     // Notify the bundle client.
     webPage->injectedBundleLoaderClient().didFinishProgress(webPage);
 
-    webPage->send(Messages::WebPageProxy::DidFinishProgress());
+    webPage->send(Messages::WebPageProxyMessageHandler::DidFinishProgress());
 }
 
 } // namespace WebKit

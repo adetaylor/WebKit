@@ -36,7 +36,7 @@
 #include "ModelProcessConnectionParameters.h"
 #include "ModelProcessCreationParameters.h"
 #include "ModelProcessProxyMessages.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcessPoolMessages.h"
 #include <WebCore/CommonAtomStrings.h>
 #include <WebCore/LogInitialization.h>

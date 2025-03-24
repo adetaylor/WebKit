@@ -33,7 +33,7 @@
 #include "MessageSenderInlines.h"
 #include "WebFrame.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/Document.h>
 #include <WebCore/FrameLoader.h>
 #include <WebCore/Geolocation.h>
@@ -77,12 +77,12 @@ void GeolocationPermissionRequestManager::startRequestForGeolocation(Geolocation
     auto webFrame = WebFrame::fromCoreFrame(*frame);
     ASSERT(webFrame);
 
-    protectedPage()->send(Messages::WebPageProxy::RequestGeolocationPermissionForFrame(geolocationID, webFrame->info()));
+    protectedPage()->send(Messages::WebPageProxyMessageHandler::RequestGeolocationPermissionForFrame(geolocationID, webFrame->info()));
 }
 
 void GeolocationPermissionRequestManager::revokeAuthorizationToken(const String& authorizationToken)
 {
-    protectedPage()->send(Messages::WebPageProxy::RevokeGeolocationAuthorizationToken(authorizationToken));
+    protectedPage()->send(Messages::WebPageProxyMessageHandler::RevokeGeolocationAuthorizationToken(authorizationToken));
 }
 
 void GeolocationPermissionRequestManager::cancelRequestForGeolocation(Geolocation& geolocation)

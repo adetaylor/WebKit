@@ -39,7 +39,7 @@
 #import "WebFrame.h"
 #import "WebPage.h"
 #import "WebPageCreationParameters.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import "WebPreferencesKeys.h"
 #import "WebProcess.h"
 #import <QuartzCore/QuartzCore.h>

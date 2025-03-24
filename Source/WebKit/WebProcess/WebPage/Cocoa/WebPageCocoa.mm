@@ -39,7 +39,7 @@
 #import "WKAccessibilityWebPageObjectBase.h"
 #import "WebFrame.h"
 #import "WebPageInternals.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import "WebPasteboardOverrides.h"
 #import "WebPaymentCoordinator.h"
 #import "WebPreferencesKeys.h"
@@ -255,7 +255,7 @@ void WebPage::performDictionaryLookupForSelection(LocalFrame& frame, const Visib
 
 void WebPage::performDictionaryLookupForRange(LocalFrame& frame, const SimpleRange& range, TextIndicatorPresentationTransition presentationTransition)
 {
-    send(Messages::WebPageProxy::DidPerformDictionaryLookup(dictionaryPopupInfoForRange(frame, range, presentationTransition)));
+    send(Messages::WebPageProxyMessageHandler::DidPerformDictionaryLookup(dictionaryPopupInfoForRange(frame, range, presentationTransition)));
 }
 
 DictionaryPopupInfo WebPage::dictionaryPopupInfoForRange(LocalFrame& frame, const SimpleRange& range, TextIndicatorPresentationTransition presentationTransition)
@@ -334,7 +334,7 @@ void WebPage::insertDictatedTextAsync(const String& text, const EditingRange& re
     }
 
     if (options.registerUndoGroup)
-        send(Messages::WebPageProxy::RegisterInsertionUndoGrouping { });
+        send(Messages::WebPageProxyMessageHandler::RegisterInsertionUndoGrouping { });
 
     RefPtr<Element> focusedElement = frame->document() ? frame->document()->focusedElement() : nullptr;
     if (focusedElement && options.shouldSimulateKeyboardInput)
@@ -443,7 +443,7 @@ void WebPage::clearDictationAlternatives(Vector<DictationContext>&& contexts)
 
 void WebPage::accessibilityTransferRemoteToken(RetainPtr<NSData> remoteToken)
 {
-    send(Messages::WebPageProxy::RegisterWebProcessAccessibilityToken(span(remoteToken.get())));
+    send(Messages::WebPageProxyMessageHandler::RegisterWebProcessAccessibilityToken(span(remoteToken.get())));
 }
 
 void WebPage::accessibilityManageRemoteElementStatus(bool registerStatus, int processIdentifier)
@@ -738,7 +738,7 @@ void WebPage::getPDFFirstPageSize(WebCore::FrameIdentifier frameID, CompletionHa
 
 void WebPage::handleClickForDataDetectionResult(const DataDetectorElementInfo& info, const IntPoint& clickLocation)
 {
-    send(Messages::WebPageProxy::HandleClickForDataDetectionResult(info, clickLocation));
+    send(Messages::WebPageProxyMessageHandler::HandleClickForDataDetectionResult(info, clickLocation));
 }
 
 #endif
@@ -921,7 +921,7 @@ std::pair<URL, DidFilterLinkDecoration> WebPage::applyLinkDecorationFilteringWit
 
     if (!removedParameters.isEmpty() && trigger != LinkDecorationFilteringTrigger::Unspecified) {
         if (trigger == LinkDecorationFilteringTrigger::Navigation)
-            send(Messages::WebPageProxy::DidApplyLinkDecorationFiltering(url, sanitizedURL));
+            send(Messages::WebPageProxyMessageHandler::DidApplyLinkDecorationFiltering(url, sanitizedURL));
         auto removedParametersString = makeStringByJoining(removedParameters, ", "_s);
         WEBPAGE_RELEASE_LOG(ResourceLoadStatistics, "Blocked known tracking query parameters: %s", removedParametersString.utf8().data());
     }
@@ -1015,25 +1015,25 @@ void WebPage::writingToolsSessionDidReceiveAction(const WritingTools::Session& s
 
 void WebPage::proofreadingSessionShowDetailsForSuggestionWithIDRelativeToRect(const WebCore::WritingTools::TextSuggestion::ID& replacementID, WebCore::IntRect rect)
 {
-    send(Messages::WebPageProxy::ProofreadingSessionShowDetailsForSuggestionWithIDRelativeToRect(replacementID, rect));
+    send(Messages::WebPageProxyMessageHandler::ProofreadingSessionShowDetailsForSuggestionWithIDRelativeToRect(replacementID, rect));
 }
 
 void WebPage::proofreadingSessionUpdateStateForSuggestionWithID(WebCore::WritingTools::TextSuggestion::State state, const WebCore::WritingTools::TextSuggestion::ID& replacementID)
 {
-    send(Messages::WebPageProxy::ProofreadingSessionUpdateStateForSuggestionWithID(state, replacementID));
+    send(Messages::WebPageProxyMessageHandler::ProofreadingSessionUpdateStateForSuggestionWithID(state, replacementID));
 }
 
 void WebPage::addTextAnimationForAnimationID(const WTF::UUID& uuid, const WebCore::TextAnimationData& styleData, const WebCore::TextIndicatorData& indicatorData, CompletionHandler<void(WebCore::TextAnimationRunMode)>&& completionHandler)
 {
     if (completionHandler)
-        sendWithAsyncReply(Messages::WebPageProxy::AddTextAnimationForAnimationIDWithCompletionHandler(uuid, styleData, indicatorData), WTFMove(completionHandler));
+        sendWithAsyncReply(Messages::WebPageProxyMessageHandler::AddTextAnimationForAnimationIDWithCompletionHandler(uuid, styleData, indicatorData), WTFMove(completionHandler));
     else
-        send(Messages::WebPageProxy::AddTextAnimationForAnimationID(uuid, styleData, indicatorData));
+        send(Messages::WebPageProxyMessageHandler::AddTextAnimationForAnimationID(uuid, styleData, indicatorData));
 }
 
 void WebPage::removeTextAnimationForAnimationID(const WTF::UUID& uuid)
 {
-    send(Messages::WebPageProxy::RemoveTextAnimationForAnimationID(uuid));
+    send(Messages::WebPageProxyMessageHandler::RemoveTextAnimationForAnimationID(uuid));
 }
 
 void WebPage::removeInitialTextAnimationForActiveWritingToolsSession()
@@ -1113,7 +1113,7 @@ void WebPage::intelligenceTextAnimationsDidComplete()
 
 void WebPage::didEndPartialIntelligenceTextAnimation()
 {
-    send(Messages::WebPageProxy::DidEndPartialIntelligenceTextAnimation());
+    send(Messages::WebPageProxyMessageHandler::DidEndPartialIntelligenceTextAnimation());
 }
 
 #endif

@@ -36,7 +36,7 @@
 #include "PendingDownload.h"
 #include "WebFrame.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/AuthenticationChallenge.h>
 #include <wtf/TZoneMallocInlines.h>
 

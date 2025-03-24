@@ -31,7 +31,7 @@
 #include "ArgumentCodersGtk.h"
 #include "MessageSenderInlines.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include <WebCore/DataTransfer.h>
 #include <WebCore/DragData.h>
 #include <WebCore/GraphicsContext.h>
@@ -106,7 +106,7 @@ void WebDragClient::startDrag(DragItem dragItem, DataTransfer& dataTransfer, Fra
     }
 
     m_page->willStartDrag();
-    m_page->send(Messages::WebPageProxy::StartDrag(dataTransfer.pasteboard().selectionData(), dataTransfer.sourceOperationMask(), WTFMove(handle), dataTransfer.dragLocation()));
+    m_page->send(Messages::WebPageProxyMessageHandler::StartDrag(dataTransfer.pasteboard().selectionData(), dataTransfer.sourceOperationMask(), WTFMove(handle), dataTransfer.dragLocation()));
 }
 
 }; // namespace WebKit.

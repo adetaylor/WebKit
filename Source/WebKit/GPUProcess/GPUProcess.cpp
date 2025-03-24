@@ -41,7 +41,7 @@
 #include "Logging.h"
 #include "RemoteMediaPlayerManagerProxy.h"
 #include "SandboxExtension.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcessPoolMessages.h"
 #include <WebCore/CommonAtomStrings.h>
 #include <WebCore/DeprecatedGlobalSettings.h>

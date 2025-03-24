@@ -35,7 +35,7 @@
 #include "SharedBufferReference.h"
 #include "WebMessagePortChannelProvider.h"
 #include "WebPage.h"
-#include "WebPageProxyMessages.h"
+#include "WebPageProxyMessageHandlerMessages.h"
 #include "WebProcess.h"
 #include "WebProcessProxyMessages.h"
 #include "WebSWOriginTable.h"
@@ -436,7 +436,7 @@ void WebSWClientConnection::focusServiceWorkerClient(ScriptExecutionContextIdent
         return;
     }
 
-    WebPage::fromCorePage(*page)->sendWithAsyncReply(Messages::WebPageProxy::FocusFromServiceWorker { }, [clientIdentifier, callback = WTFMove(callback)] () mutable {
+    WebPage::fromCorePage(*page)->sendWithAsyncReply(Messages::WebPageProxyMessageHandler::FocusFromServiceWorker { }, [clientIdentifier, callback = WTFMove(callback)] () mutable {
         auto doFocusSteps = [callback = WTFMove(callback)] (auto* document) mutable {
             if (!document) {
                 callback({ });

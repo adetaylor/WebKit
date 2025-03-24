@@ -34,7 +34,7 @@
 #import "WebFrameProxy.h"
 #import "WebPageMessages.h"
 #import "WebPageProxy.h"
-#import "WebPageProxyMessages.h"
+#import "WebPageProxyMessageHandlerMessages.h"
 #import "WebProcessProxy.h"
 #import "WebViewImpl.h"
 #import <WebCore/DictionaryLookup.h>
@@ -197,7 +197,7 @@
     // FIXME: Connection can be null if the process is closed; we should clean up better in that case.
     if (_state == WebKit::ImmediateActionState::Pending) {
         Ref connection = mainFrameProcess->connection();
-        bool receivedReply = connection->waitForAndDispatchImmediately<Messages::WebPageProxy::DidPerformImmediateActionHitTest>(RefPtr { _page.get() }->webPageIDInMainFrameProcess(), 500_ms) == IPC::Error::NoError;
+        bool receivedReply = connection->waitForAndDispatchImmediately<Messages::WebPageProxyMessageHandler::DidPerformImmediateActionHitTest>(RefPtr { _page.get() }->webPageIDInMainFrameProcess(), 500_ms) == IPC::Error::NoError;
         if (!receivedReply)
             _state = WebKit::ImmediateActionState::TimedOut;
     }
