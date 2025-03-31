@@ -66,6 +66,15 @@ SWIFT_INSTALL_OBJC_HEADER = NO;
 SWIFT_LIBRARY_LEVEL = api;
 
 SWIFT_INCLUDE_PATHS = $(SRCROOT)/Modules/Internal;
+SWIFT_STRICT_MEMORY_SAFETY = YES
+SWIFT_TREAT_WARNINGS_AS_ERRORS = YES
+// -cxx-interoperability-mode=default ensures we generate a C++ function declaration for
+// any public Swift functions.
+// -Xfrontend -require-explicit-availability=ignore avoids an error which is generated
+// when public functions don't have availability attributes. We don't currently want such
+// attributes as our Swift usage is internal within WebKit, and we don't want to export
+// Swift APIs - adding availability attributes causes them to be exported.
+OTHER_SWIFT_FLAGS = -cxx-interoperability-mode=default -Xfrontend -require-explicit-availability=ignore
 
 // No need for automatic generation of Swift code for referencing resource bundle colors.
 ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = NO;

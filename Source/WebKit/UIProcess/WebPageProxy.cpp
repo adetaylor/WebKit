@@ -27,6 +27,8 @@
 #include "config.h"
 #include "WebPageProxy.h"
 
+#include "WebKit-Swift.h"
+
 #include "APIArray.h"
 #include "APIAttachment.h"
 #include "APIContentWorld.h"
@@ -12573,6 +12575,8 @@ void WebPageProxy::clearNotificationPermissionState()
 void WebPageProxy::requestNotificationPermission(const String& originString, CompletionHandler<void(bool allowed)>&& completionHandler)
 {
     Ref origin = API::SecurityOrigin::createFromString(originString);
+
+    say_hello_from_swift();
 
 #if ENABLE(NOTIFICATIONS)
     // Add origin to list of origins that have requested permission to use the Notifications API.

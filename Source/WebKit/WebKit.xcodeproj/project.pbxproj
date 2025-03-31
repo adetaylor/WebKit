@@ -1561,6 +1561,7 @@
 		5CB7AFE023C52CE500E49CF3 /* _WKResourceLoadDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB7AFDF23C52CBC00E49CF3 /* _WKResourceLoadDelegate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CB7AFE723C6820700E49CF3 /* ResourceLoadInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB7AFE623C681B000E49CF3 /* ResourceLoadInfo.h */; };
 		5CB7AFE823C69B6100E49CF3 /* _WKResourceLoadInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB7AFE323C67D3700E49CF3 /* _WKResourceLoadInfo.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		5CB7F7C32D9A7FB300018B29 /* WebPageProxyHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CB7F7C22D9A7FB300018B29 /* WebPageProxyHelper.swift */; };
 		5CB9310926E8439A0032B1C0 /* PrivateClickMeasurementXPCUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB9310726E841CB0032B1C0 /* PrivateClickMeasurementXPCUtilities.h */; };
 		5CBC9B8E1C652CA000A8FDCF /* NetworkDataTask.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CBC9B891C6524A500A8FDCF /* NetworkDataTask.h */; };
 		5CBD595C2280EDF4002B22AA /* _WKCustomHeaderFields.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C5D2388227A1892000B9BDA /* _WKCustomHeaderFields.mm */; };
@@ -6356,6 +6357,7 @@
 		5CB7AFE423C67D6400E49CF3 /* APIResourceLoadInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = APIResourceLoadInfo.h; sourceTree = "<group>"; };
 		5CB7AFE523C67DF900E49CF3 /* _WKResourceLoadInfoInternal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _WKResourceLoadInfoInternal.h; sourceTree = "<group>"; };
 		5CB7AFE623C681B000E49CF3 /* ResourceLoadInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ResourceLoadInfo.h; sourceTree = "<group>"; };
+		5CB7F7C22D9A7FB300018B29 /* WebPageProxyHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPageProxyHelper.swift; sourceTree = "<group>"; };
 		5CB930BF26E0542E0032B1C0 /* PrivateClickMeasurementClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PrivateClickMeasurementClient.h; sourceTree = "<group>"; };
 		5CB930C026E0542F0032B1C0 /* PrivateClickMeasurementClientImpl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PrivateClickMeasurementClientImpl.cpp; sourceTree = "<group>"; };
 		5CB930C126E054B80032B1C0 /* PrivateClickMeasurementClientImpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PrivateClickMeasurementClientImpl.h; sourceTree = "<group>"; };
@@ -14598,6 +14600,7 @@
 				BC111B0B112F5E4F00337BAB /* WebPageProxy.cpp */,
 				BC032DCB10F4389F0058C15A /* WebPageProxy.h */,
 				BCBD38FA125BAB9A00D2C29F /* WebPageProxy.messages.in */,
+				5CB7F7C22D9A7FB300018B29 /* WebPageProxyHelper.swift */,
 				46C392282316EC4D008EED9B /* WebPageProxyIdentifier.h */,
 				939EF86D29D0C16400F23AEE /* WebPageProxyInternals.h */,
 				5CEB40A32A535E8E00563C91 /* WebPageProxyMessageReceiverRegistration.cpp */,
@@ -20529,6 +20532,7 @@
 				074E87E12CF8EA3D0059E469 /* WebPage+NavigationDeciding.swift in Sources */,
 				078B04A02CF18EAB00B453A6 /* WebPage+NavigationPreferences.swift in Sources */,
 				07CB79962CE9435700199C49 /* WebPage.swift in Sources */,
+				5CB7F7C32D9A7FB300018B29 /* WebPageProxyHelper.swift in Sources */,
 				7CE9CE101FA0767A000177DE /* WebPageUpdatePreferences.cpp in Sources */,
 				079A4DA12D72CC0D00CA387F /* WebPageWebView.swift in Sources */,
 				7CEB00DD1FA69ABE0065473B /* WebPreferencesFeatures.cpp in Sources */,
