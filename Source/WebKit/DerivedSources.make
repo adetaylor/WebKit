@@ -198,6 +198,7 @@ MESSAGE_RECEIVERS = \
 	UIProcess/SpeechRecognitionRemoteRealtimeMediaSourceManager \
 	UIProcess/SpeechRecognitionServer \
 	UIProcess/XR/PlatformXRSystem \
+	UIProcess/WebBackForwardList \
 	WebProcess/Databases/IndexedDB/WebIDBConnectionToServer \
 	WebProcess/Extensions/WebExtensionContextProxy \
 	WebProcess/Extensions/WebExtensionControllerProxy \
