@@ -82,7 +82,7 @@ static const MessageNameSet& messageNamesToIgnoreWhileSuspended()
     static NeverDestroyed<MessageNameSet> messageNames;
     static std::once_flag onceFlag;
     std::call_once(onceFlag, [] {
-        messageNames.get().add(IPC::MessageName::WebPageProxy_BackForwardAddItem);
+        messageNames.get().add(IPC::MessageName::WebBackForwardList_BackForwardAddItem);
         messageNames.get().add(IPC::MessageName::WebPageProxy_ClearAllEditCommands);
         messageNames.get().add(IPC::MessageName::WebPageProxy_DidChangeContentSize);
         messageNames.get().add(IPC::MessageName::WebPageProxy_DidChangeMainDocument);
