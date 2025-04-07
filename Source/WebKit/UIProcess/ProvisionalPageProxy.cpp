@@ -56,6 +56,7 @@
 #include "WebPageMessages.h"
 #include "WebPageProxy.h"
 #include "WebPageProxyMessages.h"
+#include "WebBackForwardListMessages.h"
 #include "WebProcessMessages.h"
 #include "WebProcessPool.h"
 #include "WebProcessProxy.h"
@@ -689,7 +690,7 @@ void ProvisionalPageProxy::didReceiveMessage(IPC::Connection& connection, IPC::D
 {
     ASSERT(decoder.messageReceiverName() == Messages::WebPageProxy::messageReceiverName());
 
-    if (decoder.messageName() == Messages::WebPageProxy::BackForwardUpdateItem::name()
+    if (decoder.messageName() == Messages::WebBackForwardList::BackForwardUpdateItem::name()
         || decoder.messageName() == Messages::WebPageProxy::DidStartProgress::name()
         || decoder.messageName() == Messages::WebPageProxy::DidChangeProgress::name()
         || decoder.messageName() == Messages::WebPageProxy::DidFinishProgress::name()
@@ -734,8 +735,8 @@ void ProvisionalPageProxy::didReceiveMessage(IPC::Connection& connection, IPC::D
     }
 #endif
 
-    if (decoder.messageName() == Messages::WebPageProxy::BackForwardAddItem::name()) {
-        IPC::handleMessage<Messages::WebPageProxy::BackForwardAddItem>(connection, decoder, this, &ProvisionalPageProxy::backForwardAddItem);
+    if (decoder.messageName() == Messages::WebBackForwardList::BackForwardAddItem::name()) {
+        IPC::handleMessage<Messages::WebBackForwardList::BackForwardAddItem>(connection, decoder, this, &ProvisionalPageProxy::backForwardAddItem);
         return;
     }
 
@@ -835,8 +836,8 @@ void ProvisionalPageProxy::didReceiveMessage(IPC::Connection& connection, IPC::D
 
 bool ProvisionalPageProxy::didReceiveSyncMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& replyEncoder)
 {
-    if (decoder.messageName() == Messages::WebPageProxy::BackForwardGoToItem::name())
-        return IPC::handleMessageSynchronous<Messages::WebPageProxy::BackForwardGoToItem>(connection, decoder, replyEncoder, this, &ProvisionalPageProxy::backForwardGoToItem);
+    if (decoder.messageName() == Messages::WebBackForwardList::BackForwardGoToItem::name())
+        return IPC::handleMessageSynchronous<Messages::WebBackForwardList::BackForwardGoToItem>(connection, decoder, replyEncoder, this, &ProvisionalPageProxy::backForwardGoToItem);
 
     if (decoder.messageName() == Messages::WebPageProxy::DecidePolicyForNavigationActionSync::name())
         return IPC::handleMessageSynchronous<Messages::WebPageProxy::DecidePolicyForNavigationActionSync>(connection, decoder, replyEncoder, this, &ProvisionalPageProxy::decidePolicyForNavigationActionSync);

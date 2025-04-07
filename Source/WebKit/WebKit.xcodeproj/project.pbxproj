@@ -6271,6 +6271,8 @@
 		5C046A1C290B26CF00FF7820 /* TextTrackPrivateRemoteConfiguration.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = TextTrackPrivateRemoteConfiguration.serialization.in; sourceTree = "<group>"; };
 		5C05FDF227AB4FA5003A2487 /* PrivateRelayed.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PrivateRelayed.h; sourceTree = "<group>"; };
 		5C0A10C1235241A30053E2CA /* NetworkSchemeRegistry.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NetworkSchemeRegistry.cpp; sourceTree = "<group>"; };
+		5C1178E22DA3FF4E0051A4DE /* WebBackForwardListMessageReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = WebBackForwardListMessageReceiver.cpp; sourceTree = "<group>"; };
+		5C1178E32DA3FF4E0051A4DE /* WebBackForwardListMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WebBackForwardListMessages.h; sourceTree = "<group>"; };
 		5C121E8324101F7000486F9B /* FrameTreeNodeData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FrameTreeNodeData.h; sourceTree = "<group>"; };
 		5C121E852410276F00486F9B /* APIFrameTreeNode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = APIFrameTreeNode.h; sourceTree = "<group>"; };
 		5C121E862410290D00486F9B /* _WKFrameTreeNode.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKFrameTreeNode.mm; sourceTree = "<group>"; };
@@ -16136,6 +16138,8 @@
 				1C0A19511C8FFDFB00FE0EBB /* WebAutomationSessionProxyMessageReceiver.cpp */,
 				1C0A19521C8FFDFB00FE0EBB /* WebAutomationSessionProxyMessages.h */,
 				1C0A195B1C916E1B00FE0EBB /* WebAutomationSessionProxyScriptSource.h */,
+				5C1178E22DA3FF4E0051A4DE /* WebBackForwardListMessageReceiver.cpp */,
+				5C1178E32DA3FF4E0051A4DE /* WebBackForwardListMessages.h */,
 				330934431315B9220097A7BC /* WebCookieManagerMessageReceiver.cpp */,
 				330934441315B9220097A7BC /* WebCookieManagerMessages.h */,
 				E3866B062399979C00F88FE9 /* WebDeviceOrientationUpdateProviderMessageReceiver.cpp */,
@@ -17732,6 +17736,7 @@
 				46CE3B1123D8C8490016A96A /* WebBackForwardListCounts.h in Headers */,
 				020E13132CA5F2FE002C616E /* WebBackForwardListFrameItem.h in Headers */,
 				518D2CAE12D5153B003BB93B /* WebBackForwardListItem.h in Headers */,
+				5C1178E52DA3FF4E0051A4DE /* WebBackForwardListMessages.h in Headers */,
 				BC72B9FB11E6476B001EB4EA /* WebBackForwardListProxy.h in Headers */,
 				512B6792294B8CB8000C0760 /* WebBadgeClient.h in Headers */,
 				46EE2849269E04AC00DD48AB /* WebBroadcastChannelRegistry.h in Headers */,
