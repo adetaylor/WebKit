@@ -46,6 +46,14 @@
 #include <wtf/cocoa/RuntimeApplicationChecksCocoa.h>
 #endif
 
+#ifndef __swift__
+struct NSEdgeInsets {}; // hack
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-alignof-expression"
+#include <WebKit-Swift.h>
+#pragma clang diagnostic pop
+#endif
+
 namespace WebKit {
 using namespace WebCore;
 
@@ -666,6 +674,8 @@ void WebBackForwardList::backForwardAddItem(IPC::Connection& connection, Ref<Fra
     if (RefPtr webPageProxy = m_page.get()) {
         backForwardAddItemShared(connection, WTFMove(navigatedFrameState), webPageProxy->didLoadWebArchive() ? LoadedWebArchive::Yes : LoadedWebArchive::No);
     }
+
+    swiftBit();
 }
 
 void WebBackForwardList::backForwardAddItemShared(IPC::Connection& connection, Ref<FrameState>&& navigatedFrameState, LoadedWebArchive loadedWebArchive)
@@ -802,5 +812,11 @@ void WebBackForwardList::backForwardListCounts(CompletionHandler<void(WebBackFor
     completionHandler(counts());
 }
 
+#ifndef __swift__
+void WebBackForwardList::swiftBit()
+{
+    WebBackForwardList_swiftBit_thunk(this);
+}
+#endif
 
 } // namespace WebKit
