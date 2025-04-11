@@ -86,7 +86,7 @@ OTHER_SWIFT_FLAGS_ENABLE_SWIFT_DEMO_URI_SCHEME = -Xcc -std=c++2b -Xcc -DUCHAR_TY
 
 // Swift/C++ interop, by default, exports any symbols that are exposed from Swift to C++.
 // We don't want that.
-SWIFT_CXX_UNEXPORTED_SYMBOL_LDFLAGS = -Wl,-unexported_symbol,__ZN6WebKit16getSwiftLogoDataEv;
+SWIFT_CXX_UNEXPORTED_SYMBOL_LDFLAGS = -Wl,-unexported_symbol,__ZN6WebKit16getSwiftLogoDataEv -Wl,-unexported_symbol,__ZN6WebKit33WebBackForwardList_swiftBit_thunkEPNS_18WebBackForwardListE;
 
 // No need for automatic generation of Swift code for referencing resource bundle colors.
 ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = NO;

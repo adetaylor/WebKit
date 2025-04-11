@@ -37,3 +37,4 @@
 #import "WKWebViewConfigurationInternal.h"
 #import "WKWebViewInternal.h"
 #import "SwiftDemoLogoConfirmation.h"
+#import "WebBackForwardList.h"
