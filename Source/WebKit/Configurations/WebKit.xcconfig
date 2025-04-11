@@ -66,6 +66,9 @@ SWIFT_INSTALL_OBJC_HEADER = NO;
 SWIFT_LIBRARY_LEVEL = api;
 
 SWIFT_INCLUDE_PATHS = $(SRCROOT)/Modules/Internal;
+//OTHER_SWIFT_FLAGS = $(inherited) -dump-clang-diagnostics -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t;
+OTHER_SWIFT_FLAGS = $(inherited) -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t;
+SWIFT_OBJC_INTEROP_MODE = objcxx;
 
 // No need for automatic generation of Swift code for referencing resource bundle colors.
 ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = NO;
