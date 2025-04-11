@@ -33,6 +33,7 @@
 #include <wtf/Ref.h>
 #include <wtf/Vector.h>
 #include <wtf/WeakPtr.h>
+#include <wtf/RetainReleaseSwift.h>
 
 namespace API {
 class Array;
@@ -120,6 +121,8 @@ public:
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&);
     bool didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
 
+    void swiftBit() __attribute__((swift_private));
+
 private:
     explicit WebBackForwardList(WebPageProxy&);
 
@@ -130,9 +133,21 @@ private:
     WeakPtr<WebPageProxy> m_page;
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
-};
+
+} SWIFT_SHARED_REFERENCE(refBackForwardList, derefBackForwardList);
 
 } // namespace WebKit
+
+
+inline void refBackForwardList(WebKit::WebBackForwardList* obj)
+{
+    WTF::ref(obj);
+}
+
+inline void derefBackForwardList(WebKit::WebBackForwardList* obj)
+{
+    WTF::deref(obj);
+}
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardList)
 static bool isType(const API::Object& object) { return object.type() == API::Object::Type::BackForwardList; }
