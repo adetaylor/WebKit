@@ -110,6 +110,7 @@ private:
 };
 
 // Template deduction guide.
+template<typename X> RefPtr(X*) -> RefPtr<X, RawPtrTraits<X>, DefaultRefDerefTraits<X>>;
 template<typename X, typename Y> RefPtr(Ref<X, Y>&&) -> RefPtr<X, Y, DefaultRefDerefTraits<X>>;
 
 template<typename T, typename U, typename V>
