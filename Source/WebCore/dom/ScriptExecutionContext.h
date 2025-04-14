@@ -365,7 +365,7 @@ public:
         WeakPtr weakRequest { *request };
         auto command = promise->whenSettled(nativePromiseDispatcher(), [weakThis = WeakPtr { *this }, taskSource, task = WTFMove(task), request = WTFMove(request)] (auto&& result) mutable {
             request->complete();
-            RefPtr protectedThis = weakThis.get();
+            RefPtr<ScriptExecutionContext> protectedThis = weakThis.get();
             if (!protectedThis)
                 return;
             protectedThis->eventLoop().queueTask(taskSource, [task = WTFMove(task), result = WTFMove(result)] () mutable {

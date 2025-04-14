@@ -64,7 +64,7 @@ public:
 
     std::pair<const Name*, RefPtr<NameSection>> get(size_t functionIndexSpace)
     {
-        return std::make_pair(functionIndexSpace < functionNames.size() ? &functionNames[functionIndexSpace] : nullptr, RefPtr { this });
+        return std::make_pair(functionIndexSpace < functionNames.size() ? &functionNames[functionIndexSpace] : nullptr, RefPtr<NameSection> { this });
     }
     Name moduleName;
     Name moduleHash;

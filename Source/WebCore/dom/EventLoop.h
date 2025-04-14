@@ -191,7 +191,7 @@ public:
     {
         ASSERT(isReadyToStop());
         m_state = State::Stopped;
-        if (RefPtr eventLoop = m_eventLoop.get())
+        if (RefPtr<EventLoop> eventLoop = m_eventLoop.get())
             eventLoop->stopGroup(*this);
     }
 

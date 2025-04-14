@@ -1037,7 +1037,7 @@ public:
         using ThenCallbackType = ThenCallback<IsChaining::value, decltype(std::declval<LambdaReturnTrait>().template type<R1>())>;
         using ReturnType = ThenCommand<ThenCallbackType>;
 
-        auto thenCallback = adoptRef(*new ThenCallbackType(RefPtr { &targetQueue }, WTFMove(lambda), callSite));
+        auto thenCallback = adoptRef(*new ThenCallbackType(RefPtr<GuaranteedSerialFunctionDispatcher> { &targetQueue }, WTFMove(lambda), callSite));
         return ReturnType(*this, WTFMove(thenCallback), callSite);
     }
 

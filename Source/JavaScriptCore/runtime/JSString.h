@@ -861,7 +861,7 @@ ALWAYS_INLINE Identifier JSString::toIdentifier(JSGlobalObject* globalObject) co
     // It is possible that AtomStringImpl::add converts existing valueInternal()'s StringImpl to AtomicStringImpl,
     // thus we need to recheck atomicity status here.
     if (!valueInternal().impl()->isAtom())
-        swapToAtomString(vm, RefPtr { vm.lastAtomizedIdentifierAtomStringImpl.ptr() });
+        swapToAtomString(vm, RefPtr<AtomStringImpl> { vm.lastAtomizedIdentifierAtomStringImpl.ptr() });
     return Identifier::fromString(vm, Ref { vm.lastAtomizedIdentifierAtomStringImpl });
 }
 
@@ -875,7 +875,7 @@ ALWAYS_INLINE AtomString JSString::toAtomString(JSGlobalObject* globalObject) co
     // It is possible that AtomString constructor converts existing valueInternal()'s StringImpl to AtomicStringImpl,
     // thus we need to recheck atomicity status here.
     if (!valueInternal().impl()->isAtom())
-        swapToAtomString(getVM(globalObject), RefPtr { atom.impl() });
+        swapToAtomString(getVM(globalObject), RefPtr<AtomStringImpl> { atom.impl() });
     return atom;
 }
 
