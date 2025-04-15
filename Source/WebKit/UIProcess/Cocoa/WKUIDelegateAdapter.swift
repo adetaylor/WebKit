@@ -51,11 +51,11 @@ final class WKUIDelegateAdapter: NSObject, WKUIDelegatePrivate {
 
     // MARK: Dialog presentation
 
-    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo) async {
+    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: Swift.String, initiatedByFrame frame: WKFrameInfo) async {
         await dialogPresenter.handleJavaScriptAlert(message: message, initiatedBy: .init(frame))
     }
 
-    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo) async -> Bool {
+    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: Swift.String, initiatedByFrame frame: WKFrameInfo) async -> Bool {
         let result = await dialogPresenter.handleJavaScriptConfirm(message: message, initiatedBy: .init(frame))
 
         return switch result {
@@ -64,7 +64,7 @@ final class WKUIDelegateAdapter: NSObject, WKUIDelegatePrivate {
         }
     }
 
-    func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo) async -> String? {
+    func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: Swift.String, defaultText: Swift.String?, initiatedByFrame frame: WKFrameInfo) async -> Swift.String? {
         let result = await dialogPresenter.handleJavaScriptPrompt(message: prompt, defaultText: defaultText, initiatedBy: .init(frame))
 
         return switch result {
@@ -73,7 +73,7 @@ final class WKUIDelegateAdapter: NSObject, WKUIDelegatePrivate {
         }
     }
 
-    func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo) async -> [URL]? {
+    func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo) async -> [Foundation.URL]? {
         let result = await dialogPresenter.handleFileInputPrompt(parameters: parameters, initiatedBy: .init(frame))
 
         return switch result {

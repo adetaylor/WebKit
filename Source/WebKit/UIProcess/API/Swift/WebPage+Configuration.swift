@@ -65,7 +65,7 @@ extension WebPage {
         public var deviceSensorAuthorization: WebPage.DeviceSensorAuthorization = WebPage.DeviceSensorAuthorization(decision: .prompt)
 
         /// The app name that appears in the user agent string.
-        public var applicationNameForUserAgent: String? = nil
+        public var applicationNameForUserAgent: Swift.String? = nil
 
         /// Indicates whether the web view limits navigation to pages within the app’s domain.
         ///

@@ -51,12 +51,12 @@ final public class WebPage {
 
         /// Create a media type with an arbitrary value. Use the static type properties for the defined canonical CSS media type options.
         /// - Parameter rawValue: The raw value of the media type.
-        public init(rawValue: String) {
+        public init(rawValue: Swift.String) {
             self.rawValue = rawValue
         }
 
         /// The raw value of the media type.
-        public let rawValue: String
+        public let rawValue: Swift.String
     }
 
     /// The set of possible fullscreen states a webpage may be in.
@@ -145,12 +145,12 @@ final public class WebPage {
     /// This property contains the URL for the webpage currently being presented. Use this URL in places
     /// where you reflect the webpage address in your app’s user interface. If the webpage has not loaded
     /// any content yet, this value will be `nil`.
-    public var url: URL? {
+    public var url: Foundation.URL? {
         backingProperty(\.url, backedBy: \.url)
     }
 
     /// The page title.
-    public var title: String {
+    public var title: Swift.String {
         backingProperty(\.title, backedBy: \.title) { backingValue in
             // The title property is annotated as optional in WKWebView, but is never actually `nil`.
             backingValue!
@@ -231,7 +231,7 @@ final public class WebPage {
     /// Use this property to specify a custom user agent string for the webpage.
     ///
     /// The default value of this property is `nil`.
-    public var customUserAgent: String? {
+    public var customUserAgent: Swift.String? {
         get { backingWebView.customUserAgent }
         set { backingWebView.customUserAgent = newValue }
     }
@@ -307,13 +307,13 @@ final public class WebPage {
     ///   - baseURL: A URL that you use to resolve relative URLs within the document.
     /// - Returns: A navigation identifier you use to track the loading progress of the request.
     @discardableResult
-    public func load(_ data: Data, mimeType: String, characterEncoding: String.Encoding, baseURL: URL) -> NavigationID? {
+    public func load(_ data: Data, mimeType: Swift.String, characterEncoding: Swift.String.Encoding, baseURL: Foundation.URL) -> NavigationID? {
         let cfEncoding = CFStringConvertNSStringEncodingToEncoding(characterEncoding.rawValue)
         guard cfEncoding != kCFStringEncodingInvalidId else {
             preconditionFailure("\(characterEncoding) is not a valid character encoding")
         }
 
-        guard let convertedEncoding = CFStringConvertEncodingToIANACharSetName(cfEncoding) as? String else {
+        guard let convertedEncoding = CFStringConvertEncodingToIANACharSetName(cfEncoding) as? Swift.String else {
             preconditionFailure("\(characterEncoding) is not a valid character encoding")
         }
 
@@ -332,7 +332,7 @@ final public class WebPage {
     ///   - baseURL: The base URL to use when the system resolves relative URLs within the HTML string.
     /// - Returns: A navigation identifier you use to track the loading progress of the request.
     @discardableResult
-    public func load(html: String, baseURL: URL) -> NavigationID? {
+    public func load(html: Swift.String, baseURL: Foundation.URL) -> NavigationID? {
         backingWebView.loadHTMLString(html, baseURL: baseURL).map(NavigationID.init(_:))
     }
 
@@ -358,7 +358,7 @@ final public class WebPage {
     ///   - htmlString: The HTML code you provide in a string to use as the contents of the webpage.
     /// - Returns: A navigation identifier you use to track the loading progress of the request.
     @discardableResult
-    public func load(simulatedRequest request: URLRequest, responseHTML htmlString: String) -> NavigationID? {
+    public func load(simulatedRequest request: URLRequest, responseHTML htmlString: Swift.String) -> NavigationID? {
         // `WKWebView` annotates this method as returning non-nil, but it may return nil.
 
         let navigation = backingWebView.loadSimulatedRequest(request, responseHTML: htmlString) as WKNavigation?
@@ -438,7 +438,7 @@ final public class WebPage {
     /// - Returns: The result of the script evaluation. If your function body doesn't return an explicit value, `nil` is returned.
     ///  If your function body explicitly returns `null`, then `NSNull` is returned.
     @discardableResult
-    public func callJavaScript(_ functionBody: String, arguments: [String : Any] = [:], in frame: FrameInfo? = nil, contentWorld: WKContentWorld? = nil) async throws -> sending Any? {
+    public func callJavaScript(_ functionBody: Swift.String, arguments: [Swift.String : Any] = [:], in frame: FrameInfo? = nil, contentWorld: WKContentWorld? = nil) async throws -> sending Any? {
         let result = try await backingWebView.callAsyncJavaScript(functionBody, arguments: arguments, in: frame?.wrapped, contentWorld: contentWorld ?? .page)
 
         guard let result else {
