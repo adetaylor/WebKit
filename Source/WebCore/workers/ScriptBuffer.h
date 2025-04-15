@@ -61,6 +61,8 @@ public:
     void append(const String&);
     void append(const FragmentedSharedBuffer&);
 
+#ifndef __swift__
+
 #if ENABLE(SHAREABLE_RESOURCE) && PLATFORM(COCOA)
     using IPCData = std::variant<ShareableResourceHandle, RefPtr<FragmentedSharedBuffer>>;
 #else
@@ -69,6 +71,8 @@ public:
 
     WEBCORE_EXPORT static std::optional<ScriptBuffer> fromIPCData(IPCData&&);
     WEBCORE_EXPORT IPCData ipcData() const;
+
+#endif
 
 private:
     SharedBufferBuilder m_buffer; // Contains the UTF-8 encoded script.

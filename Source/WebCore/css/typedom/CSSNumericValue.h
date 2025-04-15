@@ -45,7 +45,11 @@ class CSSMathSum;
 
 template<typename> class ExceptionOr;
 
+#ifdef __swift__
+using CSSNumberish = std::variant<double>;
+#else
 using CSSNumberish = std::variant<double, RefPtr<CSSNumericValue>>;
+#endif
 
 class CSSNumericValue : public CSSStyleValue {
     WTF_MAKE_TZONE_OR_ISO_ALLOCATED(CSSNumericValue);
