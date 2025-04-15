@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_dom_PointerEvent_h
+#define WebCore_dom_PointerEvent_h
 
 #include "EventNames.h"
 #include "MouseEvent.h"
@@ -212,3 +213,4 @@ inline bool PointerEvent::typeRequiresResolvedButton(const AtomString& type)
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(PointerEvent)
+#endif // WebCore_dom_PointerEvent_h

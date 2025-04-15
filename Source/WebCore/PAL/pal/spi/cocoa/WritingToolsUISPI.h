@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_WritingToolsUISPI_h
+#define WebCore_PAL_pal_spi_cocoa_WritingToolsUISPI_h
 
 #import <wtf/Compiler.h>
 #import <wtf/Platform.h>
@@ -215,3 +216,4 @@ NS_ASSUME_NONNULL_END
 #endif // USE(APPLE_INTERNAL_SDK)
 
 #endif // ENABLE(WRITING_TOOLS) && PLATFORM(MAC)
+#endif // WebCore_PAL_pal_spi_cocoa_WritingToolsUISPI_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_LayoutPhase_h
+#define WebCore_layout_LayoutPhase_h
 
 #include <optional>
 
@@ -61,3 +62,4 @@ public:
 
 }
 }
+#endif // WebCore_layout_LayoutPhase_h

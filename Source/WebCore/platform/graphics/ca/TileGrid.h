@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ca_TileGrid_h
+#define WebCore_platform_graphics_ca_TileGrid_h
 
 #include "IntPointHash.h"
 #include "IntRect.h"
@@ -188,3 +189,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_ca_TileGrid_h

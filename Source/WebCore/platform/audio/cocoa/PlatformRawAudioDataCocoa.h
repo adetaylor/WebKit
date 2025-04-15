@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_PlatformRawAudioDataCocoa_h
+#define WebCore_platform_audio_cocoa_PlatformRawAudioDataCocoa_h
 
 #include "CAAudioStreamDescription.h"
 #include "PlatformRawAudioData.h"
@@ -74,3 +75,4 @@ static bool isType(const WebCore::PlatformRawAudioData& data) { return data.plat
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(WEB_CODECS) && USE(GSTREAMER)
+#endif // WebCore_platform_audio_cocoa_PlatformRawAudioDataCocoa_h

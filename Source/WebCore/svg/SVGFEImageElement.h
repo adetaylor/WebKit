@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGFEImageElement_h
+#define WebCore_svg_SVGFEImageElement_h
 
 #include "CachedImageClient.h"
 #include "CachedResourceHandle.h"
@@ -77,3 +78,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGFEImageElement_h

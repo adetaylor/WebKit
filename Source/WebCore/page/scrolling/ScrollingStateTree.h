@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingStateTree_h
+#define WebCore_page_scrolling_ScrollingStateTree_h
 
 #if ENABLE(ASYNC_SCROLLING)
 
@@ -136,3 +137,4 @@ void showScrollingStateTree(const WebCore::ScrollingStateNode&);
 #endif
 
 #endif // ENABLE(ASYNC_SCROLLING)
+#endif // WebCore_page_scrolling_ScrollingStateTree_h

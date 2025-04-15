@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertNumbers_h
+#define WebCore_bindings_js_JSDOMConvertNumbers_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -312,3 +313,4 @@ template<> struct JSConverter<IDLUnrestrictedDouble> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertNumbers_h

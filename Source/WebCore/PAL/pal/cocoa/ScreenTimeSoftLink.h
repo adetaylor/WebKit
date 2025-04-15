@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_ScreenTimeSoftLink_h
+#define WebCore_PAL_pal_cocoa_ScreenTimeSoftLink_h
 
 #if ENABLE(SCREEN_TIME)
 
@@ -36,3 +37,4 @@ SOFT_LINK_CLASS_FOR_HEADER(PAL, STWebpageController)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, STWebHistory)
 
 #endif // ENABLE(SCREEN_TIME)
+#endif // WebCore_PAL_pal_cocoa_ScreenTimeSoftLink_h

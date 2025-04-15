@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_BInline_h
+#define bmalloc_bmalloc_BInline_h
 
 #include "BCompiler.h"
 
@@ -34,3 +35,4 @@
 #define BINLINE __forceinline
 #define BNO_INLINE __declspec(noinline)
 #endif
+#endif // bmalloc_bmalloc_BInline_h

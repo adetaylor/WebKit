@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_AVStreamDataParserSPI_h
+#define WebCore_PAL_pal_spi_cocoa_AVStreamDataParserSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -73,3 +74,4 @@ typedef NS_ENUM(NSUInteger, AVStreamDataParserOutputMediaDataFlags) {
 @end
 
 NS_ASSUME_NONNULL_END
+#endif // WebCore_PAL_pal_spi_cocoa_AVStreamDataParserSPI_h

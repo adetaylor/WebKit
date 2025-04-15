@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mock_MockRealtimeMediaSourceCenter_h
+#define WebCore_platform_mock_MockRealtimeMediaSourceCenter_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -105,3 +106,4 @@ private:
 }
 
 #endif // MockRealtimeMediaSourceCenter_h
+#endif // WebCore_platform_mock_MockRealtimeMediaSourceCenter_h

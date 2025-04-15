@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StylePrimitiveNumeric_h
+#define WebCore_style_values_primitives_StylePrimitiveNumeric_h
 
 #include "CSSPrimitiveNumeric.h"
 #include "StylePrimitiveNumericConcepts.h"
@@ -265,3 +266,4 @@ struct WTF::FlatteningVariantTraits<T> {
 
 template<auto R, typename V> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::Style::AnglePercentage<R, V>> = true;
 template<auto R, typename V> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::Style::LengthPercentage<R, V>> = true;
+#endif // WebCore_style_values_primitives_StylePrimitiveNumeric_h

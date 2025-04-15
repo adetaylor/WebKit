@@ -42,7 +42,8 @@
  * version of this file under any of the LGPL, the MPL or the GPL.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderLayer_h
+#define WebCore_rendering_RenderLayer_h
 
 #include "ClipRect.h"
 #include "GraphicsLayer.h"
@@ -1535,3 +1536,4 @@ void showPaintOrderTree(const WebCore::RenderObject*);
 void showLayerPositionTree(const WebCore::RenderLayer*);
 #endif
 
+#endif // WebCore_rendering_RenderLayer_h

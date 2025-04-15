@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ResourceUsageThread_h
+#define WebCore_page_ResourceUsageThread_h
 
 #if ENABLE(RESOURCE_USAGE)
 
@@ -101,3 +102,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(RESOURCE_USAGE)
+#endif // WebCore_page_ResourceUsageThread_h

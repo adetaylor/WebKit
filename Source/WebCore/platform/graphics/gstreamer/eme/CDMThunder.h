@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_eme_CDMThunder_h
+#define WebCore_platform_graphics_gstreamer_eme_CDMThunder_h
 
 #if ENABLE(ENCRYPTED_MEDIA) && ENABLE(THUNDER)
 
@@ -172,3 +173,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CDM_INSTANCE(WebCore::CDMInstanceThunder, WebCore::CDMInstance::ImplementationType::Thunder);
 
 #endif // ENABLE(ENCRYPTED_MEDIA) && ENABLE(THUNDER)
+#endif // WebCore_platform_graphics_gstreamer_eme_CDMThunder_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ApproximateTime_h
+#define WTF_wtf_ApproximateTime_h
 
 #include <wtf/ClockType.h>
 #include <wtf/GenericTimeMixin.h>
@@ -81,3 +82,4 @@ struct ApproximateTime::MarkableTraits {
 } // namespace WTF
 
 using WTF::ApproximateTime;
+#endif // WTF_wtf_ApproximateTime_h

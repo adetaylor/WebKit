@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_gstreamer_VideoEncoderPrivateGStreamer_h
+#define WebCore_platform_gstreamer_VideoEncoderPrivateGStreamer_h
 
 #include "GStreamerCommon.h"
 #include "VideoEncoderScalabilityMode.h"
@@ -90,3 +91,4 @@ bool videoEncoderSupportsCodec(WebKitVideoEncoder*, const String&);
 bool videoEncoderSetCodec(WebKitVideoEncoder*, const String&, std::optional<WebCore::IntSize> = std::nullopt, std::optional<double> frameRate = std::nullopt);
 void videoEncoderSetBitRateAllocation(WebKitVideoEncoder*, RefPtr<WebKitVideoEncoderBitRateAllocation>&&);
 void teardownVideoEncoderSingleton();
+#endif // WebCore_platform_gstreamer_VideoEncoderPrivateGStreamer_h

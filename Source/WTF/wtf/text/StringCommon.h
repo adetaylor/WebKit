@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringCommon_h
+#define WTF_wtf_text_StringCommon_h
 
 #include <algorithm>
 #include <unicode/uchar.h>
@@ -1301,3 +1302,4 @@ using WTF::unsafeSpan;
 using WTF::unsafeSpan8;
 using WTF::unsafeSpanIncludingNullTerminator;
 using WTF::unsafeSpan8IncludingNullTerminator;
+#endif // WTF_wtf_text_StringCommon_h

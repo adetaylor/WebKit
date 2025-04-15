@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_StringCallback_h
+#define WebCore_dom_StringCallback_h
 
 #include "ActiveDOMCallback.h"
 #include "CallbackResult.h"
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_StringCallback_h

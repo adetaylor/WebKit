@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_WebInjectedScriptHost_h
+#define WebCore_inspector_WebInjectedScriptHost_h
 
 #include <JavaScriptCore/InjectedScriptHost.h>
 
@@ -39,3 +40,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_WebInjectedScriptHost_h

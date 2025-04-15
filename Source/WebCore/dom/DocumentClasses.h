@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentClasses_h
+#define WebCore_dom_DocumentClasses_h
 
 #include <wtf/OptionSet.h>
 
@@ -47,3 +48,4 @@ enum class DocumentClass : uint16_t {
 using DocumentClasses = OptionSet<DocumentClass>;
 
 } // namespace WebCore
+#endif // WebCore_dom_DocumentClasses_h

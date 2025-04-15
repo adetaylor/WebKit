@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_ParsingUtilities_h
+#define WTF_wtf_text_ParsingUtilities_h
 
 #include <wtf/StdLibExtras.h>
 #include <wtf/text/StringCommon.h>
@@ -254,3 +255,4 @@ using WTF::skipExactlyIgnoringASCIICase;
 using WTF::skipLettersExactlyIgnoringASCIICase;
 using WTF::skipUntil;
 using WTF::skipWhile;
+#endif // WTF_wtf_text_ParsingUtilities_h

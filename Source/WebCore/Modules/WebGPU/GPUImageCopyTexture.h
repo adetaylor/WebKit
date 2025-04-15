@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUImageCopyTexture_h
+#define WebCore_Modules_WebGPU_GPUImageCopyTexture_h
 
 #include "GPUIntegralTypes.h"
 #include "GPUOrigin3DDict.h"
@@ -54,3 +55,4 @@ struct GPUImageCopyTexture {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUImageCopyTexture_h

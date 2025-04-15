@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_GigacageConfig_h
+#define bmalloc_bmalloc_GigacageConfig_h
 
 #include "Algorithm.h"
 #include "GigacageKind.h"
@@ -113,3 +114,4 @@ static_assert(bmalloc::roundUpToMultipleOf<alignmentOfGigacageConfig>(startOffse
 #define g_gigacageConfig (*std::bit_cast<Gigacage::Config*>(&WebConfig::g_config[Gigacage::startSlotOfGigacageConfig]))
 
 } // namespace Gigacage
+#endif // bmalloc_bmalloc_GigacageConfig_h

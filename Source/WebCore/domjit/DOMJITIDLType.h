@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_domjit_DOMJITIDLType_h
+#define WebCore_domjit_DOMJITIDLType_h
 
 #include "IDLTypes.h"
 
@@ -46,3 +47,4 @@ template<typename IDLType>
 using IDLJSArgumentType = typename IDLJSArgumentTypeSelect<IDLType>::type;
 
 } }
+#endif // WebCore_domjit_DOMJITIDLType_h

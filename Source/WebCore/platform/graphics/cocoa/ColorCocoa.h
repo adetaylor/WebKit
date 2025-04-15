@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_ColorCocoa_h
+#define WebCore_platform_graphics_cocoa_ColorCocoa_h
 
 #import "Color.h"
 
@@ -52,3 +53,4 @@ WEBCORE_EXPORT RetainPtr<CocoaColor> cocoaColorOrNil(const Color&); // Returns n
 WEBCORE_EXPORT Color colorFromCocoaColor(CocoaColor *);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_cocoa_ColorCocoa_h

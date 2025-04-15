@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedFont_h
+#define WebCore_loader_cache_CachedFont_h
 
 #include "CachedResource.h"
 #include "CachedResourceClient.h"
@@ -102,3 +103,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CachedFont)
     static bool isType(const WebCore::CachedResource& resource) { return resource.type() == WebCore::CachedResource::Type::FontResource || resource.type() == WebCore::CachedResource::Type::SVGFontResource; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_loader_cache_CachedFont_h

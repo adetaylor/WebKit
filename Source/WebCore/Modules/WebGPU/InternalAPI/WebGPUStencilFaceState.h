@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUStencilFaceState_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUStencilFaceState_h
 
 #include "WebGPUCompareFunction.h"
 #include "WebGPUStencilOperation.h"
@@ -38,3 +39,4 @@ struct StencilFaceState {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUStencilFaceState_h

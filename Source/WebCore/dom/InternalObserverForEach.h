@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InternalObserverForEach_h
+#define WebCore_dom_InternalObserverForEach_h
 
 #include <wtf/Forward.h>
 
@@ -38,3 +39,4 @@ struct SubscribeOptions;
 void createInternalObserverOperatorForEach(ScriptExecutionContext&, Observable&, Ref<VisitorCallback>&&, const SubscribeOptions&, Ref<DeferredPromise>&&);
 
 } // namespace WebCore
+#endif // WebCore_dom_InternalObserverForEach_h

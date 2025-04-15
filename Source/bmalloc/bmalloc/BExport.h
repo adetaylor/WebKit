@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_BExport_h
+#define bmalloc_bmalloc_BExport_h
 
 #include "BPlatform.h"
 
@@ -49,3 +50,4 @@
 #endif
 
 #define BNOEXPORT
+#endif // bmalloc_bmalloc_BExport_h

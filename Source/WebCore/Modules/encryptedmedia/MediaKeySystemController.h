@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_encryptedmedia_MediaKeySystemController_h
+#define WebCore_Modules_encryptedmedia_MediaKeySystemController_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -69,3 +70,4 @@ inline void MediaKeySystemController::cancelMediaKeySystemRequest(MediaKeySystem
 } // namespace WebCore
 
 #endif // ENABLE(ENCRYPTED_MEDIA)
+#endif // WebCore_Modules_encryptedmedia_MediaKeySystemController_h

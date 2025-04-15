@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_WebAVPlayerLayerView_h
+#define WebCore_platform_cocoa_WebAVPlayerLayerView_h
 
 #if PLATFORM(IOS_FAMILY) && HAVE(AVKIT)
 
@@ -50,3 +51,4 @@ WEBCORE_EXPORT WebAVPictureInPicturePlayerLayerView *allocWebAVPictureInPictureP
 }
 
 #endif // PLATFORM(IOS_FAMILY) && HAVE(AVKIT)
+#endif // WebCore_platform_cocoa_WebAVPlayerLayerView_h

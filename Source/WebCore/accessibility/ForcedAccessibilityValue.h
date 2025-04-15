@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_ForcedAccessibilityValue_h
+#define WebCore_accessibility_ForcedAccessibilityValue_h
 
 namespace WebCore {
 
 enum class ForcedAccessibilityValue : uint8_t { System, On, Off };
 
 }
+#endif // WebCore_accessibility_ForcedAccessibilityValue_h

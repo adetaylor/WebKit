@@ -28,7 +28,8 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_automation_AutomationInstrumentation_h
+#define WebCore_automation_AutomationInstrumentation_h
 
 #if ENABLE(WEBDRIVER_BIDI)
 
@@ -67,3 +68,4 @@ public:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_automation_AutomationInstrumentation_h

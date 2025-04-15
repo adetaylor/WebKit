@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasession_MediaSessionCoordinatorState_h
+#define WebCore_Modules_mediasession_MediaSessionCoordinatorState_h
 
 #if ENABLE(MEDIA_SESSION_COORDINATOR)
 
@@ -38,3 +39,4 @@ enum class MediaSessionCoordinatorState : uint8_t {
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_SESSION_COORDINATOR)
+#endif // WebCore_Modules_mediasession_MediaSessionCoordinatorState_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUSamplerDescriptor_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUSamplerDescriptor_h
 
 #include "WebGPUAddressMode.h"
 #include "WebGPUCompareFunction.h"
@@ -48,3 +49,4 @@ struct SamplerDescriptor : public ObjectDescriptorBase {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUSamplerDescriptor_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CompactUniquePtrTuple_h
+#define WTF_wtf_CompactUniquePtrTuple_h
 
 #include <memory>
 #include <wtf/CompactPointerTuple.h>
@@ -126,3 +127,4 @@ private:
 
 using WTF::CompactUniquePtrTuple;
 using WTF::makeCompactUniquePtr;
+#endif // WTF_wtf_CompactUniquePtrTuple_h

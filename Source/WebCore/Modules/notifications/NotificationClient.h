@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_notifications_NotificationClient_h
+#define WebCore_Modules_notifications_NotificationClient_h
 
 #include "NotificationPermission.h"
 #include <wtf/Forward.h>
@@ -78,3 +79,4 @@ public:
 WEBCORE_EXPORT void provideNotification(Page*, NotificationClient*);
 
 } // namespace WebCore
+#endif // WebCore_Modules_notifications_NotificationClient_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBCursorWithValue_h
+#define WebCore_Modules_indexeddb_IDBCursorWithValue_h
 
 #include "IDBCursor.h"
 #include <wtf/TypeCasts.h>
@@ -50,3 +51,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::IDBCursorWithValue)
     static bool isType(const WebCore::IDBCursor& cursor) { return cursor.isKeyCursorWithValue(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_indexeddb_IDBCursorWithValue_h

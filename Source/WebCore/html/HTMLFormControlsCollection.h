@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLFormControlsCollection_h
+#define WebCore_html_HTMLFormControlsCollection_h
 
 #include "CachedHTMLCollection.h"
 #include "HTMLFormElement.h"
@@ -61,3 +62,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_HTMLCOLLECTION(HTMLFormControlsCollection, CollectionType::FormControls)
+#endif // WebCore_html_HTMLFormControlsCollection_h

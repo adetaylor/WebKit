@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_MediaToolboxSPI_h
+#define WebCore_PAL_pal_spi_cocoa_MediaToolboxSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -44,3 +45,4 @@ WTF_EXTERN_C_END
 #define kPALFigPhotoContainerFormat_JFIF 1
 
 #endif // USE(MEDIATOOLBOX)
+#endif // WebCore_PAL_pal_spi_cocoa_MediaToolboxSPI_h

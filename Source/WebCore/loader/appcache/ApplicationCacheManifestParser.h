@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_loader_appcache_ApplicationCacheManifestParser_h
+#define WebCore_loader_appcache_ApplicationCacheManifestParser_h
 
 #include <utility>
 #include <wtf/HashSet.h>
@@ -44,3 +45,4 @@ struct ApplicationCacheManifest {
 std::optional<ApplicationCacheManifest> parseApplicationCacheManifest(const URL& manifestURL, const String& manifestMIMEType, std::span<const uint8_t> data);
 
 } // namespace WebCore
+#endif // WebCore_loader_appcache_ApplicationCacheManifestParser_h

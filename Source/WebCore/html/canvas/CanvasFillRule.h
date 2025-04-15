@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasFillRule_h
+#define WebCore_html_canvas_CanvasFillRule_h
 
 namespace WebCore {
 
 enum class CanvasFillRule { Nonzero, Evenodd };
 
 }
+#endif // WebCore_html_canvas_CanvasFillRule_h

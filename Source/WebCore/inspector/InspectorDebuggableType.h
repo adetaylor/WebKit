@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorDebuggableType_h
+#define WebCore_inspector_InspectorDebuggableType_h
 
 namespace Inspector {
 
@@ -36,3 +37,4 @@ enum class DebuggableType : uint8_t {
 };
 
 } // namespace Inspector
+#endif // WebCore_inspector_InspectorDebuggableType_h

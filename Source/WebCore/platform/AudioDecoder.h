@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_AudioDecoder_h
+#define WebCore_platform_AudioDecoder_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -80,3 +81,4 @@ public:
 }
 
 #endif // ENABLE(WEB_CODECS)
+#endif // WebCore_platform_AudioDecoder_h

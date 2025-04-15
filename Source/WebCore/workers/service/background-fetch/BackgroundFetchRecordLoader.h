@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetchRecordLoader_h
+#define WebCore_workers_service_background_fetch_BackgroundFetchRecordLoader_h
 
 #include <span>
 #include <wtf/AbstractRefCountedAndCanMakeWeakPtr.h>
@@ -52,3 +53,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_BackgroundFetchRecordLoader_h

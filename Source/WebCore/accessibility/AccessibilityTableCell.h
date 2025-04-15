@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityTableCell_h
+#define WebCore_accessibility_AccessibilityTableCell_h
 
 #include "AccessibilityRenderObject.h"
 
@@ -101,3 +102,4 @@ private:
 } // namespace WebCore 
 
 SPECIALIZE_TYPE_TRAITS_ACCESSIBILITY(AccessibilityTableCell, isTableCell())
+#endif // WebCore_accessibility_AccessibilityTableCell_h

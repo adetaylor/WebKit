@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_closewatcher_CloseWatcherManager_h
+#define WebCore_html_closewatcher_CloseWatcherManager_h
 
 #include "CloseWatcher.h"
 
@@ -47,3 +48,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_closewatcher_CloseWatcherManager_h

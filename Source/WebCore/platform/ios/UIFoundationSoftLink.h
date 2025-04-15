@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_UIFoundationSoftLink_h
+#define WebCore_platform_ios_UIFoundationSoftLink_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -51,3 +52,4 @@ SOFT_LINK_CONSTANT_FOR_HEADER(WebCore, UIFoundation, NSAdaptiveImageGlyphAttribu
 #endif
 
 #endif
+#endif // WebCore_platform_ios_UIFoundationSoftLink_h

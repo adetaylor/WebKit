@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_SpellChecker_h
+#define WebCore_editing_SpellChecker_h
 
 #include "Element.h"
 #include "SimpleRange.h"
@@ -113,3 +114,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_SpellChecker_h

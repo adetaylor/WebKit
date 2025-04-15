@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_gstreamer_GStreamerVideoEncoderFactory_h
+#define WebCore_platform_mediastream_libwebrtc_gstreamer_GStreamerVideoEncoderFactory_h
 
 #if USE(LIBWEBRTC) && USE(GSTREAMER)
 #include "LibWebRTCMacros.h"
@@ -43,3 +44,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_mediastream_libwebrtc_gstreamer_GStreamerVideoEncoderFactory_h

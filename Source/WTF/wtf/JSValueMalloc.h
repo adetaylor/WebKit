@@ -22,8 +22,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_JSValueMalloc_h
+#define WTF_wtf_JSValueMalloc_h
 
 #include <wtf/FastMalloc.h>
 
 // Keeping this file because of build rule bug.
+#endif // WTF_wtf_JSValueMalloc_h

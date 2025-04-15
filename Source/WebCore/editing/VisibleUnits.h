@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_VisibleUnits_h
+#define WebCore_editing_VisibleUnits_h
 
 #include "EditingBoundary.h"
 #include "VisibleSelection.h"
@@ -127,3 +128,4 @@ RefPtr<Node> findStartOfParagraph(Node*, Node*, Node*, int&, Position::AnchorTyp
 RefPtr<Node> findEndOfParagraph(Node*, Node*, Node*, int&, Position::AnchorType&, EditingBoundaryCrossingRule);
 
 } // namespace WebCore
+#endif // WebCore_editing_VisibleUnits_h

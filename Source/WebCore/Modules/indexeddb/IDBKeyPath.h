@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBKeyPath_h
+#define WebCore_Modules_indexeddb_IDBKeyPath_h
 
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
@@ -48,3 +49,4 @@ String loggingString(const IDBKeyPath&);
 #endif
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBKeyPath_h

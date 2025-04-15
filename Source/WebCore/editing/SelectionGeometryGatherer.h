@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_SelectionGeometryGatherer_h
+#define WebCore_editing_SelectionGeometryGatherer_h
 
 #if ENABLE(SERVICE_CONTROLS)
 
@@ -81,3 +82,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(SERVICE_CONTROLS)
+#endif // WebCore_editing_SelectionGeometryGatherer_h

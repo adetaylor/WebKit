@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SafeStrerror_h
+#define WTF_wtf_SafeStrerror_h
 
 #include <wtf/Forward.h>
 
@@ -46,3 +47,4 @@ WTF_EXPORT_PRIVATE CString safeStrerror(int errnum);
 }
 
 using WTF::safeStrerror;
+#endif // WTF_wtf_SafeStrerror_h

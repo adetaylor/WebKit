@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_RefCounted_h
+#define WTF_wtf_RefCounted_h
 
 #include <wtf/Assertions.h>
 #include <wtf/Compiler.h>
@@ -224,3 +225,4 @@ inline void deref(T* obj)
 
 
 using WTF::RefCounted;
+#endif // WTF_wtf_RefCounted_h

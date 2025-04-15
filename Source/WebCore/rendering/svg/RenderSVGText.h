@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGText_h
+#define WebCore_rendering_svg_RenderSVGText_h
 
 #include "AffineTransform.h"
 #include "RenderSVGBlock.h"
@@ -134,3 +135,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGText, isRenderSVGText())
+#endif // WebCore_rendering_svg_RenderSVGText_h

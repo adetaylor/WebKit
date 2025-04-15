@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_MutationRecord_h
+#define WebCore_dom_MutationRecord_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
@@ -77,3 +78,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_MutationRecord_h

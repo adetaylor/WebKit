@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_query_ContainerQueryFeatures_h
+#define WebCore_css_query_ContainerQueryFeatures_h
 
 #include "GenericMediaQueryTypes.h"
 
@@ -67,3 +68,4 @@ Vector<const ContainerProgressProviding*> allContainerProgressProvidingSchemas()
 } // namespace Features
 } // namespace CQ
 } // namespace WebCore
+#endif // WebCore_css_query_ContainerQueryFeatures_h

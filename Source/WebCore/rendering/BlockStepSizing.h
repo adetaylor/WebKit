@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_BlockStepSizing_h
+#define WebCore_rendering_BlockStepSizing_h
 
 namespace WebCore {
 
@@ -45,3 +46,4 @@ void distributeExtraSpaceToChildContentArea(RenderBox& /* child */, LayoutUnit /
 } // namespace BlockStepSizing
 
 } // namespace WebCore
+#endif // WebCore_rendering_BlockStepSizing_h

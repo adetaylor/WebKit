@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cookie_store_CookieInit_h
+#define WebCore_Modules_cookie_store_CookieInit_h
 
 #include "CookieSameSite.h"
 #include "DOMHighResTimeStamp.h"
@@ -45,3 +46,4 @@ struct CookieInit {
 };
 
 }
+#endif // WebCore_Modules_cookie_store_CookieInit_h

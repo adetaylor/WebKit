@@ -26,7 +26,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_SelectorFilter_h
+#define WebCore_css_SelectorFilter_h
 
 #include "Element.h"
 #include <memory>
@@ -95,3 +96,4 @@ inline bool SelectorFilter::fastRejectSelector(const Hashes& hashes) const
 }
 
 } // namespace WebCore
+#endif // WebCore_css_SelectorFilter_h

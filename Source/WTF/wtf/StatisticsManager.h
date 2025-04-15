@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_displaylists_DisplayListDrawingContext_h
+#define WebCore_platform_graphics_displaylists_DisplayListDrawingContext_h
 
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
@@ -50,3 +51,5 @@ private:
 } // namespace WTF
 
 using WTF::StatisticsManager;
+
+#endif // WebCore_platform_graphics_displaylists_DisplayListDrawingContext_h

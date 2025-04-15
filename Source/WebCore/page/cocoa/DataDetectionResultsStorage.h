@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_cocoa_DataDetectionResultsStorage_h
+#define WebCore_page_cocoa_DataDetectionResultsStorage_h
 
 #if ENABLE(DATA_DETECTION)
 
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(DATA_DETECTION)
+#endif // WebCore_page_cocoa_DataDetectionResultsStorage_h

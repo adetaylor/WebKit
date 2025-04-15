@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_MediaPlayer_h
+#define WebCore_platform_graphics_MediaPlayer_h
 
 #if ENABLE(VIDEO)
 
@@ -944,3 +945,4 @@ template<> struct LogArgument<WebCore::SeekTarget> {
 } // namespace WTF
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_platform_graphics_MediaPlayer_h

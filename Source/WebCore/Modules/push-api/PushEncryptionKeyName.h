@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushEncryptionKeyName_h
+#define WebCore_Modules_push_api_PushEncryptionKeyName_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class PushEncryptionKeyName : bool {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_push_api_PushEncryptionKeyName_h

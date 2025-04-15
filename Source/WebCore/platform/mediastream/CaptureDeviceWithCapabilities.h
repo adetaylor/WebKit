@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_CaptureDeviceWithCapabilities_h
+#define WebCore_platform_mediastream_CaptureDeviceWithCapabilities_h
 
 #include "CaptureDevice.h"
 #include "RealtimeMediaSourceCapabilities.h"
@@ -38,3 +39,4 @@ struct CaptureDeviceWithCapabilities {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_mediastream_CaptureDeviceWithCapabilities_h

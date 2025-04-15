@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_iso_ISOOriginalFormatBox_h
+#define WebCore_platform_graphics_iso_ISOOriginalFormatBox_h
 
 #include "ISOBox.h"
 
@@ -47,3 +48,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_ISOBOX(ISOOriginalFormatBox)
+#endif // WebCore_platform_graphics_iso_ISOOriginalFormatBox_h

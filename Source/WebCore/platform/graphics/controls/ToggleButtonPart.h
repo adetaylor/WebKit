@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_ToggleButtonPart_h
+#define WebCore_platform_graphics_controls_ToggleButtonPart_h
 
 #include "ControlFactory.h"
 #include "ControlPart.h"
@@ -55,3 +56,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToggleButtonPart) \
     static bool isType(const WebCore::ControlPart& part) { return part.type() == WebCore::StyleAppearance::Checkbox || part.type() == WebCore::StyleAppearance::Radio; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_controls_ToggleButtonPart_h

@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ThreadSafeRefCountedWithSuppressingSaferCPPChecking_h
+#define WTF_wtf_ThreadSafeRefCountedWithSuppressingSaferCPPChecking_h
 
 #include <wtf/ThreadSafeRefCounted.h>
 
@@ -153,3 +154,4 @@ protected:
 } // namespace WTF
 
 using WTF::ThreadSafeRefCountedWithSuppressingSaferCPPChecking;
+#endif // WTF_wtf_ThreadSafeRefCountedWithSuppressingSaferCPPChecking_h

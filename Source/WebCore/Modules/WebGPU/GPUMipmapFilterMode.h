@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUMipmapFilterMode_h
+#define WebCore_Modules_WebGPU_GPUMipmapFilterMode_h
 
 #include "WebGPUFilterMode.h"
 #include <cstdint>
@@ -47,3 +48,4 @@ inline WebGPU::MipmapFilterMode convertToBacking(GPUMipmapFilterMode filterMode)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUMipmapFilterMode_h

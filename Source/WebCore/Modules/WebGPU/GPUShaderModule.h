@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUShaderModule_h
+#define WebCore_Modules_WebGPU_GPUShaderModule_h
 
 #include "GPUBindGroupLayout.h"
 #include "GPUCompilationInfo.h"
@@ -64,3 +65,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUShaderModule_h

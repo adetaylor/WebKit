@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_FindOptions_h
+#define WebCore_editing_FindOptions_h
 
 #include <wtf/OptionSet.h>
 
@@ -47,3 +48,4 @@ enum class FindOption : uint16_t {
 using FindOptions = OptionSet<FindOption>;
 
 } // namespace WebCore
+#endif // WebCore_editing_FindOptions_h

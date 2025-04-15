@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cf_OTSVGTable_h
+#define WebCore_PAL_pal_cf_OTSVGTable_h
 
 #include <pal/spi/cf/CoreTextSPI.h>
 
@@ -42,3 +43,4 @@ struct OTSVGTable {
 };
 
 }
+#endif // WebCore_PAL_pal_cf_OTSVGTable_h

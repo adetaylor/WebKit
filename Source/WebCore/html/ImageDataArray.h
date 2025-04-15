@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_ImageDataArray_h
+#define WebCore_html_ImageDataArray_h
 
 #include "ImageDataStorageFormat.h"
 #include <JavaScriptCore/Float16Array.h>
@@ -75,3 +76,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_ImageDataArray_h

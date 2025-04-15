@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cocoa_CFXPCBridgeSPI_h
+#define WTF_wtf_spi_cocoa_CFXPCBridgeSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -37,3 +38,4 @@ xpc_object_t _CFXPCCreateXPCMessageWithCFObject(CFTypeRef);
 CFTypeRef _CFXPCCreateCFObjectFromXPCMessage(xpc_object_t);
 
 WTF_EXTERN_C_END
+#endif // WTF_wtf_spi_cocoa_CFXPCBridgeSPI_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_easing_StyleSpringEasingFunction_h
+#define WebCore_style_values_easing_StyleSpringEasingFunction_h
 
 #include "CSSSpringEasingFunction.h"
 
@@ -42,3 +43,4 @@ Ref<TimingFunction> createTimingFunctionDeprecated(const CSS::SpringEasingFuncti
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_easing_StyleSpringEasingFunction_h

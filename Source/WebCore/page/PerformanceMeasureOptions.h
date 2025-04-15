@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceMeasureOptions_h
+#define WebCore_page_PerformanceMeasureOptions_h
 
 #include <JavaScriptCore/JSCJSValue.h>
 #include <wtf/text/WTFString.h>
@@ -38,3 +39,4 @@ struct PerformanceMeasureOptions {
 };
 
 }
+#endif // WebCore_page_PerformanceMeasureOptions_h

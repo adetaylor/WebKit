@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderLineBreak_h
+#define WebCore_rendering_RenderLineBreak_h
 
 #include "RenderBoxModelObject.h"
 
@@ -87,3 +88,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderLineBreak, isRenderLineBreak())
+#endif // WebCore_rendering_RenderLineBreak_h

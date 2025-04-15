@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_DedicatedWorkerGlobalScope_h
+#define WebCore_workers_DedicatedWorkerGlobalScope_h
 
 #include "MessagePort.h"
 #include "WorkerGlobalScope.h"
@@ -120,3 +121,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::DedicatedWorkerGlobalScope)
     }
     static bool isType(const WebCore::WorkerGlobalScope& context) { return context.type() == WebCore::WorkerGlobalScope::Type::DedicatedWorker; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_workers_DedicatedWorkerGlobalScope_h

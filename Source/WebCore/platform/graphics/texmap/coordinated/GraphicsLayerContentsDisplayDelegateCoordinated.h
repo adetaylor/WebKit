@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_coordinated_GraphicsLayerContentsDisplayDelegateCoordinated_h
+#define WebCore_platform_graphics_texmap_coordinated_GraphicsLayerContentsDisplayDelegateCoordinated_h
 
 #if USE(COORDINATED_GRAPHICS)
 #include "GraphicsLayerContentsDisplayDelegate.h"
@@ -51,3 +52,4 @@ protected:
 } // namespace WebCore
 
 #endif // USE(COORDINATED_GRAPHICS)
+#endif // WebCore_platform_graphics_texmap_coordinated_GraphicsLayerContentsDisplayDelegateCoordinated_h

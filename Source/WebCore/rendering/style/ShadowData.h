@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_ShadowData_h
+#define WebCore_rendering_style_ShadowData_h
 
 #include "FloatRect.h"
 #include "LayoutRect.h"
@@ -143,3 +144,4 @@ inline size_t shadowListLength(const ShadowData* shadow)
 WTF::TextStream& operator<<(WTF::TextStream&, const ShadowData&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_ShadowData_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerClientData_h
+#define WebCore_workers_service_ServiceWorkerClientData_h
 
 #include "FrameIdentifier.h"
 #include "PageIdentifier.h"
@@ -67,3 +68,4 @@ struct ServiceWorkerClientData {
 using ServiceWorkerClientsMatchAllCallback = CompletionHandler<void(Vector<ServiceWorkerClientData>&&)>;
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerClientData_h

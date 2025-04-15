@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_IntRect_h
+#define WebCore_platform_graphics_IntRect_h
 
 #include "IntPoint.h"
 #include "LayoutUnit.h"
@@ -277,3 +278,4 @@ WEBCORE_EXPORT id makeNSArrayElement(const IntRect&);
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_IntRect_h

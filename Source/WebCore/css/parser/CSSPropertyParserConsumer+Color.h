@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_Color_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_Color_h
 
 #include "CSSColorType.h"
 #include <optional>
@@ -83,3 +84,4 @@ RefPtr<CSSValue> consumeDynamicRangeLimit(CSSParserTokenRange&, CSS::PropertyPar
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_Color_h

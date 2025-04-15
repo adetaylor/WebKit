@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMIterator_h
+#define WebCore_bindings_js_JSDOMIterator_h
 
 #include "JSDOMConvert.h"
 #include <JavaScriptCore/JSIteratorPrototype.h>
@@ -271,3 +272,4 @@ void JSDOMIteratorPrototype<JSWrapper, IteratorTraits>::finishCreation(JSC::VM& 
 }
 
 }
+#endif // WebCore_bindings_js_JSDOMIterator_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_VideoFullscreenCaptions_h
+#define WebCore_platform_cocoa_VideoFullscreenCaptions_h
 
 #include "PlatformImage.h"
 
@@ -55,3 +56,4 @@ protected:
 };
 
 }
+#endif // WebCore_platform_cocoa_VideoFullscreenCaptions_h

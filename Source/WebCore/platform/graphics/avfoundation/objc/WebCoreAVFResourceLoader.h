@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_WebCoreAVFResourceLoader_h
+#define WebCore_platform_graphics_avfoundation_objc_WebCoreAVFResourceLoader_h
 
 #if ENABLE(VIDEO) && USE(AVFOUNDATION)
 
@@ -89,3 +90,4 @@ private:
 }
 
 #endif // ENABLE(VIDEO) && USE(AVFOUNDATION)
+#endif // WebCore_platform_graphics_avfoundation_objc_WebCoreAVFResourceLoader_h

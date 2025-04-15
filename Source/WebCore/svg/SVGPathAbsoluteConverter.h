@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGPathAbsoluteConverter_h
+#define WebCore_svg_SVGPathAbsoluteConverter_h
 
 #include "SVGPathConsumer.h"
 
@@ -60,3 +61,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGPathAbsoluteConverter_h

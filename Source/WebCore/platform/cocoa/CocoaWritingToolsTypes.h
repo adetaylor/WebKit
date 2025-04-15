@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_CocoaWritingToolsTypes_h
+#define WebCore_platform_cocoa_CocoaWritingToolsTypes_h
 
 #import <wtf/Platform.h>
 
@@ -64,3 +65,4 @@ constexpr auto CocoaWritingToolsResultTable = NSWritingToolsResultTable;
 #endif // PLATFORM(IOS_FAMILY)
 
 #endif // ENABLE(WRITING_TOOLS)
+#endif // WebCore_platform_cocoa_CocoaWritingToolsTypes_h

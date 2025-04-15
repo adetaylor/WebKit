@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FileHandle_h
+#define WTF_wtf_FileHandle_h
 
 #include <optional>
 #include <wtf/FileLockMode.h>
@@ -121,3 +122,4 @@ private:
 } // namespace WTF
 
 namespace FileSystem = WTF::FileSystemImpl;
+#endif // WTF_wtf_FileHandle_h

@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_GThreadSafeWeakPtr_h
+#define WTF_wtf_glib_GThreadSafeWeakPtr_h
 
 #if USE(GLIB)
 
@@ -81,3 +82,4 @@ private:
 using WTF::GThreadSafeWeakPtr;
 
 #endif // USE(GLIB)
+#endif // WTF_wtf_glib_GThreadSafeWeakPtr_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_QuirksData_h
+#define WebCore_page_QuirksData_h
 
 namespace WebCore {
 
@@ -184,3 +185,4 @@ struct WEBCORE_EXPORT QuirksData {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_QuirksData_h

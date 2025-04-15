@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_mac_WheelEventDeltaFilterMac_h
+#define WebCore_page_mac_WheelEventDeltaFilterMac_h
 
 #if PLATFORM(MAC)
 
@@ -56,3 +57,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_page_mac_WheelEventDeltaFilterMac_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassTimestampWrites_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassTimestampWrites_h
 
 #include "WebGPUIntegralTypes.h"
 #include "WebGPUQuerySet.h"
@@ -44,3 +45,4 @@ struct RenderPassTimestampWrites {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassTimestampWrites_h

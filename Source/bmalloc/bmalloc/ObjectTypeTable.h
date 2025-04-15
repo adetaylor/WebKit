@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_ObjectTypeTable_h
+#define bmalloc_bmalloc_ObjectTypeTable_h
 
 #include "Algorithm.h"
 #include "Mutex.h"
@@ -139,3 +140,4 @@ inline ObjectTypeTable::Bits::WordType* ObjectTypeTable::Bits::wordForIndex(unsi
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_ObjectTypeTable_h

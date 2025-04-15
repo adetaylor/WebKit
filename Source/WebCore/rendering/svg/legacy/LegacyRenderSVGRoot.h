@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGRoot_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGRoot_h
 
 #include "FloatRect.h"
 #include "RenderReplaced.h"
@@ -131,3 +132,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(LegacyRenderSVGRoot, isLegacyRenderSVGRoot())
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGRoot_h

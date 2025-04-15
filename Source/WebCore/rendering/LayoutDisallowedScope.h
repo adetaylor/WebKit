@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_LayoutDisallowedScope_h
+#define WebCore_rendering_LayoutDisallowedScope_h
 
 namespace WebCore {
 
@@ -55,3 +56,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_LayoutDisallowedScope_h

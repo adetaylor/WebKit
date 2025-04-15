@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleBuilderStateInlines_h
+#define WebCore_style_StyleBuilderStateInlines_h
 
 #include "RenderStyle.h"
 #include "RenderStyleSetters.h"
@@ -443,3 +444,4 @@ inline void BuilderState::setFontDescriptionVariantNumericSlashedZero(FontVarian
 
 }
 }
+#endif // WebCore_style_StyleBuilderStateInlines_h

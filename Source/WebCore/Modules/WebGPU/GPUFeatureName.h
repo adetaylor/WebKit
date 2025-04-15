@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUFeatureName_h
+#define WebCore_Modules_WebGPU_GPUFeatureName_h
 
 #include "WebGPUFeatureName.h"
 #include <cstdint>
@@ -98,3 +99,4 @@ inline WebGPU::FeatureName convertToBacking(GPUFeatureName featureName)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUFeatureName_h

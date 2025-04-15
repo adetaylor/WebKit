@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ContinuousTime_h
+#define WTF_wtf_ContinuousTime_h
 
 #include <wtf/ClockType.h>
 #include <wtf/GenericTimeMixin.h>
@@ -80,3 +81,4 @@ struct ContinuousTime::MarkableTraits {
 } // namespace WTF
 
 using WTF::ContinuousTime;
+#endif // WTF_wtf_ContinuousTime_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUImageCopyExternalImage_h
+#define WebCore_Modules_WebGPU_GPUImageCopyExternalImage_h
 
 #include "GPUOrigin2DDict.h"
 #include "HTMLCanvasElement.h"
@@ -64,3 +65,4 @@ struct GPUImageCopyExternalImage {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUImageCopyExternalImage_h

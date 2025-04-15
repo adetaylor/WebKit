@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderFragmentContainer_h
+#define WebCore_rendering_RenderFragmentContainer_h
 
 #include "LayerFragment.h"
 #include "RenderBlockFlow.h"
@@ -181,3 +182,4 @@ TextStream& operator<<(TextStream&, const RenderFragmentContainer&);
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderFragmentContainer, isRenderFragmentContainer())
+#endif // WebCore_rendering_RenderFragmentContainer_h

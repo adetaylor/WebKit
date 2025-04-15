@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorFrontendClient_h
+#define WebCore_inspector_InspectorFrontendClient_h
 
 #include "CertificateInfo.h"
 #include "Color.h"
@@ -172,3 +173,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorFrontendClient_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUSamplerBindingType_h
+#define WebCore_Modules_WebGPU_GPUSamplerBindingType_h
 
 #include "WebGPUSamplerBindingType.h"
 #include <cstdint>
@@ -50,3 +51,4 @@ inline WebGPU::SamplerBindingType convertToBacking(GPUSamplerBindingType sampler
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUSamplerBindingType_h

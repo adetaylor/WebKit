@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_DNS_h
+#define WebCore_platform_network_DNS_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -107,3 +108,4 @@ template<> struct HashTraits<WebCore::IPAddress> : GenericHashTraits<WebCore::IP
 };
 
 } // namespace WTF
+#endif // WebCore_platform_network_DNS_h

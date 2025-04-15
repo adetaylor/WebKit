@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_Transform_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_Transform_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -61,3 +62,4 @@ std::optional<TransformOperations> parseTransformRaw(const String&, const CSSPar
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_Transform_h

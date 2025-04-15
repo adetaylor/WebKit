@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerRegistration_h
+#define WebCore_workers_service_ServiceWorkerRegistration_h
 
 #include "ActiveDOMObject.h"
 #include "CookieStoreManager.h"
@@ -142,3 +143,4 @@ private:
 WebCoreOpaqueRoot root(ServiceWorkerRegistration*);
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerRegistration_h

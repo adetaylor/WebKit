@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_TransformOperationData_h
+#define WebCore_rendering_TransformOperationData_h
 
 #include "FloatRect.h"
 #include "MotionPath.h"
@@ -47,3 +48,4 @@ struct TransformOperationData {
 };
 
 }
+#endif // WebCore_rendering_TransformOperationData_h

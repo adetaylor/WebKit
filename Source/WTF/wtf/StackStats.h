@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_StackStats_h
+#define WTF_wtf_StackStats_h
 
 #include <mutex>
 #include <wtf/ExportMacros.h>
@@ -144,3 +145,4 @@ private:
 } // namespace WTF
 
 using WTF::StackStats;
+#endif // WTF_wtf_StackStats_h

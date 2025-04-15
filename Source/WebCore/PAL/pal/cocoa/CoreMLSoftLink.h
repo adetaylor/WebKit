@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_CoreMLSoftLink_h
+#define WebCore_PAL_pal_cocoa_CoreMLSoftLink_h
 
 #import <CoreML/CoreML.h>
 #import <wtf/SoftLinking.h>
@@ -31,3 +32,4 @@
 SOFT_LINK_FRAMEWORK_FOR_HEADER(PAL, CoreML)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, MLCPUComputeDevice)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, MLGPUComputeDevice)
+#endif // WebCore_PAL_pal_cocoa_CoreMLSoftLink_h

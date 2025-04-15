@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_Gunzip_h
+#define WebCore_PAL_pal_Gunzip_h
 
 #include <wtf/Vector.h>
 #include <wtf/text/LChar.h>
@@ -37,3 +38,4 @@ PAL_EXPORT Vector<LChar> gunzip(std::span<const uint8_t> data);
 }
 
 using PAL::gunzip;
+#endif // WebCore_PAL_pal_Gunzip_h

@@ -29,7 +29,8 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorInstrumentation_h
+#define WebCore_inspector_InspectorInstrumentation_h
 
 #include "CSSSelector.h"
 #include "CanvasBase.h"
@@ -1810,3 +1811,4 @@ inline void InspectorInstrumentation::frontendDeleted()
 }
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorInstrumentation_h

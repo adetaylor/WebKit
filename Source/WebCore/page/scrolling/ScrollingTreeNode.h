@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingTreeNode_h
+#define WebCore_page_scrolling_ScrollingTreeNode_h
 
 #if ENABLE(ASYNC_SCROLLING)
 
@@ -128,3 +129,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(ASYNC_SCROLLING)
+#endif // WebCore_page_scrolling_ScrollingTreeNode_h

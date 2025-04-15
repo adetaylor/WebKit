@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_numeric_CSSMathValue_h
+#define WebCore_css_typedom_numeric_CSSMathValue_h
 
 #include "CSSMathOperator.h"
 #include "CSSNumericArray.h"
@@ -73,3 +74,4 @@ template<typename T> bool CSSMathValue::equalsImpl(const CSSNumericValue& other)
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSSMathValue)
 static bool isType(const WebCore::CSSStyleValue& styleValue) { return WebCore::isCSSMathValue(styleValue.getType()); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_typedom_numeric_CSSMathValue_h

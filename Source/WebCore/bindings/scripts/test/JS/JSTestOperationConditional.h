@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestOperationConditional_h
+#define WebCore_bindings_scripts_test_JS_JSTestOperationConditional_h
 
 #if ENABLE(ConditionDerived)
 
@@ -96,3 +97,4 @@ template<> struct JSDOMWrapperConverterTraits<TestOperationConditional> {
 } // namespace WebCore
 
 #endif // ENABLE(ConditionDerived)
+#endif // WebCore_bindings_scripts_test_JS_JSTestOperationConditional_h

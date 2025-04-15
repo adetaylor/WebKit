@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_XREye_h
+#define WebCore_Modules_webxr_XREye_h
 
 #if ENABLE(WEBXR)
 
@@ -36,3 +37,4 @@ using XREye = PlatformXR::Eye;
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_Modules_webxr_XREye_h

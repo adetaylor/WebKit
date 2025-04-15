@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_loader_appcache_ApplicationCacheStorage_h
+#define WebCore_loader_appcache_ApplicationCacheStorage_h
 
 #include "SecurityOriginHash.h"
 #include "SQLiteDatabase.h"
@@ -159,3 +160,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_appcache_ApplicationCacheStorage_h

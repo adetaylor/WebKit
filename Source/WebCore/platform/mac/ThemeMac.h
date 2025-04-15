@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_ThemeMac_h
+#define WebCore_platform_mac_ThemeMac_h
 
 #include "ThemeCocoa.h"
 
@@ -58,3 +59,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_mac_ThemeMac_h

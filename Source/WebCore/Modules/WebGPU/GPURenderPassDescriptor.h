@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPURenderPassDescriptor_h
+#define WebCore_Modules_WebGPU_GPURenderPassDescriptor_h
 
 #include "GPUObjectDescriptorBase.h"
 #include "GPUQuerySet.h"
@@ -62,3 +63,4 @@ struct GPURenderPassDescriptor : public GPUObjectDescriptorBase {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPURenderPassDescriptor_h

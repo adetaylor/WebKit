@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_StaticRange_h
+#define WebCore_dom_StaticRange_h
 
 #include "AbstractRange.h"
 #include "SimpleRange.h"
@@ -74,3 +75,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StaticRange)
     static bool isType(const WebCore::AbstractRange& range) { return !range.isLiveRange(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_StaticRange_h

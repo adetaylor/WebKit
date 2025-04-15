@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ASCIICType_h
+#define WTF_wtf_ASCIICType_h
 
 #include <array>
 #include <wtf/Assertions.h>
@@ -279,3 +280,4 @@ using WTF::toASCIILowerUnchecked;
 using WTF::toASCIIUpper;
 using WTF::upperNibbleToASCIIHexDigit;
 using WTF::upperNibbleToLowercaseASCIIHexDigit;
+#endif // WTF_wtf_ASCIICType_h

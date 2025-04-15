@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUExtent3DDict_h
+#define WebCore_Modules_WebGPU_GPUExtent3DDict_h
 
 #include "GPUIntegralTypes.h"
 #include "WebGPUExtent3D.h"
@@ -58,3 +59,4 @@ inline WebGPU::Extent3D convertToBacking(const GPUExtent3D& extent3D)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUExtent3DDict_h

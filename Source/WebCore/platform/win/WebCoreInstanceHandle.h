@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_win_WebCoreInstanceHandle_h
+#define WebCore_platform_win_WebCoreInstanceHandle_h
 
 #include "windows.h"
 
@@ -32,3 +33,4 @@ namespace WebCore {
 HINSTANCE instanceHandle();
     
 }
+#endif // WebCore_platform_win_WebCoreInstanceHandle_h

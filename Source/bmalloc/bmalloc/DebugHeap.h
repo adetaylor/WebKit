@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_DebugHeap_h
+#define bmalloc_bmalloc_DebugHeap_h
 
 #include "Environment.h"
 #include "FailureAction.h"
@@ -104,3 +105,4 @@ BINLINE DebugHeap* DebugHeap::getExisting()
 }
 
 } // namespace bmalloc
+#endif // bmalloc_bmalloc_DebugHeap_h

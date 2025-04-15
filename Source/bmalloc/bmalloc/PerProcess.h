@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_PerProcess_h
+#define bmalloc_bmalloc_PerProcess_h
 
 #include "BInline.h"
 #include "Mutex.h"
@@ -133,3 +134,4 @@ PerProcessData* PerProcess<T>::s_data { nullptr };
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_PerProcess_h

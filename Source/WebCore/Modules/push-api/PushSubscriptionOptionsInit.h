@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushSubscriptionOptionsInit_h
+#define WebCore_Modules_push_api_PushSubscriptionOptionsInit_h
 
 #include <JavaScriptCore/ArrayBuffer.h>
 #include <optional>
@@ -38,3 +39,4 @@ struct PushSubscriptionOptionsInit {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_push_api_PushSubscriptionOptionsInit_h

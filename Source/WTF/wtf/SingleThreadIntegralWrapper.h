@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SingleThreadIntegralWrapper_h
+#define WTF_wtf_SingleThreadIntegralWrapper_h
 
 #include <wtf/Threading.h>
 
@@ -111,3 +112,4 @@ inline SingleThreadIntegralWrapper<IntegralType>& SingleThreadIntegralWrapper<In
 } // namespace WTF
 
 using WTF::SingleThreadIntegralWrapper;
+#endif // WTF_wtf_SingleThreadIntegralWrapper_h

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdatabase_SQLTransactionErrorCallback_h
+#define WebCore_Modules_webdatabase_SQLTransactionErrorCallback_h
 
 #include "ActiveDOMCallback.h"
 #include "CallbackResult.h"
@@ -48,3 +49,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdatabase_SQLTransactionErrorCallback_h

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_archive_mhtml_MHTMLArchive_h
+#define WebCore_loader_archive_mhtml_MHTMLArchive_h
 
 #if ENABLE(MHTML)
 
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MHTML)
+#endif // WebCore_loader_archive_mhtml_MHTMLArchive_h

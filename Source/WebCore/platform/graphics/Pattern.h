@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_Pattern_h
+#define WebCore_platform_graphics_Pattern_h
 
 #include "AffineTransform.h"
 #include "SourceImage.h"
@@ -98,3 +99,4 @@ private:
 
 
 } //namespace
+#endif // WebCore_platform_graphics_Pattern_h

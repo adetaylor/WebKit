@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_paymentrequest_AddressErrors_h
+#define WebCore_Modules_paymentrequest_AddressErrors_h
 
 #if ENABLE(PAYMENT_REQUEST)
 
@@ -49,3 +50,4 @@ struct AddressErrors {
 } // namespace WebCore
 
 #endif // ENABLE(PAYMENT_REQUEST)
+#endif // WebCore_Modules_paymentrequest_AddressErrors_h

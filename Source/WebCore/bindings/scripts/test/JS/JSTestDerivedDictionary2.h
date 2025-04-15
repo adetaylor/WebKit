@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestDerivedDictionary2_h
+#define WebCore_bindings_scripts_test_JS_JSTestDerivedDictionary2_h
 
 #include "JSDOMConvertDictionary.h"
 #include "TestDerivedDictionary2.h"
@@ -34,3 +35,4 @@ template<> ConversionResult<IDLDictionary<TestDerivedDictionary2::Dictionary>> c
 JSC::JSObject* convertDictionaryToJS(JSC::JSGlobalObject&, JSDOMGlobalObject&, const TestDerivedDictionary2::Dictionary&);
 
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSTestDerivedDictionary2_h

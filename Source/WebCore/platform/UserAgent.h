@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_UserAgent_h
+#define WebCore_platform_UserAgent_h
 
 #include <wtf/text/WTFString.h>
 
@@ -43,3 +44,4 @@ WEBCORE_EXPORT String standardUserAgentForURL(const URL&);
 #endif
 
 }
+#endif // WebCore_platform_UserAgent_h

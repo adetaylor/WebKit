@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUDeviceDescriptor_h
+#define WebCore_Modules_WebGPU_GPUDeviceDescriptor_h
 
 #include "GPUFeatureName.h"
 #include "GPUObjectDescriptorBase.h"
@@ -55,3 +56,4 @@ struct GPUDeviceDescriptor : public GPUObjectDescriptorBase {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUDeviceDescriptor_h

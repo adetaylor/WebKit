@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_PassKitSoftLink_h
+#define WebCore_PAL_pal_cocoa_PassKitSoftLink_h
 
 #if USE(PASSKIT)
 
@@ -221,3 +222,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, PassKitCore, PKCanMakePaymentsWithMerchantIde
 #define PKCanMakePaymentsWithMerchantIdentifierDomainAndSourceApplication PAL::softLink_PassKitCore_PKCanMakePaymentsWithMerchantIdentifierDomainAndSourceApplication
 
 #endif // USE(PASSKIT)
+#endif // WebCore_PAL_pal_cocoa_PassKitSoftLink_h

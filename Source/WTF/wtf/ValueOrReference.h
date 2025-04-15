@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ValueOrReference_h
+#define WTF_wtf_ValueOrReference_h
 
 #include <wtf/StdLibExtras.h>
 
@@ -76,3 +77,4 @@ private:
 } // namespace WTF
 
 using WTF::ValueOrReference;
+#endif // WTF_wtf_ValueOrReference_h

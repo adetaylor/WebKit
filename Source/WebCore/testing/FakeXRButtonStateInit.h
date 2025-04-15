@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_FakeXRButtonStateInit_h
+#define WebCore_testing_FakeXRButtonStateInit_h
 
 #if ENABLE(WEBXR)
 
@@ -49,3 +50,4 @@ struct FakeXRButtonStateInit {
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_testing_FakeXRButtonStateInit_h

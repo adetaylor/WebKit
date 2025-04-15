@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_filesystemaccess_FileSystemStorageConnection_h
+#define WebCore_Modules_filesystemaccess_FileSystemStorageConnection_h
 
 #include "FileSystemHandleIdentifier.h"
 #include "FileSystemSyncAccessHandleIdentifier.h"
@@ -97,3 +98,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_filesystemaccess_FileSystemStorageConnection_h

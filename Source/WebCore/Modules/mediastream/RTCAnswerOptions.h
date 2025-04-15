@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCAnswerOptions_h
+#define WebCore_Modules_mediastream_RTCAnswerOptions_h
 
 #if ENABLE(WEB_RTC)
 
@@ -37,3 +38,4 @@ struct RTCAnswerOptions : public RTCOfferAnswerOptions {
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_Modules_mediastream_RTCAnswerOptions_h

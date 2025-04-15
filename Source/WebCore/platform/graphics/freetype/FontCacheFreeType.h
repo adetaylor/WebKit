@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_freetype_FontCacheFreeType_h
+#define WebCore_platform_graphics_freetype_FontCacheFreeType_h
 
 #include "FontTaggedSettings.h"
 #include "ShouldLocalizeAxisNames.h"
@@ -44,3 +45,4 @@ VariationDefaultsMap defaultVariationValues(FT_Face, ShouldLocalizeAxisNames);
 String buildVariationSettings(FT_Face, const FontDescription&, const FontCreationContext&);
 #endif
 };
+#endif // WebCore_platform_graphics_freetype_FontCacheFreeType_h

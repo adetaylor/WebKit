@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_MonotonicTime_h
+#define WTF_wtf_MonotonicTime_h
 
 #include <wtf/ClockType.h>
 #include <wtf/Forward.h>
@@ -81,3 +82,4 @@ struct MonotonicTime::MarkableTraits {
 };
 
 } // namespace WTF
+#endif // WTF_wtf_MonotonicTime_h

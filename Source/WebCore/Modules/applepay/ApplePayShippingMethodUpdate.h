@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayShippingMethodUpdate_h
+#define WebCore_Modules_applepay_ApplePayShippingMethodUpdate_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -42,3 +43,4 @@ struct ApplePayShippingMethodUpdate final : public ApplePayDetailsUpdateBase {
 } // namespace WebCore
 
 #endif
+#endif // WebCore_Modules_applepay_ApplePayShippingMethodUpdate_h

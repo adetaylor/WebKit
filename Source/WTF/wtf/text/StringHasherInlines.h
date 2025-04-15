@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringHasherInlines_h
+#define WTF_wtf_text_StringHasherInlines_h
 
 #include <wtf/Assertions.h>
 #include <wtf/text/StringHasher.h>
@@ -138,3 +139,4 @@ inline unsigned StringHasher::hashWithTop8BitsMasked()
 using WTF::StringHasher;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_text_StringHasherInlines_h

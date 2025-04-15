@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RefCountedAndCanMakeWeakPtr_h
+#define WTF_wtf_RefCountedAndCanMakeWeakPtr_h
 
 #include <wtf/CanMakeWeakPtr.h>
 #include <wtf/RefCounted.h>
@@ -40,3 +41,4 @@ public:
 } // namespace WTF
 
 using WTF::RefCountedAndCanMakeWeakPtr;
+#endif // WTF_wtf_RefCountedAndCanMakeWeakPtr_h

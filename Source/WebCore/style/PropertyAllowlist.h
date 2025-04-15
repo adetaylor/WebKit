@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_PropertyAllowlist_h
+#define WebCore_style_PropertyAllowlist_h
 
 #include "CSSPropertyNames.h"
 #include "RenderStyleConstants.h"
@@ -53,3 +54,4 @@ bool isValidCueBackgroundStyleProperty(CSSPropertyID);
 
 }
 }
+#endif // WebCore_style_PropertyAllowlist_h

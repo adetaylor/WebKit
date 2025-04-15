@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CompactPointerTuple_h
+#define WTF_wtf_CompactPointerTuple_h
 
 #include <type_traits>
 #include <utility>
@@ -157,3 +158,4 @@ private:
 } // namespace WTF
 
 using WTF::CompactPointerTuple;
+#endif // WTF_wtf_CompactPointerTuple_h

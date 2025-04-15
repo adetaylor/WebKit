@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_network_cf_ResourceError_h
+#define WebCore_platform_network_cf_ResourceError_h
 
 #include "ResourceErrorBase.h"
 
@@ -92,3 +93,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_cf_ResourceError_h

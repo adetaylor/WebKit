@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ContextDestructionObserver_h
+#define WebCore_dom_ContextDestructionObserver_h
 
 #include <wtf/Forward.h>
 #include <wtf/WeakPtr.h>
@@ -50,3 +51,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ContextDestructionObserver_h

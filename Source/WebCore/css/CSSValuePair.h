@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSValuePair_h
+#define WebCore_css_CSSValuePair_h
 
 #include "CSSValue.h"
 #include <wtf/Function.h>
@@ -91,3 +92,4 @@ inline Ref<CSSValue> CSSValue::protectedSecond() const
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSValuePair, isPair())
+#endif // WebCore_css_CSSValuePair_h

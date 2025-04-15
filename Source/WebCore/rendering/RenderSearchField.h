@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderSearchField_h
+#define WebCore_rendering_RenderSearchField_h
 
 #include "PopupMenuClient.h"
 #include "RenderTextControlSingleLine.h"
@@ -99,3 +100,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSearchField, isRenderSearchField())
+#endif // WebCore_rendering_RenderSearchField_h

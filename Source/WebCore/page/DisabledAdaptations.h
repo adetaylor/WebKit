@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_DisabledAdaptations_h
+#define WebCore_page_DisabledAdaptations_h
 
 #include <wtf/text/WTFString.h>
 
@@ -36,3 +37,4 @@ enum class DisabledAdaptations : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_DisabledAdaptations_h

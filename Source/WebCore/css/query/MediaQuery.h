@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_query_MediaQuery_h
+#define WebCore_css_query_MediaQuery_h
 
 #include "GenericMediaQueryTypes.h"
 
@@ -60,3 +61,4 @@ void traverseFeatures(const MediaQueryList& list, TraverseFunction&& function)
 
 }
 }
+#endif // WebCore_css_query_MediaQuery_h

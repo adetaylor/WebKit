@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMImplementation_h
+#define WebCore_dom_DOMImplementation_h
 
 #include "ExceptionOr.h"
 #include "ScriptExecutionContextIdentifier.h"
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DOMImplementation_h

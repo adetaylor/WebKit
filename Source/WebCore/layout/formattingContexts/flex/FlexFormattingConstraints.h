@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_flex_FlexFormattingConstraints_h
+#define WebCore_layout_formattingContexts_flex_FlexFormattingConstraints_h
 
 #include "LayoutUnit.h"
 
@@ -58,3 +59,4 @@ inline ConstraintsForFlexContent::ConstraintsForFlexContent(const AxisGeometry& 
 }
 }
 
+#endif // WebCore_layout_formattingContexts_flex_FlexFormattingConstraints_h

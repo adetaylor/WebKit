@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertResult_h
+#define WebCore_bindings_js_JSDOMConvertResult_h
 
 #include <JavaScriptCore/ExceptionScope.h>
 #include <functional>
@@ -213,3 +214,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertResult_h

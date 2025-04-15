@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSFontFaceSet_h
+#define WebCore_css_CSSFontFaceSet_h
 
 #include "CSSFontFace.h"
 #include <wtf/HashMap.h>
@@ -147,3 +148,4 @@ private:
 };
 
 }
+#endif // WebCore_css_CSSFontFaceSet_h

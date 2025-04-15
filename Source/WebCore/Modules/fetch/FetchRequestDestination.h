@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchRequestDestination_h
+#define WebCore_Modules_fetch_FetchRequestDestination_h
 
 #include "FetchOptions.h"
 
@@ -32,3 +33,4 @@ namespace WebCore {
 using FetchRequestDestination = FetchOptions::Destination;
 
 }
+#endif // WebCore_Modules_fetch_FetchRequestDestination_h

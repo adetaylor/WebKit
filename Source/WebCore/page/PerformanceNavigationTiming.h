@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceNavigationTiming_h
+#define WebCore_page_PerformanceNavigationTiming_h
 
 #include "DocumentEventTiming.h"
 #include "DocumentLoadTiming.h"
@@ -84,3 +85,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PerformanceNavigationTiming_h

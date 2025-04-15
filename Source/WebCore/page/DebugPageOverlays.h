@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_DebugPageOverlays_h
+#define WebCore_page_DebugPageOverlays_h
 
 #include "DebugOverlayRegions.h"
 #include "LocalFrame.h"
@@ -130,3 +131,4 @@ inline bool DebugPageOverlays::shouldPaintOverlayIntoLayerForRegionType(Page& pa
 }
 
 } // namespace WebCore
+#endif // WebCore_page_DebugPageOverlays_h

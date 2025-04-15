@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTableRowInlines_h
+#define WebCore_rendering_RenderTableRowInlines_h
 
 #include "RenderStyleInlines.h"
 #include "RenderTableRow.h"
@@ -28,3 +29,4 @@ inline const BorderValue& RenderTableRow::borderAdjoiningTableStart() const { re
 inline const BorderValue& RenderTableRow::borderAdjoiningTableEnd() const { return style().borderEnd(table()->writingMode()); }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderTableRowInlines_h

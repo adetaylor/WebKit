@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_GCController_h
+#define WebCore_bindings_js_GCController_h
 
 #include "Timer.h"
 #include <JavaScriptCore/DeleteAllCodeEffort.h>
@@ -69,3 +70,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_GCController_h

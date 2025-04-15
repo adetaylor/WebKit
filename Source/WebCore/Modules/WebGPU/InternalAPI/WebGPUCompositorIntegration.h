@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUCompositorIntegration_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUCompositorIntegration_h
 
 #include "AlphaPremultiplication.h"
 
@@ -75,3 +76,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUCompositorIntegration_h

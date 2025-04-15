@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_TransformOperation_h
+#define WebCore_platform_graphics_transforms_TransformOperation_h
 
 #include "CompositeOperation.h"
 #include "FloatSize.h"
@@ -161,3 +162,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const TransformOperation&);
 SPECIALIZE_TYPE_TRAITS_BEGIN(ToValueTypeName) \
     static bool isType(const WebCore::TransformOperation& operation) { return predicate(operation.type()); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_transforms_TransformOperation_h

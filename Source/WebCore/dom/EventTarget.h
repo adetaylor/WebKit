@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_EventTarget_h
+#define WebCore_dom_EventTarget_h
 
 #include "EventListenerMap.h"
 #include "EventListenerOptions.h"
@@ -275,3 +276,4 @@ inline void EventTarget::setEventTargetFlag(EventTargetFlag flag, bool value)
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_EventTarget_h

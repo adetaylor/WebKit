@@ -27,7 +27,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_StartViewTransitionOptions_h
+#define WebCore_dom_StartViewTransitionOptions_h
 
 #include "ViewTransitionUpdateCallback.h"
 
@@ -40,3 +41,4 @@ struct StartViewTransitionOptions {
 
 } // namespace WebCore
 
+#endif // WebCore_dom_StartViewTransitionOptions_h

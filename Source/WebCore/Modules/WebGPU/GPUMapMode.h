@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUMapMode_h
+#define WebCore_Modules_WebGPU_GPUMapMode_h
 
 #include "GPUIntegralTypes.h"
 #include "WebGPUMapMode.h"
@@ -51,3 +52,4 @@ inline WebGPU::MapModeFlags convertMapModeFlagsToBacking(GPUMapModeFlags mapMode
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUMapMode_h

@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_FillLayer_h
+#define WebCore_rendering_style_FillLayer_h
 
 #include "GraphicsTypes.h"
 #include "LengthSize.h"
@@ -221,3 +222,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, FillRepeatXY);
 WTF::TextStream& operator<<(WTF::TextStream&, const FillLayer&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_FillLayer_h

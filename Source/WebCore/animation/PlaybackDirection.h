@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_PlaybackDirection_h
+#define WebCore_animation_PlaybackDirection_h
 
 #include <wtf/Markable.h>
 
@@ -34,3 +35,4 @@ enum class PlaybackDirection : uint8_t { Normal, Reverse, Alternate, AlternateRe
 using OptionalPlaybackDirection = Markable<PlaybackDirection, EnumMarkableTraits<PlaybackDirection>>;
 
 } // namespace WebCore
+#endif // WebCore_animation_PlaybackDirection_h

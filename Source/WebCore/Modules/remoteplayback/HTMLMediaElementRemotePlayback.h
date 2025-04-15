@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_remoteplayback_HTMLMediaElementRemotePlayback_h
+#define WebCore_Modules_remoteplayback_HTMLMediaElementRemotePlayback_h
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET) && ENABLE(VIDEO)
 
@@ -42,3 +43,4 @@ public:
 }
 
 #endif // ENABLE(WIRELESS_PLAYBACK_TARGET) && ENABLE(VIDEO)
+#endif // WebCore_Modules_remoteplayback_HTMLMediaElementRemotePlayback_h

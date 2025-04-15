@@ -21,7 +21,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMAttribute_h
+#define WebCore_bindings_js_JSDOMAttribute_h
 
 #include "JSDOMCastThisValue.h"
 #include "JSDOMExceptionHandling.h"
@@ -135,3 +136,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMAttribute_h

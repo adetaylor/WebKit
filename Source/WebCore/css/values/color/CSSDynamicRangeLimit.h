@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSDynamicRangeLimit_h
+#define WebCore_css_values_color_CSSDynamicRangeLimit_h
 
 #include "CSSValueTypes.h"
 #include <wtf/CompactVariant.h>
@@ -84,3 +85,4 @@ template<typename... F> decltype(auto) DynamicRangeLimit::switchOn(F&&... f) con
 } // namespace WebCore
 
 template<> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::CSS::DynamicRangeLimit> = true;
+#endif // WebCore_css_values_color_CSSDynamicRangeLimit_h

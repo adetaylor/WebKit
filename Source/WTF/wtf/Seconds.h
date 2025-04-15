@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_Seconds_h
+#define WTF_wtf_Seconds_h
 
 #include <optional>
 #include <wtf/FastMalloc.h>
@@ -320,3 +321,4 @@ using WTF::sleep;
 
 using namespace WTF::seconds_literals;
 using WTF::Seconds;
+#endif // WTF_wtf_Seconds_h

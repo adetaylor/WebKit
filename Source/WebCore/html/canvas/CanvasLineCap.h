@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasLineCap_h
+#define WebCore_html_canvas_CanvasLineCap_h
 
 namespace WebCore {
 
 enum class CanvasLineCap { Butt, Round, Square };
 
 }
+#endif // WebCore_html_canvas_CanvasLineCap_h

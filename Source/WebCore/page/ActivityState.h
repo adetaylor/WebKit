@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ActivityState_h
+#define WebCore_page_ActivityState_h
 
 #include <wtf/OptionSet.h>
 
@@ -57,3 +58,4 @@ enum class ActivityStateForCPUSampling : uint8_t {
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, OptionSet<ActivityState>);
 
 } // namespace WebCore
+#endif // WebCore_page_ActivityState_h

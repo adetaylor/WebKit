@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorSerialization_h
+#define WebCore_platform_graphics_ColorSerialization_h
 
 #include <wtf/Forward.h>
 
@@ -43,3 +44,4 @@ WEBCORE_EXPORT String serializationForRenderTreeAsText(const Color&);
 ASCIILiteral serialization(ColorSpace);
 
 }
+#endif // WebCore_platform_graphics_ColorSerialization_h

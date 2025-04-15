@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cookie_store_CookieSameSite_h
+#define WebCore_Modules_cookie_store_CookieSameSite_h
 
 namespace WebCore {
 
 enum class CookieSameSite : uint8_t { Strict, Lax, None };
 
 }
+#endif // WebCore_Modules_cookie_store_CookieSameSite_h

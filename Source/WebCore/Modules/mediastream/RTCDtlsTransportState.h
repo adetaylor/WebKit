@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCDtlsTransportState_h
+#define WebCore_Modules_mediastream_RTCDtlsTransportState_h
 
 #if ENABLE(WEB_RTC)
 
@@ -35,3 +36,4 @@ enum class RTCDtlsTransportState {
 };
 
 #endif
+#endif // WebCore_Modules_mediastream_RTCDtlsTransportState_h

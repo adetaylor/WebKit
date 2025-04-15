@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericUnits_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericUnits_h
 
 #include "CSSPrimitiveNumericConcepts.h"
 #include "CSSPrimitiveNumericRange.h"
@@ -1584,3 +1585,4 @@ template<auto unit, typename T> constexpr decltype(auto) convertToValueInUnitsOf
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericUnits_h

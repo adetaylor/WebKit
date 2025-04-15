@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUTextureSampleType_h
+#define WebCore_Modules_WebGPU_GPUTextureSampleType_h
 
 #include "WebGPUTextureSampleType.h"
 #include <cstdint>
@@ -56,3 +57,4 @@ inline WebGPU::TextureSampleType convertToBacking(GPUTextureSampleType textureSa
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUTextureSampleType_h

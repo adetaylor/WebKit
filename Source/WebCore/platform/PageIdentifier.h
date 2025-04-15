@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PageIdentifier_h
+#define WebCore_platform_PageIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ struct PageIdentifierType;
 using PageIdentifier = ObjectIdentifier<PageIdentifierType>;
 
 }
+#endif // WebCore_platform_PageIdentifier_h

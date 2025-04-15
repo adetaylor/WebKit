@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_dragonbox_to_chars_h
+#define WTF_wtf_dragonbox_dragonbox_to_chars_h
 
 #include <wtf/dragonbox/dragonbox.h>
 
@@ -162,3 +163,4 @@ void ToShortest(Float value, StringBuilder* result_builder)
 } // namespace WTF
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_dragonbox_dragonbox_to_chars_h

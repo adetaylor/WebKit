@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUCompositorIntegration_h
+#define WebCore_Modules_WebGPU_GPUCompositorIntegration_h
 
 #include "WebGPUCompositorIntegration.h"
 #include <optional>
@@ -70,3 +71,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUCompositorIntegration_h

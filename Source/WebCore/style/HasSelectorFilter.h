@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_HasSelectorFilter_h
+#define WebCore_style_HasSelectorFilter_h
 
 #include "CSSSelector.h"
 #include <wtf/BloomFilter.h>
@@ -60,3 +61,4 @@ private:
 
 }
 }
+#endif // WebCore_style_HasSelectorFilter_h

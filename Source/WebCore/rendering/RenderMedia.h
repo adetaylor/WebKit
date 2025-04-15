@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderMedia_h
+#define WebCore_rendering_RenderMedia_h
 
 #if ENABLE(VIDEO)
 
@@ -70,3 +71,4 @@ inline RenderMedia* HTMLMediaElement::renderer() const
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderMedia, isRenderMedia())
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_rendering_RenderMedia_h

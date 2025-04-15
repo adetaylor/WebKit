@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediacapabilities_MediaCapabilities_h
+#define WebCore_Modules_mediacapabilities_MediaCapabilities_h
 
 #include "MediaEngineConfigurationFactory.h"
 #include <wtf/HashMap.h>
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_mediacapabilities_MediaCapabilities_h

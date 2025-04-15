@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTextControlSingleLine_h
+#define WebCore_rendering_RenderTextControlSingleLine_h
 
 #include "HTMLInputElement.h"
 #include "RenderTextControl.h"
@@ -105,3 +106,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderTextControlSingleLine, isRenderTextControlSingleLine())
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderTextControlInnerBlock, isRenderTextControlInnerBlock())
+#endif // WebCore_rendering_RenderTextControlSingleLine_h

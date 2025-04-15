@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cv_PixelBufferConformerCV_h
+#define WebCore_platform_graphics_cv_PixelBufferConformerCV_h
 
 #include <wtf/RetainPtr.h>
 #include <wtf/TZoneMalloc.h>
@@ -48,3 +49,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_cv_PixelBufferConformerCV_h

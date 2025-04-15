@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_loader_CrossOriginPreflightResultCache_h
+#define WebCore_loader_CrossOriginPreflightResultCache_h
 
 #include "ClientOrigin.h"
 #include "LoaderMalloc.h"
@@ -89,3 +90,4 @@ inline CrossOriginPreflightResultCacheItem::CrossOriginPreflightResultCacheItem(
 }
 
 } // namespace WebCore
+#endif // WebCore_loader_CrossOriginPreflightResultCache_h

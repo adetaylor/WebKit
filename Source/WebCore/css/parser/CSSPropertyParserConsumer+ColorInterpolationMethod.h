@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_ColorInterpolationMethod_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_ColorInterpolationMethod_h
 
 #include <optional>
 
@@ -42,3 +43,4 @@ std::optional<ColorInterpolationMethod> consumeColorInterpolationMethod(CSSParse
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_ColorInterpolationMethod_h

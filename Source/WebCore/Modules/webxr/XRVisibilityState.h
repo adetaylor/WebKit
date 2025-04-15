@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_XRVisibilityState_h
+#define WebCore_Modules_webxr_XRVisibilityState_h
 
 #if ENABLE(WEBXR)
 
@@ -36,3 +37,4 @@ using XRVisibilityState = PlatformXR::VisibilityState;
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_Modules_webxr_XRVisibilityState_h

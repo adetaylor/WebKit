@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleRareNonInheritedData_h
+#define WebCore_rendering_style_StyleRareNonInheritedData_h
 
 #include "CSSPropertyNames.h"
 #include "CounterDirectives.h"
@@ -292,3 +293,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleRareNonInheritedData_h

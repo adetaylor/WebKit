@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_BackgroundPainter_h
+#define WebCore_rendering_BackgroundPainter_h
 
 #include "RenderBoxModelObject.h"
 
@@ -95,3 +96,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_BackgroundPainter_h

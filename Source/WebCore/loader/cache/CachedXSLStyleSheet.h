@@ -23,7 +23,8 @@
     pages from the web. It has a memory cache for these objects.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedXSLStyleSheet_h
+#define WebCore_loader_cache_CachedXSLStyleSheet_h
 
 #if ENABLE(XSLT)
 
@@ -59,3 +60,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CACHED_RESOURCE(CachedXSLStyleSheet, CachedResource::Type::XSLStyleSheet)
 
 #endif // ENABLE(XSLT)
+#endif // WebCore_loader_cache_CachedXSLStyleSheet_h

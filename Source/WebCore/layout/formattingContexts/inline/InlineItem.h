@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineItem_h
+#define WebCore_layout_formattingContexts_inline_InlineItem_h
 
 #include "LayoutBox.h"
 #include "LayoutUnits.h"
@@ -129,3 +130,4 @@ struct VectorTraits<WebCore::Layout::InlineItem> : public VectorTraitsBase<false
 };
 
 }
+#endif // WebCore_layout_formattingContexts_inline_InlineItem_h

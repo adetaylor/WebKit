@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_contact_picker_ContactsSelectOptions_h
+#define WebCore_Modules_contact_picker_ContactsSelectOptions_h
 
 namespace WebCore {
 
@@ -32,3 +33,4 @@ struct ContactsSelectOptions {
 };
 
 }
+#endif // WebCore_Modules_contact_picker_ContactsSelectOptions_h

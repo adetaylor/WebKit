@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_CSSNumericValue_h
+#define WebCore_css_typedom_CSSNumericValue_h
 
 #include "CSSNumericType.h"
 #include "CSSStyleValue.h"
@@ -99,3 +100,4 @@ protected:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSSNumericValue)
     static bool isType(const WebCore::CSSStyleValue& styleValue) { return isCSSNumericValue(styleValue.getType()); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_typedom_CSSNumericValue_h

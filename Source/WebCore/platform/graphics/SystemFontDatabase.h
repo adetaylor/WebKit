@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_SystemFontDatabase_h
+#define WebCore_platform_graphics_SystemFontDatabase_h
 
 #include "FontSelectionAlgorithm.h"
 #include <array>
@@ -96,3 +97,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_SystemFontDatabase_h

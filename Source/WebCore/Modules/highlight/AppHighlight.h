@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_highlight_AppHighlight_h
+#define WebCore_Modules_highlight_AppHighlight_h
 
 #if ENABLE(APP_HIGHLIGHTS)
 
@@ -58,3 +59,4 @@ template<> struct AsyncReplyError<WebCore::AppHighlight> {
 
 
 #endif // ENABLE(APP_HIGHLIGHTS)
+#endif // WebCore_Modules_highlight_AppHighlight_h

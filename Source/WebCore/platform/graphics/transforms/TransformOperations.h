@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_TransformOperations_h
+#define WebCore_platform_graphics_transforms_TransformOperations_h
 
 #include "LayoutSize.h"
 #include "TransformOperation.h"
@@ -100,3 +101,4 @@ bool TransformOperations::hasTransformOfType() const
 WTF::TextStream& operator<<(WTF::TextStream&, const TransformOperations&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_transforms_TransformOperations_h

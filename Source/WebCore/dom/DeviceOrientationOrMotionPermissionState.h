@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DeviceOrientationOrMotionPermissionState_h
+#define WebCore_dom_DeviceOrientationOrMotionPermissionState_h
 
 namespace WebCore {
 
 enum class DeviceOrientationOrMotionPermissionState : uint8_t { Granted, Denied, Prompt };
 
 }
+#endif // WebCore_dom_DeviceOrientationOrMotionPermissionState_h

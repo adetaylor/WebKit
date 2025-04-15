@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericTypes_Serialization_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericTypes_Serialization_h
 
 #include "CSSPrimitiveNumericTypes.h"
 
@@ -72,3 +73,4 @@ template<auto nR, auto pR, typename V> struct Serialize<NumberOrPercentageResolv
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericTypes_Serialization_h

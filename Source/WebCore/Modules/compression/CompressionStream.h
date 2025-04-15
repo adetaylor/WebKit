@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_compression_CompressionStream_h
+#define WebCore_Modules_compression_CompressionStream_h
 
 #if PLATFORM(COCOA)
 #include <compression.h>
@@ -56,3 +57,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_compression_CompressionStream_h

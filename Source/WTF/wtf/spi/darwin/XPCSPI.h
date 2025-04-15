@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_darwin_XPCSPI_h
+#define WTF_wtf_spi_darwin_XPCSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -256,3 +257,4 @@ void xpc_release(xpc_object_t);
 #endif
 
 WTF_EXTERN_C_END
+#endif // WTF_wtf_spi_darwin_XPCSPI_h

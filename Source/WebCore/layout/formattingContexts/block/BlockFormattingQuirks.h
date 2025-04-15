@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_block_BlockFormattingQuirks_h
+#define WebCore_layout_formattingContexts_block_BlockFormattingQuirks_h
 
 #include "FormattingQuirks.h"
 
@@ -48,3 +49,4 @@ public:
 
 SPECIALIZE_TYPE_TRAITS_LAYOUT_FORMATTING_QUIRKS(BlockFormattingQuirks, isBlockFormattingQuirks())
 
+#endif // WebCore_layout_formattingContexts_block_BlockFormattingQuirks_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_SourceBrush_h
+#define WebCore_platform_graphics_SourceBrush_h
 
 #include "Color.h"
 #include "Gradient.h"
@@ -93,3 +94,4 @@ inline bool operator==(const SourceBrush& a, const SourceBrush& b)
 WTF::TextStream& operator<<(WTF::TextStream&, const SourceBrush&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_SourceBrush_h

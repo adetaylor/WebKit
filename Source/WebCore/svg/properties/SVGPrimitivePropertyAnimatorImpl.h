@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGPrimitivePropertyAnimatorImpl_h
+#define WebCore_svg_properties_SVGPrimitivePropertyAnimatorImpl_h
 
 #include "SVGAnimationAdditiveValueFunctionImpl.h"
 #include "SVGPrimitivePropertyAnimator.h"
@@ -35,3 +36,4 @@ using SVGNumberAnimator = SVGPrimitivePropertyAnimator<float, SVGAnimationNumber
 using SVGStringAnimator = SVGPrimitivePropertyAnimator<String, SVGAnimationStringFunction>;
 
 }
+#endif // WebCore_svg_properties_SVGPrimitivePropertyAnimatorImpl_h

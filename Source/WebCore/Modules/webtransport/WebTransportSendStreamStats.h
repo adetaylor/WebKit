@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_WebTransportSendStreamStats_h
+#define WebCore_Modules_webtransport_WebTransportSendStreamStats_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ struct WebTransportSendStreamStats {
 };
 
 }
+#endif // WebCore_Modules_webtransport_WebTransportSendStreamStats_h

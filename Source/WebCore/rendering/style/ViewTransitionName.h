@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_ViewTransitionName_h
+#define WebCore_rendering_style_ViewTransitionName_h
 
 #include "StyleScopeOrdinal.h"
 
@@ -125,3 +126,4 @@ inline TextStream& operator<<(TextStream& ts, const ViewTransitionName& name)
 }
 
 } // namespace WebCore::Style
+#endif // WebCore_rendering_style_ViewTransitionName_h

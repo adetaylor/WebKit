@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gtk_GdkCairoUtilities_h
+#define WebCore_platform_graphics_gtk_GdkCairoUtilities_h
 
 #if USE(CAIRO)
 
@@ -42,3 +43,4 @@ GRefPtr<GdkTexture> cairoSurfaceToGdkTexture(cairo_surface_t*);
 }
 
 #endif // USE(CAIRO)
+#endif // WebCore_platform_graphics_gtk_GdkCairoUtilities_h

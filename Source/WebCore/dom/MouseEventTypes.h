@@ -24,7 +24,8 @@
  */
 
 
-#pragma once
+#ifndef WebCore_dom_MouseEventTypes_h
+#define WebCore_dom_MouseEventTypes_h
 
 #include <algorithm>
 #include <array>
@@ -54,3 +55,4 @@ inline MouseButton buttonFromShort(int16_t buttonValue)
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_MouseEventTypes_h

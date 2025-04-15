@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_TreeResolutionState_h
+#define WebCore_style_TreeResolutionState_h
 
 #include "AnchorPositionEvaluator.h"
 #include <wtf/CheckedPtr.h>
@@ -41,3 +42,4 @@ struct TreeResolutionState : public CanMakeCheckedPtr<TreeResolutionState> {
 
 }
 }
+#endif // WebCore_style_TreeResolutionState_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_darwin_OSVariantSPI_h
+#define WTF_wtf_spi_darwin_OSVariantSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -39,3 +40,4 @@ bool os_variant_is_basesystem(const char *);
 WTF_EXTERN_C_END
 
 #endif
+#endif // WTF_wtf_spi_darwin_OSVariantSPI_h

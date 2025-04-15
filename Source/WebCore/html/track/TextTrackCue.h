@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_track_TextTrackCue_h
+#define WebCore_html_track_TextTrackCue_h
 
 #if ENABLE(VIDEO)
 
@@ -193,3 +194,4 @@ template<> struct LogArgument<WebCore::TextTrackCue> {
 }
 
 #endif
+#endif // WebCore_html_track_TextTrackCue_h

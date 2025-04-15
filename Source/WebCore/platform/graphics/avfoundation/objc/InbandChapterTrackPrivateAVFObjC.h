@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_InbandChapterTrackPrivateAVFObjC_h
+#define WebCore_platform_graphics_avfoundation_objc_InbandChapterTrackPrivateAVFObjC_h
 
 #if ENABLE(VIDEO) && (USE(AVFOUNDATION) || PLATFORM(IOS_FAMILY))
 
@@ -80,3 +81,4 @@ private:
 } // namespace WebCore
 
 #endif //  ENABLE(VIDEO) && (USE(AVFOUNDATION) || PLATFORM(IOS_FAMILY))
+#endif // WebCore_platform_graphics_avfoundation_objc_InbandChapterTrackPrivateAVFObjC_h

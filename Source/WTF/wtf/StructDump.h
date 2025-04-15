@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_StructDump_h
+#define WTF_wtf_StructDump_h
 
 #include <wtf/PrintStream.h>
 
@@ -73,3 +74,4 @@ StructDump<T> structDump(const T& data)
 using WTF::structDump;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_StructDump_h

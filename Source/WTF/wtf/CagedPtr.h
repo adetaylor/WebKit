@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CagedPtr_h
+#define WTF_wtf_CagedPtr_h
 
 #include <wtf/Gigacage.h>
 #include <wtf/MathExtras.h>
@@ -128,3 +129,4 @@ protected:
 
 using WTF::CagedPtr;
 
+#endif // WTF_wtf_CagedPtr_h

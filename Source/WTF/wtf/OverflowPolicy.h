@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_OverflowPolicy_h
+#define WTF_wtf_OverflowPolicy_h
 
 namespace WTF {
 
@@ -32,3 +33,4 @@ enum class OverflowPolicy : uint8_t { CrashOnOverflow, RecordOverflow };
 } // namespace WTF
 
 using WTF::OverflowPolicy;
+#endif // WTF_wtf_OverflowPolicy_h

@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_detail_policy_h
+#define WTF_wtf_dragonbox_detail_policy_h
 
 #include <wtf/dragonbox/detail/cache_holder.h>
 #include <wtf/dragonbox/detail/decimal_fp.h>
@@ -645,3 +646,4 @@ inline constexpr auto compact = detail::policy_impl::cache::compact { };
 } // namespace WTF
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_dragonbox_detail_policy_h

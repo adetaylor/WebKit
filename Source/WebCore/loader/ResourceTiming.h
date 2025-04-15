@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceTiming_h
+#define WebCore_loader_ResourceTiming_h
 
 #include "LoaderMalloc.h"
 #include "NetworkLoadMetrics.h"
@@ -81,3 +82,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_ResourceTiming_h

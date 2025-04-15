@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_WOFFFileFormat_h
+#define WebCore_platform_graphics_WOFFFileFormat_h
 
 #include <wtf/Forward.h>
 
@@ -37,3 +38,4 @@ class SharedBuffer;
 bool convertWOFFToSfntIfNecessary(RefPtr<SharedBuffer>&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_WOFFFileFormat_h

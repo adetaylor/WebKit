@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_WebGLVertexArrayObject_h
+#define WebCore_html_canvas_WebGLVertexArrayObject_h
 
 #if ENABLE(WEBGL)
 
@@ -54,3 +55,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::WebGLVertexArrayObject)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(WEBGL)
+#endif // WebCore_html_canvas_WebGLVertexArrayObject_h

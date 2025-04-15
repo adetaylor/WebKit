@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_UIEventWithKeyState_h
+#define WebCore_dom_UIEventWithKeyState_h
 
 #include "EventModifierInit.h"
 #include "PlatformEvent.h"
@@ -81,3 +82,4 @@ private:
 UIEventWithKeyState* findEventWithKeyState(Event*);
 
 } // namespace WebCore
+#endif // WebCore_dom_UIEventWithKeyState_h

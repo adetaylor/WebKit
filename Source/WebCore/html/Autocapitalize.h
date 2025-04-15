@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_Autocapitalize_h
+#define WebCore_html_Autocapitalize_h
 
 #if ENABLE(AUTOCAPITALIZE)
 
@@ -38,3 +39,4 @@ const AtomString& stringForAutocapitalizeType(AutocapitalizeType);
 } // namespace WebCore
 
 #endif // ENABLE(AUTOCAPITALIZE)
+#endif // WebCore_html_Autocapitalize_h

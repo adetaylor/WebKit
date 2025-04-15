@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_ColorInlines_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_ColorInlines_h
 
 #include "CSSParserFastPaths.h"
 #include "CSSPlatformColorResolutionState.h"
@@ -52,3 +53,4 @@ template<typename F> WebCore::Color parseColorRaw(const String& string, const CS
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_ColorInlines_h

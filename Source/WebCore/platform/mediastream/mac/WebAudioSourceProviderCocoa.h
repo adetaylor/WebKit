@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_mac_WebAudioSourceProviderCocoa_h
+#define WebCore_platform_mediastream_mac_WebAudioSourceProviderCocoa_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -96,3 +97,4 @@ inline void WebAudioSourceProviderCocoa::setPollSamplesCount(size_t count)
 }
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_platform_mediastream_mac_WebAudioSourceProviderCocoa_h

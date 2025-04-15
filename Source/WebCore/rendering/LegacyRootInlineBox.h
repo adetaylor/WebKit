@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_LegacyRootInlineBox_h
+#define WebCore_rendering_LegacyRootInlineBox_h
 
 #include "BidiContext.h"
 #include "LegacyInlineFlowBox.h"
@@ -121,3 +122,4 @@ inline LegacyRootInlineBox* LegacyRootInlineBox::prevRootBox() const
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INLINE_BOX(LegacyRootInlineBox, isRootInlineBox())
+#endif // WebCore_rendering_LegacyRootInlineBox_h

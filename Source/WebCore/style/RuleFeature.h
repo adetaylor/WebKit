@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_RuleFeature_h
+#define WebCore_style_RuleFeature_h
 
 #include "CSSSelector.h"
 #include "CommonAtomStrings.h"
@@ -168,3 +169,4 @@ inline bool RuleFeatureSet::usesHasPseudoClass() const
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_RuleFeature_h

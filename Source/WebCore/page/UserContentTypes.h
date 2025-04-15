@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
  
-#pragma once
+#ifndef WebCore_page_UserContentTypes_h
+#define WebCore_page_UserContentTypes_h
 
 namespace WebCore {
 
@@ -31,3 +32,4 @@ enum class UserContentInjectedFrames : bool { InjectInAllFrames, InjectInTopFram
 enum class UserContentMatchParentFrame : uint8_t { Never, ForAboutBlank, ForOpaqueOrigins };
 
 } // namespace WebCore
+#endif // WebCore_page_UserContentTypes_h

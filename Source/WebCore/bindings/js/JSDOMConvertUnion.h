@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertUnion_h
+#define WebCore_bindings_js_JSDOMConvertUnion_h
 
 #include "IDLTypes.h"
 #include "JSDOMBinding.h"
@@ -425,3 +426,4 @@ template<> struct Converter<IDLBufferSource> : DefaultConverter<IDLBufferSource>
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertUnion_h

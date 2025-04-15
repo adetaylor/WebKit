@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestObj_h
+#define WebCore_bindings_scripts_test_JS_JSTestObj_h
 
 #include "JSDOMConvertDictionary.h"
 #include "JSDOMConvertEnumeration.h"
@@ -240,3 +241,4 @@ template<> ConversionResult<IDLDictionary<TestObj::PromisePair>> convertDictiona
 
 
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSTestObj_h

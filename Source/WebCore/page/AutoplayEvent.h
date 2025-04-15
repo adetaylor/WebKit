@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_AutoplayEvent_h
+#define WebCore_page_AutoplayEvent_h
 
 namespace WebCore {
 
@@ -41,3 +42,4 @@ enum class AutoplayEventFlags : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_AutoplayEvent_h

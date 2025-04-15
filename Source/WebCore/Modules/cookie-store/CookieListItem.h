@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cookie_store_CookieListItem_h
+#define WebCore_Modules_cookie_store_CookieListItem_h
 
 #include "Cookie.h"
 #include "CookieSameSite.h"
@@ -71,3 +72,4 @@ struct CookieListItem {
 };
 
 }
+#endif // WebCore_Modules_cookie_store_CookieListItem_h

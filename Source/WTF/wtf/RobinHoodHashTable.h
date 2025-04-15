@@ -49,7 +49,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RobinHoodHashTable_h
+#define WTF_wtf_RobinHoodHashTable_h
 
 #include <wtf/AlignedStorage.h>
 #include <wtf/HashTable.h>
@@ -927,3 +928,4 @@ struct FastRobinHoodHashTableTraits {
 } // namespace WTF
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_RobinHoodHashTable_h

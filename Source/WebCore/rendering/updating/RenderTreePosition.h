@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_updating_RenderTreePosition_h
+#define WebCore_rendering_updating_RenderTreePosition_h
 
 #include "RenderElement.h"
 
@@ -68,3 +69,4 @@ inline void RenderTreePosition::moveToLastChild()
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_updating_RenderTreePosition_h

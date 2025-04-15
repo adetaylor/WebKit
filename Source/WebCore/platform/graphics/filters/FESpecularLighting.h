@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FESpecularLighting_h
+#define WebCore_platform_graphics_filters_FESpecularLighting_h
 
 #include "FELighting.h"
 
@@ -51,3 +52,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(FESpecularLighting)
+#endif // WebCore_platform_graphics_filters_FESpecularLighting_h

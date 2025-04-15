@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceFilterPrimitive_h
+#define WebCore_rendering_svg_RenderSVGResourceFilterPrimitive_h
 
 #include "RenderSVGHiddenContainer.h"
 
@@ -48,3 +49,4 @@ public:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGResourceFilterPrimitive, isRenderSVGResourceFilterPrimitive())
+#endif // WebCore_rendering_svg_RenderSVGResourceFilterPrimitive_h

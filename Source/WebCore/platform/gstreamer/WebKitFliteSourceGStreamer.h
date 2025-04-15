@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_gstreamer_WebKitFliteSourceGStreamer_h
+#define WebCore_platform_gstreamer_WebKitFliteSourceGStreamer_h
 
 #if USE(FLITE) && USE(GSTREAMER)
 
@@ -38,3 +39,4 @@ Vector<Ref<WebCore::PlatformSpeechSynthesisVoice>>& ensureFliteVoicesInitialized
 void webKitFliteSrcSetUtterance(WebKitFliteSrc*, const WebCore::PlatformSpeechSynthesisVoice*, const String&);
 
 #endif // USE(FLITE) && USE(GSTREAMER)
+#endif // WebCore_platform_gstreamer_WebKitFliteSourceGStreamer_h

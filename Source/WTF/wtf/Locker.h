@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Locker_h
+#define WTF_wtf_Locker_h
 
 #include <wtf/Compiler.h>
 
@@ -235,3 +236,4 @@ using WTF::NoLockingNecessaryTag;
 using WTF::NoLockingNecessary;
 using WTF::DropLockForScope;
 using WTF::ExternalLocker;
+#endif // WTF_wtf_Locker_h

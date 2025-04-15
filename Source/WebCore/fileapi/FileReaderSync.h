@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_fileapi_FileReaderSync_h
+#define WebCore_fileapi_FileReaderSync_h
 
 #include "ExceptionOr.h"
 
@@ -62,3 +63,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_fileapi_FileReaderSync_h

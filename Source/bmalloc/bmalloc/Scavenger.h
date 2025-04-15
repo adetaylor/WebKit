@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Scavenger_h
+#define bmalloc_bmalloc_Scavenger_h
 
 #include "BPlatform.h"
 #include "DeferredDecommit.h"
@@ -130,3 +131,4 @@ BALLOW_DEPRECATED_DECLARATIONS_END
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_Scavenger_h

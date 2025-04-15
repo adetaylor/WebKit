@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResourceMaskerInlines_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResourceMaskerInlines_h
 
 #include "LegacyRenderSVGResourceMasker.h"
 #include "SVGElementTypeHelpers.h"
@@ -52,3 +53,4 @@ SVGUnitTypes::SVGUnitType LegacyRenderSVGResourceMasker::maskContentUnits() cons
 }
 
 }
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResourceMaskerInlines_h

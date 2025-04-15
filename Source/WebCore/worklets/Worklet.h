@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_worklets_Worklet_h
+#define WebCore_worklets_Worklet_h
 
 #include "ActiveDOMObject.h"
 #include "ContextDestructionObserver.h"
@@ -69,3 +70,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_worklets_Worklet_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_WebEventPrivate_h
+#define WebCore_platform_ios_WebEventPrivate_h
 
 #if USE(BROWSERENGINEKIT)
 
@@ -39,3 +40,4 @@
 @end
 
 #endif // USE(BROWSERENGINEKIT)
+#endif // WebCore_platform_ios_WebEventPrivate_h

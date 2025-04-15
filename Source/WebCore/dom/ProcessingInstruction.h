@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ProcessingInstruction_h
+#define WebCore_dom_ProcessingInstruction_h
 
 #include "CachedResourceHandle.h"
 #include "CachedStyleSheetClient.h"
@@ -97,3 +98,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ProcessingInstruction)
     static bool isType(const WebCore::Node& node) { return node.nodeType() == WebCore::Node::PROCESSING_INSTRUCTION_NODE; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_ProcessingInstruction_h

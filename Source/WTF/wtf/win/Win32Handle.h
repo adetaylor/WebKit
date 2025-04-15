@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_win_Win32Handle_h
+#define WTF_wtf_win_Win32Handle_h
 
 #include <windows.h>
 #include <wtf/FastMalloc.h>
@@ -65,3 +66,4 @@ private:
 } // namespace WTF
 
 using WTF::Win32Handle;
+#endif // WTF_wtf_win_Win32Handle_h

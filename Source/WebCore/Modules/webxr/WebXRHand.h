@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_WebXRHand_h
+#define WebCore_Modules_webxr_WebXRHand_h
 
 #if ENABLE(WEBXR) && ENABLE(WEBXR_HANDS)
 
@@ -78,3 +79,4 @@ private:
 
 }
 #endif
+#endif // WebCore_Modules_webxr_WebXRHand_h

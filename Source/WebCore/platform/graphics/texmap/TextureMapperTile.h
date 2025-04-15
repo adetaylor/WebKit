@@ -17,7 +17,8 @@
  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_TextureMapperTile_h
+#define WebCore_platform_graphics_texmap_TextureMapperTile_h
 
 #include "FloatRect.h"
 #include "Image.h"
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_texmap_TextureMapperTile_h

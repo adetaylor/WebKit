@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_Hasher_h
+#define WTF_wtf_Hasher_h
 
 #include <optional>
 #include <wtf/CheckedPtr.h>
@@ -229,3 +230,4 @@ template<typename T, typename U> void add(Hasher& hasher, const CheckedPtr<T, U>
 
 using WTF::computeHash;
 using WTF::Hasher;
+#endif // WTF_wtf_Hasher_h

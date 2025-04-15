@@ -26,7 +26,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_rendering_style_SVGRenderStyleDefs_h
+#define WebCore_rendering_style_SVGRenderStyleDefs_h
 
 #include "Length.h"
 #include "SVGLengthValue.h"
@@ -341,3 +342,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const StyleInheritedResourceData&)
 WTF::TextStream& operator<<(WTF::TextStream&, const StyleLayoutData&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_SVGRenderStyleDefs_h

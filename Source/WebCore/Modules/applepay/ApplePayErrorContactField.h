@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayErrorContactField_h
+#define WebCore_Modules_applepay_ApplePayErrorContactField_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -50,3 +51,4 @@ enum class ApplePayErrorContactField : uint8_t {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY)
+#endif // WebCore_Modules_applepay_ApplePayErrorContactField_h

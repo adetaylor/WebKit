@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cookie_store_CookieChangeSubscription_h
+#define WebCore_Modules_cookie_store_CookieChangeSubscription_h
 
 #include <wtf/HashTraits.h>
 #include <wtf/Hasher.h>
@@ -81,3 +82,4 @@ template<> struct HashTraits<WebCore::CookieChangeSubscription> : SimpleClassHas
 };
 
 } // namespace WTF
+#endif // WebCore_Modules_cookie_store_CookieChangeSubscription_h

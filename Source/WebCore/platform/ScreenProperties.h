@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScreenProperties_h
+#define WebCore_platform_ScreenProperties_h
 
 #include "DestinationColorSpace.h"
 #include "FloatRect.h"
@@ -75,3 +76,4 @@ struct ScreenProperties {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_ScreenProperties_h

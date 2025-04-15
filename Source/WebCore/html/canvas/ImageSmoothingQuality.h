@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_ImageSmoothingQuality_h
+#define WebCore_html_canvas_ImageSmoothingQuality_h
 
 namespace WebCore {
 
 enum ImageSmoothingQuality { Low, Medium, High };
 
 }
+#endif // WebCore_html_canvas_ImageSmoothingQuality_h

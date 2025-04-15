@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_BorderPainter_h
+#define WebCore_rendering_BorderPainter_h
 
 #include "RenderBoxModelObject.h"
 #include "RenderElement.h"
@@ -70,3 +71,4 @@ private:
 LayoutRect shrinkRectByOneDevicePixel(const GraphicsContext&, const LayoutRect&, float devicePixelRatio);
 
 }
+#endif // WebCore_rendering_BorderPainter_h

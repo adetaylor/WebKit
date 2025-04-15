@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushMessageData_h
+#define WebCore_Modules_push_api_PushMessageData_h
 
 #include "ExceptionOr.h"
 #include <JavaScriptCore/ArrayBuffer.h>
@@ -61,3 +62,4 @@ inline PushMessageData::PushMessageData(Vector<uint8_t>&& data)
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_push_api_PushMessageData_h

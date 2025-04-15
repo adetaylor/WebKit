@@ -27,7 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_fido_DeviceRequestConverter_h
+#define WebCore_Modules_webauthn_fido_DeviceRequestConverter_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -67,3 +68,4 @@ WEBCORE_EXPORT Vector<uint8_t> encodeEmptyAuthenticatorRequest(CtapRequestComman
 } // namespace fido
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_fido_DeviceRequestConverter_h

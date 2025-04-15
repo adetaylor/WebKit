@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_identity_DigitalCredentialRequestOptions_h
+#define WebCore_Modules_identity_DigitalCredentialRequestOptions_h
 
 #include "DigitalCredentialRequest.h"
 #include <wtf/Vector.h>
@@ -35,3 +36,4 @@ struct DigitalCredentialRequestOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_identity_DigitalCredentialRequestOptions_h

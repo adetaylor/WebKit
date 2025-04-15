@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSResolvedColor_h
+#define WebCore_css_values_color_CSSResolvedColor_h
 
 #include "CSSValueTypes.h"
 #include "Color.h"
@@ -63,3 +64,4 @@ template<> struct CSSValueChildrenVisitor<ResolvedColor> { constexpr IterationSt
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSResolvedColor_h

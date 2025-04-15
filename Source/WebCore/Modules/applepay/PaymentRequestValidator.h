@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_PaymentRequestValidator_h
+#define WebCore_Modules_applepay_PaymentRequestValidator_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -51,3 +52,4 @@ public:
 }
 
 #endif
+#endif // WebCore_Modules_applepay_PaymentRequestValidator_h

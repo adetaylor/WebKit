@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerInitializationData_h
+#define WebCore_workers_WorkerInitializationData_h
 
 #include "AdvancedPrivacyProtections.h"
 #include "ScriptExecutionContextIdentifier.h"
@@ -54,3 +55,4 @@ inline WorkerInitializationData WorkerInitializationData::isolatedCopy() const
 }
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerInitializationData_h

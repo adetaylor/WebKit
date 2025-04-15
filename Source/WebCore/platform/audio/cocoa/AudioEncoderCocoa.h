@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_AudioEncoderCocoa_h
+#define WebCore_platform_audio_cocoa_AudioEncoderCocoa_h
 
 #if ENABLE(WEB_CODECS) && USE(AVFOUNDATION)
 
@@ -57,3 +58,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEB_CODECS) && USE(GSTREAMER)
+#endif // WebCore_platform_audio_cocoa_AudioEncoderCocoa_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_AnimationTimeline_h
+#define WebCore_animation_AnimationTimeline_h
 
 #include "TimelineRange.h"
 #include "WebAnimationTypes.h"
@@ -86,3 +87,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
 static bool isType(const WebCore::AnimationTimeline& value) { return value.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_animation_AnimationTimeline_h

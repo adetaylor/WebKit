@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_AbstractLineBuilder_h
+#define WebCore_layout_formattingContexts_inline_AbstractLineBuilder_h
 
 #include "FormattingConstraints.h"
 #include "InlineContentBreaker.h"
@@ -90,3 +91,4 @@ private:
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_AbstractLineBuilder_h

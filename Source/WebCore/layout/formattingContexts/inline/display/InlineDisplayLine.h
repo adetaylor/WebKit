@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_display_InlineDisplayLine_h
+#define WebCore_layout_formattingContexts_inline_display_InlineDisplayLine_h
 
 #include "FontBaseline.h"
 #include "InlineRect.h"
@@ -205,3 +206,4 @@ inline void Line::setLineBoxRectForSVGText(const FloatRect& rect)
 }
 }
 
+#endif // WebCore_layout_formattingContexts_inline_display_InlineDisplayLine_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUSupportedFeatures_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUSupportedFeatures_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/Vector.h>
@@ -70,3 +71,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUSupportedFeatures_h

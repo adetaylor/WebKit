@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUCompilationMessageType_h
+#define WebCore_Modules_WebGPU_GPUCompilationMessageType_h
 
 #include "WebGPUCompilationMessageType.h"
 #include <cstdint>
@@ -50,3 +51,4 @@ inline WebGPU::CompilationMessageType convertToBacking(GPUCompilationMessageType
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUCompilationMessageType_h

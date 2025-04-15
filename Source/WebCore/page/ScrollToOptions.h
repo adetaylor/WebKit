@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ScrollToOptions_h
+#define WebCore_page_ScrollToOptions_h
 
 #include "ScrollOptions.h"
 #include <cmath>
@@ -60,3 +61,4 @@ inline ScrollToOptions normalizeNonFiniteCoordinatesOrFallBackTo(const ScrollToO
 }
 
 }
+#endif // WebCore_page_ScrollToOptions_h

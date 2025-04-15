@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InternalObserverInspect_h
+#define WebCore_dom_InternalObserverInspect_h
 
 #include <wtf/Forward.h>
 
@@ -39,3 +40,4 @@ Ref<SubscriberCallback> createSubscriberCallbackInspect(ScriptExecutionContext&,
 Ref<SubscriberCallback> createSubscriberCallbackInspect(ScriptExecutionContext&, Ref<Observable>&&, ObservableInspector&&);
 
 } // namespace WebCore
+#endif // WebCore_dom_InternalObserverInspect_h

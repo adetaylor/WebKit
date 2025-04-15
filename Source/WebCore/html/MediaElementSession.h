@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_MediaElementSession_h
+#define WebCore_html_MediaElementSession_h
 
 #if ENABLE(VIDEO)
 
@@ -288,3 +289,4 @@ static bool isType(const WebCore::PlatformMediaSessionInterface& session) { retu
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_html_MediaElementSession_h

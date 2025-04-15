@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_WebCoreNSFontManagerExtras_h
+#define WebCore_platform_mac_WebCoreNSFontManagerExtras_h
 
 #if PLATFORM(MAC)
 
@@ -40,3 +41,4 @@ WEBCORE_EXPORT FontAttributeChanges computedFontAttributeChanges(NSFontManager *
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_mac_WebCoreNSFontManagerExtras_h

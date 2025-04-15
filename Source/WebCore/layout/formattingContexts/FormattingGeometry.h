@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_FormattingGeometry_h
+#define WebCore_layout_formattingContexts_FormattingGeometry_h
 
 #include "FormattingContext.h"
 #include "LayoutBoxGeometry.h"
@@ -125,3 +126,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Layout::ToValueTypeName) \
     static bool isType(const WebCore::Layout::FormattingGeometry& formattingGeometry) { return formattingGeometry.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
 
+#endif // WebCore_layout_formattingContexts_FormattingGeometry_h

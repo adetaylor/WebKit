@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_query_GenericMediaQuerySerialization_h
+#define WebCore_css_query_GenericMediaQuerySerialization_h
 
 #include "GenericMediaQueryTypes.h"
 #include <wtf/text/StringBuilder.h>
@@ -35,3 +36,4 @@ void serialize(StringBuilder&, const Condition&);
 
 }
 }
+#endif // WebCore_css_query_GenericMediaQuerySerialization_h

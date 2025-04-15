@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_Quad_h
+#define WebCore_css_Quad_h
 
 #include "RectBase.h"
 #include <wtf/text/MakeString.h>
@@ -52,3 +53,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_Quad_h

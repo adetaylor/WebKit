@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_SpeechSPI_h
+#define WebCore_PAL_pal_spi_cocoa_SpeechSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -50,3 +51,4 @@ NS_ASSUME_NONNULL_END
 #endif // USE(APPLE_INTERNAL_SDK)
 
 #endif // HAVE(SPEECHRECOGNIZER)
+#endif // WebCore_PAL_pal_spi_cocoa_SpeechSPI_h

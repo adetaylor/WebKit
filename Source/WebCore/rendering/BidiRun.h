@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_BidiRun_h
+#define WebCore_rendering_BidiRun_h
 
 #include <wtf/StdLibExtras.h>
 #include "BidiResolver.h"
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_BidiRun_h

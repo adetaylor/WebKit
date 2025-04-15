@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_SleepDisablerIdentifier_h
+#define WebCore_platform_SleepDisablerIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ struct SleepDisablerIdentifierType { };
 using SleepDisablerIdentifier = ObjectIdentifier<SleepDisablerIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_platform_SleepDisablerIdentifier_h

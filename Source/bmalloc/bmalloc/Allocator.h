@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Allocator_h
+#define bmalloc_bmalloc_Allocator_h
 
 #include "BExport.h"
 #include "BumpAllocator.h"
@@ -98,3 +99,4 @@ inline void* Allocator::allocateImpl(size_t size, FailureAction action)
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_Allocator_h

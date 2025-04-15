@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_filesystemaccess_FileSystemDirectoryHandle_h
+#define WebCore_Modules_filesystemaccess_FileSystemDirectoryHandle_h
 
 #include "FileSystemHandle.h"
 
@@ -85,3 +86,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::FileSystemDirectoryHandle)
     static bool isType(const WebCore::FileSystemHandle& handle) { return handle.kind() == WebCore::FileSystemHandle::Kind::Directory; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_filesystemaccess_FileSystemDirectoryHandle_h

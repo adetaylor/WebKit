@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_filesystemaccess_StorageManagerFileSystemAccess_h
+#define WebCore_Modules_filesystemaccess_StorageManagerFileSystemAccess_h
 
 #include "StorageManager.h"
 
@@ -38,3 +39,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_filesystemaccess_StorageManagerFileSystemAccess_h

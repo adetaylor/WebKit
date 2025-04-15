@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_MatchedDeclarationsCache_h
+#define WebCore_style_MatchedDeclarationsCache_h
 
 #include "MatchResult.h"
 #include "RenderStyle.h"
@@ -78,3 +79,4 @@ private:
 
 }
 }
+#endif // WebCore_style_MatchedDeclarationsCache_h

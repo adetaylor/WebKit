@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSBoxShadowPropertyValue_h
+#define WebCore_css_CSSBoxShadowPropertyValue_h
 
 #include "CSSBoxShadowProperty.h"
 #include "CSSValue.h"
@@ -51,3 +52,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSBoxShadowPropertyValue, isBoxShadowPropertyValue())
+#endif // WebCore_css_CSSBoxShadowPropertyValue_h

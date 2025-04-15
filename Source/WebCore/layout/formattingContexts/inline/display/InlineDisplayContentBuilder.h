@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_display_InlineDisplayContentBuilder_h
+#define WebCore_layout_formattingContexts_inline_display_InlineDisplayContentBuilder_h
 
 #include "InlineFormattingContext.h"
 #include "InlineLineBuilder.h"
@@ -142,3 +143,4 @@ inline InlineRect InlineDisplayContentBuilder::mapInlineRectLogicalToVisual(cons
 }
 }
 
+#endif // WebCore_layout_formattingContexts_inline_display_InlineDisplayContentBuilder_h

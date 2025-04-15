@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ButterflyArray_h
+#define WTF_wtf_ButterflyArray_h
 
 #include <type_traits>
 #include <wtf/StdLibExtras.h>
@@ -143,3 +144,4 @@ protected:
 using WTF::ButterflyArray;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_ButterflyArray_h

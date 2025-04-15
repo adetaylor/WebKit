@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PixelBufferFormat_h
+#define WebCore_platform_graphics_PixelBufferFormat_h
 
 #include "AlphaPremultiplication.h"
 #include "DestinationColorSpace.h"
@@ -40,3 +41,4 @@ struct PixelBufferFormat {
 
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, const PixelBufferFormat&);
 }
+#endif // WebCore_platform_graphics_PixelBufferFormat_h

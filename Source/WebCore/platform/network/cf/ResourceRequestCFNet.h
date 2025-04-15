@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_cf_ResourceRequestCFNet_h
+#define WebCore_platform_network_cf_ResourceRequestCFNet_h
 
 #include "HTTPHeaderMap.h"
 #include "ResourceLoadPriority.h"
@@ -128,3 +129,4 @@ inline RetainPtr<CFStringRef> httpHeaderValueUsingSuitableEncoding(HTTPHeaderMap
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_network_cf_ResourceRequestCFNet_h

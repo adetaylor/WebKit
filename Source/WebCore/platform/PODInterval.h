@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PODInterval_h
+#define WebCore_platform_PODInterval_h
 
 #ifndef NDEBUG
 #include <wtf/text/TextStream.h>
@@ -150,3 +151,4 @@ TextStream& operator<<(TextStream& stream, const PODInterval<T, UserData>& inter
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_PODInterval_h

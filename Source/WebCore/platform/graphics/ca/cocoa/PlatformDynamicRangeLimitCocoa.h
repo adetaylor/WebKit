@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ca_cocoa_PlatformDynamicRangeLimitCocoa_h
+#define WebCore_platform_graphics_ca_cocoa_PlatformDynamicRangeLimitCocoa_h
 
 #if PLATFORM(COCOA)
 
@@ -48,3 +49,4 @@ inline void setLayerDynamicRangeLimit(CALayer* layer, PlatformDynamicRangeLimit 
 } // namespace WebCore
 
 #endif // PLATFORM(COCOA)
+#endif // WebCore_platform_graphics_ca_cocoa_PlatformDynamicRangeLimitCocoa_h

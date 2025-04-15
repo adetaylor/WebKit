@@ -23,7 +23,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTableRow_h
+#define WebCore_rendering_RenderTableRow_h
 
 #include "RenderTableSection.h"
 
@@ -142,3 +143,4 @@ inline RenderTableRow* RenderTableSection::lastRow() const
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderTableRow, isRenderTableRow())
+#endif // WebCore_rendering_RenderTableRow_h

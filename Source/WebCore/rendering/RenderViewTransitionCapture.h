@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderViewTransitionCapture_h
+#define WebCore_rendering_RenderViewTransitionCapture_h
 
 #include "ImageBuffer.h"
 #include "RenderReplaced.h"
@@ -88,3 +89,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderViewTransitionCapture, isRenderViewTransitionCapture())
+#endif // WebCore_rendering_RenderViewTransitionCapture_h

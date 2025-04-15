@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGPropertyOwnerRegistry_h
+#define WebCore_svg_properties_SVGPropertyOwnerRegistry_h
 
 #include "SVGAnimatedPropertyAccessorImpl.h"
 #include "SVGAnimatedPropertyPairAccessorImpl.h"
@@ -405,3 +406,4 @@ WTF_MAKE_TZONE_ALLOCATED_TEMPLATE_IMPL_WITH_MULTIPLE_OR_SPECIALIZED_PARAMETERS()
 #undef TZONE_TYPE
 
 } // namespace WebCore
+#endif // WebCore_svg_properties_SVGPropertyOwnerRegistry_h

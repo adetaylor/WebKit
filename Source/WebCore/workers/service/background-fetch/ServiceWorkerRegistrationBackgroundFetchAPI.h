@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_ServiceWorkerRegistrationBackgroundFetchAPI_h
+#define WebCore_workers_service_background_fetch_ServiceWorkerRegistrationBackgroundFetchAPI_h
 
 #include "Supplementable.h"
 #include <wtf/Forward.h>
@@ -54,3 +55,4 @@ private:
 };
 
 }
+#endif // WebCore_workers_service_background_fetch_ServiceWorkerRegistrationBackgroundFetchAPI_h

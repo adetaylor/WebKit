@@ -17,7 +17,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_page_Navigator_h
+#define WebCore_page_Navigator_h
 
 #include "LocalDOMWindowProperty.h"
 #include "NavigatorBase.h"
@@ -95,3 +96,4 @@ private:
     RefPtr<GPU> m_gpuForWebGPU;
 };
 }
+#endif // WebCore_page_Navigator_h

@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_QualifiedName_h
+#define WebCore_dom_QualifiedName_h
 
 #include <wtf/HashTraits.h>
 #include <wtf/Hasher.h>
@@ -186,3 +187,4 @@ namespace WTF {
     };
 
 } // namespace WTF
+#endif // WebCore_dom_QualifiedName_h

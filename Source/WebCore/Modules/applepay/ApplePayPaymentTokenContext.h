@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayPaymentTokenContext_h
+#define WebCore_Modules_applepay_ApplePayPaymentTokenContext_h
 
 #if ENABLE(APPLE_PAY_MULTI_MERCHANT_PAYMENTS)
 
@@ -42,3 +43,4 @@ struct ApplePayPaymentTokenContext {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY_MULTI_MERCHANT_PAYMENTS)
+#endif // WebCore_Modules_applepay_ApplePayPaymentTokenContext_h

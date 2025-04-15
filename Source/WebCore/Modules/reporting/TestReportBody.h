@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_reporting_TestReportBody_h
+#define WebCore_Modules_reporting_TestReportBody_h
 
 #include "ReportBody.h"
 #include "ViolationReportType.h"
@@ -55,3 +56,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::TestReportBody)
     static bool isType(const WebCore::ReportBody& reportBody) { return reportBody.reportBodyType() == WebCore::ViolationReportType::Test; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_reporting_TestReportBody_h

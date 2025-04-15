@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_reporting_ReportingClient_h
+#define WebCore_Modules_reporting_ReportingClient_h
 
 #include "SecurityPolicyViolationEvent.h"
 #include <JavaScriptCore/ConsoleTypes.h>
@@ -46,3 +47,4 @@ struct WEBCORE_EXPORT ReportingClient {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_reporting_ReportingClient_h

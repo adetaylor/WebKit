@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMAbstractOperations_h
+#define WebCore_bindings_js_JSDOMAbstractOperations_h
 
 #include "JSDOMConvertStrings.h"
 #include "JSDOMExceptionHandling.h"
@@ -177,3 +178,4 @@ template<typename Functor> bool performLegacyPlatformObjectDeleteOperation(JSC::
 }
 
 }
+#endif // WebCore_bindings_js_JSDOMAbstractOperations_h

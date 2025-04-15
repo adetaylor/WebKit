@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ca_cocoa_ContentsFormatCocoa_h
+#define WebCore_platform_graphics_ca_cocoa_ContentsFormatCocoa_h
 
 #if PLATFORM(COCOA)
 
@@ -72,3 +73,4 @@ constexpr NSString *contentsFormatString(ContentsFormat contentsFormat)
 } // namespace WebCore
 
 #endif // PLATFORM(COCOA)
+#endif // WebCore_platform_graphics_ca_cocoa_ContentsFormatCocoa_h

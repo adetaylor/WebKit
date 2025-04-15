@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ShadowRootMode_h
+#define WebCore_dom_ShadowRootMode_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class ShadowRootMode : uint8_t {
 };
 
 }
+#endif // WebCore_dom_ShadowRootMode_h

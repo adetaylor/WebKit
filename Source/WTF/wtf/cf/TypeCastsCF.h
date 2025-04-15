@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cf_TypeCastsCF_h
+#define WTF_wtf_cf_TypeCastsCF_h
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <wtf/Assertions.h>
@@ -104,3 +105,4 @@ WTF_DECLARE_CF_MUTABLE_TYPE_TRAIT(CFString, CFMutableString);
 
 using WTF::checked_cf_cast;
 using WTF::dynamic_cf_cast;
+#endif // WTF_wtf_cf_TypeCastsCF_h

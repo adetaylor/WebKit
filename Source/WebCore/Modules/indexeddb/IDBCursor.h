@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBCursor_h
+#define WebCore_Modules_indexeddb_IDBCursor_h
 
 #include "ExceptionOr.h"
 #include "IDBCursorDirection.h"
@@ -130,3 +131,4 @@ inline IDBCursorDirection IDBCursor::direction() const
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBCursor_h

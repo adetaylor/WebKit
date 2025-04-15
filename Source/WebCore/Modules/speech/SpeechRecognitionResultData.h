@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognitionResultData_h
+#define WebCore_Modules_speech_SpeechRecognitionResultData_h
 
 namespace WebCore {
 
@@ -38,3 +39,4 @@ struct SpeechRecognitionResultData {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_speech_SpeechRecognitionResultData_h

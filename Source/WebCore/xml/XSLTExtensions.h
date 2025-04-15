@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XSLTExtensions_h
+#define WebCore_xml_XSLTExtensions_h
 
 #if ENABLE(XSLT)
 
@@ -36,3 +37,4 @@ void registerXSLTExtensions(xsltTransformContextPtr ctxt);
 } // namespace WebCore
 
 #endif // ENABLE(XSLT)
+#endif // WebCore_xml_XSLTExtensions_h

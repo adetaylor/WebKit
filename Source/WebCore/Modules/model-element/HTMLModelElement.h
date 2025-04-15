@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_model_element_HTMLModelElement_h
+#define WebCore_Modules_model_element_HTMLModelElement_h
 
 #if ENABLE(MODEL_ELEMENT)
 
@@ -277,3 +278,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MODEL_ELEMENT)
+#endif // WebCore_Modules_model_element_HTMLModelElement_h

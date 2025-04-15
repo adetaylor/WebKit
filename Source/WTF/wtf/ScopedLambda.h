@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_ScopedLambda_h
+#define WTF_wtf_ScopedLambda_h
 
 #include <wtf/ForbidHeapAllocation.h>
 
@@ -194,3 +195,4 @@ ScopedLambdaRefFunctor<FunctionType, Functor> scopedLambdaRef(const Functor& fun
 using WTF::ScopedLambda;
 using WTF::scopedLambda;
 using WTF::scopedLambdaRef;
+#endif // WTF_wtf_ScopedLambda_h

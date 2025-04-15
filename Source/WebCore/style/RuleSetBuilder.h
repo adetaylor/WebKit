@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_RuleSetBuilder_h
+#define WebCore_style_RuleSetBuilder_h
 
 #include "CSSParserEnum.h"
 #include "MediaQuery.h"
@@ -103,3 +104,4 @@ private:
 
 }
 }
+#endif // WebCore_style_RuleSetBuilder_h

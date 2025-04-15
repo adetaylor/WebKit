@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderInline_h
+#define WebCore_rendering_RenderInline_h
 
 #include "RenderBoxModelObject.h"
 #include "RenderLineBoxList.h"
@@ -157,3 +158,4 @@ bool isEmptyInline(const RenderInline&);
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderInline, isRenderInline())
+#endif // WebCore_rendering_RenderInline_h

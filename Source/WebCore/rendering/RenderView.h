@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderView_h
+#define WebCore_rendering_RenderView_h
 
 #include "LocalFrameView.h"
 #include "Region.h"
@@ -300,3 +301,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderView, isRenderView())
+#endif // WebCore_rendering_RenderView_h

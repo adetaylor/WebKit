@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cache_DOMCacheEngine_h
+#define WebCore_Modules_cache_DOMCacheEngine_h
 
 #include "DOMCacheIdentifier.h"
 #include "FetchHeaders.h"
@@ -163,3 +164,4 @@ using CompletionCallback = CompletionHandler<void(std::optional<Error>&&)>;
 } // namespace DOMCacheEngine
 
 } // namespace WebCore
+#endif // WebCore_Modules_cache_DOMCacheEngine_h

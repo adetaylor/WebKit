@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayDeferredPaymentRequest_h
+#define WebCore_Modules_applepay_ApplePayDeferredPaymentRequest_h
 
 #if ENABLE(APPLE_PAY_DEFERRED_PAYMENTS)
 
@@ -50,3 +51,4 @@ struct ApplePayDeferredPaymentRequest final {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY_DEFERRED_PAYMENTS)
+#endif // WebCore_Modules_applepay_ApplePayDeferredPaymentRequest_h

@@ -27,7 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_cbor_CBORBinary_h
+#define WebCore_Modules_webauthn_cbor_CBORBinary_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -61,3 +62,4 @@ static constexpr uint8_t kAdditionalInformation8Bytes = 27u;
 } // namespace cbor
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_cbor_CBORBinary_h

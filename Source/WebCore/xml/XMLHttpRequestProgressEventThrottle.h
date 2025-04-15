@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XMLHttpRequestProgressEventThrottle_h
+#define WebCore_xml_XMLHttpRequestProgressEventThrottle_h
 
 #include "EventLoop.h"
 #include <wtf/Forward.h>
@@ -86,3 +87,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_xml_XMLHttpRequestProgressEventThrottle_h

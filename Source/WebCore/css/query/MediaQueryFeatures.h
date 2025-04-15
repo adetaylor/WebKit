@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_query_MediaQueryFeatures_h
+#define WebCore_css_query_MediaQueryFeatures_h
 
 #include "MediaQuery.h"
 
@@ -96,3 +97,4 @@ Vector<const MediaProgressProviding*> allMediaProgressProvidingSchemas();
 } // namespace Features
 } // namespace MQ
 } // namespace WebCore
+#endif // WebCore_css_query_MediaQueryFeatures_h

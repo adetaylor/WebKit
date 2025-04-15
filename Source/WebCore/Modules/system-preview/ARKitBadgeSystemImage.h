@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_system_preview_ARKitBadgeSystemImage_h
+#define WebCore_Modules_system_preview_ARKitBadgeSystemImage_h
 
 #if USE(SYSTEM_PREVIEW)
 
@@ -91,3 +92,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ARKitBadgeSystemImage)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // USE(SYSTEM_PREVIEW)
+#endif // WebCore_Modules_system_preview_ARKitBadgeSystemImage_h

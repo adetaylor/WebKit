@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_MediaRemoteSPI_h
+#define WebCore_PAL_pal_spi_mac_MediaRemoteSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -152,3 +153,4 @@ WTF_EXTERN_C_END
 @end
 
 #endif // USE(APPLE_INTERNAL_SDK)
+#endif // WebCore_PAL_pal_spi_mac_MediaRemoteSPI_h

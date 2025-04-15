@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_RotateTransformOperation_h
+#define WebCore_platform_graphics_transforms_RotateTransformOperation_h
 
 #include "TransformOperation.h"
 #include <wtf/Ref.h>
@@ -96,3 +97,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_TRANSFORMOPERATION(WebCore::RotateTransformOperation, WebCore::TransformOperation::isRotateTransformOperationType)
+#endif // WebCore_platform_graphics_transforms_RotateTransformOperation_h

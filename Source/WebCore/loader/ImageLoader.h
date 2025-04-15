@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_loader_ImageLoader_h
+#define WebCore_loader_ImageLoader_h
 
 #include "CachedImageClient.h"
 #include "CachedResourceHandle.h"
@@ -148,3 +149,4 @@ private:
 };
 
 }
+#endif // WebCore_loader_ImageLoader_h

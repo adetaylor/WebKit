@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_CookieChangeListener_h
+#define WebCore_loader_CookieChangeListener_h
 
 #include <wtf/Forward.h>
 #include <wtf/WeakPtr.h>
@@ -50,3 +51,4 @@ public:
 };
 
 }
+#endif // WebCore_loader_CookieChangeListener_h

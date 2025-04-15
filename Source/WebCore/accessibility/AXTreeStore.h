@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AXTreeStore_h
+#define WebCore_accessibility_AXTreeStore_h
 
 #include "AXCoreObject.h"
 #include "ActivityState.h"
@@ -210,3 +211,4 @@ inline AXTreePtr axTreeForID(std::optional<AXID> axID)
 }
 
 } // namespace WebCore
+#endif // WebCore_accessibility_AXTreeStore_h

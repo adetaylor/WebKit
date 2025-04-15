@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediarecorder_cocoa_MediaRecorderPrivateWriterWebM_h
+#define WebCore_platform_mediarecorder_cocoa_MediaRecorderPrivateWriterWebM_h
 
 #if ENABLE(MEDIA_RECORDER_WEBM)
 
@@ -56,3 +57,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_RECORDER)
+#endif // WebCore_platform_mediarecorder_cocoa_MediaRecorderPrivateWriterWebM_h

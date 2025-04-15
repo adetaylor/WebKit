@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderLayerCompositor_h
+#define WebCore_rendering_RenderLayerCompositor_h
 
 #include "ChromeClient.h"
 #include "GraphicsLayerClient.h"
@@ -702,3 +703,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, CompositingReason);
 // Outside the WebCore namespace for ease of invocation from the debugger.
 void showGraphicsLayerTreeForCompositor(WebCore::RenderLayerCompositor&);
 #endif
+#endif // WebCore_rendering_RenderLayerCompositor_h

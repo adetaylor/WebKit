@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerNotificationClient_h
+#define WebCore_workers_WorkerNotificationClient_h
 
 #if ENABLE(NOTIFICATIONS)
 
@@ -60,3 +61,4 @@ private:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_workers_WorkerNotificationClient_h

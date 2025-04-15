@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_WeakRandomNumber_h
+#define WTF_wtf_WeakRandomNumber_h
 
 namespace WTF {
 
@@ -35,3 +36,4 @@ template<> WTF_EXPORT_PRIVATE unsigned weakRandomNumber<unsigned>();
 }
 
 using WTF::weakRandomNumber;
+#endif // WTF_wtf_WeakRandomNumber_h

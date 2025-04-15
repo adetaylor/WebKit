@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cpu_arm_GraphicsContextGLNEON_h
+#define WebCore_platform_graphics_cpu_arm_GraphicsContextGLNEON_h
 
 #if HAVE(ARM_NEON_INTRINSICS)
 
@@ -299,3 +300,4 @@ ALWAYS_INLINE void packOneRowOfRGBA8ToUnsignedShort565(std::span<const uint8_t>&
 } // namespace WebCore
 
 #endif // HAVE(ARM_NEON_INTRINSICS)
+#endif // WebCore_platform_graphics_cpu_arm_GraphicsContextGLNEON_h

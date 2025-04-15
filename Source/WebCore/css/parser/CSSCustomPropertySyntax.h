@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSCustomPropertySyntax_h
+#define WebCore_css_parser_CSSCustomPropertySyntax_h
 
 #include <wtf/text/AtomString.h>
 #include <wtf/text/StringParsingBuffer.h>
@@ -76,3 +77,4 @@ private:
 };
 
 }
+#endif // WebCore_css_parser_CSSCustomPropertySyntax_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_XRQuadLayer_h
+#define WebCore_Modules_webxr_XRQuadLayer_h
 
 #if ENABLE(WEBXR_LAYERS)
 
@@ -52,3 +53,4 @@ public:
 
 #endif // ENABLE(WEBXR_LAYERS)
 
+#endif // WebCore_Modules_webxr_XRQuadLayer_h

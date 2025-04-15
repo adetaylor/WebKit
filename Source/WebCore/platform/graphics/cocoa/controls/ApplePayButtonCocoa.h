@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_controls_ApplePayButtonCocoa_h
+#define WebCore_platform_graphics_cocoa_controls_ApplePayButtonCocoa_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -48,3 +49,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY)
+#endif // WebCore_platform_graphics_cocoa_controls_ApplePayButtonCocoa_h

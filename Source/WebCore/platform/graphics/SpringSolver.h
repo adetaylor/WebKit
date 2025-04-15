@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_SpringSolver_h
+#define WebCore_platform_graphics_SpringSolver_h
 
 namespace WebCore {
 
@@ -69,3 +70,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_SpringSolver_h

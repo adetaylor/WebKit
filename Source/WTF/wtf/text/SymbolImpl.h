@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_SymbolImpl_h
+#define WTF_wtf_text_SymbolImpl_h
 
 #include <wtf/text/UniquedStringImpl.h>
 
@@ -221,3 +222,4 @@ ValueCheck<const SymbolImpl*> {
 using WTF::SymbolImpl;
 using WTF::PrivateSymbolImpl;
 using WTF::RegisteredSymbolImpl;
+#endif // WTF_wtf_text_SymbolImpl_h

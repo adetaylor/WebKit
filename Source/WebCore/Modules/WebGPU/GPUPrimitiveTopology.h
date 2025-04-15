@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUPrimitiveTopology_h
+#define WebCore_Modules_WebGPU_GPUPrimitiveTopology_h
 
 #include "WebGPUPrimitiveTopology.h"
 #include <cstdint>
@@ -56,3 +57,4 @@ inline WebGPU::PrimitiveTopology convertToBacking(GPUPrimitiveTopology primitive
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUPrimitiveTopology_h

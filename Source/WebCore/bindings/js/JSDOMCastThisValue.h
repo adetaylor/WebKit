@@ -28,7 +28,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMCastThisValue_h
+#define WebCore_bindings_js_JSDOMCastThisValue_h
 
 #include "JSDOMGlobalObject.h"
 
@@ -52,3 +53,4 @@ JSClass* castThisValue(JSC::JSGlobalObject& lexicalGlobalObject, JSC::JSValue th
 }
 
 }
+#endif // WebCore_bindings_js_JSDOMCastThisValue_h

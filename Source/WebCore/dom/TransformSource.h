@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_dom_TransformSource_h
+#define WebCore_dom_TransformSource_h
 
 #if ENABLE(XSLT)
 
@@ -47,3 +48,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(XSLT)
+#endif // WebCore_dom_TransformSource_h

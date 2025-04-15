@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLMediaElementIdentifier_h
+#define WebCore_html_HTMLMediaElementIdentifier_h
 
 #include "MediaPlayerClientIdentifier.h"
 
@@ -32,3 +33,4 @@ namespace WebCore {
 using HTMLMediaElementIdentifier = MediaPlayerClientIdentifier;
 
 }
+#endif // WebCore_html_HTMLMediaElementIdentifier_h

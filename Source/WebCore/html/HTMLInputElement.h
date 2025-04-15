@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLInputElement_h
+#define WebCore_html_HTMLInputElement_h
 
 #include "HTMLTextFormControlElement.h"
 #include <memory>
@@ -513,3 +514,4 @@ private:
 };
 
 }
+#endif // WebCore_html_HTMLInputElement_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_PlatformWheelEvent_h
+#define WebCore_platform_PlatformWheelEvent_h
 
 #include "FloatPoint.h"
 #include "IntPoint.h"
@@ -284,3 +285,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, PlatformWheelEventP
 
 } // namespace WebCore
 
+#endif // WebCore_platform_PlatformWheelEvent_h

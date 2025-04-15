@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_FrequencyDefinitions_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_FrequencyDefinitions_h
 
 #include "CSSPrimitiveNumericTypes+Canonicalization.h"
 #include "CSSPropertyParserConsumer+MetaConsumerDefinitions.h"
@@ -52,3 +53,4 @@ template<auto R, typename V> struct ConsumerDefinition<CSS::Frequency<R, V>> {
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_FrequencyDefinitions_h

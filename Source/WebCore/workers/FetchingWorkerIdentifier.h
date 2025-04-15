@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_FetchingWorkerIdentifier_h
+#define WebCore_workers_FetchingWorkerIdentifier_h
 
 #include "ServiceWorkerIdentifier.h"
 #include "SharedWorkerIdentifier.h"
@@ -33,3 +34,4 @@ namespace WebCore {
 using FetchingWorkerIdentifier = Variant<std::monostate, SharedWorkerIdentifier, ServiceWorkerIdentifier>;
 
 } // namespace WebCore
+#endif // WebCore_workers_FetchingWorkerIdentifier_h

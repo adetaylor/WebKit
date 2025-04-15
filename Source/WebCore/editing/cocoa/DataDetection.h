@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_cocoa_DataDetection_h
+#define WebCore_editing_cocoa_DataDetection_h
 
 #if ENABLE(DATA_DETECTION)
 
@@ -95,3 +96,4 @@ public:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_editing_cocoa_DataDetection_h

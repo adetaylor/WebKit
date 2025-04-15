@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutGeometryRect_h
+#define WebCore_layout_layouttree_LayoutGeometryRect_h
 
 #include "LayoutRect.h"
 #include "LayoutUnits.h"
@@ -334,3 +335,4 @@ inline Rect::operator FloatRect() const
 
 }
 }
+#endif // WebCore_layout_layouttree_LayoutGeometryRect_h

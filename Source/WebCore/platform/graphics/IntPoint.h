@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_IntPoint_h
+#define WebCore_platform_graphics_IntPoint_h
 
 #include "IntSize.h"
 #include <cmath>
@@ -208,3 +209,4 @@ namespace WTF {
 template<> struct DefaultHash<WebCore::IntPoint>;
 template<> struct HashTraits<WebCore::IntPoint>;
 }
+#endif // WebCore_platform_graphics_IntPoint_h

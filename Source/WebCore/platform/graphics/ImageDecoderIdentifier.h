@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageDecoderIdentifier_h
+#define WebCore_platform_graphics_ImageDecoderIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ struct ImageDecoderIdentifierType;
 using ImageDecoderIdentifier = ObjectIdentifier<ImageDecoderIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageDecoderIdentifier_h

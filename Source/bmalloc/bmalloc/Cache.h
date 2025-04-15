@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Cache_h
+#define bmalloc_bmalloc_Cache_h
 
 #include "Allocator.h"
 #include "BExport.h"
@@ -126,3 +127,4 @@ inline void* Cache::reallocate(HeapKind heapKind, void* object, size_t newSize)
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_Cache_h

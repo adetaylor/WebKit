@@ -25,7 +25,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_StyleScope_h
+#define WebCore_style_StyleScope_h
 
 #include "AnchorPositionEvaluator.h"
 #include "LayoutSize.h"
@@ -281,3 +282,4 @@ inline void Scope::flushPendingUpdate()
 
 }
 }
+#endif // WebCore_style_StyleScope_h

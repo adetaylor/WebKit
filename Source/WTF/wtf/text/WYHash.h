@@ -52,7 +52,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_WYHash_h
+#define WTF_wtf_text_WYHash_h
 
 #include <wtf/Int128.h>
 #include <wtf/UnalignedAccess.h>
@@ -340,3 +341,4 @@ private:
 using WTF::WYHash;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_text_WYHash_h

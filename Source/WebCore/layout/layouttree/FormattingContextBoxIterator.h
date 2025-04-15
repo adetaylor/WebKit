@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_FormattingContextBoxIterator_h
+#define WebCore_layout_layouttree_FormattingContextBoxIterator_h
 
 #include "LayoutDescendantIterator.h"
 
@@ -75,3 +76,4 @@ inline FormattingContextBoxIteratorAdapter formattingContextBoxes(const ElementB
 
 }
 }
+#endif // WebCore_layout_layouttree_FormattingContextBoxIterator_h

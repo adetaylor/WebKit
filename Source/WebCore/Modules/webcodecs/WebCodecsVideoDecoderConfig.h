@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_WebCodecsVideoDecoderConfig_h
+#define WebCore_Modules_webcodecs_WebCodecsVideoDecoderConfig_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -52,3 +53,4 @@ struct WebCodecsVideoDecoderConfig {
 }
 
 #endif
+#endif // WebCore_Modules_webcodecs_WebCodecsVideoDecoderConfig_h

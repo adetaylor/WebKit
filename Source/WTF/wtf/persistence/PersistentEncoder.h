@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_persistence_PersistentEncoder_h
+#define WTF_wtf_persistence_PersistentEncoder_h
 
 #include <span>
 #include <wtf/EnumTraits.h>
@@ -112,3 +113,4 @@ void Encoder::updateChecksumForNumber(SHA1& sha1, Type value)
 }
 
 }
+#endif // WTF_wtf_persistence_PersistentEncoder_h

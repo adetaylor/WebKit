@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_PortIdentifier_h
+#define WebCore_dom_PortIdentifier_h
 
 #include "ProcessIdentifier.h"
 
@@ -33,3 +34,4 @@ enum class PortIdentifierType { };
 using PortIdentifier = AtomicObjectIdentifier<PortIdentifierType>;
 
 }
+#endif // WebCore_dom_PortIdentifier_h

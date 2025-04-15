@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_plugins_PluginViewBase_h
+#define WebCore_plugins_PluginViewBase_h
 
 #include "PlatformLayer.h"
 #include "ScrollTypes.h"
@@ -95,3 +96,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_WIDGET(PluginViewBase, isPluginViewBase())
+#endif // WebCore_plugins_PluginViewBase_h

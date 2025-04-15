@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_VideoPresentationModelVideoElement_h
+#define WebCore_platform_cocoa_VideoPresentationModelVideoElement_h
 
 #if ENABLE(VIDEO_PRESENTATION_MODE)
 
@@ -160,3 +161,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO_PRESENTATION_MODE)
+#endif // WebCore_platform_cocoa_VideoPresentationModelVideoElement_h

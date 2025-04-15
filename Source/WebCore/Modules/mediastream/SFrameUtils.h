@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_SFrameUtils_h
+#define WebCore_Modules_mediastream_SFrameUtils_h
 
 #if ENABLE(WEB_RTC)
 
@@ -56,3 +57,4 @@ static inline Vector<uint8_t, 8> encodeBigEndian(uint64_t value)
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_Modules_mediastream_SFrameUtils_h

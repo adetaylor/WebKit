@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_BlockPtr_h
+#define WTF_wtf_BlockPtr_h
 
 #include <Block.h>
 #include <utility>
@@ -248,3 +249,4 @@ inline auto makeBlockPtr(F&& function)
 
 using WTF::BlockPtr;
 using WTF::makeBlockPtr;
+#endif // WTF_wtf_BlockPtr_h

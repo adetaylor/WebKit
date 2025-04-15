@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_CryptoAlgorithmParameters_h
+#define WebCore_crypto_CryptoAlgorithmParameters_h
 
 #include "CryptoAlgorithmIdentifier.h"
 #include <wtf/TypeCasts.h>
@@ -69,3 +70,4 @@ public:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CryptoAlgorithm##ToClassName) \
 static bool isType(const WebCore::CryptoAlgorithmParameters& parameters) { return parameters.parametersClass() == WebCore::CryptoAlgorithmParameters::Class::ToClassName; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_crypto_CryptoAlgorithmParameters_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_contact_picker_ContactsRequestData_h
+#define WebCore_Modules_contact_picker_ContactsRequestData_h
 
 #include "ContactProperty.h"
 #include <wtf/Forward.h>
@@ -39,3 +40,4 @@ struct ContactsRequestData {
 };
 
 }
+#endif // WebCore_Modules_contact_picker_ContactsRequestData_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PackedRefPtr_h
+#define WTF_wtf_PackedRefPtr_h
 
 #include <wtf/Packed.h>
 #include <wtf/RefPtr.h>
@@ -36,3 +37,4 @@ using PackedRefPtr = RefPtr<T, PackedPtrTraits<T>>;
 } // namespace WTF
 
 using WTF::PackedRefPtr;
+#endif // WTF_wtf_PackedRefPtr_h

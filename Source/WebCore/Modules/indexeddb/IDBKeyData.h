@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBKeyData_h
+#define WebCore_Modules_indexeddb_IDBKeyData_h
 
 #include "IDBKey.h"
 #include <wtf/Hasher.h>
@@ -196,3 +197,4 @@ struct IDBKeyDataHashTraits : public WTF::CustomHashTraits<IDBKeyData> {
 using IDBKeyDataSet = StdSet<IDBKeyData>;
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBKeyData_h

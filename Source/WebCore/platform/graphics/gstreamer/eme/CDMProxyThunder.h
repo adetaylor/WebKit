@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_eme_CDMProxyThunder_h
+#define WebCore_platform_graphics_gstreamer_eme_CDMProxyThunder_h
 
 #if ENABLE(ENCRYPTED_MEDIA) && ENABLE(THUNDER)
 
@@ -67,3 +68,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(ENCRYPTED_MEDIA) && ENABLE(THUNDER)
+#endif // WebCore_platform_graphics_gstreamer_eme_CDMProxyThunder_h

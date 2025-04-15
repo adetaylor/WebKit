@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediarecorder_MediaRecorderPrivateGStreamer_h
+#define WebCore_platform_mediarecorder_MediaRecorderPrivateGStreamer_h
 
 #if USE(GSTREAMER_TRANSCODER)
 
@@ -123,3 +124,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(GSTREAMER_TRANSCODER)
+#endif // WebCore_platform_mediarecorder_MediaRecorderPrivateGStreamer_h

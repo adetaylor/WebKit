@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_InbandTextTrackPrivate_h
+#define WebCore_platform_graphics_InbandTextTrackPrivate_h
 
 #if ENABLE(VIDEO)
 
@@ -123,3 +124,4 @@ SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(VIDEO)
 
+#endif // WebCore_platform_graphics_InbandTextTrackPrivate_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ThreadGroup_h
+#define WTF_wtf_ThreadGroup_h
 
 #include <memory>
 #include <wtf/ListHashSet.h>
@@ -72,3 +73,4 @@ private:
 
 using WTF::ThreadGroup;
 using WTF::ThreadGroupAddResult;
+#endif // WTF_wtf_ThreadGroup_h

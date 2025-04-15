@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_BoundaryPoint_h
+#define WebCore_dom_BoundaryPoint_h
 
 #include "Node.h"
 
@@ -90,3 +91,4 @@ inline WeakBoundaryPoint::WeakBoundaryPoint(WeakPtr<Node, Node::WeakPtrImplType>
 }
 
 }
+#endif // WebCore_dom_BoundaryPoint_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_IOSurfaceDrawingBuffer_h
+#define WebCore_platform_graphics_cocoa_IOSurfaceDrawingBuffer_h
 
 #if HAVE(IOSURFACE)
 
@@ -107,3 +108,4 @@ inline IntSize IOSurfaceDrawingBuffer::size() const
 }
 
 #endif
+#endif // WebCore_platform_graphics_cocoa_IOSurfaceDrawingBuffer_h

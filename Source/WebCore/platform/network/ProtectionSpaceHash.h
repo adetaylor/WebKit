@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_network_ProtectionSpaceHash_h
+#define WebCore_platform_network_ProtectionSpaceHash_h
 
 #include "ProtectionSpace.h"
 #include <wtf/HashTraits.h>
@@ -58,3 +59,4 @@ template<> struct HashTraits<WebCore::ProtectionSpace> : SimpleClassHashTraits<W
 template<> struct DefaultHash<WebCore::ProtectionSpace> : WebCore::ProtectionSpaceHash { };
 
 } // namespace WTF
+#endif // WebCore_platform_network_ProtectionSpaceHash_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_CocoaView_h
+#define WebCore_platform_cocoa_CocoaView_h
 
 #if PLATFORM(COCOA)
 
@@ -40,3 +41,4 @@ using CocoaView = UIView;
 #endif
 
 #endif // PLATFORM(COCOA)
+#endif // WebCore_platform_cocoa_CocoaView_h

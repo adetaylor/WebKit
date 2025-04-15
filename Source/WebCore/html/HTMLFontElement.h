@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLFontElement_h
+#define WebCore_html_HTMLFontElement_h
 
 #include "HTMLElement.h"
 
@@ -43,3 +44,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLFontElement_h

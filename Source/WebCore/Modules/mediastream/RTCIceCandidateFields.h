@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCIceCandidateFields_h
+#define WebCore_Modules_mediastream_RTCIceCandidateFields_h
 
 #include "RTCIceCandidateType.h"
 #include "RTCIceComponent.h"
@@ -52,3 +53,4 @@ struct RTCIceCandidateFields {
 std::optional<RTCIceCandidateFields> parseIceCandidateSDP(const String&);
 
 } // namespace WebCore
+#endif // WebCore_Modules_mediastream_RTCIceCandidateFields_h

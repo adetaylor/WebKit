@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_model_element_ModelPlayer_h
+#define WebCore_Modules_model_element_ModelPlayer_h
 
 #include "HTMLModelElementCamera.h"
 #include "LayerHostingContextIdentifier.h"
@@ -106,3 +107,4 @@ public:
 };
 
 }
+#endif // WebCore_Modules_model_element_ModelPlayer_h

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_WeekInputType_h
+#define WebCore_html_WeekInputType_h
 
 #include "BaseDateAndTimeInputType.h"
 #include <wtf/TZoneMalloc.h>
@@ -66,3 +67,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(WeekInputType, Type::Week)
+#endif // WebCore_html_WeekInputType_h

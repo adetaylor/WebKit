@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_paymentrequest_ApplePayRequest_h
+#define WebCore_Modules_applepay_paymentrequest_ApplePayRequest_h
 
 #if ENABLE(APPLE_PAY) && ENABLE(PAYMENT_REQUEST)
 
@@ -39,3 +40,4 @@ struct ApplePayRequest : public ApplePayRequestBase {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY) && ENABLE(PAYMENT_REQUEST)
+#endif // WebCore_Modules_applepay_paymentrequest_ApplePayRequest_h

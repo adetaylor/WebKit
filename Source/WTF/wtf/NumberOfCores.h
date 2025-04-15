@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_NumberOfCores_h
+#define WTF_wtf_NumberOfCores_h
 
 namespace WTF {
 
@@ -30,3 +31,4 @@ WTF_EXPORT_PRIVATE int numberOfPhysicalProcessorCores();
 #endif
 
 }
+#endif // WTF_wtf_NumberOfCores_h

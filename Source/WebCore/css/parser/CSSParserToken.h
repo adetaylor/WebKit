@@ -27,7 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WebCore_css_parser_CSSParserToken_h
+#define WebCore_css_parser_CSSParserToken_h
 
 #include "CSSPrimitiveValue.h"
 #include <wtf/text/StringView.h>
@@ -194,3 +195,4 @@ inline void CSSParserToken::updateCharacters(std::span<const CharacterType> char
 }
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSParserToken_h

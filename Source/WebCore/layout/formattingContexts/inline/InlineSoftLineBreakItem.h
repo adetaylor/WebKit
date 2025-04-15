@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineSoftLineBreakItem_h
+#define WebCore_layout_formattingContexts_inline_InlineSoftLineBreakItem_h
 
 #include "InlineItem.h"
 
@@ -57,3 +58,4 @@ inline InlineSoftLineBreakItem::InlineSoftLineBreakItem(const InlineTextBox& inl
 
 SPECIALIZE_TYPE_TRAITS_INLINE_ITEM(InlineSoftLineBreakItem, isSoftLineBreak())
 
+#endif // WebCore_layout_formattingContexts_inline_InlineSoftLineBreakItem_h

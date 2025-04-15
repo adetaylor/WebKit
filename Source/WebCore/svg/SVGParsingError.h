@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGParsingError_h
+#define WebCore_svg_SVGParsingError_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ enum SVGParsingError {
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGParsingError_h

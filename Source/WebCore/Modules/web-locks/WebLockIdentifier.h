@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_web_locks_WebLockIdentifier_h
+#define WebCore_Modules_web_locks_WebLockIdentifier_h
 
 #include "ProcessQualified.h"
 #include <wtf/ObjectIdentifier.h>
@@ -34,3 +35,4 @@ using WebLockIdentifier = ProcessQualified<AtomicObjectIdentifier<WebLockIdentif
 
 } // namespace
 
+#endif // WebCore_Modules_web_locks_WebLockIdentifier_h

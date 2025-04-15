@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayInstallmentItemType_h
+#define WebCore_Modules_applepay_ApplePayInstallmentItemType_h
 
 #if ENABLE(APPLE_PAY_INSTALLMENTS)
 
@@ -40,3 +41,4 @@ enum class ApplePayInstallmentItemType : uint8_t {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY_INSTALLMENTS)
+#endif // WebCore_Modules_applepay_ApplePayInstallmentItemType_h

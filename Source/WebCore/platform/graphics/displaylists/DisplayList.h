@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_displaylists_DisplayList_h
+#define WebCore_platform_graphics_displaylists_DisplayList_h
 
 #include "DisplayListItems.h"
 #include <wtf/Noncopyable.h>
@@ -66,3 +67,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const DisplayList&)
 
 } // DisplayList
 } // WebCore
+#endif // WebCore_platform_graphics_displaylists_DisplayList_h

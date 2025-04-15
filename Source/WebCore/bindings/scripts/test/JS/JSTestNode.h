@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestNode_h
+#define WebCore_bindings_scripts_test_JS_JSTestNode_h
 
 #include "JSDOMWrapper.h"
 #include "JSNode.h"
@@ -81,3 +82,4 @@ template<> struct JSDOMWrapperConverterTraits<TestNode> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSTestNode_h

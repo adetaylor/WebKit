@@ -18,7 +18,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_gtk_GRefPtrGtk_h
+#define WebCore_platform_gtk_GRefPtrGtk_h
 
 #include <wtf/glib/GRefPtr.h>
 
@@ -53,3 +54,4 @@ template <> void derefGPtr(GdkEvent* ptr);
 
 }
 
+#endif // WebCore_platform_gtk_GRefPtrGtk_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
  
-#pragma once
+#ifndef WebCore_html_shadow_TextControlInnerElements_h
+#define WebCore_html_shadow_TextControlInnerElements_h
 
 #include "HTMLDivElement.h"
 #include <wtf/Forward.h>
@@ -154,3 +155,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SearchFieldResultsButtonElement)
         return htmlElement && isType(*htmlElement);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_shadow_TextControlInnerElements_h

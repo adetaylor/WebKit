@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_RenderingResourceIdentifier_h
+#define WebCore_platform_graphics_RenderingResourceIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ struct RenderingResourceIdentifierType;
 using RenderingResourceIdentifier = AtomicObjectIdentifier<RenderingResourceIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_RenderingResourceIdentifier_h

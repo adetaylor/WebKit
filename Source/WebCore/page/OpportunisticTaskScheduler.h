@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_OpportunisticTaskScheduler_h
+#define WebCore_page_OpportunisticTaskScheduler_h
 
 #include "RunLoopObserver.h"
 #include <JavaScriptCore/EdenGCActivityCallback.h>
@@ -127,3 +128,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_OpportunisticTaskScheduler_h

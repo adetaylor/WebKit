@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_server_SWServerRegistration_h
+#define WebCore_workers_service_server_SWServerRegistration_h
 
 #include "CookieChangeSubscription.h"
 #include "NavigationPreloadState.h"
@@ -163,3 +164,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_server_SWServerRegistration_h

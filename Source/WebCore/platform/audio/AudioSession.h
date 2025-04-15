@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_AudioSession_h
+#define WebCore_platform_audio_AudioSession_h
 
 #if USE(AUDIO_SESSION)
 
@@ -299,3 +300,4 @@ struct LogArgument<WebCore::AudioSession::SoundStageSize> {
 } // namespace WTF
 
 #endif // USE(AUDIO_SESSION)
+#endif // WebCore_platform_audio_AudioSession_h

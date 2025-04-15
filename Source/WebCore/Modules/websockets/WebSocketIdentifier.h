@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_websockets_WebSocketIdentifier_h
+#define WebCore_Modules_websockets_WebSocketIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ struct WebSocketIdentifierType;
 using WebSocketIdentifier = AtomicObjectIdentifier<WebSocketIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_Modules_websockets_WebSocketIdentifier_h

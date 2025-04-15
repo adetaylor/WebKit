@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_ContentExtensionsDebugging_h
+#define WebCore_contentextensions_ContentExtensionsDebugging_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -46,3 +47,4 @@ typedef UnsafeVectorOverflow ContentExtensionsOverflowHandler;
 #endif
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_ContentExtensionsDebugging_h

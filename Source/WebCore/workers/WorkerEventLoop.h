@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerEventLoop_h
+#define WebCore_workers_WorkerEventLoop_h
 
 #include "ActiveDOMObject.h"
 #include "EventLoop.h"
@@ -53,3 +54,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerEventLoop_h

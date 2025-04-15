@@ -27,7 +27,8 @@
 // CDMInstanceSessionFairPlayStreamingAVFObjC once we no logner need to support a configuration
 // where the BuiltInCDMKeyGroupingStrategyEnabled preference is off.
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_ContentKeyGroupDataSource_h
+#define WebCore_platform_graphics_avfoundation_ContentKeyGroupDataSource_h
 
 #if HAVE(AVCONTENTKEYSESSION)
 
@@ -63,3 +64,4 @@ public:
 } // namespace WebCore
 
 #endif // HAVE(AVCONTENTKEYSESSION)
+#endif // WebCore_platform_graphics_avfoundation_ContentKeyGroupDataSource_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_NoTailCalls_h
+#define WTF_wtf_NoTailCalls_h
 
 #include <wtf/Atomics.h>
 
@@ -51,3 +52,4 @@ struct NoTailCalls {
 // This is helpful when bar or baz have other callers that are allowed to tail call it.
 
 #define NO_TAIL_CALLS() WTF::NoTailCalls _noTailCalls_
+#endif // WTF_wtf_NoTailCalls_h

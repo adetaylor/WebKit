@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_WebGLObject_h
+#define WebCore_html_canvas_WebGLObject_h
 
 #if ENABLE(WEBGL)
 
@@ -138,3 +139,4 @@ WebCoreOpaqueRoot root(WebGLObject*);
 } // namespace WebCore
 
 #endif
+#endif // WebCore_html_canvas_WebGLObject_h

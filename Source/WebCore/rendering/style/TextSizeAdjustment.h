@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_TextSizeAdjustment_h
+#define WebCore_rendering_style_TextSizeAdjustment_h
 
 #if ENABLE(TEXT_AUTOSIZING)
 
@@ -93,3 +94,4 @@ constexpr bool AutosizeStatus::contains(Fields fields) const
 } // namespace WebCore
 
 #endif // ENABLE(TEXT_AUTOSIZING)
+#endif // WebCore_rendering_style_TextSizeAdjustment_h

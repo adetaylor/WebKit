@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PlatformEvent_h
+#define WebCore_platform_PlatformEvent_h
 
 #include <wtf/OptionSet.h>
 #include <wtf/UUID.h>
@@ -148,3 +149,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_PlatformEvent_h

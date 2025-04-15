@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_LayerFragment_h
+#define WebCore_rendering_LayerFragment_h
 
 #include "ClipRect.h"
 
@@ -83,3 +84,4 @@ public:
 typedef Vector<LayerFragment, 1> LayerFragments;
 
 } // namespace WebCore
+#endif // WebCore_rendering_LayerFragment_h

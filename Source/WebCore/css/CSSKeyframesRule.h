@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSKeyframesRule_h
+#define WebCore_css_CSSKeyframesRule_h
 
 #include "CSSRule.h"
 #include "StyleRule.h"
@@ -104,3 +105,4 @@ SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSKeyframesRule, StyleRuleType::Keyframes)
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyleRuleKeyframes)
     static bool isType(const WebCore::StyleRuleBase& rule) { return rule.isKeyframesRule(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_CSSKeyframesRule_h

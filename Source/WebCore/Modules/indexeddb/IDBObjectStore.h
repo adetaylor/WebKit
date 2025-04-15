@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBObjectStore_h
+#define WebCore_Modules_indexeddb_IDBObjectStore_h
 
 #include "ActiveDOMObject.h"
 #include "ExceptionOr.h"
@@ -152,3 +153,4 @@ private:
 WebCoreOpaqueRoot root(IDBObjectStore*);
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBObjectStore_h

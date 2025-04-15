@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_flex_FlexLayout_h
+#define WebCore_layout_formattingContexts_flex_FlexLayout_h
 
 #include "FlexFormattingConstraints.h"
 #include "FlexRect.h"
@@ -89,3 +90,4 @@ private:
 
 }
 }
+#endif // WebCore_layout_formattingContexts_flex_FlexLayout_h

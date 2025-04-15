@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleGridData_h
+#define WebCore_rendering_style_StyleGridData_h
 
 #include "GridArea.h"
 #include "GridTrackSize.h"
@@ -186,3 +187,4 @@ private:
 
 } // namespace WebCore
 
+#endif // WebCore_rendering_style_StyleGridData_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_SlotAssignment_h
+#define WebCore_dom_SlotAssignment_h
 
 #include "ShadowRoot.h"
 #include <wtf/HashMap.h>
@@ -229,3 +230,4 @@ inline void ShadowRoot::willRemoveAssignedNode(Node& node)
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_SlotAssignment_h

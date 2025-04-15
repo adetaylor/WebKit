@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_WebCodecsControlMessage_h
+#define WebCore_Modules_webcodecs_WebCodecsControlMessage_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -63,3 +64,4 @@ private:
 
 }
 #endif
+#endif // WebCore_Modules_webcodecs_WebCodecsControlMessage_h

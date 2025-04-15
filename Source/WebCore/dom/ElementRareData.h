@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementRareData_h
+#define WebCore_dom_ElementRareData_h
 
 #include "CSSCalcRandomCachingKeyMap.h"
 #include "CustomElementDefaultARIA.h"
@@ -401,3 +402,4 @@ inline void Element::removeShadowRoot()
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_ElementRareData_h

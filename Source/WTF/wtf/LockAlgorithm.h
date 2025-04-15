@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_LockAlgorithm_h
+#define WTF_wtf_LockAlgorithm_h
 
 #include <wtf/Atomics.h>
 #include <wtf/Compiler.h>
@@ -154,3 +155,4 @@ private:
 } // namespace WTF
 
 using WTF::LockAlgorithm;
+#endif // WTF_wtf_LockAlgorithm_h

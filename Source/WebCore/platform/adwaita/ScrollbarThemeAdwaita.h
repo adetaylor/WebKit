@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_adwaita_ScrollbarThemeAdwaita_h
+#define WebCore_platform_adwaita_ScrollbarThemeAdwaita_h
 
 #if USE(THEME_ADWAITA)
 
@@ -60,3 +61,4 @@ protected:
 } // namespace WebCore
 
 #endif // USE(THEME_ADWAITA)
+#endif // WebCore_platform_adwaita_ScrollbarThemeAdwaita_h

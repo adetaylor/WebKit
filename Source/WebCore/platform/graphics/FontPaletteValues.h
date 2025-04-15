@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontPaletteValues_h
+#define WebCore_platform_graphics_FontPaletteValues_h
 
 #include "Color.h"
 #include "Gradient.h"
@@ -135,3 +136,4 @@ template<> struct DefaultHash<WebCore::FontPaletteValues> {
 };
 
 }
+#endif // WebCore_platform_graphics_FontPaletteValues_h

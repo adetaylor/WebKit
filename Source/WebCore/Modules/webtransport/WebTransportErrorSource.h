@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_WebTransportErrorSource_h
+#define WebCore_Modules_webtransport_WebTransportErrorSource_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class WebTransportErrorSource : bool {
 };
 
 }
+#endif // WebCore_Modules_webtransport_WebTransportErrorSource_h

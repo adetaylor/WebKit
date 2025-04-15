@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_mac_DictionaryLookup_h
+#define WebCore_editing_mac_DictionaryLookup_h
 
 #if PLATFORM(COCOA)
 
@@ -71,3 +72,4 @@ public:
 } // namespace WebCore
 
 #endif // PLATFORM(COCOA)
+#endif // WebCore_editing_mac_DictionaryLookup_h

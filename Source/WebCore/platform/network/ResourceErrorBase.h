@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_ResourceErrorBase_h
+#define WebCore_platform_network_ResourceErrorBase_h
 
 #include <wtf/TZoneMalloc.h>
 #include <wtf/URL.h>
@@ -122,3 +123,4 @@ WEBCORE_EXPORT ResourceError badResponseHeadersError(const URL&);
 inline bool operator==(const ResourceError& a, const ResourceError& b) { return ResourceErrorBase::compare(a, b); }
 
 } // namespace WebCore
+#endif // WebCore_platform_network_ResourceErrorBase_h

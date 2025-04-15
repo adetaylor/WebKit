@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gtk_GdkSkiaUtilities_h
+#define WebCore_platform_graphics_gtk_GdkSkiaUtilities_h
 
 #if USE(SKIA)
 
@@ -50,3 +51,4 @@ GRefPtr<GdkPixbuf> skiaImageToGdkPixbuf(SkImage&);
 }
 
 #endif // USE(SKIA)
+#endif // WebCore_platform_graphics_gtk_GdkSkiaUtilities_h

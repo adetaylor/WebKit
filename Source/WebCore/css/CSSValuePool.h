@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSValuePool_h
+#define WebCore_css_CSSValuePool_h
 
 #include "CSSColorValue.h"
 #include "CSSPrimitiveValue.h"
@@ -95,3 +96,4 @@ inline Ref<CSSPrimitiveValue> CSSPrimitiveValue::create(CSSValueID identifier)
 }
 
 } // namespace WebCore
+#endif // WebCore_css_CSSValuePool_h

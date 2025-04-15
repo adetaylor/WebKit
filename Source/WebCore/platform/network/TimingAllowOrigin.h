@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_TimingAllowOrigin_h
+#define WebCore_platform_network_TimingAllowOrigin_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ class SecurityOrigin;
 WEBCORE_EXPORT bool passesTimingAllowOriginCheck(const ResourceResponse&, const SecurityOrigin& initiatorSecurityOrigin);
 
 }
+#endif // WebCore_platform_network_TimingAllowOrigin_h

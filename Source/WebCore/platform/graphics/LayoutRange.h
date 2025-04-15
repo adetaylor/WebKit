@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_LayoutRange_h
+#define WebCore_platform_graphics_LayoutRange_h
 
 #include "LayoutUnit.h"
 #include <wtf/text/TextStream.h>
@@ -150,3 +151,4 @@ inline TextStream& operator<<(TextStream& stream, const LayoutRange& range)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_LayoutRange_h

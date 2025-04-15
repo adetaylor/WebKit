@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_StructuredClone_h
+#define WebCore_bindings_js_StructuredClone_h
 
 namespace JSC {
 class CallFrame;
@@ -38,3 +39,4 @@ JSC_DECLARE_HOST_FUNCTION(cloneArrayBuffer);
 JSC_DECLARE_HOST_FUNCTION(structuredCloneForStream);
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_StructuredClone_h

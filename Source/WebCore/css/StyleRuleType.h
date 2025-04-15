@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_StyleRuleType_h
+#define WebCore_css_StyleRuleType_h
 
 namespace WebCore {
 
@@ -61,3 +62,4 @@ enum class StyleRuleType : uint8_t {
 static constexpr auto firstUnexposedStyleRuleType = StyleRuleType::ViewTransition;
 
 } // namespace WebCore
+#endif // WebCore_css_StyleRuleType_h

@@ -23,9 +23,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Nonmovable_h
+#define WTF_wtf_Nonmovable_h
 
 #define WTF_MAKE_NONMOVABLE(ClassName) \
     ClassName(ClassName&&) = delete; \
     ClassName& operator=(ClassName&&) = delete; \
 
+#endif // WTF_wtf_Nonmovable_h

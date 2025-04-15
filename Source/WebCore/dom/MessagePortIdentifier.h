@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_MessagePortIdentifier_h
+#define WebCore_dom_MessagePortIdentifier_h
 
 #include "PortIdentifier.h"
 #include "ProcessIdentifier.h"
@@ -79,3 +80,4 @@ template<> struct HashTraits<WebCore::MessagePortIdentifier> : GenericHashTraits
 template<> struct DefaultHash<WebCore::MessagePortIdentifier> : MessagePortIdentifierHash { };
 
 } // namespace WTF
+#endif // WebCore_dom_MessagePortIdentifier_h

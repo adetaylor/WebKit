@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_permissions_Permissions_h
+#define WebCore_Modules_permissions_Permissions_h
 
 #include "IDLTypes.h"
 #include <JavaScriptCore/Strong.h>
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_permissions_Permissions_h

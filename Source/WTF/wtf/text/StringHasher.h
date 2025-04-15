@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringHasher_h
+#define WTF_wtf_text_StringHasher_h
 
 #include <array>
 #include <unicode/utypes.h>
@@ -127,3 +128,4 @@ private:
 } // namespace WTF
 
 using WTF::StringHasher;
+#endif // WTF_wtf_text_StringHasher_h

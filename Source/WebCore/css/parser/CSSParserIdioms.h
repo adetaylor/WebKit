@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSParserIdioms_h
+#define WebCore_css_parser_CSSParserIdioms_h
 
 #include "CSSParserContext.h"
 #include "CSSValueKeywords.h"
@@ -95,3 +96,4 @@ inline bool isValidContainerNameIdentifier(CSSValueID valueID)
 }
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSParserIdioms_h

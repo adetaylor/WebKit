@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGLayerTransformComputation_h
+#define WebCore_rendering_svg_SVGLayerTransformComputation_h
 
 #include "RenderAncestorIterator.h"
 #include "RenderLayer.h"
@@ -131,3 +132,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_SVGLayerTransformComputation_h

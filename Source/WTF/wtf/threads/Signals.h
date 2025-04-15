@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_threads_Signals_h
+#define WTF_wtf_threads_Signals_h
 
 #include <wtf/AlignedStorage.h>
 #include <wtf/CodePtr.h>
@@ -161,3 +162,4 @@ using WTF::SignalAction;
 using WTF::SignalHandler;
 using WTF::addSignalHandler;
 using WTF::activateSignalHandlersFor;
+#endif // WTF_wtf_threads_Signals_h

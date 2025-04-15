@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_storage_StorageEventDispatcher_h
+#define WebCore_storage_StorageEventDispatcher_h
 
 #include <wtf/Forward.h>
 
@@ -44,3 +45,4 @@ WEBCORE_EXPORT void dispatchLocalStorageEvents(const String& key, const String& 
 }
 
 } // namespace WebCore
+#endif // WebCore_storage_StorageEventDispatcher_h

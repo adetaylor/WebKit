@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_ParallelVectorIterator_h
+#define WTF_wtf_ParallelVectorIterator_h
 
 #include <wtf/FastMalloc.h>
 #include <wtf/Lock.h>
@@ -76,3 +77,4 @@ private:
 } // namespace WTF
 
 using WTF::ParallelVectorIterator;
+#endif // WTF_wtf_ParallelVectorIterator_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AXRemoteFrame_h
+#define WebCore_accessibility_AXRemoteFrame_h
 
 #include "AccessibilityMockObject.h"
 
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_ACCESSIBILITY(AXRemoteFrame, isAXRemoteFrame())
+#endif // WebCore_accessibility_AXRemoteFrame_h

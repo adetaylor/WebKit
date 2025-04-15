@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_LibWebRTCDav1dDecoder_h
+#define WebCore_platform_mediastream_libwebrtc_LibWebRTCDav1dDecoder_h
 
 #if USE(LIBWEBRTC) && ENABLE(AV1)
 
@@ -40,3 +41,4 @@ WEBCORE_EXPORT UniqueRef<webrtc::VideoDecoder> createLibWebRTCDav1dDecoder();
 } // namespace WebCore
 
 #endif // USE(LIBWEBRTC) && ENABLE(AV1)
+#endif // WebCore_platform_mediastream_libwebrtc_LibWebRTCDav1dDecoder_h

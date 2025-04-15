@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_encryptedmedia_CDMInstance_h
+#define WebCore_platform_encryptedmedia_CDMInstance_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -131,3 +132,4 @@ static bool isType(const WebCore::CDMInstance& instance) { return instance.imple
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif
+#endif // WebCore_platform_encryptedmedia_CDMInstance_h

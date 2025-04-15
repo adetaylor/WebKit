@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DragEvent_h
+#define WebCore_dom_DragEvent_h
 
 #include "MouseEvent.h"
 #include "MouseEventInit.h"
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DragEvent_h

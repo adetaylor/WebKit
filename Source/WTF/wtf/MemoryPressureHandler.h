@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_MemoryPressureHandler_h
+#define WTF_wtf_MemoryPressureHandler_h
 
 #include <atomic>
 #include <ctime>
@@ -285,3 +286,4 @@ using WTF::MemoryPressureHandler;
 using WTF::Synchronous;
 using WTF::SystemMemoryPressureStatus;
 using WTF::WebsamProcessState;
+#endif // WTF_wtf_MemoryPressureHandler_h

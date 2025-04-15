@@ -22,7 +22,8 @@
     pages from the web. It has a memory cache for these objects.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_MemoryCache_h
+#define WebCore_loader_cache_MemoryCache_h
 
 #include "LoaderMalloc.h"
 #include "SecurityOriginHash.h"
@@ -222,3 +223,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_cache_MemoryCache_h

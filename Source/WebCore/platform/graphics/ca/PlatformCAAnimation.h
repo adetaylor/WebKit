@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ca_PlatformCAAnimation_h
+#define WebCore_platform_graphics_ca_PlatformCAAnimation_h
 
 #include "Color.h"
 #include "FilterOperation.h"
@@ -187,3 +188,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, PlatformCAAnimation
 SPECIALIZE_TYPE_TRAITS_BEGIN(ToValueTypeName) \
     static bool isType(const WebCore::PlatformCAAnimation& animation) { return animation.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_ca_PlatformCAAnimation_h

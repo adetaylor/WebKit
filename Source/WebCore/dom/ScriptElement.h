@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ScriptElement_h
+#define WebCore_dom_ScriptElement_h
 
 #include "ContainerNode.h"
 #include "ContentSecurityPolicy.h"
@@ -171,3 +172,4 @@ bool isScriptElement(Node&);
 ScriptElement* dynamicDowncastScriptElement(Element&);
 
 }
+#endif // WebCore_dom_ScriptElement_h

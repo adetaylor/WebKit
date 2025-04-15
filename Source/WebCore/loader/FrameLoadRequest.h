@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_loader_FrameLoadRequest_h
+#define WebCore_loader_FrameLoadRequest_h
 
 #include "AdvancedPrivacyProtections.h"
 #include "FrameLoaderTypes.h"
@@ -152,3 +153,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_FrameLoadRequest_h

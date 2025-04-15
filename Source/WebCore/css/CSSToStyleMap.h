@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSToStyleMap_h
+#define WebCore_css_CSSToStyleMap_h
 
 #include <wtf/Forward.h>
 
@@ -92,3 +93,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_CSSToStyleMap_h

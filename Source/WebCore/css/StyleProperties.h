@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_StyleProperties_h
+#define WebCore_css_StyleProperties_h
 
 #include "CSSProperty.h"
 
@@ -168,3 +169,4 @@ inline CSSValueID longhandValueID(CSSPropertyID, const CSSValue&);
 inline std::optional<CSSValueID> longhandValueID(CSSPropertyID, const CSSValue*);
 
 } // namespace WebCore
+#endif // WebCore_css_StyleProperties_h

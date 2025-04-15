@@ -27,7 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_DecodeEscapeSequences_h
+#define WebCore_PAL_pal_text_DecodeEscapeSequences_h
 
 #include "TextEncoding.h"
 #include <wtf/ASCIICType.h>
@@ -185,3 +186,4 @@ inline Vector<uint8_t> decodeURLEscapeSequencesAsData(StringView string)
 }
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_text_DecodeEscapeSequences_h

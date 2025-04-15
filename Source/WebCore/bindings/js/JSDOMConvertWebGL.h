@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertWebGL_h
+#define WebCore_bindings_js_JSDOMConvertWebGL_h
 
 #if ENABLE(WEBGL)
 
@@ -58,3 +59,4 @@ template<> struct JSConverter<IDLWebGLExtensionAny> {
 } // namespace WebCore
 
 #endif
+#endif // WebCore_bindings_js_JSDOMConvertWebGL_h

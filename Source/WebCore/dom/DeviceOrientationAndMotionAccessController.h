@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DeviceOrientationAndMotionAccessController_h
+#define WebCore_dom_DeviceOrientationAndMotionAccessController_h
 
 #if ENABLE(DEVICE_ORIENTATION)
 
@@ -66,3 +67,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(DEVICE_ORIENTATION)
+#endif // WebCore_dom_DeviceOrientationAndMotionAccessController_h

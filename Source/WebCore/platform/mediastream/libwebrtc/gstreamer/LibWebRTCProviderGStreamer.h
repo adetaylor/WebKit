@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_gstreamer_LibWebRTCProviderGStreamer_h
+#define WebCore_platform_mediastream_libwebrtc_gstreamer_LibWebRTCProviderGStreamer_h
 
 #if USE(LIBWEBRTC) && USE(GSTREAMER)
 
@@ -44,3 +45,4 @@ public:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_mediastream_libwebrtc_gstreamer_LibWebRTCProviderGStreamer_h

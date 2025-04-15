@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingTreeStickyNode_h
+#define WebCore_page_scrolling_ScrollingTreeStickyNode_h
 
 #if ENABLE(ASYNC_SCROLLING)
 
@@ -64,3 +65,4 @@ protected:
 SPECIALIZE_TYPE_TRAITS_SCROLLING_NODE(ScrollingTreeStickyNode, isStickyNode())
 
 #endif // ENABLE(ASYNC_SCROLLING)
+#endif // WebCore_page_scrolling_ScrollingTreeStickyNode_h

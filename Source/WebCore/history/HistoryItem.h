@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_history_HistoryItem_h
+#define WebCore_history_HistoryItem_h
 
 #include "BackForwardFrameItemIdentifier.h"
 #include "BackForwardItemIdentifier.h"
@@ -307,3 +308,4 @@ private:
 // Outside the WebCore namespace for ease of invocation from the debugger.
 extern "C" int showTree(const WebCore::HistoryItem*);
 #endif
+#endif // WebCore_history_HistoryItem_h

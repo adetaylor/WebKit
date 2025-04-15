@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_AccessibleAddress_h
+#define WTF_wtf_AccessibleAddress_h
 
 #include <wtf/WTFConfig.h>
 
@@ -47,3 +48,4 @@ using WTF::lowestAccessibleAddress;
 using WTF::highestAccessibleAddress;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_AccessibleAddress_h

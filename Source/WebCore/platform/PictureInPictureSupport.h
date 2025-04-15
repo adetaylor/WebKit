@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PictureInPictureSupport_h
+#define WebCore_platform_PictureInPictureSupport_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ constexpr bool supportsPictureInPicture() { return false; }
 #endif
 
 }
+#endif // WebCore_platform_PictureInPictureSupport_h

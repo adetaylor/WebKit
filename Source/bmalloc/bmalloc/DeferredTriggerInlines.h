@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_DeferredTriggerInlines_h
+#define bmalloc_bmalloc_DeferredTriggerInlines_h
 
 #if !BUSE(TZONE)
 
@@ -60,3 +61,4 @@ void DeferredTrigger<trigger>::handleDeferral(const LockHolder& locker, IsoPage<
 
 #endif
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_DeferredTriggerInlines_h

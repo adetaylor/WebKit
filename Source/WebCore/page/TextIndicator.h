@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_TextIndicator_h
+#define WebCore_page_TextIndicator_h
 
 #include "FloatRect.h"
 #include "Image.h"
@@ -179,3 +180,4 @@ private:
 };
 
 } // namespace WebKit
+#endif // WebCore_page_TextIndicator_h

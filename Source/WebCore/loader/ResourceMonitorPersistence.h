@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceMonitorPersistence_h
+#define WebCore_loader_ResourceMonitorPersistence_h
 
 #include "SQLiteDatabase.h"
 #include <wtf/ContinuousApproximateTime.h>
@@ -62,3 +63,4 @@ private:
 };
 
 }
+#endif // WebCore_loader_ResourceMonitorPersistence_h

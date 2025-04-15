@@ -25,7 +25,8 @@
 
 // Implementation of Library Fundamentals v3's std::expected, as described here: http://wg21.link/p0323r4
 
-#pragma once
+#ifndef WTF_wtf_Unexpected_h
+#define WTF_wtf_Unexpected_h
 
 /*
     unexpected synopsis
@@ -95,3 +96,4 @@ template<class E> using Unexpected = std::experimental::unexpected<E>;
 
 // Not in the std::expected spec, but useful to work around lack of C++17 deduction guides.
 template<class E> constexpr Unexpected<std::decay_t<E>> makeUnexpected(E&& v) { return Unexpected<typename std::decay<E>::type>(std::forward<E>(v)); }
+#endif // WTF_wtf_Unexpected_h

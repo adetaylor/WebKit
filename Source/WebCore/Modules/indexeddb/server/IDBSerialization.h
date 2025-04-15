@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_server_IDBSerialization_h
+#define WebCore_Modules_indexeddb_server_IDBSerialization_h
 
 #include "IDBKeyPath.h"
 #include "SharedBuffer.h"
@@ -39,3 +40,4 @@ RefPtr<SharedBuffer> serializeIDBKeyData(const IDBKeyData&);
 bool deserializeIDBKeyData(std::span<const uint8_t> buffer, IDBKeyData&);
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_server_IDBSerialization_h

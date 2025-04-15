@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_mac_ImageControlsMac_h
+#define WebCore_dom_mac_ImageControlsMac_h
 
 #include "IntRect.h"
 
@@ -51,3 +52,4 @@ WEBCORE_EXPORT bool hasImageControls(const HTMLElement&);
 
 } // namespace ImageControlsMac
 } // namespace WebCore
+#endif // WebCore_dom_mac_ImageControlsMac_h

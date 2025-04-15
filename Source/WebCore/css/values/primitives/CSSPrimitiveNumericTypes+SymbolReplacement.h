@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericTypes_SymbolReplacement_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericTypes_SymbolReplacement_h
 
 #include "CSSPrimitiveNumericTypes.h"
 #include "CSSSymbol.h"
@@ -79,3 +80,4 @@ template<typename T> constexpr decltype(auto) replaceSymbol(const std::optional<
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericTypes_SymbolReplacement_h

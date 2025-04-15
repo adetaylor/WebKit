@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_WindowFeatures_h
+#define WebCore_page_WindowFeatures_h
 
 #include "DisabledAdaptations.h"
 #include "FloatRect.h"
@@ -123,3 +124,4 @@ enum class FeatureMode { Window, Viewport };
 void processFeaturesString(StringView features, FeatureMode, NOESCAPE const Function<void(StringView type, StringView value)>& callback);
 
 } // namespace WebCore
+#endif // WebCore_page_WindowFeatures_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_DFABytecode_h
+#define WebCore_contentextensions_DFABytecode_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -113,3 +114,4 @@ static constexpr size_t UInt24Size = 3;
 } // namespace WebCore::ContentExtensions
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_DFABytecode_h

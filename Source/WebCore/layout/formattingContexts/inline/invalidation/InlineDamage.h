@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_invalidation_InlineDamage_h
+#define WebCore_layout_formattingContexts_inline_invalidation_InlineDamage_h
 
 #include "InlineDisplayContent.h"
 #include "InlineLineTypes.h"
@@ -118,3 +119,4 @@ inline void InlineDamage::resetLayoutPosition()
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_invalidation_InlineDamage_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineLevelBox_h
+#define WebCore_layout_formattingContexts_inline_InlineLevelBox_h
 
 #include "FontCascade.h"
 #include "InlineRect.h"
@@ -213,3 +214,4 @@ inline void InlineLevelBox::AscentAndDescent::round()
 }
 }
 
+#endif // WebCore_layout_formattingContexts_inline_InlineLevelBox_h

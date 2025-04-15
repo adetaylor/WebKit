@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_cocoa_GameControllerSPI_h
+#define WebCore_platform_gamepad_cocoa_GameControllerSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -71,3 +72,4 @@ WTF_EXTERN_C_END
 
 #endif // HAVE(MULTIGAMEPADPROVIDER_SUPPORT)
 #endif // ENABLE(GAMEPAD) && PLATFORM(COCOA)
+#endif // WebCore_platform_gamepad_cocoa_GameControllerSPI_h

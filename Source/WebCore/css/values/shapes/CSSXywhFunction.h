@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_shapes_CSSXywhFunction_h
+#define WebCore_css_values_shapes_CSSXywhFunction_h
 
 #include "CSSBorderRadius.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -60,3 +61,4 @@ template<> struct Serialize<Xywh> { void operator()(StringBuilder&, const Serial
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Xywh, 3)
+#endif // WebCore_css_values_shapes_CSSXywhFunction_h

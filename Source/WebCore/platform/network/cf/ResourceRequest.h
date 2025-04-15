@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_cf_ResourceRequest_h
+#define WebCore_platform_network_cf_ResourceRequest_h
 
 #include "ResourceRequestBase.h"
 #include <wtf/RetainPtr.h>
@@ -124,3 +125,4 @@ RetainPtr<NSURLRequest> copyRequestWithStorageSession(CFURLStorageSessionRef, NS
 WEBCORE_EXPORT NSCachedURLResponse *cachedResponseForRequest(CFURLStorageSessionRef, NSURLRequest *);
 
 } // namespace WebCore
+#endif // WebCore_platform_network_cf_ResourceRequest_h

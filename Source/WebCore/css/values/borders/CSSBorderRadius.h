@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_borders_CSSBorderRadius_h
+#define WebCore_css_values_borders_CSSBorderRadius_h
 
 #include "CSSPrimitiveNumericTypes.h"
 
@@ -74,3 +75,4 @@ template<> struct Serialize<BorderRadius> { void operator()(StringBuilder&, cons
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::BorderRadius, 2)
+#endif // WebCore_css_values_borders_CSSBorderRadius_h

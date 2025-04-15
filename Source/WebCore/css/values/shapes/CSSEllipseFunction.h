@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_shapes_CSSEllipseFunction_h
+#define WebCore_css_values_shapes_CSSEllipseFunction_h
 
 #include "CSSGradient.h"
 #include "CSSPosition.h"
@@ -60,3 +61,4 @@ template<> struct Serialize<Ellipse> { void operator()(StringBuilder&, const Ser
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Ellipse, 2)
+#endif // WebCore_css_values_shapes_CSSEllipseFunction_h

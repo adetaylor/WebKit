@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_win_WCharStringExtras_h
+#define WTF_wtf_text_win_WCharStringExtras_h
 
 #include <unicode/utypes.h>
 
@@ -58,3 +59,4 @@ inline wchar_t* wcharFrom(UChar* characters)
 
 using WTF::ucharFrom;
 using WTF::wcharFrom;
+#endif // WTF_wtf_text_win_WCharStringExtras_h

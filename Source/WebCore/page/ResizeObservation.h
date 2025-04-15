@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ResizeObservation_h
+#define WebCore_page_ResizeObservation_h
 
 #include "FloatRect.h"
 #include "LayoutSize.h"
@@ -83,3 +84,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const ResizeObservation&);
 
 } // namespace WebCore
+#endif // WebCore_page_ResizeObservation_h

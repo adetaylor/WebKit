@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AXImage_h
+#define WebCore_accessibility_AXImage_h
 
 #include "AccessibilityRenderObject.h"
 #include "RenderImage.h"
@@ -46,3 +47,4 @@ private:
 };
 
 } // namespace WebCore 
+#endif // WebCore_accessibility_AXImage_h

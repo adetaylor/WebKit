@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderBlockFlow_h
+#define WebCore_rendering_RenderBlockFlow_h
 
 #include "FloatingObjects.h"
 #include "LegacyLineLayout.h"
@@ -617,3 +618,4 @@ inline LayoutIntegration::LineLayout* RenderBlockFlow::inlineLayout()
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderBlockFlow, isRenderBlockFlow())
+#endif // WebCore_rendering_RenderBlockFlow_h

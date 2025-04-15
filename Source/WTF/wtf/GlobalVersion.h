@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_GlobalVersion_h
+#define WTF_wtf_GlobalVersion_h
 
 #include <wtf/StdLibExtras.h>
 
@@ -38,3 +39,4 @@ GlobalVersion newGlobalVersion();
 using WTF::GlobalVersion;
 using WTF::newGlobalVersion;
 
+#endif // WTF_wtf_GlobalVersion_h

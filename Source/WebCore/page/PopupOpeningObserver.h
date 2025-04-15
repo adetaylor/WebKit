@@ -23,7 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PopupOpeningObserver_h
+#define WebCore_page_PopupOpeningObserver_h
 
 #include <wtf/WeakPtr.h>
 
@@ -47,3 +48,4 @@ protected:
 };
     
 } // namespace WebCore
+#endif // WebCore_page_PopupOpeningObserver_h

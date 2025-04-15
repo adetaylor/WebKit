@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_UndoItem_h
+#define WebCore_page_UndoItem_h
 
 #include "EventTarget.h"
 #include "VoidCallback.h"
@@ -80,3 +81,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_UndoItem_h

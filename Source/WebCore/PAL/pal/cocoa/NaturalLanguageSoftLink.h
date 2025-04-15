@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_NaturalLanguageSoftLink_h
+#define WebCore_PAL_pal_cocoa_NaturalLanguageSoftLink_h
 
 #import <NaturalLanguage/NaturalLanguage.h>
 #import <wtf/SoftLinking.h>
 
 SOFT_LINK_FRAMEWORK_FOR_HEADER(PAL, NaturalLanguage)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, NLTokenizer)
+#endif // WebCore_PAL_pal_cocoa_NaturalLanguageSoftLink_h

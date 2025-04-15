@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUError_h
+#define WebCore_Modules_WebGPU_GPUError_h
 
 #include "GPUInternalError.h"
 #include "GPUOutOfMemoryError.h"
@@ -35,3 +36,4 @@ namespace WebCore {
 using GPUError = Variant<RefPtr<GPUOutOfMemoryError>, RefPtr<GPUValidationError>, RefPtr<GPUInternalError>>;
 
 }
+#endif // WebCore_Modules_WebGPU_GPUError_h

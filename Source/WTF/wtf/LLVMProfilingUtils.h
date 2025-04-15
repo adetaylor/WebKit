@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_LLVMProfilingUtils_h
+#define WTF_wtf_LLVMProfilingUtils_h
 
 #if ENABLE(LLVM_PROFILE_GENERATION) && PLATFORM(IOS_FAMILY)
 
@@ -53,3 +54,4 @@ ALWAYS_INLINE void initializeLLVMProfiling()
 } // namespace WTF
 
 #endif // ENABLE(LLVM_PROFILE_GENERATION) && PLATFORM(IOS_FAMILY)
+#endif // WTF_wtf_LLVMProfilingUtils_h

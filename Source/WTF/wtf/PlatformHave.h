@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PlatformHave_h
+#define WTF_wtf_PlatformHave_h
 
 #ifndef WTF_PLATFORM_GUARD_AGAINST_INDIRECT_INCLUSION
 #error "Please #include <wtf/Platform.h> instead of this file directly."
@@ -1919,3 +1920,4 @@
 #if !defined(HAVE_UI_CONVERSATION_CONTEXT) && (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 180400)
 #define HAVE_UI_CONVERSATION_CONTEXT 1
 #endif
+#endif // WTF_wtf_PlatformHave_h

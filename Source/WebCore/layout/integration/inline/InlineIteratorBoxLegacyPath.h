@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_InlineIteratorBoxLegacyPath_h
+#define WebCore_layout_integration_inline_InlineIteratorBoxLegacyPath_h
 
 #include "LegacyInlineTextBox.h"
 #include "LegacyRootInlineBox.h"
@@ -186,3 +187,4 @@ private:
 
 }
 }
+#endif // WebCore_layout_integration_inline_InlineIteratorBoxLegacyPath_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GraphicsTypes_h
+#define WebCore_platform_graphics_GraphicsTypes_h
 
 #include "Color.h"
 #include "FloatSize.h"
@@ -188,3 +189,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, TextDrawingMode);
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, WindRule);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_GraphicsTypes_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_airplay_WebKitPlaybackTargetAvailabilityEvent_h
+#define WebCore_Modules_airplay_WebKitPlaybackTargetAvailabilityEvent_h
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET_AVAILABILITY_API)
 
@@ -61,3 +62,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WIRELESS_PLAYBACK_TARGET_AVAILABILITY_API)
+#endif // WebCore_Modules_airplay_WebKitPlaybackTargetAvailabilityEvent_h

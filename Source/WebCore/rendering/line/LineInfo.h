@@ -27,7 +27,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_line_LineInfo_h
+#define WebCore_rendering_line_LineInfo_h
 
 #include "LineWidth.h"
 
@@ -63,3 +64,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_line_LineInfo_h

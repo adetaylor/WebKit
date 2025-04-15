@@ -21,7 +21,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_rendering_style_SVGRenderStyle_h
+#define WebCore_rendering_style_SVGRenderStyle_h
 
 #include "RenderStyle.h"
 #include "RenderStyleConstants.h"
@@ -501,3 +502,4 @@ inline void SVGRenderStyle::setBitDefaults()
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_SVGRenderStyle_h

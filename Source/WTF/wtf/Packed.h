@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Packed_h
+#define WTF_wtf_Packed_h
 
 #include <array>
 #include <wtf/Forward.h>
@@ -305,3 +306,4 @@ template<typename P> struct DefaultHash<PackedPtr<P>> : PtrHash<PackedPtr<P>> { 
 using WTF::Packed;
 using WTF::PackedAlignedPtr;
 using WTF::PackedPtr;
+#endif // WTF_wtf_Packed_h

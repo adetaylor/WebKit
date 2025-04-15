@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceMaskerInlines_h
+#define WebCore_rendering_svg_RenderSVGResourceMaskerInlines_h
 
 #include "RenderSVGResourceMasker.h"
 #include "SVGMaskElement.h"
@@ -51,3 +52,4 @@ SVGUnitTypes::SVGUnitType RenderSVGResourceMasker::maskContentUnits() const
 }
 
 }
+#endif // WebCore_rendering_svg_RenderSVGResourceMaskerInlines_h

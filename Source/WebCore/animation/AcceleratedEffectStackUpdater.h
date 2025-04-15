@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_AcceleratedEffectStackUpdater_h
+#define WebCore_animation_AcceleratedEffectStackUpdater_h
 
 #if ENABLE(THREADED_ANIMATION_RESOLUTION)
 
@@ -59,3 +60,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(THREADED_ANIMATION_RESOLUTION)
+#endif // WebCore_animation_AcceleratedEffectStackUpdater_h

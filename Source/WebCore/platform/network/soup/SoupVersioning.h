@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_soup_SoupVersioning_h
+#define WebCore_platform_network_soup_SoupVersioning_h
 
 #include <libsoup/soup.h>
 
@@ -166,3 +167,4 @@ soup_session_set_tls_database(SoupSession *session, GTlsDatabase *tls_database)
 }
 
 #endif // USE(SOUP2)
+#endif // WebCore_platform_network_soup_SoupVersioning_h

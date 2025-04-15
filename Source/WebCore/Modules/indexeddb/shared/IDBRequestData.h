@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_shared_IDBRequestData_h
+#define WebCore_Modules_indexeddb_shared_IDBRequestData_h
 
 #include "IDBDatabaseIdentifier.h"
 #include "IDBIndexIdentifier.h"
@@ -87,3 +88,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_shared_IDBRequestData_h

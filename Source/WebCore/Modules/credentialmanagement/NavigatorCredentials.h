@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_credentialmanagement_NavigatorCredentials_h
+#define WebCore_Modules_credentialmanagement_NavigatorCredentials_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -58,3 +59,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_credentialmanagement_NavigatorCredentials_h

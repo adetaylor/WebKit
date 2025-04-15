@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_MessagePort_h
+#define WebCore_dom_MessagePort_h
 
 #include "ActiveDOMObject.h"
 #include "ContextDestructionObserverInlines.h"
@@ -123,3 +124,4 @@ private:
 WebCoreOpaqueRoot root(MessagePort*);
 
 } // namespace WebCore
+#endif // WebCore_dom_MessagePort_h

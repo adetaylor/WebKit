@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_iso_ISOSchemeTypeBox_h
+#define WebCore_platform_graphics_iso_ISOSchemeTypeBox_h
 
 #include "ISOBox.h"
 
@@ -49,3 +50,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_ISOBOX(ISOSchemeTypeBox)
+#endif // WebCore_platform_graphics_iso_ISOSchemeTypeBox_h

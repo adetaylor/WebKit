@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_Attr_h
+#define WebCore_dom_Attr_h
 
 #include "Node.h"
 #include "QualifiedName.h"
@@ -90,3 +91,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Attr)
     static bool isType(const WebCore::Node& node) { return node.isAttributeNode(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_Attr_h

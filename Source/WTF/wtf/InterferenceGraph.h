@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_InterferenceGraph_h
+#define WTF_wtf_InterferenceGraph_h
 
 #include <wtf/BitVector.h>
 #include <wtf/HashSet.h>
@@ -522,3 +523,4 @@ using WTF::HugeInterferenceGraph;
 using WTF::SmallIterableInterferenceGraph;
 using WTF::LargeIterableInterferenceGraph;
 using WTF::HugeIterableInterferenceGraph;
+#endif // WTF_wtf_InterferenceGraph_h

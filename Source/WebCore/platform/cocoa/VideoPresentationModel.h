@@ -24,7 +24,8 @@
  */
 
 
-#pragma once
+#ifndef WebCore_platform_cocoa_VideoPresentationModel_h
+#define WebCore_platform_cocoa_VideoPresentationModel_h
 
 #if ENABLE(VIDEO_PRESENTATION_MODE)
 
@@ -142,3 +143,4 @@ public:
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO_PRESENTATION_MODE)
+#endif // WebCore_platform_cocoa_VideoPresentationModel_h

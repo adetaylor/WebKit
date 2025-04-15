@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CompactVariant_h
+#define WTF_wtf_CompactVariant_h
 
 #include <wtf/CompactVariantOperations.h>
 
@@ -184,3 +185,4 @@ template<typename... Ts> using CompactVariantWrapper = CompactVariant<Ts...>;
 
 using WTF::CompactVariant;
 using WTF::CompactVariantWrapper;
+#endif // WTF_wtf_CompactVariant_h

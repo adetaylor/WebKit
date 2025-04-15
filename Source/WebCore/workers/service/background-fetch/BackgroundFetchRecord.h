@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetchRecord_h
+#define WebCore_workers_service_background_fetch_BackgroundFetchRecord_h
 
 #include "DOMPromiseProxy.h"
 #include <wtf/UniqueRef.h>
@@ -55,3 +56,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_BackgroundFetchRecord_h

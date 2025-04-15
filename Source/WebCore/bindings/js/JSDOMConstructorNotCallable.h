@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConstructorNotCallable_h
+#define WebCore_bindings_js_JSDOMConstructorNotCallable_h
 
 #include "JSDOMWrapper.h"
 #include "WebCoreJSClientData.h"
@@ -85,3 +86,4 @@ template<typename JSClass> inline void JSDOMConstructorNotCallable<JSClass>::fin
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConstructorNotCallable_h

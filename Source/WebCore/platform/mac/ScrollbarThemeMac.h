@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_ScrollbarThemeMac_h
+#define WebCore_platform_mac_ScrollbarThemeMac_h
 
 #include "ScrollbarThemeComposite.h"
 
@@ -100,3 +101,4 @@ static bool isType(const WebCore::ScrollbarTheme& scrollTheme) { return scrollTh
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_mac_ScrollbarThemeMac_h

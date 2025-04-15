@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CallbackAggregator_h
+#define WTF_wtf_CallbackAggregator_h
 
 #include <wtf/CompletionHandler.h>
 #include <wtf/MainThread.h>
@@ -108,3 +109,4 @@ private:
 using WTF::CallbackAggregator;
 using WTF::MainRunLoopCallbackAggregator;
 using WTF::EagerCallbackAggregator;
+#endif // WTF_wtf_CallbackAggregator_h

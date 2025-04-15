@@ -24,7 +24,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#ifndef WebCore_dom_ExceptionOr_h
+#define WebCore_dom_ExceptionOr_h
 
 #include "Exception.h"
 #include <wtf/CrossThreadCopier.h>
@@ -236,3 +237,4 @@ template<> struct CrossThreadCopierBase<false, false, WebCore::ExceptionOr<void>
 };
 
 }
+#endif // WebCore_dom_ExceptionOr_h

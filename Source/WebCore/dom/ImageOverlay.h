@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ImageOverlay_h
+#define WebCore_dom_ImageOverlay_h
 
 #include "IntRect.h"
 #include <wtf/RefCounted.h>
@@ -63,3 +64,4 @@ WEBCORE_EXPORT void updateWithTextRecognitionResult(HTMLElement&, const TextReco
 } // namespace ImageOverlay
 
 } // namespace WebCore
+#endif // WebCore_dom_ImageOverlay_h

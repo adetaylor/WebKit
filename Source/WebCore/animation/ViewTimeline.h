@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_ViewTimeline_h
+#define WebCore_animation_ViewTimeline_h
 
 #include "CSSNumericValue.h"
 #include "CSSPrimitiveValue.h"
@@ -138,3 +139,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const StickinessAdjustmentData::St
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_ANIMATION_TIMELINE(ViewTimeline, isViewTimeline())
+#endif // WebCore_animation_ViewTimeline_h

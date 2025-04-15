@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestDefaultToJSONIndirectInheritance_h
+#define WebCore_bindings_scripts_test_JS_JSTestDefaultToJSONIndirectInheritance_h
 
 #include "JSDOMWrapper.h"
 #include "JSTestDefaultToJSONInherit.h"
@@ -77,3 +78,4 @@ template<> struct JSDOMWrapperConverterTraits<TestDefaultToJSONIndirectInheritan
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSTestDefaultToJSONIndirectInheritance_h

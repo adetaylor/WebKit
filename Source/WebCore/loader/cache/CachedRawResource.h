@@ -20,7 +20,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedRawResource_h
+#define WebCore_loader_cache_CachedRawResource_h
 
 #include "CachedResource.h"
 
@@ -104,3 +105,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CachedRawResource)
     static bool isType(const WebCore::CachedResource& resource) { return resource.isMainOrMediaOrIconOrRawResource(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_loader_cache_CachedRawResource_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayContactField_h
+#define WebCore_Modules_applepay_ApplePayContactField_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -46,3 +47,4 @@ ExceptionOr<ApplePaySessionPaymentRequestContactFields> convertAndValidate(unsig
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY)
+#endif // WebCore_Modules_applepay_ApplePayContactField_h

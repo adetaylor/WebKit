@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_worker_WorkerDebuggerAgent_h
+#define WebCore_inspector_agents_worker_WorkerDebuggerAgent_h
 
 #include "WebDebuggerAgent.h"
 #include <wtf/CheckedRef.h>
@@ -57,3 +58,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_worker_WorkerDebuggerAgent_h

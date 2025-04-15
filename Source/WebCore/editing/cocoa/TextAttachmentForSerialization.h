@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_cocoa_TextAttachmentForSerialization_h
+#define WebCore_editing_cocoa_TextAttachmentForSerialization_h
 
 #if PLATFORM(COCOA)
 
@@ -71,3 +72,4 @@ struct MultiRepresentationHEICAttachmentData {
 } // namespace WebCore
 
 #endif // PLATFORM(COCOA)
+#endif // WebCore_editing_cocoa_TextAttachmentForSerialization_h

@@ -29,7 +29,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderListBox_h
+#define WebCore_rendering_RenderListBox_h
 
 #include "RenderBlockFlow.h"
 #include "ScrollableArea.h"
@@ -227,3 +228,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::RenderListBox)
     static bool isType(const WebCore::RenderObject& renderer) { return renderer.isRenderListBox(); }
     static bool isType(const WebCore::ScrollableArea& area) { return area.isListBox(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_rendering_RenderListBox_h

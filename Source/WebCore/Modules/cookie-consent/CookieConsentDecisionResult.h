@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cookie_consent_CookieConsentDecisionResult_h
+#define WebCore_Modules_cookie_consent_CookieConsentDecisionResult_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ enum class CookieConsentDecisionResult : uint8_t {
 
 } // namespace WebCore
 
+#endif // WebCore_Modules_cookie_consent_CookieConsentDecisionResult_h

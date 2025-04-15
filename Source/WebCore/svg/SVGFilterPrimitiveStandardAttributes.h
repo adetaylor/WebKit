@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGFilterPrimitiveStandardAttributes_h
+#define WebCore_svg_SVGFilterPrimitiveStandardAttributes_h
 
 #include "FilterEffectGeometry.h"
 #include "FilterEffectVector.h"
@@ -105,3 +106,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SVGFilterPrimitiveStandardAttributes)
         return svgElement && isType(*svgElement);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_svg_SVGFilterPrimitiveStandardAttributes_h

@@ -23,6 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ShareableBitmapHandle_h
+#define WebCore_platform_graphics_ShareableBitmapHandle_h
 
 #include "ShareableBitmap.h"
+#endif // WebCore_platform_graphics_ShareableBitmapHandle_h

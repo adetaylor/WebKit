@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RTCRtpTransceiverDirection_h
+#define WebCore_platform_mediastream_RTCRtpTransceiverDirection_h
 
 #if ENABLE(WEB_RTC)
 
@@ -43,3 +44,4 @@ String convertEnumerationToString(RTCRtpTransceiverDirection); // in JSRTCRtpTra
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_mediastream_RTCRtpTransceiverDirection_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_DecomposedGlyphs_h
+#define WebCore_platform_graphics_DecomposedGlyphs_h
 
 #include "FloatPoint.h"
 #include "GlyphBufferMembers.h"
@@ -59,3 +60,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::DecomposedGlyphs)
     static bool isType(const WebCore::RenderingResource& renderingResource) { return renderingResource.isDecomposedGlyphs(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_DecomposedGlyphs_h

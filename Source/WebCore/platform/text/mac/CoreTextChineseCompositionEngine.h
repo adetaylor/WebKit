@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_mac_CoreTextChineseCompositionEngine_h
+#define WebCore_platform_text_mac_CoreTextChineseCompositionEngine_h
 
 #include "CoreTextCompositionEngine.h"
 #include <pal/spi/cf/CoreTextSPI.h>
@@ -47,3 +48,4 @@ public:
     static ChineseCharacterClass characterClass(UTF32Char, uint32_t, CTCompositionLanguage);
     static CompositionRules::CharacterSpacingType characterSpacing(CTCompositionLanguage, bool, UTF32Char, UTF32Char);
 };
+#endif // WebCore_platform_text_mac_CoreTextChineseCompositionEngine_h

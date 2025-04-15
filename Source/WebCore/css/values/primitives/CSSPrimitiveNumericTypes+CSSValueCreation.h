@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericTypes_CSSValueCreation_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericTypes_CSSValueCreation_h
 
 #include "CSSPrimitiveNumericTypes.h"
 #include "CSSPrimitiveValue.h"
@@ -99,3 +100,4 @@ template<typename CSSType> struct CSSValueCreation<SpaceSeparatedSize<CSSType>> 
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericTypes_CSSValueCreation_h

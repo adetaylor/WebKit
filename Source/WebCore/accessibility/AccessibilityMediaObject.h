@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityMediaObject_h
+#define WebCore_accessibility_AccessibilityMediaObject_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -71,3 +72,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilityMediaObject) \
     static bool isType(const WebCore::AccessibilityObject& object) { return object.isMediaObject(); } \
 SPECIALIZE_TYPE_TRAITS_END()
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_accessibility_AccessibilityMediaObject_h

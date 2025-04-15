@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cairo_RefPtrCairo_h
+#define WebCore_platform_graphics_cairo_RefPtrCairo_h
 
 #if USE(CAIRO) || PLATFORM(GTK)
 
@@ -71,3 +72,4 @@ struct DefaultRefDerefTraits<cairo_region_t> {
 } // namespace WTF
 
 #endif // USE(CAIRO) || PLATFORM(GTK)
+#endif // WebCore_platform_graphics_cairo_RefPtrCairo_h

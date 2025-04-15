@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_mac_CoreTextCompositionEngine_h
+#define WebCore_platform_text_mac_CoreTextCompositionEngine_h
 
 #include <pal/spi/cf/CoreTextSPI.h>
 
@@ -50,3 +51,4 @@ typedef enum : uint8_t {
 CharacterSpacingType characterSpacing(CTCompositionLanguage, bool, UTF32Char, UTF32Char);
 
 } // namespace CompositionRules
+#endif // WebCore_platform_text_mac_CoreTextCompositionEngine_h

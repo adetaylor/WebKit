@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_encryptedmedia_legacy_LegacyCDMSessionClearKey_h
+#define WebCore_Modules_encryptedmedia_legacy_LegacyCDMSessionClearKey_h
 
 #include "LegacyCDMSession.h"
 #include <wtf/RefCounted.h>
@@ -68,3 +69,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(LEGACY_ENCRYPTED_MEDIA)
+#endif // WebCore_Modules_encryptedmedia_legacy_LegacyCDMSessionClearKey_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_xml_NativeXPathNSResolver_h
+#define WebCore_xml_NativeXPathNSResolver_h
 
 #include "XPathNSResolver.h"
 #include <wtf/RefPtr.h>
@@ -45,3 +46,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_xml_NativeXPathNSResolver_h

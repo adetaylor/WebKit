@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_DetectedFace_h
+#define WebCore_Modules_ShapeDetection_DetectedFace_h
 
 #include "DOMRectReadOnly.h"
 #include "DetectedFaceInterface.h"
@@ -68,3 +69,4 @@ inline DetectedFace convertFromBacking(const ShapeDetection::DetectedFace& detec
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_ShapeDetection_DetectedFace_h

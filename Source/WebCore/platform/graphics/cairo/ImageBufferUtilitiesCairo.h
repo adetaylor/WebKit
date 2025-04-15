@@ -27,7 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cairo_ImageBufferUtilitiesCairo_h
+#define WebCore_platform_graphics_cairo_ImageBufferUtilitiesCairo_h
 
 #if USE(CAIRO)
 
@@ -42,3 +43,4 @@ Vector<uint8_t> encodeData(cairo_surface_t*, const String& mimeType, std::option
 } // namespace WebCore
 
 #endif // USE(CAIRO)
+#endif // WebCore_platform_graphics_cairo_ImageBufferUtilitiesCairo_h

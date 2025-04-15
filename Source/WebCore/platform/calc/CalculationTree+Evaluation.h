@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_calc_CalculationTree_Evaluation_h
+#define WebCore_platform_calc_CalculationTree_Evaluation_h
 
 namespace WebCore {
 namespace Calculation {
@@ -35,3 +36,4 @@ double evaluate(const Tree&, double percentResolutionLength);
 
 } // namespace Calculation
 } // namespace WebCore
+#endif // WebCore_platform_calc_CalculationTree_Evaluation_h

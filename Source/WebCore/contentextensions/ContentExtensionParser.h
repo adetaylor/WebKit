@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_ContentExtensionParser_h
+#define WebCore_contentextensions_ContentExtensionParser_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -49,3 +50,4 @@ CSSParserContext contentExtensionCSSParserContext();
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_ContentExtensionParser_h

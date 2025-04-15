@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUAdapter_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUAdapter_h
 
 #include "WebGPUDeviceDescriptor.h"
 #include "WebGPUSupportedFeatures.h"
@@ -73,3 +74,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUAdapter_h

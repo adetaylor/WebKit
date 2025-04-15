@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingStatePluginScrollingNode_h
+#define WebCore_page_scrolling_ScrollingStatePluginScrollingNode_h
 
 #if ENABLE(ASYNC_SCROLLING)
 
@@ -90,3 +91,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_SCROLLING_STATE_NODE(ScrollingStatePluginScrollingNode, isPluginScrollingNode())
 
 #endif // ENABLE(ASYNC_SCROLLING)
+#endif // WebCore_page_scrolling_ScrollingStatePluginScrollingNode_h

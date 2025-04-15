@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_SerializedPlatformDataCueValue_h
+#define WebCore_platform_SerializedPlatformDataCueValue_h
 
 #if ENABLE(VIDEO)
 
@@ -72,3 +73,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_platform_SerializedPlatformDataCueValue_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_UIFoundationSPI_h
+#define WebCore_PAL_pal_spi_cocoa_UIFoundationSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -54,3 +55,4 @@ DECLARE_SYSTEM_HEADER
 #endif // ENABLE(MULTI_REPRESENTATION_HEIC)
 
 #endif // USE(APPLE_INTERNAL_SDK)
+#endif // WebCore_PAL_pal_spi_cocoa_UIFoundationSPI_h

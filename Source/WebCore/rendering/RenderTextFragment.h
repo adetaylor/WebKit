@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTextFragment_h
+#define WebCore_rendering_RenderTextFragment_h
 
 #include "RenderBoxModelObject.h"
 #include "RenderText.h"
@@ -80,3 +81,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::RenderTextFragment)
         return text && isType(*text);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_rendering_RenderTextFragment_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_NetworkLoadInformation_h
+#define WebCore_platform_network_NetworkLoadInformation_h
 
 #include "NetworkLoadMetrics.h"
 #include "ResourceRequest.h"
@@ -49,3 +50,4 @@ struct NetworkLoadInformation {
 };
 
 }
+#endif // WebCore_platform_network_NetworkLoadInformation_h

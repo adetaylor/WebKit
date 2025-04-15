@@ -20,7 +20,8 @@
     Some useful definitions needed for laying out elements
 */
 
-#pragma once
+#ifndef WebCore_rendering_GapRects_h
+#define WebCore_rendering_GapRects_h
 
 #include "LayoutRect.h"
 
@@ -53,3 +54,4 @@ namespace WebCore {
     };
 
 } // namespace WebCore
+#endif // WebCore_rendering_GapRects_h

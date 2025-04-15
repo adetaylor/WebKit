@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerImportedScript_h
+#define WebCore_workers_service_ServiceWorkerImportedScript_h
 
 #include "ScriptBuffer.h"
 #include <wtf/URLHash.h>
@@ -39,3 +40,4 @@ struct ServiceWorkerImportedScript {
     ServiceWorkerImportedScript isolatedCopy() && { return { WTFMove(script).isolatedCopy(), WTFMove(responseURL).isolatedCopy(), WTFMove(mimeType).isolatedCopy() }; }
 };
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerImportedScript_h

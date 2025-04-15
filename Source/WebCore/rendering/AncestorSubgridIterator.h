@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_AncestorSubgridIterator_h
+#define WebCore_rendering_AncestorSubgridIterator_h
 
 #include "GridPositionsResolver.h"
 #include "RenderGrid.h"
@@ -57,3 +58,4 @@ private:
 AncestorSubgridIterator ancestorSubgridsOfGridItem(const RenderBox& gridItem, const GridTrackSizingDirection);
 
 } // namespace WebCore
+#endif // WebCore_rendering_AncestorSubgridIterator_h

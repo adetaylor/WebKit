@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_ScrollbarGutter_h
+#define WebCore_rendering_style_ScrollbarGutter_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -45,3 +46,4 @@ inline bool operator==(const ScrollbarGutter& a, const ScrollbarGutter& b)
 WTF::TextStream& operator<<(WTF::TextStream&, ScrollbarGutter);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_ScrollbarGutter_h

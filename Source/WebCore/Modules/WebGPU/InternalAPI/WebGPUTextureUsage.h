@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUTextureUsage_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUTextureUsage_h
 
 #include "WebGPUIntegralTypes.h"
 #include <cstdint>
@@ -41,3 +42,4 @@ enum class TextureUsage : uint8_t {
 using TextureUsageFlags = OptionSet<TextureUsage>;
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUTextureUsage_h

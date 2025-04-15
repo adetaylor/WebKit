@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FailureAction_h
+#define WTF_wtf_FailureAction_h
 
 namespace WTF {
 
@@ -33,3 +34,4 @@ enum class FailureAction {
 };
 
 } // namespace WTF
+#endif // WTF_wtf_FailureAction_h

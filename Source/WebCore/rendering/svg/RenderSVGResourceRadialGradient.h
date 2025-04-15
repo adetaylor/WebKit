@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceRadialGradient_h
+#define WebCore_rendering_svg_RenderSVGResourceRadialGradient_h
 
 #include "AffineTransform.h"
 #include "RadialGradientAttributes.h"
@@ -62,3 +63,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGResourceRadialGradient, isRenderSVGResourceRadialGradient())
+#endif // WebCore_rendering_svg_RenderSVGResourceRadialGradient_h

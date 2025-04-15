@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSPlatformColorResolutionState_h
+#define WebCore_css_values_color_CSSPlatformColorResolutionState_h
 
 #include "CSSToLengthConversionData.h"
 #include "Color.h"
@@ -149,3 +150,4 @@ struct PlatformColorResolutionStateNester {
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSPlatformColorResolutionState_h

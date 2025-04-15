@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ObservableInspector_h
+#define WebCore_dom_ObservableInspector_h
 
 #include "ObservableInspectorAbortCallback.h"
 #include "SubscriptionObserverCallback.h"
@@ -40,3 +41,4 @@ struct ObservableInspector {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ObservableInspector_h

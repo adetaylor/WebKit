@@ -27,7 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchBody_h
+#define WebCore_Modules_fetch_FetchBody_h
 
 #include "DOMFormData.h"
 #include "ExceptionOr.h"
@@ -146,3 +147,4 @@ struct FetchBodyWithType {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_fetch_FetchBody_h

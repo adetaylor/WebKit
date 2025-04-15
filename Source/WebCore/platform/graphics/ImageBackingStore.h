@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageBackingStore_h
+#define WebCore_platform_graphics_ImageBackingStore_h
 
 #include "Color.h"
 #include "IntRect.h"
@@ -252,3 +253,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_ImageBackingStore_h

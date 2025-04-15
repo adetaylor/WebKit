@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_mac_CocoaAccessibilityConstants_h
+#define WebCore_accessibility_mac_CocoaAccessibilityConstants_h
 
 //
 // Roles
@@ -462,3 +463,4 @@
 #define NSAccessibilityMathSubscriptAttribute @"AXMathSubscript"
 #define NSAccessibilityMathSuperscriptAttribute @"AXMathSuperscript"
 #define NSAccessibilityMathUnderAttribute @"AXMathUnder"
+#endif // WebCore_accessibility_mac_CocoaAccessibilityConstants_h

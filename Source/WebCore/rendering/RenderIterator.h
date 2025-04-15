@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderIterator_h
+#define WebCore_rendering_RenderIterator_h
 
 #include "RenderElement.h"
 
@@ -542,3 +543,4 @@ inline bool RenderPostOrderConstIterator<T>::operator==(const RenderPostOrderCon
 
 #include "RenderAncestorIterator.h"
 #include "RenderChildIterator.h"
+#endif // WebCore_rendering_RenderIterator_h

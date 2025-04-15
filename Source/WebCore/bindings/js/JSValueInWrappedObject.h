@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSValueInWrappedObject_h
+#define WebCore_bindings_js_JSValueInWrappedObject_h
 
 #include "DOMWrapperWorld.h"
 #include "JSDOMWrapper.h"
@@ -127,3 +128,4 @@ inline JSC::JSValue cachedPropertyValue(JSC::ThrowScope& throwScope, JSC::JSGlob
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSValueInWrappedObject_h

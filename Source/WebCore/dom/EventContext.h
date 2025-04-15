@@ -25,7 +25,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_EventContext_h
+#define WebCore_dom_EventContext_h
 
 #include "HTMLFormElement.h"
 #include "TouchList.h"
@@ -156,3 +157,4 @@ inline TouchList& EventContext::touchList(TouchListType type)
 #endif
 
 } // namespace WebCore
+#endif // WebCore_dom_EventContext_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_LinkPresentationSPI_h
+#define WebCore_PAL_pal_spi_cocoa_LinkPresentationSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -73,3 +74,4 @@ DECLARE_SYSTEM_HEADER
 #endif // !PLATFORM(APPLETV)
 
 #endif // USE(APPLE_INTERNAL_SDK)
+#endif // WebCore_PAL_pal_spi_cocoa_LinkPresentationSPI_h

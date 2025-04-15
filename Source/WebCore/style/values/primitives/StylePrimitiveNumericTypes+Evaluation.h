@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StylePrimitiveNumericTypes_Evaluation_h
+#define WebCore_style_values_primitives_StylePrimitiveNumericTypes_Evaluation_h
 
 #include "FloatConversion.h"
 #include "FloatPoint.h"
@@ -218,3 +219,4 @@ template<auto aR, auto bR, typename V> auto reflectSum(const LengthPercentage<aR
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_primitives_StylePrimitiveNumericTypes_Evaluation_h

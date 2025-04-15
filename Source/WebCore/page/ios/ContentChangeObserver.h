@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ios_ContentChangeObserver_h
+#define WebCore_page_ios_ContentChangeObserver_h
 
 #if ENABLE(CONTENT_CHANGE_OBSERVER)
 
@@ -259,3 +260,4 @@ inline void ContentChangeObserver::setShouldObserveDOMTimerSchedulingAndTransiti
 
 }
 #endif // ENABLE(CONTENT_CHANGE_OBSERVER)
+#endif // WebCore_page_ios_ContentChangeObserver_h

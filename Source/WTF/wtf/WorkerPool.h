@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WorkerPool_h
+#define WTF_wtf_WorkerPool_h
 
 #include <wtf/AutomaticThread.h>
 #include <wtf/Deque.h>
@@ -72,3 +73,4 @@ private:
 }
 
 using WTF::WorkerPool;
+#endif // WTF_wtf_WorkerPool_h

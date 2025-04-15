@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_AVAssetWriterSPI_h
+#define WebCore_PAL_pal_spi_cocoa_AVAssetWriterSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -57,3 +58,4 @@ NS_ASSUME_NONNULL_BEGIN
 NS_ASSUME_NONNULL_END
 
 #endif // USE(APPLE_INTERNAL_SDK)
+#endif // WebCore_PAL_pal_spi_cocoa_AVAssetWriterSPI_h

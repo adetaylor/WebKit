@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_parameters_CryptoAlgorithmRsaOaepParams_h
+#define WebCore_crypto_parameters_CryptoAlgorithmRsaOaepParams_h
 
 #include "BufferSource.h"
 #include "CryptoAlgorithmParameters.h"
@@ -68,3 +69,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_ALGORITHM_PARAMETERS(RsaOaepParams)
+#endif // WebCore_crypto_parameters_CryptoAlgorithmRsaOaepParams_h

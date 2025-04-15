@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageBufferPixelFormat_h
+#define WebCore_platform_graphics_ImageBufferPixelFormat_h
 
 #include <wtf/Forward.h>
 #if HAVE(IOSURFACE)
@@ -99,3 +100,4 @@ constexpr IOSurface::Format convertToIOSurfaceFormat(ImageBufferPixelFormat form
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageBufferPixelFormat_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayAutomaticReloadPaymentRequest_h
+#define WebCore_Modules_applepay_ApplePayAutomaticReloadPaymentRequest_h
 
 #if ENABLE(APPLE_PAY_AUTOMATIC_RELOAD_PAYMENTS)
 
@@ -44,3 +45,4 @@ struct ApplePayAutomaticReloadPaymentRequest final {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY_AUTOMATIC_RELOAD_PAYMENTS)
+#endif // WebCore_Modules_applepay_ApplePayAutomaticReloadPaymentRequest_h

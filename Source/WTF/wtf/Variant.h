@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Variant_h
+#define WTF_wtf_Variant_h
 
 #include <utility>
 #include <variant>
@@ -50,3 +51,4 @@ template<typename Visitor, typename... Variants> constexpr auto visit(Visitor&& 
 
 }
 using WTF::Variant;
+#endif // WTF_wtf_Variant_h

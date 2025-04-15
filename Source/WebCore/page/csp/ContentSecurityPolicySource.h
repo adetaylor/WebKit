@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_csp_ContentSecurityPolicySource_h
+#define WebCore_page_csp_ContentSecurityPolicySource_h
 
 #include <wtf/TZoneMalloc.h>
 #include <wtf/text/WTFString.h>
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_csp_ContentSecurityPolicySource_h

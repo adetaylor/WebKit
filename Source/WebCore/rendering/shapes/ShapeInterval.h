@@ -27,7 +27,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_shapes_ShapeInterval_h
+#define WebCore_rendering_shapes_ShapeInterval_h
 
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/Vector.h>
@@ -105,3 +106,4 @@ typedef Vector<IntShapeInterval> IntShapeIntervals;
 typedef Vector<FloatShapeInterval> FloatShapeIntervals;
 
 } // namespace WebCore
+#endif // WebCore_rendering_shapes_ShapeInterval_h

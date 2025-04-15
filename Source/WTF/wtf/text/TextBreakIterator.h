@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_TextBreakIterator_h
+#define WTF_wtf_text_TextBreakIterator_h
 
 #include <mutex>
 #include <optional>
@@ -387,3 +388,4 @@ using WTF::NonSharedCharacterBreakIterator;
 using WTF::TextBreakIterator;
 using WTF::TextBreakIteratorCache;
 using WTF::isWordTextBreak;
+#endif // WTF_wtf_text_TextBreakIterator_h

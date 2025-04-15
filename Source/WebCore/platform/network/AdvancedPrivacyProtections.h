@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_AdvancedPrivacyProtections_h
+#define WebCore_platform_network_AdvancedPrivacyProtections_h
 
 namespace WebCore {
 
@@ -43,3 +44,4 @@ enum class AdvancedPrivacyProtections : uint16_t {
 };
 
 }
+#endif // WebCore_platform_network_AdvancedPrivacyProtections_h

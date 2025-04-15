@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_playstation_RenderThemePlayStation_h
+#define WebCore_rendering_playstation_RenderThemePlayStation_h
 
 #include "RenderTheme.h"
 
@@ -36,3 +37,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_playstation_RenderThemePlayStation_h

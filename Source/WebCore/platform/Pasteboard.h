@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_Pasteboard_h
+#define WebCore_platform_Pasteboard_h
 
 #include "DragImage.h"
 #include "PasteboardContext.h"
@@ -405,3 +406,4 @@ inline Pasteboard::~Pasteboard()
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_Pasteboard_h

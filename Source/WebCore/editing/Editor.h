@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_Editor_h
+#define WebCore_editing_Editor_h
 
 #include "CompositionUnderline.h"
 #include "EditAction.h"
@@ -777,3 +778,4 @@ inline bool Editor::markedTextMatchesAreHighlighted() const
 }
 
 } // namespace WebCore
+#endif // WebCore_editing_Editor_h

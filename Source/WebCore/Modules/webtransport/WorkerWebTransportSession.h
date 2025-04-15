@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_WorkerWebTransportSession_h
+#define WebCore_Modules_webtransport_WorkerWebTransportSession_h
 
 #include "ScriptExecutionContextIdentifier.h"
 #include "WebTransportSession.h"
@@ -66,3 +67,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_webtransport_WorkerWebTransportSession_h

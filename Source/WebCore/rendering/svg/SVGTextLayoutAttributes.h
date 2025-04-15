@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGTextLayoutAttributes_h
+#define WebCore_rendering_svg_SVGTextLayoutAttributes_h
 
 #include "SVGTextMetrics.h"
 #include <wtf/HashMap.h>
@@ -77,3 +78,4 @@ inline SVGCharacterData::SVGCharacterData()
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_SVGTextLayoutAttributes_h

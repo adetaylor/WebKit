@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerRegistrationKey_h
+#define WebCore_workers_service_ServiceWorkerRegistrationKey_h
 
 #include "SecurityOriginData.h"
 #include <wtf/Hasher.h>
@@ -97,3 +98,4 @@ template<> struct HashTraits<WebCore::ServiceWorkerRegistrationKey> : GenericHas
 template<> struct DefaultHash<WebCore::ServiceWorkerRegistrationKey> : ServiceWorkerRegistrationKeyHash { };
 
 } // namespace WTF
+#endif // WebCore_workers_service_ServiceWorkerRegistrationKey_h

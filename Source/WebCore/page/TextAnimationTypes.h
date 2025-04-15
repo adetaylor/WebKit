@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_TextAnimationTypes_h
+#define WebCore_page_TextAnimationTypes_h
 
 #include <wtf/UUID.h>
 
@@ -51,3 +52,4 @@ struct TextAnimationData {
 };
 
 } // namespace WebKit
+#endif // WebCore_page_TextAnimationTypes_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontTaggedSettings_h
+#define WebCore_platform_graphics_FontTaggedSettings_h
 
 #include <array>
 #include <wtf/ArgumentCoder.h>
@@ -148,3 +149,4 @@ TextStream& operator<<(TextStream&, const FontTaggedSettings<int>&);
 TextStream& operator<<(TextStream&, const FontTaggedSettings<float>&);
 
 }
+#endif // WebCore_platform_graphics_FontTaggedSettings_h

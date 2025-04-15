@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_ImageBitmapOptions_h
+#define WebCore_html_ImageBitmapOptions_h
 
 #include "ImageOrientation.h"
 #include <optional>
@@ -50,3 +51,4 @@ struct ImageBitmapOptions {
 };
 
 }
+#endif // WebCore_html_ImageBitmapOptions_h

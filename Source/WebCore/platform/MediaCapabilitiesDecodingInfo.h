@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_MediaCapabilitiesDecodingInfo_h
+#define WebCore_platform_MediaCapabilitiesDecodingInfo_h
 
 #include "MediaCapabilitiesInfo.h"
 #include "MediaDecodingConfiguration.h"
@@ -58,3 +59,4 @@ inline MediaCapabilitiesDecodingInfo MediaCapabilitiesDecodingInfo::isolatedCopy
 
 } // namespace WebCore
 
+#endif // WebCore_platform_MediaCapabilitiesDecodingInfo_h

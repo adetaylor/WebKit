@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_FastCharacterComparison_h
+#define WTF_wtf_text_FastCharacterComparison_h
 
 #include <wtf/Compiler.h>
 
@@ -200,3 +201,4 @@ ALWAYS_INLINE static bool compareCharacters(const CharacterType* source, char c0
 using WTF::compareCharacters;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_text_FastCharacterComparison_h

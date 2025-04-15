@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_NetscapePlugInStreamLoader_h
+#define WebCore_loader_NetscapePlugInStreamLoader_h
 
 #include "ResourceLoader.h"
 #include <wtf/Function.h>
@@ -90,3 +91,4 @@ private:
 };
 
 }
+#endif // WebCore_loader_NetscapePlugInStreamLoader_h

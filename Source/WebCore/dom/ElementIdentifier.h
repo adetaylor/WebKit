@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementIdentifier_h
+#define WebCore_dom_ElementIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ struct ElementIdentifierType;
 using ElementIdentifier = ObjectIdentifier<ElementIdentifierType>;
 
 }
+#endif // WebCore_dom_ElementIdentifier_h

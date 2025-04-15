@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_EditCommand_h
+#define WebCore_editing_EditCommand_h
 
 #include "AXTextStateChangeIntent.h"
 #include "EditAction.h"
@@ -117,3 +118,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SimpleEditCommand)
     static bool isType(const WebCore::EditCommand& command) { return command.isSimpleEditCommand(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_editing_EditCommand_h

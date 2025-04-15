@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XMLErrors_h
+#define WebCore_xml_XMLErrors_h
 
 #include <libxml/parser.h>
 #include <wtf/CheckedRef.h>
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_xml_XMLErrors_h

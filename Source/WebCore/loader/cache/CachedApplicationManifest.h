@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedApplicationManifest_h
+#define WebCore_loader_cache_CachedApplicationManifest_h
 
 #if ENABLE(APPLICATION_MANIFEST)
 
@@ -57,3 +58,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CACHED_RESOURCE(CachedApplicationManifest, CachedResource::Type::ApplicationManifest)
 
 #endif // ENABLE(APPLICATION_MANIFEST)
+#endif // WebCore_loader_cache_CachedApplicationManifest_h

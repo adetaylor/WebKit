@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_contact_picker_ContactProperty_h
+#define WebCore_Modules_contact_picker_ContactProperty_h
 
 namespace WebCore {
 
 enum class ContactProperty : uint8_t { Email, Name, Tel };
 
 }
+#endif // WebCore_Modules_contact_picker_ContactProperty_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_table_TableGrid_h
+#define WebCore_layout_formattingContexts_table_TableGrid_h
 
 #include "FormattingContext.h"
 #include "LayoutBoxGeometry.h"
@@ -275,3 +276,4 @@ inline LayoutUnit TableGrid::Column::usedLogicalLeft() const
 }
 }
 
+#endif // WebCore_layout_formattingContexts_table_TableGrid_h

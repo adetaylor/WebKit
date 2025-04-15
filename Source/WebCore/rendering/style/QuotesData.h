@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_QuotesData_h
+#define WebCore_rendering_style_QuotesData_h
 
 #include <wtf/Forward.h>
 #include <wtf/RefCounted.h>
@@ -50,3 +51,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_QuotesData_h

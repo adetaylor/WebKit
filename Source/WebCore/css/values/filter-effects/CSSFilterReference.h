@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_filter_effects_CSSFilterReference_h
+#define WebCore_css_values_filter_effects_CSSFilterReference_h
 
 #include "CSSURL.h"
 
@@ -41,3 +42,4 @@ DEFINE_TYPE_WRAPPER_GET(FilterReference, url);
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::FilterReference, 1)
+#endif // WebCore_css_values_filter_effects_CSSFilterReference_h

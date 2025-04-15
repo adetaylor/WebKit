@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_PaymentInstallmentConfigurationWebCore_h
+#define WebCore_Modules_applepay_PaymentInstallmentConfigurationWebCore_h
 
 #if HAVE(PASSKIT_INSTALLMENTS)
 
@@ -59,3 +60,4 @@ private:
 } // namespace WebCore
 
 #endif // HAVE(PASSKIT_INSTALLMENTS)
+#endif // WebCore_Modules_applepay_PaymentInstallmentConfigurationWebCore_h

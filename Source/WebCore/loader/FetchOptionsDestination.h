@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FetchOptionsDestination_h
+#define WebCore_loader_FetchOptionsDestination_h
 
 namespace WebCore {
     
 enum class FetchOptionsDestination : uint8_t { EmptyString, Audio, Audioworklet, Document, Embed, Environmentmap, Font, Image, Iframe, Manifest, Model, Object, Paintworklet, Report, Script, Serviceworker, Sharedworker, Style, Track, Video, Worker, Xslt };
     
 } // namespace WebCore
+#endif // WebCore_loader_FetchOptionsDestination_h

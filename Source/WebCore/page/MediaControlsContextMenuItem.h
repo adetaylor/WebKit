@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_MediaControlsContextMenuItem_h
+#define WebCore_page_MediaControlsContextMenuItem_h
 
 #if ENABLE(MEDIA_CONTROLS_CONTEXT_MENUS) && USE(UICONTEXTMENU)
 
@@ -46,3 +47,4 @@ struct MediaControlsContextMenuItem {
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_CONTROLS_CONTEXT_MENUS) && USE(UICONTEXTMENU)
+#endif // WebCore_page_MediaControlsContextMenuItem_h

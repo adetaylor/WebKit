@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_FreeListInlines_h
+#define bmalloc_bmalloc_FreeListInlines_h
 
 #if !BUSE(TZONE)
 
@@ -72,3 +73,4 @@ void FreeList::forEach(const Func& func) const
 
 #endif
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_FreeListInlines_h

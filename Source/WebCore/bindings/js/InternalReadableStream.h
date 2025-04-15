@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_InternalReadableStream_h
+#define WebCore_bindings_js_InternalReadableStream_h
 
 #include "ExceptionOr.h"
 #include "JSDOMGuardedObject.h"
@@ -63,3 +64,4 @@ private:
 };
 
 }
+#endif // WebCore_bindings_js_InternalReadableStream_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_query_MediaQueryParser_h
+#define WebCore_css_query_MediaQueryParser_h
 
 #include "GenericMediaQueryParser.h"
 #include "MediaQuery.h"
@@ -53,3 +54,4 @@ void serialize(StringBuilder&, const MediaQuery&);
 
 }
 }
+#endif // WebCore_css_query_MediaQueryParser_h

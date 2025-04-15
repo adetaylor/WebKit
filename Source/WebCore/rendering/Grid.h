@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_Grid_h
+#define WebCore_rendering_Grid_h
 
 #include "GridPositionsResolver.h"
 #include "OrderIterator.h"
@@ -140,3 +141,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_Grid_h

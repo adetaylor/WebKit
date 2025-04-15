@@ -22,7 +22,8 @@
 *
 */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleImageSet_h
+#define WebCore_rendering_style_StyleImageSet_h
 
 #include "StyleMultiImage.h"
 #include <wtf/TZoneMalloc.h>
@@ -58,3 +59,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_STYLE_IMAGE(StyleImageSet, isImageSet)
+#endif // WebCore_rendering_style_StyleImageSet_h

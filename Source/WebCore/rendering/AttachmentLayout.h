@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_AttachmentLayout_h
+#define WebCore_rendering_AttachmentLayout_h
 
 #if ENABLE(ATTACHMENT_ELEMENT) && PLATFORM(COCOA)
 
@@ -80,3 +81,4 @@ struct AttachmentLayout {
 } // namespace WebCore
 
 #endif // ENABLE(ATTACHMENT_ELEMENT) && PLATFORM(COCOA)
+#endif // WebCore_rendering_AttachmentLayout_h

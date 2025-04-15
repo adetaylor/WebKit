@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_encryptedmedia_CDMRestrictions_h
+#define WebCore_platform_encryptedmedia_CDMRestrictions_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -41,3 +42,4 @@ struct CDMRestrictions {
 } // namespace WebCore
 
 #endif // ENABLE(ENCRYPTED_MEDIA)
+#endif // WebCore_platform_encryptedmedia_CDMRestrictions_h

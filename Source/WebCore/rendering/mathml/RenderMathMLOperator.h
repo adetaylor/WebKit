@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_mathml_RenderMathMLOperator_h
+#define WebCore_rendering_mathml_RenderMathMLOperator_h
 
 #if ENABLE(MATHML)
 
@@ -100,3 +101,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderMathMLOperator, isRenderMathMLOperator())
 
 #endif // ENABLE(MATHML)
+#endif // WebCore_rendering_mathml_RenderMathMLOperator_h

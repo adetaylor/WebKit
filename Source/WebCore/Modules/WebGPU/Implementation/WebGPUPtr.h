@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_Implementation_WebGPUPtr_h
+#define WebCore_Modules_WebGPU_Implementation_WebGPUPtr_h
 
 #if HAVE(WEBGPU_IMPLEMENTATION)
 
@@ -104,3 +105,4 @@ template <typename T> inline WebGPUPtr<T> adoptWebGPU(T t)
 } // namespace WebCore::WebGPU
 
 #endif // HAVE(WEBGPU_IMPLEMENTATION)
+#endif // WebCore_Modules_WebGPU_Implementation_WebGPUPtr_h

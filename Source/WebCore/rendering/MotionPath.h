@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_MotionPath_h
+#define WebCore_rendering_MotionPath_h
 
 #include "FloatRoundedRect.h"
 #include "RenderLayerModelObject.h"
@@ -58,3 +59,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_MotionPath_h

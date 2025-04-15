@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_AVFoundationSPI_h
+#define WebCore_PAL_pal_spi_cocoa_AVFoundationSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -508,3 +509,4 @@ NS_ASSUME_NONNULL_END
 @property (nonatomic, copy, nullable, getter=_STSLabel) NSString *STSLabel SPI_AVAILABLE(ios(15.0)) API_UNAVAILABLE(macos, tvos, watchos);
 @end
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_AVFoundationSPI_h

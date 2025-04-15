@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontCascadeFonts_h
+#define WebCore_platform_graphics_FontCascadeFonts_h
 
 #include "Font.h"
 #include "FontCascadeDescription.h"
@@ -171,3 +172,4 @@ inline const Font& FontCascadeFonts::primaryFont(const FontCascadeDescription& d
 WTF::TextStream& operator<<(WTF::TextStream&, const FontCascadeFonts&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_FontCascadeFonts_h

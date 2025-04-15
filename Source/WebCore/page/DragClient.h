@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_page_DragClient_h
+#define WebCore_page_DragClient_h
 
 #include "DragActions.h"
 #include "DragData.h"
@@ -69,3 +70,4 @@ public:
 };
     
 } // namespace WebCore
+#endif // WebCore_page_DragClient_h

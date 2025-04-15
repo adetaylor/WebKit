@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StackShot_h
+#define WTF_wtf_StackShot_h
 
 #include <wtf/Assertions.h>
 #include <wtf/HashTraits.h>
@@ -129,3 +130,4 @@ template<> struct HashTraits<StackShot> : SimpleClassHashTraits<StackShot> { };
 
 } // namespace WTF
 
+#endif // WTF_wtf_StackShot_h

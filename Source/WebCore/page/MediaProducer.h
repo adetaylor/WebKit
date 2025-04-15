@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_MediaProducer_h
+#define WebCore_page_MediaProducer_h
 
 #include <wtf/OptionSet.h>
 #include <wtf/WeakPtr.h>
@@ -150,3 +151,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_MediaProducer_h

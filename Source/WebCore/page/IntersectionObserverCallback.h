@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_IntersectionObserverCallback_h
+#define WebCore_page_IntersectionObserverCallback_h
 
 #include "ActiveDOMCallback.h"
 #include "CallbackResult.h"
@@ -46,3 +47,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_IntersectionObserverCallback_h

@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FloatSize_h
+#define WebCore_platform_graphics_FloatSize_h
 
 #include "IntPoint.h"
 #include <wtf/JSONValues.h>
@@ -299,3 +300,4 @@ struct LogArgument<WebCore::FloatSize> {
 };
     
 } // namespace WTF
+#endif // WebCore_platform_graphics_FloatSize_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSMenuSPI_h
+#define WebCore_PAL_pal_spi_mac_NSMenuSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -107,3 +108,4 @@ void _NSPopUpCarbonMenu3(NSMenu *, NSWindow *, NSView *ownerView, NSPoint screen
 WTF_EXTERN_C_END
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_PAL_pal_spi_mac_NSMenuSPI_h

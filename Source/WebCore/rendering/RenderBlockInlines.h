@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderBlockInlines_h
+#define WebCore_rendering_RenderBlockInlines_h
 
 #include "RenderBlock.h"
 #include "RenderBoxInlines.h"
@@ -68,3 +69,4 @@ inline LayoutUnit RenderBlock::availableLogicalWidthForLine(LayoutUnit position,
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderBlockInlines_h

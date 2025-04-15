@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_BCompiler_h
+#define bmalloc_bmalloc_BCompiler_h
 
 /* BCOMPILER() - the compiler being used to build the project */
 #define BCOMPILER(BFEATURE) (defined BCOMPILER_##BFEATURE && BCOMPILER_##BFEATURE)
@@ -182,3 +183,4 @@
 #define BMUST_TAIL_CALL
 #endif
 
+#endif // bmalloc_bmalloc_BCompiler_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_adwaita_ThemeAdwaita_h
+#define WebCore_platform_adwaita_ThemeAdwaita_h
 
 #if USE(THEME_ADWAITA)
 
@@ -64,3 +65,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(THEME_ADWAITA)
+#endif // WebCore_platform_adwaita_ThemeAdwaita_h

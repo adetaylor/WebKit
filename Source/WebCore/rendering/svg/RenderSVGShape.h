@@ -24,7 +24,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGShape_h
+#define WebCore_rendering_svg_RenderSVGShape_h
 
 #include "AffineTransform.h"
 #include "FloatRect.h"
@@ -160,3 +161,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGShape, isRenderSVGShape())
+#endif // WebCore_rendering_svg_RenderSVGShape_h

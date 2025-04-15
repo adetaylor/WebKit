@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_DropShadowFilterOperationWithStyleColor_h
+#define WebCore_rendering_style_DropShadowFilterOperationWithStyleColor_h
 
 #include "FilterOperation.h"
 #include "StyleColor.h"
@@ -68,3 +69,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_FILTEROPERATION(Style::DropShadowFilterOperationWithStyleColor, type() == WebCore::FilterOperation::Type::DropShadowWithStyleColor)
+#endif // WebCore_rendering_style_DropShadowFilterOperationWithStyleColor_h

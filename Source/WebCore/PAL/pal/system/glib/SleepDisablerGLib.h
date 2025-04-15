@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_system_glib_SleepDisablerGLib_h
+#define WebCore_PAL_pal_system_glib_SleepDisablerGLib_h
 
 #include "SleepDisabler.h"
 
@@ -57,3 +58,4 @@ private:
 };
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_system_glib_SleepDisablerGLib_h

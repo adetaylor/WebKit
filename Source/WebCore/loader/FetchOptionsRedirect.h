@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FetchOptionsRedirect_h
+#define WebCore_loader_FetchOptionsRedirect_h
 
 namespace WebCore {
     
 enum class FetchOptionsRedirect : uint8_t { Follow, Error, Manual };
 
 } // namespace WebCore
+#endif // WebCore_loader_FetchOptionsRedirect_h

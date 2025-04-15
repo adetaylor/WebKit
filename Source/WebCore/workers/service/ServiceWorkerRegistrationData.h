@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerRegistrationData_h
+#define WebCore_workers_service_ServiceWorkerRegistrationData_h
 
 #include "ServiceWorkerData.h"
 #include "ServiceWorkerIdentifier.h"
@@ -54,3 +55,4 @@ struct ServiceWorkerRegistrationData {
 };
 
 } // namespace WTF
+#endif // WebCore_workers_service_ServiceWorkerRegistrationData_h

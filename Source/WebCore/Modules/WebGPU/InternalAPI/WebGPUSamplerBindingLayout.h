@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUSamplerBindingLayout_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUSamplerBindingLayout_h
 
 #include "WebGPUSamplerBindingType.h"
 
@@ -34,3 +35,4 @@ struct SamplerBindingLayout {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUSamplerBindingLayout_h

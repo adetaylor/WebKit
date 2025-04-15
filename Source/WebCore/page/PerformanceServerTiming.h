@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceServerTiming_h
+#define WebCore_page_PerformanceServerTiming_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/text/WTFString.h>
@@ -48,3 +49,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PerformanceServerTiming_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_mac_SharedRoutingArbitrator_h
+#define WebCore_platform_audio_mac_SharedRoutingArbitrator_h
 
 #if ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
 
@@ -86,3 +87,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_audio_mac_SharedRoutingArbitrator_h

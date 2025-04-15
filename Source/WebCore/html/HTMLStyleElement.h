@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLStyleElement_h
+#define WebCore_html_HTMLStyleElement_h
 
 #include "HTMLElement.h"
 #include "InlineStyleSheetOwner.h"
@@ -76,3 +77,4 @@ private:
 };
 
 } //namespace
+#endif // WebCore_html_HTMLStyleElement_h

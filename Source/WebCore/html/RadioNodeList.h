@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_RadioNodeList_h
+#define WebCore_html_RadioNodeList_h
 
 #include "LiveNodeList.h"
 
@@ -49,3 +50,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_RadioNodeList_h

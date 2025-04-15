@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentMarkerController_h
+#define WebCore_dom_DocumentMarkerController_h
 
 #include "DocumentMarker.h"
 #include "Timer.h"
@@ -164,3 +165,4 @@ inline bool DocumentMarkerController::hasMarkers() const
 #if ENABLE(TREE_DEBUGGING)
 void showDocumentMarkers(const WebCore::DocumentMarkerController*);
 #endif
+#endif // WebCore_dom_DocumentMarkerController_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_cocoa_GameControllerHapticEngines_h
+#define WebCore_platform_gamepad_cocoa_GameControllerHapticEngines_h
 
 #if ENABLE(GAMEPAD) && HAVE(WIDE_GAMECONTROLLER_SUPPORT)
 
@@ -74,3 +75,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD) && HAVE(WIDE_GAMECONTROLLER_SUPPORT)
+#endif // WebCore_platform_gamepad_cocoa_GameControllerHapticEngines_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUImageCopyBuffer_h
+#define WebCore_Modules_WebGPU_GPUImageCopyBuffer_h
 
 #include "GPUBuffer.h"
 #include "GPUImageDataLayout.h"
@@ -50,3 +51,4 @@ struct GPUImageCopyBuffer : public GPUImageDataLayout {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUImageCopyBuffer_h

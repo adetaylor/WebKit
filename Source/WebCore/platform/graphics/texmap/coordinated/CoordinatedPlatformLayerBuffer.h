@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBuffer_h
+#define WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBuffer_h
 
 #if USE(COORDINATED_GRAPHICS)
 #include "GLFence.h"
@@ -84,3 +85,4 @@ protected:
     SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // USE(COORDINATED_GRAPHICS)
+#endif // WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBuffer_h

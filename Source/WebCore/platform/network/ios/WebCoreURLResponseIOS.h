@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_ios_WebCoreURLResponseIOS_h
+#define WebCore_platform_network_ios_WebCoreURLResponseIOS_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -59,3 +60,4 @@ inline bool shouldUseQuickLookForMIMEType(const String& mimeType)
 #endif // USE(QUICK_LOOK)
 
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_platform_network_ios_WebCoreURLResponseIOS_h

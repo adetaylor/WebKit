@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_NumberDefinitions_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_NumberDefinitions_h
 
 #include "CSSPropertyParserConsumer+MetaConsumerDefinitions.h"
 
@@ -48,3 +49,4 @@ template<auto R, typename V> struct ConsumerDefinition<CSS::Number<R, V>> {
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_NumberDefinitions_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_dom_TrustedTypePolicyOptions_h
+#define WebCore_dom_TrustedTypePolicyOptions_h
 
 #include "CreateHTMLCallback.h"
 #include "CreateScriptCallback.h"
@@ -38,3 +39,4 @@ struct TrustedTypePolicyOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_TrustedTypePolicyOptions_h

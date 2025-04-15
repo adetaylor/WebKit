@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUBufferBindingLayout_h
+#define WebCore_Modules_WebGPU_GPUBufferBindingLayout_h
 
 #include "GPUBufferBindingType.h"
 #include "GPUIntegralTypes.h"
@@ -47,3 +48,4 @@ struct GPUBufferBindingLayout {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUBufferBindingLayout_h

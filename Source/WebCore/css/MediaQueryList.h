@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_MediaQueryList_h
+#define WebCore_css_MediaQueryList_h
 
 #include "ActiveDOMObject.h"
 #include "EventTarget.h"
@@ -79,3 +80,4 @@ private:
 };
 
 }
+#endif // WebCore_css_MediaQueryList_h

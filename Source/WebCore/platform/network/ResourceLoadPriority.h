@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_ResourceLoadPriority_h
+#define WebCore_platform_network_ResourceLoadPriority_h
 
 #include <wtf/EnumTraits.h>
 
@@ -71,3 +72,4 @@ template<> struct EnumTraitsForPersistence<WebCore::ResourceLoadPriority> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_network_ResourceLoadPriority_h

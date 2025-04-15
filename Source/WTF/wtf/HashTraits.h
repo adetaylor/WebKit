@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_HashTraits_h
+#define WTF_wtf_HashTraits_h
 
 #include <limits>
 #include <utility>
@@ -474,3 +475,4 @@ using WTF::KeyValuePair;
 using WTF::PairHashTraits;
 using WTF::NullableHashTraits;
 using WTF::SimpleClassHashTraits;
+#endif // WTF_wtf_HashTraits_h

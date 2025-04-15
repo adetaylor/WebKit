@@ -20,7 +20,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedCSSStyleSheet_h
+#define WebCore_loader_cache_CachedCSSStyleSheet_h
 
 #include "CachedResource.h"
 #include "FrameLoaderTypes.h"
@@ -73,3 +74,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CACHED_RESOURCE(CachedCSSStyleSheet, CachedResource::Type::CSSStyleSheet)
+#endif // WebCore_loader_cache_CachedCSSStyleSheet_h

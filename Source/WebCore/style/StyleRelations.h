@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleRelations_h
+#define WebCore_style_StyleRelations_h
 
 #include <wtf/Forward.h>
 
@@ -73,3 +74,4 @@ void commitRelations(std::unique_ptr<Relations>, Update&);
 
 }
 }
+#endif // WebCore_style_StyleRelations_h

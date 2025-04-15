@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_SpatialAudioExperienceHelper_h
+#define WebCore_platform_audio_cocoa_SpatialAudioExperienceHelper_h
 
 #include "MediaPlayerEnums.h"
 
@@ -48,3 +49,4 @@ WEBCORE_EXPORT String spatialAudioExperienceDescription(CASpatialAudioExperience
 
 }
 #endif
+#endif // WebCore_platform_audio_cocoa_SpatialAudioExperienceHelper_h

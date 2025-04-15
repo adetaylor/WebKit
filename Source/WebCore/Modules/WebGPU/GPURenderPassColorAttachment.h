@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPURenderPassColorAttachment_h
+#define WebCore_Modules_WebGPU_GPURenderPassColorAttachment_h
 
 #include "GPUColorDict.h"
 #include "GPUIntegralTypes.h"
@@ -60,3 +61,4 @@ struct GPURenderPassColorAttachment {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPURenderPassColorAttachment_h

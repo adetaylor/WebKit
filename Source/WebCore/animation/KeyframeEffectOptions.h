@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_KeyframeEffectOptions_h
+#define WebCore_animation_KeyframeEffectOptions_h
 
 #include "CompositeOperation.h"
 #include "EffectTiming.h"
@@ -39,3 +40,4 @@ struct KeyframeEffectOptions : EffectTiming {
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_KeyframeEffectOptions_h

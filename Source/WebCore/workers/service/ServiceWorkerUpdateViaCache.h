@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerUpdateViaCache_h
+#define WebCore_workers_service_ServiceWorkerUpdateViaCache_h
 
 #include <wtf/Forward.h>
 
@@ -36,3 +37,4 @@ enum class ServiceWorkerUpdateViaCache : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerUpdateViaCache_h

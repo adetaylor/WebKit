@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_highlight_AppHighlightStorage_h
+#define WebCore_Modules_highlight_AppHighlightStorage_h
 
 #include "AppHighlight.h"
 #include "AppHighlightRangeData.h"
@@ -75,3 +76,4 @@ private:
 #endif
 
 } // namespace WebCore
+#endif // WebCore_Modules_highlight_AppHighlightStorage_h

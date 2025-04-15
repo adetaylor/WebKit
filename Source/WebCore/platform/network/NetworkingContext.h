@@ -17,7 +17,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_platform_network_NetworkingContext_h
+#define WebCore_platform_network_NetworkingContext_h
 
 #include "StorageSessionProvider.h"
 #include <wtf/RetainPtr.h>
@@ -67,3 +68,4 @@ protected:
 };
 
 }
+#endif // WebCore_platform_network_NetworkingContext_h

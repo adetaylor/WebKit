@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_EmbeddedFixedVector_h
+#define WTF_wtf_EmbeddedFixedVector_h
 
 #include <iterator>
 #include <wtf/MallocCommon.h>
@@ -133,3 +134,4 @@ private:
 } // namespace WTF
 
 using WTF::EmbeddedFixedVector;
+#endif // WTF_wtf_EmbeddedFixedVector_h

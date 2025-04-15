@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_worklets_WorkletGlobalScope_h
+#define WebCore_worklets_WorkletGlobalScope_h
 
 #include "Document.h"
 #include "ExceptionOr.h"
@@ -129,3 +130,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::WorkletGlobalScope)
 static bool isType(const WebCore::ScriptExecutionContext& context) { return context.isWorkletGlobalScope(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_worklets_WorkletGlobalScope_h

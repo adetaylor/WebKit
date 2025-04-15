@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_TextEncoderStreamEncoder_h
+#define WebCore_dom_TextEncoderStreamEncoder_h
 
 #include <JavaScriptCore/Forward.h>
 #include <wtf/Ref.h>
@@ -46,3 +47,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_TextEncoderStreamEncoder_h

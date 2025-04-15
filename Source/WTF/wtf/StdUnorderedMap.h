@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StdUnorderedMap_h
+#define WTF_wtf_StdUnorderedMap_h
 
 #include <unordered_map>
 #include <wtf/FastMalloc.h>
@@ -36,3 +37,4 @@ using StdUnorderedMap = std::unordered_map<Key, Value, Hash, Predicate, Allocato
 } // namespace WTF
 
 using WTF::StdUnorderedMap;
+#endif // WTF_wtf_StdUnorderedMap_h

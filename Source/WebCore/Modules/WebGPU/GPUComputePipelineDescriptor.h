@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUComputePipelineDescriptor_h
+#define WebCore_Modules_WebGPU_GPUComputePipelineDescriptor_h
 
 #include "GPUPipelineDescriptorBase.h"
 #include "GPUProgrammableStage.h"
@@ -47,3 +48,4 @@ struct GPUComputePipelineDescriptor : public GPUPipelineDescriptorBase {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUComputePipelineDescriptor_h

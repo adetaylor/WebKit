@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_MediaElementAudioSourceNode_h
+#define WebCore_Modules_webaudio_MediaElementAudioSourceNode_h
 
 #if ENABLE(WEB_AUDIO) && ENABLE(VIDEO)
 
@@ -84,3 +85,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUDIO) && ENABLE(VIDEO)
+#endif // WebCore_Modules_webaudio_MediaElementAudioSourceNode_h

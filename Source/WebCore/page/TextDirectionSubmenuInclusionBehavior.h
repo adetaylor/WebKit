@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_TextDirectionSubmenuInclusionBehavior_h
+#define WebCore_page_TextDirectionSubmenuInclusionBehavior_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class TextDirectionSubmenuInclusionBehavior : uint8_t {
 };
 
 }
+#endif // WebCore_page_TextDirectionSubmenuInclusionBehavior_h

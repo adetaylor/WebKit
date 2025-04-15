@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_PALSwift_h
+#define WebCore_PAL_pal_PALSwift_h
 
 #include <cstdint>
 #include <wtf/Vector.h>
@@ -65,3 +66,4 @@ WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_BEGIN
 #include "PALSwift-Generated.h"
 WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_END
 #endif
+#endif // WebCore_PAL_pal_PALSwift_h

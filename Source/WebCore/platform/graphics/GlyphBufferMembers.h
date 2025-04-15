@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GlyphBufferMembers_h
+#define WebCore_platform_graphics_GlyphBufferMembers_h
 
 #include "FloatPoint.h"
 #include "FloatSize.h"
@@ -217,3 +218,4 @@ inline float y(const GlyphBufferOrigin& origin)
 #endif // #if USE(CG)
 
 }
+#endif // WebCore_platform_graphics_GlyphBufferMembers_h

@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_NodeFilterCondition_h
+#define WebCore_dom_NodeFilterCondition_h
 
 #include <wtf/RefCounted.h>
 
@@ -41,3 +42,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_NodeFilterCondition_h

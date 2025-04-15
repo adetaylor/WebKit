@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentType_h
+#define WebCore_dom_DocumentType_h
 
 #include "Node.h"
 
@@ -60,3 +61,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::DocumentType)
     static bool isType(const WebCore::Node& node) { return node.nodeType() == WebCore::Node::DOCUMENT_TYPE_NODE; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_DocumentType_h

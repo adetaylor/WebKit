@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_opentype_FontMemoryResource_h
+#define WebCore_platform_graphics_opentype_FontMemoryResource_h
 
 #if OS(WINDOWS)
 
@@ -59,3 +60,4 @@ private:
 } // namespace WebCore
 
 #endif // OS(WINDOWS)
+#endif // WebCore_platform_graphics_opentype_FontMemoryResource_h

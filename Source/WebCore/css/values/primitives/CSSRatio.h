@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSRatio_h
+#define WebCore_css_values_primitives_CSSRatio_h
 
 #include "CSSPrimitiveNumericTypes.h"
 
@@ -52,3 +53,4 @@ template<size_t I> const auto& get(const Ratio& value)
 } // namespace WebCore
 
 DEFINE_SLASH_SEPARATED_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Ratio, 2)
+#endif // WebCore_css_values_primitives_CSSRatio_h

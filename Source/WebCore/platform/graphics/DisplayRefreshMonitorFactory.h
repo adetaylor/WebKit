@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_DisplayRefreshMonitorFactory_h
+#define WebCore_platform_graphics_DisplayRefreshMonitorFactory_h
 
 #include <wtf/RefPtr.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -42,3 +43,4 @@ public:
 };
 
 }
+#endif // WebCore_platform_graphics_DisplayRefreshMonitorFactory_h

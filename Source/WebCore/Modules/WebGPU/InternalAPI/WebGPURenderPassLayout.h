@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassLayout_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassLayout_h
 
 #include "WebGPUIntegralTypes.h"
 #include "WebGPUObjectDescriptorBase.h"
@@ -40,3 +41,4 @@ struct RenderPassLayout : public ObjectDescriptorBase {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassLayout_h

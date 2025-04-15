@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_AudioFileReaderCocoa_h
+#define WebCore_platform_audio_cocoa_AudioFileReaderCocoa_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -98,3 +99,4 @@ private:
 }
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_platform_audio_cocoa_AudioFileReaderCocoa_h

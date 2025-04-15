@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_UnencodableHandling_h
+#define WebCore_PAL_pal_text_UnencodableHandling_h
 
 namespace PAL {
 
@@ -41,3 +42,4 @@ enum class UnencodableHandling: bool {
 };
 
 }
+#endif // WebCore_PAL_pal_text_UnencodableHandling_h

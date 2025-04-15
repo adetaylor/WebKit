@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushDatabase_h
+#define WebCore_Modules_push_api_PushDatabase_h
 
 #include "EpochTimeStamp.h"
 #include "PushSubscriptionIdentifier.h"
@@ -129,3 +130,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_push_api_PushDatabase_h

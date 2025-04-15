@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_paymentrequest_PaymentValidationErrors_h
+#define WebCore_Modules_paymentrequest_PaymentValidationErrors_h
 
 #if ENABLE(PAYMENT_REQUEST)
 
@@ -43,3 +44,4 @@ struct PaymentValidationErrors {
 } // namespace WebCore
 
 #endif // ENABLE(PAYMENT_REQUEST)
+#endif // WebCore_Modules_paymentrequest_PaymentValidationErrors_h

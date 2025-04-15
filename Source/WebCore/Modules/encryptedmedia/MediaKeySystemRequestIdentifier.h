@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_encryptedmedia_MediaKeySystemRequestIdentifier_h
+#define WebCore_Modules_encryptedmedia_MediaKeySystemRequestIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -32,3 +33,4 @@ struct MediaKeySystemRequestIdentifierType;
 using MediaKeySystemRequestIdentifier = ObjectIdentifier<MediaKeySystemRequestIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_Modules_encryptedmedia_MediaKeySystemRequestIdentifier_h

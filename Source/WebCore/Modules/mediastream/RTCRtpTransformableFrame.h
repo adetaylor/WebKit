@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCRtpTransformableFrame_h
+#define WebCore_Modules_mediastream_RTCRtpTransformableFrame_h
 
 #if ENABLE(WEB_RTC)
 
@@ -92,3 +93,4 @@ inline void RTCRtpTransformableFrame::setTransformer(RTCRtpScriptTransformer& tr
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_Modules_mediastream_RTCRtpTransformableFrame_h

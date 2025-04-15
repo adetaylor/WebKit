@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLTitleElement_h
+#define WebCore_html_HTMLTitleElement_h
 
 #include "HTMLElement.h"
 #include "StringWithDirection.h"
@@ -53,3 +54,4 @@ private:
 };
 
 } //namespace
+#endif // WebCore_html_HTMLTitleElement_h

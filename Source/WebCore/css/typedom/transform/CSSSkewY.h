@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_transform_CSSSkewY_h
+#define WebCore_css_typedom_transform_CSSSkewY_h
 
 #include "CSSNumericValue.h"
 #include "CSSTransformComponent.h"
@@ -63,3 +64,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSSSkewY)
     static bool isType(const WebCore::CSSTransformComponent& transform) { return transform.getType() == WebCore::CSSTransformType::SkewY; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_typedom_transform_CSSSkewY_h

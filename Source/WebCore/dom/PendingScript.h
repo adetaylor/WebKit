@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_dom_PendingScript_h
+#define WebCore_dom_PendingScript_h
 
 #include "LoadableScript.h"
 #include "LoadableScriptClient.h"
@@ -86,3 +87,4 @@ inline LoadableScript* PendingScript::loadableScript() const
 }
 
 }
+#endif // WebCore_dom_PendingScript_h

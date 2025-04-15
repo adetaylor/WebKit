@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorHash_h
+#define WebCore_platform_graphics_ColorHash_h
 
 #include "Color.h"
 #include <wtf/HashTraits.h>
@@ -48,3 +49,4 @@ template<> struct HashTraits<WebCore::Color> : GenericHashTraits<WebCore::Color>
 };
 
 } // namespace WTF
+#endif // WebCore_platform_graphics_ColorHash_h

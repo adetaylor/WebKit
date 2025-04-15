@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PromisedAttachmentInfo_h
+#define WebCore_platform_PromisedAttachmentInfo_h
 
 #include <wtf/Forward.h>
 #include <wtf/RefPtr.h>
@@ -51,3 +52,4 @@ struct PromisedAttachmentInfo {
 
 } // namespace WebCore
 
+#endif // WebCore_platform_PromisedAttachmentInfo_h

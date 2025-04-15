@@ -22,10 +22,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_web_locks_WebLockMode_h
+#define WebCore_Modules_web_locks_WebLockMode_h
 
 namespace WebCore {
 
 enum class WebLockMode : bool { Shared, Exclusive };
 
 }
+#endif // WebCore_Modules_web_locks_WebLockMode_h

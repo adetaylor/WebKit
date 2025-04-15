@@ -25,7 +25,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_system_ClockGeneric_h
+#define WebCore_PAL_pal_system_ClockGeneric_h
 
 #include "Clock.h"
 #include <wtf/MonotonicTime.h>
@@ -59,3 +60,4 @@ private:
 };
 
 }
+#endif // WebCore_PAL_pal_system_ClockGeneric_h

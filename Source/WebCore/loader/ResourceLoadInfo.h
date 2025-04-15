@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceLoadInfo_h
+#define WebCore_loader_ResourceLoadInfo_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -120,3 +121,4 @@ struct ResourceLoadInfo {
 } // namespace WebCore::ContentExtensions
 
 #endif
+#endif // WebCore_loader_ResourceLoadInfo_h

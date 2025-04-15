@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioWorkletGlobalScope_h
+#define WebCore_Modules_webaudio_AudioWorkletGlobalScope_h
 
 #if ENABLE(WEB_AUDIO)
 #include "AudioWorkletThread.h"
@@ -100,3 +101,4 @@ static bool isType(const WebCore::WorkletGlobalScope& context) { return context.
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_Modules_webaudio_AudioWorkletGlobalScope_h

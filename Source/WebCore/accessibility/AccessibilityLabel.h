@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityLabel_h
+#define WebCore_accessibility_AccessibilityLabel_h
 
 #include "AccessibilityRenderObject.h"
 
@@ -57,3 +58,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilityLabel) \
     static bool isType(const WebCore::AccessibilityObject& object) { return object.isAccessibilityLabelInstance(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_accessibility_AccessibilityLabel_h

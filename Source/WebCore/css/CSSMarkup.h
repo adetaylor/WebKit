@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSMarkup_h
+#define WebCore_css_CSSMarkup_h
 
 #include <wtf/text/WTFString.h>
 
@@ -36,3 +37,4 @@ String serializeURL(const String&);
 String serializeFontFamily(const String&);
 
 } // namespace WebCore
+#endif // WebCore_css_CSSMarkup_h

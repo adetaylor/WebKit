@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_websockets_WebSocketChannelClient_h
+#define WebCore_Modules_websockets_WebSocketChannelClient_h
 
 #include <wtf/Forward.h>
 #include <wtf/ThreadSafeWeakPtr.h>
@@ -56,3 +57,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_websockets_WebSocketChannelClient_h

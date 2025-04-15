@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cookie_store_ExtendableCookieChangeEvent_h
+#define WebCore_Modules_cookie_store_ExtendableCookieChangeEvent_h
 
 #include "ExtendableCookieChangeEventInit.h"
 #include "ExtendableEvent.h"
@@ -52,3 +53,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_cookie_store_ExtendableCookieChangeEvent_h

@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CurlRequestScheduler_h
+#define WebCore_platform_network_curl_CurlRequestScheduler_h
 
 #include "CurlContext.h"
 #include <wtf/HashMap.h>
@@ -83,3 +84,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CurlRequestScheduler_h

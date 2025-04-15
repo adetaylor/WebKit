@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_SynchronousLoaderClient_h
+#define WebCore_platform_network_SynchronousLoaderClient_h
 
 #include "ResourceError.h"
 #include "ResourceHandleClient.h"
@@ -82,3 +83,4 @@ private:
     Ref<SynchronousLoaderMessageQueue> m_messageQueue;
 };
 }
+#endif // WebCore_platform_network_SynchronousLoaderClient_h

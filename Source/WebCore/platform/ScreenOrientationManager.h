@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScreenOrientationManager_h
+#define WebCore_platform_ScreenOrientationManager_h
 
 #include "ScreenOrientationLockType.h"
 #include "ScreenOrientationType.h"
@@ -77,3 +78,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_ScreenOrientationManager_h

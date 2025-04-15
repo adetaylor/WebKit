@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasLineJoin_h
+#define WebCore_html_canvas_CanvasLineJoin_h
 
 namespace WebCore {
 
 enum class CanvasLineJoin { Round, Bevel, Miter };
 
 }
+#endif // WebCore_html_canvas_CanvasLineJoin_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformColorSpace_h
+#define WebCore_platform_graphics_PlatformColorSpace_h
 
 #if USE(CG)
 #include <wtf/RetainPtr.h>
@@ -77,3 +78,4 @@ using PlatformColorSpaceValue = PlatformColorSpace::Name;
 #endif
 
 }
+#endif // WebCore_platform_graphics_PlatformColorSpace_h

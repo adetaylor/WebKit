@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_SecurityOriginData_h
+#define WebCore_page_SecurityOriginData_h
 
 #include "ProcessQualified.h"
 #include <wtf/ArgumentCoder.h>
@@ -203,3 +204,4 @@ template<> struct DefaultHash<WebCore::SecurityOriginData> : WebCore::SecurityOr
 template<> struct DefaultHash<std::optional<WebCore::SecurityOriginData>> : WebCore::SecurityOriginDataHash { };
 
 } // namespace WTF
+#endif // WebCore_page_SecurityOriginData_h

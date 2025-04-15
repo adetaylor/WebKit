@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GradientColorStop_h
+#define WebCore_platform_graphics_GradientColorStop_h
 
 #include "Color.h"
 #include <optional>
@@ -45,3 +46,4 @@ inline void add(Hasher& hasher, const GradientColorStop& stop)
 TextStream& operator<<(TextStream&, const GradientColorStop&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_GradientColorStop_h

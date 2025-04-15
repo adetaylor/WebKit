@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_animation_AcceleratedEffectValues_h
+#define WebCore_platform_animation_AcceleratedEffectValues_h
 
 #if ENABLE(THREADED_ANIMATION_RESOLUTION)
 
@@ -91,3 +92,4 @@ struct AcceleratedEffectValues {
 } // namespace WebCore
 
 #endif // ENABLE(THREADED_ANIMATION_RESOLUTION)
+#endif // WebCore_platform_animation_AcceleratedEffectValues_h

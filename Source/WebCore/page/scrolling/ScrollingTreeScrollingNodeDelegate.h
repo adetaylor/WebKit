@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingTreeScrollingNodeDelegate_h
+#define WebCore_page_scrolling_ScrollingTreeScrollingNodeDelegate_h
 
 #if ENABLE(ASYNC_SCROLLING)
 
@@ -92,3 +93,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(ASYNC_SCROLLING)
+#endif // WebCore_page_scrolling_ScrollingTreeScrollingNodeDelegate_h

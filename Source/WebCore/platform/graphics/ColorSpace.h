@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorSpace_h
+#define WebCore_platform_graphics_ColorSpace_h
 
 #include "ColorTypes.h"
 #include <functional>
@@ -139,3 +140,4 @@ template<typename T, typename Functor> constexpr decltype(auto) callWithColorTyp
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ColorSpace_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_Interfaces_BarcodeDetectorOptionsInterface_h
+#define WebCore_Modules_ShapeDetection_Interfaces_BarcodeDetectorOptionsInterface_h
 
 #include "BarcodeFormatInterface.h"
 #include <wtf/Vector.h>
@@ -35,3 +36,4 @@ struct BarcodeDetectorOptions {
 };
 
 } // namespace WebCore::ShapeDetection
+#endif // WebCore_Modules_ShapeDetection_Interfaces_BarcodeDetectorOptionsInterface_h

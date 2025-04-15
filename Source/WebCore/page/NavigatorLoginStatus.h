@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_NavigatorLoginStatus_h
+#define WebCore_page_NavigatorLoginStatus_h
 
 #include "Supplementable.h"
 #include <wtf/TZoneMalloc.h>
@@ -58,3 +59,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_NavigatorLoginStatus_h

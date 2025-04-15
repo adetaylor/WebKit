@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediacapabilities_AudioConfiguration_h
+#define WebCore_platform_mediacapabilities_AudioConfiguration_h
 
 #include <wtf/text/WTFString.h>
 
@@ -51,3 +52,4 @@ inline AudioConfiguration AudioConfiguration::isolatedCopy() &&
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_mediacapabilities_AudioConfiguration_h

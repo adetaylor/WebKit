@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGPoint_h
+#define WebCore_svg_SVGPoint_h
 
 #include "FloatPoint.h"
 #include "SVGMatrix.h"
@@ -96,3 +97,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGPoint_h

@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_domjit_DOMJITHelpers_h
+#define WebCore_domjit_DOMJITHelpers_h
 
 #include "JSDOMWrapper.h"
 #include "Node.h"
@@ -204,3 +205,4 @@ JSC_DECLARE_JIT_OPERATION(operationToJSDocument, JSC::EncodedJSValue, (JSC::JSGl
 IGNORE_WARNINGS_END
 
 #endif
+#endif // WebCore_domjit_DOMJITHelpers_h

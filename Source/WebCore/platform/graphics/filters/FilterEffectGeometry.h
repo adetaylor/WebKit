@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FilterEffectGeometry_h
+#define WebCore_platform_graphics_filters_FilterEffectGeometry_h
 
 #include "FloatRect.h"
 #include <wtf/ArgumentCoder.h>
@@ -88,3 +89,4 @@ private:
 using FilterEffectGeometryMap = UncheckedKeyHashMap<Ref<FilterEffect>, FilterEffectGeometry>;
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_filters_FilterEffectGeometry_h

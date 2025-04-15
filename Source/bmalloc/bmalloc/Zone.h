@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Zone_h
+#define bmalloc_bmalloc_Zone_h
 
 #include "FixedVector.h"
 #include "Mutex.h"
@@ -75,3 +76,4 @@ inline void Zone::addRange(Range range)
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_Zone_h

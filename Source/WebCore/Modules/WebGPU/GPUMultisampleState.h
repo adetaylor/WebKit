@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUMultisampleState_h
+#define WebCore_Modules_WebGPU_GPUMultisampleState_h
 
 #include "GPUIntegralTypes.h"
 #include "WebGPUMultisampleState.h"
@@ -46,3 +47,4 @@ struct GPUMultisampleState {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUMultisampleState_h

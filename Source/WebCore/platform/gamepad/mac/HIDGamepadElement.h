@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_mac_HIDGamepadElement_h
+#define WebCore_platform_gamepad_mac_HIDGamepadElement_h
 
 #if ENABLE(GAMEPAD) && PLATFORM(MAC)
 
@@ -109,3 +110,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD) && PLATFORM(MAC)
+#endif // WebCore_platform_gamepad_mac_HIDGamepadElement_h

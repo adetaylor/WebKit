@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_server_IndexValueEntry_h
+#define WebCore_Modules_indexeddb_server_IndexValueEntry_h
 
 #include "IDBKeyData.h"
 #include <wtf/TZoneMalloc.h>
@@ -99,3 +100,4 @@ private:
 
 } // namespace IDBServer
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_server_IndexValueEntry_h

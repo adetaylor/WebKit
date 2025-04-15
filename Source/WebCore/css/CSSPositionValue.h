@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSPositionValue_h
+#define WebCore_css_CSSPositionValue_h
 
 #include "CSSPosition.h"
 #include "CSSValue.h"
@@ -85,3 +86,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSPositionValue, isPositionValue())
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSPositionXValue, isPositionXValue())
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSPositionYValue, isPositionYValue())
+#endif // WebCore_css_CSSPositionValue_h

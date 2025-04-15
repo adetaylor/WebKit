@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ScreenOrientationLockType_h
+#define WebCore_page_ScreenOrientationLockType_h
 
 namespace WebCore {
 
@@ -39,3 +40,4 @@ enum class ScreenOrientationLockType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ScreenOrientationLockType_h

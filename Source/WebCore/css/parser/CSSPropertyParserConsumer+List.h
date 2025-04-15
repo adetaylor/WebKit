@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_List_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_List_h
 
 #include "CSSParserTokenRange.h"
 #include "CSSPropertyParserConsumer+Primitives.h"
@@ -115,3 +116,4 @@ auto consumeListSeparatedBy(CSSParserTokenRange& range, SubConsumer&& subConsume
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_List_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_CalculationValue_h
+#define WebCore_css_calc_CSSCalcTree_CalculationValue_h
 
 #include <wtf/Forward.h>
 
@@ -44,3 +45,4 @@ Ref<CalculationValue> toCalculationValue(const Tree&, const EvaluationOptions&);
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_CalculationValue_h

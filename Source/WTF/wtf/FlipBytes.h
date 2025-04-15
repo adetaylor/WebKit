@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_FlipBytes_h
+#define WTF_wtf_FlipBytes_h
 
 #include <wtf/Compiler.h>
 
@@ -127,3 +128,4 @@ using WTF::flipBytes;
 using WTF::flipBytesIfLittleEndian;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_FlipBytes_h

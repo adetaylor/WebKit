@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cocoa_IOTypesSPI_h
+#define WTF_wtf_spi_cocoa_IOTypesSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -43,3 +44,4 @@ enum {
 };
 
 #endif
+#endif // WTF_wtf_spi_cocoa_IOTypesSPI_h

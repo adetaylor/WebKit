@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_TZoneMallocInlines_h
+#define WTF_wtf_TZoneMallocInlines_h
 
 #include <wtf/ForbidHeapAllocation.h>
 #include <wtf/Platform.h>
@@ -79,3 +80,4 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 #endif
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_TZoneMallocInlines_h

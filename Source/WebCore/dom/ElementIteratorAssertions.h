@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementIteratorAssertions_h
+#define WebCore_dom_ElementIteratorAssertions_h
 
 #include "Document.h"
 #include "ScriptDisallowedScope.h"
@@ -71,3 +72,4 @@ inline void ElementIteratorAssertions::clear()
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_ElementIteratorAssertions_h

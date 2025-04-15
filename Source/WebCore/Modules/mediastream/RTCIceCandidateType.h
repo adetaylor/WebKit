@@ -22,10 +22,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCIceCandidateType_h
+#define WebCore_Modules_mediastream_RTCIceCandidateType_h
 
 namespace WebCore {
 
 enum class RTCIceCandidateType { Host, Srflx, Prflx, Relay };
 
 } // namespace WebCore
+#endif // WebCore_Modules_mediastream_RTCIceCandidateType_h

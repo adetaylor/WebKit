@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_darwin_AbortWithReasonSPI_h
+#define WTF_wtf_spi_darwin_AbortWithReasonSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -57,3 +58,4 @@ void abort_with_reason(uint32_t reason_namespace, uint64_t reason_code, const ch
 #define OS_REASON_FLAG_SECURITY_SENSITIVE  0x1000
 #define OS_REASON_WEBKIT 31
 #endif
+#endif // WTF_wtf_spi_darwin_AbortWithReasonSPI_h

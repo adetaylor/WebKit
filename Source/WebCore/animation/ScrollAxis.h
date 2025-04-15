@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_ScrollAxis_h
+#define WebCore_animation_ScrollAxis_h
 
 #include <wtf/Forward.h>
 
@@ -34,3 +35,4 @@ enum class ScrollAxis : uint8_t { Block, Inline, X, Y };
 TextStream& operator<<(TextStream&, ScrollAxis);
 
 } // namespace WebCore
+#endif // WebCore_animation_ScrollAxis_h

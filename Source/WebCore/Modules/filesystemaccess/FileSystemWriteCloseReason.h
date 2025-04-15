@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_filesystemaccess_FileSystemWriteCloseReason_h
+#define WebCore_Modules_filesystemaccess_FileSystemWriteCloseReason_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class FileSystemWriteCloseReason : bool {
 
 } // namespace WebCore
 
+#endif // WebCore_Modules_filesystemaccess_FileSystemWriteCloseReason_h

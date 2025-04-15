@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_TypeTraits_h
+#define WTF_wtf_TypeTraits_h
 
 #include <type_traits>
 #include <wtf/Forward.h>
@@ -194,3 +195,4 @@ constexpr std::size_t parameterCount(ReturnType(*)(Args...))
 }
 
 } // namespace NTF
+#endif // WTF_wtf_TypeTraits_h

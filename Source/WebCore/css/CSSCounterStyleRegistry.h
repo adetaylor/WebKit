@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSCounterStyleRegistry_h
+#define WebCore_css_CSSCounterStyleRegistry_h
 
 #include "CSSCounterStyle.h"
 #include <wtf/Forward.h>
@@ -67,3 +68,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_CSSCounterStyleRegistry_h

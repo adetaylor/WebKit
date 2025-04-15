@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_mac_MultiGamepadProvider_h
+#define WebCore_platform_gamepad_mac_MultiGamepadProvider_h
 
 #if ENABLE(GAMEPAD) && HAVE(MULTIGAMEPADPROVIDER_SUPPORT)
 
@@ -98,3 +99,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD) && HAVE(MULTIGAMEPADPROVIDER_SUPPORT)
+#endif // WebCore_platform_gamepad_mac_MultiGamepadProvider_h

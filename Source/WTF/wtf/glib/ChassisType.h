@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_ChassisType_h
+#define WTF_wtf_glib_ChassisType_h
 
 namespace WTF {
 
@@ -31,3 +32,4 @@ WTF_EXPORT_PRIVATE ChassisType chassisType();
 } // namespace WTF
 
 using WTF::chassisType;
+#endif // WTF_wtf_glib_ChassisType_h

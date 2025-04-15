@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGTransformableContainer_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGTransformableContainer_h
 
 #include "LegacyRenderSVGContainer.h"
 
@@ -54,3 +55,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(LegacyRenderSVGTransformableContainer, isLegacyRenderSVGTransformableContainer())
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGTransformableContainer_h

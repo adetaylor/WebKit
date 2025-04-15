@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_egl_GLFence_h
+#define WebCore_platform_graphics_egl_GLFence_h
 
 #include <wtf/Noncopyable.h>
 #include <wtf/TZoneMalloc.h>
@@ -61,3 +62,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_egl_GLFence_h

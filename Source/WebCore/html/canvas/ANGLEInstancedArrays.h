@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_ANGLEInstancedArrays_h
+#define WebCore_html_canvas_ANGLEInstancedArrays_h
 
 #include "WebGLExtension.h"
 #include "WebGLRenderingContextBase.h"
@@ -47,3 +48,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_canvas_ANGLEInstancedArrays_h

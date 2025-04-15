@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PlatformEnableCocoa_h
+#define WTF_wtf_PlatformEnableCocoa_h
 
 #ifndef WTF_PLATFORM_GUARD_AGAINST_INDIRECT_INCLUSION
 #error "Please #include <wtf/Platform.h> instead of this file directly."
@@ -1109,3 +1110,4 @@
 #if !defined(ENABLE_INITIALIZE_ACCESSIBILITY_ON_DEMAND) && PLATFORM(MAC)
 #define ENABLE_INITIALIZE_ACCESSIBILITY_ON_DEMAND 1
 #endif
+#endif // WTF_wtf_PlatformEnableCocoa_h

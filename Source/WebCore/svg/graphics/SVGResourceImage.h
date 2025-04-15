@@ -24,7 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_graphics_SVGResourceImage_h
+#define WebCore_svg_graphics_SVGResourceImage_h
 
 #include "GeneratedImage.h"
 #include "StyleURL.h"
@@ -61,3 +62,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_IMAGE(SVGResourceImage)
+#endif // WebCore_svg_graphics_SVGResourceImage_h

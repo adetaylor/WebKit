@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_worklets_PaintWorkletGlobalScope_h
+#define WebCore_worklets_PaintWorkletGlobalScope_h
 
 #include "CSSPaintCallback.h"
 #include "WorkletGlobalScope.h"
@@ -120,3 +121,4 @@ static bool isType(const WebCore::ScriptExecutionContext& context)
 }
 static bool isType(const WebCore::WorkletGlobalScope& context) { return context.isPaintWorkletGlobalScope(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_worklets_PaintWorkletGlobalScope_h

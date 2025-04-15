@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_updating_RenderTreeBuilderFirstLetter_h
+#define WebCore_rendering_updating_RenderTreeBuilderFirstLetter_h
 
 #include "RenderTreeBuilder.h"
 #include <wtf/TZoneMalloc.h>
@@ -49,3 +50,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_updating_RenderTreeBuilderFirstLetter_h

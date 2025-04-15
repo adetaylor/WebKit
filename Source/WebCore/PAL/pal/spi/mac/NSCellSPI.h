@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSCellSPI_h
+#define WebCore_PAL_pal_spi_mac_NSCellSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -59,3 +60,4 @@ typedef NS_ENUM(NSInteger, NSViewSemanticContext);
 @property (setter=_setFallbackBezelPresentationState:) NSPresentationState _fallbackBezelPresentationState;
 @property (setter=_setFallbackSemanticContext:) NSViewSemanticContext _fallbackSemanticContext;
 @end
+#endif // WebCore_PAL_pal_spi_mac_NSCellSPI_h

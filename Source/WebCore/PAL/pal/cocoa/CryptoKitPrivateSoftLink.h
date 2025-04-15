@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_CryptoKitPrivateSoftLink_h
+#define WebCore_PAL_pal_cocoa_CryptoKitPrivateSoftLink_h
 
 #if HAVE(RSA_BSSA)
 
@@ -35,3 +36,4 @@ SOFT_LINK_FRAMEWORK_FOR_HEADER(PAL, CryptoKitPrivate);
 SOFT_LINK_CLASS_FOR_HEADER(PAL, RSABSSATokenBlinder);
 
 #endif
+#endif // WebCore_PAL_pal_cocoa_CryptoKitPrivateSoftLink_h

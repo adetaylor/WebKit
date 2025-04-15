@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_borders_CSSBoxShadow_h
+#define WebCore_css_values_borders_CSSBoxShadow_h
 
 #include "CSSColor.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -61,3 +62,4 @@ template<size_t I> const auto& get(const BoxShadow& value)
 } // namespace WebCore
 
 DEFINE_SPACE_SEPARATED_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::BoxShadow, 5)
+#endif // WebCore_css_values_borders_CSSBoxShadow_h

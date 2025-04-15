@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_GetComposedRangesOptions_h
+#define WebCore_page_GetComposedRangesOptions_h
 
 #include <wtf/Vector.h>
 
@@ -36,3 +37,4 @@ struct GetComposedRangesOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_GetComposedRangesOptions_h

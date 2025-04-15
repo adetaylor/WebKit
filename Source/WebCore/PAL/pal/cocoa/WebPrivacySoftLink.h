@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_WebPrivacySoftLink_h
+#define WebCore_PAL_pal_cocoa_WebPrivacySoftLink_h
 
 #if ENABLE(ADVANCED_PRIVACY_PROTECTIONS)
 
@@ -41,3 +42,4 @@ SOFT_LINK_CONSTANT_FOR_HEADER(PAL, WebPrivacy, WPNotificationUserInfoResourceTyp
 SOFT_LINK_CONSTANT_FOR_HEADER(PAL, WebPrivacy, WPResourceDataChangedNotificationName, NSNotificationName)
 
 #endif // ENABLE(ADVANCED_PRIVACY_PROTECTIONS)
+#endif // WebCore_PAL_pal_cocoa_WebPrivacySoftLink_h

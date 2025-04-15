@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_gstreamer_GUniquePtrFlite_h
+#define WebCore_platform_gstreamer_GUniquePtrFlite_h
 
 #include <wtf/Platform.h>
 
@@ -34,3 +35,4 @@ WTF_DEFINE_GPTR_DELETER(cst_wave, delete_wave)
 } // namespace WTF
 
 #endif // USE(FLITE)
+#endif // WebCore_platform_gstreamer_GUniquePtrFlite_h

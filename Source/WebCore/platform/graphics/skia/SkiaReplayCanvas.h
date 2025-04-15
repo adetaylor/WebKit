@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_skia_SkiaReplayCanvas_h
+#define WebCore_platform_graphics_skia_SkiaReplayCanvas_h
 
 #if USE(COORDINATED_GRAPHICS) && USE(SKIA)
 #include "IntSize.h"
@@ -81,3 +82,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(COORDINATED_GRAPHICS) && USE(SKIA)
+#endif // WebCore_platform_graphics_skia_SkiaReplayCanvas_h

@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FEComponentTransfer_h
+#define WebCore_platform_graphics_filters_FEComponentTransfer_h
 
 #include "FilterEffect.h"
 #include <wtf/EnumeratedArray.h>
@@ -102,3 +103,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(FEComponentTransfer)
+#endif // WebCore_platform_graphics_filters_FEComponentTransfer_h

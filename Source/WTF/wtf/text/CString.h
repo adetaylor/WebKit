@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_CString_h
+#define WTF_wtf_text_CString_h
 
 #include <span>
 #include <wtf/DebugHeap.h>
@@ -157,3 +158,4 @@ inline const char* safePrintfType(const CString& cstring) { return cstring.data(
 } // namespace WTF
 
 using WTF::CString;
+#endif // WTF_wtf_text_CString_h

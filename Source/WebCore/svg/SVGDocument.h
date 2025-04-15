@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGDocument_h
+#define WebCore_svg_SVGDocument_h
 
 #include "XMLDocument.h"
 
@@ -62,3 +63,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SVGDocument)
         return document && isType(*document);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_svg_SVGDocument_h

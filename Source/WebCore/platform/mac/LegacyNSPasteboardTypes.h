@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_LegacyNSPasteboardTypes_h
+#define WebCore_platform_mac_LegacyNSPasteboardTypes_h
 
 #if PLATFORM(MAC)
 
@@ -96,3 +97,4 @@ inline NSString *legacyPNGPasteboardType()
 ALLOW_DEPRECATED_DECLARATIONS_END
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_mac_LegacyNSPasteboardTypes_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_CascadeLevel_h
+#define WebCore_style_CascadeLevel_h
 
 #include <wtf/OptionSet.h>
 
@@ -52,3 +53,4 @@ inline CascadeLevel& operator--(CascadeLevel& level)
 
 }
 }
+#endif // WebCore_style_CascadeLevel_h

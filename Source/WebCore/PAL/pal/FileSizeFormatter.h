@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_FileSizeFormatter_h
+#define WebCore_PAL_pal_FileSizeFormatter_h
 
 #include <wtf/text/WTFString.h>
 
@@ -32,3 +33,4 @@ namespace PAL {
 PAL_EXPORT AtomString fileSizeDescription(uint64_t);
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_FileSizeFormatter_h

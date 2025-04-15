@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioContext_h
+#define WebCore_Modules_webaudio_AudioContext_h
 
 #include "BaseAudioContext.h"
 #include "DefaultAudioDestinationNode.h"
@@ -187,3 +188,4 @@ template<> struct EnumTraits<WebCore::AudioContext::BehaviorRestrictionFlags> {
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AudioContext)
     static bool isType(const WebCore::BaseAudioContext& context) { return !context.isOfflineContext(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_webaudio_AudioContext_h

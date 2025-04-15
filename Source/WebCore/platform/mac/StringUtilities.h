@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_StringUtilities_h
+#define WebCore_platform_mac_StringUtilities_h
 
 #import "PlatformExportMacros.h"
 #import <wtf/Forward.h>
@@ -33,3 +34,4 @@ namespace WebCore {
 WEBCORE_EXPORT bool stringMatchesWildcardString(const String& stringToBeMatched, const String& wildcardString);
 
 }
+#endif // WebCore_platform_mac_StringUtilities_h

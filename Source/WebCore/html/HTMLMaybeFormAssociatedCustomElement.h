@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLMaybeFormAssociatedCustomElement_h
+#define WebCore_html_HTMLMaybeFormAssociatedCustomElement_h
 
 #include "HTMLElement.h"
 
@@ -88,3 +89,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::HTMLMaybeFormAssociatedCustomElement)
         return element && isType(*element);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_HTMLMaybeFormAssociatedCustomElement_h

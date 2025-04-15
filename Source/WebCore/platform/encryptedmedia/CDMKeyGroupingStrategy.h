@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_encryptedmedia_CDMKeyGroupingStrategy_h
+#define WebCore_platform_encryptedmedia_CDMKeyGroupingStrategy_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -37,3 +38,4 @@ enum class CDMKeyGroupingStrategy : bool {
 } // namespace WebCore
 
 #endif // ENABLE(ENCRYPTED_MEDIA)
+#endif // WebCore_platform_encryptedmedia_CDMKeyGroupingStrategy_h

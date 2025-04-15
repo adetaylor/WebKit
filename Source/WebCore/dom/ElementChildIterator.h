@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementChildIterator_h
+#define WebCore_dom_ElementChildIterator_h
 
 #include "ElementIterator.h"
 
@@ -91,3 +92,4 @@ inline ElementChildRange<const ElementType> childrenOfType(const ContainerNode& 
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_ElementChildIterator_h

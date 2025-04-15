@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_MediaUtilities_h
+#define WebCore_platform_cocoa_MediaUtilities_h
 
 #include <CoreMedia/CMTime.h>
 #include <wtf/RetainPtr.h>
@@ -42,3 +43,4 @@ RetainPtr<CMSampleBufferRef> createAudioSampleBuffer(const PlatformAudioData&, c
 RetainPtr<CMSampleBufferRef> createVideoSampleBuffer(CVPixelBufferRef, CMTime);
 
 } // namespace WebCore
+#endif // WebCore_platform_cocoa_MediaUtilities_h

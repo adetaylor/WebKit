@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_UserContentProvider_h
+#define WebCore_page_UserContentProvider_h
 
 #include <functional>
 #include <wtf/Function.h>
@@ -98,3 +99,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_UserContentProvider_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_SpanCoreAudio_h
+#define WebCore_platform_audio_cocoa_SpanCoreAudio_h
 
 #include <CoreAudio/CoreAudioTypes.h>
 #include <span>
@@ -54,3 +55,4 @@ inline std::span<const AudioBuffer> span(const AudioBufferList& list)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_audio_cocoa_SpanCoreAudio_h

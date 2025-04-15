@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_WaveShaperDSPKernel_h
+#define WebCore_Modules_webaudio_WaveShaperDSPKernel_h
 
 #include "AudioArray.h"
 #include "AudioDSPKernel.h"
@@ -73,3 +74,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_WaveShaperDSPKernel_h

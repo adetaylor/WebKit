@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceMarkerInlines_h
+#define WebCore_rendering_svg_RenderSVGResourceMarkerInlines_h
 
 #include "RenderSVGResourceMarker.h"
 #include "SVGMarkerElement.h"
@@ -59,3 +60,4 @@ bool RenderSVGResourceMarker::hasReverseStart() const
 }
 
 }
+#endif // WebCore_rendering_svg_RenderSVGResourceMarkerInlines_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cf_CoreTextSoftLink_h
+#define WebCore_PAL_pal_cf_CoreTextSoftLink_h
 
 #include <pal/spi/cf/CoreTextSPI.h>
 #include <wtf/SoftLinking.h>
@@ -32,3 +33,4 @@ SOFT_LINK_FRAMEWORK_FOR_HEADER(PAL, OTSVG)
 SOFT_LINK_FUNCTION_FOR_HEADER(PAL, OTSVG, OTSVGTableCreateFromData, OTSVGTableRef, (CFDataRef svgTable, unsigned unitsPerEm, CGFloat fontSize), (svgTable, unitsPerEm, fontSize))
 SOFT_LINK_FUNCTION_FOR_HEADER(PAL, OTSVG, OTSVGTableGetDocumentIndexForGlyph, CFIndex, (OTSVGTableRef table, CGGlyph glyph), (table, glyph))
 SOFT_LINK_FUNCTION_FOR_HEADER(PAL, OTSVG, OTSVGTableRelease, void, (OTSVGTableRef table), (table))
+#endif // WebCore_PAL_pal_cf_CoreTextSoftLink_h

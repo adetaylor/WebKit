@@ -21,7 +21,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_LogClient_h
+#define WebCore_platform_LogClient_h
 
 #include <wtf/ThreadSafeRefCounted.h>
 
@@ -44,3 +45,4 @@ public:
 WEBCORE_EXPORT std::unique_ptr<LogClient>& logClient();
 
 }
+#endif // WebCore_platform_LogClient_h

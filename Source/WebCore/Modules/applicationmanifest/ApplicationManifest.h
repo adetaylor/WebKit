@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applicationmanifest_ApplicationManifest_h
+#define WebCore_Modules_applicationmanifest_ApplicationManifest_h
 
 #if ENABLE(APPLICATION_MANIFEST)
 
@@ -91,3 +92,4 @@ struct ApplicationManifest {
 
 #endif // ENABLE(APPLICATION_MANIFEST)
 
+#endif // WebCore_Modules_applicationmanifest_ApplicationManifest_h

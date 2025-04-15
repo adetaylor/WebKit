@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ViewTransitionTypeSet_h
+#define WebCore_dom_ViewTransitionTypeSet_h
 
 #include "Element.h"
 #include "JSDOMSetLike.h"
@@ -59,3 +60,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_ViewTransitionTypeSet_h

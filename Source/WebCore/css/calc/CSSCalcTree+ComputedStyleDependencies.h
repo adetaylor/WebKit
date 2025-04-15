@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_ComputedStyleDependencies_h
+#define WebCore_css_calc_CSSCalcTree_ComputedStyleDependencies_h
 
 namespace WebCore {
 
@@ -36,3 +37,4 @@ void collectComputedStyleDependencies(const Tree&, ComputedStyleDependencies&);
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_ComputedStyleDependencies_h

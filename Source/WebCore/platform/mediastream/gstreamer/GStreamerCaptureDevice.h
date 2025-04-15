@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_gstreamer_GStreamerCaptureDevice_h
+#define WebCore_platform_mediastream_gstreamer_GStreamerCaptureDevice_h
 
 #if ENABLE(MEDIA_STREAM) && USE(GSTREAMER)
 
@@ -46,3 +47,4 @@ private:
 }
 
 #endif // ENABLE(MEDIA_STREAM)  && USE(GSTREAMER)
+#endif // WebCore_platform_mediastream_gstreamer_GStreamerCaptureDevice_h

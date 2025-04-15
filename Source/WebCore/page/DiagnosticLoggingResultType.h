@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_DiagnosticLoggingResultType_h
+#define WebCore_page_DiagnosticLoggingResultType_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum DiagnosticLoggingResultType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_DiagnosticLoggingResultType_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
  
-#pragma once
+#ifndef WebCore_platform_graphics_IntRectHash_h
+#define WebCore_platform_graphics_IntRectHash_h
 
 #include "IntPointHash.h"
 #include "IntRect.h"
@@ -51,3 +52,4 @@ template<> struct HashTraits<WebCore::IntRect> : GenericHashTraits<WebCore::IntR
 };
 
 }
+#endif // WebCore_platform_graphics_IntRectHash_h

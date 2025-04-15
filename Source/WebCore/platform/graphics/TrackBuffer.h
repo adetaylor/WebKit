@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_TrackBuffer_h
+#define WebCore_platform_graphics_TrackBuffer_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -159,3 +160,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_SOURCE)
+#endif // WebCore_platform_graphics_TrackBuffer_h

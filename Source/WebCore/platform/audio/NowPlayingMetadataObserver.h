@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_NowPlayingMetadataObserver_h
+#define WebCore_platform_audio_NowPlayingMetadataObserver_h
 
 #include <wtf/Forward.h>
 
@@ -34,3 +35,4 @@ struct NowPlayingMetadata;
 using NowPlayingMetadataObserver = Observer<void(const NowPlayingMetadata&)>;
 
 } // namespace WebCore
+#endif // WebCore_platform_audio_NowPlayingMetadataObserver_h

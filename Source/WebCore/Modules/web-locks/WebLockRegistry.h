@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_web_locks_WebLockRegistry_h
+#define WebCore_Modules_web_locks_WebLockRegistry_h
 
 #include "ClientOrigin.h"
 #include "ProcessIdentifier.h"
@@ -81,3 +82,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_web_locks_WebLockRegistry_h

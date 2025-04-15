@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_numeric_CSSMathOperator_h
+#define WebCore_css_typedom_numeric_CSSMathOperator_h
 
 namespace WebCore {
 
@@ -38,3 +39,4 @@ enum class CSSMathOperator : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_css_typedom_numeric_CSSMathOperator_h

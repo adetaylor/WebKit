@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_KeyboardEvent_h
+#define WebCore_dom_KeyboardEvent_h
 
 #include "EventModifierInit.h"
 #include "KeypressCommand.h"
@@ -119,3 +120,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(KeyboardEvent)
+#endif // WebCore_dom_KeyboardEvent_h

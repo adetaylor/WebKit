@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_DeviceClient_h
+#define WebCore_page_DeviceClient_h
 
 #include <wtf/CheckedPtr.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -50,3 +51,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_DeviceClient_h

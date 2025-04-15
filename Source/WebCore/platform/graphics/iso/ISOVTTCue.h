@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_iso_ISOVTTCue_h
+#define WebCore_platform_graphics_iso_ISOVTTCue_h
 
 #include "ISOBox.h"
 #include <wtf/MediaTime.h>
@@ -93,3 +94,4 @@ struct LogArgument<WebCore::ISOWebVTTCue> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_graphics_iso_ISOVTTCue_h

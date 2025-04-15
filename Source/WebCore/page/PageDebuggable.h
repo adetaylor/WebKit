@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PageDebuggable_h
+#define WebCore_page_PageDebuggable_h
 
 #if ENABLE(REMOTE_INSPECTOR)
 
@@ -71,3 +72,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CONTROLLABLE_TARGET(WebCore::PageDebuggable, Page);
 
 #endif // ENABLE(REMOTE_INSPECTOR)
+#endif // WebCore_page_PageDebuggable_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_DisplayRefreshMonitorManager_h
+#define WebCore_platform_graphics_DisplayRefreshMonitorManager_h
 
 #include "AnimationFrameRate.h"
 #include "DisplayRefreshMonitor.h"
@@ -79,3 +80,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_DisplayRefreshMonitorManager_h

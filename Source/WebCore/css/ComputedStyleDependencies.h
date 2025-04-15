@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_ComputedStyleDependencies_h
+#define WebCore_css_ComputedStyleDependencies_h
 
 #include <wtf/Vector.h>
 
@@ -43,3 +44,4 @@ struct ComputedStyleDependencies {
 };
 
 } // namespace WebCore
+#endif // WebCore_css_ComputedStyleDependencies_h

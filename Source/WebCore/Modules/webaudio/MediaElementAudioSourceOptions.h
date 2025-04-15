@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_MediaElementAudioSourceOptions_h
+#define WebCore_Modules_webaudio_MediaElementAudioSourceOptions_h
 
 #if ENABLE(WEB_AUDIO) && ENABLE(VIDEO)
 
@@ -37,3 +38,4 @@ struct MediaElementAudioSourceOptions {
 } // namespace WebCore
 
 #endif // #if ENABLE(WEB_AUDIO) && ENABLE(VIDEO)
+#endif // WebCore_Modules_webaudio_MediaElementAudioSourceOptions_h

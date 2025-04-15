@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_updating_RenderTreeUpdater_h
+#define WebCore_rendering_updating_RenderTreeUpdater_h
 
 #include "RenderTreeBuilder.h"
 #include "RenderTreePosition.h"
@@ -118,3 +119,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_updating_RenderTreeUpdater_h

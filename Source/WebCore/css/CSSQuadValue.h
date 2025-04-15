@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSQuadValue_h
+#define WebCore_css_CSSQuadValue_h
 
 #include "Quad.h"
 
@@ -77,3 +78,4 @@ inline Ref<CSSQuadValue> CSSQuadValue::create(Ref<CSSValue> a, Ref<CSSValue> b, 
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSQuadValue, isQuad())
+#endif // WebCore_css_CSSQuadValue_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cv_GraphicsContextGLCV_h
+#define WebCore_platform_graphics_cv_GraphicsContextGLCV_h
 
 #if ENABLE(WEBGL) && USE(AVFOUNDATION)
 
@@ -46,3 +47,4 @@ public:
 }
 
 #endif
+#endif // WebCore_platform_graphics_cv_GraphicsContextGLCV_h

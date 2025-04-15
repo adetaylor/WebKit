@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_RadioButtonGroups_h
+#define WebCore_dom_RadioButtonGroups_h
 
 #include <memory>
 #include <wtf/HashMap.h>
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_RadioButtonGroups_h

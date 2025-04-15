@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_fido_FidoParsingUtils_h
+#define WebCore_Modules_webauthn_fido_FidoParsingUtils_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -37,3 +38,4 @@ Vector<uint8_t> getContinuationPacketData(const Vector<uint8_t>&, size_t beginPo
 } // namespace fido
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_fido_FidoParsingUtils_h

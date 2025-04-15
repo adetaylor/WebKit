@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_airplay_WebMediaSessionManager_h
+#define WebCore_Modules_airplay_WebMediaSessionManager_h
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET) && !PLATFORM(IOS_FAMILY)
 
@@ -144,3 +145,4 @@ template<> struct EnumTraits<WebCore::WebMediaSessionManager::ConfigurationTaskF
 } // namespace WTF
 
 #endif // ENABLE(WIRELESS_PLAYBACK_TARGET) && !PLATFORM(IOS_FAMILY)
+#endif // WebCore_Modules_airplay_WebMediaSessionManager_h

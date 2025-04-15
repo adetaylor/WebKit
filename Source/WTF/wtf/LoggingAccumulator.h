@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_LoggingAccumulator_h
+#define WTF_wtf_LoggingAccumulator_h
 
 #include <wtf/text/WTFString.h>
 
@@ -36,3 +37,4 @@ WTF_EXPORT_PRIVATE String getAndResetAccumulatedLogs();
 
 using WTF::resetAccumulatedLogs;
 using WTF::getAndResetAccumulatedLogs;
+#endif // WTF_wtf_LoggingAccumulator_h

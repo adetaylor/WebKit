@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_encryptedmedia_MediaKeysRestrictions_h
+#define WebCore_Modules_encryptedmedia_MediaKeysRestrictions_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -36,3 +37,4 @@ using MediaKeysRestrictions = CDMRestrictions;
 } // namespace WebCore
 
 #endif // ENABLE(ENCRYPTED_MEDIA)
+#endif // WebCore_Modules_encryptedmedia_MediaKeysRestrictions_h

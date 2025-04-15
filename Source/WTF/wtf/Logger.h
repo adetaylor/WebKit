@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Logger_h
+#define WTF_wtf_Logger_h
 
 #include <wtf/Assertions.h>
 #include <wtf/Lock.h>
@@ -447,3 +448,4 @@ template<> struct LogArgument<id> {
 using WTF::Logger;
 using WTF::JSONLogValue;
 using WTF::emptyLogger;
+#endif // WTF_wtf_Logger_h

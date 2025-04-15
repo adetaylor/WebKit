@@ -28,7 +28,8 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WTF_wtf_StreamBuffer_h
+#define WTF_wtf_StreamBuffer_h
 
 #include <wtf/Deque.h>
 #include <wtf/text/ParsingUtilities.h>
@@ -116,3 +117,4 @@ private:
 } // namespace WTF
 
 using WTF::StreamBuffer;
+#endif // WTF_wtf_StreamBuffer_h

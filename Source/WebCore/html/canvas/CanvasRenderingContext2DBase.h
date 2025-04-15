@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasRenderingContext2DBase_h
+#define WebCore_html_canvas_CanvasRenderingContext2DBase_h
 
 #include "AffineTransform.h"
 #include "CanvasDirection.h"
@@ -507,3 +508,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CANVASRENDERINGCONTEXT(WebCore::CanvasRenderingContext2DBase, is2dBase())
+#endif // WebCore_html_canvas_CanvasRenderingContext2DBase_h

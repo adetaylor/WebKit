@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_ScrollTimeline_h
+#define WebCore_animation_ScrollTimeline_h
 
 #include "AnimationTimeline.h"
 #include "Element.h"
@@ -129,3 +130,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_ANIMATION_TIMELINE(ScrollTimeline, isScrollTimeline())
+#endif // WebCore_animation_ScrollTimeline_h

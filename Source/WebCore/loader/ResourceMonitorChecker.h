@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceMonitorChecker_h
+#define WebCore_loader_ResourceMonitorChecker_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -86,3 +87,4 @@ private:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_loader_ResourceMonitorChecker_h

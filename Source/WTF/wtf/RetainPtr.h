@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_RetainPtr_h
+#define WTF_wtf_RetainPtr_h
 
 #include <wtf/Platform.h>
 
@@ -384,3 +385,4 @@ using WTF::adoptNS;
 #endif
 
 #endif // USE(CF) || defined(__OBJC__)
+#endif // WTF_wtf_RetainPtr_h

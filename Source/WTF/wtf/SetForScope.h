@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SetForScope_h
+#define WTF_wtf_SetForScope_h
 
 #include <wtf/Noncopyable.h>
 #include <wtf/StdLibExtras.h>
@@ -79,3 +80,4 @@ private:
 }
 
 using WTF::SetForScope;
+#endif // WTF_wtf_SetForScope_h

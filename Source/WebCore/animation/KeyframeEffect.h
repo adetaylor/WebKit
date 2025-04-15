@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_KeyframeEffect_h
+#define WebCore_animation_KeyframeEffect_h
 
 #include "AcceleratedEffect.h"
 #include "Animation.h"
@@ -337,3 +338,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_ANIMATION_EFFECT(KeyframeEffect, isKeyframeEffect());
+#endif // WebCore_animation_KeyframeEffect_h

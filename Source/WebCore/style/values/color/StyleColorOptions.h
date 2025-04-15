@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleColorOptions_h
+#define WebCore_style_values_color_StyleColorOptions_h
 
 #include <wtf/Forward.h>
 
@@ -39,3 +40,4 @@ enum class StyleColorOptions : uint8_t {
 WTF::TextStream& operator<<(WTF::TextStream&, StyleColorOptions);
 
 } // namespace WebCore
+#endif // WebCore_style_values_color_StyleColorOptions_h

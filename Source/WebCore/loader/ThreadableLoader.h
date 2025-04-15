@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ThreadableLoader_h
+#define WebCore_loader_ThreadableLoader_h
 
 #include "ResourceLoaderOptions.h"
 #include <wtf/Noncopyable.h>
@@ -91,3 +92,4 @@ namespace WebCore {
     };
 
 } // namespace WebCore
+#endif // WebCore_loader_ThreadableLoader_h

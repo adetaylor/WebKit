@@ -17,7 +17,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_loader_FrameNetworkingContext_h
+#define WebCore_loader_FrameNetworkingContext_h
 
 #include "Document.h"
 #include "LocalFrame.h"
@@ -58,3 +59,4 @@ private:
 };
 
 }
+#endif // WebCore_loader_FrameNetworkingContext_h

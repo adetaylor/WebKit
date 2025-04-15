@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleScrollbarState_h
+#define WebCore_style_StyleScrollbarState_h
 
 #include "ScrollTypes.h"
 
@@ -40,3 +41,4 @@ struct StyleScrollbarState {
 };
 
 } // namespace WebCore
+#endif // WebCore_style_StyleScrollbarState_h

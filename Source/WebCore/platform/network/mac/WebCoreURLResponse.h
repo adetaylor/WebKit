@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_mac_WebCoreURLResponse_h
+#define WebCore_platform_network_mac_WebCoreURLResponse_h
 
 #include <pal/spi/cf/CFNetworkSPI.h>
 
@@ -45,3 +46,4 @@ RetainPtr<CFStringRef> filePathExtension(CFURLResponseRef);
 RetainPtr<CFStringRef> preferredMIMETypeForFileExtensionFromUTType(CFStringRef extension);
 
 }
+#endif // WebCore_platform_network_mac_WebCoreURLResponse_h

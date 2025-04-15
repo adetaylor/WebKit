@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_cocoa_RenderThemeCocoa_h
+#define WebCore_rendering_cocoa_RenderThemeCocoa_h
 
 #include "Icon.h"
 #include "RenderTheme.h"
@@ -160,3 +161,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_cocoa_RenderThemeCocoa_h

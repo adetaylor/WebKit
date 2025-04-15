@@ -27,7 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_FrameSnapshotting_h
+#define WebCore_page_FrameSnapshotting_h
 
 #include "Color.h"
 #include "DestinationColorSpace.h"
@@ -74,3 +75,4 @@ WEBCORE_EXPORT RefPtr<ImageBuffer> snapshotSelection(LocalFrame&, SnapshotOption
 Color estimatedBackgroundColorForRange(const SimpleRange&, const LocalFrame&);
 
 } // namespace WebCore
+#endif // WebCore_page_FrameSnapshotting_h

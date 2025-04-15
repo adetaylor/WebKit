@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_VariantExtras_h
+#define WTF_wtf_VariantExtras_h
 
 #include <wtf/StdLibExtras.h>
 #include <wtf/Variant.h>
@@ -102,3 +103,4 @@ template<typename V, typename F> constexpr decltype(auto) typeForIndex(size_t in
 }
 
 } // namespace WTF
+#endif // WTF_wtf_VariantExtras_h

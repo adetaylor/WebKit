@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cg_ImageBufferCGBitmapBackend_h
+#define WebCore_platform_graphics_cg_ImageBufferCGBitmapBackend_h
 
 #if USE(CG)
 
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(CG)
+#endif // WebCore_platform_graphics_cg_ImageBufferCGBitmapBackend_h

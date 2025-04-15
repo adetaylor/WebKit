@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PixelBuffer_h
+#define WebCore_platform_graphics_PixelBuffer_h
 
 #include "IntSize.h"
 #include "PixelBufferFormat.h"
@@ -118,3 +119,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_PixelBuffer_h

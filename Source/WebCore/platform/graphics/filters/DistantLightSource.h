@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_DistantLightSource_h
+#define WebCore_platform_graphics_filters_DistantLightSource_h
 
 #include "LightSource.h"
 #include <wtf/ArgumentCoder.h>
@@ -60,3 +61,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_LIGHTSOURCE(DistantLightSource, LightType::LS_DISTANT)
+#endif // WebCore_platform_graphics_filters_DistantLightSource_h

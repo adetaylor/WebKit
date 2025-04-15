@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_SerializedAttachmentData_h
+#define WebCore_editing_SerializedAttachmentData_h
 
 #if ENABLE(ATTACHMENT_ELEMENT)
 
@@ -44,3 +45,4 @@ struct SerializedAttachmentData {
 } // namespace WebKit
 
 #endif // ENABLE(ATTACHMENT_ELEMENT)
+#endif // WebCore_editing_SerializedAttachmentData_h

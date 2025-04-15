@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_PlatformEventFactoryMac_h
+#define WebCore_platform_mac_PlatformEventFactoryMac_h
 
 #include "PlatformKeyboardEvent.h"
 #include "PlatformMouseEvent.h"
@@ -75,3 +76,4 @@ WEBCORE_EXPORT void getWheelEventDeltas(NSEvent *, float& deltaX, float& deltaY,
 } // namespace WebCore
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_mac_PlatformEventFactoryMac_h

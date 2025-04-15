@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUVertexState_h
+#define WebCore_Modules_WebGPU_GPUVertexState_h
 
 #include "GPUProgrammableStage.h"
 #include "GPUVertexBufferLayout.h"
@@ -55,3 +56,4 @@ struct GPUVertexState : public GPUProgrammableStage {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUVertexState_h

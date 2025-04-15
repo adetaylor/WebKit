@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_numeric_CSSNumericType_h
+#define WebCore_css_typedom_numeric_CSSNumericType_h
 
 #include "CSSNumericBaseType.h"
 #include <optional>
@@ -84,3 +85,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_typedom_numeric_CSSNumericType_h

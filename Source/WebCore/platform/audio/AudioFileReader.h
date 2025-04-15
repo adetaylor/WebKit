@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_AudioFileReader_h
+#define WebCore_platform_audio_AudioFileReader_h
 
 #include <stdlib.h>
 #include <wtf/RefPtr.h>
@@ -42,3 +43,4 @@ class AudioBus;
 RefPtr<AudioBus> createBusFromInMemoryAudioFile(std::span<const uint8_t> data, bool mixToMono, float sampleRate);
 
 } // namespace WebCore
+#endif // WebCore_platform_audio_AudioFileReader_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSEventCustom_h
+#define WebCore_bindings_js_JSEventCustom_h
 
 #include "JSDOMBinding.h"
 #include "JSEvent.h"
@@ -44,3 +45,4 @@ struct InheritsTraits<WebCore::JSEvent> {
 
 } // namespace JSCastingHelpers
 } // namespace JSC
+#endif // WebCore_bindings_js_JSEventCustom_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_LinkIcon_h
+#define WebCore_platform_LinkIcon_h
 
 #include "LinkIconType.h"
 #include <wtf/HashMap.h>
@@ -41,3 +42,4 @@ struct LinkIcon {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_LinkIcon_h

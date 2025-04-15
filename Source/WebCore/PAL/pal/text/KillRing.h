@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_KillRing_h
+#define WebCore_PAL_pal_text_KillRing_h
 
 #include <wtf/TZoneMalloc.h>
 #include <wtf/text/WTFString.h>
@@ -41,3 +42,4 @@ public:
 };
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_text_KillRing_h

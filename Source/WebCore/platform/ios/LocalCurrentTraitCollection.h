@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_LocalCurrentTraitCollection_h
+#define WebCore_platform_ios_LocalCurrentTraitCollection_h
 
 #include <wtf/Noncopyable.h>
 #include <wtf/RetainPtr.h>
@@ -54,3 +55,4 @@ WEBCORE_EXPORT UITraitCollection *traitCollectionWithAdjustedIdiomForSystemColor
 
 #endif // PLATFORM(IOS_FAMILY)
 
+#endif // WebCore_platform_ios_LocalCurrentTraitCollection_h

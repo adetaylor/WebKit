@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_HashCountedSet_h
+#define WTF_wtf_HashCountedSet_h
 
 #include <initializer_list>
 #include <wtf/Assertions.h>
@@ -385,3 +386,4 @@ inline auto HashCountedSet<Value, HashFunctions, Traits>::remove(std::add_const_
 } // namespace WTF
 
 using WTF::HashCountedSet;
+#endif // WTF_wtf_HashCountedSet_h

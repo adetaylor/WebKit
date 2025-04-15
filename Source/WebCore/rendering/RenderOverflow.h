@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderOverflow_h
+#define WebCore_rendering_RenderOverflow_h
 
 #include "LayoutRect.h"
 #include <wtf/CheckedPtr.h>
@@ -101,3 +102,4 @@ inline void RenderOverflow::addVisualOverflow(const LayoutRect& rect)
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderOverflow_h

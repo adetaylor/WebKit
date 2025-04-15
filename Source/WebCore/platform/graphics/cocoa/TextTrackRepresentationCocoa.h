@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_TextTrackRepresentationCocoa_h
+#define WebCore_platform_graphics_cocoa_TextTrackRepresentationCocoa_h
 
 #if (PLATFORM(IOS_FAMILY) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))) && ENABLE(VIDEO)
 
@@ -82,3 +83,4 @@ private:
 }
 
 #endif // (PLATFORM(IOS_FAMILY) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))) && ENABLE(VIDEO)
+#endif // WebCore_platform_graphics_cocoa_TextTrackRepresentationCocoa_h

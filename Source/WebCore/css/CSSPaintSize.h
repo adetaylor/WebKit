@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSPaintSize_h
+#define WebCore_css_CSSPaintSize_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
@@ -52,3 +53,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_CSSPaintSize_h

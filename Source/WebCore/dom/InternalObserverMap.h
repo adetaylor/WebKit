@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InternalObserverMap_h
+#define WebCore_dom_InternalObserverMap_h
 
 #include <wtf/Forward.h>
 
@@ -37,3 +38,4 @@ class SubscriberCallback;
 Ref<SubscriberCallback> createSubscriberCallbackMap(ScriptExecutionContext&, Ref<Observable>, Ref<MapperCallback>);
 
 } // namespace WebCore
+#endif // WebCore_dom_InternalObserverMap_h

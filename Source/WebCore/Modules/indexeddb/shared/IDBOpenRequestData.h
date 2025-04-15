@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_shared_IDBOpenRequestData_h
+#define WebCore_Modules_indexeddb_shared_IDBOpenRequestData_h
 
 #include "IDBDatabaseIdentifier.h"
 #include "IDBResourceIdentifier.h"
@@ -61,3 +62,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_shared_IDBOpenRequestData_h

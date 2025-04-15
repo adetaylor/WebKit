@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_EnumeratedArray_h
+#define WTF_wtf_EnumeratedArray_h
 
 #include <array>
 #include <wtf/EnumTraits.h>
@@ -243,3 +244,4 @@ private:
 } // namespace WTF
 
 using WTF::EnumeratedArray;
+#endif // WTF_wtf_EnumeratedArray_h

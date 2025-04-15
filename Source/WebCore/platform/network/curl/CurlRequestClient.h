@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CurlRequestClient_h
+#define WebCore_platform_network_curl_CurlRequestClient_h
 
 #include <wtf/AbstractRefCounted.h>
 #include <wtf/Ref.h>
@@ -47,3 +48,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CurlRequestClient_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PreviewConverter_h
+#define WebCore_platform_PreviewConverter_h
 
 #if ENABLE(PREVIEW_CONVERTER)
 
@@ -145,3 +146,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(PREVIEW_CONVERTER)
+#endif // WebCore_platform_PreviewConverter_h

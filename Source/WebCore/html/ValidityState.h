@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_ValidityState_h
+#define WebCore_html_ValidityState_h
 
 #include "FormListedElement.h"
 #include "HTMLElement.h"
@@ -45,3 +46,4 @@ inline ValidityState* FormListedElement::validity()
 }
 
 } // namespace WebCore
+#endif // WebCore_html_ValidityState_h

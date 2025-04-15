@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_GCReachableRef_h
+#define WebCore_dom_GCReachableRef_h
 
 #include "Node.h"
 #include <wtf/HashCountedSet.h>
@@ -157,3 +158,4 @@ template<typename P> struct DefaultHash<WebCore::GCReachableRef<P>> : PtrHash<We
 
 } // namespace WTF
 
+#endif // WebCore_dom_GCReachableRef_h

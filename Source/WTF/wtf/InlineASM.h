@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_InlineASM_h
+#define WTF_wtf_InlineASM_h
 
 #include <wtf/Platform.h>
 
@@ -102,3 +103,4 @@
 #endif
 
 #endif // !CPU(UNKNOWN)
+#endif // WTF_wtf_InlineASM_h

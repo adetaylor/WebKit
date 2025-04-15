@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_gstreamer_GStreamerCodecUtilities_h
+#define WebCore_platform_gstreamer_GStreamerCodecUtilities_h
 
 #if USE(GSTREAMER)
 
@@ -38,3 +39,4 @@ std::pair<GRefPtr<GstCaps>, GRefPtr<GstCaps>> capsFromCodecString(const String&,
 } // namespace WebCore
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_gstreamer_GStreamerCodecUtilities_h

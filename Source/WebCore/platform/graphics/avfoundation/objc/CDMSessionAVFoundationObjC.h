@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_CDMSessionAVFoundationObjC_h
+#define WebCore_platform_graphics_avfoundation_objc_CDMSessionAVFoundationObjC_h
 
 #include "LegacyCDMSession.h"
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
@@ -86,3 +87,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_graphics_avfoundation_objc_CDMSessionAVFoundationObjC_h

@@ -22,10 +22,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCIceProtocol_h
+#define WebCore_Modules_mediastream_RTCIceProtocol_h
 
 namespace WebCore {
 
 enum class RTCIceProtocol { Udp, Tcp };
 
 } // namespace WebCore
+#endif // WebCore_Modules_mediastream_RTCIceProtocol_h

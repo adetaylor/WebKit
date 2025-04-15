@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUStencilOperation_h
+#define WebCore_Modules_WebGPU_GPUStencilOperation_h
 
 #include "WebGPUStencilOperation.h"
 #include <cstdint>
@@ -65,3 +66,4 @@ inline WebGPU::StencilOperation convertToBacking(GPUStencilOperation stencilOper
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUStencilOperation_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_VMAllocate_h
+#define bmalloc_bmalloc_VMAllocate_h
 
 #include "AllocationCounts.h"
 #include "BAssert.h"
@@ -276,3 +277,4 @@ inline void vmAllocatePhysicalPagesSloppy(void* p, size_t size)
 } // namespace bmalloc
 
 BALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // bmalloc_bmalloc_VMAllocate_h

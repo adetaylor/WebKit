@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_OrdinalNumber_h
+#define WTF_wtf_text_OrdinalNumber_h
 
 #include <compare>
 #include <wtf/HashFunctions.h>
@@ -75,3 +76,4 @@ template<> struct HashTraits<OrdinalNumber> : GenericHashTraits<OrdinalNumber> {
 }
 
 using WTF::OrdinalNumber;
+#endif // WTF_wtf_text_OrdinalNumber_h

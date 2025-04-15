@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_LogInitialization_h
+#define WTF_wtf_LogInitialization_h
 
 #include <wtf/LogChannels.h>
 #include <wtf/text/WTFString.h>
@@ -38,3 +39,4 @@ WTF_EXPORT_PRIVATE String logLevelString();
 #endif // !LOG_DISABLED || !RELEASE_LOG_DISABLED
 
 } // namespace WTF
+#endif // WTF_wtf_LogInitialization_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_OffscreenCanvas_h
+#define WebCore_html_OffscreenCanvas_h
 
 #if ENABLE(OFFSCREEN_CANVAS)
 
@@ -181,3 +182,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CANVAS(WebCore::OffscreenCanvas, isOffscreenCanvas())
 
 #endif
+#endif // WebCore_html_OffscreenCanvas_h

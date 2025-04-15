@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_SelectionGeometry_h
+#define WebCore_platform_ios_SelectionGeometry_h
 
 #include "FloatQuad.h"
 #include "IntRect.h"
@@ -119,3 +120,4 @@ private:
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const SelectionGeometry&);
 
 } // namespace WebCore
+#endif // WebCore_platform_ios_SelectionGeometry_h

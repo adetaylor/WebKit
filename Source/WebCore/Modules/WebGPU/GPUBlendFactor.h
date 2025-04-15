@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUBlendFactor_h
+#define WebCore_Modules_WebGPU_GPUBlendFactor_h
 
 #include "WebGPUBlendFactor.h"
 #include <cstdint>
@@ -80,3 +81,4 @@ inline WebGPU::BlendFactor convertToBacking(GPUBlendFactor blendFactor)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUBlendFactor_h

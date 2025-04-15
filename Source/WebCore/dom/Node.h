@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_Node_h
+#define WebCore_dom_Node_h
 
 #include "EventTarget.h"
 #include "ExceptionOr.h"
@@ -988,3 +989,4 @@ void showNodePath(const WebCore::Node*);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Node)
     static bool isType(const WebCore::EventTarget& target) { return target.isNode(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_Node_h

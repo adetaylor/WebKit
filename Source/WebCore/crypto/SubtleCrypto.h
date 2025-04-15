@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_SubtleCrypto_h
+#define WebCore_crypto_SubtleCrypto_h
 
 #include "ContextDestructionObserver.h"
 #include "CryptoKeyFormat.h"
@@ -84,3 +85,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_crypto_SubtleCrypto_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RefCountedFixedVector_h
+#define WTF_wtf_RefCountedFixedVector_h
 
 #include <type_traits>
 #include <wtf/Ref.h>
@@ -104,3 +105,4 @@ using ThreadSafeRefCountedFixedVector = RefCountedFixedVectorBase<T, true>;
 
 using WTF::RefCountedFixedVector;
 using WTF::ThreadSafeRefCountedFixedVector;
+#endif // WTF_wtf_RefCountedFixedVector_h

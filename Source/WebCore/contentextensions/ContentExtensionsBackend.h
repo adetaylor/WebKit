@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_ContentExtensionsBackend_h
+#define WebCore_contentextensions_ContentExtensionsBackend_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -106,3 +107,4 @@ std::optional<String> customTrackerBlockingMessageForConsole(const ContentRuleLi
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_ContentExtensionsBackend_h

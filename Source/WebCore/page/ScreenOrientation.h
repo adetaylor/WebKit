@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ScreenOrientation_h
+#define WebCore_page_ScreenOrientation_h
 
 #include "ActiveDOMObject.h"
 #include "ContextDestructionObserverInlines.h"
@@ -88,3 +89,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ScreenOrientation_h

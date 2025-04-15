@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_FormattingConstraints_h
+#define WebCore_layout_formattingContexts_FormattingConstraints_h
 
 #include "LayoutUnit.h"
 #include <wtf/OptionSet.h>
@@ -145,3 +146,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Layout::ToValueTypeName) \
     static bool isType(const WebCore::Layout::ConstraintsForInFlowContent& constraints) { return constraints.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
 
+#endif // WebCore_layout_formattingContexts_FormattingConstraints_h

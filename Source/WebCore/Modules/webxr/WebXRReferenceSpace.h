@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_WebXRReferenceSpace_h
+#define WebCore_Modules_webxr_WebXRReferenceSpace_h
 
 #if ENABLE(WEBXR)
 
@@ -74,3 +75,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_WEBXRSPACE(WebXRReferenceSpace, isReferenceSpace())
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_Modules_webxr_WebXRReferenceSpace_h

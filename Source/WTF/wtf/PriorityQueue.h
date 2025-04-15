@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PriorityQueue_h
+#define WTF_wtf_PriorityQueue_h
 
 #include <wtf/MathExtras.h>
 #include <wtf/StdLibExtras.h>
@@ -139,3 +140,4 @@ protected:
 } // namespace WTF
 
 using WTF::PriorityQueue;
+#endif // WTF_wtf_PriorityQueue_h

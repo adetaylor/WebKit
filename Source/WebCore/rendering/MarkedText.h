@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_MarkedText_h
+#define WebCore_rendering_MarkedText_h
 
 #include <wtf/CheckedPtr.h>
 #include <wtf/Hasher.h>
@@ -128,3 +129,4 @@ template<> struct DefaultHash<WebCore::MarkedText> {
 };
 } // namespace WTF
 
+#endif // WebCore_rendering_MarkedText_h

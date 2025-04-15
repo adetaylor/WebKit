@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_shapes_StylePathComputation_h
+#define WebCore_style_values_shapes_StylePathComputation_h
 
 #include "FloatRect.h"
 #include "Path.h"
@@ -54,3 +55,4 @@ template<CSSValueID Name, typename StyleType> struct PathComputation<FunctionNot
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_shapes_StylePathComputation_h

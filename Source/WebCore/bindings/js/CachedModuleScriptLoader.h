@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_CachedModuleScriptLoader_h
+#define WebCore_bindings_js_CachedModuleScriptLoader_h
 
 #include "CachedResourceClient.h"
 #include "CachedResourceHandle.h"
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_CachedModuleScriptLoader_h

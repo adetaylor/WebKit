@@ -25,7 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_images_StyleGradient_h
+#define WebCore_style_values_images_StyleGradient_h
 
 #include "CSSGradient.h"
 #include "StyleColor.h"
@@ -423,3 +424,4 @@ public:
 };
 
 } // namespace std
+#endif // WebCore_style_values_images_StyleGradient_h

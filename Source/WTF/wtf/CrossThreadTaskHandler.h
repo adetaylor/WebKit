@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CrossThreadTaskHandler_h
+#define WTF_wtf_CrossThreadTaskHandler_h
 
 #include <wtf/CrossThreadQueue.h>
 #include <wtf/CrossThreadTask.h>
@@ -69,3 +70,4 @@ private:
 
 using WTF::CrossThreadTaskHandler;
 
+#endif // WTF_wtf_CrossThreadTaskHandler_h

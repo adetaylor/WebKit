@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FEMerge_h
+#define WebCore_platform_graphics_filters_FEMerge_h
 
 #include "FilterEffect.h"
 
@@ -51,3 +52,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(FEMerge)
+#endif // WebCore_platform_graphics_filters_FEMerge_h

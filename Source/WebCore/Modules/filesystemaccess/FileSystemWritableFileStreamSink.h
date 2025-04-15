@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_filesystemaccess_FileSystemWritableFileStreamSink_h
+#define WebCore_Modules_filesystemaccess_FileSystemWritableFileStreamSink_h
 
 #include "FileSystemWritableFileStreamIdentifier.h"
 #include "WritableStreamSink.h"
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_filesystemaccess_FileSystemWritableFileStreamSink_h

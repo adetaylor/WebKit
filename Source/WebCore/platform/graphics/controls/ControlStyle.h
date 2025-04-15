@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_ControlStyle_h
+#define WebCore_platform_graphics_controls_ControlStyle_h
 
 #include "Color.h"
 #include "LengthBox.h"
@@ -67,3 +68,4 @@ WEBCORE_EXPORT TextStream& operator<<(TextStream&, ControlStyle::State);
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, const ControlStyle&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_controls_ControlStyle_h

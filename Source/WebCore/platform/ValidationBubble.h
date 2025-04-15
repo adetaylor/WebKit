@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ValidationBubble_h
+#define WebCore_platform_ValidationBubble_h
 
 #include "IntRect.h"
 #include <wtf/Forward.h>
@@ -115,3 +116,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_ValidationBubble_h

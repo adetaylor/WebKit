@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_StdLibExtras_h
+#define WTF_wtf_StdLibExtras_h
 
 #include <algorithm>
 #include <bit>
@@ -1645,3 +1646,4 @@ using WTF::VariantWrapper;
 using WTF::VariantOrSingle;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_StdLibExtras_h

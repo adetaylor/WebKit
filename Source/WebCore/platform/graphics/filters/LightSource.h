@@ -23,7 +23,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_LightSource_h
+#define WebCore_platform_graphics_filters_LightSource_h
 
 #include "FloatPoint3D.h"
 #include <wtf/ThreadSafeRefCounted.h>
@@ -110,3 +111,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ClassName) \
     static bool isType(const WebCore::LightSource& source) { return source.type() == WebCore::Type; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_filters_LightSource_h

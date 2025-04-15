@@ -18,7 +18,8 @@
  *
 */
 
-#pragma once
+#ifndef WebCore_rendering_ContentfulPaintChecker_h
+#define WebCore_rendering_ContentfulPaintChecker_h
 
 namespace WebCore {
 
@@ -30,3 +31,4 @@ public:
 };
 
 }
+#endif // WebCore_rendering_ContentfulPaintChecker_h

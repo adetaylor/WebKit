@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_VisionSoftLink_h
+#define WebCore_PAL_pal_cocoa_VisionSoftLink_h
 
 #if HAVE(VISION)
 
@@ -62,3 +63,4 @@ SOFT_LINK_CONSTANT_FOR_HEADER(PAL, Vision, VNBarcodeSymbologyQR, NSString *);
 SOFT_LINK_CONSTANT_FOR_HEADER(PAL, Vision, VNBarcodeSymbologyUPCE, NSString *);
 
 #endif // HAVE(VISION)
+#endif // WebCore_PAL_pal_cocoa_VisionSoftLink_h

@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSWorkerGlobalScope_h
+#define WebCore_bindings_scripts_test_JS_JSWorkerGlobalScope_h
 
 #include "JSDOMWrapper.h"
 #include "JSEventTarget.h"
@@ -115,3 +116,4 @@ template<> struct JSDOMWrapperConverterTraits<WorkerGlobalScope> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSWorkerGlobalScope_h

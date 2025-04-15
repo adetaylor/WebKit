@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cocoa_VectorCocoa_h
+#define WTF_wtf_cocoa_VectorCocoa_h
 
 #include <wtf/BlockPtr.h>
 #include <wtf/Forward.h>
@@ -138,3 +139,4 @@ inline RetainPtr<dispatch_data_t> makeDispatchData(Vector<T>&& vector)
 using WTF::createNSArray;
 using WTF::makeDispatchData;
 using WTF::makeVector;
+#endif // WTF_wtf_cocoa_VectorCocoa_h

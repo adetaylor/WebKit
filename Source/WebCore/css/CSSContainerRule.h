@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSContainerRule_h
+#define WebCore_css_CSSContainerRule_h
 
 #include "CSSConditionRule.h"
 
@@ -50,3 +51,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSContainerRule, StyleRuleType::Container)
+#endif // WebCore_css_CSSContainerRule_h

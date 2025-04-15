@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_WebAVPlayerLayer_h
+#define WebCore_platform_cocoa_WebAVPlayerLayer_h
 
 #if HAVE(AVKIT)
 
@@ -54,3 +55,4 @@ WEBCORE_EXPORT @interface WebAVPlayerLayer : CALayer
 @end
 
 #endif // HAVE(AVKIT)
+#endif // WebCore_platform_cocoa_WebAVPlayerLayer_h

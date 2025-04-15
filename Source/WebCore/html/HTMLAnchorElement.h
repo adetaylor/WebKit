@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLAnchorElement_h
+#define WebCore_html_HTMLAnchorElement_h
 
 #include "Document.h"
 #include "HTMLElement.h"
@@ -146,3 +147,4 @@ bool isEnterKeyKeydownEvent(Event&);
 bool shouldProhibitLinks(Element*);
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLAnchorElement_h

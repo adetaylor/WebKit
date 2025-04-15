@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ScrollBehavior_h
+#define WebCore_page_ScrollBehavior_h
 
 namespace WebCore {
 
@@ -38,3 +39,4 @@ enum class ScrollBehavior : uint8_t {
 bool useSmoothScrolling(ScrollBehavior, Element* associatedElement);
 
 } // namespace WebCore
+#endif // WebCore_page_ScrollBehavior_h

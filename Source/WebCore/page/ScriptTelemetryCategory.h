@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ScriptTelemetryCategory_h
+#define WebCore_page_ScriptTelemetryCategory_h
 
 #include <wtf/HashTraits.h>
 #include <wtf/OptionSet.h>
@@ -64,3 +65,4 @@ template<typename T> struct HashTraits;
 template<> struct HashTraits<WebCore::ScriptTelemetryCategory> : public StrongEnumHashTraits<WebCore::ScriptTelemetryCategory> { };
 
 } // namespace WTF
+#endif // WebCore_page_ScriptTelemetryCategory_h

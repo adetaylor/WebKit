@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_CaretRectComputation_h
+#define WebCore_rendering_CaretRectComputation_h
 
 #include "InlineRunAndOffset.h"
 #include "RenderObjectEnums.h"
@@ -57,3 +58,4 @@ static inline bool redesignedTextCursorEnabled()
 #endif
 
 };
+#endif // WebCore_rendering_CaretRectComputation_h

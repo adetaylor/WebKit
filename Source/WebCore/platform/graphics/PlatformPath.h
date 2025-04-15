@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformPath_h
+#define WebCore_platform_graphics_PlatformPath_h
 
 #if USE(CG)
 #include <CoreGraphics/CGPath.h>
@@ -55,3 +56,4 @@ using PlatformPathImpl = PathSkia;
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_PlatformPath_h

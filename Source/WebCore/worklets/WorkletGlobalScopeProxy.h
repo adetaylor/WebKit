@@ -23,7 +23,8 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_worklets_WorkletGlobalScopeProxy_h
+#define WebCore_worklets_WorkletGlobalScopeProxy_h
 
 #include "ExceptionOr.h"
 #include "FetchRequestCredentials.h"
@@ -44,3 +45,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_worklets_WorkletGlobalScopeProxy_h

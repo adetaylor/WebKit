@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_OpusEncoderConfig_h
+#define WebCore_Modules_webcodecs_OpusEncoderConfig_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -63,3 +64,4 @@ struct OpusEncoderConfig {
 }
 
 #endif // ENABLE(WEB_CODECS)
+#endif // WebCore_Modules_webcodecs_OpusEncoderConfig_h

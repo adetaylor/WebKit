@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_PhotoSettings_h
+#define WebCore_platform_mediastream_PhotoSettings_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -69,3 +70,4 @@ inline bool operator==(const PhotoSettings& a, const PhotoSettings& b)
 }
 
 #endif
+#endif // WebCore_platform_mediastream_PhotoSettings_h

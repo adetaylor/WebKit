@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_ScriptBufferSourceProvider_h
+#define WebCore_bindings_js_ScriptBufferSourceProvider_h
 
 #include "ScriptBuffer.h"
 #include <JavaScriptCore/SourceProvider.h>
@@ -117,3 +118,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_ScriptBufferSourceProvider_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ShouldTreatAsContinuingLoad_h
+#define WebCore_loader_ShouldTreatAsContinuingLoad_h
 
 #include <wtf/Forward.h>
 
@@ -32,3 +33,4 @@ namespace WebCore {
 enum class ShouldTreatAsContinuingLoad : uint8_t { No, YesAfterNavigationPolicyDecision, YesAfterProvisionalLoadStarted };
 
 } // namespace WebCore
+#endif // WebCore_loader_ShouldTreatAsContinuingLoad_h

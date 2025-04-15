@@ -35,7 +35,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#pragma once
+#ifndef WebCore_platform_image_decoders_gif_GIFImageReader_h
+#define WebCore_platform_image_decoders_gif_GIFImageReader_h
 
 // Define ourselves as the clientPtr.  Mozilla just hacked their C++ callback class into this old C decoder,
 // so we will too.
@@ -312,3 +313,4 @@ private:
     RefPtr<const WebCore::SharedBuffer> m_data;
     bool m_parseCompleted;
 };
+#endif // WebCore_platform_image_decoders_gif_GIFImageReader_h

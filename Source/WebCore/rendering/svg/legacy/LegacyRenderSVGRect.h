@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGRect_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGRect_h
 
 #include "LegacyRenderSVGShape.h"
 #include "SVGRectElement.h"
@@ -62,3 +63,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(LegacyRenderSVGRect, isLegacyRenderSVGRect())
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGRect_h

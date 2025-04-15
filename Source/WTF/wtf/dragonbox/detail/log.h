@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_detail_log_h
+#define WTF_wtf_dragonbox_detail_log_h
 
 #include <wtf/dragonbox/detail/util.h>
 
@@ -118,3 +119,4 @@ constexpr int32_t floor_log5_pow2_minus_log5_3(int32_t e) noexcept
 } // namespace dragonbox
 
 } // namespace WTF
+#endif // WTF_wtf_dragonbox_detail_log_h

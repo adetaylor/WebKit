@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PlatformEnableGlib_h
+#define WTF_wtf_PlatformEnableGlib_h
 
 #ifndef WTF_PLATFORM_GUARD_AGAINST_INDIRECT_INCLUSION
 #error "Please #include <wtf/Platform.h> instead of this file directly."
@@ -66,3 +67,4 @@
 #if ENABLE(WPE_PLATFORM) || PLATFORM(GTK)
 #define ENABLE_DAMAGE_TRACKING 1
 #endif
+#endif // WTF_wtf_PlatformEnableGlib_h

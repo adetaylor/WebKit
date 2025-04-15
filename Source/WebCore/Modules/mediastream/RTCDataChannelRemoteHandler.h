@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCDataChannelRemoteHandler_h
+#define WebCore_Modules_mediastream_RTCDataChannelRemoteHandler_h
 
 #if ENABLE(WEB_RTC)
 
@@ -93,3 +94,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_Modules_mediastream_RTCDataChannelRemoteHandler_h

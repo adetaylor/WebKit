@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_CommonVM_h
+#define WebCore_bindings_js_CommonVM_h
 
 #include <wtf/Forward.h>
 
@@ -56,3 +57,4 @@ void addImpureProperty(const AtomString&);
 
 } // namespace WebCore
 
+#endif // WebCore_bindings_js_CommonVM_h

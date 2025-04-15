@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleColorMix_h
+#define WebCore_style_values_color_StyleColorMix_h
 
 #include "CSSColorMix.h"
 #include "StyleColor.h"
@@ -74,3 +75,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const ColorMix&);
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_color_StyleColorMix_h

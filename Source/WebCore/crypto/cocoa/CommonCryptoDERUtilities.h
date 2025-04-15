@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_cocoa_CommonCryptoDERUtilities_h
+#define WebCore_crypto_cocoa_CommonCryptoDERUtilities_h
 
 #include <wtf/Vector.h>
 
@@ -50,3 +51,4 @@ void addEncodedASN1Length(Vector<uint8_t>&, size_t);
 size_t bytesNeededForEncodedLength(size_t);
 
 } // namespace WebCore
+#endif // WebCore_crypto_cocoa_CommonCryptoDERUtilities_h

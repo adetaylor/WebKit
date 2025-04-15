@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_CryptoKeyPair_h
+#define WebCore_crypto_CryptoKeyPair_h
 
 #include <wtf/RefPtr.h>
 
@@ -37,3 +38,4 @@ struct CryptoKeyPair {
 };
 
 } // namespace WebCore
+#endif // WebCore_crypto_CryptoKeyPair_h

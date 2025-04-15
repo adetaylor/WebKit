@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_highlight_Highlight_h
+#define WebCore_Modules_highlight_Highlight_h
 
 #include "ExceptionOr.h"
 #include "Position.h"
@@ -89,3 +90,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_highlight_Highlight_h

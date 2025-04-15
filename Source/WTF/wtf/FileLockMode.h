@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FileLockMode_h
+#define WTF_wtf_FileLockMode_h
 
 namespace WTF {
 
@@ -38,3 +39,4 @@ enum class FileLockMode {
 } // namespace FileSystemImpl
 
 } // namespace WTF
+#endif // WTF_wtf_FileLockMode_h

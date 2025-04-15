@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_CacheStorageProvider_h
+#define WebCore_page_CacheStorageProvider_h
 
 #include "CacheStorageConnection.h"
 #include <wtf/NativePromise.h>
@@ -63,3 +64,4 @@ protected:
 };
 
 }
+#endif // WebCore_page_CacheStorageProvider_h

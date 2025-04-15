@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_WindowOrWorkerGlobalScope_h
+#define WebCore_page_WindowOrWorkerGlobalScope_h
 
 namespace JSC {
 class JSValue;
@@ -44,3 +45,4 @@ public:
 
 } // namespace WebCore
 
+#endif // WebCore_page_WindowOrWorkerGlobalScope_h

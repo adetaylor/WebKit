@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_page_ChromeClient_h
+#define WebCore_page_ChromeClient_h
 
 #include "AutoplayEvent.h"
 #include "ContactInfo.h"
@@ -756,3 +757,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ChromeClient_h

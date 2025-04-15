@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PageConfiguration_h
+#define WebCore_page_PageConfiguration_h
 
 #include "ContentSecurityPolicy.h"
 #include "FrameIdentifier.h"
@@ -247,3 +248,4 @@ public:
 };
 
 }
+#endif // WebCore_page_PageConfiguration_h

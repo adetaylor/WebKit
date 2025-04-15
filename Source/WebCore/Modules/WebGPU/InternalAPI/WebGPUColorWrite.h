@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUColorWrite_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUColorWrite_h
 
 #include "WebGPUBlendFactor.h"
 #include "WebGPUBlendOperation.h"
@@ -44,3 +45,4 @@ using ColorWriteFlags = uint32_t;
 static constexpr ColorWriteFlags ColorWriteFlags_All = static_cast<ColorWriteFlags>(ColorWrite::All);
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUColorWrite_h

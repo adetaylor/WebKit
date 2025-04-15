@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_mathml_RenderMathMLBlock_h
+#define WebCore_rendering_mathml_RenderMathMLBlock_h
 
 #if ENABLE(MATHML)
 
@@ -130,3 +131,4 @@ SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderMathMLBlock, isRenderMathMLBlock())
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderMathMLTable, isRenderMathMLTable())
 
 #endif // ENABLE(MATHML)
+#endif // WebCore_rendering_mathml_RenderMathMLBlock_h

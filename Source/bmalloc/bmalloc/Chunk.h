@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Chunk_h
+#define bmalloc_bmalloc_Chunk_h
 
 #include "Object.h"
 #include "Sizes.h"
@@ -175,3 +176,4 @@ inline SmallPage* Object::page()
 }; // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_Chunk_h

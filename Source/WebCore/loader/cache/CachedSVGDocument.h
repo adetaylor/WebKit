@@ -20,7 +20,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedSVGDocument_h
+#define WebCore_loader_cache_CachedSVGDocument_h
 
 #include "CachedResource.h"
 #include "SVGDocument.h"
@@ -54,3 +55,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CACHED_RESOURCE(CachedSVGDocument, CachedResource::Type::SVGDocumentResource)
+#endif // WebCore_loader_cache_CachedSVGDocument_h

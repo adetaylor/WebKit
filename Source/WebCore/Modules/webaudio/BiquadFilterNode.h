@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_BiquadFilterNode_h
+#define WebCore_Modules_webaudio_BiquadFilterNode_h
 
 #include "AudioBasicProcessorNode.h"
 #include "BiquadFilterOptions.h"
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_BiquadFilterNode_h

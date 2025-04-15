@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCDtxStatus_h
+#define WebCore_Modules_mediastream_RTCDtxStatus_h
 
 #if ENABLE(WEB_RTC)
 
@@ -34,3 +35,4 @@ enum class RTCDtxStatus { Disabled, Enabled };
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_Modules_mediastream_RTCDtxStatus_h

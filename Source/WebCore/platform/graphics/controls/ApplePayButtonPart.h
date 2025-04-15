@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_ApplePayButtonPart_h
+#define WebCore_platform_graphics_controls_ApplePayButtonPart_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -86,3 +87,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CONTROL_PART(ApplePayButton)
 
 #endif // ENABLE(APPLE_PAY)
+#endif // WebCore_platform_graphics_controls_ApplePayButtonPart_h

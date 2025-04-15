@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_ThirdParty_dav1d_config_h
+#define WebCore_PAL_ThirdParty_dav1d_config_h
 
 #define ARCH_AARCH64 0
 #if defined(__arm64__) || defined(__aarch64__)
@@ -72,3 +73,4 @@
 #define HAVE_POSIX_MEMALIGN 1
 
 #define HAVE_UNISTD_H 1
+#endif // WebCore_PAL_ThirdParty_dav1d_config_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_darwin_OSLogPrintStream_h
+#define WTF_wtf_darwin_OSLogPrintStream_h
 
 #if OS(DARWIN)
 
@@ -60,3 +61,4 @@ private:
 using WTF::OSLogPrintStream;
 
 #endif
+#endif // WTF_wtf_darwin_OSLogPrintStream_h

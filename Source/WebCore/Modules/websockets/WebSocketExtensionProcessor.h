@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_websockets_WebSocketExtensionProcessor_h
+#define WebCore_Modules_websockets_WebSocketExtensionProcessor_h
 
 #include <wtf/HashMap.h>
 #include <wtf/text/MakeString.h>
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_websockets_WebSocketExtensionProcessor_h

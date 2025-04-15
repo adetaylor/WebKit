@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SequesteredAllocator_h
+#define WTF_wtf_SequesteredAllocator_h
 
 #include <wtf/Platform.h>
 
@@ -593,3 +594,4 @@ private:
 using WTF::ArenaLifetime;
 
 #endif // USE(PROTECTED_JIT)
+#endif // WTF_wtf_SequesteredAllocator_h

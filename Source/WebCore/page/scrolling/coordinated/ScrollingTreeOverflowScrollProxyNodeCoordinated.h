@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_coordinated_ScrollingTreeOverflowScrollProxyNodeCoordinated_h
+#define WebCore_page_scrolling_coordinated_ScrollingTreeOverflowScrollProxyNodeCoordinated_h
 
 #if ENABLE(ASYNC_SCROLLING) && USE(COORDINATED_GRAPHICS)
 #include "ScrollingTreeOverflowScrollProxyNode.h"
@@ -53,3 +54,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_SCROLLING_NODE(ScrollingTreeOverflowScrollProxyNodeCoordinated, isOverflowScrollProxyNodeCoordinated())
 
 #endif // ENABLE(ASYNC_SCROLLING) && USE(COORDINATED_GRAPHICS)
+#endif // WebCore_page_scrolling_coordinated_ScrollingTreeOverflowScrollProxyNodeCoordinated_h

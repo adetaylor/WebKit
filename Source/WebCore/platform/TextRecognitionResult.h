@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_TextRecognitionResult_h
+#define WebCore_platform_TextRecognitionResult_h
 
 #if ENABLE(IMAGE_ANALYSIS)
 
@@ -140,3 +141,4 @@ RetainPtr<NSAttributedString> stringForRange(const TextRecognitionResult&, const
 } // namespace WebCore
 
 #endif // ENABLE(IMAGE_ANALYSIS)
+#endif // WebCore_platform_TextRecognitionResult_h

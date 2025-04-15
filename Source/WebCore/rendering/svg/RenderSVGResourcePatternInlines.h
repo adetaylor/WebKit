@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourcePatternInlines_h
+#define WebCore_rendering_svg_RenderSVGResourcePatternInlines_h
 
 #include "RenderSVGResourcePattern.h"
 #include "SVGPatternElement.h"
@@ -46,3 +47,4 @@ static inline FloatRect calculatePatternBoundaries(const PatternAttributes& attr
 }
 
 }
+#endif // WebCore_rendering_svg_RenderSVGResourcePatternInlines_h

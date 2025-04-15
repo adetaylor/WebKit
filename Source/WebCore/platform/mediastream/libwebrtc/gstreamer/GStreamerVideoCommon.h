@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_gstreamer_GStreamerVideoCommon_h
+#define WebCore_platform_mediastream_libwebrtc_gstreamer_GStreamerVideoCommon_h
 
 #if ENABLE(VIDEO) && ENABLE(MEDIA_STREAM) && USE(LIBWEBRTC) && USE(GSTREAMER)
 
@@ -33,3 +34,4 @@ std::vector<webrtc::SdpVideoFormat> supportedH264Formats();
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_mediastream_libwebrtc_gstreamer_GStreamerVideoCommon_h

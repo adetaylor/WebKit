@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_SourceAlpha_h
+#define WebCore_platform_graphics_filters_SourceAlpha_h
 
 #include "FilterEffect.h"
 
@@ -43,3 +44,4 @@ private:
 } //namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(SourceAlpha)
+#endif // WebCore_platform_graphics_filters_SourceAlpha_h

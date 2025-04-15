@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InternalObserverFilter_h
+#define WebCore_dom_InternalObserverFilter_h
 
 #include <wtf/Forward.h>
 
@@ -37,3 +38,4 @@ class SubscriberCallback;
 Ref<SubscriberCallback> createSubscriberCallbackFilter(ScriptExecutionContext&, Ref<Observable>, Ref<PredicateCallback>);
 
 } // namespace WebCore
+#endif // WebCore_dom_InternalObserverFilter_h

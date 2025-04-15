@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_DocumentTimelineOptions_h
+#define WebCore_animation_DocumentTimelineOptions_h
 
 #include "DOMHighResTimeStamp.h"
 
@@ -34,3 +35,4 @@ struct DocumentTimelineOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_DocumentTimelineOptions_h

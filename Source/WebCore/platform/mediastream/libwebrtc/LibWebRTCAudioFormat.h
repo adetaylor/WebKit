@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_LibWebRTCAudioFormat_h
+#define WebCore_platform_mediastream_libwebrtc_LibWebRTCAudioFormat_h
 
 #if USE(LIBWEBRTC)
 
@@ -45,3 +46,4 @@ static const bool isNonInterleaved = false;
 } // namespace WebCore
 
 #endif // USE(LIBWEBRTC)
+#endif // WebCore_platform_mediastream_libwebrtc_LibWebRTCAudioFormat_h

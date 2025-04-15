@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_graphics_filters_SVGFilterEffectGraph_h
+#define WebCore_svg_graphics_filters_SVGFilterEffectGraph_h
 
 #include "SVGFilterGraph.h"
 
@@ -89,3 +90,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_graphics_filters_SVGFilterEffectGraph_h

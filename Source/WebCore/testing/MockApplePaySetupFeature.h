@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockApplePaySetupFeature_h
+#define WebCore_testing_MockApplePaySetupFeature_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -55,3 +56,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY)
+#endif // WebCore_testing_MockApplePaySetupFeature_h

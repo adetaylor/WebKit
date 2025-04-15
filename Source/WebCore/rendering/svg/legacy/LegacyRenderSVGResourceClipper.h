@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResourceClipper_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResourceClipper_h
 
 #include "ImageBuffer.h"
 #include "LegacyRenderSVGResourceContainer.h"
@@ -107,3 +108,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::LegacyRenderSVGResourceClipper)
 static bool isType(const WebCore::RenderObject& renderer) { return renderer.isLegacyRenderSVGResourceClipper(); }
 static bool isType(const WebCore::LegacyRenderSVGResource& resource) { return resource.resourceType() == WebCore::ClipperResourceType; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResourceClipper_h

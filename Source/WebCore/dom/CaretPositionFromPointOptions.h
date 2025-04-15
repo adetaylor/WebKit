@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_CaretPositionFromPointOptions_h
+#define WebCore_dom_CaretPositionFromPointOptions_h
 
 #include "ShadowRoot.h"
 #include <wtf/Vector.h>
@@ -35,3 +36,4 @@ struct CaretPositionFromPointOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_CaretPositionFromPointOptions_h

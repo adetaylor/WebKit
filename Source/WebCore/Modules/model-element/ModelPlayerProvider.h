@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_model_element_ModelPlayerProvider_h
+#define WebCore_Modules_model_element_ModelPlayerProvider_h
 
 #include <wtf/Forward.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
@@ -46,3 +47,4 @@ public:
 };
 
 }
+#endif // WebCore_Modules_model_element_ModelPlayerProvider_h

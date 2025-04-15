@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_BlobRegistryImpl_h
+#define WebCore_platform_network_BlobRegistryImpl_h
 
 #include "BlobData.h"
 #include "BlobRegistry.h"
@@ -106,3 +107,4 @@ inline void BlobRegistryImpl::setFileDirectory(String&& filePath)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_network_BlobRegistryImpl_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_text_ExternalStringImpl_h
+#define WTF_wtf_text_ExternalStringImpl_h
 
 #include <wtf/Function.h>
 #include <wtf/text/StringImpl.h>
@@ -58,3 +59,4 @@ ALWAYS_INLINE void ExternalStringImpl::freeExternalBuffer(void* buffer, unsigned
 } // namespace WTF
 
 using WTF::ExternalStringImpl;
+#endif // WTF_wtf_text_ExternalStringImpl_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_TextManipulationToken_h
+#define WebCore_editing_TextManipulationToken_h
 namespace WebCore {
 
 enum class TextManipulationTokenIdentifierType { };
@@ -44,3 +45,4 @@ struct TextManipulationToken {
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_TextManipulationToken_h

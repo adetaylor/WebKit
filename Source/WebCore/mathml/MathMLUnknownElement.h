@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_mathml_MathMLUnknownElement_h
+#define WebCore_mathml_MathMLUnknownElement_h
 
 #if ENABLE(MATHML)
 
@@ -52,3 +53,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MATHML)
+#endif // WebCore_mathml_MathMLUnknownElement_h

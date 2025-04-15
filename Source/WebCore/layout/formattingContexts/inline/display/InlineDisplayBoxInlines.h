@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_display_InlineDisplayBoxInlines_h
+#define WebCore_layout_formattingContexts_inline_display_InlineDisplayBoxInlines_h
 
 #include "InlineDisplayBox.h"
 
@@ -34,3 +35,4 @@ inline bool Box::isHorizontal() const { return writingMode().isHorizontal(); }
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_display_InlineDisplayBoxInlines_h

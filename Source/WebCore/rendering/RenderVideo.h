@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderVideo_h
+#define WebCore_rendering_RenderVideo_h
 
 #if ENABLE(VIDEO)
 
@@ -103,3 +104,4 @@ inline RenderVideo* HTMLVideoElement::renderer() const
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderVideo, isRenderVideo())
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_rendering_RenderVideo_h

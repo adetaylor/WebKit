@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_StaticPasteboard_h
+#define WebCore_platform_StaticPasteboard_h
 
 #include "Pasteboard.h"
 #include <wtf/RobinHoodHashSet.h>
@@ -86,3 +87,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StaticPasteboard)
     static bool isType(const WebCore::Pasteboard& pasteboard) { return pasteboard.isStatic(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_StaticPasteboard_h

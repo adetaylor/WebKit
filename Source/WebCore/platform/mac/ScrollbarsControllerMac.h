@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_ScrollbarsControllerMac_h
+#define WebCore_platform_mac_ScrollbarsControllerMac_h
 
 #if PLATFORM(MAC)
 
@@ -137,3 +138,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ScrollbarsControllerMac)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_mac_ScrollbarsControllerMac_h

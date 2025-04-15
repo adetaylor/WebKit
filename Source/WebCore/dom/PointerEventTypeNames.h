@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_PointerEventTypeNames_h
+#define WebCore_dom_PointerEventTypeNames_h
 
 #include <wtf/Forward.h>
 
@@ -34,3 +35,4 @@ WEBCORE_EXPORT const String& penPointerEventType();
 const String& touchPointerEventType();
 
 } // namespace WebCore
+#endif // WebCore_dom_PointerEventTypeNames_h

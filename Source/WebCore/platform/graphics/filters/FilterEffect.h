@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FilterEffect_h
+#define WebCore_platform_graphics_filters_FilterEffect_h
 
 #include "DestinationColorSpace.h"
 #include "FilterEffectApplier.h"
@@ -102,3 +103,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const FilterEffect&
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::FilterEffect)
     static bool isType(const WebCore::FilterFunction& function) { return function.isFilterEffect(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_filters_FilterEffect_h

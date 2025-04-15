@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_shapes_ShapeOutsideInfo_h
+#define WebCore_rendering_shapes_ShapeOutsideInfo_h
 
 #include "LayoutShape.h"
 #include "LayoutSize.h"
@@ -119,3 +120,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_shapes_ShapeOutsideInfo_h

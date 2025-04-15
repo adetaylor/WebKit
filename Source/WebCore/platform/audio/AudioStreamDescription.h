@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_AudioStreamDescription_h
+#define WebCore_platform_audio_AudioStreamDescription_h
 
 
 typedef struct AudioStreamBasicDescription AudioStreamBasicDescription;
@@ -71,3 +72,4 @@ public:
 };
 
 }
+#endif // WebCore_platform_audio_AudioStreamDescription_h

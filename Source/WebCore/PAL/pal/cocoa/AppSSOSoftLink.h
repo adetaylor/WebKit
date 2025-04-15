@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_AppSSOSoftLink_h
+#define WebCore_PAL_pal_cocoa_AppSSOSoftLink_h
 
 #if HAVE(APP_SSO)
 
@@ -53,3 +54,4 @@ SOFT_LINK_FRAMEWORK_FOR_HEADER(PAL, AppSSOCore);
 SOFT_LINK_CLASS_FOR_HEADER(PAL, SOAuthorizationHintsCore);
 
 #endif
+#endif // WebCore_PAL_pal_cocoa_AppSSOSoftLink_h

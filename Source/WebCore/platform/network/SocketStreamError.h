@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_SocketStreamError_h
+#define WebCore_platform_network_SocketStreamError_h
 
 #include <wtf/ArgumentCoder.h>
 #include <wtf/text/WTFString.h>
@@ -69,3 +70,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_network_SocketStreamError_h

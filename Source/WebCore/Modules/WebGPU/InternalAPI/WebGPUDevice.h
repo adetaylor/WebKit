@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUDevice_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUDevice_h
 
 #include "WebGPUComputePipeline.h"
 #include "WebGPUDeviceLostInfo.h"
@@ -164,3 +165,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUDevice_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_LinkPresentationSoftLink_h
+#define WebCore_PAL_pal_cocoa_LinkPresentationSoftLink_h
 
 #import <pal/spi/cocoa/LinkPresentationSPI.h>
 #import <wtf/SoftLinking.h>
@@ -36,3 +37,4 @@ SOFT_LINK_CLASS_FOR_HEADER(PAL, LPFileMetadata)
 #if !PLATFORM(APPLETV)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, LPMetadataProvider)
 #endif
+#endif // WebCore_PAL_pal_cocoa_LinkPresentationSoftLink_h

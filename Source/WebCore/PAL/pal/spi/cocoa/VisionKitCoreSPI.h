@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_VisionKitCoreSPI_h
+#define WebCore_PAL_pal_spi_cocoa_VisionKitCoreSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -359,3 +360,4 @@ NS_ASSUME_NONNULL_END
 #endif // ENABLE(IMAGE_ANALYSIS_ENHANCEMENTS)
 
 #endif // HAVE(VK_IMAGE_ANALYSIS)
+#endif // WebCore_PAL_pal_spi_cocoa_VisionKitCoreSPI_h

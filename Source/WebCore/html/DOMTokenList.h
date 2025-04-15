@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_DOMTokenList_h
+#define WebCore_html_DOMTokenList_h
 
 #include "Element.h"
 #include <wtf/FixedVector.h>
@@ -101,3 +102,4 @@ inline void DOMTokenList::associatedAttributeValueChanged()
 }
 
 } // namespace WebCore
+#endif // WebCore_html_DOMTokenList_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_cocoa_CryptoDigestAlgorithm_h
+#define WebCore_crypto_cocoa_CryptoDigestAlgorithm_h
 
 #include <pal/crypto/CryptoDigest.h>
 
@@ -48,3 +49,4 @@ static std::optional<PAL::CryptoDigest::Algorithm> cryptoDigestAlgorithm(CryptoA
 }
 
 } // namespace WebCore
+#endif // WebCore_crypto_cocoa_CryptoDigestAlgorithm_h

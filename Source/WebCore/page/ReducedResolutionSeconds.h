@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ReducedResolutionSeconds_h
+#define WebCore_page_ReducedResolutionSeconds_h
 
 #include <wtf/Seconds.h>
 
@@ -33,3 +34,4 @@ using ReducedResolutionSeconds = Seconds;
 
 }
 
+#endif // WebCore_page_ReducedResolutionSeconds_h

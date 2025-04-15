@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CompactPtr_h
+#define WTF_wtf_CompactPtr_h
 
 #include <cstdint>
 #include <utility>
@@ -272,3 +273,4 @@ template<typename P> struct DefaultHash<CompactPtr<P>> {
 
 using WTF::CompactPtr;
 using WTF::CompactPtrTraits;
+#endif // WTF_wtf_CompactPtr_h

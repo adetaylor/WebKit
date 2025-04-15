@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioContextLatencyCategory_h
+#define WebCore_Modules_webaudio_AudioContextLatencyCategory_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class AudioContextLatencyCategory {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_AudioContextLatencyCategory_h

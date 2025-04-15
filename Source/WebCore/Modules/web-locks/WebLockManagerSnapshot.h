@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_web_locks_WebLockManagerSnapshot_h
+#define WebCore_Modules_web_locks_WebLockManagerSnapshot_h
 
 #include "WebLockMode.h"
 #include <wtf/CrossThreadCopier.h>
@@ -49,3 +50,4 @@ struct WebLockManagerSnapshot {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_web_locks_WebLockManagerSnapshot_h

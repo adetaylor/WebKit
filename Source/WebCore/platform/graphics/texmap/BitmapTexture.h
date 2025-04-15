@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_BitmapTexture_h
+#define WebCore_platform_graphics_texmap_BitmapTexture_h
 
 #include "ClipStack.h"
 #include "FilterOperation.h"
@@ -119,3 +120,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_texmap_BitmapTexture_h

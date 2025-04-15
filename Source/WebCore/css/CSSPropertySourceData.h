@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSPropertySourceData_h
+#define WebCore_css_CSSPropertySourceData_h
 
 #include "StyleRuleType.h"
 #include <utility>
@@ -112,3 +113,4 @@ struct CSSRuleSourceData : public RefCounted<CSSRuleSourceData> {
 };
 
 } // namespace WebCore
+#endif // WebCore_css_CSSPropertySourceData_h

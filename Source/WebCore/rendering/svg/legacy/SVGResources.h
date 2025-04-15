@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_SVGResources_h
+#define WebCore_rendering_svg_legacy_SVGResources_h
 
 #include "LegacyRenderSVGResourceClipper.h"
 #include "LegacyRenderSVGResourceFilter.h"
@@ -151,3 +152,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_legacy_SVGResources_h

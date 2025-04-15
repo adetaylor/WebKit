@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PreciseSum_h
+#define WTF_wtf_PreciseSum_h
 
 #include <wtf/Vector.h>
 
@@ -43,3 +44,4 @@ private:
 } // namespace WTF
 
 using WTF::PreciseSum;
+#endif // WTF_wtf_PreciseSum_h

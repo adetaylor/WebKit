@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSColorLayersSerialization_h
+#define WebCore_css_values_color_CSSColorLayersSerialization_h
 
 #include "CSSPrimitiveValueMappings.h"
 #include <wtf/text/StringBuilder.h>
@@ -49,3 +50,4 @@ void serializationForCSSColorLayers(StringBuilder& builder, const SerializationC
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSColorLayersSerialization_h

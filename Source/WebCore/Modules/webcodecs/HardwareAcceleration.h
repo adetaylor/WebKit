@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_HardwareAcceleration_h
+#define WebCore_Modules_webcodecs_HardwareAcceleration_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -38,3 +39,4 @@ enum class HardwareAcceleration {
 }
 
 #endif
+#endif // WebCore_Modules_webcodecs_HardwareAcceleration_h

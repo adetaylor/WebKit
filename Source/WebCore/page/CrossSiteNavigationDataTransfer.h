@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_CrossSiteNavigationDataTransfer_h
+#define WebCore_page_CrossSiteNavigationDataTransfer_h
 
 #include <wtf/OptionSet.h>
 
@@ -39,3 +40,4 @@ struct CrossSiteNavigationDataTransfer {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_CrossSiteNavigationDataTransfer_h

@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderDeprecatedFlexibleBox_h
+#define WebCore_rendering_RenderDeprecatedFlexibleBox_h
 
 #include "RenderBlock.h"
 
@@ -75,3 +76,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderDeprecatedFlexibleBox, isRenderDeprecatedFlexibleBox())
+#endif // WebCore_rendering_RenderDeprecatedFlexibleBox_h

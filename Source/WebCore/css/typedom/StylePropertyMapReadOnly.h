@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_StylePropertyMapReadOnly_h
+#define WebCore_css_typedom_StylePropertyMapReadOnly_h
 
 #include "CSSStyleValue.h"
 #include "CSSValue.h"
@@ -82,3 +83,4 @@ protected:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::StylePropertyMapReadOnly& value) { return value.type() == predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_typedom_StylePropertyMapReadOnly_h

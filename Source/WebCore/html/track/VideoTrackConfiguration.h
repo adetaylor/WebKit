@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_track_VideoTrackConfiguration_h
+#define WebCore_html_track_VideoTrackConfiguration_h
 
 #if ENABLE(VIDEO)
 
@@ -92,3 +93,4 @@ private:
 }
 
 #endif
+#endif // WebCore_html_track_VideoTrackConfiguration_h

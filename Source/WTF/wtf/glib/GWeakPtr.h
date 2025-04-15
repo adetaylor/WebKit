@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_GWeakPtr_h
+#define WTF_wtf_glib_GWeakPtr_h
 
 #if USE(GLIB)
 
@@ -115,3 +116,4 @@ private:
 using WTF::GWeakPtr;
 
 #endif // USE(GLIB)
+#endif // WTF_wtf_glib_GWeakPtr_h

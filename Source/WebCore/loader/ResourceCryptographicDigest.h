@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceCryptographicDigest_h
+#define WebCore_loader_ResourceCryptographicDigest_h
 
 #include <type_traits>
 #include <wtf/HashTraits.h>
@@ -119,3 +120,4 @@ template<> struct HashTraits<WebCore::ResourceCryptographicDigest> : GenericHash
 };
 
 }
+#endif // WebCore_loader_ResourceCryptographicDigest_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InternalObserverReduce_h
+#define WebCore_dom_InternalObserverReduce_h
 
 #include <wtf/Forward.h>
 
@@ -42,3 +43,4 @@ struct SubscribeOptions;
 void createInternalObserverOperatorReduce(ScriptExecutionContext&, Observable&, Ref<ReducerCallback>&&, JSC::JSValue, const SubscribeOptions&, Ref<DeferredPromise>&&);
 
 } // namespace WebCore
+#endif // WebCore_dom_InternalObserverReduce_h

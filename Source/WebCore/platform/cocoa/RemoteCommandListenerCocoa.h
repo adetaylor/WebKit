@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_RemoteCommandListenerCocoa_h
+#define WebCore_platform_cocoa_RemoteCommandListenerCocoa_h
 
 #include "RemoteCommandListener.h"
 
@@ -53,3 +54,4 @@ private:
 }
 
 #endif // PLATFORM(COCOA)
+#endif // WebCore_platform_cocoa_RemoteCommandListenerCocoa_h

@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSLayerBlockRule_h
+#define WebCore_css_CSSLayerBlockRule_h
 
 #include "CSSGroupingRule.h"
 #include "StyleRuleType.h"
@@ -55,3 +56,4 @@ String stringFromCascadeLayerName(const CascadeLayerName&);
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSLayerBlockRule, StyleRuleType::LayerBlock)
+#endif // WebCore_css_CSSLayerBlockRule_h

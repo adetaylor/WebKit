@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_PlaceholderRenderingContext_h
+#define WebCore_html_canvas_PlaceholderRenderingContext_h
 
 #if ENABLE(OFFSCREEN_CANVAS)
 
@@ -81,3 +82,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CANVASRENDERINGCONTEXT(WebCore::PlaceholderRenderingContext, isPlaceholder())
 
 #endif
+#endif // WebCore_html_canvas_PlaceholderRenderingContext_h

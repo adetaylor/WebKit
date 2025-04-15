@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_animation_AnimationList_h
+#define WebCore_platform_animation_AnimationList_h
 
 #include "Animation.h"
 #include <wtf/Ref.h>
@@ -72,3 +73,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const AnimationList&);
 
 } // namespace WebCore
+#endif // WebCore_platform_animation_AnimationList_h

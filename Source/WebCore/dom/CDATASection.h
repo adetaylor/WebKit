@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_CDATASection_h
+#define WebCore_dom_CDATASection_h
 
 #include "Text.h"
 
@@ -45,3 +46,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CDATASection)
     static bool isType(const WebCore::Node& node) { return node.nodeType() == WebCore::Node::CDATA_SECTION_NODE; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_CDATASection_h

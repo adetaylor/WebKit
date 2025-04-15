@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_HitTestSource_h
+#define WebCore_rendering_HitTestSource_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class HitTestSource : bool {
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_HitTestSource_h

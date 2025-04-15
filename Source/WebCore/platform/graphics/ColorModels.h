@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorModels_h
+#define WebCore_platform_graphics_ColorModels_h
 
 #include <array>
 #include <limits>
@@ -433,3 +434,4 @@ public:
 };
 
 }
+#endif // WebCore_platform_graphics_ColorModels_h

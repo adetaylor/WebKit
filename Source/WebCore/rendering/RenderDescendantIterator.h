@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderDescendantIterator_h
+#define WebCore_rendering_RenderDescendantIterator_h
 
 #include "RenderIterator.h"
 
@@ -327,3 +328,4 @@ inline RenderDescendantPostOrderConstIteratorAdapter<T> descendantsOfTypePostOrd
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderDescendantIterator_h

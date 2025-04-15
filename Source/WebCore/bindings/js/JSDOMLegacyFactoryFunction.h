@@ -17,7 +17,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMLegacyFactoryFunction_h
+#define WebCore_bindings_js_JSDOMLegacyFactoryFunction_h
 
 #include "JSDOMConstructorWithDocument.h"
 
@@ -71,3 +72,4 @@ template<typename JSClass> inline void JSDOMLegacyFactoryFunction<JSClass>::fini
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMLegacyFactoryFunction_h

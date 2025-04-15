@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_CryptoKitPrivateSPI_h
+#define WebCore_PAL_pal_spi_cocoa_CryptoKitPrivateSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -64,3 +65,4 @@ DECLARE_SYSTEM_HEADER
 #endif // USE(APPLE_INTERNAL_SDK)
 
 #endif // HAVE(RSA_BSSA)
+#endif // WebCore_PAL_pal_spi_cocoa_CryptoKitPrivateSPI_h

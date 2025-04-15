@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLAreaElement_h
+#define WebCore_html_HTMLAreaElement_h
 
 #include "HTMLAnchorElement.h"
 #include "LayoutRect.h"
@@ -74,3 +75,4 @@ private:
 };
 
 } //namespace
+#endif // WebCore_html_HTMLAreaElement_h

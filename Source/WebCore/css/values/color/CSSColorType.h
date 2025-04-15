@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSColorType_h
+#define WebCore_css_values_color_CSSColorType_h
 
 namespace WebCore {
 namespace CSS {
@@ -36,3 +37,4 @@ enum class ColorType : uint8_t {
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSColorType_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorInstrumentationWebKit_h
+#define WebCore_inspector_InspectorInstrumentationWebKit_h
 
 #include "InspectorInstrumentationPublic.h"
 #include "ResourceLoader.h"
@@ -80,3 +81,4 @@ inline void InspectorInstrumentationWebKit::interceptResponse(const LocalFrame* 
 }
 
 }
+#endif // WebCore_inspector_InspectorInstrumentationWebKit_h

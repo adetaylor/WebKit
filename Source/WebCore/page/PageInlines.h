@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PageInlines_h
+#define WebCore_page_PageInlines_h
 
 #include "MediaProducer.h"
 #include "Page.h"
@@ -41,3 +42,4 @@ inline bool Page::isMediaCaptureMuted() const
 }
 
 }
+#endif // WebCore_page_PageInlines_h

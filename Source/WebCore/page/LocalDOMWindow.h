@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_LocalDOMWindow_h
+#define WebCore_page_LocalDOMWindow_h
 
 #include "Base64Utilities.h"
 #include "ContextDestructionObserverInlines.h"
@@ -496,3 +497,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::LocalDOMWindow)
     static bool isType(const WebCore::DOMWindow& window) { return window.isLocalDOMWindow(); }
     static bool isType(const WebCore::EventTarget& target) { return target.eventTargetInterface() == WebCore::EventTargetInterfaceType::DOMWindow; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_page_LocalDOMWindow_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_QuarantineSPI_h
+#define WebCore_PAL_pal_spi_mac_QuarantineSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -88,3 +89,4 @@ struct QuarantineFileDeleter {
 };
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_PAL_pal_spi_mac_QuarantineSPI_h

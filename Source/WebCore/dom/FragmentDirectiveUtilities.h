@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_FragmentDirectiveUtilities_h
+#define WebCore_dom_FragmentDirectiveUtilities_h
 
 #include <wtf/Forward.h>
 #include <wtf/text/WTFString.h>
@@ -47,3 +48,4 @@ ContainerNode& nearestBlockAncestor(Node&);
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_FragmentDirectiveUtilities_h

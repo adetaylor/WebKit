@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_software_FELightingSoftwareParallelApplier_h
+#define WebCore_platform_graphics_filters_software_FELightingSoftwareParallelApplier_h
 
 #if !(CPU(ARM_NEON) && CPU(ARM_TRADITIONAL) && COMPILER(GCC_COMPATIBLE))
 
@@ -57,3 +58,4 @@ private:
 } // namespace WebCore
 
 #endif // !(CPU(ARM_NEON) && CPU(ARM_TRADITIONAL) && COMPILER(GCC_COMPATIBLE))
+#endif // WebCore_platform_graphics_filters_software_FELightingSoftwareParallelApplier_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleInvalidationFunctions_h
+#define WebCore_style_StyleInvalidationFunctions_h
 
 #include "HTMLSlotElement.h"
 #include "ShadowRoot.h"
@@ -96,3 +97,4 @@ inline void traverseRuleFeatures(Element& element, TraverseFunction&& function)
 }
 }
 
+#endif // WebCore_style_StyleInvalidationFunctions_h

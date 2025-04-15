@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_AudioToolboxSPI_h
+#define WebCore_PAL_pal_spi_cocoa_AudioToolboxSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -67,3 +68,4 @@ struct SpatialAudioPreferences {
 };
 
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_AudioToolboxSPI_h

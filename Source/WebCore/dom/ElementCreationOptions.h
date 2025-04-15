@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementCreationOptions_h
+#define WebCore_dom_ElementCreationOptions_h
 
 #include "CustomElementRegistry.h"
 
@@ -34,3 +35,4 @@ struct ElementCreationOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ElementCreationOptions_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_airplay_PlaybackTargetClientContextIdentifier_h
+#define WebCore_Modules_airplay_PlaybackTargetClientContextIdentifier_h
 
 #include "ProcessQualified.h"
 #include <wtf/ObjectIdentifier.h>
@@ -39,3 +40,4 @@ using PlaybackTargetClientContextIdentifier = ProcessQualified<PlaybackTargetCli
 }
 
 #endif // ENABLE(WIRELESS_PLAYBACK_TARGET)
+#endif // WebCore_Modules_airplay_PlaybackTargetClientContextIdentifier_h

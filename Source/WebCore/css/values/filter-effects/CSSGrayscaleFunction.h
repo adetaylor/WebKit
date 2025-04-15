@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_filter_effects_CSSGrayscaleFunction_h
+#define WebCore_css_values_filter_effects_CSSGrayscaleFunction_h
 
 #include "CSSPrimitiveNumericTypes.h"
 
@@ -46,3 +47,4 @@ DEFINE_TYPE_WRAPPER_GET(Grayscale, value);
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Grayscale, 1)
+#endif // WebCore_css_values_filter_effects_CSSGrayscaleFunction_h

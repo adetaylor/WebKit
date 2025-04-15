@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUCommandBuffer_h
+#define WebCore_Modules_WebGPU_GPUCommandBuffer_h
 
 #include "GPUCommandEncoder.h"
 #include "WebGPUCommandBuffer.h"
@@ -63,3 +64,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUCommandBuffer_h

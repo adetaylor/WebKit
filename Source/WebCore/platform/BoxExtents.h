@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_BoxExtents_h
+#define WebCore_platform_BoxExtents_h
 
 #include "LayoutUnit.h"
 #include "RectEdges.h"
@@ -35,3 +36,4 @@ using IntBoxExtent = RectEdges<int>;
 using LayoutBoxExtent = RectEdges<LayoutUnit>;
 
 } // namespace WebCore
+#endif // WebCore_platform_BoxExtents_h

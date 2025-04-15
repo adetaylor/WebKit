@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_mac_TextIndicatorWindow_h
+#define WebCore_page_mac_TextIndicatorWindow_h
 
 #import "TextIndicator.h"
 #import <wtf/CheckedPtr.h>
@@ -74,3 +75,4 @@ private:
 } // namespace WebCore
 
 
+#endif // WebCore_page_mac_TextIndicatorWindow_h

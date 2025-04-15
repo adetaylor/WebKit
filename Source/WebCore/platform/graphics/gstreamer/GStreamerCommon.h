@@ -17,7 +17,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_GStreamerCommon_h
+#define WebCore_platform_graphics_gstreamer_GStreamerCommon_h
 
 #if USE(GSTREAMER)
 #include "FloatSize.h"
@@ -463,3 +464,4 @@ GstBuffer* gst_buffer_new_memdup(gconstpointer data, gsize size);
 #endif
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_GStreamerCommon_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_ControlFactory_h
+#define WebCore_platform_graphics_controls_ControlFactory_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
@@ -89,3 +90,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_controls_ControlFactory_h

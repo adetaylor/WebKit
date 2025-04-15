@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_invalidation_InlineInvalidation_h
+#define WebCore_layout_formattingContexts_inline_invalidation_InlineInvalidation_h
 
 #include "InlineDamage.h"
 #include "InlineDisplayContent.h"
@@ -75,3 +76,4 @@ private:
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_invalidation_InlineInvalidation_h

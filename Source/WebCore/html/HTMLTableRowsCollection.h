@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLTableRowsCollection_h
+#define WebCore_html_HTMLTableRowsCollection_h
 
 #include "CachedHTMLCollection.h"
 #include "HTMLTableElement.h"
@@ -56,3 +57,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_HTMLCOLLECTION(HTMLTableRowsCollection, CollectionType::TableRows)
+#endif // WebCore_html_HTMLTableRowsCollection_h

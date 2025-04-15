@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveData_h
+#define WebCore_css_values_primitives_CSSPrimitiveData_h
 
 #include "CSSPrimitiveKeywordList.h"
 #include "CSSPrimitiveNumericConcepts.h"
@@ -492,3 +493,4 @@ template<Numeric N, PrimitiveKeyword... Ks> struct PrimitiveData {
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSPrimitiveData_h

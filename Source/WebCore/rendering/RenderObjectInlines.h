@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderObjectInlines_h
+#define WebCore_rendering_RenderObjectInlines_h
 
 #include "Document.h"
 #include "RenderObject.h"
@@ -34,3 +35,4 @@ inline Ref<Document> RenderObject::protectedDocument() const { return document()
 inline const LocalFrameViewLayoutContext& RenderObject::layoutContext() const { return view().frameView().layoutContext(); }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderObjectInlines_h

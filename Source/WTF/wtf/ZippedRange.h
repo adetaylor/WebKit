@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ZippedRange_h
+#define WTF_wtf_ZippedRange_h
 
 #include <wtf/IndexedRange.h>
 
@@ -94,3 +95,4 @@ template<typename CollectionA, typename CollectionB> auto zippedRange(Collection
 } // namespace WTF
 
 using WTF::zippedRange;
+#endif // WTF_wtf_ZippedRange_h

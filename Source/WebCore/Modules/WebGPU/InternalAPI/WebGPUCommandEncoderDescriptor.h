@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUCommandEncoderDescriptor_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUCommandEncoderDescriptor_h
 
 #include "WebGPUObjectDescriptorBase.h"
 
@@ -33,3 +34,4 @@ struct CommandEncoderDescriptor : public ObjectDescriptorBase {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUCommandEncoderDescriptor_h

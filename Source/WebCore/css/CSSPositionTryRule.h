@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSPositionTryRule_h
+#define WebCore_css_CSSPositionTryRule_h
 
 #include "CSSRule.h"
 #include "StyleProperties.h"
@@ -80,3 +81,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyleRulePositionTry)
 static bool isType(const WebCore::StyleRuleBase& rule) { return rule.isPositionTryRule(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_CSSPositionTryRule_h

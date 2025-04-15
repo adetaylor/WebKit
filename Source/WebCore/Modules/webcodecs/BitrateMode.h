@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_BitrateMode_h
+#define WebCore_Modules_webcodecs_BitrateMode_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -37,3 +38,4 @@ enum class BitrateMode {
 }
 
 #endif
+#endif // WebCore_Modules_webcodecs_BitrateMode_h

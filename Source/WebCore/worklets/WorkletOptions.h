@@ -23,7 +23,8 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_worklets_WorkletOptions_h
+#define WebCore_worklets_WorkletOptions_h
 
 #include "FetchRequestCredentials.h"
 
@@ -34,3 +35,4 @@ struct WorkletOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_worklets_WorkletOptions_h

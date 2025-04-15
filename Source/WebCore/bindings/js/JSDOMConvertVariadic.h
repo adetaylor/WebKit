@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertVariadic_h
+#define WebCore_bindings_js_JSDOMConvertVariadic_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -73,3 +74,4 @@ VariadicArguments<IDL> convertVariadicArguments(JSC::JSGlobalObject& lexicalGlob
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertVariadic_h

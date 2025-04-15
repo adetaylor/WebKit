@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityAttachment_h
+#define WebCore_accessibility_AccessibilityAttachment_h
 
 #if ENABLE(ATTACHMENT_ELEMENT)
 
@@ -61,3 +62,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilityAttachment) \
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(ATTACHMENT_ELEMENT)
+#endif // WebCore_accessibility_AccessibilityAttachment_h

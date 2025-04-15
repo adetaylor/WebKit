@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformPlaybackSessionInterface_h
+#define WebCore_platform_graphics_PlatformPlaybackSessionInterface_h
 
 namespace WebCore {
 
@@ -40,3 +41,4 @@ using PlatformPlaybackSessionInterface = PlaybackSessionInterfaceMac;
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_PlatformPlaybackSessionInterface_h

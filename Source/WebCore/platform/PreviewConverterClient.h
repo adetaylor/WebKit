@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PreviewConverterClient_h
+#define WebCore_platform_PreviewConverterClient_h
 
 #include <wtf/CompletionHandler.h>
 #include <wtf/Forward.h>
@@ -57,3 +58,4 @@ struct PreviewConverterClient : CanMakeWeakPtr<PreviewConverterClient> {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_PreviewConverterClient_h

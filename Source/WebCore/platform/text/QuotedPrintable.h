@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_QuotedPrintable_h
+#define WebCore_platform_text_QuotedPrintable_h
 
 #include <wtf/Forward.h>
 
@@ -41,3 +42,4 @@ Vector<uint8_t> quotedPrintableDecode(const Vector<uint8_t>&);
 Vector<uint8_t> quotedPrintableDecode(std::span<const uint8_t>);
 
 } // namespace WebCore
+#endif // WebCore_platform_text_QuotedPrintable_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineLineBoxBuilder_h
+#define WebCore_layout_formattingContexts_inline_InlineLineBoxBuilder_h
 
 #include "InlineFormattingContext.h"
 #include "InlineLayoutState.h"
@@ -80,3 +81,4 @@ private:
 }
 }
 
+#endif // WebCore_layout_formattingContexts_inline_InlineLineBoxBuilder_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_IndexSet_h
+#define WTF_wtf_IndexSet_h
 
 #include <wtf/BitVector.h>
 #include <wtf/CommaPrinter.h>
@@ -160,3 +161,4 @@ private:
 } // namespace WTF
 
 using WTF::IndexSet;
+#endif // WTF_wtf_IndexSet_h

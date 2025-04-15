@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_page_Page_h
+#define WebCore_page_Page_h
 
 #include "ActivityState.h"
 #include "AnimationFrameRate.h"
@@ -1789,3 +1790,4 @@ inline RefPtr<Page> Document::protectedPage() const
 WTF::TextStream& operator<<(WTF::TextStream&, RenderingUpdateStep);
 
 } // namespace WebCore
+#endif // WebCore_page_Page_h

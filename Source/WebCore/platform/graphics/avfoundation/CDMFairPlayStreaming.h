@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_CDMFairPlayStreaming_h
+#define WebCore_platform_graphics_avfoundation_CDMFairPlayStreaming_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -116,3 +117,4 @@ private:
 }
 
 #endif // ENABLE(ENCRYPTED_MEDIA)
+#endif // WebCore_platform_graphics_avfoundation_CDMFairPlayStreaming_h

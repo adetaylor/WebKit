@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_FlacEncoderConfig_h
+#define WebCore_Modules_webcodecs_FlacEncoderConfig_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -43,3 +44,4 @@ struct FlacEncoderConfig {
 }
 
 #endif // ENABLE(WEB_CODECS)
+#endif // WebCore_Modules_webcodecs_FlacEncoderConfig_h

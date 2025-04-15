@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_coordinated_ScrollingTreeScrollingNodeDelegateCoordinated_h
+#define WebCore_page_scrolling_coordinated_ScrollingTreeScrollingNodeDelegateCoordinated_h
 
 #include "ScrollingTreeScrollingNodeDelegate.h"
 
@@ -51,3 +52,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(ASYNC_SCROLLING) && USE(COORDINATED_GRAPHICS)
+#endif // WebCore_page_scrolling_coordinated_ScrollingTreeScrollingNodeDelegateCoordinated_h

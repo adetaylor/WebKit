@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_DebugOverlayRegions_h
+#define WebCore_page_DebugOverlayRegions_h
 
 namespace WebCore {
 
@@ -37,3 +38,4 @@ enum class DebugOverlayRegions : uint8_t {
 };
 
 }
+#endif // WebCore_page_DebugOverlayRegions_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageBufferPlatformBackend_h
+#define WebCore_platform_graphics_ImageBufferPlatformBackend_h
 
 #if USE(CG)
 #include "ImageBufferCGBitmapBackend.h"
@@ -47,3 +48,4 @@ using ImageBufferPlatformBitmapBackend = ImageBufferSkiaUnacceleratedBackend;
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageBufferPlatformBackend_h

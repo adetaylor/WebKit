@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSFontVariantLigaturesParser_h
+#define WebCore_css_parser_CSSFontVariantLigaturesParser_h
 
 #include "CSSParserTokenRange.h"
 #include "CSSPropertyParserConsumer+Ident.h"
@@ -90,3 +91,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSFontVariantLigaturesParser_h

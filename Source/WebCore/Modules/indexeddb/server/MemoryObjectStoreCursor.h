@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_server_MemoryObjectStoreCursor_h
+#define WebCore_Modules_indexeddb_server_MemoryObjectStoreCursor_h
 
 #include "IDBCursorInfo.h"
 #include "IDBKeyData.h"
@@ -70,3 +71,4 @@ private:
 
 } // namespace IDBServer
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_server_MemoryObjectStoreCursor_h

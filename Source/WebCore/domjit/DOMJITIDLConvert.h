@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_domjit_DOMJITIDLConvert_h
+#define WebCore_domjit_DOMJITIDLConvert_h
 
 #include "IDLTypes.h"
 
@@ -57,3 +58,4 @@ struct DirectConverter<IDLRequiresExistingAtomStringAdaptor<IDLDOMString>> {
 };
 
 } }
+#endif // WebCore_domjit_DOMJITIDLConvert_h

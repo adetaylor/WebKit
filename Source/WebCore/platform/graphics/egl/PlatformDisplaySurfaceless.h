@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_egl_PlatformDisplaySurfaceless_h
+#define WebCore_platform_graphics_egl_PlatformDisplaySurfaceless_h
 
 #include "PlatformDisplay.h"
 
@@ -41,3 +42,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_egl_PlatformDisplaySurfaceless_h

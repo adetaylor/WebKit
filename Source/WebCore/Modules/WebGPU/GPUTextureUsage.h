@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUTextureUsage_h
+#define WebCore_Modules_WebGPU_GPUTextureUsage_h
 
 #include "GPUIntegralTypes.h"
 #include "WebGPUTextureUsage.h"
@@ -59,3 +60,4 @@ inline WebGPU::TextureUsageFlags convertTextureUsageFlagsToBacking(GPUTextureUsa
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUTextureUsage_h

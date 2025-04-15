@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_PCMTokens_h
+#define WebCore_loader_PCMTokens_h
 
 #include <wtf/Seconds.h>
 
@@ -78,3 +79,4 @@ struct DestinationSecretToken : SecretToken {
 };
 
 }
+#endif // WebCore_loader_PCMTokens_h

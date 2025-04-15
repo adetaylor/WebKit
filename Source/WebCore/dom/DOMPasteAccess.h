@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMPasteAccess_h
+#define WebCore_dom_DOMPasteAccess_h
 
 namespace WebCore {
 
@@ -50,3 +51,4 @@ enum class DOMPasteRequiresInteraction : bool {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DOMPasteAccess_h

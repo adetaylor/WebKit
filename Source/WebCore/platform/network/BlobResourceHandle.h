@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_BlobResourceHandle_h
+#define WebCore_platform_network_BlobResourceHandle_h
 
 #include "FileStreamClient.h"
 #include "ResourceHandle.h"
@@ -126,3 +127,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::BlobResourceHandle)
     static bool isType(const WebCore::ResourceHandle& handle) { return handle.isBlobResourceHandle(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_network_BlobResourceHandle_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognitionErrorCode_h
+#define WebCore_Modules_speech_SpeechRecognitionErrorCode_h
 
 #include "SpeechRecognitionError.h"
 
@@ -32,3 +33,4 @@ namespace WebCore {
 using SpeechRecognitionErrorCode = SpeechRecognitionErrorType;
 
 } // namespace WebCore
+#endif // WebCore_Modules_speech_SpeechRecognitionErrorCode_h

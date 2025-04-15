@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_DetectedText_h
+#define WebCore_Modules_ShapeDetection_DetectedText_h
 
 #include "DOMRectReadOnly.h"
 #include "DetectedTextInterface.h"
@@ -71,3 +72,4 @@ inline DetectedText convertFromBacking(const ShapeDetection::DetectedText& detec
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_ShapeDetection_DetectedText_h

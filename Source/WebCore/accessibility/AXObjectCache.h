@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AXObjectCache_h
+#define WebCore_accessibility_AXObjectCache_h
 
 #include "AXGeometryManager.h"
 #include "AXIsolatedTree.h"
@@ -1007,3 +1008,4 @@ bool isVisibilityHidden(const RenderStyle&);
 WTF::TextStream& operator<<(WTF::TextStream&, AXNotification);
 
 } // namespace WebCore
+#endif // WebCore_accessibility_AXObjectCache_h

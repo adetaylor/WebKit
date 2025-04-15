@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasRenderingContext2D_h
+#define WebCore_html_canvas_CanvasRenderingContext2D_h
 
 #include "CanvasRenderingContext2DBase.h"
 #include "HTMLCanvasElement.h"
@@ -74,3 +75,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CANVASRENDERINGCONTEXT(WebCore::CanvasRenderingContext2D, is2d())
+#endif // WebCore_html_canvas_CanvasRenderingContext2D_h

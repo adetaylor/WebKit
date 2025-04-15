@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleScopeOrdinal_h
+#define WebCore_style_StyleScopeOrdinal_h
 
 #include <wtf/EnumTraits.h>
 
@@ -54,3 +55,4 @@ inline ScopeOrdinal& operator--(ScopeOrdinal& ordinal)
 
 }
 }
+#endif // WebCore_style_StyleScopeOrdinal_h

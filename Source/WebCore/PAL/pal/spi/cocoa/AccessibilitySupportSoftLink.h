@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_AccessibilitySupportSoftLink_h
+#define WebCore_PAL_pal_spi_cocoa_AccessibilitySupportSoftLink_h
 
 #include <pal/spi/cocoa/AccessibilitySupportSPI.h>
 #include <wtf/SoftLinking.h>
@@ -36,3 +37,4 @@ SOFT_LINK_FUNCTION_MAY_FAIL_FOR_HEADER(PAL, libAccessibility, _AXSIsolatedTreeMo
 #define _AXSIsolatedTreeModeFunctionIsAvailable PAL::islibAccessibilityLibaryAvailable() && PAL::canLoad_libAccessibility__AXSIsolatedTreeMode
 
 #endif // ENABLE(ACCESSIBILITY_ISOLATED_TREE)
+#endif // WebCore_PAL_pal_spi_cocoa_AccessibilitySupportSoftLink_h

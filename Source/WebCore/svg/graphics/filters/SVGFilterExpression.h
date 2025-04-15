@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_graphics_filters_SVGFilterExpression_h
+#define WebCore_svg_graphics_filters_SVGFilterExpression_h
 
 #include "FilterEffectGeometry.h"
 #include <wtf/Vector.h>
@@ -39,3 +40,4 @@ struct SVGFilterExpressionTerm {
 using SVGFilterExpression = Vector<SVGFilterExpressionTerm>;
 
 } // namespace WebCore
+#endif // WebCore_svg_graphics_filters_SVGFilterExpression_h

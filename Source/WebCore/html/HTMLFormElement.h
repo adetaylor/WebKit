@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLFormElement_h
+#define WebCore_html_HTMLFormElement_h
 
 #include "FormState.h"
 #include "FormSubmission.h"
@@ -193,3 +194,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLFormElement_h

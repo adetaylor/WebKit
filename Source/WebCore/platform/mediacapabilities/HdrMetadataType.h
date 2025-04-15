@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediacapabilities_HdrMetadataType_h
+#define WebCore_platform_mediacapabilities_HdrMetadataType_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class HdrMetadataType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_mediacapabilities_HdrMetadataType_h

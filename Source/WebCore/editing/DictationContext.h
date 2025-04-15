@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_DictationContext_h
+#define WebCore_editing_DictationContext_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ struct DictationContextType;
 using DictationContext = ObjectIdentifier<DictationContextType>;
 
 } // namespace WebCore
+#endif // WebCore_editing_DictationContext_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_libwebrtc_LibWebRTCRtpTransformBackend_h
+#define WebCore_Modules_mediastream_libwebrtc_LibWebRTCRtpTransformBackend_h
 
 #if ENABLE(WEB_RTC) && USE(LIBWEBRTC)
 
@@ -92,3 +93,4 @@ inline webrtc::RefCountReleaseStatus LibWebRTCRtpTransformBackend::Release() con
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC) && USE(LIBWEBRTC)
+#endif // WebCore_Modules_mediastream_libwebrtc_LibWebRTCRtpTransformBackend_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_CharacterProperties_h
+#define WTF_wtf_text_CharacterProperties_h
 
 #include <unicode/uchar.h>
 #include <unicode/uscript.h>
@@ -189,3 +190,4 @@ using WTF::isEastAsianFullWidth;
 using WTF::isCJKSymbolOrPunctuation;
 using WTF::isFullwidthMiddleDotPunctuation;
 using WTF::isCombiningMark;
+#endif // WTF_wtf_text_CharacterProperties_h

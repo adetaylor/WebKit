@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StdUnorderedSet_h
+#define WTF_wtf_StdUnorderedSet_h
 
 #include <unordered_set>
 #include <wtf/FastMalloc.h>
@@ -36,3 +37,4 @@ using StdUnorderedSet = std::unordered_set<Key, Hash, Predicate, Allocator>;
 } // namespace WTF
 
 using WTF::StdUnorderedSet;
+#endif // WTF_wtf_StdUnorderedSet_h

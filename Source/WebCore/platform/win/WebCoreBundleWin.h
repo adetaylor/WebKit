@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_win_WebCoreBundleWin_h
+#define WebCore_platform_win_WebCoreBundleWin_h
 
 #include <wtf/Forward.h>
 
@@ -36,3 +37,4 @@ WEBCORE_EXPORT String webKitBundlePath(StringView name, StringView type, StringV
 WEBCORE_EXPORT String webKitBundlePath(const Vector<StringView>& components);
 
 }
+#endif // WebCore_platform_win_WebCoreBundleWin_h

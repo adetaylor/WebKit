@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_WritingToolsUISoftLink_h
+#define WebCore_PAL_pal_cocoa_WritingToolsUISoftLink_h
 
 #if ENABLE(WRITING_TOOLS) && PLATFORM(MAC)
 
@@ -46,3 +47,4 @@ SOFT_LINK_CLASS_FOR_HEADER(PAL, _WTTextPreview)
 
 #endif // ENABLE(WRITING_TOOLS) && PLATFORM(MAC)
 
+#endif // WebCore_PAL_pal_cocoa_WritingToolsUISoftLink_h

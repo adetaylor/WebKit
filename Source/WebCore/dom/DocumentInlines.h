@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentInlines_h
+#define WebCore_dom_DocumentInlines_h
 
 #include "CachedResourceLoader.h"
 #include "ClientOrigin.h"
@@ -274,3 +275,4 @@ inline Ref<SecurityOrigin> Document::protectedSecurityOrigin() const
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_DocumentInlines_h

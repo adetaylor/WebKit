@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGValueProperty_h
+#define WebCore_svg_properties_SVGValueProperty_h
 
 #include "SVGProperty.h"
 
@@ -76,3 +77,4 @@ protected:
 };
 
 }
+#endif // WebCore_svg_properties_SVGValueProperty_h

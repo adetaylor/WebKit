@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGInlineInlines_h
+#define WebCore_rendering_svg_RenderSVGInlineInlines_h
 
 #include "RenderSVGInline.h"
 #include "SVGGraphicsElement.h"
@@ -37,3 +38,4 @@ inline SVGGraphicsElement& RenderSVGInline::graphicsElement() const
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_RenderSVGInlineInlines_h

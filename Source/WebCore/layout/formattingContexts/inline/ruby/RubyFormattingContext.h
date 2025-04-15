@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_ruby_RubyFormattingContext_h
+#define WebCore_layout_formattingContexts_inline_ruby_RubyFormattingContext_h
 
 #include "InlineContentBreaker.h"
 #include "InlineDisplayContent.h"
@@ -75,3 +76,4 @@ private:
 
 } // namespace Layout
 } // namespace WebCore
+#endif // WebCore_layout_formattingContexts_inline_ruby_RubyFormattingContext_h

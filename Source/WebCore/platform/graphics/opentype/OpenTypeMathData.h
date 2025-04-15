@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_opentype_OpenTypeMathData_h
+#define WebCore_platform_graphics_opentype_OpenTypeMathData_h
 
 #if ENABLE(MATHML)
 
@@ -144,3 +145,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MATHML)
+#endif // WebCore_platform_graphics_opentype_OpenTypeMathData_h

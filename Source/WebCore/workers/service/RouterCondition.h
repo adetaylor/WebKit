@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_RouterCondition_h
+#define WebCore_workers_service_RouterCondition_h
 
 #include "FetchRequestDestination.h"
 #include "FetchRequestMode.h"
@@ -67,3 +68,4 @@ inline RouterNotCondition::RouterNotCondition(RouterCondition&& value)
 }
 
 } // namespace WebCore
+#endif // WebCore_workers_service_RouterCondition_h

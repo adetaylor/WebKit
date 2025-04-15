@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_compression_DecompressionStreamDecoder_h
+#define WebCore_Modules_compression_DecompressionStreamDecoder_h
 
 #include "BufferSource.h"
 #include "CompressionStream.h"
@@ -86,3 +87,4 @@ private:
     ZStream m_zstream;
 };
 } // namespace WebCore
+#endif // WebCore_Modules_compression_DecompressionStreamDecoder_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSPopoverSPI_h
+#define WebCore_PAL_pal_spi_mac_NSPopoverSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -49,3 +50,4 @@ typedef NS_OPTIONS(NSUInteger, NSPopoverPositioningOptions) {
 - (void)_setRequiresCorrectContentAppearance:(BOOL)requiresCorrectAppearance;
 @property NSPopoverPositioningOptions positioningOptions;
 @end
+#endif // WebCore_PAL_pal_spi_mac_NSPopoverSPI_h

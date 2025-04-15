@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PictureInPictureObserver_h
+#define WebCore_platform_PictureInPictureObserver_h
 
 #if ENABLE(PICTURE_IN_PICTURE_API)
 
@@ -53,3 +54,4 @@ public:
 }
 
 #endif
+#endif // WebCore_platform_PictureInPictureObserver_h

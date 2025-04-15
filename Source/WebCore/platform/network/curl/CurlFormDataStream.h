@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CurlFormDataStream_h
+#define WebCore_platform_network_curl_CurlFormDataStream_h
 
 #include "FormData.h"
 #include <wtf/FileHandle.h>
@@ -63,3 +64,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CurlFormDataStream_h

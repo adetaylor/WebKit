@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ParserContentPolicy_h
+#define WebCore_dom_ParserContentPolicy_h
 
 #include <wtf/OptionSet.h>
 
@@ -50,3 +51,4 @@ static inline OptionSet<ParserContentPolicy> disallowScriptingContent(OptionSet<
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_ParserContentPolicy_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_MediaSessionIdentifier_h
+#define WebCore_platform_MediaSessionIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ struct MediaSessionIdentifierType;
 using MediaSessionIdentifier = ObjectIdentifier<MediaSessionIdentifierType>;
 
 }
+#endif // WebCore_platform_MediaSessionIdentifier_h

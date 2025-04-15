@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_STUNMessageParsing_h
+#define WebCore_Modules_mediastream_STUNMessageParsing_h
 
 #include <wtf/Function.h>
 #include <wtf/Vector.h>
@@ -47,3 +48,4 @@ WEBCORE_EXPORT Vector<uint8_t> extractMessages(Vector<uint8_t>&&, MessageType, N
 } // namespace WebCore
 
 #endif
+#endif // WebCore_Modules_mediastream_STUNMessageParsing_h

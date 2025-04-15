@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_WebTransportBidirectionalStreamConstructionParameters_h
+#define WebCore_Modules_webtransport_WebTransportBidirectionalStreamConstructionParameters_h
 
 #include <wtf/Forward.h>
 #include <wtf/ObjectIdentifier.h>
@@ -48,3 +49,4 @@ struct WebTransportBidirectionalStreamConstructionParameters {
 };
 
 }
+#endif // WebCore_Modules_webtransport_WebTransportBidirectionalStreamConstructionParameters_h

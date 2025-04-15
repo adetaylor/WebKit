@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSCSSRuleCustom_h
+#define WebCore_bindings_js_JSCSSRuleCustom_h
 
 #include "CSSRule.h"
 #include "CSSStyleSheet.h"
@@ -43,3 +44,4 @@ inline WebCoreOpaqueRoot root(CSSRule* rule)
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSCSSRuleCustom_h

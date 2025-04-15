@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_EllipsisBoxPainter_h
+#define WebCore_rendering_EllipsisBoxPainter_h
 
 #include "InlineIteratorLineBox.h"
 
@@ -47,3 +48,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_EllipsisBoxPainter_h

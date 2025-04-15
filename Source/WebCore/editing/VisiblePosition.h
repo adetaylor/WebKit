@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_VisiblePosition_h
+#define WebCore_editing_VisiblePosition_h
 
 #include "EditingBoundary.h"
 #include "Position.h"
@@ -158,3 +159,4 @@ inline bool operator==(const VisiblePosition& a, const VisiblePosition& b)
 void showTree(const WebCore::VisiblePosition*);
 void showTree(const WebCore::VisiblePosition&);
 #endif
+#endif // WebCore_editing_VisiblePosition_h

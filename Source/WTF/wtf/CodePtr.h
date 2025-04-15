@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CodePtr_h
+#define WTF_wtf_CodePtr_h
 
 #include <wtf/FunctionPtr.h>
 #include <wtf/HashFunctions.h>
@@ -301,3 +302,4 @@ struct HashTraits<CodePtr<tag, attr>> : public CustomHashTraits<CodePtr<tag, att
 using WTF::CodePtr;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_CodePtr_h

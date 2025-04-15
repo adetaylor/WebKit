@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcValue_h
+#define WebCore_css_calc_CSSCalcValue_h
 
 #include "CSSCalcTree.h"
 #include "CSSValue.h"
@@ -124,3 +125,4 @@ TextStream& operator<<(TextStream&, const CSSCalcValue&);
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSCalcValue, isCalcValue())
+#endif // WebCore_css_calc_CSSCalcValue_h

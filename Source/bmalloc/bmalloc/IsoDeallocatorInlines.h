@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_IsoDeallocatorInlines_h
+#define bmalloc_bmalloc_IsoDeallocatorInlines_h
 
 #if !BUSE(TZONE)
 
@@ -88,3 +89,4 @@ BNO_INLINE void IsoDeallocator<Config>::scavenge()
 
 #endif
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_IsoDeallocatorInlines_h

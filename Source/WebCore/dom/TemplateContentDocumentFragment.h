@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_TemplateContentDocumentFragment_h
+#define WebCore_dom_TemplateContentDocumentFragment_h
 
 #include "DocumentFragment.h"
 #include "Element.h"
@@ -66,3 +67,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::TemplateContentDocumentFragment)
     }
     static bool isType(const WebCore::DocumentFragment& node) { return node.isTemplateContent(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_TemplateContentDocumentFragment_h

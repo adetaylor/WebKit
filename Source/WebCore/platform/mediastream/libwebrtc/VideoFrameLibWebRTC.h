@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_VideoFrameLibWebRTC_h
+#define WebCore_platform_mediastream_libwebrtc_VideoFrameLibWebRTC_h
 
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
 
@@ -76,3 +77,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::VideoFrameLibWebRTC)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // PLATFORM(COCOA) && USE(LIBWEBRTC)
+#endif // WebCore_platform_mediastream_libwebrtc_VideoFrameLibWebRTC_h

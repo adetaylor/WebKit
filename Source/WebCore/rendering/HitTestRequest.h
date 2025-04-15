@@ -20,7 +20,8 @@
  *
 */
 
-#pragma once
+#ifndef WebCore_rendering_HitTestRequest_h
+#define WebCore_rendering_HitTestRequest_h
 
 #include "HitTestSource.h"
 #include <wtf/Assertions.h>
@@ -115,3 +116,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_HitTestRequest_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_BoxPtr_h
+#define WTF_wtf_BoxPtr_h
 
 #include <memory>
 #include <wtf/Box.h>
@@ -72,3 +73,4 @@ template<typename T> bool operator==(const BoxPtr<T>& lhs, const BoxPtr<T>& rhs)
 
 using WTF::adoptInBoxPtr;
 using WTF::BoxPtr;
+#endif // WTF_wtf_BoxPtr_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingCoordinatorTypes_h
+#define WebCore_page_scrolling_ScrollingCoordinatorTypes_h
 
 #include "FloatPoint.h"
 #include "KeyboardScroll.h"
@@ -216,3 +217,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, ScrollUpdateType);
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const RequestedScrollData&);
 
 } // namespace WebCore
+#endif // WebCore_page_scrolling_ScrollingCoordinatorTypes_h

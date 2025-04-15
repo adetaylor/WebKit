@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestCallbackFunctionWithTypedefs_h
+#define WebCore_bindings_scripts_test_JS_JSTestCallbackFunctionWithTypedefs_h
 
 #include "IDLTypes.h"
 #include "JSCallbackData.h"
@@ -62,3 +63,4 @@ template<> struct JSDOMCallbackConverterTraits<JSTestCallbackFunctionWithTypedef
     using Base = TestCallbackFunctionWithTypedefs;
 };
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSTestCallbackFunctionWithTypedefs_h

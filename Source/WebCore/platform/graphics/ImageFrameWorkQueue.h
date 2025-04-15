@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageFrameWorkQueue_h
+#define WebCore_platform_graphics_ImageFrameWorkQueue_h
 
 #include "DecodingOptions.h"
 #include "ImageTypes.h"
@@ -81,3 +82,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageFrameWorkQueue_h

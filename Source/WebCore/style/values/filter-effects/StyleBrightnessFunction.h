@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_filter_effects_StyleBrightnessFunction_h
+#define WebCore_style_values_filter_effects_StyleBrightnessFunction_h
 
 namespace WebCore {
 
@@ -43,3 +44,4 @@ Ref<FilterOperation> createFilterOperation(const CSS::Brightness&, const Documen
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_filter_effects_StyleBrightnessFunction_h

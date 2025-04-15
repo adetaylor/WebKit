@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_AnimationPlaybackEventInit_h
+#define WebCore_animation_AnimationPlaybackEventInit_h
 
 #include "EventInit.h"
 #include "WebAnimationTypes.h"
@@ -36,3 +37,4 @@ struct AnimationPlaybackEventInit : EventInit {
 };
 
 }
+#endif // WebCore_animation_AnimationPlaybackEventInit_h

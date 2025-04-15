@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_crypto_gcrypt_GCryptRFC8032_h
+#define WebCore_crypto_gcrypt_GCryptRFC8032_h
 
 #include <wtf/Vector.h>
 
@@ -28,3 +29,4 @@ namespace RFC8032 {
 bool validateEd25519KeyPair(const Vector<uint8_t>& privateKey, const Vector<uint8_t>& publicKey);
 
 } } } // namespace WebCore::GCrypt::RFC8032
+#endif // WebCore_crypto_gcrypt_GCryptRFC8032_h

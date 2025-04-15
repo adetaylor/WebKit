@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_AbstractThreadSafeRefCountedAndCanMakeWeakPtr_h
+#define WTF_wtf_AbstractThreadSafeRefCountedAndCanMakeWeakPtr_h
 
 #include <wtf/AbstractRefCounted.h>
 #include <wtf/ThreadSafeWeakPtr.h>
@@ -51,3 +52,4 @@ using WTF::AbstractThreadSafeRefCountedAndCanMakeWeakPtr;
     size_t weakRefCount() const final { return ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::weakRefCount(); } \
     using __Unused_type_for_semicolon = int
 
+#endif // WTF_wtf_AbstractThreadSafeRefCountedAndCanMakeWeakPtr_h

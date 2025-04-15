@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_VideoTrackPrivate_h
+#define WebCore_platform_graphics_VideoTrackPrivate_h
 
 #if ENABLE(VIDEO)
 
@@ -102,3 +103,4 @@ static bool isType(const WebCore::TrackPrivateBase& track) { return track.type()
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif
+#endif // WebCore_platform_graphics_VideoTrackPrivate_h

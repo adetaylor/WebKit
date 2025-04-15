@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleFlexibleBoxData_h
+#define WebCore_rendering_style_StyleFlexibleBoxData_h
 
 #include "Length.h"
 #include <wtf/Ref.h>
@@ -61,3 +62,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleFlexibleBoxData_h

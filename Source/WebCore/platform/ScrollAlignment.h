@@ -41,7 +41,8 @@
  * version of this file under any of the LGPL, the MPL or the GPL.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollAlignment_h
+#define WebCore_platform_ScrollAlignment_h
 
 namespace WTF {
 class TextStream;
@@ -87,3 +88,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, ScrollAlignment::Be
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const ScrollAlignment&);
 
 }; // namespace WebCore
+#endif // WebCore_platform_ScrollAlignment_h

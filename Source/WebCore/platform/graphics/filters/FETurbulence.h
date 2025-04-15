@@ -22,7 +22,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FETurbulence_h
+#define WebCore_platform_graphics_filters_FETurbulence_h
 
 #include "ColorComponents.h"
 #include "FilterEffect.h"
@@ -85,3 +86,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(FETurbulence)
+#endif // WebCore_platform_graphics_filters_FETurbulence_h

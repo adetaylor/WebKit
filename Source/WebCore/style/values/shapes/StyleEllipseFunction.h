@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_shapes_StyleEllipseFunction_h
+#define WebCore_style_values_shapes_StyleEllipseFunction_h
 
 #include "CSSEllipseFunction.h"
 #include "StylePathComputation.h"
@@ -69,3 +70,4 @@ template<> struct Blending<Ellipse> {
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::Ellipse, 2)
+#endif // WebCore_style_values_shapes_StyleEllipseFunction_h

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_AbstractWorker_h
+#define WebCore_workers_AbstractWorker_h
 
 #include "EventTarget.h"
 #include "ExceptionOr.h"
@@ -63,3 +64,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_AbstractWorker_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayFeature_h
+#define WebCore_Modules_applepay_ApplePayFeature_h
 
 #include <wtf/Forward.h>
 
@@ -85,3 +86,4 @@ enum class ApplePayFeature : uint8_t {
 
 } // namespace WebCore
 
+#endif // WebCore_Modules_applepay_ApplePayFeature_h

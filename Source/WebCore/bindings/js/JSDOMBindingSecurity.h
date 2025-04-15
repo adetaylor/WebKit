@@ -21,7 +21,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMBindingSecurity_h
+#define WebCore_bindings_js_JSDOMBindingSecurity_h
 
 #include "ExceptionOr.h"
 #include <wtf/Forward.h>
@@ -88,3 +89,4 @@ template<typename T> inline ExceptionOr<T*> BindingSecurity::checkSecurityForNod
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMBindingSecurity_h

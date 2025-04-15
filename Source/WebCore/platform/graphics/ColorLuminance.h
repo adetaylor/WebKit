@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorLuminance_h
+#define WebCore_platform_graphics_ColorLuminance_h
 
 #include "ColorConversion.h"
 
@@ -70,3 +71,4 @@ double relativeLuminance(const Color&);
 double contrastRatio(const Color&, const Color&);
 
 }
+#endif // WebCore_platform_graphics_ColorLuminance_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_Editing_h
+#define WebCore_editing_Editing_h
 
 #include "Position.h"
 #include "TextIteratorBehavior.h"
@@ -253,3 +254,4 @@ inline Position firstPositionInOrBeforeNode(Node* node)
 }
 
 }
+#endif // WebCore_editing_Editing_h

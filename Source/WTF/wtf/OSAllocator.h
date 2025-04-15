@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_OSAllocator_h
+#define WTF_wtf_OSAllocator_h
 
 #include <algorithm>
 #include <wtf/VMTags.h>
@@ -108,3 +109,4 @@ inline T* OSAllocator::reallocateCommitted(T* oldBase, size_t oldSize, size_t ne
 } // namespace WTF
 
 using WTF::OSAllocator;
+#endif // WTF_wtf_OSAllocator_h

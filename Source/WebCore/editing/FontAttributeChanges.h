@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_FontAttributeChanges_h
+#define WebCore_editing_FontAttributeChanges_h
 
 #include "Color.h"
 #include "FontShadow.h"
@@ -101,3 +102,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_FontAttributeChanges_h

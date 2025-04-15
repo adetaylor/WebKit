@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_Damage_h
+#define WebCore_platform_graphics_Damage_h
 
 #if USE(COORDINATED_GRAPHICS)
 #include "FloatRect.h"
@@ -379,3 +380,4 @@ static inline WTF::TextStream& operator<<(WTF::TextStream& ts, const Damage& dam
 } // namespace WebCore
 
 #endif // USE(COORDINATED_GRAPHICS)
+#endif // WebCore_platform_graphics_Damage_h

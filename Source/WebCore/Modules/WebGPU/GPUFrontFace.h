@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUFrontFace_h
+#define WebCore_Modules_WebGPU_GPUFrontFace_h
 
 #include "WebGPUFrontFace.h"
 #include <cstdint>
@@ -47,3 +48,4 @@ inline WebGPU::FrontFace convertToBacking(GPUFrontFace frontFace)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUFrontFace_h

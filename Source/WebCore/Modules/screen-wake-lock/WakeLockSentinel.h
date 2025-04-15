@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_screen_wake_lock_WakeLockSentinel_h
+#define WebCore_Modules_screen_wake_lock_WakeLockSentinel_h
 
 #include "ActiveDOMObject.h"
 #include "EventTarget.h"
@@ -72,3 +73,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_screen_wake_lock_WakeLockSentinel_h

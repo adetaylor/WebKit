@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_DocumentSVG_h
+#define WebCore_svg_DocumentSVG_h
 
 #include <wtf/Forward.h>
 
@@ -39,3 +40,4 @@ public:
 
 }
 
+#endif // WebCore_svg_DocumentSVG_h

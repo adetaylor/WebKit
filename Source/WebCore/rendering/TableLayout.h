@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_TableLayout_h
+#define WebCore_rendering_TableLayout_h
 
 #include "LayoutUnit.h"
 #include <wtf/FastMalloc.h>
@@ -56,3 +57,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_TableLayout_h

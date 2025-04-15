@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_LargeMap_h
+#define bmalloc_bmalloc_LargeMap_h
 
 #include "LargeRange.h"
 #include "Vector.h"
@@ -53,3 +54,4 @@ private:
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_LargeMap_h

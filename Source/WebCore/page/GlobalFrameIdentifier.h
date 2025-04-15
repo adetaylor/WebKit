@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_GlobalFrameIdentifier_h
+#define WebCore_page_GlobalFrameIdentifier_h
 
 #include "FrameIdentifier.h"
 #include "PageIdentifier.h"
@@ -37,3 +38,4 @@ struct GlobalFrameIdentifier {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_GlobalFrameIdentifier_h

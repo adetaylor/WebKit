@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_ConstantSourceNode_h
+#define WebCore_Modules_webaudio_ConstantSourceNode_h
 
 #include "AudioScheduledSourceNode.h"
 #include "ConstantSourceOptions.h"
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_ConstantSourceNode_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Bits_h
+#define bmalloc_bmalloc_Bits_h
 
 #include "Algorithm.h"
 #include "BInline.h"
@@ -501,3 +502,4 @@ public:
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_Bits_h

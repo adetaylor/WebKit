@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_LLVMProfiling_h
+#define WebCore_platform_LLVMProfiling_h
 
 #if ENABLE(LLVM_PROFILE_GENERATION) && PLATFORM(IOS_FAMILY)
 
@@ -34,3 +35,4 @@ WEBCORE_EXPORT void initializeLLVMProfiling();
 } // namespace WebCore
 
 #endif // ENABLE(LLVM_PROFILE_GENERATION) && PLATFORM(IOS_FAMILY)
+#endif // WebCore_platform_LLVMProfiling_h

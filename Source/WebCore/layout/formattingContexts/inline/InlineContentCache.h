@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineContentCache_h
+#define WebCore_layout_formattingContexts_inline_InlineContentCache_h
 
 #include "FormattingConstraints.h"
 #include "InlineDisplayContent.h"
@@ -124,3 +125,4 @@ inline void InlineContentCache::InlineItems::replace(size_t insertionPosition, I
 }
 }
 
+#endif // WebCore_layout_formattingContexts_inline_InlineContentCache_h

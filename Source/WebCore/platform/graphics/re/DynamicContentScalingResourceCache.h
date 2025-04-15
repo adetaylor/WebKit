@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_re_DynamicContentScalingResourceCache_h
+#define WebCore_platform_graphics_re_DynamicContentScalingResourceCache_h
 
 #if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 
@@ -49,3 +50,4 @@ public:
 }
 
 #endif
+#endif // WebCore_platform_graphics_re_DynamicContentScalingResourceCache_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StdFilesystem_h
+#define WTF_wtf_StdFilesystem_h
 
 #if HAVE(STD_FILESYSTEM)
 #include <filesystem>
@@ -35,3 +36,4 @@ namespace filesystem = std::experimental::filesystem;
 #else
 #error "Missing support for std::filesystem or std::experimental::filesystem"
 #endif
+#endif // WTF_wtf_StdFilesystem_h

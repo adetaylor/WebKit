@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_InlineStyleSheetOwner_h
+#define WebCore_dom_InlineStyleSheetOwner_h
 
 #include "CSSStyleSheet.h"
 #include "StyleScope.h"
@@ -67,3 +68,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_InlineStyleSheetOwner_h

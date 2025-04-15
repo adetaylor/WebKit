@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RealtimeVideoCaptureSource_h
+#define WebCore_platform_mediastream_RealtimeVideoCaptureSource_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -138,3 +139,4 @@ struct LogArgument<WebCore::SizeFrameRateAndZoom> {
 
 #endif // ENABLE(MEDIA_STREAM)
 
+#endif // WebCore_platform_mediastream_RealtimeVideoCaptureSource_h

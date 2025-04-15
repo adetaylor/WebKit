@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_RunJavaScriptParameters_h
+#define WebCore_bindings_js_RunJavaScriptParameters_h
 
 #include <JavaScriptCore/SourceProvider.h>
 
@@ -89,3 +90,4 @@ struct RunJavaScriptParameters {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_RunJavaScriptParameters_h

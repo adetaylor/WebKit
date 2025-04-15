@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_WebCorePersistentCoders_h
+#define WebCore_platform_WebCorePersistentCoders_h
 
 #include <optional>
 
@@ -78,3 +79,4 @@ DECLARE_CODER(WebCore::NavigationPreloadState);
 #undef DECLARE_CODER
 
 }
+#endif // WebCore_platform_WebCorePersistentCoders_h

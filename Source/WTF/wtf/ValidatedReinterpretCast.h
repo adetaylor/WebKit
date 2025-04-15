@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_ValidatedReinterpretCast_h
+#define WTF_wtf_ValidatedReinterpretCast_h
 
 #include "Compiler.h"
 #include "Platform.h"
@@ -77,3 +78,4 @@ ALWAYS_INLINE T* validatedReinterpretCast(U* u)
 }
 
 } // namespace WTF
+#endif // WTF_wtf_ValidatedReinterpretCast_h

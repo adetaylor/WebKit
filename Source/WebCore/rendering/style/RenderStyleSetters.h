@@ -22,7 +22,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_RenderStyleSetters_h
+#define WebCore_rendering_style_RenderStyleSetters_h
 
 #include "RenderStyleInlines.h"
 #include "StyleReflection.h"
@@ -687,3 +688,4 @@ inline void RenderStyle::setIsolation(Isolation isolation) { SET_NESTED(m_nonInh
 #undef SET_STYLE_PROPERTY_WITH_FUNCTIONS
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_RenderStyleSetters_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_paymentrequest_PaymentItem_h
+#define WebCore_Modules_paymentrequest_PaymentItem_h
 
 #if ENABLE(PAYMENT_REQUEST)
 
@@ -41,3 +42,4 @@ struct PaymentItem {
 } // namespace WebCore
 
 #endif // ENABLE(PAYMENT_REQUEST)
+#endif // WebCore_Modules_paymentrequest_PaymentItem_h

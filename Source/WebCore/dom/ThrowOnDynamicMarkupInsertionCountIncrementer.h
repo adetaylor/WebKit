@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ThrowOnDynamicMarkupInsertionCountIncrementer_h
+#define WebCore_dom_ThrowOnDynamicMarkupInsertionCountIncrementer_h
 
 #include "Document.h"
 
@@ -49,3 +50,4 @@ private:
 };
     
 } // namespace WebCore
+#endif // WebCore_dom_ThrowOnDynamicMarkupInsertionCountIncrementer_h

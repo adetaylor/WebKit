@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_BulkDecommit_h
+#define bmalloc_bmalloc_BulkDecommit_h
 
 #include "VMAllocate.h"
 #include <vector>
@@ -97,3 +98,4 @@ private:
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_BulkDecommit_h

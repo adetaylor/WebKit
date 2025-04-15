@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorInstrumentationPublic_h
+#define WebCore_inspector_InspectorInstrumentationPublic_h
 
 #include <atomic>
 namespace WebCore {
@@ -39,3 +40,4 @@ public:
 };
 
 }
+#endif // WebCore_inspector_InspectorInstrumentationPublic_h

@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_StepRange_h
+#define WebCore_html_StepRange_h
 
 #include "Decimal.h"
 #include <wtf/Forward.h>
@@ -119,3 +120,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_StepRange_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_FocusOptions_h
+#define WebCore_dom_FocusOptions_h
 
 #include "FocusDirection.h"
 #include "SelectionRestorationMode.h"
@@ -48,3 +49,4 @@ struct FocusOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_FocusOptions_h

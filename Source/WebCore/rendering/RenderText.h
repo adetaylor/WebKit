@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderText_h
+#define WebCore_rendering_RenderText_h
 
 #include "FontCascade.h"
 #include "RenderElement.h"
@@ -359,3 +360,4 @@ inline void RenderText::resetMinMaxWidth()
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderText, isRenderText())
+#endif // WebCore_rendering_RenderText_h

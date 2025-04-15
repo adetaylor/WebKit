@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUExternalTextureBindingLayout_h
+#define WebCore_Modules_WebGPU_GPUExternalTextureBindingLayout_h
 
 #include "WebGPUExternalTextureBindingLayout.h"
 
@@ -37,3 +38,4 @@ struct GPUExternalTextureBindingLayout {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUExternalTextureBindingLayout_h

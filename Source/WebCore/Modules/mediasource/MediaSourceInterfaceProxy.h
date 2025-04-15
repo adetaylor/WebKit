@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasource_MediaSourceInterfaceProxy_h
+#define WebCore_Modules_mediasource_MediaSourceInterfaceProxy_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -66,3 +67,4 @@ public:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_Modules_mediasource_MediaSourceInterfaceProxy_h

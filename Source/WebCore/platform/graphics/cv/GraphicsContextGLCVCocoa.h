@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cv_GraphicsContextGLCVCocoa_h
+#define WebCore_platform_graphics_cv_GraphicsContextGLCVCocoa_h
 
 #if ENABLE(WEBGL) && ENABLE(VIDEO) && USE(AVFOUNDATION)
 
@@ -92,3 +93,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_graphics_cv_GraphicsContextGLCVCocoa_h

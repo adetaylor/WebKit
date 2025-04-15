@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GraphicsTypesGL_h
+#define WebCore_platform_graphics_GraphicsTypesGL_h
 
 #include <cstdint>
 #include <wtf/OptionSet.h>
@@ -88,3 +89,4 @@ enum class GCGLErrorCode : uint8_t {
     InvalidEnum = 1 << 6
 };
 using GCGLErrorCodeSet = OptionSet<GCGLErrorCode>;
+#endif // WebCore_platform_graphics_GraphicsTypesGL_h

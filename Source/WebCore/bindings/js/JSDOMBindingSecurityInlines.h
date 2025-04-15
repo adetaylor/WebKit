@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMBindingSecurityInlines_h
+#define WebCore_bindings_js_JSDOMBindingSecurityInlines_h
 
 #include "JSDOMBindingSecurity.h"
 #include "JSDOMWindow.h"
@@ -40,3 +41,4 @@ inline bool shouldAllowAccessToDOMWindow(JSC::JSGlobalObject* lexicalGlobalObjec
 
 } // namespace BindingSecurity
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMBindingSecurityInlines_h

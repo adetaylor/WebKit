@@ -25,7 +25,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_gcrypt_GCryptUtilities_h
+#define WebCore_crypto_gcrypt_GCryptUtilities_h
 
 #include "CryptoAlgorithmIdentifier.h"
 #include <array>
@@ -87,3 +88,4 @@ std::optional<Vector<uint8_t>> mpiSignedData(gcry_mpi_t);
 std::optional<Vector<uint8_t>> mpiSignedData(gcry_sexp_t);
 
 } // namespace WebCore
+#endif // WebCore_crypto_gcrypt_GCryptUtilities_h

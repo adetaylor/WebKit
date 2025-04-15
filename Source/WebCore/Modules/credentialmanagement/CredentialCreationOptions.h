@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_credentialmanagement_CredentialCreationOptions_h
+#define WebCore_Modules_credentialmanagement_CredentialCreationOptions_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -45,3 +46,4 @@ struct CredentialCreationOptions {
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_credentialmanagement_CredentialCreationOptions_h

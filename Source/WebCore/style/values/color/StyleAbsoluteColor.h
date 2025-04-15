@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleAbsoluteColor_h
+#define WebCore_style_values_color_StyleAbsoluteColor_h
 
 #include "CSSAbsoluteColor.h"
 #include "CSSAbsoluteColorResolver.h"
@@ -49,3 +50,4 @@ template<typename D> Color toStyleColor(const CSS::AbsoluteColor<D>& unresolved,
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_color_StyleAbsoluteColor_h

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_graphics_SVGImageClients_h
+#define WebCore_svg_graphics_SVGImageClients_h
 
 #include "EmptyClients.h"
 #include "ImageObserver.h"
@@ -97,3 +98,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_graphics_SVGImageClients_h

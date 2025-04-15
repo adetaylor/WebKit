@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_PropertySetCSSDescriptors_h
+#define WebCore_css_PropertySetCSSDescriptors_h
 
 #include "CSSProperty.h"
 #include "CSSPropertyNames.h"
@@ -91,3 +92,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_PropertySetCSSDescriptors_h

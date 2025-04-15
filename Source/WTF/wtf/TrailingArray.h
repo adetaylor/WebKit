@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_TrailingArray_h
+#define WTF_wtf_TrailingArray_h
 
 #include <concepts>
 #include <type_traits>
@@ -183,3 +184,4 @@ protected:
 using WTF::TrailingArray;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_TrailingArray_h

@@ -17,7 +17,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_plugins_DOMMimeType_h
+#define WebCore_plugins_DOMMimeType_h
 
 #include "PluginData.h"
 #include <wtf/RefCounted.h>
@@ -50,3 +51,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_plugins_DOMMimeType_h

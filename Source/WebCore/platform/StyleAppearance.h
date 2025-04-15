@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_StyleAppearance_h
+#define WebCore_platform_StyleAppearance_h
 
 namespace WTF {
 class TextStream;
@@ -83,3 +84,4 @@ enum class StyleAppearance : uint8_t {
 WTF::TextStream& operator<<(WTF::TextStream&, StyleAppearance);
 
 } // namespace WebCore
+#endif // WebCore_platform_StyleAppearance_h

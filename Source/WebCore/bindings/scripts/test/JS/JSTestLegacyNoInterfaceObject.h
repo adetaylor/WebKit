@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestLegacyNoInterfaceObject_h
+#define WebCore_bindings_scripts_test_JS_JSTestLegacyNoInterfaceObject_h
 
 #if ENABLE(Condition22) || ENABLE(Condition23)
 
@@ -102,3 +103,4 @@ template<> struct JSDOMWrapperConverterTraits<TestLegacyNoInterfaceObject> {
 } // namespace WebCore
 
 #endif // ENABLE(Condition22) || ENABLE(Condition23)
+#endif // WebCore_bindings_scripts_test_JS_JSTestLegacyNoInterfaceObject_h

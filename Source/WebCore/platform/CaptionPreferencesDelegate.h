@@ -23,7 +23,8 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_platform_CaptionPreferencesDelegate_h
+#define WebCore_platform_CaptionPreferencesDelegate_h
 
 #if HAVE(MEDIA_ACCESSIBILITY_FRAMEWORK)
 
@@ -42,3 +43,4 @@ public:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_CaptionPreferencesDelegate_h

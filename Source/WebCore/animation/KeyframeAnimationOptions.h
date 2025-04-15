@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_KeyframeAnimationOptions_h
+#define WebCore_animation_KeyframeAnimationOptions_h
 
 #include "AnimationFrameRate.h"
 #include "AnimationFrameRatePreset.h"
@@ -43,3 +44,4 @@ struct KeyframeAnimationOptions : KeyframeEffectOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_KeyframeAnimationOptions_h

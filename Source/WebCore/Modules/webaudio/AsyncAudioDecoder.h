@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AsyncAudioDecoder_h
+#define WebCore_Modules_webaudio_AsyncAudioDecoder_h
 
 #include "Exception.h"
 #include <wtf/Forward.h>
@@ -57,3 +58,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_AsyncAudioDecoder_h

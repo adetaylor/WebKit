@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_InstanceCounted_h
+#define WTF_wtf_InstanceCounted_h
 
 // This class implements "instance count" management for regression test coverage.
 // Since it adds runtime overhead to manage the count variable, the actual
@@ -78,3 +79,4 @@ template<typename T> std::atomic_size_t InstanceCounted<T>::s_instanceCount;
 
 using WTF::InstanceCounted;
 
+#endif // WTF_wtf_InstanceCounted_h

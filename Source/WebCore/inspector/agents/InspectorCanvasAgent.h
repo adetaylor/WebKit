@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_InspectorCanvasAgent_h
+#define WebCore_inspector_agents_InspectorCanvasAgent_h
 
 #include "CanvasBase.h"
 #include "CanvasObserver.h"
@@ -171,3 +172,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_InspectorCanvasAgent_h

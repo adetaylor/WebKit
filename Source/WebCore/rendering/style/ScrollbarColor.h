@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_ScrollbarColor_h
+#define WebCore_rendering_style_ScrollbarColor_h
 
 #include "StyleColor.h"
 
@@ -51,3 +52,4 @@ struct ScrollbarColor {
 WTF::TextStream& operator<<(WTF::TextStream&, const ScrollbarColor&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_ScrollbarColor_h

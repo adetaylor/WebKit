@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ca_cocoa_PlatformCALayerCocoa_h
+#define WebCore_platform_graphics_ca_cocoa_PlatformCALayerCocoa_h
 
 #include "ContentsFormat.h"
 #include "PlatformCALayer.h"
@@ -245,3 +246,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_PLATFORM_CALAYER(WebCore::PlatformCALayerCocoa, type() == WebCore::PlatformCALayer::Type::Cocoa)
+#endif // WebCore_platform_graphics_ca_cocoa_PlatformCALayerCocoa_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_context_ServiceWorkerFetch_h
+#define WebCore_workers_service_context_ServiceWorkerFetch_h
 
 #include "FetchIdentifier.h"
 #include "ResourceResponse.h"
@@ -79,3 +80,4 @@ void dispatchFetchEvent(Ref<Client>&&, ServiceWorkerGlobalScope&, ResourceReques
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_context_ServiceWorkerFetch_h

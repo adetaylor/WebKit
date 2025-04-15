@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Identified_h
+#define WTF_wtf_Identified_h
 
 #include <wtf/UUID.h>
 
@@ -75,3 +76,4 @@ protected:
 
 using WTF::Identified;
 using WTF::UUIDIdentified;
+#endif // WTF_wtf_Identified_h

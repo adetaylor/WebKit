@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_server_SQLiteIDBBackingStore_h
+#define WebCore_Modules_indexeddb_server_SQLiteIDBBackingStore_h
 
 #include "IDBBackingStore.h"
 #include "IDBDatabaseIdentifier.h"
@@ -220,3 +221,4 @@ private:
 
 } // namespace IDBServer
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_server_SQLiteIDBBackingStore_h

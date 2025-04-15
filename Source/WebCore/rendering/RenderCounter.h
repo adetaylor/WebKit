@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderCounter_h
+#define WebCore_rendering_RenderCounter_h
 
 #include "CounterContent.h"
 #include "RenderText.h"
@@ -67,3 +68,4 @@ SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderCounter, isRenderCounter())
 // Outside the WebCore namespace for ease of invocation from the debugger.
 void showCounterRendererTree(const WebCore::RenderObject*, ASCIILiteral counterName = { });
 #endif
+#endif // WebCore_rendering_RenderCounter_h

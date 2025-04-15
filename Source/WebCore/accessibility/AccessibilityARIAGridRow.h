@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityARIAGridRow_h
+#define WebCore_accessibility_AccessibilityARIAGridRow_h
 
 #include "AccessibilityTableRow.h"
 
@@ -56,3 +57,4 @@ private:
 } // namespace WebCore 
 
 SPECIALIZE_TYPE_TRAITS_ACCESSIBILITY(AccessibilityARIAGridRow, isAccessibilityARIAGridRowInstance())
+#endif // WebCore_accessibility_AccessibilityARIAGridRow_h

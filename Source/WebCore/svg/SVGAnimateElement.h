@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGAnimateElement_h
+#define WebCore_svg_SVGAnimateElement_h
 
 #include "SVGAnimateElementBase.h"
 
@@ -42,3 +43,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGAnimateElement_h

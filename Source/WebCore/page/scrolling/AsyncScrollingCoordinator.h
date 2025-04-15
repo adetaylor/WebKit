@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_AsyncScrollingCoordinator_h
+#define WebCore_page_scrolling_AsyncScrollingCoordinator_h
 
 #include "pal/HysteresisActivity.h"
 #if ENABLE(ASYNC_SCROLLING)
@@ -227,3 +228,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_SCROLLING_COORDINATOR(WebCore::AsyncScrollingCoordinator, isAsyncScrollingCoordinator());
 
 #endif // ENABLE(ASYNC_SCROLLING)
+#endif // WebCore_page_scrolling_AsyncScrollingCoordinator_h

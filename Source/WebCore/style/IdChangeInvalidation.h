@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_IdChangeInvalidation_h
+#define WebCore_style_IdChangeInvalidation_h
 
 #include "Element.h"
 #include "StyleInvalidator.h"
@@ -73,3 +74,4 @@ inline IdChangeInvalidation::~IdChangeInvalidation()
 
 }
 }
+#endif // WebCore_style_IdChangeInvalidation_h

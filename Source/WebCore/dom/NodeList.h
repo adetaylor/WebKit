@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_NodeList_h
+#define WebCore_dom_NodeList_h
 
 #include "ScriptWrappable.h"
 #include <wtf/Forward.h>
@@ -62,3 +63,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_NodeList_h

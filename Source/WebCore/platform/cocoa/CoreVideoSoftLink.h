@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_CoreVideoSoftLink_h
+#define WebCore_platform_cocoa_CoreVideoSoftLink_h
 
 #include <CoreVideo/CoreVideo.h>
 #include <wtf/CheckedArithmetic.h>
@@ -194,3 +195,4 @@ inline std::span<uint8_t> CVPixelBufferGetSpan(CVPixelBufferRef pixelBuffer)
     return unsafeMakeSpan(baseAddress, bytesPerRow * height);
 }
 }
+#endif // WebCore_platform_cocoa_CoreVideoSoftLink_h

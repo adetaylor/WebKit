@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSStyleDeclaration_h
+#define WebCore_css_CSSStyleDeclaration_h
 
 #include "CSSProperty.h"
 #include "CSSPropertyNames.h"
@@ -82,3 +83,4 @@ protected:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::CSSStyleDeclaration& declaration) { return declaration.styleDeclarationType() == WebCore::predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_CSSStyleDeclaration_h

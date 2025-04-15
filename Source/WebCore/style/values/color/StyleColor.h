@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleColor_h
+#define WebCore_style_values_color_StyleColor_h
 
 #include "CSSColor.h"
 #include "CSSColorDescriptors.h"
@@ -210,3 +211,4 @@ template<typename... F> decltype(auto) Color::switchOn(F&&... f) const
 } // namespace WebCore
 
 template<> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::Style::Color> = true;
+#endif // WebCore_style_values_color_StyleColor_h

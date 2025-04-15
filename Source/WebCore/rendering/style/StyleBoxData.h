@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleBoxData_h
+#define WebCore_rendering_style_StyleBoxData_h
 
 #include "Length.h"
 #include "RenderStyleConstants.h"
@@ -96,3 +97,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleBoxData_h

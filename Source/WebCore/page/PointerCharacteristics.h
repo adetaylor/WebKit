@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PointerCharacteristics_h
+#define WebCore_page_PointerCharacteristics_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class PointerCharacteristics : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PointerCharacteristics_h

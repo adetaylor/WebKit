@@ -21,7 +21,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_platform_LengthFunctions_h
+#define WebCore_platform_LengthFunctions_h
 
 #include "LayoutUnit.h"
 #include "Length.h"
@@ -84,3 +85,4 @@ template<typename T> inline LayoutUnit valueForLength(const Length& length, T ma
 template<typename T> inline LayoutUnit minimumValueForLength(const Length& length, T maximumValue) { return minimumValueForLength(length, LayoutUnit(maximumValue)); }
 
 } // namespace WebCore
+#endif // WebCore_platform_LengthFunctions_h

@@ -22,7 +22,8 @@
    Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_page_LocalFrameView_h
+#define WebCore_page_LocalFrameView_h
 
 #include "AdjustViewSizeOrNot.h"
 #include "Color.h"
@@ -1145,3 +1146,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::LocalFrameView)
 static bool isType(const WebCore::FrameView& view) { return view.viewType() == WebCore::FrameView::Type::Local; }
 static bool isType(const WebCore::Widget& widget) { return widget.isLocalFrameView(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_page_LocalFrameView_h

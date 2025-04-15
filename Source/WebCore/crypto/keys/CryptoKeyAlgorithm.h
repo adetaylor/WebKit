@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_keys_CryptoKeyAlgorithm_h
+#define WebCore_crypto_keys_CryptoKeyAlgorithm_h
 
 #include <wtf/text/WTFString.h>
 
@@ -34,3 +35,4 @@ struct CryptoKeyAlgorithm {
 };
 
 }
+#endif // WebCore_crypto_keys_CryptoKeyAlgorithm_h

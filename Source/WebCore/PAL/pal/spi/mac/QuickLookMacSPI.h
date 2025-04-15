@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_QuickLookMacSPI_h
+#define WebCore_PAL_pal_spi_mac_QuickLookMacSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -95,3 +96,4 @@ typedef NS_ENUM(NSInteger, QLPreviewActivity) {
 @end
 
 #endif // HAVE(QUICKLOOK_ITEM_PREVIEW_OPTIONS)
+#endif // WebCore_PAL_pal_spi_mac_QuickLookMacSPI_h

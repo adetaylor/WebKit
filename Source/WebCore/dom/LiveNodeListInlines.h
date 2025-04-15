@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_LiveNodeListInlines_h
+#define WebCore_dom_LiveNodeListInlines_h
 
 #include "CollectionIndexCacheInlines.h"
 #include "LiveNodeList.h"
@@ -126,3 +127,4 @@ void CachedLiveNodeList<NodeListType>::invalidateCacheForDocument(Document& docu
 
 
 }
+#endif // WebCore_dom_LiveNodeListInlines_h

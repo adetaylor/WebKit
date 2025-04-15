@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_EventListenerOptions_h
+#define WebCore_dom_EventListenerOptions_h
 
 namespace WebCore {
 
@@ -36,3 +37,4 @@ struct EventListenerOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_EventListenerOptions_h

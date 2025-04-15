@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Scripts_tests_FrameTreeSyncData_h
+#define WebCore_Scripts_tests_FrameTreeSyncData_h
 
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/Ref.h>
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Scripts_tests_FrameTreeSyncData_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_identity_DigitalCredentialRequest_h
+#define WebCore_Modules_identity_DigitalCredentialRequest_h
 
 #include "IdentityCredentialProtocol.h"
 #include <JavaScriptCore/Strong.h>
@@ -40,3 +41,4 @@ struct DigitalCredentialRequest {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_identity_DigitalCredentialRequest_h

@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_UserAgentStyle_h
+#define WebCore_style_UserAgentStyle_h
 
 namespace WebCore {
 
@@ -70,3 +71,4 @@ private:
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_UserAgentStyle_h

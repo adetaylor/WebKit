@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_OptionSet_h
+#define WTF_wtf_OptionSet_h
 
 #include <initializer_list>
 #include <iterator>
@@ -220,3 +221,4 @@ WARN_UNUSED_RETURN constexpr bool isValidOptionSet(OptionSet<E> optionSet)
 } // namespace WTF
 
 using WTF::OptionSet;
+#endif // WTF_wtf_OptionSet_h

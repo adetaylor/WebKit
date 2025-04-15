@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_LegacyInlineBox_h
+#define WebCore_rendering_LegacyInlineBox_h
 
 #include "HitTestRequest.h"
 #include "RenderBoxModelObject.h"
@@ -378,3 +379,4 @@ SPECIALIZE_TYPE_TRAITS_END()
 void showNodeTree(const WebCore::LegacyInlineBox*);
 void showLineTree(const WebCore::LegacyInlineBox*);
 #endif
+#endif // WebCore_rendering_LegacyInlineBox_h

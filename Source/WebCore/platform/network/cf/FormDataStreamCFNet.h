@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_cf_FormDataStreamCFNet_h
+#define WebCore_platform_network_cf_FormDataStreamCFNet_h
 
 #include <wtf/Forward.h>
 #include <wtf/RetainPtr.h>
@@ -47,3 +48,4 @@ FormData* httpBodyFromStream(CFReadStreamRef);
 CFStringRef formDataStreamLengthPropertyName();
 
 } // namespace WebCore
+#endif // WebCore_platform_network_cf_FormDataStreamCFNet_h

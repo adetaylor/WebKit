@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_LayoutIntegrationCoverage_h
+#define WebCore_layout_integration_LayoutIntegrationCoverage_h
 
 namespace WebCore {
 
@@ -40,3 +41,4 @@ bool canUseForPreferredWidthComputation(const RenderBlockFlow&);
 }
 }
 
+#endif // WebCore_layout_integration_LayoutIntegrationCoverage_h

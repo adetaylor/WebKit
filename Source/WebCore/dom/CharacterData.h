@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_CharacterData_h
+#define WebCore_dom_CharacterData_h
 
 #include "ContainerNode.h"
 
@@ -82,3 +83,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CharacterData)
     static bool isType(const WebCore::Node& node) { return node.isCharacterDataNode(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_CharacterData_h

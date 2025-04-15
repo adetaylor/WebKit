@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_animation_AcceleratedEffect_h
+#define WebCore_platform_animation_AcceleratedEffect_h
 
 #if ENABLE(THREADED_ANIMATION_RESOLUTION)
 
@@ -130,3 +131,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_KEYFRAME_INTERPOLATION_KEYFRAME(AcceleratedEffect::Keyframe, isAcceleratedEffectKeyframe());
 
 #endif // ENABLE(THREADED_ANIMATION_RESOLUTION)
+#endif // WebCore_platform_animation_AcceleratedEffect_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_CSSStyleValue_h
+#define WebCore_css_typedom_CSSStyleValue_h
 
 #include "CSSPropertyNames.h"
 #include "CSSValue.h"
@@ -134,3 +135,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_typedom_CSSStyleValue_h

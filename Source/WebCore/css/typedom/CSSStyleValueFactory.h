@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_CSSStyleValueFactory_h
+#define WebCore_css_typedom_CSSStyleValueFactory_h
 
 #include "CSSCustomPropertyValue.h"
 #include "CSSImageValue.h"
@@ -61,3 +62,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_typedom_CSSStyleValueFactory_h

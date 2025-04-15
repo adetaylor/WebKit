@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_Allowlist_h
+#define WebCore_html_Allowlist_h
 
 #include "SecurityOriginData.h"
 
@@ -69,3 +70,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_Allowlist_h

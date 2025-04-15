@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_NotFound_h
+#define WTF_wtf_NotFound_h
 
 namespace WTF {
 
@@ -32,3 +33,4 @@ constexpr size_t notFound = static_cast<size_t>(-1);
 }
 
 using WTF::notFound;
+#endif // WTF_wtf_NotFound_h

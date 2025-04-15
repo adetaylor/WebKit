@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUDeviceLostInfo_h
+#define WebCore_Modules_WebGPU_GPUDeviceLostInfo_h
 
 #include "GPUDeviceLostReason.h"
 #include "WebGPUDeviceLostInfo.h"
@@ -57,3 +58,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUDeviceLostInfo_h

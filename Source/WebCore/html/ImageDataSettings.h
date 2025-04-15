@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_ImageDataSettings_h
+#define WebCore_html_ImageDataSettings_h
 
 #include "ImageDataStorageFormat.h"
 #include "PredefinedColorSpace.h"
@@ -36,3 +37,4 @@ struct ImageDataSettings {
 };
 
 } // namespace WebCore
+#endif // WebCore_html_ImageDataSettings_h

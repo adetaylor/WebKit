@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_IndexSparseSet_h
+#define WTF_wtf_IndexSparseSet_h
 
 #include <wtf/Vector.h>
 
@@ -253,3 +254,4 @@ auto IndexSparseSet<EntryType, EntryTypeTraits, OverflowHandler>::end() const ->
 
 using WTF::DefaultIndexSparseSetTraits;
 using WTF::IndexSparseSet;
+#endif // WTF_wtf_IndexSparseSet_h

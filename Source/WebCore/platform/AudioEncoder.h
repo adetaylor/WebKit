@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_AudioEncoder_h
+#define WebCore_platform_AudioEncoder_h
 
 #include "PlatformRawAudioData.h"
 
@@ -97,3 +98,4 @@ public:
 }
 
 #endif // ENABLE(WEB_CODECS)
+#endif // WebCore_platform_AudioEncoder_h

@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cocoa_RuntimeApplicationChecksCocoa_h
+#define WTF_wtf_cocoa_RuntimeApplicationChecksCocoa_h
 
 #if PLATFORM(COCOA)
 
@@ -254,3 +255,4 @@ using WTF::setProcessIsExtension;
 using WTF::setSDKAlignedBehaviors;
 
 #endif // PLATFORM(COCOA)
+#endif // WTF_wtf_cocoa_RuntimeApplicationChecksCocoa_h

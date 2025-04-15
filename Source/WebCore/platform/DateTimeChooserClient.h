@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_DateTimeChooserClient_h
+#define WebCore_platform_DateTimeChooserClient_h
 
 #include <wtf/CheckedPtr.h>
 #include <wtf/FastMalloc.h>
@@ -48,3 +49,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_DateTimeChooserClient_h

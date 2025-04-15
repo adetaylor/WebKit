@@ -9,7 +9,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringBuilderJSON_h
+#define WTF_wtf_text_StringBuilderJSON_h
 
 #include <wtf/text/EscapedFormsForJSON.h>
 #include <wtf/text/ParsingUtilities.h>
@@ -73,3 +74,4 @@ ALWAYS_INLINE static void appendEscapedJSONStringContent(std::span<OutputCharact
 }
 
 } // namespace WTF
+#endif // WTF_wtf_text_StringBuilderJSON_h

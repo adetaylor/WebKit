@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_storage_StorageUtilities_h
+#define WebCore_storage_StorageUtilities_h
 
 #include <optional>
 #include <wtf/FileSystem.h>
@@ -41,3 +42,4 @@ WEBCORE_EXPORT String encodeSecurityOriginForFileName(FileSystem::Salt, const Se
 
 } // namespace StorageUtilities
 } // namespace WebCore
+#endif // WebCore_storage_StorageUtilities_h

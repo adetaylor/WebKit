@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSColorSchemeValue_h
+#define WebCore_css_CSSColorSchemeValue_h
 
 #include "CSSColorScheme.h"
 #include "CSSValue.h"
@@ -52,3 +53,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSColorSchemeValue, isColorScheme())
 
 #endif
+#endif // WebCore_css_CSSColorSchemeValue_h

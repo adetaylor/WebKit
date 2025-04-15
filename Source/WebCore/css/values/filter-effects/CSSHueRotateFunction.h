@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_filter_effects_CSSHueRotateFunction_h
+#define WebCore_css_values_filter_effects_CSSHueRotateFunction_h
 
 #include "CSSColor.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -47,3 +48,4 @@ DEFINE_TYPE_WRAPPER_GET(HueRotate, value);
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::HueRotate, 1)
+#endif // WebCore_css_values_filter_effects_CSSHueRotateFunction_h

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_BarProp_h
+#define WebCore_page_BarProp_h
 
 #include "LocalDOMWindowProperty.h"
 #include "ScriptWrappable.h"
@@ -50,3 +51,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_BarProp_h

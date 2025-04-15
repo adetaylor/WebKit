@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertSequences_h
+#define WebCore_bindings_js_JSDOMConvertSequences_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -408,3 +409,4 @@ template<typename T> struct JSConverter<IDLFrozenArray<T>> {
 
 } // namespace WebCore
 
+#endif // WebCore_bindings_js_JSDOMConvertSequences_h

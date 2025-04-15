@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_RectCorners_h
+#define WebCore_platform_RectCorners_h
 
 #include "BoxSides.h"
 #include <array>
@@ -112,3 +113,4 @@ TextStream& operator<<(TextStream& ts, const RectCorners<T>& corners)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_RectCorners_h

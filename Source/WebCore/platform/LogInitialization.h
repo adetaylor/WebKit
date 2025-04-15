@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_LogInitialization_h
+#define WebCore_platform_LogInitialization_h
 
 #include <wtf/LogChannels.h>
 #include <wtf/text/WTFString.h>
@@ -40,3 +41,4 @@ WEBCORE_EXPORT String logLevelString();
 WEBCORE_EXPORT WTFLogChannel* getLogChannel(const String& name);
 
 } // namespace WebCore
+#endif // WebCore_platform_LogInitialization_h

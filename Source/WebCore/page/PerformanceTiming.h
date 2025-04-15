@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceTiming_h
+#define WebCore_page_PerformanceTiming_h
 
 #include "LocalDOMWindowProperty.h"
 #include <wtf/MonotonicTime.h>
@@ -103,3 +104,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PerformanceTiming_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGAnimationDiscreteFunctionImpl_h
+#define WebCore_svg_properties_SVGAnimationDiscreteFunctionImpl_h
 
 #include "SVGAnimationDiscreteFunction.h"
 #include "SVGPropertyTraits.h"
@@ -98,3 +99,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_properties_SVGAnimationDiscreteFunctionImpl_h

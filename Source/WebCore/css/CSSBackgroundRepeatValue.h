@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSBackgroundRepeatValue_h
+#define WebCore_css_CSSBackgroundRepeatValue_h
 
 #include "CSSValue.h"
 
@@ -51,3 +52,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSBackgroundRepeatValue, isBackgroundRepeatValue())
+#endif // WebCore_css_CSSBackgroundRepeatValue_h

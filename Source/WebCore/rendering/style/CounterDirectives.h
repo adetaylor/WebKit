@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_CounterDirectives_h
+#define WebCore_rendering_style_CounterDirectives_h
 
 #include <wtf/HashMap.h>
 #include <wtf/text/AtomStringHash.h>
@@ -40,3 +41,4 @@ struct CounterDirectiveMap {
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_CounterDirectives_h

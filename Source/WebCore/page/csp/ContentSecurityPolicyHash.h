@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_csp_ContentSecurityPolicyHash_h
+#define WebCore_page_csp_ContentSecurityPolicyHash_h
 
 #include "ResourceCryptographicDigest.h"
 
@@ -33,3 +34,4 @@ using ContentSecurityPolicyHashAlgorithm = ResourceCryptographicDigest::Algorith
 using ContentSecurityPolicyHash = ResourceCryptographicDigest;
 
 } // namespace WebCore
+#endif // WebCore_page_csp_ContentSecurityPolicyHash_h

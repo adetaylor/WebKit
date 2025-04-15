@@ -27,7 +27,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_shapes_PolygonLayoutShape_h
+#define WebCore_rendering_shapes_PolygonLayoutShape_h
 
 #include "FloatPolygon.h"
 #include "LayoutShape.h"
@@ -77,3 +78,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_shapes_PolygonLayoutShape_h

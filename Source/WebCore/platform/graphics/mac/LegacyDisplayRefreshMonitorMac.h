@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_mac_LegacyDisplayRefreshMonitorMac_h
+#define WebCore_platform_graphics_mac_LegacyDisplayRefreshMonitorMac_h
 
 #if PLATFORM(MAC)
 
@@ -69,3 +70,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_graphics_mac_LegacyDisplayRefreshMonitorMac_h

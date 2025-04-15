@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMMapLike_h
+#define WebCore_bindings_js_JSDOMMapLike_h
 
 #include "JSDOMBinding.h"
 #include "JSDOMConvert.h"
@@ -161,3 +162,4 @@ template<typename WrapperClass, typename ItemType> JSC::JSValue forwardDeleteToM
 }
 
 }
+#endif // WebCore_bindings_js_JSDOMMapLike_h

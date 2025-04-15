@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_keys_CryptoKeyRaw_h
+#define WebCore_crypto_keys_CryptoKeyRaw_h
 
 #include "CryptoKey.h"
 
@@ -51,3 +52,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_KEY(CryptoKeyRaw, CryptoKeyClass::Raw)
+#endif // WebCore_crypto_keys_CryptoKeyRaw_h

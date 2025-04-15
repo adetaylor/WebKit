@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cv_CVUtilities_h
+#define WebCore_platform_graphics_cv_CVUtilities_h
 
 #include <CoreVideo/CoreVideo.h>
 #include <utility>
@@ -57,3 +58,4 @@ WEBCORE_EXPORT void setOwnershipIdentityForCVPixelBuffer(CVPixelBufferRef, const
 WEBCORE_EXPORT RetainPtr<CVPixelBufferRef> createBlackPixelBuffer(size_t width, size_t height, bool shouldUseIOSurface = false);
 
 }
+#endif // WebCore_platform_graphics_cv_CVUtilities_h

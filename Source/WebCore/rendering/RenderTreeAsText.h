@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTreeAsText_h
+#define WebCore_rendering_RenderTreeAsText_h
 
 #include <wtf/Forward.h>
 #include <wtf/OptionSet.h>
@@ -76,3 +77,4 @@ WEBCORE_EXPORT String counterValueForElement(Element*);
 WEBCORE_EXPORT String markerTextForListItem(Element*);
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderTreeAsText_h

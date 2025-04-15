@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPURenderBundleEncoder_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPURenderBundleEncoder_h
 
 #include "WebGPUIndexFormat.h"
 #include "WebGPUIntegralTypes.h"
@@ -99,3 +100,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPURenderBundleEncoder_h

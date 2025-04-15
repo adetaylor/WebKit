@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_permissions_PermissionObserver_h
+#define WebCore_Modules_permissions_PermissionObserver_h
 
 #include "PermissionState.h"
 #include <wtf/WeakPtr.h>
@@ -59,3 +60,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_permissions_PermissionObserver_h

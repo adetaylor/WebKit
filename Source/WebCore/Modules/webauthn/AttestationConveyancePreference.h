@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_AttestationConveyancePreference_h
+#define WebCore_Modules_webauthn_AttestationConveyancePreference_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -41,3 +42,4 @@ enum class AttestationConveyancePreference : uint8_t {
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_AttestationConveyancePreference_h

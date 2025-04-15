@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleContrastColor_h
+#define WebCore_style_values_color_StyleContrastColor_h
 
 #include "CSSContrastColor.h"
 #include "StyleColor.h"
@@ -60,3 +61,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const ContrastColor&);
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_color_StyleContrastColor_h

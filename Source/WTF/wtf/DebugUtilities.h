@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_DebugUtilities_h
+#define WTF_wtf_DebugUtilities_h
 
 #include <wtf/Assertions.h>
 #include <wtf/MainThread.h>
@@ -39,3 +40,4 @@ do { \
     } while (1); \
     WTFBreakpointTrap(); \
 } while (0)
+#endif // WTF_wtf_DebugUtilities_h

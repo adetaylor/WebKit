@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_StyleRule_h
+#define WebCore_css_StyleRule_h
 
 #include "CSSSelector.h"
 #include "CSSSelectorList.h"
@@ -599,3 +600,4 @@ SPECIALIZE_TYPE_TRAITS_END()
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyleRuleStartingStyle)
     static bool isType(const WebCore::StyleRuleBase& rule) { return rule.isStartingStyleRule(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_StyleRule_h

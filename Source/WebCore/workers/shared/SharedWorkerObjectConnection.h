@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_shared_SharedWorkerObjectConnection_h
+#define WebCore_workers_shared_SharedWorkerObjectConnection_h
 
 #include "SharedWorkerObjectIdentifier.h"
 #include "TransferredMessagePort.h"
@@ -68,3 +69,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_shared_SharedWorkerObjectConnection_h

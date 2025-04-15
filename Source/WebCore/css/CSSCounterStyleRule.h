@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSCounterStyleRule_h
+#define WebCore_css_CSSCounterStyleRule_h
 
 #include "CSSCounterStyle.h"
 #include "CSSRule.h"
@@ -118,3 +119,4 @@ SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSCounterStyleRule, StyleRuleType::CounterStyle
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyleRuleCounterStyle)
 static bool isType(const WebCore::StyleRuleBase& rule) { return rule.isCounterStyleRule(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_CSSCounterStyleRule_h

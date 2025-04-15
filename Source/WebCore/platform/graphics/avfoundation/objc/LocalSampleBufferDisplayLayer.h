@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_LocalSampleBufferDisplayLayer_h
+#define WebCore_platform_graphics_avfoundation_objc_LocalSampleBufferDisplayLayer_h
 
 #if ENABLE(MEDIA_STREAM) && USE(AVFOUNDATION)
 
@@ -141,3 +142,4 @@ inline void LocalSampleBufferDisplayLayer::pause()
 }
 
 #endif // ENABLE(MEDIA_STREAM) && USE(AVFOUNDATION)
+#endif // WebCore_platform_graphics_avfoundation_objc_LocalSampleBufferDisplayLayer_h

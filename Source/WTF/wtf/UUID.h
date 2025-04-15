@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_UUID_h
+#define WTF_wtf_UUID_h
 
 #include <wtf/Hasher.h>
 #include <wtf/HexNumber.h>
@@ -233,3 +234,4 @@ private:
 using WTF::createVersion4UUIDString;
 using WTF::createVersion4UUIDStringWeak;
 using WTF::bootSessionUUIDString;
+#endif // WTF_wtf_UUID_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_BiquadProcessor_h
+#define WebCore_Modules_webaudio_BiquadProcessor_h
 
 #include "AudioDSPKernel.h"
 #include "AudioDSPKernelProcessor.h"
@@ -94,3 +95,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::BiquadProcessor) \
     static bool isType(const WebCore::AudioProcessor& processor) { return processor.processorType() == WebCore::AudioProcessor::Type::Biquad; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_webaudio_BiquadProcessor_h

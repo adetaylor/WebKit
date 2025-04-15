@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CompactVariantOperations_h
+#define WTF_wtf_CompactVariantOperations_h
 
 #include <algorithm>
 #include <bit>
@@ -205,3 +206,4 @@ template<CompactVariantAlternative... Ts> struct CompactVariantOperations {
 };
 
 } // namespace WTF
+#endif // WTF_wtf_CompactVariantOperations_h

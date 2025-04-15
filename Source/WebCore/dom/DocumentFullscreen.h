@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentFullscreen_h
+#define WebCore_dom_DocumentFullscreen_h
 
 #if ENABLE(FULLSCREEN_API)
 
@@ -156,3 +157,4 @@ private:
 }
 
 #endif
+#endif // WebCore_dom_DocumentFullscreen_h

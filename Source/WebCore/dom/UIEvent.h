@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_UIEvent_h
+#define WebCore_dom_UIEvent_h
 
 #include "Event.h"
 #include "UIEventInit.h"
@@ -80,3 +81,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(UIEvent)
+#endif // WebCore_dom_UIEvent_h

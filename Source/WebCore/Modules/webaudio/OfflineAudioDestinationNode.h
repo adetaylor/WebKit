@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_OfflineAudioDestinationNode_h
+#define WebCore_Modules_webaudio_OfflineAudioDestinationNode_h
 
 #include "AudioDestinationNode.h"
 #include <wtf/RefPtr.h>
@@ -79,3 +80,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_OfflineAudioDestinationNode_h

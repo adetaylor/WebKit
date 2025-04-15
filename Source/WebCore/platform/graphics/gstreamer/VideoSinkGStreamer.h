@@ -17,7 +17,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_VideoSinkGStreamer_h
+#define WebCore_platform_graphics_gstreamer_VideoSinkGStreamer_h
 
 #if ENABLE(VIDEO) && USE(GSTREAMER)
 
@@ -50,3 +51,4 @@ GType webkit_video_sink_get_type() G_GNUC_CONST;
 GstElement* webkitVideoSinkNew();
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_VideoSinkGStreamer_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_Quirks_h
+#define WebCore_page_Quirks_h
 
 #include "Event.h"
 #include "QuirksData.h"
@@ -286,3 +287,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_Quirks_h

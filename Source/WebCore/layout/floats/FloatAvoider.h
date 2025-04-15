@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_floats_FloatAvoider_h
+#define WebCore_layout_floats_FloatAvoider_h
 
 #include "LayoutBox.h"
 #include "LayoutBoxGeometry.h"
@@ -102,3 +103,4 @@ inline LayoutUnit FloatAvoider::inlineEnd() const
 
 }
 }
+#endif // WebCore_layout_floats_FloatAvoider_h

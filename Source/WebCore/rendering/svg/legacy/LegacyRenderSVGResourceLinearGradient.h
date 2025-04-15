@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResourceLinearGradient_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResourceLinearGradient_h
 
 #include "LegacyRenderSVGResourceGradient.h"
 #include "LinearGradientAttributes.h"
@@ -58,3 +59,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_LEGACY_RENDER_SVG_RESOURCE(LegacyRenderSVGResourceLinearGradient, LinearGradientResourceType)
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResourceLinearGradient_h

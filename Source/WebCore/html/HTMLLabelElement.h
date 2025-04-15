@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLLabelElement_h
+#define WebCore_html_HTMLLabelElement_h
 
 #include "HTMLElement.h"
 
@@ -68,3 +69,4 @@ private:
 };
 
 } //namespace
+#endif // WebCore_html_HTMLLabelElement_h

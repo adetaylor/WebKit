@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSScrollingMomentumCalculatorSPI_h
+#define WebCore_PAL_pal_spi_mac_NSScrollingMomentumCalculatorSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -45,3 +46,4 @@ DECLARE_SYSTEM_HEADER
 @end
 
 #endif /* USE(APPLE_INTERNAL_SDK) */
+#endif // WebCore_PAL_pal_spi_mac_NSScrollingMomentumCalculatorSPI_h

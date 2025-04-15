@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_BorderData_h
+#define WebCore_rendering_style_BorderData_h
 
 #include "BorderValue.h"
 #include "LengthSize.h"
@@ -116,3 +117,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const OutlineValue&);
 WTF::TextStream& operator<<(WTF::TextStream&, const BorderData&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_BorderData_h

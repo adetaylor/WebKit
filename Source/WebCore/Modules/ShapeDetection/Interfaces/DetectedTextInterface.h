@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_Interfaces_DetectedTextInterface_h
+#define WebCore_Modules_ShapeDetection_Interfaces_DetectedTextInterface_h
 
 #include "FloatPoint.h"
 #include "FloatRect.h"
@@ -39,3 +40,4 @@ struct DetectedText {
 };
 
 } // namespace WebCore::ShapeDetection
+#endif // WebCore_Modules_ShapeDetection_Interfaces_DetectedTextInterface_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_AbortSignal_h
+#define WebCore_dom_AbortSignal_h
 
 #include "ContextDestructionObserverInlines.h"
 #include "EventTarget.h"
@@ -114,3 +115,4 @@ private:
 WebCoreOpaqueRoot root(AbortSignal*);
 
 } // namespace WebCore
+#endif // WebCore_dom_AbortSignal_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_TextEncodingRegistry_h
+#define WebCore_PAL_pal_text_TextEncodingRegistry_h
 
 #include <memory>
 #include <wtf/Forward.h>
@@ -55,3 +56,4 @@ PAL_EXPORT CFStringEncoding webDefaultCFStringEncoding();
 #endif
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_text_TextEncodingRegistry_h

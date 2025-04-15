@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentFragment_h
+#define WebCore_dom_DocumentFragment_h
 
 #include "ContainerNode.h"
 #include "ParserContentPolicy.h"
@@ -58,3 +59,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::DocumentFragment)
     static bool isType(const WebCore::Node& node) { return node.isDocumentFragment(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_DocumentFragment_h

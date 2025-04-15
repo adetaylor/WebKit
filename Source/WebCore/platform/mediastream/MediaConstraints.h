@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_MediaConstraints_h
+#define WebCore_platform_mediastream_MediaConstraints_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -713,3 +714,4 @@ SPECIALIZE_TYPE_TRAITS_MEDIACONSTRAINT(StringConstraint, isString())
 SPECIALIZE_TYPE_TRAITS_MEDIACONSTRAINT(BooleanConstraint, isBoolean())
 
 #endif // ENABLE(MEDIA_STREAM)
+#endif // WebCore_platform_mediastream_MediaConstraints_h

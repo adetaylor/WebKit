@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_ios_MediaSessionHelperIOS_h
+#define WebCore_platform_audio_ios_MediaSessionHelperIOS_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -152,3 +153,4 @@ inline void MediaSessionHelper::setIsExternalOutputDeviceAvailable(bool isExtern
 }
 
 #endif
+#endif // WebCore_platform_audio_ios_MediaSessionHelperIOS_h

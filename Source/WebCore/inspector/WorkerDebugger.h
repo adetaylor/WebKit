@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_WorkerDebugger_h
+#define WebCore_inspector_WorkerDebugger_h
 
 #include "WorkerOrWorkletGlobalScope.h"
 #include <JavaScriptCore/Debugger.h>
@@ -57,3 +58,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_WorkerDebugger_h

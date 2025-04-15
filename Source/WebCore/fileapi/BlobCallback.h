@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_fileapi_BlobCallback_h
+#define WebCore_fileapi_BlobCallback_h
 
 #include "ActiveDOMCallback.h"
 #include "CallbackResult.h"
@@ -49,3 +50,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_fileapi_BlobCallback_h

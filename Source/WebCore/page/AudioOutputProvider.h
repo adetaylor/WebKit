@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_AudioOutputProvider_h
+#define WebCore_page_AudioOutputProvider_h
 
 #include <wtf/TZoneMallocInlines.h>
 
@@ -45,3 +46,4 @@ inline void AudioOutputProvider::defaultAudioOutputDeviceChanged(Page&)
 }
 
 }
+#endif // WebCore_page_AudioOutputProvider_h

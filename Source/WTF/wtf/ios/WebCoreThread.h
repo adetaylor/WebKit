@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ios_WebCoreThread_h
+#define WTF_wtf_ios_WebCoreThread_h
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,3 +40,4 @@ WTF_EXPORT_PRIVATE extern void (*WebCoreWebThreadRun)(void (^block)());
 #ifdef __cplusplus
 }
 #endif
+#endif // WTF_wtf_ios_WebCoreThread_h

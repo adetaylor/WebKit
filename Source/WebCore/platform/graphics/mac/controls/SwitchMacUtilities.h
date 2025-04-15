@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_mac_controls_SwitchMacUtilities_h
+#define WebCore_platform_graphics_mac_controls_SwitchMacUtilities_h
 
 #if PLATFORM(MAC)
 
@@ -58,3 +59,4 @@ RefPtr<ImageBuffer> trackMaskImage(GraphicsContext&, FloatSize, float, bool, NSS
 } // namespace WebCore
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_graphics_mac_controls_SwitchMacUtilities_h

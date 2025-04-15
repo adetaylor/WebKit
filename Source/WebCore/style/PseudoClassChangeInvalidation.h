@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_PseudoClassChangeInvalidation_h
+#define WebCore_style_PseudoClassChangeInvalidation_h
 
 #include "CSSSelector.h"
 #include "Element.h"
@@ -105,3 +106,4 @@ inline PseudoClassChangeInvalidation::~PseudoClassChangeInvalidation()
 
 }
 }
+#endif // WebCore_style_PseudoClassChangeInvalidation_h

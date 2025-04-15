@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_TextRun_h
+#define WebCore_platform_graphics_TextRun_h
 
 #include "TabSize.h"
 #include "TextFlags.h"
@@ -205,3 +206,4 @@ inline TextRun TextRun::isolatedCopy() const
 TextStream& operator<<(TextStream&, const TextRun&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_TextRun_h

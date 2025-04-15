@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_DataListSuggestionsClient_h
+#define WebCore_platform_DataListSuggestionsClient_h
 
 #include <wtf/CheckedPtr.h>
 #include <wtf/Forward.h>
@@ -47,3 +48,4 @@ public:
 };
 
 }
+#endif // WebCore_platform_DataListSuggestionsClient_h

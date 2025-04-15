@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_NEFilterSourceSPI_h
+#define WebCore_PAL_pal_spi_cocoa_NEFilterSourceSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -82,3 +83,4 @@ typedef void (^NEFilterSourceDecisionHandler)(NEFilterSourceStatus, NSDictionary
 @interface NEFilterSource (Delegation)
 + (void)setDelegation:(audit_token_t *)audit_token;
 @end
+#endif // WebCore_PAL_pal_spi_cocoa_NEFilterSourceSPI_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_borders_StyleBoxShadow_h
+#define WebCore_style_values_borders_StyleBoxShadow_h
 
 #include "CSSBoxShadow.h"
 #include "StyleColor.h"
@@ -68,3 +69,4 @@ template<> struct Blending<BoxShadow> {
 } // namespace WebCore
 
 DEFINE_SPACE_SEPARATED_TUPLE_LIKE_CONFORMANCE(WebCore::Style::BoxShadow, 5)
+#endif // WebCore_style_values_borders_StyleBoxShadow_h

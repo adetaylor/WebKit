@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSProperty_h
+#define WebCore_css_CSSProperty_h
 
 #include "CSSPropertyNames.h"
 #include "CSSValue.h"
@@ -165,3 +166,4 @@ template <> struct VectorTraits<WebCore::CSSProperty> : VectorTraitsBase<false, 
     static const bool canMoveWithMemcpy = true;
 };
 }
+#endif // WebCore_css_CSSProperty_h

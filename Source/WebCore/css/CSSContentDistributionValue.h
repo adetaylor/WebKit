@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSContentDistributionValue_h
+#define WebCore_css_CSSContentDistributionValue_h
 
 #include "CSSValue.h"
 
@@ -53,3 +54,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSContentDistributionValue, isContentDistributionValue())
+#endif // WebCore_css_CSSContentDistributionValue_h

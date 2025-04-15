@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerScriptLoader_h
+#define WebCore_workers_WorkerScriptLoader_h
 
 #include "AdvancedPrivacyProtections.h"
 #include "CertificateInfo.h"
@@ -169,3 +170,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerScriptLoader_h

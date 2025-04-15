@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_ModuleFetchFailureKind_h
+#define WebCore_bindings_js_ModuleFetchFailureKind_h
 
 namespace WebCore {
 
@@ -36,3 +37,4 @@ enum class ModuleFetchFailureKind {
 
 } // namespace WebCore
 
+#endif // WebCore_bindings_js_ModuleFetchFailureKind_h

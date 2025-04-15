@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_GStreamerVideoSinkCommon_h
+#define WebCore_platform_graphics_gstreamer_GStreamerVideoSinkCommon_h
 
 #if ENABLE(VIDEO)
 
@@ -29,3 +30,4 @@ class MediaPlayerPrivateGStreamer;
 void webKitVideoSinkSetMediaPlayerPrivate(GstElement*, WebCore::MediaPlayerPrivateGStreamer*);
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_platform_graphics_gstreamer_GStreamerVideoSinkCommon_h

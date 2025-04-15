@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_ARKitSPI_h
+#define WebCore_PAL_pal_spi_cocoa_ARKitSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -39,3 +40,4 @@ DECLARE_SYSTEM_HEADER
 FOUNDATION_EXTERN simd_float4x4 ARMatrixMakeLookAt(simd_float3 origin, simd_float3 direction);
 
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_ARKitSPI_h

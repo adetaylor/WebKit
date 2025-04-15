@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PODIntervalTree_h
+#define WebCore_platform_PODIntervalTree_h
 
 #include "PODInterval.h"
 #include "PODRedBlackTree.h"
@@ -233,3 +234,4 @@ struct PODIntervalNodeUpdater {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_PODIntervalTree_h

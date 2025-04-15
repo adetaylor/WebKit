@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_unicode_UTF8Conversion_h
+#define WTF_wtf_unicode_UTF8Conversion_h
 
 #include <wtf/text/LChar.h>
 
@@ -73,3 +74,4 @@ WTF_EXPORT_PRIVATE UTF16LengthWithHash computeUTF16LengthWithHash(std::span<cons
 
 } // namespace Unicode
 } // namespace WTF
+#endif // WTF_wtf_unicode_UTF8Conversion_h

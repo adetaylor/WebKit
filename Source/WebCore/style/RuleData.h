@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_RuleData_h
+#define WebCore_style_RuleData_h
 
 #include "PropertyAllowlist.h"
 #include "SelectorFilter.h"
@@ -98,3 +99,4 @@ template<> struct VectorTraits<WebCore::Style::RuleData> : SimpleClassVectorTrai
 
 } // namespace WTF
 
+#endif // WebCore_style_RuleData_h

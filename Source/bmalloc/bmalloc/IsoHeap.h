@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_IsoHeap_h
+#define bmalloc_bmalloc_IsoHeap_h
 
 #if !BUSE(TZONE)
 
@@ -257,3 +258,4 @@ using __makeBisoMallocedMacroSemicolonifier BUNUSED_TYPE_ALIAS = int
 } } // namespace bmalloc::api
 
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_IsoHeap_h

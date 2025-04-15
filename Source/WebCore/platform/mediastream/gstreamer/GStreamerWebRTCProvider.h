@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_gstreamer_GStreamerWebRTCProvider_h
+#define WebCore_platform_mediastream_gstreamer_GStreamerWebRTCProvider_h
 
 #include "WebRTCProvider.h"
 #include <wtf/TZoneMalloc.h>
@@ -44,3 +45,4 @@ private:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_mediastream_gstreamer_GStreamerWebRTCProvider_h

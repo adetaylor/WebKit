@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_SourceBufferParser_h
+#define WebCore_platform_graphics_cocoa_SourceBufferParser_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -154,3 +155,4 @@ protected:
 }
 
 #endif // ENABLE(MEDIA_SOURCE)
+#endif // WebCore_platform_graphics_cocoa_SourceBufferParser_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_SessionID_h
+#define WebCore_PAL_pal_SessionID_h
 
 #include <optional>
 #include <wtf/HashFunctions.h>
@@ -103,3 +104,4 @@ template<> struct HashTraits<PAL::SessionID> : GenericHashTraits<PAL::SessionID>
 template<> struct DefaultHash<PAL::SessionID> : SessionIDHash { };
 
 } // namespace WTF
+#endif // WebCore_PAL_pal_SessionID_h

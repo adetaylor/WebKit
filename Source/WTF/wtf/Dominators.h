@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_Dominators_h
+#define WTF_wtf_Dominators_h
 
 #include <wtf/BitSet.h>
 #include <wtf/CommaPrinter.h>
@@ -901,3 +902,4 @@ private:
 } // namespace WTF
 
 using WTF::Dominators;
+#endif // WTF_wtf_Dominators_h

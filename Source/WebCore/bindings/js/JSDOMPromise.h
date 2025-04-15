@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMPromise_h
+#define WebCore_bindings_js_JSDOMPromise_h
 
 #include "JSDOMGuardedObject.h"
 #include <JavaScriptCore/JSPromise.h>
@@ -61,3 +62,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMPromise_h

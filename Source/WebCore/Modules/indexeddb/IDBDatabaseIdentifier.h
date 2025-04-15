@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBDatabaseIdentifier_h
+#define WebCore_Modules_indexeddb_IDBDatabaseIdentifier_h
 
 #include "ClientOrigin.h"
 #include "SecurityOriginData.h"
@@ -110,3 +111,4 @@ template<> struct HashTraits<WebCore::IDBDatabaseIdentifier> : WebCore::IDBDatab
 template<> struct DefaultHash<WebCore::IDBDatabaseIdentifier> : WebCore::IDBDatabaseIdentifierHash { };
 
 } // namespace WTF
+#endif // WebCore_Modules_indexeddb_IDBDatabaseIdentifier_h

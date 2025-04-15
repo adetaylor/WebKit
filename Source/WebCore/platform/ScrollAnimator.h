@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollAnimator_h
+#define WebCore_platform_ScrollAnimator_h
 
 #include "FloatPoint.h"
 #include "PlatformWheelEvent.h"
@@ -182,3 +183,4 @@ private:
 
 } // namespace WebCore
 
+#endif // WebCore_platform_ScrollAnimator_h

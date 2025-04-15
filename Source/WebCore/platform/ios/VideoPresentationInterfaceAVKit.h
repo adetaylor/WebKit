@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_VideoPresentationInterfaceAVKit_h
+#define WebCore_platform_ios_VideoPresentationInterfaceAVKit_h
 
 #if HAVE(AVKIT_CONTENT_SOURCE)
 
@@ -78,3 +79,4 @@ private:
 } // namespace WebCore
 
 #endif // HAVE(AVKIT_CONTENT_SOURCE)
+#endif // WebCore_platform_ios_VideoPresentationInterfaceAVKit_h

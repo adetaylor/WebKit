@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_soup_GUniquePtrSoup_h
+#define WebCore_platform_network_soup_GUniquePtrSoup_h
 
 #include <wtf/Platform.h>
 
@@ -44,3 +45,4 @@ WTF_DEFINE_GPTR_DELETER(SoupMessageHeaders, soup_message_headers_free)
 } // namespace WTF
 
 #endif // USE(SOUP)
+#endif // WebCore_platform_network_soup_GUniquePtrSoup_h

@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_detail_bits_h
+#define WTF_wtf_dragonbox_detail_bits_h
 
 #include <wtf/dragonbox/detail/util.h>
 
@@ -64,3 +65,4 @@ inline constexpr uint64_t rotr(uint64_t n, uint32_t r) noexcept
 } // namespace dragonbox
 
 } // namespace WTF
+#endif // WTF_wtf_dragonbox_detail_bits_h

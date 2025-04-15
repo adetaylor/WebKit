@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_page_DOMTimer_h
+#define WebCore_page_DOMTimer_h
 
 #include "ActiveDOMObject.h"
 #include "EventLoop.h"
@@ -109,3 +110,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_DOMTimer_h

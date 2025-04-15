@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_VideoMediaSampleRenderer_h
+#define WebCore_platform_graphics_cocoa_VideoMediaSampleRenderer_h
 
 #include "FrameRateMonitor.h"
 #include "ProcessIdentity.h"
@@ -201,3 +202,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_cocoa_VideoMediaSampleRenderer_h

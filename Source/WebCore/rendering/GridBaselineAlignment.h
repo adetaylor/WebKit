@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_GridBaselineAlignment_h
+#define WebCore_rendering_GridBaselineAlignment_h
 
 #include "BaselineAlignment.h"
 #include "GridLayoutFunctions.h"
@@ -83,3 +84,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_GridBaselineAlignment_h

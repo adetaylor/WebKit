@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_IntSize_h
+#define WebCore_platform_graphics_IntSize_h
 
 #include "PlatformExportMacros.h"
 #include <algorithm>
@@ -234,3 +235,4 @@ template<> struct LogArgument<WebCore::IntSize> {
 };
 
 }
+#endif // WebCore_platform_graphics_IntSize_h

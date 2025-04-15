@@ -27,7 +27,8 @@
  */
 
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityTree_h
+#define WebCore_accessibility_AccessibilityTree_h
 
 #include "AccessibilityRenderObject.h"
 
@@ -52,3 +53,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_ACCESSIBILITY(AccessibilityTree, isTree())
+#endif // WebCore_accessibility_AccessibilityTree_h

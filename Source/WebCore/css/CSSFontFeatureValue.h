@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSFontFeatureValue_h
+#define WebCore_css_CSSFontFeatureValue_h
 
 #include "CSSPrimitiveValue.h"
 #include "FontTaggedSettings.h"
@@ -62,3 +63,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSFontFeatureValue, isFontFeatureValue())
+#endif // WebCore_css_CSSFontFeatureValue_h

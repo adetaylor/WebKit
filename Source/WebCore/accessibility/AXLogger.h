@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AXLogger_h
+#define WebCore_accessibility_AXLogger_h
 
 #include "AXCoreObject.h"
 #include "AXObjectCache.h"
@@ -94,3 +95,4 @@ void streamAXCoreObject(TextStream&, const AXCoreObject&, const OptionSet<AXStre
 void streamSubtree(TextStream&, const Ref<AXCoreObject>&, const OptionSet<AXStreamOptions>&);
 
 } // namespace WebCore
+#endif // WebCore_accessibility_AXLogger_h

@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_CursorList_h
+#define WebCore_rendering_style_CursorList_h
 
 #include "CursorData.h"
 #include <wtf/RefCounted.h>
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_CursorList_h

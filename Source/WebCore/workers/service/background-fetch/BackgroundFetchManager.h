@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetchManager_h
+#define WebCore_workers_service_background_fetch_BackgroundFetchManager_h
 
 #include "BackgroundFetchRegistration.h"
 #include "JSDOMPromiseDeferred.h"
@@ -62,3 +63,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_BackgroundFetchManager_h

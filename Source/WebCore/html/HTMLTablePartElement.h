@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLTablePartElement_h
+#define WebCore_html_HTMLTablePartElement_h
 
 #include "HTMLElement.h"
 
@@ -58,3 +59,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::HTMLTablePartElement)
         return element && isType(*element);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_HTMLTablePartElement_h

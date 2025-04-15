@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioWorkletProcessor_h
+#define WebCore_Modules_webaudio_AudioWorkletProcessor_h
 
 #if ENABLE(WEB_AUDIO)
 #include "AudioArray.h"
@@ -87,3 +88,4 @@ WebCoreOpaqueRoot root(AudioWorkletProcessor*);
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_Modules_webaudio_AudioWorkletProcessor_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_ios_RenderThemeIOS_h
+#define WebCore_rendering_ios_RenderThemeIOS_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -192,3 +193,4 @@ private:
 }
 
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_rendering_ios_RenderThemeIOS_h

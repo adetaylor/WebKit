@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSScrollValue_h
+#define WebCore_css_CSSScrollValue_h
 
 #include "CSSPrimitiveValue.h"
 #include "RenderStyleConstants.h"
@@ -82,3 +83,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSScrollValue, isScrollValue())
+#endif // WebCore_css_CSSScrollValue_h

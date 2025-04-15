@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleBackgroundData_h
+#define WebCore_rendering_style_StyleBackgroundData_h
 
 #include "FillLayer.h"
 #include "OutlineValue.h"
@@ -66,3 +67,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const StyleBackgroundData&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleBackgroundData_h

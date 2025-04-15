@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_CompositionUnderline_h
+#define WebCore_editing_CompositionUnderline_h
 
 #include "Color.h"
 
@@ -54,3 +55,4 @@ struct CompositionUnderline {
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_CompositionUnderline_h

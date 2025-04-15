@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_WebCodecsVideoFrameAlgorithms_h
+#define WebCore_Modules_webcodecs_WebCodecsVideoFrameAlgorithms_h
 
 #include "WebCodecsVideoFrame.h"
 
@@ -57,3 +58,4 @@ bool validateVideoFrameInit(const WebCodecsVideoFrame::Init&, size_t codedWidth,
 }
 
 #endif
+#endif // WebCore_Modules_webcodecs_WebCodecsVideoFrameAlgorithms_h

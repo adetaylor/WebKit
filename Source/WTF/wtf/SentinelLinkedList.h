@@ -34,7 +34,8 @@
 //        void setNext(Node*);
 //        Node* next() const;
 
-#pragma once
+#ifndef WTF_wtf_SentinelLinkedList_h
+#define WTF_wtf_SentinelLinkedList_h
 
 #include <iterator>
 #include <wtf/Noncopyable.h>
@@ -323,3 +324,4 @@ using PackedRawSentinelNode = BasicRawSentinelNode<T, PackedPtrTraits<T>>;
 using WTF::BasicRawSentinelNode;
 using WTF::PackedRawSentinelNode;
 using WTF::SentinelLinkedList;
+#endif // WTF_wtf_SentinelLinkedList_h

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_TextEncodingDetector_h
+#define WebCore_PAL_pal_text_TextEncodingDetector_h
 
 #include <span>
 #include <wtf/text/ASCIILiteral.h>
@@ -44,3 +45,4 @@ class TextEncoding;
 bool detectTextEncoding(std::span<const uint8_t> data, ASCIILiteral hintEncodingName, TextEncoding* detectedEncoding);
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_text_TextEncodingDetector_h

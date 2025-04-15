@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringHash_h
+#define WTF_wtf_text_StringHash_h
 
 #include <wtf/CompactPtr.h>
 #include <wtf/HashTraits.h>
@@ -302,3 +303,4 @@ using WTF::HashTranslatorASCIILiteral;
 using WTF::HashTranslatorASCIILiteralCaseInsensitive;
 using WTF::StringHash;
 using WTF::StringViewHashTranslator;
+#endif // WTF_wtf_text_StringHash_h

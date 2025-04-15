@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_BorderEdge_h
+#define WebCore_rendering_BorderEdge_h
 
 #include "Color.h"
 #include "LayoutSize.h"
@@ -85,3 +86,4 @@ inline bool includesAdjacentEdges(OptionSet<BoxSideFlag> flags)
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_BorderEdge_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasession_MediaSessionCoordinator_h
+#define WebCore_Modules_mediasession_MediaSessionCoordinator_h
 
 #if ENABLE(MEDIA_SESSION_COORDINATOR)
 
@@ -123,3 +124,4 @@ private:
 }
 
 #endif // ENABLE(MEDIA_SESSION_COORDINATOR)
+#endif // WebCore_Modules_mediasession_MediaSessionCoordinator_h

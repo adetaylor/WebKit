@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_RequestPriority_h
+#define WebCore_Modules_fetch_RequestPriority_h
 
 namespace WebCore {
 
@@ -31,3 +32,4 @@ enum class RequestPriority : uint8_t { High, Low, Auto };
 static constexpr unsigned bitWidthOfRequestPriority = 2;
 
 }
+#endif // WebCore_Modules_fetch_RequestPriority_h

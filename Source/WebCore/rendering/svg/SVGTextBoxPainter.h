@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGTextBoxPainter_h
+#define WebCore_rendering_svg_SVGTextBoxPainter_h
 
 #include "InlineIteratorSVGTextBox.h"
 #include "LegacyRenderSVGResource.h"
@@ -92,3 +93,4 @@ FloatRect selectionRectForTextFragment(const RenderSVGInlineText&, TextDirection
 bool mapStartEndPositionsIntoFragmentCoordinates(unsigned textBoxStart, const SVGTextFragment&, unsigned& startPosition, unsigned& endPosition);
 
 }
+#endif // WebCore_rendering_svg_SVGTextBoxPainter_h

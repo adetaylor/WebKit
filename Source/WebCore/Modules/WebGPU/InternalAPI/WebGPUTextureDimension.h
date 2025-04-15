@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUTextureDimension_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUTextureDimension_h
 
 #include <cstdint>
 
@@ -36,3 +37,4 @@ enum class TextureDimension : uint8_t {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUTextureDimension_h

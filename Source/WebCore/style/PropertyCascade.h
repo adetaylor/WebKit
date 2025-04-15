@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_PropertyCascade_h
+#define WebCore_style_PropertyCascade_h
 
 #include "CascadeLevel.h"
 #include "MatchResult.h"
@@ -216,3 +217,4 @@ inline const PropertyCascade::Property& PropertyCascade::customProperty(const At
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_PropertyCascade_h

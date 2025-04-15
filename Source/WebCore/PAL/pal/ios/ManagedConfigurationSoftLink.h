@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_ios_ManagedConfigurationSoftLink_h
+#define WebCore_PAL_pal_ios_ManagedConfigurationSoftLink_h
 
 #if PLATFORM(IOS_FAMILY) && !PLATFORM(MACCATALYST)
 
@@ -36,3 +37,4 @@ SOFT_LINK_CLASS_FOR_HEADER(PAL, MCProfileConnection);
 SOFT_LINK_CONSTANT_FOR_HEADER(PAL, ManagedConfiguration, MCFeatureDefinitionLookupAllowed, NSString *)
 
 #endif
+#endif // WebCore_PAL_pal_ios_ManagedConfigurationSoftLink_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_InlineIteratorTextBox_h
+#define WebCore_layout_integration_inline_InlineIteratorTextBox_h
 
 #include "InlineIteratorBox.h"
 #include "RenderText.h"
@@ -145,3 +146,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::InlineIterator::TextBoxIterator)
 static bool isType(const WebCore::InlineIterator::BoxIterator& box) { return !box || box->isText(); }
 SPECIALIZE_TYPE_TRAITS_END()
 
+#endif // WebCore_layout_integration_inline_InlineIteratorTextBox_h

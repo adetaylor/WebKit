@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_shared_IDBCursorInfo_h
+#define WebCore_Modules_indexeddb_shared_IDBCursorInfo_h
 
 #include "IDBIndexIdentifier.h"
 #include "IDBKeyRangeData.h"
@@ -92,3 +93,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_shared_IDBCursorInfo_h

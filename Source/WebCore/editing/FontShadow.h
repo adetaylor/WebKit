@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_FontShadow_h
+#define WebCore_editing_FontShadow_h
 
 #include "Color.h"
 #include "FloatSize.h"
@@ -53,3 +54,4 @@ WEBCORE_EXPORT FontShadow fontShadowFromNSShadow(NSShadow *);
 WEBCORE_EXPORT String serializationForCSS(const FontShadow&);
 
 } // namespace WebCore
+#endif // WebCore_editing_FontShadow_h

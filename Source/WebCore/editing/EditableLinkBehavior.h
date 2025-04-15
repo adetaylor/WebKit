@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_EditableLinkBehavior_h
+#define WebCore_editing_EditableLinkBehavior_h
 
 namespace WebCore {
 
@@ -36,3 +37,4 @@ enum class EditableLinkBehavior : uint8_t {
 };
 
 }
+#endif // WebCore_editing_EditableLinkBehavior_h

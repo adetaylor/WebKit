@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_dom_TrustedHTML_h
+#define WebCore_dom_TrustedHTML_h
 
 #include "ScriptWrappable.h"
 #include <wtf/Ref.h>
@@ -47,3 +48,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_TrustedHTML_h

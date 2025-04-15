@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_MediaPlayerClientIdentifier_h
+#define WebCore_platform_graphics_MediaPlayerClientIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ struct MediaPlayerClientIdentifierType;
 using MediaPlayerClientIdentifier = ObjectIdentifier<MediaPlayerClientIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_MediaPlayerClientIdentifier_h

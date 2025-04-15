@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_parser_HTMLParserIdioms_h
+#define WebCore_html_parser_HTMLParserIdioms_h
 
 #include <unicode/uchar.h>
 #include <wtf/Expected.h>
@@ -166,3 +167,4 @@ inline unsigned clampHTMLNonNegativeIntegerToRange(StringView stringValue, unsig
 }
 
 } // namespace WebCore
+#endif // WebCore_html_parser_HTMLParserIdioms_h

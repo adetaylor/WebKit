@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cocoa_SpanCocoa_h
+#define WTF_wtf_cocoa_SpanCocoa_h
 
 #import <dispatch/dispatch.h>
 #import <span>
@@ -63,3 +64,4 @@ using WTF::dispatch_data_apply_span;
 using WTF::span;
 using WTF::toNSData;
 #endif
+#endif // WTF_wtf_cocoa_SpanCocoa_h

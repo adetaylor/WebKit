@@ -27,7 +27,8 @@
  * properly on all platforms and compilers that WebKit builds under.
  */
 
-#pragma once
+#ifndef WebCore_platform_PlatformExportMacros_h
+#define WebCore_platform_PlatformExportMacros_h
 
 #include <wtf/ExportMacros.h>
 
@@ -50,3 +51,4 @@
 #endif
 
 #endif
+#endif // WebCore_platform_PlatformExportMacros_h

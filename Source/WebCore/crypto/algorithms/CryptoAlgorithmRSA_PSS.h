@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_algorithms_CryptoAlgorithmRSA_PSS_h
+#define WebCore_crypto_algorithms_CryptoAlgorithmRSA_PSS_h
 
 #include "CryptoAlgorithm.h"
 
@@ -57,3 +58,4 @@ private:
 } // namespace WebCore
 
 #endif // HAVE(RSA_PSS)
+#endif // WebCore_crypto_algorithms_CryptoAlgorithmRSA_PSS_h

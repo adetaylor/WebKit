@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_ParsedRequestRange_h
+#define WebCore_platform_network_ParsedRequestRange_h
 
 #include <wtf/Forward.h>
 #include <wtf/HashTraits.h>
@@ -46,3 +47,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_network_ParsedRequestRange_h

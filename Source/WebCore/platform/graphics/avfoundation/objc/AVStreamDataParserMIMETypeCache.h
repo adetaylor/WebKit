@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_AVStreamDataParserMIMETypeCache_h
+#define WebCore_platform_graphics_avfoundation_objc_AVStreamDataParserMIMETypeCache_h
 
 #if ENABLE(MEDIA_SOURCE) && USE(AVFOUNDATION)
 
@@ -55,3 +56,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_graphics_avfoundation_objc_AVStreamDataParserMIMETypeCache_h

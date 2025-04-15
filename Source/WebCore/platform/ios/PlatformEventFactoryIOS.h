@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_PlatformEventFactoryIOS_h
+#define WebCore_platform_ios_PlatformEventFactoryIOS_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -58,3 +59,4 @@ WEBCORE_EXPORT int windowsKeyCodeForKeyEvent(WebEvent*);
 } // namespace WebCore
 
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_platform_ios_PlatformEventFactoryIOS_h

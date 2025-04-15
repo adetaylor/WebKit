@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_NoVirtualDestructorBase_h
+#define WTF_wtf_NoVirtualDestructorBase_h
 
 namespace WTF {
 
@@ -40,3 +41,4 @@ protected:
 }
 
 using WTF::NoVirtualDestructorBase;
+#endif // WTF_wtf_NoVirtualDestructorBase_h

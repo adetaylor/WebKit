@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUImageCopyExternalImage_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUImageCopyExternalImage_h
 
 #include "WebGPUOrigin2D.h"
 #include <optional>
@@ -37,3 +38,4 @@ struct ImageCopyExternalImage {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUImageCopyExternalImage_h

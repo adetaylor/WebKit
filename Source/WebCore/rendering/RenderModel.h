@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderModel_h
+#define WebCore_rendering_RenderModel_h
 
 #if ENABLE(MODEL_ELEMENT)
 
@@ -57,3 +58,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderModel, isRenderModel())
 
 #endif
+#endif // WebCore_rendering_RenderModel_h

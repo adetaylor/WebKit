@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cocoa_MachVMSPI_h
+#define WTF_wtf_spi_cocoa_MachVMSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -50,3 +51,4 @@ kern_return_t mach_vm_region_recurse(vm_map_t targetTask, mach_vm_address_t*, ma
 kern_return_t mach_vm_purgable_control(vm_map_t target, mach_vm_address_t, vm_purgable_t control, int* state);
 
 WTF_EXTERN_C_END
+#endif // WTF_wtf_spi_cocoa_MachVMSPI_h

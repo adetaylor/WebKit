@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGAnimationAdditiveListFunction_h
+#define WebCore_svg_properties_SVGAnimationAdditiveListFunction_h
 
 #include "SVGAnimationAdditiveFunction.h"
 
@@ -68,3 +69,4 @@ protected:
 };
 
 }
+#endif // WebCore_svg_properties_SVGAnimationAdditiveListFunction_h

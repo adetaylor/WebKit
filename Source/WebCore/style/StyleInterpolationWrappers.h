@@ -28,7 +28,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleInterpolationWrappers_h
+#define WebCore_style_StyleInterpolationWrappers_h
 
 #ifndef STYLE_INTERPOLATION_GENERATED_INCLUDE_TRAP
 #error "Please do not include this file anywhere except from generated code."
@@ -2747,3 +2748,4 @@ private:
 };
 
 } // namespace WebCore::Style::Interpolation
+#endif // WebCore_style_StyleInterpolationWrappers_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockWebAuthenticationConfiguration_h
+#define WebCore_testing_MockWebAuthenticationConfiguration_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -113,3 +114,4 @@ struct MockWebAuthenticationConfiguration {
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_testing_MockWebAuthenticationConfiguration_h

@@ -24,7 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleCrossfadeImage_h
+#define WebCore_rendering_style_StyleCrossfadeImage_h
 
 #include "CachedImageClient.h"
 #include "CachedResourceHandle.h"
@@ -84,3 +85,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_STYLE_IMAGE(StyleCrossfadeImage, isCrossfadeImage)
+#endif // WebCore_rendering_style_StyleCrossfadeImage_h

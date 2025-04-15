@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_CoreMotionSPI_h
+#define WebCore_PAL_pal_spi_cocoa_CoreMotionSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -91,3 +92,4 @@ typedef struct {
 NS_ASSUME_NONNULL_END
 
 #endif // USE(APPLE_INTERNAL_SDK) || !PLATFORM(APPLETV)
+#endif // WebCore_PAL_pal_spi_cocoa_CoreMotionSPI_h

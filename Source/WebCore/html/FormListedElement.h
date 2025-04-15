@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_FormListedElement_h
+#define WebCore_html_FormListedElement_h
 
 #include "FormAssociatedElement.h"
 #include "Node.h"
@@ -120,3 +121,4 @@ private:
 };
 
 } // namespace
+#endif // WebCore_html_FormListedElement_h

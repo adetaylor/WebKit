@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGUnitTypes_h
+#define WebCore_svg_SVGUnitTypes_h
 
 #include "SVGPropertyTraits.h"
 #include <wtf/RefCounted.h>
@@ -66,3 +67,4 @@ struct SVGPropertyTraits<SVGUnitTypes::SVGUnitType> {
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGUnitTypes_h

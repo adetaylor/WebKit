@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_DisplayUpdate_h
+#define WebCore_platform_graphics_DisplayUpdate_h
 
 #include "AnimationFrameRate.h"
 
@@ -50,3 +51,4 @@ struct DisplayUpdate {
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const DisplayUpdate&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_DisplayUpdate_h

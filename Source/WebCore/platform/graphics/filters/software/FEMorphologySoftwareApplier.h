@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_software_FEMorphologySoftwareApplier_h
+#define WebCore_platform_graphics_filters_software_FEMorphologySoftwareApplier_h
 
 #include "ColorComponents.h"
 #include "ColorTypes.h"
@@ -76,3 +77,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_filters_software_FEMorphologySoftwareApplier_h

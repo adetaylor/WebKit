@@ -19,7 +19,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_WebCoreJSClientData_h
+#define WebCore_bindings_js_WebCoreJSClientData_h
 
 #include "DOMWrapperWorld.h"
 #include "WebCoreBuiltinNames.h"
@@ -262,3 +263,4 @@ ALWAYS_INLINE WebCoreBuiltinNames& builtinNames(JSC::VM& vm)
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_WebCoreJSClientData_h

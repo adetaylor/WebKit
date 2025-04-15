@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_BaseTextInputType_h
+#define WebCore_html_BaseTextInputType_h
 
 #include "TextFieldInputType.h"
 #include <wtf/TZoneMalloc.h>
@@ -55,3 +56,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_BaseTextInputType_h

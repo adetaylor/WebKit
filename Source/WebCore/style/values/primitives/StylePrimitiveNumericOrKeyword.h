@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StylePrimitiveNumericOrKeyword_h
+#define WebCore_style_values_primitives_StylePrimitiveNumericOrKeyword_h
 
 #include "CSSPrimitiveNumericOrKeyword.h"
 #include "StylePrimitiveNumeric.h"
@@ -106,3 +107,4 @@ struct WTF::FlatteningVariantTraits<WebCore::Style::PrimitiveNumericOrKeyword<N,
 };
 
 template<typename N, typename... Ks> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::Style::PrimitiveNumericOrKeyword<N, Ks...>> = true;
+#endif // WebCore_style_values_primitives_StylePrimitiveNumericOrKeyword_h

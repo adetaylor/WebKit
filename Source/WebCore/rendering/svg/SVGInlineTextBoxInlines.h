@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGInlineTextBoxInlines_h
+#define WebCore_rendering_svg_SVGInlineTextBoxInlines_h
 
 #include "RenderSVGInlineText.h"
 #include "SVGInlineTextBox.h"
@@ -37,3 +38,4 @@ inline SVGInlineTextBox* SVGInlineTextBox::nextTextBox() const
 
 } // namespace WebCore
 
+#endif // WebCore_rendering_svg_SVGInlineTextBoxInlines_h

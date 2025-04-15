@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderListMarker_h
+#define WebCore_rendering_RenderListMarker_h
 
 #include "RenderBox.h"
 
@@ -109,3 +110,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderListMarker, isRenderListMarker())
+#endif // WebCore_rendering_RenderListMarker_h

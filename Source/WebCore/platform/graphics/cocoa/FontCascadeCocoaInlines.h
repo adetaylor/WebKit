@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_FontCascadeCocoaInlines_h
+#define WebCore_platform_graphics_cocoa_FontCascadeCocoaInlines_h
 
 #include "FontCascade.h"
 
@@ -37,3 +38,4 @@ inline constexpr bool FontCascade::canExpandAroundIdeographsInComplexText()
 }
 
 }
+#endif // WebCore_platform_graphics_cocoa_FontCascadeCocoaInlines_h

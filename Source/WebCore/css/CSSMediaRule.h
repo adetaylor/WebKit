@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSMediaRule_h
+#define WebCore_css_CSSMediaRule_h
 
 #include "CSSConditionRule.h"
 
@@ -60,3 +61,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSMediaRule, StyleRuleType::Media)
+#endif // WebCore_css_CSSMediaRule_h

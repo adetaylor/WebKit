@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_crypto_CryptoDigest_h
+#define WebCore_PAL_pal_crypto_CryptoDigest_h
 
 #include <wtf/HexNumber.h>
 #include <wtf/Noncopyable.h>
@@ -63,3 +64,4 @@ inline String CryptoDigest::toHexString()
 }
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_crypto_CryptoDigest_h

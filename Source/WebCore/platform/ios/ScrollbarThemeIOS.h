@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_ScrollbarThemeIOS_h
+#define WebCore_platform_ios_ScrollbarThemeIOS_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -67,3 +68,4 @@ public:
 }
 
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_platform_ios_ScrollbarThemeIOS_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_shared_context_SharedWorkerThread_h
+#define WebCore_workers_shared_context_SharedWorkerThread_h
 
 #include "SharedWorkerIdentifier.h"
 #include "WorkerThread.h"
@@ -49,3 +50,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_shared_context_SharedWorkerThread_h

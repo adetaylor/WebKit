@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPURenderBundleDescriptor_h
+#define WebCore_Modules_WebGPU_GPURenderBundleDescriptor_h
 
 #include "GPUObjectDescriptorBase.h"
 #include "WebGPURenderBundleDescriptor.h"
@@ -40,3 +41,4 @@ struct GPURenderBundleDescriptor : public GPUObjectDescriptorBase {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPURenderBundleDescriptor_h

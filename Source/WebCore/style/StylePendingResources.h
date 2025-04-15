@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StylePendingResources_h
+#define WebCore_style_StylePendingResources_h
 
 namespace WebCore {
 
@@ -37,3 +38,4 @@ void loadPendingResources(RenderStyle&, Document&, const Element*);
 
 }
 }
+#endif // WebCore_style_StylePendingResources_h

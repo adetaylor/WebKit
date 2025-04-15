@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSAbsoluteColor_h
+#define WebCore_css_values_color_CSSAbsoluteColor_h
 
 #include "CSSAbsoluteColorResolver.h"
 #include "CSSAbsoluteColorSerialization.h"
@@ -112,3 +113,4 @@ template<typename D> struct CSSValueChildrenVisitor<AbsoluteColor<D>> {
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSAbsoluteColor_h

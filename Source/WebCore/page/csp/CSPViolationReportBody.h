@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_csp_CSPViolationReportBody_h
+#define WebCore_page_csp_CSPViolationReportBody_h
 
 #include "ReportBody.h"
 #include "SecurityPolicyViolationEvent.h"
@@ -84,3 +85,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSPViolationReportBody)
     static bool isType(const WebCore::ReportBody& reportBody) { return reportBody.reportBodyType() == WebCore::ViolationReportType::ContentSecurityPolicy; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_page_csp_CSPViolationReportBody_h

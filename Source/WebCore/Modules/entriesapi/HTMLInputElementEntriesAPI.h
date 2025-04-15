@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_entriesapi_HTMLInputElementEntriesAPI_h
+#define WebCore_Modules_entriesapi_HTMLInputElementEntriesAPI_h
 
 #include <wtf/Vector.h>
 
@@ -40,3 +41,4 @@ Vector<Ref<FileSystemEntry>> webkitEntries(ScriptExecutionContext&, HTMLInputEle
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_entriesapi_HTMLInputElementEntriesAPI_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ActivityStateChangeObserver_h
+#define WebCore_page_ActivityStateChangeObserver_h
 
 #include "ActivityState.h"
 #include <wtf/WeakPtr.h>
@@ -49,3 +50,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ActivityStateChangeObserver_h

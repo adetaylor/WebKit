@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_Event_h
+#define WebCore_dom_Event_h
 
 #include "DOMHighResTimeStamp.h"
 #include "EventInit.h"
@@ -243,3 +244,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const Event&);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::Event& event) { return event.is##ToValueTypeName(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_Event_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderAttachment_h
+#define WebCore_rendering_RenderAttachment_h
 
 #if ENABLE(ATTACHMENT_ELEMENT)
 
@@ -77,3 +78,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderAttachment, isRenderAttachment())
 
 #endif // ENABLE(ATTACHMENT_ELEMENT)
+#endif // WebCore_rendering_RenderAttachment_h

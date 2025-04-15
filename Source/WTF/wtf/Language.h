@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Language_h
+#define WTF_wtf_Language_h
 
 #include <wtf/Forward.h>
 #include <wtf/Vector.h>
@@ -81,3 +82,4 @@ using WTF::addLanguageChangeObserver;
 using WTF::removeLanguageChangeObserver;
 using WTF::displayNameForLanguageLocale;
 
+#endif // WTF_wtf_Language_h

@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_system_Clock_h
+#define WebCore_PAL_pal_system_Clock_h
 
 #include <memory>
 
@@ -51,3 +52,4 @@ protected:
 };
 
 }
+#endif // WebCore_PAL_pal_system_Clock_h

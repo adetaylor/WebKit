@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleTreeResolver_h
+#define WebCore_style_StyleTreeResolver_h
 
 #include "AnchorPositionEvaluator.h"
 #include "PropertyCascade.h"
@@ -208,3 +209,4 @@ private:
 }
 
 }
+#endif // WebCore_style_StyleTreeResolver_h

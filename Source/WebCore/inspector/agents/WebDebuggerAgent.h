@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_WebDebuggerAgent_h
+#define WebCore_inspector_agents_WebDebuggerAgent_h
 
 #include "InspectorWebAgentBase.h"
 #include <JavaScriptCore/InspectorDebuggerAgent.h>
@@ -77,3 +78,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_WebDebuggerAgent_h

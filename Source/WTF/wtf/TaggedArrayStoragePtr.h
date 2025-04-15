@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_TaggedArrayStoragePtr_h
+#define WTF_wtf_TaggedArrayStoragePtr_h
 
 #include <wtf/PtrTag.h>
 
@@ -57,3 +58,4 @@ private:
 }
 
 using WTF::TaggedArrayStoragePtr;
+#endif // WTF_wtf_TaggedArrayStoragePtr_h

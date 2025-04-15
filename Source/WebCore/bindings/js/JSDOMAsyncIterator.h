@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMAsyncIterator_h
+#define WebCore_bindings_js_JSDOMAsyncIterator_h
 
 #include "JSDOMConvert.h"
 #include "JSDOMIterator.h"
@@ -380,3 +381,4 @@ void JSDOMAsyncIteratorPrototype<JSWrapper, IteratorTraits>::finishCreation(JSC:
 }
 
 }
+#endif // WebCore_bindings_js_JSDOMAsyncIterator_h

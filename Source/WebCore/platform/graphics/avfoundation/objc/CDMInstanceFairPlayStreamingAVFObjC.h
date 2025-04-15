@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_CDMInstanceFairPlayStreamingAVFObjC_h
+#define WebCore_platform_graphics_avfoundation_objc_CDMInstanceFairPlayStreamingAVFObjC_h
 
 #if ENABLE(ENCRYPTED_MEDIA) && HAVE(AVCONTENTKEYSESSION)
 
@@ -304,3 +305,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CDM_INSTANCE(WebCore::CDMInstanceFairPlayStreamingAVFObjC, WebCore::CDMInstance::ImplementationType::FairPlayStreaming)
 
 #endif // ENABLE(ENCRYPTED_MEDIA) && HAVE(AVCONTENTKEYSESSION)
+#endif // WebCore_platform_graphics_avfoundation_objc_CDMInstanceFairPlayStreamingAVFObjC_h

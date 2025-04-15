@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_SharedBufferChunkReader_h
+#define WebCore_platform_SharedBufferChunkReader_h
 
 #if ENABLE(MHTML)
 
@@ -69,3 +70,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_SharedBufferChunkReader_h

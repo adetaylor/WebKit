@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSAbsoluteColorSerialization_h
+#define WebCore_css_values_color_CSSAbsoluteColorSerialization_h
 
 #include "CSSColorDescriptors.h"
 #include "ColorSerialization.h"
@@ -62,3 +63,4 @@ void serializationForCSSAbsoluteColor(StringBuilder& builder, const Serializatio
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSAbsoluteColorSerialization_h

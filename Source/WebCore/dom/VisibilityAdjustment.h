@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_VisibilityAdjustment_h
+#define WebCore_dom_VisibilityAdjustment_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class VisibilityAdjustment : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_VisibilityAdjustment_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_ScriptModuleLoader_h
+#define WebCore_bindings_js_ScriptModuleLoader_h
 
 #include "ModuleScriptLoader.h"
 #include "ModuleScriptLoaderClient.h"
@@ -83,3 +84,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_ScriptModuleLoader_h

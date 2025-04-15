@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_soup_ResourceRequest_h
+#define WebCore_platform_network_soup_ResourceRequest_h
 
 #include "PageIdentifier.h"
 #include "ResourceRequestBase.h"
@@ -120,3 +121,4 @@ private:
 
 } // namespace WebCore
 
+#endif // WebCore_platform_network_soup_ResourceRequest_h

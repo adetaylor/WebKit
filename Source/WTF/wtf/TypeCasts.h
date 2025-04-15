@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_TypeCasts_h
+#define WTF_wtf_TypeCasts_h
 
 #include <type_traits>
 
@@ -156,3 +157,4 @@ using WTF::is;
 using WTF::downcast;
 using WTF::dynamicDowncast;
 using WTF::uncheckedDowncast;
+#endif // WTF_wtf_TypeCasts_h

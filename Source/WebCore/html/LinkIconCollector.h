@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_LinkIconCollector_h
+#define WebCore_html_LinkIconCollector_h
 
 #include "LinkIcon.h"
 #include <wtf/OptionSet.h>
@@ -47,3 +48,4 @@ private:
 };
 
 }
+#endif // WebCore_html_LinkIconCollector_h

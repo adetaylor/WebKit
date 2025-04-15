@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_cocoa_ProtectionSpaceCocoa_h
+#define WebCore_platform_network_cocoa_ProtectionSpaceCocoa_h
 
 #include "ProtectionSpaceBase.h"
 #include <wtf/RetainPtr.h>
@@ -60,3 +61,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_cocoa_ProtectionSpaceCocoa_h

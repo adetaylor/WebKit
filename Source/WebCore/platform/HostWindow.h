@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_HostWindow_h
+#define WebCore_platform_HostWindow_h
 
 #include "GraphicsClient.h"
 #include "Widget.h"
@@ -85,3 +86,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_HostWindow_h

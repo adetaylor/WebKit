@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_LegacyInlineFlowBox_h
+#define WebCore_rendering_LegacyInlineFlowBox_h
 
 #include "LegacyInlineBox.h"
 #include "RenderOverflow.h"
@@ -202,3 +203,4 @@ SPECIALIZE_TYPE_TRAITS_INLINE_BOX(LegacyInlineFlowBox, isInlineFlowBox())
 // Outside the WebCore namespace for ease of invocation from the debugger.
 void showTree(const WebCore::LegacyInlineFlowBox*);
 #endif
+#endif // WebCore_rendering_LegacyInlineFlowBox_h

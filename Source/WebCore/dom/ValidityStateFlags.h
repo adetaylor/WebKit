@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ValidityStateFlags_h
+#define WebCore_dom_ValidityStateFlags_h
 
 namespace WebCore {
 
@@ -46,3 +47,4 @@ struct ValidityStateFlags {
 };
 
 }
+#endif // WebCore_dom_ValidityStateFlags_h

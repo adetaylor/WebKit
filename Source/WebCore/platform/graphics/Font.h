@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_Font_h
+#define WebCore_platform_graphics_Font_h
 
 #include "FloatRect.h"
 #include "FontMetrics.h"
@@ -512,3 +513,4 @@ WEBCORE_EXPORT TextStream& operator<<(TextStream&, const Font&);
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_Font_h

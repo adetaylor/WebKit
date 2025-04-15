@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericRange_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericRange_h
 
 #include <algorithm>
 #include <limits>
@@ -98,3 +99,4 @@ template<Range range, std::floating_point T> constexpr T clampToRange(T value)
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericRange_h

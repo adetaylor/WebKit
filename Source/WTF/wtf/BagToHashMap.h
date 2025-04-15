@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_BagToHashMap_h
+#define WTF_wtf_BagToHashMap_h
 
 #include <wtf/Bag.h>
 #include <wtf/HashMap.h>
@@ -43,3 +44,4 @@ void toHashMap(Bag<ElementType, BagPtrTraits>& bag, KeyGetterFunctor& getKey, Un
 } // namespace WTF
 
 using WTF::toHashMap;
+#endif // WTF_wtf_BagToHashMap_h

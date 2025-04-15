@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_soup_SoupNetworkProxySettings_h
+#define WebCore_platform_network_soup_SoupNetworkProxySettings_h
 
 #include <wtf/HashMap.h>
 #include <wtf/glib/GUniquePtr.h>
@@ -94,3 +95,4 @@ struct SoupNetworkProxySettings {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_soup_SoupNetworkProxySettings_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_InputMode_h
+#define WebCore_html_InputMode_h
 
 #include <wtf/text/AtomString.h>
 
@@ -58,3 +59,4 @@ const AtomString& search();
 } // namespace InputModeNames
 
 } // namespace WebCore
+#endif // WebCore_html_InputMode_h

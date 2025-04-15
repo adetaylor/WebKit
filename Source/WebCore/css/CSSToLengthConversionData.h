@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSToLengthConversionData_h
+#define WebCore_css_CSSToLengthConversionData_h
 
 #include "CSSPropertyNames.h"
 #include "Element.h"
@@ -114,3 +115,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_CSSToLengthConversionData_h

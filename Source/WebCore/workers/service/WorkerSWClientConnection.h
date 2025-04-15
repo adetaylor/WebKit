@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_WorkerSWClientConnection_h
+#define WebCore_workers_service_WorkerSWClientConnection_h
 
 #include "SWClientConnection.h"
 #include <wtf/Forward.h>
@@ -114,3 +115,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_WorkerSWClientConnection_h

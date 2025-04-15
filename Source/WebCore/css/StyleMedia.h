@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_StyleMedia_h
+#define WebCore_css_StyleMedia_h
 
 #include "LocalDOMWindowProperty.h"
 #include <wtf/RefCounted.h>
@@ -43,3 +44,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_StyleMedia_h

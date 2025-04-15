@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_query_ContainerQueryParser_h
+#define WebCore_css_query_ContainerQueryParser_h
 
 #include "CSSParserContext.h"
 #include "CSSParserToken.h"
@@ -47,3 +48,4 @@ struct ContainerQueryParser : MQ::GenericMediaQueryParser<ContainerQueryParser> 
 
 }
 }
+#endif // WebCore_css_query_ContainerQueryParser_h

@@ -31,7 +31,8 @@
 // 2. Remove abseil HashTable handling
 // 3. Remove __int128_t handling
 
-#pragma once
+#ifndef WTF_wtf_Int128_h
+#define WTF_wtf_Int128_h
 
 #include <cassert>
 #include <cmath>
@@ -1253,3 +1254,4 @@ WTF_EXPORT_PRIVATE void printInternal(PrintStream&, Int128);
 
 using WTF::Int128;
 using WTF::UInt128;
+#endif // WTF_wtf_Int128_h

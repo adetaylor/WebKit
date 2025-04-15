@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_easing_CSSCubicBezierEasingFunction_h
+#define WebCore_css_values_easing_CSSCubicBezierEasingFunction_h
 
 #include "CSSPrimitiveNumericTypes.h"
 
@@ -49,3 +50,4 @@ DEFINE_TYPE_WRAPPER_GET(CubicBezierEasingParameters, value);
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::CubicBezierEasingParameters, 1)
+#endif // WebCore_css_values_easing_CSSCubicBezierEasingFunction_h

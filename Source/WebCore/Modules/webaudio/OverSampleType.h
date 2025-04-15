@@ -22,10 +22,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_OverSampleType_h
+#define WebCore_Modules_webaudio_OverSampleType_h
 
 namespace WebCore {
 
 enum class OverSampleType { None, _2x, _4x };
 
 }
+#endif // WebCore_Modules_webaudio_OverSampleType_h

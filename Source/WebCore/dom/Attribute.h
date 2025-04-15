@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_Attribute_h
+#define WebCore_dom_Attribute_h
 
 #include "CommonAtomStrings.h"
 #include "QualifiedName.h"
@@ -108,3 +109,4 @@ template<>
 struct VectorTraits<WebCore::Attribute> : SimpleClassVectorTraits { };
 
 } // namespace WTF
+#endif // WebCore_dom_Attribute_h

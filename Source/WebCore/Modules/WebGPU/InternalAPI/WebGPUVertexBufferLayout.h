@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUVertexBufferLayout_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUVertexBufferLayout_h
 
 #include "WebGPUIntegralTypes.h"
 #include "WebGPUVertexAttribute.h"
@@ -39,3 +40,4 @@ struct VertexBufferLayout {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUVertexBufferLayout_h

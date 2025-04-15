@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FrameLoaderStateMachine_h
+#define WebCore_loader_FrameLoaderStateMachine_h
 
 #include <wtf/Noncopyable.h>
 
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_FrameLoaderStateMachine_h

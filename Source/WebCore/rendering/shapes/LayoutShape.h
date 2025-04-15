@@ -27,7 +27,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_shapes_LayoutShape_h
+#define WebCore_rendering_shapes_LayoutShape_h
 
 #include "LayoutRect.h"
 #include "Path.h"
@@ -103,3 +104,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_shapes_LayoutShape_h

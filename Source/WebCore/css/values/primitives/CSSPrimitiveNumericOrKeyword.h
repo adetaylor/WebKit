@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericOrKeyword_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericOrKeyword_h
 
 #include "CSSPrimitiveNumeric.h"
 
@@ -237,3 +238,4 @@ private:
 } // namespace WebCore
 
 template<typename N, typename... Ks> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::CSS::PrimitiveNumericOrKeyword<N, Ks...>> = true;
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericOrKeyword_h

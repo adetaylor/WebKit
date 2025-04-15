@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_TextAutoSizing_h
+#define WebCore_rendering_TextAutoSizing_h
 
 #if ENABLE(TEXT_AUTOSIZING)
 
@@ -131,3 +132,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(TEXT_AUTOSIZING)
+#endif // WebCore_rendering_TextAutoSizing_h

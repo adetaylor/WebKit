@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_OriginAccessPatterns_h
+#define WebCore_page_OriginAccessPatterns_h
 
 #include <wtf/Forward.h>
 
@@ -55,3 +56,4 @@ private:
 const OriginAccessPatterns& originAccessPatternsForWebProcessOrEmpty();
 
 }
+#endif // WebCore_page_OriginAccessPatterns_h

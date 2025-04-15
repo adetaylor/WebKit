@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_BorderValue_h
+#define WebCore_rendering_style_BorderValue_h
 
 #include "RenderStyleConstants.h"
 #include "StyleColor.h"
@@ -69,3 +70,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_BorderValue_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUCanvasToneMappingMode_h
+#define WebCore_Modules_WebGPU_GPUCanvasToneMappingMode_h
 
 #include "WebGPUCanvasToneMappingMode.h"
 
@@ -46,3 +47,4 @@ inline constexpr WebGPU::CanvasToneMappingMode convertToBacking(GPUCanvasToneMap
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUCanvasToneMappingMode_h

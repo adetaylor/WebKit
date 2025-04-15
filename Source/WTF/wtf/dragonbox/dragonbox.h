@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_dragonbox_h
+#define WTF_wtf_dragonbox_dragonbox_h
 
 #include <wtf/dragonbox/detail/bits.h>
 #include <wtf/dragonbox/detail/div.h>
@@ -757,3 +758,4 @@ ALWAYS_INLINE uint64_t compute_power_with_max_16(uint64_t base, uint32_t k)
 } // namespace dragonbox
 
 } // namespace WTF
+#endif // WTF_wtf_dragonbox_dragonbox_h

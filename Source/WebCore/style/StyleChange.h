@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleChange_h
+#define WebCore_style_StyleChange_h
 
 #include <wtf/OptionSet.h>
 
@@ -55,3 +56,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, OptionSet<Change>);
 }
 
 }
+#endif // WebCore_style_StyleChange_h

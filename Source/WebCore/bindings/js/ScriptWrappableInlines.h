@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_ScriptWrappableInlines_h
+#define WebCore_bindings_js_ScriptWrappableInlines_h
 
 #include "JSDOMWrapper.h"
 #include "ScriptWrappable.h"
@@ -53,3 +54,4 @@ inline void ScriptWrappable::clearWrapper(JSDOMObject* wrapper)
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_ScriptWrappableInlines_h

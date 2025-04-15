@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_Sandbox_h
+#define WTF_wtf_glib_Sandbox_h
 
 #include <wtf/text/WTFString.h>
 
@@ -42,3 +43,4 @@ using WTF::shouldUsePortal;
 using WTF::checkFlatpakPortalVersion;
 
 using WTF::sandboxedUserRuntimeDirectory;
+#endif // WTF_wtf_glib_Sandbox_h

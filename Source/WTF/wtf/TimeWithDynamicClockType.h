@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_TimeWithDynamicClockType_h
+#define WTF_wtf_TimeWithDynamicClockType_h
 
 #include <wtf/ApproximateTime.h>
 #include <wtf/ClockType.h>
@@ -157,3 +158,4 @@ WTF_EXPORT_PRIVATE bool hasElapsed(const TimeWithDynamicClockType&);
 using WTF::TimeWithDynamicClockType;
 using WTF::hasElapsed;
 using WTF::sleep;
+#endif // WTF_wtf_TimeWithDynamicClockType_h

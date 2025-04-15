@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_websockets_ThreadableWebSocketChannel_h
+#define WebCore_Modules_websockets_ThreadableWebSocketChannel_h
 
 #include "WebSocketIdentifier.h"
 #include <wtf/Forward.h>
@@ -123,3 +124,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_websockets_ThreadableWebSocketChannel_h

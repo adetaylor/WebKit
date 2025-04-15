@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_LongRange_h
+#define WebCore_Modules_mediastream_LongRange_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -38,3 +39,4 @@ struct LongRange {
 }
 
 #endif
+#endif // WebCore_Modules_mediastream_LongRange_h

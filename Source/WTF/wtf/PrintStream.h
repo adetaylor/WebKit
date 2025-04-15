@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_PrintStream_h
+#define WTF_wtf_PrintStream_h
 
 #include <memory>
 #include <optional>
@@ -445,3 +446,4 @@ using WTF::ignoringContext;
 using WTF::inContext;
 using WTF::pointerDump;
 using WTF::pointerDumpInContext;
+#endif // WTF_wtf_PrintStream_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_DictionaryPopupInfo_h
+#define WebCore_editing_DictionaryPopupInfo_h
 
 #include "FloatPoint.h"
 #include "TextIndicator.h"
@@ -54,3 +55,4 @@ struct DictionaryPopupInfo {
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_DictionaryPopupInfo_h

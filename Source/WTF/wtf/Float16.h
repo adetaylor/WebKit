@@ -39,7 +39,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_Float16_h
+#define WTF_wtf_Float16_h
 
 #include <bit>
 #include <wtf/Platform.h>
@@ -364,3 +365,4 @@ static_assert(sizeof(Float16) == sizeof(uint16_t));
 }
 
 using WTF::Float16;
+#endif // WTF_wtf_Float16_h

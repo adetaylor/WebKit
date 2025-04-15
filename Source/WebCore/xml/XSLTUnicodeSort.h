@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XSLTUnicodeSort_h
+#define WebCore_xml_XSLTUnicodeSort_h
 
 #if ENABLE(XSLT)
 
@@ -39,3 +40,4 @@ void xsltUnicodeSortFunction(xsltTransformContextPtr ctxt, xmlNodePtr* sorts, in
 } // namespace WebCore
 
 #endif // ENABLE(XSLT)
+#endif // WebCore_xml_XSLTUnicodeSort_h

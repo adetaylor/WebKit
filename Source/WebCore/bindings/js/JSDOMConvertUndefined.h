@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertUndefined_h
+#define WebCore_bindings_js_JSDOMConvertUndefined_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -51,3 +52,4 @@ template<> struct JSConverter<IDLUndefined> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertUndefined_h

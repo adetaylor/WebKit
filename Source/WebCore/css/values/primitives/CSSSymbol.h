@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSSymbol_h
+#define WebCore_css_values_primitives_CSSSymbol_h
 
 #include "CSSValueTypes.h"
 
@@ -66,3 +67,4 @@ template<> struct CSSValueChildrenVisitor<Symbol> { constexpr IterationStatus op
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSSymbol_h

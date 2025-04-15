@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ThreadAssertions_h
+#define WTF_wtf_ThreadAssertions_h
 
 #include <atomic>
 #include <utility>
@@ -195,3 +196,4 @@ using WTF::noneThreadLike;
 using WTF::NoneThreadLike;
 using WTF::ThreadLike;
 using WTF::ThreadLikeAssertion;
+#endif // WTF_wtf_ThreadAssertions_h

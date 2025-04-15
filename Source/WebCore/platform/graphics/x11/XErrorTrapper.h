@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_x11_XErrorTrapper_h
+#define WebCore_platform_graphics_x11_XErrorTrapper_h
 
 #if PLATFORM(X11)
 #include <X11/Xlib.h>
@@ -53,3 +54,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(X11)
+#endif // WebCore_platform_graphics_x11_XErrorTrapper_h

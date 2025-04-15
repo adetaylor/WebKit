@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_re_DynamicContentScalingTypes_h
+#define WebCore_platform_graphics_re_DynamicContentScalingTypes_h
 
 #include <wtf/Forward.h>
 
@@ -32,3 +33,4 @@
 #define WKDynamicContentScalingBifurcationScaleKey @"separatedOptions.bifurcationScale"
 #define WKDynamicContentScalingContentsKey @"separatedOptions.contextData"
 #define WKDynamicContentScalingPortsKey @"separatedOptions.ports"
+#endif // WebCore_platform_graphics_re_DynamicContentScalingTypes_h

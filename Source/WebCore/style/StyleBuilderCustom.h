@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleBuilderCustom_h
+#define WebCore_style_StyleBuilderCustom_h
 
 #include "CSSBoxShadowPropertyValue.h"
 #include "CSSCalcSymbolTable.h"
@@ -1850,3 +1851,4 @@ inline void BuilderCustom::applyValueContainIntrinsicHeight(BuilderState& builde
 
 }
 }
+#endif // WebCore_style_StyleBuilderCustom_h

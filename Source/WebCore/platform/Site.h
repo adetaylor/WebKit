@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_Site_h
+#define WebCore_platform_Site_h
 
 #include "RegistrableDomain.h"
 #include <wtf/HashTraits.h>
@@ -75,3 +76,4 @@ template<> struct HashTraits<WebCore::Site> : SimpleClassHashTraits<WebCore::Sit
     static WebCore::Site emptyValue() { return { WTF::HashTableEmptyValue }; }
 };
 }
+#endif // WebCore_platform_Site_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineLineBox_h
+#define WebCore_layout_formattingContexts_inline_InlineLineBox_h
 
 #include "InlineLevelBox.h"
 #include "InlineLine.h"
@@ -154,3 +155,4 @@ inline InlineLevelBox& LineBox::inlineLevelBoxFor(const Line::Run& lineRun)
 }
 }
 
+#endif // WebCore_layout_formattingContexts_inline_InlineLineBox_h

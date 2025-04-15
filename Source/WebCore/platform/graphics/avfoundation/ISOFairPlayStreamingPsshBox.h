@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_ISOFairPlayStreamingPsshBox_h
+#define WebCore_platform_graphics_avfoundation_ISOFairPlayStreamingPsshBox_h
 
 #include "ISOProtectionSystemSpecificHeaderBox.h"
 
@@ -179,3 +180,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ISOFairPlayStreamingPsshBox) \
 static bool isType(const WebCore::ISOProtectionSystemSpecificHeaderBox& psshBox) { return psshBox.systemID() == WebCore::ISOFairPlayStreamingPsshBox::fairPlaySystemID(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_avfoundation_ISOFairPlayStreamingPsshBox_h

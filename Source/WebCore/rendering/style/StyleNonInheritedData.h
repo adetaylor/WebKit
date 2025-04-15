@@ -24,7 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleNonInheritedData_h
+#define WebCore_rendering_style_StyleNonInheritedData_h
 
 #include <wtf/DataRef.h>
 #include <wtf/RefCounted.h>
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleNonInheritedData_h

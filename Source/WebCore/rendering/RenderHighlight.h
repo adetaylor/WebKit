@@ -28,7 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderHighlight_h
+#define WebCore_rendering_RenderHighlight_h
 
 #include "RenderObject.h"
 
@@ -106,3 +107,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderHighlight_h

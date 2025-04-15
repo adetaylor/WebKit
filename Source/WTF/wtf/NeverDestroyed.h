@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_NeverDestroyed_h
+#define WTF_wtf_NeverDestroyed_h
 
 #include <type_traits>
 #include <utility>
@@ -192,3 +193,4 @@ using WTF::MainThreadNeverDestroyed;
 using WTF::MainThreadLazyNeverDestroyed;
 using WTF::AnyThreadsAccessTraits;
 using WTF::MainThreadAccessTraits;
+#endif // WTF_wtf_NeverDestroyed_h

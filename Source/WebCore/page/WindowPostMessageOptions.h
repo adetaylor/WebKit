@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_WindowPostMessageOptions_h
+#define WebCore_page_WindowPostMessageOptions_h
 
 #include "StructuredSerializeOptions.h"
 
@@ -40,3 +41,4 @@ struct WindowPostMessageOptions : public StructuredSerializeOptions {
 };
 
 }
+#endif // WebCore_page_WindowPostMessageOptions_h

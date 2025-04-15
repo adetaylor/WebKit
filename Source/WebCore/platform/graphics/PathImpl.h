@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PathImpl_h
+#define WebCore_platform_graphics_PathImpl_h
 
 #include "FloatRoundedRect.h"
 #include "PathElement.h"
@@ -125,3 +126,4 @@ inline void PathImpl::addSegment(PathSegment segment)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_PathImpl_h

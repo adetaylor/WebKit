@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_text_MakeString_h
+#define WTF_wtf_text_MakeString_h
 
 #include <wtf/CheckedArithmetic.h>
 #include <wtf/StdLibExtras.h>
@@ -171,3 +172,4 @@ using WTF::makeStringByInserting;
 using WTF::tryMakeAtomString;
 using WTF::tryMakeString;
 using WTF::SerializeUsingMakeString;
+#endif // WTF_wtf_text_MakeString_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_AuthenticationResponseJSON_h
+#define WebCore_Modules_webauthn_AuthenticationResponseJSON_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -49,3 +50,4 @@ struct AuthenticationResponseJSON {
 }
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_AuthenticationResponseJSON_h

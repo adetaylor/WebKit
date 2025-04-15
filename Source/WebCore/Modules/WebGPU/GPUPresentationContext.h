@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUPresentationContext_h
+#define WebCore_Modules_WebGPU_GPUPresentationContext_h
 
 #include "GPUTexture.h"
 #include "GPUTextureDescriptor.h"
@@ -71,3 +72,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUPresentationContext_h

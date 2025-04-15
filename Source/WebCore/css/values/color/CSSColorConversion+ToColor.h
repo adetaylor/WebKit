@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSColorConversion_ToColor_h
+#define WebCore_css_values_color_CSSColorConversion_ToColor_h
 
 #include "CSSColorDescriptors.h"
 #include "Color.h"
@@ -129,3 +130,4 @@ Color convertToColor(std::optional<GetColorType<Descriptor>> color)
 }
 
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSColorConversion_ToColor_h

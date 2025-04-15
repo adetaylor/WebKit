@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_color_CSSHSL_h
+#define WebCore_css_typedom_color_CSSHSL_h
 
 #include "CSSOMColorValue.h"
 
@@ -53,3 +54,4 @@ private:
 };
     
 } // namespace WebCore
+#endif // WebCore_css_typedom_color_CSSHSL_h

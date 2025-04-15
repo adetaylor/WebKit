@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_Application_h
+#define WTF_wtf_glib_Application_h
 
 #if USE(GLIB)
 
@@ -30,3 +31,4 @@ WTF_EXPORT_PRIVATE const CString& applicationID();
 } // namespace WTF
 
 #endif // USE(GLIB)
+#endif // WTF_wtf_glib_Application_h

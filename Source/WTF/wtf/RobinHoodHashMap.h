@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RobinHoodHashMap_h
+#define WTF_wtf_RobinHoodHashMap_h
 
 #include <wtf/HashMap.h>
 #include <wtf/RobinHoodHashTable.h>
@@ -46,3 +47,4 @@ using FastRobinHoodHashMap = HashMap<KeyArg, MappedArg, HashArg, KeyTraitsArg, M
 using WTF::MemoryCompactLookupOnlyRobinHoodHashMap;
 using WTF::MemoryCompactRobinHoodHashMap;
 using WTF::FastRobinHoodHashMap;
+#endif // WTF_wtf_RobinHoodHashMap_h

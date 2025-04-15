@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_MediaPlayerPrivateMediaStreamAVFObjC_h
+#define WebCore_platform_graphics_avfoundation_objc_MediaPlayerPrivateMediaStreamAVFObjC_h
 
 #if ENABLE(MEDIA_STREAM) && USE(AVFOUNDATION)
 
@@ -327,3 +328,4 @@ private:
 }
 
 #endif // ENABLE(MEDIA_STREAM) && USE(AVFOUNDATION)
+#endif // WebCore_platform_graphics_avfoundation_objc_MediaPlayerPrivateMediaStreamAVFObjC_h

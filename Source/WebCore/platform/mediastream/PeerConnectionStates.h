@@ -30,7 +30,8 @@
  */
 
 // FIXME: Remove once older code is upgraded
-#pragma once
+#ifndef WebCore_platform_mediastream_PeerConnectionStates_h
+#define WebCore_platform_mediastream_PeerConnectionStates_h
 
 #if ENABLE(WEB_RTC)
 
@@ -57,3 +58,4 @@ using SignalingState = RTCSignalingState;
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_platform_mediastream_PeerConnectionStates_h

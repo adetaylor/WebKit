@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerType_h
+#define WebCore_workers_WorkerType_h
 
 namespace WebCore {
 
 enum class WorkerType : bool { Classic, Module };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerType_h

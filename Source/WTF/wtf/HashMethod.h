@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_HashMethod_h
+#define WTF_wtf_HashMethod_h
 
 #include <wtf/StdLibExtras.h>
 
@@ -40,3 +41,4 @@ struct HashMethod {
 } // namespace WTF
 
 using WTF::HashMethod;
+#endif // WTF_wtf_HashMethod_h

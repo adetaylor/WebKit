@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_NullTextBreakIterator_h
+#define WTF_wtf_text_NullTextBreakIterator_h
 
 #include <wtf/text/StringView.h>
 
@@ -59,3 +60,4 @@ public:
 
 }
 
+#endif // WTF_wtf_text_NullTextBreakIterator_h

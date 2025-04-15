@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSCustomElementInterface_h
+#define WebCore_bindings_js_JSCustomElementInterface_h
 
 #include "ActiveDOMCallback.h"
 #include "CustomElementFormValue.h"
@@ -147,3 +148,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSCustomElementInterface_h

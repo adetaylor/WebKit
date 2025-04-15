@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityProgressIndicator_h
+#define WebCore_accessibility_AccessibilityProgressIndicator_h
 
 #include "AccessibilityRenderObject.h"
 
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_accessibility_AccessibilityProgressIndicator_h

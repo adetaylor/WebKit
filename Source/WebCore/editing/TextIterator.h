@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_TextIterator_h
+#define WebCore_editing_TextIterator_h
 
 #include "CharacterRange.h"
 #include "FindOptions.h"
@@ -344,3 +345,4 @@ inline BoundaryPoint resolveCharacterLocation(const SimpleRange& scope, uint64_t
 void showTree(const WebCore::TextIterator&);
 void showTree(const WebCore::TextIterator*);
 #endif
+#endif // WebCore_editing_TextIterator_h

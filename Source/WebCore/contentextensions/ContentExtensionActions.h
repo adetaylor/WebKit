@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_ContentExtensionActions_h
+#define WebCore_contentextensions_ContentExtensionActions_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -326,3 +327,4 @@ template<> struct HashTraits<WebCore::ContentExtensions::ModifyHeadersAction> : 
 } // namespace WTF
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_ContentExtensionActions_h

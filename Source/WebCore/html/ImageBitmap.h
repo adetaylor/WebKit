@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_ImageBitmap_h
+#define WebCore_html_ImageBitmap_h
 
 #include "ExceptionOr.h"
 #include "IDLTypes.h"
@@ -185,3 +186,4 @@ private:
 };
 
 }
+#endif // WebCore_html_ImageBitmap_h

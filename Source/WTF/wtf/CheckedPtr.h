@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CheckedPtr_h
+#define WTF_wtf_CheckedPtr_h
 
 #include <wtf/CheckedRef.h>
 
@@ -239,3 +240,4 @@ template<typename T> using PackedCheckedPtr = CheckedPtr<T, PackedPtrTraits<T>>;
 using WTF::CheckedPtr;
 using WTF::PackedCheckedPtr;
 
+#endif // WTF_wtf_CheckedPtr_h

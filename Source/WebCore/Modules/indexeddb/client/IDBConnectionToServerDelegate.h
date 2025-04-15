@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_client_IDBConnectionToServerDelegate_h
+#define WebCore_Modules_indexeddb_client_IDBConnectionToServerDelegate_h
 
 #include "IDBDatabaseConnectionIdentifier.h"
 #include "IDBIndexIdentifier.h"
@@ -108,3 +109,4 @@ public:
 
 } // namespace IDBClient
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_client_IDBConnectionToServerDelegate_h

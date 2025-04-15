@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RetainReleaseSwift_h
+#define WTF_wtf_RetainReleaseSwift_h
 
 #if HAVE(SWIFT_CPP_INTEROP) // FIXME: rdar://136787800
 #include <swift/bridging>
@@ -38,3 +39,4 @@
 #endif
 
 #endif
+#endif // WTF_wtf_RetainReleaseSwift_h

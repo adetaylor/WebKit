@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentStorageAccess_h
+#define WebCore_dom_DocumentStorageAccess_h
 
 #include "RegistrableDomain.h"
 #include "Supplementable.h"
@@ -114,3 +115,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DocumentStorageAccess_h

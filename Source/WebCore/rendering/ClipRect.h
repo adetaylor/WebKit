@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_ClipRect_h
+#define WebCore_rendering_ClipRect_h
 
 #include "LayoutRect.h"
 
@@ -108,3 +109,4 @@ inline ClipRect intersection(const ClipRect& a, const ClipRect& b)
 WTF::TextStream& operator<<(WTF::TextStream&, const ClipRect&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_ClipRect_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_encryptedmedia_CDM_h
+#define WebCore_Modules_encryptedmedia_CDM_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -104,3 +105,4 @@ private:
 }
 
 #endif
+#endif // WebCore_Modules_encryptedmedia_CDM_h

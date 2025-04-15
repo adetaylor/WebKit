@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_track_VTTRegionList_h
+#define WebCore_html_track_VTTRegionList_h
 
 #if ENABLE(VIDEO)
 
@@ -70,3 +71,4 @@ inline void VTTRegionList::clear()
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_html_track_VTTRegionList_h

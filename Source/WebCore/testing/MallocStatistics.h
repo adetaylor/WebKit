@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MallocStatistics_h
+#define WebCore_testing_MallocStatistics_h
 
 #include <wtf/FastMalloc.h>
 #include <wtf/RefCounted.h>
@@ -48,3 +49,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_testing_MallocStatistics_h

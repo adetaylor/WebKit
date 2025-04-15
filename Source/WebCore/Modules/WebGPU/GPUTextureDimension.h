@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUTextureDimension_h
+#define WebCore_Modules_WebGPU_GPUTextureDimension_h
 
 #include "WebGPUTextureDimension.h"
 #include <cstdint>
@@ -50,3 +51,4 @@ inline WebGPU::TextureDimension convertToBacking(GPUTextureDimension textureDime
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUTextureDimension_h

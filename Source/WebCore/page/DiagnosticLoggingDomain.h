@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_DiagnosticLoggingDomain_h
+#define WebCore_page_DiagnosticLoggingDomain_h
 
 namespace WebCore {
 
 enum class DiagnosticLoggingDomain : uint8_t { Media };
 
 } // namespace WebCore
+#endif // WebCore_page_DiagnosticLoggingDomain_h

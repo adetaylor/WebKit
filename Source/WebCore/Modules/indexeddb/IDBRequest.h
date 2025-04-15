@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBRequest_h
+#define WebCore_Modules_indexeddb_IDBRequest_h
 
 #include "EventTarget.h"
 #include "ExceptionOr.h"
@@ -211,3 +212,4 @@ private:
 WebCoreOpaqueRoot root(IDBRequest*);
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBRequest_h

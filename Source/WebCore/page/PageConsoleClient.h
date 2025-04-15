@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PageConsoleClient_h
+#define WebCore_page_PageConsoleClient_h
 
 #include <JavaScriptCore/ConsoleClient.h>
 #include <JavaScriptCore/ScriptCallStack.h>
@@ -93,3 +94,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PageConsoleClient_h

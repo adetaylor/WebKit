@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_LayoutUnit_h
+#define WebCore_platform_LayoutUnit_h
 
 #include <limits.h>
 #include <limits>
@@ -706,3 +707,4 @@ template<> struct HashTraits<WebCore::LayoutUnit> : GenericHashTraits<WebCore::L
 };
 
 } // namespace WTF
+#endif // WebCore_platform_LayoutUnit_h

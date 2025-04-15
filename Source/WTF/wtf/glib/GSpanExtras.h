@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_GSpanExtras_h
+#define WTF_wtf_glib_GSpanExtras_h
 
 #include <wtf/MallocSpan.h>
 #include <wtf/StdLibExtras.h>
@@ -145,3 +146,4 @@ using WTF::gKeyFileGetKeys;
 using WTF::gObjectClassGetProperties;
 using WTF::gVariantGetStrv;
 using WTF::span;
+#endif // WTF_wtf_glib_GSpanExtras_h

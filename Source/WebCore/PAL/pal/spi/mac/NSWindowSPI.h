@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSWindowSPI_h
+#define WebCore_PAL_pal_spi_mac_NSWindowSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -68,3 +69,4 @@ extern NSNotificationName NSWindowWillOrderOnScreenNotification;
 extern NSNotificationName const _NSWindowDidChangeContentsHostedInLayerSurfaceNotification;
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_PAL_pal_spi_mac_NSWindowSPI_h

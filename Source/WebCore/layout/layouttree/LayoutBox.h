@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutBox_h
+#define WebCore_layout_layouttree_LayoutBox_h
 
 #include "LayoutUnits.h"
 #include "RenderStyle.h"
@@ -271,3 +272,4 @@ inline bool Box::isContainingBlockForInFlow() const
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Layout::ToValueTypeName) \
     static bool isType(const WebCore::Layout::Box& box) { return box.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_layout_layouttree_LayoutBox_h

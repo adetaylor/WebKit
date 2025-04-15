@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RTCDataChannelHandler_h
+#define WebCore_platform_mediastream_RTCDataChannelHandler_h
 
 #if ENABLE(WEB_RTC)
 
@@ -78,3 +79,4 @@ public:
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_platform_mediastream_RTCDataChannelHandler_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformVideoColorSpace_h
+#define WebCore_platform_graphics_PlatformVideoColorSpace_h
 
 #include "PlatformVideoColorPrimaries.h"
 #include "PlatformVideoMatrixCoefficients.h"
@@ -44,3 +45,4 @@ struct PlatformVideoColorSpace {
 };
 
 }
+#endif // WebCore_platform_graphics_PlatformVideoColorSpace_h

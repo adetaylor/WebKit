@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_mathml_MathMLElement_h
+#define WebCore_mathml_MathMLElement_h
 
 #if ENABLE(MATHML)
 
@@ -124,3 +125,4 @@ SPECIALIZE_TYPE_TRAITS_END()
 #include "MathMLElementTypeHelpers.h"
 
 #endif // ENABLE(MATHML)
+#endif // WebCore_mathml_MathMLElement_h

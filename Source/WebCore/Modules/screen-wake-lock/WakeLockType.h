@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_screen_wake_lock_WakeLockType_h
+#define WebCore_Modules_screen_wake_lock_WakeLockType_h
 
 namespace WebCore  {
 
 enum class WakeLockType : uint8_t { Screen };
 
 } // namespace WebCore
+#endif // WebCore_Modules_screen_wake_lock_WakeLockType_h

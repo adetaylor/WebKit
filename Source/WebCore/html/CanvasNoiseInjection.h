@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_CanvasNoiseInjection_h
+#define WebCore_html_CanvasNoiseInjection_h
 
 #include "IntRect.h"
 
@@ -48,3 +49,4 @@ private:
     IntRect m_postProcessDirtyRect;
 };
 } // namespace WebCore
+#endif // WebCore_html_CanvasNoiseInjection_h

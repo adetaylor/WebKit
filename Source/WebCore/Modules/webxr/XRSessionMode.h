@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_XRSessionMode_h
+#define WebCore_Modules_webxr_XRSessionMode_h
 
 #if ENABLE(WEBXR)
 
@@ -36,3 +37,4 @@ using XRSessionMode = PlatformXR::SessionMode;
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_Modules_webxr_XRSessionMode_h

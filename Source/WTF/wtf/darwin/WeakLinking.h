@@ -23,6 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_darwin_WeakLinking_h
+#define WTF_wtf_darwin_WeakLinking_h
 
 #define WTF_WEAK_LINK_FORCE_IMPORT(sym) extern __attribute__((weak_import)) __typeof__(sym) sym
+#endif // WTF_wtf_darwin_WeakLinking_h

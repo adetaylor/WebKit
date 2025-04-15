@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerJobData_h
+#define WebCore_workers_service_ServiceWorkerJobData_h
 
 #include "ScriptExecutionContextIdentifier.h"
 #include "SecurityOriginData.h"
@@ -68,3 +69,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerJobData_h

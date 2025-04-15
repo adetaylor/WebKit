@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSRegisteredCustomProperty_h
+#define WebCore_css_CSSRegisteredCustomProperty_h
 
 #include "CSSCustomPropertySyntax.h"
 #include <wtf/text/AtomString.h>
@@ -46,3 +47,4 @@ struct CSSRegisteredCustomProperty {
 };
 
 }
+#endif // WebCore_css_CSSRegisteredCustomProperty_h

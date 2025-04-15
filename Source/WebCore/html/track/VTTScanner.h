@@ -27,7 +27,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_track_VTTScanner_h
+#define WebCore_html_track_VTTScanner_h
 
 #include <wtf/text/ParsingUtilities.h>
 #include <wtf/text/WTFString.h>
@@ -252,3 +253,4 @@ inline void VTTScanner::advance(size_t amount)
 }
 
 } // namespace WebCore
+#endif // WebCore_html_track_VTTScanner_h

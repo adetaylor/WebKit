@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerClient_h
+#define WebCore_workers_service_ServiceWorkerClient_h
 
 #include "ContextDestructionObserver.h"
 #include "ExceptionOr.h"
@@ -73,3 +74,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerClient_h

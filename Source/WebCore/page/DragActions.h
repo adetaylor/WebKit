@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_page_DragActions_h
+#define WebCore_page_DragActions_h
 
 #include <limits.h>
 #include <wtf/Forward.h>
@@ -101,3 +102,4 @@ enum class DragStartRequestResult : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_DragActions_h

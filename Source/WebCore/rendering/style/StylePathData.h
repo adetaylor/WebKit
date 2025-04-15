@@ -28,7 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StylePathData_h
+#define WebCore_rendering_style_StylePathData_h
 
 #include "StylePathFunction.h"
 #include "WindRule.h"
@@ -72,3 +73,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StylePathData_h

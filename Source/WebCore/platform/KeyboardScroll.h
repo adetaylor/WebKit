@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_KeyboardScroll_h
+#define WebCore_platform_KeyboardScroll_h
 
 #include "FloatSize.h"
 #include "ScrollTypes.h"
@@ -85,3 +86,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const KeyboardScrol
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const KeyboardScrollParameters&);
 
 } // namespace WebCore
+#endif // WebCore_platform_KeyboardScroll_h

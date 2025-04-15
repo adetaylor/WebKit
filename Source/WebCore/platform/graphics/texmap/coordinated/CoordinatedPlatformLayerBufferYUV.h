@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferYUV_h
+#define WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferYUV_h
 
 #if USE(COORDINATED_GRAPHICS)
 #include "CoordinatedPlatformLayerBuffer.h"
@@ -57,3 +58,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_COORDINATED_PLATFORM_LAYER_BUFFER_TYPE(CoordinatedPlatformLayerBufferYUV, Type::YUV)
 
 #endif // USE(COORDINATED_GRAPHICS)
+#endif // WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferYUV_h

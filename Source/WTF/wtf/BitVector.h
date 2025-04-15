@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_BitVector_h
+#define WTF_wtf_BitVector_h
 
 #include <stdio.h>
 #include <wtf/Assertions.h>
@@ -563,3 +564,4 @@ template<> struct HashTraits<BitVector> : public CustomHashTraits<BitVector> { }
 using WTF::BitVector;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_BitVector_h

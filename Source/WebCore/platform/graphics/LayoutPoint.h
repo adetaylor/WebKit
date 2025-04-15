@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_LayoutPoint_h
+#define WebCore_platform_graphics_LayoutPoint_h
 
 #include "FloatPoint.h"
 #include "LayoutSize.h"
@@ -227,3 +228,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const LayoutPoint&)
 
 } // namespace WebCore
 
+#endif // WebCore_platform_graphics_LayoutPoint_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollView_h
+#define WebCore_platform_ScrollView_h
 
 #include "FloatRect.h"
 #include "IntRect.h"
@@ -581,3 +582,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ScrollView)
     static bool isType(const WebCore::Widget& widget) { return widget.isScrollView(); }
     static bool isType(const WebCore::ScrollableArea& area) { return area.isScrollView(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_ScrollView_h

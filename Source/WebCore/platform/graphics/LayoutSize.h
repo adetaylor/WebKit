@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_LayoutSize_h
+#define WebCore_platform_graphics_LayoutSize_h
 
 #include "FloatSize.h"
 #include "IntSize.h"
@@ -208,3 +209,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const LayoutSize&);
 
 } // namespace WebCore
 
+#endif // WebCore_platform_graphics_LayoutSize_h

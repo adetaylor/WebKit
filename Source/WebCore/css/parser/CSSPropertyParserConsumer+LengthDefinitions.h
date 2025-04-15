@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_LengthDefinitions_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_LengthDefinitions_h
 
 #include "CSSParserContext.h"
 #include "CSSProperty.h"
@@ -68,3 +69,4 @@ template<auto R, typename V> struct ConsumerDefinition<CSS::Length<R, V>> {
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_LengthDefinitions_h

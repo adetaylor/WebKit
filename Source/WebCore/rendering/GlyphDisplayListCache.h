@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_GlyphDisplayListCache_h
+#define WebCore_rendering_GlyphDisplayListCache_h
 
 #include "DisplayList.h"
 #include "FloatSizeHash.h"
@@ -146,3 +147,4 @@ namespace WTF {
 template<> struct DefaultHash<SingleThreadWeakRef<WebCore::GlyphDisplayListCacheEntry>> : WebCore::GlyphDisplayListCacheEntryHash { };
 
 } // namespace WTF
+#endif // WebCore_rendering_GlyphDisplayListCache_h

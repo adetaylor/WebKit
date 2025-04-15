@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGAnimatedDecoratedProperty_h
+#define WebCore_svg_properties_SVGAnimatedDecoratedProperty_h
 
 #include "SVGAnimatedProperty.h"
 #include "SVGDecoratedProperty.h"
@@ -155,3 +156,4 @@ protected:
 };
 
 }
+#endif // WebCore_svg_properties_SVGAnimatedDecoratedProperty_h

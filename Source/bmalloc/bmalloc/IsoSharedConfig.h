@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_IsoSharedConfig_h
+#define bmalloc_bmalloc_IsoSharedConfig_h
 
 #if !BUSE(TZONE)
 
@@ -40,3 +41,4 @@ static constexpr unsigned alignmentForIsoSharedAllocation = 16;
 
 #endif
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_IsoSharedConfig_h

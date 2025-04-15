@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_line_LineInlineHeaders_h
+#define WebCore_rendering_line_LineInlineHeaders_h
 
 #include "LineInfo.h"
 #include "RenderBoxInlines.h"
@@ -97,3 +98,4 @@ inline bool requiresLineBox(const LegacyInlineIterator& it, const LineInfo& line
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_line_LineInlineHeaders_h

@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_mac_UTIUtilities_h
+#define WebCore_platform_network_mac_UTIUtilities_h
 
 #import <wtf/Forward.h>
 
@@ -37,3 +38,4 @@ bool isDeclaredUTI(const String&);
 WEBCORE_EXPORT void setImageSourceAllowableTypes(const Vector<String>&);
 
 } // namespace WebCore
+#endif // WebCore_platform_network_mac_UTIUtilities_h

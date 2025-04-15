@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_Autofill_h
+#define WebCore_html_Autofill_h
 
 #include <wtf/text/AtomString.h>
 #include <wtf/text/WTFString.h>
@@ -125,3 +126,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_Autofill_h

@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestPromiseRejectionEvent_h
+#define WebCore_bindings_scripts_test_JS_JSTestPromiseRejectionEvent_h
 
 #include "JSDOMConvertDictionary.h"
 #include "JSDOMWrapper.h"
@@ -84,3 +85,4 @@ template<> ConversionResult<IDLDictionary<TestPromiseRejectionEvent::Init>> conv
 
 
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSTestPromiseRejectionEvent_h

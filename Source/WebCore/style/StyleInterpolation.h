@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleInterpolation_h
+#define WebCore_style_StyleInterpolation_h
 
 #include "CSSPropertyNames.h"
 #include "CompositeOperation.h"
@@ -86,3 +87,4 @@ bool requiresInterpolationForAccumulativeIteration(const AnimatableCSSProperty&,
 
 } // namespace Style::Interpolation
 } // namespace WebCore
+#endif // WebCore_style_StyleInterpolation_h

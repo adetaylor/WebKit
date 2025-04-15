@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_bridge_IdentifierRep_h
+#define WebCore_bridge_IdentifierRep_h
 
 #include <string.h>
 #include <wtf/Assertions.h>
@@ -68,3 +69,4 @@ private:
 
 } // namespace WebCore
 
+#endif // WebCore_bridge_IdentifierRep_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GraphicsLayer_h
+#define WebCore_platform_graphics_GraphicsLayer_h
 
 #include "Color.h"
 #include "EventRegion.h"
@@ -896,3 +897,4 @@ SPECIALIZE_TYPE_TRAITS_END()
 // Outside the WebCore namespace for ease of invocation from the debugger.
 void showGraphicsLayerTree(const WebCore::GraphicsLayer* layer);
 #endif
+#endif // WebCore_platform_graphics_GraphicsLayer_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_Lock_h
+#define WTF_wtf_Lock_h
 
 #include <mutex>
 #include <wtf/LockAlgorithm.h>
@@ -258,3 +259,4 @@ using WTF::Lock;
 #if ENABLE(UNFAIR_LOCK)
 using WTF::UnfairLock;
 #endif
+#endif // WTF_wtf_Lock_h

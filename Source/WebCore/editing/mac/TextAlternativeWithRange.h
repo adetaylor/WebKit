@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_mac_TextAlternativeWithRange_h
+#define WebCore_editing_mac_TextAlternativeWithRange_h
 
 #include "AlternativeTextClient.h"
 #include "PlatformTextAlternatives.h"
@@ -42,3 +43,4 @@ WEBCORE_EXPORT void collectDictationTextAlternatives(NSAttributedString *, Vecto
 #endif
 
 } // namespace WebCore
+#endif // WebCore_editing_mac_TextAlternativeWithRange_h

@@ -25,7 +25,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WorkQueue_h
+#define WTF_wtf_WorkQueue_h
 
 #include <wtf/Forward.h>
 #include <wtf/FunctionDispatcher.h>
@@ -146,3 +147,4 @@ inline void ConcurrentWorkQueue::deref() const
 
 using WTF::WorkQueue;
 using WTF::ConcurrentWorkQueue;
+#endif // WTF_wtf_WorkQueue_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_AudioTrackPrivateMediaStream_h
+#define WebCore_platform_mediastream_AudioTrackPrivateMediaStream_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -127,3 +128,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AudioTrackPrivateMediaStream)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(MEDIA_STREAM)
+#endif // WebCore_platform_mediastream_AudioTrackPrivateMediaStream_h

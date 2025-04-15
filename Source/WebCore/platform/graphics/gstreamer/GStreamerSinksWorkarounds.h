@@ -17,7 +17,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_GStreamerSinksWorkarounds_h
+#define WebCore_platform_graphics_gstreamer_GStreamerSinksWorkarounds_h
 
 #if USE(GSTREAMER)
 
@@ -55,3 +56,4 @@ struct WebKitAppSinkWithWorkaroundsClass {
 GType webkit_app_sink_with_workarounds_get_type();
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_GStreamerSinksWorkarounds_h

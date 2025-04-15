@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_identity_DigitalCredential_h
+#define WebCore_Modules_identity_DigitalCredential_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -77,3 +78,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BASIC_CREDENTIAL(DigitalCredential, BasicCredential::Type::DigitalCredential)
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_identity_DigitalCredential_h

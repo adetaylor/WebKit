@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerOptions_h
+#define WebCore_workers_WorkerOptions_h
 
 #include "FetchRequestCredentials.h"
 #include "WorkerType.h"
@@ -37,3 +38,4 @@ struct WorkerOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerOptions_h

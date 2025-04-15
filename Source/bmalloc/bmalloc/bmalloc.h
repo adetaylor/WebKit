@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_bmalloc_h
+#define bmalloc_bmalloc_bmalloc_h
 
 #include "BPlatform.h"
 
@@ -254,3 +255,4 @@ inline size_t mallocGoodSize(size_t size)
 } // namespace bmalloc
 
 BALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // bmalloc_bmalloc_bmalloc_h

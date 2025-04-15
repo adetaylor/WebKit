@@ -27,7 +27,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_FileChooser_h
+#define WebCore_platform_FileChooser_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/Vector.h>
@@ -100,3 +101,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_FileChooser_h

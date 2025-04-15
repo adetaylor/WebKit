@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_WebGL2RenderingContext_h
+#define WebCore_html_canvas_WebGL2RenderingContext_h
 
 #if ENABLE(WEBGL)
 
@@ -347,3 +348,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CANVASRENDERINGCONTEXT(WebCore::WebGL2RenderingContext, isWebGL2())
 
 #endif // WEBGL
+#endif // WebCore_html_canvas_WebGL2RenderingContext_h

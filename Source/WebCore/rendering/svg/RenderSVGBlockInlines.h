@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGBlockInlines_h
+#define WebCore_rendering_svg_RenderSVGBlockInlines_h
 
 #include "RenderSVGBlock.h"
 #include "SVGGraphicsElement.h"
@@ -42,3 +43,4 @@ inline Ref<SVGGraphicsElement> RenderSVGBlock::protectedGraphicsElement() const
 
 } // namespace WebCore
 
+#endif // WebCore_rendering_svg_RenderSVGBlockInlines_h

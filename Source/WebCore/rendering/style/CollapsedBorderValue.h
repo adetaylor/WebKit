@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_CollapsedBorderValue_h
+#define WebCore_rendering_style_CollapsedBorderValue_h
 
 #include "BorderValue.h"
 #include "LayoutUnit.h"
@@ -76,3 +77,4 @@ inline LayoutUnit CollapsedBorderValue::adjustedCollapsedBorderWidth(float borde
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_CollapsedBorderValue_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_shared_SharedWorkerScriptLoader_h
+#define WebCore_workers_shared_SharedWorkerScriptLoader_h
 
 #include "MessagePortIdentifier.h"
 #include "ResourceLoaderIdentifier.h"
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_shared_SharedWorkerScriptLoader_h

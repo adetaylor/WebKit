@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_ImageDataStorageFormat_h
+#define WebCore_html_ImageDataStorageFormat_h
 
 #include "PixelFormat.h"
 #include <JavaScriptCore/TypedArrayType.h>
@@ -60,3 +61,4 @@ constexpr std::optional<ImageDataStorageFormat> toImageDataStorageFormat(JSC::Ty
 }
 
 }
+#endif // WebCore_html_ImageDataStorageFormat_h

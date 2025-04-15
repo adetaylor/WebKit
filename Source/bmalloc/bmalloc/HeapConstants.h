@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_HeapConstants_h
+#define bmalloc_bmalloc_HeapConstants_h
 
 #include "LineMetadata.h"
 #include "Mutex.h"
@@ -68,3 +69,4 @@ BALLOW_DEPRECATED_DECLARATIONS_END
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_HeapConstants_h

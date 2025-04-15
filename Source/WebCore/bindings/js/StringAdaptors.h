@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_StringAdaptors_h
+#define WebCore_bindings_js_StringAdaptors_h
 
 #include <wtf/text/WTFString.h>
 
@@ -44,3 +45,4 @@ struct OwnedString {
 };
 
 }
+#endif // WebCore_bindings_js_StringAdaptors_h

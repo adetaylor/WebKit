@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_WebContentReader_h
+#define WebCore_editing_WebContentReader_h
 
 #include "DocumentFragment.h"
 #include "LocalFrame.h"
@@ -147,3 +148,4 @@ WEBCORE_EXPORT RefPtr<DocumentFragment> createFragment(LocalFrame&, NSAttributed
 #endif
 
 }
+#endif // WebCore_editing_WebContentReader_h

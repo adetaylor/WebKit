@@ -25,7 +25,8 @@
 
 // Implementation of Library Fundamentals v3's std::expected, as described here: http://wg21.link/p0323r4
 
-#pragma once
+#ifndef WTF_wtf_Expected_h
+#define WTF_wtf_Expected_h
 
 /*
     expected synopsis
@@ -399,3 +400,4 @@ template<typename T, typename E> void swap(expected<T, E>& x, expected<T, E>& y)
 
 __EXPECTED_INLINE_VARIABLE constexpr auto& unexpect = std::experimental::unexpect;
 template<class T, class E> using Expected = std::experimental::expected<T, E>;
+#endif // WTF_wtf_Expected_h

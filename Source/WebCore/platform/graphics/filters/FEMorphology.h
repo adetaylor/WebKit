@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FEMorphology_h
+#define WebCore_platform_graphics_filters_FEMorphology_h
 
 #include "FilterEffect.h"
 
@@ -70,3 +71,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(FEMorphology)
+#endif // WebCore_platform_graphics_filters_FEMorphology_h

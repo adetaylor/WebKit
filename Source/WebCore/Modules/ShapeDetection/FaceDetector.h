@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_FaceDetector_h
+#define WebCore_Modules_ShapeDetection_FaceDetector_h
 
 #include "ExceptionOr.h"
 #include "FaceDetectorInterface.h"
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_ShapeDetection_FaceDetector_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_image_decoders_png_PNGImageDecoder_h
+#define WebCore_platform_image_decoders_png_PNGImageDecoder_h
 
 #include "ScalableImageDecoder.h"
 #include <array>
@@ -135,3 +136,4 @@ namespace WebCore {
     };
 
 } // namespace WebCore
+#endif // WebCore_platform_image_decoders_png_PNGImageDecoder_h

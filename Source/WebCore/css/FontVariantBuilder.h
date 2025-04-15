@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_FontVariantBuilder_h
+#define WebCore_css_FontVariantBuilder_h
 
 namespace WebCore {
 
@@ -43,3 +44,4 @@ FontVariantEastAsianValues extractFontVariantEastAsian(const CSSValue&);
 FontVariantAlternates extractFontVariantAlternates(const CSSValue&, Style::BuilderState&);
 
 } // namespace WebCore
+#endif // WebCore_css_FontVariantBuilder_h

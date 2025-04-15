@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_adwaita_RenderThemeAdwaita_h
+#define WebCore_rendering_adwaita_RenderThemeAdwaita_h
 
 #if USE(THEME_ADWAITA)
 
@@ -103,3 +104,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(THEME_ADWAITA)
+#endif // WebCore_rendering_adwaita_RenderThemeAdwaita_h

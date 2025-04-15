@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_SVG_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_SVG_h
 
 #include <wtf/Forward.h>
 
@@ -48,3 +49,4 @@ RefPtr<CSSValue> consumeStrokeDasharray(CSSParserTokenRange&, CSS::PropertyParse
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_SVG_h

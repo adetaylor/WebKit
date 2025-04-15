@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_text_decoration_CSSTextShadowProperty_h
+#define WebCore_css_values_text_decoration_CSSTextShadowProperty_h
 
 #include "CSSTextShadow.h"
 
@@ -35,3 +36,4 @@ using TextShadowProperty = ListOrNone<CommaSeparatedVector<TextShadow>>;
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_text_decoration_CSSTextShadowProperty_h

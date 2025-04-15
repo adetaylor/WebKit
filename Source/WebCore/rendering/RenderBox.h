@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderBox_h
+#define WebCore_rendering_RenderBox_h
 
 #include "FontBaseline.h"
 #include "LocalFrameView.h"
@@ -856,3 +857,4 @@ LayoutUnit synthesizedBaseline(const RenderBox&, const RenderStyle& parentStyle,
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderBox, isRenderBox())
+#endif // WebCore_rendering_RenderBox_h

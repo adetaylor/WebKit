@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_SocketProvider_h
+#define WebCore_page_SocketProvider_h
 
 #include <wtf/NativePromise.h>
 #include <wtf/Ref.h>
@@ -49,3 +50,4 @@ public:
 };
 
 }
+#endif // WebCore_page_SocketProvider_h

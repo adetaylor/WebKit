@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_ScopedName_h
+#define WebCore_style_ScopedName_h
 
 #include "StyleScopeOrdinal.h"
 #include <wtf/text/AtomString.h>
@@ -47,3 +48,4 @@ inline WTF::TextStream& operator<<(WTF::TextStream& ts, ScopedName scopedName)
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_ScopedName_h

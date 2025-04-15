@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_ClassChangeInvalidation_h
+#define WebCore_style_ClassChangeInvalidation_h
 
 #include "Element.h"
 #include "StyleInvalidator.h"
@@ -72,3 +73,4 @@ inline ClassChangeInvalidation::~ClassChangeInvalidation()
 
 }
 }
+#endif // WebCore_style_ClassChangeInvalidation_h

@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_DynamicsCompressorNode_h
+#define WebCore_Modules_webaudio_DynamicsCompressorNode_h
 
 #include "AudioNode.h"
 #include "AudioParam.h"
@@ -81,3 +82,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_DynamicsCompressorNode_h

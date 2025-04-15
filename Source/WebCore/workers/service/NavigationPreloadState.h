@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_NavigationPreloadState_h
+#define WebCore_workers_service_NavigationPreloadState_h
 
 #include <optional>
 #include <wtf/text/WTFString.h>
@@ -41,3 +42,4 @@ struct NavigationPreloadState {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_NavigationPreloadState_h

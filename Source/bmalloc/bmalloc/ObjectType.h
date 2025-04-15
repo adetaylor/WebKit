@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_ObjectType_h
+#define bmalloc_bmalloc_ObjectType_h
 
 #include "BAssert.h"
 #include "HeapKind.h"
@@ -47,3 +48,4 @@ inline bool mightBeLarge(void* object)
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_ObjectType_h

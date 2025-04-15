@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_CallbackResult_h
+#define WebCore_dom_CallbackResult_h
 
 #include <wtf/Expected.h>
 
@@ -94,3 +95,4 @@ inline CallbackResultType CallbackResult<void>::type() const
 }
 
 }
+#endif // WebCore_dom_CallbackResult_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleSheetContentsCache_h
+#define WebCore_style_StyleSheetContentsCache_h
 
 #include "CSSParserContext.h"
 #include <wtf/HashMap.h>
@@ -57,3 +58,4 @@ private:
 
 }
 }
+#endif // WebCore_style_StyleSheetContentsCache_h

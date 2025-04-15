@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUPipelineErrorInit_h
+#define WebCore_Modules_WebGPU_GPUPipelineErrorInit_h
 
 #include "GPUPipelineErrorReason.h"
 
@@ -37,3 +38,4 @@ struct GPUPipelineErrorInit {
 
 } // namespace WebCore
 
+#endif // WebCore_Modules_WebGPU_GPUPipelineErrorInit_h

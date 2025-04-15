@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_IsoDirectoryInlines_h
+#define bmalloc_bmalloc_IsoDirectoryInlines_h
 
 #if !BUSE(TZONE)
 
@@ -161,3 +162,4 @@ void IsoDirectory<Config, passedNumPages>::forEachCommittedPage(const LockHolder
 
 #endif
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_IsoDirectoryInlines_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleCurrentColor_h
+#define WebCore_style_values_color_StyleCurrentColor_h
 
 #include "Color.h"
 #include <wtf/Forward.h>
@@ -57,3 +58,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const CurrentColor&);
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_color_StyleCurrentColor_h

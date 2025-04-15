@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GraphicsLayerFactory_h
+#define WebCore_platform_graphics_GraphicsLayerFactory_h
 
 #include "GraphicsLayer.h"
 #include <wtf/Forward.h>
@@ -40,3 +41,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_GraphicsLayerFactory_h

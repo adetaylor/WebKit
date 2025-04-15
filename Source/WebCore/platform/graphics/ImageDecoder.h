@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageDecoder_h
+#define WebCore_platform_graphics_ImageDecoder_h
 
 #include "DecodingOptions.h"
 #include "ImageOrientation.h"
@@ -124,3 +125,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageDecoder_h

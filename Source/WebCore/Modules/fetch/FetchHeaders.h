@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchHeaders_h
+#define WebCore_Modules_fetch_FetchHeaders_h
 
 #include "ExceptionOr.h"
 #include "FetchHeadersGuard.h"
@@ -132,3 +133,4 @@ inline void FetchHeaders::setGuard(Guard guard)
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_fetch_FetchHeaders_h

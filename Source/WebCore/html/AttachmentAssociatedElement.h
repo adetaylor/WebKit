@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_AttachmentAssociatedElement_h
+#define WebCore_html_AttachmentAssociatedElement_h
 
 #if ENABLE(ATTACHMENT_ELEMENT)
 
@@ -81,3 +82,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(ATTACHMENT_ELEMENT)
+#endif // WebCore_html_AttachmentAssociatedElement_h

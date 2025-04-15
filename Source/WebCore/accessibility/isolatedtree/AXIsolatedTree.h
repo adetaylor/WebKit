@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_isolatedtree_AXIsolatedTree_h
+#define WebCore_accessibility_isolatedtree_AXIsolatedTree_h
 
 #if ENABLE(ACCESSIBILITY_ISOLATED_TREE)
 
@@ -652,3 +653,4 @@ inline Vector<Ref<AXCoreObject>> AXIsolatedTree::objectsForIDs(const U& axIDs)
 } // namespace WebCore
 
 #endif
+#endif // WebCore_accessibility_isolatedtree_AXIsolatedTree_h

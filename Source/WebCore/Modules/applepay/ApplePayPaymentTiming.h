@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayPaymentTiming_h
+#define WebCore_Modules_applepay_ApplePayPaymentTiming_h
 
 #include <wtf/Forward.h>
 
@@ -44,3 +45,4 @@ enum class ApplePayPaymentTiming : uint8_t {
 
 } // namespace WebCore
 
+#endif // WebCore_Modules_applepay_ApplePayPaymentTiming_h

@@ -17,7 +17,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_platform_LengthSize_h
+#define WebCore_platform_LengthSize_h
 
 #include "CompositeOperation.h"
 #include "Length.h"
@@ -49,3 +50,4 @@ inline LengthSize blend(const LengthSize& from, const LengthSize& to, const Blen
 WTF::TextStream& operator<<(WTF::TextStream&, const LengthSize&);
 
 } // namespace WebCore
+#endif // WebCore_platform_LengthSize_h

@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceMarker_h
+#define WebCore_rendering_svg_RenderSVGResourceMarker_h
 
 #include "RenderSVGResourceContainer.h"
 #include "SVGMarkerTypes.h"
@@ -78,3 +79,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGResourceMarker, isRenderSVGResourceMarker())
+#endif // WebCore_rendering_svg_RenderSVGResourceMarker_h

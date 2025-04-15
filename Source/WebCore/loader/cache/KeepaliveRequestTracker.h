@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_KeepaliveRequestTracker_h
+#define WebCore_loader_cache_KeepaliveRequestTracker_h
 
 #include "CachedRawResourceClient.h"
 #include "CachedResource.h"
@@ -49,3 +50,4 @@ private:
 };
 
 }
+#endif // WebCore_loader_cache_KeepaliveRequestTracker_h

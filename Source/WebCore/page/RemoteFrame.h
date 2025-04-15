@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_RemoteFrame_h
+#define WebCore_page_RemoteFrame_h
 
 #include "Frame.h"
 #include "LayerHostingContextIdentifier.h"
@@ -111,3 +112,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::RemoteFrame)
 static bool isType(const WebCore::Frame& frame) { return frame.frameType() == WebCore::Frame::FrameType::Remote; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_page_RemoteFrame_h

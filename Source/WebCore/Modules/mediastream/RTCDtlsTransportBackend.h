@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCDtlsTransportBackend_h
+#define WebCore_Modules_mediastream_RTCDtlsTransportBackend_h
 
 #if ENABLE(WEB_RTC)
 
@@ -71,3 +72,4 @@ inline bool operator==(const RTCDtlsTransportBackend& a, const RTCDtlsTransportB
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_Modules_mediastream_RTCDtlsTransportBackend_h

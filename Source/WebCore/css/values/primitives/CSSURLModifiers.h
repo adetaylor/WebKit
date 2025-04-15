@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSURLModifiers_h
+#define WebCore_css_values_primitives_CSSURLModifiers_h
 
 #include "CSSValueTypes.h"
 #include "LoadedFromOpaqueSource.h"
@@ -91,3 +92,4 @@ void applyModifiersToLoaderOptions(const URLModifiers&, ResourceLoaderOptions&);
 } // namespace WebCore
 
 DEFINE_SPACE_SEPARATED_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::URLModifiers, 3)
+#endif // WebCore_css_values_primitives_CSSURLModifiers_h

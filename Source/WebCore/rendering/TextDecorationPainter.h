@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_TextDecorationPainter_h
+#define WebCore_rendering_TextDecorationPainter_h
 
 #include "Color.h"
 #include "FloatPoint.h"
@@ -91,3 +92,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_TextDecorationPainter_h

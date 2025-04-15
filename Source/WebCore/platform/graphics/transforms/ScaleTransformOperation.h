@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_ScaleTransformOperation_h
+#define WebCore_platform_graphics_transforms_ScaleTransformOperation_h
 
 #include "TransformOperation.h"
 #include <wtf/Ref.h>
@@ -81,3 +82,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_TRANSFORMOPERATION(WebCore::ScaleTransformOperation, WebCore::TransformOperation::isScaleTransformOperationType)
+#endif // WebCore_platform_graphics_transforms_ScaleTransformOperation_h

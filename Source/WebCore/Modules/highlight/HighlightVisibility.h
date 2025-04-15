@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_highlight_HighlightVisibility_h
+#define WebCore_Modules_highlight_HighlightVisibility_h
 
 namespace WebCore {
 
 enum class HighlightVisibility : bool { Hidden, Visible };
 
 }
+#endif // WebCore_Modules_highlight_HighlightVisibility_h

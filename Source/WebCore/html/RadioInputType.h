@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_RadioInputType_h
+#define WebCore_html_RadioInputType_h
 
 #include "BaseCheckableInputType.h"
 #include <wtf/TZoneMalloc.h>
@@ -72,3 +73,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(RadioInputType, Type::Radio)
+#endif // WebCore_html_RadioInputType_h

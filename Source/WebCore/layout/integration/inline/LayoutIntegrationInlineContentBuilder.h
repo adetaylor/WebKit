@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_LayoutIntegrationInlineContentBuilder_h
+#define WebCore_layout_integration_inline_LayoutIntegrationInlineContentBuilder_h
 
 #include "InlineDisplayContent.h"
 #include "InlineFormattingContext.h"
@@ -54,3 +55,4 @@ private:
 
 }
 }
+#endif // WebCore_layout_integration_inline_LayoutIntegrationInlineContentBuilder_h

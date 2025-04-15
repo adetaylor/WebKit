@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorNormalization_h
+#define WebCore_platform_graphics_ColorNormalization_h
 
 #include "ColorTypes.h"
 #include <wtf/MathExtras.h>
@@ -43,3 +44,4 @@ template<typename ColorType> inline ColorType makeColorTypeByNormalizingComponen
 }
 
 }
+#endif // WebCore_platform_graphics_ColorNormalization_h

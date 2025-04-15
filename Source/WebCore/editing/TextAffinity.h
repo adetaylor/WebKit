@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_TextAffinity_h
+#define WebCore_editing_TextAffinity_h
 
 namespace WebCore {
 
@@ -31,3 +32,4 @@ namespace WebCore {
 enum class Affinity : bool { Upstream, Downstream };
 
 } // namespace WebCore
+#endif // WebCore_editing_TextAffinity_h

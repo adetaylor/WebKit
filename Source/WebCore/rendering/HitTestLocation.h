@@ -19,7 +19,8 @@
  *
 */
 
-#pragma once
+#ifndef WebCore_rendering_HitTestLocation_h
+#define WebCore_rendering_HitTestLocation_h
 
 #include "FloatQuad.h"
 #include "RoundedRect.h"
@@ -77,3 +78,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_HitTestLocation_h

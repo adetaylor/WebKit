@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_CollectionTraversal_h
+#define WebCore_html_CollectionTraversal_h
 
 #include "CollectionType.h"
 #include "ElementChildIterator.h"
@@ -91,3 +92,4 @@ struct CollectionTraversal<CollectionTraversalType::CustomForwardOnly> {
 
 
 } // namespace WebCore
+#endif // WebCore_html_CollectionTraversal_h

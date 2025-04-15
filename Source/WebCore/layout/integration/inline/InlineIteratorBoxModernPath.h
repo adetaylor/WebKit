@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_InlineIteratorBoxModernPath_h
+#define WebCore_layout_integration_inline_InlineIteratorBoxModernPath_h
 
 #include "FontCascade.h"
 #include "LayoutElementBox.h"
@@ -343,3 +344,4 @@ private:
 }
 }
 
+#endif // WebCore_layout_integration_inline_InlineIteratorBoxModernPath_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FixedBitVector_h
+#define WTF_wtf_FixedBitVector_h
 
 #include <wtf/Assertions.h>
 #include <wtf/Atomics.h>
@@ -214,3 +215,4 @@ template<> struct HashTraits<FixedBitVector> : public CustomHashTraits<FixedBitV
 using WTF::FixedBitVector;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_FixedBitVector_h

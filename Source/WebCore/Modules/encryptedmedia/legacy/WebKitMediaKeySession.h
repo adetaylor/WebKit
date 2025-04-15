@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_encryptedmedia_legacy_WebKitMediaKeySession_h
+#define WebCore_Modules_encryptedmedia_legacy_WebKitMediaKeySession_h
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 
@@ -114,3 +115,4 @@ private:
 }
 
 #endif // ENABLE(LEGACY_ENCRYPTED_MEDIA)
+#endif // WebCore_Modules_encryptedmedia_legacy_WebKitMediaKeySession_h

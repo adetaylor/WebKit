@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUStencilOperation_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUStencilOperation_h
 
 #include <cstdint>
 
@@ -41,3 +42,4 @@ enum class StencilOperation : uint8_t {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUStencilOperation_h

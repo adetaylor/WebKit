@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_LegacyTileLayerPool_h
+#define WebCore_platform_ios_LegacyTileLayerPool_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -86,3 +87,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_platform_ios_LegacyTileLayerPool_h

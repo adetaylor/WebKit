@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_ShouldRequireExplicitConsentForGamepadAccess_h
+#define WebCore_platform_gamepad_ShouldRequireExplicitConsentForGamepadAccess_h
 
 #if PLATFORM(VISION) && ENABLE(GAMEPAD)
 
@@ -34,3 +35,4 @@ enum class ShouldRequireExplicitConsentForGamepadAccess : bool { No, Yes };
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_gamepad_ShouldRequireExplicitConsentForGamepadAccess_h

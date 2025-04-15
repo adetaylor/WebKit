@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementTraversal_h
+#define WebCore_dom_ElementTraversal_h
 
 #include "Element.h"
 #include "NodeTraversal.h"
@@ -341,3 +342,4 @@ inline Element* ElementTraversal::pseudoAwarePreviousSibling(const Node& current
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_ElementTraversal_h

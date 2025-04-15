@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutIterator_h
+#define WebCore_layout_layouttree_LayoutIterator_h
 
 #include "LayoutInitialContainingBlock.h"
 
@@ -230,3 +231,4 @@ inline bool LayoutIterator<T>::operator==(const LayoutIterator& other) const
 }
 #include "LayoutChildIterator.h"
 
+#endif // WebCore_layout_layouttree_LayoutIterator_h

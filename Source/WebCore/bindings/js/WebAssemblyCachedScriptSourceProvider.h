@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_WebAssemblyCachedScriptSourceProvider_h
+#define WebCore_bindings_js_WebAssemblyCachedScriptSourceProvider_h
 
 #if ENABLE(WEBASSEMBLY)
 
@@ -94,3 +95,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEBASSEMBLY)
+#endif // WebCore_bindings_js_WebAssemblyCachedScriptSourceProvider_h

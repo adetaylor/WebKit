@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_query_MediaQueryEvaluator_h
+#define WebCore_css_query_MediaQueryEvaluator_h
 
 #include "GenericMediaQueryEvaluator.h"
 #include "MediaQuery.h"
@@ -56,3 +57,4 @@ private:
 
 }
 }
+#endif // WebCore_css_query_MediaQueryEvaluator_h

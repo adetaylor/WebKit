@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_DiagnosticLoggingClient_h
+#define WebCore_page_DiagnosticLoggingClient_h
 
 #include "DiagnosticLoggingDomain.h"
 #include <wtf/CheckedPtr.h>
@@ -74,3 +75,4 @@ inline bool DiagnosticLoggingClient::shouldLogAfterSampling(ShouldSample shouldS
 }
 
 } // namespace WebCore
+#endif // WebCore_page_DiagnosticLoggingClient_h

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorFrontendHost_h
+#define WebCore_inspector_InspectorFrontendHost_h
 
 #include "ContextMenu.h"
 #include "ContextMenuProvider.h"
@@ -194,3 +195,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorFrontendHost_h

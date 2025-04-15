@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMWindowCustom_h
+#define WebCore_bindings_js_JSDOMWindowCustom_h
 
 #include "JSDOMWindow.h"
 
@@ -57,3 +58,4 @@ inline JSDOMWindow* mainWorldGlobalObject(LocalFrame* frame)
 JSC_DECLARE_CUSTOM_GETTER(showModalDialogGetter);
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMWindowCustom_h

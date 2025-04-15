@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_encryptedmedia_MediaKeySystemAccess_h
+#define WebCore_Modules_encryptedmedia_MediaKeySystemAccess_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -66,3 +67,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(ENCRYPTED_MEDIA)
+#endif // WebCore_Modules_encryptedmedia_MediaKeySystemAccess_h

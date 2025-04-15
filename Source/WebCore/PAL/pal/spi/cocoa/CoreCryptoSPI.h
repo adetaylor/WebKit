@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_CoreCryptoSPI_h
+#define WebCore_PAL_pal_spi_cocoa_CoreCryptoSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -123,3 +124,4 @@ int cced25519_verify(const struct ccdigest_info *, size_t len, const void *cc_si
 WTF_EXTERN_C_END
 
 WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_END
+#endif // WebCore_PAL_pal_spi_cocoa_CoreCryptoSPI_h

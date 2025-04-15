@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderBlockFlowInlines_h
+#define WebCore_rendering_RenderBlockFlowInlines_h
 
 #include "CaretRectComputation.h"
 #include "RenderBlockFlow.h"
@@ -35,3 +36,4 @@ inline LayoutUnit RenderBlockFlow::endPaddingWidthForCaret() const
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderBlockFlowInlines_h

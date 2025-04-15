@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_geolocation_GeolocationController_h
+#define WebCore_Modules_geolocation_GeolocationController_h
 
 #if ENABLE(GEOLOCATION)
 
@@ -97,3 +98,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(GEOLOCATION)
+#endif // WebCore_Modules_geolocation_GeolocationController_h

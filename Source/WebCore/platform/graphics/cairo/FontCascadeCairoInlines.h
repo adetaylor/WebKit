@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cairo_FontCascadeCairoInlines_h
+#define WebCore_platform_graphics_cairo_FontCascadeCairoInlines_h
 
 #include "FontCascade.h"
 
@@ -40,3 +41,4 @@ inline constexpr bool FontCascade::canExpandAroundIdeographsInComplexText()
 }
 
 }
+#endif // WebCore_platform_graphics_cairo_FontCascadeCairoInlines_h

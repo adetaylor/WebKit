@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_Logging_h
+#define WebCore_platform_Logging_h
 
 #include <wtf/Assertions.h>
 #include <wtf/Forward.h>
@@ -207,3 +208,4 @@ WEBCORE_LOG_CHANNELS(DECLARE_LOG_CHANNEL)
 #endif // !LOG_DISABLED || !RELEASE_LOG_DISABLED
 
 } // namespace WebCore
+#endif // WebCore_platform_Logging_h

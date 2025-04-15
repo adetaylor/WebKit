@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGGradientElement_h
+#define WebCore_svg_SVGGradientElement_h
 
 #include "Gradient.h"
 #include "SVGElement.h"
@@ -123,3 +124,4 @@ static bool isType(const WebCore::Node& node)
     return svgElement && isType(*svgElement);
 }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_svg_SVGGradientElement_h

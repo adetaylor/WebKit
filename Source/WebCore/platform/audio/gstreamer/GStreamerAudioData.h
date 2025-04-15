@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_gstreamer_GStreamerAudioData_h
+#define WebCore_platform_audio_gstreamer_GStreamerAudioData_h
 
 #if USE(GSTREAMER)
 
@@ -68,3 +69,4 @@ static bool isType(const WebCore::PlatformAudioData& data) { return data.kind() 
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_audio_gstreamer_GStreamerAudioData_h

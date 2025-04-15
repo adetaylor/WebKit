@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PasteboardItemInfo_h
+#define WebCore_platform_PasteboardItemInfo_h
 
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
@@ -98,3 +99,4 @@ struct PasteboardItemInfo {
 };
 
 }
+#endif // WebCore_platform_PasteboardItemInfo_h

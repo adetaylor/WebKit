@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_url_pattern_URLPattern_h
+#define WebCore_Modules_url_pattern_URLPattern_h
 
 #include "ExceptionOr.h"
 #include "URLPatternComponent.h"
@@ -89,3 +90,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_url_pattern_URLPattern_h

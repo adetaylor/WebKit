@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_ScrollAnimationRubberBand_h
+#define WebCore_platform_mac_ScrollAnimationRubberBand_h
 
 #include "ScrollAnimation.h"
 #include <wtf/TZoneMalloc.h>
@@ -58,3 +59,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_SCROLL_ANIMATION(WebCore::ScrollAnimationRubberBand, type() == WebCore::ScrollAnimation::Type::RubberBand)
 
 #endif // HAVE(RUBBER_BANDING)
+#endif // WebCore_platform_mac_ScrollAnimationRubberBand_h

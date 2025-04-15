@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_worker_WorkerCanvasAgent_h
+#define WebCore_inspector_agents_worker_WorkerCanvasAgent_h
 
 #include "InspectorCanvasAgent.h"
 #include <wtf/TZoneMallocInlines.h>
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_worker_WorkerCanvasAgent_h

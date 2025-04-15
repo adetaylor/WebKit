@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_SpaceSplitString_h
+#define WebCore_dom_SpaceSplitString_h
 
 #include <algorithm>
 #include <wtf/MainThread.h>
@@ -144,3 +145,4 @@ inline SpaceSplitString::SpaceSplitString(const AtomString& string, ShouldFoldCa
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_SpaceSplitString_h

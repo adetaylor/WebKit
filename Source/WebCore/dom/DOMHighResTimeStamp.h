@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMHighResTimeStamp_h
+#define WebCore_dom_DOMHighResTimeStamp_h
 
 namespace WebCore {
 
 using DOMHighResTimeStamp = double;
 
 }
+#endif // WebCore_dom_DOMHighResTimeStamp_h

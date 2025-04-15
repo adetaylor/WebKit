@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLTextFormControlElement_h
+#define WebCore_html_HTMLTextFormControlElement_h
 
 #include "HTMLFormControlElement.h"
 #include "PointerEventTypeNames.h"
@@ -209,3 +210,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::HTMLTextFormControlElement)
         return node && isType(*node);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_HTMLTextFormControlElement_h

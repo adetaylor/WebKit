@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AXCoreObject_h
+#define WebCore_accessibility_AXCoreObject_h
 
 #include "AXTextRun.h"
 #include "CharacterRange.h"
@@ -1899,3 +1900,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, AXRelation);
 WTF::TextStream& operator<<(WTF::TextStream&, const TextUnderElementMode&);
 
 } // namespace WebCore
+#endif // WebCore_accessibility_AXCoreObject_h

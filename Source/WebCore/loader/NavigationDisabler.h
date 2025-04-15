@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_NavigationDisabler_h
+#define WebCore_loader_NavigationDisabler_h
 
 #include "LocalFrame.h"
 
@@ -69,3 +70,4 @@ private:
 };
 
 }
+#endif // WebCore_loader_NavigationDisabler_h

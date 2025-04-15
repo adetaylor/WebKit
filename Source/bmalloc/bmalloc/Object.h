@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Object_h
+#define bmalloc_bmalloc_Object_h
 
 #include <cstddef>
 
@@ -80,3 +81,4 @@ inline bool Object::operator<=(const Object& other)
 }; // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_Object_h

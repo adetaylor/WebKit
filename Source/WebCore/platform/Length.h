@@ -20,7 +20,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_platform_Length_h
+#define WebCore_platform_Length_h
 
 #include "AnimationUtilities.h"
 #include <string.h>
@@ -620,3 +621,4 @@ inline bool lengthsRequireInterpolationForAccumulativeIteration(const Length& fr
 WTF::TextStream& operator<<(WTF::TextStream&, Length);
 
 } // namespace WebCore
+#endif // WebCore_platform_Length_h

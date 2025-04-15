@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_image_decoders_jpegxl_JPEGXLImageDecoder_h
+#define WebCore_platform_image_decoders_jpegxl_JPEGXLImageDecoder_h
 
 #include "ScalableImageDecoder.h"
 
@@ -117,3 +118,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(JPEGXL)
+#endif // WebCore_platform_image_decoders_jpegxl_JPEGXLImageDecoder_h

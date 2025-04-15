@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageAdapter_h
+#define WebCore_platform_graphics_ImageAdapter_h
 
 #if USE(APPKIT)
 OBJC_CLASS NSImage;
@@ -130,3 +131,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageAdapter_h

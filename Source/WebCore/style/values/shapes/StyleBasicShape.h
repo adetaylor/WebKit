@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_shapes_StyleBasicShape_h
+#define WebCore_style_values_shapes_StyleBasicShape_h
 
 #include "CSSBasicShape.h"
 #include "StyleCircleFunction.h"
@@ -74,3 +75,4 @@ template<> struct WindRuleComputation<BasicShape> { WebCore::WindRule operator()
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_shapes_StyleBasicShape_h

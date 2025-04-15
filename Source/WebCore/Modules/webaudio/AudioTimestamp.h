@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioTimestamp_h
+#define WebCore_Modules_webaudio_AudioTimestamp_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -38,3 +39,4 @@ struct AudioTimestamp {
 } // namespace WebCore
 
 #endif // PLATFORM(WEB_AUDIO)
+#endif // WebCore_Modules_webaudio_AudioTimestamp_h

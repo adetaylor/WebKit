@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_Cursor_h
+#define WebCore_platform_Cursor_h
 
 #include "Image.h"
 #include "IntPoint.h"
@@ -281,3 +282,4 @@ inline auto Cursor::ipcData() const -> IPCData
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_Cursor_h

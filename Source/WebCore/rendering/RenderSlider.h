@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderSlider_h
+#define WebCore_rendering_RenderSlider_h
 
 #include "RenderFlexibleBox.h"
 
@@ -55,3 +56,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSlider, isRenderSlider())
+#endif // WebCore_rendering_RenderSlider_h

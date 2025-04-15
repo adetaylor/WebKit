@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringBuilderInternals_h
+#define WTF_wtf_text_StringBuilderInternals_h
 
 #include <wtf/text/StringBuilder.h>
 
@@ -92,3 +93,4 @@ template<typename CharacterType> std::span<CharacterType> StringBuilder::extendB
 }
 
 } // namespace WTF
+#endif // WTF_wtf_text_StringBuilderInternals_h

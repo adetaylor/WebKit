@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_CORPViolationReportBody_h
+#define WebCore_loader_CORPViolationReportBody_h
 
 #include "CrossOriginEmbedderPolicy.h"
 #include "FetchOptions.h"
@@ -59,3 +60,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CORPViolationReportBody)
     static bool isType(const WebCore::ReportBody& reportBody) { return reportBody.reportBodyType() == WebCore::ViolationReportType::CORPViolation; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_loader_CORPViolationReportBody_h

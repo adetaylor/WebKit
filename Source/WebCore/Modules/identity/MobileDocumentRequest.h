@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_identity_MobileDocumentRequest_h
+#define WebCore_Modules_identity_MobileDocumentRequest_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ struct MobileDocumentRequest {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_identity_MobileDocumentRequest_h

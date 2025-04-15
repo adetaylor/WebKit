@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSFontFaceDescriptors_h
+#define WebCore_css_CSSFontFaceDescriptors_h
 
 #include "PropertySetCSSDescriptors.h"
 
@@ -71,3 +72,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_STYLE_DECLARATION(CSSFontFaceDescriptors, StyleDeclarationType::FontFace)
+#endif // WebCore_css_CSSFontFaceDescriptors_h

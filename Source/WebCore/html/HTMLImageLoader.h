@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLImageLoader_h
+#define WebCore_html_HTMLImageLoader_h
 
 #include "ImageLoader.h"
 
@@ -40,3 +41,4 @@ public:
 };
 
 }
+#endif // WebCore_html_HTMLImageLoader_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ComposedCharacterClusterTextIterator_h
+#define WebCore_platform_graphics_ComposedCharacterClusterTextIterator_h
 
 #include <unicode/utf16.h>
 #include <wtf/text/TextBreakIterator.h>
@@ -88,3 +89,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ComposedCharacterClusterTextIterator_h

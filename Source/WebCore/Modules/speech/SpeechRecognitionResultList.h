@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognitionResultList_h
+#define WebCore_Modules_speech_SpeechRecognitionResultList_h
 
 #include "SpeechRecognitionResult.h"
 #include <wtf/RefCounted.h>
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_speech_SpeechRecognitionResultList_h

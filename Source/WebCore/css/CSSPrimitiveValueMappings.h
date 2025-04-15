@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSPrimitiveValueMappings_h
+#define WebCore_css_CSSPrimitiveValueMappings_h
 
 #include "AnchorPositionEvaluator.h"
 #include "CSSCalcSymbolTable.h"
@@ -2696,3 +2697,4 @@ DEFINE_TO_FROM_CSS_VALUE_ID_FUNCTIONS
 #undef DEFINE_TO_FROM_CSS_VALUE_ID_FUNCTIONS
 
 }
+#endif // WebCore_css_CSSPrimitiveValueMappings_h

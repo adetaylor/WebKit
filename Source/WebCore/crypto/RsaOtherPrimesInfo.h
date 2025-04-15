@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_RsaOtherPrimesInfo_h
+#define WebCore_crypto_RsaOtherPrimesInfo_h
 
 #include <wtf/CrossThreadCopier.h>
 #include <wtf/text/WTFString.h>
@@ -45,3 +46,4 @@ struct RsaOtherPrimesInfo {
 };
 
 } // namespace WebCore
+#endif // WebCore_crypto_RsaOtherPrimesInfo_h

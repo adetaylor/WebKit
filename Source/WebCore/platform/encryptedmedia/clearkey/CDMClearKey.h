@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_encryptedmedia_clearkey_CDMClearKey_h
+#define WebCore_platform_encryptedmedia_clearkey_CDMClearKey_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -132,3 +133,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CDM_INSTANCE(WebCore::CDMInstanceClearKey, WebCore::CDMInstance::ImplementationType::ClearKey);
 
 #endif // ENABLE(ENCRYPTED_MEDIA)
+#endif // WebCore_platform_encryptedmedia_clearkey_CDMClearKey_h

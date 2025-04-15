@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutChildIterator_h
+#define WebCore_layout_layouttree_LayoutChildIterator_h
 
 #include "LayoutIterator.h"
 
@@ -107,3 +108,4 @@ inline LayoutChildIteratorAdapter<T> childrenOfType(const ElementBox& parent)
 
 }
 }
+#endif // WebCore_layout_layouttree_LayoutChildIterator_h

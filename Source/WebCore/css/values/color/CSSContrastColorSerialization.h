@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSContrastColorSerialization_h
+#define WebCore_css_values_color_CSSContrastColorSerialization_h
 
 #include "CSSValueKeywords.h"
 #include <wtf/text/StringBuilder.h>
@@ -40,3 +41,4 @@ template<typename ContrastColorType> void serializationForCSSContrastColor(Strin
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSContrastColorSerialization_h

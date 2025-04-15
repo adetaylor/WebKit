@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_CountingLock_h
+#define WTF_wtf_CountingLock_h
 
 #include <wtf/DataLog.h>
 #include <wtf/LockAlgorithm.h>
@@ -267,3 +268,4 @@ private:
 
 using WTF::CountingLock;
 
+#endif // WTF_wtf_CountingLock_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_URLParser_h
+#define WTF_wtf_URLParser_h
 
 #include <unicode/uidna.h>
 #include <wtf/Expected.h>
@@ -161,3 +162,4 @@ private:
 WTF_EXPORT_PRIVATE bool isForbiddenHostCodePoint(UChar);
 
 }
+#endif // WTF_wtf_URLParser_h

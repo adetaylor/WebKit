@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_OptionalEffectTiming_h
+#define WebCore_animation_OptionalEffectTiming_h
 
 #include "FillMode.h"
 #include "PlaybackDirection.h"
@@ -44,3 +45,4 @@ struct OptionalEffectTiming {
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_OptionalEffectTiming_h

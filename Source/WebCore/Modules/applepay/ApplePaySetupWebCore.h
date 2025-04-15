@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePaySetupWebCore_h
+#define WebCore_Modules_applepay_ApplePaySetupWebCore_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -69,3 +70,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY)
+#endif // WebCore_Modules_applepay_ApplePaySetupWebCore_h

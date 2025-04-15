@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_client_TransactionOperation_h
+#define WebCore_Modules_indexeddb_client_TransactionOperation_h
 
 #include "IDBIndexIdentifier.h"
 #include "IDBObjectStoreIdentifier.h"
@@ -186,3 +187,4 @@ private:
 
 } // namespace IDBClient
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_client_TransactionOperation_h

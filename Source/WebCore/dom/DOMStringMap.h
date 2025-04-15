@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMStringMap_h
+#define WebCore_dom_DOMStringMap_h
 
 #include "DatasetDOMStringMap.h"
 
@@ -32,3 +33,4 @@ namespace WebCore {
 using DOMStringMap = DatasetDOMStringMap;
 
 } // namespace WebCore
+#endif // WebCore_dom_DOMStringMap_h

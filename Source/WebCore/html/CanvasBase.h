@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_CanvasBase_h
+#define WebCore_html_CanvasBase_h
 
 #include "CSSParserContext.h"
 #include "CanvasNoiseInjection.h"
@@ -207,3 +208,4 @@ inline const CSSParserContext& CanvasBase::cssParserContext() const
 SPECIALIZE_TYPE_TRAITS_BEGIN(ToValueTypeName) \
 static bool isType(const WebCore::CanvasBase& canvas) { return canvas.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_CanvasBase_h

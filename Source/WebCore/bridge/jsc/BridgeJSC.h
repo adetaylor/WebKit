@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bridge_jsc_BridgeJSC_h
+#define WebCore_bridge_jsc_BridgeJSC_h
 
 #include <JavaScriptCore/JSString.h>
 #include <wtf/Noncopyable.h>
@@ -147,3 +148,4 @@ const char* signatureForParameters(const ArgList&);
 } // namespace Bindings
 
 } // namespace JSC
+#endif // WebCore_bridge_jsc_BridgeJSC_h

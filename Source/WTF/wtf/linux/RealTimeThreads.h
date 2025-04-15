@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_linux_RealTimeThreads_h
+#define WTF_wtf_linux_RealTimeThreads_h
 
 #include <wtf/FastMalloc.h>
 #include <wtf/ThreadGroup.h>
@@ -70,3 +71,4 @@ private:
 } // namespace WTF
 
 using WTF::RealTimeThreads;
+#endif // WTF_wtf_linux_RealTimeThreads_h

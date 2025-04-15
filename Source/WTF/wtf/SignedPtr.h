@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SignedPtr_h
+#define WTF_wtf_SignedPtr_h
 
 #include <cstdint>
 #include <utility>
@@ -144,3 +145,4 @@ struct SignedPtrTraits {
 
 using WTF::SignedPtrTraits;
 
+#endif // WTF_wtf_SignedPtr_h

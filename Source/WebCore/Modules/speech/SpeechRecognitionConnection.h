@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognitionConnection_h
+#define WebCore_Modules_speech_SpeechRecognitionConnection_h
 
 #include "FrameIdentifier.h"
 #include "SpeechRecognitionConnectionClientIdentifier.h"
@@ -47,3 +48,4 @@ public:
 
 } // namespace WebCore
 
+#endif // WebCore_Modules_speech_SpeechRecognitionConnection_h

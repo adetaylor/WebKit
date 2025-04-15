@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_reporting_ReportingObserverCallback_h
+#define WebCore_Modules_reporting_ReportingObserverCallback_h
 
 #include "ActiveDOMCallback.h"
 #include "CallbackResult.h"
@@ -46,3 +47,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_reporting_ReportingObserverCallback_h

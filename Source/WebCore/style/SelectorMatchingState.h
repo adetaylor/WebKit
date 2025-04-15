@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_SelectorMatchingState_h
+#define WebCore_style_SelectorMatchingState_h
 
 #include "ContainerQuery.h"
 #include "ContainerQueryEvaluator.h"
@@ -57,3 +58,4 @@ inline HasPseudoClassFilterKey makeHasPseudoClassFilterKey(const Element& elemen
 }
 
 }
+#endif // WebCore_style_SelectorMatchingState_h

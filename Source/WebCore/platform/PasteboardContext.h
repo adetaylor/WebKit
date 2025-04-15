@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PasteboardContext_h
+#define WebCore_platform_PasteboardContext_h
 
 #include <wtf/TZoneMallocInlines.h>
 
@@ -41,3 +42,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_PasteboardContext_h

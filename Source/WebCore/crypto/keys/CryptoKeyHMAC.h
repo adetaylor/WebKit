@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_keys_CryptoKeyHMAC_h
+#define WebCore_crypto_keys_CryptoKeyHMAC_h
 
 #include "CryptoKey.h"
 #include "ExceptionOr.h"
@@ -71,3 +72,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_KEY(CryptoKeyHMAC, CryptoKeyClass::HMAC)
+#endif // WebCore_crypto_keys_CryptoKeyHMAC_h

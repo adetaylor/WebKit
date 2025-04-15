@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_TreeWalker_h
+#define WebCore_dom_TreeWalker_h
 
 #include "ExceptionOr.h"
 #include "NodeFilter.h"
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_TreeWalker_h

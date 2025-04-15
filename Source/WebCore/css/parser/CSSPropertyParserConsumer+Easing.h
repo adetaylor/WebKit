@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_Easing_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_Easing_h
 
 #include "CSSEasingFunction.h"
 
@@ -57,3 +58,4 @@ RefPtr<TimingFunction> parseEasingFunctionDeprecated(const String&, const CSSPar
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_Easing_h

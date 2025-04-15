@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_GraphicsContextGLTextureMapperANGLE_h
+#define WebCore_platform_graphics_texmap_GraphicsContextGLTextureMapperANGLE_h
 
 #if ENABLE(WEBGL) && USE(TEXTURE_MAPPER)
 
@@ -95,3 +96,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEBGL) && USE(TEXTURE_MAPPER)
+#endif // WebCore_platform_graphics_texmap_GraphicsContextGLTextureMapperANGLE_h

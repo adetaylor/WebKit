@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_cocoa_AutofillElements_h
+#define WebCore_editing_cocoa_AutofillElements_h
 
 #include "HTMLInputElement.h"
 #include <wtf/TZoneMalloc.h>
@@ -45,3 +46,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_cocoa_AutofillElements_h

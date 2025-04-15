@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingConstraints_h
+#define WebCore_page_scrolling_ScrollingConstraints_h
 
 #include "FloatRect.h"
 #include "ScrollTypes.h"
@@ -211,3 +212,4 @@ SPECIALIZE_TYPE_TRAITS_END()
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StickyPositionViewportConstraints)
     static bool isType(const WebCore::ViewportConstraints& constraints) { return constraints.constraintType() == WebCore::ViewportConstraints::ConstraintType::StickyPositionConstraint; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_page_scrolling_ScrollingConstraints_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_EventInit_h
+#define WebCore_dom_EventInit_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ struct EventInit {
 };
 
 }
+#endif // WebCore_dom_EventInit_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WeakListHashSet_h
+#define WTF_wtf_WeakListHashSet_h
 
 #include <wtf/ListHashSet.h>
 #include <wtf/WeakPtr.h>
@@ -394,3 +395,4 @@ inline auto copyToVector(const WeakListHashSet<T, WeakMapImpl>& collection) -> V
 }
 
 using WTF::WeakListHashSet;
+#endif // WTF_wtf_WeakListHashSet_h

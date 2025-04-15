@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_IOSurface_h
+#define WebCore_platform_graphics_cocoa_IOSurface_h
 
 #if HAVE(IOSURFACE)
 
@@ -260,3 +261,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, WebCore::IOSurface:
 
 #endif // HAVE(IOSURFACE)
 
+#endif // WebCore_platform_graphics_cocoa_IOSurface_h

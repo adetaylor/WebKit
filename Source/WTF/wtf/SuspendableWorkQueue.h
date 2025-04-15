@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SuspendableWorkQueue_h
+#define WTF_wtf_SuspendableWorkQueue_h
 
 #include <wtf/CompletionHandler.h>
 #include <wtf/Condition.h>
@@ -67,3 +68,4 @@ private:
 } // namespace WTF
 
 using WTF::SuspendableWorkQueue;
+#endif // WTF_wtf_SuspendableWorkQueue_h

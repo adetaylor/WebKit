@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_LayoutIntegrationUtils_h
+#define WebCore_layout_integration_LayoutIntegrationUtils_h
 
 #include "LayoutUnit.h"
 
@@ -51,3 +52,4 @@ private:
 }
 }
 
+#endif // WebCore_layout_integration_LayoutIntegrationUtils_h

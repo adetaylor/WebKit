@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_VideoLayerManager_h
+#define WebCore_platform_graphics_VideoLayerManager_h
 
 #include "NativeImage.h"
 #include "PlatformLayer.h"
@@ -55,3 +56,4 @@ public:
 };
 
 }
+#endif // WebCore_platform_graphics_VideoLayerManager_h

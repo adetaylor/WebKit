@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_crypto_parameters_CryptoAlgorithmX25519Params_h
+#define WebCore_crypto_parameters_CryptoAlgorithmX25519Params_h
 
 #include "CryptoAlgorithmParameters.h"
 #include "CryptoKey.h"
@@ -37,3 +38,4 @@ public:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_ALGORITHM_PARAMETERS(X25519Params)
+#endif // WebCore_crypto_parameters_CryptoAlgorithmX25519Params_h

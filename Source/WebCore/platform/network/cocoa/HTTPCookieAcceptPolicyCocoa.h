@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_cocoa_HTTPCookieAcceptPolicyCocoa_h
+#define WebCore_platform_network_cocoa_HTTPCookieAcceptPolicyCocoa_h
 
 #include "HTTPCookieAcceptPolicy.h"
 #include <pal/spi/cf/CFNetworkSPI.h>
@@ -64,3 +65,4 @@ inline NSHTTPCookieAcceptPolicy toNSHTTPCookieAcceptPolicy(HTTPCookieAcceptPolic
 }
 
 }
+#endif // WebCore_platform_network_cocoa_HTTPCookieAcceptPolicyCocoa_h

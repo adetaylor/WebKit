@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cairo_CairoPaintingContext_h
+#define WebCore_platform_graphics_cairo_CairoPaintingContext_h
 
 #if USE(CAIRO)
 #include "CairoPaintingOperation.h"
@@ -89,3 +90,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(CAIRO)
+#endif // WebCore_platform_graphics_cairo_CairoPaintingContext_h

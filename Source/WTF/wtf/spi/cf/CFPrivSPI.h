@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cf_CFPrivSPI_h
+#define WTF_wtf_spi_cf_CFPrivSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -40,3 +41,4 @@ extern "C" {
 CF_EXPORT const char *_CFProcessPath(void);
 
 }
+#endif // WTF_wtf_spi_cf_CFPrivSPI_h

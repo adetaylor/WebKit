@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_notifications_NotificationPayload_h
+#define WebCore_Modules_notifications_NotificationPayload_h
 
 #include "ExceptionOr.h"
 #include "NotificationOptionsPayload.h"
@@ -71,3 +72,4 @@ struct NotificationPayload {
 
 } // namespace WebCore
 
+#endif // WebCore_Modules_notifications_NotificationPayload_h

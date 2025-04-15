@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSTrackCustom_h
+#define WebCore_bindings_js_JSTrackCustom_h
 
 #if ENABLE(VIDEO)
 
@@ -39,3 +40,4 @@ JSC::JSValue toJS(JSC::JSGlobalObject*, JSDOMGlobalObject*, TrackBase&);
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_bindings_js_JSTrackCustom_h

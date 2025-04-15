@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_ReferenceFilterOperation_h
+#define WebCore_rendering_style_ReferenceFilterOperation_h
 
 #include "FilterOperation.h"
 #include "StyleURL.h"
@@ -82,3 +83,4 @@ private:
 } // WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTEROPERATION(Style::ReferenceFilterOperation, type() == WebCore::FilterOperation::Type::Reference)
+#endif // WebCore_rendering_style_ReferenceFilterOperation_h

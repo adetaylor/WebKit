@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_animation_AnimationUtilities_h
+#define WebCore_platform_animation_AnimationUtilities_h
 
 #include "Color.h"
 #include "CompositeOperation.h"
@@ -140,3 +141,4 @@ inline LayoutPoint blend(const LayoutPoint& from, const LayoutPoint& to, const B
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_animation_AnimationUtilities_h

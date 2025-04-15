@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCRtpRtxParameters_h
+#define WebCore_Modules_mediastream_RTCRtpRtxParameters_h
 
 #if ENABLE(WEB_RTC)
 
@@ -36,3 +37,4 @@ struct RTCRtpRtxParameters {
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_Modules_mediastream_RTCRtpRtxParameters_h

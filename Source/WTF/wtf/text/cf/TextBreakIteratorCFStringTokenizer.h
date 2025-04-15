@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_cf_TextBreakIteratorCFStringTokenizer_h
+#define WTF_wtf_text_cf_TextBreakIteratorCFStringTokenizer_h
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <wtf/RetainPtr.h>
@@ -130,3 +131,4 @@ private:
 };
 
 }
+#endif // WTF_wtf_text_cf_TextBreakIteratorCFStringTokenizer_h

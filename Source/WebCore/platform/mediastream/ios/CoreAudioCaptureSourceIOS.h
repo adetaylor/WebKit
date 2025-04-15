@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_ios_CoreAudioCaptureSourceIOS_h
+#define WebCore_platform_mediastream_ios_CoreAudioCaptureSourceIOS_h
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(IOS_FAMILY)
 
@@ -46,3 +47,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM) && PLATFORM(IOS_FAMILY)
+#endif // WebCore_platform_mediastream_ios_CoreAudioCaptureSourceIOS_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUOrigin2DDict_h
+#define WebCore_Modules_WebGPU_GPUOrigin2DDict_h
 
 #include "GPUIntegralTypes.h"
 #include "WebGPUOrigin2D.h"
@@ -56,3 +57,4 @@ inline WebGPU::Origin2D convertToBacking(const GPUOrigin2D& origin2D)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUOrigin2DDict_h

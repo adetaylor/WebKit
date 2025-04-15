@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RawHex_h
+#define WTF_wtf_RawHex_h
 
 namespace WTF {
 
@@ -106,3 +107,4 @@ private:
 } // namespace WTF
 
 using WTF::RawHex;
+#endif // WTF_wtf_RawHex_h

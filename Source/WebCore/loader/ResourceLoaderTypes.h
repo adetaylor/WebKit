@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceLoaderTypes_h
+#define WebCore_loader_ResourceLoaderTypes_h
 
 namespace WebCore {
 
@@ -38,3 +39,4 @@ enum DataPayloadType {
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_ResourceLoaderTypes_h

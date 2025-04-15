@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_eme_WebKitThunderDecryptorGStreamer_h
+#define WebCore_platform_graphics_gstreamer_eme_WebKitThunderDecryptorGStreamer_h
 
 #if ENABLE(ENCRYPTED_MEDIA) && ENABLE(THUNDER) && USE(GSTREAMER)
 
@@ -52,3 +53,4 @@ struct _WebKitMediaThunderDecryptClass {
 G_END_DECLS
 
 #endif // ENABLE(ENCRYPTED_MEDIA) && ENABLE(THUNDER) && USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_eme_WebKitThunderDecryptorGStreamer_h

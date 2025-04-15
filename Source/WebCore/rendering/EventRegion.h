@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_EventRegion_h
+#define WebCore_rendering_EventRegion_h
 
 #include "AffineTransform.h"
 #include "EventTrackingRegions.h"
@@ -211,3 +212,4 @@ inline void EventRegion::ensureEditableRegion()
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::EventRegionContext)
     static bool isType(const WebCore::RegionContext& regionContext) { return regionContext.isEventRegionContext(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_rendering_EventRegion_h

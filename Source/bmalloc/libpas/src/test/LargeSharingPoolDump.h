@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_libpas_src_test_LargeSharingPoolDump_h
+#define bmalloc_libpas_src_test_LargeSharingPoolDump_h
 
 #include "TestHarness.h"
 
@@ -38,3 +39,4 @@ std::vector<pas_large_sharing_node*> largeSharingPoolAsVector();
 void dumpLargeSharingPool();
 
 #endif // TLC
+#endif // bmalloc_libpas_src_test_LargeSharingPoolDump_h

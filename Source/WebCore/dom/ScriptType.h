@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ScriptType_h
+#define WebCore_dom_ScriptType_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ static constexpr unsigned bitWidthOfScriptType = 2;
 static_assert(static_cast<unsigned>(ScriptType::ImportMap) <= ((1U << bitWidthOfScriptType) - 1));
 
 }
+#endif // WebCore_dom_ScriptType_h

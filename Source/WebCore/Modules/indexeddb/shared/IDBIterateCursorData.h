@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_shared_IDBIterateCursorData_h
+#define WebCore_Modules_indexeddb_shared_IDBIterateCursorData_h
 
 #include "IDBKeyData.h"
 
@@ -43,3 +44,4 @@ struct IDBIterateCursorData {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_shared_IDBIterateCursorData_h

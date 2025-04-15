@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_VideoFrame_h
+#define WebCore_platform_VideoFrame_h
 
 #if ENABLE(VIDEO)
 
@@ -136,3 +137,4 @@ private:
 }
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_platform_VideoFrame_h

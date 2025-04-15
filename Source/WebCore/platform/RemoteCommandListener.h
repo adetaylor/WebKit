@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_RemoteCommandListener_h
+#define WebCore_platform_RemoteCommandListener_h
 
 #include "DeferrableTask.h"
 #include "PlatformMediaSession.h"
@@ -70,3 +71,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_RemoteCommandListener_h

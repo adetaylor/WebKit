@@ -46,7 +46,8 @@
  * SOFTWARE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SIMDHelpers_h
+#define WTF_wtf_SIMDHelpers_h
 
 #include <wtf/Compiler.h>
 
@@ -703,3 +704,4 @@ ALWAYS_INLINE size_t count(std::span<const CharacterType> span, const auto& vect
 namespace SIMD = WTF::SIMD;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_SIMDHelpers_h

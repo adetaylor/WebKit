@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ConstantPropertyMap_h
+#define WebCore_dom_ConstantPropertyMap_h
 
 #include <wtf/HashMap.h>
 #include <wtf/Ref.h>
@@ -82,3 +83,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ConstantPropertyMap_h

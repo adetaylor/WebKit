@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_svg_animation_SMILTimeContainer_h
+#define WebCore_svg_animation_SMILTimeContainer_h
 
 #include "QualifiedName.h"
 #include "SMILTime.h"
@@ -95,3 +96,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_animation_SMILTimeContainer_h

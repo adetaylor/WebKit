@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cf_CFNetworkConnectionCacheSPI_h
+#define WebCore_PAL_pal_spi_cf_CFNetworkConnectionCacheSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -44,3 +45,4 @@ int _CFNetworkHTTPConnectionCacheGetLimit(HTTPConnectionCacheLimitKeys);
 void _CFNetworkHTTPConnectionCacheSetLimit(HTTPConnectionCacheLimitKeys, int);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cf_CFNetworkConnectionCacheSPI_h

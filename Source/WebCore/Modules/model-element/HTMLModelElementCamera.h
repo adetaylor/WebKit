@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_model_element_HTMLModelElementCamera_h
+#define WebCore_Modules_model_element_HTMLModelElementCamera_h
 
 #include <optional>
 
@@ -37,3 +38,4 @@ struct HTMLModelElementCamera {
 
 } // namespace WebCore
 
+#endif // WebCore_Modules_model_element_HTMLModelElementCamera_h

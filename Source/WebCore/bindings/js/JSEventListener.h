@@ -17,7 +17,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSEventListener_h
+#define WebCore_bindings_js_JSEventListener_h
 
 #include "DOMWrapperWorld.h"
 #include "EventListener.h"
@@ -174,3 +175,4 @@ inline JSC::JSObject* JSEventListener::ensureJSFunction(ScriptExecutionContext& 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::JSEventListener)
 static bool isType(const WebCore::EventListener& input) { return input.type() == WebCore::JSEventListener::JSEventListenerType; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_bindings_js_JSEventListener_h

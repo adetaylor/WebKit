@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_MediaCapabilitiesInfo_h
+#define WebCore_platform_MediaCapabilitiesInfo_h
 
 #include <optional>
 
@@ -44,3 +45,4 @@ inline MediaCapabilitiesInfo MediaCapabilitiesInfo::isolatedCopy() const
 
 } // namespace WebCore
 
+#endif // WebCore_platform_MediaCapabilitiesInfo_h

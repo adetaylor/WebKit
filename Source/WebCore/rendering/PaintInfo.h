@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_PaintInfo_h
+#define WebCore_rendering_PaintInfo_h
 
 #include "AccessibilityRegionContext.h"
 #include "AffineTransform.h"
@@ -141,3 +142,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_PaintInfo_h

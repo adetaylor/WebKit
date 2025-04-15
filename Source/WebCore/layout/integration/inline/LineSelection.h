@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_LineSelection_h
+#define WebCore_layout_integration_inline_LineSelection_h
 
 #include "InlineIteratorBox.h"
 #include "InlineIteratorLineBox.h"
@@ -90,3 +91,4 @@ public:
 
 }
 
+#endif // WebCore_layout_integration_inline_LineSelection_h

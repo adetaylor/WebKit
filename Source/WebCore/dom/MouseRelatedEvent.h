@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_MouseRelatedEvent_h
+#define WebCore_dom_MouseRelatedEvent_h
 
 #include "LayoutPoint.h"
 #include "UIEventWithKeyState.h"
@@ -112,3 +113,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_MouseRelatedEvent_h

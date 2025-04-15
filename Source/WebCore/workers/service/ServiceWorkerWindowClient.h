@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerWindowClient_h
+#define WebCore_workers_service_ServiceWorkerWindowClient_h
 
 #include "ServiceWorkerClient.h"
 #include "VisibilityState.h"
@@ -56,3 +57,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ServiceWorkerWindowClient)
     static bool isType(const WebCore::ServiceWorkerClient& client) { return client.type() == WebCore::ServiceWorkerClientType::Window; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_workers_service_ServiceWorkerWindowClient_h

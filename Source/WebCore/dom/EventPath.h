@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_dom_EventPath_h
+#define WebCore_dom_EventPath_h
 
 #include "EventContext.h"
 #include "PseudoElement.h"
@@ -86,3 +87,4 @@ inline Node* EventPath::eventTargetRespectingTargetRules(Node& referenceNode)
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_EventPath_h

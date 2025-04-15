@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingCoordinator_h
+#define WebCore_page_scrolling_ScrollingCoordinator_h
 
 #include "EventTrackingRegions.h"
 #include "FrameIdentifier.h"
@@ -256,3 +257,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(ToValueTypeName) \
     static bool isType(const WebCore::ScrollingCoordinator& value) { return value.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_page_scrolling_ScrollingCoordinator_h

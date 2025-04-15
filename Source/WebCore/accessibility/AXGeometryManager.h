@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AXGeometryManager_h
+#define WebCore_accessibility_AXGeometryManager_h
 
 #if ENABLE(ACCESSIBILITY_ISOLATED_TREE)
 #include "AXCoreObject.h"
@@ -80,3 +81,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(ACCESSIBILITY_ISOLATED_TREE)
+#endif // WebCore_accessibility_AXGeometryManager_h

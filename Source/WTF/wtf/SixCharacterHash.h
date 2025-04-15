@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_SixCharacterHash_h
+#define WTF_wtf_SixCharacterHash_h
 
 #include <array>
 
@@ -42,3 +43,4 @@ WTF_EXPORT_PRIVATE std::array<char, 6> integerToSixCharacterHashString(unsigned)
 
 using WTF::sixCharacterHashStringToInteger;
 using WTF::integerToSixCharacterHashString;
+#endif // WTF_wtf_SixCharacterHash_h

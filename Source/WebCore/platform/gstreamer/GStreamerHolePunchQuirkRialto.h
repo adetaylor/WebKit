@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gstreamer_GStreamerHolePunchQuirkRialto_h
+#define WebCore_platform_gstreamer_GStreamerHolePunchQuirkRialto_h
 
 #if USE(GSTREAMER)
 
@@ -43,3 +44,4 @@ public:
 } // namespace WebCore
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_gstreamer_GStreamerHolePunchQuirkRialto_h

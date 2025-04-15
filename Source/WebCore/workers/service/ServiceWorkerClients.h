@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerClients_h
+#define WebCore_workers_service_ServiceWorkerClients_h
 
 #include "ServiceWorkerClientQueryOptions.h"
 #include "ServiceWorkerClientType.h"
@@ -68,3 +69,4 @@ private:
 WebCoreOpaqueRoot root(ServiceWorkerClients*);
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerClients_h

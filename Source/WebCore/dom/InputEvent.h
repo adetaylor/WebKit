@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InputEvent_h
+#define WebCore_dom_InputEvent_h
 
 #include "StaticRange.h"
 #include "UIEvent.h"
@@ -76,3 +77,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(InputEvent)
+#endif // WebCore_dom_InputEvent_h

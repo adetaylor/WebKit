@@ -23,7 +23,8 @@
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_accessibility_isolatedtree_AXIsolatedObject_h
+#define WebCore_accessibility_isolatedtree_AXIsolatedObject_h
 
 #if ENABLE(ACCESSIBILITY_ISOLATED_TREE)
 
@@ -622,3 +623,4 @@ inline bool AXIsolatedObject::hasPropertyFlag(AXPropertyFlag flag) const
 SPECIALIZE_TYPE_TRAITS_ACCESSIBILITY(AXIsolatedObject, isAXIsolatedObjectInstance())
 
 #endif // ENABLE((ACCESSIBILITY_ISOLATED_TREE))
+#endif // WebCore_accessibility_isolatedtree_AXIsolatedObject_h

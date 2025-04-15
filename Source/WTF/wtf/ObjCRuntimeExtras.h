@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ObjCRuntimeExtras_h
+#define WTF_wtf_ObjCRuntimeExtras_h
 
 #import <Foundation/Foundation.h>
 #import <objc/message.h>
@@ -87,3 +88,4 @@ using WTF::protocol_copyPropertyListSpan;
 using WTF::protocol_copyProtocolListSpan;
 
 #endif // __cplusplus
+#endif // WTF_wtf_ObjCRuntimeExtras_h

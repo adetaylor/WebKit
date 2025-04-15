@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_NetworkSPI_h
+#define WebCore_PAL_pal_spi_cocoa_NetworkSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -77,3 +78,4 @@ void nw_webtransport_metadata_set_session_error_message(nw_protocol_metadata_t, 
 WTF_EXTERN_C_END
 
 #endif // USE(APPLE_INTERNAL_SDK)
+#endif // WebCore_PAL_pal_spi_cocoa_NetworkSPI_h

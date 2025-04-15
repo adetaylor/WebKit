@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_NodeInlines_h
+#define WebCore_dom_NodeInlines_h
 
 #include "CharacterData.h"
 #include "Document.h"
@@ -167,3 +168,4 @@ inline void collectChildNodes(Node& node, NodeVector& children)
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_NodeInlines_h

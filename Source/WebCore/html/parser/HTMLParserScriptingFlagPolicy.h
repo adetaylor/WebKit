@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_parser_HTMLParserScriptingFlagPolicy_h
+#define WebCore_html_parser_HTMLParserScriptingFlagPolicy_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class HTMLParserScriptingFlagPolicy : uint8_t {
 };
 
 }
+#endif // WebCore_html_parser_HTMLParserScriptingFlagPolicy_h

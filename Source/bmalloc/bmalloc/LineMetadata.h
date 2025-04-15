@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_LineMetadata_h
+#define bmalloc_bmalloc_LineMetadata_h
 
 #include "Sizes.h"
 
@@ -47,3 +48,4 @@ static_assert(
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_LineMetadata_h

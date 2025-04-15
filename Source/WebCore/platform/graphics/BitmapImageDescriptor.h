@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_BitmapImageDescriptor_h
+#define WebCore_platform_graphics_BitmapImageDescriptor_h
 
 #include "Color.h"
 #include "DestinationColorSpace.h"
@@ -131,3 +132,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_BitmapImageDescriptor_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassColorAttachment_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassColorAttachment_h
 
 #include "WebGPUColor.h"
 #include "WebGPUIntegralTypes.h"
@@ -52,3 +53,4 @@ struct RenderPassColorAttachment {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassColorAttachment_h

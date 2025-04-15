@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CurlMultipartHandleClient_h
+#define WebCore_platform_network_curl_CurlMultipartHandleClient_h
 
 #include <wtf/CheckedRef.h>
 
@@ -46,3 +47,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CurlMultipartHandleClient_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_MediaSourcePrivateAVFObjC_h
+#define WebCore_platform_graphics_avfoundation_objc_MediaSourcePrivateAVFObjC_h
 
 #if ENABLE(MEDIA_SOURCE) && USE(AVFOUNDATION)
 
@@ -165,3 +166,4 @@ static bool isType(const WebCore::MediaSourcePrivate& mediaSource) { return medi
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(MEDIA_SOURCE) && USE(AVFOUNDATION)
+#endif // WebCore_platform_graphics_avfoundation_objc_MediaSourcePrivateAVFObjC_h

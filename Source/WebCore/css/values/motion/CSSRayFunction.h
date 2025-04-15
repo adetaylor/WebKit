@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_motion_CSSRayFunction_h
+#define WebCore_css_values_motion_CSSRayFunction_h
 
 #include "CSSPosition.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -63,3 +64,4 @@ template<> struct Serialize<Ray> { void operator()(StringBuilder&, const Seriali
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Ray, 4)
+#endif // WebCore_css_values_motion_CSSRayFunction_h

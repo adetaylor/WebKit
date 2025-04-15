@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLSummaryElement_h
+#define WebCore_html_HTMLSummaryElement_h
 
 #include "HTMLElement.h"
 
@@ -49,3 +50,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLSummaryElement_h

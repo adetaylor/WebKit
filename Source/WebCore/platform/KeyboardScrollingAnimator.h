@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_KeyboardScrollingAnimator_h
+#define WebCore_platform_KeyboardScrollingAnimator_h
 
 #include "KeyboardEvent.h"
 #include "KeyboardScroll.h" // FIXME: This is a layering violation.
@@ -73,3 +74,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_KeyboardScrollingAnimator_h

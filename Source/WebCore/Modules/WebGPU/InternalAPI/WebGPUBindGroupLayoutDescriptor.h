@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUBindGroupLayoutDescriptor_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUBindGroupLayoutDescriptor_h
 
 #include "WebGPUBindGroupLayoutEntry.h"
 #include "WebGPUObjectDescriptorBase.h"
@@ -36,3 +37,4 @@ struct BindGroupLayoutDescriptor : public ObjectDescriptorBase {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUBindGroupLayoutDescriptor_h

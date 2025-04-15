@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_cocoa_GameControllerSoftLink_h
+#define WebCore_platform_gamepad_cocoa_GameControllerSoftLink_h
 
 #if ENABLE(GAMEPAD) && PLATFORM(COCOA)
 
@@ -90,3 +91,4 @@ SOFT_LINK_CLASS_FOR_HEADER(WebCore, GCEventInteraction)
 #endif
 
 #endif // ENABLE(GAMEPAD) && PLATFORM(COCOA)
+#endif // WebCore_platform_gamepad_cocoa_GameControllerSoftLink_h

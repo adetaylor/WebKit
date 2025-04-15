@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ImageAnalysisQueue_h
+#define WebCore_page_ImageAnalysisQueue_h
 
 #if ENABLE(IMAGE_ANALYSIS)
 
@@ -103,3 +104,4 @@ inline bool ImageAnalysisQueue::firstIsHigherPriority(const Task& first, const T
 } // namespace WebCore
 
 #endif // ENABLE(IMAGE_ANALYSIS)
+#endif // WebCore_page_ImageAnalysisQueue_h

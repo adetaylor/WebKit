@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUXRBinding_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUXRBinding_h
 
 #include "WebGPUXREye.h"
 #include "WebGPUXRProjectionLayer.h"
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUXRBinding_h

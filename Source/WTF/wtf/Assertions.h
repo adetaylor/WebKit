@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_Assertions_h
+#define WTF_wtf_Assertions_h
 
 #include <wtf/Platform.h>
 
@@ -1015,3 +1016,5 @@ IGNORE_WARNINGS_END
 #else
 #define UNREACHABLE_FOR_PLATFORM() RELEASE_ASSERT_NOT_REACHED()
 #endif
+
+#endif // WTF_wtf_Assertions_h

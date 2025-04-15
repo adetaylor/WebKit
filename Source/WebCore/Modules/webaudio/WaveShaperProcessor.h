@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_WaveShaperProcessor_h
+#define WebCore_Modules_webaudio_WaveShaperProcessor_h
 
 #include "AudioDSPKernel.h"
 #include "AudioDSPKernelProcessor.h"
@@ -82,3 +83,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::WaveShaperProcessor) \
     static bool isType(const WebCore::AudioProcessor& processor) { return processor.processorType() == WebCore::AudioProcessor::Type::WaveShaper; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_webaudio_WaveShaperProcessor_h

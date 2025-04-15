@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_LayoutIntegrationBoxGeometryUpdater_h
+#define WebCore_layout_integration_LayoutIntegrationBoxGeometryUpdater_h
 
 #include "FormattingConstraints.h"
 #include "InlineFormattingConstraints.h"
@@ -85,3 +86,4 @@ private:
 }
 }
 
+#endif // WebCore_layout_integration_LayoutIntegrationBoxGeometryUpdater_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GraphicsContext_h
+#define WebCore_platform_graphics_GraphicsContext_h
 
 #include "ControlPart.h"
 #include "DashArray.h"
@@ -413,3 +414,4 @@ private:
 } // namespace WebCore
 
 #include "GraphicsContextStateSaver.h"
+#endif // WebCore_platform_graphics_GraphicsContext_h

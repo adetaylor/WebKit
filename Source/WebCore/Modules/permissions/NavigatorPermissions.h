@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_permissions_NavigatorPermissions_h
+#define WebCore_Modules_permissions_NavigatorPermissions_h
 
 #include "Supplementable.h"
 #include <wtf/TZoneMalloc.h>
@@ -50,3 +51,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_permissions_NavigatorPermissions_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_Implementation_WebGPUConvertToBackingContext_h
+#define WebCore_Modules_WebGPU_Implementation_WebGPUConvertToBackingContext_h
 
 #if HAVE(WEBGPU_IMPLEMENTATION)
 
@@ -181,3 +182,4 @@ public:
 } // namespace WebCore::WebGPU
 
 #endif // HAVE(WEBGPU_IMPLEMENTATION)
+#endif // WebCore_Modules_WebGPU_Implementation_WebGPUConvertToBackingContext_h

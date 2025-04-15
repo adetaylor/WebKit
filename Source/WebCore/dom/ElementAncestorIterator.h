@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementAncestorIterator_h
+#define WebCore_dom_ElementAncestorIterator_h
 
 #include "ElementIterator.h"
 
@@ -79,3 +80,4 @@ inline ElementAncestorRange<ElementType>::ElementAncestorRange(ElementType* firs
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_ElementAncestorIterator_h

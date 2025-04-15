@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_MediaPlayerPrivateWebM_h
+#define WebCore_platform_graphics_cocoa_MediaPlayerPrivateWebM_h
 
 #if ENABLE(ALTERNATE_WEBM_PLAYER)
 
@@ -422,3 +423,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(ALTERNATE_WEBM_PLAYER)
+#endif // WebCore_platform_graphics_cocoa_MediaPlayerPrivateWebM_h

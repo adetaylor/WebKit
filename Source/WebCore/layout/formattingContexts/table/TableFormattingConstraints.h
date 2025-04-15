@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_table_TableFormattingConstraints_h
+#define WebCore_layout_formattingContexts_table_TableFormattingConstraints_h
 
 #include "FormattingConstraints.h"
 
@@ -50,3 +51,4 @@ inline ConstraintsForTableContent::ConstraintsForTableContent(const ConstraintsF
 
 SPECIALIZE_TYPE_TRAITS_LAYOUT_FORMATTING_CONSTRAINTS(ConstraintsForTableContent, isConstraintsForTableContent())
 
+#endif // WebCore_layout_formattingContexts_table_TableFormattingConstraints_h

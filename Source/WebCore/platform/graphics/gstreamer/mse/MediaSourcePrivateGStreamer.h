@@ -32,7 +32,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_mse_MediaSourcePrivateGStreamer_h
+#define WebCore_platform_graphics_gstreamer_mse_MediaSourcePrivateGStreamer_h
 
 #if ENABLE(MEDIA_SOURCE) && USE(GSTREAMER)
 #include "MediaSourcePrivate.h"
@@ -148,3 +149,4 @@ static bool isType(const WebCore::MediaSourcePrivate& mediaSource) { return medi
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif
+#endif // WebCore_platform_graphics_gstreamer_mse_MediaSourcePrivateGStreamer_h

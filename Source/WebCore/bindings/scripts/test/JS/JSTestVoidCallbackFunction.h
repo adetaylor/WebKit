@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestVoidCallbackFunction_h
+#define WebCore_bindings_scripts_test_JS_JSTestVoidCallbackFunction_h
 
 #if ENABLE(TEST_CONDITIONAL)
 
@@ -66,3 +67,4 @@ template<> struct JSDOMCallbackConverterTraits<JSTestVoidCallbackFunction> {
 } // namespace WebCore
 
 #endif // ENABLE(TEST_CONDITIONAL)
+#endif // WebCore_bindings_scripts_test_JS_JSTestVoidCallbackFunction_h

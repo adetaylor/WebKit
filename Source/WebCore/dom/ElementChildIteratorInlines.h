@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementChildIteratorInlines_h
+#define WebCore_dom_ElementChildIteratorInlines_h
 
 #include "ElementChildIterator.h"
 #include "ElementIteratorInlines.h"
@@ -74,3 +75,4 @@ inline ElementChildIterator<ElementType> ElementChildRange<ElementType>::beginAt
 }
 
 }
+#endif // WebCore_dom_ElementChildIteratorInlines_h

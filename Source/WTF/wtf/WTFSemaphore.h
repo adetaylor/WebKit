@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WTFSemaphore_h
+#define WTF_wtf_WTFSemaphore_h
 
 #include <wtf/Condition.h>
 #include <wtf/Lock.h>
@@ -79,3 +80,4 @@ private:
 } // namespace WTF
 
 using WTF::Semaphore;
+#endif // WTF_wtf_WTFSemaphore_h

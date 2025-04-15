@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGPropertyRegistry_h
+#define WebCore_svg_properties_SVGPropertyRegistry_h
 
 #include "SVGAttributeAnimator.h"
 
@@ -50,3 +51,4 @@ public:
 };
 
 }
+#endif // WebCore_svg_properties_SVGPropertyRegistry_h

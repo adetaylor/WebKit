@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLMediaElementEnums_h
+#define WebCore_html_HTMLMediaElementEnums_h
 
 #include "MediaPlayerEnums.h"
 
@@ -82,3 +83,4 @@ struct LogArgument<WebCore::HTMLMediaElementEnums::TextTrackVisibilityCheckType>
 
 }; // namespace WTF
 
+#endif // WebCore_html_HTMLMediaElementEnums_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_context_ServiceWorkerThreadProxy_h
+#define WebCore_workers_service_context_ServiceWorkerThreadProxy_h
 
 #include "CacheStorageConnection.h"
 #include "Document.h"
@@ -146,3 +147,4 @@ private:
 };
 
 } // namespace WebKit
+#endif // WebCore_workers_service_context_ServiceWorkerThreadProxy_h

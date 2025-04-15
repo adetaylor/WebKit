@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_DeferrableRefCounted_h
+#define WTF_wtf_DeferrableRefCounted_h
 
 #include <wtf/Assertions.h>
 #include <wtf/FastMalloc.h>
@@ -118,3 +119,4 @@ protected:
 } // namespace WTF
 
 using WTF::DeferrableRefCounted;
+#endif // WTF_wtf_DeferrableRefCounted_h

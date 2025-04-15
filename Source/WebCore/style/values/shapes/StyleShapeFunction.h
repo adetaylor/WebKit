@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_shapes_StyleShapeFunction_h
+#define WebCore_style_values_shapes_StyleShapeFunction_h
 
 #include "CSSShapeFunction.h"
 #include "StyleFillRule.h"
@@ -435,3 +436,4 @@ DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::SmoothCommand::By, 2)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::SmoothCommand, 1)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::ArcCommand, 5)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::Shape, 3)
+#endif // WebCore_style_values_shapes_StyleShapeFunction_h

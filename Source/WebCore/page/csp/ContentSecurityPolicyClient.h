@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_csp_ContentSecurityPolicyClient_h
+#define WebCore_page_csp_ContentSecurityPolicyClient_h
 
 #include "SecurityPolicyViolationEvent.h"
 #include <JavaScriptCore/ConsoleTypes.h>
@@ -54,3 +55,4 @@ struct WEBCORE_EXPORT ContentSecurityPolicyClient {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_csp_ContentSecurityPolicyClient_h

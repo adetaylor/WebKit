@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_AggregateLogger_h
+#define WTF_wtf_AggregateLogger_h
 
 #include <wtf/Algorithms.h>
 #include <wtf/HashSet.h>
@@ -123,3 +124,4 @@ private:
 } // namespace WTF
 
 using WTF::AggregateLogger;
+#endif // WTF_wtf_AggregateLogger_h

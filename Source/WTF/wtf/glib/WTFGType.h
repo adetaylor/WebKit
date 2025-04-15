@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_WTFGType_h
+#define WTF_wtf_glib_WTFGType_h
 
 #include <glib.h>
 #include <wtf/Compiler.h>
@@ -122,3 +123,4 @@ NEVER_INLINE static GType type_name##_get_type_once(void) \
 #define _WEBKIT_DEFINE_TYPE_EXTENDED_END() \
     return g_define_type_id; \
 } /* Closes type_name##_get_type_once() */
+#endif // WTF_wtf_glib_WTFGType_h

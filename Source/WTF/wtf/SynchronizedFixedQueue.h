@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SynchronizedFixedQueue_h
+#define WTF_wtf_SynchronizedFixedQueue_h
 
 #include <wtf/Condition.h>
 #include <wtf/Deque.h>
@@ -129,3 +130,4 @@ private:
 }
 
 using WTF::SynchronizedFixedQueue;
+#endif // WTF_wtf_SynchronizedFixedQueue_h

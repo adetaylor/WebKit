@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_AdaptiveStringSearcher_h
+#define WTF_wtf_text_AdaptiveStringSearcher_h
 
 #include <limits>
 #include <wtf/text/StringCommon.h>
@@ -530,3 +531,4 @@ using WTF::AdaptiveStringSearcherTables;
 using WTF::searchString;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_text_AdaptiveStringSearcher_h

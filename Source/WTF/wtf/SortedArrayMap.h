@@ -24,7 +24,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#ifndef WTF_wtf_SortedArrayMap_h
+#define WTF_wtf_SortedArrayMap_h
 
 #include <wtf/IndexedRange.h>
 #include <wtf/text/StringView.h>
@@ -419,3 +420,4 @@ using WTF::PackedLettersLiteral;
 using WTF::SortedArrayMap;
 using WTF::SortedArraySet;
 using WTF::makeOptionalFromPointer;
+#endif // WTF_wtf_SortedArrayMap_h

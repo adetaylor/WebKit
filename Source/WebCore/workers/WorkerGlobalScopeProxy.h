@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerGlobalScopeProxy_h
+#define WebCore_workers_WorkerGlobalScopeProxy_h
 
 #include "FetchRequestCredentials.h"
 #include "MessageWithMessagePorts.h"
@@ -68,3 +69,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerGlobalScopeProxy_h

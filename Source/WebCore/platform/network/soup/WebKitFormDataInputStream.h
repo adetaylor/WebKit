@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_soup_WebKitFormDataInputStream_h
+#define WebCore_platform_network_soup_WebKitFormDataInputStream_h
 
 #include "FormData.h"
 #include <gio/gio.h>
@@ -55,3 +56,4 @@ GType webkit_form_data_input_stream_get_type(void);
 
 GRefPtr<GInputStream> webkitFormDataInputStreamNew(Ref<WebCore::FormData>&&);
 GBytes* webkitFormDataInputStreamReadAll(WebKitFormDataInputStream*);
+#endif // WebCore_platform_network_soup_WebKitFormDataInputStream_h

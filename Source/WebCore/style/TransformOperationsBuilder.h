@@ -28,7 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_TransformOperationsBuilder_h
+#define WebCore_style_TransformOperationsBuilder_h
 
 #include <wtf/Forward.h>
 
@@ -53,3 +54,4 @@ RefPtr<ScaleTransformOperation> createScale(const CSSValue&, const CSSToLengthCo
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_TransformOperationsBuilder_h

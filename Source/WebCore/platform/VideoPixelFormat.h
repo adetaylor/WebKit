@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_VideoPixelFormat_h
+#define WebCore_platform_VideoPixelFormat_h
 
 #include <optional>
 
@@ -49,3 +50,4 @@ inline bool isRGBVideoPixelFormat(VideoPixelFormat format)
 }
 
 }
+#endif // WebCore_platform_VideoPixelFormat_h

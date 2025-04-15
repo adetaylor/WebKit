@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_parser_AtomHTMLToken_h
+#define WebCore_html_parser_AtomHTMLToken_h
 
 #include "HTMLNameCache.h"
 #include "HTMLNames.h"
@@ -304,3 +305,4 @@ inline AtomHTMLToken::AtomHTMLToken(HTMLToken::Type type, TagName tagName, Vecto
 }
 
 } // namespace WebCore
+#endif // WebCore_html_parser_AtomHTMLToken_h

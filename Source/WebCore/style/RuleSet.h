@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_RuleSet_h
+#define WebCore_style_RuleSet_h
 
 #include "CSSSelectorList.h"
 #include "MediaQuery.h"
@@ -287,3 +288,4 @@ inline Vector<const CQ::ContainerQuery*> RuleSet::containerQueriesFor(const Rule
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_RuleSet_h

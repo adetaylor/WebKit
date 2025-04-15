@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_text_TextBreakingPositionContext_h
+#define WebCore_layout_formattingContexts_inline_text_TextBreakingPositionContext_h
 
 #include "RenderStyle.h"
 #include <wtf/HashFunctions.h>
@@ -107,3 +108,4 @@ struct HashTraits<WebCore::Layout::TextBreakingPositionContext> : GenericHashTra
 template<> struct DefaultHash<WebCore::Layout::TextBreakingPositionContext> : WebCore::Layout::TextBreakingPositionContextHash { };
 
 } // namespace WTF
+#endif // WebCore_layout_formattingContexts_inline_text_TextBreakingPositionContext_h

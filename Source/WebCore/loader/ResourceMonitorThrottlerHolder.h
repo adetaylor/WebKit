@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceMonitorThrottlerHolder_h
+#define WebCore_loader_ResourceMonitorThrottlerHolder_h
 
 #include <wtf/CompletionHandler.h>
 #include <wtf/ContinuousApproximateTime.h>
@@ -59,3 +60,4 @@ private:
 };
 
 }
+#endif // WebCore_loader_ResourceMonitorThrottlerHolder_h

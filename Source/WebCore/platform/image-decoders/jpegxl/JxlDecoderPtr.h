@@ -23,7 +23,8 @@
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_platform_image_decoders_jpegxl_JxlDecoderPtr_h
+#define WebCore_platform_image_decoders_jpegxl_JxlDecoderPtr_h
 
 #if USE(JPEGXL)
 
@@ -52,3 +53,4 @@ static inline JxlDecoderPtr JxlDecoderMake(const JxlMemoryManager* memoryManager
 }
 
 #endif // USE(JPEGXL)
+#endif // WebCore_platform_image_decoders_jpegxl_JxlDecoderPtr_h

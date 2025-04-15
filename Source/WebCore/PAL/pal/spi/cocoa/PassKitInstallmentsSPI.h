@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_PassKitInstallmentsSPI_h
+#define WebCore_PAL_pal_spi_cocoa_PassKitInstallmentsSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -135,3 +136,4 @@ typedef NS_OPTIONS(NSInteger, PKPaymentSetupFeatureSupportedOptions) {
 #endif // !USE(APPLE_INTERNAL_SDK)
 
 #endif // HAVE(PASSKIT_INSTALLMENTS)
+#endif // WebCore_PAL_pal_spi_cocoa_PassKitInstallmentsSPI_h

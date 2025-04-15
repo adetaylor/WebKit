@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RandomDevice_h
+#define WTF_wtf_RandomDevice_h
 
 #include <wtf/Noncopyable.h>
 #include <wtf/StdLibExtras.h>
@@ -59,3 +60,4 @@ private:
 };
 
 }
+#endif // WTF_wtf_RandomDevice_h

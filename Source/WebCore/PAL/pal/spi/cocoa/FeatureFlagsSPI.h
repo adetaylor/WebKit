@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_FeatureFlagsSPI_h
+#define WebCore_PAL_pal_spi_cocoa_FeatureFlagsSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -40,3 +41,4 @@ extern "C" bool _os_feature_enabled_impl(const char *domain, const char *feature
 #endif
 
 #endif // HAVE(SYSTEM_FEATURE_FLAGS)
+#endif // WebCore_PAL_pal_spi_cocoa_FeatureFlagsSPI_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RawValueTraits_h
+#define WTF_wtf_RawValueTraits_h
 
 #include <cstdint>
 #include <utility>
@@ -46,3 +47,4 @@ struct RawValueTraits {
 } // namespace WTF
 
 using WTF::RawValueTraits;
+#endif // WTF_wtf_RawValueTraits_h

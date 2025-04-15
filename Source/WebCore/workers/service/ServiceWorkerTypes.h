@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerTypes_h
+#define WebCore_workers_service_ServiceWorkerTypes_h
 
 #include "ProcessIdentifier.h"
 #include "ProcessQualified.h"
@@ -96,3 +97,4 @@ struct ServiceWorkerScripts {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerTypes_h

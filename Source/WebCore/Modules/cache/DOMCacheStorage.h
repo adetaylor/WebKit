@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cache_DOMCacheStorage_h
+#define WebCore_Modules_cache_DOMCacheStorage_h
 
 #include "CacheStorageConnection.h"
 #include "DOMCache.h"
@@ -70,3 +71,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_cache_DOMCacheStorage_h

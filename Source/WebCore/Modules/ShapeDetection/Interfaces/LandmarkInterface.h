@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_Interfaces_LandmarkInterface_h
+#define WebCore_Modules_ShapeDetection_Interfaces_LandmarkInterface_h
 
 #include "FloatPoint.h"
 #include "LandmarkTypeInterface.h"
@@ -37,3 +38,4 @@ struct Landmark {
 };
 
 } // namespace WebCore::ShapeDetection
+#endif // WebCore_Modules_ShapeDetection_Interfaces_LandmarkInterface_h

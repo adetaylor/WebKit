@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_cocoa_AudioMediaStreamTrackRendererUnit_h
+#define WebCore_platform_mediastream_cocoa_AudioMediaStreamTrackRendererUnit_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -121,3 +122,4 @@ private:
 }
 
 #endif // ENABLE(MEDIA_STREAM)
+#endif // WebCore_platform_mediastream_cocoa_AudioMediaStreamTrackRendererUnit_h

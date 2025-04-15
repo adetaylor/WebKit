@@ -19,7 +19,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMWrapper_h
+#define WebCore_bindings_js_JSDOMWrapper_h
 
 #include "JSDOMGlobalObject.h"
 #include "NodeConstants.h"
@@ -96,3 +97,4 @@ template<typename ImplementationClass> struct JSDOMWrapperConverterTraits;
 JSC::JSValue cloneAcrossWorlds(JSC::JSGlobalObject&, const JSDOMObject& owner, JSC::JSValue);
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMWrapper_h

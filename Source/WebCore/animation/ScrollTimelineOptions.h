@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_ScrollTimelineOptions_h
+#define WebCore_animation_ScrollTimelineOptions_h
 
 #include "Element.h"
 #include "ScrollAxis.h"
@@ -36,3 +37,4 @@ struct ScrollTimelineOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_ScrollTimelineOptions_h

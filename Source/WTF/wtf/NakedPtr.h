@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_NakedPtr_h
+#define WTF_wtf_NakedPtr_h
 
 #include <wtf/FastMalloc.h>
 
@@ -114,3 +115,4 @@ template<class T> inline void swap(NakedPtr<T>& a, NakedPtr<T>& b)
 } // namespace WTF
 
 using WTF::NakedPtr;
+#endif // WTF_wtf_NakedPtr_h

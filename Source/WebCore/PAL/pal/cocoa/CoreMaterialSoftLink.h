@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_CoreMaterialSoftLink_h
+#define WebCore_PAL_pal_cocoa_CoreMaterialSoftLink_h
 
 #if HAVE(CORE_MATERIAL)
 
@@ -63,3 +64,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, CoreMaterial, MTVisualStylingCreateDictionary
 SPECIALIZE_OBJC_TYPE_TRAITS(MTMaterialLayer, PAL::getMTMaterialLayerClass())
 
 #endif // HAVE(CORE_MATERIAL)
+#endif // WebCore_PAL_pal_cocoa_CoreMaterialSoftLink_h

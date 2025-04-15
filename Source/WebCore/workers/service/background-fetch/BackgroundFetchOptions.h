@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetchOptions_h
+#define WebCore_workers_service_background_fetch_BackgroundFetchOptions_h
 
 #include "BackgroundFetchUIOptions.h"
 #include <wtf/CrossThreadCopier.h>
@@ -45,3 +46,4 @@ struct BackgroundFetchOptions : BackgroundFetchUIOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_BackgroundFetchOptions_h

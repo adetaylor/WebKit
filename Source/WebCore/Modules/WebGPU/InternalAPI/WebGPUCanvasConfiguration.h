@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUCanvasConfiguration_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUCanvasConfiguration_h
 
 #include "WebGPUCanvasAlphaMode.h"
 #include "WebGPUCanvasToneMappingMode.h"
@@ -50,3 +51,4 @@ struct CanvasConfiguration {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUCanvasConfiguration_h

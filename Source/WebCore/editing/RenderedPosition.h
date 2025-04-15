@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_RenderedPosition_h
+#define WebCore_editing_RenderedPosition_h
 
 #include "BoundaryPoint.h"
 #include "CaretRectComputation.h"
@@ -99,3 +100,4 @@ private:
 bool renderObjectContainsPosition(const RenderObject*, const Position&);
 
 } // namespace WebCore
+#endif // WebCore_editing_RenderedPosition_h

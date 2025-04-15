@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSGroupingRule_h
+#define WebCore_css_CSSGroupingRule_h
 
 #include "CSSRule.h"
 #include <memory>
@@ -68,3 +69,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSSGroupingRule)
     static bool isType(const WebCore::CSSRule& rule) { return rule.isGroupingRule(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_CSSGroupingRule_h

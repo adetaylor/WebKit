@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_FontDatabase_h
+#define WebCore_platform_graphics_cocoa_FontDatabase_h
 
 #include "FontSelectionAlgorithm.h"
 #include "TextFlags.h"
@@ -78,3 +79,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_cocoa_FontDatabase_h

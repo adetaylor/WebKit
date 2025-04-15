@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PlatformOS_h
+#define WTF_wtf_PlatformOS_h
 
 #ifndef WTF_PLATFORM_GUARD_AGAINST_INDIRECT_INCLUSION
 #error "Please #include <wtf/Platform.h> instead of this file directly."
@@ -152,3 +153,4 @@
 
 #define WTF_OS_WIN ERROR "USE WINDOWS WITH OS NOT WIN"
 #define WTF_OS_MAC ERROR "USE MAC_OS_X WITH OS NOT MAC"
+#endif // WTF_wtf_PlatformOS_h

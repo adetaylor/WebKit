@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_block_tablewrapper_TableWrapperBlockFormattingQuirks_h
+#define WebCore_layout_formattingContexts_block_tablewrapper_TableWrapperBlockFormattingQuirks_h
 
 #include "BlockFormattingQuirks.h"
 
@@ -44,3 +45,4 @@ public:
 }
 }
 
+#endif // WebCore_layout_formattingContexts_block_tablewrapper_TableWrapperBlockFormattingQuirks_h

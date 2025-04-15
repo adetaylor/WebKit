@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderFrameBase_h
+#define WebCore_rendering_RenderFrameBase_h
 
 #include "LocalFrameView.h"
 #include "RenderWidget.h"
@@ -49,3 +50,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderFrameBase_h

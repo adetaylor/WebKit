@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_block_tablewrapper_TableWrapperBlockFormattingContext_h
+#define WebCore_layout_formattingContexts_block_tablewrapper_TableWrapperBlockFormattingContext_h
 
 #include "BlockFormattingContext.h"
 #include "BlockFormattingQuirks.h"
@@ -62,3 +63,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_LAYOUT_FORMATTING_CONTEXT(TableWrapperBlockFormattingContext, isTableWrapperBlockFormattingContext())
 
+#endif // WebCore_layout_formattingContexts_block_tablewrapper_TableWrapperBlockFormattingContext_h

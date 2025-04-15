@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedFontClient_h
+#define WebCore_loader_cache_CachedFontClient_h
 
 #include "CachedResourceClient.h"
 
@@ -42,3 +43,4 @@ public:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CACHED_RESOURCE_CLIENT(CachedFontClient, FontType);
+#endif // WebCore_loader_cache_CachedFontClient_h

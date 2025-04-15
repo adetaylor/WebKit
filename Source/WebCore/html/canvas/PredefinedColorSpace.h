@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_PredefinedColorSpace_h
+#define WebCore_html_canvas_PredefinedColorSpace_h
 
 #include <optional>
 
@@ -42,3 +43,4 @@ DestinationColorSpace toDestinationColorSpace(PredefinedColorSpace);
 std::optional<PredefinedColorSpace> toPredefinedColorSpace(const DestinationColorSpace&);
 
 }
+#endif // WebCore_html_canvas_PredefinedColorSpace_h

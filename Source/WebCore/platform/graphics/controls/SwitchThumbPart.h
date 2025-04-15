@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_SwitchThumbPart_h
+#define WebCore_platform_graphics_controls_SwitchThumbPart_h
 
 #include "ControlFactory.h"
 #include "ControlPart.h"
@@ -72,3 +73,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CONTROL_PART(SwitchThumb)
+#endif // WebCore_platform_graphics_controls_SwitchThumbPart_h

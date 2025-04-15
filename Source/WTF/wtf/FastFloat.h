@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FastFloat_h
+#define WTF_wtf_FastFloat_h
 
 #include <span>
 #include <unicode/utypes.h>
@@ -38,3 +39,4 @@ WTF_EXPORT_PRIVATE double parseHexDouble(std::span<const LChar> string, size_t& 
 WTF_EXPORT_PRIVATE double parseHexDouble(std::span<const UChar> string, size_t& parsedLength);
 
 } // namespace WTF
+#endif // WTF_wtf_FastFloat_h

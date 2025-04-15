@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_DataLog_h
+#define WTF_wtf_DataLog_h
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -93,3 +94,4 @@ using WTF::dataLog;
 using WTF::dataLogLn;
 using WTF::dataLogF;
 using WTF::dataLogFString;
+#endif // WTF_wtf_DataLog_h

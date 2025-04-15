@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_IsoMalloc_h
+#define WTF_wtf_IsoMalloc_h
 
 #include <wtf/FastMalloc.h>
 #include <wtf/ForbidHeapAllocation.h>
@@ -55,3 +56,4 @@
 
 #endif
 
+#endif // WTF_wtf_IsoMalloc_h

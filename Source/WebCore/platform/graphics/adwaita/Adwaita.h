@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_adwaita_Adwaita_h
+#define WebCore_platform_graphics_adwaita_Adwaita_h
 
 #if USE(THEME_ADWAITA)
 
@@ -135,3 +136,4 @@ Color systemFocusRingColor();
 } // namespace WebCore
 
 #endif // USE(THEME_ADWAITA)
+#endif // WebCore_platform_graphics_adwaita_Adwaita_h

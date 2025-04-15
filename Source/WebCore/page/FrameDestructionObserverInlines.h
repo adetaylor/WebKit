@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_FrameDestructionObserverInlines_h
+#define WebCore_page_FrameDestructionObserverInlines_h
 
 #include "FrameDestructionObserver.h"
 #include "LocalFrame.h"
@@ -41,3 +42,4 @@ inline RefPtr<LocalFrame> FrameDestructionObserver::protectedFrame() const
 }
 
 }
+#endif // WebCore_page_FrameDestructionObserverInlines_h

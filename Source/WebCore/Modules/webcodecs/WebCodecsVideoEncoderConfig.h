@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_WebCodecsVideoEncoderConfig_h
+#define WebCore_Modules_webcodecs_WebCodecsVideoEncoderConfig_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -74,3 +75,4 @@ inline bool isSameConfigurationExceptBitrateAndFramerate(const WebCodecsVideoEnc
 }
 
 #endif // ENABLE(WEB_CODECS)
+#endif // WebCore_Modules_webcodecs_WebCodecsVideoEncoderConfig_h

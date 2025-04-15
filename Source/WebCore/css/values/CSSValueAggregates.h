@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_CSSValueAggregates_h
+#define WebCore_css_values_CSSValueAggregates_h
 
 #include "CSSValueConcepts.h"
 #include "CSSValueKeywords.h"
@@ -662,3 +663,4 @@ public:
 };
 
 } // namespace std
+#endif // WebCore_css_values_CSSValueAggregates_h

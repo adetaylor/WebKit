@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleRelativeColor_h
+#define WebCore_style_values_color_StyleRelativeColor_h
 
 #include "CSSColorDescriptors.h"
 #include "CSSRelativeColor.h"
@@ -120,3 +121,4 @@ template<typename D> WTF::TextStream& operator<<(WTF::TextStream& ts, const Rela
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_color_StyleRelativeColor_h

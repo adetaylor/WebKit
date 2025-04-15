@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleMiscNonInheritedData_h
+#define WebCore_rendering_style_StyleMiscNonInheritedData_h
 
 #include "LengthPoint.h"
 #include "StyleContentAlignmentData.h"
@@ -121,3 +122,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleMiscNonInheritedData_h

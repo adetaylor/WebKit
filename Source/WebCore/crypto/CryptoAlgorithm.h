@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_CryptoAlgorithm_h
+#define WebCore_crypto_CryptoAlgorithm_h
 
 #include "CryptoAlgorithmIdentifier.h"
 #include "CryptoKey.h"
@@ -81,3 +82,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_crypto_CryptoAlgorithm_h

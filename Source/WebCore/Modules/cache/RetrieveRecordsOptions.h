@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cache_RetrieveRecordsOptions_h
+#define WebCore_Modules_cache_RetrieveRecordsOptions_h
 
 #include "CrossOriginEmbedderPolicy.h"
 #include "ResourceRequest.h"
@@ -46,3 +47,4 @@ struct RetrieveRecordsOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_cache_RetrieveRecordsOptions_h

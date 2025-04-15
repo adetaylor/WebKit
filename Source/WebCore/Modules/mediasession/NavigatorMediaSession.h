@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasession_NavigatorMediaSession_h
+#define WebCore_Modules_mediasession_NavigatorMediaSession_h
 
 #if ENABLE(MEDIA_SESSION)
 
@@ -59,3 +60,4 @@ private:
 }
 
 #endif // ENABLE(MEDIA_SESSION)
+#endif // WebCore_Modules_mediasession_NavigatorMediaSession_h

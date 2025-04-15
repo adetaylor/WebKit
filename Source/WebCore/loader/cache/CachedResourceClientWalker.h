@@ -22,7 +22,8 @@
     pages from the web. It has a memory cache for these objects.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedResourceClientWalker_h
+#define WebCore_loader_cache_CachedResourceClientWalker_h
 
 #include "CachedResource.h"
 #include "CachedResourceClient.h"
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_cache_CachedResourceClientWalker_h

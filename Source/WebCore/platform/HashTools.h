@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_HashTools_h
+#define WebCore_platform_HashTools_h
 
 namespace WebCore {
 
@@ -29,3 +30,4 @@ struct NamedColor {
 const NamedColor* findColor(const char* str, unsigned len);
 
 } // namespace WebCore
+#endif // WebCore_platform_HashTools_h

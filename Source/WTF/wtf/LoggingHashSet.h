@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_LoggingHashSet_h
+#define WTF_wtf_LoggingHashSet_h
 
 #include <wtf/DataLog.h>
 #include <wtf/HashSet.h>
@@ -243,3 +244,4 @@ private:
 } // namespace WTF
 
 using WTF::LoggingHashSet;
+#endif // WTF_wtf_LoggingHashSet_h

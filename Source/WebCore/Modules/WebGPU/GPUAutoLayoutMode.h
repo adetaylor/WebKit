@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUAutoLayoutMode_h
+#define WebCore_Modules_WebGPU_GPUAutoLayoutMode_h
 
 namespace WebCore {
 
@@ -32,3 +33,4 @@ enum class GPUAutoLayoutMode : uint8_t {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUAutoLayoutMode_h

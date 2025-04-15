@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_MemoryRelease_h
+#define WebCore_page_MemoryRelease_h
 
 #include <wtf/MemoryPressureHandler.h>
 
@@ -47,3 +48,4 @@ WEBCORE_EXPORT void registerMemoryReleaseNotifyCallbacks();
 WEBCORE_EXPORT void logMemoryStatistics(LogMemoryStatisticsReason);
 
 } // namespace WebCore
+#endif // WebCore_page_MemoryRelease_h

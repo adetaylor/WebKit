@@ -22,7 +22,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_RenderStyleInlines_h
+#define WebCore_rendering_style_RenderStyleInlines_h
 
 #include "AnchorPositionEvaluator.h"
 #include "AnimationList.h"
@@ -1279,3 +1280,4 @@ inline bool RenderStyle::fontCascadeEqual(const RenderStyle& other) const
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_RenderStyleInlines_h

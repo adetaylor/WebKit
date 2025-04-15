@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_ios_MobileKeyBagSPI_h
+#define WebCore_PAL_pal_spi_ios_MobileKeyBagSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -43,3 +44,4 @@ WTF_EXTERN_C_END
 #endif // USE(APPLE_INTERNAL_SDK)
 
 #endif // HAVE(MOBILE_KEY_BAG)
+#endif // WebCore_PAL_pal_spi_ios_MobileKeyBagSPI_h

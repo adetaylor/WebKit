@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGModelObjectInlines_h
+#define WebCore_rendering_svg_RenderSVGModelObjectInlines_h
 
 #include "RenderSVGModelObject.h"
 #include "SVGElement.h"
@@ -37,3 +38,4 @@ inline SVGElement& RenderSVGModelObject::element() const
 
 } // namespace WebCore
 
+#endif // WebCore_rendering_svg_RenderSVGModelObjectInlines_h

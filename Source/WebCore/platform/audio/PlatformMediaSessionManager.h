@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_PlatformMediaSessionManager_h
+#define WebCore_platform_audio_PlatformMediaSessionManager_h
 
 #include "MediaSessionManagerInterface.h"
 #include "Timer.h"
@@ -222,3 +223,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_audio_PlatformMediaSessionManager_h

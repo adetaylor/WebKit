@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_TextureMapperSolidColorLayer_h
+#define WebCore_platform_graphics_texmap_TextureMapperSolidColorLayer_h
 
 #include "TextureMapper.h"
 #include "TextureMapperBackingStore.h"
@@ -44,3 +45,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_texmap_TextureMapperSolidColorLayer_h

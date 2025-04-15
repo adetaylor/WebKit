@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSFontStyleWithAngleValue_h
+#define WebCore_css_CSSFontStyleWithAngleValue_h
 
 #include "CSSPrimitiveNumericTypes.h"
 #include "CSSValue.h"
@@ -52,3 +53,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSFontStyleWithAngleValue, isFontStyleWithAngleValue())
+#endif // WebCore_css_CSSFontStyleWithAngleValue_h

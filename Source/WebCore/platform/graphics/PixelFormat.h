@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PixelFormat_h
+#define WebCore_platform_graphics_PixelFormat_h
 
 #include <wtf/Forward.h>
 
@@ -47,3 +48,4 @@ enum class PixelFormat : uint8_t {
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, PixelFormat);
 
 }
+#endif // WebCore_platform_graphics_PixelFormat_h

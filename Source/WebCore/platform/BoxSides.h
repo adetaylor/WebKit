@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_BoxSides_h
+#define WebCore_platform_BoxSides_h
 
 #include "WritingMode.h"
 #include <array>
@@ -332,3 +333,4 @@ constexpr LogicalBoxCorner mapCornerPhysicalToLogical(const WritingMode writingM
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_BoxSides_h

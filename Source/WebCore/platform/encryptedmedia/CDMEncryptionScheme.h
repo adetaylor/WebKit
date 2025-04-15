@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_encryptedmedia_CDMEncryptionScheme_h
+#define WebCore_platform_encryptedmedia_CDMEncryptionScheme_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -39,3 +40,4 @@ enum class CDMEncryptionScheme : bool {
 }
 
 #endif
+#endif // WebCore_platform_encryptedmedia_CDMEncryptionScheme_h

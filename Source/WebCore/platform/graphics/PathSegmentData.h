@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PathSegmentData_h
+#define WebCore_platform_graphics_PathSegmentData_h
 
 #include "FloatRect.h"
 #include "FloatRoundedRect.h"
@@ -410,3 +411,4 @@ struct PathCloseSubpath {
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const PathCloseSubpath&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_PathSegmentData_h

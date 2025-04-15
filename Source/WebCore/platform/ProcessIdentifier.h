@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ProcessIdentifier_h
+#define WebCore_platform_ProcessIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -40,3 +41,4 @@ WEBCORE_EXPORT ProcessIdentifier generateIdentifier();
 
 } // namespace Process
 } // namespace WebCore
+#endif // WebCore_platform_ProcessIdentifier_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ReferenceWrapperVector_h
+#define WTF_wtf_ReferenceWrapperVector_h
 
 #include <wtf/Vector.h>
 
@@ -171,3 +172,4 @@ size_t ReferenceWrapperVector<T, inlineCapacity>::findIf(NOESCAPE const MatchFun
 } // namespace WTF
 
 using WTF::ReferenceWrapperVector;
+#endif // WTF_wtf_ReferenceWrapperVector_h

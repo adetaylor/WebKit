@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGParserUtilities_h
+#define WebCore_svg_SVGParserUtilities_h
 
 #include <wtf/Forward.h>
 #include <wtf/text/ParsingUtilities.h>
@@ -105,3 +106,4 @@ template<typename CharacterType> constexpr bool skipOptionalSVGSpacesOrDelimiter
 }
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGParserUtilities_h

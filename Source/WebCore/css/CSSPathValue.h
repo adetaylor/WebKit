@@ -28,7 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSPathValue_h
+#define WebCore_css_CSSPathValue_h
 
 #include "CSSPathFunction.h"
 #include "CSSValue.h"
@@ -64,3 +65,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSPathValue, isPath())
+#endif // WebCore_css_CSSPathValue_h

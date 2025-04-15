@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_TranslationUIServicesSoftLink_h
+#define WebCore_PAL_pal_cocoa_TranslationUIServicesSoftLink_h
 
 #if HAVE(TRANSLATION_UI_SERVICES)
 
@@ -35,3 +36,4 @@ SOFT_LINK_CLASS_FOR_HEADER(PAL, LTUISourceMeta)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, LTUITranslationViewController)
 
 #endif // HAVE(TRANSLATION_UI_SERVICES)
+#endif // WebCore_PAL_pal_cocoa_TranslationUIServicesSoftLink_h

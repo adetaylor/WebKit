@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceFilterInlines_h
+#define WebCore_rendering_svg_RenderSVGResourceFilterInlines_h
 
 #include "RenderSVGModelObjectInlines.h"
 #include "RenderSVGResourceFilter.h"
@@ -53,3 +54,4 @@ inline SVGUnitTypes::SVGUnitType RenderSVGResourceFilter::primitiveUnits() const
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_RenderSVGResourceFilterInlines_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_MetaResolver_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_MetaResolver_h
 
 #include "CSSParserToken.h"
 #include "CSSParserTokenRange.h"
@@ -71,3 +72,4 @@ struct MetaResolver : Base {
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_MetaResolver_h

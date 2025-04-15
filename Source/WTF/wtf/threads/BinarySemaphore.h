@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_threads_BinarySemaphore_h
+#define WTF_wtf_threads_BinarySemaphore_h
 
 #include <wtf/Condition.h>
 #include <wtf/Lock.h>
@@ -60,3 +61,4 @@ private:
 } // namespace WTF
 
 using WTF::BinarySemaphore;
+#endif // WTF_wtf_threads_BinarySemaphore_h

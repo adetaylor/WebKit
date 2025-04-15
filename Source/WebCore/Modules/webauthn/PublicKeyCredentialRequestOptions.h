@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_PublicKeyCredentialRequestOptions_h
+#define WebCore_Modules_webauthn_PublicKeyCredentialRequestOptions_h
 
 #if ENABLE(WEB_AUTHN)
 #include "AuthenticationExtensionsClientInputs.h"
@@ -49,3 +50,4 @@ struct PublicKeyCredentialRequestOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webauthn_PublicKeyCredentialRequestOptions_h

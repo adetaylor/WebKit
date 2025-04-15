@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_LegacyInlineTextBox_h
+#define WebCore_rendering_LegacyInlineTextBox_h
 
 #include "GlyphDisplayListCacheRemoval.h"
 #include "LegacyInlineBox.h"
@@ -139,3 +140,4 @@ LayoutRect snappedSelectionRect(const LayoutRect&, float logicalRight, WritingMo
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INLINE_BOX(LegacyInlineTextBox, isInlineTextBox())
+#endif // WebCore_rendering_LegacyInlineTextBox_h

@@ -17,7 +17,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_glib_MediaSessionGLib_h
+#define WebCore_platform_audio_glib_MediaSessionGLib_h
 
 #if USE(GLIB) && ENABLE(MEDIA_SESSION)
 
@@ -95,3 +96,4 @@ struct LogArgument<WebCore::MediaSessionGLib::MprisRegistrationEligiblilty> {
 } // namespace WTF
 
 #endif // USE(GLIB) && ENABLE(MEDIA_SESSION)
+#endif // WebCore_platform_audio_glib_MediaSessionGLib_h

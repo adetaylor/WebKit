@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_DOMMatrix_h
+#define WebCore_css_DOMMatrix_h
 
 #include "DOMMatrixReadOnly.h"
 
@@ -166,3 +167,4 @@ inline void DOMMatrix::setM44(double f)
 }
 
 } // namespace WebCore
+#endif // WebCore_css_DOMMatrix_h

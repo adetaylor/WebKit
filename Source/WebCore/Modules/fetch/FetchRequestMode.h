@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchRequestMode_h
+#define WebCore_Modules_fetch_FetchRequestMode_h
 
 #include "FetchOptions.h"
 
@@ -32,3 +33,4 @@ namespace WebCore {
 using FetchRequestMode = FetchOptions::Mode;
 
 }
+#endif // WebCore_Modules_fetch_FetchRequestMode_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cocoa_CrashReporterClientSPI_h
+#define WTF_wtf_spi_cocoa_CrashReporterClientSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -57,3 +58,4 @@ CRASH_REPORTER_CLIENT_HIDDEN
 extern struct crashreporter_annotations_t gCRAnnotations;
 
 #endif
+#endif // WTF_wtf_spi_cocoa_CrashReporterClientSPI_h

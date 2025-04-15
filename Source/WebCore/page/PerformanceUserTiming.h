@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceUserTiming_h
+#define WebCore_page_PerformanceUserTiming_h
 
 #include "ExceptionOr.h"
 #include "PerformanceMark.h"
@@ -76,3 +77,4 @@ private:
 };
 
 }
+#endif // WebCore_page_PerformanceUserTiming_h

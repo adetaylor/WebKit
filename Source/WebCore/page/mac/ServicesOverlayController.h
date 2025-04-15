@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_mac_ServicesOverlayController_h
+#define WebCore_page_mac_ServicesOverlayController_h
 
 #if (ENABLE(SERVICE_CONTROLS) || ENABLE(TELEPHONE_NUMBER_DETECTION)) && PLATFORM(MAC)
 
@@ -131,3 +132,4 @@ private:
 } // namespace WebCore
 
 #endif // (ENABLE(SERVICE_CONTROLS) || ENABLE(TELEPHONE_NUMBER_DETECTION)) && PLATFORM(MAC)
+#endif // WebCore_page_mac_ServicesOverlayController_h

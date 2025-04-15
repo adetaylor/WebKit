@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_sql_SQLiteDatabase_h
+#define WebCore_platform_sql_SQLiteDatabase_h
 
 #include <functional>
 #include <sqlite3.h>
@@ -222,3 +223,4 @@ inline void SQLiteDatabase::decrementStatementCount()
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_sql_SQLiteDatabase_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_BPlatform_h
+#define bmalloc_bmalloc_BPlatform_h
 
 #include "BCompiler.h"
 
@@ -382,3 +383,4 @@
 #define BUSE_TZONE 0
 #endif
 #endif
+#endif // bmalloc_bmalloc_BPlatform_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_ios_SystemStatusSoftLink_h
+#define WebCore_PAL_pal_ios_SystemStatusSoftLink_h
 
 #if HAVE(SYSTEM_STATUS)
 
@@ -34,3 +35,4 @@ SOFT_LINK_FRAMEWORK_FOR_HEADER(PAL, SystemStatus)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, STDynamicActivityAttributionPublisher);
 
 #endif
+#endif // WebCore_PAL_pal_ios_SystemStatusSoftLink_h

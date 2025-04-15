@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_NavigationTransition_h
+#define WebCore_page_NavigationTransition_h
 
 #include "JSDOMPromise.h"
 #include "NavigationHistoryEntry.h"
@@ -55,3 +56,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_NavigationTransition_h

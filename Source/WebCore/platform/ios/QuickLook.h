@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_QuickLook_h
+#define WebCore_platform_ios_QuickLook_h
 
 #include <wtf/RetainPtr.h>
 
@@ -44,3 +45,4 @@ WEBCORE_EXPORT NSString *createTemporaryFileForQuickLook(NSString *fileName);
 static constexpr auto QLPreviewProtocol = "x-apple-ql-id"_s;
 
 } // namespace WebCore
+#endif // WebCore_platform_ios_QuickLook_h

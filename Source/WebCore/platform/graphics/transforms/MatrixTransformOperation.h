@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_MatrixTransformOperation_h
+#define WebCore_platform_graphics_transforms_MatrixTransformOperation_h
 
 #include "TransformOperation.h"
 #include "TransformationMatrix.h"
@@ -90,3 +91,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_TRANSFORMOPERATION(WebCore::MatrixTransformOperation, WebCore::TransformOperation::Type::Matrix ==)
+#endif // WebCore_platform_graphics_transforms_MatrixTransformOperation_h

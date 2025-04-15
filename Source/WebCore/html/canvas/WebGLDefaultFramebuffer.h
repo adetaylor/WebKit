@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_WebGLDefaultFramebuffer_h
+#define WebCore_html_canvas_WebGLDefaultFramebuffer_h
 
 #if ENABLE(WEBGL)
 
@@ -64,3 +65,4 @@ private:
 }
 
 #endif
+#endif // WebCore_html_canvas_WebGLDefaultFramebuffer_h

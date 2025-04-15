@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_block_BlockMarginCollapse_h
+#define WebCore_layout_formattingContexts_block_BlockMarginCollapse_h
 
 #include "MarginTypes.h"
 
@@ -86,3 +87,4 @@ private:
 }
 }
 
+#endif // WebCore_layout_formattingContexts_block_BlockMarginCollapse_h

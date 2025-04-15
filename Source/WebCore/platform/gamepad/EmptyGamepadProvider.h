@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_EmptyGamepadProvider_h
+#define WebCore_platform_gamepad_EmptyGamepadProvider_h
 
 #if ENABLE(GAMEPAD)
 
@@ -46,3 +47,4 @@ private:
 }
 
 #endif // ENABLE(GAMEPAD)
+#endif // WebCore_platform_gamepad_EmptyGamepadProvider_h

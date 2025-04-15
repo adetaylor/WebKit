@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_parser_HTMLDocumentParserFastPath_h
+#define WebCore_html_parser_HTMLDocumentParserFastPath_h
 
 #include <wtf/Forward.h>
 
@@ -45,3 +46,4 @@ WEBCORE_EXPORT bool tryFastParsingHTMLFragment(StringView source, Document&, Con
 
 } // namespace WebCore
 
+#endif // WebCore_html_parser_HTMLDocumentParserFastPath_h

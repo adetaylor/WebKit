@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_Range_h
+#define WebCore_dom_Range_h
 
 #include "AbstractRange.h"
 #include "RangeBoundaryPoint.h"
@@ -172,3 +173,4 @@ void showTree(const WebCore::Range*);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Range)
     static bool isType(const WebCore::AbstractRange& range) { return range.isLiveRange(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_Range_h

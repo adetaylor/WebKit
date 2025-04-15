@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSColorLayers_h
+#define WebCore_css_values_color_CSSColorLayers_h
 
 #include "CSSColor.h"
 #include <wtf/Vector.h>
@@ -57,3 +58,4 @@ template<> struct CSSValueChildrenVisitor<ColorLayers> { IterationStatus operato
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSColorLayers_h

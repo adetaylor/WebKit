@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_ButtonPart_h
+#define WebCore_platform_graphics_controls_ButtonPart_h
 
 #include "ControlFactory.h"
 #include "ControlPart.h"
@@ -58,3 +59,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ButtonPart) \
     static bool isType(const WebCore::ControlPart& part) { return part.type() == WebCore::StyleAppearance::PushButton || part.type() == WebCore::StyleAppearance::SquareButton || part.type() == WebCore::StyleAppearance::Button || part.type() == WebCore::StyleAppearance::DefaultButton; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_controls_ButtonPart_h

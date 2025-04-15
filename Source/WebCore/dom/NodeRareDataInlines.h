@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_NodeRareDataInlines_h
+#define WebCore_dom_NodeRareDataInlines_h
 
 #include "CachedHTMLCollectionInlines.h"
 
@@ -59,3 +60,4 @@ void NodeListsNodeData::removeCachedCollection(HTMLCollection* collection, const
 }
 
 }
+#endif // WebCore_dom_NodeRareDataInlines_h

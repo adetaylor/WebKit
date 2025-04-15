@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestStandaloneDictionary_h
+#define WebCore_bindings_scripts_test_JS_JSTestStandaloneDictionary_h
 
 #if ENABLE(Condition1)
 
@@ -42,3 +43,4 @@ template<> ASCIILiteral expectedEnumerationValues<TestStandaloneDictionary::Enum
 } // namespace WebCore
 
 #endif // ENABLE(Condition1)
+#endif // WebCore_bindings_scripts_test_JS_JSTestStandaloneDictionary_h

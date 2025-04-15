@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_darwin_dyldSPI_h
+#define WTF_wtf_spi_darwin_dyldSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -324,3 +325,4 @@ extern bool _dyld_get_image_uuid(const struct mach_header* mh, uuid_t);
 extern bool _dyld_get_shared_cache_uuid(uuid_t);
 
 WTF_EXTERN_C_END
+#endif // WTF_wtf_spi_darwin_dyldSPI_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleDynamicRangeLimitMix_h
+#define WebCore_style_values_color_StyleDynamicRangeLimitMix_h
 
 #include "StylePrimitiveNumericTypes.h"
 
@@ -81,3 +82,4 @@ TextStream& operator<<(TextStream&, const DynamicRangeLimitMixParameters&);
 } // namespace WebCore
 
 DEFINE_COMMA_SEPARATED_TUPLE_LIKE_CONFORMANCE(WebCore::Style::DynamicRangeLimitMixParameters, 3)
+#endif // WebCore_style_values_color_StyleDynamicRangeLimitMix_h

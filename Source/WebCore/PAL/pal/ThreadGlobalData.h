@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_ThreadGlobalData_h
+#define WebCore_PAL_pal_ThreadGlobalData_h
 
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -59,3 +60,4 @@ PAL_EXPORT ThreadGlobalData& threadGlobalData() PURE_FUNCTION;
 #endif
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_ThreadGlobalData_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SystemMalloc_h
+#define WTF_wtf_SystemMalloc_h
 
 #if PLATFORM(MAC) || PLATFORM(IOS_FAMILY)
 // Probabilistic Guard Malloc is not really enabled on older platforms but opt those to system malloc too for consistency.
@@ -102,3 +103,4 @@ using WTF::SystemMalloc;
 #if HAVE(PROBABILISTIC_GUARD_MALLOC)
 using WTF::ProbabilisticGuardMalloc;
 #endif
+#endif // WTF_wtf_SystemMalloc_h

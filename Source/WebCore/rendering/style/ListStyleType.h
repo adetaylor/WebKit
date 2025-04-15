@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_ListStyleType_h
+#define WebCore_rendering_style_ListStyleType_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -55,3 +56,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, ListStyleType);
 
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_ListStyleType_h

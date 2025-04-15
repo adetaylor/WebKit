@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PreviewConverterProvider_h
+#define WebCore_platform_PreviewConverterProvider_h
 
 #include <wtf/WeakPtr.h>
 
@@ -46,3 +47,4 @@ struct PreviewConverterProvider : CanMakeWeakPtr<PreviewConverterProvider> {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_PreviewConverterProvider_h

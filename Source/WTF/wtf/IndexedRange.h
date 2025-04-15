@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_IndexedRange_h
+#define WTF_wtf_IndexedRange_h
 
 namespace WTF {
 
@@ -146,3 +147,4 @@ template<typename Collection> auto indexedRange(Collection&& collection)
 } // namespace WTF
 
 using WTF::indexedRange;
+#endif // WTF_wtf_IndexedRange_h

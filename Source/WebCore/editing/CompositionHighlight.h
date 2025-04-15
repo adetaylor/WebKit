@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_CompositionHighlight_h
+#define WebCore_editing_CompositionHighlight_h
 
 #include "Color.h"
 
@@ -52,3 +53,4 @@ struct CompositionHighlight {
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_CompositionHighlight_h

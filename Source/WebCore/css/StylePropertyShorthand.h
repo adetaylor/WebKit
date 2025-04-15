@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_StylePropertyShorthand_h
+#define WebCore_css_StylePropertyShorthand_h
 
 #include "CSSPropertyNames.h"
 #include "CSSValueKeywords.h"
@@ -70,3 +71,4 @@ unsigned indexOfShorthandForLonghand(CSSPropertyID, const StylePropertyShorthand
 namespace WTF {
 template<> inline size_t containerSize(const WebCore::StylePropertyShorthand& container) { return container.length(); }
 }
+#endif // WebCore_css_StylePropertyShorthand_h

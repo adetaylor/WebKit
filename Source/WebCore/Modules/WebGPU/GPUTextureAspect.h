@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUTextureAspect_h
+#define WebCore_Modules_WebGPU_GPUTextureAspect_h
 
 #include "WebGPUTextureAspect.h"
 #include <cstdint>
@@ -50,3 +51,4 @@ inline WebGPU::TextureAspect convertToBacking(GPUTextureAspect textureAspect)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUTextureAspect_h

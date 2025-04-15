@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSConditionRule_h
+#define WebCore_css_CSSConditionRule_h
 
 #include "CSSGroupingRule.h"
 
@@ -42,3 +43,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_CSSConditionRule_h

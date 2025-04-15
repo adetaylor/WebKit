@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementTextDirection_h
+#define WebCore_dom_ElementTextDirection_h
 
 #include <optional>
 
@@ -61,3 +62,4 @@ void updateEffectiveTextDirectionOfDescendants(Element&, std::optional<TextDirec
 void updateEffectiveTextDirectionOfAncestors(Element&, Element* initiator);
 
 } // namespace WebCore
+#endif // WebCore_dom_ElementTextDirection_h

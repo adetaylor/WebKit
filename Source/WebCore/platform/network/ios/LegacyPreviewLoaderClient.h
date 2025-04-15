@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_ios_LegacyPreviewLoaderClient_h
+#define WebCore_platform_network_ios_LegacyPreviewLoaderClient_h
 
 #include <wtf/Function.h>
 #include <wtf/RefCounted.h>
@@ -44,3 +45,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_ios_LegacyPreviewLoaderClient_h

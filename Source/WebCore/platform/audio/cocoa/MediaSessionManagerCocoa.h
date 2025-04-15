@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_MediaSessionManagerCocoa_h
+#define WebCore_platform_audio_cocoa_MediaSessionManagerCocoa_h
 
 #if PLATFORM(COCOA)
 
@@ -143,3 +144,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(COCOA)
+#endif // WebCore_platform_audio_cocoa_MediaSessionManagerCocoa_h

@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_CheckboxInputType_h
+#define WebCore_html_CheckboxInputType_h
 
 #include "BaseCheckableInputType.h"
 #include "SwitchTrigger.h"
@@ -113,3 +114,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(CheckboxInputType, Type::Checkbox)
+#endif // WebCore_html_CheckboxInputType_h

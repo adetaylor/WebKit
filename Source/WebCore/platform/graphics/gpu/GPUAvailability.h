@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gpu_GPUAvailability_h
+#define WebCore_platform_graphics_gpu_GPUAvailability_h
 
 namespace WebCore {
 
 bool isGPUAvailable();
 
 }
+#endif // WebCore_platform_graphics_gpu_GPUAvailability_h

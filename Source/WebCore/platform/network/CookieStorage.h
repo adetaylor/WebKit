@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_CookieStorage_h
+#define WebCore_platform_network_CookieStorage_h
 
 #include <wtf/Function.h>
 
@@ -36,3 +37,4 @@ WEBCORE_EXPORT void stopObservingCookieChanges(NetworkStorageSession&);
 
 }
 
+#endif // WebCore_platform_network_CookieStorage_h

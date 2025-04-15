@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_TypedElementDescendantIteratorInlines_h
+#define WebCore_dom_TypedElementDescendantIteratorInlines_h
 
 #include "ElementIteratorInlines.h"
 #include "TypedElementDescendantIterator.h"
@@ -190,3 +191,4 @@ template<typename ElementType, bool filter(const ElementType&)> FilteredElementD
 
 
 }
+#endif // WebCore_dom_TypedElementDescendantIteratorInlines_h

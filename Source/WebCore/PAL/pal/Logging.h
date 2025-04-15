@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_Logging_h
+#define WebCore_PAL_pal_Logging_h
 
 #include <wtf/Forward.h>
 
@@ -51,3 +52,4 @@ PAL_LOG_CHANNELS(DECLARE_LOG_CHANNEL)
 
 } // namespace PAL
 
+#endif // WebCore_PAL_pal_Logging_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RealtimeMediaSourceSettings_h
+#define WebCore_platform_mediastream_RealtimeMediaSourceSettings_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -240,3 +241,4 @@ struct LogArgument<OptionSet<WebCore::RealtimeMediaSourceSettings::Flag>> {
 }; // namespace WTF
 
 #endif
+#endif // WebCore_platform_mediastream_RealtimeMediaSourceSettings_h

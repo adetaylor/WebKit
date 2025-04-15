@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_flex_FlexRect_h
+#define WebCore_layout_formattingContexts_flex_FlexRect_h
 
 #include "LayoutRect.h"
 
@@ -271,3 +272,4 @@ inline FlexRect::operator LayoutRect() const
 
 }
 }
+#endif // WebCore_layout_formattingContexts_flex_FlexRect_h

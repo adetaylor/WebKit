@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_RemoteUserInputEventData_h
+#define WebCore_page_RemoteUserInputEventData_h
 
 #include "FrameIdentifier.h"
 #include "IntPoint.h"
@@ -36,3 +37,4 @@ struct RemoteUserInputEventData {
 };
 
 }
+#endif // WebCore_page_RemoteUserInputEventData_h

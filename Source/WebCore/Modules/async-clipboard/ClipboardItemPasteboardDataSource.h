@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_async_clipboard_ClipboardItemPasteboardDataSource_h
+#define WebCore_Modules_async_clipboard_ClipboardItemPasteboardDataSource_h
 
 #include "ClipboardItemDataSource.h"
 #include <wtf/TZoneMalloc.h>
@@ -47,3 +48,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_async_clipboard_ClipboardItemPasteboardDataSource_h

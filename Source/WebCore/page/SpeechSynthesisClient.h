@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_SpeechSynthesisClient_h
+#define WebCore_page_SpeechSynthesisClient_h
 
 #if ENABLE(SPEECH_SYNTHESIS)
 
@@ -67,3 +68,4 @@ public:
 } // namespace WebCore
 
 #endif // ENABLE(SPEECH_SYNTHESIS)
+#endif // WebCore_page_SpeechSynthesisClient_h

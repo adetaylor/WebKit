@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUTextureFormat_h
+#define WebCore_Modules_WebGPU_GPUTextureFormat_h
 
 #include "WebGPUTextureFormat.h"
 #include <cstdint>
@@ -349,3 +350,4 @@ inline WebGPU::TextureFormat convertToBacking(GPUTextureFormat textureFormat)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUTextureFormat_h

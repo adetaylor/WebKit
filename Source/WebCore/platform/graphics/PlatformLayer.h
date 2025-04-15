@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformLayer_h
+#define WebCore_platform_graphics_PlatformLayer_h
 
 #if PLATFORM(COCOA)
 OBJC_CLASS CALayer;
@@ -53,3 +54,4 @@ using PlatformLayerContainer = std::unique_ptr<PlatformLayer>;
 #include <wtf/RefPtr.h>
 using PlatformLayerContainer = RefPtr<PlatformLayer>;
 #endif
+#endif // WebCore_platform_graphics_PlatformLayer_h

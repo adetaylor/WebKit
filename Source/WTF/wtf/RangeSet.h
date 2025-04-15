@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_RangeSet_h
+#define WTF_wtf_RangeSet_h
 
 #include <wtf/ListDump.h>
 #include <wtf/MathExtras.h>
@@ -212,3 +213,4 @@ private:
 } // namespace WTF
 
 using WTF::RangeSet;
+#endif // WTF_wtf_RangeSet_h

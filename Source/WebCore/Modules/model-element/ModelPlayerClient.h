@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_model_element_ModelPlayerClient_h
+#define WebCore_Modules_model_element_ModelPlayerClient_h
 
 #include "LayerHostingContextIdentifier.h"
 #include "PlatformLayerIdentifier.h"
@@ -63,3 +64,4 @@ public:
 };
 
 }
+#endif // WebCore_Modules_model_element_ModelPlayerClient_h

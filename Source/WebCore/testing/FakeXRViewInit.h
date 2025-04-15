@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_FakeXRViewInit_h
+#define WebCore_testing_FakeXRViewInit_h
 
 #if ENABLE(WEBXR)
 
@@ -55,3 +56,4 @@ struct FakeXRViewInit {
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_testing_FakeXRViewInit_h

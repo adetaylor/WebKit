@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ResizeObserverBoxOptions_h
+#define WebCore_page_ResizeObserverBoxOptions_h
 
 namespace WebCore {
 
@@ -36,3 +37,4 @@ enum class ResizeObserverBoxOptions : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ResizeObserverBoxOptions_h

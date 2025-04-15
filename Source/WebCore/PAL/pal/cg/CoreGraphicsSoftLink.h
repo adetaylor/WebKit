@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cg_CoreGraphicsSoftLink_h
+#define WebCore_PAL_pal_cg_CoreGraphicsSoftLink_h
 
 #if USE(CG)
 
@@ -49,3 +50,4 @@ SOFT_LINK_FUNCTION_MAY_FAIL_FOR_HEADER(PAL, CoreGraphics, CGIOSurfaceContextInva
 #endif
 
 #endif
+#endif // WebCore_PAL_pal_cg_CoreGraphicsSoftLink_h

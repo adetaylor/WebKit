@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ShouldLocalizeAxisNames_h
+#define WebCore_platform_graphics_ShouldLocalizeAxisNames_h
 
 #include <cstdint>
 
@@ -32,3 +33,4 @@ namespace WebCore {
 enum class ShouldLocalizeAxisNames : bool { No, Yes };
 
 }
+#endif // WebCore_platform_graphics_ShouldLocalizeAxisNames_h

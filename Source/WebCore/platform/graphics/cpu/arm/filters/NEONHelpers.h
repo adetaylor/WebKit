@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cpu_arm_filters_NEONHelpers_h
+#define WebCore_platform_graphics_cpu_arm_filters_NEONHelpers_h
 
 #if HAVE(ARM_NEON_INTRINSICS)
 
@@ -50,3 +51,4 @@ inline void storeFloatAsRGBA8(float32x4_t data, uint32_t* destination)
 } // namespace WebCore
 
 #endif // HAVE(ARM_NEON_INTRINSICS)
+#endif // WebCore_platform_graphics_cpu_arm_filters_NEONHelpers_h

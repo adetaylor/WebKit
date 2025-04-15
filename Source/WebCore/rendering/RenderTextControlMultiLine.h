@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTextControlMultiLine_h
+#define WebCore_rendering_RenderTextControlMultiLine_h
 
 #include "HTMLTextAreaElement.h"
 #include "RenderTextControl.h"
@@ -56,3 +57,4 @@ inline RenderTextControlMultiLine* HTMLTextAreaElement::renderer() const
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderTextControlMultiLine, isRenderTextControlMultiLine())
+#endif // WebCore_rendering_RenderTextControlMultiLine_h

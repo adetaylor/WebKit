@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_VMTags_h
+#define WTF_wtf_VMTags_h
 
 #if USE(SYSTEM_MALLOC)
 
@@ -37,3 +38,4 @@
 #include <bmalloc/BVMTags.h>
 
 #endif
+#endif // WTF_wtf_VMTags_h

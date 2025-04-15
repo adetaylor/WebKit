@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUColorTargetState_h
+#define WebCore_Modules_WebGPU_GPUColorTargetState_h
 
 #include "GPUBlendState.h"
 #include "GPUColorWrite.h"
@@ -50,3 +51,4 @@ struct GPUColorTargetState {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUColorTargetState_h

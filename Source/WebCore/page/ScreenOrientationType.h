@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ScreenOrientationType_h
+#define WebCore_page_ScreenOrientationType_h
 
 #if PLATFORM(IOS) || PLATFORM(VISION)
 #import <pal/system/ios/Device.h>
@@ -63,3 +64,4 @@ inline ScreenOrientationType naturalScreenOrientationType()
 }
 
 } // namespace WebCore
+#endif // WebCore_page_ScreenOrientationType_h

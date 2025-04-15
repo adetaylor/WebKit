@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_ClockType_h
+#define WTF_wtf_ClockType_h
 
 namespace WTF {
 
@@ -42,3 +43,4 @@ WTF_EXPORT_PRIVATE void printInternal(PrintStream&, ClockType);
 } // namespace WTF
 
 using WTF::ClockType;
+#endif // WTF_wtf_ClockType_h

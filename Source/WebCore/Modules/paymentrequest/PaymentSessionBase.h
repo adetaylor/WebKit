@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_paymentrequest_PaymentSessionBase_h
+#define WebCore_Modules_paymentrequest_PaymentSessionBase_h
 
 #if ENABLE(APPLE_PAY) || ENABLE(PAYMENT_REQUEST)
 
@@ -38,3 +39,4 @@ struct PaymentSessionBase : RefCounted<PaymentSessionBase> {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY) || ENABLE(PAYMENT_REQUEST)
+#endif // WebCore_Modules_paymentrequest_PaymentSessionBase_h

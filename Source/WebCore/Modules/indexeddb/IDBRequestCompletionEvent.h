@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBRequestCompletionEvent_h
+#define WebCore_Modules_indexeddb_IDBRequestCompletionEvent_h
 
 #include "Event.h"
 #include "IDBRequest.h"
@@ -45,3 +46,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBRequestCompletionEvent_h

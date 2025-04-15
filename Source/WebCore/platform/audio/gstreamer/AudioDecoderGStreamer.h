@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_gstreamer_AudioDecoderGStreamer_h
+#define WebCore_platform_audio_gstreamer_AudioDecoderGStreamer_h
 
 #if ENABLE(WEB_CODECS) && USE(GSTREAMER)
 
@@ -51,3 +52,4 @@ private:
 }
 
 #endif // ENABLE(WEB_CODECS) && USE(GSTREAMER)
+#endif // WebCore_platform_audio_gstreamer_AudioDecoderGStreamer_h

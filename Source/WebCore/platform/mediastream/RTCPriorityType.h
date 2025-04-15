@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RTCPriorityType_h
+#define WebCore_platform_mediastream_RTCPriorityType_h
 
 #if ENABLE(WEB_RTC)
 
@@ -34,3 +35,4 @@ enum class RTCPriorityType : uint8_t { VeryLow, Low, Medium, High };
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_platform_mediastream_RTCPriorityType_h

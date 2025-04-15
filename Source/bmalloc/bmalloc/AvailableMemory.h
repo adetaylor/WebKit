@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_AvailableMemory_h
+#define bmalloc_bmalloc_AvailableMemory_h
 
 #include "BPlatform.h"
 #include "Sizes.h"
@@ -69,3 +70,4 @@ inline bool isUnderMemoryPressure()
 }
     
 } // namespace bmalloc
+#endif // bmalloc_bmalloc_AvailableMemory_h

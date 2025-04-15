@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertSerializedScriptValue_h
+#define WebCore_bindings_js_JSDOMConvertSerializedScriptValue_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertStrings.h"
@@ -54,3 +55,4 @@ template<typename T> struct JSConverter<IDLSerializedScriptValue<T>> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertSerializedScriptValue_h

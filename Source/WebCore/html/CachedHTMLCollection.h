@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_CachedHTMLCollection_h
+#define WebCore_html_CachedHTMLCollection_h
 
 #include "CollectionTraversal.h"
 #include "HTMLCollection.h"
@@ -81,3 +82,4 @@ bool CachedHTMLCollection<HTMLCollectionClass, traversalType>::elementMatches(El
 }
 
 } // namespace WebCore
+#endif // WebCore_html_CachedHTMLCollection_h

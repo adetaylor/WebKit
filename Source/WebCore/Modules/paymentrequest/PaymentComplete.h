@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_paymentrequest_PaymentComplete_h
+#define WebCore_Modules_paymentrequest_PaymentComplete_h
 
 #if ENABLE(PAYMENT_REQUEST)
 
@@ -38,3 +39,4 @@ enum class PaymentComplete {
 } // namespace WebCore
 
 #endif // ENABLE(PAYMENT_REQUEST)
+#endif // WebCore_Modules_paymentrequest_PaymentComplete_h

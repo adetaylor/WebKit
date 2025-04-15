@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_WebCoreObjCExtras_h
+#define WebCore_platform_mac_WebCoreObjCExtras_h
 
 #if __has_feature(objc_arc)
 #error Do not use these functions in ARC-enabled code, as they conflict with ARC's automatic memory management.
@@ -35,3 +36,4 @@
 // The class passed here is the class that implements the dealloc method that this function is called from.
 WEBCORE_EXPORT bool WebCoreObjCScheduleDeallocateOnMainThread(Class, id);
 WEBCORE_EXPORT bool WebCoreObjCScheduleDeallocateOnMainRunLoop(Class, id);
+#endif // WebCore_platform_mac_WebCoreObjCExtras_h

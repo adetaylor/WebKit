@@ -17,7 +17,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_rendering_PointerEventsHitRules_h
+#define WebCore_rendering_PointerEventsHitRules_h
 
 #include "HitTestRequest.h"
 #include "RenderStyleConstants.h"
@@ -43,3 +44,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_PointerEventsHitRules_h

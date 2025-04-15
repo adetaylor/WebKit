@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertBoolean_h
+#define WebCore_bindings_js_JSDOMConvertBoolean_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -59,3 +60,4 @@ template<> struct JSConverter<IDLBoolean> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertBoolean_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RobinHoodHashSet_h
+#define WTF_wtf_RobinHoodHashSet_h
 
 #include <wtf/HashSet.h>
 #include <wtf/RobinHoodHashTable.h>
@@ -46,3 +47,4 @@ using FastRobinHoodHashSet = HashSet<ValueArg, HashArg, TraitsArg, FastRobinHood
 using WTF::MemoryCompactLookupOnlyRobinHoodHashSet;
 using WTF::MemoryCompactRobinHoodHashSet;
 using WTF::FastRobinHoodHashSet;
+#endif // WTF_wtf_RobinHoodHashSet_h

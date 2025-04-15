@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollAnimationSmooth_h
+#define WebCore_platform_ScrollAnimationSmooth_h
 
 #include "ScrollAnimation.h"
 #include <wtf/TZoneMalloc.h>
@@ -66,3 +67,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_SCROLL_ANIMATION(WebCore::ScrollAnimationSmooth, type() == WebCore::ScrollAnimation::Type::Smooth)
+#endif // WebCore_platform_ScrollAnimationSmooth_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_DOMMatrixReadOnly_h
+#define WebCore_css_DOMMatrixReadOnly_h
 
 #include "DOMMatrixInit.h"
 #include "ExceptionOr.h"
@@ -158,3 +159,4 @@ inline ExceptionOr<Ref<T>> DOMMatrixReadOnly::fromMatrixHelper(DOMMatrixInit&& i
 }
 
 } // namespace WebCore
+#endif // WebCore_css_DOMMatrixReadOnly_h

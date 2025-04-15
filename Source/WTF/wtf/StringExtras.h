@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_StringExtras_h
+#define WTF_wtf_StringExtras_h
 
 #include <string.h>
 #include <wtf/Compiler.h>
@@ -48,3 +49,4 @@ inline const void* memmem(const void* haystack, size_t haystackLength, const voi
 #endif
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_StringExtras_h

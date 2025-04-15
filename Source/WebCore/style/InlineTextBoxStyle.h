@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_style_InlineTextBoxStyle_h
+#define WebCore_style_InlineTextBoxStyle_h
 
 #include "InlineIteratorInlineBox.h"
 #include "InlineIteratorLineBox.h"
@@ -66,3 +67,4 @@ float underlineOffsetForTextBoxPainting(const InlineIterator::InlineBox&, const 
 float overlineOffsetForTextBoxPainting(const InlineIterator::InlineBox&, const RenderStyle&);
 
 } // namespace WebCore
+#endif // WebCore_style_InlineTextBoxStyle_h

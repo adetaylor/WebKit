@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformVideoPresentationInterface_h
+#define WebCore_platform_graphics_PlatformVideoPresentationInterface_h
 
 namespace WebCore {
 
@@ -40,3 +41,4 @@ using PlatformVideoPresentationInterface = VideoPresentationInterfaceMac;
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_PlatformVideoPresentationInterface_h

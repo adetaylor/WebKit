@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_CSSUnparsedValue_h
+#define WebCore_css_typedom_CSSUnparsedValue_h
 
 #include "CSSStyleValue.h"
 #include <wtf/text/WTFString.h>
@@ -65,3 +66,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSSUnparsedValue)
     static bool isType(const WebCore::CSSStyleValue& styleValue) { return styleValue.getType() == WebCore::CSSStyleValueType::CSSUnparsedValue; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_typedom_CSSUnparsedValue_h

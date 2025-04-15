@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_DataRef_h
+#define WTF_wtf_DataRef_h
 
 #include <wtf/HashTraits.h>
 #include <wtf/Ref.h>
@@ -123,3 +124,4 @@ template<typename T> struct HashTraits<DataRef<T>> : SimpleClassHashTraits<DataR
 } // namespace WTF
 
 using WTF::DataRef;
+#endif // WTF_wtf_DataRef_h

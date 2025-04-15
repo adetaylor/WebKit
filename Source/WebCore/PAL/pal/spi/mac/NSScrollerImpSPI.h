@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSScrollerImpSPI_h
+#define WebCore_PAL_pal_spi_mac_NSScrollerImpSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -162,3 +163,4 @@ NSScrollerStyle _NSRecommendedScrollerStyle();
 WTF_EXTERN_C_END
 
 #endif // USE(APPKIT)
+#endif // WebCore_PAL_pal_spi_mac_NSScrollerImpSPI_h

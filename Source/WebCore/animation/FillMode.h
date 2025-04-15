@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_FillMode_h
+#define WebCore_animation_FillMode_h
 
 #include <wtf/Markable.h>
 
@@ -34,3 +35,4 @@ enum class FillMode : uint8_t { None, Forwards, Backwards, Both, Auto };
 using OptionalFillMode = Markable<FillMode, EnumMarkableTraits<FillMode>>;
 
 } // namespace WebCore
+#endif // WebCore_animation_FillMode_h

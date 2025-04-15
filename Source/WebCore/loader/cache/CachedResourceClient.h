@@ -22,7 +22,8 @@
     pages from the web. It has a memory cache for these objects.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedResourceClient_h
+#define WebCore_loader_cache_CachedResourceClient_h
 
 #include "FrameLoaderTypes.h"
 #include <wtf/Noncopyable.h>
@@ -84,3 +85,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToClassName) \
     static bool isType(const WebCore::CachedResourceClient& client) { return client.resourceClientType() == WebCore::CachedResourceClient::CachedResourceTypeValue; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_loader_cache_CachedResourceClient_h

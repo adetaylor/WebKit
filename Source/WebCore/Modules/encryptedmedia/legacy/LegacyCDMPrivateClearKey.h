@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_encryptedmedia_legacy_LegacyCDMPrivateClearKey_h
+#define WebCore_Modules_encryptedmedia_legacy_LegacyCDMPrivateClearKey_h
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 
@@ -60,3 +61,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(LEGACY_ENCRYPTED_MEDIA)
+#endif // WebCore_Modules_encryptedmedia_legacy_LegacyCDMPrivateClearKey_h

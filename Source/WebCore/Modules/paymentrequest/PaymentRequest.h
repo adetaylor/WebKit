@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_paymentrequest_PaymentRequest_h
+#define WebCore_Modules_paymentrequest_PaymentRequest_h
 
 #if ENABLE(PAYMENT_REQUEST)
 
@@ -163,3 +164,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::PaymentRequest)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(PAYMENT_REQUEST)
+#endif // WebCore_Modules_paymentrequest_PaymentRequest_h

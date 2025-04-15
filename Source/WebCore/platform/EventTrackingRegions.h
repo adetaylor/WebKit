@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_EventTrackingRegions_h
+#define WebCore_platform_EventTrackingRegions_h
 
 #include "Region.h"
 #include <wtf/Forward.h>
@@ -88,3 +89,4 @@ struct EventTrackingRegions {
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, const EventTrackingRegions&);
 
 } // namespace WebCore
+#endif // WebCore_platform_EventTrackingRegions_h

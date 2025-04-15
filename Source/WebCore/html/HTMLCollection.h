@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLCollection_h
+#define WebCore_html_HTMLCollection_h
 
 #include "CollectionIndexCache.h"
 #include "Element.h"
@@ -136,3 +137,4 @@ inline Ref<ContainerNode> HTMLCollection::protectedOwnerNode() const
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ClassName) \
     static bool isType(const WebCore::HTMLCollection& collection) { return collection.type() == WebCore::Type; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_HTMLCollection_h

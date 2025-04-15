@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSAttrValue_h
+#define WebCore_css_CSSAttrValue_h
 
 #include "CSSValue.h"
 
@@ -56,3 +57,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSAttrValue, isAttrValue())
+#endif // WebCore_css_CSSAttrValue_h

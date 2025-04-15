@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_StyleAttributeMutationScope_h
+#define WebCore_css_StyleAttributeMutationScope_h
 
 #include "CustomElementReactionQueue.h"
 #include "Element.h"
@@ -109,3 +110,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_StyleAttributeMutationScope_h

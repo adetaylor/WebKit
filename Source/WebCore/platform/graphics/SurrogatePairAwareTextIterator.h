@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_SurrogatePairAwareTextIterator_h
+#define WebCore_platform_graphics_SurrogatePairAwareTextIterator_h
 
 #include <unicode/utf16.h>
 #include <wtf/text/WTFString.h>
@@ -80,3 +81,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_SurrogatePairAwareTextIterator_h

@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTableCellInlines_h
+#define WebCore_rendering_RenderTableCellInlines_h
 
 #include "RenderStyleInlines.h"
 #include "RenderTableCell.h"
@@ -83,3 +84,4 @@ inline bool RenderTableCell::isBaselineAligned() const
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderTableCellInlines_h

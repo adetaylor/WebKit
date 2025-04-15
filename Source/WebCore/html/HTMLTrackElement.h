@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLTrackElement_h
+#define WebCore_html_HTMLTrackElement_h
 
 #if ENABLE(VIDEO)
 
@@ -105,3 +106,4 @@ private:
 }
 
 #endif
+#endif // WebCore_html_HTMLTrackElement_h

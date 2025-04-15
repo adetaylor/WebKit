@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_ios_OpenGLESSPI_h
+#define WebCore_PAL_pal_spi_ios_OpenGLESSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -60,3 +61,4 @@ enum {
 - (NSUInteger)getParameter:(EAGLContextParameter)pname to:(int32_t *)params;
 @end
 #endif
+#endif // WebCore_PAL_pal_spi_ios_OpenGLESSPI_h

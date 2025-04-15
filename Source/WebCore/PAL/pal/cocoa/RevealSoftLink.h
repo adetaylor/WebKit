@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_RevealSoftLink_h
+#define WebCore_PAL_pal_cocoa_RevealSoftLink_h
 
 #if ENABLE(REVEAL)
 
@@ -39,3 +40,4 @@ SOFT_LINK_CLASS_FOR_HEADER(PAL, RVItem)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, RVSelection)
 
 #endif // ENABLE(REVEAL)
+#endif // WebCore_PAL_pal_cocoa_RevealSoftLink_h

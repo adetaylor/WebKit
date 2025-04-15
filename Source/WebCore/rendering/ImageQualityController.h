@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_ImageQualityController_h
+#define WebCore_rendering_ImageQualityController_h
 
 #include "GraphicsTypes.h"
 #include "Timer.h"
@@ -70,3 +71,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_ImageQualityController_h

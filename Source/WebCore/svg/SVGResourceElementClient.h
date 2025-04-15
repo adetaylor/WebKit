@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGResourceElementClient_h
+#define WebCore_svg_SVGResourceElementClient_h
 
 #include <wtf/WeakPtr.h>
 
@@ -51,3 +52,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGResourceElementClient_h

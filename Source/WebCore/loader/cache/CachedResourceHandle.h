@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedResourceHandle_h
+#define WebCore_loader_cache_CachedResourceHandle_h
 
 #include <wtf/Forward.h>
 #include <wtf/WeakPtr.h>
@@ -83,3 +84,4 @@ template <class R, class RR> bool operator==(const CachedResourceHandle<R>& h, c
 }
 
 } // namespace WebCore
+#endif // WebCore_loader_cache_CachedResourceHandle_h

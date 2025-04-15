@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_page_ScrollIntoViewOptions_h
+#define WebCore_page_ScrollIntoViewOptions_h
 
 #include "ScrollLogicalPosition.h"
 #include "ScrollOptions.h"
@@ -30,3 +31,4 @@ struct ScrollIntoViewOptions : ScrollOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ScrollIntoViewOptions_h

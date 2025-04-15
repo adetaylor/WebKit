@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FloatPoint_h
+#define WebCore_platform_graphics_FloatPoint_h
 
 #include "FloatSize.h"
 #include "IntPoint.h"
@@ -354,3 +355,4 @@ struct LogArgument<WebCore::FloatPoint> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_graphics_FloatPoint_h

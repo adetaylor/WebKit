@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_CaretAnimator_h
+#define WebCore_platform_CaretAnimator_h
 
 #include "Document.h"
 #include "LayoutRect.h"
@@ -165,3 +166,4 @@ static inline CaretAnimator::PresentationProperties::BlinkState operator!(CaretA
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_CaretAnimator_h

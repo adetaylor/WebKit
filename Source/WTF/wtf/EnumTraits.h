@@ -54,7 +54,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#ifndef WTF_wtf_EnumTraits_h
+#define WTF_wtf_EnumTraits_h
 
 #include <algorithm>
 #include <span>
@@ -327,3 +328,4 @@ using WTF::isZeroBasedContiguousEnum;
 using WTF::enumTypeName;
 using WTF::enumNames;
 using WTF::enumName;
+#endif // WTF_wtf_EnumTraits_h

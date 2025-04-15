@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_cocoa_CookieStorageObserver_h
+#define WebCore_platform_network_cocoa_CookieStorageObserver_h
 
 #include <pal/spi/cf/CFNetworkSPI.h>
 #include <wtf/Function.h>
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_cocoa_CookieStorageObserver_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_plugins_PluginInfoProvider_h
+#define WebCore_plugins_PluginInfoProvider_h
 
 #include "PluginData.h"
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
@@ -52,3 +53,4 @@ private:
 };
 
 }
+#endif // WebCore_plugins_PluginInfoProvider_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_WebXRJointSpace_h
+#define WebCore_Modules_webxr_WebXRJointSpace_h
 
 #if ENABLE(WEBXR) && ENABLE(WEBXR_HANDS)
 
@@ -79,3 +80,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_WEBXRSPACE(WebXRJointSpace, isJointSpace())
 
 #endif
+#endif // WebCore_Modules_webxr_WebXRJointSpace_h

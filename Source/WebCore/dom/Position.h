@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_dom_Position_h
+#define WebCore_dom_Position_h
 
 #include "CharacterData.h"
 #include "ContainerNode.h"
@@ -307,3 +308,4 @@ inline bool offsetIsBeforeLastNodeOffset(unsigned offset, Node* anchorNode);
 void showTree(const WebCore::Position&);
 void showTree(const WebCore::Position*);
 #endif
+#endif // WebCore_dom_Position_h

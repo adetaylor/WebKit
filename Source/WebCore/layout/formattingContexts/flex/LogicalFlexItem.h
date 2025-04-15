@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_flex_LogicalFlexItem_h
+#define WebCore_layout_formattingContexts_flex_LogicalFlexItem_h
 
 #include "LayoutElementBox.h"
 
@@ -107,3 +108,4 @@ inline LogicalFlexItem::LogicalFlexItem(const ElementBox& flexItem, const MainAx
 
 }
 }
+#endif // WebCore_layout_formattingContexts_flex_LogicalFlexItem_h

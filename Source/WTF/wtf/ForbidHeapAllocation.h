@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ForbidHeapAllocation_h
+#define WTF_wtf_ForbidHeapAllocation_h
 
 // We do not delete "delete" operators to allow classes to have a virtual destructor. The following code raises a compile error like "error: attempt to use a deleted function".
 //
@@ -42,3 +43,4 @@ private: \
     void* operator new[](size_t size) = delete; \
     void* operator new(size_t, NotNullTag, void* location) = delete; \
     typedef int __thisIsHereToForceASemicolonAfterThisForbidHeapAllocationMacro
+#endif // WTF_wtf_ForbidHeapAllocation_h

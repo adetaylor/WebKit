@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ca_PlatformCAFilters_h
+#define WebCore_platform_graphics_ca_PlatformCAFilters_h
 
 #include "FilterOperations.h"
 #include "GraphicsTypes.h"
@@ -66,3 +67,4 @@ public:
 };
 
 }
+#endif // WebCore_platform_graphics_ca_PlatformCAFilters_h

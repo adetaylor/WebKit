@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLPlugInImageElement_h
+#define WebCore_html_HTMLPlugInImageElement_h
 
 #include "HTMLPlugInElement.h"
 
@@ -102,3 +103,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::HTMLPlugInImageElement)
         return pluginElement && isType(*pluginElement);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_HTMLPlugInImageElement_h

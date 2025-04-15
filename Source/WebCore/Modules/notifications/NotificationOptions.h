@@ -22,7 +22,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-#pragma once
+#ifndef WebCore_Modules_notifications_NotificationOptions_h
+#define WebCore_Modules_notifications_NotificationOptions_h
 
 #include "Notification.h"
 
@@ -36,3 +37,4 @@ using NotificationOptions = Notification::Options;
 
 #endif // ENABLE(NOTIFICATIONS)
 
+#endif // WebCore_Modules_notifications_NotificationOptions_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_SpellingCorrectionCommand_h
+#define WebCore_editing_SpellingCorrectionCommand_h
 
 #include "CompositeEditCommand.h"
 #include "DocumentFragment.h"
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_SpellingCorrectionCommand_h

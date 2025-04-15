@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_AppleVisualEffect_h
+#define WebCore_platform_cocoa_AppleVisualEffect_h
 
 #if HAVE(CORE_MATERIAL)
 
@@ -84,3 +85,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, AppleVisualEffectDa
 } // namespace WebCore
 
 #endif // HAVE(CORE_MATERIAL)
+#endif // WebCore_platform_cocoa_AppleVisualEffect_h

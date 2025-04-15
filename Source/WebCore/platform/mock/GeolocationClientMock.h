@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mock_GeolocationClientMock_h
+#define WebCore_platform_mock_GeolocationClientMock_h
 
 #include "GeolocationClient.h"
 #include "GeolocationPositionData.h"
@@ -95,3 +96,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_mock_GeolocationClientMock_h

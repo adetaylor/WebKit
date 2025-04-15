@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCStatsReport_h
+#define WebCore_Modules_mediastream_RTCStatsReport_h
 
 #include "RTCDtlsTransportState.h"
 #include "RTCIceCandidateType.h"
@@ -521,3 +522,4 @@ inline RTCStatsReport::RTCStatsReport(MapInitializer&& mapInitializer)
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_mediastream_RTCStatsReport_h

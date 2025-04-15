@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SchedulePair_h
+#define WTF_wtf_SchedulePair_h
 
 #include <wtf/HashSet.h>
 #include <wtf/Hasher.h>
@@ -101,3 +102,4 @@ typedef UncheckedKeyHashSet<RefPtr<SchedulePair>, SchedulePairHash> SchedulePair
 
 using WTF::SchedulePair;
 using WTF::SchedulePairHashSet;
+#endif // WTF_wtf_SchedulePair_h

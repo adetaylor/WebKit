@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorStyleSheet_h
+#define WebCore_inspector_InspectorStyleSheet_h
 
 #include "CSSPropertySourceData.h"
 #include "CSSStyleDeclaration.h"
@@ -268,3 +269,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorStyleSheet_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_SerializedCryptoKeyWrap_h
+#define WebCore_crypto_SerializedCryptoKeyWrap_h
 
 #include <wtf/Forward.h>
 #include <wtf/text/WTFString.h>
@@ -48,3 +49,4 @@ WEBCORE_EXPORT std::optional<WrappedCryptoKey> readSerializedCryptoKey(const Vec
 WEBCORE_EXPORT std::optional<Vector<uint8_t>> unwrapCryptoKey(const Vector<uint8_t>& masterKey, const struct WrappedCryptoKey& wrappedKey);
 
 } // namespace WebCore
+#endif // WebCore_crypto_SerializedCryptoKeyWrap_h

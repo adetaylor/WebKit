@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_updating_RenderTreeBuilderMathML_h
+#define WebCore_rendering_updating_RenderTreeBuilderMathML_h
 
 #if ENABLE(MATHML)
 
@@ -53,3 +54,4 @@ private:
 }
 
 #endif // ENABLE(MATHML)
+#endif // WebCore_rendering_updating_RenderTreeBuilderMathML_h

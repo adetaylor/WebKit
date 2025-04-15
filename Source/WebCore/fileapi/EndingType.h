@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_fileapi_EndingType_h
+#define WebCore_fileapi_EndingType_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class EndingType {
 };
 
 }
+#endif // WebCore_fileapi_EndingType_h

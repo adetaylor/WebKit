@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResourceFilterPrimitive_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResourceFilterPrimitive_h
 
 #include "LegacyRenderSVGResourceFilter.h"
 
@@ -54,3 +55,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(LegacyRenderSVGResourceFilterPrimitive, isLegacyRenderSVGResourceFilterPrimitive())
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResourceFilterPrimitive_h

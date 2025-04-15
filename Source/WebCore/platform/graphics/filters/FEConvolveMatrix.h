@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FEConvolveMatrix_h
+#define WebCore_platform_graphics_filters_FEConvolveMatrix_h
 
 #include "FilterEffect.h"
 #include "FloatPoint.h"
@@ -92,3 +93,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(FEConvolveMatrix)
+#endif // WebCore_platform_graphics_filters_FEConvolveMatrix_h

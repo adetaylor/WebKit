@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_MediaRemoteSoftLink_h
+#define WebCore_platform_mac_MediaRemoteSoftLink_h
 
 #include <pal/spi/mac/MediaRemoteSPI.h>
 #include <wtf/SoftLinking.h>
@@ -97,3 +98,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(WebCore, MediaRemote, MRMediaRemoteCopyPickableRou
 #if USE(NOW_PLAYING_ACTIVITY_SUPPRESSION)
 SOFT_LINK_CLASS_FOR_HEADER(WebCore, MRUIControllerProvider);
 #endif
+#endif // WebCore_platform_mac_MediaRemoteSoftLink_h

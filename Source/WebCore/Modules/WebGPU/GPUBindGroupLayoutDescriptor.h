@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUBindGroupLayoutDescriptor_h
+#define WebCore_Modules_WebGPU_GPUBindGroupLayoutDescriptor_h
 
 #include "GPUBindGroupLayoutEntry.h"
 #include "GPUObjectDescriptorBase.h"
@@ -47,3 +48,4 @@ struct GPUBindGroupLayoutDescriptor : public GPUObjectDescriptorBase {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUBindGroupLayoutDescriptor_h

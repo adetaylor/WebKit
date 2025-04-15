@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_MachSendRight_h
+#define WTF_wtf_MachSendRight_h
 
 #include <wtf/Forward.h>
 
@@ -66,3 +67,4 @@ WTF_EXPORT_PRIVATE void deallocateSendRightSafely(mach_port_t);
 using WTF::deallocateSendRightSafely;
 
 #endif
+#endif // WTF_wtf_MachSendRight_h

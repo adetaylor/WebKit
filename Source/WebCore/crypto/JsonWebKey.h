@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_JsonWebKey_h
+#define WebCore_crypto_JsonWebKey_h
 
 #include "CryptoKeyUsage.h"
 #include "RsaOtherPrimesInfo.h"
@@ -81,3 +82,4 @@ struct JsonWebKey {
 };
 
 } // namespace WebCore
+#endif // WebCore_crypto_JsonWebKey_h

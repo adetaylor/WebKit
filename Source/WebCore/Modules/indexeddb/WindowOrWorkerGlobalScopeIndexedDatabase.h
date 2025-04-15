@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_WindowOrWorkerGlobalScopeIndexedDatabase_h
+#define WebCore_Modules_indexeddb_WindowOrWorkerGlobalScopeIndexedDatabase_h
 
 namespace WebCore {
 
@@ -39,3 +40,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_WindowOrWorkerGlobalScopeIndexedDatabase_h

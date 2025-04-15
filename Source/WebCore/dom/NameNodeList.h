@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_NameNodeList_h
+#define WebCore_dom_NameNodeList_h
 
 #include "LiveNodeList.h"
 
@@ -43,3 +44,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_NameNodeList_h

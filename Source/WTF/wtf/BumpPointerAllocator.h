@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_BumpPointerAllocator_h
+#define WTF_wtf_BumpPointerAllocator_h
 
 #include <algorithm>
 #include <wtf/PageAllocation.h>
@@ -263,3 +264,4 @@ private:
 using WTF::BumpPointerAllocator;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_BumpPointerAllocator_h

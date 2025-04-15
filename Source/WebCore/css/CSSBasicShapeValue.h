@@ -28,7 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSBasicShapeValue_h
+#define WebCore_css_CSSBasicShapeValue_h
 
 #include "CSSBasicShape.h"
 #include "CSSValue.h"
@@ -62,3 +63,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSBasicShapeValue, isBasicShape())
+#endif // WebCore_css_CSSBasicShapeValue_h

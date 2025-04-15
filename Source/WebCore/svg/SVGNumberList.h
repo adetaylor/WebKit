@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGNumberList_h
+#define WebCore_svg_SVGNumberList_h
 
 #include "SVGNumber.h"
 #include "SVGValuePropertyList.h"
@@ -55,3 +56,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGNumberList_h

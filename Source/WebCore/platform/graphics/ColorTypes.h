@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorTypes_h
+#define WebCore_platform_graphics_ColorTypes_h
 
 #include "ColorComponents.h"
 #include "ColorMatrix.h"
@@ -759,3 +760,4 @@ constexpr SRGBA<uint8_t> asSRGBA(PackedColor::ARGB color)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ColorTypes_h

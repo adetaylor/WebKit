@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_TransformationMatrix_h
+#define WebCore_platform_graphics_transforms_TransformationMatrix_h
 
 #include "CompositeOperation.h"
 #include "FloatPoint.h"
@@ -486,3 +487,4 @@ private:
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const TransformationMatrix&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_transforms_TransformationMatrix_h

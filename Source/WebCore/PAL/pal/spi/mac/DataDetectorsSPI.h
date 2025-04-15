@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_DataDetectorsSPI_h
+#define WebCore_PAL_pal_spi_mac_DataDetectorsSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -136,3 +137,4 @@ using WKDDActionContext = DDActionContext;
 
 #endif // ENABLE(DATA_DETECTION)
 
+#endif // WebCore_PAL_pal_spi_mac_DataDetectorsSPI_h

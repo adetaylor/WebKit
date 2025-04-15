@@ -29,7 +29,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_loader_LinkLoaderClient_h
+#define WebCore_loader_LinkLoaderClient_h
 
 #include <wtf/WeakPtr.h>
 
@@ -56,3 +57,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_LinkLoaderClient_h

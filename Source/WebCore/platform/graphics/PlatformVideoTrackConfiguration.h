@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformVideoTrackConfiguration_h
+#define WebCore_platform_graphics_PlatformVideoTrackConfiguration_h
 
 #if ENABLE(VIDEO)
 
@@ -49,3 +50,4 @@ struct PlatformVideoTrackConfiguration : PlatformTrackConfiguration {
 }
 
 #endif
+#endif // WebCore_platform_graphics_PlatformVideoTrackConfiguration_h

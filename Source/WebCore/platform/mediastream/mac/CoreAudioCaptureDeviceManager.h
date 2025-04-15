@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_mac_CoreAudioCaptureDeviceManager_h
+#define WebCore_platform_mediastream_mac_CoreAudioCaptureDeviceManager_h
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(MAC)
 
@@ -68,3 +69,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM) && PLATFORM(MAC)
+#endif // WebCore_platform_mediastream_mac_CoreAudioCaptureDeviceManager_h

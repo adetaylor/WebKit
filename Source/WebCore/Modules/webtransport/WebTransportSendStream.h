@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_WebTransportSendStream_h
+#define WebCore_Modules_webtransport_WebTransportSendStream_h
 
 #include "WritableStream.h"
 
@@ -47,3 +48,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_webtransport_WebTransportSendStream_h

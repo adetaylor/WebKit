@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_SinglyLinkedListWithTail_h
+#define WTF_wtf_SinglyLinkedListWithTail_h
 
 #include <wtf/Assertions.h>
 #include <wtf/StdLibExtras.h>
@@ -61,3 +62,4 @@ private:
 
 using WTF::SinglyLinkedListWithTail;
 
+#endif // WTF_wtf_SinglyLinkedListWithTail_h

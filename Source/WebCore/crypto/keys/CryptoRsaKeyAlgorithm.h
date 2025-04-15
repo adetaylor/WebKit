@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_keys_CryptoRsaKeyAlgorithm_h
+#define WebCore_crypto_keys_CryptoRsaKeyAlgorithm_h
 
 #include "CryptoKeyAlgorithm.h"
 #include <JavaScriptCore/Uint8Array.h>
@@ -39,3 +40,4 @@ struct CryptoRsaKeyAlgorithm : CryptoKeyAlgorithm {
 
 }
 
+#endif // WebCore_crypto_keys_CryptoRsaKeyAlgorithm_h

@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_FocusEvent_h
+#define WebCore_dom_FocusEvent_h
 
 #include "EventTarget.h"
 #include "UIEvent.h"
@@ -72,3 +73,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(FocusEvent)
+#endif // WebCore_dom_FocusEvent_h

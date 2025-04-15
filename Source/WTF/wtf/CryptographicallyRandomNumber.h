@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_CryptographicallyRandomNumber_h
+#define WTF_wtf_CryptographicallyRandomNumber_h
 
 #include <stdint.h>
 
@@ -50,3 +51,4 @@ WTF_EXPORT_PRIVATE double cryptographicallyRandomUnitInterval();
 using WTF::cryptographicallyRandomNumber;
 using WTF::cryptographicallyRandomUnitInterval;
 using WTF::cryptographicallyRandomValues;
+#endif // WTF_wtf_CryptographicallyRandomNumber_h

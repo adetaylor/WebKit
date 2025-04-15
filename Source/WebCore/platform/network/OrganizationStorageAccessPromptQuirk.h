@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_OrganizationStorageAccessPromptQuirk_h
+#define WebCore_platform_network_OrganizationStorageAccessPromptQuirk_h
 
 #include "RegistrableDomain.h"
 #include <wtf/CrossThreadCopier.h>
@@ -99,3 +100,4 @@ template<> struct HashTraits<WebCore::OrganizationStorageAccessPromptQuirk> : We
 template<> struct DefaultHash<WebCore::OrganizationStorageAccessPromptQuirk> : WebCore::OrganizationStorageAccessPromptQuirkHash { };
 
 } // namespace WTF
+#endif // WebCore_platform_network_OrganizationStorageAccessPromptQuirk_h

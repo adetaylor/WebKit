@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayPaymentAuthorizedEvent_h
+#define WebCore_Modules_applepay_ApplePayPaymentAuthorizedEvent_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -55,3 +56,4 @@ private:
 }
 
 #endif
+#endif // WebCore_Modules_applepay_ApplePayPaymentAuthorizedEvent_h

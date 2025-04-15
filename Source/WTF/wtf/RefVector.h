@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RefVector_h
+#define WTF_wtf_RefVector_h
 
 #include <wtf/Ref.h>
 #include <wtf/Vector.h>
@@ -162,3 +163,4 @@ size_t RefVector<T, inlineCapacity>::findIf(NOESCAPE const MatchFunction& matche
 } // namespace WTF
 
 using WTF::RefVector;
+#endif // WTF_wtf_RefVector_h

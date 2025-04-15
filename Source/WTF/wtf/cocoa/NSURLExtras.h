@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cocoa_NSURLExtras_h
+#define WTF_wtf_cocoa_NSURLExtras_h
 
 #import <Foundation/Foundation.h>
 
@@ -46,3 +47,4 @@ WTF_EXPORT_PRIVATE NSURL *URLWithUserTypedStringDeprecated(NSString *);
 WTF_EXPORT_PRIVATE BOOL isUserVisibleURL(NSString *);
 
 } // namespace WTF
+#endif // WTF_wtf_cocoa_NSURLExtras_h

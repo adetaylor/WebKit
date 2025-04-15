@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_CompositionEvent_h
+#define WebCore_dom_CompositionEvent_h
 
 #include "UIEvent.h"
 
@@ -71,3 +72,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(CompositionEvent)
+#endif // WebCore_dom_CompositionEvent_h

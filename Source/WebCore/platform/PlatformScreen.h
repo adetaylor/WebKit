@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PlatformScreen_h
+#define WebCore_platform_PlatformScreen_h
 
 #include "ContentsFormat.h"
 #include <wtf/Forward.h>
@@ -168,3 +169,4 @@ constexpr bool screenHasTouchDevice() { return true; }
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_PlatformScreen_h

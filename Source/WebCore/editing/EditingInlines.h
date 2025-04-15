@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_EditingInlines_h
+#define WebCore_editing_EditingInlines_h
 
 #include "Editing.h"
 #include "PositionInlines.h"
@@ -38,3 +39,4 @@ Position lastPositionInOrAfterNode(Node* node)
 }
 
 }
+#endif // WebCore_editing_EditingInlines_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_worker_WorkerConsoleAgent_h
+#define WebCore_inspector_agents_worker_WorkerConsoleAgent_h
 
 #include "InspectorWebAgentBase.h"
 #include "WebConsoleAgent.h"
@@ -40,3 +41,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_worker_WorkerConsoleAgent_h

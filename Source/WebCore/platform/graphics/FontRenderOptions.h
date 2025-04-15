@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontRenderOptions_h
+#define WebCore_platform_graphics_FontRenderOptions_h
 
 #if USE(CAIRO) || USE(SKIA)
 #include <optional>
@@ -110,3 +111,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(CAIRO) || USE(SKIA)
+#endif // WebCore_platform_graphics_FontRenderOptions_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_Gigacage_h
+#define WTF_wtf_Gigacage_h
 
 #include <wtf/FastMalloc.h>
 #include <wtf/StdLibExtras.h>
@@ -110,3 +111,4 @@ WTF_EXPORT_PRIVATE void* mallocArray(Kind, size_t numElements, size_t elementSiz
 } // namespace Gigacage
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_Gigacage_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerOrWorkletThread_h
+#define WebCore_workers_WorkerOrWorkletThread_h
 
 #include "WorkerRunLoop.h"
 #include "WorkerThreadMode.h"
@@ -109,3 +110,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerOrWorkletThread_h

@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_network_FormDataBuilder_h
+#define WebCore_platform_network_FormDataBuilder_h
 
 #include "FormData.h"
 #include <wtf/Forward.h>
@@ -47,3 +48,4 @@ void encodeStringAsFormData(Vector<uint8_t>&, const CString&);
 }
 
 }
+#endif // WebCore_platform_network_FormDataBuilder_h

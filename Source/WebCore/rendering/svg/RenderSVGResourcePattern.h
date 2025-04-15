@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourcePattern_h
+#define WebCore_rendering_svg_RenderSVGResourcePattern_h
 
 #include "AffineTransform.h"
 #include "PatternAttributes.h"
@@ -71,3 +72,4 @@ protected:
 }
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGResourcePattern, isRenderSVGResourcePattern())
+#endif // WebCore_rendering_svg_RenderSVGResourcePattern_h

@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSValueList_h
+#define WebCore_css_CSSValueList_h
 
 #include "CSSValue.h"
 #include <array>
@@ -152,3 +153,4 @@ void add(Hasher&, const CSSValueContainingVector&);
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSValueContainingVector, containsVector())
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSValueList, isValueList())
+#endif // WebCore_css_CSSValueList_h

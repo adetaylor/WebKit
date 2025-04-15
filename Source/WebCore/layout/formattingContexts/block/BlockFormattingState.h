@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_block_BlockFormattingState_h
+#define WebCore_layout_formattingContexts_block_BlockFormattingState_h
 
 #include "FormattingState.h"
 #include "PlacedFloats.h"
@@ -71,3 +72,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_LAYOUT_FORMATTING_STATE(BlockFormattingState, isBlockFormattingState())
 
+#endif // WebCore_layout_formattingContexts_block_BlockFormattingState_h

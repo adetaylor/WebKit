@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WeakHashSet_h
+#define WTF_wtf_WeakHashSet_h
 
 #include <wtf/Algorithms.h>
 #include <wtf/HashSet.h>
@@ -249,3 +250,4 @@ inline auto copyToVector(const WeakHashSet<T, WeakMapImpl>& collection) -> Vecto
 } // namespace WTF
 
 using WTF::WeakHashSet;
+#endif // WTF_wtf_WeakHashSet_h

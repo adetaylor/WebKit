@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_gstreamer_GStreamerMockDevice_h
+#define WebCore_platform_mediastream_gstreamer_GStreamerMockDevice_h
 
 #if ENABLE(MEDIA_STREAM) && USE(GSTREAMER)
 
@@ -55,3 +56,4 @@ GType webkit_mock_device_get_type(void);
 GstDevice* webkitMockDeviceCreate(const WebCore::CaptureDevice&);
 
 #endif // ENABLE(MEDIA_STREAM) && USE(GSTREAMER)
+#endif // WebCore_platform_mediastream_gstreamer_GStreamerMockDevice_h

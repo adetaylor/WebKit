@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_XRSimulateUserActivationFunction_h
+#define WebCore_testing_XRSimulateUserActivationFunction_h
 
 #if ENABLE(WEBXR)
 
@@ -49,3 +50,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_testing_XRSimulateUserActivationFunction_h

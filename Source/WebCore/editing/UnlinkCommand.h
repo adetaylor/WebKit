@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_UnlinkCommand_h
+#define WebCore_editing_UnlinkCommand_h
 
 #include "CompositeEditCommand.h"
 
@@ -44,3 +45,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_UnlinkCommand_h

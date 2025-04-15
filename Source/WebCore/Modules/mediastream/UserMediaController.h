@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_UserMediaController_h
+#define WebCore_Modules_mediastream_UserMediaController_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -108,3 +109,4 @@ inline void UserMediaController::updateCaptureState(const Document& document, bo
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM)
+#endif // WebCore_Modules_mediastream_UserMediaController_h

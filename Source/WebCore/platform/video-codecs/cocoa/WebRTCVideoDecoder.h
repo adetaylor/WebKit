@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_video_codecs_cocoa_WebRTCVideoDecoder_h
+#define WebCore_platform_video_codecs_cocoa_WebRTCVideoDecoder_h
 
 #if USE(LIBWEBRTC)
 
@@ -54,3 +55,4 @@ public:
 }
 
 #endif // USE(LIBWEBRTC)
+#endif // WebCore_platform_video_codecs_cocoa_WebRTCVideoDecoder_h

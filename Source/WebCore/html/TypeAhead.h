@@ -23,7 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_TypeAhead_h
+#define WebCore_html_TypeAhead_h
 
 #include <wtf/MonotonicTime.h>
 #include <wtf/text/StringBuilder.h>
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_TypeAhead_h

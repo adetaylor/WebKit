@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_WheelEventTestMonitor_h
+#define WebCore_page_WheelEventTestMonitor_h
 
 #include "PlatformWheelEvent.h"
 #include "ScrollingNodeID.h"
@@ -123,3 +124,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, WheelEventTestMonit
 WTF::TextStream& operator<<(WTF::TextStream&, const WheelEventTestMonitor::ScrollableAreaReasonMap&);
 
 } // namespace WebCore
+#endif // WebCore_page_WheelEventTestMonitor_h

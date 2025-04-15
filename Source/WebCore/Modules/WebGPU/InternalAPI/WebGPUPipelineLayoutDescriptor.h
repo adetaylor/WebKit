@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUPipelineLayoutDescriptor_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUPipelineLayoutDescriptor_h
 
 #include "WebGPUObjectDescriptorBase.h"
 #include <functional>
@@ -38,3 +39,4 @@ struct PipelineLayoutDescriptor : public ObjectDescriptorBase {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUPipelineLayoutDescriptor_h

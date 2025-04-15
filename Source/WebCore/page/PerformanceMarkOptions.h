@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceMarkOptions_h
+#define WebCore_page_PerformanceMarkOptions_h
 
 #include "DOMHighResTimeStamp.h"
 #include <JavaScriptCore/JSCJSValue.h>
@@ -36,3 +37,4 @@ struct PerformanceMarkOptions {
 };
 
 }
+#endif // WebCore_page_PerformanceMarkOptions_h

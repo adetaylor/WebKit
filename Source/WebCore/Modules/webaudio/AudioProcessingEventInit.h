@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioProcessingEventInit_h
+#define WebCore_Modules_webaudio_AudioProcessingEventInit_h
 
 #include "AudioBuffer.h"
 #include "EventInit.h"
@@ -37,3 +38,4 @@ struct AudioProcessingEventInit : EventInit {
 };
 
 }
+#endif // WebCore_Modules_webaudio_AudioProcessingEventInit_h

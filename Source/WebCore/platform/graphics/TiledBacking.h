@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_TiledBacking_h
+#define WebCore_platform_graphics_TiledBacking_h
 
 #include "BoxExtents.h"
 #include "IntPoint.h"
@@ -205,3 +206,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_TiledBacking_h

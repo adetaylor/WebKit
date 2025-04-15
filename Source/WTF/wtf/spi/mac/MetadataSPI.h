@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_mac_MetadataSPI_h
+#define WTF_wtf_spi_mac_MetadataSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -38,3 +39,4 @@ WTF_EXTERN_C_BEGIN
 Boolean MDItemSetAttribute(MDItemRef, CFStringRef name, CFTypeRef attr);
 
 WTF_EXTERN_C_END
+#endif // WTF_wtf_spi_mac_MetadataSPI_h

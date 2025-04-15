@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_GamepadConstants_h
+#define WebCore_platform_gamepad_GamepadConstants_h
 
 #if ENABLE(GAMEPAD)
 
@@ -67,3 +68,4 @@ const String& xrStandardGamepadMappingString();
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD)
+#endif // WebCore_platform_gamepad_GamepadConstants_h

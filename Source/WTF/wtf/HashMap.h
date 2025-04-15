@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_HashMap_h
+#define WTF_wtf_HashMap_h
 
 #include <initializer_list>
 #include <wtf/Compiler.h>
@@ -733,3 +734,4 @@ bool operator==(const HashMap<T, U, V, W, X, Y, shouldValidateKey, M>& a, const 
 } // namespace WTF
 
 using WTF::HashMap;
+#endif // WTF_wtf_HashMap_h

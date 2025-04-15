@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorController_h
+#define WebCore_inspector_InspectorController_h
 
 #include "InspectorOverlay.h"
 #include <JavaScriptCore/InspectorAgentRegistry.h>
@@ -162,3 +163,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorController_h

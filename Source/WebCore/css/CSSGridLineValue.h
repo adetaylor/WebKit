@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSGridLineValue_h
+#define WebCore_css_CSSGridLineValue_h
 
 #include "CSSPrimitiveValue.h"
 #include "CSSValue.h"
@@ -54,3 +55,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSGridLineValue, isGridLineValue());
+#endif // WebCore_css_CSSGridLineValue_h

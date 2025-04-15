@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_soup_SoupNetworkSession_h
+#define WebCore_platform_network_soup_SoupNetworkSession_h
 
 #include "SoupNetworkProxySettings.h"
 #include <gio/gio.h>
@@ -88,3 +89,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_soup_SoupNetworkSession_h

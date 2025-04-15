@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gbm_GBMVersioning_h
+#define WebCore_platform_graphics_gbm_GBMVersioning_h
 
 #if USE(GBM)
 
@@ -55,3 +56,4 @@ static inline int gbm_bo_get_fd_for_plane(struct gbm_bo* bo, int plane)
 #endif
 
 #endif // USE(GBM)
+#endif // WebCore_platform_graphics_gbm_GBMVersioning_h

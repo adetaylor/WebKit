@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mock_mediasource_MockMediaSourcePrivate_h
+#define WebCore_platform_mock_mediasource_MockMediaSourcePrivate_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -102,3 +103,4 @@ static bool isType(const WebCore::MediaSourcePrivate& mediaSource) { return medi
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(MEDIA_SOURCE)
+#endif // WebCore_platform_mock_mediasource_MockMediaSourcePrivate_h

@@ -25,7 +25,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_page_PageTimelineAgent_h
+#define WebCore_inspector_agents_page_PageTimelineAgent_h
 
 #include "InspectorTimelineAgent.h"
 
@@ -90,3 +91,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_page_PageTimelineAgent_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ContentsFormat_h
+#define WebCore_platform_graphics_ContentsFormat_h
 
 #include <optional>
 
@@ -72,3 +73,4 @@ WEBCORE_EXPORT std::optional<DestinationColorSpace> contentsFormatExtendedColorS
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, ContentsFormat);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ContentsFormat_h

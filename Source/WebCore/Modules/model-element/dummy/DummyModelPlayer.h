@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_model_element_dummy_DummyModelPlayer_h
+#define WebCore_Modules_model_element_dummy_DummyModelPlayer_h
 
 #include "ModelPlayer.h"
 #include "ModelPlayerClient.h"
@@ -75,3 +76,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_model_element_dummy_DummyModelPlayer_h

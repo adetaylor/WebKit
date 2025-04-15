@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_beacon_NavigatorBeacon_h
+#define WebCore_Modules_beacon_NavigatorBeacon_h
 
 #include "CachedRawResourceClient.h"
 #include "CachedResourceHandle.h"
@@ -65,3 +66,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_beacon_NavigatorBeacon_h

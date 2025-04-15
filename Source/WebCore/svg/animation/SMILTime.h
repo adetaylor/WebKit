@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_svg_animation_SMILTime_h
+#define WebCore_svg_animation_SMILTime_h
 
 #include <algorithm>
 #include <cmath>
@@ -92,3 +93,4 @@ SMILTime operator-(const SMILTime&, const SMILTime&);
 SMILTime operator*(const SMILTime&, const SMILTime&);
 
 } // namespace WebCore
+#endif // WebCore_svg_animation_SMILTime_h

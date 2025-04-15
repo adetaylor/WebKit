@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_DataURLDecoder_h
+#define WebCore_platform_network_DataURLDecoder_h
 
 #include <wtf/text/WTFString.h>
 
@@ -59,3 +60,4 @@ WEBCORE_EXPORT std::optional<Result> decode(const URL&, ShouldValidatePadding = 
 }
 
 }
+#endif // WebCore_platform_network_DataURLDecoder_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FixedWidthDouble_h
+#define WTF_wtf_FixedWidthDouble_h
 
 namespace WTF {
 
@@ -51,3 +52,4 @@ private:
 } // namespace WTF
 
 using WTF::FixedWidthDouble;
+#endif // WTF_wtf_FixedWidthDouble_h

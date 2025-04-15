@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_HIServicesSPI_h
+#define WebCore_PAL_pal_spi_mac_HIServicesSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -176,3 +177,4 @@ typedef Boolean (*AXAuditTokenIsAuthenticatedCallback)(audit_token_t);
 WTF_EXTERN_C_END
 
 #define kAXClientTypeWebKitTesting 999999
+#endif // WebCore_PAL_pal_spi_mac_HIServicesSPI_h

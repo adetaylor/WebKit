@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_Transitions_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_Transitions_h
 
 #include <wtf/Forward.h>
 
@@ -48,3 +49,4 @@ RefPtr<CSSValue> consumeSingleTransitionProperty(CSSParserTokenRange&, CSS::Prop
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_Transitions_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FixedVector_h
+#define WTF_wtf_FixedVector_h
 
 #include <wtf/EmbeddedFixedVector.h>
 #include <wtf/MallocCommon.h>
@@ -272,3 +273,4 @@ FixedVector<ReturnType, Malloc> map(const FixedVector<T, Malloc>& source, MapFun
 } // namespace WTF
 
 using WTF::FixedVector;
+#endif // WTF_wtf_FixedVector_h

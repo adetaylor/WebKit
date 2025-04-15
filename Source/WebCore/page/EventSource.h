@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_EventSource_h
+#define WebCore_page_EventSource_h
 
 #include "ActiveDOMObject.h"
 #include "EventLoop.h"
@@ -148,3 +149,4 @@ inline EventSource::State EventSource::readyState() const
 }
 
 } // namespace WebCore
+#endif // WebCore_page_EventSource_h

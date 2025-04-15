@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_ImageBitmapRenderingContextSettings_h
+#define WebCore_html_canvas_ImageBitmapRenderingContextSettings_h
 
 namespace WebCore {
 
@@ -32,3 +33,4 @@ struct ImageBitmapRenderingContextSettings {
 };
 
 }
+#endif // WebCore_html_canvas_ImageBitmapRenderingContextSettings_h

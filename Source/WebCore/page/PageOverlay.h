@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PageOverlay_h
+#define WebCore_page_PageOverlay_h
 
 #include "Color.h"
 #include "FloatPoint.h"
@@ -162,3 +163,4 @@ private:
 };
 
 } // namespace WebKit
+#endif // WebCore_page_PageOverlay_h

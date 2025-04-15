@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSEventTargetCustom_h
+#define WebCore_bindings_js_JSEventTargetCustom_h
 
 #include "JSDOMBinding.h"
 #include "JSDOMBindingSecurity.h"
@@ -83,3 +84,4 @@ public:
 
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSEventTargetCustom_h

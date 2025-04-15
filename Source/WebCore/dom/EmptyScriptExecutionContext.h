@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_EmptyScriptExecutionContext_h
+#define WebCore_dom_EmptyScriptExecutionContext_h
 
 #include "AdvancedPrivacyProtections.h"
 #include "EventLoop.h"
@@ -144,3 +145,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::EmptyScriptExecutionContext)
     static bool isType(const WebCore::ScriptExecutionContext& context) { return context.isEmptyScriptExecutionContext(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_EmptyScriptExecutionContext_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Scripts_tests_ProcessSyncClient_h
+#define WebCore_Scripts_tests_ProcessSyncClient_h
 
 #include "DOMAudioSession.h"
 #include <wtf/URL.h>
@@ -56,3 +57,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_Scripts_tests_ProcessSyncClient_h

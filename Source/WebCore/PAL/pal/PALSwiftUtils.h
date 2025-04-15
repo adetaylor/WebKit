@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_PALSwiftUtils_h
+#define WebCore_PAL_pal_PALSwiftUtils_h
 
 #if HAVE(SWIFT_CPP_INTEROP)
 #include "PALSwift.h"
@@ -58,3 +59,4 @@ inline bool isValidHashParameter(CryptoAlgorithmIdentifier hash)
 
 } // WebCore
 #endif
+#endif // WebCore_PAL_pal_PALSwiftUtils_h

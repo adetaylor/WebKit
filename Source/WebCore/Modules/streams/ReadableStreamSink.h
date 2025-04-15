@@ -24,7 +24,8 @@
  */
 
 
-#pragma once
+#ifndef WebCore_Modules_streams_ReadableStreamSink_h
+#define WebCore_Modules_streams_ReadableStreamSink_h
 
 #include "ExceptionOr.h"
 #include <JavaScriptCore/Forward.h>
@@ -65,3 +66,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_streams_ReadableStreamSink_h

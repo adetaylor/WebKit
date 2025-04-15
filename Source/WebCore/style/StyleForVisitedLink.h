@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleForVisitedLink_h
+#define WebCore_style_StyleForVisitedLink_h
 
 namespace WebCore {
 namespace Style {
@@ -32,3 +33,4 @@ enum class ForVisitedLink : bool { No, Yes };
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_StyleForVisitedLink_h

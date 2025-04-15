@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_FontFaceSet_h
+#define WebCore_css_FontFaceSet_h
 
 #include "ActiveDOMObject.h"
 #include "CSSFontFaceSet.h"
@@ -120,3 +121,4 @@ private:
 };
 
 }
+#endif // WebCore_css_FontFaceSet_h

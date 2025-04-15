@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdatabase_DatabaseAuthorizer_h
+#define WebCore_Modules_webdatabase_DatabaseAuthorizer_h
 
 #include <wtf/Forward.h>
 #include <wtf/HashSet.h>
@@ -121,3 +122,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdatabase_DatabaseAuthorizer_h

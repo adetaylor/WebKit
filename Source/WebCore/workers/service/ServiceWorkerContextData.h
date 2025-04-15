@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerContextData_h
+#define WebCore_workers_service_ServiceWorkerContextData_h
 
 #include "CertificateInfo.h"
 #include "ContentSecurityPolicyResponseHeaders.h"
@@ -67,3 +68,4 @@ struct ServiceWorkerContextData {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerContextData_h

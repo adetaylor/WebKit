@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_IndexKeyType_h
+#define WTF_wtf_IndexKeyType_h
 
 namespace WTF {
 
@@ -39,3 +40,4 @@ struct IndexKeyType<T*> {
 
 } // namespace WTF
 
+#endif // WTF_wtf_IndexKeyType_h

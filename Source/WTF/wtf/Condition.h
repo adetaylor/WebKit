@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_Condition_h
+#define WTF_wtf_Condition_h
 
 #include <wtf/Lock.h>
 #include <wtf/Noncopyable.h>
@@ -225,3 +226,4 @@ using StaticCondition = Condition;
 
 using WTF::Condition;
 using WTF::StaticCondition;
+#endif // WTF_wtf_Condition_h

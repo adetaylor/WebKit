@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResourceSolidColor_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResourceSolidColor_h
 
 #include "Color.h"
 #include "FloatRect.h"
@@ -55,3 +56,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_LEGACY_RENDER_SVG_RESOURCE(LegacyRenderSVGResourceSolidColor, SolidColorResourceType)
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResourceSolidColor_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ResourceUsageData_h
+#define WebCore_page_ResourceUsageData_h
 
 #if ENABLE(RESOURCE_USAGE)
 
@@ -109,3 +110,4 @@ WEBCORE_EACH_MEMORY_CATEGORIES(WEBCORE_DEFINE_MEMORY_CATEGORY)
 } // namespace WebCore
 
 #endif // ResourceUsageData_h
+#endif // WebCore_page_ResourceUsageData_h

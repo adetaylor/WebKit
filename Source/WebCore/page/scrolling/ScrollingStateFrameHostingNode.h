@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingStateFrameHostingNode_h
+#define WebCore_page_scrolling_ScrollingStateFrameHostingNode_h
 
 #if ENABLE(ASYNC_SCROLLING)
 
@@ -60,3 +61,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_SCROLLING_STATE_NODE(ScrollingStateFrameHostingNode, isFrameHostingNode())
 
 #endif // ENABLE(ASYNC_SCROLLING)
+#endif // WebCore_page_scrolling_ScrollingStateFrameHostingNode_h

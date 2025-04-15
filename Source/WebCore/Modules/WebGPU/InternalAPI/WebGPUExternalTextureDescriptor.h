@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUExternalTextureDescriptor_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUExternalTextureDescriptor_h
 
 #include "MediaPlayerIdentifier.h"
 #include "VideoFrame.h"
@@ -51,3 +52,4 @@ struct ExternalTextureDescriptor : public ObjectDescriptorBase {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUExternalTextureDescriptor_h

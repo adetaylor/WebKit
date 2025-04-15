@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_server_SWRegistrationStore_h
+#define WebCore_workers_service_server_SWRegistrationStore_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -53,3 +54,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_server_SWRegistrationStore_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_page_PageAuditAgent_h
+#define WebCore_inspector_agents_page_PageAuditAgent_h
 
 #include "InspectorWebAgentBase.h"
 #include <JavaScriptCore/InspectorAuditAgent.h>
@@ -55,3 +56,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_page_PageAuditAgent_h

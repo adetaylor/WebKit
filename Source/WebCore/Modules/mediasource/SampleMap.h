@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasource_SampleMap_h
+#define WebCore_Modules_mediasource_SampleMap_h
 
 #include <wtf/MediaTime.h>
 #include <wtf/Ref.h>
@@ -140,3 +141,4 @@ inline void SampleMap::addRange(I begin, I end)
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_mediasource_SampleMap_h

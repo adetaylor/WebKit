@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGInlineTextBox_h
+#define WebCore_rendering_svg_SVGInlineTextBox_h
 
 #include "LegacyInlineTextBox.h"
 
@@ -62,3 +63,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INLINE_BOX(SVGInlineTextBox, isSVGInlineTextBox())
+#endif // WebCore_rendering_svg_SVGInlineTextBox_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_XRProjectionLayer_h
+#define WebCore_Modules_webxr_XRProjectionLayer_h
 
 #if ENABLE(WEBXR_LAYERS)
 
@@ -74,3 +75,4 @@ private:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_Modules_webxr_XRProjectionLayer_h

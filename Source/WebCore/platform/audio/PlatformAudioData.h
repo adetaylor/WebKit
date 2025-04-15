@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_PlatformAudioData_h
+#define WebCore_platform_audio_PlatformAudioData_h
 
 #include <wtf/TZoneMallocInlines.h>
 
@@ -47,3 +48,4 @@ protected:
 };
 
 }
+#endif // WebCore_platform_audio_PlatformAudioData_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_CollectionIndexCache_h
+#define WebCore_dom_CollectionIndexCache_h
 
 #include <wtf/Vector.h>
 
@@ -73,3 +74,4 @@ template<class Collection, class Iterator> CollectionIndexCache<Collection, Iter
 }
 
 }
+#endif // WebCore_dom_CollectionIndexCache_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMRectList_h
+#define WebCore_dom_DOMRectList_h
 
 #include "FloatQuad.h"
 #include <wtf/RefCounted.h>
@@ -53,3 +54,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_DOMRectList_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_page_EventHandler_h
+#define WebCore_page_EventHandler_h
 
 #include "Cursor.h"
 #include "DragActions.h"
@@ -757,3 +758,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_EventHandler_h

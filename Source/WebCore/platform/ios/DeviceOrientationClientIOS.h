@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_DeviceOrientationClientIOS_h
+#define WebCore_platform_ios_DeviceOrientationClientIOS_h
 
 #if PLATFORM(IOS_FAMILY) && ENABLE(DEVICE_ORIENTATION)
 
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(IOS_FAMILY) && ENABLE(DEVICE_ORIENTATION)
+#endif // WebCore_platform_ios_DeviceOrientationClientIOS_h

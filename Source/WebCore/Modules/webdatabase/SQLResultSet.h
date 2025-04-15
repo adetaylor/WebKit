@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdatabase_SQLResultSet_h
+#define WebCore_Modules_webdatabase_SQLResultSet_h
 
 #include "ExceptionOr.h"
 #include "SQLResultSetRowList.h"
@@ -66,3 +67,4 @@ inline void SQLResultSet::setRowsAffected(int count)
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdatabase_SQLResultSet_h

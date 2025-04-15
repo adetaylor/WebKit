@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_StyledMarkedText_h
+#define WebCore_rendering_StyledMarkedText_h
 
 #include "MarkedText.h"
 #include "ShadowData.h"
@@ -68,3 +69,4 @@ struct StyledMarkedText final : MarkedText {
 };
 
 }
+#endif // WebCore_rendering_StyledMarkedText_h

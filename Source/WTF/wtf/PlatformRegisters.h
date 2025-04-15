@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PlatformRegisters_h
+#define WTF_wtf_PlatformRegisters_h
 
 #include <wtf/Platform.h>
 #include <wtf/StdLibExtras.h>
@@ -151,3 +152,4 @@ using WTF::threadStatePCInternal;
 #endif // USE(PLATFORM_REGISTERS_WITH_PROFILE)
 
 using WTF::PlatformRegisters;
+#endif // WTF_wtf_PlatformRegisters_h

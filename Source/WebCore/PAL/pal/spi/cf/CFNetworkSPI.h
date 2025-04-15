@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cf_CFNetworkSPI_h
+#define WebCore_PAL_pal_spi_cf_CFNetworkSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -625,3 +626,4 @@ WTF_EXTERN_C_END
 @end
 
 #endif // defined(__OBJC__)
+#endif // WebCore_PAL_pal_spi_cf_CFNetworkSPI_h

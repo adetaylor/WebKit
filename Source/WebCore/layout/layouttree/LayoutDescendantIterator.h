@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutDescendantIterator_h
+#define WebCore_layout_layouttree_LayoutDescendantIterator_h
 
 #include "LayoutIterator.h"
 
@@ -108,3 +109,4 @@ inline LayoutDescendantIteratorAdapter<T> descendantsOfType(const ElementBox& ro
 
 }
 }
+#endif // WebCore_layout_layouttree_LayoutDescendantIterator_h

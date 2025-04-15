@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_parser_XMLDocumentParserScope_h
+#define WebCore_xml_parser_XMLDocumentParserScope_h
 
 #include <libxml/parser.h>
 #include <wtf/Noncopyable.h>
@@ -63,3 +64,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_xml_parser_XMLDocumentParserScope_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_darwin_LibraryPathDiagnostics_h
+#define WTF_wtf_darwin_LibraryPathDiagnostics_h
 
 #include <wtf/ExportMacros.h>
 
@@ -33,3 +34,4 @@ extern "C" WTF_EXPORT_PRIVATE void initializeLibraryPathDiagnostics(void);
 extern "C" WTF_EXPORT_PRIVATE void logLibraryPathDiagnostics(void);
 
 };
+#endif // WTF_wtf_darwin_LibraryPathDiagnostics_h

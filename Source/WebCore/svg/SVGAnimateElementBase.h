@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGAnimateElementBase_h
+#define WebCore_svg_SVGAnimateElementBase_h
 
 #include "SVGAnimationElement.h"
 #include "SVGNames.h"
@@ -80,3 +81,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SVGAnimateElementBase)
         return svgElement && isType(*svgElement);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_svg_SVGAnimateElementBase_h

@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorInterpolationMethod_h
+#define WebCore_platform_graphics_ColorInterpolationMethod_h
 
 #include "AlphaPremultiplication.h"
 #include "ColorTypes.h"
@@ -229,3 +230,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, HueInterpolationMethod);
 WTF::TextStream& operator<<(WTF::TextStream&, const ColorInterpolationMethod&);
 
 }
+#endif // WebCore_platform_graphics_ColorInterpolationMethod_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_wc_WCPlatformLayer_h
+#define WebCore_platform_graphics_wc_WCPlatformLayer_h
 
 #include "TextureMapperPlatformLayer.h"
 #include <wtf/TZoneMallocInlines.h>
@@ -39,3 +40,4 @@ private:
 };
 
 } // namespace WebKit
+#endif // WebCore_platform_graphics_wc_WCPlatformLayer_h

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_MediaTime_h
+#define WTF_wtf_MediaTime_h
 
 #include <wtf/FastMalloc.h>
 #include <wtf/JSONValues.h>
@@ -196,3 +197,4 @@ WTF_EXPORT_PRIVATE TextStream& operator<<(TextStream&, const MediaTime&);
 using WTF::MediaTime;
 using WTF::MediaTimeRange;
 using WTF::abs;
+#endif // WTF_wtf_MediaTime_h

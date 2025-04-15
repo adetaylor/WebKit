@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_coordinated_CoordinatedBackingStoreProxy_h
+#define WebCore_platform_graphics_texmap_coordinated_CoordinatedBackingStoreProxy_h
 
 #if USE(COORDINATED_GRAPHICS)
 #include "FloatPoint.h"
@@ -159,3 +160,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(COORDINATED_GRAPHICS)
+#endif // WebCore_platform_graphics_texmap_coordinated_CoordinatedBackingStoreProxy_h

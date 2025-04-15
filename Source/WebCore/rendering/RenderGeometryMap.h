@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderGeometryMap_h
+#define WebCore_rendering_RenderGeometryMap_h
 
 #include "FloatPoint.h"
 #include "FloatQuad.h"
@@ -138,3 +139,4 @@ namespace WTF {
 // initializing to 0 and moving with memcpy (and then not destructing the original) will work.
 template<> struct VectorTraits<WebCore::RenderGeometryMapStep> : SimpleClassVectorTraits { };
 }
+#endif // WebCore_rendering_RenderGeometryMap_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_shapes_StyleXywhFunction_h
+#define WebCore_style_values_shapes_StyleXywhFunction_h
 
 #include "CSSXywhFunction.h"
 #include "StyleInsetFunction.h"
@@ -36,3 +37,4 @@ template<> struct ToStyle<CSS::XywhFunction> { auto operator()(const CSS::XywhFu
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_shapes_StyleXywhFunction_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_parser_HTMLToken_h
+#define WebCore_html_parser_HTMLToken_h
 
 #include "Attribute.h"
 #include <wtf/TZoneMallocInlines.h>
@@ -444,3 +445,4 @@ inline const HTMLToken::Attribute* findAttribute(const HTMLToken::AttributeList&
 }
 
 } // namespace WebCore
+#endif // WebCore_html_parser_HTMLToken_h

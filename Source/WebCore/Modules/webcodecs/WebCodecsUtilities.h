@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_WebCodecsUtilities_h
+#define WebCore_Modules_webcodecs_WebCodecsUtilities_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -45,3 +46,4 @@ void postTaskToCodec(ScriptExecutionContextIdentifier identifier, ThreadSafeWeak
 }
 
 #endif
+#endif // WebCore_Modules_webcodecs_WebCodecsUtilities_h

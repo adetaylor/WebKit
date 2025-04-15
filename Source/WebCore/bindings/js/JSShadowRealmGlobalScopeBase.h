@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSShadowRealmGlobalScopeBase_h
+#define WebCore_bindings_js_JSShadowRealmGlobalScopeBase_h
 
 #include "JSDOMGlobalObjectInlines.h"
 #include "JSDOMWrapper.h"
@@ -80,3 +81,4 @@ JSC::JSValue toJS(JSC::JSGlobalObject*, ShadowRealmGlobalScope&);
 inline JSC::JSValue toJS(JSC::JSGlobalObject* lexicalGlobalObject, ShadowRealmGlobalScope* scope) { return scope ? toJS(lexicalGlobalObject, *scope) : JSC::jsNull(); }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSShadowRealmGlobalScopeBase_h

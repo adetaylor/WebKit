@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CrossThreadQueue_h
+#define WTF_wtf_CrossThreadQueue_h
 
 #include <limits>
 #include <wtf/Assertions.h>
@@ -121,3 +122,4 @@ bool CrossThreadQueue<DataType>::isEmpty() const
 } // namespace WTF
 
 using WTF::CrossThreadQueue;
+#endif // WTF_wtf_CrossThreadQueue_h

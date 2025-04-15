@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ThreadMessage_h
+#define WTF_wtf_ThreadMessage_h
 
 #include <wtf/ScopedLambda.h>
 #include <wtf/Threading.h>
@@ -52,3 +53,4 @@ MessageStatus sendMessage(const ThreadSuspendLocker& locker, Thread& targetThrea
 } // namespace WTF
 
 using WTF::sendMessage;
+#endif // WTF_wtf_ThreadMessage_h

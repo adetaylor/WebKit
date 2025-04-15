@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentMarker_h
+#define WebCore_dom_DocumentMarker_h
 
 #include "DictationContext.h"
 #include "SimpleRange.h"
@@ -240,3 +241,4 @@ inline String DocumentMarker::description() const
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_DocumentMarker_h

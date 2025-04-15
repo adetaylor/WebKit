@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_IntegerToStringConversion_h
+#define WTF_wtf_text_IntegerToStringConversion_h
 
 #include <array>
 #include <cstdint>
@@ -142,3 +143,4 @@ using WTF::numberToStringSigned;
 using WTF::numberToStringUnsigned;
 using WTF::lengthOfIntegerAsString;
 using WTF::writeIntegerToBuffer;
+#endif // WTF_wtf_text_IntegerToStringConversion_h

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSGridLineNamesValue_h
+#define WebCore_css_CSSGridLineNamesValue_h
 
 #include "CSSValue.h"
 #include <wtf/FixedVector.h>
@@ -54,3 +55,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSGridLineNamesValue, isGridLineNamesValue());
+#endif // WebCore_css_CSSGridLineNamesValue_h

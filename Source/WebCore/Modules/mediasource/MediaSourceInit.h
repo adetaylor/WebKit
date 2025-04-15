@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasource_MediaSourceInit_h
+#define WebCore_Modules_mediasource_MediaSourceInit_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -36,3 +37,4 @@ struct MediaSourceInit {
 } // namespace WebCore
 
 #endif
+#endif // WebCore_Modules_mediasource_MediaSourceInit_h

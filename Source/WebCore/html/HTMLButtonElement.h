@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLButtonElement_h
+#define WebCore_html_HTMLButtonElement_h
 
 #include "HTMLFormControlElement.h"
 
@@ -98,3 +99,4 @@ private:
 };
 
 } // namespace
+#endif // WebCore_html_HTMLButtonElement_h

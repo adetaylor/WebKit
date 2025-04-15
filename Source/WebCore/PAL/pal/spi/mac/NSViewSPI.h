@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSViewSPI_h
+#define WebCore_PAL_pal_spi_mac_NSViewSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -63,3 +64,4 @@ typedef NS_ENUM(NSInteger, NSViewSemanticContext) {
 @end
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_PAL_pal_spi_mac_NSViewSPI_h

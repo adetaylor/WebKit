@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleBuilderState_h
+#define WebCore_style_StyleBuilderState_h
 
 #include "CSSToLengthConversionData.h"
 #include "CSSToStyleMap.h"
@@ -245,3 +246,4 @@ private:
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_StyleBuilderState_h

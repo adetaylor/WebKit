@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_NinePieceImage_h
+#define WebCore_rendering_style_NinePieceImage_h
 
 #include "LengthBox.h"
 #include "StyleImage.h"
@@ -222,3 +223,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const NinePieceImage&);
 WTF::TextStream& operator<<(WTF::TextStream&, NinePieceImageRule);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_NinePieceImage_h

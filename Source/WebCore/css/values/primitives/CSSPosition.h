@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPosition_h
+#define WebCore_css_values_primitives_CSSPosition_h
 
 #include "CSSPrimitiveNumericTypes.h"
 
@@ -170,3 +171,4 @@ DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::FourComponentPositionVertical, 1)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Position, 1)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::PositionX, 1)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::PositionY, 1)
+#endif // WebCore_css_values_primitives_CSSPosition_h

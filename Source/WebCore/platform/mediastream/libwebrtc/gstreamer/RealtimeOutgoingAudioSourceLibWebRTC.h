@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_gstreamer_RealtimeOutgoingAudioSourceLibWebRTC_h
+#define WebCore_platform_mediastream_libwebrtc_gstreamer_RealtimeOutgoingAudioSourceLibWebRTC_h
 
 #if USE(LIBWEBRTC)
 
@@ -70,3 +71,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(LIBWEBRTC)
+#endif // WebCore_platform_mediastream_libwebrtc_gstreamer_RealtimeOutgoingAudioSourceLibWebRTC_h

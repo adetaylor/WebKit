@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUComputePassTimestampWrites_h
+#define WebCore_Modules_WebGPU_GPUComputePassTimestampWrites_h
 
 #include "GPUIntegralTypes.h"
 #include "GPUQuerySet.h"
@@ -49,3 +50,4 @@ struct GPUComputePassTimestampWrites {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUComputePassTimestampWrites_h

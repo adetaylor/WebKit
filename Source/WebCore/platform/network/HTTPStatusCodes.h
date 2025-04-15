@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_HTTPStatusCodes_h
+#define WebCore_platform_network_HTTPStatusCodes_h
 
 namespace WebCore {
 
@@ -70,3 +71,4 @@ using WebCore::httpStatus401Unauthorized;
 using WebCore::httpStatus403Forbidden;
 using WebCore::httpStatus407ProxyAuthenticationRequired;
 using WebCore::httpStatus416RangeNotSatisfiable;
+#endif // WebCore_platform_network_HTTPStatusCodes_h

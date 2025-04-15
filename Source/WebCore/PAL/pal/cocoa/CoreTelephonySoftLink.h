@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_CoreTelephonySoftLink_h
+#define WebCore_PAL_pal_cocoa_CoreTelephonySoftLink_h
 
 #import <pal/spi/cocoa/CoreTelephonySPI.h>
 
@@ -35,3 +36,4 @@ SOFT_LINK_FRAMEWORK_FOR_HEADER(PAL, CoreTelephony)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, CoreTelephonyClient)
 
 #endif // HAVE(CORE_TELEPHONY) && !HAVE(DELAY_INIT_LINKING)
+#endif // WebCore_PAL_pal_cocoa_CoreTelephonySoftLink_h

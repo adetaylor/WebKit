@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ThreadedScrollingTreeScrollingNodeDelegate_h
+#define WebCore_page_scrolling_ThreadedScrollingTreeScrollingNodeDelegate_h
 
 #include "ScrollingTreeScrollingNodeDelegate.h"
 
@@ -98,3 +99,4 @@ protected:
 } // namespace WebCore
 
 #endif // ENABLE(ASYNC_SCROLLING) && ENABLE(SCROLLING_THREAD)
+#endif // WebCore_page_scrolling_ThreadedScrollingTreeScrollingNodeDelegate_h

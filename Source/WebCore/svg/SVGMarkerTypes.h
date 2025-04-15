@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGMarkerTypes_h
+#define WebCore_svg_SVGMarkerTypes_h
 
 #include "CommonAtomStrings.h"
 #include "SVGAngleValue.h"
@@ -116,3 +117,4 @@ struct SVGPropertyTraits<std::pair<SVGAngleValue, SVGMarkerOrientType>> {
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGMarkerTypes_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_shared_IDBObjectStoreInfo_h
+#define WebCore_Modules_indexeddb_shared_IDBObjectStoreInfo_h
 
 #include "IDBIndexIdentifier.h"
 #include "IDBIndexInfo.h"
@@ -89,3 +90,4 @@ template<> struct HashTraits<WebCore::IDBObjectStoreInfo> : GenericHashTraits<We
 };
 
 } // namespace WTF
+#endif // WebCore_Modules_indexeddb_shared_IDBObjectStoreInfo_h

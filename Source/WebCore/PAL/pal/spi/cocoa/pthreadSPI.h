@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_pthreadSPI_h
+#define WebCore_PAL_pal_spi_cocoa_pthreadSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -34,3 +35,4 @@ WTF_EXTERN_C_BEGIN
 int pthread_set_fixedpriority_self(void);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cocoa_pthreadSPI_h

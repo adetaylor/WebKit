@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_CryptographicUtilities_h
+#define WTF_wtf_CryptographicUtilities_h
 
 #include <span>
 #include <string>
@@ -44,3 +45,4 @@ WTF_EXPORT_PRIVATE int constantTimeMemcmp(std::span<const uint8_t>, std::span<co
 }
 
 using WTF::constantTimeMemcmp;
+#endif // WTF_wtf_CryptographicUtilities_h

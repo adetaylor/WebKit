@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_TextureMapperFlags_h
+#define WebCore_platform_graphics_texmap_TextureMapperFlags_h
 
 #if USE(TEXTURE_MAPPER)
 
@@ -46,3 +47,4 @@ enum class TextureMapperFlags : uint16_t {
 } // namespace WebCore
 
 #endif // USE(TEXTURE_MAPPER)
+#endif // WebCore_platform_graphics_texmap_TextureMapperFlags_h

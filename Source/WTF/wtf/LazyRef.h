@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_LazyRef_h
+#define WTF_wtf_LazyRef_h
 
 #include <wtf/Noncopyable.h>
 #include <wtf/Nonmovable.h>
@@ -131,3 +132,4 @@ private:
 } // namespace WTF
 
 using WTF::LazyRef;
+#endif // WTF_wtf_LazyRef_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PathStream_h
+#define WebCore_platform_graphics_PathStream_h
 
 #include "PathImpl.h"
 #include "PathSegment.h"
@@ -115,3 +116,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::PathStream)
     static bool isType(const WebCore::PathImpl& pathImpl) { return pathImpl.isPathStream(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_PathStream_h

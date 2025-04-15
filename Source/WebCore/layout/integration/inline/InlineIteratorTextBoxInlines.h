@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_InlineIteratorTextBoxInlines_h
+#define WebCore_layout_integration_inline_InlineIteratorTextBoxInlines_h
 
 #include "InlineIteratorBoxModernPathInlines.h"
 #include "InlineIteratorTextBox.h"
@@ -40,3 +41,4 @@ inline TextRun TextBox::textRun(TextRunMode mode) const
 
 }
 }
+#endif // WebCore_layout_integration_inline_InlineIteratorTextBoxInlines_h

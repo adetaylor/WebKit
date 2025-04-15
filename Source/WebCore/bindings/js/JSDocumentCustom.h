@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDocumentCustom_h
+#define WebCore_bindings_js_JSDocumentCustom_h
 
 #include "JSDOMBinding.h"
 #include "JSDocument.h"
@@ -54,3 +55,4 @@ void reportMemoryForDocumentIfFrameless(JSC::JSGlobalObject&, Document&);
 void setAdoptedStyleSheetsOnTreeScope(TreeScope&, JSC::JSGlobalObject&, JSC::JSValue);
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDocumentCustom_h

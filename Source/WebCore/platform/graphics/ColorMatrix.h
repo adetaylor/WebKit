@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorMatrix_h
+#define WebCore_platform_graphics_ColorMatrix_h
 
 #include <math.h>
 #include <wtf/MathExtras.h>
@@ -193,3 +194,4 @@ template<typename T, typename M, typename... Matrices> inline constexpr auto app
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ColorMatrix_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CagedUniquePtr_h
+#define WTF_wtf_CagedUniquePtr_h
 
 #include <wtf/CagedPtr.h>
 
@@ -98,3 +99,4 @@ private:
 
 using WTF::CagedUniquePtr;
 
+#endif // WTF_wtf_CagedUniquePtr_h

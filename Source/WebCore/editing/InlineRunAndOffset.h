@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_InlineRunAndOffset_h
+#define WebCore_editing_InlineRunAndOffset_h
 
 #include "InlineIteratorBox.h"
 
@@ -35,3 +36,4 @@ struct InlineBoxAndOffset {
 };
 
 }
+#endif // WebCore_editing_InlineRunAndOffset_h

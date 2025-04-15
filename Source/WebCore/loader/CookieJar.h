@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_CookieJar_h
+#define WebCore_loader_CookieJar_h
 
 #include "FrameIdentifier.h"
 #include "PageIdentifier.h"
@@ -92,3 +93,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_CookieJar_h

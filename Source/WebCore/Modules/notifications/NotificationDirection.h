@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_notifications_NotificationDirection_h
+#define WebCore_Modules_notifications_NotificationDirection_h
 
 namespace WebCore {
 
@@ -41,3 +42,4 @@ static inline bool isValidNotificationDirection(uint8_t value)
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_notifications_NotificationDirection_h

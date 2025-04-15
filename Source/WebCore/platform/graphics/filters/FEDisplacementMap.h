@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FEDisplacementMap_h
+#define WebCore_platform_graphics_filters_FEDisplacementMap_h
 
 #include "FilterEffect.h"
 #include <wtf/text/WTFString.h>
@@ -76,3 +77,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(FEDisplacementMap)
+#endif // WebCore_platform_graphics_filters_FEDisplacementMap_h

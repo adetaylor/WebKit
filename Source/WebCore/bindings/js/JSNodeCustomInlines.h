@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSNodeCustomInlines_h
+#define WebCore_bindings_js_JSNodeCustomInlines_h
 
 #include "DocumentInlines.h"
 #include "ElementInlines.h"
@@ -47,3 +48,4 @@ inline WebCoreOpaqueRoot root(Document* document)
 }
 
 }
+#endif // WebCore_bindings_js_JSNodeCustomInlines_h

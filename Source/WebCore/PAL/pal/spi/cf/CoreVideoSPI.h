@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cf_CoreVideoSPI_h
+#define WebCore_PAL_pal_spi_cf_CoreVideoSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -41,3 +42,4 @@ enum {
 #endif
 
 #endif
+#endif // WebCore_PAL_pal_spi_cf_CoreVideoSPI_h

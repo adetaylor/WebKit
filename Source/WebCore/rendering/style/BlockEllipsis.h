@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_BlockEllipsis_h
+#define WebCore_rendering_style_BlockEllipsis_h
 
 #include <wtf/text/AtomString.h>
 #include <wtf/text/TextStream.h>
@@ -66,3 +67,4 @@ inline TextStream& operator<<(TextStream& ts, const BlockEllipsis& blockEllipsis
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_BlockEllipsis_h

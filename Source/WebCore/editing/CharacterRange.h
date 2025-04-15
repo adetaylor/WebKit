@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_CharacterRange_h
+#define WebCore_editing_CharacterRange_h
 
 #if USE(CF)
 #include <CoreFoundation/CoreFoundation.h>
@@ -102,3 +103,4 @@ constexpr CharacterRange::operator NSRange() const
 #endif
 
 } // namespace WebCore
+#endif // WebCore_editing_CharacterRange_h

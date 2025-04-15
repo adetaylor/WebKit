@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUQuerySet_h
+#define WebCore_Modules_WebGPU_GPUQuerySet_h
 
 #include "GPUQuerySetDescriptor.h"
 #include "GPUQueryType.h"
@@ -61,3 +62,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUQuerySet_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_mathml_MathMLOperatorDictionary_h
+#define WebCore_mathml_MathMLOperatorDictionary_h
 
 #if ENABLE(MATHML)
 
@@ -59,3 +60,4 @@ bool isVertical(char32_t);
 
 }
 #endif // ENABLE(MATHML)
+#endif // WebCore_mathml_MathMLOperatorDictionary_h

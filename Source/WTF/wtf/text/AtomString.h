@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_AtomString_h
+#define WTF_wtf_text_AtomString_h
 
 #include <utility>
 #include <wtf/text/AtomStringImpl.h>
@@ -342,3 +343,4 @@ using WTF::nullAtom;
 using WTF::emptyAtom;
 
 #include <wtf/text/StringConcatenate.h>
+#endif // WTF_wtf_text_AtomString_h

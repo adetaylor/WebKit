@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGZoomAndPanType_h
+#define WebCore_svg_SVGZoomAndPanType_h
 
 #include "SVGPropertyTraits.h"
 
@@ -50,3 +51,4 @@ struct SVGPropertyTraits<SVGZoomAndPanType> {
 };
 
 }
+#endif // WebCore_svg_SVGZoomAndPanType_h

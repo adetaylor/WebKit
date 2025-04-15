@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ViewTransition_h
+#define WebCore_dom_ViewTransition_h
 
 #include "ActiveDOMObject.h"
 #include "Document.h"
@@ -255,3 +256,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, ViewTransitionPhase);
 
 } // namespace WebCore
+#endif // WebCore_dom_ViewTransition_h

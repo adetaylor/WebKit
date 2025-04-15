@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_Simplification_h
+#define WebCore_css_calc_CSSCalcTree_Simplification_h
 
 #include "CSSCalcSymbolTable.h"
 #include "CSSPrimitiveNumericRange.h"
@@ -158,3 +159,4 @@ std::optional<CanonicalDimension> canonicalize(NonCanonicalDimension, const std:
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_Simplification_h

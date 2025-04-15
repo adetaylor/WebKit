@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_BroadcastChannelRegistry_h
+#define WebCore_dom_BroadcastChannelRegistry_h
 
 #include "BroadcastChannelIdentifier.h"
 #include <wtf/Forward.h>
@@ -43,3 +44,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_BroadcastChannelRegistry_h

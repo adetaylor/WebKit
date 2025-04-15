@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_RemoteDOMWindow_h
+#define WebCore_page_RemoteDOMWindow_h
 
 #include "DOMWindow.h"
 #include "RemoteFrame.h"
@@ -80,3 +81,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::RemoteDOMWindow)
     static bool isType(const WebCore::DOMWindow& window) { return window.isRemoteDOMWindow(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_page_RemoteDOMWindow_h

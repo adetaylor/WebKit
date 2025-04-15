@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_GapLength_h
+#define WebCore_rendering_style_GapLength_h
 
 #include "Length.h"
 
@@ -66,3 +67,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const GapLength&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_GapLength_h

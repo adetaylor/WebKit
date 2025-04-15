@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachePolicy_h
+#define WebCore_loader_cache_CachePolicy_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ enum class CachePolicy : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_cache_CachePolicy_h

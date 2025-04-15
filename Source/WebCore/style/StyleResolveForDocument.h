@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleResolveForDocument_h
+#define WebCore_style_StyleResolveForDocument_h
 
 
 namespace WebCore {
@@ -37,3 +38,4 @@ RenderStyle resolveForDocument(const Document&);
 
 }
 }
+#endif // WebCore_style_StyleResolveForDocument_h

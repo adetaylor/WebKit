@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollAnimation_h
+#define WebCore_platform_ScrollAnimation_h
 
 #include "FloatPoint.h"
 #include "ScrollTypes.h"
@@ -122,3 +123,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const ScrollAnimation&);
 SPECIALIZE_TYPE_TRAITS_BEGIN(ToValueTypeName) \
     static bool isType(const WebCore::ScrollAnimation& scrollAnimation) { return scrollAnimation.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_ScrollAnimation_h

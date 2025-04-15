@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_InstallEvent_h
+#define WebCore_workers_service_InstallEvent_h
 
 #include "ExtendableEvent.h"
 #include "RouterRule.h"
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_InstallEvent_h

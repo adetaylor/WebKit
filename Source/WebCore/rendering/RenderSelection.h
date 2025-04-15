@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderSelection_h
+#define WebCore_rendering_RenderSelection_h
 
 #include "RenderHighlight.h"
 #include "RenderSelectionGeometry.h"
@@ -61,3 +62,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderSelection_h

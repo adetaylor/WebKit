@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_UserTypingGestureIndicator_h
+#define WebCore_dom_UserTypingGestureIndicator_h
 
 #include <wtf/Noncopyable.h>
 #include <wtf/RefPtr.h>
@@ -48,3 +49,4 @@ private:
 };    
 
 } // namespace WebCore
+#endif // WebCore_dom_UserTypingGestureIndicator_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_RunLoopObserver_h
+#define WebCore_platform_RunLoopObserver_h
 
 #include <wtf/Function.h>
 #include <wtf/Noncopyable.h>
@@ -102,3 +103,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_RunLoopObserver_h

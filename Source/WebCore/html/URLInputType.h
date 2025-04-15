@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_URLInputType_h
+#define WebCore_html_URLInputType_h
 
 #include "BaseTextInputType.h"
 #include <wtf/TZoneMalloc.h>
@@ -60,3 +61,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(URLInputType, Type::URL)
+#endif // WebCore_html_URLInputType_h

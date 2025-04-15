@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementData_h
+#define WebCore_dom_ElementData_h
 
 #include "Attribute.h"
 #include "SpaceSplitString.h"
@@ -302,3 +303,4 @@ SPECIALIZE_TYPE_TRAITS_END()
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::UniqueElementData)
     static bool isType(const WebCore::ElementData& elementData) { return elementData.isUnique(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_ElementData_h

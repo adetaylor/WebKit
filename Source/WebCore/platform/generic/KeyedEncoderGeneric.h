@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_generic_KeyedEncoderGeneric_h
+#define WebCore_platform_generic_KeyedEncoderGeneric_h
 
 #include "KeyedCoding.h"
 #include <wtf/Forward.h>
@@ -107,3 +108,4 @@ template<> struct EnumTraitsForPersistence<WebCore::KeyedEncoderGeneric::Type> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_generic_KeyedEncoderGeneric_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_PCMSites_h
+#define WebCore_loader_PCMSites_h
 
 #include "RegistrableDomain.h"
 #include <wtf/text/StringHash.h>
@@ -130,3 +131,4 @@ template<> struct HashTraits<WebCore::PCM::AttributionDestinationSite> : Generic
 };
 
 } // namespace WTF
+#endif // WebCore_loader_PCMSites_h

@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLFrameSetElement_h
+#define WebCore_html_HTMLFrameSetElement_h
 
 #include "HTMLElement.h"
 #include <wtf/UniqueArray.h>
@@ -88,3 +89,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLFrameSetElement_h

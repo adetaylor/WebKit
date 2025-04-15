@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_PasteboardWriter_h
+#define WebCore_platform_mac_PasteboardWriter_h
 
 #if PLATFORM(MAC)
 
@@ -38,3 +39,4 @@ WEBCORE_EXPORT RetainPtr<id <NSPasteboardWriting>> createPasteboardWriter(const 
 }
 
 #endif
+#endif // WebCore_platform_mac_PasteboardWriter_h

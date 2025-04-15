@@ -20,7 +20,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedResource_h
+#define WebCore_loader_cache_CachedResource_h
 
 #include "CacheValidation.h"
 #include "CachedResourceClient.h"
@@ -482,3 +483,4 @@ inline bool CachedResource::isMainOrMediaOrIconOrRawResource() const
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToClassName) \
     static bool isType(const WebCore::CachedResource& resource) { return resource.type() == WebCore::CachedResourceType; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_loader_cache_CachedResource_h

@@ -19,7 +19,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_loader_TextResourceDecoder_h
+#define WebCore_loader_TextResourceDecoder_h
 
 #include <pal/text/TextEncoding.h>
 #include <wtf/RefCounted.h>
@@ -104,3 +105,4 @@ inline void TextResourceDecoder::setHintEncoding(const TextResourceDecoder* pare
 }
 
 } // namespace WebCore
+#endif // WebCore_loader_TextResourceDecoder_h

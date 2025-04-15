@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FETile_h
+#define WebCore_platform_graphics_filters_FETile_h
 
 #include "FilterEffect.h"
 
@@ -47,3 +48,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(FETile)
+#endif // WebCore_platform_graphics_filters_FETile_h

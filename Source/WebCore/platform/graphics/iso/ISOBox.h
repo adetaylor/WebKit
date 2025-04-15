@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_iso_ISOBox_h
+#define WebCore_platform_graphics_iso_ISOBox_h
 
 #include "FourCC.h"
 #include <wtf/Forward.h>
@@ -107,3 +108,4 @@ protected:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ISOBoxType) \
 static bool isType(const WebCore::ISOBox& box) { return box.boxType() == WebCore::ISOBoxType::boxTypeName(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_iso_ISOBox_h

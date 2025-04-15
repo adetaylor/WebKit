@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_OpenSSLHelper_h
+#define WebCore_platform_network_curl_OpenSSLHelper_h
 
 #include "CertificateInfo.h"
 #include <openssl/ssl.h>
@@ -40,3 +41,4 @@ String tlsCipherName(const SSL*);
 WEBCORE_EXPORT String canonicalizeIPv6Address(std::span<uint8_t, 16> data);
 
 } // namespace OpenSSL
+#endif // WebCore_platform_network_curl_OpenSSLHelper_h

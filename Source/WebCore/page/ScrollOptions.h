@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ScrollOptions_h
+#define WebCore_page_ScrollOptions_h
 
 #include "ScrollBehavior.h"
 #include <optional>
@@ -35,3 +36,4 @@ struct ScrollOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ScrollOptions_h

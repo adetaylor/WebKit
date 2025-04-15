@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUErrorFilter_h
+#define WebCore_Modules_WebGPU_GPUErrorFilter_h
 
 #include "WebGPUErrorFilter.h"
 #include <cstdint>
@@ -50,3 +51,4 @@ inline WebGPU::ErrorFilter convertToBacking(GPUErrorFilter errorFilter)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUErrorFilter_h

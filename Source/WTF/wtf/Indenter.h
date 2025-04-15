@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Indenter_h
+#define WTF_wtf_Indenter_h
 
 #include <wtf/PrintStream.h>
 #include <wtf/text/WTFString.h>
@@ -63,3 +64,4 @@ private:
 } // namespace WTF
 
 using WTF::Indenter;
+#endif // WTF_wtf_Indenter_h

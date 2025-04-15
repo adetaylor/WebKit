@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_AnimationFrameRate_h
+#define WebCore_platform_graphics_AnimationFrameRate_h
 
 #include <wtf/OptionSet.h>
 #include <wtf/Seconds.h>
@@ -67,3 +68,4 @@ WEBCORE_EXPORT FramesPerSecond preferredFramesPerSecondFromInterval(Seconds);
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const OptionSet<ThrottlingReason>&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_AnimationFrameRate_h

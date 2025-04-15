@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_CollectionIndexCacheInlines_h
+#define WebCore_dom_CollectionIndexCacheInlines_h
 
 #include "CachedHTMLCollectionInlines.h"
 #include "CollectionIndexCache.h"
@@ -184,3 +185,4 @@ void CollectionIndexCache<Collection, Iterator>::invalidate()
 
 
 }
+#endif // WebCore_dom_CollectionIndexCacheInlines_h

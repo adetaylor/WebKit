@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLEmbedElement_h
+#define WebCore_html_HTMLEmbedElement_h
 
 #include "HTMLPlugInImageElement.h"
 
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLEmbedElement_h

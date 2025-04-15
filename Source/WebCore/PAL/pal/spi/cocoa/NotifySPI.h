@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_NotifySPI_h
+#define WebCore_PAL_pal_spi_cocoa_NotifySPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -37,3 +38,4 @@ WTF_EXTERN_C_BEGIN
 void notify_set_options(uint32_t opts);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cocoa_NotifySPI_h

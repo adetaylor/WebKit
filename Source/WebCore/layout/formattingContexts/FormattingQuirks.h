@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_FormattingQuirks_h
+#define WebCore_layout_formattingContexts_FormattingQuirks_h
 
 #include "FormattingContext.h"
 
@@ -55,3 +56,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Layout::ToValueTypeName) \
     static bool isType(const WebCore::Layout::FormattingQuirks& formattingQuirks) { return formattingQuirks.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
 
+#endif // WebCore_layout_formattingContexts_FormattingQuirks_h

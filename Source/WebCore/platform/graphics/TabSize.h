@@ -27,7 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WebCore_platform_graphics_TabSize_h
+#define WebCore_platform_graphics_TabSize_h
 
 namespace WebCore {
 
@@ -68,3 +69,4 @@ struct TabSize {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_TabSize_h

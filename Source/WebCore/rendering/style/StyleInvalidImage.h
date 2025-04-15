@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleInvalidImage_h
+#define WebCore_rendering_style_StyleInvalidImage_h
 
 #include "StyleGeneratedImage.h"
 
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_STYLE_IMAGE(StyleInvalidImage, isInvalidImage)
+#endif // WebCore_rendering_style_StyleInvalidImage_h

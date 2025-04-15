@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSFontFace_h
+#define WebCore_css_CSSFontFace_h
 
 #include "FontSelectionAlgorithm.h"
 #include "FontTaggedSettings.h"
@@ -216,3 +217,4 @@ public:
 };
 
 }
+#endif // WebCore_css_CSSFontFace_h

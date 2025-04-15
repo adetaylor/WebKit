@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderBoxFragmentInfo_h
+#define WebCore_rendering_RenderBoxFragmentInfo_h
 
 #include "RenderOverflow.h"
 #include <wtf/TZoneMallocInlines.h>
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderBoxFragmentInfo_h

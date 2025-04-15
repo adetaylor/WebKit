@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_Evaluation_h
+#define WebCore_css_calc_CSSCalcTree_Evaluation_h
 
 #include "CSSPrimitiveNumericRange.h"
 #include "CSSToLengthConversionData.h"
@@ -60,3 +61,4 @@ std::optional<double> evaluateWithoutFallback(const Anchor&, const EvaluationOpt
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_Evaluation_h

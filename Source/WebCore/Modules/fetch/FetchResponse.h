@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchResponse_h
+#define WebCore_Modules_fetch_FetchResponse_h
 
 #include "FetchBodyOwner.h"
 #include "FetchHeaders.h"
@@ -200,3 +201,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_fetch_FetchResponse_h

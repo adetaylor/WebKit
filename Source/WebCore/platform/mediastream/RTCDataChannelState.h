@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RTCDataChannelState_h
+#define WebCore_platform_mediastream_RTCDataChannelState_h
 
 #if ENABLE(WEB_RTC)
 
@@ -39,3 +40,4 @@ enum class RTCDataChannelState : uint8_t {
 }; // namespace WebCore
 
 #endif
+#endif // WebCore_platform_mediastream_RTCDataChannelState_h

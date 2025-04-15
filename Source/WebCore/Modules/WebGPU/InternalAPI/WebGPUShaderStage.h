@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUShaderStage_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUShaderStage_h
 
 #include "WebGPUIntegralTypes.h"
 #include <cstdint>
@@ -39,3 +40,4 @@ enum class ShaderStage : uint8_t {
 using ShaderStageFlags = OptionSet<ShaderStage>;
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUShaderStage_h

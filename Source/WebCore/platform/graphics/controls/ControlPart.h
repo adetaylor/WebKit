@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_ControlPart_h
+#define WebCore_platform_graphics_controls_ControlPart_h
 
 #include "Color.h"
 #include "ControlFactory.h"
@@ -69,3 +70,4 @@ protected:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::PartName##Part) \
     static bool isType(const WebCore::ControlPart& part) { return part.type() == WebCore::StyleAppearance::PartName; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_controls_ControlPart_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_shared_IDBIndexInfo_h
+#define WebCore_Modules_indexeddb_shared_IDBIndexInfo_h
 
 #include "IDBIndexIdentifier.h"
 #include "IDBKeyPath.h"
@@ -78,3 +79,4 @@ template<> struct HashTraits<WebCore::IDBIndexInfo> : GenericHashTraits<WebCore:
 };
 
 } // namespace WTF
+#endif // WebCore_Modules_indexeddb_shared_IDBIndexInfo_h

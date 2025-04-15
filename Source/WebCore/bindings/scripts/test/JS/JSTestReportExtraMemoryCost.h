@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestReportExtraMemoryCost_h
+#define WebCore_bindings_scripts_test_JS_JSTestReportExtraMemoryCost_h
 
 #include "JSDOMWrapper.h"
 #include "TestReportExtraMemoryCost.h"
@@ -95,3 +96,4 @@ template<> struct JSDOMWrapperConverterTraits<TestReportExtraMemoryCost> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSTestReportExtraMemoryCost_h

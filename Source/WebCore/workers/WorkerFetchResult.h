@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerFetchResult_h
+#define WebCore_workers_WorkerFetchResult_h
 
 #include "CertificateInfo.h"
 #include "ContentSecurityPolicyResponseHeaders.h"
@@ -50,3 +51,4 @@ inline WorkerFetchResult workerFetchError(const ResourceError& error)
     return { { }, { }, { }, { }, { }, { }, error };
 }
 } // namespace WebCore
+#endif // WebCore_workers_WorkerFetchResult_h

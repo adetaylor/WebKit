@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleContentAlignmentData_h
+#define WebCore_rendering_style_StyleContentAlignmentData_h
 
 #include "RenderStyleConstants.h"
 #include "WritingMode.h"
@@ -76,3 +77,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const StyleContentAlignmentData&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleContentAlignmentData_h

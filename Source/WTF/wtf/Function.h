@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Function_h
+#define WTF_wtf_Function_h
 
 #include <memory>
 #include <wtf/FastMalloc.h>
@@ -127,3 +128,4 @@ template<typename Out, typename... In> Function<Out(In...)> adopt(Detail::Callab
 }
 
 } // namespace WTF
+#endif // WTF_wtf_Function_h

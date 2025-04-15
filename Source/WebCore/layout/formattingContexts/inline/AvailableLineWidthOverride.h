@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_AvailableLineWidthOverride_h
+#define WebCore_layout_formattingContexts_inline_AvailableLineWidthOverride_h
 
 #include "LayoutUnit.h"
 #include <optional>
@@ -60,3 +61,4 @@ private:
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_AvailableLineWidthOverride_h

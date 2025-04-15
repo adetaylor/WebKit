@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineLayoutState_h
+#define WebCore_layout_formattingContexts_inline_InlineLayoutState_h
 
 #include "AvailableLineWidthOverride.h"
 #include "BlockLayoutState.h"
@@ -98,3 +99,4 @@ inline void InlineLayoutState::setClearGapAfterLastLine(InlineLayoutUnit vertica
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_InlineLayoutState_h

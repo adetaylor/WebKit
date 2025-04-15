@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_calc_CalculationExecutor_h
+#define WebCore_platform_calc_CalculationExecutor_h
 
 #include "CalculationTree.h"
 #include <numeric>
@@ -547,3 +548,4 @@ template<> struct OperatorExecutor<Random> {
 
 } // namespace Calculation
 } // namespace WebCore
+#endif // WebCore_platform_calc_CalculationExecutor_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_WebTransportOptions_h
+#define WebCore_Modules_webtransport_WebTransportOptions_h
 
 #include "WebTransportCongestionControl.h"
 #include "WebTransportHash.h"
@@ -38,3 +39,4 @@ struct WebTransportOptions {
 };
 
 }
+#endif // WebCore_Modules_webtransport_WebTransportOptions_h

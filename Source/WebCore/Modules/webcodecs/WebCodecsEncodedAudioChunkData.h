@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_WebCodecsEncodedAudioChunkData_h
+#define WebCore_Modules_webcodecs_WebCodecsEncodedAudioChunkData_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -43,3 +44,4 @@ struct WebCodecsEncodedAudioChunkData {
 }
 
 #endif // ENABLE(WEB_CODECS)
+#endif // WebCore_Modules_webcodecs_WebCodecsEncodedAudioChunkData_h

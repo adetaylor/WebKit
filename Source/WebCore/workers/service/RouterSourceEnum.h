@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_RouterSourceEnum_h
+#define WebCore_workers_service_RouterSourceEnum_h
 
 namespace WebCore {
 
 enum class RouterSourceEnum : uint8_t { Cache, FetchEvent, Network };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_RouterSourceEnum_h

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_DOMPatchSupport_h
+#define WebCore_inspector_DOMPatchSupport_h
 
 #include "ExceptionOr.h"
 #include <wtf/HashMap.h>
@@ -74,3 +75,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_DOMPatchSupport_h

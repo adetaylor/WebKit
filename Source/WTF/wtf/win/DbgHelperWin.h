@@ -22,7 +22,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_win_DbgHelperWin_h
+#define WTF_wtf_win_DbgHelperWin_h
 
 #include <windows.h>
 #include <wtf/Lock.h>
@@ -39,3 +40,4 @@ WTF_EXPORT_PRIVATE bool SymFromAddress(HANDLE hProc, DWORD64 address, DWORD64* d
 };
 
 } // namespace WTF
+#endif // WTF_wtf_win_DbgHelperWin_h

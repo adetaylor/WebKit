@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_WebAnimation_h
+#define WebCore_animation_WebAnimation_h
 
 #include "ActiveDOMObject.h"
 #include "AnimationFrameRate.h"
@@ -272,3 +273,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
 static bool isType(const WebCore::WebAnimation& value) { return value.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_animation_WebAnimation_h

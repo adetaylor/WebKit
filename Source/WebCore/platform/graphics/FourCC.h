@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FourCC_h
+#define WebCore_platform_graphics_FourCC_h
 
 #include <wtf/text/WTFString.h>
 
@@ -72,3 +73,4 @@ template<> struct LogArgument<WebCore::FourCC> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_graphics_FourCC_h

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentEnums_h
+#define WebCore_dom_DocumentEnums_h
 
 #include <wtf/EnumTraits.h>
 
@@ -71,3 +72,4 @@ enum class CanNavigateState : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DocumentEnums_h

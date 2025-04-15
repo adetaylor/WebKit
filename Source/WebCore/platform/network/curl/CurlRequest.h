@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CurlRequest_h
+#define WebCore_platform_network_curl_CurlRequest_h
 
 #include "CurlFormDataStream.h"
 #include "CurlMultipartHandle.h"
@@ -168,3 +169,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CurlRequest_h

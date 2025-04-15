@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_URL_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_URL_h
 
 #include <wtf/Forward.h>
 #include <wtf/OptionSet.h>
@@ -53,3 +54,4 @@ RefPtr<CSSValue> consumeURL(CSSParserTokenRange&, CSS::PropertyParserState&, Opt
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_URL_h

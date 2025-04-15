@@ -27,7 +27,8 @@
  * properly on all platforms and compilers that WebKit builds under.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_ExportMacros_h
+#define WebCore_PAL_pal_ExportMacros_h
 
 #include <wtf/ExportMacros.h>
 
@@ -40,3 +41,4 @@
 #endif
 
 #endif
+#endif // WebCore_PAL_pal_ExportMacros_h

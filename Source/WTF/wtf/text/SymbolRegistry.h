@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_SymbolRegistry_h
+#define WTF_wtf_text_SymbolRegistry_h
 
 #include <wtf/HashSet.h>
 #include <wtf/text/StringHash.h>
@@ -51,3 +52,4 @@ private:
 };
 
 }
+#endif // WTF_wtf_text_SymbolRegistry_h

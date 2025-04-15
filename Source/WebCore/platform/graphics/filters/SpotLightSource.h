@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_SpotLightSource_h
+#define WebCore_platform_graphics_filters_SpotLightSource_h
 
 #include "LightSource.h"
 #include <wtf/Ref.h>
@@ -71,3 +72,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_LIGHTSOURCE(SpotLightSource, LightType::LS_SPOT)
+#endif // WebCore_platform_graphics_filters_SpotLightSource_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FilterOperations_h
+#define WebCore_platform_graphics_filters_FilterOperations_h
 
 #include "CompositeOperation.h"
 #include "FilterOperation.h"
@@ -105,3 +106,4 @@ template<FilterOperation::Type type> bool FilterOperations::hasFilterOfType() co
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const FilterOperations&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_filters_FilterOperations_h

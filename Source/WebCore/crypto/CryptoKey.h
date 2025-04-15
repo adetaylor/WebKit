@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_CryptoKey_h
+#define WebCore_crypto_CryptoKey_h
 
 #include "CryptoAesKeyAlgorithm.h"
 #include "CryptoEcKeyAlgorithm.h"
@@ -88,3 +89,4 @@ WebCoreOpaqueRoot root(CryptoKey*);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToClassName) \
     static bool isType(const WebCore::CryptoKey& key) { return key.keyClass() == WebCore::KeyClass; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_crypto_CryptoKey_h

@@ -26,7 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasPath_h
+#define WebCore_html_canvas_CanvasPath_h
 
 #include "ExceptionOr.h"
 #include "Path.h"
@@ -71,3 +72,4 @@ protected:
 };
 
 }
+#endif // WebCore_html_canvas_CanvasPath_h

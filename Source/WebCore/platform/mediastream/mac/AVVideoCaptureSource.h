@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_mac_AVVideoCaptureSource_h
+#define WebCore_platform_mediastream_mac_AVVideoCaptureSource_h
 
 #if ENABLE(MEDIA_STREAM) && HAVE(AVCAPTUREDEVICE)
 
@@ -210,3 +211,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM) && HAVE(AVCAPTUREDEVICE)
+#endif // WebCore_platform_mediastream_mac_AVVideoCaptureSource_h

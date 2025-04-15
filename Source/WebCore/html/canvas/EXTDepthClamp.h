@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_EXTDepthClamp_h
+#define WebCore_html_canvas_EXTDepthClamp_h
 
 #include "WebGLExtension.h"
 #include "WebGLRenderingContextBase.h"
@@ -43,3 +44,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_canvas_EXTDepthClamp_h

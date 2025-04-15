@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSGridTemplateAreasValue_h
+#define WebCore_css_CSSGridTemplateAreasValue_h
 
 #include "CSSValue.h"
 #include "GridArea.h"
@@ -61,3 +62,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSGridTemplateAreasValue, isGridTemplateAreasValue())
+#endif // WebCore_css_CSSGridTemplateAreasValue_h

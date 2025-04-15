@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMQuad_h
+#define WebCore_dom_DOMQuad_h
 
 #include "DOMQuadInit.h"
 #include "ScriptWrappable.h"
@@ -62,3 +63,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_DOMQuad_h

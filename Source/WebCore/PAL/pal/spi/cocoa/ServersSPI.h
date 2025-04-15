@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_ServersSPI_h
+#define WebCore_PAL_pal_spi_cocoa_ServersSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -51,3 +52,4 @@ kern_return_t bootstrap_look_up(mach_port_t, const name_t serviceName, mach_port
 kern_return_t bootstrap_register2(mach_port_t, name_t, mach_port_t, uint64_t flags);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cocoa_ServersSPI_h

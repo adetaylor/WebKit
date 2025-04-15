@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_block_BlockLayoutState_h
+#define WebCore_layout_formattingContexts_block_BlockLayoutState_h
 
 #include "Font.h"
 #include "PlacedFloats.h"
@@ -93,3 +94,4 @@ inline BlockLayoutState::BlockLayoutState(PlacedFloats& placedFloats, std::optio
 
 }
 }
+#endif // WebCore_layout_formattingContexts_block_BlockLayoutState_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_system_mac_SystemSleepListenerMac_h
+#define WebCore_PAL_pal_system_mac_SystemSleepListenerMac_h
 
 #if PLATFORM(MAC)
 
@@ -57,3 +58,4 @@ protected:
 } // namespace PAL
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_PAL_pal_system_mac_SystemSleepListenerMac_h

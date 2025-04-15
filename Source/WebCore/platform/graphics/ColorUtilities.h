@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorUtilities_h
+#define WebCore_platform_graphics_ColorUtilities_h
 
 #include "ColorComponents.h"
 #include "ColorTypes.h"
@@ -230,3 +231,4 @@ constexpr uint16_t fastDivideBy255(uint16_t value)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ColorUtilities_h

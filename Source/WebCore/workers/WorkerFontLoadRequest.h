@@ -24,7 +24,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerFontLoadRequest_h
+#define WebCore_workers_WorkerFontLoadRequest_h
 
 #include "FontLoadRequest.h"
 #include "ResourceLoaderOptions.h"
@@ -85,3 +86,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FONTLOADREQUEST(WebCore::WorkerFontLoadRequest, isWorkerFontLoadRequest())
+#endif // WebCore_workers_WorkerFontLoadRequest_h

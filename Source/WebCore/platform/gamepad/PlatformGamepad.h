@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_PlatformGamepad_h
+#define WebCore_platform_gamepad_PlatformGamepad_h
 
 #if ENABLE(GAMEPAD)
 
@@ -87,3 +88,4 @@ protected:
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD)
+#endif // WebCore_platform_gamepad_PlatformGamepad_h

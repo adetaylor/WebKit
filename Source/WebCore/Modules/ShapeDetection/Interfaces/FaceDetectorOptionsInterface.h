@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_Interfaces_FaceDetectorOptionsInterface_h
+#define WebCore_Modules_ShapeDetection_Interfaces_FaceDetectorOptionsInterface_h
 
 #include <cstdint>
 #include <limits>
@@ -36,3 +37,4 @@ struct FaceDetectorOptions {
 };
 
 } // namespace WebCore::ShapeDetection
+#endif // WebCore_Modules_ShapeDetection_Interfaces_FaceDetectorOptionsInterface_h

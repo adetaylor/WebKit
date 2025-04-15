@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorCanvasCallTracer_h
+#define WebCore_inspector_InspectorCanvasCallTracer_h
 
 #include "CanvasRenderingContext2DBase.h"
 #include "WebGL2RenderingContext.h"
@@ -213,3 +214,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorCanvasCallTracer_h

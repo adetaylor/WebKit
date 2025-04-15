@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResourceLinearGradientInlines_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResourceLinearGradientInlines_h
 
 #include "LegacyRenderSVGResourceLinearGradient.h"
 #include "SVGElementTypeHelpers.h"
@@ -42,3 +43,4 @@ inline Ref<SVGLinearGradientElement> LegacyRenderSVGResourceLinearGradient::prot
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResourceLinearGradientInlines_h

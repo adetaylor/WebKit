@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_notifications_NotificationJSONParser_h
+#define WebCore_Modules_notifications_NotificationJSONParser_h
 
 #if ENABLE(DECLARATIVE_WEB_PUSH)
 
@@ -46,3 +47,4 @@ public:
 } // namespace WebCore
 
 #endif // ENABLE(DECLARATIVE_WEB_PUSH)
+#endif // WebCore_Modules_notifications_NotificationJSONParser_h

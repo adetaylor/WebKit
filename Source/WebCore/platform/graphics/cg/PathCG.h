@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cg_PathCG_h
+#define WebCore_platform_graphics_cg_PathCG_h
 
 #if USE(CG)
 
@@ -103,3 +104,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::PathCG)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // USE(CG)
+#endif // WebCore_platform_graphics_cg_PathCG_h

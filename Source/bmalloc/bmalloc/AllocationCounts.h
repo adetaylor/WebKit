@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_AllocationCounts_h
+#define bmalloc_bmalloc_AllocationCounts_h
 
 #include "BExport.h"
 #include <atomic>
@@ -131,3 +132,4 @@
 #define BENABLE_PROFILE_INITIAL_GIGACAGE_ALLOCATION 0
 #define BPROFILE_ALLOCATION_INITIAL_GIGACAGE(size) do { } while (false)
 #endif
+#endif // bmalloc_bmalloc_AllocationCounts_h

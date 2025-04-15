@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_numeric_CSSMathClamp_h
+#define WebCore_css_typedom_numeric_CSSMathClamp_h
 
 #include "CSSMathValue.h"
 
@@ -60,3 +61,4 @@ static bool isType(const WebCore::CSSStyleValue& styleValue) { return styleValue
 static bool isType(const WebCore::CSSNumericValue& numericValue) { return numericValue.getType() == WebCore::CSSStyleValueType::CSSMathClamp; }
 static bool isType(const WebCore::CSSMathValue& mathValue) { return mathValue.getType() == WebCore::CSSStyleValueType::CSSMathClamp; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_typedom_numeric_CSSMathClamp_h

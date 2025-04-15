@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerGlobalScope_h
+#define WebCore_workers_service_ServiceWorkerGlobalScope_h
 
 #include "CookieStore.h"
 #include "FetchIdentifier.h"
@@ -177,3 +178,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ServiceWorkerGlobalScope)
     }
     static bool isType(const WebCore::WorkerGlobalScope& context) { return context.type() == WebCore::WorkerGlobalScope::Type::ServiceWorker; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_workers_service_ServiceWorkerGlobalScope_h

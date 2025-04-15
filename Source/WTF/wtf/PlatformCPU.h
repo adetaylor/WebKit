@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PlatformCPU_h
+#define WTF_wtf_PlatformCPU_h
 
 #ifndef WTF_PLATFORM_GUARD_AGAINST_INDIRECT_INCLUSION
 #error "Please #include <wtf/Platform.h> instead of this file directly."
@@ -335,3 +336,4 @@
 #if !CPU(LITTLE_ENDIAN) && !CPU(BIG_ENDIAN)
 #error "Unsupported endian"
 #endif
+#endif // WTF_wtf_PlatformCPU_h

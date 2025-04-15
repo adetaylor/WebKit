@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_shapes_CSSPolygonFunction_h
+#define WebCore_css_values_shapes_CSSPolygonFunction_h
 
 #include "CSSFillRule.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -58,3 +59,4 @@ template<> struct Serialize<Polygon> { void operator()(StringBuilder&, const Ser
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Polygon, 2)
+#endif // WebCore_css_values_shapes_CSSPolygonFunction_h

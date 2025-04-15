@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityMenuListPopup_h
+#define WebCore_accessibility_AccessibilityMenuListPopup_h
 
 #include "AccessibilityMockObject.h"
 
@@ -70,3 +71,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilityMenuListPopup)
         return accessibilityObject && accessibilityObject->isMenuListPopup();
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_accessibility_AccessibilityMenuListPopup_h

@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_system_Sound_h
+#define WebCore_PAL_pal_system_Sound_h
 
 namespace PAL {
 
 PAL_EXPORT void systemBeep();
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_system_Sound_h

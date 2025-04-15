@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_InspectorAnimationAgent_h
+#define WebCore_inspector_agents_InspectorAnimationAgent_h
 
 #include "ComputedEffectTiming.h"
 #include "InspectorWebAgentBase.h"
@@ -119,3 +120,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_InspectorAnimationAgent_h

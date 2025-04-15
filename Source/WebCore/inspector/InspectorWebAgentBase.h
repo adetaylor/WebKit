@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorWebAgentBase_h
+#define WebCore_inspector_InspectorWebAgentBase_h
 
 #include "Page.h"
 #include "WorkerOrWorkletGlobalScope.h"
@@ -80,3 +81,4 @@ protected:
 };
     
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorWebAgentBase_h

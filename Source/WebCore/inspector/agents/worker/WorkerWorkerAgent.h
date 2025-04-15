@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_worker_WorkerWorkerAgent_h
+#define WebCore_inspector_agents_worker_WorkerWorkerAgent_h
 
 #include "InspectorWorkerAgent.h"
 #include <wtf/FastMalloc.h>
@@ -49,3 +50,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_worker_WorkerWorkerAgent_h

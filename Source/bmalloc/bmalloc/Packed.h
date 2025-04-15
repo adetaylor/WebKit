@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Packed_h
+#define bmalloc_bmalloc_Packed_h
 
 #include "Algorithm.h"
 #include <array>
@@ -241,3 +242,4 @@ struct PackedPtrTraits {
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_Packed_h

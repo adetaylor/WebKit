@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_cocoa_ImageOverlayDataDetectionResultIdentifier_h
+#define WebCore_page_cocoa_ImageOverlayDataDetectionResultIdentifier_h
 
 #if ENABLE(DATA_DETECTION)
 
@@ -37,3 +38,4 @@ using ImageOverlayDataDetectionResultIdentifier = ObjectIdentifier<ImageOverlayD
 } // namespace WebCore
 
 #endif // ENABLE(DATA_DETECTION)
+#endif // WebCore_page_cocoa_ImageOverlayDataDetectionResultIdentifier_h

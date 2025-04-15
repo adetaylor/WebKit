@@ -30,7 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cairo_CairoOperations_h
+#define WebCore_platform_graphics_cairo_CairoOperations_h
 
 #if USE(CAIRO)
 
@@ -174,3 +175,4 @@ void clipToImageBuffer(GraphicsContextCairo&, cairo_surface_t*, const FloatRect&
 } // namespace WebCore
 
 #endif // USE(CAIRO)
+#endif // WebCore_platform_graphics_cairo_CairoOperations_h

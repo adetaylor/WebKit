@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerInspectorProxy_h
+#define WebCore_workers_WorkerInspectorProxy_h
 
 #include "PageIdentifier.h"
 #include "ScriptExecutionContextIdentifier.h"
@@ -108,3 +109,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerInspectorProxy_h

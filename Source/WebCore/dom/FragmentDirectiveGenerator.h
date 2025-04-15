@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_FragmentDirectiveGenerator_h
+#define WebCore_dom_FragmentDirectiveGenerator_h
 
 #include <wtf/Forward.h>
 #include <wtf/URL.h>
@@ -48,3 +49,4 @@ private:
 
 } // namespace WebCore
 
+#endif // WebCore_dom_FragmentDirectiveGenerator_h

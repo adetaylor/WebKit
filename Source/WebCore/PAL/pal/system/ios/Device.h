@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_system_ios_Device_h
+#define WebCore_PAL_pal_system_ios_Device_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -46,3 +47,4 @@ PAL_EXPORT bool deviceHasIPadCapability();
 }
 
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_PAL_pal_system_ios_Device_h

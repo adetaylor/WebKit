@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockContentFilterManager_h
+#define WebCore_testing_MockContentFilterManager_h
 
 #include <WebCore/MockContentFilterSettingsClient.h>
 
@@ -42,3 +43,4 @@ private:
 };
 
 };
+#endif // WebCore_testing_MockContentFilterManager_h

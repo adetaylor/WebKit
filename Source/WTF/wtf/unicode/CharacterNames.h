@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_unicode_CharacterNames_h
+#define WTF_wtf_unicode_CharacterNames_h
 
 #include <unicode/utypes.h>
 
@@ -310,3 +311,4 @@ using WTF::Unicode::zeroWidthJoiner;
 using WTF::Unicode::zeroWidthNoBreakSpace;
 using WTF::Unicode::zeroWidthNonJoiner;
 using WTF::Unicode::zeroWidthSpace;
+#endif // WTF_wtf_unicode_CharacterNames_h

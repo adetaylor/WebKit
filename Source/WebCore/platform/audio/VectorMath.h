@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_VectorMath_h
+#define WebCore_platform_audio_VectorMath_h
 
 // Defines the interface for several vector math functions whose implementation will ideally be optimized.
 
@@ -81,3 +82,4 @@ void interpolate(std::span<const float> inputVector1, std::span<float> inputVect
 } // namespace VectorMath
 
 } // namespace WebCore
+#endif // WebCore_platform_audio_VectorMath_h

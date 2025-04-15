@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSColorValue_h
+#define WebCore_css_CSSColorValue_h
 
 #include "CSSColor.h"
 #include "CSSValue.h"
@@ -60,3 +61,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSColorValue, isColor())
+#endif // WebCore_css_CSSColorValue_h

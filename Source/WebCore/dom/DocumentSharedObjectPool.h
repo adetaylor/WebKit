@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentSharedObjectPool_h
+#define WebCore_dom_DocumentSharedObjectPool_h
 
 #include <memory>
 #include <wtf/HashSet.h>
@@ -49,3 +50,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DocumentSharedObjectPool_h

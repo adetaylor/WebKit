@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_WebCoreDecompressionSession_h
+#define WebCore_platform_graphics_cocoa_WebCoreDecompressionSession_h
 
 #include "MediaPromiseTypes.h"
 
@@ -108,3 +109,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_cocoa_WebCoreDecompressionSession_h

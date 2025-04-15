@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_storage_StorageConnection_h
+#define WebCore_Modules_storage_StorageConnection_h
 
 #include "FileSystemHandleIdentifier.h"
 #include "StorageEstimate.h"
@@ -50,3 +51,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_storage_StorageConnection_h

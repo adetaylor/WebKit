@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FetchOptionsCredentials_h
+#define WebCore_loader_FetchOptionsCredentials_h
 
 namespace WebCore {
     
 enum class FetchOptionsCredentials : uint8_t { Omit, SameOrigin, Include };
     
 } // namespace WebCore
+#endif // WebCore_loader_FetchOptionsCredentials_h

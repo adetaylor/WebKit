@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerThreadType_h
+#define WebCore_workers_WorkerThreadType_h
 
 namespace WebCore {
 
@@ -36,3 +37,4 @@ enum class WorkerThreadType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerThreadType_h

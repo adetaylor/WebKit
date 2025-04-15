@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUDeviceLostReason_h
+#define WebCore_Modules_WebGPU_GPUDeviceLostReason_h
 
 #include "WebGPUDeviceLostReason.h"
 #include <cstdint>
@@ -47,3 +48,4 @@ inline WebGPU::DeviceLostReason convertToBacking(GPUDeviceLostReason deviceLostR
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUDeviceLostReason_h

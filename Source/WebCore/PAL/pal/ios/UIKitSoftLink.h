@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_ios_UIKitSoftLink_h
+#define WebCore_PAL_pal_ios_UIKitSoftLink_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -91,3 +92,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, UIKit, UIImagePNGRepresentation, NSData *, (U
 #define UIImagePNGRepresentation PAL::softLink_UIKit_UIImagePNGRepresentation
 
 #endif
+#endif // WebCore_PAL_pal_ios_UIKitSoftLink_h

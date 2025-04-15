@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_WebRTCProvider_h
+#define WebCore_platform_mediastream_WebRTCProvider_h
 
 #include "MDNSRegisterError.h"
 #include "MediaCapabilitiesInfo.h"
@@ -123,3 +124,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_mediastream_WebRTCProvider_h

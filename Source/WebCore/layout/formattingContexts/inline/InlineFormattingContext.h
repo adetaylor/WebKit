@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineFormattingContext_h
+#define WebCore_layout_formattingContexts_inline_InlineFormattingContext_h
 
 #include "InlineDisplayContent.h"
 #include "InlineFormattingConstraints.h"
@@ -110,3 +111,4 @@ private:
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_InlineFormattingContext_h

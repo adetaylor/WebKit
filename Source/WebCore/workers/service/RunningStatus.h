@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_RunningStatus_h
+#define WebCore_workers_service_RunningStatus_h
 
 namespace WebCore {
 
 enum class RunningStatus : bool { Running, NotRunning };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_RunningStatus_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_page_CaptionUserPreferences_h
+#define WebCore_page_CaptionUserPreferences_h
 
 #if ENABLE(VIDEO)
 
@@ -182,3 +183,4 @@ template<> struct EnumTraits<WebCore::CaptionUserPreferences::CaptionDisplayMode
 } // namespace WTF
 
 #endif
+#endif // WebCore_page_CaptionUserPreferences_h

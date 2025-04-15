@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorBlending_h
+#define WebCore_platform_graphics_ColorBlending_h
 
 namespace WebCore {
 
@@ -43,3 +44,4 @@ Color blend(const Color& from, const Color& to, const BlendingContext&);
 Color blendWithoutPremultiply(const Color& from, const Color& to, const BlendingContext&);
 
 }
+#endif // WebCore_platform_graphics_ColorBlending_h

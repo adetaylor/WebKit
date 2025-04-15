@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_DynamicContentScalingDisplayList_h
+#define WebCore_platform_graphics_cocoa_DynamicContentScalingDisplayList_h
 
 #if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 
@@ -57,3 +58,4 @@ private:
 }
 
 #endif // ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+#endif // WebCore_platform_graphics_cocoa_DynamicContentScalingDisplayList_h

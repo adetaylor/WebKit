@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMGlobalObject_h
+#define WebCore_bindings_js_JSDOMGlobalObject_h
 
 #include <JavaScriptCore/JSGlobalObject.h>
 #include <JavaScriptCore/WeakGCMap.h>
@@ -163,3 +164,4 @@ template<class JSClass>
 inline JSClass* toJSDOMGlobalObject(JSC::VM&, JSC::JSValue);
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMGlobalObject_h

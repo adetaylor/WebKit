@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_WebTransport_h
+#define WebCore_Modules_webtransport_WebTransport_h
 
 #include "ActiveDOMObject.h"
 #include "ExceptionOr.h"
@@ -133,3 +134,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_webtransport_WebTransport_h

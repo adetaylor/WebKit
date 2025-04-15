@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_InspectorPageAgent_h
+#define WebCore_inspector_agents_InspectorPageAgent_h
 
 #include "CachedResource.h"
 #include "InspectorWebAgentBase.h"
@@ -187,3 +188,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_InspectorPageAgent_h

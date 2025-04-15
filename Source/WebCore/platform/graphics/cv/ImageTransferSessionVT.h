@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cv_ImageTransferSessionVT_h
+#define WebCore_platform_graphics_cv_ImageTransferSessionVT_h
 
 #include "FloatRect.h"
 #include "IntSize.h"
@@ -98,3 +99,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_cv_ImageTransferSessionVT_h

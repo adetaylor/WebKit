@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageBuffer_h
+#define WebCore_platform_graphics_ImageBuffer_h
 
 #include "ImageBufferAllocator.h"
 #include "ImageBufferBackend.h"
@@ -289,3 +290,4 @@ protected:
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, const ImageBuffer&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageBuffer_h

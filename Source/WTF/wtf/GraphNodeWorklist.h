@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_GraphNodeWorklist_h
+#define WTF_wtf_GraphNodeWorklist_h
 
 #include <wtf/HashSet.h>
 
@@ -224,3 +225,4 @@ using WTF::ExtendedGraphNodeWorklist;
 using WTF::GraphVisitOrder;
 using WTF::GraphNodeWithOrder;
 using WTF::PostOrderGraphNodeWorklist;
+#endif // WTF_wtf_GraphNodeWorklist_h

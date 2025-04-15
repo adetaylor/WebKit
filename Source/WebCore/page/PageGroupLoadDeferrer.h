@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_page_PageGroupLoadDeferrer_h
+#define WebCore_page_PageGroupLoadDeferrer_h
 
 #include <wtf/RefPtr.h>
 #include <wtf/Vector.h>
@@ -38,3 +39,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PageGroupLoadDeferrer_h

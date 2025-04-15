@@ -25,7 +25,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_worker_WorkerTimelineAgent_h
+#define WebCore_inspector_agents_worker_WorkerTimelineAgent_h
 
 #include "InspectorTimelineAgent.h"
 
@@ -43,3 +44,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_worker_WorkerTimelineAgent_h

@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSStyleRule_h
+#define WebCore_css_CSSStyleRule_h
 
 #include "CSSRule.h"
 #include <wtf/WeakPtr.h>
@@ -85,3 +86,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSStyleRule, StyleRuleType::Style)
+#endif // WebCore_css_CSSStyleRule_h

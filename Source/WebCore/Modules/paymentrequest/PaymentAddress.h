@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_paymentrequest_PaymentAddress_h
+#define WebCore_Modules_paymentrequest_PaymentAddress_h
 
 #if ENABLE(PAYMENT_REQUEST)
 
@@ -69,3 +70,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(PAYMENT_REQUEST)
+#endif // WebCore_Modules_paymentrequest_PaymentAddress_h

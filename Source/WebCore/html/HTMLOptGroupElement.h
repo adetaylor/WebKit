@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLOptGroupElement_h
+#define WebCore_html_HTMLOptGroupElement_h
 
 #include "HTMLElement.h"
 
@@ -58,3 +59,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLOptGroupElement_h

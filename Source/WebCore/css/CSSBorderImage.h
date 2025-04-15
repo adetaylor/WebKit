@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSBorderImage_h
+#define WebCore_css_CSSBorderImage_h
 
 #include <wtf/RefPtr.h>
 
@@ -42,3 +43,4 @@ struct BorderImageComponents {
 Ref<CSSValueList> createBorderImageValue(CSS::BorderImageComponents&&);
 
 } // namespace WebCore
+#endif // WebCore_css_CSSBorderImage_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_EnterKeyHint_h
+#define WebCore_html_EnterKeyHint_h
 
 #include <wtf/text/WTFString.h>
 
@@ -44,3 +45,4 @@ EnterKeyHint enterKeyHintForAttributeValue(StringView);
 WEBCORE_EXPORT String attributeValueForEnterKeyHint(EnterKeyHint);
 
 } // namespace WebCore
+#endif // WebCore_html_EnterKeyHint_h

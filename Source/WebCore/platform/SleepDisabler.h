@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_SleepDisabler_h
+#define WebCore_platform_SleepDisabler_h
 
 #include "PageIdentifier.h"
 #include "SleepDisablerIdentifier.h"
@@ -48,3 +49,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_SleepDisabler_h

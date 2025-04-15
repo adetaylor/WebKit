@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasource_VideoPlaybackQuality_h
+#define WebCore_Modules_mediasource_VideoPlaybackQuality_h
 
 #if ENABLE(VIDEO)
 
@@ -62,3 +63,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_Modules_mediasource_VideoPlaybackQuality_h

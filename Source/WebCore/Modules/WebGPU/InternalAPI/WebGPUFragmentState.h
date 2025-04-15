@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUFragmentState_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUFragmentState_h
 
 #include "WebGPUColorTargetState.h"
 #include "WebGPUProgrammableStage.h"
@@ -37,3 +38,4 @@ struct FragmentState : public ProgrammableStage {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUFragmentState_h

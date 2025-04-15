@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_GRefPtrGStreamer_h
+#define WebCore_platform_graphics_gstreamer_GRefPtrGStreamer_h
 
 #if USE(GSTREAMER)
 
@@ -256,3 +257,4 @@ template<> void derefGPtr<GstTranscoderSignalAdapter>(GstTranscoderSignalAdapter
 } // namespace WTF
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_GRefPtrGStreamer_h

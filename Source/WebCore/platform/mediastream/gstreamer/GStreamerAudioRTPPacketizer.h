@@ -17,7 +17,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_gstreamer_GStreamerAudioRTPPacketizer_h
+#define WebCore_platform_mediastream_gstreamer_GStreamerAudioRTPPacketizer_h
 
 #if USE(GSTREAMER_WEBRTC)
 
@@ -42,3 +43,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(GSTREAMER_WEBRTC)
+#endif // WebCore_platform_mediastream_gstreamer_GStreamerAudioRTPPacketizer_h

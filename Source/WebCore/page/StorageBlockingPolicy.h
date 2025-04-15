@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_StorageBlockingPolicy_h
+#define WebCore_page_StorageBlockingPolicy_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class StorageBlockingPolicy : uint8_t {
 };
 
 }
+#endif // WebCore_page_StorageBlockingPolicy_h

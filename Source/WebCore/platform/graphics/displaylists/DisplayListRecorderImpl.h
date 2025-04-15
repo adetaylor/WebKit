@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_displaylists_DisplayListRecorderImpl_h
+#define WebCore_platform_graphics_displaylists_DisplayListRecorderImpl_h
 
 #include "DisplayListRecorder.h"
 #include <wtf/TZoneMalloc.h>
@@ -124,3 +125,4 @@ private:
 
 }
 }
+#endif // WebCore_platform_graphics_displaylists_DisplayListRecorderImpl_h

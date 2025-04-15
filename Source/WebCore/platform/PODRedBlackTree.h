@@ -48,7 +48,8 @@
 // The design of this red-black tree comes from Cormen, Leiserson,
 // and Rivest, _Introduction to Algorithms_, MIT Press, 1990.
 
-#pragma once
+#ifndef WebCore_platform_PODRedBlackTree_h
+#define WebCore_platform_PODRedBlackTree_h
 
 #include <wtf/Assertions.h>
 #include <wtf/Noncopyable.h>
@@ -641,3 +642,4 @@ WTF_MAKE_TZONE_ALLOCATED_TEMPLATE_IMPL_WITH_MULTIPLE_OR_SPECIALIZED_PARAMETERS()
 #undef TZONE_TYPE
 
 } // namespace WebCore
+#endif // WebCore_platform_PODRedBlackTree_h

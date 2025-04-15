@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_LayoutUnits_h
+#define WebCore_layout_LayoutUnits_h
 
 #include "LayoutUnit.h"
 #include "LayoutPoint.h"
@@ -206,3 +207,4 @@ template<> struct HashTraits<WebCore::Layout::SlotPosition> : GenericHashTraits<
 template<> struct DefaultHash<WebCore::Layout::SlotPosition> : SlotPositionHash { };
 }
 
+#endif // WebCore_layout_LayoutUnits_h

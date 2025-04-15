@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_gamepad_GamepadEffectParameters_h
+#define WebCore_Modules_gamepad_GamepadEffectParameters_h
 
 #if ENABLE(GAMEPAD)
 
@@ -48,3 +49,4 @@ struct GamepadEffectParameters {
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD)
+#endif // WebCore_Modules_gamepad_GamepadEffectParameters_h

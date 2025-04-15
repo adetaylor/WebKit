@@ -23,7 +23,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGPath_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGPath_h
 
 #include "LegacyRenderSVGShape.h"
 
@@ -68,3 +69,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(LegacyRenderSVGPath, isLegacyRenderSVGPath())
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGPath_h

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSWindowProxy_h
+#define WebCore_bindings_js_JSWindowProxy_h
 
 #include "JSDOMConvertInterface.h"
 #include "WindowProxy.h"
@@ -108,3 +109,4 @@ template<> struct JSDOMWrapperConverterTraits<WindowProxy> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSWindowProxy_h

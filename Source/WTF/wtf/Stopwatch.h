@@ -22,7 +22,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Stopwatch_h
+#define WTF_wtf_Stopwatch_h
 
 #include <cmath>
 #include <utility>
@@ -123,3 +124,4 @@ inline std::optional<Seconds> Stopwatch::fromMonotonicTime(MonotonicTime timeSta
 } // namespace WTF
 
 using WTF::Stopwatch;
+#endif // WTF_wtf_Stopwatch_h

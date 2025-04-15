@@ -28,7 +28,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMPointReadOnly_h
+#define WebCore_dom_DOMPointReadOnly_h
 
 #include "DOMPointInit.h"
 #include "ExceptionOr.h"
@@ -79,3 +80,4 @@ WebCoreOpaqueRoot root(DOMPointReadOnly*);
 
 } // namespace WebCore
 
+#endif // WebCore_dom_DOMPointReadOnly_h

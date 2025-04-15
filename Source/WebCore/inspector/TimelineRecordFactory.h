@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
-#pragma once
+#ifndef WebCore_inspector_TimelineRecordFactory_h
+#define WebCore_inspector_TimelineRecordFactory_h
 
 #include <JavaScriptCore/DebuggerPrimitives.h>
 #include <wtf/Forward.h>
@@ -67,3 +68,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_TimelineRecordFactory_h

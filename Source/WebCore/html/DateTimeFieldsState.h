@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_DateTimeFieldsState_h
+#define WebCore_html_DateTimeFieldsState_h
 
 #include <optional>
 
@@ -52,3 +53,4 @@ struct DateTimeFieldsState {
 };
 
 } // namespace WebCore
+#endif // WebCore_html_DateTimeFieldsState_h

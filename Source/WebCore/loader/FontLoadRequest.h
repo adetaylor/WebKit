@@ -24,7 +24,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FontLoadRequest_h
+#define WebCore_loader_FontLoadRequest_h
 
 #include "FontTaggedSettings.h"
 #include <wtf/WeakPtr.h>
@@ -77,3 +78,4 @@ public:
 SPECIALIZE_TYPE_TRAITS_BEGIN(ToValueTypeName) \
     static bool isType(const WebCore::FontLoadRequest& request) { return request.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_loader_FontLoadRequest_h

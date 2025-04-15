@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGModelObject_h
+#define WebCore_rendering_svg_RenderSVGModelObject_h
 
 #include "RenderBox.h"
 #include "RenderLayerModelObject.h"
@@ -117,3 +118,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGModelObject, isRenderSVGModelObject())
+#endif // WebCore_rendering_svg_RenderSVGModelObject_h

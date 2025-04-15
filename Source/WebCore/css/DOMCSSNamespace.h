@@ -27,7 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_DOMCSSNamespace_h
+#define WebCore_css_DOMCSSNamespace_h
 
 #include "Supplementable.h"
 
@@ -49,3 +50,4 @@ public:
 };
 
 }
+#endif // WebCore_css_DOMCSSNamespace_h

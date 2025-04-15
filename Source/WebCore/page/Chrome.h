@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_page_Chrome_h
+#define WebCore_page_Chrome_h
 
 #include "AXObjectCache.h"
 #include "Cursor.h"
@@ -256,3 +257,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_Chrome_h

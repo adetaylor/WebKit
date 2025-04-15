@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_darwin_SandboxSPI_h
+#define WTF_wtf_spi_darwin_SandboxSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -96,3 +97,4 @@ bool sandbox_enable_state_flag(const char *varname, audit_token_t);
 WTF_EXTERN_C_END
 
 #endif // OS(DARWIN)
+#endif // WTF_wtf_spi_darwin_SandboxSPI_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_server_SWServerDelegate_h
+#define WebCore_workers_service_server_SWServerDelegate_h
 
 #include "BackgroundFetchRecordLoader.h"
 #include "ProcessIdentifier.h"
@@ -72,3 +73,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_server_SWServerDelegate_h

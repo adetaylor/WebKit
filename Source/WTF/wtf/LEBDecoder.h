@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_LEBDecoder_h
+#define WTF_wtf_LEBDecoder_h
 
 #include <algorithm>
 #include <limits.h>
@@ -136,3 +137,4 @@ inline bool WARN_UNUSED_RETURN decodeInt64(std::span<const uint8_t> bytes, size_
 }
 
 } } // WTF::LEBDecoder
+#endif // WTF_wtf_LEBDecoder_h

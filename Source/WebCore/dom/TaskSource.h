@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_TaskSource_h
+#define WebCore_dom_TaskSource_h
 
 namespace WebCore {
 
@@ -59,3 +60,4 @@ enum class TaskSource : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_TaskSource_h

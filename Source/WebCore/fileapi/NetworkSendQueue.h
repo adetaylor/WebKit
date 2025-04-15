@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_fileapi_NetworkSendQueue_h
+#define WebCore_fileapi_NetworkSendQueue_h
 
 #include "ContextDestructionObserver.h"
 #include "ExceptionCode.h"
@@ -71,3 +72,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_fileapi_NetworkSendQueue_h

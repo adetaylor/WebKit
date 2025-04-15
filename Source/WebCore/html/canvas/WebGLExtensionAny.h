@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_WebGLExtensionAny_h
+#define WebCore_html_canvas_WebGLExtensionAny_h
 
 #if ENABLE(WEBGL)
 
@@ -38,3 +39,4 @@ using WebGLExtensionAny = Ref<WebGLExtensionBase>;
 }
 
 #endif
+#endif // WebCore_html_canvas_WebGLExtensionAny_h

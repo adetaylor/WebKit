@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StyleUnevaluatedCalculation_h
+#define WebCore_style_values_primitives_StyleUnevaluatedCalculation_h
 
 #include "StylePrimitiveNumericConcepts.h"
 #include <wtf/Forward.h>
@@ -87,3 +88,4 @@ template<WebCore::Style::Calc T> struct IsSmartPtr<T> {
 };
 
 } // namespace WTF
+#endif // WebCore_style_values_primitives_StyleUnevaluatedCalculation_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ThreadSanitizerSupport_h
+#define WTF_wtf_ThreadSanitizerSupport_h
 
 #include <wtf/Compiler.h>
 
@@ -51,3 +52,4 @@ WTF_EXTERN_C_END
 #define TSAN_ANNOTATE_HAPPENS_AFTER(addr)  ((void)0)
 
 #endif // TSAN_ENABLED
+#endif // WTF_wtf_ThreadSanitizerSupport_h

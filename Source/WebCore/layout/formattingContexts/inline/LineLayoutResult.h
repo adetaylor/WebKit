@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_LineLayoutResult_h
+#define WebCore_layout_formattingContexts_inline_LineLayoutResult_h
 
 #include "InlineLine.h"
 #include "InlineLineTypes.h"
@@ -103,3 +104,4 @@ struct LineLayoutResult {
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_LineLayoutResult_h

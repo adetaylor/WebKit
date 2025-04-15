@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_RenderingResource_h
+#define WebCore_platform_graphics_RenderingResource_h
 
 #include "RenderingResourceIdentifier.h"
 #include <wtf/ThreadSafeWeakPtr.h>
@@ -94,3 +95,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_RenderingResource_h

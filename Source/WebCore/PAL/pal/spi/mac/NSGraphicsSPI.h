@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSGraphicsSPI_h
+#define WebCore_PAL_pal_spi_mac_NSGraphicsSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -65,3 +66,4 @@ BOOL NSInitializeCGFocusRingStyleForTime(NSFocusRingPlacement, CGFocusRingStyle*
 WTF_EXTERN_C_END
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_PAL_pal_spi_mac_NSGraphicsSPI_h

@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_plugins_DOMPluginArray_h
+#define WebCore_plugins_DOMPluginArray_h
 
 #include "Navigator.h"
 #include "ScriptWrappable.h"
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_plugins_DOMPluginArray_h

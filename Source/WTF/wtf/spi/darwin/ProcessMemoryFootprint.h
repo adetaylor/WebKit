@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_darwin_ProcessMemoryFootprint_h
+#define WTF_wtf_spi_darwin_ProcessMemoryFootprint_h
 
 #if OS(DARWIN)
 
@@ -76,3 +77,4 @@ public:
 };
 
 #endif
+#endif // WTF_wtf_spi_darwin_ProcessMemoryFootprint_h

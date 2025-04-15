@@ -30,7 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_JSONValues_h
+#define WTF_wtf_JSONValues_h
 
 #include <wtf/HashMap.h>
 #include <wtf/NoVirtualDestructorBase.h>
@@ -548,3 +549,4 @@ namespace JSON {
 using namespace WTF::JSONImpl;
 }
 
+#endif // WTF_wtf_JSONValues_h

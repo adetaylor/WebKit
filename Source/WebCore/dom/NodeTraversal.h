@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_NodeTraversal_h
+#define WebCore_dom_NodeTraversal_h
 
 #include "ContainerNode.h"
 #include "NodeInlines.h"
@@ -129,3 +130,4 @@ inline Node* previous(const Node& current, const Node* stayWithin)
 
 }
 }
+#endif // WebCore_dom_NodeTraversal_h

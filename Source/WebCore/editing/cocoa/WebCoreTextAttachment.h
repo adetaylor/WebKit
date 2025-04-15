@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_cocoa_WebCoreTextAttachment_h
+#define WebCore_editing_cocoa_WebCoreTextAttachment_h
 
 #if PLATFORM(COCOA)
 
@@ -56,3 +57,4 @@ bool isWebCoreTextAttachmentMissingPlatformImage(CocoaImage *);
 #endif
 
 #endif // PLATFORM(COCOA)
+#endif // WebCore_editing_cocoa_WebCoreTextAttachment_h

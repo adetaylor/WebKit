@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_MappedFileData_h
+#define WTF_wtf_MappedFileData_h
 
 #include <span>
 #include <wtf/Forward.h>
@@ -87,3 +88,4 @@ private:
 } // namespace WTF
 
 namespace FileSystem = WTF::FileSystemImpl;
+#endif // WTF_wtf_MappedFileData_h
