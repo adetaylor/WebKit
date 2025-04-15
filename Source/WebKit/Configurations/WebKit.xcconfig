@@ -70,7 +70,8 @@ SWIFT_LIBRARY_LEVEL = api;
 SWIFT_INCLUDE_PATHS = $(SRCROOT)/Modules/Internal $(SWIFT_INCLUDE_PATHS_$(USE_INTERNAL_SDK));
 SWIFT_INCLUDE_PATHS_ = $(SRCROOT)/Platform/spi/visionos $(SRCROOT)/Platform/spi/ios $(SRCROOT)/Platform/spi/Cocoa $(SRCROOT)/Platform/spi/Cocoa/Modules $(inherited);
 //OTHER_SWIFT_FLAGS = $(inherited) -dump-clang-diagnostics -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t;
-OTHER_SWIFT_FLAGS = $(inherited) -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t;
+// Workaround for rdar://103177280
+OTHER_SWIFT_FLAGS = $(inherited) -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -no-verify-emitted-module-interface;
 SWIFT_OBJC_INTEROP_MODE = objcxx;
 
 // No need for automatic generation of Swift code for referencing resource bundle colors.
