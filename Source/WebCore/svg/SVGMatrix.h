@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGMatrix_h
+#define WebCore_svg_SVGMatrix_h
 
 #include "AffineTransform.h"
 #include "ExceptionOr.h"
@@ -228,3 +229,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGMatrix_h

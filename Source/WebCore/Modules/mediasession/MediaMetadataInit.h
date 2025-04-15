@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasession_MediaMetadataInit_h
+#define WebCore_Modules_mediasession_MediaMetadataInit_h
 
 #include "MediaImage.h"
 
@@ -44,3 +45,4 @@ struct MediaMetadataInit {
 }
 
 #endif // ENABLE(MEDIA_SESSION)
+#endif // WebCore_Modules_mediasession_MediaMetadataInit_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_CustomStateSet_h
+#define WebCore_dom_CustomStateSet_h
 
 #include "Element.h"
 #include "JSDOMSetLike.h"
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_CustomStateSet_h

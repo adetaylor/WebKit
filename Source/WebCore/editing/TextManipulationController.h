@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_TextManipulationController_h
+#define WebCore_editing_TextManipulationController_h
 
 #include "Position.h"
 #include "QualifiedName.h"
@@ -122,3 +123,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_TextManipulationController_h

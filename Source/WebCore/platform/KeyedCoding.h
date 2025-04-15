@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_KeyedCoding_h
+#define WebCore_platform_KeyedCoding_h
 
 #include <functional>
 #include <wtf/Deque.h>
@@ -214,3 +215,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_KeyedCoding_h

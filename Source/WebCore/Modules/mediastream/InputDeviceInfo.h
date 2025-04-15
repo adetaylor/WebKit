@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_InputDeviceInfo_h
+#define WebCore_Modules_mediastream_InputDeviceInfo_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -51,3 +52,4 @@ private:
 }
 
 #endif
+#endif // WebCore_Modules_mediastream_InputDeviceInfo_h

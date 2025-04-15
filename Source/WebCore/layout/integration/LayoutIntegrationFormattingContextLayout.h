@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_LayoutIntegrationFormattingContextLayout_h
+#define WebCore_layout_integration_LayoutIntegrationFormattingContextLayout_h
 
 #include "LayoutUnit.h"
 #include <optional>
@@ -55,3 +56,4 @@ LayoutUnit formattingContextRootLogicalHeightForType(const Layout::ElementBox&, 
 
 }
 }
+#endif // WebCore_layout_integration_LayoutIntegrationFormattingContextLayout_h

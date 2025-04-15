@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGAnimationAdditiveValueFunctionImpl_h
+#define WebCore_svg_properties_SVGAnimationAdditiveValueFunctionImpl_h
 
 #include "Color.h"
 #include "FloatRect.h"
@@ -315,3 +316,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_properties_SVGAnimationAdditiveValueFunctionImpl_h

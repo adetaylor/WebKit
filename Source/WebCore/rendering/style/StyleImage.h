@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleImage_h
+#define WebCore_rendering_style_StyleImage_h
 
 #include "CSSValue.h"
 #include "FloatSize.h"
@@ -134,3 +135,4 @@ protected:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToClassName) \
     static bool isType(const WebCore::StyleImage& image) { return image.predicate(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_rendering_style_StyleImage_h

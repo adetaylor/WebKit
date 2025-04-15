@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_page_ContextMenuContext_h
+#define WebCore_page_ContextMenuContext_h
 
 #if ENABLE(CONTEXT_MENUS)
 
@@ -99,3 +100,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(CONTEXT_MENUS)
+#endif // WebCore_page_ContextMenuContext_h

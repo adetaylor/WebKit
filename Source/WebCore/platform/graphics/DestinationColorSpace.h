@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_DestinationColorSpace_h
+#define WebCore_platform_graphics_DestinationColorSpace_h
 
 #include "PlatformColorSpace.h"
 #include <optional>
@@ -75,3 +76,4 @@ WEBCORE_EXPORT bool operator==(const DestinationColorSpace&, const DestinationCo
 
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, const DestinationColorSpace&);
 }
+#endif // WebCore_platform_graphics_DestinationColorSpace_h

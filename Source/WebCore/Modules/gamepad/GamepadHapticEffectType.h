@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_gamepad_GamepadHapticEffectType_h
+#define WebCore_Modules_gamepad_GamepadHapticEffectType_h
 
 #if ENABLE(GAMEPAD)
 
@@ -40,3 +41,4 @@ using GamepadHapticEffectTypeSet = HashSet<GamepadHapticEffectType, IntHash<Game
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD)
+#endif // WebCore_Modules_gamepad_GamepadHapticEffectType_h

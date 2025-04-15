@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_ImageControlsButtonPart_h
+#define WebCore_platform_graphics_controls_ImageControlsButtonPart_h
 
 #if ENABLE(SERVICE_CONTROLS)
 
@@ -56,3 +57,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CONTROL_PART(ImageControlsButton)
 
 #endif // ENABLE(SERVICE_CONTROLS)
+#endif // WebCore_platform_graphics_controls_ImageControlsButtonPart_h

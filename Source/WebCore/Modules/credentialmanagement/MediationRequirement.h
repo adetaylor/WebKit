@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_credentialmanagement_MediationRequirement_h
+#define WebCore_Modules_credentialmanagement_MediationRequirement_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -35,3 +36,4 @@ enum class MediationRequirement : uint8_t { Silent, Optional, Required, Conditio
 
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_credentialmanagement_MediationRequirement_h

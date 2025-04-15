@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_LoggerHelper_h
+#define WTF_wtf_LoggerHelper_h
 
 #include <wtf/CryptographicallyRandomNumber.h>
 #include <wtf/Logger.h>
@@ -148,3 +149,4 @@ public:
 } // namespace WTF
 
 using WTF::LoggerHelper;
+#endif // WTF_wtf_LoggerHelper_h

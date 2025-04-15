@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SmallMap_h
+#define WTF_wtf_SmallMap_h
 
 #include <variant>
 #include <wtf/HashMap.h>
@@ -114,3 +115,4 @@ private:
 } // namespace WTF
 
 using WTF::SmallMap;
+#endif // WTF_wtf_SmallMap_h

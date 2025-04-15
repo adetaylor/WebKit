@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_EligibilityResultInlines_h
+#define bmalloc_bmalloc_EligibilityResultInlines_h
 
 #if !BUSE(TZONE)
 
@@ -50,3 +51,4 @@ EligibilityResult<Config>::EligibilityResult(IsoPage<Config>* page)
 
 #endif
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_EligibilityResultInlines_h

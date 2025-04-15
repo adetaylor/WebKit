@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSScopeRule_h
+#define WebCore_css_CSSScopeRule_h
 
 #include "CSSGroupingRule.h"
 
@@ -49,3 +50,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSScopeRule, StyleRuleType::Scope)
+#endif // WebCore_css_CSSScopeRule_h

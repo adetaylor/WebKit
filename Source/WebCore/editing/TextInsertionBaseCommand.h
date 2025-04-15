@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_TextInsertionBaseCommand_h
+#define WebCore_editing_TextInsertionBaseCommand_h
 
 #include "CompositeEditCommand.h"
 #include <wtf/text/WTFString.h>
@@ -66,3 +67,4 @@ void forEachLineInString(const String& string, const LineOperation& operation)
 }
 
 } // namespace WebCore
+#endif // WebCore_editing_TextInsertionBaseCommand_h

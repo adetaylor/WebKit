@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_harfbuzz_HbUniquePtr_h
+#define WebCore_platform_graphics_harfbuzz_HbUniquePtr_h
 
 #if USE(HARFBUZZ)
 
@@ -71,3 +72,4 @@ template<> struct HbPtrDeleter<hb_blob_t> {
 using WebCore::HbUniquePtr;
 
 #endif // USE(HARFBUZZ)
+#endif // WebCore_platform_graphics_harfbuzz_HbUniquePtr_h

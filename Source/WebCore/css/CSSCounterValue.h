@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSCounterValue_h
+#define WebCore_css_CSSCounterValue_h
 
 #include "CSSValue.h"
 #include <wtf/text/AtomString.h>
@@ -62,3 +63,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSCounterValue, isCounter())
+#endif // WebCore_css_CSSCounterValue_h

@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSSelector_h
+#define WebCore_css_CSSSelector_h
 
 #include "CSSSelectorEnums.h"
 #include "QualifiedName.h"
@@ -456,3 +457,4 @@ inline void CSSSelector::setMatch(Match match)
 }
 
 } // namespace WebCore
+#endif // WebCore_css_CSSSelector_h

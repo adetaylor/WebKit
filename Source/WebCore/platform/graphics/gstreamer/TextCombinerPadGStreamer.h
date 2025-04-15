@@ -24,7 +24,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_TextCombinerPadGStreamer_h
+#define WebCore_platform_graphics_gstreamer_TextCombinerPadGStreamer_h
 
 #if ENABLE(VIDEO) && USE(GSTREAMER)
 
@@ -54,3 +55,4 @@ GType webkit_text_combiner_pad_get_type(void);
 GstPad* webKitTextCombinerPadLeakInternalPadRef(WebKitTextCombinerPad*);
 
 #endif
+#endif // WebCore_platform_graphics_gstreamer_TextCombinerPadGStreamer_h

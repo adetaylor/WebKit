@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_MediaEngineConfigurationFactoryGStreamer_h
+#define WebCore_platform_graphics_gstreamer_MediaEngineConfigurationFactoryGStreamer_h
 
 #if USE(GSTREAMER)
 
@@ -43,3 +44,4 @@ extern void createMediaPlayerEncodingConfigurationGStreamer(MediaEncodingConfigu
 }
 
 #endif
+#endif // WebCore_platform_graphics_gstreamer_MediaEngineConfigurationFactoryGStreamer_h

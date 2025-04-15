@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSContrastColor_h
+#define WebCore_css_values_color_CSSContrastColor_h
 
 #include "CSSColor.h"
 
@@ -52,3 +53,4 @@ template<> struct CSSValueChildrenVisitor<ContrastColor> { IterationStatus opera
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSContrastColor_h

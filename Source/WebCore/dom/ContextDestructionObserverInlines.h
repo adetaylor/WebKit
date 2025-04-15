@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ContextDestructionObserverInlines_h
+#define WebCore_dom_ContextDestructionObserverInlines_h
 
 #include "ContextDestructionObserver.h"
 #include "ScriptExecutionContext.h"
@@ -36,3 +37,4 @@ inline ScriptExecutionContext* ContextDestructionObserver::scriptExecutionContex
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_ContextDestructionObserverInlines_h

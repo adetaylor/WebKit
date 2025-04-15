@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_DoublyLinkedList_h
+#define WTF_wtf_DoublyLinkedList_h
 
 namespace WTF {
 
@@ -241,3 +242,4 @@ template<typename T> inline void DoublyLinkedList<T>::append(DoublyLinkedList<T>
 
 using WTF::DoublyLinkedListNode;
 using WTF::DoublyLinkedList;
+#endif // WTF_wtf_DoublyLinkedList_h

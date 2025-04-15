@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockGamepad_h
+#define WebCore_testing_MockGamepad_h
 
 #if ENABLE(GAMEPAD)
 
@@ -50,3 +51,4 @@ private:
 }
 
 #endif // ENABLE(GAMEPAD)
+#endif // WebCore_testing_MockGamepad_h

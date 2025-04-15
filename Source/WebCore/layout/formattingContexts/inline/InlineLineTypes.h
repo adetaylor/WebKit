@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineLineTypes_h
+#define WebCore_layout_formattingContexts_inline_InlineLineTypes_h
 
 #include "LayoutUnits.h"
 
@@ -105,3 +106,4 @@ inline InlineItemRange::InlineItemRange(size_t startIndex, size_t endIndex)
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_InlineLineTypes_h

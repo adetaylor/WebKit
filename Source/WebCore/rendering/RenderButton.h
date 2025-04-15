@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderButton_h
+#define WebCore_rendering_RenderButton_h
 
 #include "RenderFlexibleBox.h"
 #include "RenderTextFragment.h"
@@ -84,3 +85,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderButton, isRenderButton())
+#endif // WebCore_rendering_RenderButton_h

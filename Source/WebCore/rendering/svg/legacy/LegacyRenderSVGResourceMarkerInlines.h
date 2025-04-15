@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResourceMarkerInlines_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResourceMarkerInlines_h
 
 #include "LegacyRenderSVGResourceMarker.h"
 #include "SVGElementTypeHelpers.h"
@@ -42,3 +43,4 @@ inline SVGMarkerUnitsType LegacyRenderSVGResourceMarker::markerUnits() const
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResourceMarkerInlines_h

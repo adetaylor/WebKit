@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUPowerPreference_h
+#define WebCore_Modules_WebGPU_GPUPowerPreference_h
 
 #include "WebGPUPowerPreference.h"
 #include <cstdint>
@@ -47,3 +48,4 @@ inline WebGPU::PowerPreference convertToBacking(GPUPowerPreference powerPreferen
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUPowerPreference_h

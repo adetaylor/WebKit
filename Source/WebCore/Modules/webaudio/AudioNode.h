@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioNode_h
+#define WebCore_Modules_webaudio_AudioNode_h
 
 #include "AudioBus.h"
 #include "ChannelCountMode.h"
@@ -312,3 +313,4 @@ template<> struct LogArgument<WebCore::AudioNode::NodeType> {
 };
 
 } // namespace WTF
+#endif // WebCore_Modules_webaudio_AudioNode_h

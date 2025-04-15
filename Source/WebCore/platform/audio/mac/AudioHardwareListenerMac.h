@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_mac_AudioHardwareListenerMac_h
+#define WebCore_platform_audio_mac_AudioHardwareListenerMac_h
 
 #include "AudioHardwareListener.h"
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
@@ -56,3 +57,4 @@ private:
 }
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_audio_mac_AudioHardwareListenerMac_h

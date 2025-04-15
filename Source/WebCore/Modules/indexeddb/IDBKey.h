@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBKey_h
+#define WebCore_Modules_indexeddb_IDBKey_h
 
 #include "IndexedDB.h"
 #include "ThreadSafeDataBuffer.h"
@@ -202,3 +203,4 @@ inline std::strong_ordering compareBinaryKeyData(const ThreadSafeDataBuffer& a, 
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBKey_h

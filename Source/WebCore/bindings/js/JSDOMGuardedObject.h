@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMGuardedObject_h
+#define WebCore_bindings_js_JSDOMGuardedObject_h
 
 #include "ActiveDOMCallback.h"
 #include "JSDOMGlobalObject.h"
@@ -67,3 +68,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMGuardedObject_h

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_UserMediaRequestIdentifier_h
+#define WebCore_page_UserMediaRequestIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -38,3 +39,4 @@ struct UserMediaRequestIdentifierType;
 using UserMediaRequestIdentifier = ObjectIdentifier<UserMediaRequestIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_page_UserMediaRequestIdentifier_h

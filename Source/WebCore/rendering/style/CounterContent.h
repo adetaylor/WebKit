@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_CounterContent_h
+#define WebCore_rendering_style_CounterContent_h
 
 #include "ListStyleType.h"
 #include "RenderStyleConstants.h"
@@ -55,3 +56,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_CounterContent_h

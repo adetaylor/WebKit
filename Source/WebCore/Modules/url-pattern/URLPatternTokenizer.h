@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_url_pattern_URLPatternTokenizer_h
+#define WebCore_Modules_url_pattern_URLPatternTokenizer_h
 
 #include "ExceptionOr.h"
 #include <wtf/text/StringView.h>
@@ -68,3 +69,4 @@ private:
 
 } // namespace URLPatternUtilities
 } // namespace WebCore
+#endif // WebCore_Modules_url_pattern_URLPatternTokenizer_h

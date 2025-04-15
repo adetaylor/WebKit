@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_dom_SpatialBackdropSource_h
+#define WebCore_dom_SpatialBackdropSource_h
 
 #if ENABLE(WEB_PAGE_SPATIAL_BACKDROP)
 
@@ -39,3 +40,4 @@ public:
 
 } // namespace WebCore
 #endif
+#endif // WebCore_dom_SpatialBackdropSource_h

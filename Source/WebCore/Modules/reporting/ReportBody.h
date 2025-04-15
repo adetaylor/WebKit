@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_reporting_ReportBody_h
+#define WebCore_Modules_reporting_ReportBody_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/TZoneMalloc.h>
@@ -42,3 +43,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_reporting_ReportBody_h

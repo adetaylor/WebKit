@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_ImageResource_h
+#define WebCore_workers_service_background_fetch_ImageResource_h
 
 #include <wtf/text/WTFString.h>
 
@@ -41,3 +42,4 @@ struct ImageResource {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_ImageResource_h

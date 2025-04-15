@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_Navigation_h
+#define WebCore_page_Navigation_h
 
 #include "EventTarget.h"
 #include "JSDOMPromiseDeferred.h"
@@ -221,3 +222,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_Navigation_h

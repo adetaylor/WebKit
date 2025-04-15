@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibleSetValueEvent_h
+#define WebCore_accessibility_AccessibleSetValueEvent_h
 
 #include "Event.h"
 #include <wtf/TZoneMalloc.h>
@@ -50,3 +51,4 @@ private:
 
 }
 
+#endif // WebCore_accessibility_AccessibleSetValueEvent_h

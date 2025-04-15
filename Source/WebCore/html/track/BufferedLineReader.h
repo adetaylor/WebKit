@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_track_BufferedLineReader_h
+#define WebCore_html_track_BufferedLineReader_h
 
 #include "SegmentedString.h"
 #include <wtf/text/StringBuilder.h>
@@ -74,3 +75,4 @@ inline void BufferedLineReader::reset()
 }
 
 } // namespace WebCore
+#endif // WebCore_html_track_BufferedLineReader_h

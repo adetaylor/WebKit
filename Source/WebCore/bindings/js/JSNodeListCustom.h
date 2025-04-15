@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSNodeListCustom_h
+#define WebCore_bindings_js_JSNodeListCustom_h
 
 #include "JSDOMBinding.h"
 
@@ -39,3 +40,4 @@ ALWAYS_INLINE JSC::JSValue toJS(JSC::JSGlobalObject*, JSDOMGlobalObject* globalO
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSNodeListCustom_h

@@ -28,7 +28,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_HTTPParsers_h
+#define WebCore_platform_network_HTTPParsers_h
 
 #include <wtf/HashSet.h>
 #include <wtf/WallTime.h>
@@ -173,3 +174,4 @@ std::optional<UncheckedKeyHashSet<String, HashType>> parseAccessControlAllowList
 }
 
 }
+#endif // WebCore_platform_network_HTTPParsers_h

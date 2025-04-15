@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_DeprecatedCSSOMValue_h
+#define WebCore_css_DeprecatedCSSOMValue_h
 
 #include "CSSStyleDeclaration.h"
 #include "CSSValue.h"
@@ -120,3 +121,4 @@ static bool isType(const WebCore::DeprecatedCSSOMValue& value) { return value.pr
 SPECIALIZE_TYPE_TRAITS_END()
 
 SPECIALIZE_TYPE_TRAITS_CSSOM_VALUE(DeprecatedCSSOMComplexValue, isComplexValue())
+#endif // WebCore_css_DeprecatedCSSOMValue_h

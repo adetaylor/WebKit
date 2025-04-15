@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WeakPtrImpl_h
+#define WTF_wtf_WeakPtrImpl_h
 
 #include <wtf/GetPtr.h>
 #include <wtf/HashTraits.h>
@@ -142,3 +143,4 @@ public:
 } // namespace WTF
 
 using WTF::SingleThreadWeakPtrImpl;
+#endif // WTF_wtf_WeakPtrImpl_h

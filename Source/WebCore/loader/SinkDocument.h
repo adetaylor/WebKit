@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_loader_SinkDocument_h
+#define WebCore_loader_SinkDocument_h
 
 #include "HTMLDocument.h"
 
@@ -47,3 +48,4 @@ private:
 };
 
 }; // namespace WebCore
+#endif // WebCore_loader_SinkDocument_h

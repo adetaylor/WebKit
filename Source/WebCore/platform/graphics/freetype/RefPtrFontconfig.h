@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_freetype_RefPtrFontconfig_h
+#define WebCore_platform_graphics_freetype_RefPtrFontconfig_h
 
 #if USE(FREETYPE)
 
@@ -43,3 +44,4 @@ struct DefaultRefDerefTraits<FcConfig> {
 } // namespace WTF
 
 #endif // USE(FREETYPE)
+#endif // WebCore_platform_graphics_freetype_RefPtrFontconfig_h

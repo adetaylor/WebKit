@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSExecState_h
+#define WebCore_bindings_js_JSExecState_h
 
 #include "CustomElementReactionQueue.h"
 #include "JSDOMBinding.h"
@@ -219,3 +220,4 @@ ScriptExecutionContext* executionContext(JSC::JSGlobalObject*);
 RefPtr<ScriptExecutionContext> protectedExecutionContext(JSC::JSGlobalObject*);
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSExecState_h

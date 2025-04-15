@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_TypeConversions_h
+#define WebCore_testing_TypeConversions_h
 
 #include "Node.h"
 #include <variant>
@@ -180,3 +181,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_testing_TypeConversions_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_IsoTLSEntry_h
+#define bmalloc_bmalloc_IsoTLSEntry_h
 
 #include "BAssert.h"
 #include "BMalloced.h"
@@ -112,3 +113,4 @@ protected:
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_IsoTLSEntry_h

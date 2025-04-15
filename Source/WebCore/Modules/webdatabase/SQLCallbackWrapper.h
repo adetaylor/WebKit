@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdatabase_SQLCallbackWrapper_h
+#define WebCore_Modules_webdatabase_SQLCallbackWrapper_h
 
 #include "ScriptExecutionContext.h"
 #include <wtf/Lock.h>
@@ -100,3 +101,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdatabase_SQLCallbackWrapper_h

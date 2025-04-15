@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_xml_parser_XMLDocumentParser_h
+#define WebCore_xml_parser_XMLDocumentParser_h
 
 #include "LocalFrameView.h"
 #include "ParserContentPolicy.h"
@@ -205,3 +206,4 @@ void initializeXMLParser();
 std::optional<HashMap<String, String>> parseAttributes(CachedResourceLoader&, const String&);
 
 } // namespace WebCore
+#endif // WebCore_xml_parser_XMLDocumentParser_h

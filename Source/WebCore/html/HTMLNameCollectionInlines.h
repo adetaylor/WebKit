@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLNameCollectionInlines_h
+#define WebCore_html_HTMLNameCollectionInlines_h
 
 #include "CachedHTMLCollectionInlines.h"
 #include "HTMLNameCollection.h"
@@ -40,3 +41,4 @@ HTMLNameCollection<HTMLCollectionClass, traversalType>::~HTMLNameCollection()
 }
 
 }
+#endif // WebCore_html_HTMLNameCollectionInlines_h

@@ -27,7 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WebCore_css_parser_CSSSelectorParser_h
+#define WebCore_css_parser_CSSSelectorParser_h
 
 #include "CSSParserContext.h"
 #include "CSSParserEnum.h"
@@ -121,3 +122,4 @@ std::optional<CSSSelectorList> parseCSSSelectorList(CSSParserTokenRange, const C
 MutableCSSSelectorList parseMutableCSSSelectorList(CSSParserTokenRange&, const CSSSelectorParserContext&, StyleSheetContents*, CSSParserEnum::NestedContext, CSSParserEnum::IsForgiving, CSSSelectorParser::DisallowPseudoElement);
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSSelectorParser_h

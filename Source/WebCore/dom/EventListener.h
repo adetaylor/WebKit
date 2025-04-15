@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_EventListener_h
+#define WebCore_dom_EventListener_h
 
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
 #include <wtf/WeakPtr.h>
@@ -78,3 +79,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_EventListener_h

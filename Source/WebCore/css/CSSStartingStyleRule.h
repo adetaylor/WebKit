@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSStartingStyleRule_h
+#define WebCore_css_CSSStartingStyleRule_h
 
 #include "CSSGroupingRule.h"
 
@@ -50,3 +51,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSStartingStyleRule, StyleRuleType::StartingStyle)
 
+#endif // WebCore_css_CSSStartingStyleRule_h

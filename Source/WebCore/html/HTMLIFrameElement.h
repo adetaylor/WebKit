@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLIFrameElement_h
+#define WebCore_html_HTMLIFrameElement_h
 
 #include "HTMLFrameElementBase.h"
 #include "PermissionsPolicy.h"
@@ -98,3 +99,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLIFrameElement_h

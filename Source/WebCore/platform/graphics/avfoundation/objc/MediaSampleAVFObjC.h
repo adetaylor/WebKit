@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_MediaSampleAVFObjC_h
+#define WebCore_platform_graphics_avfoundation_objc_MediaSampleAVFObjC_h
 
 #include "MediaSample.h"
 #include <JavaScriptCore/Forward.h>
@@ -115,3 +116,4 @@ struct LogArgument<WebCore::MediaSampleAVFObjC> {
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::MediaSampleAVFObjC)
 static bool isType(const WebCore::MediaSample& sample) { return sample.platformSampleType() == WebCore::PlatformSample::CMSampleBufferType; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_avfoundation_objc_MediaSampleAVFObjC_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_image_decoders_avif_AVIFUniquePtr_h
+#define WebCore_platform_image_decoders_avif_AVIFUniquePtr_h
 
 #if USE(AVIF)
 
@@ -49,3 +50,4 @@ template<> struct AVIFPtrDeleter<avifDecoder> {
 } // namespace WebCore
 
 #endif // USE(AVIF)
+#endif // WebCore_platform_image_decoders_avif_AVIFUniquePtr_h

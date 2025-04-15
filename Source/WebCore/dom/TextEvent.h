@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_TextEvent_h
+#define WebCore_dom_TextEvent_h
 
 #include "DictationAlternative.h"
 #include "TextEventInputType.h"
@@ -92,3 +93,4 @@ namespace WebCore {
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(TextEvent)
+#endif // WebCore_dom_TextEvent_h

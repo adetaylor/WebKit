@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_egl_GLFenceEGL_h
+#define WebCore_platform_graphics_egl_GLFenceEGL_h
 
 #if HAVE(GL_FENCE)
 
@@ -53,3 +54,4 @@ private:
 } // namespace WebCore
 
 #endif // HAVE(GL_FENCE)
+#endif // WebCore_platform_graphics_egl_GLFenceEGL_h

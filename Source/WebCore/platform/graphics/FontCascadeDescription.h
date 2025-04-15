@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontCascadeDescription_h
+#define WebCore_platform_graphics_FontCascadeDescription_h
 
 #include "CSSValueKeywords.h"
 #include "FontDescription.h"
@@ -183,3 +184,4 @@ inline bool FontCascadeDescription::operator==(const FontCascadeDescription& oth
 WTF::TextStream& operator<<(WTF::TextStream&, const FontCascadeDescription&);
 
 }
+#endif // WebCore_platform_graphics_FontCascadeDescription_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingTreeGestureState_h
+#define WebCore_page_scrolling_ScrollingTreeGestureState_h
 
 #if ENABLE(ASYNC_SCROLLING)
 
@@ -58,3 +59,4 @@ private:
 }
 
 #endif // ENABLE(ASYNC_SCROLLING)
+#endif // WebCore_page_scrolling_ScrollingTreeGestureState_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_Box_h
+#define WTF_wtf_Box_h
 
 #include <wtf/RefPtr.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -79,3 +80,4 @@ private:
 } // namespace WTF
 
 using WTF::Box;
+#endif // WTF_wtf_Box_h

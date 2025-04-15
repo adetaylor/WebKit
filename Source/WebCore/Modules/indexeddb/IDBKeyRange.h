@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBKeyRange_h
+#define WebCore_Modules_indexeddb_IDBKeyRange_h
 
 #include "ExceptionOr.h"
 #include "ScriptWrappable.h"
@@ -75,3 +76,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBKeyRange_h

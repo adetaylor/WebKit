@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUAdapter_h
+#define WebCore_Modules_WebGPU_GPUAdapter_h
 
 #include "GPUAdapterInfo.h"
 #include "GPUDevice.h"
@@ -70,3 +71,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUAdapter_h

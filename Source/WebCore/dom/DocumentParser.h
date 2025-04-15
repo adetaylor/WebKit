@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentParser_h
+#define WebCore_dom_DocumentParser_h
 
 #include <wtf/CheckedPtr.h>
 #include <wtf/Forward.h>
@@ -122,3 +123,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DocumentParser_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutTreeBuilder_h
+#define WebCore_layout_layouttree_LayoutTreeBuilder_h
 
 #include "LayoutElementBox.h"
 #include <wtf/TZoneMalloc.h>
@@ -81,3 +82,4 @@ void printLayoutTreeForLiveDocuments();
 }
 }
 
+#endif // WebCore_layout_layouttree_LayoutTreeBuilder_h

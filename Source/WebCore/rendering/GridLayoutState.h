@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_GridLayoutState_h
+#define WebCore_rendering_GridLayoutState_h
 
 #include "RenderBox.h"
 #include <wtf/CheckedPtr.h>
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_GridLayoutState_h

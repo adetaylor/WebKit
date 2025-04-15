@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_UIViewControllerUtilities_h
+#define WebCore_platform_ios_UIViewControllerUtilities_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -37,3 +38,4 @@ WEBCORE_EXPORT UIViewController *viewController(UIView *);
 }
 
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_platform_ios_UIViewControllerUtilities_h

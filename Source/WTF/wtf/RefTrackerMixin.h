@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_RefTrackerMixin_h
+#define WTF_wtf_RefTrackerMixin_h
 
 #include "Compiler.h"
 #include "DataLog.h"
@@ -147,3 +148,4 @@ struct RefTrackerMixin final {
 #endif
 
 } // namespace WTF
+#endif // WTF_wtf_RefTrackerMixin_h

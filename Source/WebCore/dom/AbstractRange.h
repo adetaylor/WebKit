@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_AbstractRange_h
+#define WebCore_dom_AbstractRange_h
 
 #include <optional>
 #include <wtf/Ref.h>
@@ -56,3 +57,4 @@ std::optional<SimpleRange> makeSimpleRange(const AbstractRange*);
 std::optional<SimpleRange> makeSimpleRange(const RefPtr<AbstractRange>&);
 
 }
+#endif // WebCore_dom_AbstractRange_h

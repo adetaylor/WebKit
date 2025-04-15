@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_messageports_MessagePortChannel_h
+#define WebCore_dom_messageports_MessagePortChannel_h
 
 #include "MessagePortChannelProvider.h"
 #include "MessagePortIdentifier.h"
@@ -83,3 +84,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_messageports_MessagePortChannel_h

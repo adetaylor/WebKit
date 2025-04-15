@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUUncapturedErrorEventInit_h
+#define WebCore_Modules_WebGPU_GPUUncapturedErrorEventInit_h
 
 #include "EventInit.h"
 #include "GPUError.h"
@@ -36,3 +37,4 @@ struct GPUUncapturedErrorEventInit : public EventInit {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUUncapturedErrorEventInit_h

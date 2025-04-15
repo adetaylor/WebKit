@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_WebGLRenderbuffer_h
+#define WebCore_html_canvas_WebGLRenderbuffer_h
 
 #if ENABLE(WEBGL)
 
@@ -76,3 +77,4 @@ private:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_html_canvas_WebGLRenderbuffer_h

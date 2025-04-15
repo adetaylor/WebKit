@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RTCSdpType_h
+#define WebCore_platform_mediastream_RTCSdpType_h
 
 #if ENABLE(WEB_RTC)
 
@@ -38,3 +39,4 @@ enum class RTCSdpType {
 }; // namespace WebCore
 
 #endif
+#endif // WebCore_platform_mediastream_RTCSdpType_h

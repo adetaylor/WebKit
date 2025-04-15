@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_DisplayRefreshMonitorClient_h
+#define WebCore_platform_graphics_DisplayRefreshMonitorClient_h
 
 #include "AnimationFrameRate.h"
 #include "PlatformScreen.h"
@@ -69,3 +70,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_DisplayRefreshMonitorClient_h

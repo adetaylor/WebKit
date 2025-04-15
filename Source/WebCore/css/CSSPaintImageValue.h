@@ -24,7 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSPaintImageValue_h
+#define WebCore_css_CSSPaintImageValue_h
 
 #include "CSSValue.h"
 #include <wtf/text/WTFString.h>
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSPaintImageValue, isPaintImageValue())
+#endif // WebCore_css_CSSPaintImageValue_h

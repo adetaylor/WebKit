@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_MessageQueue_h
+#define WTF_wtf_MessageQueue_h
 
 #include <limits>
 #include <wtf/Assertions.h>
@@ -253,3 +254,4 @@ using WTF::MessageQueueWaitResult;
 using WTF::MessageQueueTerminated;
 using WTF::MessageQueueTimeout;
 using WTF::MessageQueueMessageReceived;
+#endif // WTF_wtf_MessageQueue_h

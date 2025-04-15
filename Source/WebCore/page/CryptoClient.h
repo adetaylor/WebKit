@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_CryptoClient_h
+#define WebCore_page_CryptoClient_h
 
 #include <cstdint>
 #include <wtf/TZoneMallocInlines.h>
@@ -42,3 +43,4 @@ public:
     virtual std::optional<Vector<uint8_t>> unwrapCryptoKey(const Vector<uint8_t>&) const { return std::nullopt; };
 };
 } // namespace WebKit
+#endif // WebCore_page_CryptoClient_h

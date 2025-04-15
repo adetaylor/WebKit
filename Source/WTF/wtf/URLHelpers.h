@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_URLHelpers_h
+#define WTF_wtf_URLHelpers_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -46,3 +47,4 @@ String mapHostNames(const String&, URLDecodeFunction);
 
 } // namespace URLHelpers
 } // namespace WTF
+#endif // WTF_wtf_URLHelpers_h

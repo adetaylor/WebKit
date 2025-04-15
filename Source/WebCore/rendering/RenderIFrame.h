@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderIFrame_h
+#define WebCore_rendering_RenderIFrame_h
 
 #include "RenderFrameBase.h"
 
@@ -57,3 +58,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderIFrame, isRenderIFrame())
+#endif // WebCore_rendering_RenderIFrame_h

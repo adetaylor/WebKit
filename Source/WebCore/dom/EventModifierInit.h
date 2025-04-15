@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_EventModifierInit_h
+#define WebCore_dom_EventModifierInit_h
 
 #include "UIEventInit.h"
 
@@ -40,3 +41,4 @@ struct EventModifierInit : UIEventInit {
 };
 
 }
+#endif // WebCore_dom_EventModifierInit_h

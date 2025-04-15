@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_server_SWServerToContextConnection_h
+#define WebCore_workers_service_server_SWServerToContextConnection_h
 
 #include "BackgroundFetchFailureReason.h"
 #include "ExceptionData.h"
@@ -122,3 +123,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_server_SWServerToContextConnection_h

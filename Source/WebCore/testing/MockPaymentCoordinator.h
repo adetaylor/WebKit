@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockPaymentCoordinator_h
+#define WebCore_testing_MockPaymentCoordinator_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -212,3 +213,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::MockPaymentCoordinator)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(APPLE_PAY)
+#endif // WebCore_testing_MockPaymentCoordinator_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_NSURLUtilities_h
+#define WebCore_platform_cocoa_NSURLUtilities_h
 
 #import <Foundation/Foundation.h>
 
@@ -35,3 +36,4 @@
 @end
 
 #endif // HAVE(NSURL_TITLE)
+#endif // WebCore_platform_cocoa_NSURLUtilities_h

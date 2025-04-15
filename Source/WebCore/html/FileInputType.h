@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_FileInputType_h
+#define WebCore_html_FileInputType_h
 
 #include "BaseClickableWithKeyInputType.h"
 #include "FileChooser.h"
@@ -122,3 +123,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(FileInputType, Type::File)
+#endif // WebCore_html_FileInputType_h

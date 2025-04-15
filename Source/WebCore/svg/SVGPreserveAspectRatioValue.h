@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGPreserveAspectRatioValue_h
+#define WebCore_svg_SVGPreserveAspectRatioValue_h
 
 #include "ExceptionOr.h"
 #include "SVGPropertyTraits.h"
@@ -94,3 +95,4 @@ template<> struct SVGPropertyTraits<SVGPreserveAspectRatioValue> {
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGPreserveAspectRatioValue_h

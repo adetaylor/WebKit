@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_FrameSelection_h
+#define WebCore_editing_FrameSelection_h
 
 #include "AXTextStateChangeIntent.h"
 #include "CaretAnimator.h"
@@ -436,3 +437,4 @@ void showTree(const WebCore::FrameSelection&);
 void showTree(const WebCore::FrameSelection*);
 
 #endif
+#endif // WebCore_editing_FrameSelection_h

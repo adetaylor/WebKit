@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_mac_UniversalAccessZoom_h
+#define WebCore_editing_mac_UniversalAccessZoom_h
 
 #include "IntRect.h"
 
@@ -32,3 +33,4 @@ namespace WebCore {
 WEBCORE_EXPORT void changeUniversalAccessZoomFocus(const IntRect& viewRect, const IntRect& selectionRect);
 
 }
+#endif // WebCore_editing_mac_UniversalAccessZoom_h

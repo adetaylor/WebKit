@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ResizeObserver_h
+#define WebCore_page_ResizeObserver_h
 
 #include "GCReachableRef.h"
 #include "ResizeObservation.h"
@@ -101,3 +102,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ResizeObserver_h

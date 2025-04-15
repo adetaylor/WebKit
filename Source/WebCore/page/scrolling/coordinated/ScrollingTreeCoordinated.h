@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_coordinated_ScrollingTreeCoordinated_h
+#define WebCore_page_scrolling_coordinated_ScrollingTreeCoordinated_h
 
 #if ENABLE(ASYNC_SCROLLING) && USE(COORDINATED_GRAPHICS)
 
@@ -57,3 +58,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_SCROLLING_TREE(WebCore::ScrollingTreeCoordinated, isScrollingTreeCoordinated())
 
 #endif // ENABLE(ASYNC_SCROLLING) && USE(COORDINATED_GRAPHICS)
+#endif // WebCore_page_scrolling_coordinated_ScrollingTreeCoordinated_h

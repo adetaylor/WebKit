@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontPalette_h
+#define WebCore_platform_graphics_FontPalette_h
 
 #include <variant>
 #include <wtf/Hasher.h>
@@ -77,3 +78,4 @@ inline TextStream& operator<<(TextStream& ts, const FontPalette& fontPalette)
 }
 
 }
+#endif // WebCore_platform_graphics_FontPalette_h

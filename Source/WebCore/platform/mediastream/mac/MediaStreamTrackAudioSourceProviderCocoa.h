@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_mac_MediaStreamTrackAudioSourceProviderCocoa_h
+#define WebCore_platform_mediastream_mac_MediaStreamTrackAudioSourceProviderCocoa_h
 
 #if ENABLE(WEB_AUDIO) && ENABLE(MEDIA_STREAM)
 
@@ -80,3 +81,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_mediastream_mac_MediaStreamTrackAudioSourceProviderCocoa_h

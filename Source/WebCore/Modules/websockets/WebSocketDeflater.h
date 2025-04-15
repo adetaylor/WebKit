@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_websockets_WebSocketDeflater_h
+#define WebCore_Modules_websockets_WebSocketDeflater_h
 
 #include <wtf/TZoneMalloc.h>
 #include <wtf/Vector.h>
@@ -83,3 +84,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_websockets_WebSocketDeflater_h

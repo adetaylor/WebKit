@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleTextEdge_h
+#define WebCore_rendering_style_StyleTextEdge_h
 
 #include "RenderStyleConstants.h"
 
@@ -39,3 +40,4 @@ struct TextEdge {
 WTF::TextStream& operator<<(WTF::TextStream&, TextEdge);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleTextEdge_h

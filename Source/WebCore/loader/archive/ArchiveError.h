@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_archive_ArchiveError_h
+#define WebCore_loader_archive_ArchiveError_h
 
 #include <wtf/text/WTFString.h>
 
@@ -57,3 +58,4 @@ inline String errorDescription(ArchiveError error)
 }
 
 } // namespace WebKit
+#endif // WebCore_loader_archive_ArchiveError_h

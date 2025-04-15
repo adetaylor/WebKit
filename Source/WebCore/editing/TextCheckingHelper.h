@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_editing_TextCheckingHelper_h
+#define WebCore_editing_TextCheckingHelper_h
 
 #include "ExceptionOr.h"
 #include "SimpleRange.h"
@@ -119,3 +120,4 @@ bool platformDrivenTextCheckerEnabled();
 bool platformOrClientDrivenTextCheckerEnabled();
 
 } // namespace WebCore
+#endif // WebCore_editing_TextCheckingHelper_h

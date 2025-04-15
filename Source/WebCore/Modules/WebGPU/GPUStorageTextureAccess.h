@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUStorageTextureAccess_h
+#define WebCore_Modules_WebGPU_GPUStorageTextureAccess_h
 
 #include "WebGPUStorageTextureAccess.h"
 #include <cstdint>
@@ -50,3 +51,4 @@ inline WebGPU::StorageTextureAccess convertToBacking(GPUStorageTextureAccess sto
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUStorageTextureAccess_h

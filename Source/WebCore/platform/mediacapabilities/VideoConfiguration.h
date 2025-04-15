@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediacapabilities_VideoConfiguration_h
+#define WebCore_platform_mediacapabilities_VideoConfiguration_h
 
 #include "ColorGamut.h"
 #include "HdrMetadataType.h"
@@ -58,3 +59,4 @@ inline VideoConfiguration VideoConfiguration::isolatedCopy() &&
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_mediacapabilities_VideoConfiguration_h

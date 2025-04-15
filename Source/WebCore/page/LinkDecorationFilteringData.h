@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_LinkDecorationFilteringData_h
+#define WebCore_page_LinkDecorationFilteringData_h
 
 #include "RegistrableDomain.h"
 
@@ -66,3 +67,4 @@ struct LinkDecorationFilteringData {
 };
 
 }
+#endif // WebCore_page_LinkDecorationFilteringData_h

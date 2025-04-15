@@ -24,7 +24,8 @@
  */
 
 
-#pragma once
+#ifndef WebCore_Modules_streams_WritableStreamSink_h
+#define WebCore_Modules_streams_WritableStreamSink_h
 
 #include "ExceptionOr.h"
 #include "JSDOMPromiseDeferred.h"
@@ -73,3 +74,4 @@ inline void SimpleWritableStreamSink::write(ScriptExecutionContext& context, JSC
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_streams_WritableStreamSink_h

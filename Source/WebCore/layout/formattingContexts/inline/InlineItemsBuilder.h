@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineItemsBuilder_h
+#define WebCore_layout_formattingContexts_inline_InlineItemsBuilder_h
 
 #include "InlineContentCache.h"
 #include "InlineItem.h"
@@ -79,3 +80,4 @@ private:
 }
 }
 
+#endif // WebCore_layout_formattingContexts_inline_InlineItemsBuilder_h

@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ErrorEvent_h
+#define WebCore_dom_ErrorEvent_h
 
 #include "Event.h"
 #include "JSValueInWrappedObject.h"
@@ -97,3 +98,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(ErrorEvent)
+#endif // WebCore_dom_ErrorEvent_h

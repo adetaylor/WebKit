@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontCreationContext_h
+#define WebCore_platform_graphics_FontCreationContext_h
 
 #include "FontFeatureValues.h"
 #include "FontPaletteValues.h"
@@ -144,3 +145,4 @@ inline void add(Hasher& hasher, const FontCreationContext& fontCreationContext)
 }
 
 }
+#endif // WebCore_platform_graphics_FontCreationContext_h

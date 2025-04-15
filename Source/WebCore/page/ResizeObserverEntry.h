@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ResizeObserverEntry_h
+#define WebCore_page_ResizeObserverEntry_h
 
 #include "DOMRectReadOnly.h"
 #include "Element.h"
@@ -68,3 +69,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ResizeObserverEntry_h

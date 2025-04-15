@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_SegmentedVector_h
+#define bmalloc_bmalloc_SegmentedVector_h
 
 #include "Vector.h"
 #include "bmalloc.h"
@@ -266,3 +267,4 @@ private:
 };
 
 } // namespace bmalloc
+#endif // bmalloc_bmalloc_SegmentedVector_h

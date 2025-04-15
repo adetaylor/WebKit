@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_storage_StorageNamespaceProvider_h
+#define WebCore_storage_StorageNamespaceProvider_h
 
 #include "SecurityOriginHash.h"
 #include <wtf/HashMap.h>
@@ -76,3 +77,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_storage_StorageNamespaceProvider_h

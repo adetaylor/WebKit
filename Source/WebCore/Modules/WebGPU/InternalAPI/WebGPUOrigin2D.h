@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUOrigin2D_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUOrigin2D_h
 
 #include "WebGPUIntegralTypes.h"
 #include <variant>
@@ -39,3 +40,4 @@ struct Origin2DDict {
 using Origin2D = std::variant<Vector<IntegerCoordinate>, Origin2DDict>;
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUOrigin2D_h

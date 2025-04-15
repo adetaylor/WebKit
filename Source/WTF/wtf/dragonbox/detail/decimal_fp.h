@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_detail_decimal_fp_h
+#define WTF_wtf_dragonbox_detail_decimal_fp_h
 
 namespace WTF {
 
@@ -118,3 +119,4 @@ using unsigned_decimal_fp_to_signed_t = typename unsigned_decimal_fp_to_signed<U
 } // namespace dragonbox
 
 } // namespace WTF
+#endif // WTF_wtf_dragonbox_detail_decimal_fp_h

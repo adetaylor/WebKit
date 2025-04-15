@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_csp_ContentSecurityPolicyDirectiveNames_h
+#define WebCore_page_csp_ContentSecurityPolicyDirectiveNames_h
 
 #include <wtf/Forward.h>
 
@@ -66,3 +67,4 @@ extern ASCIILiteral workerSrc;
 
 } // namespace WebCore
 
+#endif // WebCore_page_csp_ContentSecurityPolicyDirectiveNames_h

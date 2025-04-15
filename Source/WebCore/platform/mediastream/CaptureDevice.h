@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_CaptureDevice_h
+#define WebCore_platform_mediastream_CaptureDevice_h
 
 #include <wtf/NeverDestroyed.h>
 #include <wtf/text/WTFString.h>
@@ -143,3 +144,4 @@ inline CaptureDevice CaptureDevice::isolatedCopy() &&
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_mediastream_CaptureDevice_h

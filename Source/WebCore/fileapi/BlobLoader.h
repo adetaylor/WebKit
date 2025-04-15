@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_fileapi_BlobLoader_h
+#define WebCore_fileapi_BlobLoader_h
 
 #include "Blob.h"
 #include "Document.h"
@@ -109,3 +110,4 @@ inline void BlobLoader::didFail(ExceptionCode)
 }
 
 } // namespace WebCore
+#endif // WebCore_fileapi_BlobLoader_h

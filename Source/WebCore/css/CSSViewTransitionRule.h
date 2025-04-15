@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSViewTransitionRule_h
+#define WebCore_css_CSSViewTransitionRule_h
 
 #include "CSSRule.h"
 #include "StyleProperties.h"
@@ -84,3 +85,4 @@ SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSViewTransitionRule, StyleRuleType::ViewTransi
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyleRuleViewTransition)
 static bool isType(const WebCore::StyleRuleBase& rule) { return rule.isViewTransitionRule(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_CSSViewTransitionRule_h

@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_DataTransfer_h
+#define WebCore_dom_DataTransfer_h
 
 #include "CachedResourceHandle.h"
 #include "DragActions.h"
@@ -161,3 +162,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DataTransfer_h

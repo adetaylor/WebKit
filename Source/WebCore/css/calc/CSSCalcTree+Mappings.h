@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_Mappings_h
+#define WebCore_css_calc_CSSCalcTree_Mappings_h
 
 #include "CSSCalcTree.h"
 #include "CalculationTree.h"
@@ -99,3 +100,4 @@ template<typename T> using ToCalcTreeOp = typename ToCalcMapping<T>::type;
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_Mappings_h

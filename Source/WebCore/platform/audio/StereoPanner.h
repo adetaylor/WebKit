@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_StereoPanner_h
+#define WebCore_platform_audio_StereoPanner_h
 
 #include "AudioBus.h"
 #include <memory>
@@ -40,3 +41,4 @@ void panToTargetValue(const AudioBus* inputBus, AudioBus* outputBus, float panVa
 } // namespace StereoPanner
 
 } // namespace WebCore
+#endif // WebCore_platform_audio_StereoPanner_h

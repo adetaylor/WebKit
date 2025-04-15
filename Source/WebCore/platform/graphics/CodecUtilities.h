@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_CodecUtilities_h
+#define WebCore_platform_graphics_CodecUtilities_h
 
 #include <wtf/Forward.h>
 
@@ -32,3 +33,4 @@ namespace WebCore {
 WEBCORE_EXPORT String humanReadableStringFromCodecString(const String&);
 
 }
+#endif // WebCore_platform_graphics_CodecUtilities_h

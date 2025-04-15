@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StackCheck_h
+#define WTF_wtf_StackCheck_h
 
 #include <wtf/StackBounds.h>
 #include <wtf/Threading.h>
@@ -127,3 +128,4 @@ private:
 } // namespace WTF
 
 using WTF::StackCheck;
+#endif // WTF_wtf_StackCheck_h

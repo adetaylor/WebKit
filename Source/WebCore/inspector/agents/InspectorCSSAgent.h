@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_InspectorCSSAgent_h
+#define WebCore_inspector_agents_InspectorCSSAgent_h
 
 #include "CSSSelector.h"
 #include "ContentSecurityPolicy.h"
@@ -210,3 +211,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_InspectorCSSAgent_h

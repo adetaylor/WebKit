@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_SecurityOriginHash_h
+#define WebCore_page_SecurityOriginHash_h
 
 #include <wtf/Hasher.h>
 #include <wtf/URL.h>
@@ -75,3 +76,4 @@ template<typename> struct DefaultHash;
 template<> struct DefaultHash<RefPtr<WebCore::SecurityOrigin>> : WebCore::SecurityOriginHash { };
 
 } // namespace WTF
+#endif // WebCore_page_SecurityOriginHash_h

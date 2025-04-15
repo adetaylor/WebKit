@@ -27,7 +27,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_shapes_RectangleLayoutShape_h
+#define WebCore_rendering_shapes_RectangleLayoutShape_h
 
 #include "FloatRect.h"
 #include "FloatSize.h"
@@ -67,3 +68,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_shapes_RectangleLayoutShape_h

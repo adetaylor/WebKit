@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_Compiler_h
+#define WTF_wtf_Compiler_h
 
 /* COMPILER() - the compiler being used to build the project */
 #define COMPILER(WTF_FEATURE) (defined WTF_COMPILER_##WTF_FEATURE  && WTF_COMPILER_##WTF_FEATURE)
@@ -680,3 +681,4 @@
     ALLOW_COMMA_END \
     ALLOW_DEPRECATED_DECLARATIONS_END \
     ALLOW_UNUSED_PARAMETERS_END
+#endif // WTF_wtf_Compiler_h

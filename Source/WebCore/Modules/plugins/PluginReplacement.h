@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_Modules_plugins_PluginReplacement_h
+#define WebCore_Modules_plugins_PluginReplacement_h
 
 #include "RenderPtr.h"
 #include <wtf/text/WTFString.h>
@@ -84,3 +85,4 @@ private:
 typedef void (*PluginReplacementRegistrar)(const ReplacementPlugin&);
 
 }
+#endif // WebCore_Modules_plugins_PluginReplacement_h

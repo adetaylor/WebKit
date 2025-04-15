@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineLevelBoxInlines_h
+#define WebCore_layout_formattingContexts_inline_InlineLevelBoxInlines_h
 
 #include "InlineLevelBox.h"
 #include "RenderStyleInlines.h"
@@ -103,3 +104,4 @@ inline void InlineLevelBox::setTextEmphasis(std::pair<InlineLayoutUnit, InlineLa
 }
 }
 
+#endif // WebCore_layout_formattingContexts_inline_InlineLevelBoxInlines_h

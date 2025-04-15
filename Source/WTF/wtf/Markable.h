@@ -32,7 +32,8 @@
 // License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-#pragma once
+#ifndef WTF_wtf_Markable_h
+#define WTF_wtf_Markable_h
 
 #include <optional>
 #include <type_traits>
@@ -197,3 +198,4 @@ template <typename T, typename Traits> constexpr bool operator==(const T& v, con
 using WTF::Markable;
 using WTF::IntegralMarkableTraits;
 using WTF::EnumMarkableTraits;
+#endif // WTF_wtf_Markable_h

@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderEmbeddedObject_h
+#define WebCore_rendering_RenderEmbeddedObject_h
 
 #include "RenderWidget.h"
 
@@ -103,3 +104,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderEmbeddedObject, isRenderEmbeddedObject())
+#endif // WebCore_rendering_RenderEmbeddedObject_h

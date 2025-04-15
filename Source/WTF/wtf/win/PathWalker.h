@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_win_PathWalker_h
+#define WTF_wtf_win_PathWalker_h
 
 #include <Windows.h>
 #include <wtf/Forward.h>
@@ -49,3 +50,4 @@ private:
 };
 
 } // namespace WTF
+#endif // WTF_wtf_win_PathWalker_h

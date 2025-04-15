@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechSynthesisErrorCode_h
+#define WebCore_Modules_speech_SpeechSynthesisErrorCode_h
 
 #if ENABLE(SPEECH_SYNTHESIS)
 
@@ -46,3 +47,4 @@ enum class SpeechSynthesisErrorCode {
 }; // namespace WebCore
 
 #endif
+#endif // WebCore_Modules_speech_SpeechSynthesisErrorCode_h

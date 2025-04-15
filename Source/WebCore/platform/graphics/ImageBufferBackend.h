@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageBufferBackend_h
+#define WebCore_platform_graphics_ImageBufferBackend_h
 
 #include "CopyImageOptions.h"
 #include "DestinationColorSpace.h"
@@ -194,3 +195,4 @@ WEBCORE_EXPORT TextStream& operator<<(TextStream&, VolatilityState);
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, const ImageBufferBackend&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageBufferBackend_h

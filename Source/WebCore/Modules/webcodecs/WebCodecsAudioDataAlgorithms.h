@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_WebCodecsAudioDataAlgorithms_h
+#define WebCore_Modules_webcodecs_WebCodecsAudioDataAlgorithms_h
 
 #include "WebCodecsAudioData.h"
 
@@ -48,3 +49,4 @@ AudioSampleFormatSpan audioElementSpan(AudioSampleFormat, std::span<uint8_t>);
 } // WebCore
 
 #endif
+#endif // WebCore_Modules_webcodecs_WebCodecsAudioDataAlgorithms_h

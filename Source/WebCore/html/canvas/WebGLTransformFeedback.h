@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_WebGLTransformFeedback_h
+#define WebCore_html_canvas_WebGLTransformFeedback_h
 
 #if ENABLE(WEBGL)
 
@@ -97,3 +98,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEBGL)
+#endif // WebCore_html_canvas_WebGLTransformFeedback_h

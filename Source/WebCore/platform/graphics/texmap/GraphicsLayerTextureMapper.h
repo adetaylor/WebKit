@@ -17,7 +17,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_GraphicsLayerTextureMapper_h
+#define WebCore_platform_graphics_texmap_GraphicsLayerTextureMapper_h
 
 #if !USE(COORDINATED_GRAPHICS)
 
@@ -180,3 +181,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_GRAPHICSLAYER(WebCore::GraphicsLayerTextureMapper, isGraphicsLayerTextureMapper())
 
 #endif // !USE(COORDINATED_GRAPHICS)
+#endif // WebCore_platform_graphics_texmap_GraphicsLayerTextureMapper_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediarecorder_MediaRecorder_h
+#define WebCore_Modules_mediarecorder_MediaRecorder_h
 
 #if ENABLE(MEDIA_RECORDER)
 
@@ -150,3 +151,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_RECORDER)
+#endif // WebCore_Modules_mediarecorder_MediaRecorder_h

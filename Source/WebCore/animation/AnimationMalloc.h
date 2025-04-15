@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_AnimationMalloc_h
+#define WebCore_animation_AnimationMalloc_h
 
 #include <wtf/FastMalloc.h>
 
 namespace WebCore {
 DECLARE_ALLOCATOR_WITH_HEAP_IDENTIFIER(Animation);
 } // namespace WebCore
+#endif // WebCore_animation_AnimationMalloc_h

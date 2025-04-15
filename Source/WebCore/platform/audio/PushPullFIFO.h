@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_PushPullFIFO_h
+#define WebCore_platform_audio_PushPullFIFO_h
 
 #include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
@@ -79,3 +80,4 @@ private:
 } // namespace WebCore
 
 
+#endif // WebCore_platform_audio_PushPullFIFO_h

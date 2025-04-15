@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedTextTrack_h
+#define WebCore_loader_cache_CachedTextTrack_h
 
 #include "CachedResource.h"
 
@@ -48,3 +49,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CACHED_RESOURCE(CachedTextTrack, CachedResource::Type::TextTrackResource)
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_loader_cache_CachedTextTrack_h

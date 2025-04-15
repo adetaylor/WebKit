@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_AccessibilityRegionContext_h
+#define WebCore_rendering_AccessibilityRegionContext_h
 
 #include "InlineIteratorTextBox.h"
 #include "LayoutRect.h"
@@ -93,3 +94,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilityRegionContext)
     static bool isType(const WebCore::RegionContext& regionContext) { return regionContext.isAccessibilityRegionContext(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_rendering_AccessibilityRegionContext_h

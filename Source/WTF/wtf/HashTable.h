@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_HashTable_h
+#define WTF_wtf_HashTable_h
 
 #include <atomic>
 #include <iterator>
@@ -1615,3 +1616,4 @@ DECLARE_ALLOCATOR_WITH_HEAP_IDENTIFIER(HashTable);
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 
 #include <wtf/HashIterators.h>
+#endif // WTF_wtf_HashTable_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_PassKitSPI_h
+#define WebCore_PAL_pal_spi_cocoa_PassKitSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -391,3 +392,4 @@ NS_ASSUME_NONNULL_END
 #define PAL_PASSKIT_SPI_GUARD_AGAINST_INDIRECT_INCLUSION
 #import "PassKitInstallmentsSPI.h"
 #undef PAL_PASSKIT_SPI_GUARD_AGAINST_INDIRECT_INCLUSION
+#endif // WebCore_PAL_pal_spi_cocoa_PassKitSPI_h

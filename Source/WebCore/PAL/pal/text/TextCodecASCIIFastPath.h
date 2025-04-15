@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_TextCodecASCIIFastPath_h
+#define WebCore_PAL_pal_text_TextCodecASCIIFastPath_h
 
 #include <wtf/StdLibExtras.h>
 #include <wtf/text/ASCIIFastPath.h>
@@ -76,3 +77,4 @@ inline void copyASCIIMachineWord(std::span<UChar> destination, std::span<const u
 }
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_text_TextCodecASCIIFastPath_h

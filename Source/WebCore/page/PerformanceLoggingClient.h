@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceLoggingClient_h
+#define WebCore_page_PerformanceLoggingClient_h
 
 #include "ScrollingCoordinatorTypes.h"
 #include <wtf/MonotonicTime.h>
@@ -51,3 +52,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PerformanceLoggingClient_h

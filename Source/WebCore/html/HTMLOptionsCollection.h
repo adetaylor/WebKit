@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLOptionsCollection_h
+#define WebCore_html_HTMLOptionsCollection_h
 
 #include "CachedHTMLCollection.h"
 #include "HTMLOptionElement.h"
@@ -65,3 +66,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_HTMLCOLLECTION(HTMLOptionsCollection, CollectionType::SelectOptions)
+#endif // WebCore_html_HTMLOptionsCollection_h

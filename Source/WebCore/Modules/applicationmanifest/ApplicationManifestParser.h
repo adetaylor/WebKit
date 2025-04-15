@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applicationmanifest_ApplicationManifestParser_h
+#define WebCore_Modules_applicationmanifest_ApplicationManifestParser_h
 
 #if ENABLE(APPLICATION_MANIFEST)
 
@@ -74,3 +75,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(APPLICATION_MANIFEST)
+#endif // WebCore_Modules_applicationmanifest_ApplicationManifestParser_h

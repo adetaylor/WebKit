@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSSelectorParserContext_h
+#define WebCore_css_parser_CSSSelectorParserContext_h
 
 #include "CSSParserMode.h"
 #include <wtf/HashFunctions.h>
@@ -77,3 +78,4 @@ template<> struct HashTraits<WebCore::CSSSelectorParserContext> : GenericHashTra
 template<> struct DefaultHash<WebCore::CSSSelectorParserContext> : WebCore::CSSSelectorParserContextHash { };
 
 } // namespace WTF
+#endif // WebCore_css_parser_CSSSelectorParserContext_h

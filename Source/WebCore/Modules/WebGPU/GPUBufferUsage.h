@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUBufferUsage_h
+#define WebCore_Modules_WebGPU_GPUBufferUsage_h
 
 #include "GPUIntegralTypes.h"
 #include "WebGPUBufferUsage.h"
@@ -69,3 +70,4 @@ inline WebGPU::BufferUsageFlags convertBufferUsageFlagsToBacking(GPUBufferUsageF
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUBufferUsage_h

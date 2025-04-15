@@ -26,7 +26,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleBuilderConverter_h
+#define WebCore_style_StyleBuilderConverter_h
 
 #include "AnchorPositionEvaluator.h"
 #include "BlockEllipsis.h"
@@ -3017,3 +3018,4 @@ inline Style::CornerShapeValue BuilderConverter::convertCornerShapeValue(Builder
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_StyleBuilderConverter_h

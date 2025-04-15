@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_text_extraction_TextExtraction_h
+#define WebCore_page_text_extraction_TextExtraction_h
 
 #include "TextExtractionTypes.h"
 #include <wtf/Expected.h>
@@ -51,3 +52,4 @@ RenderedText extractRenderedText(Element&);
 
 } // namespace TextExtraction
 } // namespace WebCore
+#endif // WebCore_page_text_extraction_TextExtraction_h

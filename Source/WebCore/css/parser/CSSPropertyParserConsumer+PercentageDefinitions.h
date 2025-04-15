@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_PercentageDefinitions_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_PercentageDefinitions_h
 
 #include "CSSPropertyParserConsumer+MetaConsumerDefinitions.h"
 
@@ -48,3 +49,4 @@ template<auto R, typename V> struct ConsumerDefinition<CSS::Percentage<R, V>> {
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_PercentageDefinitions_h

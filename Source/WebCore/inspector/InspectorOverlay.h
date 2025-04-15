@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorOverlay_h
+#define WebCore_inspector_InspectorOverlay_h
 
 #include "Color.h"
 #include "FloatLine.h"
@@ -277,3 +278,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorOverlay_h

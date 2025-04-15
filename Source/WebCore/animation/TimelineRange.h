@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_TimelineRange_h
+#define WebCore_animation_TimelineRange_h
 
 #include "Length.h"
 #include "WebAnimationTypes.h"
@@ -74,3 +75,4 @@ struct TimelineRange {
 WTF::TextStream& operator<<(WTF::TextStream&, const SingleTimelineRange&);
 
 } // namespace WebCore
+#endif // WebCore_animation_TimelineRange_h

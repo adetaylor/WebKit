@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_AnimationEffectTiming_h
+#define WebCore_animation_AnimationEffectTiming_h
 
 #include "AnimationEffectPhase.h"
 #include "BasicEffectTiming.h"
@@ -76,3 +77,4 @@ struct AnimationEffectTiming {
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_AnimationEffectTiming_h

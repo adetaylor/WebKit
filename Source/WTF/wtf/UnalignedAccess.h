@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_UnalignedAccess_h
+#define WTF_wtf_UnalignedAccess_h
 
 #include <type_traits>
 #include <wtf/Platform.h>
@@ -48,3 +49,4 @@ inline void unalignedStore(void* pointer, Type value)
 }
 
 } // namespace WTF
+#endif // WTF_wtf_UnalignedAccess_h

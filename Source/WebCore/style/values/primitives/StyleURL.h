@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StyleURL_h
+#define WebCore_style_values_primitives_StyleURL_h
 
 #include "CSSURL.h"
 #include "StyleValueTypes.h"
@@ -60,3 +61,4 @@ TextStream& operator<<(TextStream&, const URL&);
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::URL, 1)
+#endif // WebCore_style_values_primitives_StyleURL_h

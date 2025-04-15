@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingNodeID_h
+#define WebCore_page_scrolling_ScrollingNodeID_h
 
 #include "ProcessQualified.h"
 #include <wtf/ObjectIdentifier.h>
@@ -34,3 +35,4 @@ struct ScrollingNodeIDType;
 using ScrollingNodeID = ProcessQualified<ObjectIdentifier<ScrollingNodeIDType>>;
 
 } // namespace WebCore
+#endif // WebCore_page_scrolling_ScrollingNodeID_h

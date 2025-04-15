@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WeakHashMap_h
+#define WTF_wtf_WeakHashMap_h
 
 #include <wtf/Algorithms.h>
 #include <wtf/HashTable.h>
@@ -408,3 +409,4 @@ private:
 } // namespace WTF
 
 using WTF::WeakHashMap;
+#endif // WTF_wtf_WeakHashMap_h

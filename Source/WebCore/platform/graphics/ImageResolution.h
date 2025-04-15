@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageResolution_h
+#define WebCore_platform_graphics_ImageResolution_h
 
 #include "AffineTransform.h"
 #include "FloatSize.h"
@@ -54,3 +55,4 @@ struct ImageResolution {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageResolution_h

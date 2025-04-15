@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_CustomPaintImage_h
+#define WebCore_html_CustomPaintImage_h
 
 #include "GeneratedImage.h"
 #include "PaintWorkletGlobalScope.h"
@@ -61,3 +62,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_IMAGE(CustomPaintImage)
+#endif // WebCore_html_CustomPaintImage_h

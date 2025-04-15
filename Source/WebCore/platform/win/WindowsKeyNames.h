@@ -27,7 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WebCore_platform_win_WindowsKeyNames_h
+#define WebCore_platform_win_WindowsKeyNames_h
 
 #include <windows.h>
 #include <wtf/HashMap.h>
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_win_WindowsKeyNames_h

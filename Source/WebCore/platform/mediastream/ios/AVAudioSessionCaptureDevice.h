@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_ios_AVAudioSessionCaptureDevice_h
+#define WebCore_platform_mediastream_ios_AVAudioSessionCaptureDevice_h
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(IOS_FAMILY)
 
@@ -56,3 +57,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM) && PLATFORM(IOS_FAMILY)
+#endif // WebCore_platform_mediastream_ios_AVAudioSessionCaptureDevice_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUUncapturedErrorEventInit_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUUncapturedErrorEventInit_h
 
 #include "WebGPUError.h"
 
@@ -34,3 +35,4 @@ struct UncapturedErrorEventInit {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUUncapturedErrorEventInit_h

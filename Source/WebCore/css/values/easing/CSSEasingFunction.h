@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_easing_CSSEasingFunction_h
+#define WebCore_css_values_easing_CSSEasingFunction_h
 
 #include "CSSCubicBezierEasingFunction.h"
 #include "CSSLinearEasingFunction.h"
@@ -67,3 +68,4 @@ struct EasingFunction {
 } // namespace WebCore
 
 template<> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::CSS::EasingFunction> = true;
+#endif // WebCore_css_values_easing_CSSEasingFunction_h

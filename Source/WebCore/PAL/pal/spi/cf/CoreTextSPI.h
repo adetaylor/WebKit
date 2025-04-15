@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cf_CoreTextSPI_h
+#define WebCore_PAL_pal_spi_cf_CoreTextSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -256,3 +257,4 @@ CFStringRef FPFontCopyPostScriptName(FPFontRef);
 CFDataRef FPFontCopySFNTData(FPFontRef);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cf_CoreTextSPI_h

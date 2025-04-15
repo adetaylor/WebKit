@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_WebAnimationTime_h
+#define WebCore_animation_WebAnimationTime_h
 
 #include "CSSNumericValue.h"
 #include <wtf/Seconds.h>
@@ -91,3 +92,4 @@ private:
 TextStream& operator<<(TextStream&, const WebAnimationTime&);
 
 } // namespace WebCore
+#endif // WebCore_animation_WebAnimationTime_h

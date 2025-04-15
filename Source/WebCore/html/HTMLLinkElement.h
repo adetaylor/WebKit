@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLLinkElement_h
+#define WebCore_html_HTMLLinkElement_h
 
 #include "CSSStyleSheet.h"
 #include "CachedStyleSheetClient.h"
@@ -186,3 +187,4 @@ private:
 };
 
 }
+#endif // WebCore_html_HTMLLinkElement_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WeakObjCPtr_h
+#define WTF_wtf_WeakObjCPtr_h
 
 #include <objc/runtime.h>
 #include <type_traits>
@@ -124,3 +125,4 @@ RetainPtr<typename WeakObjCPtr<T>::ValueType> WeakObjCPtr<T>::get() const
 } // namespace WTF
 
 using WTF::WeakObjCPtr;
+#endif // WTF_wtf_WeakObjCPtr_h

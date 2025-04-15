@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_CheckVisibilityOptions_h
+#define WebCore_dom_CheckVisibilityOptions_h
 
 namespace WebCore {
 
@@ -38,3 +39,4 @@ struct CheckVisibilityOptions {
 };
 
 }
+#endif // WebCore_dom_CheckVisibilityOptions_h

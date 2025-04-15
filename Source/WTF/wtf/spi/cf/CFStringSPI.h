@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cf_CFStringSPI_h
+#define WTF_wtf_spi_cf_CFStringSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -56,3 +57,4 @@ void _CFStringGetUserDefaultEncoding(UInt32* scriptValue, UInt32* regionValue);
 
 }
 
+#endif // WTF_wtf_spi_cf_CFStringSPI_h

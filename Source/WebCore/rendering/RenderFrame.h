@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderFrame_h
+#define WebCore_rendering_RenderFrame_h
 
 #include "HTMLFrameElement.h"
 #include "RenderFrameBase.h"
@@ -55,3 +56,4 @@ inline RenderFrame* HTMLFrameElement::renderer() const
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderFrame, isRenderFrame())
+#endif // WebCore_rendering_RenderFrame_h

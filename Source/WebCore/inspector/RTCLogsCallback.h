@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_RTCLogsCallback_h
+#define WebCore_inspector_RTCLogsCallback_h
 
 #include "ActiveDOMCallback.h"
 #include "CallbackResult.h"
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_RTCLogsCallback_h

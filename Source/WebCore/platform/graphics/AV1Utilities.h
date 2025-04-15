@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_AV1Utilities_h
+#define WebCore_platform_graphics_AV1Utilities_h
 
 #include "SharedBuffer.h"
 #include <JavaScriptCore/DataView.h>
@@ -178,3 +179,4 @@ WEBCORE_EXPORT bool validateAV1PerLevelConstraints(const AV1CodecConfigurationRe
 std::optional<AV1CodecConfigurationRecord> parseAV1DecoderConfigurationRecord(const SharedBuffer&);
 
 }
+#endif // WebCore_platform_graphics_AV1Utilities_h

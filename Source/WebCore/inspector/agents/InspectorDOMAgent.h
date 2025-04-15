@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_InspectorDOMAgent_h
+#define WebCore_inspector_agents_InspectorDOMAgent_h
 
 #include "EventTarget.h"
 #include "InspectorOverlay.h"
@@ -370,3 +371,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_InspectorDOMAgent_h

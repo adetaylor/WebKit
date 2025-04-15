@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderElement_h
+#define WebCore_rendering_RenderElement_h
 
 #include "HitTestRequest.h"
 #include "LengthFunctions.h"
@@ -536,3 +537,4 @@ inline CheckedPtr<RenderElement> RenderObject::checkedParent() const
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderElement, isRenderElement())
+#endif // WebCore_rendering_RenderElement_h

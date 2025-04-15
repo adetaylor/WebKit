@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cf_CFLocaleSPI_h
+#define WebCore_PAL_pal_spi_cf_CFLocaleSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -40,3 +41,4 @@ WTF_EXTERN_C_BEGIN
 Boolean CFLocaleGetLanguageRegionEncodingForLocaleIdentifier(CFStringRef locale, LangCode*, RegionCode*, ScriptCode*, CFStringEncoding*);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cf_CFLocaleSPI_h

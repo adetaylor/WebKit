@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_entriesapi_FileSystemDirectoryEntry_h
+#define WebCore_Modules_entriesapi_FileSystemDirectoryEntry_h
 
 #include "FileSystemEntry.h"
 
@@ -62,3 +63,4 @@ static_assert(sizeof(FileSystemDirectoryEntry) == sizeof(FileSystemEntry));
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::FileSystemDirectoryEntry)
     static bool isType(const WebCore::FileSystemEntry& entry) { return entry.isDirectory(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_entriesapi_FileSystemDirectoryEntry_h

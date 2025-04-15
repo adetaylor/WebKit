@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_permissions_MainThreadPermissionObserverIdentifier_h
+#define WebCore_Modules_permissions_MainThreadPermissionObserverIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ enum class  MainThreadPermissionObserverIdentifierType { };
 using MainThreadPermissionObserverIdentifier = AtomicObjectIdentifier<MainThreadPermissionObserverIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_Modules_permissions_MainThreadPermissionObserverIdentifier_h

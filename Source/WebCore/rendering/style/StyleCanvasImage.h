@@ -24,7 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleCanvasImage_h
+#define WebCore_rendering_style_StyleCanvasImage_h
 
 #include "CanvasObserver.h"
 #include "HTMLCanvasElement.h"
@@ -82,3 +83,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyleCanvasImage)
     static bool isType(const WebCore::CanvasObserver& canvasObserver) { return canvasObserver.isStyleCanvasImage(); }
 SPECIALIZE_TYPE_TRAITS_END()
 
+#endif // WebCore_rendering_style_StyleCanvasImage_h

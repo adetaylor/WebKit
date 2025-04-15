@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGVisitedElementTracking_h
+#define WebCore_svg_SVGVisitedElementTracking_h
 
 #include "SVGElement.h"
 #include <wtf/WeakHashSet.h>
@@ -78,3 +79,4 @@ private:
 };
 
 }; // namespace WebCore
+#endif // WebCore_svg_SVGVisitedElementTracking_h

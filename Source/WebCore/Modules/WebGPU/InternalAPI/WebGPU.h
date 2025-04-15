@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPU_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPU_h
 
 #include "WebGPURequestAdapterOptions.h"
 #include <optional>
@@ -123,3 +124,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPU_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcType_h
+#define WebCore_css_calc_CSSCalcType_h
 
 #include <array>
 #include <optional>
@@ -441,3 +442,4 @@ template<OutputTransform transform> inline std::optional<Type> transformType(std
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcType_h

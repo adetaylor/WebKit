@@ -25,7 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XPathUtil_h
+#define WebCore_xml_XPathUtil_h
 
 #include <unicode/utypes.h>
 #include <wtf/Forward.h>
@@ -48,3 +49,4 @@ namespace WebCore {
     } // namespace XPath
 
 } // namespace WebCore
+#endif // WebCore_xml_XPathUtil_h

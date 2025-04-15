@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_BroadcastChannel_h
+#define WebCore_dom_BroadcastChannel_h
 
 #include "ActiveDOMObject.h"
 #include "BroadcastChannelIdentifier.h"
@@ -92,3 +93,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_BroadcastChannel_h

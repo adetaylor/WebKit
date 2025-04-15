@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cocoa_NSObjCRuntimeSPI_h
+#define WTF_wtf_spi_cocoa_NSObjCRuntimeSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -50,3 +51,4 @@ DECLARE_SYSTEM_HEADER
 #define NS_DIRECT_MEMBERS
 #endif
 #endif
+#endif // WTF_wtf_spi_cocoa_NSObjCRuntimeSPI_h

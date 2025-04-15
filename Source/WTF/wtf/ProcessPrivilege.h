@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_ProcessPrivilege_h
+#define WTF_wtf_ProcessPrivilege_h
 
 #include <wtf/OptionSet.h>
 
@@ -48,3 +49,4 @@ using WTF::allPrivileges;
 using WTF::hasProcessPrivilege;
 using WTF::setProcessPrivileges;
 
+#endif // WTF_wtf_ProcessPrivilege_h

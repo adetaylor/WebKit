@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcRandomCachingKeyMap_h
+#define WebCore_css_calc_CSSCalcRandomCachingKeyMap_h
 
 #include "CSSCalcRandomCachingKey.h"
 #include <wtf/CryptographicallyRandomNumber.h>
@@ -54,3 +55,4 @@ private:
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcRandomCachingKeyMap_h

@@ -23,7 +23,8 @@
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_SystemBattery_h
+#define WebCore_platform_cocoa_SystemBattery_h
 
 #include <optional>
 #include <wtf/Function.h>
@@ -58,3 +59,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_cocoa_SystemBattery_h

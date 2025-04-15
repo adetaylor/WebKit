@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPipelineDescriptor_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPipelineDescriptor_h
 
 #include "WebGPUDepthStencilState.h"
 #include "WebGPUFragmentState.h"
@@ -44,3 +45,4 @@ struct RenderPipelineDescriptor : public PipelineDescriptorBase {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPipelineDescriptor_h

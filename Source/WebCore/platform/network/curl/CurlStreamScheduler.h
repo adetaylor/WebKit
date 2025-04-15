@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CurlStreamScheduler_h
+#define WebCore_platform_network_curl_CurlStreamScheduler_h
 
 #include "CurlStream.h"
 #include <wtf/Function.h>
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CurlStreamScheduler_h

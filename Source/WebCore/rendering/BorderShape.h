@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_BorderShape_h
+#define WebCore_rendering_BorderShape_h
 
 #include "RectEdges.h"
 #include "RenderStyleConstants.h"
@@ -125,3 +126,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_BorderShape_h

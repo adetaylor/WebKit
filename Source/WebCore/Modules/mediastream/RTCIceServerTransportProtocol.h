@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCIceServerTransportProtocol_h
+#define WebCore_Modules_mediastream_RTCIceServerTransportProtocol_h
 
 namespace WebCore {
 
 enum class RTCIceServerTransportProtocol { Udp, Tcp, Tls };
 
 } // namespace WebCore
+#endif // WebCore_Modules_mediastream_RTCIceServerTransportProtocol_h

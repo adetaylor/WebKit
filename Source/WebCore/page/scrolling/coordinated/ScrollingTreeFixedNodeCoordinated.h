@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_coordinated_ScrollingTreeFixedNodeCoordinated_h
+#define WebCore_page_scrolling_coordinated_ScrollingTreeFixedNodeCoordinated_h
 
 #if ENABLE(ASYNC_SCROLLING) && USE(COORDINATED_GRAPHICS)
 #include "ScrollingTreeFixedNode.h"
@@ -58,3 +59,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_SCROLLING_NODE(ScrollingTreeFixedNodeCoordinated, isFixedNodeCoordinated())
 
 #endif // ENABLE(ASYNC_SCROLLING) && USE(COORDINATED_GRAPHICS)
+#endif // WebCore_page_scrolling_coordinated_ScrollingTreeFixedNodeCoordinated_h

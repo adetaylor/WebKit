@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_LowPowerModeNotifier_h
+#define WebCore_platform_LowPowerModeNotifier_h
 
 #include <wtf/CheckedPtr.h>
 #include <wtf/Function.h>
@@ -68,3 +69,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_LowPowerModeNotifier_h

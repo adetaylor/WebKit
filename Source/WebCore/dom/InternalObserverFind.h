@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InternalObserverFind_h
+#define WebCore_dom_InternalObserverFind_h
 
 #include <wtf/Forward.h>
 
@@ -38,3 +39,4 @@ struct SubscribeOptions;
 void createInternalObserverOperatorFind(ScriptExecutionContext&, Observable&, Ref<PredicateCallback>&&, const SubscribeOptions&, Ref<DeferredPromise>&&);
 
 } // namespace WebCore
+#endif // WebCore_dom_InternalObserverFind_h

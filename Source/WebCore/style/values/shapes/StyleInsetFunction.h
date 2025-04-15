@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_shapes_StyleInsetFunction_h
+#define WebCore_style_values_shapes_StyleInsetFunction_h
 
 #include "CSSInsetFunction.h"
 #include "StyleBorderRadius.h"
@@ -61,3 +62,4 @@ template<> struct PathComputation<Inset> { WebCore::Path operator()(const Inset&
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::Inset, 2)
+#endif // WebCore_style_values_shapes_StyleInsetFunction_h

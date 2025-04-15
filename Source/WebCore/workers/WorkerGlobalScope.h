@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerGlobalScope_h
+#define WebCore_workers_WorkerGlobalScope_h
 
 #include "Base64Utilities.h"
 #include "CacheStorageConnection.h"
@@ -259,3 +260,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::WorkerGlobalScope)
     static bool isType(const WebCore::ScriptExecutionContext& context) { return context.isWorkerGlobalScope(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_workers_WorkerGlobalScope_h

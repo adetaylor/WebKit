@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_VisibilityChangeClient_h
+#define WebCore_dom_VisibilityChangeClient_h
 
 #include <wtf/AbstractRefCountedAndCanMakeWeakPtr.h>
 
@@ -41,3 +42,4 @@ public:
 };
 
 }
+#endif // WebCore_dom_VisibilityChangeClient_h

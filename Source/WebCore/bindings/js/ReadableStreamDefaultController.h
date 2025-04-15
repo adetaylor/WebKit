@@ -27,7 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_ReadableStreamDefaultController_h
+#define WebCore_bindings_js_ReadableStreamDefaultController_h
 
 #include "JSDOMConvertBufferSource.h"
 #include "JSReadableStreamDefaultController.h"
@@ -71,3 +72,4 @@ inline JSDOMGlobalObject& ReadableStreamDefaultController::globalObject() const
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_ReadableStreamDefaultController_h

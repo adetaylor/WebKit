@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FunctionTraits_h
+#define WTF_wtf_FunctionTraits_h
 
 #include <tuple>
 #include <type_traits>
@@ -104,3 +105,4 @@ struct FunctionTraits<Result(*)(Args...) noexcept> : public FunctionTraits<Resul
 } // namespace WTF
 
 using WTF::FunctionTraits;
+#endif // WTF_wtf_FunctionTraits_h

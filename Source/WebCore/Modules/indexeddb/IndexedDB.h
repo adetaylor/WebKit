@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IndexedDB_h
+#define WebCore_Modules_indexeddb_IndexedDB_h
 
 namespace WebCore {
 
@@ -111,3 +112,4 @@ enum class CursorIterateOption : bool {
 } // namespace IndexedDB
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IndexedDB_h

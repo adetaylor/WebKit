@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_MediaTrackConstraints_h
+#define WebCore_Modules_mediastream_MediaTrackConstraints_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -93,3 +94,4 @@ MediaConstraints createMediaConstraints(const MediaTrackConstraints&);
 }
 
 #endif
+#endif // WebCore_Modules_mediastream_MediaTrackConstraints_h

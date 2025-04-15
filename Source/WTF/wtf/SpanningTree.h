@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_SpanningTree_h
+#define WTF_wtf_SpanningTree_h
 
 #include <wtf/GraphNodeWorklist.h>
 
@@ -84,3 +85,4 @@ private:
     Graph& m_graph;
     typename Graph::template Map<Data> m_data;
 };
+#endif // WTF_wtf_SpanningTree_h

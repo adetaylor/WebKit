@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_OscillatorNode_h
+#define WebCore_Modules_webaudio_OscillatorNode_h
 
 #include "AudioScheduledSourceNode.h"
 #include "OscillatorOptions.h"
@@ -103,3 +104,4 @@ template<> struct LogArgument<WebCore::OscillatorType> {
 };
 
 } // namespace WTF
+#endif // WebCore_Modules_webaudio_OscillatorNode_h

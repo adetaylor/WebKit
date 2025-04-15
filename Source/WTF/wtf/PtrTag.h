@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PtrTag_h
+#define WTF_wtf_PtrTag_h
 
 #include <wtf/Assertions.h>
 #include <wtf/DataLog.h>
@@ -628,3 +629,4 @@ using WTF::assertIsNullOrTaggedWith;
 using WTF::usesPointerTagging;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_PtrTag_h

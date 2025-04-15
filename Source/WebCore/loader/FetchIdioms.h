@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FetchIdioms_h
+#define WebCore_loader_FetchIdioms_h
 
 #include "FetchOptions.h"
 
@@ -36,3 +37,4 @@ bool shouldBlockResponseDueToMIMEType(const ResourceResponse&, FetchOptions::Des
 
 } // namespace WebCore
 
+#endif // WebCore_loader_FetchIdioms_h

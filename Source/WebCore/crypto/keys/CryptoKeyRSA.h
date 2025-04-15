@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_keys_CryptoKeyRSA_h
+#define WebCore_crypto_keys_CryptoKeyRSA_h
 
 #include "CryptoKey.h"
 #include "ExceptionOr.h"
@@ -108,3 +109,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_KEY(CryptoKeyRSA, CryptoKeyClass::RSA)
+#endif // WebCore_crypto_keys_CryptoKeyRSA_h

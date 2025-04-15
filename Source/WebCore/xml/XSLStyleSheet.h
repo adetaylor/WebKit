@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_xml_XSLStyleSheet_h
+#define WebCore_xml_XSLStyleSheet_h
 
 #if ENABLE(XSLT)
 
@@ -135,3 +136,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::XSLStyleSheet)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(XSLT)
+#endif // WebCore_xml_XSLStyleSheet_h

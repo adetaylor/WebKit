@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_TextureMapperGLHeaders_h
+#define WebCore_platform_graphics_texmap_TextureMapperGLHeaders_h
 
 #if USE(LIBEPOXY)
 #include <epoxy/gl.h>
@@ -55,3 +56,4 @@
 #ifndef GL_TEXTURE_EXTERNAL_OES
 #define GL_TEXTURE_EXTERNAL_OES 0x8D65
 #endif
+#endif // WebCore_platform_graphics_texmap_TextureMapperGLHeaders_h

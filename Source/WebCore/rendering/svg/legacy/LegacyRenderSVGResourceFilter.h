@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResourceFilter_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResourceFilter_h
 
 #include "FilterResults.h"
 #include "GraphicsContextSwitcher.h"
@@ -98,3 +99,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::LegacyRenderSVGResourceFilter)
     static bool isType(const WebCore::RenderObject& renderer) { return renderer.isLegacyRenderSVGResourceFilter(); }
     static bool isType(const WebCore::LegacyRenderSVGResource& resource) { return resource.resourceType() == WebCore::FilterResourceType; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResourceFilter_h

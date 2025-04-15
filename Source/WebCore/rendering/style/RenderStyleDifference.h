@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_RenderStyleDifference_h
+#define WebCore_rendering_style_RenderStyleDifference_h
 
 #if !LOG_DISABLED
 
@@ -96,3 +97,4 @@ void logIfDifferent(TextStream& ts, ASCIILiteral name, const T& item1, const T& 
 } // namespace WebCore
 
 #endif // !LOG_DISABLED
+#endif // WebCore_rendering_style_RenderStyleDifference_h

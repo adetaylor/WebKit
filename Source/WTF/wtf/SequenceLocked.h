@@ -13,7 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef WTF_wtf_SequenceLocked_h
+#define WTF_wtf_SequenceLocked_h
 
 #include <array>
 #include <atomic>
@@ -131,3 +132,4 @@ private:
 }
 
 using WTF::SequenceLocked;
+#endif // WTF_wtf_SequenceLocked_h

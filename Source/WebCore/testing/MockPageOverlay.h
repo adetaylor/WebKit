@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockPageOverlay_h
+#define WebCore_testing_MockPageOverlay_h
 
 #include "PageOverlay.h"
 
@@ -44,3 +45,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_testing_MockPageOverlay_h

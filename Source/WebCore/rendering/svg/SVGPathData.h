@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGPathData_h
+#define WebCore_rendering_svg_SVGPathData_h
 
 namespace WebCore {
 
@@ -27,3 +28,4 @@ class Path;
 Path pathFromGraphicsElement(const SVGElement&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_SVGPathData_h

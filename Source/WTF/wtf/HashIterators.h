@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_HashIterators_h
+#define WTF_wtf_HashIterators_h
 
 #include <iterator>
 
@@ -242,3 +243,4 @@ namespace WTF {
     }
 
 } // namespace WTF
+#endif // WTF_wtf_HashIterators_h

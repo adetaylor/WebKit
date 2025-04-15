@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_TaggedPtr_h
+#define WTF_wtf_TaggedPtr_h
 
 #include <bit>
 #include <concepts>
@@ -151,3 +152,4 @@ private:
 using WTF::TaggedPtr;
 using WTF::EnumTaggingTraits;
 using WTF::NoTaggingTraits;
+#endif // WTF_wtf_TaggedPtr_h

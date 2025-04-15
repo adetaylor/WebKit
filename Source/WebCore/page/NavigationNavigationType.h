@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_NavigationNavigationType_h
+#define WebCore_page_NavigationNavigationType_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ enum class NavigationNavigationType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_NavigationNavigationType_h

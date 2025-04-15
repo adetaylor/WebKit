@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertOptional_h
+#define WebCore_bindings_js_JSDOMConvertOptional_h
 
 #include "JSDOMConvertDictionary.h"
 #include "JSDOMConvertNullable.h"
@@ -155,3 +156,4 @@ ConversionResult<IDL> convertOptionalWithDefault(JSC::JSGlobalObject& lexicalGlo
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertOptional_h

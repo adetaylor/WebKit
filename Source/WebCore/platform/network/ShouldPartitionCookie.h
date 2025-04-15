@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_ShouldPartitionCookie_h
+#define WebCore_platform_network_ShouldPartitionCookie_h
 
 namespace WebCore {
 
 enum class ShouldPartitionCookie : bool { No, Yes };
 
 };
+#endif // WebCore_platform_network_ShouldPartitionCookie_h

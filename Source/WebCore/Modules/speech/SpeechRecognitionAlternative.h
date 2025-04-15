@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognitionAlternative_h
+#define WebCore_Modules_speech_SpeechRecognitionAlternative_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/TZoneMalloc.h>
@@ -47,3 +48,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_speech_SpeechRecognitionAlternative_h

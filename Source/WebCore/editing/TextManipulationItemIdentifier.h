@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_TextManipulationItemIdentifier_h
+#define WebCore_editing_TextManipulationItemIdentifier_h
 
 namespace WebCore {
 
@@ -31,3 +32,4 @@ enum class TextManipulationItemIdentifierType { };
 using TextManipulationItemIdentifier = ObjectIdentifier<TextManipulationItemIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_editing_TextManipulationItemIdentifier_h

@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_ListHashSet_h
+#define WTF_wtf_ListHashSet_h
 
 #include <wtf/Forward.h>
 #include <wtf/HashSet.h>
@@ -887,3 +888,4 @@ inline auto ListHashSet<T, U>::makeConstIterator(Node* position) const -> const_
 } // namespace WTF
 
 using WTF::ListHashSet;
+#endif // WTF_wtf_ListHashSet_h

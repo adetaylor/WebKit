@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_AutodrainedPool_h
+#define WTF_wtf_AutodrainedPool_h
 
 #if defined(__OBJC__) && !defined(__clang_tapi__)
 #error Please use @autoreleasepool instead of AutodrainedPool.
@@ -62,3 +63,4 @@ private:
 } // namespace WTF
 
 using WTF::AutodrainedPool;
+#endif // WTF_wtf_AutodrainedPool_h

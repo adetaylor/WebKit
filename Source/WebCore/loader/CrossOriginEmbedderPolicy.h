@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_CrossOriginEmbedderPolicy_h
+#define WebCore_loader_CrossOriginEmbedderPolicy_h
 
 #include "FetchOptions.h"
 #include <wtf/text/WTFString.h>
@@ -74,3 +75,4 @@ WEBCORE_EXPORT void sendCOEPInheritenceViolation(ReportingClient&, const URL& em
 WEBCORE_EXPORT void sendCOEPCORPViolation(ReportingClient&, const URL& embedderURL, const String& endpoint, COEPDisposition, FetchOptions::Destination, const URL& blockedURL);
 
 } // namespace WebCore
+#endif // WebCore_loader_CrossOriginEmbedderPolicy_h

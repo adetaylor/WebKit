@@ -28,7 +28,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_ThreadingPrimitives_h
+#define WTF_wtf_ThreadingPrimitives_h
 
 #include <limits.h>
 #include <wtf/FastMalloc.h>
@@ -149,3 +150,4 @@ inline void* threadSpecificGet(ThreadSpecificKey key)
 using WTF::Mutex;
 using WTF::MutexLocker;
 using WTF::ThreadCondition;
+#endif // WTF_wtf_ThreadingPrimitives_h

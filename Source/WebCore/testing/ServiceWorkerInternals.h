@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_ServiceWorkerInternals_h
+#define WebCore_testing_ServiceWorkerInternals_h
 
 #include "EpochTimeStamp.h"
 #include "IDLTypes.h"
@@ -86,3 +87,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_testing_ServiceWorkerInternals_h

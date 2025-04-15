@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_shared_IndexKey_h
+#define WebCore_Modules_indexeddb_shared_IndexKey_h
 
 #include "IDBIndexIdentifier.h"
 #include "IDBKeyData.h"
@@ -56,3 +57,4 @@ private:
 using IndexIDToIndexKeyMap = HashMap<IDBIndexIdentifier, IndexKey>;
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_shared_IndexKey_h

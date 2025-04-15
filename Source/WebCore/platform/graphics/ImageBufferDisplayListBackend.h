@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageBufferDisplayListBackend_h
+#define WebCore_platform_graphics_ImageBufferDisplayListBackend_h
 
 #include "DisplayListDrawingContext.h"
 #include "ImageBufferBackend.h"
@@ -61,3 +62,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageBufferDisplayListBackend_h

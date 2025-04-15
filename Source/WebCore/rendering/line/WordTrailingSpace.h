@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_line_WordTrailingSpace_h
+#define WebCore_rendering_line_WordTrailingSpace_h
 
 #include "FontCascade.h"
 #include "RenderBlock.h"
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_line_WordTrailingSpace_h

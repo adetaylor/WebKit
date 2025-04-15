@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_AbstractRefCountedAndCanMakeWeakPtr_h
+#define WTF_wtf_AbstractRefCountedAndCanMakeWeakPtr_h
 
 #include <wtf/AbstractRefCounted.h>
 #include <wtf/CanMakeWeakPtr.h>
@@ -50,3 +51,4 @@ public:
 
 using WTF::AbstractRefCountedAndCanMakeWeakPtr;
 using WTF::AbstractRefCountedAndCanMakeSingleThreadWeakPtr;
+#endif // WTF_wtf_AbstractRefCountedAndCanMakeWeakPtr_h

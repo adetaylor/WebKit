@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_MediaSample_h
+#define WebCore_platform_MediaSample_h
 
 #include "FloatSize.h"
 #include "FourCC.h"
@@ -302,3 +303,4 @@ struct LogArgument<WebCore::MediaSample> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_MediaSample_h

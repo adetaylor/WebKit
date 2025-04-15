@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_TextCheckerClient_h
+#define WebCore_platform_text_TextCheckerClient_h
 
 #include "TextChecking.h"
 
@@ -55,3 +56,4 @@ public:
 };
 
 }
+#endif // WebCore_platform_text_TextCheckerClient_h

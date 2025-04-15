@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasFilterContextSwitcher_h
+#define WebCore_html_canvas_CanvasFilterContextSwitcher_h
 
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakRef.h>
@@ -50,3 +51,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_canvas_CanvasFilterContextSwitcher_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringParsingBuffer_h
+#define WTF_wtf_text_StringParsingBuffer_h
 
 #include <wtf/text/StringView.h>
 
@@ -136,3 +137,4 @@ template<typename StringType, typename Function> decltype(auto) readCharactersFo
 
 using WTF::StringParsingBuffer;
 using WTF::readCharactersForParsing;
+#endif // WTF_wtf_text_StringParsingBuffer_h

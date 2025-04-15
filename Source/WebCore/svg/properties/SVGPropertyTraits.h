@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGPropertyTraits_h
+#define WebCore_svg_properties_SVGPropertyTraits_h
 
 #include "CSSPropertyParserConsumer+Color.h"
 #include "Color.h"
@@ -161,3 +162,4 @@ struct SVGIDLEnumLimits {
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_properties_SVGPropertyTraits_h

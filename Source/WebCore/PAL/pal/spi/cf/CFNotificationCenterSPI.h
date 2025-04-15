@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cf_CFNotificationCenterSPI_h
+#define WebCore_PAL_pal_spi_cf_CFNotificationCenterSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -32,3 +33,4 @@ DECLARE_SYSTEM_HEADER
 #else
 static const CFIndex _CFNotificationObserverIsObjC = 1 << 10;
 #endif
+#endif // WebCore_PAL_pal_spi_cf_CFNotificationCenterSPI_h

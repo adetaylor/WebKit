@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_TrustedType_h
+#define WebCore_dom_TrustedType_h
 
 #include "ExceptionOr.h"
 #include "TrustedHTML.h"
@@ -78,3 +79,4 @@ ExceptionOr<bool> canCompile(ScriptExecutionContext&, JSC::CompilationType, Stri
 bool isEventHandlerAttribute(const QualifiedName& attributeName);
 
 } // namespace WebCore
+#endif // WebCore_dom_TrustedType_h

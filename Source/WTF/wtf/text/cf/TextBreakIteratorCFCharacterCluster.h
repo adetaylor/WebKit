@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_cf_TextBreakIteratorCFCharacterCluster_h
+#define WTF_wtf_text_cf_TextBreakIteratorCFCharacterCluster_h
 
 #include <wtf/RetainPtr.h>
 #include <wtf/spi/cf/CFStringSPI.h>
@@ -99,3 +100,4 @@ private:
 };
 
 }
+#endif // WTF_wtf_text_cf_TextBreakIteratorCFCharacterCluster_h

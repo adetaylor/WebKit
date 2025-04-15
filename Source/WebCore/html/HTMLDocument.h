@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLDocument_h
+#define WebCore_html_HTMLDocument_h
 
 #include "Document.h"
 #include "TreeScopeOrderedMap.h"
@@ -82,3 +83,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::HTMLDocument)
         return document && isType(*document);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_HTMLDocument_h

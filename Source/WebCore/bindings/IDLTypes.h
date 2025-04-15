@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_IDLTypes_h
+#define WebCore_bindings_IDLTypes_h
 
 #include "BufferSource.h"
 #include "StringAdaptors.h"
@@ -456,3 +457,4 @@ struct IsIDLArrayBufferViewAllowShared : public std::integral_constant<bool, std
 
 
 } // namespace WebCore
+#endif // WebCore_bindings_IDLTypes_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_permissions_PermissionName_h
+#define WebCore_Modules_permissions_PermissionName_h
 
 namespace WebCore {
 
@@ -46,3 +47,4 @@ enum class PermissionName : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_permissions_PermissionName_h

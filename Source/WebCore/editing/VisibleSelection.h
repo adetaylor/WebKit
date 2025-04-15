@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_VisibleSelection_h
+#define WebCore_editing_VisibleSelection_h
 
 #include "TextGranularity.h"
 #include "VisiblePosition.h"
@@ -187,3 +188,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const VisibleSelect
 void showTree(const WebCore::VisibleSelection&);
 void showTree(const WebCore::VisibleSelection*);
 #endif
+#endif // WebCore_editing_VisibleSelection_h

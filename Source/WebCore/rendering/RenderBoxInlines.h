@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderBoxInlines_h
+#define WebCore_rendering_RenderBoxInlines_h
 
 #include "RenderBox.h"
 #include "RenderBoxModelObjectInlines.h"
@@ -175,3 +176,4 @@ inline bool RenderBox::backgroundIsKnownToBeObscured(const LayoutPoint& paintOff
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderBoxInlines_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
  
-#pragma once
+#ifndef WebCore_page_UserContentURLPattern_h
+#define WebCore_page_UserContentURLPattern_h
 
 #include <wtf/Forward.h>
 #include <wtf/URL.h>
@@ -102,3 +103,4 @@ private:
 WEBCORE_EXPORT bool matchesWildcardPattern(const String& pattern, const String& testString);
 
 } // namespace WebCore
+#endif // WebCore_page_UserContentURLPattern_h

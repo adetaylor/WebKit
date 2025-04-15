@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_RunLoopSourcePriority_h
+#define WTF_wtf_glib_RunLoopSourcePriority_h
 
 #if USE(GLIB)
 
@@ -101,3 +102,4 @@ enum RunLoopSourcePriority {
 using WTF::RunLoopSourcePriority;
 
 #endif // USE(GLIB)
+#endif // WTF_wtf_glib_RunLoopSourcePriority_h

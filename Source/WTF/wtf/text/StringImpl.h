@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringImpl_h
+#define WTF_wtf_text_StringImpl_h
 
 #include <wtf/Compiler.h>
 
@@ -1451,3 +1452,4 @@ using WTF::deprecatedIsSpaceOrNewline;
 using WTF::deprecatedIsNotSpaceOrNewline;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_text_StringImpl_h

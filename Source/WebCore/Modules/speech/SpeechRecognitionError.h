@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognitionError_h
+#define WebCore_Modules_speech_SpeechRecognitionError_h
 
 #include <wtf/text/WTFString.h>
 
@@ -46,3 +47,4 @@ struct SpeechRecognitionError {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_speech_SpeechRecognitionError_h

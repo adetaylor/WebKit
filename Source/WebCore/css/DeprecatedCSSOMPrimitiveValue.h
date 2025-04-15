@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_DeprecatedCSSOMPrimitiveValue_h
+#define WebCore_css_DeprecatedCSSOMPrimitiveValue_h
 
 #include "CSSParserIdioms.h"
 #include "CSSPrimitiveValue.h"
@@ -104,3 +105,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSSOM_VALUE(DeprecatedCSSOMPrimitiveValue, isPrimitiveValue())
+#endif // WebCore_css_DeprecatedCSSOMPrimitiveValue_h

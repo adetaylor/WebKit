@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_PIPSPI_h
+#define WebCore_PAL_pal_spi_mac_PIPSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -82,3 +83,4 @@ NS_ASSUME_NONNULL_END
 #endif
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_PAL_pal_spi_mac_PIPSPI_h

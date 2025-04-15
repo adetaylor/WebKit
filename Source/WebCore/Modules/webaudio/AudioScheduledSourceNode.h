@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioScheduledSourceNode_h
+#define WebCore_Modules_webaudio_AudioScheduledSourceNode_h
 
 #include "ActiveDOMObject.h"
 #include "AudioNode.h"
@@ -102,3 +103,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_AudioScheduledSourceNode_h

@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_StyleSheet_h
+#define WebCore_css_StyleSheet_h
 
 #include "CSSParserMode.h"
 #include <wtf/Forward.h>
@@ -61,3 +62,4 @@ public:
 TextStream& operator<<(TextStream&, const StyleSheet&);
 
 } // namespace WebCore
+#endif // WebCore_css_StyleSheet_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_LoaderStrategy_h
+#define WebCore_loader_LoaderStrategy_h
 
 #include "FetchOptions.h"
 #include "LoadSchedulingMode.h"
@@ -118,3 +119,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_LoaderStrategy_h

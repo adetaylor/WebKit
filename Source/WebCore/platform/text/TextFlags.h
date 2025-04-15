@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_text_TextFlags_h
+#define WebCore_platform_text_TextFlags_h
 
 #include "FontTaggedSettings.h"
 #include <optional>
@@ -478,3 +479,4 @@ enum class ColorGlyphType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_text_TextFlags_h

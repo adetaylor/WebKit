@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderVTTCue_h
+#define WebCore_rendering_RenderVTTCue_h
 
 #if ENABLE(VIDEO)
 
@@ -78,3 +79,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderVTTCue, isRenderVTTCue())
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_rendering_RenderVTTCue_h

@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderQuote_h
+#define WebCore_rendering_RenderQuote_h
 
 #include "RenderInline.h"
 
@@ -55,3 +56,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderQuote, isRenderQuote())
+#endif // WebCore_rendering_RenderQuote_h

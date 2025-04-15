@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_ReadWriteLock_h
+#define WTF_wtf_ReadWriteLock_h
 
 #include <wtf/Condition.h>
 #include <wtf/Lock.h>
@@ -88,3 +89,4 @@ inline ReadWriteLock::WriteLock& ReadWriteLock::write() { return *static_cast<Wr
 } // namespace WTF
 
 using WTF::ReadWriteLock;
+#endif // WTF_wtf_ReadWriteLock_h

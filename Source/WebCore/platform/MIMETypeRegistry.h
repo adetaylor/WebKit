@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_MIMETypeRegistry_h
+#define WebCore_platform_MIMETypeRegistry_h
 
 #include <wtf/HashSet.h>
 #include <wtf/TZoneMalloc.h>
@@ -153,3 +154,4 @@ private:
 WEBCORE_EXPORT const String& defaultMIMEType();
 
 } // namespace WebCore
+#endif // WebCore_platform_MIMETypeRegistry_h

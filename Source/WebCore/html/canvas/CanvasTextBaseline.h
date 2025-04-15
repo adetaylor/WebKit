@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasTextBaseline_h
+#define WebCore_html_canvas_CanvasTextBaseline_h
 
 namespace WebCore {
 
 enum class CanvasTextBaseline { Top, Hanging, Middle, Alphabetic, Ideographic, Bottom };
 
 }
+#endif // WebCore_html_canvas_CanvasTextBaseline_h

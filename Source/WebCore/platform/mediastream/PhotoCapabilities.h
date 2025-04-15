@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_PhotoCapabilities_h
+#define WebCore_platform_mediastream_PhotoCapabilities_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -46,3 +47,4 @@ struct PhotoCapabilities {
 }
 
 #endif
+#endif // WebCore_platform_mediastream_PhotoCapabilities_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_shapes_CSSPathFunction_h
+#define WebCore_css_values_shapes_CSSPathFunction_h
 
 #include "CSSFillRule.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -64,3 +65,4 @@ template<> struct CSSValueChildrenVisitor<Path::Data> { IterationStatus operator
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Path, 2)
+#endif // WebCore_css_values_shapes_CSSPathFunction_h

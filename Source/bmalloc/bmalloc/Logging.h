@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Logging_h
+#define bmalloc_bmalloc_Logging_h
 
 #include "BExport.h"
 #include "BPlatform.h"
@@ -36,3 +37,4 @@ void reportAssertionFailureWithMessage(const char* file, int line, const char* f
 #endif
 
 } // namespace bmalloc
+#endif // bmalloc_bmalloc_Logging_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_Implementation_WebGPURenderPipelineImpl_h
+#define WebCore_Modules_WebGPU_Implementation_WebGPURenderPipelineImpl_h
 
 #if HAVE(WEBGPU_IMPLEMENTATION)
 
@@ -71,3 +72,4 @@ private:
 } // namespace WebCore::WebGPU
 
 #endif // HAVE(WEBGPU_IMPLEMENTATION)
+#endif // WebCore_Modules_WebGPU_Implementation_WebGPURenderPipelineImpl_h

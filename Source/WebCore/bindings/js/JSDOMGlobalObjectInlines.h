@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMGlobalObjectInlines_h
+#define WebCore_bindings_js_JSDOMGlobalObjectInlines_h
 
 #include "DOMConstructors.h"
 #include "JSDOMGlobalObject.h"
@@ -83,3 +84,4 @@ JSClass* toJSDOMGlobalObject(JSC::VM&, JSC::JSValue value)
 
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMGlobalObjectInlines_h

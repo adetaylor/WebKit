@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_ASCIIFastPath_h
+#define WTF_wtf_text_ASCIIFastPath_h
 
 #include <stdint.h>
 #include <unicode/utypes.h>
@@ -166,3 +167,4 @@ inline bool charactersAreAllLatin1(std::span<const CharacterType> span)
 
 using WTF::charactersAreAllASCII;
 using WTF::makeLatin1CharacterBitSet;
+#endif // WTF_wtf_text_ASCIIFastPath_h

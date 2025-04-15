@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_GetPtr_h
+#define WTF_wtf_GetPtr_h
 
 #include <memory>
 
@@ -82,3 +83,4 @@ struct GetPtrHelper<std::unique_ptr<T, Deleter>> {
 };
 
 } // namespace WTF
+#endif // WTF_wtf_GetPtr_h

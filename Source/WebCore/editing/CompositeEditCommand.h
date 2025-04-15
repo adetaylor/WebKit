@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_CompositeEditCommand_h
+#define WebCore_editing_CompositeEditCommand_h
 
 #include "AXObjectCache.h"
 #include "EditCommand.h"
@@ -239,3 +240,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CompositeEditCommand)
     static bool isType(const WebCore::EditCommand& command) { return command.isCompositeEditCommand(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_editing_CompositeEditCommand_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_WebKitMediaKeyError_h
+#define WebCore_html_WebKitMediaKeyError_h
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 
@@ -59,3 +60,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(LEGACY_ENCRYPTED_MEDIA)
+#endif // WebCore_html_WebKitMediaKeyError_h

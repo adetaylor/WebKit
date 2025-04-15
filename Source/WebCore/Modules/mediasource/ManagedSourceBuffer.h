@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasource_ManagedSourceBuffer_h
+#define WebCore_Modules_mediasource_ManagedSourceBuffer_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -52,3 +53,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ManagedSourceBuffer)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(MEDIA_SOURCE)
+#endif // WebCore_Modules_mediasource_ManagedSourceBuffer_h

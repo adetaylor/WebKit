@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CrossThreadTask_h
+#define WTF_wtf_CrossThreadTask_h
 
 #include <wtf/CrossThreadCopier.h>
 #include <wtf/Function.h>
@@ -109,3 +110,4 @@ CrossThreadTask createCrossThreadTask(T& callee, void (T::*method)(Parameters...
 
 using WTF::CrossThreadTask;
 using WTF::createCrossThreadTask;
+#endif // WTF_wtf_CrossThreadTask_h

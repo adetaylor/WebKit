@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_WheelEvent_h
+#define WebCore_dom_WheelEvent_h
 
 #include "MouseEvent.h"
 #include "PlatformWheelEvent.h"
@@ -89,3 +90,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(WheelEvent)
+#endif // WebCore_dom_WheelEvent_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSNamedImageValue_h
+#define WebCore_css_CSSNamedImageValue_h
 
 #include "CSSValue.h"
 #include <wtf/text/WTFString.h>
@@ -59,3 +60,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSNamedImageValue, isNamedImageValue())
+#endif // WebCore_css_CSSNamedImageValue_h

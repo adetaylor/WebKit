@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGMemberAccessor_h
+#define WebCore_svg_properties_SVGMemberAccessor_h
 
 #include "QualifiedName.h"
 #include "SVGAnimatedProperty.h"
@@ -58,3 +59,4 @@ protected:
 WTF_MAKE_TZONE_ALLOCATED_TEMPLATE_IMPL(template<typename OwnerType>, SVGMemberAccessor<OwnerType>);
 
 } // namespace WebCore
+#endif // WebCore_svg_properties_SVGMemberAccessor_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_KeyEventCodesIOS_h
+#define WebCore_platform_ios_KeyEventCodesIOS_h
 
 #if TARGET_OS_IPHONE
 
@@ -131,3 +132,4 @@ enum {
 #endif // WAK_APPKIT_API_AVAILABLE_MACCATALYST
 
 #endif // TARGET_OS_IPHONE
+#endif // WebCore_platform_ios_KeyEventCodesIOS_h

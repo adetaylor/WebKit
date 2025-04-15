@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ContentFilter_h
+#define WebCore_loader_ContentFilter_h
 
 #if ENABLE(CONTENT_FILTERING)
 
@@ -133,3 +134,4 @@ ContentFilter::Type ContentFilter::type()
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_FILTERING)
+#endif // WebCore_loader_ContentFilter_h

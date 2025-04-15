@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_cocoa_WebTextIndicatorLayer_h
+#define WebCore_page_cocoa_WebTextIndicatorLayer_h
 
 #import "TextIndicator.h"
 #import <QuartzCore/CALayer.h>
@@ -54,3 +55,4 @@ WEBCORE_EXPORT @interface WebTextIndicatorLayer : CALayer {
 
 @end
 
+#endif // WebCore_page_cocoa_WebTextIndicatorLayer_h

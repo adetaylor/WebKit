@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_InlineIteratorSVGTextBox_h
+#define WebCore_layout_integration_inline_InlineIteratorSVGTextBox_h
 
 #include "InlineIteratorTextBox.h"
 #include "RenderSVGInlineText.h"
@@ -85,3 +86,4 @@ SPECIALIZE_TYPE_TRAITS_END()
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::InlineIterator::SVGTextBoxIterator)
 static bool isType(const WebCore::InlineIterator::BoxIterator& box) { return !box || box->isSVGText(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_layout_integration_inline_InlineIteratorSVGTextBox_h

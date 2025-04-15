@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_NetworkStorageSession_h
+#define WebCore_platform_network_NetworkStorageSession_h
 
 #include "CredentialStorage.h"
 #include "FrameIdentifier.h"
@@ -406,3 +407,4 @@ WEBCORE_EXPORT RetainPtr<CFURLStorageSessionRef> createPrivateStorageSession(CFS
 #endif
 
 }
+#endif // WebCore_platform_network_NetworkStorageSession_h

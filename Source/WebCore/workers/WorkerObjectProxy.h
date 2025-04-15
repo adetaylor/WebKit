@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerObjectProxy_h
+#define WebCore_workers_WorkerObjectProxy_h
 
 #include "MessageWithMessagePorts.h"
 #include "WorkerReportingProxy.h"
@@ -53,3 +54,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerObjectProxy_h

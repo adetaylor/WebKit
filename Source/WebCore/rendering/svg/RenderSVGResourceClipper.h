@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceClipper_h
+#define WebCore_rendering_svg_RenderSVGResourceClipper_h
 
 #include "RenderSVGResourceContainer.h"
 #include "SVGUnitTypes.h"
@@ -66,3 +67,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGResourceClipper, isRenderSVGResourceClipper())
 
+#endif // WebCore_rendering_svg_RenderSVGResourceClipper_h

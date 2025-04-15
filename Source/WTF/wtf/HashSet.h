@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_HashSet_h
+#define WTF_wtf_HashSet_h
 
 #include <wtf/Compiler.h>
 
@@ -607,3 +608,4 @@ inline void HashSet<T, U, V, W, shouldValidateKey>::checkConsistency() const
 using WTF::HashSet;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_HashSet_h

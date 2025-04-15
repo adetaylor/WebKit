@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_displaylists_DisplayListItems_h
+#define WebCore_platform_graphics_displaylists_DisplayListItems_h
 
 #include "AlphaPremultiplication.h"
 #include "ControlPart.h"
@@ -1277,3 +1278,4 @@ private:
 
 } // namespace DisplayList
 } // namespace WebCore
+#endif // WebCore_platform_graphics_displaylists_DisplayListItems_h

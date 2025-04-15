@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CompletionHandler_h
+#define WTF_wtf_CompletionHandler_h
 
 #include <tuple>
 #include <utility>
@@ -180,3 +181,4 @@ using WTF::CompletionHandler;
 using WTF::CompletionHandlerCallThread;
 using WTF::CompletionHandlerCallingScope;
 using WTF::CompletionHandlerWithFinalizer;
+#endif // WTF_wtf_CompletionHandler_h

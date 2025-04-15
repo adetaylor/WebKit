@@ -18,7 +18,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_WindowProxy_h
+#define WebCore_bindings_js_WindowProxy_h
 
 #include <JavaScriptCore/Strong.h>
 #include <wtf/HashMap.h>
@@ -101,3 +102,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_WindowProxy_h

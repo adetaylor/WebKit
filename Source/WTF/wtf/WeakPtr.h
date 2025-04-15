@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WeakPtr_h
+#define WTF_wtf_WeakPtr_h
 
 #include <wtf/CanMakeWeakPtr.h>
 #include <wtf/CompactRefPtrTuple.h>
@@ -351,3 +352,4 @@ using WTF::SingleThreadWeakHashMap;
 using WTF::WeakHashSet;
 using WTF::WeakListHashSet;
 using WTF::WeakPtr;
+#endif // WTF_wtf_WeakPtr_h

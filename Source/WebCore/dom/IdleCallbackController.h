@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_IdleCallbackController_h
+#define WebCore_dom_IdleCallbackController_h
 
 #include "IdleRequestCallback.h"
 #include <wtf/Deque.h>
@@ -77,3 +78,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_IdleCallbackController_h

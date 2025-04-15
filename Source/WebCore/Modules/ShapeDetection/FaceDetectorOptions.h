@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_FaceDetectorOptions_h
+#define WebCore_Modules_ShapeDetection_FaceDetectorOptions_h
 
 #include "FaceDetectorOptionsInterface.h"
 #include <cstdint>
@@ -53,3 +54,4 @@ inline FaceDetectorOptions convertFromBacking(const ShapeDetection::FaceDetector
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_ShapeDetection_FaceDetectorOptions_h

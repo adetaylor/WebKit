@@ -31,7 +31,8 @@
 // one. See
 // https://fidoalliance.org/specs/fido-v2.0-rd-20180702/fido-client-to-authenticator-protocol-v2.0-rd-20180702.html#authenticatorClientPIN
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_fido_Pin_h
+#define WebCore_Modules_webauthn_fido_Pin_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -202,3 +203,4 @@ WEBCORE_EXPORT Vector<uint8_t> encodeAsCBOR(const SetPinRequest&);
 } // namespace fido
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_fido_Pin_h

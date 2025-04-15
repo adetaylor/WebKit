@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_DocumentTimeline_h
+#define WebCore_animation_DocumentTimeline_h
 
 #include "AnimationFrameRate.h"
 #include "AnimationTimeline.h"
@@ -116,3 +117,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_ANIMATION_TIMELINE(DocumentTimeline, isDocumentTimeline())
+#endif // WebCore_animation_DocumentTimeline_h

@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_LibWebRTCMacros_h
+#define WebCore_platform_mediastream_libwebrtc_LibWebRTCMacros_h
 
 #if USE(LIBWEBRTC)
 
@@ -46,3 +47,4 @@
 #define WEBRTC_NON_STATIC_TRACE_EVENT_HANDLERS 0
 
 #endif // USE(LIBWEBRTC)
+#endif // WebCore_platform_mediastream_libwebrtc_LibWebRTCMacros_h

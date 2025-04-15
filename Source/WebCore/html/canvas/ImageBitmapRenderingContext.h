@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_ImageBitmapRenderingContext_h
+#define WebCore_html_canvas_ImageBitmapRenderingContext_h
 
 #include "CanvasRenderingContext.h"
 
@@ -78,3 +79,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_CANVASRENDERINGCONTEXT(WebCore::ImageBitmapRenderingContext, isBitmapRenderer())
+#endif // WebCore_html_canvas_ImageBitmapRenderingContext_h

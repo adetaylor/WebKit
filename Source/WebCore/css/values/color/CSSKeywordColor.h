@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSKeywordColor_h
+#define WebCore_css_values_color_CSSKeywordColor_h
 
 #include "CSSValueTypes.h"
 #include <wtf/Forward.h>
@@ -70,3 +71,4 @@ template<> struct CSSValueChildrenVisitor<KeywordColor> { constexpr IterationSta
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSKeywordColor_h

@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_SelectorQuery_h
+#define WebCore_dom_SelectorQuery_h
 
 #include "CSSSelectorList.h"
 #include "CSSSelectorParser.h"
@@ -154,3 +155,4 @@ inline Element* SelectorQuery::queryFirst(ContainerNode& rootNode) const
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_SelectorQuery_h

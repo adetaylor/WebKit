@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognitionConnectionClientIdentifier_h
+#define WebCore_Modules_speech_SpeechRecognitionConnectionClientIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ enum class SpeechRecognitionConnectionClientIdentifierType { };
 using SpeechRecognitionConnectionClientIdentifier = ObjectIdentifier<SpeechRecognitionConnectionClientIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_Modules_speech_SpeechRecognitionConnectionClientIdentifier_h

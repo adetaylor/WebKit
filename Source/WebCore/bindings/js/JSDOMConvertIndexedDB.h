@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertIndexedDB_h
+#define WebCore_bindings_js_JSDOMConvertIndexedDB_h
 
 #include "IDBBindingUtilities.h"
 #include "IDLTypes.h"
@@ -65,3 +66,4 @@ template<> struct JSConverter<IDLIDBValue> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertIndexedDB_h

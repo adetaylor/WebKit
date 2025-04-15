@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericTypes_ComputedStyleDependencies_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericTypes_ComputedStyleDependencies_h
 
 #include "CSSPrimitiveNumericTypes.h"
 
@@ -64,3 +65,4 @@ template<NumericRaw RawType> struct ComputedStyleDependenciesCollector<RawType> 
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericTypes_ComputedStyleDependencies_h

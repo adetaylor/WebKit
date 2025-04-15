@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasDirection_h
+#define WebCore_html_canvas_CanvasDirection_h
 
 namespace WebCore {
 
 enum class CanvasDirection { Ltr, Rtl, Inherit };
 
 }
+#endif // WebCore_html_canvas_CanvasDirection_h

@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontCascade_h
+#define WebCore_platform_graphics_FontCascade_h
 
 #include "FloatSegment.h"
 #include "Font.h"
@@ -458,3 +459,4 @@ std::optional<char32_t> capitalized(char32_t);
 WTF::TextStream& operator<<(WTF::TextStream&, const FontCascade&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_FontCascade_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUComputePipeline_h
+#define WebCore_Modules_WebGPU_GPUComputePipeline_h
 
 #include "GPUBindGroupLayout.h"
 #include "WebGPUComputePipeline.h"
@@ -59,3 +60,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUComputePipeline_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_CustomUndoStep_h
+#define WebCore_editing_CustomUndoStep_h
 
 #include "UndoStep.h"
 #include <wtf/Ref.h>
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_CustomUndoStep_h

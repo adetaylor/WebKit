@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_ScopedPrintStream_h
+#define WTF_wtf_ScopedPrintStream_h
 
 #include <wtf/StringPrintStream.h>
 
@@ -60,3 +61,4 @@ private:
 } // namespace WTF
 
 using WTF::ScopedPrintStream;
+#endif // WTF_wtf_ScopedPrintStream_h

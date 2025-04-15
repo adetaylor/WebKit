@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_MediaDeviceHashSalts_h
+#define WebCore_Modules_mediastream_MediaDeviceHashSalts_h
 
 #include <wtf/HashFunctions.h>
 #include <wtf/text/WTFString.h>
@@ -41,3 +42,4 @@ namespace WTF {
 template<> struct DefaultHash<WebCore::MediaDeviceHashSalts>;
 template<> struct HashTraits<WebCore::MediaDeviceHashSalts>;
 }
+#endif // WebCore_Modules_mediastream_MediaDeviceHashSalts_h

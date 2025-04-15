@@ -23,7 +23,8 @@
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_AGXCompilerService_h
+#define WebCore_platform_cocoa_AGXCompilerService_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -39,3 +40,4 @@ WEBCORE_EXPORT std::span<const ASCIILiteral> agxCompilerClasses();
 }
 
 #endif
+#endif // WebCore_platform_cocoa_AGXCompilerService_h

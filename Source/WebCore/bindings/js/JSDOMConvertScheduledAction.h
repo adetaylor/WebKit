@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertScheduledAction_h
+#define WebCore_bindings_js_JSDOMConvertScheduledAction_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -54,3 +55,4 @@ template<> struct Converter<IDLScheduledAction> : DefaultConverter<IDLScheduledA
 
 }
 
+#endif // WebCore_bindings_js_JSDOMConvertScheduledAction_h

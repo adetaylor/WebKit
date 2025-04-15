@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cocoa_NSLocaleSPI_h
+#define WTF_wtf_spi_cocoa_NSLocaleSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -40,3 +41,4 @@ DECLARE_SYSTEM_HEADER
 + (nonnull NSArray<NSString *> *)matchedLanguagesFromAvailableLanguages:(nonnull NSArray<NSString *> *)availableLanguages forPreferredLanguages:(nonnull NSArray<NSString *> *)preferredLanguages;
 @end
 
+#endif // WTF_wtf_spi_cocoa_NSLocaleSPI_h

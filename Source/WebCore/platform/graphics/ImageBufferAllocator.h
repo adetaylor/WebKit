@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageBufferAllocator_h
+#define WebCore_platform_graphics_ImageBufferAllocator_h
 
 #include "PixelBufferFormat.h"
 #include "RenderingMode.h"
@@ -48,3 +49,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageBufferAllocator_h

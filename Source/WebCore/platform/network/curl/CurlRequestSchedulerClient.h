@@ -12,7 +12,8 @@
  *    documentation and/or other materials provided with the distribution.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CurlRequestSchedulerClient_h
+#define WebCore_platform_network_curl_CurlRequestSchedulerClient_h
 
 #include "CurlContext.h"
 
@@ -33,3 +34,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CurlRequestSchedulerClient_h

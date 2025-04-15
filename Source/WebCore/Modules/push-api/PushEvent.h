@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushEvent_h
+#define WebCore_Modules_push_api_PushEvent_h
 
 #include "ExtendableEvent.h"
 #include "Notification.h"
@@ -76,3 +77,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_push_api_PushEvent_h

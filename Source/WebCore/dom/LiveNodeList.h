@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_LiveNodeList_h
+#define WebCore_dom_LiveNodeList_h
 
 #include "CollectionIndexCache.h"
 #include "CollectionTraversal.h"
@@ -123,3 +124,4 @@ CachedLiveNodeList<NodeListType>::~CachedLiveNodeList()
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_LiveNodeList_h

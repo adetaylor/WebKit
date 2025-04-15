@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_ContainerQueryEvaluator_h
+#define WebCore_style_ContainerQueryEvaluator_h
 
 #include "ContainerQuery.h"
 #include "GenericMediaQueryEvaluator.h"
@@ -61,3 +62,4 @@ private:
 
 }
 }
+#endif // WebCore_style_ContainerQueryEvaluator_h

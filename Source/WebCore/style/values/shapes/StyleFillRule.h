@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_shapes_StyleFillRule_h
+#define WebCore_style_values_shapes_StyleFillRule_h
 
 #include "CSSFillRule.h"
 
@@ -33,3 +34,4 @@ using FillRule = CSS::FillRule;
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_shapes_StyleFillRule_h

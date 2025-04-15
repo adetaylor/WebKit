@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SequesteredMalloc_h
+#define WTF_wtf_SequesteredMalloc_h
 
 #include <cstdlib>
 #include <new>
@@ -327,3 +328,4 @@ using WTF::SequesteredArenaMalloc;
 #define WTF_MAKE_STRUCT_SEQUESTERED_IMMORTAL_ALLOCATED(type) WTF_MAKE_FAST_ALLOCATED
 
 #endif // !USE(PROTECTED_JIT)
+#endif // WTF_wtf_SequesteredMalloc_h

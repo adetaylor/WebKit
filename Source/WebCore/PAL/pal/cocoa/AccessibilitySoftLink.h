@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_AccessibilitySoftLink_h
+#define WebCore_PAL_pal_cocoa_AccessibilitySoftLink_h
 
 #if HAVE(ACCESSIBILITY_FRAMEWORK)
 
@@ -35,3 +36,4 @@ SOFT_LINK_FRAMEWORK_FOR_HEADER(PAL, Accessibility);
 SOFT_LINK_CLASS_FOR_HEADER(PAL, AXCustomContent);
 
 #endif
+#endif // WebCore_PAL_pal_cocoa_AccessibilitySoftLink_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_filter_effects_CSSFilterProperty_h
+#define WebCore_css_values_filter_effects_CSSFilterProperty_h
 
 #include "CSSBlurFunction.h"
 #include "CSSBrightnessFunction.h"
@@ -63,3 +64,4 @@ struct FilterProperty : ListOrNone<FilterValueList> { using ListOrNone<FilterVal
 } // namespace WebCore
 
 template<> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::CSS::FilterProperty> = true;
+#endif // WebCore_css_values_filter_effects_CSSFilterProperty_h

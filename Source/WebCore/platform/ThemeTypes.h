@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_ThemeTypes_h
+#define WebCore_platform_ThemeTypes_h
 
 #include "StyleAppearance.h"
 
@@ -94,3 +95,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, ThemeFont);
 WTF::TextStream& operator<<(WTF::TextStream&, ThemeColor);
 
 } // namespace WebCore
+#endif // WebCore_platform_ThemeTypes_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_Interfaces_BarcodeDetectorInterface_h
+#define WebCore_Modules_ShapeDetection_Interfaces_BarcodeDetectorInterface_h
 
 #include <wtf/CompletionHandler.h>
 #include <wtf/Ref.h>
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespace WebCore::ShapeDetection
+#endif // WebCore_Modules_ShapeDetection_Interfaces_BarcodeDetectorInterface_h

@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGLengthValue_h
+#define WebCore_svg_SVGLengthValue_h
 
 #include "ExceptionOr.h"
 #include "SVGParsingError.h"
@@ -110,3 +111,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const SVGLengthValue&);
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGLengthValue_h

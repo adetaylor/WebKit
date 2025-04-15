@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_XRGPUSubImage_h
+#define WebCore_Modules_webxr_XRGPUSubImage_h
 
 #if ENABLE(WEBXR_LAYERS)
 
@@ -66,3 +67,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR_LAYERS)
+#endif // WebCore_Modules_webxr_XRGPUSubImage_h

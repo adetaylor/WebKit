@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_DefaultAudioDestinationNode_h
+#define WebCore_Modules_webaudio_DefaultAudioDestinationNode_h
 
 #include "AudioDestinationNode.h"
 #include "AudioIOCallback.h"
@@ -98,3 +99,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_DefaultAudioDestinationNode_h

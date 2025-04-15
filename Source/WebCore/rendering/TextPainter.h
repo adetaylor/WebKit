@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_TextPainter_h
+#define WebCore_rendering_TextPainter_h
 
 #include "AffineTransform.h"
 #include "FloatRect.h"
@@ -129,3 +130,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_TextPainter_h

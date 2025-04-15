@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceContainer_h
+#define WebCore_rendering_svg_RenderSVGResourceContainer_h
 
 #include "RenderSVGHiddenContainer.h"
 
@@ -53,3 +54,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGResourceContainer, isRenderSVGResourceContainer())
 
+#endif // WebCore_rendering_svg_RenderSVGResourceContainer_h

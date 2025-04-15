@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_airplay_WebMediaSessionManagerClient_h
+#define WebCore_Modules_airplay_WebMediaSessionManagerClient_h
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 
@@ -51,3 +52,4 @@ public:
 } // namespace WebCore
 
 #endif // ENABLE(WIRELESS_PLAYBACK_TARGET)
+#endif // WebCore_Modules_airplay_WebMediaSessionManagerClient_h

@@ -27,7 +27,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontCascadeInlines_h
+#define WebCore_platform_graphics_FontCascadeInlines_h
 
 #if PLATFORM(COCOA)
 
@@ -47,3 +48,4 @@
 
 #endif
 
+#endif // WebCore_platform_graphics_FontCascadeInlines_h

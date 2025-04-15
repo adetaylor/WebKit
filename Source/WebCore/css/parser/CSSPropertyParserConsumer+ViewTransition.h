@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_ViewTransition_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_ViewTransition_h
 
 #include <wtf/Forward.h>
 
@@ -43,3 +44,4 @@ RefPtr<CSSValue> consumeViewTransitionTypes(CSSParserTokenRange&, CSS::PropertyP
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_ViewTransition_h

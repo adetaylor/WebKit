@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUComputePassEncoder_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUComputePassEncoder_h
 
 #include "WebGPUIntegralTypes.h"
 #include <cstdint>
@@ -86,3 +87,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUComputePassEncoder_h

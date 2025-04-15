@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_NameScope_h
+#define WebCore_rendering_style_NameScope_h
 
 #include <wtf/ListHashSet.h>
 #include <wtf/text/AtomString.h>
@@ -76,3 +77,4 @@ inline TextStream& operator<<(TextStream& ts, const NameScope& scope)
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_NameScope_h

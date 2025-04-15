@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPURequestAdapterOptions_h
+#define WebCore_Modules_WebGPU_GPURequestAdapterOptions_h
 
 #include "GPUPowerPreference.h"
 #include "WebGPURequestAdapterOptions.h"
@@ -47,3 +48,4 @@ struct GPURequestAdapterOptions {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPURequestAdapterOptions_h

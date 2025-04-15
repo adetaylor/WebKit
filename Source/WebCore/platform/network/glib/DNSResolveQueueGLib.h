@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_glib_DNSResolveQueueGLib_h
+#define WebCore_platform_network_glib_DNSResolveQueueGLib_h
 
 #include "DNSResolveQueue.h"
 
@@ -67,3 +68,4 @@ using DNSResolveQueuePlatform = DNSResolveQueueGLib;
 } // namespace WebCore
 
 #endif // USE(GLIB)
+#endif // WebCore_platform_network_glib_DNSResolveQueueGLib_h

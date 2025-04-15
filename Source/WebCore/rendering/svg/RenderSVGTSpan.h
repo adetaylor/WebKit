@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGTSpan_h
+#define WebCore_rendering_svg_RenderSVGTSpan_h
 
 #include "RenderBoxModelObjectInlines.h"
 #include "RenderSVGInline.h"
@@ -45,3 +46,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGTSpan, isRenderSVGTSpan())
+#endif // WebCore_rendering_svg_RenderSVGTSpan_h

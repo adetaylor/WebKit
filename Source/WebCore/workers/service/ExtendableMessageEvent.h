@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ExtendableMessageEvent_h
+#define WebCore_workers_service_ExtendableMessageEvent_h
 
 #include "ExtendableEvent.h"
 #include "ExtendableEventInit.h"
@@ -88,3 +89,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ExtendableMessageEvent_h

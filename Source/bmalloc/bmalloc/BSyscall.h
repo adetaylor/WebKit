@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_BSyscall_h
+#define bmalloc_bmalloc_BSyscall_h
 
 #include <errno.h>
 
 #define SYSCALL(x) do { \
     while ((x) == -1 && errno == EAGAIN) { } \
 } while (0);
+#endif // bmalloc_bmalloc_BSyscall_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_NumericIdentity_h
+#define WebCore_css_calc_CSSCalcTree_NumericIdentity_h
 
 #include "CSSCalcTree.h"
 #include "CSSUnits.h"
@@ -297,3 +298,4 @@ constexpr bool isLength(NumericIdentity id)
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_NumericIdentity_h

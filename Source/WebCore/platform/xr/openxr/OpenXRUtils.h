@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_xr_openxr_OpenXRUtils_h
+#define WebCore_platform_xr_openxr_OpenXRUtils_h
 
 #if ENABLE(WEBXR) && USE(OPENXR)
 
@@ -132,3 +133,4 @@ inline String handednessToString(XRHandedness handedness)
 } // namespace PlatformXR
 
 #endif // ENABLE(WEBXR) && USE(OPENXR)
+#endif // WebCore_platform_xr_openxr_OpenXRUtils_h

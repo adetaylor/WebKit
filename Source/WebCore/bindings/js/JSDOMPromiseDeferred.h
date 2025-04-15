@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMPromiseDeferred_h
+#define WebCore_bindings_js_JSDOMPromiseDeferred_h
 
 #include "ExceptionOr.h"
 #include "JSDOMConvert.h"
@@ -437,3 +438,4 @@ inline JSC::JSValue callPromiseFunction(JSC::JSGlobalObject& lexicalGlobalObject
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMPromiseDeferred_h

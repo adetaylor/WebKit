@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGGraphicsElement_h
+#define WebCore_svg_SVGGraphicsElement_h
 
 #include "SVGElement.h"
 #include "SVGTests.h"
@@ -104,3 +105,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SVGGraphicsElement)
         return svgElement && isType(*svgElement);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_svg_SVGGraphicsElement_h

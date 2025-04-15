@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_WebAuthenticationConstants_h
+#define WebCore_Modules_webauthn_WebAuthenticationConstants_h
 
 namespace COSE {
 
@@ -122,3 +123,4 @@ constexpr uint8_t backupEligibilityFlag = 0b00001000;
 constexpr uint8_t backupStateFlag = 0b00010000;
 
 } // namespace WebAuthn
+#endif // WebCore_Modules_webauthn_WebAuthenticationConstants_h

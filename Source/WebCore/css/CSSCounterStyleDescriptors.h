@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSCounterStyleDescriptors_h
+#define WebCore_css_CSSCounterStyleDescriptors_h
 
 #include <wtf/Forward.h>
 #include <wtf/OptionSet.h>
@@ -168,3 +169,4 @@ Vector<CSSCounterStyleDescriptors::Symbol> symbolsFromCSSValue(Ref<CSSValue>);
 CSSCounterStyleDescriptors::Name fallbackNameFromCSSValue(Ref<CSSValue>);
 CSSCounterStyleDescriptors::SystemData extractSystemDataFromCSSValue(RefPtr<CSSValue>, CSSCounterStyleDescriptors::System);
 } // namespace WebCore
+#endif // WebCore_css_CSSCounterStyleDescriptors_h

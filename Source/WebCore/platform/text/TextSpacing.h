@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_TextSpacing_h
+#define WebCore_platform_text_TextSpacing_h
 #include <unicode/umachine.h>
 #include <wtf/Forward.h>
 #include <wtf/text/CharacterProperties.h>
@@ -155,3 +156,4 @@ inline WTF::TextStream& operator<<(WTF::TextStream& ts, const TextAutospace& val
 
 
 } // namespace WebCore
+#endif // WebCore_platform_text_TextSpacing_h

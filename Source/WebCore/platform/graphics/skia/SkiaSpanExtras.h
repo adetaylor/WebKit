@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_skia_SkiaSpanExtras_h
+#define WebCore_platform_graphics_skia_SkiaSpanExtras_h
 
 #include <wtf/StdLibExtras.h>
 
@@ -60,3 +61,4 @@ inline std::span<uint8_t> mutableSpan(SkPixmap& pixmap)
 using WebCore::span;
 
 #endif // USE(SKIA)
+#endif // WebCore_platform_graphics_skia_SkiaSpanExtras_h

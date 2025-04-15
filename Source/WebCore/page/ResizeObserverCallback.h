@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ResizeObserverCallback_h
+#define WebCore_page_ResizeObserverCallback_h
 
 #include "ActiveDOMCallback.h"
 #include "CallbackResult.h"
@@ -45,3 +46,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ResizeObserverCallback_h

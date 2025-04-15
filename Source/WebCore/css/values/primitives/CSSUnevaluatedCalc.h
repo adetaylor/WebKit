@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSUnevaluatedCalc_h
+#define WebCore_css_values_primitives_CSSUnevaluatedCalc_h
 
 #include "CSSPrimitiveNumericConcepts.h"
 #include "CSSValueTypes.h"
@@ -214,3 +215,4 @@ template<WebCore::CSS::Calc T> struct IsSmartPtr<T> {
 };
 
 } // namespace WTF
+#endif // WebCore_css_values_primitives_CSSUnevaluatedCalc_h

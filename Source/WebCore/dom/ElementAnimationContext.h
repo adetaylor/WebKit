@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementAnimationContext_h
+#define WebCore_dom_ElementAnimationContext_h
 
 #include "ElementContext.h"
 
@@ -41,3 +42,4 @@ struct ElementAnimationContext {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ElementAnimationContext_h

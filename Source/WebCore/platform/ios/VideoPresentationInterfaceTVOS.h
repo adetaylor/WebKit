@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_VideoPresentationInterfaceTVOS_h
+#define WebCore_platform_ios_VideoPresentationInterfaceTVOS_h
 
 #if PLATFORM(APPLETV)
 
@@ -66,3 +67,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(APPLETV)
+#endif // WebCore_platform_ios_VideoPresentationInterfaceTVOS_h

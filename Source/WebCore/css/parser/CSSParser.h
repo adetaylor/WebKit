@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSParser_h
+#define WebCore_css_parser_CSSParser_h
 
 #include "CSSParserEnum.h"
 #include <optional>
@@ -73,3 +74,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSParser_h

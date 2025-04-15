@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_SpeechSoftLink_h
+#define WebCore_PAL_pal_cocoa_SpeechSoftLink_h
 
 #if HAVE(SPEECHRECOGNIZER)
 
@@ -40,3 +41,4 @@ SOFT_LINK_CLASS_FOR_HEADER(PAL, SFTranscriptionSegment);
 SOFT_LINK_CLASS_FOR_HEADER(PAL, SFTranscription);
 
 #endif
+#endif // WebCore_PAL_pal_cocoa_SpeechSoftLink_h

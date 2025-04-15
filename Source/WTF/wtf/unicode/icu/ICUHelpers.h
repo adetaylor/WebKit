@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_unicode_icu_ICUHelpers_h
+#define WTF_wtf_unicode_icu_ICUHelpers_h
 
 #include <tuple>
 #include <unicode/utypes.h>
@@ -129,3 +130,4 @@ using WTF::callBufferProducingFunction;
 using WTF::needsToGrowToProduceCString;
 using WTF::needsToGrowToProduceBuffer;
 using WTF::ICUDeleter;
+#endif // WTF_wtf_unicode_icu_ICUHelpers_h

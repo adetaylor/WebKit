@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_SubresourceLoader_h
+#define WebCore_loader_SubresourceLoader_h
 
 #include "CachedResourceLoader.h"
 #include "FrameLoaderTypes.h"
@@ -152,3 +153,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SubresourceLoader)
 static bool isType(const WebCore::ResourceLoader& loader) { return loader.isSubresourceLoader(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_loader_SubresourceLoader_h

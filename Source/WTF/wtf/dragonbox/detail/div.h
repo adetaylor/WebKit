@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_detail_div_h
+#define WTF_wtf_dragonbox_detail_div_h
 
 #include <wtf/dragonbox/detail/log.h>
 #include <wtf/dragonbox/detail/util.h>
@@ -128,3 +129,4 @@ constexpr UInt divide_by_pow10(UInt n) noexcept
 } // namespace dragonbox
 
 } // namespace WTF
+#endif // WTF_wtf_dragonbox_detail_div_h

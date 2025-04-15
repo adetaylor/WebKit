@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_numeric_CSSNumericBaseType_h
+#define WebCore_css_typedom_numeric_CSSNumericBaseType_h
 
 #include <array>
 #include <wtf/text/ASCIILiteral.h>
@@ -75,3 +76,4 @@ constexpr ASCIILiteral debugString(CSSNumericBaseType type)
 }
 
 } // namespace WebCore
+#endif // WebCore_css_typedom_numeric_CSSNumericBaseType_h

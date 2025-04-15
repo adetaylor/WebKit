@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceMonitor_h
+#define WebCore_page_PerformanceMonitor_h
 
 #include "ActivityState.h"
 #include "Timer.h"
@@ -73,3 +74,4 @@ private:
 };
 
 }
+#endif // WebCore_page_PerformanceMonitor_h

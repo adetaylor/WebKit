@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_mac_CoreAudioCaptureDevice_h
+#define WebCore_platform_mediastream_mac_CoreAudioCaptureDevice_h
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(MAC)
 
@@ -56,3 +57,4 @@ private:
 
 #endif // ENABLE(MEDIA_STREAM) && PLATFORM(MAC)
 
+#endif // WebCore_platform_mediastream_mac_CoreAudioCaptureDevice_h

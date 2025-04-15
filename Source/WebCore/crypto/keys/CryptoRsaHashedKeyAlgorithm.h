@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_keys_CryptoRsaHashedKeyAlgorithm_h
+#define WebCore_crypto_keys_CryptoRsaHashedKeyAlgorithm_h
 
 #include "CryptoRsaKeyAlgorithm.h"
 
@@ -36,3 +37,4 @@ struct CryptoRsaHashedKeyAlgorithm : CryptoRsaKeyAlgorithm {
 
 }
 
+#endif // WebCore_crypto_keys_CryptoRsaHashedKeyAlgorithm_h

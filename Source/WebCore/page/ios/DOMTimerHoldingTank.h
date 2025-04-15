@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ios_DOMTimerHoldingTank_h
+#define WebCore_page_ios_DOMTimerHoldingTank_h
 
 #if ENABLE(CONTENT_CHANGE_OBSERVER)
 
@@ -77,3 +78,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_CHANGE_OBSERVER)
+#endif // WebCore_page_ios_DOMTimerHoldingTank_h

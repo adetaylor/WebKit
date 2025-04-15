@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PageBlock_h
+#define WTF_wtf_PageBlock_h
 
 #include <wtf/FastMalloc.h>
 #include <wtf/StdLibExtras.h>
@@ -109,3 +110,4 @@ using WTF::isPageAligned;
 using WTF::isPowerOfTwo;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_PageBlock_h

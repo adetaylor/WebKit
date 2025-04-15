@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_BarcodeFormat_h
+#define WebCore_Modules_ShapeDetection_BarcodeFormat_h
 
 #include "BarcodeFormatInterface.h"
 #include <cstdint>
@@ -118,3 +119,4 @@ inline BarcodeFormat convertFromBacking(ShapeDetection::BarcodeFormat barcodeFor
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_ShapeDetection_BarcodeFormat_h

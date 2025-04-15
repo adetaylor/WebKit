@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_GridLayoutFunctions_h
+#define WebCore_rendering_GridLayoutFunctions_h
 
 #include "GridPositionsResolver.h"
 #include "LayoutUnit.h"
@@ -86,3 +87,4 @@ GridTrackSizingDirection gridDirectionForAxis(GridAxis);
 
 } // namespace WebCore
 
+#endif // WebCore_rendering_GridLayoutFunctions_h

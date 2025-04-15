@@ -22,7 +22,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_mse_MediaPlayerPrivateGStreamerMSE_h
+#define WebCore_platform_graphics_gstreamer_mse_MediaPlayerPrivateGStreamerMSE_h
 
 #if ENABLE(VIDEO) && USE(GSTREAMER) && ENABLE(MEDIA_SOURCE)
 
@@ -140,3 +141,4 @@ static bool isType(const WebCore::MediaPlayerPrivateInterface& player) { return 
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_mse_MediaPlayerPrivateGStreamerMSE_h

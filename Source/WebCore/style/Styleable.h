@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_Styleable_h
+#define WebCore_style_Styleable_h
 
 #include "Element.h"
 #include "PseudoElement.h"
@@ -233,3 +234,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const Styleable&);
 WTF::TextStream& operator<<(WTF::TextStream&, const WeakStyleable&);
 
 } // namespace WebCore
+#endif // WebCore_style_Styleable_h

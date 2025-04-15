@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontPlatformData_h
+#define WebCore_platform_graphics_FontPlatformData_h
 
 #include "SharedBuffer.h"
 #include "ShouldLocalizeAxisNames.h"
@@ -537,3 +538,4 @@ constexpr int cWindowsFontScaleFactor = 32;
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_FontPlatformData_h

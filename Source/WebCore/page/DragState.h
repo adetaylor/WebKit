@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_page_DragState_h
+#define WebCore_page_DragState_h
 
 #include "DataTransfer.h"
 #include "DragActions.h"
@@ -41,3 +42,4 @@ struct DragState {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_DragState_h

@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_MutationObserver_h
+#define WebCore_dom_MutationObserver_h
 
 #include "ExceptionOr.h"
 #include "GCReachableRef.h"
@@ -132,3 +133,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_MutationObserver_h

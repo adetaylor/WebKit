@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StdMap_h
+#define WTF_wtf_StdMap_h
 
 #include <map>
 #include <wtf/FastMalloc.h>
@@ -36,3 +37,4 @@ using StdMap = std::map<Key, Value, Compare, Allocator>;
 } // namespace WTF
 
 using WTF::StdMap;
+#endif // WTF_wtf_StdMap_h

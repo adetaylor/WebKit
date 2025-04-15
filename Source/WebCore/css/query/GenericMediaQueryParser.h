@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_query_GenericMediaQueryParser_h
+#define WebCore_css_query_GenericMediaQueryParser_h
 
 #include "CSSParserContext.h"
 #include "CSSParserTokenRange.h"
@@ -194,3 +195,4 @@ const FeatureSchema* GenericMediaQueryParser<ConcreteParser>::schemaForFeatureNa
 
 }
 }
+#endif // WebCore_css_query_GenericMediaQueryParser_h

@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_OutlineValue_h
+#define WebCore_rendering_style_OutlineValue_h
 
 #include "BorderValue.h"
 
@@ -41,3 +42,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_OutlineValue_h

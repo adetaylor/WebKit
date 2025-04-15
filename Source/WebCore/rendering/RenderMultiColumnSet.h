@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderMultiColumnSet_h
+#define WebCore_rendering_RenderMultiColumnSet_h
 
 #include "LayerFragment.h"
 #include "RenderFragmentContainerSet.h"
@@ -244,3 +245,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderMultiColumnSet, isRenderMultiColumnSet())
+#endif // WebCore_rendering_RenderMultiColumnSet_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushPermissionState_h
+#define WebCore_Modules_push_api_PushPermissionState_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class PushPermissionState : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_push_api_PushPermissionState_h

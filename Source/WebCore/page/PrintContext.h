@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_page_PrintContext_h
+#define WebCore_page_PrintContext_h
 
 #include "FrameDestructionObserver.h"
 #include "LengthBox.h"
@@ -115,3 +116,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PrintContext_h

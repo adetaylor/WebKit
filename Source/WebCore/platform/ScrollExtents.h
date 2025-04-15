@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollExtents_h
+#define WebCore_platform_ScrollExtents_h
 
 #include "FloatPoint.h"
 #include "IntPoint.h"
@@ -40,3 +41,4 @@ struct ScrollExtents {
 };
 
 }
+#endif // WebCore_platform_ScrollExtents_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_InlineIteratorLineBox_h
+#define WebCore_layout_integration_inline_InlineIteratorLineBox_h
 
 #include "FontBaseline.h"
 #include "InlineIteratorLineBoxLegacyPath.h"
@@ -329,3 +330,4 @@ inline size_t LineBox::lineIndex() const
 }
 }
 
+#endif // WebCore_layout_integration_inline_InlineIteratorLineBox_h

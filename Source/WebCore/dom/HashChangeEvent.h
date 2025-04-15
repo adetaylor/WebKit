@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_HashChangeEvent_h
+#define WebCore_dom_HashChangeEvent_h
 
 #include "Event.h"
 #include "EventNames.h"
@@ -76,3 +77,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_HashChangeEvent_h

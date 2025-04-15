@@ -18,9 +18,11 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_Noncopyable_h
+#define WTF_wtf_Noncopyable_h
 
 #define WTF_MAKE_NONCOPYABLE(ClassName) \
     ClassName(const ClassName&) = delete; \
     ClassName& operator=(const ClassName&) = delete; \
 
+#endif // WTF_wtf_Noncopyable_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_playstation_ScrollbarThemePlayStation_h
+#define WebCore_platform_playstation_ScrollbarThemePlayStation_h
 
 #include "ScrollbarThemeComposite.h"
 
@@ -48,3 +49,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_playstation_ScrollbarThemePlayStation_h

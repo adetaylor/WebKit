@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_parser_HTMLSrcsetParser_h
+#define WebCore_html_parser_HTMLSrcsetParser_h
 
 #include <wtf/ListHashSet.h>
 #include <wtf/text/StringView.h>
@@ -115,3 +116,4 @@ void getURLsFromSrcsetAttribute(const Element&, StringView attribute, ListHashSe
 String replaceURLsInSrcsetAttribute(const Element&, StringView attribute, const CSS::SerializationContext&);
 
 } // namespace WebCore
+#endif // WebCore_html_parser_HTMLSrcsetParser_h

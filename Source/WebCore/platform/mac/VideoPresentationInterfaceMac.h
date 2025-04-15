@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_VideoPresentationInterfaceMac_h
+#define WebCore_platform_mac_VideoPresentationInterfaceMac_h
 
 #if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
 
@@ -153,3 +154,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
+#endif // WebCore_platform_mac_VideoPresentationInterfaceMac_h

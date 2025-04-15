@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_telemetry_MediaTelemetry_h
+#define WebCore_platform_graphics_gstreamer_telemetry_MediaTelemetry_h
 
 #if ENABLE(MEDIA_TELEMETRY)
 
@@ -117,3 +118,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(TELEMETRY)
+#endif // WebCore_platform_graphics_gstreamer_telemetry_MediaTelemetry_h

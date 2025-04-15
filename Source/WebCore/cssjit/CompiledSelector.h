@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_cssjit_CompiledSelector_h
+#define WebCore_cssjit_CompiledSelector_h
 
 #if ENABLE(CSS_SELECTOR_JIT)
 
@@ -65,3 +66,4 @@ struct CompiledSelector {
 }
 
 #endif
+#endif // WebCore_cssjit_CompiledSelector_h

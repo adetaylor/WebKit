@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_Scrollbar_h
+#define WebCore_platform_Scrollbar_h
 
 #include "ScrollTypes.h"
 #include "Timer.h"
@@ -203,3 +204,4 @@ SPECIALIZE_TYPE_TRAITS_WIDGET(Scrollbar, isScrollbar())
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::Scrollbar& scrollbar) { return scrollbar.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_Scrollbar_h

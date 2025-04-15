@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cf_CFURLExtras_h
+#define WTF_wtf_cf_CFURLExtras_h
 
 #include <span>
 #include <wtf/Forward.h>
@@ -47,3 +48,4 @@ bool isSameOrigin(CFURLRef, const URL&);
 using WTF::bytesAsCFData;
 using WTF::bytesAsString;
 using WTF::bytesAsVector;
+#endif // WTF_wtf_cf_CFURLExtras_h

@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilitySpinButton_h
+#define WebCore_accessibility_AccessibilitySpinButton_h
 
 #include "AccessibilityMockObject.h"
 #include "AccessibilitySpinButtonPart.h"
@@ -64,3 +65,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilitySpinButton) \
     static bool isType(const WebCore::AccessibilityObject& object) { return object.isNativeSpinButton(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_accessibility_AccessibilitySpinButton_h

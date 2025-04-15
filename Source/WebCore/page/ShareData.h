@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ShareData_h
+#define WebCore_page_ShareData_h
 
 #include "File.h"
 #include "SharedBuffer.h"
@@ -53,3 +54,4 @@ struct ShareDataWithParsedURL {
 };
     
 }
+#endif // WebCore_page_ShareData_h

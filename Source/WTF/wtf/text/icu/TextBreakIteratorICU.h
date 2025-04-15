@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_icu_TextBreakIteratorICU_h
+#define WTF_wtf_text_icu_TextBreakIteratorICU_h
 
 #include <unicode/ubrk.h>
 #include <wtf/StdLibExtras.h>
@@ -197,3 +198,4 @@ private:
 };
 
 }
+#endif // WTF_wtf_text_icu_TextBreakIteratorICU_h

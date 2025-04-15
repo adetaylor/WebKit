@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ChildNodeList_h
+#define WebCore_dom_ChildNodeList_h
 
 #include "CollectionIndexCache.h"
 #include "NodeList.h"
@@ -99,3 +100,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ChildNodeList_h

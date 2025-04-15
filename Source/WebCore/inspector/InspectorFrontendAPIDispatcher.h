@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorFrontendAPIDispatcher_h
+#define WebCore_inspector_InspectorFrontendAPIDispatcher_h
 
 #include "ExceptionDetails.h"
 #include <wtf/CompletionHandler.h>
@@ -98,3 +99,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorFrontendAPIDispatcher_h

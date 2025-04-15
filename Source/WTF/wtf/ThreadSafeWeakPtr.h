@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ThreadSafeWeakPtr_h
+#define WTF_wtf_ThreadSafeWeakPtr_h
 
 #include <wtf/Lock.h>
 #include <wtf/MainThread.h>
@@ -682,3 +683,4 @@ using WTF::ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr;
 using WTF::ThreadSafeWeakPtr;
 using WTF::ThreadSafeWeakPtrControlBlock;
 using WTF::ThreadSafeWeakOrStrongPtr;
+#endif // WTF_wtf_ThreadSafeWeakPtr_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_xml_XMLHttpRequestUpload_h
+#define WebCore_xml_XMLHttpRequestUpload_h
 
 #include "XMLHttpRequest.h"
 #include <wtf/Forward.h>
@@ -59,3 +60,4 @@ private:
 WebCoreOpaqueRoot root(XMLHttpRequestUpload*);
     
 } // namespace WebCore
+#endif // WebCore_xml_XMLHttpRequestUpload_h

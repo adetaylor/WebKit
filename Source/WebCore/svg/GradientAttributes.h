@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_GradientAttributes_h
+#define WebCore_svg_GradientAttributes_h
 
 #include "SVGGradientElement.h"
 #include "SVGUnitTypes.h"
@@ -90,3 +91,4 @@ struct SameSizeAsGradientAttributes {
 static_assert(sizeof(GradientAttributes) == sizeof(SameSizeAsGradientAttributes));
 
 } // namespace WebCore
+#endif // WebCore_svg_GradientAttributes_h

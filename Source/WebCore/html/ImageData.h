@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_ImageData_h
+#define WebCore_html_ImageData_h
 
 #include "ByteArrayPixelBuffer.h"
 #include "ExceptionOr.h"
@@ -76,3 +77,4 @@ private:
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, const ImageData&);
 
 } // namespace WebCore
+#endif // WebCore_html_ImageData_h

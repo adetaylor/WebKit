@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGPreserveAspectRatio_h
+#define WebCore_svg_SVGPreserveAspectRatio_h
 
 #include "SVGPreserveAspectRatioValue.h"
 #include "SVGValueProperty.h"
@@ -86,3 +87,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGPreserveAspectRatio_h

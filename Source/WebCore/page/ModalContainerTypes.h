@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ModalContainerTypes_h
+#define WebCore_page_ModalContainerTypes_h
 
 namespace WebCore {
 
@@ -42,3 +43,4 @@ enum class ModalContainerDecision : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ModalContainerTypes_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGGradientStopInlines_h
+#define WebCore_rendering_svg_RenderSVGGradientStopInlines_h
 
 #include "RenderSVGGradientStop.h"
 #include "SVGStopElement.h"
@@ -36,3 +37,4 @@ inline SVGStopElement& RenderSVGGradientStop::element() const
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_RenderSVGGradientStopInlines_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_WebCoreOpaqueRootInlines_h
+#define WebCore_bindings_js_WebCoreOpaqueRootInlines_h
 
 #include "DocumentInlines.h"
 #include "ElementInlines.h"
@@ -69,3 +70,4 @@ ALWAYS_INLINE bool containsWebCoreOpaqueRoot(Visitor& visitor, ImplType* impl)
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_WebCoreOpaqueRootInlines_h

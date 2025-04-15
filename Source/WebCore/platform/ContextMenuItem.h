@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_ContextMenuItem_h
+#define WebCore_platform_ContextMenuItem_h
 
 #include <wtf/EnumTraits.h>
 #include <wtf/TZoneMalloc.h>
@@ -229,3 +230,4 @@ namespace WTF {
 template<> WEBCORE_EXPORT bool isValidEnum<WebCore::ContextMenuAction>(std::underlying_type_t<WebCore::ContextMenuAction>);
 
 } // namespace WTF
+#endif // WebCore_platform_ContextMenuItem_h

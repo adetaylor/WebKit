@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_LogicalSelectionOffsetCaches_h
+#define WebCore_rendering_LogicalSelectionOffsetCaches_h
 
 #include "RenderBlock.h"
 #include "RenderElementInlines.h"
@@ -130,3 +131,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_LogicalSelectionOffsetCaches_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_VideoFrameRequestCallback_h
+#define WebCore_html_VideoFrameRequestCallback_h
 
 #if ENABLE(VIDEO)
 
@@ -50,3 +51,4 @@ private:
 }
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_html_VideoFrameRequestCallback_h

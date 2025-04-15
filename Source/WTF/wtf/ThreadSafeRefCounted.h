@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ThreadSafeRefCounted_h
+#define WTF_wtf_ThreadSafeRefCounted_h
 
 #include <atomic>
 #include <wtf/FastMalloc.h>
@@ -157,3 +158,4 @@ protected:
 } // namespace WTF
 
 using WTF::ThreadSafeRefCounted;
+#endif // WTF_wtf_ThreadSafeRefCounted_h

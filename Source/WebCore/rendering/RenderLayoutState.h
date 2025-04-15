@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderLayoutState_h
+#define WebCore_rendering_RenderLayoutState_h
 
 #include "LayoutRect.h"
 #include "LocalFrameViewLayoutContext.h"
@@ -219,3 +220,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderLayoutState_h

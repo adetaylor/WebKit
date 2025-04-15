@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_TextureMapperDamageVisualizer_h
+#define WebCore_platform_graphics_texmap_TextureMapperDamageVisualizer_h
 
 #if ENABLE(DAMAGE_TRACKING)
 #include "FloatRect.h"
@@ -52,3 +53,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(DAMAGE_TRACKING)
+#endif // WebCore_platform_graphics_texmap_TextureMapperDamageVisualizer_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_url_pattern_URLPatternParser_h
+#define WebCore_Modules_url_pattern_URLPatternParser_h
 
 #include "URLPatternTokenizer.h"
 #include <wtf/text/StringBuilder.h>
@@ -102,3 +103,4 @@ bool isValidNameCodepoint(UChar codepoint, URLPatternUtilities::IsFirst);
 
 } // namespace URLPatternUtilities
 } // namespace WebCore
+#endif // WebCore_Modules_url_pattern_URLPatternParser_h

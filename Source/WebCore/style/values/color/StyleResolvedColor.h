@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleResolvedColor_h
+#define WebCore_style_values_color_StyleResolvedColor_h
 
 #include "CSSResolvedColor.h"
 #include "Color.h"
@@ -62,3 +63,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const ResolvedColor&);
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_color_StyleResolvedColor_h

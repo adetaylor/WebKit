@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_shadow_DataListButtonElement_h
+#define WebCore_html_shadow_DataListButtonElement_h
 
 #include "HTMLDivElement.h"
 
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_shadow_DataListButtonElement_h

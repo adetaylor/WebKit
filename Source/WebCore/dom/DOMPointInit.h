@@ -28,7 +28,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMPointInit_h
+#define WebCore_dom_DOMPointInit_h
 
 namespace WebCore {
 
@@ -40,3 +41,4 @@ struct DOMPointInit {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DOMPointInit_h

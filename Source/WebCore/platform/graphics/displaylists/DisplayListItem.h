@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_displaylists_DisplayListItem_h
+#define WebCore_platform_graphics_displaylists_DisplayListItem_h
 
 #include "RenderingResourceIdentifier.h"
 #include <variant>
@@ -200,3 +201,4 @@ WEBCORE_EXPORT TextStream& operator<<(TextStream&, StopReplayReason);
 
 } // namespace DisplayList
 } // namespace WebCore
+#endif // WebCore_platform_graphics_displaylists_DisplayListItem_h

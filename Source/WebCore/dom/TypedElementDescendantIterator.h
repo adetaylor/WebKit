@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_TypedElementDescendantIterator_h
+#define WebCore_dom_TypedElementDescendantIterator_h
 
 #include "ElementIterator.h"
 
@@ -190,3 +191,4 @@ template<typename ElementType, bool filter(const ElementType&)> FilteredElementD
 // Standalone functions
 
 } // namespace WebCore
+#endif // WebCore_dom_TypedElementDescendantIterator_h

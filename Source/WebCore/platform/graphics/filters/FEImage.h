@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FEImage_h
+#define WebCore_platform_graphics_filters_FEImage_h
 
 #include "FilterEffect.h"
 #include "Image.h"
@@ -72,3 +73,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(FEImage)
+#endif // WebCore_platform_graphics_filters_FEImage_h

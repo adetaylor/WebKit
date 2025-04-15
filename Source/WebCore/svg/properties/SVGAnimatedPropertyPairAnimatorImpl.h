@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGAnimatedPropertyPairAnimatorImpl_h
+#define WebCore_svg_properties_SVGAnimatedPropertyPairAnimatorImpl_h
 
 #include "SVGAnimatedPropertyImpl.h"
 #include "SVGAnimatedPropertyPairAnimator.h"
@@ -196,3 +197,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_properties_SVGAnimatedPropertyPairAnimatorImpl_h

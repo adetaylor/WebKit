@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_cssjit_RegisterAllocator_h
+#define WebCore_cssjit_RegisterAllocator_h
 
 #if ENABLE(CSS_SELECTOR_JIT)
 
@@ -249,3 +250,4 @@ inline RegisterAllocator::~RegisterAllocator()
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 
 #endif // ENABLE(CSS_SELECTOR_JIT)
+#endif // WebCore_cssjit_RegisterAllocator_h

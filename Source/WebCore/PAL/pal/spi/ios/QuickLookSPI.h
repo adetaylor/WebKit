@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_ios_QuickLookSPI_h
+#define WebCore_PAL_pal_spi_ios_QuickLookSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -95,3 +96,4 @@ NSString *QLTypeCopyBestMimeTypeForURLAndMimeType(NSURL *, NSString *mimeType);
 NSString *QLTypeCopyUTIForURLAndMimeType(NSURL *, NSString *mimeType);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_ios_QuickLookSPI_h

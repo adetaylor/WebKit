@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_WritingToolsSPI_h
+#define WebCore_PAL_pal_spi_cocoa_WritingToolsSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -81,3 +82,4 @@ constexpr auto PlatformWritingToolsResultTable = (PlatformWritingToolsResultOpti
 #endif // USE(APPLE_INTERNAL_SDK)
 
 #endif // ENABLE(WRITING_TOOLS)
+#endif // WebCore_PAL_pal_spi_cocoa_WritingToolsSPI_h

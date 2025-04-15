@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WeakHashCountedSet_h
+#define WTF_wtf_WeakHashCountedSet_h
 
 #include <wtf/WeakHashMap.h>
 
@@ -142,3 +143,4 @@ using SingleThreadWeakHashCountedSet = WeakHashCountedSet<Value, SingleThreadWea
 
 using WTF::SingleThreadWeakHashCountedSet;
 using WTF::WeakHashCountedSet;
+#endif // WTF_wtf_WeakHashCountedSet_h

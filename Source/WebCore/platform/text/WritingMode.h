@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_WritingMode_h
+#define WebCore_platform_text_WritingMode_h
 
 #include <wtf/text/TextStream.h>
 
@@ -493,3 +494,4 @@ inline TextStream& operator<<(TextStream& stream, WritingMode writingMode)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_text_WritingMode_h

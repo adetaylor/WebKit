@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XPathStep_h
+#define WebCore_xml_XPathStep_h
 
 #include <wtf/TZoneMalloc.h>
 #include <wtf/Vector.h>
@@ -98,3 +99,4 @@ void optimizeStepPair(Step&, Step&, bool& dropSecondStep);
 
 } // namespace XPath
 } // namespace WebCore
+#endif // WebCore_xml_XPathStep_h

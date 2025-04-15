@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ResizeObserverOptions_h
+#define WebCore_page_ResizeObserverOptions_h
 
 #include "ResizeObserverBoxOptions.h"
 
@@ -37,3 +38,4 @@ struct ResizeObserverOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ResizeObserverOptions_h

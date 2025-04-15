@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_UnicodeHelpers_h
+#define WebCore_platform_text_UnicodeHelpers_h
 
 #include <optional>
 
@@ -37,3 +38,4 @@ enum class TextDirection : bool;
 std::optional<TextDirection> baseTextDirection(StringView);
 
 } // namespace WebCore
+#endif // WebCore_platform_text_UnicodeHelpers_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_HitTestingTransformState_h
+#define WebCore_rendering_HitTestingTransformState_h
 
 #include "FloatPoint.h"
 #include "FloatQuad.h"
@@ -89,3 +90,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_HitTestingTransformState_h

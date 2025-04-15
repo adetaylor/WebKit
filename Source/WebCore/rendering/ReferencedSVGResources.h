@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_ReferencedSVGResources_h
+#define WebCore_rendering_ReferencedSVGResources_h
 
 #include "SVGNames.h"
 #include <wtf/RobinHoodHashMap.h>
@@ -92,3 +93,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_ReferencedSVGResources_h

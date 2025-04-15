@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_page_FrameTree_h
+#define WebCore_page_FrameTree_h
 
 #include "FrameIdentifier.h"
 #include <wtf/Forward.h>
@@ -129,3 +130,4 @@ bool isTopTargetFrameName(StringView);
 // Outside the WebCore namespace for ease of invocation from the debugger.
 WEBCORE_EXPORT void showFrameTree(const WebCore::Frame*);
 #endif
+#endif // WebCore_page_FrameTree_h

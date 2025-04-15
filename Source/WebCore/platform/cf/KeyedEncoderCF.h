@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cf_KeyedEncoderCF_h
+#define WebCore_platform_cf_KeyedEncoderCF_h
 
 #include "KeyedCoding.h"
 #include <wtf/RetainPtr.h>
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_cf_KeyedEncoderCF_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_UsageTrackingSoftLink_h
+#define WebCore_PAL_pal_cocoa_UsageTrackingSoftLink_h
 
 #if HAVE(MEDIA_USAGE_FRAMEWORK)
 
@@ -92,3 +93,4 @@ SOFT_LINK_CONSTANT_MAY_FAIL_FOR_HEADER(PAL, UsageTracking, USVideoMetadataKeyIsL
 #define USVideoMetadataKeyIsLargeEnoughForMainContent PAL::get_UsageTracking_USVideoMetadataKeyIsLargeEnoughForMainContent()
 
 #endif // HAVE(MEDIA_USAGE_FRAMEWORK)
+#endif // WebCore_PAL_pal_cocoa_UsageTrackingSoftLink_h

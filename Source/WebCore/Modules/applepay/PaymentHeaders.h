@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_PaymentHeaders_h
+#define WebCore_Modules_applepay_PaymentHeaders_h
 
 #include "ApplePayCouponCodeUpdate.h"
 #include "ApplePayPaymentMethodUpdate.h"
@@ -36,3 +37,4 @@
 #include "PaymentMethod.h"
 #include "PaymentSessionError.h"
 #include "PaymentSummaryItems.h"
+#endif // WebCore_Modules_applepay_PaymentHeaders_h

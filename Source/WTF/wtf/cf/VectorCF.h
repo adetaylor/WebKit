@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cf_VectorCF_h
+#define WTF_wtf_cf_VectorCF_h
 
 #if USE(CF)
 
@@ -221,3 +222,4 @@ using WTF::span;
 using WTF::toCFData;
 
 #endif // USE(CF)
+#endif // WTF_wtf_cf_VectorCF_h

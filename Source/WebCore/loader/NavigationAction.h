@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_NavigationAction_h
+#define WebCore_loader_NavigationAction_h
 
 #include "BackForwardItemIdentifier.h"
 #include "CrossOriginOpenerPolicy.h"
@@ -184,3 +185,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_NavigationAction_h

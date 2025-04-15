@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_system_SystemSleepListener_h
+#define WebCore_PAL_pal_system_SystemSleepListener_h
 
 namespace PAL {
 
@@ -48,3 +49,4 @@ protected:
 };
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_system_SystemSleepListener_h

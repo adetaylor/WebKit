@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_shapes_StylePolygonFunction_h
+#define WebCore_style_values_shapes_StylePolygonFunction_h
 
 #include "CSSPolygonFunction.h"
 #include "StyleFillRule.h"
@@ -68,3 +69,4 @@ template<> struct Blending<Polygon> {
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::Polygon, 2)
+#endif // WebCore_style_values_shapes_StylePolygonFunction_h

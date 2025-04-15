@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_VP9Utilities_h
+#define WebCore_platform_graphics_VP9Utilities_h
 
 #include "PlatformVideoColorSpace.h"
 #include "ScreenDataOverrides.h"
@@ -138,3 +139,4 @@ Vector<uint8_t> vpcCFromVPCodecConfigurationRecord(const VPCodecConfigurationRec
 PlatformVideoColorSpace colorSpaceFromVPCodecConfigurationRecord(const VPCodecConfigurationRecord&);
 
 }
+#endif // WebCore_platform_graphics_VP9Utilities_h

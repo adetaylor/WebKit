@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_calc_CalculationOperator_h
+#define WebCore_platform_calc_CalculationOperator_h
 
 #include <wtf/Forward.h>
 
@@ -70,3 +71,4 @@ TextStream& operator<<(TextStream&, Operator);
 
 } // namespace Calculation
 } // namespace WebCore
+#endif // WebCore_platform_calc_CalculationOperator_h

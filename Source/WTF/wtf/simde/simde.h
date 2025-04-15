@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_simde_simde_h
+#define WTF_wtf_simde_simde_h
 
 #include <wtf/Compiler.h>
 #include <wtf/Platform.h>
@@ -37,3 +38,4 @@ IGNORE_WARNINGS_BEGIN("constant-conversion")
 #include <wtf/simde/arm/neon.h>
 #include <wtf/simde/arm/sve.h>
 IGNORE_WARNINGS_END
+#endif // WTF_wtf_simde_simde_h

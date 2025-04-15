@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_ios_ReplayKitSoftLink_h
+#define WebCore_PAL_pal_ios_ReplayKitSoftLink_h
 
 #if HAVE(REPLAYKIT)
 
@@ -34,3 +35,4 @@ SOFT_LINK_FRAMEWORK_FOR_HEADER(PAL, ReplayKit)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, RPScreenRecorder)
 
 #endif // HAVE(REPLAYKIT)
+#endif // WebCore_PAL_pal_ios_ReplayKitSoftLink_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_AV1UtilitiesCocoa_h
+#define WebCore_platform_graphics_cocoa_AV1UtilitiesCocoa_h
 
 #if PLATFORM(COCOA) && ENABLE(AV1)
 
@@ -39,3 +40,4 @@ WEBCORE_EXPORT bool av1HardwareDecoderAvailable();
 }
 
 #endif
+#endif // WebCore_platform_graphics_cocoa_AV1UtilitiesCocoa_h

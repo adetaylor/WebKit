@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_text_TextStreamCocoa_h
+#define WTF_wtf_text_TextStreamCocoa_h
 
 #include <CoreGraphics/CGGeometry.h>
 #include <wtf/text/TextStream.h>
@@ -39,3 +40,4 @@ WTF_EXPORT_PRIVATE TextStream& operator<<(TextStream&, CGPoint);
 #endif
 
 } // namespace WTF
+#endif // WTF_wtf_text_TextStreamCocoa_h

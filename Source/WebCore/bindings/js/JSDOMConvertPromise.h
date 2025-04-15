@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertPromise_h
+#define WebCore_bindings_js_JSDOMConvertPromise_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -104,3 +105,4 @@ template<typename T> struct JSConverter<IDLPromiseIgnoringSuspension<T>> : publi
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertPromise_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringView_h
+#define WTF_wtf_text_StringView_h
 
 #include <limits.h>
 #include <unicode/utypes.h>
@@ -1500,3 +1501,4 @@ using WTF::StringViewWithUnderlyingString;
 using WTF::hasUnpairedSurrogate;
 using WTF::nullStringView;
 using WTF::emptyStringView;
+#endif // WTF_wtf_text_StringView_h

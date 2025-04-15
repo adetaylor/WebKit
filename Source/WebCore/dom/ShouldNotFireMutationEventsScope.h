@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ShouldNotFireMutationEventsScope_h
+#define WebCore_dom_ShouldNotFireMutationEventsScope_h
 
 #include "Document.h"
 
@@ -47,3 +48,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ShouldNotFireMutationEventsScope_h

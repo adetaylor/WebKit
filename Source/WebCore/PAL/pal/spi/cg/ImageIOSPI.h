@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cg_ImageIOSPI_h
+#define WebCore_PAL_pal_spi_cg_ImageIOSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -54,3 +55,4 @@ IMAGEIO_EXTERN OSStatus CGImageSourceEnableRestrictedDecoding();
 #endif
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cg_ImageIOSPI_h

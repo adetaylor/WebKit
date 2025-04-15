@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_NumberInputType_h
+#define WebCore_html_NumberInputType_h
 
 #include "TextFieldInputType.h"
 #include <wtf/TZoneMalloc.h>
@@ -77,3 +78,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(NumberInputType, Type::Number)
+#endif // WebCore_html_NumberInputType_h

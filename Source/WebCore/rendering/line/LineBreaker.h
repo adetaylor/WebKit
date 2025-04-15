@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_line_LineBreaker_h
+#define WebCore_rendering_line_LineBreaker_h
 
 #include "FontCascade.h"
 #include "LegacyInlineIterator.h"
@@ -60,3 +61,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_line_LineBreaker_h

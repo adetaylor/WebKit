@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_archive_Archive_h
+#define WebCore_loader_archive_Archive_h
 
 #include "ArchiveResource.h"
 #include <wtf/HashSet.h>
@@ -67,3 +68,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_archive_Archive_h

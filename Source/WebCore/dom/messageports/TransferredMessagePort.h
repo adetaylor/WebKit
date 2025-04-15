@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_messageports_TransferredMessagePort_h
+#define WebCore_dom_messageports_TransferredMessagePort_h
 
 #include "MessagePortIdentifier.h"
 
@@ -34,3 +35,4 @@ namespace WebCore {
 using TransferredMessagePort = std::pair<MessagePortIdentifier, MessagePortIdentifier>;
 
 } // namespace WebCore
+#endif // WebCore_dom_messageports_TransferredMessagePort_h

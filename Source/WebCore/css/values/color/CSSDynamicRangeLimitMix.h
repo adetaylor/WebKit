@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSDynamicRangeLimitMix_h
+#define WebCore_css_values_color_CSSDynamicRangeLimitMix_h
 
 #include "CSSDynamicRangeLimit.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -52,3 +53,4 @@ inline bool operator==(const UniqueRef<DynamicRangeLimitMixFunction>& a, const U
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE_FOR_TYPE_WRAPPER(WebCore::CSS::DynamicRangeLimitMixFunction)
+#endif // WebCore_css_values_color_CSSDynamicRangeLimitMix_h

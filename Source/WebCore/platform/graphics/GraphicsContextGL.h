@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GraphicsContextGL_h
+#define WebCore_platform_graphics_GraphicsContextGL_h
 
 #if ENABLE(WEBGL)
 
@@ -1770,3 +1771,4 @@ using GCGLOwnedExternalImage = GCGLOwned<GCGLExternalImage, &GraphicsContextGL::
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_graphics_GraphicsContextGL_h

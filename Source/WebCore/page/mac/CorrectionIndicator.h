@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_mac_CorrectionIndicator_h
+#define WebCore_page_mac_CorrectionIndicator_h
 
 #if PLATFORM(MAC)
 
@@ -36,3 +37,4 @@ WEBCORE_EXPORT NSCorrectionIndicatorType correctionIndicatorType(WebCore::Altern
 }
 
 #endif
+#endif // WebCore_page_mac_CorrectionIndicator_h

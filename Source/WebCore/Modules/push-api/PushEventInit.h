@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushEventInit_h
+#define WebCore_Modules_push_api_PushEventInit_h
 
 #include "ExtendableEventInit.h"
 #include <JavaScriptCore/ArrayBuffer.h>
@@ -38,3 +39,4 @@ struct PushEventInit : ExtendableEventInit {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_push_api_PushEventInit_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_InspectorMemoryAgent_h
+#define WebCore_inspector_agents_InspectorMemoryAgent_h
 
 #if ENABLE(RESOURCE_USAGE)
 
@@ -67,3 +68,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(RESOURCE_USAGE)
+#endif // WebCore_inspector_agents_InspectorMemoryAgent_h

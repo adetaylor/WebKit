@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_InteractionRegion_h
+#define WebCore_page_InteractionRegion_h
 
 #include "ElementIdentifier.h"
 #include "FloatRect.h"
@@ -94,3 +95,4 @@ template<typename T> struct DefaultHash;
 template<> struct DefaultHash<WebCore::InteractionRegion::Type> : IntHash<WebCore::InteractionRegion::Type> { };
 template<> struct DefaultHash<WebCore::InteractionRegion::ContentHint> : IntHash<WebCore::InteractionRegion::ContentHint> { };
 }
+#endif // WebCore_page_InteractionRegion_h

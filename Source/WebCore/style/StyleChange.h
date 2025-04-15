@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleChange_h
+#define WebCore_style_StyleChange_h
 
 namespace WTF {
 class TextStream;
@@ -52,3 +53,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, Change);
 }
 
 }
+#endif // WebCore_style_StyleChange_h

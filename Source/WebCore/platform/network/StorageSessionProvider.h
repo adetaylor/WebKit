@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_StorageSessionProvider_h
+#define WebCore_platform_network_StorageSessionProvider_h
 
 #include <wtf/ThreadSafeRefCounted.h>
 
@@ -39,3 +40,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_StorageSessionProvider_h

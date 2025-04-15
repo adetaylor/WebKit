@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InternalObserverTake_h
+#define WebCore_dom_InternalObserverTake_h
 
 #include <wtf/Forward.h>
 
@@ -36,3 +37,4 @@ class SubscriberCallback;
 Ref<SubscriberCallback> createSubscriberCallbackTake(ScriptExecutionContext&, Ref<Observable>, uint64_t);
 
 } // namespace WebCore
+#endif // WebCore_dom_InternalObserverTake_h

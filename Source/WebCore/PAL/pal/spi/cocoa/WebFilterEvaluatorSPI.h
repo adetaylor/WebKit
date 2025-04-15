@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_WebFilterEvaluatorSPI_h
+#define WebCore_PAL_pal_spi_cocoa_WebFilterEvaluatorSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -61,3 +62,4 @@ enum {
 @end
 
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_WebFilterEvaluatorSPI_h

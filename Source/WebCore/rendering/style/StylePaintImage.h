@@ -24,7 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StylePaintImage_h
+#define WebCore_rendering_style_StylePaintImage_h
 
 #include "StyleGeneratedImage.h"
 #include <wtf/text/WTFString.h>
@@ -64,3 +65,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_STYLE_IMAGE(StylePaintImage, isPaintImage)
+#endif // WebCore_rendering_style_StylePaintImage_h

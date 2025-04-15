@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_shared_IDBGetRecordData_h
+#define WebCore_Modules_indexeddb_shared_IDBGetRecordData_h
 
 #include "IDBKeyRangeData.h"
 
@@ -46,3 +47,4 @@ struct IDBGetRecordData {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_shared_IDBGetRecordData_h

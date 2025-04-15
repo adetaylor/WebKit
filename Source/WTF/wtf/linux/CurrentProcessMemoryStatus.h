@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_linux_CurrentProcessMemoryStatus_h
+#define WTF_wtf_linux_CurrentProcessMemoryStatus_h
 
 namespace WTF {
 
@@ -44,3 +45,4 @@ WTF_EXPORT_PRIVATE void currentProcessMemoryStatus(ProcessMemoryStatus&);
 
 using WTF::ProcessMemoryStatus;
 using WTF::currentProcessMemoryStatus;
+#endif // WTF_wtf_linux_CurrentProcessMemoryStatus_h

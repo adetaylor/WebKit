@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_VideoTargetFactory_h
+#define WebCore_platform_graphics_cocoa_VideoTargetFactory_h
 
 #if ENABLE(LINEAR_MEDIA_PLAYER)
 
@@ -39,3 +40,4 @@ struct VideoTargetFactory {
 }
 
 #endif
+#endif // WebCore_platform_graphics_cocoa_VideoTargetFactory_h

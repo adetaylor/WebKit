@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_BumpAllocator_h
+#define bmalloc_bmalloc_BumpAllocator_h
 
 #include "BAssert.h"
 #include "BumpRange.h"
@@ -97,3 +98,4 @@ inline void BumpAllocator::clear()
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_BumpAllocator_h

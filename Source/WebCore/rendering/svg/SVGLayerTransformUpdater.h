@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGLayerTransformUpdater_h
+#define WebCore_rendering_svg_SVGLayerTransformUpdater_h
 
 #include "RenderElementInlines.h"
 #include "RenderLayerModelObject.h"
@@ -70,3 +71,4 @@ private:
 
 } // namespace WebCore
 
+#endif // WebCore_rendering_svg_SVGLayerTransformUpdater_h

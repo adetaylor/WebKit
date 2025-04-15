@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_TextEncoding_h
+#define WebCore_PAL_pal_text_TextEncoding_h
 
 #include "UnencodableHandling.h"
 #include <wtf/URL.h>
@@ -86,3 +87,4 @@ inline String TextEncoding::decode(std::span<const uint8_t> characters) const
 }
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_text_TextEncoding_h

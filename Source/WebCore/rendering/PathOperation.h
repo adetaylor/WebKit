@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_PathOperation_h
+#define WebCore_rendering_PathOperation_h
 
 #include "MotionPath.h"
 #include "Path.h"
@@ -226,3 +227,4 @@ SPECIALIZE_TYPE_TRAITS_CLIP_PATH_OPERATION(ReferencePathOperation, PathOperation
 SPECIALIZE_TYPE_TRAITS_CLIP_PATH_OPERATION(ShapePathOperation, PathOperation::Type::Shape)
 SPECIALIZE_TYPE_TRAITS_CLIP_PATH_OPERATION(BoxPathOperation, PathOperation::Type::Box)
 SPECIALIZE_TYPE_TRAITS_CLIP_PATH_OPERATION(RayPathOperation, PathOperation::Type::Ray)
+#endif // WebCore_rendering_PathOperation_h

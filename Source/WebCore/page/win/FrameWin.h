@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_page_win_FrameWin_h
+#define WebCore_page_win_FrameWin_h
 
 #include <wtf/Forward.h>
 #include <wtf/win/GDIObject.h>
@@ -38,3 +39,4 @@ WEBCORE_EXPORT GDIObject<HBITMAP> imageFromSelection(LocalFrame*, bool forceBlac
 WEBCORE_EXPORT void computePageRectsForFrame(LocalFrame*, const IntRect& printRect, float headerHeight, float footerHeight, float userScaleFactor, Vector<IntRect>& outPages, int& outPageHeight);
 
 } // namespace WebCore
+#endif // WebCore_page_win_FrameWin_h

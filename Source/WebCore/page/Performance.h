@@ -30,7 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_Performance_h
+#define WebCore_page_Performance_h
 
 #include "ContextDestructionObserver.h"
 #include "DOMHighResTimeStamp.h"
@@ -163,3 +164,4 @@ private:
 };
 
 }
+#endif // WebCore_page_Performance_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_CustomXPathNSResolver_h
+#define WebCore_xml_CustomXPathNSResolver_h
 
 #include "ActiveDOMCallback.h"
 #include "CallbackResult.h"
@@ -46,3 +47,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_xml_CustomXPathNSResolver_h

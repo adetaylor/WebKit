@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_CertificateSummary_h
+#define WebCore_platform_network_CertificateSummary_h
 
 #include <wtf/Seconds.h>
 #include <wtf/Vector.h>
@@ -40,3 +41,4 @@ struct CertificateSummary {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_CertificateSummary_h

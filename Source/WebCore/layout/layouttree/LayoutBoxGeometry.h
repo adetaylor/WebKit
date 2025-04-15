@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutBoxGeometry_h
+#define WebCore_layout_layouttree_LayoutBoxGeometry_h
 
 #include "LayoutGeometryRect.h"
 #include "LayoutUnits.h"
@@ -481,3 +482,4 @@ inline BoxGeometry::VerticalEdges& BoxGeometry::VerticalEdges::operator+=(Vertic
 
 }
 }
+#endif // WebCore_layout_layouttree_LayoutBoxGeometry_h

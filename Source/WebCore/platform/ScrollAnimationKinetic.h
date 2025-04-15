@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollAnimationKinetic_h
+#define WebCore_platform_ScrollAnimationKinetic_h
 
 #include "FloatPoint.h"
 #include "ScrollAnimation.h"
@@ -91,3 +92,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_SCROLL_ANIMATION(WebCore::ScrollAnimationKinetic, type() == WebCore::ScrollAnimation::Type::Kinetic)
+#endif // WebCore_platform_ScrollAnimationKinetic_h

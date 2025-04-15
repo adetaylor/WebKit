@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_Filter_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_Filter_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -64,3 +65,4 @@ std::optional<FilterOperations> parseFilterValueListOrNoneRaw(const String&, con
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_Filter_h

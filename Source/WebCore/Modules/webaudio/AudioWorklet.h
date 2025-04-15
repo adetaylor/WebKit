@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioWorklet_h
+#define WebCore_Modules_webaudio_AudioWorklet_h
 
 #if ENABLE(WEB_AUDIO)
 #include "MessagePort.h"
@@ -61,3 +62,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_Modules_webaudio_AudioWorklet_h

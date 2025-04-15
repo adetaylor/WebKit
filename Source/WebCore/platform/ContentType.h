@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ContentType_h
+#define WebCore_platform_ContentType_h
 
 #include <wtf/text/WTFString.h>
 
@@ -80,3 +81,4 @@ struct LogArgument<WebCore::ContentType> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_ContentType_h

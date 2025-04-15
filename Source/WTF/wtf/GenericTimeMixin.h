@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_GenericTimeMixin_h
+#define WTF_wtf_GenericTimeMixin_h
 
 #include <wtf/Seconds.h>
 
@@ -115,3 +116,4 @@ protected:
 };
 
 } // namespace WTF
+#endif // WTF_wtf_GenericTimeMixin_h

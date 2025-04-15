@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUQueue_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUQueue_h
 
 #include "WebGPUCommandBuffer.h"
 #include "WebGPUExtent3D.h"
@@ -114,3 +115,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUQueue_h

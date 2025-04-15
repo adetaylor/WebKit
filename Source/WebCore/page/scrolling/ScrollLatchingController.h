@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollLatchingController_h
+#define WebCore_page_scrolling_ScrollLatchingController_h
 
 #include "FloatSize.h"
 #include "ScrollTypes.h"
@@ -102,3 +103,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const ScrollLatchingController&);
 
 #endif // ENABLE(WHEEL_EVENT_LATCHING)
 
+#endif // WebCore_page_scrolling_ScrollLatchingController_h

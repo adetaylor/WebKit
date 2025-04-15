@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGPathStringViewSource_h
+#define WebCore_svg_SVGPathStringViewSource_h
 
 #include "SVGPathSource.h"
 #include <wtf/text/StringParsingBuffer.h>
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGPathStringViewSource_h

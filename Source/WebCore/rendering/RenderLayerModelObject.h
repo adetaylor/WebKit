@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderLayerModelObject_h
+#define WebCore_rendering_RenderLayerModelObject_h
 
 #include "PaintPhase.h"
 #include "RenderElement.h"
@@ -156,3 +157,4 @@ FloatRect snapRectToDevicePixelsIfNeeded(const FloatRect&, const RenderLayerMode
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderLayerModelObject, isRenderLayerModelObject())
+#endif // WebCore_rendering_RenderLayerModelObject_h

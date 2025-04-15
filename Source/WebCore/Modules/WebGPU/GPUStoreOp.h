@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUStoreOp_h
+#define WebCore_Modules_WebGPU_GPUStoreOp_h
 
 #include "WebGPUStoreOp.h"
 #include <cstdint>
@@ -47,3 +48,4 @@ inline WebGPU::StoreOp convertToBacking(GPUStoreOp storeOp)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUStoreOp_h

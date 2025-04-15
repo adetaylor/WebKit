@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_Range_h
+#define WTF_wtf_Range_h
 
 #include <limits.h>
 #include <wtf/MathExtras.h>
@@ -133,3 +134,4 @@ private:
 } // namespace WTF
 
 using WTF::Range;
+#endif // WTF_wtf_Range_h

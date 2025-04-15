@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_highlight_AppHighlightRangeData_h
+#define WebCore_Modules_highlight_AppHighlightRangeData_h
 
 #include <wtf/Forward.h>
 #include <wtf/OptionSet.h>
@@ -112,3 +113,4 @@ private:
 #endif
 
 } // namespace WebCore
+#endif // WebCore_Modules_highlight_AppHighlightRangeData_h

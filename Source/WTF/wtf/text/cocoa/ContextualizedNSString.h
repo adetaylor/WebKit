@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_cocoa_ContextualizedNSString_h
+#define WTF_wtf_text_cocoa_ContextualizedNSString_h
 
 #import <Foundation/Foundation.h>
 #import <wtf/text/StringView.h>
@@ -31,3 +32,4 @@
 @interface WTFContextualizedNSString : NSString
 - (instancetype)initWithContext:(StringView)context contents:(StringView)contents;
 @end
+#endif // WTF_wtf_text_cocoa_ContextualizedNSString_h

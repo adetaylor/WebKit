@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_darwin_XPCExtras_h
+#define WTF_wtf_darwin_XPCExtras_h
 
 #include <wtf/StdLibExtras.h>
 #include <wtf/spi/darwin/XPCSPI.h>
@@ -65,3 +66,4 @@ using WTF::xpcErrorDescriptionKey;
 using WTF::xpcStringGetString;
 
 #endif // OS(DARWIN)
+#endif // WTF_wtf_darwin_XPCExtras_h

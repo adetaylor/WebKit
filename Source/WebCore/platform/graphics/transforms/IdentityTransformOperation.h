@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_IdentityTransformOperation_h
+#define WebCore_platform_graphics_transforms_IdentityTransformOperation_h
 
 #include "TransformOperation.h"
 #include <wtf/Ref.h>
@@ -66,3 +67,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_TRANSFORMOPERATION(WebCore::IdentityTransformOperation, WebCore::TransformOperation::Type::Identity ==)
+#endif // WebCore_platform_graphics_transforms_IdentityTransformOperation_h

@@ -25,7 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSFilterImageValue_h
+#define WebCore_css_CSSFilterImageValue_h
 
 #include "CSSFilterProperty.h"
 #include "CSSValue.h"
@@ -65,3 +66,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSFilterImageValue, isFilterImageValue())
+#endif // WebCore_css_CSSFilterImageValue_h

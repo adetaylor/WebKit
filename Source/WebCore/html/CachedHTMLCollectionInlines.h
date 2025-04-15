@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_CachedHTMLCollectionInlines_h
+#define WebCore_html_CachedHTMLCollectionInlines_h
 
 #include "CachedHTMLCollection.h"
 #include "CollectionIndexCacheInlines.h"
@@ -168,3 +169,4 @@ bool CachedHTMLCollection<HTMLCollectionClass, traversalType>::collectionCanTrav
 }
 
 }
+#endif // WebCore_html_CachedHTMLCollectionInlines_h

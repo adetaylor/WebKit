@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_StyleOriginatedAnimationEvent_h
+#define WebCore_animation_StyleOriginatedAnimationEvent_h
 
 #include "AnimationEventBase.h"
 #include "PseudoElementIdentifier.h"
@@ -50,3 +51,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_StyleOriginatedAnimationEvent_h

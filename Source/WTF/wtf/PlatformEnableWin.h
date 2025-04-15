@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PlatformEnableWin_h
+#define WTF_wtf_PlatformEnableWin_h
 
 #ifndef WTF_PLATFORM_GUARD_AGAINST_INDIRECT_INCLUSION
 #error "Please #include <wtf/Platform.h> instead of this file directly."
@@ -59,3 +60,4 @@
 #if !defined(ENABLE_WEBPROCESS_CACHE)
 #define ENABLE_WEBPROCESS_CACHE 1
 #endif
+#endif // WTF_wtf_PlatformEnableWin_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AXTextMarker_h
+#define WebCore_accessibility_AXTextMarker_h
 
 #include "AccessibilityObject.h"
 #include <wtf/StdLibExtras.h>
@@ -476,3 +477,4 @@ AXIsolatedObject* findObjectWithRuns(AXIsolatedObject& start, AXDirection direct
 } // namespace Accessibility
 
 } // namespace WebCore
+#endif // WebCore_accessibility_AXTextMarker_h

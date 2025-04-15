@@ -17,7 +17,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_BitSet_h
+#define WTF_wtf_BitSet_h
 
 #include <array>
 #include <wtf/Atomics.h>
@@ -536,3 +537,4 @@ inline void BitSet<bitSetSize, WordType>::dump(PrintStream& out) const
 // We can't do "using WTF::BitSet;" here because there is a function in the macOS SDK named BitSet() already.
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_BitSet_h

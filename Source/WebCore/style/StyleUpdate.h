@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleUpdate_h
+#define WebCore_style_StyleUpdate_h
 
 #include "Node.h"
 #include "StyleChange.h"
@@ -101,3 +102,4 @@ private:
 
 }
 }
+#endif // WebCore_style_StyleUpdate_h

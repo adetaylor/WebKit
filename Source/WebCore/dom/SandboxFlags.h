@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_SandboxFlags_h
+#define WebCore_dom_SandboxFlags_h
 
 #include <wtf/OptionSet.h>
 
@@ -52,3 +53,4 @@ enum class SandboxFlag : uint16_t {
 using SandboxFlags = OptionSet<SandboxFlag>;
 
 }
+#endif // WebCore_dom_SandboxFlags_h

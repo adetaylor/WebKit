@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_identity_OpenID4VPRequest_h
+#define WebCore_Modules_identity_OpenID4VPRequest_h
 
 namespace WebCore {
 
 struct OpenID4VPRequest { };
 
 } // namespace WebCore
+#endif // WebCore_Modules_identity_OpenID4VPRequest_h

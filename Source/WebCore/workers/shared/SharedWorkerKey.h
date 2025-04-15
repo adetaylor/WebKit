@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_shared_SharedWorkerKey_h
+#define WebCore_workers_shared_SharedWorkerKey_h
 
 #include "ClientOrigin.h"
 
@@ -59,3 +60,4 @@ template<> struct HashTraits<WebCore::SharedWorkerKey> : GenericHashTraits<WebCo
 };
 
 } // namespace WTF
+#endif // WebCore_workers_shared_SharedWorkerKey_h

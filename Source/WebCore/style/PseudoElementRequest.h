@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_PseudoElementRequest_h
+#define WebCore_style_PseudoElementRequest_h
 
 #include "PseudoElementIdentifier.h"
 #include "RenderStyleConstants.h"
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_style_PseudoElementRequest_h

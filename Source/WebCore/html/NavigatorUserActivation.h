@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_NavigatorUserActivation_h
+#define WebCore_html_NavigatorUserActivation_h
 
 #include "Supplementable.h"
 #include <wtf/Forward.h>
@@ -51,3 +52,4 @@ private:
 };
 
 }
+#endif // WebCore_html_NavigatorUserActivation_h

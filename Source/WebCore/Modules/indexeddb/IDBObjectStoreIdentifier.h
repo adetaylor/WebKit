@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBObjectStoreIdentifier_h
+#define WebCore_Modules_indexeddb_IDBObjectStoreIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ enum class IDBObjectStoreIdentifierType { };
 using IDBObjectStoreIdentifier = AtomicObjectIdentifier<IDBObjectStoreIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBObjectStoreIdentifier_h

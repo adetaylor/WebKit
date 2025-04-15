@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_contact_picker_ContactInfo_h
+#define WebCore_Modules_contact_picker_ContactInfo_h
 
 #include <wtf/Forward.h>
 #include <wtf/Vector.h>
@@ -37,3 +38,4 @@ struct ContactInfo {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_contact_picker_ContactInfo_h

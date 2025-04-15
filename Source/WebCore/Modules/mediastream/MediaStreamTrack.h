@@ -25,7 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_MediaStreamTrack_h
+#define WebCore_Modules_mediastream_MediaStreamTrack_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -244,3 +245,4 @@ typedef Vector<Ref<MediaStreamTrack>> MediaStreamTrackVector;
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM)
+#endif // WebCore_Modules_mediastream_MediaStreamTrack_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_CSSAnimation_h
+#define WebCore_animation_CSSAnimation_h
 
 #include "StyleOriginatedAnimation.h"
 #include "Styleable.h"
@@ -92,3 +93,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_WEB_ANIMATION(CSSAnimation, isCSSAnimation())
+#endif // WebCore_animation_CSSAnimation_h

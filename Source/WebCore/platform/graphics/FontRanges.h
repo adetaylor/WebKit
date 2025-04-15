@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontRanges_h
+#define WebCore_platform_graphics_FontRanges_h
 
 #include "Font.h"
 #include <wtf/Vector.h>
@@ -96,3 +97,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_FontRanges_h

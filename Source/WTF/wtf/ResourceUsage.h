@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ResourceUsage_h
+#define WTF_wtf_ResourceUsage_h
 
 #include <array>
 #include <wtf/Forward.h>
@@ -55,3 +56,4 @@ using WTF::displayNameForVMTag;
 using WTF::vmPageSize;
 using WTF::pagesPerVMTag;
 #endif
+#endif // WTF_wtf_ResourceUsage_h

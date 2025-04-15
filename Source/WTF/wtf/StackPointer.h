@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StackPointer_h
+#define WTF_wtf_StackPointer_h
 
 namespace WTF {
 
@@ -64,3 +65,4 @@ WTF_EXPORT_PRIVATE void* currentStackPointer();
 } // namespace WTF
 
 using WTF::currentStackPointer;
+#endif // WTF_wtf_StackPointer_h

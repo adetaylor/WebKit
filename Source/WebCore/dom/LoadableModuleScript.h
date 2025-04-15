@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_LoadableModuleScript_h
+#define WebCore_dom_LoadableModuleScript_h
 
 #include "LoadableScript.h"
 #include "LoadableScriptError.h"
@@ -73,3 +74,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::LoadableModuleScript)
     static bool isType(const WebCore::LoadableScript& script) { return script.isModuleScript(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_LoadableModuleScript_h

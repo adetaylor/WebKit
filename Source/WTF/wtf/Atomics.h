@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Atomics_h
+#define WTF_wtf_Atomics_h
 
 #include <atomic>
 #include <wtf/FastMalloc.h>
@@ -501,3 +502,4 @@ using WTF::ensurePointer;
 using WTF::opaqueMixture;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_Atomics_h

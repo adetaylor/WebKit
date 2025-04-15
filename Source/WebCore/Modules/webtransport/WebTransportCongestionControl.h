@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_WebTransportCongestionControl_h
+#define WebCore_Modules_webtransport_WebTransportCongestionControl_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class WebTransportCongestionControl : uint8_t {
 };
 
 }
+#endif // WebCore_Modules_webtransport_WebTransportCongestionControl_h

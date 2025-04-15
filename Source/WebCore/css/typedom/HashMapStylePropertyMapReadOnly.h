@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_HashMapStylePropertyMapReadOnly_h
+#define WebCore_css_typedom_HashMapStylePropertyMapReadOnly_h
 
 #include "MainThreadStylePropertyMapReadOnly.h"
 #include <wtf/HashMap.h>
@@ -52,3 +53,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSSOM_STYLE_PROPERTY_MAP(HashMapStylePropertyMapReadOnly, WebCore::StylePropertyMapReadOnly::Type::UncheckedKeyHashMap);
+#endif // WebCore_css_typedom_HashMapStylePropertyMapReadOnly_h

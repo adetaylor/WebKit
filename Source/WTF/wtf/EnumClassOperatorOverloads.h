@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_EnumClassOperatorOverloads_h
+#define WTF_wtf_EnumClassOperatorOverloads_h
 
 #include <type_traits>
 
@@ -65,3 +66,4 @@
     OVERLOAD_OPERATOR_FOR_ENUM_CLASS_WHEN(enumName, ^, enableExpression) \
 
 #define OVERLOAD_BITWISE_OPERATORS_FOR_ENUM_CLASS_WITH_INTERGRALS(enumName) OVERLOAD_BITWISE_OPERATORS_FOR_ENUM_CLASS_WHEN(enumName, std::is_integral_v<T>)
+#endif // WTF_wtf_EnumClassOperatorOverloads_h

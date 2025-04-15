@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformGraphicsContext_h
+#define WebCore_platform_graphics_PlatformGraphicsContext_h
 
 #if PLATFORM(WIN)
 #include "DIBPixelData.h"
@@ -47,3 +48,4 @@ using PlatformGraphicsContext = SkCanvas;
 #else
 using PlatformGraphicsContext = void;
 #endif
+#endif // WebCore_platform_graphics_PlatformGraphicsContext_h

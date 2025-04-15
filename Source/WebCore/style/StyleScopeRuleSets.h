@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_StyleScopeRuleSets_h
+#define WebCore_style_StyleScopeRuleSets_h
 
 #include "RuleFeature.h"
 #include "RuleSet.h"
@@ -157,3 +158,4 @@ inline RuleFeatureSet& ScopeRuleSets::mutableFeatures()
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_StyleScopeRuleSets_h

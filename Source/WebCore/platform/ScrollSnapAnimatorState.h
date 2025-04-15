@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollSnapAnimatorState_h
+#define WebCore_platform_ScrollSnapAnimatorState_h
 
 #include "FloatPoint.h"
 #include "FloatSize.h"
@@ -128,3 +129,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const ScrollSnapAnimatorState&);
 
 } // namespace WebCore
+#endif // WebCore_platform_ScrollSnapAnimatorState_h

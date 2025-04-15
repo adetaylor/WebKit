@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderPtr_h
+#define WebCore_rendering_RenderPtr_h
 
 #include <wtf/TypeCasts.h>
 
@@ -49,3 +50,4 @@ template<typename T, typename U> inline RenderPtr<T> static_pointer_cast(RenderP
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderPtr_h

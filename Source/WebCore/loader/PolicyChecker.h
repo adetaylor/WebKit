@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_PolicyChecker_h
+#define WebCore_loader_PolicyChecker_h
 
 #include "FrameLoader.h"
 #include "LocalFrameLoaderClient.h"
@@ -123,3 +124,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_PolicyChecker_h

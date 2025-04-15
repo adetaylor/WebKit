@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerClientType_h
+#define WebCore_workers_service_ServiceWorkerClientType_h
 
 #include <wtf/Forward.h>
 
@@ -37,3 +38,4 @@ enum class ServiceWorkerClientType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerClientType_h

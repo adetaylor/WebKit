@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutInlineTextBox_h
+#define WebCore_layout_layouttree_LayoutInlineTextBox_h
 
 #include "LayoutBox.h"
 #include <wtf/OptionSet.h>
@@ -76,3 +77,4 @@ inline void InlineTextBox::setContent(String newContent, OptionSet<ContentCharac
 
 SPECIALIZE_TYPE_TRAITS_LAYOUT_BOX(InlineTextBox, isInlineTextBox())
 
+#endif // WebCore_layout_layouttree_LayoutInlineTextBox_h

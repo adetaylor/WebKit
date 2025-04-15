@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetchStore_h
+#define WebCore_workers_service_background_fetch_BackgroundFetchStore_h
 
 #include "ServiceWorkerRegistrationKey.h"
 #include <wtf/CompletionHandler.h>
@@ -64,3 +65,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_BackgroundFetchStore_h

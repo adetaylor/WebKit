@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_detail_util_h
+#define WTF_wtf_dragonbox_detail_util_h
 
 #include <algorithm>
 #include <wtf/dtoa/utils.h>
@@ -89,3 +90,4 @@ constexpr int32_t count_factors(UInt n) noexcept
 } // namespace dragonbox
 
 } // namespace WTF
+#endif // WTF_wtf_dragonbox_detail_util_h

@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_page_PageDebuggerAgent_h
+#define WebCore_inspector_agents_page_PageDebuggerAgent_h
 
 #include "WebDebuggerAgent.h"
 #include <wtf/TZoneMalloc.h>
@@ -82,3 +83,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_page_PageDebuggerAgent_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUVertexFormat_h
+#define WebCore_Modules_WebGPU_GPUVertexFormat_h
 
 #include "WebGPUVertexFormat.h"
 #include <cstdint>
@@ -134,3 +135,4 @@ inline WebGPU::VertexFormat convertToBacking(GPUVertexFormat vertexFormat)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUVertexFormat_h

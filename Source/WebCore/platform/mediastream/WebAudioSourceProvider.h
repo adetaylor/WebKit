@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_WebAudioSourceProvider_h
+#define WebCore_platform_mediastream_WebAudioSourceProvider_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -38,3 +39,4 @@ class WebAudioSourceProvider : public ThreadSafeRefCounted<WebAudioSourceProvide
 }
 
 #endif
+#endif // WebCore_platform_mediastream_WebAudioSourceProvider_h

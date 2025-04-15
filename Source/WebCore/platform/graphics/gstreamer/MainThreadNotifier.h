@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_MainThreadNotifier_h
+#define WebCore_platform_graphics_gstreamer_MainThreadNotifier_h
 
 #include <functional>
 #include <wtf/Atomics.h>
@@ -131,3 +132,4 @@ private:
 
 } // namespace WebCore
 
+#endif // WebCore_platform_graphics_gstreamer_MainThreadNotifier_h

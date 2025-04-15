@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_ResourceRequestBase_h
+#define WebCore_platform_network_ResourceRequestBase_h
 
 #include "FormData.h"
 #include "FrameLoaderTypes.h"
@@ -382,3 +383,4 @@ template<> struct EnumTraitsForPersistence<WebCore::ResourceRequestRequester> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_network_ResourceRequestBase_h

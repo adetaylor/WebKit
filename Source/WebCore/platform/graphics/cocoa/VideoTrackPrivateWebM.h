@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_VideoTrackPrivateWebM_h
+#define WebCore_platform_graphics_cocoa_VideoTrackPrivateWebM_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -68,3 +69,4 @@ private:
 }
 
 #endif // ENABLE(MEDIA_SOURCE)
+#endif // WebCore_platform_graphics_cocoa_VideoTrackPrivateWebM_h

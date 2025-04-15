@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdatabase_DatabaseThread_h
+#define WebCore_Modules_webdatabase_DatabaseThread_h
 
 #include <memory>
 #include <wtf/HashSet.h>
@@ -84,3 +85,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdatabase_DatabaseThread_h

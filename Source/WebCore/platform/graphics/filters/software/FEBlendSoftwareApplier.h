@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_software_FEBlendSoftwareApplier_h
+#define WebCore_platform_graphics_filters_software_FEBlendSoftwareApplier_h
 
 #if !HAVE(ARM_NEON_INTRINSICS)
 
@@ -46,3 +47,4 @@ private:
 } // namespace WebCore
 
 #endif // !HAVE(ARM_NEON_INTRINSICS)
+#endif // WebCore_platform_graphics_filters_software_FEBlendSoftwareApplier_h

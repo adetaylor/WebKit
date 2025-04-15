@@ -25,7 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_filter_effects_StyleFilterProperty_h
+#define WebCore_style_values_filter_effects_StyleFilterProperty_h
 namespace WebCore {
 
 class CSSToLengthConversionData;
@@ -44,3 +45,4 @@ FilterOperations createFilterOperations(const CSS::FilterProperty&, const Docume
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_filter_effects_StyleFilterProperty_h

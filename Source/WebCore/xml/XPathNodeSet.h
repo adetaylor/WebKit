@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_xml_XPathNodeSet_h
+#define WebCore_xml_XPathNodeSet_h
 
 #include "Node.h"
 
@@ -77,3 +78,4 @@ namespace WebCore {
 
     } // namespace XPath
 } // namespace WebCore
+#endif // WebCore_xml_XPathNodeSet_h

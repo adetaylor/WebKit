@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserState_h
+#define WebCore_css_parser_CSSPropertyParserState_h
 
 #include "CSSProperty.h"
 #include "CSSPropertyNames.h"
@@ -47,3 +48,4 @@ struct PropertyParserState {
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserState_h

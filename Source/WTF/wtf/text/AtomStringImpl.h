@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_AtomStringImpl_h
+#define WTF_wtf_text_AtomStringImpl_h
 
 #include <wtf/TypeCasts.h>
 #include <wtf/text/UniquedStringImpl.h>
@@ -169,3 +170,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WTF::AtomStringImpl) \
 SPECIALIZE_TYPE_TRAITS_END()
 
 using WTF::AtomStringImpl;
+#endif // WTF_wtf_text_AtomStringImpl_h

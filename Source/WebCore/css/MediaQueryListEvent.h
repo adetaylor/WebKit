@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_MediaQueryListEvent_h
+#define WebCore_css_MediaQueryListEvent_h
 
 #include "Event.h"
 
@@ -52,3 +53,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_MediaQueryListEvent_h

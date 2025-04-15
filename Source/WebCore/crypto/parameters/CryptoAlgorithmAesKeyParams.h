@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_parameters_CryptoAlgorithmAesKeyParams_h
+#define WebCore_crypto_parameters_CryptoAlgorithmAesKeyParams_h
 
 #include "CryptoAlgorithmParameters.h"
 
@@ -40,3 +41,4 @@ public:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_ALGORITHM_PARAMETERS(AesKeyParams)
+#endif // WebCore_crypto_parameters_CryptoAlgorithmAesKeyParams_h

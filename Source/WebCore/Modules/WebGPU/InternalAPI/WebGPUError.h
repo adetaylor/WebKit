@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUError_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUError_h
 
 #include "WebGPUInternalError.h"
 #include "WebGPUOutOfMemoryError.h"
@@ -36,3 +37,4 @@ namespace WebCore::WebGPU {
 using Error = std::variant<Ref<OutOfMemoryError>, Ref<ValidationError>, Ref<InternalError>>;
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUError_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_ScriptProcessorNode_h
+#define WebCore_Modules_webaudio_ScriptProcessorNode_h
 
 #include "ActiveDOMObject.h"
 #include "AudioBus.h"
@@ -109,3 +110,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_ScriptProcessorNode_h

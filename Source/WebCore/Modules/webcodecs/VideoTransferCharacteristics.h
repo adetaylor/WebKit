@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_VideoTransferCharacteristics_h
+#define WebCore_Modules_webcodecs_VideoTransferCharacteristics_h
 
 #if ENABLE(VIDEO)
 
@@ -36,3 +37,4 @@ using VideoTransferCharacteristics = PlatformVideoTransferCharacteristics;
 }
 
 #endif
+#endif // WebCore_Modules_webcodecs_VideoTransferCharacteristics_h

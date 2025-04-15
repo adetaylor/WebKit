@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderObject_h
+#define WebCore_rendering_RenderObject_h
 
 #include "CachedImageClient.h"
 #include "FloatQuad.h"
@@ -1551,3 +1552,4 @@ void showNodeTree(const WebCore::RenderObject*);
 void showLineTree(const WebCore::RenderObject*);
 void showRenderTree(const WebCore::RenderObject*);
 #endif
+#endif // WebCore_rendering_RenderObject_h

@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_crypto_tasn1_Utilities_h
+#define WebCore_PAL_pal_crypto_tasn1_Utilities_h
 
 #include <libtasn1.h>
 #include <optional>
@@ -63,3 +64,4 @@ bool writeElement(asn1_node root, const char* elementName, const void* data, siz
 
 } // namespace TASN1
 } // namespace PAL
+#endif // WebCore_PAL_pal_crypto_tasn1_Utilities_h

@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_WebCoreOpaqueRoot_h
+#define WebCore_bindings_js_WebCoreOpaqueRoot_h
 
 #include "Node.h"
 
@@ -65,3 +66,4 @@ template<typename Visitor, typename ImplType>
 inline bool containsWebCoreOpaqueRoot(Visitor&, ImplType*);
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_WebCoreOpaqueRoot_h

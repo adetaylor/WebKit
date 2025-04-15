@@ -17,7 +17,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderLayerInlines_h
+#define WebCore_rendering_RenderLayerInlines_h
 
 #include "RenderElementInlines.h"
 #include "RenderLayer.h"
@@ -99,3 +100,4 @@ inline LayoutRect RenderLayer::rect() const
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderLayerInlines_h

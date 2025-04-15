@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_Touch_h
+#define WebCore_dom_Touch_h
 
 #if ENABLE(IOS_TOUCH_EVENTS)
 #include <WebKitAdditions/TouchIOS.h>
@@ -90,3 +91,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(TOUCH_EVENTS)
+#endif // WebCore_dom_Touch_h

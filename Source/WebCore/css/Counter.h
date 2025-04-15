@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_Counter_h
+#define WebCore_css_Counter_h
 
 #include <wtf/text/AtomString.h>
 
@@ -40,3 +41,4 @@ struct Counter {
 };
 
 } // namespace WebCore
+#endif // WebCore_css_Counter_h

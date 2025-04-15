@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_EventSender_h
+#define WebCore_dom_EventSender_h
 
 #include "Timer.h"
 #include <wtf/CheckedPtr.h>
@@ -142,3 +143,4 @@ template<typename T, typename WeakPtrImpl> void EventSender<T, WeakPtrImpl>::dis
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_EventSender_h

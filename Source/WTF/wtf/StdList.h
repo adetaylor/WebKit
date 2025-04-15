@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StdList_h
+#define WTF_wtf_StdList_h
 
 #include <list>
 #include <wtf/FastMalloc.h>
@@ -36,3 +37,4 @@ using StdList = std::list<T, Allocator>;
 } // namespace WTF
 
 using WTF::StdList;
+#endif // WTF_wtf_StdList_h

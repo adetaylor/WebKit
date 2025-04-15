@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_mac_AppKitControlSystemImage_h
+#define WebCore_platform_graphics_mac_AppKitControlSystemImage_h
 
 #if USE(APPKIT)
 
@@ -78,3 +79,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AppKitControlSystemImage)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // USE(APPKIT)
+#endif // WebCore_platform_graphics_mac_AppKitControlSystemImage_h

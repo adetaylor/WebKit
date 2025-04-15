@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cv_VideoFrameCV_h
+#define WebCore_platform_graphics_cv_VideoFrameCV_h
 
 #if ENABLE(VIDEO) && USE(AVFOUNDATION)
 
@@ -70,3 +71,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::VideoFrameCV)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif
+#endif // WebCore_platform_graphics_cv_VideoFrameCV_h

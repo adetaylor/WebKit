@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_shapes_StyleWindRuleComputation_h
+#define WebCore_style_values_shapes_StyleWindRuleComputation_h
 
 #include "StyleValueTypes.h"
 #include "WindRule.h"
@@ -53,3 +54,4 @@ template<CSSValueID Name, typename StyleType> struct WindRuleComputation<Functio
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_shapes_StyleWindRuleComputation_h

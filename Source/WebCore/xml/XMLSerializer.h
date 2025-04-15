@@ -17,7 +17,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_xml_XMLSerializer_h
+#define WebCore_xml_XMLSerializer_h
 
 #include <wtf/Forward.h>
 #include <wtf/Ref.h>
@@ -39,3 +40,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_xml_XMLSerializer_h

@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderMenuList_h
+#define WebCore_rendering_RenderMenuList_h
 
 #include "LayoutRect.h"
 #include "PopupMenu.h"
@@ -166,3 +167,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderMenuList, isRenderMenuList())
+#endif // WebCore_rendering_RenderMenuList_h

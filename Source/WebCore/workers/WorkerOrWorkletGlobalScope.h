@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerOrWorkletGlobalScope_h
+#define WebCore_workers_WorkerOrWorkletGlobalScope_h
 
 #include "EventTarget.h"
 #include "FetchOptions.h"
@@ -127,3 +128,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::WorkerOrWorkletGlobalScope)
     static bool isType(const WebCore::ScriptExecutionContext& context) { return context.isWorkerOrWorkletGlobalScope(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_workers_WorkerOrWorkletGlobalScope_h

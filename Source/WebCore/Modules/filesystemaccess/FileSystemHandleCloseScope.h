@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_filesystemaccess_FileSystemHandleCloseScope_h
+#define WebCore_Modules_filesystemaccess_FileSystemHandleCloseScope_h
 
 #include "FileSystemStorageConnection.h"
 #include <wtf/RunLoop.h>
@@ -68,3 +69,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_filesystemaccess_FileSystemHandleCloseScope_h

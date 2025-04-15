@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSRuleList_h
+#define WebCore_css_CSSRuleList_h
 
 #include <wtf/AbstractRefCounted.h>
 #include <wtf/RefCounted.h>
@@ -92,3 +93,4 @@ private:
 WTF_MAKE_TZONE_ALLOCATED_TEMPLATE_IMPL(template<class Rule>, LiveCSSRuleList<Rule>);
 
 } // namespace WebCore
+#endif // WebCore_css_CSSRuleList_h

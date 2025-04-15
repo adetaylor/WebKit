@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_Element_h
+#define WebCore_dom_Element_h
 
 #include "AXTextStateChangeIntent.h"
 #include "ContainerNode.h"
@@ -1062,3 +1063,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Element)
         return node && isType(*node);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_Element_h

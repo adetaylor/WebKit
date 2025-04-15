@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_WebAudioBufferList_h
+#define WebCore_platform_audio_cocoa_WebAudioBufferList_h
 
 #include "PlatformAudioData.h"
 #include "SpanCoreAudio.h"
@@ -98,3 +99,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::WebAudioBufferList)
 static bool isType(const WebCore::PlatformAudioData& data) { return data.kind() == WebCore::PlatformAudioData::Kind::WebAudioBufferList; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_audio_cocoa_WebAudioBufferList_h

@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_history_BackForwardClient_h
+#define WebCore_history_BackForwardClient_h
 
 #include "BackForwardFrameItemIdentifier.h"
 #include "BackForwardItemIdentifier.h"
@@ -58,3 +59,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_history_BackForwardClient_h

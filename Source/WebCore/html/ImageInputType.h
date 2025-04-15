@@ -30,7 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_ImageInputType_h
+#define WebCore_html_ImageInputType_h
 
 #include "BaseButtonInputType.h"
 #include "IntPoint.h"
@@ -70,3 +71,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(ImageInputType, Type::Image)
+#endif // WebCore_html_ImageInputType_h

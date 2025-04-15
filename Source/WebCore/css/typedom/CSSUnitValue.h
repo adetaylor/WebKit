@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_CSSUnitValue_h
+#define WebCore_css_typedom_CSSUnitValue_h
 
 #include "CSSNumericValue.h"
 #include <wtf/RefCounted.h>
@@ -70,3 +71,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSSUnitValue)
 static bool isType(const WebCore::CSSStyleValue& styleValue) { return styleValue.getType() == WebCore::CSSStyleValueType::CSSUnitValue; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_typedom_CSSUnitValue_h

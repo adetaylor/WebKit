@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_cocoa_CryptoUtilitiesCocoa_h
+#define WebCore_crypto_cocoa_CryptoUtilitiesCocoa_h
 
 #include "ExceptionOr.h"
 #include <CommonCrypto/CommonCryptoError.h>
@@ -43,3 +44,4 @@ Vector<uint8_t> calculateHMACSignature(CCHmacAlgorithm, const Vector<uint8_t>& k
 Vector<uint8_t> calculateSHA256Signature(const Vector<uint8_t>& key, std::span<const uint8_t> data);
 
 } // namespace WebCore
+#endif // WebCore_crypto_cocoa_CryptoUtilitiesCocoa_h

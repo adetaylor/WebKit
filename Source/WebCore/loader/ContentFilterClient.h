@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ContentFilterClient_h
+#define WebCore_loader_ContentFilterClient_h
 
 #if ENABLE(CONTENT_FILTERING)
 
@@ -63,3 +64,4 @@ public:
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_FILTERING)
+#endif // WebCore_loader_ContentFilterClient_h

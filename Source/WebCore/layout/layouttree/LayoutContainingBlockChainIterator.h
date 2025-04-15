@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutContainingBlockChainIterator_h
+#define WebCore_layout_layouttree_LayoutContainingBlockChainIterator_h
 
 #include "FormattingContext.h"
 #include "LayoutElementBox.h"
@@ -97,3 +98,4 @@ inline LayoutContainingBlockChainIteratorAdapter containingBlockChainWithinForma
 
 }
 }
+#endif // WebCore_layout_layouttree_LayoutContainingBlockChainIterator_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_TextManipulationControllerExclusionRule_h
+#define WebCore_editing_TextManipulationControllerExclusionRule_h
 
 namespace WebCore {
 
@@ -52,3 +53,4 @@ struct TextManipulationControllerExclusionRule {
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_TextManipulationControllerExclusionRule_h

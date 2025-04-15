@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_TextDecoderStreamDecoder_h
+#define WebCore_dom_TextDecoderStreamDecoder_h
 
 #include "TextDecoder.h"
 
@@ -44,3 +45,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_TextDecoderStreamDecoder_h

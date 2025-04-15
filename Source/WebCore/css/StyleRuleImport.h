@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_StyleRuleImport_h
+#define WebCore_css_StyleRuleImport_h
 
 #include "CachedResourceHandle.h"
 #include "CachedStyleSheetClient.h"
@@ -103,3 +104,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyleRuleImport)
     static bool isType(const WebCore::StyleRuleBase& rule) { return rule.isImportRule(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_StyleRuleImport_h

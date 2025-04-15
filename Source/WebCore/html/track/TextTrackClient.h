@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_track_TextTrackClient_h
+#define WebCore_html_track_TextTrackClient_h
 
 #if ENABLE(VIDEO)
 
@@ -62,3 +63,4 @@ public:
 }
 
 #endif
+#endif // WebCore_html_track_TextTrackClient_h

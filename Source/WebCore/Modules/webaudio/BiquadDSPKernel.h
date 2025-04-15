@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_BiquadDSPKernel_h
+#define WebCore_Modules_webaudio_BiquadDSPKernel_h
 
 #include "AudioDSPKernel.h"
 #include "Biquad.h"
@@ -76,3 +77,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_BiquadDSPKernel_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef MallocCommon_h
+#define MallocCommon_h
 
 #include <wtf/Assertions.h>
 #include <wtf/StdLibExtras.h>
@@ -245,4 +246,6 @@ using __thisIsHereToForceASemicolonAfterThisMacro UNUSED_TYPE_ALIAS = int
 #define WTF_PRIVATE_INLINE __private_extern__ inline __attribute__((always_inline))
 #else
 #define WTF_PRIVATE_INLINE inline __attribute__((always_inline))
+#endif
+
 #endif

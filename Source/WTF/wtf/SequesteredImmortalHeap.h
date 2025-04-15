@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SequesteredImmortalHeap_h
+#define WTF_wtf_SequesteredImmortalHeap_h
 
 #include <wtf/Platform.h>
 #include <wtf/StdLibExtras.h>
@@ -335,3 +336,4 @@ private:
 }
 
 #endif // USE(PROTECTED_JIT)
+#endif // WTF_wtf_SequesteredImmortalHeap_h

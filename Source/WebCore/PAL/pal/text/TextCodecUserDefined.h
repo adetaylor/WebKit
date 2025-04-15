@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_TextCodecUserDefined_h
+#define WebCore_PAL_pal_text_TextCodecUserDefined_h
 
 #include "TextCodec.h"
 #include <wtf/TZoneMalloc.h>
@@ -42,3 +43,4 @@ private:
 };
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_text_TextCodecUserDefined_h

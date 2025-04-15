@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_WebGLRenderingContext_h
+#define WebCore_html_canvas_WebGLRenderingContext_h
 
 #if ENABLE(WEBGL)
 
@@ -70,3 +71,4 @@ WebCoreOpaqueRoot root(const WebGLExtension<WebGLRenderingContext>*);
 SPECIALIZE_TYPE_TRAITS_CANVASRENDERINGCONTEXT(WebCore::WebGLRenderingContext, isWebGL1())
 
 #endif
+#endif // WebCore_html_canvas_WebGLRenderingContext_h

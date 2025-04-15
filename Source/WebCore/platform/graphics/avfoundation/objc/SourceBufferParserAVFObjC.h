@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_SourceBufferParserAVFObjC_h
+#define WebCore_platform_graphics_avfoundation_objc_SourceBufferParserAVFObjC_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -100,3 +101,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SourceBufferParserAVFObjC)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(MEDIA_SOURCE)
+#endif // WebCore_platform_graphics_avfoundation_objc_SourceBufferParserAVFObjC_h

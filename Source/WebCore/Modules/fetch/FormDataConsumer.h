@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FormDataConsumer_h
+#define WebCore_Modules_fetch_FormDataConsumer_h
 
 #include "ExceptionOr.h"
 #include "ScriptExecutionContextIdentifier.h"
@@ -75,3 +76,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_fetch_FormDataConsumer_h

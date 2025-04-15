@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_darwin_CodeSignSPI_h
+#define WTF_wtf_spi_darwin_CodeSignSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -36,3 +37,4 @@ DECLARE_SYSTEM_HEADER
 #define CS_PLATFORM_BINARY          0x04000000
 
 #endif
+#endif // WTF_wtf_spi_darwin_CodeSignSPI_h

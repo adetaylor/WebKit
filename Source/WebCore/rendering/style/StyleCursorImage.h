@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleCursorImage_h
+#define WebCore_rendering_style_StyleCursorImage_h
 
 #include "StyleMultiImage.h"
 #include <wtf/TZoneMalloc.h>
@@ -75,3 +76,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_STYLE_IMAGE(StyleCursorImage, isCursorImage)
+#endif // WebCore_rendering_style_StyleCursorImage_h

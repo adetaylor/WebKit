@@ -30,7 +30,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_ReferrerPolicy_h
+#define WebCore_platform_ReferrerPolicy_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -74,3 +75,4 @@ template<> struct EnumTraitsForPersistence<WebCore::ReferrerPolicy> {
 };
 
 }
+#endif // WebCore_platform_ReferrerPolicy_h

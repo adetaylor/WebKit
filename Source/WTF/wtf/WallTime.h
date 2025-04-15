@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_WallTime_h
+#define WTF_wtf_WallTime_h
 
 #include <wtf/ClockType.h>
 #include <wtf/GenericTimeMixin.h>
@@ -81,3 +82,4 @@ WTF_EXPORT_PRIVATE Int128 currentTimeInNanoseconds();
 } // namespace WTF
 
 using WTF::WallTime;
+#endif // WTF_wtf_WallTime_h

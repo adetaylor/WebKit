@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCErrorDetailType_h
+#define WebCore_Modules_mediastream_RTCErrorDetailType_h
 
 namespace WebCore {
 
@@ -36,3 +37,4 @@ enum class RTCErrorDetailType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_mediastream_RTCErrorDetailType_h

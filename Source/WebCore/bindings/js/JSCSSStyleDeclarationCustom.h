@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSCSSStyleDeclarationCustom_h
+#define WebCore_bindings_js_JSCSSStyleDeclarationCustom_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ class CSSStyleDeclaration;
 WebCoreOpaqueRoot root(CSSStyleDeclaration*);
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSCSSStyleDeclarationCustom_h

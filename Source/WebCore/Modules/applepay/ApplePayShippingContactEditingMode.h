@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayShippingContactEditingMode_h
+#define WebCore_Modules_applepay_ApplePayShippingContactEditingMode_h
 
 #if ENABLE(APPLE_PAY_SHIPPING_CONTACT_EDITING_MODE)
 
@@ -38,3 +39,4 @@ enum class ApplePayShippingContactEditingMode : uint8_t {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY_SHIPPING_CONTACT_EDITING_MODE)
+#endif // WebCore_Modules_applepay_ApplePayShippingContactEditingMode_h

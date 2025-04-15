@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_InspectorNetworkAgent_h
+#define WebCore_inspector_agents_InspectorNetworkAgent_h
 
 #include "InspectorInstrumentation.h"
 #include "InspectorPageAgent.h"
@@ -277,3 +278,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_InspectorNetworkAgent_h

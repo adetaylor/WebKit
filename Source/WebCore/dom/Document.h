@@ -25,7 +25,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_Document_h
+#define WebCore_dom_Document_h
 
 #include "AsyncNodeDeletionQueue.h"
 #include "Color.h"
@@ -2749,3 +2750,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Document)
         return node && isType(*node);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_Document_h

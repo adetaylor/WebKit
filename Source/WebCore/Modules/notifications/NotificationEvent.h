@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_notifications_NotificationEvent_h
+#define WebCore_Modules_notifications_NotificationEvent_h
 
 #if ENABLE(NOTIFICATION_EVENT)
 
@@ -62,3 +63,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(NOTIFICATION_EVENT)
+#endif // WebCore_Modules_notifications_NotificationEvent_h

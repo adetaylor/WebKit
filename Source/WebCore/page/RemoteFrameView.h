@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_RemoteFrameView_h
+#define WebCore_page_RemoteFrameView_h
 
 #include "FrameView.h"
 #include "RemoteFrame.h"
@@ -78,3 +79,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::RemoteFrameView)
 static bool isType(const WebCore::FrameView& view) { return view.viewType() == WebCore::FrameView::Type::Remote; }
 static bool isType(const WebCore::Widget& widget) { return widget.isRemoteFrameView(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_page_RemoteFrameView_h

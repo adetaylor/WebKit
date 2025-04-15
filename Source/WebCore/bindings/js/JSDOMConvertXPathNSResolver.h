@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertXPathNSResolver_h
+#define WebCore_bindings_js_JSDOMConvertXPathNSResolver_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -60,3 +61,4 @@ template<> struct Converter<IDLInterface<XPathNSResolver>> : DefaultConverter<ID
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertXPathNSResolver_h

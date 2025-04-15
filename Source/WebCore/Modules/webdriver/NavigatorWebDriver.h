@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdriver_NavigatorWebDriver_h
+#define WebCore_Modules_webdriver_NavigatorWebDriver_h
 
 #include "Supplementable.h"
 #include <wtf/TZoneMalloc.h>
@@ -46,3 +47,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdriver_NavigatorWebDriver_h

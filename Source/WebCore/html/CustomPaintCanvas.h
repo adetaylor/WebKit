@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_CustomPaintCanvas_h
+#define WebCore_html_CustomPaintCanvas_h
 
 #include "AffineTransform.h"
 #include "CanvasBase.h"
@@ -86,3 +87,4 @@ private:
 
 }
 SPECIALIZE_TYPE_TRAITS_CANVAS(WebCore::CustomPaintCanvas, isCustomPaintCanvas())
+#endif // WebCore_html_CustomPaintCanvas_h

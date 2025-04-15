@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_CommonCryptoSPI_h
+#define WebCore_PAL_pal_spi_cocoa_CommonCryptoSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -127,3 +128,4 @@ extern "C" CCCryptorStatus CCCryptorGCMOneshotDecrypt(CCAlgorithm alg, const voi
 extern "C" CCCryptorStatus CCRSACryptorCreateFromData(CCRSAKeyType keyType, const uint8_t *modulus, size_t modulusLength, const uint8_t *exponent, size_t exponentLength, const uint8_t *p, size_t pLength, const uint8_t *q, size_t qLength, CCRSACryptorRef *ref);
 
 #endif // !USE(APPLE_INTERNAL_SDK)
+#endif // WebCore_PAL_pal_spi_cocoa_CommonCryptoSPI_h

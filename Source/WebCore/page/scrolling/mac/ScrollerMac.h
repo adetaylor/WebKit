@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_mac_ScrollerMac_h
+#define WebCore_page_scrolling_mac_ScrollerMac_h
 
 #if PLATFORM(MAC)
 
@@ -99,3 +100,4 @@ private:
 }
 
 #endif
+#endif // WebCore_page_scrolling_mac_ScrollerMac_h

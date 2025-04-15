@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_mac_ScrollingTreeOverflowScrollingNodeMac_h
+#define WebCore_page_scrolling_mac_ScrollingTreeOverflowScrollingNodeMac_h
 
 #if ENABLE(ASYNC_SCROLLING) && PLATFORM(MAC)
 
@@ -62,3 +63,4 @@ private:
 } // namespace WebKit
 
 #endif // ENABLE(ASYNC_SCROLLING) && PLATFORM(MAC)
+#endif // WebCore_page_scrolling_mac_ScrollingTreeOverflowScrollingNodeMac_h

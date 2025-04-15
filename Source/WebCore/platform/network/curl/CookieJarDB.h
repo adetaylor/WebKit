@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CookieJarDB_h
+#define WebCore_platform_network_curl_CookieJarDB_h
 
 #include "Cookie.h"
 #include "CookieJar.h"
@@ -109,3 +110,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CookieJarDB_h

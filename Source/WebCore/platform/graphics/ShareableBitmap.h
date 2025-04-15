@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ShareableBitmap_h
+#define WebCore_platform_graphics_ShareableBitmap_h
 
 #include "CopyImageOptions.h"
 #include "DestinationColorSpace.h"
@@ -216,3 +217,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ShareableBitmap_h

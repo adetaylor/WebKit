@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_WebCorePasteboardFileReader_h
+#define WebCore_editing_WebCorePasteboardFileReader_h
 
 #include "Pasteboard.h"
 
@@ -51,3 +52,4 @@ struct WebCorePasteboardFileReader final : PasteboardFileReader {
 
 }
 
+#endif // WebCore_editing_WebCorePasteboardFileReader_h

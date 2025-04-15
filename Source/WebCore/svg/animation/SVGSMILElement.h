@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_svg_animation_SVGSMILElement_h
+#define WebCore_svg_animation_SVGSMILElement_h
 
 #include "SMILTime.h"
 #include "SVGElement.h"
@@ -232,3 +233,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SVGSMILElement)
         return svgElement && isType(*svgElement);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_svg_animation_SVGSMILElement_h

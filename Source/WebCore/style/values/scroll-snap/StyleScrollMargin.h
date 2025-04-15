@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_scroll_snap_StyleScrollMargin_h
+#define WebCore_style_values_scroll_snap_StyleScrollMargin_h
 
 #include "BoxExtents.h"
 #include "CSSPrimitiveNumericUnits.h"
@@ -108,3 +109,4 @@ LayoutBoxExtent extentForRect(const ScrollMargin&, const LayoutRect&);
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::ScrollMargin, 4)
+#endif // WebCore_style_values_scroll_snap_StyleScrollMargin_h

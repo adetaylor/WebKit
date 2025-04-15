@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUCanvasAlphaMode_h
+#define WebCore_Modules_WebGPU_GPUCanvasAlphaMode_h
 
 #include "WebGPUCanvasAlphaMode.h"
 #include <cstdint>
@@ -47,3 +48,4 @@ inline WebGPU::CanvasAlphaMode convertToBacking(GPUCanvasAlphaMode canvasComposi
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUCanvasAlphaMode_h

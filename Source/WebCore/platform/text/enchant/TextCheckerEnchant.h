@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_enchant_TextCheckerEnchant_h
+#define WebCore_platform_text_enchant_TextCheckerEnchant_h
 
 #if ENABLE(SPELLCHECK)
 
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(SPELLCHECK)
+#endif // WebCore_platform_text_enchant_TextCheckerEnchant_h

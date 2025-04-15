@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringConcatenateNumbers_h
+#define WTF_wtf_text_StringConcatenateNumbers_h
 
 #include <wtf/Compiler.h>
 
@@ -166,3 +167,4 @@ private:
 
 using WTF::FormattedNumber;
 using WTF::FormattedCSSNumber;
+#endif // WTF_wtf_text_StringConcatenateNumbers_h

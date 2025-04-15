@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_Term_h
+#define WebCore_contentextensions_Term_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -669,3 +670,4 @@ inline size_t Term::memoryUsed() const
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_Term_h

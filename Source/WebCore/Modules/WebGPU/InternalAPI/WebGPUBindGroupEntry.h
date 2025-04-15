@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUBindGroupEntry_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUBindGroupEntry_h
 
 #include "WebGPUBufferBinding.h"
 #include "WebGPUExternalTexture.h"
@@ -43,3 +44,4 @@ struct BindGroupEntry {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUBindGroupEntry_h

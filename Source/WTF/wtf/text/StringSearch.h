@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringSearch_h
+#define WTF_wtf_text_StringSearch_h
 
 #include <limits>
 #include <wtf/text/StringCommon.h>
@@ -106,3 +107,4 @@ private:
 }
 
 using WTF::BoyerMooreHorspoolTable;
+#endif // WTF_wtf_text_StringSearch_h

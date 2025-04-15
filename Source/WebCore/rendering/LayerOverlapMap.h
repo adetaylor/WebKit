@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_LayerOverlapMap_h
+#define WebCore_rendering_LayerOverlapMap_h
 
 #include "LayoutRect.h"
 #include "RenderGeometryMap.h"
@@ -78,3 +79,4 @@ private:
 TextStream& operator<<(TextStream&, const LayerOverlapMap&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_LayerOverlapMap_h

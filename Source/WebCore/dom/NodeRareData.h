@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_NodeRareData_h
+#define WebCore_dom_NodeRareData_h
 
 #include "ChildNodeList.h"
 #include "CommonAtomStrings.h"
@@ -355,3 +356,4 @@ inline NodeRareData& Node::ensureRareData()
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_NodeRareData_h

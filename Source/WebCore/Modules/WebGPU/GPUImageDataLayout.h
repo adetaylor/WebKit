@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUImageDataLayout_h
+#define WebCore_Modules_WebGPU_GPUImageDataLayout_h
 
 #include "GPUIntegralTypes.h"
 #include "WebGPUImageDataLayout.h"
@@ -46,3 +47,4 @@ struct GPUImageDataLayout {
     std::optional<GPUSize32> rowsPerImage;
 };
 }
+#endif // WebCore_Modules_WebGPU_GPUImageDataLayout_h

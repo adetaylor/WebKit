@@ -28,7 +28,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_SubframeLoader_h
+#define WebCore_loader_SubframeLoader_h
 
 #include "FrameLoader.h"
 #include <wtf/WeakRef.h>
@@ -79,3 +80,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_SubframeLoader_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringToIntegerConversion_h
+#define WTF_wtf_text_StringToIntegerConversion_h
 
 #include <wtf/CheckedArithmetic.h>
 #include <wtf/text/ParsingUtilities.h>
@@ -109,3 +110,4 @@ template<typename IntegralType> std::optional<IntegralType> parseIntegerAllowing
 
 using WTF::parseInteger;
 using WTF::parseIntegerAllowingTrailingJunk;
+#endif // WTF_wtf_text_StringToIntegerConversion_h

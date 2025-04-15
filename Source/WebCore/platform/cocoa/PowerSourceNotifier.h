@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_PowerSourceNotifier_h
+#define WebCore_platform_cocoa_PowerSourceNotifier_h
 
 #include <wtf/Function.h>
 #include <wtf/TZoneMalloc.h>
@@ -55,3 +56,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_cocoa_PowerSourceNotifier_h

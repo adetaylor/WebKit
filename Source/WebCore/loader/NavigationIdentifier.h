@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_NavigationIdentifier_h
+#define WebCore_loader_NavigationIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ struct NavigationIdentifierType;
 using NavigationIdentifier = ObjectIdentifier<NavigationIdentifierType, uint64_t>;
 
 }
+#endif // WebCore_loader_NavigationIdentifier_h

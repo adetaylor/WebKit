@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_ASCIILiteral_h
+#define WTF_wtf_text_ASCIILiteral_h
 
 #include <span>
 #include <string>
@@ -177,3 +178,4 @@ inline const char* safePrintfType(const ASCIILiteral& asciiLiteral) { return asc
 } // namespace WTF
 
 using namespace WTF::StringLiterals;
+#endif // WTF_wtf_text_ASCIILiteral_h

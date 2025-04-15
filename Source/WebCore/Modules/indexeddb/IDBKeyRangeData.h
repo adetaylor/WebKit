@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBKeyRangeData_h
+#define WebCore_Modules_indexeddb_IDBKeyRangeData_h
 
 #include "IDBKeyData.h"
 #include "IDBKeyRange.h"
@@ -87,3 +88,4 @@ struct IDBKeyRangeData {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBKeyRangeData_h

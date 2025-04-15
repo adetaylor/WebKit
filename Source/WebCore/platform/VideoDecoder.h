@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_VideoDecoder_h
+#define WebCore_platform_VideoDecoder_h
 
 #include "PlatformVideoColorSpace.h"
 #include "ProcessIdentity.h"
@@ -94,3 +95,4 @@ protected:
 };
 
 }
+#endif // WebCore_platform_VideoDecoder_h

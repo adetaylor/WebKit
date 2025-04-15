@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PixelBufferConversion_h
+#define WebCore_platform_graphics_PixelBufferConversion_h
 
 #include "PixelBufferFormat.h"
 #include <span>
@@ -70,3 +71,4 @@ inline void copyRows(unsigned sourceBytesPerRow, std::span<const uint8_t> source
 }
 
 }
+#endif // WebCore_platform_graphics_PixelBufferConversion_h

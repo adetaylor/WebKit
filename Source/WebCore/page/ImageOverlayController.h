@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ImageOverlayController_h
+#define WebCore_page_ImageOverlayController_h
 
 #include "Color.h"
 #include "LayoutRect.h"
@@ -121,3 +122,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ImageOverlayController_h

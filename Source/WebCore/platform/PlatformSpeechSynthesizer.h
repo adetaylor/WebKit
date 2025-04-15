@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PlatformSpeechSynthesizer_h
+#define WebCore_platform_PlatformSpeechSynthesizer_h
 
 #if ENABLE(SPEECH_SYNTHESIS)
 
@@ -109,3 +110,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(SPEECH_SYNTHESIS)
+#endif // WebCore_platform_PlatformSpeechSynthesizer_h

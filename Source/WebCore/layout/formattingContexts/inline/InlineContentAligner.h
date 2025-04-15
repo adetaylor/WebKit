@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineContentAligner_h
+#define WebCore_layout_formattingContexts_inline_InlineContentAligner_h
 
 #include "InlineDisplayContent.h"
 #include "InlineDisplayLine.h"
@@ -49,3 +50,4 @@ private:
 }
 }
 
+#endif // WebCore_layout_formattingContexts_inline_InlineContentAligner_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_server_SWServerJobQueue_h
+#define WebCore_workers_service_server_SWServerJobQueue_h
 
 #include "SWServer.h"
 #include "ServiceWorkerJobData.h"
@@ -91,3 +92,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_server_SWServerJobQueue_h

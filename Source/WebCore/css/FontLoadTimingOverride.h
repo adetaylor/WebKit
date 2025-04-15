@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_FontLoadTimingOverride_h
+#define WebCore_css_FontLoadTimingOverride_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ enum class FontLoadTimingOverride : uint8_t {
 };
 
 }
+#endif // WebCore_css_FontLoadTimingOverride_h

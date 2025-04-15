@@ -25,7 +25,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_SecurityContext_h
+#define WebCore_dom_SecurityContext_h
 
 #include "CrossOriginEmbedderPolicy.h"
 #include "CrossOriginOpenerPolicy.h"
@@ -163,3 +164,4 @@ void SecurityContext::setEmptySecurityOriginPolicyAndContentSecurityPolicy()
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_SecurityContext_h

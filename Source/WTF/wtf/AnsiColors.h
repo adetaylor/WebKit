@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_AnsiColors_h
+#define WTF_wtf_AnsiColors_h
 
 #if PLATFORM(WIN)
 
@@ -49,3 +50,4 @@
 
 #define BOLD(CONTENT) ANSI_COLOR("1m") CONTENT RESET
 
+#endif // WTF_wtf_AnsiColors_h

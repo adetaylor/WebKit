@@ -23,7 +23,8 @@
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_style_StyleBuilderGenerated_h
+#define WebCore_style_StyleBuilderGenerated_h
 
 #include "CSSPropertyNames.h"
 
@@ -44,3 +45,4 @@ public:
 
 }
 }
+#endif // WebCore_style_StyleBuilderGenerated_h

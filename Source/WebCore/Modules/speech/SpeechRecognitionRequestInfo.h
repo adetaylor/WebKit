@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognitionRequestInfo_h
+#define WebCore_Modules_speech_SpeechRecognitionRequestInfo_h
 
 #include "ClientOrigin.h"
 #include "FrameIdentifier.h"
@@ -42,3 +43,4 @@ struct SpeechRecognitionRequestInfo {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_speech_SpeechRecognitionRequestInfo_h

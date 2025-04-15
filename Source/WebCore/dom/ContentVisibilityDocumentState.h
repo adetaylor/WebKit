@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ContentVisibilityDocumentState_h
+#define WebCore_dom_ContentVisibilityDocumentState_h
 
 #include "IntersectionObserver.h"
 #include <wtf/TZoneMalloc.h>
@@ -71,3 +72,4 @@ private:
 };
 
 } // namespace
+#endif // WebCore_dom_ContentVisibilityDocumentState_h

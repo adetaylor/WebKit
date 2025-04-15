@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_HeapKind_h
+#define bmalloc_bmalloc_HeapKind_h
 
 #include "BAssert.h"
 #include "BInline.h"
@@ -105,3 +106,4 @@ BEXPORT HeapKind mapToActiveHeapKind(HeapKind);
 
 } // namespace bmalloc
 
+#endif // bmalloc_bmalloc_HeapKind_h

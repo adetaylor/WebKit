@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSOffsetRotateValue_h
+#define WebCore_css_CSSOffsetRotateValue_h
 
 #include "CSSPrimitiveValue.h"
 #include "CSSValue.h"
@@ -81,3 +82,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSOffsetRotateValue, isOffsetRotateValue())
+#endif // WebCore_css_CSSOffsetRotateValue_h

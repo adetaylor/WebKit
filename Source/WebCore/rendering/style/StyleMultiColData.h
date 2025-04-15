@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleMultiColData_h
+#define WebCore_rendering_style_StyleMultiColData_h
 
 #include "BorderValue.h"
 #include "GapLength.h"
@@ -75,3 +76,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleMultiColData_h

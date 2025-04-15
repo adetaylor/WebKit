@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageUtilities_h
+#define WebCore_platform_graphics_ImageUtilities_h
 
 #include "IntSize.h"
 
@@ -62,3 +63,4 @@ WEBCORE_EXPORT void decodeImageWithSize(std::span<const uint8_t> data, std::opti
 
 } // namespace WebCore
 
+#endif // WebCore_platform_graphics_ImageUtilities_h

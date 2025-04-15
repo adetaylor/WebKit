@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_AbstractRefCounted_h
+#define WTF_wtf_AbstractRefCounted_h
 
 namespace WTF {
 
@@ -41,3 +42,4 @@ protected:
 } // namespace WTF
 
 using WTF::AbstractRefCounted;
+#endif // WTF_wtf_AbstractRefCounted_h

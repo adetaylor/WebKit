@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_AudioDecoderCocoa_h
+#define WebCore_platform_audio_cocoa_AudioDecoderCocoa_h
 
 #if ENABLE(WEB_CODECS) && USE(AVFOUNDATION)
 
@@ -66,3 +67,4 @@ private:
 }
 
 #endif // ENABLE(WEB_CODECS) && USE(AVFOUNDATION)
+#endif // WebCore_platform_audio_cocoa_AudioDecoderCocoa_h

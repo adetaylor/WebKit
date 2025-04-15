@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParser_h
+#define WebCore_css_parser_CSSPropertyParser_h
 
 #include "CSSCustomPropertySyntax.h"
 #include "CSSParserContext.h"
@@ -220,3 +221,4 @@ ASCIILiteral initialValueTextForLonghand(CSSPropertyID);
 CSSValueID initialValueIDForLonghand(CSSPropertyID); // Returns CSSPropertyInvalid if not a keyword.
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParser_h

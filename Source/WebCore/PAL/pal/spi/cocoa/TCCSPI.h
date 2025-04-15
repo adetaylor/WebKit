@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_TCCSPI_h
+#define WebCore_PAL_pal_spi_cocoa_TCCSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -47,3 +48,4 @@ OS_OBJECT_DECL_CLASS(tcc_identity);
 #endif // HAVE(TCC_IOS_14_BIG_SUR_SPI)
 
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_TCCSPI_h

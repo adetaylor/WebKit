@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_Landmark_h
+#define WebCore_Modules_ShapeDetection_Landmark_h
 
 #include "LandmarkInterface.h"
 #include "LandmarkType.h"
@@ -58,3 +59,4 @@ inline Landmark convertFromBacking(const ShapeDetection::Landmark& landmark)
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_ShapeDetection_Landmark_h

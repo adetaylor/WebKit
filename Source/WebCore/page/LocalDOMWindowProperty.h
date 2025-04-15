@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_LocalDOMWindowProperty_h
+#define WebCore_page_LocalDOMWindowProperty_h
 
 #include "LocalDOMWindow.h"
 #include <wtf/WeakPtr.h>
@@ -47,3 +48,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_LocalDOMWindowProperty_h

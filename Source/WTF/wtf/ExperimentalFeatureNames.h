@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ExperimentalFeatureNames_h
+#define WTF_wtf_ExperimentalFeatureNames_h
 
 namespace WTF {
 
@@ -34,3 +35,4 @@ namespace WTF {
 #endif
 
 }
+#endif // WTF_wtf_ExperimentalFeatureNames_h

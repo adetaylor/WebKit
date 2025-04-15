@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_TextCheckingRequestIdentifier_h
+#define WebCore_platform_text_TextCheckingRequestIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ enum class TextCheckingRequestIdentifierType { };
 using TextCheckingRequestIdentifier = ObjectIdentifier<TextCheckingRequestIdentifierType>;
 
 }
+#endif // WebCore_platform_text_TextCheckingRequestIdentifier_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchReferrerPolicy_h
+#define WebCore_Modules_fetch_FetchReferrerPolicy_h
 
 #include "ReferrerPolicy.h"
 
@@ -32,3 +33,4 @@ namespace WebCore {
 using FetchReferrerPolicy = ReferrerPolicy;
 
 }
+#endif // WebCore_Modules_fetch_FetchReferrerPolicy_h

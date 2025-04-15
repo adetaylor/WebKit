@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_EventTargetConcrete_h
+#define WebCore_dom_EventTargetConcrete_h
 
 #include "ContextDestructionObserver.h"
 #include "EventTarget.h"
@@ -53,3 +54,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_EventTargetConcrete_h

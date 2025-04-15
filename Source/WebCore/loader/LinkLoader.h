@@ -29,7 +29,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_loader_LinkLoader_h
+#define WebCore_loader_LinkLoader_h
 
 #include "CachedResource.h"
 #include "CachedResourceClient.h"
@@ -95,3 +96,4 @@ private:
 };
 
 }
+#endif // WebCore_loader_LinkLoader_h

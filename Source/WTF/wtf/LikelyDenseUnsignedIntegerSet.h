@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_LikelyDenseUnsignedIntegerSet_h
+#define WTF_wtf_LikelyDenseUnsignedIntegerSet_h
 
 #include <variant>
 #include <wtf/Assertions.h>
@@ -330,3 +331,4 @@ private:
 } // namespace WTF
 
 using WTF::LikelyDenseUnsignedIntegerSet;
+#endif // WTF_wtf_LikelyDenseUnsignedIntegerSet_h

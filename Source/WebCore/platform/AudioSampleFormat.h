@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_AudioSampleFormat_h
+#define WebCore_platform_AudioSampleFormat_h
 
 #include <algorithm>
 #include <limits>
@@ -162,3 +163,4 @@ inline D convertAudioSample(S source)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_AudioSampleFormat_h

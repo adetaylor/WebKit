@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_SnapshotIdentifier_h
+#define WebCore_platform_graphics_SnapshotIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ enum class SnapshotIdentifierType { };
 using SnapshotIdentifier = AtomicObjectIdentifier<SnapshotIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_SnapshotIdentifier_h

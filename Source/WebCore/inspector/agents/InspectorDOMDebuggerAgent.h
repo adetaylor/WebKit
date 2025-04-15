@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_InspectorDOMDebuggerAgent_h
+#define WebCore_inspector_agents_InspectorDOMDebuggerAgent_h
 
 #include "InspectorWebAgentBase.h"
 #include <JavaScriptCore/Breakpoint.h>
@@ -137,3 +138,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_InspectorDOMDebuggerAgent_h

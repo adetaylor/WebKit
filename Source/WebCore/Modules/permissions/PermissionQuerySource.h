@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_permissions_PermissionQuerySource_h
+#define WebCore_Modules_permissions_PermissionQuerySource_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ enum class PermissionQuerySource : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_permissions_PermissionQuerySource_h

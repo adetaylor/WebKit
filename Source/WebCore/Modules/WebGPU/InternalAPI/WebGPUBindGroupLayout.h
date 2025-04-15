@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUBindGroupLayout_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUBindGroupLayout_h
 
 #include <wtf/DebugHeap.h>
 #include <wtf/Ref.h>
@@ -60,3 +61,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUBindGroupLayout_h

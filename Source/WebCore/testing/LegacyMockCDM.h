@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_LegacyMockCDM_h
+#define WebCore_testing_LegacyMockCDM_h
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 
@@ -61,3 +62,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(LEGACY_ENCRYPTED_MEDIA)
+#endif // WebCore_testing_LegacyMockCDM_h

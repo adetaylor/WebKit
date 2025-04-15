@@ -21,7 +21,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMBinding_h
+#define WebCore_bindings_js_JSDOMBinding_h
 
 // FIXME: Remove this header.
 
@@ -42,3 +43,4 @@
 #include <wtf/Forward.h>
 #include <wtf/GetPtr.h>
 #include <wtf/Vector.h>
+#endif // WebCore_bindings_js_JSDOMBinding_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FilterOperation_h
+#define WebCore_platform_graphics_filters_FilterOperation_h
 
 #include "Color.h"
 #include "LayoutSize.h"
@@ -380,3 +381,4 @@ SPECIALIZE_TYPE_TRAITS_FILTEROPERATION(InvertLightnessFilterOperation, type() ==
 SPECIALIZE_TYPE_TRAITS_FILTEROPERATION(BlurFilterOperation, type() == WebCore::FilterOperation::Type::Blur)
 SPECIALIZE_TYPE_TRAITS_FILTEROPERATION(DropShadowFilterOperation, type() == WebCore::FilterOperation::Type::DropShadow)
 SPECIALIZE_TYPE_TRAITS_FILTEROPERATION(DropShadowFilterOperationBase, isDropShadowBase())
+#endif // WebCore_platform_graphics_filters_FilterOperation_h

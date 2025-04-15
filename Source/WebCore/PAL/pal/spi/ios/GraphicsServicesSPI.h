@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_ios_GraphicsServicesSPI_h
+#define WebCore_PAL_pal_spi_ios_GraphicsServicesSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -58,3 +59,4 @@ extern const char *kGSEventHardwareKeyboardAvailabilityChangedNotification;
 WTF_EXTERN_C_END
 
 #endif
+#endif // WebCore_PAL_pal_spi_ios_GraphicsServicesSPI_h

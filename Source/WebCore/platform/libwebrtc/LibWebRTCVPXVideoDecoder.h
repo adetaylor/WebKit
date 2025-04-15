@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_libwebrtc_LibWebRTCVPXVideoDecoder_h
+#define WebCore_platform_libwebrtc_LibWebRTCVPXVideoDecoder_h
 
 #if USE(LIBWEBRTC)
 
@@ -64,3 +65,4 @@ private:
 }
 
 #endif // USE(LIBWEBRTC)
+#endif // WebCore_platform_libwebrtc_LibWebRTCVPXVideoDecoder_h

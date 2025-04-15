@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cf_CFBundleSPI_h
+#define WTF_wtf_spi_cf_CFBundleSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -47,3 +48,4 @@ Boolean CFBundleGetLocalizationInfoForLocalization(CFStringRef localizationName,
 CFStringRef CFBundleCopyLocalizationForLocalizationInfo(SInt32 languageCode, SInt32 regionCode, SInt32 scriptCode, CFStringEncoding stringEncoding);
 
 WTF_EXTERN_C_END
+#endif // WTF_wtf_spi_cf_CFBundleSPI_h

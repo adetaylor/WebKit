@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_FileMonitor_h
+#define WebCore_platform_FileMonitor_h
 
 #include <wtf/Function.h>
 #include <wtf/TZoneMalloc.h>
@@ -65,3 +66,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_FileMonitor_h

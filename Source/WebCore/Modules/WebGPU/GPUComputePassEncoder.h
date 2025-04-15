@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUComputePassEncoder_h
+#define WebCore_Modules_WebGPU_GPUComputePassEncoder_h
 
 #include "ExceptionOr.h"
 #include "GPUIntegralTypes.h"
@@ -85,3 +86,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUComputePassEncoder_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvert_h
+#define WebCore_bindings_js_JSDOMConvert_h
 
 #include "JSDOMConvertAny.h"
 #include "JSDOMConvertBoolean.h"
@@ -46,3 +47,4 @@
 #include "JSDOMConvertStrings.h"
 #include "JSDOMConvertUndefined.h"
 #include "JSDOMConvertUnion.h"
+#endif // WebCore_bindings_js_JSDOMConvert_h

@@ -42,7 +42,8 @@
  * version of this file under any of the LGPL, the MPL or the GPL.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderLayerScrollableArea_h
+#define WebCore_rendering_RenderLayerScrollableArea_h
 
 #include "RenderLayer.h"
 #include "ScrollableArea.h"
@@ -343,3 +344,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::RenderLayerScrollableArea)
 static bool isType(const WebCore::ScrollableArea& area) { return area.isRenderLayer(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_rendering_RenderLayerScrollableArea_h

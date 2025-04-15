@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLFrameElementBase_h
+#define WebCore_html_HTMLFrameElementBase_h
 
 #include "FrameLoaderTypes.h"
 #include "HTMLFrameOwnerElement.h"
@@ -84,3 +85,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::HTMLFrameElementBase)
         return htmlElement && isType(*htmlElement);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_HTMLFrameElementBase_h

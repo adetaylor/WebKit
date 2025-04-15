@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_GPUCanvasContextCocoa_h
+#define WebCore_html_canvas_GPUCanvasContextCocoa_h
 
 #include "GPU.h"
 #include "GPUBasedCanvasRenderingContext.h"
@@ -113,3 +114,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_canvas_GPUCanvasContextCocoa_h

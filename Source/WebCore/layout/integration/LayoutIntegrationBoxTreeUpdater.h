@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_LayoutIntegrationBoxTreeUpdater_h
+#define WebCore_layout_integration_LayoutIntegrationBoxTreeUpdater_h
 
 #include <wtf/CheckedRef.h>
 #include <wtf/UniqueRef.h>
@@ -89,3 +90,4 @@ void showInlineContent(TextStream&, const InlineContent&, size_t depth, bool isD
 }
 }
 
+#endif // WebCore_layout_integration_LayoutIntegrationBoxTreeUpdater_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediarecorder_MediaRecorderErrorEvent_h
+#define WebCore_Modules_mediarecorder_MediaRecorderErrorEvent_h
 
 #if ENABLE(MEDIA_RECORDER)
 #include "Event.h"
@@ -53,3 +54,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_RECORDER)
+#endif // WebCore_Modules_mediarecorder_MediaRecorderErrorEvent_h

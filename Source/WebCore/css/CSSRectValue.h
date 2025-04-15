@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSRectValue_h
+#define WebCore_css_CSSRectValue_h
 
 #include "Rect.h"
 
@@ -52,3 +53,4 @@ inline const Rect& CSSValue::rect() const
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSRectValue, isRect())
+#endif // WebCore_css_CSSRectValue_h

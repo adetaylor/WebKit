@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_XRFrameRequestCallback_h
+#define WebCore_Modules_webxr_XRFrameRequestCallback_h
 
 #if ENABLE(WEBXR)
 
@@ -57,3 +58,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_Modules_webxr_XRFrameRequestCallback_h

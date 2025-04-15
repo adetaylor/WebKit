@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_TextBoxTrimmer_h
+#define WebCore_rendering_TextBoxTrimmer_h
 
 #include "LocalFrameViewLayoutContext.h"
 #include <wtf/CheckedPtr.h>
@@ -49,3 +50,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_TextBoxTrimmer_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ShadowRealmGlobalScope_h
+#define WebCore_page_ShadowRealmGlobalScope_h
 
 #include "JSShadowRealmGlobalScopeBase.h"
 #include <JavaScriptCore/Weak.h>
@@ -70,3 +71,4 @@ inline JSShadowRealmGlobalScopeBase* ShadowRealmGlobalScope::wrapper()
 }
 
 } // namespace WebCore
+#endif // WebCore_page_ShadowRealmGlobalScope_h

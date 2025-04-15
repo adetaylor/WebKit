@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLNameCollection_h
+#define WebCore_html_HTMLNameCollection_h
 
 #include "CachedHTMLCollection.h"
 #include "NodeRareData.h"
@@ -103,3 +104,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_HTMLCOLLECTION(WindowNameCollection, CollectionType::WindowNamedItems)
 SPECIALIZE_TYPE_TRAITS_HTMLCOLLECTION(DocumentNameCollection, CollectionType::DocumentNamedItems)
+#endif // WebCore_html_HTMLNameCollection_h

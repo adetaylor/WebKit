@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_editing_EditingBehavior_h
+#define WebCore_editing_EditingBehavior_h
 
 #include "EditingBehaviorType.h"
 
@@ -106,3 +107,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_EditingBehavior_h

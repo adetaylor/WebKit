@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_fileapi_FileList_h
+#define WebCore_fileapi_FileList_h
 
 #include "File.h"
 #include "ScriptWrappable.h"
@@ -74,3 +75,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_fileapi_FileList_h

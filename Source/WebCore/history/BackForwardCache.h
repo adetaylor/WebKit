@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_history_BackForwardCache_h
+#define WebCore_history_BackForwardCache_h
 
 #include "BackForwardItemIdentifier.h"
 #include "HistoryItem.h"
@@ -100,3 +101,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_history_BackForwardCache_h

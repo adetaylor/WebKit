@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_IdleRequestOptions_h
+#define WebCore_dom_IdleRequestOptions_h
 
 namespace WebCore {
 
@@ -32,3 +33,4 @@ struct IdleRequestOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_IdleRequestOptions_h

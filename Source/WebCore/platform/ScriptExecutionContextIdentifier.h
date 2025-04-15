@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScriptExecutionContextIdentifier_h
+#define WebCore_platform_ScriptExecutionContextIdentifier_h
 
 #include "ProcessQualified.h"
 #include <wtf/Forward.h>
@@ -101,3 +102,4 @@ inline TextStream& operator<<(TextStream& ts, const ProcessQualified<WTF::UUID>&
 using ScriptExecutionContextIdentifier = ProcessQualified<WTF::UUID>;
 
 }
+#endif // WebCore_platform_ScriptExecutionContextIdentifier_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_ScrollTypesMac_h
+#define WebCore_platform_mac_ScrollTypesMac_h
 
 #if PLATFORM(MAC)
 
@@ -73,3 +74,4 @@ inline NSControlSize nsControlSizeFromScrollbarWidth(ScrollbarWidth width)
 } // namespace WebCore
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_mac_ScrollTypesMac_h

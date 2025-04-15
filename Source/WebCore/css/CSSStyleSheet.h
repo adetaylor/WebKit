@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSStyleSheet_h
+#define WebCore_css_CSSStyleSheet_h
 
 #include "CSSRuleList.h"
 #include "CommonAtomStrings.h"
@@ -203,3 +204,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSSStyleSheet)
     static bool isType(const WebCore::StyleSheet& styleSheet) { return styleSheet.isCSSStyleSheet(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_CSSStyleSheet_h

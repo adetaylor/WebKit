@@ -24,7 +24,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_TextSinkGStreamer_h
+#define WebCore_platform_graphics_gstreamer_TextSinkGStreamer_h
 
 #if ENABLE(VIDEO) && USE(GSTREAMER)
 
@@ -65,3 +66,4 @@ GstElement* webkitTextSinkNew(ThreadSafeWeakPtr<WebCore::MediaPlayerPrivateGStre
 G_END_DECLS
 
 #endif // ENABLE(VIDEO) && USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_TextSinkGStreamer_h

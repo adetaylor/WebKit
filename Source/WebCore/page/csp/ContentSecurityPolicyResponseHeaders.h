@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_csp_ContentSecurityPolicyResponseHeaders_h
+#define WebCore_page_csp_ContentSecurityPolicyResponseHeaders_h
 
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
@@ -89,3 +90,4 @@ inline bool operator==(const ContentSecurityPolicyResponseHeaders&a, const Conte
 }
 
 } // namespace WebCore
+#endif // WebCore_page_csp_ContentSecurityPolicyResponseHeaders_h

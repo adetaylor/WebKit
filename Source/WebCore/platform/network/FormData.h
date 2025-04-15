@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_FormData_h
+#define WebCore_platform_network_FormData_h
 
 #include "BlobData.h"
 #include <variant>
@@ -207,3 +208,4 @@ inline bool operator==(const FormData& a, const FormData& b)
 
 } // namespace WebCore
 
+#endif // WebCore_platform_network_FormData_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ComplexTextController_h
+#define WebCore_platform_graphics_ComplexTextController_h
 
 #include "FloatPoint.h"
 #include "GlyphBuffer.h"
@@ -228,3 +229,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ComplexTextController_h

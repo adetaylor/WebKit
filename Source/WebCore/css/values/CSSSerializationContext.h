@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_CSSSerializationContext_h
+#define WebCore_css_values_CSSSerializationContext_h
 
 #include <wtf/HashMap.h>
 #include <wtf/text/WTFString.h>
@@ -47,3 +48,4 @@ WEBCORE_EXPORT const SerializationContext& defaultSerializationContext();
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_CSSSerializationContext_h

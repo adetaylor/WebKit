@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_SourceBufferPrivateAVFObjC_h
+#define WebCore_platform_graphics_avfoundation_objc_SourceBufferPrivateAVFObjC_h
 
 #if ENABLE(MEDIA_SOURCE) && USE(AVFOUNDATION)
 
@@ -293,3 +294,4 @@ static bool isType(const WebCore::SourceBufferPrivate& sourceBuffer) { return so
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(MEDIA_SOURCE) && USE(AVFOUNDATION)
+#endif // WebCore_platform_graphics_avfoundation_objc_SourceBufferPrivateAVFObjC_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_PseudoElement_h
+#define WebCore_dom_PseudoElement_h
 
 #include "Element.h"
 #include <wtf/Forward.h>
@@ -62,3 +63,4 @@ const QualifiedName& pseudoElementTagName();
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::PseudoElement)
     static bool isType(const WebCore::Node& node) { return node.isPseudoElement(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_PseudoElement_h

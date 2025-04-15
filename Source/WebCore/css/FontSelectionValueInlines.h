@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_FontSelectionValueInlines_h
+#define WebCore_css_FontSelectionValueInlines_h
 
 #include "CSSValueKeywords.h"
 #include "FontSelectionAlgorithm.h"
@@ -109,3 +110,4 @@ inline FontSelectionValue normalizedFontItalicValue(float inputValue)
 }
 
 }
+#endif // WebCore_css_FontSelectionValueInlines_h

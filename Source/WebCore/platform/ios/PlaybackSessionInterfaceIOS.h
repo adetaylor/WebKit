@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_PlaybackSessionInterfaceIOS_h
+#define WebCore_platform_ios_PlaybackSessionInterfaceIOS_h
 
 #if PLATFORM(COCOA) && HAVE(AVKIT)
 
@@ -123,3 +124,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(COCOA) && HAVE(AVKIT)
+#endif // WebCore_platform_ios_PlaybackSessionInterfaceIOS_h

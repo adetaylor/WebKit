@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_HysteresisActivity_h
+#define WebCore_PAL_pal_HysteresisActivity_h
 
 #include <wtf/RunLoop.h>
 #include <wtf/Seconds.h>
@@ -100,3 +101,4 @@ private:
 };
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_HysteresisActivity_h

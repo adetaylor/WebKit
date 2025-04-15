@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLBRElement_h
+#define WebCore_html_HTMLBRElement_h
 
 #include "HTMLElement.h"
 
@@ -46,3 +47,4 @@ private:
 };
 
 } // namespace
+#endif // WebCore_html_HTMLBRElement_h

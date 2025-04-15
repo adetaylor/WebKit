@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGTextContentElement_h
+#define WebCore_svg_SVGTextContentElement_h
 
 #include "SVGGraphicsElement.h"
 #include <wtf/TZoneMalloc.h>
@@ -123,3 +124,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SVGTextContentElement)
         return svgElement && isType(*svgElement);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_svg_SVGTextContentElement_h

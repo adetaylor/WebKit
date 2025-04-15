@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSNestedDeclarations_h
+#define WebCore_css_CSSNestedDeclarations_h
 
 #include "CSSRule.h"
 
@@ -54,3 +55,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSNestedDeclarations, StyleRuleType::NestedDeclarations)
+#endif // WebCore_css_CSSNestedDeclarations_h

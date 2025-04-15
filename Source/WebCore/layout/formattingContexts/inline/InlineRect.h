@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineRect_h
+#define WebCore_layout_formattingContexts_inline_InlineRect_h
 
 #include "LayoutUnits.h"
 
@@ -351,3 +352,4 @@ inline InlineRect::operator InlineLayoutRect() const
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_InlineRect_h

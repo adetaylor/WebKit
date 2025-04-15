@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PublicSuffixStore_h
+#define WebCore_platform_PublicSuffixStore_h
 
 #include "PublicSuffix.h"
 #include <wtf/HashMap.h>
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_PublicSuffixStore_h

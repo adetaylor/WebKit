@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_parser_HTMLScriptRunner_h
+#define WebCore_html_parser_HTMLScriptRunner_h
 
 #include "PendingScript.h"
 #include <wtf/Deque.h>
@@ -88,3 +89,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_parser_HTMLScriptRunner_h

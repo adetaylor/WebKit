@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollableArea_h
+#define WebCore_platform_ScrollableArea_h
 
 #include "KeyboardScroll.h"
 #include "RectEdges.h"
@@ -506,3 +507,4 @@ private:
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const ScrollableArea&);
 
 } // namespace WebCore
+#endif // WebCore_platform_ScrollableArea_h

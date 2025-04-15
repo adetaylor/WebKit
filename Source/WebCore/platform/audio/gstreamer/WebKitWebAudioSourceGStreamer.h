@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_gstreamer_WebKitWebAudioSourceGStreamer_h
+#define WebCore_platform_audio_gstreamer_WebKitWebAudioSourceGStreamer_h
 
 #if USE(GSTREAMER)
 
@@ -35,3 +36,4 @@ void webkitWebAudioSourceSetBus(WebKitWebAudioSrc*, RefPtr<WebCore::AudioBus>);
 void webkitWebAudioSourceSetDispatchToRenderThreadFunction(WebKitWebAudioSrc*, Function<void(Function<void()>&&)>&&);
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_audio_gstreamer_WebKitWebAudioSourceGStreamer_h

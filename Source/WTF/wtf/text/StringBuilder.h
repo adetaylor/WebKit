@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringBuilder_h
+#define WTF_wtf_text_StringBuilder_h
 
 #include <wtf/OverflowPolicy.h>
 #include <wtf/SaturatedArithmetic.h>
@@ -365,3 +366,4 @@ struct SerializeUsingStringBuilder {
 
 using WTF::StringBuilder;
 using WTF::SerializeUsingStringBuilder;
+#endif // WTF_wtf_text_StringBuilder_h

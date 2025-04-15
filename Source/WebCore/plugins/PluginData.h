@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_plugins_PluginData_h
+#define WebCore_plugins_PluginData_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/URL.h>
@@ -106,3 +107,4 @@ inline bool isSupportedPlugin(const Vector<SupportedPluginIdentifier>& pluginIde
 }
 
 } // namespace WebCore
+#endif // WebCore_plugins_PluginData_h

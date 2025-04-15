@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_SuperFastHash_h
+#define WTF_wtf_text_SuperFastHash_h
 
 #include <span>
 #include <wtf/Compiler.h>
@@ -280,3 +281,4 @@ private:
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 
 using WTF::SuperFastHash;
+#endif // WTF_wtf_text_SuperFastHash_h

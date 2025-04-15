@@ -18,7 +18,8 @@
  * 02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_css_ComputedStyleExtractor_h
+#define WebCore_css_ComputedStyleExtractor_h
 
 #include "PseudoElementIdentifier.h"
 #include <span>
@@ -123,3 +124,4 @@ private:
 RefPtr<CSSFunctionValue> transformOperationAsCSSValue(const TransformOperation&, const RenderStyle&);
 
 } // namespace WebCore
+#endif // WebCore_css_ComputedStyleExtractor_h

@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_VideoFrameGStreamer_h
+#define WebCore_platform_graphics_gstreamer_VideoFrameGStreamer_h
 
 #if ENABLE(VIDEO) && USE(GSTREAMER)
 
@@ -109,3 +110,4 @@ static bool isType(const WebCore::VideoFrame& frame) { return frame.isGStreamer(
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(VIDEO) && USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_VideoFrameGStreamer_h

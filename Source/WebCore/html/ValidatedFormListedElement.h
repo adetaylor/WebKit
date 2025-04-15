@@ -27,7 +27,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_ValidatedFormListedElement_h
+#define WebCore_html_ValidatedFormListedElement_h
 
 #include "FormController.h"
 #include "FormListedElement.h"
@@ -171,3 +172,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_ValidatedFormListedElement_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUBuffer_h
+#define WebCore_Modules_WebGPU_GPUBuffer_h
 
 #include "ExceptionOr.h"
 #include "GPUBufferMapState.h"
@@ -98,3 +99,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUBuffer_h

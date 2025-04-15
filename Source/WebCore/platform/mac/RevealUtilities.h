@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_RevealUtilities_h
+#define WebCore_platform_mac_RevealUtilities_h
 
 #if PLATFORM(MAC)
 
@@ -40,3 +41,4 @@ WEBCORE_EXPORT RetainPtr<RVPresentingContext> createRVPresentingContextWithRetai
 } // namespace WebCore
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_mac_RevealUtilities_h

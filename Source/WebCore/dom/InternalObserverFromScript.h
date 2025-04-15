@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InternalObserverFromScript_h
+#define WebCore_dom_InternalObserverFromScript_h
 
 #include "InternalObserver.h"
 #include "VoidCallback.h"
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_InternalObserverFromScript_h

@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_IIRProcessor_h
+#define WebCore_Modules_webaudio_IIRProcessor_h
 
 #include "AudioDSPKernelProcessor.h"
 #include <wtf/TZoneMalloc.h>
@@ -66,3 +67,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::IIRProcessor) \
     static bool isType(const WebCore::AudioProcessor& processor) { return processor.processorType() == WebCore::AudioProcessor::Type::IIR; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_webaudio_IIRProcessor_h

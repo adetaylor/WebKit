@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_RotationDirection_h
+#define WebCore_platform_graphics_RotationDirection_h
 
 #include <wtf/Forward.h>
 
@@ -37,3 +38,4 @@ enum class RotationDirection : bool {
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, RotationDirection);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_RotationDirection_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingTreeFixedNode_h
+#define WebCore_page_scrolling_ScrollingTreeFixedNode_h
 
 #if ENABLE(ASYNC_SCROLLING)
 
@@ -60,3 +61,4 @@ protected:
 SPECIALIZE_TYPE_TRAITS_SCROLLING_NODE(ScrollingTreeFixedNode, isFixedNode())
 
 #endif // ENABLE(ASYNC_SCROLLING)
+#endif // WebCore_page_scrolling_ScrollingTreeFixedNode_h

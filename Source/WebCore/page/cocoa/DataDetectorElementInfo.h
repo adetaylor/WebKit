@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_cocoa_DataDetectorElementInfo_h
+#define WebCore_page_cocoa_DataDetectorElementInfo_h
 
 #if ENABLE(DATA_DETECTION)
 
@@ -42,3 +43,4 @@ struct DataDetectorElementInfo {
 } // namespace WebCore
 
 #endif // ENABLE(DATA_DETECTION)
+#endif // WebCore_page_cocoa_DataDetectorElementInfo_h

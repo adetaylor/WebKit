@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_SuffixTree_h
+#define WebCore_platform_text_SuffixTree_h
 
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/Vector.h>
@@ -142,3 +143,4 @@ inline auto SuffixTree<Codebook>::Node::childAt(int codeWord) -> Node*&
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_text_SuffixTree_h

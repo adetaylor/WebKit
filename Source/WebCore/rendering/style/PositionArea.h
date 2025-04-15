@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_PositionArea_h
+#define WebCore_rendering_style_PositionArea_h
 #include "BoxSides.h"
 #include "StyleSelfAlignmentData.h"
 #include "WritingMode.h"
@@ -213,3 +214,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, PositionArea);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_PositionArea_h

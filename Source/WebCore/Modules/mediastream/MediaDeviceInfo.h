@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_MediaDeviceInfo_h
+#define WebCore_Modules_mediastream_MediaDeviceInfo_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -64,3 +65,4 @@ typedef Vector<RefPtr<MediaDeviceInfo>> MediaDeviceInfoVector;
 }
 
 #endif
+#endif // WebCore_Modules_mediastream_MediaDeviceInfo_h

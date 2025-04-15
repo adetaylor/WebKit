@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cocoa_TypeCastsCocoa_h
+#define WTF_wtf_cocoa_TypeCastsCocoa_h
 
 #import <wtf/Assertions.h>
 #import <wtf/RetainPtr.h>
@@ -188,3 +189,4 @@ using WTF::bridge_id_cast;
 using WTF::checked_objc_cast;
 using WTF::dynamic_objc_cast;
 using WTF::is_objc;
+#endif // WTF_wtf_cocoa_TypeCastsCocoa_h

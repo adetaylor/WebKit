@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_GigacageKind_h
+#define bmalloc_bmalloc_GigacageKind_h
 
 namespace Gigacage {
 
@@ -35,3 +36,4 @@ enum class Kind {
 using enum Kind;
 
 } // namespace Gigacage
+#endif // bmalloc_bmalloc_GigacageKind_h

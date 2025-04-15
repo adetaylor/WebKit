@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ProgressTrackerClient_h
+#define WebCore_loader_ProgressTrackerClient_h
 
 #include "LoaderMalloc.h"
 
@@ -45,3 +46,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_ProgressTrackerClient_h

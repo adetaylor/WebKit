@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_CachedScriptSourceProvider_h
+#define WebCore_bindings_js_CachedScriptSourceProvider_h
 
 #include "CachedResourceClient.h"
 #include "CachedResourceHandle.h"
@@ -76,3 +77,4 @@ inline StringView CachedScriptSourceProvider::source() const
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_CachedScriptSourceProvider_h

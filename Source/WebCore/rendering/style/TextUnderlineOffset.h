@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_TextUnderlineOffset_h
+#define WebCore_rendering_style_TextUnderlineOffset_h
 
 #include "Length.h"
 #include <wtf/text/TextStream.h>
@@ -96,3 +97,4 @@ inline TextStream& operator<<(TextStream& ts, const TextUnderlineOffset& offset)
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_TextUnderlineOffset_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_DictationAlternative_h
+#define WebCore_editing_DictationAlternative_h
 
 #include "CharacterRange.h"
 #include "DictationContext.h"
@@ -36,3 +37,4 @@ struct DictationAlternative {
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_DictationAlternative_h

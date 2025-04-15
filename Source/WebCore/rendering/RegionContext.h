@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RegionContext_h
+#define WebCore_rendering_RegionContext_h
 
 #include "AffineTransform.h"
 #include "IntRect.h"
@@ -97,3 +98,4 @@ private:
 }; // class RegionContextStateSaver
 
 } // namespace WebCore
+#endif // WebCore_rendering_RegionContext_h

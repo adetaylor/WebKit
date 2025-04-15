@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_IndexedContainerIterator_h
+#define WTF_wtf_IndexedContainerIterator_h
 
 #include <type_traits>
 
@@ -75,3 +76,4 @@ private:
 };
 
 } // namespace WTF
+#endif // WTF_wtf_IndexedContainerIterator_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_NetworkLoadMetrics_h
+#define WebCore_platform_network_NetworkLoadMetrics_h
 
 #include "HTTPHeaderMap.h"
 #include <wtf/Box.h>
@@ -150,3 +151,4 @@ WEBCORE_EXPORT Box<NetworkLoadMetrics> copyTimingData(NSURLSessionTaskMetrics *i
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_network_NetworkLoadMetrics_h

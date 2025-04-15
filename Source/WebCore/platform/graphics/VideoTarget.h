@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_VideoTarget_h
+#define WebCore_platform_graphics_VideoTarget_h
 
 #if ENABLE(LINEAR_MEDIA_PLAYER)
 #include <wtf/RetainPtr.h>
@@ -39,3 +40,4 @@ using PlatformVideoTarget = void*;
 #endif
 
 }
+#endif // WebCore_platform_graphics_VideoTarget_h

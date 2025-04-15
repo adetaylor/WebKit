@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_Float16ArrayPixelBuffer_h
+#define WebCore_platform_graphics_Float16ArrayPixelBuffer_h
 
 #if ENABLE(PIXEL_FORMAT_RGBA16F)
 
@@ -60,3 +61,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Float16ArrayPixelBuffer)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(PIXEL_FORMAT_RGBA16F)
+#endif // WebCore_platform_graphics_Float16ArrayPixelBuffer_h

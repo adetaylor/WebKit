@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gpu_GPUPrewarming_h
+#define WebCore_platform_graphics_gpu_GPUPrewarming_h
 
 namespace WebCore {
 
 void prewarmGPU();
 
 }
+#endif // WebCore_platform_graphics_gpu_GPUPrewarming_h

@@ -29,7 +29,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_AppleJPEGXL_AppleJPEGXLSPI_h
+#define WebCore_PAL_pal_spi_cocoa_AppleJPEGXL_AppleJPEGXLSPI_h
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
@@ -174,3 +175,4 @@ JxlDecoderStatus JxlDecoderGetColorAsICCProfile(const JxlDecoder*, const JxlPixe
 }
 #endif
 
+#endif // WebCore_PAL_pal_spi_cocoa_AppleJPEGXL_AppleJPEGXLSPI_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_parameters_CryptoAlgorithmHmacKeyParams_h
+#define WebCore_crypto_parameters_CryptoAlgorithmHmacKeyParams_h
 
 #include "CryptoAlgorithmParameters.h"
 #include <JavaScriptCore/JSObject.h>
@@ -56,3 +57,4 @@ public:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_ALGORITHM_PARAMETERS(HmacKeyParams)
+#endif // WebCore_crypto_parameters_CryptoAlgorithmHmacKeyParams_h

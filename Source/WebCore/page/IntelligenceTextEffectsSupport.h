@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_IntelligenceTextEffectsSupport_h
+#define WebCore_page_IntelligenceTextEffectsSupport_h
 
 namespace WTF {
 class UUID;
@@ -55,3 +56,4 @@ WEBCORE_EXPORT void decorateWritingToolsTextReplacements(Document&, const Simple
 } // namespace IntelligenceTextEffectsSupport
 
 } // namespace WebCore
+#endif // WebCore_page_IntelligenceTextEffectsSupport_h

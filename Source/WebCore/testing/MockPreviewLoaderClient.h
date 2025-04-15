@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockPreviewLoaderClient_h
+#define WebCore_testing_MockPreviewLoaderClient_h
 
 #if USE(QUICK_LOOK)
 
@@ -50,3 +51,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(QUICK_LOOK)
+#endif // WebCore_testing_MockPreviewLoaderClient_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUIndexFormat_h
+#define WebCore_Modules_WebGPU_GPUIndexFormat_h
 
 #include "WebGPUIndexFormat.h"
 #include <cstdint>
@@ -47,3 +48,4 @@ inline WebGPU::IndexFormat convertToBacking(GPUIndexFormat indexFormat)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUIndexFormat_h

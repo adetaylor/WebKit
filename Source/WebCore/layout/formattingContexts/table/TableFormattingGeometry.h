@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_table_TableFormattingGeometry_h
+#define WebCore_layout_formattingContexts_table_TableFormattingGeometry_h
 
 #include "FormattingGeometry.h"
 #include "TableGrid.h"
@@ -54,3 +55,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_LAYOUT_FORMATTING_GEOMETRY(TableFormattingGeometry, isTableFormattingGeometry())
 
+#endif // WebCore_layout_formattingContexts_table_TableFormattingGeometry_h

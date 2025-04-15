@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_BumpRange_h
+#define bmalloc_bmalloc_BumpRange_h
 
 #include "FixedVector.h"
 #include "Range.h"
@@ -43,3 +44,4 @@ typedef FixedVector<BumpRange, bumpRangeCacheCapacity> BumpRangeCache;
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_BumpRange_h

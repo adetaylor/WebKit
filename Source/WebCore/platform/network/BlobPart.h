@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_BlobPart_h
+#define WebCore_platform_network_BlobPart_h
 
 #include <wtf/URL.h>
 
@@ -90,3 +91,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_BlobPart_h

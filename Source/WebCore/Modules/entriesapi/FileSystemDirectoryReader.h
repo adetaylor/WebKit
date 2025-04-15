@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_entriesapi_FileSystemDirectoryReader_h
+#define WebCore_Modules_entriesapi_FileSystemDirectoryReader_h
 
 #include "ActiveDOMObject.h"
 #include "Exception.h"
@@ -61,3 +62,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_entriesapi_FileSystemDirectoryReader_h

@@ -21,7 +21,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMExceptionHandling_h
+#define WebCore_bindings_js_JSDOMExceptionHandling_h
 
 #include "ExceptionDetails.h"
 #include "ExceptionOr.h"
@@ -102,3 +103,4 @@ template<typename Functor> void invokeFunctorPropagatingExceptionIfNecessary(JSC
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMExceptionHandling_h

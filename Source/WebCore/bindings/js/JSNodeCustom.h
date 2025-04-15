@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSNodeCustom_h
+#define WebCore_bindings_js_JSNodeCustom_h
 
 #include "JSDOMBinding.h"
 #include "JSNode.h"
@@ -87,3 +88,4 @@ ALWAYS_INLINE JSC::JSValue JSNode::nodeType(JSC::JSGlobalObject&) const
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSNodeCustom_h

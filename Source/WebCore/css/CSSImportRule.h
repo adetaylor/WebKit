@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSImportRule_h
+#define WebCore_css_CSSImportRule_h
 
 #include "CSSRule.h"
 
@@ -69,3 +70,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSImportRule, StyleRuleType::Import)
+#endif // WebCore_css_CSSImportRule_h

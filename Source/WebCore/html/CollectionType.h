@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_CollectionType_h
+#define WebCore_html_CollectionType_h
 
 namespace WebCore {
 
@@ -96,3 +97,4 @@ struct CollectionTypeTraits<CollectionType::FormControls> {
 };
 
 } // namespace WebCore
+#endif // WebCore_html_CollectionType_h

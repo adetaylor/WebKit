@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_TypingCommand_h
+#define WebCore_editing_TypingCommand_h
 
 #include "TextInsertionBaseCommand.h"
 #include <wtf/CheckedRef.h>
@@ -172,3 +173,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::TypingCommand)
     static bool isType(const WebCore::CompositeEditCommand& command) { return command.isTypingCommand(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_editing_TypingCommand_h

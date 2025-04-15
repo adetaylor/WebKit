@@ -25,7 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_motion_StyleRayFunction_h
+#define WebCore_style_values_motion_StyleRayFunction_h
 
 #include "CSSRayFunction.h"
 #include "StylePosition.h"
@@ -67,3 +68,4 @@ DEFINE_TYPE_MAPPING(CSS::Ray, Ray)
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::Ray, 4)
+#endif // WebCore_style_values_motion_StyleRayFunction_h

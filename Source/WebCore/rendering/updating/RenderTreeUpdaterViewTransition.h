@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_updating_RenderTreeUpdaterViewTransition_h
+#define WebCore_rendering_updating_RenderTreeUpdaterViewTransition_h
 
 #include "RenderStyleConstants.h"
 #include "RenderTreeUpdater.h"
@@ -47,3 +48,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_updating_RenderTreeUpdaterViewTransition_h

@@ -27,7 +27,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_shapes_BoxLayoutShape_h
+#define WebCore_rendering_shapes_BoxLayoutShape_h
 
 #include "FloatRoundedRect.h"
 #include "LayoutShape.h"
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_shapes_BoxLayoutShape_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_url_pattern_URLPatternCanonical_h
+#define WebCore_Modules_url_pattern_URLPatternCanonical_h
 
 #include "ExceptionOr.h"
 
@@ -46,3 +47,4 @@ ExceptionOr<String> canonicalizeSearch(StringView value, BaseURLStringType value
 ExceptionOr<String> canonicalizeHash(StringView value, BaseURLStringType valueType);
 ExceptionOr<String> callEncodingCallback(EncodingCallbackType, StringView input);
 }
+#endif // WebCore_Modules_url_pattern_URLPatternCanonical_h

@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_LoaderMalloc_h
+#define WebCore_loader_LoaderMalloc_h
 
 #include <wtf/FastMalloc.h>
 
 namespace WebCore {
 DECLARE_ALLOCATOR_WITH_HEAP_IDENTIFIER(Loader);
 }
+#endif // WebCore_loader_LoaderMalloc_h

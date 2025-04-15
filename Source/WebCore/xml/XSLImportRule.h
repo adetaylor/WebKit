@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_xml_XSLImportRule_h
+#define WebCore_xml_XSLImportRule_h
 
 #if ENABLE(XSLT)
 
@@ -61,3 +62,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(XSLT)
+#endif // WebCore_xml_XSLImportRule_h

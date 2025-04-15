@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_CPUMonitor_h
+#define WebCore_platform_CPUMonitor_h
 
 #include "Timer.h"
 #include <wtf/CPUTime.h>
@@ -53,3 +54,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_CPUMonitor_h

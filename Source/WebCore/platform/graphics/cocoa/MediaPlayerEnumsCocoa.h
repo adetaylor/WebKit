@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_MediaPlayerEnumsCocoa_h
+#define WebCore_platform_graphics_cocoa_MediaPlayerEnumsCocoa_h
 
 #include "MediaPlayerEnums.h"
 
@@ -35,3 +36,4 @@ WEBCORE_EXPORT NSString *convertMediaPlayerToAVLayerVideoGravity(MediaPlayerVide
 WEBCORE_EXPORT MediaPlayerVideoGravity convertAVLayerToMediaPlayerVideoGravity(NSString *);
 
 }
+#endif // WebCore_platform_graphics_cocoa_MediaPlayerEnumsCocoa_h

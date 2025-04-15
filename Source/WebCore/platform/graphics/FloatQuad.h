@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FloatQuad_h
+#define WebCore_platform_graphics_FloatQuad_h
 
 #include "FloatRect.h"
 #include "IntRect.h"
@@ -178,3 +179,4 @@ Vector<FloatRect> boundingBoxes(const Vector<FloatQuad>&);
 WEBCORE_EXPORT FloatRect unitedBoundingBoxes(const Vector<FloatQuad>&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_FloatQuad_h

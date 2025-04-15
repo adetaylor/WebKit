@@ -25,7 +25,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_iso_ISOProtectionSystemSpecificHeaderBox_h
+#define WebCore_platform_graphics_iso_ISOProtectionSystemSpecificHeaderBox_h
 
 #include "ISOBox.h"
 
@@ -57,3 +58,4 @@ protected:
 }
 
 SPECIALIZE_TYPE_TRAITS_ISOBOX(ISOProtectionSystemSpecificHeaderBox)
+#endif // WebCore_platform_graphics_iso_ISOProtectionSystemSpecificHeaderBox_h

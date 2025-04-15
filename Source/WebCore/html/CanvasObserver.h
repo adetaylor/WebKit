@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_CanvasObserver_h
+#define WebCore_html_CanvasObserver_h
 
 #include <wtf/WeakPtr.h>
 
@@ -53,3 +54,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_CanvasObserver_h

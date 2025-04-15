@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_BoundaryPointInlines_h
+#define WebCore_dom_BoundaryPointInlines_h
 
 #include "BoundaryPoint.h"
 #include "NodeInlines.h"
@@ -36,3 +37,4 @@ BoundaryPoint makeBoundaryPointAfterNodeContents(Node& node)
 }
 
 }
+#endif // WebCore_dom_BoundaryPointInlines_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUBlendOperation_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUBlendOperation_h
 
 #include <cstdint>
 
@@ -38,3 +39,4 @@ enum class BlendOperation : uint8_t {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUBlendOperation_h

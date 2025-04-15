@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_PrivateClickMeasurement_h
+#define WebCore_loader_PrivateClickMeasurement_h
 
 #include "AttributionSecondsUntilSendData.h"
 #include "AttributionTimeToSendData.h"
@@ -154,3 +155,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_PrivateClickMeasurement_h

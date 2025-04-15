@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_skia_ImageBufferSkiaBackend_h
+#define WebCore_platform_graphics_skia_ImageBufferSkiaBackend_h
 
 #if USE(SKIA)
 #include "ImageBufferBackend.h"
@@ -45,3 +46,4 @@ protected:
 } // namespace WebCore
 
 #endif // USE(SKIA)
+#endif // WebCore_platform_graphics_skia_ImageBufferSkiaBackend_h

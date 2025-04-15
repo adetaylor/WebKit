@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleTransformData_h
+#define WebCore_rendering_style_StyleTransformData_h
 
 #include "LengthPoint.h"
 #include "RenderStyleConstants.h"
@@ -61,3 +62,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleTransformData_h

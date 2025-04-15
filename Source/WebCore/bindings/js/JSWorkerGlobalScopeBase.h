@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSWorkerGlobalScopeBase_h
+#define WebCore_bindings_js_JSWorkerGlobalScopeBase_h
 
 #include "JSDOMGlobalObject.h"
 #include "JSDOMWrapper.h"
@@ -79,3 +80,4 @@ JSC::JSValue toJS(JSC::JSGlobalObject*, WorkerGlobalScope&);
 inline JSC::JSValue toJS(JSC::JSGlobalObject* lexicalGlobalObject, WorkerGlobalScope* scope) { return scope ? toJS(lexicalGlobalObject, *scope) : JSC::jsNull(); }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSWorkerGlobalScopeBase_h

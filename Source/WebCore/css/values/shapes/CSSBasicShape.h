@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_shapes_CSSBasicShape_h
+#define WebCore_css_values_shapes_CSSBasicShape_h
 
 #include "CSSCircleFunction.h"
 #include "CSSEllipseFunction.h"
@@ -51,3 +52,4 @@ using BasicShape = std::variant<
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_shapes_CSSBasicShape_h

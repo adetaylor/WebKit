@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_ExtendedDOMIsoSubspaces_h
+#define WebCore_bindings_js_ExtendedDOMIsoSubspaces_h
 
 #include "DOMIsoSubspaces.h"
 
@@ -35,3 +36,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_ExtendedDOMIsoSubspaces_h

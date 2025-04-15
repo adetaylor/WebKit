@@ -17,7 +17,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSPluginElementFunctions_h
+#define WebCore_bindings_js_JSPluginElementFunctions_h
 
 #include "JSDOMBinding.h"
 
@@ -42,3 +43,4 @@ namespace WebCore {
     JSC::CallData pluginElementCustomGetCallData(JSHTMLElement*);
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSPluginElementFunctions_h

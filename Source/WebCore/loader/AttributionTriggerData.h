@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_AttributionTriggerData_h
+#define WebCore_loader_AttributionTriggerData_h
 
 #include "EphemeralNonce.h"
 #include "PCMTokens.h"
@@ -79,3 +80,4 @@ struct AttributionTriggerData {
 };
 
 }
+#endif // WebCore_loader_AttributionTriggerData_h

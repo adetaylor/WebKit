@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_StructuredSerializeOptions_h
+#define WebCore_page_StructuredSerializeOptions_h
 
 #include <JavaScriptCore/JSObject.h>
 #include <JavaScriptCore/Strong.h>
@@ -42,3 +43,4 @@ struct StructuredSerializeOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_StructuredSerializeOptions_h

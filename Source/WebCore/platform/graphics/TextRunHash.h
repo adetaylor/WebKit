@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_TextRunHash_h
+#define WebCore_platform_graphics_TextRunHash_h
 
 #include "TextRun.h"
 #include <wtf/HashFunctions.h>
@@ -78,3 +79,4 @@ template<> struct HashTraits<WebCore::TextRun> : GenericHashTraits<WebCore::Text
 };
 
 } // namespace WTF
+#endif // WebCore_platform_graphics_TextRunHash_h

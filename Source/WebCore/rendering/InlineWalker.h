@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_InlineWalker_h
+#define WebCore_rendering_InlineWalker_h
 
 #include "RenderBlockFlow.h"
 #include "RenderDescendantIterator.h"
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_InlineWalker_h

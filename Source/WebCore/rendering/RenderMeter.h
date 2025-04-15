@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderMeter_h
+#define WebCore_rendering_RenderMeter_h
 
 #include "RenderBlockFlow.h"
 
@@ -46,3 +47,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderMeter, isRenderMeter())
+#endif // WebCore_rendering_RenderMeter_h

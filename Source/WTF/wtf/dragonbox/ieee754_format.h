@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_ieee754_format_h
+#define WTF_wtf_dragonbox_ieee754_format_h
 
 #include <wtf/dragonbox/detail/util.h>
 
@@ -299,3 +300,4 @@ struct signed_significand_bits {
 } // namespace dragonbox
 
 } // namespace WTF
+#endif // WTF_wtf_dragonbox_ieee754_format_h

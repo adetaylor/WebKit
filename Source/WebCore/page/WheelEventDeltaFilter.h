@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_WheelEventDeltaFilter_h
+#define WebCore_page_WheelEventDeltaFilter_h
 
 #include "FloatSize.h"
 #include "ScrollTypes.h"
@@ -73,3 +74,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_WheelEventDeltaFilter_h

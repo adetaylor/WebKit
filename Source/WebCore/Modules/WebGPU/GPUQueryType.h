@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUQueryType_h
+#define WebCore_Modules_WebGPU_GPUQueryType_h
 
 #include "WebGPUQueryType.h"
 #include <cstdint>
@@ -47,3 +48,4 @@ inline WebGPU::QueryType convertToBacking(GPUQueryType queryType)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUQueryType_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerRegistrationOptions_h
+#define WebCore_workers_service_ServiceWorkerRegistrationOptions_h
 
 #include <wtf/text/WTFString.h>
 
@@ -42,3 +43,4 @@ struct ServiceWorkerRegistrationOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerRegistrationOptions_h

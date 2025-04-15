@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_LockAlgorithmInlines_h
+#define WTF_wtf_LockAlgorithmInlines_h
 
 #include <wtf/DataLog.h>
 #include <wtf/LockAlgorithm.h>
@@ -164,3 +165,4 @@ void LockAlgorithm<LockType, isHeldBit, hasParkedBit, Hooks>::unlockSlow(Atomic<
 
 } // namespace WTF
 
+#endif // WTF_wtf_LockAlgorithmInlines_h

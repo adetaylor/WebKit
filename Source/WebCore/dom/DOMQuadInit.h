@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMQuadInit_h
+#define WebCore_dom_DOMQuadInit_h
 
 #include "DOMPointInit.h"
 
@@ -37,3 +38,4 @@ struct DOMQuadInit {
 };
 
 }
+#endif // WebCore_dom_DOMQuadInit_h

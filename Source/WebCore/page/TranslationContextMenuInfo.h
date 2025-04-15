@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_TranslationContextMenuInfo_h
+#define WebCore_page_TranslationContextMenuInfo_h
 
 #if HAVE(TRANSLATION_UI_SERVICES) && ENABLE(CONTEXT_MENUS)
 
@@ -47,3 +48,4 @@ struct TranslationContextMenuInfo {
 } // namespace WebCore
 
 #endif // HAVE(TRANSLATION_UI_SERVICES) && ENABLE(CONTEXT_MENUS)
+#endif // WebCore_page_TranslationContextMenuInfo_h

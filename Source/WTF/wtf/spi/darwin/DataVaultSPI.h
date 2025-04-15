@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_darwin_DataVaultSPI_h
+#define WTF_wtf_spi_darwin_DataVaultSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -40,3 +41,4 @@ int rootless_check_datavault_flag(const char *path, const char *storage_class);
 WTF_EXTERN_C_END
 
 #endif // OS(DARWIN)
+#endif // WTF_wtf_spi_darwin_DataVaultSPI_h

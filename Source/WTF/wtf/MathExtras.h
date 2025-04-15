@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef MathExtras_h
+#define MathExtras_h
 
 #include <algorithm>
 #include <climits>
@@ -823,3 +824,5 @@ using WTF::fabsConstExpr;
 using WTF::reverseBits32;
 using WTF::isIdentical;
 using WTF::isRepresentableAs;
+
+#endif

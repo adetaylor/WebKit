@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_OfflineAudioCompletionEventInit_h
+#define WebCore_Modules_webaudio_OfflineAudioCompletionEventInit_h
 
 #include "AudioBuffer.h"
 #include "EventInit.h"
@@ -34,3 +35,4 @@ struct OfflineAudioCompletionEventInit : EventInit {
 };
 
 }
+#endif // WebCore_Modules_webaudio_OfflineAudioCompletionEventInit_h

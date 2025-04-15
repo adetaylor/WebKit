@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StylePrimitiveNumericConcepts_h
+#define WebCore_style_values_primitives_StylePrimitiveNumericConcepts_h
 
 #include "CSSPrimitiveNumericConcepts.h"
 
@@ -49,3 +50,4 @@ template<typename T> concept Calc = std::same_as<T, UnevaluatedCalculation<typen
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_primitives_StylePrimitiveNumericConcepts_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayRecurringPaymentRequest_h
+#define WebCore_Modules_applepay_ApplePayRecurringPaymentRequest_h
 
 #if ENABLE(APPLE_PAY_RECURRING_PAYMENTS)
 
@@ -45,3 +46,4 @@ struct ApplePayRecurringPaymentRequest final {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY_RECURRING_PAYMENTS)
+#endif // WebCore_Modules_applepay_ApplePayRecurringPaymentRequest_h

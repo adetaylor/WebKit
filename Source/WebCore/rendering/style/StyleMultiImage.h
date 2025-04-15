@@ -22,7 +22,8 @@
 *
 */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleMultiImage_h
+#define WebCore_rendering_style_StyleMultiImage_h
 
 #include "StyleImage.h"
 #include "StyleInvalidImage.h"
@@ -84,3 +85,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleMultiImage_h

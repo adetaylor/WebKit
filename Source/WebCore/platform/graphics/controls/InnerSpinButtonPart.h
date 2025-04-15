@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_InnerSpinButtonPart_h
+#define WebCore_platform_graphics_controls_InnerSpinButtonPart_h
 
 #include "ControlFactory.h"
 #include "ControlPart.h"
@@ -52,3 +53,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CONTROL_PART(InnerSpinButton)
+#endif // WebCore_platform_graphics_controls_InnerSpinButtonPart_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_shared_SharedWorker_h
+#define WebCore_workers_shared_SharedWorker_h
 
 #include "AbstractWorker.h"
 #include "ActiveDOMObject.h"
@@ -90,3 +91,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_shared_SharedWorker_h

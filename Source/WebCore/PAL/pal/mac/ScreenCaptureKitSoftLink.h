@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_mac_ScreenCaptureKitSoftLink_h
+#define WebCore_PAL_pal_mac_ScreenCaptureKitSoftLink_h
 
 #if HAVE(SCREEN_CAPTURE_KIT)
 
@@ -58,3 +59,4 @@ SOFT_LINK_CONSTANT_MAY_FAIL_FOR_HEADER(PAL, ScreenCaptureKit, SCStreamFrameInfoP
 #endif
 
 #endif // HAVE(SCREEN_CAPTURE_KIT)
+#endif // WebCore_PAL_pal_mac_ScreenCaptureKitSoftLink_h

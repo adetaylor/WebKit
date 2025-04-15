@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_Filter_h
+#define WebCore_platform_graphics_filters_Filter_h
 
 #include "FilterEffectVector.h"
 #include "FilterFunction.h"
@@ -86,3 +87,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Filter)
     static bool isType(const WebCore::RenderingResource& renderingResource) { return renderingResource.isFilter(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_filters_Filter_h

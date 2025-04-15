@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_keys_CryptoKeyOKP_h
+#define WebCore_crypto_keys_CryptoKeyOKP_h
 
 #include "CryptoKey.h"
 #include "CryptoKeyPair.h"
@@ -89,3 +90,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_KEY(CryptoKeyOKP, CryptoKeyClass::OKP)
+#endif // WebCore_crypto_keys_CryptoKeyOKP_h

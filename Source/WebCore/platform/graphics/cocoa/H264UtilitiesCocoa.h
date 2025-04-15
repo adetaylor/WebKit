@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_H264UtilitiesCocoa_h
+#define WebCore_platform_graphics_cocoa_H264UtilitiesCocoa_h
 
 #include <wtf/Forward.h>
 
@@ -34,3 +35,4 @@ struct VideoInfo;
 WEBCORE_EXPORT RefPtr<VideoInfo> createVideoInfoFromAVCC(std::span<const uint8_t>);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_cocoa_H264UtilitiesCocoa_h

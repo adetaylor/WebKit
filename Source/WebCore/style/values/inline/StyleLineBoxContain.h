@@ -25,7 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_inline_StyleLineBoxContain_h
+#define WebCore_style_values_inline_StyleLineBoxContain_h
 
 namespace WebCore {
 namespace Style {
@@ -42,3 +43,4 @@ enum class LineBoxContain : uint8_t {
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_inline_StyleLineBoxContain_h

@@ -24,7 +24,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#ifndef WebCore_dom_Exception_h
+#define WebCore_dom_Exception_h
 
 #include "ExceptionCode.h"
 #include <wtf/text/WTFString.h>
@@ -55,3 +56,4 @@ inline Exception::Exception(ExceptionCode code, String message)
 
 
 } // namespace WebCore
+#endif // WebCore_dom_Exception_h

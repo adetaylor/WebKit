@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_IntersectionObserver_h
+#define WebCore_page_IntersectionObserver_h
 
 #include "Document.h"
 #include "GCReachableRef.h"
@@ -152,3 +153,4 @@ private:
 
 
 } // namespace WebCore
+#endif // WebCore_page_IntersectionObserver_h

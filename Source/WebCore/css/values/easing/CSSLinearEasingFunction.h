@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_easing_CSSLinearEasingFunction_h
+#define WebCore_css_values_easing_CSSLinearEasingFunction_h
 
 #include "CSSPrimitiveNumericTypes.h"
 
@@ -76,3 +77,4 @@ template<size_t I> const auto& get(const LinearEasingParameters::Stop::Length& v
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::LinearEasingParameters, 1)
 DEFINE_SPACE_SEPARATED_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::LinearEasingParameters::Stop, 2)
 DEFINE_SPACE_SEPARATED_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::LinearEasingParameters::Stop::Length, 2)
+#endif // WebCore_css_values_easing_CSSLinearEasingFunction_h

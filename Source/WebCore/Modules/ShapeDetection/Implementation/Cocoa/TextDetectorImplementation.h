@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_Implementation_Cocoa_TextDetectorImplementation_h
+#define WebCore_Modules_ShapeDetection_Implementation_Cocoa_TextDetectorImplementation_h
 
 #if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION) && HAVE(VISION)
 
@@ -56,3 +57,4 @@ private:
 } // namespace WebCore::ShapeDetection
 
 #endif // HAVE(SHAPE_DETECTION_API_IMPLEMENTATION) && HAVE(VISION)
+#endif // WebCore_Modules_ShapeDetection_Implementation_Cocoa_TextDetectorImplementation_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_AudioSourceProviderAVFObjC_h
+#define WebCore_platform_graphics_avfoundation_AudioSourceProviderAVFObjC_h
 
 #if ENABLE(WEB_AUDIO) && USE(MEDIATOOLBOX)
 
@@ -123,3 +124,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AudioSourceProviderAVFObjC)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(WEB_AUDIO) && USE(MEDIATOOLBOX)
+#endif // WebCore_platform_graphics_avfoundation_AudioSourceProviderAVFObjC_h

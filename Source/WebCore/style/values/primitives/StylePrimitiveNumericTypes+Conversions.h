@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StylePrimitiveNumericTypes_Conversions_h
+#define WebCore_style_values_primitives_StylePrimitiveNumericTypes_Conversions_h
 
 #include "CSSCalcValue.h"
 #include "CSSPrimitiveNumericTypes+Canonicalization.h"
@@ -459,3 +460,4 @@ template<auto nR, auto pR, typename V> struct ToStyle<CSS::NumberOrPercentageRes
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_primitives_StylePrimitiveNumericTypes_Conversions_h

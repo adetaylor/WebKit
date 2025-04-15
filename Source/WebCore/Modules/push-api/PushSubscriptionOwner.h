@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushSubscriptionOwner_h
+#define WebCore_Modules_push_api_PushSubscriptionOwner_h
 
 #include "JSDOMPromiseDeferredForward.h"
 #include "PushSubscription.h"
@@ -48,3 +49,4 @@ public:
 };
 
 }
+#endif // WebCore_Modules_push_api_PushSubscriptionOwner_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_MIMESniffer_h
+#define WebCore_platform_graphics_MIMESniffer_h
 
 #include <span>
 #include <wtf/text/WTFString.h>
@@ -38,3 +39,4 @@ WEBCORE_EXPORT String getMIMETypeFromContent(std::span<const uint8_t>);
 } // namespace MIMESniffer
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_MIMESniffer_h

@@ -23,7 +23,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGRenderingContext_h
+#define WebCore_rendering_svg_SVGRenderingContext_h
 
 #include "ImageBuffer.h"
 #include "PaintInfo.h"
@@ -105,3 +106,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_SVGRenderingContext_h

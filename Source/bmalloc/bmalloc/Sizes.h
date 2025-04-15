@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Sizes_h
+#define bmalloc_bmalloc_Sizes_h
 
 #include "Algorithm.h"
 #include "BPlatform.h"
@@ -133,3 +134,4 @@ constexpr size_t smallLineCount(size_t vmPageSize)
 using namespace Sizes;
 
 } // namespace bmalloc
+#endif // bmalloc_bmalloc_Sizes_h

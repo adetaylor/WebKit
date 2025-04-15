@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_NamedNodeMap_h
+#define WebCore_dom_NamedNodeMap_h
 
 #include "Element.h"
 #include "ExceptionOr.h"
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_NamedNodeMap_h

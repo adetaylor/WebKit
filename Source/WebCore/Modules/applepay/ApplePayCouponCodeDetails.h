@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayCouponCodeDetails_h
+#define WebCore_Modules_applepay_ApplePayCouponCodeDetails_h
 
 #if ENABLE(APPLE_PAY_COUPON_CODE)
 
@@ -38,3 +39,4 @@ struct ApplePayCouponCodeDetails {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY_COUPON_CODE)
+#endif // WebCore_Modules_applepay_ApplePayCouponCodeDetails_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#pragma once
+#ifndef WebCore_page_NavigatorBase_h
+#define WebCore_page_NavigatorBase_h
 
 #include "ContextDestructionObserver.h"
 #include "ExceptionOr.h"
@@ -89,3 +90,4 @@ private:
 WebCoreOpaqueRoot root(NavigatorBase*);
 
 } // namespace WebCore
+#endif // WebCore_page_NavigatorBase_h

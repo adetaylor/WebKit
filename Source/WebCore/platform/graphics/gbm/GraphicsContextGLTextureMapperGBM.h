@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gbm_GraphicsContextGLTextureMapperGBM_h
+#define WebCore_platform_graphics_gbm_GraphicsContextGLTextureMapperGBM_h
 
 #if ENABLE(WEBGL) && USE(COORDINATED_GRAPHICS) && USE(GBM)
 #include "GraphicsContextGLTextureMapperANGLE.h"
@@ -72,3 +73,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEBGL) && USE(COORDINATED_GRAPHICS) && USE(GBM)
+#endif // WebCore_platform_graphics_gbm_GraphicsContextGLTextureMapperGBM_h

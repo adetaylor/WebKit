@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_EpochTimeStamp_h
+#define WebCore_dom_EpochTimeStamp_h
 
 #include <wtf/Seconds.h>
 
@@ -52,3 +53,4 @@ inline double convertEpochTimeStampToSeconds(EpochTimeStamp milliseconds)
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_EpochTimeStamp_h

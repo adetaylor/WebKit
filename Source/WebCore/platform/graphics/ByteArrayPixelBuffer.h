@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ByteArrayPixelBuffer_h
+#define WebCore_platform_graphics_ByteArrayPixelBuffer_h
 
 #include "PixelBuffer.h"
 #include <JavaScriptCore/Uint8ClampedArray.h>
@@ -57,3 +58,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ByteArrayPixelBuffer)
     static bool isType(const WebCore::PixelBuffer& pixelBuffer) { return pixelBuffer.type() == WebCore::PixelBuffer::Type::ByteArray; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_ByteArrayPixelBuffer_h

@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGEllipse_h
+#define WebCore_rendering_svg_RenderSVGEllipse_h
 
 #include "RenderSVGShape.h"
 
@@ -58,3 +59,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_RenderSVGEllipse_h

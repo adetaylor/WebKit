@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_glib_SystemSettings_h
+#define WebCore_platform_glib_SystemSettings_h
 
 #if PLATFORM(GTK) || PLATFORM(WPE)
 
@@ -95,3 +96,4 @@ private:
 
 #endif // PLATFORM(GTK) || PLATFORM(WPE)
 
+#endif // WebCore_platform_glib_SystemSettings_h

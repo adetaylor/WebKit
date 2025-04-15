@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_LegacyLineLayout_h
+#define WebCore_rendering_LegacyLineLayout_h
 
 #include "LegacyInlineFlowBox.h"
 #include "LineWidth.h"
@@ -90,3 +91,4 @@ private:
 };
 
 };
+#endif // WebCore_rendering_LegacyLineLayout_h

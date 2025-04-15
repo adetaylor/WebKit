@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_parser_CSSPreloadScanner_h
+#define WebCore_html_parser_CSSPreloadScanner_h
 
 #include "HTMLResourcePreloader.h"
 #include "HTMLToken.h"
@@ -71,3 +72,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_parser_CSSPreloadScanner_h

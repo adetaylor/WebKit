@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUPipelineErrorReason_h
+#define WebCore_Modules_WebGPU_GPUPipelineErrorReason_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class GPUPipelineErrorReason {
 
 } // namespace WebCore
 
+#endif // WebCore_Modules_WebGPU_GPUPipelineErrorReason_h

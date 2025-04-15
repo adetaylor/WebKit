@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_atspi_AccessibilityRootAtspi_h
+#define WebCore_accessibility_atspi_AccessibilityRootAtspi_h
 
 #if USE(ATSPI)
 #include "AccessibilityAtspiEnums.h"
@@ -73,3 +74,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(ATSPI)
+#endif // WebCore_accessibility_atspi_AccessibilityRootAtspi_h

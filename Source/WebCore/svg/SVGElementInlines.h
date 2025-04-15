@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGElementInlines_h
+#define WebCore_svg_SVGElementInlines_h
 
 #include "ElementInlines.h"
 #include "SVGElement.h"
@@ -53,3 +54,4 @@ inline bool Node::hasTagName(const SVGQualifiedName& name) const
 }
 
 }
+#endif // WebCore_svg_SVGElementInlines_h

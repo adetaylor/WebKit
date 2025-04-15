@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_coreimage_SourceGraphicCoreImageApplier_h
+#define WebCore_platform_graphics_coreimage_SourceGraphicCoreImageApplier_h
 
 #if USE(CORE_IMAGE)
 
@@ -47,3 +48,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(CORE_IMAGE)
+#endif // WebCore_platform_graphics_coreimage_SourceGraphicCoreImageApplier_h

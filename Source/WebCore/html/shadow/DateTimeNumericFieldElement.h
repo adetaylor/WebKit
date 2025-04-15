@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_shadow_DateTimeNumericFieldElement_h
+#define WebCore_html_shadow_DateTimeNumericFieldElement_h
 
 #include "DateTimeFieldElement.h"
 #include <wtf/MonotonicTime.h>
@@ -82,3 +83,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_shadow_DateTimeNumericFieldElement_h

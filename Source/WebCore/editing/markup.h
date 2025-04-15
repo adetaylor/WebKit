@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_markup_h
+#define WebCore_editing_markup_h
 
 #include "CSSStyleSheet.h"
 #include "Element.h"
@@ -113,3 +114,4 @@ String urlToMarkup(const URL&, const String& title);
 WEBCORE_EXPORT String documentTypeString(const Document&);
 
 }
+#endif // WebCore_editing_markup_h

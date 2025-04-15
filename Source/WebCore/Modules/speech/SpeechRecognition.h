@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognition_h
+#define WebCore_Modules_speech_SpeechRecognition_h
 
 #include "ActiveDOMObject.h"
 #include "EventTarget.h"
@@ -110,3 +111,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_speech_SpeechRecognition_h

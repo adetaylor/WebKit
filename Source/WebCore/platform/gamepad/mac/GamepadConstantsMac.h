@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_mac_GamepadConstantsMac_h
+#define WebCore_platform_gamepad_mac_GamepadConstantsMac_h
 
 #if ENABLE(GAMEPAD) && PLATFORM(MAC)
 
@@ -64,3 +65,4 @@ constexpr const uint64_t hidButton20FullUsage = ((uint64_t)kHIDPage_Button) << 3
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD) && PLATFORM(MAC)
+#endif // WebCore_platform_gamepad_mac_GamepadConstantsMac_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_RenderingMode_h
+#define WebCore_platform_graphics_RenderingMode_h
 
 namespace WTF {
 class TextStream;
@@ -56,3 +57,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, RenderingMode);
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, RenderingMethod);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_RenderingMode_h

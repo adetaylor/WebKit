@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_fileapi_Blob_h
+#define WebCore_fileapi_Blob_h
 
 #include "BlobPropertyBag.h"
 #include "BlobURL.h"
@@ -173,3 +174,4 @@ WebCoreOpaqueRoot root(Blob*);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Blob)
     static bool isType(const WebCore::URLRegistrable& registrable) { return registrable.registrableType() == WebCore::URLRegistrable::RegistrableType::Blob; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_fileapi_Blob_h

@@ -28,7 +28,8 @@
  */
 
 
-#pragma once
+#ifndef WebCore_page_Screen_h
+#define WebCore_page_Screen_h
 
 #include "LocalDOMWindowProperty.h"
 #include "ScriptWrappable.h"
@@ -62,3 +63,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_Screen_h

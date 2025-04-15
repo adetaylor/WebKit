@@ -20,7 +20,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedRawResourceClient_h
+#define WebCore_loader_cache_CachedRawResourceClient_h
 
 #include "CachedResourceClient.h"
 #include <wtf/CompletionHandler.h>
@@ -67,3 +68,4 @@ public:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CACHED_RESOURCE_CLIENT(CachedRawResourceClient, RawResourceType);
+#endif // WebCore_loader_cache_CachedRawResourceClient_h

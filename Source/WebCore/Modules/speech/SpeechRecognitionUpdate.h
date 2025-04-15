@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognitionUpdate_h
+#define WebCore_Modules_speech_SpeechRecognitionUpdate_h
 
 #include "SpeechRecognitionConnectionClientIdentifier.h"
 #include "SpeechRecognitionError.h"
@@ -85,3 +86,4 @@ template<> struct LogArgument<WebCore::SpeechRecognitionUpdateType> {
 };
 
 } // namespace WTF
+#endif // WebCore_Modules_speech_SpeechRecognitionUpdate_h

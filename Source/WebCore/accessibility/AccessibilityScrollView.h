@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityScrollView_h
+#define WebCore_accessibility_AccessibilityScrollView_h
 
 #include "AXRemoteFrame.h"
 #include "AccessibilityObject.h"
@@ -98,3 +99,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilityScrollView) \
     static bool isType(const WebCore::AccessibilityObject& object) { return object.isAccessibilityScrollViewInstance(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_accessibility_AccessibilityScrollView_h

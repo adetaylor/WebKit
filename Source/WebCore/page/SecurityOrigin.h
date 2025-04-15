@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_SecurityOrigin_h
+#define WebCore_page_SecurityOrigin_h
 
 #include "SecurityOriginData.h"
 #include <wtf/ArgumentCoder.h>
@@ -246,3 +247,4 @@ inline void add(Hasher& hasher, const SecurityOrigin& origin)
 }
 
 } // namespace WebCore
+#endif // WebCore_page_SecurityOrigin_h

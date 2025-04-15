@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_DetectedBarcode_h
+#define WebCore_Modules_ShapeDetection_DetectedBarcode_h
 
 #include "BarcodeFormat.h"
 #include "DOMRectReadOnly.h"
@@ -73,3 +74,4 @@ inline DetectedBarcode convertFromBacking(const ShapeDetection::DetectedBarcode&
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_ShapeDetection_DetectedBarcode_h

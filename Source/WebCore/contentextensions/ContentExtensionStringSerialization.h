@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_ContentExtensionStringSerialization_h
+#define WebCore_contentextensions_ContentExtensionStringSerialization_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -39,3 +40,4 @@ size_t stringSerializedLength(std::span<const uint8_t>);
 } // namespace WebCore::ContentExtensions
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_ContentExtensionStringSerialization_h

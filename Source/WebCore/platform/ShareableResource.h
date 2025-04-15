@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ShareableResource_h
+#define WebCore_platform_ShareableResource_h
 
 #if ENABLE(SHAREABLE_RESOURCE)
 
@@ -89,3 +90,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(SHAREABLE_RESOURCE)
+#endif // WebCore_platform_ShareableResource_h

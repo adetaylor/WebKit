@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_easing_StyleCubicBezierEasingFunction_h
+#define WebCore_style_values_easing_StyleCubicBezierEasingFunction_h
 
 #include "CSSCubicBezierEasingFunction.h"
 
@@ -42,3 +43,4 @@ Ref<TimingFunction> createTimingFunctionDeprecated(const CSS::CubicBezierEasingF
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_easing_StyleCubicBezierEasingFunction_h

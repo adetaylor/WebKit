@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertCallbacks_h
+#define WebCore_bindings_js_JSDOMConvertCallbacks_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -182,3 +183,4 @@ template<typename T> struct JSConverter<IDLNullable<IDLCallbackInterface<T>>> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertCallbacks_h

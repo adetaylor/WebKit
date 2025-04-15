@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_ios_IOKitSPIIOS_h
+#define WebCore_PAL_pal_spi_ios_IOKitSPIIOS_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -259,3 +260,4 @@ WTF_EXTERN_C_END
 #endif // USE(APPLE_INTERNAL_SDK)
 
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_PAL_pal_spi_ios_IOKitSPIIOS_h

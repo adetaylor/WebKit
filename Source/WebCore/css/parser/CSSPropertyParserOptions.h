@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserOptions_h
+#define WebCore_css_parser_CSSPropertyParserOptions_h
 
 #include "CSSParserMode.h"
 #include <optional>
@@ -61,3 +62,4 @@ struct CSSPropertyParserOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserOptions_h

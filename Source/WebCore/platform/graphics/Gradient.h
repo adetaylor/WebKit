@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_Gradient_h
+#define WebCore_platform_graphics_Gradient_h
 
 #include "Color.h"
 #include "ColorInterpolationMethod.h"
@@ -144,3 +145,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const Gradient&);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Gradient)
     static bool isType(const WebCore::RenderingResource& renderingResource) { return renderingResource.isGradient(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_Gradient_h

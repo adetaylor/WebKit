@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSGridAutoRepeatValue_h
+#define WebCore_css_CSSGridAutoRepeatValue_h
 
 #include "CSSValueList.h"
 
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSGridAutoRepeatValue, isGridAutoRepeatValue());
+#endif // WebCore_css_CSSGridAutoRepeatValue_h

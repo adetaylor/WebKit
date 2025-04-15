@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResourceContainer_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResourceContainer_h
 
 #include "LegacyRenderSVGHiddenContainer.h"
 #include "LegacyRenderSVGResource.h"
@@ -104,3 +105,4 @@ Renderer* getRenderSVGResourceById(TreeScope& treeScope, const AtomString& id)
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(LegacyRenderSVGResourceContainer, isLegacyRenderSVGResourceContainer())
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResourceContainer_h

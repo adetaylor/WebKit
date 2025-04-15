@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_InbandTextTrackPrivateGStreamer_h
+#define WebCore_platform_graphics_gstreamer_InbandTextTrackPrivateGStreamer_h
 
 #if ENABLE(VIDEO) && USE(GSTREAMER)
 
@@ -84,3 +85,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO) && USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_InbandTextTrackPrivateGStreamer_h

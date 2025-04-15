@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PlatformMediaError_h
+#define WebCore_platform_PlatformMediaError_h
 
 #include <wtf/Forward.h>
 #include <wtf/text/WTFString.h>
@@ -66,3 +67,4 @@ struct LogArgument<WebCore::PlatformMediaError> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_PlatformMediaError_h

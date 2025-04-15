@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_AudioSessionCocoa_h
+#define WebCore_platform_audio_cocoa_AudioSessionCocoa_h
 
 #if USE(AUDIO_SESSION) && PLATFORM(COCOA)
 
@@ -62,3 +63,4 @@ protected:
 }
 
 #endif
+#endif // WebCore_platform_audio_cocoa_AudioSessionCocoa_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_icu_UTextProviderUTF16_h
+#define WTF_wtf_text_icu_UTextProviderUTF16_h
 
 #include <unicode/utext.h>
 
@@ -32,3 +33,4 @@ namespace WTF {
 WTF_EXPORT_PRIVATE UText* openUTF16ContextAwareUTextProvider(UText*, std::span<const UChar>, std::span<const UChar> priorContext, UErrorCode*);
 
 } // namespace WTF
+#endif // WTF_wtf_text_icu_UTextProviderUTF16_h

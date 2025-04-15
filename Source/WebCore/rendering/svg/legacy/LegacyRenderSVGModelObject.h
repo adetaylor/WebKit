@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGModelObject_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGModelObject_h
 
 #include "RenderElement.h"
 #include "SVGElement.h"
@@ -82,3 +83,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(LegacyRenderSVGModelObject, isLegacyRenderSVGModelObject())
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGModelObject_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSColorMix_h
+#define WebCore_css_values_color_CSSColorMix_h
 
 #include "CSSColor.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -69,3 +70,4 @@ template<> struct CSSValueChildrenVisitor<ColorMix> { IterationStatus operator()
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSColorMix_h

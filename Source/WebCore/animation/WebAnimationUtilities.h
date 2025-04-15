@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_WebAnimationUtilities_h
+#define WebCore_animation_WebAnimationUtilities_h
 
 #include "ExceptionOr.h"
 #include "RenderStyleConstants.h"
@@ -69,3 +70,4 @@ AtomString animatablePropertyAsString(AnimatableCSSProperty);
 
 } // namespace WebCore
 
+#endif // WebCore_animation_WebAnimationUtilities_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
  
-#pragma once
+#ifndef WebCore_history_CachedFrame_h
+#define WebCore_history_CachedFrame_h
 
 #include "LocalDOMWindow.h"
 #include <wtf/URL.h>
@@ -99,3 +100,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_history_CachedFrame_h

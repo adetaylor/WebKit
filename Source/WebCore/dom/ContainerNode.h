@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ContainerNode_h
+#define WebCore_dom_ContainerNode_h
 
 #include "CollectionType.h"
 #include "Node.h"
@@ -209,3 +210,4 @@ inline ContainerNode& ContainerNode::rootNode() const
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ContainerNode)
     static bool isType(const WebCore::Node& node) { return node.isContainerNode(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_ContainerNode_h

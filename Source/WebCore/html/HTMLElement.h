@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLElement_h
+#define WebCore_html_HTMLElement_h
 
 #include "ColorTypes.h"
 #include "Document.h"
@@ -240,3 +241,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::HTMLElement)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #include "HTMLElementTypeHelpers.h"
+#endif // WebCore_html_HTMLElement_h

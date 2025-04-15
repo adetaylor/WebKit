@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_UIEventInit_h
+#define WebCore_dom_UIEventInit_h
 
 #include "EventInit.h"
 #include "WindowProxy.h"
@@ -37,3 +38,4 @@ struct UIEventInit : public EventInit {
 };
 
 }
+#endif // WebCore_dom_UIEventInit_h

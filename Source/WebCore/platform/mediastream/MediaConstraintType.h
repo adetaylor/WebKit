@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_MediaConstraintType_h
+#define WebCore_platform_mediastream_MediaConstraintType_h
 
 #include <wtf/text/WTFString.h>
 
@@ -58,3 +59,4 @@ String convertToString(MediaConstraintType);
 #endif // ENABLE(MEDIA_STREAM)
 
 } // namespace WebCore
+#endif // WebCore_platform_mediastream_MediaConstraintType_h

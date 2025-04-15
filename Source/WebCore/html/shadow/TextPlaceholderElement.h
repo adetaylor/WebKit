@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_shadow_TextPlaceholderElement_h
+#define WebCore_html_shadow_TextPlaceholderElement_h
 
 #include "HTMLDivElement.h"
 
@@ -54,3 +55,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::TextPlaceholderElement)
         return element && isType(*element);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_shadow_TextPlaceholderElement_h

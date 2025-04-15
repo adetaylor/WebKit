@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_MainThreadDispatcher_h
+#define WTF_wtf_MainThreadDispatcher_h
 
 #include <wtf/FunctionDispatcher.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -44,3 +45,4 @@ private:
 
 using WTF::MainThreadDispatcher;
 
+#endif // WTF_wtf_MainThreadDispatcher_h

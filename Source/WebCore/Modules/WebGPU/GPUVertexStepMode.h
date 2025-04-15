@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUVertexStepMode_h
+#define WebCore_Modules_WebGPU_GPUVertexStepMode_h
 
 #include "WebGPUVertexStepMode.h"
 #include <cstdint>
@@ -47,3 +48,4 @@ inline WebGPU::VertexStepMode convertToBacking(GPUVertexStepMode vertexStepMode)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUVertexStepMode_h

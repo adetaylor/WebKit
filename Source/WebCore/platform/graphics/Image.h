@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_Image_h
+#define WebCore_platform_graphics_Image_h
 
 #include "Color.h"
 #include "DecodingOptions.h"
@@ -207,3 +208,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const Image&);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToClassName) \
     static bool isType(const WebCore::Image& image) { return image.is##ToClassName(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_Image_h

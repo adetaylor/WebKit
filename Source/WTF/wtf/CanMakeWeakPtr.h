@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CanMakeWeakPtr_h
+#define WTF_wtf_CanMakeWeakPtr_h
 
 #include <wtf/CompactRefPtrTuple.h>
 #include <wtf/Packed.h>
@@ -88,3 +89,4 @@ using CanMakeSingleThreadWeakPtr = CanMakeWeakPtr<T, initializationMode, SingleT
 using WTF::CanMakeWeakPtr;
 using WTF::CanMakeWeakPtrWithBitField;
 using WTF::CanMakeSingleThreadWeakPtr;
+#endif // WTF_wtf_CanMakeWeakPtr_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderAncestorIterator_h
+#define WebCore_rendering_RenderAncestorIterator_h
 
 #include "RenderIterator.h"
 
@@ -199,3 +200,4 @@ inline RenderAncestorConstIteratorAdapter<T> lineageOfType(const RenderObject& f
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderAncestorIterator_h

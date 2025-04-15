@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerLocation_h
+#define WebCore_workers_WorkerLocation_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/URL.h>
@@ -64,3 +65,4 @@ private:
 WebCoreOpaqueRoot root(WorkerLocation*);
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerLocation_h

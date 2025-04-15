@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_HistoryController_h
+#define WebCore_loader_HistoryController_h
 
 #include "BackForwardItemIdentifier.h"
 #include "FrameLoader.h"
@@ -145,3 +146,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_HistoryController_h

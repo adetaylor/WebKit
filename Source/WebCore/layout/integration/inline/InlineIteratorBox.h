@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_InlineIteratorBox_h
+#define WebCore_layout_integration_inline_InlineIteratorBox_h
 
 #include "InlineIteratorBoxLegacyPath.h"
 #include "InlineIteratorBoxModernPath.h"
@@ -311,3 +312,4 @@ inline const InlineDisplay::Box* Box::inlineBox() const
 
 }
 }
+#endif // WebCore_layout_integration_inline_InlineIteratorBox_h

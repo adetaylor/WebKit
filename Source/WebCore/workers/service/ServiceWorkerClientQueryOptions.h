@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerClientQueryOptions_h
+#define WebCore_workers_service_ServiceWorkerClientQueryOptions_h
 
 #include "ServiceWorkerClientType.h"
 #include <optional>
@@ -36,3 +37,4 @@ struct ServiceWorkerClientQueryOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerClientQueryOptions_h

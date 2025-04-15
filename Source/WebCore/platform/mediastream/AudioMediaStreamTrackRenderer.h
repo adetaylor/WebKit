@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_AudioMediaStreamTrackRenderer_h
+#define WebCore_platform_mediastream_AudioMediaStreamTrackRenderer_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -136,3 +137,4 @@ inline void AudioMediaStreamTrackRenderer::setAudioOutputDevice(const String&)
 }
 
 #endif // ENABLE(MEDIA_STREAM)
+#endif // WebCore_platform_mediastream_AudioMediaStreamTrackRenderer_h

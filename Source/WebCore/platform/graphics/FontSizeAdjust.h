@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontSizeAdjust_h
+#define WebCore_platform_graphics_FontSizeAdjust_h
 
 #include "FontMetrics.h"
 #include <variant>
@@ -111,3 +112,4 @@ inline TextStream& operator<<(TextStream& ts, const FontSizeAdjust& fontSizeAdju
 }
 
 }
+#endif // WebCore_platform_graphics_FontSizeAdjust_h

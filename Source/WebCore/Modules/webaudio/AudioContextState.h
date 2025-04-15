@@ -23,10 +23,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioContextState_h
+#define WebCore_Modules_webaudio_AudioContextState_h
 
 namespace WebCore {
 
 enum class AudioContextState : uint8_t { Suspended, Running, Interrupted, Closed };
 
 }
+#endif // WebCore_Modules_webaudio_AudioContextState_h

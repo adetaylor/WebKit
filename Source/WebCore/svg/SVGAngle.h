@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGAngle_h
+#define WebCore_svg_SVGAngle_h
 
 #include "SVGAngleValue.h"
 #include "SVGValueProperty.h"
@@ -138,3 +139,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGAngle_h

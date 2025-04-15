@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_QualifiedNameCache_h
+#define WebCore_dom_QualifiedNameCache_h
 
 #include "HTMLNames.h"
 #include "QualifiedName.h"
@@ -73,3 +74,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_QualifiedNameCache_h

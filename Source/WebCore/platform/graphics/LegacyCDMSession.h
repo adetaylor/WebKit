@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_LegacyCDMSession_h
+#define WebCore_platform_graphics_LegacyCDMSession_h
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 
@@ -96,3 +97,4 @@ public:
 }
 
 #endif // ENABLE(LEGACY_ENCRYPTED_MEDIA)
+#endif // WebCore_platform_graphics_LegacyCDMSession_h

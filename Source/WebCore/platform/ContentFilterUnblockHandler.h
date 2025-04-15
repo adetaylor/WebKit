@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ContentFilterUnblockHandler_h
+#define WebCore_platform_ContentFilterUnblockHandler_h
 
 #if ENABLE(CONTENT_FILTERING)
 
@@ -112,3 +113,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_FILTERING)
+#endif // WebCore_platform_ContentFilterUnblockHandler_h

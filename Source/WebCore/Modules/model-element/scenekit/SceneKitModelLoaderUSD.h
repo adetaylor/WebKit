@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_model_element_scenekit_SceneKitModelLoaderUSD_h
+#define WebCore_Modules_model_element_scenekit_SceneKitModelLoaderUSD_h
 
 #if HAVE(SCENEKIT)
 
@@ -40,3 +41,4 @@ Ref<SceneKitModelLoader> loadSceneKitModelUsingUSDLoader(Model&, SceneKitModelLo
 }
 
 #endif
+#endif // WebCore_Modules_model_element_scenekit_SceneKitModelLoaderUSD_h

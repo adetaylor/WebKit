@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RealtimeIncomingVideoSource_h
+#define WebCore_platform_mediastream_RealtimeIncomingVideoSource_h
 
 #if USE(LIBWEBRTC)
 
@@ -105,3 +106,4 @@ static bool isType(const WebCore::RealtimeMediaSource& source) { return source.i
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // USE(LIBWEBRTC)
+#endif // WebCore_platform_mediastream_RealtimeIncomingVideoSource_h

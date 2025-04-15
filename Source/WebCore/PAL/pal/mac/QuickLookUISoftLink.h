@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_mac_QuickLookUISoftLink_h
+#define WebCore_PAL_pal_mac_QuickLookUISoftLink_h
 
 #if PLATFORM(MAC)
 
@@ -36,3 +37,4 @@ SOFT_LINK_CLASS_FOR_HEADER(PAL, QLPreviewMenuItem)
 SOFT_LINK_CLASS_FOR_HEADER(PAL, QLPreviewPanel)
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_PAL_pal_mac_QuickLookUISoftLink_h

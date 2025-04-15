@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_graphics_filters_SVGFilterGraph_h
+#define WebCore_svg_graphics_filters_SVGFilterGraph_h
 
 #include "SourceAlpha.h"
 #include "SourceGraphic.h"
@@ -178,3 +179,4 @@ using SVGFilterEffectsGraph = SVGFilterGraph<FilterEffect>;
 using SVGFilterPrimitivesGraph = SVGFilterGraph<SVGFilterPrimitiveStandardAttributes>;
 
 } // namespace WebCore
+#endif // WebCore_svg_graphics_filters_SVGFilterGraph_h

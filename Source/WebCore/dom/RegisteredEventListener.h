@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_RegisteredEventListener_h
+#define WebCore_dom_RegisteredEventListener_h
 
 #include "EventListener.h"
 #include <wtf/Ref.h>
@@ -74,3 +75,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_RegisteredEventListener_h

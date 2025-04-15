@@ -25,7 +25,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_page_LocalFrame_h
+#define WebCore_page_LocalFrame_h
 
 #include "AdjustViewSizeOrNot.h"
 #include "Document.h"
@@ -439,3 +440,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const LocalFrame&);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::LocalFrame)
 static bool isType(const WebCore::Frame& frame) { return frame.frameType() == WebCore::Frame::FrameType::Local; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_page_LocalFrame_h

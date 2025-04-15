@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_EffectiveRateChangedListener_h
+#define WebCore_platform_cocoa_EffectiveRateChangedListener_h
 
 #include <wtf/Forward.h>
 #include <wtf/ThreadSafeWeakPtr.h>
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_cocoa_EffectiveRateChangedListener_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
  
-#pragma once
+#ifndef WebCore_page_UserStyleSheetTypes_h
+#define WebCore_page_UserStyleSheetTypes_h
 
 #include <wtf/HashMap.h>
 #include <wtf/Vector.h>
@@ -40,3 +41,4 @@ typedef Vector<std::unique_ptr<UserStyleSheet>> UserStyleSheetVector;
 typedef UncheckedKeyHashMap<RefPtr<DOMWrapperWorld>, std::unique_ptr<UserStyleSheetVector>> UserStyleSheetMap;
 
 } // namespace WebCore
+#endif // WebCore_page_UserStyleSheetTypes_h

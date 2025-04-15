@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutBoxInlines_h
+#define WebCore_layout_layouttree_LayoutBoxInlines_h
 
 #include "LayoutBox.h"
 
@@ -44,3 +45,4 @@ inline bool Box::isContainingBlockForOutOfFlowPosition() const
 }
 
 }
+#endif // WebCore_layout_layouttree_LayoutBoxInlines_h

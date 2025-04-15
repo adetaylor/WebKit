@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdatabase_SQLError_h
+#define WebCore_Modules_webdatabase_SQLError_h
 
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/text/MakeString.h>
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdatabase_SQLError_h

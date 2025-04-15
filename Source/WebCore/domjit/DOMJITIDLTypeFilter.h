@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_domjit_DOMJITIDLTypeFilter_h
+#define WebCore_domjit_DOMJITIDLTypeFilter_h
 
 #include "IDLTypes.h"
 #include <JavaScriptCore/SpeculatedType.h>
@@ -74,3 +75,4 @@ struct IDLResultTypeFilter<IDLNullable<T>> {
 };
 
 } }
+#endif // WebCore_domjit_DOMJITIDLTypeFilter_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_shared_SharedWorkerGlobalScope_h
+#define WebCore_workers_shared_SharedWorkerGlobalScope_h
 
 #include "TransferredMessagePort.h"
 #include "WorkerGlobalScope.h"
@@ -70,3 +71,4 @@ static bool isType(const WebCore::ScriptExecutionContext& context)
 }
 static bool isType(const WebCore::WorkerGlobalScope& context) { return context.type() == WebCore::WorkerGlobalScope::Type::SharedWorker; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_workers_shared_SharedWorkerGlobalScope_h

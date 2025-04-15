@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_CommonAtomStrings_h
+#define WebCore_platform_CommonAtomStrings_h
 
 #include <wtf/NeverDestroyed.h>
 #include <wtf/text/AtomString.h>
@@ -80,3 +81,4 @@ WEBCORE_COMMON_ATOM_STRINGS_FOR_EACH_KEYWORD(DECLARE_COMMON_ATOM)
 WEBCORE_EXPORT void initializeCommonAtomStrings();
 
 } // namespace WebCore
+#endif // WebCore_platform_CommonAtomStrings_h

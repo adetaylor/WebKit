@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceLoadNotifier_h
+#define WebCore_loader_ResourceLoadNotifier_h
 
 #include "ResourceLoaderIdentifier.h"
 #include <optional>
@@ -84,3 +85,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_ResourceLoadNotifier_h

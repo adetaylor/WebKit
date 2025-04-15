@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gbm_DRMDeviceManager_h
+#define WebCore_platform_graphics_gbm_DRMDeviceManager_h
 
 #if USE(LIBDRM)
 
@@ -74,3 +75,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(LIBDRM)
+#endif // WebCore_platform_graphics_gbm_DRMDeviceManager_h

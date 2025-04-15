@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_HashFunctions_h
+#define WTF_wtf_HashFunctions_h
 
 #include <stdint.h>
 #include <tuple>
@@ -272,3 +273,4 @@ using WTF::IntHash;
 using WTF::PtrHash;
 using WTF::intHash;
 using WTF::pairIntHash;
+#endif // WTF_wtf_HashFunctions_h

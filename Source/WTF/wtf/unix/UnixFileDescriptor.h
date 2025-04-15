@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_unix_UnixFileDescriptor_h
+#define WTF_wtf_unix_UnixFileDescriptor_h
 
 #include <utility>
 #include <wtf/Compiler.h>
@@ -92,3 +93,4 @@ private:
 } // namespace WTF
 
 using WTF::UnixFileDescriptor;
+#endif // WTF_wtf_unix_UnixFileDescriptor_h

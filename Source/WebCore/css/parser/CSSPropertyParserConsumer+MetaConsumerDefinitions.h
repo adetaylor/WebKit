@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_MetaConsumerDefinitions_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_MetaConsumerDefinitions_h
 
 #include "CSSCalcSymbolsAllowed.h"
 #include "CSSCalcValue.h"
@@ -249,3 +250,4 @@ template<typename T> struct KeywordConsumer {
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_MetaConsumerDefinitions_h

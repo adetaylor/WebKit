@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_async_clipboard_ClipboardItemBindingsDataSource_h
+#define WebCore_Modules_async_clipboard_ClipboardItemBindingsDataSource_h
 
 #include "ClipboardItemDataSource.h"
 #include "ExceptionCode.h"
@@ -104,3 +105,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_async_clipboard_ClipboardItemBindingsDataSource_h

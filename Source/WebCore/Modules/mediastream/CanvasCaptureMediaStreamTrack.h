@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_CanvasCaptureMediaStreamTrack_h
+#define WebCore_Modules_mediastream_CanvasCaptureMediaStreamTrack_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -107,3 +108,4 @@ static bool isType(const WebCore::MediaStreamTrack& track) { return track.isCanv
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(MEDIA_STREAM)
+#endif // WebCore_Modules_mediastream_CanvasCaptureMediaStreamTrack_h

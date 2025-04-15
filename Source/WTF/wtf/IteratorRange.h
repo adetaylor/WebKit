@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_IteratorRange_h
+#define WTF_wtf_IteratorRange_h
 
 #include <iterator>
 
@@ -101,3 +102,4 @@ SizedIteratorRange<Container, Iterator> makeSizedIteratorRange(const Container& 
 
 using WTF::IteratorRange;
 using WTF::makeReversedRange;
+#endif // WTF_wtf_IteratorRange_h

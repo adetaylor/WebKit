@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityListBox_h
+#define WebCore_accessibility_AccessibilityListBox_h
 
 #include "AccessibilityRenderObject.h"
 
@@ -58,3 +59,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilityListBox) \
     static bool isType(const WebCore::AccessibilityObject& object) { return object.isAccessibilityListBoxInstance(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_accessibility_AccessibilityListBox_h

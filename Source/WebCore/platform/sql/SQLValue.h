@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_sql_SQLValue_h
+#define WebCore_platform_sql_SQLValue_h
 
 #include <variant>
 #include <wtf/text/WTFString.h>
@@ -36,3 +37,4 @@ namespace WebCore {
 using SQLValue = std::variant<std::nullptr_t, String, double>;
 
 };
+#endif // WebCore_platform_sql_SQLValue_h

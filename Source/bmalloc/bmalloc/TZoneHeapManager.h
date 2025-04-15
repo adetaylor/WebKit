@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_TZoneHeapManager_h
+#define bmalloc_bmalloc_TZoneHeapManager_h
 
 #include "BExport.h"
 
@@ -184,3 +185,4 @@ private:
 #endif // BUSE(LIBPAS)
 
 #endif // BUSE(TZONE)
+#endif // bmalloc_bmalloc_TZoneHeapManager_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_mac_AudioSessionMac_h
+#define WebCore_platform_audio_mac_AudioSessionMac_h
 
 #if USE(AUDIO_SESSION) && PLATFORM(MAC)
 
@@ -116,3 +117,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_audio_mac_AudioSessionMac_h

@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_HexNumber_h
+#define WTF_wtf_HexNumber_h
 
 #include <array>
 #include <wtf/text/StringImpl.h>
@@ -97,3 +98,4 @@ using WTF::hex;
 using WTF::toHexCString;
 using WTF::toHexString;
 using WTF::Lowercase;
+#endif // WTF_wtf_HexNumber_h

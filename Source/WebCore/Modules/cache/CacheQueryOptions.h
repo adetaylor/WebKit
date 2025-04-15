@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cache_CacheQueryOptions_h
+#define WebCore_Modules_cache_CacheQueryOptions_h
 
 #include <wtf/text/WTFString.h>
 
@@ -36,3 +37,4 @@ struct CacheQueryOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_cache_CacheQueryOptions_h

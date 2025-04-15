@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cache_MultiCacheQueryOptions_h
+#define WebCore_Modules_cache_MultiCacheQueryOptions_h
 
 #include "CacheQueryOptions.h"
 #include <wtf/text/WTFString.h>
@@ -35,3 +36,4 @@ struct MultiCacheQueryOptions : CacheQueryOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_cache_MultiCacheQueryOptions_h

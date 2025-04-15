@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SHA1_h
+#define WTF_wtf_SHA1_h
 
 #include <array>
 #include <span>
@@ -111,3 +112,4 @@ private:
 } // namespace WTF
 
 using WTF::SHA1;
+#endif // WTF_wtf_SHA1_h

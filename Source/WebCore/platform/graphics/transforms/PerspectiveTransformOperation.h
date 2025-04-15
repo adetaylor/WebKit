@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_PerspectiveTransformOperation_h
+#define WebCore_platform_graphics_transforms_PerspectiveTransformOperation_h
 
 #include "Length.h"
 #include "LengthFunctions.h"
@@ -85,3 +86,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_TRANSFORMOPERATION(WebCore::PerspectiveTransformOperation, WebCore::TransformOperation::Type::Perspective ==)
+#endif // WebCore_platform_graphics_transforms_PerspectiveTransformOperation_h

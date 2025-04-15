@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_UserGestureIndicator_h
+#define WebCore_dom_UserGestureIndicator_h
 
 #include "DOMPasteAccess.h"
 #include <wtf/Function.h>
@@ -147,3 +148,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_UserGestureIndicator_h

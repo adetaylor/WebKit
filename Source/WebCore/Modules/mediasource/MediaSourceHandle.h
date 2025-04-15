@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasource_MediaSourceHandle_h
+#define WebCore_Modules_mediasource_MediaSourceHandle_h
 #if ENABLE(MEDIA_SOURCE_IN_WORKERS)
 
 #include <wtf/Forward.h>
@@ -84,3 +85,4 @@ using DetachedMediaSourceHandle = MediaSourceHandle;
 } // namespace WebCore
 
 #endif // MEDIA_SOURCE_IN_WORKERS
+#endif // WebCore_Modules_mediasource_MediaSourceHandle_h

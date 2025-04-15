@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_DeferrableTask_h
+#define WebCore_platform_DeferrableTask_h
 
 #include <wtf/Function.h>
 #include <wtf/MainThread.h>
@@ -81,3 +82,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_DeferrableTask_h

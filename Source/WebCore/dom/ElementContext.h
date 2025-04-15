@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementContext_h
+#define WebCore_dom_ElementContext_h
 
 #include "ElementIdentifier.h"
 #include "FloatRect.h"
@@ -54,3 +55,4 @@ inline bool operator==(const ElementContext& a, const ElementContext& b)
     return a.boundingRect == b.boundingRect && a.isSameElement(b);
 }
 }
+#endif // WebCore_dom_ElementContext_h

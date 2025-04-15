@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLTableColElement_h
+#define WebCore_html_HTMLTableColElement_h
 
 #include "HTMLTablePartElement.h"
 
@@ -52,3 +53,4 @@ private:
 };
 
 } //namespace
+#endif // WebCore_html_HTMLTableColElement_h

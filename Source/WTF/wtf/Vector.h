@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_Vector_h
+#define WTF_wtf_Vector_h
 
 #include <initializer_list>
 #include <limits>
@@ -2120,3 +2121,4 @@ using WTF::flatMap;
 using WTF::removeRepeatedElements;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_Vector_h

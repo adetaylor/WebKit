@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSExposedToWorkerAndWindow_h
+#define WebCore_bindings_scripts_test_JS_JSExposedToWorkerAndWindow_h
 
 #include "ExposedToWorkerAndWindow.h"
 #include "JSDOMConvertDictionary.h"
@@ -97,3 +98,4 @@ JSC::JSObject* convertDictionaryToJS(JSC::JSGlobalObject&, JSDOMGlobalObject&, c
 
 
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSExposedToWorkerAndWindow_h

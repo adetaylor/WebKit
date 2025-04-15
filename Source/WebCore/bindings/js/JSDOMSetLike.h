@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMSetLike_h
+#define WebCore_bindings_js_JSDOMSetLike_h
 
 #include "JSDOMBinding.h"
 #include "JSDOMConvert.h"
@@ -168,3 +169,4 @@ JSC::JSValue forwardDeleteToSetLike(JSC::JSGlobalObject& lexicalGlobalObject, JS
 }
 
 }
+#endif // WebCore_bindings_js_JSDOMSetLike_h

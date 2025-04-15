@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_cssjit_FunctionCall_h
+#define WebCore_cssjit_FunctionCall_h
 
 #if ENABLE(CSS_SELECTOR_JIT)
 
@@ -193,3 +194,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(CSS_SELECTOR_JIT)
+#endif // WebCore_cssjit_FunctionCall_h

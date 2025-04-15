@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_FixedVector_h
+#define bmalloc_bmalloc_FixedVector_h
 
 #include "BAssert.h"
 #include <array>
@@ -115,3 +116,4 @@ inline void FixedVector<T, Capacity>::shrink(T* end)
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_FixedVector_h

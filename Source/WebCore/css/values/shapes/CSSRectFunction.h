@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_shapes_CSSRectFunction_h
+#define WebCore_css_values_shapes_CSSRectFunction_h
 
 #include "CSSBorderRadius.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -57,3 +58,4 @@ template<> struct Serialize<Rect> { void operator()(StringBuilder&, const Serial
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Rect, 2)
+#endif // WebCore_css_values_shapes_CSSRectFunction_h

@@ -17,7 +17,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_ScheduledAction_h
+#define WebCore_bindings_js_ScheduledAction_h
 
 #include <JavaScriptCore/Strong.h>
 #include <JavaScriptCore/StrongInlines.h>
@@ -68,3 +69,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_ScheduledAction_h

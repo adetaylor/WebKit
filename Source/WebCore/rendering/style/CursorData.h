@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_CursorData_h
+#define WebCore_rendering_style_CursorData_h
 
 #include "IntPoint.h"
 #include "StyleImage.h"
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_CursorData_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUPresentationContextDescriptor_h
+#define WebCore_Modules_WebGPU_GPUPresentationContextDescriptor_h
 
 #include "GPUCompositorIntegration.h"
 #include "WebGPUPresentationContextDescriptor.h"
@@ -42,3 +43,4 @@ struct GPUPresentationContextDescriptor {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUPresentationContextDescriptor_h

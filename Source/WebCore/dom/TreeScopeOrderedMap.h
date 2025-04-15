@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_TreeScopeOrderedMap_h
+#define WebCore_dom_TreeScopeOrderedMap_h
 
 #include "Element.h"
 #include <wtf/HashMap.h>
@@ -113,3 +114,4 @@ inline bool TreeScopeOrderedMap::containsMultiple(const AtomString& id) const
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_TreeScopeOrderedMap_h

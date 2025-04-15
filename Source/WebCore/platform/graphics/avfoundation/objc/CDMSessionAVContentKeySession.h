@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_CDMSessionAVContentKeySession_h
+#define WebCore_platform_graphics_avfoundation_objc_CDMSessionAVContentKeySession_h
 
 #include "CDMSessionMediaSourceAVFObjC.h"
 #include "SourceBufferPrivateAVFObjC.h"
@@ -122,3 +123,4 @@ inline CDMSessionAVContentKeySession* toCDMSessionAVContentKeySession(LegacyCDMS
 }
 
 #endif
+#endif // WebCore_platform_graphics_avfoundation_objc_CDMSessionAVContentKeySession_h

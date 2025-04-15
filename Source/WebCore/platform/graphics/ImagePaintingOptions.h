@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImagePaintingOptions_h
+#define WebCore_platform_graphics_ImagePaintingOptions_h
 
 #include "DecodingOptions.h"
 #include "GraphicsTypes.h"
@@ -132,3 +133,4 @@ private:
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, ImagePaintingOptions);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImagePaintingOptions_h

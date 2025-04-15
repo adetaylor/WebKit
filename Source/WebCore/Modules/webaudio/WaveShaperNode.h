@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_WaveShaperNode_h
+#define WebCore_Modules_webaudio_WaveShaperNode_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -70,3 +71,4 @@ template<> struct LogArgument<WebCore::OverSampleType> {
 } // namespace WTF
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_Modules_webaudio_WaveShaperNode_h

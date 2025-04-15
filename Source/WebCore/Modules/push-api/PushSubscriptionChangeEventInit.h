@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushSubscriptionChangeEventInit_h
+#define WebCore_Modules_push_api_PushSubscriptionChangeEventInit_h
 
 #include "ExtendableEventInit.h"
 
@@ -37,3 +38,4 @@ struct PushSubscriptionChangeEventInit : ExtendableEventInit {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_push_api_PushSubscriptionChangeEventInit_h

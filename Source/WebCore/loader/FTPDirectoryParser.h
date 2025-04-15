@@ -68,7 +68,8 @@
 // This was originally Mozilla code, titled ParseFTPList.h
 // Original version of this file can currently be found at: http://mxr.mozilla.org/mozilla1.8/source/netwerk/streamconv/converters/ParseFTPList.h
 
-#pragma once
+#ifndef WebCore_loader_FTPDirectoryParser_h
+#define WebCore_loader_FTPDirectoryParser_h
 
 #include <wtf/StdLibExtras.h>
 #include <wtf/text/WTFString.h>
@@ -148,3 +149,4 @@ struct ListResult
 FTPEntryType parseOneFTPLine(std::span<LChar> inputLine, ListState&, ListResult&);
                  
 } // namespace WebCore
+#endif // WebCore_loader_FTPDirectoryParser_h

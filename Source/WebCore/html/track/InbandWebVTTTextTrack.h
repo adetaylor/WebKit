@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_track_InbandWebVTTTextTrack_h
+#define WebCore_html_track_InbandWebVTTTextTrack_h
 
 #if ENABLE(VIDEO)
 
@@ -64,3 +65,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_html_track_InbandWebVTTTextTrack_h

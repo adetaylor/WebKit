@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSIDBSerializationGlobalObject_h
+#define WebCore_bindings_js_JSIDBSerializationGlobalObject_h
 
 #include "EmptyScriptExecutionContext.h"
 #include "JSDOMGlobalObject.h"
@@ -62,3 +63,4 @@ private:
 
 } // namespace WebCore
 
+#endif // WebCore_bindings_js_JSIDBSerializationGlobalObject_h

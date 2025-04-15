@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMRect_h
+#define WebCore_dom_DOMRect_h
 
 #include "DOMRectReadOnly.h"
 #include "FloatRect.h"
@@ -58,3 +59,4 @@ private:
 static_assert(sizeof(DOMRect) == sizeof(DOMRectReadOnly));
 
 }
+#endif // WebCore_dom_DOMRect_h

@@ -24,7 +24,8 @@
  */
 
 
-#pragma once
+#ifndef WebCore_page_DummySpeechRecognitionProvider_h
+#define WebCore_page_DummySpeechRecognitionProvider_h
 
 #include "SpeechRecognitionProvider.h"
 #include <wtf/TZoneMallocInlines.h>
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_DummySpeechRecognitionProvider_h

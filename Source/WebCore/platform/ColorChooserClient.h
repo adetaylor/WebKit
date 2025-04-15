@@ -28,7 +28,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_ColorChooserClient_h
+#define WebCore_platform_ColorChooserClient_h
 
 #include <wtf/AbstractRefCountedAndCanMakeWeakPtr.h>
 #include <wtf/Forward.h>
@@ -51,3 +52,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_ColorChooserClient_h

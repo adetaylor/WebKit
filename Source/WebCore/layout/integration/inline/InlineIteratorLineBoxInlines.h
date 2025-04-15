@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_InlineIteratorLineBoxInlines_h
+#define WebCore_layout_integration_inline_InlineIteratorLineBoxInlines_h
 
 #include "InlineIteratorBox.h"
 #include "InlineIteratorLineBox.h"
@@ -60,3 +61,4 @@ inline LeafBoxIterator LineBox::logicalRightmostLeafBox() const
 
 }
 }
+#endif // WebCore_layout_integration_inline_InlineIteratorLineBoxInlines_h

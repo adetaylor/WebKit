@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_page_SettingsBase_h
+#define WebCore_page_SettingsBase_h
 
 #include "ClipboardAccessPolicy.h"
 #include "ContentType.h"
@@ -197,3 +198,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_SettingsBase_h

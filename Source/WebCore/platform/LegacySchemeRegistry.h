@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_LegacySchemeRegistry_h
+#define WebCore_platform_LegacySchemeRegistry_h
 
 #include <wtf/HashSet.h>
 #include <wtf/text/StringHash.h>
@@ -104,3 +105,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_LegacySchemeRegistry_h

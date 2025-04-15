@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_RangeInputType_h
+#define WebCore_html_RangeInputType_h
 
 #include "InputType.h"
 #include <wtf/TZoneMalloc.h>
@@ -90,3 +91,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(RangeInputType, Type::Range)
+#endif // WebCore_html_RangeInputType_h

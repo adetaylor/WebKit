@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_cocoa_WebArchiveDumpSupport_h
+#define WebCore_testing_cocoa_WebArchiveDumpSupport_h
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <wtf/RetainPtr.h>
@@ -33,3 +34,4 @@ namespace WebCoreTestSupport {
 RetainPtr<CFStringRef> createXMLStringFromWebArchiveData(CFDataRef webArchiveData) WTF_EXPORT_PRIVATE;
 
 } // namespace WebCoreTestSupport
+#endif // WebCore_testing_cocoa_WebArchiveDumpSupport_h

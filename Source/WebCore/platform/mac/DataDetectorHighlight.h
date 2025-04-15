@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_DataDetectorHighlight_h
+#define WebCore_platform_mac_DataDetectorHighlight_h
 
 #if ENABLE(DATA_DETECTION) && PLATFORM(MAC)
 
@@ -133,3 +134,4 @@ bool areEquivalent(const DataDetectorHighlight*, const DataDetectorHighlight*);
 } // namespace WebCore
 
 #endif // ENABLE(DATA_DETECTION) && PLATFORM(MAC)
+#endif // WebCore_platform_mac_DataDetectorHighlight_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleValidity_h
+#define WebCore_style_StyleValidity_h
 
 namespace WebCore {
 namespace Style {
@@ -51,3 +52,4 @@ enum class InvalidationScope : uint8_t {
 
 }
 }
+#endif // WebCore_style_StyleValidity_h

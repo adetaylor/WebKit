@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_DOMPromiseProxy_h
+#define WebCore_bindings_js_DOMPromiseProxy_h
 
 #include "ExceptionOr.h"
 #include "JSDOMGlobalObject.h"
@@ -370,3 +371,4 @@ inline void DOMPromiseProxyWithResolveCallback<IDLType>::reject(Exception except
 }
 
 }
+#endif // WebCore_bindings_js_DOMPromiseProxy_h

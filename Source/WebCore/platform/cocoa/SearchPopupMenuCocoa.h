@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_SearchPopupMenuCocoa_h
+#define WebCore_platform_cocoa_SearchPopupMenuCocoa_h
 
 #import "SearchPopupMenu.h"
 
@@ -34,3 +35,4 @@ WEBCORE_EXPORT Vector<RecentSearch> loadRecentSearchesFromFile(const String& nam
 WEBCORE_EXPORT void removeRecentlyModifiedRecentSearchesFromFile(WallTime, const String& directory);
 
 }
+#endif // WebCore_platform_cocoa_SearchPopupMenuCocoa_h

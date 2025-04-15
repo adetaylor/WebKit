@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_parameters_CryptoAlgorithmRsaPssParams_h
+#define WebCore_crypto_parameters_CryptoAlgorithmRsaPssParams_h
 
 #include "CryptoAlgorithmParameters.h"
 
@@ -49,3 +50,4 @@ public:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_ALGORITHM_PARAMETERS(RsaPssParams)
+#endif // WebCore_crypto_parameters_CryptoAlgorithmRsaPssParams_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_CoreUISPI_h
+#define WebCore_PAL_pal_spi_mac_CoreUISPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -79,3 +80,4 @@ extern const CFStringRef kCUIWidgetSwitchFillMask;
 extern const CFStringRef kCUIWidgetSwitchOnOffLabel;
 
 #endif
+#endif // WebCore_PAL_pal_spi_mac_CoreUISPI_h

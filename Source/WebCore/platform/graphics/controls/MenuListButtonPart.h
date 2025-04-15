@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_MenuListButtonPart_h
+#define WebCore_platform_graphics_controls_MenuListButtonPart_h
 
 #include "ControlFactory.h"
 #include "ControlPart.h"
@@ -55,3 +56,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::MenuListButtonPart) \
     static bool isType(const WebCore::ControlPart& part) { return part.type() == WebCore::StyleAppearance::MenulistButton; } \
 SPECIALIZE_TYPE_TRAITS_END()
 
+#endif // WebCore_platform_graphics_controls_MenuListButtonPart_h

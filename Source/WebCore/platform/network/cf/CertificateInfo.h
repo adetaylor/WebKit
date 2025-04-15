@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_cf_CertificateInfo_h
+#define WebCore_platform_network_cf_CertificateInfo_h
 
 #include <wtf/RetainPtr.h>
 #include <wtf/Vector.h>
@@ -76,3 +77,4 @@ private:
 WEBCORE_EXPORT bool certificatesMatch(SecTrustRef, SecTrustRef);
 
 } // namespace WebCore
+#endif // WebCore_platform_network_cf_CertificateInfo_h

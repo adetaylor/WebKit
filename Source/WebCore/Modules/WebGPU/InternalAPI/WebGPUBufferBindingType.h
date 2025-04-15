@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUBufferBindingType_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUBufferBindingType_h
 
 #include <cstdint>
 
@@ -36,3 +37,4 @@ enum class BufferBindingType : uint8_t {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUBufferBindingType_h

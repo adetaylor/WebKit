@@ -2,7 +2,8 @@
  * Copyright (C) 2021 Apple Inc. All rights reserved.
  */
 
-#pragma once
+#ifndef WebCore_platform_xr_cocoa_PlatformXRPose_h
+#define WebCore_platform_xr_cocoa_PlatformXRPose_h
 
 #if ENABLE(WEBXR) && PLATFORM(COCOA)
 
@@ -37,3 +38,4 @@ private:
 };
 
 #endif // ENABLE(WEBXR) && PLATFORM(COCOA)
+#endif // WebCore_platform_xr_cocoa_PlatformXRPose_h

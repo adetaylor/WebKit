@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_transform_CSSTransformComponent_h
+#define WebCore_css_typedom_transform_CSSTransformComponent_h
 
 #include "DOMMatrix.h"
 #include <wtf/RefCounted.h>
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_typedom_transform_CSSTransformComponent_h

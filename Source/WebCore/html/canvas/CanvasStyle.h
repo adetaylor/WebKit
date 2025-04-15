@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasStyle_h
+#define WebCore_html_canvas_CanvasStyle_h
 
 #include "CanvasGradient.h"
 #include "CanvasPattern.h"
@@ -106,3 +107,4 @@ inline String CanvasStyle::color() const
 }
 
 } // namespace WebCore
+#endif // WebCore_html_canvas_CanvasStyle_h

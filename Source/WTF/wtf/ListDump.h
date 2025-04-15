@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_ListDump_h
+#define WTF_wtf_ListDump_h
 
 #include <wtf/CommaPrinter.h>
 #include <wtf/PrintStream.h>
@@ -185,3 +186,4 @@ using WTF::sortedListDump;
 using WTF::sortedMapDump;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_ListDump_h

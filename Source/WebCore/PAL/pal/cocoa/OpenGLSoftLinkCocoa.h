@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_OpenGLSoftLinkCocoa_h
+#define WebCore_PAL_pal_cocoa_OpenGLSoftLinkCocoa_h
 
 #include <wtf/SoftLinking.h>
 
@@ -57,3 +58,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, OpenGL, CGLUpdateContext, CGLError, (CGLConte
 #define CGLUpdateContext PAL::softLink_OpenGL_CGLUpdateContext
 
 #endif
+#endif // WebCore_PAL_pal_cocoa_OpenGLSoftLinkCocoa_h

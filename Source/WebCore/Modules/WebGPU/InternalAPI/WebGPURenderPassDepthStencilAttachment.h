@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassDepthStencilAttachment_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassDepthStencilAttachment_h
 
 #include "WebGPUIntegralTypes.h"
 #include "WebGPULoadOp.h"
@@ -54,3 +55,4 @@ struct RenderPassDepthStencilAttachment {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPURenderPassDepthStencilAttachment_h

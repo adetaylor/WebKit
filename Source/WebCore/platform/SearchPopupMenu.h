@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_SearchPopupMenu_h
+#define WebCore_platform_SearchPopupMenu_h
 
 #include "PopupMenu.h"
 #include <wtf/Forward.h>
@@ -48,3 +49,4 @@ public:
 };
 
 }
+#endif // WebCore_platform_SearchPopupMenu_h

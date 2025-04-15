@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_bridge_runtime_method_h
+#define WebCore_bridge_runtime_method_h
 
 #include "BridgeJSC.h"
 #include <JavaScriptCore/InternalFunction.h>
@@ -79,3 +80,4 @@ private:
 };
 
 } // namespace JSC
+#endif // WebCore_bridge_runtime_method_h

@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourcePaintServer_h
+#define WebCore_rendering_svg_RenderSVGResourcePaintServer_h
 
 #include "Color.h"
 #include "RenderSVGResourceContainer.h"
@@ -46,3 +47,4 @@ using SVGPaintServerOrColor = std::variant<std::monostate, RenderSVGResourcePain
 }
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGResourcePaintServer, isRenderSVGResourcePaintServer())
+#endif // WebCore_rendering_svg_RenderSVGResourcePaintServer_h

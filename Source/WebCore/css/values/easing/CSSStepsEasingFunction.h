@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_easing_CSSStepsEasingFunction_h
+#define WebCore_css_values_easing_CSSStepsEasingFunction_h
 
 #include "CSSPrimitiveNumericTypes.h"
 
@@ -106,3 +107,4 @@ public:
 }
 
 template<typename T, typename K, auto shouldSerializeKeyword> inline constexpr bool WebCore::TreatAsTupleLike<WebCore::CSS::StepsEasingParameters::Kind<T, K, shouldSerializeKeyword>> = true;
+#endif // WebCore_css_values_easing_CSSStepsEasingFunction_h

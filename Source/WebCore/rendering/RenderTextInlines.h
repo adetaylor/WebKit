@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTextInlines_h
+#define WebCore_rendering_RenderTextInlines_h
 
 #include "RenderStyleInlines.h"
 #include "RenderText.h"
@@ -41,3 +42,4 @@ float RenderText::measureTextConsideringPossibleTrailingSpace(bool currentCharac
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderTextInlines_h

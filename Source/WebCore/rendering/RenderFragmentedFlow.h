@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderFragmentedFlow_h
+#define WebCore_rendering_RenderFragmentedFlow_h
 
 #include "LayerFragment.h"
 #include "PODIntervalTree.h"
@@ -262,3 +263,4 @@ protected:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderFragmentedFlow, isRenderFragmentedFlow())
+#endif // WebCore_rendering_RenderFragmentedFlow_h

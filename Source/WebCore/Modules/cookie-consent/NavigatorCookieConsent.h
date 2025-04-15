@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cookie_consent_NavigatorCookieConsent_h
+#define WebCore_Modules_cookie_consent_NavigatorCookieConsent_h
 
 #include "Supplementable.h"
 #include <wtf/CheckedRef.h>
@@ -58,3 +59,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_cookie_consent_NavigatorCookieConsent_h

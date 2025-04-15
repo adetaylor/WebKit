@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontSelector_h
+#define WebCore_platform_graphics_FontSelector_h
 
 #include "FontRanges.h"
 #include <wtf/Forward.h>
@@ -79,3 +80,4 @@ public:
 WTF::TextStream& operator<<(WTF::TextStream&, const FontSelector&);
 
 }
+#endif // WebCore_platform_graphics_FontSelector_h

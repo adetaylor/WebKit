@@ -26,7 +26,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WTF_wtf_dtoa_utils_h
+#define WTF_wtf_dtoa_utils_h
 
 #include <cstdlib>
 #include <cstring>
@@ -378,3 +379,4 @@ constexpr int default_decimal_in_shortest_high = 21;
 
 }  // namespace double_conversion
 }  // namespace WTF
+#endif // WTF_wtf_dtoa_utils_h

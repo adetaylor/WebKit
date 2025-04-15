@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_Internals_h
+#define WebCore_testing_Internals_h
 
 #include "AV1Utilities.h"
 #include "ActivityState.h"
@@ -1643,3 +1644,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_testing_Internals_h

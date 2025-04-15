@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_cf_StringConcatenateCF_h
+#define WTF_wtf_text_cf_StringConcatenateCF_h
 
 #include <wtf/StdLibExtras.h>
 #include <wtf/cf/VectorCF.h>
@@ -76,3 +77,4 @@ public:
 }
 
 #endif // USE(CF)
+#endif // WTF_wtf_text_cf_StringConcatenateCF_h

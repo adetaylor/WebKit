@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollSnapOffsetsInfo_h
+#define WebCore_page_scrolling_ScrollSnapOffsetsInfo_h
 
 #include "ElementIdentifier.h"
 #include "FloatRect.h"
@@ -114,3 +115,4 @@ template <typename T> WTF::TextStream& operator<<(WTF::TextStream& ts, SnapOffse
 }
 
 }; // namespace WebCore
+#endif // WebCore_page_scrolling_ScrollSnapOffsetsInfo_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cv_ImageRotationSessionVT_h
+#define WebCore_platform_graphics_cv_ImageRotationSessionVT_h
 
 #include "AffineTransform.h"
 #include "FloatSize.h"
@@ -79,3 +80,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_cv_ImageRotationSessionVT_h

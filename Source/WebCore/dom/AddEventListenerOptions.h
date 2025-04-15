@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_AddEventListenerOptions_h
+#define WebCore_dom_AddEventListenerOptions_h
 
 #include "AbortSignal.h"
 #include "EventListenerOptions.h"
@@ -46,3 +47,4 @@ struct AddEventListenerOptions : EventListenerOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_AddEventListenerOptions_h

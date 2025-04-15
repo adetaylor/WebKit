@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePaySessionPaymentRequest_h
+#define WebCore_Modules_applepay_ApplePaySessionPaymentRequest_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -350,3 +351,4 @@ private:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_Modules_applepay_ApplePaySessionPaymentRequest_h

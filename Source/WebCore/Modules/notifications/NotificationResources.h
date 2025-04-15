@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_notifications_NotificationResources_h
+#define WebCore_Modules_notifications_NotificationResources_h
 
 #include "Image.h"
 #include <wtf/ThreadSafeRefCounted.h>
@@ -57,3 +58,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_notifications_NotificationResources_h

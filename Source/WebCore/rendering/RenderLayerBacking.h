@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderLayerBacking_h
+#define WebCore_rendering_RenderLayerBacking_h
 
 #include "FloatPoint.h"
 #include "FloatPoint3D.h"
@@ -490,3 +491,4 @@ CanvasCompositingStrategy canvasCompositingStrategy(const RenderObject&);
 WTF::TextStream& operator<<(WTF::TextStream&, const RenderLayerBacking&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderLayerBacking_h

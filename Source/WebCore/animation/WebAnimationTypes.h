@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_WebAnimationTypes_h
+#define WebCore_animation_WebAnimationTypes_h
 
 #include "CSSPropertyNames.h"
 #include "CSSValue.h"
@@ -162,3 +163,4 @@ template<> struct HashTraits<WebCore::AnimatableCSSProperty> : GenericHashTraits
 };
 
 } // namespace WTF
+#endif // WebCore_animation_WebAnimationTypes_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AXTextRun_h
+#define WebCore_accessibility_AXTextRun_h
 
 #if ENABLE(AX_THREAD_TEXT_APIS)
 
@@ -175,3 +176,4 @@ struct AXTextRuns {
 
 } // namespace WebCore
 #endif // ENABLE(AX_THREAD_TEXT_APIS)
+#endif // WebCore_accessibility_AXTextRun_h

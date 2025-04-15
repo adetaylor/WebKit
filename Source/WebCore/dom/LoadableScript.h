@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_LoadableScript_h
+#define WebCore_dom_LoadableScript_h
 
 #include "ScriptElementCachedScriptFetcher.h"
 #include <wtf/CheckedRef.h>
@@ -68,3 +69,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_LoadableScript_h

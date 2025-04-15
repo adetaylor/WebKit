@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
  
-#pragma once
+#ifndef WebCore_dom_BeforeTextInsertedEvent_h
+#define WebCore_dom_BeforeTextInsertedEvent_h
 
 #include "Event.h"
 
@@ -52,3 +53,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(BeforeTextInsertedEvent)
+#endif // WebCore_dom_BeforeTextInsertedEvent_h

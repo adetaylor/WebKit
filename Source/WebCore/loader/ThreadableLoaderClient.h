@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ThreadableLoaderClient_h
+#define WebCore_loader_ThreadableLoaderClient_h
 
 #include "LoaderMalloc.h"
 #include "ResourceLoaderIdentifier.h"
@@ -64,3 +65,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_ThreadableLoaderClient_h

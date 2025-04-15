@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_reporting_Report_h
+#define WebCore_Modules_reporting_Report_h
 
 #include <wtf/JSONValues.h>
 #include "ReportBody.h"
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_reporting_Report_h

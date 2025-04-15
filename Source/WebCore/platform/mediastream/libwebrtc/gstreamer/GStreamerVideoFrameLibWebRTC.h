@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_gstreamer_GStreamerVideoFrameLibWebRTC_h
+#define WebCore_platform_mediastream_libwebrtc_gstreamer_GStreamerVideoFrameLibWebRTC_h
 
 #if USE(GSTREAMER) && USE(LIBWEBRTC)
 
@@ -61,3 +62,4 @@ private:
 }
 
 #endif // USE(GSTREAMER) && USE(LIBWEBRTC)
+#endif // WebCore_platform_mediastream_libwebrtc_gstreamer_GStreamerVideoFrameLibWebRTC_h

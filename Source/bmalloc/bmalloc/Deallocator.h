@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Deallocator_h
+#define bmalloc_bmalloc_Deallocator_h
 
 #include "BExport.h"
 #include "FixedVector.h"
@@ -82,3 +83,4 @@ inline void Deallocator::deallocate(void* object)
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_Deallocator_h

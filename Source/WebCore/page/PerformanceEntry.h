@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceEntry_h
+#define WebCore_page_PerformanceEntry_h
 
 #include "Performance.h"
 #include <wtf/RefCounted.h>
@@ -75,3 +76,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PerformanceEntry_h

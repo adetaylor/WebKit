@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AXSearchManager_h
+#define WebCore_accessibility_AXSearchManager_h
 
 #include "AXCoreObject.h"
 #include <wtf/HashMap.h>
@@ -119,3 +120,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, AccessibilitySearchKey);
 WTF::TextStream& operator<<(WTF::TextStream&, const AccessibilitySearchCriteria&);
 
 } // namespace WebCore
+#endif // WebCore_accessibility_AXSearchManager_h

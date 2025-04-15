@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_TextDecorationThickness_h
+#define WebCore_rendering_style_TextDecorationThickness_h
 
 #include "FontMetrics.h"
 #include "Length.h"
@@ -134,3 +135,4 @@ inline TextStream& operator<<(TextStream& ts, const TextDecorationThickness& thi
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_TextDecorationThickness_h

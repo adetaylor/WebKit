@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_icu_UnicodeExtras_h
+#define WTF_wtf_text_icu_UnicodeExtras_h
 
 #include <array>
 #include <span>
@@ -70,3 +71,4 @@ static constexpr std::array<char, 16> U8_LEAD4_T1_BITS_SAFE { '\x00', '\x00', '\
 } // namespace WTF
 
 using WTF::ucsdet_detectAll_span;
+#endif // WTF_wtf_text_icu_UnicodeExtras_h

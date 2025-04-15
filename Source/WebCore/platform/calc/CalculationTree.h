@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_calc_CalculationTree_h
+#define WebCore_platform_calc_CalculationTree_h
 
 #include "CalculationOperator.h"
 #include <optional>
@@ -986,3 +987,4 @@ OP_TUPLE_LIKE_CONFORMANCE(Blend, 3);
 #undef OP_TUPLE_LIKE_CONFORMANCE
 
 } // namespace std
+#endif // WebCore_platform_calc_CalculationTree_h

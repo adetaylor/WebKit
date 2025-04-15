@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUBufferUsage_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUBufferUsage_h
 
 #include <cstdint>
 #include <wtf/OptionSet.h>
@@ -45,3 +46,4 @@ enum class BufferUsage : uint16_t {
 using BufferUsageFlags = std::underlying_type_t<BufferUsage>;
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUBufferUsage_h

@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_AtomStringTable_h
+#define WTF_wtf_text_AtomStringTable_h
 
 #include <wtf/CompactPtr.h>
 #include <wtf/HashSet.h>
@@ -50,3 +51,4 @@ private:
 
 }
 using WTF::AtomStringTable;
+#endif // WTF_wtf_text_AtomStringTable_h

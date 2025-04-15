@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XPathParser_h
+#define WebCore_xml_XPathParser_h
 
 #include "ExceptionOr.h"
 #include "XPathPredicate.h"
@@ -79,3 +80,4 @@ private:
 };
 
 } }
+#endif // WebCore_xml_XPathParser_h

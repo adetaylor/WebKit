@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_model_element_scenekit_SceneKitModelLoader_h
+#define WebCore_Modules_model_element_scenekit_SceneKitModelLoader_h
 
 #if HAVE(SCENEKIT)
 
@@ -47,3 +48,4 @@ Ref<SceneKitModelLoader> loadSceneKitModel(Model&, SceneKitModelLoaderClient&);
 }
 
 #endif
+#endif // WebCore_Modules_model_element_scenekit_SceneKitModelLoader_h

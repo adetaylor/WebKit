@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_RangeBasedLineBuilder_h
+#define WebCore_layout_formattingContexts_inline_RangeBasedLineBuilder_h
 
 #include "AbstractLineBuilder.h"
 #include "TextOnlySimpleLineBuilder.h"
@@ -48,3 +49,4 @@ private:
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_RangeBasedLineBuilder_h

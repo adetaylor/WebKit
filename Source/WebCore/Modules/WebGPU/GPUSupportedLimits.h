@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUSupportedLimits_h
+#define WebCore_Modules_WebGPU_GPUSupportedLimits_h
 
 #include "WebGPUSupportedLimits.h"
 
@@ -86,3 +87,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUSupportedLimits_h

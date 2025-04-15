@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_shadow_AutoFillButtonElement_h
+#define WebCore_html_shadow_AutoFillButtonElement_h
 
 #include "HTMLDivElement.h"
 
@@ -52,3 +53,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_shadow_AutoFillButtonElement_h

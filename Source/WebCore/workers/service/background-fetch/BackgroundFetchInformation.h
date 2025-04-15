@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetchInformation_h
+#define WebCore_workers_service_background_fetch_BackgroundFetchInformation_h
 
 #include "BackgroundFetchFailureReason.h"
 #include "BackgroundFetchResult.h"
@@ -47,3 +48,4 @@ struct BackgroundFetchInformation {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_BackgroundFetchInformation_h

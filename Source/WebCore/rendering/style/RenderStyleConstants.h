@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_RenderStyleConstants_h
+#define WebCore_rendering_style_RenderStyleConstants_h
 
 #include <initializer_list>
 #include <optional>
@@ -1374,3 +1375,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, FieldSizing);
 WTF::TextStream& operator<<(WTF::TextStream&, OverflowContinue);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_RenderStyleConstants_h

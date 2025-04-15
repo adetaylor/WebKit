@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_async_clipboard_ClipboardItem_h
+#define WebCore_Modules_async_clipboard_ClipboardItem_h
 
 #include "ExceptionOr.h"
 #include <wtf/KeyValuePair.h>
@@ -81,3 +82,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_async_clipboard_ClipboardItem_h

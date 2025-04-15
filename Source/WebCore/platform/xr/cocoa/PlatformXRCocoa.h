@@ -23,8 +23,10 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_xr_cocoa_PlatformXRCocoa_h
+#define WebCore_platform_xr_cocoa_PlatformXRCocoa_h
 
 #if ENABLE(WEBXR) && USE(EMPTYXR)
 #include "PlatformXR.h"
 #endif
+#endif // WebCore_platform_xr_cocoa_PlatformXRCocoa_h

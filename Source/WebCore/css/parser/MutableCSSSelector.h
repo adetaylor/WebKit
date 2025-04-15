@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_MutableCSSSelector_h
+#define WebCore_css_parser_MutableCSSSelector_h
 
 #include "CSSSelector.h"
 #include <wtf/TZoneMalloc.h>
@@ -132,3 +133,4 @@ inline bool MutableCSSSelector::needsImplicitShadowCombinatorForMatching() const
 }
 
 } // namespace WebCore
+#endif // WebCore_css_parser_MutableCSSSelector_h

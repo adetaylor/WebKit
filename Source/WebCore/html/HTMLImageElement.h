@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLImageElement_h
+#define WebCore_html_HTMLImageElement_h
 
 #include "ActiveDOMObject.h"
 #include "AttachmentAssociatedElement.h"
@@ -285,3 +286,4 @@ private:
 };
 
 } //namespace
+#endif // WebCore_html_HTMLImageElement_h

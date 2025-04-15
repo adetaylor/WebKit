@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_DOMCSSRegisterCustomProperty_h
+#define WebCore_css_DOMCSSRegisterCustomProperty_h
 
 #include "DOMCSSCustomPropertyDescriptor.h"
 #include "ExceptionOr.h"
@@ -48,3 +49,4 @@ private:
 };
 
 }
+#endif // WebCore_css_DOMCSSRegisterCustomProperty_h

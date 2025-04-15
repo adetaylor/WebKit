@@ -20,7 +20,8 @@
 
 // RefPtr is documented at http://webkit.org/coding/RefPtr.html
 
-#pragma once
+#ifndef WTF_wtf_RefPtr_h
+#define WTF_wtf_RefPtr_h
 
 #include <algorithm>
 #include <utility>
@@ -286,3 +287,4 @@ using WTF::RefPtr;
 using WTF::adoptRef;
 using WTF::static_pointer_cast;
 using WTF::lazyInitialize;
+#endif // WTF_wtf_RefPtr_h

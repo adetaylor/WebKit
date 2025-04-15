@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_DataDetectorsCoreSoftLink_h
+#define WebCore_PAL_pal_cocoa_DataDetectorsCoreSoftLink_h
 
 #if ENABLE(DATA_DETECTION)
 
@@ -75,3 +76,4 @@ SOFT_LINK_FUNCTION_MAY_FAIL_FOR_HEADER(PAL, DataDetectorsCore, DDResultDisableUR
 SOFT_LINK_FUNCTION_FOR_HEADER(PAL, DataDetectorsCore, DDScannerSetQOS, void, (DDScannerRef scanner, DDQOS qos), (scanner, qos))
 #endif
 #endif // ENABLE(DATA_DETECTION)
+#endif // WebCore_PAL_pal_cocoa_DataDetectorsCoreSoftLink_h

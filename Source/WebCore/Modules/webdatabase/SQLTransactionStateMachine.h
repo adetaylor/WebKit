@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdatabase_SQLTransactionStateMachine_h
+#define WebCore_Modules_webdatabase_SQLTransactionStateMachine_h
 
 #include "SQLTransactionState.h"
 #include <wtf/Forward.h>
@@ -112,3 +113,4 @@ void SQLTransactionStateMachine<T>::runStateMachine()
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdatabase_SQLTransactionStateMachine_h

@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleCustomPropertyData_h
+#define WebCore_rendering_style_StyleCustomPropertyData_h
 
 #include "CSSCustomPropertyValue.h"
 #include <wtf/Function.h>
@@ -71,3 +72,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleCustomPropertyData_h

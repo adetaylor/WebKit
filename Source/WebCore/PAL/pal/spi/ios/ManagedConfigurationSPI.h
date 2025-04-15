@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_ios_ManagedConfigurationSPI_h
+#define WebCore_PAL_pal_spi_ios_ManagedConfigurationSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -77,3 +78,4 @@ typedef enum MCRestrictedBoolType {
 #endif
 
 #endif // PLATFORM(IOS_FAMILY) && !PLATFORM(MACCATALYST)
+#endif // WebCore_PAL_pal_spi_ios_ManagedConfigurationSPI_h

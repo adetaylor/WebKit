@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_ComputedEffectTiming_h
+#define WebCore_animation_ComputedEffectTiming_h
 
 #include "AnimationEffectPhase.h"
 #include "CSSNumericValue.h"
@@ -45,3 +46,4 @@ struct ComputedEffectTiming : EffectTiming {
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_ComputedEffectTiming_h

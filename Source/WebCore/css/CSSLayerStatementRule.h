@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSLayerStatementRule_h
+#define WebCore_css_CSSLayerStatementRule_h
 
 #include "CSSRule.h"
 
@@ -54,3 +55,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSLayerStatementRule, StyleRuleType::LayerStatement)
+#endif // WebCore_css_CSSLayerStatementRule_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_EventLoop_h
+#define WebCore_dom_EventLoop_h
 
 #include "TaskSource.h"
 #include <optional>
@@ -250,3 +251,4 @@ inline EventLoopTask::EventLoopTask(TaskSource source, EventLoopTaskGroup& group
 { }
 
 } // namespace WebCore
+#endif // WebCore_dom_EventLoop_h

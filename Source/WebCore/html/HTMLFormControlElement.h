@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLFormControlElement_h
+#define WebCore_html_HTMLFormControlElement_h
 
 #include "Autofill.h"
 #include "HTMLElement.h"
@@ -157,3 +158,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::HTMLFormControlElement)
     static bool isType(const WebCore::Node& node) { return node.isFormControlElement(); }
     static bool isType(const WebCore::FormListedElement& listedElement) { return listedElement.asHTMLElement().isFormControlElement(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_HTMLFormControlElement_h

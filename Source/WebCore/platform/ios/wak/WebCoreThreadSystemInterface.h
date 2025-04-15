@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_wak_WebCoreThreadSystemInterface_h
+#define WebCore_platform_ios_wak_WebCoreThreadSystemInterface_h
 
 #if TARGET_OS_IPHONE
 
@@ -38,3 +39,4 @@ WEBCORE_EXPORT void InitWebCoreThreadSystemInterface(void);
 #endif
 
 #endif // TARGET_OS_IPHONE
+#endif // WebCore_platform_ios_wak_WebCoreThreadSystemInterface_h

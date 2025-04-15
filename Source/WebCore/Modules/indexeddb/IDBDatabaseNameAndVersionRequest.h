@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBDatabaseNameAndVersionRequest_h
+#define WebCore_Modules_indexeddb_IDBDatabaseNameAndVersionRequest_h
 
 #include "IDBActiveDOMObject.h"
 #include "IDBDatabaseNameAndVersion.h"
@@ -82,3 +83,4 @@ inline IDBDatabaseNameAndVersionRequest::~IDBDatabaseNameAndVersionRequest()
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBDatabaseNameAndVersionRequest_h

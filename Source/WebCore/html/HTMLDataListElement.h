@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLDataListElement_h
+#define WebCore_html_HTMLDataListElement_h
 
 #include "HTMLElement.h"
 #include "TypedElementDescendantIterator.h"
@@ -62,3 +63,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLDataListElement_h

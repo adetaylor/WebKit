@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleColorLayers_h
+#define WebCore_style_values_color_StyleColorLayers_h
 
 #include "CSSColorLayers.h"
 #include "StyleColor.h"
@@ -63,3 +64,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const ColorLayers&);
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_color_StyleColorLayers_h

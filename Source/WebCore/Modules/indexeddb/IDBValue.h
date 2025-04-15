@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBValue_h
+#define WebCore_Modules_indexeddb_IDBValue_h
 
 #include "ThreadSafeDataBuffer.h"
 #include <wtf/TZoneMalloc.h>
@@ -58,3 +59,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBValue_h

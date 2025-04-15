@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_OSObjectPtr_h
+#define WTF_wtf_OSObjectPtr_h
 
 #include <os/object.h>
 #include <wtf/StdLibExtras.h>
@@ -158,3 +159,4 @@ template<typename T> inline OSObjectPtr<T> adoptOSObject(T ptr)
 
 using WTF::OSObjectPtr;
 using WTF::adoptOSObject;
+#endif // WTF_wtf_OSObjectPtr_h

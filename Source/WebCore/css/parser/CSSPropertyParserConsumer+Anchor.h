@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_Anchor_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_Anchor_h
 
 #include <wtf/Forward.h>
 
@@ -56,3 +57,4 @@ RefPtr<CSSValue> consumePositionArea(CSSParserTokenRange&, CSS::PropertyParserSt
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_Anchor_h

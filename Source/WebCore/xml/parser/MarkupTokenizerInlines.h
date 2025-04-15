@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_parser_MarkupTokenizerInlines_h
+#define WebCore_xml_parser_MarkupTokenizerInlines_h
 
 namespace WebCore {
 
@@ -89,3 +90,4 @@ inline bool isTokenizerWhitespace(UChar character)
     } while (false)
 
 } // namespace WebCore
+#endif // WebCore_xml_parser_MarkupTokenizerInlines_h

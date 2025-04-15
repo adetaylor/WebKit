@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_WebGLUtilities_h
+#define WebCore_html_canvas_WebGLUtilities_h
 
 #if ENABLE(WEBGL)
 #include "WebGL2RenderingContext.h"
@@ -357,3 +358,4 @@ private:
 }
 
 #endif
+#endif // WebCore_html_canvas_WebGLUtilities_h

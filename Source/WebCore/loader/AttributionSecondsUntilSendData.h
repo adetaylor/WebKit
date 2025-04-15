@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_AttributionSecondsUntilSendData_h
+#define WebCore_loader_AttributionSecondsUntilSendData_h
 
 #include <wtf/Seconds.h>
 
@@ -52,3 +53,4 @@ struct AttributionSecondsUntilSendData {
 
 
 }
+#endif // WebCore_loader_AttributionSecondsUntilSendData_h

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilitySVGRoot_h
+#define WebCore_accessibility_AccessibilitySVGRoot_h
 
 #include "AccessibilitySVGObject.h"
 #include <wtf/WeakPtr.h>
@@ -56,3 +57,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilitySVGRoot) \
     static bool isType(const WebCore::AccessibilityObject& object) { return object.isAccessibilitySVGRoot(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_accessibility_AccessibilitySVGRoot_h

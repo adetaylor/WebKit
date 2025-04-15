@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_atspi_AccessibilityAtspiEnums_h
+#define WebCore_accessibility_atspi_AccessibilityAtspiEnums_h
 
 #if USE(ATSPI)
 namespace WebCore {
@@ -295,3 +296,4 @@ enum class CollectionSortOrder {
 } // namespace WebCore
 
 #endif // USE(ATSPI)
+#endif // WebCore_accessibility_atspi_AccessibilityAtspiEnums_h

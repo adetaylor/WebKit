@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mock_MediaEngineConfigurationFactoryMock_h
+#define WebCore_platform_mock_MediaEngineConfigurationFactoryMock_h
 
 #include <wtf/Function.h>
 
@@ -45,3 +46,4 @@ struct MediaEngineConfigurationFactoryMock {
 };
 
 }
+#endif // WebCore_platform_mock_MediaEngineConfigurationFactoryMock_h

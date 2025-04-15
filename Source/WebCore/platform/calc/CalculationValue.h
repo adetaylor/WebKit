@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_calc_CalculationValue_h
+#define WebCore_platform_calc_CalculationValue_h
 
 #include "CalculationRange.h"
 #include "CalculationTree.h"
@@ -71,3 +72,4 @@ TextStream& operator<<(TextStream&, const CalculationValue&);
 
 } // namespace WebCore
 
+#endif // WebCore_platform_calc_CalculationValue_h

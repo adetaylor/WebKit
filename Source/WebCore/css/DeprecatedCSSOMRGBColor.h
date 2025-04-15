@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_DeprecatedCSSOMRGBColor_h
+#define WebCore_css_DeprecatedCSSOMRGBColor_h
 
 #include "Color.h"
 #include "DeprecatedCSSOMPrimitiveValue.h"
@@ -63,3 +64,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_DeprecatedCSSOMRGBColor_h

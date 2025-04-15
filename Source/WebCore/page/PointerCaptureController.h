@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PointerCaptureController_h
+#define WebCore_page_PointerCaptureController_h
 
 #include "EventTarget.h"
 #include "ExceptionOr.h"
@@ -135,3 +136,4 @@ inline void PointerCaptureController::elementWasRemoved(Element& element)
 }
 
 } // namespace WebCore
+#endif // WebCore_page_PointerCaptureController_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_MeteringMode_h
+#define WebCore_platform_mediastream_MeteringMode_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -38,3 +39,4 @@ enum class MeteringMode : uint8_t {
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM)
+#endif // WebCore_platform_mediastream_MeteringMode_h

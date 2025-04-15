@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_StringPrintStream_h
+#define WTF_wtf_StringPrintStream_h
 
 #include <wtf/PrintStream.h>
 #include <wtf/text/CString.h>
@@ -77,3 +78,4 @@ String toString(const Types&... values)
 using WTF::StringPrintStream;
 using WTF::toCString;
 using WTF::toString;
+#endif // WTF_wtf_StringPrintStream_h

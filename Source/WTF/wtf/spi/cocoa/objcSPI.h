@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cocoa_objcSPI_h
+#define WTF_wtf_spi_cocoa_objcSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -50,3 +51,4 @@ void _class_setCustomDeallocInitiation(Class);
 void _objc_deallocOnMainThreadHelper(void* object);
 
 WTF_EXTERN_C_END
+#endif // WTF_wtf_spi_cocoa_objcSPI_h

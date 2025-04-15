@@ -2,7 +2,8 @@
    bison -d -p xpathyy XPathGrammar.y -o XPathGrammar.cpp
  */
 
-#pragma once
+#ifndef WebCore_xml_XPathGrammar_h
+#define WebCore_xml_XPathGrammar_h
 
 /* A Bison parser, made by GNU Bison 2.3.  */
 
@@ -118,3 +119,4 @@ typedef union YYSTYPE
 
 
 
+#endif // WebCore_xml_XPathGrammar_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_DataListSuggestionPicker_h
+#define WebCore_platform_DataListSuggestionPicker_h
 
 #include "DataListSuggestionInformation.h"
 #include <wtf/AbstractRefCountedAndCanMakeWeakPtr.h>
@@ -44,3 +45,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_DataListSuggestionPicker_h

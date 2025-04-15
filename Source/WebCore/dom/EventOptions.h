@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_EventOptions_h
+#define WebCore_dom_EventOptions_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class EventIsCancelable : bool { No, Yes };
 enum class EventIsComposed : bool { No, Yes };
 
 }
+#endif // WebCore_dom_EventOptions_h

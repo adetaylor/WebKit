@@ -9,7 +9,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_EscapedFormsForJSON_h
+#define WTF_wtf_text_EscapedFormsForJSON_h
 
 #include <array>
 
@@ -52,3 +53,4 @@ constexpr std::array<char, 0x100> escapedFormsForJSON {
 };
 
 }
+#endif // WTF_wtf_text_EscapedFormsForJSON_h

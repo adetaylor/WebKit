@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_Interfaces_DetectedFaceInterface_h
+#define WebCore_Modules_ShapeDetection_Interfaces_DetectedFaceInterface_h
 
 #include "FloatRect.h"
 #include "LandmarkInterface.h"
@@ -38,3 +39,4 @@ struct DetectedFace {
 };
 
 } // namespace WebCore::ShapeDetection
+#endif // WebCore_Modules_ShapeDetection_Interfaces_DetectedFaceInterface_h

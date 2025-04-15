@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_ModuleScriptLoader_h
+#define WebCore_bindings_js_ModuleScriptLoader_h
 
 #include "JSDOMPromiseDeferred.h"
 #include "ModuleFetchParameters.h"
@@ -63,3 +64,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_ModuleScriptLoader_h

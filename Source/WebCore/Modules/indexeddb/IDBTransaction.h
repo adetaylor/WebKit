@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBTransaction_h
+#define WebCore_Modules_indexeddb_IDBTransaction_h
 
 #include "EventTarget.h"
 #include "IDBActiveDOMObject.h"
@@ -294,3 +295,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBTransaction_h

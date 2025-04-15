@@ -23,7 +23,8 @@
  * DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_text_DateTimeFormat_h
+#define WebCore_platform_text_DateTimeFormat_h
 
 #include <wtf/Forward.h>
 
@@ -105,3 +106,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_text_DateTimeFormat_h

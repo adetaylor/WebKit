@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_AnimationFrameRatePreset_h
+#define WebCore_animation_AnimationFrameRatePreset_h
 
 #include "AnimationFrameRate.h"
 
@@ -35,3 +36,4 @@ constexpr const FramesPerSecond AnimationFrameRatePresetHigh = 60;
 constexpr const FramesPerSecond AnimationFrameRatePresetLow = 30;
 
 } // namespace WebCore
+#endif // WebCore_animation_AnimationFrameRatePreset_h

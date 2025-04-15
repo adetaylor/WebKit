@@ -24,7 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleGradientImage_h
+#define WebCore_rendering_style_StyleGradientImage_h
 
 #include "StyleGradient.h"
 #include "StyleGeneratedImage.h"
@@ -66,3 +67,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_STYLE_IMAGE(StyleGradientImage, isGradientImage)
+#endif // WebCore_rendering_style_StyleGradientImage_h

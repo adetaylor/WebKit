@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cg_ImageBufferUtilitiesCG_h
+#define WebCore_platform_graphics_cg_ImageBufferUtilitiesCG_h
 
 #if USE(CG)
 
@@ -48,3 +49,4 @@ String dataURL(const PixelBuffer&, const String& mimeType, std::optional<double>
 } // namespace WebCore
 
 #endif // USE(CG)
+#endif // WebCore_platform_graphics_cg_ImageBufferUtilitiesCG_h

@@ -23,7 +23,8 @@
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_page_ShareDataReader_h
+#define WebCore_page_ShareDataReader_h
 
 #include "ExceptionOr.h"
 #include "ShareData.h"
@@ -54,3 +55,4 @@ private:
 };
 
 }
+#endif // WebCore_page_ShareDataReader_h

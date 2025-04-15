@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_FloatingObjects_h
+#define WebCore_rendering_FloatingObjects_h
 
 #include "LegacyRootInlineBox.h"
 #include <wtf/ListHashSet.h>
@@ -195,3 +196,4 @@ TextStream& operator<<(TextStream&, const FloatingObject&);
 #endif
 
 } // namespace WebCore
+#endif // WebCore_rendering_FloatingObjects_h

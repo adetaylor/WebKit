@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdatabase_LocalDOMWindowWebDatabase_h
+#define WebCore_Modules_webdatabase_LocalDOMWindowWebDatabase_h
 
 #include "ExceptionOr.h"
 
@@ -43,3 +44,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdatabase_LocalDOMWindowWebDatabase_h

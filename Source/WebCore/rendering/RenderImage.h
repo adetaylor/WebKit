@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderImage_h
+#define WebCore_rendering_RenderImage_h
 
 #include "RenderImageResource.h"
 #include "RenderReplaced.h"
@@ -157,3 +158,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderImage, isRenderImage())
+#endif // WebCore_rendering_RenderImage_h

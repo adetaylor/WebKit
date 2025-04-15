@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RTCDataChannelRemoteHandlerConnection_h
+#define WebCore_platform_mediastream_RTCDataChannelRemoteHandlerConnection_h
 
 #include "RTCDataChannelIdentifier.h"
 #include "ScriptExecutionContextIdentifier.h"
@@ -43,3 +44,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_mediastream_RTCDataChannelRemoteHandlerConnection_h

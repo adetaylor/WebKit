@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_CryptoAlgorithmIdentifier_h
+#define WebCore_crypto_CryptoAlgorithmIdentifier_h
 
 namespace WebCore {
 
@@ -53,3 +54,4 @@ enum class CryptoAlgorithmIdentifier : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_crypto_CryptoAlgorithmIdentifier_h

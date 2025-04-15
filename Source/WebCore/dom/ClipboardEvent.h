@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ClipboardEvent_h
+#define WebCore_dom_ClipboardEvent_h
 
 #include "Event.h"
 
@@ -60,3 +61,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ClipboardEvent_h

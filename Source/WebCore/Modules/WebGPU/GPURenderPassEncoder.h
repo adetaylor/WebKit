@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPURenderPassEncoder_h
+#define WebCore_Modules_WebGPU_GPURenderPassEncoder_h
 
 #include "ExceptionOr.h"
 #include "GPUColorDict.h"
@@ -114,3 +115,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPURenderPassEncoder_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSParserContext_h
+#define WebCore_css_parser_CSSParserContext_h
 
 #include "CSSParserMode.h"
 #include "CSSPropertyNames.h"
@@ -123,3 +124,4 @@ template<> struct HashTraits<WebCore::CSSParserContext> : GenericHashTraits<WebC
 template<> struct DefaultHash<WebCore::CSSParserContext> : WebCore::CSSParserContextHash { };
 
 } // namespace WTF
+#endif // WebCore_css_parser_CSSParserContext_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_ServiceWorkerRegistrationPushAPI_h
+#define WebCore_Modules_push_api_ServiceWorkerRegistrationPushAPI_h
 
 #include "Supplementable.h"
 #include <wtf/Forward.h>
@@ -52,3 +53,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_push_api_ServiceWorkerRegistrationPushAPI_h

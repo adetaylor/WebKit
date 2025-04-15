@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLOptionsCollectionInlines_h
+#define WebCore_html_HTMLOptionsCollectionInlines_h
 
 #include "CachedHTMLCollectionInlines.h"
 #include "ElementAncestorIteratorInlines.h"
@@ -54,3 +55,4 @@ inline bool HTMLOptionsCollection::elementMatches(Element& element) const
 }
 
 }
+#endif // WebCore_html_HTMLOptionsCollectionInlines_h

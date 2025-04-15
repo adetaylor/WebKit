@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FlatteningVariantAdaptor_h
+#define WTF_wtf_FlatteningVariantAdaptor_h
 
 #include <variant>
 #include <wtf/Brigand.h>
@@ -123,3 +124,4 @@ template<typename... Ts> using FlatteningCompactVariant = FlatteningVariantAdapt
 using WTF::FlatteningCompactVariant;
 using WTF::FlatteningVariant;
 using WTF::FlatteningVariantTraits;
+#endif // WTF_wtf_FlatteningVariantAdaptor_h

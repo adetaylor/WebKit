@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetchUIOptions_h
+#define WebCore_workers_service_background_fetch_BackgroundFetchUIOptions_h
 
 #include "ImageResource.h"
 #include <wtf/Vector.h>
@@ -43,3 +44,4 @@ struct BackgroundFetchUIOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_BackgroundFetchUIOptions_h

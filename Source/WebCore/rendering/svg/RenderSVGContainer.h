@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGContainer_h
+#define WebCore_rendering_svg_RenderSVGContainer_h
 
 #include "RenderSVGModelObject.h"
 #include "SVGBoundingBoxComputation.h"
@@ -74,3 +75,4 @@ protected:
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGContainer, isRenderSVGContainer())
 
+#endif // WebCore_rendering_svg_RenderSVGContainer_h

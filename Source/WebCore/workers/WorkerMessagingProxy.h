@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerMessagingProxy_h
+#define WebCore_workers_WorkerMessagingProxy_h
 
 #include "WorkerBadgeProxy.h"
 #include "WorkerGlobalScopeProxy.h"
@@ -118,3 +119,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::WorkerMessagingProxy)
     static bool isType(const WebCore::WorkerLoaderProxy& proxy) { return proxy.isWorkerMessagingProxy(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_workers_WorkerMessagingProxy_h

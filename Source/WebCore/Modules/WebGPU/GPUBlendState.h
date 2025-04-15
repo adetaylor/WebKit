@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUBlendState_h
+#define WebCore_Modules_WebGPU_GPUBlendState_h
 
 #include "GPUBlendComponent.h"
 #include "WebGPUBlendState.h"
@@ -44,3 +45,4 @@ struct GPUBlendState {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUBlendState_h

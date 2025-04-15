@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceLogging_h
+#define WebCore_page_PerformanceLogging_h
 
 #include <wtf/HashCountedSet.h>
 #include <wtf/HashMap.h>
@@ -59,3 +60,4 @@ private:
 };
 
 }
+#endif // WebCore_page_PerformanceLogging_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_storage_DummyStorageProvider_h
+#define WebCore_Modules_storage_DummyStorageProvider_h
 
 #include "FileSystemStorageConnection.h"
 #include "StorageConnection.h"
@@ -94,3 +95,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_storage_DummyStorageProvider_h

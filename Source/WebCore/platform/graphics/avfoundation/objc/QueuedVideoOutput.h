@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_QueuedVideoOutput_h
+#define WebCore_platform_graphics_avfoundation_objc_QueuedVideoOutput_h
 
 #if ENABLE(VIDEO)
 
@@ -98,3 +99,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_graphics_avfoundation_objc_QueuedVideoOutput_h

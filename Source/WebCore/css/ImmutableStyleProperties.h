@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_ImmutableStyleProperties_h
+#define WebCore_css_ImmutableStyleProperties_h
 
 #include "StyleProperties.h"
 
@@ -96,3 +97,4 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ImmutableStyleProperties)
     static bool isType(const WebCore::StyleProperties& properties) { return !properties.isMutable(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_ImmutableStyleProperties_h

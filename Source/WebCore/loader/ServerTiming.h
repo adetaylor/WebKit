@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ServerTiming_h
+#define WebCore_loader_ServerTiming_h
 
 #include <wtf/text/WTFString.h>
 
@@ -68,3 +69,4 @@ inline ServerTiming::ServerTiming(String&& name, double duration, String&& descr
 }
 
 } // namespace WebCore
+#endif // WebCore_loader_ServerTiming_h

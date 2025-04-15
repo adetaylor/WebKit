@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RAMSize_h
+#define WTF_wtf_RAMSize_h
 
 namespace WTF {
 
@@ -36,3 +37,4 @@ WTF_EXPORT_PRIVATE size_t ramSizeDisregardingJetsamLimit();
 }
 
 using WTF::ramSize;
+#endif // WTF_wtf_RAMSize_h

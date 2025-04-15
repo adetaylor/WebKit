@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferHolePunch_h
+#define WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferHolePunch_h
 
 #if USE(COORDINATED_GRAPHICS) && ENABLE(VIDEO)
 #include "CoordinatedPlatformLayerBuffer.h"
@@ -63,3 +64,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_COORDINATED_PLATFORM_LAYER_BUFFER_TYPE(CoordinatedPlatformLayerBufferHolePunch, Type::HolePunch)
 
 #endif // USE(COORDINATED_GRAPHICS) && ENABLE(VIDEO)
+#endif // WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferHolePunch_h

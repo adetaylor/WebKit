@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_BAssert_h
+#define bmalloc_bmalloc_BAssert_h
 
 #include "BPlatform.h"
 #include "Logging.h"
@@ -123,3 +124,4 @@
 #define IF_DEBUG(x) (x)
 
 #endif // !defined(NDEBUG)
+#endif // bmalloc_bmalloc_BAssert_h

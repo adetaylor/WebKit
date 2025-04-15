@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_LegacyWebSocketInspectorInstrumentation_h
+#define WebCore_inspector_LegacyWebSocketInspectorInstrumentation_h
 
 #include <wtf/Forward.h>
 
@@ -49,3 +50,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_LegacyWebSocketInspectorInstrumentation_h

@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLMapElement_h
+#define WebCore_html_HTMLMapElement_h
 
 #include "HTMLElement.h"
 
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespaces
+#endif // WebCore_html_HTMLMapElement_h

@@ -30,7 +30,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_LinkRelAttribute_h
+#define WebCore_html_LinkRelAttribute_h
 
 #include <wtf/Forward.h>
 #include <wtf/Markable.h>
@@ -66,3 +67,4 @@ struct LinkRelAttribute {
 };
 
 }
+#endif // WebCore_html_LinkRelAttribute_h

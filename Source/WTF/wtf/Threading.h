@@ -28,7 +28,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Threading_h
+#define WTF_wtf_Threading_h
 
 #include <mutex>
 #include <stdint.h>
@@ -456,3 +457,4 @@ using WTF::Thread;
 using WTF::ThreadType;
 using WTF::GCThreadType;
 using WTF::assertIsCurrent;
+#endif // WTF_wtf_Threading_h

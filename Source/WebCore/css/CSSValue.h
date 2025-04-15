@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSValue_h
+#define WebCore_css_CSSValue_h
 
 #include <wtf/IterationStatus.h>
 #include <wtf/NoVirtualDestructorBase.h>
@@ -359,3 +360,4 @@ void add(Hasher&, const CSSValue&);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::CSSValue& value) { return value.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_CSSValue_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_CodePointIterator_h
+#define WTF_wtf_text_CodePointIterator_h
 
 #include <unicode/utypes.h>
 #include <wtf/Assertions.h>
@@ -114,3 +115,4 @@ ALWAYS_INLINE auto CodePointIterator<UChar>::operator++() -> CodePointIterator&
 template<typename CharacterType> CodePointIterator(std::span<const CharacterType>) -> CodePointIterator<CharacterType>;
 
 } // namespace WTF
+#endif // WTF_wtf_text_CodePointIterator_h

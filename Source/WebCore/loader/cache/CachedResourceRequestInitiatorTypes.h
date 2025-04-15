@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedResourceRequestInitiatorTypes_h
+#define WebCore_loader_cache_CachedResourceRequestInitiatorTypes_h
 
 #include "LoaderMalloc.h"
 #include "ThreadGlobalData.h"
@@ -51,3 +52,4 @@ inline const CachedResourceRequestInitiatorTypes& cachedResourceRequestInitiator
 }
 
 } // namespace WebCore
+#endif // WebCore_loader_cache_CachedResourceRequestInitiatorTypes_h

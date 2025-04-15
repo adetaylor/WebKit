@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_FakeXRInputSourceInit_h
+#define WebCore_testing_FakeXRInputSourceInit_h
 
 #if ENABLE(WEBXR)
 
@@ -57,3 +58,4 @@ struct FakeXRInputSourceInit {
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_testing_FakeXRInputSourceInit_h

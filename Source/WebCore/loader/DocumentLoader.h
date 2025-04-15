@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_DocumentLoader_h
+#define WebCore_loader_DocumentLoader_h
 
 #include "AdvancedPrivacyProtections.h"
 #include "CachedRawResourceClient.h"
@@ -906,3 +907,4 @@ inline void DocumentLoader::didTellClientAboutLoad(const String& url)
 }
 
 } // namespace WebCore
+#endif // WebCore_loader_DocumentLoader_h

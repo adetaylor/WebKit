@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSColorSPI_h
+#define WebCore_PAL_pal_spi_mac_NSColorSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -76,3 +77,4 @@ extern "C" void NSColorSetUserAccentColor(NSUserAccentColor key, BOOL sendNotifi
 @property (class, strong, readonly) NSColor *tertiarySystemFillColor;
 @end
 #endif
+#endif // WebCore_PAL_pal_spi_mac_NSColorSPI_h

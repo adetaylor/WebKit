@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGForeignObject_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGForeignObject_h
 
 #include "AffineTransform.h"
 #include "FloatPoint.h"
@@ -73,3 +74,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(LegacyRenderSVGForeignObject, isLegacyRenderSVGForeignObject())
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGForeignObject_h

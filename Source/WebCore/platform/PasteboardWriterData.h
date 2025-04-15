@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PasteboardWriterData_h
+#define WebCore_platform_PasteboardWriterData_h
 
 #include <wtf/URL.h>
 #include <wtf/text/WTFString.h>
@@ -87,3 +88,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_PasteboardWriterData_h

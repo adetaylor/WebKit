@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_StyleOriginatedAnimation_h
+#define WebCore_animation_StyleOriginatedAnimation_h
 
 #include "AnimationEffect.h"
 #include "AnimationEffectPhase.h"
@@ -101,3 +102,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_WEB_ANIMATION(StyleOriginatedAnimation, isStyleOriginatedAnimation())
+#endif // WebCore_animation_StyleOriginatedAnimation_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_TouchAction_h
+#define WebCore_platform_TouchAction_h
 
 #include <wtf/text/TextStream.h>
 
@@ -41,3 +42,4 @@ enum class TouchAction : uint8_t {
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, TouchAction);
 
 }
+#endif // WebCore_platform_TouchAction_h

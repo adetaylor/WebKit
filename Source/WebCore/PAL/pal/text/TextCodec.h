@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_TextCodec_h
+#define WebCore_PAL_pal_text_TextCodec_h
 
 #include "UnencodableHandling.h"
 #include <array>
@@ -67,3 +68,4 @@ using NewTextCodecFunction = Function<std::unique_ptr<TextCodec>()>;
 using TextCodecRegistrar = void (*)(ASCIILiteral name, NewTextCodecFunction&&);
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_text_TextCodec_h

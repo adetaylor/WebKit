@@ -29,7 +29,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FrameLoader_h
+#define WebCore_loader_FrameLoader_h
 
 #include "FrameIdentifier.h"
 #include "FrameLoaderStateMachine.h"
@@ -560,3 +561,4 @@ enum class CreatedNewPage : bool { No, Yes };
 std::pair<RefPtr<Frame>, CreatedNewPage> createWindow(LocalFrame& openerFrame, FrameLoadRequest&&, WindowFeatures&&);
 
 } // namespace WebCore
+#endif // WebCore_loader_FrameLoader_h

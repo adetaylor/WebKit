@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_LineClampUpdater_h
+#define WebCore_rendering_LineClampUpdater_h
 
 #include "RenderLayoutState.h"
 #include "RenderView.h"
@@ -96,3 +97,4 @@ inline LineClampUpdater::~LineClampUpdater()
 }
 
 }
+#endif // WebCore_rendering_LineClampUpdater_h

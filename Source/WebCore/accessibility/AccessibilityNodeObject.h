@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityNodeObject_h
+#define WebCore_accessibility_AccessibilityNodeObject_h
 
 #include "AccessibilityObject.h"
 #include "LayoutRect.h"
@@ -238,3 +239,4 @@ Vector<Ref<HTMLElement>> labelsForElement(Element*);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilityNodeObject) \
     static bool isType(const WebCore::AccessibilityObject& object) { return object.isAccessibilityNodeObject(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_accessibility_AccessibilityNodeObject_h

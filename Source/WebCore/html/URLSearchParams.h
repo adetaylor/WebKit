@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_URLSearchParams_h
+#define WebCore_html_URLSearchParams_h
 
 #include "ExceptionOr.h"
 #include "ScriptExecutionContext.h"
@@ -80,3 +81,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_URLSearchParams_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_TimingScope_h
+#define WTF_wtf_TimingScope_h
 
 #include <wtf/MonotonicTime.h>
 #include <wtf/Noncopyable.h>
@@ -65,3 +66,4 @@ private:
 
 using WTF::TimingScope;
 
+#endif // WTF_wtf_TimingScope_h

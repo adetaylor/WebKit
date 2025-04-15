@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingThread_h
+#define WebCore_page_scrolling_ScrollingThread_h
 
 #if ENABLE(SCROLLING_THREAD) || ENABLE(THREADED_ANIMATION_RESOLUTION)
 
@@ -65,3 +66,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(SCROLLING_THREAD) || ENABLE(THREADED_ANIMATION_RESOLUTION)
+#endif // WebCore_page_scrolling_ScrollingThread_h

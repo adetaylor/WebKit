@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_CSSValueConcepts_h
+#define WebCore_css_values_CSSValueConcepts_h
 
 #include <concepts>
 
@@ -80,3 +81,4 @@ template<typename T> concept HasIsEmpty = requires(T t) {
 };
 
 } // namespace WebCore
+#endif // WebCore_css_values_CSSValueConcepts_h

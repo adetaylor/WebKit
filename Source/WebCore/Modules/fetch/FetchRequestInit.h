@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchRequestInit_h
+#define WebCore_Modules_fetch_FetchRequestInit_h
 
 #include "AbortSignal.h"
 #include "FetchBody.h"
@@ -55,3 +56,4 @@ struct FetchRequestInit {
 };
 
 }
+#endif // WebCore_Modules_fetch_FetchRequestInit_h

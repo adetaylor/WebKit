@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cg_CoreGraphicsSPI_h
+#define WebCore_PAL_pal_spi_cg_CoreGraphicsSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -472,3 +473,4 @@ inline String CGPDFDictionaryGetNameString(CGPDFDictionaryRef dictionary, ASCIIL
     CGPDFDictionaryGetName(dictionary, key.characters(), &value);
     return value ? String::fromUTF8(value) : String();
 }
+#endif // WebCore_PAL_pal_spi_cg_CoreGraphicsSPI_h

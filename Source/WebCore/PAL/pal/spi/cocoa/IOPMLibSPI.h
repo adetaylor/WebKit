@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_IOPMLibSPI_h
+#define WebCore_PAL_pal_spi_cocoa_IOPMLibSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -55,3 +56,4 @@ IOReturn IOPMAssertionCreateWithDescription(CFStringRef assertionType, CFStringR
 IOReturn IOPMAssertionRelease(IOPMAssertionID);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cocoa_IOPMLibSPI_h

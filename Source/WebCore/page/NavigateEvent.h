@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_NavigateEvent_h
+#define WebCore_page_NavigateEvent_h
 
 #include "AbortController.h"
 #include "AbortSignal.h"
@@ -138,3 +139,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_NavigateEvent_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_win_FullScreenWindow_h
+#define WebCore_platform_graphics_win_FullScreenWindow_h
 
 #if ENABLE(FULLSCREEN_API)
 
@@ -61,3 +62,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(FULLSCREEN_API)
+#endif // WebCore_platform_graphics_win_FullScreenWindow_h

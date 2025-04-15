@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StdMultimap_h
+#define WTF_wtf_StdMultimap_h
 
 #include <map>
 #include <wtf/FastMalloc.h>
@@ -36,3 +37,4 @@ using StdMultimap = std::multimap<Key, Value, Compare, Allocator>;
 } // namespace WTF
 
 using WTF::StdMultimap;
+#endif // WTF_wtf_StdMultimap_h

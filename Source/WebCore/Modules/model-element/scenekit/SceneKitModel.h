@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_model_element_scenekit_SceneKitModel_h
+#define WebCore_Modules_model_element_scenekit_SceneKitModel_h
 
 #if HAVE(SCENEKIT)
 
@@ -50,3 +51,4 @@ public:
 }
 
 #endif
+#endif // WebCore_Modules_model_element_scenekit_SceneKitModel_h

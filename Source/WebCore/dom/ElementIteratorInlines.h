@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementIteratorInlines_h
+#define WebCore_dom_ElementIteratorInlines_h
 
 #include "ElementInlines.h"
 #include "ElementIterator.h"
@@ -133,3 +134,4 @@ inline ElementIterator<ElementType>& ElementIterator<ElementType>::traverseAnces
 }
 
 }
+#endif // WebCore_dom_ElementIteratorInlines_h

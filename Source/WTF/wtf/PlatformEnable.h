@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PlatformEnable_h
+#define WTF_wtf_PlatformEnable_h
 
 #ifndef WTF_PLATFORM_GUARD_AGAINST_INDIRECT_INCLUSION
 #error "Please #include <wtf/Platform.h> instead of this file directly."
@@ -1018,3 +1019,4 @@
 #if !defined(ENABLE_COOKIE_STORE_API_BY_DEFAULT)
 #define ENABLE_COOKIE_STORE_API_BY_DEFAULT 0
 #endif
+#endif // WTF_wtf_PlatformEnable_h

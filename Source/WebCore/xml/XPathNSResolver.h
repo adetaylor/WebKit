@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XPathNSResolver_h
+#define WebCore_xml_XPathNSResolver_h
 
 #include <wtf/Forward.h>
 #include <wtf/RefCounted.h>
@@ -41,3 +42,4 @@ protected:
 };
 
 }
+#endif // WebCore_xml_XPathNSResolver_h

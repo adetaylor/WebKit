@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontFeatureValues_h
+#define WebCore_platform_graphics_FontFeatureValues_h
 
 #include <wtf/HashMap.h>
 #include <wtf/Hasher.h>
@@ -145,3 +146,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_FontFeatureValues_h

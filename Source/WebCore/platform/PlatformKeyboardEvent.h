@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_PlatformKeyboardEvent_h
+#define WebCore_platform_PlatformKeyboardEvent_h
 
 #include "CompositionUnderline.h"
 #include "KeypressCommand.h"
@@ -185,3 +186,4 @@ namespace WebCore {
     };
     
 } // namespace WebCore
+#endif // WebCore_platform_PlatformKeyboardEvent_h

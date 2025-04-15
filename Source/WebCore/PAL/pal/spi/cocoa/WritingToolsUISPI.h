@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_WritingToolsUISPI_h
+#define WebCore_PAL_pal_spi_cocoa_WritingToolsUISPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -41,3 +42,4 @@ DECLARE_SYSTEM_HEADER
 #endif
 
 #endif // ENABLE(WRITING_TOOLS) && PLATFORM(MAC)
+#endif // WebCore_PAL_pal_spi_cocoa_WritingToolsUISPI_h

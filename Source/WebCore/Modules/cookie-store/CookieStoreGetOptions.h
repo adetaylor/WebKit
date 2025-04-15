@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cookie_store_CookieStoreGetOptions_h
+#define WebCore_Modules_cookie_store_CookieStoreGetOptions_h
 
 #include <wtf/text/WTFString.h>
 
@@ -38,3 +39,4 @@ struct CookieStoreGetOptions {
 };
 
 }
+#endif // WebCore_Modules_cookie_store_CookieStoreGetOptions_h

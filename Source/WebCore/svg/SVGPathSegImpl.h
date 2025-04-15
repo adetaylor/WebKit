@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGPathSegImpl_h
+#define WebCore_svg_SVGPathSegImpl_h
 
 #include "SVGPathSeg.h"
 #include "SVGPathSegValue.h"
@@ -221,3 +222,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGPathSegImpl_h

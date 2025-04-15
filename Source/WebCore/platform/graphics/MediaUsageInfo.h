@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_MediaUsageInfo_h
+#define WebCore_platform_graphics_MediaUsageInfo_h
 
 #include "MediaSessionIdentifier.h"
 #include <wtf/URL.h>
@@ -72,3 +73,4 @@ struct MediaUsageInfo {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_MediaUsageInfo_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_StylePropertiesInlines_h
+#define WebCore_css_StylePropertiesInlines_h
 
 #include "CSSPropertyParser.h"
 #include "ImmutableStyleProperties.h"
@@ -112,3 +113,4 @@ inline std::optional<CSSValueID> longhandValueID(CSSPropertyID property, const C
 }
 
 }
+#endif // WebCore_css_StylePropertiesInlines_h

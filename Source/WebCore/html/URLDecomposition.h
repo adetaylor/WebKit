@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_URLDecomposition_h
+#define WebCore_html_URLDecomposition_h
 
 #include <wtf/Forward.h>
 
@@ -71,3 +72,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_URLDecomposition_h

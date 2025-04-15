@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertEventListener_h
+#define WebCore_bindings_js_JSDOMConvertEventListener_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -49,3 +50,4 @@ template<typename T> struct Converter<IDLEventListener<T>> : DefaultConverter<ID
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertEventListener_h

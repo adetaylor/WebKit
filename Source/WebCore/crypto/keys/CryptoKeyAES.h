@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_keys_CryptoKeyAES_h
+#define WebCore_crypto_keys_CryptoKeyAES_h
 
 #include "CryptoAlgorithmIdentifier.h"
 #include "CryptoKey.h"
@@ -76,3 +77,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_KEY(CryptoKeyAES, CryptoKeyClass::AES)
+#endif // WebCore_crypto_keys_CryptoKeyAES_h

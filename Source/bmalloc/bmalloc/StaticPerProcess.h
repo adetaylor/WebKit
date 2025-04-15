@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_StaticPerProcess_h
+#define bmalloc_bmalloc_StaticPerProcess_h
 
 #include "BExport.h"
 #include "BInline.h"
@@ -110,3 +111,4 @@ template<> struct StaticPerProcessStorageTraits<Type> { \
     StaticPerProcessStorageTraits<Type>::Memory StaticPerProcessStorageTraits<Type>::Storage::s_memory { };
 
 } // namespace bmalloc
+#endif // bmalloc_bmalloc_StaticPerProcess_h

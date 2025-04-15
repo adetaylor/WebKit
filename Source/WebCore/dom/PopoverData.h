@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_PopoverData_h
+#define WebCore_dom_PopoverData_h
 
 #include "Element.h"
 #include "HTMLElement.h"
@@ -86,3 +87,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_PopoverData_h

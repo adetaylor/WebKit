@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCRtpSFrameTransformer_h
+#define WebCore_Modules_mediastream_RTCRtpSFrameTransformer_h
 
 #if ENABLE(WEB_RTC)
 
@@ -128,3 +129,4 @@ inline void RTCRtpSFrameTransformer::setMediaType(RTCRtpTransformBackend::MediaT
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_Modules_mediastream_RTCRtpSFrameTransformer_h

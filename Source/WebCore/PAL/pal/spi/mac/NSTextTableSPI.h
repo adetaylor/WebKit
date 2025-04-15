@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSTextTableSPI_h
+#define WebCore_PAL_pal_spi_mac_NSTextTableSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -36,3 +37,4 @@ DECLARE_SYSTEM_HEADER
 @interface NSTextTab ()
 - (instancetype)initWithTextAlignment:(NSTextAlignment)alignment location:(CGFloat)loc options:(NSDictionary<NSTextTabOptionKey, id> *)options;
 @end
+#endif // WebCore_PAL_pal_spi_mac_NSTextTableSPI_h

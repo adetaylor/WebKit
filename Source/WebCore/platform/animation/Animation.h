@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_animation_Animation_h
+#define WebCore_platform_animation_Animation_h
 
 #include "CSSPropertyNames.h"
 #include "CompositeOperation.h"
@@ -316,3 +317,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const Animation::Timeline&);
 WTF::TextStream& operator<<(WTF::TextStream&, const Animation&);
 
 } // namespace WebCore
+#endif // WebCore_platform_animation_Animation_h

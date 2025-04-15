@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_dom_ExceptionCode_h
+#define WebCore_dom_ExceptionCode_h
 
 namespace WebCore {
 
@@ -70,3 +71,4 @@ enum class ExceptionCode : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ExceptionCode_h

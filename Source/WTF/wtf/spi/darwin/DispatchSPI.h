@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_darwin_DispatchSPI_h
+#define WTF_wtf_spi_darwin_DispatchSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -39,3 +40,4 @@ enum {
 };
 
 #endif
+#endif // WTF_wtf_spi_darwin_DispatchSPI_h

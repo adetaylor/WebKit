@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLTableCaptionElement_h
+#define WebCore_html_HTMLTableCaptionElement_h
 
 #include "HTMLElement.h"
 
@@ -42,3 +43,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLTableCaptionElement_h

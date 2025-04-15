@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderObjectEnums_h
+#define WebCore_rendering_RenderObjectEnums_h
 
 namespace WebCore {
 
@@ -60,3 +61,4 @@ enum MapCoordinatesMode {
 };
 
 }
+#endif // WebCore_rendering_RenderObjectEnums_h

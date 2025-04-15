@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_CacheValidation_h
+#define WebCore_platform_network_CacheValidation_h
 
 #include <wtf/Forward.h>
 #include <wtf/Markable.h>
@@ -86,3 +87,4 @@ WEBCORE_EXPORT bool isStatusCodeCacheableByDefault(int statusCode);
 WEBCORE_EXPORT bool isStatusCodePotentiallyCacheable(int statusCode);
 
 }
+#endif // WebCore_platform_network_CacheValidation_h

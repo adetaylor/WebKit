@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_openssl_OpenSSLCryptoUniquePtr_h
+#define WebCore_crypto_openssl_OpenSSLCryptoUniquePtr_h
 
 #include <memory>
 #include <openssl/ec.h>
@@ -89,3 +90,4 @@ DEFINE_OPENSSL_CRYPTO_PTR_FULL(ASN1SequencePtr, ASN1_SEQUENCE_ANY, sk_ASN1_TYPE_
 #undef DEFINE_OPENSSL_CRYPTO_PTR_FULL
 
 } // namespace WebCore
+#endif // WebCore_crypto_openssl_OpenSSLCryptoUniquePtr_h

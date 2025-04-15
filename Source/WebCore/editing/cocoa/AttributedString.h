@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_cocoa_AttributedString_h
+#define WebCore_editing_cocoa_AttributedString_h
 
 #import "Color.h"
 #import "TextAttachmentForSerialization.h"
@@ -249,3 +250,4 @@ struct WEBCORE_EXPORT AttributedString {
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_cocoa_AttributedString_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_RFC7230_h
+#define WebCore_platform_network_RFC7230_h
 
 #include <unicode/umachine.h>
 #include <wtf/Forward.h>
@@ -38,3 +39,4 @@ bool isValidName(StringView);
 bool isValidValue(StringView);
 
 } // namespace RFC7230
+#endif // WebCore_platform_network_RFC7230_h

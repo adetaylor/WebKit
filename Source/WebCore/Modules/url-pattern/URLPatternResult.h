@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_url_pattern_URLPatternResult_h
+#define WebCore_Modules_url_pattern_URLPatternResult_h
 
 #include "URLPattern.h"
 
@@ -50,3 +51,4 @@ struct URLPatternResult {
 };
 
 }
+#endif // WebCore_Modules_url_pattern_URLPatternResult_h

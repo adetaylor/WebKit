@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_InputTypeNames_h
+#define WebCore_html_InputTypeNames_h
 
 #include <wtf/text/AtomString.h>
 
@@ -52,3 +53,4 @@ const AtomString& week();
 }
 
 } // namespace WebCore
+#endif // WebCore_html_InputTypeNames_h

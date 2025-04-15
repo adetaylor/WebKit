@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_CommandLineAPIHost_h
+#define WebCore_inspector_CommandLineAPIHost_h
 
 #include "InstrumentingAgents.h"
 #include <JavaScriptCore/PerGlobalObjectWrapperWorld.h>
@@ -105,3 +106,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_CommandLineAPIHost_h

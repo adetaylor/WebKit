@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_Animations_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_Animations_h
 
 #include <wtf/Forward.h>
 
@@ -54,3 +55,4 @@ RefPtr<CSSValue> consumeKeyframesName(CSSParserTokenRange&, CSS::PropertyParserS
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_Animations_h

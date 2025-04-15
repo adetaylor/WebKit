@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_async_clipboard_ClipboardImageReader_h
+#define WebCore_Modules_async_clipboard_ClipboardImageReader_h
 
 #include "Blob.h"
 #include "Document.h"
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_async_clipboard_ClipboardImageReader_h

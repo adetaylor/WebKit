@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_manette_GUniquePtrManette_h
+#define WebCore_platform_gamepad_manette_GUniquePtrManette_h
 
 #include <wtf/Platform.h>
 
@@ -33,3 +34,4 @@ WTF_DEFINE_GPTR_DELETER(ManetteMonitorIter, manette_monitor_iter_free)
 } // namespace WTF
 
 #endif // USE(MANETTE)
+#endif // WebCore_platform_gamepad_manette_GUniquePtrManette_h

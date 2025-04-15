@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_MediaPlaybackTargetCocoa_h
+#define WebCore_platform_graphics_avfoundation_MediaPlaybackTargetCocoa_h
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 
@@ -84,3 +85,4 @@ static bool isType(const WebCore::MediaPlaybackTarget& target)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(WIRELESS_PLAYBACK_TARGET)
+#endif // WebCore_platform_graphics_avfoundation_MediaPlaybackTargetCocoa_h

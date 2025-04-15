@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_display_InlineDisplayBox_h
+#define WebCore_layout_formattingContexts_inline_display_InlineDisplayBox_h
 
 #include "GlyphDisplayListCacheRemoval.h"
 #include "InlineRect.h"
@@ -335,3 +336,4 @@ inline bool operator==(const Box& a, const Box& b)
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_display_InlineDisplayBox_h

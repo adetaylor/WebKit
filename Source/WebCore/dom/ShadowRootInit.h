@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ShadowRootInit_h
+#define WebCore_dom_ShadowRootInit_h
 
 #include "CustomElementRegistry.h"
 #include "ShadowRootMode.h"
@@ -43,3 +44,4 @@ struct ShadowRootInit {
 };
 
 }
+#endif // WebCore_dom_ShadowRootInit_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_Background_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_Background_h
 
 #include <array>
 #include <optional>
@@ -142,3 +143,4 @@ template<typename Container, typename T> Container completeQuadFromArray(std::ar
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_Background_h

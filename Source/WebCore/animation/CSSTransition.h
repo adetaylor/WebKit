@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_CSSTransition_h
+#define WebCore_animation_CSSTransition_h
 
 #include "CSSPropertyNames.h"
 #include "StyleOriginatedAnimation.h"
@@ -76,3 +77,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_WEB_ANIMATION(CSSTransition, isCSSTransition())
+#endif // WebCore_animation_CSSTransition_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_query_GenericMediaQueryEvaluator_h
+#define WebCore_css_query_GenericMediaQueryEvaluator_h
 
 #include "CSSToLengthConversionData.h"
 #include "CSSValueKeywords.h"
@@ -142,3 +143,4 @@ inline EvaluationResult toEvaluationResult(bool boolean)
 
 }
 }
+#endif // WebCore_css_query_GenericMediaQueryEvaluator_h

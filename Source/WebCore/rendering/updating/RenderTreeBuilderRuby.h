@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_updating_RenderTreeBuilderRuby_h
+#define WebCore_rendering_updating_RenderTreeBuilderRuby_h
 
 #include "RenderTreeUpdater.h"
 #include <wtf/TZoneMalloc.h>
@@ -50,3 +51,4 @@ RenderStyle createAnonymousStyleForRuby(const RenderStyle& parentStyle, DisplayT
 
 }
 
+#endif // WebCore_rendering_updating_RenderTreeBuilderRuby_h

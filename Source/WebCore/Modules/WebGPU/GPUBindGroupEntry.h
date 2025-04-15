@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUBindGroupEntry_h
+#define WebCore_Modules_WebGPU_GPUBindGroupEntry_h
 
 #include "GPUBufferBinding.h"
 #include "GPUExternalTexture.h"
@@ -141,3 +142,4 @@ struct GPUBindGroupEntry {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUBindGroupEntry_h

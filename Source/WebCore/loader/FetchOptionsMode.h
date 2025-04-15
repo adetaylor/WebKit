@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FetchOptionsMode_h
+#define WebCore_loader_FetchOptionsMode_h
 
 namespace WebCore {
     
 enum class FetchOptionsMode : uint8_t { Navigate, SameOrigin, NoCors, Cors };
 
 } // namespace WebCore
+#endif // WebCore_loader_FetchOptionsMode_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_system_mac_DefaultSearchProvider_h
+#define WebCore_PAL_pal_system_mac_DefaultSearchProvider_h
 
 #include <wtf/RetainPtr.h>
 
@@ -32,3 +33,4 @@ namespace PAL {
 PAL_EXPORT RetainPtr<CFStringRef> defaultSearchProviderDisplayName();
 
 }
+#endif // WebCore_PAL_pal_system_mac_DefaultSearchProvider_h

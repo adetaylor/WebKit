@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FilterStyle_h
+#define WebCore_platform_graphics_filters_FilterStyle_h
 
 #include "FloatRect.h"
 #include "GraphicsStyle.h"
@@ -39,3 +40,4 @@ struct FilterStyle {
 using FilterStyleVector = Vector<FilterStyle>;
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_filters_FilterStyle_h

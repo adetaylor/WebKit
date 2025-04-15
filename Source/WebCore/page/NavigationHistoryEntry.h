@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_NavigationHistoryEntry_h
+#define WebCore_page_NavigationHistoryEntry_h
 
 #include "ActiveDOMObject.h"
 #include "EventHandler.h"
@@ -97,3 +98,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_NavigationHistoryEntry_h

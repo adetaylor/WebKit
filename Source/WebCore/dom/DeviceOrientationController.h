@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DeviceOrientationController_h
+#define WebCore_dom_DeviceOrientationController_h
 
 #include "DeviceController.h"
 #include <wtf/Noncopyable.h>
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DeviceOrientationController_h

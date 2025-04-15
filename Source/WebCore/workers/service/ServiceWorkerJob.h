@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerJob_h
+#define WebCore_workers_service_ServiceWorkerJob_h
 
 #include "ResourceLoaderIdentifier.h"
 #include "ResourceResponse.h"
@@ -94,3 +95,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerJob_h

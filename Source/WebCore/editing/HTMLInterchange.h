@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_HTMLInterchange_h
+#define WebCore_editing_HTMLInterchange_h
 
 #include <wtf/Forward.h>
 #include <wtf/text/ASCIILiteral.h>
@@ -48,3 +49,4 @@ enum class AnnotateForInterchange : bool { No, Yes };
 String convertHTMLTextToInterchangeFormat(const String&, const Text*);
 
 } // namespace WebCore
+#endif // WebCore_editing_HTMLInterchange_h

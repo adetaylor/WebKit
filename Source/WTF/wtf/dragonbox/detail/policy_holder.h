@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_detail_policy_holder_h
+#define WTF_wtf_dragonbox_detail_policy_holder_h
 
 #include <wtf/dragonbox/detail/policy.h>
 
@@ -357,3 +358,4 @@ struct to_decimal_dispatcher {
 } // namespace dragonbox
 
 } // namespace WTF
+#endif // WTF_wtf_dragonbox_detail_policy_holder_h

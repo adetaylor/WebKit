@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_SourceBrushLogicalGradient_h
+#define WebCore_platform_graphics_SourceBrushLogicalGradient_h
 
 #include "Gradient.h"
 
@@ -71,3 +72,4 @@ inline bool operator==(const SourceBrushLogicalGradient& a, const SourceBrushLog
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_SourceBrushLogicalGradient_h

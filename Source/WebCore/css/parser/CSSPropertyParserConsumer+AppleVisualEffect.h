@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_AppleVisualEffect_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_AppleVisualEffect_h
 
 #if HAVE(CORE_MATERIAL)
 
@@ -46,3 +47,4 @@ RefPtr<CSSValue> consumeAppleVisualEffect(CSSParserTokenRange&, CSS::PropertyPar
 } // namespace WebCore
 
 #endif // HAVE(CORE_MATERIAL)
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_AppleVisualEffect_h

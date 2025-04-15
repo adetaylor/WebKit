@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_reporting_ViolationReportType_h
+#define WebCore_Modules_reporting_ViolationReportType_h
 
 namespace WebCore {
 
@@ -40,3 +41,4 @@ enum class ViolationReportType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_reporting_ViolationReportType_h

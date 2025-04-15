@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_GCObservation_h
+#define WebCore_testing_GCObservation_h
 
 #include <JavaScriptCore/JSCJSValueInlines.h>
 #include <JavaScriptCore/JSObject.h>
@@ -49,3 +50,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_testing_GCObservation_h

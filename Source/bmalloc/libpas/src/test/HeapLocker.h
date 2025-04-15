@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_libpas_src_test_HeapLocker_h
+#define bmalloc_libpas_src_test_HeapLocker_h
 
 #include "pas_heap_lock.h"
 
@@ -41,3 +42,4 @@ public:
 };
 
 
+#endif // bmalloc_libpas_src_test_HeapLocker_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_filesystemaccess_FileSystemWritableFileStream_h
+#define WebCore_Modules_filesystemaccess_FileSystemWritableFileStream_h
 
 #include "FileSystemWriteCommandType.h"
 #include "WritableStream.h"
@@ -61,3 +62,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::FileSystemWritableFileStream)
     static bool isType(const WebCore::WritableStream& stream) { return stream.type() == WebCore::WritableStream::Type::FileSystem; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_filesystemaccess_FileSystemWritableFileStream_h

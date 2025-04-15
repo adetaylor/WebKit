@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_MediaPlayerPrivateAVFoundation_h
+#define WebCore_platform_graphics_avfoundation_MediaPlayerPrivateAVFoundation_h
 
 #if ENABLE(VIDEO) && USE(AVFOUNDATION)
 
@@ -390,3 +391,4 @@ struct LogArgument;
 }; // namespace WTF
 
 #endif // ENABLE(VIDEO) && USE(AVFOUNDATION)
+#endif // WebCore_platform_graphics_avfoundation_MediaPlayerPrivateAVFoundation_h

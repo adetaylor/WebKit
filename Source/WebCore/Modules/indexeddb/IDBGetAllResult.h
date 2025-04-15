@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBGetAllResult_h
+#define WebCore_Modules_indexeddb_IDBGetAllResult_h
 
 #include "IDBKeyData.h"
 #include "IDBKeyPath.h"
@@ -79,3 +80,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBGetAllResult_h

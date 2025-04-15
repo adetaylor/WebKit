@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_LayerAncestorClippingStack_h
+#define WebCore_rendering_LayerAncestorClippingStack_h
 
 #include "LayoutRect.h"
 #include "RenderLayer.h"
@@ -108,3 +109,4 @@ private:
 TextStream& operator<<(TextStream&, const LayerAncestorClippingStack&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_LayerAncestorClippingStack_h

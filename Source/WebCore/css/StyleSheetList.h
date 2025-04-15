@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_StyleSheetList_h
+#define WebCore_css_StyleSheetList_h
 
 #include <wtf/Forward.h>
 #include <wtf/RefCounted.h>
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_StyleSheetList_h

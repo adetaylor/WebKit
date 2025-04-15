@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ContentTypeUtilities_h
+#define WebCore_platform_graphics_ContentTypeUtilities_h
 
 #include "ContentType.h"
 #include <wtf/Forward.h>
@@ -35,3 +36,4 @@ struct FourCC;
 WEBCORE_EXPORT bool contentTypeMeetsContainerAndCodecTypeRequirements(const ContentType&, const std::optional<Vector<String>>& allowedMediaContainerTypes, const std::optional<Vector<String>>& allowedMediaCodecTypes);
 
 }
+#endif // WebCore_platform_graphics_ContentTypeUtilities_h

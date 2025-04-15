@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleDynamicRangeLimit_h
+#define WebCore_style_values_color_StyleDynamicRangeLimit_h
 
 #include "StyleDynamicRangeLimitMix.h"
 #include "StyleValueTypes.h"
@@ -147,3 +148,4 @@ template<> struct Blending<DynamicRangeLimit> {
 } // namespace WebCore
 
 template<> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::Style::DynamicRangeLimit> = true;
+#endif // WebCore_style_values_color_StyleDynamicRangeLimit_h

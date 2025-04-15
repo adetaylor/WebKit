@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_mac_ScrollingTreeFrameScrollingNodeMac_h
+#define WebCore_page_scrolling_mac_ScrollingTreeFrameScrollingNodeMac_h
 
 #if ENABLE(ASYNC_SCROLLING) && PLATFORM(MAC)
 
@@ -94,3 +95,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ScrollingTreeFrameScrollingNodeMac) \
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(ASYNC_SCROLLING) && PLATFORM(MAC)
+#endif // WebCore_page_scrolling_mac_ScrollingTreeFrameScrollingNodeMac_h

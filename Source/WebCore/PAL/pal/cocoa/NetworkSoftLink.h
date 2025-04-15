@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_NetworkSoftLink_h
+#define WebCore_PAL_pal_cocoa_NetworkSoftLink_h
 
 #if HAVE(WEB_TRANSPORT)
 
@@ -53,3 +54,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, Network, nw_webtransport_metadata_set_session
 #define nw_webtransport_metadata_set_session_error_message PAL::softLink_Network_nw_webtransport_metadata_set_session_error_message
 
 #endif // HAVE(WEB_TRANSPORT)
+#endif // WebCore_PAL_pal_cocoa_NetworkSoftLink_h

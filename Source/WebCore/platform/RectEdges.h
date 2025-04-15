@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_RectEdges_h
+#define WebCore_platform_RectEdges_h
 
 #include "BoxSides.h"
 #include "WritingMode.h"
@@ -181,3 +182,4 @@ TextStream& operator<<(TextStream& ts, const RectEdges<T>& edges)
 }
 
 }
+#endif // WebCore_platform_RectEdges_h

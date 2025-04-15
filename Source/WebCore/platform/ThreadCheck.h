@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_ThreadCheck_h
+#define WebCore_platform_ThreadCheck_h
 
 #if PLATFORM(MAC)
 
@@ -57,3 +58,4 @@ extern "C" void WebCoreReportThreadViolation(const char* function, WebCore::Thre
 #define WebCoreThreadViolationCheckRoundThree() do { } while (0)
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_platform_ThreadCheck_h

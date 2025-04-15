@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUColorWrite_h
+#define WebCore_Modules_WebGPU_GPUColorWrite_h
 
 #include "GPUBlendFactor.h"
 #include "GPUBlendOperation.h"
@@ -60,3 +61,4 @@ inline WebGPU::ColorWriteFlags convertColorWriteFlagsToBacking(GPUColorWriteFlag
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUColorWrite_h

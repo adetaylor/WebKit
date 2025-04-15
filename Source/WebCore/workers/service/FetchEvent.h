@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_FetchEvent_h
+#define WebCore_workers_service_FetchEvent_h
 
 #include "ExtendableEvent.h"
 #include "FetchIdentifier.h"
@@ -112,3 +113,4 @@ inline void FetchEvent::setNavigationPreloadIdentifier(FetchIdentifier identifie
 }
 
 } // namespace WebCore
+#endif // WebCore_workers_service_FetchEvent_h

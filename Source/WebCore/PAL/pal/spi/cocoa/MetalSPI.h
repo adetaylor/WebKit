@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_MetalSPI_h
+#define WebCore_PAL_pal_spi_cocoa_MetalSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -77,3 +78,4 @@ void MTLSetShaderCachePath(NSString *path);
 WTF_EXTERN_C_END
 
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_MetalSPI_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_DiagnosticLoggingKeys_h
+#define WebCore_page_DiagnosticLoggingKeys_h
 
 #include <wtf/text/WTFString.h>
 
@@ -196,3 +197,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_DiagnosticLoggingKeys_h

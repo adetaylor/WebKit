@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasession_MediaSession_h
+#define WebCore_Modules_mediasession_MediaSession_h
 
 #if ENABLE(MEDIA_SESSION)
 
@@ -230,3 +231,4 @@ template<> struct LogArgument<WebCore::MediaSessionAction> {
 }
 
 #endif // ENABLE(MEDIA_SESSION)
+#endif // WebCore_Modules_mediasession_MediaSession_h

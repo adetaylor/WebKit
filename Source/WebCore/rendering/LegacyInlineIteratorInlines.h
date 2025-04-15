@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_LegacyInlineIteratorInlines_h
+#define WebCore_rendering_LegacyInlineIteratorInlines_h
 
 #include "LegacyInlineIterator.h"
 #include "RenderStyleInlines.h"
@@ -95,3 +96,4 @@ template<> inline void InlineBidiResolver::appendRunInternal()
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_LegacyInlineIteratorInlines_h

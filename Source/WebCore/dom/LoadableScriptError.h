@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_LoadableScriptError_h
+#define WebCore_dom_LoadableScriptError_h
 
 #include <JavaScriptCore/ConsoleTypes.h>
 #include <JavaScriptCore/JSCJSValue.h>
@@ -56,3 +57,4 @@ struct LoadableScriptError {
 };
 
 }
+#endif // WebCore_dom_LoadableScriptError_h

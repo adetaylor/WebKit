@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_storage_StorageType_h
+#define WebCore_storage_StorageType_h
 
 namespace WebCore {
 
@@ -39,3 +40,4 @@ inline bool isLocalStorage(StorageType storageType)
 }
 
 } // namespace WebCore
+#endif // WebCore_storage_StorageType_h

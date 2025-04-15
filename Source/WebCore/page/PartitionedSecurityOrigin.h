@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PartitionedSecurityOrigin_h
+#define WebCore_page_PartitionedSecurityOrigin_h
 
 #include "SecurityOrigin.h"
 #include <wtf/HashTraits.h>
@@ -100,3 +101,4 @@ template<> struct HashTraits<WebCore::PartitionedSecurityOrigin> : SimpleClassHa
 };
 
 } // namespace WTF
+#endif // WebCore_page_PartitionedSecurityOrigin_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Scope_h
+#define WTF_wtf_Scope_h
 
 #include <type_traits>
 #include <wtf/StdLibExtras.h>
@@ -79,3 +80,4 @@ ScopeExit<ExitFunction> makeScopeExit(ExitFunction&& exitFunction)
 
 using WTF::ScopeExit;
 using WTF::makeScopeExit;
+#endif // WTF_wtf_Scope_h

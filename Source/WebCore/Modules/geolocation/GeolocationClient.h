@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_geolocation_GeolocationClient_h
+#define WebCore_Modules_geolocation_GeolocationClient_h
 
 #include <optional>
 #include <wtf/CheckedPtr.h>
@@ -64,3 +65,4 @@ protected:
 WEBCORE_EXPORT void provideGeolocationTo(Page*, GeolocationClient&);
 
 } // namespace WebCore
+#endif // WebCore_Modules_geolocation_GeolocationClient_h

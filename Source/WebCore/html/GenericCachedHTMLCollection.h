@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_GenericCachedHTMLCollection_h
+#define WebCore_html_GenericCachedHTMLCollection_h
 
 #include "CachedHTMLCollection.h"
 
@@ -50,3 +51,4 @@ private:
 WTF_MAKE_TZONE_OR_ISO_ALLOCATED_TEMPLATE_IMPL(template<CollectionTraversalType traversalType>, GenericCachedHTMLCollection<traversalType>);
 
 } // namespace WebCore
+#endif // WebCore_html_GenericCachedHTMLCollection_h

@@ -21,7 +21,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_mse_WebKitMediaSourceGStreamer_h
+#define WebCore_platform_graphics_gstreamer_mse_WebKitMediaSourceGStreamer_h
 
 #if ENABLE(VIDEO) && ENABLE(MEDIA_SOURCE) && USE(GSTREAMER)
 
@@ -76,3 +77,4 @@ template<> void derefGPtr<WebKitMediaSrc>(WebKitMediaSrc* ptr);
 } // namespace WTF
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_mse_WebKitMediaSourceGStreamer_h

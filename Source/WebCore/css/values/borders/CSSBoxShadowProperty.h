@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_borders_CSSBoxShadowProperty_h
+#define WebCore_css_values_borders_CSSBoxShadowProperty_h
 
 #include "CSSBoxShadow.h"
 
@@ -35,3 +36,4 @@ using BoxShadowProperty = ListOrNone<CommaSeparatedVector<BoxShadow>>;
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_borders_CSSBoxShadowProperty_h

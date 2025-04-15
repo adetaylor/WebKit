@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_avfoundation_MediaTimeAVFoundation_h
+#define WebCore_PAL_pal_avfoundation_MediaTimeAVFoundation_h
 
 #if USE(AVFOUNDATION)
 
@@ -38,3 +39,4 @@ PAL_EXPORT MediaTime toMediaTime(const CMTime&);
 }
 
 #endif
+#endif // WebCore_PAL_pal_avfoundation_MediaTimeAVFoundation_h

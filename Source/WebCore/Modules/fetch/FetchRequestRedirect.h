@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchRequestRedirect_h
+#define WebCore_Modules_fetch_FetchRequestRedirect_h
 
 #include "FetchOptions.h"
 
@@ -34,3 +35,4 @@ using FetchRequestRedirect = FetchOptions::Redirect;
 }
 
 
+#endif // WebCore_Modules_fetch_FetchRequestRedirect_h

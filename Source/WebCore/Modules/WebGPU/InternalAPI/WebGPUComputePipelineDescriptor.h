@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUComputePipelineDescriptor_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUComputePipelineDescriptor_h
 
 #include "WebGPUPipelineDescriptorBase.h"
 #include "WebGPUProgrammableStage.h"
@@ -35,3 +36,4 @@ struct ComputePipelineDescriptor : public PipelineDescriptorBase {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUComputePipelineDescriptor_h

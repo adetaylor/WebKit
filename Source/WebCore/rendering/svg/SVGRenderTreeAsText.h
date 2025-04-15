@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGRenderTreeAsText_h
+#define WebCore_rendering_svg_SVGRenderTreeAsText_h
 
 #include "RenderTreeAsText.h"
 #include <wtf/text/TextStream.h>
@@ -74,3 +75,4 @@ WTF::TextStream& operator<<(WTF::TextStream& ts, const Vector<Item*>& v)
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_SVGRenderTreeAsText_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_HTTPHeaderValues_h
+#define WebCore_platform_network_HTTPHeaderValues_h
 
 #include <wtf/Forward.h>
 
@@ -38,3 +39,4 @@ WEBCORE_EXPORT const String& maxAge0();
 }
 
 }
+#endif // WebCore_platform_network_HTTPHeaderValues_h

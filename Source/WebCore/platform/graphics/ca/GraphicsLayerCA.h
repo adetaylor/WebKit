@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ca_GraphicsLayerCA_h
+#define WebCore_platform_graphics_ca_GraphicsLayerCA_h
 
 #include "GraphicsLayer.h"
 #include "GraphicsLayerContentsDisplayDelegate.h"
@@ -762,3 +763,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_GRAPHICSLAYER(WebCore::GraphicsLayerCA, isGraphicsLayerCA())
+#endif // WebCore_platform_graphics_ca_GraphicsLayerCA_h

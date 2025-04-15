@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityMathMLElement_h
+#define WebCore_accessibility_AccessibilityMathMLElement_h
 
 #if ENABLE(MATHML)
 
@@ -114,3 +115,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_ACCESSIBILITY(AccessibilityMathMLElement, isMathElement())
 
 #endif // ENABLE(MATHML)
+#endif // WebCore_accessibility_AccessibilityMathMLElement_h

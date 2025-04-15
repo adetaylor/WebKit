@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_VectorHash_h
+#define WTF_wtf_VectorHash_h
 
 #include "HashFunctions.h"
 #include "Hasher.h"
@@ -37,3 +38,4 @@ template<typename T, size_t inlineCapacity> struct DefaultHash<Vector<T, inlineC
 };
 
 }
+#endif // WTF_wtf_VectorHash_h

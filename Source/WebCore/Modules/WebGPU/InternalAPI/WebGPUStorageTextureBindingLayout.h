@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUStorageTextureBindingLayout_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUStorageTextureBindingLayout_h
 
 #include "WebGPUStorageTextureAccess.h"
 #include "WebGPUTextureFormat.h"
@@ -38,3 +39,4 @@ struct StorageTextureBindingLayout {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUStorageTextureBindingLayout_h

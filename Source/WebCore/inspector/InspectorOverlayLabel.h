@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorOverlayLabel_h
+#define WebCore_inspector_InspectorOverlayLabel_h
 
 #include "Color.h"
 #include "FloatPoint.h"
@@ -108,3 +109,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorOverlayLabel_h

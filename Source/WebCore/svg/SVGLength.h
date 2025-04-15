@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGLength_h
+#define WebCore_svg_SVGLength_h
 
 #include "SVGLengthContext.h"
 #include "SVGValueProperty.h"
@@ -141,3 +142,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGLength_h

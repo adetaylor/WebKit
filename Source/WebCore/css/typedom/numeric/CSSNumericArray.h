@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_numeric_CSSNumericArray_h
+#define WebCore_css_typedom_numeric_CSSNumericArray_h
 
 #include "CSSNumericValue.h"
 
@@ -46,3 +47,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_typedom_numeric_CSSNumericArray_h

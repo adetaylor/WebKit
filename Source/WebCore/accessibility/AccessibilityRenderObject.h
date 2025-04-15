@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityRenderObject_h
+#define WebCore_accessibility_AccessibilityRenderObject_h
 
 #include "AccessibilityNodeObject.h"
 #include "LayoutRect.h"
@@ -210,3 +211,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_ACCESSIBILITY(AccessibilityRenderObject, isAccessibilityRenderObject())
+#endif // WebCore_accessibility_AccessibilityRenderObject_h

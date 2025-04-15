@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGPropertyAccessorImpl_h
+#define WebCore_svg_properties_SVGPropertyAccessorImpl_h
 
 #include "SVGPropertyAccessor.h"
 #include "SVGStringList.h"
@@ -85,3 +86,4 @@ public:
 };
 
 }
+#endif // WebCore_svg_properties_SVGPropertyAccessorImpl_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_FragmentDirective_h
+#define WebCore_page_FragmentDirective_h
 
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
@@ -39,3 +40,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_FragmentDirective_h

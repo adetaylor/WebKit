@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_xml_DOMParser_h
+#define WebCore_xml_DOMParser_h
 
 #include "ExceptionOr.h"
 #include <wtf/WeakPtr.h>
@@ -43,3 +44,4 @@ private:
 };
 
 }
+#endif // WebCore_xml_DOMParser_h

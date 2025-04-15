@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GraphicsContextState_h
+#define WebCore_platform_graphics_GraphicsContextState_h
 
 #include "GraphicsStyle.h"
 #include "GraphicsTypes.h"
@@ -207,3 +208,4 @@ TextStream& operator<<(TextStream&, GraphicsContextState::Change);
 TextStream& operator<<(TextStream&, const GraphicsContextState&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_GraphicsContextState_h

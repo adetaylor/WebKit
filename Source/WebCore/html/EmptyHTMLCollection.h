@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_EmptyHTMLCollection_h
+#define WebCore_html_EmptyHTMLCollection_h
 
 #include "HTMLCollection.h"
 
@@ -47,3 +48,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_EmptyHTMLCollection_h

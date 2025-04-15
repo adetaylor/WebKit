@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FetchOptions_h
+#define WebCore_loader_FetchOptions_h
 
 #include "FetchOptionsCache.h"
 #include "FetchOptionsCredentials.h"
@@ -265,3 +266,4 @@ inline bool FetchOptions::decodePersistent(Decoder& decoder, FetchOptions& optio
 }
 
 } // namespace WebCore
+#endif // WebCore_loader_FetchOptions_h

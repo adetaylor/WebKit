@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_VisionKitCoreSoftLink_h
+#define WebCore_PAL_pal_cocoa_VisionKitCoreSoftLink_h
 
 #if HAVE(VK_IMAGE_ANALYSIS)
 
@@ -47,3 +48,4 @@ SOFT_LINK_CLASS_FOR_HEADER(PAL, VKCRemoveBackgroundResult)
 #endif
 
 #endif // HAVE(VK_IMAGE_ANALYSIS)
+#endif // WebCore_PAL_pal_cocoa_VisionKitCoreSoftLink_h

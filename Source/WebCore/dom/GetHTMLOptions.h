@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_GetHTMLOptions_h
+#define WebCore_dom_GetHTMLOptions_h
 
 #include <wtf/Ref.h>
 #include <wtf/Vector.h>
@@ -38,3 +39,4 @@ struct GetHTMLOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_GetHTMLOptions_h

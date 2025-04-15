@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WeakRef_h
+#define WTF_wtf_WeakRef_h
 
 #include <wtf/GetPtr.h>
 #include <wtf/HashTraits.h>
@@ -222,3 +223,4 @@ inline WeakPtr<match_constness_t<Source, Target>, WeakPtrImpl> dynamicDowncast(W
 using WTF::EnableWeakPtrThreadingAssertions;
 using WTF::SingleThreadWeakRef;
 using WTF::WeakRef;
+#endif // WTF_wtf_WeakRef_h

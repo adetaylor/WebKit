@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_ThreadGlobalData_h
+#define WebCore_platform_ThreadGlobalData_h
 
 #include <pal/ThreadGlobalData.h>
 #include <wtf/TZoneMalloc.h>
@@ -160,3 +161,4 @@ inline PURE_FUNCTION ThreadGlobalData& threadGlobalData()
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_ThreadGlobalData_h

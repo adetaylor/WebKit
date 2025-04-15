@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_dom_ScriptRunner_h
+#define WebCore_dom_ScriptRunner_h
 
 #include "PendingScriptClient.h"
 #include "Timer.h"
@@ -85,3 +86,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_ScriptRunner_h

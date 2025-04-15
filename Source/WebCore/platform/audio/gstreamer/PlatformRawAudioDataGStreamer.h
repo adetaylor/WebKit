@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_gstreamer_PlatformRawAudioDataGStreamer_h
+#define WebCore_platform_audio_gstreamer_PlatformRawAudioDataGStreamer_h
 
 #include "PlatformRawAudioData.h"
 
@@ -66,3 +67,4 @@ static bool isType(const WebCore::PlatformRawAudioData& data) { return data.plat
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(WEB_CODECS) && USE(GSTREAMER)
+#endif // WebCore_platform_audio_gstreamer_PlatformRawAudioDataGStreamer_h

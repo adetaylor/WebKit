@@ -22,7 +22,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGImage_h
+#define WebCore_rendering_svg_RenderSVGImage_h
 
 #include "RenderImageResource.h"
 #include "RenderSVGModelObject.h"
@@ -89,3 +90,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGImage, isRenderSVGImage())
+#endif // WebCore_rendering_svg_RenderSVGImage_h

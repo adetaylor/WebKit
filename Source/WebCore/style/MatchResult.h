@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_MatchResult_h
+#define WebCore_style_MatchResult_h
 
 #include "PropertyAllowlist.h"
 #include "RuleSet.h"
@@ -134,3 +135,4 @@ inline void add(Hasher& hasher, const MatchResult& matchResult)
 }
 
 }
+#endif // WebCore_style_MatchResult_h

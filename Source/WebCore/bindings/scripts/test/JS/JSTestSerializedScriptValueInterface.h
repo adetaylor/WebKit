@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestSerializedScriptValueInterface_h
+#define WebCore_bindings_scripts_test_JS_JSTestSerializedScriptValueInterface_h
 
 #if ENABLE(Condition1) || ENABLE(Condition2)
 
@@ -100,3 +101,4 @@ template<> struct JSDOMWrapperConverterTraits<TestSerializedScriptValueInterface
 } // namespace WebCore
 
 #endif // ENABLE(Condition1) || ENABLE(Condition2)
+#endif // WebCore_bindings_scripts_test_JS_JSTestSerializedScriptValueInterface_h

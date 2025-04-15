@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerRunLoop_h
+#define WebCore_workers_WorkerRunLoop_h
 
 #include "ScriptExecutionContext.h"
 #include <memory>
@@ -157,3 +158,4 @@ SPECIALIZE_TYPE_TRAITS_END()
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::WorkerMainRunLoop)
     static bool isType(const WebCore::WorkerRunLoop& runLoop) { return runLoop.type() == WebCore::WorkerRunLoop::Type::WorkerMainRunLoop; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_workers_WorkerRunLoop_h

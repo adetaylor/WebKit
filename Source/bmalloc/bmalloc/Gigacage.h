@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Gigacage_h
+#define bmalloc_bmalloc_Gigacage_h
 
 #include "Algorithm.h"
 #include "BAssert.h"
@@ -225,3 +226,4 @@ BINLINE void removePrimitiveDisableCallback(void (*)(void*), void*) { }
 #endif // GIGACAGE_ENABLED
 
 } // namespace Gigacage
+#endif // bmalloc_bmalloc_Gigacage_h

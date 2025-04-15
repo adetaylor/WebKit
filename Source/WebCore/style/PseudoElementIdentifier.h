@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_PseudoElementIdentifier_h
+#define WebCore_style_PseudoElementIdentifier_h
 
 #include "RenderStyleConstants.h"
 #include <wtf/text/AtomString.h>
@@ -112,3 +113,4 @@ struct DefaultHash<std::optional<WebCore::Style::PseudoElementIdentifier>> {
 };
 
 } // namespace WTF
+#endif // WebCore_style_PseudoElementIdentifier_h

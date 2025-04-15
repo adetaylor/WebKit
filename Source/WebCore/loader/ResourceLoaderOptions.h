@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceLoaderOptions_h
+#define WebCore_loader_ResourceLoaderOptions_h
 
 #include "ContentSecurityPolicyResponseHeaders.h"
 #include "CrossOriginAccessControl.h"
@@ -263,3 +264,4 @@ struct ResourceLoaderOptions : public FetchOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_ResourceLoaderOptions_h

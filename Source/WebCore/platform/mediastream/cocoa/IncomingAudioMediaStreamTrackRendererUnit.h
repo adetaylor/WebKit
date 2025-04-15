@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_cocoa_IncomingAudioMediaStreamTrackRendererUnit_h
+#define WebCore_platform_mediastream_cocoa_IncomingAudioMediaStreamTrackRendererUnit_h
 
 #if ENABLE(MEDIA_STREAM) && USE(LIBWEBRTC)
 
@@ -120,3 +121,4 @@ private:
 }
 
 #endif // ENABLE(MEDIA_STREAM) && USE(LIBWEBRTC)
+#endif // WebCore_platform_mediastream_cocoa_IncomingAudioMediaStreamTrackRendererUnit_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_TZoneMalloc_h
+#define WTF_wtf_TZoneMalloc_h
 
 #include <wtf/ForbidHeapAllocation.h>
 #include <wtf/Platform.h>
@@ -178,3 +179,4 @@
 // class / struct which should not use dynamic allocation. These used to be ISO_ALLOCATED.
 // FIXME: we should remove this and use WTF_MAKE_TZONE_NON_HEAP_ALLOCATABLE instead.
 #define WTF_MAKE_TZONE_OR_ISO_NON_HEAP_ALLOCATABLE(name) WTF_FORBID_HEAP_ALLOCATION
+#endif // WTF_wtf_TZoneMalloc_h

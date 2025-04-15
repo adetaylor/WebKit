@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_Theme_h
+#define WebCore_platform_Theme_h
 
 #include "ControlStyle.h"
 #include "ThemeTypes.h"
@@ -80,3 +81,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_Theme_h

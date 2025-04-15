@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Map_h
+#define bmalloc_bmalloc_Map_h
 
 BALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 
@@ -193,3 +194,4 @@ template<typename Key, typename Value, typename Hash, enum AllowDeleting allowDe
 } // namespace bmalloc
 
 BALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // bmalloc_bmalloc_Map_h

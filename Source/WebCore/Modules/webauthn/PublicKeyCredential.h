@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_PublicKeyCredential_h
+#define WebCore_Modules_webauthn_PublicKeyCredential_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -88,3 +89,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BASIC_CREDENTIAL(PublicKeyCredential, BasicCredential::Type::PublicKey)
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_PublicKeyCredential_h

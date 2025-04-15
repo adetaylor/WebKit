@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_StackBounds_h
+#define WTF_wtf_StackBounds_h
 
 #include <algorithm>
 #include <wtf/StackPointer.h>
@@ -162,3 +163,4 @@ private:
 using WTF::StackBounds;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_StackBounds_h

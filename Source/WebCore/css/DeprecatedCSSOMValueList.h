@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_DeprecatedCSSOMValueList_h
+#define WebCore_css_DeprecatedCSSOMValueList_h
 
 #include "CSSValueList.h"
 #include "DeprecatedCSSOMValue.h"
@@ -69,3 +70,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSSOM_VALUE(DeprecatedCSSOMValueList, isValueList())
+#endif // WebCore_css_DeprecatedCSSOMValueList_h

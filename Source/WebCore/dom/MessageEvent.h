@@ -25,7 +25,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_MessageEvent_h
+#define WebCore_dom_MessageEvent_h
 
 #include "Event.h"
 #include "JSValueInWrappedObject.h"
@@ -107,3 +108,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_MessageEvent_h

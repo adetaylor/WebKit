@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGPointList_h
+#define WebCore_svg_SVGPointList_h
 
 #include "SVGPoint.h"
 #include "SVGValuePropertyList.h"
@@ -55,3 +56,4 @@ public:
 };
 
 }
+#endif // WebCore_svg_SVGPointList_h

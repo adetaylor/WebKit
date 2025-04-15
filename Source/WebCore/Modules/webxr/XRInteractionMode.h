@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_XRInteractionMode_h
+#define WebCore_Modules_webxr_XRInteractionMode_h
 
 #if ENABLE(WEBXR)
 
@@ -37,3 +38,4 @@ enum class XRInteractionMode {
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_Modules_webxr_XRInteractionMode_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_AudioSampleBufferList_h
+#define WebCore_platform_audio_cocoa_AudioSampleBufferList_h
 
 #include "CAAudioStreamDescription.h"
 #include "CARingBuffer.h"
@@ -95,3 +96,4 @@ inline size_t AudioSampleBufferList::audioBufferListSizeForStream(const CAAudioS
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_audio_cocoa_AudioSampleBufferList_h

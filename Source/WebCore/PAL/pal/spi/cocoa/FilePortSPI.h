@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_FilePortSPI_h
+#define WebCore_PAL_pal_spi_cocoa_FilePortSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -40,3 +41,4 @@ int fileport_makefd(mach_port_t);
 
 #endif // #if USE(APPLE_INTERNAL_SDK)
 
+#endif // WebCore_PAL_pal_spi_cocoa_FilePortSPI_h

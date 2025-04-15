@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_QuartzCoreSPI_h
+#define WebCore_PAL_pal_spi_cocoa_QuartzCoreSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -355,3 +356,4 @@ extern NSString * const kCAContextPortNumber;
 extern NSString * const kCAContextSecure;
 extern NSString * const kCAContentsFormatRGBA10XR;
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_QuartzCoreSPI_h

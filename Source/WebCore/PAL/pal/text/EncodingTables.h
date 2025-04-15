@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_EncodingTables_h
+#define WebCore_PAL_pal_text_EncodingTables_h
 
 #include <algorithm>
 #include <array>
@@ -133,3 +134,4 @@ template<typename CollectionType, typename KeyType> static auto findInSortedPair
 }
 
 }
+#endif // WebCore_PAL_pal_text_EncodingTables_h

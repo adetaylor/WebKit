@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_text_extraction_TextExtractionTypes_h
+#define WebCore_page_text_extraction_TextExtractionTypes_h
 
 #include "CharacterRange.h"
 #include "FloatRect.h"
@@ -79,3 +80,4 @@ struct Item {
 
 } // namespace TextExtraction
 } // namespace WebCore
+#endif // WebCore_page_text_extraction_TextExtractionTypes_h

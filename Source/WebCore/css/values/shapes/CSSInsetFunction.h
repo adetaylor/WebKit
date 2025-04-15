@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_shapes_CSSInsetFunction_h
+#define WebCore_css_values_shapes_CSSInsetFunction_h
 
 #include "CSSBorderRadius.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -56,3 +57,4 @@ template<> struct Serialize<Inset> { void operator()(StringBuilder&, const Seria
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Inset, 2)
+#endif // WebCore_css_values_shapes_CSSInsetFunction_h

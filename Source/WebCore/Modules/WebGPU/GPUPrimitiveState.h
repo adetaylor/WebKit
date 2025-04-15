@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUPrimitiveState_h
+#define WebCore_Modules_WebGPU_GPUPrimitiveState_h
 
 #include "GPUCullMode.h"
 #include "GPUFrontFace.h"
@@ -57,3 +58,4 @@ struct GPUPrimitiveState {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUPrimitiveState_h

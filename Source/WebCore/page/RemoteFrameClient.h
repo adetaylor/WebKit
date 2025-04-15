@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_RemoteFrameClient_h
+#define WebCore_page_RemoteFrameClient_h
 
 #include "FrameLoaderClient.h"
 #include "LayerTreeAsTextOptions.h"
@@ -63,3 +64,4 @@ public:
 };
 
 }
+#endif // WebCore_page_RemoteFrameClient_h

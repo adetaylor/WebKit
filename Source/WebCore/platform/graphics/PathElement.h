@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PathElement_h
+#define WebCore_platform_graphics_PathElement_h
 
 #include "FloatPoint.h"
 #include <wtf/Function.h>
@@ -45,3 +46,4 @@ struct PathElement {
 using PathElementApplier = Function<void(const PathElement&)>;
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_PathElement_h

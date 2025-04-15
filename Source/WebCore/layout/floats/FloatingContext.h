@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_floats_FloatingContext_h
+#define WebCore_layout_floats_FloatingContext_h
 
 #include "FormattingContext.h"
 #include "LayoutElementBox.h"
@@ -91,3 +92,4 @@ private:
 
 }
 }
+#endif // WebCore_layout_floats_FloatingContext_h

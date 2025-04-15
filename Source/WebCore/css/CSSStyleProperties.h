@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSStyleProperties_h
+#define WebCore_css_CSSStyleProperties_h
 
 #include "CSSProperty.h"
 #include "CSSPropertyNames.h"
@@ -177,3 +178,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_STYLE_DECLARATION(CSSStyleProperties, StyleDeclarationType::Style)
+#endif // WebCore_css_CSSStyleProperties_h

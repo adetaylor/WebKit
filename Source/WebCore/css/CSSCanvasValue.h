@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSCanvasValue_h
+#define WebCore_css_CSSCanvasValue_h
 
 #include "CSSValue.h"
 #include <wtf/text/WTFString.h>
@@ -56,3 +57,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSCanvasValue, isCanvasValue())
+#endif // WebCore_css_CSSCanvasValue_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayDateComponents_h
+#define WebCore_Modules_applepay_ApplePayDateComponents_h
 
 #if ENABLE(APPLE_PAY_SHIPPING_METHOD_DATE_COMPONENTS_RANGE)
 
@@ -39,3 +40,4 @@ struct ApplePayDateComponents {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY_SHIPPING_METHOD_DATE_COMPONENTS_RANGE)
+#endif // WebCore_Modules_applepay_ApplePayDateComponents_h

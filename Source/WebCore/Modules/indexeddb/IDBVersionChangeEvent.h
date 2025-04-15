@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBVersionChangeEvent_h
+#define WebCore_Modules_indexeddb_IDBVersionChangeEvent_h
 
 #include "Event.h"
 #include "IDBResourceIdentifier.h"
@@ -74,3 +75,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::IDBVersionChangeEvent)
     static bool isType(const WebCore::Event& event) { return event.isVersionChangeEvent(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_indexeddb_IDBVersionChangeEvent_h

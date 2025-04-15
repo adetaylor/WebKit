@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericRaw_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericRaw_h
 
 #include "CSSPrimitiveNumericRange.h"
 #include "CSSPrimitiveNumericUnits.h"
@@ -230,3 +231,4 @@ template<Range R = All, typename V = float> struct LengthPercentageRaw : Primiti
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericRaw_h

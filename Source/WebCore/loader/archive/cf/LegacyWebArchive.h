@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_archive_cf_LegacyWebArchive_h
+#define WebCore_loader_archive_cf_LegacyWebArchive_h
 
 #include "Archive.h"
 #include "MarkupExclusionRule.h"
@@ -80,3 +81,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::LegacyWebArchive)
 static bool isType(const WebCore::Archive& archive) { return archive.isLegacyWebArchive(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_loader_archive_cf_LegacyWebArchive_h

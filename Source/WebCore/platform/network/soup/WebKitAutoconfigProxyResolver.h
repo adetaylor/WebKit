@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_soup_WebKitAutoconfigProxyResolver_h
+#define WebCore_platform_network_soup_WebKitAutoconfigProxyResolver_h
 
 #include <gio/gio.h>
 #include <wtf/glib/GRefPtr.h>
@@ -53,3 +54,4 @@ struct _WebKitAutoconfigProxyResolverClass {
 GType webkit_autoconfig_proxy_resolver_get_type(void);
 
 GRefPtr<GProxyResolver> webkitAutoconfigProxyResolverNew(const CString&);
+#endif // WebCore_platform_network_soup_WebKitAutoconfigProxyResolver_h

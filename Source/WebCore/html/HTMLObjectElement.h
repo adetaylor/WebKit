@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLObjectElement_h
+#define WebCore_html_HTMLObjectElement_h
 
 #include "FormListedElement.h"
 #include "HTMLPlugInImageElement.h"
@@ -103,3 +104,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLObjectElement_h

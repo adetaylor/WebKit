@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_SystemTracing_h
+#define WTF_wtf_SystemTracing_h
 
 #if USE(APPLE_INTERNAL_SDK)
 #include <sys/kdebug_private.h>
@@ -448,3 +449,4 @@ enum WTFOSSignpostType {
 #define WTFSetCounter(name, value) do { } while (0)
 
 #endif
+#endif // WTF_wtf_SystemTracing_h

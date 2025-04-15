@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_parameters_CryptoAlgorithmRsaKeyGenParams_h
+#define WebCore_crypto_parameters_CryptoAlgorithmRsaKeyGenParams_h
 
 #include "CryptoAlgorithmParameters.h"
 #include <JavaScriptCore/Uint8Array.h>
@@ -54,3 +55,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_ALGORITHM_PARAMETERS(RsaKeyGenParams)
+#endif // WebCore_crypto_parameters_CryptoAlgorithmRsaKeyGenParams_h

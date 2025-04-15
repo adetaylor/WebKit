@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_ParentalControlsContentFilter_h
+#define WebCore_platform_cocoa_ParentalControlsContentFilter_h
 
 #include "PlatformContentFilter.h"
 #include <wtf/Compiler.h>
@@ -74,3 +75,4 @@ private:
 };
     
 } // namespace WebCore
+#endif // WebCore_platform_cocoa_ParentalControlsContentFilter_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_shared_IDBResourceIdentifier_h
+#define WebCore_Modules_indexeddb_shared_IDBResourceIdentifier_h
 
 #include "ProcessIdentifier.h"
 #include <wtf/ArgumentCoder.h>
@@ -128,3 +129,4 @@ inline WebCore::IDBConnectionIdentifier crossThreadCopy(WebCore::IDBConnectionId
 }
 
 } // namespace WTF
+#endif // WebCore_Modules_indexeddb_shared_IDBResourceIdentifier_h

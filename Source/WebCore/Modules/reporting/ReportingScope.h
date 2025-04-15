@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_reporting_ReportingScope_h
+#define WebCore_Modules_reporting_ReportingScope_h
 
 #include "ContextDestructionObserver.h"
 #include "ViolationReportType.h"
@@ -78,3 +79,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_reporting_ReportingScope_h

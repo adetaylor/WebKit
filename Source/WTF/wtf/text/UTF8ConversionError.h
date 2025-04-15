@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_UTF8ConversionError_h
+#define WTF_wtf_text_UTF8ConversionError_h
 
 namespace WTF {
 
@@ -32,3 +33,4 @@ enum class UTF8ConversionError : uint8_t { OutOfMemory, Invalid };
 } // namespace WTF
 
 using WTF::UTF8ConversionError;
+#endif // WTF_wtf_text_UTF8ConversionError_h

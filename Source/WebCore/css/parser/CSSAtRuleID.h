@@ -27,7 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WebCore_css_parser_CSSAtRuleID_h
+#define WebCore_css_parser_CSSAtRuleID_h
 
 #include <wtf/text/StringView.h>
 
@@ -69,3 +70,4 @@ enum CSSAtRuleID {
 CSSAtRuleID cssAtRuleID(StringView name);
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSAtRuleID_h

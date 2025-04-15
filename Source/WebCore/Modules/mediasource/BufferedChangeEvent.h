@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasource_BufferedChangeEvent_h
+#define WebCore_Modules_mediasource_BufferedChangeEvent_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -67,3 +68,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_SOURCE)
+#endif // WebCore_Modules_mediasource_BufferedChangeEvent_h

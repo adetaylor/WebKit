@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_SysprofAnnotator_h
+#define WTF_wtf_glib_SysprofAnnotator_h
 
 #include <glib.h>
 #include <sysprof-capture.h>
@@ -521,3 +522,4 @@ inline SysprofAnnotator* SysprofAnnotator::s_annotator;
 } // namespace WTF
 
 using WTF::SysprofAnnotator;
+#endif // WTF_wtf_glib_SysprofAnnotator_h

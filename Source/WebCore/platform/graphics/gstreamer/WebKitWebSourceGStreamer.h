@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_WebKitWebSourceGStreamer_h
+#define WebCore_platform_graphics_gstreamer_WebKitWebSourceGStreamer_h
 
 #if ENABLE(VIDEO) && USE(GSTREAMER)
 
@@ -65,3 +66,4 @@ void webKitWebSrcSetPlayer(WebKitWebSrc*, ThreadSafeWeakPtr<WebCore::MediaPlayer
 G_END_DECLS
 
 #endif // ENABLE(VIDEO) && USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_WebKitWebSourceGStreamer_h

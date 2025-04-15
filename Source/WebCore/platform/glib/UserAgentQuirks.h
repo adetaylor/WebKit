@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_glib_UserAgentQuirks_h
+#define WebCore_platform_glib_UserAgentQuirks_h
 
 #include <wtf/Assertions.h>
 #include <wtf/text/WTFString.h>
@@ -71,3 +72,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_glib_UserAgentQuirks_h

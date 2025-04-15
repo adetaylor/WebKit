@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGAnimationFunction_h
+#define WebCore_svg_properties_SVGAnimationFunction_h
 
 #include "SVGAttributeAnimator.h"
 
@@ -54,3 +55,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_properties_SVGAnimationFunction_h

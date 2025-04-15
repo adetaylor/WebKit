@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_MouseEvent_h
+#define WebCore_dom_MouseEvent_h
 
 #include "EventTarget.h"
 #include "MouseEventInit.h"
@@ -126,3 +127,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(MouseEvent)
+#endif // WebCore_dom_MouseEvent_h

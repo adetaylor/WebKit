@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_gtk_GtkVersioning_h
+#define WebCore_platform_gtk_GtkVersioning_h
 
 #include <gtk/gtk.h>
 
@@ -308,3 +309,4 @@ gdk_event_get_display(GdkEvent* event)
 }
 
 #endif // USE(GTK4)
+#endif // WebCore_platform_gtk_GtkVersioning_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUIntegralTypes_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUIntegralTypes_h
 
 #include <cstdint>
 
@@ -43,3 +44,4 @@ using SignedOffset32 = int32_t;
 using FlagsConstant = uint32_t;
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUIntegralTypes_h

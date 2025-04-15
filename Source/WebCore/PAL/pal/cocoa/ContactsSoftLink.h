@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_ContactsSoftLink_h
+#define WebCore_PAL_pal_cocoa_ContactsSoftLink_h
 
 #if HAVE(CONTACTS)
 
@@ -61,3 +62,4 @@ SOFT_LINK_CONSTANT_FOR_HEADER(PAL, Contacts, CNContactDatesKey, NSString *);
 SOFT_LINK_CONSTANT_FOR_HEADER(PAL, Contacts, CNContactUrlAddressesKey, NSString *);
 
 #endif
+#endif // WebCore_PAL_pal_cocoa_ContactsSoftLink_h

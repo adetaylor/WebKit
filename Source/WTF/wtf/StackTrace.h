@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StackTrace_h
+#define WTF_wtf_StackTrace_h
 
 #include <optional>
 #include <span>
@@ -198,3 +199,4 @@ using WTF::StackTraceSymbolResolver;
 using WTF::StackTracePrinter;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_StackTrace_h

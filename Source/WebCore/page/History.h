@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_History_h
+#define WebCore_page_History_h
 
 #include "ExceptionOr.h"
 #include "FrameLoaderTypes.h"
@@ -106,3 +107,4 @@ inline ExceptionOr<void> History::replaceState(RefPtr<SerializedScriptValue>&& d
 }
 
 } // namespace WebCore
+#endif // WebCore_page_History_h

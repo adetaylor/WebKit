@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_StyleValueTypes_h
+#define WebCore_style_values_StyleValueTypes_h
 
 #include "CSSCalcSymbolTable.h"
 #include "CSSNoConversionDataRequiredToken.h"
@@ -738,3 +739,4 @@ template<TupleLike StyleType> requires (std::tuple_size_v<StyleType> == 1) TextS
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_StyleValueTypes_h

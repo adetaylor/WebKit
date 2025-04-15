@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_FrameView_h
+#define WebCore_page_FrameView_h
 
 #include "ScrollView.h"
 #include <wtf/TZoneMallocInlines.h>
@@ -112,3 +113,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::FrameView)
 static bool isType(const WebCore::Widget& widget) { return widget.isLocalFrameView() || widget.isRemoteFrameView(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_page_FrameView_h

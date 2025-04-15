@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_WebTransportReceiveStream_h
+#define WebCore_Modules_webtransport_WebTransportReceiveStream_h
 
 #include "ReadableStream.h"
 
@@ -45,3 +46,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_webtransport_WebTransportReceiveStream_h

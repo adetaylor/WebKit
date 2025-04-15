@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ThreadSafeDataBuffer_h
+#define WebCore_platform_ThreadSafeDataBuffer_h
 
 #include <wtf/ArgumentCoder.h>
 #include <wtf/Hasher.h>
@@ -129,3 +130,4 @@ inline void add(Hasher& hasher, const ThreadSafeDataBuffer& buffer)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_ThreadSafeDataBuffer_h

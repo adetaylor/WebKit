@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_OrientationNotifier_h
+#define WebCore_platform_OrientationNotifier_h
 
 #include "IntDegrees.h"
 #include <wtf/CheckedRef.h>
@@ -117,3 +118,4 @@ inline void OrientationNotifier::removeObserver(Observer& observer)
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_OrientationNotifier_h

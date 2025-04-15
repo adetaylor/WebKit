@@ -27,7 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WebCore_css_CSSVariableReferenceValue_h
+#define WebCore_css_CSSVariableReferenceValue_h
 
 #include "CSSParserTokenRange.h"
 #include "CSSPropertyNames.h"
@@ -122,3 +123,4 @@ bool CSSVariableReferenceValue::resolveAndCacheValue(Style::BuilderState& builde
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSVariableReferenceValue, isVariableReferenceValue())
+#endif // WebCore_css_CSSVariableReferenceValue_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cf_MediaAccessibilitySPI_h
+#define WebCore_PAL_pal_spi_cf_MediaAccessibilitySPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -42,3 +43,4 @@ CFStringRef MAImageCaptioningCopyCaptionWithSource(CGImageSourceRef, CFErrorRef*
 WTF_EXTERN_C_END
 
 #endif // !USE(APPLE_INTERNAL_SDK)
+#endif // WebCore_PAL_pal_spi_cf_MediaAccessibilitySPI_h

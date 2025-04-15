@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_Pagination_h
+#define WebCore_rendering_Pagination_h
 
 namespace WebCore {
 
@@ -41,3 +42,4 @@ struct Pagination {
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_Pagination_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumeric_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumeric_h
 
 #include "CSSPrimitiveData.h"
 #include "CSSPrimitiveNumericConcepts.h"
@@ -275,3 +276,4 @@ template<auto R, typename V> inline constexpr auto WebCore::TreatAsVariantLike<W
 template<auto R, typename V> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::CSS::Flex<R, V>> = true;
 template<auto R, typename V> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::CSS::AnglePercentage<R, V>> = true;
 template<auto R, typename V> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::CSS::LengthPercentage<R, V>> = true;
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumeric_h

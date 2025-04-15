@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_PositionTryOrder_h
+#define WebCore_rendering_style_PositionTryOrder_h
 
 #include "BoxSides.h"
 
@@ -45,3 +46,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, PositionTryOrder);
 
 }
 }
+#endif // WebCore_rendering_style_PositionTryOrder_h

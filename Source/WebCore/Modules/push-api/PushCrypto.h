@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushCrypto_h
+#define WebCore_Modules_push_api_PushCrypto_h
 
 #include <span>
 #include <wtf/Forward.h>
@@ -53,3 +54,4 @@ WEBCORE_EXPORT Vector<uint8_t> hmacSHA256(std::span<const uint8_t> key, std::spa
 WEBCORE_EXPORT std::optional<Vector<uint8_t>> decryptAES128GCM(std::span<const uint8_t> key, std::span<const uint8_t> iv, std::span<const uint8_t> cipherTextWithTag);
 
 } // namespace WebCore::PushCrypto
+#endif // WebCore_Modules_push_api_PushCrypto_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_parameters_CryptoAlgorithmEcdhKeyDeriveParams_h
+#define WebCore_crypto_parameters_CryptoAlgorithmEcdhKeyDeriveParams_h
 
 #include "CryptoAlgorithmParameters.h"
 
@@ -42,3 +43,4 @@ public:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_ALGORITHM_PARAMETERS(EcdhKeyDeriveParams)
+#endif // WebCore_crypto_parameters_CryptoAlgorithmEcdhKeyDeriveParams_h

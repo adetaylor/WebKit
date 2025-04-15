@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_InternalSettings_h
+#define WebCore_testing_InternalSettings_h
 
 #include "ExceptionOr.h"
 #include "FontGenericFamilies.h"
@@ -169,3 +170,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_testing_InternalSettings_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cocoa_TollFreeBridging_h
+#define WTF_wtf_cocoa_TollFreeBridging_h
 
 #ifdef __OBJC__
 #import <CoreFoundation/CoreFoundation.h>
@@ -73,3 +74,4 @@ WTF_DECLARE_TOLL_FREE_BRIDGING_TRAITS(CFMutableString, NSMutableString)
 #endif // defined(__OBJC__)
 
 } // namespace WTF
+#endif // WTF_wtf_cocoa_TollFreeBridging_h

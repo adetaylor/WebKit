@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_DeprecatedCSSOMCounter_h
+#define WebCore_css_DeprecatedCSSOMCounter_h
 
 #include "CSSValueKeywords.h"
 #include <wtf/text/WTFString.h>
@@ -57,3 +58,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_DeprecatedCSSOMCounter_h

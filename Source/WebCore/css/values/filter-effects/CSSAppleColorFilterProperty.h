@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_filter_effects_CSSAppleColorFilterProperty_h
+#define WebCore_css_values_filter_effects_CSSAppleColorFilterProperty_h
 
 #include "CSSAppleInvertLightnessFunction.h"
 #include "CSSBrightnessFunction.h"
@@ -61,3 +62,4 @@ struct AppleColorFilterProperty : ListOrNone<AppleColorFilterValueList> { using 
 } // namespace WebCore
 
 template<> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::CSS::AppleColorFilterProperty> = true;
+#endif // WebCore_css_values_filter_effects_CSSAppleColorFilterProperty_h

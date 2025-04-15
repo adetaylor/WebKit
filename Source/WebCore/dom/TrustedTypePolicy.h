@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_dom_TrustedTypePolicy_h
+#define WebCore_dom_TrustedTypePolicy_h
 
 #include "CreateHTMLCallback.h"
 #include "CreateScriptCallback.h"
@@ -76,3 +77,4 @@ private:
 WebCoreOpaqueRoot root(TrustedTypePolicy*);
 
 } // namespace WebCore
+#endif // WebCore_dom_TrustedTypePolicy_h

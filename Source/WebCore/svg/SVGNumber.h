@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGNumber_h
+#define WebCore_svg_SVGNumber_h
 
 #include "ExceptionOr.h"
 #include "SVGPropertyTraits.h"
@@ -82,3 +83,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGNumber_h

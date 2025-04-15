@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_reporting_ReportingObserver_h
+#define WebCore_Modules_reporting_ReportingObserver_h
 
 #include "ActiveDOMObject.h"
 #include <wtf/RefCounted.h>
@@ -75,3 +76,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_reporting_ReportingObserver_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_CrossOriginOpenerPolicy_h
+#define WebCore_loader_CrossOriginOpenerPolicy_h
 
 #include "SandboxFlags.h"
 #include <wtf/URL.h>
@@ -97,3 +98,4 @@ WEBCORE_EXPORT std::optional<CrossOriginOpenerPolicyEnforcementResult> doCrossOr
 WEBCORE_EXPORT bool coopValuesRequireBrowsingContextGroupSwitch(bool isInitialAboutBlank, CrossOriginOpenerPolicyValue activeDocumentCOOPValue, const SecurityOrigin& activeDocumentNavigationOrigin, CrossOriginOpenerPolicyValue responseCOOPValue, const SecurityOrigin& responseOrigin);
 
 } // namespace WebCore
+#endif // WebCore_loader_CrossOriginOpenerPolicy_h

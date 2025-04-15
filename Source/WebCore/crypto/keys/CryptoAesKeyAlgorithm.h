@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_keys_CryptoAesKeyAlgorithm_h
+#define WebCore_crypto_keys_CryptoAesKeyAlgorithm_h
 
 #include "CryptoKeyAlgorithm.h"
 
@@ -35,3 +36,4 @@ struct CryptoAesKeyAlgorithm : CryptoKeyAlgorithm {
 };
 
 }
+#endif // WebCore_crypto_keys_CryptoAesKeyAlgorithm_h

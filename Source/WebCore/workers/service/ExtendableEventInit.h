@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ExtendableEventInit_h
+#define WebCore_workers_service_ExtendableEventInit_h
 
 #include "Event.h"
 
@@ -33,3 +34,4 @@ struct ExtendableEventInit : EventInit {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ExtendableEventInit_h

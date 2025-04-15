@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mock_ScrollbarsControllerMock_h
+#define WebCore_platform_mock_ScrollbarsControllerMock_h
 
 #include "ScrollbarsController.h"
 #include <wtf/TZoneMalloc.h>
@@ -72,3 +73,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ScrollbarsControllerMock)
     static bool isType(const WebCore::ScrollbarsController& controller) { return controller.isScrollbarsControllerMock(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_mock_ScrollbarsControllerMock_h

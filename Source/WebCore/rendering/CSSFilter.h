@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_CSSFilter_h
+#define WebCore_rendering_CSSFilter_h
 
 #include "Filter.h"
 #include "LengthBox.h"
@@ -77,3 +78,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(CSSFilter);
+#endif // WebCore_rendering_CSSFilter_h

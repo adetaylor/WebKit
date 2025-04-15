@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLSpanElement_h
+#define WebCore_html_HTMLSpanElement_h
 
 #include "HTMLElement.h"
 
@@ -41,3 +42,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLSpanElement_h

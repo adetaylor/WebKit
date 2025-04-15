@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cg_GraphicsContextCG_h
+#define WebCore_platform_graphics_cg_GraphicsContextCG_h
 
 #if USE(CG)
 
@@ -172,3 +173,4 @@ CGAffineTransform getUserToBaseCTM(CGContextRef);
 #include "CGContextStateSaver.h"
 
 #endif // USE(CG)
+#endif // WebCore_platform_graphics_cg_GraphicsContextCG_h

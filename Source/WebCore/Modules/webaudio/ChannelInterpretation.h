@@ -23,6 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_ChannelInterpretation_h
+#define WebCore_Modules_webaudio_ChannelInterpretation_h
 
 #include "AudioBus.h"
+#endif // WebCore_Modules_webaudio_ChannelInterpretation_h

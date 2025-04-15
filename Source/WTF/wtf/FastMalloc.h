@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef FastMalloc_h
+#define FastMalloc_h
 
 #include <new>
 #include <stdlib.h>
@@ -646,3 +647,5 @@ using __thisIsHereToForceASemicolonAfterWTFOverrideDelete UNUSED_TYPE_ALIAS = in
 #define WTF_STRUCT_OVERRIDE_DELETE_FOR_CHECKED_PTR(ClassName) \
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR_IMPL(ClassName) \
 using __thisIsHereToForceASemicolonAfterWTFOverrideDelete UNUSED_TYPE_ALIAS = int
+
+#endif

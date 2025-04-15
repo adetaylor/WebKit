@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_DataListSuggestionInformation_h
+#define WebCore_html_DataListSuggestionInformation_h
 
 #include "IntRect.h"
 #include <wtf/Vector.h>
@@ -49,3 +50,4 @@ struct DataListSuggestionInformation {
 };
 
 } // namespace WebCore
+#endif // WebCore_html_DataListSuggestionInformation_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_OffsetRotation_h
+#define WebCore_rendering_style_OffsetRotation_h
 
 #include <wtf/text/TextStream.h>
 
@@ -51,3 +52,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const OffsetRotation&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_OffsetRotation_h

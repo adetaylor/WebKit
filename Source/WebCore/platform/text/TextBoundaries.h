@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_text_TextBoundaries_h
+#define WebCore_platform_text_TextBoundaries_h
 
 #include <unicode/uchar.h>
 #include <wtf/Forward.h>
@@ -49,3 +50,4 @@ void findEndWordBoundary(StringView, int position, int* end);
 int findNextWordFromIndex(StringView, int position, bool forward);
 
 }
+#endif // WebCore_platform_text_TextBoundaries_h

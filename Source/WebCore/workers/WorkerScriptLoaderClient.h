@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerScriptLoaderClient_h
+#define WebCore_workers_WorkerScriptLoaderClient_h
 
 #include "ResourceLoaderIdentifier.h"
 #include "ScriptExecutionContextIdentifier.h"
@@ -52,3 +53,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerScriptLoaderClient_h

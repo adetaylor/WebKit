@@ -23,7 +23,8 @@
  pages from the web. It has a memory cache for these objects.
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedStyleSheetClient_h
+#define WebCore_loader_cache_CachedStyleSheetClient_h
 
 #include "CachedResourceClient.h"
 #include <wtf/Forward.h>
@@ -44,3 +45,4 @@ public:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CACHED_RESOURCE_CLIENT(CachedStyleSheetClient, StyleSheetType);
+#endif // WebCore_loader_cache_CachedStyleSheetClient_h

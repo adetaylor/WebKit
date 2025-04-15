@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_line_BreakingContext_h
+#define WebCore_rendering_line_BreakingContext_h
 
 #include "BreakLines.h"
 #include "LegacyInlineIteratorInlines.h"
@@ -769,3 +770,4 @@ inline LegacyInlineIterator BreakingContext::handleEndOfLine()
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_line_BreakingContext_h

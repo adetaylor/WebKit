@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_websockets_WebSocketHandshake_h
+#define WebCore_Modules_websockets_WebSocketHandshake_h
 
 #include "CookieRequestHeaderFieldProxy.h"
 #include <wtf/URL.h>
@@ -118,3 +119,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_websockets_WebSocketHandshake_h

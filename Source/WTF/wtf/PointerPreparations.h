@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PointerPreparations_h
+#define WTF_wtf_PointerPreparations_h
 
 #if CPU(ARM64E)
 #include <ptrauth.h>
@@ -53,3 +54,4 @@ ALWAYS_INLINE const void* getVTablePointer(const T* o) { return (*(reinterpret_c
 } // namespace WTF
 
 using WTF::getVTablePointer;
+#endif // WTF_wtf_PointerPreparations_h

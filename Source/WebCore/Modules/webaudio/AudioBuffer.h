@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioBuffer_h
+#define WebCore_Modules_webaudio_AudioBuffer_h
 
 #include "AudioBufferOptions.h"
 #include "ExceptionOr.h"
@@ -120,3 +121,4 @@ private:
 WebCoreOpaqueRoot root(AudioBuffer*);
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_AudioBuffer_h

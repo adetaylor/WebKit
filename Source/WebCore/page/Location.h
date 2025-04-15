@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_Location_h
+#define WebCore_page_Location_h
 
 #include "DOMStringList.h"
 #include "EventTarget.h"
@@ -89,3 +90,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_Location_h

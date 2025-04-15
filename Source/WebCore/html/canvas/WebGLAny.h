@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_WebGLAny_h
+#define WebCore_html_canvas_WebGLAny_h
 
 #if ENABLE(WEBGL)
 
@@ -81,3 +82,4 @@ using WebGLAny = std::variant<
 } // namespace WebCore
 
 #endif
+#endif // WebCore_html_canvas_WebGLAny_h

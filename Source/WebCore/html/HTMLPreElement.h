@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLPreElement_h
+#define WebCore_html_HTMLPreElement_h
 
 #include "HTMLElement.h"
 
@@ -40,3 +41,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLPreElement_h

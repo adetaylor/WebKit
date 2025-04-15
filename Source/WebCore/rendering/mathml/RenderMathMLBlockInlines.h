@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_mathml_RenderMathMLBlockInlines_h
+#define WebCore_rendering_mathml_RenderMathMLBlockInlines_h
 
 #if ENABLE(MATHML)
 
@@ -63,3 +64,4 @@ inline LayoutUnit RenderMathMLBlock::ruleThicknessFallback() const
 } // namespace WebCore
 
 #endif // ENABLE(MATHML)
+#endif // WebCore_rendering_mathml_RenderMathMLBlockInlines_h

@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGPathUtilities_h
+#define WebCore_svg_SVGPathUtilities_h
 
 #include "SVGPathConsumer.h"
 #include <wtf/text/WTFString.h>
@@ -62,3 +63,4 @@ FloatPoint getPointAtLengthOfSVGPathByteStream(const SVGPathByteStream&, float l
 std::optional<SVGPathByteStream> convertSVGPathByteStreamToAbsoluteCoordinates(const SVGPathByteStream&);
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGPathUtilities_h

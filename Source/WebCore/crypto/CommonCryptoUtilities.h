@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_CommonCryptoUtilities_h
+#define WebCore_crypto_CommonCryptoUtilities_h
 
 #include "CryptoAlgorithmIdentifier.h"
 #include <CommonCrypto/CommonCryptor.h>
@@ -36,3 +37,4 @@ namespace WebCore {
 bool getCommonCryptoDigestAlgorithm(CryptoAlgorithmIdentifier, CCDigestAlgorithm&);
 
 } // namespace WebCore
+#endif // WebCore_crypto_CommonCryptoUtilities_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_CurrentUserDetailsOptions_h
+#define WebCore_Modules_webauthn_CurrentUserDetailsOptions_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -39,3 +40,4 @@ struct CurrentUserDetailsOptions {
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_CurrentUserDetailsOptions_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_persistence_PersistentDecoder_h
+#define WTF_wtf_persistence_PersistentDecoder_h
 
 #include <span>
 #include <wtf/EnumTraits.h>
@@ -101,3 +102,4 @@ private:
 };
 
 } 
+#endif // WTF_wtf_persistence_PersistentDecoder_h

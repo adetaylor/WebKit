@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_dom_PositionInlines_h
+#define WebCore_dom_PositionInlines_h
 
 #include "NodeInlines.h"
 #include "Position.h"
@@ -49,3 +50,4 @@ inline bool offsetIsBeforeLastNodeOffset(unsigned offset, Node* anchorNode)
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_PositionInlines_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_objc_VideoLayerManagerObjC_h
+#define WebCore_platform_graphics_avfoundation_objc_VideoLayerManagerObjC_h
 
 #include "FloatRect.h"
 #include "IntSize.h"
@@ -97,3 +98,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_avfoundation_objc_VideoLayerManagerObjC_h

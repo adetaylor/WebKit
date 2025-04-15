@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Algorithms_h
+#define WTF_wtf_Algorithms_h
 
 #include <cstring>
 #include <type_traits>
@@ -53,3 +54,4 @@ bool allOf(ContainerType&& container, NOESCAPE AllOfFunction&& allOfFunction)
 }
 
 } // namespace WTF
+#endif // WTF_wtf_Algorithms_h

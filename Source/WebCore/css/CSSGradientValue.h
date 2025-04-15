@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSGradientValue_h
+#define WebCore_css_CSSGradientValue_h
 
 #include "CSSGradient.h"
 #include "StyleImage.h"
@@ -68,3 +69,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSGradientValue, isGradientValue())
+#endif // WebCore_css_CSSGradientValue_h

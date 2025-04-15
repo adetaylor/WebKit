@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleInheritedData_h
+#define WebCore_rendering_style_StyleInheritedData_h
 
 #include "FontCascade.h"
 #include "Length.h"
@@ -72,3 +73,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleInheritedData_h

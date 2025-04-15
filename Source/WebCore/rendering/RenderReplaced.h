@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderReplaced_h
+#define WebCore_rendering_RenderReplaced_h
 
 #include "RenderBox.h"
 
@@ -112,3 +113,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderReplaced, isRenderReplaced())
+#endif // WebCore_rendering_RenderReplaced_h

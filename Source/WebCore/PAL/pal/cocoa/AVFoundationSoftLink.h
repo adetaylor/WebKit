@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_AVFoundationSoftLink_h
+#define WebCore_PAL_pal_cocoa_AVFoundationSoftLink_h
 
 #if USE(AVFOUNDATION)
 
@@ -451,3 +452,4 @@ SPECIALIZE_OBJC_TYPE_TRAITS(AVSampleBufferVideoRenderer, PAL::getAVSampleBufferV
 SPECIALIZE_OBJC_TYPE_TRAITS(AVOutputContext, PAL::getAVOutputContextClass())
 
 #endif // USE(AVFOUNDATION)
+#endif // WebCore_PAL_pal_cocoa_AVFoundationSoftLink_h

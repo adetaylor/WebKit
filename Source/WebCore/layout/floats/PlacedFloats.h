@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_floats_PlacedFloats_h
+#define WebCore_layout_floats_PlacedFloats_h
 
 #include "LayoutBoxGeometry.h"
 #include "LayoutElementBox.h"
@@ -129,3 +130,4 @@ inline bool PlacedFloats::hasEndPositioned() const
 
 }
 }
+#endif // WebCore_layout_floats_PlacedFloats_h

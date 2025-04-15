@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_WorkerScriptFetcher_h
+#define WebCore_bindings_js_WorkerScriptFetcher_h
 
 #include "FetchOptions.h"
 #include "LoadableScript.h"
@@ -99,3 +100,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_WorkerScriptFetcher_h

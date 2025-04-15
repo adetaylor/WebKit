@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_table_TableFormattingQuirks_h
+#define WebCore_layout_formattingContexts_table_TableFormattingQuirks_h
 
 #include "FormattingQuirks.h"
 
@@ -49,3 +50,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_LAYOUT_FORMATTING_QUIRKS(TableFormattingQuirks, isTableFormattingQuirks())
 
+#endif // WebCore_layout_formattingContexts_table_TableFormattingQuirks_h

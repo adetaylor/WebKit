@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_fileapi_URLKeepingBlobAlive_h
+#define WebCore_fileapi_URLKeepingBlobAlive_h
 
 #include "SecurityOriginData.h"
 #include <wtf/CrossThreadCopier.h>
@@ -63,3 +64,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_fileapi_URLKeepingBlobAlive_h

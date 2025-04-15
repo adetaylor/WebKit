@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_MediaDocument_h
+#define WebCore_html_MediaDocument_h
 
 #if ENABLE(VIDEO)
 
@@ -70,3 +71,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::MediaDocument)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_html_MediaDocument_h

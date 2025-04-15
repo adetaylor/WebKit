@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_CSSStyleImageValue_h
+#define WebCore_css_typedom_CSSStyleImageValue_h
 
 #include "CSSImageValue.h"
 #include "CSSStyleValue.h"
@@ -66,3 +67,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSSStyleImageValue)
     static bool isType(const WebCore::CSSStyleValue& styleValue) { return styleValue.getType() == WebCore::CSSStyleValueType::CSSStyleImageValue; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_typedom_CSSStyleImageValue_h

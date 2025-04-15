@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_PolicyContainer_h
+#define WebCore_loader_PolicyContainer_h
 
 #include "ContentSecurityPolicyResponseHeaders.h"
 #include "CrossOriginEmbedderPolicy.h"
@@ -48,3 +49,4 @@ struct PolicyContainer {
 WEBCORE_EXPORT void addPolicyContainerHeaders(ResourceResponse&, const PolicyContainer&);
 
 } // namespace WebCore
+#endif // WebCore_loader_PolicyContainer_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_VP9UtilitiesCocoa_h
+#define WebCore_platform_graphics_cocoa_VP9UtilitiesCocoa_h
 
 #if ENABLE(VP9) && PLATFORM(COCOA)
 
@@ -104,3 +105,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_graphics_cocoa_VP9UtilitiesCocoa_h

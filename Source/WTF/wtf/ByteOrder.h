@@ -28,7 +28,8 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WTF_wtf_ByteOrder_h
+#define WTF_wtf_ByteOrder_h
 
 #if OS(UNIX)
 #include <arpa/inet.h>
@@ -63,3 +64,4 @@ inline uint32_t htonl(uint32_t x) { return WTF::byteSwap32(x); }
 #endif
 
 #endif // OS(WINDOWS)
+#endif // WTF_wtf_ByteOrder_h

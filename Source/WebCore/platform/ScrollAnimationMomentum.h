@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollAnimationMomentum_h
+#define WebCore_platform_ScrollAnimationMomentum_h
 
 #include "ScrollAnimation.h"
 #include <wtf/TZoneMalloc.h>
@@ -53,3 +54,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_SCROLL_ANIMATION(WebCore::ScrollAnimationMomentum, type() == WebCore::ScrollAnimation::Type::Momentum)
+#endif // WebCore_platform_ScrollAnimationMomentum_h

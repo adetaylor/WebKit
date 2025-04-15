@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_editing_EditingBehaviorType_h
+#define WebCore_editing_EditingBehaviorType_h
 
 namespace WebCore {
 
@@ -43,3 +44,4 @@ enum class EditingBehaviorType : uint8_t {
 };
 
 } // WebCore namespace
+#endif // WebCore_editing_EditingBehaviorType_h

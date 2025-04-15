@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockCDMFactory_h
+#define WebCore_testing_MockCDMFactory_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -179,3 +180,4 @@ private:
 }
 
 #endif
+#endif // WebCore_testing_MockCDMFactory_h

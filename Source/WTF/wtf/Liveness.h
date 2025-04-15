@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Liveness_h
+#define WTF_wtf_Liveness_h
 
 #include <wtf/BitVector.h>
 #include <wtf/IndexSparseSet.h>
@@ -369,3 +370,4 @@ private:
 } // namespace WTF
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_Liveness_h

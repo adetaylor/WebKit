@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_CanvasActivityRecord_h
+#define WebCore_loader_CanvasActivityRecord_h
 #include <wtf/HashSet.h>
 #include <wtf/text/StringHash.h>
 #include <wtf/text/WTFString.h>
@@ -37,3 +38,4 @@ struct CanvasActivityRecord {
     void mergeWith(const CanvasActivityRecord&);
 };
 } // namespace WebCore
+#endif // WebCore_loader_CanvasActivityRecord_h

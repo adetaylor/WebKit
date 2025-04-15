@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_SystemFontDatabaseCoreText_h
+#define WebCore_platform_graphics_cocoa_SystemFontDatabaseCoreText_h
 
 #include "FontDescription.h"
 #include "SystemFontDatabase.h"
@@ -139,3 +140,4 @@ inline unsigned SystemFontDatabaseCoreText::CascadeListParameters::Hash::hash(co
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_cocoa_SystemFontDatabaseCoreText_h

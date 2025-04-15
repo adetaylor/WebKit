@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_ElementRuleCollector_h
+#define WebCore_style_ElementRuleCollector_h
 
 #include "MatchResult.h"
 #include "MediaQueryEvaluator.h"
@@ -144,3 +145,4 @@ private:
 };
 
 }
+#endif // WebCore_style_ElementRuleCollector_h

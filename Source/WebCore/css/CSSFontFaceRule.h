@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSFontFaceRule_h
+#define WebCore_css_CSSFontFaceRule_h
 
 #include "CSSRule.h"
 
@@ -52,3 +53,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSFontFaceRule, StyleRuleType::FontFace)
+#endif // WebCore_css_CSSFontFaceRule_h

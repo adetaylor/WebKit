@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DatasetDOMStringMap_h
+#define WebCore_dom_DatasetDOMStringMap_h
 
 #include "ExceptionOr.h"
 #include "ScriptWrappable.h"
@@ -62,3 +63,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DatasetDOMStringMap_h

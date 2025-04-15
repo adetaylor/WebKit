@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_Microtasks_h
+#define WebCore_dom_Microtasks_h
 
 #include "EventLoop.h"
 #include <JavaScriptCore/MicrotaskQueue.h>
@@ -87,3 +88,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::WebCoreMicrotaskDispatcher)
     static bool isType(const JSC::MicrotaskDispatcher& dispatcher) { return dispatcher.isWebCoreMicrotaskDispatcher(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_Microtasks_h

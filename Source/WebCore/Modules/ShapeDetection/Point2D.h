@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_Point2D_h
+#define WebCore_Modules_ShapeDetection_Point2D_h
 
 #include "FloatPoint.h"
 
@@ -51,3 +52,4 @@ inline Point2D convertFromBacking(const FloatPoint& floatPoint)
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_ShapeDetection_Point2D_h

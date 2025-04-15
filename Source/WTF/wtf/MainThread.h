@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_MainThread_h
+#define WTF_wtf_MainThread_h
 
 #include <stdint.h>
 #include <wtf/Forward.h>
@@ -114,3 +115,4 @@ using WTF::callOnWebThreadOrDispatchAsyncOnMainThread;
 using WTF::initializeWebThread;
 using WTF::initializeApplicationUIThread;
 #endif
+#endif // WTF_wtf_MainThread_h

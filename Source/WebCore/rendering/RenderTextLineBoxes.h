@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTextLineBoxes_h
+#define WebCore_rendering_RenderTextLineBoxes_h
 
 #include "LayoutRect.h"
 #include "RenderObject.h"
@@ -65,3 +66,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderTextLineBoxes_h

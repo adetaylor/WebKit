@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_PaintPhase_h
+#define WebCore_rendering_PaintPhase_h
 
 namespace WebCore {
 
@@ -81,3 +82,4 @@ enum class PaintBehavior : uint32_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_PaintPhase_h

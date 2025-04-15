@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushManager_h
+#define WebCore_Modules_push_api_PushManager_h
 
 #include "JSDOMPromiseDeferredForward.h"
 #include "PushPermissionState.h"
@@ -58,3 +59,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_push_api_PushManager_h

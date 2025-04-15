@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTreeMutationDisallowedScope_h
+#define WebCore_rendering_RenderTreeMutationDisallowedScope_h
 
 namespace WebCore {
 
@@ -48,3 +49,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_RenderTreeMutationDisallowedScope_h

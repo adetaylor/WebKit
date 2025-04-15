@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_PerHeapKind_h
+#define bmalloc_bmalloc_PerHeapKind_h
 
 #include "HeapKind.h"
 #include <array>
@@ -110,3 +111,4 @@ public:
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_PerHeapKind_h

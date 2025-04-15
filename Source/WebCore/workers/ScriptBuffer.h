@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_ScriptBuffer_h
+#define WebCore_workers_ScriptBuffer_h
 
 #include "ShareableResource.h"
 #include "SharedBuffer.h"
@@ -76,3 +77,4 @@ private:
 bool operator==(const ScriptBuffer&, const ScriptBuffer&);
 
 } // namespace WebCore
+#endif // WebCore_workers_ScriptBuffer_h

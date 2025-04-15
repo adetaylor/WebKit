@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_MutableStyleProperties_h
+#define WebCore_css_MutableStyleProperties_h
 
 #include "StyleProperties.h"
 
@@ -124,3 +125,4 @@ inline MutableStyleProperties::PropertyReference MutableStyleProperties::propert
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::MutableStyleProperties)
     static bool isType(const WebCore::StyleProperties& properties) { return properties.isMutable(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_MutableStyleProperties_h

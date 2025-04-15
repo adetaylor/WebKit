@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementInlines_h
+#define WebCore_dom_ElementInlines_h
 
 #include "CustomElementDefaultARIA.h"
 #include "DocumentInlines.h"
@@ -238,3 +239,4 @@ inline Element* Document::cssTarget() const
 }
 
 }
+#endif // WebCore_dom_ElementInlines_h

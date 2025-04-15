@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_CustomPropertyRegistry_h
+#define WebCore_style_CustomPropertyRegistry_h
 
 #include "CSSRegisteredCustomProperty.h"
 #include "StyleRule.h"
@@ -72,3 +73,4 @@ private:
 
 }
 }
+#endif // WebCore_style_CustomPropertyRegistry_h

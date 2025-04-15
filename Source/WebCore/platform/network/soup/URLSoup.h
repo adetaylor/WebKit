@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_soup_URLSoup_h
+#define WebCore_platform_network_soup_URLSoup_h
 
 #include "GUniquePtrSoup.h"
 #include <wtf/glib/GRefPtr.h>
@@ -41,3 +42,4 @@ URL soupURIToURL(GUri*);
 GRefPtr<GUri> urlToSoupURI(const URL&);
 #endif
 } // namespace WebCore
+#endif // WebCore_platform_network_soup_URLSoup_h

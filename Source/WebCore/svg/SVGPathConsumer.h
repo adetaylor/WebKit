@@ -21,7 +21,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGPathConsumer_h
+#define WebCore_svg_SVGPathConsumer_h
 
 #include "FloatPoint.h"
 #include <wtf/Noncopyable.h>
@@ -75,3 +76,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGPathConsumer_h

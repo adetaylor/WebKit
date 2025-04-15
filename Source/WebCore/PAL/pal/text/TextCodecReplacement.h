@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_text_TextCodecReplacement_h
+#define WebCore_PAL_pal_text_TextCodecReplacement_h
 
 #include "TextCodecUTF8.h"
 #include <wtf/TZoneMalloc.h>
@@ -44,3 +45,4 @@ private:
 };
 
 } // namespace PAL
+#endif // WebCore_PAL_pal_text_TextCodecReplacement_h

@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_animation_BlendingKeyframes_h
+#define WebCore_animation_BlendingKeyframes_h
 
 #include "CompositeOperation.h"
 #include "KeyframeInterpolation.h"
@@ -189,3 +190,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_KEYFRAME_INTERPOLATION_KEYFRAME(BlendingKeyframe, isBlendingKeyframe());
+#endif // WebCore_animation_BlendingKeyframes_h

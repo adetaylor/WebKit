@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_CSSNumericFactory_h
+#define WebCore_css_typedom_CSSNumericFactory_h
 
 #include "CSSUnitValue.h"
 #include "CSSUnits.h"
@@ -132,3 +133,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_typedom_CSSNumericFactory_h

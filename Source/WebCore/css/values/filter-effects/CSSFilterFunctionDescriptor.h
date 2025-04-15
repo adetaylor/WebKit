@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_filter_effects_CSSFilterFunctionDescriptor_h
+#define WebCore_css_values_filter_effects_CSSFilterFunctionDescriptor_h
 
 #include "CSSPrimitiveNumericTypes.h"
 #include "CSSValueKeywords.h"
@@ -194,3 +195,4 @@ template<auto filterFunction> static constexpr decltype(auto) filterFunctionOper
 }
 
 } // namespace WebCore
+#endif // WebCore_css_values_filter_effects_CSSFilterFunctionDescriptor_h

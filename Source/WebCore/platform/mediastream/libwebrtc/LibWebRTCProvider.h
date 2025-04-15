@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_LibWebRTCProvider_h
+#define WebCore_platform_mediastream_libwebrtc_LibWebRTCProvider_h
 
 #if USE(LIBWEBRTC)
 
@@ -165,3 +166,4 @@ inline LibWebRTCAudioModule* LibWebRTCProvider::audioModule()
 } // namespace WebCore
 
 #endif // USE(LIBWEBRTC)
+#endif // WebCore_platform_mediastream_libwebrtc_LibWebRTCProvider_h

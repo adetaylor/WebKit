@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediacapabilities_MediaConfiguration_h
+#define WebCore_platform_mediacapabilities_MediaConfiguration_h
 
 #include "AudioConfiguration.h"
 #include "VideoConfiguration.h"
@@ -54,3 +55,4 @@ inline MediaConfiguration MediaConfiguration::isolatedCopy() &&
 
 } // namespace WebCore
 
+#endif // WebCore_platform_mediacapabilities_MediaConfiguration_h

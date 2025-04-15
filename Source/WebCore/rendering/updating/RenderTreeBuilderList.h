@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_updating_RenderTreeBuilderList_h
+#define WebCore_rendering_updating_RenderTreeBuilderList_h
 
 #include "RenderListItem.h"
 #include "RenderTreeBuilder.h"
@@ -43,3 +44,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_updating_RenderTreeBuilderList_h

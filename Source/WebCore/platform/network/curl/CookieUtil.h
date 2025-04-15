@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CookieUtil_h
+#define WebCore_platform_network_curl_CookieUtil_h
 
 #include <wtf/Forward.h>
 #include <wtf/URL.h>
@@ -45,3 +46,4 @@ WEBCORE_EXPORT String defaultPathForURL(const URL&);
 } // namespace CookieUtil
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CookieUtil_h

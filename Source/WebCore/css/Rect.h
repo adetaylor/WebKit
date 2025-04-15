@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_Rect_h
+#define WebCore_css_Rect_h
 
 #include "RectBase.h"
 #include <wtf/text/MakeString.h>
@@ -44,3 +45,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_Rect_h

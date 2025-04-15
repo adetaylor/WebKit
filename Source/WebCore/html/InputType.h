@@ -30,7 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_InputType_h
+#define WebCore_html_InputType_h
 
 #include "HTMLInputElement.h"
 #include "HTMLTextFormControlElement.h"
@@ -427,3 +428,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
 static bool isType(const WebCore::InputType& input) { return input.type() == WebCore::InputType::TypeEnumValue; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_InputType_h

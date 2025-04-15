@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_url_pattern_URLPatternComponent_h
+#define WebCore_Modules_url_pattern_URLPatternComponent_h
 
 #include <JavaScriptCore/Strong.h>
 #include <JavaScriptCore/StrongInlines.h>
@@ -65,3 +66,4 @@ private:
 
 }
 }
+#endif // WebCore_Modules_url_pattern_URLPatternComponent_h

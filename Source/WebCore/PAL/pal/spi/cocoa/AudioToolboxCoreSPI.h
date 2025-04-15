@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_AudioToolboxCoreSPI_h
+#define WebCore_PAL_pal_spi_cocoa_AudioToolboxCoreSPI_h
 
 #if USE(APPLE_INTERNAL_SDK)
 
@@ -56,3 +57,4 @@ NS_ASSUME_NONNULL_END
 #endif
 
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_AudioToolboxCoreSPI_h

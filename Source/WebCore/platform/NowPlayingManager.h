@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_NowPlayingManager_h
+#define WebCore_platform_NowPlayingManager_h
 
 #include "NowPlayingInfo.h"
 #include "PlatformMediaSession.h"
@@ -88,3 +89,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_NowPlayingManager_h

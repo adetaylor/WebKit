@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchIdentifier_h
+#define WebCore_Modules_fetch_FetchIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ enum class FetchIdentifierType { };
 using FetchIdentifier = ObjectIdentifier<FetchIdentifierType>;
 
 }
+#endif // WebCore_Modules_fetch_FetchIdentifier_h

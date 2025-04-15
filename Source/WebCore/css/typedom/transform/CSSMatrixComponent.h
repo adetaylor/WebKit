@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_transform_CSSMatrixComponent_h
+#define WebCore_css_typedom_transform_CSSMatrixComponent_h
 
 #include "CSSMatrixComponentOptions.h"
 #include "CSSTransformComponent.h"
@@ -61,3 +62,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSSMatrixComponent)
     static bool isType(const WebCore::CSSTransformComponent& transform) { return transform.getType() == WebCore::CSSTransformType::MatrixComponent; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_typedom_transform_CSSMatrixComponent_h

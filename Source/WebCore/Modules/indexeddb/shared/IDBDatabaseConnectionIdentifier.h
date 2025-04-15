@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_shared_IDBDatabaseConnectionIdentifier_h
+#define WebCore_Modules_indexeddb_shared_IDBDatabaseConnectionIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ enum class IDBDatabaseConnectionIdentifierType { };
 using IDBDatabaseConnectionIdentifier = AtomicObjectIdentifier<IDBDatabaseConnectionIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_shared_IDBDatabaseConnectionIdentifier_h

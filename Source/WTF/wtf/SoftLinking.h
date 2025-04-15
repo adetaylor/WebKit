@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SoftLinking_h
+#define WTF_wtf_SoftLinking_h
 
 #if PLATFORM(COCOA)
 #include <wtf/cocoa/SoftLinking.h>
@@ -31,3 +32,4 @@
 #else
 #error "SoftLinking not defined for platform"
 #endif
+#endif // WTF_wtf_SoftLinking_h

@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderSelectionGeometry_h
+#define WebCore_rendering_RenderSelectionGeometry_h
 
 #include "GapRects.h"
 #include "RenderBlock.h"
@@ -79,3 +80,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderSelectionGeometry_h

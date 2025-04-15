@@ -22,7 +22,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#pragma once
+#ifndef WebCore_dom_TouchList_h
+#define WebCore_dom_TouchList_h
 
 #if ENABLE(IOS_TOUCH_EVENTS)
 #include <WebKitAdditions/TouchListIOS.h>
@@ -73,3 +74,4 @@ private:
 
 #endif // ENABLE(TOUCH_EVENTS)
 
+#endif // WebCore_dom_TouchList_h

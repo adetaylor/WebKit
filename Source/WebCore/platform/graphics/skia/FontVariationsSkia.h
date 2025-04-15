@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_skia_FontVariationsSkia_h
+#define WebCore_platform_graphics_skia_FontVariationsSkia_h
 
 #include "FontDescription.h"
 WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_BEGIN // GLib / Win port
@@ -49,3 +50,4 @@ typedef UncheckedKeyHashMap<FontTag, FontVariationDefaults, FourCharacterTagHash
 FontVariationDefaultsMap defaultFontVariationValues(const SkTypeface&);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_skia_FontVariationsSkia_h

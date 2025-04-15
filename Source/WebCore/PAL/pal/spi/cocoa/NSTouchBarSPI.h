@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_NSTouchBarSPI_h
+#define WebCore_PAL_pal_spi_cocoa_NSTouchBarSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -72,3 +73,4 @@ APPKIT_EXTERN NSNotificationName const NSTouchBarDidExitCustomization API_AVAILA
 NS_ASSUME_NONNULL_END
 
 #endif // PLATFORM(MAC) && HAVE(TOUCH_BAR)
+#endif // WebCore_PAL_pal_spi_cocoa_NSTouchBarSPI_h

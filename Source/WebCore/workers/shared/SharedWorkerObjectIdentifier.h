@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_shared_SharedWorkerObjectIdentifier_h
+#define WebCore_workers_shared_SharedWorkerObjectIdentifier_h
 
 #include "ProcessQualified.h"
 
@@ -33,3 +34,4 @@ struct SharedWorkerObjectIdentifierType;
 using SharedWorkerObjectIdentifier = ProcessQualified<ObjectIdentifier<SharedWorkerObjectIdentifierType>>;
 
 } // namespace WebCore
+#endif // WebCore_workers_shared_SharedWorkerObjectIdentifier_h

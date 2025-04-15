@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayPaymentOrderDetails_h
+#define WebCore_Modules_applepay_ApplePayPaymentOrderDetails_h
 
 #if ENABLE(APPLE_PAY_PAYMENT_ORDER_DETAILS)
 
@@ -42,3 +43,4 @@ struct ApplePayPaymentOrderDetails {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY_PAYMENT_ORDER_DETAILS)
+#endif // WebCore_Modules_applepay_ApplePayPaymentOrderDetails_h

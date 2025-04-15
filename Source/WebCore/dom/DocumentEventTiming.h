@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentEventTiming_h
+#define WebCore_dom_DocumentEventTiming_h
 
 #include <wtf/MonotonicTime.h>
 
@@ -39,3 +40,4 @@ struct DocumentEventTiming {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_DocumentEventTiming_h

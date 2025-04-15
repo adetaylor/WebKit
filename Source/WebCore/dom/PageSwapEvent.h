@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_PageSwapEvent_h
+#define WebCore_dom_PageSwapEvent_h
 
 #include "Event.h"
 #include "NavigationActivation.h"
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_PageSwapEvent_h

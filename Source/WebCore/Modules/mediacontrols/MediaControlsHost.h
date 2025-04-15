@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediacontrols_MediaControlsHost_h
+#define WebCore_Modules_mediacontrols_MediaControlsHost_h
 
 #if ENABLE(VIDEO)
 
@@ -154,3 +155,4 @@ private:
 
 #endif // ENABLE(VIDEO)
 
+#endif // WebCore_Modules_mediacontrols_MediaControlsHost_h

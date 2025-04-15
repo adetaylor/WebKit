@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_cocoa_DataDetectorType_h
+#define WebCore_editing_cocoa_DataDetectorType_h
 
 #if ENABLE(DATA_DETECTION)
 
@@ -42,3 +43,4 @@ enum class DataDetectorType : uint8_t {
 }
 
 #endif
+#endif // WebCore_editing_cocoa_DataDetectorType_h

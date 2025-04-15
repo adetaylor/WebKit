@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_graphics_filters_SVGFilter_h
+#define WebCore_svg_graphics_filters_SVGFilter_h
 
 #include "Filter.h"
 #include "FilterResults.h"
@@ -91,3 +92,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FILTER_FUNCTION(SVGFilter);
+#endif // WebCore_svg_graphics_filters_SVGFilter_h

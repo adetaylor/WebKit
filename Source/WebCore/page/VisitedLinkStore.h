@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_VisitedLinkStore_h
+#define WebCore_page_VisitedLinkStore_h
 
 #include <wtf/Forward.h>
 #include <wtf/RefCounted.h>
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_VisitedLinkStore_h

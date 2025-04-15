@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_RevealSPI_h
+#define WebCore_PAL_pal_spi_cocoa_RevealSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -92,3 +93,4 @@ DECLARE_SYSTEM_HEADER
 #endif // !USE(APPLE_INTERNAL_SDK)
 
 #endif // ENABLE(REVEAL)
+#endif // WebCore_PAL_pal_spi_cocoa_RevealSPI_h

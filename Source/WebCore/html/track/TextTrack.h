@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_track_TextTrack_h
+#define WebCore_html_track_TextTrack_h
 
 #if ENABLE(VIDEO)
 
@@ -252,3 +253,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::TextTrack)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif
+#endif // WebCore_html_track_TextTrack_h

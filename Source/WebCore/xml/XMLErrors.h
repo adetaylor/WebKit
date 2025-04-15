@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XMLErrors_h
+#define WebCore_xml_XMLErrors_h
 
 // FIXME (286277): Stop ignoring -Wundef and -Wdeprecated-declarations in code that imports libxml and libxslt headers
 IGNORE_WARNINGS_BEGIN("deprecated-declarations")
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_xml_XMLErrors_h

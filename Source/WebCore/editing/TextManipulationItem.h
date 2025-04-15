@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_TextManipulationItem_h
+#define WebCore_editing_TextManipulationItem_h
 
 #include "FrameIdentifier.h"
 #include "TextManipulationItemIdentifier.h"
@@ -40,3 +41,4 @@ struct TextManipulationItem {
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_TextManipulationItem_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_CoreLocationGeolocationProvider_h
+#define WebCore_platform_cocoa_CoreLocationGeolocationProvider_h
 
 #if HAVE(CORE_LOCATION)
 #include <wtf/CompletionHandler.h>
@@ -67,3 +68,4 @@ private:
 #endif // HAVE(CORE_LOCATION)
 
 } // namespace WebCore
+#endif // WebCore_platform_cocoa_CoreLocationGeolocationProvider_h

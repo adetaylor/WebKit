@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_storage_StorageEstimate_h
+#define WebCore_Modules_storage_StorageEstimate_h
 
 #include "IDLTypes.h"
 #include <wtf/TZoneMalloc.h>
@@ -39,3 +40,4 @@ struct StorageEstimate {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_storage_StorageEstimate_h

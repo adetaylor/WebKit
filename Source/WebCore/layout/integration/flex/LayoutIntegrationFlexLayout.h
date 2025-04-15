@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_flex_LayoutIntegrationFlexLayout_h
+#define WebCore_layout_integration_flex_LayoutIntegrationFlexLayout_h
 
 #include "LayoutIntegrationBoxTreeUpdater.h"
 #include "LayoutState.h"
@@ -81,3 +82,4 @@ private:
 }
 }
 
+#endif // WebCore_layout_integration_flex_LayoutIntegrationFlexLayout_h

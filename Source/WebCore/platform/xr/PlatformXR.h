@@ -17,7 +17,8 @@
  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA 02110-1301, USA.
  */
-#pragma once
+#ifndef WebCore_platform_xr_PlatformXR_h
+#define WebCore_platform_xr_PlatformXR_h
 
 #include "DestinationColorSpace.h"
 #include "FloatPoint3D.h"
@@ -486,3 +487,4 @@ inline FrameData FrameData::copy() const
 #endif // ENABLE(WEBXR)
 
 } // namespace PlatformXR
+#endif // WebCore_platform_xr_PlatformXR_h

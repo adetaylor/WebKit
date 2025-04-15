@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ImportNodeOptions_h
+#define WebCore_dom_ImportNodeOptions_h
 
 #include <wtf/RefPtr.h>
 
@@ -37,3 +38,4 @@ struct ImportNodeOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ImportNodeOptions_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_MediaPromiseTypes_h
+#define WebCore_platform_MediaPromiseTypes_h
 
 #include "PlatformMediaError.h"
 #include <wtf/Forward.h>
@@ -39,3 +40,4 @@ struct MediaPromiseConverter {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_MediaPromiseTypes_h

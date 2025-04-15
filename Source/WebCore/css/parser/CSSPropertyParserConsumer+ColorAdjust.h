@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_ColorAdjust_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_ColorAdjust_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -58,3 +59,4 @@ RefPtr<CSSValue> consumeColorScheme(CSSParserTokenRange&, CSS::PropertyParserSta
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_ColorAdjust_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_BloomFilter_h
+#define WTF_wtf_BloomFilter_h
 
 #include <array>
 #include <wtf/StdLibExtras.h>
@@ -266,3 +267,4 @@ bool CountingBloomFilter<keyBits>::isClear() const
 
 using WTF::BloomFilter;
 using WTF::CountingBloomFilter;
+#endif // WTF_wtf_BloomFilter_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_mac_RealtimeVideoUtilities_h
+#define WebCore_platform_mediastream_mac_RealtimeVideoUtilities_h
 
 #include <CoreVideo/CoreVideo.h>
 
@@ -39,3 +40,4 @@ static inline OSType preferedPixelBufferFormat()
 }
 
 }
+#endif // WebCore_platform_mediastream_mac_RealtimeVideoUtilities_h

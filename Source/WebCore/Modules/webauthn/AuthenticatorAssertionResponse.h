@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_AuthenticatorAssertionResponse_h
+#define WebCore_Modules_webauthn_AuthenticatorAssertionResponse_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -96,3 +97,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_AUTHENTICATOR_RESPONSE(AuthenticatorAssertionResponse, AuthenticatorResponse::Type::Assertion)
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_AuthenticatorAssertionResponse_h

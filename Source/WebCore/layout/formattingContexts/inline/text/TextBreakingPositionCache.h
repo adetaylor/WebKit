@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_text_TextBreakingPositionCache_h
+#define WebCore_layout_formattingContexts_inline_text_TextBreakingPositionCache_h
 
 #include "Document.h"
 #include "SecurityOriginData.h"
@@ -64,3 +65,4 @@ private:
 
 } // namespace Layout
 } // namespace WebCore
+#endif // WebCore_layout_formattingContexts_inline_text_TextBreakingPositionCache_h

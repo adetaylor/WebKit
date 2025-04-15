@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUSamplerBindingLayout_h
+#define WebCore_Modules_WebGPU_GPUSamplerBindingLayout_h
 
 #include "GPUSamplerBindingType.h"
 #include "WebGPUSamplerBindingLayout.h"
@@ -42,3 +43,4 @@ struct GPUSamplerBindingLayout {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUSamplerBindingLayout_h

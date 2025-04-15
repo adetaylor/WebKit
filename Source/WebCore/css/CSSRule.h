@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSRule_h
+#define WebCore_css_CSSRule_h
 
 #include "CSSParserEnum.h"
 #include "ExceptionOr.h"
@@ -113,3 +114,4 @@ inline CSSStyleSheet* CSSRule::parentStyleSheet() const
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::CSSRule& rule) { return rule.styleRuleType() == WebCore::predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_CSSRule_h

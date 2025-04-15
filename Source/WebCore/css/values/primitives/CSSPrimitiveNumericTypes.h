@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericTypes_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericTypes_h
 
 // Umbrella header for family of CSS numeric types.
 
@@ -168,3 +169,4 @@ private:
 
 template<auto nR, auto pR, typename V> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::CSS::NumberOrPercentage<nR, pR, V>> = true;
 template<auto nR, auto pR, typename V> inline constexpr auto WebCore::TreatAsVariantLike<WebCore::CSS::NumberOrPercentageResolvedToNumber<nR, pR, V>> = true;
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericTypes_h

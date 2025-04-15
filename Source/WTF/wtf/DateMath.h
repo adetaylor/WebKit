@@ -41,7 +41,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_DateMath_h
+#define WTF_wtf_DateMath_h
 
 #include <math.h>
 #include <stdint.h>
@@ -531,3 +532,4 @@ using WTF::secondsPerMinute;
 using WTF::setTimeZoneOverride;
 using WTF::timeClip;
 using WTF::timeToMS;
+#endif // WTF_wtf_DateMath_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_TriState_h
+#define WTF_wtf_TriState_h
 
 namespace WTF {
 
@@ -52,3 +53,4 @@ inline TriState invert(TriState triState)
 using WTF::TriState;
 using WTF::triState;
 using WTF::invert;
+#endif // WTF_wtf_TriState_h

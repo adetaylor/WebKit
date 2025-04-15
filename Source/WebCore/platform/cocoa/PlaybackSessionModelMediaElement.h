@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_PlaybackSessionModelMediaElement_h
+#define WebCore_platform_cocoa_PlaybackSessionModelMediaElement_h
 
 #if PLATFORM(IOS_FAMILY) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
 
@@ -166,3 +167,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_cocoa_PlaybackSessionModelMediaElement_h

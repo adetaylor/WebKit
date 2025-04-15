@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_WebCodecsAudioData_h
+#define WebCore_Modules_webcodecs_WebCodecsAudioData_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -93,3 +94,4 @@ private:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_Modules_webcodecs_WebCodecsAudioData_h

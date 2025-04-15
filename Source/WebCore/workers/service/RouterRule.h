@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_RouterRule_h
+#define WebCore_workers_service_RouterRule_h
 
 #include "RouterCondition.h"
 #include "RouterSourceDict.h"
@@ -37,3 +38,4 @@ struct RouterRule {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_RouterRule_h

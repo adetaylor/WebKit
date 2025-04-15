@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_style_ResolvedStyle_h
+#define WebCore_style_ResolvedStyle_h
 
 #include "MatchResult.h"
 #include "RenderStyle.h"
@@ -34,3 +35,4 @@ struct ResolvedStyle {
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_ResolvedStyle_h

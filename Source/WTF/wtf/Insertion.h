@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_Insertion_h
+#define WTF_wtf_Insertion_h
 
 namespace WTF {
 
@@ -81,3 +82,4 @@ size_t executeInsertions(TargetVectorType& target, InsertionVectorType& insertio
 
 using WTF::Insertion;
 using WTF::executeInsertions;
+#endif // WTF_wtf_Insertion_h

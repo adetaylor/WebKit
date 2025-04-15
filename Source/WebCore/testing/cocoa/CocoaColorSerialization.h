@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_cocoa_CocoaColorSerialization_h
+#define WebCore_testing_cocoa_CocoaColorSerialization_h
 
 #import <WebCore/ColorCocoa.h>
 #import <wtf/Forward.h>
@@ -33,3 +34,4 @@ namespace WebCoreTestSupport {
 String serializationForCSS(WebCore::CocoaColor *) WTF_EXPORT_PRIVATE;
 
 } // namespace WebCoreTestSupport
+#endif // WebCore_testing_cocoa_CocoaColorSerialization_h

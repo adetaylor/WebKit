@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUBufferBindingLayout_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUBufferBindingLayout_h
 
 #include "WebGPUBufferBindingType.h"
 #include "WebGPUIntegralTypes.h"
@@ -37,3 +38,4 @@ struct BufferBindingLayout {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUBufferBindingLayout_h

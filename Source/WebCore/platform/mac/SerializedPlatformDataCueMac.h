@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_SerializedPlatformDataCueMac_h
+#define WebCore_platform_mac_SerializedPlatformDataCueMac_h
 
 #if ENABLE(VIDEO) && ENABLE(DATACUE_VALUE)
 
@@ -58,3 +59,4 @@ const SerializedPlatformDataCueMac* toSerializedPlatformDataCueMac(const Seriali
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_mac_SerializedPlatformDataCueMac_h

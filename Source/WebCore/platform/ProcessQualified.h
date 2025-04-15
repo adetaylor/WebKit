@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ProcessQualified_h
+#define WebCore_platform_ProcessQualified_h
 
 #include "ProcessIdentifier.h"
 #include <wtf/Hasher.h>
@@ -202,3 +203,4 @@ public:
 };
 
 } // namespace WTF
+#endif // WebCore_platform_ProcessQualified_h

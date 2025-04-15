@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FrameLoaderClient_h
+#define WebCore_loader_FrameLoaderClient_h
 
 #include "FrameLoaderTypes.h"
 #include "NavigationIdentifier.h"
@@ -55,3 +56,4 @@ public:
 };
 
 }
+#endif // WebCore_loader_FrameLoaderClient_h

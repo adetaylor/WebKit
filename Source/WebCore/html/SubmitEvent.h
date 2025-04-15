@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_SubmitEvent_h
+#define WebCore_html_SubmitEvent_h
 
 #include "Event.h"
 #include "EventInit.h"
@@ -53,3 +54,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_SubmitEvent_h

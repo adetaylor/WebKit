@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PageColorSampler_h
+#define WebCore_page_PageColorSampler_h
 
 #include "Color.h"
 #include <wtf/Forward.h>
@@ -44,3 +45,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PageColorSampler_h

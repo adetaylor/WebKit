@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_screen_wake_lock_WakeLockManager_h
+#define WebCore_Modules_screen_wake_lock_WakeLockManager_h
 
 #include "PageIdentifier.h"
 #include "VisibilityChangeClient.h"
@@ -62,3 +63,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_screen_wake_lock_WakeLockManager_h

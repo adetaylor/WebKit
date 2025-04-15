@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Mmap_h
+#define WTF_wtf_Mmap_h
 
 #if HAVE(MMAP)
 
@@ -51,3 +52,4 @@ struct Mmap {
 using WTF::Mmap;
 
 #endif // HAVE(MMAP)
+#endif // WTF_wtf_Mmap_h

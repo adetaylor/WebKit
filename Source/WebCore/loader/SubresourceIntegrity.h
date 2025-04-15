@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_SubresourceIntegrity_h
+#define WebCore_loader_SubresourceIntegrity_h
 
 #include "CachedResource.h"
 #include "ResourceCryptographicDigest.h"
@@ -50,3 +51,4 @@ inline bool matchIntegrityMetadata(const CachedResource& resource, const String&
 }
 
 }
+#endif // WebCore_loader_SubresourceIntegrity_h

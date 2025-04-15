@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_SharedVideoFrameInfo_h
+#define WebCore_platform_cocoa_SharedVideoFrameInfo_h
 
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
 
@@ -96,3 +97,4 @@ inline SharedVideoFrameInfo::SharedVideoFrameInfo(OSType bufferType, uint32_t wi
 }
 
 #endif // ENABLE(MEDIA_STREAM)
+#endif // WebCore_platform_cocoa_SharedVideoFrameInfo_h

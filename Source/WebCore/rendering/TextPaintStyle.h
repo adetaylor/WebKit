@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_TextPaintStyle_h
+#define WebCore_rendering_TextPaintStyle_h
 
 #include "Color.h"
 #include "GraphicsTypes.h"
@@ -65,3 +66,4 @@ enum FillColorType { UseNormalFillColor, UseEmphasisMarkColor };
 void updateGraphicsContext(GraphicsContext&, const TextPaintStyle&, FillColorType = UseNormalFillColor);
 
 } // namespace WebCore
+#endif // WebCore_rendering_TextPaintStyle_h

@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_DocumentThreadableLoader_h
+#define WebCore_loader_DocumentThreadableLoader_h
 
 #include "ContentSecurityPolicy.h"
 #include "CrossOriginPreflightChecker.h"
@@ -156,3 +157,4 @@ class CachedRawResource;
     };
 
 } // namespace WebCore
+#endif // WebCore_loader_DocumentThreadableLoader_h

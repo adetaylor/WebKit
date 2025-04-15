@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUProgrammableStage_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUProgrammableStage_h
 
 #include "WebGPUShaderModule.h"
 #include <wtf/KeyValuePair.h>
@@ -44,3 +45,4 @@ struct ProgrammableStage {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUProgrammableStage_h

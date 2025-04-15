@@ -27,7 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSURLValue_h
+#define WebCore_css_CSSURLValue_h
 
 #include "CSSURL.h"
 #include "CSSValue.h"
@@ -62,3 +63,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSURLValue, isURL())
+#endif // WebCore_css_CSSURLValue_h

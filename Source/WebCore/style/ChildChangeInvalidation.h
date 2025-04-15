@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_ChildChangeInvalidation_h
+#define WebCore_style_ChildChangeInvalidation_h
 
 #include "Element.h"
 #include "StyleInvalidator.h"
@@ -91,3 +92,4 @@ inline ChildChangeInvalidation::~ChildChangeInvalidation()
 
 }
 }
+#endif // WebCore_style_ChildChangeInvalidation_h

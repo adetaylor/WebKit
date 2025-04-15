@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_StringHashDumpContext_h
+#define WTF_wtf_StringHashDumpContext_h
 
 #include <wtf/HashMap.h>
 #include <wtf/SixCharacterHash.h>
@@ -116,3 +117,4 @@ public:
 } // namespace WTF
 
 using WTF::StringHashDumpContext;
+#endif // WTF_wtf_StringHashDumpContext_h

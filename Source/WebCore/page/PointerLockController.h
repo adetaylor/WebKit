@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PointerLockController_h
+#define WebCore_page_PointerLockController_h
 
 #if ENABLE(POINTER_LOCK)
 
@@ -100,3 +101,4 @@ inline void PointerLockController::elementWasRemoved(Element& element)
 } // namespace WebCore
 
 #endif // ENABLE(POINTER_LOCK)
+#endif // WebCore_page_PointerLockController_h

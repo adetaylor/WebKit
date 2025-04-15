@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUTextureDescriptor_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUTextureDescriptor_h
 
 #include "WebGPUExtent3D.h"
 #include "WebGPUIntegralTypes.h"
@@ -45,3 +46,4 @@ struct TextureDescriptor : public ObjectDescriptorBase {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUTextureDescriptor_h

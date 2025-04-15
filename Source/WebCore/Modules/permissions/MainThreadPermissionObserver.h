@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_permissions_MainThreadPermissionObserver_h
+#define WebCore_Modules_permissions_MainThreadPermissionObserver_h
 
 #include "ClientOrigin.h"
 #include "MainThreadPermissionObserverIdentifier.h"
@@ -65,3 +66,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_permissions_MainThreadPermissionObserver_h

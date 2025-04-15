@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_text_cf_TextBreakIteratorCF_h
+#define WTF_wtf_text_cf_TextBreakIteratorCF_h
 
 #include <wtf/text/cf/TextBreakIteratorCFCharacterCluster.h>
 #include <wtf/text/cf/TextBreakIteratorCFStringTokenizer.h>
@@ -104,3 +105,4 @@ private:
 };
 
 } // namespace WTF
+#endif // WTF_wtf_text_cf_TextBreakIteratorCF_h

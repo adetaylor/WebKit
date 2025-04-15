@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_StageModeOperations_h
+#define WebCore_page_StageModeOperations_h
 
 #if ENABLE(MODEL_PROCESS)
 namespace WebCore {
@@ -36,3 +37,4 @@ enum class StageModeOperation : bool {
 } // namespace WebCore
 #endif
 
+#endif // WebCore_page_StageModeOperations_h

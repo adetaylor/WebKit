@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_mac_DataDetectorsSoftLink_h
+#define WebCore_PAL_pal_mac_DataDetectorsSoftLink_h
 
 #if PLATFORM(MAC) && ENABLE(DATA_DETECTION)
 
@@ -75,3 +76,4 @@ inline Class getWKDDActionContextClass()
 }
 
 #endif // PLATFORM(MAC) && ENABLE(DATA_DETECTION)
+#endif // WebCore_PAL_pal_mac_DataDetectorsSoftLink_h

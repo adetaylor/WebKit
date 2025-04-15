@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_LayoutIntegrationInlineContent_h
+#define WebCore_layout_integration_inline_LayoutIntegrationInlineContent_h
 
 
 #include "InlineDisplayContent.h"
@@ -137,3 +138,4 @@ template<typename Function> void InlineContent::traverseNonRootInlineBoxes(const
 }
 }
 
+#endif // WebCore_layout_integration_inline_LayoutIntegrationInlineContent_h

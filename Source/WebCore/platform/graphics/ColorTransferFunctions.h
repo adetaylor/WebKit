@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorTransferFunctions_h
+#define WebCore_platform_graphics_ColorTransferFunctions_h
 
 #include <wtf/MathExtras.h>
 
@@ -188,3 +189,4 @@ template<typename T, TransferFunctionMode mode> T SRGBTransferFunction<T, mode>:
 }
 
 }
+#endif // WebCore_platform_graphics_ColorTransferFunctions_h

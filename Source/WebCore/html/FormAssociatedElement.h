@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_FormAssociatedElement_h
+#define WebCore_html_FormAssociatedElement_h
 
 #include "HTMLFormElement.h"
 
@@ -67,3 +68,4 @@ inline void FormAssociatedElement::setForm(RefPtr<HTMLFormElement>&& newForm)
 }
 
 } // namespace WebCore
+#endif // WebCore_html_FormAssociatedElement_h

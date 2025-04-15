@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ca_PlatformCALayer_h
+#define WebCore_platform_graphics_ca_PlatformCALayer_h
 
 #include "FloatRoundedRect.h"
 #include "GraphicsLayer.h"
@@ -382,3 +383,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, PlatformCALayer::Fi
 SPECIALIZE_TYPE_TRAITS_BEGIN(ToValueTypeName) \
     static bool isType(const WebCore::PlatformCALayer& layer) { return layer.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_ca_PlatformCALayer_h

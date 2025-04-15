@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_ComputedStylePropertyMapReadOnly_h
+#define WebCore_css_typedom_ComputedStylePropertyMapReadOnly_h
 
 #include "MainThreadStylePropertyMapReadOnly.h"
 
@@ -55,3 +56,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSSOM_STYLE_PROPERTY_MAP(ComputedStylePropertyMapReadOnly, WebCore::StylePropertyMapReadOnly::Type::Computed);
+#endif // WebCore_css_typedom_ComputedStylePropertyMapReadOnly_h

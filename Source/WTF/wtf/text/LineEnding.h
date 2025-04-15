@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_LineEnding_h
+#define WTF_wtf_text_LineEnding_h
 
 #include <wtf/Forward.h>
 
@@ -47,3 +48,4 @@ WTF_EXPORT_PRIVATE Vector<uint8_t> normalizeLineEndingsToNative(Vector<uint8_t>&
 using WTF::normalizeLineEndingsToCRLF;
 using WTF::normalizeLineEndingsToLF;
 using WTF::normalizeLineEndingsToNative;
+#endif // WTF_wtf_text_LineEnding_h

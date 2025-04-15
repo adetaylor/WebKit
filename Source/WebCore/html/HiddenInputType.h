@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HiddenInputType_h
+#define WebCore_html_HiddenInputType_h
 
 #include "InputType.h"
 #include <wtf/TZoneMalloc.h>
@@ -65,3 +66,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(HiddenInputType, Type::Hidden)
+#endif // WebCore_html_HiddenInputType_h

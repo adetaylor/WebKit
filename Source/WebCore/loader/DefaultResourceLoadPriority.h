@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_DefaultResourceLoadPriority_h
+#define WebCore_loader_DefaultResourceLoadPriority_h
 
 #include "CachedResource.h"
 #include "ResourceLoadPriority.h"
@@ -37,3 +38,4 @@ struct DefaultResourceLoadPriority {
 };
 
 }
+#endif // WebCore_loader_DefaultResourceLoadPriority_h

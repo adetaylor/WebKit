@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StylePosition_h
+#define WebCore_style_values_primitives_StylePosition_h
 
 #include "CSSPosition.h"
 #include "FloatPoint.h"
@@ -101,3 +102,4 @@ template<> struct Evaluation<Position> { auto operator()(const Position&, FloatS
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::TwoComponentPositionHorizontal, 1)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::TwoComponentPositionVertical, 1)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::Position, 2)
+#endif // WebCore_style_values_primitives_StylePosition_h

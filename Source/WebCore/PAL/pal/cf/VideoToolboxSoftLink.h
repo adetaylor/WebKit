@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cf_VideoToolboxSoftLink_h
+#define WebCore_PAL_pal_cf_VideoToolboxSoftLink_h
 
 #if USE(AVFOUNDATION)
 
@@ -75,3 +76,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, VideoToolbox, VTGetDefaultColorAttributesWith
 SOFT_LINK_FUNCTION_MAY_FAIL_FOR_HEADER(PAL, VideoToolbox, VTRestrictVideoDecoders, OSStatus, (VTVideoDecoderRestrictions restrictionFlags, const CMVideoCodecType* allowedCodecTypeList, CMItemCount allowedCodecTypeCount), (restrictionFlags, allowedCodecTypeList, allowedCodecTypeCount));
 
 #endif // USE(AVFOUNDATION)
+#endif // WebCore_PAL_pal_cf_VideoToolboxSoftLink_h

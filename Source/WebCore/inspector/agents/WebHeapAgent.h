@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_WebHeapAgent_h
+#define WebCore_inspector_agents_WebHeapAgent_h
 
 #include "InspectorWebAgentBase.h"
 #include <JavaScriptCore/InspectorHeapAgent.h>
@@ -61,3 +62,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_WebHeapAgent_h

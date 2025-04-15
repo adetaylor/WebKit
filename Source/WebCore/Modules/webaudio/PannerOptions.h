@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_PannerOptions_h
+#define WebCore_Modules_webaudio_PannerOptions_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -53,3 +54,4 @@ struct PannerOptions : AudioNodeOptions {
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_Modules_webaudio_PannerOptions_h

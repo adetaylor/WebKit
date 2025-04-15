@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_IsoTLSAllocatorEntry_h
+#define bmalloc_bmalloc_IsoTLSAllocatorEntry_h
 
 #if !BUSE(TZONE)
 
@@ -56,3 +57,4 @@ private:
 
 #endif
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_IsoTLSAllocatorEntry_h

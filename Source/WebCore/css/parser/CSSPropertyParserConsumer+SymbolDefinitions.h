@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_SymbolDefinitions_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_SymbolDefinitions_h
 
 #include "CSSParserToken.h"
 #include "CSSPropertyParserConsumer+MetaConsumerDefinitions.h"
@@ -52,3 +53,4 @@ template<> struct ConsumerDefinition<CSS::Symbol> {
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_SymbolDefinitions_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_filesystemaccess_FileSystemSyncAccessHandleIdentifier_h
+#define WebCore_Modules_filesystemaccess_FileSystemSyncAccessHandleIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -34,3 +35,4 @@ using FileSystemSyncAccessHandleIdentifier = AtomicObjectIdentifier<FileSystemSy
 
 } // namespace WebCore
 
+#endif // WebCore_Modules_filesystemaccess_FileSystemSyncAccessHandleIdentifier_h

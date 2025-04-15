@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_UniqueArray_h
+#define WTF_wtf_UniqueArray_h
 
 #include <wtf/CheckedArithmetic.h>
 #include <wtf/FastMalloc.h>
@@ -124,3 +125,4 @@ UniqueArray<T> makeUniqueArray(size_t size)
 
 using WTF::UniqueArray;
 using WTF::makeUniqueArray;
+#endif // WTF_wtf_UniqueArray_h

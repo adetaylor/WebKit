@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_LegacyInlineIterator_h
+#define WebCore_rendering_LegacyInlineIterator_h
 
 #include "BidiRun.h"
 #include "RenderBlockFlow.h"
@@ -450,3 +451,4 @@ inline bool InlineBidiResolver::needsContinuePastEndInternal() const
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_LegacyInlineIterator_h

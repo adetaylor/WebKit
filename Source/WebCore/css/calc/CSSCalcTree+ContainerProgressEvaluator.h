@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_ContainerProgressEvaluator_h
+#define WebCore_css_calc_CSSCalcTree_ContainerProgressEvaluator_h
 
 #include <optional>
 
@@ -39,3 +40,4 @@ std::optional<double> evaluateContainerProgress(const ContainerProgress&, const 
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_ContainerProgressEvaluator_h

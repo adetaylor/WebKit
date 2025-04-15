@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CancellableTask_h
+#define WTF_wtf_CancellableTask_h
 
 #include <wtf/Function.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
@@ -104,3 +105,4 @@ inline void CancellableTask::operator()()
 
 using WTF::CancellableTask;
 using WTF::TaskCancellationGroup;
+#endif // WTF_wtf_CancellableTask_h

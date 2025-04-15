@@ -28,7 +28,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FileSystem_h
+#define WTF_wtf_FileSystem_h
 
 #include <span>
 #include <sys/types.h>
@@ -206,3 +207,4 @@ WTF_EXPORT_PRIVATE void finalizeMappedFileData(MappedFileData&, size_t);
 } // namespace WTF
 
 namespace FileSystem = WTF::FileSystemImpl;
+#endif // WTF_wtf_FileSystem_h

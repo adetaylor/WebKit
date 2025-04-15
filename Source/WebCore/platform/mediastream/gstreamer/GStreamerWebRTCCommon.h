@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_gstreamer_GStreamerWebRTCCommon_h
+#define WebCore_platform_mediastream_gstreamer_GStreamerWebRTCCommon_h
 
 #if USE(GSTREAMER_WEBRTC)
 
@@ -35,3 +36,4 @@ using WebRTCTrackData = struct _WebRTCTrackData {
 } // namespace WebCore
 
 #endif // USE(GSTREAMER_WEBRTC)
+#endif // WebCore_platform_mediastream_gstreamer_GStreamerWebRTCCommon_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_VideoColorSpaceInit_h
+#define WebCore_Modules_webcodecs_VideoColorSpaceInit_h
 
 #if ENABLE(VIDEO)
 
@@ -36,3 +37,4 @@ using VideoColorSpaceInit = PlatformVideoColorSpace;
 }
 
 #endif
+#endif // WebCore_Modules_webcodecs_VideoColorSpaceInit_h

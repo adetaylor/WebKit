@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WeakPtrFactory_h
+#define WTF_wtf_WeakPtrFactory_h
 
 #include <wtf/CompactRefPtrTuple.h>
 #include <wtf/Packed.h>
@@ -210,3 +211,4 @@ enum class WeakPtrFactoryInitialization { Lazy, Eager };
 
 using WTF::WeakPtrFactory;
 using WTF::WeakPtrFactoryInitialization;
+#endif // WTF_wtf_WeakPtrFactory_h

@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_NodeFilter_h
+#define WebCore_dom_NodeFilter_h
 
 #include "ActiveDOMCallback.h"
 #include "CallbackResult.h"
@@ -78,3 +79,4 @@ public:
 inline WebCoreOpaqueRoot root(NodeFilter* filter) { return WebCoreOpaqueRoot { filter }; }
 
 } // namespace WebCore
+#endif // WebCore_dom_NodeFilter_h

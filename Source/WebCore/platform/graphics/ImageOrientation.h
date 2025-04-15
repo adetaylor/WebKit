@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ImageOrientation_h
+#define WebCore_platform_graphics_ImageOrientation_h
 
 #include "AffineTransform.h"
 #include "FloatSize.h"
@@ -177,3 +178,4 @@ private:
 TextStream& operator<<(TextStream&, ImageOrientation::Orientation);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_ImageOrientation_h

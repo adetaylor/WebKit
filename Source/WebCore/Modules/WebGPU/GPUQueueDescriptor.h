@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUQueueDescriptor_h
+#define WebCore_Modules_WebGPU_GPUQueueDescriptor_h
 
 #include "GPUObjectDescriptorBase.h"
 
@@ -33,3 +34,4 @@ struct GPUQueueDescriptor : public GPUObjectDescriptorBase {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUQueueDescriptor_h

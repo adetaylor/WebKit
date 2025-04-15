@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_text_BidiContext_h
+#define WebCore_platform_text_BidiContext_h
 
 #include <unicode/uchar.h>
 #include <wtf/RefPtr.h>
@@ -67,3 +68,4 @@ inline unsigned char nextGreaterEvenLevel(unsigned char level)
 bool operator==(const BidiContext&, const BidiContext&);
 
 } // namespace WebCore
+#endif // WebCore_platform_text_BidiContext_h

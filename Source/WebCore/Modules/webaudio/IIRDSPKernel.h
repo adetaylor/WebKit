@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_IIRDSPKernel_h
+#define WebCore_Modules_webaudio_IIRDSPKernel_h
 
 #include "AudioDSPKernel.h"
 #include "IIRFilter.h"
@@ -55,3 +56,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_IIRDSPKernel_h

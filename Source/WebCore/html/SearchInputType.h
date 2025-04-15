@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_SearchInputType_h
+#define WebCore_html_SearchInputType_h
 
 #include "BaseTextInputType.h"
 #include "Timer.h"
@@ -72,3 +73,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(SearchInputType, Type::Search)
+#endif // WebCore_html_SearchInputType_h

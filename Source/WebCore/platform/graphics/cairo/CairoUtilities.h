@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cairo_CairoUtilities_h
+#define WebCore_platform_graphics_cairo_CairoUtilities_h
 
 #if USE(CAIRO)
 
@@ -116,3 +117,4 @@ uintptr_t getSurfaceUniqueID(cairo_surface_t*);
 } // namespace WebCore
 
 #endif // USE(CAIRO)
+#endif // WebCore_platform_graphics_cairo_CairoUtilities_h

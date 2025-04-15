@@ -20,7 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_gstreamer_GStreamerVideoCaptureSource_h
+#define WebCore_platform_mediastream_gstreamer_GStreamerVideoCaptureSource_h
 
 #if ENABLE(MEDIA_STREAM) && USE(GSTREAMER)
 #include "CaptureDevice.h"
@@ -80,3 +81,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM) && USE(GSTREAMER)
+#endif // WebCore_platform_mediastream_gstreamer_GStreamerVideoCaptureSource_h

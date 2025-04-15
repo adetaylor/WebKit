@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUShaderModuleCompilationHint_h
+#define WebCore_Modules_WebGPU_GPUShaderModuleCompilationHint_h
 
 #include "GPUPipelineDescriptorBase.h"
 #include "GPUPipelineLayout.h"
@@ -43,3 +44,4 @@ struct GPUShaderModuleCompilationHint {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUShaderModuleCompilationHint_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ArgumentCoder_h
+#define WTF_wtf_ArgumentCoder_h
 
 #include <optional>
 #include <span>
@@ -90,3 +91,4 @@ struct ArgumentCoder<T, typename std::enable_if_t<std::is_enum_v<T>>> {
 };
 
 }
+#endif // WTF_wtf_ArgumentCoder_h

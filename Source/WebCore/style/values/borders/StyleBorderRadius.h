@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_borders_StyleBorderRadius_h
+#define WebCore_style_values_borders_StyleBorderRadius_h
 
 #include "CSSBorderRadius.h"
 #include "FloatRoundedRect.h"
@@ -69,3 +70,4 @@ template<> struct Evaluation<BorderRadius> { auto operator()(const BorderRadius&
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::BorderRadius, 4)
+#endif // WebCore_style_values_borders_StyleBorderRadius_h

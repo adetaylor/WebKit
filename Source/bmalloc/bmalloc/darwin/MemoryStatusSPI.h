@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_darwin_MemoryStatusSPI_h
+#define bmalloc_bmalloc_darwin_MemoryStatusSPI_h
 
 #include "BPlatform.h"
 
@@ -52,3 +53,4 @@ int memorystatus_control(uint32_t command, int32_t pid, uint32_t flags, void *bu
 }
 
 #endif // BPLATFORM(IOS_FAMILY)
+#endif // bmalloc_bmalloc_darwin_MemoryStatusSPI_h

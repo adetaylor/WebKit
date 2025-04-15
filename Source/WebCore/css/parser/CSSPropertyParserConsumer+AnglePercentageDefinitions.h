@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_AnglePercentageDefinitions_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_AnglePercentageDefinitions_h
 
 #include "CSSPropertyParserConsumer+AngleDefinitions.h"
 #include "CSSPropertyParserConsumer+MetaConsumerDefinitions.h"
@@ -61,3 +62,4 @@ template<auto R, typename V> struct ConsumerDefinition<CSS::AnglePercentage<R, V
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_AnglePercentageDefinitions_h

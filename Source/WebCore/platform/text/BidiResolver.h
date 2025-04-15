@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_text_BidiResolver_h
+#define WebCore_platform_text_BidiResolver_h
 
 #include "BidiContext.h"
 #include "BidiRunList.h"
@@ -967,3 +968,4 @@ unsigned BidiResolverBase<Iterator, Run, DerivedClass>::whitespaceCollapsingTran
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_text_BidiResolver_h

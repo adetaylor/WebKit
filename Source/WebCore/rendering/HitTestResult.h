@@ -20,7 +20,8 @@
  *
 */
 
-#pragma once
+#ifndef WebCore_rendering_HitTestResult_h
+#define WebCore_rendering_HitTestResult_h
 
 #include "HitTestLocation.h"
 #include "HitTestRequest.h"
@@ -195,3 +196,4 @@ private:
 WEBCORE_EXPORT String displayString(const String&, const Node*);
 
 } // namespace WebCore
+#endif // WebCore_rendering_HitTestResult_h

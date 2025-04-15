@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_SerializedScriptValue_h
+#define WebCore_bindings_js_SerializedScriptValue_h
 
 #include "Blob.h"
 #include "DetachedRTCDataChannel.h"
@@ -248,3 +249,4 @@ private:
 };
 
 }
+#endif // WebCore_bindings_js_SerializedScriptValue_h

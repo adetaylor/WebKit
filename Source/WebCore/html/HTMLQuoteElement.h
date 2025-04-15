@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLQuoteElement_h
+#define WebCore_html_HTMLQuoteElement_h
 
 #include <wtf/Forward.h>
 #include "HTMLElement.h"
@@ -41,3 +42,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLQuoteElement_h

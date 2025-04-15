@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleInterpolationClient_h
+#define WebCore_style_StyleInterpolationClient_h
 
 #include <optional>
 
@@ -47,3 +48,4 @@ public:
 
 } // namespace Style::Interpolation
 } // namespace WebCore
+#endif // WebCore_style_StyleInterpolationClient_h

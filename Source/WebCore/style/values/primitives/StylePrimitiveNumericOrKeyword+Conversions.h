@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StylePrimitiveNumericOrKeyword_Conversions_h
+#define WebCore_style_values_primitives_StylePrimitiveNumericOrKeyword_Conversions_h
 
 #include "StylePrimitiveNumericOrKeyword.h"
 #include "StylePrimitiveNumericTypes+Conversions.h"
@@ -70,3 +71,4 @@ template<CSS::Numeric N, CSS::PrimitiveKeyword... Ks> struct ToStyle<CSS::Primit
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_primitives_StylePrimitiveNumericOrKeyword_Conversions_h

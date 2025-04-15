@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_gstreamer_AudioDestinationGStreamer_h
+#define WebCore_platform_audio_gstreamer_AudioDestinationGStreamer_h
 
 #include "AudioBus.h"
 #include "AudioDestination.h"
@@ -62,3 +63,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_audio_gstreamer_AudioDestinationGStreamer_h

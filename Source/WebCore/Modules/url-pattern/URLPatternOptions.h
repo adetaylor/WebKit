@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_url_pattern_URLPatternOptions_h
+#define WebCore_Modules_url_pattern_URLPatternOptions_h
 
 namespace WebCore {
 
@@ -32,3 +33,4 @@ struct URLPatternOptions {
 };
 
 }
+#endif // WebCore_Modules_url_pattern_URLPatternOptions_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_StyleOriginatedTimelinesController_h
+#define WebCore_animation_StyleOriginatedTimelinesController_h
 
 #include "CSSAnimation.h"
 #include "NameScope.h"
@@ -92,3 +93,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_StyleOriginatedTimelinesController_h

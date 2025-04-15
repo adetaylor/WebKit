@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AnalyserNode_h
+#define WebCore_Modules_webaudio_AnalyserNode_h
 
 #include "AnalyserOptions.h"
 #include "AudioBasicInspectorNode.h"
@@ -73,3 +74,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_AnalyserNode_h

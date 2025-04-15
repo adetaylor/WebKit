@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_js_WebCoreTestSupport_h
+#define WebCore_testing_js_WebCoreTestSupport_h
 
 #include <span>
 #include <wtf/Forward.h>
@@ -97,3 +98,4 @@ TEST_SUPPORT_EXPORT void testSincResamplerProcessBuffer(std::span<const float> s
 #endif
 
 } // namespace WebCoreTestSupport
+#endif // WebCore_testing_js_WebCoreTestSupport_h

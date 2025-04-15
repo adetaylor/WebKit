@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_Modules_geolocation_PositionOptions_h
+#define WebCore_Modules_geolocation_PositionOptions_h
 
 namespace WebCore {
     
@@ -34,3 +35,4 @@ struct PositionOptions {
 };
     
 } // namespace WebCore
+#endif // WebCore_Modules_geolocation_PositionOptions_h

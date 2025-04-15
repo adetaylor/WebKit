@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_dom_RangeBoundaryPointInlines_h
+#define WebCore_dom_RangeBoundaryPointInlines_h
 
 #include "NodeInlines.h"
 #include "RangeBoundaryPoint.h"
@@ -46,3 +47,4 @@ inline void RangeBoundaryPoint::set(Ref<Node>&& container, unsigned offset, RefP
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_RangeBoundaryPointInlines_h

@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleGeneratedImage_h
+#define WebCore_rendering_style_StyleGeneratedImage_h
 
 #include "FloatSize.h"
 #include "FloatSizeHash.h"
@@ -83,3 +84,4 @@ protected:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_STYLE_IMAGE(StyleGeneratedImage, isGeneratedImage)
+#endif // WebCore_rendering_style_StyleGeneratedImage_h

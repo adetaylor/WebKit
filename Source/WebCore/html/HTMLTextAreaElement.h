@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLTextAreaElement_h
+#define WebCore_html_HTMLTextAreaElement_h
 
 #include "HTMLTextFormControlElement.h"
 
@@ -148,3 +149,4 @@ private:
 };
 
 } // namespace
+#endif // WebCore_html_HTMLTextAreaElement_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_geolocation_GeolocationPositionData_h
+#define WebCore_Modules_geolocation_GeolocationPositionData_h
 
 #include <cmath>
 #include <wtf/Ref.h>
@@ -85,3 +86,4 @@ inline bool GeolocationPositionData::isValid() const
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_geolocation_GeolocationPositionData_h

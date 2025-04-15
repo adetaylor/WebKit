@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericTypes_EvaluateCalc_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericTypes_EvaluateCalc_h
 
 #include "CSSNoConversionDataRequiredToken.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -84,3 +85,4 @@ inline bool isUnevaluatedCalc(Numeric auto const& value)
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericTypes_EvaluateCalc_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_ValueCheck_h
+#define WTF_wtf_ValueCheck_h
 
 #include <wtf/FastMalloc.h>
 
@@ -48,3 +49,4 @@ template<typename P> struct ValueCheck<P*> {
 #endif // ASSERT_ENABLED
 
 }
+#endif // WTF_wtf_ValueCheck_h

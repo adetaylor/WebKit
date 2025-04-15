@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_SelectorPseudoTypeMap_h
+#define WebCore_css_SelectorPseudoTypeMap_h
 
 #include "CSSSelector.h"
 
@@ -38,3 +39,4 @@ PseudoClassOrCompatibilityPseudoElement findPseudoClassAndCompatibilityElementNa
 std::optional<CSSSelector::PseudoElement> findPseudoElementName(StringView);
 
 } // namespace WebCore
+#endif // WebCore_css_SelectorPseudoTypeMap_h

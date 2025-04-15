@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_ConstantSourceOptions_h
+#define WebCore_Modules_webaudio_ConstantSourceOptions_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -36,3 +37,4 @@ struct ConstantSourceOptions {
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_Modules_webaudio_ConstantSourceOptions_h

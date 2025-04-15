@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_InlineIteratorLineBoxModernPath_h
+#define WebCore_layout_integration_inline_InlineIteratorLineBoxModernPath_h
 
 #include "InlineIteratorBoxModernPath.h"
 #include "LayoutIntegrationInlineContent.h"
@@ -149,3 +150,4 @@ private:
 }
 }
 
+#endif // WebCore_layout_integration_inline_InlineIteratorLineBoxModernPath_h

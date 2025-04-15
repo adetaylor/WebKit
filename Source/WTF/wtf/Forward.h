@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef Forward_h
+#define Forward_h
 
 #include <stddef.h>
 #include <wtf/Platform.h>
@@ -324,3 +325,5 @@ template<class E> using Unexpected = std::experimental::unexpected<E>;
 #define WTF_LAZY_HAS_REST_8 WTF_LAZY_EXPAND
 #define WTF_LAZY_HAS_REST(...) \
     WTF_LAZY_JOIN(WTF_LAZY_HAS_REST_, WTF_LAZY_NUM_ARGS(__VA_ARGS__))
+
+#endif

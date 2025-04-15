@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_ConvolverOptions_h
+#define WebCore_Modules_webaudio_ConvolverOptions_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -39,3 +40,4 @@ struct ConvolverOptions : AudioNodeOptions {
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_Modules_webaudio_ConvolverOptions_h

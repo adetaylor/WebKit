@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_TimelineRangeOffset_h
+#define WebCore_animation_TimelineRangeOffset_h
 
 #include "CSSNumericValue.h"
 #include <wtf/text/WTFString.h>
@@ -39,3 +40,4 @@ struct TimelineRangeOffset {
 
 } // namespace WebCore
 
+#endif // WebCore_animation_TimelineRangeOffset_h

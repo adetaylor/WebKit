@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLFrameOwnerElement_h
+#define WebCore_html_HTMLFrameOwnerElement_h
 
 #include "Frame.h"
 #include "HTMLElement.h"
@@ -124,3 +125,4 @@ inline RefPtr<HTMLFrameOwnerElement> Frame::protectedOwnerElement() const
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::HTMLFrameOwnerElement)
     static bool isType(const WebCore::Node& node) { return node.isHTMLFrameOwnerElement(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_HTMLFrameOwnerElement_h

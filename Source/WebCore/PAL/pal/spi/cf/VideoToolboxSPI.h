@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cf_VideoToolboxSPI_h
+#define WebCore_PAL_pal_spi_cf_VideoToolboxSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -39,3 +40,4 @@ enum {
 typedef uint32_t VTVideoDecoderRestrictions;
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cf_VideoToolboxSPI_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_text_TextStream_h
+#define WTF_wtf_text_TextStream_h
 
 #include <span>
 #include <wtf/Forward.h>
@@ -434,3 +435,4 @@ using WTF::TextStream;
 using WTF::ValueOrEllipsis;
 using WTF::ValueOrNull;
 using WTF::indent;
+#endif // WTF_wtf_text_TextStream_h

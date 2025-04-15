@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_FastTLS_h
+#define WTF_wtf_FastTLS_h
 
 #if HAVE(FAST_TLS)
 
@@ -61,3 +62,4 @@ using WTF::fastTLSOffsetForKey;
 
 #endif // HAVE(FAST_TLS)
 
+#endif // WTF_wtf_FastTLS_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_storage_Storage_h
+#define WebCore_storage_Storage_h
 
 #include "ExceptionOr.h"
 #include "LocalDOMWindowProperty.h"
@@ -63,3 +64,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_storage_Storage_h

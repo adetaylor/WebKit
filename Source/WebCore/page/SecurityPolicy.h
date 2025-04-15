@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_SecurityPolicy_h
+#define WebCore_page_SecurityPolicy_h
 
 #include "FetchOptions.h"
 #include <wtf/text/WTFString.h>
@@ -77,3 +78,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_SecurityPolicy_h

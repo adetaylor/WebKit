@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLWBRElement_h
+#define WebCore_html_HTMLWBRElement_h
 
 #include "HTMLElement.h"
 
@@ -46,3 +47,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLWBRElement_h

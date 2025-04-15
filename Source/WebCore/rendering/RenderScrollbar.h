@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderScrollbar_h
+#define WebCore_rendering_RenderScrollbar_h
 
 #include "RenderPtr.h"
 #include "RenderStyleConstants.h"
@@ -94,3 +95,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::RenderScrollbar)
     static bool isType(const WebCore::Scrollbar& scrollbar) { return scrollbar.isCustomScrollbar(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_rendering_RenderScrollbar_h

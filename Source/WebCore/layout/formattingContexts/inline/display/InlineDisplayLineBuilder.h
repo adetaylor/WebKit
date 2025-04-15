@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_display_InlineDisplayLineBuilder_h
+#define WebCore_layout_formattingContexts_inline_display_InlineDisplayLineBuilder_h
 
 #include "InlineDisplayLine.h"
 #include "InlineFormattingContext.h"
@@ -64,3 +65,4 @@ private:
 }
 }
 
+#endif // WebCore_layout_formattingContexts_inline_display_InlineDisplayLineBuilder_h

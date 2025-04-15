@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_filesystemaccess_FileSystemFileHandle_h
+#define WebCore_Modules_filesystemaccess_FileSystemFileHandle_h
 
 #include "FileSystemHandle.h"
 #include "FileSystemSyncAccessHandleIdentifier.h"
@@ -67,3 +68,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::FileSystemFileHandle)
     static bool isType(const WebCore::FileSystemHandle& handle) { return handle.kind() == WebCore::FileSystemHandle::Kind::File; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_filesystemaccess_FileSystemFileHandle_h

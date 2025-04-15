@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleAdjuster_h
+#define WebCore_style_StyleAdjuster_h
 
 #include "RenderStyleConstants.h"
 #include "TextSizeAdjustment.h"
@@ -86,3 +87,4 @@ private:
 
 }
 }
+#endif // WebCore_style_StyleAdjuster_h

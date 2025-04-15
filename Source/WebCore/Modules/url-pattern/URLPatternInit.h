@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_url_pattern_URLPatternInit_h
+#define WebCore_Modules_url_pattern_URLPatternInit_h
 
 #include <wtf/text/WTFString.h>
 
@@ -42,3 +43,4 @@ struct URLPatternInit {
 };
 
 }
+#endif // WebCore_Modules_url_pattern_URLPatternInit_h

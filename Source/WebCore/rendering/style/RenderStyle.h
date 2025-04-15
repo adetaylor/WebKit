@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_RenderStyle_h
+#define WebCore_rendering_style_RenderStyle_h
 
 #include "BoxExtents.h"
 #include "PseudoElementIdentifier.h"
@@ -2511,3 +2512,4 @@ inline bool shouldApplyPaintContainment(const RenderStyle&, const Element&);
 inline bool isSkippedContentRoot(const RenderStyle&, const Element&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_RenderStyle_h

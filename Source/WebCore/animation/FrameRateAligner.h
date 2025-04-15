@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_FrameRateAligner_h
+#define WebCore_animation_FrameRateAligner_h
 
 #include "AnimationFrameRate.h"
 #include "AnimationMalloc.h"
@@ -60,3 +61,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_FrameRateAligner_h

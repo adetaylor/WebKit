@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FrameLoaderTypes_h
+#define WebCore_loader_FrameLoaderTypes_h
 
 #include "ElementContext.h"
 #include "IntRect.h"
@@ -189,3 +190,4 @@ enum class WindowProxyProperty : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_FrameLoaderTypes_h

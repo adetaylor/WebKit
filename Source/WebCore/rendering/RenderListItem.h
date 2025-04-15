@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderListItem_h
+#define WebCore_rendering_RenderListItem_h
 
 #include "RenderBlockFlow.h"
 #include "RenderListMarker.h"
@@ -82,3 +83,4 @@ inline int RenderListItem::value() const
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderListItem, isRenderListItem())
+#endif // WebCore_rendering_RenderListItem_h

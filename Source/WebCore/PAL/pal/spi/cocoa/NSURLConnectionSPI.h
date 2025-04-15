@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_NSURLConnectionSPI_h
+#define WebCore_PAL_pal_spi_cocoa_NSURLConnectionSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -47,3 +48,4 @@ typedef NSUInteger TimingDataCollection;
 @end
 
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_NSURLConnectionSPI_h

@@ -28,7 +28,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_forms_FileIconLoader_h
+#define WebCore_html_forms_FileIconLoader_h
 
 #include <wtf/Forward.h>
 #include <wtf/TZoneMalloc.h>
@@ -56,3 +57,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_forms_FileIconLoader_h

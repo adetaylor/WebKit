@@ -19,7 +19,8 @@
  *
 */
 
-#pragma once
+#ifndef WebCore_rendering_CounterNode_h
+#define WebCore_rendering_CounterNode_h
 
 #include <wtf/CheckedPtr.h>
 #include <wtf/Forward.h>
@@ -100,3 +101,4 @@ private:
 // Outside the WebCore namespace for ease of invocation from the debugger.
 void showCounterTree(const WebCore::CounterNode*);
 #endif
+#endif // WebCore_rendering_CounterNode_h

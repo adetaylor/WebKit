@@ -17,8 +17,10 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_GstAllocatorFastMalloc_h
+#define WebCore_platform_graphics_gstreamer_GstAllocatorFastMalloc_h
 
 #include <glib-object.h>
 
 GType gst_allocator_fast_malloc_get_type();
+#endif // WebCore_platform_graphics_gstreamer_GstAllocatorFastMalloc_h

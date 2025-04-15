@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_MainThreadData_h
+#define WTF_wtf_MainThreadData_h
 
 #include <wtf/RunLoop.h>
 #include <wtf/StdLibExtras.h>
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WTF
+#endif // WTF_wtf_MainThreadData_h

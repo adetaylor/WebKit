@@ -27,7 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WebCore_css_CSSPendingSubstitutionValue_h
+#define WebCore_css_CSSPendingSubstitutionValue_h
 
 #include "CSSValue.h"
 #include "CSSVariableReferenceValue.h"
@@ -75,3 +76,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSPendingSubstitutionValue, isPendingSubstitutionValue())
+#endif // WebCore_css_CSSPendingSubstitutionValue_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_notifications_NotificationData_h
+#define WebCore_Modules_notifications_NotificationData_h
 
 #include "ScriptExecutionContextIdentifier.h"
 #include <optional>
@@ -68,3 +69,4 @@ struct NotificationData {
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_notifications_NotificationData_h

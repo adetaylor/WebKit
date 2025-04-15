@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPosition_h
+#define WebCore_css_values_primitives_CSSPosition_h
 
 #include "CSSPrimitiveNumericTypes.h"
 
@@ -94,3 +95,4 @@ bool isCenterPosition(const Position&);
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::TwoComponentPositionHorizontal, 1)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::TwoComponentPositionVertical, 1)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Position, 1)
+#endif // WebCore_css_values_primitives_CSSPosition_h

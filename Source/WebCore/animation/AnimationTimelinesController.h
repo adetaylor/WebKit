@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_AnimationTimelinesController_h
+#define WebCore_animation_AnimationTimelinesController_h
 
 #include "FrameRateAligner.h"
 #include "ReducedResolutionSeconds.h"
@@ -95,3 +96,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_AnimationTimelinesController_h

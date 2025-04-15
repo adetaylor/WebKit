@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLFrameElement_h
+#define WebCore_html_HTMLFrameElement_h
 
 #include "HTMLFrameElementBase.h"
 
@@ -55,3 +56,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_HTMLFrameElement_h

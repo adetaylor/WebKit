@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_Serialization_h
+#define WebCore_css_calc_CSSCalcTree_Serialization_h
 
 #include "CSSPrimitiveNumericRange.h"
 #include <wtf/Forward.h>
@@ -55,3 +56,4 @@ String serializationForCSS(const Child&, const SerializationOptions&);
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_Serialization_h

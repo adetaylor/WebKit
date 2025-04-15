@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_TextureMapperSparseBackingStore_h
+#define WebCore_platform_graphics_texmap_TextureMapperSparseBackingStore_h
 
 #if USE(GRAPHICS_LAYER_WC)
 
@@ -59,3 +60,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(GRAPHICS_LAYER_WC)
+#endif // WebCore_platform_graphics_texmap_TextureMapperSparseBackingStore_h

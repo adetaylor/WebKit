@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchResponseBodyLoader_h
+#define WebCore_Modules_fetch_FetchResponseBodyLoader_h
 
 namespace WebCore {
 
@@ -48,3 +49,4 @@ inline FetchResponseBodyLoader::FetchResponseBodyLoader(FetchResponse& response)
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_fetch_FetchResponseBodyLoader_h

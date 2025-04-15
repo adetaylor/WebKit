@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ApplePayDetailsUpdateBase_h
+#define WebCore_Modules_applepay_ApplePayDetailsUpdateBase_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -65,3 +66,4 @@ struct ApplePayDetailsUpdateBase {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY)
+#endif // WebCore_Modules_applepay_ApplePayDetailsUpdateBase_h

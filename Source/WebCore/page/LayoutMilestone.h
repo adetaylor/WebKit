@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_LayoutMilestone_h
+#define WebCore_page_LayoutMilestone_h
 
 #include <wtf/OptionSet.h>
 
@@ -44,3 +45,4 @@ enum class LayoutMilestone : uint16_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_LayoutMilestone_h

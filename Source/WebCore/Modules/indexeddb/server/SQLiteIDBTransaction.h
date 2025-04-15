@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_server_SQLiteIDBTransaction_h
+#define WebCore_Modules_indexeddb_server_SQLiteIDBTransaction_h
 
 #include "IDBError.h"
 #include "IDBIndexIdentifier.h"
@@ -102,3 +103,4 @@ private:
 
 } // namespace IDBServer
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_server_SQLiteIDBTransaction_h

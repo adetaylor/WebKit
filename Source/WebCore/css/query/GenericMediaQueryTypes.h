@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_query_GenericMediaQueryTypes_h
+#define WebCore_css_query_GenericMediaQueryTypes_h
 
 #include "CSSToLengthConversionData.h"
 #include "CSSValue.h"
@@ -137,3 +138,4 @@ void traverseFeatures(const Condition& condition, TraverseFunction&& function)
 
 }
 }
+#endif // WebCore_css_query_GenericMediaQueryTypes_h

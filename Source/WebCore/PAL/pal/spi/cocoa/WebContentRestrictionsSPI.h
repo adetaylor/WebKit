@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_WebContentRestrictionsSPI_h
+#define WebCore_PAL_pal_spi_cocoa_WebContentRestrictionsSPI_h
 
 #if HAVE(WEBCONTENTRESTRICTIONS)
 
@@ -42,3 +43,4 @@
 #endif // USE(APPLE_INTERNAL_SDK)
 
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_WebContentRestrictionsSPI_h

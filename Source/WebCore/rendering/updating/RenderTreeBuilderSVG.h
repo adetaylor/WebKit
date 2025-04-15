@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_updating_RenderTreeBuilderSVG_h
+#define WebCore_rendering_updating_RenderTreeBuilderSVG_h
 
 #include "RenderTreeBuilder.h"
 #include <wtf/TZoneMalloc.h>
@@ -64,3 +65,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_updating_RenderTreeBuilderSVG_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cairo_PathCairo_h
+#define WebCore_platform_graphics_cairo_PathCairo_h
 
 #if USE(CAIRO)
 
@@ -95,3 +96,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::PathCairo)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // USE(CAIRO)
+#endif // WebCore_platform_graphics_cairo_PathCairo_h

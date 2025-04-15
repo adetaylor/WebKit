@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_CompositeOperationOrAuto_h
+#define WebCore_animation_CompositeOperationOrAuto_h
 
 #include "CompositeOperation.h"
 
@@ -46,3 +47,4 @@ constexpr CompositeOperationOrAuto toCompositeOperationOrAuto(CompositeOperation
 }
 
 } // namespace WebCore
+#endif // WebCore_animation_CompositeOperationOrAuto_h

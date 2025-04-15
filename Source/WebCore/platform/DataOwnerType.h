@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_DataOwnerType_h
+#define WebCore_platform_DataOwnerType_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ enum class DataOwnerType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_DataOwnerType_h

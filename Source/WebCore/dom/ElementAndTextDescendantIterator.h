@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementAndTextDescendantIterator_h
+#define WebCore_dom_ElementAndTextDescendantIterator_h
 
 #include "Element.h"
 #include "ElementIteratorAssertions.h"
@@ -309,3 +310,4 @@ inline ElementAndTextDescendantRange elementAndTextDescendants(ContainerNode& ro
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_ElementAndTextDescendantIterator_h

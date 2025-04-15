@@ -23,7 +23,8 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_platform_SleepDisablerClient_h
+#define WebCore_platform_SleepDisablerClient_h
 
 #include "PageIdentifier.h"
 #include "SleepDisablerIdentifier.h"
@@ -41,3 +42,4 @@ public:
 WEBCORE_EXPORT std::unique_ptr<SleepDisablerClient>& sleepDisablerClient();
 
 } // namespace WebCore
+#endif // WebCore_platform_SleepDisablerClient_h

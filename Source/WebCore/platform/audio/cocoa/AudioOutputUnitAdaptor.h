@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_cocoa_AudioOutputUnitAdaptor_h
+#define WebCore_platform_audio_cocoa_AudioOutputUnitAdaptor_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -64,3 +65,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_platform_audio_cocoa_AudioOutputUnitAdaptor_h

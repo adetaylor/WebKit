@@ -18,7 +18,8 @@
  *
  */
  
-#pragma once
+#ifndef WTF_wtf_RefCountedLeakCounter_h
+#define WTF_wtf_RefCountedLeakCounter_h
 
 #include <atomic>
 #include <wtf/Assertions.h>
@@ -45,3 +46,4 @@ private:
 };
 
 }  // namespace WTF
+#endif // WTF_wtf_RefCountedLeakCounter_h

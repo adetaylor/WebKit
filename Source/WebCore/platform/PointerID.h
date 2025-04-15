@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_PointerID_h
+#define WebCore_platform_PointerID_h
 
 namespace WebCore {
 
@@ -32,3 +33,4 @@ using PointerID = uint32_t;
 static constexpr PointerID mousePointerID = 1;
 
 }
+#endif // WebCore_platform_PointerID_h

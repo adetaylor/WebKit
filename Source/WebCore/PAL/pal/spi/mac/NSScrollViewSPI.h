@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSScrollViewSPI_h
+#define WebCore_PAL_pal_spi_mac_NSScrollViewSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -44,3 +45,4 @@ CGFloat _NSReboundDeltaForElasticDelta(CGFloat delta);
 WTF_EXTERN_C_END
 
 #endif // USE(APPKIT)
+#endif // WebCore_PAL_pal_spi_mac_NSScrollViewSPI_h

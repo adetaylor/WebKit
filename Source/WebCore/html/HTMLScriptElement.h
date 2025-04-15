@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLScriptElement_h
+#define WebCore_html_HTMLScriptElement_h
 
 #include "DOMTokenList.h"
 #include "HTMLElement.h"
@@ -114,3 +115,4 @@ private:
 };
 
 } //namespace
+#endif // WebCore_html_HTMLScriptElement_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_PlatformTextAlternatives_h
+#define WebCore_platform_cocoa_PlatformTextAlternatives_h
 
 #if USE(BROWSERENGINEKIT)
 OBJC_CLASS BETextAlternatives;
@@ -32,3 +33,4 @@ OBJC_CLASS BETextAlternatives;
 OBJC_CLASS NSTextAlternatives;
 #define PlatformTextAlternatives NSTextAlternatives
 #endif
+#endif // WebCore_platform_cocoa_PlatformTextAlternatives_h

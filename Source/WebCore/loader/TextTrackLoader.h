@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_TextTrackLoader_h
+#define WebCore_loader_TextTrackLoader_h
 
 #if ENABLE(VIDEO)
 
@@ -111,3 +112,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_loader_TextTrackLoader_h

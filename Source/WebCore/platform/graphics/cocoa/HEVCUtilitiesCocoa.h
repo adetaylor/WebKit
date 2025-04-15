@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_HEVCUtilitiesCocoa_h
+#define WebCore_platform_graphics_cocoa_HEVCUtilitiesCocoa_h
 
 #if PLATFORM(COCOA)
 
@@ -39,3 +40,4 @@ std::optional<MediaCapabilitiesInfo> validateDoViParameters(const DoViParameters
 }
 
 #endif
+#endif // WebCore_platform_graphics_cocoa_HEVCUtilitiesCocoa_h

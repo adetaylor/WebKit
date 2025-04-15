@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_system_cocoa_SleepDisablerCocoa_h
+#define WebCore_PAL_pal_system_cocoa_SleepDisablerCocoa_h
 
 #if PLATFORM(COCOA)
 
@@ -60,3 +61,4 @@ private:
 } // namespace PAL
 
 #endif // PLATFORM(COCOA)
+#endif // WebCore_PAL_pal_system_cocoa_SleepDisablerCocoa_h

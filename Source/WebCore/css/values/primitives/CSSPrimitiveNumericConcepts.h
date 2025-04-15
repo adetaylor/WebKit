@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSPrimitiveNumericConcepts_h
+#define WebCore_css_values_primitives_CSSPrimitiveNumericConcepts_h
 
 #include "CSSPrimitiveNumericRange.h"
 #include "CSSValueConcepts.h"
@@ -97,3 +98,4 @@ template<typename T> concept Calc = std::same_as<T, UnevaluatedCalc<typename T::
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_primitives_CSSPrimitiveNumericConcepts_h

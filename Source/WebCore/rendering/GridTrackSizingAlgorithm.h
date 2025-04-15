@@ -23,7 +23,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#pragma once
+#ifndef WebCore_rendering_GridTrackSizingAlgorithm_h
+#define WebCore_rendering_GridTrackSizingAlgorithm_h
 
 #include "Grid.h"
 #include "GridBaselineAlignment.h"
@@ -398,3 +399,4 @@ GridAxis gridAxisForDirection(GridTrackSizingDirection);
 GridTrackSizingDirection gridDirectionForAxis(GridAxis);
 
 } // namespace WebCore
+#endif // WebCore_rendering_GridTrackSizingAlgorithm_h

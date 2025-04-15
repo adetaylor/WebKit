@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RTCBundlePolicy_h
+#define WebCore_platform_mediastream_RTCBundlePolicy_h
 
 #if ENABLE(WEB_RTC)
 
@@ -37,3 +38,4 @@ enum class RTCBundlePolicy {
 }; // namespace WebCore
 
 #endif
+#endif // WebCore_platform_mediastream_RTCBundlePolicy_h

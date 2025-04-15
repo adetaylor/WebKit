@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_SocketConnection_h
+#define WTF_wtf_glib_SocketConnection_h
 
 #include <wtf/Function.h>
 #include <wtf/HashMap.h>
@@ -68,3 +69,4 @@ private:
 } // namespace WTF
 
 using WTF::SocketConnection;
+#endif // WTF_wtf_glib_SocketConnection_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBIndex_h
+#define WebCore_Modules_indexeddb_IDBIndex_h
 
 #include "IDBCursor.h"
 #include "IDBIndexInfo.h"
@@ -114,3 +115,4 @@ private:
 WebCoreOpaqueRoot root(IDBIndex*);
 
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_IDBIndex_h

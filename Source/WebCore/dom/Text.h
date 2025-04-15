@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_Text_h
+#define WebCore_dom_Text_h
 
 #include "CharacterData.h"
 #include "RenderPtr.h"
@@ -78,3 +79,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Text)
     static bool isType(const WebCore::Node& node) { return node.isTextNode(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_Text_h

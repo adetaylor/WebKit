@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FloatSegment_h
+#define WebCore_platform_graphics_FloatSegment_h
 
 #include <algorithm>
 #include <wtf/Vector.h>
@@ -82,3 +83,4 @@ inline Vector<FloatSegment> differenceWithDilation(FloatSegment a, Vector<FloatS
 WEBCORE_EXPORT TextStream& operator<<(TextStream&, FloatSegment);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_FloatSegment_h

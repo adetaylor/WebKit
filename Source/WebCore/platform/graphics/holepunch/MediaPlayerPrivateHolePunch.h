@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_holepunch_MediaPlayerPrivateHolePunch_h
+#define WebCore_platform_graphics_holepunch_MediaPlayerPrivateHolePunch_h
 
 #if USE(EXTERNAL_HOLEPUNCH)
 
@@ -117,3 +118,4 @@ private:
 };
 }
 #endif // USE(EXTERNAL_HOLEPUNCH)
+#endif // WebCore_platform_graphics_holepunch_MediaPlayerPrivateHolePunch_h

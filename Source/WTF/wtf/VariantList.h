@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_VariantList_h
+#define WTF_wtf_VariantList_h
 
 #include <array>
 #include <span>
@@ -349,3 +350,4 @@ template<typename V, size_t inlineCapacity> void VariantList<V, inlineCapacity>:
 } // namespace WTF
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_VariantList_h

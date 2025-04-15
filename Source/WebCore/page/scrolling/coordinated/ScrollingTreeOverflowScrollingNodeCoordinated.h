@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_coordinated_ScrollingTreeOverflowScrollingNodeCoordinated_h
+#define WebCore_page_scrolling_coordinated_ScrollingTreeOverflowScrollingNodeCoordinated_h
 
 #if ENABLE(ASYNC_SCROLLING) && USE(COORDINATED_GRAPHICS)
 #include "ScrollingTreeOverflowScrollingNode.h"
@@ -53,3 +54,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(ASYNC_SCROLLING) && USE(COORDINATED_GRAPHICS)
+#endif // WebCore_page_scrolling_coordinated_ScrollingTreeOverflowScrollingNodeCoordinated_h

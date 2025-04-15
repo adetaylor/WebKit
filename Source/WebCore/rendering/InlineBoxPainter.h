@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_InlineBoxPainter_h
+#define WebCore_rendering_InlineBoxPainter_h
 
 #include "FloatRect.h"
 #include "GraphicsTypes.h"
@@ -71,3 +72,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_InlineBoxPainter_h

@@ -22,7 +22,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-#pragma once
+#ifndef WebCore_crypto_algorithms_CryptoAlgorithmEd25519_h
+#define WebCore_crypto_algorithms_CryptoAlgorithmEd25519_h
 
 #include "CryptoAlgorithm.h"
 
@@ -59,3 +60,4 @@ inline CryptoAlgorithmIdentifier CryptoAlgorithmEd25519::identifier() const
 }
 
 } // namespace WebCore
+#endif // WebCore_crypto_algorithms_CryptoAlgorithmEd25519_h

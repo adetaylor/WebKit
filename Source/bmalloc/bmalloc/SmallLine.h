@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_SmallLine_h
+#define bmalloc_bmalloc_SmallLine_h
 
 #include "BAssert.h"
 #include "Mutex.h"
@@ -68,3 +69,4 @@ inline bool SmallLine::deref(UniqueLockHolder&)
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_SmallLine_h

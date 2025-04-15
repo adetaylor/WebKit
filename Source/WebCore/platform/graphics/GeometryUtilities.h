@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GeometryUtilities_h
+#define WebCore_platform_graphics_GeometryUtilities_h
 
 #include "FloatRect.h"
 #include "IntRect.h"
@@ -122,3 +123,4 @@ static inline float max4(float a, float b, float c, float d)
 }
 
 }
+#endif // WebCore_platform_graphics_GeometryUtilities_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasession_MediaImage_h
+#define WebCore_Modules_mediasession_MediaImage_h
 
 #if ENABLE(MEDIA_SESSION)
 
@@ -41,3 +42,4 @@ struct MediaImage {
 }
 
 #endif // ENABLE(MEDIA_SESSION)
+#endif // WebCore_Modules_mediasession_MediaImage_h

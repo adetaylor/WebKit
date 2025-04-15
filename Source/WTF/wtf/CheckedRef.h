@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CheckedRef_h
+#define WTF_wtf_CheckedRef_h
 
 #include <atomic>
 #include <wtf/Forward.h>
@@ -335,3 +336,4 @@ public:
 using WTF::CanMakeCheckedPtr;
 using WTF::CanMakeThreadSafeCheckedPtr;
 using WTF::CheckedRef;
+#endif // WTF_wtf_CheckedRef_h

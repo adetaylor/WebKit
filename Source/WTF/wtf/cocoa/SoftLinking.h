@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cocoa_SoftLinking_h
+#define WTF_wtf_cocoa_SoftLinking_h
 
 #import <dlfcn.h>
 #import <objc/runtime.h>
@@ -712,3 +713,4 @@ static void* lib##Library() \
         return variable##framework##variableName; \
     } \
     }
+#endif // WTF_wtf_cocoa_SoftLinking_h

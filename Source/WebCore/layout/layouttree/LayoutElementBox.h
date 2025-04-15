@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_layouttree_LayoutElementBox_h
+#define WebCore_layout_layouttree_LayoutElementBox_h
 
 #include "LayoutBox.h"
 #include <wtf/TZoneMalloc.h>
@@ -124,3 +125,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_LAYOUT_BOX(ElementBox, isElementBox())
 
+#endif // WebCore_layout_layouttree_LayoutElementBox_h

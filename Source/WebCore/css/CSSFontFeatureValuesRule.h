@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSFontFeatureValuesRule_h
+#define WebCore_css_CSSFontFeatureValuesRule_h
 
 #include "CSSRule.h"
 
@@ -86,3 +87,4 @@ private:
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSFontFeatureValuesRule, StyleRuleType::FontFeatureValues)
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSFontFeatureValuesBlockRule, StyleRuleType::FontFeatureValuesBlock)
+#endif // WebCore_css_CSSFontFeatureValuesRule_h

@@ -27,7 +27,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_ColorChooser_h
+#define WebCore_platform_ColorChooser_h
 
 #include <wtf/AbstractRefCounted.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -47,3 +48,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_ColorChooser_h

@@ -23,7 +23,8 @@
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_platform_ios_MotionManagerClient_h
+#define WebCore_platform_ios_MotionManagerClient_h
 
 #if PLATFORM(IOS_FAMILY) && ENABLE(DEVICE_ORIENTATION)
 
@@ -53,3 +54,4 @@ public:
 };
 
 #endif // PLATFORM(IOS_FAMILY) && ENABLE(DEVICE_ORIENTATION)
+#endif // WebCore_platform_ios_MotionManagerClient_h

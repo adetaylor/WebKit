@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_BaselineAlignmentInlines_h
+#define WebCore_rendering_BaselineAlignmentInlines_h
 
 #include "RenderStyleConstants.h"
 
@@ -36,3 +37,4 @@ static inline bool isFirstBaselinePosition(ItemPosition position)
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_BaselineAlignmentInlines_h

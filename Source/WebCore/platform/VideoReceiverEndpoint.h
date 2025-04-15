@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_VideoReceiverEndpoint_h
+#define WebCore_platform_VideoReceiverEndpoint_h
 
 #if ENABLE(LINEAR_MEDIA_PLAYER)
 #include <wtf/OSObjectPtr.h>
@@ -43,3 +44,4 @@ using VideoReceiverEndpoint = void*;
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_VideoReceiverEndpoint_h

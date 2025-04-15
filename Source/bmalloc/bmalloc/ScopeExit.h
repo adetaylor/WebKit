@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_ScopeExit_h
+#define bmalloc_bmalloc_ScopeExit_h
 
 #include <type_traits>
 #include <utility>
@@ -54,3 +55,4 @@ ScopeExit<ExitFunction> makeScopeExit(ExitFunction&& exitFunction)
 }
     
 } // namespace bmalloc
+#endif // bmalloc_bmalloc_ScopeExit_h

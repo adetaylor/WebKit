@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSColorMixSerialization_h
+#define WebCore_css_values_color_CSSColorMixSerialization_h
 
 #include "CSSColorMix.h"
 #include "StyleColorMix.h"
@@ -113,3 +114,4 @@ void serializationForCSSColorMix(StringBuilder& builder, const CSS::Serializatio
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSColorMixSerialization_h

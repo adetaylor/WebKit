@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_libwebrtc_LibWebRTCSocketIdentifier_h
+#define WebCore_platform_mediastream_libwebrtc_LibWebRTCSocketIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ enum class LibWebRTCSocketIdentifierType { };
 using LibWebRTCSocketIdentifier = AtomicObjectIdentifier<LibWebRTCSocketIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_platform_mediastream_libwebrtc_LibWebRTCSocketIdentifier_h

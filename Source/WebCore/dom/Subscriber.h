@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_Subscriber_h
+#define WebCore_dom_Subscriber_h
 
 #include "AbortController.h"
 #include "ActiveDOMObject.h"
@@ -93,3 +94,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_Subscriber_h

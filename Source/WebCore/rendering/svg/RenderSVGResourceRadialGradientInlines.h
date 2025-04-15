@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceRadialGradientInlines_h
+#define WebCore_rendering_svg_RenderSVGResourceRadialGradientInlines_h
 
 #include "RenderSVGResourceRadialGradient.h"
 #include "SVGRadialGradientElement.h"
@@ -36,3 +37,4 @@ inline SVGRadialGradientElement& RenderSVGResourceRadialGradient::radialGradient
 }
 
 }
+#endif // WebCore_rendering_svg_RenderSVGResourceRadialGradientInlines_h

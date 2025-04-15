@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Ref_h
+#define WTF_wtf_Ref_h
 
 #include <wtf/Assertions.h>
 #include <wtf/Forward.h>
@@ -332,3 +333,4 @@ inline RefPtr<match_constness_t<Source, Target>> dynamicDowncast(Ref<Source, Ptr
 using WTF::Ref;
 using WTF::adoptRef;
 using WTF::static_reference_cast;
+#endif // WTF_wtf_Ref_h

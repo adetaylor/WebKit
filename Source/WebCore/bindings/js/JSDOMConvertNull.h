@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertNull_h
+#define WebCore_bindings_js_JSDOMConvertNull_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertBase.h"
@@ -51,3 +52,4 @@ template<> struct JSConverter<IDLNull> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertNull_h

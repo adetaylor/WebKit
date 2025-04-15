@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StdIntExtras_h
+#define WTF_wtf_StdIntExtras_h
 
 #include <cstdint>
 
@@ -41,3 +42,4 @@ using UCPURegister = uint32_t;
 
 using WTF::CPURegister;
 using WTF::UCPURegister;
+#endif // WTF_wtf_StdIntExtras_h

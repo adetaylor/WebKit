@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_shapes_CSSFillRule_h
+#define WebCore_css_values_shapes_CSSFillRule_h
 
 #include "CSSValueTypes.h"
 
@@ -33,3 +34,4 @@ using FillRule = std::variant<Keyword::Nonzero, Keyword::Evenodd>;
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_shapes_CSSFillRule_h

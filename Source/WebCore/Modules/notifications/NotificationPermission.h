@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_notifications_NotificationPermission_h
+#define WebCore_Modules_notifications_NotificationPermission_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class NotificationPermission {
 };
 
 }
+#endif // WebCore_Modules_notifications_NotificationPermission_h

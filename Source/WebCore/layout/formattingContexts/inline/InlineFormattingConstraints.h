@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineFormattingConstraints_h
+#define WebCore_layout_formattingContexts_inline_InlineFormattingConstraints_h
 
 #include "FormattingConstraints.h"
 #include "LayoutSize.h"
@@ -54,3 +55,4 @@ inline ConstraintsForInlineContent::ConstraintsForInlineContent(const Constraint
 
 SPECIALIZE_TYPE_TRAITS_LAYOUT_FORMATTING_CONSTRAINTS(ConstraintsForInlineContent, isConstraintsForInlineContent())
 
+#endif // WebCore_layout_formattingContexts_inline_InlineFormattingConstraints_h

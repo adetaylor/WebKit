@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollTypes_h
+#define WebCore_platform_ScrollTypes_h
 
 #include "FloatPoint.h"
 #include "FloatSize.h"
@@ -404,3 +405,4 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, ScrollbarWidth);
 
 } // namespace WebCore
 
+#endif // WebCore_platform_ScrollTypes_h

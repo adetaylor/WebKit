@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GraphicsContextGLActiveInfo_h
+#define WebCore_platform_graphics_GraphicsContextGLActiveInfo_h
 
 #if ENABLE(WEBGL)
 
@@ -41,3 +42,4 @@ struct GraphicsContextGLActiveInfo {
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_graphics_GraphicsContextGLActiveInfo_h

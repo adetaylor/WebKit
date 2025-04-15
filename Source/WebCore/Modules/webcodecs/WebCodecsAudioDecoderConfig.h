@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_WebCodecsAudioDecoderConfig_h
+#define WebCore_Modules_webcodecs_WebCodecsAudioDecoderConfig_h
 
 #if ENABLE(WEB_CODECS)
 
@@ -46,3 +47,4 @@ struct WebCodecsAudioDecoderConfig {
 }
 
 #endif
+#endif // WebCore_Modules_webcodecs_WebCodecsAudioDecoderConfig_h

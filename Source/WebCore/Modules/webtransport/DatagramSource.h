@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_DatagramSource_h
+#define WebCore_Modules_webtransport_DatagramSource_h
 
 #include "ReadableStreamSource.h"
 
@@ -52,3 +53,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_webtransport_DatagramSource_h

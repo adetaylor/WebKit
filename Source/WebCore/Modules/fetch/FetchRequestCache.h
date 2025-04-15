@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchRequestCache_h
+#define WebCore_Modules_fetch_FetchRequestCache_h
 
 #include "FetchOptions.h"
 
@@ -33,3 +34,4 @@ using FetchRequestCache = FetchOptions::Cache;
 
 }
 
+#endif // WebCore_Modules_fetch_FetchRequestCache_h

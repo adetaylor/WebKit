@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ObjectIdentifier_h
+#define WTF_wtf_ObjectIdentifier_h
 
 #include <wtf/Compiler.h>
 #include <wtf/HashTraits.h>
@@ -295,3 +296,4 @@ using WTF::AtomicObjectIdentifier;
 using WTF::ObjectIdentifierGenericBase;
 using WTF::ObjectIdentifierGeneric;
 using WTF::ObjectIdentifier;
+#endif // WTF_wtf_ObjectIdentifier_h

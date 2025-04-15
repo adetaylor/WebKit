@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cocoa_NSStringExtras_h
+#define WTF_wtf_cocoa_NSStringExtras_h
 
 #import <Foundation/Foundation.h>
 #import <wtf/StdLibExtras.h>
@@ -40,3 +41,4 @@ inline const char* safePrintfType(NSString *string) { return string.UTF8String; 
 }
 
 using WTF::span;
+#endif // WTF_wtf_cocoa_NSStringExtras_h

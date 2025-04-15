@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollAnimationKeyboard_h
+#define WebCore_platform_ScrollAnimationKeyboard_h
 
 #include "KeyboardScroll.h"
 #include "RectEdges.h"
@@ -70,3 +71,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_SCROLL_ANIMATION(WebCore::ScrollAnimationKeyboard, type() == WebCore::ScrollAnimation::Type::Keyboard)
+#endif // WebCore_platform_ScrollAnimationKeyboard_h

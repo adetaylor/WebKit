@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_StyleResolver_h
+#define WebCore_style_StyleResolver_h
 
 #include "CSSSelector.h"
 #include "ElementRuleCollector.h"
@@ -195,3 +196,4 @@ private:
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_StyleResolver_h

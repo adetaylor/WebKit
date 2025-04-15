@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_FontInterrogation_h
+#define WebCore_platform_graphics_cocoa_FontInterrogation_h
 
 #include <CoreText/CoreText.h>
 
@@ -80,3 +81,4 @@ struct FontInterrogation {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_cocoa_FontInterrogation_h

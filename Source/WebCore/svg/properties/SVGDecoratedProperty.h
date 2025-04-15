@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGDecoratedProperty_h
+#define WebCore_svg_properties_SVGDecoratedProperty_h
 
 #include <wtf/RefCounted.h>
 
@@ -56,3 +57,4 @@ public:
 WTF_MAKE_TZONE_ALLOCATED_TEMPLATE_IMPL(template<typename DecorationType>, SVGDecoratedProperty<DecorationType>);
 
 } // namespace WebCore
+#endif // WebCore_svg_properties_SVGDecoratedProperty_h

@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_InspectorCSSOMWrappers_h
+#define WebCore_style_InspectorCSSOMWrappers_h
 
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
@@ -62,3 +63,4 @@ private:
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_InspectorCSSOMWrappers_h

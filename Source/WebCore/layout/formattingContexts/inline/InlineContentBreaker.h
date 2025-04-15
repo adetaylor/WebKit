@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineContentBreaker_h
+#define WebCore_layout_formattingContexts_inline_InlineContentBreaker_h
 
 #include "FormattingConstraints.h"
 #include "LayoutUnits.h"
@@ -210,3 +211,4 @@ inline InlineContentBreaker::ContinuousContent::Run::Run(const Run& other)
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_InlineContentBreaker_h

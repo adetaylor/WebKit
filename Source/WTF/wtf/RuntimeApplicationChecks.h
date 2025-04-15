@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RuntimeApplicationChecks_h
+#define WTF_wtf_RuntimeApplicationChecks_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -95,3 +96,4 @@ using WTF::setLegacyPresentingApplicationPID;
 #if HAVE(AUDIT_TOKEN)
 using WTF::pidFromAuditToken;
 #endif
+#endif // WTF_wtf_RuntimeApplicationChecks_h

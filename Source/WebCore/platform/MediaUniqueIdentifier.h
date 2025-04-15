@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_MediaUniqueIdentifier_h
+#define WebCore_platform_MediaUniqueIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ enum class MediaUniqueIdentifierType { };
 using MediaUniqueIdentifier = ObjectIdentifier<MediaUniqueIdentifierType>;
 
 }
+#endif // WebCore_platform_MediaUniqueIdentifier_h

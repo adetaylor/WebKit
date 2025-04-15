@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushSubscriptionIdentifier_h
+#define WebCore_Modules_push_api_PushSubscriptionIdentifier_h
 
 #include <wtf/HashTraits.h>
 #include <wtf/Hasher.h>
@@ -113,3 +114,4 @@ template<> struct HashTraits<WebCore::PushSubscriptionSetIdentifier> : GenericHa
 };
 
 } // namespace WTF
+#endif // WebCore_Modules_push_api_PushSubscriptionIdentifier_h

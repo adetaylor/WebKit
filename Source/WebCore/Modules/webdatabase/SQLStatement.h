@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdatabase_SQLStatement_h
+#define WebCore_Modules_webdatabase_SQLStatement_h
 
 #include "SQLCallbackWrapper.h"
 #include "SQLStatementCallback.h"
@@ -79,3 +80,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdatabase_SQLStatement_h

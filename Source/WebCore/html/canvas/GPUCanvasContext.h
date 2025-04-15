@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_GPUCanvasContext_h
+#define WebCore_html_canvas_GPUCanvasContext_h
 
 #include "ExceptionOr.h"
 #include "GPUBasedCanvasRenderingContext.h"
@@ -69,3 +70,4 @@ protected:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CANVASRENDERINGCONTEXT(WebCore::GPUCanvasContext, isWebGPU())
+#endif // WebCore_html_canvas_GPUCanvasContext_h

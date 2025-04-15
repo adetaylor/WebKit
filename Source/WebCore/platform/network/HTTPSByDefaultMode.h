@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_HTTPSByDefaultMode_h
+#define WebCore_platform_network_HTTPSByDefaultMode_h
 
 namespace WebCore {
 
 enum class HTTPSByDefaultMode : uint8_t { Disabled, UpgradeWithAutomaticFallback, UpgradeWithUserMediatedFallback, UpgradeAndNoFallback };
 
 };
+#endif // WebCore_platform_network_HTTPSByDefaultMode_h

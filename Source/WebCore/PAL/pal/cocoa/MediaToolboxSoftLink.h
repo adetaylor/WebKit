@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_MediaToolboxSoftLink_h
+#define WebCore_PAL_pal_cocoa_MediaToolboxSoftLink_h
 
 #if USE(MEDIATOOLBOX)
 
@@ -56,3 +57,4 @@ SOFT_LINK_FUNCTION_MAY_FAIL_FOR_HEADER(PAL, MediaToolbox, MTAudioProcessingTapCr
 #define MTAudioProcessingTapCreate softLink_MediaToolbox_MTAudioProcessingTapCreate
 
 #endif // USE(MEDIATOOLBOX)
+#endif // WebCore_PAL_pal_cocoa_MediaToolboxSoftLink_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_integration_inline_InlineIteratorBoxInlines_h
+#define WebCore_layout_integration_inline_InlineIteratorBoxInlines_h
 
 #include "InlineIteratorBox.h"
 #include "InlineIteratorBoxModernPathInlines.h"
@@ -109,3 +110,4 @@ inline LeafBoxIterator& LeafBoxIterator::traverseLogicalLeftwardOnLineIgnoringLi
 
 }
 }
+#endif // WebCore_layout_integration_inline_InlineIteratorBoxInlines_h

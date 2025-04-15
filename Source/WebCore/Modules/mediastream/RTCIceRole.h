@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediastream_RTCIceRole_h
+#define WebCore_Modules_mediastream_RTCIceRole_h
 
 namespace WebCore {
 
 enum class RTCIceRole { Unknown, Controlling, Controlled };
 
 } // namespace WebCore
+#endif // WebCore_Modules_mediastream_RTCIceRole_h

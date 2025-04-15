@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderTheme_h
+#define WebCore_rendering_RenderTheme_h
 
 #include "ColorHash.h"
 #include "GraphicsContext.h"
@@ -436,3 +437,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderTheme_h

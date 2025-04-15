@@ -24,7 +24,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedFontLoadRequest_h
+#define WebCore_loader_cache_CachedFontLoadRequest_h
 
 #include "CachedFont.h"
 #include "CachedFontClient.h"
@@ -112,3 +113,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_FONTLOADREQUEST(WebCore::CachedFontLoadRequest, isCachedFontLoadRequest())
+#endif // WebCore_loader_cache_CachedFontLoadRequest_h

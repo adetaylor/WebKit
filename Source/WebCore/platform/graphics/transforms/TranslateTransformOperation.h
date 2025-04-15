@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_TranslateTransformOperation_h
+#define WebCore_platform_graphics_transforms_TranslateTransformOperation_h
 
 #include "Length.h"
 #include "LengthFunctions.h"
@@ -92,3 +93,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_TRANSFORMOPERATION(WebCore::TranslateTransformOperation, WebCore::TransformOperation::isTranslateTransformOperationType)
+#endif // WebCore_platform_graphics_transforms_TranslateTransformOperation_h

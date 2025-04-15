@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_ModelDocument_h
+#define WebCore_html_ModelDocument_h
 
 #if ENABLE(MODEL_ELEMENT)
 
@@ -66,3 +67,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ModelDocument)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(MODEL_ELEMENT)
+#endif // WebCore_html_ModelDocument_h

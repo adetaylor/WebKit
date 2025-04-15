@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_AttributeChangeInvalidation_h
+#define WebCore_style_AttributeChangeInvalidation_h
 
 #include "Element.h"
 #include "StyleInvalidator.h"
@@ -65,3 +66,4 @@ inline AttributeChangeInvalidation::~AttributeChangeInvalidation()
     
 }
 }
+#endif // WebCore_style_AttributeChangeInvalidation_h

@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_BufferSource_h
+#define WebCore_bindings_js_BufferSource_h
 
 #include <JavaScriptCore/ArrayBuffer.h>
 #include <JavaScriptCore/ArrayBufferView.h>
@@ -103,3 +104,4 @@ inline RetainPtr<NSData> toNSData(const BufferSource& data)
 #if PLATFORM(COCOA) && defined(__OBJC__)
 using WebCore::toNSData;
 #endif
+#endif // WebCore_bindings_js_BufferSource_h

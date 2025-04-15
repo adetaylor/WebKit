@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestNamedAndIndexedSetterThrowingException_h
+#define WebCore_bindings_scripts_test_JS_JSTestNamedAndIndexedSetterThrowingException_h
 
 #include "JSDOMWrapper.h"
 #include "TestNamedAndIndexedSetterThrowingException.h"
@@ -103,3 +104,4 @@ template<> struct JSDOMWrapperConverterTraits<TestNamedAndIndexedSetterThrowingE
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSTestNamedAndIndexedSetterThrowingException_h

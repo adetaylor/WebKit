@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InstrumentingAgents_h
+#define WebCore_inspector_InstrumentingAgents_h
 
 #include <JavaScriptCore/InspectorEnvironment.h>
 #include <wtf/Noncopyable.h>
@@ -176,3 +177,4 @@ FOR_EACH_INSPECTOR_AGENT(DECLARE_MEMBER_VARIABLE_FOR_INSPECTOR_AGENT)
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InstrumentingAgents_h

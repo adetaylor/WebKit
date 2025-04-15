@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_server_UniqueIDBDatabaseConnection_h
+#define WebCore_Modules_indexeddb_server_UniqueIDBDatabaseConnection_h
 
 #include "IDBDatabaseConnectionIdentifier.h"
 #include "UniqueIDBDatabase.h"
@@ -101,3 +102,4 @@ private:
 
 } // namespace IDBServer
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_server_UniqueIDBDatabaseConnection_h

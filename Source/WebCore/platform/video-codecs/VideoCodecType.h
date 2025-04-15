@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_video_codecs_VideoCodecType_h
+#define WebCore_platform_video_codecs_VideoCodecType_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ enum class VideoCodecType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_video_codecs_VideoCodecType_h

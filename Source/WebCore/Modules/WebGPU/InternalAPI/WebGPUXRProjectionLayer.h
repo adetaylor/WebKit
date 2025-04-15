@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUXRProjectionLayer_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUXRProjectionLayer_h
 
 #include "PlatformXR.h"
 #include "WebGPUTextureFormat.h"
@@ -92,3 +93,4 @@ private:
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUXRProjectionLayer_h

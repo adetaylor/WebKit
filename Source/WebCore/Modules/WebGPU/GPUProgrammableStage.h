@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUProgrammableStage_h
+#define WebCore_Modules_WebGPU_GPUProgrammableStage_h
 
 #include "GPUShaderModule.h"
 #include "WebGPUProgrammableStage.h"
@@ -53,3 +54,4 @@ struct GPUProgrammableStage {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUProgrammableStage_h

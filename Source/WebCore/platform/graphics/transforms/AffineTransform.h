@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_AffineTransform_h
+#define WebCore_platform_graphics_transforms_AffineTransform_h
 
 #include "CompositeOperation.h"
 #include "FloatConversion.h"
@@ -256,3 +257,4 @@ constexpr std::span<const double, 6> AffineTransform::span() const
 static constexpr inline AffineTransform identity;
 
 }
+#endif // WebCore_platform_graphics_transforms_AffineTransform_h

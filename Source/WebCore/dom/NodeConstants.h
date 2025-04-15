@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_NodeConstants_h
+#define WebCore_dom_NodeConstants_h
 
 namespace WebCore {
 
@@ -50,3 +51,4 @@ struct NodeConstants {
 };
 
 } // namespace WebCore::NodeType
+#endif // WebCore_dom_NodeConstants_h

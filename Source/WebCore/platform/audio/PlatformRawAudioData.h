@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_PlatformRawAudioData_h
+#define WebCore_platform_audio_PlatformRawAudioData_h
 
 #include "MediaPlayer.h"
 #include <span>
@@ -58,3 +59,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEB_CODECS)
+#endif // WebCore_platform_audio_PlatformRawAudioData_h

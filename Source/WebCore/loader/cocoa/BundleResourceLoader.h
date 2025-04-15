@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_cocoa_BundleResourceLoader_h
+#define WebCore_loader_cocoa_BundleResourceLoader_h
 
 namespace WebCore {
 class ResourceLoader;
@@ -33,3 +34,4 @@ void loadResourceFromBundle(ResourceLoader&, const String&);
 }
 
 }
+#endif // WebCore_loader_cocoa_BundleResourceLoader_h

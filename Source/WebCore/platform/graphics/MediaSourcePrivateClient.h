@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_MediaSourcePrivateClient_h
+#define WebCore_platform_graphics_MediaSourcePrivateClient_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -60,3 +61,4 @@ public:
 }
 
 #endif // ENABLE(MEDIA_SOURCE)
+#endif // WebCore_platform_graphics_MediaSourcePrivateClient_h

@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_CSSPrimitiveValueResolver_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_CSSPrimitiveValueResolver_h
 
 #include "CSSCalcValue.h"
 #include "CSSPrimitiveNumericTypes.h"
@@ -88,3 +89,4 @@ struct CSSPrimitiveValueResolver : MetaResolver<RefPtr<CSSPrimitiveValue>, CSSPr
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_CSSPrimitiveValueResolver_h

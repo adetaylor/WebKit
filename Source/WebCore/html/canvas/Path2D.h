@@ -25,7 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_Path2D_h
+#define WebCore_html_canvas_Path2D_h
 
 #include "CanvasPath.h"
 #include "SVGPathUtilities.h"
@@ -74,3 +75,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_canvas_Path2D_h

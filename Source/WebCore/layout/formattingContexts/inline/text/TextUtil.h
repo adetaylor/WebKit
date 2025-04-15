@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_text_TextUtil_h
+#define WebCore_layout_formattingContexts_inline_text_TextUtil_h
 
 #include "Font.h"
 #include "InlineItem.h"
@@ -117,3 +118,4 @@ public:
 
 } // namespace Layout
 } // namespace WebCore
+#endif // WebCore_layout_formattingContexts_inline_text_TextUtil_h

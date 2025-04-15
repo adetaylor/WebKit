@@ -23,7 +23,8 @@
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollAnchoringController_h
+#define WebCore_page_scrolling_ScrollAnchoringController_h
 
 #include "Document.h"
 #include "Element.h"
@@ -82,3 +83,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_scrolling_ScrollAnchoringController_h

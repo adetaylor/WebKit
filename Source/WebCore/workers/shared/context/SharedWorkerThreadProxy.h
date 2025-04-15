@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_shared_context_SharedWorkerThreadProxy_h
+#define WebCore_workers_shared_context_SharedWorkerThreadProxy_h
 
 #include "ClientOrigin.h"
 #include "SharedWorkerIdentifier.h"
@@ -107,3 +108,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_shared_context_SharedWorkerThreadProxy_h

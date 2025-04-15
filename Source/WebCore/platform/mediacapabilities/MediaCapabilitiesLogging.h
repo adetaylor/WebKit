@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediacapabilities_MediaCapabilitiesLogging_h
+#define WebCore_platform_mediacapabilities_MediaCapabilitiesLogging_h
 
 #include <wtf/text/WTFString.h>
 
@@ -117,3 +118,4 @@ struct LogArgument<WebCore::MediaEncodingType> {
 };
 
 }
+#endif // WebCore_platform_mediacapabilities_MediaCapabilitiesLogging_h

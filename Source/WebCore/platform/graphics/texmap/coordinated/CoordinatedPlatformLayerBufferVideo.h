@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferVideo_h
+#define WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferVideo_h
 
 #if USE(COORDINATED_GRAPHICS) && ENABLE(VIDEO) && USE(GSTREAMER)
 #include "CoordinatedPlatformLayerBuffer.h"
@@ -63,3 +64,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_COORDINATED_PLATFORM_LAYER_BUFFER_TYPE(CoordinatedPlatformLayerBufferVideo, Type::Video)
 
 #endif // USE(COORDINATED_GRAPHICS) && ENABLE(VIDEO) && USE(GSTREAMER)
+#endif // WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferVideo_h

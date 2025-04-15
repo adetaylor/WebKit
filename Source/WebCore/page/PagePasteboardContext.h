@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PagePasteboardContext_h
+#define WebCore_page_PagePasteboardContext_h
 
 #include "PageIdentifier.h"
 #include "PasteboardContext.h"
@@ -61,3 +62,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::PagePasteboardContext)
     static bool isType(const WebCore::PasteboardContext& context) { return context.isPagePasteboardContext(); }
 SPECIALIZE_TYPE_TRAITS_END()
 
+#endif // WebCore_page_PagePasteboardContext_h

@@ -28,7 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_ShapeValue_h
+#define WebCore_rendering_style_ShapeValue_h
 
 #include "RenderStyleConstants.h"
 #include "StyleBasicShape.h"
@@ -148,3 +149,4 @@ inline RefPtr<StyleImage> ShapeValue::protectedImage() const
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_ShapeValue_h

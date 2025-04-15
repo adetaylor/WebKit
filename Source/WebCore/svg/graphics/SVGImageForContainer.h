@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_svg_graphics_SVGImageForContainer_h
+#define WebCore_svg_graphics_SVGImageForContainer_h
 
 #include "AffineTransform.h"
 #include "FloatRect.h"
@@ -75,3 +76,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_IMAGE(SVGImageForContainer)
+#endif // WebCore_svg_graphics_SVGImageForContainer_h

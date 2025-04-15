@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_COEPInheritenceViolationReportBody_h
+#define WebCore_loader_COEPInheritenceViolationReportBody_h
 
 #include "CrossOriginEmbedderPolicy.h"
 #include "ReportBody.h"
@@ -57,3 +58,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::COEPInheritenceViolationReportBody)
     static bool isType(const WebCore::ReportBody& reportBody) { return reportBody.reportBodyType() == WebCore::ViolationReportType::COEPInheritenceViolation; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_loader_COEPInheritenceViolationReportBody_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_PositionTryFallback_h
+#define WebCore_rendering_style_PositionTryFallback_h
 
 #include "ScopedName.h"
 #include <wtf/text/AtomString.h>
@@ -58,3 +59,4 @@ TextStream& operator<<(TextStream&, const Vector<PositionTryFallback>&);
 } // namespace Style
 } // namespace WebCore
 
+#endif // WebCore_rendering_style_PositionTryFallback_h

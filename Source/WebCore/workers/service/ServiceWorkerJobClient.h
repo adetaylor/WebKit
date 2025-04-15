@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerJobClient_h
+#define WebCore_workers_service_ServiceWorkerJobClient_h
 
 #include "FetchOptions.h"
 #include "ServiceWorkerTypes.h"
@@ -56,3 +57,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerJobClient_h

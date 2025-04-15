@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_properties_SVGAnimatedPropertyAccessor_h
+#define WebCore_svg_properties_SVGAnimatedPropertyAccessor_h
 
 #include "SVGPointerMemberAccessor.h"
 
@@ -49,3 +50,4 @@ private:
 };
 
 }
+#endif // WebCore_svg_properties_SVGAnimatedPropertyAccessor_h

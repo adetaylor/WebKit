@@ -29,7 +29,8 @@
 // This file contains a standalone version of Edouard Alligand and Joel Falcou's 
 // Brigand library, which can be found at https://github.com/edouarda/brigand
 
-#pragma once
+#ifndef WTF_wtf_Brigand_h
+#define WTF_wtf_Brigand_h
 
 #if defined(_MSC_VER) && !defined(__GNUC__) && !defined(__clang__)
 #define BRIGAND_COMP_MSVC
@@ -2491,3 +2492,4 @@ namespace brigand
   template<std::uint64_t Value>
   struct double_ : real_<double, std::uint64_t,Value> {};
 }
+#endif // WTF_wtf_Brigand_h

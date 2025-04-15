@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_SystemPreviewSPI_h
+#define WebCore_PAL_pal_spi_mac_SystemPreviewSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -82,3 +83,4 @@ NS_ASSUME_NONNULL_END
 #endif // ENABLE(ARKIT_INLINE_PREVIEW_MAC)
 
 #endif // USE(APPLE_INTERNAL_SDK)
+#endif // WebCore_PAL_pal_spi_mac_SystemPreviewSPI_h

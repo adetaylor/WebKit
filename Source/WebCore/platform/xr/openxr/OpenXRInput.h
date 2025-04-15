@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_xr_openxr_OpenXRInput_h
+#define WebCore_platform_xr_openxr_OpenXRInput_h
 
 #if ENABLE(WEBXR) && USE(OPENXR)
 
@@ -55,3 +56,4 @@ private:
 } // namespace PlatformXR
 
 #endif // ENABLE(WEBXR) && USE(OPENXR)
+#endif // WebCore_platform_xr_openxr_OpenXRInput_h

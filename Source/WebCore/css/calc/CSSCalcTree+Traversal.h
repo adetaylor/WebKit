@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_Traversal_h
+#define WebCore_css_calc_CSSCalcTree_Traversal_h
 
 #include "CSSCalcTree.h"
 #include <wtf/StdLibExtras.h>
@@ -144,3 +145,4 @@ template<typename F> void forAllChildNodes(const Child& root, const F& functor)
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_Traversal_h

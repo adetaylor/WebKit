@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_UndoManager_h
+#define WebCore_page_UndoManager_h
 
 #include "Document.h"
 #include "ExceptionOr.h"
@@ -60,3 +61,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_UndoManager_h

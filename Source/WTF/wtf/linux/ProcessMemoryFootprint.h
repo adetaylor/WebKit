@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_linux_ProcessMemoryFootprint_h
+#define WTF_wtf_linux_ProcessMemoryFootprint_h
 
 #if OS(LINUX)
 
@@ -60,3 +61,4 @@ struct ProcessMemoryFootprint {
 };
 
 #endif
+#endif // WTF_wtf_linux_ProcessMemoryFootprint_h

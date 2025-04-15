@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_XMLDocument_h
+#define WebCore_dom_XMLDocument_h
 
 #include "Document.h"
 
@@ -59,3 +60,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::XMLDocument)
         return document && isType(*document);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_XMLDocument_h

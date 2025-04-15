@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSSelectorList_h
+#define WebCore_css_CSSSelectorList_h
 
 #include "CSSSelector.h"
 #include <iterator>
@@ -111,3 +112,4 @@ inline const CSSSelector* CSSSelectorList::next(const CSSSelector* current)
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 
 } // namespace WebCore
+#endif // WebCore_css_CSSSelectorList_h

@@ -28,7 +28,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleInterpolationWrapperBase_h
+#define WebCore_style_StyleInterpolationWrapperBase_h
 
 #include <wtf/FastMalloc.h>
 #include <wtf/Noncopyable.h>
@@ -71,3 +72,4 @@ private:
 
 } // namespace Style::Interpolation
 } // namespace WebCore
+#endif // WebCore_style_StyleInterpolationWrapperBase_h

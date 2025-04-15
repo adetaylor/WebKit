@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGTextLayoutEngine_h
+#define WebCore_rendering_svg_SVGTextLayoutEngine_h
 
 #include "InlineIteratorSVGTextBox.h"
 #include "Path.h"
@@ -114,3 +115,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_SVGTextLayoutEngine_h

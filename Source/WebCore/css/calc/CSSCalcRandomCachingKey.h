@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcRandomCachingKey_h
+#define WebCore_css_calc_CSSCalcRandomCachingKey_h
 
 #include "CSSCalcTree.h"
 #include <optional>
@@ -113,3 +114,4 @@ template<> struct HashTraits<WebCore::CSSCalc::RandomCachingKey> : GenericHashTr
 template<> struct DefaultHash<WebCore::CSSCalc::RandomCachingKey> : CSSCalcRandomCachingKeyHash { };
 
 } // namespace WTF
+#endif // WebCore_css_calc_CSSCalcRandomCachingKey_h

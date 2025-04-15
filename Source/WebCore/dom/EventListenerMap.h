@@ -30,7 +30,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_EventListenerMap_h
+#define WebCore_dom_EventListenerMap_h
 
 #include "RegisteredEventListener.h"
 #include <atomic>
@@ -106,3 +107,4 @@ void EventListenerMap::visitJSEventListeners(Visitor& visitor)
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_EventListenerMap_h

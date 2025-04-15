@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_fileapi_ThreadableBlobRegistry_h
+#define WebCore_fileapi_ThreadableBlobRegistry_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -66,3 +67,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_fileapi_ThreadableBlobRegistry_h

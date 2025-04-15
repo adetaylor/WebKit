@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_FilterEffectApplier_h
+#define WebCore_platform_graphics_filters_FilterEffectApplier_h
 
 #include "FilterImageVector.h"
 #include <wtf/CheckedRef.h>
@@ -59,3 +60,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_filters_FilterEffectApplier_h

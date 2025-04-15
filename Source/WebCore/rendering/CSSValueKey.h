@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_CSSValueKey_h
+#define WebCore_rendering_CSSValueKey_h
 
 #include "CSSValueKeywords.h"
 
@@ -63,3 +64,4 @@ template<> struct HashTraits<WebCore::CSSValueKey> : GenericHashTraits<WebCore::
 template<> struct DefaultHash<WebCore::CSSValueKey> : CSSValueKeyHash { };
 
 } // namespace WTF
+#endif // WebCore_rendering_CSSValueKey_h

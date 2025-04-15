@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_permissions_PermissionController_h
+#define WebCore_Modules_permissions_PermissionController_h
 
 #include "PermissionDescriptor.h"
 #include <wtf/CompletionHandler.h>
@@ -67,3 +68,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_permissions_PermissionController_h

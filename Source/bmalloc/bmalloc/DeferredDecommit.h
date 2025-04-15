@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_DeferredDecommit_h
+#define bmalloc_bmalloc_DeferredDecommit_h
 
 #if !BUSE(TZONE)
 #if !BUSE(LIBPAS)
@@ -46,3 +47,4 @@ struct DeferredDecommit {
     
 #endif
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_DeferredDecommit_h

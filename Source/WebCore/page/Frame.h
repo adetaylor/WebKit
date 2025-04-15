@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_Frame_h
+#define WebCore_page_Frame_h
 
 #include "FrameIdentifier.h"
 #include "FrameTree.h"
@@ -163,3 +164,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_Frame_h

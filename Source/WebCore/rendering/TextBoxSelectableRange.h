@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_TextBoxSelectableRange_h
+#define WebCore_rendering_TextBoxSelectableRange_h
 
 #include <optional>
 
@@ -62,3 +63,4 @@ struct TextBoxSelectableRange {
 };
 
 }
+#endif // WebCore_rendering_TextBoxSelectableRange_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_LazyLoadImageObserver_h
+#define WebCore_html_LazyLoadImageObserver_h
 
 #include "IntersectionObserver.h"
 #include <wtf/TZoneMalloc.h>
@@ -48,3 +49,4 @@ private:
 };
 
 } // namespace
+#endif // WebCore_html_LazyLoadImageObserver_h

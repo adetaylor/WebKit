@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_WebAVSampleBufferListener_h
+#define WebCore_platform_graphics_avfoundation_WebAVSampleBufferListener_h
 
 #include <CoreMedia/CMTime.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -71,3 +72,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_avfoundation_WebAVSampleBufferListener_h

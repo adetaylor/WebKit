@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_VideoEncoderGStreamer_h
+#define WebCore_platform_graphics_gstreamer_VideoEncoderGStreamer_h
 
 #if ENABLE(VIDEO) && USE(GSTREAMER)
 
@@ -51,3 +52,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO) && USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_VideoEncoderGStreamer_h

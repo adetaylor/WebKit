@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_SaturatedArithmetic_h
+#define WTF_wtf_SaturatedArithmetic_h
 
 #include <limits>
 #include <stdint.h>
@@ -123,3 +124,4 @@ template<typename IntegralType, typename... ArgumentTypes> constexpr uint32_t sa
 
 using WTF::saturatedSum;
 using WTF::saturatedDifference;
+#endif // WTF_wtf_SaturatedArithmetic_h

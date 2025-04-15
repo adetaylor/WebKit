@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_glib_RemoteCommandListenerGLib_h
+#define WebCore_platform_glib_RemoteCommandListenerGLib_h
 
 #include "RemoteCommandListener.h"
 
@@ -42,3 +43,4 @@ private:
 }
 
 #endif // USE(GLIB)
+#endif // WebCore_platform_glib_RemoteCommandListenerGLib_h

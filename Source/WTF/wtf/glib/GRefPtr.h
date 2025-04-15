@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_GRefPtr_h
+#define WTF_wtf_glib_GRefPtr_h
 
 #if USE(GLIB)
 
@@ -304,3 +305,4 @@ using WTF::GRefPtr;
 using WTF::adoptGRef;
 
 #endif // USE(GLIB)
+#endif // WTF_wtf_glib_GRefPtr_h

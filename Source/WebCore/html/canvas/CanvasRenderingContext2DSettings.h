@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasRenderingContext2DSettings_h
+#define WebCore_html_canvas_CanvasRenderingContext2DSettings_h
 
 #include "PredefinedColorSpace.h"
 #include "RenderingMode.h"
@@ -48,3 +49,4 @@ struct CanvasRenderingContext2DSettings {
 };
 
 } // namespace WebCore
+#endif // WebCore_html_canvas_CanvasRenderingContext2DSettings_h

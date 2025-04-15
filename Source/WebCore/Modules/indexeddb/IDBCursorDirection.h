@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_IDBCursorDirection_h
+#define WebCore_Modules_indexeddb_IDBCursorDirection_h
 
 #include "IndexedDB.h"
 
@@ -32,3 +33,4 @@ namespace WebCore {
 using IDBCursorDirection = IndexedDB::CursorDirection;
 
 }
+#endif // WebCore_Modules_indexeddb_IDBCursorDirection_h

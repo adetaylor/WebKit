@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_AuthenticationExtensionsClientOutputsJSON_h
+#define WebCore_Modules_webauthn_AuthenticationExtensionsClientOutputsJSON_h
 
 #if ENABLE(WEB_AUTHN)
 #include "CredentialPropertiesOutput.h"
@@ -52,3 +53,4 @@ struct AuthenticationExtensionsClientOutputsJSON {
 }
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_AuthenticationExtensionsClientOutputsJSON_h

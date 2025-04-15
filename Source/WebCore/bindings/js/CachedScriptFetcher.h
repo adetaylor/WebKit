@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_CachedScriptFetcher_h
+#define WebCore_bindings_js_CachedScriptFetcher_h
 
 #include "CachedResourceHandle.h"
 #include "ReferrerPolicy.h"
@@ -71,3 +72,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_CachedScriptFetcher_h

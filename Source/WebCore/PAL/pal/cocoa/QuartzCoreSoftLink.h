@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_QuartzCoreSoftLink_h
+#define WebCore_PAL_pal_cocoa_QuartzCoreSoftLink_h
 
 #include <pal/spi/cocoa/QuartzCoreSPI.h>
 #include <wtf/SoftLinking.h>
@@ -33,3 +34,4 @@ SOFT_LINK_FRAMEWORK_FOR_HEADER(PAL, QuartzCore)
 SOFT_LINK_FUNCTION_MAY_FAIL_FOR_HEADER(PAL, QuartzCore, CAIOSurfaceCreate, CAIOSurfaceRef, (IOSurfaceRef surface), (surface))
 #define CAIOSurfaceCreate PAL::softLink_QuartzCore_CAIOSurfaceCreate
 
+#endif // WebCore_PAL_pal_cocoa_QuartzCoreSoftLink_h

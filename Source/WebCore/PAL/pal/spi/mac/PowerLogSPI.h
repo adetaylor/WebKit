@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_PowerLogSPI_h
+#define WebCore_PAL_pal_spi_mac_PowerLogSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -47,3 +48,4 @@ WTF_EXTERN_C_END
 #endif
 
 extern NSString *const kPLTaskingStartNotification;
+#endif // WebCore_PAL_pal_spi_mac_PowerLogSPI_h

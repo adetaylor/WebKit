@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mac_PlaybackSessionInterfaceMac_h
+#define WebCore_platform_mac_PlaybackSessionInterfaceMac_h
 
 #if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
 
@@ -114,3 +115,4 @@ private:
 }
 
 #endif // PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
+#endif // WebCore_platform_mac_PlaybackSessionInterfaceMac_h

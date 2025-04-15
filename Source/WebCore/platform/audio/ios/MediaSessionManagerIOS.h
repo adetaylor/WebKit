@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_ios_MediaSessionManagerIOS_h
+#define WebCore_platform_audio_ios_MediaSessionManagerIOS_h
 
 #if PLATFORM(IOS_FAMILY)
 
@@ -99,3 +100,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_platform_audio_ios_MediaSessionManagerIOS_h

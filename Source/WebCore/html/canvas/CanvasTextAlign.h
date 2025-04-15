@@ -23,10 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasTextAlign_h
+#define WebCore_html_canvas_CanvasTextAlign_h
 
 namespace WebCore {
 
 enum class CanvasTextAlign { Start, End, Left, Right, Center };
 
 }
+#endif // WebCore_html_canvas_CanvasTextAlign_h

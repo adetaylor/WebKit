@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderElementInlines_h
+#define WebCore_rendering_RenderElementInlines_h
 
 #include "RenderElement.h"
 #include "RenderObjectInlines.h"
@@ -216,3 +217,4 @@ inline LayoutUnit adjustLayoutUnitForAbsoluteZoom(LayoutUnit value, const Render
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderElementInlines_h

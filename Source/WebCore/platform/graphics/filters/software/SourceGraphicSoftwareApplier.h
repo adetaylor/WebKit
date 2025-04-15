@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_filters_software_SourceGraphicSoftwareApplier_h
+#define WebCore_platform_graphics_filters_software_SourceGraphicSoftwareApplier_h
 
 #include "FilterEffectApplier.h"
 #include "SourceGraphic.h"
@@ -39,3 +40,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_filters_software_SourceGraphicSoftwareApplier_h

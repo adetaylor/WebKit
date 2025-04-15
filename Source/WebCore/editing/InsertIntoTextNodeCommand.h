@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_editing_InsertIntoTextNodeCommand_h
+#define WebCore_editing_InsertIntoTextNodeCommand_h
 
 #include "EditCommand.h"
 
@@ -65,3 +66,4 @@ inline const String& InsertIntoTextNodeCommand::insertedText()
 }
 
 } // namespace WebCore
+#endif // WebCore_editing_InsertIntoTextNodeCommand_h

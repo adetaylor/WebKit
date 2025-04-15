@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_CommandEvent_h
+#define WebCore_dom_CommandEvent_h
 
 #include "Event.h"
 #include "EventInit.h"
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_EVENT(CommandEvent)
+#endif // WebCore_dom_CommandEvent_h

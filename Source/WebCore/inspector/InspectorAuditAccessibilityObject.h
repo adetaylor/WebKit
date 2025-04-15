@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorAuditAccessibilityObject_h
+#define WebCore_inspector_InspectorAuditAccessibilityObject_h
 
 #include "ExceptionOr.h"
 #include <JavaScriptCore/InspectorAuditAgent.h>
@@ -87,3 +88,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorAuditAccessibilityObject_h

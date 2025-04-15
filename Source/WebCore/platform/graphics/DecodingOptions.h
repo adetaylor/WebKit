@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_DecodingOptions_h
+#define WebCore_platform_graphics_DecodingOptions_h
 
 #include "IntSize.h"
 #include <optional>
@@ -77,3 +78,4 @@ private:
 TextStream& operator<<(TextStream&, DecodingMode);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_DecodingOptions_h

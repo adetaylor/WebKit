@@ -20,7 +20,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_xml_XSLTProcessor_h
+#define WebCore_xml_XSLTProcessor_h
 
 #if ENABLE(XSLT)
 
@@ -89,3 +90,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(XSLT)
+#endif // WebCore_xml_XSLTProcessor_h

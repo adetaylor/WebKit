@@ -25,7 +25,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ViewportArguments_h
+#define WebCore_dom_ViewportArguments_h
 
 #include "FloatSize.h"
 #include <wtf/Forward.h>
@@ -154,3 +155,4 @@ WEBCORE_EXPORT void setViewportFeature(ViewportArguments&, StringView key, Strin
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const ViewportArguments&);
 
 } // namespace WebCore
+#endif // WebCore_dom_ViewportArguments_h

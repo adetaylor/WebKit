@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_UniqueRef_h
+#define WTF_wtf_UniqueRef_h
 
 #include <memory>
 #include <wtf/Assertions.h>
@@ -137,3 +138,4 @@ using WTF::makeUniqueRef;
 using WTF::makeUniqueRefWithoutFastMallocCheck;
 using WTF::makeUniqueRefWithoutRefCountedCheck;
 using WTF::makeUniqueRefFromNonNullUniquePtr;
+#endif // WTF_wtf_UniqueRef_h

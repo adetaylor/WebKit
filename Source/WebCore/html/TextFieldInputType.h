@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_TextFieldInputType_h
+#define WebCore_html_TextFieldInputType_h
 
 #include "AutoFillButtonElement.h"
 #include "DataListButtonElement.h"
@@ -152,3 +153,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_TextFieldInputType_h

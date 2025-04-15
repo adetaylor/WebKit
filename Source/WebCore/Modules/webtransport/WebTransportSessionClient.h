@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webtransport_WebTransportSessionClient_h
+#define WebCore_Modules_webtransport_WebTransportSessionClient_h
 
 #include <wtf/ThreadSafeWeakPtr.h>
 
@@ -49,3 +50,4 @@ public:
 };
 
 }
+#endif // WebCore_Modules_webtransport_WebTransportSessionClient_h

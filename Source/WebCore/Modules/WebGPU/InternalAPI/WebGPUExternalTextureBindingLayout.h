@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUExternalTextureBindingLayout_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUExternalTextureBindingLayout_h
 
 namespace WebCore::WebGPU {
 
@@ -31,3 +32,4 @@ struct ExternalTextureBindingLayout {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUExternalTextureBindingLayout_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_TextAreaPart_h
+#define WebCore_platform_graphics_controls_TextAreaPart_h
 
 #include "ControlFactory.h"
 #include "ControlPart.h"
@@ -55,3 +56,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::TextAreaPart) \
     static bool isType(const WebCore::ControlPart& part) { return part.type() == WebCore::StyleAppearance::Listbox || part.type() == WebCore::StyleAppearance::TextArea; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_controls_TextAreaPart_h

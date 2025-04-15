@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_BMalloced_h
+#define bmalloc_bmalloc_BMalloced_h
 
 #include "bmalloc.h"
 
@@ -81,3 +82,4 @@ public: \
 private: \
 typedef int __thisIsHereToForceASemicolonAfterThisMacro BUNUSED_TYPE_ALIAS
 
+#endif // bmalloc_bmalloc_BMalloced_h

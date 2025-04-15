@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cf_AudioToolboxSoftLink_h
+#define WebCore_PAL_pal_cf_AudioToolboxSoftLink_h
 
 #if USE(AVFOUNDATION)
 
@@ -152,3 +153,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, AudioToolbox, AudioUnitUninitialize, OSStatus
 #define AudioUnitUninitialize softLink_AudioToolbox_AudioUnitUninitialize
 
 #endif // USE(AVFOUNDATION)
+#endif // WebCore_PAL_pal_cf_AudioToolboxSoftLink_h

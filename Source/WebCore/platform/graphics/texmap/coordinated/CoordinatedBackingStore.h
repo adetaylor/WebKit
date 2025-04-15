@@ -17,7 +17,8 @@
  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_coordinated_CoordinatedBackingStore_h
+#define WebCore_platform_graphics_texmap_coordinated_CoordinatedBackingStore_h
 
 #if USE(COORDINATED_GRAPHICS)
 #include "CoordinatedBackingStoreTile.h"
@@ -60,3 +61,4 @@ private:
 } // namespace WebKit
 
 #endif // USE(COORDINATED_GRAPHICS)
+#endif // WebCore_platform_graphics_texmap_coordinated_CoordinatedBackingStore_h

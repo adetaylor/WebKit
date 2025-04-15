@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_SliderTrackPart_h
+#define WebCore_platform_graphics_controls_SliderTrackPart_h
 
 #include "ControlPart.h"
 #include "IntRect.h"
@@ -65,3 +66,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SliderTrackPart) \
     static bool isType(const WebCore::ControlPart& part) { return part.type() == WebCore::StyleAppearance::SliderHorizontal || part.type() == WebCore::StyleAppearance::SliderVertical; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_controls_SliderTrackPart_h

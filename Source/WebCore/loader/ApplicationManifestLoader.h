@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ApplicationManifestLoader_h
+#define WebCore_loader_ApplicationManifestLoader_h
 
 #if ENABLE(APPLICATION_MANIFEST)
 
@@ -66,3 +67,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(APPLICATION_MANIFEST)
+#endif // WebCore_loader_ApplicationManifestLoader_h

@@ -18,7 +18,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_bindings_scripts_test_JS_JSTestOverloadedConstructors_h
+#define WebCore_bindings_scripts_test_JS_JSTestOverloadedConstructors_h
 
 #include "JSDOMWrapper.h"
 #include "TestOverloadedConstructors.h"
@@ -92,3 +93,4 @@ template<> struct JSDOMWrapperConverterTraits<TestOverloadedConstructors> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_scripts_test_JS_JSTestOverloadedConstructors_h

@@ -31,7 +31,8 @@
  *    https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
  */
 
-#pragma once
+#ifndef WTF_wtf_dragonbox_detail_cache_holder_h
+#define WTF_wtf_dragonbox_detail_cache_holder_h
 
 #include <wtf/Int128.h>
 #include <wtf/dragonbox/ieee754_format.h>
@@ -747,3 +748,4 @@ struct compressed_cache_detail {
 } // namespace WTF
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_dragonbox_detail_cache_holder_h

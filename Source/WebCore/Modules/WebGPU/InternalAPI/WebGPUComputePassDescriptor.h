@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUComputePassDescriptor_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUComputePassDescriptor_h
 
 #include "WebGPUComputePassTimestampWrites.h"
 #include "WebGPUObjectDescriptorBase.h"
@@ -35,3 +36,4 @@ struct ComputePassDescriptor : public ObjectDescriptorBase {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUComputePassDescriptor_h

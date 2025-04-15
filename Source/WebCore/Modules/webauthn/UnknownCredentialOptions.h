@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webauthn_UnknownCredentialOptions_h
+#define WebCore_Modules_webauthn_UnknownCredentialOptions_h
 
 #if ENABLE(WEB_AUTHN)
 
@@ -37,3 +38,4 @@ struct UnknownCredentialOptions {
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUTHN)
+#endif // WebCore_Modules_webauthn_UnknownCredentialOptions_h

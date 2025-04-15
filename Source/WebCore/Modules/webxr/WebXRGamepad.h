@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_WebXRGamepad_h
+#define WebCore_Modules_webxr_WebXRGamepad_h
 
 #if ENABLE(WEBXR) && ENABLE(GAMEPAD)
 
@@ -48,3 +49,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_Modules_webxr_WebXRGamepad_h

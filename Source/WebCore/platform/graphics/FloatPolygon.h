@@ -27,7 +27,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FloatPolygon_h
+#define WebCore_platform_graphics_FloatPolygon_h
 
 #include "FloatPoint.h"
 #include "FloatRect.h"
@@ -127,3 +128,4 @@ TextStream& operator<<(TextStream&, const FloatPolygonEdge&);
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_FloatPolygon_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_applepay_ams_ui_ApplePayAMSUIRequest_h
+#define WebCore_Modules_applepay_ams_ui_ApplePayAMSUIRequest_h
 
 #if ENABLE(APPLE_PAY_AMS_UI) && ENABLE(PAYMENT_REQUEST)
 
@@ -40,3 +41,4 @@ struct ApplePayAMSUIRequest {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY_AMS_UI) && ENABLE(PAYMENT_REQUEST)
+#endif // WebCore_Modules_applepay_ams_ui_ApplePayAMSUIRequest_h

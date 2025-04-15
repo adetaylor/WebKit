@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ClientOrigin_h
+#define WebCore_page_ClientOrigin_h
 
 #include "RegistrableDomain.h"
 #include "SecurityOriginData.h"
@@ -76,3 +77,4 @@ template<> struct HashTraits<WebCore::ClientOrigin> : GenericHashTraits<WebCore:
 template<> struct DefaultHash<WebCore::ClientOrigin> : ClientOriginKeyHash { };
 
 } // namespace WTF
+#endif // WebCore_page_ClientOrigin_h

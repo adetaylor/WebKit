@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformImage_h
+#define WebCore_platform_graphics_PlatformImage_h
 
 #include <wtf/Compiler.h>
 
@@ -49,3 +50,4 @@ using PlatformImagePtr = sk_sp<SkImage>;
 #endif
 
 }
+#endif // WebCore_platform_graphics_PlatformImage_h

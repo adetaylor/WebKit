@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_push_api_PushStrategy_h
+#define WebCore_Modules_push_api_PushStrategy_h
 #if ENABLE(DECLARATIVE_WEB_PUSH)
 
 #include "ExceptionOr.h"
@@ -52,3 +53,4 @@ public:
 
 } // namespace WebCore
 #endif // ENABLE(DECLARATIVE_WEB_PUSH)
+#endif // WebCore_Modules_push_api_PushStrategy_h

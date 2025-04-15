@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_SimpleRange_h
+#define WebCore_dom_SimpleRange_h
 
 #include "BoundaryPoint.h"
 
@@ -240,3 +241,4 @@ inline std::optional<SimpleRange> makeSimpleRange(const WeakSimpleRange& range)
 }
 
 }
+#endif // WebCore_dom_SimpleRange_h

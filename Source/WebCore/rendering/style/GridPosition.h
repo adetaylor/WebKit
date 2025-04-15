@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_GridPosition_h
+#define WebCore_rendering_style_GridPosition_h
 
 #include <wtf/text/WTFString.h>
 
@@ -91,3 +92,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const GridPosition&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_GridPosition_h

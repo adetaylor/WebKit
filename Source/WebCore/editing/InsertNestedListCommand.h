@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_InsertNestedListCommand_h
+#define WebCore_editing_InsertNestedListCommand_h
 
 #include "CompositeEditCommand.h"
 #include "EditAction.h"
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_InsertNestedListCommand_h

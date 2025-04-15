@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_LocklessBag_h
+#define WTF_wtf_LocklessBag_h
 
 #include <wtf/Atomics.h>
 #include <wtf/Noncopyable.h>
@@ -107,3 +108,4 @@ private:
 };
     
 } // namespace WTF
+#endif // WTF_wtf_LocklessBag_h

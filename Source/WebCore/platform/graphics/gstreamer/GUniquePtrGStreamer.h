@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_GUniquePtrGStreamer_h
+#define WebCore_platform_graphics_gstreamer_GUniquePtrGStreamer_h
 
 #if USE(GSTREAMER)
 
@@ -58,3 +59,4 @@ WTF_DEFINE_GPTR_DELETER(GstSDPMessage, gst_sdp_message_free)
 
 #endif // USE(GSTREAMER)
 
+#endif // WebCore_platform_graphics_gstreamer_GUniquePtrGStreamer_h

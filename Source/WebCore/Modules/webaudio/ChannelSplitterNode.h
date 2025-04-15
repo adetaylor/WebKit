@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_ChannelSplitterNode_h
+#define WebCore_Modules_webaudio_ChannelSplitterNode_h
 
 #include "AudioNode.h"
 #include "ChannelSplitterOptions.h"
@@ -52,3 +53,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webaudio_ChannelSplitterNode_h

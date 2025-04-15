@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_IteratorAdaptors_h
+#define WTF_wtf_IteratorAdaptors_h
 
 #include <type_traits>
 #include <wtf/Compiler.h>
@@ -113,3 +114,4 @@ inline TransformIterator<Transform, Iterator> makeTransformIterator(Transform&& 
 } // namespace WTF
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_IteratorAdaptors_h

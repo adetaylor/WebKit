@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSImageSetOptionValue_h
+#define WebCore_css_CSSImageSetOptionValue_h
 
 #include "CSSPrimitiveValue.h"
 #include "CSSValue.h"
@@ -71,3 +72,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSImageSetOptionValue, isImageSetOptionValue())
+#endif // WebCore_css_CSSImageSetOptionValue_h

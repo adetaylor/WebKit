@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_ScrollbarTheme_h
+#define WebCore_platform_ScrollbarTheme_h
 
 #include "GraphicsContext.h"
 #include "IntRect.h"
@@ -119,3 +120,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_ScrollbarTheme_h

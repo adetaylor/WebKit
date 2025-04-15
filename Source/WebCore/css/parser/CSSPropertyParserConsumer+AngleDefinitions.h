@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_AngleDefinitions_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_AngleDefinitions_h
 
 #include "CSSParserContext.h"
 #include "CSSPrimitiveNumericTypes+Canonicalization.h"
@@ -67,3 +68,4 @@ template<auto R, typename V> struct ConsumerDefinition<CSS::Angle<R, V>> {
 
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_AngleDefinitions_h

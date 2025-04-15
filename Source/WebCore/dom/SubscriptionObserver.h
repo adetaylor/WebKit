@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_SubscriptionObserver_h
+#define WebCore_dom_SubscriptionObserver_h
 
 #include "JSSubscriptionObserverCallback.h"
 #include "VoidCallback.h"
@@ -37,3 +38,4 @@ struct SubscriptionObserver {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_SubscriptionObserver_h

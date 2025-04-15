@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_MarkupExclusionRule_h
+#define WebCore_editing_MarkupExclusionRule_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ struct MarkupExclusionRule {
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_MarkupExclusionRule_h

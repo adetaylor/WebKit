@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_OwnerPermissionsPolicyData_h
+#define WebCore_html_OwnerPermissionsPolicyData_h
 
 #include "PermissionsPolicy.h"
 
@@ -44,3 +45,4 @@ struct OwnerPermissionsPolicyData {
 };
 
 } // namespace WebCore
+#endif // WebCore_html_OwnerPermissionsPolicyData_h

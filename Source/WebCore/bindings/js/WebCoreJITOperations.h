@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_WebCoreJITOperations_h
+#define WebCore_bindings_js_WebCoreJITOperations_h
 
 namespace WebCore {
 
@@ -46,3 +47,4 @@ inline void populateJITOperations() { }
 #endif // ENABLE(JIT_OPERATION_VALIDATION) || ENABLE(JIT_OPERATION_DISASSEMBLY)
 
 }
+#endif // WebCore_bindings_js_WebCoreJITOperations_h

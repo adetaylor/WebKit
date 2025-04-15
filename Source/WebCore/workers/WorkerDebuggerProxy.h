@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerDebuggerProxy_h
+#define WebCore_workers_WorkerDebuggerProxy_h
 
 #include <wtf/text/WTFString.h>
 
@@ -48,3 +49,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerDebuggerProxy_h

@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_encryptedmedia_CDMProxy_h
+#define WebCore_platform_encryptedmedia_CDMProxy_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -356,3 +357,4 @@ public:
 } // namespace WebCore
 
 #endif // ENABLE(ENCRYPTED_MEDIA)
+#endif // WebCore_platform_encryptedmedia_CDMProxy_h

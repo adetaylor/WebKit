@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_WorkerInspectorController_h
+#define WebCore_inspector_WorkerInspectorController_h
 
 #include "WorkerDebuggerAgent.h"
 #include "WorkerOrWorkletGlobalScope.h"
@@ -96,3 +97,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_WorkerInspectorController_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_screen_wake_lock_WakeLock_h
+#define WebCore_Modules_screen_wake_lock_WakeLock_h
 
 #include "ContextDestructionObserver.h"
 #include "WakeLockType.h"
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_screen_wake_lock_WakeLock_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_scrolling_ScrollingPlatformLayer_h
+#define WebCore_page_scrolling_ScrollingPlatformLayer_h
 
 #include "PlatformLayer.h"
 
@@ -37,3 +38,4 @@ using ScrollingPlatformLayer = PlatformLayer;
 #endif
 
 } // namespace WebCore
+#endif // WebCore_page_scrolling_ScrollingPlatformLayer_h

@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformDisplay_h
+#define WebCore_platform_graphics_PlatformDisplay_h
 
 #include "GLDisplay.h"
 #include <wtf/Noncopyable.h>
@@ -164,3 +165,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToClassName) \
     static bool isType(const WebCore::PlatformDisplay& display) { return display.type() == WebCore::PlatformDisplay::Type::DisplayType; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_graphics_PlatformDisplay_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ElementTargetingTypes_h
+#define WebCore_page_ElementTargetingTypes_h
 
 #include "ElementIdentifier.h"
 #include "FloatPoint.h"
@@ -74,3 +75,4 @@ struct TargetedElementInfo {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ElementTargetingTypes_h

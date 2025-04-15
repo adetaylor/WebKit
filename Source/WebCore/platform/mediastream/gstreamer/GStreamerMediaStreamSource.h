@@ -19,7 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_gstreamer_GStreamerMediaStreamSource_h
+#define WebCore_platform_mediastream_gstreamer_GStreamerMediaStreamSource_h
 
 #if ENABLE(VIDEO) && ENABLE(MEDIA_STREAM) && USE(GSTREAMER)
 
@@ -59,3 +60,4 @@ void webkitMediaStreamSrcConfigureAudioTracks(WebKitMediaStreamSrc*, float volum
 bool webkitMediaStreamSrcSignalEndOfStream(WebKitMediaStreamSrc*);
 
 #endif // ENABLE(VIDEO) && ENABLE(MEDIA_STREAM) && USE(GSTREAMER)
+#endif // WebCore_platform_mediastream_gstreamer_GStreamerMediaStreamSource_h

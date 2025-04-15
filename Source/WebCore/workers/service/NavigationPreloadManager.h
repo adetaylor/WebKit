@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_NavigationPreloadManager_h
+#define WebCore_workers_service_NavigationPreloadManager_h
 
 #include "NavigationPreloadState.h"
 #include "ServiceWorkerRegistration.h"
@@ -59,3 +60,4 @@ inline NavigationPreloadManager::NavigationPreloadManager(ServiceWorkerRegistrat
 }
 
 } // namespace WebCore
+#endif // WebCore_workers_service_NavigationPreloadManager_h

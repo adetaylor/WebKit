@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSFilterPropertyValue_h
+#define WebCore_css_CSSFilterPropertyValue_h
 
 #include "CSSFilterProperty.h"
 #include "CSSValue.h"
@@ -50,3 +51,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSFilterPropertyValue, isFilterPropertyValue())
+#endif // WebCore_css_CSSFilterPropertyValue_h

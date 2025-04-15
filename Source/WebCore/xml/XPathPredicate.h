@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XPathPredicate_h
+#define WebCore_xml_XPathPredicate_h
 
 #include "XPathExpressionNode.h"
 #include <wtf/TZoneMalloc.h>
@@ -122,3 +123,4 @@ bool predicateIsContextPositionSensitive(const Expression&);
 
 } // namespace XPath
 } // namespace WebCore
+#endif // WebCore_xml_XPathPredicate_h

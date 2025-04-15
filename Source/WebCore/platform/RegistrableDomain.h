@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_RegistrableDomain_h
+#define WebCore_platform_RegistrableDomain_h
 
 #include "PublicSuffixStore.h"
 #include "SecurityOriginData.h"
@@ -147,3 +148,4 @@ public:
 };
 
 } // namespace WTF
+#endif // WebCore_platform_RegistrableDomain_h

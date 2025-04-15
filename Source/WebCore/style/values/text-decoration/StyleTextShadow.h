@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_text_decoration_StyleTextShadow_h
+#define WebCore_style_values_text_decoration_StyleTextShadow_h
 
 #include "CSSTextShadow.h"
 #include "StyleColor.h"
@@ -61,3 +62,4 @@ template<> struct Blending<TextShadow> {
 } // namespace WebCore
 
 DEFINE_SPACE_SEPARATED_TUPLE_LIKE_CONFORMANCE(WebCore::Style::TextShadow, 3)
+#endif // WebCore_style_values_text_decoration_StyleTextShadow_h

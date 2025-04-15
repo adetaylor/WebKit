@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSFontPaletteValuesRule_h
+#define WebCore_css_CSSFontPaletteValuesRule_h
 
 #include "CSSRule.h"
 
@@ -57,3 +58,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_RULE(CSSFontPaletteValuesRule, StyleRuleType::FontPaletteValues)
+#endif // WebCore_css_CSSFontPaletteValuesRule_h

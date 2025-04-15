@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_remoteplayback_RemotePlaybackAvailabilityCallback_h
+#define WebCore_Modules_remoteplayback_RemotePlaybackAvailabilityCallback_h
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 
@@ -48,3 +49,4 @@ private:
 }
 
 #endif // ENABLE(WIRELESS_PLAYBACK_TARGET)
+#endif // WebCore_Modules_remoteplayback_RemotePlaybackAvailabilityCallback_h

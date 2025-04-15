@@ -28,7 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSParserMode_h
+#define WebCore_css_parser_CSSParserMode_h
 
 namespace WebCore {
 
@@ -81,3 +82,4 @@ inline bool isStrictParserMode(CSSParserMode cssParserMode)
 }
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSParserMode_h

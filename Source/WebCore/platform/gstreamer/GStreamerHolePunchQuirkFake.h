@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_gstreamer_GStreamerHolePunchQuirkFake_h
+#define WebCore_platform_gstreamer_GStreamerHolePunchQuirkFake_h
 
 #if USE(GSTREAMER)
 
@@ -37,3 +38,4 @@ public:
 } // namespace WebCore
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_gstreamer_GStreamerHolePunchQuirkFake_h

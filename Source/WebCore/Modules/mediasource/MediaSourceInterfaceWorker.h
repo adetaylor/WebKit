@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasource_MediaSourceInterfaceWorker_h
+#define WebCore_Modules_mediasource_MediaSourceInterfaceWorker_h
 
 #if ENABLE(MEDIA_SOURCE_IN_WORKERS)
 
@@ -64,3 +65,4 @@ private:
 } // namespace WebCore
 
 #endif // MEDIA_SOURCE_IN_WORKERS
+#endif // WebCore_Modules_mediasource_MediaSourceInterfaceWorker_h

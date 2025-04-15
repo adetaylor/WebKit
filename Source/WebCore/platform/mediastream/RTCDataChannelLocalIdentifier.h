@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RTCDataChannelLocalIdentifier_h
+#define WebCore_platform_mediastream_RTCDataChannelLocalIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -32,3 +33,4 @@ enum class RTCDataChannelLocalIdentifierType { };
 using RTCDataChannelLocalIdentifier = AtomicObjectIdentifier<RTCDataChannelLocalIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_platform_mediastream_RTCDataChannelLocalIdentifier_h

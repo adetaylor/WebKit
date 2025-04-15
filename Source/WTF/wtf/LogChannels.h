@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_LogChannels_h
+#define WTF_wtf_LogChannels_h
 
 #include <optional>
 #include <wtf/Assertions.h>
@@ -53,3 +54,4 @@ protected:
 #endif // !LOG_DISABLED || !RELEASE_LOG_DISABLED
 
 } // namespace WTF
+#endif // WTF_wtf_LogChannels_h

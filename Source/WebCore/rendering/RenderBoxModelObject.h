@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderBoxModelObject_h
+#define WebCore_rendering_RenderBoxModelObject_h
 
 #include "FontBaseline.h"
 #include "LayoutRect.h"
@@ -273,3 +274,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderBoxModelObject, isRenderBoxModelObject())
+#endif // WebCore_rendering_RenderBoxModelObject_h

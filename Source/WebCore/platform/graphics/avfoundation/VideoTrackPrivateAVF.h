@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_avfoundation_VideoTrackPrivateAVF_h
+#define WebCore_platform_graphics_avfoundation_VideoTrackPrivateAVF_h
 
 #if ENABLE(VIDEO)
 
@@ -61,3 +62,4 @@ protected:
 }
 
 #endif // ENABLE(VIDEO)
+#endif // WebCore_platform_graphics_avfoundation_VideoTrackPrivateAVF_h

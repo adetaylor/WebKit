@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_fileapi_BlobPropertyBag_h
+#define WebCore_fileapi_BlobPropertyBag_h
 
 #include "EndingType.h"
 #include <wtf/text/WTFString.h>
@@ -36,3 +37,4 @@ struct BlobPropertyBag {
 };
 
 }
+#endif // WebCore_fileapi_BlobPropertyBag_h

@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_PublicURLManager_h
+#define WebCore_html_PublicURLManager_h
 
 #include "ActiveDOMObject.h"
 #include <memory>
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_PublicURLManager_h

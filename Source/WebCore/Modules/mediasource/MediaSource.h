@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_mediasource_MediaSource_h
+#define WebCore_Modules_mediasource_MediaSource_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -289,3 +290,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::MediaSource)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif
+#endif // WebCore_Modules_mediasource_MediaSource_h

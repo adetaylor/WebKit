@@ -23,7 +23,8 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_TrustedFonts_h
+#define WebCore_loader_cache_TrustedFonts_h
 
 #include <wtf/Forward.h>
 #include <wtf/RobinHoodHashSet.h>
@@ -56,3 +57,4 @@ enum class FontParsingPolicy : uint8_t {
 FontParsingPolicy fontBinaryParsingPolicy(std::span<const uint8_t>, DownloadableBinaryFontTrustedTypes);
 
 } // namespace WebCore
+#endif // WebCore_loader_cache_TrustedFonts_h

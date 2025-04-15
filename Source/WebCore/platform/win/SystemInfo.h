@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_win_SystemInfo_h
+#define WebCore_platform_win_SystemInfo_h
 
 #include <wtf/text/WTFString.h>
 
@@ -32,3 +33,4 @@ namespace WebCore {
 WEBCORE_EXPORT String windowsVersionForUAString();
 
 } // namespace WebCore
+#endif // WebCore_platform_win_SystemInfo_h

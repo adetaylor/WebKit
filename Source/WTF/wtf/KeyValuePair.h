@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_KeyValuePair_h
+#define WTF_wtf_KeyValuePair_h
 
 #include <type_traits>
 
@@ -78,3 +79,4 @@ template<typename KeyType, typename ValueType> constexpr bool operator==(const K
 }
 
 using WTF::KeyValuePair;
+#endif // WTF_wtf_KeyValuePair_h

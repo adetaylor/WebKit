@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockPaymentError_h
+#define WebCore_testing_MockPaymentError_h
 
 #if ENABLE(APPLE_PAY)
 
@@ -41,3 +42,4 @@ struct MockPaymentError {
 } // namespace WebCore
 
 #endif // ENABLE(APPLE_PAY)
+#endif // WebCore_testing_MockPaymentError_h

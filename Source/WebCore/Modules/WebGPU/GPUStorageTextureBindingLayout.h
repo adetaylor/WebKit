@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUStorageTextureBindingLayout_h
+#define WebCore_Modules_WebGPU_GPUStorageTextureBindingLayout_h
 
 #include "GPUStorageTextureAccess.h"
 #include "GPUTextureFormat.h"
@@ -48,3 +49,4 @@ struct GPUStorageTextureBindingLayout {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUStorageTextureBindingLayout_h

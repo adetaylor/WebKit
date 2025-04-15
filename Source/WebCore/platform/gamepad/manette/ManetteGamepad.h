@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_manette_ManetteGamepad_h
+#define WebCore_platform_gamepad_manette_ManetteGamepad_h
 
 #if ENABLE(GAMEPAD) && OS(LINUX)
 
@@ -87,3 +88,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD) && OS(LINUX)
+#endif // WebCore_platform_gamepad_manette_ManetteGamepad_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_CustomElementFormValue_h
+#define WebCore_html_CustomElementFormValue_h
 
 #include "DOMFormData.h"
 #include "File.h"
@@ -34,3 +35,4 @@ namespace WebCore {
 using CustomElementFormValue = std::variant<std::nullptr_t, RefPtr<File>, String, RefPtr<DOMFormData>>;
 
 } // namespace WebCore
+#endif // WebCore_html_CustomElementFormValue_h

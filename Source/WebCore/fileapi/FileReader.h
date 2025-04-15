@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_fileapi_FileReader_h
+#define WebCore_fileapi_FileReader_h
 
 #include "ActiveDOMObject.h"
 #include "DOMException.h"
@@ -113,3 +114,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_fileapi_FileReader_h

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_FontCacheCoreText_h
+#define WebCore_platform_graphics_cocoa_FontCacheCoreText_h
 
 #include "FontDescription.h"
 #include "ShouldLocalizeAxisNames.h"
@@ -101,3 +102,4 @@ WEBCORE_EXPORT CFStringRef contentSizeCategory();
 VariationDefaultsMap defaultVariationValues(CTFontRef, ShouldLocalizeAxisNames);
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_cocoa_FontCacheCoreText_h

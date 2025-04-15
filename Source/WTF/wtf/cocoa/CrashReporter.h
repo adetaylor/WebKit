@@ -23,10 +23,12 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WTF_wtf_cocoa_CrashReporter_h
+#define WTF_wtf_cocoa_CrashReporter_h
 
 namespace WTF {
 
 WTF_EXPORT_PRIVATE void setCrashLogMessage(const char*);
 
 } // namespace WTF
+#endif // WTF_wtf_cocoa_CrashReporter_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_RFC8941_h
+#define WebCore_platform_network_RFC8941_h
 
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
@@ -69,3 +70,4 @@ WEBCORE_EXPORT std::optional<HashMap<String, std::pair<ItemOrInnerList, Paramete
 
 } // namespace RFC8941
 
+#endif // WebCore_platform_network_RFC8941_h

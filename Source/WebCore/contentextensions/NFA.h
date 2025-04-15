@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_NFA_h
+#define WebCore_contentextensions_NFA_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -48,3 +49,4 @@ struct NFA : public ImmutableNFA<char, uint64_t> {
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_NFA_h

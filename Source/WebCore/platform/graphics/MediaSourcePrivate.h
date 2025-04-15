@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_MediaSourcePrivate_h
+#define WebCore_platform_graphics_MediaSourcePrivate_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -176,3 +177,4 @@ struct LogArgument<WebCore::MediaSourcePrivate::EndOfStreamStatus> {
 } // namespace WTF
 
 #endif
+#endif // WebCore_platform_graphics_MediaSourcePrivate_h

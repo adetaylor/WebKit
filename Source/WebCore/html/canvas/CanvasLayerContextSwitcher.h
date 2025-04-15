@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_CanvasLayerContextSwitcher_h
+#define WebCore_html_canvas_CanvasLayerContextSwitcher_h
 
 #include "FloatRect.h"
 #include <wtf/RefCounted.h>
@@ -58,3 +59,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_canvas_CanvasLayerContextSwitcher_h

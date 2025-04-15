@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_ClipboardAccessPolicy_h
+#define WebCore_editing_ClipboardAccessPolicy_h
 
 namespace WebCore {
 
@@ -34,3 +35,4 @@ enum class ClipboardAccessPolicy {
 };
 
 } // namespace WebCore
+#endif // WebCore_editing_ClipboardAccessPolicy_h

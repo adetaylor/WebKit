@@ -25,7 +25,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_RunLoop_h
+#define WTF_wtf_RunLoop_h
 
 #include <functional>
 #include <wtf/CheckedPtr.h>
@@ -322,3 +323,4 @@ inline void assertIsCurrent(const RunLoop& runLoop) WTF_ASSERTS_ACQUIRED_CAPABIL
 using WTF::RunLoop;
 using WTF::RunLoopMode;
 using WTF::assertIsCurrent;
+#endif // WTF_wtf_RunLoop_h

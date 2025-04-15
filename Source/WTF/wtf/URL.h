@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_URL_h
+#define WTF_wtf_URL_h
 
 #include <wtf/text/WTFString.h>
 
@@ -414,3 +415,4 @@ inline unsigned URL::pathAfterLastSlash() const
 
 using WTF::aboutBlankURL;
 using WTF::aboutSrcDocURL;
+#endif // WTF_wtf_URL_h

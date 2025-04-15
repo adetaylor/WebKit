@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGComponentTransferFunctionElementInlines_h
+#define WebCore_svg_SVGComponentTransferFunctionElementInlines_h
 
 #include "SVGElementTypeHelpers.h"
 #include "SVGFEFuncAElement.h"
@@ -39,3 +40,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SVGComponentTransferFunctionElement)
         return element && isType(*element);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_svg_SVGComponentTransferFunctionElementInlines_h

@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_style_PageRuleCollector_h
+#define WebCore_style_PageRuleCollector_h
 
 #include "MatchResult.h"
 #include "StyleScopeRuleSets.h"
@@ -58,3 +59,4 @@ private:
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_PageRuleCollector_h

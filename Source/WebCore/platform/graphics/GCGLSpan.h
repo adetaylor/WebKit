@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GCGLSpan_h
+#define WebCore_platform_graphics_GCGLSpan_h
 
 #include "GraphicsTypesGL.h"
 #include <type_traits>
@@ -86,3 +87,4 @@ GCGLSpanTuple(const Vector<T0>&, const Vector<T1>&, const Vector<T2>&, const Vec
 
 template<typename T0, typename T1, typename T2, typename T3, typename T4>
 GCGLSpanTuple(const Vector<T0>&, const Vector<T1>&, const Vector<T2>&, const Vector<T3>&, const Vector<T4>&) -> GCGLSpanTuple<const T0, const T1, const T2, const T3, const T4>;
+#endif // WebCore_platform_graphics_GCGLSpan_h

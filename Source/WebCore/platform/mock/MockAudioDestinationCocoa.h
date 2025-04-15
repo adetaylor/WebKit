@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mock_MockAudioDestinationCocoa_h
+#define WebCore_platform_mock_MockAudioDestinationCocoa_h
 
 #if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
 
@@ -61,3 +62,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
+#endif // WebCore_platform_mock_MockAudioDestinationCocoa_h

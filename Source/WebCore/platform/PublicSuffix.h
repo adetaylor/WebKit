@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_PublicSuffix_h
+#define WebCore_platform_PublicSuffix_h
 
 #include <wtf/CrossThreadCopier.h>
 #include <wtf/HashTraits.h>
@@ -65,3 +66,4 @@ template<> struct DefaultHash<WebCore::PublicSuffix> : WebCore::PublicSuffix::Pu
 template<> struct HashTraits<WebCore::PublicSuffix> : SimpleClassHashTraits<WebCore::PublicSuffix> { };
 
 } // namespace WTF
+#endif // WebCore_platform_PublicSuffix_h

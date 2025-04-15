@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_PageAllocation_h
+#define WTF_wtf_PageAllocation_h
 
 #include <wtf/Assertions.h>
 #include <wtf/OSAllocator.h>
@@ -110,3 +111,4 @@ private:
 } // namespace WTF
 
 using WTF::PageAllocation;
+#endif // WTF_wtf_PageAllocation_h

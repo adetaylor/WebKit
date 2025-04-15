@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediacapabilities_MediaEncodingType_h
+#define WebCore_platform_mediacapabilities_MediaEncodingType_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class MediaEncodingType : bool {
 };
 
 }
+#endif // WebCore_platform_mediacapabilities_MediaEncodingType_h

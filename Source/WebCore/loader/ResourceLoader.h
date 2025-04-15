@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceLoader_h
+#define WebCore_loader_ResourceLoader_h
 
 #include "CachedResourceHandle.h"
 #include "FrameLoaderTypes.h"
@@ -268,3 +269,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_ResourceLoader_h

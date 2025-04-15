@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_GraphicsContextGLCocoa_h
+#define WebCore_platform_graphics_cocoa_GraphicsContextGLCocoa_h
 
 #if ENABLE(WEBGL)
 
@@ -201,3 +202,4 @@ inline IOSurfacePbuffer& IOSurfacePbuffer::operator=(IOSurfacePbuffer&& other)
 }
 
 #endif
+#endif // WebCore_platform_graphics_cocoa_GraphicsContextGLCocoa_h

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_archive_ArchiveFactory_h
+#define WebCore_loader_archive_ArchiveFactory_h
 
 #include "Archive.h"
 
@@ -44,3 +45,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_archive_ArchiveFactory_h

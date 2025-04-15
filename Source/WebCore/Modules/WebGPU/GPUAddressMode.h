@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUAddressMode_h
+#define WebCore_Modules_WebGPU_GPUAddressMode_h
 
 #include "WebGPUAddressMode.h"
 #include <cstdint>
@@ -50,3 +51,4 @@ inline WebGPU::AddressMode convertToBacking(GPUAddressMode addressMode)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUAddressMode_h

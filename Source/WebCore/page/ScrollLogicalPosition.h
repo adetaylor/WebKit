@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_page_ScrollLogicalPosition_h
+#define WebCore_page_ScrollLogicalPosition_h
 
 namespace WebCore {
 
@@ -29,3 +30,4 @@ enum class ScrollLogicalPosition : uint8_t {
 };
 
 }
+#endif // WebCore_page_ScrollLogicalPosition_h

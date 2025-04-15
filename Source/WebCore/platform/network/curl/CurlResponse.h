@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CurlResponse_h
+#define WebCore_platform_network_curl_CurlResponse_h
 
 #include "CertificateInfo.h"
 #include "NetworkLoadMetrics.h"
@@ -74,3 +75,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CurlResponse_h

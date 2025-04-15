@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_AudioTrackPrivate_h
+#define WebCore_platform_graphics_AudioTrackPrivate_h
 
 #include "AudioTrackPrivateClient.h"
 #include "PlatformAudioTrackConfiguration.h"
@@ -104,3 +105,4 @@ static bool isType(const WebCore::TrackPrivateBase& track) { return track.type()
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif
+#endif // WebCore_platform_graphics_AudioTrackPrivate_h

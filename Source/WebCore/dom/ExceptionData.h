@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ExceptionData_h
+#define WebCore_dom_ExceptionData_h
 
 #include "Exception.h"
 #include <wtf/text/WTFString.h>
@@ -42,3 +43,4 @@ struct ExceptionData {
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ExceptionData_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_DirectoryFileListCreator_h
+#define WebCore_html_DirectoryFileListCreator_h
 
 #include <wtf/Forward.h>
 #include <wtf/Function.h>
@@ -60,3 +61,4 @@ private:
 };
 
 }
+#endif // WebCore_html_DirectoryFileListCreator_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cocoa_IOSurfaceSPI_h
+#define WTF_wtf_spi_cocoa_IOSurfaceSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -166,3 +167,4 @@ WTF_EXTERN_C_END
 #endif // HAVE(IOSURFACE_ACCELERATOR)
 
 #endif // HAVE(IOSURFACE)
+#endif // WTF_wtf_spi_cocoa_IOSurfaceSPI_h

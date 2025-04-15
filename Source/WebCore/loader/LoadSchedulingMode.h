@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_LoadSchedulingMode_h
+#define WebCore_loader_LoadSchedulingMode_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class LoadSchedulingMode : uint8_t {
 };
 
 }
+#endif // WebCore_loader_LoadSchedulingMode_h

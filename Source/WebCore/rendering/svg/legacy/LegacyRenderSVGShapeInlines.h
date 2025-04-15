@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGShapeInlines_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGShapeInlines_h
 
 #include "LegacyRenderSVGShape.h"
 #include "SVGGraphicsElement.h"
@@ -47,3 +48,4 @@ inline Ref<SVGGraphicsElement> LegacyRenderSVGShape::protectedGraphicsElement() 
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGShapeInlines_h

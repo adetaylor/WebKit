@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_line_TrailingObjects_h
+#define WebCore_rendering_line_TrailingObjects_h
 
 #include <wtf/Vector.h>
 
@@ -65,3 +66,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_line_TrailingObjects_h

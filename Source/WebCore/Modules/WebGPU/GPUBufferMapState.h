@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUBufferMapState_h
+#define WebCore_Modules_WebGPU_GPUBufferMapState_h
 
 #include <cstdint>
 
@@ -36,3 +37,4 @@ enum class GPUBufferMapState : uint8_t {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUBufferMapState_h

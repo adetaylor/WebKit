@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gstreamer_WebKitAudioSinkGStreamer_h
+#define WebCore_platform_graphics_gstreamer_WebKitAudioSinkGStreamer_h
 
 #if USE(GSTREAMER)
 
@@ -51,3 +52,4 @@ G_END_DECLS
 GstElement* webkitAudioSinkNew();
 
 #endif // USE(GSTREAMER)
+#endif // WebCore_platform_graphics_gstreamer_WebKitAudioSinkGStreamer_h

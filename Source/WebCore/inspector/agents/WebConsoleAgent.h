@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_WebConsoleAgent_h
+#define WebCore_inspector_agents_WebConsoleAgent_h
 
 #include "ResourceLoaderIdentifier.h"
 #include <JavaScriptCore/InspectorConsoleAgent.h>
@@ -48,3 +49,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_WebConsoleAgent_h

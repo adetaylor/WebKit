@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_NSFileSizeFormatterSPI_h
+#define WebCore_PAL_pal_spi_cocoa_NSFileSizeFormatterSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -37,3 +38,4 @@ typedef uint64_t NSFileSizeFormatterOptions;
 extern "C" NSString *NSLocalizedFileSizeDescription(uint64_t size, uint64_t maximumDisplayedValue, NSFileSizeFormatterOptions);
 
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_NSFileSizeFormatterSPI_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockMediaSessionCoordinator_h
+#define WebCore_testing_MockMediaSessionCoordinator_h
 
 #if ENABLE(MEDIA_SESSION_COORDINATOR)
 
@@ -75,3 +76,4 @@ private:
 }
 
 #endif // ENABLE(MEDIA_SESSION_COORDINATOR)
+#endif // WebCore_testing_MockMediaSessionCoordinator_h

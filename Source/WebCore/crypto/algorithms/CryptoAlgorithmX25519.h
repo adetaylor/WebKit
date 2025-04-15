@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_crypto_algorithms_CryptoAlgorithmX25519_h
+#define WebCore_crypto_algorithms_CryptoAlgorithmX25519_h
 
 #include "CryptoAlgorithm.h"
 
@@ -44,3 +45,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_crypto_algorithms_CryptoAlgorithmX25519_h

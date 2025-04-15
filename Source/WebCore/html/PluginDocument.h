@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_html_PluginDocument_h
+#define WebCore_html_PluginDocument_h
 
 #include "HTMLDocument.h"
 
@@ -71,3 +72,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::PluginDocument)
         return document && isType(*document);
     }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_html_PluginDocument_h

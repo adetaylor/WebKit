@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_dom_EventDispatcher_h
+#define WebCore_dom_EventDispatcher_h
 
 #include <wtf/Forward.h>
 
@@ -39,3 +40,4 @@ void dispatchScopedEvent(Node&, Event&);
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_EventDispatcher_h

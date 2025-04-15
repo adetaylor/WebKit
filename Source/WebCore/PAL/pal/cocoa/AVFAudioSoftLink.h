@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_AVFAudioSoftLink_h
+#define WebCore_PAL_pal_cocoa_AVFAudioSoftLink_h
 
 #if HAVE(AVAUDIOAPPLICATION)
 
@@ -38,3 +39,4 @@ SOFT_LINK_CONSTANT_FOR_HEADER(PAL, AVFAudio, AVAudioApplicationMuteStateKey, NSS
 #define AVAudioApplicationMuteStateKey PAL::get_AVFAudio_AVAudioApplicationMuteStateKey()
 
 #endif // HAVE(AVAUDIOAPPLICATION)
+#endif // WebCore_PAL_pal_cocoa_AVFAudioSoftLink_h

@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_SharedBuffer_h
+#define WebCore_platform_SharedBuffer_h
 
 #include <JavaScriptCore/Forward.h>
 #include <span>
@@ -429,3 +430,4 @@ RefPtr<SharedBuffer> utf8Buffer(const String&);
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::SharedBuffer)
     static bool isType(const WebCore::FragmentedSharedBuffer& buffer) { return buffer.isContiguous(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_platform_SharedBuffer_h

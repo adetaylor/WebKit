@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RTCIceConnectionState_h
+#define WebCore_platform_mediastream_RTCIceConnectionState_h
 
 #if ENABLE(WEB_RTC)
 
@@ -58,3 +59,4 @@ struct LogArgument<WebCore::RTCIceConnectionState> {
 }; // namespace WTF
 
 #endif
+#endif // WebCore_platform_mediastream_RTCIceConnectionState_h

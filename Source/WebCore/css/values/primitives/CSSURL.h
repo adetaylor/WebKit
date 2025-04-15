@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_primitives_CSSURL_h
+#define WebCore_css_values_primitives_CSSURL_h
 
 #include "CSSValueTypes.h"
 #include <wtf/URL.h>
@@ -66,3 +67,4 @@ bool mayDependOnBaseURL(const URL&);
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::URL, 2)
+#endif // WebCore_css_values_primitives_CSSURL_h

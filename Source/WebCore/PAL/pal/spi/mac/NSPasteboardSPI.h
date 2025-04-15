@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSPasteboardSPI_h
+#define WebCore_PAL_pal_spi_mac_NSPasteboardSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -35,3 +36,4 @@ extern NSString *_NXSmartPaste;
 @interface NSPasteboard ()
 - (NSData *)_dataWithoutConversionForType:(NSString *)type securityScoped:(BOOL)securityScoped;
 @end
+#endif // WebCore_PAL_pal_spi_mac_NSPasteboardSPI_h

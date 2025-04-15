@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_images_CSSGradient_h
+#define WebCore_css_values_images_CSSGradient_h
 
 #include "CSSColor.h"
 #include "CSSPosition.h"
@@ -418,3 +419,4 @@ public:
 };
 
 } // namespace std
+#endif // WebCore_css_values_images_CSSGradient_h

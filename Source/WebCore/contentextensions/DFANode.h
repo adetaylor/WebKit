@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_DFANode_h
+#define WebCore_contentextensions_DFANode_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -170,3 +171,4 @@ static_assert(sizeof(DFANode) <= 16, "Keep the DFANodes small");
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_DFANode_h

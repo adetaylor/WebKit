@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_history_BackForwardController_h
+#define WebCore_history_BackForwardController_h
 
 #include "BackForwardFrameItemIdentifier.h"
 #include "FrameIdentifier.h"
@@ -85,3 +86,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_history_BackForwardController_h

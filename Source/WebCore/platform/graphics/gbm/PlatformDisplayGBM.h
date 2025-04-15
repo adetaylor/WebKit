@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_gbm_PlatformDisplayGBM_h
+#define WebCore_platform_graphics_gbm_PlatformDisplayGBM_h
 
 #if USE(GBM)
 #include "PlatformDisplay.h"
@@ -46,3 +47,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(GBM)
+#endif // WebCore_platform_graphics_gbm_PlatformDisplayGBM_h

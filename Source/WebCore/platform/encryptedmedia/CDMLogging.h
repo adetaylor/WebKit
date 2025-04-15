@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_encryptedmedia_CDMLogging_h
+#define WebCore_platform_encryptedmedia_CDMLogging_h
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
@@ -91,3 +92,4 @@ struct LogArgument<WebCore::CDMSessionType> {
 }
 
 #endif // ENABLE(ENCRYPTED_MEDIA)
+#endif // WebCore_platform_encryptedmedia_CDMLogging_h

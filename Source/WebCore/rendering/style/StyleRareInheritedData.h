@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleRareInheritedData_h
+#define WebCore_rendering_style_StyleRareInheritedData_h
 
 #include "BlockEllipsis.h"
 #include "Length.h"
@@ -231,3 +232,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleRareInheritedData_h

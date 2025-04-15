@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_editing_SmartReplace_h
+#define WebCore_editing_SmartReplace_h
 
 #include <unicode/utypes.h>
 
@@ -35,3 +36,4 @@ namespace WebCore {
 WEBCORE_EXPORT bool isCharacterSmartReplaceExempt(char32_t, bool isPreviousCharacter);
 
 } // namespace WebCore
+#endif // WebCore_editing_SmartReplace_h

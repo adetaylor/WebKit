@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_IterationStatus_h
+#define WTF_wtf_IterationStatus_h
 
 namespace WTF {
 
@@ -35,3 +36,4 @@ enum class IterationStatus {
 } // namespace WTF
 
 using WTF::IterationStatus;
+#endif // WTF_wtf_IterationStatus_h

@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_InternalsSetLike_h
+#define WebCore_testing_InternalsSetLike_h
 
 #include <wtf/RefCounted.h>
 #include <wtf/Vector.h>
@@ -56,3 +57,4 @@ inline bool InternalsSetLike::addToSetLike(const String& value)
 }
 
 } // namespace WebCore
+#endif // WebCore_testing_InternalsSetLike_h

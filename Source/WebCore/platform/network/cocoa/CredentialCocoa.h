@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_cocoa_CredentialCocoa_h
+#define WebCore_platform_network_cocoa_CredentialCocoa_h
 
 #include "CredentialBase.h"
 #include <Security/SecBase.h>
@@ -68,3 +69,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_network_cocoa_CredentialCocoa_h

@@ -23,7 +23,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ColorInterpolation_h
+#define WebCore_platform_graphics_ColorInterpolation_h
 
 #include "AlphaPremultiplication.h"
 #include "ColorInterpolationMethod.h"
@@ -184,3 +185,4 @@ typename InterpolationMethodColorSpace::ColorType addColorComponents(Interpolati
 }
 
 }
+#endif // WebCore_platform_graphics_ColorInterpolation_h

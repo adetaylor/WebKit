@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StyleLengthResolution_h
+#define WebCore_style_values_primitives_StyleLengthResolution_h
 
 namespace WebCore {
 
@@ -60,3 +61,4 @@ bool equalForLengthResolution(const RenderStyle&, const RenderStyle&);
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_primitives_StyleLengthResolution_h

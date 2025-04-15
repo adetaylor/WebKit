@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_filter_effects_CSSFilterFunction_h
+#define WebCore_css_values_filter_effects_CSSFilterFunction_h
 
 #include "CSSAppleInvertLightnessFunction.h"
 #include "CSSBlurFunction.h"
@@ -56,3 +57,4 @@ using FilterFunction = std::variant<
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_filter_effects_CSSFilterFunction_h

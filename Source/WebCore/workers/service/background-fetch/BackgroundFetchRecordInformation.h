@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetchRecordInformation_h
+#define WebCore_workers_service_background_fetch_BackgroundFetchRecordInformation_h
 
 #include "BackgroundFetchRecordIdentifier.h"
 #include "FetchHeadersGuard.h"
@@ -47,3 +48,4 @@ struct BackgroundFetchRecordInformation {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_BackgroundFetchRecordInformation_h

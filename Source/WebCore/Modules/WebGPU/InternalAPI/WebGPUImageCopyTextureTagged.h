@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUImageCopyTextureTagged_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUImageCopyTextureTagged_h
 
 #include "WebGPUImageCopyTexture.h"
 #include "WebGPUPredefinedColorSpace.h"
@@ -36,3 +37,4 @@ struct ImageCopyTextureTagged : public ImageCopyTexture {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUImageCopyTextureTagged_h

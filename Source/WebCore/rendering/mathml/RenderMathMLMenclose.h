@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_mathml_RenderMathMLMenclose_h
+#define WebCore_rendering_mathml_RenderMathMLMenclose_h
 
 #if ENABLE(MATHML)
 
@@ -65,3 +66,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderMathMLMenclose, isRenderMathMLMenclose())
 
 #endif // ENABLE(MATHML)
+#endif // WebCore_rendering_mathml_RenderMathMLMenclose_h

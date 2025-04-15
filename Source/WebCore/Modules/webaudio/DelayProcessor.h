@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_DelayProcessor_h
+#define WebCore_Modules_webaudio_DelayProcessor_h
 
 #include "AudioDSPKernelProcessor.h"
 #include "AudioParam.h"
@@ -57,3 +58,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::DelayProcessor) \
     static bool isType(const WebCore::AudioProcessor& processor) { return processor.processorType() == WebCore::AudioProcessor::Type::Delay; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_webaudio_DelayProcessor_h

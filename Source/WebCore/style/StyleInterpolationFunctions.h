@@ -28,7 +28,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleInterpolationFunctions_h
+#define WebCore_style_StyleInterpolationFunctions_h
 
 #include "BlockEllipsis.h"
 #include "CSSPropertyNames.h"
@@ -715,3 +716,4 @@ inline RefPtr<StylePathData> blendFunc(StylePathData* from, StylePathData* to, c
 }
 
 } // namespace WebCore::Style::Interpolation
+#endif // WebCore_style_StyleInterpolationFunctions_h

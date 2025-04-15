@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSParserTokenRangeGuard_h
+#define WebCore_css_parser_CSSParserTokenRangeGuard_h
 
 #include "CSSParserTokenRange.h"
 
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSParserTokenRangeGuard_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceTimingInformation_h
+#define WebCore_loader_ResourceTimingInformation_h
 
 #include "CachedResourceHandle.h"
 #include <wtf/WeakHashMap.h>
@@ -54,3 +55,4 @@ private:
 };
 
 }
+#endif // WebCore_loader_ResourceTimingInformation_h

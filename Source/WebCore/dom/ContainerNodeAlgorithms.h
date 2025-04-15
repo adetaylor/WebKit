@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ContainerNodeAlgorithms_h
+#define WebCore_dom_ContainerNodeAlgorithms_h
 
 #include "ContainerNode.h"
 #include <wtf/Assertions.h>
@@ -98,3 +99,4 @@ inline void updateCanDelayNodeDeletion(ContainerNode::CanDelayNodeDeletion& curr
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_ContainerNodeAlgorithms_h

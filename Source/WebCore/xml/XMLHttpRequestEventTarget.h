@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XMLHttpRequestEventTarget_h
+#define WebCore_xml_XMLHttpRequestEventTarget_h
 
 #include "EventTarget.h"
 
@@ -34,3 +35,4 @@ class XMLHttpRequestEventTarget : public EventTarget {
 static_assert(sizeof(XMLHttpRequestEventTarget) == sizeof(EventTarget));
 
 } // namespace WebCore
+#endif // WebCore_xml_XMLHttpRequestEventTarget_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_parameters_CryptoAlgorithmEcdsaParams_h
+#define WebCore_crypto_parameters_CryptoAlgorithmEcdsaParams_h
 
 #include "CryptoAlgorithmParameters.h"
 #include <JavaScriptCore/JSObject.h>
@@ -54,3 +55,4 @@ public:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CRYPTO_ALGORITHM_PARAMETERS(EcdsaParams)
+#endif // WebCore_crypto_parameters_CryptoAlgorithmEcdsaParams_h

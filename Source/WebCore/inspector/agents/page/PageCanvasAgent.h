@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_agents_page_PageCanvasAgent_h
+#define WebCore_inspector_agents_page_PageCanvasAgent_h
 
 #include "InspectorCanvasAgent.h"
 #include <wtf/TZoneMalloc.h>
@@ -61,3 +62,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_agents_page_PageCanvasAgent_h

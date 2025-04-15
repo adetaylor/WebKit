@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_MultiRepresentationHEICMetrics_h
+#define WebCore_platform_graphics_cocoa_MultiRepresentationHEICMetrics_h
 
 #if ENABLE(MULTI_REPRESENTATION_HEIC)
 
@@ -42,3 +43,4 @@ struct MultiRepresentationHEICMetrics {
 }
 
 #endif // ENABLE(MULTI_REPRESENTATION_HEIC)
+#endif // WebCore_platform_graphics_cocoa_MultiRepresentationHEICMetrics_h

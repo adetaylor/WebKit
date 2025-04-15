@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ImmediateActionStage_h
+#define WebCore_page_ImmediateActionStage_h
 
 #include <wtf/Assertions.h>
 
@@ -55,3 +56,4 @@ constexpr bool immediateActionBeganOrWasCompleted(ImmediateActionStage immediate
 }
 
 } // namespace WebCore
+#endif // WebCore_page_ImmediateActionStage_h

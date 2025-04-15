@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StylePrimitiveNumericTypes_Blending_h
+#define WebCore_style_values_primitives_StylePrimitiveNumericTypes_Blending_h
 
 #include "AnimationUtilities.h"
 #include "StylePrimitiveNumericTypes+Calculation.h"
@@ -136,3 +137,4 @@ template<auto nR, auto pR, typename V> struct Blending<NumberOrPercentageResolve
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_primitives_StylePrimitiveNumericTypes_Blending_h

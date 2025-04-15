@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerConsoleClient_h
+#define WebCore_workers_WorkerConsoleClient_h
 
 #include "WorkerOrWorkletGlobalScope.h"
 #include <JavaScriptCore/ConsoleClient.h>
@@ -63,3 +64,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerConsoleClient_h

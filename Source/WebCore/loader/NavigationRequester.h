@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_NavigationRequester_h
+#define WebCore_loader_NavigationRequester_h
 
 #include "GlobalFrameIdentifier.h"
 #include "PolicyContainer.h"
@@ -48,3 +49,4 @@ struct NavigationRequester {
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_NavigationRequester_h

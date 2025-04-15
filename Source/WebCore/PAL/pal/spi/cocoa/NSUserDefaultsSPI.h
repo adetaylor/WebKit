@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_NSUserDefaultsSPI_h
+#define WebCore_PAL_pal_spi_cocoa_NSUserDefaultsSPI_h
 
 DECLARE_SYSTEM_HEADER
 
 @interface NSObject (PrivateKVOMethods)
 - (void)_notifyObserversOfChangeFromValuesForKeys:(NSDictionary<NSString *, id> *)oldValues toValuesForKeys:(NSDictionary<NSString *, id> *)newValues;
 @end
+#endif // WebCore_PAL_pal_spi_cocoa_NSUserDefaultsSPI_h

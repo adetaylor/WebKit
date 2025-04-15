@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_WebXRSession_h
+#define WebCore_Modules_webxr_WebXRSession_h
 
 #if ENABLE(WEBXR)
 
@@ -181,3 +182,4 @@ WebCoreOpaqueRoot root(WebXRSession*);
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_Modules_webxr_WebXRSession_h

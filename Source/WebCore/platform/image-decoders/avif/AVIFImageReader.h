@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_image_decoders_avif_AVIFImageReader_h
+#define WebCore_platform_image_decoders_avif_AVIFImageReader_h
 
 #include "AVIFImageDecoder.h"
 
@@ -52,3 +53,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_image_decoders_avif_AVIFImageReader_h

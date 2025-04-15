@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_Environment_h
+#define bmalloc_bmalloc_Environment_h
 
 #include "Mutex.h"
 #include "StaticPerProcess.h"
@@ -46,3 +47,4 @@ DECLARE_STATIC_PER_PROCESS_STORAGE(Environment);
 BALLOW_DEPRECATED_DECLARATIONS_END
 
 } // namespace bmalloc
+#endif // bmalloc_bmalloc_Environment_h

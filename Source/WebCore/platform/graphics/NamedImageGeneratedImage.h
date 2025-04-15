@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_NamedImageGeneratedImage_h
+#define WebCore_platform_graphics_NamedImageGeneratedImage_h
 
 #include "FloatSize.h"
 #include "GeneratedImage.h"
@@ -53,3 +54,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_IMAGE(NamedImageGeneratedImage)
+#endif // WebCore_platform_graphics_NamedImageGeneratedImage_h

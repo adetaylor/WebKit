@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_OptionSetHash_h
+#define WTF_wtf_OptionSetHash_h
 
 #include <wtf/HashTraits.h>
 #include <wtf/OptionSet.h>
@@ -66,3 +67,4 @@ template<typename T> struct HashTraits<OptionSet<T>> : GenericHashTraits<OptionS
 };
 
 } // namespace WTF
+#endif // WTF_wtf_OptionSetHash_h

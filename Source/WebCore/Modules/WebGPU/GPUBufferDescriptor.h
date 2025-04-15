@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUBufferDescriptor_h
+#define WebCore_Modules_WebGPU_GPUBufferDescriptor_h
 
 #include "GPUBufferUsage.h"
 #include "GPUIntegralTypes.h"
@@ -49,3 +50,4 @@ struct GPUBufferDescriptor : public GPUObjectDescriptorBase {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUBufferDescriptor_h

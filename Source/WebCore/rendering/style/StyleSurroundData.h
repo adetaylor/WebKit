@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleSurroundData_h
+#define WebCore_rendering_style_StyleSurroundData_h
 
 #include "BorderData.h"
 #include "LengthBox.h"
@@ -65,3 +66,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleSurroundData_h

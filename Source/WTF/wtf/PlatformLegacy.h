@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PlatformLegacy_h
+#define WTF_wtf_PlatformLegacy_h
 
 #ifndef WTF_PLATFORM_GUARD_AGAINST_INDIRECT_INCLUSION
 #error "Please #include <wtf/Platform.h> instead of this file directly."
@@ -95,3 +96,4 @@
 #if defined(TARGET_OS_VISION) && TARGET_OS_VISION
 #define WTF_PLATFORM_VISION 1
 #endif
+#endif // WTF_wtf_PlatformLegacy_h

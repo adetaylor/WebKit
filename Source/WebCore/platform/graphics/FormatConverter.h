@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FormatConverter_h
+#define WebCore_platform_graphics_FormatConverter_h
 
 #if ENABLE(WEBGL)
 
@@ -92,3 +93,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEBGL)
+#endif // WebCore_platform_graphics_FormatConverter_h

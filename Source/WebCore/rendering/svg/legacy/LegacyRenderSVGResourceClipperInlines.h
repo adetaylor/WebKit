@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResourceClipperInlines_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResourceClipperInlines_h
 
 #include "LegacyRenderSVGResourceClipper.h"
 #include "SVGClipPathElement.h"
@@ -46,3 +47,4 @@ inline SVGUnitTypes::SVGUnitType LegacyRenderSVGResourceClipper::clipPathUnits()
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResourceClipperInlines_h

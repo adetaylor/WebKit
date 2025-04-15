@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_h
+#define WebCore_css_calc_CSSCalcTree_h
 
 #include "CSSCalcType.h"
 #include "CSSPrimitiveNumeric.h"
@@ -1466,3 +1467,4 @@ OP_TUPLE_LIKE_CONFORMANCE(AnchorSize, 0);
 #undef OP_TUPLE_LIKE_CONFORMANCE
 
 } // namespace std
+#endif // WebCore_css_calc_CSSCalcTree_h

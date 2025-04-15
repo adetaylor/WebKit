@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AudioBufferSourceOptions_h
+#define WebCore_Modules_webaudio_AudioBufferSourceOptions_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -42,3 +43,4 @@ struct AudioBufferSourceOptions {
 }
 
 #endif
+#endif // WebCore_Modules_webaudio_AudioBufferSourceOptions_h

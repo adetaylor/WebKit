@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_CrossOriginMode_h
+#define WebCore_dom_CrossOriginMode_h
 
 namespace WebCore {
 
@@ -32,3 +33,4 @@ namespace WebCore {
 enum class CrossOriginMode : bool { Shared, Isolated };
 
 }
+#endif // WebCore_dom_CrossOriginMode_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_AttributionTimeToSendData_h
+#define WebCore_loader_AttributionTimeToSendData_h
 
 #include <optional>
 #include <wtf/WallTime.h>
@@ -78,3 +79,4 @@ struct AttributionTimeToSendData {
 };
 
 }
+#endif // WebCore_loader_AttributionTimeToSendData_h

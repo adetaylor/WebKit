@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DOMRectInit_h
+#define WebCore_dom_DOMRectInit_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ struct DOMRectInit {
 };
 
 }
+#endif // WebCore_dom_DOMRectInit_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_page_DragController_h
+#define WebCore_page_DragController_h
 
 #include "DragActions.h"
 #include "DragImage.h"
@@ -174,3 +175,4 @@ private:
 WEBCORE_EXPORT bool isDraggableLink(const Element&);
 
 } // namespace WebCore
+#endif // WebCore_page_DragController_h

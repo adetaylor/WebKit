@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceGradient_h
+#define WebCore_rendering_svg_RenderSVGResourceGradient_h
 
 #include "RenderSVGResourcePaintServer.h"
 #include "SVGGradientElement.h"
@@ -59,3 +60,4 @@ protected:
 }
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGResourceGradient, isRenderSVGResourceGradient())
+#endif // WebCore_rendering_svg_RenderSVGResourceGradient_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_AbortController_h
+#define WebCore_dom_AbortController_h
 
 #include "ScriptWrappable.h"
 #include "WebCoreOpaqueRoot.h"
@@ -58,3 +59,4 @@ private:
 };
 
 }
+#endif // WebCore_dom_AbortController_h

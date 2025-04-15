@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_crypto_gcrypt_GCryptRFC7748_h
+#define WebCore_crypto_gcrypt_GCryptRFC7748_h
 
 #include <array>
 #include <cstdint>
@@ -39,3 +40,4 @@ static constexpr std::array<uint8_t, 32> c_X25519BasePointU {
 std::optional<Vector<uint8_t>> X25519(const std::span<const uint8_t>& kArg, const std::span<const uint8_t>& uArg);
 
 } } } // namespace WebCore::GCrypt::RFC7748
+#endif // WebCore_crypto_gcrypt_GCryptRFC7748_h

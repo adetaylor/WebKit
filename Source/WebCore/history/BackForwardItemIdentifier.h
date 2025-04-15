@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_history_BackForwardItemIdentifier_h
+#define WebCore_history_BackForwardItemIdentifier_h
 
 #include "ProcessQualified.h"
 
@@ -33,3 +34,4 @@ struct BackForwardItemIdentifierType;
 using BackForwardItemIdentifier = ProcessQualified<ObjectIdentifier<BackForwardItemIdentifierType>>;
 
 } // namespace WebCore
+#endif // WebCore_history_BackForwardItemIdentifier_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_NSAttributedStringSPI_h
+#define WebCore_PAL_pal_spi_cocoa_NSAttributedStringSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -144,3 +145,4 @@ static NSString *const NSExcludedElementsDocumentAttribute = @"ExcludedElements"
 @end
 
 #endif // PLATFORM(IOS_FAMILY)
+#endif // WebCore_PAL_pal_spi_cocoa_NSAttributedStringSPI_h

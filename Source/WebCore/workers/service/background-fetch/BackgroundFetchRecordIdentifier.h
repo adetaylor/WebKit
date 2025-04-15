@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetchRecordIdentifier_h
+#define WebCore_workers_service_background_fetch_BackgroundFetchRecordIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -34,3 +35,4 @@ using BackgroundFetchRecordIdentifier = ObjectIdentifier<BackgroundFetchRecordId
 
 } // namespace WebCore
 
+#endif // WebCore_workers_service_background_fetch_BackgroundFetchRecordIdentifier_h

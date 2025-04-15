@@ -22,7 +22,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#pragma once
+#ifndef WebCore_rendering_BaselineAlignment_h
+#define WebCore_rendering_BaselineAlignment_h
 
 #include "LayoutUnit.h"
 #include "RenderStyleConstants.h"
@@ -119,3 +120,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_BaselineAlignment_h

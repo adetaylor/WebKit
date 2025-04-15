@@ -17,7 +17,8 @@
  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_TextureMapperBackingStore_h
+#define WebCore_platform_graphics_texmap_TextureMapperBackingStore_h
 
 #include "TextureMapperPlatformLayer.h"
 #include <wtf/RefPtr.h>
@@ -39,3 +40,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_texmap_TextureMapperBackingStore_h

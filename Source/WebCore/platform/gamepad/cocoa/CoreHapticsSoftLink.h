@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_cocoa_CoreHapticsSoftLink_h
+#define WebCore_platform_gamepad_cocoa_CoreHapticsSoftLink_h
 
 #if ENABLE(GAMEPAD) && PLATFORM(COCOA)
 
@@ -59,3 +60,4 @@ SOFT_LINK_CONSTANT_FOR_HEADER(WebCore, CoreHaptics, CHHapticPatternKeyPattern, N
 #define CHHapticPatternKeyPattern WebCore::get_CoreHaptics_CHHapticPatternKeyPattern()
 
 #endif // ENABLE(GAMEPAD) && PLATFORM(COCOA)
+#endif // WebCore_platform_gamepad_cocoa_CoreHapticsSoftLink_h

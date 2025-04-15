@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_ContentData_h
+#define WebCore_rendering_style_ContentData_h
 
 #include "CounterContent.h"
 #include "StyleImage.h"
@@ -221,3 +222,4 @@ SPECIALIZE_TYPE_TRAITS_CONTENT_DATA(ImageContentData, Image)
 SPECIALIZE_TYPE_TRAITS_CONTENT_DATA(TextContentData, Text)
 SPECIALIZE_TYPE_TRAITS_CONTENT_DATA(CounterContentData, Counter)
 SPECIALIZE_TYPE_TRAITS_CONTENT_DATA(QuoteContentData, Quote)
+#endif // WebCore_rendering_style_ContentData_h

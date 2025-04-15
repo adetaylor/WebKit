@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_WebCoreTypedArrayController_h
+#define WebCore_bindings_js_WebCoreTypedArrayController_h
 
 #include <JavaScriptCore/TypedArrayController.h>
 #include <JavaScriptCore/WeakHandleOwner.h>
@@ -57,3 +58,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_WebCoreTypedArrayController_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_HEVCUtilities_h
+#define WebCore_platform_graphics_HEVCUtilities_h
 
 #include <optional>
 #include <wtf/Forward.h>
@@ -69,3 +70,4 @@ WEBCORE_EXPORT std::optional<DoViParameters> parseDoViDecoderConfigurationRecord
 WEBCORE_EXPORT String createDoViCodecParametersString(const DoViParameters&);
 
 }
+#endif // WebCore_platform_graphics_HEVCUtilities_h

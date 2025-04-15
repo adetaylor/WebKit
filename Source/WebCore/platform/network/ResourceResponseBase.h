@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_network_ResourceResponseBase_h
+#define WebCore_platform_network_ResourceResponseBase_h
 
 #include "CacheValidation.h"
 #include "CertificateInfo.h"
@@ -396,3 +397,4 @@ template<> struct Coder<WebCore::ResourceResponseData> {
 } // namespace Persistence
 
 } // namespace WTF
+#endif // WebCore_platform_network_ResourceResponseBase_h

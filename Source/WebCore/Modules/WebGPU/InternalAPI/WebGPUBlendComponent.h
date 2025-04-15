@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUBlendComponent_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUBlendComponent_h
 
 #include "WebGPUBlendFactor.h"
 #include "WebGPUBlendOperation.h"
@@ -37,3 +38,4 @@ struct BlendComponent {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUBlendComponent_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cg_CGUtilities_h
+#define WebCore_platform_graphics_cg_CGUtilities_h
 
 #include "FloatRect.h"
 #include "GraphicsTypes.h"
@@ -110,3 +111,4 @@ inline std::span<CGPoint> pointsSpan(const CGPathElement* element)
 }
 
 }
+#endif // WebCore_platform_graphics_cg_CGUtilities_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_bridge_objc_objc_utility_h
+#define WebCore_bridge_objc_objc_utility_h
 
 #include <CoreFoundation/CoreFoundation.h>
 
@@ -78,3 +79,4 @@ Exception *throwError(JSGlobalObject*, ThrowScope&, NSString *message);
 
 } // namespace Bindings
 } // namespace JSC
+#endif // WebCore_bridge_objc_objc_utility_h

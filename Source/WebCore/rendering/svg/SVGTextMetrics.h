@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_SVGTextMetrics_h
+#define WebCore_rendering_svg_SVGTextMetrics_h
 
 #include <wtf/text/WTFString.h>
 
@@ -77,3 +78,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_svg_SVGTextMetrics_h

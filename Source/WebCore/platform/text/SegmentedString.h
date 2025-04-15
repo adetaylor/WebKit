@@ -17,7 +17,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_platform_text_SegmentedString_h
+#define WebCore_platform_text_SegmentedString_h
 
 #include <wtf/Deque.h>
 #include <wtf/text/ParsingUtilities.h>
@@ -355,3 +356,4 @@ inline void SegmentedString::updateAdvanceFunctionPointers()
 }
 
 }
+#endif // WebCore_platform_text_SegmentedString_h

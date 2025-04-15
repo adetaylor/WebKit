@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_pictureinpicture_PictureInPictureWindow_h
+#define WebCore_Modules_pictureinpicture_PictureInPictureWindow_h
 
 #if ENABLE(PICTURE_IN_PICTURE_API)
 
@@ -67,3 +68,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(PICTURE_IN_PICTURE_API)
+#endif // WebCore_Modules_pictureinpicture_PictureInPictureWindow_h

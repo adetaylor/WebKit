@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetchFailureReason_h
+#define WebCore_workers_service_background_fetch_BackgroundFetchFailureReason_h
 
 namespace WebCore {
 
@@ -37,3 +38,4 @@ enum class BackgroundFetchFailureReason : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_BackgroundFetchFailureReason_h

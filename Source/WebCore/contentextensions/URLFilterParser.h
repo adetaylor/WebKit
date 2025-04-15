@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_URLFilterParser_h
+#define WebCore_contentextensions_URLFilterParser_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -67,3 +68,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_URLFilterParser_h

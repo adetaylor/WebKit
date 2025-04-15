@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_PlatformLayerDisplayDelegate_h
+#define WebCore_platform_graphics_texmap_PlatformLayerDisplayDelegate_h
 
 #include "GraphicsLayerContentsDisplayDelegate.h"
 #include "PlatformLayer.h"
@@ -53,3 +54,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_texmap_PlatformLayerDisplayDelegate_h

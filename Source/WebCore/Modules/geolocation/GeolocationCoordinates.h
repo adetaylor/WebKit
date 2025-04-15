@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_Modules_geolocation_GeolocationCoordinates_h
+#define WebCore_Modules_geolocation_GeolocationCoordinates_h
 
 #include "GeolocationPositionData.h"
 #include <wtf/Ref.h>
@@ -59,3 +60,4 @@ private:
 };
     
 } // namespace WebCore
+#endif // WebCore_Modules_geolocation_GeolocationCoordinates_h

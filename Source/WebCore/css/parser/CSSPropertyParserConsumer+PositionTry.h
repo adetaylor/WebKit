@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_parser_CSSPropertyParserConsumer_PositionTry_h
+#define WebCore_css_parser_CSSPropertyParserConsumer_PositionTry_h
 
 #include <wtf/Forward.h>
 
@@ -44,3 +45,4 @@ RefPtr<CSSValue> consumePositionTryFallbacks(CSSParserTokenRange&, CSS::Property
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore
 
+#endif // WebCore_css_parser_CSSPropertyParserConsumer_PositionTry_h

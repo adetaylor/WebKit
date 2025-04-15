@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_IsLoggedIn_h
+#define WebCore_page_IsLoggedIn_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class IsLoggedIn : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_page_IsLoggedIn_h

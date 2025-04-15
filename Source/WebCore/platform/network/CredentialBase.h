@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_network_CredentialBase_h
+#define WebCore_platform_network_CredentialBase_h
 
 #include <wtf/text/WTFString.h>
 
@@ -76,3 +77,4 @@ private:
 inline bool operator==(const Credential& a, const Credential& b) { return CredentialBase::compare(a, b); }
     
 } // namespace WebCore
+#endif // WebCore_platform_network_CredentialBase_h

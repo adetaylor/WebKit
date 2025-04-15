@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_LinkIconType_h
+#define WebCore_html_LinkIconType_h
 
 namespace WebCore {
 
@@ -38,3 +39,4 @@ enum class LinkIconType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_html_LinkIconType_h

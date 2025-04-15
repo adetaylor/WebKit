@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_crypto_gcrypt_Handle_h
+#define WebCore_PAL_pal_crypto_gcrypt_Handle_h
 
 #include <gcrypt.h>
 
@@ -132,3 +133,4 @@ struct HandleDeleter<gcry_sexp_t> {
 
 } // namespace GCrypt
 } // namespace PAL
+#endif // WebCore_PAL_pal_crypto_gcrypt_Handle_h

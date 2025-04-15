@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_VideoToolboxSoftLink_h
+#define WebCore_platform_cocoa_VideoToolboxSoftLink_h
 
 #include <VideoToolbox/VideoToolbox.h>
 #include <wtf/SoftLinking.h>
@@ -152,3 +153,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(WebCore, VideoToolbox, VTPixelBufferConformerIsCon
 SOFT_LINK_FUNCTION_FOR_HEADER(WebCore, VideoToolbox, VTPixelBufferConformerCopyConformedPixelBuffer, OSStatus, (VTPixelBufferConformerRef conformer, CVPixelBufferRef sourceBuffer, Boolean ensureModifiable, CVPixelBufferRef* conformedBufferOut), (conformer, sourceBuffer, ensureModifiable, conformedBufferOut))
 #define VTPixelBufferConformerCopyConformedPixelBuffer softLink_VideoToolbox_VTPixelBufferConformerCopyConformedPixelBuffer
 SOFT_LINK_FUNCTION_MAY_FAIL_FOR_HEADER(WebCore, VideoToolbox, VTRegisterSupplementalVideoDecoderIfAvailable, void, (CMVideoCodecType codecType), (codecType))
+#endif // WebCore_platform_cocoa_VideoToolboxSoftLink_h

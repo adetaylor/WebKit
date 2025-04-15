@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_SpatialVideoMetadata_h
+#define WebCore_platform_SpatialVideoMetadata_h
 
 #include "IntSize.h"
 
@@ -55,3 +56,4 @@ struct LogArgument<WebCore::SpatialVideoMetadata> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_SpatialVideoMetadata_h

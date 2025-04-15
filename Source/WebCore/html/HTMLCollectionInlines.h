@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLCollectionInlines_h
+#define WebCore_html_HTMLCollectionInlines_h
 
 #include "HTMLCollection.h"
 #include "LiveNodeListInlines.h"
@@ -138,3 +139,4 @@ inline const CollectionNamedElementCache& HTMLCollection::namedItemCaches() cons
 
 
 }
+#endif // WebCore_html_HTMLCollectionInlines_h

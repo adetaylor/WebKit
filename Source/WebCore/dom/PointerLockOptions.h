@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_PointerLockOptions_h
+#define WebCore_dom_PointerLockOptions_h
 
 #if ENABLE(POINTER_LOCK)
 
@@ -35,3 +36,4 @@ struct PointerLockOptions {
 } // namespace WebCore
 
 #endif // ENABLE(POINTER_LOCK)
+#endif // WebCore_dom_PointerLockOptions_h

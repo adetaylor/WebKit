@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CrossThreadCopier_h
+#define WTF_wtf_CrossThreadCopier_h
 
 #include <tuple>
 #include <type_traits>
@@ -397,3 +398,4 @@ using WTF::CrossThreadCopierBaseHelper;
 using WTF::CrossThreadCopierBase;
 using WTF::CrossThreadCopier;
 using WTF::crossThreadCopy;
+#endif // WTF_wtf_CrossThreadCopier_h

@@ -19,7 +19,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_platform_LengthBox_h
+#define WebCore_platform_LengthBox_h
 
 #include "BoxExtents.h"
 #include "Length.h"
@@ -86,3 +87,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const IntBoxExtent&);
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, const FloatBoxExtent&);
 
 } // namespace WebCore
+#endif // WebCore_platform_LengthBox_h

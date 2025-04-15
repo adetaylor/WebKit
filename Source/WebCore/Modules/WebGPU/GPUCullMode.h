@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUCullMode_h
+#define WebCore_Modules_WebGPU_GPUCullMode_h
 
 #include "WebGPUCullMode.h"
 #include <cstdint>
@@ -50,3 +51,4 @@ inline WebGPU::CullMode convertToBacking(GPUCullMode cullMode)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUCullMode_h

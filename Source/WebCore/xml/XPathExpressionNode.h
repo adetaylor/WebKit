@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XPathExpressionNode_h
+#define WebCore_xml_XPathExpressionNode_h
 
 #include "XPathValue.h"
 #include <wtf/TZoneMalloc.h>
@@ -87,3 +88,4 @@ private:
 
 } // namespace XPath
 } // namespace WebCore
+#endif // WebCore_xml_XPathExpressionNode_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUColor_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUColor_h
 
 #include <variant>
 #include <wtf/Vector.h>
@@ -41,3 +42,4 @@ struct ColorDict {
 using Color = std::variant<Vector<double>, ColorDict>;
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUColor_h

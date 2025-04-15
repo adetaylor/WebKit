@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FunctionPtr_h
+#define WTF_wtf_FunctionPtr_h
 
 #include <memory>
 #include <wtf/FastMalloc.h>
@@ -210,3 +211,4 @@ using WTF::FunctionAttributes;
 using WTF::FunctionPtr;
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+#endif // WTF_wtf_FunctionPtr_h

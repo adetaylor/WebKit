@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_GlyphPage_h
+#define WebCore_platform_graphics_GlyphPage_h
 
 #include "Font.h"
 #include "Glyph.h"
@@ -142,3 +143,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_GlyphPage_h

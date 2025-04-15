@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cf_CFUtilitiesSPI_h
+#define WebCore_PAL_pal_spi_cf_CFUtilitiesSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -67,3 +68,4 @@ void _CFPrefsSetDirectModeEnabled(BOOL enabled);
 void _CFPrefsSetReadOnly(Boolean flag);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cf_CFUtilitiesSPI_h

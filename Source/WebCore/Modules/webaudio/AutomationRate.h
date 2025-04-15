@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webaudio_AutomationRate_h
+#define WebCore_Modules_webaudio_AutomationRate_h
 
 #if ENABLE(WEB_AUDIO)
 
@@ -37,3 +38,4 @@ enum class AutomationRate : bool { ARate, KRate };
 } // namespace WebCore
 
 #endif // ENABLE(WEB_AUDIO)
+#endif // WebCore_Modules_webaudio_AutomationRate_h

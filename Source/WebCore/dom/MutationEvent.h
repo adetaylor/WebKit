@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_MutationEvent_h
+#define WebCore_dom_MutationEvent_h
 
 #include "Event.h"
 #include "Node.h"
@@ -67,3 +68,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_MutationEvent_h

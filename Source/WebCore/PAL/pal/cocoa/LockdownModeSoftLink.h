@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cocoa_LockdownModeSoftLink_h
+#define WebCore_PAL_pal_cocoa_LockdownModeSoftLink_h
 
 #if HAVE(LOCKDOWN_MODE_FRAMEWORK)
 
@@ -34,3 +35,4 @@ PAL_EXPORT BOOL isLockdownModeEnabled();
 }
 
 #endif // HAVE(LOCKDOWN_MODE_FRAMEWORK)
+#endif // WebCore_PAL_pal_cocoa_LockdownModeSoftLink_h

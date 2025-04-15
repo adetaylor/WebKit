@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_speech_SpeechRecognitionCaptureSourceImpl_h
+#define WebCore_Modules_speech_SpeechRecognitionCaptureSourceImpl_h
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -103,3 +104,4 @@ private:
 
 #endif
 
+#endif // WebCore_Modules_speech_SpeechRecognitionCaptureSourceImpl_h

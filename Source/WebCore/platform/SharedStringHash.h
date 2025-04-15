@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_SharedStringHash_h
+#define WebCore_platform_SharedStringHash_h
 
 #include <wtf/Forward.h>
 #include <wtf/Markable.h>
@@ -54,3 +55,4 @@ WEBCORE_EXPORT SharedStringHash computeSharedStringHash(std::span<const UChar> u
 SharedStringHash computeVisitedLinkHash(const URL& base, const AtomString& attributeURL);
 
 } // namespace WebCore
+#endif // WebCore_platform_SharedStringHash_h

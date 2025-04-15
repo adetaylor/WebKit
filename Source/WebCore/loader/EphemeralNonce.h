@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_EphemeralNonce_h
+#define WebCore_loader_EphemeralNonce_h
 
 #include <wtf/text/WTFString.h>
 
@@ -39,3 +40,4 @@ struct EphemeralNonce {
 };
 
 }
+#endif // WebCore_loader_EphemeralNonce_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DocumentTouch_h
+#define WebCore_dom_DocumentTouch_h
 
 #if ENABLE(IOS_TOUCH_EVENTS)
 #include <WebKitAdditions/DocumentTouchIOS.h>
@@ -50,3 +51,4 @@ public:
 }
 
 #endif
+#endif // WebCore_dom_DocumentTouch_h

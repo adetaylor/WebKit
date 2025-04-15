@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_PhysicalPageMap_h
+#define bmalloc_bmalloc_PhysicalPageMap_h
 
 #if ENABLE_PHYSICAL_PAGE_MAP 
 
@@ -76,3 +77,4 @@ private:
 
 #endif
 #endif // ENABLE_PHYSICAL_PAGE_MAP 
+#endif // bmalloc_bmalloc_PhysicalPageMap_h

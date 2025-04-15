@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_HandleUserInputEventResult_h
+#define WebCore_page_HandleUserInputEventResult_h
 
 #include "RemoteUserInputEventData.h"
 
@@ -57,3 +58,4 @@ private:
 };
 
 }
+#endif // WebCore_page_HandleUserInputEventResult_h

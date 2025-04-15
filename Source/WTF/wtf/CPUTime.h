@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CPUTime_h
+#define WTF_wtf_CPUTime_h
 
 #include <wtf/MonotonicTime.h>
 #include <wtf/Seconds.h>
@@ -50,3 +51,4 @@ struct CPUTime {
 } // namespace WTF
 
 using WTF::CPUTime;
+#endif // WTF_wtf_CPUTime_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_IsoSharedPage_h
+#define bmalloc_bmalloc_IsoSharedPage_h
 
 #if !BUSE(TZONE)
 
@@ -64,3 +65,4 @@ uint8_t* indexSlotFor(void* ptr)
 
 #endif
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_IsoSharedPage_h

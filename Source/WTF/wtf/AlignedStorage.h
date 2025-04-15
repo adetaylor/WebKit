@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_AlignedStorage_h
+#define WTF_wtf_AlignedStorage_h
 
 #include <cstddef>
 #include <wtf/StdLibExtras.h>
@@ -56,3 +57,4 @@ private:
 } // namespace WTF
 
 using WTF::AlignedStorage;
+#endif // WTF_wtf_AlignedStorage_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_DOMWindow_h
+#define WebCore_page_DOMWindow_h
 
 #include "DocumentEnums.h"
 #include "EventTarget.h"
@@ -240,3 +241,4 @@ private:
 WebCoreOpaqueRoot root(DOMWindow*);
 
 } // namespace WebCore
+#endif // WebCore_page_DOMWindow_h

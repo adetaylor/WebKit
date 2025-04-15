@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUTextureViewDescriptor_h
+#define WebCore_Modules_WebGPU_GPUTextureViewDescriptor_h
 
 #include "GPUIntegralTypes.h"
 #include "GPUObjectDescriptorBase.h"
@@ -60,3 +61,4 @@ struct GPUTextureViewDescriptor : public GPUObjectDescriptorBase {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUTextureViewDescriptor_h

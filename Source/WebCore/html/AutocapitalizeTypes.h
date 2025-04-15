@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_AutocapitalizeTypes_h
+#define WebCore_html_AutocapitalizeTypes_h
 
 namespace WebCore {
 
@@ -36,3 +37,4 @@ enum class AutocapitalizeType : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_html_AutocapitalizeTypes_h

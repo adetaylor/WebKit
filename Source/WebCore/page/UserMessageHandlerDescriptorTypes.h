@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_UserMessageHandlerDescriptorTypes_h
+#define WebCore_page_UserMessageHandlerDescriptorTypes_h
 
 #if ENABLE(USER_MESSAGE_HANDLERS)
 
@@ -42,3 +43,4 @@ typedef UncheckedKeyHashMap<std::pair<AtomString, RefPtr<DOMWrapperWorld>>, RefP
 } // namespace WebCore
 
 #endif // ENABLE(USER_MESSAGE_HANDLERS)
+#endif // WebCore_page_UserMessageHandlerDescriptorTypes_h

@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_TextBoxPainter_h
+#define WebCore_rendering_TextBoxPainter_h
 
 #include "FloatRect.h"
 #include "FloatRoundedRect.h"
@@ -124,3 +125,4 @@ inline FloatSize TextBoxPainter::rotateShadowOffset(const SpaceSeparatedPoint<St
     return { offset.y().value, -offset.x().value };
 }
 }
+#endif // WebCore_rendering_TextBoxPainter_h

@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_platform_glib_ApplicationGLib_h
+#define WebCore_platform_glib_ApplicationGLib_h
 
 #if USE(GLIB)
 
@@ -33,3 +34,4 @@ WEBCORE_EXPORT const String& getApplicationID();
 } // namespace WebCore
 
 #endif // USE(GLIB)
+#endif // WebCore_platform_glib_ApplicationGLib_h

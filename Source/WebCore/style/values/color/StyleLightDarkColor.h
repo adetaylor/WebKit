@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_StyleLightDarkColor_h
+#define WebCore_style_values_color_StyleLightDarkColor_h
 
 namespace WebCore {
 
@@ -42,3 +43,4 @@ Color toStyleColor(const CSS::LightDarkColor&, ColorResolutionState&);
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_color_StyleLightDarkColor_h

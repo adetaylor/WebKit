@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_CSSImageValue_h
+#define WebCore_css_CSSImageValue_h
 
 #include "CSSURL.h"
 #include "CSSValue.h"
@@ -95,3 +96,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSS_VALUE(CSSImageValue, isImageValue())
+#endif // WebCore_css_CSSImageValue_h

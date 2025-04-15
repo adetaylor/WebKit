@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_WorkerClient_h
+#define WebCore_page_WorkerClient_h
 
 #include "GraphicsClient.h"
 #include <wtf/FunctionDispatcher.h>
@@ -43,3 +44,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_WorkerClient_h

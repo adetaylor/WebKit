@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_transforms_SkewTransformOperation_h
+#define WebCore_platform_graphics_transforms_SkewTransformOperation_h
 
 #include "TransformOperation.h"
 #include <wtf/Ref.h>
@@ -69,3 +70,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_TRANSFORMOPERATION(WebCore::SkewTransformOperation, WebCore::TransformOperation::isSkewTransformOperationType)
+#endif // WebCore_platform_graphics_transforms_SkewTransformOperation_h

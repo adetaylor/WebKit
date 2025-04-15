@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleScrollSnapPoints_h
+#define WebCore_rendering_style_StyleScrollSnapPoints_h
 
 #include "LengthBox.h"
 #include "LengthSize.h"
@@ -51,3 +52,4 @@ TextStream& operator<<(TextStream&, ScrollSnapType);
 TextStream& operator<<(TextStream&, ScrollSnapAlign);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleScrollSnapPoints_h

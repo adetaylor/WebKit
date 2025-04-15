@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerRoute_h
+#define WebCore_workers_service_ServiceWorkerRoute_h
 
 #include "ExceptionData.h"
 #include "FetchRequestDestination.h"
@@ -87,3 +88,4 @@ std::optional<ExceptionData> validateServiceWorkerRoute(ServiceWorkerRoute&);
 bool matchRouterCondition(const ServiceWorkerRouteCondition&, const FetchOptions&, const ResourceRequest&, bool isServiceWorkerRunning);
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerRoute_h

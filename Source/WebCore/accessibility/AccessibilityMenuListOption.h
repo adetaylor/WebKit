@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityMenuListOption_h
+#define WebCore_accessibility_AccessibilityMenuListOption_h
 
 #include "AccessibilityNodeObject.h"
 #include "AccessibilityObject.h"
@@ -66,3 +67,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilityMenuListOption) \
     static bool isType(const WebCore::AccessibilityObject& object) { return object.isMenuListOption(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_accessibility_AccessibilityMenuListOption_h

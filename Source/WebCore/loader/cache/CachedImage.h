@@ -20,7 +20,8 @@
     Boston, MA 02110-1301, USA.
 */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedImage_h
+#define WebCore_loader_cache_CachedImage_h
 
 #include "CachedResource.h"
 #include "Image.h"
@@ -225,3 +226,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CACHED_RESOURCE(CachedImage, CachedResource::Type::ImageResource)
+#endif // WebCore_loader_cache_CachedImage_h

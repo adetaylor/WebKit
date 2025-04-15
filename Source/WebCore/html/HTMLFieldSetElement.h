@@ -21,7 +21,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLFieldSetElement_h
+#define WebCore_html_HTMLFieldSetElement_h
 
 #include "HTMLFormControlElement.h"
 #include <wtf/WeakHashSet.h>
@@ -64,3 +65,4 @@ private:
 };
 
 } // namespace
+#endif // WebCore_html_HTMLFieldSetElement_h

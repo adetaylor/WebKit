@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ScreenDataOverrides_h
+#define WebCore_platform_graphics_ScreenDataOverrides_h
 
 namespace WebCore {
 
@@ -36,3 +37,4 @@ struct ScreenDataOverrides {
 };
 
 }
+#endif // WebCore_platform_graphics_ScreenDataOverrides_h

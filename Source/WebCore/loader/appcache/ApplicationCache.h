@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_loader_appcache_ApplicationCache_h
+#define WebCore_loader_appcache_ApplicationCache_h
 
 #include <wtf/HashMap.h>
 #include <wtf/WeakPtr.h>
@@ -100,3 +101,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_appcache_ApplicationCache_h

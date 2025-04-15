@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_image_decoders_ScalableImageDecoder_h
+#define WebCore_platform_image_decoders_ScalableImageDecoder_h
 
 #include "ImageDecoder.h"
 #include "IntRect.h"
@@ -197,3 +198,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_image_decoders_ScalableImageDecoder_h

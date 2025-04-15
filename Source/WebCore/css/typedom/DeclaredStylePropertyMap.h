@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_DeclaredStylePropertyMap_h
+#define WebCore_css_typedom_DeclaredStylePropertyMap_h
 
 #include "StylePropertyMap.h"
 #include <wtf/WeakPtr.h>
@@ -63,3 +64,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CSSOM_STYLE_PROPERTY_MAP(DeclaredStylePropertyMap, WebCore::StylePropertyMapReadOnly::Type::Declared);
+#endif // WebCore_css_typedom_DeclaredStylePropertyMap_h

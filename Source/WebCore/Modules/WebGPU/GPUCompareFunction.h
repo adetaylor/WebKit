@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUCompareFunction_h
+#define WebCore_Modules_WebGPU_GPUCompareFunction_h
 
 #include "WebGPUCompareFunction.h"
 #include <cstdint>
@@ -65,3 +66,4 @@ inline WebGPU::CompareFunction convertToBacking(GPUCompareFunction compareFuncti
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUCompareFunction_h

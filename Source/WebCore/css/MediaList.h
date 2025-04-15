@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_MediaList_h
+#define WebCore_css_MediaList_h
 
 #include "ExceptionOr.h"
 #include "MediaQuery.h"
@@ -78,3 +79,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const MediaList&);
 
 } // namespace
+#endif // WebCore_css_MediaList_h

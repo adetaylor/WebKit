@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_LayoutRepainter_h
+#define WebCore_rendering_LayoutRepainter_h
 
 #include "RenderElement.h"
 
@@ -52,3 +53,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_LayoutRepainter_h

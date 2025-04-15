@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_DOMMatrix2DInit_h
+#define WebCore_css_DOMMatrix2DInit_h
 
 #include <optional>
 
@@ -45,3 +46,4 @@ struct DOMMatrix2DInit {
 };
 
 }
+#endif // WebCore_css_DOMMatrix2DInit_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_typedom_transform_CSSPerspective_h
+#define WebCore_css_typedom_transform_CSSPerspective_h
 
 #include "CSSKeywordValue.h"
 #include "CSSNumericValue.h"
@@ -66,3 +67,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::CSSPerspective)
     static bool isType(const WebCore::CSSTransformComponent& transform) { return transform.getType() == WebCore::CSSTransformType::Perspective; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_css_typedom_transform_CSSPerspective_h

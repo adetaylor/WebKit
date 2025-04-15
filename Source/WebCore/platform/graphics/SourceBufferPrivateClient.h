@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_SourceBufferPrivateClient_h
+#define WebCore_platform_graphics_SourceBufferPrivateClient_h
 
 #if ENABLE(MEDIA_SOURCE)
 
@@ -122,3 +123,4 @@ struct LogArgument<WebCore::SourceBufferEvictionData> {
 } // namespace WTF
 
 #endif // ENABLE(MEDIA_SOURCE)
+#endif // WebCore_platform_graphics_SourceBufferPrivateClient_h

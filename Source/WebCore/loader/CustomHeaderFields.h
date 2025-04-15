@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_CustomHeaderFields_h
+#define WebCore_loader_CustomHeaderFields_h
 
 #include "HTTPHeaderField.h"
 #include <wtf/Vector.h>
@@ -39,3 +40,4 @@ struct WEBCORE_EXPORT CustomHeaderFields {
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_CustomHeaderFields_h

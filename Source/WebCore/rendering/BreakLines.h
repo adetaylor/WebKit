@@ -19,7 +19,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_BreakLines_h
+#define WebCore_rendering_BreakLines_h
 
 #include <unicode/ubrk.h>
 #include <wtf/ASCIICType.h>
@@ -533,3 +534,4 @@ inline BreakLines::BreakClass BreakLines::classify(UChar character)
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_BreakLines_h

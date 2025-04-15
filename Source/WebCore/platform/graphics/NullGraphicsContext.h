@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_NullGraphicsContext_h
+#define WebCore_platform_graphics_NullGraphicsContext_h
 
 #include "GraphicsContext.h"
 #include <wtf/TZoneMallocInlines.h>
@@ -147,3 +148,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_NullGraphicsContext_h

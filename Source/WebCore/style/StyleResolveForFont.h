@@ -27,7 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleResolveForFont_h
+#define WebCore_style_StyleResolveForFont_h
 
 #include <optional>
 
@@ -78,3 +79,4 @@ std::optional<FontCascade> resolveForUnresolvedFont(const CSSPropertyParserHelpe
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_StyleResolveForFont_h

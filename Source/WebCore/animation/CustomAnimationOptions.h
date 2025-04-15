@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_CustomAnimationOptions_h
+#define WebCore_animation_CustomAnimationOptions_h
 
 #include "AnimationFrameRate.h"
 #include "AnimationFrameRatePreset.h"
@@ -38,3 +39,4 @@ struct CustomAnimationOptions : EffectTiming {
 
 } // namespace WebCore
 
+#endif // WebCore_animation_CustomAnimationOptions_h

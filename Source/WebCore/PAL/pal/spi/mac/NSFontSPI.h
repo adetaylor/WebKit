@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSFontSPI_h
+#define WebCore_PAL_pal_spi_mac_NSFontSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -55,3 +56,4 @@ extern const CGFloat NSFontWeightBlack;
 #endif
 
 #endif
+#endif // WebCore_PAL_pal_spi_mac_NSFontSPI_h

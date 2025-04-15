@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_mac_NSTextFieldCellSPI_h
+#define WebCore_PAL_pal_spi_mac_NSTextFieldCellSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -33,3 +34,4 @@ DECLARE_SYSTEM_HEADER
 - (CFDictionaryRef)_coreUIDrawOptionsWithFrame:(NSRect)cellFrame inView:(NSView *)controlView includeFocus:(BOOL)includeFocus;
 - (CFDictionaryRef)_coreUIDrawOptionsWithFrame:(NSRect)cellFrame inView:(NSView *)controlView includeFocus:(BOOL)includeFocus maskOnly:(BOOL)maskOnly;
 @end
+#endif // WebCore_PAL_pal_spi_mac_NSTextFieldCellSPI_h

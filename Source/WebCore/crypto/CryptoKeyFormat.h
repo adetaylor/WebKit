@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_CryptoKeyFormat_h
+#define WebCore_crypto_CryptoKeyFormat_h
 
 namespace WebCore {
 
@@ -35,3 +36,4 @@ enum class CryptoKeyFormat : uint8_t {
 };
 
 } // namespace WebCore
+#endif // WebCore_crypto_CryptoKeyFormat_h

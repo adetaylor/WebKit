@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InternalObserver_h
+#define WebCore_dom_InternalObserver_h
 
 #include "ActiveDOMObject.h"
 #include <wtf/RefCounted.h>
@@ -66,3 +67,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_InternalObserver_h

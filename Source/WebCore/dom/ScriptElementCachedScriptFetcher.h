@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ScriptElementCachedScriptFetcher_h
+#define WebCore_dom_ScriptElementCachedScriptFetcher_h
 
 #include "CachedScriptFetcher.h"
 #include "ScriptType.h"
@@ -55,3 +56,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ScriptElementCachedScriptFetcher_h

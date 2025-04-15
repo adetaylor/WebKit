@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_crypto_gcrypt_Utilities_h
+#define WebCore_PAL_pal_crypto_gcrypt_Utilities_h
 
 #include <gcrypt.h>
 #include <optional>
@@ -69,3 +70,4 @@ static inline std::optional<int> aesAlgorithmForKeySize(size_t keySize)
 
 } // namespace GCrypt
 } // namespace PAL
+#endif // WebCore_PAL_pal_crypto_gcrypt_Utilities_h

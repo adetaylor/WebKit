@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_TextPosition_h
+#define WTF_wtf_text_TextPosition_h
 
 #include <wtf/HashFunctions.h>
 #include <wtf/HashTraits.h>
@@ -78,3 +79,4 @@ template<> struct HashTraits<TextPosition> : GenericHashTraits<TextPosition> {
 }
 
 using WTF::TextPosition;
+#endif // WTF_wtf_text_TextPosition_h

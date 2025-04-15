@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_RecordingSwizzleType_h
+#define WebCore_inspector_RecordingSwizzleType_h
 
 namespace WebCore {
 
@@ -58,3 +59,4 @@ enum class RecordingSwizzleType : int {
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_RecordingSwizzleType_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_UserInterfaceDirectionPolicy_h
+#define WebCore_page_UserInterfaceDirectionPolicy_h
 
 namespace WebCore {
 
@@ -33,3 +34,4 @@ enum class UserInterfaceDirectionPolicy : bool {
 };
 
 }
+#endif // WebCore_page_UserInterfaceDirectionPolicy_h

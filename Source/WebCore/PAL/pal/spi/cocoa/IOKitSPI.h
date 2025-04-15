@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_IOKitSPI_h
+#define WebCore_PAL_pal_spi_cocoa_IOKitSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -32,3 +33,4 @@ DECLARE_SYSTEM_HEADER
 #else
 #import <pal/spi/ios/IOKitSPIIOS.h>
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_IOKitSPI_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_writing_tools_WritingToolsController_h
+#define WebCore_page_writing_tools_WritingToolsController_h
 
 #if ENABLE(WRITING_TOOLS)
 
@@ -203,3 +204,4 @@ private:
 } // namespace WebKit
 
 #endif
+#endif // WebCore_page_writing_tools_WritingToolsController_h

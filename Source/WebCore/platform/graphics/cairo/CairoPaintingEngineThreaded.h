@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cairo_CairoPaintingEngineThreaded_h
+#define WebCore_platform_graphics_cairo_CairoPaintingEngineThreaded_h
 
 #if USE(CAIRO) && USE(COORDINATED_GRAPHICS)
 #include "CairoPaintingEngine.h"
@@ -50,3 +51,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(CAIRO) && USE(COORDINATED_GRAPHICS)
+#endif // WebCore_platform_graphics_cairo_CairoPaintingEngineThreaded_h

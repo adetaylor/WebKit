@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_shadow_DateTimeEditElement_h
+#define WebCore_html_shadow_DateTimeEditElement_h
 
 #include "DateComponents.h"
 #include "DateTimeFieldElement.h"
@@ -122,3 +123,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_shadow_DateTimeEditElement_h

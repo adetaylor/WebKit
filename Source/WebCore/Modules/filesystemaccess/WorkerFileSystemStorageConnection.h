@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_filesystemaccess_WorkerFileSystemStorageConnection_h
+#define WebCore_Modules_filesystemaccess_WorkerFileSystemStorageConnection_h
 
 #include "FileSystemHandleIdentifier.h"
 #include "FileSystemStorageConnection.h"
@@ -102,3 +103,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::WorkerFileSystemStorageConnection)
     static bool isType(const WebCore::FileSystemStorageConnection& connection) { return connection.isWorker(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_Modules_filesystemaccess_WorkerFileSystemStorageConnection_h

@@ -27,7 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_NetworkResourcesData_h
+#define WebCore_inspector_NetworkResourcesData_h
 
 #include "InspectorPageAgent.h"
 #include "SharedBuffer.h"
@@ -165,3 +166,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_NetworkResourcesData_h

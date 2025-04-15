@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_mac_RenderThemeMac_h
+#define WebCore_rendering_mac_RenderThemeMac_h
 
 #if PLATFORM(MAC)
 
@@ -161,3 +162,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(MAC)
+#endif // WebCore_rendering_mac_RenderThemeMac_h

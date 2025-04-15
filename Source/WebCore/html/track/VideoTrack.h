@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_track_VideoTrack_h
+#define WebCore_html_track_VideoTrack_h
 
 #if ENABLE(VIDEO)
 
@@ -111,3 +112,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::VideoTrack)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif
+#endif // WebCore_html_track_VideoTrack_h

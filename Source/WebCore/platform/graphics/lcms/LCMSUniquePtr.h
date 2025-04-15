@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_lcms_LCMSUniquePtr_h
+#define WebCore_platform_graphics_lcms_LCMSUniquePtr_h
 
 #include <lcms2.h>
 #include <memory>
@@ -54,3 +55,4 @@ using LCMSTransformPtr = std::unique_ptr<void, LCMSTransformDeleter>;
 
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_lcms_LCMSUniquePtr_h

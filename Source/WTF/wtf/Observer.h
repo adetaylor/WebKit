@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Observer_h
+#define WTF_wtf_Observer_h
 
 #include <wtf/Function.h>
 #include <wtf/Noncopyable.h>
@@ -67,3 +68,4 @@ private:
 
 using WTF::Observer;
 
+#endif // WTF_wtf_Observer_h

@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_IDBBindingUtilities_h
+#define WebCore_bindings_js_IDBBindingUtilities_h
 
 #include "IDBKeyPath.h"
 #include "IndexKey.h"
@@ -67,3 +68,4 @@ std::optional<JSC::JSValue> deserializeIDBValueWithKeyInjection(JSC::JSGlobalObj
 WEBCORE_EXPORT void callOnIDBSerializationThreadAndWait(Function<void(JSC::JSGlobalObject&)>&&);
 
 }
+#endif // WebCore_bindings_js_IDBBindingUtilities_h

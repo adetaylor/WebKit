@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_wak_WAKWindow_h
+#define WebCore_platform_ios_wak_WAKWindow_h
 
 #import <Foundation/Foundation.h>
 
@@ -186,3 +187,4 @@ WEBCORE_EXPORT @interface WAKWindow : WAKResponder
 @end
 
 #endif // TARGET_OS_IPHONE
+#endif // WebCore_platform_ios_wak_WAKWindow_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_Base64Utilities_h
+#define WebCore_page_Base64Utilities_h
 
 #include "ExceptionOr.h"
 
@@ -37,3 +38,4 @@ public:
 };
 
 }
+#endif // WebCore_page_Base64Utilities_h

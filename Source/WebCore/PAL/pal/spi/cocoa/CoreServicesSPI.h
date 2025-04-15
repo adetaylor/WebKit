@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_CoreServicesSPI_h
+#define WebCore_PAL_pal_spi_cocoa_CoreServicesSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -44,3 +45,4 @@ void _CSCheckFixDisable();
 CFArrayRef _UTCopyDeclaredTypeIdentifiers(void);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cocoa_CoreServicesSPI_h

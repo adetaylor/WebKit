@@ -22,7 +22,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_ios_QuickLookSoftLink_h
+#define WebCore_PAL_pal_ios_QuickLookSoftLink_h
 
 #if USE(QUICK_LOOK)
 
@@ -45,3 +46,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, QuickLook, QLTypeCopyUTIForURLAndMimeType, NS
 #define QLTypeCopyUTIForURLAndMimeType softLink_QuickLook_QLTypeCopyUTIForURLAndMimeType
 
 #endif // USE(QUICK_LOOK)
+#endif // WebCore_PAL_pal_ios_QuickLookSoftLink_h

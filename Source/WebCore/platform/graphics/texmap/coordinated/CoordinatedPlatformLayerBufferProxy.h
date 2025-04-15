@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferProxy_h
+#define WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferProxy_h
 
 #if USE(COORDINATED_GRAPHICS)
 #include <wtf/Lock.h>
@@ -65,3 +66,4 @@ private:
 } // namespace WebCore
 
 #endif // USE(COORDINATED_GRAPHICS)
+#endif // WebCore_platform_graphics_texmap_coordinated_CoordinatedPlatformLayerBufferProxy_h

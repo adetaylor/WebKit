@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleReflection_h
+#define WebCore_rendering_style_StyleReflection_h
 
 #include "Length.h"
 #include "NinePieceImage.h"
@@ -65,3 +66,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleReflection_h

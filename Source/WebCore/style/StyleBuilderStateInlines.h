@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_StyleBuilderStateInlines_h
+#define WebCore_style_StyleBuilderStateInlines_h
 
 #include "RenderStyleSetters.h"
 #include "StyleBuilderState.h"
@@ -41,3 +42,4 @@ inline void BuilderState::setZoom(float zoom) { m_fontDirty |= m_style.setZoom(z
 
 }
 }
+#endif // WebCore_style_StyleBuilderStateInlines_h

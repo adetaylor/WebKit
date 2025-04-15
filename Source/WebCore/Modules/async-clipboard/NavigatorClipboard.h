@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_async_clipboard_NavigatorClipboard_h
+#define WebCore_Modules_async_clipboard_NavigatorClipboard_h
 
 #include "Supplementable.h"
 #include <wtf/CheckedRef.h>
@@ -53,3 +54,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_async_clipboard_NavigatorClipboard_h

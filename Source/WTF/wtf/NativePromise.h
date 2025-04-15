@@ -25,7 +25,8 @@
 
 // NativePromise is a C++ Promise implementation based on Mozilla's MozPromise.
 
-#pragma once
+#ifndef WTF_wtf_NativePromise_h
+#define WTF_wtf_NativePromise_h
 
 #if ASSERT_ENABLED
 #include <atomic>
@@ -1620,3 +1621,4 @@ using WTF::NativePromise;
 using WTF::NativePromiseRequest;
 using WTF::PromiseDispatchMode;
 using WTF::PromiseOption;
+#endif // WTF_wtf_NativePromise_h

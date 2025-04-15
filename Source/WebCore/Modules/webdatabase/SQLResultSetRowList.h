@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webdatabase_SQLResultSetRowList_h
+#define WebCore_Modules_webdatabase_SQLResultSetRowList_h
 
 #include "ExceptionOr.h"
 #include "SQLValue.h"
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_webdatabase_SQLResultSetRowList_h

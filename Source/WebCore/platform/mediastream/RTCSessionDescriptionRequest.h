@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RTCSessionDescriptionRequest_h
+#define WebCore_platform_mediastream_RTCSessionDescriptionRequest_h
 
 #if ENABLE(WEB_RTC)
 
@@ -66,3 +67,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(WEB_RTC)
+#endif // WebCore_platform_mediastream_RTCSessionDescriptionRequest_h

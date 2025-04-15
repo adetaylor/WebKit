@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_XRRenderStateInit_h
+#define WebCore_Modules_webxr_XRRenderStateInit_h
 
 #if ENABLE(WEBXR)
 
@@ -44,3 +45,4 @@ struct XRRenderStateInit {
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_Modules_webxr_XRRenderStateInit_h

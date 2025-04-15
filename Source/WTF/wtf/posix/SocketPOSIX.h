@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_posix_SocketPOSIX_h
+#define WTF_wtf_posix_SocketPOSIX_h
 
 #include <sys/socket.h>
 #include <wtf/Compiler.h>
@@ -104,3 +105,4 @@ using WTF::initializeIPV4SocketAddress;
 using WTF::initializeIPV6SocketAddress;
 using WTF::isIPV4SocketAddress;
 using WTF::isIPV6SocketAddress;
+#endif // WTF_wtf_posix_SocketPOSIX_h

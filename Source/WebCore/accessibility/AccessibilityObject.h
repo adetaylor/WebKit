@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilityObject_h
+#define WebCore_accessibility_AccessibilityObject_h
 
 #include "AXCoreObject.h"
 #include "AXTextRun.h"
@@ -1033,3 +1034,4 @@ SPECIALIZE_TYPE_TRAITS_END()
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilityObject)
 static bool isType(const WebCore::AXCoreObject& context) { return context.isAccessibilityObject(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_accessibility_AccessibilityObject_h

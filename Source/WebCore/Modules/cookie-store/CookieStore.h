@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_cookie_store_CookieStore_h
+#define WebCore_Modules_cookie_store_CookieStore_h
 
 #include "ActiveDOMObject.h"
 #include "CookieChangeListener.h"
@@ -98,3 +99,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_cookie_store_CookieStore_h

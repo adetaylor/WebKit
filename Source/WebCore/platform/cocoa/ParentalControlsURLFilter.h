@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_ParentalControlsURLFilter_h
+#define WebCore_platform_cocoa_ParentalControlsURLFilter_h
 
 #if HAVE(WEBCONTENTRESTRICTIONS)
 
@@ -50,3 +51,4 @@ private:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_platform_cocoa_ParentalControlsURLFilter_h

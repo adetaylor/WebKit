@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_MockContentFilterSettingsClient_h
+#define WebCore_testing_MockContentFilterSettingsClient_h
 
 #include <wtf/RefCounted.h>
 
@@ -39,3 +40,4 @@ public:
 };
 
 };
+#endif // WebCore_testing_MockContentFilterSettingsClient_h

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_WorkerThreadableLoader_h
+#define WebCore_loader_WorkerThreadableLoader_h
 
 #include "NetworkLoadMetrics.h"
 #include "ResourceLoaderIdentifier.h"
@@ -144,3 +145,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_WorkerThreadableLoader_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_WorkerToPageFrontendChannel_h
+#define WebCore_inspector_WorkerToPageFrontendChannel_h
 
 #include "WorkerDebuggerProxy.h"
 #include "WorkerOrWorkletGlobalScope.h"
@@ -55,3 +56,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_WorkerToPageFrontendChannel_h

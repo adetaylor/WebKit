@@ -25,10 +25,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_WindRule_h
+#define WebCore_platform_graphics_WindRule_h
 
 namespace WebCore {
 
 enum class WindRule : bool { NonZero, EvenOdd };
 
 }
+#endif // WebCore_platform_graphics_WindRule_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_model_element_dummy_DummyModelPlayerProvider_h
+#define WebCore_Modules_model_element_dummy_DummyModelPlayerProvider_h
 
 #include "ModelPlayerProvider.h"
 #include <wtf/TZoneMalloc.h>
@@ -46,3 +47,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_model_element_dummy_DummyModelPlayerProvider_h

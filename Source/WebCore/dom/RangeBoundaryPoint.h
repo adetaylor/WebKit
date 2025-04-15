@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_dom_RangeBoundaryPoint_h
+#define WebCore_dom_RangeBoundaryPoint_h
 
 #include "BoundaryPoint.h"
 #include "CharacterData.h"
@@ -133,3 +134,4 @@ inline BoundaryPoint makeBoundaryPoint(const RangeBoundaryPoint& point)
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_RangeBoundaryPoint_h

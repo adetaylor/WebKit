@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_indexeddb_server_IDBConnectionToClient_h
+#define WebCore_Modules_indexeddb_server_IDBConnectionToClient_h
 
 #include "IDBConnectionToClientDelegate.h"
 #include <wtf/HashSet.h>
@@ -93,3 +94,4 @@ private:
 
 } // namespace IDBServer
 } // namespace WebCore
+#endif // WebCore_Modules_indexeddb_server_IDBConnectionToClient_h

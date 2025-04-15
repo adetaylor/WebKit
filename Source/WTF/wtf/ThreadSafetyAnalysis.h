@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ThreadSafetyAnalysis_h
+#define WTF_wtf_ThreadSafetyAnalysis_h
 
 #include <wtf/Compiler.h>
 
@@ -71,3 +72,4 @@
 #define WTF_REQUIRES_LOCK(...) WTF_REQUIRES_CAPABILITY(__VA_ARGS__)
 #define WTF_REQUIRES_SHARED_LOCK(...) WTF_REQUIRES_SHARED_CAPABILITY(__VA_ARGS__)
 #define WTF_RETURNS_LOCK(x) WTF_RETURNS_CAPABILITY(x)
+#endif // WTF_wtf_ThreadSafetyAnalysis_h

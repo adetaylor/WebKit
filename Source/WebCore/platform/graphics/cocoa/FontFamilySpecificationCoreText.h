@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_FontFamilySpecificationCoreText_h
+#define WebCore_platform_graphics_cocoa_FontFamilySpecificationCoreText_h
 
 #include <wtf/RetainPtr.h>
 
@@ -46,3 +47,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_cocoa_FontFamilySpecificationCoreText_h

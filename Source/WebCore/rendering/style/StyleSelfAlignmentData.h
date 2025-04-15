@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_style_StyleSelfAlignmentData_h
+#define WebCore_rendering_style_StyleSelfAlignmentData_h
 
 #include "RenderStyleConstants.h"
 #include <wtf/EnumTraits.h>
@@ -75,3 +76,4 @@ private:
 WTF::TextStream& operator<<(WTF::TextStream&, const StyleSelfAlignmentData&);
 
 } // namespace WebCore
+#endif // WebCore_rendering_style_StyleSelfAlignmentData_h

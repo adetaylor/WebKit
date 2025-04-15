@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUCanvasToneMapping_h
+#define WebCore_Modules_WebGPU_GPUCanvasToneMapping_h
 
 #include "GPUCanvasToneMappingMode.h"
 
@@ -34,3 +35,4 @@ struct GPUCanvasToneMapping {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUCanvasToneMapping_h

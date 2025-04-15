@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webcodecs_VideoColorSpace_h
+#define WebCore_Modules_webcodecs_VideoColorSpace_h
 
 #if ENABLE(VIDEO)
 
@@ -79,3 +80,4 @@ private:
 }
 
 #endif
+#endif // WebCore_Modules_webcodecs_VideoColorSpace_h

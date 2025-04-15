@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_Timer_h
+#define WebCore_platform_Timer_h
 
 #include "ThreadTimers.h"
 #include <functional>
@@ -286,3 +287,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_Timer_h

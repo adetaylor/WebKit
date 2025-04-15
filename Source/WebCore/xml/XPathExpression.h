@@ -24,7 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_xml_XPathExpression_h
+#define WebCore_xml_XPathExpression_h
 
 #include "ExceptionOr.h"
 
@@ -52,3 +53,4 @@ private:
 };
 
 }
+#endif // WebCore_xml_XPathExpression_h

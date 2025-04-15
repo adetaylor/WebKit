@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_ShapeDetection_LandmarkType_h
+#define WebCore_Modules_ShapeDetection_LandmarkType_h
 
 #include "LandmarkTypeInterface.h"
 #include <cstdint>
@@ -63,3 +64,4 @@ inline LandmarkType convertFromBacking(ShapeDetection::LandmarkType landmarkType
 }
 
 } // namespace WebCore
+#endif // WebCore_Modules_ShapeDetection_LandmarkType_h

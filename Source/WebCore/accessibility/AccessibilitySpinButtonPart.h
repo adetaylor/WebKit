@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_accessibility_AccessibilitySpinButtonPart_h
+#define WebCore_accessibility_AccessibilitySpinButtonPart_h
 
 #include "AccessibilityMockObject.h"
 
@@ -58,3 +59,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AccessibilitySpinButtonPart) \
     } \
     static bool isType(const WebCore::AccessibilityObject& object) { return object.isSpinButtonPart(); } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_accessibility_AccessibilitySpinButtonPart_h

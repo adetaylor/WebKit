@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_libwpe_GamepadProviderLibWPE_h
+#define WebCore_platform_gamepad_libwpe_GamepadProviderLibWPE_h
 
 #if ENABLE(GAMEPAD) && USE(LIBWPE)
 
@@ -89,3 +90,4 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD) && USE(LIBWPE)
+#endif // WebCore_platform_gamepad_libwpe_GamepadProviderLibWPE_h

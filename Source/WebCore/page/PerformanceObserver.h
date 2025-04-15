@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PerformanceObserver_h
+#define WebCore_page_PerformanceObserver_h
 
 #include "ExceptionOr.h"
 #include "PerformanceEntry.h"
@@ -85,3 +86,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_PerformanceObserver_h

@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSExecStateInstrumentation_h
+#define WebCore_bindings_js_JSExecStateInstrumentation_h
 
 #include "InspectorInstrumentation.h"
 #include "JSExecState.h"
@@ -50,3 +51,4 @@ inline void JSExecState::instrumentFunction(ScriptExecutionContext* context, con
 }
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSExecStateInstrumentation_h

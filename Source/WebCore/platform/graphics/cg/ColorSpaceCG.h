@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cg_ColorSpaceCG_h
+#define WebCore_platform_graphics_cg_ColorSpaceCG_h
 
 #include "ColorSpace.h"
 #include <CoreGraphics/CoreGraphics.h>
@@ -203,3 +204,4 @@ inline CGColorSpaceRef cachedNullableCGColorSpace(ColorSpace colorSpace)
 }
 
 }
+#endif // WebCore_platform_graphics_cg_ColorSpaceCG_h

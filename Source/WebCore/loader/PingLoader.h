@@ -30,7 +30,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_loader_PingLoader_h
+#define WebCore_loader_PingLoader_h
 
 #include "ReferrerPolicy.h"
 #include "SecurityOriginData.h"
@@ -61,3 +62,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_PingLoader_h

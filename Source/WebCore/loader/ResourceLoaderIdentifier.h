@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_ResourceLoaderIdentifier_h
+#define WebCore_loader_ResourceLoaderIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -34,3 +35,4 @@ class ResourceLoader;
 using ResourceLoaderIdentifier = AtomicObjectIdentifier<ResourceLoader>;
 
 } // namespace WebCore
+#endif // WebCore_loader_ResourceLoaderIdentifier_h

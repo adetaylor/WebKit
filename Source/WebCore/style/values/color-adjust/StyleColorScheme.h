@@ -25,7 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_color_adjust_StyleColorScheme_h
+#define WebCore_style_values_color_adjust_StyleColorScheme_h
 
 #include "CSSColorScheme.h"
 #include "RenderStyleConstants.h"
@@ -68,3 +69,4 @@ TextStream& operator<<(TextStream&, const ColorScheme&);
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::Style::ColorScheme, 2)
 
 #endif
+#endif // WebCore_style_values_color_adjust_StyleColorScheme_h

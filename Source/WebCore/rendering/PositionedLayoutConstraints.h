@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_PositionedLayoutConstraints_h
+#define WebCore_rendering_PositionedLayoutConstraints_h
 
 #include "BoxSides.h"
 #include "LayoutRange.h"
@@ -109,3 +110,4 @@ private:
 };
 
 }
+#endif // WebCore_rendering_PositionedLayoutConstraints_h

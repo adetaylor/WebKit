@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_cocoa_Entitlements_h
+#define WTF_wtf_cocoa_Entitlements_h
 
 #if PLATFORM(COCOA)
 
@@ -46,3 +47,4 @@ WTF_EXPORT_PRIVATE bool hasEntitlementValueInArray(audit_token_t, ASCIILiteral e
 } // namespace WTF
 
 #endif
+#endif // WTF_wtf_cocoa_Entitlements_h

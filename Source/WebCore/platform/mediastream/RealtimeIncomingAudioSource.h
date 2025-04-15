@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_mediastream_RealtimeIncomingAudioSource_h
+#define WebCore_platform_mediastream_RealtimeIncomingAudioSource_h
 
 #if USE(LIBWEBRTC)
 
@@ -101,3 +102,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::RealtimeIncomingAudioSource)
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // USE(LIBWEBRTC)
+#endif // WebCore_platform_mediastream_RealtimeIncomingAudioSource_h

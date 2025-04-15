@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_PrewarmInformation_h
+#define WebCore_page_PrewarmInformation_h
 
 #include "FontCache.h"
 #include <wtf/Vector.h>
@@ -37,3 +38,4 @@ struct WEBCORE_EXPORT PrewarmInformation {
 };
 
 }
+#endif // WebCore_page_PrewarmInformation_h

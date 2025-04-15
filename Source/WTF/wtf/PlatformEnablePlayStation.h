@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_PlatformEnablePlayStation_h
+#define WTF_wtf_PlatformEnablePlayStation_h
 
 #ifndef WTF_PLATFORM_GUARD_AGAINST_INDIRECT_INCLUSION
 #error "Please #include <wtf/Platform.h> instead of this file directly."
@@ -46,3 +47,4 @@
 #if !defined(ENABLE_KINETIC_SCROLLING) && ENABLE(ASYNC_SCROLLING)
 #define ENABLE_KINETIC_SCROLLING 1
 #endif
+#endif // WTF_wtf_PlatformEnablePlayStation_h

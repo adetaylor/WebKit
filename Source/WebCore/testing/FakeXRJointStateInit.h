@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_testing_FakeXRJointStateInit_h
+#define WebCore_testing_FakeXRJointStateInit_h
 
 #if ENABLE(WEBXR_HANDS)
 
@@ -39,3 +40,4 @@ struct FakeXRJointStateInit {
 } // namespace WebCore
 
 #endif // ENABLE(WEBXR_HANDS)
+#endif // WebCore_testing_FakeXRJointStateInit_h

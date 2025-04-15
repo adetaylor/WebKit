@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderProgress_h
+#define WebCore_rendering_RenderProgress_h
 
 #include "RenderBlockFlow.h"
 
@@ -58,3 +59,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderProgress, isRenderProgress())
+#endif // WebCore_rendering_RenderProgress_h

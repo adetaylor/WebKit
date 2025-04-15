@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_webxr_WebXRPose_h
+#define WebCore_Modules_webxr_WebXRPose_h
 
 #if ENABLE(WEBXR)
 #include <wtf/Ref.h>
@@ -60,3 +61,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName)                          
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif // ENABLE(WEBXR)
+#endif // WebCore_Modules_webxr_WebXRPose_h

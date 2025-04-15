@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_network_ResourceHandleClient_h
+#define WebCore_platform_network_ResourceHandleClient_h
 
 #include <wtf/CompletionHandler.h>
 #include <wtf/Forward.h>
@@ -94,3 +95,4 @@ public:
 };
 
 }
+#endif // WebCore_platform_network_ResourceHandleClient_h

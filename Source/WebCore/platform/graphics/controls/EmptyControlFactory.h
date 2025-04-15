@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_controls_EmptyControlFactory_h
+#define WebCore_platform_graphics_controls_EmptyControlFactory_h
 
 #include "ControlFactory.h"
 #include <wtf/TZoneMalloc.h>
@@ -62,3 +63,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_controls_EmptyControlFactory_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_csp_ContentSecurityPolicyTrustedTypesDirective_h
+#define WebCore_page_csp_ContentSecurityPolicyTrustedTypesDirective_h
 
 #include "ContentSecurityPolicyDirective.h"
 #include <wtf/Forward.h>
@@ -51,3 +52,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_csp_ContentSecurityPolicyTrustedTypesDirective_h

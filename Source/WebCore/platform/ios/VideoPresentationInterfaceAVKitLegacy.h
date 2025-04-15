@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_ios_VideoPresentationInterfaceAVKitLegacy_h
+#define WebCore_platform_ios_VideoPresentationInterfaceAVKitLegacy_h
 
 #if PLATFORM(IOS_FAMILY) && HAVE(AVKIT)
 
@@ -93,3 +94,4 @@ private:
 } // namespace WebCore
 
 #endif // PLATFORM(IOS_FAMILY) && HAVE(AVKIT)
+#endif // WebCore_platform_ios_VideoPresentationInterfaceAVKitLegacy_h

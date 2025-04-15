@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_writing_tools_WritingToolsTypes_h
+#define WebCore_page_writing_tools_WritingToolsTypes_h
 
 #if ENABLE(WRITING_TOOLS)
 
@@ -116,3 +117,4 @@ struct TextSuggestion {
 } // namespace WebCore
 
 #endif
+#endif // WebCore_page_writing_tools_WritingToolsTypes_h

@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_domjit_DOMJITCheckDOM_h
+#define WebCore_domjit_DOMJITCheckDOM_h
 
 #include "DOMJITHelpers.h"
 
@@ -94,3 +95,4 @@ Ref<JSC::Snippet> checkDOM()
 } }
 
 #endif
+#endif // WebCore_domjit_DOMJITCheckDOM_h

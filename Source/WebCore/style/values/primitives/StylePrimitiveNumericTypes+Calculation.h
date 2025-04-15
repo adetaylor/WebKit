@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_style_values_primitives_StylePrimitiveNumericTypes_Calculation_h
+#define WebCore_style_values_primitives_StylePrimitiveNumericTypes_Calculation_h
 
 #include "CalculationValue.h"
 #include "StylePrimitiveNumericTypes.h"
@@ -65,3 +66,4 @@ inline Calculation::Child copyCalculation(DimensionPercentageNumeric auto const&
 
 } // namespace Style
 } // namespace WebCore
+#endif // WebCore_style_values_primitives_StylePrimitiveNumericTypes_Calculation_h

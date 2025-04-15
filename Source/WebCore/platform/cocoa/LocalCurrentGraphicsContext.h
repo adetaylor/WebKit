@@ -17,7 +17,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_LocalCurrentGraphicsContext_h
+#define WebCore_platform_cocoa_LocalCurrentGraphicsContext_h
 
 #include "CGContextStateSaver.h"
 #include "GraphicsContextCG.h"
@@ -90,3 +91,4 @@ private:
 }
 
 #endif // PLATFORM(COCOA)
+#endif // WebCore_platform_cocoa_LocalCurrentGraphicsContext_h

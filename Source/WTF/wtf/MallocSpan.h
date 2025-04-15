@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_MallocSpan_h
+#define WTF_wtf_MallocSpan_h
 
 #include <utility>
 #include <wtf/FastMalloc.h>
@@ -165,3 +166,4 @@ template<typename U, typename OtherMalloc> MallocSpan<U, OtherMalloc> adoptMallo
 
 using WTF::MallocSpan;
 using WTF::adoptMallocSpan;
+#endif // WTF_wtf_MallocSpan_h

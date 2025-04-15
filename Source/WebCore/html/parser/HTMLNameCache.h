@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_parser_HTMLNameCache_h
+#define WebCore_html_parser_HTMLNameCache_h
 
 #include "QualifiedName.h"
 #include <wtf/NeverDestroyed.h>
@@ -131,3 +132,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_parser_HTMLNameCache_h

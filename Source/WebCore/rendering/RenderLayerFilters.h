@@ -28,7 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderLayerFilters_h
+#define WebCore_rendering_RenderLayerFilters_h
 
 #include "CachedResourceHandle.h"
 #include "CachedSVGDocumentClient.h"
@@ -95,3 +96,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderLayerFilters_h

@@ -17,7 +17,8 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_css_MediaQueryMatcher_h
+#define WebCore_css_MediaQueryMatcher_h
 
 #include <memory>
 #include <wtf/Forward.h>
@@ -75,3 +76,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_MediaQueryMatcher_h

@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_encryptedmedia_CDMOpenCDMTypes_h
+#define WebCore_platform_encryptedmedia_CDMOpenCDMTypes_h
 
 #if ENABLE(ENCRYPTED_MEDIA) && ENABLE(THUNDER)
 
@@ -40,3 +41,4 @@ WTF_DEFINE_BOXPTR_DELETER(OpenCDMSession, opencdm_destruct_session)
 }
 
 #endif // ENABLE(ENCRYPTED_MEDIA) && ENABLE(THUNDER)
+#endif // WebCore_platform_encryptedmedia_CDMOpenCDMTypes_h

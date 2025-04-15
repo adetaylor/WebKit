@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_text_StringConcatenate_h
+#define WTF_wtf_text_StringConcatenate_h
 
 #include <atomic>
 #include <cstring>
@@ -648,3 +649,4 @@ using WTF::asASCIILowercase;
 using WTF::asASCIIUppercase;
 using WTF::interleave;
 using WTF::pad;
+#endif // WTF_wtf_text_StringConcatenate_h

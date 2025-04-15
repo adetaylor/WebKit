@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_DeviceMotionClient_h
+#define WebCore_dom_DeviceMotionClient_h
 
 #include "DeviceClient.h"
 #include <wtf/Noncopyable.h>
@@ -54,3 +55,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::DeviceMotionClient)
 static bool isType(const WebCore::DeviceClient& DeviceClient) { return DeviceClient.isDeviceMotionClient(); }
 SPECIALIZE_TYPE_TRAITS_END()
 
+#endif // WebCore_dom_DeviceMotionClient_h

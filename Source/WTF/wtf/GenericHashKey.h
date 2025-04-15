@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_GenericHashKey_h
+#define WTF_wtf_GenericHashKey_h
 
 #include <variant>
 #include <wtf/Forward.h>
@@ -99,3 +100,4 @@ template<typename K, typename H> struct DefaultHash<GenericHashKey<K, H>> {
 }
 
 using WTF::GenericHashKey;
+#endif // WTF_wtf_GenericHashKey_h

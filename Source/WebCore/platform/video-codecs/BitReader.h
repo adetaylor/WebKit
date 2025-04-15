@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_video_codecs_BitReader_h
+#define WebCore_platform_video_codecs_BitReader_h
 
 #include <optional>
 #include <span>
@@ -61,3 +62,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_video_codecs_BitReader_h

@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Platform_h
+#define WTF_wtf_Platform_h
 
 /* Include compiler specific macros */
 #include <wtf/Compiler.h>
@@ -166,3 +167,4 @@
 #if PLATFORM(COCOA) || PLATFORM(GTK) || PLATFORM(WPE)
 #define USE_ACCESSIBILITY_CONTEXT_MENUS 1
 #endif
+#endif // WTF_wtf_Platform_h

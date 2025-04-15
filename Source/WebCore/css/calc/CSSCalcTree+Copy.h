@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_Copy_h
+#define WebCore_css_calc_CSSCalcTree_Copy_h
 
 namespace WebCore {
 namespace CSSCalc {
@@ -36,3 +37,4 @@ AnchorSide copy(const AnchorSide&);
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_Copy_h

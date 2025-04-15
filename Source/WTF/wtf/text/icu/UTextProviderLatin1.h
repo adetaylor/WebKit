@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_icu_UTextProviderLatin1_h
+#define WTF_wtf_text_icu_UTextProviderLatin1_h
 
 #include <unicode/utext.h>
 #include <wtf/text/LChar.h>
@@ -42,3 +43,4 @@ UText* openLatin1UTextProvider(UTextWithBuffer* utWithBuffer, std::span<const LC
 WTF_EXPORT_PRIVATE UText* openLatin1ContextAwareUTextProvider(UTextWithBuffer* utWithBuffer, std::span<const LChar> string, std::span<const UChar> priorContext, UErrorCode* status);
 
 } // namespace WTF
+#endif // WTF_wtf_text_icu_UTextProviderLatin1_h

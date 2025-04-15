@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_server_SWOriginStore_h
+#define WebCore_workers_service_server_SWOriginStore_h
 
 #include "SecurityOriginData.h"
 #include <wtf/HashMap.h>
@@ -52,3 +53,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_server_SWOriginStore_h

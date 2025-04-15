@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_libwpe_PlatformDisplayLibWPE_h
+#define WebCore_platform_graphics_libwpe_PlatformDisplayLibWPE_h
 
 #if USE(WPE_RENDERER)
 
@@ -54,3 +55,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_PLATFORM_DISPLAY(PlatformDisplayLibWPE, WPE)
 
 #endif // USE(WPE_RENDERER)
+#endif // WebCore_platform_graphics_libwpe_PlatformDisplayLibWPE_h

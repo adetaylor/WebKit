@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_adjust_CSSColorScheme_h
+#define WebCore_css_values_color_adjust_CSSColorScheme_h
 
 #include "CSSValueTypes.h"
 #include <wtf/Vector.h>
@@ -64,3 +65,4 @@ template<size_t I> const auto& get(const ColorScheme& colorScheme)
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::ColorScheme, 2)
 
 #endif
+#endif // WebCore_css_values_color_adjust_CSSColorScheme_h

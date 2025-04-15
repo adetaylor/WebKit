@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_async_clipboard_ClipboardItemDataSource_h
+#define WebCore_Modules_async_clipboard_ClipboardItemDataSource_h
 
 #include <wtf/CompletionHandler.h>
 #include <wtf/Vector.h>
@@ -55,3 +56,4 @@ protected:
 };
 
 } // namespace WebCore
+#endif // WebCore_Modules_async_clipboard_ClipboardItemDataSource_h

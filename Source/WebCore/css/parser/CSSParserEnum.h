@@ -26,7 +26,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#ifndef WebCore_css_parser_CSSParserEnum_h
+#define WebCore_css_parser_CSSParserEnum_h
 
 #include <optional>
 
@@ -46,3 +47,4 @@ enum class IsForgiving : bool { No, Yes };
 } // namespace CSSParserEnum
 
 } // namespace WebCore
+#endif // WebCore_css_parser_CSSParserEnum_h

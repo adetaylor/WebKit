@@ -24,7 +24,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_SelectorCheckerTestFunctions_h
+#define WebCore_css_SelectorCheckerTestFunctions_h
 
 #include "FocusController.h"
 #include "FrameSelection.h"
@@ -591,3 +592,4 @@ ALWAYS_INLINE bool matchesActiveViewTransitionPseudoClass(const Element& element
 }
 
 } // namespace WebCore
+#endif // WebCore_css_SelectorCheckerTestFunctions_h

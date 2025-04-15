@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_CompactAllocationMode_h
+#define bmalloc_bmalloc_CompactAllocationMode_h
 
 #include "BAssert.h"
 #include "BInline.h"
@@ -60,3 +61,4 @@ BINLINE constexpr pas_allocation_mode asPasAllocationMode(CompactAllocationMode 
 
 } // namespace bmalloc
 
+#endif // bmalloc_bmalloc_CompactAllocationMode_h

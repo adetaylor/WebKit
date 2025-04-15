@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_EmailInputType_h
+#define WebCore_html_EmailInputType_h
 
 #include "BaseTextInputType.h"
 #include <wtf/TZoneMalloc.h>
@@ -62,3 +63,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INPUT_TYPE(EmailInputType, Type::Email)
+#endif // WebCore_html_EmailInputType_h

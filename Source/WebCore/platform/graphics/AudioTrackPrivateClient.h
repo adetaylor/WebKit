@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_AudioTrackPrivateClient_h
+#define WebCore_platform_graphics_AudioTrackPrivateClient_h
 
 #include "TrackPrivateBaseClient.h"
 #include <wtf/TZoneMallocInlines.h>
@@ -50,3 +51,4 @@ static bool isType(const WebCore::TrackPrivateBaseClient& track) { return track.
 SPECIALIZE_TYPE_TRAITS_END()
 
 #endif
+#endif // WebCore_platform_graphics_AudioTrackPrivateClient_h

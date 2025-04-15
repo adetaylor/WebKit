@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_IOPSLibSPI_h
+#define WebCore_PAL_pal_spi_cocoa_IOPSLibSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -51,3 +52,4 @@ CFArrayRef IOPSCopyPowerSourcesList(CFTypeRef blob);
 CFDictionaryRef IOPSGetPowerSourceDescription(CFTypeRef blob, CFTypeRef ps);
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cocoa_IOPSLibSPI_h

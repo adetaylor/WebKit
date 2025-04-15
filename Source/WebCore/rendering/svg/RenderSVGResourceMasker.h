@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_RenderSVGResourceMasker_h
+#define WebCore_rendering_svg_RenderSVGResourceMasker_h
 
 #include "ImageBuffer.h"
 #include "RenderSVGResourceContainer.h"
@@ -67,3 +68,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderSVGResourceMasker, isRenderSVGResourceMasker())
+#endif // WebCore_rendering_svg_RenderSVGResourceMasker_h

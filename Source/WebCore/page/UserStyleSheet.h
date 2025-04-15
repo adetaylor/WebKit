@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
  
-#pragma once
+#ifndef WebCore_page_UserStyleSheet_h
+#define WebCore_page_UserStyleSheet_h
 
 #include "PageIdentifier.h"
 #include "UserContentTypes.h"
@@ -66,3 +67,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_UserStyleSheet_h

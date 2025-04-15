@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_gamepad_KnownGamepads_h
+#define WebCore_platform_gamepad_KnownGamepads_h
 
 #if ENABLE(GAMEPAD)
 
@@ -52,3 +53,4 @@ enum KnownGamepad {
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD)
+#endif // WebCore_platform_gamepad_KnownGamepads_h

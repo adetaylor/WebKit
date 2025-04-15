@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_ThreadSafeWeakHashSet_h
+#define WTF_wtf_ThreadSafeWeakHashSet_h
 
 #include <wtf/Algorithms.h>
 #include <wtf/HashSet.h>
@@ -243,3 +244,4 @@ private:
 } // namespace WTF
 
 using WTF::ThreadSafeWeakHashSet;
+#endif // WTF_wtf_ThreadSafeWeakHashSet_h

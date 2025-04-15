@@ -23,7 +23,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_html_HTMLSelectElement_h
+#define WebCore_html_HTMLSelectElement_h
 
 #include "HTMLFormControlElement.h"
 #include "HTMLOptionElement.h"
@@ -217,3 +218,4 @@ private:
 };
 
 } // namespace
+#endif // WebCore_html_HTMLSelectElement_h

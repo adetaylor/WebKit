@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_AnimationPlaybackEvent_h
+#define WebCore_animation_AnimationPlaybackEvent_h
 
 #include "AnimationEventBase.h"
 #include "AnimationPlaybackEventInit.h"
@@ -63,3 +64,4 @@ private:
 }
 
 SPECIALIZE_TYPE_TRAITS_ANIMATION_EVENT_BASE(AnimationPlaybackEvent, isAnimationPlaybackEvent())
+#endif // WebCore_animation_AnimationPlaybackEvent_h

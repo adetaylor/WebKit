@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGPathSegList_h
+#define WebCore_svg_SVGPathSegList_h
 
 #include "Path.h"
 #include "SVGPathByteStream.h"
@@ -244,3 +245,4 @@ private:
 };
 
 }
+#endif // WebCore_svg_SVGPathSegList_h

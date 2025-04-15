@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_glib_GSocketMonitor_h
+#define WTF_wtf_glib_GSocketMonitor_h
 
 #include <glib.h>
 #include <wtf/Forward.h>
@@ -58,3 +59,4 @@ private:
 } // namespace WTF
 
 using WTF::GSocketMonitor;
+#endif // WTF_wtf_glib_GSocketMonitor_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_WrappedCryptoKey_h
+#define WebCore_crypto_WrappedCryptoKey_h
 
 #include <array>
 #include <wtf/Vector.h>
@@ -37,3 +38,4 @@ struct WrappedCryptoKey {
 };
 
 }
+#endif // WebCore_crypto_WrappedCryptoKey_h

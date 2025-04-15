@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_IsoDirectoryPageInlines_h
+#define bmalloc_bmalloc_IsoDirectoryPageInlines_h
 
 #if !BUSE(TZONE)
 
@@ -51,3 +52,4 @@ IsoDirectoryPage<Config>* IsoDirectoryPage<Config>::pageFor(IsoDirectory<Config,
 
 #endif
 #endif // !BUSE(TZONE)
+#endif // bmalloc_bmalloc_IsoDirectoryPageInlines_h

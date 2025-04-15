@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_WindowEventLoop_h
+#define WebCore_dom_WindowEventLoop_h
 
 #include "EventLoop.h"
 #include "GCReachableRef.h"
@@ -102,3 +103,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_WindowEventLoop_h

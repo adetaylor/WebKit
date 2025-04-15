@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_background_fetch_BackgroundFetch_h
+#define WebCore_workers_service_background_fetch_BackgroundFetch_h
 
 #include "BackgroundFetchFailureReason.h"
 #include "BackgroundFetchOptions.h"
@@ -184,3 +185,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_background_fetch_BackgroundFetch_h

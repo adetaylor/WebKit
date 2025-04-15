@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_display_InlineDisplayContent_h
+#define WebCore_layout_formattingContexts_inline_display_InlineDisplayContent_h
 
 #include "InlineDisplayBox.h"
 #include "InlineDisplayLine.h"
@@ -50,3 +51,4 @@ struct Content {
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_display_InlineDisplayContent_h

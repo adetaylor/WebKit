@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_canvas_OffscreenCanvasRenderingContext2D_h
+#define WebCore_html_canvas_OffscreenCanvasRenderingContext2D_h
 
 #if ENABLE(OFFSCREEN_CANVAS)
 
@@ -61,3 +62,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_CANVASRENDERINGCONTEXT(WebCore::OffscreenCanvasRenderingContext2D, isOffscreen2d())
 
 #endif
+#endif // WebCore_html_canvas_OffscreenCanvasRenderingContext2D_h

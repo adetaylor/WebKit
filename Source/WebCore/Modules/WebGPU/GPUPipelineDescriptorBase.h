@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUPipelineDescriptorBase_h
+#define WebCore_Modules_WebGPU_GPUPipelineDescriptorBase_h
 
 #include "GPUAutoLayoutMode.h"
 #include "GPUObjectDescriptorBase.h"
@@ -61,3 +62,4 @@ struct GPUPipelineDescriptorBase : public GPUObjectDescriptorBase {
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUPipelineDescriptorBase_h

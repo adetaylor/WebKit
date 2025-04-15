@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_ModuleScriptLoaderClient_h
+#define WebCore_bindings_js_ModuleScriptLoaderClient_h
 
 namespace WebCore {
 
@@ -38,3 +39,4 @@ public:
 };
 
 }
+#endif // WebCore_bindings_js_ModuleScriptLoaderClient_h

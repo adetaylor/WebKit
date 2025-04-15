@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcSymbolsAllowed_h
+#define WebCore_css_calc_CSSCalcSymbolsAllowed_h
 
 #include "CSSValueKeywords.h"
 #include <optional>
@@ -59,3 +60,4 @@ private:
 };
 
 }
+#endif // WebCore_css_calc_CSSCalcSymbolsAllowed_h

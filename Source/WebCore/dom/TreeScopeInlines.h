@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_TreeScopeInlines_h
+#define WebCore_dom_TreeScopeInlines_h
 
 #include "ContainerNode.h"
 #include "TreeScopeOrderedMap.h"
@@ -63,3 +64,4 @@ inline bool TreeScope::containsMultipleElementsWithName(const AtomString& name) 
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_TreeScopeInlines_h

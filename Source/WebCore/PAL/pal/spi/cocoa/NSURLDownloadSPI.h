@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_NSURLDownloadSPI_h
+#define WebCore_PAL_pal_spi_cocoa_NSURLDownloadSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -91,3 +92,4 @@ DECLARE_SYSTEM_HEADER
 @end
 
 #endif
+#endif // WebCore_PAL_pal_spi_cocoa_NSURLDownloadSPI_h

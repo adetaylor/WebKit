@@ -23,7 +23,8 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_worklets_WorkletParameters_h
+#define WebCore_worklets_WorkletParameters_h
 
 #include "AdvancedPrivacyProtections.h"
 #include "Settings.h"
@@ -49,3 +50,4 @@ struct WorkletParameters {
 };
 
 } // namespace WebCore
+#endif // WebCore_worklets_WorkletParameters_h

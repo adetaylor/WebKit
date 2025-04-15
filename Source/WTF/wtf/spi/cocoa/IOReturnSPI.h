@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cocoa_IOReturnSPI_h
+#define WTF_wtf_spi_cocoa_IOReturnSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -40,3 +41,4 @@ typedef kern_return_t IOReturn;
 #define kIOReturnSuccess KERN_SUCCESS
 
 #endif
+#endif // WTF_wtf_spi_cocoa_IOReturnSPI_h

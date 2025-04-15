@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WTF_wtf_text_Base64_h
+#define WTF_wtf_text_Base64_h
 
 #include <wtf/Forward.h>
 #include <wtf/OptionSet.h>
@@ -224,3 +225,4 @@ using WTF::base64URLEncoded;
 using WTF::isBase64OrBase64URLCharacter;
 using WTF::fromBase64;
 using WTF::maxLengthFromBase64;
+#endif // WTF_wtf_text_Base64_h

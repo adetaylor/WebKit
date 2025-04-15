@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_shapes_CSSCircleFunction_h
+#define WebCore_css_values_shapes_CSSCircleFunction_h
 
 #include "CSSGradient.h"
 #include "CSSPosition.h"
@@ -60,3 +61,4 @@ template<> struct Serialize<Circle> { void operator()(StringBuilder&, const Seri
 } // namespace WebCore
 
 DEFINE_TUPLE_LIKE_CONFORMANCE(WebCore::CSS::Circle, 2)
+#endif // WebCore_css_values_shapes_CSSCircleFunction_h

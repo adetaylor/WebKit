@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_image_decoders_jpeg_JPEGImageDecoder_h
+#define WebCore_platform_image_decoders_jpeg_JPEGImageDecoder_h
 
 #include "ScalableImageDecoder.h"
 #include <stdio.h> // Needed by jpeglib.h for FILE.
@@ -95,3 +96,4 @@ namespace WebCore {
     };
 
 } // namespace WebCore
+#endif // WebCore_platform_image_decoders_jpeg_JPEGImageDecoder_h

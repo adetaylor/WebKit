@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_ElementAncestorIteratorInlines_h
+#define WebCore_dom_ElementAncestorIteratorInlines_h
 
 #include "ElementAncestorIterator.h"
 #include "ElementIteratorInlines.h"
@@ -103,3 +104,4 @@ inline ElementAncestorRange<const ElementType> ancestorsOfType(const Node& desce
     return ElementAncestorRange<const ElementType>(findElementAncestorOfType<const ElementType>(descendant));
 }
 }
+#endif // WebCore_dom_ElementAncestorIteratorInlines_h

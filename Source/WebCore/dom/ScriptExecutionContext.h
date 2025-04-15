@@ -25,7 +25,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ScriptExecutionContext_h
+#define WebCore_dom_ScriptExecutionContext_h
 
 #include "ActiveDOMObject.h"
 #include "CrossOriginMode.h"
@@ -481,3 +482,4 @@ private:
 WebCoreOpaqueRoot root(ScriptExecutionContext*);
 
 } // namespace WebCore
+#endif // WebCore_dom_ScriptExecutionContext_h

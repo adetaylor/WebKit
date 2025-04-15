@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_shared_SharedWorkerIdentifier_h
+#define WebCore_workers_shared_SharedWorkerIdentifier_h
 
 #include <wtf/ObjectIdentifier.h>
 
@@ -33,3 +34,4 @@ enum class SharedWorkerIdentifierType { };
 using SharedWorkerIdentifier = ObjectIdentifier<SharedWorkerIdentifierType>;
 
 } // namespace WebCore
+#endif // WebCore_workers_shared_SharedWorkerIdentifier_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUColorDict_h
+#define WebCore_Modules_WebGPU_GPUColorDict_h
 
 #include "WebGPUColor.h"
 #include <variant>
@@ -61,3 +62,4 @@ inline WebGPU::Color convertToBacking(const GPUColor& color)
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUColorDict_h

@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontDescription_h
+#define WebCore_platform_graphics_FontDescription_h
 
 #include "FontPalette.h"
 #include "FontSelectionAlgorithm.h"
@@ -198,3 +199,4 @@ private:
 };
 
 }
+#endif // WebCore_platform_graphics_FontDescription_h

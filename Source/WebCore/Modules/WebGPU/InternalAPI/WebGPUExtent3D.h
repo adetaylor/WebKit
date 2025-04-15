@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUExtent3D_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUExtent3D_h
 
 #include "WebGPUIntegralTypes.h"
 #include <variant>
@@ -40,3 +41,4 @@ struct Extent3DDict {
 using Extent3D = std::variant<Vector<IntegerCoordinate>, Extent3DDict>;
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUExtent3D_h

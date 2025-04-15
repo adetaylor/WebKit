@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_FontCustomPlatformData_h
+#define WebCore_platform_graphics_FontCustomPlatformData_h
 
 #include "FontPlatformData.h"
 #include "RenderingResourceIdentifier.h"
@@ -114,3 +115,4 @@ inline RefPtr<const FontCustomPlatformData> FontPlatformData::protectedCustomPla
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_FontCustomPlatformData_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_persistence_PersistentCoders_h
+#define WTF_wtf_persistence_PersistentCoders_h
 
 #include <utility>
 #include <wtf/CheckedArithmetic.h>
@@ -328,3 +329,4 @@ DECLARE_CODER(WallTime);
 #undef DECLARE_CODER
 
 }
+#endif // WTF_wtf_persistence_PersistentCoders_h

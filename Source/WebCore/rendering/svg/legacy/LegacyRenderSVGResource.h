@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_rendering_svg_legacy_LegacyRenderSVGResource_h
+#define WebCore_rendering_svg_legacy_LegacyRenderSVGResource_h
 
 #include "RenderStyleConstants.h"
 #include <wtf/OptionSet.h>
@@ -100,3 +101,4 @@ constexpr bool resourceWasApplied(OptionSet<LegacyRenderSVGResource::ApplyResult
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::LegacyRenderSVGResource& resource) { return resource.resourceType() == WebCore::ResourceType; } \
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_rendering_svg_legacy_LegacyRenderSVGResource_h

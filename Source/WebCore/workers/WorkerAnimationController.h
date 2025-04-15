@@ -25,7 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerAnimationController_h
+#define WebCore_workers_WorkerAnimationController_h
 
 #if ENABLE(OFFSCREEN_CANVAS_IN_WORKERS)
 
@@ -81,3 +82,4 @@ private:
 } // namespace WebCore
 
 #endif
+#endif // WebCore_workers_WorkerAnimationController_h

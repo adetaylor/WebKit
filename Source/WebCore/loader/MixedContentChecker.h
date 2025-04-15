@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_MixedContentChecker_h
+#define WebCore_loader_MixedContentChecker_h
 
 #include "FetchOptions.h"
 #include "ResourceLoaderOptions.h"
@@ -60,3 +61,4 @@ WEBCORE_EXPORT bool canModifyRequest(const URL&, FetchOptions::Destination, Init
 
 } // namespace MixedContentChecker
 } // namespace WebCore
+#endif // WebCore_loader_MixedContentChecker_h

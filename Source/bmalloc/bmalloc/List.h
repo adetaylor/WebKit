@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_List_h
+#define bmalloc_bmalloc_List_h
 
 #include "BPlatform.h"
 
@@ -124,3 +125,4 @@ private:
 } // namespace bmalloc
 
 #endif
+#endif // bmalloc_bmalloc_List_h

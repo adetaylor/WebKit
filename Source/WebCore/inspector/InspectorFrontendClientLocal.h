@@ -29,7 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_inspector_InspectorFrontendClientLocal_h
+#define WebCore_inspector_InspectorFrontendClientLocal_h
 
 #include "InspectorFrontendAPIDispatcher.h"
 #include "InspectorFrontendClient.h"
@@ -158,3 +159,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_inspector_InspectorFrontendClientLocal_h

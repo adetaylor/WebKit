@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_InternalAPI_WebGPUDepthStencilState_h
+#define WebCore_Modules_WebGPU_InternalAPI_WebGPUDepthStencilState_h
 
 #include "WebGPUCompareFunction.h"
 #include "WebGPUIntegralTypes.h"
@@ -51,3 +52,4 @@ struct DepthStencilState {
 };
 
 } // namespace WebCore::WebGPU
+#endif // WebCore_Modules_WebGPU_InternalAPI_WebGPUDepthStencilState_h

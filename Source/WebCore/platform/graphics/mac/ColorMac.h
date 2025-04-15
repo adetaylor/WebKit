@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_mac_ColorMac_h
+#define WebCore_platform_graphics_mac_ColorMac_h
 
 #include "ColorCocoa.h"
 
@@ -45,3 +46,4 @@ Color oldAquaFocusRingColor();
 }
 
 #endif // USE(APPKIT)
+#endif // WebCore_platform_graphics_mac_ColorMac_h

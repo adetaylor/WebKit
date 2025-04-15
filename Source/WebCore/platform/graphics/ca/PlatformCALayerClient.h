@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_ca_PlatformCALayerClient_h
+#define WebCore_platform_graphics_ca_PlatformCALayerClient_h
 
 #include "GraphicsLayer.h"
 
@@ -101,3 +102,4 @@ protected:
 
 }
 
+#endif // WebCore_platform_graphics_ca_PlatformCALayerClient_h

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_FormSubmission_h
+#define WebCore_loader_FormSubmission_h
 
 #include "FormState.h"
 #include "FrameLoaderTypes.h"
@@ -140,3 +141,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_FormSubmission_h

@@ -26,7 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_fetch_FetchRequest_h
+#define WebCore_Modules_fetch_FetchRequest_h
 
 #include "AbortSignal.h"
 #include "ExceptionOr.h"
@@ -118,3 +119,4 @@ private:
 WebCoreOpaqueRoot root(FetchRequest*);
 
 } // namespace WebCore
+#endif // WebCore_Modules_fetch_FetchRequest_h

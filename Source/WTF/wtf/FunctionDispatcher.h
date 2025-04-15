@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_FunctionDispatcher_h
+#define WTF_wtf_FunctionDispatcher_h
 
 #include <wtf/Function.h>
 #include <wtf/RefCounted.h>
@@ -67,3 +68,4 @@ inline void assertIsCurrent(const SerialFunctionDispatcher& queue) WTF_ASSERTS_A
 using WTF::FunctionDispatcher;
 using WTF::SerialFunctionDispatcher;
 using WTF::GuaranteedSerialFunctionDispatcher;
+#endif // WTF_wtf_FunctionDispatcher_h

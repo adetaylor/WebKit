@@ -23,7 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_cf_CoreMediaSoftLink_h
+#define WebCore_PAL_pal_cf_CoreMediaSoftLink_h
 
 #if USE(AVFOUNDATION)
 // FIXME: Should be USE(COREMEDIA), but this isn't currently defined on Windows.
@@ -448,3 +449,4 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, CoreMedia, CMDerivedObjectCreate, OSStatus, (
 #endif // PLATFORM(MAC)
 
 #endif // USE(AVFOUNDATION)
+#endif // WebCore_PAL_pal_cf_CoreMediaSoftLink_h

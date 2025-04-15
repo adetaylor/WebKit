@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_StyledElement_h
+#define WebCore_dom_StyledElement_h
 
 #include "CSSPrimitiveValue.h"
 #include "CSSProperty.h"
@@ -109,3 +110,4 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyledElement)
     static bool isType(const WebCore::Node& node) { return node.isStyledElement(); }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif // WebCore_dom_StyledElement_h

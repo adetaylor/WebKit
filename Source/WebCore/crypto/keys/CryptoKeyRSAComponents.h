@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_crypto_keys_CryptoKeyRSAComponents_h
+#define WebCore_crypto_keys_CryptoKeyRSAComponents_h
 
 #include <wtf/Vector.h>
 
@@ -109,3 +110,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_crypto_keys_CryptoKeyRSAComponents_h

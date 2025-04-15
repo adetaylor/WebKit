@@ -24,7 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderGrid_h
+#define WebCore_rendering_RenderGrid_h
 
 #include "BaselineAlignmentInlines.h"
 #include "Grid.h"
@@ -318,3 +319,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderGrid, isRenderGrid())
+#endif // WebCore_rendering_RenderGrid_h

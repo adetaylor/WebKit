@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_values_color_CSSRelativeColor_h
+#define WebCore_css_values_color_CSSRelativeColor_h
 
 #include "CSSColor.h"
 #include "CSSColorDescriptors.h"
@@ -135,3 +136,4 @@ template<typename D> struct CSSValueChildrenVisitor<RelativeColor<D>> {
 
 } // namespace CSS
 } // namespace WebCore
+#endif // WebCore_css_values_color_CSSRelativeColor_h

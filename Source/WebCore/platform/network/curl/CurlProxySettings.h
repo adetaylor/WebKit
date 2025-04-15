@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_network_curl_CurlProxySettings_h
+#define WebCore_platform_network_curl_CurlProxySettings_h
 
 #include <wtf/ArgumentCoder.h>
 #include <wtf/URL.h>
@@ -94,3 +95,4 @@ private:
 bool protocolIsInSocksFamily(const URL&);
 
 } // namespace WebCore
+#endif // WebCore_platform_network_curl_CurlProxySettings_h

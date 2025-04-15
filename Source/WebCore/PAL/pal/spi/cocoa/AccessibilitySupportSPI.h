@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_AccessibilitySupportSPI_h
+#define WebCore_PAL_pal_spi_cocoa_AccessibilitySupportSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -56,3 +57,4 @@ extern CFStringRef kAXSEnhanceTextLegibilityChangedNotification;
 Boolean _AXSEnhanceTextLegibilityEnabled();
 
 WTF_EXTERN_C_END
+#endif // WebCore_PAL_pal_spi_cocoa_AccessibilitySupportSPI_h

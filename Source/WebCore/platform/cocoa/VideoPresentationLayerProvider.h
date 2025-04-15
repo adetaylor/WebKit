@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_cocoa_VideoPresentationLayerProvider_h
+#define WebCore_platform_cocoa_VideoPresentationLayerProvider_h
 
 #if ENABLE(VIDEO)
 
@@ -68,3 +69,4 @@ private:
 }
 
 #endif
+#endif // WebCore_platform_cocoa_VideoPresentationLayerProvider_h

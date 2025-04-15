@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ViewportConfiguration_h
+#define WebCore_page_ViewportConfiguration_h
 
 #include "DisabledAdaptations.h"
 #include "FloatSize.h"
@@ -227,3 +228,4 @@ WTF::TextStream& operator<<(WTF::TextStream&, const ViewportConfiguration::Param
 WTF::TextStream& operator<<(WTF::TextStream&, const ViewportConfiguration&);
 
 } // namespace WebCore
+#endif // WebCore_page_ViewportConfiguration_h

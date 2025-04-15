@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_css_calc_CSSCalcTree_MediaProgressEvaluator_h
+#define WebCore_css_calc_CSSCalcTree_MediaProgressEvaluator_h
 
 namespace WebCore {
 
@@ -37,3 +38,4 @@ double evaluateMediaProgress(const MediaProgress&, const Document&, const CSSToL
 
 } // namespace CSSCalc
 } // namespace WebCore
+#endif // WebCore_css_calc_CSSCalcTree_MediaProgressEvaluator_h

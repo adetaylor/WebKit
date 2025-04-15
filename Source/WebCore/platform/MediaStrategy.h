@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_MediaStrategy_h
+#define WebCore_platform_MediaStrategy_h
 
 #include "NativeImage.h"
 #include "NowPlayingManager.h"
@@ -77,3 +78,4 @@ inline void MediaStrategy::nativeImageFromVideoFrame(const VideoFrame&, Completi
 }
 
 } // namespace WebCore
+#endif // WebCore_platform_MediaStrategy_h

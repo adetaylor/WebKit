@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef bmalloc_bmalloc_FailureAction_h
+#define bmalloc_bmalloc_FailureAction_h
 
 namespace bmalloc {
 
 enum class FailureAction { Crash, ReturnNull };
 
 } // namespace bmalloc
+#endif // bmalloc_bmalloc_FailureAction_h

@@ -22,7 +22,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_NodeRenderStyle_h
+#define WebCore_dom_NodeRenderStyle_h
 
 #include "RenderObject.h"
 #include "RenderStyle.h"
@@ -39,3 +40,4 @@ inline const RenderStyle* Node::renderStyle() const
 }
 
 } // namespace WebCore
+#endif // WebCore_dom_NodeRenderStyle_h

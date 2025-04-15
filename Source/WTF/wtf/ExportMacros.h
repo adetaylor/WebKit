@@ -27,7 +27,8 @@
  * properly on all platforms and compilers that WebKit builds under.
  */
 
-#pragma once
+#ifndef WTF_wtf_ExportMacros_h
+#define WTF_wtf_ExportMacros_h
 
 #include <wtf/Platform.h>
 
@@ -67,3 +68,5 @@
 #endif
 
 #endif
+
+#endif // WTF_wtf_ExportMacros_h

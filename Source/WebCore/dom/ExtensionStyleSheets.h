@@ -25,7 +25,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_dom_ExtensionStyleSheets_h
+#define WebCore_dom_ExtensionStyleSheets_h
 
 #include "UserStyleSheet.h"
 #include <memory>
@@ -108,3 +109,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_dom_ExtensionStyleSheets_h

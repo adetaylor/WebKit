@@ -18,7 +18,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_rendering_RenderBoxModelObjectInlines_h
+#define WebCore_rendering_RenderBoxModelObjectInlines_h
 
 #include "RenderBoxModelObject.h"
 #include "RenderStyleInlines.h"
@@ -107,3 +108,4 @@ inline LayoutUnit RenderBoxModelObject::resolveLengthPercentageUsingContainerLog
 }
 
 } // namespace WebCore
+#endif // WebCore_rendering_RenderBoxModelObjectInlines_h

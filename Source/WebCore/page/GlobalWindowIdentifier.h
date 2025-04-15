@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_GlobalWindowIdentifier_h
+#define WebCore_page_GlobalWindowIdentifier_h
 
 #include "ProcessIdentifier.h"
 #include <wtf/HashTraits.h>
@@ -73,3 +74,4 @@ template<> struct HashTraits<WebCore::GlobalWindowIdentifier> : GenericHashTrait
 template<> struct DefaultHash<WebCore::GlobalWindowIdentifier> : GlobalWindowIdentifierHash { };
 
 } // namespace WTF
+#endif // WebCore_page_GlobalWindowIdentifier_h

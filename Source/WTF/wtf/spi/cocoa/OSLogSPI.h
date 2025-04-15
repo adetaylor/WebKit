@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_spi_cocoa_OSLogSPI_h
+#define WTF_wtf_spi_cocoa_OSLogSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -80,3 +81,4 @@ OS_EXPORT OS_NOTHROW
 char* os_log_copy_message_string(os_log_message_t msg);
 
 WTF_EXTERN_C_END
+#endif // WTF_wtf_spi_cocoa_OSLogSPI_h

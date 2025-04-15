@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_CompactRefPtr_h
+#define WTF_wtf_CompactRefPtr_h
 
 #include <wtf/CompactPtr.h>
 #include <wtf/RefPtr.h>
@@ -36,3 +37,4 @@ using CompactRefPtr = RefPtr<T, CompactPtrTraits<T>>;
 } // namespace WTF
 
 using WTF::CompactRefPtr;
+#endif // WTF_wtf_CompactRefPtr_h

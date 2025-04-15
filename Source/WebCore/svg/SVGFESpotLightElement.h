@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WebCore_svg_SVGFESpotLightElement_h
+#define WebCore_svg_SVGFESpotLightElement_h
 
 #include "SVGFELightElement.h"
 
@@ -39,3 +40,4 @@ private:
 static_assert(sizeof(SVGFESpotLightElement) == sizeof(SVGFELightElement));
 
 } // namespace WebCore
+#endif // WebCore_svg_SVGFESpotLightElement_h

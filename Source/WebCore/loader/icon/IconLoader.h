@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_icon_IconLoader_h
+#define WebCore_loader_icon_IconLoader_h
 
 #include "CachedRawResourceClient.h"
 #include "CachedResourceHandle.h"
@@ -57,3 +58,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_loader_icon_IconLoader_h

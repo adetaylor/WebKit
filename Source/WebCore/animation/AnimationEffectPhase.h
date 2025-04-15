@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_AnimationEffectPhase_h
+#define WebCore_animation_AnimationEffectPhase_h
 
 namespace WebCore {
 
 enum class AnimationEffectPhase : uint8_t { Before, Active, After, Idle };
 
 } // namespace WebCore
+#endif // WebCore_animation_AnimationEffectPhase_h

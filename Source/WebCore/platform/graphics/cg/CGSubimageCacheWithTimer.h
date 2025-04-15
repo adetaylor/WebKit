@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cg_CGSubimageCacheWithTimer_h
+#define WebCore_platform_graphics_cg_CGSubimageCacheWithTimer_h
 
 #include "FloatRect.h"
 #include "Timer.h"
@@ -117,3 +118,4 @@ private:
 #endif // CACHE_SUBIMAGES
 
 }
+#endif // WebCore_platform_graphics_cg_CGSubimageCacheWithTimer_h

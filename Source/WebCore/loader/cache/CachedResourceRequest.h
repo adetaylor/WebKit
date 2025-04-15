@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedResourceRequest_h
+#define WebCore_loader_cache_CachedResourceRequest_h
 
 #include "CachedResource.h"
 #include "ContentSecurityPolicy.h"
@@ -135,3 +136,4 @@ private:
 void upgradeInsecureResourceRequestIfNeeded(ResourceRequest&, Document&, ContentSecurityPolicy::AlwaysUpgradeRequest = ContentSecurityPolicy::AlwaysUpgradeRequest::No);
 
 } // namespace WebCore
+#endif // WebCore_loader_cache_CachedResourceRequest_h

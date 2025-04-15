@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_formattingContexts_inline_InlineLine_h
+#define WebCore_layout_formattingContexts_inline_InlineLine_h
 
 #include "InlineDisplayBox.h"
 #include "InlineItem.h"
@@ -389,3 +390,4 @@ inline InlineLayoutUnit Line::Run::letterSpacing() const
 
 }
 }
+#endif // WebCore_layout_formattingContexts_inline_InlineLine_h

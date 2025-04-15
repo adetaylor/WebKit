@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_ViewTimelineOptions_h
+#define WebCore_animation_ViewTimelineOptions_h
 
 #include "CSSKeywordValue.h"
 #include "CSSNumericValue.h"
@@ -42,3 +43,4 @@ struct ViewTimelineOptions {
 };
 
 } // namespace WebCore
+#endif // WebCore_animation_ViewTimelineOptions_h

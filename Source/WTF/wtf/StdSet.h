@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_StdSet_h
+#define WTF_wtf_StdSet_h
 
 #include <set>
 #include <wtf/FastMalloc.h>
@@ -36,3 +37,4 @@ using StdSet = std::set<Key, Compare, Allocator>;
 } // namespace WTF
 
 using WTF::StdSet;
+#endif // WTF_wtf_StdSet_h

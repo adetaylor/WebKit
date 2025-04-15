@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_WTFProcess_h
+#define WTF_wtf_WTFProcess_h
 
 namespace WTF {
 
@@ -36,3 +37,4 @@ WTF_EXPORT_PRIVATE NO_RETURN void terminateProcess(int status);
 
 using WTF::exitProcess;
 using WTF::terminateProcess;
+#endif // WTF_wtf_WTFProcess_h

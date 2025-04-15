@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_audiosession_NavigatorAudioSession_h
+#define WebCore_Modules_audiosession_NavigatorAudioSession_h
 
 #if ENABLE(DOM_AUDIO_SESSION)
 
@@ -54,3 +55,4 @@ private:
 }
 
 #endif // ENABLE(DOM_AUDIO_SESSION)
+#endif // WebCore_Modules_audiosession_NavigatorAudioSession_h

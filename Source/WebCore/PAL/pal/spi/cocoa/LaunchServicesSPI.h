@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_PAL_pal_spi_cocoa_LaunchServicesSPI_h
+#define WebCore_PAL_pal_spi_cocoa_LaunchServicesSPI_h
 
 DECLARE_SYSTEM_HEADER
 
@@ -183,3 +184,4 @@ OSStatus _RegisterApplication(CFDictionaryRef, ProcessSerialNumber*);
 WTF_EXTERN_C_END
 
 #endif // PLATFORM(MAC) || PLATFORM(MACCATALYST)
+#endif // WebCore_PAL_pal_spi_cocoa_LaunchServicesSPI_h

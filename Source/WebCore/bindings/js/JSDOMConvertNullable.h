@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_bindings_js_JSDOMConvertNullable_h
+#define WebCore_bindings_js_JSDOMConvertNullable_h
 
 #include "IDLTypes.h"
 #include "JSDOMConvertAny.h"
@@ -151,3 +152,4 @@ template<typename IDL> struct JSConverter<IDLNullable<IDL>> {
 };
 
 } // namespace WebCore
+#endif // WebCore_bindings_js_JSDOMConvertNullable_h

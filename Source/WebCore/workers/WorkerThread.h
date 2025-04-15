@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_workers_WorkerThread_h
+#define WebCore_workers_WorkerThread_h
 
 #include "ContentSecurityPolicyResponseHeaders.h"
 #include "CrossOriginEmbedderPolicy.h"
@@ -157,3 +158,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_WorkerThread_h

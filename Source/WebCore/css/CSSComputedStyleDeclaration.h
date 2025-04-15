@@ -18,7 +18,8 @@
  * 02110-1301  USA
  */
 
-#pragma once
+#ifndef WebCore_css_CSSComputedStyleDeclaration_h
+#define WebCore_css_CSSComputedStyleDeclaration_h
 
 #include "CSSStyleProperties.h"
 #include "ComputedStyleExtractor.h"
@@ -85,3 +86,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_css_CSSComputedStyleDeclaration_h

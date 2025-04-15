@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_text_cocoa_ContextualizedCFString_h
+#define WTF_wtf_text_cocoa_ContextualizedCFString_h
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <wtf/RetainPtr.h>
@@ -36,3 +37,4 @@ class StringView;
 WTF_EXPORT_PRIVATE RetainPtr<CFStringRef> createContextualizedCFString(StringView, StringView priorContext);
 
 } // namespace WTF
+#endif // WTF_wtf_text_cocoa_ContextualizedCFString_h

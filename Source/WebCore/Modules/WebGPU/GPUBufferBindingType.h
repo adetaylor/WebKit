@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUBufferBindingType_h
+#define WebCore_Modules_WebGPU_GPUBufferBindingType_h
 
 #include "WebGPUBufferBindingType.h"
 #include <cstdint>
@@ -50,3 +51,4 @@ inline WebGPU::BufferBindingType convertToBacking(GPUBufferBindingType bufferBin
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUBufferBindingType_h

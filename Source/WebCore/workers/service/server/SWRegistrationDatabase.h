@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_server_SWRegistrationDatabase_h
+#define WebCore_workers_service_server_SWRegistrationDatabase_h
 
 #include "ServiceWorkerTypes.h"
 #include "ServiceWorkerUpdateViaCache.h"
@@ -82,3 +83,4 @@ struct ImportedScriptAttributes {
 };
 
 }
+#endif // WebCore_workers_service_server_SWRegistrationDatabase_h

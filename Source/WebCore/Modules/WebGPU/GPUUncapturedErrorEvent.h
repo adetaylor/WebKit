@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUUncapturedErrorEvent_h
+#define WebCore_Modules_WebGPU_GPUUncapturedErrorEvent_h
 
 #include "Event.h"
 #include "GPUError.h"
@@ -55,3 +56,4 @@ private:
 };
 
 }
+#endif // WebCore_Modules_WebGPU_GPUUncapturedErrorEvent_h

@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_graphics_PlatformPathImpl_h
+#define WebCore_platform_graphics_PlatformPathImpl_h
 
 #if USE(CG)
 #include "PathCG.h"
@@ -32,3 +33,4 @@
 #elif USE(SKIA)
 #include "PathSkia.h"
 #endif
+#endif // WebCore_platform_graphics_PlatformPathImpl_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_loader_cocoa_DiskCacheMonitorCocoa_h
+#define WebCore_loader_cocoa_DiskCacheMonitorCocoa_h
 
 #include "ResourceRequest.h"
 #include <pal/SessionID.h>
@@ -52,3 +53,4 @@ private:
 };
 
 } // namespace WebKit
+#endif // WebCore_loader_cocoa_DiskCacheMonitorCocoa_h

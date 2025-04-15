@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WTF_wtf_Bag_h
+#define WTF_wtf_Bag_h
 
 #include <wtf/FastMalloc.h>
 #include <wtf/MallocCommon.h>
@@ -164,3 +165,4 @@ using PackedBag = Bag<T, PackedPtrTraits<T>>;
 
 using WTF::Bag;
 using WTF::PackedBag;
+#endif // WTF_wtf_Bag_h

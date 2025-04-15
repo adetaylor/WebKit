@@ -23,7 +23,8 @@
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef WebCore_platform_graphics_cocoa_FontCocoa_h
+#define WebCore_platform_graphics_cocoa_FontCocoa_h
 
 #include <wtf/Compiler.h>
 
@@ -46,3 +47,4 @@ using CocoaFontDescriptor = UIFontDescriptor;
 #endif
 
 } // namespace WebCore
+#endif // WebCore_platform_graphics_cocoa_FontCocoa_h

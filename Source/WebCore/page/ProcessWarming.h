@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ProcessWarming_h
+#define WebCore_page_ProcessWarming_h
 
 #include "PrewarmInformation.h"
 
@@ -39,3 +40,4 @@ public:
 };
 
 }
+#endif // WebCore_page_ProcessWarming_h

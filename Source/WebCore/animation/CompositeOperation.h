@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_animation_CompositeOperation_h
+#define WebCore_animation_CompositeOperation_h
 
 #include <optional>
 #include <wtf/HashTraits.h>
@@ -41,3 +42,4 @@ std::optional<CompositeOperation> toCompositeOperation(const CSSValue&);
 namespace WTF {
 template<> struct DefaultHash<WebCore::CompositeOperation> : IntHash<WebCore::CompositeOperation> { };
 } // namespace WTF
+#endif // WebCore_animation_CompositeOperation_h

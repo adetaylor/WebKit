@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_LayoutState_h
+#define WebCore_layout_LayoutState_h
 
 #include "LayoutElementBox.h"
 #include "SecurityOrigin.h"
@@ -183,3 +184,4 @@ inline void LayoutState::registerFormattingContext(const FormattingContext& form
 
 }
 }
+#endif // WebCore_layout_LayoutState_h

@@ -23,7 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_page_ValidationMessageClient_h
+#define WebCore_page_ValidationMessageClient_h
 
 #include <wtf/Forward.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -60,3 +61,4 @@ public:
 };
 
 } // namespace WebCore
+#endif // WebCore_page_ValidationMessageClient_h

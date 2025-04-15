@@ -18,7 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#ifndef WTF_wtf_DataMutex_h
+#define WTF_wtf_DataMutex_h
 
 #include <wtf/Lock.h>
 #include <wtf/Threading.h>
@@ -146,3 +147,4 @@ private:
 
 using WTF::DataMutex;
 using WTF::DataMutexLocker;
+#endif // WTF_wtf_DataMutex_h

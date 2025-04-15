@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_layout_FormattingState_h
+#define WebCore_layout_FormattingState_h
 
 #include "FormattingContext.h"
 #include "LayoutState.h"
@@ -97,3 +98,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Layout::ToValueTypeName) \
     static bool isType(const WebCore::Layout::FormattingState& formattingState) { return formattingState.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
 
+#endif // WebCore_layout_FormattingState_h

@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_dom_InternalObserverLast_h
+#define WebCore_dom_InternalObserverLast_h
 
 #include <wtf/Forward.h>
 
@@ -37,3 +38,4 @@ struct SubscribeOptions;
 void createInternalObserverOperatorLast(ScriptExecutionContext&, Observable&, const SubscribeOptions&, Ref<DeferredPromise>&&);
 
 } // namespace WebCore
+#endif // WebCore_dom_InternalObserverLast_h

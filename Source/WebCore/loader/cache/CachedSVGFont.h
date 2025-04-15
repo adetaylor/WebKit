@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#pragma once
+#ifndef WebCore_loader_cache_CachedSVGFont_h
+#define WebCore_loader_cache_CachedSVGFont_h
 
 #include "CachedFont.h"
 
@@ -60,3 +61,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_CACHED_RESOURCE(CachedSVGFont, CachedResource::Type::SVGFontResource)
+#endif // WebCore_loader_cache_CachedSVGFont_h

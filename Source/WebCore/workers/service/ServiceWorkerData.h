@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_workers_service_ServiceWorkerData_h
+#define WebCore_workers_service_ServiceWorkerData_h
 
 #include "ServiceWorkerIdentifier.h"
 #include "ServiceWorkerTypes.h"
@@ -44,3 +45,4 @@ struct ServiceWorkerData {
 };
 
 } // namespace WebCore
+#endif // WebCore_workers_service_ServiceWorkerData_h

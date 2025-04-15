@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_contentextensions_DFA_h
+#define WebCore_contentextensions_DFA_h
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
@@ -83,3 +84,4 @@ inline void DFANode::RangeIterator::resetTarget(uint32_t newTarget)
 } // namespace WebCore
 
 #endif // ENABLE(CONTENT_EXTENSIONS)
+#endif // WebCore_contentextensions_DFA_h

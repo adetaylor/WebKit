@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_platform_audio_PlatformMediaSession_h
+#define WebCore_platform_audio_PlatformMediaSession_h
 
 #include "MediaSessionGroupIdentifier.h"
 #include "MediaSessionIdentifier.h"
@@ -394,3 +395,4 @@ struct LogArgument<WebCore::PlatformMediaSession::MediaType> {
 };
 
 } // namespace WTF
+#endif // WebCore_platform_audio_PlatformMediaSession_h

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_html_BaseButtonInputType_h
+#define WebCore_html_BaseButtonInputType_h
 
 #include "BaseClickableWithKeyInputType.h"
 #include <wtf/TZoneMalloc.h>
@@ -54,3 +55,4 @@ private:
 };
 
 } // namespace WebCore
+#endif // WebCore_html_BaseButtonInputType_h

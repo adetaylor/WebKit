@@ -23,7 +23,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef WebCore_Modules_WebGPU_GPUPredefinedColorSpace_h
+#define WebCore_Modules_WebGPU_GPUPredefinedColorSpace_h
 
 #include "WebGPUPredefinedColorSpace.h"
 #include <cstdint>
@@ -51,3 +52,4 @@ inline WebGPU::PredefinedColorSpace convertToBacking(GPUPredefinedColorSpace pre
 }
 
 }
+#endif // WebCore_Modules_WebGPU_GPUPredefinedColorSpace_h

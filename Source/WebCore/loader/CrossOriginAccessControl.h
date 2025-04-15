@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef WebCore_loader_CrossOriginAccessControl_h
+#define WebCore_loader_CrossOriginAccessControl_h
 
 #include "HTTPHeaderNames.h"
 #include "ReferrerPolicy.h"
@@ -97,3 +98,4 @@ std::optional<ResourceError> validateRangeRequestedFlag(const ResourceRequest&, 
 String validateCrossOriginRedirectionURL(const URL&);
 
 } // namespace WebCore
+#endif // WebCore_loader_CrossOriginAccessControl_h
