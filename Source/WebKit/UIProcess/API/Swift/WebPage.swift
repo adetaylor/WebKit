@@ -27,6 +27,8 @@ import Foundation
 import Observation
 internal import WebKit_Private
 internal import WebKit_Internal
+import struct Swift.String
+import struct Foundation.URL
 
 /// An object that controls and manages the behavior of interactive web content.
 @MainActor
