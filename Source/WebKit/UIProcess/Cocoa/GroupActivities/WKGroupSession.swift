@@ -42,6 +42,8 @@ internal import WebKit_Internal
 @_implementationOnly import WebKit_Internal
 #endif
 
+import struct Foundation.URL
+
 extension WKGroupSessionState {
     fileprivate init(_ state: GroupSession<URLActivity>.State) {
         switch state {
