@@ -25,6 +25,7 @@
 
 import Foundation
 internal import WebKit_Internal
+import class Swift.String
 
 extension WebPage {
     @MainActor

@@ -25,6 +25,7 @@
 
 public import Foundation
 internal import WebKit_Internal
+import class Foundation.URL
 
 @_spi(CrossImportOverlay)
 public struct WKContextMenuElementInfoAdapter {

@@ -26,6 +26,8 @@
 import Foundation
 internal import WebKit_Private
 internal import WebKit_Internal
+import class Swift.String
+import class Foundation.URL
 
 #if os(macOS) && !targetEnvironment(macCatalyst)
 @_spiOnly import WebKit_Private._WKContextMenuElementInfo
