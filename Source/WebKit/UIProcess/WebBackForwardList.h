@@ -48,21 +48,19 @@ struct WebBackForwardListCounts;
 
 class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>, public IPC::MessageReceiver {
 public:
-#ifndef __swift__
     static Ref<WebBackForwardList> create(WebPageProxy& page)
     {
         return adoptRef(*new WebBackForwardList(page));
     }
-#endif
+
     void ref() const final { API::ObjectImpl<API::Object::Type::BackForwardList>::ref(); }
     void deref() const final { API::ObjectImpl<API::Object::Type::BackForwardList>::deref(); }
-#ifndef __swift__
+
     void pageClosed();
-#endif
+
 
     virtual ~WebBackForwardList();
 
-#ifndef __swift__
     WebBackForwardListItem* itemForID(WebCore::BackForwardItemIdentifier);
 
     void addItem(Ref<WebBackForwardListItem>&&);
@@ -121,7 +119,7 @@ public:
 
     void shouldGoToBackForwardListItem(WebCore::BackForwardItemIdentifier, bool inBackForwardCache, CompletionHandler<void(WebCore::ShouldGoToHistoryItem)>&&);
     void shouldGoToBackForwardListItemSync(WebCore::BackForwardItemIdentifier, CompletionHandler<void(WebCore::ShouldGoToHistoryItem)>&&);
-#endif
+
     // IPC::MessageReceiver
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&);
     bool didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
@@ -131,7 +129,6 @@ public:
 private:
     explicit WebBackForwardList(WebPageProxy&);
 
-#ifndef __swift__
     void didRemoveItem(WebBackForwardListItem&);
 
     RefPtr<WebPageProxy> protectedPage();
@@ -139,7 +136,6 @@ private:
     WeakPtr<WebPageProxy> m_page;
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
-#endif
 
 } SWIFT_SHARED_REFERENCE(refBackForwardList, derefBackForwardList);
 
