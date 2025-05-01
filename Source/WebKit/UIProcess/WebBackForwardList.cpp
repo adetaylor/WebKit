@@ -802,12 +802,6 @@ void WebBackForwardList::backForwardListCounts(CompletionHandler<void(WebBackFor
     completionHandler(counts());
 }
 
-// TODO: generate with a macro like we do in WebGPU
-void WebBackForwardList::swiftBit()
-{
-    WebBackForwardList_swiftBit_thunk(this);
-}
-
 DEFINE_SWIFTCXX_THUNK_NULLARY(WebKit::WebBackForwardList, swiftBit, void);
 DEFINE_SWIFTCXX_THUNK(WebKit::WebBackForwardList, swiftAddItem, void, IPC::Connection* _Nonnull, FrameState* _Nonnull);
 
