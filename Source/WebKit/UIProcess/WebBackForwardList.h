@@ -29,6 +29,7 @@
 #include "MessageReceiver.h"
 #include "WebBackForwardListItem.h"
 #include "WebPageProxyMessageReceiverRegistration.h"
+#include "Shared/SessionState.h"
 #include <WebCore/BackForwardItemIdentifier.h>
 #include <wtf/Ref.h>
 #include <wtf/Vector.h>
@@ -42,6 +43,7 @@ class Array;
 namespace WebKit {
 
 class WebPageProxy;
+class FrameState;
 
 struct BackForwardListState;
 struct WebBackForwardListCounts;
@@ -58,7 +60,7 @@ public:
 
     virtual ~WebBackForwardList();
 
-    WebBackForwardListItem* itemForID(WebCore::BackForwardItemIdentifier);
+    WebBackForwardListItem* _Nullable itemForID(WebCore::BackForwardItemIdentifier);
 
     void addItem(Ref<WebBackForwardListItem>&&);
     void addChildItem(WebCore::FrameIdentifier, Ref<FrameState>&&);
@@ -66,13 +68,13 @@ public:
     void removeAllItems();
     void clear();
 
-    WebBackForwardListItem* currentItem() const;
+    WebBackForwardListItem* _Nullable currentItem() const;
     RefPtr<WebBackForwardListItem> protectedCurrentItem() const;
-    WebBackForwardListItem* backItem() const;
+    WebBackForwardListItem* _Nullable backItem() const;
     RefPtr<WebBackForwardListItem> protectedBackItem() const;
-    WebBackForwardListItem* forwardItem() const;
+    WebBackForwardListItem* _Nullable forwardItem() const;
     RefPtr<WebBackForwardListItem> protectedForwardItem() const;
-    WebBackForwardListItem* itemAtIndex(int) const;
+    WebBackForwardListItem* _Nullable itemAtIndex(int) const;
     RefPtr<WebBackForwardListItem> protectedItemAtIndex(int) const;
 
     RefPtr<WebBackForwardListItem> goBackItemSkippingItemsWithoutUserGesture() const;
@@ -122,6 +124,7 @@ public:
     bool didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
 
     void swiftBit() __attribute__((swift_private));
+    void swiftAddItem(FrameState* _Nonnull) __attribute__((swift_private));
 
 private:
     explicit WebBackForwardList(WebPageProxy&);
@@ -139,12 +142,12 @@ private:
 } // namespace WebKit
 
 
-inline void refBackForwardList(WebKit::WebBackForwardList* obj)
+inline void refBackForwardList(WebKit::WebBackForwardList* _Nonnull obj)
 {
     WTF::ref(obj);
 }
 
-inline void derefBackForwardList(WebKit::WebBackForwardList* obj)
+inline void derefBackForwardList(WebKit::WebBackForwardList* _Nonnull obj)
 {
     WTF::deref(obj);
 }
