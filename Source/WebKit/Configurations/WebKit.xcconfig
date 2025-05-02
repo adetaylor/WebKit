@@ -74,7 +74,7 @@ OTHER_SWIFT_FLAGS = $(inherited) -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -no-
 SWIFT_OBJC_INTEROP_MODE = objcxx;
 
 // Avoid problems with the "weak export" checker
-UNEXPORT_SWIFT_CXX_LDFLAGS = -Wl,-unexported_symbol,__ZN6WebKit33WebBackForwardList_swiftBit_thunkEPNS_18WebBackForwardListE;
+UNEXPORT_SWIFT_CXX_LDFLAGS = -Wl,-unexported_symbol,*_thunk*;
 
 // No need for automatic generation of Swift code for referencing resource bundle colors.
 ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = NO;
