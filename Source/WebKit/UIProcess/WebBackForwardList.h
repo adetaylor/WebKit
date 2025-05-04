@@ -124,7 +124,7 @@ public:
     bool didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
 
     void swiftBit() __attribute__((swift_private));
-    void swiftAddItem(FrameState* _Nonnull) __attribute__((swift_private));
+    void swiftAddItem(IPC::Connection* _Nonnull, FrameState* _Nonnull) __attribute__((swift_private));
 
 private:
     explicit WebBackForwardList(WebPageProxy&);
