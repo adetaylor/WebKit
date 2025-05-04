@@ -662,7 +662,7 @@ String WebBackForwardList::loggingString()
 
 void WebBackForwardList::backForwardAddItem(IPC::Connection& connection, Ref<FrameState>&& navigatedFrameState)
 {
-    swiftAddItem(&navigatedFrameState.get());
+    swiftAddItem(&connection, &navigatedFrameState.get());
     if (RefPtr webPageProxy = m_page.get()) {
         backForwardAddItemShared(connection, WTFMove(navigatedFrameState), webPageProxy->didLoadWebArchive() ? LoadedWebArchive::Yes : LoadedWebArchive::No);
     }
@@ -809,6 +809,6 @@ void WebBackForwardList::swiftBit()
 }
 
 DEFINE_SWIFTCXX_THUNK_NULLARY(WebKit::WebBackForwardList, swiftBit, void);
-DEFINE_SWIFTCXX_THUNK(WebKit::WebBackForwardList, swiftAddItem, void, FrameState* _Nonnull);
+DEFINE_SWIFTCXX_THUNK(WebKit::WebBackForwardList, swiftAddItem, void, IPC::Connection* _Nonnull, FrameState* _Nonnull);
 
 } // namespace WebKit
