@@ -61,6 +61,8 @@
 #include <wtf/WorkQueue.h>
 #include <wtf/text/CString.h>
 
+#include <swift/bridging>
+
 #if OS(DARWIN)
 #include <mach/mach_port.h>
 #include <wtf/OSObjectPtr.h>
@@ -754,7 +756,7 @@ private:
     HANDLE m_connectionPipe { INVALID_HANDLE_VALUE };
 #endif
     friend class StreamClientConnection;
-};
+} SWIFT_SHARED_REFERENCE(connectionRef, connectionDeref);
 
 template<typename T>
 Error Connection::send(T&& message, uint64_t destinationID, OptionSet<SendOption> sendOptions, std::optional<Thread::QOS> qos)
@@ -1046,3 +1048,11 @@ private:
 };
 
 } // namespace IPC
+
+inline void connectionRef(IPC::Connection* obj) {
+    WTF::ref(obj);
+}
+
+inline void connectionDeref(IPC::Connection* obj) {
+    WTF::deref(obj);
+}

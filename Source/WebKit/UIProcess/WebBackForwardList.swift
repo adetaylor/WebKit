@@ -9,8 +9,8 @@ public func WebBackForwardList_swiftBit_thunk(webBackForwardList: WebKit.WebBack
 
 @available(WK_IOS_TBA, WK_MAC_TBA, WK_XROS_TBA, *)
 @_expose(Cxx)
-public func WebBackForwardList_swiftAddItem_thunk(webBackForwardList: WebKit.WebBackForwardList, navigatedFrameState: WebKit.FrameState) {
-    return webBackForwardList.swiftAddItem(navigatedFrameState: navigatedFrameState)
+public func WebBackForwardList_swiftAddItem_thunk(webBackForwardList: WebKit.WebBackForwardList, connection: IPC.Connection, navigatedFrameState: WebKit.FrameState) {
+    return webBackForwardList.swiftAddItem(connection: connection, navigatedFrameState: navigatedFrameState)
 }
 
 
@@ -19,7 +19,7 @@ extension WebKit.WebBackForwardList {
         print("Hello!");
     }
 
-    func swiftAddItem(navigatedFrameState: WebKit.FrameState) {
+    func swiftAddItem(connection: IPC.Connection, navigatedFrameState: WebKit.FrameState) {
         print("Got frame state")
     }
 }
