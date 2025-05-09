@@ -30,6 +30,9 @@
 #include <wtf/StdLibExtras.h>
 #include <wtf/Variant.h>
 
+#include <utility>
+#include <variant>
+
 namespace WTF {
 
 // This is a map optimized for holding 0 or 1 items with no hashing or allocations in those cases.
