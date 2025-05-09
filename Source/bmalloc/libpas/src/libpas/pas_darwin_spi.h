@@ -85,6 +85,14 @@ VM_FLAGS_ALIAS_MASK);
 #define pas_stack_logging_flag_zone        8    /* NSZoneMalloc, etc... */
 #define pas_stack_logging_flag_cleared    64    /* for NewEmptyHandle */
 
+PAS_END_EXTERN_C;
+
+#if defined(__has_include) && __has_include(<stack_logging.h>)
+#include <stack_logging.h>
+#else
+
+PAS_BEGIN_EXTERN_C;
+
 typedef void(malloc_logger_t)(uint32_t type,
                               uintptr_t arg1,
                               uintptr_t arg2,
@@ -97,6 +105,9 @@ extern malloc_logger_t* malloc_logger;
 #endif
 
 PAS_END_EXTERN_C;
+
+#endif /* defined(__has_include) && __has_include(<stack_logging.h>) */
+
 
 #endif /* PAS_OS(DARWIN) */
 

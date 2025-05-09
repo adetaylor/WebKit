@@ -71,7 +71,11 @@ SWIFT_OBJC_INTERFACE_HEADER_NAME = PALSwift-Generated.h;
 SWIFT_VERSION = 5.0;
 SWIFT_OBJC_INTEROP_MODE = objcxx;
 
-OTHER_SWIFT_FLAGS = $(OTHER_SWIFT_FLAGS_$(WK_PLATFORM_NAME));
+// We can't define UCHAR_TYPE in GCC_PREPROCESSOR_DEFINITIONS for all WebKit projects
+// because then it gets applied to [obj] C files where char16_t does not exist.
+// For now the workaround is to define it only in cases where we know we're
+// importing C++ files into Swift. rdar://149764481 needed.
+OTHER_SWIFT_FLAGS = $(OTHER_SWIFT_FLAGS_$(WK_PLATFORM_NAME)) -Xcc -DUCHAR_TYPE=char16_t;
 OTHER_SWIFT_FLAGS_macosx = $(OTHER_SWIFT_FLAGS$(WK_MACOS_1400));
 OTHER_SWIFT_FLAGS_maccatalyst = $(OTHER_SWIFT_FLAGS$(WK_MACCATALYST_14));
 OTHER_SWIFT_FLAGS_iphoneos = $(OTHER_SWIFT_FLAGS$(WK_IOS_17));
