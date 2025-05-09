@@ -25,6 +25,8 @@
 
 #pragma once
 
+#import <wtf/Compiler.h>
+
 DECLARE_SYSTEM_HEADER
 
 #include <CoreFoundation/CoreFoundation.h>
