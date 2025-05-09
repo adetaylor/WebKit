@@ -1389,6 +1389,7 @@
 		AD14AD28202529B000890E3B /* ProcessCheck.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ProcessCheck.mm; path = bmalloc/ProcessCheck.mm; sourceTree = "<group>"; };
 		DD4BEC1829CBA36000398E35 /* libpas.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libpas.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD4BEC2229CBA39B00398E35 /* libpas.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = libpas.xcconfig; sourceTree = "<group>"; };
+		DD865C442DF02A24003C5147 /* modulemap.toml */ = {isa = PBXFileReference; lastKnownFileType = text; path = modulemap.toml; sourceTree = "<group>"; };
 		DE8B13B221CC5D9F00A63FCD /* BVMTags.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = BVMTags.h; path = bmalloc/BVMTags.h; sourceTree = "<group>"; };
 		E31E747F2238CA5B005D084A /* StaticPerProcess.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StaticPerProcess.h; path = bmalloc/StaticPerProcess.h; sourceTree = "<group>"; };
 		E328D84C23CEB38900545B18 /* Packed.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Packed.h; path = bmalloc/Packed.h; sourceTree = "<group>"; };
@@ -2119,6 +2120,7 @@
 				14B650C718F39F4800751968 /* DebugRelease.xcconfig */,
 				DD4BEC2229CBA39B00398E35 /* libpas.xcconfig */,
 				14B650C918F3A04200751968 /* mbmalloc.xcconfig */,
+				DD865C442DF02A24003C5147 /* modulemap.toml */,
 			);
 			path = Configurations;
 			sourceTree = "<group>";
@@ -2765,10 +2767,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 14F271BF18EA3963008C152F /* Build configuration list for PBXNativeTarget "bmalloc" */;
 			buildPhases = (
-				14F271BA18EA3963008C152F /* Sources */,
-				14F271BB18EA3963008C152F /* Frameworks */,
 				14F271BC18EA3963008C152F /* Headers */,
 				DDA35E4829CA6FEB006C1018 /* Generate TAPI filelist */,
+				DD865C432DF028C9003C5147 /* Generate modulemap */,
+				14F271BA18EA3963008C152F /* Sources */,
+				14F271BB18EA3963008C152F /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -2838,6 +2841,29 @@
 /* End PBXProject section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		DD865C432DF028C9003C5147 /* Generate modulemap */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../WTF/Scripts/modulemap-from-tapi-filelist.py",
+				"$(BUILT_PRODUCTS_DIR)/$(PRIVATE_HEADERS_FOLDER_PATH)/bmalloc.json",
+				"$(SRCROOT)/Configurations/modulemap.toml",
+			);
+			name = "Generate modulemap";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(PRIVATE_HEADERS_FOLDER_PATH)/module.modulemap",
+				"$(DSTROOT)/$(PRIVATE_HEADERS_FOLDER_PATH)/module.modulemap",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ ${DEPLOYMENT_LOCATION} != YES ]; then\n\"${SCRIPT_INPUT_FILE_0}\" \"${SCRIPT_INPUT_FILE_1}\" --config \"${SCRIPT_INPUT_FILE_2}\" --relative-to \"${BUILT_PRODUCTS_DIR}${PRIVATE_HEADERS_FOLDER_PATH}\" > \"${SCRIPT_OUTPUT_FILE_0}\"\nelse\n\"${SCRIPT_INPUT_FILE_0}\" ${DSTROOT}/${PRIVATE_HEADERS_FOLDER_PATH}/bmalloc.json --config \"${SCRIPT_INPUT_FILE_2}\" --relative-to \"<SDKROOT>${PRIVATE_HEADERS_FOLDER_PATH}\" > \"${SCRIPT_OUTPUT_FILE_1}\"\nfi\n";
+		};
 		DDA35E4829CA6FEB006C1018 /* Generate TAPI filelist */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;

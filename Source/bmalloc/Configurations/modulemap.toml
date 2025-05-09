@@ -1,0 +1,13 @@
+module-name = 'bmalloc'
+requirements = ['cplusplus11']
+# pas_lock.h requires OS_UNFAIR_LOCK_INLINE context
+textual-headers = ['pas_lock.h']
+
+# BExport and pas_allocation_mode can be used in plain C contexts as well as C++
+[module.bexport]
+attributes = ['extern_c']
+headers = ['BExport.h']
+
+[module.pas_allocation_mode]
+attributes = ['extern_c']
+headers = ['pas_allocation_mode.h']
