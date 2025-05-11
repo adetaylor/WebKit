@@ -535,6 +535,18 @@ static void tryInterceptNavigation(Ref<API::NavigationAction>&& navigationAction
     }
 #endif
 
+    if (navigationAction->request().url().protocolIs("x-swift-demo"_s) && !page.shouldSuppressSwiftDemoInNextNavigationPolicyDecision()) {
+        WTF::Vector<uint8_t> data = { 'Z' };
+        auto mimeType = "text/plain"_s;
+        auto charset = "US-ASCII"_s;
+        auto baseURL = "x-swift-demo://"_s;
+        auto data2 = SharedBuffer::create(WTFMove(data));
+        page.setShouldSuppressSwiftDemoInNextNavigationPolicyDecision();
+        page.loadData(WTFMove(data2), mimeType, charset, baseURL);
+        completionHandler(true);
+        return;
+    }
+
     trySOAuthorization(WTFMove(navigationAction), page, WTFMove(completionHandler));
 }
 

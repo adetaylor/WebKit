@@ -2218,6 +2218,9 @@ public:
     void decidePolicyForSOAuthorizationLoad(const String&, CompletionHandler<void(SOAuthorizationLoadPolicy)>&&);
 #endif
 
+    void setShouldSuppressSwiftDemoInNextNavigationPolicyDecision() { m_shouldSuppressSwiftDemoInNextNavigationPolicyDecision = true; }
+    bool shouldSuppressSwiftDemoInNextNavigationPolicyDecision() { return m_shouldSuppressSwiftDemoInNextNavigationPolicyDecision; }
+
     Logger& logger();
     uint64_t logIdentifier() const;
 
@@ -3629,6 +3632,7 @@ private:
 #if HAVE(APP_SSO)
     bool m_shouldSuppressSOAuthorizationInNextNavigationPolicyDecision { false };
 #endif
+    bool m_shouldSuppressSwiftDemoInNextNavigationPolicyDecision { false };
 
     std::unique_ptr<WebWheelEventCoalescer> m_wheelEventCoalescer;
 
