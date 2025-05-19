@@ -10,7 +10,7 @@ module wtf {
     explicit module ApproximateTime { requires cplusplus11 header "ApproximateTime.h" }
     explicit module ArgumentCoder { requires cplusplus11 header "ArgumentCoder.h" }
     explicit module ASCIICType { requires cplusplus11 header "ASCIICType.h" }
-    explicit module Assertions { requires cplusplus11 header "Assertions.h" }
+    explicit module Assertions [extern_c] { header "Assertions.h" }
     explicit module Atomics { requires cplusplus11 header "Atomics.h" }
     explicit module AutodrainedPool { requires cplusplus11, !objc header "AutodrainedPool.h" }
     explicit module AutomaticThread { requires cplusplus11 header "AutomaticThread.h" }
@@ -63,7 +63,7 @@ module wtf {
     explicit module CompactVariant { requires cplusplus11 header "CompactVariant.h" }
     explicit module CompactVariantOperations { requires cplusplus11 header "CompactVariantOperations.h" }
     explicit module CompilationThread { requires cplusplus11 header "CompilationThread.h" }
-    explicit module Compiler { requires cplusplus11 header "Compiler.h" }
+    explicit module Compiler [extern_c] { header "Compiler.h" }
     explicit module CompletionHandler { requires cplusplus11 header "CompletionHandler.h" }
     explicit module ConcurrentBuffer { requires cplusplus11 header "ConcurrentBuffer.h" }
     explicit module ConcurrentPtrHashSet { requires cplusplus11 header "ConcurrentPtrHashSet.h" }
@@ -123,7 +123,7 @@ module wtf {
     explicit module EnumTraits { requires cplusplus11 header "EnumTraits.h" }
     explicit module Expected { requires cplusplus11 header "Expected.h" }
     explicit module ExperimentalFeatureNames { requires cplusplus11 header "ExperimentalFeatureNames.h" }
-    explicit module ExportMacros { requires cplusplus11 header "ExportMacros.h" }
+    explicit module ExportMacros [extern_c] { header "ExportMacros.h" }
     explicit module FailureAction { requires cplusplus11 header "FailureAction.h" }
     explicit module FastBitVector { requires cplusplus11 header "FastBitVector.h" }
     explicit module FastFloat { requires cplusplus11 header "FastFloat.h" }
