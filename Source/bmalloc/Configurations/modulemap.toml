@@ -1,0 +1,11 @@
+module-name = 'bmalloc'
+requirements = ['cplusplus11']
+
+[submodule-mappings]
+bexport = ['BExport.h']
+pas_allocation_mode = ['pas_allocation_mode.h']
+
+[module.bexport]
+attributes = ['extern_c']
+[module.pas_allocation_mode]
+attributes = ['extern_c']

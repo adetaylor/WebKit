@@ -1,0 +1,27 @@
+module-name = 'wtf'
+config-macros = ['UCHAR_TYPE']
+requirements = ['cplusplus11']
+
+one-submodule-per-header = true
+textual-headers = ['spi/mac/MetadataSPI.h']
+
+[module.Assertions]
+attributes = ['extern_c']
+requirements = []
+[module.AutodrainedPool]
+requirements = ['cplusplus11', '!objc']
+[module.Compiler]
+attributes = ['extern_c']
+requirements = []
+[module.ExportMacros]
+attributes = ['extern_c']
+requirements = []
+[module.HashMap]
+headers = ['HashMap.h', 'RobinHoodHashTable.h']
+[module.Platform]
+requirements = []
+headers = ['Platform.h', 'PlatformCallingConventions.h', 'PlatformCPU.h',
+           'PlatformEnable.h', 'PlatformEnableCocoa.h', 'PlatformHave.h',
+           'PlatformLegacy.h', 'PlatformOS.h', 'PlatformUse.h']
+[module.SoftLinking]
+headers = ['SoftLinking.h', 'cocoa/SoftLinking.h']

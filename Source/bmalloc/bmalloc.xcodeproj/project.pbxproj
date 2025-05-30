@@ -140,7 +140,6 @@
 		4426E2801C838EE0008EB042 /* Logging.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4426E27E1C838EE0008EB042 /* Logging.cpp */; };
 		4426E2811C838EE0008EB042 /* Logging.h in Headers */ = {isa = PBXBuildFile; fileRef = 4426E27F1C838EE0008EB042 /* Logging.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		52F47249210BA30200B730BB /* MemoryStatusSPI.h in Headers */ = {isa = PBXBuildFile; fileRef = 52F47248210BA2F500B730BB /* MemoryStatusSPI.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5C12469B2DCBE2F80077D423 /* module.modulemap in Headers */ = {isa = PBXBuildFile; fileRef = 5C12469A2DCBE0800077D423 /* module.modulemap */; settings = {ATTRIBUTES = (Private, ); }; };
 		65072AE72B6195B90065065C /* TZoneHeapManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 65072AE52B6195B90065065C /* TZoneHeapManager.cpp */; };
 		652E16972C4869D000C377D7 /* TZoneLog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 652E16962C4869D000C377D7 /* TZoneLog.cpp */; };
 		652E16982C4869D000C377D7 /* TZoneLog.h in Headers */ = {isa = PBXBuildFile; fileRef = 652E16952C4869D000C377D7 /* TZoneLog.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -1371,7 +1370,6 @@
 		4426E27E1C838EE0008EB042 /* Logging.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Logging.cpp; path = bmalloc/Logging.cpp; sourceTree = "<group>"; };
 		4426E27F1C838EE0008EB042 /* Logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Logging.h; path = bmalloc/Logging.h; sourceTree = "<group>"; };
 		52F47248210BA2F500B730BB /* MemoryStatusSPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MemoryStatusSPI.h; path = bmalloc/darwin/MemoryStatusSPI.h; sourceTree = "<group>"; };
-		5C12469A2DCBE0800077D423 /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		65072AE52B6195B90065065C /* TZoneHeapManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TZoneHeapManager.cpp; path = bmalloc/TZoneHeapManager.cpp; sourceTree = "<group>"; };
 		65072AE62B6195B90065065C /* TZoneHeapManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TZoneHeapManager.h; path = bmalloc/TZoneHeapManager.h; sourceTree = "<group>"; };
 		652E16952C4869D000C377D7 /* TZoneLog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TZoneLog.h; path = bmalloc/TZoneLog.h; sourceTree = "<group>"; };
@@ -1390,6 +1388,7 @@
 		AD14AD28202529B000890E3B /* ProcessCheck.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ProcessCheck.mm; path = bmalloc/ProcessCheck.mm; sourceTree = "<group>"; };
 		DD4BEC1829CBA36000398E35 /* libpas.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libpas.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD4BEC2229CBA39B00398E35 /* libpas.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = libpas.xcconfig; sourceTree = "<group>"; };
+		DD865C442DF02A24003C5147 /* modulemap.toml */ = {isa = PBXFileReference; lastKnownFileType = text; path = modulemap.toml; sourceTree = "<group>"; };
 		DE8B13B221CC5D9F00A63FCD /* BVMTags.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = BVMTags.h; path = bmalloc/BVMTags.h; sourceTree = "<group>"; };
 		E31E747F2238CA5B005D084A /* StaticPerProcess.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StaticPerProcess.h; path = bmalloc/StaticPerProcess.h; sourceTree = "<group>"; };
 		E328D84C23CEB38900545B18 /* Packed.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Packed.h; path = bmalloc/Packed.h; sourceTree = "<group>"; };
@@ -2113,6 +2112,7 @@
 		14B650C418F39F4800751968 /* Configurations */ = {
 			isa = PBXGroup;
 			children = (
+				DD865C442DF02A24003C5147 /* modulemap.toml */,
 				14B650C518F39F4800751968 /* Base.xcconfig */,
 				14B650C618F39F4800751968 /* bmalloc.xcconfig */,
 				14B650C718F39F4800751968 /* DebugRelease.xcconfig */,
@@ -2200,7 +2200,6 @@
 				4426E27E1C838EE0008EB042 /* Logging.cpp */,
 				4426E27F1C838EE0008EB042 /* Logging.h */,
 				14C8992A1CC485E70027A057 /* Map.h */,
-				5C12469A2DCBE0800077D423 /* module.modulemap */,
 				143CB81A19022BC900B16A45 /* Mutex.cpp */,
 				143CB81B19022BC900B16A45 /* Mutex.h */,
 				E328D84C23CEB38900545B18 /* Packed.h */,
@@ -2321,7 +2320,6 @@
 				4426E2811C838EE0008EB042 /* Logging.h in Headers */,
 				14C8992B1CC485E70027A057 /* Map.h in Headers */,
 				52F47249210BA30200B730BB /* MemoryStatusSPI.h in Headers */,
-				5C12469B2DCBE2F80077D423 /* module.modulemap in Headers */,
 				143CB81D19022BC900B16A45 /* Mutex.h in Headers */,
 				144BE11F1CA346520099C8C0 /* Object.h in Headers */,
 				14DD789318F48D0F00950702 /* ObjectType.h in Headers */,
@@ -2765,10 +2763,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 14F271BF18EA3963008C152F /* Build configuration list for PBXNativeTarget "bmalloc" */;
 			buildPhases = (
-				14F271BA18EA3963008C152F /* Sources */,
-				14F271BB18EA3963008C152F /* Frameworks */,
 				14F271BC18EA3963008C152F /* Headers */,
 				DDA35E4829CA6FEB006C1018 /* Generate TAPI filelist */,
+				DD865C432DF028C9003C5147 /* Generate modulemap */,
+				14F271BA18EA3963008C152F /* Sources */,
+				14F271BB18EA3963008C152F /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -2838,6 +2837,29 @@
 /* End PBXProject section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		DD865C432DF028C9003C5147 /* Generate modulemap */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../wtf/Scripts/modulemap-from-tapi-filelist.py",
+				"$(BUILT_PRODUCTS_DIR)/$(PRIVATE_HEADERS_FOLDER_PATH)/bmalloc.json",
+				"$(SRCROOT)/Configurations/modulemap.toml",
+			);
+			name = "Generate modulemap";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(PRIVATE_HEADERS_FOLDER_PATH)/module.modulemap",
+				"$(DSTROOT)/$(PRIVATE_HEADERS_FOLDER_PATH)/module.modulemap",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ ${DEPLOYMENT_LOCATION} != YES ]; then\n\"${SCRIPT_INPUT_FILE_0}\" \"${SCRIPT_INPUT_FILE_1}\" --config \"${SCRIPT_INPUT_FILE_2}\" --relative-to \"${BUILT_PRODUCTS_DIR}${PRIVATE_HEADERS_FOLDER_PATH}\" > \"${SCRIPT_OUTPUT_FILE_0}\"\nelse\n\"${SCRIPT_INPUT_FILE_0}\" ${DSTROOT}/${PRIVATE_HEADERS_FOLDER_PATH}/bmalloc.json --config \"${SCRIPT_INPUT_FILE_2}\" --relative-to \"<SDKROOT>${PRIVATE_HEADERS_FOLDER_PATH}\" > \"${SCRIPT_OUTPUT_FILE_1}\"\nfi\n";
+		};
 		DDA35E4829CA6FEB006C1018 /* Generate TAPI filelist */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
