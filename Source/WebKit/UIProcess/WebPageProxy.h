@@ -38,6 +38,7 @@
 #include <wtf/ProcessID.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/WeakHashSet.h>
+#include <wtf/RetainReleaseSwift.h>
 
 #if USE(DICTATION_ALTERNATIVES)
 #include <WebCore/PlatformTextAlternatives.h>
@@ -3920,9 +3921,17 @@ private:
 
     const Ref<AboutSchemeHandler> m_aboutSchemeHandler;
     RefPtr<WebPageProxyTesting> m_pageForTesting;
-};
+} SWIFT_SHARED_REFERENCE(refWebPageProxy, derefWebPageProxy);
 
 } // namespace WebKit
+
+inline void refWebPageProxy(WebKit::WebPageProxy* obj) {
+    WTF::ref(obj);
+}
+
+inline void derefWebPageProxy(WebKit::WebPageProxy* obj) {
+    WTF::deref(obj);
+}
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebPageProxy)
     static bool isType(const API::Object& object) { return object.type() == API::Object::Type::Page; }
