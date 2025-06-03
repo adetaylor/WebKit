@@ -28,6 +28,14 @@
 
 #pragma once
 
+#include <atomic>
+
+#include <bmalloc/TZoneHeap.h>
+#include <bmalloc/bmalloc.h>
+
+#include <new>
+#include <tuple>
+
 #include "ConnectionHandle.h"
 #include "MessageReceiveQueueMap.h"
 #include "MessageReceiver.h"

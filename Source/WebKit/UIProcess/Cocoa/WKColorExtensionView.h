@@ -25,6 +25,7 @@
 
 #pragma once
 
+#import <WKWebViewInternal.h>
 #import <WebCore/CocoaView.h>
 #import <WebCore/ColorCocoa.h>
 

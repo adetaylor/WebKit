@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include <variant>
+
 #include "Decoder.h"
 #include "MessageReceiveQueue.h"
 #include <wtf/HashMap.h>
