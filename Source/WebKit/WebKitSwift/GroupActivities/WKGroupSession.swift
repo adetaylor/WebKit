@@ -38,6 +38,8 @@ internal import GroupActivities_SPI
 #endif
 import WebKitSwift
 
+import struct Foundation.URL
+
 extension WKGroupSessionState {
     fileprivate init(_ state: GroupSession<URLActivity>.State) {
         switch state {

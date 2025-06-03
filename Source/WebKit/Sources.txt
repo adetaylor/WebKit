@@ -422,6 +422,7 @@ UIProcess/SpeechRecognitionServer.cpp
 UIProcess/SuspendedPageProxy.cpp
 UIProcess/SystemPreviewController.cpp
 UIProcess/SpeechRecognitionPermissionManager.cpp
+UIProcess/SwiftDemoLogoConfirmation.cpp
 UIProcess/TextChecker.cpp
 UIProcess/TextCheckerCompletion.cpp
 UIProcess/UIProcessLogInitialization.cpp

@@ -68,6 +68,8 @@
 @property (nonatomic, readonly, strong) NSColor *webPlugInContainerSelectionColor;
 #endif
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 /*!
     @property webFrame
     @abstract Allows the plug-in to access the WebFrame that
@@ -75,5 +77,6 @@
     are not WebKit based.
 */
 @property (nonatomic, readonly, strong) WebFrame *webFrame;
+#pragma clang diagnostic pop
 
 @end
