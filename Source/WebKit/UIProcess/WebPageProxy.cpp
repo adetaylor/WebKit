@@ -451,6 +451,12 @@
 #include "ModelPresentationManagerProxy.h"
 #endif
 
+#if ENABLE(SWIFT_DEMO_URI_SCHEME)
+// Ideally we'd include <WebKit-Swift.h> here directly. See the contents
+// of this shim file for the reasons we can't.
+#include "SwiftDemoLogoShim.h"
+#endif
+
 #define MESSAGE_CHECK(process, assertion) MESSAGE_CHECK_BASE(assertion, process->connection())
 #define MESSAGE_CHECK_URL(process, url) MESSAGE_CHECK_BASE(checkURLReceivedFromCurrentOrPreviousWebProcess(process, url), process->connection())
 #define MESSAGE_CHECK_URL_COROUTINE(process, url) MESSAGE_CHECK_BASE_COROUTINE(checkURLReceivedFromCurrentOrPreviousWebProcess(process, url), process->connection())
@@ -8128,6 +8134,20 @@ void WebPageProxy::decidePolicyForNavigationAction(Ref<WebProcessProxy>&& proces
     protectedWebsiteDataStore()->beginAppBoundDomainCheck(host.toString(), protocol.toString(), listener);
 #endif
 
+#if ENABLE(SWIFT_DEMO_URI_SCHEME)
+    if (navigationAction->request().url().protocolIs("x-swift-demo"_s) && !m_shouldSuppressSwiftDemoInNextNavigationPolicyDecision) {
+        WTF::Vector<uint8_t> logo3 = getSwiftLogoDataWrapper();
+        auto mimeType = "image/png"_s;
+        auto charset = "US-ASCII"_s;
+        auto baseURL = "x-swift-demo://"_s;
+        auto data2 = SharedBuffer::create(WTFMove(logo3));
+        m_shouldSuppressSwiftDemoInNextNavigationPolicyDecision = true;
+        loadData(WTFMove(data2), mimeType, charset, baseURL);
+        listener->ignore(WasNavigationIntercepted::Yes);
+        return;
+    }
+#endif
+
     auto wasPotentiallyInitiatedByUser = navigation->isLoadedWithNavigationShared() || navigation->wasUserInitiated();
     if (!sessionID().isEphemeral())
         logFrameNavigation(frame, URL { internals().pageLoadState.url() }, request, navigationAction->data().redirectResponse.url(), wasPotentiallyInitiatedByUser);
@@ -10489,7 +10509,7 @@ void WebPageProxy::contextMenuItemSelected(const WebContextMenuItemData& item, c
 #endif
         return;
 
-#if ENABLE(TOP_LEVEL_WRITING_TOOLS_CONTEXT_MENU_ITEMS)
+#if ENABLE(TOP_LEVEL_WRITING_TOOLS_CONTEXT_MENU_ITEMS) && ENABLE_WRITING_TOOLS
     case ContextMenuItemTagWritingTools:
     case ContextMenuItemTagProofread:
     case ContextMenuItemTagRewrite:
