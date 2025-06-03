@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,16 +23,18 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Add project-level Objective-C header files here to be able to access them from within Swift sources.
+#pragma once
 
-#import <wtf/Platform.h>
+#if ENABLE(SWIFT_DEMO_URI_SCHEME)
+#include <wtf/Vector.h>
+#include <cstdint>
 
-#import "WKMaterialHostingSupport.h"
-#import "WKPreferencesInternal.h"
-#import "WKScrollGeometry.h"
-#import "WKSeparatedImageView.h"
-#import "WKTextExtractionItem.h"
-#import "WKUIDelegateInternal.h"
-#import "WKWebViewConfigurationInternal.h"
-#import "WKWebViewInternal.h"
-#import "SwiftDemoLogoConfirmation.h"
+namespace WebKit {
+
+// This wrapper exists to avoid the need to #import <WebKit-Swift.h>
+// into WebPageProxy.cpp itself, which causes various incompatibilities
+// e.g. rdar://152836730, rdar://152839120
+WTF::Vector<uint8_t> getSwiftLogoDataWrapper();
+
+};
+#endif
