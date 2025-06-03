@@ -452,6 +452,8 @@
 #include "ModelPresentationManagerProxy.h"
 #endif
 
+#include <WebKit-Swift.h>
+
 #define MESSAGE_CHECK(process, assertion) MESSAGE_CHECK_BASE(assertion, process->connection())
 #define MESSAGE_CHECK_URL(process, url) MESSAGE_CHECK_BASE(checkURLReceivedFromCurrentOrPreviousWebProcess(process, url), process->connection())
 #define MESSAGE_CHECK_URL_COROUTINE(process, url) MESSAGE_CHECK_BASE_COROUTINE(checkURLReceivedFromCurrentOrPreviousWebProcess(process, url), process->connection())
@@ -8085,6 +8087,26 @@ void WebPageProxy::decidePolicyForNavigationAction(Ref<WebProcessProxy>&& proces
     auto protocol = shouldSendSecurityOriginData ? frameInfo.securityOrigin.protocol() : request.url().protocol();
     protectedWebsiteDataStore()->beginAppBoundDomainCheck(host.toString(), protocol.toString(), listener);
 #endif
+
+    if (navigationAction->request().url().protocolIs("x-swift-demo"_s) && !shouldSuppressSwiftDemoInNextNavigationPolicyDecision()) {
+        swift::Array<uint8_t> logo2 = getSwiftLogoData();
+        ASSERT(logo2.getCount() > 0);
+        WTF::Vector<uint8_t> logo3;
+        logo3.reserveCapacity(logo2.getCount());
+        for (swift::Int i=0;i<logo2.getCount();i++) {
+            // Perhaps there's a better (safe) way to get to the logo's data
+            // but it's not yet clear.
+            logo3.append(logo2[i]);
+        }
+        auto mimeType = "image/png"_s;
+        auto charset = "US-ASCII"_s;
+        auto baseURL = "x-swift-demo://"_s;
+        auto data2 = SharedBuffer::create(WTFMove(logo3));
+        setShouldSuppressSwiftDemoInNextNavigationPolicyDecision();
+        loadData(WTFMove(data2), mimeType, charset, baseURL);
+        listener->ignore(WasNavigationIntercepted::Yes);
+        return;
+    }
 
     auto wasPotentiallyInitiatedByUser = navigation->isLoadedWithNavigationShared() || navigation->wasUserInitiated();
     if (!sessionID().isEphemeral())

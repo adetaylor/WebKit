@@ -1588,6 +1588,7 @@
 		5CE912142293C280005BEC78 /* WKMain.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE9120B2293C1E0005BEC78 /* WKMain.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CF62B9628D4436A00C0EAE0 /* DaemonCoders.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CF62B9428D4436A00C0EAE0 /* DaemonCoders.h */; };
 		5CFC9C812B71809600F8D289 /* CoreIPCCFDictionary.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5CFC9C7F2B717EFA00F8D289 /* CoreIPCCFDictionary.mm */; };
+		5CFFD8482DEF511C00C421F5 /* SwiftDemoLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFFD8472DEF511B00C421F5 /* SwiftDemoLogo.swift */; };
 		63108F961F96719C00A0DB84 /* _WKApplicationManifest.h in Headers */ = {isa = PBXBuildFile; fileRef = 63108F941F96719C00A0DB84 /* _WKApplicationManifest.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		63108F991F9671F700A0DB84 /* _WKApplicationManifestInternal.h in Headers */ = {isa = PBXBuildFile; fileRef = 63108F981F9671F700A0DB84 /* _WKApplicationManifestInternal.h */; };
 		634842511FB26E7100946E3C /* APIApplicationManifest.h in Headers */ = {isa = PBXBuildFile; fileRef = 6348424F1FB26E7100946E3C /* APIApplicationManifest.h */; };
@@ -6571,6 +6572,7 @@
 		5CFC9C7F2B717EFA00F8D289 /* CoreIPCCFDictionary.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CoreIPCCFDictionary.mm; sourceTree = "<group>"; };
 		5CFC9C802B717EFA00F8D289 /* CoreIPCCFDictionary.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CoreIPCCFDictionary.h; sourceTree = "<group>"; };
 		5CFECB031E1ED1C800F88504 /* LegacyCustomProtocolManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = LegacyCustomProtocolManager.cpp; sourceTree = "<group>"; };
+		5CFFD8472DEF511B00C421F5 /* SwiftDemoLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDemoLogo.swift; sourceTree = "<group>"; };
 		5DAD73F1116FF90C00EE5396 /* BaseTarget.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = BaseTarget.xcconfig; sourceTree = "<group>"; };
 		63108F941F96719C00A0DB84 /* _WKApplicationManifest.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKApplicationManifest.h; sourceTree = "<group>"; };
 		63108F951F96719C00A0DB84 /* _WKApplicationManifest.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKApplicationManifest.mm; sourceTree = "<group>"; };
@@ -14816,6 +14818,7 @@
 				93D6B77A254C984D0058DD3A /* SpeechRecognitionServer.messages.in */,
 				515C415A207D74E000726E02 /* SuspendedPageProxy.cpp */,
 				515C415B207D74E100726E02 /* SuspendedPageProxy.h */,
+				5CFFD8472DEF511B00C421F5 /* SwiftDemoLogo.swift */,
 				318A1F04204F4764003480BC /* SystemPreviewController.cpp */,
 				3157135D2040A9B20084F9CF /* SystemPreviewController.h */,
 				A38A12E123C93AC700FABFA9 /* TextChecker.cpp */,
@@ -20655,6 +20658,7 @@
 				93468E6D2714AF88009983E3 /* SharedFileHandleCocoa.cpp in Sources */,
 				9BF622522C3E8559007F7021 /* SharedPreferencesForWebProcess.cpp in Sources */,
 				575B1BB923CE9C0B0020639A /* SimulatedInputDispatcher.cpp in Sources */,
+				5CFFD8482DEF511C00C421F5 /* SwiftDemoLogo.swift in Sources */,
 				5CAAA85029BFBE99003340AE /* TCCSoftLink.mm in Sources */,
 				E36A00E329CF7AC000AC4E8A /* TextTrackRepresentationCocoa.mm in Sources */,
 				2D11B7512126A282006F8878 /* UnifiedSource1-mm.mm in Sources */,
