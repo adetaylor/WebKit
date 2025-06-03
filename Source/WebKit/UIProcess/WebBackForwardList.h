@@ -114,9 +114,6 @@ public:
     void backForwardListCounts(CompletionHandler<void(WebBackForwardListCounts&&)>&&);
     void backForwardUpdateItem(IPC::Connection&, Ref<FrameState>&&);
     void backForwardAddItemShared(IPC::Connection&, Ref<FrameState>&&, LoadedWebArchive);
-#ifdef __swift__
-    void backForwardAddItemShared2(IPC::Connection& connection, FrameState* frameState, LoadedWebArchive loadedWebArchive);
-#endif
     void backForwardGoToItemShared(WebCore::BackForwardItemIdentifier, CompletionHandler<void(const WebBackForwardListCounts&)>&&);
 
     void shouldGoToBackForwardListItem(WebCore::BackForwardItemIdentifier, bool inBackForwardCache, CompletionHandler<void(WebCore::ShouldGoToHistoryItem)>&&);
@@ -128,9 +125,6 @@ public:
 
     void swiftBit() __attribute__((swift_private));
     void swiftAddItem(IPC::Connection* _Nonnull, FrameState* _Nonnull) __attribute__((swift_private));
-#ifdef __swift__
-    WebPageProxy* _Nullable getPage() SWIFT_RETURNS_INDEPENDENT_VALUE;
-#endif
 
 private:
     explicit WebBackForwardList(WebPageProxy&);
@@ -140,7 +134,6 @@ private:
     RefPtr<WebPageProxy> protectedPage();
 
     WeakPtr<WebPageProxy> m_page;
-
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
 
