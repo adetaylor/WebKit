@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,17 +23,28 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Add project-level Objective-C header files here to be able to access them from within Swift sources.
+#include <config.h>
+#if ENABLE(SWIFT_DEMO_URI_SCHEME)
+#include "SwiftDemoLogoShim.h"
 
-#import <wtf/Platform.h>
+#pragma clang diagnostic push
+// TODO figure out
+#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
+#include <WebKit-Swift.h>
+#pragma clang diagnostic pop
 
-#import "WKMaterialHostingSupport.h"
-#import "WKMouseDeviceObserver.h"
-#import "WKPreferencesInternal.h"
-#import "WKScrollGeometry.h"
-#import "WKSeparatedImageView.h"
-#import "WKTextExtractionItem.h"
-#import "WKUIDelegateInternal.h"
-#import "WKWebViewConfigurationInternal.h"
-#import "WKWebViewInternal.h"
-#import "SwiftDemoLogoConfirmation.h"
+using namespace WebKit;
+
+WTF::Vector<uint8_t> WebKit::getSwiftLogoDataWrapper() {
+    auto logo2 = getSwiftLogoData();
+    WTF::Vector<uint8_t> logo3;
+    logo3.reserveCapacity(logo2.getCount());
+    for (swift::Int i=0;i<logo2.getCount();i++) {
+        // Perhaps there's a better (safe) way to get to the logo's data
+        // but it's not yet clear.
+        logo3.append(logo2[i]);
+    }
+    return logo3;
+}
+
+#endif
