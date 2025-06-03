@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,8 +23,15 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Add project-level C++ header files here to be able to access them from within Swift sources.
+#pragma once
 
-#import "UIProcess/SwiftDemoLogoConfirmation.h"
+// For now, this file needs to include no other headers, since the
+// swiftc invocation that parses this file is not fed a complete
+// header include path.
 
-#import <wtf/Platform.h>
+namespace WebKit {
+
+// See SwiftDemoLogo.swift for the rationale here
+bool shouldShowSwiftDemoLogo();
+
+} // namespace WebKit
