@@ -36,3 +36,4 @@
 #import "WKUIDelegateInternal.h"
 #import "WKWebViewConfigurationInternal.h"
 #import "WKWebViewInternal.h"
+#import "SwiftDemoLogoConfirmation.h"

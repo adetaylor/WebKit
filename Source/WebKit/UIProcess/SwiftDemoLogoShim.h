@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,28 +25,16 @@
 
 #pragma once
 
-#import <WebCore/CocoaView.h>
-#import <WebCore/ColorCocoa.h>
-#import <WKWebViewInternal.h>
+#if ENABLE(SWIFT_DEMO_URI_SCHEME)
+#include <wtf/Vector.h>
+#include <cstdint>
 
-#if PLATFORM(IOS_FAMILY)
-#import <UIKit/UIKit.h>
-#else
-#import <AppKit/AppKit.h>
+namespace WebKit {
+
+// This wrapper exists to avoid the need to #import <WebKit-Swift.h>
+// into WebPageProxy.cpp itself, which causes various incompatibilities
+// e.g. rdar://152836730, rdar://152839120
+WTF::Vector<uint8_t> getSwiftLogoDataWrapper();
+
+};
 #endif
-
-@protocol WKColorExtensionViewDelegate <NSObject>
-- (void)colorExtensionViewWillDisappear:(WKColorExtensionView *)view;
-- (void)colorExtensionViewDidAppear:(WKColorExtensionView *)view;
-@end
-
-@interface WKColorExtensionView : CocoaView
-
-- (instancetype)initWithFrame:(CGRect)frame delegate:(id<WKColorExtensionViewDelegate>)delegate;
-- (void)updateColor:(WebCore::CocoaColor *)color;
-- (void)fadeOut;
-- (void)cancelFadeAnimation;
-
-@property (nonatomic, readonly, getter=isHiddenOrFadingOut) BOOL hiddenOrFadingOut;
-
-@end

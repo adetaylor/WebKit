@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,30 +23,28 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <config.h>
+#if ENABLE(SWIFT_DEMO_URI_SCHEME)
+#include "SwiftDemoLogoShim.h"
 
-#import <WebCore/CocoaView.h>
-#import <WebCore/ColorCocoa.h>
-#import <WKWebViewInternal.h>
+#pragma clang diagnostic push
+// TODO figure out
+#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
+#include <WebKit-Swift.h>
+#pragma clang diagnostic pop
 
-#if PLATFORM(IOS_FAMILY)
-#import <UIKit/UIKit.h>
-#else
-#import <AppKit/AppKit.h>
+using namespace WebKit;
+
+WTF::Vector<uint8_t> WebKit::getSwiftLogoDataWrapper() {
+    auto logo2 = getSwiftLogoData();
+    WTF::Vector<uint8_t> logo3;
+    logo3.reserveCapacity(logo2.getCount());
+    for (swift::Int i=0;i<logo2.getCount();i++) {
+        // Perhaps there's a better (safe) way to get to the logo's data
+        // but it's not yet clear.
+        logo3.append(logo2[i]);
+    }
+    return logo3;
+}
+
 #endif
-
-@protocol WKColorExtensionViewDelegate <NSObject>
-- (void)colorExtensionViewWillDisappear:(WKColorExtensionView *)view;
-- (void)colorExtensionViewDidAppear:(WKColorExtensionView *)view;
-@end
-
-@interface WKColorExtensionView : CocoaView
-
-- (instancetype)initWithFrame:(CGRect)frame delegate:(id<WKColorExtensionViewDelegate>)delegate;
-- (void)updateColor:(WebCore::CocoaColor *)color;
-- (void)fadeOut;
-- (void)cancelFadeAnimation;
-
-@property (nonatomic, readonly, getter=isHiddenOrFadingOut) BOOL hiddenOrFadingOut;
-
-@end
