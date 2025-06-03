@@ -29,6 +29,7 @@
 #include <pal/ExportMacros.h>
 #include <wtf/HashFunctions.h>
 #include <wtf/HashTraits.h>
+#include <pal/ExportMacros.h>
 
 namespace PAL {
 

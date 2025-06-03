@@ -40,6 +40,9 @@
 #include <wtf/TZoneMalloc.h>
 #include <wtf/Vector.h>
 
+#include <bmalloc/TZoneHeap.h>
+#include <bmalloc/bmalloc.h>
+
 #if PLATFORM(MAC)
 #include "ImportanceAssertion.h"
 #endif

@@ -28,6 +28,9 @@
 
 #pragma once
 
+#include <bmalloc/TZoneHeap.h>
+#include <bmalloc/bmalloc.h>
+
 #include "ConnectionHandle.h"
 #include "MessageReceiveQueueMap.h"
 #include "MessageReceiver.h"

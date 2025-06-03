@@ -27,6 +27,7 @@
 
 #include <math.h>
 #include <wtf/MathExtras.h>
+#include <concepts>
 
 namespace WebCore {
 

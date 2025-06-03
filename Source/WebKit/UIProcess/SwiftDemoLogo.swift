@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,18 +23,28 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Add project-level Objective-C header files here to be able to access them from within Swift sources.
+import Foundation
+internal import WebKit_Internal
+import struct Swift.String
 
-#import <wtf/Platform.h>
+extension Data {
+    var bytes: [UInt8] {
+        return [UInt8](self)
+    }
+}
 
-#import "WKGroupSession.h"
-#import "WKMaterialHostingSupport.h"
-#import "WKPDFPageNumberIndicator.h"
-#import "WKPreferencesInternal.h"
-#import "WKScrollGeometry.h"
-#import "WKSeparatedImageView.h"
-#import "WKTextExtractionItem.h"
-#import "WKUIDelegateInternal.h"
-#import "WKWebViewConfigurationInternal.h"
-#import "WKWebViewInternal.h"
-#import "SwiftDemoLogo.h"
+// This function is contrived to exercise bi-directional C++ -> Swift -> C++
+// calls within the main WebKit target. It can be tested by enabling
+// ENABLE_SWIFT_DEMO_DATA_URL_ENCODING, and then visiting
+// x-swift-demo:// in the browser. The goal is to provide an easy
+// but comprehensive test case to determine whether Swift-C++ interop
+// is working in a given toolchain.
+@available(WK_IOS_TBA, WK_MAC_TBA, WK_XROS_TBA, *)
+@_expose(Cxx)
+public func getSwiftLogoData() -> [UInt8] {
+    let swiftLogoBase64 = String(WebKit_Internal.getSwiftDemoLogoEncodedData());
+    guard let data = Data(base64Encoded: swiftLogoBase64) else {
+        return [];
+    }
+    return data.bytes;
+}

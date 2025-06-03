@@ -412,6 +412,9 @@ my @features = (
     { option => "webGpuSwift", desc => "Toggle WebGpu Swift Implementation",
       define => "ENABLE_WEBGPU_SWIFT", value => \$webGpuSwift },
 
+    { option => "swiftDataDecodeUriHandler", desc => "Toggle demo Swift data: URI decoder",
+      define => "ENABLE_SWIFT_DEMO_DATA_URL_ENCODING", value => \$webGpuSwift },
+
     { option => "webxr", desc => "Toggle WebXR support",
       define => "ENABLE_WEBXR", value => \$webXRSupport },
 
