@@ -53,11 +53,11 @@ public:
 
     void log(std::span<const uint8_t> logChannel, std::span<const uint8_t> logCategory, std::span<const uint8_t> logString, os_log_type_t) final;
 
-#if __has_include("WebKitLogClientDeclarations.h")
+#if __has_include("WebKitLogClientDeclarations.h") && !defined __swift__
 #include "WebKitLogClientDeclarations.h"
 #endif
 
-#if __has_include("WebCoreLogClientDeclarations.h")
+#if __has_include("WebCoreLogClientDeclarations.h") && !defined __swift__
 #include "WebCoreLogClientDeclarations.h"
 #endif
 
