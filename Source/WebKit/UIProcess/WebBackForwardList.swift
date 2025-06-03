@@ -20,14 +20,6 @@ extension WebKit.WebBackForwardList {
     }
 
     func swiftAddItem(connection: IPC.Connection, navigatedFrameState: WebKit.FrameState) {
-        /*
-            if (RefPtr webPageProxy = m_page.get()) {
-        backForwardAddItemShared(connection, WTFMove(navigatedFrameState), webPageProxy->didLoadWebArchive() ? LoadedWebArchive::Yes : LoadedWebArchive::No);
-        }
-        */
-        if let webPageProxy: WebKit.WebPageProxy = self.getPage() {
-            let web_archive = webPageProxy.didLoadWebArchive() ? WebKit.LoadedWebArchive.Yes : WebKit.LoadedWebArchive.No;
-            self.backForwardAddItemShared2(connection, navigatedFrameState, web_archive);
-        }
+        print("Got frame state")
     }
 }
