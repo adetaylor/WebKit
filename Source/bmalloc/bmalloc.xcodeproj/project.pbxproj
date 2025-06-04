@@ -2112,12 +2112,12 @@
 		14B650C418F39F4800751968 /* Configurations */ = {
 			isa = PBXGroup;
 			children = (
-				DD865C442DF02A24003C5147 /* modulemap.toml */,
 				14B650C518F39F4800751968 /* Base.xcconfig */,
 				14B650C618F39F4800751968 /* bmalloc.xcconfig */,
 				14B650C718F39F4800751968 /* DebugRelease.xcconfig */,
 				DD4BEC2229CBA39B00398E35 /* libpas.xcconfig */,
 				14B650C918F3A04200751968 /* mbmalloc.xcconfig */,
+				DD865C442DF02A24003C5147 /* modulemap.toml */,
 			);
 			path = Configurations;
 			sourceTree = "<group>";
@@ -2845,7 +2845,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/../wtf/Scripts/modulemap-from-tapi-filelist.py",
+				"$(SRCROOT)/../WTF/Scripts/modulemap-from-tapi-filelist.py",
 				"$(BUILT_PRODUCTS_DIR)/$(PRIVATE_HEADERS_FOLDER_PATH)/bmalloc.json",
 				"$(SRCROOT)/Configurations/modulemap.toml",
 			);
