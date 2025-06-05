@@ -122,7 +122,14 @@ PAS_END_EXTERN_C;
 #define PAS_USE_ULOCK_SPI 1
 #define PAS_USE_ULOCK_FLAGS_API 0
 #if !defined(OS_UNFAIR_LOCK_INLINE) || !OS_UNFAIR_LOCK_INLINE
-#error "OS_UNFAIR_LOCK_INLINE needs to be enabled."
+// libpas implementation should always be built with OS_UNFAIR_LOCK_INLINE defined.
+// However, module verifier cannot know this, so in these headers we need to
+// survive the case that OS_UNFAIR_LOCK_INLINE is not defined.
+// We do an #error check within pas_lock.c to ensure that
+// the implementation really is built in an environment with inline locks.
+#define os_unfair_lock_trylock_inline os_unfair_lock_trylock
+#define os_unfair_lock_unlock_inline os_unfair_lock_unlock
+#define os_unfair_lock_lock_with_options_inline os_unfair_lock_lock_with_options
 #endif
 #include <os/lock_private.h>
 

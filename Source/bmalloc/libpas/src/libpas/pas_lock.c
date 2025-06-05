@@ -33,6 +33,12 @@
 #include <mach/thread_switch.h>
 #endif
 
+#if defined(__has_include) && __has_include(<os/lock_private.h>) && (defined(LIBPAS) || defined(PAS_BMALLOC))
+#if !defined(OS_UNFAIR_LOCK_INLINE) || !OS_UNFAIR_LOCK_INLINE
+#error "OS_UNFAIR_LOCK_INLINE needs to be enabled."
+#endif
+#endif
+
 #if PAS_USE_SPINLOCKS
 
 PAS_NEVER_INLINE void pas_lock_lock_slow(pas_lock* lock)
