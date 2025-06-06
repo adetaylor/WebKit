@@ -6,7 +6,7 @@ requirements = ['cplusplus11']
 # WTF. To avoid Swift trying to import everything, we divide WTF
 # into lots of submodules. This is why we can't use features such
 # as an umbrella directory.
-one-submodule-per-header = true
+#one-submodule-per-header = true
 
 # This header depends on surrounding preprocessor context.
 textual-headers = ['spi/mac/MetadataSPI.h']
@@ -14,14 +14,18 @@ textual-headers = ['spi/mac/MetadataSPI.h']
 # Some WTF modules can be used in C contexts
 [module.Assertions]
 attributes = ['extern_c']
+headers = ['Assertions.h']
 requirements = []
 [module.AutodrainedPool]
 requirements = ['cplusplus11', '!objc']
+headers = ['AutodrainedPool.h']
 [module.Compiler]
 attributes = ['extern_c']
+headers = ['Compiler.h']
 requirements = []
 [module.ExportMacros]
 attributes = ['extern_c']
+headrs = ['ExportMacros.h']
 requirements = []
 [module.HashMap]
 # These two headers are interdependent so need to be colocated
