@@ -453,7 +453,6 @@ UIProcess/WebOpenPanelResultListenerProxy.cpp
 UIProcess/WebPageDiagnosticLoggingClient.cpp
 UIProcess/WebPageGroup.cpp
 UIProcess/WebPageInjectedBundleClient.cpp
-UIProcess/WebPageProxy.cpp
 UIProcess/WebPageProxyMessageReceiverRegistration.cpp
 UIProcess/WebPageProxyTesting.cpp
 UIProcess/WebPasteboardProxy.cpp

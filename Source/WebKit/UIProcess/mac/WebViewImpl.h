@@ -55,6 +55,7 @@
 #include <wtf/WeakPtr.h>
 #include <wtf/WorkQueue.h>
 #include <wtf/text/WTFString.h>
+#include "WebPageProxy.h"
 
 using _WKRectEdge = NSUInteger;
 

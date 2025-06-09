@@ -7589,7 +7589,7 @@
 		BC111AE3112F5C2600337BAB /* WebProcess.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebProcess.cpp; sourceTree = "<group>"; };
 		BC111B08112F5E3C00337BAB /* ResponsivenessTimer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ResponsivenessTimer.cpp; sourceTree = "<group>"; };
 		BC111B0A112F5E4F00337BAB /* WebFrameProxy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebFrameProxy.cpp; sourceTree = "<group>"; };
-		BC111B0B112F5E4F00337BAB /* WebPageProxy.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = WebPageProxy.cpp; sourceTree = "<group>"; };
+		BC111B0B112F5E4F00337BAB /* WebPageProxy.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = WebPageProxy.mm; sourceTree = "<group>"; };
 		BC111B0D112F5E4F00337BAB /* WebProcessProxy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebProcessProxy.cpp; sourceTree = "<group>"; };
 		BC111B5B112F629800337BAB /* WebEventFactory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebEventFactory.h; sourceTree = "<group>"; };
 		BC111B5C112F629800337BAB /* WebEventFactory.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = WebEventFactory.mm; sourceTree = "<group>"; };
@@ -14903,9 +14903,9 @@
 				2D9EA3101A96D9EB002D2807 /* WebPageInjectedBundleClient.cpp */,
 				2D9EA30E1A96CBFF002D2807 /* WebPageInjectedBundleClient.h */,
 				9B7F8A502C785725000057F3 /* WebPageLoadTiming.h */,
-				BC111B0B112F5E4F00337BAB /* WebPageProxy.cpp */,
 				BC032DCB10F4389F0058C15A /* WebPageProxy.h */,
 				BCBD38FA125BAB9A00D2C29F /* WebPageProxy.messages.in */,
+				BC111B0B112F5E4F00337BAB /* WebPageProxy.mm */,
 				46C392282316EC4D008EED9B /* WebPageProxyIdentifier.h */,
 				939EF86D29D0C16400F23AEE /* WebPageProxyInternals.h */,
 				5CEB40A32A535E8E00563C91 /* WebPageProxyMessageReceiverRegistration.cpp */,
