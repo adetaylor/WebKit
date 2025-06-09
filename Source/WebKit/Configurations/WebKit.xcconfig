@@ -83,7 +83,7 @@ OTHER_SWIFT_FLAGS = $(inherited) $(OTHER_SWIFT_FLAGS_$(ENABLE_SWIFT_DEMO_URI_SCH
 // rdar://149764481 - UCHAR_TYPE
 // rdar://103177280 - -no-verify-emitted-module-interface
 // rdar://152158477 - VFS overlay. If this overlay doesn't exist, use workaround-framework-bugs.sh to create it
-OTHER_SWIFT_FLAGS_ENABLE_SWIFT_DEMO_URI_SCHEME = -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -no-verify-emitted-module-interface;
+OTHER_SWIFT_FLAGS_ENABLE_SWIFT_DEMO_URI_SCHEME = -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -no-verify-emitted-module-interface -Xcc -ivfsoverlay -Xcc $(SRCROOT)/framework-overlay.yaml;
 
 // Swift/C++ interop, by default, exports any symbols that are exposed from Swift to C++.
 // We don't want that.
