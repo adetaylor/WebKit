@@ -30,6 +30,7 @@
 #include "ReceiverMatcher.h"
 #include "SyncRequestID.h"
 #include <memory>
+#include <span>
 #include <wtf/ArgumentCoder.h>
 #include <wtf/Function.h>
 #include <wtf/HashSet.h>
