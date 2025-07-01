@@ -41,7 +41,9 @@ extension Data {
 // x-swift-demo:// in the browser. The goal is to provide an easy
 // but comprehensive test case to determine whether Swift-C++ interop
 // is working in a given toolchain.
-@available(WK_IOS_TBA, WK_MAC_TBA, WK_XROS_TBA, *)
+// We make this function "available" to C++ on all SDK versions, but it's
+// not truly available to clients since we do not export it from the dylib.
+@available(iOS 15.0, macOS 15.0, tvOS 15.0, watchOS 9.0, *)
 @_expose(Cxx)
 public func getSwiftLogoData() -> [UInt8] {
     if !WebKit_Internal.shouldShowSwiftDemoLogo() {
