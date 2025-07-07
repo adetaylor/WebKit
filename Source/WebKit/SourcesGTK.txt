@@ -103,6 +103,8 @@ UIProcess/WebGrammarDetail.cpp
 UIProcess/WebMemoryPressureHandler.cpp
 UIProcess/WebViewportAttributes.cpp
 
+UIProcess/SwiftDemoLogoShim.mm @no-unify
+
 UIProcess/API/C/WKGrammarDetail.cpp
 UIProcess/API/C/WKViewportAttributes.cpp
 

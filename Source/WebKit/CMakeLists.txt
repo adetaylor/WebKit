@@ -1057,6 +1057,7 @@ list(APPEND WebKit_SOURCES
     ${WebKit_DERIVED_SOURCES_DIR}/WebPreferencesGetterSetters.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/WebPreferencesKeys.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/WebPreferencesStoreDefaultsMap.cpp
+    ${WEBKIT_DIR}/UIProcess/SwiftDemoLogo.swift
 )
 
 list(APPEND WebKit_SOURCES ${WebKit_DERIVED_SOURCES})
