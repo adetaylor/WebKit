@@ -27,3 +27,4 @@
 
 #import <wtf/Platform.h>
 #import "UIProcess/SwiftDemoLogoConfirmation.h"
+#import "UIProcess/WebPageProxy.h"
