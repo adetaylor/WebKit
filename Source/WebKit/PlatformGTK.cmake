@@ -2,6 +2,9 @@ include(GLibMacros)
 include(InspectorGResources.cmake)
 include(ModernMediaControlsGResources.cmake)
 
+# Set up Swift paths for runtime
+_setup_swift_paths()
+
 if (ENABLE_PDFJS)
     include(PdfJSGResources.cmake)
 endif ()
@@ -9,6 +12,10 @@ endif ()
 if (USE_SKIA)
     include(Platform/Skia.cmake)
 endif ()
+
+IF(NOT DEFINED ENV{SWIFTC})
+    message(FATAL_ERROR "Must define SWIFTC environment variable to point to swiftc")
+ENDIF()
 
 set(WebKit_OUTPUT_NAME webkit${WEBKITGTK_API_INFIX}gtk-${WEBKITGTK_API_VERSION})
 set(WebProcess_OUTPUT_NAME WebKitWebProcess)
@@ -653,3 +660,10 @@ GI_INTROSPECT(${WEBKITGTK_WEB_PROCESS_EXTENSION_API_NAME} ${WEBKITGTK_API_VERSIO
 GI_DOCGEN(${WEBKITGTK_WEB_PROCESS_EXTENSION_API_NAME} gtk/webkitgtk-web-process-extension.toml.in
     CONTENT_TEMPLATES gtk/gtk${GTK_API_VERSION}-urlmap.js
 )
+
+# Generate the header required for C++ to call into Swift.
+set(SWIFT_INCLUDES ${WebKit_PRIVATE_INCLUDE_DIRECTORIES})
+list(APPEND SWIFT_INCLUDES "${WEBKIT_DIR}/Modules/Internal")
+_swift_generate_cxx_header(WebKit
+  ${WebKitGTK_DERIVED_SOURCES_DIR}/WebKit-Swift-CPP.h
+  SEARCH_PATHS "${SWIFT_INCLUDES}")
