@@ -27,6 +27,7 @@
 
 #import <wtf/Platform.h>
 
+#if PLATFORM(COCOA)
 #import "WKMaterialHostingSupport.h"
 #import "WKMouseDeviceObserver.h"
 #import "WKPreferencesInternal.h"
@@ -36,4 +37,5 @@
 #import "WKUIDelegateInternal.h"
 #import "WKWebViewConfigurationInternal.h"
 #import "WKWebViewInternal.h"
+#endif
 #import "SwiftDemoLogoConfirmation.h"
