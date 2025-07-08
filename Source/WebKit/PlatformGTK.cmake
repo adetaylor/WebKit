@@ -661,6 +661,9 @@ GI_DOCGEN(${WEBKITGTK_WEB_PROCESS_EXTENSION_API_NAME} gtk/webkitgtk-web-process-
 )
 
 # Generate the header required for C++ to call into Swift.
+set(SWIFT_INCLUDES ${WebKit_PRIVATE_INCLUDE_DIRECTORIES})
+list(APPEND SWIFT_INCLUDES "${WEBKIT_DIR}/Modules/Internal")
+message("${SWIFT_INCLUDES}")
 _swift_generate_cxx_header(WebKit
   ${WebKitGTK_DERIVED_SOURCES_DIR}/WebKit-Swift.h
-  SEARCH_PATHS "${WebKit_PRIVATE_INCLUDE_DIRECTORIES}")
+  SEARCH_PATHS "${SWIFT_INCLUDES}")
