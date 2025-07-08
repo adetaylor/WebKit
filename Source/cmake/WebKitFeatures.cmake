@@ -436,8 +436,12 @@ endmacro()
 macro(ADD_CONFIG_FLAGS_TO_SWIFTC _target)
     list(SORT _WEBKIT_CONFIG_FILE_VARIABLES)
     foreach (_variable_name ${_WEBKIT_CONFIG_FILE_VARIABLES})
-        target_compile_definitions(${_target} PUBLIC ${_variable_name})
+        target_compile_definitions(${_target} PUBLIC $<$<COMPILE_LANGUAGE:Swift>:-D${_variable_name}>)
     endforeach ()
+endmacro()
+
+macro(GET_WEBKIT_COMPILE_DEFINITIONS _var_name)
+    set(${_var_name} ${_WEBKIT_CONFIG_FILE_VARIABLES})
 endmacro()
 
 macro(WEBKIT_CHECK_HAVE_INCLUDE _variable _header)

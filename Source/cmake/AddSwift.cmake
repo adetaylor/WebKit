@@ -50,10 +50,15 @@ function(_swift_generate_cxx_header target header)
 
   set(_AllSources $<TARGET_PROPERTY:${target},SOURCES>)
   set(_SwiftSources $<FILTER:${_AllSources},INCLUDE,\\.swift$>)
-  set(_AllCompileDefinitions "$<TARGET_PROPERTY:${target},COMPILE_DEFINITIONS>")
-  set(_AllCompileDefinitionsWithoutD "$<FILTER:${_AllCompileDefinitions},EXCLUDE,-D.*>")
-  set(_AllCompileDefinitionsWithoutValues "$<FILTER:${_AllCompileDefinitionsWithoutD},EXCLUDE,=.*>")
-  set(_ModifiedCompileDefinitions "$<LIST:TRANSFORM,${_AllCompileDefinitionsWithoutValues},PREPEND,-D>")
+  # Ideally in this next line we'd use
+  #  set(_AllCompileDefinitions "$<TARGET_PROPERTY:${target},COMPILE_DEFINITIONS>")
+  #. set(_AllCompileDefinitionsWithoutD "$<FILTER:${_AllCompileDefinitions},EXCLUDE,-D.*>")
+  #. set(_AllCompileDefinitionsWithoutValues "$<FILTER:${_AllCompileDefinitionsWithoutD},EXCLUDE,=.*>")
+  #. set(_ModifiedCompileDefinitions "$<LIST:TRANSFORM,${_AllCompileDefinitionsWithoutValues},PREPEND,-D>")
+  # but that doesn't work given that we're currently setting the COMPILE_DEFINITIONS only for Swift
+  # invocations.
+  # For now instead let's just refer to the list in a hard-coded fashion.
+  GET_WEBKIT_COMPILE_DEFINITIONS(_AllCompileDefinitions)
   list(TRANSFORM _AllCompileDefinitions PREPEND "-D")
   add_custom_command(OUTPUT ${header_path}
     DEPENDS ${_SwiftSources}
@@ -62,7 +67,7 @@ function(_swift_generate_cxx_header target header)
       ${CMAKE_Swift_COMPILER} -typecheck
       ${ARG_SEARCH_PATHS}
       ${_SwiftSources}
-      ${_ModifiedCompileDefinitions}
+      ${_AllCompileDefinitions}
       ${SDK_FLAGS}
       -module-name "${ARG_MODULE_NAME}"
       -cxx-interoperability-mode=default
