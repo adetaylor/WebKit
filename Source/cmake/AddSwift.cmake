@@ -50,6 +50,11 @@ function(_swift_generate_cxx_header target header)
 
   set(_AllSources $<TARGET_PROPERTY:${target},SOURCES>)
   set(_SwiftSources $<FILTER:${_AllSources},INCLUDE,\\.swift$>)
+  set(_AllCompileDefinitions "$<TARGET_PROPERTY:${target},COMPILE_DEFINITIONS>")
+  set(_AllCompileDefinitionsWithoutD "$<FILTER:${_AllCompileDefinitions},EXCLUDE,-D.*>")
+  set(_AllCompileDefinitionsWithoutValues "$<FILTER:${_AllCompileDefinitionsWithoutD},EXCLUDE,=.*>")
+  set(_ModifiedCompileDefinitions "$<LIST:TRANSFORM,${_AllCompileDefinitionsWithoutValues},PREPEND,-D>")
+  list(TRANSFORM _AllCompileDefinitions PREPEND "-D")
   add_custom_command(OUTPUT ${header_path}
     DEPENDS ${_SwiftSources}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -57,6 +62,7 @@ function(_swift_generate_cxx_header target header)
       ${CMAKE_Swift_COMPILER} -typecheck
       ${ARG_SEARCH_PATHS}
       ${_SwiftSources}
+      ${_ModifiedCompileDefinitions}
       ${SDK_FLAGS}
       -module-name "${ARG_MODULE_NAME}"
       -cxx-interoperability-mode=default
