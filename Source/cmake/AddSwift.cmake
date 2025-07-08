@@ -66,6 +66,7 @@ function(_swift_generate_cxx_header target header)
     COMMAND
       ${CMAKE_Swift_COMPILER} -typecheck
       ${ARG_SEARCH_PATHS}
+      $<LIST:TRANSFORM,$<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>,PREPEND,-I>
       ${_SwiftSources}
       ${_AllCompileDefinitions}
       ${SDK_FLAGS}
