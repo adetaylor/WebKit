@@ -801,6 +801,8 @@ WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 # TODO - determine the following path from the output of swiftc -print-target-info
 target_include_directories(WebKit SYSTEM AFTER PRIVATE /home/adetaylor/.local/share/swiftly/toolchains/6.1.2/usr/lib/swift)
 ADD_CONFIG_FLAGS_TO_SWIFTC(WebKit)
+set(_all_includes "$<LIST:TRANSFORM,$<TARGET_PROPERTY:WebKit,INCLUDE_DIRECTORIES>,PREPEND,-I>")
+target_compile_options(WebKit PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:${_all_includes}>")
 
 if (PORT STREQUAL GTK OR PORT STREQUAL WPE)
     WEBKIT_ADD_TARGET_CXX_FLAGS(WebKit
