@@ -798,6 +798,7 @@ set(WebKit_GENERATED_SERIALIZERS_SUFFIX cpp)
 
 WEBKIT_FRAMEWORK_DECLARE(WebKit)
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
+# TODO - determine the following path from the output of swiftc -print-target-info
 target_include_directories(WebKit SYSTEM AFTER PRIVATE /home/adetaylor/.local/share/swiftly/toolchains/6.1.2/usr/lib/swift)
 ADD_CONFIG_FLAGS_TO_SWIFTC(WebKit)
 
