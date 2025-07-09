@@ -804,6 +804,8 @@ ADD_CONFIG_FLAGS_TO_SWIFTC(WebKit)
 set(_all_includes "$<LIST:TRANSFORM,$<TARGET_PROPERTY:WebKit,INCLUDE_DIRECTORIES>,PREPEND,-I>")
 target_compile_options(WebKit PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:${_all_includes}>")
 target_compile_options(WebKit PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:-I${WEBKIT_DIR}/Modules/Internal>")
+target_compile_options(WebKit PUBLIC
+  "$<$<COMPILE_LANGUAGE:Swift>:-cxx-interoperability-mode=default>")
 
 if (PORT STREQUAL GTK OR PORT STREQUAL WPE)
     WEBKIT_ADD_TARGET_CXX_FLAGS(WebKit
