@@ -802,6 +802,10 @@ target_compile_options(WebKit PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:${_all_includ
 target_compile_options(WebKit PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:-I${WEBKIT_DIR}/Modules/Internal>")
 target_compile_options(WebKit PUBLIC
   "$<$<COMPILE_LANGUAGE:Swift>:-cxx-interoperability-mode=default>")
+target_compile_options(WebKit PUBLIC
+  "$<$<COMPILE_LANGUAGE:Swift>:-Xlinker>")
+target_compile_options(WebKit PUBLIC
+  "$<$<COMPILE_LANGUAGE:Swift>:--gc-sections>")
 
 if (PORT STREQUAL GTK OR PORT STREQUAL WPE)
     WEBKIT_ADD_TARGET_CXX_FLAGS(WebKit
