@@ -80,9 +80,8 @@ OTHER_SWIFT_FLAGS = $(inherited) $(OTHER_SWIFT_FLAGS_$(ENABLE_SWIFT_DEMO_URI_SCH
 
 // Workarounds here for:
 // rdar://149474443 - c++2b
-// rdar://149764481 - UCHAR_TYPE
 // rdar://103177280 - -no-verify-emitted-module-interface
-OTHER_SWIFT_FLAGS_ENABLE_SWIFT_DEMO_URI_SCHEME = -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -no-verify-emitted-module-interface;
+OTHER_SWIFT_FLAGS_ENABLE_SWIFT_DEMO_URI_SCHEME = -Xcc -std=c++2b -Xcc -no-verify-emitted-module-interface;
 
 // Swift/C++ interop, by default, exports any symbols that are exposed from Swift to C++.
 // We don't want that.
