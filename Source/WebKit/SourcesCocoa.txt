@@ -241,7 +241,6 @@ WebProcess/GPU/webrtc/SharedVideoFrame.cpp
 UIProcess/_WKWebViewPrintFormatter.mm
 UIProcess/ApplicationStateTracker.mm
 UIProcess/PerActivityStateCPUUsageSampler.cpp
-UIProcess/SwiftDemoLogoShim.mm
 UIProcess/ViewGestureController.cpp
 UIProcess/ViewSnapshotStore.cpp
 UIProcess/WebMemoryPressureHandler.cpp

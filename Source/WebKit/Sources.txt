@@ -425,6 +425,7 @@ UIProcess/SuspendedPageProxy.cpp
 UIProcess/SystemPreviewController.cpp
 UIProcess/SpeechRecognitionPermissionManager.cpp
 UIProcess/SwiftDemoLogoConfirmation.cpp
+UIProcess/SwiftDemoLogoShim.cpp @no-unify
 UIProcess/TextChecker.cpp
 UIProcess/TextCheckerCompletion.cpp
 UIProcess/UIProcessLogInitialization.cpp

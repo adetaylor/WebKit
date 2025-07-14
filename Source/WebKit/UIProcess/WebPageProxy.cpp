@@ -10521,7 +10521,7 @@ void WebPageProxy::contextMenuItemSelected(const WebContextMenuItemData& item, c
 #endif
         return;
 
-#if ENABLE(TOP_LEVEL_WRITING_TOOLS_CONTEXT_MENU_ITEMS) && ENABLE_WRITING_TOOLS
+#if ENABLE(TOP_LEVEL_WRITING_TOOLS_CONTEXT_MENU_ITEMS) && ENABLE(WRITING_TOOLS)
     case ContextMenuItemTagWritingTools:
     case ContextMenuItemTagProofread:
     case ContextMenuItemTagRewrite:
