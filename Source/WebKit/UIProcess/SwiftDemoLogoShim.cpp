@@ -30,7 +30,7 @@
 #pragma clang diagnostic push
 // TODO figure out
 #pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
-#include <WebKit-Swift.h>
+#include <WebKit-Swift-CPP.h>
 #pragma clang diagnostic pop
 
 using namespace WebKit;

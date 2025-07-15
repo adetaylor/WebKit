@@ -27,6 +27,8 @@
 
 #import <wtf/Platform.h>
 
+#ifndef EXCLUDE_OBJC_STUFF
+
 #import "WKMaterialHostingSupport.h"
 #import "WKMouseDeviceObserver.h"
 #import "WKPreferencesInternal.h"
@@ -36,4 +38,6 @@
 #import "WKUIDelegateInternal.h"
 #import "WKWebViewConfigurationInternal.h"
 #import "WKWebViewInternal.h"
+
+#endif
 #import "SwiftDemoLogoConfirmation.h"

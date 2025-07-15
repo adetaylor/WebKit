@@ -19670,17 +19670,21 @@
 			files = (
 			);
 			inputFileListPaths = (
+				"$(SRCROOT)/Scripts/generate-plain-cpp-swift-interop-header.sh",
 			);
 			inputPaths = (
+				"$(SRCROOT)/UIProcess/SwiftDemoLogo.swift",
+				"$(SRCROOT)/Modules/Internal/WebKitInternal.h",
 			);
 			name = "Generate plain C++ Swift interop header";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebKit-Swift-CPP.h",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "";
+			shellScript = "Scripts/generate-plain-cpp-swift-interop-header.sh";
 		};
 		5DF408C5131DD46700130071 /* Check For Weak VTables and Externals */ = {
 			isa = PBXShellScriptBuildPhase;
