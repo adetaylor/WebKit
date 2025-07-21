@@ -77,6 +77,7 @@ function(_swift_generate_cxx_header target header)
       ${SDK_FLAGS}
       -module-name "${ARG_MODULE_NAME}"
       -cxx-interoperability-mode=default
+      -Xcc -std=c++2b
       -emit-clang-header-path ${header_path}
       -emit-dependencies
     DEPFILE ${depfile_path}
