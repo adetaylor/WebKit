@@ -30,6 +30,7 @@
 #include "LogStreamIdentifier.h"
 #include "LogStreamMessages.h"
 #include "StreamClientConnection.h"
+#include <os/log.h>
 #include <WebCore/LogClient.h>
 #include <wtf/Lock.h>
 #include <wtf/Locker.h>
