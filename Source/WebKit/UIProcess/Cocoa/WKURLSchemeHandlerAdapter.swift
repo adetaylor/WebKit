@@ -38,7 +38,7 @@ final class WKURLSchemeHandlerAdapter: NSObject, WKURLSchemeHandler {
     func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) {
         let task = Task {
             do {
-                for try await result in wrapped.reply(for: urlSchemeTask.request) {
+                for try await result in unsafe wrapped.reply(for: urlSchemeTask.request) {
                     try Task.checkCancellation()
 
                     switch result {

@@ -65,6 +65,11 @@ BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 SWIFT_INSTALL_OBJC_HEADER = NO;
 SWIFT_LIBRARY_LEVEL = api;
 
+// Enable strict memory safety in Swift, and treat any such warnings as errors.
+// In time this should be promoted to CommonBase.xcconfig so it applies more broadly.
+SWIFT_STRICT_MEMORY_SAFETY = YES;
+OTHER_SWIFT_FLAGS = $(inherited) -Werror StrictMemorySafety;
+
 // Use handwritten SPI modules on public SDKs.
 SWIFT_INCLUDE_PATHS = $(SRCROOT)/Modules/Internal $(SWIFT_INCLUDE_PATHS_$(USE_INTERNAL_SDK));
 SWIFT_INCLUDE_PATHS_ = $(SRCROOT)/Platform/spi/visionos $(SRCROOT)/Platform/spi/ios $(SRCROOT)/Platform/spi/Cocoa $(SRCROOT)/Platform/spi/Cocoa/Modules $(inherited);
