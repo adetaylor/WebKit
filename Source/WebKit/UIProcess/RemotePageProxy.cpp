@@ -39,6 +39,8 @@
 #include "RemotePageFullscreenManagerProxy.h"
 #include "RemotePageVisitedLinkStoreRegistration.h"
 #include "UserMediaProcessManager.h"
+#include "WebBackForwardList.h"
+#include "WebBackForwardListMessages.h"
 #include "WebFrameProxy.h"
 #include "WebPageMessages.h"
 #include "WebPageProxy.h"
@@ -63,12 +65,12 @@ namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemotePageProxy);
 
-Ref<RemotePageProxy> RemotePageProxy::create(WebPageProxy& page, WebProcessProxy& process, const WebCore::Site& site, WebPageProxyMessageReceiverRegistration* registrationToTransfer, std::optional<WebCore::PageIdentifier> pageIDToTransfer)
+Ref<RemotePageProxy> RemotePageProxy::create(WebPageProxy& page, WebProcessProxy& process, const WebCore::Site& site, WebPageProxyMessageReceiverRegistration* registrationToTransfer, WebBackForwardListMessageReceiverRegistration* backForwardListRegistrationToTransfer, std::optional<WebCore::PageIdentifier> pageIDToTransfer)
 {
-    return adoptRef(*new RemotePageProxy(page, process, site, registrationToTransfer, pageIDToTransfer));
+    return adoptRef(*new RemotePageProxy(page, process, site, registrationToTransfer, backForwardListRegistrationToTransfer, pageIDToTransfer));
 }
 
-RemotePageProxy::RemotePageProxy(WebPageProxy& page, WebProcessProxy& process, const WebCore::Site& site, WebPageProxyMessageReceiverRegistration* registrationToTransfer, std::optional<WebCore::PageIdentifier> pageIDToTransfer)
+RemotePageProxy::RemotePageProxy(WebPageProxy& page, WebProcessProxy& process, const WebCore::Site& site, WebPageProxyMessageReceiverRegistration* registrationToTransfer, WebBackForwardListMessageReceiverRegistration* backForwardListRegistrationToTransfer, std::optional<WebCore::PageIdentifier> pageIDToTransfer)
     : m_webPageID(pageIDToTransfer.value_or(WebCore::PageIdentifier::generate()))
     , m_process(process)
     , m_page(page)
@@ -79,6 +81,11 @@ RemotePageProxy::RemotePageProxy(WebPageProxy& page, WebProcessProxy& process, c
         m_messageReceiverRegistration.transferMessageReceivingFrom(*registrationToTransfer, *this);
     else
         m_messageReceiverRegistration.startReceivingMessages(m_process, m_webPageID, *this);
+
+    if (backForwardListRegistrationToTransfer)
+        m_backForwardListMessageReceiverRegistration.transferMessageReceivingFrom(*backForwardListRegistrationToTransfer, page.backForwardList());
+    else
+        m_backForwardListMessageReceiverRegistration.startReceivingMessages(m_process, m_webPageID, page.backForwardList());
 
     m_process->addRemotePageProxy(*this);
 }
@@ -149,14 +156,22 @@ void RemotePageProxy::didReceiveMessage(IPC::Connection& connection, IPC::Decode
         return;
     }
 
-    if (RefPtr page = m_page.get())
-        page->didReceiveMessage(connection, decoder);
+    if (RefPtr page = m_page.get()) {
+        if (decoder.messageReceiverName() == Messages::WebBackForwardList::messageReceiverName())
+            page->backForwardList().didReceiveMessage(connection, decoder);
+        else
+            page->didReceiveMessage(connection, decoder);
+    }
 }
 
 void RemotePageProxy::didReceiveSyncMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& encoder)
 {
-    if (RefPtr page = m_page.get())
-        page->didReceiveSyncMessage(connection, decoder, encoder);
+    if (RefPtr page = m_page.get()) {
+        if (decoder.messageReceiverName() == Messages::WebBackForwardList::messageReceiverName())
+            page->backForwardList().didReceiveSyncMessage(connection, decoder, encoder);
+        else
+            page->didReceiveSyncMessage(connection, decoder, encoder);
+    }
 }
 
 RefPtr<WebPageProxy> RemotePageProxy::protectedPage() const

@@ -31,6 +31,7 @@
 #include "PolicyDecision.h"
 #include "ProcessThrottler.h"
 #include "SandboxExtension.h"
+#include "WebBackForwardListMessageReceiverRegistration.h"
 #include "WebFramePolicyListenerProxy.h"
 #include "WebPageProxyIdentifier.h"
 #include "WebPageProxyMessageReceiverRegistration.h"
@@ -152,6 +153,7 @@ public:
     API::WebsitePolicies* mainFrameWebsitePolicies() const { return m_mainFrameWebsitePolicies.get(); }
 
     WebPageProxyMessageReceiverRegistration& messageReceiverRegistration() { return m_messageReceiverRegistration; }
+    WebBackForwardListMessageReceiverRegistration& backForwardListMessageReceiverRegistration() { return m_backForwardListMessageReceiverRegistration; }
 
     bool needsMainFrameObserver() const { return m_needsMainFrameObserver; }
 
@@ -232,6 +234,7 @@ private:
     bool m_needsMainFrameObserver { false };
     URL m_provisionalLoadURL;
     WebPageProxyMessageReceiverRegistration m_messageReceiverRegistration;
+    WebBackForwardListMessageReceiverRegistration m_backForwardListMessageReceiverRegistration;
     RefPtr<API::WebsitePolicies> m_mainFrameWebsitePolicies;
 
 #if PLATFORM(COCOA)
