@@ -523,6 +523,7 @@ class WebPageInjectedBundleClient;
 class WebPageInspectorController;
 class WebPageLoadTiming;
 class WebPageProxyMessageReceiverRegistration;
+class WebBackForwardListMessageReceiverRegistration;
 class WebPageProxyTesting;
 class WebPopupMenuProxy;
 class WebPopupMenuProxyClient;
@@ -2603,6 +2604,7 @@ public:
 #endif
 
     WebPageProxyMessageReceiverRegistration& messageReceiverRegistration();
+    WebBackForwardListMessageReceiverRegistration& backForwardListMessageReceiverRegistration();
 
 #if HAVE(ESIM_AUTOFILL_SYSTEM_SUPPORT)
     bool shouldAllowAutoFillForCellularIdentifiers() const;
@@ -2786,6 +2788,15 @@ public:
 #endif
 
     Ref<AboutSchemeHandler> protectedAboutSchemeHandler();
+
+    bool hasProvisionalPage() const { return m_provisionalPage; }
+    bool isRemoteFrameNavigation(Ref<WebProcessProxy>);
+
+#if ENABLE(WEB_ARCHIVE)
+    bool didLoadWebArchive() const { return !!m_replacedDataStoreForWebArchiveLoad; }
+#else
+    bool didLoadWebArchive() const { return false; }
+#endif
 
 #if ENABLE(POINTER_LOCK)
     RefPtr<WebProcessProxy> webContentPointerLockProcess();
@@ -3026,17 +3037,6 @@ private:
 
     void requestDOMPasteAccess(IPC::Connection&, WebCore::DOMPasteAccessCategory, WebCore::FrameIdentifier, const WebCore::IntRect&, const String&, CompletionHandler<void(WebCore::DOMPasteAccessResponse)>&&);
     std::optional<IPC::AsyncReplyID> willPerformPasteCommand(WebCore::DOMPasteAccessCategory, CompletionHandler<void()>&&, std::optional<WebCore::FrameIdentifier> = std::nullopt);
-
-    // Back/Forward list management
-    void backForwardAddItem(IPC::Connection&, Ref<FrameState>&&);
-    void backForwardSetChildItem(WebCore::BackForwardFrameItemIdentifier, Ref<FrameState>&&);
-    void backForwardClearChildren(WebCore::BackForwardItemIdentifier, WebCore::BackForwardFrameItemIdentifier);
-    void backForwardGoToItem(WebCore::BackForwardItemIdentifier, CompletionHandler<void(const WebBackForwardListCounts&)>&&);
-    void backForwardListContainsItem(WebCore::BackForwardItemIdentifier, CompletionHandler<void(bool)>&&);
-    void backForwardAllItems(WebCore::FrameIdentifier, CompletionHandler<void(Vector<Ref<FrameState>>&&)>&&);
-    void backForwardItemAtIndex(int32_t index, WebCore::FrameIdentifier, CompletionHandler<void(RefPtr<FrameState>&&)>&&);
-    void backForwardListCounts(CompletionHandler<void(WebBackForwardListCounts&&)>&&);
-    void backForwardUpdateItem(IPC::Connection&, Ref<FrameState>&&);
 
     // Undo management
     void registerEditCommandForUndo(IPC::Connection&, WebUndoStepID commandID, String&& label);
@@ -3360,12 +3360,6 @@ private:
     void updateFullscreenVideoTextRecognition();
     void fullscreenVideoTextRecognitionTimerFired();
     bool tryToSendCommandToActiveControlledVideo(WebCore::PlatformMediaSessionRemoteControlCommandType);
-#endif
-
-#if ENABLE(WEB_ARCHIVE)
-    bool didLoadWebArchive() const { return !!m_replacedDataStoreForWebArchiveLoad; }
-#else
-    bool didLoadWebArchive() const { return false; }
 #endif
 
     bool useGPUProcessForDOMRenderingEnabled() const;
