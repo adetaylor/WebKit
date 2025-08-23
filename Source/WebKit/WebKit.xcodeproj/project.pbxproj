@@ -19754,6 +19754,7 @@
 			);
 			inputFileListPaths = (
 			);
+			dependencyFile = "$(DERIVED_FILES_DIR)/generate-plain-cpp-swift-interop-header.d";
 			inputPaths = (
 				"$(SRCROOT)/Scripts/generate-plain-cpp-swift-interop-header.sh",
 				"$(SRCROOT)/UIProcess/SwiftDemoLogo.swift",
@@ -19767,7 +19768,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"${ENABLE_SWIFT_DEMO_URI_SCHEME}\" != \"ENABLE_SWIFT_DEMO_URI_SCHEME\" ]; then\nrm -f \"${SCRIPT_OUTPUT_FILE_0}\"\nelse\n\"${SCRIPT_INPUT_FILE_0}\"\nfi";
+			shellScript = "if [ \"${ENABLE_SWIFT_DEMO_URI_SCHEME}\" != \"ENABLE_SWIFT_DEMO_URI_SCHEME\" ]; then\ntouch \"${DERIVED_FILES_DIR}/generate-plain-cpp-swift-interop-header.d\"\nelse\n\"${SCRIPT_INPUT_FILE_0}\"\nfi";
 		};
 		5DF408C5131DD46700130071 /* Check For Weak VTables and Externals */ = {
 			isa = PBXShellScriptBuildPhase;

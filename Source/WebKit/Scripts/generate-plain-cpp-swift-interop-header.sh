@@ -23,6 +23,13 @@ set -e
 # This is mostly OK because right now the only header file included from Swift
 # refers to only one other header.
 
+cat << HERE > "${BUILT_PRODUCTS_DIR}/WebKit-Swift-CXX-OutputFileMap.json"
+{
+  "${SCRIPT_INPUT_FILE_1}" : {
+    "dependencies": "${DERIVED_FILES_DIR}/generate-plain-cpp-swift-interop-header.d"
+  }
+}
+HERE
 xcrun swiftc -typecheck -emit-clang-header-path "${SCRIPT_OUTPUT_FILE_0}" "${SCRIPT_INPUT_FILE_1}" -DENABLE_SWIFT_DEMO_URI_SCHEME \
     -I${SRCROOT}/Modules/Internal -I${SRCROOT} -cxx-interoperability-mode=default -Xcc -std=c++2b -module-name WebKit \
-    -sdk ${SDKROOT}
+    -sdk ${SDKROOT} -emit-dependencies -output-file-map "${BUILT_PRODUCTS_DIR}/WebKit-Swift-CXX-OutputFileMap.json"
