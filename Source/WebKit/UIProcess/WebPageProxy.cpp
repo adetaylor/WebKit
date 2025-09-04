@@ -452,7 +452,7 @@
 #endif
 
 #if ENABLE(SWIFT_DEMO_URI_SCHEME)
-#include "WebKit-Swift-CPP.h"
+#include "WebKit-Swift.h"
 #endif
 
 #if ENABLE(VIDEO) || ENABLE(WEB_AUDIO)
