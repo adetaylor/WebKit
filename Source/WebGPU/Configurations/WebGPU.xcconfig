@@ -24,7 +24,7 @@
 #include "../../../Configurations/Version.xcconfig"
 
 HEADER_SEARCH_PATHS = "$(BUILT_PRODUCTS_DIR)$(WK_LIBRARY_HEADERS_FOLDER_PATH)" $(inherited);
-SYSTEM_HEADER_SEARCH_PATHS = $(WK_PRIVATE_SDK_DIR)$(WK_ALTERNATE_WEBKIT_SDK_PATH)$(WK_LIBRARY_HEADERS_FOLDER_PATH) $(inherited);
+SYSTEM_HEADER_SEARCH_PATHS = $(WK_PRIVATE_SDK_DIR)$(WK_ALTERNATE_WEBKIT_SDK_PATH)$(WK_LIBRARY_HEADERS_FOLDER_PATH) $(TOOLCHAIN_DIR)/usr/include $(inherited);
 
 FRAMEWORK_SEARCH_PATHS[sdk=embedded*] = $(WK_QUOTED_OVERRIDE_FRAMEWORKS_DIR) $(BUILT_PRODUCTS_DIR);
 FRAMEWORK_SEARCH_PATHS[sdk=macosx*] = $(WK_QUOTED_OVERRIDE_FRAMEWORKS_DIR);
@@ -109,7 +109,7 @@ WK_SWIFT_OBJC_INTEROP_MODE_ENABLE_WEBGPU_SWIFT = objcxx;
 // SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES
 
 // FIXME: broaden SafeInteropWrappers to all of WebKit; rdar://159439903
-OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebGPU/platform-enabled-swift-args.$(arch).resp $(OTHER_SWIFT_FLAGS_$(WK_PLATFORM_NAME)) -enable-experimental-feature SafeInteropWrappers -Xcc -fvisibility=hidden -no-verify-emitted-module-interface -Xcc -fno-modulemap-allow-subdirectory-search;
+OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebGPU/platform-enabled-swift-args.$(arch).resp $(OTHER_SWIFT_FLAGS_$(WK_PLATFORM_NAME)) -enable-experimental-feature SafeInteropWrappers -Xcc -fvisibility=hidden -no-verify-emitted-module-interface -Xcc -fno-modulemap-allow-subdirectory-search -Xcc -isystem -Xcc $(TOOLCHAIN_DIR)/usr/include ;
 OTHER_SWIFT_FLAGS_macosx = $(OTHER_SWIFT_FLAGS$(WK_MACOS_1400));
 OTHER_SWIFT_FLAGS_maccatalyst = $(OTHER_SWIFT_FLAGS$(WK_MACCATALYST_14));
 OTHER_SWIFT_FLAGS_iphoneos = $(OTHER_SWIFT_FLAGS$(WK_IOS_17));
