@@ -41,3 +41,5 @@ STRIP_INSTALLED_PRODUCT = NO;
 
 EXCLUDED_SOURCE_FILE_NAMES = $(inherited);
 EXCLUDED_SOURCE_FILE_NAMES[sdk=iphone*] = $(inherited) framework.sb;
+
+SYSTEM_HEADER_SEARCH_PATHS = $(inherited) $(TOOLCHAIN_DIR)/usr/include;

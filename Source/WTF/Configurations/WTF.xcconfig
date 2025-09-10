@@ -47,6 +47,8 @@ SYSTEM_FRAMEWORK_SEARCH_PATHS = $(inherited) $(WK_PRIVATE_SDK_DIR)$(SYSTEM_LIBRA
 // is not exported to script phases, so it must be bound to a different name.
 WK_HEADERS_VFS_FILE = $(CPP_HEADERMAP_PRODUCT_HEADERS_VFS_FILE);
 
+SYSTEM_HEADER_SEARCH_PATHS = $(inherited) $(TOOLCHAIN_DIR)/usr/include;
+
 // A WTF modulemap confuses the building of PALSwift on older SDKs
 // For now we enable only on the most recent macOS SDKs and we will
 // gradually expand to the most recent of all platforms.
