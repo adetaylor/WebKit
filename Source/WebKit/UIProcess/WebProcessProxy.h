@@ -173,8 +173,8 @@ using WebProcessWithMediaStreamingToken = WebProcessWithMediaStreamingCounter::T
 enum class CheckBackForwardList : bool { No, Yes };
 
 class WebProcessProxy final : public AuxiliaryProcessProxy {
-    WTF_MAKE_TZONE_ALLOCATED(WebProcessProxy);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(WebProcessProxy);
+    WTF_MAKE_TZONE_ALLOCATED_NONNULL(WebProcessProxy);
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR_NONNULL(WebProcessProxy);
 public:
     using WebPageProxyMap = HashMap<WebPageProxyIdentifier, WeakRef<WebPageProxy>>;
     using UserInitiatedActionByAuthorizationTokenMap = HashMap<WTF::UUID, RefPtr<API::UserInitiatedAction>>;
@@ -186,7 +186,7 @@ public:
     enum class LockdownMode : bool { Disabled, Enabled };
     enum class EnhancedSecurity : bool { Disabled, Enabled };
 
-    static Ref<WebProcessProxy> create(WebProcessPool&, WebsiteDataStore*, LockdownMode, EnhancedSecurity, IsPrewarmed, WebCore::CrossOriginMode = WebCore::CrossOriginMode::Shared, ShouldLaunchProcess = ShouldLaunchProcess::Yes);
+    static Ref<WebProcessProxy> create(WebProcessPool&, WebsiteDataStore* _Nullable, LockdownMode, EnhancedSecurity, IsPrewarmed, WebCore::CrossOriginMode = WebCore::CrossOriginMode::Shared, ShouldLaunchProcess = ShouldLaunchProcess::Yes);
     static Ref<WebProcessProxy> createForRemoteWorkers(RemoteWorkerType, WebProcessPool&, WebCore::Site&&, WebsiteDataStore&, LockdownMode, EnhancedSecurity);
 
     ~WebProcessProxy();
@@ -200,7 +200,7 @@ public:
     void addSuspendedPageProxy(SuspendedPageProxy&);
     void removeSuspendedPageProxy(SuspendedPageProxy&);
 
-    WebProcessPool* processPoolIfExists() const;
+    WebProcessPool* _Nullable processPoolIfExists() const;
     inline WebProcessPool& processPool() const; // This function is implemented in WebProcessPool.h.
     inline Ref<WebProcessPool> protectedProcessPool() const; // This function is implemented in WebProcessPool.h.
 
@@ -231,7 +231,7 @@ public:
     void enableRemoteWorkers(RemoteWorkerType, const WebUserContentControllerProxy&);
     void disableRemoteWorkers(OptionSet<RemoteWorkerType>);
 
-    WebsiteDataStore* websiteDataStore() const { ASSERT(m_websiteDataStore); return m_websiteDataStore.get(); }
+    WebsiteDataStore* _Nonnull websiteDataStore() const { ASSERT(m_websiteDataStore); return m_websiteDataStore.get(); }
     RefPtr<WebsiteDataStore> protectedWebsiteDataStore() const;
     void setWebsiteDataStore(WebsiteDataStore&);
     
@@ -339,8 +339,8 @@ public:
 
     void requestTermination(ProcessTerminationReason);
 
-    RefPtr<API::Object> transformHandlesToObjects(API::Object*);
-    static RefPtr<API::Object> transformObjectsToHandles(API::Object*);
+    RefPtr<API::Object> transformHandlesToObjects(API::Object* _Nullable);
+    static RefPtr<API::Object> transformObjectsToHandles(API::Object* _Nullable);
 
     void windowServerConnectionStateChanged();
 
@@ -480,7 +480,7 @@ public:
 #endif
 
 #if ENABLE(ROUTING_ARBITRATION)
-    AudioSessionRoutingArbitratorProxy* audioSessionRoutingArbitrator() { return m_routingArbitrator.get(); }
+    AudioSessionRoutingArbitratorProxy* _Nullable audioSessionRoutingArbitrator() { return m_routingArbitrator.get(); }
 #endif
 
 #if ENABLE(IPC_TESTING_API)
@@ -535,8 +535,8 @@ public:
     void hardwareConsoleStateChanged();
 #endif
 
-    const WeakHashSet<WebProcessProxy>* serviceWorkerClientProcesses() const;
-    const WeakHashSet<WebProcessProxy>* sharedWorkerClientProcesses() const;
+    const WeakHashSet<WebProcessProxy>* _Nullable serviceWorkerClientProcesses() const;
+    const WeakHashSet<WebProcessProxy>* _Nullable sharedWorkerClientProcesses() const;
 
     static void permissionChanged(WebCore::PermissionName, const WebCore::SecurityOriginData&);
     void processPermissionChanged(WebCore::PermissionName, const WebCore::SecurityOriginData&);
@@ -581,7 +581,7 @@ public:
 private:
     Type type() const final { return Type::WebContent; }
 
-    WebProcessProxy(WebProcessPool&, WebsiteDataStore*, IsPrewarmed, WebCore::CrossOriginMode, LockdownMode, EnhancedSecurity);
+    WebProcessProxy(WebProcessPool&, WebsiteDataStore* _Nullable, IsPrewarmed, WebCore::CrossOriginMode, LockdownMode, EnhancedSecurity);
 
     // AuxiliaryProcessProxy
     ASCIILiteral processName() const final { return "WebContent"_s; }
@@ -597,7 +597,7 @@ private:
 #endif
 
     // ProcessLauncher::Client
-    void didFinishLaunching(ProcessLauncher*, IPC::Connection::Identifier&&) override;
+    void didFinishLaunching(ProcessLauncher* _Nullable, IPC::Connection::Identifier&&) override;
     bool shouldConfigureJSCForTesting() const final;
     bool isJITEnabled() const final;
     bool shouldEnableSharedArrayBuffer() const final { return m_crossOriginMode == WebCore::CrossOriginMode::Isolated; }
@@ -732,8 +732,8 @@ private:
             updateStrongReference();
         }
 
-        T* get() const { return m_weakObject.get(); }
-        T* operator->() const { return m_weakObject.get(); }
+        T* _Nullable get() const { return m_weakObject.get(); }
+        T* _Nullable operator->() const { return m_weakObject.get(); }
         T& operator*() const { return *m_weakObject; }
         explicit operator bool() const { return !!m_weakObject; }
 
@@ -898,7 +898,7 @@ private:
     public:
         explicit WebProcessXPCEventHandler(const WebProcessProxy&);
 
-        bool handleXPCEvent(xpc_object_t) final;
+        bool handleXPCEvent(xpc_object_t _Nonnull) final;
 
     private:
         WeakPtr<WebProcessProxy> m_webProcess;
