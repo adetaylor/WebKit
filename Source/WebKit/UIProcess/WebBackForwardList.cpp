@@ -65,7 +65,7 @@ WebBackForwardList::~WebBackForwardList()
     ASSERT((!m_page && !m_currentIndex) || !m_page->hasRunningProcess());
 }
 
-WebBackForwardListItem* WebBackForwardList::itemForID(BackForwardItemIdentifier identifier)
+WebBackForwardListItem* _Nullable WebBackForwardList::itemForID(BackForwardItemIdentifier identifier)
 {
     if (!m_page)
         return nullptr;
@@ -260,7 +260,7 @@ void WebBackForwardList::goToItem(WebBackForwardListItem& item)
     page->didChangeBackForwardList(nullptr, WTFMove(removedItems));
 }
 
-WebBackForwardListItem* WebBackForwardList::currentItem() const
+WebBackForwardListItem* _Nullable WebBackForwardList::currentItem() const
 {
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
@@ -272,7 +272,7 @@ RefPtr<WebBackForwardListItem> WebBackForwardList::protectedCurrentItem() const
     return currentItem();
 }
 
-WebBackForwardListItem* WebBackForwardList::backItem() const
+WebBackForwardListItem* _Nullable WebBackForwardList::backItem() const
 {
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
@@ -284,7 +284,7 @@ RefPtr<WebBackForwardListItem> WebBackForwardList::protectedBackItem() const
     return backItem();
 }
 
-WebBackForwardListItem* WebBackForwardList::forwardItem() const
+WebBackForwardListItem* _Nullable WebBackForwardList::forwardItem() const
 {
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
@@ -296,7 +296,7 @@ RefPtr<WebBackForwardListItem> WebBackForwardList::protectedForwardItem() const
     return forwardItem();
 }
 
-WebBackForwardListItem* WebBackForwardList::itemAtIndex(int index) const
+WebBackForwardListItem* _Nullable WebBackForwardList::itemAtIndex(int index) const
 {
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
