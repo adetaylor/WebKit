@@ -58,19 +58,19 @@ public:
 
     virtual ~WebBackForwardList();
 
-    WebBackForwardListItem* itemForID(WebCore::BackForwardItemIdentifier);
+    WebBackForwardListItem* _Nullable itemForID(WebCore::BackForwardItemIdentifier);
 
     void goToItem(WebBackForwardListItem&);
     void removeAllItems();
     void clear();
 
-    WebBackForwardListItem* currentItem() const;
+    WebBackForwardListItem* _Nullable currentItem() const;
     RefPtr<WebBackForwardListItem> protectedCurrentItem() const;
-    WebBackForwardListItem* backItem() const;
+    WebBackForwardListItem* _Nullable backItem() const;
     RefPtr<WebBackForwardListItem> protectedBackItem() const;
-    WebBackForwardListItem* forwardItem() const;
+    WebBackForwardListItem* _Nullable forwardItem() const;
     RefPtr<WebBackForwardListItem> protectedForwardItem() const;
-    WebBackForwardListItem* itemAtIndex(int) const;
+    WebBackForwardListItem* _Nullable itemAtIndex(int) const;
     RefPtr<WebBackForwardListItem> protectedItemAtIndex(int) const;
 
     RefPtr<WebBackForwardListItem> goBackItemSkippingItemsWithoutUserGesture() const;
