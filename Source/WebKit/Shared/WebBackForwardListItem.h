@@ -47,7 +47,7 @@ public:
     static Ref<WebBackForwardListItem> create(Ref<FrameState>&&, WebPageProxyIdentifier, std::optional<WebCore::FrameIdentifier>, BrowsingContextGroup* = nullptr);
     virtual ~WebBackForwardListItem();
 
-    static WebBackForwardListItem* itemForID(WebCore::BackForwardItemIdentifier);
+    static WebBackForwardListItem* _Nullable itemForID(WebCore::BackForwardItemIdentifier);
     static HashMap<WebCore::BackForwardItemIdentifier, WeakRef<WebBackForwardListItem>>& allItems();
 
     WebCore::BackForwardItemIdentifier identifier() const { return m_identifier; }
@@ -69,22 +69,22 @@ public:
     const URL& resourceDirectoryURL() const { return m_resourceDirectoryURL; }
     void setResourceDirectoryURL(URL&& url) { m_resourceDirectoryURL = WTFMove(url); }
     RefPtr<WebsiteDataStore> dataStoreForWebArchive() const { return m_dataStoreForWebArchive; }
-    void setDataStoreForWebArchive(WebsiteDataStore* dataStore) { m_dataStoreForWebArchive = dataStore; }
+    void setDataStoreForWebArchive(WebsiteDataStore* _Nonnull dataStore) { m_dataStoreForWebArchive = dataStore; }
 
     bool itemIsInSameDocument(const WebBackForwardListItem&) const;
     bool itemIsClone(const WebBackForwardListItem&);
 
 #if PLATFORM(COCOA) || PLATFORM(GTK)
-    ViewSnapshot* snapshot() const { return m_snapshot.get(); }
+    ViewSnapshot* _Nullable snapshot() const { return m_snapshot.get(); }
     void setSnapshot(RefPtr<ViewSnapshot>&& snapshot) { m_snapshot = WTFMove(snapshot); }
 #endif
 
     void wasRemovedFromBackForwardList();
 
-    WebBackForwardCacheEntry* backForwardCacheEntry() const { return m_backForwardCacheEntry.get(); }
+    WebBackForwardCacheEntry* _Nullable backForwardCacheEntry() const { return m_backForwardCacheEntry.get(); }
     RefPtr<WebBackForwardCacheEntry> protectedBackForwardCacheEntry() const;
 
-    SuspendedPageProxy* suspendedPage() const;
+    SuspendedPageProxy* _Nullable suspendedPage() const;
 
     std::optional<WebCore::FrameIdentifier> navigatedFrameID() const { return m_navigatedFrameID; }
 
