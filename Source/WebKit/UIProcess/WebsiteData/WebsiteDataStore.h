@@ -143,10 +143,10 @@ public:
     NetworkProcessProxy& networkProcess() const;
     NetworkProcessProxy& networkProcess();
     Ref<NetworkProcessProxy> protectedNetworkProcess() const;
-    NetworkProcessProxy* networkProcessIfExists() { return m_networkProcess.get(); }
+    NetworkProcessProxy* _Nullable networkProcessIfExists() { return m_networkProcess.get(); }
     void setNetworkProcess(NetworkProcessProxy&);
     
-    static WebsiteDataStore* existingDataStoreForSessionID(PAL::SessionID);
+    static WebsiteDataStore* _Nullable existingDataStoreForSessionID(PAL::SessionID);
 
     bool isPersistent() const { return !m_sessionID.isEphemeral(); }
     PAL::SessionID sessionID() const { return m_sessionID; }
@@ -449,7 +449,7 @@ public:
 
     void countNonDefaultSessionSets(CompletionHandler<void(uint64_t)>&&);
 
-    bool showPersistentNotification(IPC::Connection*, const WebCore::NotificationData&);
+    bool showPersistentNotification(IPC::Connection* _Nullable, const WebCore::NotificationData&);
     void cancelServiceWorkerNotification(const WTF::UUID& notificationID);
     void clearServiceWorkerNotification(const WTF::UUID& notificationID);
     void didDestroyServiceWorkerNotification(const WTF::UUID& notificationID);
@@ -473,10 +473,10 @@ public:
 
     HashSet<RefPtr<WebProcessPool>> processPools(size_t limit = std::numeric_limits<size_t>::max()) const;
 
-    void setServiceWorkerOverridePreferences(WebPreferences* preferences) { m_serviceWorkerOverridePreferences = preferences; }
-    WebPreferences* serviceWorkerOverridePreferences() const { return m_serviceWorkerOverridePreferences.get(); }
+    void setServiceWorkerOverridePreferences(WebPreferences* _Nullable preferences) { m_serviceWorkerOverridePreferences = preferences; }
+    WebPreferences* _Nullable serviceWorkerOverridePreferences() const { return m_serviceWorkerOverridePreferences.get(); }
 
-    Ref<DownloadProxy> createDownloadProxy(Ref<API::DownloadClient>&&, const WebCore::ResourceRequest&, WebPageProxy* originatingPage, const std::optional<FrameInfoData>&);
+    Ref<DownloadProxy> createDownloadProxy(Ref<API::DownloadClient>&&, const WebCore::ResourceRequest&, WebPageProxy* _Nullable originatingPage, const std::optional<FrameInfoData>&);
     void download(const DownloadProxy&, const String& suggestedFilename);
     void resumeDownload(const DownloadProxy&, const API::Data&, const String& path, CallDownloadDidStart);
 
@@ -567,7 +567,7 @@ private:
 #endif
 
 #if ENABLE(MANAGED_DOMAINS)
-    static const HashSet<WebCore::RegistrableDomain>* managedDomainsIfInitialized();
+    static const HashSet<WebCore::RegistrableDomain>* _Nullable managedDomainsIfInitialized();
     static void forwardManagedDomainsToITPIfInitialized(CompletionHandler<void()>&&);
     void setManagedDomainsForITP(const HashSet<WebCore::RegistrableDomain>&, CompletionHandler<void()>&&);
 #endif
