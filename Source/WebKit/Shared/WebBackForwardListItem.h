@@ -44,10 +44,10 @@ class WebBackForwardListFrameItem;
 
 class WebBackForwardListItem : public API::ObjectImpl<API::Object::Type::BackForwardListItem>, public CanMakeWeakPtr<WebBackForwardListItem> {
 public:
-    static Ref<WebBackForwardListItem> create(Ref<FrameState>&&, WebPageProxyIdentifier, std::optional<WebCore::FrameIdentifier>, BrowsingContextGroup* = nullptr);
+    static Ref<WebBackForwardListItem> create(Ref<FrameState>&&, WebPageProxyIdentifier, std::optional<WebCore::FrameIdentifier>, BrowsingContextGroup* _Nullable = nullptr);
     virtual ~WebBackForwardListItem();
 
-    static WebBackForwardListItem* itemForID(WebCore::BackForwardItemIdentifier);
+    static WebBackForwardListItem* _Nullable itemForID(WebCore::BackForwardItemIdentifier);
     static HashMap<WebCore::BackForwardItemIdentifier, WeakRef<WebBackForwardListItem>>& allItems();
 
     WebCore::BackForwardItemIdentifier identifier() const { return m_identifier; }
@@ -56,7 +56,7 @@ public:
     WebCore::ProcessIdentifier lastProcessIdentifier() const { return m_lastProcessIdentifier; }
     void setLastProcessIdentifier(const WebCore::ProcessIdentifier& identifier) { m_lastProcessIdentifier = identifier; }
 
-    BrowsingContextGroup* browsingContextGroup() const { return m_browsingContextGroup.get(); }
+    BrowsingContextGroup* _Nullable browsingContextGroup() const { return m_browsingContextGroup.get(); }
 
     Ref<FrameState> navigatedFrameState() const;
     Ref<FrameState> mainFrameState() const;
@@ -69,22 +69,22 @@ public:
     const URL& resourceDirectoryURL() const { return m_resourceDirectoryURL; }
     void setResourceDirectoryURL(URL&& url) { m_resourceDirectoryURL = WTFMove(url); }
     RefPtr<WebsiteDataStore> dataStoreForWebArchive() const { return m_dataStoreForWebArchive; }
-    void setDataStoreForWebArchive(WebsiteDataStore* dataStore) { m_dataStoreForWebArchive = dataStore; }
+    void setDataStoreForWebArchive(WebsiteDataStore* _Nonnull dataStore) { m_dataStoreForWebArchive = dataStore; }
 
     bool itemIsInSameDocument(const WebBackForwardListItem&) const;
     bool itemIsClone(const WebBackForwardListItem&);
 
 #if PLATFORM(COCOA) || PLATFORM(GTK)
-    ViewSnapshot* snapshot() const { return m_snapshot.get(); }
+    ViewSnapshot* _Nullable snapshot() const { return m_snapshot.get(); }
     void setSnapshot(RefPtr<ViewSnapshot>&& snapshot) { m_snapshot = WTFMove(snapshot); }
 #endif
 
     void wasRemovedFromBackForwardList();
 
-    WebBackForwardCacheEntry* backForwardCacheEntry() const { return m_backForwardCacheEntry.get(); }
+    WebBackForwardCacheEntry* _Nullable backForwardCacheEntry() const { return m_backForwardCacheEntry.get(); }
     RefPtr<WebBackForwardCacheEntry> protectedBackForwardCacheEntry() const;
 
-    SuspendedPageProxy* suspendedPage() const;
+    SuspendedPageProxy* _Nullable suspendedPage() const;
 
     std::optional<WebCore::FrameIdentifier> navigatedFrameID() const { return m_navigatedFrameID; }
 
@@ -104,7 +104,7 @@ public:
 #endif
 
 private:
-    WebBackForwardListItem(Ref<FrameState>&&, WebPageProxyIdentifier, std::optional<WebCore::FrameIdentifier>, BrowsingContextGroup*);
+    WebBackForwardListItem(Ref<FrameState>&&, WebPageProxyIdentifier, std::optional<WebCore::FrameIdentifier>, BrowsingContextGroup* _Nullable);
 
     void removeFromBackForwardCache();
 
