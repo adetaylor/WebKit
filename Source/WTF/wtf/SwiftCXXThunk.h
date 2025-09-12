@@ -25,7 +25,12 @@
 
 #pragma once
 
+#include "Assertions.h"
+#include <swift/bridging>
 #include <wtf/StdLibExtras.h>
+#include <wtf/RefCounted.h>
+#include <wtf/RefPtr.h>
+#include <wtf/text/TextStream.h>
 
 /*
  A system of macros to make it more ergonomic to implement C++ class member functions in Swift.
@@ -86,3 +91,31 @@ ReturnType Class::Member(_WTF_REMOVE_PARENTHESIS(TypeOfArg1) arg1, _WTF_REMOVE_P
 
 #define DEFINE_SWIFTCXX_THUNK(Class, Member, ReturnType, ...) \
     _GET_NTH_ARG(__VA_ARGS__, _DEFINE_SWIFTCXX_THUNK7, _DEFINE_SWIFTCXX_THUNK6, _DEFINE_SWIFTCXX_THUNK5, _DEFINE_SWIFTCXX_THUNK4, _DEFINE_SWIFTCXX_THUNK3, _DEFINE_SWIFTCXX_THUNK2, _DEFINE_SWIFTCXX_THUNK1, _DEFINE_SWIFTCXX_THUNK0)(Class, Member, ReturnType, ##__VA_ARGS__)
+
+
+
+// Below this is experimental stuff
+namespace WTF {
+
+class Payload final : public RefCounted<Payload> {
+public:
+    static Ref<Payload> create(int value) { return adoptRef(*new Payload(value)); }
+
+    ~Payload() { WTF_ALWAYS_LOG("Destroying Payload with value " << m_value); }
+
+    int value() const { return m_value; }
+    void setValue(int value) { m_value = value; }
+
+private:
+    explicit Payload(int value) : m_value(value) { WTF_ALWAYS_LOG("Creating Payload with value " << value); }
+    int m_value;
+} SWIFT_SHARED_REFERENCE(payloadRef, payloadDeref);
+
+inline Ref<Payload> getPayloadRef(int value) {
+    return Payload::create(value);
+}
+
+} // namespace WTF
+
+inline void payloadRef(WTF::Payload* p) { WTF::ref(p); }
+inline void payloadDeref(WTF::Payload* p) { WTF::deref(p); }

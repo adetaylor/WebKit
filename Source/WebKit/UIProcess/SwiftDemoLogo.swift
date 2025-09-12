@@ -25,6 +25,7 @@
 
 import Foundation
 internal import WebKit_Internal_Cxx
+internal import wtf
 
 extension Data {
     var bytes: [UInt8] {
@@ -155,7 +156,24 @@ public func getSwiftLogoData() -> [UInt8] {
     guard let data = Data(base64Encoded: swiftLogoBase64) else {
         return []
     }
+    swiftRefExperiments();
     return data.bytes
+}
+
+// Below this is experimental stuff
+
+func swiftRefExperiments() {
+    let a = WTF.getPayloadRef(7); // : WTF.Ref<WTF.Payload, WTF.RawPtrTraits<WTF.Payload>, WTF.DefaultRefDerefTraits<WTF.Payload>>
+    // let v = a.value();         // no such method
+    let b = a.ptr();
+    let v = b.value();            // calling method on the Payload class
+    print ("Value is \(v).")
+
+    var a2 = Optional.some(WTF.getPayloadRef(8));
+    let b2 = a2!.ptr();
+    a2 = Optional.none;
+    let v2 = b2.value();          // use-after-free
+    print ("Value is \(v2).")
 }
 
 #endif
