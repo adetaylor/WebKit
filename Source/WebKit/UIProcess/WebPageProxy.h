@@ -786,8 +786,10 @@ public:
     void destroyInspectorTarget(IPC::Connection&, const String& targetId);
     void sendMessageToInspectorFrontend(const String& targetId, const String& message);
 
+#ifndef __swift__
     void getAllFrames(CompletionHandler<void(std::optional<FrameTreeNodeData>&&)>&&);
     void getAllFrameTrees(CompletionHandler<void(Vector<FrameTreeNodeData>&&)>&&);
+#endif
 
 #if ENABLE(REMOTE_INSPECTOR)
     void setIndicating(bool);
