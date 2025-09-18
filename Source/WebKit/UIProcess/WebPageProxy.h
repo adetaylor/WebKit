@@ -448,6 +448,29 @@ enum class ExceptionCode : uint8_t;
 using NodeIdentifier = ObjectIdentifier<NodeIdentifierType>;
 }
 
+#ifdef __swift__
+// FIXME - workaround for rdar://152495753
+#include "APIArray.h"
+#include "APIHistoryClient.h"
+#include "APINavigationClient.h"
+#include "GamepadData.h"
+#include "JSHandleInfo.h"
+#include "WebKeyboardEvent.h"
+#include "WebNavigationState.h"
+#include "WebPageInspectorController.h"
+#include "WebProcessActivityState.h"
+#include "FrameTreeNodeData.h"
+#include <WebCore/ClientOrigin.h>
+#include <WebCore/ElementContext.h>
+#include <WebCore/Exception.h>
+#include <WebCore/MobileDocumentRequest.h>
+#include <WebCore/OpenID4VPRequest.h>
+#include <WebCore/RemoteUserInputEventData.h>
+#include <WebCore/ShareableBitmapHandle.h>
+#include <WebCore/TextIndicator.h>
+#include <WebCore/WritingToolsTypes.h>
+#endif
+
 namespace WebKit {
 
 class AboutSchemeHandler;
@@ -683,6 +706,7 @@ using TransactionID = WebCore::ProcessQualified<TransactionIdentifier>;
 using WebPageProxyIdentifier = ObjectIdentifier<WebPageProxyIdentifierType>;
 using WebURLSchemeHandlerIdentifier = ObjectIdentifier<WebURLSchemeHandlerIdentifierType>;
 using WebUndoStepID = uint64_t;
+
 
 class WebPageProxy final : public API::ObjectImpl<API::Object::Type::Page>, public IPC::MessageReceiver {
 public:
@@ -3486,8 +3510,11 @@ private:
 #endif
 
     struct Internals;
+#ifndef __swift__
+    // FIXME: workaround for rdar://152495753
     Internals& internals() { return m_internals; }
     const Internals& internals() const { return m_internals; }
+#endif
 
     void takeVisibleActivity();
     void takeAudibleActivity();
@@ -3520,7 +3547,10 @@ private:
     void setCustomUserAgentInternal();
     HashSet<Ref<WebProcessProxy>> webContentProcessesWithFrame();
 
+#ifndef __swift__
+    // FIXME - workaround for rdar://152495753
     const UniqueRef<Internals> m_internals;
+#endif
     Identifier m_identifier;
     WebCore::PageIdentifier m_webPageID;
 
