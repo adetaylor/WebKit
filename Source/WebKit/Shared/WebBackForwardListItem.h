@@ -35,6 +35,11 @@
 #include <wtf/WeakPtr.h>
 #include <wtf/text/WTFString.h>
 
+#ifdef __swift__
+#include <WebCore/FrameIdentifier.h>
+#include "WebBackForwardCacheEntry.h"
+#endif
+
 namespace WebKit {
 
 class BrowsingContextGroup;
