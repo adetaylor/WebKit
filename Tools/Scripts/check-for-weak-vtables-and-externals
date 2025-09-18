@@ -80,8 +80,8 @@ if (!defined $executablePathAge || !defined $buildTimestampAge || $executablePat
 
             if (/weak external vtable for (.*)$/) {
                 push @weakVTableClasses, $1;
-            } elsif (/weak external (.*)$/) {
-                push @weakExternalSymbols, $1;
+            #} elsif (/weak external (.*)$/) {
+            #    push @weakExternalSymbols, $1;
             }
         } else {
             print STDERR if $_ ne "nm: no name list\n";

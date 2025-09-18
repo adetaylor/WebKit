@@ -1,5 +1,4 @@
-//
-// Copyright (C) 2014 Apple Inc. All rights reserved.
+// Copyright (C) 2025 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -21,24 +20,36 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
-//
 
-#include "TestWebKitAPI.xcconfig"
-#include "../../../Configurations/DownstreamSwiftStuff.xcconfig"
+import Foundation
 
-PRODUCT_NAME = TestWebKitAPI;
-SKIP_INSTALL = YES;
-GCC_SYMBOLS_PRIVATE_EXTERN = YES;
-SWIFT_VERSION = 6.0;
-SWIFT_VERSION[sdk=macosx14*] = 5.0;
+// This file replaces the normally-dynamically-generated
+// CredentialUpdaterShim.swift which can't build in the presence of
+// the Swift WebBackForwardList due to rdar://161645690
+// TODO undo this
 
-SWIFT_OBJC_BRIDGING_HEADER = Tests/WebKit Swift/TestWebKitAPIBundle-Bridging-Header.h;
-SWIFT_OPTIMIZATION_LEVEL = -O;
-SWIFT_OPTIMIZATION_LEVEL[config=Debug] = -Onone;
+public typealias String = Swift.String
 
-OTHER_SWIFT_FLAGS = $(inherited) -no-warnings-as-errors -Xfrontend -experimental-spi-only-imports $(OTHER_SWIFT_FLAGS$(WK_XCODE_16)) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/platform-enabled-swift-args.$(arch).resp;
-OTHER_SWIFT_FLAGS_XCODE_BEFORE_16 = -Xfrontend -enable-experimental-concurrency -Xfrontend -enable-upcoming-feature -Xfrontend IsolatedDefaultValues;
+@objc(CredentialUpdaterShim)
+@available(macOS 16.0, iOS 19.0, *)
+public final class CredentialUpdaterShim : NSObject {
 
-SWIFT_INCLUDE_PATHS = $(WK_DOWNSTREAM_SWIFT_INCLUDE_PATHS) $(inherited);
+    @objc
+    @available(macOS 16.0, iOS 19.0, *)
+    public static func signalUnknownCredential(relyingPartyIdentifier: String, credentialID: Data) async throws {
 
-SYSTEM_HEADER_SEARCH_PATHS = $(inherited) $(TOOLCHAIN_DIR)/usr/include;
+    }
+
+    @objc
+    @available(macOS 16.0, iOS 19.0, *)
+    public static func signalAllAcceptedCredentials(relyingPartyIdentifier: String, userHandle: Data, acceptedCredentialIDs: [Data]) async throws {
+
+    }
+
+    @objc
+    @available(macOS 16.0, iOS 19.0, *)
+    public static func signalCurrentUserDetails(relyingPartyIdentifier: String, userHandle: Data, newName: String) async throws {
+
+    }
+}
+

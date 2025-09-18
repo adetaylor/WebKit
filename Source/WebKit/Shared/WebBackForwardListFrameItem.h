@@ -28,6 +28,7 @@
 #include <WebCore/BackForwardFrameItemIdentifier.h>
 #include <WebCore/BackForwardItemIdentifier.h>
 #include <WebCore/FrameIdentifier.h>
+#include <swift/bridging>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
 
 namespace WebKit {
@@ -89,6 +90,17 @@ private:
     Ref<FrameState> m_frameState;
     WeakPtr<WebBackForwardListFrameItem> m_parent;
     Vector<Ref<WebBackForwardListFrameItem>> m_children;
-};
+
+#ifdef __swift__
+public:
+    // TODO figure out why it can't import this field and work around it better
+    bool frameIDIsSet() const { return frameID().has_value(); }
+    WebCore::FrameIdentifier getFrameID() const { return *frameID(); }
+#endif
+
+} SWIFT_SHARED_REFERENCE(retainWebBackForwardListFrameItem, releaseWebBackForwardListFrameItem);
 
 } // namespace WebKit
+
+inline void retainWebBackForwardListFrameItem(WebKit::WebBackForwardListFrameItem* o) { WTF::ref(o); }
+inline void releaseWebBackForwardListFrameItem(WebKit::WebBackForwardListFrameItem* o) { WTF::deref(o); }

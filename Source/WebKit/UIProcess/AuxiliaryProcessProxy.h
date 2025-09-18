@@ -32,6 +32,7 @@
 #include "ResponsivenessTimer.h"
 #include <WebCore/ProcessIdentifier.h>
 #include <memory>
+#include <swift/bridging>
 #include <wtf/CheckedRef.h>
 #include <wtf/FastMalloc.h>
 #include <wtf/Forward.h>
@@ -44,6 +45,14 @@
 #include <wtf/UniqueRef.h>
 #include <wtf/VectorHash.h>
 #include <wtf/WeakPtrFactory.h>
+
+// TODO: if we always apply _Nonnull there seems to be some sort of virality where
+// clang expects us to annotate things in other headers. Look up or file radar.
+#ifdef __swift__
+#define SWIFT_NONNULL _Nonnull
+#else
+#define SWIFT_NONNULL
+#endif
 
 namespace WebCore {
 class SharedBuffer;
@@ -151,7 +160,8 @@ public:
     {
         return m_connection == &connection;
     }
-    static AuxiliaryProcessProxy* fromConnection(const IPC::Connection&);
+    // TODO prove this is _Nonnull
+    static AuxiliaryProcessProxy* SWIFT_NONNULL fromConnection(const IPC::Connection&);
 
     void addMessageReceiver(IPC::ReceiverName, IPC::MessageReceiver&);
     void addMessageReceiver(IPC::ReceiverName, uint64_t destinationID, IPC::MessageReceiver&);
@@ -334,7 +344,7 @@ private:
 #endif
     HashMap<Vector<uint8_t>, std::pair<unsigned, std::unique_ptr<IPC::Encoder>>> m_messagesToSendOnResume;
     unsigned m_messagesToSendOnResumeIndex { 0 };
-};
+} SWIFT_SHARED_REFERENCE(retainAuxiliaryProcessProxy, releaseAuxiliaryProcessProxy);
 
 template<typename T>
 bool AuxiliaryProcessProxy::send(T&& message, uint64_t destinationID, OptionSet<IPC::SendOption> sendOptions)
@@ -398,3 +408,6 @@ inline AuxiliaryProcessProxy::State AuxiliaryProcessProxy::state() const
 }
 
 } // namespace WebKit
+
+inline void retainAuxiliaryProcessProxy(WebKit::AuxiliaryProcessProxy* o) { WTF::ref(o); }
+inline void releaseAuxiliaryProcessProxy(WebKit::AuxiliaryProcessProxy* o) { WTF::deref(o); }

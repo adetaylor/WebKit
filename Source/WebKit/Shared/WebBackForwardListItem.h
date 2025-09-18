@@ -34,6 +34,13 @@
 #include <wtf/WeakPtr.h>
 #include <wtf/text/WTFString.h>
 
+#include <swift/bridging>
+
+#ifdef __swift__
+#include <WebCore/FrameIdentifier.h>
+#include "WebBackForwardCacheEntry.h"
+#endif
+
 namespace WebKit {
 
 class SuspendedPageProxy;
@@ -43,7 +50,8 @@ class WebBackForwardListFrameItem;
 
 class WebBackForwardListItem : public API::ObjectImpl<API::Object::Type::BackForwardListItem>, public CanMakeWeakPtr<WebBackForwardListItem> {
 public:
-    static Ref<WebBackForwardListItem> create(Ref<FrameState>&&, WebPageProxyIdentifier, std::optional<WebCore::FrameIdentifier>);
+    // TODO figure out a way to avoid needing to name each parameter
+    static Ref<WebBackForwardListItem> create(Ref<FrameState>&& frameState, WebPageProxyIdentifier webPageProxyIdentifier, std::optional<WebCore::FrameIdentifier> frameIdentifier);
     virtual ~WebBackForwardListItem();
 
     static WebBackForwardListItem* _Nullable itemForID(WebCore::BackForwardItemIdentifier);
@@ -71,6 +79,7 @@ public:
     bool itemIsInSameDocument(const WebBackForwardListItem&) const;
     bool itemIsClone(const WebBackForwardListItem&);
 
+    void setNullSnapshot(); // available on all platforms so we can call from Swift code which is unaware of platform macros
 #if PLATFORM(COCOA) || PLATFORM(GTK)
     ViewSnapshot* _Nullable snapshot() const { return m_snapshot.get(); }
     void setSnapshot(RefPtr<ViewSnapshot>&& snapshot) { m_snapshot = WTFMove(snapshot); }
@@ -82,13 +91,16 @@ public:
     RefPtr<WebBackForwardCacheEntry> protectedBackForwardCacheEntry() const;
 
     SuspendedPageProxy* _Nullable suspendedPage() const;
+    bool hasSuspendedPage() const { return suspendedPage(); }
 
     std::optional<WebCore::FrameIdentifier> navigatedFrameID() const { return m_navigatedFrameID; }
 
     WebBackForwardListFrameItem& navigatedFrameItem() const;
     Ref<WebBackForwardListFrameItem> protectedNavigatedFrameItem() const;
 
-    WebBackForwardListFrameItem& mainFrameItem() const;
+    // TODO it's not quite true that this returns an independent value
+    // due to race conditions. Consider calling the next API instead?
+    WebBackForwardListFrameItem& mainFrameItem() const SWIFT_RETURNS_INDEPENDENT_VALUE;
     Ref<WebBackForwardListFrameItem> protectedMainFrameItem() const;
 
     void setIsRemoteFrameNavigation(bool isRemoteFrameNavigation) { m_isRemoteFrameNavigation = isRemoteFrameNavigation; }
@@ -121,11 +133,23 @@ private:
     RefPtr<ViewSnapshot> m_snapshot;
 #endif
     bool m_isRemoteFrameNavigation { false };
-};
+} SWIFT_SHARED_REFERENCE(refBackForwardListItem, derefBackForwardListItem);
 
 typedef Vector<Ref<WebBackForwardListItem>> BackForwardListItemVector;
 
 } // namespace WebKit
+
+
+
+inline void refBackForwardListItem(WebKit::WebBackForwardListItem* _Nonnull obj)
+{
+    WTF::ref(obj);
+}
+
+inline void derefBackForwardListItem(WebKit::WebBackForwardListItem* _Nonnull obj)
+{
+    WTF::deref(obj);
+}
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardListItem)
 static bool isType(const API::Object& object) { return object.type() == API::Object::Type::BackForwardListItem; }

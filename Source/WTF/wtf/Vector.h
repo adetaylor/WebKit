@@ -41,6 +41,10 @@
 #include <wtf/ValueCheck.h>
 #include <wtf/VectorTraits.h>
 
+#ifdef __swift__
+#include <swift/bridging>
+#endif
+
 #if ASAN_ENABLED && __has_include(<sanitizer/asan_interface.h>)
 #include <sanitizer/asan_interface.h>
 #endif
@@ -729,12 +733,18 @@ public:
     }
 
     T& at(size_t i) LIFETIME_BOUND
+#ifdef __swift__
+    SWIFT_RETURNS_INDEPENDENT_VALUE
+#endif
     {
         if (i >= size()) [[unlikely]]
             OverflowHandler::overflowed();
         return Base::buffer()[i];
     }
     const T& at(size_t i) const LIFETIME_BOUND
+#ifdef __swift__
+    SWIFT_RETURNS_INDEPENDENT_VALUE
+#endif
     {
         if (i >= size()) [[unlikely]]
             OverflowHandler::overflowed();

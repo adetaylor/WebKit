@@ -52,6 +52,7 @@
 #include <WebCore/Site.h>
 #include <WebCore/UserGestureTokenIdentifier.h>
 #include <pal/SessionID.h>
+#include <swift/bridging>
 #include <wtf/Expected.h>
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
@@ -83,6 +84,20 @@
 
 #if ENABLE(REMOTE_INSPECTOR) && PLATFORM(COCOA)
 #include "ServiceWorkerDebuggableProxy.h"
+#endif
+
+#ifdef __swift__
+#include <WebsiteData.h>
+#include <WebCompiledContentRuleListData.h>
+#include <WebPushMessage.h>
+#include <WebPermissionControllerProxy.h>
+#endif
+
+// TODO sensible naming
+#ifdef __swift__
+#define SWIFT_NONNULL2 _Nonnull
+#else
+#define SWIFT_NONNULL2
 #endif
 
 namespace API {
@@ -226,7 +241,8 @@ public:
     void enableRemoteWorkers(RemoteWorkerType, const WebUserContentControllerProxy&);
     void disableRemoteWorkers(OptionSet<RemoteWorkerType>);
 
-    WebsiteDataStore* websiteDataStore() const { ASSERT(m_websiteDataStore); return m_websiteDataStore.get(); }
+    // TODO is this really independent given ref count gap?
+    WebsiteDataStore* SWIFT_NONNULL2 websiteDataStore() const SWIFT_RETURNS_INDEPENDENT_VALUE { ASSERT(m_websiteDataStore); return m_websiteDataStore.get(); }
     RefPtr<WebsiteDataStore> protectedWebsiteDataStore() const;
     void setWebsiteDataStore(WebsiteDataStore&);
     
@@ -335,7 +351,7 @@ public:
     void requestTermination(ProcessTerminationReason);
 
     RefPtr<API::Object> transformHandlesToObjects(API::Object*);
-    static RefPtr<API::Object> transformObjectsToHandles(API::Object*);
+    static RefPtr<API::Object> transformObjectsToHandles(API::Object* SWIFT_NONNULL2);
 
     void windowServerConnectionStateChanged();
 
@@ -878,11 +894,14 @@ private:
 #endif
 
     HashMap<String, SandboxExtension::Handle> m_fileSandboxExtensions;
-};
+} SWIFT_SHARED_REFERENCE(retainWebProcessProxy, releaseWebProcessProxy);
 
 WTF::TextStream& operator<<(WTF::TextStream&, const WebProcessProxy&);
 
 } // namespace WebKit
+
+inline void retainWebProcessProxy(WebKit::WebProcessProxy* o) { WTF::ref(o); }
+inline void releaseWebProcessProxy(WebKit::WebProcessProxy* o) { WTF::deref(o); }
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebProcessProxy)
 static bool isType(const WebKit::AuxiliaryProcessProxy& process) { return process.type() == WebKit::AuxiliaryProcessProxy::Type::WebContent; }
