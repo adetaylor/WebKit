@@ -39,6 +39,7 @@
 #include <wtf/Forward.h>
 #include <wtf/ListHashSet.h>
 #include <wtf/ProcessID.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 #include <wtf/text/WTFString.h>
 
@@ -314,9 +315,12 @@ private:
     WebCore::SandboxFlags m_effectiveSandboxFlags;
     WebCore::ReferrerPolicy m_effectiveReferrerPolicy { WebCore::ReferrerPolicy::EmptyString };
     WebCore::ScrollbarMode m_scrollingMode;
-};
+} SWIFT_SHARED_REFERENCE(retainWebFrameProxy, releaseWebFrameProxy);
 
 } // namespace WebKit
+
+inline void retainWebFrameProxy(WebKit::WebFrameProxy* o) { WTF::ref(o); }
+inline void releaseWebFrameProxy(WebKit::WebFrameProxy* o) { WTF::deref(o); }
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebFrameProxy)
     static bool isType(const API::Object& object) { return object.type() == API::Object::Type::Frame; }

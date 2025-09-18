@@ -38,6 +38,7 @@
 #include <wtf/HashMap.h>
 #include <wtf/ProcessID.h>
 #include <wtf/Seconds.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/SystemTracing.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -336,7 +337,7 @@ private:
 #endif
     HashMap<Vector<uint8_t>, std::pair<unsigned, std::unique_ptr<IPC::Encoder>>> m_messagesToSendOnResume;
     unsigned m_messagesToSendOnResumeIndex { 0 };
-};
+} SWIFT_SHARED_REFERENCE(retainAuxiliaryProcessProxy, releaseAuxiliaryProcessProxy);
 
 template<typename T>
 bool AuxiliaryProcessProxy::send(T&& message, uint64_t destinationID, OptionSet<IPC::SendOption> sendOptions)
@@ -400,3 +401,6 @@ inline AuxiliaryProcessProxy::State AuxiliaryProcessProxy::state() const
 }
 
 } // namespace WebKit
+
+inline void retainAuxiliaryProcessProxy(WebKit::AuxiliaryProcessProxy* _Nonnull o) { WTF::ref(o); }
+inline void releaseAuxiliaryProcessProxy(WebKit::AuxiliaryProcessProxy* _Nonnull o) { WTF::deref(o); }
