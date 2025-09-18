@@ -28,10 +28,17 @@
 #include "APIObject.h"
 #include "MessageReceiver.h"
 #include "WebBackForwardListItem.h"
+#include "WebPageProxyMessageReceiverRegistration.h"
+#include "Shared/SessionState.h"
+#include "Shared/SwiftUtilities.h"
 #include <WebCore/BackForwardItemIdentifier.h>
 #include <wtf/Ref.h>
 #include <wtf/Vector.h>
 #include <wtf/WeakPtr.h>
+
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+#include <WebKit-Swift.h>
+#endif
 
 namespace API {
 class Array;
@@ -40,9 +47,17 @@ class Array;
 namespace WebKit {
 
 class WebPageProxy;
+class FrameState;
 
 struct BackForwardListState;
 struct WebBackForwardListCounts;
+
+// Plan of record for converting this to Swift
+// 1. Make everything private which can be (done)
+// 2. Make WebBackForwardListItem known to Swift as ref counted type (done)
+// 3. Make WebBackForwardListSwift as separate Swift type, moving data members into it, with forwarding functions for 100% of public methods (done)
+// 4. Tweak message receiver generator code so that it can dispatch messages within a Swift class
+// 5. By this time, the C++ class should be nothing more than forwarding functions - zap it and rename Swift class to fill its role
 
 class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>, public IPC::MessageReceiver {
 public:
@@ -103,6 +118,11 @@ public:
 private:
     explicit WebBackForwardList(WebPageProxy&);
 
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    WebBackForwardListSwift m_swiftBackForwardList;
+
+#else // ENABLE_BACKFORWARDLIST_SWIFT
+
     void addItem(Ref<WebBackForwardListItem>&&);
     void addChildItem(WebCore::FrameIdentifier, Ref<FrameState>&&);
     void didRemoveItem(WebBackForwardListItem&);
@@ -129,6 +149,8 @@ private:
     WeakPtr<WebPageProxy> m_page;
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
+#endif // ENABLE_BACKFORWARDLIST_SWIFT
+
 };
 
 } // namespace WebKit

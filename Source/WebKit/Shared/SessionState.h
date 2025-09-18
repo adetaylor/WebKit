@@ -141,6 +141,12 @@ private:
     );
 
     Vector<AtomString> m_documentState;
+
+#ifdef __swift__
+public:
+    // TODO figure out why it can't import this field and work around it better
+    std::optional<WebCore::FrameIdentifier> getFrameID() const { return frameID; }
+#endif
 }  SWIFT_SHARED_REFERENCE(refFrameState, derefFrameState);
 
 struct BackForwardListState {

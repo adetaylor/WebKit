@@ -25,6 +25,19 @@
 
 // Add project-level C++ header files here to be able to access them from within Swift sources.
 
+#pragma once
+
+#import "APIArray.h"
+#import "APIObject.h"
+#import "Shared/LoadedWebArchive.h"
+#import "Shared/SessionState.h"
+#import "Shared/SwiftUtilities.h"
+#import "Shared/WebBackForwardListCounts.h"
+#import "Shared/WebBackForwardListItem.h"
 #import "UIProcess/SwiftDemoLogoConfirmation.h"
+#import "UIProcess/WebPageProxy.h"
+#import "UIProcess/WebProcessProxy.h"
+#import "WebCore/DiagnosticLoggingClient.h"
 
 #import <wtf/Platform.h>
+#import <wtf/RefPtr.h>

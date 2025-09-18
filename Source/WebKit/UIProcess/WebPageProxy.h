@@ -452,6 +452,7 @@ using NodeIdentifier = ObjectIdentifier<NodeIdentifierType>;
 #include <WebCore/OpenID4VPRequest.h>
 #include <WebCore/ShareableBitmapHandle.h>
 #include <WebCore/TextIndicator.h>
+#include "APIArray.h"
 #include "APIHistoryClient.h"
 #include "APINavigationClient.h"
 #include "GamepadData.h"
@@ -1777,8 +1778,8 @@ public:
     WebBackForwardCache& backForwardCache() const;
     Ref<WebBackForwardCache> protectedBackForwardCache() const;
 
-    const WebPreferences& preferences() const { return m_preferences; }
-    WebPreferences& preferences() { return m_preferences; }
+    const WebPreferences& preferences() const SWIFT_RETURNS_INDEPENDENT_VALUE { return m_preferences; }
+    WebPreferences& preferences() SWIFT_RETURNS_INDEPENDENT_VALUE { return m_preferences; }
     Ref<WebPreferences> protectedPreferences() const;
 
     void setPreferences(WebPreferences&);
@@ -2065,7 +2066,8 @@ public:
     void setShouldDispatchFakeMouseMoveEvents(bool);
 
     // Diagnostic messages logging.
-    void logDiagnosticMessage(const String& message, const String& description, WebCore::ShouldSample);
+    // TODO: work out if the previous lack of name for the shouldSample parameter is why it couldn't be imported, and what we do about that
+    void logDiagnosticMessage(const String& message, const String& description, WebCore::ShouldSample shouldSample);
     void logDiagnosticMessageWithResult(const String& message, const String& description, uint32_t result, WebCore::ShouldSample);
     void logDiagnosticMessageWithValue(const String& message, const String& description, double value, unsigned significantFigures, WebCore::ShouldSample);
     void logDiagnosticMessageWithEnhancedPrivacy(const String& message, const String& description, WebCore::ShouldSample);

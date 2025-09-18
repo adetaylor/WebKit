@@ -448,9 +448,7 @@
 #include "ModelPresentationManagerProxy.h"
 #endif
 
-#if ENABLE(SWIFT_DEMO_URI_SCHEME)
 #include "WebKit-Swift.h"
-#endif
 
 #define MESSAGE_CHECK(process, assertion) MESSAGE_CHECK_BASE(assertion, process->connection())
 #define MESSAGE_CHECK_URL(process, url) MESSAGE_CHECK_BASE(checkURLReceivedFromCurrentOrPreviousWebProcess(process, url), process->connection())
