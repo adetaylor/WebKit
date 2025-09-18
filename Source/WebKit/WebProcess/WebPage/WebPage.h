@@ -137,6 +137,10 @@ OBJC_CLASS PDFSelection;
 OBJC_CLASS WKAccessibilityWebPageObject;
 #endif
 
+#ifdef __swift__
+#include "FrameTreeNodeData.h"
+#endif
+
 #define ENABLE_VIEWPORT_RESIZING PLATFORM(IOS_FAMILY)
 
 namespace WTF {
