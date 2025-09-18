@@ -141,6 +141,10 @@ OBJC_CLASS WKAccessibilityWebPageObject;
 #include "MonotonicObjectIdentifier.h"
 #endif
 
+#ifdef __swift__
+#include "FrameTreeNodeData.h"
+#endif
+
 #define ENABLE_VIEWPORT_RESIZING PLATFORM(IOS_FAMILY)
 
 namespace WTF {

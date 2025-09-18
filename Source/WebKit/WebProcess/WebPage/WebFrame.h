@@ -51,6 +51,10 @@
 #include <wtf/RetainPtr.h>
 #include <wtf/WeakPtr.h>
 
+#ifdef __swift__
+#include "FrameTreeNodeData.h"
+#endif
+
 namespace API {
 class Array;
 }
