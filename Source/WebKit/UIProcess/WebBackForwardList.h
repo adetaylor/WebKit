@@ -27,11 +27,29 @@
 
 #include "APIObject.h"
 #include "MessageReceiver.h"
+#include "WebBackForwardListCounts.h"
 #include "WebBackForwardListItem.h"
+#include "WebPageProxyMessageReceiverRegistration.h"
+#include "Shared/SessionState.h"
+#include "Shared/SwiftUtilities.h"
 #include <WebCore/BackForwardItemIdentifier.h>
 #include <wtf/Ref.h>
 #include <wtf/Vector.h>
 #include <wtf/WeakPtr.h>
+
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+// TODO work out why WebKit-Swift.h includes WebKit/WebKit.h and why that
+// triggers errors about deprecated WebFrame
+// It's from OSX.modulemap
+// TODO work out what the __bridge_transfer stuff is about
+#define AVOID_IMPORTING_LEGACY_WEBKIT_BOBBINS
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
+#include <WebKit-Swift.h>
+#pragma clang diagnostic pop
+#undef AVOID_IMPORTING_LEGACY_WEBKIT_BOBBINS
+#endif
 
 namespace API {
 class Array;
@@ -40,9 +58,17 @@ class Array;
 namespace WebKit {
 
 class WebPageProxy;
+class FrameState;
 
 struct BackForwardListState;
 struct WebBackForwardListCounts;
+
+// Plan of record for converting this to Swift
+// 1. Make everything private which can be (done)
+// 2. Make WebBackForwardListItem known to Swift as ref counted type (done)
+// 3. Make WebBackForwardListSwift as separate Swift type, moving data members into it, with forwarding functions for 100% of public methods (done)
+// 4. Tweak message receiver generator code so that it can dispatch messages within a Swift class
+// 5. By this time, the C++ class should be nothing more than forwarding functions - zap it and rename Swift class to fill its role
 
 class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>, public IPC::MessageReceiver {
 public:
@@ -103,6 +129,11 @@ public:
 private:
     explicit WebBackForwardList(WebPageProxy&);
 
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    WebBackForwardListSwift m_swiftBackForwardList;
+
+#else // ENABLE_BACKFORWARDLIST_SWIFT
+
     void addItem(Ref<WebBackForwardListItem>&&);
     void addChildItem(WebCore::FrameIdentifier, Ref<FrameState>&&);
     void didRemoveItem(WebBackForwardListItem&);
@@ -112,6 +143,7 @@ private:
     Ref<FrameState> completeFrameStateForNavigation(Ref<FrameState>&&);
 
     RefPtr<WebPageProxy> protectedPage();
+#endif
 
     // IPC messages
     void backForwardAddItem(IPC::Connection&, Ref<FrameState>&&);
@@ -126,9 +158,12 @@ private:
     void shouldGoToBackForwardListItem(WebCore::BackForwardItemIdentifier, bool inBackForwardCache, CompletionHandler<void(WebCore::ShouldGoToHistoryItem)>&&);
     void shouldGoToBackForwardListItemSync(WebCore::BackForwardItemIdentifier, CompletionHandler<void(WebCore::ShouldGoToHistoryItem)>&&);
 
+#ifndef ENABLE_BACKFORWARDLIST_SWIFT
     WeakPtr<WebPageProxy> m_page;
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
+#endif // ENABLE_BACKFORWARDLIST_SWIFT
+
 };
 
 } // namespace WebKit
