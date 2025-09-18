@@ -33,6 +33,10 @@
 #include <wtf/StdLibExtras.h>
 #include <wtf/TypeCasts.h>
 
+#ifdef __swift__
+#include <swift/bridging>
+#endif
+
 #if ASAN_ENABLED
 extern "C" void __asan_poison_memory_region(void const volatile *addr, size_t size);
 extern "C" void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
@@ -154,6 +158,12 @@ public:
 #endif
         return result;
     }
+
+#ifdef __swift__
+    T* _Nonnull take() const SWIFT_RETURNS_RETAINED SWIFT_RETURNS_INDEPENDENT_VALUE {
+        return &copyRef().leakRef();
+    }
+#endif
 
 private:
     friend Ref adoptRef<T>(T&);

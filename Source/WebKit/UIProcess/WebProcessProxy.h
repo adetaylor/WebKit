@@ -52,6 +52,7 @@
 #include <WebCore/Site.h>
 #include <WebCore/UserGestureTokenIdentifier.h>
 #include <pal/SessionID.h>
+#include <swift/bridging>
 #include <wtf/Expected.h>
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
@@ -83,6 +84,13 @@
 
 #if ENABLE(REMOTE_INSPECTOR) && PLATFORM(COCOA)
 #include "ServiceWorkerDebuggableProxy.h"
+#endif
+
+#ifdef __swift__
+#include <WebsiteData.h>
+#include <WebCompiledContentRuleListData.h>
+#include <WebPushMessage.h>
+#include <WebPermissionControllerProxy.h>
 #endif
 
 namespace API {
@@ -231,7 +239,8 @@ public:
     void enableRemoteWorkers(RemoteWorkerType, const WebUserContentControllerProxy&);
     void disableRemoteWorkers(OptionSet<RemoteWorkerType>);
 
-    WebsiteDataStore* _Nonnull websiteDataStore() const { ASSERT(m_websiteDataStore); return m_websiteDataStore.get(); }
+    // TODO is this really independent given ref count gap?
+    WebsiteDataStore* _Nonnull websiteDataStore() const SWIFT_RETURNS_INDEPENDENT_VALUE { ASSERT(m_websiteDataStore); return m_websiteDataStore.get(); }
     RefPtr<WebsiteDataStore> protectedWebsiteDataStore() const;
     void setWebsiteDataStore(WebsiteDataStore&);
     
@@ -908,11 +917,14 @@ private:
 
     bool m_didReceiveLogsDuringLaunchForTesting { false };
 #endif // ENABLE(LOGD_BLOCKING_IN_WEBCONTENT)
-};
+} SWIFT_SHARED_REFERENCE(retainWebProcessProxy, releaseWebProcessProxy);
 
 WTF::TextStream& operator<<(WTF::TextStream&, const WebProcessProxy&);
 
 } // namespace WebKit
+
+inline void retainWebProcessProxy(WebKit::WebProcessProxy* _Nonnull o) { WTF::ref(o); }
+inline void releaseWebProcessProxy(WebKit::WebProcessProxy* _Nonnull o) { WTF::deref(o); }
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebProcessProxy)
 static bool isType(const WebKit::AuxiliaryProcessProxy& process) { return process.type() == WebKit::AuxiliaryProcessProxy::Type::WebContent; }

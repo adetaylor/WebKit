@@ -2076,7 +2076,8 @@ public:
     void setShouldDispatchFakeMouseMoveEvents(bool);
 
     // Diagnostic messages logging.
-    void logDiagnosticMessage(const String& message, const String& description, WebCore::ShouldSample);
+    // TODO: work out if the previous lack of name for the shouldSample parameter is why it couldn't be imported, and what we do about that
+    void logDiagnosticMessage(const String& message, const String& description, WebCore::ShouldSample shouldSample);
     void logDiagnosticMessageWithResult(const String& message, const String& description, uint32_t result, WebCore::ShouldSample);
     void logDiagnosticMessageWithValue(const String& message, const String& description, double value, unsigned significantFigures, WebCore::ShouldSample);
     void logDiagnosticMessageWithEnhancedPrivacy(const String& message, const String& description, WebCore::ShouldSample);

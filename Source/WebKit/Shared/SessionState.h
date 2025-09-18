@@ -166,4 +166,3 @@ inline void derefFrameState(WebKit::FrameState* obj)
 {
     WTF::deref(obj);
 }
-

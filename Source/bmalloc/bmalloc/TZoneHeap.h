@@ -27,6 +27,12 @@
 
 #include "BPlatform.h"
 
+#ifdef __swift__
+#define SWIFT_NONNULL _Nonnull
+#else
+#define SWIFT_NONNULL
+#endif
+
 #if BUSE(TZONE)
 
 #if !BUSE(LIBPAS)

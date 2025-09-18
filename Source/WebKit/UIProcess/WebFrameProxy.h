@@ -35,6 +35,7 @@
 #include <WebCore/PageIdentifier.h>
 #include <WebCore/ReferrerPolicy.h>
 #include <WebCore/ScriptExecutionContextIdentifier.h>
+#include <swift/bridging>
 #include <wtf/CompletionHandler.h>
 #include <wtf/Forward.h>
 #include <wtf/ListHashSet.h>
@@ -318,9 +319,12 @@ private:
     WebCore::SandboxFlags m_effectiveSandboxFlags;
     WebCore::ReferrerPolicy m_effectiveReferrerPolicy { WebCore::ReferrerPolicy::EmptyString };
     WebCore::ScrollbarMode m_scrollingMode;
-};
+} SWIFT_SHARED_REFERENCE(retainWebFrameProxy, releaseWebFrameProxy);
 
 } // namespace WebKit
+
+inline void retainWebFrameProxy(WebKit::WebFrameProxy* o) { WTF::ref(o); }
+inline void releaseWebFrameProxy(WebKit::WebFrameProxy* o) { WTF::deref(o); }
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebFrameProxy)
     static bool isType(const API::Object& object) { return object.type() == API::Object::Type::Frame; }

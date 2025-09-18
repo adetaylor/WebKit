@@ -34,6 +34,13 @@
 #include <wtf/WeakPtr.h>
 #include <wtf/text/WTFString.h>
 
+#include <swift/bridging>
+
+#ifdef __swift__
+#include <WebCore/FrameIdentifier.h>
+#include "WebBackForwardCacheEntry.h"
+#endif
+
 namespace WebKit {
 
 class BrowsingContextGroup;
@@ -74,6 +81,7 @@ public:
     bool itemIsInSameDocument(const WebBackForwardListItem&) const;
     bool itemIsClone(const WebBackForwardListItem&);
 
+    void setNullSnapshot(); // available on all platforms so we can call from Swift code which is unaware of platform macros
 #if PLATFORM(COCOA) || PLATFORM(GTK)
     ViewSnapshot* _Nullable snapshot() const { return m_snapshot.get(); }
     void setSnapshot(RefPtr<ViewSnapshot>&& snapshot) { m_snapshot = WTFMove(snapshot); }
@@ -85,6 +93,7 @@ public:
     RefPtr<WebBackForwardCacheEntry> protectedBackForwardCacheEntry() const;
 
     SuspendedPageProxy* _Nullable suspendedPage() const;
+    bool hasSuspendedPage() const { return suspendedPage(); }
 
     std::optional<WebCore::FrameIdentifier> navigatedFrameID() const { return m_navigatedFrameID; }
 
@@ -125,11 +134,23 @@ private:
     RefPtr<ViewSnapshot> m_snapshot;
 #endif
     bool m_isRemoteFrameNavigation { false };
-};
+} SWIFT_SHARED_REFERENCE(refBackForwardListItem, derefBackForwardListItem);
 
 typedef Vector<Ref<WebBackForwardListItem>> BackForwardListItemVector;
 
 } // namespace WebKit
+
+
+
+inline void refBackForwardListItem(WebKit::WebBackForwardListItem* _Nonnull obj)
+{
+    WTF::ref(obj);
+}
+
+inline void derefBackForwardListItem(WebKit::WebBackForwardListItem* _Nonnull obj)
+{
+    WTF::deref(obj);
+}
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardListItem)
 static bool isType(const API::Object& object) { return object.type() == API::Object::Type::BackForwardListItem; }
