@@ -54,6 +54,10 @@
 #include <wtf/OSObjectPtr.h>
 #endif
 
+#ifdef __swift__
+#include "APICustomProtocolManagerClient.h"
+#endif
+
 namespace IPC {
 class FormDataReference;
 }
