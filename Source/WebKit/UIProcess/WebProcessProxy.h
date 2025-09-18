@@ -62,6 +62,7 @@
 #include <wtf/RefPtr.h>
 #include <wtf/RobinHoodHashSet.h>
 #include <wtf/Seconds.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/UUID.h>
 #include <wtf/WeakHashMap.h>
@@ -930,11 +931,14 @@ private:
 
     bool m_didReceiveLogsDuringLaunchForTesting { false };
 #endif // ENABLE(LOGD_BLOCKING_IN_WEBCONTENT)
-};
+} SWIFT_SHARED_REFERENCE(retainWebProcessProxy, releaseWebProcessProxy);
 
 WTF::TextStream& operator<<(WTF::TextStream&, const WebProcessProxy&);
 
 } // namespace WebKit
+
+inline void retainWebProcessProxy(WebKit::WebProcessProxy* _Nonnull o) { WTF::ref(o); }
+inline void releaseWebProcessProxy(WebKit::WebProcessProxy* _Nonnull o) { WTF::deref(o); }
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebProcessProxy)
 static bool isType(const WebKit::AuxiliaryProcessProxy& process) { return process.type() == WebKit::AuxiliaryProcessProxy::Type::WebContent; }
