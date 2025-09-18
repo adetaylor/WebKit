@@ -141,11 +141,27 @@ private:
     );
 
     Vector<AtomString> m_documentState;
+
+#ifdef __swift__
+public:
+    // TODO figure out why it can't import this field and work around it better
+    bool frameIDIsSet() const { return frameID.has_value(); }
+    WebCore::FrameIdentifier getFrameID() const { return *frameID; }
+#endif
 }  SWIFT_SHARED_REFERENCE(refFrameState, derefFrameState);
 
 struct BackForwardListState {
     Vector<Ref<FrameState>> items;
     std::optional<uint32_t> currentIndex;
+
+#ifdef __swift__
+    // TODO figure out why Swift can't cope with ther std::optional either as a field
+    // or as parameters/return type
+    bool indexIsSet() const { return currentIndex.has_value(); }
+    uint32_t getCurrentIndex() const { return *currentIndex; }
+    void setCurrentIndex(uint32_t currentIndex) { this->currentIndex = currentIndex; }
+    void setCurrentIndexNone() { this->currentIndex = std::nullopt; }
+#endif
 };
 
 struct SessionState {

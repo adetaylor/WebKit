@@ -27,6 +27,12 @@
 
 #include "BPlatform.h"
 
+#ifdef __swift__
+#define SWIFT_NONNULL _Nonnull
+#else
+#define SWIFT_NONNULL
+#endif
+
 #if BUSE(TZONE)
 
 #if !BUSE(LIBPAS)
@@ -62,7 +68,7 @@ enum class TZoneMallocFallback : uint8_t {
 
 extern BEXPORT TZoneMallocFallback tzoneMallocFallback;
 
-using HeapRef = void*;
+using HeapRef = void* SWIFT_NONNULL;
 
 static constexpr size_t sizeClassFor(size_t size)
 {
@@ -121,7 +127,7 @@ struct SizeAndAlignment {
 };
 
 struct TZoneSpecification {
-    HeapRef* addressOfHeapRef;
+    HeapRef* SWIFT_NONNULL addressOfHeapRef;
     unsigned size;
     CompactAllocationMode allocationMode;
     SizeAndAlignment::Value sizeAndAlignment;
@@ -185,13 +191,14 @@ inline constexpr CompactAllocationMode compactAllocationMode()
 
 BEXPORT void determineTZoneMallocFallback();
 
-BEXPORT void* tzoneAllocateCompact(HeapRef);
-BEXPORT void* tzoneAllocateNonCompact(HeapRef);
-BEXPORT void* tzoneAllocateCompactSlow(size_t requestedSize, const TZoneSpecification&);
-BEXPORT void* tzoneAllocateNonCompactSlow(size_t requestedSize, const TZoneSpecification&);
+BEXPORT void* SWIFT_NONNULL tzoneAllocateCompact(HeapRef);
+BEXPORT void* SWIFT_NONNULL tzoneAllocateNonCompact(HeapRef);
+BEXPORT void* SWIFT_NONNULL tzoneAllocateCompactSlow(size_t requestedSize, const TZoneSpecification&);
+BEXPORT void* SWIFT_NONNULL tzoneAllocateNonCompactSlow(size_t requestedSize, const TZoneSpecification&);
 
-BEXPORT void tzoneFree(void*);
+BEXPORT void tzoneFree(void* SWIFT_NONNULL);
 
+// TODO confirm these never return null on OOM
 #define MAKE_BTZONE_MALLOCED_COMMON(_type, _compactMode, _exportMacro) \
 public: \
     using HeapRef = ::bmalloc::api::HeapRef; \
@@ -203,19 +210,19 @@ private: \
     static _exportMacro const TZoneSpecification s_heapSpec; \
     \
 public: \
-    BINLINE void* operator new(size_t, void* p) { return p; } \
-    BINLINE void* operator new[](size_t, void* p) { return p; } \
+    BINLINE void* SWIFT_NONNULL operator new(size_t, void* SWIFT_NONNULL p) { return p; } \
+    BINLINE void* SWIFT_NONNULL operator new[](size_t, void* SWIFT_NONNULL p) { return p; } \
     \
-    void* operator new[](size_t size) = delete; \
-    void operator delete[](void* p) = delete; \
+    void* SWIFT_NONNULL operator new[](size_t size) = delete; \
+    void operator delete[](void* SWIFT_NONNULL p) = delete; \
     \
-    BINLINE void* operator new(size_t, NotNullTag, void* location) \
+    BINLINE void* SWIFT_NONNULL operator new(size_t, NotNullTag, void* SWIFT_NONNULL location) \
     { \
         ASSERT(location); \
         return location; \
     } \
     \
-    void* operator new(size_t size) \
+    void* SWIFT_NONNULL operator new(size_t size) \
     { \
         static const TZoneSpecification s_heapSpec = { &s_heapRef, sizeof(_type), CompactAllocationMode:: _compactMode, SizeAndAlignment::encode<_type>() TZONE_SPEC_NAME_ARG(#_type) TZONE_DYNAMIC_COMPACTION_ARG(_type) }; \
         \
@@ -229,12 +236,12 @@ public: \
         return ::bmalloc::api::tzoneAllocate ## _compactMode(s_heapRef); \
     } \
     \
-    BINLINE void operator delete(void* p) \
+    BINLINE void operator delete(void* SWIFT_NONNULL p) \
     { \
         ::bmalloc::api::tzoneFree(p); \
     } \
     \
-    BINLINE static void freeAfterDestruction(void* p) \
+    BINLINE static void freeAfterDestruction(void* SWIFT_NONNULL p) \
     { \
         ::bmalloc::api::tzoneFree(p); \
     } \
@@ -243,11 +250,11 @@ public: \
 
 #define MAKE_BTZONE_MALLOCED_COMMON_NON_TEMPLATE(_type, _compactMode, _exportMacro) \
 private: \
-    static _exportMacro BNO_INLINE void* operatorNewSlow(size_t);
+    static _exportMacro BNO_INLINE void* SWIFT_NONNULL operatorNewSlow(size_t);
 
 #define MAKE_BTZONE_MALLOCED_COMMON_TEMPLATE(_type, _compactMode, _exportMacro) \
 private: \
-    static _exportMacro BNO_INLINE void* operatorNewSlow(size_t size) \
+    static _exportMacro BNO_INLINE void* SWIFT_NONNULL operatorNewSlow(size_t size) \
     { \
         static const TZoneSpecification s_heapSpec = { &s_heapRef, sizeof(_type), ::bmalloc::api::compactAllocationMode<_type>(), SizeAndAlignment::encode<_type>() TZONE_SPEC_NAME_ARG(#_type) TZONE_DYNAMIC_COMPACTION_ARG(_type) }; \
         if constexpr (::bmalloc::api::compactAllocationMode<_type>() == CompactAllocationMode::Compact) \
