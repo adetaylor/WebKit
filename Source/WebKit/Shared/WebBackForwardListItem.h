@@ -31,6 +31,7 @@
 #include "WebsiteDataStore.h"
 #include <wtf/CheckedPtr.h>
 #include <wtf/Ref.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 #include <wtf/text/WTFString.h>
 
@@ -125,11 +126,23 @@ private:
     RefPtr<ViewSnapshot> m_snapshot;
 #endif
     bool m_isRemoteFrameNavigation { false };
-};
+} SWIFT_SHARED_REFERENCE(refBackForwardListItem, derefBackForwardListItem);
 
 typedef Vector<Ref<WebBackForwardListItem>> BackForwardListItemVector;
 
 } // namespace WebKit
+
+
+
+inline void refBackForwardListItem(WebKit::WebBackForwardListItem* _Nonnull obj)
+{
+    WTF::ref(obj);
+}
+
+inline void derefBackForwardListItem(WebKit::WebBackForwardListItem* _Nonnull obj)
+{
+    WTF::deref(obj);
+}
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardListItem)
 static bool isType(const API::Object& object) { return object.type() == API::Object::Type::BackForwardListItem; }

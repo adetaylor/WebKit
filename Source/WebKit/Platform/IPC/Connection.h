@@ -56,8 +56,11 @@
 #include <wtf/ObjectIdentifier.h>
 #include <wtf/OptionSet.h>
 #include <wtf/Ref.h>
+#include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
+#include <wtf/RetainReleaseSwift.h>
 #include <wtf/RunLoop.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadAssertions.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/ThreadSafetyAnalysis.h>
@@ -814,7 +817,7 @@ private:
     HANDLE m_connectionPipe { INVALID_HANDLE_VALUE };
 #endif
     friend class StreamClientConnection;
-};
+} SWIFT_SHARED_REFERENCE(connectionRef, connectionDeref);
 
 template<typename T>
 Error Connection::send(T&& message, uint64_t destinationID, OptionSet<SendOption> sendOptions, std::optional<Thread::QOS> qos)
@@ -1118,3 +1121,11 @@ inline void markCurrentlyDispatchedMessageAsInvalid(const RefPtr<Connection>& co
 
 
 } // namespace IPC
+
+inline void connectionRef(IPC::Connection* obj) {
+    WTF::ref(obj);
+}
+
+inline void connectionDeref(IPC::Connection* obj) {
+    WTF::deref(obj);
+}
