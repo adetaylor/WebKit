@@ -90,6 +90,13 @@
 #include "WasmDebuggerDebuggable.h"
 #endif
 
+#ifdef __swift__
+#include <WebsiteData.h>
+#include <WebCompiledContentRuleListData.h>
+#include <WebPushMessage.h>
+#include <WebPermissionControllerProxy.h>
+#endif
+
 namespace API {
 class Navigation;
 class PageConfiguration;
