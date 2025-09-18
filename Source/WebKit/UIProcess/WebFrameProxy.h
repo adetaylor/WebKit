@@ -46,6 +46,10 @@
 #include <WebCore/ContentFilterUnblockHandler.h>
 #endif
 
+#ifdef __swift__
+#include "FrameTreeNodeData.h"
+#endif
+
 namespace API {
 class Data;
 class Navigation;
