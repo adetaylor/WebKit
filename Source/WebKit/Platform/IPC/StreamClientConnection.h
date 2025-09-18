@@ -293,6 +293,7 @@ Error StreamClientConnection::waitForAsyncReplyAndDispatchImmediately(AsyncReply
     return m_connection->waitForAsyncReplyAndDispatchImmediately<T>(replyID, timeout);
 }
 
+#ifndef __swift__
 template<typename T>
 std::optional<StreamClientConnection::SendSyncResult<T>> StreamClientConnection::trySendSyncStream(T& message, Timeout timeout, std::span<uint8_t> span)
 {
@@ -342,6 +343,7 @@ std::optional<StreamClientConnection::SendSyncResult<T>> StreamClientConnection:
         return { Error::FailedToDecodeReplyArguments };
     return { { WTFMove(decoder), WTFMove(*replyArguments) } };
 }
+#endif
 
 inline Error StreamClientConnection::trySendDestinationIDIfNeeded(uint64_t destinationID, Timeout timeout)
 {
