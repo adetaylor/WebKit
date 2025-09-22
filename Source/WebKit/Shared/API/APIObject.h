@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <swift/bridging>
 #include <wtf/HashTable.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/Platform.h>
@@ -283,7 +284,7 @@ private:
 
     CFTypeRef m_wrapper;
 #endif // DELEGATE_REF_COUNTING_TO_COCOA
-};
+} SWIFT_SHARED_REFERENCE(objectRetain, objectRelease);
 
 template <Object::Type ArgumentType>
 class ObjectImpl : public Object {
@@ -316,6 +317,19 @@ inline API::Object* Object::unwrap(void* object)
 #endif
 
 } // namespace API
+
+
+void objectRetain(API::Object* o);
+
+void objectRelease(API::Object* o);
+
+// TODO define these somewhere, something like this
+// #if DELEGATE_REF_COUNTING_TO_COCOA
+//     [o.m_wrapper release];
+// #else
+//     WTF::deref(o);
+// #endif
+
 
 #undef DELEGATE_REF_COUNTING_TO_COCOA
 

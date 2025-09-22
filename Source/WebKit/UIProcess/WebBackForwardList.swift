@@ -401,6 +401,9 @@ public class WebBackForwardListSwift {
         return entries.count - (currentIndex + 1);
     }
 
+    // TODO file a radar about the diagnostics here if API.Array is not copyable
+    // and is not SWIFT_SHARED_REFERENCE: the diagnostics are simply
+    // 'error: 'Array' is not a member type of enum '__ObjC.API''
     @_expose(Cxx)
     @_spi(Internal)
     public func backListAsAPIArrayWithLimit(limit: UInt) -> API.Array {
@@ -570,7 +573,7 @@ public class WebBackForwardListSwift {
             // FIXME: navigatedFrameID will always be the main frame ID, causing the restored session state to be sent to an incorrect process when going back or forward with site isolation enabled.
             let navigatedFrameID = stateCopy.frameID;
             // TODO ensure items not copied unduly
-            let item = WebKit.BackForwardFrameItem.create(stateCopy, page.identifier(), navigatedFrameID);
+            let item = WebKit.WebBackForwardListFrameItem.create(stateCopy, page.identifier(), navigatedFrameID);
             entries.append(item);
         }
 

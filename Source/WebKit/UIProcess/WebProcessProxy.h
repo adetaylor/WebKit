@@ -52,6 +52,7 @@
 #include <WebCore/Site.h>
 #include <WebCore/UserGestureTokenIdentifier.h>
 #include <pal/SessionID.h>
+#include <swift/bridging>
 #include <wtf/Expected.h>
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
@@ -83,6 +84,13 @@
 
 #if ENABLE(REMOTE_INSPECTOR) && PLATFORM(COCOA)
 #include "ServiceWorkerDebuggableProxy.h"
+#endif
+
+#ifdef __swift__
+#include <WebsiteData.h>
+#include <WebCompiledContentRuleListData.h>
+#include <WebPushMessage.h>
+#include <WebPermissionControllerProxy.h>
 #endif
 
 namespace API {
@@ -874,11 +882,14 @@ private:
 #endif
 
     HashMap<String, SandboxExtension::Handle> m_fileSandboxExtensions;
-};
+} SWIFT_SHARED_REFERENCE(retainWebProcessProxy, releaseWebProcessProxy);
 
 WTF::TextStream& operator<<(WTF::TextStream&, const WebProcessProxy&);
 
 } // namespace WebKit
+
+inline void retainWebProcessProxy(WebKit::WebProcessProxy* o) { WTF::ref(o); }
+inline void releaseWebProcessProxy(WebKit::WebProcessProxy* o) { WTF::deref(o); }
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebProcessProxy)
 static bool isType(const WebKit::AuxiliaryProcessProxy& process) { return process.type() == WebKit::AuxiliaryProcessProxy::Type::WebContent; }

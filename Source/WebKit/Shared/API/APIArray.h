@@ -26,6 +26,7 @@
 #pragma once
 
 #include "APIObject.h"
+#include <swift/bridging>
 #include <wtf/Forward.h>
 #include <wtf/IteratorAdaptors.h>
 #include <wtf/IteratorRange.h>
@@ -105,8 +106,13 @@ private:
     }
 
     Vector<RefPtr<Object>> m_elements;
-};
+} SWIFT_SHARED_REFERENCE(arrayRetain, arrayRetain);
 
 } // namespace API
+
+
+void arrayRetain(API::Array* o);
+
+void arrayRetain(API::Array* o);
 
 SPECIALIZE_TYPE_TRAITS_API_OBJECT(Array);
