@@ -478,7 +478,10 @@ public class WebBackForwardListSwift {
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p clear (has %zu of them)", this, m_entries.count); // TODO
 
         let size = entries.count;
-        guard let page && size > 1 else {
+        guard let page else {
+            return;
+        }
+        guard size > 1 else {
             return;
         }
 
