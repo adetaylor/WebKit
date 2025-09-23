@@ -31,6 +31,7 @@
 #import <Shared/WebBackForwardListItem.h>
 #import <UIProcess/WebBackForwardCache.h>
 #import <UIProcess/WebPageProxy.h>
+#import <UIProcess/WebPageProxyIdentifier.h>
 #import <APIArray.h>
 
 // Types which Swift needs
@@ -119,4 +120,8 @@ inline WebKit::WebBackForwardCache* _Nonnull derefRefWebBackForwardCache(const W
 
 inline WebKit::WebProcessProxy* _Nonnull derefRefWebProcessProxy(const WTF::Ref<WebKit::WebProcessProxy>& ref) {
     return &ref.get();
+}
+
+inline bool webPageProxyIdentifiersEquate(const WebKit::WebPageProxyIdentifier& lhs, const WebKit::WebPageProxyIdentifier& rhs) {
+    return lhs == rhs;
 }

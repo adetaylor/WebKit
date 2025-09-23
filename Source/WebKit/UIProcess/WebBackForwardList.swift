@@ -50,6 +50,14 @@ enum Direction {
     case Forward
 }
 
+// TODO see if this can be achieved using SWIFT_CONFORMS_TO_PROTOCOL
+extension WebKit.WebPageProxyIdentifier: Equatable {
+    @_spi(Internal)
+    static public func == (lhs: WebKit.WebPageProxyIdentifier, rhs: WebKit.WebPageProxyIdentifier) -> Bool {
+        return webPageProxyIdentifiersEquate(lhs, rhs);
+    }
+}
+
 // TODO make efficient
 // TODO investigate the extent to which we can make this generic
 func toWTFVectorAPIObject(list: [API.Object]) -> VectorAPIObject {
@@ -116,10 +124,8 @@ public class WebBackForwardListSwift {
         // TODO rename to something less daft
         let definitePage = getPageWeakPtr(page)!;
 
-        if definitePage {
-            for item in entries {
-                didRemoveItem(item: item);
-            }
+        for item in entries {
+            didRemoveItem(item: item);
         }
 
         page.clear();
