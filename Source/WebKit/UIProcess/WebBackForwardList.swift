@@ -577,7 +577,7 @@ public class WebBackForwardListSwift {
             // FIXME: navigatedFrameID will always be the main frame ID, causing the restored session state to be sent to an incorrect process when going back or forward with site isolation enabled.
             let navigatedFrameID = stateCopy.frameID;
             // TODO ensure items not copied unduly
-            let item = WebKit.WebBackForwardListFrameItem.create(stateCopy, page.identifier(), consuming: navigatedFrameID);
+            let item = WebKit.WebBackForwardListItem.create(stateCopy, page.identifier(), consuming: navigatedFrameID);
             entries.append(item);
         }
 
@@ -603,6 +603,9 @@ public class WebBackForwardListSwift {
 
     func didRemoveItem(item: WebBackForwardListItem) {
         item.wasRemovedFromBackForwardList();
+        guard let page else {
+            assert(false);
+        }
         page.backForwardRemovedItem(item.identifier());
         // TODO expose platform macros to Swift to remove the following call on most platforms
         item.setNullSnapshot();
