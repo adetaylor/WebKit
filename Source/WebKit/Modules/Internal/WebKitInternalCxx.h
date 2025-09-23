@@ -41,6 +41,7 @@
 #import "UIProcess/WebPageProxy.h"
 #import "UIProcess/WebProcessProxy.h"
 #import "WebCore/DiagnosticLoggingClient.h"
+#import "WebCore/DiagnosticLoggingKeys.h"
 
 #import <wtf/Platform.h>
 #import <wtf/RefPtr.h>

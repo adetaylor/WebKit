@@ -122,7 +122,7 @@ public class WebBackForwardListSwift {
             }
         }
 
-        definitePage.clear();
+        page.clear();
         entries.removeAll();
         currentIndex = nil;
     }
@@ -424,9 +424,7 @@ public class WebBackForwardListSwift {
         }
         assert(backListSize >= size);
         let startIndex = backListSize - size;
-        
-        // TODO write the C++ helper here - toAPI which converts a RefPtr<T> to a
-        // API::Object.
+
         return toWTFVectorAPIObject(list: entries[startIndex..<startIndex + size].map { toAPIObject($0) })
     }
 
@@ -466,6 +464,9 @@ public class WebBackForwardListSwift {
         // TODO make more efficient
         let entriesCopy = entries;
         entries.removeAll();
+        guard let page = getPageWeakPtr(page) else {
+            return; // TODO consider asserting instead; whatever the C++ would have done
+        }
         page.didChangeBackForwardList(Optional.none, consuming: entriesCopy);
     }
 
@@ -477,7 +478,7 @@ public class WebBackForwardListSwift {
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p clear (has %zu of them)", this, m_entries.count); // TODO
 
         let size = entries.count;
-        guard page && size > 1 else {
+        guard let page && size > 1 else {
             return;
         }
 
@@ -520,7 +521,7 @@ public class WebBackForwardListSwift {
     public func backForwardListState(filter: ((WebBackForwardListItem) -> Bool)?) -> BackForwardListState {
         assertStateOk();
 
-        var backForwardListState = BackForwardListState;
+        var backForwardListState = BackForwardListState.init();
         if let currentIndex = currentIndex {
             backForwardListState.currentIndex = currentIndex;
         }
@@ -539,10 +540,10 @@ public class WebBackForwardListSwift {
             }
         }
 
-        if backForwardListState.items.isEmpty {
+        if backForwardListState.items.isEmpty() {
             backForwardListState.currentIndex = nil;
-        } else if backForwardListState.items.count <= backForwardListState.currentIndex! {
-            backForwardListState.currentIndex = backForwardListState.items.count-1;
+        } else if backForwardListState.items.size() <= backForwardListState.currentIndex! {
+            backForwardListState.currentIndex = backForwardListState.items.size()-1;
         }
         return backForwardListState;
     }
@@ -568,12 +569,12 @@ public class WebBackForwardListSwift {
         // TODO not as efficient as C++ we're replacing
         for item in backForwardListState.items {
             let stateCopy = item.state.copy(); // TODO may not be necessary depending on how we unpack from Refs.
-            setBackForwardItemIdentifiers(frameState: stateCopy, itemID: BackForwardFrameItemIdentifier.generate());
+            setBackForwardItemIdentifiers(frameState: stateCopy, itemID: BackForwardItemIdentifier.generate());
             currentIndex = entries.isEmpty ? nil : entries.count - 1;
             // FIXME: navigatedFrameID will always be the main frame ID, causing the restored session state to be sent to an incorrect process when going back or forward with site isolation enabled.
             let navigatedFrameID = stateCopy.frameID;
             // TODO ensure items not copied unduly
-            let item = WebKit.WebBackForwardListFrameItem.create(stateCopy, page.identifier(), navigatedFrameID);
+            let item = WebKit.WebBackForwardListFrameItem.create(stateCopy, page.identifier(), consuming: navigatedFrameID);
             entries.append(item);
         }
 
@@ -649,10 +650,11 @@ public class WebBackForwardListSwift {
         let originalItem = item;
         while item.wasCreatedByJSWithoutUserInteraction() {
             itemIndex += delta;
-            item = itemAtIndex(index: itemIndex);
-            if item == nil {
+            let thisItem = itemAtIndex(index: itemIndex);
+            guard let thisItem else {
                 return originalItem;
             }
+            item = thisItem;
             // RELEASE_LOG(Loading, "UI Navigation is skipping a WebBackForwardListItem because it was added by JavaScript without user interaction"); // TODO
         }
 

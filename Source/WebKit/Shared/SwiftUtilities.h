@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include "Shared/WebBackForwardListItem.h"
 #import <wtf/WeakPtr.h>
 #import <Shared/SessionState.h>
 #import <Shared/WebBackForwardListFrameItem.h>
@@ -45,6 +46,10 @@ Vector<RefPtr<API::Object>> toAPIObjectVector(const Vector<Ref<T>>& itemsVector)
     return itemsVector.map([](auto& menuItem) -> RefPtr<API::Object> {
         return menuItem.ptr();
     });
+}
+
+inline API::Object* _Nonnull toAPIObject(WebKit::WebBackForwardListItem* _Nonnull item) {
+    return item;
 }
 
 // TODO: figure out if there's a radar for the inability (?) to call operator bool()
@@ -75,6 +80,7 @@ inline bool pageWeakPtrIsOccupied(const WTF::WeakPtr<WebKit::WebPageProxy>& ptr)
 
 // inline auto getPageWeakPtr = &getWeakPtr<WebKit::WebPageProxy>;
 
+// TODO this seems to give a WebPageProxy in Swift, not a WebPageProxy?. Why?
 inline WebKit::WebPageProxy* _Nullable getPageWeakPtr(const WTF::WeakPtr<WebKit::WebPageProxy>& ptr) {
     // TODO think about if there's a window between the creation of a T* and its
     // Swift retain, during which its refcount could drop to 0 and cause UaF
