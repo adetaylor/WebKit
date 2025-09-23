@@ -526,7 +526,7 @@ public class WebBackForwardListSwift {
 
         var backForwardListState = BackForwardListState.init();
         if let currentIndex = currentIndex {
-            backForwardListState.currentIndex = currentIndex;
+            backForwardListState.setCurrentIndex(currentIndex);
         }
 
         entries.enumerate().forEach { i, entry in

@@ -152,6 +152,12 @@ public:
 struct BackForwardListState {
     Vector<Ref<FrameState>> items;
     std::optional<uint32_t> currentIndex;
+
+#ifdef __swift__
+    // TODO figure out why it can't import this field and work around it better
+    std::optional<uint32_t> getCurrentIndex() const { return currentIndex; }
+    void setCurrentIndex(std::optional<uint32_t> currentIndex) { this->currentIndex = currentIndex; }
+#endif
 };
 
 struct SessionState {
