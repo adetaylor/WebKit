@@ -62,7 +62,7 @@ enum class TZoneMallocFallback : uint8_t {
 
 extern BEXPORT TZoneMallocFallback tzoneMallocFallback;
 
-using HeapRef = void*;
+using HeapRef = void* _Nonnull;
 
 static constexpr size_t sizeClassFor(size_t size)
 {
@@ -121,7 +121,7 @@ struct SizeAndAlignment {
 };
 
 struct TZoneSpecification {
-    HeapRef* addressOfHeapRef;
+    HeapRef* _Nonnull addressOfHeapRef;
     unsigned size;
     CompactAllocationMode allocationMode;
     SizeAndAlignment::Value sizeAndAlignment;
@@ -185,13 +185,14 @@ inline constexpr CompactAllocationMode compactAllocationMode()
 
 BEXPORT void determineTZoneMallocFallback();
 
-BEXPORT void* tzoneAllocateCompact(HeapRef);
-BEXPORT void* tzoneAllocateNonCompact(HeapRef);
-BEXPORT void* tzoneAllocateCompactSlow(size_t requestedSize, const TZoneSpecification&);
-BEXPORT void* tzoneAllocateNonCompactSlow(size_t requestedSize, const TZoneSpecification&);
+BEXPORT void* _Nonnull tzoneAllocateCompact(HeapRef);
+BEXPORT void* _Nonnull tzoneAllocateNonCompact(HeapRef);
+BEXPORT void* _Nonnull tzoneAllocateCompactSlow(size_t requestedSize, const TZoneSpecification&);
+BEXPORT void* _Nonnull tzoneAllocateNonCompactSlow(size_t requestedSize, const TZoneSpecification&);
 
-BEXPORT void tzoneFree(void*);
+BEXPORT void tzoneFree(void* _Nonnull);
 
+// TODO confirm these never return null on OOM
 #define MAKE_BTZONE_MALLOCED_COMMON(_type, _compactMode, _exportMacro) \
 public: \
     using HeapRef = ::bmalloc::api::HeapRef; \
@@ -203,19 +204,19 @@ private: \
     static _exportMacro const TZoneSpecification s_heapSpec; \
     \
 public: \
-    BINLINE void* operator new(size_t, void* p) { return p; } \
-    BINLINE void* operator new[](size_t, void* p) { return p; } \
+    BINLINE void* _Nonnull operator new(size_t, void* _Nonnull p) { return p; } \
+    BINLINE void* _Nonnull operator new[](size_t, void* _Nonnull p) { return p; } \
     \
-    void* operator new[](size_t size) = delete; \
-    void operator delete[](void* p) = delete; \
+    void* _Nonnull operator new[](size_t size) = delete; \
+    void operator delete[](void* _Nonnull p) = delete; \
     \
-    BINLINE void* operator new(size_t, NotNullTag, void* location) \
+    BINLINE void* _Nonnull operator new(size_t, NotNullTag, void* _Nonnull location) \
     { \
         ASSERT(location); \
         return location; \
     } \
     \
-    void* operator new(size_t size) \
+    void* _Nonnull operator new(size_t size) \
     { \
         static const TZoneSpecification s_heapSpec = { &s_heapRef, sizeof(_type), CompactAllocationMode:: _compactMode, SizeAndAlignment::encode<_type>() TZONE_SPEC_NAME_ARG(#_type) TZONE_DYNAMIC_COMPACTION_ARG(_type) }; \
         \
@@ -229,12 +230,12 @@ public: \
         return ::bmalloc::api::tzoneAllocate ## _compactMode(s_heapRef); \
     } \
     \
-    BINLINE void operator delete(void* p) \
+    BINLINE void operator delete(void* _Nonnull p) \
     { \
         ::bmalloc::api::tzoneFree(p); \
     } \
     \
-    BINLINE static void freeAfterDestruction(void* p) \
+    BINLINE static void freeAfterDestruction(void* _Nonnull p) \
     { \
         ::bmalloc::api::tzoneFree(p); \
     } \
@@ -243,11 +244,11 @@ public: \
 
 #define MAKE_BTZONE_MALLOCED_COMMON_NON_TEMPLATE(_type, _compactMode, _exportMacro) \
 private: \
-    static _exportMacro BNO_INLINE void* operatorNewSlow(size_t);
+    static _exportMacro BNO_INLINE void* _Nonnull operatorNewSlow(size_t);
 
 #define MAKE_BTZONE_MALLOCED_COMMON_TEMPLATE(_type, _compactMode, _exportMacro) \
 private: \
-    static _exportMacro BNO_INLINE void* operatorNewSlow(size_t size) \
+    static _exportMacro BNO_INLINE void* _Nonnull operatorNewSlow(size_t size) \
     { \
         static const TZoneSpecification s_heapSpec = { &s_heapRef, sizeof(_type), ::bmalloc::api::compactAllocationMode<_type>(), SizeAndAlignment::encode<_type>() TZONE_SPEC_NAME_ARG(#_type) TZONE_DYNAMIC_COMPACTION_ARG(_type) }; \
         if constexpr (::bmalloc::api::compactAllocationMode<_type>() == CompactAllocationMode::Compact) \
