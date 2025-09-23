@@ -52,8 +52,8 @@ inline API::Object* _Nonnull toAPIObject(WebKit::WebBackForwardListItem* _Nonnul
     return item;
 }
 
-// TODO: figure out if there's a radar for the inability (?) to call operator bool()
-// and note that here
+// TODO file a radar for the fact that Bool(fromCxx: someWeakPtr) does not work:
+// error: initializer 'init(fromCxx:)' requires that 'WeakPtrWebPageProxy' (aka 'WTF.WeakPtr<WebKit.WebPageProxy, WTF.DefaultWeakPtrImpl, WTF.RawPtrTraits<WTF.DefaultWeakPtrImpl>>') conform to 'CxxConvertibleToBool'
 
 // TODO it would be nice to use patterns like this, but we get
 // "reference to var 'pageWeakPtrIsOccupied' is not concurrency-safe because it involves shared mutable state"
