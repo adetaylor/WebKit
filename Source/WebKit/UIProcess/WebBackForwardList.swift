@@ -744,9 +744,9 @@ public class WebBackForwardListSwift {
         if mainFrameItem.childItemForFrameID(navigatedFrameID) == nil {
             return navigatedFrameState;
         }
-        let frameState = currentItem.mainFrameState();
-        setBackForwardItemIdentifier(frameState: frameState, itemID: navigatedFrameState.itemID!);
-        frameState.replaceChildFrameState(navigatedFrameState);
+        let frameState = derefRefFrameState(currentItem.mainFrameState());
+        setBackForwardItemIdentifier(frameState: frameState, itemID: navigatedFrameState.itemID);
+        frameState.replaceChildFrameState(consuming: navigatedFrameState);
         return frameState;
     }
 
