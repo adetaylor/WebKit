@@ -27,6 +27,7 @@
 
 #import <wtf/WeakPtr.h>
 #import <Shared/SessionState.h>
+#import <Shared/SwiftTypes.h>
 #import <Shared/WebBackForwardListFrameItem.h>
 #import <Shared/WebBackForwardListItem.h>
 #import <UIProcess/WebBackForwardCache.h>
@@ -34,12 +35,10 @@
 #import <UIProcess/WebPageProxyIdentifier.h>
 #import <APIArray.h>
 
-// Types which Swift needs
+#import <WebKit-Swift.h>
 
-// TODO: figure out the Swift limitation which prevents us using these generic
-// types directly from Swift, and note the rdar.
-using VectorAPIObject = Vector<RefPtr<API::Object>>;
-using WeakPtrWebPageProxy = WeakPtr<WebKit::WebPageProxy>;
+// Things within this file may depend upon WebKit-Swift.h e.g.
+// definitions of things like swift::String.
 
 template<typename T>
 Vector<RefPtr<API::Object>> toAPIObjectVector(const Vector<Ref<T>>& itemsVector)
@@ -124,4 +123,9 @@ inline WebKit::WebProcessProxy* _Nonnull derefRefWebProcessProxy(const WTF::Ref<
 
 inline bool webPageProxyIdentifiersEquate(const WebKit::WebPageProxyIdentifier& lhs, const WebKit::WebPageProxyIdentifier& rhs) {
     return lhs == rhs;
+}
+
+inline swift::String wtfStringToSwiftString(const WTF::String& wtfString) {
+    // TODO choose conversions which are correct
+    return swift::String(wtfString.utf8().toStdString());
 }

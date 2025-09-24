@@ -707,7 +707,7 @@ public class WebBackForwardListSwift {
 
         for (i, entry) in entries.enumerated() {
             let prefix = (currentIndex == i) ? " * " : " - "
-            result += prefix + entry.loggingString()
+            result += prefix + wtfStringToSwiftString(entry.loggingString())
         }
 
         return result

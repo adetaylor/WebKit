@@ -23,26 +23,14 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Add project-level C++ header files here to be able to access them from within Swift sources.
-
 #pragma once
 
-#import "APIArray.h"
-#import "APIObject.h"
-#import "Shared/LoadedWebArchive.h"
-#import "Shared/SessionState.h"
-#import "Shared/SwiftTypes.h"
-#import "Shared/SwiftUtilities.h"
-#import "Shared/WebBackForwardListCounts.h"
-#import "Shared/WebBackForwardListFrameItem.h"
-#import "Shared/WebBackForwardListItem.h"
-#import "UIProcess/AuxiliaryProcessProxy.h"
-#import "UIProcess/SwiftDemoLogoConfirmation.h"
-#import "UIProcess/WebFrameProxy.h"
-#import "UIProcess/WebPageProxy.h"
-#import "UIProcess/WebProcessProxy.h"
-#import "WebCore/DiagnosticLoggingClient.h"
-#import "WebCore/DiagnosticLoggingKeys.h"
+// This file contains types which must be defined in order for
+// WebKit-Swift.h to parse
 
-#import <wtf/Platform.h>
-#import <wtf/RefPtr.h>
+// Types which Swift needs
+
+// TODO: figure out the Swift limitation which prevents us using these generic
+// types directly from Swift, and note the rdar.
+using VectorAPIObject = Vector<RefPtr<API::Object>>;
+using WeakPtrWebPageProxy = WeakPtr<WebKit::WebPageProxy>;
