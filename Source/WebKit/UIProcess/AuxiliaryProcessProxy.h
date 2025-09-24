@@ -46,6 +46,12 @@
 #include <wtf/VectorHash.h>
 #include <wtf/WeakPtrFactory.h>
 
+#ifdef __swift__
+#define SWIFT_NONNULL _Nonnull
+#else
+#define SWIFT_NONNULL
+#endif
+
 namespace WebCore {
 class SharedBuffer;
 }
@@ -153,7 +159,7 @@ public:
         return m_connection == &connection;
     }
     // TODO prove this is _Nonnull
-    static AuxiliaryProcessProxy* _Nonnull fromConnection(const IPC::Connection&);
+    static AuxiliaryProcessProxy* SWIFT_NONNULL fromConnection(const IPC::Connection&);
 
     void addMessageReceiver(IPC::ReceiverName, IPC::MessageReceiver&);
     void addMessageReceiver(IPC::ReceiverName, uint64_t destinationID, IPC::MessageReceiver&);
