@@ -46,6 +46,8 @@
 #include <wtf/VectorHash.h>
 #include <wtf/WeakPtrFactory.h>
 
+// TODO: if we always apply _Nonnull there seems to be some sort of virality where
+// clang expects us to annotate things in other headers. Look up or file radar.
 #ifdef __swift__
 #define SWIFT_NONNULL _Nonnull
 #else

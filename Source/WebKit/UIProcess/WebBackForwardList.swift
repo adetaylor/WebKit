@@ -699,7 +699,11 @@ public class WebBackForwardListSwift {
     @_expose(Cxx)
     @_spi(Internal)
     public func loggingString() {
-        var result = "\nWebBackForwardList 0x\(String(format: "%p", Unmanaged.passUnretained(self).toOpaque())) - \(entries.count) entries, has current index \(currentIndex != nil ? "YES" : "NO") (\(currentIndex ?? 0))\n"
+        // Safety: it's guaranteed to be possible to convert this pointer to a string
+        // TODO: raise a radar for that fact that there is no actual unsafety here
+        // (or find a workaround)
+        let ptrbit = unsafe "0x\(Unmanaged.passUnretained(self).toOpaque())"
+        var result = "\nWebBackForwardList \(ptrbit) - \(entries.count) entries, has current index \(currentIndex != nil ? "YES" : "NO") (\(currentIndex ?? 0))\n"
 
         for (i, entry) in entries.enumerated() {
             let prefix = (currentIndex == i) ? " * " : " - "
