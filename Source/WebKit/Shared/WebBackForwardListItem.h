@@ -96,7 +96,9 @@ public:
     WebBackForwardListFrameItem& navigatedFrameItem() const;
     Ref<WebBackForwardListFrameItem> protectedNavigatedFrameItem() const;
 
-    WebBackForwardListFrameItem& mainFrameItem() const;
+    // TODO it's not quite true that this returns an independent value
+    // due to race conditions. Consider calling the next API instead?
+    WebBackForwardListFrameItem& mainFrameItem() const SWIFT_RETURNS_INDEPENDENT_VALUE;
     Ref<WebBackForwardListFrameItem> protectedMainFrameItem() const;
 
     void setIsRemoteFrameNavigation(bool isRemoteFrameNavigation) { m_isRemoteFrameNavigation = isRemoteFrameNavigation; }

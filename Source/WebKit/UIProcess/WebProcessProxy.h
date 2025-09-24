@@ -93,6 +93,13 @@
 #include <WebPermissionControllerProxy.h>
 #endif
 
+// TODO sensible naming
+#ifdef __swift__
+#define SWIFT_NONNULL2 _Nonnull
+#else
+#define SWIFT_NONNULL2
+#endif
+
 namespace API {
 class Navigation;
 class PageConfiguration;
@@ -233,7 +240,8 @@ public:
     void enableRemoteWorkers(RemoteWorkerType, const WebUserContentControllerProxy&);
     void disableRemoteWorkers(OptionSet<RemoteWorkerType>);
 
-    WebsiteDataStore* websiteDataStore() const { ASSERT(m_websiteDataStore); return m_websiteDataStore.get(); }
+    // TODO is this really independent given ref count gap?
+    WebsiteDataStore* SWIFT_NONNULL2 websiteDataStore() const SWIFT_RETURNS_INDEPENDENT_VALUE { ASSERT(m_websiteDataStore); return m_websiteDataStore.get(); }
     RefPtr<WebsiteDataStore> protectedWebsiteDataStore() const;
     void setWebsiteDataStore(WebsiteDataStore&);
     
@@ -342,7 +350,7 @@ public:
     void requestTermination(ProcessTerminationReason);
 
     RefPtr<API::Object> transformHandlesToObjects(API::Object*);
-    static RefPtr<API::Object> transformObjectsToHandles(API::Object*);
+    static RefPtr<API::Object> transformObjectsToHandles(API::Object* SWIFT_NONNULL2);
 
     void windowServerConnectionStateChanged();
 
