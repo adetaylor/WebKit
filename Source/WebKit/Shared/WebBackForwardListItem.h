@@ -36,6 +36,10 @@
 
 #include <swift/bridging>
 
+#ifdef __swift__
+#include <WebCore/FrameIdentifier.h>
+#endif
+
 namespace WebKit {
 
 class SuspendedPageProxy;
