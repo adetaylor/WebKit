@@ -504,7 +504,8 @@ public class WebBackForwardListSwift {
         }
 
         for item in entries {
-            if item != currentItem {
+            // TODO there must be a way to use === here or similar. Ask.
+            if !itemsMatch(item, currentItem) {
                 didRemoveItem(item: item);
             }
         }
@@ -514,7 +515,7 @@ public class WebBackForwardListSwift {
 
         // TODO this was previously done in terms of indices, there might be a reason
         for item in entries {
-            if item != currentItem {
+            if !itemsMatch(item, currentItem) {
                 removedItems.append(item);
             }
         }

@@ -129,3 +129,7 @@ inline swift::String wtfStringToSwiftString(const WTF::String& wtfString) {
     // TODO choose conversions which are correct
     return swift::String(wtfString.utf8().toStdString());
 }
+
+inline bool itemsMatch(const WebKit::WebBackForwardListItem* lhs, const WebKit::WebBackForwardListItem* rhs) {
+    return lhs == rhs;
+}
