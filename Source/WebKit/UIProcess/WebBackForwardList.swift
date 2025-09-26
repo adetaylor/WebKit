@@ -29,6 +29,8 @@ internal import wtf
 @_spi(Internal)
 public typealias BackForwardItemIdentifier = WebCore.BackForwardItemIdentifier
 @_spi(Internal)
+public typealias BackForwardFrameItemIdentifier = WebCore.BackForwardFrameItemIdentifier
+@_spi(Internal)
 public typealias FrameIdentifier = WebCore.FrameIdentifier
 @_spi(Internal)
 public typealias WebBackForwardListItem = WebKit.WebBackForwardListItem
@@ -595,7 +597,7 @@ public class WebBackForwardListSwift {
                     }
                     continue;
                 }
-                backForwardListState.items.append(entry.mainFrameState())
+                backForwardListState.items.append(consuming: entry.mainFrameState())
             }
         }
 
@@ -608,8 +610,8 @@ public class WebBackForwardListSwift {
     }
 
     func setBackForwardItemIdentifiers(frameState: FrameState, itemID: BackForwardItemIdentifier) {
-        frameState.itemID = itemID;
-        frameState.frameItemID = BackForwardItemIdentifier.generate();
+        frameState.itemID = MarkableBackForwardItemIdentifier.init(itemID);
+        frameState.frameItemID = BackForwardFrameItemIdentifier.generate();
         for child in frameState.children {
             setBackForwardItemIdentifiers(frameState: child, itemID: itemID); // TODO ensure child is a reference type
         }

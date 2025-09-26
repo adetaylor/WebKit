@@ -28,6 +28,7 @@
 // This file contains types which must be defined in order for
 // WebKit-Swift.h to parse
 
+#import <wtf/Markable.h>
 #import <Shared/WebBackForwardListItem.h>
 
 // Types which Swift needs
@@ -38,3 +39,4 @@ using VectorAPIObject = Vector<RefPtr<API::Object>>;
 using VectorRefBackForwardListItem = Vector<Ref<WebKit::WebBackForwardListItem>>;
 using WeakPtrWebPageProxy = WeakPtr<WebKit::WebPageProxy>;
 using SpanConstChar = std::span<const char>;
+using MarkableBackForwardItemIdentifier = WTF::Markable<WebCore::BackForwardItemIdentifier>;
