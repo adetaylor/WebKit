@@ -692,10 +692,11 @@ public class WebBackForwardListSwift {
             // If going backwards, skip over next item with user iteraction since this is the one the user
             // thinks they're on.
             itemIndex -= 1;
-            item = itemAtIndex(index: itemIndex);
-            if item == nil {
+            let thisItem = itemAtIndex(index: itemIndex);
+            guard let thisItem else {
                 return originalItem;
             }
+            item = thisItem;
 
             // RELEASE_LOG(Loading, "UI Navigation is skipping a WebBackForwardListItem that has user interaction because we started on an item that didn't have interaction"); // TODO
         } else {
@@ -772,8 +773,8 @@ public class WebBackForwardListSwift {
     public func backForwardAddItemShared(connection: IPC.Connection, navigatedFrameState: FrameState, loadedWebArchive: WebKit.LoadedWebArchive) {
         let process = WebKit.WebProcessProxy.fromConnection(connection);
 
-        let itemURL = WTF.URL(navigatedFrameState.urlString);
-        let itemOriginalURL = WTF.URL(navigatedFrameState.originalURLString);
+        let itemURL = WTF.URL.init(navigatedFrameState.urlString);
+        let itemOriginalURL = WTF.URL.init(navigatedFrameState.originalURLString);
 
         // TODO convert all the following once we have platform macros
         // #if PLATFORM(COCOA)
