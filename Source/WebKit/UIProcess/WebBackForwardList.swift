@@ -95,7 +95,8 @@ func toWTFVectorAPIObject(list: [API.Object]) -> API.Array {
     for item in list {
         vec.append(consuming: toRefPtrAPIObject(item));
     }
-    return API.Array.create(consuming: vec).take();
+    let array = API.Array.create(consuming: vec);
+    return array.take();
 }
 
 @_expose(Cxx)
@@ -530,7 +531,7 @@ public class WebBackForwardListSwift {
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p clear (has %zu of them)", this, m_entries.count); // TODO
 
         let size = entries.count;
-        guard let page else {
+        guard let page = getPageWeakPtr(page) else {
             return;
         }
         guard size > 1 else {
@@ -634,7 +635,11 @@ public class WebBackForwardListSwift {
             entries.append(item);
         }
 
-        currentIndex = backForwardListState.currentIndex;
+        if backForwardListState.indexIsSet() {
+            currentIndex = backForwardListState.getCurrentIndex();
+        } else {
+            currentIndex = Optional.none;
+        }
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p restored from state (has %zu entries)", this, m_entries.count); // TODO
     }
 
