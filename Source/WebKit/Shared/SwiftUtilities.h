@@ -75,6 +75,11 @@ inline bool pageWeakPtrIsOccupied(const WTF::WeakPtr<WebKit::WebPageProxy>& ptr)
     return static_cast<bool>(ptr);
 }
 
+template<typename T>
+inline bool operatorBool(const T& ptr) {
+    return static_cast<bool>(ptr);
+}
+
 // TODO it would be nice to use patterns like this, but then the _Nullable
 // annotations don't persist.
 // TODO consider using macros yuck.

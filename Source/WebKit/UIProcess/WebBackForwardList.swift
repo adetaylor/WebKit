@@ -793,8 +793,10 @@ public class WebBackForwardListSwift {
         }
         let navigatedFrameID = navigatedFrameState.getFrameID();
         let mainFrameItem = currentItem.mainFrameItem();
-        if mainFrameItem.getFrameID() == navigatedFrameID {
-            return navigatedFrameState;
+        if mainFrameItem.frameIDIsSet() {
+            if mainFrameItem.getFrameID() == navigatedFrameID {
+                return navigatedFrameState;
+            }
         }
 
         if mainFrameItem.childItemForFrameID(navigatedFrameID) == nil {
@@ -904,12 +906,20 @@ public class WebBackForwardListSwift {
     @_expose(Cxx)
     @_spi(Internal)
     public func backForwardUpdateItem(connection: IPC.Connection, frameState: WebKit.FrameState) {
-        guard let itemID = frameState.itemID.asOptional() else {
+        if !operatorBool(frameState.itemID) {
             return;
         }
-        guard let frameItemID = frameState.frameItemID.asOptional() else {
+        let itemID = frameState.itemID.value();
+        // guard let itemID = frameState.itemID.asOptional() else {
+        //     return;
+        // }
+        if !operatorBool(frameState.frameItemID) {
             return;
         }
+        let frameItemID = frameItemID.frameItemID.value();
+        // guard let frameItemID = frameState.frameItemID.asOptional() else {
+        //     return;
+        // }
         guard let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) else {
             return;
         }

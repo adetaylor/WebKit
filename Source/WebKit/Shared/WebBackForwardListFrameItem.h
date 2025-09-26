@@ -90,6 +90,14 @@ private:
     Ref<FrameState> m_frameState;
     WeakPtr<WebBackForwardListFrameItem> m_parent;
     Vector<Ref<WebBackForwardListFrameItem>> m_children;
+
+#ifdef __swift__
+public:
+    // TODO figure out why it can't import this field and work around it better
+    bool frameIDIsSet() const { return frameID().has_value(); }
+    WebCore::FrameIdentifier getFrameID() const { return *frameID(); }
+#endif
+
 } SWIFT_SHARED_REFERENCE(retainWebBackForwardListFrameItem, releaseWebBackForwardListFrameItem);
 
 } // namespace WebKit
