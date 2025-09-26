@@ -638,7 +638,8 @@ public class WebBackForwardListSwift {
         }
 
         if backForwardListState.indexIsSet() {
-            currentIndex = backForwardListState.getCurrentIndex();
+            // TODO think about overflows
+            currentIndex = Int(backForwardListState.getCurrentIndex());
         } else {
             currentIndex = Optional.none;
         }
@@ -762,7 +763,7 @@ public class WebBackForwardListSwift {
 
         for (i, entry) in entries.enumerated() {
             let prefix = (currentIndex == i) ? " * " : " - "
-            result += prefix + wtfStringToSwiftString(entry.loggingString())
+            result += prefix + wtfStringToSwiftString(wtfString: entry.loggingString())
         }
 
         return result
