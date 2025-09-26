@@ -283,7 +283,7 @@ public class WebBackForwardListSwift {
         if targetIndex < priorCurrentIndex {
             let delta = entries.count - targetIndex - 1;
             let deltaValue = if delta > 10 { "over10" } else { delta.description };
-            page.logDiagnosticMessage(WebCore.DiagnosticLoggingKeys.backNavigationDeltaKey(), deltaValue, WebCore.ShouldSample.No);
+            page.logDiagnosticMessage(WebCore.DiagnosticLoggingKeys.backNavigationDeltaKey(), swiftStringToWtfString(deltaValue), WebCore.ShouldSample.No);
         }
 
         // If we're going to an item different from the current item, ask the client if the current
@@ -299,8 +299,7 @@ public class WebBackForwardListSwift {
         var removedItems: [WebBackForwardListItem] = [];
         if (!shouldKeepCurrentItem) {
             removedItems.append(entries.remove(at: priorCurrentIndex));
-            targetIndex = entries.firstIndex(of: item);
-            assert(targetIndex != nil);
+            targetIndex = entries.firstIndex(of: item)!;
         }
 
         currentIndex = targetIndex;
