@@ -45,12 +45,32 @@ public typealias BackForwardFrameItemIdentifier = WebCore.BackForwardFrameItemId
 
 #if ENABLE_BACKFORWARDLIST_SWIFT
 
+// TODO: some of these utility functions would be better in SwiftUtilities.h
+// but can't be put there as we are unable to use swift;:Array and swift::String
+// rdar://161270632
+
 func toVector(array: [WebBackForwardListItem]) -> VectorRefBackForwardListItem {
     var vec = VectorRefBackForwardListItem.init();
     for item in array {
         vec.append(consuming: toRefWebBackForwardListItem(item));
     }
     return vec;
+}
+
+func wtfStringToSwiftString(wtfString: WTF.String) -> String {
+    // TODO choose conversions which are correct
+    return String.init(wtfString.utf8(WTF.LenientConversion).toStdString())
+}
+
+func swiftStringToWtfString(swiftString: String) -> WTF.String {
+    // TODO choose conversions which are correct
+    var wtfString: WTF.String? = Optional.none;
+    let len = swiftString.utf8.count;
+    swiftString.utf8CString.withUnsafeBufferPointer { ptr in
+        let span = SpanChar.init(ptr, len);
+        wtfString = WTF.String.fromUTF8(span);
+    }
+    return wtfString!;
 }
 
 enum Direction {
@@ -271,6 +291,7 @@ public class WebBackForwardListSwift {
         for (i, entry) in entries.enumerated() {
             if itemsMatch(entry, item) {
                 targetIndex = i;
+                break;
             }
         }
 
@@ -299,7 +320,16 @@ public class WebBackForwardListSwift {
         var removedItems: [WebBackForwardListItem] = [];
         if (!shouldKeepCurrentItem) {
             removedItems.append(entries.remove(at: priorCurrentIndex));
-            targetIndex = entries.firstIndex(of: item)!;
+
+            // TODO replace with entries.firstIndex if we can conform to Equatable
+            var thisTargetIndex: Int? = Optional.none;
+            for (i, entry) in entries.enumerated() {
+                if itemsMatch(entry, item) {
+                    thisTargetIndex = i;
+                    break;
+                }
+            }
+            targetIndex = thisTargetIndex!;
         }
 
         currentIndex = targetIndex;

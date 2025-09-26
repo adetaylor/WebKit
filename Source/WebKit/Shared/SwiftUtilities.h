@@ -134,17 +134,6 @@ inline bool webPageProxyIdentifiersEquate(const WebKit::WebPageProxyIdentifier& 
     return lhs == rhs;
 }
 
-inline swift::String wtfStringToSwiftString(const WTF::String& wtfString) {
-    // TODO choose conversions which are correct
-    return swift::String(wtfString.utf8().toStdString());
-}
-
-inline WTF::String swiftStringToWtfString(const swift::String& swiftString) {
-    // TODO choose conversions which are correct
-    std::string stdString = swiftString;
-    return WTF::String::fromUTF8(stdString);
-}
-
 // TODO - workaround for rdar://130765784
 inline bool itemsMatch(const WebKit::WebBackForwardListItem* lhs, const WebKit::WebBackForwardListItem* rhs) {
     return lhs == rhs;
