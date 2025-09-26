@@ -48,7 +48,7 @@ public typealias BackForwardFrameItemIdentifier = WebCore.BackForwardFrameItemId
 func toVector(array: [WebBackForwardListItem]) -> VectorRefBackForwardListItem {
     var vec = VectorRefBackForwardListItem.init();
     for item in array {
-        vec.append(toRefWebBackForwardListItem(item));
+        vec.append(consuming: toRefWebBackForwardListItem(item));
     }
     return vec;
 }
@@ -267,7 +267,7 @@ public class WebBackForwardListSwift {
         }
 
         // TODO replace with entries.firstIndex if we can conform to Equatable
-        var targetIndex = Optional.none;
+        var targetIndex: Int? = Optional.none;
         for (i, entry) in entries.enumerated() {
             if itemsMatch(entry, item) {
                 targetIndex = i;
@@ -275,14 +275,14 @@ public class WebBackForwardListSwift {
         }
 
         // If the target item wasn't even in the list, there's nothing else to do.
-        guard targetIndex else {
+        guard var targetIndex else {
             // LOG(BackForward, "(Back/Forward) WebBackForwardList %p could not go to item %s (%s) because it was not found", this, item.identifier().toString().utf8().data(), item.url().utf8().data()); // TODO
             return;
         }
 
         if targetIndex < priorCurrentIndex {
             let delta = entries.count - targetIndex - 1;
-            let deltaValue = if delta > 10 { "over10" } else { delta.description() };
+            let deltaValue = if delta > 10 { "over10" } else { delta.description };
             page.logDiagnosticMessage(WebCore.DiagnosticLoggingKeys.backNavigationDeltaKey(), deltaValue, WebCore.ShouldSample.No);
         }
 
