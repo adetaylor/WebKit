@@ -608,7 +608,7 @@ public class WebBackForwardListSwift {
     }
 
     func setBackForwardItemIdentifiers(frameState: FrameState, itemID: BackForwardItemIdentifier) {
-        frameState.itemID = MarkableBackForwardItemIdentifier.init(itemID);
+        frameState.itemID = MarkableBackForwardItemIdentifier(itemID);
         frameState.frameItemID = MarkableBackForwardFrameItemIdentifier.init(BackForwardFrameItemIdentifier.generate());
         for child in frameState.children {
             setBackForwardItemIdentifiers(frameState: child, itemID: itemID); // TODO ensure child is a reference type
@@ -778,7 +778,7 @@ public class WebBackForwardListSwift {
     }
 
     func setBackForwardItemIdentifier(frameState: FrameState, itemID: BackForwardItemIdentifier) {
-        frameState.itemID = itemID;
+        frameState.itemID = MarkableBackForwardItemIdentifier(itemID);
         for child in frameState.children {
             setBackForwardItemIdentifier(frameState: child, itemID: itemID);
         }
@@ -792,9 +792,11 @@ public class WebBackForwardListSwift {
             return navigatedFrameState;
         }
         let navigatedFrameID = navigatedFrameState.getFrameID();
-        guard let mainFrameItem = currentItem.mainFrameItem() else {
+        let mainFrameItem = currentItem.mainFrameItem();
+        if mainFrameItem.getFrameID() == navigatedFrameID {
             return navigatedFrameState;
         }
+
         if mainFrameItem.childItemForFrameID(navigatedFrameID) == nil {
             return navigatedFrameState;
         }
