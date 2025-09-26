@@ -26,6 +26,7 @@
 #pragma once
 
 #include "Shared/API/APIObject.h"
+#include "UIProcess/WebFrameProxy.h"
 #include "wtf/Vector.h"
 #include <optional>
 #import <wtf/WeakPtr.h>
@@ -156,6 +157,8 @@ inline bool contentsMatch(const T& lhs, const T& rhs) {
     return lhs == rhs;
 }
 
+// TODO Swift does not like std::optional of some types
+
 inline Ref<WebKit::WebBackForwardListItem> createWebBackForwardListItemWithFrameID(Ref<WebKit::FrameState>&& frameState,
         WebKit::WebPageProxyIdentifier webPageProxyIdentifier, WebCore::FrameIdentifier frameIdentifier) {
     return WebKit::WebBackForwardListItem::create(WTFMove(frameState), webPageProxyIdentifier, frameIdentifier);
@@ -164,4 +167,12 @@ inline Ref<WebKit::WebBackForwardListItem> createWebBackForwardListItemWithFrame
 inline Ref<WebKit::WebBackForwardListItem> createWebBackForwardListItemWithoutFrameID(Ref<WebKit::FrameState>&& frameState,
         WebKit::WebPageProxyIdentifier webPageProxyIdentifier) {
     return WebKit::WebBackForwardListItem::create(WTFMove(frameState), webPageProxyIdentifier, std::nullopt);
+}
+
+inline WebKit::WebFrameProxy* _Nullable getWebFrameProxyWithFrameID(const WebCore::FrameIdentifier& frameID) {
+    return WebKit::WebFrameProxy::webFrame(frameID);
+}
+
+inline WebKit::WebFrameProxy* _Nullable getWebFrameProxyWithoutFrameID() {
+    return WebKit::WebFrameProxy::webFrame(std::nullopt);
 }

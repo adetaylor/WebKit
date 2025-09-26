@@ -859,7 +859,14 @@ public class WebBackForwardListSwift {
         //     }
         // #endif
 
-        guard let targetFrame = WebKit.WebFrameProxy.webFrame(navigatedFrameState.getFrameID()) else {
+        var targetFrame: WebKit.WebFrameProxy?;
+        if navigatedFrameState.frameIDIsSet() {
+            targetFrame = getWebFrameProxyWithFrameID(navigatedFrameState.getFrameID());
+        } else {
+            targetFrame = getWebFrameProxyWithoutFrameID();
+        }
+
+        guard let targetFrame else {
             return;
         }
 
