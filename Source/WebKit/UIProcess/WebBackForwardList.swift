@@ -67,12 +67,9 @@ func swiftStringToWtfString(swiftString: String) -> WTF.String {
     var wtfString: WTF.String? = Optional.none;
     let len = swiftString.utf8.count;
     swiftString.utf8CString.withUnsafeBufferPointer { ptr in
-        unsafe {
-            // TODO figure out a way to make a std::span without unsafety
-            let mutablePointer = UnsafeMutablePointer<Int8>(mutating: ptr)
-            let span = SpanChar.init(mutablePointer, len);
-            wtfString = WTF.String.fromUTF8(span);
-        }
+        // let mutablePointer = UnsafeMutablePointer<Int8>(mutating: ptr.baseAddress!)
+        let span = SpanConstChar.init(ptr.baseAddress!, len);
+        wtfString = WTF.String.fromUTF8(span);
     }
     return wtfString!;
 }
@@ -92,13 +89,13 @@ extension WebKit.WebPageProxyIdentifier: Equatable {
 
 // TODO make efficient
 // TODO investigate the extent to which we can make this generic
-func toWTFVectorAPIObject(list: [API.Object]) -> APIArray {
+func toWTFVectorAPIObject(list: [API.Object]) -> API.Array {
     var vec = VectorAPIObject();
     vec.reserveCapacity(list.count);
     for item in list {
         vec.append(consuming: toRefPtrAPIObject(item));
     }
-    return API.Array.create(vec);
+    return API.Array.create(consuming: vec).take();
 }
 
 @_expose(Cxx)
@@ -522,7 +519,7 @@ public class WebBackForwardListSwift {
         guard let page = getPageWeakPtr(page) else {
             return; // TODO consider asserting instead; whatever the C++ would have done
         }
-        page.didChangeBackForwardList(Optional.none, consuming: entriesCopy);
+        page.didChangeBackForwardList(Optional.none, consuming: toVector(array: entriesCopy));
     }
 
     @_expose(Cxx)

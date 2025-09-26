@@ -155,6 +155,12 @@ public:
         return result;
     }
 
+#ifdef __swift__
+    T* take() SWIFT_RETURNS_RETAINED {
+        return &leakRef();
+    }
+#endif
+
 private:
     friend Ref adoptRef<T>(T&);
     template<typename X, typename Y, typename Z> friend class Ref;

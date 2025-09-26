@@ -37,4 +37,4 @@
 using VectorAPIObject = Vector<RefPtr<API::Object>>;
 using VectorRefBackForwardListItem = Vector<Ref<WebKit::WebBackForwardListItem>>;
 using WeakPtrWebPageProxy = WeakPtr<WebKit::WebPageProxy>;
-using SpanChar = std::span<char>;
+using SpanConstChar = std::span<const char>;
