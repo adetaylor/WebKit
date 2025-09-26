@@ -95,7 +95,7 @@ func toWTFVectorAPIObject(list: [API.Object]) -> API.Array {
     for item in list {
         vec.append(consuming: toRefPtrAPIObject(item));
     }
-    let array = API.Array.create(consuming: vec);
+    var array = API.Array.create(consuming: vec);
     return array.take();
 }
 
@@ -570,7 +570,7 @@ public class WebBackForwardListSwift {
         currentIndex = 0;
         entries.removeAll();
         entries.append(currentItem);
-        page.didChangeBackForwardList(Optional.none, consuming: removedItems);
+        page.didChangeBackForwardList(Optional.none, consuming: toVector(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -580,7 +580,8 @@ public class WebBackForwardListSwift {
 
         var backForwardListState = BackForwardListState.init();
         if let currentIndex = currentIndex {
-            backForwardListState.setCurrentIndex(currentIndex);
+            // TODO consider overflows etc. in this cast
+            backForwardListState.setCurrentIndex(UInt32(currentIndex));
         }
 
         entries.enumerate().forEach { i, entry in
@@ -598,9 +599,9 @@ public class WebBackForwardListSwift {
         }
 
         if backForwardListState.items.isEmpty() {
-            backForwardListState.currentIndex = nil;
-        } else if backForwardListState.items.size() <= backForwardListState.currentIndex! {
-            backForwardListState.currentIndex = backForwardListState.items.size()-1;
+            backForwardListState.setCurrentIndexNone()
+        } else if backForwardListState.items.size() <= backForwardListState.getCurrentIndex() {
+            backForwardListState.setCurrentIndex(UInt32(backForwardListState.items.size())-1);
         }
         return backForwardListState;
     }
