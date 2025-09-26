@@ -741,8 +741,8 @@ public class WebBackForwardListSwift {
             // If going forward and there are items that we created by JS without user interaction, move forward to the last
             // one in the series.
             var nextItem = itemAtIndex(index: itemIndex + 1);
-            while var nextItem = nextItem, nextItem.wasCreatedByJSWithoutUserInteraction() {
-                item = nextItem;
+            while var unwrappedNextItem = nextItem, unwrappedNextItem.wasCreatedByJSWithoutUserInteraction() {
+                item = unwrappedNextItem;
                 nextItem = itemAtIndex(index: itemIndex);
                 itemIndex += 1;
             }
@@ -752,7 +752,7 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func loggingString() {
+    public func loggingString() -> WTF.String {
         // Safety: it's guaranteed to be possible to convert this pointer to a string
         // TODO: raise a radar for that fact that there is no actual unsafety here
         // (or find a workaround)
