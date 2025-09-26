@@ -141,3 +141,8 @@ inline bool webPageProxyIdentifiersEquate(const WebKit::WebPageProxyIdentifier& 
 inline bool itemsMatch(const WebKit::WebBackForwardListItem* lhs, const WebKit::WebBackForwardListItem* rhs) {
     return lhs == rhs;
 }
+
+template<typename T>
+inline bool contentsMatch(const T& lhs, const T& rhs) {
+    return lhs == rhs;
+}

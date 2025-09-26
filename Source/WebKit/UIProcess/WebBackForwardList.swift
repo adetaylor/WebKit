@@ -794,7 +794,7 @@ public class WebBackForwardListSwift {
         let navigatedFrameID = navigatedFrameState.getFrameID();
         let mainFrameItem = currentItem.mainFrameItem();
         if mainFrameItem.frameIDIsSet() {
-            if mainFrameItem.getFrameID() == navigatedFrameID {
+            if contentsMatch(mainFrameItem.getFrameID(), navigatedFrameID) {
                 return navigatedFrameState;
             }
         }
