@@ -771,10 +771,10 @@ public class WebBackForwardListSwift {
         guard let currentItem = currentItem() else {
             return;
         }
-        guard let parentItem = currentItem.protectedMainFrameItem().childItemForFrameID(parentFrameID) else {
+        guard let parentItem = derefRefWebBackForwardListFrameItem(currentItem.protectedMainFrameItem()).childItemForFrameID(parentFrameID) else {
             return;
         }
-        parentItem.setChild(frameState);
+        parentItem.setChild(consuming: toRefFrameState(frameState));
     }
 
     func setBackForwardItemIdentifier(frameState: FrameState, itemID: BackForwardItemIdentifier) {
@@ -909,11 +909,11 @@ public class WebBackForwardListSwift {
         if !operatorBool(frameState.itemID) {
             return;
         }
-        let itemID = frameState.itemID.value().object();
+        let itemID = frameState.itemID;
         if !operatorBool(frameState.frameItemID) {
             return;
         }
-        let frameItemID = frameState.frameItemID.value().object();
+        let frameItemID = frameState.frameItemID;
         guard let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) else {
             return;
         }

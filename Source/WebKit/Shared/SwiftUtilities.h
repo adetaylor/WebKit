@@ -100,6 +100,10 @@ inline RefPtr<API::Object> toRefPtrAPIObject(API::Object* _Nullable obj) {
     return obj;
 }
 
+// TODO initially it seemed as though Swift would be unwilling to call
+// functions like all the following if they were generic, but I'm not so
+// sure now. Try making generic equivalents to get rid of all this duplication.
+
 inline Ref<WebKit::FrameState> toRefFrameState(WebKit::FrameState* _Nonnull obj) {
     return *obj;
 }
