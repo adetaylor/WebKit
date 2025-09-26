@@ -71,10 +71,7 @@ inline API::Object* _Nonnull toAPIObject(WebKit::WebBackForwardListItem* _Nonnul
 
 // inline auto pageWeakPtrIsOccupied = &weakPtrIsOccupied<WebKit::WebPageProxy>;
 
-inline bool pageWeakPtrIsOccupied(const WTF::WeakPtr<WebKit::WebPageProxy>& ptr) {
-    return static_cast<bool>(ptr);
-}
-
+// TODO casting to Bool doesn't seem to work.
 template<typename T>
 inline bool operatorBool(const T& ptr) {
     return static_cast<bool>(ptr);

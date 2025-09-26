@@ -150,7 +150,7 @@ public class WebBackForwardListSwift {
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p had its page closed with current size %zu", this, m_entries.count); // TODO
 
         // We should have always started out with an m_page and we should never close the page twice
-        assert(pageWeakPtrIsOccupied(page)); // TODO ensure this is similar to ASSERT in C++
+        assert(operatorBool(page)); // TODO ensure this is similar to ASSERT in C++
         // TODO rename to something less daft
         let definitePage = getPageWeakPtr(page)!;
 
@@ -347,7 +347,7 @@ public class WebBackForwardListSwift {
     public func currentItem() -> WebBackForwardListItem? {
         assertStateOk();
 
-        guard pageWeakPtrIsOccupied(page) else {
+        guard operatorBool(page) else {
             return nil;
         }
 
@@ -363,7 +363,7 @@ public class WebBackForwardListSwift {
     public func backItem() -> WebBackForwardListItem? {
         assertStateOk();
 
-        guard pageWeakPtrIsOccupied(page) else {
+        guard operatorBool(page) else {
             return nil;
         }
 
@@ -383,7 +383,7 @@ public class WebBackForwardListSwift {
     public func forwardItem() -> WebBackForwardListItem? {
         assertStateOk();
 
-        guard pageWeakPtrIsOccupied(page) else {
+        guard operatorBool(page) else {
             return nil;
         }
 
@@ -403,7 +403,7 @@ public class WebBackForwardListSwift {
     public func itemAtIndex(index: Array.Index) -> WebBackForwardListItem? {
         assertStateOk();
 
-        guard pageWeakPtrIsOccupied(page) else {
+        guard operatorBool(page) else {
             return nil;
         }
 
@@ -428,7 +428,7 @@ public class WebBackForwardListSwift {
     public func backListCount() -> Array.Index {
         assertStateOk();
 
-        guard pageWeakPtrIsOccupied(page) else {
+        guard operatorBool(page) else {
             return 0;
         }
 
@@ -444,7 +444,7 @@ public class WebBackForwardListSwift {
     public func forwardListCount() -> Array.Index {
         assertStateOk();
 
-        guard pageWeakPtrIsOccupied(page) else {
+        guard operatorBool(page) else {
             return 0;
         }
 
@@ -462,7 +462,7 @@ public class WebBackForwardListSwift {
     public func backListAsAPIArrayWithLimit(limit: UInt) -> API.Array {
         assertStateOk();
 
-        guard pageWeakPtrIsOccupied(page) else {
+        guard operatorBool(page) else {
             return derefRefAPIArray(API.Array.create());
         }
 
@@ -487,7 +487,7 @@ public class WebBackForwardListSwift {
         // TODO see if we can abstract bits of these two functions
         assertStateOk();
 
-        guard pageWeakPtrIsOccupied(page) else {
+        guard operatorBool(page) else {
             return derefRefAPIArray(API.Array.create());
         }
 
@@ -909,11 +909,11 @@ public class WebBackForwardListSwift {
         if !operatorBool(frameState.itemID) {
             return;
         }
-        let itemID = frameState.itemID.value();
+        let itemID = frameState.itemID.value().object();
         if !operatorBool(frameState.frameItemID) {
             return;
         }
-        let frameItemID = frameState.frameItemID.value();
+        let frameItemID = frameState.frameItemID.value().object();
         guard let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) else {
             return;
         }
