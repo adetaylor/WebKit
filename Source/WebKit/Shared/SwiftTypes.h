@@ -28,6 +28,7 @@
 // This file contains types which must be defined in order for
 // WebKit-Swift.h to parse
 
+#import <Shared/SessionState.h>
 #import <wtf/Markable.h>
 #import <Shared/WebBackForwardListItem.h>
 
@@ -37,6 +38,8 @@
 // types directly from Swift, and note the rdar.
 using VectorAPIObject = Vector<RefPtr<API::Object>>;
 using VectorRefBackForwardListItem = Vector<Ref<WebKit::WebBackForwardListItem>>;
+using RefFrameState = Ref<WebKit::FrameState>;
+using VectorRefFrameState = Vector<RefFrameState>;
 using WeakPtrWebPageProxy = WeakPtr<WebKit::WebPageProxy>;
 using SpanConstChar = std::span<const char>;
 using MarkableBackForwardItemIdentifier = WTF::Markable<WebCore::BackForwardItemIdentifier>;
