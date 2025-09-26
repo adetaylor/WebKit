@@ -38,6 +38,7 @@
 // types directly from Swift, and note the rdar.
 using VectorAPIObject = Vector<RefPtr<API::Object>>;
 using VectorRefBackForwardListItem = Vector<Ref<WebKit::WebBackForwardListItem>>;
+using RefBackForwardListItem = Ref<WebKit::WebBackForwardListItem>;
 using RefFrameState = Ref<WebKit::FrameState>;
 using VectorRefFrameState = Vector<RefFrameState>;
 using WeakPtrWebPageProxy = WeakPtr<WebKit::WebPageProxy>;

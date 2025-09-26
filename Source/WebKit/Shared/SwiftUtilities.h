@@ -27,6 +27,7 @@
 
 #include "Shared/API/APIObject.h"
 #include "wtf/Vector.h"
+#include <optional>
 #import <wtf/WeakPtr.h>
 #import <Shared/SessionState.h>
 #import <Shared/SwiftTypes.h>
@@ -129,6 +130,10 @@ inline WebKit::WebBackForwardListFrameItem* _Nonnull derefRefWebBackForwardListF
     return &ref.get();
 }
 
+inline WebKit::WebBackForwardListItem* _Nonnull derefRefWebBackForwardListItem(const WTF::Ref<WebKit::WebBackForwardListItem>& ref) {
+    return &ref.get();
+}
+
 inline WebKit::WebBackForwardCache* _Nonnull derefRefWebBackForwardCache(const WTF::Ref<WebKit::WebBackForwardCache>& ref) {
     return &ref.get();
 }
@@ -149,4 +154,14 @@ inline bool itemsMatch(const WebKit::WebBackForwardListItem* lhs, const WebKit::
 template<typename T>
 inline bool contentsMatch(const T& lhs, const T& rhs) {
     return lhs == rhs;
+}
+
+inline Ref<WebKit::WebBackForwardListItem> createWebBackForwardListItemWithFrameID(Ref<WebKit::FrameState>&& frameState,
+        WebKit::WebPageProxyIdentifier webPageProxyIdentifier, WebCore::FrameIdentifier frameIdentifier) {
+    return WebKit::WebBackForwardListItem::create(WTFMove(frameState), webPageProxyIdentifier, frameIdentifier);
+}
+
+inline Ref<WebKit::WebBackForwardListItem> createWebBackForwardListItemWithoutFrameID(Ref<WebKit::FrameState>&& frameState,
+        WebKit::WebPageProxyIdentifier webPageProxyIdentifier) {
+    return WebKit::WebBackForwardListItem::create(WTFMove(frameState), webPageProxyIdentifier, std::nullopt);
 }
