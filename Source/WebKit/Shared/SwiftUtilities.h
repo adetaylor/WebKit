@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include "wtf/Vector.h"
 #import <wtf/WeakPtr.h>
 #import <Shared/SessionState.h>
 #import <Shared/SwiftTypes.h>
@@ -50,6 +51,14 @@ Vector<RefPtr<API::Object>> toAPIObjectVector(const Vector<Ref<T>>& itemsVector)
 
 inline API::Object* _Nonnull toAPIObject(WebKit::WebBackForwardListItem* _Nonnull item) {
     return item;
+}
+
+inline Vector<Ref<WebKit::WebBackForwardListItem>> toVector(const swift::Array<WebKit::WebBackForwardListItem* _Nonnull>& array) {
+    WTF::Vector<Ref<WebKit::WebBackForwardListItem>> vec;
+    for (swift::Int i=0; i< array.getCount(); i++) {
+        vec.append(*array[i]);
+    }
+    return vec;
 }
 
 // TODO file a radar for the fact that Bool(fromCxx: someWeakPtr) does not work:
@@ -130,6 +139,7 @@ inline swift::String wtfStringToSwiftString(const WTF::String& wtfString) {
     return swift::String(wtfString.utf8().toStdString());
 }
 
+// TODO - workaround for rdar://130765784
 inline bool itemsMatch(const WebKit::WebBackForwardListItem* lhs, const WebKit::WebBackForwardListItem* rhs) {
     return lhs == rhs;
 }

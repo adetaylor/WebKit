@@ -240,7 +240,7 @@ public class WebBackForwardListSwift {
 
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p added an item. Current size %zu, current index %zu, threw away %zu items", this, m_entries.count, *m_currentIndex, removedItems.count); // TODO
         // TODO the array here will need to be converted
-        page.didChangeBackForwardList(newItem, consuming: removedItems);
+        page.didChangeBackForwardList(newItem, consuming: toVector(removedItems));
     }
 
     @_expose(Cxx)
@@ -258,10 +258,16 @@ public class WebBackForwardListSwift {
             return;
         }
 
-        // TODO consider if the equality used here will be good enough
-        var targetIndex = entries.firstIndex(of: item);
+        // TODO replace with entries.firstIndex if we can conform to Equatable
+        var targetIndex = Optional.none;
+        for (i, entry) in entries.enumerated() {
+            if itemsMatch(entry, item) {
+                targetIndex = i;
+            }
+        }
+
         // If the target item wasn't even in the list, there's nothing else to do.
-        guard targetIndex != nil else {
+        guard targetIndex else {
             // LOG(BackForward, "(Back/Forward) WebBackForwardList %p could not go to item %s (%s) because it was not found", this, item.identifier().toString().utf8().data(), item.url().utf8().data()); // TODO
             return;
         }
@@ -292,7 +298,7 @@ public class WebBackForwardListSwift {
         currentIndex = targetIndex;
 
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p going to item %s, is now at index %zu", this, item.identifier().toString().utf8().data(), targetIndex); // TODO
-        page.didChangeBackForwardList(Optional.none, consuming: removedItems);
+        page.didChangeBackForwardList(Optional.none, consuming: toVector(removedItems));
     }
 
     @_expose(Cxx)
