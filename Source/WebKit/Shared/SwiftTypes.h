@@ -28,9 +28,12 @@
 // This file contains types which must be defined in order for
 // WebKit-Swift.h to parse
 
+#import <Shared/WebBackForwardListItem.h>
+
 // Types which Swift needs
 
 // TODO: figure out the Swift limitation which prevents us using these generic
 // types directly from Swift, and note the rdar.
 using VectorAPIObject = Vector<RefPtr<API::Object>>;
+using VectorRefBackForwardListItem = Vector<Ref<WebKit::WebBackForwardListItem>>;
 using WeakPtrWebPageProxy = WeakPtr<WebKit::WebPageProxy>;

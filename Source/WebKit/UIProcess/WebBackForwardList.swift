@@ -45,6 +45,14 @@ public typealias BackForwardFrameItemIdentifier = WebCore.BackForwardFrameItemId
 
 #if ENABLE_BACKFORWARDLIST_SWIFT
 
+func toVector(array: [WebBackForwardListItem]) -> VectorRefBackForwardListItem {
+    var vec = VectorRefBackForwardListItem.init();
+    for item in array {
+        vec.append(toRefWebBackForwardListItem(item));
+    }
+    return vec;
+}
+
 enum Direction {
     case Backward
     case Forward
@@ -240,7 +248,7 @@ public class WebBackForwardListSwift {
 
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p added an item. Current size %zu, current index %zu, threw away %zu items", this, m_entries.count, *m_currentIndex, removedItems.count); // TODO
         // TODO the array here will need to be converted
-        page.didChangeBackForwardList(newItem, consuming: toVector(removedItems));
+        page.didChangeBackForwardList(newItem, consuming: toVector(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -298,7 +306,7 @@ public class WebBackForwardListSwift {
         currentIndex = targetIndex;
 
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p going to item %s, is now at index %zu", this, item.identifier().toString().utf8().data(), targetIndex); // TODO
-        page.didChangeBackForwardList(Optional.none, consuming: toVector(removedItems));
+        page.didChangeBackForwardList(Optional.none, consuming: toVector(array: removedItems));
     }
 
     @_expose(Cxx)

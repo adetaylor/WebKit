@@ -53,13 +53,9 @@ inline API::Object* _Nonnull toAPIObject(WebKit::WebBackForwardListItem* _Nonnul
     return item;
 }
 
-inline Vector<Ref<WebKit::WebBackForwardListItem>> toVector(const swift::Array<WebKit::WebBackForwardListItem* _Nonnull>& array) {
-    WTF::Vector<Ref<WebKit::WebBackForwardListItem>> vec;
-    for (swift::Int i=0; i< array.getCount(); i++) {
-        vec.append(*array[i]);
-    }
-    return vec;
-}
+// TODO wanted to make this available but cannot import a parameter of type swift::Array.
+// File rdar?
+// inline Vector<Ref<WebKit::WebBackForwardListItem>> toVector(const swift::Array<WebKit::WebBackForwardListItem* _Nonnull>& array) {
 
 // TODO file a radar for the fact that Bool(fromCxx: someWeakPtr) does not work:
 // error: initializer 'init(fromCxx:)' requires that 'WeakPtrWebPageProxy' (aka 'WTF.WeakPtr<WebKit.WebPageProxy, WTF.DefaultWeakPtrImpl, WTF.RawPtrTraits<WTF.DefaultWeakPtrImpl>>') conform to 'CxxConvertibleToBool'
@@ -102,6 +98,10 @@ inline RefPtr<API::Object> toRefPtrAPIObject(API::Object* _Nullable obj) {
 }
 
 inline Ref<WebKit::FrameState> toRefFrameState(WebKit::FrameState* _Nonnull obj) {
+    return *obj;
+}
+
+inline Ref<WebKit::WebBackForwardListItem> toRefWebBackForwardListItem(WebKit::WebBackForwardListItem* _Nonnull obj) {
     return *obj;
 }
 
