@@ -752,7 +752,7 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func loggingString() -> WTF.String {
+    public func loggingString() -> Swift.String {
         // Safety: it's guaranteed to be possible to convert this pointer to a string
         // TODO: raise a radar for that fact that there is no actual unsafety here
         // (or find a workaround)
