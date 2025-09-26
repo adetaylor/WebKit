@@ -931,11 +931,11 @@ public class WebBackForwardListSwift {
         if !operatorBool(frameState.itemID) {
             return;
         }
-        let itemID = frameState.itemID;
+        let itemID = frameState.itemID.value().pointee;
         if !operatorBool(frameState.frameItemID) {
             return;
         }
-        let frameItemID = frameState.frameItemID;
+        let frameItemID = frameState.frameItemID.value().pointee;
         guard let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) else {
             return;
         }
@@ -945,19 +945,20 @@ public class WebBackForwardListSwift {
         guard let webPageProxy = getPageWeakPtr(page) else {
             return;
         }
-        assert(webPageProxy.identifier() == item.pageID() && itemID == item.identifier());
+        // TODO do the Equatable stuff to allow this assert
+        // assert(webPageProxy.identifier() == item.pageID() && itemID == item.identifier());
         // TODO the C++ downcasts the APP to a WebProcessProxy
         let process = WebKit.AuxiliaryProcessProxy.fromConnection(connection);
-        let hasBackForwardCacheEntry = item.backForwardCacheEntry() != nil;
+        let hasBackForwardCacheEntry = operatorBool(item.protectedBackForwardCacheEntry());
         if hasBackForwardCacheEntry != frameState.hasCachedPage {
             if frameState.hasCachedPage {
                 derefRefWebBackForwardCache(webPageProxy.protectedBackForwardCache()).addEntry(item, process.coreProcessIdentifier());
-            } else if !item.suspendedPage() {
+            } else if !item.hasSuspendedPage() {
                 derefRefWebBackForwardCache(webPageProxy.protectedBackForwardCache()).removeEntry(item);
             }
         }
 
-        frameItem.setFrameState(frameState);
+        frameItem.setFrameState(consuming: toRefFrameState(frameState));
     }
 
     @_expose(Cxx)

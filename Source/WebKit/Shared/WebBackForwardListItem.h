@@ -90,6 +90,7 @@ public:
     RefPtr<WebBackForwardCacheEntry> protectedBackForwardCacheEntry() const;
 
     SuspendedPageProxy* _Nullable suspendedPage() const;
+    bool hasSuspendedPage() const { return suspendedPage(); }
 
     std::optional<WebCore::FrameIdentifier> navigatedFrameID() const { return m_navigatedFrameID; }
 
