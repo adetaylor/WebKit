@@ -282,7 +282,7 @@ public class WebBackForwardListSwift {
         // item should remain in the list.
         let currentItem = entries[priorCurrentIndex];
         var shouldKeepCurrentItem = true;
-        if currentItem != item {
+        if !itemsMatch(currentItem, item) {
             page.recordAutomaticNavigationSnapshot();
             shouldKeepCurrentItem = page.shouldKeepCurrentBackForwardListItemInList(currentItem);
         }
