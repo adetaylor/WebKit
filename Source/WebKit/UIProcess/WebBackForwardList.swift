@@ -631,6 +631,16 @@ public class WebBackForwardListSwift {
         }
     }
 
+    func createWebBackForwardListItem(state: FrameState, pageIdentifier: WebKit.WebPageProxyIdentifier) -> RefBackForwardListItem {
+         if state.frameIDIsSet() {
+            let frameID = state.getFrameID();
+            // TODO ensure items not copied unduly
+            return createWebBackForwardListItemWithFrameID(consuming: toRefFrameState(state), pageIdentifier, frameID);
+        } else {
+            return createWebBackForwardListItemWithoutFrameID(consuming: toRefFrameState(state), pageIdentifier);
+        }
+    }
+
     @_expose(Cxx)
     @_spi(Internal)
     public func restoreFromState(backForwardListState: BackForwardListState) {
@@ -647,14 +657,7 @@ public class WebBackForwardListSwift {
             setBackForwardItemIdentifiers(frameState: stateCopy, itemID: BackForwardItemIdentifier.generate());
             currentIndex = entries.isEmpty ? nil : entries.count - 1;
             // FIXME: navigatedFrameID will always be the main frame ID, causing the restored session state to be sent to an incorrect process when going back or forward with site isolation enabled.
-            var item: RefBackForwardListItem;
-            if stateCopy.frameIDIsSet() {
-                let navigatedFrameID = stateCopy.getFrameID();
-                // TODO ensure items not copied unduly
-                item = createWebBackForwardListItemWithFrameID(consuming: toRefFrameState(stateCopy), page.identifier(), navigatedFrameID);
-            } else {
-                item = createWebBackForwardListItemWithoutFrameID(consuming: toRefFrameState(stateCopy), page.identifier());
-            }
+            var item = createWebBackForwardListItem(state: stateCopy, pageIdentifier: page.identifier());
             entries.append(derefRefWebBackForwardListItem(item));
         }
 
@@ -877,10 +880,8 @@ public class WebBackForwardListSwift {
         let processPtr = derefRefWebProcessProxy(process);
         assert(!isRemoteFrameNavigation || webPageProxy.preferences().siteIsolationEnabled());
 
-        let navigatedFrameID = navigatedFrameState.getFrameID();
-        let item = WebBackForwardListItem.create(completeFrameStateForNavigation(navigatedFrameState: navigatedFrameState),
-            webPageProxy.identifier(), navigatedFrameID);
-        item.setResourceDirectoryURL(webPageProxy.currentResourceDirectoryURL());
+        let item = derefRefWebBackForwardListItem(createWebBackForwardListItem(state: navigatedFrameState, pageIdentifier: webPageProxy.identifier()));
+        item.setResourceDirectoryURL(consuming: webPageProxy.currentResourceDirectoryURL());
         item.setIsRemoteFrameNavigation(isRemoteFrameNavigation);
         if loadedWebArchive == WebKit.LoadedWebArchive.Yes {
             item.setDataStoreForWebArchive(processPtr.websiteDataStore());
