@@ -145,7 +145,8 @@ private:
 #ifdef __swift__
 public:
     // TODO figure out why it can't import this field and work around it better
-    std::optional<WebCore::FrameIdentifier> getFrameID() const { return frameID; }
+    bool frameIDIsSet() const { return frameID.has_value(); }
+    WebCore::FrameIdentifier getFrameID() const { return *frameID; }
 #endif
 }  SWIFT_SHARED_REFERENCE(refFrameState, derefFrameState);
 

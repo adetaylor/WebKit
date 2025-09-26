@@ -788,9 +788,10 @@ public class WebBackForwardListSwift {
         guard let currentItem = currentItem() else {
             return navigatedFrameState;
         }
-        guard let navigatedFrameID = navigatedFrameState.getFrameID() else {
+        if !navigatedFrameState.frameIDIsSet() {
             return navigatedFrameState;
         }
+        let navigatedFrameID = navigatedFrameState.getFrameID();
         guard let mainFrameItem = currentItem.mainFrameItem() else {
             return navigatedFrameState;
         }
@@ -798,8 +799,8 @@ public class WebBackForwardListSwift {
             return navigatedFrameState;
         }
         let frameState = derefRefFrameState(currentItem.mainFrameState());
-        setBackForwardItemIdentifier(frameState: frameState, itemID: navigatedFrameState.itemID);
-        frameState.replaceChildFrameState(consuming: navigatedFrameState);
+        setBackForwardItemIdentifier(frameState: frameState, itemID: navigatedFrameState.itemID.asOptional()!);
+        frameState.replaceChildFrameState(consuming: toRefFrameState(navigatedFrameState));
         return frameState;
     }
 
@@ -811,8 +812,9 @@ public class WebBackForwardListSwift {
     public func backForwardAddItemShared(connection: IPC.Connection, navigatedFrameState: FrameState, loadedWebArchive: WebKit.LoadedWebArchive) {
         let process = WebKit.WebProcessProxy.fromConnection(connection);
 
-        let itemURL = WTF.URL.init(navigatedFrameState.urlString);
-        let itemOriginalURL = WTF.URL.init(navigatedFrameState.originalURLString);
+        // TODO look up the rdar for the need to pass the nil parameter which is default
+        let itemURL = WTF.URL(navigatedFrameState.urlString, nil);
+        let itemOriginalURL = WTF.URL(navigatedFrameState.originalURLString, nil);
 
         // TODO convert all the following once we have platform macros
         // #if PLATFORM(COCOA)
@@ -900,10 +902,10 @@ public class WebBackForwardListSwift {
     @_expose(Cxx)
     @_spi(Internal)
     public func backForwardUpdateItem(connection: IPC.Connection, frameState: WebKit.FrameState) {
-        guard let itemID = frameState.itemID else {
+        guard let itemID = frameState.itemID.asOptional() else {
             return;
         }
-        guard let frameItemID = frameState.frameItemID else {
+        guard let frameItemID = frameState.frameItemID.asOptional() else {
             return;
         }
         guard let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) else {
