@@ -624,7 +624,7 @@ public class WebBackForwardListSwift {
 
         // FIXME: Enable restoring resourceDirectoryURL.
         entries.removeAll();
-        entries.reserveCapacity(backForwardListState.items.count);
+        entries.reserveCapacity(backForwardListState.items.size());
         // TODO not as efficient as C++ we're replacing
         for item in backForwardListState.items {
             let stateCopy = item.state.copy(); // TODO may not be necessary depending on how we unpack from Refs.
@@ -664,9 +664,7 @@ public class WebBackForwardListSwift {
 
     func didRemoveItem(item: WebBackForwardListItem) {
         item.wasRemovedFromBackForwardList();
-        guard let page else {
-            assert(false);
-        }
+        let page = getPageWeakPtr(page)!;
         page.backForwardRemovedItem(item.identifier());
         // TODO expose platform macros to Swift to remove the following call on most platforms
         item.setNullSnapshot();
