@@ -67,8 +67,12 @@ func swiftStringToWtfString(swiftString: String) -> WTF.String {
     var wtfString: WTF.String? = Optional.none;
     let len = swiftString.utf8.count;
     swiftString.utf8CString.withUnsafeBufferPointer { ptr in
-        let span = SpanChar.init(ptr, len);
-        wtfString = WTF.String.fromUTF8(span);
+        unsafe {
+            // TODO figure out a way to make a std::span without unsafety
+            let mutablePointer = UnsafeMutablePointer<Int8>(mutating: ptr)
+            let span = SpanChar.init(mutablePointer, len);
+            wtfString = WTF.String.fromUTF8(span);
+        }
     }
     return wtfString!;
 }
@@ -88,13 +92,13 @@ extension WebKit.WebPageProxyIdentifier: Equatable {
 
 // TODO make efficient
 // TODO investigate the extent to which we can make this generic
-func toWTFVectorAPIObject(list: [API.Object]) -> VectorAPIObject {
+func toWTFVectorAPIObject(list: [API.Object]) -> APIArray {
     var vec = VectorAPIObject();
     vec.reserveCapacity(list.count);
     for item in list {
         vec.append(consuming: toRefPtrAPIObject(item));
     }
-    return vec;
+    return API.Array.create(vec);
 }
 
 @_expose(Cxx)
@@ -304,7 +308,9 @@ public class WebBackForwardListSwift {
         if targetIndex < priorCurrentIndex {
             let delta = entries.count - targetIndex - 1;
             let deltaValue = if delta > 10 { "over10" } else { delta.description };
-            page.logDiagnosticMessage(WebCore.DiagnosticLoggingKeys.backNavigationDeltaKey(), swiftStringToWtfString(deltaValue), WebCore.ShouldSample.No);
+            page.logDiagnosticMessage(WebCore.DiagnosticLoggingKeys.backNavigationDeltaKey(),
+                swiftStringToWtfString(swiftString: deltaValue),
+                WebCore.ShouldSample.No);
         }
 
         // If we're going to an item different from the current item, ask the client if the current

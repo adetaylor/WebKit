@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include "Shared/API/APIObject.h"
 #include "wtf/Vector.h"
 #import <wtf/WeakPtr.h>
 #import <Shared/SessionState.h>
