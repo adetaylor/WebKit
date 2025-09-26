@@ -584,12 +584,13 @@ public class WebBackForwardListSwift {
             backForwardListState.setCurrentIndex(UInt32(currentIndex));
         }
 
-        entries.enumerate().forEach { i, entry in
+        for (i, entry) in entries.enumerated() {
             if let filter = filter {
                 if !filter(entry) {
-                    if let stateCurrentIndex = backForwardListState.currentIndex {
+                    if backForwardListState.indexIsSet() {
+                        let stateCurrentIndex = backForwardListState.getCurrentIndex();
                         if i < stateCurrentIndex && stateCurrentIndex != 0 {
-                            backForwardListState.currentIndex -= 1;
+                            backForwardListState.setCurrentIndex(stateCurrentIndex-1);
                         }
                     }
                     continue;
@@ -608,7 +609,7 @@ public class WebBackForwardListSwift {
 
     func setBackForwardItemIdentifiers(frameState: FrameState, itemID: BackForwardItemIdentifier) {
         frameState.itemID = itemID;
-        frameState.frameItemID = BackForwardFrameItemIdentifier.generate();
+        frameState.frameItemID = BackForwardItemIdentifier.generate();
         for child in frameState.children {
             setBackForwardItemIdentifiers(frameState: child, itemID: itemID); // TODO ensure child is a reference type
         }
