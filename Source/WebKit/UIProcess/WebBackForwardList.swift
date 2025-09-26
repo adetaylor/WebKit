@@ -910,16 +910,10 @@ public class WebBackForwardListSwift {
             return;
         }
         let itemID = frameState.itemID.value();
-        // guard let itemID = frameState.itemID.asOptional() else {
-        //     return;
-        // }
         if !operatorBool(frameState.frameItemID) {
             return;
         }
-        let frameItemID = frameItemID.frameItemID.value();
-        // guard let frameItemID = frameState.frameItemID.asOptional() else {
-        //     return;
-        // }
+        let frameItemID = frameState.frameItemID.value();
         guard let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) else {
             return;
         }
