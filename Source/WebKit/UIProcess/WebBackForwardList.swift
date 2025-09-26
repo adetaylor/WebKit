@@ -97,7 +97,7 @@ struct VectorRefFrameStateIterator: Sequence, IteratorProtocol {
         if pos >= vec.size() {
             return nil;
         }
-        let item = vec.at(pos);
+        let item = vec.at(pos).pointee;
         pos+=1;
         return item;
     }
