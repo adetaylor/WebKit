@@ -40,3 +40,4 @@ using VectorRefBackForwardListItem = Vector<Ref<WebKit::WebBackForwardListItem>>
 using WeakPtrWebPageProxy = WeakPtr<WebKit::WebPageProxy>;
 using SpanConstChar = std::span<const char>;
 using MarkableBackForwardItemIdentifier = WTF::Markable<WebCore::BackForwardItemIdentifier>;
+using MarkableBackForwardFrameItemIdentifier = WTF::Markable<WebCore::BackForwardFrameItemIdentifier>;

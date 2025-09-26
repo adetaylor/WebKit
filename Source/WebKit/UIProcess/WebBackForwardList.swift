@@ -42,8 +42,6 @@ public typealias BackForwardListState = WebKit.BackForwardListState
 public typealias FrameState = WebKit.FrameState
 @_spi(Internal)
 public typealias WebPageProxy = WebKit.WebPageProxy
-@_spi(Internal)
-public typealias BackForwardFrameItemIdentifier = WebCore.BackForwardFrameItemIdentifier
 
 #if ENABLE_BACKFORWARDLIST_SWIFT
 
@@ -611,7 +609,7 @@ public class WebBackForwardListSwift {
 
     func setBackForwardItemIdentifiers(frameState: FrameState, itemID: BackForwardItemIdentifier) {
         frameState.itemID = MarkableBackForwardItemIdentifier.init(itemID);
-        frameState.frameItemID = BackForwardFrameItemIdentifier.generate();
+        frameState.frameItemID = MarkableBackForwardFrameItemIdentifier.init(BackForwardFrameItemIdentifier.generate());
         for child in frameState.children {
             setBackForwardItemIdentifiers(frameState: child, itemID: itemID); // TODO ensure child is a reference type
         }
