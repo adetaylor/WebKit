@@ -47,8 +47,6 @@
 #include <wtf/cocoa/RuntimeApplicationChecksCocoa.h>
 #endif
 
-#include <WebKit-Swift.h>
-
 namespace WebKit {
 using namespace WebCore;
 
@@ -872,7 +870,9 @@ void WebBackForwardList::backForwardUpdateItem(IPC::Connection& connection, Ref<
 void WebBackForwardList::backForwardGoToItem(BackForwardItemIdentifier itemID, CompletionHandler<void(const WebBackForwardListCounts&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardGoToItem(itemID, completionHandler);
+    // TODO figure out how to pass callbacks through to Swift
+    WebBackForwardListCounts result = m_swiftBackForwardList.backForwardGoToItem(itemID);
+    completionHandler(result);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     // On process swap, we tell the previous process to ignore the load, which causes it so restore its current back forward item to its previous
     // value. Since the load is really going on in a new provisional process, we want to ignore such requests from the committed process.
@@ -889,7 +889,8 @@ void WebBackForwardList::backForwardGoToItem(BackForwardItemIdentifier itemID, C
 void WebBackForwardList::backForwardListContainsItem(WebCore::BackForwardItemIdentifier itemID, CompletionHandler<void(bool)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardListContainsItem(itemID, completionHandler);
+    bool result = m_swiftBackForwardList.backForwardListContainsItem(itemID);
+    completionHandler(result);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     completionHandler(itemForID(itemID));
 #endif // ENABLE_BACKFORWARDLIST_SWIFT
@@ -898,7 +899,8 @@ void WebBackForwardList::backForwardListContainsItem(WebCore::BackForwardItemIde
 void WebBackForwardList::backForwardGoToItemShared(BackForwardItemIdentifier itemID, CompletionHandler<void(const WebBackForwardListCounts&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardGoToItemShared(itemID, completionHandler);
+    WebBackForwardListCounts result = m_swiftBackForwardList.backForwardGoToItemShared(itemID);
+    completionHandler(result);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
 
     if (RefPtr webPageProxy = m_page.get())
@@ -916,7 +918,8 @@ void WebBackForwardList::backForwardGoToItemShared(BackForwardItemIdentifier ite
 void WebBackForwardList::backForwardAllItems(FrameIdentifier frameID, CompletionHandler<void(Vector<Ref<FrameState>>&&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardAllItems(frameID, completionHandler);
+    Vector<Ref<FrameState>> result = m_swiftBackForwardList.backForwardAllItems(frameID);
+    return result;
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     Vector<Ref<FrameState>> allItems;
 
@@ -938,7 +941,8 @@ void WebBackForwardList::backForwardAllItems(FrameIdentifier frameID, Completion
 void WebBackForwardList::backForwardItemAtIndex(int32_t index, FrameIdentifier frameID, CompletionHandler<void(RefPtr<FrameState>&&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardItemAtIndex(index, frameID, completionHandler);
+    RefPtr<FrameState> result = m_swiftBackForwardList.backForwardItemAtIndex(index, frameID);
+    return result;
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     // FIXME: This should verify that the web process requesting the item hosts the specified frame.
     if (RefPtr item = itemAtIndex(index)) {
@@ -953,7 +957,8 @@ void WebBackForwardList::backForwardItemAtIndex(int32_t index, FrameIdentifier f
 void WebBackForwardList::backForwardListCounts(CompletionHandler<void(WebBackForwardListCounts&&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardListCounts(completionHandler);
+    WebBackForwardListCounts result = m_swiftBackForwardList.backForwardListCounts();
+    return result;
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     completionHandler(counts());
 #endif // ENABLE_BACKFORWARDLIST_SWIFT

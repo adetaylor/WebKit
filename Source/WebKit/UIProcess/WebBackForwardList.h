@@ -27,6 +27,7 @@
 
 #include "APIObject.h"
 #include "MessageReceiver.h"
+#include "WebBackForwardListCounts.h"
 #include "WebBackForwardListItem.h"
 #include "WebPageProxyMessageReceiverRegistration.h"
 #include "Shared/SessionState.h"
