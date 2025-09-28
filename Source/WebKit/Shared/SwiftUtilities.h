@@ -25,10 +25,9 @@
 
 #pragma once
 
-#include "Shared/API/APIObject.h"
-#include "UIProcess/WebFrameProxy.h"
-#include "wtf/Vector.h"
-#include <optional>
+#import <WebKit/WebFrameProxy.h>
+#import <wtf/Vector.h>
+#import <optional>
 #import <wtf/WeakPtr.h>
 #import <Shared/SessionState.h>
 #import <Shared/SwiftTypes.h>
@@ -38,8 +37,6 @@
 #import <UIProcess/WebPageProxy.h>
 #import <UIProcess/WebPageProxyIdentifier.h>
 #import <APIArray.h>
-
-#import <WebKit-Swift.h>
 
 // Things within this file may depend upon WebKit-Swift.h e.g.
 // definitions of things like swift::String.

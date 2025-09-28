@@ -36,6 +36,7 @@
 #include "WebFrameProxy.h"
 #include "WebInspectorUtilities.h"
 #include "WebPageProxy.h"
+#include "wtf/Ref.h"
 #include <WebCore/DiagnosticLoggingClient.h>
 #include <WebCore/DiagnosticLoggingKeys.h>
 #include <wtf/DebugUtilities.h>
@@ -423,7 +424,7 @@ Ref<API::Array> WebBackForwardList::forwardList() const
 Ref<API::Array> WebBackForwardList::backListAsAPIArrayWithLimit(unsigned limit) const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).backListAsAPIArrayWithLimit(limit);
+    return *const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).backListAsAPIArrayWithLimit(limit);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
@@ -450,7 +451,7 @@ Ref<API::Array> WebBackForwardList::backListAsAPIArrayWithLimit(unsigned limit) 
 Ref<API::Array> WebBackForwardList::forwardListAsAPIArrayWithLimit(unsigned limit) const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).forwardListAsAPIArrayWithLimit(limit);
+    return *const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).forwardListAsAPIArrayWithLimit(limit);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
@@ -585,7 +586,7 @@ static inline void setBackForwardItemIdentifiers(FrameState& frameState, BackFor
 void WebBackForwardList::restoreFromState(BackForwardListState backForwardListState)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    m_swiftBackForwardList.restoreFromState(state);
+    m_swiftBackForwardList.restoreFromState(backForwardListState);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     if (!m_page)
         return;
@@ -715,12 +716,12 @@ RefPtr<WebBackForwardListItem> WebBackForwardList::goForwardItemSkippingItemsWit
 #endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
+#ifndef ENABLE_BACKFORWARDLIST_SWIFT
 RefPtr<WebPageProxy> WebBackForwardList::protectedPage()
 {
     return m_page.get();
 }
 
-#ifndef ENABLE_BACKFORWARDLIST_SWIFT
 static inline void setBackForwardItemIdentifier(FrameState& frameState, BackForwardItemIdentifier itemID)
 {
     frameState.itemID = itemID;
@@ -758,7 +759,7 @@ Ref<FrameState> WebBackForwardList::completeFrameStateForNavigation(Ref<FrameSta
 void WebBackForwardList::backForwardAddItem(IPC::Connection& connection, Ref<FrameState>&& navigatedFrameState)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardAddItem(&connection, navigatedFrameState);
+    return m_swiftBackForwardList.backForwardAddItem(&connection, navigatedFrameState.get());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     if (RefPtr webPageProxy = m_page.get())
         backForwardAddItemShared(connection, WTFMove(navigatedFrameState), webPageProxy->didLoadWebArchive() ? LoadedWebArchive::Yes : LoadedWebArchive::No);
@@ -768,7 +769,7 @@ void WebBackForwardList::backForwardAddItem(IPC::Connection& connection, Ref<Fra
 void WebBackForwardList::backForwardAddItemShared(IPC::Connection& connection, Ref<FrameState>&& navigatedFrameState, LoadedWebArchive loadedWebArchive)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardAddItemShared(&connection, navigatedFrameState, loadedWebArchive);
+    return m_swiftBackForwardList.backForwardAddItemShared(&connection, navigatedFrameState.get(), loadedWebArchive);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     Ref process = WebProcessProxy::fromConnection(connection);
 
@@ -817,7 +818,7 @@ void WebBackForwardList::backForwardAddItemShared(IPC::Connection& connection, R
 void WebBackForwardList::backForwardSetChildItem(BackForwardFrameItemIdentifier frameItemID, Ref<FrameState>&& frameState)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardSetChildItem(frameItemID, frameState);
+    return m_swiftBackForwardList.backForwardSetChildItem(frameItemID, frameState.get());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
 
     RefPtr item = currentItem();
@@ -842,7 +843,7 @@ void WebBackForwardList::backForwardClearChildren(BackForwardItemIdentifier item
 void WebBackForwardList::backForwardUpdateItem(IPC::Connection& connection, Ref<FrameState>&& frameState)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardUpdateItem(&connection, frameState);
+    return m_swiftBackForwardList.backForwardUpdateItem(&connection, frameState.get());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     RefPtr frameItem = frameState->itemID && frameState->frameItemID ? WebBackForwardListFrameItem::itemForID(*frameState->itemID, *frameState->frameItemID) : nullptr;
     if (!frameItem)
@@ -937,7 +938,7 @@ void WebBackForwardList::backForwardAllItems(FrameIdentifier frameID, Completion
 void WebBackForwardList::backForwardItemAtIndex(int32_t index, FrameIdentifier frameID, CompletionHandler<void(RefPtr<FrameState>&&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.XYZ(index, frameID, completionHandler);
+    return m_swiftBackForwardList.backForwardItemAtIndex(index, frameID, completionHandler);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     // FIXME: This should verify that the web process requesting the item hosts the specified frame.
     if (RefPtr item = itemAtIndex(index)) {
@@ -963,7 +964,9 @@ void WebBackForwardList::backForwardListCounts(CompletionHandler<void(WebBackFor
 String WebBackForwardList::loggingString()
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.loggingString();
+    // TODO assess if these are the right conversions
+    std::string answer = m_swiftBackForwardList.loggingString();
+    return WTF::String::fromUTF8WithLatin1Fallback(answer);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     StringBuilder builder;
 
