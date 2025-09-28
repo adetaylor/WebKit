@@ -38,7 +38,14 @@
 #include <wtf/WeakPtr.h>
 
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
+// TODO work out why WebKit-Swift.h includes WebKit/WebKit.h and why that
+// triggers errors about deprecated WebFrame
+// TODO work out what the __bridge_transfer stuff is about
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
 #include <WebKit-Swift.h>
+#pragma clang diagnostic pop
 #endif
 
 namespace API {
