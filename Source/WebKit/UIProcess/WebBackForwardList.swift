@@ -90,6 +90,7 @@ extension WebKit.WebPageProxyIdentifier: Equatable {
 struct VectorRefFrameStateIterator: Sequence, IteratorProtocol {
     init(vec: VectorRefFrameState) {
         self.vec = vec
+        self.pos = 0;
     }
     var vec: VectorRefFrameState;
     var pos: Int;
