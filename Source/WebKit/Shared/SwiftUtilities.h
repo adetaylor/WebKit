@@ -30,16 +30,28 @@
 #import <optional>
 #import <wtf/WeakPtr.h>
 #import <Shared/SessionState.h>
-#import <Shared/SwiftTypes.h>
 #import <Shared/WebBackForwardListFrameItem.h>
 #import <Shared/WebBackForwardListItem.h>
 #import <UIProcess/WebBackForwardCache.h>
 #import <UIProcess/WebPageProxy.h>
 #import <UIProcess/WebPageProxyIdentifier.h>
 #import <APIArray.h>
+#import <wtf/Markable.h>
+#import <Shared/WebBackForwardListItem.h>
 
-// Things within this file may depend upon WebKit-Swift.h e.g.
-// definitions of things like swift::String.
+// Types which Swift needs
+
+// TODO: figure out the Swift limitation which prevents us using these generic
+// types directly from Swift, and note the rdar.
+using VectorAPIObject = Vector<RefPtr<API::Object>>;
+using VectorRefBackForwardListItem = Vector<Ref<WebKit::WebBackForwardListItem>>;
+using RefBackForwardListItem = Ref<WebKit::WebBackForwardListItem>;
+using RefFrameState = Ref<WebKit::FrameState>;
+using VectorRefFrameState = Vector<RefFrameState>;
+using WeakPtrWebPageProxy = WeakPtr<WebKit::WebPageProxy>;
+using SpanConstChar = std::span<const char>;
+using MarkableBackForwardItemIdentifier = WTF::Markable<WebCore::BackForwardItemIdentifier>;
+using MarkableBackForwardFrameItemIdentifier = WTF::Markable<WebCore::BackForwardFrameItemIdentifier>;
 
 template<typename T>
 Vector<RefPtr<API::Object>> toAPIObjectVector(const Vector<Ref<T>>& itemsVector)
