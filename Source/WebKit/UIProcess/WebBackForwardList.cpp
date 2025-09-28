@@ -759,7 +759,7 @@ Ref<FrameState> WebBackForwardList::completeFrameStateForNavigation(Ref<FrameSta
 void WebBackForwardList::backForwardAddItem(IPC::Connection& connection, Ref<FrameState>&& navigatedFrameState)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardAddItem(&connection, navigatedFrameState.get());
+    return m_swiftBackForwardList.backForwardAddItem(&connection, &navigatedFrameState.get());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     if (RefPtr webPageProxy = m_page.get())
         backForwardAddItemShared(connection, WTFMove(navigatedFrameState), webPageProxy->didLoadWebArchive() ? LoadedWebArchive::Yes : LoadedWebArchive::No);
@@ -769,7 +769,7 @@ void WebBackForwardList::backForwardAddItem(IPC::Connection& connection, Ref<Fra
 void WebBackForwardList::backForwardAddItemShared(IPC::Connection& connection, Ref<FrameState>&& navigatedFrameState, LoadedWebArchive loadedWebArchive)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardAddItemShared(&connection, navigatedFrameState.get(), loadedWebArchive);
+    return m_swiftBackForwardList.backForwardAddItemShared(&connection, &navigatedFrameState.get(), loadedWebArchive);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     Ref process = WebProcessProxy::fromConnection(connection);
 
@@ -818,7 +818,7 @@ void WebBackForwardList::backForwardAddItemShared(IPC::Connection& connection, R
 void WebBackForwardList::backForwardSetChildItem(BackForwardFrameItemIdentifier frameItemID, Ref<FrameState>&& frameState)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardSetChildItem(frameItemID, frameState.get());
+    return m_swiftBackForwardList.backForwardSetChildItem(frameItemID, &frameState.get());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
 
     RefPtr item = currentItem();
@@ -843,7 +843,7 @@ void WebBackForwardList::backForwardClearChildren(BackForwardItemIdentifier item
 void WebBackForwardList::backForwardUpdateItem(IPC::Connection& connection, Ref<FrameState>&& frameState)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_swiftBackForwardList.backForwardUpdateItem(&connection, frameState.get());
+    return m_swiftBackForwardList.backForwardUpdateItem(&connection, &frameState.get());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     RefPtr frameItem = frameState->itemID && frameState->frameItemID ? WebBackForwardListFrameItem::itemForID(*frameState->itemID, *frameState->frameItemID) : nullptr;
     if (!frameItem)
