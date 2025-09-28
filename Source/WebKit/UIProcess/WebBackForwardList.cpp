@@ -919,7 +919,7 @@ void WebBackForwardList::backForwardAllItems(FrameIdentifier frameID, Completion
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
     Vector<Ref<FrameState>> result = m_swiftBackForwardList.backForwardAllItems(frameID);
-    return result;
+    completionHandler(WTFMove(result));
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     Vector<Ref<FrameState>> allItems;
 
@@ -942,7 +942,7 @@ void WebBackForwardList::backForwardItemAtIndex(int32_t index, FrameIdentifier f
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
     RefPtr<FrameState> result = m_swiftBackForwardList.backForwardItemAtIndex(index, frameID);
-    return result;
+    completionHandler(WTFMove(result));
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     // FIXME: This should verify that the web process requesting the item hosts the specified frame.
     if (RefPtr item = itemAtIndex(index)) {
@@ -958,7 +958,7 @@ void WebBackForwardList::backForwardListCounts(CompletionHandler<void(WebBackFor
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
     WebBackForwardListCounts result = m_swiftBackForwardList.backForwardListCounts();
-    return result;
+    completionHandler(WTFMove(result));
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     completionHandler(counts());
 #endif // ENABLE_BACKFORWARDLIST_SWIFT

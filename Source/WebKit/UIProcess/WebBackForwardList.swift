@@ -104,6 +104,14 @@ struct VectorRefFrameStateIterator: Sequence, IteratorProtocol {
     }
 }
 
+func toVectorRefFrameState(items: [FrameState]) -> VectorRefFrameState {
+    var result = VectorRefFrameState.init();
+    for item in items {
+        result.append(consuming: toRefFrameState(item));
+    }
+    return result;
+}
+
 // TODO make efficient
 // TODO investigate the extent to which we can make this generic
 func toWTFVectorAPIObject(list: [API.Object]) -> API.Array {
@@ -1017,12 +1025,12 @@ public class WebBackForwardListSwift {
     // TODO figure out where and how best to convert the completionHandler parameter to a Vec
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardAllItems(frameID: FrameIdentifier) -> [FrameState] {
+    public func backForwardAllItems(frameID: FrameIdentifier) -> VectorRefFrameState{
         var frameStates: [FrameState] = [];
         for item in entries {
             frameStates.append(frameStateForItem(item: item, frameID: frameID));
         }
-        return frameStates;
+        return toVectorRefFrameState(items: frameStates);
     }
 
     @_expose(Cxx)
