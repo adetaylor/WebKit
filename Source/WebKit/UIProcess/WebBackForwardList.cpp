@@ -542,7 +542,8 @@ void WebBackForwardList::clear()
 BackForwardListState WebBackForwardList::backForwardListState(WTF::Function<bool (WebBackForwardListItem&)>&& filter) const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).backForwardListState(filter);
+    // TODO pass the filter once we know how
+    return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).backForwardListState();
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
@@ -618,7 +619,8 @@ void WebBackForwardList::setItemsAsRestoredFromSession()
 void WebBackForwardList::setItemsAsRestoredFromSessionIf(NOESCAPE Function<bool(WebBackForwardListItem&)>&& functor)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).setItemsAsRestoredFromSessionIf(functor);
+    // TODO reenable once we know how to pass functions
+    // const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).setItemsAsRestoredFromSessionIf(functor);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     for (auto& entry : m_entries) {
         if (functor(entry))

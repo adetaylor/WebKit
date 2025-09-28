@@ -598,8 +598,11 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardListState(filter: ((WebBackForwardListItem) -> Bool)?) -> BackForwardListState {
+    public func backForwardListState() -> BackForwardListState {
         assertStateOk();
+
+        // TODO we are supposed to accept this from the caller
+        let filter: ((WebBackForwardListItem) -> Bool)? = nil;
 
         var backForwardListState = BackForwardListState.init();
         if let currentIndex = currentIndex {
@@ -618,8 +621,8 @@ public class WebBackForwardListSwift {
                     }
                     continue;
                 }
-                backForwardListState.items.append(consuming: entry.mainFrameState())
             }
+            backForwardListState.items.append(consuming: entry.mainFrameState())
         }
 
         if backForwardListState.items.isEmpty() {
