@@ -148,7 +148,7 @@ inline bool webPageProxyIdentifiersEquate(const WebKit::WebPageProxyIdentifier& 
 }
 
 // TODO - workaround for rdar://130765784
-inline bool itemsMatch(const WebKit::WebBackForwardListItem* lhs, const WebKit::WebBackForwardListItem* rhs) {
+inline bool itemsMatch(const WebKit::WebBackForwardListItem* _Nullable lhs, const WebKit::WebBackForwardListItem* _Nullable rhs) {
     return lhs == rhs;
 }
 

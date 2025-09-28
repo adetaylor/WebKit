@@ -187,9 +187,7 @@ public class WebBackForwardListSwift {
         }
     }
 
-    @_expose(Cxx)
-    @_spi(Internal)
-    public func addItem(newItem: WebBackForwardListItem) {
+    func addItem(newItem: WebBackForwardListItem) {
         assertStateOk();
 
         guard let page = getPageWeakPtr(page) else {

@@ -132,6 +132,7 @@ private:
     Ref<FrameState> completeFrameStateForNavigation(Ref<FrameState>&&);
 
     RefPtr<WebPageProxy> protectedPage();
+#endif
 
     // IPC messages
     void backForwardAddItem(IPC::Connection&, Ref<FrameState>&&);
@@ -146,6 +147,7 @@ private:
     void shouldGoToBackForwardListItem(WebCore::BackForwardItemIdentifier, bool inBackForwardCache, CompletionHandler<void(WebCore::ShouldGoToHistoryItem)>&&);
     void shouldGoToBackForwardListItemSync(WebCore::BackForwardItemIdentifier, CompletionHandler<void(WebCore::ShouldGoToHistoryItem)>&&);
 
+#ifndef ENABLE_BACKFORWARDLIST_SWIFT
     WeakPtr<WebPageProxy> m_page;
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
