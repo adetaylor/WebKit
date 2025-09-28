@@ -31,7 +31,6 @@
 #import "APIObject.h"
 #import "Shared/LoadedWebArchive.h"
 #import "Shared/SessionState.h"
-#import "Shared/SwiftTypes.h"
 #import "Shared/SwiftUtilities.h"
 #import "Shared/WebBackForwardListCounts.h"
 #import "Shared/WebBackForwardListFrameItem.h"
