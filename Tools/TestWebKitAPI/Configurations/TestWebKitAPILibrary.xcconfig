@@ -35,7 +35,15 @@ SWIFT_OBJC_BRIDGING_HEADER = Tests/WebKit Swift/TestWebKitAPIBundle-Bridging-Hea
 SWIFT_OPTIMIZATION_LEVEL = -O;
 SWIFT_OPTIMIZATION_LEVEL[config=Debug] = -Onone;
 
-OTHER_SWIFT_FLAGS = $(inherited) -no-warnings-as-errors -Xfrontend -experimental-spi-only-imports $(OTHER_SWIFT_FLAGS$(WK_XCODE_16)) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/platform-enabled-swift-args.$(arch).resp;
+OTHER_SWIFT_FLAGS = $(inherited) -no-warnings-as-errors -Xfrontend -experimental-spi-only-imports $(OTHER_SWIFT_FLAGS$(WK_XCODE_16)) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/platform-enabled-swift-args.$(arch).resp -Xcc -std=c++2b -no-verify-emitted-module-interface -enable-experimental-feature RequiresObjC=Foundation -Xcc -isystem -Xcc $(TOOLCHAIN_DIR)/usr/include;
 OTHER_SWIFT_FLAGS_XCODE_BEFORE_16 = -Xfrontend -enable-experimental-concurrency -Xfrontend -enable-upcoming-feature -Xfrontend IsolatedDefaultValues;
+
+WK_SRCROOT=$(SRCROOT)/../../Source/WebKit
+
+SWIFT_INCLUDE_PATHS = $(WK_SRCROOT)/Modules/Internal $(SWIFT_INCLUDE_PATHS_$(USE_INTERNAL_SDK));
+SWIFT_INCLUDE_PATHS_ = $(WK_SRCROOT)/Platform/spi/visionos $(WK_SRCROOT)/Platform/spi/ios $(WK_SRCROOT)/Platform/spi/Cocoa $(WK_SRCROOT)/Platform/spi/Cocoa/Modules $(inherited);
+
+// TODO: remove these from downstream WebKit dependencies once we get rid of publicness
+SWIFT_OBJC_INTEROP_MODE = objcxx;
 
 SYSTEM_HEADER_SEARCH_PATHS = $(inherited) $(TOOLCHAIN_DIR)/usr/include;
