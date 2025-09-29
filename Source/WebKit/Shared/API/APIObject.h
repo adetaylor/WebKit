@@ -318,18 +318,21 @@ inline API::Object* Object::unwrap(void* object)
 
 } // namespace API
 
+inline void objectRetain(API::Object* o) {
+#if DELEGATE_REF_COUNTING_TO_COCOA
+    o->ref();
+#else
+    WTF::ref(o);
+#endif
+}
 
-void objectRetain(API::Object* o);
-
-void objectRelease(API::Object* o);
-
-// TODO define these somewhere, something like this
-// #if DELEGATE_REF_COUNTING_TO_COCOA
-//     [o.m_wrapper release];
-// #else
-//     WTF::deref(o);
-// #endif
-
+inline void objectRelease(API::Object* o) {
+#if DELEGATE_REF_COUNTING_TO_COCOA
+    o->deref();
+#else
+    WTF::deref(o);
+#endif
+}
 
 #undef DELEGATE_REF_COUNTING_TO_COCOA
 

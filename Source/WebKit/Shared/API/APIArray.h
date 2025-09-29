@@ -106,13 +106,16 @@ private:
     }
 
     Vector<RefPtr<Object>> m_elements;
-} SWIFT_SHARED_REFERENCE(arrayRetain, arrayRetain);
+} SWIFT_SHARED_REFERENCE(arrayRetain, arrayRelease);
 
 } // namespace API
 
+inline void arrayRetain(API::Array* o) {
+    WTF::ref(o);
+}
 
-void arrayRetain(API::Array* o);
-
-void arrayRetain(API::Array* o);
+inline void arrayRelease(API::Array* o) {
+    WTF::deref(o);
+}
 
 SPECIALIZE_TYPE_TRAITS_API_OBJECT(Array);
