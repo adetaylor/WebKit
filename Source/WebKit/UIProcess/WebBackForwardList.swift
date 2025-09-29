@@ -26,6 +26,9 @@
 public import WebKit_Internal
 internal import wtf
 
+// TODO work out if the next four lines are responsible for the Weak vtables + externals
+// build phase blowing up. The relevant lines of that have been commented out as a
+// dreadful hack.
 @_spi(Internal)
 public typealias BackForwardItemIdentifier = WebCore.BackForwardItemIdentifier
 @_spi(Internal)
