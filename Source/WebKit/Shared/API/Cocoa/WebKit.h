@@ -83,5 +83,7 @@
 #import <WebKit/WKWindowFeatures.h>
 
 #if !defined(TARGET_OS_MACCATALYST) || !TARGET_OS_MACCATALYST
+#if !defined(AVOID_IMPORTING_LEGACY_WEBKIT_BOBBINS)
 #import <WebKit/WebKitLegacy.h>
+#endif
 #endif
