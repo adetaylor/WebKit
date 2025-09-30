@@ -25,6 +25,10 @@
 
 import Foundation
 
+typealias UUID = Foundation.UUID
+typealias Range = Swift.Range
+typealias Hasher = Swift.Hasher
+
 class IntelligenceTextEffectChunk: PlatformIntelligenceTextEffectChunk {
     class Pondering: IntelligenceTextEffectChunk {
         override init(range: Range<Int>) {

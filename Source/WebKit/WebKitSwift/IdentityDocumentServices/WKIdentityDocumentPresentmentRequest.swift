@@ -25,6 +25,8 @@
 
 import Foundation
 
+typealias URL = Foundation.URL
+
 @objc @implementation extension WKIdentityDocumentPresentmentRequest {
     // Used to workaround the fact that `@objc @implementation does not support stored properties whose size can change
     // due to Library Evolution. Do not use this property directly.
