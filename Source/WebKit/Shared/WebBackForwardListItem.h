@@ -38,7 +38,7 @@
 
 #ifdef __swift__
 #include <WebCore/FrameIdentifier.h>
-#include <WebKit/WebBackForwardCacheEntry.h>
+#include "WebBackForwardCacheEntry.h"
 #endif
 
 namespace WebKit {
