@@ -24,6 +24,7 @@
 //
 
 #include "TestWebKitAPI.xcconfig"
+#include "../../../Configurations/DownstreamSwiftStuff.xcconfig"
 
 PRODUCT_NAME = TestWebKitAPI;
 SKIP_INSTALL = YES;
@@ -41,7 +42,7 @@ OTHER_SWIFT_FLAGS_XCODE_BEFORE_16 = -Xfrontend -enable-experimental-concurrency 
 
 WK_SRCROOT=$(SRCROOT)/../../Source/WebKit
 
-SWIFT_INCLUDE_PATHS = $(WK_SRCROOT)/Modules/Internal $(WK_SRCROOT)/Platform/spi/visionos $(WK_SRCROOT)/Platform/spi/ios $(WK_SRCROOT)/Platform/spi/Cocoa $(WK_SRCROOT)/Platform/spi/Cocoa/Modules  $(WK_SRCROOT)/Platform/Cocoa  $(WK_SRCROOT)/Shared/API/Cocoa   $(WK_SRCROOT)/UIProcess/API/Cocoa  $(SRCROOT)/../../Source/WebKit/Shared/Cocoa $(SRCROOT)/../../Source/WebKit/Platform  $(SRCROOT)/../../Source/WebKit/Platform/IPC $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit $(WK_SRCROOT)/UIProcess $(WK_SRCROOT)/Shared/API $(WK_SRCROOT) $(WK_SRCROOT)/UIProcess/API $(WK_SRCROOT)/NetworkProcess $(WK_SRCROOT)/UIProcess/WebsiteData $(WK_SRCROOT)/UIProcess/Cocoa $(inherited);
+SWIFT_INCLUDE_PATHS = $(WK_DOWNSTREAM_SWIFT_INCLUDE_PATHS) $(inherited);
 
 // TODO: remove these from downstream WebKit dependencies once we get rid of publicness
 SWIFT_OBJC_INTEROP_MODE = objcxx;

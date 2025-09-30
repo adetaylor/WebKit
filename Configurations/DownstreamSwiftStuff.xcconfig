@@ -1,4 +1,4 @@
-// Copyright (C) 2024 Apple Inc. All rights reserved.
+// Copyright (C) 2010-2024 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -21,24 +21,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "../../../Configurations/DownstreamSwiftStuff.xcconfig"
-
-PRODUCT_NAME = SwiftBrowser
-CODE_SIGN_ENTITLEMENTS = Resources/SwiftBrowser.entitlements;
-PRODUCT_BUNDLE_IDENTIFIER = org.webkit.$(PRODUCT_NAME:rfc1034identifier)
-
-INFOPLIST_FILE = Resources/mac/Info.plist
-INFOPLIST_FILE[sdk=iphone*] = Resources/iOS/Info.plist
-
-STRIP_STYLE = debugging;
-
-ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
-ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
-COMBINE_HIDPI_IMAGES[sdk=macosx*] = YES
 
 WK_SRCROOT=$(SRCROOT)/../../Source/WebKit
-OTHER_SWIFT_FLAGS = $(inherited) -no-warnings-as-errors -Xfrontend -experimental-spi-only-imports $(OTHER_SWIFT_FLAGS$(WK_XCODE_16)) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/platform-enabled-swift-args.$(arch).resp -no-verify-emitted-module-interface -enable-experimental-feature RequiresObjC=Foundation -Xcc -isystem -Xcc $(TOOLCHAIN_DIR)/usr/include;
-OTHER_SWIFT_FLAGS_XCODE_BEFORE_16 = -Xfrontend -enable-experimental-concurrency -Xfrontend -enable-upcoming-feature -Xfrontend IsolatedDefaultValues;
-PROJECT_HEADER_SEARCH_PATHS = $(WK_SRCROOT)/Platform/cocoa $(WK_SRCROOT)/Platform/spi/Cocoa $(WK_SRCROOT)/Platform/spi/ios $(WK_SRCROOT)/UIProcess/ios;
 
-SWIFT_INCLUDE_PATHS = $(WK_DOWNSTREAM_SWIFT_INCLUDE_PATHS) $(inherited);
+WK_DOWNSTREAM_SWIFT_INCLUDE_PATHS = SWIFT_INCLUDE_PATHS = $(WK_SRCROOT)/Modules/Internal $(WK_SRCROOT)/Platform/spi/visionos $(WK_SRCROOT)/Platform/spi/ios $(WK_SRCROOT)/Platform/spi/Cocoa $(WK_SRCROOT)/Platform/spi/Cocoa/Modules  $(WK_SRCROOT)/Platform/Cocoa  $(WK_SRCROOT)/Shared/API/Cocoa   $(WK_SRCROOT)/UIProcess/API/Cocoa  $(SRCROOT)/../../Source/WebKit/Shared/Cocoa $(SRCROOT)/../../Source/WebKit/Platform  $(SRCROOT)/../../Source/WebKit/Platform/IPC $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit $(WK_SRCROOT)/UIProcess $(WK_SRCROOT)/Shared/API $(WK_SRCROOT) $(WK_SRCROOT)/UIProcess/API $(WK_SRCROOT)/NetworkProcess $(WK_SRCROOT)/UIProcess/WebsiteData $(WK_SRCROOT)/UIProcess/Cocoa;
