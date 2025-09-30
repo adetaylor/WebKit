@@ -33,3 +33,10 @@ STRIP_STYLE = debugging;
 ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
 ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
 COMBINE_HIDPI_IMAGES[sdk=macosx*] = YES
+
+WK_SRCROOT=$(SRCROOT)/../../Source/WebKit
+OTHER_SWIFT_FLAGS = $(inherited) -no-warnings-as-errors -Xfrontend -experimental-spi-only-imports $(OTHER_SWIFT_FLAGS$(WK_XCODE_16)) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/platform-enabled-swift-args.$(arch).resp -no-verify-emitted-module-interface -enable-experimental-feature RequiresObjC=Foundation -Xcc -isystem -Xcc $(TOOLCHAIN_DIR)/usr/include;
+OTHER_SWIFT_FLAGS_XCODE_BEFORE_16 = -Xfrontend -enable-experimental-concurrency -Xfrontend -enable-upcoming-feature -Xfrontend IsolatedDefaultValues;
+PROJECT_HEADER_SEARCH_PATHS = $(WK_SRCROOT)/Platform/cocoa $(WK_SRCROOT)/Platform/spi/Cocoa $(WK_SRCROOT)/Platform/spi/ios $(WK_SRCROOT)/UIProcess/ios;
+
+SWIFT_INCLUDE_PATHS =  $(inherited) $(WK_SRCROOT)/Modules/Internal $(SWIFT_INCLUDE_PATHS_$(USE_INTERNAL_SDK)) $(WK_SRCROOT)/Platform/spi/visionos $(WK_SRCROOT)/Platform/spi/ios $(WK_SRCROOT)/Platform/spi/Cocoa $(WK_SRCROOT)/Platform/spi/Cocoa/Modules $(WK_SRCROOT)/UIProcess/Cocoa $(WK_SRCROOT)/Platform/Cocoa $(WK_SRCROOT)/UIProcess/ios  $(WK_SRCROOT)/UIProcess/Cocoa $(WK_SRCROOT)/UIProcess/API $(WK_SRCROOT)/Shared/API $(WK_SRCROOT)/UIProcess/API/Cocoa  $(SRCROOT)/../../Source/WebKit/Shared/Cocoa $(SRCROOT)/../../Source/WebKit/Platform $(WK_SRCROOT)/UIProcess/WebsiteData $(WK_SRCROOT)/NetworkProcess  $(WK_SRCROOT) $(SRCROOT)/../../Source/WebKit/Platform/IPC $(WK_SRCROOT)/UIProcess $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit;

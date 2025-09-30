@@ -25,7 +25,7 @@
 
 #pragma once
 
-#import <WebKit/WebFrameProxy.h>
+#import <UIProcess/WebFrameProxy.h>
 #import <wtf/Vector.h>
 #import <optional>
 #import <wtf/WeakPtr.h>

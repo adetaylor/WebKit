@@ -37,11 +37,11 @@ SWIFT_OPTIMIZATION_LEVEL[config=Debug] = -Onone;
 
 OTHER_SWIFT_FLAGS = $(inherited) -no-warnings-as-errors -Xfrontend -experimental-spi-only-imports $(OTHER_SWIFT_FLAGS$(WK_XCODE_16)) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/platform-enabled-swift-args.$(arch).resp -Xcc -std=c++2b -no-verify-emitted-module-interface -enable-experimental-feature RequiresObjC=Foundation -Xcc -isystem -Xcc $(TOOLCHAIN_DIR)/usr/include;
 OTHER_SWIFT_FLAGS_XCODE_BEFORE_16 = -Xfrontend -enable-experimental-concurrency -Xfrontend -enable-upcoming-feature -Xfrontend IsolatedDefaultValues;
+//PROJECT_HEADER_SEARCH_PATHS = $(inherited) $(SRCROOT)/../../Source/WebKit/Platform/cocoa $(SRCROOT)/../TestRunnerShared/spi $(SRCROOT)/../../Source/WebKit/Platform/spi/Cocoa $(SRCROOT)/../../Source/WebKit/Platform/spi/ios $(SRCROOT)/../../Source/WebKit/UIProcess/ios $(SRCROOT)/../../Source/WebKit/UIProcess/API/Cocoa $(SRCROOT)/../../Source/WebKit/Shared/Cocoa $(SRCROOT)/../../Source/WebKit/Platform  $(SRCROOT)/../../Source/WebKit/Platform/IPC $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit;
 
 WK_SRCROOT=$(SRCROOT)/../../Source/WebKit
 
-SWIFT_INCLUDE_PATHS = $(WK_SRCROOT)/Modules/Internal $(SWIFT_INCLUDE_PATHS_$(USE_INTERNAL_SDK));
-SWIFT_INCLUDE_PATHS_ = $(WK_SRCROOT)/Platform/spi/visionos $(WK_SRCROOT)/Platform/spi/ios $(WK_SRCROOT)/Platform/spi/Cocoa $(WK_SRCROOT)/Platform/spi/Cocoa/Modules $(inherited);
+SWIFT_INCLUDE_PATHS = $(WK_SRCROOT)/Modules/Internal $(WK_SRCROOT)/Platform/spi/visionos $(WK_SRCROOT)/Platform/spi/ios $(WK_SRCROOT)/Platform/spi/Cocoa $(WK_SRCROOT)/Platform/spi/Cocoa/Modules  $(WK_SRCROOT)/Platform/Cocoa  $(WK_SRCROOT)/Shared/API/Cocoa   $(WK_SRCROOT)/UIProcess/API/Cocoa  $(SRCROOT)/../../Source/WebKit/Shared/Cocoa $(SRCROOT)/../../Source/WebKit/Platform  $(SRCROOT)/../../Source/WebKit/Platform/IPC $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit $(WK_SRCROOT)/UIProcess $(WK_SRCROOT)/Shared/API $(WK_SRCROOT) $(WK_SRCROOT)/UIProcess/API $(WK_SRCROOT)/NetworkProcess $(WK_SRCROOT)/UIProcess/WebsiteData $(WK_SRCROOT)/UIProcess/Cocoa $(inherited);
 
 // TODO: remove these from downstream WebKit dependencies once we get rid of publicness
 SWIFT_OBJC_INTEROP_MODE = objcxx;

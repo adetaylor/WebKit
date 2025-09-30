@@ -46,3 +46,10 @@ SWIFT_OPTIMIZATION_LEVEL = -O;
 SWIFT_OPTIMIZATION_LEVEL[config=Debug] = -Onone;
 
 OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/TestWebKitAPI/platform-enabled-swift-args.$(arch).resp;
+
+WK_SRCROOT=$(SRCROOT)/../../Source/WebKit
+SWIFT_INCLUDE_PATHS = $(WK_SRCROOT)/Modules/Internal $(SWIFT_INCLUDE_PATHS_$(USE_INTERNAL_SDK));
+SWIFT_INCLUDE_PATHS_ = $(WK_SRCROOT)/Platform/spi/visionos $(WK_SRCROOT)/Platform/spi/ios $(WK_SRCROOT)/Platform/spi/Cocoa $(WK_SRCROOT)/Platform/spi/Cocoa/Modules $(inherited);
+OTHER_SWIFT_FLAGS = $(inherited) -Xcc -std=c++2b -no-verify-emitted-module-interface -enable-experimental-feature RequiresObjC=Foundation -Xcc -isystem -Xcc $(TOOLCHAIN_DIR)/usr/include;
+OTHER_SWIFT_FLAGS_XCODE_BEFORE_16 = -Xfrontend -enable-experimental-concurrency -Xfrontend -enable-upcoming-feature -Xfrontend IsolatedDefaultValues;
+PROJECT_HEADER_SEARCH_PATHS = $(WK_SRCROOT)/Platform/cocoa $(WK_SRCROOT)/Platform/spi/Cocoa $(WK_SRCROOT)/Platform/spi/ios $(WK_SRCROOT)/UIProcess/ios;
