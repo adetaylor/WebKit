@@ -37,7 +37,7 @@ EXCLUDED_SOURCE_FILE_NAMES = $(EXCLUDED_IOS_RESOURCE_FILE_NAMES) $(EXCLUDED_MACO
 
 SWIFT_INSTALL_OBJC_HEADER = NO;
 
-OTHER_SWIFT_FLAGS = $(inherited) $(OTHER_SWIFT_FLAGS$(WK_XCODE_16_3)); //  -Xcc -std=c++2b -no-verify-emitted-module-interface -enable-experimental-feature RequiresObjC=Foundation -Xcc -isystem -Xcc $(TOOLCHAIN_DIR)/usr/include;
+OTHER_SWIFT_FLAGS = $(inherited) $(OTHER_SWIFT_FLAGS$(WK_XCODE_16_3)) -Xcc -std=c++2b -no-verify-emitted-module-interface; // -enable-experimental-feature RequiresObjC=Foundation -Xcc -isystem -Xcc $(TOOLCHAIN_DIR)/usr/include;
 OTHER_SWIFT_FLAGS_XCODE_BEFORE_16_3 = -enable-experimental-feature ObjCImplementation;
 
 // TODO: remove these from downstream WebKit dependencies once we get rid of publicness

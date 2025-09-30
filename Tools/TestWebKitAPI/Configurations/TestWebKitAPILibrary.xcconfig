@@ -36,15 +36,13 @@ SWIFT_OBJC_BRIDGING_HEADER = Tests/WebKit Swift/TestWebKitAPIBundle-Bridging-Hea
 SWIFT_OPTIMIZATION_LEVEL = -O;
 SWIFT_OPTIMIZATION_LEVEL[config=Debug] = -Onone;
 
-OTHER_SWIFT_FLAGS = $(inherited) -no-warnings-as-errors -Xfrontend -experimental-spi-only-imports $(OTHER_SWIFT_FLAGS$(WK_XCODE_16)) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/platform-enabled-swift-args.$(arch).resp -Xcc -std=c++2b -no-verify-emitted-module-interface -enable-experimental-feature RequiresObjC=Foundation -Xcc -isystem -Xcc $(TOOLCHAIN_DIR)/usr/include;
+OTHER_SWIFT_FLAGS = $(inherited) -no-warnings-as-errors -Xfrontend -experimental-spi-only-imports $(OTHER_SWIFT_FLAGS$(WK_XCODE_16)) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/platform-enabled-swift-args.$(arch).resp; // -Xcc -std=c++2b -no-verify-emitted-module-interface -enable-experimental-feature RequiresObjC=Foundation -Xcc -isystem -Xcc $(TOOLCHAIN_DIR)/usr/include;
 OTHER_SWIFT_FLAGS_XCODE_BEFORE_16 = -Xfrontend -enable-experimental-concurrency -Xfrontend -enable-upcoming-feature -Xfrontend IsolatedDefaultValues;
 //PROJECT_HEADER_SEARCH_PATHS = $(inherited) $(SRCROOT)/../../Source/WebKit/Platform/cocoa $(SRCROOT)/../TestRunnerShared/spi $(SRCROOT)/../../Source/WebKit/Platform/spi/Cocoa $(SRCROOT)/../../Source/WebKit/Platform/spi/ios $(SRCROOT)/../../Source/WebKit/UIProcess/ios $(SRCROOT)/../../Source/WebKit/UIProcess/API/Cocoa $(SRCROOT)/../../Source/WebKit/Shared/Cocoa $(SRCROOT)/../../Source/WebKit/Platform  $(SRCROOT)/../../Source/WebKit/Platform/IPC $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit;
-
-WK_SRCROOT=$(SRCROOT)/../../Source/WebKit
 
 SWIFT_INCLUDE_PATHS = $(WK_DOWNSTREAM_SWIFT_INCLUDE_PATHS) $(inherited);
 
 // TODO: remove these from downstream WebKit dependencies once we get rid of publicness
-SWIFT_OBJC_INTEROP_MODE = objcxx;
+//SWIFT_OBJC_INTEROP_MODE = objcxx;
 
 SYSTEM_HEADER_SEARCH_PATHS = $(inherited) $(TOOLCHAIN_DIR)/usr/include;
