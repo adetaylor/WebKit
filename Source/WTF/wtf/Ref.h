@@ -33,6 +33,10 @@
 #include <wtf/StdLibExtras.h>
 #include <wtf/TypeCasts.h>
 
+#ifdef __swift__
+#include <swift/bridging>
+#endif
+
 #if ASAN_ENABLED
 extern "C" void __asan_poison_memory_region(void const volatile *addr, size_t size);
 extern "C" void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
