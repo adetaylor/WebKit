@@ -40,11 +40,6 @@
 #include <wtf/WeakHashSet.h>
 #include <wtf/RetainReleaseSwift.h>
 
-#ifdef __swift__
-#include "FrameTreeNodeData.h"
-#include <WebCore/Exception.h>
-#endif
-
 namespace API {
 class Attachment;
 class ContentWorld;
@@ -451,10 +446,13 @@ using NodeIdentifier = ObjectIdentifier<NodeIdentifierType>;
 // FIXME - workaround for rdar://152495753
 #include <WebCore/ClientOrigin.h>
 #include <WebCore/ElementContext.h>
+#include <WebCore/Exception.h>
 #include <WebCore/MobileDocumentRequest.h>
 #include <WebCore/OpenID4VPRequest.h>
+#include <WebCore/RemoteUserInputEventData.h>
 #include <WebCore/ShareableBitmapHandle.h>
 #include <WebCore/TextIndicator.h>
+#include <WebCore/WritingToolsTypes.h>
 #include "APIArray.h"
 #include "APIHistoryClient.h"
 #include "APINavigationClient.h"
@@ -463,6 +461,8 @@ using NodeIdentifier = ObjectIdentifier<NodeIdentifierType>;
 #include "WebNavigationState.h"
 #include "WebPageInspectorController.h"
 #include "WebProcessActivityState.h"
+#include "WebKeyboardEvent.h"
+#include "FrameTreeNodeData.h"
 #endif
 
 namespace WebKit {
