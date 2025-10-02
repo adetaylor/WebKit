@@ -196,7 +196,7 @@ public:
     PREFERRED_TYPE(bool) unsigned insideSubmitButton : 1;
     PREFERRED_TYPE(bool) unsigned enableEvaluationTimeZoom : 1;
 #if HAVE(CORE_MATERIAL)
-    PREFERRED_TYPE(AppleVisualEffect) unsigned usedAppleVisualEffectForSubtree : 4;
+    PREFERRED_TYPE(AppleVisualEffect) unsigned usedAppleVisualEffectForSubtree : 5;
 #endif
 
     OptionSet<TouchAction> usedTouchActions;
