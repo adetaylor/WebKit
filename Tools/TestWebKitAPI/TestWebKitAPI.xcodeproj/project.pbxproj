@@ -3715,7 +3715,7 @@
 		A17C58222C9AA2B0009DD0B5 /* TestWebKitAPIApp.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = TestWebKitAPIApp.xcconfig; sourceTree = "<group>"; };
 		A17C58232C9AA491009DD0B5 /* TestWebKitAPI.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = TestWebKitAPI.xcconfig; sourceTree = "<group>"; };
 		A17C58242C9AAA25009DD0B5 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/iOSSupport/System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
-		A17C582E2C9B3EAD009DD0B5 /* TestWebKitAPIBundle.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TestWebKitAPIBundle.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A17C582E2C9B3EAD009DD0B5 /* .xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = .xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A17C583E2C9B3EFE009DD0B5 /* GoogleTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GoogleTests.mm; sourceTree = "<group>"; };
 		A17C58412C9B46F4009DD0B5 /* TestWebKitAPIBundle.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = TestWebKitAPIBundle.xcconfig; sourceTree = "<group>"; };
 		A17C58432C9BE200009DD0B5 /* TestBundleLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TestBundleLoader.h; sourceTree = "<group>"; };
@@ -4696,7 +4696,7 @@
 				A13EBB491B87339E00097110 /* TestWebKitAPI.wkbundle */,
 				A17C46462C98E3430023F3C7 /* TestWebKitAPIResources.bundle */,
 				A17C58022C9AA12F009DD0B5 /* TestWebKitAPI.app */,
-				A17C582E2C9B3EAD009DD0B5 /* TestWebKitAPIBundle.xctest */,
+				A17C582E2C9B3EAD009DD0B5 /* .xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -7106,7 +7106,7 @@
 			);
 			name = TestWebKitAPIBundle;
 			productName = TestBundle;
-			productReference = A17C582E2C9B3EAD009DD0B5 /* TestWebKitAPIBundle.xctest */;
+			productReference = A17C582E2C9B3EAD009DD0B5 /* .xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		BC57597F126E74AF006F0F12 /* InjectedBundleTestWebKitAPI */ = {
