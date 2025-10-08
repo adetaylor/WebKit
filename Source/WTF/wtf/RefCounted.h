@@ -25,6 +25,7 @@
 #include <wtf/FastMalloc.h>
 #include <wtf/MainThread.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/RetainReleaseSwift.h>
 
 namespace WTF {
 
@@ -205,7 +206,12 @@ protected:
     ~RefCounted()
     {
     }
-};
+
+private:
+    void refBase() {
+        ref();
+    }
+} SWIFT_SHARED_REFERENCE(.refBase, .deref);
 
 template<typename T>
 inline void ref(T* obj)
