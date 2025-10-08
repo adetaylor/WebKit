@@ -155,7 +155,6 @@ struct BackForwardListState {
     std::optional<uint32_t> currentIndex;
 
 #ifdef __swift__
-    void setCurrentIndex(uint32_t currentIndex) { this->currentIndex = currentIndex; }
     void setCurrentIndexNone() { this->currentIndex = std::nullopt; }
 #endif
 };

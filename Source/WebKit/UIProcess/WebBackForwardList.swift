@@ -610,7 +610,8 @@ public class WebBackForwardListSwift {
         var backForwardListState = BackForwardListState.init();
         if let currentIndex = currentIndex {
             // TODO consider overflows etc. in this cast
-            backForwardListState.setCurrentIndex(UInt32(currentIndex));
+            // TODO may be subject to rdar://129159672
+            backForwardListState.currentIndex.pointee = UInt32(currentIndex);
         }
 
         for (i, entry) in entries.enumerated() {
@@ -618,7 +619,8 @@ public class WebBackForwardListSwift {
                 if !filter(entry) {
                     if let stateCurrentIndex = Optional(fromCxx: backForwardListState.currentIndex) {
                         if i < stateCurrentIndex && stateCurrentIndex != 0 {
-                            backForwardListState.setCurrentIndex(stateCurrentIndex-1);
+                            // TODO may be subject to rdar://129159672
+                            backForwardListState.currentIndex.pointee = stateCurrentIndex-1;
                         }
                     }
                     continue;
@@ -631,6 +633,7 @@ public class WebBackForwardListSwift {
             backForwardListState.setCurrentIndexNone()
         } else if let currentIndex = Optional(fromCxx: backForwardListState.currentIndex) {
             if backForwardListState.items.size() <= currentIndex {
+                // TODO may be subject to rdar://129159672
                 backForwardListState.currentIndex.pointee = UInt32(backForwardListState.items.size())-1;
             }
         }
@@ -678,8 +681,8 @@ public class WebBackForwardListSwift {
         // TODO think about overflows
         switch Optional(fromCxx: backForwardListState.currentIndex) {
         case .none:
-            currentIndex = none;
-        case .some(val):
+            currentIndex = Optional.none;
+        case .some(let val):
             currentIndex = Int(val)
         }
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p restored from state (has %zu entries)", this, m_entries.count); // TODO
