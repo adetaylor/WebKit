@@ -51,8 +51,7 @@ class WebBackForwardListFrameItem;
 
 class WebBackForwardListItem : public API::ObjectImpl<API::Object::Type::BackForwardListItem>, public CanMakeWeakPtr<WebBackForwardListItem> {
 public:
-    // TODO figure out a way to avoid needing to name each parameter
-    static Ref<WebBackForwardListItem> create(Ref<FrameState>&& frameState, WebPageProxyIdentifier webPageProxyIdentifier, std::optional<WebCore::FrameIdentifier> frameIdentifier, BrowsingContextGroup* _Nullable browsingContextGroup = nullptr);
+    static Ref<WebBackForwardListItem> create(Ref<FrameState>&&, WebPageProxyIdentifier, std::optional<WebCore::FrameIdentifier>, BrowsingContextGroup* _Nullable = nullptr);
     virtual ~WebBackForwardListItem();
 
     static WebBackForwardListItem* _Nullable itemForID(WebCore::BackForwardItemIdentifier);
