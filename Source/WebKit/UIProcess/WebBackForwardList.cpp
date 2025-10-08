@@ -311,7 +311,7 @@ void WebBackForwardList::goToItem(WebBackForwardListItem& item)
 WebBackForwardListItem* _Nullable WebBackForwardList::currentItem() const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    // TODO work out why the const cast is required here
+    // TODO remove const_cast after rdar://162196607
     return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).currentItem();
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
@@ -328,6 +328,7 @@ RefPtr<WebBackForwardListItem> WebBackForwardList::protectedCurrentItem() const
 WebBackForwardListItem* _Nullable WebBackForwardList::backItem() const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    // TODO remove const_cast after rdar://162196607
     return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).backItem();
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
@@ -360,6 +361,7 @@ RefPtr<WebBackForwardListItem> WebBackForwardList::protectedForwardItem() const
 WebBackForwardListItem* _Nullable WebBackForwardList::itemAtIndex(int index) const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    // TODO remove const_cast after rdar://162196607
     return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).itemAtIndex(index);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
@@ -397,6 +399,7 @@ unsigned WebBackForwardList::backListCount() const
 unsigned WebBackForwardList::forwardListCount() const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    // TODO remove const_cast after rdar://162196607
     return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).forwardListCount();
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
@@ -425,6 +428,7 @@ Ref<API::Array> WebBackForwardList::forwardList() const
 Ref<API::Array> WebBackForwardList::backListAsAPIArrayWithLimit(unsigned limit) const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    // TODO remove const_cast after rdar://162196607
     return *const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).backListAsAPIArrayWithLimit(limit);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
@@ -452,6 +456,7 @@ Ref<API::Array> WebBackForwardList::backListAsAPIArrayWithLimit(unsigned limit) 
 Ref<API::Array> WebBackForwardList::forwardListAsAPIArrayWithLimit(unsigned limit) const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    // TODO remove const_cast after rdar://162196607
     return *const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).forwardListAsAPIArrayWithLimit(limit);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
@@ -546,6 +551,7 @@ BackForwardListState WebBackForwardList::backForwardListState(WTF::Function<bool
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
     // TODO pass the filter once we know how
+    // TODO remove const_cast after rdar://162196607
     return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).backForwardListState();
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
@@ -623,6 +629,7 @@ void WebBackForwardList::setItemsAsRestoredFromSessionIf(NOESCAPE Function<bool(
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
     // TODO reenable once we know how to pass functions
+    // TODO remove const_cast after rdar://162196607
     // const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).setItemsAsRestoredFromSessionIf(functor);
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     for (auto& entry : m_entries) {
@@ -704,6 +711,7 @@ static RefPtr<WebBackForwardListItem> itemSkippingBackForwardItemsAddedByJSWitho
 RefPtr<WebBackForwardListItem> WebBackForwardList::goBackItemSkippingItemsWithoutUserGesture() const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    // TODO remove const_cast after rdar://162196607
     return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).goBackItemSkippingItemsWithoutUserGesture();
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     return itemSkippingBackForwardItemsAddedByJSWithoutUserGesture(*this, NavigationDirection::Backward);
@@ -713,6 +721,7 @@ RefPtr<WebBackForwardListItem> WebBackForwardList::goBackItemSkippingItemsWithou
 RefPtr<WebBackForwardListItem> WebBackForwardList::goForwardItemSkippingItemsWithoutUserGesture() const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    // TODO remove const_cast after rdar://162196607
     return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).goForwardItemSkippingItemsWithoutUserGesture();
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     return itemSkippingBackForwardItemsAddedByJSWithoutUserGesture(*this, NavigationDirection::Forward);
