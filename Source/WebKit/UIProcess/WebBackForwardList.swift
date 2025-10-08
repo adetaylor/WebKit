@@ -630,7 +630,7 @@ public class WebBackForwardListSwift {
         }
 
         if backForwardListState.items.isEmpty() {
-            backForwardListState.setCurrentIndexNone()
+            backForwardListState.currentIndex = std.nullopt
         } else if let currentIndex = Optional(fromCxx: backForwardListState.currentIndex) {
             if backForwardListState.items.size() <= currentIndex {
                 // TODO may be subject to rdar://129159672
