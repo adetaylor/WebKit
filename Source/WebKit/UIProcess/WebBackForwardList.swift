@@ -637,8 +637,8 @@ public class WebBackForwardListSwift {
     }
 
     func setBackForwardItemIdentifiers(frameState: FrameState, itemID: BackForwardItemIdentifier) {
-        frameState.itemID = MarkableBackForwardItemIdentifier(itemID);
-        frameState.frameItemID = MarkableBackForwardFrameItemIdentifier.init(BackForwardFrameItemIdentifier.generate());
+        frameState.itemID = createMarkableBackForwardItemIdentifier(itemID);
+        frameState.frameItemID = createMarkableBackForwardFrameItemIdentifier(generateBackForwardFrameItemIdentifier());
         for child in VectorRefFrameStateIterator(vec: frameState.children) {
             setBackForwardItemIdentifiers(frameState: derefRefFrameState(child), itemID: itemID); // TODO ensure child is a reference type
         }
@@ -667,7 +667,7 @@ public class WebBackForwardListSwift {
         // TODO not as efficient as C++ we're replacing
         for item in VectorRefFrameStateIterator(vec: backForwardListState.items) {
             let stateCopy = derefRefFrameState(derefRefFrameState(item).copy()); // TODO may not be necessary depending on how we unpack from Refs.
-            setBackForwardItemIdentifiers(frameState: stateCopy, itemID: BackForwardItemIdentifier.generate());
+            setBackForwardItemIdentifiers(frameState: stateCopy, itemID: generateBackForwardItemIdentifier());
             currentIndex = entries.isEmpty ? nil : entries.count - 1;
             // FIXME: navigatedFrameID will always be the main frame ID, causing the restored session state to be sent to an incorrect process when going back or forward with site isolation enabled.
             var item = createWebBackForwardListItem(state: stateCopy, pageIdentifier: page.identifier());
@@ -815,7 +815,7 @@ public class WebBackForwardListSwift {
     }
 
     func setBackForwardItemIdentifier(frameState: FrameState, itemID: BackForwardItemIdentifier) {
-        frameState.itemID = MarkableBackForwardItemIdentifier(itemID);
+        frameState.itemID = createMarkableBackForwardItemIdentifier(itemID);
         for child in VectorRefFrameStateIterator(vec: frameState.children) {
             setBackForwardItemIdentifier(frameState: derefRefFrameState(child), itemID: itemID);
         }

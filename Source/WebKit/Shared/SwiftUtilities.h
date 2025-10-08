@@ -185,3 +185,9 @@ inline WebKit::WebFrameProxy* _Nullable getWebFrameProxyWithFrameID(const WebCor
 inline WebKit::WebFrameProxy* _Nullable getWebFrameProxyWithoutFrameID() {
     return WebKit::WebFrameProxy::webFrame(std::nullopt);
 }
+
+// TODO if these items are done in Swift, we get extra weak defs generated
+WebCore::BackForwardFrameItemIdentifier generateBackForwardFrameItemIdentifier();
+WebCore::BackForwardItemIdentifier generateBackForwardItemIdentifier();
+WTF::Markable<WebCore::BackForwardFrameItemIdentifier> createMarkableBackForwardFrameItemIdentifier(WebCore::BackForwardFrameItemIdentifier identifier);
+WTF::Markable<WebCore::BackForwardItemIdentifier> createMarkableBackForwardItemIdentifier(WebCore::BackForwardItemIdentifier identifier);

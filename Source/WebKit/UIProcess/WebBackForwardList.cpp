@@ -43,6 +43,8 @@
 #include <wtf/DebugUtilities.h>
 #include <wtf/HexNumber.h>
 #include <wtf/text/StringBuilder.h>
+#include "Shared/SwiftUtilities.h"
+
 
 #if PLATFORM(COCOA)
 #include <wtf/cocoa/RuntimeApplicationChecksCocoa.h>
@@ -992,3 +994,16 @@ String WebBackForwardList::loggingString()
 #endif // !LOG_DISABLED
 
 } // namespace WebKit
+
+WebCore::BackForwardFrameItemIdentifier generateBackForwardFrameItemIdentifier() {
+    return WebCore::BackForwardFrameItemIdentifier::generate();
+}
+WebCore::BackForwardItemIdentifier generateBackForwardItemIdentifier() {
+    return WebCore::BackForwardItemIdentifier::generate();
+}
+WTF::Markable<WebCore::BackForwardFrameItemIdentifier> createMarkableBackForwardFrameItemIdentifier(WebCore::BackForwardFrameItemIdentifier identifier) {
+    return identifier;
+}
+WTF::Markable<WebCore::BackForwardItemIdentifier> createMarkableBackForwardItemIdentifier(WebCore::BackForwardItemIdentifier identifier) {
+    return identifier;
+}
