@@ -155,10 +155,6 @@ struct BackForwardListState {
     std::optional<uint32_t> currentIndex;
 
 #ifdef __swift__
-    // TODO figure out why Swift can't cope with ther std::optional either as a field
-    // or as parameters/return type
-    bool indexIsSet() const { return currentIndex.has_value(); }
-    uint32_t getCurrentIndex() const { return *currentIndex; }
     void setCurrentIndex(uint32_t currentIndex) { this->currentIndex = currentIndex; }
     void setCurrentIndexNone() { this->currentIndex = std::nullopt; }
 #endif

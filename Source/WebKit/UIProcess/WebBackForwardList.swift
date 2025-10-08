@@ -616,8 +616,7 @@ public class WebBackForwardListSwift {
         for (i, entry) in entries.enumerated() {
             if let filter = filter {
                 if !filter(entry) {
-                    if backForwardListState.indexIsSet() {
-                        let stateCurrentIndex = backForwardListState.getCurrentIndex();
+                    if let stateCurrentIndex = Optional(fromCxx: backForwardListState.currentIndex) {
                         if i < stateCurrentIndex && stateCurrentIndex != 0 {
                             backForwardListState.setCurrentIndex(stateCurrentIndex-1);
                         }
@@ -674,12 +673,8 @@ public class WebBackForwardListSwift {
             entries.append(derefRefWebBackForwardListItem(item));
         }
 
-        if backForwardListState.indexIsSet() {
-            // TODO think about overflows
-            currentIndex = Int(backForwardListState.getCurrentIndex());
-        } else {
-            currentIndex = Optional.none;
-        }
+        // TODO think about overflows
+        currentIndex = Optional(fromCxx: backForwardListState.currentIndex());
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p restored from state (has %zu entries)", this, m_entries.count); // TODO
     }
 
