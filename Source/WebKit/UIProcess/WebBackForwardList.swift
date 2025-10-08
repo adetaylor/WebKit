@@ -629,8 +629,10 @@ public class WebBackForwardListSwift {
 
         if backForwardListState.items.isEmpty() {
             backForwardListState.setCurrentIndexNone()
-        } else if backForwardListState.items.size() <= backForwardListState.getCurrentIndex() {
-            backForwardListState.setCurrentIndex(UInt32(backForwardListState.items.size())-1);
+        } else if let currentIndex = Optional(fromCxx: backForwardListState.currentIndex) {
+            if backForwardListState.items.size() <= currentIndex {
+                backForwardListState.currentIndex.pointee = UInt32(backForwardListState.items.size())-1;
+            }
         }
         return backForwardListState;
     }
@@ -674,7 +676,12 @@ public class WebBackForwardListSwift {
         }
 
         // TODO think about overflows
-        currentIndex = Optional(fromCxx: backForwardListState.currentIndex());
+        switch Optional(fromCxx: backForwardListState.currentIndex) {
+        case .none:
+            currentIndex = none;
+        case .some(val):
+            currentIndex = Int(val)
+        }
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p restored from state (has %zu entries)", this, m_entries.count); // TODO
     }
 
