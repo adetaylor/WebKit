@@ -64,7 +64,12 @@ template<typename T>
 inline bool contentsMatch(const T& lhs, const T& rhs) {
     return lhs == rhs;
 }
+
 // Workaround for rdar://162519380
 inline RefPtr<WebKit::WebProcessProxy> downcastToWebProcessProxy(WebKit::AuxiliaryProcessProxy* _Nonnull app) {
     return downcast<WebKit::WebProcessProxy>(app);
 }
+
+// Workaround for rdar://162193891
+WebCore::BackForwardFrameItemIdentifier generateBackForwardFrameItemIdentifier();
+WebCore::BackForwardItemIdentifier generateBackForwardItemIdentifier();
