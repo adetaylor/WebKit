@@ -62,7 +62,7 @@ enum class TZoneMallocFallback : uint8_t {
 
 extern BEXPORT TZoneMallocFallback tzoneMallocFallback;
 
-using HeapRef = void*;
+using HeapRef = void* _Nonnull;
 
 static constexpr size_t sizeClassFor(size_t size)
 {
@@ -121,7 +121,7 @@ struct SizeAndAlignment {
 };
 
 struct TZoneSpecification {
-    HeapRef* addressOfHeapRef;
+    HeapRef* _Nonnull addressOfHeapRef;
     unsigned size;
     CompactAllocationMode allocationMode;
     SizeAndAlignment::Value sizeAndAlignment;
@@ -185,14 +185,15 @@ inline constexpr CompactAllocationMode compactAllocationMode()
 
 BEXPORT void determineTZoneMallocFallback();
 
-BEXPORT void* tzoneAllocateCompact(HeapRef);
-BEXPORT void* tzoneAllocateNonCompact(HeapRef);
-BEXPORT void* tzoneAllocateCompactSlow(size_t requestedSize, const TZoneSpecification&);
-BEXPORT void* tzoneAllocateNonCompactSlow(size_t requestedSize, const TZoneSpecification&);
+BEXPORT void* _Nonnull tzoneAllocateCompact(HeapRef);
+BEXPORT void* _Nonnull tzoneAllocateNonCompact(HeapRef);
+BEXPORT void* _Nonnull tzoneAllocateCompactSlow(size_t requestedSize, const TZoneSpecification&);
+BEXPORT void* _Nonnull tzoneAllocateNonCompactSlow(size_t requestedSize, const TZoneSpecification&);
 
-BEXPORT void tzoneFree(void*);
+BEXPORT void tzoneFree(void* _Nonnull);
 
-#define MAKE_BTZONE_MALLOCED_COMMON(_type, _compactMode, _exportMacro) \
+// TODO confirm these never return null on OOM
+#define MAKE_BTZONE_MALLOCED_COMMON(_type, _compactMode, _exportMacro, _nonnullMacro) \
 public: \
     using HeapRef = ::bmalloc::api::HeapRef; \
     using SizeAndAlignment = ::bmalloc::api::SizeAndAlignment; \
@@ -203,19 +204,19 @@ private: \
     static _exportMacro const TZoneSpecification s_heapSpec; \
     \
 public: \
-    BINLINE void* operator new(size_t, void* p) { return p; } \
-    BINLINE void* operator new[](size_t, void* p) { return p; } \
+    BINLINE void* _nonnullMacro operator new(size_t, void* _nonnullMacro p) { return p; } \
+    BINLINE void* _nonnullMacro operator new[](size_t, void* _nonnullMacro p) { return p; } \
     \
-    void* operator new[](size_t size) = delete; \
-    void operator delete[](void* p) = delete; \
+    void* _nonnullMacro operator new[](size_t size) = delete; \
+    void operator delete[](void* _nonnullMacro p) = delete; \
     \
-    BINLINE void* operator new(size_t, NotNullTag, void* location) \
+    BINLINE void* _nonnullMacro operator new(size_t, NotNullTag, void* _nonnullMacro location) \
     { \
         ASSERT(location); \
         return location; \
     } \
     \
-    void* operator new(size_t size) \
+    void* _nonnullMacro operator new(size_t size) \
     { \
         static const TZoneSpecification s_heapSpec = { &s_heapRef, sizeof(_type), CompactAllocationMode:: _compactMode, SizeAndAlignment::encode<_type>() TZONE_SPEC_NAME_ARG(#_type) TZONE_DYNAMIC_COMPACTION_ARG(_type) }; \
         \
@@ -229,25 +230,25 @@ public: \
         return ::bmalloc::api::tzoneAllocate ## _compactMode(s_heapRef); \
     } \
     \
-    BINLINE void operator delete(void* p) \
+    BINLINE void operator delete(void* _nonnullMacro p) \
     { \
         ::bmalloc::api::tzoneFree(p); \
     } \
     \
-    BINLINE static void freeAfterDestruction(void* p) \
+    BINLINE static void freeAfterDestruction(void* _nonnullMacro p) \
     { \
         ::bmalloc::api::tzoneFree(p); \
     } \
     \
     using WTFIsFastMallocAllocated = int;
 
-#define MAKE_BTZONE_MALLOCED_COMMON_NON_TEMPLATE(_type, _compactMode, _exportMacro) \
+#define MAKE_BTZONE_MALLOCED_COMMON_NON_TEMPLATE(_type, _compactMode, _exportMacro, _nonnullMacro) \
 private: \
-    static _exportMacro BNO_INLINE void* operatorNewSlow(size_t);
+    static _exportMacro BNO_INLINE void* _nonnullMacro operatorNewSlow(size_t);
 
-#define MAKE_BTZONE_MALLOCED_COMMON_TEMPLATE(_type, _compactMode, _exportMacro) \
+#define MAKE_BTZONE_MALLOCED_COMMON_TEMPLATE(_type, _compactMode, _exportMacro, _nonnullMacro) \
 private: \
-    static _exportMacro BNO_INLINE void* operatorNewSlow(size_t size) \
+    static _exportMacro BNO_INLINE void* _nonnullMacro operatorNewSlow(size_t size) \
     { \
         static const TZoneSpecification s_heapSpec = { &s_heapRef, sizeof(_type), ::bmalloc::api::compactAllocationMode<_type>(), SizeAndAlignment::encode<_type>() TZONE_SPEC_NAME_ARG(#_type) TZONE_DYNAMIC_COMPACTION_ARG(_type) }; \
         if constexpr (::bmalloc::api::compactAllocationMode<_type>() == CompactAllocationMode::Compact) \
@@ -257,21 +258,21 @@ private: \
         return ::bmalloc::api::tzoneAllocate ## _compactMode ## Slow(size, s_heapSpec); \
     }
 
-#define MAKE_BTZONE_MALLOCED(_type, _compactMode, _exportMacro) \
-    MAKE_BTZONE_MALLOCED_COMMON(_type, _compactMode, _exportMacro) \
-    MAKE_BTZONE_MALLOCED_COMMON_NON_TEMPLATE(_type, _compactMode, _exportMacro) \
+#define MAKE_BTZONE_MALLOCED(_type, _compactMode, _exportMacro, _nonnullMacro) \
+    MAKE_BTZONE_MALLOCED_COMMON(_type, _compactMode, _exportMacro, _nonnullMacro) \
+    MAKE_BTZONE_MALLOCED_COMMON_NON_TEMPLATE(_type, _compactMode, _exportMacro, _nonnullMacro) \
 private: \
     using __makeTZoneMallocedMacroSemicolonifier BUNUSED_TYPE_ALIAS = int
 
-#define MAKE_STRUCT_BTZONE_MALLOCED(_type, _compactMode, _exportMacro) \
-    MAKE_BTZONE_MALLOCED_COMMON(_type, _compactMode, _exportMacro) \
-    MAKE_BTZONE_MALLOCED_COMMON_NON_TEMPLATE(_type, _compactMode, _exportMacro) \
+#define MAKE_STRUCT_BTZONE_MALLOCED(_type, _compactMode, _exportMacro, _nonnullMacro) \
+    MAKE_BTZONE_MALLOCED_COMMON(_type, _compactMode, _exportMacro, _nonnullMacro) \
+    MAKE_BTZONE_MALLOCED_COMMON_NON_TEMPLATE(_type, _compactMode, _exportMacro, _nonnullMacro) \
 public: \
     using __makeTZoneMallocedMacroSemicolonifier BUNUSED_TYPE_ALIAS = int
 
-#define MAKE_BTZONE_MALLOCED_TEMPLATE(_type, _compactMode, _exportMacro) \
-    MAKE_BTZONE_MALLOCED_COMMON(_type, _compactMode, _exportMacro) \
-    MAKE_BTZONE_MALLOCED_COMMON_TEMPLATE(_type, _compactMode, _exportMacro) \
+#define MAKE_BTZONE_MALLOCED_TEMPLATE(_type, _compactMode, _exportMacro, _nonnullMacro) \
+    MAKE_BTZONE_MALLOCED_COMMON(_type, _compactMode, _exportMacro, _nonnullMacro) \
+    MAKE_BTZONE_MALLOCED_COMMON_TEMPLATE(_type, _compactMode, _exportMacro, _nonnullMacro) \
 private: \
     using __makeTZoneMallocedMacroSemicolonifier BUNUSED_TYPE_ALIAS = int
 
