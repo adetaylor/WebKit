@@ -73,3 +73,30 @@ inline RefPtr<WebKit::WebProcessProxy> downcastToWebProcessProxy(WebKit::Auxilia
 // Workaround for rdar://162193891
 WebCore::BackForwardFrameItemIdentifier generateBackForwardFrameItemIdentifier();
 WebCore::BackForwardItemIdentifier generateBackForwardItemIdentifier();
+
+// Workaround for rdar://162361370
+// (storing a WTF::Function inside a copyable, in this case ref-counted, type)
+template<typename> class FunctionContainer;
+
+template <typename Out, typename... In>
+class FunctionContainer<Out(In...)>: public RefCounted<FunctionContainer<Out(In...)>> {
+public:
+    static Ref<FunctionContainer<Out(In...)>> create(WTF::Function<Out(In...)>&& fn) {
+        return adoptRef(*new FunctionContainer(WTFMove(fn)));
+    }
+
+    Out call(In... in) const
+    {
+        return m_fn(std::forward<In>(in)...);
+    }
+    void ref() { WTF::ref(this); }
+    void deref() { WTF::deref(this); }
+
+private:
+    FunctionContainer(WTF::Function<Out(In...)>&& fn) : m_fn(WTFMove(fn)) {}
+    WTF::Function<Out(In...)> m_fn;
+    // The following line requires rdar://160696723, so if it doesn't build,
+    // you're probably not using a sufficiently recent swiftc.
+} SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+using WebBackForwardListItemFilter = FunctionContainer<bool (WebKit::WebBackForwardListItem&)>;

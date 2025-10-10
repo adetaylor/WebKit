@@ -550,9 +550,10 @@ void WebBackForwardList::clear()
 BackForwardListState WebBackForwardList::backForwardListState(WTF::Function<bool (WebBackForwardListItem&)>&& filter) const
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    // TODO pass the filter once we know how
+    auto filterRef = FunctionContainer<bool (WebBackForwardListItem&)>::create(WTFMove(filter));
     // TODO remove const_cast after rdar://162196607
-    return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).backForwardListState();
+    // TODO accept the Ref<T> on the Swift side? Or otherwise avoid ptr
+    return const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).backForwardListState(filterRef.ptr());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
@@ -628,9 +629,10 @@ void WebBackForwardList::setItemsAsRestoredFromSession()
 void WebBackForwardList::setItemsAsRestoredFromSessionIf(NOESCAPE Function<bool(WebBackForwardListItem&)>&& functor)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    // TODO reenable once we know how to pass functions
     // TODO remove const_cast after rdar://162196607
-    // const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).setItemsAsRestoredFromSessionIf(functor);
+    // TODO reconsider ptr()
+    auto functorRef = FunctionContainer<bool (WebBackForwardListItem&)>::create(WTFMove(functor));
+    const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).setItemsAsRestoredFromSessionIf(functorRef.ptr());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     for (auto& entry : m_entries) {
         if (functor(entry))

@@ -599,11 +599,8 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardListState() -> BackForwardListState {
+    public func backForwardListState(filter: WebBackForwardListItemFilter) -> BackForwardListState {
         assertStateOk();
-
-        // TODO we are supposed to accept this from the caller
-        let filter: ((WebBackForwardListItem) -> Bool)? = nil;
 
         var backForwardListState = BackForwardListState.init();
         if let currentIndex = currentIndex {
@@ -613,16 +610,14 @@ public class WebBackForwardListSwift {
         }
 
         for (i, entry) in entries.enumerated() {
-            if let filter = filter {
-                if !filter(entry) {
-                    if let stateCurrentIndex = Optional(fromCxx: backForwardListState.currentIndex) {
-                        if i < stateCurrentIndex && stateCurrentIndex != 0 {
-                            // TODO may be subject to rdar://129159672
-                            backForwardListState.currentIndex.pointee = stateCurrentIndex-1;
-                        }
+            if !filter.call(entry) {
+                if let stateCurrentIndex = Optional(fromCxx: backForwardListState.currentIndex) {
+                    if i < stateCurrentIndex && stateCurrentIndex != 0 {
+                        // TODO may be subject to rdar://129159672
+                        backForwardListState.currentIndex.pointee = stateCurrentIndex-1;
                     }
-                    continue;
                 }
+                continue;
             }
             backForwardListState.items.append(consuming: entry.mainFrameState())
         }
@@ -679,14 +674,16 @@ public class WebBackForwardListSwift {
     @_expose(Cxx)
     @_spi(Internal)
     public func setItemsAsRestoredFromSession() {
-        setItemsAsRestoredFromSessionIf(functor: { (WebBackForwardList) in true })
+        for entry in entries {
+            entry.setWasRestoredFromSession()
+        }
     }
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func setItemsAsRestoredFromSessionIf(functor: (WebBackForwardListItem) -> Bool) {
+    public func setItemsAsRestoredFromSessionIf(functor: WebBackForwardListItemFilter) {
         for entry in entries {
-            if functor(entry) {
+            if functor.call(entry) {
                 entry.setWasRestoredFromSession()
             }
         }
