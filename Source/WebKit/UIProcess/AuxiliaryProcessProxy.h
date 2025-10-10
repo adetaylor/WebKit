@@ -71,8 +71,8 @@ class AuxiliaryProcessProxy
     , private ProcessLauncher::Client
     , public IPC::Connection::Client {
     WTF_MAKE_NONCOPYABLE(AuxiliaryProcessProxy);
-    WTF_MAKE_TZONE_ALLOCATED(AuxiliaryProcessProxy);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(AuxiliaryProcessProxy);
+    WTF_MAKE_TZONE_ALLOCATED_NONNULL(AuxiliaryProcessProxy);
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR_NONNULL(AuxiliaryProcessProxy);
 protected:
     AuxiliaryProcessProxy(ShouldTakeUIBackgroundAssertion, AlwaysRunsAtBackgroundPriority = AlwaysRunsAtBackgroundPriority::No, Seconds responsivenessTimeout = ResponsivenessTimer::defaultResponsivenessTimeout);
 
@@ -151,7 +151,8 @@ public:
     {
         return m_connection == &connection;
     }
-    static AuxiliaryProcessProxy* fromConnection(const IPC::Connection&);
+    // TODO prove this is _Nonnull
+    static AuxiliaryProcessProxy* _Nonnull fromConnection(const IPC::Connection&);
 
     void addMessageReceiver(IPC::ReceiverName, IPC::MessageReceiver&);
     void addMessageReceiver(IPC::ReceiverName, uint64_t destinationID, IPC::MessageReceiver&);
@@ -257,7 +258,8 @@ public:
 
 protected:
     // ProcessLauncher::Client
-    void didFinishLaunching(ProcessLauncher*, IPC::Connection::Identifier&&) override;
+    // TODO assess whether _Nullable is correct
+    void didFinishLaunching(ProcessLauncher* _Nullable, IPC::Connection::Identifier&&) override;
 
     bool dispatchMessage(IPC::Connection&, IPC::Decoder&);
     bool dispatchSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
