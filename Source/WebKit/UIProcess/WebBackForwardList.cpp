@@ -968,10 +968,11 @@ void WebBackForwardList::backForwardItemAtIndex(int32_t index, FrameIdentifier f
 #endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
+// TODO take a const WebBackForwardListCounts like backForwardListGoToItemShared?
 void WebBackForwardList::backForwardListCounts(CompletionHandler<void(WebBackForwardListCounts&&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    Ref completionHandlerRef = FunctionContainer<void(const WebBackForwardListCounts&)>::create(WTFMove(completionHandler));
+    Ref completionHandlerRef = FunctionContainer<void(WebBackForwardListCounts&&)>::create(WTFMove(completionHandler));
     m_swiftBackForwardList.backForwardListCounts(completionHandlerRef.ptr());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     completionHandler(counts());

@@ -128,6 +128,18 @@ struct VectorRefFrameStateIterator: Sequence, IteratorProtocol {
     }
 }
 
+func backForwardLog(msgCreator: () -> String) {
+    if !willLog() {
+        return;
+    }
+    let msg = msgCreator();
+
+    let span = msg.utf8CString.span;
+    span.withUnsafeBufferPointer { ptr in
+        doLog(ptr.baseAddress!);
+    }
+}
+
 enum Direction {
     case Backward
     case Forward
@@ -144,10 +156,18 @@ public class WebBackForwardListSwift {
     var entries: [WebBackForwardListItem] = [];
     var currentIndex: Array.Index?;
 
+    func myPtr() -> Int {
+        // Safety: it's guaranteed to be possible to convert this pointer to a string
+        // rdar://162286500
+        return Int(bitPattern: Unmanaged.passUnretained(self).toOpaque());
+    }
+
     @_expose(Cxx)
     @_spi(Internal)
     public init(page: WeakPtrWebPageProxy) {
-        // LOG(BackForward, "(Back/Forward) Created WebBackForwardList %p", this); // TODO SWIFT
+        backForwardLog(msgCreator: {
+            return "(Back/Forward) Created WebBackForwardList {myPtr()}";
+        });
         self.page = page
     }
 
@@ -181,10 +201,12 @@ public class WebBackForwardListSwift {
     @_expose(Cxx)
     @_spi(Internal)
     public func pageClosed() {
-        // LOG(BackForward, "(Back/Forward) WebBackForwardList %p had its page closed with current size %zu", this, m_entries.count); // TODO
+        backForwardLog(msgCreator: {
+            return "(Back/Forward) WebBackForwardList {myPtr()} had its page closed with current size {entries.count}";
+        });
 
         // We should have always started out with an m_page and we should never close the page twice
-        assert(page.__convertToBool()); // TODO SWIFT ensure this is similar to ASSERT in C++
+        assert(page.__convertToBool());
         // TODO rename to something less daft
         let definitePage = page.get()!;
 
@@ -198,10 +220,7 @@ public class WebBackForwardListSwift {
     }
 
     func assertStateOk() {
-        // TODO SWIFT figure out how to even put the if condition inside the assert
-        if let currentIndex {
-            assert(currentIndex < entries.count)
-        }
+        assert(currentIndex.map { $0 < entries.count } ?? true)
     }
 
     func addItem(newItem: WebBackForwardListItem) {
@@ -299,7 +318,9 @@ public class WebBackForwardListSwift {
             }
         }
 
-        // LOG(BackForward, "(Back/Forward) WebBackForwardList %p added an item. Current size %zu, current index %zu, threw away %zu items", this, m_entries.count, *m_currentIndex, removedItems.count); // TODO
+        backForwardLog(msgCreator: {    
+            return "(Back/Forward) WebBackForwardList {ptrbit} added an item. Current size {items.count}, current index {currentIndex}}, threw away {removedItems.count} items";
+        });
         page.didChangeBackForwardList(newItem, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
@@ -484,9 +505,6 @@ public class WebBackForwardListSwift {
         return entries.count - (currentIndex + 1);
     }
 
-    // TODO SWIFT file a radar about the diagnostics here if API.Array is not copyable
-    // and is not SWIFT_SHARED_REFERENCE: the diagnostics are simply
-    // 'error: 'Array' is not a member type of enum '__ObjC.API''
     @_expose(Cxx)
     @_spi(Internal)
     public func backListAsAPIArrayWithLimit(limit: UInt) -> API.Array {
@@ -660,7 +678,6 @@ public class WebBackForwardListSwift {
         // FIXME: Enable restoring resourceDirectoryURL.
         entries.removeAll();
         entries.reserveCapacity(backForwardListState.items.size());
-        // TODO SWIFT not as efficient as C++ we're replacing
         for item in VectorRefFrameStateIterator(vec: backForwardListState.items) {
             let stateCopy = item.take().copy().take(); // TODO may not be necessary depending on how we unpack from Refs.
             setBackForwardItemIdentifiers(frameState: stateCopy, itemID: generateBackForwardItemIdentifier());
@@ -969,13 +986,14 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardGoToItem(itemID: BackForwardItemIdentifier, completionHandler: CountsCompletionHandler) {
+    public func backForwardGoToItem(itemID: BackForwardItemIdentifier, completionHandler: ConstCountsCompletionHandler) {
         // On process swap, we tell the previous process to ignore the load, which causes it so restore its current back forward item to its previous
         // value. Since the load is really going on in a new provisional process, we want to ignore such requests from the committed process.
         // Any real new load in the committed process would have cleared m_provisionalPage.
         if let webPageProxy = page.get() {
             if webPageProxy.hasProvisionalPage() {
-                return backForwardListCounts();
+            completionHandler.call(WebKit.WebBackForwardListCounts(backCount: UInt32(backListCount()), forwardCount: UInt32(forwardListCount())));
+            return;
             }
         }
 
@@ -990,17 +1008,18 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardGoToItemShared(itemID: BackForwardItemIdentifier, completionHandler: CountsCompletionHandler) {
+    public func backForwardGoToItemShared(itemID: BackForwardItemIdentifier, completionHandler: ConstCountsCompletionHandler) {
         // TODO SWIFT make MESSAGE_CHECK Swift equivalents
         // if (RefPtr webPageProxy = m_page.get())
         //     MESSAGE_CHECK_COMPLETION(webPageProxy->protectedLegacyMainFrameProcess(), !WebKit::isInspectorPage(*webPageProxy), completionHandler(counts()));
 
         guard let item = itemForID(identifier: itemID) else {
-            return backForwardListCounts();
+            completionHandler.call(WebKit.WebBackForwardListCounts(backCount: UInt32(backListCount()), forwardCount: UInt32(forwardListCount())));
+            return;
         }
 
         goToItem(item: item);
-        completionHandler.call(backForwardListCounts());
+        completionHandler.call(WebKit.WebBackForwardListCounts(backCount: UInt32(backListCount()), forwardCount: UInt32(forwardListCount())));
     }
 
     // TODO consider altering the C++ to abstract this too.
@@ -1019,7 +1038,7 @@ public class WebBackForwardListSwift {
         for item in entries {
             frameStates.append(frameStateForItem(item: item, frameID: frameID));
         }
-        completionHandler.call(VectorRefFrameState(items: frameStates));
+        completionHandler.call(consuming: VectorRefFrameState(items: frameStates));
     }
 
     @_expose(Cxx)
@@ -1028,17 +1047,18 @@ public class WebBackForwardListSwift {
         // FIXME: This should verify that the web process requesting the item hosts the specified frame.
         let index = Int(index);
         guard let item = itemAtIndex(index: index) else {
-            return nil;
+            completionHandler.call(consuming: RefPtrFrameState());
+            return;
         }
-        let item = frameStateForItem(item: item, frameID: frameID);
-        completionHandler.call(RefPtrFrameState(item));
+        let frameState = frameStateForItem(item: item, frameID: frameID);
+        completionHandler.call(consuming: RefPtrFrameState(frameState));
     }
 
     @_expose(Cxx)
     @_spi(Internal)
     public func backForwardListCounts(completionHandler: CountsCompletionHandler) {
         // TODO consider inlining the C++ equivalent before we even get as far as the Swift
-        completionHandler.call(WebKit.WebBackForwardListCounts(backCount: UInt32(backListCount()), forwardCount: UInt32(forwardListCount())));
+        completionHandler.call(consuming: WebKit.WebBackForwardListCounts(backCount: UInt32(backListCount()), forwardCount: UInt32(forwardListCount())));
     }
 }
 
