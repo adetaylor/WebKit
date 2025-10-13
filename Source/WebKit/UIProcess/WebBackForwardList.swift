@@ -47,16 +47,18 @@ public typealias WebFrameProxy = WebKit.WebFrameProxy
 
 #if ENABLE_BACKFORWARDLIST_SWIFT
 
-// TODO: some of these utility functions would be better in SwiftUtilities.h
+// Some of these utility functions would be better in SwiftUtilities.h
 // but can't be put there as we are unable to use swift::Array and swift::String
 // rdar://161270632
 
-func toVector(array: [WebBackForwardListItem]) -> VectorRefWebBackForwardListItem {
-    var vec = VectorRefWebBackForwardListItem.init();
-    for item in array {
-        vec.append(consuming: RefWebBackForwardListItem(item));
+extension VectorRefWebBackForwardListItem {
+    init (array: [WebBackForwardListItem]) {
+        var vec = VectorRefWebBackForwardListItem.init();
+        for item in array {
+            vec.append(consuming: RefWebBackForwardListItem(item));
+        }
+        self = vec;
     }
-    return vec;
 }
 
 extension String {
@@ -79,15 +81,33 @@ extension WTF.String {
     }
 }
 
-enum Direction {
-    case Backward
-    case Forward
-}
-
 extension WebKit.WebPageProxyIdentifier: Equatable {
     @_spi(Internal)
     static public func == (lhs: WebKit.WebPageProxyIdentifier, rhs: WebKit.WebPageProxyIdentifier) -> Bool {
         return contentsMatch(lhs, rhs);
+    }
+}
+
+extension VectorRefFrameState {
+    init (items: [FrameState]) {
+        var result = VectorRefFrameState.init();
+        for item in items {
+            result.append(consuming: RefFrameState(item));
+        }
+        self = result;
+    }
+}
+
+extension API.Array {
+    // Can't be a designated initializer because we can't see private fields.
+    static func create(list: [API.Object]) -> API.Array {
+        var vec = VectorAPIObject();
+        vec.reserveCapacity(list.count);
+        for item in list {
+            vec.append(consuming: RefPtrAPIObject(item));
+        }
+        var array = API.Array.create(consuming: vec);
+        return array.take();
     }
 }
 
@@ -108,24 +128,9 @@ struct VectorRefFrameStateIterator: Sequence, IteratorProtocol {
     }
 }
 
-func toVectorRefFrameState(items: [FrameState]) -> VectorRefFrameState {
-    var result = VectorRefFrameState.init();
-    for item in items {
-        result.append(consuming: RefFrameState(item));
-    }
-    return result;
-}
-
-// TODO make efficient
-// TODO investigate the extent to which we can make this generic
-func toWTFVectorAPIObject(list: [API.Object]) -> API.Array {
-    var vec = VectorAPIObject();
-    vec.reserveCapacity(list.count);
-    for item in list {
-        vec.append(consuming: RefPtrAPIObject(item));
-    }
-    var array = API.Array.create(consuming: vec);
-    return array.take();
+enum Direction {
+    case Backward
+    case Forward
 }
 
 @_expose(Cxx)
@@ -142,7 +147,7 @@ public class WebBackForwardListSwift {
     @_expose(Cxx)
     @_spi(Internal)
     public init(page: WeakPtrWebPageProxy) {
-        // LOG(BackForward, "(Back/Forward) Created WebBackForwardList %p", this); // TODO
+        // LOG(BackForward, "(Back/Forward) Created WebBackForwardList %p", this); // TODO SWIFT
         self.page = page
     }
 
@@ -179,7 +184,7 @@ public class WebBackForwardListSwift {
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p had its page closed with current size %zu", this, m_entries.count); // TODO
 
         // We should have always started out with an m_page and we should never close the page twice
-        assert(page.__convertToBool()); // TODO ensure this is similar to ASSERT in C++
+        assert(page.__convertToBool()); // TODO SWIFT ensure this is similar to ASSERT in C++
         // TODO rename to something less daft
         let definitePage = page.get()!;
 
@@ -193,7 +198,7 @@ public class WebBackForwardListSwift {
     }
 
     func assertStateOk() {
-        // TODO figure out how to even put the if condition inside the assert
+        // TODO SWIFT figure out how to even put the if condition inside the assert
         if let currentIndex {
             assert(currentIndex < entries.count)
         }
@@ -295,7 +300,7 @@ public class WebBackForwardListSwift {
         }
 
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p added an item. Current size %zu, current index %zu, threw away %zu items", this, m_entries.count, *m_currentIndex, removedItems.count); // TODO
-        page.didChangeBackForwardList(newItem, consuming: toVector(array: removedItems));
+        page.didChangeBackForwardList(newItem, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -313,7 +318,7 @@ public class WebBackForwardListSwift {
             return;
         }
 
-        // TODO replace with entries.firstIndex if we can conform to Equatable
+        // TODO SWIFT replace with entries.firstIndex if we can conform to Equatable
         var targetIndex: Int? = Optional.none;
         for (i, entry) in entries.enumerated() {
             if itemsMatch(entry, item) {
@@ -350,7 +355,7 @@ public class WebBackForwardListSwift {
         if (!shouldKeepCurrentItem) {
             removedItems.append(entries.remove(at: priorCurrentIndex));
 
-            // TODO replace with entries.firstIndex if we can conform to Equatable
+            // TODO SWIFT replace with entries.firstIndex if we can conform to Equatable
             var thisTargetIndex: Int? = Optional.none;
             for (i, entry) in entries.enumerated() {
                 if itemsMatch(entry, item) {
@@ -364,7 +369,7 @@ public class WebBackForwardListSwift {
         currentIndex = targetIndex;
 
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p going to item %s, is now at index %zu", this, item.identifier().toString().utf8().data(), targetIndex); // TODO
-        page.didChangeBackForwardList(Optional.none, consuming: toVector(array: removedItems));
+        page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -479,7 +484,7 @@ public class WebBackForwardListSwift {
         return entries.count - (currentIndex + 1);
     }
 
-    // TODO file a radar about the diagnostics here if API.Array is not copyable
+    // TODO SWIFT file a radar about the diagnostics here if API.Array is not copyable
     // and is not SWIFT_SHARED_REFERENCE: the diagnostics are simply
     // 'error: 'Array' is not a member type of enum '__ObjC.API''
     @_expose(Cxx)
@@ -503,7 +508,7 @@ public class WebBackForwardListSwift {
         assert(backListSize >= size);
         let startIndex = backListSize - size;
 
-        return toWTFVectorAPIObject(list: entries[startIndex..<startIndex + size].map { toAPIObject($0) })
+        return API.Array.create(list: entries[startIndex..<startIndex + size].map { toAPIObject($0) })
     }
 
     @_expose(Cxx)
@@ -525,7 +530,7 @@ public class WebBackForwardListSwift {
             return API.Array.create().take();
         }
         let startIndex = currentIndex + 1;
-        return toWTFVectorAPIObject(list: entries[startIndex..<startIndex+size].map { toAPIObject($0) })
+        return API.Array.create(list: entries[startIndex..<startIndex+size].map { toAPIObject($0) })
     }
 
     @_expose(Cxx)
@@ -539,13 +544,13 @@ public class WebBackForwardListSwift {
             didRemoveItem(item: item);
         }
         currentIndex = nil;
-        // TODO make more efficient
+
         let entriesCopy = entries;
         entries.removeAll();
         guard let page = page.get() else {
             return; // TODO consider asserting instead; whatever the C++ would have done
         }
-        page.didChangeBackForwardList(Optional.none, consuming: toVector(array: entriesCopy));
+        page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: entriesCopy));
     }
 
     @_expose(Cxx)
@@ -594,7 +599,7 @@ public class WebBackForwardListSwift {
         currentIndex = 0;
         entries.removeAll();
         entries.append(currentItem);
-        page.didChangeBackForwardList(Optional.none, consuming: toVector(array: removedItems));
+        page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -604,8 +609,7 @@ public class WebBackForwardListSwift {
 
         var backForwardListState = BackForwardListState.init();
         if let currentIndex = currentIndex {
-            // TODO consider overflows etc. in this cast
-            // TODO may be subject to rdar://129159672
+            // May be subject to rdar://129159672
             backForwardListState.currentIndex.pointee = UInt32(currentIndex);
         }
 
@@ -613,7 +617,7 @@ public class WebBackForwardListSwift {
             if !filter.call(entry) {
                 if let stateCurrentIndex = Optional(fromCxx: backForwardListState.currentIndex) {
                     if i < stateCurrentIndex && stateCurrentIndex != 0 {
-                        // TODO may be subject to rdar://129159672
+                        // May be subject to rdar://129159672
                         backForwardListState.currentIndex.pointee = stateCurrentIndex-1;
                     }
                 }
@@ -626,7 +630,7 @@ public class WebBackForwardListSwift {
             backForwardListState.currentIndex = nil
         } else if let currentIndex = Optional(fromCxx: backForwardListState.currentIndex) {
             if backForwardListState.items.size() <= currentIndex {
-                // TODO may be subject to rdar://129159672
+                // May be subject to rdar://129159672
                 backForwardListState.currentIndex.pointee = UInt32(backForwardListState.items.size())-1;
             }
         }
@@ -656,7 +660,7 @@ public class WebBackForwardListSwift {
         // FIXME: Enable restoring resourceDirectoryURL.
         entries.removeAll();
         entries.reserveCapacity(backForwardListState.items.size());
-        // TODO not as efficient as C++ we're replacing
+        // TODO SWIFT not as efficient as C++ we're replacing
         for item in VectorRefFrameStateIterator(vec: backForwardListState.items) {
             let stateCopy = item.take().copy().take(); // TODO may not be necessary depending on how we unpack from Refs.
             setBackForwardItemIdentifiers(frameState: stateCopy, itemID: generateBackForwardItemIdentifier());
@@ -666,7 +670,6 @@ public class WebBackForwardListSwift {
             entries.append(item.take());
         }
 
-        // TODO think about overflows
         currentIndex = Optional(fromCxx: backForwardListState.currentIndex).map({ val in Int(val) })
         // LOG(BackForward, "(Back/Forward) WebBackForwardList %p restored from state (has %zu entries)", this, m_entries.count); // TODO
     }
@@ -693,7 +696,7 @@ public class WebBackForwardListSwift {
         item.wasRemovedFromBackForwardList();
         let page = page.get()!;
         page.backForwardRemovedItem(item.identifier());
-        // TODO expose platform macros to Swift to remove the following call on most platforms
+        // TODO SWIFT expose platform macros to Swift to remove the following call on most platforms
         item.setNullSnapshot();
     }
 
@@ -730,7 +733,6 @@ public class WebBackForwardListSwift {
         // Yahoo -> Yahoo#a (no userInteraction) -> Google -> Google#a (no user interaction) -> Google#b (no user interaction)
         // If we're on Google and navigate back, we don't want to skip anything and load Yahoo#a.
         // However, if we're on Yahoo and navigate forward, we do want to skip items and end up on Google#b.
-        // TODO consider the unwrap below, perhaps use the guarded item above?
         if direction == Direction.Backward && currentItem()!.wasCreatedByJSWithoutUserInteraction() {
             return item;
         }
@@ -845,7 +847,7 @@ public class WebBackForwardListSwift {
         let itemURL = WTF.URL(navigatedFrameState.urlString, nil);
         let itemOriginalURL = WTF.URL(navigatedFrameState.originalURLString, nil);
 
-        // TODO convert all the following once we have platform macros
+        // TODO SWIFT convert all the following once we have platform macros
         // #if PLATFORM(COCOA)
         //     if (linkedOnOrAfterSDKWithBehavior(SDKAlignedBehavior::PushStateFilePathRestriction)
         // #if PLATFORM(MAC)
@@ -879,7 +881,7 @@ public class WebBackForwardListSwift {
         }
 
         let isRemoteFrameNavigation = webPageProxy.isRemoteFrameNavigation(process);
-        // TODO this is a good example of 'process' sometimes needing to be two different kinds of pointers.
+        // TODO SWIFT this is a good example of 'process' sometimes needing to be two different kinds of pointers.
         // Add to relevant rdar
         let processPtr = process.take();
         assert(!isRemoteFrameNavigation || webPageProxy.protectedPreferences().take().siteIsolationEnabled());
@@ -894,6 +896,7 @@ public class WebBackForwardListSwift {
     }
 
     // IPCs from here on
+    // TODO SWIFT take completion handlers
 
     @_expose(Cxx)
     @_spi(Internal)
@@ -948,7 +951,7 @@ public class WebBackForwardListSwift {
         guard let webPageProxy = page.get() else {
             return;
         }
-        // TODO do the Equatable stuff to allow this assert
+        // TODO SWIFT do the Equatable stuff to allow this assert
         // assert(webPageProxy.identifier() == item.pageID() && itemID == item.identifier());
         let process = WebKit.AuxiliaryProcessProxy.fromConnection(connection);
         // The downcast in C++ is really just used to assert that the process is a WebProcessProxy
@@ -989,7 +992,7 @@ public class WebBackForwardListSwift {
     @_expose(Cxx)
     @_spi(Internal)
     public func backForwardGoToItemShared(itemID: BackForwardItemIdentifier) -> WebBackForwardListCounts {
-        // TODO make MESSAGE_CHECK Swift equivalents
+        // TODO SWIFT make MESSAGE_CHECK Swift equivalents
         // if (RefPtr webPageProxy = m_page.get())
         //     MESSAGE_CHECK_COMPLETION(webPageProxy->protectedLegacyMainFrameProcess(), !WebKit::isInspectorPage(*webPageProxy), completionHandler(counts()));
 
@@ -1010,7 +1013,6 @@ public class WebBackForwardListSwift {
         }
     }
 
-    // TODO figure out where and how best to convert the completionHandler parameter to a Vec
     @_expose(Cxx)
     @_spi(Internal)
     public func backForwardAllItems(frameID: FrameIdentifier) -> VectorRefFrameState{
@@ -1018,7 +1020,7 @@ public class WebBackForwardListSwift {
         for item in entries {
             frameStates.append(frameStateForItem(item: item, frameID: frameID));
         }
-        return toVectorRefFrameState(items: frameStates);
+        return VectorRefFrameState(items: frameStates);
     }
 
     @_expose(Cxx)
