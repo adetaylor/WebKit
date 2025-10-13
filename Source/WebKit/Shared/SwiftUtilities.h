@@ -100,3 +100,7 @@ private:
 } SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 using WebBackForwardListItemFilter = FunctionContainer<bool (WebKit::WebBackForwardListItem&)>;
+using CountsCompletionHandler = FunctionContainer<void(const WebKit::WebBackForwardListCounts&)>;
+using BoolCompletionHandler = FunctionContainer<void(bool)>;
+using VectorRefFrameStateCompletionHandler = FunctionContainer<void(Vector<Ref<WebKit::FrameState>>&&)>;
+using RefPtrFrameStateCompletionHandler = FunctionContainer<void(RefPtr<WebKit::FrameState>&&)>;

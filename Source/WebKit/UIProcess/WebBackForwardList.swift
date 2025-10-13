@@ -896,7 +896,6 @@ public class WebBackForwardListSwift {
     }
 
     // IPCs from here on
-    // TODO SWIFT take completion handlers
 
     @_expose(Cxx)
     @_spi(Internal)
@@ -970,7 +969,7 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardGoToItem(itemID: BackForwardItemIdentifier) -> WebBackForwardListCounts {
+    public func backForwardGoToItem(itemID: BackForwardItemIdentifier, completionHandler: CountsCompletionHandler) {
         // On process swap, we tell the previous process to ignore the load, which causes it so restore its current back forward item to its previous
         // value. Since the load is really going on in a new provisional process, we want to ignore such requests from the committed process.
         // Any real new load in the committed process would have cleared m_provisionalPage.
@@ -980,18 +979,18 @@ public class WebBackForwardListSwift {
             }
         }
 
-        return backForwardGoToItemShared(itemID: itemID);
+        backForwardGoToItemShared(itemID: itemID, completionHandler: completionHandler);
     }
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardListContainsItem(itemID: BackForwardItemIdentifier) -> Bool{
-        return itemForID(identifier: itemID) != nil;
+    public func backForwardListContainsItem(itemID: BackForwardItemIdentifier, completionHandler: BoolCompletionHandler) {
+        completionHandler.call(itemForID(identifier: itemID) != nil);
     }
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardGoToItemShared(itemID: BackForwardItemIdentifier) -> WebBackForwardListCounts {
+    public func backForwardGoToItemShared(itemID: BackForwardItemIdentifier, completionHandler: CountsCompletionHandler) {
         // TODO SWIFT make MESSAGE_CHECK Swift equivalents
         // if (RefPtr webPageProxy = m_page.get())
         //     MESSAGE_CHECK_COMPLETION(webPageProxy->protectedLegacyMainFrameProcess(), !WebKit::isInspectorPage(*webPageProxy), completionHandler(counts()));
@@ -1001,7 +1000,7 @@ public class WebBackForwardListSwift {
         }
 
         goToItem(item: item);
-        return backForwardListCounts();
+        completionHandler.call(backForwardListCounts());
     }
 
     // TODO consider altering the C++ to abstract this too.
@@ -1015,30 +1014,31 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardAllItems(frameID: FrameIdentifier) -> VectorRefFrameState{
+    public func backForwardAllItems(frameID: FrameIdentifier, completionHandler: VectorRefFrameStateCompletionHandler) {
         var frameStates: [FrameState] = [];
         for item in entries {
             frameStates.append(frameStateForItem(item: item, frameID: frameID));
         }
-        return VectorRefFrameState(items: frameStates);
+        completionHandler.call(VectorRefFrameState(items: frameStates));
     }
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardItemAtIndex(index: Int32, frameID: FrameIdentifier) -> FrameState?{
+    public func backForwardItemAtIndex(index: Int32, frameID: FrameIdentifier, completionHandler: RefPtrFrameStateCompletionHandler) {
         // FIXME: This should verify that the web process requesting the item hosts the specified frame.
         let index = Int(index);
         guard let item = itemAtIndex(index: index) else {
             return nil;
         }
-        return frameStateForItem(item: item, frameID: frameID);
+        let item = frameStateForItem(item: item, frameID: frameID);
+        completionHandler.call(RefPtrFrameState(item));
     }
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardListCounts() -> WebBackForwardListCounts {
+    public func backForwardListCounts(completionHandler: CountsCompletionHandler) {
         // TODO consider inlining the C++ equivalent before we even get as far as the Swift
-        return WebKit.WebBackForwardListCounts.init(backCount: UInt32(backListCount()), forwardCount: UInt32(forwardListCount()));
+        completionHandler.call(WebKit.WebBackForwardListCounts(backCount: UInt32(backListCount()), forwardCount: UInt32(forwardListCount())));
     }
 }
 

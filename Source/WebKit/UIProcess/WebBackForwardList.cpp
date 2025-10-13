@@ -630,8 +630,7 @@ void WebBackForwardList::setItemsAsRestoredFromSessionIf(NOESCAPE Function<bool(
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
     // TODO remove const_cast after rdar://162196607
-    // TODO reconsider ptr()
-    auto functorRef = FunctionContainer<bool (WebBackForwardListItem&)>::create(WTFMove(functor));
+    Ref functorRef = FunctionContainer<bool (WebBackForwardListItem&)>::create(WTFMove(functor));
     const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).setItemsAsRestoredFromSessionIf(functorRef.ptr());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     for (auto& entry : m_entries) {
@@ -886,10 +885,8 @@ void WebBackForwardList::backForwardUpdateItem(IPC::Connection& connection, Ref<
 void WebBackForwardList::backForwardGoToItem(BackForwardItemIdentifier itemID, CompletionHandler<void(const WebBackForwardListCounts&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    // TODO figure out how to pass callbacks through to Swift
-    // rdar://162361370 is part of the problem
-    WebBackForwardListCounts result = m_swiftBackForwardList.backForwardGoToItem(itemID);
-    completionHandler(result);
+    Ref completionHandlerRef = FunctionContainer<void(const WebBackForwardListCounts&)>::create(WTFMove(completionHandler));
+    m_swiftBackForwardList.backForwardGoToItem(itemID, completionHandlerRef.ptr());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     // On process swap, we tell the previous process to ignore the load, which causes it so restore its current back forward item to its previous
     // value. Since the load is really going on in a new provisional process, we want to ignore such requests from the committed process.
@@ -906,8 +903,8 @@ void WebBackForwardList::backForwardGoToItem(BackForwardItemIdentifier itemID, C
 void WebBackForwardList::backForwardListContainsItem(WebCore::BackForwardItemIdentifier itemID, CompletionHandler<void(bool)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    bool result = m_swiftBackForwardList.backForwardListContainsItem(itemID);
-    completionHandler(result);
+    Ref completionHandlerRef = FunctionContainer<void(bool)>::create(WTFMove(completionHandler));
+    m_swiftBackForwardList.backForwardListContainsItem(itemID, completionHandlerRef.ptr());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     completionHandler(itemForID(itemID));
 #endif // ENABLE_BACKFORWARDLIST_SWIFT
@@ -916,8 +913,8 @@ void WebBackForwardList::backForwardListContainsItem(WebCore::BackForwardItemIde
 void WebBackForwardList::backForwardGoToItemShared(BackForwardItemIdentifier itemID, CompletionHandler<void(const WebBackForwardListCounts&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    WebBackForwardListCounts result = m_swiftBackForwardList.backForwardGoToItemShared(itemID);
-    completionHandler(result);
+    Ref completionHandlerRef = FunctionContainer<void(const WebBackForwardListCounts&)>::create(WTFMove(completionHandler));
+    m_swiftBackForwardList.backForwardGoToItemShared(itemID, completionHandlerRef.ptr());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
 
     if (RefPtr webPageProxy = m_page.get())
@@ -935,8 +932,8 @@ void WebBackForwardList::backForwardGoToItemShared(BackForwardItemIdentifier ite
 void WebBackForwardList::backForwardAllItems(FrameIdentifier frameID, CompletionHandler<void(Vector<Ref<FrameState>>&&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    Vector<Ref<FrameState>> result = m_swiftBackForwardList.backForwardAllItems(frameID);
-    completionHandler(WTFMove(result));
+    Ref completionHandlerRef = FunctionContainer<void(Vector<Ref<FrameState>>&&)>::create(WTFMove(completionHandler));
+    m_swiftBackForwardList.backForwardAllItems(frameID, completionHandlerRef.ptr());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     Vector<Ref<FrameState>> allItems;
 
@@ -958,8 +955,8 @@ void WebBackForwardList::backForwardAllItems(FrameIdentifier frameID, Completion
 void WebBackForwardList::backForwardItemAtIndex(int32_t index, FrameIdentifier frameID, CompletionHandler<void(RefPtr<FrameState>&&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    RefPtr<FrameState> result = m_swiftBackForwardList.backForwardItemAtIndex(index, frameID);
-    completionHandler(WTFMove(result));
+    Ref completionHandlerRef = FunctionContainer<void(RefPtr<FrameState>&&)>::create(WTFMove(completionHandler));
+    m_swiftBackForwardList.backForwardItemAtIndex(index, frameID, completionHandlerRef.ptr());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     // FIXME: This should verify that the web process requesting the item hosts the specified frame.
     if (RefPtr item = itemAtIndex(index)) {
@@ -974,8 +971,8 @@ void WebBackForwardList::backForwardItemAtIndex(int32_t index, FrameIdentifier f
 void WebBackForwardList::backForwardListCounts(CompletionHandler<void(WebBackForwardListCounts&&)>&& completionHandler)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    WebBackForwardListCounts result = m_swiftBackForwardList.backForwardListCounts();
-    completionHandler(WTFMove(result));
+    Ref completionHandlerRef = FunctionContainer<void(const WebBackForwardListCounts&)>::create(WTFMove(completionHandler));
+    m_swiftBackForwardList.backForwardListCounts(completionHandlerRef.ptr());
 #else // ENABLE_BACKFORWARDLIST_SWIFT
     completionHandler(counts());
 #endif // ENABLE_BACKFORWARDLIST_SWIFT
