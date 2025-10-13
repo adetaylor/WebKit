@@ -27,8 +27,6 @@ public import WebKit_Internal
 internal import wtf
 
 @_spi(Internal)
-public typealias BackForwardItemIdentifier = WebCore.BackForwardItemIdentifier
-@_spi(Internal)
 public typealias BackForwardFrameItemIdentifier = WebCore.BackForwardFrameItemIdentifier
 @_spi(Internal)
 public typealias FrameIdentifier = WebCore.FrameIdentifier
@@ -84,6 +82,20 @@ extension WTF.String {
 extension WebKit.WebPageProxyIdentifier: Equatable {
     @_spi(Internal)
     static public func == (lhs: WebKit.WebPageProxyIdentifier, rhs: WebKit.WebPageProxyIdentifier) -> Bool {
+        return contentsMatch(lhs, rhs);
+    }
+}
+
+extension BackForwardItemIdentifier: Equatable {
+    @_spi(Internal)
+    static public func == (lhs: BackForwardItemIdentifier, rhs: BackForwardItemIdentifier) -> Bool {
+        return contentsMatch(lhs, rhs);
+    }
+}
+
+extension MarkableBackForwardFrameItemIdentifier: Equatable {
+    @_spi(Internal)
+    static public func == (lhs: MarkableBackForwardFrameItemIdentifier, rhs: MarkableBackForwardFrameItemIdentifier) -> Bool {
         return contentsMatch(lhs, rhs);
     }
 }
@@ -339,14 +351,7 @@ public class WebBackForwardListSwift {
             return;
         }
 
-        // TODO SWIFT replace with entries.firstIndex if we can conform to Equatable
-        var targetIndex: Int? = Optional.none;
-        for (i, entry) in entries.enumerated() {
-            if itemsMatch(entry, item) {
-                targetIndex = i;
-                break;
-            }
-        }
+        let targetIndex = entries.firstIndex(where: { identitiesMatch($0, item) });
 
         // If the target item wasn't even in the list, there's nothing else to do.
         guard var targetIndex else {
@@ -366,7 +371,7 @@ public class WebBackForwardListSwift {
         // item should remain in the list.
         let currentItem = entries[priorCurrentIndex];
         var shouldKeepCurrentItem = true;
-        if !itemsMatch(currentItem, item) {
+        if !identitiesMatch(currentItem, item) {
             page.recordAutomaticNavigationSnapshot();
             shouldKeepCurrentItem = page.shouldKeepCurrentBackForwardListItemInList(currentItem);
         }
@@ -379,7 +384,7 @@ public class WebBackForwardListSwift {
             // TODO SWIFT replace with entries.firstIndex if we can conform to Equatable
             var thisTargetIndex: Int? = Optional.none;
             for (i, entry) in entries.enumerated() {
-                if itemsMatch(entry, item) {
+                if identitiesMatch(entry, item) {
                     thisTargetIndex = i;
                     break;
                 }
@@ -599,7 +604,7 @@ public class WebBackForwardListSwift {
         }
 
         for item in entries {
-            if !itemsMatch(item, currentItem) {
+            if !identitiesMatch(item, currentItem) {
                 didRemoveItem(item: item);
             }
         }
@@ -609,7 +614,7 @@ public class WebBackForwardListSwift {
 
         // TODO this was previously done in terms of indices, there might be a reason
         for item in entries {
-            if !itemsMatch(item, currentItem) {
+            if !identitiesMatch(item, currentItem) {
                 removedItems.append(item);
             }
         }
@@ -967,8 +972,7 @@ public class WebBackForwardListSwift {
         guard let webPageProxy = page.get() else {
             return;
         }
-        // TODO SWIFT do the Equatable stuff to allow this assert
-        // assert(webPageProxy.identifier() == item.pageID() && itemID == item.identifier());
+        assert(webPageProxy.identifier() == item.pageID() && itemID == item.identifier());
         let process = WebKit.AuxiliaryProcessProxy.fromConnection(connection);
         // The downcast in C++ is really just used to assert that the process is a WebProcessProxy
         assert(downcastToWebProcessProxy(process).__convertToBool());

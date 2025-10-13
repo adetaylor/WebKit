@@ -49,6 +49,9 @@ using SpanConstChar = std::span<const char>;
 using MarkableBackForwardItemIdentifier = WTF::Markable<WebCore::BackForwardItemIdentifier>;
 using MarkableBackForwardFrameItemIdentifier = WTF::Markable<WebCore::BackForwardFrameItemIdentifier>;
 
+// Workaround for rdar://159211965 where SPI causes problems
+// in implementing Equatable (otherwise we could use a Swift-side typealias.)
+using BackForwardItemIdentifier = WebCore::BackForwardItemIdentifier;
 
 // Swift does not understand full preprocessor macros such as LOG. In due course we
 // will need to expose an equivalent of our WTF logging system to Swift, but for now,
@@ -80,7 +83,7 @@ inline API::Object* _Nonnull toAPIObject(WebKit::WebBackForwardListItem* _Nonnul
 }
 
 // Workaround for rdar://130765784
-inline bool itemsMatch(const WebKit::WebBackForwardListItem* _Nullable lhs, const WebKit::WebBackForwardListItem* _Nullable rhs) {
+inline bool identitiesMatch(const WebKit::WebBackForwardListItem* _Nullable lhs, const WebKit::WebBackForwardListItem* _Nullable rhs) {
     return lhs == rhs;
 }
 
