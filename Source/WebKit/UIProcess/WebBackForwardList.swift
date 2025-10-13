@@ -841,7 +841,7 @@ public class WebBackForwardListSwift {
     public func backForwardAddItemShared(connection: IPC.Connection, navigatedFrameState: FrameState, loadedWebArchive: WebKit.LoadedWebArchive) {
         let process = WebKit.WebProcessProxy.fromConnection(connection);
 
-        // TODO look up the rdar for the need to pass the nil parameter which is default
+        // 'nil' works around rdar://162310543
         let itemURL = WTF.URL(navigatedFrameState.urlString, nil);
         let itemOriginalURL = WTF.URL(navigatedFrameState.originalURLString, nil);
 
