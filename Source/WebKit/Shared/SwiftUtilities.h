@@ -69,12 +69,19 @@ inline bool willLog() {
 // clang modules.
 extern "C" {
     extern WTFLogChannel WebKit2LogBackForward;
+    extern WTFLogChannel WebKit2LogLoading;
 }
 
 inline void doLog(const char* _Nonnull msg) {
+    LOG(BackForward, "%s", msg);
     // The LOG macro does not work, possibly because of clang modules.
-    if (WebKit2LogBackForward.state != logChannelStateOff)
-        WTFLog(&WebKit2LogBackForward, "%s", msg);
+    // Should expand to:
+    // if (WebKit2LogBackForward.state != logChannelStateOff)
+    //     WTFLog(&WebKit2LogBackForward, "%s", msg);
+}
+
+inline void doLoadingReleaseLog(const char* _Nonnull msg) {
+    RELEASE_LOG(Loading, "%s", msg);
 }
 
 // Workaround for rdar://85881664

@@ -152,6 +152,15 @@ func backForwardLog(msgCreator: () -> String) {
     }
 }
 
+func loadingReleaseLog(msgCreator: () -> String) {
+    let msg = msgCreator();
+
+    let span = msg.utf8CString.span;
+    span.withUnsafeBufferPointer { ptr in
+        doLoadingReleaseLog(ptr.baseAddress!);
+    }
+}
+
 enum Direction {
     case Backward
     case Forward
@@ -380,21 +389,15 @@ public class WebBackForwardListSwift {
         var removedItems: [WebBackForwardListItem] = [];
         if (!shouldKeepCurrentItem) {
             removedItems.append(entries.remove(at: priorCurrentIndex));
-
-            // TODO SWIFT replace with entries.firstIndex if we can conform to Equatable
-            var thisTargetIndex: Int? = Optional.none;
-            for (i, entry) in entries.enumerated() {
-                if identitiesMatch(entry, item) {
-                    thisTargetIndex = i;
-                    break;
-                }
-            }
-            targetIndex = thisTargetIndex!;
+            targetIndex = entries.firstIndex(where: { identitiesMatch($0, item) })!;
         }
 
         currentIndex = targetIndex;
 
-        // LOG(BackForward, "(Back/Forward) WebBackForwardList %p going to item %s, is now at index %zu", this, item.identifier().toString().utf8().data(), targetIndex); // TODO
+        backForwardLog(msgCreator: {
+            let itemIdentifier = String(wtfString: item.identifier().toString());
+            return "(Back/Forward) WebBackForwardList {myPtr()} going to item {itemIdentifier}, is now at index {targetIndex}";
+        });
         page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
@@ -581,7 +584,9 @@ public class WebBackForwardListSwift {
     public func clear()  {
         assertStateOk();
 
-        // LOG(BackForward, "(Back/Forward) WebBackForwardList %p clear (has %zu of them)", this, m_entries.count); // TODO
+        backForwardLog(msgCreator: {
+            "(Back/Forward) WebBackForwardList {myPtr()} clear (has {entries.count} of them)";
+        });
 
         let size = entries.count;
         guard let page = page.get() else {
@@ -693,7 +698,9 @@ public class WebBackForwardListSwift {
         }
 
         currentIndex = Optional(fromCxx: backForwardListState.currentIndex).map({ val in Int(val) })
-        // LOG(BackForward, "(Back/Forward) WebBackForwardList %p restored from state (has %zu entries)", this, m_entries.count); // TODO
+        backForwardLog(msgCreator: {
+            "(Back/Forward) WebBackForwardList {myPtr()} restored from state (has {entries.count} entries)";
+        });
     }
 
     @_expose(Cxx)
@@ -771,7 +778,10 @@ public class WebBackForwardListSwift {
                 return originalItem;
             }
             item = thisItem;
-            // RELEASE_LOG(Loading, "UI Navigation is skipping a WebBackForwardListItem because it was added by JavaScript without user interaction"); // TODO
+
+            loadingReleaseLog(msgCreator: {
+                "UI Navigation is skipping a WebBackForwardListItem because it was added by JavaScript without user interaction";
+            });
         }
 
         // We are now on the next item that has user interaction.
@@ -787,7 +797,9 @@ public class WebBackForwardListSwift {
             }
             item = thisItem;
 
-            // RELEASE_LOG(Loading, "UI Navigation is skipping a WebBackForwardListItem that has user interaction because we started on an item that didn't have interaction"); // TODO
+            loadingReleaseLog(msgCreator: {
+                "UI Navigation is skipping a WebBackForwardListItem that has user interaction because we started on an item that didn't have interaction";
+            });
         } else {
             // If going forward and there are items that we created by JS without user interaction, move forward to the last
             // one in the series.

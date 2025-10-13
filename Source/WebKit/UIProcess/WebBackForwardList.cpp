@@ -629,6 +629,7 @@ void WebBackForwardList::setItemsAsRestoredFromSession()
 void WebBackForwardList::setItemsAsRestoredFromSessionIf(NOESCAPE Function<bool(WebBackForwardListItem&)>&& functor)
 {
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
+        RELEASE_LOG(Loading, "UI Navigation is skipping a WebBackForwardListItem because it was added by JavaScript without user interaction");
     // TODO remove const_cast after rdar://162196607
     Ref functorRef = FunctionContainer<bool (WebBackForwardListItem&)>::create(WTFMove(functor));
     const_cast<WebBackForwardListSwift&>(m_swiftBackForwardList).setItemsAsRestoredFromSessionIf(functorRef.ptr());
