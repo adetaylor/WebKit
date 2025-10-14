@@ -87,8 +87,8 @@ class CocoaWebViewAdapter: CocoaView, PlatformTextSearching {
         let interaction = NSTextFinder()
         interaction.isIncrementalSearchingEnabled = true
         interaction.incrementalSearchingShouldDimContentView = false
-        interaction.client = webView
-        interaction.findBarContainer = self
+        unsafe interaction.client = webView
+        unsafe interaction.findBarContainer = self
         #else
         guard let interaction = webView?.findInteraction else {
             return nil
@@ -187,7 +187,7 @@ class CocoaWebViewAdapter: CocoaView, PlatformTextSearching {
                 return
             }
 
-            webView.window?.makeFirstResponder(webView)
+            unsafe webView.window?.makeFirstResponder(webView)
         }
     }
     #endif
@@ -266,7 +266,7 @@ class CocoaWebViewAdapter: CocoaView, PlatformTextSearching {
 
             webView.delegate = self
             #if os(macOS)
-            findInteraction?.wrapped.client = webView
+            unsafe findInteraction?.wrapped.client = webView
             #endif
         }
     }

@@ -292,7 +292,7 @@ struct EquatableScrollBounceBehavior: Equatable {
     let behavior: ScrollBounceBehavior
 
     static func == (lhs: EquatableScrollBounceBehavior, rhs: EquatableScrollBounceBehavior) -> Bool {
-        unsafeBitCast(lhs.behavior, to: Int8.self) == unsafeBitCast(rhs.behavior, to: Int8.self)
+        unsafe unsafeBitCast(lhs.behavior, to: Int8.self) == unsafeBitCast(rhs.behavior, to: Int8.self)
     }
 }
 
