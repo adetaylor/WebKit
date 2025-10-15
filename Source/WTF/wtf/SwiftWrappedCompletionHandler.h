@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,25 +23,41 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Add project-level C++ header files here to be able to access them from within Swift sources.
-
 #pragma once
 
-#import "APIArray.h"
-#import "APIObject.h"
-#import "Shared/LoadedWebArchive.h"
-#import "Shared/SessionState.h"
-#import "Shared/SwiftUtilities.h"
-#import "Shared/WebBackForwardListCounts.h"
-#import "Shared/WebBackForwardListFrameItem.h"
-#import "Shared/WebBackForwardListItem.h"
-#import "UIProcess/AuxiliaryProcessProxy.h"
-#import "UIProcess/SwiftDemoLogoConfirmation.h"
-#import "UIProcess/WebFrameProxy.h"
-#import "UIProcess/WebPageProxy.h"
-#import "UIProcess/WebProcessProxy.h"
-#import "WebCore/DiagnosticLoggingClient.h"
-#import "WebCore/DiagnosticLoggingKeys.h"
+#include <tuple>
+#include <utility>
+#include <wtf/CompletionHandler.h>
+#include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 
-#import <wtf/Platform.h>
-#import <wtf/RefPtr.h>
+namespace WTF {
+
+// Workaround for rdar://162361370
+// (storing a WTF::Function inside a copyable, in this case ref-counted, type)
+template<typename> class SWIFT_ESCAPABLE SwiftWrappedCompletionHandler;
+
+template <typename Out, typename... In>
+class SWIFT_ESCAPABLE SwiftWrappedCompletionHandler<Out(In...)>: public RefCounted<SwiftWrappedCompletionHandler<Out(In...)>> {
+public:
+    static Ref<SwiftWrappedCompletionHandler<Out(In...)>> create(CompletionHandler<Out(In...)>&& fn) {
+        return adoptRef(*new SwiftWrappedCompletionHandler(WTFMove(fn)));
+    }
+
+    Out call(In... in)
+    {
+        return m_fn(std::forward<In>(in)...);
+    }
+
+    void ref() { WTF::ref(this); }
+    void deref() { WTF::deref(this); }
+
+private:
+    SwiftWrappedCompletionHandler(WTF::CompletionHandler<Out(In...)>&& fn) : m_fn(WTFMove(fn)) {}
+    WTF::CompletionHandler<Out(In...)> m_fn;
+    // The following line requires rdar://160696723, so if it doesn't build,
+    // you're probably not using a sufficiently recent swiftc.
+} SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+
+} // namespace WTF
