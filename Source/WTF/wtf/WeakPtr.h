@@ -32,6 +32,7 @@
 #include <wtf/GetPtr.h>
 #include <wtf/Packed.h>
 #include <wtf/TypeTraits.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtrFactory.h>
 #include <wtf/WeakRef.h>
 
@@ -41,7 +42,7 @@ template<typename, typename, typename = DefaultWeakPtrImpl> class WeakHashMap;
 template<typename, typename = DefaultWeakPtrImpl, EnableWeakPtrThreadingAssertions = EnableWeakPtrThreadingAssertions::Yes> class WeakHashSet;
 template <typename, typename = DefaultWeakPtrImpl, EnableWeakPtrThreadingAssertions = EnableWeakPtrThreadingAssertions::Yes> class WeakListHashSet;
 
-template<typename T, typename WeakPtrImpl, typename PtrTraits> class WeakPtr {
+template<typename T, typename WeakPtrImpl, typename PtrTraits> class SWIFT_ESCAPABLE WeakPtr {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(WeakPtr);
 public:
     WeakPtr() { }

@@ -55,7 +55,7 @@ template<bool isSpecialCharacter(char16_t), typename CharacterType, std::size_t 
 
 enum class TrailingZerosPolicy : bool { Keep, Truncate };
 
-class String final {
+class SWIFT_ESCAPABLE String final {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(String);
 public:
     // Construct a null string, distinguishable from an empty string.
