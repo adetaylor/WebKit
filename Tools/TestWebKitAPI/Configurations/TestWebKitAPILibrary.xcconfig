@@ -24,6 +24,7 @@
 //
 
 #include "TestWebKitAPI.xcconfig"
+#include "../../../Configurations/DownstreamSwiftStuff.xcconfig"
 
 PRODUCT_NAME = TestWebKitAPI;
 SKIP_INSTALL = YES;
@@ -45,3 +46,5 @@ OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/TestWebKi
 OTHER_SWIFT_FLAGS_SUPPORTS_SWIFT_OBJCXX_INTEROP_YES = -Xcc -std=c++2b -no-verify-emitted-module-interface;
 OTHER_SWIFT_FLAGS_SUPPORTS_SWIFT_OBJCXX_INTEROP_NO = ;
 OTHER_SWIFT_FLAGS_XCODE_BEFORE_16 = -Xfrontend -enable-experimental-concurrency -Xfrontend -enable-upcoming-feature -Xfrontend IsolatedDefaultValues;
+
+SWIFT_INCLUDE_PATHS = $(WK_DOWNSTREAM_SWIFT_INCLUDE_PATHS) $(inherited);
