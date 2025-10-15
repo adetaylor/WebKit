@@ -21,6 +21,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "../../../Configurations/DownstreamSwiftStuff.xcconfig"
+
 BUNDLE_LOADER = $(TEST_HOST);
 CLANG_ENABLE_OBJC_ARC = YES;
 CURRENT_PROJECT_VERSION = 1;
@@ -46,3 +48,5 @@ SWIFT_OPTIMIZATION_LEVEL = -O;
 SWIFT_OPTIMIZATION_LEVEL[config=Debug] = -Onone;
 
 OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/TestWebKitAPI/platform-enabled-swift-args.$(arch).resp -Xcc -fno-modulemap-allow-subdirectory-search;
+
+SWIFT_INCLUDE_PATHS = $(WK_DOWNSTREAM_SWIFT_INCLUDE_PATHS) $(inherited);
