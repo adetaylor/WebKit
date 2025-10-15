@@ -66,7 +66,7 @@ private:
 // A null-terminated, nullable, copy-on-write char array. Useful for interacting with C-style APIs.
 
 // Like const char*, CString does not know its encoding. The caller must apply the right encoding when extracting characters.
-class CString final {
+class SWIFT_ESCAPABLE CString final {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(CString);
 public:
     CString() { }

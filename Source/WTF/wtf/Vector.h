@@ -581,7 +581,7 @@ struct UnsafeVectorOverflow {
 
 // Template default values are in Forward.h.
 template<typename T, size_t inlineCapacity, typename OverflowHandler, size_t minCapacity, typename Malloc>
-class Vector : private VectorBuffer<T, inlineCapacity, Malloc> {
+class SWIFT_ESCAPABLE_IF(T) Vector : private VectorBuffer<T, inlineCapacity, Malloc> {
     WTF_MAKE_CONFIGURABLE_ALLOCATED_WITH_HEAP_IDENTIFIER(Vector, FastMalloc);
 private:
     typedef VectorBuffer<T, inlineCapacity, Malloc> Base;
@@ -740,6 +740,11 @@ public:
         if (i >= size()) [[unlikely]]
             OverflowHandler::overflowed();
         return Base::buffer()[i];
+    }
+
+    // Workaround for Swift limitation rdar://162281852
+    T atCopy(size_t i) const {
+        return at(i);
     }
 
     T& operator[](size_t i) LIFETIME_BOUND { return at(i); }

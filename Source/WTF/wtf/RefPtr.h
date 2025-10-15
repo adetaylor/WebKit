@@ -34,7 +34,7 @@ template<typename T, typename PtrTraits, typename RefDerefTraits> class RefPtr;
 template<typename T, typename PtrTraits = RawPtrTraits<T>, typename RefDerefTraits = DefaultRefDerefTraits<T>> RefPtr<T, PtrTraits, RefDerefTraits> adoptRef(T*);
 
 template<typename T, typename _PtrTraits, typename _RefDerefTraits>
-class RefPtr {
+class SWIFT_ESCAPABLE RefPtr {
     WTF_FORBID_HEAP_ALLOCATION_ALLOWING_PLACEMENT_NEW;
 public:
     using PtrTraits = _PtrTraits;
