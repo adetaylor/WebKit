@@ -45,4 +45,4 @@ SWIFT_OBJC_BRIDGING_HEADER = Tests/WebKit Swift/TestWebKitAPIBundle-Bridging-Hea
 SWIFT_OPTIMIZATION_LEVEL = -O;
 SWIFT_OPTIMIZATION_LEVEL[config=Debug] = -Onone;
 
-OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/TestWebKitAPI/platform-enabled-swift-args.$(arch).resp;
+OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/TestWebKitAPI/platform-enabled-swift-args.$(arch).resp -Xcc -fno-modulemap-allow-subdirectory-search;
