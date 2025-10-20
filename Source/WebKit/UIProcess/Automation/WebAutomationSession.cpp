@@ -74,6 +74,20 @@
 #include "WebDriverBidiProcessor.h"
 #endif
 
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+// TODO work out why WebKit-Swift.h includes WebKit/WebKit.h and why that
+// triggers errors about deprecated WebFrame
+// It's from OSX.modulemap
+// TODO work out what the __bridge_transfer stuff is about
+#define AVOID_IMPORTING_LEGACY_WEBKIT_BOBBINS
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
+#include <WebKit-Swift.h>
+#pragma clang diagnostic pop
+#undef AVOID_IMPORTING_LEGACY_WEBKIT_BOBBINS
+#endif
+
 namespace WebKit {
 
 using namespace Inspector;
@@ -873,15 +887,15 @@ void WebAutomationSession::traverseHistoryInBrowsingContext(const Inspector::Pro
         return;
     }
 
-    Ref backForwardList = page->backForwardList();
-    unsigned backCount = backForwardList->backListCount();
-    unsigned forwardCount = backForwardList->forwardListCount();
+    auto backForwardList = page->backForwardList();
+    unsigned backCount = backForwardList.backListCount();
+    unsigned forwardCount = backForwardList.forwardListCount();
     int currentIndex = static_cast<int>(backCount);
     int targetIndex = currentIndex + delta;
     ASYNC_FAIL_WITH_PREDEFINED_ERROR_IF(targetIndex < 0, InvalidParameter);
     ASYNC_FAIL_WITH_PREDEFINED_ERROR_IF(targetIndex >= static_cast<int>(backCount + forwardCount + 1), InvalidParameter);
 
-    RefPtr targetItem = backForwardList->itemAtIndex(targetIndex);
+    RefPtr targetItem = RefPtr(backForwardList.itemAtIndex(targetIndex));
     ASYNC_FAIL_WITH_PREDEFINED_ERROR_IF(!targetItem, InternalError);
 
     page->goToBackForwardItem(*targetItem);

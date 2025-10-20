@@ -34,9 +34,11 @@
 #import <UIProcess/WebPageProxy.h>
 #import <UIProcess/WebProcessProxy.h>
 #import <wtf/Markable.h>
+#import <wtf/RefCounted.h>
 #import <wtf/SwiftBridging.h>
 #import <wtf/Vector.h>
 #import <wtf/WeakPtr.h>
+#import <MessageReceiver.h>
 
 // Workaround for rdar://162358154
 using VectorAPIObject = Vector<RefPtr<API::Object>>;
@@ -90,34 +92,38 @@ inline RefPtr<WebKit::WebProcessProxy> downcastToWebProcessProxy(WebKit::Auxilia
 WebCore::BackForwardFrameItemIdentifier generateBackForwardFrameItemIdentifier();
 WebCore::BackForwardItemIdentifier generateBackForwardItemIdentifier();
 
-// Workaround for rdar://162361370
-// (storing a WTF::Function inside a copyable, in this case ref-counted, type)
-template<typename> class SWIFT_ESCAPABLE FunctionContainer;
+using WebBackForwardListItemFilter = WTF::FunctionContainer<bool (WebKit::WebBackForwardListItem&)>;
+using CountsCompletionHandler = WTF::FunctionContainer<void(WebKit::WebBackForwardListCounts&&)>;
+using ConstCountsCompletionHandler = WTF::FunctionContainer<void(const WebKit::WebBackForwardListCounts&)>;
+using BoolCompletionHandler = WTF::FunctionContainer<void(bool)>;
+using VectorRefFrameStateCompletionHandler = WTF::FunctionContainer<void(Vector<Ref<WebKit::FrameState>>&&)>;
+using RefPtrFrameStateCompletionHandler = WTF::FunctionContainer<void(RefPtr<WebKit::FrameState>&&)>;
 
-template <typename Out, typename... In>
-class SWIFT_ESCAPABLE FunctionContainer<Out(In...)>: public RefCounted<FunctionContainer<Out(In...)>> {
+namespace WebKit {
+class WebBackForwardListSwift;
+class WebBackForwardListSwiftWeakRef;
+
+class WebBackForwardListMessageForwarder: public RefCounted<WebBackForwardListMessageForwarder>, public IPC::MessageReceiver {
 public:
-    static Ref<FunctionContainer<Out(In...)>> create(WTF::Function<Out(In...)>&& fn) {
-        return adoptRef(*new FunctionContainer(WTFMove(fn)));
+    static Ref<WebBackForwardListMessageForwarder> create(WebKit::WebBackForwardListSwiftWeakRef* _Nonnull backForwardList) {
+        return adoptRef(*new WebBackForwardListMessageForwarder(backForwardList));
     }
+    ~WebBackForwardListMessageForwarder();
+    void didReceiveMessage(IPC::Connection&, IPC::Decoder&);
+    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
 
-    Out call(In... in) const
-    {
-        return m_fn(std::forward<In>(in)...);
-    }
-    void ref() { WTF::ref(this); }
-    void deref() { WTF::deref(this); }
-
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
 private:
-    FunctionContainer(WTF::Function<Out(In...)>&& fn) : m_fn(WTFMove(fn)) {}
-    WTF::Function<Out(In...)> m_fn;
-    // The following line requires rdar://160696723, so if it doesn't build,
-    // you're probably not using a sufficiently recent swiftc.
+    WebBackForwardListMessageForwarder(WebKit::WebBackForwardListSwiftWeakRef* _Nonnull backForwardList);
+    std::unique_ptr<WebKit::WebBackForwardListSwift> _Nonnull getMessageTarget();
+    // This is a unique_ptr to a Swift reference. We keep it in a unique_ptr solely so that this
+    // header file does not need to know its size, as we can only rely upon forward declarations
+    // in the header, to avoid a dependency loop.
+    std::unique_ptr<WebKit::WebBackForwardListSwiftWeakRef> m_swiftBackForwardListWeakRef;
 } SWIFT_SHARED_REFERENCE(.ref, .deref);
 
-using WebBackForwardListItemFilter = FunctionContainer<bool (WebKit::WebBackForwardListItem&)>;
-using CountsCompletionHandler = FunctionContainer<void(WebKit::WebBackForwardListCounts&&)>;
-using ConstCountsCompletionHandler = FunctionContainer<void(const WebKit::WebBackForwardListCounts&)>;
-using BoolCompletionHandler = FunctionContainer<void(bool)>;
-using VectorRefFrameStateCompletionHandler = FunctionContainer<void(Vector<Ref<WebKit::FrameState>>&&)>;
-using RefPtrFrameStateCompletionHandler = FunctionContainer<void(RefPtr<WebKit::FrameState>&&)>;
+
+};
+
+using RefWebBackForwardListMessageForwarder = Ref<WebKit::WebBackForwardListMessageForwarder>;

@@ -24,7 +24,22 @@
  */
 
 #import "config.h"
+#include <optional>
 #import "ViewGestureController.h"
+
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+// TODO work out why WebKit-Swift.h includes WebKit/WebKit.h and why that
+// triggers errors about deprecated WebFrame
+// It's from OSX.modulemap
+// TODO work out what the __bridge_transfer stuff is about
+#define AVOID_IMPORTING_LEGACY_WEBKIT_BOBBINS
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
+#include <WebKit-Swift.h>
+#pragma clang diagnostic pop
+#undef AVOID_IMPORTING_LEGACY_WEBKIT_BOBBINS
+#endif
 
 #if PLATFORM(MAC)
 
@@ -684,12 +699,12 @@ bool ViewGestureController::completeSimulatedSwipeInDirectionForTesting(SwipeDir
     return true;
 }
 
-WebBackForwardList* ViewGestureController::backForwardListForNavigation() const
+std::optional<WebBackForwardListSwift> ViewGestureController::backForwardListForNavigation() const
 {
     if (RefPtr page = m_webPageProxy.get())
-        return &page->backForwardList();
+        return page->backForwardList();
 
-    return nullptr;
+    return std::nullopt;
 }
 
 } // namespace WebKit

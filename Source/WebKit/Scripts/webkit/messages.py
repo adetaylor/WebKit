@@ -800,11 +800,15 @@ def generate_messages_header(receiver):
 
 
 def handler_function(receiver, message):
+    classname = receiver.name
+    # TODO replace with messages.in attributes
+    if classname == 'WebBackForwardList':
+        classname = 'WebBackForwardListSwift'
     if message.name.startswith('URL'):
-        return '%s::%s' % (receiver.name, 'url' + message.name[3:])
+        return '%s::%s' % (classname, 'url' + message.name[3:])
     if message.name.startswith('GPU'):
-        return '%s::%s' % (receiver.name, 'gpu' + message.name[3:])
-    return '%s::%s' % (receiver.name, message.name[0].lower() + message.name[1:])
+        return '%s::%s' % (classname, 'gpu' + message.name[3:])
+    return '%s::%s' % (classname, message.name[0].lower() + message.name[1:])
 
 def generate_enabled_by(receiver, enabled_by, enabled_by_conjunction):
     conjunction = ' %s ' % (enabled_by_conjunction or '&&')
@@ -820,9 +824,9 @@ def generate_runtime_enablement(receiver, message):
 
 def async_message_statement(receiver, message):
     if receiver.has_attribute(NOT_USING_IPC_CONNECTION_ATTRIBUTE) and message.reply_parameters is not None and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
-        dispatch_function_args = ['decoder', 'WTFMove(replyHandler)', 'this', '&%s' % handler_function(receiver, message)]
+        dispatch_function_args = ['decoder', 'WTFMove(replyHandler)', 'target', '&%s' % handler_function(receiver, message)]
     else:
-        dispatch_function_args = ['decoder', 'this', '&%s' % handler_function(receiver, message)]
+        dispatch_function_args = ['decoder', 'target', '&%s' % handler_function(receiver, message)]
 
     dispatch_function = 'handleMessage'
     if message.reply_parameters is not None and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
@@ -842,6 +846,12 @@ def async_message_statement(receiver, message):
     receiver_dispatched_to_webcontent = True if receiver.receiver_dispatched_to == 'WebContent' else False
     if not message_runtime_enablement and not receiver_runtime_enablement and not receiver_dispatched_to_webcontent:
         return '#error "Receiver %s or message %s must be annotated with \'EnabledBy=[FeatureFlag]\' in messages.in file\n' % (receiver.name, message.name)
+
+    classname = receiver.name
+    # TODO replace with messages.in attributes
+    # and most likely actually generate the Forwarder code here
+    if classname == "WebBackForwardList":
+        classname = "WebBackForwardListMessageForwarder"
 
     runtime_enablement = generate_runtime_enablement(receiver, message)
     if runtime_enablement or message.validator:
@@ -894,7 +904,7 @@ def sync_message_statement(receiver, message):
         result.append('    if (decoder.messageName() == Messages::%s::%s::name() && %s) {\n' % (receiver.name, message.name, runtime_enablement))
     else:
         result.append('    if (decoder.messageName() == Messages::%s::%s::name()) {\n' % (receiver.name, message.name))
-    result.append('        IPC::%s<Messages::%s::%s>(connection, decoder%s, this, &%s);\n' % (dispatch_function, receiver.name, message.name, maybe_reply_encoder, handler_function(receiver, message)))
+    result.append('        IPC::%s<Messages::%s::%s>(connection, decoder%s, target, &%s);\n' % (dispatch_function, receiver.name, message.name, maybe_reply_encoder, handler_function(receiver, message)))
     result.append('        return;\n')
     result.append('    }\n')
     return result
@@ -1621,7 +1631,8 @@ def header_for_receiver_name(name):
 
     special_headers = {
         # WebInspector.h is taken by the public API header, so this name is used instead.
-        'WebInspector': 'WebInspectorInternal'
+        'WebInspector': 'WebInspectorInternal',
+        'WebBackForwardList': 'Shared/SwiftUtilities', # TODO zap once we know how to generate the forwarder code
     }
 
     return special_headers.get(name, name)
@@ -1633,6 +1644,11 @@ def generate_message_handler(receiver):
         '"HandleMessage.h"': [None],
         '"Decoder.h"': [None],
     }
+
+    classname = receiver.name
+    # TODO replace with messages.in attributes, and probably generate the Forwarder code ourselves
+    if classname == "WebBackForwardList":
+        classname = "WebBackForwardListMessageForwarder"
 
     collect_header_conditions_for_receiver(receiver, header_conditions)
 
@@ -1646,6 +1662,9 @@ def generate_message_handler(receiver):
         result.append('#if %s\n' % receiver.condition)
 
     result.append('#include "%s.h"\n\n' % header_for_receiver_name(receiver.name))
+    # TODO replace with messages.in attributes
+    if receiver.name == 'WebBackForwardList':
+        result.append('#include "%s.h"\n\n' % 'WebKit-Swift')
     result += generate_header_includes_from_conditions(header_conditions)
     result.append('\n')
 
@@ -1679,12 +1698,19 @@ def generate_message_handler(receiver):
     sync_message_statements = collect_message_statements(sync_messages, sync_message_statement)
 
     if receiver.has_attribute(STREAM_ATTRIBUTE):
-        result.append('void %s::didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder)\n' % (receiver.name))
+        result.append('void %s::didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder)\n' % (classname))
         result.append('{\n')
         result += generate_enabled_by_for_receiver(receiver, receiver.messages)
         assert(not receiver.has_attribute(WANTS_DISPATCH_MESSAGE_ATTRIBUTE))
         assert(not receiver.has_attribute(WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE))
         result.append('    Ref protectedThis { *this };\n')
+        # TODO replace with messages.in attributes
+        if receiver.name == 'WebBackForwardList':
+            result.append('    auto ptr = getMessageTarget();\n')
+            result.append('    auto target = ptr.get();\n')
+        else:
+            result.append('    auto target = this;\n')
+        result.append('    UNUSED_VARIABLE(target);\n')
         result += async_message_statements
         result += sync_message_statements
         if (receiver.superclass):
@@ -1695,13 +1721,19 @@ def generate_message_handler(receiver):
         result.append('}\n')
     else:
         if receiver.has_attribute(NOT_USING_IPC_CONNECTION_ATTRIBUTE):
-            result.append('void %s::didReceiveMessageWithReplyHandler(IPC::Decoder& decoder, Function<void(UniqueRef<IPC::Encoder>&&)>&& replyHandler)\n' % (receiver.name))
+            result.append('void %s::didReceiveMessageWithReplyHandler(IPC::Decoder& decoder, Function<void(UniqueRef<IPC::Encoder>&&)>&& replyHandler)\n' % (classname))
         else:
-            result.append('void %s::didReceiveMessage(IPC::Connection& connection, IPC::Decoder& decoder)\n' % (receiver.name))
+            result.append('void %s::didReceiveMessage(IPC::Connection& connection, IPC::Decoder& decoder)\n' % (classname))
         result.append('{\n')
         enable_by_statement = generate_enabled_by_for_receiver(receiver, async_messages)
         result += enable_by_statement
         result.append('    Ref protectedThis { *this };\n')
+        if receiver.name == 'WebBackForwardList':
+            result.append('    auto ptr = getMessageTarget();\n')
+            result.append('    auto target = ptr.get();\n')
+        else:
+            result.append('    auto target = this;\n')
+        result.append('    UNUSED_VARIABLE(target);\n')
         result += async_message_statements
         if receiver.has_attribute(WANTS_DISPATCH_MESSAGE_ATTRIBUTE) or receiver.has_attribute(WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE):
             result.append('    if (dispatchMessage(connection, decoder))\n')
@@ -1717,11 +1749,17 @@ def generate_message_handler(receiver):
 
     if not receiver.has_attribute(STREAM_ATTRIBUTE) and (sync_messages or receiver.has_attribute(WANTS_DISPATCH_MESSAGE_ATTRIBUTE)):
         result.append('\n')
-        result.append('void %s::didReceiveSyncMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& replyEncoder)\n' % (receiver.name))
+        result.append('void %s::didReceiveSyncMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& replyEncoder)\n' % (classname))
         result.append('{\n')
         result += generate_dispatched_for_x(receiver.receiver_dispatched_to)
         result += generate_enabled_by_for_receiver(receiver, sync_messages)
         result.append('    Ref protectedThis { *this };\n')
+        if receiver.name == 'WebBackForwardList':
+            result.append('    auto ptr = getMessageTarget();\n')
+            result.append('    auto target = ptr.get();\n')
+        else:
+            result.append('    auto target = this;\n')
+        result.append('    UNUSED_VARIABLE(target);\n')
         result += sync_message_statements
         if receiver.has_attribute(WANTS_DISPATCH_MESSAGE_ATTRIBUTE):
             result.append('    if (dispatchSyncMessage(connection, decoder, replyEncoder))\n')

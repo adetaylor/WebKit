@@ -61,6 +61,21 @@
 #include "RemotePageVideoPresentationManagerProxy.h"
 #endif
 
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+// TODO work out why WebKit-Swift.h includes WebKit/WebKit.h and why that
+// triggers errors about deprecated WebFrame
+// It's from OSX.modulemap
+// TODO work out what the __bridge_transfer stuff is about
+#define AVOID_IMPORTING_LEGACY_WEBKIT_BOBBINS
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
+#include <WebKit-Swift.h>
+#pragma clang diagnostic pop
+#undef AVOID_IMPORTING_LEGACY_WEBKIT_BOBBINS
+#endif
+
+
 namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemotePageProxy);
@@ -78,9 +93,9 @@ RemotePageProxy::RemotePageProxy(WebPageProxy& page, WebProcessProxy& process, c
     , m_processActivityState(makeUniqueRef<WebProcessActivityState>(*this))
 {
     if (registrationToTransfer)
-        m_messageReceiverRegistration.transferMessageReceivingFrom(*registrationToTransfer, *this, page.backForwardList());
+        m_messageReceiverRegistration.transferMessageReceivingFrom(*registrationToTransfer, *this, page.backForwardListMessageReceiver());
     else
-        m_messageReceiverRegistration.startReceivingMessages(m_process, m_webPageID, *this, page.backForwardList());
+        m_messageReceiverRegistration.startReceivingMessages(m_process, m_webPageID, *this, page.backForwardListMessageReceiver());
 
     m_process->addRemotePageProxy(*this);
 }
@@ -153,7 +168,7 @@ void RemotePageProxy::didReceiveMessage(IPC::Connection& connection, IPC::Decode
 
     if (RefPtr page = m_page.get()) {
         if (decoder.messageReceiverName() == Messages::WebBackForwardList::messageReceiverName())
-            page->backForwardList().didReceiveMessage(connection, decoder);
+            page->backForwardListMessageReceiver()->didReceiveMessage(connection, decoder);
         else
             page->didReceiveMessage(connection, decoder);
     }
@@ -163,7 +178,7 @@ void RemotePageProxy::didReceiveSyncMessage(IPC::Connection& connection, IPC::De
 {
     if (RefPtr page = m_page.get()) {
         if (decoder.messageReceiverName() == Messages::WebBackForwardList::messageReceiverName())
-            page->backForwardList().didReceiveSyncMessage(connection, decoder, encoder);
+            page->backForwardListMessageReceiver()->didReceiveSyncMessage(connection, decoder, encoder);
         else
             page->didReceiveSyncMessage(connection, decoder, encoder);
     }

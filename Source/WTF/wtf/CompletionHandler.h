@@ -29,9 +29,15 @@
 #include <utility>
 #include <wtf/Function.h>
 #include <wtf/MainThread.h>
+#include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadAssertions.h>
 
 namespace WTF {
+
+// Workaround for rdar://162361370
+// (storing a WTF::Function inside a copyable, in this case ref-counted, type)
+template<typename> class SWIFT_ESCAPABLE FunctionContainer;
 
 template<typename> class CompletionHandler;
 class CompletionHandlerCallThread {
@@ -80,6 +86,7 @@ public:
     }
 
 private:
+    friend class FunctionContainer<Out(In...)>;
     Function<Out(In...)> m_function;
     NO_UNIQUE_ADDRESS ThreadLikeAssertion m_callThread;
 };
@@ -128,6 +135,30 @@ private:
     Function<void(Function<Out(In...)>&)> m_finalizer;
     NO_UNIQUE_ADDRESS ThreadLikeAssertion m_callThread;
 };
+
+template <typename Out, typename... In>
+class SWIFT_ESCAPABLE FunctionContainer<Out(In...)>: public RefCounted<FunctionContainer<Out(In...)>> {
+public:
+    static Ref<FunctionContainer<Out(In...)>> create(WTF::Function<Out(In...)>&& fn) {
+        return adoptRef(*new FunctionContainer(WTFMove(fn)));
+    }
+    // TODO account for the fact that this breaks the completion handler 'once'ness
+    // FunctionContainer(CompletionHandler<Out(In...)>&& ch) : m_fn(WTFMove(ch.m_function)) {}
+
+    Out call(In... in) const
+    {
+        return m_fn(std::forward<In>(in)...);
+    }
+    void ref() { WTF::ref(this); }
+    void deref() { WTF::deref(this); }
+
+private:
+    FunctionContainer(WTF::Function<Out(In...)>&& fn) : m_fn(WTFMove(fn)) {}
+    WTF::Function<Out(In...)> m_fn;
+    // The following line requires rdar://160696723, so if it doesn't build,
+    // you're probably not using a sufficiently recent swiftc.
+} SWIFT_SHARED_REFERENCE(.ref, .deref);
+
 
 namespace Detail {
 

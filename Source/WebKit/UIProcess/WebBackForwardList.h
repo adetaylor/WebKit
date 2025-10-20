@@ -59,8 +59,18 @@ struct WebBackForwardListCounts;
 // 4. Tweak message receiver generator code so that it can dispatch messages within a Swift class
 // 5. By this time, the C++ class should be nothing more than forwarding functions - zap it and rename Swift class to fill its role
 
-class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>, public IPC::MessageReceiver {
+class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>
+#ifndef ENABLE_BACKFORWARDLIST_SWIFT
+, public IPC::MessageReceiver
+#endif
+{
 public:
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    static Ref<WebBackForwardList> create(WebBackForwardListSwift& impl)
+    {
+        return adoptRef(*new WebBackForwardList(impl));
+    }
+#else
     static Ref<WebBackForwardList> create(WebPageProxy& page)
     {
         return adoptRef(*new WebBackForwardList(page));
@@ -68,36 +78,46 @@ public:
 
     void ref() const final { API::ObjectImpl<API::Object::Type::BackForwardList>::ref(); }
     void deref() const final { API::ObjectImpl<API::Object::Type::BackForwardList>::deref(); }
+#endif
 
+#ifndef ENABLE_BACKFORWARDLIST_SWIFT
     void pageClosed();
+#endif
 
     virtual ~WebBackForwardList();
 
+#ifndef ENABLE_BACKFORWARDLIST_SWIFT
     WebBackForwardListItem* _Nullable itemForID(WebCore::BackForwardItemIdentifier);
 
     void goToItem(WebBackForwardListItem&);
+#endif
+
+    // The following are APIs which will be forwarded to the Swift implementation
     void removeAllItems();
     void clear();
 
-    WebBackForwardListItem* _Nullable currentItem() const;
     RefPtr<WebBackForwardListItem> protectedCurrentItem() const;
-    WebBackForwardListItem* _Nullable backItem() const;
     RefPtr<WebBackForwardListItem> protectedBackItem() const;
-    WebBackForwardListItem* _Nullable forwardItem() const;
     RefPtr<WebBackForwardListItem> protectedForwardItem() const;
-    WebBackForwardListItem* _Nullable itemAtIndex(int) const;
     RefPtr<WebBackForwardListItem> protectedItemAtIndex(int) const;
-
-    RefPtr<WebBackForwardListItem> goBackItemSkippingItemsWithoutUserGesture() const;
-    RefPtr<WebBackForwardListItem> goForwardItemSkippingItemsWithoutUserGesture() const;
-    unsigned backListCount() const;
-    unsigned forwardListCount() const;
+    WebBackForwardListItem* _Nullable backItem() const;
+    WebBackForwardListItem* _Nullable forwardItem() const;
 
     Ref<API::Array> backList() const;
     Ref<API::Array> forwardList() const;
 
+    unsigned backListCount() const;
+    unsigned forwardListCount() const;
+
     Ref<API::Array> backListAsAPIArrayWithLimit(unsigned limit) const;
     Ref<API::Array> forwardListAsAPIArrayWithLimit(unsigned limit) const;
+
+#ifndef ENABLE_BACKFORWARDLIST_SWIFT
+    WebBackForwardListItem* _Nullable currentItem() const;
+    WebBackForwardListItem* _Nullable itemAtIndex(int) const;
+
+    RefPtr<WebBackForwardListItem> goBackItemSkippingItemsWithoutUserGesture() const;
+    RefPtr<WebBackForwardListItem> goForwardItemSkippingItemsWithoutUserGesture() const;
 
     BackForwardListState backForwardListState(WTF::Function<bool (WebBackForwardListItem&)>&&) const;
     void restoreFromState(BackForwardListState);
@@ -115,13 +135,13 @@ public:
     String loggingString();
 #endif
 
+#endif
 private:
-    explicit WebBackForwardList(WebPageProxy&);
 
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    std::unique_ptr<WebKit::WebBackForwardListSwift> m_swiftBackForwardList;
-
-#else // ENABLE_BACKFORWARDLIST_SWIFT
+    explicit WebBackForwardList(WebBackForwardListSwift&);
+#else
+    explicit WebBackForwardList(WebPageProxy&);
 
     void addItem(Ref<WebBackForwardListItem>&&);
     void addChildItem(WebCore::FrameIdentifier, Ref<FrameState>&&);
@@ -132,7 +152,6 @@ private:
     Ref<FrameState> completeFrameStateForNavigation(Ref<FrameState>&&);
 
     RefPtr<WebPageProxy> protectedPage();
-#endif
 
     // IPC messages
     void backForwardAddItem(IPC::Connection&, Ref<FrameState>&&);
@@ -147,11 +166,13 @@ private:
     void shouldGoToBackForwardListItem(WebCore::BackForwardItemIdentifier, bool inBackForwardCache, CompletionHandler<void(WebCore::ShouldGoToHistoryItem)>&&);
     void shouldGoToBackForwardListItemSync(WebCore::BackForwardItemIdentifier, CompletionHandler<void(WebCore::ShouldGoToHistoryItem)>&&);
 
-#ifndef ENABLE_BACKFORWARDLIST_SWIFT
     WeakPtr<WebPageProxy> m_page;
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
+#endif
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    WebBackForwardListSwift* _Nonnull m_impl;
+#endif
 
 };
 
