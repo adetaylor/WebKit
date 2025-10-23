@@ -153,7 +153,7 @@ public:
     {
         return m_connection == &connection;
     }
-    static AuxiliaryProcessProxy* fromConnection(const IPC::Connection&);
+    static AuxiliaryProcessProxy* _Nonnull fromConnection(const IPC::Connection&);
 
     void addMessageReceiver(IPC::ReceiverName, IPC::MessageReceiver&);
     void addMessageReceiver(IPC::ReceiverName, uint64_t destinationID, IPC::MessageReceiver&);
