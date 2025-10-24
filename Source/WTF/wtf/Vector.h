@@ -742,6 +742,11 @@ public:
         return Base::buffer()[i];
     }
 
+    // Workaround for Swift limitation rdar://162281852
+    T atCopy(size_t i) const {
+        return at(i);
+    }
+
     T& operator[](size_t i) LIFETIME_BOUND { return at(i); }
     const T& operator[](size_t i) const LIFETIME_BOUND { return at(i); }
 
