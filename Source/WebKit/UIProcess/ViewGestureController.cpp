@@ -53,6 +53,11 @@
 #include "ViewGestureGeometryCollectorMessages.h"
 #endif
 
+
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+#include <Shared/WebKit-Swift-Wrapper.h>
+#endif
+
 namespace WebKit {
 using namespace WebCore;
 
@@ -148,7 +153,7 @@ ViewGestureController* ViewGestureController::controllerForGesture(WebPageProxyI
 
 RefPtr<WebBackForwardListItem> ViewGestureController::itemForSwipeDirection(SwipeDirection direction) const
 {
-    RefPtr backForwardList = backForwardListForNavigation();
+    auto backForwardList = backForwardListForNavigation();
     if (!backForwardList)
         return { };
 
@@ -212,10 +217,10 @@ bool ViewGestureController::canSwipeInDirection(SwipeDirection direction, DeferT
         return false;
 
     RefPtr<WebPageProxy> alternateBackForwardListSourcePage = m_alternateBackForwardListSourcePage.get();
-    Ref<WebBackForwardList> backForwardList = alternateBackForwardListSourcePage ? alternateBackForwardListSourcePage->backForwardList() : page->backForwardList();
+    auto backForwardList = alternateBackForwardListSourcePage ? alternateBackForwardListSourcePage->backForwardList() : page->backForwardList();
     if (direction == SwipeDirection::Back)
-        return !!backForwardList->backItem();
-    return !!backForwardList->forwardItem();
+        return !!backForwardList.backItem();
+    return !!backForwardList.forwardItem();
 }
 
 void ViewGestureController::didStartProvisionalOrSameDocumentLoadForMainFrame()
@@ -597,10 +602,10 @@ void ViewGestureController::startSwipeGesture(PlatformScrollEvent event, SwipeDi
 
     page->recordAutomaticNavigationSnapshot();
 
-    Ref backForwardList = page->backForwardList();
+    auto backForwardList = page->backForwardList();
     RefPtr targetItem = (direction == SwipeDirection::Back)
-        ? backForwardList->goBackItemSkippingItemsWithoutUserGesture()
-        : backForwardList->goForwardItemSkippingItemsWithoutUserGesture();
+        ? backForwardList.goBackItemSkippingItemsWithoutUserGesture()
+        : backForwardList.goForwardItemSkippingItemsWithoutUserGesture();
     if (!targetItem)
         return;
 
@@ -674,7 +679,7 @@ void ViewGestureController::willEndSwipeGesture(WebBackForwardListItem& targetIt
     m_didStartProvisionalLoad = false;
     m_pendingNavigation = page->goToBackForwardItem(targetItem);
 
-    RefPtr currentItem = Ref { page->backForwardList() }->currentItem();
+    RefPtr currentItem = page->backForwardList().currentItem();
     // The main frame will not be navigated so hide the snapshot right away.
     if (currentItem && currentItem->itemIsClone(targetItem)) {
         removeSwipeSnapshot();

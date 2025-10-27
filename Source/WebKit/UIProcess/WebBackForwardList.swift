@@ -185,12 +185,29 @@ enum Direction {
 
 @_expose(Cxx)
 @_spi(Internal)
+public class WebBackForwardListSwiftWeakRef {
+    weak var list: WebBackForwardListSwift?;
+    init(list: WebBackForwardListSwift) {
+        self.list = list
+    }
+
+    @_expose(Cxx)
+    @_spi(Internal)
+    public func getList() -> WebBackForwardListSwift {
+        return list!
+    }
+}
+
+@_expose(Cxx)
+@_spi(Internal)
 public class WebBackForwardListSwift {
     static let DefaultCapacity = 100;
 
     var page: WeakPtrWebPageProxy;
     var entries: [WebBackForwardListItem] = [];
     var currentIndex: Array.Index?;
+    // Optional just because of an initialization order issue. Always occupied after initialization finished.
+    var messageForwarder: RefWebBackForwardListMessageForwarder?;
 
     func myPtr() -> Int {
         // Safety: it's guaranteed to be possible to convert this pointer to a string
@@ -202,6 +219,11 @@ public class WebBackForwardListSwift {
     @_spi(Internal)
     public init(page: WeakPtrWebPageProxy) {
         self.page = page
+        let weakRefContainer = WebBackForwardListSwiftWeakRef(list: self);
+        // Safety: we're creating a pointer which will immediately be stored in a
+        // proper ref-counted reference on the C++ side before this call returns.
+        // Workaround for rdar://163107752.
+        self.messageForwarder = unsafe WebKit.WebBackForwardListMessageForwarder.create(OpaquePointer(Unmanaged.passRetained(weakRefContainer).toOpaque()));
         backForwardLog(msgCreator: {
             return "(Back/Forward) Created WebBackForwardList \(myPtr())";
         });
@@ -209,8 +231,14 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
+    public func getMessageReceiver() -> RefWebBackForwardListMessageForwarder {
+        return self.messageForwarder!;
+    }
+
+    @_expose(Cxx)
+    @_spi(Internal)
     public func preDestructionChecks() {
-        // A WebBackForwardList should never be destroyed unless it's associated page has been closed or is invalid.
+        // A WebBackForwardList should never be destroyed unless it s associated page has been closed or is invalid.
         assert(page.get().map { !$0.hasRunningProcess() } ?? (currentIndex == nil))
     }
 
@@ -951,24 +979,24 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardAddItem(connection: IPC.Connection, navigatedFrameState: FrameState) {
+    public func backForwardAddItem(connection: IPC.Connection, navigatedFrameState: RefFrameState) {
         if let page = page.get() {
             let loadedWebArchive = page.didLoadWebArchive()
                     ? WebKit.LoadedWebArchive.Yes
                     : WebKit.LoadedWebArchive.No
-            backForwardAddItemShared(connection: connection, navigatedFrameState: navigatedFrameState, loadedWebArchive: loadedWebArchive);
+            backForwardAddItemShared(connection: connection, navigatedFrameState: navigatedFrameState.take(), loadedWebArchive: loadedWebArchive);
         }
     }
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardSetChildItem(frameItemID: BackForwardFrameItemIdentifier, frameState: FrameState) {
+    public func backForwardSetChildItem(frameItemID: BackForwardFrameItemIdentifier, frameState: RefFrameState) {
         guard let item = currentItem() else {
             return;
         }
 
         if let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(item.identifier(), frameItemID) {
-            frameItem.setChild(consuming: RefFrameState(frameState));
+            frameItem.setChild(consuming: frameState);
         }
     }
 
@@ -984,9 +1012,9 @@ public class WebBackForwardListSwift {
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func backForwardUpdateItem(connection: IPC.Connection, frameState: WebKit.FrameState) {
-        let itemID = frameState.itemID.pointee;
-        let frameItemID = frameState.frameItemID.pointee;
+    public func backForwardUpdateItem(connection: IPC.Connection, frameState: RefFrameState) {
+        let itemID = frameState.take().itemID.pointee;
+        let frameItemID = frameState.take().frameItemID.pointee;
         guard let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) else {
             return;
         }
@@ -1001,15 +1029,15 @@ public class WebBackForwardListSwift {
         // The downcast in C++ is really just used to assert that the process is a WebProcessProxy
         assert(downcastToWebProcessProxy(process).__convertToBool());
         let hasBackForwardCacheEntry = item.protectedBackForwardCacheEntry().__convertToBool();
-        if hasBackForwardCacheEntry != frameState.hasCachedPage {
-            if frameState.hasCachedPage {
+        if hasBackForwardCacheEntry != frameState.take().hasCachedPage {
+            if frameState.take().hasCachedPage {
                 webPageProxy.protectedBackForwardCache().take().addEntry(item, process.coreProcessIdentifier());
             } else if !item.hasSuspendedPage() {
                 webPageProxy.protectedBackForwardCache().take().removeEntry(item);
             }
         }
 
-        frameItem.setFrameState(consuming: RefFrameState(frameState));
+        frameItem.setFrameState(consuming: frameState);
     }
 
     @_expose(Cxx)

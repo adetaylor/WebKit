@@ -34,11 +34,14 @@
 #import <UIProcess/WebPageProxy.h>
 #import <UIProcess/WebProcessProxy.h>
 #import <wtf/Markable.h>
+#import <wtf/RefCounted.h>
 #import <wtf/SwiftBridging.h>
 #import <wtf/SwiftWrappedFunction.h>
 #import <wtf/SwiftWrappedCompletionHandler.h>
 #import <wtf/Vector.h>
 #import <wtf/WeakPtr.h>
+#import <MessageReceiver.h>
+#import <WebBackForwardListMessages.h>
 
 // Workaround for rdar://162358154
 using VectorAPIObject = Vector<RefPtr<API::Object>>;
@@ -99,3 +102,5 @@ using BoolCompletionHandler = WTF::SwiftWrappedCompletionHandler<void(bool)>;
 using VectorRefFrameStateCompletionHandler = WTF::SwiftWrappedCompletionHandler<void(Vector<Ref<WebKit::FrameState>>&&)>;
 using RefPtrFrameStateCompletionHandler = WTF::SwiftWrappedCompletionHandler<void(RefPtr<WebKit::FrameState>&&)>;
 
+class WebBackForwardListMessageForwarder;
+using RefWebBackForwardListMessageForwarder = WTF::Ref<WebKit::WebBackForwardListMessageForwarder>;
