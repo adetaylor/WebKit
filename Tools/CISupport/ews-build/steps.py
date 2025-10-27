@@ -3285,7 +3285,7 @@ class CompileWebKit(shell.Compile, AddToLogMixin, ShellMixin):
     haltOnFailure = False
     build_command = ['perl', 'Tools/Scripts/build-webkit']
     filter_command = ['perl', 'Tools/Scripts/filter-build-webkit', '-logfile', 'build-log.txt']
-    VALID_ADDITIONAL_ARGUMENTS_LIST = []  # If additionalArguments is added to config.json for CompileWebKit step, it should be added here as well.
+    VALID_ADDITIONAL_ARGUMENTS_LIST = ["--swift-demo-uri-scheme"]  # If additionalArguments is added to config.json for CompileWebKit step, it should be added here as well.
     APPLE_PLATFORMS = ('mac', 'ios', 'visionos', 'tvos', 'watchos')
 
     def __init__(self, skipUpload=False, **kwargs):

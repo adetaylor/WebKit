@@ -237,6 +237,7 @@
       "name": "iOS-26-Build-EWS", "shortname": "ios", "icon": "buildOnly",
       "factory": "iOSEmbeddedBuildFactory", "platform": "ios-26",
       "configuration": "release", "architectures": ["arm64"],
+      "additionalArguments": ["--swift-demo-uri-scheme"],
       "workernames": ["ews152", "ews154", "ews108", "ews109", "ews130", "ews131", "ews132", "ews133"]
     },
     {
