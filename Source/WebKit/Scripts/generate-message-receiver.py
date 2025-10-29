@@ -29,6 +29,7 @@ import sys
 import webkit.messages
 import webkit.parser
 import webkit.model
+from webkit.filewriter import FileWriterIfChanged
 
 def main(argv):
     receivers = []
@@ -74,21 +75,21 @@ def main(argv):
     for receiver in receivers:
         if receiver.has_attribute(webkit.model.BUILTIN_ATTRIBUTE):
             continue
-        with open('%sMessageReceiver.cpp' % receiver.name, "w+") as implementation_output:
+        with FileWriterIfChanged('%sMessageReceiver.cpp' % receiver.name) as implementation_output:
             implementation_output.write(webkit.messages.generate_message_handler(receiver))
 
         receiver_message_header = '%sMessages.h' % receiver.name
         receiver_header_files.append(receiver_message_header)
-        with open(receiver_message_header, "w+") as header_output:
+        with FileWriterIfChanged(receiver_message_header) as header_output:
             header_output.write(webkit.messages.generate_messages_header(receiver))
 
-    with open('MessageNames.h', "w+") as message_names_header_output:
+    with FileWriterIfChanged('MessageNames.h') as message_names_header_output:
         message_names_header_output.write(webkit.messages.generate_message_names_header(receivers))
 
-    with open('MessageNames.cpp', "w+") as message_names_implementation_output:
+    with FileWriterIfChanged('MessageNames.cpp') as message_names_implementation_output:
         message_names_implementation_output.write(webkit.messages.generate_message_names_implementation(receivers))
 
-    with open('MessageArgumentDescriptions.cpp', "w+") as message_descriptions_implementation_output:
+    with FileWriterIfChanged('MessageArgumentDescriptions.cpp') as message_descriptions_implementation_output:
         message_descriptions_implementation_output.write(webkit.messages.generate_message_argument_description_implementation(receivers, receiver_header_files))
 
     return 0

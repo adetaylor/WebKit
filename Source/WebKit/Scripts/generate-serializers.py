@@ -28,6 +28,10 @@ import os
 import re
 import sys
 
+# Add the parent directory to the path so we can import webkit modules
+sys.path.insert(0, os.path.dirname(__file__))
+from webkit.filewriter import FileWriterIfChanged
+
 # Supported type attributes:
 #
 # AdditionalEncoder - generate serializers for StreamConnectionEncoder in addition to IPC::Encoder.
@@ -2015,17 +2019,17 @@ def main(argv):
 
     serialized_types = resolve_inheritance(serialized_types)
 
-    with open('GeneratedSerializers.h', "w+") as output:
+    with FileWriterIfChanged('GeneratedSerializers.h') as output:
         output.write(generate_header(serialized_types, serialized_enums, additional_forward_declarations_list))
-    with open('GeneratedSerializers.%s' % file_extension, "w+") as output:
+    with FileWriterIfChanged('GeneratedSerializers.%s' % file_extension) as output:
         output.write(generate_impl(serialized_types, serialized_enums, headers, False, []))
-    with open('WebKitPlatformGeneratedSerializers.%s' % file_extension, "w+") as output:
+    with FileWriterIfChanged('WebKitPlatformGeneratedSerializers.%s' % file_extension) as output:
         output.write(generate_impl(serialized_types, serialized_enums, headers, True, objc_wrapped_types))
-    with open('SerializedTypeInfo.%s' % file_extension, "w+") as output:
+    with FileWriterIfChanged('SerializedTypeInfo.%s' % file_extension) as output:
         output.write(generate_serialized_type_info(serialized_types, serialized_enums, headers, using_statements, objc_wrapped_types))
-    with open('GeneratedWebKitSecureCoding.h', "w+") as output:
+    with FileWriterIfChanged('GeneratedWebKitSecureCoding.h') as output:
         output.write(generate_webkit_secure_coding_header(serialized_types))
-    with open('GeneratedWebKitSecureCoding.%s' % file_extension, "w+") as output:
+    with FileWriterIfChanged('GeneratedWebKitSecureCoding.%s' % file_extension) as output:
         output.write(generate_webkit_secure_coding_impl(serialized_types, headers))
     return 0
 
