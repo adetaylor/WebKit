@@ -43,11 +43,14 @@ internal typealias WebFrameProxy = WebKit.WebFrameProxy
 
 extension VectorRefWebBackForwardListItem {
     init (array: [WebBackForwardListItem]) {
-        var vec = VectorRefWebBackForwardListItem.init();
+        // Safety: false positive, rdar://163805967
+        var vec = unsafe VectorRefWebBackForwardListItem.init();
         for item in array {
-            vec.append(consuming: RefWebBackForwardListItem(item));
+        // Safety: false positive, rdar://163805967
+            unsafe vec.append(consuming: RefWebBackForwardListItem(item));
         }
-        self = vec;
+        // Safety: false positive, rdar://163805967
+        unsafe self = unsafe vec;
     }
 }
 
@@ -348,7 +351,8 @@ internal class WebBackForwardList {
         backForwardLog(msgCreator: {
             return "(Back/Forward) WebBackForwardList \(myPtr()) added an item. Current size \(entries.count), current index \(currentIndex), threw away \(removedItems.count) items";
         });
-        page.didChangeBackForwardList(newItem, consuming: VectorRefWebBackForwardListItem(array: removedItems));
+        // Safety: false positive, rdar://163805967
+        unsafe page.didChangeBackForwardList(newItem, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -407,7 +411,8 @@ internal class WebBackForwardList {
             let itemIdentifier = String(wtfString: item.identifier().toString());
             return "(Back/Forward) WebBackForwardList \(myPtr()) going to item \(itemIdentifier), is now at index \(targetIndex)";
         });
-        page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: removedItems));
+        // Safety: false positive, rdar://163805967
+        unsafe page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -578,7 +583,8 @@ internal class WebBackForwardList {
         guard let page = page.get() else {
             return; // TODO consider asserting instead; whatever the C++ would have done
         }
-        page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: entriesCopy));
+        // Safety: false positive, rdar://163805967
+        unsafe page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: entriesCopy));
     }
 
     @_expose(Cxx)
@@ -628,7 +634,8 @@ internal class WebBackForwardList {
         currentIndex = 0;
         entries.removeAll();
         entries.append(currentItem);
-        page.didChangeBackForwardList(nil, consuming: VectorRefWebBackForwardListItem(array: removedItems));
+        // Safety: false positive, rdar://163805967
+        unsafe page.didChangeBackForwardList(nil, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -693,8 +700,10 @@ internal class WebBackForwardList {
             setBackForwardItemIdentifiers(frameState: stateCopy, itemID: generateBackForwardItemIdentifier());
             currentIndex = entries.isEmpty ? nil : entries.count - 1;
             // FIXME: navigatedFrameID will always be the main frame ID, causing the restored session state to be sent to an incorrect process when going back or forward with site isolation enabled.
-            let item = createWebBackForwardListItem(state: stateCopy, pageIdentifier: page.identifier());
-            entries.append(item.take());
+            // Safety: false positive, rdar://163805967
+            let item = unsafe createWebBackForwardListItem(state: stateCopy, pageIdentifier: page.identifier());    
+            // Safety: false positive, rdar://163805967
+            unsafe entries.append(item.take());
         }
 
         currentIndex = Optional(fromCxx: backForwardListState.currentIndex).map({ val in Int(val) })
@@ -911,7 +920,8 @@ internal class WebBackForwardList {
         let processPtr = process.take();
         assert(!isRemoteFrameNavigation || webPageProxy.protectedPreferences().take().siteIsolationEnabled());
 
-        let item = createWebBackForwardListItem(state: navigatedFrameState, pageIdentifier: webPageProxy.identifier()).take();
+        // Safety: false positive, rdar://163805967
+        let item = unsafe createWebBackForwardListItem(state: navigatedFrameState, pageIdentifier: webPageProxy.identifier()).take();
         item.setResourceDirectoryURL(consuming: webPageProxy.currentResourceDirectoryURL());
         item.setIsRemoteFrameNavigation(isRemoteFrameNavigation);
         if loadedWebArchive == WebKit.LoadedWebArchive.Yes {
