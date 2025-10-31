@@ -59,18 +59,11 @@ struct WebBackForwardListCounts;
 // 4. Tweak message receiver generator code so that it can dispatch messages within a Swift class
 // 5. By this time, the C++ class should be nothing more than forwarding functions - zap it and rename Swift class to fill its role
 
-class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>
 #ifndef ENABLE_BACKFORWARDLIST_SWIFT
-, public IPC::MessageReceiver
-#endif
+
+class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>, public IPC::MessageReceiver
 {
 public:
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    static Ref<WebBackForwardList> create(WebBackForwardListSwift& impl)
-    {
-        return adoptRef(*new WebBackForwardList(impl));
-    }
-#else
     static Ref<WebBackForwardList> create(WebPageProxy& page)
     {
         return adoptRef(*new WebBackForwardList(page));
@@ -78,21 +71,15 @@ public:
 
     void ref() const final { API::ObjectImpl<API::Object::Type::BackForwardList>::ref(); }
     void deref() const final { API::ObjectImpl<API::Object::Type::BackForwardList>::deref(); }
-#endif
 
-#ifndef ENABLE_BACKFORWARDLIST_SWIFT
     void pageClosed();
-#endif
 
     virtual ~WebBackForwardList();
 
-#ifndef ENABLE_BACKFORWARDLIST_SWIFT
     WebBackForwardListItem* itemForID(WebCore::BackForwardItemIdentifier);
 
     void goToItem(WebBackForwardListItem&);
-#endif
 
-    // The following are APIs which will be forwarded to the Swift implementation
     void removeAllItems();
     void clear();
 
@@ -112,7 +99,6 @@ public:
     Ref<API::Array> backListAsAPIArrayWithLimit(unsigned limit) const;
     Ref<API::Array> forwardListAsAPIArrayWithLimit(unsigned limit) const;
 
-#ifndef ENABLE_BACKFORWARDLIST_SWIFT
     WebBackForwardListItem* _Nullable currentItem() const;
     WebBackForwardListItem* _Nullable itemAtIndex(int) const;
 
@@ -135,12 +121,8 @@ public:
     String loggingString();
 #endif
 
-#endif
 private:
 
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    explicit WebBackForwardList(WebBackForwardListSwift&);
-#else
     explicit WebBackForwardList(WebPageProxy&);
 
     void addItem(Ref<WebBackForwardListItem>&&);
@@ -169,12 +151,49 @@ private:
     WeakPtr<WebPageProxy> m_page;
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
-#endif
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    WebBackForwardListSwift* _Nonnull m_impl;
-#endif
 
 };
+
+#else // ENABLE_BACKFORWARDLIST_SWIFT
+
+// This C++ stub object exists to forward API calls through to the Swift implementation.
+class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>
+{
+public:
+    static Ref<WebBackForwardList> create(WebBackForwardListSwift& impl)
+    {
+        return adoptRef(*new WebBackForwardList(impl));
+    }
+
+    virtual ~WebBackForwardList();
+
+    // The following are APIs which will be forwarded to the Swift implementation
+    void removeAllItems();
+    void clear();
+
+    RefPtr<WebBackForwardListItem> protectedCurrentItem() const;
+    RefPtr<WebBackForwardListItem> protectedBackItem() const;
+    RefPtr<WebBackForwardListItem> protectedForwardItem() const;
+    RefPtr<WebBackForwardListItem> protectedItemAtIndex(int) const;
+    WebBackForwardListItem* _Nullable backItem() const;
+    WebBackForwardListItem* _Nullable forwardItem() const;
+
+    Ref<API::Array> backList() const;
+    Ref<API::Array> forwardList() const;
+
+    unsigned backListCount() const;
+    unsigned forwardListCount() const;
+
+    Ref<API::Array> backListAsAPIArrayWithLimit(unsigned limit) const;
+    Ref<API::Array> forwardListAsAPIArrayWithLimit(unsigned limit) const;
+
+private:
+    explicit WebBackForwardList(WebBackForwardListSwift&);
+
+    WebBackForwardListSwift* _Nonnull m_impl;
+};
+
+#endif // ENABLE_BACKFORWARDLIST_SWIFT
 
 } // namespace WebKit
 
