@@ -743,8 +743,7 @@ def forward_declarations_and_headers(receiver):
             headers.update(headers_for_type(type))
 
     if receiver.swift_receiver:
-        class_name = receiver.receiver_class_name
-        assert(class_name)
+        class_name = receiver.name
         weak_ref_class = class_name + 'WeakRef'
         forwarder_class = receiver.name + 'MessageForwarder'
         handler_namespace_name = 'WebKit' # hard coded for ow
@@ -788,8 +787,7 @@ def generate_messages_header(receiver):
     result.append('\n')
 
     if receiver.swift_receiver:
-        class_name = receiver.receiver_class_name
-        assert(class_name)
+        class_name = receiver.name
         weak_ref_class = class_name + 'WeakRef'
         handler_namespace = 'WebKit' # hard-coded for now
         forwarder_class = receiver.name + 'MessageForwarder'
@@ -842,8 +840,6 @@ def generate_messages_header(receiver):
 
 def handler_function(receiver, message):
     classname = receiver.name
-    if receiver.receiver_class_name:
-        classname = receiver.receiver_class_name
     if message.name.startswith('URL'):
         return '%s::%s' % (classname, 'url' + message.name[3:])
     if message.name.startswith('GPU'):

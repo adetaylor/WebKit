@@ -44,7 +44,7 @@ class Array;
 namespace WebKit {
 
 // Avoid including WebKit-Swift.h in header files to avoid dependency loops.
-class WebBackForwardListSwift;
+class WebBackForwardList;
 
 class WebPageProxy;
 class FrameState;
@@ -55,7 +55,7 @@ struct WebBackForwardListCounts;
 // Plan of record for converting this to Swift
 // 1. Make everything private which can be (done)
 // 2. Make WebBackForwardListItem known to Swift as ref counted type (done)
-// 3. Make WebBackForwardListSwift as separate Swift type, moving data members into it, with forwarding functions for 100% of public methods (done)
+// 3. Make WebBackForwardList as separate Swift type, moving data members into it, with forwarding functions for 100% of public methods (done)
 // 4. Tweak message receiver generator code so that it can dispatch messages within a Swift class
 // 5. By this time, the C++ class should be nothing more than forwarding functions - zap it and rename Swift class to fill its role
 
@@ -162,7 +162,7 @@ using WebBackForwardListAPIImpl = WebBackForwardList;
 class WebBackForwardListAPIImpl : public API::ObjectImpl<API::Object::Type::BackForwardList>
 {
 public:
-    static Ref<WebBackForwardListAPIImpl> create(WebBackForwardListSwift& impl)
+    static Ref<WebBackForwardListAPIImpl> create(WebBackForwardList& impl)
     {
         return adoptRef(*new WebBackForwardListAPIImpl(impl));
     }
@@ -189,9 +189,9 @@ public:
     Ref<API::Array> forwardListAsAPIArrayWithLimit(unsigned limit) const;
 
 private:
-    explicit WebBackForwardListAPIImpl(WebBackForwardListSwift&);
+    explicit WebBackForwardListAPIImpl(WebBackForwardList&);
 
-    std::unique_ptr<WebBackForwardListSwift> m_impl;
+    std::unique_ptr<WebBackForwardList> m_impl;
 };
 
 #endif // ENABLE_BACKFORWARDLIST_SWIFT

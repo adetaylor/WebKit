@@ -535,7 +535,7 @@ using WebBackForwardListAPIImpl = WebBackForwardList;
 #endif
 class WebBackForwardListFrameItem;
 class WebBackForwardListItem;
-class WebBackForwardListSwift;
+class WebBackForwardList;
 class WebColorPickerClient;
 class WebContextMenuItemData;
 class WebContextMenuProxy;
@@ -774,7 +774,7 @@ public:
 #endif
 
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    WebBackForwardListSwift& backForwardList() { return *m_backForwardList; }
+    WebBackForwardList& backForwardList() { return *m_backForwardList; }
     WebBackForwardListAPIImpl& backForwardListAPI() { return m_backForwardListAPI; }
     Ref<WebBackForwardListMessageForwarder> backForwardListMessageReceiver() const;
 #else
@@ -3696,7 +3696,7 @@ private:
     bool m_initialCapitalizationEnabled { false };
     std::optional<double> m_cpuLimit;
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    const std::unique_ptr<WebBackForwardListSwift> m_backForwardList;
+    const std::unique_ptr<WebBackForwardList> m_backForwardList;
     // We keep the C++ version as workaround for rdar://163102366
     const Ref<WebBackForwardListAPIImpl> m_backForwardListAPI;
 #else

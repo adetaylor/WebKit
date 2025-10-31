@@ -188,22 +188,22 @@ enum Direction {
 
 @_expose(Cxx)
 @_spi(Internal)
-public class WebBackForwardListSwiftWeakRef {
-    weak var list: WebBackForwardListSwift?;
-    init(list: WebBackForwardListSwift) {
+public class WebBackForwardListWeakRef {
+    weak var list: WebBackForwardList?;
+    init(list: WebBackForwardList) {
         self.list = list
     }
 
     @_expose(Cxx)
     @_spi(Internal)
-    public func getList() -> WebBackForwardListSwift {
+    public func getList() -> WebBackForwardList {
         return list!
     }
 }
 
 @_expose(Cxx)
 @_spi(Internal)
-public class WebBackForwardListSwift {
+public class WebBackForwardList {
     static let DefaultCapacity = 100;
 
     var page: WeakPtrWebPageProxy;
@@ -222,7 +222,7 @@ public class WebBackForwardListSwift {
     @_spi(Internal)
     public init(page: WeakPtrWebPageProxy) {
         self.page = page
-        let weakRefContainer = WebBackForwardListSwiftWeakRef(list: self);
+        let weakRefContainer = WebBackForwardListWeakRef(list: self);
         // Safety: we're creating a pointer which will immediately be stored in a
         // proper ref-counted reference on the C++ side before this call returns.
         // Workaround for rdar://163107752.
@@ -249,7 +249,7 @@ public class WebBackForwardListSwift {
     @_spi(Internal)
     public func itemForID(identifier: BackForwardItemIdentifier) -> WebBackForwardListItem? {
         // TODO consider restructuring this a bit. It's a bit odd that it basically refers
-        // to a map within WebBackForwardListItem. Maybe WebBackForwardListSwift should
+        // to a map within WebBackForwardListItem. Maybe WebBackForwardList should
         // own that map.
         // TODO think more about how this gets converted to a RefPtr on return.
         guard let page = page.get() else {
@@ -330,7 +330,7 @@ public class WebBackForwardListSwift {
 
             // Toss the first item if the list is getting too big, as long as we're not using it
             // (or even if we are, if we only want 1 entry).
-            if entries.count > WebBackForwardListSwift.DefaultCapacity {
+            if entries.count > WebBackForwardList.DefaultCapacity {
                 if currentIndex! > 0 {
                     didRemoveItem(item: entries.first!);
                     removedItems.append(entries.removeFirst());

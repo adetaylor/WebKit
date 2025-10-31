@@ -690,7 +690,7 @@ bool ViewGestureController::completeSimulatedSwipeInDirectionForTesting(SwipeDir
     return true;
 }
 
-std::optional<WebBackForwardListSwift> ViewGestureController::backForwardListForNavigation() const
+std::optional<WebBackForwardList> ViewGestureController::backForwardListForNavigation() const
 {
     if (RefPtr page = m_webPageProxy.get())
         return page->backForwardList();

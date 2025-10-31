@@ -97,7 +97,7 @@ namespace WebKit {
 
 class ViewSnapshot;
 class WebBackForwardListAPIImpl;
-class WebBackForwardListSwift;
+class WebBackForwardList;
 class WebBackForwardListItem;
 class WebPageProxy;
 class WebProcessProxy;
@@ -232,7 +232,7 @@ private:
     void didStartProvisionalOrSameDocumentLoadForMainFrame();
 
 #if PLATFORM(COCOA)
-    std::optional<WebBackForwardListSwift> backForwardListForNavigation() const;
+    std::optional<WebBackForwardList> backForwardListForNavigation() const;
 #endif
 
     class SnapshotRemovalTracker : public CanMakeCheckedPtr<SnapshotRemovalTracker, WTF::DefaultedOperatorEqual::No, WTF::CheckedPtrDeleteCheckException::Yes> {

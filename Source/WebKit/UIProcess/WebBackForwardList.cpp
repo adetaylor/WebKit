@@ -826,8 +826,8 @@ String WebBackForwardList::loggingString()
 
 #else // ENABLE_BACKFORWARDLIST_SWIFT
 
-WebBackForwardListAPIImpl::WebBackForwardListAPIImpl(WebBackForwardListSwift& impl)
-    : m_impl(std::make_unique<WebBackForwardListSwift>(impl))
+WebBackForwardListAPIImpl::WebBackForwardListAPIImpl(WebBackForwardList& impl)
+    : m_impl(std::make_unique<WebBackForwardList>(impl))
 {
 }
 
@@ -910,18 +910,18 @@ void WebBackForwardListAPIImpl::clear()
 #endif // ENABLE_BACKFORWARDLIST_SWIFT
 
 
-static std::unique_ptr<WebKit::WebBackForwardListSwiftWeakRef> makeWeakRefUniquePtr(WebKit::WebBackForwardListSwiftWeakRef* _Nonnull backForwardList) {
+static std::unique_ptr<WebKit::WebBackForwardListWeakRef> makeWeakRefUniquePtr(WebKit::WebBackForwardListWeakRef* _Nonnull backForwardList) {
     // Workaround for rdar://163107752
-    auto newRef = WebKit::_impl::_impl_WebBackForwardListSwiftWeakRef::makeRetained(backForwardList);
-    return std::make_unique<WebKit::WebBackForwardListSwiftWeakRef>(newRef);
+    auto newRef = WebKit::_impl::_impl_WebBackForwardListWeakRef::makeRetained(backForwardList);
+    return std::make_unique<WebKit::WebBackForwardListWeakRef>(newRef);
 }
 
-WebBackForwardListMessageForwarder::WebBackForwardListMessageForwarder(WebKit::WebBackForwardListSwiftWeakRef* _Nonnull target)
+WebBackForwardListMessageForwarder::WebBackForwardListMessageForwarder(WebKit::WebBackForwardListWeakRef* _Nonnull target)
     : m_handler(makeWeakRefUniquePtr(target)) {
 }
 
-std::unique_ptr<WebKit::WebBackForwardListSwift> WebBackForwardListMessageForwarder::getMessageTarget() {
-    return std::make_unique<WebKit::WebBackForwardListSwift>(m_handler->getList());
+std::unique_ptr<WebKit::WebBackForwardList> WebBackForwardListMessageForwarder::getMessageTarget() {
+    return std::make_unique<WebKit::WebBackForwardList>(m_handler->getList());
 }
 
 WebBackForwardListMessageForwarder::~WebBackForwardListMessageForwarder() {

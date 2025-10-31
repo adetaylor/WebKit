@@ -24,8 +24,7 @@
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
     DispatchedTo=UI,
-    SwiftReceiver,
-    ReceiverClassName=WebBackForwardListSwift
+    SwiftReceiver
 ]
 messages -> WebBackForwardList {
     BackForwardAddItem(Ref<WebKit::FrameState> navigatedFrameState)
