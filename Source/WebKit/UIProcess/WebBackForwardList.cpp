@@ -56,14 +56,7 @@
 namespace WebKit {
 using namespace WebCore;
 
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-
-WebBackForwardList::WebBackForwardList(WebBackForwardListSwift& impl)
-    : m_impl(&impl)
-{
-}
-
-#else // ENABLE_BACKFORWARDLIST_SWIFT
+#ifndef ENABLE_BACKFORWARDLIST_SWIFT
 
 static const unsigned DefaultCapacity = 100;
 
@@ -75,21 +68,12 @@ WebBackForwardList::WebBackForwardList(WebPageProxy& page)
     LOG(BackForward, "(Back/Forward) Created WebBackForwardList %p", this);
 }
 
-#endif  // ENABLE_BACKFORWARDLIST_SWIFT
-
 WebBackForwardList::~WebBackForwardList()
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    // TODO this is not good enough since this is now just the shim
-    m_impl->preDestructionChecks();
-#else
     LOG(BackForward, "(Back/Forward) Destroying WebBackForwardList %p", this);
     // A WebBackForwardList should never be destroyed unless it's associated page has been closed or is invalid.
     ASSERT((!m_page && !m_currentIndex) || !m_page->hasRunningProcess());
-#endif
 }
-
-#ifndef ENABLE_BACKFORWARDLIST_SWIFT
 
 WebBackForwardListItem* WebBackForwardList::itemForID(BackForwardItemIdentifier identifier)
 {
@@ -293,26 +277,16 @@ WebBackForwardListItem* WebBackForwardList::currentItem() const
     return m_page && m_currentIndex ? m_entries[*m_currentIndex].ptr() : nullptr;
 }
 
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
-
 RefPtr<WebBackForwardListItem> WebBackForwardList::protectedCurrentItem() const
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_impl->currentItem();
-#else // ENABLE_BACKFORWARDLIST_SWIFT
     return currentItem();
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
 WebBackForwardListItem* WebBackForwardList::backItem() const
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_impl->backItem();
-#else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
     return m_page && m_currentIndex && *m_currentIndex ? m_entries[*m_currentIndex - 1].ptr() : nullptr;
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
 RefPtr<WebBackForwardListItem> WebBackForwardList::protectedBackItem() const
@@ -322,22 +296,15 @@ RefPtr<WebBackForwardListItem> WebBackForwardList::protectedBackItem() const
 
 WebBackForwardListItem* WebBackForwardList::forwardItem() const
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_impl->forwardItem();
-#else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
     return m_page && m_currentIndex && m_entries.size() && *m_currentIndex < m_entries.size() - 1 ? m_entries[*m_currentIndex + 1].ptr() : nullptr;
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
 RefPtr<WebBackForwardListItem> WebBackForwardList::protectedForwardItem() const
 {
     return forwardItem();
 }
-
-
-#ifndef ENABLE_BACKFORWARDLIST_SWIFT
 
 WebBackForwardListItem* WebBackForwardList::itemAtIndex(int index) const
 {
@@ -356,47 +323,29 @@ WebBackForwardListItem* WebBackForwardList::itemAtIndex(int index) const
     return m_entries[index + *m_currentIndex].ptr();
 }
 
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
-
 RefPtr<WebBackForwardListItem> WebBackForwardList::protectedItemAtIndex(int index) const
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_impl->itemAtIndex(index);
-#else // ENABLE_BACKFORWARDLIST_SWIFT
     return itemAtIndex(index);
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
 unsigned WebBackForwardList::backListCount() const
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_impl->backListCount();
-#else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
     return m_page && m_currentIndex ? *m_currentIndex : 0;
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
 unsigned WebBackForwardList::forwardListCount() const
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return m_impl->forwardListCount();
-#else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
     return m_page && m_currentIndex ? m_entries.size() - (*m_currentIndex + 1) : 0;
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
-
-#ifndef ENABLE_BACKFORWARDLIST_SWIFT
 
 WebBackForwardListCounts WebBackForwardList::counts() const
 {
     return WebBackForwardListCounts { backListCount(), forwardListCount() };
 }
-
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 
 Ref<API::Array> WebBackForwardList::backList() const
 {
@@ -410,9 +359,6 @@ Ref<API::Array> WebBackForwardList::forwardList() const
 
 Ref<API::Array> WebBackForwardList::backListAsAPIArrayWithLimit(unsigned limit) const
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return *m_impl->backListAsAPIArrayWithLimit(limit);
-#else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
     if (!m_page || !m_currentIndex)
@@ -432,14 +378,10 @@ Ref<API::Array> WebBackForwardList::backListAsAPIArrayWithLimit(unsigned limit) 
     });
 
     return API::Array::create(WTFMove(vector));
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
 Ref<API::Array> WebBackForwardList::forwardListAsAPIArrayWithLimit(unsigned limit) const
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    return *m_impl->forwardListAsAPIArrayWithLimit(limit);
-#else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
     if (!m_page || !m_currentIndex)
@@ -455,14 +397,10 @@ Ref<API::Array> WebBackForwardList::forwardListAsAPIArrayWithLimit(unsigned limi
     });
 
     return API::Array::create(WTFMove(vector));
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
 void WebBackForwardList::removeAllItems()
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    m_impl->removeAllItems();
-#else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
     LOG(BackForward, "(Back/Forward) WebBackForwardList %p removeAllItems (has %zu of them)", this, m_entries.size());
@@ -472,14 +410,10 @@ void WebBackForwardList::removeAllItems()
 
     m_currentIndex = std::nullopt;
     protectedPage()->didChangeBackForwardList(nullptr, std::exchange(m_entries, { }));
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
 void WebBackForwardList::clear()
 {
-#ifdef ENABLE_BACKFORWARDLIST_SWIFT
-    m_impl->clear();
-#else // ENABLE_BACKFORWARDLIST_SWIFT
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
 
     LOG(BackForward, "(Back/Forward) WebBackForwardList %p clear (has %zu of them)", this, m_entries.size());
@@ -525,10 +459,8 @@ void WebBackForwardList::clear()
     else
         m_currentIndex = std::nullopt;
     page->didChangeBackForwardList(nullptr, WTFMove(removedItems));
-#endif // ENABLE_BACKFORWARDLIST_SWIFT
 }
 
-#ifndef ENABLE_BACKFORWARDLIST_SWIFT
 BackForwardListState WebBackForwardList::backForwardListState(WTF::Function<bool (WebBackForwardListItem&)>&& filter) const
 {
     ASSERT(!m_currentIndex || *m_currentIndex < m_entries.size());
@@ -892,7 +824,91 @@ String WebBackForwardList::loggingString()
 
 #endif // !LOG_DISABLED
 
+#else // ENABLE_BACKFORWARDLIST_SWIFT
+
+WebBackForwardList::WebBackForwardList(WebBackForwardListSwift& impl)
+    : m_impl(&impl)
+{
+}
+
+WebBackForwardList::~WebBackForwardList()
+{
+    // TODO this is not good enough since this is now just the shim
+    m_impl->preDestructionChecks();
+}
+
+RefPtr<WebBackForwardListItem> WebBackForwardList::protectedCurrentItem() const
+{
+    return m_impl->currentItem();
+}
+
+WebBackForwardListItem* WebBackForwardList::backItem() const
+{
+    return m_impl->backItem();
+}
+
+RefPtr<WebBackForwardListItem> WebBackForwardList::protectedBackItem() const
+{
+    return backItem();
+}
+
+WebBackForwardListItem* WebBackForwardList::forwardItem() const
+{
+    return m_impl->forwardItem();
+}
+
+RefPtr<WebBackForwardListItem> WebBackForwardList::protectedForwardItem() const
+{
+    return forwardItem();
+}
+
+RefPtr<WebBackForwardListItem> WebBackForwardList::protectedItemAtIndex(int index) const
+{
+    return m_impl->itemAtIndex(index);
+}
+
+unsigned WebBackForwardList::backListCount() const
+{
+    return m_impl->backListCount();
+}
+
+unsigned WebBackForwardList::forwardListCount() const
+{
+    return m_impl->forwardListCount();
+}
+
+Ref<API::Array> WebBackForwardList::backList() const
+{
+    return backListAsAPIArrayWithLimit(backListCount());
+}
+
+Ref<API::Array> WebBackForwardList::forwardList() const
+{
+    return forwardListAsAPIArrayWithLimit(forwardListCount());
+}
+
+Ref<API::Array> WebBackForwardList::backListAsAPIArrayWithLimit(unsigned limit) const
+{
+    return *m_impl->backListAsAPIArrayWithLimit(limit);
+}
+
+Ref<API::Array> WebBackForwardList::forwardListAsAPIArrayWithLimit(unsigned limit) const
+{
+    return *m_impl->forwardListAsAPIArrayWithLimit(limit);
+}
+
+void WebBackForwardList::removeAllItems()
+{
+    m_impl->removeAllItems();
+}
+
+void WebBackForwardList::clear()
+{
+    m_impl->clear();
+}
+
 #endif // ENABLE_BACKFORWARDLIST_SWIFT
+
 
 static std::unique_ptr<WebKit::WebBackForwardListSwiftWeakRef> makeWeakRefUniquePtr(WebKit::WebBackForwardListSwiftWeakRef* _Nonnull backForwardList) {
     // Workaround for rdar://163107752
