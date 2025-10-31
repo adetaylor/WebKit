@@ -51,11 +51,14 @@ public typealias WebFrameProxy = WebKit.WebFrameProxy
 
 extension VectorRefWebBackForwardListItem {
     init (array: [WebBackForwardListItem]) {
-        var vec = VectorRefWebBackForwardListItem.init();
+        // Safety: to investigate, FIXME
+        var vec = unsafe VectorRefWebBackForwardListItem.init();
         for item in array {
-            vec.append(consuming: RefWebBackForwardListItem(item));
+            // Safety: to investigate, FIXME
+            unsafe vec.append(consuming: RefWebBackForwardListItem(item));
         }
-        self = vec;
+        // Safety: to investigate, FIXME
+        unsafe self = unsafe vec;
     }
 }
 
@@ -384,7 +387,8 @@ public class WebBackForwardListSwift {
         backForwardLog(msgCreator: {
             return "(Back/Forward) WebBackForwardList \(myPtr()) added an item. Current size \(entries.count), current index \(currentIndex), threw away \(removedItems.count) items";
         });
-        page.didChangeBackForwardList(newItem, consuming: VectorRefWebBackForwardListItem(array: removedItems));
+        // Safety: to investigate, FIXME
+        unsafe page.didChangeBackForwardList(newItem, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -444,7 +448,8 @@ public class WebBackForwardListSwift {
             let itemIdentifier = String(wtfString: item.identifier().toString());
             return "(Back/Forward) WebBackForwardList \(myPtr()) going to item \(itemIdentifier), is now at index \(targetIndex)";
         });
-        page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: removedItems));
+        // Safety: to investigate, FIXME
+        unsafe page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -624,7 +629,8 @@ public class WebBackForwardListSwift {
         guard let page = page.get() else {
             return; // TODO consider asserting instead; whatever the C++ would have done
         }
-        page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: entriesCopy));
+        // Safety: to investigate, FIXME
+        unsafe page.didChangeBackForwardList(Optional.none, consuming: VectorRefWebBackForwardListItem(array: entriesCopy));
     }
 
     @_expose(Cxx)
@@ -675,7 +681,8 @@ public class WebBackForwardListSwift {
         currentIndex = 0;
         entries.removeAll();
         entries.append(currentItem);
-        page.didChangeBackForwardList(nil, consuming: VectorRefWebBackForwardListItem(array: removedItems));
+        // Safety: to investigate, FIXME
+        unsafe page.didChangeBackForwardList(nil, consuming: VectorRefWebBackForwardListItem(array: removedItems));
     }
 
     @_expose(Cxx)
@@ -742,8 +749,10 @@ public class WebBackForwardListSwift {
             setBackForwardItemIdentifiers(frameState: stateCopy, itemID: generateBackForwardItemIdentifier());
             currentIndex = entries.isEmpty ? nil : entries.count - 1;
             // FIXME: navigatedFrameID will always be the main frame ID, causing the restored session state to be sent to an incorrect process when going back or forward with site isolation enabled.
-            let item = createWebBackForwardListItem(state: stateCopy, pageIdentifier: page.identifier());
-            entries.append(item.take());
+            // Safety: to investigate, FIXME
+            let item = unsafe createWebBackForwardListItem(state: stateCopy, pageIdentifier: page.identifier());
+            // Safety: to investigate, FIXME
+            unsafe entries.append(item.take());
         }
 
         currentIndex = Optional(fromCxx: backForwardListState.currentIndex).map({ val in Int(val) })
@@ -966,7 +975,8 @@ public class WebBackForwardListSwift {
         let processPtr = process.take();
         assert(!isRemoteFrameNavigation || webPageProxy.protectedPreferences().take().siteIsolationEnabled());
 
-        let item = createWebBackForwardListItem(state: navigatedFrameState, pageIdentifier: webPageProxy.identifier()).take();
+        // Safety: FIXME to investigate
+        let item = unsafe createWebBackForwardListItem(state: navigatedFrameState, pageIdentifier: webPageProxy.identifier()).take();
         item.setResourceDirectoryURL(consuming: webPageProxy.currentResourceDirectoryURL());
         item.setIsRemoteFrameNavigation(isRemoteFrameNavigation);
         if loadedWebArchive == WebKit.LoadedWebArchive.Yes {
