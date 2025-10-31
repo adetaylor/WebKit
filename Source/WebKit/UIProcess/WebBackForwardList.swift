@@ -22,26 +22,17 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-@_spi(Internal)
 public import WebKit_Internal
 internal import wtf
 
-@_spi(Internal)
-public typealias BackForwardFrameItemIdentifier = WebCore.BackForwardFrameItemIdentifier
-@_spi(Internal)
-public typealias FrameIdentifier = WebCore.FrameIdentifier
-@_spi(Internal)
-public typealias WebBackForwardListItem = WebKit.WebBackForwardListItem
-@_spi(Internal)
-public typealias WebBackForwardListCounts = WebKit.WebBackForwardListCounts
-@_spi(Internal)
-public typealias BackForwardListState = WebKit.BackForwardListState
-@_spi(Internal)
-public typealias FrameState = WebKit.FrameState
-@_spi(Internal)
-public typealias WebPageProxy = WebKit.WebPageProxy
-@_spi(Internal)
-public typealias WebFrameProxy = WebKit.WebFrameProxy
+typealias BackForwardFrameItemIdentifier = WebCore.BackForwardFrameItemIdentifier
+typealias FrameIdentifier = WebCore.FrameIdentifier
+typealias WebBackForwardListItem = WebKit.WebBackForwardListItem
+typealias WebBackForwardListCounts = WebKit.WebBackForwardListCounts
+typealias BackForwardListState = WebKit.BackForwardListState
+typealias FrameState = WebKit.FrameState
+typealias WebPageProxy = WebKit.WebPageProxy
+typealias WebFrameProxy = WebKit.WebFrameProxy
 
 #if ENABLE_BACKFORWARDLIST_SWIFT
 
@@ -87,21 +78,18 @@ extension WTF.String {
 }
 
 extension WebKit.WebPageProxyIdentifier: Equatable {
-    @_spi(Internal)
     static public func == (lhs: WebKit.WebPageProxyIdentifier, rhs: WebKit.WebPageProxyIdentifier) -> Bool {
         return contentsMatch(lhs, rhs);
     }
 }
 
 extension BackForwardItemIdentifier: Equatable {
-    @_spi(Internal)
     static public func == (lhs: BackForwardItemIdentifier, rhs: BackForwardItemIdentifier) -> Bool {
         return contentsMatch(lhs, rhs);
     }
 }
 
 extension MarkableBackForwardFrameItemIdentifier: Equatable {
-    @_spi(Internal)
     static public func == (lhs: MarkableBackForwardFrameItemIdentifier, rhs: MarkableBackForwardFrameItemIdentifier) -> Bool {
         return contentsMatch(lhs, rhs);
     }
@@ -187,7 +175,6 @@ enum Direction {
 }
 
 @_expose(Cxx)
-@_spi(Internal)
 public class WebBackForwardListSwiftWeakRef {
     weak var list: WebBackForwardListSwift?;
     init(list: WebBackForwardListSwift) {
@@ -195,14 +182,12 @@ public class WebBackForwardListSwiftWeakRef {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func getList() -> WebBackForwardListSwift {
+    func getList() -> WebBackForwardListSwift {
         return list!
     }
 }
 
 @_expose(Cxx)
-@_spi(Internal)
 public class WebBackForwardListSwift {
     static let DefaultCapacity = 100;
 
@@ -219,8 +204,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public init(page: WeakPtrWebPageProxy) {
+    init(page: WeakPtrWebPageProxy) {
         self.page = page
         let weakRefContainer = WebBackForwardListSwiftWeakRef(list: self);
         // Safety: we're creating a pointer which will immediately be stored in a
@@ -233,21 +217,18 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func getMessageReceiver() -> RefWebBackForwardListMessageForwarder {
+    func getMessageReceiver() -> RefWebBackForwardListMessageForwarder {
         return self.messageForwarder!;
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func preDestructionChecks() {
+    func preDestructionChecks() {
         // A WebBackForwardList should never be destroyed unless it s associated page has been closed or is invalid.
         assert(page.get().map { !$0.hasRunningProcess() } ?? (currentIndex == nil))
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func itemForID(identifier: BackForwardItemIdentifier) -> WebBackForwardListItem? {
+    func itemForID(identifier: BackForwardItemIdentifier) -> WebBackForwardListItem? {
         // TODO consider restructuring this a bit. It's a bit odd that it basically refers
         // to a map within WebBackForwardListItem. Maybe WebBackForwardListSwift should
         // own that map.
@@ -266,8 +247,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func pageClosed() {
+    func pageClosed() {
         backForwardLog(msgCreator: {
             return "(Back/Forward) WebBackForwardList \(myPtr()) had its page closed with current size \(entries.count)";
         });
@@ -392,8 +372,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func goToItem(item: WebBackForwardListItem) {
+    func goToItem(item: WebBackForwardListItem) {
         assertStateOk();
 
         guard !entries.isEmpty else {
@@ -453,8 +432,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func currentItem() -> WebBackForwardListItem? {
+    func currentItem() -> WebBackForwardListItem? {
         assertStateOk();
 
         guard page.__convertToBool() else {
@@ -469,8 +447,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backItem() -> WebBackForwardListItem? {
+    func backItem() -> WebBackForwardListItem? {
         assertStateOk();
 
         guard page.__convertToBool() else {
@@ -489,8 +466,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func forwardItem() -> WebBackForwardListItem? {
+    func forwardItem() -> WebBackForwardListItem? {
         assertStateOk();
 
         guard page.__convertToBool() else {
@@ -509,8 +485,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func itemAtIndex(index: Array.Index) -> WebBackForwardListItem? {
+    func itemAtIndex(index: Array.Index) -> WebBackForwardListItem? {
         assertStateOk();
 
         guard page.__convertToBool() else {
@@ -534,8 +509,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backListCount() -> Array.Index {
+    func backListCount() -> Array.Index {
         assertStateOk();
 
         guard page.__convertToBool() else {
@@ -550,8 +524,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func forwardListCount() -> Array.Index {
+    func forwardListCount() -> Array.Index {
         assertStateOk();
 
         guard page.__convertToBool() else {
@@ -565,8 +538,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backListAsAPIArrayWithLimit(limit: UInt) -> API.Array {
+    func backListAsAPIArrayWithLimit(limit: UInt) -> API.Array {
         assertStateOk();
 
         guard page.__convertToBool() else {
@@ -589,8 +561,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func forwardListAsAPIArrayWithLimit(limit: UInt) -> API.Array {
+    func forwardListAsAPIArrayWithLimit(limit: UInt) -> API.Array {
         // TODO see if we can abstract bits of these two functions
         assertStateOk();
 
@@ -611,8 +582,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func removeAllItems()  {
+    func removeAllItems()  {
         assertStateOk();
 
         backForwardLog(msgCreator: {
@@ -634,8 +604,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func clear()  {
+    func clear()  {
         assertStateOk();
 
         backForwardLog(msgCreator: {
@@ -686,8 +655,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardListState(filter: WebBackForwardListItemFilter) -> BackForwardListState {
+    func backForwardListState(filter: WebBackForwardListItemFilter) -> BackForwardListState {
         assertStateOk();
 
         var backForwardListState = BackForwardListState.init();
@@ -735,8 +703,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func restoreFromState(backForwardListState: BackForwardListState) {
+    func restoreFromState(backForwardListState: BackForwardListState) {
         guard let page = page.get() else {
             return;
         }
@@ -762,16 +729,14 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func setItemsAsRestoredFromSession() {
+    func setItemsAsRestoredFromSession() {
         for entry in entries {
             entry.setWasRestoredFromSession()
         }
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func setItemsAsRestoredFromSessionIf(functor: WebBackForwardListItemFilter) {
+    func setItemsAsRestoredFromSessionIf(functor: WebBackForwardListItemFilter) {
         for entry in entries {
             if functor.call(entry) {
                 entry.setWasRestoredFromSession()
@@ -788,14 +753,12 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func goBackItemSkippingItemsWithoutUserGesture() -> WebBackForwardListItem? {
+    func goBackItemSkippingItemsWithoutUserGesture() -> WebBackForwardListItem? {
         return itemSkippingBackForwardItemsAddedByJSWithoutUserGesture(direction: Direction.Backward);
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func goForwardItemSkippingItemsWithoutUserGesture() -> WebBackForwardListItem? {
+    func goForwardItemSkippingItemsWithoutUserGesture() -> WebBackForwardListItem? {
         return itemSkippingBackForwardItemsAddedByJSWithoutUserGesture(direction: Direction.Forward);
     }
 
@@ -873,8 +836,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func loggingString() -> Swift.String {
+    func loggingString() -> Swift.String {
         var result = "\nWebBackForwardList \(myPtr()) - \(entries.count) entries, has current index \(currentIndex != nil ? "YES" : "NO") (\(currentIndex ?? 0))\n"
 
         for (i, entry) in entries.enumerated() {
@@ -927,11 +889,10 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
     // TODO rename to something more descriptive even back in C++
     // It's called from backForwardAddItem, but calls addItem.
     // What specifically does this layer do?
-    public func backForwardAddItemShared(connection: IPC.Connection, navigatedFrameState: FrameState, loadedWebArchive: WebKit.LoadedWebArchive) {
+    func backForwardAddItemShared(connection: IPC.Connection, navigatedFrameState: FrameState, loadedWebArchive: WebKit.LoadedWebArchive) {
         let process = WebKit.WebProcessProxy.fromConnection(connection);
 
         // 'nil' works around rdar://162310543
@@ -988,8 +949,7 @@ public class WebBackForwardListSwift {
     // IPCs from here on
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardAddItem(connection: IPC.Connection, navigatedFrameState: RefFrameState) {
+    func backForwardAddItem(connection: IPC.Connection, navigatedFrameState: RefFrameState) {
         if let page = page.get() {
             let loadedWebArchive = page.didLoadWebArchive()
                     ? WebKit.LoadedWebArchive.Yes
@@ -999,8 +959,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardSetChildItem(frameItemID: BackForwardFrameItemIdentifier, frameState: RefFrameState) {
+    func backForwardSetChildItem(frameItemID: BackForwardFrameItemIdentifier, frameState: RefFrameState) {
         guard let item = currentItem() else {
             return;
         }
@@ -1011,8 +970,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardClearChildren(itemID: BackForwardItemIdentifier, frameItemID: BackForwardFrameItemIdentifier) {
+    func backForwardClearChildren(itemID: BackForwardItemIdentifier, frameItemID: BackForwardFrameItemIdentifier) {
         // TODO consider whether it even makes sense for this to be in BackForwardList.
         let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID);
         if let frameItem {
@@ -1021,8 +979,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardUpdateItem(connection: IPC.Connection, frameState: RefFrameState) {
+    func backForwardUpdateItem(connection: IPC.Connection, frameState: RefFrameState) {
         let itemID = frameState.take().itemID.pointee;
         let frameItemID = frameState.take().frameItemID.pointee;
         guard let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) else {
@@ -1051,8 +1008,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardGoToItem(itemID: BackForwardItemIdentifier, completionHandler: ConstCountsCompletionHandler) {
+    func backForwardGoToItem(itemID: BackForwardItemIdentifier, completionHandler: ConstCountsCompletionHandler) {
         // On process swap, we tell the previous process to ignore the load, which causes it so restore its current back forward item to its previous
         // value. Since the load is really going on in a new provisional process, we want to ignore such requests from the committed process.
         // Any real new load in the committed process would have cleared m_provisionalPage.
@@ -1067,14 +1023,12 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardListContainsItem(itemID: BackForwardItemIdentifier, completionHandler: BoolCompletionHandler) {
+    func backForwardListContainsItem(itemID: BackForwardItemIdentifier, completionHandler: BoolCompletionHandler) {
         completionHandler.call(itemForID(identifier: itemID) != nil);
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardGoToItemShared(itemID: BackForwardItemIdentifier, completionHandler: ConstCountsCompletionHandler) {
+    func backForwardGoToItemShared(itemID: BackForwardItemIdentifier, completionHandler: ConstCountsCompletionHandler) {
         // TODO SWIFT make MESSAGE_CHECK Swift equivalents
         // if (RefPtr webPageProxy = m_page.get())
         //     MESSAGE_CHECK_COMPLETION(webPageProxy->protectedLegacyMainFrameProcess(), !WebKit::isInspectorPage(*webPageProxy), completionHandler(counts()));
@@ -1098,8 +1052,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardAllItems(frameID: FrameIdentifier, completionHandler: VectorRefFrameStateCompletionHandler) {
+    func backForwardAllItems(frameID: FrameIdentifier, completionHandler: VectorRefFrameStateCompletionHandler) {
         var frameStates: [FrameState] = [];
         for item in entries {
             frameStates.append(frameStateForItem(item: item, frameID: frameID));
@@ -1109,8 +1062,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardItemAtIndex(index: Int32, frameID: FrameIdentifier, completionHandler: RefPtrFrameStateCompletionHandler) {
+    func backForwardItemAtIndex(index: Int32, frameID: FrameIdentifier, completionHandler: RefPtrFrameStateCompletionHandler) {
         // FIXME: This should verify that the web process requesting the item hosts the specified frame.
         let index = Int(index);
         guard let item = itemAtIndex(index: index) else {
@@ -1124,8 +1076,7 @@ public class WebBackForwardListSwift {
     }
 
     @_expose(Cxx)
-    @_spi(Internal)
-    public func backForwardListCounts(completionHandler: CountsCompletionHandler) {
+    func backForwardListCounts(completionHandler: CountsCompletionHandler) {
         // TODO consider inlining the C++ equivalent before we even get as far as the Swift
         // Safety: believed to be a false positive, rdar://162608225
         unsafe completionHandler.call(consuming: WebKit.WebBackForwardListCounts(backCount: UInt32(backListCount()), forwardCount: UInt32(forwardListCount())));
