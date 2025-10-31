@@ -154,18 +154,20 @@ private:
 
 };
 
+using WebBackForwardListAPIImpl = WebBackForwardList;
+
 #else // ENABLE_BACKFORWARDLIST_SWIFT
 
 // This C++ stub object exists to forward API calls through to the Swift implementation.
-class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>
+class WebBackForwardListAPIImpl : public API::ObjectImpl<API::Object::Type::BackForwardList>
 {
 public:
-    static Ref<WebBackForwardList> create(WebBackForwardListSwift& impl)
+    static Ref<WebBackForwardListAPIImpl> create(WebBackForwardListSwift& impl)
     {
-        return adoptRef(*new WebBackForwardList(impl));
+        return adoptRef(*new WebBackForwardListAPIImpl(impl));
     }
 
-    virtual ~WebBackForwardList();
+    virtual ~WebBackForwardListAPIImpl();
 
     void removeAllItems();
     void clear();
@@ -187,7 +189,7 @@ public:
     Ref<API::Array> forwardListAsAPIArrayWithLimit(unsigned limit) const;
 
 private:
-    explicit WebBackForwardList(WebBackForwardListSwift&);
+    explicit WebBackForwardListAPIImpl(WebBackForwardListSwift&);
 
     std::unique_ptr<WebBackForwardListSwift> m_impl;
 };
@@ -196,6 +198,6 @@ private:
 
 } // namespace WebKit
 
-SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardList)
+SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardListAPIImpl)
 static bool isType(const API::Object& object) { return object.type() == API::Object::Type::BackForwardList; }
 SPECIALIZE_TYPE_TRAITS_END()

@@ -528,7 +528,11 @@ class VisitedLinkStore;
 class WebAuthenticatorCoordinatorProxy;
 class WebAutomationSession;
 class WebBackForwardCache;
-class WebBackForwardList;
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+class WebBackForwardListAPIImpl;
+#else
+using WebBackForwardListAPIImpl = WebBackForwardList;
+#endif
 class WebBackForwardListFrameItem;
 class WebBackForwardListItem;
 class WebBackForwardListSwift;
@@ -771,7 +775,7 @@ public:
 
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
     WebBackForwardListSwift& backForwardList() { return *m_backForwardList; }
-    WebBackForwardList& backForwardListAPI() { return m_backForwardListAPI; }
+    WebBackForwardListAPIImpl& backForwardListAPI() { return m_backForwardListAPI; }
     Ref<WebBackForwardListMessageForwarder> backForwardListMessageReceiver() const;
 #else
     WebBackForwardList& backForwardList() { return m_backForwardList; }
@@ -3694,7 +3698,7 @@ private:
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
     const std::unique_ptr<WebBackForwardListSwift> m_backForwardList;
     // We keep the C++ version as workaround for rdar://163102366
-    const Ref<WebBackForwardList> m_backForwardListAPI;
+    const Ref<WebBackForwardListAPIImpl> m_backForwardListAPI;
 #else
     const Ref<WebBackForwardList> m_backForwardList;
 #endif

@@ -826,83 +826,83 @@ String WebBackForwardList::loggingString()
 
 #else // ENABLE_BACKFORWARDLIST_SWIFT
 
-WebBackForwardList::WebBackForwardList(WebBackForwardListSwift& impl)
+WebBackForwardListAPIImpl::WebBackForwardListAPIImpl(WebBackForwardListSwift& impl)
     : m_impl(std::make_unique<WebBackForwardListSwift>(impl))
 {
 }
 
-WebBackForwardList::~WebBackForwardList()
+WebBackForwardListAPIImpl::~WebBackForwardListAPIImpl()
 {
     // TODO this is not good enough since this is now just the shim
     m_impl->preDestructionChecks();
 }
 
-RefPtr<WebBackForwardListItem> WebBackForwardList::protectedCurrentItem() const
+RefPtr<WebBackForwardListItem> WebBackForwardListAPIImpl::protectedCurrentItem() const
 {
     return m_impl->currentItem();
 }
 
-WebBackForwardListItem* WebBackForwardList::backItem() const
+WebBackForwardListItem* WebBackForwardListAPIImpl::backItem() const
 {
     return m_impl->backItem();
 }
 
-RefPtr<WebBackForwardListItem> WebBackForwardList::protectedBackItem() const
+RefPtr<WebBackForwardListItem> WebBackForwardListAPIImpl::protectedBackItem() const
 {
     return backItem();
 }
 
-WebBackForwardListItem* WebBackForwardList::forwardItem() const
+WebBackForwardListItem* WebBackForwardListAPIImpl::forwardItem() const
 {
     return m_impl->forwardItem();
 }
 
-RefPtr<WebBackForwardListItem> WebBackForwardList::protectedForwardItem() const
+RefPtr<WebBackForwardListItem> WebBackForwardListAPIImpl::protectedForwardItem() const
 {
     return forwardItem();
 }
 
-RefPtr<WebBackForwardListItem> WebBackForwardList::protectedItemAtIndex(int index) const
+RefPtr<WebBackForwardListItem> WebBackForwardListAPIImpl::protectedItemAtIndex(int index) const
 {
     return m_impl->itemAtIndex(index);
 }
 
-unsigned WebBackForwardList::backListCount() const
+unsigned WebBackForwardListAPIImpl::backListCount() const
 {
     return m_impl->backListCount();
 }
 
-unsigned WebBackForwardList::forwardListCount() const
+unsigned WebBackForwardListAPIImpl::forwardListCount() const
 {
     return m_impl->forwardListCount();
 }
 
-Ref<API::Array> WebBackForwardList::backList() const
+Ref<API::Array> WebBackForwardListAPIImpl::backList() const
 {
     return backListAsAPIArrayWithLimit(backListCount());
 }
 
-Ref<API::Array> WebBackForwardList::forwardList() const
+Ref<API::Array> WebBackForwardListAPIImpl::forwardList() const
 {
     return forwardListAsAPIArrayWithLimit(forwardListCount());
 }
 
-Ref<API::Array> WebBackForwardList::backListAsAPIArrayWithLimit(unsigned limit) const
+Ref<API::Array> WebBackForwardListAPIImpl::backListAsAPIArrayWithLimit(unsigned limit) const
 {
     return *m_impl->backListAsAPIArrayWithLimit(limit);
 }
 
-Ref<API::Array> WebBackForwardList::forwardListAsAPIArrayWithLimit(unsigned limit) const
+Ref<API::Array> WebBackForwardListAPIImpl::forwardListAsAPIArrayWithLimit(unsigned limit) const
 {
     return *m_impl->forwardListAsAPIArrayWithLimit(limit);
 }
 
-void WebBackForwardList::removeAllItems()
+void WebBackForwardListAPIImpl::removeAllItems()
 {
     m_impl->removeAllItems();
 }
 
-void WebBackForwardList::clear()
+void WebBackForwardListAPIImpl::clear()
 {
     m_impl->clear();
 }

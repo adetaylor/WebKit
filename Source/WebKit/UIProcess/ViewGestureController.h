@@ -96,7 +96,7 @@ typedef void* PlatformScrollEvent;
 namespace WebKit {
 
 class ViewSnapshot;
-class WebBackForwardList;
+class WebBackForwardListAPIImpl;
 class WebBackForwardListSwift;
 class WebBackForwardListItem;
 class WebPageProxy;

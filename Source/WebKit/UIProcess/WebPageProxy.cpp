@@ -852,7 +852,7 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, Ref
     , m_initialCapitalizationEnabled(configuration->initialCapitalizationEnabled())
     , m_cpuLimit(configuration->cpuLimit())
     , m_backForwardList(std::make_unique<WebBackForwardListSwift>(WebBackForwardListSwift::init(*this)))
-    , m_backForwardListAPI(WebBackForwardList::create(*m_backForwardList))
+    , m_backForwardListAPI(WebBackForwardListAPIImpl::create(*m_backForwardList))
     , m_waitsForPaintAfterViewDidMoveToWindow(configuration->waitsForPaintAfterViewDidMoveToWindow())
     , m_controlledByAutomation(configuration->isControlledByAutomation())
 #if PLATFORM(COCOA)
