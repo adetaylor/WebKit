@@ -167,7 +167,6 @@ public:
 
     virtual ~WebBackForwardList();
 
-    // The following are APIs which will be forwarded to the Swift implementation
     void removeAllItems();
     void clear();
 
@@ -190,7 +189,7 @@ public:
 private:
     explicit WebBackForwardList(WebBackForwardListSwift&);
 
-    WebBackForwardListSwift* _Nonnull m_impl;
+    std::unique_ptr<WebBackForwardListSwift> m_impl;
 };
 
 #endif // ENABLE_BACKFORWARDLIST_SWIFT

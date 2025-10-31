@@ -827,7 +827,7 @@ String WebBackForwardList::loggingString()
 #else // ENABLE_BACKFORWARDLIST_SWIFT
 
 WebBackForwardList::WebBackForwardList(WebBackForwardListSwift& impl)
-    : m_impl(&impl)
+    : m_impl(std::make_unique<WebBackForwardListSwift>(impl))
 {
 }
 
