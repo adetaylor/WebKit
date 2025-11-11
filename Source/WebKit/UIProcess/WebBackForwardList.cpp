@@ -921,7 +921,7 @@ WebBackForwardListMessageForwarder::WebBackForwardListMessageForwarder(WebKit::W
 }
 
 std::unique_ptr<WebKit::WebBackForwardList> WebBackForwardListMessageForwarder::getMessageTarget() {
-    return std::make_unique<WebKit::WebBackForwardList>(m_handler->getList());
+    return std::make_unique<WebKit::WebBackForwardList>(m_handler->getUnderlyingList());
 }
 
 WebBackForwardListMessageForwarder::~WebBackForwardListMessageForwarder() {

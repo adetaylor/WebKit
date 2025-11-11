@@ -186,7 +186,7 @@ internal class WebBackForwardListWeakRef {
     }
 
     @_expose(Cxx)
-    internal func getList() -> WebBackForwardList {
+    internal func getUnderlyingList() -> WebBackForwardList {
         return list!
     }
 }
