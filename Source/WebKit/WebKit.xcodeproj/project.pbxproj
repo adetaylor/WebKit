@@ -1492,6 +1492,7 @@
 		5C7FB47021E97DC5009E3241 /* WebCookieJar.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C7FB46F21E97C0C009E3241 /* WebCookieJar.h */; };
 		5C826D6B26D482EF008AEC91 /* PrivateClickMeasurementStore.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C826D6826D46B44008AEC91 /* PrivateClickMeasurementStore.h */; };
 		5C826D6C26D482F2008AEC91 /* PrivateClickMeasurementDatabase.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C826D6926D482EA008AEC91 /* PrivateClickMeasurementDatabase.h */; };
+		5C86531A2EC38B3700B95ED4 /* WebKit-Swift-Wrapper.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C8653192EC38B3700B95ED4 /* WebKit-Swift-Wrapper.h */; };
 		5C8BC797218CBB4800813886 /* SafeBrowsing.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5C8BC796218CB58A00813886 /* SafeBrowsing.xcassets */; };
 		5C8DD3801FE4521600F2A556 /* WebsiteAutoplayPolicy.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C8DD37F1FE4519200F2A556 /* WebsiteAutoplayPolicy.h */; };
 		5C9A9111228F69CC005C5B17 /* XPCServiceMain.mm in Sources */ = {isa = PBXBuildFile; fileRef = BC82839616B47EC400A278FE /* XPCServiceMain.mm */; };
@@ -2547,10 +2548,10 @@
 		F4E090952D889D6A00322226 /* WKIdentityDocumentPresentmentDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = F4E090942D889CB800322226 /* WKIdentityDocumentPresentmentDelegate.h */; };
 		F4E090992D88AAC300322226 /* WKIdentityDocumentPresentmentRawRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = F4E090962D88A66F00322226 /* WKIdentityDocumentPresentmentRawRequest.h */; };
 		F4E28A362C923814008120DD /* ScriptTrackingPrivacyFilter.h in Headers */ = {isa = PBXBuildFile; fileRef = F4E28A352C923814008120DD /* ScriptTrackingPrivacyFilter.h */; };
-		F4E2A38E2EBA917100D7A783 /* CoreIPCDDSecureActionContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = F4E2A38C2EBA8A9500D7A783 /* CoreIPCDDSecureActionContext.mm */; };
-		F4E2A38F2EBAAA7700D7A783 /* CoreIPCDDSecureActionContext.h in Headers */ = {isa = PBXBuildFile; fileRef = F4E2A38B2EBA8A9500D7A783 /* CoreIPCDDSecureActionContext.h */; };
 		F4E2A3832EB5416C00D7A783 /* CoreIPCDDScannerResult.mm in Sources */ = {isa = PBXBuildFile; fileRef = F4E2A3822EB5415B00D7A783 /* CoreIPCDDScannerResult.mm */; };
 		F4E2A3842EB5417300D7A783 /* CoreIPCDDScannerResult.h in Headers */ = {isa = PBXBuildFile; fileRef = F4E2A3812EB5415B00D7A783 /* CoreIPCDDScannerResult.h */; };
+		F4E2A38E2EBA917100D7A783 /* CoreIPCDDSecureActionContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = F4E2A38C2EBA8A9500D7A783 /* CoreIPCDDSecureActionContext.mm */; };
+		F4E2A38F2EBAAA7700D7A783 /* CoreIPCDDSecureActionContext.h in Headers */ = {isa = PBXBuildFile; fileRef = F4E2A38B2EBA8A9500D7A783 /* CoreIPCDDSecureActionContext.h */; };
 		F4E44EB72DCD33E800A304C4 /* WKIdentityDocumentPresentmentMobileDocumentRequest+Extras.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E44EB62DCD33E800A304C4 /* WKIdentityDocumentPresentmentMobileDocumentRequest+Extras.swift */; };
 		F4E727232A547F0400CE34FD /* WKTouchEventsGestureRecognizerTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = F4E727222A547E2100CE34FD /* WKTouchEventsGestureRecognizerTypes.h */; };
 		F4EB4AFD269CD7F300D297AE /* OSStateSPI.h in Headers */ = {isa = PBXBuildFile; fileRef = F4EB4AFC269CD23600D297AE /* OSStateSPI.h */; };
@@ -6510,6 +6511,7 @@
 		5C826D6F26D58A16008AEC91 /* DatabaseUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DatabaseUtilities.h; sourceTree = "<group>"; };
 		5C84CF901F96AC4E00B6705A /* NetworkSessionCreationParameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NetworkSessionCreationParameters.h; sourceTree = "<group>"; };
 		5C85C7861C3F23C50061A4FA /* PendingDownload.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PendingDownload.cpp; sourceTree = "<group>"; };
+		5C8653192EC38B3700B95ED4 /* WebKit-Swift-Wrapper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "WebKit-Swift-Wrapper.h"; sourceTree = "<group>"; };
 		5C89817629353FBB006D899A /* ProvisionalFrameProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProvisionalFrameProxy.cpp; sourceTree = "<group>"; };
 		5C89817729353FBB006D899A /* ProvisionalFrameProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ProvisionalFrameProxy.h; sourceTree = "<group>"; };
 		5C8BC796218CB58A00813886 /* SafeBrowsing.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = SafeBrowsing.xcassets; path = Resources/SafeBrowsing.xcassets; sourceTree = "<group>"; };
@@ -7603,7 +7605,7 @@
 		ABB6C809249180DB00C50D9A /* ClockKitSPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ClockKitSPI.h; sourceTree = "<group>"; };
 		AE213B932DDE47AA0043DE0F /* SafeBrowsingCheckOngoing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SafeBrowsingCheckOngoing.h; sourceTree = "<group>"; };
 		AE5E15BC2D935B9D00BB117E /* AuthenticationServices.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = AuthenticationServices.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		AE9552872D756E920039B9F9 /* CredentialUpdaterShim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CredentialUpdaterShim.swift; path = CredentialUpdaterShim.swift; sourceTree = "<group>"; };
+		AE9552872D756E920039B9F9 /* CredentialUpdaterShim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialUpdaterShim.swift; sourceTree = "<group>"; };
 		B396EA5512E0ED2D00F4FEB7 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		B6058CF32B6D98E7006D4C77 /* WebExtensionDataRecord.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebExtensionDataRecord.h; sourceTree = "<group>"; };
 		B6058CF42B6D98E8006D4C77 /* WebExtensionDataRecord.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebExtensionDataRecord.cpp; sourceTree = "<group>"; };
@@ -8733,11 +8735,11 @@
 		F4E28A352C923814008120DD /* ScriptTrackingPrivacyFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScriptTrackingPrivacyFilter.h; sourceTree = "<group>"; };
 		F4E28A372C923C71008120DD /* ScriptTrackingPrivacyFilter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScriptTrackingPrivacyFilter.cpp; sourceTree = "<group>"; };
 		F4E28A382C923C71008120DD /* ScriptTrackingPrivacyFilter.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = ScriptTrackingPrivacyFilter.serialization.in; sourceTree = "<group>"; };
+		F4E2A3812EB5415B00D7A783 /* CoreIPCDDScannerResult.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CoreIPCDDScannerResult.h; sourceTree = "<group>"; };
+		F4E2A3822EB5415B00D7A783 /* CoreIPCDDScannerResult.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CoreIPCDDScannerResult.mm; sourceTree = "<group>"; };
 		F4E2A38B2EBA8A9500D7A783 /* CoreIPCDDSecureActionContext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CoreIPCDDSecureActionContext.h; sourceTree = "<group>"; };
 		F4E2A38C2EBA8A9500D7A783 /* CoreIPCDDSecureActionContext.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CoreIPCDDSecureActionContext.mm; sourceTree = "<group>"; };
 		F4E2A38D2EBA8A9500D7A783 /* CoreIPCDDSecureActionContext.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = CoreIPCDDSecureActionContext.serialization.in; sourceTree = "<group>"; };
-		F4E2A3812EB5415B00D7A783 /* CoreIPCDDScannerResult.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CoreIPCDDScannerResult.h; sourceTree = "<group>"; };
-		F4E2A3822EB5415B00D7A783 /* CoreIPCDDScannerResult.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CoreIPCDDScannerResult.mm; sourceTree = "<group>"; };
 		F4E2B44A268FDE1A00327ABC /* TapHandlingResult.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TapHandlingResult.h; path = ios/TapHandlingResult.h; sourceTree = "<group>"; };
 		F4E44EB62DCD33E800A304C4 /* WKIdentityDocumentPresentmentMobileDocumentRequest+Extras.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WKIdentityDocumentPresentmentMobileDocumentRequest+Extras.swift"; sourceTree = "<group>"; };
 		F4E47BB527B5AE5B00813B38 /* CocoaImage.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CocoaImage.mm; sourceTree = "<group>"; };
@@ -10197,6 +10199,7 @@
 				FA39AE4C2B229187008F93CD /* WebImage.serialization.in */,
 				C0337DD2127A2A0E008FF4F4 /* WebKeyboardEvent.cpp */,
 				0F4000FF2527D6F700E91DA7 /* WebKeyboardEvent.h */,
+				5C8653192EC38B3700B95ED4 /* WebKit-Swift-Wrapper.h */,
 				BC9BA5021697C45300E44616 /* WebKit2Initialize.cpp */,
 				BC9BA5031697C45300E44616 /* WebKit2Initialize.h */,
 				E3DCC9AA2DA07FA0008712FE /* WebKitServiceNames.h */,
@@ -12896,7 +12899,6 @@
 				5181988E2B7585E30084E292 /* CoreIPCDateComponents.h */,
 				5181988F2B7585E30084E292 /* CoreIPCDateComponents.mm */,
 				5181988D2B7585E30084E292 /* CoreIPCDateComponents.serialization.in */,
-				51AD56892B1C3BA1001A0ECB /* CoreIPCDDActionContext.serialization.in */,
 				F4E2A3812EB5415B00D7A783 /* CoreIPCDDScannerResult.h */,
 				F4E2A3822EB5415B00D7A783 /* CoreIPCDDScannerResult.mm */,
 				51ACFFD52B048804001331A2 /* CoreIPCDDScannerResult.serialization.in */,
@@ -18488,6 +18490,7 @@
 				1C8E28341275D73800BC7BD0 /* WebInspectorUIProxy.h in Headers */,
 				A55BA82B1BA38E61007CD33D /* WebInspectorUtilities.h in Headers */,
 				2DA944A01884E4F000ED86DB /* WebIOSEventFactory.h in Headers */,
+				5C86531A2EC38B3700B95ED4 /* WebKit-Swift-Wrapper.h in Headers */,
 				1A85E4721E303F3700914599 /* WebKit.apinotes in Headers */,
 				BCB63478116BF10600603215 /* WebKit2_C.h in Headers */,
 				BC9BA5051697C45300E44616 /* WebKit2Initialize.h in Headers */,
