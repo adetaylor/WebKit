@@ -85,7 +85,11 @@ class QueryPermissionResultCallback;
 class SpeechRecognitionPermissionCallback;
 class UserMediaPermissionCheckProxy;
 class UserMediaPermissionRequestProxy;
-class WebBackForwardList;
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+class WebBackForwardListAPIImpl;
+#else
+using WebBackForwardListAPIImpl = WebBackForwardList;
+#endif
 class WebBackForwardListItem;
 class WebColorPickerResultListenerProxy;
 class WebContextMenuListenerProxy;
@@ -116,7 +120,7 @@ class WebsiteDataStoreConfiguration;
 WK_ADD_API_MAPPING(WKAuthenticationChallengeRef, AuthenticationChallengeProxy)
 WK_ADD_API_MAPPING(WKAuthenticationDecisionListenerRef, AuthenticationDecisionListener)
 WK_ADD_API_MAPPING(WKBackForwardListItemRef, WebBackForwardListItem)
-WK_ADD_API_MAPPING(WKBackForwardListRef, WebBackForwardList)
+WK_ADD_API_MAPPING(WKBackForwardListRef, WebBackForwardListAPIImpl)
 WK_ADD_API_MAPPING(WKBundleHitTestResultMediaType, BundleHitTestResultMediaType)
 WK_ADD_API_MAPPING(WKCaptionUserPreferencesTestingModeTokenRef, API::CaptionUserPreferencesTestingModeToken)
 WK_ADD_API_MAPPING(WKColorPickerResultListenerRef, WebColorPickerResultListenerProxy)
