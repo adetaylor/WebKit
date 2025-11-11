@@ -40,7 +40,7 @@ extension CryptoKit.HashFunction {
         if data.empty() {
             self.update(data: Data.empty())
         } else {
-            self.update(
+            unsafe self.update(
                 bufferPointer: UnsafeRawBufferPointer(
                     start: data.__dataUnsafe(), count: data.size()))
         }
@@ -49,9 +49,9 @@ extension CryptoKit.HashFunction {
 
 extension ContiguousBytes {
     public func copyToVectorUInt8() -> VectorUInt8 {
-        return self.withUnsafeBytes { buf in
+        return unsafe self.withUnsafeBytes { buf in
             let result = VectorUInt8(buf.count)
-            buf.copyBytes(
+            unsafe buf.copyBytes(
                 to: UnsafeMutableRawBufferPointer(
                     start: UnsafeMutableRawPointer(mutating: result.span().__dataUnsafe()),
                     count: result.size()), count: result.size())
@@ -66,7 +66,7 @@ extension Data {
         if spanNoCopy.empty() {
             return Data.empty()
         } else {
-            return Data(
+            return unsafe Data(
                 bytesNoCopy: UnsafeMutablePointer(mutating: spanNoCopy.__dataUnsafe()),
                 count: spanNoCopy.size(), deallocator: .none)
         }
@@ -90,13 +90,13 @@ extension AES.GCM {
         _ message: SpanConstUInt8, key: SpanConstUInt8, iv: SpanConstUInt8, ad: SpanConstUInt8
     ) throws -> AES.GCM.SealedBox {
         if ad.size() > 0 {
-            return try AES.GCM.seal(
+            return unsafe try AES.GCM.seal(
                 Data.temporaryDataFromSpan(spanNoCopy: message),
                 using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: key)),
                 nonce: AES.GCM.Nonce(data: Data.temporaryDataFromSpan(spanNoCopy: iv)),
                 authenticating: Data.temporaryDataFromSpan(spanNoCopy: ad))
         } else {
-            return try AES.GCM.seal(
+            return unsafe try AES.GCM.seal(
                 Data.temporaryDataFromSpan(spanNoCopy: message),
                 using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: key)),
                 nonce: AES.GCM.Nonce(data: Data.temporaryDataFromSpan(spanNoCopy: iv))
@@ -109,7 +109,7 @@ extension AES.KeyWrap {
     public static func unwrap(_ wrapped: SpanConstUInt8, using: SpanConstUInt8) throws
         -> SymmetricKey
     {
-        return try AES.KeyWrap.unwrap(
+        return unsafe try AES.KeyWrap.unwrap(
             Data.temporaryDataFromSpan(spanNoCopy: wrapped),
             using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: using)))
 
@@ -117,7 +117,7 @@ extension AES.KeyWrap {
     public static func wrap(_ keyToWrap: SpanConstUInt8, using: SpanConstUInt8) throws
         -> VectorUInt8
     {
-        return try AES.KeyWrap.wrap(
+        return unsafe try AES.KeyWrap.wrap(
             SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: keyToWrap)),
             using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: using))
         ).copyToVectorUInt8()
@@ -129,7 +129,7 @@ extension P256.Signing.ECDSASignature {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        unsafe try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 extension P384.Signing.ECDSASignature {
@@ -137,7 +137,7 @@ extension P384.Signing.ECDSASignature {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        unsafe try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 extension P521.Signing.ECDSASignature {
@@ -145,7 +145,7 @@ extension P521.Signing.ECDSASignature {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        unsafe try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -154,13 +154,13 @@ extension P256.Signing.PublicKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        unsafe try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
     init(spanCompressed: SpanConstUInt8) throws {
         if spanCompressed.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(
+        unsafe try self.init(
             compressedRepresentation: Data.temporaryDataFromSpan(spanNoCopy: spanCompressed))
     }
 }
@@ -170,13 +170,13 @@ extension P384.Signing.PublicKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        unsafe try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
     init(spanCompressed: SpanConstUInt8) throws {
         if spanCompressed.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(
+        unsafe try self.init(
             compressedRepresentation: Data.temporaryDataFromSpan(spanNoCopy: spanCompressed))
     }
 }
@@ -186,13 +186,13 @@ extension P521.Signing.PublicKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        unsafe try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
     init(spanCompressed: SpanConstUInt8) throws {
         if spanCompressed.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(
+        try unsafe self.init(
             compressedRepresentation: Data.temporaryDataFromSpan(spanNoCopy: spanCompressed))
     }
 }
@@ -202,7 +202,7 @@ extension P256.Signing.PrivateKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        try unsafe self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -211,7 +211,7 @@ extension P384.Signing.PrivateKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        try unsafe self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -220,7 +220,7 @@ extension P521.Signing.PrivateKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        try unsafe self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -229,13 +229,13 @@ extension Curve25519.Signing.PrivateKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        try unsafe self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
     public func signature(span: SpanConstUInt8) throws -> VectorUInt8 {
         if span.empty() {
             return try self.signature(for: Data.empty()).copyToVectorUInt8()
         }
-        return try self.signature(for: Data.temporaryDataFromSpan(spanNoCopy: span))
+        return unsafe try self.signature(for: Data.temporaryDataFromSpan(spanNoCopy: span))
             .copyToVectorUInt8()
     }
 }
@@ -245,13 +245,13 @@ extension Curve25519.Signing.PublicKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        try unsafe self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
     public func isValidSignature(signature: SpanConstUInt8, data: SpanConstUInt8) -> Bool {
         if signature.empty() || data.empty() {
             return false
         }
-        return self.isValidSignature(
+        return unsafe self.isValidSignature(
             Data.temporaryDataFromSpan(spanNoCopy: signature),
             for: Data.temporaryDataFromSpan(spanNoCopy: data))
     }
@@ -263,13 +263,13 @@ extension Curve25519.KeyAgreement.PrivateKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        try unsafe self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
     public func sharedSecretFromKeyAgreement(pubSpan: SpanConstUInt8) throws -> VectorUInt8 {
         if pubSpan.empty() {
             throw UnsafeErrors.emptySpan
         }
-        let pub = try Curve25519.KeyAgreement.PublicKey(
+        let pub = unsafe try Curve25519.KeyAgreement.PublicKey(
             rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: pubSpan))
         return try self.sharedSecretFromKeyAgreement(with: pub).copyToVectorUInt8()
     }
@@ -280,7 +280,7 @@ extension Curve25519.KeyAgreement.PublicKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        try unsafe self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -289,7 +289,7 @@ extension CryptoKit.HMAC {
         data: SpanConstUInt8,
         key: SpanConstUInt8
     ) -> VectorUInt8 {
-        return self.authenticationCode(
+        return unsafe self.authenticationCode(
             for: Data.temporaryDataFromSpan(spanNoCopy: data),
             using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: key))
         ).copyToVectorUInt8()
@@ -297,7 +297,7 @@ extension CryptoKit.HMAC {
     static func isValidAuthenticationCode(
         mac: SpanConstUInt8, data: SpanConstUInt8, key: SpanConstUInt8
     ) -> Bool {
-        return Self.isValidAuthenticationCode(
+        return unsafe Self.isValidAuthenticationCode(
             Data.temporaryDataFromSpan(spanNoCopy: mac),
             authenticating: Data.temporaryDataFromSpan(spanNoCopy: data),
             using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: key)))
@@ -309,7 +309,7 @@ extension CryptoKit.HKDF {
         inputKeyMaterial: SpanConstUInt8, salt: SpanConstUInt8, info: SpanConstUInt8,
         outputByteCount: Int
     ) -> VectorUInt8 {
-        return Self.deriveKey(
+        return unsafe Self.deriveKey(
             inputKeyMaterial: SymmetricKey(
                 data: Data.temporaryDataFromSpan(spanNoCopy: inputKeyMaterial)),
             salt: Data.temporaryDataFromSpan(spanNoCopy: salt),
