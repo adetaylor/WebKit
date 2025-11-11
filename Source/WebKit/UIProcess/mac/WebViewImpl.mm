@@ -26,6 +26,10 @@
 #import "config.h"
 #import "WebViewImpl.h"
 
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+#include <Shared/WebKit-Swift-Wrapper.h>
+#endif
+
 #if PLATFORM(MAC)
 
 #import "APIAttachment.h"
