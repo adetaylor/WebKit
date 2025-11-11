@@ -1493,6 +1493,7 @@
 		5C7FB47021E97DC5009E3241 /* WebCookieJar.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C7FB46F21E97C0C009E3241 /* WebCookieJar.h */; };
 		5C826D6B26D482EF008AEC91 /* PrivateClickMeasurementStore.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C826D6826D46B44008AEC91 /* PrivateClickMeasurementStore.h */; };
 		5C826D6C26D482F2008AEC91 /* PrivateClickMeasurementDatabase.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C826D6926D482EA008AEC91 /* PrivateClickMeasurementDatabase.h */; };
+		5C8653152EC38A6600B95ED4 /* SwiftUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C8653142EC38A6600B95ED4 /* SwiftUtilities.h */; };
 		5C86531A2EC38B3700B95ED4 /* WebKit-Swift.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C8653192EC38B3700B95ED4 /* WebKit-Swift.h */; };
 		5C8BC797218CBB4800813886 /* SafeBrowsing.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5C8BC796218CB58A00813886 /* SafeBrowsing.xcassets */; };
 		5C8DD3801FE4521600F2A556 /* WebsiteAutoplayPolicy.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C8DD37F1FE4519200F2A556 /* WebsiteAutoplayPolicy.h */; };
@@ -6520,6 +6521,7 @@
 		5C826D6F26D58A16008AEC91 /* DatabaseUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DatabaseUtilities.h; sourceTree = "<group>"; };
 		5C84CF901F96AC4E00B6705A /* NetworkSessionCreationParameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NetworkSessionCreationParameters.h; sourceTree = "<group>"; };
 		5C85C7861C3F23C50061A4FA /* PendingDownload.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PendingDownload.cpp; sourceTree = "<group>"; };
+		5C8653142EC38A6600B95ED4 /* SwiftUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwiftUtilities.h; sourceTree = "<group>"; };
 		5C8653192EC38B3700B95ED4 /* WebKit-Swift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "WebKit-Swift.h"; sourceTree = "<group>"; };
 		5C89817629353FBB006D899A /* ProvisionalFrameProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProvisionalFrameProxy.cpp; sourceTree = "<group>"; };
 		5C89817729353FBB006D899A /* ProvisionalFrameProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ProvisionalFrameProxy.h; sourceTree = "<group>"; };
@@ -10139,6 +10141,7 @@
 				83F9644B1FA0F76200C47750 /* SharedStringHashTableReadOnly.cpp */,
 				83F9644C1FA0F76300C47750 /* SharedStringHashTableReadOnly.h */,
 				932CA81B283C35EB00C20BEB /* StorageAreaIdentifier.h */,
+				5C8653142EC38A6600B95ED4 /* SwiftUtilities.h */,
 				7B50E9812771F6CF003DAAC5 /* TestParameter.h */,
 				07E2C0782C13FC0100BE6743 /* TextAnimationTypes.serialization.in */,
 				1A5E4DA312D3BD3D0099A2BB /* TextCheckerState.h */,
@@ -18246,6 +18249,7 @@
 				296BD85D15019BC30071F424 /* StringUtilities.h in Headers */,
 				57FD318622B3516C008D0E8B /* SubFrameSOAuthorizationSession.h in Headers */,
 				5C7E075A2DF0596B00C61A6C /* SwiftDemoLogoConfirmation.h in Headers */,
+				5C8653152EC38A6600B95ED4 /* SwiftUtilities.h in Headers */,
 				448AC24E267135A700B28921 /* SynapseSPI.h in Headers */,
 				4459984222833E8700E61373 /* SyntheticEditingCommandType.h in Headers */,
 				3157135F2040A9B20084F9CF /* SystemPreviewController.h in Headers */,

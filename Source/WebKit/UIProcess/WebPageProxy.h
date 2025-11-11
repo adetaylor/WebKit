@@ -29,6 +29,8 @@
 // Use forward declarations and WebPageProxyInternals.h instead.
 #include "APIObject.h"
 #include "MessageReceiver.h"
+#include "WebBackForwardList.h"
+#include "WebBackForwardListMessages.h"
 #include <wtf/ApproximateTime.h>
 #include <wtf/CheckedRef.h>
 #include <wtf/CompletionHandler.h>
@@ -531,9 +533,14 @@ class VisitedLinkStore;
 class WebAuthenticatorCoordinatorProxy;
 class WebAutomationSession;
 class WebBackForwardCache;
-class WebBackForwardList;
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+class WebBackForwardListAPIImpl;
+#else
+using WebBackForwardListAPIImpl = WebBackForwardList;
+#endif
 class WebBackForwardListFrameItem;
 class WebBackForwardListItem;
+class WebBackForwardList;
 class WebColorPickerClient;
 class WebContextMenuItemData;
 class WebContextMenuProxy;
@@ -773,7 +780,13 @@ public:
     CheckedPtr<RemoteScrollingCoordinatorProxy> checkedScrollingCoordinatorProxy() const;
 #endif
 
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    WebBackForwardList& backForwardList() { return *m_backForwardList; }
+    WebBackForwardListAPIImpl& backForwardListAPI() { return m_backForwardListAPI; }
+    Ref<WebBackForwardListMessageForwarder> backForwardListMessageReceiver() const;
+#else
     WebBackForwardList& backForwardList() { return m_backForwardList; }
+#endif
 
     bool addsVisitedLinks() const { return m_addsVisitedLinks; }
     void setAddsVisitedLinks(bool addsVisitedLinks) { m_addsVisitedLinks = addsVisitedLinks; }
@@ -3709,8 +3722,14 @@ private:
 
     bool m_initialCapitalizationEnabled { false };
     std::optional<double> m_cpuLimit;
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    const std::unique_ptr<WebBackForwardList> m_backForwardList;
+    // We keep the C++ version as workaround for rdar://163102366
+    const Ref<WebBackForwardListAPIImpl> m_backForwardListAPI;
+#else
     const Ref<WebBackForwardList> m_backForwardList;
-        
+#endif
+
     bool m_maintainsInactiveSelection { false };
 
     bool m_waitsForPaintAfterViewDidMoveToWindow { false };
