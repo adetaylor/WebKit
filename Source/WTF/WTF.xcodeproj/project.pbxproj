@@ -141,6 +141,8 @@
 		5C1F05932164356B0039302C /* CFURLExtras.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C1F05912164356B0039302C /* CFURLExtras.cpp */; };
 		5C1F0595216437B30039302C /* URLCF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C1F0594216437B30039302C /* URLCF.cpp */; };
 		5C6552C029423F85008CD0F3 /* ThreadSafeWeakHashSet.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6552BF29423F85008CD0F3 /* ThreadSafeWeakHashSet.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		5C7706742EAFA8C2007F5C9D /* SwiftWrappedCompletionHandler.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C7706722EAFA8C2007F5C9D /* SwiftWrappedCompletionHandler.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		5C7706752EAFA8C2007F5C9D /* SwiftWrappedFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C7706732EAFA8C2007F5C9D /* SwiftWrappedFunction.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CB8CB6D28C16CB700539906 /* ArgumentCoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB8CB6C28C16CB700539906 /* ArgumentCoder.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CC0EE7521629F1900A1A842 /* URLParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CC0EE7321629F1900A1A842 /* URLParser.cpp */; };
 		5CC0EE7621629F1900A1A842 /* URL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CC0EE7421629F1900A1A842 /* URL.cpp */; };
@@ -1379,6 +1381,8 @@
 		5C1F0594216437B30039302C /* URLCF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = URLCF.cpp; sourceTree = "<group>"; };
 		5C1F0597216439940039302C /* URLHash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = URLHash.h; sourceTree = "<group>"; };
 		5C6552BF29423F85008CD0F3 /* ThreadSafeWeakHashSet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadSafeWeakHashSet.h; sourceTree = "<group>"; };
+		5C7706722EAFA8C2007F5C9D /* SwiftWrappedCompletionHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwiftWrappedCompletionHandler.h; sourceTree = "<group>"; };
+		5C7706732EAFA8C2007F5C9D /* SwiftWrappedFunction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwiftWrappedFunction.h; sourceTree = "<group>"; };
 		5C7C88D31D0A3A0A009D2F6D /* UniqueRef.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UniqueRef.h; sourceTree = "<group>"; };
 		5CB8CB6C28C16CB700539906 /* ArgumentCoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgumentCoder.h; sourceTree = "<group>"; };
 		5CC0EE7121629F1800A1A842 /* URL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = URL.h; sourceTree = "<group>"; };
@@ -2704,6 +2708,8 @@
 				93B07ED626B86BB500A09B34 /* SuspendableWorkQueue.h */,
 				9758E8EF2DDCA639004434FD /* SwiftBridging.h */,
 				5C12460D2DC25A130077D423 /* SwiftCXXThunk.h */,
+				5C7706722EAFA8C2007F5C9D /* SwiftWrappedCompletionHandler.h */,
+				5C7706732EAFA8C2007F5C9D /* SwiftWrappedFunction.h */,
 				5597F82C1D94B9970066BC21 /* SynchronizedFixedQueue.h */,
 				E3E158251EADA53C004A079D /* SystemFree.h */,
 				E4D2AE4D268A4C7F00DFEA02 /* SystemMalloc.h */,
@@ -3855,6 +3861,8 @@
 				E396C11E2BE885D9000CBAE1 /* sve.h in Headers */,
 				9758E8F02DDCA639004434FD /* SwiftBridging.h in Headers */,
 				5C12460E2DC25A130077D423 /* SwiftCXXThunk.h in Headers */,
+				5C7706742EAFA8C2007F5C9D /* SwiftWrappedCompletionHandler.h in Headers */,
+				5C7706752EAFA8C2007F5C9D /* SwiftWrappedFunction.h in Headers */,
 				DDF307DA27C086DF006A526F /* SymbolImpl.h in Headers */,
 				DDF307EC27C086DF006A526F /* SymbolRegistry.h in Headers */,
 				DD3DC86727A4BF8E007E5B61 /* SynchronizedFixedQueue.h in Headers */,
