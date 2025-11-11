@@ -52,6 +52,8 @@ public struct WKScrollGeometryAdapter {
     // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
     public let contentSize: CGSize
 
+    // Workaround for rdar://164465358
+    @_expose(!Cxx)
     init(_ geometry: WKScrollGeometry) {
         self.containerSize = geometry.containerSize
         self.contentInsets = geometry.contentInsets
