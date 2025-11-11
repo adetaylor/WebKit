@@ -38,7 +38,8 @@ extension CryptoKit.HashFunction {
         if data.empty() {
             self.update(data: Data())
         } else {
-            self.update(
+            // FIXME: analyse and remove unsafety - rdar://164560176
+            unsafe self.update(
                 bufferPointer: UnsafeRawBufferPointer(
                     start: data.__dataUnsafe(),
                     count: data.size()
@@ -52,9 +53,10 @@ extension ContiguousBytes {
     // FIXME: PALSwift should have no public symbols.
     // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
     public func copyToVectorUInt8() -> VectorUInt8 {
-        self.withUnsafeBytes { buf in
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe self.withUnsafeBytes { buf in
             let result = VectorUInt8(buf.count)
-            buf.copyBytes(
+            unsafe buf.copyBytes(
                 to: UnsafeMutableRawBufferPointer(
                     start: UnsafeMutableRawPointer(mutating: result.span().__dataUnsafe()),
                     count: result.size()
@@ -68,8 +70,9 @@ extension ContiguousBytes {
 
 extension Data {
     fileprivate static func temporaryDataFromSpan(spanNoCopy: SpanConstUInt8) -> Data {
+        // FIXME: analyse and remove unsafety - rdar://164560176
         guard spanNoCopy.empty() else {
-            return Data(
+            return unsafe Data(
                 bytesNoCopy: UnsafeMutablePointer(mutating: spanNoCopy.__dataUnsafe()),
                 count: spanNoCopy.size(),
                 deallocator: .none
@@ -97,14 +100,15 @@ extension AES.GCM {
         iv: SpanConstUInt8,
         ad: SpanConstUInt8
     ) throws -> AES.GCM.SealedBox {
+        // FIXME: analyse and remove unsafety - rdar://164560176
         guard ad.size() > 0 else {
-            return try AES.GCM.seal(
+            return unsafe try AES.GCM.seal(
                 Data.temporaryDataFromSpan(spanNoCopy: message),
                 using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: key)),
                 nonce: AES.GCM.Nonce(data: Data.temporaryDataFromSpan(spanNoCopy: iv))
             )
         }
-        return try AES.GCM.seal(
+        return unsafe try AES.GCM.seal(
             Data.temporaryDataFromSpan(spanNoCopy: message),
             using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: key)),
             nonce: AES.GCM.Nonce(data: Data.temporaryDataFromSpan(spanNoCopy: iv)),
@@ -117,7 +121,8 @@ extension AES.KeyWrap {
     // FIXME: PALSwift should have no public symbols.
     // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
     public static func unwrap(_ wrapped: SpanConstUInt8, using: SpanConstUInt8) throws -> SymmetricKey {
-        try AES.KeyWrap.unwrap(
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try AES.KeyWrap.unwrap(
             Data.temporaryDataFromSpan(spanNoCopy: wrapped),
             using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: using))
         )
@@ -126,7 +131,8 @@ extension AES.KeyWrap {
     // FIXME: PALSwift should have no public symbols.
     // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
     public static func wrap(_ keyToWrap: SpanConstUInt8, using: SpanConstUInt8) throws -> VectorUInt8 {
-        try AES.KeyWrap
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try AES.KeyWrap
             .wrap(
                 SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: keyToWrap)),
                 using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: using))
@@ -140,7 +146,8 @@ extension P256.Signing.ECDSASignature {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -149,7 +156,8 @@ extension P384.Signing.ECDSASignature {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -158,7 +166,8 @@ extension P521.Signing.ECDSASignature {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -167,14 +176,16 @@ extension P256.Signing.PublicKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 
     init(spanCompressed: SpanConstUInt8) throws {
         if spanCompressed.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try self.init(
             compressedRepresentation: Data.temporaryDataFromSpan(spanNoCopy: spanCompressed)
         )
     }
@@ -185,14 +196,16 @@ extension P384.Signing.PublicKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 
     init(spanCompressed: SpanConstUInt8) throws {
         if spanCompressed.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try self.init(
             compressedRepresentation: Data.temporaryDataFromSpan(spanNoCopy: spanCompressed)
         )
     }
@@ -203,14 +216,16 @@ extension P521.Signing.PublicKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 
     init(spanCompressed: SpanConstUInt8) throws {
         if spanCompressed.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe try self.init(
             compressedRepresentation: Data.temporaryDataFromSpan(spanNoCopy: spanCompressed)
         )
     }
@@ -221,7 +236,8 @@ extension P256.Signing.PrivateKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        try unsafe self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -230,7 +246,8 @@ extension P384.Signing.PrivateKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        try unsafe self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -239,7 +256,8 @@ extension P521.Signing.PrivateKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        try unsafe self.init(x963Representation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
@@ -248,7 +266,8 @@ extension Curve25519.Signing.PrivateKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        try unsafe self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 
     // FIXME: PALSwift should have no public symbols.
@@ -257,7 +276,8 @@ extension Curve25519.Signing.PrivateKey {
         if span.empty() {
             return try self.signature(for: Data()).copyToVectorUInt8()
         }
-        return try self.signature(for: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        return unsafe try self.signature(for: Data.temporaryDataFromSpan(spanNoCopy: span))
             .copyToVectorUInt8()
     }
 }
@@ -267,7 +287,8 @@ extension Curve25519.Signing.PublicKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        try unsafe self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 
     // FIXME: PALSwift should have no public symbols.
@@ -277,7 +298,8 @@ extension Curve25519.Signing.PublicKey {
             return false
         }
 
-        return self.isValidSignature(
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        return unsafe self.isValidSignature(
             Data.temporaryDataFromSpan(spanNoCopy: signature),
             for: Data.temporaryDataFromSpan(spanNoCopy: data)
         )
@@ -289,7 +311,8 @@ extension Curve25519.KeyAgreement.PrivateKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        try unsafe self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 
     // FIXME: PALSwift should have no public symbols.
@@ -298,7 +321,8 @@ extension Curve25519.KeyAgreement.PrivateKey {
         if pubSpan.empty() {
             throw UnsafeErrors.emptySpan
         }
-        let pub = try Curve25519.KeyAgreement.PublicKey(
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        let pub = unsafe try Curve25519.KeyAgreement.PublicKey(
             rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: pubSpan)
         )
         return try self.sharedSecretFromKeyAgreement(with: pub).copyToVectorUInt8()
@@ -310,13 +334,15 @@ extension Curve25519.KeyAgreement.PublicKey {
         if span.empty() {
             throw UnsafeErrors.emptySpan
         }
-        try self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        try unsafe self.init(rawRepresentation: Data.temporaryDataFromSpan(spanNoCopy: span))
     }
 }
 
 extension CryptoKit.HMAC {
     static func authenticationCode(data: SpanConstUInt8, key: SpanConstUInt8) -> VectorUInt8 {
-        self.authenticationCode(
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe self.authenticationCode(
             for: Data.temporaryDataFromSpan(spanNoCopy: data),
             using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: key))
         )
@@ -324,7 +350,8 @@ extension CryptoKit.HMAC {
     }
 
     static func isValidAuthenticationCode(mac: SpanConstUInt8, data: SpanConstUInt8, key: SpanConstUInt8) -> Bool {
-        Self.isValidAuthenticationCode(
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe Self.isValidAuthenticationCode(
             Data.temporaryDataFromSpan(spanNoCopy: mac),
             authenticating: Data.temporaryDataFromSpan(spanNoCopy: data),
             using: SymmetricKey(data: Data.temporaryDataFromSpan(spanNoCopy: key))
@@ -339,7 +366,8 @@ extension CryptoKit.HKDF {
         info: SpanConstUInt8,
         outputByteCount: Int
     ) -> VectorUInt8 {
-        Self.deriveKey(
+        // FIXME: analyse and remove unsafety - rdar://164560176
+        unsafe Self.deriveKey(
             inputKeyMaterial: SymmetricKey(
                 data: Data.temporaryDataFromSpan(spanNoCopy: inputKeyMaterial)
             ),
