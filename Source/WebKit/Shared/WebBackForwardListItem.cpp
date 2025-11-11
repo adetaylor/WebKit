@@ -232,4 +232,10 @@ String WebBackForwardListItem::loggingString()
 }
 #endif // !LOG_DISABLED
 
+void WebBackForwardListItem::setNullSnapshot() {
+#if PLATFORM(COCOA) || PLATFORM(GTK)
+    setSnapshot(nullptr);
+#endif
+}
+
 } // namespace WebKit
