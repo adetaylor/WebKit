@@ -230,4 +230,10 @@ String WebBackForwardListItem::loggingString()
     return m_mainFrameItem->loggingString();
 }
 
+void WebBackForwardListItem::setNullSnapshot() {
+#if PLATFORM(COCOA) || PLATFORM(GTK)
+    setSnapshot(nullptr);
+#endif
+}
+
 } // namespace WebKit
