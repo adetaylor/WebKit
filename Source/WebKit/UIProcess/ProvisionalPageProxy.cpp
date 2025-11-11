@@ -41,6 +41,7 @@
 #include "PageClient.h"
 #include "ProvisionalFrameCreationParameters.h"
 #include "RemotePageProxy.h"
+#include "Shared/SwiftUtilities.h"
 #include "SuspendedPageProxy.h"
 #include "URLSchemeTaskParameters.h"
 #include "WebBackForwardCacheEntry.h"
@@ -62,6 +63,10 @@
 #include "WebProcessProxy.h"
 #include <WebCore/ShouldTreatAsContinuingLoad.h>
 #include <wtf/TZoneMallocInlines.h>
+
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+#include "WebKit-Swift.h"
+#endif
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, process().connection())
 
@@ -345,14 +350,14 @@ void ProvisionalPageProxy::goToBackForwardItem(API::Navigation& navigation, WebB
 
     // FIXME: This is a static analysis false positive. The lamda passed to `setItemsAsRestoredFromSessionIf()` is marked as NOESCAPE so capturing
     // `this` is actually safe.
-    Ref backForwardList = page->backForwardList();
-    SUPPRESS_UNCOUNTED_LAMBDA_CAPTURE backForwardList->setItemsAsRestoredFromSessionIf([this, targetItem = Ref { item }](auto& item) {
+    auto backForwardList = page->backForwardList();
+    SUPPRESS_UNCOUNTED_LAMBDA_CAPTURE backForwardList.setItemsAsRestoredFromSessionIf(WebBackForwardListItemFilter::create([this, targetItem = Ref { item }](auto& item) {
         if (auto* backForwardCacheEntry = item.backForwardCacheEntry()) {
             if (backForwardCacheEntry->processIdentifier() == process().coreProcessIdentifier())
                 return false;
         }
         return &item != targetItem.ptr();
-    });
+    }).ptr());
 
     Ref process { this->process() };
     std::optional<WebsitePoliciesData> websitePoliciesData;
@@ -710,7 +715,7 @@ void ProvisionalPageProxy::didReceiveMessage(IPC::Connection& connection, IPC::D
 
     if (decoder.messageName() == Messages::WebBackForwardList::BackForwardUpdateItem::name()) {
         if (RefPtr page = m_page.get())
-            page->backForwardList().didReceiveMessage(connection, decoder);
+            page->backForwardListMessageReceiver()->didReceiveMessage(connection, decoder);
         return;
     }
 
@@ -847,7 +852,7 @@ void ProvisionalPageProxy::didReceiveSyncMessage(IPC::Connection& connection, IP
     RefPtr page = m_page.get();
     if (page) {
         if (decoder.messageReceiverName() == Messages::WebBackForwardList::messageReceiverName())
-            page->backForwardList().didReceiveSyncMessage(connection, decoder, replyEncoder);
+            page->backForwardListMessageReceiver()->didReceiveSyncMessage(connection, decoder, replyEncoder);
         else
             page->didReceiveSyncMessage(connection, decoder, replyEncoder);
     }
