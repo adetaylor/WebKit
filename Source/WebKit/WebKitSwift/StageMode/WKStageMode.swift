@@ -80,7 +80,8 @@ import simd
     
     // MARK: ObjC Exposed API
     var interactionContainerRef: REEntityRef {
-        interactionContainer.coreEntity
+        // FIXME - analyze and remove unsafety - rdar://164559261
+        unsafe interactionContainer.coreEntity
     }
 
     var stageModeInteractionInProgress: Bool {
@@ -95,7 +96,8 @@ import simd
         self.turntableInteractionContainer.name = "WebKit:TurntableContainerEntity"
         self.delegate = delegate
         
-        let containerEntity = Entity.fromCore(container)
+        // FIXME - analyze and remove unsafety - rdar://164559261
+        let containerEntity = unsafe Entity.fromCore(container)
         self.interactionContainer.setParent(containerEntity, preservingWorldTransform: true)
         self.turntableInteractionContainer.setPosition(self.interactionContainer.position(relativeTo: nil), relativeTo: nil)
         self.turntableInteractionContainer.setParent(self.interactionContainer, preservingWorldTransform: true)
@@ -105,7 +107,8 @@ import simd
     func setContainerTransformInPortal() {
         // Configure entity hierarchy after we have correctly positioned the model
         interactionContainer.setPosition(modelEntity.interactionPivotPoint, relativeTo: nil)
-        modelEntity.setParentCore(turntableInteractionContainer.coreEntity, preservingWorldTransform: true)
+        // FIXME - analyze and remove unsafety - rdar://164559261
+        unsafe modelEntity.setParentCore(turntableInteractionContainer.coreEntity, preservingWorldTransform: true)
     }
     
     func removeInteractionContainerFromSceneOrParent() {
@@ -146,11 +149,13 @@ import simd
 
                 // Apply pitch along global x axis
                 let containerPitchRotation = Rotation3D(angle: .init(radians: xyDelta.y), axis: .x)
-                interactionContainer.orientation = initialTargetPose.rotation * containerPitchRotation.quaternion.quatf
+                // FIXME - analyze and remove unsafety - rdar://164559261
+                interactionContainer.orientation = unsafe initialTargetPose.rotation * containerPitchRotation.quaternion.quatf
 
                 // Apply yaw along local y axis
                 let turntableYawRotation = Rotation3D(angle: .init(radians: xyDelta.x), axis: .y)
-                turntableInteractionContainer.orientation = initialTurntablePose.rotation * turntableYawRotation.quaternion.quatf
+                // FIXME - analyze and remove unsafety - rdar://164559261
+                turntableInteractionContainer.orientation = unsafe initialTurntablePose.rotation * turntableYawRotation.quaternion.quatf
 
                 currentOrbitVelocity = (poseTransform.translation._inMeters - previousManipulationPose.translation._inMeters).xy * Self.kDragToRotationMultiplier
                 break
@@ -241,7 +246,8 @@ import simd
                 
                 let deltaX = currentOrbitVelocity.x
                 let turntableYawQuat = Rotation3D(angle: .init(radians: deltaX), axis: .y)
-                turntableInteractionContainer.orientation *= turntableYawQuat.quaternion.quatf
+                // FIXME - analyze and remove unsafety - rdar://164559261
+                unsafe turntableInteractionContainer.orientation *= turntableYawQuat.quaternion.quatf
                 currentOrbitVelocity *= Self.kDecelerationDampeningFactor
 
                 delegate?.stageModeInteractionDidUpdateModel()

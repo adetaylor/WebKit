@@ -60,7 +60,8 @@ extension WKRKEntity {
     class func load(from data: Data, withAttributionTaskID attributionTaskId: String?, entityMemoryLimit: Int) async -> WKRKEntity? {
 #if canImport(RealityKit, _version: "403.0.3")
         do {
-            var loadOptions = Entity.__LoadOptions()
+            // FIXME - analyze and remove unsafety - rdar://164559261
+            var loadOptions = unsafe Entity.__LoadOptions()
             if let attributionTaskId {
                 loadOptions.memoryAttributionID = attributionTaskId
             }
@@ -84,11 +85,13 @@ extension WKRKEntity {
     }
 
     @nonobjc convenience init(_ rkEntity: Entity) {
-        self.init(coreEntity: rkEntity.coreEntity)
+        // FIXME - analyze and remove unsafety - rdar://164559261
+        unsafe self.init(coreEntity: rkEntity.coreEntity)
     }
 
     init(coreEntity: REEntityRef) {
-        entity = Entity.fromCore(coreEntity)
+        // FIXME - analyze and remove unsafety - rdar://164559261
+        entity = unsafe Entity.fromCore(coreEntity)
     }
 
     var name: String {
@@ -304,7 +307,8 @@ extension WKRKEntity {
             break
         }
         
-        guard let context = CGContext.init(data: nil, width: targetWidth, height: targetHeight, bitsPerComponent: image.bitsPerComponent, bytesPerRow: 0, space: image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: imageBitmapInfoRawValue) else {
+        // FIXME - analyze and remove unsafety - rdar://164559261
+        guard let context = unsafe CGContext.init(data: nil, width: targetWidth, height: targetHeight, bitsPerComponent: image.bitsPerComponent, bytesPerRow: 0, space: image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: imageBitmapInfoRawValue) else {
             Logger.realityKitEntity.error("Resizing IBL image: Unable to create CGContext for image resizing")
             return nil
         }
@@ -334,8 +338,9 @@ extension WKRKEntity {
             let textureResource = try await TextureResource(cubeFromEquirectangular: cgImage, options: TextureResource.CreateOptions(semantic: .hdrColor))
             let environment = try await EnvironmentResource(cube: textureResource, options: .init())
 
-            if let coreEnvironmentResourceAsset = environment.coreIBLAsset?.__as(REAssetRef.self) {
-                attributionHandler(coreEnvironmentResourceAsset)
+            // FIXME - analyze and remove unsafety - rdar://164559261
+            if let coreEnvironmentResourceAsset = unsafe environment.coreIBLAsset?.__as(unsafe REAssetRef.self) {
+                unsafe attributionHandler(coreEnvironmentResourceAsset)
             }
 
             applyIBL(environment)
@@ -369,7 +374,8 @@ extension WKRKEntity {
 
     @objc(setParentCoreEntity:preservingWorldTransform:)
     func setParentCore(_ coreEntity: REEntityRef, preservingWorldTransform: Bool) {
-        let parentEntity = Entity.fromCore(coreEntity)
+        // FIXME - analyze and remove unsafety - rdar://164559261
+        let parentEntity = unsafe Entity.fromCore(coreEntity)
         entity.setParent(parentEntity, preservingWorldTransform: preservingWorldTransform)
     }
     
