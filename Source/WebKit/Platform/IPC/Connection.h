@@ -57,6 +57,7 @@
 #include <wtf/OptionSet.h>
 #include <wtf/Ref.h>
 #include <wtf/RefPtr.h>
+#include <wtf/RetainReleaseSwift.h>
 #include <wtf/RunLoop.h>
 #include <wtf/ThreadAssertions.h>
 #include <wtf/ThreadSafeWeakPtr.h>
@@ -830,7 +831,7 @@ private:
 #endif
 
     friend class StreamClientConnection;
-};
+} SWIFT_SHARED_REFERENCE(refConnection, derefConnection);
 
 template<typename T>
 Error Connection::send(T&& message, uint64_t destinationID, OptionSet<SendOption> sendOptions, std::optional<Thread::QOS> qos)
@@ -1139,3 +1140,13 @@ inline void markCurrentlyDispatchedMessageAsInvalid(const RefPtr<Connection>& co
 
 
 } // namespace IPC
+
+inline void refConnection(IPC::Connection* obj)
+{
+    WTF::ref(obj);
+}
+
+inline void derefConnection(IPC::Connection* obj)
+{
+    WTF::deref(obj);
+}
