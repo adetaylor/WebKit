@@ -23,7 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-internal import WebKit_Internal_Cxx
+internal import WebKit_Internal
 internal import wtf
 
 internal typealias BackForwardFrameItemIdentifier = WebCore.BackForwardFrameItemIdentifier
