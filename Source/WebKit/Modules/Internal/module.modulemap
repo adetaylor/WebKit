@@ -7,4 +7,5 @@ module WebKit_Internal {
 module WebKit_Internal_Cxx {
     header "WebKitInternalCxx.h"
     export *
+    requires cplusplus20
 }
