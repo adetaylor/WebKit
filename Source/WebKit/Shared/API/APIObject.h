@@ -25,11 +25,13 @@
 
 #pragma once
 
+#include <swift/bridging>
 #include <wtf/HashTable.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/Platform.h>
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
+#include <wtf/RetainReleaseSwift.h>
 #include <wtf/ThreadSafeRefCounted.h>
 
 #if PLATFORM(COCOA)
@@ -284,7 +286,11 @@ private:
 
     CFTypeRef m_wrapper;
 #endif // DELEGATE_REF_COUNTING_TO_COCOA
-};
+}
+#if DELEGATE_REF_COUNTING_TO_COCOA
+SWIFT_SHARED_REFERENCE(.ref, .deref)
+#endif
+;
 
 template <Object::Type ArgumentType>
 class ObjectImpl : public Object {
