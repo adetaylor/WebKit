@@ -20,11 +20,13 @@
 
 #pragma once
 
+#include <swift/bridging>
 #include <wtf/Assertions.h>
 #include <wtf/Compiler.h>
 #include <wtf/FastMalloc.h>
 #include <wtf/MainThread.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/RetainReleaseSwift.h>
 
 namespace WTF {
 
@@ -205,7 +207,7 @@ protected:
     ~RefCounted()
     {
     }
-};
+} SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 template<typename T>
 inline void ref(T* obj)
