@@ -37,7 +37,6 @@
 #include <wtf/ObjectIdentifier.h>
 #include <wtf/OptionSet.h>
 #include <wtf/ProcessID.h>
-#include <wtf/RetainReleaseSwift.h>
 #include <wtf/RunLoop.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/WeakHashSet.h>
@@ -4100,19 +4099,9 @@ private:
     bool m_statusBarIsVisible { true };
     bool m_menuBarIsVisible { true };
     bool m_toolbarsAreVisible { true };
-} SWIFT_SHARED_REFERENCE(refWebPageProxy, derefWebPageProxy);
+};
 
 } // namespace WebKit
-
-inline void refWebPageProxy(WebKit::WebPageProxy* WTF_NONNULL obj)
-{
-    WTF::ref(obj);
-}
-
-inline void derefWebPageProxy(WebKit::WebPageProxy* WTF_NONNULL obj)
-{
-    WTF::deref(obj);
-}
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebPageProxy)
     static bool isType(const API::Object& object) { return object.type() == API::Object::Type::Page; }

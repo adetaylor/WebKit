@@ -29,7 +29,6 @@
 #include <WebCore/BackForwardItemIdentifier.h>
 #include <WebCore/FrameIdentifier.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
-#include <wtf/RetainReleaseSwift.h>
 
 namespace WebKit {
 
@@ -90,17 +89,6 @@ private:
     Ref<FrameState> m_frameState;
     WeakPtr<WebBackForwardListFrameItem> m_parent;
     Vector<Ref<WebBackForwardListFrameItem>> m_children;
-
-} SWIFT_SHARED_REFERENCE(refWebBackForwardListFrameItem, derefWebBackForwardListFrameItem);
+};
 
 } // namespace WebKit
-
-inline void refWebBackForwardListFrameItem(WebKit::WebBackForwardListFrameItem* obj)
-{
-    WTF::ref(obj);
-}
-
-inline void derefWebBackForwardListFrameItem(WebKit::WebBackForwardListFrameItem* obj)
-{
-    WTF::deref(obj);
-}
