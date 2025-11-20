@@ -85,7 +85,7 @@ WK_NO_STATIC_INITIALIZERS_Release_NO_ = $(WK_ERROR_WHEN_LINKING_WITH_STATIC_INIT
 WK_NO_STATIC_INITIALIZERS_Production__ = $(WK_ERROR_WHEN_LINKING_WITH_STATIC_INITIALIZERS);
 WK_NO_STATIC_INITIALIZERS_Production_NO_ = $(WK_ERROR_WHEN_LINKING_WITH_STATIC_INITIALIZERS);
 
-// Work around rdar://139232237 by hiding all exported symbols from the "Cxx" module.
+// Work around rdar://139232237 / rdar://165050676 by hiding all exported symbols from the "Cxx" module.
 UNEXPORT_SWIFT_CXX_LDFLAGS = -Wl,-unexported_symbol,_$s*3Cxx* -Wl,-unexported_symbol,_$s*defaultArg*;
 
 ALLOW_SHARED_CACHE = $(ALLOW_SHARED_CACHE_$(WK_RELOCATABLE_FRAMEWORKS)_$(USE_STAGING_INSTALL_PATH)_$(WK_PLATFORM_NAME));
