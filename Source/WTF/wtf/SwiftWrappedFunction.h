@@ -45,15 +45,12 @@ public:
         return m_fn(std::forward<In>(in)...);
     }
 
-    void swiftRef() { WTF::ref(this); }
-    void swiftDeref() { WTF::deref(this); }
-
 private:
     SwiftWrappedFunction(WTF::Function<Out(In...)>&& fn) : m_fn(WTFMove(fn)) {}
     Function<Out(In...)> m_fn;
     // The following line requires rdar://160696723, so if it doesn't build,
     // you're probably not using a sufficiently recent swiftc.
-} SWIFT_SHARED_REFERENCE(.swiftRef, .swiftDeref);
+};
 
 
 } // namespace WTF
