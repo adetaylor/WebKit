@@ -41,7 +41,7 @@
 #ifdef ENABLE_BACKFORWARDLIST_SWIFT
 // TODO work out what the __bridge_transfer stuff is about
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
+// #pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
 #ifdef GENERATE_SINGLE_SWIFT_INTEROP_FILE
 #include "WebKit-Swift.h"
 #else
