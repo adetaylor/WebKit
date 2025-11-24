@@ -202,12 +202,16 @@ public:
             delete const_cast<T*>(static_cast<const T*>(this));
     }
 
+    void swiftRef() {
+        ref();
+    }
+
 protected:
     RefCounted() { }
     ~RefCounted()
     {
     }
-} SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+} SWIFT_SHARED_REFERENCE(.swiftRef, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 template<typename T>
 inline void ref(T* obj)
