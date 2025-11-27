@@ -35,6 +35,7 @@ set(WTF_PUBLIC_HEADERS
     BumpPointerAllocator.h
     ButterflyArray.h
     ByteOrder.h
+    Cell.h
     CPUTime.h
     CanMakeWeakPtr.h
     CagedPtr.h
