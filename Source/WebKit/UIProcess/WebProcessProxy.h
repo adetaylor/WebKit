@@ -91,10 +91,10 @@
 #endif
 
 #ifdef __swift__
-#include <WebsiteData.h>
 #include <WebCompiledContentRuleListData.h>
-#include <WebPushMessage.h>
 #include <WebPermissionControllerProxy.h>
+#include <WebPushMessage.h>
+#include <WebsiteData.h>
 #endif
 
 namespace API {
