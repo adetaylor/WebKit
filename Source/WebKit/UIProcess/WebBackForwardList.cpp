@@ -34,21 +34,31 @@
 #include "WebBackForwardCache.h"
 #include "WebBackForwardListCounts.h"
 #include "WebBackForwardListFrameItem.h"
+#include "WebBackForwardListSwiftUtilities.h"
 #include "WebFrameProxy.h"
 #include "WebInspectorUtilities.h"
 #include "WebPageProxy.h"
 #include <WebCore/DiagnosticLoggingClient.h>
 #include <WebCore/DiagnosticLoggingKeys.h>
+#include <wtf/Assertions.h>
 #include <wtf/DebugUtilities.h>
 #include <wtf/HexNumber.h>
+#include <wtf/Ref.h>
+#include <wtf/StdLibExtras.h>
 #include <wtf/text/StringBuilder.h>
 
 #if PLATFORM(COCOA)
 #include <wtf/cocoa/RuntimeApplicationChecksCocoa.h>
 #endif
 
+#if ENABLE(BACKFORWARDLIST_SWIFT)
+#include "WebKit-Swift.h"
+#endif
+
 namespace WebKit {
 using namespace WebCore;
+
+#if !ENABLE(BACKFORWARDLIST_SWIFT)
 
 static const unsigned DefaultCapacity = 100;
 
@@ -809,4 +819,134 @@ String WebBackForwardList::loggingString()
     return builder.toString();
 }
 
+#else // ENABLE(BACKFORWARDLIST_SWIFT)
+
+WebBackForwardListAPIImpl::WebBackForwardListAPIImpl(WebBackForwardList& impl)
+    : m_impl(WTF::makeUniqueWithoutFastMallocCheck<WebBackForwardList>(impl))
+{
+}
+
+WebBackForwardListAPIImpl::~WebBackForwardListAPIImpl()
+{
+}
+
+RefPtr<WebBackForwardListItem> WebBackForwardListAPIImpl::protectedCurrentItem() const
+{
+    return m_impl->protectedCurrentItem();
+}
+
+WebBackForwardListItem* WebBackForwardListAPIImpl::backItem() const
+{
+    return m_impl->backItem();
+}
+
+WebBackForwardListItem* WebBackForwardListAPIImpl::forwardItem() const
+{
+    return m_impl->forwardItem();
+}
+
+RefPtr<WebBackForwardListItem> WebBackForwardListAPIImpl::protectedItemAtIndex(int index) const
+{
+    return m_impl->itemAtIndex(index);
+}
+
+unsigned WebBackForwardListAPIImpl::backListCount() const
+{
+    return m_impl->backListCount();
+}
+
+unsigned WebBackForwardListAPIImpl::forwardListCount() const
+{
+    return m_impl->forwardListCount();
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::backList() const
+{
+    return backListAsAPIArrayWithLimit(backListCount());
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::forwardList() const
+{
+    return forwardListAsAPIArrayWithLimit(forwardListCount());
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::backListAsAPIArrayWithLimit(unsigned limit) const
+{
+    return m_impl->backListAsAPIArrayWithLimit(limit);
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::forwardListAsAPIArrayWithLimit(unsigned limit) const
+{
+    return m_impl->forwardListAsAPIArrayWithLimit(limit);
+}
+
+void WebBackForwardListAPIImpl::removeAllItems()
+{
+    m_impl->removeAllItems();
+}
+
+void WebBackForwardListAPIImpl::clear()
+{
+    m_impl->clear();
+}
+
+String WebBackForwardListAPIImpl::loggingString()
+{
+    return String::fromUTF8WithLatin1Fallback(std::string(m_impl->loggingString()));
+}
+
+#endif // ENABLE(BACKFORWARDLIST_SWIFT)
+
 } // namespace WebKit
+
+WebCore::BackForwardFrameItemIdentifier generateBackForwardFrameItemIdentifier()
+{
+    return WebCore::BackForwardFrameItemIdentifier::generate();
+}
+
+WebCore::BackForwardItemIdentifier generateBackForwardItemIdentifier()
+{
+    return WebCore::BackForwardItemIdentifier::generate();
+}
+
+void doLog(const char* WTF_NONNULL msg)
+{
+    LOG(BackForward, "%s", msg);
+}
+
+void doLoadingReleaseLog(const char* WTF_NONNULL msg)
+{
+    RELEASE_LOG(Loading, "%s", msg);
+}
+
+void messageCheckFailed(Ref<WebKit::WebProcessProxy> process)
+{
+    MESSAGE_CHECK_BASE(false, process->connection());
+}
+
+bool isPlatformCocoa()
+{
+#if PLATFORM(COCOA)
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool isPlatformCocoaOrGTK()
+{
+#if PLATFORM(COCOA) || PLATFORM(GTK)
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool isMacMimeoPhotoProject()
+{
+#if PLATFORM(MAC)
+    return WTF::MacApplication::isMimeoPhotoProject();
+#else
+    return false;
+#endif
+}

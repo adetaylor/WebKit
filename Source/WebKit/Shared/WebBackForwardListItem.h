@@ -33,6 +33,7 @@
 #include <wtf/CheckedPtr.h>
 #include <wtf/Ref.h>
 #include <wtf/RetainReleaseSwift.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 #include <wtf/text/WTFString.h>
 
@@ -65,6 +66,10 @@ public:
 
     const String& originalURL() const;
     const String& url() const;
+#ifdef __swift__
+    // Workaround for rdar://162695942
+    String urlCopy() const { return url(); }
+#endif
     const String& title() const;
     bool wasCreatedByJSWithoutUserInteraction() const;
 
