@@ -33,6 +33,7 @@
 #include <wtf/CheckedPtr.h>
 #include <wtf/Ref.h>
 #include <wtf/RetainReleaseSwift.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 #include <wtf/text/WTFString.h>
 
@@ -65,6 +66,10 @@ public:
 
     const String& originalURL() const;
     const String& url() const;
+#ifdef __swift__
+    // Workaround for rdar://162695942
+    String urlCopy() const { return url(); }
+#endif
     const String& title() const;
     bool wasCreatedByJSWithoutUserInteraction() const;
 
@@ -76,6 +81,7 @@ public:
     bool itemIsInSameDocument(const WebBackForwardListItem&) const;
     bool itemIsClone(const WebBackForwardListItem&);
 
+    void setNullSnapshot(); // available on all platforms so we can call from Swift code which is unaware of platform macros
 #if PLATFORM(COCOA) || PLATFORM(GTK) || (PLATFORM(WPE) && USE(SKIA))
     ViewSnapshot* snapshot() const { return m_snapshot.get(); }
     void setSnapshot(RefPtr<ViewSnapshot>&& snapshot) { m_snapshot = WTF::move(snapshot); }
@@ -86,7 +92,7 @@ public:
     WebBackForwardCacheEntry* backForwardCacheEntry() const { return m_backForwardCacheEntry.get(); }
     RefPtr<WebBackForwardCacheEntry> protectedBackForwardCacheEntry() const;
 
-    SuspendedPageProxy* suspendedPage() const;
+    SuspendedPageProxy* suspendedPage() const SWIFT_RETURNS_INDEPENDENT_VALUE;
 
     std::optional<WebCore::FrameIdentifier> navigatedFrameID() const { return m_navigatedFrameID; }
 

@@ -23,8 +23,6 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
 // Anything needing to use Swift types or functions should include
 // this rather than directly including WebKit-Swift-Generated.h. Its purposes:
 // - include any pre-requisite headers
@@ -32,10 +30,19 @@
 // - select between the headers generated using built-in or custom build
 //   actions on different SDK versions
 
-// #include statements should go here when the generated header
-// file depends upon C++ types. rdar://165068038 may resolve the need for
-// this.
+// If Swift function parameters depend on C++ types, the relevant headers
+// must be included here. rdar://165068038
+// If Swift functions return an A<B> then it may be necessary to include
+// the definition of B here, so that its destructor can be called.
+#include "APIArray.h"
 #include "IPCTesterReceiverMessages.h"
+#include "WebBackForwardListItem.h"
+#include "WebBackForwardListMessages.h"
+#include "WebBackForwardListSwiftUtilities.h"
+
+#ifdef __OBJC__
+#include "WKUIDelegatePrivate.h"
+#endif
 
 // rdar://165192318
 IGNORE_CLANG_WARNINGS_BEGIN("arc-bridge-casts-disallowed-in-nonarc")
