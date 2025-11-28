@@ -26,6 +26,10 @@
 #import "config.h"
 #import "WKWebViewMac.h"
 
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+#include "WebKit-Swift.h"
+#endif
+
 #if PLATFORM(MAC)
 
 #import "AppKitSPI.h"
