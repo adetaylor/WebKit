@@ -261,6 +261,7 @@ set(WTF_PUBLIC_HEADERS
     RecursiveLockAdapter.h
     RedBlackTree.h
     Ref.h
+    RefCountable.h
     RefCountDebugger.h
     RefCounted.h
     RefCountedAndCanMakeWeakPtr.h

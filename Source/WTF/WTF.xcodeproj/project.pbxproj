@@ -143,6 +143,7 @@
 		5C12460E2DC25A130077D423 /* SwiftCXXThunk.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C12460D2DC25A130077D423 /* SwiftCXXThunk.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C1F05932164356B0039302C /* CFURLExtras.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C1F05912164356B0039302C /* CFURLExtras.cpp */; };
 		5C1F0595216437B30039302C /* URLCF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C1F0594216437B30039302C /* URLCF.cpp */; };
+		5C6222A62ED864D100AFEC2D /* RefCountable.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6222A52ED864D100AFEC2D /* RefCountable.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C6552C029423F85008CD0F3 /* ThreadSafeWeakHashSet.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6552BF29423F85008CD0F3 /* ThreadSafeWeakHashSet.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CB8CB6D28C16CB700539906 /* ArgumentCoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB8CB6C28C16CB700539906 /* ArgumentCoder.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CC0EE7521629F1900A1A842 /* URLParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CC0EE7321629F1900A1A842 /* URLParser.cpp */; };
@@ -1383,6 +1384,7 @@
 		5C1F05922164356B0039302C /* CFURLExtras.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CFURLExtras.h; sourceTree = "<group>"; };
 		5C1F0594216437B30039302C /* URLCF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = URLCF.cpp; sourceTree = "<group>"; };
 		5C1F0597216439940039302C /* URLHash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = URLHash.h; sourceTree = "<group>"; };
+		5C6222A52ED864D100AFEC2D /* RefCountable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RefCountable.h; sourceTree = "<group>"; };
 		5C6552BF29423F85008CD0F3 /* ThreadSafeWeakHashSet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadSafeWeakHashSet.h; sourceTree = "<group>"; };
 		5C7C88D31D0A3A0A009D2F6D /* UniqueRef.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UniqueRef.h; sourceTree = "<group>"; };
 		5CB8CB6C28C16CB700539906 /* ArgumentCoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgumentCoder.h; sourceTree = "<group>"; };
@@ -2614,6 +2616,7 @@
 				0FDE87F61DFD07CC0064C390 /* RecursiveLockAdapter.h */,
 				A8A472FE151A825B004123FF /* RedBlackTree.h */,
 				26299B6D17A9E5B800ADEBE5 /* Ref.h */,
+				5C6222A52ED864D100AFEC2D /* RefCountable.h */,
 				14DFC2882ED23C5A0072E4A6 /* RefCountDebugger.cpp */,
 				14DFC2862ED23C3C0072E4A6 /* RefCountDebugger.h */,
 				A8A472FF151A825B004123FF /* RefCounted.h */,
@@ -3760,6 +3763,7 @@
 				DD3DC91827A4BF8E007E5B61 /* RecursiveLockAdapter.h in Headers */,
 				DD3DC94127A4BF8E007E5B61 /* RedBlackTree.h in Headers */,
 				DD3DC92C27A4BF8E007E5B61 /* Ref.h in Headers */,
+				5C6222A62ED864D100AFEC2D /* RefCountable.h in Headers */,
 				14DFC2872ED23C3C0072E4A6 /* RefCountDebugger.h in Headers */,
 				DD3DC87927A4BF8E007E5B61 /* RefCounted.h in Headers */,
 				140ECC342C99057100473E19 /* RefCountedAndCanMakeWeakPtr.h in Headers */,

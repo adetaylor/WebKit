@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,60 +20,66 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #pragma once
 
-#include <wtf/RefCountable.h>
-#include <wtf/RefPtr.h>
+#include <wtf/Ref.h>
+#include <wtf/RetainReleaseSwift.h>
 #include <wtf/ThreadSafeRefCounted.h>
+#include <wtf/TypeTraits.h>
 
 namespace WTF {
 
-// Box<T> is a reference-counted pointer to T that allocates T using FastMalloc and prepends a reference
-// count to it. It's almost just RefPtr<RefCountable<T>>, but has convenience operators.
+// RefCountable<T> makes any type reference-counted, including move-only types
+// In Swift, you can use cell.pointee.method()
 template<typename T>
-class Box {
-    WTF_DEPRECATED_MAKE_FAST_ALLOCATED(Box);
+class RefCountable : public ThreadSafeRefCounted<RefCountable<T>> {
 public:
-    Box() = default;
-    Box(Box&&) = default;
-    Box(const Box&) = default;
-
-    Box(std::nullptr_t)
-    {
-    }
-
-    Box& operator=(Box&&) = default;
-    Box& operator=(const Box&) = default;
-
     template<typename... Arguments>
-    static Box create(Arguments&&... arguments)
+    static Ref<RefCountable> create(Arguments&&... arguments)
     {
-        Box result;
-        result.m_data = RefCountable<T>::create(std::forward<Arguments>(arguments)...);
-        return result;
+        static_assert(!HasRefPtrMemberFunctions<T>::value, "T should not be RefCounted");
+        return adoptRef(*new RefCountable(std::forward<Arguments>(arguments)...));
     }
 
-    bool isValid() const { return static_cast<bool>(m_data); }
-
-    T* get() const
+    RefCountable(T&& value)
+        : m_value(WTFMove(value))
     {
-        if (!isValid())
-            return nullptr;
-        return **m_data;
     }
 
-    T& operator*() const { RELEASE_ASSERT(isValid()); return ***m_data; }
-    T* operator->() const { RELEASE_ASSERT(isValid()); return **m_data; }
+    T* WTF_NONNULL operator*()
+    {
+        return &m_value;
+    }
 
-    explicit operator bool() const { return isValid(); }
+    const T* WTF_NONNULL operator*() const
+    {
+        return &m_value;
+    }
+
+#ifdef __swift__
+    void swiftRef()
+    {
+        WTF::ref(this);
+    }
+
+    void swiftDeref()
+    {
+        WTF::deref(this);
+    }
+#endif
 
 private:
-    RefPtr<RefCountable<T>> m_data;
-};
+    template<typename... Arguments>
+    RefCountable(Arguments&&... arguments)
+        : m_value(std::forward<Arguments>(arguments)...)
+    {
+        static_assert(!HasRefPtrMemberFunctions<T>::value, "T should not be RefCounted");
+    }
+
+    T m_value;
+} SWIFT_SHARED_REFERENCE(.swiftRef, .swiftDeref);
 
 } // namespace WTF
-
-using WTF::Box;
