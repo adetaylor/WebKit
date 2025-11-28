@@ -150,6 +150,7 @@
 #include "WebBackForwardListFrameItem.h"
 #include "WebBackForwardListItem.h"
 #include "WebBackForwardListMessages.h"
+#include "WebBackForwardListSwiftUtilities.h"
 #include "WebContextMenuItem.h"
 #include "WebContextMenuProxy.h"
 #include "WebDateTimePicker.h"
@@ -453,7 +454,7 @@
 #include "ModelPresentationManagerProxy.h"
 #endif
 
-#if ENABLE(SWIFT_DEMO_URI_SCHEME)
+#if ENABLE(SWIFT_DEMO_URI_SCHEME) || ENABLE_BACKFORWARDLIST_SWIFT
 #include "WebKit-Swift.h"
 #endif
 
@@ -853,7 +854,8 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, Ref
     , m_mainFrameProcessActivityState(makeUniqueRef<WebProcessActivityState>(*this))
     , m_initialCapitalizationEnabled(configuration->initialCapitalizationEnabled())
     , m_cpuLimit(configuration->cpuLimit())
-    , m_backForwardList(WebBackForwardList::create(*this))
+    , m_backForwardList(std::make_unique<WebBackForwardList>(WebBackForwardList::init(*this)))
+    , m_backForwardListAPI(WebBackForwardListAPIImpl::create(*m_backForwardList))
     , m_waitsForPaintAfterViewDidMoveToWindow(configuration->waitsForPaintAfterViewDidMoveToWindow())
     , m_controlledByAutomation(configuration->isControlledByAutomation())
 #if PLATFORM(COCOA)
@@ -1032,10 +1034,13 @@ Ref<WebPageProxy> WebPageProxy::Internals::protectedPage() const
     return page.get();
 }
 
+Ref<WebBackForwardListMessageForwarder> WebPageProxy::backForwardListMessageReceiver() const
+ { return m_backForwardList->getMessageReceiver(); }
+
 void WebPageProxy::addAllMessageReceivers()
 {
     Ref process = m_legacyMainFrameProcess;
-    internals().messageReceiverRegistration.startReceivingMessages(process, m_webPageID, *this, backForwardList());
+    internals().messageReceiverRegistration.startReceivingMessages(process, m_webPageID, *this, backForwardListMessageReceiver());
     process->addMessageReceiver(Messages::NotificationManagerMessageHandler::messageReceiverName(), m_webPageID, internals().protectedNotificationManagerMessageHandler());
 }
 
@@ -1680,7 +1685,8 @@ RefPtr<API::Navigation> WebPageProxy::launchProcessForReload()
         return nullptr;
     }
 
-    Ref navigation = m_navigationState->createReloadNavigation(legacyMainFrameProcess().coreProcessIdentifier(), m_backForwardList->protectedCurrentItem());
+    // TODO reinstate Protected
+    Ref navigation = m_navigationState->createReloadNavigation(legacyMainFrameProcess().coreProcessIdentifier(), m_backForwardList->currentItem());
 
     String url = currentURL();
     if (!url.isEmpty()) {
@@ -2107,7 +2113,7 @@ RefPtr<API::Navigation> WebPageProxy::loadRequest(WebCore::ResourceRequest&& req
     if (!hasRunningProcess())
         launchProcess(Site { request.url() }, ProcessLaunchReason::InitialProcess);
 
-    Ref navigation = m_navigationState->createLoadRequestNavigation(legacyMainFrameProcess().coreProcessIdentifier(), ResourceRequest(request), m_backForwardList->protectedCurrentItem());
+    Ref navigation = m_navigationState->createLoadRequestNavigation(legacyMainFrameProcess().coreProcessIdentifier(), ResourceRequest(request), m_backForwardList->currentItem());
 
     if (lastNavigationAction)
         navigation->setLastNavigationAction(*lastNavigationAction);
@@ -2257,7 +2263,7 @@ RefPtr<API::Navigation> WebPageProxy::loadFile(const String& fileURLString, cons
         }
     }
 
-    Ref navigation = m_navigationState->createLoadRequestNavigation(legacyMainFrameProcess().coreProcessIdentifier(), ResourceRequest(URL { fileURL }), m_backForwardList->protectedCurrentItem());
+    Ref navigation = m_navigationState->createLoadRequestNavigation(legacyMainFrameProcess().coreProcessIdentifier(), ResourceRequest(URL { fileURL }), m_backForwardList->currentItem());
 
     navigation->markRequestAsFromClientInput();
 
@@ -2392,7 +2398,7 @@ RefPtr<API::Navigation> WebPageProxy::loadSimulatedRequest(WebCore::ResourceRequ
     if (!hasRunningProcess())
         launchProcess(Site { simulatedRequest.url() }, ProcessLaunchReason::InitialProcess);
 
-    Ref navigation = m_navigationState->createSimulatedLoadWithDataNavigation(legacyMainFrameProcess().coreProcessIdentifier(), ResourceRequest(simulatedRequest), makeUnique<API::SubstituteData>(Vector(data->span()), ResourceResponse(simulatedResponse), WebCore::SubstituteData::SessionHistoryVisibility::Visible), m_backForwardList->protectedCurrentItem());
+    Ref navigation = m_navigationState->createSimulatedLoadWithDataNavigation(legacyMainFrameProcess().coreProcessIdentifier(), ResourceRequest(simulatedRequest), makeUnique<API::SubstituteData>(Vector(data->span()), ResourceResponse(simulatedResponse), WebCore::SubstituteData::SessionHistoryVisibility::Visible), m_backForwardList->currentItem());
 
     if (shouldForceForegroundPriorityForClientNavigation())
         navigation->setClientNavigationActivity(legacyMainFrameProcess().protectedThrottler()->foregroundActivity("Client navigation"_s));
@@ -2553,7 +2559,7 @@ RefPtr<API::Navigation> WebPageProxy::reload(OptionSet<WebCore::ReloadOption> op
     if (!hasRunningProcess())
         return launchProcessForReload();
 
-    Ref navigation = m_navigationState->createReloadNavigation(legacyMainFrameProcess().coreProcessIdentifier(), m_backForwardList->protectedCurrentItem());
+    Ref navigation = m_navigationState->createReloadNavigation(legacyMainFrameProcess().coreProcessIdentifier(), m_backForwardList->currentItem());
 
     String url = currentURL();
     if (!url.isEmpty()) {
@@ -2663,11 +2669,11 @@ RefPtr<API::Navigation> WebPageProxy::goToBackForwardItem(WebBackForwardListFram
         launchProcess(Site { URL { item->url() } }, ProcessLaunchReason::InitialProcess);
 
         if (item != m_backForwardList->currentItem())
-            m_backForwardList->goToItem(*item);
+            m_backForwardList->goToItem(&*item);
     }
 
     Ref process = m_legacyMainFrameProcess;
-    Ref navigation = m_navigationState->createBackForwardNavigation(process->coreProcessIdentifier(), frameItem, m_backForwardList->protectedCurrentItem(), frameLoadType);
+    Ref navigation = m_navigationState->createBackForwardNavigation(process->coreProcessIdentifier(), frameItem, m_backForwardList->currentItem(), frameLoadType);
     Ref pageLoadState = internals().pageLoadState;
     auto transaction = pageLoadState->transaction();
     pageLoadState->setPendingAPIRequest(transaction, { navigation->navigationID(), item->url() });
@@ -5648,7 +5654,7 @@ SessionState WebPageProxy::sessionState(WTF::Function<bool (WebBackForwardListIt
     RELEASE_ASSERT(RunLoop::isMain());
     SessionState sessionState;
 
-    sessionState.backForwardListState = m_backForwardList->backForwardListState(WTFMove(filter));
+    sessionState.backForwardListState = m_backForwardList->backForwardListState(WebBackForwardListItemFilter::create(WTFMove(filter)).ptr());
 
     String provisionalURLString = internals().pageLoadState.pendingAPIRequestURL();
     if (provisionalURLString.isEmpty())
@@ -7457,7 +7463,7 @@ static OptionSet<CrossSiteNavigationDataTransfer::Flag> checkIfNavigationContain
 void WebPageProxy::didCommitLoadForFrame(IPC::Connection& connection, FrameIdentifier frameID, FrameInfoData&& frameInfo, ResourceRequest&& request, std::optional<WebCore::NavigationIdentifier> navigationID, String&& mimeType, bool frameHasCustomContentProvider, FrameLoadType frameLoadType, const CertificateInfo& certificateInfo, bool usedLegacyTLS, bool wasPrivateRelayed, String&& proxyName, const WebCore::ResourceResponseSource source, bool containsPluginDocument, HasInsecureContent hasInsecureContent, MouseEventPolicy mouseEventPolicy, const UserData& userData)
 {
     LOG(Loading, "(Loading) WebPageProxy %" PRIu64 " didCommitLoadForFrame in navigation %" PRIu64, identifier().toUInt64(), navigationID ? navigationID->toUInt64() : 0);
-    LOG(BackForward, "(Back/Forward) After load commit, back/forward list is now:%s", m_backForwardList->loggingString().utf8().data());
+    LOG(BackForward, "(Back/Forward) After load commit, back/forward list is now:%s", std::string(m_backForwardList->loggingString()).data());
 
     RefPtr protectedPageClient { pageClient() };
 
@@ -8254,7 +8260,7 @@ void WebPageProxy::decidePolicyForNavigationAction(Ref<WebProcessProxy>&& proces
     }
 
     if (!navigation) {
-        Ref backForwardList = m_backForwardList;
+        auto& backForwardList = m_backForwardList;
         if (auto targetBackForwardItemIdentifier = navigationActionData.targetBackForwardItemIdentifier) {
             if (RefPtr item = backForwardList->itemForID(*targetBackForwardItemIdentifier)) {
                 RefPtr fromItem = navigationActionData.sourceBackForwardItemIdentifier ? backForwardList->itemForID(*navigationActionData.sourceBackForwardItemIdentifier) : nullptr;
@@ -8264,7 +8270,7 @@ void WebPageProxy::decidePolicyForNavigationAction(Ref<WebProcessProxy>&& proces
             }
         }
         if (!navigation)
-            navigation = m_navigationState->createLoadRequestNavigation(process->coreProcessIdentifier(), ResourceRequest(request), backForwardList->protectedCurrentItem());
+            navigation = m_navigationState->createLoadRequestNavigation(process->coreProcessIdentifier(), ResourceRequest(request), backForwardList->currentItem());
     }
 
     if (!checkURLReceivedFromCurrentOrPreviousWebProcess(process, request.url())) {
@@ -10302,12 +10308,12 @@ void WebPageProxy::requestDOMPasteAccess(IPC::Connection& connection, DOMPasteAc
 
 void WebPageProxy::backForwardAddItemShared(IPC::Connection& connection, Ref<FrameState>&& navigatedFrameState, LoadedWebArchive loadedWebArchive)
 {
-    m_backForwardList->backForwardAddItemShared(connection, WTFMove(navigatedFrameState), loadedWebArchive);
+    m_backForwardList->backForwardAddItemShared(&connection, navigatedFrameState.ptr(), loadedWebArchive);
 }
 
 void WebPageProxy::backForwardGoToItemShared(BackForwardItemIdentifier itemID, CompletionHandler<void(const WebBackForwardListCounts&)>&& completionHandler)
 {
-    m_backForwardList->backForwardGoToItemShared(itemID, WTFMove(completionHandler));
+    m_backForwardList->backForwardGoToItemShared(itemID, ConstCountsCompletionHandler::create(WTFMove(completionHandler)).ptr());
 }
 
 void WebPageProxy::compositionWasCanceled()

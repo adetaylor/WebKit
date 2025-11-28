@@ -39,18 +39,28 @@
 #include "WebPageProxy.h"
 #include <WebCore/DiagnosticLoggingClient.h>
 #include <WebCore/DiagnosticLoggingKeys.h>
+#include <wtf/Assertions.h>
 #include <wtf/DebugUtilities.h>
 #include <wtf/HexNumber.h>
 #include <wtf/text/StringBuilder.h>
+#include <wtf/Ref.h>
 
 #if PLATFORM(COCOA)
 #include <wtf/cocoa/RuntimeApplicationChecksCocoa.h>
 #endif
 
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+#include "WebKit-Swift.h"
+#endif
+
 namespace WebKit {
 using namespace WebCore;
 
+#ifndef ENABLE_BACKFORWARDLIST_SWIFT
+
 static const unsigned DefaultCapacity = 100;
+
+// CONSTRUCTION/DESTRUCTION
 
 WebBackForwardList::WebBackForwardList(WebPageProxy& page)
     : m_page(&page)
@@ -518,6 +528,7 @@ void WebBackForwardList::setItemsAsRestoredFromSession()
 
 void WebBackForwardList::setItemsAsRestoredFromSessionIf(NOESCAPE Function<bool(WebBackForwardListItem&)>&& functor)
 {
+    RELEASE_LOG(Loading, "UI Navigation is skipping a WebBackForwardListItem because it was added by JavaScript without user interaction");
     for (auto& entry : m_entries) {
         if (functor(entry))
             entry->setWasRestoredFromSession();
@@ -530,9 +541,7 @@ void WebBackForwardList::didRemoveItem(WebBackForwardListItem& backForwardListIt
 
     protectedPage()->backForwardRemovedItem(backForwardListItem.identifier());
 
-#if PLATFORM(COCOA) || PLATFORM(GTK)
-    backForwardListItem.setSnapshot(nullptr);
-#endif
+    backForwardListItem.setNullSnapshot();
 }
 
 enum class NavigationDirection { Backward, Forward };
@@ -791,6 +800,7 @@ void WebBackForwardList::backForwardItemAtIndex(int32_t index, FrameIdentifier f
         completionHandler(nullptr);
 }
 
+// TODO take a const WebBackForwardListCounts like backForwardListGoToItemShared?
 void WebBackForwardList::backForwardListCounts(CompletionHandler<void(WebBackForwardListCounts&&)>&& completionHandler)
 {
     completionHandler(counts());
@@ -812,4 +822,109 @@ String WebBackForwardList::loggingString()
     return builder.toString();
 }
 
+#else // ENABLE_BACKFORWARDLIST_SWIFT
+
+WebBackForwardListAPIImpl::WebBackForwardListAPIImpl(WebBackForwardList& impl)
+    : m_impl(std::make_unique<WebBackForwardList>(impl))
+{
+}
+
+WebBackForwardListAPIImpl::~WebBackForwardListAPIImpl()
+{
+    // TODO this is not good enough since this is now just the shim
+    m_impl->preDestructionChecks();
+}
+
+RefPtr<WebBackForwardListItem> WebBackForwardListAPIImpl::protectedCurrentItem() const
+{
+    return m_impl->currentItem();
+}
+
+WebBackForwardListItem* WebBackForwardListAPIImpl::backItem() const
+{
+    return m_impl->backItem();
+}
+
+RefPtr<WebBackForwardListItem> WebBackForwardListAPIImpl::protectedBackItem() const
+{
+    return backItem();
+}
+
+WebBackForwardListItem* WebBackForwardListAPIImpl::forwardItem() const
+{
+    return m_impl->forwardItem();
+}
+
+RefPtr<WebBackForwardListItem> WebBackForwardListAPIImpl::protectedForwardItem() const
+{
+    return forwardItem();
+}
+
+RefPtr<WebBackForwardListItem> WebBackForwardListAPIImpl::protectedItemAtIndex(int index) const
+{
+    return m_impl->itemAtIndex(index);
+}
+
+unsigned WebBackForwardListAPIImpl::backListCount() const
+{
+    return m_impl->backListCount();
+}
+
+unsigned WebBackForwardListAPIImpl::forwardListCount() const
+{
+    return m_impl->forwardListCount();
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::backList() const
+{
+    return backListAsAPIArrayWithLimit(backListCount());
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::forwardList() const
+{
+    return forwardListAsAPIArrayWithLimit(forwardListCount());
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::backListAsAPIArrayWithLimit(unsigned limit) const
+{
+    return *m_impl->backListAsAPIArrayWithLimit(limit);
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::forwardListAsAPIArrayWithLimit(unsigned limit) const
+{
+    return *m_impl->forwardListAsAPIArrayWithLimit(limit);
+}
+
+void WebBackForwardListAPIImpl::removeAllItems()
+{
+    m_impl->removeAllItems();
+}
+
+void WebBackForwardListAPIImpl::clear()
+{
+    m_impl->clear();
+}
+
+String WebBackForwardListAPIImpl::loggingString()
+{
+    return String::fromUTF8WithLatin1Fallback(std::string(m_impl->loggingString()));
+}
+
+#endif // ENABLE_BACKFORWARDLIST_SWIFT
+
 } // namespace WebKit
+
+WebCore::BackForwardFrameItemIdentifier generateBackForwardFrameItemIdentifier() {
+    return WebCore::BackForwardFrameItemIdentifier::generate();
+}
+WebCore::BackForwardItemIdentifier generateBackForwardItemIdentifier() {
+    return WebCore::BackForwardItemIdentifier::generate();
+}
+
+void doLog(const char* _Nonnull msg) {
+    LOG(BackForward, "%s", msg);
+}
+
+void doLoadingReleaseLog(const char* _Nonnull msg) {
+    RELEASE_LOG(Loading, "%s", msg);
+}
