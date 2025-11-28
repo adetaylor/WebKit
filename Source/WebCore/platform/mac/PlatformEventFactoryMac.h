@@ -32,10 +32,6 @@
 
 #if PLATFORM(MAC)
 
-#if defined(__OBJC__)
-#include <AppKit/AppKit.h>
-#endif
-
 namespace WebCore {
 
 class PlatformEventFactory {
