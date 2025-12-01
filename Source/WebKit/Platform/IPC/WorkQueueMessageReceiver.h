@@ -40,7 +40,6 @@ public:
 private:
     friend class Connection;
     virtual void didReceiveMessage(Connection&, Decoder&) { ASSERT_NOT_REACHED(); }
-    virtual void didReceiveMessageWithReplyHandler(Decoder&, Function<void(UniqueRef<IPC::Encoder>&&)>&&) { ASSERT_NOT_REACHED(); }
     virtual void didReceiveSyncMessage(Connection&, Decoder&, UniqueRef<Encoder>&)
     {
         ASSERT_NOT_REACHED();

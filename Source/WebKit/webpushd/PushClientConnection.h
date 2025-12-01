@@ -94,7 +94,7 @@ public:
 
     void connectionClosed();
 
-    void didReceiveMessageWithReplyHandler(IPC::Decoder&, Function<void(UniqueRef<IPC::Encoder>&&)>&&) override;
+    void didReceiveMessageWithReplyHandler(IPC::Decoder&, Function<void(UniqueRef<IPC::Encoder>&&)>&&);
 
 private:
     PushClientConnection(xpc_connection_t, String&& hostAppCodeSigningIdentifier, bool hostAppHasPushInjectEntitlement, String&& pushPartitionString, std::optional<WTF::UUID>&& dataStoreIdentifier, bool declarativeWebPushEnabled);
