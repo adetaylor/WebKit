@@ -32,10 +32,7 @@ DECLARE_SYSTEM_HEADER
 
 #if ENABLE(WRITING_TOOLS)
 
-#if USE(APPLE_INTERNAL_SDK)
-#import <WritingTools/WTSession_Private.h>
-#import <WritingTools/WritingTools.h>
-#else
+// FIXME: (rdar://149216417) Import WritingTools when using the internal SDK instead of using forward declarations.
 
 #import <Foundation/Foundation.h>
 
@@ -233,7 +230,5 @@ typedef NS_ENUM(NSInteger, WTFormSheetUIType) {
 @end
 
 NS_ASSUME_NONNULL_END
-
-#endif
 
 #endif // ENABLE(WRITING_TOOLS)

@@ -28,7 +28,7 @@
 
 #if TARGET_OS_IPHONE
 
-#import <WebCore/WKView.h>
+#import "WKView.h"
 
 #ifdef __cplusplus
 extern "C" {
