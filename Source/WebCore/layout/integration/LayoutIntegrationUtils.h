@@ -25,7 +25,8 @@
 
 #pragma once
 
-#include <WebCore/BlockLayoutState.h>
+#include "BlockLayoutState.h"
+
 #include <WebCore/LayoutPoint.h>
 #include <WebCore/LayoutUnit.h>
 #include <WebCore/RenderBlockFlow.h>

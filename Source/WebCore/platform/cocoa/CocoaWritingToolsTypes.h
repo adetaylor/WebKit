@@ -31,8 +31,6 @@
 
 #if PLATFORM(IOS_FAMILY)
 
-#import <UIKit/UITextInputTraits.h>
-
 using CocoaWritingToolsBehavior = UIWritingToolsBehavior;
 
 constexpr auto CocoaWritingToolsBehaviorNone = UIWritingToolsBehaviorNone;
