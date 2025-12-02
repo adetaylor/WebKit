@@ -133,6 +133,7 @@
 #define NSAccessibilityHeadingLevelAttribute @"AXHeadingLevel"
 #define NSAccessibilityLanguageAttribute @"AXLanguage"
 #define NSAccessibilityPathAttribute @"AXPath"
+#define NSAccessibilitySelectedCellsAttribute @"AXSelectedCells"
 #define NSAccessibilityTextCompletionAttribute @"AXTextCompletion"
 #define NSAccessibilityTextInputMarkedRangeAttribute @"AXTextInputMarkedRange"
 #define NSAccessibilityVisitedAttribute @"AXVisited"
