@@ -49,6 +49,7 @@
 #include "WebBackForwardListFrameItem.h"
 #include "WebBackForwardListItem.h"
 #include "WebBackForwardListMessages.h"
+#include "WebBackForwardListSwiftUtilities.h"
 #include "WebErrors.h"
 #include "WebFrameProxy.h"
 #include "WebNavigationDataStore.h"
@@ -62,6 +63,10 @@
 #include "WebProcessProxy.h"
 #include <WebCore/ShouldTreatAsContinuingLoad.h>
 #include <wtf/TZoneMallocInlines.h>
+
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+#include "WebKit-Swift.h"
+#endif
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, process().connection())
 
@@ -350,6 +355,16 @@ void ProvisionalPageProxy::goToBackForwardItem(API::Navigation& navigation, WebB
 
     // FIXME: This is a static analysis false positive. The lamda passed to `setItemsAsRestoredFromSessionIf()` is marked as NOESCAPE so capturing
     // `this` is actually safe.
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+auto backForwardList = page->backForwardList();
+    SUPPRESS_UNCOUNTED_LAMBDA_CAPTURE backForwardList.setItemsAsRestoredFromSessionIf(WebBackForwardListItemFilter::create([this, targetItem = Ref { item }](auto& item) {
+        if (auto* backForwardCacheEntry = item.backForwardCacheEntry()) {
+            if (backForwardCacheEntry->processIdentifier() == process().coreProcessIdentifier())
+                return false;
+        }
+        return &item != targetItem.ptr();
+    }).ptr());
+#else
     Ref backForwardList = page->backForwardList();
     SUPPRESS_UNCOUNTED_LAMBDA_CAPTURE backForwardList->setItemsAsRestoredFromSessionIf([this, targetItem = Ref { item }](auto& item) {
         if (auto* backForwardCacheEntry = item.backForwardCacheEntry()) {
@@ -358,7 +373,8 @@ void ProvisionalPageProxy::goToBackForwardItem(API::Navigation& navigation, WebB
         }
         return &item != targetItem.ptr();
     });
-
+#endif
+    
     Ref process { this->process() };
     std::optional<WebsitePoliciesData> websitePoliciesData;
     if (websitePolicies)
@@ -715,7 +731,7 @@ void ProvisionalPageProxy::didReceiveMessage(IPC::Connection& connection, IPC::D
 
     if (decoder.messageName() == Messages::WebBackForwardList::BackForwardUpdateItem::name()) {
         if (RefPtr page = m_page.get())
-            page->backForwardList().didReceiveMessage(connection, decoder);
+            page->backForwardListMessageReceiver()->didReceiveMessage(connection, decoder);
         return;
     }
 
@@ -852,7 +868,7 @@ void ProvisionalPageProxy::didReceiveSyncMessage(IPC::Connection& connection, IP
     RefPtr page = m_page.get();
     if (page) {
         if (decoder.messageReceiverName() == Messages::WebBackForwardList::messageReceiverName())
-            page->backForwardList().didReceiveSyncMessage(connection, decoder, replyEncoder);
+            page->backForwardListMessageReceiver()->didReceiveSyncMessage(connection, decoder, replyEncoder);
         else
             page->didReceiveSyncMessage(connection, decoder, replyEncoder);
     }

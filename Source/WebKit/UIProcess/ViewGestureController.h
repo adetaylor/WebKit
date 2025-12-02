@@ -96,6 +96,12 @@ typedef void* PlatformScrollEvent;
 namespace WebKit {
 
 class ViewSnapshot;
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+class WebBackForwardListAPIImpl;
+#else
+class WebBackForwardList;
+using WebBackForwardListAPIImpl = WebBackForwardList;
+#endif
 class WebBackForwardList;
 class WebBackForwardListItem;
 class WebPageProxy;
@@ -232,7 +238,11 @@ private:
     void didStartProvisionalOrSameDocumentLoadForMainFrame();
 
 #if PLATFORM(COCOA)
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    std::optional<WebBackForwardList> backForwardListForNavigation() const;
+#else
     WebBackForwardList* backForwardListForNavigation() const;
+#endif
 #endif
 
     class SnapshotRemovalTracker : public CanMakeCheckedPtr<SnapshotRemovalTracker> {
