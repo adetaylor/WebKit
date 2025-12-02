@@ -25,6 +25,54 @@
 
 // Add project-level C++ header files here to be able to access them from within Swift sources.
 
+#pragma once
+
+
+#import "APIArray.h"
+#import "APIObject.h"
 #import "IPCTesterReceiverSwiftMessages.h"
 #import "IPCTesterReceiverSwiftTypes.h"
+#import "Shared/FrameTreeNodeData.h"
+#import "Shared/Gamepad/GamepadData.h"
+#import "Shared/JSHandleInfo.h"
+#import "Shared/LoadedWebArchive.h"
+#import "Shared/SessionState.h"
+#import "Shared/WebBackForwardListCounts.h"
+#import "Shared/WebBackForwardListFrameItem.h"
+#import "Shared/WebBackForwardListItem.h"
+#import "Shared/WebKeyboardEvent.h"
+#import "Shared/WebPushMessage.h"
+#import "Shared/WebsiteData/WebsiteData.h"
+#import "UIProcess/API/APIHistoryClient.h"
+#import "UIProcess/API/APINavigationClient.h"
+#import "UIProcess/API/APICustomProtocolManagerClient.h"
+#import "UIProcess/AuxiliaryProcessProxy.h"
+#import "UIProcess/Inspector/WebPageInspectorController.h"
 #import "UIProcess/SwiftDemoLogoConfirmation.h"
+#import "UIProcess/WebBackForwardCacheEntry.h"
+#import "UIProcess/WebBackForwardListSwiftUtilities.h"
+#import "UIProcess/WebFrameProxy.h"
+#import "UIProcess/WebNavigationState.h"
+#import "UIProcess/WebPageProxy.h"
+#import "UIProcess/WebPageProxyInternals.h"
+#import "UIProcess/WebPermissionControllerProxy.h"
+#import "UIProcess/WebProcessActivityState.h"
+#import "UIProcess/WebProcessProxy.h"
+
+// Temporarily here until WebCore is modularized
+#import <WebCore/DiagnosticLoggingClient.h>
+#import <WebCore/DiagnosticLoggingKeys.h>
+#import <WebCore/FrameIdentifier.h>
+#import <WebCore/ClientOrigin.h>
+#import <WebCore/ElementContext.h>
+#import <WebCore/Exception.h>
+#import <WebCore/ExceptionOr.h>
+#import <WebCore/ImageBitmap.h>
+#import <WebCore/ImageBuffer.h>
+#import <WebCore/MobileDocumentRequest.h>
+#import <WebCore/OpenID4VPRequest.h>
+#import <WebCore/RemoteUserInputEventData.h>
+#import <WebCore/ShareableBitmapHandle.h>
+#import <WebCore/TextIndicator.h>
+#import <WebCore/WritingToolsTypes.h>
+

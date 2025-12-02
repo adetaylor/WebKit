@@ -74,6 +74,10 @@
 #include "WebDriverBidiProcessor.h"
 #endif
 
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+#include "WebKit-Swift.h"
+#endif
+
 namespace WebKit {
 
 using namespace Inspector;
@@ -915,15 +919,25 @@ void WebAutomationSession::traverseHistoryInBrowsingContext(const Inspector::Pro
         return;
     }
 
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    auto backForwardList = page->backForwardList();
+    unsigned backCount = backForwardList.backListCount();
+    unsigned forwardCount = backForwardList.forwardListCount();
+#else
     Ref backForwardList = page->backForwardList();
     unsigned backCount = backForwardList->backListCount();
     unsigned forwardCount = backForwardList->forwardListCount();
+#endif
     int currentIndex = static_cast<int>(backCount);
     int targetIndex = currentIndex + delta;
     ASYNC_FAIL_WITH_PREDEFINED_ERROR_IF(targetIndex < 0, InvalidParameter);
     ASYNC_FAIL_WITH_PREDEFINED_ERROR_IF(targetIndex >= static_cast<int>(backCount + forwardCount + 1), InvalidParameter);
 
-    RefPtr targetItem = backForwardList->itemAtIndex(targetIndex);
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+    RefPtr targetItem = RefPtr(backForwardList.itemAtIndex(targetIndex));
+#else
+    RefPtr targetItem = RefPtr(backForwardList->itemAtIndex(targetIndex));
+#endif
     ASYNC_FAIL_WITH_PREDEFINED_ERROR_IF(!targetItem, InternalError);
 
     page->goToBackForwardItem(*targetItem);

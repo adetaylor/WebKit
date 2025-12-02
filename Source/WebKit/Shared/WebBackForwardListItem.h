@@ -65,6 +65,10 @@ public:
 
     const String& originalURL() const;
     const String& url() const;
+#ifdef __swift__
+    // Workaround for rdar://162695942
+    String urlCopy() const { return url(); }
+#endif
     const String& title() const;
     bool wasCreatedByJSWithoutUserInteraction() const;
 
@@ -76,6 +80,7 @@ public:
     bool itemIsInSameDocument(const WebBackForwardListItem&) const;
     bool itemIsClone(const WebBackForwardListItem&);
 
+    void setNullSnapshot(); // available on all platforms so we can call from Swift code which is unaware of platform macros
 #if PLATFORM(COCOA) || PLATFORM(GTK) || (PLATFORM(WPE) && USE(SKIA))
     ViewSnapshot* snapshot() const { return m_snapshot.get(); }
     void setSnapshot(RefPtr<ViewSnapshot>&& snapshot) { m_snapshot = WTFMove(snapshot); }
@@ -87,6 +92,7 @@ public:
     RefPtr<WebBackForwardCacheEntry> protectedBackForwardCacheEntry() const;
 
     SuspendedPageProxy* suspendedPage() const;
+    bool hasSuspendedPage() const { return suspendedPage(); }
 
     std::optional<WebCore::FrameIdentifier> navigatedFrameID() const { return m_navigatedFrameID; }
 
