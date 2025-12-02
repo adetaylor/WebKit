@@ -27,7 +27,11 @@
 
 #include "APIObject.h"
 #include "MessageReceiver.h"
+#include "SessionState.h"
+#include "WebBackForwardListCounts.h"
 #include "WebBackForwardListItem.h"
+#include "WebBackForwardListSwiftUtilities.h"
+#include "WebPageProxyMessageReceiverRegistration.h"
 #include <WebCore/BackForwardItemIdentifier.h>
 #include <wtf/Ref.h>
 #include <wtf/Vector.h>
@@ -39,12 +43,19 @@ class Array;
 
 namespace WebKit {
 
+// Avoid including WebKit-Swift.h in header files to avoid dependency loops.
+class WebBackForwardList;
+
 class WebPageProxy;
+class FrameState;
 
 struct BackForwardListState;
 struct WebBackForwardListCounts;
 
-class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>, public IPC::MessageReceiver {
+#ifndef ENABLE_BACKFORWARDLIST_SWIFT
+
+class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>, public IPC::MessageReceiver
+{
 public:
     static Ref<WebBackForwardList> create(WebPageProxy& page)
     {
@@ -127,10 +138,61 @@ private:
     WeakPtr<WebPageProxy> m_page;
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
+
 };
+
+using WebBackForwardListAPIImpl = WebBackForwardList;
+
+#else // ENABLE_BACKFORWARDLIST_SWIFT
+
+// This C++ stub object exists to forward API calls through to the Swift implementation.
+class WebBackForwardListAPIImpl : public API::ObjectImpl<API::Object::Type::BackForwardList>
+{
+public:
+    static Ref<WebBackForwardListAPIImpl> create(WebBackForwardList& impl)
+    {
+        return adoptRef(*new WebBackForwardListAPIImpl(impl));
+    }
+
+    virtual ~WebBackForwardListAPIImpl();
+
+    void removeAllItems();
+    void clear();
+
+    RefPtr<WebBackForwardListItem> protectedCurrentItem() const;
+    RefPtr<WebBackForwardListItem> protectedBackItem() const;
+    RefPtr<WebBackForwardListItem> protectedForwardItem() const;
+    RefPtr<WebBackForwardListItem> protectedItemAtIndex(int) const;
+    WebBackForwardListItem* _Nullable backItem() const;
+    WebBackForwardListItem* _Nullable forwardItem() const;
+
+    Ref<API::Array> backList() const;
+    Ref<API::Array> forwardList() const;
+
+    unsigned backListCount() const;
+    unsigned forwardListCount() const;
+
+    Ref<API::Array> backListAsAPIArrayWithLimit(unsigned limit) const;
+    Ref<API::Array> forwardListAsAPIArrayWithLimit(unsigned limit) const;
+
+    String loggingString();
+
+private:
+    explicit WebBackForwardListAPIImpl(WebBackForwardList&);
+
+    std::unique_ptr<WebBackForwardList> m_impl;
+};
+
+#endif // ENABLE_BACKFORWARDLIST_SWIFT
 
 } // namespace WebKit
 
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardListAPIImpl)
+static bool isType(const API::Object& object) { return object.type() == API::Object::Type::BackForwardList; }
+SPECIALIZE_TYPE_TRAITS_END()
+#else
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardList)
 static bool isType(const API::Object& object) { return object.type() == API::Object::Type::BackForwardList; }
 SPECIALIZE_TYPE_TRAITS_END()
+#endif
