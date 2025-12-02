@@ -34,7 +34,7 @@
 #include <wtf/text/WTFString.h>
 
 #if ENABLE(TOUCH_EVENTS) && PLATFORM(IOS_FAMILY)
-#include <WebKitAdditions/PlatformTouchEventIOS.h>
+#include "PlatformTouchEventIOS.h"
 #endif
 
 #if ENABLE(TOUCH_EVENTS) && (PLATFORM(WPE) || PLATFORM(GTK))
