@@ -49,6 +49,18 @@ public:
     {
     }
 
+#ifdef __swift__
+    void ref()
+    {
+        ThreadSafeRefCounted<RefCountable<T>>::ref();
+    }
+
+    void deref()
+    {
+        ThreadSafeRefCounted<RefCountable<T>>::deref();
+    }
+#endif
+
     T& operator*()
     {
         return m_value;
