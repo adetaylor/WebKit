@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2025 Apple Inc. All rights reserved.
+/*
+ * Copyright (C) 2021 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,24 +25,8 @@
 
 #pragma once
 
-// Anything needing to use Swift types or functions should include
-// this rather than directly including WebKit-Swift-Generated.h. Its purposes:
-// - include any pre-requisite headers
-// - set up warnings suitably
-// - select between the headers generated using built-in or custom build
-//   actions on different SDK versions
+#include <cstdint>
+#include <wtf/CompletionHandler.h>
+#include <wtf/RefCountable.h>
 
-// #include statements should go here when the generated header
-// file depends upon C++ types. rdar://165068038 may resolve the need for
-// this.
-#include "IPCTesterReceiverSwiftMessages.h"
-#include "IPCTesterReceiverSwiftUtilities.h"
-
-// rdar://165192318
-IGNORE_CLANG_WARNINGS_BEGIN("arc-bridge-casts-disallowed-in-nonarc")
-#ifdef GENERATE_SINGLE_SWIFT_INTEROP_FILE
-#include "WebKit-Swift-Generated.h"
-#else
-#include "WebKit-Swift-CPP.h"
-#endif
-IGNORE_CLANG_WARNINGS_END
+using IntCompletionHandler = WTF::RefCountable<WTF::CompletionHandler<void(uint32_t)>>;
