@@ -350,9 +350,9 @@ template<typename... MessageArgumentTypes>
 struct MethodSignatureValidationImpl<std::tuple<Connection*, MessageArgumentTypes...>, std::tuple<>>
 : MethodSignatureValidationImpl<std::tuple<MessageArgumentTypes...>, std::tuple<>> {
     static constexpr bool expectsConnectionArgument = true;
-    static Ref<Connection> makeConnectionArgument(Connection& connection)
+    static Connection* makeConnectionArgument(Connection& connection)
     {
-        return connection;
+        return &connection;
     }
 };
 
