@@ -66,9 +66,12 @@
 #import <WebCore/ClientOrigin.h>
 #import <WebCore/ElementContext.h>
 #import <WebCore/Exception.h>
+#import <WebCore/ImageBitmap.h>
+#import <WebCore/ImageBuffer.h>
 #import <WebCore/MobileDocumentRequest.h>
 #import <WebCore/OpenID4VPRequest.h>
 #import <WebCore/RemoteUserInputEventData.h>
 #import <WebCore/ShareableBitmapHandle.h>
 #import <WebCore/TextIndicator.h>
 #import <WebCore/WritingToolsTypes.h>
+
