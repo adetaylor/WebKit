@@ -62,11 +62,11 @@ public:
     Ref<WebBackForwardListFrameItem> mainFrame();
     Ref<WebBackForwardListFrameItem> protectedMainFrame();
     // FIXME the annotation here isn't true, fix it
-    WebBackForwardListFrameItem* SWIFT_RETURNS_INDEPENDENT_VALUE childItemForFrameID(WebCore::FrameIdentifier) ;
+    WebBackForwardListFrameItem* SWIFT_RETURNS_INDEPENDENT_VALUE childItemForFrameID(WebCore::FrameIdentifier) SWIFT_RETURNS_INDEPENDENT_VALUE;
     RefPtr<WebBackForwardListFrameItem> protectedChildItemForFrameID(WebCore::FrameIdentifier);
 
     // FIXME the annotation here isn't true, fix it
-    WebBackForwardListItem* SWIFT_RETURNS_INDEPENDENT_VALUE backForwardListItem() const;
+    WebBackForwardListItem* SWIFT_RETURNS_INDEPENDENT_VALUE backForwardListItem() const SWIFT_RETURNS_INDEPENDENT_VALUE;
     RefPtr<WebBackForwardListItem> protectedBackForwardListItem() const;
 
     void setChild(Ref<FrameState>&&);
