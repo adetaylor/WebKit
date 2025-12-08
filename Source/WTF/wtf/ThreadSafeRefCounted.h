@@ -102,10 +102,14 @@ public:
             STATIC_ASSERT_NOT_REACHED_FOR_VALUE(destructionThread, "Unexpected destructionThread enumerator value");
     }
 
+    void swiftRef() const {
+        ref();
+    }
+
 protected:
     ThreadSafeRefCounted() = default;
     ~ThreadSafeRefCounted() = default;
-} SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+} SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_SHARED_REFERENCE(.swiftRef, .deref);;
 
 } // namespace WTF
 
