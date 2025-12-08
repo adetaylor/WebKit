@@ -25,7 +25,6 @@
 
 #pragma once
 
-#include <swift/bridging>
 #include <wtf/HashTable.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/Platform.h>
