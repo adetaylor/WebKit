@@ -208,7 +208,7 @@ public:
     void getFrameInfo(CompletionHandler<void(std::optional<FrameInfoData>&&)>&&);
     FrameTreeCreationParameters frameTreeCreationParameters() const;
 
-    WebFrameProxy* parentFrame() const { return m_parentFrame.get(); }
+    WebFrameProxy* parentFrame() const SWIFT_RETURNS_INDEPENDENT_VALUE { return m_parentFrame.get(); }
     Ref<WebFrameProxy> rootFrame();
     RefPtr<WebFrameProxy> childFrame(size_t index) const;
 

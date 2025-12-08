@@ -29,6 +29,7 @@
 #include <WebCore/BackForwardItemIdentifier.h>
 #include <WebCore/FrameIdentifier.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
+#include <wtf/SwiftBridging.h>
 
 namespace WebKit {
 
@@ -60,10 +61,12 @@ public:
     Ref<WebBackForwardListFrameItem> rootFrame();
     Ref<WebBackForwardListFrameItem> mainFrame();
     Ref<WebBackForwardListFrameItem> protectedMainFrame();
-    WebBackForwardListFrameItem* childItemForFrameID(WebCore::FrameIdentifier);
+    // FIXME the annotation here isn't true, fix it
+    WebBackForwardListFrameItem* SWIFT_RETURNS_INDEPENDENT_VALUE childItemForFrameID(WebCore::FrameIdentifier) ;
     RefPtr<WebBackForwardListFrameItem> protectedChildItemForFrameID(WebCore::FrameIdentifier);
 
-    WebBackForwardListItem* backForwardListItem() const;
+    // FIXME the annotation here isn't true, fix it
+    WebBackForwardListItem* SWIFT_RETURNS_INDEPENDENT_VALUE backForwardListItem() const;
     RefPtr<WebBackForwardListItem> protectedBackForwardListItem() const;
 
     void setChild(Ref<FrameState>&&);

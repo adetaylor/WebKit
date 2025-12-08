@@ -63,6 +63,7 @@
 #include <wtf/RefPtr.h>
 #include <wtf/RobinHoodHashSet.h>
 #include <wtf/Seconds.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/UUID.h>
 #include <wtf/WeakHashMap.h>
@@ -235,7 +236,8 @@ public:
     void enableRemoteWorkers(RemoteWorkerType, const WebUserContentControllerProxy&);
     void disableRemoteWorkers(OptionSet<RemoteWorkerType>);
 
-    WebsiteDataStore* websiteDataStore() const { ASSERT(m_websiteDataStore); return m_websiteDataStore.get(); }
+    // FIXME: work out if this SWIFT_RETURNS_INDEPENDENT_VALUE is true
+    WebsiteDataStore* websiteDataStore() const SWIFT_RETURNS_INDEPENDENT_VALUE { ASSERT(m_websiteDataStore); return m_websiteDataStore.get(); }
     RefPtr<WebsiteDataStore> protectedWebsiteDataStore() const;
     void setWebsiteDataStore(WebsiteDataStore&);
     
