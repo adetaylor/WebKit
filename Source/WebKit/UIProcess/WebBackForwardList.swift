@@ -909,9 +909,9 @@ internal class WebBackForwardList {
             let hasBackForwardCacheEntry = item.protectedBackForwardCacheEntry().__convertToBool()
             if hasBackForwardCacheEntry != frameState.ptr().hasCachedPage {
                 if frameState.ptr().hasCachedPage {
-                    webPageProxy.protectedBackForwardCache().ptr().addEntry(item, process.coreProcessIdentifier())
+                    webPageProxy.protectedBackForwardCache().ptr().pointee.addEntry(item, process.coreProcessIdentifier())
                 } else if !item.hasSuspendedPage() {
-                    webPageProxy.protectedBackForwardCache().ptr().removeEntry(item)
+                    webPageProxy.protectedBackForwardCache().ptr().pointee.removeEntry(item)
                 }
             }
 
