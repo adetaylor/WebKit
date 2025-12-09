@@ -21,6 +21,8 @@
 #pragma once
 
 #include <wtf/RefCountDebugger.h>
+#include <wtf/RetainReleaseSwift.h>
+#include <wtf/SwiftBridging.h>
 
 namespace WTF {
 
@@ -76,10 +78,17 @@ public:
             delete const_cast<T*>(static_cast<const T*>(this));
     }
 
+#ifdef __swift__
+    void swiftRef() const
+    {
+        ref();
+    }
+#endif
+
 protected:
     RefCounted() = default;
     ~RefCounted() = default;
-} SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+} SWIFT_SHARED_REFERENCE_MEMBERS(.swiftRef, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 template<typename T>
 inline void ref(T* obj)

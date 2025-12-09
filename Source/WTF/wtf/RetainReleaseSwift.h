@@ -26,3 +26,9 @@
 #pragma once
 
 #include <wtf/SwiftBridging.h>
+
+#if HAVE(MEMBER_FUNCTION_RETAIN_RELEASE)
+#define SWIFT_SHARED_REFERENCE_MEMBERS(retain, release) SWIFT_SHARED_REFERENCE(retain, release)
+#else
+#define SWIFT_SHARED_REFERENCE_MEMBERS(retain, release)
+#endif

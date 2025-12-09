@@ -29,6 +29,7 @@
 #include <wtf/Lock.h>
 #include <wtf/MainThread.h>
 #include <wtf/RefPtr.h>
+#include <wtf/RetainReleaseSwift.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/TaggedPtr.h>
 #include <wtf/WordLock.h>
@@ -322,7 +323,7 @@ private:
     template<typename> friend class ThreadSafeWeakHashSet;
 
     mutable Atomic<uintptr_t> m_bits { refIncrement + strongOnlyFlag };
-} SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+} SWIFT_SHARED_REFERENCE_MEMBERS(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 template<typename T, typename TaggingTraits /* = NoTaggingTraits<T> */>
 class ThreadSafeWeakPtr {
