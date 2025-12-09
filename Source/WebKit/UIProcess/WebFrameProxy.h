@@ -42,6 +42,7 @@
 #include <wtf/ListHashSet.h>
 #include <wtf/ProcessID.h>
 #include <wtf/RetainReleaseSwift.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 #include <wtf/text/WTFString.h>
 
@@ -353,19 +354,9 @@ private:
     WebCore::ScrollbarMode m_scrollingMode;
     std::optional<WebCore::DocumentSecurityPolicy> m_documentSecurityPolicy;
     RefPtr<WebCore::SecurityOrigin> m_documentSecurityOrigin;
-} SWIFT_SHARED_REFERENCE(refWebFrameProxy, derefWebFrameProxy);
+};
 
 } // namespace WebKit
-
-inline void refWebFrameProxy(WebKit::WebFrameProxy* WTF_NONNULL obj)
-{
-    WTF::ref(obj);
-}
-
-inline void derefWebFrameProxy(WebKit::WebFrameProxy* WTF_NONNULL obj)
-{
-    WTF::deref(obj);
-}
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebFrameProxy)
     static bool isType(const API::Object& object) { return object.type() == API::Object::Type::Frame; }

@@ -127,7 +127,7 @@ private:
     RefPtr<ViewSnapshot> m_snapshot;
 #endif
     EnhancedSecurity m_enhancedSecurity { EnhancedSecurity::Disabled };
-} SWIFT_SHARED_REFERENCE(refBackForwardListItem, derefBackForwardListItem);
+};
 
 typedef Vector<Ref<WebBackForwardListItem>> BackForwardListItemVector;
 
@@ -140,16 +140,6 @@ inline API::Object* WTF_NONNULL toAPIObject(WebBackForwardListItem* WTF_NONNULL 
 }
 
 } // namespace WebKit
-
-inline void refBackForwardListItem(WebKit::WebBackForwardListItem* WTF_NONNULL obj)
-{
-    WTF::ref(obj);
-}
-
-inline void derefBackForwardListItem(WebKit::WebBackForwardListItem* WTF_NONNULL obj)
-{
-    WTF::deref(obj);
-}
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardListItem)
 static bool isType(const API::Object& object) { return object.type() == API::Object::Type::BackForwardListItem; }
