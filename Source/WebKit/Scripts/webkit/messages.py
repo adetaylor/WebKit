@@ -1967,21 +1967,17 @@ def convert_enable_macros_to_swift_syntax(condition):
     return re.sub(r'ENABLE\(([^)]+)\)', r'ENABLE_\1', condition)
 
 
-def generate_swift_message_handler(receiver):
+def generate_swift_message_handler_internals(receiver, unsafe_keyword):
     result = []
-    result.append(block_to_line_comments(_license_header))
-    result.append('\n')
-
-    if receiver.condition:
-        result.append('#if %s\n' % convert_enable_macros_to_swift_syntax(receiver.condition))
 
     class_name = receiver.name
     message_forwarder_class = class_name + 'MessageForwarder'
     ref_message_forwarder_class = 'Ref' + message_forwarder_class
     weak_ref_class = class_name + 'WeakRef'
-    result.append('\n')
-    result.append('internal import WebKit_Internal\n')
-    result.append('\n')
+
+    if receiver.condition:
+        result.append('#if %s\n' % convert_enable_macros_to_swift_syntax(receiver.condition))
+
     result.append('final class %s {\n' % (weak_ref_class))
     result.append('    private weak var target: %s?\n' % (class_name))
     result.append('    init(target: %s) {\n' % (class_name))
@@ -1999,23 +1995,44 @@ def generate_swift_message_handler(receiver):
     result.append('        // Safety: we\'re creating a pointer which will immediately be stored in a\n')
     result.append('        // proper ref-counted reference on the C++ side before this call returns.\n')
     result.append('        // Workaround for rdar://163107752.\n')
-    result.append('        #if compiler(>=6.2)\n')
-    result.append('        return unsafe WebKit.%s.createFromWeak(\n' % (message_forwarder_class))
+    result.append('        return %sWebKit.%s.createFromWeak(\n' % (unsafe_keyword, message_forwarder_class))
     result.append('            OpaquePointer(\n')
     result.append('                Unmanaged.passRetained(weakRefContainer).toOpaque()\n')
     result.append('            )\n')
     result.append('        )\n')
-    result.append('        #else\n')
-    result.append('        return WebKit.%s.createFromWeak(\n' % (message_forwarder_class))
-    result.append('            OpaquePointer(\n')
-    result.append('                Unmanaged.passRetained(weakRefContainer).toOpaque()\n')
-    result.append('            )\n')
-    result.append('        )\n')
-    result.append('        #endif\n')
     result.append('    }\n')
     result.append('}\n')
+
     if receiver.condition:
-        result.append('#endif')
+        result.append('#endif\n')
+
+    return result
+
+
+def generate_swift_message_handler(receiver):
+    result = []
+    result.append(block_to_line_comments(_license_header))
+    result.append('\n')
+
+    result.append('\n')
+    if receiver.condition:
+        result.append('#if %s\n' % convert_enable_macros_to_swift_syntax(receiver.condition))
+    result.append('internal import WebKit_Internal\n')
+    if receiver.condition:
+        result.append('#endif\n')
+    result.append('\n')
+
+    # Workaround for absence of https://github.com/swiftlang/swift/pull/74415
+    # - we repeat everything for older compilers
+    result.append('#if compiler(>=6.2)\n')
+    result.append('\n')
+    result.extend(generate_swift_message_handler_internals(receiver, 'unsafe '))
+    result.append('\n')
+    result.append('#else\n')
+    result.append('\n')
+    result.extend(generate_swift_message_handler_internals(receiver, ''))
+    result.append('\n')
+    result.append('#endif\n')
 
     return ''.join(result)
 
