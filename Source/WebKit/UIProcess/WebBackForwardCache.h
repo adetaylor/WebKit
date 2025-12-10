@@ -25,9 +25,11 @@
 
 #pragma once
 
+#include "wtf/RetainReleaseSwift.h"
 #include <WebCore/ProcessIdentifier.h>
 #include <pal/SessionID.h>
 #include <wtf/Forward.h>
+#include <wtf/RetainReleaseSwift.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakListHashSet.h>
 #include <wtf/WeakPtr.h>
@@ -77,6 +79,6 @@ private:
     WeakRef<WebProcessPool> m_processPool;
     unsigned m_capacity { 0 };
     WeakListHashSet<WebBackForwardListItem> m_itemsWithCachedPage;
-};
+} SWIFT_SHARED_REFERENCE_MEMBERS(.ref, .deref);
 
 } // namespace WebKit
