@@ -1,0 +1,25 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift receiver round-trips a message</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+    if (!window.IPC) {
+        done();
+        return;
+    }
+
+    const { CoreIPC } = await import('./coreipc.js');
+
+    const processTarget = 'UI'; // Currently only UI is supported for addTesterReceiver.
+    IPC.addTesterReceiver(processTarget);
+    // Tests C++ receiver
+    CoreIPC.UI.IPCTester.SendAsyncMessageToReceiver(0, { arg0: 1} );
+    // Tests Swift receiver
+    CoreIPC.UI.IPCTester.SendAsyncMessageToSwiftReceiver(0, { arg0: 1} );
+}, "IPC message round-tripping in C++ and Swift");
+
+done();
+</script>
+</body>

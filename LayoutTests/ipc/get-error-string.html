@@ -49,6 +49,10 @@ promise_test(async (t) => {
         assert_true(errorString.includes("Message check failed") && errorString.includes("Test parameter must be less than 100"),
             `Error string should contain MESSAGE_CHECK message for value 200, got: "${errorString}"`);
     });
+
+    const processTarget = 'UI'; // Currently only UI is supported for addTesterReceiver.
+    IPC.addTesterReceiver(processTarget);
+    CoreIPC.UI.IPCTester.SendAsyncMessageToSwiftReceiver(0, { arg0: 1} );
 }, "IPC error string retrieval after validation failure");
 
 done();
