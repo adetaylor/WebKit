@@ -24,7 +24,8 @@
     DispatchedFrom=WebContent,
     DispatchedTo=UI,
     SharedPreferencesNeedsConnection,
-    EnabledBy=GeolocationAPIEnabled
+    EnabledBy=GeolocationAPIEnabled,
+    SwiftReceiver
 ]
 messages -> WebGeolocationManagerProxy {
     StartUpdating(WebCore::RegistrableDomain registrableDomain, WebKit::WebPageProxyIdentifier pageProxyID, String authorizationToken, bool enableHighAccuracy)

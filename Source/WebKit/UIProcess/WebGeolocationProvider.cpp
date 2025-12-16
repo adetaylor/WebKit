@@ -39,7 +39,7 @@ WebGeolocationProvider::WebGeolocationProvider(const WKGeolocationProviderBase* 
     initialize(provider);
 }
 
-void WebGeolocationProvider::startUpdating(WebGeolocationManagerProxy& geolocationManager)
+void WebGeolocationProvider::startUpdating(WebGeolocationManagerProxyAPIShim& geolocationManager)
 {
     if (!m_client.startUpdating)
         return;
@@ -47,7 +47,7 @@ void WebGeolocationProvider::startUpdating(WebGeolocationManagerProxy& geolocati
     m_client.startUpdating(toAPI(&geolocationManager), m_client.base.clientInfo);
 }
 
-void WebGeolocationProvider::stopUpdating(WebGeolocationManagerProxy& geolocationManager)
+void WebGeolocationProvider::stopUpdating(WebGeolocationManagerProxyAPIShim& geolocationManager)
 {
     if (!m_client.stopUpdating)
         return;
@@ -55,7 +55,7 @@ void WebGeolocationProvider::stopUpdating(WebGeolocationManagerProxy& geolocatio
     m_client.stopUpdating(toAPI(&geolocationManager), m_client.base.clientInfo);
 }
 
-void WebGeolocationProvider::setEnableHighAccuracy(WebGeolocationManagerProxy& geolocationManager, bool enabled)
+void WebGeolocationProvider::setEnableHighAccuracy(WebGeolocationManagerProxyAPIShim& geolocationManager, bool enabled)
 {
     if (!m_client.setEnableHighAccuracy)
         return;

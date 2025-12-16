@@ -36,9 +36,15 @@
 #include "WebPageProxy.h"
 #include "WebProcessPool.h"
 
+#include "WebKit-Swift.h"
+
 #define MESSAGE_CHECK(connection, assertion) MESSAGE_CHECK_BASE(assertion, (connection))
 
 namespace WebKit {
+
+#if ENABLE(GEOLOCATION_SWIFT)
+
+#else // ENABLE(GEOLOCATION_SWIFT)
 
 ASCIILiteral WebGeolocationManagerProxy::supplementName()
 {
@@ -291,6 +297,8 @@ void WebGeolocationManagerProxy::providerSetEnabledHighAccuracy(PerDomainData& p
 
     m_clientProvider->setEnableHighAccuracy(*this, enabled);
 }
+
+#endif // ENABLE(GEOLOCATION_SWIFT)
 
 } // namespace WebKit
 

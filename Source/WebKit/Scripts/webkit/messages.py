@@ -1704,8 +1704,16 @@ def generate_dispatched_for_x(dispatched_x, spacing='    '):
 def generate_enabled_by_for_receiver(receiver, messages):
     enabled_by = receiver.receiver_enabled_by
     enabled_by_conjunction = receiver.receiver_enabled_by_conjunction
+    if receiver.swift_receiver:
+        target_prefix = 'target->'
+    else:
+        target_prefix = ''
+    if receiver.swift_receiver:
+        connection_prefix = '&'
+    else:
+        connection_prefix = ''
     shared_preferences_retrieval = [
-        '    auto sharedPreferences = sharedPreferencesForWebProcess(%s);\n' % ('connection' if receiver.shared_preferences_needs_connection else ''),
+        '    auto sharedPreferences = %ssharedPreferencesForWebProcess(%s);\n' % (target_prefix, '%sconnection' % (connection_prefix) if receiver.shared_preferences_needs_connection else ''),
         '    UNUSED_VARIABLE(sharedPreferences);\n'
     ]
     result = []
@@ -1822,9 +1830,9 @@ def generate_message_handler(receiver):
         else:
             result.append('void %s::didReceiveMessage(IPC::Connection& connection, IPC::Decoder& decoder)\n' % (classname))
         result.append('{\n')
+        result += generate_get_target_statements(receiver)
         enable_by_statement = generate_enabled_by_for_receiver(receiver, async_messages)
         result += enable_by_statement
-        result += generate_get_target_statements(receiver)
         result += async_message_statements
         if receiver.has_attribute(WANTS_DISPATCH_MESSAGE_ATTRIBUTE) or receiver.has_attribute(WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE):
             result.append('    if (dispatchMessage(connection, decoder))\n')
@@ -1843,8 +1851,8 @@ def generate_message_handler(receiver):
         result.append('void %s::didReceiveSyncMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& replyEncoder)\n' % (classname))
         result.append('{\n')
         result += generate_dispatched_for_x(receiver.receiver_dispatched_to)
-        result += generate_enabled_by_for_receiver(receiver, sync_messages)
         result += generate_get_target_statements(receiver)
+        result += generate_enabled_by_for_receiver(receiver, sync_messages)
         result += sync_message_statements
         if receiver.has_attribute(WANTS_DISPATCH_MESSAGE_ATTRIBUTE):
             result.append('    if (dispatchSyncMessage(connection, decoder, replyEncoder))\n')

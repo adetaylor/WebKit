@@ -98,7 +98,12 @@ class WebCredential;
 class WebFormSubmissionListenerProxy;
 class WebFramePolicyListenerProxy;
 class WebFrameProxy;
+#ifdef ENABLE_BACKFORWARDLIST_SWIFT
+class WebGeolocationManagerProxyAPIShim;
+#else
 class WebGeolocationManagerProxy;
+using WebGeolocationManagerProxyAPIShim = WebGeolocationManagerProxy;
+#endif
 class WebGeolocationPosition;
 class WebIconDatabase;
 class WebInspectorUIProxy;
@@ -136,7 +141,7 @@ WK_ADD_API_MAPPING(WKFramePolicyListenerRef, WebFramePolicyListenerProxy)
 WK_ADD_API_MAPPING(WKFrameHandleRef, API::FrameHandle)
 WK_ADD_API_MAPPING(WKFrameInfoRef, API::FrameInfo)
 WK_ADD_API_MAPPING(WKFrameRef, WebFrameProxy)
-WK_ADD_API_MAPPING(WKGeolocationManagerRef, WebGeolocationManagerProxy)
+WK_ADD_API_MAPPING(WKGeolocationManagerRef, WebGeolocationManagerProxyAPIShim)
 WK_ADD_API_MAPPING(WKGeolocationPermissionRequestRef, GeolocationPermissionRequest)
 WK_ADD_API_MAPPING(WKGeolocationPositionRef, WebGeolocationPosition)
 WK_ADD_API_MAPPING(WKHTTPCookieStoreRef, API::HTTPCookieStore)

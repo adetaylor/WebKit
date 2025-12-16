@@ -35,7 +35,7 @@ using namespace WebKit;
 
 WKTypeID WKGeolocationManagerGetTypeID()
 {
-    return toAPI(WebGeolocationManagerProxy::APIType);
+    return toAPI(WebGeolocationManagerProxyAPIShim::APIType);
 }
 
 void WKGeolocationManagerSetProvider(WKGeolocationManagerRef geolocationManagerRef, const WKGeolocationProviderBase* wkProvider)

@@ -29,8 +29,12 @@
 
 
 #import "APIArray.h"
+#include <optional>
 #import "APIObject.h"
 #import "IPCTesterReceiverSwiftMessages.h"
+#import "WebGeolocationManagerProxy.h"
+#import "WebGeolocationManagerProxyMessages.h"
+#import "Shared/Cocoa/CoreIPCAuditToken.h"
 #import "Shared/FrameTreeNodeData.h"
 #import "Shared/Gamepad/GamepadData.h"
 #import "Shared/JSHandleInfo.h"
@@ -47,6 +51,7 @@
 #import "UIProcess/API/APINavigationClient.h"
 #import "UIProcess/AuxiliaryProcessProxy.h"
 #import "UIProcess/Inspector/WebPageInspectorController.h"
+#import "UIProcess/PerActivityStateCPUUsageSampler.h"
 #import "UIProcess/SwiftDemoLogoConfirmation.h"
 #import "UIProcess/WebBackForwardCacheEntry.h"
 #import "UIProcess/WebBackForwardListSwiftUtilities.h"
@@ -56,7 +61,9 @@
 #import "UIProcess/WebPageProxyInternals.h"
 #import "UIProcess/WebPermissionControllerProxy.h"
 #import "UIProcess/WebProcessActivityState.h"
+#import "UIProcess/WebProcessCache.h"
 #import "UIProcess/WebProcessProxy.h"
+#import "SharedPreferencesForWebProcess.h"
 
 // Temporarily here until WebCore is modularized
 #import <WebCore/ClientOrigin.h>
@@ -70,6 +77,8 @@
 #import <WebCore/ImageBuffer.h>
 #import <WebCore/MobileDocumentRequest.h>
 #import <WebCore/OpenID4VPRequest.h>
+#import <WebCore/PrewarmInformation.h>
+#import <WebCore/RegistrableDomain.h>
 #import <WebCore/RemoteUserInputEventData.h>
 #import <WebCore/ShareableBitmapHandle.h>
 #import <WebCore/TextIndicator.h>

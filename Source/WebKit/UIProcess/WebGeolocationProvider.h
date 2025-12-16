@@ -40,16 +40,21 @@ template<> struct ClientTraits<WKGeolocationProviderBase> {
 
 namespace WebKit {
 
+#if ENABLE(GEOLOCATION_SWIFT)
+class WebGeolocationManagerProxyAPIShim;
+#else
 class WebGeolocationManagerProxy;
+using WebGeolocationManagerProxyAPIShim = WebGeolocationManagerProxy;
+#endif
 
 class WebGeolocationProvider : public API::GeolocationProvider, API::Client<WKGeolocationProviderBase> {
     WTF_MAKE_TZONE_ALLOCATED(WebGeolocationProvider);
 public:
     explicit WebGeolocationProvider(const WKGeolocationProviderBase*);
 
-    void startUpdating(WebGeolocationManagerProxy&) override;
-    void stopUpdating(WebGeolocationManagerProxy&) override;
-    void setEnableHighAccuracy(WebGeolocationManagerProxy&, bool) override;
+    void startUpdating(WebGeolocationManagerProxyAPIShim&) override;
+    void stopUpdating(WebGeolocationManagerProxyAPIShim&) override;
+    void setEnableHighAccuracy(WebGeolocationManagerProxyAPIShim&, bool) override;
 };
 
 } // namespace WebKit

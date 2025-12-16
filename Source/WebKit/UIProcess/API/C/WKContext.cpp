@@ -399,7 +399,7 @@ WKWebsiteDataStoreRef WKContextGetWebsiteDataStore(WKContextRef)
 
 WKGeolocationManagerRef WKContextGetGeolocationManager(WKContextRef contextRef)
 {
-    return WebKit::toAPI(WebKit::toProtectedImpl(contextRef)->protectedSupplement<WebKit::WebGeolocationManagerProxy>().get());
+    return WebKit::toAPI(WebKit::toProtectedImpl(contextRef)->protectedSupplement<WebKit::WebGeolocationManagerProxyAPIShim>().get());
 }
 
 WKIconDatabaseRef WKContextGetIconDatabase(WKContextRef)

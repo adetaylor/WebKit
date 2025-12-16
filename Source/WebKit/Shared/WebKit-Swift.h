@@ -38,6 +38,8 @@
 #include "WebBackForwardListItem.h"
 #include "WebBackForwardListMessages.h"
 #include "WebBackForwardListSwiftUtilities.h"
+#include "WebGeolocationManagerProxy.h"
+#include "WebGeolocationManagerProxyMessages.h"
 
 #ifdef __OBJC__
 #include "WKUIDelegatePrivate.h"

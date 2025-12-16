@@ -35,6 +35,7 @@
 #include <wtf/HashMap.h>
 #include <wtf/WeakHashSet.h>
 #include <wtf/text/WTFString.h>
+#include "SharedPreferencesForWebProcess.h"
 
 #if PLATFORM(IOS_FAMILY)
 #include <WebCore/CoreLocationGeolocationProvider.h>
@@ -48,6 +49,53 @@ namespace WebKit {
 
 class WebGeolocationPosition;
 class WebProcessPool;
+
+using OptionalSharedPreferencesForWebProcess = std::optional<WebKit::SharedPreferencesForWebProcess>;
+
+#if ENABLE(GEOLOCATION_SWIFT)
+
+class WebGeolocationManagerProxyAPIShim : public API::ObjectImpl<API::Object::Type::GeolocationManager>, public WebContextSupplement
+#if PLATFORM(IOS_FAMILY)
+    , public WebCore::CoreLocationGeolocationProvider::Client
+#endif
+{
+public:
+    static ASCIILiteral supplementName();
+
+    static Ref<WebGeolocationManagerProxyAPIShim> create(WebProcessPool*);
+    ~WebGeolocationManagerProxyAPIShim();
+
+    void ref() const { API::ObjectImpl<API::Object::Type::GeolocationManager>::ref(); }
+    void deref() const { API::ObjectImpl<API::Object::Type::GeolocationManager>::deref(); }
+
+    void setProvider(std::unique_ptr<API::GeolocationProvider>&&);
+    void providerDidChangePosition(WebGeolocationPosition*);
+    void providerDidFailToDeterminePosition(const String& errorMessage = String());
+// #if PLATFORM(IOS_FAMILY)
+//     void resetPermissions();
+// #endif
+
+    void webProcessIsGoingAway(WebProcessProxy&);
+    // std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess(IPC::Connection&) const;
+
+private:
+    explicit WebGeolocationManagerProxyAPIShim(WebProcessPool*);
+
+    // WebContextSupplement
+    void processPoolDestroyed() override;
+    void refWebContextSupplement() override;
+    void derefWebContextSupplement() override;
+
+#if PLATFORM(IOS_FAMILY)
+    // CoreLocationGeolocationProvider::Client
+    void positionChanged(const String& websiteIdentifier, WebCore::GeolocationPositionData&&) final;
+    void errorOccurred(const String& websiteIdentifier, const String& errorMessage) final;
+    void resetGeolocation(const String& websiteIdentifier) final;
+#endif
+};
+
+
+#else
 
 class WebGeolocationManagerProxy : public API::ObjectImpl<API::Object::Type::GeolocationManager>, public WebContextSupplement, private IPC::MessageReceiver
 #if PLATFORM(IOS_FAMILY)
@@ -122,8 +170,20 @@ private:
     std::unique_ptr<API::GeolocationProvider> m_clientProvider;
 };
 
+#endif
+
 } // namespace WebKit
+
+#if ENABLE(GEOLOCATION_SWIFT)
+
+SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebGeolocationManagerProxyAPIShim)
+static bool isType(const API::Object& object) { return object.type() == API::Object::Type::GeolocationManager; }
+SPECIALIZE_TYPE_TRAITS_END()
+
+#else
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebGeolocationManagerProxy)
 static bool isType(const API::Object& object) { return object.type() == API::Object::Type::GeolocationManager; }
 SPECIALIZE_TYPE_TRAITS_END()
+
+#endif

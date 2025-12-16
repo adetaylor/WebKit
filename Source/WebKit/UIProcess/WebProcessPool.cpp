@@ -307,7 +307,7 @@ WebProcessPool::WebProcessPool(API::ProcessPoolConfiguration& configuration)
 #endif
 
     // NOTE: These sub-objects must be initialized after m_messageReceiverMap..
-    addSupplement<WebGeolocationManagerProxy>();
+    addSupplement<WebGeolocationManagerProxyAPIShim>();
     addSupplement<WebNotificationManagerProxy>();
 
     processPools().append(*this);
@@ -1240,7 +1240,7 @@ void WebProcessPool::disconnectProcess(WebProcessProxy& process)
         process.disableRemoteWorkers({ RemoteWorkerType::ServiceWorker, RemoteWorkerType::SharedWorker });
     ASSERT(!remoteWorkerProcesses().contains(process));
 
-    protectedSupplement<WebGeolocationManagerProxy>()->webProcessIsGoingAway(process);
+    protectedSupplement<WebGeolocationManagerProxyAPIShim>()->webProcessIsGoingAway(process);
 
     m_processes.removeFirstMatching([&](auto& item) { return item.ptr() == &process; });
 

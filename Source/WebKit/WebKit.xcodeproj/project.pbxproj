@@ -1546,6 +1546,8 @@
 		5CE912142293C280005BEC78 /* WKMain.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE9120B2293C1E0005BEC78 /* WKMain.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CF250AF2EE06491006A7172 /* IPCTesterReceiverSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF250AE2EE06491006A7172 /* IPCTesterReceiverSwift.swift */; };
 		5CF62B9628D4436A00C0EAE0 /* DaemonCoders.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CF62B9428D4436A00C0EAE0 /* DaemonCoders.h */; };
+		5CFB157D2EF1AE8B00C9A831 /* WebGeolocationManagerProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFB157C2EF1AE8B00C9A831 /* WebGeolocationManagerProxy.swift */; };
+		5CFB157F2EF1B18B00C9A831 /* WebGeolocationManagerProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFB157E2EF1B18B00C9A831 /* WebGeolocationManagerProxyMessageReceiver.swift */; };
 		5CFC9C812B71809600F8D289 /* CoreIPCCFDictionary.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5CFC9C7F2B717EFA00F8D289 /* CoreIPCCFDictionary.mm */; };
 		5CFFD8482DEF511C00C421F5 /* SwiftDemoLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFFD8472DEF511B00C421F5 /* SwiftDemoLogo.swift */; };
 		5EEC724C2DC1B30700D012DD /* BidiStorageAgent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5EEC724B2DC1B30700D012DD /* BidiStorageAgent.cpp */; };
@@ -6699,6 +6701,8 @@
 		5CF250B02EE06499006A7172 /* IPCTesterReceiverSwift.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = IPCTesterReceiverSwift.messages.in; sourceTree = "<group>"; };
 		5CF62B9428D4436A00C0EAE0 /* DaemonCoders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaemonCoders.h; sourceTree = "<group>"; };
 		5CF62B9528D4436A00C0EAE0 /* DaemonCoders.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DaemonCoders.cpp; sourceTree = "<group>"; };
+		5CFB157C2EF1AE8B00C9A831 /* WebGeolocationManagerProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebGeolocationManagerProxy.swift; sourceTree = "<group>"; };
+		5CFB157E2EF1B18B00C9A831 /* WebGeolocationManagerProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WebGeolocationManagerProxyMessageReceiver.swift; path = "$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit//WebGeolocationManagerProxyMessageReceiver.swift"; sourceTree = "<group>"; };
 		5CFC9C7E2B717EFA00F8D289 /* CoreIPCCFDictionary.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = CoreIPCCFDictionary.serialization.in; sourceTree = "<group>"; };
 		5CFC9C7F2B717EFA00F8D289 /* CoreIPCCFDictionary.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CoreIPCCFDictionary.mm; sourceTree = "<group>"; };
 		5CFC9C802B717EFA00F8D289 /* CoreIPCCFDictionary.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CoreIPCCFDictionary.h; sourceTree = "<group>"; };
@@ -15462,6 +15466,8 @@
 				BC54CACA12D64291005C67B0 /* WebGeolocationManagerProxy.cpp */,
 				BC54CAC912D64291005C67B0 /* WebGeolocationManagerProxy.h */,
 				BC0E615212D6CAC80012A72A /* WebGeolocationManagerProxy.messages.in */,
+				5CFB157C2EF1AE8B00C9A831 /* WebGeolocationManagerProxy.swift */,
+				5CFB157E2EF1B18B00C9A831 /* WebGeolocationManagerProxyMessageReceiver.swift */,
 				BC1BE1F112D54DBD0004A228 /* WebGeolocationProvider.cpp */,
 				BC1BE1F012D54DBD0004A228 /* WebGeolocationProvider.h */,
 				51C8E19B1F21617200BF731B /* WebIconDatabase.h */,
@@ -21801,6 +21807,8 @@
 				99A514692D5ACF1800937177 /* WebDriverBidiProtocolObjects.cpp in Sources */,
 				1C974FE72AFAD17D009DE8FC /* WebExtensionCommand.cpp in Sources */,
 				1CC1A36C2B0D9A0900373759 /* WebExtensionMenuItem.cpp in Sources */,
+				5CFB157D2EF1AE8B00C9A831 /* WebGeolocationManagerProxy.swift in Sources */,
+				5CFB157F2EF1B18B00C9A831 /* WebGeolocationManagerProxyMessageReceiver.swift in Sources */,
 				C18F3A152563334300797E66 /* WebInspectorPreferenceObserver.mm in Sources */,
 				1A6280F31919982A006AD9F9 /* WebKit.m in Sources */,
 				A181A79821ACC74B0059A316 /* WebKitAdditions.mm in Sources */,

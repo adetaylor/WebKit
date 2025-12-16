@@ -29,7 +29,12 @@
 #include <wtf/TZoneMallocInlines.h>
 
 namespace WebKit {
+#if ENABLE(GEOLOCATION_SWIFT)
+class WebGeolocationManagerProxyAPIShim;
+#else
 class WebGeolocationManagerProxy;
+using WebGeolocationManagerProxyAPIShim = WebGeolocationManagerProxy;
+#endif
 }
 
 namespace API {
@@ -39,9 +44,9 @@ class GeolocationProvider {
 public:
     virtual ~GeolocationProvider() { }
 
-    virtual void startUpdating(WebKit::WebGeolocationManagerProxy&) { };
-    virtual void stopUpdating(WebKit::WebGeolocationManagerProxy&) { };
-    virtual void setEnableHighAccuracy(WebKit::WebGeolocationManagerProxy&, bool) { };
+    virtual void startUpdating(WebKit::WebGeolocationManagerProxyAPIShim&) { };
+    virtual void stopUpdating(WebKit::WebGeolocationManagerProxyAPIShim&) { };
+    virtual void setEnableHighAccuracy(WebKit::WebGeolocationManagerProxyAPIShim&, bool) { };
 };
 
 } // namespace API
