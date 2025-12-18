@@ -810,7 +810,6 @@ def generate_messages_header(receiver):
 
     if receiver.swift_receiver:
         class_name = receiver.name
-        weak_ref_class = class_name + 'WeakRef'
         handler_namespace = 'WebKit'  # hard-coded for now
         forwarder_class = receiver.name + 'MessageForwarder'
         ref_forwarder_class = 'Ref' + forwarder_class
@@ -823,7 +822,7 @@ def generate_messages_header(receiver):
         result.append('namespace ' + handler_namespace + ' {\n\n')
         result.append('class ' + forwarder_class + ': public RefCounted<' + forwarder_class + '>, public IPC::MessageReceiver {\n')
         result.append('public:\n')
-        result.append('    static Ref<' + forwarder_class + '> createFromWeak(' + handler_namespace + '::' + weak_ref_class + '* _Nonnull handler)\n')
+        result.append('    static Ref<' + forwarder_class + '> create(' + handler_namespace + '::' + class_name + '* _Nonnull handler)\n')
         result.append('    {\n')
         result.append('        return adoptRef(*new ' + forwarder_class + '(handler));\n')
         result.append('    }\n')
@@ -834,9 +833,9 @@ def generate_messages_header(receiver):
         result.append('    void ref() const final { RefCounted::ref(); }\n')
         result.append('    void deref() const final { RefCounted::deref(); }\n')
         result.append('private:\n')
-        result.append('    ' + forwarder_class + '(' + handler_namespace + '::' + weak_ref_class + '* _Nonnull);\n')
+        result.append('    ' + forwarder_class + '(' + handler_namespace + '::' + class_name + '(* _Nonnull));\n')
         result.append('    std::unique_ptr<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
-        result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
+        result.append('    std::unique_ptr<std::weak_ptr<' + handler_namespace + '::' + class_name + '>> m_handler;\n')
         result.append('} SWIFT_SHARED_REFERENCE(.ref, .deref);\n\n')
         result.append('}\n')
         result.append('\n')
@@ -1889,19 +1888,18 @@ def generate_message_handler(receiver):
 
     if receiver.swift_receiver:
         class_name = receiver.name
-        weak_ref_class = class_name + 'WeakRef'
         forwarder_class = receiver.name + 'MessageForwarder'
 
         result.append('\n')
-        # Workaround for rdar://163107752
-        result.append('static std::unique_ptr<%s> make%sWeakRefUniquePtr(%s* _Nonnull handler)\n' % (weak_ref_class, class_name, weak_ref_class))
-        result.append('{\n')
-        result.append('    auto newRef = _impl::_impl_%s::makeRetained(handler);\n' % (weak_ref_class))
-        result.append('    return WTF::makeUniqueWithoutFastMallocCheck<%s>(newRef);\n' % (weak_ref_class))
-        result.append('}\n')
         result.append('\n')
+        # Workaround for rdar://163107752
+        result.append('static std::unique_ptr<std::weak_ptr<%s>> make%sWeakRefUniquePtr(%s* _Nonnull handler)\n' % (class_name, class_name, class_name))
+        result.append('{\n')
+        result.append('    auto newRef = _impl::_impl_%s::makeRetained(handler);\n' % (class_name))
+        result.append('    return WTF::makeUniqueWithoutFastMallocCheck<std::weak_ptr<%s>>(newRef);\n' % (class_name))
+        result.append('}\n')
 
-        result.append('%s::%s(%s* _Nonnull target)\n' % (forwarder_class, forwarder_class, weak_ref_class))
+        result.append('%s::%s(std::weak_ptr<%s> target)\n' % (forwarder_class, forwarder_class, class_name))
         result.append('    : m_handler(make%sWeakRefUniquePtr(target))\n' % (class_name))
         result.append('{\n')
         result.append('}\n')
@@ -1909,9 +1907,9 @@ def generate_message_handler(receiver):
 
         result.append('std::unique_ptr<%s> %s::getMessageTarget()\n' % (class_name, forwarder_class))
         result.append('{\n')
-        result.append('    auto target = m_handler->getMessageTarget();\n')
+        result.append('    auto target = m_handler.lock();\n')
         result.append('    if (target)\n')
-        result.append('        return WTF::makeUniqueWithoutFastMallocCheck<%s>(target.get());\n' % (class_name))
+        result.append('        return WTF::makeUniqueWithoutFastMallocCheck<%s>(*target);\n' % (class_name))
         result.append('    return nullptr;\n')
         result.append('}\n')
         result.append('\n')
@@ -1987,31 +1985,19 @@ def generate_swift_message_handler_internals(receiver, unsafe_keyword):
     class_name = receiver.name
     message_forwarder_class = class_name + 'MessageForwarder'
     ref_message_forwarder_class = 'Ref' + message_forwarder_class
-    weak_ref_class = class_name + 'WeakRef'
 
     if receiver.condition:
         result.append('#if %s\n' % convert_enable_macros_to_swift_syntax(receiver.condition))
 
-    result.append('final class %s {\n' % (weak_ref_class))
-    result.append('    private weak var target: %s?\n' % (class_name))
-    result.append('    init(target: %s) {\n' % (class_name))
-    result.append('        self.target = target\n')
-    result.append('    }\n')
-    result.append('\n')
-    result.append('    func getMessageTarget() -> %s? {\n' % (class_name))
-    result.append('        target\n')
-    result.append('    }\n')
-    result.append('}\n')
     result.append('\n')
     result.append('extension WebKit.%s {\n' % (message_forwarder_class))
     result.append('    static func create(target: %s) -> %s {\n' % (class_name, ref_message_forwarder_class))
-    result.append('        let weakRefContainer = %s(target: target)\n' % (weak_ref_class))
     result.append('        // Safety: we\'re creating a pointer which will immediately be stored in a\n')
     result.append('        // proper ref-counted reference on the C++ side before this call returns.\n')
     result.append('        // Workaround for rdar://163107752.\n')
-    result.append('        return %sWebKit.%s.createFromWeak(\n' % (unsafe_keyword, message_forwarder_class))
+    result.append('        return %sWebKit.%s.create(\n' % (unsafe_keyword, message_forwarder_class))
     result.append('            OpaquePointer(\n')
-    result.append('                Unmanaged.passRetained(weakRefContainer).toOpaque()\n')
+    result.append('                Unmanaged.passRetained(target).toOpaque()\n')
     result.append('            )\n')
     result.append('        )\n')
     result.append('    }\n')
