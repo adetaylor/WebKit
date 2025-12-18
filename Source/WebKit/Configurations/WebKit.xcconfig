@@ -416,6 +416,18 @@ GENERATE_SINGLE_SWIFT_INTEROP_FILE = $(GENERATE_SINGLE_SWIFT_INTEROP_FILE_$(WK_G
 GENERATE_SINGLE_SWIFT_INTEROP_FILE_ = ;
 GENERATE_SINGLE_SWIFT_INTEROP_FILE_YES = GENERATE_SINGLE_SWIFT_INTEROP_FILE;
 
+// If (and only if) we've enabled IPC testing (on ASAN and debug builds, typically)
+// also enable testing of a Swift IPC receiver - but only if we're using a sufficiently
+// recent SDK.
+ENABLE_IPC_TESTING_SWIFT = ;
+ENABLE_IPC_TESTING_SWIFT[sdk=macosx*] = ENABLE_IPC_TESTING_SWIFT;
+ENABLE_IPC_TESTING_SWIFT[sdk=macosx14*] = ;
+ENABLE_IPC_TESTING_SWIFT[sdk=macosx15*] = ;
+ENABLE_IPC_TESTING_SWIFT[sdk=macosx26.0*] = ;
+ENABLE_IPC_TESTING_SWIFT[sdk=macosx26.1*] = ;
+ENABLE_IPC_TESTING_SWIFT[sdk=macosx26.2*] = ;
+ENABLE_IPC_TESTING_SWIFT[sdk=macosx26.3*] = ;
+
 // FIXME: (rdar://149474443) Swift/Cxx interop does not respect CLANG_CXX_LANGUAGE_STANDARD = "c++2b";
 // FIXME: (rdar://103177280) "-no-verify-emitted-module-interface;" is needed to workaround a SwiftVerifyEmittedModuleInterface bug
 OTHER_SWIFT_FLAGS = $(inherited) $(OTHER_SWIFT_FLAGS_SUPPORTS_SWIFT_OBJCXX_INTEROP_$(WK_SUPPORTS_SWIFT_OBJCXX_INTEROP)) $(OTHER_SWIFT_FLAGS_MARK_FOUNDATION_AS_OBJC_$(WK_GENERATE_SINGLE_SWIFT_INTEROP_FILE);
