@@ -25,6 +25,9 @@
 
 #pragma once
 
+// FIXME: UIKit RR_CODES
+#if !__has_feature(modules)
+
 #if USE(PASSKIT)
 
 #import <pal/spi/cocoa/PassKitSPI.h>
@@ -164,3 +167,5 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, PassKitCore, PKCanMakePaymentsWithMerchantIde
 #define PKCanMakePaymentsWithMerchantIdentifierDomainAndSourceApplication PAL::softLink_PassKitCore_PKCanMakePaymentsWithMerchantIdentifierDomainAndSourceApplication
 
 #endif // USE(PASSKIT)
+
+#endif // !__has_feature(modules)

@@ -28,6 +28,8 @@
 #include <wtf/Compiler.h>
 #include <wtf/Platform.h>
 
+#if PLATFORM(MAC)
+
 DECLARE_SYSTEM_HEADER
 
 #if USE(APPLE_INTERNAL_SDK)
@@ -56,3 +58,5 @@ CFTypeRef TSMGetInputSourceProperty(TSMInputSourceRef, TSMInputSourcePropertyTag
 OSStatus GetEventParameter(EventRef, EventParamName inName, EventParamType inDesiredType, EventParamType* outActualType, ByteCount inBufferSize, ByteCount* outActualSize, void* outData);
 
 WTF_EXTERN_C_END
+
+#endif // PLATFORM(MAC)

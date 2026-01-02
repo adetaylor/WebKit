@@ -25,10 +25,12 @@
 
 #pragma once
 
+// FIXME: UIKit RR_CODES
+#if !__has_feature(modules)
+
 DECLARE_SYSTEM_HEADER
 
 #import <objc/runtime.h>
-#import <wtf/SoftLinking.h>
 
 #if PLATFORM(IOS_FAMILY)
 #import <AVFoundation/AVPlayer.h>
@@ -674,3 +676,5 @@ NS_ASSUME_NONNULL_END
 #endif
 
 #endif // USE(APPLE_INTERNAL_SDK)
+
+#endif

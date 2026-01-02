@@ -24,6 +24,10 @@
 #include <pal/PALSwift.h>
 #include <pal/spi/cocoa/CoreCryptoSPI.h>
 
+#if !defined(CLANG_WEBKIT_BRANCH)
+#include "PALSwift-Generated.h"
+#endif
+
 namespace WebCore {
 
 static std::optional<Vector<uint8_t>> deriveBitsCryptoKit(const Vector<uint8_t>& baseKey, const Vector<uint8_t>& publicKey)
@@ -31,7 +35,7 @@ static std::optional<Vector<uint8_t>> deriveBitsCryptoKit(const Vector<uint8_t>&
 #if !defined(CLANG_WEBKIT_BRANCH)
     if (baseKey.size() != ed25519KeySize || publicKey.size() != ed25519KeySize)
         return std::nullopt;
-    auto rv = PAL::EdKey::deriveBits(PAL::EdKeyAgreementAlgorithm::x25519(), baseKey.span(), publicKey.span());
+    auto rv = pal::EdKey::deriveBits(pal::EdKeyAgreementAlgorithm::x25519(), baseKey.span(), publicKey.span());
     if (rv.errorCode != Cpp::ErrorCodes::Success)
         return std::nullopt;
     return WTF::move(rv.result);

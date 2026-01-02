@@ -33,6 +33,9 @@
 
 #if OS(DARWIN) && !PLATFORM(GTK)
 #include <pal/PALSwift.h>
+#if !defined(CLANG_WEBKIT_BRANCH)
+#include "PALSwift-Generated.h"
+#endif
 #endif
 
 namespace WebCore {

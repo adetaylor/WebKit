@@ -75,6 +75,7 @@
 
 #else // !USE(SYSTEM_MALLOC) && USE(TZONE_MALLOC)
 
+#include <bmalloc/BAssert.h>
 #include <bmalloc/TZoneHeap.h>
 
 #if !BUSE(TZONE)

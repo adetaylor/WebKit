@@ -33,12 +33,15 @@ DECLARE_SYSTEM_HEADER
 #include <CoreText/CoreText.h>
 #include <pal/spi/cg/CoreGraphicsSPI.h>
 
-// FIXME: (rdar://167351286) Remove the `__has_feature(modules)` condition when possible.
-#if USE(APPLE_INTERNAL_SDK) && !__has_feature(modules)
+#if USE(APPLE_INTERNAL_SDK)
 
 #include <CoreText/CoreTextPriv.h>
 #include <OTSVG/OTSVG.h>
+
+// FIXME: (rdar://167351286) Remove the `__has_feature(modules)` condition when possible.
+#if !__has_feature(modules)
 #include <fparse/FPFontParser.h>
+#endif
 
 #else
 

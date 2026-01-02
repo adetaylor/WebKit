@@ -36,7 +36,6 @@ DECLARE_SYSTEM_HEADER
 #if PLATFORM(MAC)
 #import <pal/spi/mac/NSImmediateActionGestureRecognizerSPI.h>
 #endif // PLATFORM(MAC)
-#import <wtf/SoftLinking.h>
 
 #if ENABLE(REVEAL)
 

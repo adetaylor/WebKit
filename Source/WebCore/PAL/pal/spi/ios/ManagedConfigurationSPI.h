@@ -25,6 +25,9 @@
 
 #pragma once
 
+// FIXME: RR_CODES
+#if !__has_feature(modules)
+
 DECLARE_SYSTEM_HEADER
 
 #if PLATFORM(IOS_FAMILY) && !PLATFORM(MACCATALYST)
@@ -77,3 +80,5 @@ typedef enum MCRestrictedBoolType {
 #endif
 
 #endif // PLATFORM(IOS_FAMILY) && !PLATFORM(MACCATALYST)
+
+#endif // !__has_feature(modules)

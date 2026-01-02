@@ -25,6 +25,8 @@
 
 #pragma once
 
+#ifdef __cplusplus
+
 #include <wtf/Compiler.h>
 #include <wtf/Platform.h>
 
@@ -147,3 +149,5 @@ static NSString *const NSExcludedElementsDocumentAttribute = @"ExcludedElements"
 @end
 
 #endif // PLATFORM(IOS_FAMILY)
+
+#endif // __cplusplus

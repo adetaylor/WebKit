@@ -30,6 +30,8 @@
 
 DECLARE_SYSTEM_HEADER
 
+#if PLATFORM(MAC)
+
 #include <pal/spi/cg/CoreGraphicsSPI.h>
 #include <span>
 #include <wtf/StdLibExtras.h>
@@ -179,3 +181,5 @@ typedef Boolean (*AXAuditTokenIsAuthenticatedCallback)(audit_token_t);
 WTF_EXTERN_C_END
 
 #define kAXClientTypeWebKitTesting 999999
+
+#endif // PLATFORM(MAC)

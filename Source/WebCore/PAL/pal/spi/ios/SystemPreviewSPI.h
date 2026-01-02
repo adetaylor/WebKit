@@ -25,6 +25,8 @@
 
 #pragma once
 
+#if PLATFORM(IOS_FAMILY)
+
 DECLARE_SYSTEM_HEADER
 
 #if USE(APPLE_INTERNAL_SDK)
@@ -150,3 +152,5 @@ NS_ASSUME_NONNULL_END
 #endif
 
 #endif
+
+#endif // PLATFORM(IOS_FAMILY)

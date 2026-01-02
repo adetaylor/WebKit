@@ -69,6 +69,8 @@ typedef struct CCKDFParameters *CCKDFParametersRef;
 
 #endif
 
+#ifdef __cplusplus
+
 typedef struct _CCRSACryptor *CCRSACryptorRef;
 extern "C" CCCryptorStatus CCRSACryptorEncrypt(CCRSACryptorRef publicKey, CCAsymmetricPadding padding, const void *plainText, size_t plainTextLen, void *cipherText, size_t *cipherTextLen, const void *tagData, size_t tagDataLen, CCDigestAlgorithm digestType);
 extern "C" CCCryptorStatus CCRSACryptorDecrypt(CCRSACryptorRef privateKey, CCAsymmetricPadding padding, const void *cipherText, size_t cipherTextLen, void *plainText, size_t *plainTextLen, const void *tagData, size_t tagDataLen, CCDigestAlgorithm digestType);
@@ -126,5 +128,7 @@ extern "C" void CCKDFParametersDestroy(CCKDFParametersRef params);
 extern "C" CCCryptorStatus CCCryptorGCM(CCOperation op, CCAlgorithm alg, const void* key, size_t keyLength, const void* iv, size_t ivLen, const void* aData, size_t aDataLen, const void* dataIn, size_t dataInLength, void* dataOut, void* tag, size_t* tagLength);
 extern "C" CCCryptorStatus CCCryptorGCMOneshotDecrypt(CCAlgorithm alg, const void *key, size_t keyLength, const void  *iv, size_t ivLen, const void  *aData, size_t aDataLen, const void *dataIn, size_t dataInLength, void        *dataOut, const void  *tagIn, size_t tagLength);
 extern "C" CCCryptorStatus CCRSACryptorCreateFromData(CCRSAKeyType keyType, const uint8_t *modulus, size_t modulusLength, const uint8_t *exponent, size_t exponentLength, const uint8_t *p, size_t pLength, const uint8_t *q, size_t qLength, CCRSACryptorRef *ref);
+
+#endif // __cplusplus
 
 #endif // !USE(APPLE_INTERNAL_SDK)

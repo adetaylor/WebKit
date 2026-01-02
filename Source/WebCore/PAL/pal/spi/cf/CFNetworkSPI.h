@@ -65,6 +65,7 @@ DECLARE_SYSTEM_HEADER
 
 #else // !USE(APPLE_INTERNAL_SDK)
 
+#include <Foundation/Foundation.h>
 #include <Network/Network.h>
 
 #if defined(__OBJC__)

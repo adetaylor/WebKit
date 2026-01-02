@@ -25,6 +25,8 @@
 
 #pragma once
 
+#ifdef __cplusplus
+
 #include <wtf/Compiler.h>
 #include <wtf/Platform.h>
 
@@ -234,3 +236,5 @@ extern NSNotificationName const WPResourceDataChangedNotificationName;
 WTF_EXTERN_C_END
 
 #endif // ENABLE(ADVANCED_PRIVACY_PROTECTIONS)
+
+#endif // __cplusplus

@@ -30,6 +30,8 @@
 
 DECLARE_SYSTEM_HEADER
 
+#if PLATFORM(MAC)
+
 #import <Quartz/Quartz.h>
 
 // FIXME: (rdar://167376152) Remove the `__has_feature(modules)` condition when possible.
@@ -99,3 +101,5 @@ typedef NS_ENUM(NSInteger, QLPreviewActivity) {
 @end
 
 #endif // HAVE(QUICKLOOK_ITEM_PREVIEW_OPTIONS)
+
+#endif // PLATFORM(MAC)

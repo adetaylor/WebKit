@@ -30,6 +30,8 @@
 
 DECLARE_SYSTEM_HEADER
 
+#if PLATFORM(MAC)
+
 #import <AppKit/NSButtonCell.h>
 
 #if USE(APPLE_INTERNAL_SDK)
@@ -46,4 +48,6 @@ DECLARE_SYSTEM_HEADER
 @end
 
 #endif
+
+#endif // PLATFORM(MAC)
 

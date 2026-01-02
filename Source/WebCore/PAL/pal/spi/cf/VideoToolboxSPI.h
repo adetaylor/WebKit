@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 #include <wtf/Compiler.h>
 #include <wtf/Platform.h>
 

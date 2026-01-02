@@ -29,6 +29,9 @@
 #include "CommonCryptoUtilities.h"
 #include "CryptoKeyEC.h"
 #include <pal/PALSwift.h>
+#if !defined(CLANG_WEBKIT_BRANCH)
+#include "PALSwift-Generated.h"
+#endif
 
 namespace WebCore {
 

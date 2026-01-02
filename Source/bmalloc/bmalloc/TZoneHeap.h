@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include "BAssert.h"
+
 #ifdef __cplusplus
 
 #include "BPlatform.h"
