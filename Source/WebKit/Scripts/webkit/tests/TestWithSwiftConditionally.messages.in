@@ -20,16 +20,11 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#if ENABLE(IPC_TESTING_API) && ENABLE(IPC_TESTING_SWIFT)
-
 [
-    ExceptionForDispatchedFrom,
-    ExceptionForDispatchedTo,
     ExceptionForEnabledBy,
-    SwiftReceiver
+    SwiftReceiverIfEnabled=SWIFT_TEST_CONDITION
 ]
-messages -> IPCTesterReceiverSwift {
-    void AsyncMessage(uint32_t arg1) -> (uint32_t reply) Asynchronous
+messages -> TestWithSwiftConditionally {
+    TestAsyncMessage(uint32_t param) -> (uint8_t reply)
+    TestSyncMessage(uint32_t param) -> (uint8_t reply) Synchronous
 }
-
-#endif
