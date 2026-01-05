@@ -369,9 +369,7 @@ public:
 
     enum UniqueIDType { };
     using UniqueID = AtomicObjectIdentifier<UniqueIDType>;
-#ifndef __swift__ // rdar://152496447
     using DecoderOrError = Expected<UniqueRef<Decoder>, Error>;
-#endif
 
     static RefPtr<Connection> connection(UniqueID);
     UniqueID uniqueID() const { return m_uniqueID; }
@@ -492,9 +490,7 @@ public:
     using AsyncReplyHandler = ConnectionAsyncReplyHandler;
     Error sendMessageWithAsyncReply(UniqueRef<Encoder>&&, AsyncReplyHandler, OptionSet<SendOption> sendOptions, std::optional<Thread::QOS> = std::nullopt);
     std::pair<UniqueRef<Encoder>, SyncRequestID> createSyncMessageEncoder(MessageName, uint64_t destinationID);
-#ifndef __swift__ // rdar://152496447
     DecoderOrError sendSyncMessage(SyncRequestID, UniqueRef<Encoder>&&, Timeout, OptionSet<SendSyncOption> sendSyncOptions);
-#endif
     Error sendSyncReply(UniqueRef<Encoder>&&);
     template<typename T, typename... Arguments>
     void sendAsyncReply(AsyncReplyID, Arguments&&...);
@@ -530,9 +526,7 @@ public:
     void setIgnoreInvalidMessageForTesting() { m_ignoreInvalidMessageForTesting = true; }
     bool ignoreInvalidMessageForTesting() const { return m_ignoreInvalidMessageForTesting; }
     void dispatchIncomingMessageForTesting(UniqueRef<Decoder>&&);
-#ifndef __swift__ // rdar://152496447
     DecoderOrError waitForMessageForTesting(MessageName, uint64_t destinationID, Timeout, OptionSet<WaitForOption>);
-#endif
 #endif
 
     template<typename MessageReceiverType> void dispatchMessageReceiverMessage(MessageReceiverType&, UniqueRef<Decoder>&&);
@@ -595,16 +589,12 @@ private:
 
     bool isIncomingMessagesThrottlingEnabled() const { return m_incomingMessagesThrottlingLevel.has_value(); }
 
-#ifndef __swift__ // rdar://152496447
     DecoderOrError waitForMessage(MessageName, uint64_t destinationID, Timeout, OptionSet<WaitForOption>);
-#endif
 
     SyncRequestID makeSyncRequestID() { return SyncRequestID::generate(); }
     bool pushPendingSyncRequestID(SyncRequestID);
     void popPendingSyncRequestID(SyncRequestID);
-#ifndef __swift__ // rdar://152496447
     DecoderOrError waitForSyncReply(SyncRequestID, MessageName, Timeout, OptionSet<SendSyncOption>);
-#endif
 
     void enqueueMatchingMessagesToMessageReceiveQueue(MessageReceiveQueue&, const ReceiverMatcher&) WTF_REQUIRES_LOCK(m_incomingMessagesLock);
 
@@ -986,7 +976,7 @@ template<typename T> Error Connection::waitForAsyncReplyAndDispatchImmediately(A
     return Error::NoError;
 }
 
-#if ENABLE(IPC_TESTING_API) && !defined(__swift__) // rdar://152496447
+#if ENABLE(IPC_TESTING_API)
 inline auto Connection::waitForMessageForTesting(MessageName messageName, uint64_t destinationID, Timeout timeout, OptionSet<WaitForOption> options) -> DecoderOrError
 {
     return waitForMessage(messageName, destinationID, timeout, options);
