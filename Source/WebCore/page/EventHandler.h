@@ -609,7 +609,9 @@ private:
     private:
         Expected<std::monostate, InabilityReason> m_state;
     };
+#ifndef __swift__
     CapturesDragging capturesDragging() const { return m_capturesDragging; }
+#endif
 
 #if PLATFORM(COCOA) && defined(__OBJC__)
     NSView *mouseDownViewIfStillGood();
