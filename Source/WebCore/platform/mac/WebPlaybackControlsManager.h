@@ -27,6 +27,7 @@
 
 #if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
 
+#import <AVKit/AVTouchBarPlaybackControlsControlling.h>
 #import <pal/spi/cocoa/AVKitSPI.h>
 #import <wtf/RetainPtr.h>
 #import <wtf/Vector.h>

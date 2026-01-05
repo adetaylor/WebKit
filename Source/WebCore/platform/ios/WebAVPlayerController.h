@@ -28,6 +28,8 @@
 #if PLATFORM(COCOA) && HAVE(AVKIT)
 
 #import <pal/spi/cocoa/AVKitSPI.h>
+#import <AVFCore/AVMediaFormat.h>
+#import <AVKitCore/AVPlayerController.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
