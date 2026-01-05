@@ -143,7 +143,8 @@ typealias CocoaColor = NSColor
             fatalError()
         }
 
-        CGContextDrawPDFPageWithAnnotations(context, cgPage, nil)
+        // TODO: work out why this doesn't built any longer
+        // CGContextDrawPDFPageWithAnnotations(context, cgPage, nil)
 
         let x = Int(point.x)
         let y = Int(point.y)
