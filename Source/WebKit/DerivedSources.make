@@ -159,7 +159,6 @@ MESSAGE_RECEIVERS = \
 	Shared/IPCStreamTesterProxy \
 	Shared/IPCTester \
 	Shared/IPCTesterReceiver \
-	Shared/IPCTesterReceiverSwift \
 	UIProcess/WebFullScreenManagerProxy \
 	UIProcess/RemoteLayerTree/RemoteLayerTreeDrawingAreaProxy \
 	UIProcess/GPU/GPUProcessProxy \
