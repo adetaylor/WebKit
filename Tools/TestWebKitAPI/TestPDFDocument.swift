@@ -28,6 +28,10 @@ import WebKit
 import PDFKit
 import CoreGraphics
 
+#if compiler(>=6.0)
+private import pal.spi.cg.CoreGraphicsSPI
+#endif
+
 #if canImport(UIKit)
 import UIKit
 typealias CocoaColor = UIColor

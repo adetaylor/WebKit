@@ -25,6 +25,9 @@
 
 #pragma once
 
+// FIXME: Remove when support for macOS 14 is no longer required.
+#if !__has_feature(modules) || !PLATFORM(MAC) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 150000
+
 DECLARE_SYSTEM_HEADER
 
 #if HAVE(CONTACTS)
@@ -65,3 +68,4 @@ NS_ASSUME_NONNULL_END
 #endif // USE(APPLE_INTERNAL_SDK)
 #endif // HAVE(CONTACTS)
 
+#endif // !__has_feature(modules) || !PLATFORM(MAC) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 150000
