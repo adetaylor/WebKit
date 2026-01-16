@@ -20960,7 +20960,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Tools/Scripts/generate-derived-sources-modulemap.py\" \"${SCRIPT_INPUT_FILE_0}\" \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			shellScript = "\"${SRCROOT}/../../Tools/Scripts/generate-derived-sources-modulemap.py\" \"${SCRIPT_INPUT_FILE_0}\" \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 		};
 		DDC3A65C2E286CC300C3E61A /* Audit SPI use */ = {
 			isa = PBXShellScriptBuildPhase;
