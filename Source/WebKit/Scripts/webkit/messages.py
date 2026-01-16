@@ -2403,5 +2403,6 @@ def generate_modulemap(receiver_headers):
         result.append('   header "%s"' % header)
 
     result.append('}')
+    result.append('')
 
     return '\n'.join(result)
