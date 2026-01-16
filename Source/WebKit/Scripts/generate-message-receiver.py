@@ -95,9 +95,6 @@ def main(argv):
     with open('MessageArgumentDescriptions.cpp', "w+") as message_descriptions_implementation_output:
         message_descriptions_implementation_output.write(webkit.messages.generate_message_argument_description_implementation(receivers, receiver_header_files))
 
-    with open('module.private.modulemap', "w+") as modulemap_output:
-        modulemap_output.write(webkit.messages.generate_modulemap(receiver_header_files))
-
     return 0
 
 if __name__ == '__main__':
