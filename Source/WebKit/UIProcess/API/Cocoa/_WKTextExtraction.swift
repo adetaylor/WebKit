@@ -25,7 +25,7 @@
 
 import Foundation
 #if compiler(>=6.0)
-internal import WebKit_Internal
+internal import WebKit_Internal._WKTextExtractionInternal
 #else
 @_implementationOnly import WebKit_Internal
 #endif

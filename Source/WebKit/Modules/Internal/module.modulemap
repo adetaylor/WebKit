@@ -1,13 +1,83 @@
-// FIXME: this modulemap needs work as discussed in https://github.com/WebKit/WebKit/pull/54322
-module WebKit_Internal {
-    module WebKit_Internal_Objc {
-        header "WebKitInternal.h"
+module WebKit_Internal [system] {
+     module UIWindowSceneExtras {
+        header "../../UIProcess/Cocoa/UIWindowScene+Extras.h"
         export *
-        requires objc
     }
-    module WebKit_Internal_Cxx {
-        header "WebKitInternalCxx.h"
+
+     module WKMaterialHostingSupport {
+        header "../../Platform/cocoa/WKMaterialHostingSupport.h"
         export *
-        requires cplusplus20
     }
+
+     module WKMouseDeviceObserver {
+        header  "../../UIProcess/ios/WKMouseDeviceObserver.h"
+        export *
+    }
+
+     module WKPreferencesInternal {
+        header  "../../UIProcess/API/Cocoa/WKPreferencesInternal.h"
+        export *
+    }
+
+     module WKScrollGeometry {
+        header  "../../UIProcess/API/Cocoa/WKScrollGeometry.h"
+        export *
+    }
+
+     module WKSeparatedImageView {
+       header "../../UIProcess/Cocoa/Separated/WKSeparatedImageView.h"
+       export *
+   }
+
+     module WKUIDelegateInternal {
+       header "../../UIProcess/API/Cocoa/WKUIDelegateInternal.h"
+       export *
+   }
+
+     module WKWebViewConfigurationInternal {
+       header "../../UIProcess/API/Cocoa/WKWebViewConfigurationInternal.h"
+       export *
+   }
+
+     module APIPageConfiguration {
+         header "../../UIProcess/API/APIPageConfiguration.h"
+         export *
+     }
+
+     module WKWebViewInternal {
+       header "../../UIProcess/API/Cocoa/WKWebViewInternal.h"
+       export *
+   }
+
+     module _WKTextExtractionInternal {
+       header "../../UIProcess/API/Cocoa/_WKTextExtractionInternal.h"
+       export *
+   }
+
+     module WebsiteData {
+       header "../../Shared/WebsiteData/WebsiteData.h"
+       export *
+   }
+
+     module WebPushMessage {
+       header "../../Shared/WebPushMessage.h"
+       export *
+   }
+
+     module WKObject {
+         header "../../Shared/cocoa/WKObject.h"
+         export *
+     }
+
+     module WebProcessProxy {
+         header "../../UIProcess/WebProcessProxy.h"
+         export *
+     }
+
+     module Connection {
+         header "../../Platform/IPC/Connection.h"
+         export *
+     }
+
+     export *
 }

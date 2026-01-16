@@ -25,15 +25,17 @@
 
 // Add project-level Objective-C header files here to be able to access them from within Swift sources.
 
-#import <wtf/Platform.h>
-
-#import "UIWindowScene+Extras.h"
-#import "WKMaterialHostingSupport.h"
-#import "WKMouseDeviceObserver.h"
-#import "WKPreferencesInternal.h"
-#import "WKScrollGeometry.h"
-#import "WKSeparatedImageView.h"
-#import "WKUIDelegateInternal.h"
-#import "WKWebViewConfigurationInternal.h"
-#import "WKWebViewInternal.h"
-#import "_WKTextExtractionInternal.h"
+//#import <wtf/Platform.h>
+//
+//#import "UIWindowScene+Extras.h"
+//#import "WKMaterialHostingSupport.h"
+//#import "WKMouseDeviceObserver.h"
+//#import "WKPreferencesInternal.h"
+//#import "WKScrollGeometry.h"
+//#import "WKSeparatedImageView.h"
+//#import "WKUIDelegateInternal.h"
+//#import "WKWebViewConfigurationInternal.h"
+//#import "WKWebViewInternal.h"
+//#import "_WKTextExtractionInternal.h"
+//#import "IPCTesterReceiverMessages.h"
+//#import "UIProcess/SwiftDemoLogoConfirmation.h"

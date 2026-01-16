@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include "WebPermissionControllerProxy.h"
 #include "APIUserInitiatedAction.h"
 #include "AuxiliaryProcessProxy.h"
 #include "BackgroundProcessResponsivenessTimer.h"
@@ -103,7 +104,6 @@ struct CryptoKeyData;
 struct NotificationData;
 struct PluginInfo;
 struct PrewarmInformation;
-struct WebProcessCreationParameters;
 class SecurityOriginData;
 struct WrappedCryptoKey;
 
@@ -132,11 +132,12 @@ class VisitedLinkStore;
 class WebBackForwardListItem;
 class WebCompiledContentRuleList;
 class WebCompiledContentRuleListData;
+struct WebProcessCreationParameters;
 class WebFrameProxy;
 class WebLockRegistryProxy;
 class WebPageGroup;
 class WebPageProxy;
-class WebPermissionControllerProxy;
+//class WebPermissionControllerProxy;
 class WebPreferences;
 class WebProcessPool;
 class WebUserContentControllerProxy;

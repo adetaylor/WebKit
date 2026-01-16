@@ -24,7 +24,7 @@
 #if ENABLE_SWIFTUI && compiler(>=6.0)
 
 import Foundation
-internal import WebKit_Internal
+internal import WebKit_Internal.WKWebViewInternal
 
 // SPI for the cross-import overlay.
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation

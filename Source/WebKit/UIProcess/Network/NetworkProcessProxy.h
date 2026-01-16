@@ -28,6 +28,7 @@
 #include "AppPrivacyReport.h"
 #include "AuxiliaryProcessProxy.h"
 #include "BackgroundFetchState.h"
+#include "APICustomProtocolManagerClient.h"
 #include "DataTaskIdentifier.h"
 #include "IdentifierTypes.h"
 #include "NetworkResourceLoadIdentifier.h"
@@ -59,7 +60,7 @@ class FormDataReference;
 }
 
 namespace API {
-class CustomProtocolManagerClient;
+//class CustomProtocolManagerClient;
 class DataTask;
 }
 

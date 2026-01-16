@@ -24,7 +24,6 @@
 #if ENABLE_SWIFTUI && compiler(>=6.0)
 
 import Foundation
-internal import WebKit_Internal
 
 extension WKWebViewConfiguration {
     convenience init(_ wrapped: WebPage.Configuration) {

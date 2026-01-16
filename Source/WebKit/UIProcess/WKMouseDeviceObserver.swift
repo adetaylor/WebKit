@@ -24,7 +24,7 @@
 #if HAVE_MOUSE_DEVICE_OBSERVATION
 
 @_weakLinked internal import GameController
-internal import WebKit_Internal
+internal import WebKit_Internal.WKMouseDeviceObserver
 
 @objc
 @implementation
