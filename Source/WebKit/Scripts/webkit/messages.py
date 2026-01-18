@@ -2389,4 +2389,3 @@ def generate_message_argument_description_implementation(receivers, receiver_hea
     result.append('#endif // ENABLE(IPC_TESTING_API) || !LOG_DISABLED')
     result.append('')
     return '\n'.join(result)
-
