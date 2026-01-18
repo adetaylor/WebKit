@@ -439,8 +439,6 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WKPDFPageNumberIndicatorAdditions.sw
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WKWebView+TextExtraction.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WasmDebuggerDispatcherMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WasmDebuggerDispatcherMessages.h
-$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebAuthenticatorCoordinatorMessageReceiver.cpp
-$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebAuthenticatorCoordinatorMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebAuthenticatorCoordinatorProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebAuthenticatorCoordinatorProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/WebAutomationSessionMessageReceiver.cpp
