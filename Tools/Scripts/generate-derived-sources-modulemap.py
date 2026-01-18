@@ -28,6 +28,15 @@ import re
 import sys
 
 
+# Headers that should be marked as 'textual header' instead of 'header'
+# These are typically headers that contain inline implementations or
+# template definitions that shouldn't be compiled as separate modules
+TEXTUAL_HEADERS = {
+    'LogMessagesImplementations.h',
+    'WebKitLogClientDeclarations.h',
+}
+
+
 def sanitize_module_name(header_filename):
     """Convert a header filename to a valid module name.
 
@@ -87,8 +96,10 @@ def main():
             f.write('  export *\n')
             for header in headers:
                 module_name = sanitize_module_name(header)
+                # Check if this header should be textual
+                header_type = 'textual header' if header in TEXTUAL_HEADERS else 'header'
                 f.write(f'  explicit module {module_name} {{\n')
-                f.write(f'    header "{header}"\n')
+                f.write(f'    {header_type} "{header}"\n')
                 f.write('    export *\n')
                 f.write('  }\n')
             f.write('}\n')
