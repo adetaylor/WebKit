@@ -20956,7 +20956,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/module.private.modulemap",
+				"$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/module.modulemap",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
