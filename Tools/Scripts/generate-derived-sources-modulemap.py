@@ -24,7 +24,31 @@
 
 import argparse
 import os
+import re
 import sys
+
+
+def sanitize_module_name(header_filename):
+    """Convert a header filename to a valid module name.
+
+    Removes the .h extension and replaces any non-alphanumeric characters
+    with underscores to create a valid C++ module identifier.
+    """
+    # Remove .h extension
+    name = header_filename
+    if name.endswith('.h'):
+        name = name[:-2]
+
+    # Replace any non-alphanumeric characters with underscores
+    # Module names must start with a letter or underscore, and contain only
+    # letters, digits, and underscores
+    name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+
+    # Ensure it doesn't start with a digit
+    if name and name[0].isdigit():
+        name = '_' + name
+
+    return name
 
 
 def main():
@@ -59,10 +83,14 @@ def main():
         os.makedirs(os.path.dirname(args.output), exist_ok=True)
         with open(args.output, 'w') as f:
             f.write('module WebKit_DerivedSources {\n')
-            f.write('   requires cplusplus\n')
-            f.write('   export *\n')
+            f.write('  requires cplusplus\n')
+            f.write('  export *\n')
             for header in headers:
-                f.write(f'   header "{header}"\n')
+                module_name = sanitize_module_name(header)
+                f.write(f'  explicit module {module_name} {{\n')
+                f.write(f'    header "{header}"\n')
+                f.write('    export *\n')
+                f.write('  }\n')
             f.write('}\n')
     except IOError as e:
         print(f'Error writing {args.output}: {e}', file=sys.stderr)
