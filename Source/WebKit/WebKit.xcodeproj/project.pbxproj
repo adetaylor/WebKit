@@ -20950,7 +20950,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Source/WebKit/DerivedSources-output.xcfilelist",
+				"$(SRCROOT)/DerivedSources-output.xcfilelist",
 			);
 			name = "Generate DerivedSources Modulemap";
 			outputFileListPaths = (
