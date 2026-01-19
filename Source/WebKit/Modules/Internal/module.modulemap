@@ -15,6 +15,7 @@ module WebKit_Internal [system] {
     }
 
      module WKPreferencesInternal {
+        header  "../../UIProcess/WebPreferences.h"
         header  "../../UIProcess/API/Cocoa/WKPreferencesInternal.h"
         export *
     }
