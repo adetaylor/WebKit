@@ -39,7 +39,7 @@
 OBJC_CLASS NSArray;
 
 #if USE(APPKIT)
-OBJC_CLASS NSMenuItem;
+#include <AppKit/NSMenuItem.h>
 using CocoaMenuItem = NSMenuItem;
 #else
 OBJC_CLASS UIMenuElement;

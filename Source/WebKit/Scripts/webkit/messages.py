@@ -1257,6 +1257,7 @@ def headers_for_type(type, for_implementation_file=False):
         'WebCore::LegacyCDMSessionClient::MediaKeyErrorCode': ['<WebCore/LegacyCDMSession.h>'],
         'WebCore::LineCap': ['<WebCore/GraphicsTypes.h>'],
         'WebCore::LineJoin': ['<WebCore/GraphicsTypes.h>'],
+        'WebCore::MediaPlayer::VideoFullscreenMode': ['<WebCore/MediaPlayer.h>'],
         'WebCore::PackedColor::RGBA': ['<WebCore/ColorTypes.h>'],
         'WebCore::PaginationMode': ['<WebCore/Pagination.h>'],
         'WebCore::PlatformLayerIdentifierID': ['"GeneratedSerializers.h"'],
