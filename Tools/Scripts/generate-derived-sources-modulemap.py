@@ -32,7 +32,9 @@ import sys
 # These are typically headers that contain inline implementations or
 # template definitions that shouldn't be compiled as separate modules
 TEXTUAL_HEADERS = {
+    'LogMessagesDeclarations.h',
     'LogMessagesImplementations.h',
+    'WebCoreLogClientDeclarations.h',
     'WebKitLogClientDeclarations.h',
 }
 
