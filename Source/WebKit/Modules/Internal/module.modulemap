@@ -1,4 +1,7 @@
 module WebKit_Internal [system] {
+     // Core headers needed by many submodules
+     header "../../Shared/API/APIObject.h"
+
      module UIWindowSceneExtras {
         header "../../UIProcess/Cocoa/UIWindowScene+Extras.h"
         export *
@@ -15,6 +18,7 @@ module WebKit_Internal [system] {
     }
 
      module WKPreferencesInternal {
+        header  "../../Shared/API/APIObject.h"
         header  "../../UIProcess/WebPreferences.h"
         header  "../../UIProcess/API/Cocoa/WKPreferencesInternal.h"
         export *
@@ -36,14 +40,11 @@ module WebKit_Internal [system] {
    }
 
      module WKWebViewConfigurationInternal {
-       header "../../UIProcess/API/Cocoa/WKWebViewConfigurationInternal.h"
+       header "../../Shared/API/APIObject.h"
+       header "../../UIProcess/API/APIPageConfiguration.h"
+       textual header "../../UIProcess/API/Cocoa/WKWebViewConfigurationInternal.h"
        export *
    }
-
-     module APIPageConfiguration {
-         header "../../UIProcess/API/APIPageConfiguration.h"
-         export *
-     }
 
      module WKWebViewInternal {
        header "../../UIProcess/API/Cocoa/WKWebViewInternal.h"

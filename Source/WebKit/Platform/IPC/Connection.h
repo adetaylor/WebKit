@@ -29,6 +29,7 @@
 #pragma once
 
 #include "ConnectionHandle.h"
+#include "MessageNames.h"
 #include "MessageReceiveQueueMap.h"
 #include "MessageReceiver.h"
 #include "ReceiverMatcher.h"
