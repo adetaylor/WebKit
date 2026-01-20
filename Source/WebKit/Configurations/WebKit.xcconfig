@@ -431,6 +431,9 @@ OTHER_SWIFT_FLAGS_MARK_FOUNDATION_AS_OBJC_NO = ;
 OTHER_SWIFT_FLAGS_MIN_ACCESS_ = ;
 OTHER_SWIFT_FLAGS_MIN_ACCESS_ENABLE_IPC_TESTING_SWIFT = -Xfrontend -emit-clang-header-min-access -Xfrontend internal;
 
+SWIFT_BRIDGING_HEADER_IS_INTERNAL= YES;
+SWIFT_OBJC_BRIDGING_HEADER = Modules/Internal/WebKitInternal.h;
+
 // WebKit's clang module does not build in public SDK builds of these
 // platforms, preventing any Swift compilation. (https://bugs.webkit.org/show_bug.cgi?id=280912)
 EXCLUDED_SWIFT_FILE_NAMES[sdk=appletv*] = EXCLUDED_SWIFT_FILE_NAMES_WATCH_TV_$(USE_INTERNAL_SDK);

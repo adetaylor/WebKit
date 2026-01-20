@@ -26,7 +26,7 @@
 import Foundation
 import Observation
 internal import WebKit_Private
-internal import WebKit_Internal
+
 
 /// An object that controls and manages the behavior of interactive web content.
 ///

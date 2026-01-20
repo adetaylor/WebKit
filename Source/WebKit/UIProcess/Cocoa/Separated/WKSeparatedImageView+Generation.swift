@@ -25,7 +25,7 @@
 
 import os
 @_weakLinked internal import RealityKit
-internal import WebKit_Internal
+
 
 extension WKSeparatedImageView {
     func startImage3DGeneration() -> Task<Void, Error> {

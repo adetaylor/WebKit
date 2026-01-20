@@ -24,7 +24,7 @@
 #if ENABLE_SWIFTUI && compiler(>=6.0)
 
 import Foundation
-internal import WebKit_Internal
+
 
 extension WebPage {
     /// A type that specifies the behaviors to use when loading and rendering page content.

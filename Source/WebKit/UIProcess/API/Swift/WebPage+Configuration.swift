@@ -24,7 +24,7 @@
 #if ENABLE_SWIFTUI && compiler(>=6.0)
 
 import Foundation
-internal import WebKit_Internal
+
 
 extension WebPage {
     /// A configuration type that specifies the preferences and behaviors of a webpage.

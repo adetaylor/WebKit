@@ -37,3 +37,7 @@
 #import "WKWebViewConfigurationInternal.h"
 #import "WKWebViewInternal.h"
 #import "_WKTextExtractionInternal.h"
+
+#if __cplusplus
+#import "Modules/Internal/WebKitInternalCxx.h"
+#endif

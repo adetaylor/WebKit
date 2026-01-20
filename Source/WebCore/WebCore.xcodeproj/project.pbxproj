@@ -7487,8 +7487,6 @@
 		07221BAD17CF0AD400848E51 /* RTCSessionDescriptionRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCSessionDescriptionRequest.h; sourceTree = "<group>"; };
 		07221BB017CF0AD400848E51 /* RTCVoidRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVoidRequest.h; sourceTree = "<group>"; };
 		0725A61A2E60B3A00011C3E7 /* AddEventListenerOptionsInlines.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AddEventListenerOptionsInlines.h; sourceTree = "<group>"; };
-		072717AE2ED3AAB900315445 /* WebCore.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = WebCore.modulemap; sourceTree = "<group>"; };
-		072717AF2ED3AAC000315445 /* WebCore_Private.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = WebCore_Private.modulemap; sourceTree = "<group>"; };
 		07277E4017D018CC0015534D /* JSMediaStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSMediaStream.cpp; sourceTree = "<group>"; };
 		07277E4017D018CC0015534E /* JSCanvasCaptureMediaStreamTrack.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSCanvasCaptureMediaStreamTrack.cpp; sourceTree = "<group>"; };
 		07277E4117D018CC0015534D /* JSMediaStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSMediaStream.h; sourceTree = "<group>"; };
@@ -7938,8 +7936,6 @@
 		0DD1F6EF291433EA00B79355 /* GPUCanvasContext.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GPUCanvasContext.cpp; sourceTree = "<group>"; };
 		0DD1F6F0291433EB00B79355 /* GPUCanvasContext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GPUCanvasContext.h; sourceTree = "<group>"; };
 		0DD1FE962E78BEAB009DFD33 /* ModelDDTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ModelDDTypes.h; sourceTree = "<group>"; };
-		0DD1FE982E78C00B009DFD33 /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
-		0DD1FE992E78C00B009DFD33 /* WebCoreInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreInternal.h; sourceTree = "<group>"; };
 		0DD1FEA02E79C6EA009DFD33 /* DDFloat4x4.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DDFloat4x4.h; sourceTree = "<group>"; };
 		0DD1FEA42E79D3AC009DFD33 /* DDFloat3.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DDFloat3.h; sourceTree = "<group>"; };
 		0DE11A782C8AB2840003F6EE /* DigitalCredentialsResponseData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DigitalCredentialsResponseData.h; sourceTree = "<group>"; };
@@ -23789,8 +23785,6 @@
 				65C97AF208EA908800ACD273 /* config.h */,
 				EDEC98020AED7E170059137F /* WebCorePrefix.h */,
 				530A63461FA3E33D0026A545 /* Sources.txt */,
-				072717AE2ED3AAB900315445 /* WebCore.modulemap */,
-				072717AF2ED3AAC000315445 /* WebCore_Private.modulemap */,
 				530A63421FA3E33B0026A545 /* SourcesCocoa.txt */,
 				9307061309E0CA8200B17FE4 /* DerivedSources.make */,
 				A1E0866A248AABC800E496D9 /* DerivedSources-input.xcfilelist */,
@@ -24097,7 +24091,6 @@
 		0DD1FE9A2E78C00B009DFD33 /* Internal */ = {
 			isa = PBXGroup;
 			children = (
-				0DD1FE982E78C00B009DFD33 /* module.modulemap */,
 				0DD1FE992E78C00B009DFD33 /* WebCoreInternal.h */,
 			);
 			path = Internal;

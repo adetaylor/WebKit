@@ -23,7 +23,7 @@
 
 #if HAVE_MATERIAL_HOSTING
 
-internal import WebKit_Internal
+
 
 #if USE_APPLE_INTERNAL_SDK
 #if canImport(UIKit)

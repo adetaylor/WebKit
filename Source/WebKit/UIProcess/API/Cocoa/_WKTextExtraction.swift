@@ -25,9 +25,9 @@
 
 import Foundation
 #if compiler(>=6.0)
-internal import WebKit_Internal
+
 #else
-@_implementationOnly import WebKit_Internal
+// @_implementationOnly import WebKit_Internal
 #endif
 
 // FIXME: Adopt `@objc @implementation` when support for macOS Sonoma is no longer needed.
