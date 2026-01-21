@@ -9,8 +9,8 @@ framework module WebCore_Private [system] {
 
         requires cplusplus
 
-        // Module norms would expose nested modules here, but this causes some Swift issues -
-        // being resolved as rdar://166064408
-        export *
+        explicit module * {
+            export *
+        }
     }
 }
