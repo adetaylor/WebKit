@@ -462,7 +462,7 @@
 #include "ModelPresentationManagerProxy.h"
 #endif
 
-#if ENABLE(SWIFT_DEMO_URI_SCHEME) || ENABLE(IPC_TESTING_SWIFT)
+#if ENABLE(SWIFT_DEMO_URI_SCHEME) || ENABLE(IPC_TESTING_SWIFT) || ENABLE(BACK_FORWARD_LIST_SWIFT)
 #include "WebKit-Swift.h"
 #endif
 

@@ -74,6 +74,10 @@
 #include "WebDriverBidiProcessor.h"
 #endif
 
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+#include "WebKit-Swift.h"
+#endif
+
 namespace WebKit {
 
 using namespace Inspector;
