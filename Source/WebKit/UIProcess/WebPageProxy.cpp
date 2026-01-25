@@ -1065,7 +1065,7 @@ WebPageProxy::~WebPageProxy()
 void WebPageProxy::addAllMessageReceivers()
 {
     Ref process = m_legacyMainFrameProcess;
-    internals().messageReceiverRegistration.startReceivingMessages(process, m_webPageID, *this, backForwardList());
+    internals().messageReceiverRegistration.startReceivingMessages(process, m_webPageID, *this, backForwardListMessageReceiver());
     process->addMessageReceiver(Messages::NotificationManagerMessageHandler::messageReceiverName(), m_webPageID, internals().protectedNotificationManagerMessageHandler());
 }
 
@@ -17481,6 +17481,11 @@ RefPtr<WebDeviceOrientationUpdateProviderProxy> WebPageProxy::webDeviceOrientati
     return m_webDeviceOrientationUpdateProviderProxy;
 }
 #endif
+
+Ref<WebBackForwardList> WebPageProxy::backForwardListMessageReceiver() const
+{
+    return m_backForwardList;
+}
 
 } // namespace WebKit
 
