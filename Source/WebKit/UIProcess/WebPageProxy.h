@@ -756,6 +756,7 @@ public:
 
     WebBackForwardList& backForwardList() { return m_backForwardList; }
     WebBackForwardList& backForwardListAPI() { return m_backForwardList; }
+    WebBackForwardList& backForwardListMessageReceiver() const { return m_backForwardList; }
 
     bool addsVisitedLinks() const { return m_addsVisitedLinks; }
     void setAddsVisitedLinks(bool addsVisitedLinks) { m_addsVisitedLinks = addsVisitedLinks; }
