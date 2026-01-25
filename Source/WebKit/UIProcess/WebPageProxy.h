@@ -513,6 +513,7 @@ class WebAuthenticatorCoordinatorProxy;
 class WebAutomationSession;
 class WebBackForwardCache;
 class WebBackForwardList;
+using WebBackForwardListAPIImpl = WebBackForwardList;
 class WebBackForwardListFrameItem;
 class WebBackForwardListItem;
 class WebColorPickerClient;
@@ -754,6 +755,7 @@ public:
 #endif
 
     WebBackForwardList& backForwardList() { return m_backForwardList; }
+    WebBackForwardList& backForwardListAPI() { return m_backForwardList; }
 
     bool addsVisitedLinks() const { return m_addsVisitedLinks; }
     void setAddsVisitedLinks(bool addsVisitedLinks) { m_addsVisitedLinks = addsVisitedLinks; }

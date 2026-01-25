@@ -125,8 +125,10 @@ private:
     std::optional<size_t> m_currentIndex;
 };
 
+using WebBackForwardListAPIImpl = WebBackForwardList;
+
 } // namespace WebKit
 
-SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardList)
+SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardListAPIImpl)
 static bool isType(const API::Object& object) { return object.type() == API::Object::Type::BackForwardList; }
 SPECIALIZE_TYPE_TRAITS_END()
