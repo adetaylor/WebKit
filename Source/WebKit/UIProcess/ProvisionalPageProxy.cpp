@@ -63,6 +63,10 @@
 #include <WebCore/ShouldTreatAsContinuingLoad.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+#include "WebKit-Swift.h"
+#endif
+
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, process().connection())
 
 namespace WebKit {

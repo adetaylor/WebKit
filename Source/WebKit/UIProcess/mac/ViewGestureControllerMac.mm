@@ -26,6 +26,10 @@
 #import "config.h"
 #import "ViewGestureController.h"
 
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+#import "WebKit-Swift.h"
+#endif
+
 #if PLATFORM(MAC)
 
 #import "APINavigation.h"

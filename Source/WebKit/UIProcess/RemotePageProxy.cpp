@@ -69,6 +69,10 @@
 #include "WebDeviceOrientationUpdateProviderProxy.h"
 #endif
 
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+#include "WebKit-Swift.h"
+#endif
+
 namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemotePageProxy);
