@@ -35,7 +35,7 @@ using namespace WebKit;
 
 WKTypeID WKBackForwardListGetTypeID()
 {
-    return toAPI(WebBackForwardList::APIType);
+    return toAPI(WebBackForwardListAPIImpl::APIType);
 }
 
 WKBackForwardListItemRef WKBackForwardListGetCurrentItem(WKBackForwardListRef listRef)

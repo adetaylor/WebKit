@@ -216,7 +216,7 @@ void WebPageProxyTesting::resetStateBetweenTests()
 void WebPageProxyTesting::clearBackForwardList(CompletionHandler<void()>&& completionHandler)
 {
     Ref page = m_page.get();
-    protect(page->backForwardList())->clear();
+    protect(page->backForwardListAPI())->clear();
 
     Ref callbackAggregator = CallbackAggregator::create(WTF::move(completionHandler));
     page->forEachWebContentProcess([&](auto& webProcess, auto pageID) {
