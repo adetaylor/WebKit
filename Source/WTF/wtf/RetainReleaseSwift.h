@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <wtf/Platform.h>
 #include <wtf/SwiftBridging.h>
 
 #if HAVE(MEMBER_FUNCTION_RETAIN_RELEASE)
