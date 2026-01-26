@@ -885,7 +885,11 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, Ref
     , m_mainFrameProcessActivityState(makeUniqueRef<WebProcessActivityState>(*this))
     , m_initialCapitalizationEnabled(configuration->initialCapitalizationEnabled())
     , m_cpuLimit(configuration->cpuLimit())
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+    , m_backForwardList(WTF::makeUniqueWithoutFastMallocCheck<WebBackForwardList>(WebBackForwardList::init(*this)))
+#else
     , m_backForwardList(WebBackForwardList::create(*this))
+#endif
     , m_waitsForPaintAfterViewDidMoveToWindow(configuration->waitsForPaintAfterViewDidMoveToWindow())
     , m_controlledByAutomation(configuration->isControlledByAutomation())
 #if PLATFORM(COCOA)
@@ -1060,6 +1064,10 @@ WebPageProxy::~WebPageProxy()
 
     ASSERT(webPageProxyMap().get(m_identifier) == this);
     webPageProxyMap().remove(m_identifier);
+
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+    m_backForwardList->webPageProxyDestroyed();
+#endif
 }
 
 void WebPageProxy::addAllMessageReceivers()
@@ -17480,6 +17488,25 @@ RefPtr<WebDeviceOrientationUpdateProviderProxy> WebPageProxy::webDeviceOrientati
 {
     return m_webDeviceOrientationUpdateProviderProxy;
 }
+#endif
+
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+WebBackForwardListAPIImpl& WebPageProxy::backForwardListAPI()
+{
+    // Returns a pointer to something owned by the BackForwardList
+IGNORE_CLANG_WARNINGS_BEGIN("return-stack-address")
+    return m_backForwardList->getAPIImpl().get();
+IGNORE_CLANG_WARNINGS_END
+}
+
+WebBackForwardListMessageForwarder& WebPageProxy::backForwardListMessageReceiver() const
+{
+    // Returns a pointer to something owned by the BackForwardList
+IGNORE_CLANG_WARNINGS_BEGIN("return-stack-address")
+    return m_backForwardList->getMessageReceiver().get();
+IGNORE_CLANG_WARNINGS_END
+}
+
 #endif
 
 } // namespace WebKit
