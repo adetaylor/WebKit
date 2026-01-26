@@ -102,6 +102,7 @@ private func messageCheckCompletion(process: RefWebProcessProxy, assertion: () -
 }
 
 final class WebBackForwardList {
+    private static let defaultCapacity = 100
 
     var page: WeakPtrWebPageProxy
     // Optional just because of an initialization order issue.
@@ -112,6 +113,14 @@ final class WebBackForwardList {
     // rdar://163102366
     // Always occupied after construction
     var apiImpl: RefWebBackForwardListAPIImpl?
+
+    var entries: [WebKit.WebBackForwardListItem] = []
+    var currentIndex: Array.Index?
+
+    private enum Direction {
+        case backward
+        case forward
+    }
 
     init(page: WeakPtrWebPageProxy) {
         self.page = page
@@ -143,6 +152,136 @@ final class WebBackForwardList {
         )
         self.apiImpl = apiImpl
         return apiImpl
+    }
+
+    func itemForID(identifier: WebCore.BackForwardItemIdentifier) -> WebKit.WebBackForwardListItem? {
+    }
+
+    func pageClosed() {
+    }
+
+    func addItem(newItem: WebKit.WebBackForwardListItem) {
+    }
+
+    func goToItem(item: WebKit.WebBackForwardListItem) {
+    }
+
+    func currentItem() -> WebKit.WebBackForwardListItem? {
+    }
+
+    func backItem() -> WebKit.WebBackForwardListItem? {
+    }
+
+    func forwardItem() -> WebKit.WebBackForwardListItem? {
+    }
+
+    func itemAtIndex(index: Array.Index) -> WebKit.WebBackForwardListItem? {
+    }
+
+    func backListCount() -> Array.Index {
+    }
+
+    func forwardListCount() -> Array.Index {
+    }
+
+    func backListAsAPIArrayWithLimit(limit: UInt) -> RefAPIArray {
+    }
+
+    func forwardListAsAPIArrayWithLimit(limit: UInt) -> RefAPIArray {
+    }
+
+    func removeAllItems() {
+    }
+
+    func clear() {
+    }
+
+    func backForwardListState(filter: WebBackForwardListItemFilter) -> WebKit.BackForwardListState {
+    }
+
+    func restoreFromState(backForwardListState: WebKit.BackForwardListState) {
+    }
+
+    func setItemsAsRestoredFromSession() {
+    }
+
+    func setItemsAsRestoredFromSessionIf(functor: WebBackForwardListItemFilter) {
+    }
+
+    func didRemoveItem(item: WebKit.WebBackForwardListItem) {
+    }
+
+    func goBackItemSkippingItemsWithoutUserGesture() -> RefPtrWebBackForwardListItem {
+    }
+
+    func goForwardItemSkippingItemsWithoutUserGesture() -> RefPtrWebBackForwardListItem {
+    }
+
+    func loggingString() -> Swift.String {
+    }
+
+    func setBackForwardItemIdentifier(frameState: WebKit.FrameState, itemID: WebCore.BackForwardItemIdentifier) {
+    }
+
+    func completeFrameStateForNavigation(navigatedFrameState: WebKit.FrameState) -> WebKit.FrameState {
+    }
+
+    func backForwardAddItemShared(
+        connection: IPC.Connection,
+        navigatedFrameState: RefFrameState,
+        loadedWebArchive: WebKit.LoadedWebArchive
+    ) {
+    }
+
+    // IPCs from here on
+
+    func backForwardAddItem(connection: IPC.Connection, navigatedFrameState: RefFrameState) {
+    }
+
+    func backForwardSetChildItem(frameItemID: WebCore.BackForwardFrameItemIdentifier, frameState: RefFrameState) {
+    }
+
+    func backForwardClearChildren(itemID: WebCore.BackForwardItemIdentifier, frameItemID: WebCore.BackForwardFrameItemIdentifier) {
+    }
+
+    func backForwardUpdateItem(connection: IPC.Connection, frameState: RefFrameState) {
+    }
+
+    func backForwardGoToItem(
+        itemID: WebCore.BackForwardItemIdentifier,
+        completionHandler: CompletionHandlers.WebBackForwardList.BackForwardGoToItemCompletionHandler
+    ) {
+    }
+
+    func backForwardListContainsItem(
+        itemID: WebCore.BackForwardItemIdentifier,
+        completionHandler: CompletionHandlers.WebBackForwardList.BackForwardListContainsItemCompletionHandler
+    ) {
+    }
+
+    func backForwardGoToItemShared(
+        itemID: WebCore.BackForwardItemIdentifier,
+        completionHandler: CompletionHandlers.WebBackForwardList.BackForwardGoToItemCompletionHandler
+    ) {
+    }
+
+    func frameStateForItem(item: WebKit.WebBackForwardListItem, frameID: WebCore.FrameIdentifier) -> WebKit.FrameState {
+    }
+
+    func backForwardAllItems(
+        frameID: WebCore.FrameIdentifier,
+        completionHandler: CompletionHandlers.WebBackForwardList.BackForwardAllItemsCompletionHandler
+    ) {
+    }
+
+    func backForwardItemAtIndex(
+        index: Int32,
+        frameID: WebCore.FrameIdentifier,
+        completionHandler: CompletionHandlers.WebBackForwardList.BackForwardItemAtIndexCompletionHandler
+    ) {
+    }
+
+    func backForwardListCounts(completionHandler: CompletionHandlers.WebBackForwardList.BackForwardListCountsCompletionHandler) {
     }
 }
 
