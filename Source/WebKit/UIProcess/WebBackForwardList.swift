@@ -236,42 +236,127 @@ final class WebBackForwardList {
     // IPCs from here on
 
     func backForwardAddItem(connection: IPC.Connection, navigatedFrameState: RefFrameState) {
+        if let page = page.get() {
+            let loadedWebArchive =
+                page.didLoadWebArchive()
+                ? WebKit.LoadedWebArchive.Yes
+                : WebKit.LoadedWebArchive.No
+            backForwardAddItemShared(
+                connection: connection,
+                navigatedFrameState: navigatedFrameState,
+                loadedWebArchive: loadedWebArchive
+            )
+        }
     }
 
     func backForwardSetChildItem(frameItemID: WebCore.BackForwardFrameItemIdentifier, frameState: RefFrameState) {
+        guard let item = currentItem() else {
+            return
+        }
+
+        if let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(item.identifier(), frameItemID) {
+            frameItem.setChild(consuming: frameState)
+        }
     }
 
     func backForwardClearChildren(itemID: WebCore.BackForwardItemIdentifier, frameItemID: WebCore.BackForwardFrameItemIdentifier) {
+        if let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) {
+            frameItem.clearChildren()
+        }
     }
 
     func backForwardUpdateItem(connection: IPC.Connection, frameState: RefFrameState) {
+        let itemID = frameState.ptr().itemID.pointee
+        let frameItemID = frameState.ptr().frameItemID.pointee
+        guard let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) else {
+            return
+        }
+        guard let item = frameItem.backForwardListItem() else {
+            return
+        }
+        guard let webPageProxy = page.get() else {
+            return
+        }
+        // We can't use == here due to rdar://162357139
+        assert(contentsMatch(webPageProxy.identifier(), item.pageID()) && contentsMatch(itemID, item.identifier()))
+        if let process = WebKit.AuxiliaryProcessProxy.fromConnection(connection) {
+            // The downcast in C++ is really just used to assert that the process is a WebProcessProxy
+            assert(downcastToWebProcessProxy(process).__convertToBool())
+            let hasBackForwardCacheEntry = item.protectedBackForwardCacheEntry().__convertToBool()
+            if hasBackForwardCacheEntry != frameState.ptr().hasCachedPage {
+                // Safety: accessing suspendedPage pointer just to check nullness, no dereference occurs
+                if frameState.ptr().hasCachedPage {
+                    webPageProxy.backForwardCache().addEntry(item, process.coreProcessIdentifier())
+                } else if unsafe item.suspendedPage() != nil {
+                    webPageProxy.backForwardCache().removeEntry(item)
+                }
+            }
+
+            frameItem.setFrameState(consuming: frameState)
+        }
     }
 
     func backForwardGoToItem(
         itemID: WebCore.BackForwardItemIdentifier,
         completionHandler: CompletionHandlers.WebBackForwardList.BackForwardGoToItemCompletionHandler
     ) {
+        // On process swap, we tell the previous process to ignore the load, which causes it so restore its current back forward item to its previous
+        // value. Since the load is really going on in a new provisional process, we want to ignore such requests from the committed process.
+        // Any real new load in the committed process would have cleared m_provisionalPage.
+        if let webPageProxy = page.get() {
+            if webPageProxy.hasProvisionalPage() {
+                completionHandler.pointee(consuming: counts())
+                return
+            }
+        }
+
+        backForwardGoToItemShared(itemID: itemID, completionHandler: completionHandler)
     }
 
     func backForwardListContainsItem(
         itemID: WebCore.BackForwardItemIdentifier,
         completionHandler: CompletionHandlers.WebBackForwardList.BackForwardListContainsItemCompletionHandler
     ) {
+        completionHandler.pointee(itemForID(identifier: itemID) != nil)
     }
 
     func backForwardGoToItemShared(
         itemID: WebCore.BackForwardItemIdentifier,
         completionHandler: CompletionHandlers.WebBackForwardList.BackForwardGoToItemCompletionHandler
     ) {
+        if let webPageProxy = page.get() {
+            if messageCheckCompletion(
+                process: RefWebProcessProxy(webPageProxy.legacyMainFrameProcess()),
+                assertion: { !WebKit.isInspectorPage(webPageProxy) },
+                completionHandler: { completionHandler.pointee(consuming: counts()) }
+            ) {
+                return
+            }
+        }
+
+        if let item = itemForID(identifier: itemID) {
+            goToItem(item: item)
+        }
+
+        completionHandler.pointee(consuming: counts())
     }
 
     func frameStateForItem(item: WebKit.WebBackForwardListItem, frameID: WebCore.FrameIdentifier) -> WebKit.FrameState {
+        guard let frameItem = item.protectedMainFrameItem().ptr().childItemForFrameID(frameID) else {
+            return item.mainFrameState().ptr()
+        }
+        return frameItem.copyFrameStateWithChildren().ptr()
     }
 
     func backForwardAllItems(
         frameID: WebCore.FrameIdentifier,
         completionHandler: CompletionHandlers.WebBackForwardList.BackForwardAllItemsCompletionHandler
     ) {
+        var frameStates: [WebKit.FrameState] = []
+        for item in entries {
+            frameStates.append(frameStateForItem(item: item, frameID: frameID))
+        }
+        completionHandler.pointee(consuming: VectorRefFrameState(array: frameStates))
     }
 
     func backForwardItemAtIndex(
@@ -279,9 +364,20 @@ final class WebBackForwardList {
         frameID: WebCore.FrameIdentifier,
         completionHandler: CompletionHandlers.WebBackForwardList.BackForwardItemAtIndexCompletionHandler
     ) {
+        // FIXME: This should verify that the web process requesting the item hosts the specified frame.
+        let index = Int(index)
+        guard let item = itemAtIndex(index: index) else {
+            // Safety: believed to be a false positive, rdar://162608225
+            unsafe completionHandler.pointee(consuming: RefPtrFrameState())
+            return
+        }
+        let frameState = frameStateForItem(item: item, frameID: frameID)
+        // Safety: believed to be a false positive, rdar://162608225
+        unsafe completionHandler.pointee(consuming: RefPtrFrameState(frameState))
     }
 
     func backForwardListCounts(completionHandler: CompletionHandlers.WebBackForwardList.BackForwardListCountsCompletionHandler) {
+        completionHandler.pointee(consuming: counts())
     }
 }
 
