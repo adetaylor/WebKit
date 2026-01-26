@@ -133,6 +133,9 @@ private:
 
 typedef Vector<Ref<WebBackForwardListItem>> BackForwardListItemVector;
 
+using RefWebBackForwardListItem = Ref<WebKit::WebBackForwardListItem>;
+using RefPtrWebBackForwardListItem = RefPtr<WebKit::WebBackForwardListItem>;
+
 } // namespace WebKit
 
 inline void refBackForwardListItem(WebKit::WebBackForwardListItem* WTF_NONNULL obj)

@@ -34,6 +34,7 @@
 #include "WebBackForwardCache.h"
 #include "WebBackForwardListCounts.h"
 #include "WebBackForwardListFrameItem.h"
+#include "WebBackForwardListSwiftUtilities.h"
 #include "WebFrameProxy.h"
 #include "WebInspectorUtilities.h"
 #include "WebPageProxy.h"
@@ -874,3 +875,28 @@ String WebBackForwardListWrapper::loggingString()
 #endif // ENABLE(BACK_FORWARD_LIST_SWIFT)
 
 } // namespace WebKit
+
+WebCore::BackForwardFrameItemIdentifier generateBackForwardFrameItemIdentifier()
+{
+    return WebCore::BackForwardFrameItemIdentifier::generate();
+}
+
+WebCore::BackForwardItemIdentifier generateBackForwardItemIdentifier()
+{
+    return WebCore::BackForwardItemIdentifier::generate();
+}
+
+void doLog(const char* WTF_NONNULL msg)
+{
+    LOG(BackForward, "%s", msg);
+}
+
+void doLoadingReleaseLog(const char* WTF_NONNULL msg)
+{
+    RELEASE_LOG(Loading, "%s", msg);
+}
+
+void messageCheckFailed(Ref<WebKit::WebProcessProxy> process)
+{
+    MESSAGE_CHECK_BASE(false, process->connection());
+}

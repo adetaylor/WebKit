@@ -941,6 +941,8 @@ private:
 
 WTF::TextStream& operator<<(WTF::TextStream&, const WebProcessProxy&);
 
+using RefWebProcessProxy = Ref<WebProcessProxy>;
+
 } // namespace WebKit
 
 inline void refWebProcessProxy(WebKit::WebProcessProxy* WTF_NONNULL obj)
