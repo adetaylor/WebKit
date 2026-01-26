@@ -387,6 +387,8 @@ template<typename> class RectEdges;
 
 using BackForwardItemIdentifier = ProcessQualified<ObjectIdentifier<BackForwardItemIdentifierType>>;
 using BackForwardFrameItemIdentifier = ProcessQualified<ObjectIdentifier<BackForwardFrameItemIdentifierType>>;
+using MarkableBackForwardItemIdentifier = WTF::Markable<BackForwardItemIdentifier>;
+using MarkableBackForwardFrameItemIdentifier = WTF::Markable<BackForwardFrameItemIdentifier>;
 using DictationContext = ObjectIdentifier<DictationContextType>;
 using FramesPerSecond = unsigned;
 using FloatBoxExtent = RectEdges<float>;
@@ -4132,6 +4134,8 @@ private:
 
     HashSet<CheckedRef<WebProcessProxy>> m_unresponsiveProcesses;
 } SWIFT_SHARED_REFERENCE(refWebPageProxy, derefWebPageProxy);
+
+using WeakPtrWebPageProxy = WeakPtr<WebPageProxy>;
 
 } // namespace WebKit
 
