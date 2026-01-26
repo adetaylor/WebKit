@@ -25,6 +25,7 @@
 
 #import "config.h"
 #import "ViewGestureController.h"
+#import <optional>
 
 #if ENABLE(BACK_FORWARD_LIST_SWIFT)
 #import "WebKit-Swift.h"
@@ -688,6 +689,18 @@ bool ViewGestureController::completeSimulatedSwipeInDirectionForTesting(SwipeDir
     return true;
 }
 
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+
+std::optional<WebBackForwardList> ViewGestureController::backForwardListForNavigation() const
+{
+    if (RefPtr page = m_webPageProxy.get())
+        return page->backForwardList();
+
+    return std::nullopt;
+}
+
+#else
+
 WebBackForwardList* ViewGestureController::backForwardListForNavigation() const
 {
     if (RefPtr page = m_webPageProxy.get())
@@ -695,6 +708,8 @@ WebBackForwardList* ViewGestureController::backForwardListForNavigation() const
 
     return nullptr;
 }
+
+#endif
 
 } // namespace WebKit
 

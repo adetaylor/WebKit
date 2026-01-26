@@ -154,6 +154,7 @@
 #include "WebBackForwardListFrameItem.h"
 #include "WebBackForwardListItem.h"
 #include "WebBackForwardListMessages.h"
+#include "WebBackForwardListSwiftUtilities.h"
 #include "WebContextMenuItem.h"
 #include "WebContextMenuProxy.h"
 #include "WebDateTimePicker.h"
@@ -2661,7 +2662,11 @@ RefPtr<API::Navigation> WebPageProxy::goToBackForwardItem(WebBackForwardListFram
         launchProcess(Site { URL { item->url() } }, ProcessLaunchReason::InitialProcess);
 
         if (item != m_backForwardList->currentItem())
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+            m_backForwardList->goToItem(&*item);
+#else
             m_backForwardList->goToItem(*item);
+#endif
     }
 
     Ref process = m_legacyMainFrameProcess;
@@ -5755,7 +5760,11 @@ SessionState WebPageProxy::sessionState(WTF::Function<bool (WebBackForwardListIt
     RELEASE_ASSERT(RunLoop::isMain());
     SessionState sessionState;
 
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+    sessionState.backForwardListState = m_backForwardList->backForwardListState(WebBackForwardListItemFilter::create(WTF::move(filter)).ptr());
+#else
     sessionState.backForwardListState = m_backForwardList->backForwardListState(WTF::move(filter));
+#endif
 
     String provisionalURLString = internals().pageLoadState.pendingAPIRequestURL();
     if (provisionalURLString.isEmpty())
@@ -7592,7 +7601,11 @@ static OptionSet<CrossSiteNavigationDataTransfer::Flag> checkIfNavigationContain
 void WebPageProxy::didCommitLoadForFrame(IPC::Connection& connection, FrameIdentifier frameID, FrameInfoData&& frameInfo, ResourceRequest&& request, std::optional<WebCore::NavigationIdentifier> navigationID, String&& mimeType, bool frameHasCustomContentProvider, FrameLoadType frameLoadType, const CertificateInfo& certificateInfo, bool usedLegacyTLS, bool wasPrivateRelayed, String&& proxyName, const WebCore::ResourceResponseSource source, bool containsPluginDocument, HasInsecureContent hasInsecureContent, MouseEventPolicy mouseEventPolicy, DocumentSecurityPolicy&& documentSecurityPolicy, const UserData& userData)
 {
     LOG(Loading, "(Loading) WebPageProxy %" PRIu64 " didCommitLoadForFrame in navigation %" PRIu64, identifier().toUInt64(), navigationID ? navigationID->toUInt64() : 0);
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+    LOG(BackForward, "(Back/Forward) After load commit, back/forward list is now:%s", std::string(m_backForwardList->loggingString()).data());
+#else
     LOG(BackForward, "(Back/Forward) After load commit, back/forward list is now:%s", m_backForwardList->loggingString().utf8().data());
+#endif
 
     RefPtr protectedPageClient { pageClient() };
 
@@ -8415,7 +8428,11 @@ void WebPageProxy::decidePolicyForNavigationAction(Ref<WebProcessProxy>&& proces
     }
 
     if (!navigation) {
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+        const std::unique_ptr<WebBackForwardList>& backForwardList = m_backForwardList;
+#else
         Ref backForwardList = m_backForwardList;
+#endif
         if (auto targetBackForwardItemIdentifier = navigationActionData.targetBackForwardItemIdentifier) {
             if (RefPtr item = backForwardList->itemForID(*targetBackForwardItemIdentifier)) {
                 RefPtr fromItem = navigationActionData.sourceBackForwardItemIdentifier ? backForwardList->itemForID(*navigationActionData.sourceBackForwardItemIdentifier) : nullptr;
@@ -10478,12 +10495,20 @@ void WebPageProxy::requestDOMPasteAccess(IPC::Connection& connection, DOMPasteAc
 
 void WebPageProxy::backForwardAddItemShared(IPC::Connection& connection, Ref<FrameState>&& navigatedFrameState, LoadedWebArchive loadedWebArchive)
 {
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+    m_backForwardList->backForwardAddItemShared(&connection, WTF::move(navigatedFrameState), loadedWebArchive);
+#else
     m_backForwardList->backForwardAddItemShared(connection, WTF::move(navigatedFrameState), loadedWebArchive);
+#endif
 }
 
 void WebPageProxy::backForwardGoToItemShared(BackForwardItemIdentifier itemID, CompletionHandler<void(const WebBackForwardListCounts&)>&& completionHandler)
 {
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+    m_backForwardList->backForwardGoToItemShared(itemID, CompletionHandlers::WebBackForwardList::BackForwardGoToItemCompletionHandler::create(WTF::move(completionHandler)).ptr());
+#else
     m_backForwardList->backForwardGoToItemShared(itemID, WTF::move(completionHandler));
+#endif
 }
 
 void WebPageProxy::compositionWasCanceled()

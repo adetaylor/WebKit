@@ -85,8 +85,12 @@ class QueryPermissionResultCallback;
 class SpeechRecognitionPermissionCallback;
 class UserMediaPermissionCheckProxy;
 class UserMediaPermissionRequestProxy;
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+class WebBackForwardListAPIImpl;
+#else
 class WebBackForwardList;
 using WebBackForwardListAPIImpl = WebBackForwardList;
+#endif
 class WebBackForwardListItem;
 class WebColorPickerResultListenerProxy;
 class WebContextMenuListenerProxy;
