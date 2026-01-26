@@ -42,9 +42,12 @@ class Array;
 namespace WebKit {
 
 class WebPageProxy;
+class FrameState;
 
 struct BackForwardListState;
 struct WebBackForwardListCounts;
+
+#if !ENABLE(BACK_FORWARD_LIST_SWIFT)
 
 class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>, public IPC::MessageReceiver {
 public:
@@ -123,9 +126,55 @@ private:
     WeakPtr<WebPageProxy> m_page;
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
+
 };
 
 using WebBackForwardListAPIImpl = WebBackForwardList;
+
+#else // ENABLE(BACK_FORWARD_LIST_SWIFT)
+
+// Avoid including WebKit-Swift.h in header files to avoid dependency loops.
+class WebBackForwardList;
+
+// This C++ stub object exists to forward API calls through to the Swift implementation.
+// Although the BackForwardList is in Swift, we retain a C++
+// API::Object subclass because Swift can't yet inherit from C++ -
+// rdar://163102366
+class WebBackForwardListAPIImpl : public API::ObjectImpl<API::Object::Type::BackForwardList> {
+public:
+    static Ref<WebBackForwardListAPIImpl> create(WebBackForwardList* WTF_NONNULL impl)
+    {
+        return adoptRef(*new WebBackForwardListAPIImpl(impl));
+    }
+
+    virtual ~WebBackForwardListAPIImpl();
+
+    void removeAllItems();
+    void clear();
+
+    WebBackForwardListItem* WTF_NULLABLE currentItem() const;
+    WebBackForwardListItem* WTF_NULLABLE itemAtIndex(int) const;
+    WebBackForwardListItem* WTF_NULLABLE backItem() const;
+    WebBackForwardListItem* WTF_NULLABLE forwardItem() const;
+
+    Ref<API::Array> backList() const;
+    Ref<API::Array> forwardList() const;
+
+    unsigned backListCount() const;
+    unsigned forwardListCount() const;
+
+    Ref<API::Array> backListAsAPIArrayWithLimit(unsigned limit) const;
+    Ref<API::Array> forwardListAsAPIArrayWithLimit(unsigned limit) const;
+
+    String loggingString();
+
+private:
+    explicit WebBackForwardListAPIImpl(WebBackForwardList* WTF_NONNULL impl);
+
+    std::unique_ptr<WebBackForwardList> m_impl;
+};
+
+#endif // ENABLE(BACK_FORWARD_LIST_SWIFT)
 
 } // namespace WebKit
 

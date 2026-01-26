@@ -54,6 +54,8 @@
 namespace WebKit {
 using namespace WebCore;
 
+#if !ENABLE(BACK_FORWARD_LIST_SWIFT)
+
 static const unsigned DefaultCapacity = 100;
 
 WebBackForwardList::WebBackForwardList(WebPageProxy& page)
@@ -787,5 +789,83 @@ String WebBackForwardList::loggingString()
 
     return builder.toString();
 }
+
+#else // ENABLE(BACK_FORWARD_LIST_SWIFT)
+
+WebBackForwardListAPIImpl::WebBackForwardListAPIImpl(WebBackForwardList* WTF_NONNULL impl)
+    : m_impl(WTF::makeUniqueWithoutFastMallocCheck<WebBackForwardList>(WebKit::_impl::_impl_WebBackForwardList::makeRetained(impl)))
+{
+}
+
+WebBackForwardListAPIImpl::~WebBackForwardListAPIImpl()
+{
+}
+
+WebBackForwardListItem* WebBackForwardListAPIImpl::currentItem() const
+{
+    return m_impl->currentItem();
+}
+
+WebBackForwardListItem* WebBackForwardListAPIImpl::backItem() const
+{
+    return m_impl->backItem();
+}
+
+WebBackForwardListItem* WebBackForwardListAPIImpl::forwardItem() const
+{
+    return m_impl->forwardItem();
+}
+
+WebBackForwardListItem* WebBackForwardListAPIImpl::itemAtIndex(int index) const
+{
+    return m_impl->itemAtIndex(index);
+}
+
+unsigned WebBackForwardListAPIImpl::backListCount() const
+{
+    return m_impl->backListCount();
+}
+
+unsigned WebBackForwardListAPIImpl::forwardListCount() const
+{
+    return m_impl->forwardListCount();
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::backList() const
+{
+    return backListAsAPIArrayWithLimit(backListCount());
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::forwardList() const
+{
+    return forwardListAsAPIArrayWithLimit(forwardListCount());
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::backListAsAPIArrayWithLimit(unsigned limit) const
+{
+    return m_impl->backListAsAPIArrayWithLimit(limit);
+}
+
+Ref<API::Array> WebBackForwardListAPIImpl::forwardListAsAPIArrayWithLimit(unsigned limit) const
+{
+    return m_impl->forwardListAsAPIArrayWithLimit(limit);
+}
+
+void WebBackForwardListAPIImpl::removeAllItems()
+{
+    m_impl->removeAllItems();
+}
+
+void WebBackForwardListAPIImpl::clear()
+{
+    m_impl->clear();
+}
+
+String WebBackForwardListAPIImpl::loggingString()
+{
+    return String::fromUTF8WithLatin1Fallback(std::string(m_impl->loggingString()));
+}
+
+#endif // ENABLE(BACK_FORWARD_LIST_SWIFT)
 
 } // namespace WebKit
