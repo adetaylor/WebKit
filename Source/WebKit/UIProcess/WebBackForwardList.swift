@@ -125,14 +125,6 @@ final class WebBackForwardList {
     init(page: WeakPtrWebPageProxy) {
         self.page = page
         self.messageForwarder = WebKit.WebBackForwardListMessageForwarder.create(target: self)
-        // Safety: we're creating a pointer which will immediately be stored in a
-        // proper ref-counted reference on the C++ side before this call returns.
-        // Workaround for rdar://163107752.
-        self.apiImpl = WebKit.WebBackForwardListAPIImpl.create(
-            unsafe OpaquePointer(
-                Unmanaged.passRetained(self).toOpaque()
-            )
-        )
         backForwardLog(msgCreator: {
             "(Back/Forward) Created WebBackForwardList \(ObjectIdentifier(self))"
         })
@@ -158,8 +150,18 @@ final class WebBackForwardList {
     }
 
     func getAPIImpl() -> RefWebBackForwardListAPIImpl {
-        // Guaranteed to be Some after construction until webPageProxyDestroyed, after which
-        // this isn't called
+        if self.apiImpl == nil {
+            // Safety: we're creating a pointer which will immediately be stored in a
+            // proper ref-counted reference on the C++ side before this call returns.
+            // Workaround for rdar://163107752.
+            // We can't construct this in 'init' because we can't retain our own object
+            // until after 'init()' has completed
+            self.apiImpl = WebKit.WebBackForwardListAPIImpl.create(
+                unsafe OpaquePointer(
+                    Unmanaged.passRetained(self).toOpaque()
+                )
+            )
+        }
         // swift-format-ignore: NeverForceUnwrap
         self.apiImpl!
     }
