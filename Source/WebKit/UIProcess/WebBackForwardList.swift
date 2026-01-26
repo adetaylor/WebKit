@@ -330,7 +330,9 @@ final class WebBackForwardList {
         guard var targetIndex else {
             backForwardLog(msgCreator: {
                 let identifier = String(item.identifier().toString())
-                let url = String(item.urlCopy())
+                // Safety: we immediately make a copy of the string before
+                // it could be freed or mutated.
+                let url = String(item.__getUrlUnsafe())
                 return
                     "(Back/Forward) WebBackForwardList \(ObjectIdentifier(self)) could not go to item \(identifier) (\(url)) because it was not found"
             })
