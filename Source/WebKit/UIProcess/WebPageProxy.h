@@ -2847,7 +2847,10 @@ public:
 
     AboutSchemeHandler& aboutSchemeHandler() const { return m_aboutSchemeHandler; }
 
-    bool hasProvisionalPage() const;
+    bool hasProvisionalPage() const { 
+        WTFLogAlways("WebPageProxy::hasProvisionalPage - this is %p, provisional page is %p", this, m_provisionalPage.get());
+        return m_provisionalPage;
+    }
     bool isRemoteFrameNavigation(Ref<WebProcessProxy>);
 
 #if ENABLE(WEB_ARCHIVE)
