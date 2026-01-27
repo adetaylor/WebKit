@@ -715,9 +715,13 @@ void WebBackForwardList::backForwardGoToItem(BackForwardItemIdentifier itemID, C
     // On process swap, we tell the previous process to ignore the load, which causes it so restore its current back forward item to its previous
     // value. Since the load is really going on in a new provisional process, we want to ignore such requests from the committed process.
     // Any real new load in the committed process would have cleared m_provisionalPage.
+    WTFLogAlways("backForwardGoToItem");
     if (RefPtr webPageProxy = m_page.get()) {
-        if (webPageProxy->hasProvisionalPage())
+        WTFLogAlways("backForwardGoToItem: in wpp");
+        if (webPageProxy->hasProvisionalPage()) {
+            WTFLogAlways("backForwardGoToItem: in hpp");
             return completionHandler(counts());
+        }
     }
 
     backForwardGoToItemShared(itemID, WTF::move(completionHandler));
@@ -730,6 +734,7 @@ void WebBackForwardList::backForwardListContainsItem(WebCore::BackForwardItemIde
 
 void WebBackForwardList::backForwardGoToItemShared(BackForwardItemIdentifier itemID, CompletionHandler<void(const WebBackForwardListCounts&)>&& completionHandler)
 {
+    WTFLogAlways("backForwardGoToItemShared");
     if (RefPtr webPageProxy = m_page.get())
         MESSAGE_CHECK_COMPLETION(protect(webPageProxy->legacyMainFrameProcess()), !WebKit::isInspectorPage(*webPageProxy), completionHandler(counts()));
 
