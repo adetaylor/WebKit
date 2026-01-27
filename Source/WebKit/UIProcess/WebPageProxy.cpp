@@ -5683,6 +5683,7 @@ void WebPageProxy::setUserAgent(String&& userAgent, IsCustomUserAgent isCustomUs
 
 bool WebPageProxy::hasProvisionalPage() const
 {
+    WTFLogAlways("WebPageProxy::hasProvisionalPage - this is %p, provisional page is %p", this, m_provisionalPage.get());
     return m_provisionalPage;
 }
 
