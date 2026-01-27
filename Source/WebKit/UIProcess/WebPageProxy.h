@@ -2847,7 +2847,7 @@ public:
 
     AboutSchemeHandler& aboutSchemeHandler() const { return m_aboutSchemeHandler; }
 
-    bool hasProvisionalPage() const { return m_provisionalPage; }
+    bool hasProvisionalPage() const;
     bool isRemoteFrameNavigation(Ref<WebProcessProxy>);
 
 #if ENABLE(WEB_ARCHIVE)

@@ -5681,6 +5681,11 @@ void WebPageProxy::setUserAgent(String&& userAgent, IsCustomUserAgent isCustomUs
     });
 }
 
+bool WebPageProxy::hasProvisionalPage() const
+{
+    return m_provisionalPage;
+}
+
 void WebPageProxy::setApplicationNameForUserAgent(const String& applicationName)
 {
     if (m_applicationNameForUserAgent == applicationName)
