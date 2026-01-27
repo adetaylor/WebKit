@@ -2623,17 +2623,22 @@ RefPtr<API::Navigation> WebPageProxy::goForward()
 
 RefPtr<API::Navigation> WebPageProxy::goBack()
 {
-    WEBPAGEPROXY_RELEASE_LOG(Loading, "goBack:");
+    WTFLogAlways("goBack:");
     RefPtr backItem = m_backForwardList->goBackItemSkippingItemsWithoutUserGesture();
+    WTFLogAlways("goBack got backItem");
     if (!backItem)
         return nullptr;
+    WTFLogAlways("goBack past BackItem check");
 
     Ref frameItem = backItem->mainFrameItem();
     if (RefPtr currentItem = m_backForwardList->currentItem()) {
+        WTFLogAlways("goBack: in currentItem check");
         if (RefPtr childItem = currentItem->navigatedFrameID() ? frameItem->childItemForFrameID(*currentItem->navigatedFrameID()) : nullptr)
             frameItem = childItem.releaseNonNull();
+        WTFLogAlways("goBack: frameItem faff");
     }
 
+    WTFLogAlways("goBack: about to goToBackForwardItem");
     return goToBackForwardItem(frameItem, FrameLoadType::Back);
 }
 
@@ -2644,12 +2649,13 @@ RefPtr<API::Navigation> WebPageProxy::goToBackForwardItem(WebBackForwardListItem
 
 RefPtr<API::Navigation> WebPageProxy::goToBackForwardItem(WebBackForwardListFrameItem& frameItem, FrameLoadType frameLoadType)
 {
-    WEBPAGEPROXY_RELEASE_LOG(Loading, "goToBackForwardItem:");
+    WTFLogAlways("goToBackForwardItem:");
 
     RefPtr item = frameItem.backForwardListItem();
     ASSERT(item);
     if (!item)
         return nullptr;
+    WTFLogAlways("goToBackForwardItem:past np check");
 
     LOG(Loading, "WebPageProxy %p goToBackForwardItem to item URL %s", this, item->url().utf8().data());
 
@@ -2657,9 +2663,11 @@ RefPtr<API::Navigation> WebPageProxy::goToBackForwardItem(WebBackForwardListFram
         WEBPAGEPROXY_RELEASE_LOG(Loading, "goToBackForwardItem: page is closed");
         return nullptr;
     }
+    WTFLogAlways("goToBackForwardItem:past page closed");
 
     if (!hasRunningProcess()) {
         launchProcess(Site { URL { item->url() } }, ProcessLaunchReason::InitialProcess);
+        WTFLogAlways("goToBackForwardItem:inhasRunningProcess");
 
         if (item != m_backForwardList->currentItem())
 #if ENABLE(BACK_FORWARD_LIST_SWIFT)
@@ -2667,7 +2675,10 @@ RefPtr<API::Navigation> WebPageProxy::goToBackForwardItem(WebBackForwardListFram
 #else
             m_backForwardList->goToItem(*item);
 #endif
+
+        WTFLogAlways("goToBackForwardItem:did goToItem");
     }
+    WTFLogAlways("goToBackForwardItem:past hasRunningProcess");
 
     Ref process = m_legacyMainFrameProcess;
     Ref navigation = m_navigationState->createBackForwardNavigation(process->coreProcessIdentifier(), frameItem, protect(m_backForwardList->currentItem()), frameLoadType);
@@ -2685,7 +2696,9 @@ RefPtr<API::Navigation> WebPageProxy::goToBackForwardItem(WebBackForwardListFram
         }
     }
     auto publicSuffix = WebCore::PublicSuffixStore::singleton().publicSuffix(URL(item->url()));
+    WTFLogAlways("goToBackForwardItem:sending GoToBackForwardItem");
     process->send(Messages::WebPage::GoToBackForwardItem({ navigation->navigationID(), WTF::move(frameState), frameLoadType, ShouldTreatAsContinuingLoad::No, std::nullopt, m_lastNavigationWasAppInitiated, std::nullopt, WTF::move(publicSuffix), { }, WebCore::ProcessSwapDisposition::None }), webPageIDInProcess(process));
+    WTFLogAlways("goToBackForwardItem:sent GoToBackForwardItem");
     process->startResponsivenessTimer();
 
     return RefPtr<API::Navigation> { WTF::move(navigation) };

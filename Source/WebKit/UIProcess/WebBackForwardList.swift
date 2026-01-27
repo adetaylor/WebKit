@@ -128,6 +128,7 @@ final class WebBackForwardList {
         backForwardLog(msgCreator: {
             "(Back/Forward) Created WebBackForwardList \(ObjectIdentifier(self))"
         })
+        print("Creating Swift BackForwardList")
     }
 
     deinit {
@@ -311,6 +312,7 @@ final class WebBackForwardList {
     }
 
     func goToItem(item: WebKit.WebBackForwardListItem) {
+        print("goToItem")
         assertValidIndex()
 
         guard !entries.isEmpty else {
@@ -322,8 +324,10 @@ final class WebBackForwardList {
         guard let priorCurrentIndex = currentIndex else {
             return
         }
+        print("goToItem past checks")
 
         let targetIndex = entries.firstIndex(where: { identitiesMatch($0, item) })
+        print("goToItem targetIndex \(targetIndex)")
 
         // If the target item wasn't even in the list, there's nothing else to do.
         guard var targetIndex else {
@@ -943,11 +947,14 @@ final class WebBackForwardList {
         itemID: WebCore.BackForwardItemIdentifier,
         completionHandler: CompletionHandlers.WebBackForwardList.BackForwardGoToItemCompletionHandler
     ) {
+        print("backForwardGoToItem")
         // On process swap, we tell the previous process to ignore the load, which causes it so restore its current back forward item to its previous
         // value. Since the load is really going on in a new provisional process, we want to ignore such requests from the committed process.
         // Any real new load in the committed process would have cleared m_provisionalPage.
         if let webPageProxy = page.get() {
+            print("backForwardGoToItem: pageget")
             if webPageProxy.hasProvisionalPage() {
+                print("backForwardGoToItem: hpp")
                 completionHandler.pointee(consuming: counts())
                 return
             }
@@ -967,6 +974,7 @@ final class WebBackForwardList {
         itemID: WebCore.BackForwardItemIdentifier,
         completionHandler: CompletionHandlers.WebBackForwardList.BackForwardGoToItemCompletionHandler
     ) {
+        print("backForwardGoToItemShared")
         if let webPageProxy = page.get() {
             if messageCheckCompletion(
                 process: RefWebProcessProxy(webPageProxy.legacyMainFrameProcess()),
@@ -978,6 +986,7 @@ final class WebBackForwardList {
         }
 
         if let item = itemForID(identifier: itemID) {
+            print("backForwardGoToItemShared inside itemForID")
             goToItem(item: item)
         }
 
