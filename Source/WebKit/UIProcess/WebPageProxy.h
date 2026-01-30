@@ -2800,7 +2800,7 @@ public:
 
     void didAdjustVisibilityWithSelectors(Vector<String>&&);
 
-    BrowsingContextGroup& browsingContextGroup() const { return m_browsingContextGroup; }
+    BrowsingContextGroup& browsingContextGroup() const SWIFT_RETURNS_INDEPENDENT_VALUE { return m_browsingContextGroup; }
     std::optional<WebCore::FrameIdentifier> openerFrameIdentifier() const { return m_openerFrameIdentifier; }
 
     WebPageProxyTesting* pageForTesting() const;
