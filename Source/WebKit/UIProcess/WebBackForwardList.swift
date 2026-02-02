@@ -328,7 +328,7 @@ final class WebBackForwardList {
         // item should remain in the list.
         let currentItem = entries[priorCurrentIndex]
         var shouldKeepCurrentItem = true
-        if !currentItem === item {
+        if !(currentItem === item) {
             page.recordAutomaticNavigationSnapshot()
             shouldKeepCurrentItem = page.shouldKeepCurrentBackForwardListItemInList(currentItem)
         }
@@ -533,7 +533,7 @@ final class WebBackForwardList {
             return
         }
 
-        for item in entries where !item === unwrappedCurrentItem {
+        for item in entries where !(item === unwrappedCurrentItem) {
             didRemoveItem(item: item)
         }
 
