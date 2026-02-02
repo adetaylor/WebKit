@@ -299,7 +299,7 @@ final class WebBackForwardList {
             return
         }
 
-        let targetIndex = entries.firstIndex(where: { identitiesMatch($0, item) })
+        let targetIndex = entries.firstIndex(where: { $0 === item })
 
         // If the target item wasn't even in the list, there's nothing else to do.
         guard var targetIndex else {
@@ -328,7 +328,7 @@ final class WebBackForwardList {
         // item should remain in the list.
         let currentItem = entries[priorCurrentIndex]
         var shouldKeepCurrentItem = true
-        if !identitiesMatch(currentItem, item) {
+        if !currentItem === item {
             page.recordAutomaticNavigationSnapshot()
             shouldKeepCurrentItem = page.shouldKeepCurrentBackForwardListItemInList(currentItem)
         }
@@ -338,7 +338,7 @@ final class WebBackForwardList {
         if !shouldKeepCurrentItem {
             removedItems.append(entries.remove(at: priorCurrentIndex))
             // swift-format-ignore: NeverForceUnwrap
-            targetIndex = entries.firstIndex(where: { identitiesMatch($0, item) })!
+            targetIndex = entries.firstIndex(where: { $0 === item })!
         }
 
         currentIndex = targetIndex
@@ -533,7 +533,7 @@ final class WebBackForwardList {
             return
         }
 
-        for item in entries where !identitiesMatch(item, unwrappedCurrentItem) {
+        for item in entries where !item === unwrappedCurrentItem {
             didRemoveItem(item: item)
         }
 
