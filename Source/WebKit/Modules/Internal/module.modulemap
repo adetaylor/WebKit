@@ -1,4 +1,4 @@
-module WebKit_Internal {
+    module WebKit_Internal {
     module WKWebViewIOS {
         header "../../UIProcess/API/ios/WKWebViewIOS.h"
         export *
@@ -34,8 +34,171 @@ module WebKit_Internal {
         export *
     }
 
+    module APIArray {
+        header "../../Shared/API/APIArray.h"
+        requires cplusplus20
+        export *
+    }
+
+    module APIObject {
+        header "../../Shared/API//APIObject.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebExtensionCookieParameters {
+        header "../../Shared/Extensions/WebExtensionCookieParameters.h"
+        requires cplusplus20
+        export *
+    }
+
+    module GamepadData {
+        header "../../Shared/Gamepad/GamepadData.h"
+        requires cplusplus20
+        export *
+    }
+
+    module JavaScriptEvaluationResult {
+        header "../../Shared/JavaScriptEvaluationResult.h"
+        requires cplusplus20
+        export *
+    }
+
+    module LoadedWebArchive {
+        header "../../Shared/LoadedWebArchive.h"
+        requires cplusplus20
+        export *
+    }
+
+    module SessionState {
+        header "../../Shared/SessionState.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebBackForwardListCounts {
+        header "../../Shared/WebBackForwardListCounts.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebBackForwardListFrameItem {
+        header "../../Shared/WebBackForwardListFrameItem.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebBackForwardListItem {
+        header "../../Shared/WebBackForwardListItem.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebKeyboardEvent {
+        header "../../Shared/WebKeyboardEvent.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebPageCreationParameters {
+        header "../../Shared/WebPageCreationParameters.h"
+        requires cplusplus20
+        export *
+    }
+
     module WebPushMessage {
         header "../../Shared/WebPushMessage.h"
+        requires cplusplus20
+        export *
+    }
+
+    module APICustomProtocolManagerClient {
+        header "../../UIProcess/API/APICustomProtocolManagerClient.h"
+        requires cplusplus20
+        export *
+    }
+
+    module APIHistoryClient {
+        header "../../UIProcess/API/APIHistoryClient.h"
+        requires cplusplus20
+        export *
+    }
+
+    module APINavigationClient {
+        header "../../UIProcess/API/APINavigationClient.h"
+        requires cplusplus20
+        export *
+    }
+
+    module AuxiliaryProcessProxy {
+        header "../../UIProcess/AuxiliaryProcessProxy.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebPageInspectorController {
+        header "../../UIProcess/Inspector/WebPageInspectorController.h"
+        requires cplusplus20
+        export *
+    }
+
+    module SwiftDemoLogoConfirmation {
+        header "../../UIProcess/SwiftDemoLogoConfirmation.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebBackForwardCacheEntry {
+        header "../../UIProcess/WebBackForwardCacheEntry.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebBackForwardListSwiftUtilities {
+        header "../../UIProcess/WebBackForwardListSwiftUtilities.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebFrameProxy {
+        header "../../UIProcess/WebFrameProxy.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebNavigationState {
+        header "../../UIProcess/WebNavigationState.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebPageProxy {
+        header "../../UIProcess/WebPageProxy.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebPageProxyInternals {
+        header "../../UIProcess/WebPageProxyInternals.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebPermissionControllerProxy {
+        header "../../UIProcess/WebPermissionControllerProxy.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebProcessActivityState {
+        header "../../UIProcess/WebProcessActivityState.h"
+        requires cplusplus20
+        export *
+    }
+
+    module WebProcessProxy {
+        header "../../UIProcess/WebProcessProxy.h"
+        requires cplusplus20
         export *
     }
 
