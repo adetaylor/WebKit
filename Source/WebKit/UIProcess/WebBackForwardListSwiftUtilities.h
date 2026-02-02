@@ -58,12 +58,6 @@ inline API::Object* WTF_NONNULL toAPIObject(WebKit::WebBackForwardListItem* WTF_
     return item;
 }
 
-// Workaround for rdar://130765784
-inline bool identitiesMatch(const WebKit::WebBackForwardListItem* WTF_NULLABLE lhs, const WebKit::WebBackForwardListItem* WTF_NULLABLE rhs)
-{
-    return lhs == rhs;
-}
-
 // Workaround for rdar://162357139
 template<typename T>
 inline bool contentsMatch(const T& lhs, const T& rhs)
