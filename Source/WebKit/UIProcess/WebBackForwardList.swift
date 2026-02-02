@@ -106,6 +106,7 @@ private func messageCheckCompletion(process: WebKit.RefWebProcessProxy, completi
 }
 
 // FIXME(rdar://130765784): We should be able use the built-in ===, but AnyObject currently excludes foreign reference types
+@_expose(!Cxx)
 func === (_ lhs: WebKit.WebBackForwardListItem, _ rhs: WebKit.WebBackForwardListItem) -> Bool {
     // Safety: Swift represents all reference types, including foreign reference types, as raw pointers
     unsafe unsafeBitCast(lhs, to: UnsafeRawPointer.self) == unsafeBitCast(rhs, to: UnsafeRawPointer.self)
