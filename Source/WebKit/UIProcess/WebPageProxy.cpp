@@ -17552,6 +17552,11 @@ IGNORE_CLANG_WARNINGS_END
 
 #endif
 
+bool WebPageProxy::hasProvisionalPage() const
+{
+    return m_provisionalPage;
+}
+
 } // namespace WebKit
 
 #undef WEBPAGEPROXY_RELEASE_LOG

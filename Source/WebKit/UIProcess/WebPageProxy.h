@@ -2867,7 +2867,8 @@ public:
 
     AboutSchemeHandler& aboutSchemeHandler() const { return m_aboutSchemeHandler; }
 
-    bool hasProvisionalPage() const { return m_provisionalPage; }
+    // Not inline - workaround for rdar://168992837
+    bool hasProvisionalPage() const;
     bool isRemoteFrameNavigation(Ref<WebProcessProxy>);
 
 #if ENABLE(WEB_ARCHIVE)
