@@ -49,12 +49,6 @@ protocol CxxRefVector {
     func __atUnsafe(_ index: Int) -> UnsafePointer<Element>
 }
 
-extension String {
-    init(_ wtfString: WTF.String) {
-        self = String(wtfString.utf8(WTF.LenientConversion).toStdString())
-    }
-}
-
 extension WTF.String: LosslessStringConvertible {
     public init(_ string: Swift.String) {
         let ns = string as NSString
