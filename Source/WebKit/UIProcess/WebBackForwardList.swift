@@ -602,8 +602,7 @@ final class WebBackForwardList {
         pageIdentifier: WebKit.WebPageProxyIdentifier
     ) -> WebKit.RefWebBackForwardListItem {
         // rdar://162310543 requires us to pass 'nil' here
-        // Safety: it's OK to pass a null pointer to this function; in fact that's the default
-        unsafe WebKit.WebBackForwardListItem.create(consuming: state, pageIdentifier, state.ptr().frameID, nil)
+        WebKit.WebBackForwardListItem.create(consuming: state, pageIdentifier, state.ptr().frameID, nil)
     }
 
     func restoreFromState(backForwardListState: WebKit.BackForwardListState) {
