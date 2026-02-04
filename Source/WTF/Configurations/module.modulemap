@@ -50,9 +50,10 @@ module wtf [system] {
     explicit module Core {
         umbrella "."
 
-        requires cplusplus
+        requires cplusplus20
 
         explicit module * {
+            requires cplusplus20
             export *
         }
 
