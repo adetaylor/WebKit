@@ -820,10 +820,6 @@ final class WebBackForwardList {
             return
         }
 
-        let isRemoteFrameNavigation = webPageProxy.isRemoteFrameNavigation(process)
-        let processPtr = process.ptr()
-        assert(!isRemoteFrameNavigation || webPageProxy.preferences().siteIsolationEnabled())
-
         let item = WebKit.WebBackForwardListItem
             .create(
                 consuming: WebKit.RefFrameState(completeFrameStateForNavigation(navigatedFrameState: navigatedFrameState.ptr())),
@@ -834,10 +830,9 @@ final class WebBackForwardList {
             .ptr()
         // let item = createWebBackForwardListItem(state: navigatedFrameState, pageIdentifier: webPageProxy.identifier()).ptr()
         item.setResourceDirectoryURL(consuming: webPageProxy.currentResourceDirectoryURL())
-        item.setIsRemoteFrameNavigation(isRemoteFrameNavigation)
         item.setEnhancedSecurity(process.ptr().enhancedSecurity())
         if loadedWebArchive == WebKit.LoadedWebArchive.Yes {
-            item.setDataStoreForWebArchive(processPtr.websiteDataStore())
+            item.setDataStoreForWebArchive(process.ptr().websiteDataStore())
         }
         addItem(newItem: item)
     }
