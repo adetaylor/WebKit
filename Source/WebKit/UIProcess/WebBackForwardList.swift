@@ -211,25 +211,6 @@ final class WebBackForwardList {
                 removedItems.append(entries.removeLast())
             }
 
-            while !entries.isEmpty {
-                // swift-format-ignore: NeverForceUnwrap
-                let lastEntry = entries.last!
-                if !lastEntry.isRemoteFrameNavigation()
-                    || lastEntry.navigatedFrameItem().sharesAncestor(newItem.navigatedFrameItem())
-                {
-                    break
-                }
-                didRemoveItem(item: lastEntry)
-                removedItems.append(entries.removeLast())
-
-                if entries.isEmpty {
-                    currentIndex = nil
-                } else {
-                    // swift-format-ignore: NeverForceUnwrap
-                    currentIndex = currentIndex! - 1
-                }
-            }
-
             // Toss the first item if the list is getting too big, as long as we're not using it
             // (or even if we are, if we only want 1 entry).
             // swift-format-ignore: NeverForceUnwrap
