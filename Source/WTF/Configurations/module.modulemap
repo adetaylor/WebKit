@@ -47,13 +47,18 @@ module wtf [system] {
         export *
     }
 
+    explicit module Vector {
+        header "Vector.h"
+        requires cplusplus20
+        export *
+    }
+
     explicit module Core {
         umbrella "."
 
         requires cplusplus20
 
         explicit module * {
-            requires cplusplus20
             export *
         }
 
