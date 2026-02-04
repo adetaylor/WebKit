@@ -843,7 +843,7 @@ final class WebBackForwardList {
         let processPtr = process.ptr()
         assert(!isRemoteFrameNavigation || webPageProxy.preferences().siteIsolationEnabled())
 
-        let item = unsafe WebKit.WebBackForwardListItem
+        let item = WebKit.WebBackForwardListItem
             .create(
                 consuming: WebKit.RefFrameState(completeFrameStateForNavigation(navigatedFrameState: navigatedFrameState.ptr())),
                 webPageProxy.identifier(),
