@@ -35,7 +35,6 @@ internal import wtf
 protocol CxxRef {
     associatedtype Pointee // you only need to specify this in your conformance
     init(_ object: Pointee)
-    func copyRef() -> Self
 }
 
 // Conform any WTF::Vector<WTF::Ref<T>> to this protocol to get useful extensions and iterators
