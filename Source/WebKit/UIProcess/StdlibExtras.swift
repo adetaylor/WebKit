@@ -61,7 +61,7 @@ extension WTF.String: LosslessStringConvertible {
         // RetainPtr which is guaranteed to keep
         // the NSString alive while we construct a Swift string from its
         // raw pointer.
-        let ns = createNSString()
+        let ns = unsafe createNSString()
         return unsafe ns.get()
     }
 }
@@ -101,33 +101,6 @@ extension CxxRefVector {
             vec.append(consuming: Element(item))
         }
         self = vec
-    }
-}
-
-// Iterator for WTF::Vectors of Ref types
-// We do not attempt to conform the Vector itself to Sequence since this would
-// require C++ interop types to be public
-struct CxxRefVectorIterator<Vec: CxxRefVector>: Sequence, IteratorProtocol {
-    typealias Element = Vec.Element
-    var vec: Vec
-    var pos: Int
-
-    init(vec: Vec) {
-        self.vec = vec
-        self.pos = 0
-    }
-
-    mutating func next() -> Vec.Element? {
-        if pos >= vec.size() {
-            return nil
-        }
-        // Safety: we'll make a copy of the referent
-        // before the vector goes out of scope. It's guaranteed
-        // to have a valid lifetime, be initialized, and be
-        // within the vector bounds.
-        let item = unsafe vec.__atUnsafe(pos)
-        pos += 1
-        return unsafe item.pointee.copyRef()
     }
 }
 
