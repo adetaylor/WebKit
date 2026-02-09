@@ -6823,7 +6823,8 @@ ScreenCaptureEnabled:
     WebKitLegacy:
       default: false
     WebKit:
-      default: WebKit::defaultShouldEnableScreenCapture()
+      "PLATFORM(MAC) || USE(GSTREAMER)": true
+      default: false
     WebCore:
       default: false
 

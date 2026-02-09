@@ -25,7 +25,7 @@
 
 #import "config.h"
 
-#if HAVE(SCREEN_CAPTURE_KIT) && WK_HAVE_C_SPI
+#if HAVE(SCREEN_CAPTURE_KIT)
 
 #import "PlatformUtilities.h"
 #import "Test.h"
@@ -374,4 +374,4 @@ TEST(WebKit2, ToggleScreenshare)
 
 } // namespace TestWebKitAPI
 
-#endif // HAVE(SCREEN_CAPTURE_KIT) && WK_HAVE_C_SPI
+#endif // HAVE(SCREEN_CAPTURE_KIT)

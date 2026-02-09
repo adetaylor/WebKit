@@ -129,10 +129,8 @@ const RealtimeMediaSourceCapabilities& DisplayCaptureSourceCocoa::capabilities()
         RealtimeMediaSourceCapabilities capabilities(settings().supportedConstraints());
 
         auto intrinsicSize = m_capturer->intrinsicSize();
-        if (intrinsicSize.width())
-            capabilities.setWidth({ 1, intrinsicSize.width() });
-        if (intrinsicSize.height())
-            capabilities.setHeight({ 1, intrinsicSize.height() });
+        capabilities.setWidth({ 1, intrinsicSize.width() });
+        capabilities.setHeight({ 1, intrinsicSize.height() });
         capabilities.setFrameRate({ .01, 30.0 });
         capabilities.setDeviceId(hashedId());
 
