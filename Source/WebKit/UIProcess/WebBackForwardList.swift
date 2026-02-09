@@ -953,17 +953,14 @@ final class WebBackForwardList {
         // FIXME: This should verify that the web process requesting the item hosts the specified frame.
         let index = Int(index)
         guard let item = itemAtIndex(index: index) else {
-            // Safety: believed to be a false positive, rdar://162608225
-            unsafe completionHandler.pointee(consuming: WebKit.RefPtrFrameState())
+            completionHandler.pointee(consuming: WebKit.RefPtrFrameState())
             return
         }
         guard let frameItem = item.mainFrameItem().childItemForFrameID(frameID) else {
-            // Safety: believed to be a false positive, rdar://162608225
-            unsafe completionHandler.pointee(consuming: WebKit.RefPtrFrameState(item.mainFrameState().ptr()))
+            completionHandler.pointee(consuming: WebKit.RefPtrFrameState(item.mainFrameState().ptr()))
             return
         }
-        // Safety: believed to be a false positive, rdar://162608225
-        unsafe completionHandler.pointee(consuming: WebKit.RefPtrFrameState(frameItem.copyFrameStateWithChildren().ptr()))
+        completionHandler.pointee(consuming: WebKit.RefPtrFrameState(frameItem.copyFrameStateWithChildren().ptr()))
     }
 
     func backForwardListCounts(completionHandler: CompletionHandlers.WebBackForwardList.BackForwardListCountsCompletionHandler) {
