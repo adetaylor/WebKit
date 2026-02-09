@@ -223,7 +223,7 @@ private:
 #if ASSERT_ENABLED
     bool m_shouldEnableAssertions { true };
 #endif
-} SWIFT_ESCAPABLE;
+} SWIFT_ESCAPABLE SWIFT_REFCOUNTED_PTR(.get);
 
 template<typename T, typename U, typename WeakPtrImpl> inline WeakPtrImpl* weak_ptr_impl_cast(WeakPtrImpl* impl)
 {
