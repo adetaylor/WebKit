@@ -322,8 +322,10 @@ bool ScreenCaptureKitSharingSessionManager::promptWithSCContentSharingPicker(Dis
     RetainPtr picker = [PAL::getSCContentSharingPickerClassSingleton() sharedPicker];
     [m_promptHelper startObservingPicker:picker.get()];
 
+IGNORE_CLANG_WARNINGS_BEGIN("unguarded-availability-new")
     if ([configuration respondsToSelector:@selector(setShowsMicrophoneControl:)])
         [configuration setShowsMicrophoneControl:NO];
+IGNORE_CLANG_WARNINGS_END
 
     [picker setDefaultConfiguration:configuration.get()];
 
