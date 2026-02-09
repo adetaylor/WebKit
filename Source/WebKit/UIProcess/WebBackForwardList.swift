@@ -169,8 +169,8 @@ final class WebBackForwardList {
         backForwardLog("(Back/Forward) WebBackForwardList \(ObjectIdentifier(self)) had its page closed with current size \(entries.count)")
 
         // We should have always started out with an m_page and we should never close the page twice
-        assert(page.__convertToBool())
-        if page.__convertToBool() {
+        assert(Bool(fromCxx: page))
+        if Bool(fromCxx: page) {
             for item in entries {
                 didRemoveItem(item: item)
             }
@@ -333,7 +333,7 @@ final class WebBackForwardList {
     func currentItem() -> WebKit.WebBackForwardListItem? {
         assertValidIndex()
 
-        guard page.__convertToBool() else {
+        guard Bool(fromCxx: page) else {
             return nil
         }
 
@@ -347,7 +347,7 @@ final class WebBackForwardList {
     func backItem() -> WebKit.WebBackForwardListItem? {
         assertValidIndex()
 
-        guard page.__convertToBool() else {
+        guard Bool(fromCxx: page) else {
             return nil
         }
 
@@ -364,7 +364,7 @@ final class WebBackForwardList {
     func forwardItem() -> WebKit.WebBackForwardListItem? {
         assertValidIndex()
 
-        guard page.__convertToBool() else {
+        guard Bool(fromCxx: page) else {
             return nil
         }
 
@@ -381,7 +381,7 @@ final class WebBackForwardList {
     func itemAtIndex(index: Array.Index) -> WebKit.WebBackForwardListItem? {
         assertValidIndex()
 
-        guard page.__convertToBool() else {
+        guard Bool(fromCxx: page) else {
             return nil
         }
 
@@ -404,7 +404,7 @@ final class WebBackForwardList {
     func backListCount() -> Array.Index {
         assertValidIndex()
 
-        guard page.__convertToBool() else {
+        guard Bool(fromCxx: page) else {
             return 0
         }
 
@@ -418,7 +418,7 @@ final class WebBackForwardList {
     func forwardListCount() -> Array.Index {
         assertValidIndex()
 
-        guard page.__convertToBool() else {
+        guard Bool(fromCxx: page) else {
             return 0
         }
 
@@ -436,7 +436,7 @@ final class WebBackForwardList {
     func backListAsAPIArrayWithLimit(limit: UInt) -> API.RefAPIArray {
         assertValidIndex()
 
-        guard page.__convertToBool() else {
+        guard Bool(fromCxx: page) else {
             return API.Array.create()
         }
 
@@ -458,7 +458,7 @@ final class WebBackForwardList {
     func forwardListAsAPIArrayWithLimit(limit: UInt) -> API.RefAPIArray {
         assertValidIndex()
 
-        guard page.__convertToBool() else {
+        guard Bool(fromCxx: page) else {
             return API.Array.create()
         }
 
@@ -540,7 +540,7 @@ final class WebBackForwardList {
         }
 
         for (i, entry) in entries.enumerated() {
-            if filter.pointee.__convertToBool() && !filter.pointee(entry) {
+            if Bool(fromCxx: filter.pointee) && !filter.pointee(entry) {
                 if let stateCurrentIndex = Optional(fromCxx: backForwardListState.currentIndex) {
                     if i < stateCurrentIndex && stateCurrentIndex != 0 {
                         setOptionalUInt32Value(&backForwardListState.currentIndex, stateCurrentIndex - 1)
@@ -856,8 +856,7 @@ final class WebBackForwardList {
     }
 
     func backForwardUpdateItem(connection: IPC.Connection, frameState: WebKit.RefFrameState) {
-        // __convertToBool necessary due to rdar://137879510
-        if !frameState.ptr().itemID.__convertToBool() || !frameState.ptr().frameItemID.__convertToBool() {
+        if !Bool(fromCxx: frameState.ptr().itemID) || !Bool(fromCxx: frameState.ptr().frameItemID) {
             return
         }
         let itemID = frameState.ptr().itemID.pointee
@@ -875,7 +874,7 @@ final class WebBackForwardList {
         assert(contentsMatch(webPageProxy.identifier(), item.pageID()) && contentsMatch(itemID, item.identifier()))
         if let process = WebKit.AuxiliaryProcessProxy.fromConnection(connection) {
             // The downcast in C++ is really just used to assert that the process is a WebProcessProxy
-            assert(WebKit.downcastToWebProcessProxy(process).__convertToBool())
+            assert(Bool(fromCxx: WebKit.downcastToWebProcessProxy(process)))
             let hasBackForwardCacheEntry = item.backForwardCacheEntry() != nil
             if hasBackForwardCacheEntry != frameState.ptr().hasCachedPage {
                 // Safety: accessing suspendedPage pointer just to check nullness, no dereference occurs
