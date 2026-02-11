@@ -51,6 +51,7 @@
 #include <wtf/RefCounter.h>
 #include <wtf/RefPtr.h>
 #include <wtf/RetainReleaseSwift.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/WeakHashSet.h>
 #include <wtf/WeakPtr.h>
@@ -697,7 +698,7 @@ private:
 
     RemoveDataTaskCounter m_removeDataTaskCounter;
     uint64_t m_cookiesVersion { 0 };
-} SWIFT_SHARED_REFERENCE(refDataStore, derefDataStore);
+} SWIFT_SHARED_REFERENCE(refDataStore, derefDataStore) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 }
 

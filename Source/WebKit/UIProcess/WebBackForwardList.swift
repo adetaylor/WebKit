@@ -810,6 +810,7 @@ final class WebBackForwardList {
             return
         }
 
+
         let item = WebKit.WebBackForwardListItem
             .create(
                 consuming: WebKit.RefFrameState(completeFrameStateForNavigation(navigatedFrameState: navigatedFrameState.ptr())),

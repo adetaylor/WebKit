@@ -125,7 +125,7 @@ private:
     RefPtr<ViewSnapshot> m_snapshot;
 #endif
     EnhancedSecurity m_enhancedSecurity { EnhancedSecurity::Disabled };
-} SWIFT_SHARED_REFERENCE(refBackForwardListItem, derefBackForwardListItem);
+} SWIFT_SHARED_REFERENCE(refBackForwardListItem, derefBackForwardListItem) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 typedef Vector<Ref<WebBackForwardListItem>> BackForwardListItemVector;
 
