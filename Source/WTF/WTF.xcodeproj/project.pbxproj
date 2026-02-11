@@ -159,6 +159,7 @@
 		5C12460E2DC25A130077D423 /* SwiftCXXThunk.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C12460D2DC25A130077D423 /* SwiftCXXThunk.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C1F05932164356B0039302C /* CFURLExtras.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C1F05912164356B0039302C /* CFURLExtras.cpp */; };
 		5C1F0595216437B30039302C /* URLCF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C1F0594216437B30039302C /* URLCF.cpp */; };
+		5C207A2E2F3C91A000721F47 /* WTFString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C207A2D2F3C919800721F47 /* WTFString.swift */; };
 		5C6222A62ED864D100AFEC2D /* RefCountable.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6222A52ED864D100AFEC2D /* RefCountable.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C6552C029423F85008CD0F3 /* ThreadSafeWeakHashSet.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6552BF29423F85008CD0F3 /* ThreadSafeWeakHashSet.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CB8CB6D28C16CB700539906 /* ArgumentCoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB8CB6C28C16CB700539906 /* ArgumentCoder.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -1407,6 +1408,7 @@
 		5C1F05922164356B0039302C /* CFURLExtras.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CFURLExtras.h; sourceTree = "<group>"; };
 		5C1F0594216437B30039302C /* URLCF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = URLCF.cpp; sourceTree = "<group>"; };
 		5C1F0597216439940039302C /* URLHash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = URLHash.h; sourceTree = "<group>"; };
+		5C207A2D2F3C919800721F47 /* WTFString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WTFString.swift; sourceTree = "<group>"; };
 		5C6222A52ED864D100AFEC2D /* RefCountable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RefCountable.h; sourceTree = "<group>"; };
 		5C6552BF29423F85008CD0F3 /* ThreadSafeWeakHashSet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadSafeWeakHashSet.h; sourceTree = "<group>"; };
 		5C7C88D31D0A3A0A009D2F6D /* UniqueRef.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UniqueRef.h; sourceTree = "<group>"; };
@@ -2969,6 +2971,7 @@
 				FEF295BF20B49DCB00CF283A /* UTF8ConversionError.h */,
 				A8A4732D151A825B004123FF /* WTFString.cpp */,
 				A8A4732E151A825B004123FF /* WTFString.h */,
+				5C207A2D2F3C919800721F47 /* WTFString.swift */,
 				FF41AC662A79C9B900AC0FA5 /* WYHash.h */,
 			);
 			path = text;
@@ -4307,6 +4310,9 @@
 				LastSwiftUpdateCheck = 0700;
 				LastUpgradeCheck = 1140;
 				TargetAttributes = {
+					5D247B6114689B8600E78B76 = {
+						LastSwiftMigration = 2700;
+					};
 					DDF3081D27C44EFE006A526F = {
 						CreatedOnToolsVersion = 13.3;
 					};
@@ -4653,6 +4659,7 @@
 				FE032AD22463E43B0012D7C7 /* WTFConfig.cpp in Sources */,
 				E36BA9DE29E275DB00300057 /* WTFProcess.cpp in Sources */,
 				A8A47445151A825B004123FF /* WTFString.cpp in Sources */,
+				5C207A2E2F3C91A000721F47 /* WTFString.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

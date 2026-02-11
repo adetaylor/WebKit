@@ -42,6 +42,9 @@
 
 namespace WTF {
 
+// Workaround for rdar://162358154
+using SpanConstChar = std::span<const char>;
+
 // Declarations of string operations
 
 WTF_EXPORT_PRIVATE double charactersToDouble(std::span<const Latin1Character>, bool* ok = nullptr);

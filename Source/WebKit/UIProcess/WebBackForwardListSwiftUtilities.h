@@ -40,8 +40,6 @@
 
 #if ENABLE(BACK_FORWARD_LIST_SWIFT)
 
-// Workaround for rdar://162358154
-using SpanConstChar = std::span<const char>;
 
 // These can't be inline due to rdar://162531519
 void doLog(const char* WTF_NONNULL msg); // rdar://168139823

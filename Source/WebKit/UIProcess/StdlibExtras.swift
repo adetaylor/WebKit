@@ -49,38 +49,6 @@ protocol CxxRefVector {
     func __atUnsafe(_ index: Int) -> UnsafePointer<Element>
 }
 
-extension WTF.String: LosslessStringConvertible {
-    /// Construct a `WTF.String` from a `Swift.String`.
-    public init(_ string: Swift.String) {
-        // rdar://162517354 prevents us from simply writing
-        // self = WTF.String.fromUTF8(swiftString.utf8CString.span);
-        // Safety - we are guaranteed to get a valid buffer from the Swift
-        // string for the duration that we're using it to construct the WTF::String.
-        // The WTF::String will take a copy.
-        let span = string.utf8CString.span
-        self = unsafe span.withUnsafeBufferPointer { ptr in
-            // Warning here is rdar://163018821
-            // swift-format-ignore: NeverForceUnwrap
-            let cppspan = unsafe SpanConstChar(ptr.baseAddress!, span.count)
-            return unsafe WTF.String.fromUTF8(cppspan)
-        }
-    }
-
-    /// Return a `Swift.String` from this `WTF.String`.
-    public var description: Swift.String {
-        // We could possibly make this quicker by treating a C++ span as
-        // a Sequence. For now, we want to avoid unsafe as much as possible.
-        String(utf8(WTF.LenientConversion).toStdString())
-    }
-}
-
-extension WTF.String: ExpressibleByStringLiteral {
-    /// Construct a `WTF.String` from a string literal.
-    public init(stringLiteral: Swift.String) {
-        self.init(stringLiteral)
-    }
-}
-
 extension CxxRefVector {
     init(array: [Element.Pointee]) {
         var vec = Self()
