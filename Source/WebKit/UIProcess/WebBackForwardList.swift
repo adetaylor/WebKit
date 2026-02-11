@@ -707,7 +707,7 @@ final class WebBackForwardList {
 
         for (i, entry) in entries.enumerated() {
             let prefix = (currentIndex == i) ? " * " : " - "
-            result += prefix + String(entry.loggingString())
+            result += prefix + String(entry.loggingString().description)
         }
 
         return result
