@@ -2035,8 +2035,18 @@ def main(argv):
     header_set.add(ConditionalHeader('"FormDataReference.h"', None))
     additional_forward_declarations_list = []
     file_extension = argv[1]
+    output_dir = None
+
+    # Parse arguments, looking for optional --output-dir parameter
+    input_files = []
     for i in range(2, len(argv)):
-        with open(argv[i]) as file:
+        if argv[i].startswith('--output-dir='):
+            output_dir = argv[i].split('=', 1)[1]
+        else:
+            input_files.append(argv[i])
+
+    for input_file in input_files:
+        with open(input_file) as file:
             new_types, new_enums, new_headers, new_using_statements, new_additional_forward_declarations, new_objc_wrapped_types = parse_serialized_types(file)
             for type in new_types:
                 type.enforce_opaque_ipc_types_usage()
@@ -2056,17 +2066,26 @@ def main(argv):
 
     serialized_types = resolve_inheritance(serialized_types)
 
-    with open('GeneratedSerializers.h', "w+") as output:
+    # Create output directory if specified
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    def output_path(filename):
+        if output_dir:
+            return os.path.join(output_dir, filename)
+        return filename
+
+    with open(output_path('GeneratedSerializers.h'), "w+") as output:
         output.write(generate_header(serialized_types, serialized_enums, additional_forward_declarations_list))
-    with open('GeneratedSerializers.%s' % file_extension, "w+") as output:
+    with open(output_path('GeneratedSerializers.%s' % file_extension), "w+") as output:
         output.write(generate_impl(serialized_types, serialized_enums, headers, False, []))
-    with open('WebKitPlatformGeneratedSerializers.%s' % file_extension, "w+") as output:
+    with open(output_path('WebKitPlatformGeneratedSerializers.%s' % file_extension), "w+") as output:
         output.write(generate_impl(serialized_types, serialized_enums, headers, True, objc_wrapped_types))
-    with open('SerializedTypeInfo.%s' % file_extension, "w+") as output:
+    with open(output_path('SerializedTypeInfo.%s' % file_extension), "w+") as output:
         output.write(generate_serialized_type_info(serialized_types, serialized_enums, headers, using_statements, objc_wrapped_types))
-    with open('GeneratedWebKitSecureCoding.h', "w+") as output:
+    with open(output_path('GeneratedWebKitSecureCoding.h'), "w+") as output:
         output.write(generate_webkit_secure_coding_header(serialized_types))
-    with open('GeneratedWebKitSecureCoding.%s' % file_extension, "w+") as output:
+    with open(output_path('GeneratedWebKitSecureCoding.%s' % file_extension), "w+") as output:
         output.write(generate_webkit_secure_coding_impl(serialized_types, headers))
     return 0
 

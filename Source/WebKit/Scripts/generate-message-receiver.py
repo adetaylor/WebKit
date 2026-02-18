@@ -32,6 +32,7 @@ import webkit.model
 
 def main(argv):
     receivers = []
+    output_dir = None
 
     first_arg = True
     second_arg = False
@@ -44,6 +45,11 @@ def main(argv):
         if second_arg:
             base_dir = parameter
             second_arg = False
+            continue
+
+        # Check for optional --output-dir parameter
+        if parameter.startswith('--output-dir='):
+            output_dir = parameter.split('=', 1)[1]
             continue
 
         message_receiver = parameter
@@ -72,27 +78,36 @@ def main(argv):
 
     receivers = webkit.model.generate_global_model(receivers)
 
+    # Create output directory if specified
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    def output_path(filename):
+        if output_dir:
+            return os.path.join(output_dir, filename)
+        return filename
+
     for receiver in receivers:
         if receiver.has_attribute(webkit.model.BUILTIN_ATTRIBUTE):
             continue
-        with open('%sMessageReceiver.cpp' % receiver.name, "w+") as implementation_output:
+        with open(output_path('%sMessageReceiver.cpp' % receiver.name), "w+") as implementation_output:
             implementation_output.write(webkit.messages.generate_message_handler(receiver))
         if receiver.swift_receiver or receiver.swift_receiver_build_enabled_by:
-            with open('%sMessageReceiver.swift' % receiver.name, "w+") as swift_implementation_output:
+            with open(output_path('%sMessageReceiver.swift' % receiver.name), "w+") as swift_implementation_output:
                 swift_implementation_output.write(webkit.messages.generate_swift_message_handler(receiver))
 
         receiver_message_header = '%sMessages.h' % receiver.name
         receiver_header_files.append(receiver_message_header)
-        with open(receiver_message_header, "w+") as header_output:
+        with open(output_path(receiver_message_header), "w+") as header_output:
             header_output.write(webkit.messages.generate_messages_header(receiver))
 
-    with open('MessageNames.h', "w+") as message_names_header_output:
+    with open(output_path('MessageNames.h'), "w+") as message_names_header_output:
         message_names_header_output.write(webkit.messages.generate_message_names_header(receivers))
 
-    with open('MessageNames.cpp', "w+") as message_names_implementation_output:
+    with open(output_path('MessageNames.cpp'), "w+") as message_names_implementation_output:
         message_names_implementation_output.write(webkit.messages.generate_message_names_implementation(receivers))
 
-    with open('MessageArgumentDescriptions.cpp', "w+") as message_descriptions_implementation_output:
+    with open(output_path('MessageArgumentDescriptions.cpp'), "w+") as message_descriptions_implementation_output:
         message_descriptions_implementation_output.write(webkit.messages.generate_message_argument_description_implementation(receivers, receiver_header_files))
 
     return 0
