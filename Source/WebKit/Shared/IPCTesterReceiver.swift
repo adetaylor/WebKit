@@ -43,7 +43,8 @@ final class IPCTesterReceiver {
     }
 
     func asyncMessage(data: UInt32, completionHandler: CompletionHandlers.IPCTesterReceiver.AsyncMessageCompletionHandler) {
-        completionHandler.pointee(data + 2)
+        // Temporarily disabled due to rdar://170233903
+        // completionHandler.pointee(data + 2)
     }
 }
 
