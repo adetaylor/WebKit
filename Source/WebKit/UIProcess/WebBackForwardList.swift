@@ -287,9 +287,11 @@ final class WebBackForwardList {
         // If the target item wasn't even in the list, there's nothing else to do.
         guard var targetIndex else {
             // Safety: we immediately make a copy of the string before
-            // it could be freed or mutated.
+            // it could be freed or mutated. FIXME(rdar://162695942): remove
+            // this.
+            let url = unsafe item.__urlUnsafe().pointee
             backForwardLog(
-                "(Back/Forward) WebBackForwardList \(ObjectIdentifier(self)) could not go to item \(item.identifier().toString()) (\(unsafe item.__urlUnsafe().pointee)) because it was not found"
+                "(Back/Forward) WebBackForwardList \(ObjectIdentifier(self)) could not go to item \(item.identifier().toString()) \(url) because it was not found"
             )
             return
         }
