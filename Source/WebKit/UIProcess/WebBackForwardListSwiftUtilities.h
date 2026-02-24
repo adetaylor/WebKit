@@ -95,4 +95,6 @@ inline bool filterSpecified(WebBackForwardListItemFilter& fn)
     return bool(*fn);
 }
 
+void appendToBackForwardItems(Vector<Ref<WebKit::FrameState>>& items, Ref<WebKit::FrameState> item);
+
 #endif // ENABLE(BACK_FORWARD_LIST_SWIFT)

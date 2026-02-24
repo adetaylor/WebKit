@@ -887,4 +887,8 @@ void messageCheckFailed(Ref<WebKit::WebProcessProxy> process)
     MESSAGE_CHECK_BASE(false, process->connection());
 }
 
+void appendToBackForwardItems(Vector<Ref<WebKit::FrameState>>& items, Ref<WebKit::FrameState> item) {
+    items.append(item);
+}
+
 #endif // ENABLE(BACK_FORWARD_LIST_SWIFT)

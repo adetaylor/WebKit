@@ -558,7 +558,8 @@ final class WebBackForwardList {
                 }
                 continue
             }
-            backForwardListState.items.append(consuming: entry.mainFrameState())
+            appendToBackForwardItems(&backForwardListState.items, entry.mainFrameState())
+            // backForwardListState.items.append(consuming: entry.mainFrameState())
         }
 
         if backForwardListState.items.isEmpty() {
