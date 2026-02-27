@@ -45,6 +45,7 @@
 
 #ifdef __OBJC__
 #include "WKUIDelegatePrivate.h"
+#include "WKSeparatedImageView.h"
 #endif
 
 #if USE(APPLE_INTERNAL_SDK)
