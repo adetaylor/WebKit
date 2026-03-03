@@ -27,9 +27,9 @@
 
 #if ENABLE(VIDEO) && USE(AVFOUNDATION)
 
-#include "MediaPlayerPrivateAVFoundation.h"
-#include "SharedBuffer.h"
-#include "VideoFrameMetadata.h"
+#include <WebCore/MediaPlayerPrivateAVFoundation.h>
+#include <WebCore/SharedBuffer.h>
+#include <WebCore/VideoFrameMetadata.h>
 #include <CoreMedia/CMTime.h>
 #include <wtf/Forward.h>
 #include <wtf/MainThreadDispatcher.h>
