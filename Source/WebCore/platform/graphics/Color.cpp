@@ -223,6 +223,8 @@ String Color::debugDescription() const
     return serializationForRenderTreeAsText(*this);
 }
 
+constexpr uint64_t WebCore::Color::invalidColorAndFlags;
+
 TextStream& operator<<(TextStream& ts, const Color& color)
 {
     return ts << serializationForRenderTreeAsText(color);
