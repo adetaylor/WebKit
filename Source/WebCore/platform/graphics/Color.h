@@ -288,7 +288,7 @@ private:
     static PackedColor::RGBA decodedPackedInlineColor(uint64_t);
     static OutOfLineComponents& decodedOutOfLineComponents(uint64_t);
 
-    static constexpr uint64_t invalidColorAndFlags = 0;
+    static constexpr inline uint64_t invalidColorAndFlags = 0;
     uint64_t m_colorAndFlags { invalidColorAndFlags };
 };
 
