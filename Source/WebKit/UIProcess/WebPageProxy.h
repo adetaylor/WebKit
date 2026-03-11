@@ -1855,8 +1855,10 @@ public:
     ProcessID NODELETE modelProcessID() const;
 
     // rdar://168057355
+#ifndef __swift__
     WebBackForwardCache* WTF_NONNULL backForwardCachePtrForSwift() const SWIFT_NAME(backForwardCache()) { return &backForwardCache(); }
     WebBackForwardCache& backForwardCache() const SWIFT_NAME(__backForwardCacheUnsafe());
+#endif
 
     // rdar://168057355
     const WebPreferences* WTF_NONNULL preferencesPtrForSwift() const SWIFT_NAME(preferences()) { return &preferences(); }
@@ -4222,7 +4224,7 @@ private:
     bool m_hasNetworkRequestsInProgress { false };
 
     HashSet<CheckedRef<WebProcessProxy>> m_unresponsiveProcesses;
-} SWIFT_SHARED_REFERENCE(refWebPageProxy, derefWebPageProxy);
+};
 
 using WeakPtrWebPageProxy = WeakPtr<WebPageProxy>;
 
