@@ -3671,6 +3671,11 @@ private:
 
     Ref<BrowsingContextGroup> browsingContextGroupForNavigation(WebFrameProxy&, API::Navigation&, WebsiteDataStore&, ProcessSwapRequestedByClient);
 
+
+public:
+    int m_magicConstant;
+private:
+
     const UniqueRef<Internals> m_internals;
     Identifier m_identifier;
     WebCore::PageIdentifier m_webPageID;
@@ -4230,8 +4235,6 @@ private:
     bool m_hasNetworkRequestsInProgress { false };
 
     HashSet<CheckedRef<WebProcessProxy>> m_unresponsiveProcesses;
-public:
-    int m_magicConstant;
 } SWIFT_SHARED_REFERENCE(refWebPageProxy, derefWebPageProxy) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 using WeakPtrWebPageProxy = WeakPtr<WebPageProxy>;
