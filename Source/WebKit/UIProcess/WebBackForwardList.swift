@@ -131,6 +131,9 @@ final class WebBackForwardList {
         self.page = page
         self.messageForwarder = WebKit.WebBackForwardListMessageForwarder.create(target: self)
         backForwardLog("(Back/Forward) Created WebBackForwardList \(ObjectIdentifier(self))")
+        if let page = page.get() {
+            print("Magic constant in WebPageProxy is \(page.m_magicConstant)")
+        }
     }
 
     deinit {
