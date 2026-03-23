@@ -259,7 +259,7 @@ extension WKBridgeUpdateMesh {
     }
 }
 
-func decodeValues<T>(from data: Data) -> [T] {
+func decodeValues<T: BitwiseCopyable>(from data: Data) -> [T] {
     let stride = MemoryLayout<T>.stride
 
     guard data.count > 0, data.count % stride == 0 else {
@@ -558,7 +558,7 @@ extension WKBridgeMaterialGraph {
     }
 }
 
-func toData<T>(_ input: [T]) -> Data {
+func toData<T: BitwiseCopyable>(_ input: [T]) -> Data {
     // FIXME: (rdar://164559261) understand/document/remove unsafety
     unsafe input.withUnsafeBytes { bufferPointer in
         unsafe Data(bufferPointer)
@@ -567,7 +567,7 @@ func toData<T>(_ input: [T]) -> Data {
 
 #if ENABLE_GPU_PROCESS_MODEL && canImport(RealityCoreRenderer, _version: 11)
 
-private func toDataArray<T>(_ input: [[T]]) -> [Data] {
+private func toDataArray<T: BitwiseCopyable>(_ input: [[T]]) -> [Data] {
     input.map { toData($0) }
 }
 
