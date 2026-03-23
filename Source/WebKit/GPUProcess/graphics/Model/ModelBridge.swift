@@ -130,12 +130,24 @@ extension WKBridgeMeshDescriptor {
 @implementation
 extension WKBridgeSkinningData {
     let influencePerVertexCount: UInt8
-    let jointTransformsData: Data?
-    let inverseBindPosesData: Data?
-    let influenceJointIndicesData: Data?
-    let influenceWeightsData: Data?
+    // Typed arrays are the primary storage. @nonobjc because [simd_float4x4]? / [UInt32]? /
+    // [Float]? are not ObjC-representable; the NSData* properties declared in the ObjC
+    // header are computed on demand for the C++ consumer (ModelInlineConverters.h).
+    // Optional is used to preserve the nil-vs-empty distinction from the original Data? fields.
+    @nonobjc let jointTransforms: [simd_float4x4]?
+    @nonobjc let inverseBindPoses: [simd_float4x4]?
+    @nonobjc let influenceJointIndices: [UInt32]?
+    @nonobjc let influenceWeights: [Float]?
     let geometryBindTransform: simd_float4x4
 
+    var jointTransformsData: Data? { jointTransforms.map { toData($0) } }
+    var inverseBindPosesData: Data? { inverseBindPoses.map { toData($0) } }
+    var influenceJointIndicesData: Data? { influenceJointIndices.map { toData($0) } }
+    var influenceWeightsData: Data? { influenceWeights.map { toData($0) } }
+
+    // ObjC designated init, called from C++ (WebKitMesh.mm) with NSData* arguments.
+    // Decodes each blob once at construction; typed arrays are the live storage.
+    // nil Data → nil array; non-nil Data → decoded array (possibly empty).
     init(
         influencePerVertexCount: UInt8,
         jointTransforms: Data?,
@@ -145,12 +157,13 @@ extension WKBridgeSkinningData {
         geometryBindTransform: simd_float4x4
     ) {
         self.influencePerVertexCount = influencePerVertexCount
-        self.jointTransformsData = jointTransforms
-        self.inverseBindPosesData = inverseBindPoses
-        self.influenceJointIndicesData = influenceJointIndices
-        self.influenceWeightsData = influenceWeights
+        self.jointTransforms = jointTransforms.map { decodeValues(from: $0) }
+        self.inverseBindPoses = inverseBindPoses.map { decodeValues(from: $0) }
+        self.influenceJointIndices = influenceJointIndices.map { decodeValues(from: $0) }
+        self.influenceWeights = influenceWeights.map { decodeValues(from: $0) }
         self.geometryBindTransform = geometryBindTransform
     }
+
 }
 
 @objc
@@ -246,7 +259,6 @@ extension WKBridgeUpdateMesh {
     }
 }
 
-#if ENABLE_GPU_PROCESS_MODEL && canImport(RealityCoreRenderer, _version: 11)
 func decodeValues<T>(from data: Data) -> [T] {
     let stride = MemoryLayout<T>.stride
 
@@ -265,6 +277,7 @@ func decodeValues<T>(from data: Data) -> [T] {
     }
 }
 
+#if ENABLE_GPU_PROCESS_MODEL && canImport(RealityCoreRenderer, _version: 11)
 extension WKBridgeBlendShapeData {
     var weights: [Float] {
         decodeValues(from: weightsData)
@@ -545,14 +558,14 @@ extension WKBridgeMaterialGraph {
     }
 }
 
-#if ENABLE_GPU_PROCESS_MODEL && canImport(RealityCoreRenderer, _version: 11)
-
 func toData<T>(_ input: [T]) -> Data {
     // FIXME: (rdar://164559261) understand/document/remove unsafety
     unsafe input.withUnsafeBytes { bufferPointer in
         unsafe Data(bufferPointer)
     }
 }
+
+#if ENABLE_GPU_PROCESS_MODEL && canImport(RealityCoreRenderer, _version: 11)
 
 private func toDataArray<T>(_ input: [[T]]) -> [Data] {
     input.map { toData($0) }
@@ -608,118 +621,6 @@ extension WKBridgeMeshDescriptor {
     }
 }
 extension WKBridgeSkinningData {
-    var jointTransforms: [simd_float4x4] {
-        guard let data = jointTransformsData else {
-            return []
-        }
-
-        let jointTransformsCount = data.count / MemoryLayout<simd_float4x4>.size
-        guard jointTransformsCount > 0 else {
-            return []
-        }
-
-        let matrixSize = MemoryLayout<simd_float4x4>.stride
-        let expectedSize = matrixSize * jointTransformsCount
-
-        guard data.count >= expectedSize else {
-            assertionFailure("instanceTransforms data size (\(data.count)) is less than expected (\(expectedSize))")
-            return []
-        }
-
-        return unsafe data.withUnsafeBytes { rawBufferPointer in
-            guard let baseAddress = rawBufferPointer.baseAddress else {
-                return []
-            }
-
-            let matrices = unsafe baseAddress.assumingMemoryBound(to: simd_float4x4.self)
-            return (0..<jointTransformsCount).map { unsafe matrices[$0] }
-        }
-    }
-
-    var inverseBindPoses: [simd_float4x4] {
-        guard let data = inverseBindPosesData else {
-            return []
-        }
-
-        let inverseBindPosesCount = data.count / MemoryLayout<simd_float4x4>.size
-        guard inverseBindPosesCount > 0 else {
-            return []
-        }
-
-        let matrixSize = MemoryLayout<simd_float4x4>.stride
-        let expectedSize = matrixSize * inverseBindPosesCount
-
-        guard data.count >= expectedSize else {
-            assertionFailure("instanceTransforms data size (\(data.count)) is less than expected (\(expectedSize))")
-            return []
-        }
-
-        return unsafe data.withUnsafeBytes { rawBufferPointer in
-            guard let baseAddress = rawBufferPointer.baseAddress else {
-                return []
-            }
-
-            let matrices = unsafe baseAddress.assumingMemoryBound(to: simd_float4x4.self)
-            return (0..<inverseBindPosesCount).map { unsafe matrices[$0] }
-        }
-    }
-
-    var influenceJointIndices: [UInt32] {
-        guard let data = influenceJointIndicesData else {
-            return []
-        }
-
-        let influenceJointIndicesCount = data.count / MemoryLayout<UInt32>.size
-        guard influenceJointIndicesCount > 0 else {
-            return []
-        }
-
-        let matrixSize = MemoryLayout<UInt32>.stride
-        let expectedSize = matrixSize * influenceJointIndicesCount
-
-        guard data.count >= expectedSize else {
-            assertionFailure("instanceTransforms data size (\(data.count)) is less than expected (\(expectedSize))")
-            return []
-        }
-
-        return unsafe data.withUnsafeBytes { rawBufferPointer in
-            guard let baseAddress = rawBufferPointer.baseAddress else {
-                return []
-            }
-
-            let matrices = unsafe baseAddress.assumingMemoryBound(to: UInt32.self)
-            return (0..<influenceJointIndicesCount).map { unsafe matrices[$0] }
-        }
-    }
-
-    var influenceWeights: [Float] {
-        guard let data = influenceWeightsData else {
-            return []
-        }
-
-        let influenceWeightsCount = data.count / MemoryLayout<Float>.size
-        guard influenceWeightsCount > 0 else {
-            return []
-        }
-
-        let matrixSize = MemoryLayout<Float>.stride
-        let expectedSize = matrixSize * influenceWeightsCount
-
-        guard data.count >= expectedSize else {
-            assertionFailure("instanceTransforms data size (\(data.count)) is less than expected (\(expectedSize))")
-            return []
-        }
-
-        return unsafe data.withUnsafeBytes { rawBufferPointer in
-            guard let baseAddress = rawBufferPointer.baseAddress else {
-                return []
-            }
-
-            let matrices = unsafe baseAddress.assumingMemoryBound(to: Float.self)
-            return (0..<influenceWeightsCount).map { unsafe matrices[$0] }
-        }
-    }
-
     @nonobjc
     convenience init?(_ request: _Proto_DeformationData_v1.SkinningData?) {
         guard let request else {

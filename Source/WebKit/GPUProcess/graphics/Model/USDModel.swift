@@ -2121,11 +2121,16 @@ extension WKBridgeReceiver {
 
 extension WKBridgeSkinningData {
     fileprivate func makeDeformerDescription(device: any MTLDevice, memoryOwner: mach_port_t) -> any _Proto_LowLevelDeformerDescription_v1 {
+        let jointTransforms = self.jointTransforms ?? []
+        let inverseBindPoses = self.inverseBindPoses ?? []
+        let influenceJointIndices = self.influenceJointIndices ?? []
+        let influenceWeights = self.influenceWeights ?? []
+
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
         let jointTransformsBuffer = unsafe device.makeBuffer(
-            bytes: self.jointTransforms,
-            length: self.jointTransforms.count * MemoryLayout<simd_float4x4>.size,
+            bytes: jointTransforms,
+            length: jointTransforms.count * MemoryLayout<simd_float4x4>.size,
             options: .storageModeShared
         )!
         jointTransformsBuffer.__setOwnerWithIdentity(memoryOwner)
@@ -2142,8 +2147,8 @@ extension WKBridgeSkinningData {
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
         let inverseBindPosesBuffer = unsafe device.makeBuffer(
-            bytes: self.inverseBindPoses,
-            length: self.inverseBindPoses.count * MemoryLayout<simd_float4x4>.size,
+            bytes: inverseBindPoses,
+            length: inverseBindPoses.count * MemoryLayout<simd_float4x4>.size,
             options: .storageModeShared
         )!
         inverseBindPosesBuffer.__setOwnerWithIdentity(memoryOwner)
@@ -2160,8 +2165,8 @@ extension WKBridgeSkinningData {
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
         let jointIndicesBuffer = unsafe device.makeBuffer(
-            bytes: self.influenceJointIndices,
-            length: self.influenceJointIndices.count * MemoryLayout<UInt32>.size,
+            bytes: influenceJointIndices,
+            length: influenceJointIndices.count * MemoryLayout<UInt32>.size,
             options: .storageModeShared
         )!
         jointIndicesBuffer.__setOwnerWithIdentity(memoryOwner)
@@ -2178,8 +2183,8 @@ extension WKBridgeSkinningData {
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
         let influenceWeightsBuffer = unsafe device.makeBuffer(
-            bytes: self.influenceWeights,
-            length: self.influenceWeights.count * MemoryLayout<Float>.size,
+            bytes: influenceWeights,
+            length: influenceWeights.count * MemoryLayout<Float>.size,
             options: .storageModeShared
         )!
         influenceWeightsBuffer.__setOwnerWithIdentity(memoryOwner)
