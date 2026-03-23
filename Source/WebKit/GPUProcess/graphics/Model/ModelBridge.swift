@@ -259,7 +259,22 @@ extension WKBridgeUpdateMesh {
     }
 }
 
-func decodeValues<T: BitwiseCopyable>(from data: Data) -> [T] {
+/// A type for which every possible bit pattern of length `MemoryLayout<Self>.stride`
+/// is a valid, well-formed value. This is stronger than `BitwiseCopyable`, which only
+/// guarantees no managed references and trivial copying — it does not guarantee that
+/// arbitrary byte sequences constitute valid values (e.g. enums with invalid discriminants
+/// are `BitwiseCopyable` but are NOT `AnyBitPatternValid`).
+///
+/// Only add conformances after manually verifying the above property for the type.
+/// Conforming types may be safely reconstituted from arbitrary byte data by `decodeValues`.
+protocol AnyBitPatternValid {}
+
+extension Float: AnyBitPatternValid {}       // all 2^32 bit patterns are valid floats (NaN variants included)
+extension UInt32: AnyBitPatternValid {}      // unsigned integers have no invalid bit patterns
+extension SIMD3<Float>: AnyBitPatternValid {}// three floats; no discriminant or padding constraints
+extension simd_float4x4: AnyBitPatternValid {}// sixteen floats; no discriminant or padding constraints
+
+func decodeValues<T: AnyBitPatternValid & BitwiseCopyable>(from data: Data) -> [T] {
     let stride = MemoryLayout<T>.stride
 
     guard data.count > 0, data.count % stride == 0 else {
@@ -558,7 +573,7 @@ extension WKBridgeMaterialGraph {
     }
 }
 
-func toData<T: BitwiseCopyable>(_ input: [T]) -> Data {
+func toData<T: AnyBitPatternValid & BitwiseCopyable>(_ input: [T]) -> Data {
     // FIXME: (rdar://164559261) understand/document/remove unsafety
     unsafe input.withUnsafeBytes { bufferPointer in
         unsafe Data(bufferPointer)
@@ -567,7 +582,7 @@ func toData<T: BitwiseCopyable>(_ input: [T]) -> Data {
 
 #if ENABLE_GPU_PROCESS_MODEL && canImport(RealityCoreRenderer, _version: 11)
 
-private func toDataArray<T: BitwiseCopyable>(_ input: [[T]]) -> [Data] {
+private func toDataArray<T: AnyBitPatternValid & BitwiseCopyable>(_ input: [[T]]) -> [Data] {
     input.map { toData($0) }
 }
 
