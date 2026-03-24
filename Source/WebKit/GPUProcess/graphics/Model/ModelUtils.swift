@@ -88,30 +88,32 @@ extension _Proto_LowLevelMeshResource_v1.Descriptor {
     }
 }
 
+extension Data {
+    // Safe because both endpoints are bounds-checked: Data.count and MutableRawSpan.byteCount.
+    // The unsafe is isolated here and cannot be misused by callers.
+    @safe fileprivate func copyBytes(to span: inout MutableRawSpan) {
+        precondition(count <= span.byteCount)
+        unsafe withUnsafeBytes { src in
+            unsafe span.withUnsafeMutableBytes { dest in
+                unsafe dest.copyMemory(from: src)
+            }
+        }
+    }
+}
+
 extension _Proto_LowLevelMeshResource_v1 {
-    func replaceVertexData(_ vertexData: [Data]) {
+    private func replaceVertexData(_ vertexData: [Data]) {
         for (vertexBufferIndex, vertexData) in vertexData.enumerated() {
-            let bufferSizeInByte = vertexData.bytes.byteCount
             self.replaceVertices(at: vertexBufferIndex) { vertexBytes in
-                // FIXME: (rdar://164559261) understand/document/remove unsafety
-                unsafe vertexBytes.withUnsafeMutableBytes { ptr in
-                    // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
-                    // swift-format-ignore: NeverForceUnwrap
-                    unsafe vertexData.copyBytes(to: ptr.baseAddress!.assumingMemoryBound(to: UInt8.self), count: bufferSizeInByte)
-                }
+                vertexData.copyBytes(to: &vertexBytes)
             }
         }
     }
 
-    func replaceIndexData(_ indexData: Data?) {
-        if let indexData = indexData {
+    private func replaceIndexData(_ indexData: Data?) {
+        if let indexData {
             self.replaceIndices { indicesBytes in
-                // FIXME: (rdar://164559261) understand/document/remove unsafety
-                unsafe indicesBytes.withUnsafeMutableBytes { ptr in
-                    // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
-                    // swift-format-ignore: NeverForceUnwrap
-                    unsafe indexData.copyBytes(to: ptr.baseAddress!.assumingMemoryBound(to: UInt8.self), count: ptr.count)
-                }
+                indexData.copyBytes(to: &indicesBytes)
             }
         }
     }
