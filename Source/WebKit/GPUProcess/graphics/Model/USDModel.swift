@@ -1963,10 +1963,8 @@ private func makeFallBackTextureResource(
     let whitePixel: [UInt8] = [255, 255, 255, 255]
 
     // Create staging buffer for white pixel data
-    let stagingBuffer = unsafe whitePixel.withUnsafeBytes { bytes in
-        // swift-format-ignore: NeverForceUnwrap
-        unsafe device.makeBuffer(bytes: bytes.baseAddress!, length: bytes.count, options: .storageModeShared)!
-    }
+    // swift-format-ignore: NeverForceUnwrap
+    let stagingBuffer = device.makeSharedBuffer(from: whitePixel)!
 
     // Create command buffer to upload white pixel data
     // swift-format-ignore: NeverForceUnwrap
@@ -2119,6 +2117,13 @@ extension WKBridgeReceiver {
     }
 }
 
+private extension MTLDevice {
+    // Safe: the array provides contiguous storage and length is exactly its byte footprint.
+    @safe func makeSharedBuffer<T>(from elements: [T]) -> (any MTLBuffer)? {
+        unsafe makeBuffer(bytes: elements, length: elements.count * MemoryLayout<T>.stride, options: .storageModeShared)
+    }
+}
+
 extension WKBridgeSkinningData {
     fileprivate func makeDeformerDescription(device: any MTLDevice, memoryOwner: mach_port_t) -> any _Proto_LowLevelDeformerDescription_v1 {
         let jointTransforms = self.jointTransforms ?? []
@@ -2128,11 +2133,7 @@ extension WKBridgeSkinningData {
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
-        let jointTransformsBuffer = unsafe device.makeBuffer(
-            bytes: jointTransforms,
-            length: jointTransforms.count * MemoryLayout<simd_float4x4>.size,
-            options: .storageModeShared
-        )!
+        let jointTransformsBuffer = device.makeSharedBuffer(from: jointTransforms)!
         jointTransformsBuffer.__setOwnerWithIdentity(memoryOwner)
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
@@ -2146,11 +2147,7 @@ extension WKBridgeSkinningData {
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
-        let inverseBindPosesBuffer = unsafe device.makeBuffer(
-            bytes: inverseBindPoses,
-            length: inverseBindPoses.count * MemoryLayout<simd_float4x4>.size,
-            options: .storageModeShared
-        )!
+        let inverseBindPosesBuffer = device.makeSharedBuffer(from: inverseBindPoses)!
         inverseBindPosesBuffer.__setOwnerWithIdentity(memoryOwner)
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
@@ -2164,11 +2161,7 @@ extension WKBridgeSkinningData {
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
-        let jointIndicesBuffer = unsafe device.makeBuffer(
-            bytes: influenceJointIndices,
-            length: influenceJointIndices.count * MemoryLayout<UInt32>.size,
-            options: .storageModeShared
-        )!
+        let jointIndicesBuffer = device.makeSharedBuffer(from: influenceJointIndices)!
         jointIndicesBuffer.__setOwnerWithIdentity(memoryOwner)
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
@@ -2182,11 +2175,7 @@ extension WKBridgeSkinningData {
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
-        let influenceWeightsBuffer = unsafe device.makeBuffer(
-            bytes: influenceWeights,
-            length: influenceWeights.count * MemoryLayout<Float>.size,
-            options: .storageModeShared
-        )!
+        let influenceWeightsBuffer = device.makeSharedBuffer(from: influenceWeights)!
         influenceWeightsBuffer.__setOwnerWithIdentity(memoryOwner)
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
@@ -2226,11 +2215,7 @@ extension WKBridgeBlendShapeData {
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
-        let blendWeightsBuffer = unsafe device.makeBuffer(
-            bytes: weights,
-            length: weights.count * MemoryLayout<Float>.size,
-            options: .storageModeShared
-        )!
+        let blendWeightsBuffer = device.makeSharedBuffer(from: weights)!
         blendWeightsBuffer.__setOwnerWithIdentity(memoryOwner)
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
@@ -2245,11 +2230,7 @@ extension WKBridgeBlendShapeData {
         let positionOffsets = debugPositionOffsets.flatMap(\.self)
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
-        let positionOffsetsBuffer = unsafe device.makeBuffer(
-            bytes: positionOffsets,
-            length: positionOffsets.count * MemoryLayout<SIMD3<Float>>.size,
-            options: .storageModeShared
-        )!
+        let positionOffsetsBuffer = device.makeSharedBuffer(from: positionOffsets)!
         positionOffsetsBuffer.__setOwnerWithIdentity(memoryOwner)
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
@@ -2279,11 +2260,7 @@ extension WKBridgeRenormalizationData {
         // Create adjacency buffer
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
-        let adjacenciesMetalBuffer = unsafe device.makeBuffer(
-            bytes: vertexAdjacencies,
-            length: vertexAdjacencies.count * MemoryLayout<UInt32>.size,
-            options: .storageModeShared
-        )!
+        let adjacenciesMetalBuffer = device.makeSharedBuffer(from: vertexAdjacencies)!
         adjacenciesMetalBuffer.__setOwnerWithIdentity(memoryOwner)
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
@@ -2298,11 +2275,7 @@ extension WKBridgeRenormalizationData {
         // Create adjacency end indices buffer
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
         // swift-format-ignore: NeverForceUnwrap
-        let adjacencyEndIndicesMetalBuffer = unsafe device.makeBuffer(
-            bytes: vertexAdjacencyEndIndices,
-            length: vertexAdjacencyEndIndices.count * MemoryLayout<UInt32>.size,
-            options: .storageModeShared
-        )!
+        let adjacencyEndIndicesMetalBuffer = device.makeSharedBuffer(from: vertexAdjacencyEndIndices)!
         adjacencyEndIndicesMetalBuffer.__setOwnerWithIdentity(memoryOwner)
 
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=305857
