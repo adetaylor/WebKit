@@ -46,6 +46,15 @@ BALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 #include "mimalloc.h"
 #endif
 
+// Under TSan, bypass libpas and use the system allocator so TSan can track
+// memory reuse. libpas's thread-local caches reuse memory without going
+// through malloc/free, which makes TSan unable to see happens-before edges.
+#if __has_feature(thread_sanitizer)
+#define BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN 1
+#else
+#define BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN 0
+#endif
+
 namespace bmalloc {
 namespace api {
 
@@ -62,7 +71,7 @@ inline pas_primitive_heap_ref& heapForKind(Gigacage::Kind kind)
 // Returns null on failure.
 BINLINE void* tryMalloc(size_t size, CompactAllocationMode mode, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     if (!isGigacage(kind))
         return bmalloc_try_allocate_inline(size, asPasAllocationMode(mode));
     return bmalloc_try_allocate_auxiliary_inline(&heapForKind(gigacageKind(kind)), size, asPasAllocationMode(mode));
@@ -80,7 +89,7 @@ BINLINE void* tryMalloc(size_t size, CompactAllocationMode mode, HeapKind kind =
 // Crashes on failure.
 BINLINE void* malloc(size_t size, CompactAllocationMode mode, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     if (!isGigacage(kind))
         return bmalloc_allocate_inline(size, asPasAllocationMode(mode));
     return bmalloc_allocate_auxiliary_inline(&heapForKind(gigacageKind(kind)), size, asPasAllocationMode(mode));
@@ -101,7 +110,7 @@ BINLINE void* malloc(size_t size, CompactAllocationMode mode, HeapKind kind = He
 
 BINLINE void* tryZeroedMalloc(size_t size, CompactAllocationMode mode, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     if (!isGigacage(kind))
         return bmalloc_try_allocate_zeroed_inline(size, asPasAllocationMode(mode));
     return bmalloc_try_allocate_auxiliary_zeroed_inline(&heapForKind(gigacageKind(kind)), size, asPasAllocationMode(mode));
@@ -119,7 +128,7 @@ BINLINE void* tryZeroedMalloc(size_t size, CompactAllocationMode mode, HeapKind 
 // Crashes on failure.
 BINLINE void* zeroedMalloc(size_t size, CompactAllocationMode mode, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     if (!isGigacage(kind))
         return bmalloc_allocate_zeroed_inline(size, asPasAllocationMode(mode));
     return bmalloc_allocate_auxiliary_zeroed_inline(&heapForKind(gigacageKind(kind)), size, asPasAllocationMode(mode));
@@ -143,7 +152,7 @@ BEXPORT void* mallocOutOfLine(size_t size, CompactAllocationMode mode, HeapKind 
 // Returns null on failure.
 BINLINE void* tryMemalign(size_t alignment, size_t size, CompactAllocationMode mode, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     if (!isGigacage(kind))
         return bmalloc_try_allocate_with_alignment_inline(size, alignment, asPasAllocationMode(mode));
     return bmalloc_try_allocate_auxiliary_with_alignment_inline(
@@ -162,7 +171,7 @@ BINLINE void* tryMemalign(size_t alignment, size_t size, CompactAllocationMode m
 // Crashes on failure.
 BINLINE void* memalign(size_t alignment, size_t size, CompactAllocationMode mode, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     if (!isGigacage(kind))
         return bmalloc_allocate_with_alignment_inline(size, alignment, asPasAllocationMode(mode));
     return bmalloc_allocate_auxiliary_with_alignment_inline(
@@ -185,7 +194,7 @@ BINLINE void* memalign(size_t alignment, size_t size, CompactAllocationMode mode
 // Returns null on failure.
 BINLINE void* tryZeroedMemalign(size_t alignment, size_t size, CompactAllocationMode mode, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     if (!isGigacage(kind))
         return bmalloc_try_allocate_zeroed_with_alignment_inline(size, alignment, asPasAllocationMode(mode));
     return bmalloc_try_allocate_auxiliary_zeroed_with_alignment_inline(
@@ -207,7 +216,7 @@ BINLINE void* tryZeroedMemalign(size_t alignment, size_t size, CompactAllocation
 // Crashes on failure.
 BINLINE void* zeroedMemalign(size_t alignment, size_t size, CompactAllocationMode mode, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     if (!isGigacage(kind))
         return bmalloc_allocate_zeroed_with_alignment_inline(size, alignment, asPasAllocationMode(mode));
     return bmalloc_allocate_auxiliary_zeroed_with_alignment_inline(
@@ -231,7 +240,7 @@ BINLINE void* zeroedMemalign(size_t alignment, size_t size, CompactAllocationMod
 // Returns null on failure.
 BINLINE void* tryRealloc(void* object, size_t newSize, CompactAllocationMode mode, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     if (!isGigacage(kind)) {
         return bmalloc_try_reallocate_inline(
             object, newSize, asPasAllocationMode(mode), pas_reallocate_free_if_successful);
@@ -252,7 +261,7 @@ BINLINE void* tryRealloc(void* object, size_t newSize, CompactAllocationMode mod
 // Crashes on failure.
 BINLINE void* realloc(void* object, size_t newSize, CompactAllocationMode mode, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     if (!isGigacage(kind))
         return bmalloc_reallocate_inline(object, newSize, asPasAllocationMode(mode), pas_reallocate_free_if_successful);
     return bmalloc_reallocate_auxiliary_inline(
@@ -280,7 +289,7 @@ BEXPORT void* tryLargeZeroedMemalignVirtual(size_t alignment, size_t size, Compa
 
 BINLINE void free(void* object, HeapKind kind = HeapKind::Primary)
 {
-#if BUSE(LIBPAS)
+#if BUSE(LIBPAS) && !BMALLOC_USE_SYSTEM_MALLOC_FOR_TSAN
     BUNUSED(kind);
     bmalloc_deallocate_inline(object);
 #elif BUSE(MIMALLOC)
