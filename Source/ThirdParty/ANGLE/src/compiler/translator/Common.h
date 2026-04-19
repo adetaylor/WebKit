@@ -41,6 +41,37 @@ constexpr TSourceLoc kNoSourceLoc{-1, -1, -1, -1};
 //
 // Put POOL_ALLOCATOR_NEW_DELETE in base classes to make them use this scheme.
 //
+#if __has_feature(thread_sanitizer)
+#define POOL_ALLOCATOR_NEW_DELETE                     \
+    void *operator new(size_t s)                      \
+    {                                                 \
+        return ::malloc(s);                           \
+    }                                                 \
+    void *operator new(size_t, void *_Where)          \
+    {                                                 \
+        return (_Where);                              \
+    }                                                 \
+    void operator delete(void *p)                     \
+    {                                                 \
+        ::free(p);                                    \
+    }                                                 \
+    void operator delete(void *, void *)              \
+    {}                                                \
+    void *operator new[](size_t s)                    \
+    {                                                 \
+        return ::malloc(s);                           \
+    }                                                 \
+    void *operator new[](size_t, void *_Where)        \
+    {                                                 \
+        return (_Where);                              \
+    }                                                 \
+    void operator delete[](void *p)                   \
+    {                                                 \
+        ::free(p);                                    \
+    }                                                 \
+    void operator delete[](void *, void *)            \
+    {}
+#else
 #define POOL_ALLOCATOR_NEW_DELETE                     \
     void *operator new(size_t s)                      \
     {                                                 \
@@ -66,6 +97,7 @@ constexpr TSourceLoc kNoSourceLoc{-1, -1, -1, -1};
     {}                                                \
     void operator delete[](void *, void *)            \
     {}
+#endif
 
 //
 // Pool version of string.
@@ -177,7 +209,11 @@ inline TString str(T i)
 inline const char *AllocatePoolCharArray(const char *str, size_t strLength)
 {
     size_t requiredSize = strLength + 1;
+#if __has_feature(thread_sanitizer)
+    char *buffer        = static_cast<char *>(::malloc(requiredSize));
+#else
     char *buffer        = static_cast<char *>(GetGlobalPoolAllocator()->allocate(requiredSize));
+#endif
     memcpy(buffer, str, requiredSize);
     ASSERT(buffer[strLength] == '\0');
     return buffer;

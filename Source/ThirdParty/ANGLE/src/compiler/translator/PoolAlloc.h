@@ -89,13 +89,26 @@ class pool_allocator
 #else
     pointer allocate(size_type n)
     {
+#if __has_feature(thread_sanitizer)
+        return static_cast<pointer>(::malloc(n * sizeof(T)));
+#else
         return static_cast<pointer>(getAllocator().allocate(n * sizeof(T)));
+#endif
     }
     pointer allocate(size_type n, const void *)
     {
+#if __has_feature(thread_sanitizer)
+        return static_cast<pointer>(::malloc(n * sizeof(T)));
+#else
         return static_cast<pointer>(getAllocator().allocate(n * sizeof(T)));
+#endif
     }
-    void deallocate(pointer, size_type) {}
+    void deallocate(pointer p, size_type)
+    {
+#if __has_feature(thread_sanitizer)
+        ::free(p);
+#endif
+    }
 #endif  // _RWSTD_ALLOCATOR
 
     void construct(pointer p, const T &val) { new ((void *)p) T(val); }
