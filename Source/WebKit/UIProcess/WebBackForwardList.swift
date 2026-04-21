@@ -734,7 +734,7 @@ final class WebBackForwardList {
         guard let childFrameItem = parentFrameItem.childItemAtIndex(childFrameIndex) else {
             return nil
         }
-        return childFrameItem.frameState()
+        return getFrameState(childFrameItem)
     }
 
     func loggingString() -> Swift.String {
