@@ -23,7 +23,8 @@
 [
     DispatchedFrom=Networking,
     DispatchedTo=UI,
-    ExceptionForEnabledBy
+    ExceptionForEnabledBy,
+    SwiftReceiverBuildEnabledBy=SEC_ITEM_SHIM_PROXY_SWIFT
 ]
 messages -> SecItemShimProxy {
 

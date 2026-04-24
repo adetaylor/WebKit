@@ -27,6 +27,8 @@
 
 #if ENABLE(SEC_ITEM_SHIM)
 
+#if !ENABLE(SEC_ITEM_SHIM_PROXY_SWIFT)
+
 #include "Connection.h"
 #include "WorkQueueMessageReceiver.h"
 #include <wtf/TZoneMalloc.h>
@@ -64,5 +66,7 @@ private:
 };
 
 } // namespace WebKit
+
+#endif // !ENABLE(SEC_ITEM_SHIM_PROXY_SWIFT)
 
 #endif // ENABLE(SEC_ITEM_SHIM)

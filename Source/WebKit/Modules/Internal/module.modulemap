@@ -255,6 +255,12 @@ module WebKit_Internal [system] {
         export *
     }
 
+    module SecItemShimProxySwiftUtilities {
+        requires cplusplus20
+        header "../../UIProcess/mac/SecItemShimProxySwiftUtilities.h"
+        export *
+    }
+
     module WebBackForwardListSwiftUtilities {
         requires cplusplus20
         header "../../UIProcess/WebBackForwardListSwiftUtilities.h"

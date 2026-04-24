@@ -92,7 +92,14 @@
 #include <wtf/text/MakeString.h>
 
 #if ENABLE(SEC_ITEM_SHIM)
+#if ENABLE(SEC_ITEM_SHIM_PROXY_SWIFT)
+#include "SecItemShimProxyMessages.h"
+#include "Shared/WebKit-Swift.h"
+#include <wtf/NeverDestroyed.h>
+#include <wtf/WorkQueue.h>
+#else
 #include "SecItemShimProxy.h"
+#endif
 #endif
 
 #if HAVE(SEC_KEY_PROXY)
@@ -309,7 +316,13 @@ void NetworkProcessProxy::getLaunchOptions(ProcessLauncher::LaunchOptions& launc
 void NetworkProcessProxy::connectionWillOpen(IPC::Connection& connection)
 {
 #if ENABLE(SEC_ITEM_SHIM)
+#if ENABLE(SEC_ITEM_SHIM_PROXY_SWIFT)
+    static NeverDestroyed<WebKit::SecItemShimProxy> secItemShimProxy { WebKit::SecItemShimProxy::init() };
+    static NeverDestroyed<Ref<WorkQueue>> queue { WorkQueue::create("com.apple.WebKit.SecItemProxy"_s, WorkQueue::QOS::UserInitiated) };
+    connection.addMessageReceiver(queue.get().get(), secItemShimProxy.get().getMessageReceiver().get(), Messages::SecItemShimProxy::messageReceiverName());
+#else
     SecItemShimProxy::singleton().initializeConnection(connection);
+#endif
 #else
     UNUSED_PARAM(connection);
 #endif
