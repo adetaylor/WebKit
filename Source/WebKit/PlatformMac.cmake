@@ -1,3 +1,4 @@
+
 include(PlatformCocoa.cmake)
 
 find_library(APPLICATIONSERVICES_LIBRARY ApplicationServices)
@@ -142,6 +143,18 @@ set(WebKit_SWIFT_EXTRA_OPTIONS
     -Xcc -I${bmalloc_FRAMEWORK_HEADERS_DIR}
     -Xcc -I${PAL_FRAMEWORK_HEADERS_DIR}
     -Xcc -I${ICU_INCLUDE_DIRS}
+)
+
+# Targets that stage the headers the -typecheck/-emit-clang-header pass reads.
+# Declaring these lets WEBKIT_TARGET_ADD_SWIFT_SOURCES detach the header
+# command from cmake_object_order_depends_target_WebKit so it starts once
+# headers are copied instead of waiting for WebCore/WebKitLegacy to link.
+set(WebKit_SWIFT_HEADER_DEPENDS
+    WebKit_CopyHeaders
+    PAL_CopyHeaders
+    WTF_CopyHeaders
+    bmalloc_CopyHeaders
+    bmalloc_CopyPrivateHeaders
 )
 
 add_custom_command(

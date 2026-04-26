@@ -772,6 +772,18 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
             COMMAND_EXPAND_LISTS)
 
         target_include_directories(${_target} PUBLIC ${_header_base_path})
-        target_sources(${_target} PRIVATE ${_header_path})
+        if (DEFINED ${_target}_SWIFT_HEADER_DEPENDS)
+            # The -typecheck pass only needs the staged headers it actually
+            # reads, not the target's linked frameworks. When the caller names
+            # those header-producing targets, wrap the command in its own
+            # custom target so it does NOT inherit
+            # cmake_object_order_depends_target_${_target} (which would gate it
+            # on every link dependency) and can start as soon as headers exist.
+            add_custom_target(${_target}_SwiftCxxHeader DEPENDS ${_header_path})
+            add_dependencies(${_target}_SwiftCxxHeader ${${_target}_SWIFT_HEADER_DEPENDS})
+            add_dependencies(${_target} ${_target}_SwiftCxxHeader)
+        else ()
+            target_sources(${_target} PRIVATE ${_header_path})
+        endif ()
     endif ()
 endmacro()
