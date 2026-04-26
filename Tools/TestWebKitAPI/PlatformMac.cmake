@@ -109,6 +109,7 @@ list(APPEND TestWebKit_PRIVATE_INCLUDE_DIRECTORIES
     ${TOOLS_DIR}/TestRunnerShared/cocoa
     ${TOOLS_DIR}/TestRunnerShared/spi
     ${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}/WebCoreTestSupport
+    ${WEBCORE_DIR}/testing/js
     ${TESTWEBKITAPI_DIR}/Tests/WebCore
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/cocoa
     ${TESTWEBKITAPI_DIR}/Tests/WebKit/WKWebView/ios
