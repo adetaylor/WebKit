@@ -629,6 +629,14 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
         if (NOT (PORT STREQUAL GTK OR PORT STREQUAL WPE))
             # This does not yet work on non-Apple platforms for reasons yet to be determined.
             list(APPEND _swift_options "-explicit-module-build")
+            # -explicit-module-build makes swiftc scan and compile every transitive
+            # SDK Clang module to .pcm before typechecking. Without a fixed cache
+            # path each invocation does that into a private temp dir and discards
+            # it, so the -typecheck/-emit-clang-header pass below and cmake's own
+            # Swift compile each pay the full SDK-module cold cost, every build.
+            # Pin the cache so the second invocation -- and every later rebuild --
+            # reuses the first one's .pcm set.
+            list(APPEND _swift_options "-module-cache-path" "${CMAKE_BINARY_DIR}/SwiftModuleCache")
         endif ()
         # We'll use these options both for mainstream cmake invocations of swiftc (here)
         # and for our own invocation to output an interoperability .h file (later).
