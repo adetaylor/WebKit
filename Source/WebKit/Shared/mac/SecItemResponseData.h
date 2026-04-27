@@ -26,11 +26,12 @@
 #pragma once
 
 #include <wtf/RetainPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/Vector.h>
 
 namespace WebKit {
 
-class SecItemResponseData {
+class SWIFT_ESCAPABLE SecItemResponseData {
 public:
     using Result = Variant<
         std::nullptr_t,

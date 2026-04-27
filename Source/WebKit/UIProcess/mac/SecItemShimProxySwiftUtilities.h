@@ -27,6 +27,8 @@
 
 #if ENABLE(SEC_ITEM_SHIM)
 
+#include <Security/SecCertificate.h>
+#include "Connection.h"
 #include "SecItemRequestData.h"
 #include "SecItemResponseData.h"
 #include "SecItemShimProxyMessages.h"
@@ -35,44 +37,55 @@
 
 #if ENABLE(SEC_ITEM_SHIM_PROXY_SWIFT)
 
-// Workaround for rdar://170233903: invoke the completion handler from C++ to avoid Swift needing
-// to construct or move SecItemResponseData (non-trivially-moveable). Only trivially-safe types
-// (OSStatus, CFTypeRef?) cross the Swift/C++ boundary here.
-// Both SecItemRequestSyncCompletionHandler and SecItemRequestCompletionHandler resolve to
-// the same underlying type, so one overload covers both.
-inline void callCompletionHandlerWithStatus(CompletionHandlers::SecItemShimProxy::SecItemRequestCompletionHandler& fn, OSStatus status)
+// Factories that construct optional<SecItemResponseData> for the simple result cases, so Swift
+// can call completionHandler.pointee(consuming:) directly. Returns optional<> to match the
+// completion handler's parameter type (CompletionHandler<void(std::optional<SecItemResponseData>&&)>).
+
+// For error/status-only results (no result item: Add, Update, Delete, and error paths).
+inline std::optional<WebKit::SecItemResponseData> makeSecItemResponseDataWithStatus(OSStatus status)
 {
-    (*fn)(WebKit::SecItemResponseData { status, nullptr });
+    return WebKit::SecItemResponseData { status, nullptr };
 }
 
-// For CopyMatching: inspects result type to build the correct SecItemResponseData variant.
-void callCompletionHandlerWithCopyMatchingResult(CompletionHandlers::SecItemShimProxy::SecItemRequestCompletionHandler& fn, OSStatus resultCode, CFTypeRef _Nullable result);
-
-// Accessors for SecItemRequestData with explicit nullability and no-retain annotation (for Swift interop)
-inline CF_RETURNS_NOT_RETAINED CFDictionaryRef _Nullable secItemRequestQuery(const WebKit::SecItemRequestData& request)
+// For CopyMatching when result is a plain CFTypeRef (not a typed certificate/keychain array).
+inline std::optional<WebKit::SecItemResponseData> makeSecItemResponseDataWithCFTypeRef(OSStatus status, CFTypeRef _Nonnull result)
 {
-    return request.query();
+    return WebKit::SecItemResponseData { status, RetainPtr<CFTypeRef> { result } };
 }
 
-inline CF_RETURNS_NOT_RETAINED CFDictionaryRef _Nullable secItemRequestAttributesToMatch(const WebKit::SecItemRequestData& request)
+// For CopyMatching when result is an array of SecCertificateRefs.
+inline std::optional<WebKit::SecItemResponseData> makeSecItemResponseDataWithCertCFArray(OSStatus status, CFArrayRef _Nonnull certs)
 {
-    return request.attributesToMatch();
+    CFIndex count = CFArrayGetCount(certs);
+    Vector<RetainPtr<SecCertificateRef>> v;
+    v.reserveInitialCapacity(count);
+    for (CFIndex i = 0; i < count; ++i)
+        v.append(static_cast<SecCertificateRef>(const_cast<void*>(CFArrayGetValueAtIndex(certs, i))));
+    return WebKit::SecItemResponseData { status, WTF::move(v) };
 }
 
-inline WebKit::SecItemRequestData::Type secItemRequestType(const WebKit::SecItemRequestData& request)
+#if HAVE(SEC_KEYCHAIN)
+#import <Security/SecKeychainItem.h>
+ALLOW_DEPRECATED_DECLARATIONS_BEGIN
+// For CopyMatching when result is an array of SecKeychainItemRefs.
+inline std::optional<WebKit::SecItemResponseData> makeSecItemResponseDataWithKeychainCFArray(OSStatus status, CFArrayRef _Nonnull items)
 {
-    return request.type();
+    CFIndex count = CFArrayGetCount(items);
+    Vector<RetainPtr<SecKeychainItemRef>> v;
+    v.reserveInitialCapacity(count);
+    for (CFIndex i = 0; i < count; ++i)
+        v.append(static_cast<SecKeychainItemRef>(const_cast<void*>(CFArrayGetValueAtIndex(items, i))));
+    return WebKit::SecItemResponseData { status, WTF::move(v) };
 }
+ALLOW_DEPRECATED_DECLARATIONS_END
+#endif
 
-// Validates that a dictionary received over IPC doesn't contain in-memory objects
-// that would be unsafe to act on (rdar://104253249).
-bool secItemDictionaryContainsInMemoryObject(CFDictionaryRef _Nullable);
-
-// Workaround for rdar://162357139
-template<typename T>
-inline bool secItemContentsMatch(const T& lhs, const T& rhs)
+// FIXME(rdar://168139740): need idiomatic Swift MESSAGE_CHECK equivalents
+// Terminates the connection for a message that failed validation.
+inline void secItemMarkConnectionInvalid(IPC::Connection* _Nonnull connection)
 {
-    return lhs == rhs;
+    if (connection)
+        connection->markCurrentlyDispatchedMessageAsInvalid("SecItemShimProxy: received IPC message with invalid data"_s);
 }
 
 #endif // ENABLE(SEC_ITEM_SHIM_PROXY_SWIFT)

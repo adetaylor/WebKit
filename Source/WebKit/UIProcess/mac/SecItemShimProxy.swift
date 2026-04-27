@@ -23,8 +23,34 @@
 
 #if ENABLE_SEC_ITEM_SHIM && ENABLE_SEC_ITEM_SHIM_PROXY_SWIFT
 
+import Foundation
 import Security
 import WebKit_Internal
+
+// Validates that a dictionary received over IPC doesn't contain in-memory objects
+// that would be unsafe to act on (rdar://104253249).
+private func containsInMemoryObject(_ dictionary: CFDictionary?) -> Bool {
+    guard let dictionary else { return false }
+    let nsDict = dictionary as NSDictionary
+    // kSecUseItemList is deprecated on iOS 12+
+    if nsDict[kSecUseItemList] != nil { return true }
+    return nsDict[kSecValueRef] != nil
+}
+
+// Temporary partial MESSAGE_CHECK_COMPLETION_BASE support from Swift
+// Idiomatic equivalent represented by rdar://168139740
+private func messageCheckCompletion(
+    connection: IPC.Connection,
+    completionHandler: () -> Void,
+    _ assertion: @autoclosure () -> Bool
+) -> Bool {
+    if !assertion() {
+        secItemMarkConnectionInvalid(connection)
+        completionHandler()
+        return true
+    }
+    return false
+}
 
 final class SecItemShimProxy {
     private var messageForwarder: RefSecItemShimProxyMessageForwarder?
@@ -40,46 +66,66 @@ final class SecItemShimProxy {
         return messageForwarder
     }
 
-    func secItemRequest(request: WebKit.SecItemRequestData, completionHandler: CompletionHandlers.SecItemShimProxy.SecItemRequestCompletionHandler) {
-        // Note: unlike the C++ implementation we cannot terminate the connection on invalid data
-        // (no connection parameter available in Swift message receiver).
-        guard !secItemDictionaryContainsInMemoryObject(secItemRequestQuery(request)) else {
-            callCompletionHandlerWithStatus(completionHandler, errSecParam)
-            return
-        }
-        guard !secItemDictionaryContainsInMemoryObject(secItemRequestAttributesToMatch(request)) else {
-            callCompletionHandlerWithStatus(completionHandler, errSecParam)
-            return
-        }
-        // unsafe: secItemRequestType returns a C++ value type (rdar://170233903)
-        let type = unsafe secItemRequestType(request)
+    func secItemRequest(connection: IPC.Connection, request: WebKit.SecItemRequestData, completionHandler: CompletionHandlers.SecItemShimProxy.SecItemRequestCompletionHandler) {
+        let query = unsafe request.query()
+        let attributes = unsafe request.attributesToMatch()
+        let type = request.type()
+        if messageCheckCompletion(
+            connection: connection,
+            completionHandler: { completionHandler.pointee(consuming: makeSecItemResponseDataWithStatus(errSecParam)) },
+            !containsInMemoryObject(query)
+        ) { return }
+        if messageCheckCompletion(
+            connection: connection,
+            completionHandler: { completionHandler.pointee(consuming: makeSecItemResponseDataWithStatus(errSecParam)) },
+            !containsInMemoryObject(attributes)
+        ) { return }
         switch type {
         case .Invalid:
             // TODO(rdar://168139823): LOG_ERROR("SecItemShimProxy::secItemRequest received an invalid data request. Please file a bug if you know how you caused this.")
-            callCompletionHandlerWithStatus(completionHandler, errSecParam)
+            completionHandler.pointee(consuming: makeSecItemResponseDataWithStatus(errSecParam))
         case .CopyMatching:
             var result: CFTypeRef? = nil
             // unsafe: &result creates an UnsafeMutablePointer
-            let resultCode = unsafe SecItemCopyMatching(secItemRequestQuery(request)!, &result)
-            callCompletionHandlerWithCopyMatchingResult(completionHandler, resultCode, result)
+            let resultCode = unsafe SecItemCopyMatching(query!, &result)
+            guard let result else {
+                completionHandler.pointee(consuming: makeSecItemResponseDataWithStatus(resultCode))
+                break
+            }
+            if CFGetTypeID(result) == CFArrayGetTypeID() {
+                let resultArray = result as! CFArray
+                if CFArrayGetCount(resultArray) > 0 {
+                    let containedType = CFGetTypeID((resultArray as NSArray)[0] as AnyObject)
+                    if containedType == SecCertificateGetTypeID() {
+                        completionHandler.pointee(consuming: makeSecItemResponseDataWithCertCFArray(resultCode, resultArray))
+                        break
+                    }
+#if HAVE_SEC_KEYCHAIN
+                    if containedType == SecKeychainItemGetTypeID() {
+                        completionHandler.pointee(consuming: makeSecItemResponseDataWithKeychainCFArray(resultCode, resultArray))
+                        break
+                    }
+#endif
+                }
+            }
+            completionHandler.pointee(consuming: makeSecItemResponseDataWithCFTypeRef(resultCode, result))
         case .Add:
             // unsafe: nil for UnsafeMutablePointer<CFTypeRef?>? parameter
-            let resultCode = unsafe SecItemAdd(secItemRequestQuery(request)!, nil)
-            callCompletionHandlerWithStatus(completionHandler, resultCode)
+            let resultCode = unsafe SecItemAdd(query!, nil)
+            completionHandler.pointee(consuming: makeSecItemResponseDataWithStatus(resultCode))
         case .Update:
-            let resultCode = SecItemUpdate(secItemRequestQuery(request)!, secItemRequestAttributesToMatch(request)!)
-            callCompletionHandlerWithStatus(completionHandler, resultCode)
+            let resultCode = SecItemUpdate(query!, attributes!)
+            completionHandler.pointee(consuming: makeSecItemResponseDataWithStatus(resultCode))
         case .Delete:
-            let resultCode = SecItemDelete(secItemRequestQuery(request)!)
-            callCompletionHandlerWithStatus(completionHandler, resultCode)
+            let resultCode = SecItemDelete(query!)
+            completionHandler.pointee(consuming: makeSecItemResponseDataWithStatus(resultCode))
         default:
-            callCompletionHandlerWithStatus(completionHandler, errSecParam)
+            completionHandler.pointee(consuming: makeSecItemResponseDataWithStatus(errSecParam))
         }
     }
 
-    func secItemRequestSync(request: WebKit.SecItemRequestData, completionHandler: CompletionHandlers.SecItemShimProxy.SecItemRequestSyncCompletionHandler) {
-        // unsafe: consuming a non-trivially-moveable C++ type into another Swift function
-        unsafe secItemRequest(request: request, completionHandler: completionHandler)
+    func secItemRequestSync(connection: IPC.Connection, request: WebKit.SecItemRequestData, completionHandler: CompletionHandlers.SecItemShimProxy.SecItemRequestSyncCompletionHandler) {
+        secItemRequest(connection: connection, request: request, completionHandler: completionHandler)
     }
 }
 

@@ -27,6 +27,7 @@
 
 #include "ArgumentCoders.h"
 #include <wtf/RetainPtr.h>
+#include <wtf/SwiftBridging.h>
 
 namespace IPC {
 class Decoder;
@@ -35,9 +36,9 @@ class Encoder;
 
 namespace WebKit {
     
-class SecItemRequestData {
+class SWIFT_ESCAPABLE SecItemRequestData {
 public:
-    enum class Type : uint8_t {
+    enum class SWIFT_NAME(RequestType) Type : uint8_t {
         Invalid,
         CopyMatching,
         Add,
@@ -52,8 +53,8 @@ public:
 
     Type type() const { return m_type; }
 
-    CFDictionaryRef query() const { return m_queryDictionary.get(); }
-    CFDictionaryRef attributesToMatch() const { return m_attributesToMatch.get(); }
+    SWIFT_RETURNS_INDEPENDENT_VALUE CF_RETURNS_NOT_RETAINED CFDictionaryRef _Nullable query() const { return m_queryDictionary.get(); }
+    SWIFT_RETURNS_INDEPENDENT_VALUE CF_RETURNS_NOT_RETAINED CFDictionaryRef _Nullable attributesToMatch() const { return m_attributesToMatch.get(); }
 
 private:
     friend struct IPC::ArgumentCoder<WebKit::SecItemRequestData>;

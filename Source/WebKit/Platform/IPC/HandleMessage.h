@@ -183,6 +183,13 @@ void callMemberFunction(T* object, MF U::* function, Connection* connection, Arg
         }, std::forward<ArgsTuple>(tuple));
 }
 
+// Adaptor: the dispatcher passes connection by reference, but Swift handlers expect Connection*.
+template<typename T, typename U, typename MF, typename ArgsTuple, typename CH>
+void callMemberFunction(T* object, MF U::* function, Connection& connection, ArgsTuple&& tuple, WTF::RefCountable<WTF::CompletionHandler<CH>>* completionHandler)
+{
+    callMemberFunction(object, function, &connection, std::forward<ArgsTuple>(tuple), completionHandler);
+}
+
 // Dispatch functions with connection parameter with no reply arguments.
 
 template<typename T, typename U, typename MF, typename ArgsTuple, typename CT>
