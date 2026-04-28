@@ -110,7 +110,7 @@ if (SWIFT_REQUIRED)
 "module wtf [system] {
     explicit module Core {
         umbrella \".\"
-        requires cplusplus
+        requires cplusplus20
 
         // Exclude headers that unconditionally include Apple-only headers
         // (Block.h, objc/runtime.h) which do not exist on Linux.
