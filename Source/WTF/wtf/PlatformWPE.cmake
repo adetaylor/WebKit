@@ -49,6 +49,7 @@ else ()
 endif ()
 
 list(APPEND WTF_PUBLIC_HEADERS
+    module.modulemap
     PlatformEnableGlib.h
 
     android/RefPtrAndroid.h
