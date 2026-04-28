@@ -115,9 +115,18 @@ if (SWIFT_REQUIRED)
     file(WRITE "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
 "module wtf [system] {
     explicit module Core {
+        umbrella \".\"
         requires cplusplus
-        header \"text/WTFString.h\"
-        header \"URL.h\"
+
+        // Exclude headers that unconditionally include Apple-only headers
+        // (Block.h, objc/runtime.h) which do not exist on Linux.
+        exclude header \"BlockPtr.h\"
+        exclude header \"WeakObjCPtr.h\"
+
+        explicit module * {
+            export *
+        }
+
         export *
     }
 
