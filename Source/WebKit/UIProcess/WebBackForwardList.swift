@@ -75,13 +75,13 @@ extension WebKit.WebBackForwardListItem {
 
 // Temporary partial WTF logging support from Swift
 // rdar://168139823 is the task of exposing WebKit logging properly in Swift
-private func backForwardLog(_ msgCreator: @autoclosure () -> String) {
+private func backForwardLog(_ msgCreator: @autoclosure () -> Swift.String) {
     // rdar://133777029 likely will allow us to avoid the performance penalty
     // of creating the string if logging is disabled.
     doLog(WTF.String(msgCreator()))
 }
 
-private func loadingReleaseLog(_ msgCreator: @autoclosure () -> String) {
+private func loadingReleaseLog(_ msgCreator: @autoclosure () -> Swift.String) {
     doLoadingReleaseLog(WTF.String(msgCreator()))
 }
 
@@ -271,7 +271,7 @@ final class WebBackForwardList {
         }
 
         backForwardLog(
-            "(Back/Forward) WebBackForwardList \(ObjectIdentifier(self)) added an item. Current size \(entries.count), current index \(String(describing: currentIndex)), threw away \(removedItems.count) items"
+            "(Back/Forward) WebBackForwardList \(ObjectIdentifier(self)) added an item. Current size \(entries.count), current index \(Swift.String(describing: currentIndex)), threw away \(removedItems.count) items"
         )
         page.didChangeBackForwardList(newItem, consuming: WebKit.BackForwardListItemVector(array: removedItems))
     }
@@ -847,7 +847,7 @@ final class WebBackForwardList {
 
         for (i, entry) in entries.enumerated() {
             let prefix = (currentIndex == i) ? " * " : " - "
-            result += prefix + String(entry.loggingString().description)
+            result += prefix + Swift.String(entry.loggingString().description)
         }
 
         return result

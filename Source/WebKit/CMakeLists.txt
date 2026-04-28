@@ -1151,6 +1151,11 @@ endif ()
 
 list(APPEND WebKit_SOURCES ${WebKit_DERIVED_SOURCES})
 
+if (TARGET WebKit_SwiftCxxHeader)
+    add_custom_target(WebKit_DerivedHeadersForSwift DEPENDS ${WebKit_HEADERS} ${WebKit_DERIVED_SOURCES})
+    add_dependencies(WebKit_SwiftCxxHeader WebKit_DerivedHeadersForSwift)
+endif ()
+
 WEBKIT_COMPUTE_SOURCES(WebKit)
 WEBKIT_FRAMEWORK(WebKit)
 ADD_WEBKIT_PREFIX_HEADERS(WebKit WebKitPrefix.h)

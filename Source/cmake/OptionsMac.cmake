@@ -136,15 +136,42 @@ WEBKIT_OPTION_END()
 include(WebKitXcrun)
 WEBKIT_RESOLVE_SDK(macosx)
 
-# Resolve the real clang once and pin it for the lifetime of this build tree.
-# This is a build speed optimization, and also a defense against tearing between
-# resolved toolchain and resolved SDK path / version.
-WEBKIT_XCRUN(_clang -f clang)
-if (EXISTS "${_clang}")
-    set(CMAKE_C_COMPILER "${_clang}")
-    set(CMAKE_CXX_COMPILER "${_clang}++")
-    set(CMAKE_OBJC_COMPILER "${_clang}")
-    set(CMAKE_OBJCXX_COMPILER "${_clang}++")
+# Enabled here rather than via WebKitAdditions/AdditionalFeatureDefines.h because that
+# path is gated on USE(APPLE_INTERNAL_SDK) which is unset on the public SDK.
+SET_AND_EXPOSE_TO_BUILD(ENABLE_BACK_FORWARD_LIST_SWIFT ON)
+
+# Flatten output to match Xcode's layout for run-webkit-tests compatibility.
+# webkitpy/port/driver.py expects WebKitTestRunner, ImageDiff, and frameworks in the same dir.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+# Don't relink dependents when a shared library they link against is rebuilt.
+# Xcode's EAGER_LINKING achieves the same effect.
+set(CMAKE_LINK_DEPENDS_NO_SHARED ON)
+
+# Avoid collision between flat-output executables and DerivedSources dirs of the same name.
+set(WebKitTestRunner_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/DerivedSources/WebKitTestRunner")
+set(TestRunnerShared_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/DerivedSources/TestRunnerShared")
+set(MiniBrowser_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/DerivedSources/MiniBrowser")
+
+SET_AND_EXPOSE_TO_BUILD(USE_LIBWEBRTC TRUE)
+
+# Forward WebGPU headers when Source/WebGPU is not built.
+if (NOT ENABLE_WEBGPU)
+    set(_webgpu_fwd "${CMAKE_BINARY_DIR}/WebGPU-stub/WebGPU")
+    file(MAKE_DIRECTORY "${_webgpu_fwd}")
+    foreach (_h WebGPU.h WebGPUExt.h)
+        if (NOT EXISTS "${_webgpu_fwd}/${_h}")
+            file(CREATE_LINK "${CMAKE_SOURCE_DIR}/Source/WebGPU/WebGPU/${_h}" "${_webgpu_fwd}/${_h}" SYMBOLIC)
+        endif ()
+    endforeach ()
+    include_directories(SYSTEM "${CMAKE_BINARY_DIR}/WebGPU-stub")
+    unset(_webgpu_fwd)
+    unset(_h)
+else ()
+    # WebGPU framework copies headers here; WebCore needs <WebGPU/WebGPU.h>.
+    include_directories(SYSTEM "${CMAKE_BINARY_DIR}/WebGPU/Headers")
 endif ()
 
 # Ask xcrun directly; CMake's default sysroot discovery can lag Xcode versions.
