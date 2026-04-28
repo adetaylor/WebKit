@@ -173,7 +173,7 @@ extension WKPDFHUDView {
     // For testing only.
     // swift-format-ignore: NoLeadingUnderscores
     @objc
-    private func _performAction(forControl controlName: String) {
+    private func _performAction(forControl controlName: Swift.String) {
         switch controlName {
         case "minus.magnifyingglass":
             zoomOutButton.performClick(nil)
@@ -321,7 +321,7 @@ extension WKPDFHUDView {
     }
 
     @nonobjc
-    private static func makeButton(symbolName: String, accessibilityLabel: String, isPrivateSymbol: Bool = false) -> NSButton {
+    private static func makeButton(symbolName: Swift.String, accessibilityLabel: Swift.String, isPrivateSymbol: Bool = false) -> NSButton {
         let image: NSImage?
         if isPrivateSymbol {
             image = NSImage(privateSystemSymbolName: symbolName, accessibilityDescription: accessibilityLabel)

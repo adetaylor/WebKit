@@ -32,18 +32,18 @@ extension WKTextExtractionItem {
     let rectInWebView: CGRect
     let children: [WKTextExtractionItem]
     let eventListeners: WKTextExtractionEventListenerTypes
-    let ariaAttributes: [String: String]
-    let accessibilityRole: String
-    let nodeIdentifier: String?
+    let ariaAttributes: [Swift.String: Swift.String]
+    let accessibilityRole: Swift.String
+    let nodeIdentifier: Swift.String?
 
     @objc
     fileprivate init(
         with rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.rectInWebView = rectInWebView
         self.children = children
@@ -57,18 +57,18 @@ extension WKTextExtractionItem {
 @objc
 @implementation
 extension WKTextExtractionFormItem {
-    let autocomplete: String
-    let name: String
+    let autocomplete: Swift.String
+    let name: Swift.String
 
     init(
-        autocomplete: String,
-        name: String,
+        autocomplete: Swift.String,
+        name: Swift.String,
         rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.autocomplete = autocomplete
         self.name = name
@@ -94,9 +94,9 @@ extension WKTextExtractionContainerItem {
         rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.container = container
         super
@@ -130,9 +130,9 @@ extension WKTextExtractionContentEditableItem {
         rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.contentEditableType = contentEditableType
         self.backingIsFocused = isFocused
@@ -164,17 +164,17 @@ extension WKTextExtractionTextFormControlItem {
     }
 
     @objc
-    var label: String {
+    var label: Swift.String {
         editable.label
     }
 
     @objc
-    var placeholder: String {
+    var placeholder: Swift.String {
         editable.placeholder
     }
 
-    let controlType: String
-    let autocomplete: String
+    let controlType: Swift.String
+    let autocomplete: Swift.String
 
     @nonobjc
     private let backingIsReadonly: Bool
@@ -202,17 +202,17 @@ extension WKTextExtractionTextFormControlItem {
 
     init(
         editable: WKTextExtractionEditable,
-        controlType: String,
-        autocomplete: String,
+        controlType: Swift.String,
+        autocomplete: Swift.String,
         isReadonly: Bool,
         isDisabled: Bool,
         isChecked: Bool,
         rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.editable = editable
         self.controlType = controlType
@@ -235,8 +235,8 @@ extension WKTextExtractionTextFormControlItem {
 @objc
 @implementation
 extension WKTextExtractionEditable {
-    let label: String
-    let placeholder: String
+    let label: Swift.String
+    let placeholder: Swift.String
 
     // Properties with a customized getter are incorrectly mapped when using ObjCImplementation.
     @nonobjc
@@ -256,7 +256,7 @@ extension WKTextExtractionEditable {
         get { backingIsFocused }
     }
 
-    init(label: String, placeholder: String, isSecure: Bool, isFocused: Bool) {
+    init(label: Swift.String, placeholder: Swift.String, isSecure: Bool, isFocused: Bool) {
         self.label = label
         self.placeholder = placeholder
         self.backingIsSecure = isSecure
@@ -267,21 +267,21 @@ extension WKTextExtractionEditable {
 @objc
 @implementation
 extension WKTextExtractionLinkItem {
-    let target: String
+    let target: Swift.String
     @nonobjc
     private let backingURL: NSURL?
 
-    var url: URL? { backingURL as URL? }
+    var url: Foundation.URL? { backingURL as Foundation.URL? }
 
     init(
-        target: String,
-        url: URL?,
+        target: Swift.String,
+        url: Foundation.URL?,
         rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.target = target
         self.backingURL = url as NSURL?
@@ -305,12 +305,12 @@ extension WKTextExtractionLink {
     @nonobjc
     private let backingURL: NSURL
 
-    var url: URL { backingURL as URL }
+    var url: Foundation.URL { backingURL as Foundation.URL }
 
     let range: NSRange
 
     @objc(initWithURL:range:)
-    init(url: URL, range: NSRange) {
+    init(url: Foundation.URL, range: NSRange) {
         self.backingURL = url as NSURL
         self.range = range
     }
@@ -319,16 +319,16 @@ extension WKTextExtractionLink {
 @objc
 @implementation
 extension WKTextExtractionIFrameItem {
-    let origin: String
+    let origin: Swift.String
 
     init(
-        origin: String,
+        origin: Swift.String,
         rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.origin = origin
         super
@@ -346,22 +346,22 @@ extension WKTextExtractionIFrameItem {
 @objc
 @implementation
 extension WKTextExtractionTextItem {
-    var content: String
+    var content: Swift.String
     var selectedRange: NSRange
     let links: [WKTextExtractionLink]
     let editable: WKTextExtractionEditable?
 
     init(
-        content: String,
+        content: Swift.String,
         selectedRange: NSRange,
         links: [WKTextExtractionLink],
         editable: WKTextExtractionEditable?,
         rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.content = content
         self.selectedRange = selectedRange
@@ -389,9 +389,9 @@ extension WKTextExtractionScrollableItem {
         rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.contentSize = contentSize
         super
@@ -409,18 +409,18 @@ extension WKTextExtractionScrollableItem {
 @objc
 @implementation
 extension WKTextExtractionSelectItem {
-    let selectedValues: [String]
+    let selectedValues: [Swift.String]
     let supportsMultiple: Bool
 
     init(
-        selectedValues: [String],
+        selectedValues: [Swift.String],
         supportsMultiple: Bool,
         rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.selectedValues = selectedValues
         self.supportsMultiple = supportsMultiple
@@ -439,18 +439,18 @@ extension WKTextExtractionSelectItem {
 @objc
 @implementation
 extension WKTextExtractionImageItem {
-    let name: String
-    let altText: String
+    let name: Swift.String
+    let altText: Swift.String
 
     init(
-        name: String,
-        altText: String,
+        name: Swift.String,
+        altText: Swift.String,
         rectInWebView: CGRect,
         children: [WKTextExtractionItem],
         eventListeners: WKTextExtractionEventListenerTypes,
-        ariaAttributes: [String: String],
-        accessibilityRole: String,
-        nodeIdentifier: String?
+        ariaAttributes: [Swift.String: Swift.String],
+        accessibilityRole: Swift.String,
+        nodeIdentifier: Swift.String?
     ) {
         self.name = name
         self.altText = altText

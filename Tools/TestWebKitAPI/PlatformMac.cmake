@@ -98,6 +98,7 @@ list(APPEND TestWebKit_SOURCES
     Helpers/mac/WebKitAgnosticTest.mm
 
     Tests/WebCore/ASN1Utilities.cpp
+    Tests/WebKit/WKWebView/WKBackForwardListTests.mm
 )
 
 list(APPEND TestWebKit_PRIVATE_INCLUDE_DIRECTORIES
