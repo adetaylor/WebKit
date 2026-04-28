@@ -114,47 +114,10 @@ if (SWIFT_REQUIRED)
     file(MAKE_DIRECTORY "${WTF_FRAMEWORK_HEADERS_DIR}/wtf")
     file(WRITE "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
 "module wtf [system] {
-    explicit module Assertions {
-        header \"Assertions.h\"
-        export *
-    }
-
-    explicit module Compiler {
-        header \"Compiler.h\"
-        export *
-    }
-
-    explicit module ExportMacros {
-        header \"ExportMacros.h\"
-        export *
-    }
-
-    explicit module SwiftBridging {
-        header \"SwiftBridging.h\"
-        export *
-    }
-
-    explicit module Platform {
-        header \"Platform.h\"
-        header \"PlatformCallingConventions.h\"
-        header \"PlatformCPU.h\"
-        header \"PlatformEnable.h\"
-        header \"PlatformEnableGlib.h\"
-        header \"PlatformHave.h\"
-        header \"PlatformLegacy.h\"
-        header \"PlatformOS.h\"
-        header \"PlatformUse.h\"
-        export *
-    }
-
     explicit module Core {
-        umbrella \".\"
         requires cplusplus
-
-        explicit module * {
-            export *
-        }
-
+        header \"text/WTFString.h\"
+        header \"URL.h\"
         export *
     }
 
