@@ -31,7 +31,6 @@ list(APPEND WTF_SOURCES
 )
 
 list(APPEND WTF_PUBLIC_HEADERS
-    module.modulemap
     PlatformEnableGlib.h
 
     glib/ActivityObserver.h
@@ -101,4 +100,59 @@ if (USE_SYSPROF_CAPTURE)
     list(APPEND WTF_LIBRARIES
         SysProfCapture::SysProfCapture
     )
+endif ()
+
+if (SWIFT_REQUIRED)
+    # The upstream module.modulemap references Apple-specific headers not present on Linux.
+    # Generate a Linux-compatible version so that `import wtf` works in Swift C++ interop.
+    file(MAKE_DIRECTORY "${WTF_FRAMEWORK_HEADERS_DIR}/wtf")
+    file(WRITE "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
+"module wtf [system] {
+    explicit module Assertions {
+        header \"Assertions.h\"
+        export *
+    }
+
+    explicit module Compiler {
+        header \"Compiler.h\"
+        export *
+    }
+
+    explicit module ExportMacros {
+        header \"ExportMacros.h\"
+        export *
+    }
+
+    explicit module SwiftBridging {
+        header \"SwiftBridging.h\"
+        export *
+    }
+
+    explicit module Platform {
+        header \"Platform.h\"
+        header \"PlatformCallingConventions.h\"
+        header \"PlatformCPU.h\"
+        header \"PlatformEnable.h\"
+        header \"PlatformEnableGlib.h\"
+        header \"PlatformHave.h\"
+        header \"PlatformLegacy.h\"
+        header \"PlatformOS.h\"
+        header \"PlatformUse.h\"
+        export *
+    }
+
+    explicit module Core {
+        umbrella \".\"
+        requires cplusplus
+
+        explicit module * {
+            export *
+        }
+
+        export *
+    }
+
+    export *
+}
+")
 endif ()
