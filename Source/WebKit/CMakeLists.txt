@@ -826,6 +826,60 @@ set(WebKit_SWIFT_INTEROP_MODULE_PATH "${WEBKIT_DIR}/Modules/Internal")
 WEBKIT_FRAMEWORK_DECLARE(WebKit)
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 
+if (NOT APPLE AND SWIFT_REQUIRED)
+    # Mirror the C++ target's include directories to swiftc's Clang importer so
+    # that C++ headers (including generated files like MessageNames.h in
+    # DerivedSources) are findable when building C++ interop modules.
+    # On Apple, -I paths are forwarded to the embedded clang automatically;
+    # on Linux/GTK/WPE they must be passed explicitly as -Xcc -I.
+    set(WebKit_SWIFT_CLANG_INCLUDE_DIRS
+        ${CMAKE_BINARY_DIR}
+        ${WebKit_FRAMEWORK_HEADERS_DIR}
+        ${WebKit_DERIVED_SOURCES_DIR}
+        ${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}
+        ${WTF_FRAMEWORK_HEADERS_DIR}
+        ${bmalloc_FRAMEWORK_HEADERS_DIR}
+        ${PAL_FRAMEWORK_HEADERS_DIR}
+        ${ICU_INCLUDE_DIRS}
+        ${WebKit_PRIVATE_INCLUDE_DIRECTORIES}
+    )
+    # Export macro stubs – on Linux these expand to __attribute__((visibility))
+    # but per-module PCM compiles don't pull in the config headers that define them.
+    # Define as empty so C++ headers compile cleanly in isolation.
+    set(WebKit_SWIFT_CLANG_FLAG_PAIRS
+        "-Xcc -DWEBCORE_EXPORT="
+        "-Xcc -DWEBCORE_TESTSUPPORT_EXPORT="
+        "-Xcc -DPAL_EXPORT="
+        "-Xcc -DWK_EXPORT="
+        "-Xcc -DJS_EXPORT_PRIVATE="
+        "-Xcc -DWTF_EXPORT_PRIVATE="
+        "-Xcc -DWK_SUPPORTS_SWIFT_OBJCXX_INTEROP=1"
+        "-Xcc -fmodule-map-file=${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
+        "-Xcc -fmodule-map-file=${WebKit_DERIVED_SOURCES_DIR}/module.private.modulemap"
+    )
+    # Mirror cmake config variables as -Xcc -D so ENABLE()/HAVE() macros in
+    # C++ headers agree with the regular C++ compilation when the Clang importer
+    # compiles them as part of Swift's C++ interop modules.
+    GET_WEBKIT_CONFIG_VARIABLES(_swift_clang_config_vars)
+    list(REMOVE_DUPLICATES _swift_clang_config_vars)
+    foreach (_var IN LISTS _swift_clang_config_vars)
+        if (${${_var}})
+            list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -D${_var}=1")
+        else ()
+            list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -D${_var}=0")
+        endif ()
+    endforeach ()
+    unset(_swift_clang_config_vars)
+    foreach (_dir IN LISTS WebKit_SWIFT_CLANG_INCLUDE_DIRS)
+        list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -I${_dir}")
+    endforeach ()
+    foreach (_pair IN LISTS WebKit_SWIFT_CLANG_FLAG_PAIRS)
+        target_compile_options(WebKit PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:SHELL:${_pair}>")
+        string(REPLACE " " ";" _split "${_pair}")
+        list(APPEND WebKit_SWIFT_EXTRA_OPTIONS ${_split})
+    endforeach ()
+endif ()
+
 WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebKit WebKit
     "${WebKit_SWIFT_INTEROP_MODULE_PATH}"
     "${WebKit_DERIVED_SOURCES_DIR}/WebKit-Swift-CPP.h")
