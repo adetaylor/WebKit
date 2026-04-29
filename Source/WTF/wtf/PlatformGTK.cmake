@@ -117,6 +117,11 @@ if (SWIFT_REQUIRED)
         exclude header \"BlockPtr.h\"
         exclude header \"WeakObjCPtr.h\"
 
+        // Exclude C++20 coroutine utilities: Swift has its own async/await and
+        // doesn't need WTF coroutines. Swift's embedded clang can't find
+        // <coroutine> when building the module in isolation on Linux.
+        exclude header \"CoroutineUtilities.h\"
+
         explicit module * {
             export *
         }
