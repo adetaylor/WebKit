@@ -854,6 +854,11 @@ if (NOT APPLE AND SWIFT_REQUIRED)
         "-Xcc -DJS_EXPORT_PRIVATE="
         "-Xcc -DWTF_EXPORT_PRIVATE="
         "-Xcc -DWK_SUPPORTS_SWIFT_OBJCXX_INTEROP=1"
+        # NODELETE expands to [[clang::annotate_type(...)]], a type attribute.
+        # Clang 21 (Swift 6.3 embedded clang) rejects it on function declarations;
+        # nullify it for the Swift module importer since the annotation is only
+        # meaningful to Apple's static analyser.
+        "-Xcc -DNODELETE="
         "-Xcc -fmodule-map-file=${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
         "-Xcc -fmodule-map-file=${WebKit_DERIVED_SOURCES_DIR}/module.private.modulemap"
     )
