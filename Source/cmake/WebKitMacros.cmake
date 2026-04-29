@@ -659,9 +659,15 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
         # On non-Apple platforms, Swift's embedded clang doesn't automatically search
         # GCC's C++ standard library headers (e.g. <coroutine> lives in /usr/include/c++/15/).
         # Pass them explicitly so the wtf umbrella module can include them.
+        # Exclude GCC's architecture-specific lib directory (e.g. /usr/lib/gcc/aarch64-linux-gnu/15/include):
+        # it contains GCC-specific intrinsic headers (arm_neon.h, etc.) that use GCC builtins
+        # unknown to Swift's embedded Clang. Clang provides its own compatible versions in its
+        # resource directory and will find them automatically without an explicit -I path.
         if (NOT APPLE)
             foreach (_dir IN LISTS CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES)
-                list(APPEND _swift_options "-Xcc" "-I${_dir}")
+                if (NOT _dir MATCHES "^/usr/lib/gcc/")
+                    list(APPEND _swift_options "-Xcc" "-I${_dir}")
+                endif ()
             endforeach ()
         endif ()
         # swiftc spawns swift-plugin-server under sandbox-exec to expand macros
