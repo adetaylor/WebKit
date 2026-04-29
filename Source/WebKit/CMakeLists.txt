@@ -880,6 +880,9 @@ macro(GENERATE_MESSAGE_SOURCES _output_source _inputs)
             ${WebKit_DERIVED_SOURCES_DIR}/${_name}MessageReceiver.cpp
             ${WebKit_DERIVED_SOURCES_DIR}/${_name}Messages.h
         )
+        if (${_name} IN_LIST WebKit_SWIFT_MESSAGE_RECEIVERS)
+            list(APPEND _outputs ${WebKit_DERIVED_SOURCES_DIR}/${_name}MessageReceiver.swift)
+        endif ()
         list(APPEND ${_output_source} ${WebKit_DERIVED_SOURCES_DIR}/${_name}MessageReceiver.cpp)
     endforeach ()
 
@@ -906,6 +909,7 @@ macro(GENERATE_MESSAGE_SOURCES _output_source _inputs)
         VERBATIM
     )
 endmacro()
+set(WebKit_SWIFT_MESSAGE_RECEIVERS WebBackForwardList)
 GENERATE_MESSAGE_SOURCES(WebKit_DERIVED_SOURCES "${WebKit_MESSAGES_IN_FILES}")
 
 # Helper macro which wraps the bindings script
