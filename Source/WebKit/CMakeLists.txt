@@ -859,6 +859,11 @@ if (NOT APPLE AND SWIFT_REQUIRED)
         # nullify it for the Swift module importer since the annotation is only
         # meaningful to Apple's static analyser.
         "-Xcc -DNODELETE="
+        # SIMDE_NO_NATIVE prevents simde from including GCC's arm_neon.h (and
+        # other native SIMD headers). GCC's arm_neon.h uses GCC-specific builtins
+        # (e.g. __builtin_aarch64_uaddlv8qi_uuu) that Clang 21 doesn't implement;
+        # Swift doesn't call SIMD intrinsics directly so the fallback impls suffice.
+        "-Xcc -DSIMDE_NO_NATIVE"
         "-Xcc -fmodule-map-file=${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
         "-Xcc -fmodule-map-file=${WebKit_DERIVED_SOURCES_DIR}/module.private.modulemap"
     )
