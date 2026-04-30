@@ -12,5 +12,14 @@
 //   - Keep the module flat (no submodules) until submodules are proven necessary.
 
 module glib_2_0 [system] {
+    // Top-level umbrella headers only — each sets an __*_INSIDE__ guard and
+    // pulls in sub-headers in the correct order. Never list individual
+    // sub-headers (e.g. gio/gioenums.h) directly: they depend on context
+    // that only the umbrella header provides.
+    header "glib.h"
+    header "glib-object.h"
+    header "glib-unix.h"
+    header "gmodule.h"
+    header "gio/gio.h"
     export *
 }
