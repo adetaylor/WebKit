@@ -1,0 +1,11 @@
+module WebKit_IPC [system] {
+    // Pure data types used in IPC message parameters.
+    // This module must NOT depend on WebKit_Internal to avoid circular imports.
+    // WebKit_Internal imports this module (via WebPageProxy.h -> WebBackForwardListMessages.h -> SessionState.h).
+
+    module SessionState {
+        requires cplusplus20
+        header "../../Shared/SessionState.h"
+        export *
+    }
+}
