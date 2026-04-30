@@ -1203,17 +1203,16 @@ if (ENABLE_BACK_FORWARD_LIST_SWIFT)
     export *
 }
 ")
-        # On Apple platforms these are added via PlatformMac.cmake; only add here for non-Apple ports.
-        set_source_files_properties(
-            ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
-            PROPERTIES GENERATED TRUE)
-        list(APPEND WebKit_SOURCES
-            ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
-            ${WEBKIT_DIR}/Shared/API/APIArray.swift
-            ${WEBKIT_DIR}/UIProcess/StdlibExtras.swift
-            ${WEBKIT_DIR}/UIProcess/WebBackForwardList.swift
-        )
     endif ()
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
+        ${WEBKIT_DIR}/Shared/API/APIArray.swift
+        ${WEBKIT_DIR}/UIProcess/StdlibExtras.swift
+        ${WEBKIT_DIR}/UIProcess/WebBackForwardList.swift
+    )
 endif ()
 
 list(APPEND WebKit_SOURCES ${WebKit_DERIVED_SOURCES})

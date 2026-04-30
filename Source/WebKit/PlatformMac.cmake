@@ -103,11 +103,6 @@ list(APPEND WebKit_SOURCES
 
     ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKTextExtraction.swift
 
-    ${WEBKIT_DIR}/Shared/API/APIArray.swift
-    ${WEBKIT_DIR}/UIProcess/StdlibExtras.swift
-    ${WEBKIT_DIR}/UIProcess/WebBackForwardList.swift
-    ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
-
     WebProcess/InjectedBundle/API/c/mac/WKBundlePageMac.mm
 
     WebProcess/WebAuthentication/WebAuthenticatorCoordinator.cpp
@@ -115,9 +110,6 @@ list(APPEND WebKit_SOURCES
     WebProcess/cocoa/AudioSessionRoutingArbitrator.cpp
     WebProcess/cocoa/LaunchServicesDatabaseManager.mm
 )
-# generate-message-receiver.py emits this alongside WebBackForwardListMessageReceiver.cpp,
-# but GENERATE_MESSAGE_SOURCES only declares the .cpp/.h as OUTPUTs.
-set_source_files_properties(${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift PROPERTIES GENERATED TRUE)
 
 list(APPEND WebKit_PRIVATE_INCLUDE_DIRECTORIES
     "${CMAKE_BINARY_DIR}/libwebrtc/PrivateHeaders"
