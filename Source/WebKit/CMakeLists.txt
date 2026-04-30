@@ -939,15 +939,6 @@ macro(GENERATE_MESSAGE_SOURCES _output_source _inputs)
             list(APPEND _outputs ${WebKit_DERIVED_SOURCES_DIR}/${_name}MessageReceiver.swift)
         endif ()
         list(APPEND ${_output_source} ${WebKit_DERIVED_SOURCES_DIR}/${_name}MessageReceiver.cpp)
-        # If the .messages.in declares SwiftReceiverBuildEnabledBy, the script also generates
-        # a .swift receiver; list it as an output so ninja knows how to build it.
-        if (EXISTS ${WEBKIT_DIR}/${_file}.messages.in)
-            file(READ ${WEBKIT_DIR}/${_file}.messages.in _msgs_content)
-            if (_msgs_content MATCHES "SwiftReceiverBuildEnabledBy")
-                list(APPEND _outputs ${WebKit_DERIVED_SOURCES_DIR}/${_name}MessageReceiver.swift)
-            endif ()
-            unset(_msgs_content)
-        endif ()
     endforeach ()
 
     list(APPEND ${_output_source}

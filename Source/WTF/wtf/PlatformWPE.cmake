@@ -49,6 +49,11 @@ else ()
 endif ()
 
 list(APPEND WTF_PUBLIC_HEADERS
+    PlatformEnableCocoa.h
+    module.modulemap
+
+    ios/WebCoreThread.h
+
     PlatformEnableGlib.h
 
     android/RefPtrAndroid.h
@@ -111,23 +116,6 @@ if (USE_SYSPROF_CAPTURE)
 endif ()
 
 if (SWIFT_REQUIRED)
-    # The upstream module.modulemap lists headers individually using Apple-specific
-    # patterns. Generate an umbrella-based version for Linux Swift C++ interop.
-    file(MAKE_DIRECTORY "${WTF_FRAMEWORK_HEADERS_DIR}/wtf")
-    file(WRITE "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
-"module wtf [system] {
-    explicit module Core {
-        umbrella \".\"
-        requires cplusplus20
-
-        explicit module * {
-            export *
-        }
-
-        export *
-    }
-
-    export *
-}
-")
+    # Create an empty spi/ stub so the upstream module.modulemap's "umbrella spi" is satisfied.
+    file(MAKE_DIRECTORY "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/spi")
 endif ()
