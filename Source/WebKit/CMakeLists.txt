@@ -830,8 +830,8 @@ if (NOT APPLE AND SWIFT_REQUIRED)
     # Mirror the C++ target's include directories to swiftc's Clang importer so
     # that C++ headers (including generated files like MessageNames.h in
     # DerivedSources) are findable when building C++ interop modules.
-    # On Apple, -I paths are forwarded to the embedded clang automatically;
-    # on Linux/GTK/WPE they must be passed explicitly as -Xcc -I.
+    # The Apple cmake build handles this equivalently in PlatformMac.cmake;
+    # this block covers the Linux/GTK/WPE cmake build.
     set(WebKit_SWIFT_CLANG_INCLUDE_DIRS
         ${CMAKE_BINARY_DIR}
         ${WebKit_FRAMEWORK_HEADERS_DIR}
