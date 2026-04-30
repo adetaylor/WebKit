@@ -111,6 +111,9 @@ if (USE_SYSPROF_CAPTURE)
 endif ()
 
 if (SWIFT_REQUIRED)
-    # Create an empty spi/ stub so the upstream module.modulemap's "umbrella spi" is satisfied.
+    # The module.modulemap has "umbrella spi" for the wtf.SPI submodule; Clang requires
+    # the umbrella directory to be non-empty or it fails with "cannot create includes file".
+    # Provide a stub header so the directory has at least one entry.
     file(MAKE_DIRECTORY "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/spi")
+    file(WRITE "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/spi/wtf_spi_stub.h" "")
 endif ()
