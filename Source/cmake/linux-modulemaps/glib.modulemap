@@ -1,0 +1,16 @@
+// Linux system modulemap for GLib / GObject / GModule / GIO (glib-2.0).
+// This file is injected into /usr/include/glib-2.0/ via a VFS overlay
+// (see Source/WebKit/CMakeLists.txt and vfs-overlay.yaml.in).
+//
+// Headers are filled in iteratively: add the minimum set needed to resolve
+// current Swift C++ interop build errors. See the linux-system-modulemaps
+// skill for the overall approach.
+//
+// Authoring rules:
+//   - Honour __GIO_GIO_H_INSIDE__ / __GLIB_H_INSIDE__ guards by listing only
+//     the top-level umbrella headers (gio/gio.h, glib.h), not their children.
+//   - Keep the module flat (no submodules) until submodules are proven necessary.
+
+module glib_2_0 [system] {
+    export *
+}

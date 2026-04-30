@@ -891,6 +891,24 @@ if (NOT APPLE AND SWIFT_REQUIRED)
     foreach (_dir IN LISTS WebKit_SWIFT_CLANG_INCLUDE_DIRS)
         list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -I${_dir}")
     endforeach ()
+    # VFS overlay: inject module.modulemap files for Linux system libraries
+    # (glib, libsoup, etc.) that do not ship their own modulemaps.  The overlay
+    # makes them appear inside /usr/include/glib-2.0/ etc. without modifying
+    # the real filesystem.  Both the -typecheck/-emit-clang-header custom command
+    # and the per-file Swift compilation receive the flag via SWIFT_EXTRA_OPTIONS
+    # and target_compile_options respectively.
+    set(_linux_mm_src "${CMAKE_SOURCE_DIR}/Source/cmake/linux-modulemaps")
+    set(_linux_mm_dir "${CMAKE_BINARY_DIR}/linux-modulemaps")
+    file(MAKE_DIRECTORY "${_linux_mm_dir}")
+    configure_file("${_linux_mm_src}/glib.modulemap"    "${_linux_mm_dir}/glib.modulemap"    COPYONLY)
+    configure_file("${_linux_mm_src}/libsoup.modulemap" "${_linux_mm_dir}/libsoup.modulemap" COPYONLY)
+    set(_vfs_glib_modulemap    "${_linux_mm_dir}/glib.modulemap")
+    set(_vfs_libsoup_modulemap "${_linux_mm_dir}/libsoup.modulemap")
+    configure_file("${_linux_mm_src}/vfs-overlay.yaml.in" "${_linux_mm_dir}/vfs-overlay.yaml" @ONLY)
+    set(_vfs_overlay "${_linux_mm_dir}/vfs-overlay.yaml")
+    list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -ivfsoverlay")
+    list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc ${_vfs_overlay}")
+
     foreach (_pair IN LISTS WebKit_SWIFT_CLANG_FLAG_PAIRS)
         target_compile_options(WebKit PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:SHELL:${_pair}>")
         string(REPLACE " " ";" _split "${_pair}")
