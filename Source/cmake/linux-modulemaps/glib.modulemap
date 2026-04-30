@@ -11,7 +11,10 @@
 //     the top-level umbrella headers (gio/gio.h, glib.h), not their children.
 //   - Keep the module flat (no submodules) until submodules are proven necessary.
 
-module glib_2_0 [system] {
+// [extern_c]: glib is a C library whose headers are often included inside
+// extern "C" { } blocks (e.g. by GStreamer headers). Without this attribute
+// Clang rejects "import of C++ module within extern C linkage specification".
+module glib_2_0 [system] [extern_c] {
     // Top-level umbrella headers only — each sets an __*_INSIDE__ guard and
     // pulls in sub-headers in the correct order. Never list individual
     // sub-headers (e.g. gio/gioenums.h) directly: they depend on context
