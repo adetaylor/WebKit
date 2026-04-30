@@ -827,6 +827,19 @@ WEBKIT_FRAMEWORK_DECLARE(WebKit)
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 
 if (NOT APPLE AND SWIFT_REQUIRED)
+    # Ensure the Swift -typecheck/-emit-clang-header step waits for all header
+    # copy targets that populate the directories Swift's Clang importer scans.
+    # Without this, the custom command races WTF_CopyHeaders and fails with
+    # "cannot create includes file for module wtf: No such file or directory".
+    set(WebKit_SWIFT_HEADER_DEPENDS
+        WebCore_CopyPrivateHeaders
+        JavaScriptCore_CopyPrivateHeaders
+        JavaScriptCore_CopyHeaders
+        PAL_CopyHeaders
+        WTF_CopyHeaders
+        bmalloc_CopyHeaders
+    )
+
     # Mirror the C++ target's include directories to swiftc's Clang importer so
     # that C++ headers (including generated files like MessageNames.h in
     # DerivedSources) are findable when building C++ interop modules.
