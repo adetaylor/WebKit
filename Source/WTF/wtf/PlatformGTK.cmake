@@ -122,6 +122,13 @@ if (SWIFT_REQUIRED)
         // <coroutine> when building the module in isolation on Linux.
         exclude header \"CoroutineUtilities.h\"
 
+        // Exclude Apple-only headers that reference Mach/CoreFoundation types
+        // unavailable on Linux. The module system would otherwise attempt to
+        // compile them as part of the wtf umbrella, causing missing-type errors.
+        exclude header \"MachSendRightAnnotated.h\"
+        exclude header \"SchedulePair.h\"
+        exclude header \"SoftLinking.h\"
+
         explicit module * {
             export *
         }
