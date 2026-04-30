@@ -103,26 +103,14 @@ if (USE_SYSPROF_CAPTURE)
 endif ()
 
 if (SWIFT_REQUIRED)
-    # The upstream module.modulemap references Apple-specific headers not present on Linux.
-    # Generate a Linux-compatible version so that `import wtf` works in Swift C++ interop.
+    # The upstream module.modulemap lists headers individually using Apple-specific
+    # patterns. Generate an umbrella-based version for Linux Swift C++ interop.
     file(MAKE_DIRECTORY "${WTF_FRAMEWORK_HEADERS_DIR}/wtf")
     file(WRITE "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
 "module wtf [system] {
     explicit module Core {
         umbrella \".\"
         requires cplusplus20
-
-        // Exclude C++20 coroutine utilities: Swift has its own async/await and
-        // doesn't need WTF coroutines. Swift's embedded clang can't find
-        // <coroutine> when building the module in isolation on Linux.
-        exclude header \"CoroutineUtilities.h\"
-
-        // Exclude Apple-only headers that reference Mach/CoreFoundation types
-        // unavailable on Linux. The module system would otherwise attempt to
-        // compile them as part of the wtf umbrella, causing missing-type errors.
-        exclude header \"MachSendRightAnnotated.h\"
-        exclude header \"SchedulePair.h\"
-        exclude header \"SoftLinking.h\"
 
         explicit module * {
             export *

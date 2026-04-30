@@ -111,17 +111,14 @@ if (USE_SYSPROF_CAPTURE)
 endif ()
 
 if (SWIFT_REQUIRED)
+    # The upstream module.modulemap lists headers individually using Apple-specific
+    # patterns. Generate an umbrella-based version for Linux Swift C++ interop.
     file(MAKE_DIRECTORY "${WTF_FRAMEWORK_HEADERS_DIR}/wtf")
     file(WRITE "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
 "module wtf [system] {
     explicit module Core {
         umbrella \".\"
         requires cplusplus20
-
-        // Exclude headers that unconditionally include Apple-only headers
-        // (Block.h, objc/runtime.h) which do not exist on Linux.
-        exclude header \"BlockPtr.h\"
-        exclude header \"WeakObjCPtr.h\"
 
         explicit module * {
             export *

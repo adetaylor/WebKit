@@ -25,6 +25,8 @@
 
 #pragma once
 
+#ifdef __APPLE__
+
 #include <coroutine>
 #include <wtf/CompletionHandler.h>
 
@@ -176,3 +178,5 @@ using WTF::Awaitable;
 using WTF::AwaitableFromCompletionHandler;
 using WTF::CoroutineHandle;
 using WTF::Task;
+
+#endif // __APPLE__
