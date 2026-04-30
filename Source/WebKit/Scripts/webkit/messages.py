@@ -2424,7 +2424,7 @@ def generate_modulemap(receiver_headers: list[str]) -> str:
 
     result.append('module WebKit_DerivedSources_IPC {')
 
-    all_headers = receiver_headers + ['MessageNames.h', 'GeneratedSerializers.h', 'GeneratedWebKitSecureCoding.h']
+    all_headers = receiver_headers + ['MessageNames.h']
     for header in all_headers:
         module_name = header[:-2] if header.endswith('.h') else header
         result.append('  explicit module %s {' % module_name)
