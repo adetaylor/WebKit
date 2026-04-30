@@ -49,11 +49,6 @@ else ()
 endif ()
 
 list(APPEND WTF_PUBLIC_HEADERS
-    PlatformEnableCocoa.h
-    module.modulemap
-
-    ios/WebCoreThread.h
-
     PlatformEnableGlib.h
 
     android/RefPtrAndroid.h

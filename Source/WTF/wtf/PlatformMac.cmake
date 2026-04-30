@@ -70,9 +70,6 @@ list(APPEND WTF_SOURCES
 )
 
 list(APPEND WTF_PUBLIC_HEADERS
-    PlatformEnableCocoa.h
-    module.modulemap
-
     cf/CFTypeTraits.h
     cf/CFURLExtras.h
     cf/NotificationCenterCF.h
@@ -91,8 +88,6 @@ list(APPEND WTF_PUBLIC_HEADERS
     darwin/OSLogPrintStream.h
     darwin/WeakLinking.h
     darwin/XPCExtras.h
-
-    ios/WebCoreThread.h
 
     posix/SocketPOSIX.h
 

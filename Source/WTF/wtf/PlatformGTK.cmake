@@ -31,11 +31,6 @@ list(APPEND WTF_SOURCES
 )
 
 list(APPEND WTF_PUBLIC_HEADERS
-    PlatformEnableCocoa.h
-    module.modulemap
-
-    ios/WebCoreThread.h
-
     PlatformEnableGlib.h
 
     glib/ActivityObserver.h
