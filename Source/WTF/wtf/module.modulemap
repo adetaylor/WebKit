@@ -54,6 +54,17 @@ module wtf [system] {
 
         requires cplusplus
 
+        // Forward.h and Vector.h must be in the same submodule: Forward.h
+        // uses anonymous template parameters for Vector, and Vector.h provides
+        // the named-parameter definition.  In Clang 21, merging these across
+        // sibling explicit submodule boundaries fails with "template parameter
+        // 'T' does not exist".  Grouping them here keeps the merge in one TU.
+        explicit module Vector {
+            header "Forward.h"
+            header "Vector.h"
+            export *
+        }
+
         explicit module * {
             export *
         }
