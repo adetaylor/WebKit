@@ -2424,15 +2424,8 @@ def generate_modulemap(receiver_headers: list[str]) -> str:
 
     result.append('module WebKit_DerivedSources_IPC {')
 
-    # MessageNames.h is included by Decoder.h, which is included by many headers
-    # inside WebKit_Internal. Declaring it as a textual header means those includes
-    # are textual (no module import), breaking the A->B direction of the cycle
-    # (WebKit_Internal -> WebKit_DerivedSources_IPC). The B->A direction
-    # (WebKit_DerivedSources_IPC -> WebKit_Internal, via receiver class headers)
-    # then becomes a clean one-way dependency with no cycle.
-    result.append('  textual header "MessageNames.h"')
-
-    for header in receiver_headers:
+    all_headers = receiver_headers + ['MessageNames.h', 'GeneratedSerializers.h', 'GeneratedWebKitSecureCoding.h']
+    for header in all_headers:
         module_name = header[:-2] if header.endswith('.h') else header
         result.append('  explicit module %s {' % module_name)
         result.append('    header "%s"' % header)

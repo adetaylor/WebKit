@@ -873,7 +873,6 @@ if (NOT APPLE AND SWIFT_REQUIRED)
         # meaningful to Apple's static analyser.
         "-Xcc -DNODELETE="
         "-Xcc -fmodule-map-file=${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
-        "-Xcc -fmodule-map-file=${WebKit_DERIVED_SOURCES_DIR}/module.private.modulemap"
     )
     # Mirror cmake config variables as -Xcc -D so ENABLE()/HAVE() macros in
     # C++ headers agree with the regular C++ compilation when the Clang importer
