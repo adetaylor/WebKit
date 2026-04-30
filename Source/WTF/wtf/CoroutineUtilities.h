@@ -25,6 +25,10 @@
 
 #pragma once
 
+// Swift's embedded Clang (6.3, LLVM 21) fails to find std::coroutine_handle when
+// building a C++ umbrella module against GCC's libstdc++: <bits/version.h> is cached
+// as a PCM without __glibcxx_want_coroutine, so __cpp_lib_coroutine is never defined.
+// rdar://175928621
 #ifdef __APPLE__
 
 #include <coroutine>
