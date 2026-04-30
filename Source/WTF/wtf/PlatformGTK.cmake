@@ -112,11 +112,6 @@ if (SWIFT_REQUIRED)
         umbrella \".\"
         requires cplusplus20
 
-        // Exclude headers that unconditionally include Apple-only headers
-        // (Block.h, objc/runtime.h) which do not exist on Linux.
-        exclude header \"BlockPtr.h\"
-        exclude header \"WeakObjCPtr.h\"
-
         // Exclude C++20 coroutine utilities: Swift has its own async/await and
         // doesn't need WTF coroutines. Swift's embedded clang can't find
         // <coroutine> when building the module in isolation on Linux.
