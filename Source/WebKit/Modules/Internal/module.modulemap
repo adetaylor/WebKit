@@ -59,15 +59,9 @@ module WebKit_Internal [system] {
         export *
     }
 
-    module MessageReceiver {
-        // requires objc: on Linux, Connection.h includes MessageReceiver.h inside
-        // WebKit_DerivedSources_IPC, which would import WebKit_Internal and create
-        // a cycle (WebKit_Internal→WebKit_DerivedSources_IPC→WebKit_Internal via
-        // Decoder.h→MessageNames.h). Making this submodule ObjC-only means it is
-        // invisible on Linux, so MessageReceiver.h is textually included there
-        // instead of triggering a module import, breaking the cycle.
-        requires objc
-        header "../../Platform/IPC/MessageReceiver.h"
+    module InputMethodState {
+        requires cplusplus20
+        header "../../Shared/glib/InputMethodState.h"
         export *
     }
 
