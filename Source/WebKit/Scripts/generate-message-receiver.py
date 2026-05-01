@@ -78,6 +78,8 @@ def main(argv):
             return os.path.join(output_dir, filename)
         return filename
 
+    swift_receiver_header_files = []
+
     for receiver in receivers:
         if receiver.has_attribute(webkit.model.BUILTIN_ATTRIBUTE):
             continue
@@ -89,6 +91,8 @@ def main(argv):
 
         receiver_message_header = '%sMessages.h' % receiver.name
         receiver_header_files.append(receiver_message_header)
+        if receiver.swift_receiver or receiver.swift_receiver_build_enabled_by:
+            swift_receiver_header_files.append(receiver_message_header)
         with open(output_path(receiver_message_header), "w+") as header_output:
             header_output.write(webkit.messages.generate_messages_header(receiver))
 
@@ -103,6 +107,9 @@ def main(argv):
 
     with open(output_path('module.private.modulemap'), "w+") as modulemap_output:
         modulemap_output.write(webkit.messages.generate_modulemap(receiver_header_files))
+
+    with open(output_path('module.swift.ipc.modulemap'), "w+") as swift_ipc_modulemap_output:
+        swift_ipc_modulemap_output.write(webkit.messages.generate_swift_ipc_modulemap(swift_receiver_header_files))
 
     return 0
 

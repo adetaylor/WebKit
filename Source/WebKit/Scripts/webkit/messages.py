@@ -2435,3 +2435,30 @@ def generate_modulemap(receiver_headers: list[str]) -> str:
     result.append('')
 
     return '\n'.join(result)
+
+
+def generate_swift_ipc_modulemap(swift_receiver_headers: list[str]) -> str:
+    """Generate a module map for Swift-enabled IPC message headers only.
+
+    This module (WebKit_DerivedSources_IPC_Swift) must NOT depend on WebKit_Internal
+    to avoid a circular import: WebKit_Internal -> WebKit_DerivedSources_IPC_Swift
+    -> WebKit_Internal.  Data types used by these headers (e.g. SessionState) must
+    live in WebKit_IPC (Modules/IPC/module.modulemap) instead.
+    """
+    result = []
+
+    result.append('module WebKit_DerivedSources_IPC_Swift [system] {')
+
+    for header in swift_receiver_headers:
+        module_name = header[:-2] if header.endswith('.h') else header
+        result.append('  explicit module %s {' % module_name)
+        result.append('    requires cplusplus20')
+        result.append('    header "%s"' % header)
+        result.append('    export *')
+        result.append('  }')
+
+    result.append('}')
+    result.append('')
+
+    return '\n'.join(result)
+
