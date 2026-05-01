@@ -623,6 +623,9 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
         # linked by clang++ need this search path to satisfy those directives.
         string(JSON _swift_runtime_library_path GET ${_swift_target_paths} "runtimeLibraryPaths" 0)
         target_link_directories(${_target} INTERFACE "${_swift_runtime_library_path}")
+        # Expose the path as a compile definition so the bubblewrap sandbox
+        # (BubblewrapLauncher.cpp) can bind-mount it into the child process filesystem.
+        target_compile_definitions(${_target} PRIVATE "WEBKIT_SWIFT_STDLIB_LIBRARY_PATH=\"${_swift_runtime_library_path}\"")
 
         # Assemble arguments which need to be passed to swiftc.
         # Add WebKit's various feature flags as -D directives to the Swift compiler.
