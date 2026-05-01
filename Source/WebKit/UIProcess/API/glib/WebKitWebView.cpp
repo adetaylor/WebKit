@@ -1043,7 +1043,7 @@ static void webkitWebViewConstructed(GObject* object)
     // See https://bugs.webkit.org/show_bug.cgi?id=135412.
     webkitWebViewUpdateSettings(webView);
 
-    priv->backForwardList = adoptGRef(webkitBackForwardListCreate(&getPage(webView).backForwardList()));
+    priv->backForwardList = adoptGRef(webkitBackForwardListCreate(&getPage(webView).backForwardListWrapper()));
     priv->windowProperties = adoptGRef(webkitWindowPropertiesCreate());
     priv->isWebProcessResponsive = true;
 }
