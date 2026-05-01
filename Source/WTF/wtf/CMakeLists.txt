@@ -836,6 +836,14 @@ WEBKIT_COPY_FILES(WTF_CopyHeaders
     FILES ${WTF_PUBLIC_HEADERS}
 )
 
+if (NOT APPLE AND SWIFT_REQUIRED)
+    # module.modulemap has "umbrella spi" for the wtf.SPI submodule; Clang requires
+    # the umbrella directory to be non-empty or it fails with "cannot create includes file".
+    # Provide a stub header so the directory has at least one entry.
+    file(MAKE_DIRECTORY "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/spi")
+    file(WRITE "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/spi/wtf_spi_stub.h" "")
+endif ()
+
 WEBKIT_FRAMEWORK(WTF)
 
 if (MSVC)
