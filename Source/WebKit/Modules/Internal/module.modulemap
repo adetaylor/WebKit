@@ -59,9 +59,9 @@ module WebKit_Internal [system] {
         export *
     }
 
-    module MessageReceiver {
+    module InputMethodState {
         requires cplusplus20
-        header "../../Platform/IPC/MessageReceiver.h"
+        header "../../Shared/glib/InputMethodState.h"
         export *
     }
 
@@ -189,15 +189,18 @@ module WebKit_Internal [system] {
         export *
     }
 
-    module SessionState {
-        requires cplusplus20
-        header "../../Shared/SessionState.h"
-        export *
-    }
+    // SessionState is in WebKit_IPC module (Modules/IPC/module.modulemap) to avoid
+    // a circular dependency: WebKit_Internal -> WebBackForwardListMessages -> SessionState -> WebKit_Internal.
 
     module WebBackForwardCache {
         requires cplusplus20
         header "../../UIProcess/WebBackForwardCache.h"
+        export *
+    }
+
+    module WebBackForwardList {
+        requires cplusplus20
+        header "../../UIProcess/WebBackForwardList.h"
         export *
     }
 
