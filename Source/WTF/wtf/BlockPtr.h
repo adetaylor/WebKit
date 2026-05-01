@@ -25,7 +25,9 @@
 
 #pragma once
 
-#if __has_feature(blocks)
+#include <wtf/Platform.h>
+
+#if PLATFORM(COCOA)
 
 #include <Block.h>
 #include <utility>
@@ -246,4 +248,4 @@ inline auto makeBlockPtr(F&& function)
 using WTF::BlockPtr;
 using WTF::makeBlockPtr;
 
-#endif // __has_feature(blocks)
+#endif // PLATFORM(COCOA)
