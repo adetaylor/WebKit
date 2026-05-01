@@ -150,6 +150,7 @@ set(WTF_PUBLIC_HEADERS
     IsIncreasing.h
     IterationStatus.h
     IteratorRange.h
+    ios/WebCoreThread.h
     JSONValues.h
     JSValueMalloc.h
     KeyValuePair.h
@@ -198,6 +199,7 @@ set(WTF_PUBLIC_HEADERS
     MetaAllocatorHandle.h
     MmapSpan.h
     MonotonicTime.h
+    module.modulemap
     NakedPtr.h
     NativePromise.h
     NaturalLoops.h
@@ -239,6 +241,7 @@ set(WTF_PUBLIC_HEADERS
     PlatformCallingConventions.h
     PlatformCPU.h
     PlatformEnable.h
+    PlatformEnableCocoa.h
     PlatformHave.h
     PlatformLegacy.h
     PlatformOS.h
