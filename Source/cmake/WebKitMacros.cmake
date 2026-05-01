@@ -656,6 +656,20 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
                 list(APPEND _swift_options "-Xcc" "-D__SANITIZE_THREAD__")
             endif ()
         endforeach ()
+        # On non-Apple platforms, Swift's embedded clang doesn't automatically search
+        # GCC's C++ standard library headers (e.g. <coroutine> lives in /usr/include/c++/15/).
+        # Pass them explicitly so the wtf umbrella module can include them.
+        # Exclude GCC's architecture-specific lib directory (e.g. /usr/lib/gcc/aarch64-linux-gnu/15/include):
+        # it contains GCC-specific intrinsic headers (arm_neon.h, etc.) that use GCC builtins
+        # unknown to Swift's embedded Clang. Clang provides its own compatible versions in its
+        # resource directory and will find them automatically without an explicit -I path.
+        if (NOT APPLE)
+            foreach (_dir IN LISTS CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES)
+                if (NOT _dir MATCHES "^/usr/lib/gcc/")
+                    list(APPEND _swift_options "-Xcc" "-I${_dir}")
+                endif ()
+            endforeach ()
+        endif ()
         # swiftc spawns swift-plugin-server under sandbox-exec to expand macros
         # (e.g. SwiftUI @State). When the cmake build itself runs inside an
         # outer sandbox that disallows nested sandbox_apply, macro expansion
@@ -663,12 +677,10 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
         # found". -disable-sandbox skips the inner sandbox; the macros are
         # WebKit's own, so the isolation it provides isn't load-bearing here.
         list(APPEND _swift_options "-disable-sandbox")
-        if (NOT (PORT STREQUAL GTK OR PORT STREQUAL WPE))
-            # Implicit module builds share work via -module-cache-path; explicit
-            # builds were tried but strip project -Xcc -include/-I from per-module
-            # PCM compiles, which breaks the C++ interop modules' prefix header.
-            list(APPEND _swift_options "-module-cache-path" "${CMAKE_BINARY_DIR}/SwiftModuleCache")
-        endif ()
+        # Implicit module builds share work via -module-cache-path; explicit
+        # builds were tried but strip project -Xcc -include/-I from per-module
+        # PCM compiles, which breaks the C++ interop modules' prefix header.
+        list(APPEND _swift_options "-module-cache-path" "${CMAKE_BINARY_DIR}/SwiftModuleCache")
         # We'll use these options both for mainstream cmake invocations of swiftc (here)
         # and for our own invocation to output an interoperability .h file (later).
         # target_compile_options deduplicates repeated tokens, so collapse each
