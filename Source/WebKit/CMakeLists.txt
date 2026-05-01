@@ -996,6 +996,7 @@ macro(GENERATE_MESSAGE_SOURCES _output_source _inputs)
             ${WebKit_DERIVED_SOURCES_DIR}/MessageArgumentDescriptions.cpp
             ${WebKit_DERIVED_SOURCES_DIR}/MessageNames.cpp
             ${WebKit_DERIVED_SOURCES_DIR}/MessageNames.h
+            ${WebKit_DERIVED_SOURCES_DIR}/module.swift.ipc.modulemap
             ${_outputs}
         MAIN_DEPENDENCY ${WEBKIT_DIR}/Scripts/generate-message-receiver.py
         DEPENDS
