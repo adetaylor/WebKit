@@ -1125,6 +1125,26 @@ if (ENABLE_SWIFT_DEMO_URI_SCHEME)
 endif ()
 
 if (ENABLE_BACK_FORWARD_LIST_SWIFT)
+    if (NOT APPLE)
+        # On Apple platforms, WebCore.framework provides the WebCore_Private module automatically.
+        # On GTK/WPE we generate a minimal module.modulemap for the types used by WebBackForwardList.swift.
+        file(MAKE_DIRECTORY "${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}")
+        file(WRITE "${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}/module.modulemap"
+"module WebCore_Private [system] {
+    explicit module DiagnosticLoggingClient {
+        requires cplusplus20
+        header \"WebCore/DiagnosticLoggingClient.h\"
+        export *
+    }
+    explicit module DiagnosticLoggingKeys {
+        requires cplusplus20
+        header \"WebCore/DiagnosticLoggingKeys.h\"
+        export *
+    }
+    export *
+}
+")
+    endif ()
     set_source_files_properties(
         ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
