@@ -872,6 +872,13 @@ if (NOT APPLE AND SWIFT_REQUIRED)
         # nullify it for the Swift module importer since the annotation is only
         # meaningful to Apple's static analyser.
         "-Xcc -DNODELETE="
+        # libstdc++ gates coroutine support in <bits/version.h> behind
+        # __glibcxx_want_coroutine.  Swift's Clang 21 compiles <bits/version.h>
+        # as a PCM before that flag is set, so __cpp_lib_coroutine stays
+        # undefined and std::coroutine_handle is not available.  Pre-defining
+        # the flag ensures the PCM gets the right feature-test value.
+        # rdar://175928621
+        "-Xcc -D__glibcxx_want_coroutine=1"
         "-Xcc -fmodule-map-file=${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
         # WebKit_IPC: pure IPC data types (SessionState, etc.) that generated IPC message
         # headers depend on.  Kept separate from WebKit_Internal to avoid a circular import:
