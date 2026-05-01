@@ -25,6 +25,8 @@
 
 #pragma once
 
+#ifdef __APPLE__
+
 #include <objc/runtime.h>
 #include <type_traits>
 #include <wtf/RetainPtr.h>
@@ -131,3 +133,5 @@ inline RetainPtr<typename WeakObjCPtr<T>::ValueType> protect(const WeakObjCPtr<T
 
 using WTF::protect;
 using WTF::WeakObjCPtr;
+
+#endif // __APPLE__

@@ -25,6 +25,8 @@
 
 #pragma once
 
+#ifdef __APPLE__
+
 #import <wtf/FixedVector.h>
 #import <wtf/MachSendRight.h>
 
@@ -36,3 +38,5 @@ struct MachSendRightAnnotated {
 };
 
 }
+
+#endif // __APPLE__

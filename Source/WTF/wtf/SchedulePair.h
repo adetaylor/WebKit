@@ -28,6 +28,8 @@
 
 #pragma once
 
+#ifdef __APPLE__
+
 #include <wtf/HashSet.h>
 #include <wtf/Hasher.h>
 #include <wtf/Ref.h>
@@ -104,3 +106,5 @@ using SchedulePairHashSet = HashSet<Ref<SchedulePair>, SchedulePairHash>;
 
 using WTF::SchedulePair;
 using WTF::SchedulePairHashSet;
+
+#endif // __APPLE__
