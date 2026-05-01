@@ -753,6 +753,7 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
                 ${_swift_xcc_options}
                 ${_swift_sources}
                 -module-name ${_module_name}
+                -Xfrontend -emit-clang-header-min-access -Xfrontend internal
                 -emit-clang-header-path ${_header_tmp_path}
                 -emit-dependencies
             COMMAND
