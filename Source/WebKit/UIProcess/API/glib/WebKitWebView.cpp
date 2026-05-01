@@ -3871,7 +3871,7 @@ gboolean webkit_web_view_can_go_back(WebKitWebView* webView)
 {
     g_return_val_if_fail(WEBKIT_IS_WEB_VIEW(webView), FALSE);
 
-    return !!getPage(webView).backForwardList().backItem();
+    return !!getPage(webView).backForwardListWrapper().backItem();
 }
 
 /**
@@ -3902,7 +3902,7 @@ gboolean webkit_web_view_can_go_forward(WebKitWebView* webView)
 {
     g_return_val_if_fail(WEBKIT_IS_WEB_VIEW(webView), FALSE);
 
-    return !!getPage(webView).backForwardList().forwardItem();
+    return !!getPage(webView).backForwardListWrapper().forwardItem();
 }
 
 /**
