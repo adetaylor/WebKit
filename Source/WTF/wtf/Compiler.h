@@ -577,7 +577,9 @@
 
 // Add this annotation to right after the return type of a function when the function does not run any destructor or free memory.
 // Static analyzer does not require the use of smart pointers in the code which calls a function with this annotation.
+#ifndef NODELETE
 #define NODELETE [[clang::annotate_type("webkit.nodelete")]]
+#endif
 
 #else
 
