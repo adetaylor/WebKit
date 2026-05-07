@@ -830,6 +830,41 @@ set(WebKit_SWIFT_INTEROP_MODULE_PATH "${WEBKIT_DIR}/Modules/Internal")
 WEBKIT_FRAMEWORK_DECLARE(WebKit)
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 
+# Targets that stage the headers the -emit-clang-header pass reads.
+# Declaring these lets WEBKIT_TARGET_ADD_SWIFT_SOURCES detach the header
+# command from cmake_object_order_depends_target_WebKit so it starts once
+# headers are copied instead of waiting for WebCore/WebKitLegacy to link.
+set(WebKit_SWIFT_HEADER_DEPENDS
+    WebKit_CopyHeaders
+    WebCore_CopyPrivateHeaders
+    JavaScriptCore_CopyPrivateHeaders
+    JavaScriptCore_CopyHeaders
+    PAL_CopyHeaders
+    WTF_CopyHeaders
+    bmalloc_CopyHeaders
+    bmalloc_CopyPrivateHeaders
+)
+
+# The full WebKit_Internal C++ module pulls in WebPageProxy.h and friends, which
+# quote-include across the entire WebKit/WebCore/JSC private header set. Mirror
+# the C++ target's include directories to swiftc's Clang importer so those
+# resolve. cmakeconfig.h is force-included because the headers assume the
+# project's prefix header has already defined ENABLE()/HAVE() values.
+set(WebKit_SWIFT_CLANG_INCLUDE_DIRS
+    ${CMAKE_BINARY_DIR}
+    ${WebKit_FRAMEWORK_HEADERS_DIR}
+    ${WebKit_DERIVED_SOURCES_DIR}
+    ${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}
+    ${JavaScriptCore_FRAMEWORK_HEADERS_DIR}
+    ${JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS_DIR}
+    ${WTF_FRAMEWORK_HEADERS_DIR}
+    ${bmalloc_FRAMEWORK_HEADERS_DIR}
+    ${PAL_FRAMEWORK_HEADERS_DIR}
+    ${ICU_INCLUDE_DIRS}
+    ${WebKit_CMAKE_MODULEMAP_DIR}
+    ${WebKit_PRIVATE_INCLUDE_DIRECTORIES}
+)
+
 WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebKit WebKit
     "${WebKit_SWIFT_INTEROP_MODULE_PATH}"
     "${WebKit_DERIVED_SOURCES_DIR}/WebKit-Swift-CPP.h")
