@@ -39,6 +39,7 @@
 #include <wtf/MathExtras.h>
 #include <wtf/Packed.h>
 #include <wtf/StdLibExtras.h>
+#include <wtf/text/StringHash.h>
 #include <wtf/ValueCheck.h>
 #include <wtf/WeakRandomNumber.h>
 
