@@ -33,6 +33,7 @@ static constexpr unsigned stringHashingStartValue = 0x9E3779B9U;
 class ASCIILiteral;
 class SuperFastHash;
 class RapidHash;
+class WYHash;
 
 class StringHasher {
 public:
@@ -58,6 +59,7 @@ public:
 private:
     friend class SuperFastHash;
     friend class RapidHash;
+    friend class WYHash;
 
     ALWAYS_INLINE static constexpr unsigned avalancheBits(unsigned hash)
     {
