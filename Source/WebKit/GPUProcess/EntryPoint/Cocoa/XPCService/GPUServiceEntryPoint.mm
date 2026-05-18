@@ -26,16 +26,20 @@
 #import "config.h"
 
 #import "AuxiliaryProcess.h"
+#import "Connection.h"
 #import "EnvironmentUtilities.h"
 #import "GPUProcess.h"
+#import "SandboxUtilities.h"
 #import "WKBase.h"
 #import "WebKit2Initialize.h"
 #import "XPCServiceEntryPoint.h"
 #import <JavaScriptCore/ExecutableAllocator.h>
+#import <WebCore/ProcessIdentifier.h>
 #import <wtf/OSObjectPtr.h>
 #import <wtf/Threading.h>
 #import <wtf/WTFProcess.h>
 #import <wtf/cocoa/RuntimeApplicationChecksCocoa.h>
+#import <wtf/text/WTFString.h>
 
 #if USE(APPLE_INTERNAL_SDK)
 #include <os/voucher_private.h>
@@ -63,12 +67,19 @@ public:
 // The GPU process entry point shipped to xpc is named GPUServiceInitializer
 // (see GPU_SERVICE_INITIALIZER in XPCServiceEntryPoint.h). When
 // ENABLE(GPU_PROCESS_SWIFT) is enabled that symbol is provided by a Swift
-// @_cdecl wrapper (see GPUServiceEntryPoint.swift); the wrapper forwards
-// straight to WebKitGPUServiceInitializerImpl below so Swift can migrate
-// individual lines out of this body one at a time. The body itself is the
+// @_cdecl wrapper (see GPUServiceEntryPoint.swift) which routes the call into
+// SwiftGPUProcess.initialize; that Swift orchestrator now owns the whole
 // XPCServiceInitializer<GPUProcess, GPUServiceInitializerDelegate, false>
-// template body inlined — keep it line-for-line identical to the template
-// when adding new lines so future cross-process refactors stay tractable.
+// template body and calls the C++ AuxiliaryProcessInitializationParameters
+// build + WebKit::GPUProcess::singleton().initialize() through the
+// WebKitGPUProcessInitializeAfterSwiftBootstrap typed bridge below.
+//
+// When ENABLE(GPU_PROCESS_SWIFT) is off, WebKitGPUServiceInitializerImpl is
+// still the XPC entry (via the GPU_SERVICE_INITIALIZER trampoline below) and
+// runs the entire template body in C++ here. The body and the trampoline are
+// both gated under !ENABLE(GPU_PROCESS_SWIFT).
+#if !ENABLE(GPU_PROCESS_SWIFT)
+
 extern "C" WK_EXPORT void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t initializerMessage);
 
 void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t initializerMessage)
@@ -77,16 +88,7 @@ void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t i
 #if ENABLE(GPU_PROCESS)
         WebKit::GPUServiceInitializerDelegate delegate(WTF::move(connection), initializerMessage);
 
-#if !USE(RUNNINGBOARD) && !ENABLE(GPU_PROCESS_SWIFT)
-        // The OS transaction that keeps the XPC service alive is owned by Swift
-        // (SwiftGPUProcess.initialize) when ENABLE_GPU_PROCESS_SWIFT is on; the
-        // Swift side calls os_transaction_create("WebKit XPC Service") via
-        // @_silgen_name and stashes the +1 retain in a process-lifetime static,
-        // matching the static NeverDestroyed<OSObjectPtr<...>> in
-        // WebKit::setOSTransaction. The outer !USE(RUNNINGBOARD) gate is
-        // preserved on the C++ side; on the Swift side USE(RUNNINGBOARD) isn't
-        // a visible conditional-compilation flag so the call is unconditional
-        // but harmless on RunningBoard platforms.
+#if !USE(RUNNINGBOARD)
         SUPPRESS_RETAINPTR_CTOR_ADOPT WebKit::setOSTransaction(adoptOSObject(os_transaction_create("WebKit XPC Service")));
 #endif
 
@@ -95,40 +97,18 @@ void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t i
         if (!delegate.getExtraInitializationData(parameters.extraInitializationData))
             WTF::exitProcess(EXIT_FAILURE);
 
-#if !ENABLE(GPU_PROCESS_SWIFT)
-        // setJSCOptions is owned by Swift (SwiftGPUProcess.initialize) when
-        // ENABLE_GPU_PROCESS_SWIFT is on; Swift reads the two JSC bool flags
-        // directly out of the "extra-initialization-data" XPC sub-dictionary
-        // and calls WebKit::setJSCOptions itself. getExtraInitializationData
-        // above still runs so parameters.extraInitializationData is populated
-        // for the later QoS check.
         if (initializerMessage) {
             bool enableLockdownMode = parameters.extraInitializationData.get<HashTranslatorASCIILiteral>("enable-lockdown-mode"_s) == "1"_s;
             bool enableEnhancedSecurity = parameters.extraInitializationData.get<HashTranslatorASCIILiteral>("enable-enhanced-security"_s) == "1"_s;
             WebKit::setJSCOptions(initializerMessage, enableLockdownMode ? WebKit::EnableLockdownMode::Yes : WebKit::EnableLockdownMode::No, enableEnhancedSecurity ? WebKit::EnableEnhancedSecurity::Yes : WebKit::EnableEnhancedSecurity::No, /* isWebContentProcess */ false);
         }
-#endif
 
-#if !ENABLE(GPU_PROCESS_SWIFT)
-        // Loading and publishing the client SDK-aligned behaviors bitset is
-        // owned by Swift (SwiftGPUProcess.initialize) when
-        // ENABLE_GPU_PROCESS_SWIFT is on; Swift reads the
-        // "client-sdk-aligned-behaviors" XPC data blob from the initializer
-        // message directly, memcpys it into a default-constructed
-        // SDKAlignedBehaviors via C++ interop, and calls
-        // WTF::setSDKAlignedBehaviors itself.
         WTF::SDKAlignedBehaviors clientSDKAlignedBehaviors;
         delegate.getClientSDKAlignedBehaviors(clientSDKAlignedBehaviors);
         WTF::setSDKAlignedBehaviors(clientSDKAlignedBehaviors);
-#endif
 
         parameters.processType = WebKit::GPUProcess::processType;
-#if !ENABLE(GPU_PROCESS_SWIFT)
-        // setAuxiliaryProcessType is owned by Swift (SwiftGPUProcess.initialize)
-        // when ENABLE_GPU_PROCESS_SWIFT is on; the call is an idempotent
-        // global setter so dropping it here keeps semantics identical.
         WTF::setAuxiliaryProcessType(parameters.processType);
-#endif
 
         WebKit::InitializeWebKit2();
 
@@ -153,10 +133,7 @@ void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t i
             WTF::exitProcess(EXIT_FAILURE);
 
         // Set the task default voucher to the current value (as propagated by XPC).
-#if !ENABLE(GPU_PROCESS_SWIFT)
-        // Owned by SwiftGPUProcess.initialize when ENABLE_GPU_PROCESS_SWIFT is on.
         voucher_replace_default_voucher();
-#endif
 
 #if HAVE(QOS_CLASSES)
         if (parameters.extraInitializationData.contains("always-runs-at-background-priority"_s))
@@ -168,8 +145,6 @@ void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t i
     });
 }
 
-#if !ENABLE(GPU_PROCESS_SWIFT)
-
 extern "C" WK_EXPORT void GPU_SERVICE_INITIALIZER(xpc_connection_t connection, xpc_object_t initializerMessage);
 
 void GPU_SERVICE_INITIALIZER(xpc_connection_t connection, xpc_object_t initializerMessage)
@@ -178,3 +153,91 @@ void GPU_SERVICE_INITIALIZER(xpc_connection_t connection, xpc_object_t initializ
 }
 
 #endif // !ENABLE(GPU_PROCESS_SWIFT)
+
+#if ENABLE(GPU_PROCESS_SWIFT) && ENABLE(GPU_PROCESS)
+
+// Typed bridge invoked by SwiftGPUProcess.initialize at the tail of its
+// orchestration, replacing the final
+//   WebKit::initializeAuxiliaryProcess<WebKit::GPUProcess>(WTF::move(parameters));
+// line of the template body that the Swift side has otherwise reproduced
+// in full. Swift extracts every field of AuxiliaryProcessInitializationParameters
+// directly from the XPC initializer message and passes them as plain C
+// primitives; this function builds the C++ struct and dispatches to
+// WebKit::GPUProcess::singleton().initialize(...). The HashMap<String, String>
+// extraInitializationData entries are passed as two parallel C-string arrays
+// (`extraInitDataKeys` / `extraInitDataValues`, both of length
+// `extraInitDataCount`); the connection identifier is the mach send right
+// extracted from the XPC message in Swift via xpc_dictionary_copy_mach_send
+// plus the connection itself (which IPC::Connection::Identifier holds as an
+// OSObjectPtr<xpc_connection_t> alongside the mach port).
+extern "C" WK_EXPORT void WebKitGPUProcessInitializeAfterSwiftBootstrap(
+    xpc_connection_t connection,
+    mach_port_t serverPort,
+    const char* uiProcessName,
+    const char* clientIdentifier,
+    const char* clientBundleIdentifier,
+    uint64_t processIdentifierRawValue,
+    const char* const* extraInitDataKeys,
+    const char* const* extraInitDataValues,
+    size_t extraInitDataCount);
+
+void WebKitGPUProcessInitializeAfterSwiftBootstrap(
+    xpc_connection_t connection,
+    mach_port_t serverPort,
+    const char* uiProcessName,
+    const char* clientIdentifier,
+    const char* clientBundleIdentifier,
+    uint64_t processIdentifierRawValue,
+    const char* const* extraInitDataKeys,
+    const char* const* extraInitDataValues,
+    size_t extraInitDataCount)
+{
+    WebKit::AuxiliaryProcessInitializationParameters parameters;
+    parameters.processType = WebKit::GPUProcess::processType;
+    parameters.uiProcessName = String::fromUTF8(uiProcessName);
+    parameters.clientIdentifier = String::fromUTF8(clientIdentifier);
+    if (clientBundleIdentifier && *clientBundleIdentifier)
+        parameters.clientBundleIdentifier = String::fromUTF8(clientBundleIdentifier);
+    parameters.processIdentifier = ObjectIdentifier<WebCore::ProcessIdentifierType>(processIdentifierRawValue);
+    parameters.connectionIdentifier = IPC::Connection::Identifier(serverPort, OSObjectPtr<xpc_connection_t> { connection });
+    for (size_t i = 0; i < extraInitDataCount; ++i)
+        parameters.extraInitializationData.add(String::fromUTF8(extraInitDataKeys[i]), String::fromUTF8(extraInitDataValues[i]));
+
+    WebKit::initializeAuxiliaryProcess<WebKit::GPUProcess>(WTF::move(parameters));
+}
+
+// Thin C bridge for the base XPCServiceInitializerDelegate::checkEntitlements
+// behavior — instantiating the delegate is non-trivial from Swift (the
+// constructor takes OSObjectPtr<xpc_connection_t>), and the entitlements /
+// sandbox-check logic is platform-specific enough that duplicating it in
+// Swift would be a footgun. Construct a transient delegate here and forward.
+extern "C" WK_EXPORT bool WebKitGPUProcessCheckEntitlements(xpc_connection_t connection, xpc_object_t initializerMessage);
+
+bool WebKitGPUProcessCheckEntitlements(xpc_connection_t connection, xpc_object_t initializerMessage)
+{
+    WebKit::GPUServiceInitializerDelegate delegate(OSObjectPtr<xpc_connection_t> { connection }, initializerMessage);
+    return delegate.checkEntitlements();
+}
+
+// Thin C bridge to WebKit::connectedProcessIsSandboxed; Swift needs this to
+// decide whether to read the "user-directory-suffix" extra-init key (which the
+// C++ XPCServiceInitializerDelegate::getExtraInitializationData also gates on
+// !isClientSandboxed()).
+extern "C" WK_EXPORT bool WebKitGPUProcessConnectedProcessIsSandboxed(xpc_connection_t connection);
+
+bool WebKitGPUProcessConnectedProcessIsSandboxed(xpc_connection_t connection)
+{
+    return WebKit::connectedProcessIsSandboxed(connection);
+}
+
+// Thin C bridge to WTF::Thread::setGlobalMaxQOSClass(QOS_CLASS_UTILITY).
+// HAVE(QOS_CLASSES) is on for all Cocoa platforms (PlatformHave.h), so this
+// is unconditional here and Swift can call it unconditionally too.
+extern "C" WK_EXPORT void WebKitGPUProcessSetGlobalMaxQOSClassUtility();
+
+void WebKitGPUProcessSetGlobalMaxQOSClassUtility()
+{
+    WTF::Thread::setGlobalMaxQOSClass(QOS_CLASS_UTILITY);
+}
+
+#endif // ENABLE(GPU_PROCESS_SWIFT) && ENABLE(GPU_PROCESS)
