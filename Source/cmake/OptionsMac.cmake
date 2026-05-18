@@ -132,6 +132,7 @@ WEBKIT_OPTION_END()
 
 # rdar://177360289
 SET_AND_EXPOSE_TO_BUILD(ENABLE_BACK_FORWARD_LIST_SWIFT ON)
+SET_AND_EXPOSE_TO_BUILD(ENABLE_GPU_PROCESS_SWIFT ON)
 
 # -----------------------------------------------------------------------------
 # Toolchain / SDK resolution
