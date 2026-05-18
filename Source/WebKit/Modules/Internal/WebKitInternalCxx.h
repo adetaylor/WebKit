@@ -26,3 +26,9 @@
 // Add project-level C++ header files here to be able to access them from within Swift sources.
 
 #import "IPCTesterReceiverMessages.h"
+
+#if ENABLE(GPU_PROCESS_SWIFT)
+#import "GPUProcess.h"
+#import "WebKit2Initialize.h"
+#import "XPCServiceEntryPoint.h"
+#endif

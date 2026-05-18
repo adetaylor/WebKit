@@ -23,6 +23,8 @@
 
 #if ENABLE_GPU_PROCESS_SWIFT
 
+import WebKit_Internal
+
 @_silgen_name("WebKitGPUServiceInitializerImpl")
 private func webKitGPUServiceInitializerImpl(_ connection: OpaquePointer, _ initializerMessage: OpaquePointer?)
 
@@ -30,11 +32,11 @@ private func webKitGPUServiceInitializerImpl(_ connection: OpaquePointer, _ init
 // the call hierarchy entered via the XPC GPUServiceInitializer symbol (see
 // GPUServiceEntryPoint.swift). At present it wraps the existing C++
 // XPCServiceInitializer<WebKit::GPUProcess, WebKit::GPUServiceInitializerDelegate>
-// flow through a single C entry, WebKitGPUServiceInitializerImpl; subsequent
-// phases will lift the individual initialization steps (delegate setup, JSC
-// configuration, SDK-aligned behaviors, InitializeWebKit2, etc.) into Swift
-// while leaving the existing C++ WebKit::GPUProcess singleton in place as the
-// IPC message receiver.
+// flow through a single C entry, WebKitGPUServiceInitializerImpl, while
+// progressively translating individual initialization steps into Swift via
+// direct C++ interop into WebKit_Internal. The XPC service runtime calls
+// GPUServiceInitializer (provided as an @_cdecl in GPUServiceEntryPoint.swift)
+// which forwards into shared.initialize(...).
 public final class SwiftGPUProcess {
     public static let shared = SwiftGPUProcess()
 
@@ -42,6 +44,16 @@ public final class SwiftGPUProcess {
     }
 
     public func initialize(connection: OpaquePointer, initializerMessage: OpaquePointer?) {
+        // Record the auxiliary process type ahead of the still-C++ initialization
+        // body. WTF::setAuxiliaryProcessType is an idempotent setter on a
+        // process-global, and the XPCServiceInitializer template body invokes it
+        // with the same WTF::AuxiliaryProcessType::GPU value before
+        // InitializeWebKit2() — calling it from Swift first leaves that
+        // subsequent call a no-op. This is the first step migrated to a direct
+        // C++ interop call out of WebKit_Internal; future commits will move
+        // additional steps the same way (and remove the corresponding lines
+        // from WebKitGPUServiceInitializerImpl once enough are owned by Swift).
+        WTF.setAuxiliaryProcessType(WTF.AuxiliaryProcessType.GPU)
         webKitGPUServiceInitializerImpl(connection, initializerMessage)
     }
 }
