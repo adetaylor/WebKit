@@ -46,6 +46,9 @@ private func xpcDictionaryGetValue(_ dictionary: OpaquePointer, _ key: UnsafePoi
 @_silgen_name("xpc_dictionary_get_string")
 private func xpcDictionaryGetString(_ dictionary: OpaquePointer, _ key: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
 
+@_silgen_name("xpc_dictionary_get_data")
+private func xpcDictionaryGetData(_ dictionary: OpaquePointer, _ key: UnsafePointer<CChar>, _ length: UnsafeMutablePointer<Int>) -> UnsafeRawPointer?
+
 // SwiftGPUProcess is the Swift-side orchestrator for the GPU process. It owns
 // the call hierarchy entered via the XPC GPUServiceInitializer symbol (see
 // GPUServiceEntryPoint.swift). At present it wraps the existing C++
@@ -103,6 +106,34 @@ public final class SwiftGPUProcess {
                 }
             }
             WebKit.setJSCOptions(unsafeBitCast(initializerMessage, to: xpc_object_t.self), enableLockdownMode, enableEnhancedSecurity, /* isWebContentProcess */ false)
+        }
+
+        // Load the client SDK-aligned behaviors bitset out of the XPC initializer
+        // message and publish it to WTF. The C++ shim normally does this via
+        // GPUServiceInitializerDelegate::getClientSDKAlignedBehaviors, which reads
+        // the "client-sdk-aligned-behaviors" XPC data blob and memcpys it into a
+        // SDKAlignedBehaviors BitSet's storage. Reimplement that here against the
+        // initializer message directly (the delegate is still owned by the C++
+        // shim), then call WTF::setSDKAlignedBehaviors via C++ interop. The
+        // matching three lines in webKitGPUServiceInitializerImpl are gated out
+        // under ENABLE(GPU_PROCESS_SWIFT). If the XPC blob is absent or empty,
+        // skip the set call — the C++ delegate path returns false in the same
+        // case and the value is then left as the default-constructed bitset that
+        // would never have been published.
+        if let initializerMessage {
+            var dataLength: Int = 0
+            if let dataPointer = xpcDictionaryGetData(initializerMessage, "client-sdk-aligned-behaviors", &dataLength), dataLength > 0 {
+                var behaviors = WTF.SDKAlignedBehaviors()
+                let storageSize = MemoryLayout.size(ofValue: behaviors)
+                if dataLength <= storageSize {
+                    withUnsafeMutableBytes(of: &behaviors) { storage in
+                        if let base = storage.baseAddress {
+                            memcpy(base, dataPointer, dataLength)
+                        }
+                    }
+                    WTF.setSDKAlignedBehaviors(behaviors)
+                }
+            }
         }
 
         webKitGPUServiceInitializerImpl(connection, initializerMessage)

@@ -100,9 +100,18 @@ void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t i
         }
 #endif
 
+#if !ENABLE(GPU_PROCESS_SWIFT)
+        // Loading and publishing the client SDK-aligned behaviors bitset is
+        // owned by Swift (SwiftGPUProcess.initialize) when
+        // ENABLE_GPU_PROCESS_SWIFT is on; Swift reads the
+        // "client-sdk-aligned-behaviors" XPC data blob from the initializer
+        // message directly, memcpys it into a default-constructed
+        // SDKAlignedBehaviors via C++ interop, and calls
+        // WTF::setSDKAlignedBehaviors itself.
         WTF::SDKAlignedBehaviors clientSDKAlignedBehaviors;
         delegate.getClientSDKAlignedBehaviors(clientSDKAlignedBehaviors);
         WTF::setSDKAlignedBehaviors(clientSDKAlignedBehaviors);
+#endif
 
         parameters.processType = WebKit::GPUProcess::processType;
 #if !ENABLE(GPU_PROCESS_SWIFT)
