@@ -86,11 +86,19 @@ void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t i
         if (!delegate.getExtraInitializationData(parameters.extraInitializationData))
             WTF::exitProcess(EXIT_FAILURE);
 
+#if !ENABLE(GPU_PROCESS_SWIFT)
+        // setJSCOptions is owned by Swift (SwiftGPUProcess.initialize) when
+        // ENABLE_GPU_PROCESS_SWIFT is on; Swift reads the two JSC bool flags
+        // directly out of the "extra-initialization-data" XPC sub-dictionary
+        // and calls WebKit::setJSCOptions itself. getExtraInitializationData
+        // above still runs so parameters.extraInitializationData is populated
+        // for the later QoS check.
         if (initializerMessage) {
             bool enableLockdownMode = parameters.extraInitializationData.get<HashTranslatorASCIILiteral>("enable-lockdown-mode"_s) == "1"_s;
             bool enableEnhancedSecurity = parameters.extraInitializationData.get<HashTranslatorASCIILiteral>("enable-enhanced-security"_s) == "1"_s;
             WebKit::setJSCOptions(initializerMessage, enableLockdownMode ? WebKit::EnableLockdownMode::Yes : WebKit::EnableLockdownMode::No, enableEnhancedSecurity ? WebKit::EnableEnhancedSecurity::Yes : WebKit::EnableEnhancedSecurity::No, /* isWebContentProcess */ false);
         }
+#endif
 
         WTF::SDKAlignedBehaviors clientSDKAlignedBehaviors;
         delegate.getClientSDKAlignedBehaviors(clientSDKAlignedBehaviors);

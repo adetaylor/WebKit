@@ -23,6 +23,7 @@
 
 #if ENABLE_GPU_PROCESS_SWIFT
 
+import Foundation
 import WebKit_Internal
 
 @_silgen_name("WebKitGPUServiceInitializerImpl")
@@ -33,6 +34,17 @@ private func webKitGPUServiceInitializerImpl(_ connection: OpaquePointer, _ init
 // extern "C" declaration in XPCServiceEntryPoint.h.
 @_silgen_name("voucher_replace_default_voucher")
 private func voucher_replace_default_voucher()
+
+// xpc_object_t / xpc_connection_t in a Swift signature import as the
+// `id <OS_xpc_object>` protocol existential, which trips the same emit-clang-header
+// duplicate-declaration issue documented on GPUServiceInitializerSwiftEntry. Bind
+// these xpc lookups via @_silgen_name with OpaquePointer parameters instead;
+// xpc dispatches by symbol name so the language-boundary type is benign.
+@_silgen_name("xpc_dictionary_get_value")
+private func xpcDictionaryGetValue(_ dictionary: OpaquePointer, _ key: UnsafePointer<CChar>) -> OpaquePointer?
+
+@_silgen_name("xpc_dictionary_get_string")
+private func xpcDictionaryGetString(_ dictionary: OpaquePointer, _ key: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
 
 // SwiftGPUProcess is the Swift-side orchestrator for the GPU process. It owns
 // the call hierarchy entered via the XPC GPUServiceInitializer symbol (see
@@ -67,6 +79,31 @@ public final class SwiftGPUProcess {
         // the task, so calling it once early here is semantically identical to
         // doing it at the original template-body position later.
         voucher_replace_default_voucher()
+
+        // Configure JSC options from the XPC initializer message. The C++ shim
+        // would normally read the two JSC bool flags out of the
+        // parameters.extraInitializationData HashMap that getExtraInitializationData
+        // populates from the "extra-initialization-data" XPC sub-dictionary; pull
+        // them directly from that sub-dictionary here so this commit doesn't have
+        // to migrate getExtraInitializationData too. The matching
+        // `if (initializerMessage) { setJSCOptions(...) }` block in the C++ shim
+        // is gated out under ENABLE(GPU_PROCESS_SWIFT). The ordering is
+        // load-bearing: setJSCOptions RELEASE_ASSERTs that JSC has not yet been
+        // initialized, so it must run before InitializeWebKit2() — which is
+        // still inside webKitGPUServiceInitializerImpl below.
+        if let initializerMessage {
+            var enableLockdownMode = WebKit.EnableLockdownMode.No
+            var enableEnhancedSecurity = WebKit.EnableEnhancedSecurity.No
+            if let extraInitializationData = xpcDictionaryGetValue(initializerMessage, "extra-initialization-data") {
+                if let lockdown = xpcDictionaryGetString(extraInitializationData, "enable-lockdown-mode"), strcmp(lockdown, "1") == 0 {
+                    enableLockdownMode = .Yes
+                }
+                if let enhancedSecurity = xpcDictionaryGetString(extraInitializationData, "enable-enhanced-security"), strcmp(enhancedSecurity, "1") == 0 {
+                    enableEnhancedSecurity = .Yes
+                }
+            }
+            WebKit.setJSCOptions(unsafeBitCast(initializerMessage, to: xpc_object_t.self), enableLockdownMode, enableEnhancedSecurity, /* isWebContentProcess */ false)
+        }
 
         webKitGPUServiceInitializerImpl(connection, initializerMessage)
     }
