@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2019-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,9 +46,15 @@ public:
 
 #endif // ENABLE(GPU_PROCESS)
 
-extern "C" WK_EXPORT void GPU_SERVICE_INITIALIZER(xpc_connection_t connection, xpc_object_t initializerMessage);
+// The GPU process entry point shipped to xpc is named GPUServiceInitializer
+// (see GPU_SERVICE_INITIALIZER in XPCServiceEntryPoint.h). When
+// ENABLE(GPU_PROCESS_SWIFT) is enabled that symbol is provided by a Swift
+// @_cdecl wrapper (see GPUServiceEntryPoint.swift); the wrapper forwards
+// straight to this implementation so we can incrementally migrate the
+// initialization sequence into Swift without disturbing the XPC contract.
+extern "C" WK_EXPORT void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t initializerMessage);
 
-void GPU_SERVICE_INITIALIZER(xpc_connection_t connection, xpc_object_t initializerMessage)
+void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t initializerMessage)
 {
     WebKit::disableJSC([&] {
 #if ENABLE(GPU_PROCESS)
@@ -56,3 +62,14 @@ void GPU_SERVICE_INITIALIZER(xpc_connection_t connection, xpc_object_t initializ
 #endif // ENABLE(GPU_PROCESS)
     });
 }
+
+#if !ENABLE(GPU_PROCESS_SWIFT)
+
+extern "C" WK_EXPORT void GPU_SERVICE_INITIALIZER(xpc_connection_t connection, xpc_object_t initializerMessage);
+
+void GPU_SERVICE_INITIALIZER(xpc_connection_t connection, xpc_object_t initializerMessage)
+{
+    WebKitGPUServiceInitializerImpl(connection, initializerMessage);
+}
+
+#endif // !ENABLE(GPU_PROCESS_SWIFT)

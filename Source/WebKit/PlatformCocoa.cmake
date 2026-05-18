@@ -84,6 +84,16 @@ list(APPEND WebKit_SOURCES
     WebProcess/cocoa/LaunchServicesDatabaseManager.mm
 )
 
+if (ENABLE_GPU_PROCESS_SWIFT)
+    # Swift @_cdecl wrapper that provides the GPUServiceInitializer entry point
+    # consumed by the XPC service runtime. Forwards to the existing C++ impl
+    # (WebKitGPUServiceInitializerImpl in GPUServiceEntryPoint.mm) so we can
+    # land the Swift entry surface ahead of converting the initialization body.
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/EntryPoint/Cocoa/XPCService/GPUServiceEntryPoint.swift
+    )
+endif ()
+
 list(APPEND WebKit_PRIVATE_INCLUDE_DIRECTORIES
     "${CMAKE_BINARY_DIR}/libwebrtc/PrivateHeaders"
     "${WEBKIT_DIR}/GPUProcess/graphics/Model"
