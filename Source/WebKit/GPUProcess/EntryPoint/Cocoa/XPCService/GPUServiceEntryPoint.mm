@@ -127,7 +127,10 @@ void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t i
             WTF::exitProcess(EXIT_FAILURE);
 
         // Set the task default voucher to the current value (as propagated by XPC).
+#if !ENABLE(GPU_PROCESS_SWIFT)
+        // Owned by SwiftGPUProcess.initialize when ENABLE_GPU_PROCESS_SWIFT is on.
         voucher_replace_default_voucher();
+#endif
 
 #if HAVE(QOS_CLASSES)
         if (parameters.extraInitializationData.contains("always-runs-at-background-priority"_s))

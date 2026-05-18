@@ -28,6 +28,12 @@ import WebKit_Internal
 @_silgen_name("WebKitGPUServiceInitializerImpl")
 private func webKitGPUServiceInitializerImpl(_ connection: OpaquePointer, _ initializerMessage: OpaquePointer?)
 
+// <os/voucher_private.h> is gated on USE(APPLE_INTERNAL_SDK), so the C symbol is
+// declared explicitly here for the public-SDK build. Matches the public-SDK
+// extern "C" declaration in XPCServiceEntryPoint.h.
+@_silgen_name("voucher_replace_default_voucher")
+private func voucher_replace_default_voucher()
+
 // SwiftGPUProcess is the Swift-side orchestrator for the GPU process. It owns
 // the call hierarchy entered via the XPC GPUServiceInitializer symbol (see
 // GPUServiceEntryPoint.swift). At present it wraps the existing C++
@@ -54,6 +60,14 @@ public final class SwiftGPUProcess {
         // additional steps the same way (and remove the corresponding lines
         // from WebKitGPUServiceInitializerImpl once enough are owned by Swift).
         WTF.setAuxiliaryProcessType(WTF.AuxiliaryProcessType.GPU)
+
+        // Replace the task default voucher with whatever XPC propagated. The
+        // matching call in the C++ shim is gated out under ENABLE(GPU_PROCESS_SWIFT)
+        // — voucher_replace_default_voucher writes the propagated voucher into
+        // the task, so calling it once early here is semantically identical to
+        // doing it at the original template-body position later.
+        voucher_replace_default_voucher()
+
         webKitGPUServiceInitializerImpl(connection, initializerMessage)
     }
 }
