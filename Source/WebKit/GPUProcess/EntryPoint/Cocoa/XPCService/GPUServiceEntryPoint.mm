@@ -77,7 +77,16 @@ void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t i
 #if ENABLE(GPU_PROCESS)
         WebKit::GPUServiceInitializerDelegate delegate(WTF::move(connection), initializerMessage);
 
-#if !USE(RUNNINGBOARD)
+#if !USE(RUNNINGBOARD) && !ENABLE(GPU_PROCESS_SWIFT)
+        // The OS transaction that keeps the XPC service alive is owned by Swift
+        // (SwiftGPUProcess.initialize) when ENABLE_GPU_PROCESS_SWIFT is on; the
+        // Swift side calls os_transaction_create("WebKit XPC Service") via
+        // @_silgen_name and stashes the +1 retain in a process-lifetime static,
+        // matching the static NeverDestroyed<OSObjectPtr<...>> in
+        // WebKit::setOSTransaction. The outer !USE(RUNNINGBOARD) gate is
+        // preserved on the C++ side; on the Swift side USE(RUNNINGBOARD) isn't
+        // a visible conditional-compilation flag so the call is unconditional
+        // but harmless on RunningBoard platforms.
         SUPPRESS_RETAINPTR_CTOR_ADOPT WebKit::setOSTransaction(adoptOSObject(os_transaction_create("WebKit XPC Service")));
 #endif
 

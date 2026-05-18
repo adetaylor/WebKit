@@ -35,6 +35,16 @@ private func webKitGPUServiceInitializerImpl(_ connection: OpaquePointer, _ init
 @_silgen_name("voucher_replace_default_voucher")
 private func voucher_replace_default_voucher()
 
+// <os/transaction_private.h> is gated on USE(APPLE_INTERNAL_SDK), so declare the
+// C symbol explicitly here matching the public-SDK extern "C" declaration in
+// WTF/wtf/spi/darwin/XPCSPI.h: XPC_RETURNS_RETAINED os_transaction_t
+// os_transaction_create(const char *description). Return as OpaquePointer so we
+// don't need the os_object protocol existential at the language boundary; the
+// returned object is +1 retained and stashed in a process-lifetime static
+// (transactionToken below) so its refcount never drops to zero.
+@_silgen_name("os_transaction_create")
+private func os_transaction_create(_ description: UnsafePointer<CChar>) -> OpaquePointer?
+
 // xpc_object_t / xpc_connection_t in a Swift signature import as the
 // `id <OS_xpc_object>` protocol existential, which trips the same emit-clang-header
 // duplicate-declaration issue documented on GPUServiceInitializerSwiftEntry. Bind
@@ -61,10 +71,38 @@ private func xpcDictionaryGetData(_ dictionary: OpaquePointer, _ key: UnsafePoin
 public final class SwiftGPUProcess {
     public static let shared = SwiftGPUProcess()
 
+    // Process-lifetime storage for the os_transaction_t returned by
+    // os_transaction_create. The C++ shim stashes the equivalent in a
+    // static NeverDestroyed<OSObjectPtr<os_transaction_t>> inside
+    // WebKit::setOSTransaction; we hold the +1 retain that os_transaction_create
+    // hands back (XPC_RETURNS_RETAINED in the public-SDK declaration) in this
+    // static and never release it, matching that NeverDestroyed behavior. If
+    // Swift were to release this, the XPC service could be killed by SIGTERM
+    // during logout/reboot on platforms where we manage our own lifetime.
+    // nonisolated(unsafe) because we only write this once from initialize()
+    // before any concurrency starts.
+    nonisolated(unsafe) private static var transactionToken: OpaquePointer?
+
     private init() {
     }
 
     public func initialize(connection: OpaquePointer, initializerMessage: OpaquePointer?) {
+        // Leak an OS transaction so the XPC service stays alive for as long as
+        // we want it to (matching the C++ shim's `setOSTransaction(adoptOSObject(
+        // os_transaction_create("WebKit XPC Service")))` early in the template
+        // body). The C++ call is gated on !USE(RUNNINGBOARD) — on RunningBoard
+        // platforms the system manages our lifetime via process assertions, and
+        // creating an extra os_transaction_t there is harmless because nothing
+        // observes it. The Swift conditional-compilation flag set only carries
+        // ENABLE_*/HAVE_* macros (see _WEBKIT_CONFIG_FILE_VARIABLES in
+        // Source/cmake/WebKitMacros.cmake), so USE(RUNNINGBOARD) isn't visible
+        // to Swift; calling unconditionally is the simplest correct approach.
+        // os_transaction_create returns +1 (XPC_RETURNS_RETAINED), and we stash
+        // that retain in transactionToken for the process's lifetime.
+        if SwiftGPUProcess.transactionToken == nil {
+            SwiftGPUProcess.transactionToken = os_transaction_create("WebKit XPC Service")
+        }
+
         // Record the auxiliary process type ahead of the still-C++ initialization
         // body. WTF::setAuxiliaryProcessType is an idempotent setter on a
         // process-global, and the XPCServiceInitializer template body invokes it
