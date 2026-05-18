@@ -34,9 +34,14 @@
 #import "WebKit2Initialize.h"
 #import "XPCServiceEntryPoint.h"
 #import <JavaScriptCore/ExecutableAllocator.h>
+#import <JavaScriptCore/JSCConfig.h>
+#import <JavaScriptCore/Options.h>
 #import <WebCore/ProcessIdentifier.h>
+#import <wtf/Atomics.h>
+#import <wtf/MainThread.h>
 #import <wtf/OSObjectPtr.h>
 #import <wtf/Threading.h>
+#import <wtf/WTFConfig.h>
 #import <wtf/WTFProcess.h>
 #import <wtf/cocoa/RuntimeApplicationChecksCocoa.h>
 #import <wtf/text/WTFString.h>
@@ -238,6 +243,43 @@ extern "C" WK_EXPORT void WebKitGPUProcessSetGlobalMaxQOSClassUtility();
 void WebKitGPUProcessSetGlobalMaxQOSClassUtility()
 {
     WTF::Thread::setGlobalMaxQOSClass(QOS_CLASS_UTILITY);
+}
+
+// Typed bridges that reproduce the two halves of WebKit::disableJSC's body
+// (Source/WebKit/Shared/EntryPointUtilities/Cocoa/XPCService/XPCServiceEntryPoint.mm)
+// for the Swift path. The C++ template body in WebKitGPUServiceInitializerImpl
+// runs inside disableJSC([&] { ... }); the Swift orchestrator runs the body
+// itself, so the prologue (everything before the completion handler invocation)
+// and the epilogue (JSC::Config::finalize()) are wrapped here as plain C
+// entry points and called from SwiftGPUProcess.initialize before and after the
+// Swift body. The g_jscConfig / g_wtfConfig macros expand to inline
+// JSC::addressOfJSCConfig() / WTF::addressOfWTFConfig() dereferences and
+// JSC::Options::initialize takes a C++ callable, neither of which import
+// cleanly into Swift; keeping these as typed shims preserves a line-for-line
+// correspondence with WebKit::disableJSC's body.
+extern "C" WK_EXPORT void WebKitGPUProcessDisableJSCPrologue();
+
+void WebKitGPUProcessDisableJSCPrologue()
+{
+    g_jscConfig.vmCreationDisallowed = true;
+    g_jscConfig.vmEntryDisallowed = true;
+    g_wtfConfig.useSpecialAbortForExtraSecurityImplications = true;
+
+    WTF::initializeMainThread();
+    {
+        JSC::Options::initialize([] {
+            JSC::ExecutableAllocator::disableJIT();
+            JSC::Options::useWasm() = false;
+        });
+    }
+    WTF::compilerFence();
+}
+
+extern "C" WK_EXPORT void WebKitGPUProcessDisableJSCEpilogue();
+
+void WebKitGPUProcessDisableJSCEpilogue()
+{
+    JSC::Config::finalize();
 }
 
 #endif // ENABLE(GPU_PROCESS_SWIFT) && ENABLE(GPU_PROCESS)

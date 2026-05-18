@@ -94,6 +94,25 @@ private func webKitGPUProcessConnectedProcessIsSandboxed(_ connection: OpaquePoi
 @_silgen_name("WebKitGPUProcessSetGlobalMaxQOSClassUtility")
 private func webKitGPUProcessSetGlobalMaxQOSClassUtility()
 
+// Typed bridges that reproduce the two halves of WebKit::disableJSC's body
+// (Source/WebKit/Shared/EntryPointUtilities/Cocoa/XPCService/XPCServiceEntryPoint.mm)
+// for the Swift path. The C++ template body in WebKitGPUServiceInitializerImpl
+// runs inside disableJSC([&] { ... }); the Swift orchestrator runs the body
+// itself, so we call the prologue before the rest of initialize (it sets the
+// g_jscConfig / g_wtfConfig security flags, calls WTF::initializeMainThread,
+// runs JSC::Options::initialize with disableJIT + useWasm=false, and a
+// compilerFence) and the epilogue (JSC::Config::finalize) after, matching
+// the line-for-line behavior of disableJSC. g_jscConfig / g_wtfConfig are
+// macros that expand to inline addressOf*Config() dereferences and
+// JSC::Options::initialize takes a C++ callable, neither of which import
+// cleanly into Swift; the typed shims in GPUServiceEntryPoint.mm keep the
+// language boundary minimal.
+@_silgen_name("WebKitGPUProcessDisableJSCPrologue")
+private func webKitGPUProcessDisableJSCPrologue()
+
+@_silgen_name("WebKitGPUProcessDisableJSCEpilogue")
+private func webKitGPUProcessDisableJSCEpilogue()
+
 // MARK: - Parameter struct
 
 // Swift-side mirror of WebKit::AuxiliaryProcessInitializationParameters with
@@ -197,11 +216,15 @@ private func readExtraInitializationData(connection: OpaquePointer, initializerM
 //   initializeAuxiliaryProcess.
 //
 // The C++ template body runs inside disableJSC([&]{...}), which sets a few
-// g_jscConfig flags and calls JSC::Config::finalize() at the end. The Swift
-// path does not wrap its body in disableJSC: the load-bearing invariants
-// (setJSCOptions before InitializeWebKit2, etc.) are preserved by the explicit
-// step order here, and the smoke tests (GPUProcess.OnlyLaunchesGPUProcessWhenNecessary,
-// GPUProcess.CanvasBasicCrashHandling, etc.) pass without it.
+// g_jscConfig / g_wtfConfig security flags, initializes the main thread,
+// runs JSC::Options::initialize with disableJIT + useWasm=false, fences,
+// runs the body, then calls JSC::Config::finalize() at the end. The Swift
+// path performs that same setup via two typed bridges
+// (WebKitGPUProcessDisableJSCPrologue / WebKitGPUProcessDisableJSCEpilogue
+// in GPUServiceEntryPoint.mm): the prologue runs first thing in initialize
+// (before setOSTransaction) and the epilogue runs after the final bridge
+// call, preserving the load-bearing invariants (security flags set, JIT/Wasm
+// disabled, JSC config finalized) that the C++ disableJSC wrapper guarantees.
 public final class SwiftGPUProcess {
     public static let shared = SwiftGPUProcess()
 
@@ -221,6 +244,20 @@ public final class SwiftGPUProcess {
     }
 
     public func initialize(connection: OpaquePointer, initializerMessage: OpaquePointer?) {
+        // Step 0a: Run the disableJSC prologue (matches the first half of
+        // WebKit::disableJSC's body in XPCServiceEntryPoint.mm). Sets the
+        // g_jscConfig vmCreationDisallowed / vmEntryDisallowed flags and
+        // g_wtfConfig.useSpecialAbortForExtraSecurityImplications, initializes
+        // the main thread, calls JSC::Options::initialize([] { disableJIT();
+        // useWasm() = false; }), and emits a compiler fence. This must run
+        // before anything else (including setOSTransaction below) so that the
+        // security flags are in place before any code path can touch JSC, and
+        // before setJSCOptions further down which RELEASE_ASSERTs that
+        // g_jscConfig.initializeHasBeenCalled is false. The epilogue
+        // (JSC::Config::finalize) runs at the very end of this function,
+        // after the C++ bridge call, matching the disableJSC C++ shape.
+        webKitGPUProcessDisableJSCPrologue()
+
         // Step 1: Leak an OS transaction so the XPC service stays alive for as
         // long as we want it to (matching the C++ shim's `setOSTransaction(
         // adoptOSObject(os_transaction_create("WebKit XPC Service")))` early in
@@ -396,6 +433,14 @@ public final class SwiftGPUProcess {
         // process identifier, HashMap<String, String> built from the parallel
         // key/value C-string arrays).
         callIntoCxxBridge(connection: connection, params: params)
+
+        // Step 16: Run the disableJSC epilogue (matches the tail of
+        // WebKit::disableJSC's body — JSC::Config::finalize()). This freezes
+        // the JSC config so subsequent code cannot mutate it; the C++ template
+        // body relies on the disableJSC RAII shape to do this after the body
+        // returns, and we do the same here by calling the typed bridge after
+        // the body has finished orchestrating.
+        webKitGPUProcessDisableJSCEpilogue()
     }
 
     // Helper that converts the Swift `params` into the C primitives the typed
