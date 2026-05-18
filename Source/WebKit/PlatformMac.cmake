@@ -141,29 +141,11 @@ if (CMAKE_CXX_FLAGS_${_build_type_upper} MATCHES "NDEBUG" OR CMAKE_CXX_FLAGS MAT
     list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -DNDEBUG" "-Xcc -DRELEASE_WITHOUT_OPTIMIZATIONS")
 endif ()
 unset(_build_type_upper)
-# GET_WEBKIT_CONFIG_VARIABLES filters out falsy entries, so the importer would
-# miss every =0 and fall back to PlatformEnableCocoa.h defaults — which diverges
-# from cmakeconfig.h and shifts member offsets in headers Swift inlines.
-set(_swift_clang_config_vars ${_WEBKIT_CONFIG_FILE_VARIABLES})
-list(REMOVE_DUPLICATES _swift_clang_config_vars)
-foreach (_var IN LISTS _swift_clang_config_vars)
-    if (${${_var}})
-        list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -D${_var}=1")
-    else ()
-        list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -D${_var}=0")
-    endif ()
-endforeach ()
-unset(_swift_clang_config_vars)
 foreach (_dir IN LISTS WebKit_SWIFT_CLANG_INCLUDE_DIRS)
     list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -I${_dir}")
 endforeach ()
 
-# HAVE_MATERIAL_HOSTING is a PlatformHave.h preprocessor flag (macOS 16+),
-# not a CMake define. SWIFT_EXTRA_OPTIONS and SWIFT_INCLUDE_DIRECTORIES only
-# affect the typecheck custom command. Mirror everything to target_compile_options
-# so the actual Swift compilation sees the same flags.
-set(WebKit_SWIFT_EXTRA_OPTIONS -DHAVE_MATERIAL_HOSTING)
-target_compile_options(WebKit PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:-DHAVE_MATERIAL_HOSTING>")
+set(WebKit_SWIFT_EXTRA_OPTIONS "")
 foreach (_pair IN LISTS WebKit_SWIFT_CLANG_FLAG_PAIRS)
     target_compile_options(WebKit PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:SHELL:${_pair}>")
     string(REPLACE " " ";" _split "${_pair}")

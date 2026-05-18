@@ -870,6 +870,7 @@ message(STATUS "Copying generate-unified-source-bundles.py to: ${WTF_SCRIPTS_DIR
 
 file(COPY
     ../Scripts/generate-unified-source-bundles.py
+    ../Scripts/generate-platform-args
     DESTINATION ${WTF_SCRIPTS_DIR}
 )
 

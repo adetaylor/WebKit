@@ -733,7 +733,7 @@ macro(WEBKIT_CREATE_SYMLINK target src dest)
         COMMENT "Create symlink from ${src} to ${dest}")
 endmacro()
 
-function(_webkit_setup_swift_header_deps _target _stamp _header)
+function(_webkit_setup_swift_header_deps _target _stamp _header _resp)
     # Discover _CopyHeaders/_CopyPrivateHeaders targets for this target and its
     # direct framework dependencies. Called via cmake_language(DEFER CALL ...)
     # so targets declared after WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER
@@ -788,13 +788,18 @@ function(_webkit_setup_swift_header_deps _target _stamp _header)
     # sources makes the swift compile see it as an explicit input: when the
     # stamp updates (i.e. a tracked C++ header changed), the trigger is
     # re-touched, and Ninja re-invokes the swift compile.
+    #
+    # The trigger also depends on the platform-swift-args response file: when
+    # cmakeconfig.h or any Platform header changes, the resp is regenerated,
+    # the trigger is re-touched, and the main swift compile (which consumes
+    # @${_resp} via target_compile_options) reruns with the new flags.
     set(_trigger_path "${CMAKE_CURRENT_BINARY_DIR}/${_target}_SwiftRebuildTrigger.swift")
     if (NOT EXISTS "${_trigger_path}")
         file(WRITE "${_trigger_path}" "// Auto-generated; mtime tracks ${_target}'s Swift emit-clang-header stamp.\n")
     endif ()
     add_custom_command(
         OUTPUT "${_trigger_path}"
-        DEPENDS "${_stamp}"
+        DEPENDS "${_stamp}" "${_resp}"
         COMMAND ${CMAKE_COMMAND} -E touch "${_trigger_path}"
         COMMENT "Refreshing ${_target} Swift rebuild trigger"
     )
@@ -811,6 +816,83 @@ function(_webkit_setup_swift_header_deps _target _stamp _header)
     else ()
         target_sources(${_target} PRIVATE ${_header})
     endif ()
+endfunction()
+
+# Build-time helper: defines an add_custom_command that writes
+# ${_resp_path}, a swiftc @-response file containing the platform-derived
+# flags. Mirrors the Xcode "Generate Swift platform args" build phase.
+#
+# Output format (one token per line, swiftc-response-file convention):
+#   -DNAME              for every truthy HAVE_/USE_/ENABLE_/WTF_PLATFORM_/ASSERT_
+#                       macro that wtf/Platform.h derives (Swift #if conditions)
+#   -Xcc -DNAME=VALUE   for every entry in cmakeconfig.h (clang importer seed)
+#
+# Build-time (rather than configure-time) is required so the staged WTF
+# headers exist when the preprocessor runs (clean builds otherwise fail).
+# clang's -MD -MF writes a depfile listing every transitive header, which
+# cmake's DEPFILE feeds to ninja, so the resp is rebuilt whenever any tracked
+# Platform header changes — without a hardcoded file list.
+#
+# Response file contents bypass swiftc-wrapper.sh's argument loop: the wrapper
+# sees `@<path>` as a single token and forwards it verbatim, so the bare -D
+# flags inside reach Swift's #if without being doubled into clang's view.
+function(_webkit_generate_platform_swift_args _target _resp_path _ordering_dep)
+    set(_depfile "${_resp_path}.d")
+    # /dev/null can't be used as the clang input because its mtime is "now",
+    # so the depfile-driven dirty check would always fire. Use a stable empty
+    # file in the build tree instead.
+    set(_empty_input "${CMAKE_BINARY_DIR}/CMakeFiles/empty.cpp")
+    if (NOT EXISTS "${_empty_input}")
+        file(WRITE "${_empty_input}" "")
+    endif ()
+    set(_clang_cmd
+        ${CMAKE_CXX_COMPILER}
+        -x c++ -std=c++2b
+        -E -P -dM
+        -MD -MF "${_depfile}" -MT "${_resp_path}"
+        -D __WK_GENERATING_PLATFORM_ARGS__
+        # The preprocessor never sets __OPTIMIZE__, so wtf/Compiler.h would
+        # #error in any non-Debug build. Mirror Xcode's generate-platform-args,
+        # which unconditionally defines this for the same reason.
+        -D RELEASE_WITHOUT_OPTIMIZATIONS
+        -I "${WTF_FRAMEWORK_HEADERS_DIR}"
+        -I "${CMAKE_BINARY_DIR}"
+        -include cmakeconfig.h
+        -include wtf/Platform.h
+    )
+    if (CMAKE_OSX_SYSROOT)
+        list(APPEND _clang_cmd "-isysroot" "${CMAKE_OSX_SYSROOT}")
+    endif ()
+    if (CMAKE_Swift_COMPILER_TARGET)
+        list(APPEND _clang_cmd "-target" "${CMAKE_Swift_COMPILER_TARGET}")
+    endif ()
+    if (WEBKIT_ADDITIONS_INCLUDE_PATH)
+        list(APPEND _clang_cmd "-I" "${WEBKIT_ADDITIONS_INCLUDE_PATH}")
+    endif ()
+    # NDEBUG affects ASSERT_ENABLED -> ENABLE_SECURITY_ASSERTIONS -> struct layouts.
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" _build_type_upper)
+    if (CMAKE_CXX_FLAGS_${_build_type_upper} MATCHES "NDEBUG" OR CMAKE_CXX_FLAGS MATCHES "NDEBUG")
+        list(APPEND _clang_cmd "-DNDEBUG")
+    endif ()
+    list(APPEND _clang_cmd "${_empty_input}")
+
+    add_custom_command(
+        OUTPUT "${_resp_path}"
+        COMMAND ${Python_EXECUTABLE}
+            "${WTF_SCRIPTS_DIR}/generate-platform-args"
+            --cmake
+            --output "${_resp_path}"
+            --cmakeconfig "${CMAKE_BINARY_DIR}/cmakeconfig.h"
+            --
+            ${_clang_cmd}
+        DEPFILE "${_depfile}"
+        DEPENDS
+            "${WTF_SCRIPTS_DIR}/generate-platform-args"
+            "${CMAKE_BINARY_DIR}/cmakeconfig.h"
+            ${_ordering_dep}
+        COMMENT "Generating ${_target} platform-swift-args.resp"
+        VERBATIM
+    )
 endfunction()
 
 macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_name _interop_module_path _output_header)
@@ -835,17 +917,17 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
         target_compile_definitions(${_target} PRIVATE "WEBKIT_SWIFT_STDLIB_LIBRARY_PATH=\"${_swift_runtime_library_path}\"")
 
         # Assemble arguments which need to be passed to swiftc.
-        # Add WebKit's various feature flags as -D directives to the Swift compiler.
-        GET_WEBKIT_CONFIG_VARIABLES(_swift_definitions)
-        list(TRANSFORM _swift_definitions PREPEND "-D")
-        set(_swift_options ${_swift_definitions})
-        set(_swift_xcc_options "")
-        foreach (item IN LISTS _swift_options)
-            list(APPEND _swift_xcc_options "-Xcc" ${item})
-        endforeach ()
+        # The platform-derived feature flags (HAVE_/USE_/ENABLE_/WTF_PLATFORM_/
+        # ASSERT_) plus the cmakeconfig.h seed defines for the clang importer
+        # are produced as a build-time @-response file. The custom command that
+        # writes it is created later (after _swift_options has been assembled)
+        # so it can DEPEND on the SwiftGeneratedDeps placeholder; we just thread
+        # the @-flag here.
+        set(_resp_path "${CMAKE_CURRENT_BINARY_DIR}/${_target}.platform-swift-args.resp")
+        set(_swift_options "@${_resp_path}")
         get_directory_property(_dir_defs COMPILE_DEFINITIONS)
         foreach (_def IN LISTS _dir_defs)
-            list(APPEND _swift_xcc_options "-Xcc" "-D${_def}")
+            list(APPEND _swift_options "-Xcc" "-D${_def}")
         endforeach ()
         # Other options needed by Swift for C++ interop, including the location
         # of the modulemap and hader for WebKit's internal "APIs" which we
@@ -1006,10 +1088,13 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
         # call populates it with all generated (binary-dir) headers for this target
         # once ${_target}_HEADERS and ${_target}_DERIVED_SOURCES are fully known.
         add_custom_target(${_target}_SwiftGeneratedDeps)
+        # Now that the placeholder exists, register the build-time custom
+        # command that produces ${_resp_path}.
+        _webkit_generate_platform_swift_args(${_target} "${_resp_path}" ${_target}_SwiftGeneratedDeps)
         add_custom_command(
             OUTPUT ${_header_stamp_path}
             BYPRODUCTS ${_header_path}
-            DEPENDS ${_swift_sources} ${_target}_SwiftGeneratedDeps
+            DEPENDS ${_swift_sources} ${_target}_SwiftGeneratedDeps "${_resp_path}"
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             COMMAND
                 ${CMAKE_Swift_COMPILER} --original-swift-compiler=${ORIGINAL_Swift_COMPILER} -typecheck
@@ -1020,7 +1105,6 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
                 ${_swift_private_frameworks_flag}
                 ${_swift_wka_flag}
                 ${_swift_include_dirs}
-                ${_swift_xcc_options}
                 ${_swift_sources}
                 -module-name ${_module_name}
                 -Xfrontend -emit-clang-header-min-access -Xfrontend internal
@@ -1043,6 +1127,6 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
         # _webkit_setup_swift_header_deps sees targets declared after this macro
         # call (e.g. ${_target}_CopyHeaders is often created later in the same file).
         cmake_language(DEFER CALL _webkit_setup_swift_header_deps
-            "${_target}" "${_header_stamp_path}" "${_header_path}")
+            "${_target}" "${_header_stamp_path}" "${_header_path}" "${_resp_path}")
     endif ()
 endmacro()

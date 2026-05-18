@@ -885,19 +885,6 @@ if (NOT APPLE AND SWIFT_REQUIRED)
         "-Xcc -D__glibcxx_want_coroutine=1"
         "-Xcc -fmodule-map-file=${WTF_FRAMEWORK_HEADERS_DIR}/wtf/module.modulemap"
     )
-    # Mirror cmake config variables as -Xcc -D so ENABLE()/HAVE() macros in
-    # C++ headers agree with the regular C++ compilation when the Clang importer
-    # compiles them as part of Swift's C++ interop modules.
-    GET_WEBKIT_CONFIG_VARIABLES(_swift_clang_config_vars)
-    list(REMOVE_DUPLICATES _swift_clang_config_vars)
-    foreach (_var IN LISTS _swift_clang_config_vars)
-        if (${${_var}})
-            list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -D${_var}=1")
-        else ()
-            list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -D${_var}=0")
-        endif ()
-    endforeach ()
-    unset(_swift_clang_config_vars)
     foreach (_dir IN LISTS WebKit_SWIFT_CLANG_INCLUDE_DIRS)
         list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -I${_dir}")
     endforeach ()
@@ -1260,12 +1247,6 @@ if (ENABLE_BACK_FORWARD_LIST_SWIFT)
 endif ()
 
 list(APPEND WebKit_SOURCES ${WebKit_DERIVED_SOURCES})
-
-if (SWIFT_REQUIRED)
-    # WebKit_SwiftCxxHeader is created by a DEFER CALL, so defer the dep wiring too.
-    add_custom_target(WebKit_DerivedHeadersForSwift DEPENDS ${WebKit_HEADERS} ${WebKit_DERIVED_SOURCES})
-    cmake_language(DEFER CALL add_dependencies WebKit_SwiftCxxHeader WebKit_DerivedHeadersForSwift)
-endif ()
 
 WEBKIT_COMPUTE_SOURCES(WebKit)
 
