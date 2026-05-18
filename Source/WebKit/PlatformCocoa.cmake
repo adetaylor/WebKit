@@ -86,11 +86,13 @@ list(APPEND WebKit_SOURCES
 
 if (ENABLE_GPU_PROCESS_SWIFT)
     # Swift @_cdecl wrapper that provides the GPUServiceInitializer entry point
-    # consumed by the XPC service runtime. Forwards to the existing C++ impl
-    # (WebKitGPUServiceInitializerImpl in GPUServiceEntryPoint.mm) so we can
-    # land the Swift entry surface ahead of converting the initialization body.
+    # consumed by the XPC service runtime, plus the SwiftGPUProcess orchestrator
+    # that owns the post-entry call hierarchy. Both forward to the existing C++
+    # impl (WebKitGPUServiceInitializerImpl in GPUServiceEntryPoint.mm) so we
+    # can land the Swift surface ahead of converting the initialization body.
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/EntryPoint/Cocoa/XPCService/GPUServiceEntryPoint.swift
+        ${WEBKIT_DIR}/GPUProcess/SwiftGPUProcess.swift
     )
 endif ()
 

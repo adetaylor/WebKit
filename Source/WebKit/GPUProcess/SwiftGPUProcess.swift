@@ -12,7 +12,7 @@
 // THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
 // THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. AND ITS CONTRIBUTORS
 // BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
@@ -23,24 +23,27 @@
 
 #if ENABLE_GPU_PROCESS_SWIFT
 
-import Foundation
+@_silgen_name("WebKitGPUServiceInitializerImpl")
+private func webKitGPUServiceInitializerImpl(_ connection: OpaquePointer, _ initializerMessage: OpaquePointer?)
 
-// The XPC service Info.plist declares GPUServiceInitializer as the principal
-// initializer (resolved via STRINGIZE_VALUE_OF(GPU_SERVICE_INITIALIZER) in
-// XPCServiceMain.mm). With ENABLE_GPU_PROCESS_SWIFT enabled, this Swift
-// @_cdecl provides that symbol and immediately routes the call into the
-// SwiftGPUProcess orchestrator, which currently delegates to the existing
-// C++ implementation. Subsequent phases will lift the initialization body
-// (delegate creation, JSC suppression, XPCServiceInitializer<...>) into Swift.
-//
-// xpc_connection_t / xpc_object_t are typedefs for `id <OS_xpc_object>`; emitting
-// the function via either spelling into WebKit's emit-clang-header trips a
-// conflicting-declaration error when both forms appear at file scope and in the
-// `_impl` namespace. Take OpaquePointer so the bridged header stays consistent;
-// the XPC runtime locates this entry point by symbol name, not by signature.
-@_cdecl("GPUServiceInitializer")
-public func GPUServiceInitializerSwiftEntry(_ connection: OpaquePointer, _ initializerMessage: OpaquePointer?) {
-    SwiftGPUProcess.shared.initialize(connection: connection, initializerMessage: initializerMessage)
+// SwiftGPUProcess is the Swift-side orchestrator for the GPU process. It owns
+// the call hierarchy entered via the XPC GPUServiceInitializer symbol (see
+// GPUServiceEntryPoint.swift). At present it wraps the existing C++
+// XPCServiceInitializer<WebKit::GPUProcess, WebKit::GPUServiceInitializerDelegate>
+// flow through a single C entry, WebKitGPUServiceInitializerImpl; subsequent
+// phases will lift the individual initialization steps (delegate setup, JSC
+// configuration, SDK-aligned behaviors, InitializeWebKit2, etc.) into Swift
+// while leaving the existing C++ WebKit::GPUProcess singleton in place as the
+// IPC message receiver.
+public final class SwiftGPUProcess {
+    public static let shared = SwiftGPUProcess()
+
+    private init() {
+    }
+
+    public func initialize(connection: OpaquePointer, initializerMessage: OpaquePointer?) {
+        webKitGPUServiceInitializerImpl(connection, initializerMessage)
+    }
 }
 
 #endif // ENABLE_GPU_PROCESS_SWIFT
