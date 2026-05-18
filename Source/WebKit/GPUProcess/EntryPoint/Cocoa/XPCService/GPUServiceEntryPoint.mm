@@ -25,10 +25,24 @@
 
 #import "config.h"
 
+#import "AuxiliaryProcess.h"
 #import "EnvironmentUtilities.h"
 #import "GPUProcess.h"
 #import "WKBase.h"
+#import "WebKit2Initialize.h"
 #import "XPCServiceEntryPoint.h"
+#import <JavaScriptCore/ExecutableAllocator.h>
+#import <wtf/OSObjectPtr.h>
+#import <wtf/Threading.h>
+#import <wtf/WTFProcess.h>
+#import <wtf/cocoa/RuntimeApplicationChecksCocoa.h>
+
+#if USE(APPLE_INTERNAL_SDK)
+#include <os/voucher_private.h>
+#endif
+#if !USE(RUNNINGBOARD)
+#import <wtf/darwin/XPCExtras.h>
+#endif
 
 #if ENABLE(GPU_PROCESS)
 
@@ -50,15 +64,77 @@ public:
 // (see GPU_SERVICE_INITIALIZER in XPCServiceEntryPoint.h). When
 // ENABLE(GPU_PROCESS_SWIFT) is enabled that symbol is provided by a Swift
 // @_cdecl wrapper (see GPUServiceEntryPoint.swift); the wrapper forwards
-// straight to this implementation so we can incrementally migrate the
-// initialization sequence into Swift without disturbing the XPC contract.
+// straight to WebKitGPUServiceInitializerImpl below so Swift can migrate
+// individual lines out of this body one at a time. The body itself is the
+// XPCServiceInitializer<GPUProcess, GPUServiceInitializerDelegate, false>
+// template body inlined — keep it line-for-line identical to the template
+// when adding new lines so future cross-process refactors stay tractable.
 extern "C" WK_EXPORT void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t initializerMessage);
 
 void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t initializerMessage)
 {
     WebKit::disableJSC([&] {
 #if ENABLE(GPU_PROCESS)
-        WebKit::XPCServiceInitializer<WebKit::GPUProcess, WebKit::GPUServiceInitializerDelegate>(connection, initializerMessage);
+        WebKit::GPUServiceInitializerDelegate delegate(WTF::move(connection), initializerMessage);
+
+#if !USE(RUNNINGBOARD)
+        SUPPRESS_RETAINPTR_CTOR_ADOPT WebKit::setOSTransaction(adoptOSObject(os_transaction_create("WebKit XPC Service")));
+#endif
+
+        WebKit::AuxiliaryProcessInitializationParameters parameters;
+
+        if (!delegate.getExtraInitializationData(parameters.extraInitializationData))
+            WTF::exitProcess(EXIT_FAILURE);
+
+        if (initializerMessage) {
+            bool enableLockdownMode = parameters.extraInitializationData.get<HashTranslatorASCIILiteral>("enable-lockdown-mode"_s) == "1"_s;
+            bool enableEnhancedSecurity = parameters.extraInitializationData.get<HashTranslatorASCIILiteral>("enable-enhanced-security"_s) == "1"_s;
+            WebKit::setJSCOptions(initializerMessage, enableLockdownMode ? WebKit::EnableLockdownMode::Yes : WebKit::EnableLockdownMode::No, enableEnhancedSecurity ? WebKit::EnableEnhancedSecurity::Yes : WebKit::EnableEnhancedSecurity::No, /* isWebContentProcess */ false);
+        }
+
+        WTF::SDKAlignedBehaviors clientSDKAlignedBehaviors;
+        delegate.getClientSDKAlignedBehaviors(clientSDKAlignedBehaviors);
+        WTF::setSDKAlignedBehaviors(clientSDKAlignedBehaviors);
+
+        parameters.processType = WebKit::GPUProcess::processType;
+#if !ENABLE(GPU_PROCESS_SWIFT)
+        // setAuxiliaryProcessType is owned by Swift (SwiftGPUProcess.initialize)
+        // when ENABLE_GPU_PROCESS_SWIFT is on; the call is an idempotent
+        // global setter so dropping it here keeps semantics identical.
+        WTF::setAuxiliaryProcessType(parameters.processType);
+#endif
+
+        WebKit::InitializeWebKit2();
+
+        if (!delegate.checkEntitlements())
+            WTF::exitProcess(EXIT_FAILURE);
+
+        if (!delegate.getConnectionIdentifier(parameters.connectionIdentifier))
+            WTF::exitProcess(EXIT_FAILURE);
+
+        if (!delegate.getClientIdentifier(parameters.clientIdentifier))
+            WTF::exitProcess(EXIT_FAILURE);
+
+        // The host process may not have a bundle identifier (e.g. a command line app), so don't require one.
+        delegate.getClientBundleIdentifier(parameters.clientBundleIdentifier);
+
+        std::optional<WebCore::ProcessIdentifier> processIdentifier;
+        if (!delegate.getProcessIdentifier(processIdentifier))
+            WTF::exitProcess(EXIT_FAILURE);
+        parameters.processIdentifier = *processIdentifier;
+
+        if (!delegate.getClientProcessName(parameters.uiProcessName))
+            WTF::exitProcess(EXIT_FAILURE);
+
+        // Set the task default voucher to the current value (as propagated by XPC).
+        voucher_replace_default_voucher();
+
+#if HAVE(QOS_CLASSES)
+        if (parameters.extraInitializationData.contains("always-runs-at-background-priority"_s))
+            WTF::Thread::setGlobalMaxQOSClass(QOS_CLASS_UTILITY);
+#endif
+
+        WebKit::initializeAuxiliaryProcess<WebKit::GPUProcess>(WTF::move(parameters));
 #endif // ENABLE(GPU_PROCESS)
     });
 }
