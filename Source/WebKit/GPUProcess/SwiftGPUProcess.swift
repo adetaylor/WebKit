@@ -246,6 +246,25 @@ public func swiftGPUProcessSetMockMediaDeviceIsEphemeral(_ persistentId: UnsafeP
 }
 #endif
 
+// Phase 3 handler: ScreenCaptureKitSharingSessionManager::cancelGetDisplayMediaPrompt.
+// This handler is gated on HAVE(SCREEN_CAPTURE_KIT) on the C++ side, but
+// HAVE_SCREEN_CAPTURE_KIT is defined in Source/WTF/wtf/PlatformHave.h and is
+// not propagated to Swift as a conditional-compilation flag (it's not in
+// cmake's _WEBKIT_CONFIG_FILE_VARIABLES, which only includes options exposed
+// via EXPOSE_VARIABLE_TO_BUILD / SET_AND_EXPOSE_TO_BUILD). The Swift @_cdecl
+// is therefore defined unconditionally; the C++ gate keeps both the bridge
+// symbol and the call site absent when SCREEN_CAPTURE_KIT is off, so the
+// Swift function is never reached in that configuration.
+// `public` on the @_cdecl is load-bearing for symbol export.
+
+@_silgen_name("WebKitGPUProcessScreenCaptureKitSharingSessionManagerCancelGetDisplayMediaPrompt")
+private func webKitGPUProcessScreenCaptureKitSharingSessionManagerCancelGetDisplayMediaPrompt()
+
+@_cdecl("swiftGPUProcessCancelGetDisplayMediaPrompt")
+public func swiftGPUProcessCancelGetDisplayMediaPrompt() {
+    webKitGPUProcessScreenCaptureKitSharingSessionManagerCancelGetDisplayMediaPrompt()
+}
+
 // MARK: - Parameter struct
 
 // Swift-side mirror of WebKit::AuxiliaryProcessInitializationParameters with
