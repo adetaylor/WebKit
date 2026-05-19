@@ -926,7 +926,6 @@ if (NOT APPLE AND SWIFT_REQUIRED)
     endforeach ()
 endif ()
 
-set(WebKit_SWIFT_TYPECHECK_EXTRA_DEPENDS ${WebKit_DERIVED_SOURCES_DIR}/WebKitLogDefinitions.h)
 WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebKit WebKit
     "${WebKit_SWIFT_INTEROP_MODULE_PATH}"
     "${WebKit_DERIVED_SOURCES_DIR}/WebKit-Swift-CPP.h")
@@ -1261,11 +1260,6 @@ if (ENABLE_BACK_FORWARD_LIST_SWIFT)
 endif ()
 
 list(APPEND WebKit_SOURCES ${WebKit_DERIVED_SOURCES})
-
-if (TARGET WebKit_SwiftCxxHeader)
-    add_custom_target(WebKit_DerivedHeadersForSwift DEPENDS ${WebKit_HEADERS} ${WebKit_DERIVED_SOURCES})
-    add_dependencies(WebKit_SwiftCxxHeader WebKit_DerivedHeadersForSwift)
-endif ()
 
 WEBKIT_COMPUTE_SOURCES(WebKit)
 

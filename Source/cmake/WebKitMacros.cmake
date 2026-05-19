@@ -752,6 +752,29 @@ function(_webkit_setup_swift_header_deps _target _stamp _header)
     endforeach ()
     list(REMOVE_DUPLICATES _deps)
 
+    # Collect all generated (binary-dir) headers/sources that Swift may import.
+    # ${_target}_HEADERS and ${_target}_DERIVED_SOURCES are fully populated by
+    # the time this deferred function runs. We find those that live under
+    # CMAKE_BINARY_DIR (i.e., produced by add_custom_command) and wire them into
+    # the ${_target}_SwiftGeneratedDeps placeholder target created at macro time.
+    # This covers both the header-emission add_custom_command and the main Swift
+    # compilation without hard-coding any specific generated file names.
+    set(_generated_files "")
+    foreach (_f IN LISTS ${_target}_HEADERS ${_target}_DERIVED_SOURCES)
+        cmake_path(IS_PREFIX CMAKE_BINARY_DIR "${_f}" NORMALIZE _in_build)
+        if (_in_build)
+            list(APPEND _generated_files "${_f}")
+        endif ()
+    endforeach ()
+    if (_generated_files)
+        # File-level DEPENDS must be fixed at target-creation time, so create a
+        # separate inner target and chain it into the placeholder.
+        add_custom_target(${_target}_SwiftGenFileOrderDeps DEPENDS ${_generated_files})
+        add_dependencies(${_target}_SwiftGeneratedDeps ${_target}_SwiftGenFileOrderDeps)
+    endif ()
+    # Ensure the main Swift compilation also waits for all generated files.
+    add_dependencies(${_target} ${_target}_SwiftGeneratedDeps)
+
     if (_deps)
         # Wrap the header-generation command in its own custom target so it
         # does NOT inherit cmake_object_order_depends_target_${_target} (which
@@ -952,10 +975,14 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
 
         set(_header_tmp_path "${_header_path}.tmp")
         set(_header_stamp_path "${_header_path}.stamp")
+        # Placeholder ordering target. The deferred _webkit_setup_swift_header_deps
+        # call populates it with all generated (binary-dir) headers for this target
+        # once ${_target}_HEADERS and ${_target}_DERIVED_SOURCES are fully known.
+        add_custom_target(${_target}_SwiftGeneratedDeps)
         add_custom_command(
             OUTPUT ${_header_stamp_path}
             BYPRODUCTS ${_header_path}
-            DEPENDS ${_swift_sources} ${${_target}_SWIFT_TYPECHECK_EXTRA_DEPENDS}
+            DEPENDS ${_swift_sources} ${_target}_SwiftGeneratedDeps
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             COMMAND
                 ${CMAKE_Swift_COMPILER} --original-swift-compiler=${ORIGINAL_Swift_COMPILER} -typecheck
@@ -971,6 +998,21 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
                 -module-name ${_module_name}
                 -Xfrontend -emit-clang-header-min-access -Xfrontend internal
                 -emit-clang-header-path ${_header_tmp_path}
+                # -emit-dependencies writes a Make-format depfile recording every
+                # file this invocation read, which Ninja consumes via the DEPFILE
+                # directive below.  This gives automatic incremental-rebuild
+                # detection for Swift sources, .swiftinterface framework modules,
+                # and — crucially — C++ headers imported through the clang importer.
+                #
+                # One current limitation: headers belonging to a module declared
+                # with the [system] attribute in its module.modulemap are omitted
+                # from the depfile (the clang importer follows the same convention
+                # as clang's -MMD flag, which excludes system headers).  WebKit's
+                # sub-libraries (WTF, PAL, bmalloc, …) currently use [system] to
+                # suppress spurious warnings, so their headers are not tracked here.
+                # When [system] is eventually removed from those modulemaps the
+                # dependency edges will spring into life automatically with no
+                # further changes needed in this file.
                 -emit-dependencies
             COMMAND
                 ${CMAKE_COMMAND} -E copy_if_different ${_header_tmp_path} ${_header_path}
