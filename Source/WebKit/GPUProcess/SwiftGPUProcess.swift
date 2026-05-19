@@ -184,6 +184,44 @@ private func webKitGPUProcessSetMockRealtimeMediaSourceCenterEnabled(_ isEnabled
 public func swiftGPUProcessSetMockCaptureDevicesEnabled(_ isEnabled: Bool) {
     webKitGPUProcessSetMockRealtimeMediaSourceCenterEnabled(isEnabled)
 }
+
+// Phase 3 batch: four additional mock-media static handlers migrated together.
+// Each follows the same shape as swiftGPUProcessSetMockCaptureDevicesEnabled
+// above — a typed extern "C" bridge in GPUProcess.cpp does the WebCore static
+// call, and the @_cdecl entry point here owns the Swift-side handler body.
+// `public` is load-bearing on every @_cdecl (see prior gotcha note).
+
+@_silgen_name("WebKitGPUProcessMockMediaCenterSetDevicesEmpty")
+private func webKitGPUProcessMockMediaCenterSetDevicesEmpty()
+
+@_cdecl("swiftGPUProcessClearMockMediaDevices")
+public func swiftGPUProcessClearMockMediaDevices() {
+    webKitGPUProcessMockMediaCenterSetDevicesEmpty()
+}
+
+@_silgen_name("WebKitGPUProcessMockMediaCenterResetDevices")
+private func webKitGPUProcessMockMediaCenterResetDevices()
+
+@_cdecl("swiftGPUProcessResetMockMediaDevices")
+public func swiftGPUProcessResetMockMediaDevices() {
+    webKitGPUProcessMockMediaCenterResetDevices()
+}
+
+@_silgen_name("WebKitGPUProcessMockMediaCenterSetCaptureDevicesInterrupted")
+private func webKitGPUProcessMockMediaCenterSetCaptureDevicesInterrupted(_ isCameraInterrupted: Bool, _ isMicrophoneInterrupted: Bool)
+
+@_cdecl("swiftGPUProcessSetMockCaptureDevicesInterrupted")
+public func swiftGPUProcessSetMockCaptureDevicesInterrupted(_ isCameraInterrupted: Bool, _ isMicrophoneInterrupted: Bool) {
+    webKitGPUProcessMockMediaCenterSetCaptureDevicesInterrupted(isCameraInterrupted, isMicrophoneInterrupted)
+}
+
+@_silgen_name("WebKitGPUProcessMockMediaCenterTriggerCaptureConfigurationChange")
+private func webKitGPUProcessMockMediaCenterTriggerCaptureConfigurationChange(_ forCamera: Bool, _ forMicrophone: Bool, _ forDisplay: Bool)
+
+@_cdecl("swiftGPUProcessTriggerMockCaptureConfigurationChange")
+public func swiftGPUProcessTriggerMockCaptureConfigurationChange(_ forCamera: Bool, _ forMicrophone: Bool, _ forDisplay: Bool) {
+    webKitGPUProcessMockMediaCenterTriggerCaptureConfigurationChange(forCamera, forMicrophone, forDisplay)
+}
 #endif
 
 // MARK: - Parameter struct
