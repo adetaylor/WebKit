@@ -441,6 +441,14 @@ extern "C" void swiftGPUProcessResetMockMediaDevices();
 extern "C" void swiftGPUProcessSetMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted);
 extern "C" void swiftGPUProcessTriggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay);
 
+// String-arg handlers (Phase 3 batch 2). The `const char*` boundary keeps
+// the Swift signatures POD; both the C++ shim and the bridge convert via
+// utf8()/String::fromUTF8 respectively. The CString returned by
+// WTF::String::utf8() outlives the synchronous Swift call, so the raw
+// pointer passed across the boundary stays valid for the call's duration.
+extern "C" void swiftGPUProcessRemoveMockMediaDevice(const char* persistentId);
+extern "C" void swiftGPUProcessSetMockMediaDeviceIsEphemeral(const char* persistentId, bool isEphemeral);
+
 // Typed C bridge so the Swift @_cdecl body can call the WebCore static
 // MockRealtimeMediaSourceCenter::setMockRealtimeMediaSourceCenterEnabled
 // without that class needing to import via Swift's C++ interop. Matches the
@@ -472,6 +480,20 @@ extern "C" void WebKitGPUProcessMockMediaCenterSetCaptureDevicesInterrupted(bool
 extern "C" void WebKitGPUProcessMockMediaCenterTriggerCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay)
 {
     WebCore::MockRealtimeMediaSourceCenter::singleton().triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay);
+}
+
+// String-arg bridges (Phase 3 batch 2). Convert the incoming UTF-8 C string
+// back to WTF::String on the C++ side via String::fromUTF8, then call the
+// WebCore static. Bridge name keeps the WebKitGPUProcessMockMediaCenter*
+// family prefix.
+extern "C" void WebKitGPUProcessMockMediaCenterRemoveDevice(const char* persistentId)
+{
+    WebCore::MockRealtimeMediaSourceCenter::removeDevice(String::fromUTF8(persistentId));
+}
+
+extern "C" void WebKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(const char* persistentId, bool isEphemeral)
+{
+    WebCore::MockRealtimeMediaSourceCenter::setDeviceIsEphemeral(String::fromUTF8(persistentId), isEphemeral);
 }
 #endif
 
@@ -558,12 +580,25 @@ void GPUProcess::clearMockMediaDevices()
 
 void GPUProcess::removeMockMediaDevice(const String& persistentId)
 {
+#if ENABLE(GPU_PROCESS_SWIFT)
+    // Body delegated to Swift via @_cdecl. The CString returned by
+    // String::utf8() is a temporary that outlives the synchronous call, so
+    // .data() is valid for the duration of swiftGPUProcessRemoveMockMediaDevice.
+    swiftGPUProcessRemoveMockMediaDevice(persistentId.utf8().data());
+#else
     WebCore::MockRealtimeMediaSourceCenter::removeDevice(persistentId);
+#endif
 }
 
 void GPUProcess::setMockMediaDeviceIsEphemeral(const String& persistentId, bool isEphemeral)
 {
+#if ENABLE(GPU_PROCESS_SWIFT)
+    // Body delegated to Swift via @_cdecl. Same const-char-at-boundary
+    // convention as removeMockMediaDevice above.
+    swiftGPUProcessSetMockMediaDeviceIsEphemeral(persistentId.utf8().data(), isEphemeral);
+#else
     WebCore::MockRealtimeMediaSourceCenter::setDeviceIsEphemeral(persistentId, isEphemeral);
+#endif
 }
 
 void GPUProcess::resetMockMediaDevices()

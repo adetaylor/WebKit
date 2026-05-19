@@ -222,6 +222,28 @@ private func webKitGPUProcessMockMediaCenterTriggerCaptureConfigurationChange(_ 
 public func swiftGPUProcessTriggerMockCaptureConfigurationChange(_ forCamera: Bool, _ forMicrophone: Bool, _ forDisplay: Bool) {
     webKitGPUProcessMockMediaCenterTriggerCaptureConfigurationChange(forCamera, forMicrophone, forDisplay)
 }
+
+// Phase 3 batch 2: string-arg mock-media handlers. The String <-> const char*
+// conversion happens on the C++ side (utf8().data() before the call, then
+// String::fromUTF8 inside the bridge), so the Swift signatures stay POD —
+// UnsafePointer<CChar> just plumbs the bytes straight through to the bridge.
+// `public` on each @_cdecl is load-bearing for symbol export, same as above.
+
+@_silgen_name("WebKitGPUProcessMockMediaCenterRemoveDevice")
+private func webKitGPUProcessMockMediaCenterRemoveDevice(_ persistentId: UnsafePointer<CChar>)
+
+@_cdecl("swiftGPUProcessRemoveMockMediaDevice")
+public func swiftGPUProcessRemoveMockMediaDevice(_ persistentId: UnsafePointer<CChar>) {
+    webKitGPUProcessMockMediaCenterRemoveDevice(persistentId)
+}
+
+@_silgen_name("WebKitGPUProcessMockMediaCenterSetDeviceIsEphemeral")
+private func webKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(_ persistentId: UnsafePointer<CChar>, _ isEphemeral: Bool)
+
+@_cdecl("swiftGPUProcessSetMockMediaDeviceIsEphemeral")
+public func swiftGPUProcessSetMockMediaDeviceIsEphemeral(_ persistentId: UnsafePointer<CChar>, _ isEphemeral: Bool) {
+    webKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(persistentId, isEphemeral)
+}
 #endif
 
 // MARK: - Parameter struct
