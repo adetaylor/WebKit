@@ -265,6 +265,25 @@ public func swiftGPUProcessCancelGetDisplayMediaPrompt() {
     webKitGPUProcessScreenCaptureKitSharingSessionManagerCancelGetDisplayMediaPrompt()
 }
 
+// Phase 3 handler: GPUProcess::userPreferredLanguagesChanged. Vector<String>
+// at the IPC boundary becomes parallel arrays (const char** + size_t count)
+// across the C++/Swift boundary. The C++ shim in GPUProcess.cpp builds the
+// UTF-8 CStrings, this @_cdecl plumbs the buffers straight through to the
+// WebKitGPUProcessOverrideUserPreferredLanguages bridge, which reconstructs
+// a Vector<String> via String::fromUTF8 and calls WTF::overrideUserPreferredLanguages.
+// This is the Vector<T> pattern reused later for handlers taking Vector<SandboxExtension::Handle>.
+// Not gated: the bridge symbol exists whenever ENABLE(GPU_PROCESS_SWIFT) is on,
+// which is the only configuration that ever calls this Swift function.
+// `public` on the @_cdecl is load-bearing for symbol export.
+
+@_silgen_name("WebKitGPUProcessOverrideUserPreferredLanguages")
+private func webKitGPUProcessOverrideUserPreferredLanguages(_ languages: UnsafePointer<UnsafePointer<CChar>?>, _ count: Int)
+
+@_cdecl("swiftGPUProcessUserPreferredLanguagesChanged")
+public func swiftGPUProcessUserPreferredLanguagesChanged(_ languages: UnsafePointer<UnsafePointer<CChar>?>, _ count: Int) {
+    webKitGPUProcessOverrideUserPreferredLanguages(languages, count)
+}
+
 // MARK: - Parameter struct
 
 // Swift-side mirror of WebKit::AuxiliaryProcessInitializationParameters with

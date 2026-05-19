@@ -324,9 +324,33 @@ bool GPUProcess::updatePreference(std::optional<bool>& oldPreference, std::optio
     return false;
 }
 
+#if ENABLE(GPU_PROCESS_SWIFT)
+// Forward declaration of the Swift @_cdecl entry point for the Vector<String>-
+// arg handler below (defined in SwiftGPUProcess.swift). The matching extern "C"
+// bridge (WebKitGPUProcessOverrideUserPreferredLanguages) is defined further
+// down in this file, next to the other Phase 3 bridges.
+extern "C" void swiftGPUProcessUserPreferredLanguagesChanged(const char* const* languages, size_t count);
+#endif
+
 void GPUProcess::userPreferredLanguagesChanged(Vector<String>&& languages)
 {
-    overrideUserPreferredLanguages(languages);
+#if ENABLE(GPU_PROCESS_SWIFT)
+    // Vector<String> at the IPC boundary becomes parallel arrays (const char**
+    // + size_t count) on the C++/Swift boundary. utf8Storage owns the encoded
+    // bytes and outlives the synchronous Swift call because it's a local in
+    // this surrounding scope; ptrs holds borrowed views into those CStrings.
+    Vector<CString> utf8Storage;
+    utf8Storage.reserveInitialCapacity(languages.size());
+    for (auto& lang : languages)
+        utf8Storage.append(lang.utf8());
+    Vector<const char*> ptrs;
+    ptrs.reserveInitialCapacity(utf8Storage.size());
+    for (auto& cstr : utf8Storage)
+        ptrs.append(cstr.data());
+    swiftGPUProcessUserPreferredLanguagesChanged(ptrs.span().data(), ptrs.size());
+#else
+    WTF::overrideUserPreferredLanguages(languages);
+#endif
 }
 
 void GPUProcess::prepareToSuspend(bool isSuspensionImminent, MonotonicTime, CompletionHandler<void()>&& completionHandler)
@@ -815,6 +839,25 @@ void GPUProcess::webProcessConnectionCountForTesting(CompletionHandler<void(uint
 extern "C" uint64_t WebKitGPUProcessConnectionToWebProcessObjectCount()
 {
     return GPUConnectionToWebProcess::objectCountForTesting();
+}
+#endif
+
+#if ENABLE(GPU_PROCESS_SWIFT)
+// Vector<String>-arg handler (Phase 3 batch). Boundary convention:
+// parallel arrays of const char* + size_t count. The C++ shim builds the
+// UTF-8 CStrings, the Swift @_cdecl plumbs the buffers straight through to
+// the bridge below, and the bridge reconstructs a Vector<String> via
+// String::fromUTF8 before calling the underlying WTF API. This establishes
+// the pattern reused later for handlers taking Vector<SandboxExtension::Handle>
+// (updateSandboxAccess / registerFonts). The matching swiftGPUProcess...
+// forward declaration sits next to userPreferredLanguagesChanged above.
+extern "C" void WebKitGPUProcessOverrideUserPreferredLanguages(const char* const* languages, size_t count)
+{
+    Vector<String> vec;
+    vec.reserveInitialCapacity(count);
+    for (size_t i = 0; i < count; ++i)
+        vec.append(String::fromUTF8(languages[i]));
+    WTF::overrideUserPreferredLanguages(vec);
 }
 #endif
 
