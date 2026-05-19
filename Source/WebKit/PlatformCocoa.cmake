@@ -92,6 +92,7 @@ if (ENABLE_GPU_PROCESS_SWIFT)
     # can land the Swift surface ahead of converting the initialization body.
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/EntryPoint/Cocoa/XPCService/GPUServiceEntryPoint.swift
+        ${WEBKIT_DIR}/GPUProcess/GPUProcess.swift
         ${WEBKIT_DIR}/GPUProcess/SwiftGPUProcess.swift
     )
 endif ()
