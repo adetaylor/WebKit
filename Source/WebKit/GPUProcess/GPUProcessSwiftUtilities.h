@@ -36,6 +36,13 @@
 // `WebKit.OptionalCaptureDevice` etc.
 //
 // Mirrors the WebBackForwardListSwiftUtilities.h convention.
+//
+// Coverage audit (Phase 4.1.c.1): every templated wrapper used in
+// GPUProcess.messages.in has an alias here. Bare struct / class / enum /
+// identifier types (e.g. WebKit::GPUProcessCreationParameters,
+// WebCore::ProcessIdentifier, PAL::SessionID, IPC::ConnectionHandle) are
+// imported into Swift directly via their fully-qualified names and do not
+// need aliases; if any later turn out to need one, add it here.
 
 #include "CoreIPCAuditToken.h"
 #include "GPUProcessConnectionParameters.h"
