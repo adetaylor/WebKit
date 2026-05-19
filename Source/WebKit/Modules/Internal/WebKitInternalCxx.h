@@ -28,6 +28,10 @@
 #import "IPCTesterReceiverMessages.h"
 
 #if ENABLE(GPU_PROCESS_SWIFT)
+#import "GPUProcessSwiftUtilities.h"
+#endif
+
+#if ENABLE(GPU_PROCESS_SWIFT)
 #import "GPUProcess.h"
 #import "WebKit2Initialize.h"
 #import "XPCServiceEntryPoint.h"
