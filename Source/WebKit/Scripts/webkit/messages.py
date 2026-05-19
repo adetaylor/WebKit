@@ -929,12 +929,19 @@ def generate_messages_header(receiver):
     return ''.join(result)
 
 
-def handler_function(receiver, message):
+def handler_function(receiver, message, swift_path=False):
+    # On the Swift dispatch path the method pointer must bind to the Swift
+    # receiver class (receiver.name) — the autogen calls
+    # `IPC::handleMessage<...>(conn, dec, target.get(), &Receiver::method)`
+    # with `target.get()` typed as a pointer to the Swift class. On the C++
+    # path it binds to the C++ class (cxx_class_name, which equals
+    # receiver.name when no CxxClassName= annotation is set).
+    base = receiver.name if swift_path else receiver.cxx_class_name
     if message.name.startswith('URL'):
-        return '%s::%s' % (receiver.cxx_class_name, 'url' + message.name[3:])
+        return '%s::%s' % (base, 'url' + message.name[3:])
     if message.name.startswith('GPU'):
-        return '%s::%s' % (receiver.cxx_class_name, 'gpu' + message.name[3:])
-    return '%s::%s' % (receiver.cxx_class_name, message.name[0].lower() + message.name[1:])
+        return '%s::%s' % (base, 'gpu' + message.name[3:])
+    return '%s::%s' % (base, message.name[0].lower() + message.name[1:])
 
 def generate_enabled_by(receiver, enabled_by, enabled_by_conjunction):
     conjunction = ' %s ' % (enabled_by_conjunction or '&&')
@@ -951,10 +958,11 @@ def generate_runtime_enablement(receiver, message):
 
 def async_message_statement(receiver, message):
     def append_with_dispatch_function_args_and_particular_target_name(receiver, result, pattern, target_name):
+        swift_path = target_name == 'target.get()'
         if receiver.has_attribute(NOT_USING_IPC_CONNECTION_ATTRIBUTE) and message.reply_parameters is not None and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
-            dispatch_function_args = ['decoder', 'WTF::move(replyHandler)', target_name, '&%s' % handler_function(receiver, message)]
+            dispatch_function_args = ['decoder', 'WTF::move(replyHandler)', target_name, '&%s' % handler_function(receiver, message, swift_path=swift_path)]
         else:
-            dispatch_function_args = ['decoder', target_name, '&%s' % handler_function(receiver, message)]
+            dispatch_function_args = ['decoder', target_name, '&%s' % handler_function(receiver, message, swift_path=swift_path)]
         result.append(pattern % (', '.join(dispatch_function_args)))
 
     def append_with_dispatch_function_args(receiver, result, pattern):
@@ -1032,7 +1040,8 @@ def sync_message_statement(receiver, message):
         result.append('    if (decoder.messageName() == Messages::%s::%s::name()) {\n' % (receiver.name, message.name))
 
     def append_call_with_target_name(result, target_name):
-        result.append('        IPC::%s<Messages::%s::%s>(connection, decoder%s, %s, &%s);\n' % (dispatch_function, receiver.name, message.name, maybe_reply_encoder, target_name, handler_function(receiver, message)))
+        swift_path = target_name == 'target.get()'
+        result.append('        IPC::%s<Messages::%s::%s>(connection, decoder%s, %s, &%s);\n' % (dispatch_function, receiver.name, message.name, maybe_reply_encoder, target_name, handler_function(receiver, message, swift_path=swift_path)))
 
     if_swift_enabled(receiver, result, lambda x: append_call_with_target_name(x, 'target.get()'), lambda x: append_call_with_target_name(x, 'this'), )
     result.append('        return;\n')
