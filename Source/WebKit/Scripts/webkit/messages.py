@@ -837,7 +837,10 @@ def forward_declarations_and_headers(receiver):
 
 def message_to_completion_handler_using_declaration(receiver, message):
     completion_handler_name = message.name + 'CompletionHandler'
-    return 'using %s = WTF::RefCountable<Messages::%s::%s::Reply>;' % (completion_handler_name, receiver.name, message.name)
+    line = 'using %s = WTF::RefCountable<Messages::%s::%s::Reply>;' % (completion_handler_name, receiver.name, message.name)
+    if message.condition:
+        return '#if %s\n%s\n#endif' % (message.condition, line)
+    return line
 
 
 def generate_messages_header(receiver):
