@@ -41,7 +41,7 @@
 
 namespace WebKit {
 
-void GPUProcess::platformInitializeGPUProcess(GPUProcessCreationParameters& parameters)
+void CxxGPUProcess::platformInitializeGPUProcess(GPUProcessCreationParameters& parameters)
 {
 #if USE(GBM)
     WebCore::DRMDeviceManager::singleton().initializeMainDevice(WTF::move(parameters.drmDevice));
@@ -62,15 +62,15 @@ void GPUProcess::platformInitializeGPUProcess(GPUProcessCreationParameters& para
     CRASH();
 }
 
-void GPUProcess::initializeProcess(const AuxiliaryProcessInitializationParameters&)
+void CxxGPUProcess::initializeProcess(const AuxiliaryProcessInitializationParameters&)
 {
 }
 
-void GPUProcess::initializeProcessName(const AuxiliaryProcessInitializationParameters&)
+void CxxGPUProcess::initializeProcessName(const AuxiliaryProcessInitializationParameters&)
 {
 }
 
-void GPUProcess::initializeSandbox(const AuxiliaryProcessInitializationParameters&, SandboxInitializationParameters&)
+void CxxGPUProcess::initializeSandbox(const AuxiliaryProcessInitializationParameters&, SandboxInitializationParameters&)
 {
 }
 

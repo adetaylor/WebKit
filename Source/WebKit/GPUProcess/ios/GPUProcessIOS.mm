@@ -38,17 +38,17 @@
 namespace WebKit {
 using namespace WebCore;
 
-void GPUProcess::initializeProcess(const AuxiliaryProcessInitializationParameters&)
+void CxxGPUProcess::initializeProcess(const AuxiliaryProcessInitializationParameters&)
 {
     InitWebCoreThreadSystemInterface();
 }
 
-void GPUProcess::initializeProcessName(const AuxiliaryProcessInitializationParameters&)
+void CxxGPUProcess::initializeProcessName(const AuxiliaryProcessInitializationParameters&)
 {
     notImplemented();
 }
 
-void GPUProcess::initializeSandbox(const AuxiliaryProcessInitializationParameters&, SandboxInitializationParameters&)
+void CxxGPUProcess::initializeSandbox(const AuxiliaryProcessInitializationParameters&, SandboxInitializationParameters&)
 {
 }
 

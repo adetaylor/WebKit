@@ -34,7 +34,7 @@ SYNCHRONOUS_ATTRIBUTE = 'Synchronous'
 STREAM_ATTRIBUTE = "Stream"
 
 class MessageReceiver(object):
-    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, wants_send_cancel_reply, swift_receiver, swift_receiver_build_enabled_by):
+    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, wants_send_cancel_reply, swift_receiver, swift_receiver_build_enabled_by, cxx_class_name=None):
         self.name = name
         self.superclass = superclass
         self.attributes = frozenset(attributes or [])
@@ -52,6 +52,14 @@ class MessageReceiver(object):
         self.wants_send_cancel_reply = wants_send_cancel_reply
         self.swift_receiver = swift_receiver
         self.swift_receiver_build_enabled_by = swift_receiver_build_enabled_by
+        # Name of the C++ class that holds the receiver's method handlers.
+        # Defaults to the receiver name (which is also the IPC on-the-wire
+        # name and the name of the file-named-after-it). Overridable via the
+        # 'CxxClassName=...' extended attribute when the C++ class has been
+        # renamed but the receiver name must stay stable for protocol
+        # compatibility (e.g. when freeing up the original identifier so a
+        # Swift class can take it on the path to SwiftReceiverBuildEnabledBy).
+        self.cxx_class_name = cxx_class_name if cxx_class_name else name
 
     def iterparameters(self):
         return itertools.chain((parameter for message in self.messages for parameter in message.parameters),

@@ -25,7 +25,8 @@
 [
     DispatchedFrom=UI,
     DispatchedTo=GPU,
-    ExceptionForEnabledBy
+    ExceptionForEnabledBy,
+    CxxClassName=CxxGPUProcess
 ]
 messages -> GPUProcess : AuxiliaryProcess {
     InitializeGPUProcess(struct WebKit::GPUProcessCreationParameters processCreationParameters) -> ()

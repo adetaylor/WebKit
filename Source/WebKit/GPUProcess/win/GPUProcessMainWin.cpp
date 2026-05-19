@@ -34,7 +34,7 @@
 
 namespace WebKit {
 
-class GPUProcessMainWin final: public AuxiliaryProcessMainBase<GPUProcess> {
+class GPUProcessMainWin final: public AuxiliaryProcessMainBase<CxxGPUProcess> {
 };
 
 int GPUProcessMain(int argc, char** argv)

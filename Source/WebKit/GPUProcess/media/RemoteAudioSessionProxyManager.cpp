@@ -53,7 +53,7 @@ static bool NODELETE categoryCanMixWithOthers(AudioSession::CategoryType categor
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteAudioSessionProxyManager);
 
-RemoteAudioSessionProxyManager::RemoteAudioSessionProxyManager(GPUProcess& gpuProcess)
+RemoteAudioSessionProxyManager::RemoteAudioSessionProxyManager(CxxGPUProcess& gpuProcess)
     : m_gpuProcess(gpuProcess)
 {
     AudioSession::addInterruptionObserver(*this);
@@ -185,7 +185,7 @@ static void providePresentingApplicationPID(RemoteAudioSessionProxy& proxy)
         return;
 #endif
 
-    ProcessID pid = protect(GPUProcess::singleton().parentProcessConnection())->remoteProcessID();
+    ProcessID pid = protect(CxxGPUProcess::singleton().parentProcessConnection())->remoteProcessID();
 
 #if !PLATFORM(APPLETV)
     // Presenting application audit tokens are per-page, but AudioSessions are per-web-process,

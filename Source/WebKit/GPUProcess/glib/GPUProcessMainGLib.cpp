@@ -38,7 +38,7 @@
 namespace WebKit {
 
 #if ENABLE(GPU_PROCESS) && (PLATFORM(GTK) || PLATFORM(WPE))
-class GPUProcessMainGLib final: public AuxiliaryProcessMainBase<GPUProcess> {
+class GPUProcessMainGLib final: public AuxiliaryProcessMainBase<CxxGPUProcess> {
 public:
     bool platformInitialize() override
     {

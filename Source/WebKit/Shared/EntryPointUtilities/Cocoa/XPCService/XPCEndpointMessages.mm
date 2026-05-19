@@ -60,7 +60,7 @@ static void handleVideoReceiverEndpointMessage(xpc_object_t message)
     if (!endpointMessage.processIdentifier())
         return;
 
-    if (RefPtr webProcessConnection = GPUProcess::singleton().webProcessConnection(*endpointMessage.processIdentifier()))
+    if (RefPtr webProcessConnection = CxxGPUProcess::singleton().webProcessConnection(*endpointMessage.processIdentifier()))
         webProcessConnection->videoReceiverEndpointManager().handleVideoReceiverEndpointMessage(endpointMessage);
 }
 
@@ -73,7 +73,7 @@ static void handleVideoReceiverSwapEndpointsMessage(xpc_object_t message)
     if (!endpointMessage.processIdentifier())
         return;
 
-    if (RefPtr webProcessConnection = GPUProcess::singleton().webProcessConnection(*endpointMessage.processIdentifier()))
+    if (RefPtr webProcessConnection = CxxGPUProcess::singleton().webProcessConnection(*endpointMessage.processIdentifier()))
         webProcessConnection->videoReceiverEndpointManager().handleVideoReceiverSwapEndpointsMessage(endpointMessage);
 }
 #endif

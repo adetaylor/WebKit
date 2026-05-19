@@ -32,19 +32,19 @@
 
 namespace WebKit {
 
-void GPUProcess::platformInitializeGPUProcess(GPUProcessCreationParameters&)
+void CxxGPUProcess::platformInitializeGPUProcess(GPUProcessCreationParameters&)
 {
 }
 
-void GPUProcess::initializeProcess(const AuxiliaryProcessInitializationParameters&)
+void CxxGPUProcess::initializeProcess(const AuxiliaryProcessInitializationParameters&)
 {
 }
 
-void GPUProcess::initializeProcessName(const AuxiliaryProcessInitializationParameters&)
+void CxxGPUProcess::initializeProcessName(const AuxiliaryProcessInitializationParameters&)
 {
 }
 
-void GPUProcess::initializeSandbox(const AuxiliaryProcessInitializationParameters&, SandboxInitializationParameters&)
+void CxxGPUProcess::initializeSandbox(const AuxiliaryProcessInitializationParameters&, SandboxInitializationParameters&)
 {
 }
 

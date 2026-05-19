@@ -928,10 +928,10 @@ def generate_messages_header(receiver):
 
 def handler_function(receiver, message):
     if message.name.startswith('URL'):
-        return '%s::%s' % (receiver.name, 'url' + message.name[3:])
+        return '%s::%s' % (receiver.cxx_class_name, 'url' + message.name[3:])
     if message.name.startswith('GPU'):
-        return '%s::%s' % (receiver.name, 'gpu' + message.name[3:])
-    return '%s::%s' % (receiver.name, message.name[0].lower() + message.name[1:])
+        return '%s::%s' % (receiver.cxx_class_name, 'gpu' + message.name[3:])
+    return '%s::%s' % (receiver.cxx_class_name, message.name[0].lower() + message.name[1:])
 
 def generate_enabled_by(receiver, enabled_by, enabled_by_conjunction):
     conjunction = ' %s ' % (enabled_by_conjunction or '&&')
@@ -1874,7 +1874,8 @@ def generate_message_handler(receiver):
 
     def append_with_potentially_swiftified_classname(receiver, result, pattern):
         classname = receiver.name
-        if_swift_enabled(receiver, result, lambda x: x.append(pattern % (classname + 'MessageForwarder')), lambda x: x.append(pattern % (classname)))
+        cxx_classname = receiver.cxx_class_name
+        if_swift_enabled(receiver, result, lambda x: x.append(pattern % (classname + 'MessageForwarder')), lambda x: x.append(pattern % (cxx_classname)))
 
     if receiver.has_attribute(STREAM_ATTRIBUTE):
         append_with_potentially_swiftified_classname(receiver, result, 'void %s::didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder)\n')
@@ -1936,7 +1937,7 @@ def generate_message_handler(receiver):
 
     if receiver.wants_send_cancel_reply:
         result.append('\n')
-        result.append('void %s::sendCancelReply(IPC::Connection& connection, IPC::Decoder& decoder)\n' % (receiver.name))
+        result.append('void %s::sendCancelReply(IPC::Connection& connection, IPC::Decoder& decoder)\n' % (receiver.cxx_class_name))
         result.append('{\n')
         result.append('    ASSERT(decoder.messageReceiverName() == IPC::ReceiverName::%s);\n' % (receiver.name))
         result.append('    switch (decoder.messageName()) {\n')

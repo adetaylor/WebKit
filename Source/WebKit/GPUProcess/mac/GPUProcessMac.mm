@@ -48,7 +48,7 @@
 namespace WebKit {
 using namespace WebCore;
 
-void GPUProcess::initializeProcess(const AuxiliaryProcessInitializationParameters&)
+void CxxGPUProcess::initializeProcess(const AuxiliaryProcessInitializationParameters&)
 {
     setApplicationIsDaemon();
 
@@ -57,7 +57,7 @@ void GPUProcess::initializeProcess(const AuxiliaryProcessInitializationParameter
 #endif
 }
 
-void GPUProcess::initializeProcessName(const AuxiliaryProcessInitializationParameters& parameters)
+void CxxGPUProcess::initializeProcessName(const AuxiliaryProcessInitializationParameters& parameters)
 {
 #if PLATFORM(MAC)
     m_uiProcessName = parameters.uiProcessName;
@@ -65,7 +65,7 @@ void GPUProcess::initializeProcessName(const AuxiliaryProcessInitializationParam
 }
 
 #if PLATFORM(MAC)
-void GPUProcess::updateProcessName()
+void CxxGPUProcess::updateProcessName()
 {
 #if !PLATFORM(MACCATALYST)
 ALLOW_NONLITERAL_FORMAT_BEGIN
@@ -78,7 +78,7 @@ ALLOW_NONLITERAL_FORMAT_END
 }
 #endif
 
-void GPUProcess::initializeSandbox(const AuxiliaryProcessInitializationParameters& parameters, SandboxInitializationParameters& sandboxParameters)
+void CxxGPUProcess::initializeSandbox(const AuxiliaryProcessInitializationParameters& parameters, SandboxInitializationParameters& sandboxParameters)
 {
     // Need to overide the default, because service has a different bundle ID.
     RetainPtr webKit2Bundle = [NSBundle bundleForClass:NSClassFromString(@"WKWebView")];
@@ -89,7 +89,7 @@ void GPUProcess::initializeSandbox(const AuxiliaryProcessInitializationParameter
 }
 
 #if PLATFORM(MAC)
-void GPUProcess::setScreenProperties(const WebCore::ScreenProperties& screenProperties)
+void CxxGPUProcess::setScreenProperties(const WebCore::ScreenProperties& screenProperties)
 {
 #if !HAVE(AVPLAYER_VIDEORANGEOVERRIDE)
     // Only override HDR support at the MediaToolbox level if AVPlayer.videoRangeOverride support is
@@ -109,7 +109,7 @@ void GPUProcess::setScreenProperties(const WebCore::ScreenProperties& screenProp
 #endif
 }
 
-void GPUProcess::openDirectoryCacheInvalidated(SandboxExtension::Handle&& handle)
+void CxxGPUProcess::openDirectoryCacheInvalidated(SandboxExtension::Handle&& handle)
 {
     auto cacheInvalidationHandler = [handle = WTF::move(handle)] () mutable {
         AuxiliaryProcess::openDirectoryCacheInvalidated(WTF::move(handle));
@@ -119,7 +119,7 @@ void GPUProcess::openDirectoryCacheInvalidated(SandboxExtension::Handle&& handle
 #endif // PLATFORM(MAC)
 
 #if HAVE(POWERLOG_TASK_MODE_QUERY)
-void GPUProcess::enablePowerLogging(SandboxExtension::Handle&& handle)
+void CxxGPUProcess::enablePowerLogging(SandboxExtension::Handle&& handle)
 {
     SandboxExtension::consumePermanently(WTF::move(handle));
 }

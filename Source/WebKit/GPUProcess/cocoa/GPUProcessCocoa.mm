@@ -62,7 +62,7 @@ using namespace WebCore;
 
 #if USE(OS_STATE)
 
-RetainPtr<NSDictionary> GPUProcess::additionalStateForDiagnosticReport() const
+RetainPtr<NSDictionary> CxxGPUProcess::additionalStateForDiagnosticReport() const
 {
     auto stateDictionary = adoptNS([[NSMutableDictionary alloc] initWithCapacity:1]);
     if (!m_webProcessConnections.isEmpty()) {
@@ -87,13 +87,13 @@ RetainPtr<NSDictionary> GPUProcess::additionalStateForDiagnosticReport() const
 #endif // USE(OS_STATE)
 
 #if ENABLE(CFPREFS_DIRECT_MODE)
-void GPUProcess::dispatchSimulatedNotificationsForPreferenceChange(const String& key)
+void CxxGPUProcess::dispatchSimulatedNotificationsForPreferenceChange(const String& key)
 {
 }
 #endif // ENABLE(CFPREFS_DIRECT_MODE)
 
 #if ENABLE(MEDIA_STREAM)
-void GPUProcess::ensureAVCaptureServerConnection()
+void CxxGPUProcess::ensureAVCaptureServerConnection()
 {
     RELEASE_LOG(WebRTC, "GPUProcess::ensureAVCaptureServerConnection: Entering.");
 #if HAVE(AVCAPTUREDEVICE) && HAVE(AVSAMPLEBUFFERVIDEOOUTPUT)
@@ -106,7 +106,7 @@ void GPUProcess::ensureAVCaptureServerConnection()
 }
 #endif
 
-void GPUProcess::platformInitializeGPUProcess(GPUProcessCreationParameters& parameters)
+void CxxGPUProcess::platformInitializeGPUProcess(GPUProcessCreationParameters& parameters)
 {
 #if PLATFORM(MAC)
     auto launchServicesExtension = SandboxExtension::create(WTF::move(parameters.launchServicesExtensionHandle));
@@ -163,7 +163,7 @@ void GPUProcess::platformInitializeGPUProcess(GPUProcessCreationParameters& para
 }
 
 #if USE(EXTENSIONKIT)
-void GPUProcess::resolveBookmarkDataForCacheDirectory(std::span<const uint8_t> bookmarkData)
+void CxxGPUProcess::resolveBookmarkDataForCacheDirectory(std::span<const uint8_t> bookmarkData)
 {
     RetainPtr bookmark = toNSData(bookmarkData);
     BOOL bookmarkIsStale = NO;
@@ -173,7 +173,7 @@ void GPUProcess::resolveBookmarkDataForCacheDirectory(std::span<const uint8_t> b
 #endif
 
 #if PLATFORM(VISION) && ENABLE(MODEL_PROCESS)
-void GPUProcess::requestSharedSimulationConnection(CoreIPCAuditToken&& modelProcessAuditToken, CompletionHandler<void(std::optional<IPC::SharedFileHandle>)>&& completionHandler)
+void CxxGPUProcess::requestSharedSimulationConnection(CoreIPCAuditToken&& modelProcessAuditToken, CompletionHandler<void(std::optional<IPC::SharedFileHandle>)>&& completionHandler)
 {
     Ref<WKSharedSimulationConnectionHelper> sharedSimulationConnectionHelper = adoptRef(*new WKSharedSimulationConnectionHelper);
     sharedSimulationConnectionHelper->requestSharedSimulationConnectionForAuditToken(modelProcessAuditToken.auditToken(), [sharedSimulationConnectionHelper, completionHandler = WTF::move(completionHandler)] (RetainPtr<NSFileHandle> sharedSimulationConnection, RetainPtr<id> appService) mutable {
@@ -189,7 +189,7 @@ void GPUProcess::requestSharedSimulationConnection(CoreIPCAuditToken&& modelProc
 }
 
 #if HAVE(TASK_IDENTITY_TOKEN)
-void GPUProcess::createMemoryAttributionIDForTask(WebCore::ProcessIdentity processIdentity, CompletionHandler<void(const std::optional<String>&)>&& completionHandler)
+void CxxGPUProcess::createMemoryAttributionIDForTask(WebCore::ProcessIdentity processIdentity, CompletionHandler<void(const std::optional<String>&)>&& completionHandler)
 {
     Ref<WKSharedSimulationConnectionHelper> sharedSimulationConnectionHelper = adoptRef(*new WKSharedSimulationConnectionHelper);
     sharedSimulationConnectionHelper->createMemoryAttributionIDForTask(processIdentity.taskIdToken(), [sharedSimulationConnectionHelper, completionHandler = WTF::move(completionHandler)] (RetainPtr<NSString> attributionTaskID, RetainPtr<id> appService) mutable {
@@ -204,7 +204,7 @@ void GPUProcess::createMemoryAttributionIDForTask(WebCore::ProcessIdentity proce
     });
 }
 
-void GPUProcess::unregisterMemoryAttributionID(const String& attributionID, CompletionHandler<void()>&& completionHandler)
+void CxxGPUProcess::unregisterMemoryAttributionID(const String& attributionID, CompletionHandler<void()>&& completionHandler)
 {
     Ref<WKSharedSimulationConnectionHelper> sharedSimulationConnectionHelper = adoptRef(*new WKSharedSimulationConnectionHelper);
     sharedSimulationConnectionHelper->unregisterMemoryAttributionID(attributionID.createNSString().get(), [sharedSimulationConnectionHelper, completionHandler = WTF::move(completionHandler)] (RetainPtr<id> appService) mutable {
@@ -218,7 +218,7 @@ void GPUProcess::unregisterMemoryAttributionID(const String& attributionID, Comp
 #endif
 #endif
 
-void GPUProcess::postWillTakeSnapshotNotification(CompletionHandler<void()>&& completionHandler)
+void CxxGPUProcess::postWillTakeSnapshotNotification(CompletionHandler<void()>&& completionHandler)
 {
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
@@ -229,7 +229,7 @@ void GPUProcess::postWillTakeSnapshotNotification(CompletionHandler<void()>&& co
     completionHandler();
 }
 
-void GPUProcess::registerFonts(Vector<SandboxExtension::Handle>&& sandboxExtensions)
+void CxxGPUProcess::registerFonts(Vector<SandboxExtension::Handle>&& sandboxExtensions)
 {
     for (auto& sandboxExtension : sandboxExtensions)
         SandboxExtension::consumePermanently(sandboxExtension);

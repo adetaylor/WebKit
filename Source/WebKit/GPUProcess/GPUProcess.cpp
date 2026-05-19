@@ -93,8 +93,8 @@ namespace WebKit {
 // work in the GPUProcess.
 constexpr Seconds minimumLifetimeBeforeIdleExit { 5_s };
 
-GPUProcess::GPUProcess()
-    : m_idleExitTimer(*this, &GPUProcess::tryExitIfUnused)
+CxxGPUProcess::CxxGPUProcess()
+    : m_idleExitTimer(*this, &CxxGPUProcess::tryExitIfUnused)
 {
     RELEASE_LOG(Process, "%p - GPUProcess::GPUProcess:", this);
 #if ASSERT_ENABLED && PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
@@ -102,15 +102,15 @@ GPUProcess::GPUProcess()
 #endif
 }
 
-GPUProcess::~GPUProcess() = default;
+CxxGPUProcess::~CxxGPUProcess() = default;
 
-GPUProcess& GPUProcess::singleton()
+CxxGPUProcess& CxxGPUProcess::singleton()
 {
-    static NeverDestroyed<Ref<GPUProcess>> gpuProcess = adoptRef(*new GPUProcess);
+    static NeverDestroyed<Ref<CxxGPUProcess>> gpuProcess = adoptRef(*new CxxGPUProcess);
     return gpuProcess.get().get();
 }
 
-void GPUProcess::createGPUConnectionToWebProcess(WebCore::ProcessIdentifier identifier, PAL::SessionID sessionID, IPC::Connection::Handle&& connectionHandle, GPUProcessConnectionParameters&& parameters, CompletionHandler<void()>&& completionHandler)
+void CxxGPUProcess::createGPUConnectionToWebProcess(WebCore::ProcessIdentifier identifier, PAL::SessionID sessionID, IPC::Connection::Handle&& connectionHandle, GPUProcessConnectionParameters&& parameters, CompletionHandler<void()>&& completionHandler)
 {
     RELEASE_LOG(Process, "%p - GPUProcess::createGPUConnectionToWebProcess: processIdentifier=%" PRIu64, this, identifier.toUInt64());
 
@@ -137,14 +137,14 @@ void GPUProcess::createGPUConnectionToWebProcess(WebCore::ProcessIdentifier iden
     m_webProcessConnections.add(identifier, WTF::move(newConnection));
 }
 
-void GPUProcess::sharedPreferencesForWebProcessDidChange(WebCore::ProcessIdentifier identifier, SharedPreferencesForWebProcess&& sharedPreferencesForWebProcess, CompletionHandler<void()>&& completionHandler)
+void CxxGPUProcess::sharedPreferencesForWebProcessDidChange(WebCore::ProcessIdentifier identifier, SharedPreferencesForWebProcess&& sharedPreferencesForWebProcess, CompletionHandler<void()>&& completionHandler)
 {
     if (RefPtr connection = m_webProcessConnections.get(identifier))
         connection->updateSharedPreferencesForWebProcess(WTF::move(sharedPreferencesForWebProcess));
     completionHandler();
 }
 
-void GPUProcess::removeGPUConnectionToWebProcess(GPUConnectionToWebProcess& connection)
+void CxxGPUProcess::removeGPUConnectionToWebProcess(GPUConnectionToWebProcess& connection)
 {
     RELEASE_LOG(Process, "%p - GPUProcess::removeGPUConnectionToWebProcess: processIdentifier=%" PRIu64, this, connection.webProcessIdentifier().toUInt64());
     ASSERT(m_webProcessConnections.contains(connection.webProcessIdentifier()));
@@ -152,16 +152,16 @@ void GPUProcess::removeGPUConnectionToWebProcess(GPUConnectionToWebProcess& conn
     tryExitIfUnusedAndUnderMemoryPressure();
 }
 
-void GPUProcess::connectionToWebProcessClosed(IPC::Connection& connection)
+void CxxGPUProcess::connectionToWebProcessClosed(IPC::Connection& connection)
 {
 }
 
-bool GPUProcess::shouldTerminate()
+bool CxxGPUProcess::shouldTerminate()
 {
     return m_webProcessConnections.isEmpty();
 }
 
-bool GPUProcess::canExitUnderMemoryPressure() const
+bool CxxGPUProcess::canExitUnderMemoryPressure() const
 {
     ASSERT(isMainRunLoop());
     for (auto& webProcessConnection : m_webProcessConnections.values()) {
@@ -171,7 +171,7 @@ bool GPUProcess::canExitUnderMemoryPressure() const
     return true;
 }
 
-void GPUProcess::tryExitIfUnusedAndUnderMemoryPressure()
+void CxxGPUProcess::tryExitIfUnusedAndUnderMemoryPressure()
 {
     ASSERT(isMainRunLoop());
     if (!MemoryPressureHandler::singleton().isUnderMemoryPressure())
@@ -180,7 +180,7 @@ void GPUProcess::tryExitIfUnusedAndUnderMemoryPressure()
     tryExitIfUnused();
 }
 
-void GPUProcess::tryExitIfUnused()
+void CxxGPUProcess::tryExitIfUnused()
 {
     ASSERT(isMainRunLoop());
     if (!canExitUnderMemoryPressure()) {
@@ -206,7 +206,7 @@ void GPUProcess::tryExitIfUnused()
     protect(parentProcessConnection())->send(Messages::GPUProcessProxy::ProcessIsReadyToExit(), 0);
 }
 
-void GPUProcess::lowMemoryHandler(Critical critical, Synchronous synchronous)
+void CxxGPUProcess::lowMemoryHandler(Critical critical, Synchronous synchronous)
 {
     RELEASE_LOG(Process, "GPUProcess::lowMemoryHandler: critical=%d, synchronous=%d", critical == Critical::Yes, synchronous == Synchronous::Yes);
     tryExitIfUnused();
@@ -217,7 +217,7 @@ void GPUProcess::lowMemoryHandler(Critical critical, Synchronous synchronous)
     WebCore::releaseGraphicsMemory(critical, synchronous);
 }
 
-void GPUProcess::initializeGPUProcess(GPUProcessCreationParameters&& parameters, CompletionHandler<void()>&& completionHandler)
+void CxxGPUProcess::initializeGPUProcess(GPUProcessCreationParameters&& parameters, CompletionHandler<void()>&& completionHandler)
 {
     CompletionHandlerCallingScope callCompletionHandler(WTF::move(completionHandler));
 
@@ -285,7 +285,7 @@ CoreAudioCaptureUnit::defaultSingleton().setStatusBarWasTappedCallback([weakProc
     platformInitializeGPUProcess(parameters);
 }
 
-void GPUProcess::updateGPUProcessPreferences(GPUProcessPreferences&& preferences)
+void CxxGPUProcess::updateGPUProcessPreferences(GPUProcessPreferences&& preferences)
 {
 #if ENABLE(VP9)
     if (updatePreference(m_preferences.vp9DecoderEnabled, preferences.vp9DecoderEnabled)) {
@@ -309,7 +309,7 @@ void GPUProcess::updateGPUProcessPreferences(GPUProcessPreferences&& preferences
 #endif
 }
 
-bool GPUProcess::updatePreference(std::optional<bool>& oldPreference, std::optional<bool>& newPreference)
+bool CxxGPUProcess::updatePreference(std::optional<bool>& oldPreference, std::optional<bool>& newPreference)
 {
     if (newPreference.has_value() && oldPreference != newPreference) {
         oldPreference = WTF::move(newPreference);
@@ -332,7 +332,7 @@ bool GPUProcess::updatePreference(std::optional<bool>& oldPreference, std::optio
 extern "C" void swiftGPUProcessUserPreferredLanguagesChanged(const char* const* languages, size_t count);
 #endif
 
-void GPUProcess::userPreferredLanguagesChanged(Vector<String>&& languages)
+void CxxGPUProcess::userPreferredLanguagesChanged(Vector<String>&& languages)
 {
 #if ENABLE(GPU_PROCESS_SWIFT)
     // Vector<String> at the IPC boundary becomes parallel arrays (const char**
@@ -353,7 +353,7 @@ void GPUProcess::userPreferredLanguagesChanged(Vector<String>&& languages)
 #endif
 }
 
-void GPUProcess::prepareToSuspend(bool isSuspensionImminent, MonotonicTime, CompletionHandler<void()>&& completionHandler)
+void CxxGPUProcess::prepareToSuspend(bool isSuspensionImminent, MonotonicTime, CompletionHandler<void()>&& completionHandler)
 {
     RELEASE_LOG(ProcessSuspension, "%p - GPUProcess::prepareToSuspend(), isSuspensionImminent: %d", this, isSuspensionImminent);
 
@@ -361,29 +361,29 @@ void GPUProcess::prepareToSuspend(bool isSuspensionImminent, MonotonicTime, Comp
     completionHandler();
 }
 
-void GPUProcess::processDidResume()
+void CxxGPUProcess::processDidResume()
 {
     RELEASE_LOG(ProcessSuspension, "%p - GPUProcess::processDidResume()", this);
     resume();
 }
 
-void GPUProcess::resume()
+void CxxGPUProcess::resume()
 {
 }
 
-GPUConnectionToWebProcess* GPUProcess::webProcessConnection(WebCore::ProcessIdentifier identifier) const
+GPUConnectionToWebProcess* CxxGPUProcess::webProcessConnection(WebCore::ProcessIdentifier identifier) const
 {
     return m_webProcessConnections.get(identifier);
 }
 
-void GPUProcess::updateSandboxAccess(const Vector<SandboxExtension::Handle>& extensions)
+void CxxGPUProcess::updateSandboxAccess(const Vector<SandboxExtension::Handle>& extensions)
 {
     RELEASE_LOG(WebRTC, "GPUProcess::updateSandboxAccess: Adding %zu extensions", extensions.size());
     for (auto& extension : extensions)
         SandboxExtension::consumePermanently(extension);
 }
 
-Ref<RemoteSnapshot> GPUProcess::getOrCreateSnapshot(RemoteSnapshotIdentifier snapshotIdentifier)
+Ref<RemoteSnapshot> CxxGPUProcess::getOrCreateSnapshot(RemoteSnapshotIdentifier snapshotIdentifier)
 {
     Locker locker(m_globalResourceLocker);
     auto addResult = m_snapshots.ensure(snapshotIdentifier, [&] {
@@ -394,7 +394,7 @@ Ref<RemoteSnapshot> GPUProcess::getOrCreateSnapshot(RemoteSnapshotIdentifier sna
 
 #if PLATFORM(COCOA)
 
-void GPUProcess::sinkCompletedSnapshotToPDF(RemoteSnapshotIdentifier identifier, FloatSize size, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&& completionHandler)
+void CxxGPUProcess::sinkCompletedSnapshotToPDF(RemoteSnapshotIdentifier identifier, FloatSize size, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&& completionHandler)
 {
     RefPtr<RemoteSnapshot> snapshot;
     {
@@ -421,7 +421,7 @@ void GPUProcess::sinkCompletedSnapshotToPDF(RemoteSnapshotIdentifier identifier,
 
 #endif
 
-void GPUProcess::sinkCompletedSnapshotToBitmap(RemoteSnapshotIdentifier identifier, const FloatSize& size, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&& completionHandler)
+void CxxGPUProcess::sinkCompletedSnapshotToBitmap(RemoteSnapshotIdentifier identifier, const FloatSize& size, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&& completionHandler)
 {
     RefPtr<RemoteSnapshot> snapshot;
     {
@@ -441,7 +441,7 @@ void GPUProcess::sinkCompletedSnapshotToBitmap(RemoteSnapshotIdentifier identifi
     completionHandler(snapshot->drawToBitmap(size, rootFrameIdentifier));
 }
 
-void GPUProcess::releaseSnapshot(RemoteSnapshotIdentifier identifier)
+void CxxGPUProcess::releaseSnapshot(RemoteSnapshotIdentifier identifier)
 {
     // Currently it's not possible to know if a snapshot exists, hence no ASSERT.
     Locker locker(m_globalResourceLocker);
@@ -521,7 +521,7 @@ extern "C" void WebKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(const char* 
 }
 #endif
 
-void GPUProcess::setMockCaptureDevicesEnabled(bool isEnabled)
+void CxxGPUProcess::setMockCaptureDevicesEnabled(bool isEnabled)
 {
 #if ENABLE(GPU_PROCESS_SWIFT)
     // Body delegated to Swift via @_cdecl. The autogenerated IPC dispatcher
@@ -534,14 +534,14 @@ void GPUProcess::setMockCaptureDevicesEnabled(bool isEnabled)
 #endif
 }
 
-void GPUProcess::setOrientationForMediaCapture(WebCore::IntDegrees orientation)
+void CxxGPUProcess::setOrientationForMediaCapture(WebCore::IntDegrees orientation)
 {
     m_orientation = orientation;
     for (auto& connection : m_webProcessConnections.values())
         connection->setOrientationForMediaCapture(orientation);
 }
 
-void GPUProcess::enableMicrophoneMuteStatusAPI()
+void CxxGPUProcess::enableMicrophoneMuteStatusAPI()
 {
 #if PLATFORM(COCOA)
     CoreAudioCaptureUnit::defaultSingleton().setMuteStatusChangedCallback([weakProcess = WeakPtr { *this }] (bool isMuting) {
@@ -551,13 +551,13 @@ void GPUProcess::enableMicrophoneMuteStatusAPI()
 #endif
 }
 
-void GPUProcess::rotationAngleForCaptureDeviceChanged(const String& persistentId, WebCore::VideoFrameRotation rotation)
+void CxxGPUProcess::rotationAngleForCaptureDeviceChanged(const String& persistentId, WebCore::VideoFrameRotation rotation)
 {
     for (auto& connection : m_webProcessConnections.values())
         connection->rotationAngleForCaptureDeviceChanged(persistentId, rotation);
 }
 
-void GPUProcess::updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, WebCore::ProcessIdentifier processID, CompletionHandler<void()>&& completionHandler)
+void CxxGPUProcess::updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, WebCore::ProcessIdentifier processID, CompletionHandler<void()>&& completionHandler)
 {
     RELEASE_LOG(WebRTC, "GPUProcess::updateCaptureAccess: Entering (audio=%d, video=%d, display=%d)", allowAudioCapture, allowVideoCapture, allowDisplayCapture);
 
@@ -578,18 +578,18 @@ void GPUProcess::updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapt
     completionHandler();
 }
 
-void GPUProcess::updateCaptureOrigin(const WebCore::SecurityOriginData& originData, WebCore::ProcessIdentifier processID)
+void CxxGPUProcess::updateCaptureOrigin(const WebCore::SecurityOriginData& originData, WebCore::ProcessIdentifier processID)
 {
     if (RefPtr connection = webProcessConnection(processID))
         connection->updateCaptureOrigin(originData);
 }
 
-void GPUProcess::addMockMediaDevice(const WebCore::MockMediaDevice& device)
+void CxxGPUProcess::addMockMediaDevice(const WebCore::MockMediaDevice& device)
 {
     WebCore::MockRealtimeMediaSourceCenter::addDevice(device);
 }
 
-void GPUProcess::clearMockMediaDevices()
+void CxxGPUProcess::clearMockMediaDevices()
 {
 #if ENABLE(GPU_PROCESS_SWIFT)
     // Body delegated to Swift via @_cdecl. The autogenerated IPC dispatcher
@@ -602,7 +602,7 @@ void GPUProcess::clearMockMediaDevices()
 #endif
 }
 
-void GPUProcess::removeMockMediaDevice(const String& persistentId)
+void CxxGPUProcess::removeMockMediaDevice(const String& persistentId)
 {
 #if ENABLE(GPU_PROCESS_SWIFT)
     // Body delegated to Swift via @_cdecl. The CString returned by
@@ -614,7 +614,7 @@ void GPUProcess::removeMockMediaDevice(const String& persistentId)
 #endif
 }
 
-void GPUProcess::setMockMediaDeviceIsEphemeral(const String& persistentId, bool isEphemeral)
+void CxxGPUProcess::setMockMediaDeviceIsEphemeral(const String& persistentId, bool isEphemeral)
 {
 #if ENABLE(GPU_PROCESS_SWIFT)
     // Body delegated to Swift via @_cdecl. Same const-char-at-boundary
@@ -625,7 +625,7 @@ void GPUProcess::setMockMediaDeviceIsEphemeral(const String& persistentId, bool 
 #endif
 }
 
-void GPUProcess::resetMockMediaDevices()
+void CxxGPUProcess::resetMockMediaDevices()
 {
 #if ENABLE(GPU_PROCESS_SWIFT)
     // Body delegated to Swift via @_cdecl. The autogenerated IPC dispatcher
@@ -638,7 +638,7 @@ void GPUProcess::resetMockMediaDevices()
 #endif
 }
 
-void GPUProcess::setMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted)
+void CxxGPUProcess::setMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted)
 {
 #if ENABLE(GPU_PROCESS_SWIFT)
     // Body delegated to Swift via @_cdecl. The autogenerated IPC dispatcher
@@ -651,7 +651,7 @@ void GPUProcess::setMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool
 #endif
 }
 
-void GPUProcess::triggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay)
+void CxxGPUProcess::triggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay)
 {
 #if ENABLE(GPU_PROCESS_SWIFT)
     // Body delegated to Swift via @_cdecl. The autogenerated IPC dispatcher
@@ -664,7 +664,7 @@ void GPUProcess::triggerMockCaptureConfigurationChange(bool forCamera, bool forM
 #endif
 }
 
-void GPUProcess::setShouldListenToVoiceActivity(bool shouldListen)
+void CxxGPUProcess::setShouldListenToVoiceActivity(bool shouldListen)
 {
 #if PLATFORM(COCOA)
     if (!shouldListen) {
@@ -673,14 +673,14 @@ void GPUProcess::setShouldListenToVoiceActivity(bool shouldListen)
     }
 
     RealtimeMediaSourceCenter::singleton().audioCaptureFactory().enableMutedSpeechActivityEventListener([] {
-        protect(GPUProcess::singleton().parentProcessConnection())->send(Messages::GPUProcessProxy::VoiceActivityDetected { }, 0);
+        protect(CxxGPUProcess::singleton().parentProcessConnection())->send(Messages::GPUProcessProxy::VoiceActivityDetected { }, 0);
     });
 #endif
 }
 #endif // ENABLE(MEDIA_STREAM)
 
 #if HAVE(SCREEN_CAPTURE_KIT)
-void GPUProcess::promptForGetDisplayMedia(WebCore::DisplayCapturePromptType type, CompletionHandler<void(std::optional<WebCore::CaptureDevice>)>&& completionHandler)
+void CxxGPUProcess::promptForGetDisplayMedia(WebCore::DisplayCapturePromptType type, CompletionHandler<void(std::optional<WebCore::CaptureDevice>)>&& completionHandler)
 {
     WebCore::ScreenCaptureKitSharingSessionManager::singleton().promptForGetDisplayMedia(type, WTF::move(completionHandler));
 }
@@ -704,7 +704,7 @@ extern "C" void WebKitGPUProcessScreenCaptureKitSharingSessionManagerCancelGetDi
 }
 #endif
 
-void GPUProcess::cancelGetDisplayMediaPrompt()
+void CxxGPUProcess::cancelGetDisplayMediaPrompt()
 {
 #if ENABLE(GPU_PROCESS_SWIFT)
     // Body delegated to Swift via @_cdecl. The autogenerated IPC dispatcher
@@ -720,7 +720,7 @@ void GPUProcess::cancelGetDisplayMediaPrompt()
 
 #endif // HAVE(SCREEN_CAPTURE_KIT)
 
-void GPUProcess::addSession(PAL::SessionID sessionID, GPUProcessSessionParameters&& parameters)
+void CxxGPUProcess::addSession(PAL::SessionID sessionID, GPUProcessSessionParameters&& parameters)
 {
     ASSERT(!m_sessions.contains(sessionID));
     SandboxExtension::consumePermanently(parameters.mediaCacheDirectorySandboxExtensionHandle);
@@ -736,7 +736,7 @@ void GPUProcess::addSession(PAL::SessionID sessionID, GPUProcessSessionParameter
     });
 }
 
-void GPUProcess::removeSession(PAL::SessionID sessionID)
+void CxxGPUProcess::removeSession(PAL::SessionID sessionID)
 {
     auto findResult = m_sessions.find(sessionID);
     if (findResult == m_sessions.end()) {
@@ -746,7 +746,7 @@ void GPUProcess::removeSession(PAL::SessionID sessionID)
     m_sessions.remove(findResult);
 }
 
-const String& GPUProcess::mediaCacheDirectory(PAL::SessionID sessionID) const
+const String& CxxGPUProcess::mediaCacheDirectory(PAL::SessionID sessionID) const
 {
     auto findResult = m_sessions.find(sessionID);
     if (findResult == m_sessions.end()) {
@@ -757,7 +757,7 @@ const String& GPUProcess::mediaCacheDirectory(PAL::SessionID sessionID) const
 }
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA) || ENABLE(ENCRYPTED_MEDIA)
-const String& GPUProcess::mediaKeysStorageDirectory(PAL::SessionID sessionID) const
+const String& CxxGPUProcess::mediaKeysStorageDirectory(PAL::SessionID sessionID) const
 {
     auto findResult = m_sessions.find(sessionID);
     if (findResult == m_sessions.end()) {
@@ -768,7 +768,7 @@ const String& GPUProcess::mediaKeysStorageDirectory(PAL::SessionID sessionID) co
 }
 #endif
 
-WebCore::NowPlayingManager& GPUProcess::nowPlayingManager()
+WebCore::NowPlayingManager& CxxGPUProcess::nowPlayingManager()
 {
     if (!m_nowPlayingManager)
         m_nowPlayingManager = makeUnique<WebCore::NowPlayingManager>();
@@ -776,16 +776,16 @@ WebCore::NowPlayingManager& GPUProcess::nowPlayingManager()
 }
 
 #if ENABLE(GPU_PROCESS) && USE(AUDIO_SESSION)
-RemoteAudioSessionProxyManager& GPUProcess::audioSessionManager() const
+RemoteAudioSessionProxyManager& CxxGPUProcess::audioSessionManager() const
 {
     if (!m_audioSessionManager)
-        m_audioSessionManager = RemoteAudioSessionProxyManager::create(const_cast<GPUProcess&>(*this));
+        m_audioSessionManager = RemoteAudioSessionProxyManager::create(const_cast<CxxGPUProcess&>(*this));
     return *m_audioSessionManager;
 }
 #endif
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-WorkQueue& GPUProcess::videoMediaStreamTrackRendererQueue()
+WorkQueue& CxxGPUProcess::videoMediaStreamTrackRendererQueue()
 {
     if (!m_videoMediaStreamTrackRendererQueue)
         m_videoMediaStreamTrackRendererQueue = WorkQueue::create("RemoteVideoMediaStreamTrackRenderer"_s, WorkQueue::QOS::UserInitiated);
@@ -794,7 +794,7 @@ WorkQueue& GPUProcess::videoMediaStreamTrackRendererQueue()
 #endif
 
 #if USE(LIBWEBRTC) && PLATFORM(COCOA)
-WorkQueue& GPUProcess::libWebRTCCodecsQueue()
+WorkQueue& CxxGPUProcess::libWebRTCCodecsQueue()
 {
     if (!m_libWebRTCCodecsQueue)
         m_libWebRTCCodecsQueue = WorkQueue::create("LibWebRTCCodecsQueue"_s, WorkQueue::QOS::UserInitiated);
@@ -811,7 +811,7 @@ WorkQueue& GPUProcess::libWebRTCCodecsQueue()
 extern "C" uint64_t swiftGPUProcessWebProcessConnectionCountForTesting();
 #endif
 
-void GPUProcess::webProcessConnectionCountForTesting(CompletionHandler<void(uint64_t)>&& completionHandler)
+void CxxGPUProcess::webProcessConnectionCountForTesting(CompletionHandler<void(uint64_t)>&& completionHandler)
 {
 #if ENABLE(GPU_PROCESS_SWIFT)
     // The autogenerated IPC dispatcher (DerivedSources/GPUProcessMessageReceiver.cpp)
@@ -861,13 +861,13 @@ extern "C" void WebKitGPUProcessOverrideUserPreferredLanguages(const char* const
 }
 #endif
 
-void GPUProcess::terminateWebProcess(WebCore::ProcessIdentifier identifier)
+void CxxGPUProcess::terminateWebProcess(WebCore::ProcessIdentifier identifier)
 {
     protect(parentProcessConnection())->send(Messages::GPUProcessProxy::TerminateWebProcess(identifier), 0);
 }
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-void GPUProcess::processIsStartingToCaptureAudio(GPUConnectionToWebProcess& process)
+void CxxGPUProcess::processIsStartingToCaptureAudio(GPUConnectionToWebProcess& process)
 {
     for (auto& connection : m_webProcessConnections.values())
         connection->processIsStartingToCaptureAudio(process);
@@ -875,12 +875,12 @@ void GPUProcess::processIsStartingToCaptureAudio(GPUConnectionToWebProcess& proc
 #endif
 
 #if ENABLE(WEBXR)
-std::optional<WebCore::ProcessIdentity> GPUProcess::immersiveModeProcessIdentity() const
+std::optional<WebCore::ProcessIdentity> CxxGPUProcess::immersiveModeProcessIdentity() const
 {
     return m_processIdentity;
 }
 
-void GPUProcess::webXRPromptAccepted(std::optional<WebCore::ProcessIdentity> processIdentity, CompletionHandler<void(bool)>&& completionHandler)
+void CxxGPUProcess::webXRPromptAccepted(std::optional<WebCore::ProcessIdentity> processIdentity, CompletionHandler<void(bool)>&& completionHandler)
 {
     m_processIdentity = processIdentity;
     completionHandler(true);
@@ -888,7 +888,7 @@ void GPUProcess::webXRPromptAccepted(std::optional<WebCore::ProcessIdentity> pro
 #endif
 
 #if HAVE(AUDIT_TOKEN)
-void GPUProcess::setPresentingApplicationAuditToken(WebCore::ProcessIdentifier processIdentifier, WebCore::PageIdentifier pageIdentifier, std::optional<WebKit::CoreIPCAuditToken>&& auditToken)
+void CxxGPUProcess::setPresentingApplicationAuditToken(WebCore::ProcessIdentifier processIdentifier, WebCore::PageIdentifier pageIdentifier, std::optional<WebKit::CoreIPCAuditToken>&& auditToken)
 {
     if (RefPtr connection = m_webProcessConnections.get(processIdentifier))
         connection->setPresentingApplicationAuditToken(pageIdentifier, WTF::move(auditToken));

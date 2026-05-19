@@ -219,7 +219,7 @@ void RemoteRenderingBackend::createSnapshotRecorder(RemoteSnapshotRecorderIdenti
 {
     assertIsCurrent(workQueue());
     // FIXME: using global identifiers (snapshotIdentifier) is not secure. Do not follow this pattern.
-    Ref snapshot = GPUProcess::singleton().getOrCreateSnapshot(snapshotIdentifier);
+    Ref snapshot = CxxGPUProcess::singleton().getOrCreateSnapshot(snapshotIdentifier);
     auto result = m_remoteSnapshotRecorders.add(identifier, RemoteSnapshotRecorder::create(identifier, snapshot, *this));
     MESSAGE_CHECK(result.isNewEntry, "Recorder already created");
 }

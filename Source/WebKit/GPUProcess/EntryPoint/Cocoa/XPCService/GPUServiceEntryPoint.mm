@@ -112,7 +112,7 @@ void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t i
         delegate.getClientSDKAlignedBehaviors(clientSDKAlignedBehaviors);
         WTF::setSDKAlignedBehaviors(clientSDKAlignedBehaviors);
 
-        parameters.processType = WebKit::GPUProcess::processType;
+        parameters.processType = WebKit::CxxGPUProcess::processType;
         WTF::setAuxiliaryProcessType(parameters.processType);
 
         WebKit::InitializeWebKit2();
@@ -145,7 +145,7 @@ void WebKitGPUServiceInitializerImpl(xpc_connection_t connection, xpc_object_t i
             WTF::Thread::setGlobalMaxQOSClass(QOS_CLASS_UTILITY);
 #endif
 
-        WebKit::initializeAuxiliaryProcess<WebKit::GPUProcess>(WTF::move(parameters));
+        WebKit::initializeAuxiliaryProcess<WebKit::CxxGPUProcess>(WTF::move(parameters));
 #endif // ENABLE(GPU_PROCESS)
     });
 }
@@ -198,7 +198,7 @@ void WebKitGPUProcessInitializeAfterSwiftBootstrap(
     size_t extraInitDataCount)
 {
     WebKit::AuxiliaryProcessInitializationParameters parameters;
-    parameters.processType = WebKit::GPUProcess::processType;
+    parameters.processType = WebKit::CxxGPUProcess::processType;
     parameters.uiProcessName = String::fromUTF8(uiProcessName);
     parameters.clientIdentifier = String::fromUTF8(clientIdentifier);
     if (clientBundleIdentifier && *clientBundleIdentifier)
@@ -208,7 +208,7 @@ void WebKitGPUProcessInitializeAfterSwiftBootstrap(
     for (size_t i = 0; i < extraInitDataCount; ++i)
         parameters.extraInitializationData.add(String::fromUTF8(extraInitDataKeys[i]), String::fromUTF8(extraInitDataValues[i]));
 
-    WebKit::initializeAuxiliaryProcess<WebKit::GPUProcess>(WTF::move(parameters));
+    WebKit::initializeAuxiliaryProcess<WebKit::CxxGPUProcess>(WTF::move(parameters));
 }
 
 // Thin C bridge for the base XPCServiceInitializerDelegate::checkEntitlements

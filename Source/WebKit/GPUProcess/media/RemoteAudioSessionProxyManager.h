@@ -35,7 +35,7 @@
 
 namespace WebKit {
 
-class GPUProcess;
+class CxxGPUProcess;
 class RemoteAudioSessionProxy;
 
 class RemoteAudioSessionProxyManager
@@ -44,7 +44,7 @@ class RemoteAudioSessionProxyManager
     , private WebCore::AudioSessionConfigurationChangeObserver {
     WTF_MAKE_TZONE_ALLOCATED(RemoteAudioSessionProxyManager);
 public:
-    static Ref<RemoteAudioSessionProxyManager> create(GPUProcess& gpuProcess)
+    static Ref<RemoteAudioSessionProxyManager> create(CxxGPUProcess& gpuProcess)
     {
         return adoptRef(*new RemoteAudioSessionProxyManager(gpuProcess));
     }
@@ -75,7 +75,7 @@ public:
     USING_CAN_MAKE_WEAKPTR(WebCore::AudioSessionInterruptionObserver);
 
 private:
-    RemoteAudioSessionProxyManager(GPUProcess&);
+    RemoteAudioSessionProxyManager(CxxGPUProcess&);
 
     void beginAudioSessionInterruption() final;
     void endAudioSessionInterruption(WebCore::AudioSession::MayResume) final;
@@ -88,7 +88,7 @@ private:
     bool hasOtherActiveProxyThan(RemoteAudioSessionProxy& proxyToExclude);
     bool hasActiveNotInterruptedProxy();
 
-    WeakRef<GPUProcess> m_gpuProcess;
+    WeakRef<CxxGPUProcess> m_gpuProcess;
     WeakHashSet<RemoteAudioSessionProxy> m_proxies;
 };
 

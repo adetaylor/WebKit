@@ -92,7 +92,7 @@ class SecurityOriginData;
 
 namespace WebKit {
 
-class GPUProcess;
+class CxxGPUProcess;
 class LayerHostingContext;
 class LibWebRTCCodecsProxy;
 class LocalAudioSessionRoutingArbitrator;
@@ -137,7 +137,7 @@ class GPUConnectionToWebProcess
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(GPUConnectionToWebProcess);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(GPUConnectionToWebProcess);
 public:
-    static Ref<GPUConnectionToWebProcess> create(GPUProcess&, WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&);
+    static Ref<GPUConnectionToWebProcess> create(CxxGPUProcess&, WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&);
     virtual ~GPUConnectionToWebProcess();
 
     // IPC::Connection::Client, WebCore::NowPlayingManagerClient.
@@ -162,7 +162,7 @@ public:
 
     IPC::Connection& connection() { return m_connection.get(); }
     IPC::MessageReceiverMap& messageReceiverMap() LIFETIME_BOUND { return m_messageReceiverMap; }
-    GPUProcess& gpuProcess() { return m_gpuProcess.get(); }
+    CxxGPUProcess& gpuProcess() { return m_gpuProcess.get(); }
     WebCore::ProcessIdentifier webProcessIdentifier() const { return m_webProcessIdentifier; }
     Ref<RemoteSharedResourceCache> sharedResourceCache();
 
@@ -285,7 +285,7 @@ public:
 #endif
 
 private:
-    GPUConnectionToWebProcess(GPUProcess&, WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&);
+    GPUConnectionToWebProcess(CxxGPUProcess&, WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&);
 
 #if ENABLE(WEB_AUDIO)
     RemoteAudioDestinationManager& remoteAudioDestinationManager();
@@ -366,7 +366,7 @@ private:
 
     const Ref<IPC::Connection> m_connection;
     IPC::MessageReceiverMap m_messageReceiverMap;
-    const Ref<GPUProcess> m_gpuProcess;
+    const Ref<CxxGPUProcess> m_gpuProcess;
     const WebCore::ProcessIdentifier m_webProcessIdentifier;
     const WebCore::ProcessIdentity m_webProcessIdentity;
 #if ENABLE(WEB_AUDIO)

@@ -91,14 +91,14 @@ struct GPUProcessCreationParameters;
 struct GPUProcessSessionParameters;
 struct SharedPreferencesForWebProcess;
 
-class GPUProcess final : public AuxiliaryProcess, public ThreadSafeRefCounted<GPUProcess> {
-    WTF_MAKE_NONCOPYABLE(GPUProcess);
-    WTF_DEPRECATED_MAKE_FAST_ALLOCATED(GPUProcess);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(GPUProcess);
+class CxxGPUProcess final : public AuxiliaryProcess, public ThreadSafeRefCounted<CxxGPUProcess> {
+    WTF_MAKE_NONCOPYABLE(CxxGPUProcess);
+    WTF_DEPRECATED_MAKE_FAST_ALLOCATED(CxxGPUProcess);
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(CxxGPUProcess);
 public:
-    ~GPUProcess();
+    ~CxxGPUProcess();
 
-    static GPUProcess& singleton();
+    static CxxGPUProcess& singleton();
     static constexpr WTF::AuxiliaryProcessType processType = WTF::AuxiliaryProcessType::GPU;
 
     void ref() const final { ThreadSafeRefCounted::ref(); }
@@ -179,7 +179,7 @@ public:
     void terminateWebProcess(WebCore::ProcessIdentifier);
 
 private:
-    GPUProcess();
+    CxxGPUProcess();
 
     void lowMemoryHandler(Critical, Synchronous);
 
