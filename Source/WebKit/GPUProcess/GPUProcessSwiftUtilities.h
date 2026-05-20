@@ -132,11 +132,6 @@ using SpanConstUint8 = std::span<const uint8_t>;
 // CxxGPUProcess. Sidesteps swiftc's silent-drop bug for `consuming`
 // noncopyable params (see ~/uncopyable-parameter-thunk-problem/).
 
-inline void swiftStubRemoveSession(PAL::SessionID sessionID)
-{
-    CxxGPUProcess::singleton().removeSession(sessionID);
-}
-
 #if ENABLE(MEDIA_STREAM)
 inline void swiftStubUpdateCaptureOrigin(WrappedArgs::GPUProcess::UpdateCaptureOrigin_originData* originData, WebCore::ProcessIdentifier processID)
 {
