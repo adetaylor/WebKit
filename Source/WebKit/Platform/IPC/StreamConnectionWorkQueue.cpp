@@ -166,4 +166,28 @@ bool StreamConnectionWorkQueue::isCurrent() const
     return m_processingThread ? m_processingThread->uid() == Thread::currentSingleton().uid() : false;
 }
 
+#if ENABLE(GPU_PROCESS_SWIFT)
+
+// C bridges for the Swift SerialExecutor that backs stream-receiver actors.
+// The executor holds an unowned pointer to the queue; the receiver actor (which
+// owns the executor) is always torn down before the connection (which owns the
+// queue) is invalidated, so the pointer is safe for the executor's lifetime.
+extern "C" {
+
+void webKitStreamConnectionWorkQueueDispatch(IPC::StreamConnectionWorkQueue* queue, void (*callback)(void* context) noexcept, void* context) noexcept
+{
+    queue->dispatch([callback, context] {
+        callback(context);
+    });
+}
+
+void webKitStreamConnectionWorkQueueCheckIsolation(const IPC::StreamConnectionWorkQueue* queue) noexcept
+{
+    RELEASE_ASSERT(queue->isCurrent());
+}
+
+} // extern "C"
+
+#endif // ENABLE(GPU_PROCESS_SWIFT)
+
 }
