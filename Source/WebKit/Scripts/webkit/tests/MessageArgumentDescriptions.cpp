@@ -287,6 +287,12 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamBuffer_SendStreamBuffer>(globalObject, decoder);
     case MessageName::TestWithStreamServerConnectionHandle_SendStreamServerConnection:
         return jsValueForDecodedMessage<MessageName::TestWithStreamServerConnectionHandle_SendStreamServerConnection>(globalObject, decoder);
+    case MessageName::TestWithStreamAndSwift_SendString:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamAndSwift_SendString>(globalObject, decoder);
+    case MessageName::TestWithStreamAndSwift_SendStringAsync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamAndSwift_SendStringAsync>(globalObject, decoder);
+    case MessageName::TestWithStreamAndSwift_SendStringAsyncReply:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamAndSwift_SendStringAsyncReply>(globalObject, decoder);
     case MessageName::TestWithSuperclass_LoadURL:
         return jsValueForDecodedMessage<MessageName::TestWithSuperclass_LoadURL>(globalObject, decoder);
 #if ENABLE(TEST_FEATURE)
@@ -426,6 +432,8 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
     case MessageName::TestWithStream_SendAndReceiveMachSendRight:
         return jsValueForDecodedMessageReply<MessageName::TestWithStream_SendAndReceiveMachSendRight>(globalObject, decoder);
 #endif
+    case MessageName::TestWithStreamAndSwift_SendStringAsync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamAndSwift_SendStringAsync>(globalObject, decoder);
 #if ENABLE(TEST_FEATURE)
     case MessageName::TestWithSuperclass_TestAsyncMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSuperclass_TestAsyncMessage>(globalObject, decoder);
@@ -1061,6 +1069,18 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "handle"_s, "IPC::StreamServerConnectionHandle"_s },
         };
+    case MessageName::TestWithStreamAndSwift_SendString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamAndSwift_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamAndSwift_SendStringAsyncReply:
+        return Vector<ArgumentDescription> {
+            { "returnValue"_s, "int64_t"_s },
+        };
     case MessageName::TestWithSuperclass_LoadURL:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
@@ -1296,6 +1316,10 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
             { "r1"_s, "MachSendRight"_s },
         };
 #endif
+    case MessageName::TestWithStreamAndSwift_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "returnValue"_s, "int64_t"_s },
+        };
 #if ENABLE(TEST_FEATURE)
     case MessageName::TestWithSuperclass_TestAsyncMessage:
         return Vector<ArgumentDescription> {

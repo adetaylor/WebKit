@@ -75,6 +75,10 @@ module WebKit_DerivedSources_IPC {
     header "TestWithStreamServerConnectionHandleMessages.h"
     export *
   }
+  explicit module TestWithStreamAndSwiftMessages {
+    header "TestWithStreamAndSwiftMessages.h"
+    export *
+  }
   explicit module TestWithSuperclassMessages {
     header "TestWithSuperclassMessages.h"
     export *

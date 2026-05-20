@@ -886,25 +886,39 @@ def generate_messages_header(receiver):
         handler_namespace = 'WebKit'  # hard-coded for now
         forwarder_class = receiver.name + 'MessageForwarder'
         ref_forwarder_class = 'Ref' + forwarder_class
+        is_stream = receiver.has_attribute(STREAM_ATTRIBUTE)
 
         sync_messages = []
         for message in receiver.messages:
             if message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
                 sync_messages.append(message)
 
+        if is_stream:
+            result.append('#include "StreamMessageReceiver.h"\n')
+            result.append('namespace IPC { class StreamServerConnection; }\n\n')
         result.append('namespace ' + handler_namespace + ' {\n\n')
-        result.append('class ' + forwarder_class + ': public RefCounted<' + forwarder_class + '>, public IPC::MessageReceiver {\n')
+        if is_stream:
+            result.append('class ' + forwarder_class + ': public ThreadSafeRefCounted<' + forwarder_class + '>, public IPC::StreamMessageReceiver {\n')
+        else:
+            result.append('class ' + forwarder_class + ': public RefCounted<' + forwarder_class + '>, public IPC::MessageReceiver {\n')
         result.append('public:\n')
         result.append('    static Ref<' + forwarder_class + '> createFromWeak(' + handler_namespace + '::' + weak_ref_class + '* _Nonnull handler)\n')
         result.append('    {\n')
         result.append('        return adoptRef(*new ' + forwarder_class + '(handler));\n')
         result.append('    }\n')
         result.append('    ~' + forwarder_class + '();\n')
-        result.append('    void didReceiveMessage(IPC::Connection&, IPC::Decoder&);\n')
-        if not receiver.has_attribute(STREAM_ATTRIBUTE) and (sync_messages or receiver.has_attribute(WANTS_DISPATCH_MESSAGE_ATTRIBUTE)):
-            result.append('    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);\n')
-        result.append('    void ref() const final { RefCounted::ref(); }\n')
-        result.append('    void deref() const final { RefCounted::deref(); }\n')
+        if is_stream:
+            result.append('    void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;\n')
+        else:
+            result.append('    void didReceiveMessage(IPC::Connection&, IPC::Decoder&);\n')
+            if sync_messages or receiver.has_attribute(WANTS_DISPATCH_MESSAGE_ATTRIBUTE):
+                result.append('    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);\n')
+        if is_stream:
+            result.append('    void ref() const final { ThreadSafeRefCounted::ref(); }\n')
+            result.append('    void deref() const final { ThreadSafeRefCounted::deref(); }\n')
+        else:
+            result.append('    void ref() const final { RefCounted::ref(); }\n')
+            result.append('    void deref() const final { RefCounted::deref(); }\n')
         result.append('private:\n')
         result.append('    ' + forwarder_class + '(' + handler_namespace + '::' + weak_ref_class + '* _Nonnull);\n')
         result.append('    std::unique_ptr<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')

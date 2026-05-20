@@ -33,6 +33,7 @@
 #include "StreamServerConnectionBuffer.h"
 #include <wtf/Deque.h>
 #include <wtf/Lock.h>
+#include <wtf/SwiftBridging.h>
 
 namespace IPC {
 
@@ -161,7 +162,7 @@ private:
     bool m_isDispatchingMessage { false };
 #endif
     friend class StreamConnectionWorkQueue;
-};
+} SWIFT_SHARED_REFERENCE(refStreamServerConnection, derefStreamServerConnection);
 
 template<typename T, typename RawValue>
 Error StreamServerConnection::send(T&& message, const ObjectIdentifierGenericBase<RawValue>& destinationID)
@@ -213,4 +214,14 @@ inline void markCurrentlyDispatchedMessageAsInvalid(const RefPtr<StreamServerCon
         connection->markCurrentlyDispatchedMessageAsInvalid(error);
 }
 
+}
+
+inline void refStreamServerConnection(IPC::StreamServerConnection* WTF_NONNULL obj)
+{
+    obj->ref();
+}
+
+inline void derefStreamServerConnection(IPC::StreamServerConnection* WTF_NONNULL obj)
+{
+    obj->deref();
 }
