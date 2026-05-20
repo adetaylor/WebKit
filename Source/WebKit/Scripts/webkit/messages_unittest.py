@@ -136,6 +136,19 @@ class GeneratedFileContentsTest(unittest.TestCase):
         modulemap_contents = messages.generate_modulemap(receiver_header_files)
         self.assertGeneratedFileContentsEqual(modulemap_contents, os.path.join(tests_directory, 'module.private.modulemap'))
 
+    def test_ref_wrap_per_arg_attribute_parses(self):
+        # Phase 4.1.c.0.a: parser must recognize a [RefWrap] per-argument
+        # annotation in .messages.in and surface it via Parameter.has_attribute.
+        # The annotation drives the Swift-dispatch wrap that 4.1.c.0.b emits;
+        # this slice only validates parsing, so the autogen output for the
+        # fixture (TestWithSwiftConditionally) stays byte-identical to the
+        # pre-annotation expected outputs (verified by test_receiver above).
+        receiver = next(r for r in self.test_receivers if r.name == 'TestWithSwiftConditionally')
+        async_msg = next(m for m in receiver.messages if m.name == 'TestAsyncMessage')
+        sync_msg = next(m for m in receiver.messages if m.name == 'TestSyncMessage')
+        self.assertTrue(async_msg.parameters[0].has_attribute('RefWrap'))
+        self.assertFalse(sync_msg.parameters[0].has_attribute('RefWrap'))
+
 
 def parse_sys_argv():
     global reset_results

@@ -25,6 +25,6 @@
     SwiftReceiverBuildEnabledBy=SWIFT_TEST_CONDITION
 ]
 messages -> TestWithSwiftConditionally {
-    TestAsyncMessage(uint32_t param) -> (uint8_t reply)
+    TestAsyncMessage([RefWrap] uint32_t param) -> (uint8_t reply)
     TestSyncMessage(uint32_t param) -> (uint8_t reply) Synchronous
 }
