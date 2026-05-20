@@ -1,0 +1,4 @@
+repos:
+  primary: "."
+  additional:
+    - "/Users/adrian_taylor/rewrite-model-process"
