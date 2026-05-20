@@ -178,14 +178,16 @@ inline void swiftStubRotationAngleForCaptureDeviceChanged(String persistentId, W
     CxxGPUProcess::singleton().rotationAngleForCaptureDeviceChanged(persistentId, rotation);
 }
 
-inline void swiftStubUpdateCaptureOrigin(WebCore::SecurityOriginData originData, WebCore::ProcessIdentifier processID)
+inline void swiftStubUpdateCaptureOrigin(WrappedArgs::GPUProcess::UpdateCaptureOrigin_originData* originData, WebCore::ProcessIdentifier processID)
 {
-    CxxGPUProcess::singleton().updateCaptureOrigin(originData, processID);
+    Ref originDataRef = *originData;
+    CxxGPUProcess::singleton().updateCaptureOrigin(*originDataRef.get(), processID);
 }
 
-inline void swiftStubAddMockMediaDevice(WebCore::MockMediaDevice device)
+inline void swiftStubAddMockMediaDevice(WrappedArgs::GPUProcess::AddMockMediaDevice_device* device)
 {
-    CxxGPUProcess::singleton().addMockMediaDevice(device);
+    Ref deviceRef = *device;
+    CxxGPUProcess::singleton().addMockMediaDevice(*deviceRef.get());
 }
 
 inline void swiftStubClearMockMediaDevices()

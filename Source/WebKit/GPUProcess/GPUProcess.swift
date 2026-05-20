@@ -109,11 +109,18 @@ final class GPUProcess {
         WebKit.swiftStubRotationAngleForCaptureDeviceChanged(persistentId, rotation)
     }
 
-    func updateCaptureOrigin(originData: WebCore.SecurityOriginData, processID: WebCore.ProcessIdentifier) {
+    // SecurityOriginData is an "address-only" C++ class (holds a WTF::String,
+    // hence non-trivial copy semantics). Passing it by value through a Swift
+    // method body crashes swift-frontend during IR generation
+    // (AddressOnlyCXXClangRecordTypeInfo::emitCopyWithCopyOrMoveConstructor —
+    // see ~/swift-gpu-compiler-crash/ for the standalone reproducer).
+    // Workaround: tag with [RefWrap] in messages.in and take the autogen-
+    // emitted RefCountable<...>* form here, sidestepping the by-value path.
+    func updateCaptureOrigin(originData: WrappedArgs.GPUProcess.UpdateCaptureOrigin_originData, processID: WebCore.ProcessIdentifier) {
         WebKit.swiftStubUpdateCaptureOrigin(originData, processID)
     }
 
-    func addMockMediaDevice(device: WebCore.MockMediaDevice) {
+    func addMockMediaDevice(device: WrappedArgs.GPUProcess.AddMockMediaDevice_device) {
         WebKit.swiftStubAddMockMediaDevice(device)
     }
 
