@@ -83,6 +83,18 @@
 #include <WebCore/ScreenCaptureKitCaptureSource.h>
 #endif
 
+#if ENABLE(GPU_PROCESS_SWIFT)
+// Pull in the Swift class WebKit::GPUProcess (defined in GPUProcess.swift,
+// surfaced via WebKit-Swift-CPP.h) so the m_swiftReceiver member can be
+// constructed in the ctor below. WebKit-Swift-CPP.h also redeclares the
+// existing Phase 3 swiftGPUProcess<X> @_cdecl entry points (with
+// SWIFT_NOEXCEPT) — the bare `extern "C" void swiftGPUProcess<X>(...);`
+// forward declarations elsewhere in this file conflict on language linkage
+// vs the SWIFT_EXTERN ... noexcept that this header provides, so they are
+// removed below; the same names are available via this include.
+#include "Shared/WebKit-Swift.h" // NOLINT
+#endif
+
 using namespace WebCore;
 
 namespace WebKit {
@@ -99,6 +111,15 @@ CxxGPUProcess::CxxGPUProcess()
     RELEASE_LOG(Process, "%p - GPUProcess::GPUProcess:", this);
 #if ASSERT_ENABLED && PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     CoreAudioCaptureUnit::allowStarting();
+#endif
+#if ENABLE(GPU_PROCESS_SWIFT)
+    // Construct the Swift IPC receiver class and register its forwarder so
+    // GPUProcess messages reach the Swift handler chain. The forwarder is
+    // owned by the Swift class via a Ref<>; the Swift class itself is owned
+    // by m_swiftReceiver, so the forwarder's lifetime is bound to the
+    // singleton's.
+    m_swiftReceiver = WTF::makeUniqueWithoutFastMallocCheck<GPUProcess>(GPUProcess::init());
+    addMessageReceiver(Messages::GPUProcess::messageReceiverName(), m_swiftReceiver->getMessageReceiver());
 #endif
 }
 
@@ -329,7 +350,7 @@ bool CxxGPUProcess::updatePreference(std::optional<bool>& oldPreference, std::op
 // arg handler below (defined in SwiftGPUProcess.swift). The matching extern "C"
 // bridge (WebKitGPUProcessOverrideUserPreferredLanguages) is defined further
 // down in this file, next to the other Phase 3 bridges.
-extern "C" void swiftGPUProcessUserPreferredLanguagesChanged(const char* const* languages, size_t count);
+extern "C" void swiftGPUProcessUserPreferredLanguagesChanged(const char* const* languages, size_t count) noexcept;
 #endif
 
 void CxxGPUProcess::userPreferredLanguagesChanged(Vector<String>&& languages)
@@ -450,28 +471,22 @@ void CxxGPUProcess::releaseSnapshot(RemoteSnapshotIdentifier identifier)
 
 #if ENABLE(MEDIA_STREAM)
 #if ENABLE(GPU_PROCESS_SWIFT)
-// Forward declaration of the Swift @_cdecl entry point that owns the body of
-// setMockCaptureDevicesEnabled (defined in SwiftGPUProcess.swift). At namespace
-// scope so the extern "C" linkage spec is well-formed (extern "C" inside a
-// function body is ill-formed). Same Phase 3 POC pattern as
-// swiftGPUProcessWebProcessConnectionCountForTesting above.
-extern "C" void swiftGPUProcessSetMockCaptureDevicesEnabled(bool isEnabled);
-
-// Forward declarations of the four additional Swift @_cdecl entry points
-// migrated in the Phase 3 batch (defined in SwiftGPUProcess.swift). Same
-// rationale as swiftGPUProcessSetMockCaptureDevicesEnabled above.
-extern "C" void swiftGPUProcessClearMockMediaDevices();
-extern "C" void swiftGPUProcessResetMockMediaDevices();
-extern "C" void swiftGPUProcessSetMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted);
-extern "C" void swiftGPUProcessTriggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay);
-
+// The Swift @_cdecl entry points used by the MEDIA_STREAM handlers below
+// (swiftGPUProcessSetMockCaptureDevicesEnabled / ClearMockMediaDevices /
+// ResetMockMediaDevices / SetMockCaptureDevicesInterrupted /
+// TriggerMockCaptureConfigurationChange / RemoveMockMediaDevice /
+// SetMockMediaDeviceIsEphemeral) are surfaced into C++ as global-scope
+// SWIFT_INLINE_THUNK wrappers in WebKit-Swift-CPP.h (pulled in via
+// "Shared/WebKit-Swift.h" near the top of this file), so we no longer need
+// extern "C" forward declarations here. Those forward declarations would
+// conflict with the inline thunks on language linkage (the thunks are C++,
+// our extern "C" decls would not match).
+//
 // String-arg handlers (Phase 3 batch 2). The `const char*` boundary keeps
 // the Swift signatures POD; both the C++ shim and the bridge convert via
 // utf8()/String::fromUTF8 respectively. The CString returned by
 // WTF::String::utf8() outlives the synchronous Swift call, so the raw
 // pointer passed across the boundary stays valid for the call's duration.
-extern "C" void swiftGPUProcessRemoveMockMediaDevice(const char* persistentId);
-extern "C" void swiftGPUProcessSetMockMediaDeviceIsEphemeral(const char* persistentId, bool isEphemeral);
 
 // Typed C bridge so the Swift @_cdecl body can call the WebCore static
 // MockRealtimeMediaSourceCenter::setMockRealtimeMediaSourceCenterEnabled
@@ -693,7 +708,6 @@ void CxxGPUProcess::promptForGetDisplayMedia(WebCore::DisplayCapturePromptType t
 // conditional-compilation flag (it isn't in cmake's _WEBKIT_CONFIG_FILE_VARIABLES),
 // so the Swift @_cdecl is defined unconditionally. The C++ gate here is what
 // keeps the bridge symbol from being referenced when SCREEN_CAPTURE_KIT is off.
-extern "C" void swiftGPUProcessCancelGetDisplayMediaPrompt();
 
 // Typed C bridge so the Swift @_cdecl body can call the WebCore static
 // ScreenCaptureKitSharingSessionManager::cancelGetDisplayMediaPrompt without
@@ -808,7 +822,6 @@ WorkQueue& CxxGPUProcess::libWebRTCCodecsQueue()
 // namespace scope so the C linkage spec is well-formed; inside the function
 // body it would be ill-formed (extern "C" is a linkage specification, not a
 // declaration form, so it can only appear at namespace scope).
-extern "C" uint64_t swiftGPUProcessWebProcessConnectionCountForTesting();
 #endif
 
 void CxxGPUProcess::webProcessConnectionCountForTesting(CompletionHandler<void(uint64_t)>&& completionHandler)

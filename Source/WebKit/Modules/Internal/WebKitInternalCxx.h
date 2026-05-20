@@ -28,6 +28,7 @@
 #import "IPCTesterReceiverMessages.h"
 
 #if ENABLE(GPU_PROCESS_SWIFT)
+#import "GPUProcessMessages.h"
 #import "GPUProcessSwiftUtilities.h"
 #endif
 

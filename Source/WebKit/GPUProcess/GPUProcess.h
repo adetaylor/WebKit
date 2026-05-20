@@ -91,7 +91,16 @@ struct GPUProcessCreationParameters;
 struct GPUProcessSessionParameters;
 struct SharedPreferencesForWebProcess;
 
-class CxxGPUProcess final : public AuxiliaryProcess, public ThreadSafeRefCounted<CxxGPUProcess> {
+#if ENABLE(GPU_PROCESS_SWIFT)
+// Swift IPC receiver class defined in GPUProcess.swift. CxxGPUProcess holds a
+// strong reference to it so the autogen-generated GPUProcessMessageForwarder
+// (whose target is a WeakRef back to the Swift instance) stays valid for the
+// lifetime of the C++ singleton.
+class GPUProcess;
+class GPUProcessMessageForwarder;
+#endif
+
+class CxxGPUProcess : public AuxiliaryProcess, public ThreadSafeRefCounted<CxxGPUProcess> {
     WTF_MAKE_NONCOPYABLE(CxxGPUProcess);
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(CxxGPUProcess);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(CxxGPUProcess);
@@ -193,9 +202,24 @@ private:
     bool canExitUnderMemoryPressure() const;
 
     // IPC::Connection::Client
+#if !ENABLE(GPU_PROCESS_SWIFT)
+    // The autogen-generated dispatch lives on GPUProcessMessageForwarder
+    // when ENABLE(GPU_PROCESS_SWIFT) is on, so this override exists only
+    // on the C++ path. Under SWIFT, GPUProcess messages are routed via
+    // m_messageReceiverMap to the registered forwarder; AuxiliaryProcess::
+    // didReceiveMessage handles the dispatch in that case.
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
+#endif
 
-    // Message Handlers
+public:
+    // Message Handlers — public so the swiftStub* shims in
+    // GPUProcessSwiftUtilities.h can forward Swift-dispatched IPC messages
+    // back into the existing C++ implementations under ENABLE(GPU_PROCESS_SWIFT).
+
+    // ConsumeAudioComponentRegistrations is implemented on AuxiliaryProcess as
+    // a protected member; pull it into CxxGPUProcess's public surface so the
+    // GPUProcessSwiftUtilities.h shim can call it via singleton().
+    using AuxiliaryProcess::consumeAudioComponentRegistrations;
     void initializeGPUProcess(GPUProcessCreationParameters&&, CompletionHandler<void()>&&);
     void platformInitializeGPUProcess(GPUProcessCreationParameters&);
     void updateGPUProcessPreferences(GPUProcessPreferences&&);
@@ -257,6 +281,7 @@ private:
     void webXRPromptAccepted(std::optional<WebCore::ProcessIdentity>, CompletionHandler<void(bool)>&&);
 #endif
 
+private:
     // Connections to WebProcesses.
     HashMap<WebCore::ProcessIdentifier, Ref<GPUConnectionToWebProcess>> m_webProcessConnections;
     MonotonicTime m_creationTime { MonotonicTime::now() };
@@ -311,6 +336,16 @@ private:
 #if ENABLE(VP9) && PLATFORM(COCOA)
     bool m_haveEnabledVP9Decoder { false };
     bool m_haveEnabledSWVP9Decoder { false };
+#endif
+
+#if ENABLE(GPU_PROCESS_SWIFT)
+    // Strong reference to the Swift IPC receiver class. Constructed in the
+    // CxxGPUProcess ctor body (after the existing initializers run, so the
+    // singleton is available to the Swift class's init() if it wants to call
+    // back into C++). The unique_ptr's destructor releases the foreign-
+    // reference Swift class instance, which in turn drops the Ref<> the
+    // Swift class holds on the autogen-generated GPUProcessMessageForwarder.
+    std::unique_ptr<GPUProcess> m_swiftReceiver;
 #endif
 
 };

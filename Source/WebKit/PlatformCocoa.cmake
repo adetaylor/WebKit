@@ -90,10 +90,14 @@ if (ENABLE_GPU_PROCESS_SWIFT)
     # that owns the post-entry call hierarchy. Both forward to the existing C++
     # impl (WebKitGPUServiceInitializerImpl in GPUServiceEntryPoint.mm) so we
     # can land the Swift surface ahead of converting the initialization body.
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/EntryPoint/Cocoa/XPCService/GPUServiceEntryPoint.swift
         ${WEBKIT_DIR}/GPUProcess/GPUProcess.swift
         ${WEBKIT_DIR}/GPUProcess/SwiftGPUProcess.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
     )
 endif ()
 

@@ -45,8 +45,10 @@
 // need aliases; if any later turn out to need one, add it here.
 
 #include "CoreIPCAuditToken.h"
+#include "GPUProcess.h"
 #include "GPUProcessConnectionParameters.h"
 #include "GPUProcessCreationParameters.h"
+#include "GPUProcessMessages.h"
 #include "GPUProcessPreferences.h"
 #include "GPUProcessSessionParameters.h"
 #include "RemoteSnapshotIdentifier.h"
@@ -68,11 +70,15 @@
 #include <WebCore/SecurityOriginData.h>
 #include <WebCore/ShareableBitmap.h>
 #include <WebCore/SharedBuffer.h>
+#include <WebCore/VideoFrame.h>
 #include <WebCore/VideoFrameMetadata.h>
 #include <pal/SessionID.h>
 #include <span>
+#include <wtf/CompletionHandler.h>
 #include <wtf/Forward.h>
 #include <wtf/MonotonicTime.h>
+#include <wtf/Ref.h>
+#include <wtf/RefCountable.h>
 #include <wtf/RefPtr.h>
 #include <wtf/Vector.h>
 
@@ -97,6 +103,295 @@ using RefPtrSharedBuffer = RefPtr<WebCore::SharedBuffer>;
 
 // std::span<X> alias used by ResolveBookmarkDataForCacheDirectory.
 using SpanConstUint8 = std::span<const uint8_t>;
+
+// ---------------------------------------------------------------------------
+// Swift→C++ shim functions for GPUProcess IPC dispatch.
+//
+// The autogen-generated GPUProcessMessageForwarder dispatches every IPC
+// message via target.get()->method(args, completionHandler) where target is
+// the Swift class GPUProcess. The Swift handler bodies in GPUProcess.swift
+// call these inline shims to forward each message back to the existing C++
+// implementations on CxxGPUProcess::singleton().
+//
+// Two reasons every handler goes through a shim (even the no-reply ones):
+//   1. Swift's clang importer does not currently surface
+//      WebKit::CxxGPUProcess directly (multiple inheritance + CRTP), so the
+//      Swift handler can't write `WebKit.CxxGPUProcess.singleton().method()`.
+//   2. For messages with completion handlers, the autogen passes Swift a
+//      WTF::RefCountable<CompletionHandler<...>>* wrapper. The C++ method on
+//      CxxGPUProcess takes CompletionHandler<...>&&. Each completion-handler
+//      shim adopts a +1 retain on the wrapper, constructs a fresh C++
+//      CompletionHandler that invokes the wrapper when called, and forwards
+//      to CxxGPUProcess::singleton().method(args, freshHandler).
+//
+// For the three messages with [RefWrap]-annotated noncopyable arguments
+// (InitializeGPUProcess.processCreationParameters,
+// CreateGPUConnectionToWebProcess.connectionHandle/parameters), the shim
+// signature accepts the autogen's WrappedArgs::GPUProcess::<M>_<param>*
+// (i.e. WTF::RefCountable<X>*) and unwraps via WTFMove(**ptr) before calling
+// CxxGPUProcess. Sidesteps swiftc's silent-drop bug for `consuming`
+// noncopyable params (see ~/uncopyable-parameter-thunk-problem/).
+
+inline void swiftStubUpdateGPUProcessPreferences(GPUProcessPreferences preferences)
+{
+    CxxGPUProcess::singleton().updateGPUProcessPreferences(WTF::move(preferences));
+}
+
+inline void swiftStubUpdateSandboxAccess(Vector<SandboxExtension::Handle> extensions)
+{
+    CxxGPUProcess::singleton().updateSandboxAccess(extensions);
+}
+
+inline void swiftStubProcessDidResume()
+{
+    CxxGPUProcess::singleton().processDidResume();
+}
+
+inline void swiftStubAddSession(PAL::SessionID sessionID, GPUProcessSessionParameters parameters)
+{
+    CxxGPUProcess::singleton().addSession(sessionID, WTF::move(parameters));
+}
+
+inline void swiftStubRemoveSession(PAL::SessionID sessionID)
+{
+    CxxGPUProcess::singleton().removeSession(sessionID);
+}
+
+inline void swiftStubUserPreferredLanguagesChanged(Vector<String> languages)
+{
+    CxxGPUProcess::singleton().userPreferredLanguagesChanged(WTF::move(languages));
+}
+
+#if ENABLE(MEDIA_STREAM)
+inline void swiftStubSetMockCaptureDevicesEnabled(bool isEnabled)
+{
+    CxxGPUProcess::singleton().setMockCaptureDevicesEnabled(isEnabled);
+}
+
+inline void swiftStubSetOrientationForMediaCapture(WebCore::IntDegrees orientation)
+{
+    CxxGPUProcess::singleton().setOrientationForMediaCapture(orientation);
+}
+
+inline void swiftStubRotationAngleForCaptureDeviceChanged(String persistentId, WebCore::VideoFrameRotation rotation)
+{
+    CxxGPUProcess::singleton().rotationAngleForCaptureDeviceChanged(persistentId, rotation);
+}
+
+inline void swiftStubUpdateCaptureOrigin(WebCore::SecurityOriginData originData, WebCore::ProcessIdentifier processID)
+{
+    CxxGPUProcess::singleton().updateCaptureOrigin(originData, processID);
+}
+
+inline void swiftStubAddMockMediaDevice(WebCore::MockMediaDevice device)
+{
+    CxxGPUProcess::singleton().addMockMediaDevice(device);
+}
+
+inline void swiftStubClearMockMediaDevices()
+{
+    CxxGPUProcess::singleton().clearMockMediaDevices();
+}
+
+inline void swiftStubRemoveMockMediaDevice(String persistentId)
+{
+    CxxGPUProcess::singleton().removeMockMediaDevice(persistentId);
+}
+
+inline void swiftStubSetMockMediaDeviceIsEphemeral(String persistentId, bool isEphemeral)
+{
+    CxxGPUProcess::singleton().setMockMediaDeviceIsEphemeral(persistentId, isEphemeral);
+}
+
+inline void swiftStubResetMockMediaDevices()
+{
+    CxxGPUProcess::singleton().resetMockMediaDevices();
+}
+
+inline void swiftStubSetMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted)
+{
+    CxxGPUProcess::singleton().setMockCaptureDevicesInterrupted(isCameraInterrupted, isMicrophoneInterrupted);
+}
+
+inline void swiftStubTriggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay)
+{
+    CxxGPUProcess::singleton().triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay);
+}
+
+inline void swiftStubSetShouldListenToVoiceActivity(bool shouldListen)
+{
+    CxxGPUProcess::singleton().setShouldListenToVoiceActivity(shouldListen);
+}
+
+inline void swiftStubEnableMicrophoneMuteStatusAPI()
+{
+    CxxGPUProcess::singleton().enableMicrophoneMuteStatusAPI();
+}
+#endif // ENABLE(MEDIA_STREAM)
+
+#if PLATFORM(MAC)
+inline void swiftStubSetScreenProperties(WebCore::ScreenProperties screenProperties)
+{
+    CxxGPUProcess::singleton().setScreenProperties(screenProperties);
+}
+
+inline void swiftStubOpenDirectoryCacheInvalidated(SandboxExtension::Handle handle)
+{
+    CxxGPUProcess::singleton().openDirectoryCacheInvalidated(WTF::move(handle));
+}
+#endif
+
+inline void swiftStubReleaseSnapshot(RemoteSnapshotIdentifier identifier)
+{
+    CxxGPUProcess::singleton().releaseSnapshot(identifier);
+}
+
+#if HAVE(SCREEN_CAPTURE_KIT)
+inline void swiftStubCancelGetDisplayMediaPrompt()
+{
+    CxxGPUProcess::singleton().cancelGetDisplayMediaPrompt();
+}
+#endif
+
+#if HAVE(AUDIO_COMPONENT_SERVER_REGISTRATIONS)
+inline void swiftStubConsumeAudioComponentRegistrations(IPC::SharedBufferReference registrationData)
+{
+    CxxGPUProcess::singleton().consumeAudioComponentRegistrations(registrationData);
+}
+#endif
+
+#if HAVE(POWERLOG_TASK_MODE_QUERY)
+inline void swiftStubEnablePowerLogging(SandboxExtension::Handle handle)
+{
+    CxxGPUProcess::singleton().enablePowerLogging(WTF::move(handle));
+}
+#endif
+
+#if HAVE(AUDIT_TOKEN)
+inline void swiftStubSetPresentingApplicationAuditToken(WebCore::ProcessIdentifier processIdentifier, WebCore::PageIdentifier pageIdentifier, std::optional<CoreIPCAuditToken> auditToken)
+{
+    CxxGPUProcess::singleton().setPresentingApplicationAuditToken(processIdentifier, pageIdentifier, WTF::move(auditToken));
+}
+#endif
+
+#if PLATFORM(COCOA)
+inline void swiftStubRegisterFonts(Vector<SandboxExtension::Handle> sandboxExtensions)
+{
+    CxxGPUProcess::singleton().registerFonts(WTF::move(sandboxExtensions));
+}
+#endif
+
+inline void swiftStubInitializeGPUProcess(WrappedArgs::GPUProcess::InitializeGPUProcess_processCreationParameters* processCreationParameters, WTF::RefCountable<WTF::CompletionHandler<void()>>* handler)
+{
+    Ref handlerRef = *handler;
+    Ref paramsRef = *processCreationParameters;
+    CxxGPUProcess::singleton().initializeGPUProcess(WTF::move(*paramsRef.get()),
+        WTF::CompletionHandler<void()>([handlerRef = WTF::move(handlerRef)] () mutable {
+            (*handlerRef.get())();
+        }));
+}
+
+inline void swiftStubCreateGPUConnectionToWebProcess(WebCore::ProcessIdentifier processIdentifier, PAL::SessionID sessionID, WrappedArgs::GPUProcess::CreateGPUConnectionToWebProcess_connectionHandle* connectionHandle, WrappedArgs::GPUProcess::CreateGPUConnectionToWebProcess_parameters* parameters, WTF::RefCountable<WTF::CompletionHandler<void()>>* handler)
+{
+    Ref handlerRef = *handler;
+    Ref handleRef = *connectionHandle;
+    Ref paramsRef = *parameters;
+    CxxGPUProcess::singleton().createGPUConnectionToWebProcess(processIdentifier, sessionID, WTF::move(*handleRef.get()), WTF::move(*paramsRef.get()),
+        WTF::CompletionHandler<void()>([handlerRef = WTF::move(handlerRef)] () mutable {
+            (*handlerRef.get())();
+        }));
+}
+
+inline void swiftStubSharedPreferencesForWebProcessDidChange(WebCore::ProcessIdentifier processIdentifier, SharedPreferencesForWebProcess sharedPreferencesForWebProcess, WTF::RefCountable<WTF::CompletionHandler<void()>>* handler)
+{
+    Ref handlerRef = *handler;
+    CxxGPUProcess::singleton().sharedPreferencesForWebProcessDidChange(processIdentifier, WTF::move(sharedPreferencesForWebProcess),
+        WTF::CompletionHandler<void()>([handlerRef = WTF::move(handlerRef)] () mutable {
+            (*handlerRef.get())();
+        }));
+}
+
+inline void swiftStubPrepareToSuspend(bool isSuspensionImminent, MonotonicTime estimatedSuspendTime, WTF::RefCountable<WTF::CompletionHandler<void()>>* handler)
+{
+    Ref handlerRef = *handler;
+    CxxGPUProcess::singleton().prepareToSuspend(isSuspensionImminent, estimatedSuspendTime,
+        WTF::CompletionHandler<void()>([handlerRef = WTF::move(handlerRef)] () mutable {
+            (*handlerRef.get())();
+        }));
+}
+
+#if ENABLE(MEDIA_STREAM)
+inline void swiftStubUpdateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, WebCore::ProcessIdentifier processID, WTF::RefCountable<WTF::CompletionHandler<void()>>* handler)
+{
+    Ref handlerRef = *handler;
+    CxxGPUProcess::singleton().updateCaptureAccess(allowAudioCapture, allowVideoCapture, allowDisplayCapture, processID,
+        WTF::CompletionHandler<void()>([handlerRef = WTF::move(handlerRef)] () mutable {
+            (*handlerRef.get())();
+        }));
+}
+#endif
+
+#if PLATFORM(COCOA)
+inline void swiftStubSinkCompletedSnapshotToPDF(RemoteSnapshotIdentifier identifier, WebCore::FloatSize size, WebCore::FrameIdentifier rootFrameIdentifier, WTF::RefCountable<WTF::CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>>* handler)
+{
+    Ref handlerRef = *handler;
+    CxxGPUProcess::singleton().sinkCompletedSnapshotToPDF(identifier, size, rootFrameIdentifier,
+        WTF::CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>([handlerRef = WTF::move(handlerRef)] (RefPtr<WebCore::SharedBuffer>&& result) mutable {
+            (*handlerRef.get())(WTF::move(result));
+        }));
+}
+#endif
+
+inline void swiftStubSinkCompletedSnapshotToBitmap(RemoteSnapshotIdentifier identifier, WebCore::FloatSize size, WebCore::FrameIdentifier rootFrameIdentifier, WTF::RefCountable<WTF::CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>>* handler)
+{
+    Ref handlerRef = *handler;
+    CxxGPUProcess::singleton().sinkCompletedSnapshotToBitmap(identifier, size, rootFrameIdentifier,
+        WTF::CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>([handlerRef = WTF::move(handlerRef)] (std::optional<WebCore::ShareableBitmap::Handle>&& image) mutable {
+            (*handlerRef.get())(WTF::move(image));
+        }));
+}
+
+#if HAVE(SCREEN_CAPTURE_KIT)
+inline void swiftStubPromptForGetDisplayMedia(WebCore::DisplayCapturePromptType type, WTF::RefCountable<WTF::CompletionHandler<void(std::optional<WebCore::CaptureDevice>&&)>>* handler)
+{
+    Ref handlerRef = *handler;
+    CxxGPUProcess::singleton().promptForGetDisplayMedia(type,
+        WTF::CompletionHandler<void(std::optional<WebCore::CaptureDevice>)>([handlerRef = WTF::move(handlerRef)] (std::optional<WebCore::CaptureDevice> device) mutable {
+            (*handlerRef.get())(WTF::move(device));
+        }));
+}
+#endif
+
+inline void swiftStubWebProcessConnectionCountForTesting(WTF::RefCountable<WTF::CompletionHandler<void(uint64_t)>>* handler)
+{
+    Ref handlerRef = *handler;
+    CxxGPUProcess::singleton().webProcessConnectionCountForTesting(
+        WTF::CompletionHandler<void(uint64_t)>([handlerRef = WTF::move(handlerRef)] (uint64_t count) mutable {
+            (*handlerRef.get())(count);
+        }));
+}
+
+#if ENABLE(WEBXR)
+inline void swiftStubWebXRPromptAccepted(std::optional<WebCore::ProcessIdentity> processIdentity, WTF::RefCountable<WTF::CompletionHandler<void(bool)>>* handler)
+{
+    Ref handlerRef = *handler;
+    CxxGPUProcess::singleton().webXRPromptAccepted(WTF::move(processIdentity),
+        WTF::CompletionHandler<void(bool)>([handlerRef = WTF::move(handlerRef)] (bool accepted) mutable {
+            (*handlerRef.get())(accepted);
+        }));
+}
+#endif
+
+#if PLATFORM(COCOA)
+inline void swiftStubPostWillTakeSnapshotNotification(WTF::RefCountable<WTF::CompletionHandler<void()>>* handler)
+{
+    Ref handlerRef = *handler;
+    CxxGPUProcess::singleton().postWillTakeSnapshotNotification(
+        WTF::CompletionHandler<void()>([handlerRef = WTF::move(handlerRef)] () mutable {
+            (*handlerRef.get())();
+        }));
+}
+#endif
 
 } // namespace WebKit
 
