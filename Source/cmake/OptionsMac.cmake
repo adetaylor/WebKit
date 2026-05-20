@@ -132,7 +132,15 @@ WEBKIT_OPTION_END()
 
 # rdar://177360289
 SET_AND_EXPOSE_TO_BUILD(ENABLE_BACK_FORWARD_LIST_SWIFT ON)
-SET_AND_EXPOSE_TO_BUILD(ENABLE_GPU_PROCESS_SWIFT ON)
+# Default ON on macOS (rdar://177360289 above) but respect a user-provided
+# -DENABLE_GPU_PROCESS_SWIFT=OFF so the C++-only path can still be built and
+# tested on a separate cmake tree without a source edit. Swap the if-block
+# back for an unconditional SET_AND_EXPOSE_TO_BUILD if the override capability
+# becomes a problem.
+if (NOT DEFINED ENABLE_GPU_PROCESS_SWIFT)
+    set(ENABLE_GPU_PROCESS_SWIFT ON)
+endif ()
+SET_AND_EXPOSE_TO_BUILD(ENABLE_GPU_PROCESS_SWIFT ${ENABLE_GPU_PROCESS_SWIFT})
 
 # -----------------------------------------------------------------------------
 # Toolchain / SDK resolution
