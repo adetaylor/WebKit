@@ -2015,7 +2015,25 @@ def generate_message_handler(receiver):
             result.append('    if (dispatchMessage(connection, decoder))\n')
             result.append('        return;\n')
         if (receiver.superclass):
-            result.append('    %s::didReceiveMessage(connection, decoder);\n' % (receiver.superclass))
+            if receiver.swift_receiver_build_enabled_by:
+                # The autogen's didReceiveMessage is shared between the
+                # GPUProcessMessageForwarder (Swift dispatch) and the C++
+                # receiver — the function header is gated by #if ENABLE(...),
+                # but the body is one block. The C++ receiver derives from
+                # the superclass and can fall through to it; the forwarder is
+                # not in the AuxiliaryProcess hierarchy and can't. Gate the
+                # tail accordingly: forwarder logs+invalidates, C++ falls
+                # through.
+                result.append('#if ENABLE(%s)\n' % receiver.swift_receiver_build_enabled_by)
+                if not receiver.has_attribute(NOT_USING_IPC_CONNECTION_ATTRIBUTE):
+                    result.append('    UNUSED_PARAM(connection);\n')
+                result.append('    RELEASE_LOG_ERROR(IPC, "Unhandled message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());\n')
+                result.append('    decoder.markInvalid();\n')
+                result.append('#else // ENABLE(%s)\n' % receiver.swift_receiver_build_enabled_by)
+                result.append('    %s::didReceiveMessage(connection, decoder);\n' % (receiver.superclass))
+                result.append('#endif // ENABLE(%s)\n' % receiver.swift_receiver_build_enabled_by)
+            else:
+                result.append('    %s::didReceiveMessage(connection, decoder);\n' % (receiver.superclass))
         else:
             if not receiver.has_attribute(NOT_USING_IPC_CONNECTION_ATTRIBUTE):
                 result.append('    UNUSED_PARAM(connection);\n')
