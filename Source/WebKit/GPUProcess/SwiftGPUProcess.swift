@@ -294,6 +294,48 @@ public func swiftGPUProcessUserPreferredLanguagesChanged(_ languages: UnsafePoin
     webKitGPUProcessOverrideUserPreferredLanguages(languages, count)
 }
 
+// MARK: - VP9 bridges (Phase 2.a)
+//
+// Bridges for the updateGPUProcessPreferences handler. The Swift GPUProcess
+// class owns the m_preferences / m_haveEnabled* state on the ON path and
+// orchestrates the body in GPUProcess.swift; the handful of WebCore static
+// calls and the std::optional<bool> field extraction stay on the C++ side
+// behind these bridges. Each bridge is gated on
+// ENABLE(VP9) && PLATFORM(COCOA) in GPUProcess.cpp to match the original
+// gating; ENABLE_VP9 reaches Swift as a -D flag (PlatformEnableCocoa.h
+// processed by generate-platform-swift-args.py), while PLATFORM(COCOA) is
+// implicit because ENABLE_GPU_PROCESS_SWIFT is only enabled on Cocoa
+// (OptionsMac.cmake — the only enable site).
+
+#if ENABLE_VP9
+// Extract the std::optional<bool> vp9DecoderEnabled / plain-bool
+// swVPDecodersAlwaysEnabled fields out of GPUProcessPreferences into POD out
+// parameters; the importer doesn't bridge std::optional<bool> to Swift's
+// Optional<Bool>, so Swift reads the IPC argument through this bridge by
+// passing a pointer to the consuming parameter via withUnsafePointer(to:).
+@_silgen_name("WebKitGPUProcessExtractPreferences")
+internal func webKitGPUProcessExtractPreferences(
+    _ preferences: UnsafePointer<WebKit.GPUProcessPreferences>,
+    _ outVP9HasValue: UnsafeMutablePointer<Bool>,
+    _ outVP9Value: UnsafeMutablePointer<Bool>,
+    _ outSWVP: UnsafeMutablePointer<Bool>)
+
+@_silgen_name("WebKitGPUProcessVP9SetShouldEnableVP9Decoder")
+internal func webKitGPUProcessVP9SetShouldEnableVP9Decoder(_ enabled: Bool)
+
+@_silgen_name("WebKitGPUProcessVP9SetSWVPDecodersAlwaysEnabled")
+internal func webKitGPUProcessVP9SetSWVPDecodersAlwaysEnabled(_ enabled: Bool)
+
+@_silgen_name("WebKitGPUProcessVP9RegisterSupplementalVP9Decoder")
+internal func webKitGPUProcessVP9RegisterSupplementalVP9Decoder()
+
+@_silgen_name("WebKitGPUProcessVP9ShouldEnableSWVP9Decoder")
+internal func webKitGPUProcessVP9ShouldEnableSWVP9Decoder() -> Bool
+
+@_silgen_name("WebKitGPUProcessVP9RegisterWebKitVP9Decoder")
+internal func webKitGPUProcessVP9RegisterWebKitVP9Decoder()
+#endif // ENABLE_VP9
+
 // MARK: - Parameter struct
 
 // Swift-side mirror of WebKit::AuxiliaryProcessInitializationParameters with

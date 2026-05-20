@@ -230,7 +230,12 @@ public:
     void removeSession(PAL::SessionID);
     void updateSandboxAccess(const Vector<SandboxExtension::Handle>&);
 
+#if !ENABLE(GPU_PROCESS_SWIFT)
+    // On the ENABLE(GPU_PROCESS_SWIFT)=ON path the Swift GPUProcess class
+    // owns m_preferences and the matching helper, and its handler body lives
+    // in GPUProcess.swift. The C++ helper only exists on the OFF path.
     bool NODELETE updatePreference(std::optional<bool>& oldPreference, std::optional<bool>& newPreference);
+#endif
     void userPreferredLanguagesChanged(Vector<String>&&);
 
 #if ENABLE(MEDIA_STREAM)
@@ -287,7 +292,12 @@ private:
     HashMap<WebCore::ProcessIdentifier, Ref<GPUConnectionToWebProcess>> m_webProcessConnections;
     MonotonicTime m_creationTime { MonotonicTime::now() };
 
+#if !ENABLE(GPU_PROCESS_SWIFT)
+    // Swift-owned in GPUProcess.swift on the ON path (private state on the
+    // Swift GPUProcess class). C++ only sees this struct via the
+    // GPUProcessPreferences value passed into the IPC handler.
     GPUProcessPreferences m_preferences;
+#endif
 
 #if ENABLE(MEDIA_STREAM)
     struct MediaCaptureAccess {
@@ -334,7 +344,10 @@ private:
 #if ENABLE(WEBXR)
     std::optional<WebCore::ProcessIdentity> m_processIdentity;
 #endif
-#if ENABLE(VP9) && PLATFORM(COCOA)
+#if ENABLE(VP9) && PLATFORM(COCOA) && !ENABLE(GPU_PROCESS_SWIFT)
+    // Swift-owned in GPUProcess.swift on the ON path (one-shot flags that
+    // remember whether registerSupplementalVP9Decoder /
+    // registerWebKitVP9Decoder have been invoked yet for this process).
     bool m_haveEnabledVP9Decoder { false };
     bool m_haveEnabledSWVP9Decoder { false };
 #endif

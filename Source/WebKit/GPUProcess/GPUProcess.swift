@@ -83,6 +83,21 @@ final class GPUProcess {
     // after initialization finished.
     private var messageForwarder: RefGPUProcessMessageForwarder?
 
+    // Phase 2.a: Swift-owned state for the updateGPUProcessPreferences
+    // handler. On the ON path the C++ CxxGPUProcess no longer carries
+    // m_preferences / m_haveEnabled* (gated out in GPUProcess.h); the body
+    // below is a faithful translation of the original C++ method. The
+    // optional<bool> vp9DecoderEnabled is modeled as Swift's Bool? — the
+    // C++ IPC argument's optional<bool> is unpacked across the language
+    // boundary via the WebKitGPUProcessExtractPreferences C bridge because
+    // clang's importer doesn't bridge std::optional<bool> to Optional<Bool>.
+    #if ENABLE_VP9
+    private var vp9DecoderEnabled: Bool?
+    private var swVPDecodersAlwaysEnabled: Bool = false
+    private var haveEnabledVP9Decoder: Bool = false
+    private var haveEnabledSWVP9Decoder: Bool = false
+    #endif
+
     init() {
         self.messageForwarder = WebKit.GPUProcessMessageForwarder.create(target: self)
     }
@@ -97,7 +112,74 @@ final class GPUProcess {
     // MARK: - Messages without a reply
 
     func updateGPUProcessPreferences(preferences: consuming WebKit.GPUProcessPreferences) {
-        WebKit.CxxGPUProcess.singleton().updateGPUProcessPreferences(consuming: preferences)
+        // The original C++ body lived in CxxGPUProcess::updateGPUProcessPreferences
+        // (now gated out under ENABLE(GPU_PROCESS_SWIFT)=ON). Swift owns the
+        // mutable state and dispatches the WebCore static calls via the
+        // WebKitGPUProcessVP9* C bridges (defined in GPUProcess.cpp under
+        // ENABLE(VP9) && PLATFORM(COCOA)).
+        //
+        // PLATFORM(COCOA) is implicit on the ON path: ENABLE_GPU_PROCESS_SWIFT
+        // is only set in Source/cmake/OptionsMac.cmake, so the COCOA gates from
+        // the original body collapse to unconditional code here.
+        #if ENABLE_VP9
+        // Read the IPC arg's std::optional<bool> vp9DecoderEnabled and plain-
+        // bool swVPDecodersAlwaysEnabled out via the C bridge. We can't read
+        // those fields from Swift directly because the clang importer doesn't
+        // surface std::optional<bool> as Swift Optional<Bool>. Pass a pointer
+        // to the consuming arg via withUnsafePointer(to:); the bridge only
+        // reads through it.
+        var newVP9HasValue: Bool = false
+        var newVP9Value: Bool = false
+        var newSWVP: Bool = false
+        withUnsafePointer(to: preferences) { ptr in
+            webKitGPUProcessExtractPreferences(ptr, &newVP9HasValue, &newVP9Value, &newSWVP)
+        }
+        let newVP9: Bool? = newVP9HasValue ? newVP9Value : nil
+
+        if updatePreference(old: &self.vp9DecoderEnabled, new: newVP9) {
+            // Force-unwrap is safe: updatePreference returning true guarantees
+            // that self.vp9DecoderEnabled has a value (either freshly assigned
+            // from `new`, or defaulted to false in the second branch).
+            let resolved = self.vp9DecoderEnabled!
+            webKitGPUProcessVP9SetShouldEnableVP9Decoder(resolved)
+            if !self.haveEnabledVP9Decoder && resolved {
+                self.haveEnabledVP9Decoder = true
+                webKitGPUProcessVP9RegisterSupplementalVP9Decoder()
+            }
+        }
+
+        // The original C++ used std::exchange to atomically swap the stored
+        // value and compare against the previous one. Reproduce that here:
+        // remember the previous value before assignment, then dispatch only
+        // on a delta.
+        let previousSWVP = self.swVPDecodersAlwaysEnabled
+        self.swVPDecodersAlwaysEnabled = newSWVP
+        if newSWVP != previousSWVP {
+            webKitGPUProcessVP9SetSWVPDecodersAlwaysEnabled(self.swVPDecodersAlwaysEnabled)
+        }
+
+        if !self.haveEnabledSWVP9Decoder && webKitGPUProcessVP9ShouldEnableSWVP9Decoder() {
+            webKitGPUProcessVP9RegisterWebKitVP9Decoder()
+            self.haveEnabledSWVP9Decoder = true
+        }
+        #endif // ENABLE_VP9
+    }
+
+    // Faithful translation of CxxGPUProcess::updatePreference (now gated out
+    // on the ON path). The contract: returns true if the caller should
+    // dispatch follow-up work (the slot was populated for the first time, or
+    // its value changed). Mirrors the C++ semantics line for line — including
+    // the "default to false the first time we see no incoming value" branch.
+    private func updatePreference(old: inout Bool?, new: Bool?) -> Bool {
+        if let new, old != .some(new) {
+            old = new
+            return true
+        }
+        if old == nil {
+            old = false
+            return true
+        }
+        return false
     }
 
     func updateSandboxAccess(extensions: consuming WebKit.VectorSandboxExtensionHandle) {
