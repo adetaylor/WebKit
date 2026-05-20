@@ -163,11 +163,6 @@ inline void swiftStubUserPreferredLanguagesChanged(Vector<String> languages)
 }
 
 #if ENABLE(MEDIA_STREAM)
-inline void swiftStubSetMockCaptureDevicesEnabled(bool isEnabled)
-{
-    CxxGPUProcess::singleton().setMockCaptureDevicesEnabled(isEnabled);
-}
-
 inline void swiftStubSetOrientationForMediaCapture(WebCore::IntDegrees orientation)
 {
     CxxGPUProcess::singleton().setOrientationForMediaCapture(orientation);
@@ -200,21 +195,6 @@ inline void swiftStubSetMockMediaDeviceIsEphemeral(String persistentId, bool isE
     CxxGPUProcess::singleton().setMockMediaDeviceIsEphemeral(persistentId, isEphemeral);
 }
 
-inline void swiftStubResetMockMediaDevices()
-{
-    CxxGPUProcess::singleton().resetMockMediaDevices();
-}
-
-inline void swiftStubSetMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted)
-{
-    CxxGPUProcess::singleton().setMockCaptureDevicesInterrupted(isCameraInterrupted, isMicrophoneInterrupted);
-}
-
-inline void swiftStubTriggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay)
-{
-    CxxGPUProcess::singleton().triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay);
-}
-
 inline void swiftStubSetShouldListenToVoiceActivity(bool shouldListen)
 {
     CxxGPUProcess::singleton().setShouldListenToVoiceActivity(shouldListen);
@@ -244,10 +224,6 @@ inline void swiftStubReleaseSnapshot(RemoteSnapshotIdentifier identifier)
 }
 
 #if HAVE(SCREEN_CAPTURE_KIT)
-inline void swiftStubCancelGetDisplayMediaPrompt()
-{
-    CxxGPUProcess::singleton().cancelGetDisplayMediaPrompt();
-}
 #endif
 
 #if HAVE(AUDIO_COMPONENT_SERVER_REGISTRATIONS)
@@ -358,15 +334,6 @@ inline void swiftStubPromptForGetDisplayMedia(WebCore::DisplayCapturePromptType 
         }));
 }
 #endif
-
-inline void swiftStubWebProcessConnectionCountForTesting(WTF::RefCountable<WTF::CompletionHandler<void(uint64_t)>>* handler)
-{
-    Ref handlerRef = *handler;
-    CxxGPUProcess::singleton().webProcessConnectionCountForTesting(
-        WTF::CompletionHandler<void(uint64_t)>([handlerRef = WTF::move(handlerRef)] (uint64_t count) mutable {
-            (*handlerRef.get())(count);
-        }));
-}
 
 #if ENABLE(WEBXR)
 inline void swiftStubWebXRPromptAccepted(std::optional<WebCore::ProcessIdentity> processIdentity, WTF::RefCountable<WTF::CompletionHandler<void(bool)>>* handler)

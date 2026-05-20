@@ -98,7 +98,7 @@ final class GPUProcess {
 
     #if ENABLE_MEDIA_STREAM
     func setMockCaptureDevicesEnabled(isEnabled: Bool) {
-        WebKit.swiftStubSetMockCaptureDevicesEnabled(isEnabled)
+        webKitGPUProcessSetMockRealtimeMediaSourceCenterEnabled(isEnabled)
     }
 
     func setOrientationForMediaCapture(orientation: WebCore.IntDegrees) {
@@ -144,15 +144,15 @@ final class GPUProcess {
     }
 
     func resetMockMediaDevices() {
-        WebKit.swiftStubResetMockMediaDevices()
+        webKitGPUProcessMockMediaCenterResetDevices()
     }
 
     func setMockCaptureDevicesInterrupted(isCameraInterrupted: Bool, isMicrophoneInterrupted: Bool) {
-        WebKit.swiftStubSetMockCaptureDevicesInterrupted(isCameraInterrupted, isMicrophoneInterrupted)
+        webKitGPUProcessMockMediaCenterSetCaptureDevicesInterrupted(isCameraInterrupted, isMicrophoneInterrupted)
     }
 
     func triggerMockCaptureConfigurationChange(forCamera: Bool, forMicrophone: Bool, forDisplay: Bool) {
-        WebKit.swiftStubTriggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay)
+        webKitGPUProcessMockMediaCenterTriggerCaptureConfigurationChange(forCamera, forMicrophone, forDisplay)
     }
 
     func setShouldListenToVoiceActivity(shouldListen: Bool) {
@@ -178,7 +178,7 @@ final class GPUProcess {
     }
 
     func cancelGetDisplayMediaPrompt() {
-        WebKit.swiftStubCancelGetDisplayMediaPrompt()
+        webKitGPUProcessScreenCaptureKitSharingSessionManagerCancelGetDisplayMediaPrompt()
     }
 
     func openDirectoryCacheInvalidated(handle: consuming WebKit.SandboxExtensionHandle) {
@@ -263,7 +263,7 @@ final class GPUProcess {
     }
 
     func webProcessConnectionCountForTesting(completionHandler: CompletionHandlers.GPUProcess.WebProcessConnectionCountForTestingCompletionHandler) {
-        WebKit.swiftStubWebProcessConnectionCountForTesting(completionHandler)
+        completionHandler.pointee(webKitGPUProcessConnectionToWebProcessObjectCount())
     }
 
     #if ENABLE_WEBXR

@@ -492,7 +492,7 @@ void CxxGPUProcess::releaseSnapshot(RemoteSnapshotIdentifier identifier)
 // MockRealtimeMediaSourceCenter::setMockRealtimeMediaSourceCenterEnabled
 // without that class needing to import via Swift's C++ interop. Matches the
 // WebKitGPUProcessConnectionToWebProcessObjectCount bridge pattern.
-extern "C" void WebKitGPUProcessSetMockRealtimeMediaSourceCenterEnabled(bool isEnabled)
+extern "C" void WebKitGPUProcessSetMockRealtimeMediaSourceCenterEnabled(bool isEnabled) noexcept
 {
     WebCore::MockRealtimeMediaSourceCenter::setMockRealtimeMediaSourceCenterEnabled(isEnabled);
 }
@@ -506,17 +506,17 @@ extern "C" void WebKitGPUProcessMockMediaCenterSetDevicesEmpty() noexcept
     WebCore::MockRealtimeMediaSourceCenter::setDevices({ });
 }
 
-extern "C" void WebKitGPUProcessMockMediaCenterResetDevices()
+extern "C" void WebKitGPUProcessMockMediaCenterResetDevices() noexcept
 {
     WebCore::MockRealtimeMediaSourceCenter::resetDevices();
 }
 
-extern "C" void WebKitGPUProcessMockMediaCenterSetCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted)
+extern "C" void WebKitGPUProcessMockMediaCenterSetCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted) noexcept
 {
     WebCore::MockRealtimeMediaSourceCenter::setMockCaptureDevicesInterrupted(isCameraInterrupted, isMicrophoneInterrupted);
 }
 
-extern "C" void WebKitGPUProcessMockMediaCenterTriggerCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay)
+extern "C" void WebKitGPUProcessMockMediaCenterTriggerCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay) noexcept
 {
     WebCore::MockRealtimeMediaSourceCenter::singleton().triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay);
 }
@@ -712,7 +712,7 @@ void CxxGPUProcess::promptForGetDisplayMedia(WebCore::DisplayCapturePromptType t
 // Typed C bridge so the Swift @_cdecl body can call the WebCore static
 // ScreenCaptureKitSharingSessionManager::cancelGetDisplayMediaPrompt without
 // that class needing to import via Swift's C++ interop.
-extern "C" void WebKitGPUProcessScreenCaptureKitSharingSessionManagerCancelGetDisplayMediaPrompt()
+extern "C" void WebKitGPUProcessScreenCaptureKitSharingSessionManagerCancelGetDisplayMediaPrompt() noexcept
 {
     WebCore::ScreenCaptureKitSharingSessionManager::singleton().cancelGetDisplayMediaPrompt();
 }
@@ -849,7 +849,7 @@ void CxxGPUProcess::webProcessConnectionCountForTesting(CompletionHandler<void(u
 // inline-static counter accessor here as a plain extern "C" function instead.
 // Matches the pattern of the existing extern "C" bridges in
 // Source/WebKit/Shared/EntryPointUtilities/Cocoa/XPCService/GPUServiceEntryPoint.mm.
-extern "C" uint64_t WebKitGPUProcessConnectionToWebProcessObjectCount()
+extern "C" uint64_t WebKitGPUProcessConnectionToWebProcessObjectCount() noexcept
 {
     return GPUConnectionToWebProcess::objectCountForTesting();
 }
