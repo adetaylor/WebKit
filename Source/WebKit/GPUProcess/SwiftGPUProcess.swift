@@ -254,6 +254,19 @@ internal func webKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(_ persistentId
 public func swiftGPUProcessSetMockMediaDeviceIsEphemeral(_ persistentId: UnsafePointer<CChar>, _ isEphemeral: Bool) {
     webKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(persistentId, isEphemeral)
 }
+
+// Phase 3 (Slice 3 finish): media-stream singleton handlers that register
+// WebCore callbacks emitting IPC. The lambda / closure capture logic stays
+// in C++ inside the bridge body (see GPUProcess.cpp under
+// ENABLE(GPU_PROCESS_SWIFT) && PLATFORM(COCOA)); Swift only invokes the
+// bridge. PLATFORM(COCOA) is implicit on the ON path
+// (ENABLE_GPU_PROCESS_SWIFT is only enabled in Source/cmake/OptionsMac.cmake),
+// so no PLATFORM_COCOA Swift gate is needed here.
+@_silgen_name("WebKitGPUProcessSetShouldListenToVoiceActivity")
+internal func webKitGPUProcessSetShouldListenToVoiceActivity(_ shouldListen: Bool)
+
+@_silgen_name("WebKitGPUProcessEnableMicrophoneMuteStatusAPI")
+internal func webKitGPUProcessEnableMicrophoneMuteStatusAPI()
 #endif
 
 // Phase 3 handler: ScreenCaptureKitSharingSessionManager::cancelGetDisplayMediaPrompt.

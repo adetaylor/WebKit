@@ -287,11 +287,17 @@ final class GPUProcess {
     }
 
     func setShouldListenToVoiceActivity(shouldListen: Bool) {
-        WebKit.CxxGPUProcess.singleton().setShouldListenToVoiceActivity(shouldListen)
+        // Bridge body lives in GPUProcess.cpp and registers a WebCore
+        // muted-speech callback that sends GPUProcessProxy::VoiceActivityDetected.
+        // The lambda capture stays in C++; Swift only invokes the bridge.
+        webKitGPUProcessSetShouldListenToVoiceActivity(shouldListen)
     }
 
     func enableMicrophoneMuteStatusAPI() {
-        WebKit.CxxGPUProcess.singleton().enableMicrophoneMuteStatusAPI()
+        // Bridge body lives in GPUProcess.cpp and registers a WebCore
+        // mute-status callback that sends GPUProcessProxy::MicrophoneMuteStatusChanged.
+        // The WeakPtr-captured lambda stays in C++; Swift only invokes the bridge.
+        webKitGPUProcessEnableMicrophoneMuteStatusAPI()
     }
     #endif // ENABLE_MEDIA_STREAM
 

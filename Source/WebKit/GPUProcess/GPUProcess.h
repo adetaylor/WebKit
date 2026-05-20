@@ -240,7 +240,9 @@ public:
 
 #if ENABLE(MEDIA_STREAM)
     void setMockCaptureDevicesEnabled(bool);
+#if !ENABLE(GPU_PROCESS_SWIFT)
     void enableMicrophoneMuteStatusAPI();
+#endif
     void setOrientationForMediaCapture(WebCore::IntDegrees);
     void rotationAngleForCaptureDeviceChanged(const String&, WebCore::VideoFrameRotation);
     void updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, WebCore::ProcessIdentifier, CompletionHandler<void()>&&);
@@ -252,7 +254,9 @@ public:
     void resetMockMediaDevices();
     void setMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted);
     void triggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay);
+#if !ENABLE(GPU_PROCESS_SWIFT)
     void setShouldListenToVoiceActivity(bool);
+#endif
 #endif
 #if HAVE(SCREEN_CAPTURE_KIT)
     void promptForGetDisplayMedia(WebCore::DisplayCapturePromptType, CompletionHandler<void(std::optional<WebCore::CaptureDevice>)>&&);

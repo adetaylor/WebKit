@@ -555,6 +555,37 @@ extern "C" void WebKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(const char* 
 {
     WebCore::MockRealtimeMediaSourceCenter::setDeviceIsEphemeral(String::fromUTF8(persistentId), isEphemeral);
 }
+
+#if PLATFORM(COCOA)
+// Phase 3 (Slice 3 finish): media-stream singleton handlers that register
+// WebCore callbacks emitting IPC. Bodies preserve the exact lambda /
+// closure captures from the original CxxGPUProcess methods (now gated out
+// on the ON path); Swift only invokes these bridges. Cocoa-only because
+// RealtimeMediaSourceCenter::audioCaptureFactory and
+// CoreAudioCaptureUnit::defaultSingleton() are PLATFORM(COCOA)-only, just
+// like the original C++ bodies.
+extern "C" void WebKitGPUProcessSetShouldListenToVoiceActivity(bool shouldListen) noexcept
+{
+    if (!shouldListen) {
+        WebCore::RealtimeMediaSourceCenter::singleton().audioCaptureFactory().disableMutedSpeechActivityEventListener();
+        return;
+    }
+    WebCore::RealtimeMediaSourceCenter::singleton().audioCaptureFactory().enableMutedSpeechActivityEventListener([] {
+        protect(CxxGPUProcess::singleton().parentProcessConnection())->send(Messages::GPUProcessProxy::VoiceActivityDetected { }, 0);
+    });
+}
+
+extern "C" void WebKitGPUProcessEnableMicrophoneMuteStatusAPI() noexcept
+{
+    // The original C++ body captured `WeakPtr { *this }`; CxxGPUProcess is a
+    // process-lifetime NeverDestroyed<Ref<>> so this is effectively immortal,
+    // but we keep the WeakPtr so the captured semantics match the original.
+    WebCore::CoreAudioCaptureUnit::defaultSingleton().setMuteStatusChangedCallback([weakProcess = WeakPtr { CxxGPUProcess::singleton() }] (bool isMuting) {
+        if (RefPtr process = weakProcess.get())
+            protect(process->parentProcessConnection())->send(Messages::GPUProcessProxy::MicrophoneMuteStatusChanged(isMuting), 0);
+    });
+}
+#endif // PLATFORM(COCOA)
 #endif
 
 void CxxGPUProcess::setMockCaptureDevicesEnabled(bool isEnabled)
@@ -577,6 +608,7 @@ void CxxGPUProcess::setOrientationForMediaCapture(WebCore::IntDegrees orientatio
         connection->setOrientationForMediaCapture(orientation);
 }
 
+#if !ENABLE(GPU_PROCESS_SWIFT)
 void CxxGPUProcess::enableMicrophoneMuteStatusAPI()
 {
 #if PLATFORM(COCOA)
@@ -586,6 +618,7 @@ void CxxGPUProcess::enableMicrophoneMuteStatusAPI()
     });
 #endif
 }
+#endif // !ENABLE(GPU_PROCESS_SWIFT)
 
 void CxxGPUProcess::rotationAngleForCaptureDeviceChanged(const String& persistentId, WebCore::VideoFrameRotation rotation)
 {
@@ -700,6 +733,7 @@ void CxxGPUProcess::triggerMockCaptureConfigurationChange(bool forCamera, bool f
 #endif
 }
 
+#if !ENABLE(GPU_PROCESS_SWIFT)
 void CxxGPUProcess::setShouldListenToVoiceActivity(bool shouldListen)
 {
 #if PLATFORM(COCOA)
@@ -713,6 +747,7 @@ void CxxGPUProcess::setShouldListenToVoiceActivity(bool shouldListen)
     });
 #endif
 }
+#endif // !ENABLE(GPU_PROCESS_SWIFT)
 #endif // ENABLE(MEDIA_STREAM)
 
 #if HAVE(SCREEN_CAPTURE_KIT)
