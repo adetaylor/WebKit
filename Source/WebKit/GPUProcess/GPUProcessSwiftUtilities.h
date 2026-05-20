@@ -169,12 +169,6 @@ inline void swiftStubUpdateCaptureOrigin(WrappedArgs::GPUProcess::UpdateCaptureO
     CxxGPUProcess::singleton().updateCaptureOrigin(*originDataRef.get(), processID);
 }
 
-inline void swiftStubAddMockMediaDevice(WrappedArgs::GPUProcess::AddMockMediaDevice_device* device)
-{
-    Ref deviceRef = *device;
-    CxxGPUProcess::singleton().addMockMediaDevice(*deviceRef.get());
-}
-
 inline void swiftStubSetShouldListenToVoiceActivity(bool shouldListen)
 {
     CxxGPUProcess::singleton().setShouldListenToVoiceActivity(shouldListen);

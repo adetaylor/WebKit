@@ -530,6 +530,19 @@ extern "C" void WebKitGPUProcessMockMediaCenterRemoveDevice(const char* persiste
     WebCore::MockRealtimeMediaSourceCenter::removeDevice(String::fromUTF8(persistentId));
 }
 
+// Takes the [RefWrap]-wrapped MockMediaDevice from Swift's GPUProcess.swift
+// addMockMediaDevice(device:) handler. The wrapped form is needed because
+// MockMediaDevice is "address-only" in Swift's representation taxonomy
+// (contains a std::variant of structs with non-trivial copy semantics) and
+// pass-by-value triggers the swiftc IRGen crash documented at
+// ~/swift-gpu-compiler-crash/. The bridge unwraps via Ref to keep the
+// outer wrapper alive while we hand the inner MockMediaDevice& to WebCore.
+extern "C" void WebKitGPUProcessMockMediaCenterAddDeviceFromWrap(WTF::RefCountable<WebCore::MockMediaDevice>* wrapped) noexcept
+{
+    Ref ref = *wrapped;
+    WebCore::MockRealtimeMediaSourceCenter::addDevice(*ref.get());
+}
+
 extern "C" void WebKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(const char* persistentId, bool isEphemeral) noexcept
 {
     WebCore::MockRealtimeMediaSourceCenter::setDeviceIsEphemeral(String::fromUTF8(persistentId), isEphemeral);

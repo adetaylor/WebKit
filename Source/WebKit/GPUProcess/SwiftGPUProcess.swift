@@ -232,6 +232,16 @@ public func swiftGPUProcessTriggerMockCaptureConfigurationChange(_ forCamera: Bo
 @_silgen_name("WebKitGPUProcessMockMediaCenterRemoveDevice")
 internal func webKitGPUProcessMockMediaCenterRemoveDevice(_ persistentId: UnsafePointer<CChar>)
 
+// Bridge for Swift GPUProcess.addMockMediaDevice(device:). The arg is
+// [RefWrap]-annotated in messages.in (MockMediaDevice contains a
+// std::variant; passing by value crashes swiftc IRGen — see
+// ~/swift-gpu-compiler-crash/), so the autogen hands Swift a foreign-
+// reference RefCountable<MockMediaDevice>* which we forward straight
+// to the C++ side; the body in GPUProcess.cpp unwraps and calls
+// WebCore::MockRealtimeMediaSourceCenter::addDevice.
+@_silgen_name("WebKitGPUProcessMockMediaCenterAddDeviceFromWrap")
+internal func webKitGPUProcessMockMediaCenterAddDeviceFromWrap(_ wrapped: WrappedArgs.GPUProcess.AddMockMediaDevice_device)
+
 @_cdecl("swiftGPUProcessRemoveMockMediaDevice")
 public func swiftGPUProcessRemoveMockMediaDevice(_ persistentId: UnsafePointer<CChar>) {
     webKitGPUProcessMockMediaCenterRemoveDevice(persistentId)

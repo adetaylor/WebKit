@@ -135,7 +135,7 @@ final class GPUProcess {
     }
 
     func addMockMediaDevice(device: WrappedArgs.GPUProcess.AddMockMediaDevice_device) {
-        WebKit.swiftStubAddMockMediaDevice(device)
+        webKitGPUProcessMockMediaCenterAddDeviceFromWrap(device)
     }
 
     func clearMockMediaDevices() {
