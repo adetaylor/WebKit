@@ -56,7 +56,18 @@ void TestWithSwiftConditionally::didReceiveMessage(IPC::Connection& connection, 
 #endif // ENABLE(SWIFT_TEST_CONDITION)
     if (decoder.messageName() == Messages::TestWithSwiftConditionally::TestAsyncMessage::name()) {
 #if ENABLE(SWIFT_TEST_CONDITION)
-        IPC::handleMessageAsync<Messages::TestWithSwiftConditionally::TestAsyncMessage>(connection, decoder, target.get(), &TestWithSwiftConditionally::testAsyncMessage);
+        auto arguments = decoder.decode<Messages::TestWithSwiftConditionally::TestAsyncMessage::Arguments>();
+        if (!arguments) [[unlikely]]
+            return;
+        auto replyID = decoder.decode<IPC::AsyncReplyID>();
+        if (!replyID) [[unlikely]]
+            return;
+        auto completionHandler = WTF::RefCountable<Messages::TestWithSwiftConditionally::TestAsyncMessage::Reply>::create(Messages::TestWithSwiftConditionally::TestAsyncMessage::Reply(
+            [replyID = *replyID, connection = Ref { connection }] (auto&&... args) mutable {
+                connection->template sendAsyncReply<Messages::TestWithSwiftConditionally::TestAsyncMessage>(replyID, std::forward<decltype(args)>(args)...);
+            }, Messages::TestWithSwiftConditionally::TestAsyncMessage::callbackThread));
+        auto wrapped_param = WrappedArgs::TestWithSwiftConditionally::TestAsyncMessage_param::create(WTF::move(std::get<0>(*arguments)));
+        target.get()->testAsyncMessage(wrapped_param.ptr(), completionHandler.ptr());
 #else // ENABLE(SWIFT_TEST_CONDITION)
         IPC::handleMessageAsync<Messages::TestWithSwiftConditionally::TestAsyncMessage>(connection, decoder, this, &TestWithSwiftConditionally::testAsyncMessage);
 #endif // ENABLE(SWIFT_TEST_CONDITION)

@@ -166,4 +166,10 @@ using TestSyncMessageCompletionHandler = WTF::RefCountable<Messages::TestWithSwi
 } // namespace TestWithSwiftConditionally
 } // namespace CompletionHandlers
 
+namespace WrappedArgs {
+namespace TestWithSwiftConditionally {
+using TestAsyncMessage_param = WTF::RefCountable<uint32_t>;
+} // namespace TestWithSwiftConditionally
+} // namespace WrappedArgs
+
 #endif // ENABLE(SWIFT_TEST_CONDITION)

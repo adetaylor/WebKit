@@ -149,6 +149,30 @@ class GeneratedFileContentsTest(unittest.TestCase):
         self.assertTrue(async_msg.parameters[0].has_attribute('RefWrap'))
         self.assertFalse(sync_msg.parameters[0].has_attribute('RefWrap'))
 
+    def test_ref_wrap_codegen_swift_path_wraps_arg(self):
+        # Phase 4.1.c.0.b: codegen must replace the IPC::handleMessageAsync
+        # call on the Swift dispatch branch with a custom block that decodes
+        # the args, wraps the [RefWrap]-marked ones into
+        # WrappedArgs::<Receiver>::<Message>_<param>::create(WTF::move(...)),
+        # and calls target.get()->method(wrapped.ptr(), ...) inline. The
+        # corresponding C++-only branch (#else) stays unchanged. The header
+        # gains a WrappedArgs typedef block alongside CompletionHandlers.
+        receiver = next(r for r in self.test_receivers if r.name == 'TestWithSwiftConditionally')
+        impl = messages.generate_message_handler(receiver)
+        # Swift branch: custom dispatch with the wrap.
+        self.assertIn('auto wrapped_param = WrappedArgs::TestWithSwiftConditionally::TestAsyncMessage_param::create(WTF::move(std::get<0>(*arguments)));', impl)
+        self.assertIn('target.get()->testAsyncMessage(wrapped_param.ptr(), completionHandler.ptr());', impl)
+        # C++ branch: unchanged, still IPC::handleMessageAsync.
+        self.assertIn('IPC::handleMessageAsync<Messages::TestWithSwiftConditionally::TestAsyncMessage>(connection, decoder, this, &TestWithSwiftConditionally::testAsyncMessage);', impl)
+        # Header: WrappedArgs typedef block emitted.
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('namespace WrappedArgs {', header)
+        self.assertIn('using TestAsyncMessage_param = WTF::RefCountable<uint32_t>;', header)
+        # Sibling sync message has no [RefWrap], so its dispatch is unchanged
+        # and it does not appear in the WrappedArgs block.
+        self.assertNotIn('TestSyncMessage_param', header)
+        self.assertNotIn('TestSyncMessage_param', impl)
+
 
 def parse_sys_argv():
     global reset_results

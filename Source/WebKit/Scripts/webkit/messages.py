@@ -843,6 +843,29 @@ def message_to_completion_handler_using_declaration(receiver, message):
     return line
 
 
+def message_to_ref_wrap_using_declarations(receiver, message):
+    # For each [RefWrap]-annotated parameter on the message, emit
+    #   using <Message>_<param> = WTF::RefCountable<ParamType>;
+    # inside the WrappedArgs::<Receiver> namespace (mirrors the
+    # CompletionHandlers::<Receiver> pattern for reply types). The Swift
+    # method signature names this typedef rather than the bare template
+    # instantiation, because Swift's clang importer rejects RefCountable<T>
+    # from Swift source when T is noncopyable (it type-checks the wrappee
+    # field against the Copyable protocol). Concretizing on the C++ side
+    # via a using-decl sidesteps that. See
+    # ~/uncopyable-parameter-thunk-problem/ for the standalone repro.
+    lines = []
+    for parameter in message.parameters:
+        if not parameter.has_attribute('RefWrap'):
+            continue
+        line = 'using %s_%s = WTF::RefCountable<%s>;' % (message.name, parameter.name, parameter.type)
+        if message.condition:
+            lines.append('#if %s\n%s\n#endif' % (message.condition, line))
+        else:
+            lines.append(line)
+    return lines
+
+
 def generate_messages_header(receiver):
     result = []
 
@@ -920,6 +943,15 @@ def generate_messages_header(receiver):
         result.append('\n'.join([message_to_completion_handler_using_declaration(receiver, x) for x in receiver.messages if x.reply_parameters is not None]))
         result.append('\n')
         result.append('} // namespace %s\n} // namespace CompletionHandlers\n' % receiver.name)
+        ref_wrap_lines = []
+        for x in receiver.messages:
+            ref_wrap_lines.extend(message_to_ref_wrap_using_declarations(receiver, x))
+        if ref_wrap_lines:
+            result.append('\n')
+            result.append('namespace WrappedArgs {\nnamespace %s {\n' % receiver.name)
+            result.append('\n'.join(ref_wrap_lines))
+            result.append('\n')
+            result.append('} // namespace %s\n} // namespace WrappedArgs\n' % receiver.name)
         result.append('\n')
     if_swift_enabled(receiver, result, append_completion_handler_types_for_swift, None)
 
@@ -943,6 +975,27 @@ def handler_function(receiver, message, swift_path=False):
         return '%s::%s' % (base, 'gpu' + message.name[3:])
     return '%s::%s' % (base, message.name[0].lower() + message.name[1:])
 
+
+def swift_method_name(message):
+    # Same naming logic as handler_function but without the receiver-class
+    # prefix — used when emitting `target.get()->methodName(args)` on the
+    # Swift dispatch branch for messages that bypass IPC::handleMessage.
+    if message.name.startswith('URL'):
+        return 'url' + message.name[3:]
+    if message.name.startswith('GPU'):
+        return 'gpu' + message.name[3:]
+    return message.name[0].lower() + message.name[1:]
+
+
+def has_ref_wrap_args(message):
+    # True when at least one parameter on the message is annotated with
+    # [RefWrap] in the .messages.in source. The Swift dispatch branch wraps
+    # those args into WTF::RefCountable<X> before forwarding to the Swift
+    # method, sidestepping swiftc's silent-drop of methods that take
+    # `consuming` noncopyable C++ types via -emit-clang-header-path.
+    # Standalone repro: ~/uncopyable-parameter-thunk-problem/.
+    return any(p.has_attribute('RefWrap') for p in message.parameters)
+
 def generate_enabled_by(receiver, enabled_by, enabled_by_conjunction):
     conjunction = ' %s ' % (enabled_by_conjunction or '&&')
     return conjunction.join(['sharedPreferences->' + preference[0].lower() + preference[1:] for preference in enabled_by])
@@ -965,8 +1018,44 @@ def async_message_statement(receiver, message):
             dispatch_function_args = ['decoder', target_name, '&%s' % handler_function(receiver, message, swift_path=swift_path)]
         result.append(pattern % (', '.join(dispatch_function_args)))
 
+    def append_swift_branch_with_ref_wrap(result):
+        # Custom Swift dispatch for messages with [RefWrap] args. We bypass
+        # IPC::handleMessage / handleMessageAsync because those forward each
+        # decoded arg by-value/&& to the method pointer; with [RefWrap] the
+        # corresponding Swift method takes a Ref<RefCountable<X>>* in place
+        # of the bare X, so we decode manually, wrap the marked args, and
+        # call target.get()->method(...) inline. Mirrors the bookkeeping
+        # handleMessage/handleMessageAsync do for replyID + sendAsyncReply.
+        is_async_with_reply = message.reply_parameters is not None and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE)
+        result.append('        auto arguments = decoder.decode<Messages::%s::%s::Arguments>();\n' % (receiver.name, message.name))
+        result.append('        if (!arguments) [[unlikely]]\n')
+        result.append('            return;\n')
+        if is_async_with_reply:
+            result.append('        auto replyID = decoder.decode<IPC::AsyncReplyID>();\n')
+            result.append('        if (!replyID) [[unlikely]]\n')
+            result.append('            return;\n')
+            result.append('        auto completionHandler = WTF::RefCountable<Messages::%s::%s::Reply>::create(Messages::%s::%s::Reply(\n' % (receiver.name, message.name, receiver.name, message.name))
+            result.append('            [replyID = *replyID, connection = Ref { connection }] (auto&&... args) mutable {\n')
+            result.append('                connection->template sendAsyncReply<Messages::%s::%s>(replyID, std::forward<decltype(args)>(args)...);\n' % (receiver.name, message.name))
+            result.append('            }, Messages::%s::%s::callbackThread));\n' % (receiver.name, message.name))
+        for index, parameter in enumerate(message.parameters):
+            if parameter.has_attribute('RefWrap'):
+                result.append('        auto wrapped_%s = WrappedArgs::%s::%s_%s::create(WTF::move(std::get<%d>(*arguments)));\n' % (parameter.name, receiver.name, message.name, parameter.name, index))
+        call_args = []
+        for index, parameter in enumerate(message.parameters):
+            if parameter.has_attribute('RefWrap'):
+                call_args.append('wrapped_%s.ptr()' % parameter.name)
+            else:
+                call_args.append('WTF::move(std::get<%d>(*arguments))' % index)
+        if is_async_with_reply:
+            call_args.append('completionHandler.ptr()')
+        result.append('        target.get()->%s(%s);\n' % (swift_method_name(message), ', '.join(call_args)))
+
     def append_with_dispatch_function_args(receiver, result, pattern):
-        if_swift_enabled(receiver, result, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, pattern, 'target.get()'), lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, pattern, 'this'))
+        if has_ref_wrap_args(message):
+            if_swift_enabled(receiver, result, append_swift_branch_with_ref_wrap, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, pattern, 'this'))
+        else:
+            if_swift_enabled(receiver, result, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, pattern, 'target.get()'), lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, pattern, 'this'))
 
     dispatch_function = 'handleMessage'
     if message.reply_parameters is not None and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
@@ -1014,6 +1103,14 @@ def async_message_statement(receiver, message):
 
 
 def sync_message_statement(receiver, message):
+    if has_ref_wrap_args(message):
+        # Synchronous [RefWrap] dispatch isn't implemented yet — the Swift
+        # path for sync replies needs UniqueRef<Encoder>& threading rather
+        # than the AsyncReplyID + sendAsyncReply shape async_message_statement
+        # uses. Raise loudly so a misuse here doesn't silently fall back to
+        # the unwrapped C++ dispatch (which would then be silently dropped
+        # by swiftc for noncopyable args).
+        raise Exception("ERROR: [RefWrap] on a synchronous message (%s.%s) is not yet supported by autogen. Either drop [RefWrap] or extend sync_message_statement." % (receiver.name, message.name))
     dispatch_function = 'handleMessage'
     if message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
         dispatch_function += 'Synchronous'
