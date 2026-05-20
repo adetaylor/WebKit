@@ -525,12 +525,12 @@ extern "C" void WebKitGPUProcessMockMediaCenterTriggerCaptureConfigurationChange
 // back to WTF::String on the C++ side via String::fromUTF8, then call the
 // WebCore static. Bridge name keeps the WebKitGPUProcessMockMediaCenter*
 // family prefix.
-extern "C" void WebKitGPUProcessMockMediaCenterRemoveDevice(const char* persistentId)
+extern "C" void WebKitGPUProcessMockMediaCenterRemoveDevice(const char* persistentId) noexcept
 {
     WebCore::MockRealtimeMediaSourceCenter::removeDevice(String::fromUTF8(persistentId));
 }
 
-extern "C" void WebKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(const char* persistentId, bool isEphemeral)
+extern "C" void WebKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(const char* persistentId, bool isEphemeral) noexcept
 {
     WebCore::MockRealtimeMediaSourceCenter::setDeviceIsEphemeral(String::fromUTF8(persistentId), isEphemeral);
 }
@@ -864,7 +864,7 @@ extern "C" uint64_t WebKitGPUProcessConnectionToWebProcessObjectCount() noexcept
 // the pattern reused later for handlers taking Vector<SandboxExtension::Handle>
 // (updateSandboxAccess / registerFonts). The matching swiftGPUProcess...
 // forward declaration sits next to userPreferredLanguagesChanged above.
-extern "C" void WebKitGPUProcessOverrideUserPreferredLanguages(const char* const* languages, size_t count)
+extern "C" void WebKitGPUProcessOverrideUserPreferredLanguages(const char* const* languages, size_t count) noexcept
 {
     Vector<String> vec;
     vec.reserveInitialCapacity(count);

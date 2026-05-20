@@ -93,7 +93,18 @@ final class GPUProcess {
     }
 
     func userPreferredLanguagesChanged(languages: consuming WebKit.VectorString) {
-        WebKit.swiftStubUserPreferredLanguagesChanged(languages)
+        // Forward Vector<String> -> (const char* const*, size_t count) via the
+        // helper in GPUProcessSwiftStdlibExtras.swift, which iterates the
+        // WTF::Vector through GPUCxxVectorIterator and builds a contiguous
+        // pointer buffer for the closure body. The C bridge reconstructs a
+        // Vector<String> via String::fromUTF8 and calls the WTF API.
+        // `consuming` matches both sides: the autogen-generated forwarder hands
+        // us a `consuming WebKit.VectorString`, and `withCStringPointersForGPU`
+        // is itself `consuming` because it feeds `GPUCxxVectorIterator`, which
+        // takes the vector by value (the iterator stores it).
+        languages.withCStringPointersForGPU { pointers, count in
+            webKitGPUProcessOverrideUserPreferredLanguages(pointers, count)
+        }
     }
 
     #if ENABLE_MEDIA_STREAM
@@ -136,11 +147,22 @@ final class GPUProcess {
     }
 
     func removeMockMediaDevice(persistentId: WTF.String) {
-        WebKit.swiftStubRemoveMockMediaDevice(persistentId)
+        // Forward WTF::String -> const char* via the WTF.String.withCStringForGPU
+        // helper in GPUProcessSwiftStdlibExtras.swift. The C bridge calls
+        // String::fromUTF8 to reconstruct on the C++ side.
+        persistentId.withCStringForGPU { cStr in
+            if let cStr {
+                webKitGPUProcessMockMediaCenterRemoveDevice(cStr)
+            }
+        }
     }
 
     func setMockMediaDeviceIsEphemeral(persistentId: WTF.String, isEphemeral: Bool) {
-        WebKit.swiftStubSetMockMediaDeviceIsEphemeral(persistentId, isEphemeral)
+        persistentId.withCStringForGPU { cStr in
+            if let cStr {
+                webKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(cStr, isEphemeral)
+            }
+        }
     }
 
     func resetMockMediaDevices() {

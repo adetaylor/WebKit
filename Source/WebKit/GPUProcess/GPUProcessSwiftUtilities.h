@@ -157,11 +157,6 @@ inline void swiftStubRemoveSession(PAL::SessionID sessionID)
     CxxGPUProcess::singleton().removeSession(sessionID);
 }
 
-inline void swiftStubUserPreferredLanguagesChanged(Vector<String> languages)
-{
-    CxxGPUProcess::singleton().userPreferredLanguagesChanged(WTF::move(languages));
-}
-
 #if ENABLE(MEDIA_STREAM)
 inline void swiftStubSetOrientationForMediaCapture(WebCore::IntDegrees orientation)
 {
@@ -183,16 +178,6 @@ inline void swiftStubAddMockMediaDevice(WrappedArgs::GPUProcess::AddMockMediaDev
 {
     Ref deviceRef = *device;
     CxxGPUProcess::singleton().addMockMediaDevice(*deviceRef.get());
-}
-
-inline void swiftStubRemoveMockMediaDevice(String persistentId)
-{
-    CxxGPUProcess::singleton().removeMockMediaDevice(persistentId);
-}
-
-inline void swiftStubSetMockMediaDeviceIsEphemeral(String persistentId, bool isEphemeral)
-{
-    CxxGPUProcess::singleton().setMockMediaDeviceIsEphemeral(persistentId, isEphemeral);
 }
 
 inline void swiftStubSetShouldListenToVoiceActivity(bool shouldListen)

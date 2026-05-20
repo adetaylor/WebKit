@@ -230,7 +230,7 @@ public func swiftGPUProcessTriggerMockCaptureConfigurationChange(_ forCamera: Bo
 // `public` on each @_cdecl is load-bearing for symbol export, same as above.
 
 @_silgen_name("WebKitGPUProcessMockMediaCenterRemoveDevice")
-private func webKitGPUProcessMockMediaCenterRemoveDevice(_ persistentId: UnsafePointer<CChar>)
+internal func webKitGPUProcessMockMediaCenterRemoveDevice(_ persistentId: UnsafePointer<CChar>)
 
 @_cdecl("swiftGPUProcessRemoveMockMediaDevice")
 public func swiftGPUProcessRemoveMockMediaDevice(_ persistentId: UnsafePointer<CChar>) {
@@ -238,7 +238,7 @@ public func swiftGPUProcessRemoveMockMediaDevice(_ persistentId: UnsafePointer<C
 }
 
 @_silgen_name("WebKitGPUProcessMockMediaCenterSetDeviceIsEphemeral")
-private func webKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(_ persistentId: UnsafePointer<CChar>, _ isEphemeral: Bool)
+internal func webKitGPUProcessMockMediaCenterSetDeviceIsEphemeral(_ persistentId: UnsafePointer<CChar>, _ isEphemeral: Bool)
 
 @_cdecl("swiftGPUProcessSetMockMediaDeviceIsEphemeral")
 public func swiftGPUProcessSetMockMediaDeviceIsEphemeral(_ persistentId: UnsafePointer<CChar>, _ isEphemeral: Bool) {
@@ -277,7 +277,7 @@ public func swiftGPUProcessCancelGetDisplayMediaPrompt() {
 // `public` on the @_cdecl is load-bearing for symbol export.
 
 @_silgen_name("WebKitGPUProcessOverrideUserPreferredLanguages")
-private func webKitGPUProcessOverrideUserPreferredLanguages(_ languages: UnsafePointer<UnsafePointer<CChar>?>, _ count: Int)
+internal func webKitGPUProcessOverrideUserPreferredLanguages(_ languages: UnsafePointer<UnsafePointer<CChar>?>?, _ count: Int)
 
 @_cdecl("swiftGPUProcessUserPreferredLanguagesChanged")
 public func swiftGPUProcessUserPreferredLanguagesChanged(_ languages: UnsafePointer<UnsafePointer<CChar>?>, _ count: Int) {

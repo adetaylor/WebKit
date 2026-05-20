@@ -96,6 +96,7 @@ if (ENABLE_GPU_PROCESS_SWIFT)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/EntryPoint/Cocoa/XPCService/GPUServiceEntryPoint.swift
         ${WEBKIT_DIR}/GPUProcess/GPUProcess.swift
+        ${WEBKIT_DIR}/GPUProcess/GPUProcessSwiftStdlibExtras.swift
         ${WEBKIT_DIR}/GPUProcess/SwiftGPUProcess.swift
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
     )
