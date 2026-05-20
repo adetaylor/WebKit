@@ -92,7 +92,7 @@ final class GPUProcess {
     }
 
     func removeSession(sessionID: PAL.SessionID) {
-        WebKit.swiftStubRemoveSession(sessionID)
+        WebKit.CxxGPUProcess.singleton().removeSession(sessionID)
     }
 
     func userPreferredLanguagesChanged(languages: consuming WebKit.VectorString) {
@@ -116,7 +116,7 @@ final class GPUProcess {
     }
 
     func setOrientationForMediaCapture(orientation: WebCore.IntDegrees) {
-        WebKit.swiftStubSetOrientationForMediaCapture(orientation)
+        WebKit.CxxGPUProcess.singleton().setOrientationForMediaCapture(orientation)
     }
 
     func rotationAngleForCaptureDeviceChanged(persistentId: WTF.String, rotation: WebCore.VideoFrameRotation) {
@@ -181,11 +181,11 @@ final class GPUProcess {
     }
 
     func setShouldListenToVoiceActivity(shouldListen: Bool) {
-        WebKit.swiftStubSetShouldListenToVoiceActivity(shouldListen)
+        WebKit.CxxGPUProcess.singleton().setShouldListenToVoiceActivity(shouldListen)
     }
 
     func enableMicrophoneMuteStatusAPI() {
-        WebKit.swiftStubEnableMicrophoneMuteStatusAPI()
+        WebKit.CxxGPUProcess.singleton().enableMicrophoneMuteStatusAPI()
     }
     #endif // ENABLE_MEDIA_STREAM
 
@@ -199,7 +199,7 @@ final class GPUProcess {
     }
 
     func releaseSnapshot(identifier: WebKit.RemoteSnapshotIdentifier) {
-        WebKit.swiftStubReleaseSnapshot(identifier)
+        WebKit.CxxGPUProcess.singleton().releaseSnapshot(identifier)
     }
 
     func cancelGetDisplayMediaPrompt() {

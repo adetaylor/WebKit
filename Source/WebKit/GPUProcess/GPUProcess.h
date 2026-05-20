@@ -45,6 +45,7 @@
 #include <wtf/Lock.h>
 #include <wtf/MemoryPressureHandler.h>
 #include <wtf/MonotonicTime.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 
 #if PLATFORM(MAC)
@@ -348,8 +349,18 @@ private:
     std::unique_ptr<GPUProcess> m_swiftReceiver;
 #endif
 
-};
+} SWIFT_SHARED_REFERENCE(refCxxGPUProcess, derefCxxGPUProcess);
 
 } // namespace WebKit
+
+inline void refCxxGPUProcess(WebKit::CxxGPUProcess* WTF_NONNULL obj)
+{
+    obj->ref();
+}
+
+inline void derefCxxGPUProcess(WebKit::CxxGPUProcess* WTF_NONNULL obj)
+{
+    obj->deref();
+}
 
 #endif // ENABLE(GPU_PROCESS)

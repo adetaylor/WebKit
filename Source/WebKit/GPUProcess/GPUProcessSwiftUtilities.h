@@ -153,11 +153,6 @@ inline void swiftStubRemoveSession(PAL::SessionID sessionID)
 }
 
 #if ENABLE(MEDIA_STREAM)
-inline void swiftStubSetOrientationForMediaCapture(WebCore::IntDegrees orientation)
-{
-    CxxGPUProcess::singleton().setOrientationForMediaCapture(orientation);
-}
-
 inline void swiftStubRotationAngleForCaptureDeviceChanged(String persistentId, WebCore::VideoFrameRotation rotation)
 {
     CxxGPUProcess::singleton().rotationAngleForCaptureDeviceChanged(persistentId, rotation);
@@ -167,16 +162,6 @@ inline void swiftStubUpdateCaptureOrigin(WrappedArgs::GPUProcess::UpdateCaptureO
 {
     Ref originDataRef = *originData;
     CxxGPUProcess::singleton().updateCaptureOrigin(*originDataRef.get(), processID);
-}
-
-inline void swiftStubSetShouldListenToVoiceActivity(bool shouldListen)
-{
-    CxxGPUProcess::singleton().setShouldListenToVoiceActivity(shouldListen);
-}
-
-inline void swiftStubEnableMicrophoneMuteStatusAPI()
-{
-    CxxGPUProcess::singleton().enableMicrophoneMuteStatusAPI();
 }
 #endif // ENABLE(MEDIA_STREAM)
 
@@ -191,11 +176,6 @@ inline void swiftStubOpenDirectoryCacheInvalidated(SandboxExtension::Handle hand
     CxxGPUProcess::singleton().openDirectoryCacheInvalidated(WTF::move(handle));
 }
 #endif
-
-inline void swiftStubReleaseSnapshot(RemoteSnapshotIdentifier identifier)
-{
-    CxxGPUProcess::singleton().releaseSnapshot(identifier);
-}
 
 #if HAVE(SCREEN_CAPTURE_KIT)
 #endif
