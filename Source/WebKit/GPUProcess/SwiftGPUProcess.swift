@@ -192,7 +192,7 @@ public func swiftGPUProcessSetMockCaptureDevicesEnabled(_ isEnabled: Bool) {
 // `public` is load-bearing on every @_cdecl (see prior gotcha note).
 
 @_silgen_name("WebKitGPUProcessMockMediaCenterSetDevicesEmpty")
-private func webKitGPUProcessMockMediaCenterSetDevicesEmpty()
+internal func webKitGPUProcessMockMediaCenterSetDevicesEmpty()
 
 @_cdecl("swiftGPUProcessClearMockMediaDevices")
 public func swiftGPUProcessClearMockMediaDevices() {

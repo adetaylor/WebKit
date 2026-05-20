@@ -125,7 +125,14 @@ final class GPUProcess {
     }
 
     func clearMockMediaDevices() {
-        WebKit.swiftStubClearMockMediaDevices()
+        // First handler with a Swift-native body. The previous stub routed
+        // forwarder -> Swift::clearMockMediaDevices -> swiftStubClear... ->
+        // CxxGPUProcess::clearMockMediaDevices -> @_cdecl Swift -> C bridge.
+        // Now: forwarder -> Swift::clearMockMediaDevices -> C bridge directly.
+        // The @_cdecl shim and the swiftStub forwarder are dead on the
+        // ENABLE(GPU_PROCESS_SWIFT)=ON path now; they remain for the OFF
+        // path where the C++ dispatcher still calls CxxGPUProcess::clearMockMediaDevices.
+        webKitGPUProcessMockMediaCenterSetDevicesEmpty()
     }
 
     func removeMockMediaDevice(persistentId: WTF.String) {

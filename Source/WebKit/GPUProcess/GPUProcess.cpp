@@ -501,7 +501,7 @@ extern "C" void WebKitGPUProcessSetMockRealtimeMediaSourceCenterEnabled(bool isE
 // WebCore::MockRealtimeMediaSourceCenter static call from the original C++
 // body, on the C++ side where <WebCore/MockRealtimeMediaSourceCenter.h> is
 // already included. The Swift @_cdecl bodies call these via @_silgen_name.
-extern "C" void WebKitGPUProcessMockMediaCenterSetDevicesEmpty()
+extern "C" void WebKitGPUProcessMockMediaCenterSetDevicesEmpty() noexcept
 {
     WebCore::MockRealtimeMediaSourceCenter::setDevices({ });
 }

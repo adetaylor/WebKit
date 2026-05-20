@@ -190,11 +190,6 @@ inline void swiftStubAddMockMediaDevice(WrappedArgs::GPUProcess::AddMockMediaDev
     CxxGPUProcess::singleton().addMockMediaDevice(*deviceRef.get());
 }
 
-inline void swiftStubClearMockMediaDevices()
-{
-    CxxGPUProcess::singleton().clearMockMediaDevices();
-}
-
 inline void swiftStubRemoveMockMediaDevice(String persistentId)
 {
     CxxGPUProcess::singleton().removeMockMediaDevice(persistentId);
