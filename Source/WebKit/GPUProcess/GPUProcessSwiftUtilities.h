@@ -142,11 +142,6 @@ inline void swiftStubUpdateSandboxAccess(Vector<SandboxExtension::Handle> extens
     CxxGPUProcess::singleton().updateSandboxAccess(extensions);
 }
 
-inline void swiftStubProcessDidResume()
-{
-    CxxGPUProcess::singleton().processDidResume();
-}
-
 inline void swiftStubAddSession(PAL::SessionID sessionID, GPUProcessSessionParameters parameters)
 {
     CxxGPUProcess::singleton().addSession(sessionID, WTF::move(parameters));

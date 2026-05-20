@@ -81,7 +81,10 @@ final class GPUProcess {
     }
 
     func processDidResume() {
-        WebKit.swiftStubProcessDidResume()
+        // No-op: the C++ body is just RELEASE_LOG(ProcessSuspension, ...) +
+        // CxxGPUProcess::resume() which is itself empty. Once WTF logging is
+        // available from Swift (rdar://168139823) this will regain the log
+        // line; until then the loss is accepted.
     }
 
     func addSession(sessionID: PAL.SessionID, parameters: consuming WebKit.GPUProcessSessionParameters) {
