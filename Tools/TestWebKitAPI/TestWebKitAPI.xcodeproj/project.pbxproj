@@ -2229,8 +2229,19 @@
 			shellScript = (
 				"if [ \"${ACTION}\" = installhdrs ]",
 				"then touch \"${DERIVED_FILES_DIR}/generate-platform-args.d\"",
-				"else \"${SCRIPT_INPUT_FILE_0}\"",
+				"    exit 0",
 				"fi",
+				"set -e",
+				"output_dir=\"$(dirname \"${SCRIPT_OUTPUT_FILE_0}\")\"",
+				"echo \"// generate-platform-args: empty file to work around rdar://150228472\" > \"${output_dir}/rdar150228472.swift\"",
+				"set -- -D__WK_GENERATING_PLATFORM_ARGS__ -DRELEASE_WITHOUT_OPTIMIZATIONS",
+				"for tok in ${GCC_PREPROCESSOR_DEFINITIONS:-}; do set -- \"$@\" \"-D${tok}\"; done",
+				"if [ \"${ENABLE_ADDRESS_SANITIZER:-}\" = YES ]; then set -- \"$@\" -fsanitize=address; fi",
+				"for p in \"${BUILT_PRODUCTS_DIR}\" ${FRAMEWORK_SEARCH_PATHS:-}; do set -- \"$@\" -F \"${p}\"; done",
+				"for p in \"${BUILT_PRODUCTS_DIR}\" ${HEADER_SEARCH_PATHS:-}; do set -- \"$@\" -I \"${p}\"; done",
+				"for p in ${SYSTEM_FRAMEWORK_SEARCH_PATHS:-}; do set -- \"$@\" -iframework \"${p}\"; done",
+				"for p in ${SYSTEM_HEADER_SEARCH_PATHS:-}; do set -- \"$@\" -isystem \"${p}\"; done",
+				"\"${SCRIPT_INPUT_FILE_0}\" --archs ${ARCHS} ${SWIFT_MODULE_ONLY_ARCHS:-} --output \"${output_dir}/platform-enabled-swift-args.{arch}.resp\" --depfile \"${DERIVED_FILES_DIR}/platform-enabled-swift-args.{arch}.resp.d\" --combined-depfile \"${DERIVED_FILES_DIR}/generate-platform-args.d\" -- xcrun clang -x c++ \"-std=${CLANG_CXX_LANGUAGE_STANDARD}\" -target \"{arch}-${LLVM_TARGET_TRIPLE_VENDOR}-${LLVM_TARGET_TRIPLE_OS_VERSION}${LLVM_TARGET_TRIPLE_SUFFIX:-}\" -E -P -dM -MD -MF \"${DERIVED_FILES_DIR}/platform-enabled-swift-args.{arch}.resp.d\" -MT \"platform-enabled-swift-args.{arch}.resp\" \"$@\" -include wtf/Platform.h /dev/zero",
 				"",
 			);
 		};

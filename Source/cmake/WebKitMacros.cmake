@@ -880,7 +880,6 @@ function(_webkit_generate_platform_swift_args _target _resp_path _ordering_dep)
         OUTPUT "${_resp_path}"
         COMMAND ${Python_EXECUTABLE}
             "${WTF_SCRIPTS_DIR}/generate-platform-args"
-            --cmake
             --output "${_resp_path}"
             --cmakeconfig "${CMAKE_BINARY_DIR}/cmakeconfig.h"
             --
