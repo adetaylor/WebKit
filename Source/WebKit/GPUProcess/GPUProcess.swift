@@ -73,11 +73,11 @@ final class GPUProcess {
     // MARK: - Messages without a reply
 
     func updateGPUProcessPreferences(preferences: consuming WebKit.GPUProcessPreferences) {
-        WebKit.swiftStubUpdateGPUProcessPreferences(preferences)
+        WebKit.CxxGPUProcess.singleton().updateGPUProcessPreferences(consuming: preferences)
     }
 
     func updateSandboxAccess(extensions: consuming WebKit.VectorSandboxExtensionHandle) {
-        WebKit.swiftStubUpdateSandboxAccess(extensions)
+        WebKit.CxxGPUProcess.singleton().updateSandboxAccess(extensions)
     }
 
     func processDidResume() {
@@ -88,7 +88,7 @@ final class GPUProcess {
     }
 
     func addSession(sessionID: PAL.SessionID, parameters: consuming WebKit.GPUProcessSessionParameters) {
-        WebKit.swiftStubAddSession(sessionID, parameters)
+        WebKit.CxxGPUProcess.singleton().addSession(sessionID, consuming: parameters)
     }
 
     func removeSession(sessionID: PAL.SessionID) {
@@ -120,7 +120,7 @@ final class GPUProcess {
     }
 
     func rotationAngleForCaptureDeviceChanged(persistentId: WTF.String, rotation: WebCore.VideoFrameRotation) {
-        WebKit.swiftStubRotationAngleForCaptureDeviceChanged(persistentId, rotation)
+        WebKit.CxxGPUProcess.singleton().rotationAngleForCaptureDeviceChanged(persistentId, rotation)
     }
 
     // SecurityOriginData is an "address-only" C++ class (holds a WTF::String,
@@ -195,7 +195,7 @@ final class GPUProcess {
     // non-Mac platforms; the swiftStub shim is also gated, so the Swift body
     // is dead code on non-Mac builds (link-time elimination).
     func setScreenProperties(screenProperties: consuming WebCore.ScreenProperties) {
-        WebKit.swiftStubSetScreenProperties(screenProperties)
+        WebKit.CxxGPUProcess.singleton().setScreenProperties(screenProperties)
     }
 
     func releaseSnapshot(identifier: WebKit.RemoteSnapshotIdentifier) {
@@ -207,23 +207,27 @@ final class GPUProcess {
     }
 
     func openDirectoryCacheInvalidated(handle: consuming WebKit.SandboxExtensionHandle) {
-        WebKit.swiftStubOpenDirectoryCacheInvalidated(handle)
+        WebKit.CxxGPUProcess.singleton().openDirectoryCacheInvalidated(consuming: handle)
     }
 
     func consumeAudioComponentRegistrations(registrationData: consuming IPC.SharedBufferReference) {
+        // Swift can't see CxxGPUProcess.consumeAudioComponentRegistrations because
+        // it's pulled in via `using AuxiliaryProcess::consumeAudioComponentRegistrations`,
+        // which the clang importer doesn't surface on the derived class. Stay on the
+        // swiftStub trampoline for this one.
         WebKit.swiftStubConsumeAudioComponentRegistrations(registrationData)
     }
 
     func enablePowerLogging(handle: consuming WebKit.SandboxExtensionHandle) {
-        WebKit.swiftStubEnablePowerLogging(handle)
+        WebKit.CxxGPUProcess.singleton().enablePowerLogging(consuming: handle)
     }
 
     func setPresentingApplicationAuditToken(processIdentifier: WebCore.ProcessIdentifier, pageIdentifier: WebCore.PageIdentifier, auditToken: consuming WebKit.OptionalCoreIPCAuditToken) {
-        WebKit.swiftStubSetPresentingApplicationAuditToken(processIdentifier, pageIdentifier, auditToken)
+        WebKit.CxxGPUProcess.singleton().setPresentingApplicationAuditToken(processIdentifier, pageIdentifier, consuming: auditToken)
     }
 
     func registerFonts(sandboxExtensions: consuming WebKit.VectorSandboxExtensionHandle) {
-        WebKit.swiftStubRegisterFonts(sandboxExtensions)
+        WebKit.CxxGPUProcess.singleton().registerFonts(consuming: sandboxExtensions)
     }
 
     // MARK: - Messages with a reply (forwarded via swiftStub<Method> shims)

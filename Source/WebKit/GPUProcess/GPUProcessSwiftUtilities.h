@@ -132,50 +132,18 @@ using SpanConstUint8 = std::span<const uint8_t>;
 // CxxGPUProcess. Sidesteps swiftc's silent-drop bug for `consuming`
 // noncopyable params (see ~/uncopyable-parameter-thunk-problem/).
 
-inline void swiftStubUpdateGPUProcessPreferences(GPUProcessPreferences preferences)
-{
-    CxxGPUProcess::singleton().updateGPUProcessPreferences(WTF::move(preferences));
-}
-
-inline void swiftStubUpdateSandboxAccess(Vector<SandboxExtension::Handle> extensions)
-{
-    CxxGPUProcess::singleton().updateSandboxAccess(extensions);
-}
-
-inline void swiftStubAddSession(PAL::SessionID sessionID, GPUProcessSessionParameters parameters)
-{
-    CxxGPUProcess::singleton().addSession(sessionID, WTF::move(parameters));
-}
-
 inline void swiftStubRemoveSession(PAL::SessionID sessionID)
 {
     CxxGPUProcess::singleton().removeSession(sessionID);
 }
 
 #if ENABLE(MEDIA_STREAM)
-inline void swiftStubRotationAngleForCaptureDeviceChanged(String persistentId, WebCore::VideoFrameRotation rotation)
-{
-    CxxGPUProcess::singleton().rotationAngleForCaptureDeviceChanged(persistentId, rotation);
-}
-
 inline void swiftStubUpdateCaptureOrigin(WrappedArgs::GPUProcess::UpdateCaptureOrigin_originData* originData, WebCore::ProcessIdentifier processID)
 {
     Ref originDataRef = *originData;
     CxxGPUProcess::singleton().updateCaptureOrigin(*originDataRef.get(), processID);
 }
 #endif // ENABLE(MEDIA_STREAM)
-
-#if PLATFORM(MAC)
-inline void swiftStubSetScreenProperties(WebCore::ScreenProperties screenProperties)
-{
-    CxxGPUProcess::singleton().setScreenProperties(screenProperties);
-}
-
-inline void swiftStubOpenDirectoryCacheInvalidated(SandboxExtension::Handle handle)
-{
-    CxxGPUProcess::singleton().openDirectoryCacheInvalidated(WTF::move(handle));
-}
-#endif
 
 #if HAVE(SCREEN_CAPTURE_KIT)
 #endif
@@ -184,27 +152,6 @@ inline void swiftStubOpenDirectoryCacheInvalidated(SandboxExtension::Handle hand
 inline void swiftStubConsumeAudioComponentRegistrations(IPC::SharedBufferReference registrationData)
 {
     CxxGPUProcess::singleton().consumeAudioComponentRegistrations(registrationData);
-}
-#endif
-
-#if HAVE(POWERLOG_TASK_MODE_QUERY)
-inline void swiftStubEnablePowerLogging(SandboxExtension::Handle handle)
-{
-    CxxGPUProcess::singleton().enablePowerLogging(WTF::move(handle));
-}
-#endif
-
-#if HAVE(AUDIT_TOKEN)
-inline void swiftStubSetPresentingApplicationAuditToken(WebCore::ProcessIdentifier processIdentifier, WebCore::PageIdentifier pageIdentifier, std::optional<CoreIPCAuditToken> auditToken)
-{
-    CxxGPUProcess::singleton().setPresentingApplicationAuditToken(processIdentifier, pageIdentifier, WTF::move(auditToken));
-}
-#endif
-
-#if PLATFORM(COCOA)
-inline void swiftStubRegisterFonts(Vector<SandboxExtension::Handle> sandboxExtensions)
-{
-    CxxGPUProcess::singleton().registerFonts(WTF::move(sandboxExtensions));
 }
 #endif
 
