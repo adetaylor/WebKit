@@ -27,32 +27,56 @@ import WebKit_Internal
 
 // Swift IPC receiver class that mirrors WebKit::CxxGPUProcess. The
 // autogen-generated GPUProcessMessageForwarder dispatches every IPC message
-// to one of the methods below via target.get()->method(args). Each method
-// here is a stub forwarder that re-enters the existing C++ implementation
-// on CxxGPUProcess::singleton() via a swiftStub<Method> shim in
-// GPUProcessSwiftUtilities.h. The shape mirrors IPCTesterReceiver.swift /
-// WebBackForwardList.swift.
+// to one of the methods below via target.get()->method(args). The shape
+// mirrors IPCTesterReceiver.swift / WebBackForwardList.swift.
 //
-// Why every method goes through a shim (even the no-reply ones):
-// Swift's clang importer doesn't currently surface the WebKit::CxxGPUProcess
-// type as a usable Swift type (multiple inheritance + CRTP), so the Swift
-// handler bodies have no way to call CxxGPUProcess::singleton().method(args)
-// directly. The inline shims in GPUProcessSwiftUtilities.h take the args by
-// value (or by foreign-reference pointer for [RefWrap] noncopyable args), do
-// the singleton call on the C++ side, and return.
+// Three dispatch styles appear below:
 //
-// Three messages have noncopyable arguments tagged [RefWrap] in
-// GPUProcess.messages.in (InitializeGPUProcess.processCreationParameters,
-// CreateGPUConnectionToWebProcess.connectionHandle/parameters). For those,
-// the autogen wraps the decoded arg in WTF::RefCountable<X> and the Swift
-// signature names the autogen-emitted typedef
-// `WrappedArgs.GPUProcess.<Message>_<param>`. Without the wrap, swiftc would
-// silently drop the method from WebKit-Swift-CPP.h (consuming-noncopyable
-// thunk emit fails); see ~/uncopyable-parameter-thunk-problem/ for the
-// repro and Phase 4.1.c.0.b for the autogen change.
+//   1. Direct C-bridge calls (e.g. clearMockMediaDevices,
+//      addMockMediaDevice) — the Swift body invokes a small extern "C"
+//      bridge in GPUProcess.cpp, which calls into WebCore. No round-trip
+//      through CxxGPUProcess. These are the closest thing to "Swift-native"
+//      handlers we currently have; future phases will keep growing this
+//      set.
 //
-// Future phases will replace each forwarder body with a Swift-native
-// implementation (eliminating the round-trip through C++).
+//   2. Direct singleton().method(...) calls — possible because
+//      CxxGPUProcess is annotated SWIFT_SHARED_REFERENCE in GPUProcess.h,
+//      so the clang importer surfaces it as a Swift reference type and
+//      WebKit.CxxGPUProcess.singleton() is callable from Swift. Used for
+//      handlers whose args are pass-by-value (Bool / int-like / identifier
+//      types) or pass-by-rvalue-ref (the importer maps T&& parameters to
+//      a `consuming:` argument label).
+//
+//   3. swiftStub<Method> trampolines (in GPUProcessSwiftUtilities.h) — for
+//      cases where styles 1 and 2 don't work yet:
+//
+//        - Messages with a CompletionHandler reply: the autogen hands
+//          Swift a WTF::RefCountable<CompletionHandler<...>>* wrapper.
+//          The swiftStub adopts a +1 retain on the wrapper, constructs a
+//          fresh C++ CompletionHandler that invokes the wrapper when
+//          called, and forwards to CxxGPUProcess. Constructing the
+//          forwarding CompletionHandler isn't expressible in Swift.
+//
+//        - Messages with [RefWrap]'d noncopyable args (e.g.
+//          InitializeGPUProcess.processCreationParameters,
+//          CreateGPUConnectionToWebProcess.{connectionHandle,parameters}).
+//          The shim accepts the autogen's
+//          WrappedArgs::GPUProcess::<M>_<param>* (i.e.
+//          WTF::RefCountable<X>*) and unwraps via WTFMove(**ptr). The
+//          [RefWrap] dance sidesteps swiftc's silent-drop bug for
+//          `consuming` noncopyable params (see
+//          ~/uncopyable-parameter-thunk-problem/).
+//
+//        - SecurityOriginData / MockMediaDevice (address-only types whose
+//          by-value Swift passage trips an IRGen crash; see
+//          ~/swift-gpu-compiler-crash/) are also tagged [RefWrap].
+//
+//        - consumeAudioComponentRegistrations: surfaced via
+//          `using AuxiliaryProcess::consumeAudioComponentRegistrations`,
+//          which the clang importer doesn't expose on CxxGPUProcess.
+//
+// Future phases will keep replacing remaining swiftStub trampolines with
+// styles 1 / 2 (or full Swift-native bodies that cut C++ entirely).
 
 final class GPUProcess {
     // Optional just because of an initialization order issue. Always occupied
