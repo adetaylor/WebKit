@@ -1288,6 +1288,18 @@ if (ENABLE_BACK_FORWARD_LIST_SWIFT)
         ${WEBKIT_DIR}/UIProcess/StdlibExtras.swift
         ${WEBKIT_DIR}/UIProcess/WebBackForwardList.swift
     )
+    if (NOT APPLE)
+        # On Apple builds, Foundation+Extras.swift is already added by
+        # PlatformMac.cmake / PlatformIOS.cmake. The file defines
+        # `typealias String = Swift.String` / `typealias URL = Foundation.URL`,
+        # which disambiguate the bare `String`/`URL` names from their WTF/CF
+        # counterparts that get pulled into scope via `import wtf`.
+        # WebBackForwardList.swift and StdlibExtras.swift use bare `String`
+        # extensively, so the typealiases are needed on non-Apple too.
+        list(APPEND WebKit_SOURCES
+            ${WEBKIT_DIR}/UIProcess/Cocoa/Foundation+Extras.swift
+        )
+    endif ()
 endif ()
 
 list(APPEND WebKit_SOURCES ${WebKit_DERIVED_SOURCES})
