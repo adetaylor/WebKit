@@ -25,7 +25,6 @@
 
 import os
 @_spi(Private) import Vision
-import WebKit_Internal
 
 extension WKSeparatedImageView {
     func pickViewMode() async {

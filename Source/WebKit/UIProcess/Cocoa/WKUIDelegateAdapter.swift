@@ -25,7 +25,6 @@
 
 import Foundation
 import WebKit_Private
-import WebKit_Internal
 
 #if os(macOS) && !targetEnvironment(macCatalyst)
 @_spiOnly import WebKit_Private._WKContextMenuElementInfo

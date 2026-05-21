@@ -28,7 +28,6 @@
 // irrespective of BACK_FORWARD_LIST_SWIFT
 #if ENABLE_BACK_FORWARD_LIST_SWIFT
 
-import WebKit_Internal
 import wtf
 
 /// Conform any WTF::Ref<T> to this protocol to get useful extensions.

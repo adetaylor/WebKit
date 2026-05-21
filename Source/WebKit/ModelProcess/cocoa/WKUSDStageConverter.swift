@@ -26,7 +26,6 @@ import os
 
 #if ENABLE_MODEL_PROCESS
 
-import WebKit_Internal
 
 #if canImport(_USDKit_RealityKit)
 

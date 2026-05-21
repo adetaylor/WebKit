@@ -23,7 +23,6 @@
 
 #if ENABLE_WRITING_TOOLS_TEXT_EFFECTS
 
-import WebKit_Internal
 
 @objc(VersionCheck)
 @implementation

@@ -24,7 +24,6 @@
 #if HAVE_APPKIT_GESTURES_SUPPORT
 
 import Foundation
-import WebKit_Internal
 import WebCore_Private
 
 extension WebKit.WebPageProxy {

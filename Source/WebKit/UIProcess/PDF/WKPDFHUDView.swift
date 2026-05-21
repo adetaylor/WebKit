@@ -25,7 +25,6 @@
 
 public import AppKit
 public import Foundation
-internal import WebKit_Internal
 private import pal.spi.mac.NSImageSPI
 private import wtf.SPI.darwin.OSVariantSPI
 

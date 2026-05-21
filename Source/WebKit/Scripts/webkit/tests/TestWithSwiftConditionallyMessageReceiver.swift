@@ -23,10 +23,6 @@
 //
 
 #if ENABLE_SWIFT_TEST_CONDITION
-import WebKit_Internal
-#endif
-
-#if ENABLE_SWIFT_TEST_CONDITION
 final class TestWithSwiftConditionallyWeakRef {
     private weak var target: TestWithSwiftConditionally?
     init(target: TestWithSwiftConditionally) {

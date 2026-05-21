@@ -24,7 +24,6 @@
 #if HAVE_APPKIT_GESTURES_SUPPORT
 
 import Foundation
-import WebKit_Internal
 import AppKit
 import WebCore_Private
 private import CxxStdlib

@@ -22,7 +22,6 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Foundation
-import WebKit_Internal
 
 @objc
 @implementation

@@ -852,10 +852,24 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
         foreach (_def IN LISTS _dir_defs)
             list(APPEND _swift_xcc_options "-Xcc" "-D${_def}")
         endforeach ()
-        # Other options needed by Swift for C++ interop, including the location
-        # of the modulemap and hader for WebKit's internal "APIs" which we
-        # make available from C++ to Swift.
-        list(APPEND _swift_options "-cxx-interoperability-mode=default" "-Xcc" "-std=c++2b" "-enable-upcoming-feature" "InternalImportsByDefault" "-Xcc" "-I${_interop_module_path}")
+        # Other options needed by Swift for C++ interop. An optional 5th
+        # positional argument supplies a bridging header (passed via
+        # `-internal-import-bridging-header` to keep the bridged symbols at
+        # internal visibility, matching SWIFT_BRIDGING_HEADER_IS_INTERNAL=YES
+        # on the Xcode build). Targets without a bridging header simply omit
+        # the argument.
+        set(_optional_bridging_header "${ARGV4}")
+        list(APPEND _swift_options "-cxx-interoperability-mode=default" "-Xcc" "-std=c++2b" "-enable-upcoming-feature" "InternalImportsByDefault")
+        if (NOT "${_interop_module_path}" STREQUAL "")
+            list(APPEND _swift_options "-Xcc" "-I${_interop_module_path}")
+        endif ()
+        if (NOT "${_optional_bridging_header}" STREQUAL "")
+            # `-enable-library-evolution` is paired with the bridging header so
+            # the typecheck and main Swift compile use the same ABI semantics
+            # (and to silence swiftc's "internal bridging headers without
+            # library evolution can cause instability" warning).
+            list(APPEND _swift_options "-internal-import-bridging-header" "${_optional_bridging_header}" "-enable-library-evolution")
+        endif ()
         # On non-Apple platforms, Swift's embedded clang doesn't automatically search
         # the compiler's C++ standard library headers (e.g. <coroutine> lives in /usr/include/c++/15/).
         # Pass them explicitly so the wtf umbrella module can include them.
@@ -1014,7 +1028,7 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
         add_custom_command(
             OUTPUT ${_header_stamp_path}
             BYPRODUCTS ${_header_path}
-            DEPENDS ${_swift_sources} ${_target}_SwiftGeneratedDeps
+            DEPENDS ${_swift_sources} ${_target}_SwiftGeneratedDeps ${_optional_bridging_header}
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             COMMAND
                 ${CMAKE_Swift_COMPILER} --original-swift-compiler=${ORIGINAL_Swift_COMPILER} -typecheck

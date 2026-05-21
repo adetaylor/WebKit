@@ -22,8 +22,6 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-import WebKit_Internal
-
 final class TestWithSwiftWeakRef {
     private weak var target: TestWithSwift?
     init(target: TestWithSwift) {

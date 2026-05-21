@@ -26,7 +26,6 @@
 import Observation
 @_weakLinked import SwiftUI
 import UIKit
-import WebKit_Internal
 
 @MainActor
 @Observable

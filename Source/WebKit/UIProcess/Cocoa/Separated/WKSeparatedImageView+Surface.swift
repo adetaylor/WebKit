@@ -28,7 +28,6 @@ import CoreGraphics
 import CoreImage
 import os
 import UniformTypeIdentifiers
-import WebKit_Internal
 
 extension WKSeparatedImageView {
     func processSurface(_ surface: sending IOSurfaceRef) async {

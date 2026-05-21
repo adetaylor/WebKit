@@ -144,67 +144,6 @@ set(GPUProcess_SOURCES ${WEBKIT_DIR}/Shared/EntryPointUtilities/Cocoa/AuxiliaryP
 
 set(WebKit_USE_PREFIX_HEADER ON)
 
-set(WebKit_CMAKE_MODULEMAP_DIR "${CMAKE_BINARY_DIR}/WebKit/SwiftModules")
-file(MAKE_DIRECTORY "${WebKit_CMAKE_MODULEMAP_DIR}")
-file(WRITE "${WebKit_CMAKE_MODULEMAP_DIR}/module.modulemap"
-"module WebKit_Internal [system] {
-    module _WKTextExtractionInternal {
-        requires objc
-        header \"${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKTextExtractionInternal.h\"
-        export *
-    }
-    module WKMaterialHostingSupport {
-        requires objc
-        header \"${WEBKIT_DIR}/Platform/cocoa/WKMaterialHostingSupport.h\"
-        export *
-    }
-    module WKMouseDeviceObserver {
-        requires objc
-        header \"${WEBKIT_DIR}/UIProcess/ios/WKMouseDeviceObserver.h\"
-        export *
-    }
-    module WKScrollGeometry {
-        requires objc
-        header \"${WEBKIT_DIR}/UIProcess/API/Cocoa/WKScrollGeometry.h\"
-        export *
-    }
-    module WKSeparatedImageView {
-        requires objc
-        header \"${WEBKIT_DIR}/UIProcess/Cocoa/Separated/WKSeparatedImageView.h\"
-        export *
-    }
-    module WKStageModeOrbitSimulator {
-        requires objc
-        header \"${WEBKIT_DIR}/Shared/Model/WKStageModeOrbitSimulator.h\"
-        export *
-    }
-    module WKSurroundingsEffect {
-        requires objc
-        header \"${WEBKIT_DIR}/Platform/spi/visionos/WKSurroundingsEffect.h\"
-        export *
-    }
-    module WKTextEffectManager {
-        requires objc
-        header \"${WEBKIT_DIR}/UIProcess/Cocoa/WKTextEffectManager.h\"
-        export *
-    }
-    module WKUIDelegateInternal {
-        requires objc
-        header \"${WEBKIT_DIR}/UIProcess/API/Cocoa/WKUIDelegateInternal.h\"
-        export *
-    }
-    module WKProcessExtension {
-        requires objc
-        header \"${WEBKIT_DIR}/Shared/Cocoa/WKProcessExtension.h\"
-        export *
-    }
-    module WKUSDStageConverter {
-        requires objc
-        header \"${WEBKIT_DIR}/ModelProcess/cocoa/WKUSDStageConverter.h\"
-        export *
-    }
-}
-")
 set(_private_modulemap_input "${WEBKIT_DIR}/Modules/iOS_Private.modulemap")
 set(_private_modulemap_output "${CMAKE_BINARY_DIR}/WebKit/Modules/module.private.modulemap")
 
@@ -265,8 +204,6 @@ file(WRITE "${CMAKE_BINARY_DIR}/swift-vfs-overlay.yaml"
 }
 ")
 
-
-set(WebKit_SWIFT_INTEROP_MODULE_PATH "${WebKit_CMAKE_MODULEMAP_DIR}")
 
 target_compile_options(WebKit PRIVATE ${WEBKIT_PRIVATE_FRAMEWORKS_COMPILE_FLAG})
 target_compile_options(WebKit PRIVATE "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:-iframework${CMAKE_BINARY_DIR}>")

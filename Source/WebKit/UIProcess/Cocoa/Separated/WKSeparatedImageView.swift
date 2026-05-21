@@ -25,7 +25,6 @@
 
 import os
 @_weakLinked import RealityKit
-import WebKit_Internal
 
 @objc
 @implementation

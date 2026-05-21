@@ -2066,16 +2066,6 @@ def generate_swift_message_handler(receiver):
     result.append(block_to_line_comments(_license_header))
     result.append('\n')
     result.append('\n')
-    if receiver.condition:
-        result.append('#if %s\n' % convert_enable_macros_to_swift_syntax(receiver.condition))
-    if receiver.swift_receiver_build_enabled_by:
-        result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
-    result.append('import WebKit_Internal\n')
-    if receiver.condition:
-        result.append('#endif\n')
-    if receiver.swift_receiver_build_enabled_by:
-        result.append('#endif\n')
-    result.append('\n')
 
     class_name = receiver.name
     message_forwarder_class = class_name + 'MessageForwarder'
@@ -2429,23 +2419,4 @@ def generate_message_argument_description_implementation(receivers, receiver_hea
     result.append('')
     result.append('#endif // ENABLE(IPC_TESTING_API) || !LOG_DISABLED')
     result.append('')
-    return '\n'.join(result)
-
-
-def generate_modulemap(receiver_headers: list[str]) -> str:
-    result = []
-
-    result.append('module WebKit_DerivedSources_IPC {')
-
-    all_headers = receiver_headers + ['MessageNames.h', 'GeneratedSerializers.h', 'GeneratedWebKitSecureCoding.h']
-    for header in all_headers:
-        module_name = header[:-2] if header.endswith('.h') else header
-        result.append('  explicit module %s {' % module_name)
-        result.append('    header "%s"' % header)
-        result.append('    export *')
-        result.append('  }')
-
-    result.append('}')
-    result.append('')
-
     return '\n'.join(result)

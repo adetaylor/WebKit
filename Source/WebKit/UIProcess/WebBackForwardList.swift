@@ -26,7 +26,6 @@
 #if ENABLE_BACK_FORWARD_LIST_SWIFT
 
 import WebCore_Private
-import WebKit_Internal
 import wtf
 
 // A note on swift-format-ignore: NeverForceUnwrap:

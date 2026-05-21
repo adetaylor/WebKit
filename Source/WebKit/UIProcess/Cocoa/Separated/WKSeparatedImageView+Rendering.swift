@@ -26,7 +26,6 @@
 import os
 @_weakLinked @_spi(Private) @_spi(RealityKit) import RealityKit
 @_weakLinked @_spi(Private) @_spi(ForUIKitOnly) import SwiftUI
-import WebKit_Internal
 
 extension WKSeparatedImageView {
     func layoutCustomSubtree() {

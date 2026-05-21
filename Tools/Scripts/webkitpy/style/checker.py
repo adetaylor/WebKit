@@ -255,6 +255,14 @@ _PATH_RULES_SPECIFIER = [
      ["-build/include_order"]),
 
     ([
+     # The bridging header groups its #imports by visibility/audit-region role,
+     # not alphabetically. Headers that open NS_HEADER_AUDIT_BEGIN(..., sendability)
+     # must precede the C++ headers that would otherwise put `enum class`es in
+     # scope before the audit pragma. See the in-file comment.
+     os.path.join('Source', 'WebKit', 'Modules', 'Internal', 'WebKitInternalBridgingHeader.h')],
+     ["-build/include_order"]),
+
+    ([
       # Header files in ForwardingHeaders have no header guards or
       # exceptional header guards (e.g., WebCore_FWD_Debugger_h).
       os.path.join(os.path.sep, 'ForwardingHeaders')],
