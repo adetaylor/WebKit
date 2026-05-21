@@ -33,6 +33,7 @@
 // -Wpragma-once-outside-header).
 
 #include <wtf/Compiler.h>
+#include <wtf/Platform.h>
 
 // Suppressed across all the #imports below:
 //   -Wnullability-completeness   — once any #imported header is annotated,
@@ -48,6 +49,10 @@ IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 IGNORE_CLANG_WARNINGS_BEGIN("pragma-clang-attribute")
 IGNORE_CLANG_WARNINGS_BEGIN("ignored-attributes")
 
+// Apple-only Obj-C[++] headers. Non-Apple ports (e.g. GTK/WPE) lack the
+// AppKit/UIKit/QuartzCore SPI these depend on, and the Swift sources that
+// reach the bridging header on those ports don't reference them.
+#if PLATFORM(COCOA)
 // Headers that open an NS_HEADER_AUDIT_BEGIN(..., sendability) region are
 // imported first: each one's audit pragma applies to records/enums (via
 // `apply_to = any(..., enum)`), which Clang rejects if a matching
@@ -79,6 +84,7 @@ IGNORE_CLANG_WARNINGS_BEGIN("ignored-attributes")
 #import "WKUIDelegateInternal.h"
 #import "WKWebViewIOS.h"
 #import "WebViewImpl.h"
+#endif // PLATFORM(COCOA)
 
 // C++ headers.
 #import "APIArray.h"
@@ -91,7 +97,9 @@ IGNORE_CLANG_WARNINGS_BEGIN("ignored-attributes")
 #import "FrameInfoData.h"
 #import "FrameTreeNodeData.h"
 #import "GamepadData.h"
+#if PLATFORM(COCOA)
 #import "GestureTypes.h"
+#endif
 #import "JSHandleInfo.h"
 #import "JavaScriptEvaluationResult.h"
 #import "LoadedWebArchive.h"
@@ -99,7 +107,9 @@ IGNORE_CLANG_WARNINGS_BEGIN("ignored-attributes")
 #import "SessionState.h"
 #import "SuspendedPageProxy.h"
 #import "SwiftDemoLogoConfirmation.h"
+#if PLATFORM(IOS_FAMILY)
 #import "WebAutocorrectionData.h"
+#endif
 #import "WebBackForwardCache.h"
 #import "WebBackForwardCacheEntry.h"
 #import "WebBackForwardListCounts.h"
