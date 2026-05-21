@@ -50,6 +50,14 @@
 #include "WebBackForwardListMessages.h"
 #endif
 
+#if PLATFORM(GTK) || PLATFORM(WPE)
+// setInputMethodState takes std::optional<InputMethodState> by value, and
+// libstdc++'s std::optional requires the element type to be complete at the
+// point of the std::optional<T> instantiation (libc++ is more permissive,
+// which is why Apple builds get away with a forward declaration here).
+#include "InputMethodState.h"
+#endif
+
 namespace API {
 class Attachment;
 class ContentWorld;
