@@ -843,6 +843,35 @@ set(WebKit_SWIFT_INTEROP_MODULE_PATH_SWIFT_ONLY TRUE)
 # #imports so that non-Apple ports can keep using it.
 set(WebKit_SWIFT_BRIDGING_HEADER "${WEBKIT_DIR}/Modules/Internal/WebKitInternalBridgingHeader.h")
 
+# Generate a cmake-only WebCore_Private clang modulemap.  The in-tree
+# Source/WebCore/WebCore_Private.modulemap is a `framework module` that
+# umbrellas the Xcode framework's PrivateHeaders/.  CMake stages those headers
+# as a flat directory instead, and umbrella'ing it pulls in headers
+# (ANGLEHeaders.h etc.) whose own dependencies aren't on the Swift Clang
+# importer's search path.  Expose only what WebBackForwardList.swift names
+# directly; the rest of the WebCore:: types it uses are reachable transitively
+# via WebKit_Internal headers.  Both Apple cmake and non-Apple cmake share this
+# generation; per-port WebKit_SWIFT_CLANG_INCLUDE_DIRS lists pick it up.
+if (ENABLE_BACK_FORWARD_LIST_SWIFT AND SWIFT_REQUIRED)
+    set(WebCore_Private_SWIFT_MODULEMAP_DIR "${CMAKE_BINARY_DIR}/WebKit/SwiftModules/WebCorePrivate")
+    file(MAKE_DIRECTORY "${WebCore_Private_SWIFT_MODULEMAP_DIR}")
+    file(CONFIGURE OUTPUT "${WebCore_Private_SWIFT_MODULEMAP_DIR}/module.modulemap" CONTENT
+"module WebCore_Private [system] {
+    requires cplusplus
+    header \"${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}/WebCore/DiagnosticLoggingKeys.h\"
+    header \"${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}/WebCore/DiagnosticLoggingClient.h\"
+    export *
+}
+")
+    # An earlier revision of this code wrote the modulemap to
+    # ${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}/module.modulemap.  A leftover
+    # there now collides with the new location (both directories are on the
+    # swift clang importer's include path, so both auto-discover and clang
+    # complains "redefinition of module 'WebCore_Private'").  Remove the old
+    # file at configure time so updating builds don't hit it.
+    file(REMOVE "${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}/module.modulemap")
+endif ()
+
 WEBKIT_FRAMEWORK_DECLARE(WebKit)
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 WEBKIT_ADD_TARGET_UNSAFE_BUFFER_WARNINGS(WebKit)
@@ -864,6 +893,7 @@ set(WebKit_SWIFT_CLANG_INCLUDE_DIRS
     ${bmalloc_FRAMEWORK_HEADERS_DIR}
     ${PAL_FRAMEWORK_HEADERS_DIR}
     ${ICU_INCLUDE_DIRS}
+    ${WebCore_Private_SWIFT_MODULEMAP_DIR}
     ${WebKit_PRIVATE_INCLUDE_DIRECTORIES}
 )
 
@@ -1259,26 +1289,6 @@ if (ENABLE_SWIFT_DEMO_URI_SCHEME)
 endif ()
 
 if (ENABLE_BACK_FORWARD_LIST_SWIFT)
-    if (NOT APPLE)
-        # On Apple platforms, WebCore.framework provides the WebCore_Private module automatically.
-        # On GTK/WPE we generate a minimal module.modulemap for the types used by WebBackForwardList.swift.
-        file(MAKE_DIRECTORY "${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}")
-        file(WRITE "${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR}/module.modulemap"
-"module WebCore_Private [system] {
-    explicit module DiagnosticLoggingClient {
-        requires cplusplus20
-        header \"WebCore/DiagnosticLoggingClient.h\"
-        export *
-    }
-    explicit module DiagnosticLoggingKeys {
-        requires cplusplus20
-        header \"WebCore/DiagnosticLoggingKeys.h\"
-        export *
-    }
-    export *
-}
-")
-    endif ()
     set_source_files_properties(
         ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
