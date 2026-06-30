@@ -68,7 +68,7 @@ WEBKIT_FRAMEWORK_DECLARE(PAL)
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 WEBKIT_ADD_TARGET_UNSAFE_BUFFER_WARNINGS(PAL)
 
-if (SWIFT_REQUIRED AND APPLE)
+if (APPLE)
     set(PAL_SWIFT_INTEROP_SOURCES
         crypto/CryptoAlgorithmAESGCMCocoa.cpp
         crypto/CryptoAlgorithmAESKWCocoaBridging.cpp
@@ -106,7 +106,7 @@ WEBKIT_COPY_FILES(PAL_CopyHeaders
 )
 
 set(PAL_SWIFT_SOURCES "")
-if (SWIFT_REQUIRED AND APPLE)
+if (APPLE)
     list(APPEND PAL_SWIFT_SOURCES
         ${PAL_DIR}/pal/pal.swift
         ${PAL_DIR}/pal/system/cocoa/RegexHelper.swift

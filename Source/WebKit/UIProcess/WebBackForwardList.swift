@@ -21,8 +21,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-#if ENABLE_BACK_FORWARD_LIST_SWIFT
-
 import WebCore_Private
 import WebKit_Internal
 import wtf
@@ -1433,4 +1431,3 @@ final class WebBackForwardList {
     }
 }
 
-#endif // ENABLE_BACK_FORWARD_LIST_SWIFT
