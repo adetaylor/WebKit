@@ -36,7 +36,6 @@ extension WTF.String {
 // FIXME (rdar://164119356): Move parts of StdLibExtras.swift into WTF
 // (those parts which are not specific to WebKit-level types) - and enable
 // irrespective of BACK_FORWARD_LIST_SWIFT
-#if ENABLE_BACK_FORWARD_LIST_SWIFT
 
 /// Conform any WTF::Ref<T> to this protocol to get useful extensions.
 protocol CxxRef {
@@ -106,4 +105,3 @@ extension CxxRefVector {
     }
 }
 
-#endif // ENABLE_BACK_FORWARD_LIST_SWIFT

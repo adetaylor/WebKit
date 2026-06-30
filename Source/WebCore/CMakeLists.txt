@@ -3366,7 +3366,7 @@ list(REMOVE_DUPLICATES WebCore_UNIFIED_SOURCE_EXCLUDES)
 # Some of them are also in a platform's WebCore_SOURCES, outside the unified sources.
 list(REMOVE_ITEM WebCore_SOURCES ${_webcore_swift_interop_excludes})
 
-if (SWIFT_REQUIRED AND APPLE)
+if (APPLE)
     # C++ sources that include WebCore-Swift.h. They build in the WebCore_SwiftInterop subtarget,
     # which is ordered after the Swift compile that generates WebCoreSwift-Generated.h, so keep them
     # out of the unified sources.
@@ -4065,9 +4065,9 @@ if (DEFINED WebCore_EXTRA_LINK_OPTIONS)
     target_link_options(WebCore PRIVATE ${WebCore_EXTRA_LINK_OPTIONS})
 endif ()
 
-# When SWIFT_REQUIRED is ON, CMake selects the Swift linker for targets that
-# have Swift sources or transitively depend on Swift libraries (PAL). Force the
-# CXX linker -- swiftc mishandles -I include paths during linking.
+# CMake selects the Swift linker for targets that have Swift sources or
+# transitively depend on Swift libraries (PAL). Force the CXX linker -- swiftc
+# mishandles -I include paths during linking.
 set_target_properties(WebCore PROPERTIES LINKER_LANGUAGE CXX)
 
 if (APPLE)

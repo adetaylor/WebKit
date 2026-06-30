@@ -151,15 +151,25 @@ macro(WEBKIT_OPTION_BEGIN)
         set(ENABLE_UNIFIED_BUILDS_DEFAULT ON)
     endif ()
 
-    # Default the Swift prototype features on for GTK/WPE, but only when the toolchain
-    # can build it: Clang (not GCC) with a new-enough Swift. Otherwise they stay off;
-    # an explicit -D against such a toolchain is rejected in WEBKIT_OPTION_END.
-    #
-    # If the value was already set before this point (e.g. by a platform config),
-    # keep whatever is already defined.
-    # When cross-building default to off, because the auto-detection here would pick
-    # up the host swiftc instead of a cross-aware one and break the target build.
-    if (NOT DEFINED ENABLE_BACK_FORWARD_LIST_SWIFT_DEFAULT)
+    # Annotating WTF's ref-counted base classes for Swift needs Swift 6.4 or newer;
+    # older toolchains don't apply the annotation to derived classes. Cocoa ports
+    # gate this in PlatformEnable.h on the SDK version instead.
+    if (NOT DEFINED ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT)
+        set(ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT OFF)
+        if (NOT APPLE AND NOT CMAKE_CROSSCOMPILING)
+            _WEBKIT_DETECT_SWIFT_VERSION_NUMBER(_swift_version_number)
+            if (_swift_version_number AND _swift_version_number VERSION_GREATER_EQUAL 6.4)
+                set(ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT ON)
+            endif ()
+        endif ()
+    endif ()
+
+    # Swift-based IPC testing needs a toolchain that can build Swift/C++ interop:
+    # Clang (not GCC) with a new-enough Swift. Otherwise it stays off; an explicit
+    # -D against such a toolchain is rejected in WEBKIT_OPTION_END. When cross-building
+    # default to off, because the auto-detection here would pick up the host swiftc
+    # instead of a cross-aware one and break the target build.
+    if (NOT DEFINED ENABLE_IPC_TESTING_SWIFT_DEFAULT)
         if (CMAKE_CROSSCOMPILING)
             set(_swift_features_default OFF)
         elseif (COMPILER_IS_CLANG)
@@ -173,7 +183,7 @@ macro(WEBKIT_OPTION_BEGIN)
             set(_swift_features_default OFF)
         endif ()
 
-        set(ENABLE_BACK_FORWARD_LIST_SWIFT_DEFAULT ${_swift_features_default})
+        set(ENABLE_IPC_TESTING_SWIFT_DEFAULT ${_swift_features_default})
     endif ()
 
     if (NOT DEFINED ENABLE_JAVASCRIPTCORE_TOOLS)
@@ -187,19 +197,6 @@ macro(WEBKIT_OPTION_BEGIN)
     endif ()
     if (NOT APPLE)
         SET_AND_EXPOSE_TO_BUILD(ENABLE_LIB_JSC_TOOLS ${ENABLE_JAVASCRIPTCORE_TOOLS})
-    endif ()
-
-    # Annotating WTF's ref-counted base classes for Swift needs Swift 6.4 or newer;
-    # older toolchains don't apply the annotation to derived classes. Cocoa ports
-    # gate this in PlatformEnable.h on the SDK version instead.
-    if (NOT DEFINED ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT)
-        set(ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT OFF)
-        if (NOT APPLE AND NOT CMAKE_CROSSCOMPILING)
-            _WEBKIT_DETECT_SWIFT_VERSION_NUMBER(_swift_version_number)
-            if (_swift_version_number AND _swift_version_number VERSION_GREATER_EQUAL 6.4)
-                set(ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT ON)
-            endif ()
-        endif ()
     endif ()
 
     WEBKIT_OPTION_DEFINE(ENABLE_ACCESSIBILITY_ISOLATED_TREE "Toggle accessibility isolated tree support" PRIVATE OFF)
@@ -230,7 +227,6 @@ macro(WEBKIT_OPTION_BEGIN)
     WEBKIT_OPTION_DEFINE(ENABLE_AUTOCAPITALIZE "Toggle autocapitalize support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_AV1 "Toggle AV1 codec support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_AVF_CAPTIONS "Toggle AVFoundation caption support" PRIVATE OFF)
-    WEBKIT_OPTION_DEFINE(ENABLE_BACK_FORWARD_LIST_SWIFT "Toggle Swift back forward list" PRIVATE ${ENABLE_BACK_FORWARD_LIST_SWIFT_DEFAULT})
     WEBKIT_OPTION_DEFINE(ENABLE_BREAKPAD "Toggle breakpad minidump support." PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_BUBBLEWRAP_SANDBOX "Toggle Bubblewrap sandboxing support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_CACHE_PARTITIONING "Toggle cache partitioning support" PRIVATE OFF)
@@ -260,7 +256,7 @@ macro(WEBKIT_OPTION_BEGIN)
     WEBKIT_OPTION_DEFINE(ENABLE_INSPECTOR_TELEMETRY "Toggle inspector telemetry support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_IOS_GESTURE_EVENTS "Toggle iOS gesture events support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_IOS_TOUCH_EVENTS "Toggle iOS touch events support" PRIVATE OFF)
-    WEBKIT_OPTION_DEFINE(ENABLE_IPC_TESTING_SWIFT "Toggle Swift-based IPC testing support" PRIVATE ${ENABLE_BACK_FORWARD_LIST_SWIFT_DEFAULT})
+    WEBKIT_OPTION_DEFINE(ENABLE_IPC_TESTING_SWIFT "Toggle Swift-based IPC testing support" PRIVATE ${ENABLE_IPC_TESTING_SWIFT_DEFAULT})
     WEBKIT_OPTION_DEFINE(ENABLE_JAVASCRIPT_SHELL "Toggle JavaScript shell and testing support" PRIVATE ON)
     WEBKIT_OPTION_DEFINE(ENABLE_JIT "Toggle JustInTime JavaScript support" PRIVATE ${ENABLE_JIT_DEFAULT})
     WEBKIT_OPTION_DEFINE(ENABLE_LAYOUT_TESTS "Toggle layout test support (DumpRenderTree/WebkitTestRunner)" PRIVATE OFF)
