@@ -151,15 +151,25 @@ macro(WEBKIT_OPTION_BEGIN)
         set(ENABLE_UNIFIED_BUILDS_DEFAULT ON)
     endif ()
 
-    # Default the Swift prototype features on for GTK/WPE, but only when the toolchain
-    # can build it: Clang (not GCC) with a new-enough Swift. Otherwise they stay off;
-    # an explicit -D against such a toolchain is rejected in WEBKIT_OPTION_END.
-    #
-    # If the value was already set before this point (e.g. by a platform config),
-    # keep whatever is already defined.
-    # When cross-building default to off, because the auto-detection here would pick
-    # up the host swiftc instead of a cross-aware one and break the target build.
-    if (NOT DEFINED ENABLE_BACK_FORWARD_LIST_SWIFT_DEFAULT)
+    # Annotating WTF's ref-counted base classes for Swift needs Swift 6.4 or newer;
+    # older toolchains don't apply the annotation to derived classes. Cocoa ports
+    # gate this in PlatformEnable.h on the SDK version instead.
+    if (NOT DEFINED ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT)
+        set(ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT OFF)
+        if (NOT APPLE AND NOT CMAKE_CROSSCOMPILING)
+            _WEBKIT_DETECT_SWIFT_VERSION_NUMBER(_swift_version_number)
+            if (_swift_version_number AND _swift_version_number VERSION_GREATER_EQUAL 6.4)
+                set(ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT ON)
+            endif ()
+        endif ()
+    endif ()
+
+    # Swift-based IPC testing needs a toolchain that can build Swift/C++ interop:
+    # Clang (not GCC) with a new-enough Swift. Otherwise it stays off; an explicit
+    # -D against such a toolchain is rejected in WEBKIT_OPTION_END. When cross-building
+    # default to off, because the auto-detection here would pick up the host swiftc
+    # instead of a cross-aware one and break the target build.
+    if (NOT DEFINED ENABLE_IPC_TESTING_SWIFT_DEFAULT)
         if (CMAKE_CROSSCOMPILING)
             set(_swift_features_default OFF)
         elseif (COMPILER_IS_CLANG)
@@ -173,20 +183,7 @@ macro(WEBKIT_OPTION_BEGIN)
             set(_swift_features_default OFF)
         endif ()
 
-        set(ENABLE_BACK_FORWARD_LIST_SWIFT_DEFAULT ${_swift_features_default})
-    endif ()
-
-    # Annotating WTF's ref-counted base classes for Swift needs Swift 6.4 or newer;
-    # older toolchains don't apply the annotation to derived classes. Cocoa ports
-    # gate this in PlatformEnable.h on the SDK version instead.
-    if (NOT DEFINED ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT)
-        set(ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT OFF)
-        if (NOT APPLE AND NOT CMAKE_CROSSCOMPILING)
-            _WEBKIT_DETECT_SWIFT_VERSION_NUMBER(_swift_version_number)
-            if (_swift_version_number AND _swift_version_number VERSION_GREATER_EQUAL 6.4)
-                set(ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS_DEFAULT ON)
-            endif ()
-        endif ()
+        set(ENABLE_IPC_TESTING_SWIFT_DEFAULT ${_swift_features_default})
     endif ()
 
     WEBKIT_OPTION_DEFINE(ENABLE_ACCESSIBILITY_ISOLATED_TREE "Toggle accessibility isolated tree support" PRIVATE OFF)
@@ -217,7 +214,6 @@ macro(WEBKIT_OPTION_BEGIN)
     WEBKIT_OPTION_DEFINE(ENABLE_AUTOCAPITALIZE "Toggle autocapitalize support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_AV1 "Toggle AV1 codec support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_AVF_CAPTIONS "Toggle AVFoundation caption support" PRIVATE OFF)
-    WEBKIT_OPTION_DEFINE(ENABLE_BACK_FORWARD_LIST_SWIFT "Toggle Swift back forward list" PRIVATE ${ENABLE_BACK_FORWARD_LIST_SWIFT_DEFAULT})
     WEBKIT_OPTION_DEFINE(ENABLE_BREAKPAD "Toggle breakpad minidump support." PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_BUBBLEWRAP_SANDBOX "Toggle Bubblewrap sandboxing support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_CACHE_PARTITIONING "Toggle cache partitioning support" PRIVATE OFF)
@@ -247,7 +243,7 @@ macro(WEBKIT_OPTION_BEGIN)
     WEBKIT_OPTION_DEFINE(ENABLE_INSPECTOR_TELEMETRY "Toggle inspector telemetry support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_IOS_GESTURE_EVENTS "Toggle iOS gesture events support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_IOS_TOUCH_EVENTS "Toggle iOS touch events support" PRIVATE OFF)
-    WEBKIT_OPTION_DEFINE(ENABLE_IPC_TESTING_SWIFT "Toggle Swift-based IPC testing support" PRIVATE ${ENABLE_BACK_FORWARD_LIST_SWIFT_DEFAULT})
+    WEBKIT_OPTION_DEFINE(ENABLE_IPC_TESTING_SWIFT "Toggle Swift-based IPC testing support" PRIVATE ${ENABLE_IPC_TESTING_SWIFT_DEFAULT})
     WEBKIT_OPTION_DEFINE(ENABLE_JAVASCRIPT_SHELL "Toggle JavaScript shell and testing support" PRIVATE ON)
     WEBKIT_OPTION_DEFINE(ENABLE_JIT "Toggle JustInTime JavaScript support" PRIVATE ${ENABLE_JIT_DEFAULT})
     WEBKIT_OPTION_DEFINE(ENABLE_LAYOUT_TESTS "Toggle layout test support (DumpRenderTree/WebkitTestRunner)" PRIVATE OFF)
@@ -531,33 +527,33 @@ macro(WEBKIT_OPTION_END)
     # Swift-emitted C++ thunks rely on Clang ABI details), so refuse to configure
     # a Swift feature under a non-Clang compiler.
     if (NOT COMPILER_IS_CLANG)
-        if (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT)
+        if (ENABLE_IPC_TESTING_SWIFT)
             message(FATAL_ERROR
                 "Swift/C++ interop on the GLib ports requires Clang, but the "
                 "configured C++ compiler is ${CMAKE_CXX_COMPILER_ID}. Re-run "
                 "the configure step with CC=clang CXX=clang++, or pass "
-                "-DENABLE_BACK_FORWARD_LIST_SWIFT=OFF -DENABLE_IPC_TESTING_SWIFT=OFF.")
+                "-DENABLE_IPC_TESTING_SWIFT=OFF.")
         endif ()
     endif ()
 
     # A Swift feature still on with a too-old toolchain was requested explicitly
     # (the default declines to auto-enable it), so fail loudly rather than drop it
     # silently. Apple is gated elsewhere; non-Clang is already rejected above.
-    if (NOT APPLE AND COMPILER_IS_CLANG AND (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT))
+    if (NOT APPLE AND COMPILER_IS_CLANG AND ENABLE_IPC_TESTING_SWIFT)
         _WEBKIT_DETECT_SWIFT_CXX_INTEROP_SUPPORT(_swift_interop_ok)
         if (NOT _swift_interop_ok)
             message(FATAL_ERROR
-                "ENABLE_BACK_FORWARD_LIST_SWIFT or ENABLE_IPC_TESTING_SWIFT "
+                "ENABLE_IPC_TESTING_SWIFT "
                 "was requested, but the Swift toolchain is too old for WebKit's "
                 "Swift/C++ interop: it lacks the -emit-clang-header-min-access "
                 "frontend flag, first shipped in Swift 6.3 (6.2 and earlier do "
                 "not have it). Detected: ${SWIFT_DETECTED_VERSION}. Install Swift "
                 "6.3 or newer from swift.org and reconfigure, or pass "
-                "-DENABLE_BACK_FORWARD_LIST_SWIFT=OFF -DENABLE_IPC_TESTING_SWIFT=OFF.")
+                "-DENABLE_IPC_TESTING_SWIFT=OFF.")
         endif ()
     endif ()
 
-    if (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT)
+    if (ENABLE_IPC_TESTING_SWIFT)
         set(SWIFT_REQUIRED ON)
     else ()
         set(SWIFT_REQUIRED OFF)
