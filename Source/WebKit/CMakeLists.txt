@@ -908,7 +908,7 @@ set(WebKit_SWIFT_INTEROP_MODULE_PATH_SWIFT_ONLY TRUE)
 # WebBackForwardList.swift names directly (the rest of the WebCore:: types it uses
 # are reachable transitively via WebKit_Internal headers) and put it on the
 # importer's search path below.
-if (ENABLE_BACK_FORWARD_LIST_SWIFT AND NOT USE_FRAMEWORK_BUNDLES)
+if (NOT USE_FRAMEWORK_BUNDLES)
     set(WebCore_Private_SWIFT_MODULEMAP_DIR "${CMAKE_BINARY_DIR}/WebKit/SwiftModules/WebCorePrivate")
     file(MAKE_DIRECTORY "${WebCore_Private_SWIFT_MODULEMAP_DIR}")
     file(CONFIGURE OUTPUT "${WebCore_Private_SWIFT_MODULEMAP_DIR}/module.modulemap" CONTENT
@@ -953,12 +953,10 @@ if (NOT USE_FRAMEWORK_BUNDLES)
         ${JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS_DIR}
         ${WebKit_PRIVATE_INCLUDE_DIRECTORIES}
     )
-    if (ENABLE_BACK_FORWARD_LIST_SWIFT)
-        list(APPEND WebKit_SWIFT_CLANG_INCLUDE_DIRS ${WebCore_Private_SWIFT_MODULEMAP_DIR})
-    endif ()
+    list(APPEND WebKit_SWIFT_CLANG_INCLUDE_DIRS ${WebCore_Private_SWIFT_MODULEMAP_DIR})
 endif ()
 
-if (NOT APPLE AND SWIFT_REQUIRED)
+if (NOT APPLE)
     # Export-macro stubs, LEGACY_NODELETE=, WK_SUPPORTS_SWIFT_OBJCXX_INTEROP and the
     # full ENABLE/HAVE/USE config-var set now come from
     # _WEBKIT_COMPUTE_SWIFT_SHARED_CLANG_FLAGS in WebKitMacros.cmake. Only
@@ -1004,68 +1002,64 @@ if (NOT APPLE AND SWIFT_REQUIRED)
     endforeach ()
 endif ()
 
-if (SWIFT_REQUIRED)
-    set(WebKit_SWIFT_INTEROP_SOURCES
-        Shared/IPCStreamTester.cpp
-        Shared/IPCTester.cpp
-        UIProcess/ProvisionalPageProxy.cpp
-        UIProcess/RemotePageProxy.cpp
-        UIProcess/WebBackForwardList.cpp
-        UIProcess/WebPageProxy.cpp
-        UIProcess/Automation/WebAutomationSession.cpp
-        WebProcess/WebPage/IPCTestingAPI.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebBackForwardListMessageReceiver.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftStreamTesterMessageReceiver.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
-    )
-    if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
-        list(APPEND WebKit_SWIFT_INTEROP_SOURCES UIProcess/ViewGestureController.cpp)
-    endif ()
-    if (APPLE)
-        list(APPEND WebKit_SWIFT_INTEROP_SOURCES
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceProxyMessageReceiver.cpp
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceSessionProxyMessageReceiver.cpp
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp
-
-            GPUProcess/media/RemoteCDMRegistry.cpp
-
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupMessageReceiver.cpp
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySetMessageReceiver.cpp
-            GPUProcess/graphics/WebGPU/RemoteDevice.cpp
-            GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
-
-            UIProcess/API/ios/WKWebViewIOS.mm
-            UIProcess/API/mac/WKWebViewMac.mm
-            UIProcess/ios/ViewGestureControllerIOS.mm
-            UIProcess/mac/ViewGestureControllerMac.mm
-            UIProcess/mac/WebViewImpl.mm
-
-            UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
-
-            WebProcess/GPU/webrtc/SharedVideoFrame.cpp
-        )
-    endif ()
-    foreach (_f IN LISTS WebKit_SWIFT_INTEROP_SOURCES)
-        cmake_path(GET _f FILENAME _fn)
-        list(APPEND WebKit_UNIFIED_SOURCE_EXCLUDES "(^|[/\\\\])${_fn}( |$)")
-    endforeach ()
+set(WebKit_SWIFT_INTEROP_SOURCES
+    Shared/IPCStreamTester.cpp
+    Shared/IPCTester.cpp
+    UIProcess/ProvisionalPageProxy.cpp
+    UIProcess/RemotePageProxy.cpp
+    UIProcess/WebBackForwardList.cpp
+    UIProcess/WebPageProxy.cpp
+    UIProcess/Automation/WebAutomationSession.cpp
+    WebProcess/WebPage/IPCTestingAPI.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebBackForwardListMessageReceiver.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftStreamTesterMessageReceiver.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
+)
+if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
+    list(APPEND WebKit_SWIFT_INTEROP_SOURCES UIProcess/ViewGestureController.cpp)
 endif ()
+if (APPLE)
+    list(APPEND WebKit_SWIFT_INTEROP_SOURCES
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceProxyMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceSessionProxyMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp
+
+        GPUProcess/media/RemoteCDMRegistry.cpp
+
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySetMessageReceiver.cpp
+        GPUProcess/graphics/WebGPU/RemoteDevice.cpp
+        GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
+
+        UIProcess/API/ios/WKWebViewIOS.mm
+        UIProcess/API/mac/WKWebViewMac.mm
+        UIProcess/ios/ViewGestureControllerIOS.mm
+        UIProcess/mac/ViewGestureControllerMac.mm
+        UIProcess/mac/WebViewImpl.mm
+
+        UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
+
+        WebProcess/GPU/webrtc/SharedVideoFrame.cpp
+    )
+endif ()
+foreach (_f IN LISTS WebKit_SWIFT_INTEROP_SOURCES)
+    cmake_path(GET _f FILENAME _fn)
+    list(APPEND WebKit_UNIFIED_SOURCE_EXCLUDES "(^|[/\\\\])${_fn}( |$)")
+endforeach ()
 
 WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebKit WebKit
     "${WebKit_SWIFT_INTEROP_MODULE_PATH}"
     "${WebKit_DERIVED_SOURCES_DIR}/WebKit-Swift-Generated.h")
 
-if (SWIFT_REQUIRED)
-    # should match the rest of WebKit and use -Onone, but it negatively impacts build time
-    webkit_target_add_swift_options(WebKit
-        "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-O>")
-    # Every frontend job imports most of WebCore's C++ declarations, at a cost
-    # of seconds of CPU time and gigabytes of memory, before compiling anything.
-    # One batch per core repeats that work for each core and competes with the
-    # C++ compiles for memory, so use fewer, larger batches.
-    webkit_target_add_swift_options(WebKit "-driver-batch-count 4")
-endif ()
+# should match the rest of WebKit and use -Onone, but it negatively impacts build time
+webkit_target_add_swift_options(WebKit
+    "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-O>")
+# Every frontend job imports most of WebCore's C++ declarations, at a cost
+# of seconds of CPU time and gigabytes of memory, before compiling anything.
+# One batch per core repeats that work for each core and competes with the
+# C++ compiles for memory, so use fewer, larger batches.
+webkit_target_add_swift_options(WebKit "-driver-batch-count 4")
 
 if (WebKit_PUBLIC_FRAMEWORK_HEADERS)
     WEBKIT_COPY_FILES(WebKit_CopyHeaders
@@ -1574,30 +1568,26 @@ list(APPEND WebKit_SOURCES
     ${WebKit_DERIVED_SOURCES_DIR}/SecurityFlags.cpp
 )
 
-if (ENABLE_BACK_FORWARD_LIST_SWIFT)
-    set_source_files_properties(
-        ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
-        PROPERTIES GENERATED TRUE)
-    list(APPEND WebKit_SOURCES
-        ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
-        ${WEBKIT_DIR}/Platform/Logging.swift
-        ${WEBKIT_DIR}/Shared/API/APIArray.swift
-        ${WEBKIT_DIR}/UIProcess/StdlibExtras.swift
-        ${WEBKIT_DIR}/UIProcess/WebBackForwardList.swift
-    )
-endif ()
+set_source_files_properties(
+    ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
+    PROPERTIES GENERATED TRUE)
+list(APPEND WebKit_SOURCES
+    ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
+    ${WEBKIT_DIR}/Platform/Logging.swift
+    ${WEBKIT_DIR}/Shared/API/APIArray.swift
+    ${WEBKIT_DIR}/UIProcess/StdlibExtras.swift
+    ${WEBKIT_DIR}/UIProcess/WebBackForwardList.swift
+)
 
 # These compile to nothing unless ENABLE_SWIFT_IPC_RECEIVERS is set.
-if (SWIFT_REQUIRED)
-    set_source_files_properties(
-        ${WebKit_DERIVED_SOURCES_DIR}/GeneratedSerializers.swift
-        PROPERTIES GENERATED TRUE)
-    list(APPEND WebKit_SOURCES
-        ${WEBKIT_DIR}/Platform/IPC/MessageCheck.swift
-        ${WEBKIT_DIR}/Platform/IPC/SwiftCoding.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/GeneratedSerializers.swift
-    )
-endif ()
+set_source_files_properties(
+    ${WebKit_DERIVED_SOURCES_DIR}/GeneratedSerializers.swift
+    PROPERTIES GENERATED TRUE)
+list(APPEND WebKit_SOURCES
+    ${WEBKIT_DIR}/Platform/IPC/MessageCheck.swift
+    ${WEBKIT_DIR}/Platform/IPC/SwiftCoding.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/GeneratedSerializers.swift
+)
 
 if (ENABLE_IPC_TESTING_SWIFT)
     list(APPEND WebKit_SOURCES
@@ -1606,23 +1596,21 @@ if (ENABLE_IPC_TESTING_SWIFT)
     )
 endif ()
 
-if (SWIFT_REQUIRED)
-    set_source_files_properties(
-        ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
-        PROPERTIES GENERATED TRUE)
-    list(APPEND WebKit_SOURCES
-        ${WEBKIT_DIR}/Shared/Concurrency+Extras.swift
-        ${WEBKIT_DIR}/Shared/Foundation+Extras.swift
-        ${WEBKIT_DIR}/Shared/IPCSwiftStreamTester.swift
-        ${WEBKIT_DIR}/Shared/IPCTesterReceiver.swift
-        ${WEBKIT_DIR}/Shared/RunJavaScriptResult.swift
-        ${WEBKIT_DIR}/Shared/WTFCompletionHandler+Extras.swift
-        ${WEBKIT_DIR}/Shared/WTFExpected+Extras.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
-    )
-endif ()
+set_source_files_properties(
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
+    PROPERTIES GENERATED TRUE)
+list(APPEND WebKit_SOURCES
+    ${WEBKIT_DIR}/Shared/Concurrency+Extras.swift
+    ${WEBKIT_DIR}/Shared/Foundation+Extras.swift
+    ${WEBKIT_DIR}/Shared/IPCSwiftStreamTester.swift
+    ${WEBKIT_DIR}/Shared/IPCTesterReceiver.swift
+    ${WEBKIT_DIR}/Shared/RunJavaScriptResult.swift
+    ${WEBKIT_DIR}/Shared/WTFCompletionHandler+Extras.swift
+    ${WEBKIT_DIR}/Shared/WTFExpected+Extras.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
+)
 
 # Each compiles to nothing unless ENABLE_GPU_PROCESS_CDM_SWIFT is set.
 if (SWIFT_REQUIRED AND APPLE)

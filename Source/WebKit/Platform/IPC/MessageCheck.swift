@@ -21,8 +21,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-#if ENABLE_SWIFT_IPC_RECEIVERS
-
 import WebKit_Internal
 import wtf
 
@@ -114,4 +112,3 @@ private func logFailedMessageCheck(
     )
 }
 
-#endif // ENABLE_SWIFT_IPC_RECEIVERS
