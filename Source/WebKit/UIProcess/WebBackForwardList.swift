@@ -23,8 +23,6 @@
 
 #if compiler(>=6.2.3)
 
-#if ENABLE_BACK_FORWARD_LIST_SWIFT
-
 import WebCore_Private
 import WebKit_Internal
 import wtf
@@ -1426,7 +1424,5 @@ final class WebBackForwardList {
         rawCounts()
     }
 }
-
-#endif // ENABLE_BACK_FORWARD_LIST_SWIFT
 
 #endif // compiler(>=6.2.3)
