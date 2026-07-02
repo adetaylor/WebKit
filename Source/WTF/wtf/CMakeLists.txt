@@ -857,7 +857,45 @@ if (NOT APPLE AND SWIFT_REQUIRED)
     file(WRITE "${WTF_FRAMEWORK_HEADERS_DIR}/wtf/ios/WebCoreThread.h" "")
 endif ()
 
+if (SWIFT_REQUIRED AND APPLE)
+    # WTF's Swift module is an overlay of the `wtf` Clang module (same module
+    # name): it adds Swift-level declarations (extensions/conformances) consumed
+    # by other targets' Swift, and exposes nothing new to C++. Because it emits
+    # no Swift->C++ interop header, set an empty typecheck-sources list to skip
+    # header generation entirely (which also avoids needing a WTF_SwiftInterop
+    # subtarget).
+    target_sources(WTF PRIVATE
+        ${WTF_DIR}/wtf/wtf.swift
+    )
+
+    if (APPLE)
+        set(WTF_SWIFT_EXPLICIT_MODULE_BUILD TRUE)
+    endif ()
+
+    set(WTF_SWIFT_TYPECHECK_SOURCES "")
+
+    WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WTF wtf
+        "${WTF_FRAMEWORK_HEADERS_DIR}/wtf"
+        "WTFSwift-Generated.h")
+
+    target_compile_options(WTF PRIVATE
+        "$<$<COMPILE_LANGUAGE:Swift>:-import-underlying-module>"
+        "$<$<COMPILE_LANGUAGE:Swift>:-strict-memory-safety>"
+        "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-swift-version 6>"
+        "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -I${WTF_FRAMEWORK_HEADERS_DIR}>"
+        "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -I${CMAKE_BINARY_DIR}/ICU/Headers>"
+        "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -I${CMAKE_BINARY_DIR}/bmalloc/Headers>"
+        "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -I${CMAKE_BINARY_DIR}>"
+    )
+    target_compile_definitions(WTF PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:WTF_SWIFT_CXX_INTEROP>")
+endif ()
+
 WEBKIT_FRAMEWORK(WTF)
+
+if (SWIFT_REQUIRED AND APPLE)
+    # Must come after WEBKIT_FRAMEWORK() which adds -warnings-as-errors.
+    target_compile_options(WTF PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-no-warnings-as-errors ${SWIFT_FATAL_DIAGNOSTIC_FLAGS}>")
+endif ()
 
 if (MSVC)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
