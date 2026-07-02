@@ -29,6 +29,7 @@
 #include "PALSwift-Generated.h"
 #include <CommonCrypto/CommonCrypto.h>
 #include <optional>
+#include <wtf/BorrowedBytes.h>
 #include <pal/crypto/CryptoTypes.h>
 #include <span>
 #include <wtf/TZoneMallocInlines.h>
@@ -88,9 +89,11 @@ void CryptoDigest::addBytes(std::span<const uint8_t> input)
     case CryptoDigest::Algorithm::SHA_1:
     case CryptoDigest::Algorithm::SHA_256:
     case CryptoDigest::Algorithm::SHA_384:
-    case CryptoDigest::Algorithm::SHA_512:
-        m_context->ccContext->update(input);
+    case CryptoDigest::Algorithm::SHA_512: {
+        WTF::BorrowedBytesScope inputScope(input);
+        m_context->ccContext->update(&inputScope.bytes());
         return;
+    }
     case CryptoDigest::Algorithm::DEPRECATED_SHA_224:
         RELEASE_ASSERT_NOT_REACHED_WITH_MESSAGE("SHA224 is not supported.");
         return;

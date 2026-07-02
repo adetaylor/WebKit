@@ -27,6 +27,7 @@
 #include "CryptoEDKeyBridging.h"
 
 #include "PALSwift-Generated.h"
+#include <wtf/BorrowedBytes.h>
 
 namespace PAL::Crypto::EdKey {
 
@@ -42,22 +43,28 @@ VectorUInt8 generatePrivateKeyKeyAgreement(EdKeyAgreementAlgorithm algorithm)
 
 CryptoOperationReturnValue privateToPublic(EdSigningAlgorithm algorithm, SpanConstUInt8 privateKey)
 {
-    return pal::EdKey::privateToPublic(algorithm, privateKey);
+    BorrowedBytesScope privateKeyScope(privateKey);
+    return pal::EdKey::privateToPublic(algorithm, &privateKeyScope.bytes());
 }
 
 CryptoOperationReturnValue privateToPublicKeyAgreement(EdKeyAgreementAlgorithm algorithm, SpanConstUInt8 privateKey)
 {
-    return pal::EdKey::privateToPublicKeyAgreement(algorithm, privateKey);
+    BorrowedBytesScope privateKeyScope(privateKey);
+    return pal::EdKey::privateToPublicKeyAgreement(algorithm, &privateKeyScope.bytes());
 }
 
 bool validateKeyPair(EdSigningAlgorithm algorithm, SpanConstUInt8 privateKey, SpanConstUInt8 publicKey)
 {
-    return pal::EdKey::validateKeyPair(algorithm, privateKey, publicKey);
+    BorrowedBytesScope privateKeyScope(privateKey);
+    BorrowedBytesScope publicKeyScope(publicKey);
+    return pal::EdKey::validateKeyPair(algorithm, &privateKeyScope.bytes(), &publicKeyScope.bytes());
 }
 
 bool validateKeyPairKeyAgreement(EdKeyAgreementAlgorithm algorithm, SpanConstUInt8 privateKey, SpanConstUInt8 publicKey)
 {
-    return pal::EdKey::validateKeyPairKeyAgreement(algorithm, privateKey, publicKey);
+    BorrowedBytesScope privateKeyScope(privateKey);
+    BorrowedBytesScope publicKeyScope(publicKey);
+    return pal::EdKey::validateKeyPairKeyAgreement(algorithm, &privateKeyScope.bytes(), &publicKeyScope.bytes());
 }
 
 } // namespace PAL::Crypto::EdKey

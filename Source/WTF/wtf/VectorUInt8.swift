@@ -21,23 +21,33 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-import Foundation
-import pal.Core.crypto.CryptoTypes
+#if WTF_SWIFT_CXX_INTEROP
 
-// FIXME: (rdar://164560176) resolve the many 'unsafe' statements here
+public import Foundation
+public import wtf.Core.Vector
 
-extension ContiguousBytes {
-    func copyToVectorUInt8() -> PAL.Crypto.VectorUInt8 {
-        unsafe self.withUnsafeBytes { buf in
-            let result = PAL.Crypto.VectorUInt8(buf.count)
-            unsafe buf.copyBytes(
-                to: UnsafeMutableRawBufferPointer(
+@safe
+extension WTF.VectorUInt8 {
+    // Copies the bytes of any ContiguousBytes into a new Vector<uint8_t>.
+    //
+    // This is the crypto *output* counterpart to WTF.BorrowedBytes (the input
+    // borrow). It is genuinely safe rather than merely encapsulated: the
+    // destination Vector is allocated here at exactly the source's byte count
+    // and owned by the result, so there is no borrow, lifetime dependency, or
+    // aliasing, and copyMemory traps if the counts ever disagree.
+    public init(copying bytes: some ContiguousBytes) {
+        self = unsafe bytes.withUnsafeBytes { source in
+            let result = WTF.VectorUInt8(source.count)
+            if source.count > 0 {
+                let destination = unsafe UnsafeMutableRawBufferPointer(
                     start: UnsafeMutableRawPointer(mutating: result.span().__dataUnsafe()),
                     count: result.size()
-                ),
-                count: result.size()
-            )
+                )
+                unsafe destination.copyMemory(from: source)
+            }
             return result
         }
     }
 }
+
+#endif

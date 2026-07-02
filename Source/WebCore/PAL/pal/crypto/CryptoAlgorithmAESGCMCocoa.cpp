@@ -28,6 +28,7 @@
 
 #include "CommonCryptoSPI.h"
 #include "PALSwift-Generated.h"
+#include <wtf/BorrowedBytes.h>
 #include <wtf/CryptographicUtilities.h>
 
 namespace PAL::Crypto {
@@ -49,7 +50,11 @@ Expected<VectorUInt8, Error> encryptAESGCM(const VectorUInt8& iv, const VectorUI
 
 Expected<VectorUInt8, Error> encryptCryptoKitAESGCM(const VectorUInt8& iv, const VectorUInt8& key, const VectorUInt8& plainText, const VectorUInt8& additionalData, size_t desiredTagLengthInBytes)
 {
-    auto rv = pal::AesGcm::encrypt(key.span(), iv.span(), additionalData.span(), plainText.span(), desiredTagLengthInBytes);
+    BorrowedBytesScope keyScope(key.span());
+    BorrowedBytesScope ivScope(iv.span());
+    BorrowedBytesScope adScope(additionalData.span());
+    BorrowedBytesScope plainTextScope(plainText.span());
+    auto rv = pal::AesGcm::encrypt(&keyScope.bytes(), &ivScope.bytes(), &adScope.bytes(), &plainTextScope.bytes(), desiredTagLengthInBytes);
     if (rv.errorCode != Error::Success)
         return makeUnexpected(rv.errorCode);
     return WTF::move(rv.result);

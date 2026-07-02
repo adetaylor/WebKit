@@ -28,13 +28,16 @@
 
 #include "CommonCryptoSPI.h"
 #include "PALSwift-Generated.h"
+#include <wtf/BorrowedBytes.h>
 #include <wtf/CryptographicUtilities.h>
 
 namespace PAL::Crypto {
 
 Expected<VectorUInt8, Error> wrapKeyAESKWCryptoKit(const VectorUInt8& key, const VectorUInt8& data)
 {
-    auto rv = pal::AesKw::wrap(data.span(), key.span());
+    BorrowedBytesScope dataScope(data.span());
+    BorrowedBytesScope keyScope(key.span());
+    auto rv = pal::AesKw::wrap(&dataScope.bytes(), &keyScope.bytes());
     if (rv.errorCode != PAL::Crypto::Error::Success)
         return makeUnexpected(rv.errorCode);
     return WTF::move(rv.result);
@@ -42,7 +45,9 @@ Expected<VectorUInt8, Error> wrapKeyAESKWCryptoKit(const VectorUInt8& key, const
 
 Expected<VectorUInt8, Error> unwrapKeyAESKWCryptoKit(const VectorUInt8& key, const VectorUInt8& data)
 {
-    auto rv = pal::AesKw::unwrap(data.span(), key.span());
+    BorrowedBytesScope dataScope(data.span());
+    BorrowedBytesScope keyScope(key.span());
+    auto rv = pal::AesKw::unwrap(&dataScope.bytes(), &keyScope.bytes());
     if (rv.errorCode != PAL::Crypto::Error::Success)
         return makeUnexpected(rv.errorCode);
     return WTF::move(rv.result);

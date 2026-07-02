@@ -2134,6 +2134,9 @@ template<typename T, size_t inlineCapacity = 0> static bool insertInUniquedSorte
 template<typename T> Vector(const T*, size_t) -> Vector<T>;
 template<typename T, size_t Extent> Vector(std::span<const T, Extent>) -> Vector<T>;
 
+// Common byte-buffer specialization, also named so it can be extended from Swift.
+using VectorUInt8 = Vector<uint8_t>;
+
 } // namespace WTF
 
 using WTF::NulloptBehavior;

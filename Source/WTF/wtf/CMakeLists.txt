@@ -30,6 +30,7 @@ set(WTF_PUBLIC_HEADERS
     BloomFilter.h
     BooleanLattice.h
     Borrow.h
+    BorrowedBytes.h
     Box.h
     BoxPtr.h
     Brigand.h
@@ -866,6 +867,8 @@ if (SWIFT_REQUIRED AND APPLE)
     # subtarget).
     target_sources(WTF PRIVATE
         ${WTF_DIR}/wtf/wtf.swift
+        ${WTF_DIR}/wtf/BorrowedBytes.swift
+        ${WTF_DIR}/wtf/VectorUInt8.swift
     )
 
     if (APPLE)
