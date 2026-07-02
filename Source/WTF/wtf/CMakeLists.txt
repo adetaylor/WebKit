@@ -874,6 +874,27 @@ if (SWIFT_REQUIRED AND APPLE)
 
     set(WTF_SWIFT_TYPECHECK_SOURCES "")
 
+    # Dependency edge that replaces the manual "touch count" bump in
+    # wtf/module.modulemap: whenever the set of public headers changes (adding a
+    # header edits WTF_PUBLIC_HEADERS here, which re-runs configure), re-stamp the
+    # modulemap's mtime. The modulemap is a tracked input of every Swift/Clang
+    # compile that imports the `wtf` module, so a newer mtime invalidates the
+    # cached PCM and it rebuilds to include the new header. This only fires on
+    # add/remove (the hash is over the header list, not contents), touches mtime
+    # not content (invisible to git), and happens at configure time so there is
+    # no build-graph lag. Works around rdar://177840132 (swiftc -emit-dependencies
+    # omits individual C++ headers) and rdar://173516139.
+    string(SHA1 _wtf_public_headers_hash "${WTF_PUBLIC_HEADERS}")
+    set(_wtf_headers_hash_file "${CMAKE_CURRENT_BINARY_DIR}/wtf-public-headers-set.hash")
+    set(_wtf_prev_headers_hash "")
+    if (EXISTS "${_wtf_headers_hash_file}")
+        file(READ "${_wtf_headers_hash_file}" _wtf_prev_headers_hash)
+    endif ()
+    if (NOT _wtf_prev_headers_hash STREQUAL _wtf_public_headers_hash)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_CURRENT_SOURCE_DIR}/module.modulemap")
+        file(WRITE "${_wtf_headers_hash_file}" "${_wtf_public_headers_hash}")
+    endif ()
+
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WTF wtf
         "${WTF_FRAMEWORK_HEADERS_DIR}/wtf"
         "WTFSwift-Generated.h")
