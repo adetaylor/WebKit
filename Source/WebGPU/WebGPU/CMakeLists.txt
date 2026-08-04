@@ -253,6 +253,8 @@ if (SWIFT_REQUIRED)
         "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-library-level spi>"
         "$<$<COMPILE_LANGUAGE:Swift>:-no-verify-emitted-module-interface>"
         "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib>"
+        # Needed so `import wtf` (Queue.swift's WTF.BorrowedMutableBytes) can find WTF's clang module.
+        "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -I${CMAKE_BINARY_DIR}/WTF/Headers>"
     )
 
     if (APPLE)

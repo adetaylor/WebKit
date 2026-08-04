@@ -31,6 +31,7 @@
 #import "Device.h"
 
 #import <wtf/Borrow.h>
+#import <wtf/BorrowedBytes.h>
 #import <wtf/CheckedArithmetic.h>
 #import <wtf/StdLibExtras.h>
 #import <wtf/TZoneMallocInlines.h>
@@ -297,7 +298,7 @@ std::span<uint8_t> Buffer::getMappedRange(size_t offset, size_t size)
 {
 #if ENABLE(WEBGPU_SWIFT)
     if (isWebGPUSwiftEnabled())
-        return bufferGetMappedRange(this, offset, size);
+        return bufferGetMappedRange(this, NonEscapableMutableBytes::create(getBufferContents()), offset, size).span();
 #endif
 
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange
@@ -327,7 +328,11 @@ std::span<uint8_t> Buffer::getBufferContents()
 void Buffer::bufferCopy(std::span<const uint8_t> data, size_t offset)
 {
 #if ENABLE(WEBGPU_SWIFT)
-    bufferCopyFrom(this, data, offset);
+    // Swift narrows this buffer's contents to the destination subrange and asks C++ to
+    // perform the copy. Both views are ~Escapable there, and neither exposes a pointer
+    // or an element accessor, so the Swift side cannot read, write, alias or stash the
+    // bytes -- an out-of-range offset crashes in subspan() instead.
+    bufferCopyFrom(this, NonEscapableMutableBytes::create(getBufferContents()), NonEscapableBytes::create(data), offset);
 #else
     UNUSED_PARAM(data);
     UNUSED_PARAM(offset);

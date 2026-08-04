@@ -27,6 +27,7 @@
 
 #import "Instance.h"
 #import <Metal/Metal.h>
+#import <wtf/BorrowedBytes.h>
 #import <wtf/CompletionHandler.h>
 #import <wtf/FastMalloc.h>
 #import <wtf/HashMap.h>
@@ -107,6 +108,10 @@ public:
     id<MTLIndirectCommandBuffer> trimICB(id<MTLIndirectCommandBuffer> dest, id<MTLIndirectCommandBuffer> src, NSUInteger newSize);
     id<MTLDevice> _Nullable metalDevice() const;
     std::pair<id<MTLBuffer>, uint64_t> newTemporaryBufferWithBytes(std::span<uint8_t> data, bool noCopy);
+
+    // Swift-facing overload: takes the revocable borrow handle rather than a raw
+    // span; returns the out offset in an inout.
+    id<MTLBuffer> _Nullable newTemporaryBufferWithBytes(WTF::BorrowedMutableBytes& data, bool noCopy, uint64_t& outOffset);
 
 private:
     Queue(id<MTLCommandQueue>, Adapter&, Device&);

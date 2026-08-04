@@ -30,8 +30,10 @@
 #include <wtf/RefPtr.h>
 #include <wtf/Vector.h>
 
-// These tests exercise the C++ side of BorrowedBytes: the two scope types and
-// the revocable view they hand out.
+// These tests exercise the C++ side of BorrowedBytes: the scope types, the revocable
+// views they hand out, and the ~Escapable views used for pass-through to Swift. The
+// Swift-side guarantees (that a view cannot be stored or outlive its call) are enforced
+// by the compiler and so are not testable from here.
 
 namespace TestWebKitAPI {
 
@@ -44,6 +46,8 @@ TEST(WTF_BorrowedBytes, SpanScopeExposesBytes)
     auto& bytes = scope.bytes();
     EXPECT_EQ(bytes.size(), span.size());
     EXPECT_EQ(bytes.data(), span.data());
+    EXPECT_EQ(bytes.span().data(), span.data());
+    EXPECT_EQ(bytes.span().size(), span.size());
     for (size_t i = 0; i < span.size(); ++i)
         EXPECT_EQ(bytes.data()[i], span[i]);
 }
@@ -133,6 +137,213 @@ TEST(WTF_BorrowedBytesDeathTest, MAYBE_ASSERT_ENABLED_DEATH_TEST(StashedViewCras
             // ~BorrowedVectorScope asserts here: `stashed` still holds a
             // reference, so the borrow is ending too early.
         }
+    };
+    ASSERT_DEATH_IF_SUPPORTED(shouldCrash(), "");
+}
+
+// MARK: - BorrowedMutableBytes
+
+TEST(WTF_BorrowedBytes, MutableSpanScopeExposesWritableBytes)
+{
+    std::array<uint8_t, 4> buffer { 1, 2, 3, 4 };
+    std::span<uint8_t> span { buffer };
+    BorrowedMutableSpanScope scope(span);
+
+    auto& bytes = scope.bytes();
+    EXPECT_EQ(bytes.size(), span.size());
+    EXPECT_EQ(bytes.span().data(), span.data());
+
+    bytes.span()[0] = 0xFF;
+    EXPECT_EQ(buffer[0], 0xFFu);
+}
+
+TEST(WTF_BorrowedBytes, MutableSpanScopeHoldsSoleReference)
+{
+    std::array<uint8_t, 2> buffer { };
+    BorrowedMutableSpanScope scope(std::span<uint8_t> { buffer });
+    EXPECT_TRUE(scope.bytes().hasOneRef());
+    {
+        RefPtr<BorrowedMutableBytes> transient = &scope.bytes();
+        EXPECT_FALSE(scope.bytes().hasOneRef());
+    }
+    EXPECT_TRUE(scope.bytes().hasOneRef());
+}
+
+TEST(WTF_BorrowedBytes, EmptyMutableSpan)
+{
+    BorrowedMutableSpanScope scope(std::span<uint8_t> { });
+    EXPECT_EQ(scope.bytes().size(), 0u);
+    EXPECT_TRUE(scope.bytes().span().empty());
+}
+
+// MARK: - The ~Escapable views
+
+TEST(WTF_BorrowedBytes, NonEscapableViewsWrapSpans)
+{
+    std::array<uint8_t, 5> buffer { 0, 1, 2, 3, 4 };
+    auto immutable = NonEscapableBytes::create(std::span<const uint8_t> { buffer });
+    auto mutableBytes = NonEscapableMutableBytes::create(std::span<uint8_t> { buffer });
+
+    EXPECT_EQ(immutable.size(), buffer.size());
+    EXPECT_FALSE(immutable.isEmpty());
+    EXPECT_EQ(mutableBytes.size(), buffer.size());
+    EXPECT_FALSE(mutableBytes.isEmpty());
+    EXPECT_EQ(mutableBytes.span().data(), buffer.data());
+}
+
+TEST(WTF_BorrowedBytes, DefaultConstructedNonEscapableViewsAreEmpty)
+{
+    EXPECT_EQ(NonEscapableBytes().size(), 0u);
+    EXPECT_TRUE(NonEscapableBytes().isEmpty());
+    EXPECT_EQ(NonEscapableMutableBytes().size(), 0u);
+    EXPECT_TRUE(NonEscapableMutableBytes().isEmpty());
+    EXPECT_TRUE(NonEscapableMutableBytes().span().empty());
+}
+
+TEST(WTF_BorrowedBytes, NonEscapableSubspan)
+{
+    std::array<uint8_t, 6> buffer { 0, 1, 2, 3, 4, 5 };
+    auto immutable = NonEscapableBytes::create(std::span<const uint8_t> { buffer });
+    EXPECT_EQ(immutable.subspan(2, 3).size(), 3u);
+
+    auto mutableBytes = NonEscapableMutableBytes::create(std::span<uint8_t> { buffer });
+    EXPECT_EQ(mutableBytes.subspan(2, 3).size(), 3u);
+    EXPECT_EQ(mutableBytes.subspan(2, 3).span().data(), buffer.data() + 2);
+
+    // Degenerate but legal: an empty view at the very end.
+    EXPECT_TRUE(immutable.subspan(6, 0).isEmpty());
+}
+
+// MARK: - Copying between the views
+//
+// Every source/destination combination, since each one performs its own revocation
+// check before delegating to the single primitive.
+
+TEST(WTF_BorrowedBytes, CopyNonEscapableToNonEscapable)
+{
+    Vector<uint8_t> source { 0xAA, 0xBB, 0xCC, 0xDD };
+    std::array<uint8_t, 8> destination { };
+
+    auto bytes = NonEscapableMutableBytes::create(std::span<uint8_t> { destination });
+    auto sourceBytes = NonEscapableBytes::create(source.span());
+    bytes.subspan(2, sourceBytes.size()).copyFrom(sourceBytes);
+
+    EXPECT_EQ(destination[1], 0u);
+    EXPECT_EQ(destination[2], 0xAAu);
+    EXPECT_EQ(destination[5], 0xDDu);
+    EXPECT_EQ(destination[6], 0u);
+}
+
+TEST(WTF_BorrowedBytes, CopyBorrowedToNonEscapable)
+{
+    Vector<uint8_t> source { 0xAA, 0xBB, 0xCC, 0xDD };
+    std::array<uint8_t, 8> destination { };
+    BorrowedVectorScope sourceScope(source);
+
+    auto bytes = NonEscapableMutableBytes::create(std::span<uint8_t> { destination });
+    bytes.subspan(2, sourceScope.bytes().size()).copyFrom(sourceScope.bytes());
+
+    EXPECT_EQ(destination[1], 0u);
+    EXPECT_EQ(destination[2], 0xAAu);
+    EXPECT_EQ(destination[5], 0xDDu);
+    EXPECT_EQ(destination[6], 0u);
+}
+
+TEST(WTF_BorrowedBytes, CopyNonEscapableToBorrowedMutable)
+{
+    Vector<uint8_t> source { 0xAA, 0xBB, 0xCC, 0xDD };
+    std::array<uint8_t, 8> destination { };
+    auto destinationSpan = std::span<uint8_t> { destination }.subspan(2, 4);
+    BorrowedMutableSpanScope destinationScope(destinationSpan);
+
+    destinationScope.bytes().copyFrom(NonEscapableBytes::create(source.span()));
+
+    EXPECT_EQ(destination[1], 0u);
+    EXPECT_EQ(destination[2], 0xAAu);
+    EXPECT_EQ(destination[5], 0xDDu);
+    EXPECT_EQ(destination[6], 0u);
+}
+
+TEST(WTF_BorrowedBytes, CopyBorrowedToBorrowedMutable)
+{
+    Vector<uint8_t> source { 0xAA, 0xBB, 0xCC, 0xDD };
+    std::array<uint8_t, 8> destination { };
+    auto destinationSpan = std::span<uint8_t> { destination }.subspan(2, 4);
+    BorrowedMutableSpanScope destinationScope(destinationSpan);
+    BorrowedVectorScope sourceScope(source);
+
+    destinationScope.bytes().copyFrom(sourceScope.bytes());
+
+    EXPECT_EQ(destination[1], 0u);
+    EXPECT_EQ(destination[2], 0xAAu);
+    EXPECT_EQ(destination[5], 0xDDu);
+    EXPECT_EQ(destination[6], 0u);
+}
+
+// Copies of zero bytes are permitted, including at the very end of the buffer.
+TEST(WTF_BorrowedBytes, CopyOfNothingIsANoOp)
+{
+    std::array<uint8_t, 4> destination { 0x11, 0x11, 0x11, 0x11 };
+    auto bytes = NonEscapableMutableBytes::create(std::span<uint8_t> { destination });
+
+    bytes.subspan(4, 0).copyFrom(NonEscapableBytes::create(std::span<const uint8_t> { }));
+    bytes.subspan(0, 0).copyFrom(NonEscapableBytes());
+    NonEscapableMutableBytes().copyFrom(NonEscapableBytes());
+
+    for (auto byte : destination)
+        EXPECT_EQ(byte, 0x11u);
+}
+
+// The copy uses memmove, so overlapping views produce the shifted result rather than
+// undefined behaviour. Swift cannot construct this overlap, but C++ can.
+TEST(WTF_BorrowedBytes, CopyToleratesOverlap)
+{
+    std::array<uint8_t, 6> buffer { 1, 2, 3, 4, 5, 6 };
+    std::span<uint8_t> whole { buffer };
+
+    auto destination = NonEscapableMutableBytes::create(whole.subspan(1, 4));
+    destination.copyFrom(NonEscapableBytes::create(std::span<const uint8_t> { whole.subspan(0, 4) }));
+
+    EXPECT_EQ(buffer[0], 1u);
+    EXPECT_EQ(buffer[1], 1u);
+    EXPECT_EQ(buffer[2], 2u);
+    EXPECT_EQ(buffer[3], 3u);
+    EXPECT_EQ(buffer[4], 4u);
+    EXPECT_EQ(buffer[5], 6u);
+}
+
+// MARK: - The range checks
+//
+// These are RELEASE_ASSERTs, so unlike the stash assertion above they fire in release
+// builds too. They are the backstop that turns an out-of-range request -- from Swift or
+// from C++ -- into a crash rather than a read or write outside the bytes.
+
+TEST(WTF_BorrowedBytesDeathTest, SubspanPastTheEndCrashes)
+{
+    auto shouldCrash = [] {
+        std::array<uint8_t, 4> buffer { };
+        NonEscapableMutableBytes::create(std::span<uint8_t> { buffer }).subspan(2, 3);
+    };
+    ASSERT_DEATH_IF_SUPPORTED(shouldCrash(), "");
+}
+
+TEST(WTF_BorrowedBytesDeathTest, SubspanWithWrappedOffsetCrashes)
+{
+    auto shouldCrash = [] {
+        std::array<uint8_t, 4> buffer { };
+        // What an offset arrives as when it exceeds what Swift's Int can represent.
+        NonEscapableBytes::create(std::span<const uint8_t> { buffer }).subspan(std::numeric_limits<size_t>::max(), 1);
+    };
+    ASSERT_DEATH_IF_SUPPORTED(shouldCrash(), "");
+}
+
+TEST(WTF_BorrowedBytesDeathTest, CopyOfMismatchedLengthCrashes)
+{
+    auto shouldCrash = [] {
+        std::array<uint8_t, 8> destination { };
+        std::array<uint8_t, 4> source { };
+        NonEscapableMutableBytes::create(std::span<uint8_t> { destination })
+            .copyFrom(NonEscapableBytes::create(std::span<const uint8_t> { source }));
     };
     ASSERT_DEATH_IF_SUPPORTED(shouldCrash(), "");
 }
