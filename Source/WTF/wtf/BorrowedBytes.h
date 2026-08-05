@@ -93,6 +93,10 @@ using VectorUInt8 = Vector<uint8_t>;
 // the C++/Swift boundary.
 class BorrowedBytes : public ThreadSafeRefCounted<BorrowedBytes> {
 public:
+    // Returns the borrowed data pointer, crashing cleanly if the borrow has
+    // already been revoked. SWIFT_RETURNS_INDEPENDENT_VALUE keeps this callable
+    // from Swift; it is only ever called inside an audited withUnsafeBytes
+    // conformance, where the returned pointer is used synchronously.
     const uint8_t* data() const SWIFT_RETURNS_INDEPENDENT_VALUE {
         RELEASE_ASSERT(m_valid.load(std::memory_order_acquire));
         return m_span.data();

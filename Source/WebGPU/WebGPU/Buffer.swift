@@ -24,6 +24,12 @@
 import WebGPU_Internal.Buffer
 import wtf
 
+extension WebGPU.Buffer {
+    func copy(destination: WTF.NonEscapableMutableBytes, source: WTF.NonEscapableBytes, offset: Int) {
+        destination.subspan(offset, source.size()).copyFrom(source)
+    }
+}
+
 @_expose(Cxx)
 func bufferCopyFrom(
     _ buffer: WebGPU.Buffer,
@@ -32,19 +38,6 @@ func bufferCopyFrom(
     offset: Int,
 ) {
     buffer.copy(destination: destination, source: source, offset: offset)
-}
-
-extension WebGPU.Buffer {
-    /// Copies all of `source` into `destination` starting at `offset`.
-    ///
-    /// `destination` is this buffer's storage and `source` the bytes to write, both
-    /// handed in by the caller. Narrowing the destination to the copied range is all
-    /// this side does; the copy itself happens in C++, so no pointer, no `std::span`
-    /// and no `unsafe` appear here. An offset or length outside `destination` crashes
-    /// in subspan() rather than writing out of bounds.
-    func copy(destination: WTF.NonEscapableMutableBytes, source: WTF.NonEscapableBytes, offset: Int) {
-        destination.subspan(offset, source.size()).copyFrom(source)
-    }
 }
 
 @_expose(Cxx)
