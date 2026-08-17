@@ -57,7 +57,7 @@ template<typename T>
 concept shouldZeroExtendInExceptionResult = sizeof(T) < sizeof(UCPURegister) && std::is_integral_v<T>;
 
 template<typename T>
-struct ExceptionOperationResult {
+struct [[nodiscard("dropping this discards the returned Exception*")]] ExceptionOperationResult {
     using ResultType = T;
     static_assert(assertNotOperationSignature<T>);
     // Use UCPURegister for small integral types to ensure full register width is written with zero-extension.
@@ -66,7 +66,7 @@ struct ExceptionOperationResult {
 };
 
 template<>
-struct ExceptionOperationResult<void> {
+struct [[nodiscard("dropping this discards the returned Exception*")]] ExceptionOperationResult<void> {
     using ResultType = void;
     Exception* exception;
 };
@@ -95,7 +95,7 @@ using OperationReturnType = std::conditional_t<(std::is_same_v<T, void> || canMa
 // This class exists so we can cast ExceptionOperationImplicitResult<From> to ExceptionOperationResult<To> implicitly while ExceptionOperationResult remains POD.
 // FIXME: we could use __atribute__((trivial_abi)) when we no longer support MSVC.
 template<typename From>
-struct ExceptionOperationImplicitResult {
+struct [[nodiscard("dropping this discards the returned Exception*")]] ExceptionOperationImplicitResult {
     template<typename To>
     requires std::is_convertible_v<From, To>
     ALWAYS_INLINE operator ExceptionOperationResult<To>()
@@ -125,7 +125,7 @@ struct ExceptionOperationImplicitResult {
 };
 
 template<>
-struct ExceptionOperationImplicitResult<void> {
+struct [[nodiscard("dropping this discards the returned Exception*")]] ExceptionOperationImplicitResult<void> {
     ALWAYS_INLINE operator ExceptionOperationResult<void>()
     {
         ExceptionOperationResult<void> result;
