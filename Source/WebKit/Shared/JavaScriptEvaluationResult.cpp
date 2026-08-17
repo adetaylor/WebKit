@@ -521,7 +521,10 @@ Protected<JSValueRef> JavaScriptEvaluationResult::toJS(JSGlobalContextRef contex
         }
     }
 
-    return std::exchange(instantiatedJSObjects, { }).take(m_root);
+    auto root = std::exchange(instantiatedJSObjects, { }).take(m_root);
+    if (!root)
+        return { };
+    return WTF::move(*root);
 }
 
 JavaScriptEvaluationResult::JavaScriptEvaluationResult(JavaScriptEvaluationResult&&) = default;

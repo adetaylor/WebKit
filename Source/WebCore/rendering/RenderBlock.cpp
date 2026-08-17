@@ -213,7 +213,7 @@ public:
         if (!containingBlock)
             return;
 
-        auto descendantsIterator = m_descendantsMap.find(*containingBlock.get());
+        auto descendantsIterator = m_descendantsMap.find(*containingBlock->get());
         ASSERT(descendantsIterator != m_descendantsMap.end());
         if (descendantsIterator == m_descendantsMap.end())
             return;
@@ -232,7 +232,7 @@ public:
         if (!descendants)
             return;
 
-        for (auto& renderer : *descendants)
+        for (auto& renderer : **descendants)
             m_containerMap.remove(renderer);
     }
     

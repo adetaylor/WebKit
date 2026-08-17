@@ -1255,7 +1255,7 @@ void InspectorCSSAgent::didRemoveDOMNode(Node& node, Inspector::Protocol::DOM::N
     auto sheet = m_nodeToInspectorStyleSheet.take(&node);
     if (!sheet)
         return;
-    m_idToInspectorStyleSheet.remove(sheet->id());
+    m_idToInspectorStyleSheet.remove((*sheet)->id());
 }
 
 void InspectorCSSAgent::didModifyDOMAttr(Element& element)

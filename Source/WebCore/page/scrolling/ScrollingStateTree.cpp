@@ -238,7 +238,7 @@ std::optional<ScrollingNodeID> ScrollingStateTree::insertNode(ScrollingNodeType 
         }
 
         ASSERT(parentID);
-        if (auto unparentedNode = m_unparentedNodes.take(newNodeID)) {
+        if (RefPtr unparentedNode = m_unparentedNodes.take(newNodeID)) {
             LOG_WITH_STREAM(ScrollingTree, stream << "ScrollingStateTree " << this << " insertNode reattaching node " << newNodeID);
             newNode = unparentedNode.get();
             nodeWasReattachedRecursive(*unparentedNode);

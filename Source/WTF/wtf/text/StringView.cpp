@@ -529,9 +529,10 @@ void StringView::invalidate(const StringImpl& stringToBeDestroyed)
     UnderlyingString* underlyingString;
     {
         Locker locker { underlyingStringsLock };
-        underlyingString = underlyingStrings().take(&stringToBeDestroyed);
-        if (!underlyingString)
+        auto takenUnderlyingString = underlyingStrings().take(&stringToBeDestroyed);
+        if (!takenUnderlyingString)
             return;
+        underlyingString = *takenUnderlyingString;
     }
     ASSERT(underlyingString->isValid);
     underlyingString->isValid = false;

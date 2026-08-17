@@ -157,15 +157,16 @@ void GameControllerGamepadProvider::controllerDidDisconnect(GCController *contro
 {
     LOG(Gamepad, "GameControllerGamepadProvider controller %p removed", controller);
 
-    std::unique_ptr removedGamepad = m_gamepadMap.take((__bridge CFTypeRef)controller);
-    ASSERT(removedGamepad);
+    auto takenGamepad = m_gamepadMap.take((__bridge CFTypeRef)controller);
+    ASSERT(takenGamepad);
 
     // FIXME (rdar://155968049) - We may get disconnect notifications for a no-longer-connected controller.
     // Return early to avoid weird side effects downstream.
-    if (!removedGamepad) {
+    if (!takenGamepad) {
         RELEASE_LOG_ERROR(Gamepad, "Disconnected a GCController that we didn't know about");
         return;
     }
+    std::unique_ptr removedGamepad = WTF::move(*takenGamepad);
 
     auto i = m_gamepadVector.find(removedGamepad.get());
     if (i != notFound)

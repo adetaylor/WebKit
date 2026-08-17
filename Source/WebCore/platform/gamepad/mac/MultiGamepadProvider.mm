@@ -124,9 +124,12 @@ void MultiGamepadProvider::platformGamepadDisconnected(PlatformGamepad& gamepad)
 {
     LOG(Gamepad, "MultiGamepadProvider disconnecting gamepad from a %s source", gamepad.source().characters());
 
-    auto gamepadWrapper = m_gamepadMap.take(gamepad);
+    auto takenGamepadWrapper = m_gamepadMap.take(gamepad);
 
-    ASSERT(gamepadWrapper);
+    ASSERT(takenGamepadWrapper);
+    if (!takenGamepadWrapper)
+        return;
+    auto gamepadWrapper = WTF::move(*takenGamepadWrapper);
     ASSERT(gamepadWrapper->index() < m_gamepadVector.size());
     ASSERT(m_gamepadVector[gamepadWrapper->index()] == gamepadWrapper.get());
 

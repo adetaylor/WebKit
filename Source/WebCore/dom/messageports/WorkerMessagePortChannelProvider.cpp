@@ -127,7 +127,7 @@ void WorkerMessagePortChannelProvider::takeAllMessagesForPort(const MessagePortI
                 RefPtr protectedThis = weakThis.get();
                 if (!protectedThis)
                     return;
-                protectedThis->m_takeAllMessagesCallbacks.take(callbackIdentifier)(WTF::move(messages), [completionHandler = WTF::move(completionHandler)]() mutable {
+                (*protectedThis->m_takeAllMessagesCallbacks.take(callbackIdentifier))(WTF::move(messages), [completionHandler = WTF::move(completionHandler)]() mutable {
                     completionHandler.complete();
                 });
             }, WorkerRunLoop::defaultMode());

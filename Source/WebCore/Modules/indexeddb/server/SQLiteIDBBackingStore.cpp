@@ -1132,10 +1132,10 @@ IDBError SQLiteIDBBackingStore::abortTransaction(const IDBResourceIdentifier& id
         return IDBError { ExceptionCode::UnknownError, "Attempt to abort a transaction that hasn't been established"_s };
     }
 
-    if (transaction->mode() == IDBTransactionMode::Versionchange && m_originalDatabaseInfoBeforeVersionChange)
+    if ((*transaction)->mode() == IDBTransactionMode::Versionchange && m_originalDatabaseInfoBeforeVersionChange)
         m_databaseInfo = WTF::move(m_originalDatabaseInfoBeforeVersionChange);
 
-    return transaction->abort();
+    return (*transaction)->abort();
 }
 
 IDBError SQLiteIDBBackingStore::commitTransaction(const IDBResourceIdentifier& identifier)
@@ -1152,15 +1152,15 @@ IDBError SQLiteIDBBackingStore::commitTransaction(const IDBResourceIdentifier& i
         return IDBError { ExceptionCode::UnknownError, "Attempt to commit a transaction that hasn't been established"_s };
     }
 
-    auto error = transaction->commit();
+    auto error = (*transaction)->commit();
     if (!error.isNull()) {
-        if (transaction->mode() == IDBTransactionMode::Versionchange) {
+        if ((*transaction)->mode() == IDBTransactionMode::Versionchange) {
             ASSERT(m_originalDatabaseInfoBeforeVersionChange);
             m_databaseInfo = WTF::move(m_originalDatabaseInfoBeforeVersionChange);
         }
     } else {
         m_originalDatabaseInfoBeforeVersionChange = nullptr;
-        if (transaction->durability() == IDBTransactionDurability::Strict)
+        if ((*transaction)->durability() == IDBTransactionDurability::Strict)
             sqliteDB->checkpoint(SQLiteDatabase::CheckpointMode::Full);
     }
 

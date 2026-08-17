@@ -556,9 +556,9 @@ ExceptionOr<void> IDBObjectStore::deleteIndex(const String& name)
     {
         Locker locker { m_referencedIndexLock };
         if (auto index = m_referencedIndexes.take(name)) {
-            index->markAsDeleted();
-            auto identifier = index->info().identifier();
-            m_deletedIndexes.add(identifier, WTF::move(index));
+            (*index)->markAsDeleted();
+            auto identifier = (*index)->info().identifier();
+            m_deletedIndexes.add(identifier, WTF::move(*index));
         }
     }
 
@@ -754,7 +754,9 @@ void IDBObjectStore::renameReferencedIndex(IDBIndex& index, const String& newNam
     ASSERT(!m_referencedIndexes.contains(newName));
     ASSERT(m_referencedIndexes.get(index.info().name()) == &index);
 
-    m_referencedIndexes.set(newName, m_referencedIndexes.take(index.info().name()));
+    auto takenIndex = m_referencedIndexes.take(index.info().name());
+    RELEASE_ASSERT(takenIndex);
+    m_referencedIndexes.set(newName, WTF::move(*takenIndex));
 }
 
 void IDBObjectStore::ref() const

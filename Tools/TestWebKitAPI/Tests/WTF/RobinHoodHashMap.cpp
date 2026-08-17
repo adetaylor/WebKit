@@ -303,7 +303,7 @@ TEST(WTF_RobinHoodHashMap, UniquePtrKey_TakeUsingRawPointer)
     EXPECT_EQ(1u, ConstructorDestructorCounter::constructionCount);
     EXPECT_EQ(0u, ConstructorDestructorCounter::destructionCount);
 
-    int result = map.take(ptr);
+    int result = *map.take(ptr);
     EXPECT_EQ(2, result);
 
     EXPECT_EQ(1u, ConstructorDestructorCounter::constructionCount);
@@ -318,8 +318,8 @@ TEST(WTF_RobinHoodHashMap, UniqueRefValue)
     EXPECT_TRUE(map.contains(5));
     int* shouldBeFive = map.get(5);
     EXPECT_EQ(*shouldBeFive, 5);
-    std::unique_ptr<int> takenFive = map.take(5);
-    EXPECT_EQ(*takenFive, 5);
+    UniqueRef<int> takenFive = *map.take(5);
+    EXPECT_EQ(takenFive.get(), 5);
     map.ensure(6, [] {
         return makeUniqueRefWithoutFastMallocCheck<int>(6);
     });
@@ -879,7 +879,7 @@ TEST(WTF_RobinHoodHashMap, Ref_Key)
         Ref<RefLogger> ref(a);
         map.add(WTF::move(ref), 1);
 
-        int i = map.take(&a);
+        int i = *map.take(&a);
         ASSERT_EQ(i, 1);
     }
 
@@ -969,7 +969,7 @@ TEST(WTF_RobinHoodHashMap, Ref_Value)
 
         auto aOut = map.take(1);
         ASSERT_TRUE(static_cast<bool>(aOut));
-        ASSERT_EQ(&a, aOut.get());
+        ASSERT_EQ(&a, aOut->ptr());
     }
 
     ASSERT_STREQ("ref(a) deref(a) ", takeLogStr().c_str());

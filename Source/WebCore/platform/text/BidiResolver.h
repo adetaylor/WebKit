@@ -962,7 +962,7 @@ void BidiResolverBase<Iterator, Run, DerivedClass>::setWhitespaceCollapsingTrans
 template<typename Iterator, typename Run, typename DerivedClass>
 unsigned BidiResolverBase<Iterator, Run, DerivedClass>::whitespaceCollapsingTransitionForIsolatedRun(Run& run)
 {
-    return m_whitespaceCollapsingTransitionForIsolatedRun.take(&run);
+    return m_whitespaceCollapsingTransitionForIsolatedRun.take(&run).value_or(0);
 }
 
 } // namespace WebCore

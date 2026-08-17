@@ -643,7 +643,7 @@ void JSGlobalObject::startSignpost(String&& message)
 void JSGlobalObject::stopSignpost(String&& message)
 {
     void* identifier = std::bit_cast<void*>(this);
-    if (auto stored = m_signposts.takeOptional(message))
+    if (auto stored = m_signposts.take(message))
         identifier = std::bit_cast<void*>(static_cast<uintptr_t>(stored->toUInt64()));
     UNUSED_VARIABLE(identifier);
     auto string = message.ascii();

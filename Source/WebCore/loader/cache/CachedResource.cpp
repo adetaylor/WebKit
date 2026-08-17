@@ -579,8 +579,8 @@ void CachedResource::removeClient(CachedResourceClient& client)
     auto callback = m_clientsAwaitingCallback.take(client);
     if (callback) {
         ASSERT(!m_clients.contains(client));
-        callback->cancel();
-        callback = nullptr;
+        (*callback)->cancel();
+        callback = std::nullopt;
     } else {
         ASSERT(m_clients.contains(client));
         m_clients.remove(client);

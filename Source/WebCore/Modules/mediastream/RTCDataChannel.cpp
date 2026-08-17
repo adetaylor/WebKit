@@ -344,7 +344,10 @@ void RTCDataChannel::removeFromDataChannelLocalMapIfNeeded()
 std::unique_ptr<RTCDataChannelHandler> RTCDataChannel::handlerFromIdentifier(RTCDataChannelLocalIdentifier channelIdentifier)
 {
     Locker locker { s_rtcDataChannelLocalMapLock };
-    return rtcDataChannelLocalMap().take(channelIdentifier);
+    auto handler = rtcDataChannelLocalMap().take(channelIdentifier);
+    if (!handler)
+        return nullptr;
+    return WTF::move(*handler);
 }
 
 static Ref<RTCDataChannel> createClosedChannel(ScriptExecutionContext& context, String&& label, RTCDataChannelInit&& options)

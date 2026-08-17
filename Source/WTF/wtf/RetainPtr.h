@@ -99,6 +99,11 @@ public:
     template<typename U>
         requires std::convertible_to<typename RetainRef<RetainPtrType<U>>::PtrType, PtrType>
     constexpr RetainPtr(RetainRef<U>&& o) : m_ptr(o.leakRef()) { }
+    // Absence and null both become null here, for callers that only need a nullable pointer.
+    // Deliberately a template so that std::optional<RetainPtr> is not instantiated against an
+    // incomplete RetainPtr while this class is still being defined.
+    template<typename U> requires std::same_as<U, RetainPtr>
+    constexpr RetainPtr(std::optional<U>&& o) : m_ptr(o ? o->leakRef() : nullptr) { }
 
     // Hash table deleted values, which are only constructed and never copied or destroyed.
     constexpr RetainPtr(HashTableDeletedValueType) : m_ptr(hashTableDeletedValue()) { }

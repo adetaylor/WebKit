@@ -82,7 +82,7 @@ void GeolocationPermissionRequestManager::revokeAuthorizationToken(const String&
 
 void GeolocationPermissionRequestManager::cancelRequestForGeolocation(Geolocation& geolocation)
 {
-    if (auto geolocationID = m_geolocationToIDMap.takeOptional(geolocation))
+    if (auto geolocationID = m_geolocationToIDMap.take(geolocation))
         m_idToGeolocationMap.remove(*geolocationID);
 }
 

@@ -76,7 +76,7 @@ void VideoReceiverEndpointManager::handleVideoReceiverEndpointMessage(const Vide
     // removed from the existing player.
     if (!endpointMessage.endpoint()) {
         m_videoTargetCache.remove(endpointMessage.endpointIdentifier());
-        auto cacheEntry = m_videoReceiverEndpointCache.takeOptional(endpointMessage.mediaElementIdentifier());
+        auto cacheEntry = m_videoReceiverEndpointCache.take(endpointMessage.mediaElementIdentifier());
         if (!cacheEntry)
             return;
 
@@ -132,10 +132,10 @@ void VideoReceiverEndpointManager::handleVideoReceiverEndpointMessage(const Vide
 
 void VideoReceiverEndpointManager::handleVideoReceiverSwapEndpointsMessage(const VideoReceiverSwapEndpointsMessage& swapMessage)
 {
-    auto sourceCacheEntry = m_videoReceiverEndpointCache.takeOptional(swapMessage.sourceMediaElementIdentifier());
+    auto sourceCacheEntry = m_videoReceiverEndpointCache.take(swapMessage.sourceMediaElementIdentifier());
     auto sourceTarget = sourceCacheEntry ? videoTargetForIdentifier(sourceCacheEntry->endpointIdentifier) : nullptr;
 
-    auto destinationCacheEntry = m_videoReceiverEndpointCache.takeOptional(swapMessage.destinationMediaElementIdentifier());
+    auto destinationCacheEntry = m_videoReceiverEndpointCache.take(swapMessage.destinationMediaElementIdentifier());
     auto destinationTarget = destinationCacheEntry ? videoTargetForIdentifier(destinationCacheEntry->endpointIdentifier) : nullptr;
 
     ALWAYS_LOG(LOGIDENTIFIER, "swapping from media element ", swapMessage.sourceMediaElementIdentifier().loggingString(), " to media element ", swapMessage.destinationMediaElementIdentifier().loggingString());

@@ -111,7 +111,7 @@ UIScrollView *RemoteScrollingCoordinatorProxyIOS::scrollViewForScrollingNodeID(s
 void RemoteScrollingCoordinatorProxyIOS::updateOverlayRegions(const Vector<WebCore::PlatformLayerIdentifier>& destroyedLayers)
 {
     for (auto layerID : destroyedLayers) {
-        if (auto nodeID = m_fixedAndStickyScrollingNodesByLayerID.takeOptional(layerID)) {
+        if (auto nodeID = m_fixedAndStickyScrollingNodesByLayerID.take(layerID)) {
 #if ENABLE(OVERLAY_REGIONS_REMOTE_EFFECT)
             m_layerIDsByFixedAndStickyScrollingNodeID.remove(*nodeID);
 #endif

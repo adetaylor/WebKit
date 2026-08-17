@@ -2491,13 +2491,13 @@ void DocumentLoader::didGetLoadDecisionForIcon(bool decision, uint64_t loadIdent
     if (!decision || !m_frame)
         return completionHandler(nullptr);
 
-    // If the LinkIcon we just took is empty, then the DocumentLoader had all of its loaders stopped
-    // while this icon load decision was pending.
+    // If the LinkIcon we just took is absent or empty, then the DocumentLoader had all of its
+    // loaders stopped while this icon load decision was pending.
     // In this case we need to notify the client that the icon finished loading with empty data.
-    if (icon.url.isEmpty())
+    if (!icon || icon->url.isEmpty())
         return completionHandler(nullptr);
 
-    Ref iconLoader = IconLoader::create(*this, icon.url);
+    Ref iconLoader = IconLoader::create(*this, icon->url);
     m_iconLoaders.add(iconLoader, WTF::move(completionHandler));
 
     iconLoader->startLoading();
@@ -2509,7 +2509,7 @@ void DocumentLoader::finishedLoadingIcon(IconLoader& loader, FragmentedSharedBuf
     ASSERT(m_frame);
 
     if (auto callback = m_iconLoaders.take(&loader))
-        callback(buffer);
+        (*callback)(buffer);
 }
 
 void DocumentLoader::dispatchOnloadEvents()

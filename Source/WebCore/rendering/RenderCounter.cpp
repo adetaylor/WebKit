@@ -500,7 +500,7 @@ void RenderCounter::destroyCounterNodes(RenderElement& owner)
     auto& maps = counterMaps();
     ASSERT(maps.contains(owner));
     auto counterMap = maps.take(owner);
-    for (auto& counterMapEntry : *counterMap)
+    for (auto& counterMapEntry : **counterMap)
         destroyCounterNodeWithoutMapRemoval(counterMapEntry.key, counterMapEntry.value);
     owner.setHasCounterNodeMap(false);
 }

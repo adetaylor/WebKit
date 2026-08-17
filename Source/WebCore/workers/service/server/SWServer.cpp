@@ -1321,7 +1321,7 @@ void SWServer::workerContextTerminated(SWServerWorker& worker)
         return;
     }
 
-    ASSERT_UNUSED(result, result == &worker);
+    ASSERT_UNUSED(result, result && result->ptr() == &worker);
 
     worker.setState(SWServerWorker::State::NotRunning);
 

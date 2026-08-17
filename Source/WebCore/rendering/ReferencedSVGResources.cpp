@@ -178,8 +178,10 @@ void ReferencedSVGResources::addClientForTarget(SVGElement& targetElement, const
 void ReferencedSVGResources::removeClientForTarget(const AtomString& targetID)
 {
     auto entry = m_elementClients.take(targetID);
-    if (RefPtr targetElement = entry.targetElement)
-        targetElement->removeReferencingCSSClient(protect(*entry.client));
+    if (!entry)
+        return;
+    if (RefPtr targetElement = entry->targetElement)
+        targetElement->removeReferencingCSSClient(protect(*entry->client));
 }
 
 ReferencedSVGResources::SVGElementIdentifierAndTagPairs ReferencedSVGResources::referencedSVGResourceIDs(const Style::ComputedStyle& style, const Document& document)

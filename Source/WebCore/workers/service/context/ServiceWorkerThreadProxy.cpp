@@ -371,14 +371,14 @@ void ServiceWorkerThreadProxy::firePushEvent(std::optional<Vector<uint8_t>>&& da
         thread().queueTaskToFirePushEvent(WTF::move(data), WTF::move(proposedPayload), [this, protectedThis = Ref { *this }, identifier](bool result, std::optional<NotificationPayload> resultPayload) mutable {
             callOnMainThread([this, protectedThis = Ref { *this }, identifier, result, resultPayload = crossThreadCopy(WTF::move(resultPayload))]() mutable {
                 if (auto callback = m_ongoingNotificationPayloadFunctionalEventTasks.take(identifier))
-                    callback(result, WTF::move(resultPayload));
+                    (*callback)(result, WTF::move(resultPayload));
                 if (m_ongoingNotificationPayloadFunctionalEventTasks.isEmpty())
                     thread().stopNotificationPayloadFunctionalEventMonitoring();
             });
         });
     }, WorkerRunLoop::defaultMode());
     if (!isPosted)
-        m_ongoingNotificationPayloadFunctionalEventTasks.take(identifier)(false, WTF::move(payloadCopy));
+        (*m_ongoingNotificationPayloadFunctionalEventTasks.take(identifier))(false, WTF::move(payloadCopy));
 }
 
 void ServiceWorkerThreadProxy::firePushSubscriptionChangeEvent(std::optional<PushSubscriptionData>&& newSubscriptionData, std::optional<PushSubscriptionData>&& oldSubscriptionData)
@@ -406,14 +406,14 @@ void ServiceWorkerThreadProxy::fireNotificationEvent(NotificationData&& data, No
         thread().queueTaskToFireNotificationEvent(WTF::move(data), eventType, [this, protectedThis = Ref { *this }, identifier](bool result) mutable {
             callOnMainThread([this, protectedThis = Ref { *this }, identifier, result]() mutable {
                 if (auto callback = m_ongoingFunctionalEventTasks.take(identifier))
-                    callback(result);
+                    (*callback)(result);
                 if (m_ongoingFunctionalEventTasks.isEmpty())
                     thread().stopFunctionalEventMonitoring();
             });
         });
     }, WorkerRunLoop::defaultMode());
     if (!isPosted)
-        m_ongoingFunctionalEventTasks.take(identifier)(false);
+        (*m_ongoingFunctionalEventTasks.take(identifier))(false);
 #else
     UNUSED_PARAM(data);
     UNUSED_PARAM(eventType);
@@ -433,14 +433,14 @@ void ServiceWorkerThreadProxy::fireBackgroundFetchEvent(BackgroundFetchInformati
         thread().queueTaskToFireBackgroundFetchEvent(WTF::move(info), [this, protectedThis = Ref { *this }, identifier](bool result) mutable {
             callOnMainThread([this, protectedThis = Ref { *this }, identifier, result]() mutable {
                 if (auto callback = m_ongoingFunctionalEventTasks.take(identifier))
-                    callback(result);
+                    (*callback)(result);
                 if (m_ongoingFunctionalEventTasks.isEmpty())
                     thread().stopFunctionalEventMonitoring();
             });
         });
     }, WorkerRunLoop::defaultMode());
     if (!isPosted)
-        m_ongoingFunctionalEventTasks.take(identifier)(false);
+        (*m_ongoingFunctionalEventTasks.take(identifier))(false);
 }
 
 void ServiceWorkerThreadProxy::fireBackgroundFetchClickEvent(BackgroundFetchInformation&& info, CompletionHandler<void(bool)>&& callback)
@@ -455,14 +455,14 @@ void ServiceWorkerThreadProxy::fireBackgroundFetchClickEvent(BackgroundFetchInfo
         thread().queueTaskToFireBackgroundFetchClickEvent(WTF::move(info), [this, protectedThis = Ref { *this }, identifier](bool result) mutable {
             callOnMainThread([this, protectedThis = Ref { *this }, identifier, result]() mutable {
                 if (auto callback = m_ongoingFunctionalEventTasks.take(identifier))
-                    callback(result);
+                    (*callback)(result);
                 if (m_ongoingFunctionalEventTasks.isEmpty())
                     thread().stopFunctionalEventMonitoring();
             });
         });
     }, WorkerRunLoop::defaultMode());
     if (!isPosted)
-        m_ongoingFunctionalEventTasks.take(identifier)(false);
+        (*m_ongoingFunctionalEventTasks.take(identifier))(false);
 }
 
 void ServiceWorkerThreadProxy::setAppBadge(std::optional<uint64_t> badge)

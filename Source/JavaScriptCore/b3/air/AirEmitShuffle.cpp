@@ -258,7 +258,7 @@ Vector<Inst> emitShuffle(
                     for (const ShufflePair& pair : currentPairs)
                         dstMapping.add(pair.dst(), pair);
 
-                    ShufflePair pair = dstMapping.take(originalSrc);
+                    ShufflePair pair = *dstMapping.take(originalSrc);
                     for (;;) {
                         rotate.loop.append(pair);
 

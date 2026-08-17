@@ -165,7 +165,7 @@ void WebNotificationManagerProxy::clearNotifications(WebPageProxy* webPage, cons
     }
 
     for (auto globalNotificationID : globalNotificationIDs) {
-        if (auto pageNotification = m_globalNotificationMap.takeOptional(globalNotificationID))
+        if (auto pageNotification = m_globalNotificationMap.take(globalNotificationID))
             m_notifications.remove(*pageNotification);
     }
 

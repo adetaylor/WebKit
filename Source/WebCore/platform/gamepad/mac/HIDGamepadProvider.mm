@@ -319,7 +319,10 @@ void HIDGamepadProvider::inputNotificationTimerFired()
 
 std::unique_ptr<HIDGamepad> HIDGamepadProvider::removeGamepadForDevice(IOHIDDeviceRef device)
 {
-    std::unique_ptr<HIDGamepad> result = m_gamepadMap.take(device);
+    auto takenGamepad = m_gamepadMap.take(device);
+    if (!takenGamepad)
+        return nullptr;
+    std::unique_ptr<HIDGamepad> result = WTF::move(*takenGamepad);
     if (!result)
         return nullptr;
 

@@ -3394,7 +3394,7 @@ TEST(WTF_WeakRef, HashMapLookupFromRawRef)
     EXPECT_EQ(map.get(object), 2U);
     EXPECT_FALSE(object.didUpdateImplRefCount());
 
-    unsigned taken = map.take(object);
+    unsigned taken = *map.take(object);
     EXPECT_EQ(taken, 2U);
 }
 

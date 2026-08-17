@@ -1698,7 +1698,7 @@ void WebPageProxy::textIndicatorForTextEffectID(const WTF::UUID& uuid, Completio
         return;
     }
 
-    auto maybeTextIndicator = internals().textIndicatorForAnimationID.takeOptional(uuid);
+    auto maybeTextIndicator = internals().textIndicatorForAnimationID.take(uuid);
     if (RefPtr textIndicator = maybeTextIndicator.value_or(nullptr)) {
         completionHandler(WTF::move(textIndicator));
         return;

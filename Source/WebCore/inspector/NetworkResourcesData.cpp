@@ -370,7 +370,7 @@ void NetworkResourcesData::ensureNoDataForRequestId(const String& requestId)
     if (!result)
         return;
 
-    ResourceData* resourceData = result.get();
+    ResourceData* resourceData = result->get();
     if (resourceData->hasContent() || resourceData->hasData())
         m_contentSize -= resourceData->evictContent();
 }

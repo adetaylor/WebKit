@@ -57,7 +57,7 @@ PlatformTextAlternatives *AlternativeTextContextController::alternativesForConte
 void AlternativeTextContextController::removeAlternativesForContext(DictationContext context)
 {
     if (auto alternatives = m_alternatives.take(context))
-        m_contexts.remove(alternatives);
+        m_contexts.remove(*alternatives);
 }
 
 void AlternativeTextContextController::clear()

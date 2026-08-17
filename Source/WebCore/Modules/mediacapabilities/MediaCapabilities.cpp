@@ -276,7 +276,7 @@ void MediaCapabilities::decodingInfo(ScriptExecutionContext& context, MediaDecod
                 if (!weakThis)
                     return;
                 if (auto callback = weakThis->m_decodingTasks.take(taskIdentifier))
-                    callback(WTF::move(result));
+                    (*callback)(WTF::move(result));
             });
         });
     });
@@ -333,7 +333,7 @@ void MediaCapabilities::encodingInfo(ScriptExecutionContext& context, MediaEncod
                 if (!weakThis)
                     return;
                 if (auto callback = weakThis->m_encodingTasks.take(taskIdentifier))
-                    callback(WTF::move(result));
+                    (*callback)(WTF::move(result));
             });
         });
     });

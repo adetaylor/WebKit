@@ -242,7 +242,7 @@ void FileReader::enqueueTask(Function<void(FileReader&)>&& task)
     queueTaskKeepingObjectAlive(*this, TaskSource::FileReading, [taskIdentifier](auto& reader) {
         auto task = reader.m_pendingTasks.take(taskIdentifier);
         if (task && !reader.isContextStopped())
-            task(reader);
+            (*task)(reader);
     });
 }
 

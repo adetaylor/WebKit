@@ -128,7 +128,7 @@ void WorkerFileSystemStorageConnection::isSameEntry(FileSystemHandleIdentifier i
 void WorkerFileSystemStorageConnection::didIsSameEntry(CallbackIdentifier callbackIdentifier, ExceptionOr<bool>&& result)
 {
     if (auto callback = m_sameEntryCallbacks.take(callbackIdentifier))
-        callback(WTF::move(result));
+        (*callback)(WTF::move(result));
 }
 
 void WorkerFileSystemStorageConnection::getFileHandle(FileSystemHandleIdentifier identifier, const String& name, bool createIfNecessary, FileSystemStorageConnection::GetHandleCallback&& callback)
@@ -176,7 +176,7 @@ void WorkerFileSystemStorageConnection::getDirectoryHandle(FileSystemHandleIdent
 void WorkerFileSystemStorageConnection::didGetHandle(CallbackIdentifier callbackIdentifier, ExceptionOr<Ref<FileSystemHandleCloseScope>>&& result)
 {
     if (auto callback = m_getHandleCallbacks.take(callbackIdentifier))
-        callback(WTF::move(result));
+        (*callback)(WTF::move(result));
 }
 
 void WorkerFileSystemStorageConnection::removeEntry(FileSystemHandleIdentifier identifier, const String& name, bool deleteRecursively, FileSystemStorageConnection::VoidCallback&& callback)
@@ -224,7 +224,7 @@ void WorkerFileSystemStorageConnection::resolve(FileSystemHandleIdentifier ident
 void WorkerFileSystemStorageConnection::didResolve(CallbackIdentifier callbackIdentifier, ExceptionOr<std::optional<Vector<String>>>&& result)
 {
     if (auto callback = m_resolveCallbacks.take(callbackIdentifier))
-        callback(WTF::move(result));
+        (*callback)(WTF::move(result));
 }
 
 void WorkerFileSystemStorageConnection::getFile(FileSystemHandleIdentifier identifier, StringCallback&& callback)
@@ -251,25 +251,25 @@ void WorkerFileSystemStorageConnection::getFile(FileSystemHandleIdentifier ident
 void WorkerFileSystemStorageConnection::completeStringCallback(CallbackIdentifier callbackIdentifier, ExceptionOr<String>&& result)
 {
     if (auto callback = m_stringCallbacks.take(callbackIdentifier))
-        callback(WTF::move(result));
+        (*callback)(WTF::move(result));
 }
 
 void WorkerFileSystemStorageConnection::didResolveGlobalIdentifier(CallbackIdentifier callbackIdentifier, ExceptionOr<FileSystemHandleIdentifier>&& result)
 {
     if (auto callback = m_resolveGlobalIdentifierCallbacks.take(callbackIdentifier))
-        callback(WTF::move(result));
+        (*callback)(WTF::move(result));
 }
 
 void WorkerFileSystemStorageConnection::didCreateSyncAccessHandle(CallbackIdentifier callbackIdentifier, ExceptionOr<FileSystemStorageConnection::SyncAccessHandleInfo>&& result)
 {
     if (auto callback = m_getAccessHandlCallbacks.take(callbackIdentifier))
-        callback(WTF::move(result));
+        (*callback)(WTF::move(result));
 }
 
 void WorkerFileSystemStorageConnection::completeVoidCallback(CallbackIdentifier callbackIdentifier, ExceptionOr<void>&& result)
 {
     if (auto callback = m_voidCallbacks.take(callbackIdentifier))
-        callback(WTF::move(result));
+        (*callback)(WTF::move(result));
 }
 
 void WorkerFileSystemStorageConnection::createSyncAccessHandle(FileSystemHandleIdentifier identifier, FileSystemStorageConnection::GetAccessHandleCallback&& callback)
@@ -355,7 +355,7 @@ void WorkerFileSystemStorageConnection::createWritable(ScriptExecutionContextIde
             workerThread->runLoop().postTaskForMode([callbackIdentifier, result = crossThreadCopy(WTF::move(result))] (auto& scope) mutable {
                 if (RefPtr connection = downcast<WorkerGlobalScope>(scope).fileSystemStorageConnection()) {
                     if (auto callback = connection->m_streamCallbacks.take(callbackIdentifier))
-                        callback(WTF::move(result));
+                        (*callback)(WTF::move(result));
                 }
             }, WorkerRunLoop::defaultMode());
         };
@@ -432,7 +432,7 @@ void WorkerFileSystemStorageConnection::getHandleNames(FileSystemHandleIdentifie
 void WorkerFileSystemStorageConnection::didGetHandleNames(CallbackIdentifier callbackIdentifier, ExceptionOr<Vector<String>>&& result)
 {
     if (auto callback = m_getHandleNamesCallbacks.take(callbackIdentifier))
-        callback(WTF::move(result));
+        (*callback)(WTF::move(result));
 }
 
 void WorkerFileSystemStorageConnection::getHandle(FileSystemHandleIdentifier identifier, const String& name, GetHandleCallback&& callback)

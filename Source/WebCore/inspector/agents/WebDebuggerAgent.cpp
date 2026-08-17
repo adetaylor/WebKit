@@ -119,8 +119,10 @@ void WebDebuggerAgent::willRemoveEventListener(EventTarget& target, const AtomSt
     if (listenerIndex == notFound)
         return;
 
-    int identifier = m_registeredEventListeners.take(eventListeners[listenerIndex].ptr());
-    didCancelAsyncCall(InspectorDebuggerAgent::AsyncCallType::EventListener, identifier);
+    auto identifier = m_registeredEventListeners.take(eventListeners[listenerIndex].ptr());
+    if (!identifier)
+        return;
+    didCancelAsyncCall(InspectorDebuggerAgent::AsyncCallType::EventListener, *identifier);
 }
 
 void WebDebuggerAgent::willHandleEvent(const RegisteredEventListener& listener)

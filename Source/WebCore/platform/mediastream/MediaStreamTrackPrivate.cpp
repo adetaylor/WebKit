@@ -286,7 +286,7 @@ void MediaStreamTrackPrivateSourceObserver::applyConstraints(const MediaConstrai
                 return;
             weakObserver->postTask([protectedThis = WTF::move(protectedThis), result = crossThreadCopy(WTF::move(result)), settings = crossThreadCopy(weakObserver->settings()), capabilities = crossThreadCopy(weakObserver->capabilities()), identifier] () mutable {
                 if (auto callback = protectedThis->m_applyConstraintsCallbacks.take(identifier))
-                    callback(WTF::move(result), WTF::move(settings), WTF::move(capabilities));
+                    (*callback)(WTF::move(result), WTF::move(settings), WTF::move(capabilities));
             });
         });
     });

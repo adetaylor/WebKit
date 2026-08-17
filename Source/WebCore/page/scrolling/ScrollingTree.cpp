@@ -325,7 +325,7 @@ void ScrollingTree::setOverlayScrollbarsEnabled(bool enabled)
 void ScrollingTree::removeNode(ScrollingNodeID nodeID, ScrollingTreeFrameHostingNode* hostingNode)
 {
     m_latchingController.nodeWasRemoved(nodeID);
-    if (auto node = m_nodeMap.take(nodeID)) {
+    if (RefPtr node = m_nodeMap.take(nodeID)) {
         {
             Locker locker { m_frameIDMapLock };
             auto nodeList = m_nodeMapPerFrame.find(node->frameIdentifier());

@@ -210,7 +210,7 @@ public:
     void takeNetworkLoadInformationMetrics(WebCore::ResourceLoaderIdentifier identifier, CompletionHandler<void(const WebCore::NetworkLoadMetrics&)>&& completionHandler)
     {
         if (auto info = m_networkLoadInformationByID.take(identifier))
-            return completionHandler(info->metrics);
+            return completionHandler((*info)->metrics);
         completionHandler({ });
     }
 

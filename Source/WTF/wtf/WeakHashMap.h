@@ -246,26 +246,15 @@ public:
         return contains(&key);
     }
 
-    typename ValueTraits::TakeType take(const KeyType* key)
+    HashMapTakeType<ValueType, typename ValueTraits::TakeType> take(const KeyType* key)
     {
         amortizedCleanupIfNeeded();
         return m_map.take(key);
     }
 
-    typename ValueTraits::TakeType take(const KeyType& key)
+    HashMapTakeType<ValueType, typename ValueTraits::TakeType> take(const KeyType& key)
     {
         return take(&key);
-    }
-
-    std::optional<ValueType> takeOptional(const KeyType* key)
-    {
-        amortizedCleanupIfNeeded();
-        return m_map.takeOptional(key);
-    }
-
-    std::optional<ValueType> takeOptional(const KeyType& key)
-    {
-        return takeOptional(&key);
     }
 
     typename ValueTraits::PeekType get(const KeyType* key) const

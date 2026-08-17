@@ -68,7 +68,7 @@ void SessionStorageManager::connectionClosed(IPC::Connection::UniqueID connectio
 
 void SessionStorageManager::removeNamespace(StorageNamespaceIdentifier namespaceIdentifier)
 {
-    auto identifier = m_storageAreasByNamespace.takeOptional(namespaceIdentifier);
+    auto identifier = m_storageAreasByNamespace.take(namespaceIdentifier);
     if (!identifier)
         return;
 

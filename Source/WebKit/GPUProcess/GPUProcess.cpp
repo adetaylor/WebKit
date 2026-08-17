@@ -123,7 +123,7 @@ void GPUProcess::createGPUConnectionToWebProcess(WebCore::ProcessIdentifier iden
 
 #if ENABLE(MEDIA_STREAM)
     // FIXME: We should refactor code to go from WebProcess -> GPUProcess -> UIProcess when getUserMedia is called instead of going from WebProcess -> UIProcess directly.
-    auto access = m_mediaCaptureAccessMap.take(identifier);
+    auto access = m_mediaCaptureAccessMap.take(identifier).value_or(MediaCaptureAccess { });
     newConnection->updateCaptureAccess(access.allowAudioCapture, access.allowVideoCapture, access.allowDisplayCapture, access.willUseEchoCancellation);
     newConnection->setOrientationForMediaCapture(m_orientation);
 #endif

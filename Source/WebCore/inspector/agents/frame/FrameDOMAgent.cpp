@@ -205,9 +205,10 @@ Inspector::Protocol::DOM::NodeId FrameDOMAgent::bind(Node& node)
 
 void FrameDOMAgent::unbind(Node& node)
 {
-    auto id = m_nodeToId.take(node);
-    if (!id)
+    auto takenId = m_nodeToId.take(node);
+    if (!takenId)
         return;
+    auto id = *takenId;
 
     m_idToNode.remove(id);
 
@@ -691,9 +692,10 @@ void FrameDOMAgent::willDestroyDOMNode(Node& node)
     if (frameContainsOnlyASCIIWhitespace(&node))
         return;
 
-    auto nodeId = m_nodeToId.take(node);
-    if (!nodeId)
+    auto takenNodeId = m_nodeToId.take(node);
+    if (!takenNodeId)
         return;
+    auto nodeId = *takenNodeId;
 
     m_idToNode.remove(nodeId);
     m_childrenRequested.remove(nodeId);

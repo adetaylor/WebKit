@@ -1171,14 +1171,14 @@ Inspector::Protocol::ErrorStringOr<void> InspectorNetworkAgent::interceptContinu
     switch (networkStage) {
     case Inspector::Protocol::Network::NetworkStage::Request:
         if (auto pendingInterceptRequest = m_pendingInterceptRequests.take(requestId)) {
-            pendingInterceptRequest->continueWithOriginalRequest();
+            (*pendingInterceptRequest)->continueWithOriginalRequest();
             return { };
         }
         return makeUnexpected("Missing pending intercept request for given requestId"_s);
 
     case Inspector::Protocol::Network::NetworkStage::Response:
         if (auto pendingInterceptResponse = m_pendingInterceptResponses.take(requestId)) {
-            pendingInterceptResponse->respondWithOriginalResponse();
+            (*pendingInterceptResponse)->respondWithOriginalResponse();
             return { };
         }
         return makeUnexpected("Missing pending intercept response for given requestId"_s);
@@ -1194,7 +1194,7 @@ Inspector::Protocol::ErrorStringOr<void> InspectorNetworkAgent::interceptWithReq
     if (!pendingRequest)
         return makeUnexpected("Missing pending intercept request for given requestId"_s);
 
-    Ref loader = *pendingRequest->m_loader;
+    Ref loader = *(*pendingRequest)->m_loader;
     if (loader->reachedTerminalState())
         return makeUnexpected("Unable to intercept request, it has already been processed"_s);
 
@@ -1220,8 +1220,7 @@ Inspector::Protocol::ErrorStringOr<void> InspectorNetworkAgent::interceptWithReq
         request.setHTTPBody(FormData::create(WTF::move(*buffer)));
     }
     // FIXME: figure out how to identify when a request has been overridden when we add this to the frontend.
-    pendingRequest->continueWithRequest(request);
-
+    (*pendingRequest)->continueWithRequest(request);
     return { };
 }
 
@@ -1231,7 +1230,7 @@ Inspector::Protocol::ErrorStringOr<void> InspectorNetworkAgent::interceptWithRes
     if (!pendingInterceptResponse)
         return makeUnexpected("Missing pending intercept response for given requestId"_s);
 
-    ResourceResponse overrideResponse(pendingInterceptResponse->originalResponse());
+    ResourceResponse overrideResponse((*pendingInterceptResponse)->originalResponse());
     overrideResponse.setSource(ResourceResponse::Source::InspectorOverride);
 
     if (status)
@@ -1261,7 +1260,7 @@ Inspector::Protocol::ErrorStringOr<void> InspectorNetworkAgent::interceptWithRes
     } else
         overrideData = SharedBuffer::create(content.utf8().span());
 
-    pendingInterceptResponse->respond(overrideResponse, overrideData);
+    (*pendingInterceptResponse)->respond(overrideResponse, overrideData);
 
     return { };
 }
@@ -1273,7 +1272,7 @@ Inspector::Protocol::ErrorStringOr<void> InspectorNetworkAgent::interceptRequest
         return makeUnexpected("Missing pending intercept request for given requestId"_s);
 
     // Loader will be retained in the didReceiveResponse lambda below.
-    RefPtr<ResourceLoader> loader = pendingRequest->m_loader.get();
+    RefPtr<ResourceLoader> loader = (*pendingRequest)->m_loader.get();
     if (loader->reachedTerminalState())
         return makeUnexpected("Unable to fulfill request, it has already been processed"_s);
 
@@ -1288,7 +1287,7 @@ Inspector::Protocol::ErrorStringOr<void> InspectorNetworkAgent::interceptRequest
         data = SharedBuffer::create(content.utf8().span());
 
     // Mimic data URL load behavior - report didReceiveResponse & didFinishLoading.
-    ResourceResponse response(URL { pendingRequest->m_loader->url() }, String { mimeType }, data->size(), String());
+    ResourceResponse response(URL { (*pendingRequest)->m_loader->url() }, String { mimeType }, data->size(), String());
     response.setSource(ResourceResponse::Source::InspectorOverride);
     response.setHTTPStatusCode(status);
     response.setHTTPStatusText(String { statusText });
@@ -1338,7 +1337,7 @@ Inspector::Protocol::ErrorStringOr<void> InspectorNetworkAgent::interceptRequest
     if (!pendingRequest)
         return makeUnexpected("Missing pending intercept request for given requestId"_s);
 
-    Ref loader = *pendingRequest->m_loader;
+    Ref loader = *(*pendingRequest)->m_loader;
     if (loader->reachedTerminalState())
         return makeUnexpected("Unable to abort request, it has already been processed"_s);
 

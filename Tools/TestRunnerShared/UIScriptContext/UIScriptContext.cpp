@@ -92,18 +92,18 @@ void UIScriptContext::asyncTaskComplete(unsigned callbackID, std::initializer_li
 {
     if (!decltype(m_callbacks)::isValidKey(callbackID))
         return;
-    Task task = m_callbacks.take(callbackID);
-    if (!task.callback)
+    auto task = m_callbacks.take(callbackID);
+    if (!task || !task->callback)
         return;
 
     JSValueRef exception = nullptr;
-    JSObjectRef callbackObject = JSValueToObject(m_context.get(), task.callback, &exception);
+    JSObjectRef callbackObject = JSValueToObject(m_context.get(), task->callback, &exception);
 
-    m_currentScriptCallbackID = task.parentScriptCallbackID;
+    m_currentScriptCallbackID = task->parentScriptCallbackID;
 
     exception = nullptr;
     JSObjectCallAsFunction(m_context.get(), callbackObject, JSContextGetGlobalObject(m_context.get()), arguments.size(), arguments.size() ? arguments.begin() : nullptr, &exception);
-    JSValueUnprotect(m_context.get(), task.callback);
+    JSValueUnprotect(m_context.get(), task->callback);
     
     tryToCompleteUIScriptForCurrentParentCallback();
     m_currentScriptCallbackID = 0;
@@ -122,9 +122,10 @@ unsigned UIScriptContext::registerCallback(JSValueRef taskCallback, CallbackType
 
 void UIScriptContext::unregisterCallback(unsigned callbackID)
 {
-    Task task = m_callbacks.take(callbackID);
-    ASSERT(task.callback);
-    JSValueUnprotect(m_context.get(), task.callback);
+    auto task = m_callbacks.take(callbackID);
+    ASSERT(task && task->callback);
+    if (task && task->callback)
+        JSValueUnprotect(m_context.get(), task->callback);
 }
 
 JSValueRef UIScriptContext::callbackWithID(unsigned callbackID)
@@ -168,10 +169,12 @@ void UIScriptContext::tryToCompleteUIScriptForCurrentParentCallback()
     if (!currentParentCallbackIsPendingCompletion() || currentParentCallbackHasOutstandingAsyncTasks())
         return;
 
-    JSStringRef result = m_uiScriptResultsPendingCompletion.take(m_currentScriptCallbackID);
-    String scriptResult({ reinterpret_cast<const char16_t*>(JSStringGetCharactersPtr(result)), JSStringGetLength(result) });
-    if (result)
-        JSStringRelease(result);
+    auto result = m_uiScriptResultsPendingCompletion.take(m_currentScriptCallbackID);
+    String scriptResult;
+    if (result && *result) {
+        scriptResult = String({ reinterpret_cast<const char16_t*>(JSStringGetCharactersPtr(*result)), JSStringGetLength(*result) });
+        JSStringRelease(*result);
+    }
 
     m_delegate.uiScriptDidComplete(scriptResult, m_currentScriptCallbackID);
     

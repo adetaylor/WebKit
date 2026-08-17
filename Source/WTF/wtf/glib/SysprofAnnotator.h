@@ -107,7 +107,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 
         {
             Locker locker { m_lock };
-            value = m_ongoingMarks.takeOptional(key);
+            value = m_ongoingMarks.take(key);
         }
 
         if (value) {

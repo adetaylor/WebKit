@@ -241,7 +241,7 @@ RemoteDisplayListIdentifier RemoteResourceCacheProxy::recordDisplayListUse(const
 
 void RemoteResourceCacheProxy::willDestroyNativeImage(const NativeImage& image)
 {
-    auto entry = m_nativeImages.takeOptional(&image);
+    auto entry = m_nativeImages.take(&image);
     RELEASE_ASSERT(entry);
     if (!entry->existsInRemote)
         return;

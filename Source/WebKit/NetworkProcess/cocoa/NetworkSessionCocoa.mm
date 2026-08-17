@@ -730,7 +730,7 @@ static NSDictionary<NSString *, id> *extractResolutionReport(NSError *error)
     } else if (updatedError) {
         if (!_sessionWrapper)
             return;
-        auto downloadID = _sessionWrapper->downloadMap.takeOptional(task.taskIdentifier);
+        auto downloadID = _sessionWrapper->downloadMap.take(task.taskIdentifier);
         if (!downloadID)
             return;
         if (!_session)
@@ -925,7 +925,7 @@ static NSDictionary<NSString *, id> *extractResolutionReport(NSError *error)
 {
     if (!_sessionWrapper)
         return;
-    auto downloadID = _sessionWrapper->downloadMap.takeOptional([downloadTask taskIdentifier]);
+    auto downloadID = _sessionWrapper->downloadMap.take([downloadTask taskIdentifier]);
     if (!downloadID)
         return;
     if (CheckedPtr session = _session.get()) {

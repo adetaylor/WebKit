@@ -394,7 +394,7 @@ String InspectorLayerTreeAgent::bind(const RenderLayer* layer)
 
 void InspectorLayerTreeAgent::unbind(const RenderLayer* layer)
 {
-    auto identifier = m_documentLayerToIdMap.take(layer);
+    auto identifier = m_documentLayerToIdMap.take(layer).value_or(String { });
     if (identifier.isNull())
         return;
     m_idToLayer.remove(identifier);
@@ -415,7 +415,7 @@ void InspectorLayerTreeAgent::unbindPseudoElement(PseudoElement* pseudoElement)
 {
     if (!pseudoElement)
         return;
-    auto identifier = m_pseudoElementToIdMap.take(*pseudoElement);
+    auto identifier = m_pseudoElementToIdMap.take(*pseudoElement).value_or(String { });
     if (identifier.isNull())
         return;
     m_idToPseudoElement.remove(identifier);

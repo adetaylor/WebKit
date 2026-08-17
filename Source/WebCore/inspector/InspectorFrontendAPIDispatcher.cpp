@@ -205,8 +205,11 @@ void InspectorFrontendAPIDispatcher::evaluateOrQueueExpression(const String& exp
         if (!protectedThis->m_pendingResponses.size())
             return;
 
-        EvaluationResultHandler resultHandler = protectedThis->m_pendingResponses.take(promise);
-        ASSERT(resultHandler);
+        auto takenResultHandler = protectedThis->m_pendingResponses.take(promise);
+        ASSERT(takenResultHandler);
+        if (!takenResultHandler)
+            return;
+        EvaluationResultHandler resultHandler = WTF::move(*takenResultHandler);
         
         JSDOMGlobalObject* globalObject = protectedThis->frontendGlobalObject();
         if (!globalObject) {

@@ -103,7 +103,7 @@ void WrapperMapTableMalloc::free(void* p)
     size_t size = 0;
     {
         Locker locker { backingRegistryLock };
-        size = backingRegistry().take(p);
+        size = backingRegistry().take(p).value_or(0);
     }
     RELEASE_ASSERT(size);
     if (auto* world = WrapperMutationScope::currentlyMutatedWorld())

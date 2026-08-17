@@ -57,13 +57,13 @@ TextTrackCueGeneric* GenericTextTrackCueMap::find(InbandGenericCueIdentifier inb
 
 void GenericTextTrackCueMap::remove(InbandGenericCueIdentifier inbandCueIdentifier)
 {
-    if (auto publicCue = m_dataToCueMap.take(inbandCueIdentifier))
+    if (RefPtr publicCue = m_dataToCueMap.take(inbandCueIdentifier))
         m_cueToDataMap.remove(publicCue.get());
 }
 
 void GenericTextTrackCueMap::remove(TextTrackCue& publicCue)
 {
-    if (auto cueIdentifier = m_cueToDataMap.takeOptional(&publicCue))
+    if (auto cueIdentifier = m_cueToDataMap.take(&publicCue))
         m_dataToCueMap.remove(*cueIdentifier);
 }
 

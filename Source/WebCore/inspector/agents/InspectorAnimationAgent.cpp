@@ -690,9 +690,9 @@ void InspectorAnimationAgent::stopTrackingStyleOriginatedAnimation(StyleOriginat
     if (!data)
         return;
 
-    if (data->lastComputedTiming.phase != AnimationEffectPhase::After && data->lastComputedTiming.phase != AnimationEffectPhase::Idle) {
+    if ((*data)->lastComputedTiming.phase != AnimationEffectPhase::After && (*data)->lastComputedTiming.phase != AnimationEffectPhase::Idle) {
         auto event = Inspector::Protocol::Animation::TrackingUpdate::create()
-            .setTrackingAnimationId(data->trackingAnimationId)
+            .setTrackingAnimationId((*data)->trackingAnimationId)
             .setAnimationState(Inspector::Protocol::Animation::AnimationState::Canceled)
             .release();
         m_frontendDispatcher->trackingUpdate(protect(environment())->executionStopwatch().elapsedTime().seconds(), WTF::move(event));

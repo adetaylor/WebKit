@@ -41,8 +41,8 @@ static unsigned collateRecursive(Item& item, HashMap<FrameIdentifier, UniqueRef<
 
     if (auto iframe = item.dataAs<IFrameData>(); iframe && item.children.isEmpty()) {
         if (auto subFrameResult = subFrameResults.take(iframe->identifier)) {
-            item.children = WTF::move(subFrameResult->rootItem.children);
-            additionalTextLength += subFrameResult->visibleTextLength;
+            item.children = WTF::move((*subFrameResult)->rootItem.children);
+            additionalTextLength += (*subFrameResult)->visibleTextLength;
         }
     }
 

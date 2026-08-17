@@ -82,7 +82,7 @@ void SVGResourcesCache::removeResourcesFromRenderer(RenderElement& renderer)
 
     // Walk resources and register the render object at each resources.
     SingleThreadWeakHashSet<LegacyRenderSVGResourceContainer> resourceSet;
-    resources->buildSetOfResources(resourceSet);
+    (*resources)->buildSetOfResources(resourceSet);
 
     for (auto& resourceContainer : resourceSet)
         resourceContainer.removeClient(renderer);

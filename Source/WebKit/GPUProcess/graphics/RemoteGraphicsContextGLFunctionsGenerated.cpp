@@ -254,7 +254,7 @@ void RemoteGraphicsContextGL::deleteBuffer(uint32_t arg0)
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
     if (!arg0) [[unlikely]]
         return;
-    arg0 = m_objectNames.take(arg0);
+    arg0 = m_objectNames.take(arg0).value_or(0);
     protect(m_context)->deleteBuffer(arg0);
 }
 
@@ -264,7 +264,7 @@ void RemoteGraphicsContextGL::deleteFramebuffer(uint32_t arg0)
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
     if (!arg0) [[unlikely]]
         return;
-    arg0 = m_objectNames.take(arg0);
+    arg0 = m_objectNames.take(arg0).value_or(0);
     protect(m_context)->deleteFramebuffer(arg0);
 }
 
@@ -274,7 +274,7 @@ void RemoteGraphicsContextGL::deleteProgram(uint32_t arg0)
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
     if (!arg0) [[unlikely]]
         return;
-    arg0 = m_objectNames.take(arg0);
+    arg0 = m_objectNames.take(arg0).value_or(0);
     protect(m_context)->deleteProgram(arg0);
 }
 
@@ -284,7 +284,7 @@ void RemoteGraphicsContextGL::deleteRenderbuffer(uint32_t arg0)
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
     if (!arg0) [[unlikely]]
         return;
-    arg0 = m_objectNames.take(arg0);
+    arg0 = m_objectNames.take(arg0).value_or(0);
     protect(m_context)->deleteRenderbuffer(arg0);
 }
 
@@ -294,7 +294,7 @@ void RemoteGraphicsContextGL::deleteShader(uint32_t arg0)
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
     if (!arg0) [[unlikely]]
         return;
-    arg0 = m_objectNames.take(arg0);
+    arg0 = m_objectNames.take(arg0).value_or(0);
     protect(m_context)->deleteShader(arg0);
 }
 
@@ -304,7 +304,7 @@ void RemoteGraphicsContextGL::deleteTexture(uint32_t arg0)
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
     if (!arg0) [[unlikely]]
         return;
-    arg0 = m_objectNames.take(arg0);
+    arg0 = m_objectNames.take(arg0).value_or(0);
     protect(m_context)->deleteTexture(arg0);
 }
 
@@ -1119,7 +1119,7 @@ void RemoteGraphicsContextGL::deleteVertexArray(uint32_t arg0)
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
     if (!arg0) [[unlikely]]
         return;
-    arg0 = m_objectNames.take(arg0);
+    arg0 = m_objectNames.take(arg0).value_or(0);
     protect(m_context)->deleteVertexArray(arg0);
 }
 
@@ -1412,7 +1412,7 @@ void RemoteGraphicsContextGL::deleteQuery(uint32_t query)
     MESSAGE_CHECK(m_objectNames.isValidKey(query));
     if (!query) [[unlikely]]
         return;
-    query = m_objectNames.take(query);
+    query = m_objectNames.take(query).value_or(0);
     protect(m_context)->deleteQuery(query);
 }
 
@@ -1476,7 +1476,7 @@ void RemoteGraphicsContextGL::deleteSampler(uint32_t sampler)
     MESSAGE_CHECK(m_objectNames.isValidKey(sampler));
     if (!sampler) [[unlikely]]
         return;
-    sampler = m_objectNames.take(sampler);
+    sampler = m_objectNames.take(sampler).value_or(0);
     protect(m_context)->deleteSampler(sampler);
 }
 
@@ -1599,7 +1599,7 @@ void RemoteGraphicsContextGL::deleteTransformFeedback(uint32_t id)
     MESSAGE_CHECK(m_objectNames.isValidKey(id));
     if (!id) [[unlikely]]
         return;
-    id = m_objectNames.take(id);
+    id = m_objectNames.take(id).value_or(0);
     protect(m_context)->deleteTransformFeedback(id);
 }
 
@@ -1755,7 +1755,7 @@ void RemoteGraphicsContextGL::deleteQueryEXT(uint32_t query)
     MESSAGE_CHECK(m_objectNames.isValidKey(query));
     if (!query) [[unlikely]]
         return;
-    query = m_objectNames.take(query);
+    query = m_objectNames.take(query).value_or(0);
     protect(m_context)->deleteQueryEXT(query);
 }
 
@@ -1944,7 +1944,7 @@ void RemoteGraphicsContextGL::deleteExternalImage(uint32_t handle)
     MESSAGE_CHECK(m_objectNames.isValidKey(handle));
     if (!handle) [[unlikely]]
         return;
-    handle = m_objectNames.take(handle);
+    handle = m_objectNames.take(handle).value_or(0);
     protect(m_context)->deleteExternalImage(handle);
 }
 
@@ -1975,7 +1975,7 @@ void RemoteGraphicsContextGL::deleteExternalSync(uint32_t arg0)
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
     if (!arg0) [[unlikely]]
         return;
-    arg0 = m_objectNames.take(arg0);
+    arg0 = m_objectNames.take(arg0).value_or(0);
     protect(m_context)->deleteExternalSync(arg0);
 }
 

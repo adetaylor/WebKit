@@ -467,8 +467,8 @@ RenderObject* RenderTreeBuilder::MultiColumn::processPossibleSpannerDescendant(R
 void RenderTreeBuilder::MultiColumn::handleSpannerRemoval(RenderMultiColumnFlow& flow, RenderObject& spanner, RenderTreeBuilder::CanCollapseAnonymousBlock canCollapseAnonymousBlock)
 {
     // The placeholder may already have been removed, but if it hasn't, do so now.
-    if (auto placeholder = flow.spannerMap().take(downcast<RenderBox>(spanner)))
-        m_builder.destroy(*placeholder, canCollapseAnonymousBlock);
+    if (auto placeholder = flow.spannerMap().take(downcast<RenderBox>(spanner)); placeholder && *placeholder)
+        m_builder.destroy(**placeholder, canCollapseAnonymousBlock);
 
     if (auto* next = spanner.nextSibling()) {
         if (auto* previous = spanner.previousSibling()) {

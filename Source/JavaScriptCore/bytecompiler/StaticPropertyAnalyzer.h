@@ -154,7 +154,7 @@ inline void StaticPropertyAnalyzer::kill(RegisterID* dst)
 inline void StaticPropertyAnalyzer::kill()
 {
     while (m_analyses.size())
-        kill(m_analyses.take(m_analyses.begin()->key).get());
+        kill(m_analyses.take(m_analyses.begin()->key)->get());
 }
 
 } // namespace JSC

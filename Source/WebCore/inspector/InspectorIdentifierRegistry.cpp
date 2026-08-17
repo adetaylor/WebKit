@@ -91,7 +91,7 @@ WebCore::LocalFrame* LegacyIdentifierRegistry::assertFrame(Protocol::ErrorString
 
 Protocol::Network::FrameId LegacyIdentifierRegistry::takeFrame(const WebCore::Frame& frame)
 {
-    auto identifier = m_frameToIdentifier.take(frame);
+    auto identifier = m_frameToIdentifier.take(frame).value_or(String { });
     if (!identifier.isNull())
         m_identifierToFrame.remove(identifier);
     return identifier;
@@ -99,7 +99,7 @@ Protocol::Network::FrameId LegacyIdentifierRegistry::takeFrame(const WebCore::Fr
 
 Protocol::Network::LoaderId LegacyIdentifierRegistry::takeLoader(WebCore::DocumentLoader& loader)
 {
-    return m_loaderToIdentifier.take(&loader);
+    return m_loaderToIdentifier.take(&loader).value_or(String { });
 }
 
 // --- BackendIdentifierRegistry ---
@@ -160,7 +160,7 @@ Protocol::Network::FrameId BackendIdentifierRegistry::takeFrame(const WebCore::F
 
 Protocol::Network::LoaderId BackendIdentifierRegistry::takeLoader(WebCore::DocumentLoader& loader)
 {
-    return m_loaderToIdentifier.take(&loader);
+    return m_loaderToIdentifier.take(&loader).value_or(String { });
 }
 
 } // namespace Inspector

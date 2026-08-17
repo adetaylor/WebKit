@@ -1300,7 +1300,7 @@ void UniqueIDBDatabase::abortTransaction(UniqueIDBDatabaseTransaction& transacti
     }
 
     // If transaction is already aborted for suspension, return the result of that abort.
-    if (auto existingAbortResult = takenTransaction->suspensionAbortResult()) {
+    if (auto existingAbortResult = (*takenTransaction)->suspensionAbortResult()) {
         callback(*existingAbortResult);
         transactionCompleted(WTF::move(takenTransaction));
         return;

@@ -51,7 +51,7 @@ SharedWorkerThreadProxy* SharedWorkerContextManager::sharedWorker(SharedWorkerId
 
 void SharedWorkerContextManager::stopSharedWorker(SharedWorkerIdentifier sharedWorkerIdentifier)
 {
-    auto worker = m_workerMap.take(sharedWorkerIdentifier);
+    RefPtr worker = m_workerMap.take(sharedWorkerIdentifier);
     RELEASE_LOG(SharedWorker, "SharedWorkerContextManager::stopSharedWorker: sharedWorkerIdentifier=%" PRIu64 ", worker=%p", sharedWorkerIdentifier.toUInt64(), worker.get());
     if (!worker)
         return;

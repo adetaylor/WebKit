@@ -61,6 +61,8 @@ public:
 private:
     using MappedPeekType = typename MappedTraits::PeekType;
     using MappedTakeType = typename MappedTraits::TakeType;
+    using MappedTakeReturnType = HashMapTakeType<MappedType, MappedTakeType>;
+    static constexpr bool takeReturnsOptional = !HashMapValueHasBenignEmptyState<MappedType>::value;
 
     using HashFunctions = HashArg;
 
@@ -185,9 +187,11 @@ public:
     bool removeIf(NOESCAPE const Invocable<bool(KeyValuePairType&)> auto&);
     void clear();
 
-    MappedTakeType take(const KeyType&); // efficient combination of get with remove
-    MappedTakeType take(iterator);
-    std::optional<MappedType> takeOptional(const KeyType&);
+    // Efficient combination of get with remove. Unless the mapped type is itself a collection,
+    // this returns std::nullopt for a key that is not present, so that callers cannot mistake
+    // "absent" for a real value.
+    MappedTakeReturnType take(const KeyType&);
+    MappedTakeReturnType take(iterator);
     MappedTakeType takeFirst();
 
     // Useful when the key type is WeakPtr
@@ -224,7 +228,7 @@ public:
     template<SmartPtr K = KeyType> MappedPeekType get(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>*) const;
     template<SmartPtr K = KeyType> std::optional<MappedType> getOptional(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>*) const;
     template<SmartPtr K = KeyType> bool remove(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>*);
-    template<SmartPtr K = KeyType> MappedTakeType take(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>*);
+    template<SmartPtr K = KeyType> MappedTakeReturnType take(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>*);
 
     // Overloads for smart pointer keys that take the raw reference type as the parameter.
     template<SmartPtr K = KeyType> iterator find(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>& ref) LIFETIME_BOUND { return find(&ref); }
@@ -234,7 +238,7 @@ public:
     template<SmartPtr K = KeyType> MappedPeekType get(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>& ref) const { return get(&ref); }
     template<SmartPtr K = KeyType> std::optional<MappedType> getOptional(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>& ref) const { return getOptional(&ref); }
     template<SmartPtr K = KeyType> bool remove(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>& ref) { return remove(&ref); }
-    template<SmartPtr K = KeyType> MappedTakeType take(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>& ref) { return take(&ref); }
+    template<SmartPtr K = KeyType> MappedTakeReturnType take(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>& ref) { return take(&ref); }
 
     void checkConsistency() const;
 
@@ -557,14 +561,37 @@ inline void HashMap<T, U, V, W, X, Y, shouldValidateKey, M>::clear()
 }
 
 template<typename T, typename U, typename V, typename W, typename MappedTraits, typename Y, ShouldValidateKey shouldValidateKey, typename M>
-auto HashMap<T, U, V, W, MappedTraits, Y, shouldValidateKey, M>::take(const KeyType& key) -> MappedTakeType
+auto HashMap<T, U, V, W, MappedTraits, Y, shouldValidateKey, M>::take(const KeyType& key) -> MappedTakeReturnType
 {
     return take(find(key));
 }
 
 template<typename T, typename U, typename V, typename W, typename MappedTraits, typename Y, ShouldValidateKey shouldValidateKey, typename M>
-auto HashMap<T, U, V, W, MappedTraits, Y, shouldValidateKey, M>::take(iterator it) -> MappedTakeType
+auto HashMap<T, U, V, W, MappedTraits, Y, shouldValidateKey, M>::take(iterator it) -> MappedTakeReturnType
 {
+    if (it == end()) {
+        if constexpr (takeReturnsOptional)
+            return std::nullopt;
+        else if constexpr (requires { MappedTraits::emptyTakeValue(); })
+            return MappedTraits::emptyTakeValue();
+        else
+            return MappedTraits::take(MappedTraits::emptyValue());
+    }
+    if constexpr (takeReturnsOptional) {
+        MappedTakeReturnType value { WTF::move(it->value) };
+        remove(it);
+        return value;
+    } else {
+        auto value = MappedTraits::take(WTF::move(it->value));
+        remove(it);
+        return value;
+    }
+}
+
+template<typename T, typename U, typename V, typename W, typename MappedTraits, typename Y, ShouldValidateKey shouldValidateKey, typename M>
+auto HashMap<T, U, V, W, MappedTraits, Y, shouldValidateKey, M>::takeFirst() -> MappedTakeType
+{
+    auto it = begin();
     if (it == end()) {
         if constexpr (requires { MappedTraits::emptyTakeValue(); })
             return MappedTraits::emptyTakeValue();
@@ -574,21 +601,6 @@ auto HashMap<T, U, V, W, MappedTraits, Y, shouldValidateKey, M>::take(iterator i
     auto value = MappedTraits::take(WTF::move(it->value));
     remove(it);
     return value;
-}
-
-template<typename T, typename U, typename V, typename W, typename MappedTraits, typename Y, ShouldValidateKey shouldValidateKey, typename M>
-auto HashMap<T, U, V, W, MappedTraits, Y, shouldValidateKey, M>::takeOptional(const KeyType& key) -> std::optional<MappedType>
-{
-    auto it = find(key);
-    if (it == end())
-        return std::nullopt;
-    return take(it);
-}
-
-template<typename T, typename U, typename V, typename W, typename MappedTraits, typename Y, ShouldValidateKey shouldValidateKey, typename M>
-auto HashMap<T, U, V, W, MappedTraits, Y, shouldValidateKey, M>::takeFirst() -> MappedTakeType
-{
-    return take(begin());
 }
 
 template<typename T, typename U, typename V, typename KeyTraits, typename MappedTraits, typename Y, ShouldValidateKey shouldValidateKey, typename M>
@@ -666,18 +678,9 @@ inline auto HashMap<T, U, V, W, X, Y, shouldValidateKey, M>::remove(std::add_con
 
 template<typename T, typename U, typename V, typename W, typename X, typename Y, ShouldValidateKey shouldValidateKey, typename M>
 template<SmartPtr K>
-inline auto HashMap<T, U, V, W, X, Y, shouldValidateKey, M>::take(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>* key) -> MappedTakeType
+inline auto HashMap<T, U, V, W, X, Y, shouldValidateKey, M>::take(std::add_const_t<typename GetPtrHelper<K>::UnderlyingType>* key) -> MappedTakeReturnType
 {
-    iterator it = find(key);
-    if (it == end()) {
-        if constexpr (requires { MappedTraits::emptyTakeValue(); })
-            return MappedTraits::emptyTakeValue();
-        else
-            return MappedTraits::take(MappedTraits::emptyValue());
-    }
-    auto value = MappedTraits::take(WTF::move(it->value));
-    remove(it);
-    return value;
+    return take(find(key));
 }
 
 template<typename T, typename U, typename V, typename W, typename X, typename Y, ShouldValidateKey shouldValidateKey, typename M>

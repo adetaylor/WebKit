@@ -145,7 +145,7 @@ bool HighlightRegistry::remove(const AtomString& key)
         return false;
 
     m_highlightNames.removeFirst(key);
-    highlight->repaint();
+    (*highlight)->repaint();
     return true;
 }
 

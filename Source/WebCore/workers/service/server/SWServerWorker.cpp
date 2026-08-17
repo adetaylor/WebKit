@@ -80,7 +80,7 @@ SWServerWorker::~SWServerWorker()
     callWhenActivatedHandler(false);
 
     auto taken = allWorkers().take(identifier());
-    ASSERT_UNUSED(taken, taken == this);
+    ASSERT_UNUSED(taken, taken && taken->ptrAllowingHashTableEmptyValue() == this);
 
     callTerminationCallbacks();
 }

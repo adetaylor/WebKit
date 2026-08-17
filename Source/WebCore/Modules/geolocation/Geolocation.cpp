@@ -111,7 +111,7 @@ void Geolocation::Watchers::remove(int id)
 void Geolocation::Watchers::remove(GeoNotifier* notifier)
 {
     if (auto identifier = m_notifierToIdMap.take(notifier))
-        m_idToNotifierMap.remove(identifier);
+        m_idToNotifierMap.remove(*identifier);
 }
 
 bool Geolocation::Watchers::contains(GeoNotifier* notifier) const

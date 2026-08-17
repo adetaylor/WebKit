@@ -45,10 +45,9 @@ PathImpl::~PathImpl()
 {
     if (gLockedPathImplObserversMap) {
         DataMutexLocker locker(lockedPathImplObserversMapSingleton());
-        if (auto observers = locker->takeOptional(this)) {
-            for (CheckedRef observer : *observers)
-                observer->willDestroyPathImpl(*this);
-        }
+        auto observers = locker->take(this);
+        for (CheckedRef observer : observers)
+            observer->willDestroyPathImpl(*this);
     }
 }
 

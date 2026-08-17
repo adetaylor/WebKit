@@ -186,7 +186,11 @@ void RemoteRenderingBackend::moveToSerializedBuffer(RenderingResourceIdentifier 
 {
     assertIsCurrent(workQueue());
     // This transfers ownership of the RemoteImageBuffer contents to the transfer heap.
-    RefPtr remoteImageBuffer = m_remoteImageBuffers.take(identifier).get();
+    auto takenImageBuffer = m_remoteImageBuffers.take(identifier);
+    MESSAGE_CHECK(takenImageBuffer, "Missing ImageBuffer");
+    RefPtr remoteImageBuffer = takenImageBuffer->get();
+    // Stop listening for IPC now, so the sink below sees the only remaining reference.
+    takenImageBuffer.reset();
     MESSAGE_CHECK(remoteImageBuffer, "Missing ImageBuffer");
     Ref imageBuffer = RemoteImageBuffer::sinkIntoImageBuffer(remoteImageBuffer.releaseNonNull());
     MESSAGE_CHECK(imageBuffer->hasOneRef(), "ImageBuffer in use");
@@ -229,7 +233,10 @@ void RemoteRenderingBackend::createSnapshotRecorder(RemoteSnapshotRecorderIdenti
 void RemoteRenderingBackend::sinkSnapshotRecorderIntoSnapshotFrame(RemoteSnapshotRecorderIdentifier identifier, FrameIdentifier frameIdentifier, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
-    RefPtr recorder = m_remoteSnapshotRecorders.take(identifier).get();
+    auto takenRecorder = m_remoteSnapshotRecorders.take(identifier);
+    MESSAGE_CHECK(takenRecorder, "Recorder sunk into snapshot before being cached");
+    RefPtr recorder = takenRecorder->get();
+    takenRecorder.reset();
     MESSAGE_CHECK(recorder, "Recorder sunk into snapshot before being cached");
     Ref snapshot = recorder->snapshot();
     // FIXME: using global identifiers (frameIdentifier) is not secure. Do not follow this pattern.
@@ -332,7 +339,7 @@ void RemoteRenderingBackend::createImageBuffer(const FloatSize& logicalSize, Ren
 void RemoteRenderingBackend::releaseImageBuffer(RenderingResourceIdentifier identifier)
 {
     assertIsCurrent(workQueue());
-    bool success = m_remoteImageBuffers.take(identifier).get();
+    bool success = m_remoteImageBuffers.take(identifier).has_value();
     MESSAGE_CHECK(success, "Missing ImageBuffer");
 }
 
@@ -346,7 +353,7 @@ void RemoteRenderingBackend::createImageBufferSet(ImageBufferSetIdentifier ident
 void RemoteRenderingBackend::releaseImageBufferSet(ImageBufferSetIdentifier identifier)
 {
     assertIsCurrent(workQueue());
-    bool success = m_remoteImageBufferSets.take(identifier).get();
+    bool success = m_remoteImageBufferSets.take(identifier).has_value();
     MESSAGE_CHECK(success, "Missing ImageBufferSet");
 }
 
@@ -516,7 +523,10 @@ void RemoteRenderingBackend::createDisplayListRecorder(RemoteDisplayListRecorder
 void RemoteRenderingBackend::sinkDisplayListRecorderIntoDisplayList(RemoteDisplayListRecorderIdentifier identifier, RemoteDisplayListIdentifier displayListIdentifier)
 {
     assertIsCurrent(workQueue());
-    RefPtr recorder = m_remoteDisplayListRecorders.take(identifier).get();
+    auto takenRecorder = m_remoteDisplayListRecorders.take(identifier);
+    MESSAGE_CHECK(takenRecorder, "Recorder sunk into display list before being cached");
+    RefPtr recorder = takenRecorder->get();
+    takenRecorder.reset();
     MESSAGE_CHECK(recorder, "Recorder sunk into display list before being cached");
     Ref displayList = recorder->takeDisplayList();
     bool success = m_remoteResourceCache.cacheDisplayList(displayListIdentifier, WTF::move(displayList));

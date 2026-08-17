@@ -618,7 +618,7 @@ std::unique_ptr<CachedPage> BackForwardCache::take(BackForwardFrameItemIdentifie
         return nullptr;
 
     m_items.remove(identifier);
-    auto cachedPage = std::get<UniqueRef<CachedPage>>(m_cachedPageMap.take(it));
+    auto cachedPage = std::get<UniqueRef<CachedPage>>(*m_cachedPageMap.take(it));
 
     RELEASE_LOG(BackForwardCache, "BackForwardCache::take frameItemID: %s, size: %u / %u", identifier.toString().utf8().data(), pageCount(), maxSize());
 
@@ -730,7 +730,7 @@ void BackForwardCache::prune(PruningReason pruningReason)
 
         // Take the CachedPage before calling set() so ~CachedPage doesn’t find itself in m_cachedPageMap.
         auto cachedPage = m_cachedPageMap.take(oldestItem);
-        if (auto* uniqueRef = std::get_if<UniqueRef<CachedPage>>(&cachedPage))
+        if (auto* uniqueRef = cachedPage ? std::get_if<UniqueRef<CachedPage>>(&*cachedPage) : nullptr)
             notifyClientOfEviction(protect(uniqueRef->get()));
         m_cachedPageMap.set(oldestItem, pruningReason);
         RELEASE_LOG(BackForwardCache, "BackForwardCache::prune removing item: %s, size: %u / %u", oldestItem.toString().utf8().data(), pageCount(), maxSize());

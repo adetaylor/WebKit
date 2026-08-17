@@ -128,7 +128,7 @@ public:
         encodedImage.SetFrameType(frame.isKeyFrame ? webrtc::VideoFrameType::kVideoFrameKey : webrtc::VideoFrameType::kVideoFrameDelta);
         encodedImage.SetPresentationTimestamp(webrtc::Timestamp::Millis(frame.timestamp));
 
-        if (auto rtpTimestamp = m_rtpTimestamps.takeOptional(frame.timestamp)) [[likely]]
+        if (auto rtpTimestamp = m_rtpTimestamps.take(frame.timestamp)) [[likely]]
             encodedImage.SetRtpTimestamp(*rtpTimestamp);
 
         if (m_codecInfo.codecType == webrtc::kVideoCodecVP8)

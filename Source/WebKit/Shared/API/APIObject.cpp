@@ -51,7 +51,7 @@ HashMap<Object*, CFTypeRef>& Object::apiObjectsUnderConstruction()
 
 Object::Object()
 #if DELEGATE_REF_COUNTING_TO_COCOA
-    : m_wrapper(apiObjectsUnderConstruction().take(this))
+    : m_wrapper(apiObjectsUnderConstruction().take(this).value_or(nullptr))
 #endif
 {
 #if DELEGATE_REF_COUNTING_TO_COCOA

@@ -979,7 +979,10 @@ ScriptExecutionContext::NotificationCallbackIdentifier ScriptExecutionContext::a
 
 CompletionHandler<void()> ScriptExecutionContext::takeNotificationCallback(NotificationCallbackIdentifier identifier)
 {
-    return m_notificationCallbacks.take(identifier);
+    auto callback = m_notificationCallbacks.take(identifier);
+    if (!callback)
+        return { };
+    return WTF::move(*callback);
 }
 
 void ScriptExecutionContext::ref()

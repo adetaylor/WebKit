@@ -21,6 +21,7 @@
 #pragma once
 
 #include <limits>
+#include <optional>
 #include <utility>
 #include <wtf/Forward.h>
 #include <wtf/HashFunctions.h>
@@ -87,6 +88,52 @@ template<typename T> struct GenericHashTraits : GenericHashTraitsBase<std::is_in
 };
 
 template<typename T> struct HashTraits : GenericHashTraits<T> { };
+
+// A mapped value that is itself a collection already has a meaningful empty state: taking a key
+// that is not present yields an empty collection, which callers can iterate over harmlessly. Such
+// types keep returning the value itself from HashMap::take(). Every other mapped type has an empty
+// state that is indistinguishable from a real value (a null pointer, a zero identifier, a
+// default-constructed struct), so take() wraps those in std::optional to force callers to
+// distinguish "not present" from "present and empty".
+//
+// This has to be an explicit opt-in list rather than a `requires { value.begin(); }` concept:
+// evaluating such a concept would require the mapped type to be complete at every point a HashMap
+// is instantiated, which breaks the common pattern of declaring a HashMap member over a
+// forward-declared type. Worse, it would silently return a different type in translation units
+// where the mapped type happened to be incomplete, which is an ODR violation.
+template<typename T> struct HashMapValueHasBenignEmptyState : std::false_type { };
+
+template<typename T, size_t inlineCapacity, typename OverflowHandler, size_t minCapacity, typename Malloc>
+struct HashMapValueHasBenignEmptyState<Vector<T, inlineCapacity, OverflowHandler, minCapacity, Malloc>> : std::true_type { };
+
+template<typename T, typename Malloc>
+struct HashMapValueHasBenignEmptyState<FixedVector<T, Malloc>> : std::true_type { };
+
+template<typename T, size_t inlineCapacity>
+struct HashMapValueHasBenignEmptyState<Deque<T, inlineCapacity>> : std::true_type { };
+
+template<typename V, typename H, typename T, typename TT, ShouldValidateKey S>
+struct HashMapValueHasBenignEmptyState<HashSet<V, H, T, TT, S>> : std::true_type { };
+
+template<typename K, typename V, typename H, typename KT, typename MT, typename TT, ShouldValidateKey S, typename Malloc>
+struct HashMapValueHasBenignEmptyState<HashMap<K, V, H, KT, MT, TT, S, Malloc>> : std::true_type { };
+
+template<typename V, typename H>
+struct HashMapValueHasBenignEmptyState<ListHashSet<V, H>> : std::true_type { };
+
+template<typename V, typename H, typename T>
+struct HashMapValueHasBenignEmptyState<HashCountedSet<V, H, T>> : std::true_type { };
+
+template<typename V, typename H, typename T, typename Malloc>
+struct HashMapValueHasBenignEmptyState<OrderedHashSet<V, H, T, Malloc>> : std::true_type { };
+
+template<typename K, typename V, typename H, typename KT, typename MT, typename Malloc>
+struct HashMapValueHasBenignEmptyState<OrderedHashMap<K, V, H, KT, MT, Malloc>> : std::true_type { };
+
+// WeakHashSet and WeakListHashSet opt in from their own headers, which HashTraits.h cannot include.
+
+template<typename MappedType, typename MappedTakeType>
+using HashMapTakeType = std::conditional_t<HashMapValueHasBenignEmptyState<MappedType>::value, MappedTakeType, std::optional<MappedType>>;
 
 template<typename T> struct FloatHashTraits : GenericHashTraits<T> {
     static T emptyValue() { return std::numeric_limits<T>::infinity(); }

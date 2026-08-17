@@ -192,10 +192,12 @@ RefPtr<MemoryIndex> MemoryObjectStore::takeIndexByIdentifier(IDBIndexIdentifier 
     if (!indexByIdentifier)
         return nullptr;
 
-    auto index = m_indexesByName.take(indexByIdentifier->info().name());
+    auto index = m_indexesByName.take((*indexByIdentifier)->info().name());
     ASSERT(index);
+    if (!index)
+        return nullptr;
 
-    return index;
+    return RefPtr { WTF::move(*index) };
 }
 
 IDBError MemoryObjectStore::deleteIndex(MemoryBackingStoreTransaction& transaction, IDBIndexIdentifier indexIdentifier)
@@ -582,7 +584,9 @@ void MemoryObjectStore::renameIndex(MemoryIndex& index, const String& newName)
     ASSERT(m_info.infoForExistingIndex(index.info().identifier()) == m_info.infoForExistingIndex(index.info().name()));
 
     m_info.infoForExistingIndex(index.info().identifier())->rename(newName);
-    m_indexesByName.add(newName, m_indexesByName.take(index.info().name()).releaseNonNull());
+    auto takenIndex = m_indexesByName.take(index.info().name());
+    RELEASE_ASSERT(takenIndex);
+    m_indexesByName.add(newName, WTF::move(*takenIndex));
     index.rename(newName);
 }
 

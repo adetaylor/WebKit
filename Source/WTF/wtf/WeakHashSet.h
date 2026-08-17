@@ -265,6 +265,9 @@ inline auto copyToVector(const WeakHashSet<T, U>& collection) -> Vector<typename
     });
 }
 
+template<typename T, typename WeakPtrImplType>
+struct HashMapValueHasBenignEmptyState<WeakHashSet<T, WeakPtrImplType>> : std::true_type { };
+
 } // namespace WTF
 
 using WTF::WeakHashSet;

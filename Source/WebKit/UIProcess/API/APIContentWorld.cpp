@@ -120,11 +120,11 @@ ContentWorld::~ContentWorld()
     ASSERT(m_identifier != WebKit::pageContentWorldIdentifier());
 
     auto result = sharedWorldIdentifierMap().take(m_identifier);
-    ASSERT_UNUSED(result, result.get() == this || m_identifier == WebKit::pageContentWorldIdentifier());
+    ASSERT_UNUSED(result, (result && result->ptrAllowingHashTableEmptyValue() == this) || m_identifier == WebKit::pageContentWorldIdentifier());
 
     if (!name().isNull()) {
         auto taken = sharedWorldNameMap().take(name());
-        ASSERT_UNUSED(taken, taken.get() == this);
+        ASSERT_UNUSED(taken, taken && taken->ptrAllowingHashTableEmptyValue() == this);
     }
 
     for (Ref process : m_processes)

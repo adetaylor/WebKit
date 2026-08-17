@@ -69,9 +69,10 @@ void MediaSourceRegistry::unregisterURL(const URL& url, const SecurityOriginData
         return;
 
     auto& urlString = url.string();
-    auto [source, contextIdentifier] = m_mediaSources.take(urlString);
-    if (!source)
+    auto takenSource = m_mediaSources.take(urlString);
+    if (!takenSource)
         return;
+    auto [source, contextIdentifier] = WTF::move(*takenSource);
 
     source->removedFromRegistry();
 
@@ -92,8 +93,10 @@ void MediaSourceRegistry::unregisterURLsForContext(const ScriptExecutionContext&
     auto urls = m_urlsPerContext.take(context.identifier());
     for (auto& url : urls) {
         ASSERT(m_mediaSources.contains(url));
-        auto [source, contextIdentifier] = m_mediaSources.take(url);
-        source->removedFromRegistry();
+        auto takenSource = m_mediaSources.take(url);
+        ASSERT(takenSource);
+        if (takenSource)
+            takenSource->first->removedFromRegistry();
     }
 }
 

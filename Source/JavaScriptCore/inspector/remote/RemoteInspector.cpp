@@ -98,7 +98,7 @@ void RemoteInspector::unregisterTarget(RemoteControllableTarget* target)
     // The listing may never have been added if remote control isn't allowed.
     m_targetListingMap.remove(targetIdentifier);
 
-    if (auto connectionToTarget = m_targetConnectionMap.take(targetIdentifier))
+    if (RefPtr connectionToTarget = m_targetConnectionMap.take(targetIdentifier))
         connectionToTarget->targetClosed();
 
     pushListingsSoon();

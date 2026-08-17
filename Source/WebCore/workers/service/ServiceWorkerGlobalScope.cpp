@@ -323,7 +323,10 @@ RefPtr<ServiceWorkerFetch::Client> ServiceWorkerGlobalScope::fetchTask(FetchKey 
 
 RefPtr<ServiceWorkerFetch::Client> ServiceWorkerGlobalScope::takeFetchTask(FetchKey key)
 {
-    return m_ongoingFetchTasks.take(key).client;
+    auto task = m_ongoingFetchTasks.take(key);
+    if (!task)
+        return nullptr;
+    return WTF::move(task->client);
 }
 
 bool ServiceWorkerGlobalScope::hasFetchTask() const

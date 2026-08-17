@@ -400,9 +400,10 @@ void LibWebRTCCodecsProxy::createEncoder(VideoEncoderIdentifier identifier, WebC
 void LibWebRTCCodecsProxy::releaseEncoder(VideoEncoderIdentifier identifier)
 {
     assertIsCurrent(workQueue());
-    auto encoder = m_encoders.take(identifier);
-    if (!encoder.webrtcEncoder)
+    auto takenEncoder = m_encoders.take(identifier);
+    if (!takenEncoder || !takenEncoder->webrtcEncoder)
         return;
+    auto encoder = WTF::move(*takenEncoder);
 
     webrtc::releaseLocalEncoder(encoder.webrtcEncoder);
 

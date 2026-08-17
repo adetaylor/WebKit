@@ -39,7 +39,7 @@ namespace WebCore {
 
 bool FileSystemStorageConnection::errorFileSystemWritable(FileSystemWritableFileStreamIdentifier identifier)
 {
-    RefPtr writable = m_writables.take(identifier).get();
+    RefPtr writable = m_writables.take(identifier);
     if (writable)
         writable->errorIfPossible(Exception { ExceptionCode::AbortError });
     return writable;

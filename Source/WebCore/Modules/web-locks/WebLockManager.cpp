@@ -263,9 +263,10 @@ void WebLockManager::request(const String& name, Options&& options, Ref<WebLockG
 void WebLockManager::didCompleteLockRequest(WebLockIdentifier lockIdentifier, bool success)
 {
     queueTaskKeepingObjectAlive(*this, TaskSource::DOMManipulation, [lockIdentifier, success](auto& manager) mutable {
-        auto request = manager.m_pendingRequests.take(lockIdentifier);
-        if (!request.isValid())
+        auto takenRequest = manager.m_pendingRequests.take(lockIdentifier);
+        if (!takenRequest || !takenRequest->isValid())
             return;
+        auto request = WTF::move(*takenRequest);
 
         request.removeSignalAlgorithm();
 
@@ -329,7 +330,7 @@ void WebLockManager::query(Ref<DeferredPromise>&& promise)
         if (!protectedThis)
             return;
 
-        auto promise = protectedThis->m_queryPromises.take(promiseIdentifier);
+        RefPtr promise = protectedThis->m_queryPromises.take(promiseIdentifier);
         if (!promise)
             return;
 
@@ -352,8 +353,8 @@ void WebLockManager::signalToAbortTheRequest(WebLockIdentifier lockIdentifier, J
 
     m_mainThreadBridge->abortLockRequest(*request.lockIdentifier, request.name, [weakThis = WeakPtr { *this }, lockIdentifier](bool wasAborted) {
         if (wasAborted && weakThis) {
-            if (auto request = weakThis->m_pendingRequests.take(lockIdentifier); request.isValid())
-                request.removeSignalAlgorithm();
+            if (auto request = weakThis->m_pendingRequests.take(lockIdentifier); request && request->isValid())
+                request->removeSignalAlgorithm();
         }
     });
     if (RefPtr releasePromise = m_releasePromises.take(lockIdentifier))

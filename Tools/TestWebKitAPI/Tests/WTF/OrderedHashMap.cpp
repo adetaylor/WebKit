@@ -227,12 +227,12 @@ TEST(WTF_OrderedHashMap, TakeOptional)
     OrderedHashMap<int, int> map;
     map.add(1, 100);
 
-    auto result = map.takeOptional(1);
+    auto result = map.take(1);
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ(100, *result);
     EXPECT_FALSE(map.contains(1));
 
-    auto missing = map.takeOptional(999);
+    auto missing = map.take(999);
     EXPECT_FALSE(missing.has_value());
 }
 

@@ -112,7 +112,7 @@ void RemoteMediaPlayerManagerProxy::deleteMediaPlayer(MediaPlayerIdentifier iden
 {
     ASSERT(RunLoop::isMain());
 
-    if (auto proxy = m_proxies.take(identifier))
+    if (RefPtr proxy = m_proxies.take(identifier))
         proxy->invalidate();
 
     auto connection = m_gpuConnectionToWebProcess.get();

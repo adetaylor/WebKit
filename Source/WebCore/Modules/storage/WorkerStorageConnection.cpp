@@ -97,7 +97,7 @@ void WorkerStorageConnection::getPersisted(ClientOrigin&& origin, StorageConnect
 void WorkerStorageConnection::didGetPersisted(uint64_t callbackIdentifier, bool persisted)
 {
     if (auto callback = m_getPersistedCallbacks.take(callbackIdentifier))
-        callback(persisted);
+        (*callback)(persisted);
 }
 
 void WorkerStorageConnection::getEstimate(ClientOrigin&& origin, StorageConnection::GetEstimateCallback&& completionHandler)
@@ -132,7 +132,7 @@ void WorkerStorageConnection::getEstimate(ClientOrigin&& origin, StorageConnecti
 void WorkerStorageConnection::didGetEstimate(uint64_t callbackIdentifier, ExceptionOr<StorageEstimate>&& result)
 {
     if (auto callback = m_getEstimateCallbacks.take(callbackIdentifier))
-        callback(WTF::move(result));
+        (*callback)(WTF::move(result));
 }
 
 void WorkerStorageConnection::fileSystemGetDirectory(ClientOrigin&& origin, StorageConnection::GetDirectoryCallback&& completionHandler)
@@ -172,9 +172,10 @@ void WorkerStorageConnection::didGetDirectory(uint64_t callbackIdentifier, Excep
             callOnMainThread([connection = WTF::move(connection)]() { });
     });
 
-    auto callback = m_getDirectoryCallbacks.take(callbackIdentifier);
-    if (!callback)
+    auto takenCallback = m_getDirectoryCallbacks.take(callbackIdentifier);
+    if (!takenCallback)
         return;
+    auto callback = WTF::move(*takenCallback);
 
     if (result.hasException())
         return callback(WTF::move(result));

@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <optional>
 #include <type_traits>
 #include <wtf/CanMakeWeakPtr.h>
 #include <wtf/CompactRefPtrTuple.h>
@@ -77,6 +78,20 @@ public:
 
     template<typename U> WeakPtr(const WeakRef<U, WeakPtrImpl>&);
     template<typename U> WeakPtr(WeakRef<U, WeakPtrImpl>&&);
+    // Absence and a null weak reference both become null here, so that a caller who only needs a
+    // nullable weak pointer can write WeakPtr foo = map.take(key). Both are templates so that
+    // std::optional is not instantiated against an incomplete WeakPtr during this definition.
+    template<typename U> WeakPtr(std::optional<WeakRef<U, WeakPtrImpl>>&& o)
+    {
+        if (o)
+            *this = WeakPtr { WTF::move(*o) };
+    }
+    template<typename U> requires std::same_as<U, WeakPtr>
+    WeakPtr(std::optional<U>&& o)
+    {
+        if (o)
+            *this = WTF::move(*o);
+    }
 
     template<typename = std::enable_if_t<!IsSmartPtr<T>::value>> WeakPtr(const T* object, EnableWeakPtrThreadingAssertions shouldEnableAssertions = EnableWeakPtrThreadingAssertions::Yes)
         : m_impl(object ? &object->weakImpl() : nullptr)

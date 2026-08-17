@@ -415,7 +415,7 @@ void IDBTransaction::handleOperationsCompletedOnServer()
         if (!m_transactionOperationResultMap.contains(currentOperation.get()))
             return;
 
-        currentOperation->doComplete(m_transactionOperationResultMap.take(currentOperation.get()));
+        currentOperation->doComplete(*m_transactionOperationResultMap.take(currentOperation.get()));
     }
 }
 
@@ -726,7 +726,9 @@ void IDBTransaction::renameObjectStore(IDBObjectStore& objectStore, const String
         protectedThis->renameObjectStoreOnServer(operation, objectStoreIdentifier, newName);
     }), IsWriteOperation::Yes);
 
-    m_referencedObjectStores.set(newName, m_referencedObjectStores.take(objectStore.info().name()));
+    auto takenObjectStore = m_referencedObjectStores.take(objectStore.info().name());
+    RELEASE_ASSERT(takenObjectStore);
+    m_referencedObjectStores.set(newName, WTF::move(*takenObjectStore));
 }
 
 void IDBTransaction::renameObjectStoreOnServer(IDBClient::TransactionOperation& operation, IDBObjectStoreIdentifier objectStoreIdentifier, const String& newName)
@@ -1364,9 +1366,9 @@ void IDBTransaction::deleteObjectStore(const String& objectStoreName)
     Locker locker { m_objectStoresLock };
 
     if (auto objectStore = m_referencedObjectStores.take(objectStoreName)) {
-        objectStore->markAsDeleted();
-        auto identifier = objectStore->info().identifier();
-        m_deletedObjectStores.set(identifier, WTF::move(objectStore));
+        (*objectStore)->markAsDeleted();
+        auto identifier = (*objectStore)->info().identifier();
+        m_deletedObjectStores.set(identifier, WTF::move(*objectStore));
     }
 
     LOG(IndexedDBOperations, "IDB delete object store operation: %s", objectStoreName.utf8().data());

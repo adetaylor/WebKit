@@ -109,7 +109,7 @@ IDBError MemoryIDBBackingStore::abortTransaction(const IDBResourceIdentifier& tr
     if (!transaction)
         return IDBError { ExceptionCode::InvalidStateError, "Backing store asked to abort transaction it didn't have record of"_s };
 
-    transaction->abort();
+    (*transaction)->abort();
 
     return IDBError { };
 }
@@ -122,7 +122,7 @@ IDBError MemoryIDBBackingStore::commitTransaction(const IDBResourceIdentifier& t
     if (!transaction)
         return IDBError { ExceptionCode::InvalidStateError, "Backing store asked to commit transaction it didn't have record of"_s };
 
-    transaction->commit();
+    (*transaction)->commit();
 
     return IDBError { };
 }
@@ -580,10 +580,10 @@ RefPtr<MemoryObjectStore> MemoryIDBBackingStore::takeObjectStoreByIdentifier(IDB
     if (!objectStoreByIdentifier)
         return nullptr;
 
-    auto objectStore = m_objectStoresByName.take(objectStoreByIdentifier->info().name());
+    auto objectStore = m_objectStoresByName.take((*objectStoreByIdentifier)->info().name());
     ASSERT_UNUSED(objectStore, objectStore);
 
-    return objectStoreByIdentifier;
+    return RefPtr { WTF::move(*objectStoreByIdentifier) };
 }
 
 IDBObjectStoreInfo* MemoryIDBBackingStore::infoForObjectStore(IDBObjectStoreIdentifier objectStoreIdentifier)

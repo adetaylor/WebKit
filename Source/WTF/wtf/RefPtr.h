@@ -21,6 +21,7 @@
 #pragma once
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 #include <wtf/RawPtrTraits.h>
 #include <wtf/Ref.h>
@@ -101,7 +102,13 @@ public:
     ALWAYS_INLINE RefPtr(RefPtr&& o) : m_ptr(o.leakRef()) { }
     template<typename X, typename Y, typename Z> RefPtr(RefPtr<X, Y, Z>&& o) : m_ptr(o.leakRef()) { }
     template<typename X, typename Y> RefPtr(Ref<X, Y>&&);
+    // Absence and null both become null here. This is the deliberate opt-in for callers that only
+    // need a nullable pointer, e.g. RefPtr foo = map.take(key). Note that this conversion is never
+    // considered for map.take(key)->method(), which remains a compile error.
+    template<typename X, typename Y> RefPtr(std::optional<Ref<X, Y>>&&);
+    template<typename X, typename Y, typename Z> RefPtr(std::optional<RefPtr<X, Y, Z>>&& o) : m_ptr(o ? o->leakRef() : nullptr) { }
     template<typename X, typename Y, typename Z> RefPtr(const WeakPtr<X, Y, Z>& o) requires std::is_convertible_v<X*, T*> : m_ptr(RefDerefTraits::refIfNotNull(o.get())) { }
+    template<typename X, typename Y, typename Z> RefPtr(std::optional<WeakPtr<X, Y, Z>>&& o) requires std::is_convertible_v<X*, T*> : m_ptr(RefDerefTraits::refIfNotNull(o ? o->get() : nullptr)) { }
     template<typename X, typename Y> RefPtr(const CheckedPtr<X, Y>& o) requires std::is_convertible_v<X*, T*> : m_ptr(RefDerefTraits::refIfNotNull(o.get())) { }
     template<typename X, typename Y> RefPtr(const ThreadSafeWeakPtr<X, Y>& o) requires std::is_convertible_v<X*, T*> : m_ptr(RefDerefTraits::refIfNotNull(o.get())) { }
 
@@ -159,7 +166,10 @@ private:
 
 // Template deduction guide.
 template<typename X, typename Y> RefPtr(Ref<X, Y>&&) -> RefPtr<X, Y, DefaultRefDerefTraits<X>>;
+template<typename X, typename Y> RefPtr(std::optional<Ref<X, Y>>&&) -> RefPtr<X, Y, DefaultRefDerefTraits<X>>;
+template<typename X, typename Y, typename Z> RefPtr(std::optional<RefPtr<X, Y, Z>>&&) -> RefPtr<X, Y, Z>;
 template<typename X, typename Y, typename Z> RefPtr(const WeakPtr<X, Y, Z>&) -> RefPtr<X, RawPtrTraits<X>, DefaultRefDerefTraits<X>>;
+template<typename X, typename Y, typename Z> RefPtr(std::optional<WeakPtr<X, Y, Z>>&&) -> RefPtr<X, RawPtrTraits<X>, DefaultRefDerefTraits<X>>;
 template<typename X, typename Y, typename Z> RefPtr(WeakPtr<X, Y, Z>&) -> RefPtr<X, RawPtrTraits<X>, DefaultRefDerefTraits<X>>;
 template<typename X, typename Y> RefPtr(const CheckedPtr<X, Y>&) -> RefPtr<X, RawPtrTraits<X>, DefaultRefDerefTraits<X>>;
 template<typename X, typename Y> RefPtr(CheckedPtr<X, Y>&) -> RefPtr<X, RawPtrTraits<X>, DefaultRefDerefTraits<X>>;
@@ -170,6 +180,13 @@ template<typename T, typename U, typename V>
 template<typename X, typename Y>
 inline RefPtr<T, U, V>::RefPtr(Ref<X, Y>&& reference)
     : m_ptr(&reference.leakRef())
+{
+}
+
+template<typename T, typename U, typename V>
+template<typename X, typename Y>
+inline RefPtr<T, U, V>::RefPtr(std::optional<Ref<X, Y>>&& reference)
+    : m_ptr(reference ? &reference->leakRef() : nullptr)
 {
 }
 

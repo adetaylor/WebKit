@@ -413,29 +413,41 @@ public:
 
     void clear() { m_impl.clear(); }
 
-    MappedTakeType take(const KeyType& key)
+    using MappedTakeReturnType = HashMapTakeType<MappedType, MappedTakeType>;
+
+    MappedTakeReturnType take(const KeyType& key)
     {
         return take(find(key));
     }
 
-    MappedTakeType take(iterator it)
+    MappedTakeReturnType take(iterator it)
     {
+        if (it == end()) {
+            if constexpr (HashMapValueHasBenignEmptyState<MappedType>::value)
+                return MappedTraits::take(MappedTraits::emptyValue());
+            else
+                return std::nullopt;
+        }
+        if constexpr (HashMapValueHasBenignEmptyState<MappedType>::value) {
+            auto value = MappedTraits::take(WTF::move(it->value));
+            remove(it);
+            return value;
+        } else {
+            MappedTakeReturnType value { WTF::move(it->value) };
+            remove(it);
+            return value;
+        }
+    }
+
+    MappedTakeType takeFirst()
+    {
+        auto it = begin();
         if (it == end())
             return MappedTraits::take(MappedTraits::emptyValue());
         auto value = MappedTraits::take(WTF::move(it->value));
         remove(it);
         return value;
     }
-
-    std::optional<MappedType> takeOptional(const KeyType& key)
-    {
-        auto it = find(key);
-        if (it == end())
-            return std::nullopt;
-        return take(it);
-    }
-
-    MappedTakeType takeFirst() { return take(begin()); }
 
     // HashTranslator versions
     template<typename HashTranslator, typename T>

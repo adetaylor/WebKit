@@ -1857,7 +1857,7 @@ void WebViewImpl::createPDFHUD(PDFPluginIdentifier identifier, WebCore::FrameIde
             return;
 
         // In case the PDF HUD was removed while the conversion was in flight.
-        auto pendingData = checkedThis->m_pdfHUDsPendingCreation.takeOptional(identifier);
+        auto pendingData = checkedThis->m_pdfHUDsPendingCreation.take(identifier);
         if (!pendingData)
             return;
 

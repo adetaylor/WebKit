@@ -209,7 +209,7 @@ GraphicsLayer& PageOverlayController::layerWithDocumentOverlaysForFrame(LocalFra
 
 void PageOverlayController::willDestroyRootFrameOverlayContainer(LocalFrame& rootFrame)
 {
-    if (auto container = m_frameDocumentOverlayRootLayers.take(rootFrame))
+    if (RefPtr container = m_frameDocumentOverlayRootLayers.take(rootFrame))
         container->removeFromParent();
 }
 
@@ -297,7 +297,7 @@ void PageOverlayController::uninstallPageOverlay(PageOverlay& overlay, PageOverl
 
     overlay.setPage(nullptr);
 
-    if (auto optionalLayer = m_overlayGraphicsLayers.take(overlay))
+    if (RefPtr optionalLayer = m_overlayGraphicsLayers.take(overlay))
         optionalLayer->removeFromParent();
 
     bool removed = m_pageOverlays.removeFirst(&overlay);

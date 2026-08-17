@@ -1572,7 +1572,7 @@ void WebProcess::setNotifyState(const String& name, uint64_t state)
 {
     // FIXME: explain why caching the token for a non-zero state value is necessary
     if (!state) {
-        if (auto maybeToken = m_notifyTokens.takeOptional(name)) {
+        if (auto maybeToken = m_notifyTokens.take(name)) {
             notify_set_state(*maybeToken, 0);
             notify_cancel(*maybeToken);
         }

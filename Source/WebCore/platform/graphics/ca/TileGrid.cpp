@@ -325,7 +325,10 @@ void TileGrid::removeTiles(const Vector<TileIndex>& toRemove)
 {
     for (size_t i = 0; i < toRemove.size(); ++i) {
         auto tileIndex = toRemove[i];
-        TileInfo tileInfo = m_tiles.take(tileIndex);
+        auto takenTile = m_tiles.take(tileIndex);
+        if (!takenTile)
+            continue;
+        TileInfo tileInfo = WTF::move(*takenTile);
         tileInfo.layer->removeFromSuperlayer();
         m_tileRepaintCounts.removeAll(tileInfo.layer.get());
         tileInfo.layer->moveToLayerPool();

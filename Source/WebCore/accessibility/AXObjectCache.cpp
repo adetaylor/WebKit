@@ -1479,7 +1479,7 @@ void AXObjectCache::remove(RenderObject& renderer)
             }
         }
     } else
-        remove(m_renderObjectIdMapping.takeOptional(renderer));
+        remove(m_renderObjectIdMapping.take(renderer));
 }
 
 void AXObjectCache::remove(Node& node)
@@ -1520,7 +1520,7 @@ void AXObjectCache::remove(Node& node)
 
 void AXObjectCache::remove(Widget& view)
 {
-    remove(m_widgetIdMapping.takeOptional(view));
+    remove(m_widgetIdMapping.take(view));
     if (auto* scrollView = dynamicDowncast<ScrollView>(view))
         m_deferredScrollbarUpdateChangeList.remove(*scrollView);
 }
@@ -1895,7 +1895,7 @@ const Vector<AXStitchGroup>* AXObjectCache::stitchGroupsOwnedBy(AccessibilityObj
 
 void AXObjectCache::setDirtyStitchGroups(const RenderBlock& renderBlock)
 {
-    if (std::optional groups = m_stitchGroups.takeOptional(renderBlock)) {
+    if (std::optional groups = m_stitchGroups.take(renderBlock)) {
         UNUSED_PARAM(groups);
 
 #if ENABLE(ACCESSIBILITY_ISOLATED_TREE)

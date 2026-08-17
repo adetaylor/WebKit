@@ -337,7 +337,10 @@ RenderBoxFragmentInfo* RenderFragmentContainer::setRenderBoxFragmentInfo(const R
 
 std::unique_ptr<RenderBoxFragmentInfo> RenderFragmentContainer::takeRenderBoxFragmentInfo(const RenderBox& box)
 {
-    return m_renderBoxFragmentInfo.take(box);
+    auto info = m_renderBoxFragmentInfo.take(box);
+    if (!info)
+        return nullptr;
+    return WTF::move(*info);
 }
 
 void RenderFragmentContainer::removeRenderBoxFragmentInfo(const RenderBox& box)

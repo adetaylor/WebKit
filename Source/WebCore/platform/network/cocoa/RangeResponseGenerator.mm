@@ -293,7 +293,7 @@ private:
         auto data = generator->map().take(m_urlString);
         if (!data)
             return;
-        for (auto& task : data->taskData.keys())
+        for (auto& task : (*data)->taskData.keys())
             [task resource:nullptr loadFailedWithError:error];
     }
 

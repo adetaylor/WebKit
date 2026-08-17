@@ -197,7 +197,7 @@ void DNSResolveQueueCFNet::resolve(const String& hostname, uint64_t identifier, 
 
 void DNSResolveQueueCFNet::stopResolve(uint64_t identifier)
 {
-    auto wrapper = m_pendingRequests.take(identifier);
+    RefPtr wrapper = m_pendingRequests.take(identifier);
     if (!wrapper)
         return;
     wrapper->complete(makeUnexpected(DNSError::Cancelled));
