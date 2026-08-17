@@ -32,6 +32,7 @@
 #include <WebCore/BoxExtents.h>
 #include <WebCore/FrameIdentifier.h>
 #include <WebCore/HTMLMediaElementEnums.h>
+#include <WebCore/IntPoint.h>
 #include <WebCore/ProcessIdentifier.h>
 #include <wtf/CheckedRef.h>
 #include <wtf/CompletionHandler.h>
@@ -40,6 +41,7 @@
 #include <wtf/RefPtr.h>
 #include <wtf/Seconds.h>
 #include <wtf/TZoneMalloc.h>
+#include <wtf/Variant.h>
 #include <wtf/Vector.h>
 
 namespace WebCore {
@@ -95,12 +97,12 @@ public:
     bool isFullScreen();
     bool NODELETE blocksReturnToFullscreenFromPictureInPicture() const;
 #if ENABLE(VIDEO_USES_ELEMENT_FULLSCREEN)
-    bool isVideoElement() const { return m_isVideoElement; }
+    bool isVideoElement() const;
 #endif
 #if ENABLE(QUICKLOOK_FULLSCREEN)
-    bool isImageElement() const { return m_mediaDetails && m_mediaDetails->type == FullScreenMediaDetails::Type::Image; }
+    bool isImageElement() const;
     void prepareQuickLookImageURL(CompletionHandler<void(URL&&)>&&) const;
-    bool launchInImmersive() const { return m_launchInImmersive; }
+    bool launchInImmersive() const;
 #endif // QUICKLOOK_FULLSCREEN
     void close();
     void detachFromClient();
@@ -116,7 +118,7 @@ public:
         InFullscreen,
         ExitingFullscreen,
     };
-    FullscreenState fullscreenState() const { return m_fullscreenState; }
+    FullscreenState fullscreenState() const;
     void setAnimatingFullScreen(bool);
     void requestRestoreFullScreen(CompletionHandler<void(bool)>&&);
     void requestExitFullScreen();
@@ -131,8 +133,56 @@ public:
 private:
     WebFullScreenManagerProxy(WebPageProxy&, WebFullScreenManagerProxyClient&);
 
+    // Data the web process supplied when it asked to enter fullscreen. It lives for exactly as long
+    // as a fullscreen session does, so it is stored in the states that have a session rather than in
+    // a member that outlives one.
+    struct FullscreenSession {
+        bool blocksReturnToFullscreenFromPictureInPicture { false };
+#if ENABLE(VIDEO_USES_ELEMENT_FULLSCREEN)
+        bool isVideoElement { false };
+#endif
+#if ENABLE(QUICKLOOK_FULLSCREEN)
+        std::optional<FullScreenMediaDetails> mediaDetails;
+        bool launchInImmersive { false };
+#endif
+        WebCore::IntPoint rootFrameOriginInMainFrameCoordinates;
+    };
+
+    // The six states the fullscreen handshake actually has. Each one carries exactly the data that
+    // is known in it: in particular only the states reached via BeganEnterFullScreen know which
+    // frame is fullscreen, so nothing else can read a fullscreen frame identifier at all.
+    struct NotInFullscreen { };
+    // EnterFullScreen has arrived and the client is preparing to present. No fullscreen UI exists
+    // yet, so this reports as NotInFullscreen through the public API.
+    struct WaitingToEnterFullscreen {
+        FullscreenSession session;
+    };
+    // The client accepted; willEnterFullscreen has been dispatched.
+    struct EnteringFullscreen {
+        FullscreenSession session;
+    };
+    // BeganEnterFullScreen has arrived, so the fullscreen frame is now known.
+    struct PresentingFullscreen {
+        FullscreenSession session;
+        WebCore::FrameIdentifier frameID;
+    };
+    struct InFullscreen {
+        FullscreenSession session;
+        WebCore::FrameIdentifier frameID;
+    };
+    // Reachable from any state that has a session, including ones that never learned a frame.
+    struct ExitingFullscreen {
+        FullscreenSession session;
+        Markable<WebCore::FrameIdentifier> frameID;
+    };
+
+    using State = Variant<NotInFullscreen, WaitingToEnterFullscreen, EnteringFullscreen, PresentingFullscreen, InFullscreen, ExitingFullscreen>;
+
+    const FullscreenSession* currentSession() const;
+    FullscreenSession* currentSession();
+    Markable<WebCore::FrameIdentifier> fullScreenFrameID() const;
+
     Awaitable<bool> enterFullScreen(IPC::Connection&, WebCore::FrameIdentifier, bool blocksReturnToFullscreenFromPictureInPicture, FullScreenMediaDetails);
-    void didEnterFullScreen(CompletionHandler<void(bool)>&&);
 #if ENABLE(QUICKLOOK_FULLSCREEN)
     void updateImageSource(FullScreenMediaDetails&&);
 #endif
@@ -141,12 +191,15 @@ private:
     Awaitable<void> beganExitFullScreen(WebCore::IntRect initialFrameInRootViewCoordinates, WebCore::IntRect finalFrameInRootViewCoordinates);
     void closeFullScreen(IPC::Connection&);
     void callCloseCompletionHandlers();
+    // Takes the session by value so that it is vacated from the previous state before m_state is
+    // reassigned; binding a reference into the live alternative would read it after destruction.
+    void didEnterFullScreen(FullscreenSession, WebCore::FrameIdentifier, CompletionHandler<void(bool)>&&);
     template<typename M> void sendToWebProcess(M&&);
 
     bool isFrameInSendingProcess(WebCore::FrameIdentifier, IPC::Connection&) const;
     bool isFullScreenInSendingProcess(IPC::Connection&) const;
 
-    std::optional<std::pair<WebCore::IntRect, WebCore::IntRect>> convertFromRootViewToScreenCoordinates(std::pair<WebCore::IntRect, WebCore::IntRect> rectsInRootViewCoordinates);
+    std::optional<std::pair<WebCore::IntRect, WebCore::IntRect>> convertFromRootViewToScreenCoordinates(const FullscreenSession&, std::pair<WebCore::IntRect, WebCore::IntRect> rectsInRootViewCoordinates);
 
 #if !RELEASE_LOG_DISABLED
     const Logger& logger() const { return m_logger; }
@@ -157,19 +210,9 @@ private:
 
     WeakPtr<WebPageProxy> m_page;
     CheckedPtr<WebFullScreenManagerProxyClient> m_client;
-    FullscreenState m_fullscreenState { FullscreenState::NotInFullscreen };
-    bool m_blocksReturnToFullscreenFromPictureInPicture { false };
-#if ENABLE(VIDEO_USES_ELEMENT_FULLSCREEN)
-    bool m_isVideoElement { false };
-#endif
-#if ENABLE(QUICKLOOK_FULLSCREEN)
-    std::optional<FullScreenMediaDetails> m_mediaDetails;
-    bool m_launchInImmersive { false };
-#endif // QUICKLOOK_FULLSCREEN
+    State m_state { NotInFullscreen { } };
     Vector<CompletionHandler<void()>> m_closeCompletionHandlers;
     WeakPtr<WebProcessProxy> m_fullScreenProcess;
-    Markable<WebCore::FrameIdentifier> m_fullScreenFrameID;
-    WebCore::IntPoint m_rootFrameOriginInMainFrameCoordinates;
 
 #if !RELEASE_LOG_DISABLED
     const Ref<const Logger> m_logger;

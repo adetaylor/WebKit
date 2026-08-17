@@ -109,14 +109,58 @@ template<typename M> void WebFullScreenManagerProxy::sendToWebProcess(M&& messag
     fullScreenProcess->send(std::forward<M>(message), page->webPageIDInProcess(*fullScreenProcess));
 }
 
-void WebFullScreenManagerProxy::didEnterFullScreen(CompletionHandler<void(bool)>&& completionHandler)
+WebFullScreenManagerProxy::FullscreenState WebFullScreenManagerProxy::fullscreenState() const
+{
+    return WTF::switchOn(m_state,
+        [] (const NotInFullscreen&) { return FullscreenState::NotInFullscreen; },
+        [] (const WaitingToEnterFullscreen&) { return FullscreenState::NotInFullscreen; },
+        [] (const EnteringFullscreen&) { return FullscreenState::EnteringFullscreen; },
+        [] (const PresentingFullscreen&) { return FullscreenState::EnteringFullscreen; },
+        [] (const InFullscreen&) { return FullscreenState::InFullscreen; },
+        [] (const ExitingFullscreen&) { return FullscreenState::ExitingFullscreen; });
+}
+
+auto WebFullScreenManagerProxy::currentSession() const -> const FullscreenSession*
+{
+    return WTF::switchOn(m_state,
+        [] (const NotInFullscreen&) -> const FullscreenSession* { return nullptr; },
+        [] (const WaitingToEnterFullscreen& state) -> const FullscreenSession* { return &state.session; },
+        [] (const EnteringFullscreen& state) -> const FullscreenSession* { return &state.session; },
+        [] (const PresentingFullscreen& state) -> const FullscreenSession* { return &state.session; },
+        [] (const InFullscreen& state) -> const FullscreenSession* { return &state.session; },
+        [] (const ExitingFullscreen& state) -> const FullscreenSession* { return &state.session; });
+}
+
+auto WebFullScreenManagerProxy::currentSession() -> FullscreenSession*
+{
+    return WTF::switchOn(m_state,
+        [] (NotInFullscreen&) -> FullscreenSession* { return nullptr; },
+        [] (WaitingToEnterFullscreen& state) -> FullscreenSession* { return &state.session; },
+        [] (EnteringFullscreen& state) -> FullscreenSession* { return &state.session; },
+        [] (PresentingFullscreen& state) -> FullscreenSession* { return &state.session; },
+        [] (InFullscreen& state) -> FullscreenSession* { return &state.session; },
+        [] (ExitingFullscreen& state) -> FullscreenSession* { return &state.session; });
+}
+
+Markable<FrameIdentifier> WebFullScreenManagerProxy::fullScreenFrameID() const
+{
+    return WTF::switchOn(m_state,
+        [] (const NotInFullscreen&) { return Markable<FrameIdentifier> { }; },
+        [] (const WaitingToEnterFullscreen&) { return Markable<FrameIdentifier> { }; },
+        [] (const EnteringFullscreen&) { return Markable<FrameIdentifier> { }; },
+        [] (const PresentingFullscreen& state) { return Markable<FrameIdentifier> { state.frameID }; },
+        [] (const InFullscreen& state) { return Markable<FrameIdentifier> { state.frameID }; },
+        [] (const ExitingFullscreen& state) { return state.frameID; });
+}
+
+void WebFullScreenManagerProxy::didEnterFullScreen(FullscreenSession session, FrameIdentifier frameID, CompletionHandler<void(bool)>&& completionHandler)
 {
     ALWAYS_LOG(LOGIDENTIFIER);
     RefPtr page = m_page.get();
     if (!page)
         return completionHandler(false);
 
-    m_fullscreenState = FullscreenState::InFullscreen;
+    m_state = InFullscreen { WTF::move(session), frameID };
     page->fullscreenClient().didEnterFullscreen(page.get());
     completionHandler(true);
 
@@ -183,12 +227,25 @@ void WebFullScreenManagerProxy::close()
     if (CheckedPtr client = m_client)
         client->closeFullScreenManager();
 
-    if (m_fullscreenState == FullscreenState::NotInFullscreen)
+    // Exhaustive so that a new state cannot be added without deciding whether closing from it has
+    // to tell the other processes to leave fullscreen and notify the client.
+    struct CloseAction {
+        bool unwindSession { false };
+        Markable<FrameIdentifier> frameID;
+    };
+    auto action = WTF::switchOn(std::exchange(m_state, NotInFullscreen { }),
+        [] (NotInFullscreen&&) { return CloseAction { }; },
+        // willEnterFullscreen was never dispatched from either of these, so there is nothing to unwind.
+        [] (WaitingToEnterFullscreen&&) { return CloseAction { }; },
+        [] (EnteringFullscreen&&) { return CloseAction { true, { } }; },
+        [] (PresentingFullscreen&& state) { return CloseAction { true, state.frameID }; },
+        [] (InFullscreen&& state) { return CloseAction { true, state.frameID }; },
+        [] (ExitingFullscreen&& state) { return CloseAction { true, state.frameID }; });
+
+    if (!action.unwindSession)
         return;
 
-    m_fullscreenState = FullscreenState::NotInFullscreen;
-
-    if (auto frameID = std::exchange(m_fullScreenFrameID, { }))
+    if (auto frameID = action.frameID)
         exitFullScreenInOtherProcesses(*frameID, [] { });
 
     if (RefPtr page = m_page.get())
@@ -215,8 +272,31 @@ bool WebFullScreenManagerProxy::isFullScreen()
 
 bool WebFullScreenManagerProxy::blocksReturnToFullscreenFromPictureInPicture() const
 {
-    return m_blocksReturnToFullscreenFromPictureInPicture;
+    auto* session = currentSession();
+    return session && session->blocksReturnToFullscreenFromPictureInPicture;
 }
+
+#if ENABLE(VIDEO_USES_ELEMENT_FULLSCREEN)
+bool WebFullScreenManagerProxy::isVideoElement() const
+{
+    auto* session = currentSession();
+    return session && session->isVideoElement;
+}
+#endif
+
+#if ENABLE(QUICKLOOK_FULLSCREEN)
+bool WebFullScreenManagerProxy::isImageElement() const
+{
+    auto* session = currentSession();
+    return session && session->mediaDetails && session->mediaDetails->type == FullScreenMediaDetails::Type::Image;
+}
+
+bool WebFullScreenManagerProxy::launchInImmersive() const
+{
+    auto* session = currentSession();
+    return session && session->launchInImmersive;
+}
+#endif
 
 // A missing frame or page is a race, not an invalid message; callers already return early.
 bool WebFullScreenManagerProxy::isFrameInSendingProcess(FrameIdentifier frameID, IPC::Connection& connection) const
@@ -230,8 +310,8 @@ bool WebFullScreenManagerProxy::isFrameInSendingProcess(FrameIdentifier frameID,
 
 bool WebFullScreenManagerProxy::isFullScreenInSendingProcess(IPC::Connection& connection) const
 {
-    if (m_fullScreenFrameID)
-        return isFrameInSendingProcess(*m_fullScreenFrameID, connection);
+    if (auto frameID = fullScreenFrameID())
+        return isFrameInSendingProcess(*frameID, connection);
     RefPtr fullScreenProcess = m_fullScreenProcess.get();
     if (!fullScreenProcess)
         return true;
@@ -243,14 +323,17 @@ Awaitable<bool> WebFullScreenManagerProxy::enterFullScreen(IPC::Connection& conn
     MESSAGE_CHECK_BASE_COROUTINE(isFrameInSendingProcess(frameID, connection), connection);
 
     m_fullScreenProcess = dynamicDowncast<WebProcessProxy>(AuxiliaryProcessProxy::fromConnection(connection));
-    m_blocksReturnToFullscreenFromPictureInPicture = blocksReturnToFullscreenFromPictureInPicture;
+
+    auto mediaDimensions = mediaDetails.mediaDimensions;
+    FullscreenSession session;
+    session.blocksReturnToFullscreenFromPictureInPicture = blocksReturnToFullscreenFromPictureInPicture;
 #if PLATFORM(IOS_FAMILY)
 #if ENABLE(VIDEO_USES_ELEMENT_FULLSCREEN)
-    m_isVideoElement = mediaDetails.type == FullScreenMediaDetails::Type::Video;
+    session.isVideoElement = mediaDetails.type == FullScreenMediaDetails::Type::Video;
 #endif
 #if ENABLE(QUICKLOOK_FULLSCREEN)
-    m_mediaDetails = WTF::move(mediaDetails);
-    m_launchInImmersive = mediaDetails.launchInImmersive;
+    session.launchInImmersive = mediaDetails.launchInImmersive;
+    session.mediaDetails = WTF::move(mediaDetails);
 #endif // ENABLE(QUICKLOOK_FULLSCREEN)
 #endif // PLATFORM(IOS_FAMILY)
 
@@ -263,21 +346,33 @@ Awaitable<bool> WebFullScreenManagerProxy::enterFullScreen(IPC::Connection& conn
         co_return false;
 
     if (auto coordinates = co_await page->convertPointToMainFrameCoordinates({ 0, 0 }, webFrame->rootFrame()->frameID()))
-        m_rootFrameOriginInMainFrameCoordinates = IntPoint(*coordinates);
+        session.rootFrameOriginInMainFrameCoordinates = IntPoint(*coordinates);
 
     {
         CheckedPtr client = m_client;
         if (!client)
             co_return false;
+
+        // The client reads the session while it prepares, so it has to be published before the call.
+        m_state = WaitingToEnterFullscreen { WTF::move(session) };
         bool success = co_await AwaitableFromCompletionHandler<bool> { [=] (auto completionHandler) {
-            client->enterFullScreen(mediaDetails.mediaDimensions, WTF::move(completionHandler));
+            client->enterFullScreen(mediaDimensions, WTF::move(completionHandler));
         } };
         ALWAYS_LOG(LOGIDENTIFIER);
-        if (!success)
+        if (!success) {
+            if (std::holds_alternative<WaitingToEnterFullscreen>(m_state))
+                m_state = NotInFullscreen { };
             co_return false;
+        }
     }
 
-    m_fullscreenState = FullscreenState::EnteringFullscreen;
+    // close() can run while the client is preparing, which destroys the session. Committing to
+    // EnteringFullscreen unconditionally would resurrect it.
+    auto* waiting = std::get_if<WaitingToEnterFullscreen>(&m_state);
+    if (!waiting)
+        co_return false;
+    m_state = EnteringFullscreen { WTF::move(waiting->session) };
+
     page->fullscreenClient().willEnterFullscreen(page.get());
 
     auto needsPresentationUpdate = co_await AwaitableFromCompletionHandler<NeedsPresentationUpdate> { [this, protectedThis = Ref { *this }, frameID] (auto completionHandler) {
@@ -336,7 +431,10 @@ void WebFullScreenManagerProxy::enterFullScreenForOwnerElementsInOtherProcesses(
 #if ENABLE(QUICKLOOK_FULLSCREEN)
 void WebFullScreenManagerProxy::updateImageSource(FullScreenMediaDetails&& mediaDetails)
 {
-    m_mediaDetails = WTF::move(mediaDetails);
+    auto* session = currentSession();
+    if (!session)
+        return;
+    session->mediaDetails = WTF::move(mediaDetails);
 
     if (CheckedPtr client = m_client)
         client->updateImageSource();
@@ -346,7 +444,8 @@ void WebFullScreenManagerProxy::updateImageSource(FullScreenMediaDetails&& media
 Awaitable<void> WebFullScreenManagerProxy::exitFullScreen()
 {
 #if ENABLE(QUICKLOOK_FULLSCREEN)
-    m_mediaDetails = std::nullopt;
+    if (auto* session = currentSession())
+        session->mediaDetails = std::nullopt;
 #endif
 
     {
@@ -358,7 +457,25 @@ Awaitable<void> WebFullScreenManagerProxy::exitFullScreen()
         } };
     }
 
-    m_fullscreenState = FullscreenState::ExitingFullscreen;
+    // Exhaustive so that a new state cannot be added without deciding whether the web process is
+    // allowed to start an exit from it.
+    bool accepted = WTF::switchOn(std::exchange(m_state, NotInFullscreen { }),
+        [&] (NotInFullscreen&&) {
+            // There is no session to exit, and dispatching willExitFullscreen here would report an
+            // exit the client was never told about entering.
+            return false;
+        },
+        [&] (WaitingToEnterFullscreen&& state) { m_state = ExitingFullscreen { WTF::move(state.session), { } }; return true; },
+        [&] (EnteringFullscreen&& state) { m_state = ExitingFullscreen { WTF::move(state.session), { } }; return true; },
+        [&] (PresentingFullscreen&& state) { m_state = ExitingFullscreen { WTF::move(state.session), state.frameID }; return true; },
+        [&] (InFullscreen&& state) { m_state = ExitingFullscreen { WTF::move(state.session), state.frameID }; return true; },
+        [&] (ExitingFullscreen&& state) { m_state = WTF::move(state); return true; });
+
+    if (!accepted) {
+        ERROR_LOG(LOGIDENTIFIER, "no fullscreen session to exit; dropping");
+        co_return;
+    }
+
     if (RefPtr page = m_page.get())
         page->fullscreenClient().willExitFullscreen(page.get());
 }
@@ -366,10 +483,11 @@ Awaitable<void> WebFullScreenManagerProxy::exitFullScreen()
 #if ENABLE(QUICKLOOK_FULLSCREEN)
 void WebFullScreenManagerProxy::prepareQuickLookImageURL(CompletionHandler<void(URL&&)>&& completionHandler) const
 {
-    if (!m_mediaDetails)
+    auto* session = currentSession();
+    if (!session || !session->mediaDetails)
         return completionHandler(URL());
 
-    auto mediaDetails = *m_mediaDetails;
+    auto mediaDetails = *session->mediaDetails;
     sharedQuickLookFileQueue().dispatch([mediaDetails, completionHandler = WTF::move(completionHandler)]() mutable {
         auto heicData = WTF::switchOn(mediaDetails.imageData,
             [](const ShareableSpatialImage& spatialImage) -> RetainPtr<CFDataRef> {
@@ -420,14 +538,14 @@ void WebFullScreenManagerProxy::prepareQuickLookImageURL(CompletionHandler<void(
 }
 #endif
 
-std::optional<std::pair<IntRect, IntRect>> WebFullScreenManagerProxy::convertFromRootViewToScreenCoordinates(std::pair<IntRect, IntRect> rectsInRootViewCoordinates)
+std::optional<std::pair<IntRect, IntRect>> WebFullScreenManagerProxy::convertFromRootViewToScreenCoordinates(const FullscreenSession& session, std::pair<IntRect, IntRect> rectsInRootViewCoordinates)
 {
     RefPtr page = m_page.get();
     if (!page)
         return std::nullopt;
 
     auto rectsInMainFrameCoordinates = rectsInRootViewCoordinates;
-    rectsInMainFrameCoordinates.first.moveBy(m_rootFrameOriginInMainFrameCoordinates);
+    rectsInMainFrameCoordinates.first.moveBy(session.rootFrameOriginInMainFrameCoordinates);
 
     CheckedPtr client = m_client;
     if (!client)
@@ -441,13 +559,33 @@ std::optional<std::pair<IntRect, IntRect>> WebFullScreenManagerProxy::convertFro
 Awaitable<bool> WebFullScreenManagerProxy::beganEnterFullScreen(IPC::Connection& connection, FrameIdentifier frameID, IntRect initialFrameInRootViewCoordinates, IntRect finalFrameInRootViewCoordinates)
 {
     MESSAGE_CHECK_BASE_COROUTINE(isFrameInSendingProcess(frameID, connection), connection);
-    m_fullScreenFrameID = frameID;
+
+    // Exhaustive so that a new state cannot be added without deciding whether the web process is
+    // allowed to begin presenting from it. NotInFullscreen is legitimate: in-window fullscreen sends
+    // BeganEnterFullScreen without a preceding EnterFullScreen, so there is no session to inherit.
+    bool accepted = WTF::switchOn(std::exchange(m_state, NotInFullscreen { }),
+        [&] (NotInFullscreen&&) { m_state = PresentingFullscreen { FullscreenSession { }, frameID }; return true; },
+        [&] (WaitingToEnterFullscreen&& state) { m_state = PresentingFullscreen { WTF::move(state.session), frameID }; return true; },
+        [&] (EnteringFullscreen&& state) { m_state = PresentingFullscreen { WTF::move(state.session), frameID }; return true; },
+        [&] (PresentingFullscreen&& state) { m_state = WTF::move(state); return false; },
+        [&] (InFullscreen&& state) { m_state = WTF::move(state); return false; },
+        [&] (ExitingFullscreen&& state) { m_state = WTF::move(state); return false; });
+
+    if (!accepted) {
+        ERROR_LOG(LOGIDENTIFIER, "already presenting or exiting fullscreen; dropping");
+        co_return false;
+    }
 
     RefPtr page = m_page.get();
     if (!page)
         co_return false;
 
-    auto rectsInScreenCoordinates = convertFromRootViewToScreenCoordinates({ initialFrameInRootViewCoordinates, finalFrameInRootViewCoordinates });
+    auto* presenting = std::get_if<PresentingFullscreen>(&m_state);
+    ASSERT(presenting);
+    if (!presenting)
+        co_return false;
+
+    auto rectsInScreenCoordinates = convertFromRootViewToScreenCoordinates(presenting->session, { initialFrameInRootViewCoordinates, finalFrameInRootViewCoordinates });
     if (!rectsInScreenCoordinates)
         co_return false;
     auto [initialFrameInScreenCoordinates, finalFrameInScreenCoordinates] = *rectsInScreenCoordinates;
@@ -465,14 +603,25 @@ Awaitable<bool> WebFullScreenManagerProxy::beganEnterFullScreen(IPC::Connection&
             co_return false;
     }
 
+    // The awaits above can have closed or exited fullscreen underneath us; only PresentingFullscreen
+    // may become InFullscreen.
     co_return co_await AwaitableFromCompletionHandler<bool> { [this, protectedThis = Ref { *this }] (auto completionHandler) {
-        didEnterFullScreen(WTF::move(completionHandler));
+        auto* presenting = std::get_if<PresentingFullscreen>(&m_state);
+        if (!presenting)
+            return completionHandler(false);
+        didEnterFullScreen(WTF::move(presenting->session), presenting->frameID, WTF::move(completionHandler));
     } };
 }
 
 Awaitable<void> WebFullScreenManagerProxy::beganExitFullScreen(IntRect initialFrameInRootViewCoordinates, IntRect finalFrameInRootViewCoordinates)
 {
-    auto rectsInScreenCoordinates = convertFromRootViewToScreenCoordinates({ finalFrameInRootViewCoordinates, initialFrameInRootViewCoordinates });
+    auto* session = currentSession();
+    if (!session) {
+        ERROR_LOG(LOGIDENTIFIER, "no fullscreen session; dropping");
+        co_return;
+    }
+
+    auto rectsInScreenCoordinates = convertFromRootViewToScreenCoordinates(*session, { finalFrameInRootViewCoordinates, initialFrameInRootViewCoordinates });
     if (!rectsInScreenCoordinates)
         co_return;
     auto [finalFrameInScreenCoordinates, initialFrameInScreenCoordinates] = *rectsInScreenCoordinates;
@@ -486,7 +635,11 @@ Awaitable<void> WebFullScreenManagerProxy::beganExitFullScreen(IntRect initialFr
         } };
     }
 
-    m_fullscreenState = FullscreenState::NotInFullscreen;
+    // BeganExitFullScreen can arrive without a preceding BeganEnterFullScreen, so the frame is only
+    // known in the states that learned it.
+    auto exitedFrameID = fullScreenFrameID();
+    m_state = NotInFullscreen { };
+
     RefPtr page = m_page.get();
     if (!page)
         co_return;
@@ -494,11 +647,10 @@ Awaitable<void> WebFullScreenManagerProxy::beganExitFullScreen(IntRect initialFr
     ALWAYS_LOG(LOGIDENTIFIER);
     page->fullscreenClient().didExitFullscreen(page.get());
 
-    co_await AwaitableFromCompletionHandler<void> { [this, protectedThis = Ref { *this }, frameID = std::exchange(m_fullScreenFrameID, { })] (auto completionHandler) {
-        // BeganExitFullScreen can arrive without a preceding BeganEnterFullScreen.
-        if (!frameID)
+    co_await AwaitableFromCompletionHandler<void> { [this, protectedThis = Ref { *this }, exitedFrameID] (auto completionHandler) {
+        if (!exitedFrameID)
             return completionHandler();
-        exitFullScreenInOtherProcesses(*frameID, WTF::move(completionHandler));
+        exitFullScreenInOtherProcesses(*exitedFrameID, WTF::move(completionHandler));
     } };
 
     if (page->isControlledByAutomation()) {
