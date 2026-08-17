@@ -226,6 +226,34 @@ builtin_types = frozenset([
     'WebCore::TrackID',
 ])
 
+
+# An integer that arrives over IPC is attacker-controlled, so the receiving side is never handed a
+# bare integer: the decoder produces a WTF::Checked wrapper instead, and the handler's signature has
+# to say so. That makes "I did unguarded arithmetic on a value the other process chose" a compile
+# error rather than a judgement call, and lets the checked-ness travel with the value into whatever
+# the handler computes from it. The sending side is unaffected - it still passes plain integers.
+checked_received_types = {
+    'int8_t': 'WTF::CheckedInt8',
+    'uint8_t': 'WTF::CheckedUint8',
+    'int16_t': 'WTF::CheckedInt16',
+    'uint16_t': 'WTF::CheckedUint16',
+    'int32_t': 'WTF::CheckedInt32',
+    'uint32_t': 'WTF::CheckedUint32',
+    'int64_t': 'WTF::CheckedInt64',
+    'uint64_t': 'WTF::CheckedUint64',
+    'size_t': 'WTF::CheckedSize',
+}
+
+
+def received_type(receiver, type):
+    # Swift message receivers keep plain integers: Swift's arithmetic operators trap on overflow
+    # by default, so the language already supplies the guarantee that WTF::Checked provides in C++,
+    # and Checked<> does not survive the C++ interop boundary.
+    if receiver.swift_receiver or receiver.swift_receiver_build_enabled_by:
+        return type
+    return checked_received_types.get(type, type)
+
+
 def function_parameter_type(type, kind, for_reply=False):
     # Don't use references for built-in types.
     if type in builtin_types:
@@ -261,7 +289,7 @@ def message_to_struct_declaration(receiver, message):
 
     result.append('class %s {\n' % message.name)
     result.append('public:\n')
-    result.append('    using Arguments = std::tuple<%s>;\n' % ', '.join([parameter.type for parameter in message.parameters]))
+    result.append('    using Arguments = std::tuple<%s>;\n' % ', '.join([received_type(receiver, parameter.type) for parameter in message.parameters]))
     result.append('\n')
     result.append('    static IPC::MessageName name() { return IPC::MessageName::%s_%s; }\n' % (receiver.name, message.name))
     result.append('    static constexpr bool isSync = %s;\n' % ('false', 'true')[message.reply_parameters is not None and message.has_attribute(SYNCHRONOUS_ATTRIBUTE)])
@@ -772,6 +800,7 @@ def forward_declarations_and_headers(receiver):
         '"ArgumentCoders.h"',
         '"Connection.h"',
         '"MessageNames.h"',
+        '<wtf/CheckedArithmetic.h>',
         '<wtf/Forward.h>',
         '<wtf/RuntimeApplicationChecks.h>',
         '<wtf/ThreadSafeRefCounted.h>',

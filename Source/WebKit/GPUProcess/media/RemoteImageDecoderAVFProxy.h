@@ -69,8 +69,8 @@ private:
     void deleteDecoder(WebCore::ImageDecoderIdentifier);
     void setExpectedContentSize(WebCore::ImageDecoderIdentifier, long long expectedContentSize);
     void setData(WebCore::ImageDecoderIdentifier, const IPC::SharedBufferReference&, bool allDataReceived, CompletionHandler<void(uint64_t frameCount, const WebCore::IntSize& size, bool hasTrack, std::optional<Vector<WebCore::ImageDecoder::FrameInfo>>&&)>&&);
-    void createFrameImageAtIndex(WebCore::ImageDecoderIdentifier, uint64_t index, CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&&);
-    void clearFrameBufferCache(WebCore::ImageDecoderIdentifier, uint64_t index);
+    void createFrameImageAtIndex(WebCore::ImageDecoderIdentifier, WTF::CheckedUint64 index, CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&&);
+    void clearFrameBufferCache(WebCore::ImageDecoderIdentifier, WTF::CheckedUint64 index);
 
     void encodedDataStatusChanged(WebCore::ImageDecoderIdentifier);
 

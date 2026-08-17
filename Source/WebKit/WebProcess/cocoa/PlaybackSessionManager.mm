@@ -567,13 +567,13 @@ void PlaybackSessionManager::setPlaybackRate(WebCore::HTMLMediaElementIdentifier
     ensureModel(contextId)->setPlaybackRate(playbackRate);
 }
 
-void PlaybackSessionManager::selectAudioMediaOption(WebCore::HTMLMediaElementIdentifier contextId, uint64_t index)
+void PlaybackSessionManager::selectAudioMediaOption(WebCore::HTMLMediaElementIdentifier contextId, WTF::CheckedUint64 index)
 {
     UserGestureIndicator indicator(IsProcessingUserGesture::Yes);
     ensureModel(contextId)->selectAudioMediaOption(index);
 }
 
-void PlaybackSessionManager::selectLegibleMediaOption(WebCore::HTMLMediaElementIdentifier contextId, uint64_t index)
+void PlaybackSessionManager::selectLegibleMediaOption(WebCore::HTMLMediaElementIdentifier contextId, WTF::CheckedUint64 index)
 {
     UserGestureIndicator indicator(IsProcessingUserGesture::Yes);
     Ref model = ensureModel(contextId);

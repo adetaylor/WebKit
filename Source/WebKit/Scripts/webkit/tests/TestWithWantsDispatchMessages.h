@@ -27,6 +27,7 @@
 #include "ArgumentCoders.h"
 #include "Connection.h"
 #include "MessageNames.h"
+#include <wtf/CheckedArithmetic.h>
 #include <wtf/Forward.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -68,7 +69,7 @@ private:
 
 class TestSyncMessage {
 public:
-    using Arguments = std::tuple<uint32_t>;
+    using Arguments = std::tuple<WTF::CheckedUint32>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithWantsDispatch_TestSyncMessage; }
     static constexpr bool isSync = true;

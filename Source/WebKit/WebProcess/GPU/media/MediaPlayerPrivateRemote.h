@@ -114,7 +114,7 @@ public:
     void setReadyState(WebCore::MediaPlayer::ReadyState);
 
     void commitAllTransactions(CompletionHandler<void()>&&);
-    void reportGPUMemoryFootprint(uint64_t);
+    void reportGPUMemoryFootprint(WTF::CheckedUint64);
     void networkStateChanged(RemoteMediaPlayerState&&);
     void readyStateChanged(RemoteMediaPlayerState&&, WebCore::MediaPlayer::ReadyState);
     void volumeChanged(double);
@@ -123,7 +123,7 @@ public:
     void durationChanged(RemoteMediaPlayerState&&);
     void rateChanged(double, MediaTimeUpdateData&&);
     void playbackStateChanged(bool, MediaTimeUpdateData&&);
-    void engineFailedToLoad(int64_t);
+    void engineFailedToLoad(WTF::CheckedInt64);
     void updateCachedState(RemoteMediaPlayerState&&);
     void NODELETE updatePlaybackQualityMetrics(WebCore::VideoPlaybackQualityMetrics&&);
     void characteristicChanged(RemoteMediaPlayerState&&);

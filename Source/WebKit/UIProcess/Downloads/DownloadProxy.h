@@ -118,7 +118,7 @@ public:
     // Message handlers.
     void didStart(const WebCore::ResourceRequest&, const String& suggestedFilename);
     void didReceiveAuthenticationChallenge(WebCore::AuthenticationChallenge&&, AuthenticationChallengeIdentifier);
-    void didReceiveData(uint64_t bytesWritten, uint64_t totalBytesWritten, uint64_t totalBytesExpectedToWrite);
+    void didReceiveData(WTF::CheckedUint64 bytesWritten, WTF::CheckedUint64 totalBytesWritten, WTF::CheckedUint64 totalBytesExpectedToWrite);
     void shouldDecodeSourceDataOfMIMEType(const String& mimeType, bool& result);
     void didCreateDestination(const String& path);
     void didFinish();

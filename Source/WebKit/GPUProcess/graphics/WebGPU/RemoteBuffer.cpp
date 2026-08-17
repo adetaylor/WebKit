@@ -107,7 +107,7 @@ void RemoteBuffer::unmap()
     m_mapModeFlags = { };
 }
 
-void RemoteBuffer::copyWithCopy(Vector<uint8_t>&& data, uint64_t offset)
+void RemoteBuffer::copyWithCopy(Vector<uint8_t>&& data, WTF::CheckedUint64 offset)
 {
     if (m_pendingMap || !m_isMapped || !m_mapModeFlags.contains(WebCore::WebGPU::MapMode::Write))
         return;
@@ -124,7 +124,7 @@ void RemoteBuffer::copyWithCopy(Vector<uint8_t>&& data, uint64_t offset)
     memcpySpan(buffer.subspan(offset), data.span());
 }
 
-void RemoteBuffer::copy(std::optional<WebCore::SharedMemoryHandle>&& dataHandle, uint64_t offset, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteBuffer::copy(std::optional<WebCore::SharedMemoryHandle>&& dataHandle, WTF::CheckedUint64 offset, CompletionHandler<void(bool)>&& completionHandler)
 {
     if (m_pendingMap || !m_isMapped || !m_mapModeFlags.contains(WebCore::WebGPU::MapMode::Write)) {
         completionHandler(false);

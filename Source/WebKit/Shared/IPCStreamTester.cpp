@@ -82,7 +82,7 @@ void IPCStreamTester::didReceiveInvalidMessage(IPC::StreamServerConnection&, IPC
     ++m_invalidMessages;
 }
 
-void IPCStreamTester::syncMessageReturningSharedMemory1(uint32_t byteCount, CompletionHandler<void(std::optional<WebCore::SharedMemory::Handle>&&)>&& completionHandler)
+void IPCStreamTester::syncMessageReturningSharedMemory1(WTF::CheckedUint32 byteCount, CompletionHandler<void(std::optional<WebCore::SharedMemory::Handle>&&)>&& completionHandler)
 {
     auto result = [&]() -> std::optional<WebCore::SharedMemory::Handle> {
         auto sharedMemory = WebCore::SharedMemory::allocate(byteCount);
@@ -99,27 +99,27 @@ void IPCStreamTester::syncMessageReturningSharedMemory1(uint32_t byteCount, Comp
     completionHandler(WTF::move(result));
 }
 
-void IPCStreamTester::syncMessageEmptyReply(uint32_t, CompletionHandler<void()>&& completionHandler)
+void IPCStreamTester::syncMessageEmptyReply(WTF::CheckedUint32, CompletionHandler<void()>&& completionHandler)
 {
     completionHandler();
 }
 
-void IPCStreamTester::syncMessage(uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
+void IPCStreamTester::syncMessage(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     completionHandler(value);
 }
 
-void IPCStreamTester::syncMessageNotStreamEncodableReply(uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
+void IPCStreamTester::syncMessageNotStreamEncodableReply(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     completionHandler(value);
 }
 
-void IPCStreamTester::syncMessageNotStreamEncodableBoth(uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
+void IPCStreamTester::syncMessageNotStreamEncodableBoth(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     completionHandler(value);
 }
 
-void IPCStreamTester::syncCrashOnZero(int32_t value, CompletionHandler<void(int32_t)>&& completionHandler)
+void IPCStreamTester::syncCrashOnZero(WTF::CheckedInt32 value, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     if (!value) {
         // Use exit so that we don't leave a crash report.
@@ -128,7 +128,7 @@ void IPCStreamTester::syncCrashOnZero(int32_t value, CompletionHandler<void(int3
     completionHandler(value);
 }
 
-void IPCStreamTester::asyncPing(uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
+void IPCStreamTester::asyncPing(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     completionHandler(value + 1);
 }

@@ -27,6 +27,7 @@
 #include "ArgumentCoders.h"
 #include "Connection.h"
 #include "MessageNames.h"
+#include <wtf/CheckedArithmetic.h>
 #include <wtf/Forward.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -230,7 +231,7 @@ private:
 
 class TestSyncMessage {
 public:
-    using Arguments = std::tuple<uint32_t>;
+    using Arguments = std::tuple<WTF::CheckedUint32>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithSuperclass_TestSyncMessage; }
     static constexpr bool isSync = true;
@@ -312,7 +313,7 @@ private:
 #if ENABLE(TEST_FEATURE)
 class TestAsyncMessageReply {
 public:
-    using Arguments = std::tuple<uint64_t>;
+    using Arguments = std::tuple<WTF::CheckedUint64>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithSuperclass_TestAsyncMessageReply; }
     static constexpr bool isSync = false;
@@ -339,7 +340,7 @@ private:
 #if ENABLE(TEST_FEATURE)
 class TestAsyncMessageAnyThreadReply {
 public:
-    using Arguments = std::tuple<uint64_t>;
+    using Arguments = std::tuple<WTF::CheckedUint64>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithSuperclass_TestAsyncMessageAnyThreadReply; }
     static constexpr bool isSync = false;
@@ -390,7 +391,7 @@ private:
 #if ENABLE(TEST_FEATURE)
 class TestAsyncMessageWithMultipleArgumentsReply {
 public:
-    using Arguments = std::tuple<bool, uint64_t>;
+    using Arguments = std::tuple<bool, WTF::CheckedUint64>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithSuperclass_TestAsyncMessageWithMultipleArgumentsReply; }
     static constexpr bool isSync = false;

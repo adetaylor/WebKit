@@ -165,7 +165,7 @@ void RTCDataChannelRemoteManager::detectError(WebCore::RTCDataChannelIdentifier 
     });
 }
 
-void RTCDataChannelRemoteManager::bufferedAmountIsDecreasing(WebCore::RTCDataChannelIdentifier handlerIdentifier, uint64_t amount)
+void RTCDataChannelRemoteManager::bufferedAmountIsDecreasing(WebCore::RTCDataChannelIdentifier handlerIdentifier, WTF::CheckedUint64 amount)
 {
     postTaskToHandler(handlerIdentifier, [amount](auto& handler) {
         handler.bufferedAmountIsDecreasing(amount);

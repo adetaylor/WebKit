@@ -36,13 +36,13 @@
 namespace WebKit {
 using namespace WebCore;
 
-void RemoteGraphicsContextGL::activeTexture(uint32_t texture)
+void RemoteGraphicsContextGL::activeTexture(WTF::CheckedUint32 texture)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->activeTexture(texture);
 }
 
-void RemoteGraphicsContextGL::attachShader(uint32_t program, uint32_t shader)
+void RemoteGraphicsContextGL::attachShader(WTF::CheckedUint32 program, WTF::CheckedUint32 shader)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(program));
@@ -54,7 +54,7 @@ void RemoteGraphicsContextGL::attachShader(uint32_t program, uint32_t shader)
     protect(m_context)->attachShader(program, shader);
 }
 
-void RemoteGraphicsContextGL::bindAttribLocation(uint32_t arg0, uint32_t index, CString&& name)
+void RemoteGraphicsContextGL::bindAttribLocation(WTF::CheckedUint32 arg0, WTF::CheckedUint32 index, CString&& name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -63,7 +63,7 @@ void RemoteGraphicsContextGL::bindAttribLocation(uint32_t arg0, uint32_t index, 
     protect(m_context)->bindAttribLocation(arg0, index, name);
 }
 
-void RemoteGraphicsContextGL::bindBuffer(uint32_t target, uint32_t arg1)
+void RemoteGraphicsContextGL::bindBuffer(WTF::CheckedUint32 target, WTF::CheckedUint32 arg1)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg1));
@@ -72,7 +72,7 @@ void RemoteGraphicsContextGL::bindBuffer(uint32_t target, uint32_t arg1)
     protect(m_context)->bindBuffer(target, arg1);
 }
 
-void RemoteGraphicsContextGL::bindFramebuffer(uint32_t target, uint32_t arg1)
+void RemoteGraphicsContextGL::bindFramebuffer(WTF::CheckedUint32 target, WTF::CheckedUint32 arg1)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg1));
@@ -81,7 +81,7 @@ void RemoteGraphicsContextGL::bindFramebuffer(uint32_t target, uint32_t arg1)
     protect(m_context)->bindFramebuffer(target, arg1);
 }
 
-void RemoteGraphicsContextGL::bindRenderbuffer(uint32_t target, uint32_t arg1)
+void RemoteGraphicsContextGL::bindRenderbuffer(WTF::CheckedUint32 target, WTF::CheckedUint32 arg1)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg1));
@@ -90,7 +90,7 @@ void RemoteGraphicsContextGL::bindRenderbuffer(uint32_t target, uint32_t arg1)
     protect(m_context)->bindRenderbuffer(target, arg1);
 }
 
-void RemoteGraphicsContextGL::bindTexture(uint32_t target, uint32_t arg1)
+void RemoteGraphicsContextGL::bindTexture(WTF::CheckedUint32 target, WTF::CheckedUint32 arg1)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg1));
@@ -105,31 +105,31 @@ void RemoteGraphicsContextGL::blendColor(float red, float green, float blue, flo
     protect(m_context)->blendColor(red, green, blue, alpha);
 }
 
-void RemoteGraphicsContextGL::blendEquation(uint32_t mode)
+void RemoteGraphicsContextGL::blendEquation(WTF::CheckedUint32 mode)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->blendEquation(mode);
 }
 
-void RemoteGraphicsContextGL::blendEquationSeparate(uint32_t modeRGB, uint32_t modeAlpha)
+void RemoteGraphicsContextGL::blendEquationSeparate(WTF::CheckedUint32 modeRGB, WTF::CheckedUint32 modeAlpha)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->blendEquationSeparate(modeRGB, modeAlpha);
 }
 
-void RemoteGraphicsContextGL::blendFunc(uint32_t sfactor, uint32_t dfactor)
+void RemoteGraphicsContextGL::blendFunc(WTF::CheckedUint32 sfactor, WTF::CheckedUint32 dfactor)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->blendFunc(sfactor, dfactor);
 }
 
-void RemoteGraphicsContextGL::blendFuncSeparate(uint32_t srcRGB, uint32_t dstRGB, uint32_t srcAlpha, uint32_t dstAlpha)
+void RemoteGraphicsContextGL::blendFuncSeparate(WTF::CheckedUint32 srcRGB, WTF::CheckedUint32 dstRGB, WTF::CheckedUint32 srcAlpha, WTF::CheckedUint32 dstAlpha)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->blendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha);
 }
 
-void RemoteGraphicsContextGL::checkFramebufferStatus(uint32_t target, CompletionHandler<void(uint32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::checkFramebufferStatus(WTF::CheckedUint32 target, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLenum returnValue = { };
@@ -137,7 +137,7 @@ void RemoteGraphicsContextGL::checkFramebufferStatus(uint32_t target, Completion
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::clear(uint32_t mask)
+void RemoteGraphicsContextGL::clear(WTF::CheckedUint32 mask)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->clear(mask);
@@ -155,7 +155,7 @@ void RemoteGraphicsContextGL::clearDepth(float depth)
     protect(m_context)->clearDepth(depth);
 }
 
-void RemoteGraphicsContextGL::clearStencil(int32_t s)
+void RemoteGraphicsContextGL::clearStencil(WTF::CheckedInt32 s)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->clearStencil(s);
@@ -167,7 +167,7 @@ void RemoteGraphicsContextGL::colorMask(bool red, bool green, bool blue, bool al
     protect(m_context)->colorMask(static_cast<GCGLboolean>(red), static_cast<GCGLboolean>(green), static_cast<GCGLboolean>(blue), static_cast<GCGLboolean>(alpha));
 }
 
-void RemoteGraphicsContextGL::compileShader(uint32_t arg0)
+void RemoteGraphicsContextGL::compileShader(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -176,19 +176,19 @@ void RemoteGraphicsContextGL::compileShader(uint32_t arg0)
     protect(m_context)->compileShader(arg0);
 }
 
-void RemoteGraphicsContextGL::copyTexImage2D(uint32_t target, int32_t level, uint32_t internalformat, int32_t x, int32_t y, int32_t width, int32_t height, int32_t border)
+void RemoteGraphicsContextGL::copyTexImage2D(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 border)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->copyTexImage2D(target, level, internalformat, x, y, width, height, border);
 }
 
-void RemoteGraphicsContextGL::copyTexSubImage2D(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t x, int32_t y, int32_t width, int32_t height)
+void RemoteGraphicsContextGL::copyTexSubImage2D(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 xoffset, WTF::CheckedInt32 yoffset, WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 width, WTF::CheckedInt32 height)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->copyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
 }
 
-void RemoteGraphicsContextGL::createBuffer(uint32_t name)
+void RemoteGraphicsContextGL::createBuffer(WTF::CheckedUint32 name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -197,7 +197,7 @@ void RemoteGraphicsContextGL::createBuffer(uint32_t name)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::createFramebuffer(uint32_t name)
+void RemoteGraphicsContextGL::createFramebuffer(WTF::CheckedUint32 name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -206,7 +206,7 @@ void RemoteGraphicsContextGL::createFramebuffer(uint32_t name)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::createProgram(uint32_t name)
+void RemoteGraphicsContextGL::createProgram(WTF::CheckedUint32 name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -215,7 +215,7 @@ void RemoteGraphicsContextGL::createProgram(uint32_t name)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::createRenderbuffer(uint32_t name)
+void RemoteGraphicsContextGL::createRenderbuffer(WTF::CheckedUint32 name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -224,7 +224,7 @@ void RemoteGraphicsContextGL::createRenderbuffer(uint32_t name)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::createShader(uint32_t name, uint32_t arg0)
+void RemoteGraphicsContextGL::createShader(WTF::CheckedUint32 name, WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -233,7 +233,7 @@ void RemoteGraphicsContextGL::createShader(uint32_t name, uint32_t arg0)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::createTexture(uint32_t name)
+void RemoteGraphicsContextGL::createTexture(WTF::CheckedUint32 name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -242,13 +242,13 @@ void RemoteGraphicsContextGL::createTexture(uint32_t name)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::cullFace(uint32_t mode)
+void RemoteGraphicsContextGL::cullFace(WTF::CheckedUint32 mode)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->cullFace(mode);
 }
 
-void RemoteGraphicsContextGL::deleteBuffer(uint32_t arg0)
+void RemoteGraphicsContextGL::deleteBuffer(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -258,7 +258,7 @@ void RemoteGraphicsContextGL::deleteBuffer(uint32_t arg0)
     protect(m_context)->deleteBuffer(arg0);
 }
 
-void RemoteGraphicsContextGL::deleteFramebuffer(uint32_t arg0)
+void RemoteGraphicsContextGL::deleteFramebuffer(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -268,7 +268,7 @@ void RemoteGraphicsContextGL::deleteFramebuffer(uint32_t arg0)
     protect(m_context)->deleteFramebuffer(arg0);
 }
 
-void RemoteGraphicsContextGL::deleteProgram(uint32_t arg0)
+void RemoteGraphicsContextGL::deleteProgram(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -278,7 +278,7 @@ void RemoteGraphicsContextGL::deleteProgram(uint32_t arg0)
     protect(m_context)->deleteProgram(arg0);
 }
 
-void RemoteGraphicsContextGL::deleteRenderbuffer(uint32_t arg0)
+void RemoteGraphicsContextGL::deleteRenderbuffer(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -288,7 +288,7 @@ void RemoteGraphicsContextGL::deleteRenderbuffer(uint32_t arg0)
     protect(m_context)->deleteRenderbuffer(arg0);
 }
 
-void RemoteGraphicsContextGL::deleteShader(uint32_t arg0)
+void RemoteGraphicsContextGL::deleteShader(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -298,7 +298,7 @@ void RemoteGraphicsContextGL::deleteShader(uint32_t arg0)
     protect(m_context)->deleteShader(arg0);
 }
 
-void RemoteGraphicsContextGL::deleteTexture(uint32_t arg0)
+void RemoteGraphicsContextGL::deleteTexture(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -308,7 +308,7 @@ void RemoteGraphicsContextGL::deleteTexture(uint32_t arg0)
     protect(m_context)->deleteTexture(arg0);
 }
 
-void RemoteGraphicsContextGL::depthFunc(uint32_t func)
+void RemoteGraphicsContextGL::depthFunc(WTF::CheckedUint32 func)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->depthFunc(func);
@@ -326,7 +326,7 @@ void RemoteGraphicsContextGL::depthRange(float zNear, float zFar)
     protect(m_context)->depthRange(zNear, zFar);
 }
 
-void RemoteGraphicsContextGL::detachShader(uint32_t arg0, uint32_t arg1)
+void RemoteGraphicsContextGL::detachShader(WTF::CheckedUint32 arg0, WTF::CheckedUint32 arg1)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -338,37 +338,37 @@ void RemoteGraphicsContextGL::detachShader(uint32_t arg0, uint32_t arg1)
     protect(m_context)->detachShader(arg0, arg1);
 }
 
-void RemoteGraphicsContextGL::disable(uint32_t cap)
+void RemoteGraphicsContextGL::disable(WTF::CheckedUint32 cap)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->disable(cap);
 }
 
-void RemoteGraphicsContextGL::disableVertexAttribArray(uint32_t index)
+void RemoteGraphicsContextGL::disableVertexAttribArray(WTF::CheckedUint32 index)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->disableVertexAttribArray(index);
 }
 
-void RemoteGraphicsContextGL::drawArrays(uint32_t mode, int32_t first, int32_t count)
+void RemoteGraphicsContextGL::drawArrays(WTF::CheckedUint32 mode, WTF::CheckedInt32 first, WTF::CheckedInt32 count)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->drawArrays(mode, first, count);
 }
 
-void RemoteGraphicsContextGL::drawElements(uint32_t mode, int32_t count, uint32_t type, uint64_t offset)
+void RemoteGraphicsContextGL::drawElements(WTF::CheckedUint32 mode, WTF::CheckedInt32 count, WTF::CheckedUint32 type, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->drawElements(mode, count, type, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::enable(uint32_t cap)
+void RemoteGraphicsContextGL::enable(WTF::CheckedUint32 cap)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->enable(cap);
 }
 
-void RemoteGraphicsContextGL::enableVertexAttribArray(uint32_t index)
+void RemoteGraphicsContextGL::enableVertexAttribArray(WTF::CheckedUint32 index)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->enableVertexAttribArray(index);
@@ -386,7 +386,7 @@ void RemoteGraphicsContextGL::flush()
     protect(m_context)->flush();
 }
 
-void RemoteGraphicsContextGL::framebufferRenderbuffer(uint32_t target, uint32_t attachment, uint32_t renderbuffertarget, uint32_t arg3)
+void RemoteGraphicsContextGL::framebufferRenderbuffer(WTF::CheckedUint32 target, WTF::CheckedUint32 attachment, WTF::CheckedUint32 renderbuffertarget, WTF::CheckedUint32 arg3)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg3));
@@ -395,7 +395,7 @@ void RemoteGraphicsContextGL::framebufferRenderbuffer(uint32_t target, uint32_t 
     protect(m_context)->framebufferRenderbuffer(target, attachment, renderbuffertarget, arg3);
 }
 
-void RemoteGraphicsContextGL::framebufferTexture2D(uint32_t target, uint32_t attachment, uint32_t textarget, uint32_t arg3, int32_t level)
+void RemoteGraphicsContextGL::framebufferTexture2D(WTF::CheckedUint32 target, WTF::CheckedUint32 attachment, WTF::CheckedUint32 textarget, WTF::CheckedUint32 arg3, WTF::CheckedInt32 level)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg3));
@@ -404,19 +404,19 @@ void RemoteGraphicsContextGL::framebufferTexture2D(uint32_t target, uint32_t att
     protect(m_context)->framebufferTexture2D(target, attachment, textarget, arg3, level);
 }
 
-void RemoteGraphicsContextGL::frontFace(uint32_t mode)
+void RemoteGraphicsContextGL::frontFace(WTF::CheckedUint32 mode)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->frontFace(mode);
 }
 
-void RemoteGraphicsContextGL::generateMipmap(uint32_t target)
+void RemoteGraphicsContextGL::generateMipmap(WTF::CheckedUint32 target)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->generateMipmap(target);
 }
 
-void RemoteGraphicsContextGL::activeAttribs(uint32_t program, CompletionHandler<void(Vector<WebCore::GCGLAttribActiveInfo>&&)>&& completionHandler)
+void RemoteGraphicsContextGL::activeAttribs(WTF::CheckedUint32 program, CompletionHandler<void(Vector<WebCore::GCGLAttribActiveInfo>&&)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     Vector<WebCore::GCGLAttribActiveInfo> returnValue = { };
@@ -427,7 +427,7 @@ void RemoteGraphicsContextGL::activeAttribs(uint32_t program, CompletionHandler<
     completionHandler(WTF::move(returnValue));
 }
 
-void RemoteGraphicsContextGL::activeUniforms(uint32_t program, CompletionHandler<void(Vector<WebCore::GCGLUniformActiveInfo>&&)>&& completionHandler)
+void RemoteGraphicsContextGL::activeUniforms(WTF::CheckedUint32 program, CompletionHandler<void(Vector<WebCore::GCGLUniformActiveInfo>&&)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     Vector<WebCore::GCGLUniformActiveInfo> returnValue = { };
@@ -438,7 +438,7 @@ void RemoteGraphicsContextGL::activeUniforms(uint32_t program, CompletionHandler
     completionHandler(WTF::move(returnValue));
 }
 
-void RemoteGraphicsContextGL::getBufferParameteri(uint32_t target, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getBufferParameteri(WTF::CheckedUint32 target, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -446,7 +446,7 @@ void RemoteGraphicsContextGL::getBufferParameteri(uint32_t target, uint32_t pnam
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getString(uint32_t name, CompletionHandler<void(CString&&)>&& completionHandler)
+void RemoteGraphicsContextGL::getString(WTF::CheckedUint32 name, CompletionHandler<void(CString&&)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     CString returnValue = { };
@@ -454,7 +454,7 @@ void RemoteGraphicsContextGL::getString(uint32_t name, CompletionHandler<void(CS
     completionHandler(WTF::move(returnValue));
 }
 
-void RemoteGraphicsContextGL::getFloatv(uint32_t pname, uint64_t valueSize, CompletionHandler<void(std::span<const float>)>&& completionHandler)
+void RemoteGraphicsContextGL::getFloatv(WTF::CheckedUint32 pname, WTF::CheckedUint64 valueSize, CompletionHandler<void(std::span<const float>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     if (!WTF::isValidCapacityForVector<GCGLfloat>(valueSize))
@@ -464,7 +464,7 @@ void RemoteGraphicsContextGL::getFloatv(uint32_t pname, uint64_t valueSize, Comp
     completionHandler(spanReinterpretCast<const float>(value.span()));
 }
 
-void RemoteGraphicsContextGL::getIntegerv(uint32_t pname, uint64_t valueSize, CompletionHandler<void(std::span<const int32_t>)>&& completionHandler)
+void RemoteGraphicsContextGL::getIntegerv(WTF::CheckedUint32 pname, WTF::CheckedUint64 valueSize, CompletionHandler<void(std::span<const int32_t>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     if (!WTF::isValidCapacityForVector<GCGLint>(valueSize))
@@ -474,7 +474,7 @@ void RemoteGraphicsContextGL::getIntegerv(uint32_t pname, uint64_t valueSize, Co
     completionHandler(spanReinterpretCast<const int32_t>(value.span()));
 }
 
-void RemoteGraphicsContextGL::getIntegeri_v(uint32_t pname, uint32_t index, CompletionHandler<void(std::span<const int32_t, 4>)>&& completionHandler) // NOLINT
+void RemoteGraphicsContextGL::getIntegeri_v(WTF::CheckedUint32 pname, WTF::CheckedUint32 index, CompletionHandler<void(std::span<const int32_t, 4>)>&& completionHandler) // NOLINT
 {
     assertIsCurrent(workQueue());
     std::array<GCGLint, 4> value { };
@@ -482,7 +482,7 @@ void RemoteGraphicsContextGL::getIntegeri_v(uint32_t pname, uint32_t index, Comp
     completionHandler(spanReinterpretCast<const int32_t, 4>(std::span<const GCGLint, 4>(value)));
 }
 
-void RemoteGraphicsContextGL::getInteger64(uint32_t pname, CompletionHandler<void(int64_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getInteger64(WTF::CheckedUint32 pname, CompletionHandler<void(int64_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint64 returnValue = { };
@@ -490,7 +490,7 @@ void RemoteGraphicsContextGL::getInteger64(uint32_t pname, CompletionHandler<voi
     completionHandler(static_cast<int64_t>(returnValue));
 }
 
-void RemoteGraphicsContextGL::getInteger64i(uint32_t pname, uint32_t index, CompletionHandler<void(int64_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getInteger64i(WTF::CheckedUint32 pname, WTF::CheckedUint32 index, CompletionHandler<void(int64_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint64 returnValue = { };
@@ -498,7 +498,7 @@ void RemoteGraphicsContextGL::getInteger64i(uint32_t pname, uint32_t index, Comp
     completionHandler(static_cast<int64_t>(returnValue));
 }
 
-void RemoteGraphicsContextGL::getProgrami(uint32_t program, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getProgrami(WTF::CheckedUint32 program, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -509,7 +509,7 @@ void RemoteGraphicsContextGL::getProgrami(uint32_t program, uint32_t pname, Comp
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getBooleanv(uint32_t pname, uint64_t valueSize, CompletionHandler<void(std::span<const bool>)>&& completionHandler)
+void RemoteGraphicsContextGL::getBooleanv(WTF::CheckedUint32 pname, WTF::CheckedUint64 valueSize, CompletionHandler<void(std::span<const bool>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     if (!WTF::isValidCapacityForVector<GCGLboolean>(valueSize))
@@ -519,7 +519,7 @@ void RemoteGraphicsContextGL::getBooleanv(uint32_t pname, uint64_t valueSize, Co
     completionHandler(spanReinterpretCast<const bool>(value.span()));
 }
 
-void RemoteGraphicsContextGL::getFramebufferAttachmentParameteri(uint32_t target, uint32_t attachment, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getFramebufferAttachmentParameteri(WTF::CheckedUint32 target, WTF::CheckedUint32 attachment, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -527,7 +527,7 @@ void RemoteGraphicsContextGL::getFramebufferAttachmentParameteri(uint32_t target
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getProgramInfoLog(uint32_t arg0, CompletionHandler<void(CString&&)>&& completionHandler)
+void RemoteGraphicsContextGL::getProgramInfoLog(WTF::CheckedUint32 arg0, CompletionHandler<void(CString&&)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     CString returnValue = { };
@@ -538,7 +538,7 @@ void RemoteGraphicsContextGL::getProgramInfoLog(uint32_t arg0, CompletionHandler
     completionHandler(WTF::move(returnValue));
 }
 
-void RemoteGraphicsContextGL::getRenderbufferParameteri(uint32_t target, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getRenderbufferParameteri(WTF::CheckedUint32 target, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -546,7 +546,7 @@ void RemoteGraphicsContextGL::getRenderbufferParameteri(uint32_t target, uint32_
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getShaderi(uint32_t arg0, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getShaderi(WTF::CheckedUint32 arg0, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -557,7 +557,7 @@ void RemoteGraphicsContextGL::getShaderi(uint32_t arg0, uint32_t pname, Completi
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getShaderInfoLog(uint32_t arg0, CompletionHandler<void(CString&&)>&& completionHandler)
+void RemoteGraphicsContextGL::getShaderInfoLog(WTF::CheckedUint32 arg0, CompletionHandler<void(CString&&)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     CString returnValue = { };
@@ -568,7 +568,7 @@ void RemoteGraphicsContextGL::getShaderInfoLog(uint32_t arg0, CompletionHandler<
     completionHandler(WTF::move(returnValue));
 }
 
-void RemoteGraphicsContextGL::getShaderPrecisionFormat(uint32_t shaderType, uint32_t precisionType, CompletionHandler<void(std::span<const int32_t, 2>, int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getShaderPrecisionFormat(WTF::CheckedUint32 shaderType, WTF::CheckedUint32 precisionType, CompletionHandler<void(std::span<const int32_t, 2>, int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     std::array<GCGLint, 2> range { };
@@ -577,7 +577,7 @@ void RemoteGraphicsContextGL::getShaderPrecisionFormat(uint32_t shaderType, uint
     completionHandler(spanReinterpretCast<const int32_t, 2>(std::span<const GCGLint, 2>(range)), precision);
 }
 
-void RemoteGraphicsContextGL::getTexParameterf(uint32_t target, uint32_t pname, CompletionHandler<void(float)>&& completionHandler)
+void RemoteGraphicsContextGL::getTexParameterf(WTF::CheckedUint32 target, WTF::CheckedUint32 pname, CompletionHandler<void(float)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLfloat returnValue = { };
@@ -585,7 +585,7 @@ void RemoteGraphicsContextGL::getTexParameterf(uint32_t target, uint32_t pname, 
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getTexParameteri(uint32_t target, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getTexParameteri(WTF::CheckedUint32 target, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -593,7 +593,7 @@ void RemoteGraphicsContextGL::getTexParameteri(uint32_t target, uint32_t pname, 
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getUniformfv(uint32_t program, int32_t location, uint64_t valueSize, CompletionHandler<void(std::span<const float>)>&& completionHandler)
+void RemoteGraphicsContextGL::getUniformfv(WTF::CheckedUint32 program, WTF::CheckedInt32 location, WTF::CheckedUint64 valueSize, CompletionHandler<void(std::span<const float>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(program));
@@ -606,7 +606,7 @@ void RemoteGraphicsContextGL::getUniformfv(uint32_t program, int32_t location, u
     completionHandler(spanReinterpretCast<const float>(value.span()));
 }
 
-void RemoteGraphicsContextGL::getUniformiv(uint32_t program, int32_t location, uint64_t valueSize, CompletionHandler<void(std::span<const int32_t>)>&& completionHandler)
+void RemoteGraphicsContextGL::getUniformiv(WTF::CheckedUint32 program, WTF::CheckedInt32 location, WTF::CheckedUint64 valueSize, CompletionHandler<void(std::span<const int32_t>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(program));
@@ -619,7 +619,7 @@ void RemoteGraphicsContextGL::getUniformiv(uint32_t program, int32_t location, u
     completionHandler(spanReinterpretCast<const int32_t>(value.span()));
 }
 
-void RemoteGraphicsContextGL::getUniformuiv(uint32_t program, int32_t location, uint64_t valueSize, CompletionHandler<void(std::span<const uint32_t>)>&& completionHandler)
+void RemoteGraphicsContextGL::getUniformuiv(WTF::CheckedUint32 program, WTF::CheckedInt32 location, WTF::CheckedUint64 valueSize, CompletionHandler<void(std::span<const uint32_t>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(program));
@@ -632,7 +632,7 @@ void RemoteGraphicsContextGL::getUniformuiv(uint32_t program, int32_t location, 
     completionHandler(spanReinterpretCast<const uint32_t>(value.span()));
 }
 
-void RemoteGraphicsContextGL::getVertexAttribOffset(uint32_t index, uint32_t pname, CompletionHandler<void(uint64_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getVertexAttribOffset(WTF::CheckedUint32 index, WTF::CheckedUint32 pname, CompletionHandler<void(uint64_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLsizeiptr returnValue = { };
@@ -640,13 +640,13 @@ void RemoteGraphicsContextGL::getVertexAttribOffset(uint32_t index, uint32_t pna
     completionHandler(static_cast<uint64_t>(returnValue));
 }
 
-void RemoteGraphicsContextGL::hint(uint32_t target, uint32_t mode)
+void RemoteGraphicsContextGL::hint(WTF::CheckedUint32 target, WTF::CheckedUint32 mode)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->hint(target, mode);
 }
 
-void RemoteGraphicsContextGL::isBuffer(uint32_t arg0, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isBuffer(WTF::CheckedUint32 arg0, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -657,7 +657,7 @@ void RemoteGraphicsContextGL::isBuffer(uint32_t arg0, CompletionHandler<void(boo
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::isEnabled(uint32_t cap, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isEnabled(WTF::CheckedUint32 cap, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -665,7 +665,7 @@ void RemoteGraphicsContextGL::isEnabled(uint32_t cap, CompletionHandler<void(boo
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::isFramebuffer(uint32_t arg0, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isFramebuffer(WTF::CheckedUint32 arg0, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -676,7 +676,7 @@ void RemoteGraphicsContextGL::isFramebuffer(uint32_t arg0, CompletionHandler<voi
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::isProgram(uint32_t arg0, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isProgram(WTF::CheckedUint32 arg0, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -687,7 +687,7 @@ void RemoteGraphicsContextGL::isProgram(uint32_t arg0, CompletionHandler<void(bo
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::isRenderbuffer(uint32_t arg0, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isRenderbuffer(WTF::CheckedUint32 arg0, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -698,7 +698,7 @@ void RemoteGraphicsContextGL::isRenderbuffer(uint32_t arg0, CompletionHandler<vo
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::isShader(uint32_t arg0, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isShader(WTF::CheckedUint32 arg0, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -709,7 +709,7 @@ void RemoteGraphicsContextGL::isShader(uint32_t arg0, CompletionHandler<void(boo
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::isTexture(uint32_t arg0, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isTexture(WTF::CheckedUint32 arg0, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -726,7 +726,7 @@ void RemoteGraphicsContextGL::lineWidth(float arg0)
     protect(m_context)->lineWidth(arg0);
 }
 
-void RemoteGraphicsContextGL::linkProgram(uint32_t arg0)
+void RemoteGraphicsContextGL::linkProgram(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -735,7 +735,7 @@ void RemoteGraphicsContextGL::linkProgram(uint32_t arg0)
     protect(m_context)->linkProgram(arg0);
 }
 
-void RemoteGraphicsContextGL::pixelStorei(uint32_t pname, int32_t param)
+void RemoteGraphicsContextGL::pixelStorei(WTF::CheckedUint32 pname, WTF::CheckedInt32 param)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->pixelStorei(pname, param);
@@ -747,7 +747,7 @@ void RemoteGraphicsContextGL::polygonOffset(float factor, float units)
     protect(m_context)->polygonOffset(factor, units);
 }
 
-void RemoteGraphicsContextGL::renderbufferStorage(uint32_t target, uint32_t internalformat, int32_t width, int32_t height)
+void RemoteGraphicsContextGL::renderbufferStorage(WTF::CheckedUint32 target, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->renderbufferStorage(target, internalformat, width, height);
@@ -759,13 +759,13 @@ void RemoteGraphicsContextGL::sampleCoverage(float value, bool invert)
     protect(m_context)->sampleCoverage(value, static_cast<GCGLboolean>(invert));
 }
 
-void RemoteGraphicsContextGL::scissor(int32_t x, int32_t y, int32_t width, int32_t height)
+void RemoteGraphicsContextGL::scissor(WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 width, WTF::CheckedInt32 height)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->scissor(x, y, width, height);
 }
 
-void RemoteGraphicsContextGL::shaderSource(uint32_t arg0, CString&& arg1)
+void RemoteGraphicsContextGL::shaderSource(WTF::CheckedUint32 arg0, CString&& arg1)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -774,169 +774,169 @@ void RemoteGraphicsContextGL::shaderSource(uint32_t arg0, CString&& arg1)
     protect(m_context)->shaderSource(arg0, arg1);
 }
 
-void RemoteGraphicsContextGL::stencilFunc(uint32_t func, int32_t ref, uint32_t mask)
+void RemoteGraphicsContextGL::stencilFunc(WTF::CheckedUint32 func, WTF::CheckedInt32 ref, WTF::CheckedUint32 mask)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->stencilFunc(func, ref, mask);
 }
 
-void RemoteGraphicsContextGL::stencilFuncSeparate(uint32_t face, uint32_t func, int32_t ref, uint32_t mask)
+void RemoteGraphicsContextGL::stencilFuncSeparate(WTF::CheckedUint32 face, WTF::CheckedUint32 func, WTF::CheckedInt32 ref, WTF::CheckedUint32 mask)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->stencilFuncSeparate(face, func, ref, mask);
 }
 
-void RemoteGraphicsContextGL::stencilMask(uint32_t mask)
+void RemoteGraphicsContextGL::stencilMask(WTF::CheckedUint32 mask)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->stencilMask(mask);
 }
 
-void RemoteGraphicsContextGL::stencilMaskSeparate(uint32_t face, uint32_t mask)
+void RemoteGraphicsContextGL::stencilMaskSeparate(WTF::CheckedUint32 face, WTF::CheckedUint32 mask)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->stencilMaskSeparate(face, mask);
 }
 
-void RemoteGraphicsContextGL::stencilOp(uint32_t fail, uint32_t zfail, uint32_t zpass)
+void RemoteGraphicsContextGL::stencilOp(WTF::CheckedUint32 fail, WTF::CheckedUint32 zfail, WTF::CheckedUint32 zpass)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->stencilOp(fail, zfail, zpass);
 }
 
-void RemoteGraphicsContextGL::stencilOpSeparate(uint32_t face, uint32_t fail, uint32_t zfail, uint32_t zpass)
+void RemoteGraphicsContextGL::stencilOpSeparate(WTF::CheckedUint32 face, WTF::CheckedUint32 fail, WTF::CheckedUint32 zfail, WTF::CheckedUint32 zpass)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->stencilOpSeparate(face, fail, zfail, zpass);
 }
 
-void RemoteGraphicsContextGL::texParameterf(uint32_t target, uint32_t pname, float param)
+void RemoteGraphicsContextGL::texParameterf(WTF::CheckedUint32 target, WTF::CheckedUint32 pname, float param)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texParameterf(target, pname, param);
 }
 
-void RemoteGraphicsContextGL::texParameteri(uint32_t target, uint32_t pname, int32_t param)
+void RemoteGraphicsContextGL::texParameteri(WTF::CheckedUint32 target, WTF::CheckedUint32 pname, WTF::CheckedInt32 param)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texParameteri(target, pname, param);
 }
 
-void RemoteGraphicsContextGL::uniform1f(int32_t location, float x)
+void RemoteGraphicsContextGL::uniform1f(WTF::CheckedInt32 location, float x)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform1f(location, x);
 }
 
-void RemoteGraphicsContextGL::uniform1fv(int32_t location, std::span<const float>&& v)
+void RemoteGraphicsContextGL::uniform1fv(WTF::CheckedInt32 location, std::span<const float>&& v)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform1fv(location, v);
 }
 
-void RemoteGraphicsContextGL::uniform1i(int32_t location, int32_t x)
+void RemoteGraphicsContextGL::uniform1i(WTF::CheckedInt32 location, WTF::CheckedInt32 x)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform1i(location, x);
 }
 
-void RemoteGraphicsContextGL::uniform1iv(int32_t location, std::span<const int32_t>&& v)
+void RemoteGraphicsContextGL::uniform1iv(WTF::CheckedInt32 location, std::span<const int32_t>&& v)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform1iv(location, v);
 }
 
-void RemoteGraphicsContextGL::uniform2f(int32_t location, float x, float y)
+void RemoteGraphicsContextGL::uniform2f(WTF::CheckedInt32 location, float x, float y)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform2f(location, x, y);
 }
 
-void RemoteGraphicsContextGL::uniform2fv(int32_t location, std::span<const float>&& v)
+void RemoteGraphicsContextGL::uniform2fv(WTF::CheckedInt32 location, std::span<const float>&& v)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform2fv(location, v);
 }
 
-void RemoteGraphicsContextGL::uniform2i(int32_t location, int32_t x, int32_t y)
+void RemoteGraphicsContextGL::uniform2i(WTF::CheckedInt32 location, WTF::CheckedInt32 x, WTF::CheckedInt32 y)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform2i(location, x, y);
 }
 
-void RemoteGraphicsContextGL::uniform2iv(int32_t location, std::span<const int32_t>&& v)
+void RemoteGraphicsContextGL::uniform2iv(WTF::CheckedInt32 location, std::span<const int32_t>&& v)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform2iv(location, v);
 }
 
-void RemoteGraphicsContextGL::uniform3f(int32_t location, float x, float y, float z)
+void RemoteGraphicsContextGL::uniform3f(WTF::CheckedInt32 location, float x, float y, float z)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform3f(location, x, y, z);
 }
 
-void RemoteGraphicsContextGL::uniform3fv(int32_t location, std::span<const float>&& v)
+void RemoteGraphicsContextGL::uniform3fv(WTF::CheckedInt32 location, std::span<const float>&& v)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform3fv(location, v);
 }
 
-void RemoteGraphicsContextGL::uniform3i(int32_t location, int32_t x, int32_t y, int32_t z)
+void RemoteGraphicsContextGL::uniform3i(WTF::CheckedInt32 location, WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 z)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform3i(location, x, y, z);
 }
 
-void RemoteGraphicsContextGL::uniform3iv(int32_t location, std::span<const int32_t>&& v)
+void RemoteGraphicsContextGL::uniform3iv(WTF::CheckedInt32 location, std::span<const int32_t>&& v)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform3iv(location, v);
 }
 
-void RemoteGraphicsContextGL::uniform4f(int32_t location, float x, float y, float z, float w)
+void RemoteGraphicsContextGL::uniform4f(WTF::CheckedInt32 location, float x, float y, float z, float w)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform4f(location, x, y, z, w);
 }
 
-void RemoteGraphicsContextGL::uniform4fv(int32_t location, std::span<const float>&& v)
+void RemoteGraphicsContextGL::uniform4fv(WTF::CheckedInt32 location, std::span<const float>&& v)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform4fv(location, v);
 }
 
-void RemoteGraphicsContextGL::uniform4i(int32_t location, int32_t x, int32_t y, int32_t z, int32_t w)
+void RemoteGraphicsContextGL::uniform4i(WTF::CheckedInt32 location, WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 z, WTF::CheckedInt32 w)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform4i(location, x, y, z, w);
 }
 
-void RemoteGraphicsContextGL::uniform4iv(int32_t location, std::span<const int32_t>&& v)
+void RemoteGraphicsContextGL::uniform4iv(WTF::CheckedInt32 location, std::span<const int32_t>&& v)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform4iv(location, v);
 }
 
-void RemoteGraphicsContextGL::uniformMatrix2fv(int32_t location, bool transpose, std::span<const float>&& value)
+void RemoteGraphicsContextGL::uniformMatrix2fv(WTF::CheckedInt32 location, bool transpose, std::span<const float>&& value)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniformMatrix2fv(location, static_cast<GCGLboolean>(transpose), value);
 }
 
-void RemoteGraphicsContextGL::uniformMatrix3fv(int32_t location, bool transpose, std::span<const float>&& value)
+void RemoteGraphicsContextGL::uniformMatrix3fv(WTF::CheckedInt32 location, bool transpose, std::span<const float>&& value)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniformMatrix3fv(location, static_cast<GCGLboolean>(transpose), value);
 }
 
-void RemoteGraphicsContextGL::uniformMatrix4fv(int32_t location, bool transpose, std::span<const float>&& value)
+void RemoteGraphicsContextGL::uniformMatrix4fv(WTF::CheckedInt32 location, bool transpose, std::span<const float>&& value)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniformMatrix4fv(location, static_cast<GCGLboolean>(transpose), value);
 }
 
-void RemoteGraphicsContextGL::useProgram(uint32_t arg0)
+void RemoteGraphicsContextGL::useProgram(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -945,7 +945,7 @@ void RemoteGraphicsContextGL::useProgram(uint32_t arg0)
     protect(m_context)->useProgram(arg0);
 }
 
-void RemoteGraphicsContextGL::validateProgram(uint32_t arg0)
+void RemoteGraphicsContextGL::validateProgram(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -954,157 +954,157 @@ void RemoteGraphicsContextGL::validateProgram(uint32_t arg0)
     protect(m_context)->validateProgram(arg0);
 }
 
-void RemoteGraphicsContextGL::vertexAttrib1f(uint32_t index, float x)
+void RemoteGraphicsContextGL::vertexAttrib1f(WTF::CheckedUint32 index, float x)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttrib1f(index, x);
 }
 
-void RemoteGraphicsContextGL::vertexAttrib1fv(uint32_t index, std::span<const float, 1>&& values)
+void RemoteGraphicsContextGL::vertexAttrib1fv(WTF::CheckedUint32 index, std::span<const float, 1>&& values)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttrib1fv(index, values);
 }
 
-void RemoteGraphicsContextGL::vertexAttrib2f(uint32_t index, float x, float y)
+void RemoteGraphicsContextGL::vertexAttrib2f(WTF::CheckedUint32 index, float x, float y)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttrib2f(index, x, y);
 }
 
-void RemoteGraphicsContextGL::vertexAttrib2fv(uint32_t index, std::span<const float, 2>&& values)
+void RemoteGraphicsContextGL::vertexAttrib2fv(WTF::CheckedUint32 index, std::span<const float, 2>&& values)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttrib2fv(index, values);
 }
 
-void RemoteGraphicsContextGL::vertexAttrib3f(uint32_t index, float x, float y, float z)
+void RemoteGraphicsContextGL::vertexAttrib3f(WTF::CheckedUint32 index, float x, float y, float z)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttrib3f(index, x, y, z);
 }
 
-void RemoteGraphicsContextGL::vertexAttrib3fv(uint32_t index, std::span<const float, 3>&& values)
+void RemoteGraphicsContextGL::vertexAttrib3fv(WTF::CheckedUint32 index, std::span<const float, 3>&& values)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttrib3fv(index, values);
 }
 
-void RemoteGraphicsContextGL::vertexAttrib4f(uint32_t index, float x, float y, float z, float w)
+void RemoteGraphicsContextGL::vertexAttrib4f(WTF::CheckedUint32 index, float x, float y, float z, float w)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttrib4f(index, x, y, z, w);
 }
 
-void RemoteGraphicsContextGL::vertexAttrib4fv(uint32_t index, std::span<const float, 4>&& values)
+void RemoteGraphicsContextGL::vertexAttrib4fv(WTF::CheckedUint32 index, std::span<const float, 4>&& values)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttrib4fv(index, values);
 }
 
-void RemoteGraphicsContextGL::vertexAttribPointer(uint32_t index, int32_t size, uint32_t type, bool normalized, int32_t stride, uint64_t offset)
+void RemoteGraphicsContextGL::vertexAttribPointer(WTF::CheckedUint32 index, WTF::CheckedInt32 size, WTF::CheckedUint32 type, bool normalized, WTF::CheckedInt32 stride, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttribPointer(index, size, type, static_cast<GCGLboolean>(normalized), stride, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::viewport(int32_t x, int32_t y, int32_t width, int32_t height)
+void RemoteGraphicsContextGL::viewport(WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 width, WTF::CheckedInt32 height)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->viewport(x, y, width, height);
 }
 
-void RemoteGraphicsContextGL::bufferData0(uint32_t target, uint64_t arg1, uint32_t usage)
+void RemoteGraphicsContextGL::bufferData0(WTF::CheckedUint32 target, WTF::CheckedUint64 arg1, WTF::CheckedUint32 usage)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->bufferData(target, static_cast<GCGLsizeiptr>(arg1), usage);
 }
 
-void RemoteGraphicsContextGL::bufferData1(uint32_t target, std::span<const uint8_t>&& data, uint32_t usage)
+void RemoteGraphicsContextGL::bufferData1(WTF::CheckedUint32 target, std::span<const uint8_t>&& data, WTF::CheckedUint32 usage)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->bufferData(target, data, usage);
 }
 
-void RemoteGraphicsContextGL::bufferSubData(uint32_t target, uint64_t offset, std::span<const uint8_t>&& data)
+void RemoteGraphicsContextGL::bufferSubData(WTF::CheckedUint32 target, WTF::CheckedUint64 offset, std::span<const uint8_t>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->bufferSubData(target, static_cast<GCGLintptr>(offset), data);
 }
 
-void RemoteGraphicsContextGL::readPixelsBufferObject(WebCore::IntRect&& arg0, uint32_t format, uint32_t type, uint64_t offset, int32_t alignment, int32_t rowLength)
+void RemoteGraphicsContextGL::readPixelsBufferObject(WebCore::IntRect&& arg0, WTF::CheckedUint32 format, WTF::CheckedUint32 type, WTF::CheckedUint64 offset, WTF::CheckedInt32 alignment, WTF::CheckedInt32 rowLength)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->readPixelsBufferObject(arg0, format, type, static_cast<GCGLintptr>(offset), alignment, rowLength);
 }
 
-void RemoteGraphicsContextGL::texImage2D0(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels)
+void RemoteGraphicsContextGL::texImage2D0(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 border, WTF::CheckedUint32 format, WTF::CheckedUint32 type, std::span<const uint8_t>&& pixels)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texImage2D(target, level, internalformat, width, height, border, format, type, pixels);
 }
 
-void RemoteGraphicsContextGL::texImage2D1(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, uint32_t format, uint32_t type, uint64_t offset)
+void RemoteGraphicsContextGL::texImage2D1(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 border, WTF::CheckedUint32 format, WTF::CheckedUint32 type, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texImage2D(target, level, internalformat, width, height, border, format, type, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::texSubImage2D0(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t width, int32_t height, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels)
+void RemoteGraphicsContextGL::texSubImage2D0(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 xoffset, WTF::CheckedInt32 yoffset, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedUint32 format, WTF::CheckedUint32 type, std::span<const uint8_t>&& pixels)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
 }
 
-void RemoteGraphicsContextGL::texSubImage2D1(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t width, int32_t height, uint32_t format, uint32_t type, uint64_t offset)
+void RemoteGraphicsContextGL::texSubImage2D1(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 xoffset, WTF::CheckedInt32 yoffset, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedUint32 format, WTF::CheckedUint32 type, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texSubImage2D(target, level, xoffset, yoffset, width, height, format, type, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::compressedTexImage2D0(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, std::span<const uint8_t>&& data)
+void RemoteGraphicsContextGL::compressedTexImage2D0(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 border, std::span<const uint8_t>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->compressedTexImage2D(target, level, internalformat, width, height, border, data);
 }
 
-void RemoteGraphicsContextGL::compressedTexImage2D1(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, int32_t imageSize, uint64_t offset)
+void RemoteGraphicsContextGL::compressedTexImage2D1(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 border, WTF::CheckedInt32 imageSize, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->compressedTexImage2D(target, level, internalformat, width, height, border, imageSize, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::compressedTexSubImage2D0(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t width, int32_t height, uint32_t format, std::span<const uint8_t>&& data)
+void RemoteGraphicsContextGL::compressedTexSubImage2D0(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 xoffset, WTF::CheckedInt32 yoffset, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedUint32 format, std::span<const uint8_t>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->compressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, data);
 }
 
-void RemoteGraphicsContextGL::compressedTexSubImage2D1(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t width, int32_t height, uint32_t format, int32_t imageSize, uint64_t offset)
+void RemoteGraphicsContextGL::compressedTexSubImage2D1(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 xoffset, WTF::CheckedInt32 yoffset, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedUint32 format, WTF::CheckedInt32 imageSize, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->compressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::drawArraysInstanced(uint32_t mode, int32_t first, int32_t count, int32_t primcount)
+void RemoteGraphicsContextGL::drawArraysInstanced(WTF::CheckedUint32 mode, WTF::CheckedInt32 first, WTF::CheckedInt32 count, WTF::CheckedInt32 primcount)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->drawArraysInstanced(mode, first, count, primcount);
 }
 
-void RemoteGraphicsContextGL::drawElementsInstanced(uint32_t mode, int32_t count, uint32_t type, uint64_t offset, int32_t primcount)
+void RemoteGraphicsContextGL::drawElementsInstanced(WTF::CheckedUint32 mode, WTF::CheckedInt32 count, WTF::CheckedUint32 type, WTF::CheckedUint64 offset, WTF::CheckedInt32 primcount)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->drawElementsInstanced(mode, count, type, static_cast<GCGLintptr>(offset), primcount);
 }
 
-void RemoteGraphicsContextGL::vertexAttribDivisor(uint32_t index, uint32_t divisor)
+void RemoteGraphicsContextGL::vertexAttribDivisor(WTF::CheckedUint32 index, WTF::CheckedUint32 divisor)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttribDivisor(index, divisor);
 }
 
-void RemoteGraphicsContextGL::createVertexArray(uint32_t name)
+void RemoteGraphicsContextGL::createVertexArray(WTF::CheckedUint32 name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -1113,7 +1113,7 @@ void RemoteGraphicsContextGL::createVertexArray(uint32_t name)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::deleteVertexArray(uint32_t arg0)
+void RemoteGraphicsContextGL::deleteVertexArray(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -1123,7 +1123,7 @@ void RemoteGraphicsContextGL::deleteVertexArray(uint32_t arg0)
     protect(m_context)->deleteVertexArray(arg0);
 }
 
-void RemoteGraphicsContextGL::isVertexArray(uint32_t arg0, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isVertexArray(WTF::CheckedUint32 arg0, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -1134,7 +1134,7 @@ void RemoteGraphicsContextGL::isVertexArray(uint32_t arg0, CompletionHandler<voi
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::bindVertexArray(uint32_t arg0)
+void RemoteGraphicsContextGL::bindVertexArray(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
@@ -1143,19 +1143,19 @@ void RemoteGraphicsContextGL::bindVertexArray(uint32_t arg0)
     protect(m_context)->bindVertexArray(arg0);
 }
 
-void RemoteGraphicsContextGL::copyBufferSubData(uint32_t readTarget, uint32_t writeTarget, uint64_t readOffset, uint64_t writeOffset, uint64_t arg4)
+void RemoteGraphicsContextGL::copyBufferSubData(WTF::CheckedUint32 readTarget, WTF::CheckedUint32 writeTarget, WTF::CheckedUint64 readOffset, WTF::CheckedUint64 writeOffset, WTF::CheckedUint64 arg4)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->copyBufferSubData(readTarget, writeTarget, static_cast<GCGLintptr>(readOffset), static_cast<GCGLintptr>(writeOffset), static_cast<GCGLsizeiptr>(arg4));
 }
 
-void RemoteGraphicsContextGL::blitFramebuffer(int32_t srcX0, int32_t srcY0, int32_t srcX1, int32_t srcY1, int32_t dstX0, int32_t dstY0, int32_t dstX1, int32_t dstY1, uint32_t mask, uint32_t filter)
+void RemoteGraphicsContextGL::blitFramebuffer(WTF::CheckedInt32 srcX0, WTF::CheckedInt32 srcY0, WTF::CheckedInt32 srcX1, WTF::CheckedInt32 srcY1, WTF::CheckedInt32 dstX0, WTF::CheckedInt32 dstY0, WTF::CheckedInt32 dstX1, WTF::CheckedInt32 dstY1, WTF::CheckedUint32 mask, WTF::CheckedUint32 filter)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->blitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 }
 
-void RemoteGraphicsContextGL::framebufferTextureLayer(uint32_t target, uint32_t attachment, uint32_t texture, int32_t level, int32_t layer)
+void RemoteGraphicsContextGL::framebufferTextureLayer(WTF::CheckedUint32 target, WTF::CheckedUint32 attachment, WTF::CheckedUint32 texture, WTF::CheckedInt32 level, WTF::CheckedInt32 layer)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(texture));
@@ -1164,85 +1164,85 @@ void RemoteGraphicsContextGL::framebufferTextureLayer(uint32_t target, uint32_t 
     protect(m_context)->framebufferTextureLayer(target, attachment, texture, level, layer);
 }
 
-void RemoteGraphicsContextGL::readBuffer(uint32_t src)
+void RemoteGraphicsContextGL::readBuffer(WTF::CheckedUint32 src)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->readBuffer(src);
 }
 
-void RemoteGraphicsContextGL::renderbufferStorageMultisample(uint32_t target, int32_t samples, uint32_t internalformat, int32_t width, int32_t height)
+void RemoteGraphicsContextGL::renderbufferStorageMultisample(WTF::CheckedUint32 target, WTF::CheckedInt32 samples, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->renderbufferStorageMultisample(target, samples, internalformat, width, height);
 }
 
-void RemoteGraphicsContextGL::texStorage2D(uint32_t target, int32_t levels, uint32_t internalformat, int32_t width, int32_t height)
+void RemoteGraphicsContextGL::texStorage2D(WTF::CheckedUint32 target, WTF::CheckedInt32 levels, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texStorage2D(target, levels, internalformat, width, height);
 }
 
-void RemoteGraphicsContextGL::texStorage3D(uint32_t target, int32_t levels, uint32_t internalformat, int32_t width, int32_t height, int32_t depth)
+void RemoteGraphicsContextGL::texStorage3D(WTF::CheckedUint32 target, WTF::CheckedInt32 levels, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 depth)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texStorage3D(target, levels, internalformat, width, height, depth);
 }
 
-void RemoteGraphicsContextGL::texImage3D0(uint32_t target, int32_t level, int32_t internalformat, int32_t width, int32_t height, int32_t depth, int32_t border, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels)
+void RemoteGraphicsContextGL::texImage3D0(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 depth, WTF::CheckedInt32 border, WTF::CheckedUint32 format, WTF::CheckedUint32 type, std::span<const uint8_t>&& pixels)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels);
 }
 
-void RemoteGraphicsContextGL::texImage3D1(uint32_t target, int32_t level, int32_t internalformat, int32_t width, int32_t height, int32_t depth, int32_t border, uint32_t format, uint32_t type, uint64_t offset)
+void RemoteGraphicsContextGL::texImage3D1(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 depth, WTF::CheckedInt32 border, WTF::CheckedUint32 format, WTF::CheckedUint32 type, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texImage3D(target, level, internalformat, width, height, depth, border, format, type, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::texSubImage3D0(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t zoffset, int32_t width, int32_t height, int32_t depth, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels)
+void RemoteGraphicsContextGL::texSubImage3D0(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 xoffset, WTF::CheckedInt32 yoffset, WTF::CheckedInt32 zoffset, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 depth, WTF::CheckedUint32 format, WTF::CheckedUint32 type, std::span<const uint8_t>&& pixels)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
 }
 
-void RemoteGraphicsContextGL::texSubImage3D1(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t zoffset, int32_t width, int32_t height, int32_t depth, uint32_t format, uint32_t type, uint64_t offset)
+void RemoteGraphicsContextGL::texSubImage3D1(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 xoffset, WTF::CheckedInt32 yoffset, WTF::CheckedInt32 zoffset, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 depth, WTF::CheckedUint32 format, WTF::CheckedUint32 type, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::copyTexSubImage3D(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t zoffset, int32_t x, int32_t y, int32_t width, int32_t height)
+void RemoteGraphicsContextGL::copyTexSubImage3D(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 xoffset, WTF::CheckedInt32 yoffset, WTF::CheckedInt32 zoffset, WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 width, WTF::CheckedInt32 height)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->copyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
 }
 
-void RemoteGraphicsContextGL::compressedTexImage3D0(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t depth, int32_t border, std::span<const uint8_t>&& data)
+void RemoteGraphicsContextGL::compressedTexImage3D0(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 depth, WTF::CheckedInt32 border, std::span<const uint8_t>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->compressedTexImage3D(target, level, internalformat, width, height, depth, border, data);
 }
 
-void RemoteGraphicsContextGL::compressedTexImage3D1(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t depth, int32_t border, int32_t imageSize, uint64_t offset)
+void RemoteGraphicsContextGL::compressedTexImage3D1(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 depth, WTF::CheckedInt32 border, WTF::CheckedInt32 imageSize, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->compressedTexImage3D(target, level, internalformat, width, height, depth, border, imageSize, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::compressedTexSubImage3D0(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t zoffset, int32_t width, int32_t height, int32_t depth, uint32_t format, std::span<const uint8_t>&& data)
+void RemoteGraphicsContextGL::compressedTexSubImage3D0(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 xoffset, WTF::CheckedInt32 yoffset, WTF::CheckedInt32 zoffset, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 depth, WTF::CheckedUint32 format, std::span<const uint8_t>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->compressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, data);
 }
 
-void RemoteGraphicsContextGL::compressedTexSubImage3D1(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t zoffset, int32_t width, int32_t height, int32_t depth, uint32_t format, int32_t imageSize, uint64_t offset)
+void RemoteGraphicsContextGL::compressedTexSubImage3D1(WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedInt32 xoffset, WTF::CheckedInt32 yoffset, WTF::CheckedInt32 zoffset, WTF::CheckedInt32 width, WTF::CheckedInt32 height, WTF::CheckedInt32 depth, WTF::CheckedUint32 format, WTF::CheckedInt32 imageSize, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->compressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::getFragDataLocation(uint32_t program, CString&& name, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getFragDataLocation(WTF::CheckedUint32 program, CString&& name, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -1253,151 +1253,151 @@ void RemoteGraphicsContextGL::getFragDataLocation(uint32_t program, CString&& na
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::uniform1ui(int32_t location, uint32_t v0)
+void RemoteGraphicsContextGL::uniform1ui(WTF::CheckedInt32 location, WTF::CheckedUint32 v0)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform1ui(location, v0);
 }
 
-void RemoteGraphicsContextGL::uniform2ui(int32_t location, uint32_t v0, uint32_t v1)
+void RemoteGraphicsContextGL::uniform2ui(WTF::CheckedInt32 location, WTF::CheckedUint32 v0, WTF::CheckedUint32 v1)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform2ui(location, v0, v1);
 }
 
-void RemoteGraphicsContextGL::uniform3ui(int32_t location, uint32_t v0, uint32_t v1, uint32_t v2)
+void RemoteGraphicsContextGL::uniform3ui(WTF::CheckedInt32 location, WTF::CheckedUint32 v0, WTF::CheckedUint32 v1, WTF::CheckedUint32 v2)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform3ui(location, v0, v1, v2);
 }
 
-void RemoteGraphicsContextGL::uniform4ui(int32_t location, uint32_t v0, uint32_t v1, uint32_t v2, uint32_t v3)
+void RemoteGraphicsContextGL::uniform4ui(WTF::CheckedInt32 location, WTF::CheckedUint32 v0, WTF::CheckedUint32 v1, WTF::CheckedUint32 v2, WTF::CheckedUint32 v3)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform4ui(location, v0, v1, v2, v3);
 }
 
-void RemoteGraphicsContextGL::uniform1uiv(int32_t location, std::span<const uint32_t>&& data)
+void RemoteGraphicsContextGL::uniform1uiv(WTF::CheckedInt32 location, std::span<const uint32_t>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform1uiv(location, data);
 }
 
-void RemoteGraphicsContextGL::uniform2uiv(int32_t location, std::span<const uint32_t>&& data)
+void RemoteGraphicsContextGL::uniform2uiv(WTF::CheckedInt32 location, std::span<const uint32_t>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform2uiv(location, data);
 }
 
-void RemoteGraphicsContextGL::uniform3uiv(int32_t location, std::span<const uint32_t>&& data)
+void RemoteGraphicsContextGL::uniform3uiv(WTF::CheckedInt32 location, std::span<const uint32_t>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform3uiv(location, data);
 }
 
-void RemoteGraphicsContextGL::uniform4uiv(int32_t location, std::span<const uint32_t>&& data)
+void RemoteGraphicsContextGL::uniform4uiv(WTF::CheckedInt32 location, std::span<const uint32_t>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniform4uiv(location, data);
 }
 
-void RemoteGraphicsContextGL::uniformMatrix2x3fv(int32_t location, bool transpose, std::span<const float>&& data)
+void RemoteGraphicsContextGL::uniformMatrix2x3fv(WTF::CheckedInt32 location, bool transpose, std::span<const float>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniformMatrix2x3fv(location, static_cast<GCGLboolean>(transpose), data);
 }
 
-void RemoteGraphicsContextGL::uniformMatrix3x2fv(int32_t location, bool transpose, std::span<const float>&& data)
+void RemoteGraphicsContextGL::uniformMatrix3x2fv(WTF::CheckedInt32 location, bool transpose, std::span<const float>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniformMatrix3x2fv(location, static_cast<GCGLboolean>(transpose), data);
 }
 
-void RemoteGraphicsContextGL::uniformMatrix2x4fv(int32_t location, bool transpose, std::span<const float>&& data)
+void RemoteGraphicsContextGL::uniformMatrix2x4fv(WTF::CheckedInt32 location, bool transpose, std::span<const float>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniformMatrix2x4fv(location, static_cast<GCGLboolean>(transpose), data);
 }
 
-void RemoteGraphicsContextGL::uniformMatrix4x2fv(int32_t location, bool transpose, std::span<const float>&& data)
+void RemoteGraphicsContextGL::uniformMatrix4x2fv(WTF::CheckedInt32 location, bool transpose, std::span<const float>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniformMatrix4x2fv(location, static_cast<GCGLboolean>(transpose), data);
 }
 
-void RemoteGraphicsContextGL::uniformMatrix3x4fv(int32_t location, bool transpose, std::span<const float>&& data)
+void RemoteGraphicsContextGL::uniformMatrix3x4fv(WTF::CheckedInt32 location, bool transpose, std::span<const float>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniformMatrix3x4fv(location, static_cast<GCGLboolean>(transpose), data);
 }
 
-void RemoteGraphicsContextGL::uniformMatrix4x3fv(int32_t location, bool transpose, std::span<const float>&& data)
+void RemoteGraphicsContextGL::uniformMatrix4x3fv(WTF::CheckedInt32 location, bool transpose, std::span<const float>&& data)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->uniformMatrix4x3fv(location, static_cast<GCGLboolean>(transpose), data);
 }
 
-void RemoteGraphicsContextGL::vertexAttribI4i(uint32_t index, int32_t x, int32_t y, int32_t z, int32_t w)
+void RemoteGraphicsContextGL::vertexAttribI4i(WTF::CheckedUint32 index, WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 z, WTF::CheckedInt32 w)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttribI4i(index, x, y, z, w);
 }
 
-void RemoteGraphicsContextGL::vertexAttribI4iv(uint32_t index, std::span<const int32_t, 4>&& values)
+void RemoteGraphicsContextGL::vertexAttribI4iv(WTF::CheckedUint32 index, std::span<const int32_t, 4>&& values)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttribI4iv(index, values);
 }
 
-void RemoteGraphicsContextGL::vertexAttribI4ui(uint32_t index, uint32_t x, uint32_t y, uint32_t z, uint32_t w)
+void RemoteGraphicsContextGL::vertexAttribI4ui(WTF::CheckedUint32 index, WTF::CheckedUint32 x, WTF::CheckedUint32 y, WTF::CheckedUint32 z, WTF::CheckedUint32 w)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttribI4ui(index, x, y, z, w);
 }
 
-void RemoteGraphicsContextGL::vertexAttribI4uiv(uint32_t index, std::span<const uint32_t, 4>&& values)
+void RemoteGraphicsContextGL::vertexAttribI4uiv(WTF::CheckedUint32 index, std::span<const uint32_t, 4>&& values)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttribI4uiv(index, values);
 }
 
-void RemoteGraphicsContextGL::vertexAttribIPointer(uint32_t index, int32_t size, uint32_t type, int32_t stride, uint64_t offset)
+void RemoteGraphicsContextGL::vertexAttribIPointer(WTF::CheckedUint32 index, WTF::CheckedInt32 size, WTF::CheckedUint32 type, WTF::CheckedInt32 stride, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->vertexAttribIPointer(index, size, type, stride, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::drawRangeElements(uint32_t mode, uint32_t start, uint32_t end, int32_t count, uint32_t type, uint64_t offset)
+void RemoteGraphicsContextGL::drawRangeElements(WTF::CheckedUint32 mode, WTF::CheckedUint32 start, WTF::CheckedUint32 end, WTF::CheckedInt32 count, WTF::CheckedUint32 type, WTF::CheckedUint64 offset)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->drawRangeElements(mode, start, end, count, type, static_cast<GCGLintptr>(offset));
 }
 
-void RemoteGraphicsContextGL::clearBufferiv(uint32_t buffer, int32_t drawbuffer, std::span<const int32_t>&& values)
+void RemoteGraphicsContextGL::clearBufferiv(WTF::CheckedUint32 buffer, WTF::CheckedInt32 drawbuffer, std::span<const int32_t>&& values)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->clearBufferiv(buffer, drawbuffer, values);
 }
 
-void RemoteGraphicsContextGL::clearBufferuiv(uint32_t buffer, int32_t drawbuffer, std::span<const uint32_t>&& values)
+void RemoteGraphicsContextGL::clearBufferuiv(WTF::CheckedUint32 buffer, WTF::CheckedInt32 drawbuffer, std::span<const uint32_t>&& values)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->clearBufferuiv(buffer, drawbuffer, values);
 }
 
-void RemoteGraphicsContextGL::clearBufferfv(uint32_t buffer, int32_t drawbuffer, std::span<const float>&& values)
+void RemoteGraphicsContextGL::clearBufferfv(WTF::CheckedUint32 buffer, WTF::CheckedInt32 drawbuffer, std::span<const float>&& values)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->clearBufferfv(buffer, drawbuffer, values);
 }
 
-void RemoteGraphicsContextGL::clearBufferfi(uint32_t buffer, int32_t drawbuffer, float depth, int32_t stencil)
+void RemoteGraphicsContextGL::clearBufferfi(WTF::CheckedUint32 buffer, WTF::CheckedInt32 drawbuffer, float depth, WTF::CheckedInt32 stencil)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->clearBufferfi(buffer, drawbuffer, depth, stencil);
 }
 
-void RemoteGraphicsContextGL::createQuery(uint32_t name)
+void RemoteGraphicsContextGL::createQuery(WTF::CheckedUint32 name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -1406,7 +1406,7 @@ void RemoteGraphicsContextGL::createQuery(uint32_t name)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::deleteQuery(uint32_t query)
+void RemoteGraphicsContextGL::deleteQuery(WTF::CheckedUint32 query)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(query));
@@ -1416,7 +1416,7 @@ void RemoteGraphicsContextGL::deleteQuery(uint32_t query)
     protect(m_context)->deleteQuery(query);
 }
 
-void RemoteGraphicsContextGL::isQuery(uint32_t query, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isQuery(WTF::CheckedUint32 query, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -1427,7 +1427,7 @@ void RemoteGraphicsContextGL::isQuery(uint32_t query, CompletionHandler<void(boo
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::beginQuery(uint32_t target, uint32_t query)
+void RemoteGraphicsContextGL::beginQuery(WTF::CheckedUint32 target, WTF::CheckedUint32 query)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(query));
@@ -1436,13 +1436,13 @@ void RemoteGraphicsContextGL::beginQuery(uint32_t target, uint32_t query)
     protect(m_context)->beginQuery(target, query);
 }
 
-void RemoteGraphicsContextGL::endQuery(uint32_t target)
+void RemoteGraphicsContextGL::endQuery(WTF::CheckedUint32 target)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->endQuery(target);
 }
 
-void RemoteGraphicsContextGL::getQuery(uint32_t target, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getQuery(WTF::CheckedUint32 target, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -1450,7 +1450,7 @@ void RemoteGraphicsContextGL::getQuery(uint32_t target, uint32_t pname, Completi
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getQueryObjectui(uint32_t query, uint32_t pname, CompletionHandler<void(uint32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getQueryObjectui(WTF::CheckedUint32 query, WTF::CheckedUint32 pname, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLuint returnValue = { };
@@ -1461,7 +1461,7 @@ void RemoteGraphicsContextGL::getQueryObjectui(uint32_t query, uint32_t pname, C
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::createSampler(uint32_t name)
+void RemoteGraphicsContextGL::createSampler(WTF::CheckedUint32 name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -1470,7 +1470,7 @@ void RemoteGraphicsContextGL::createSampler(uint32_t name)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::deleteSampler(uint32_t sampler)
+void RemoteGraphicsContextGL::deleteSampler(WTF::CheckedUint32 sampler)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(sampler));
@@ -1480,7 +1480,7 @@ void RemoteGraphicsContextGL::deleteSampler(uint32_t sampler)
     protect(m_context)->deleteSampler(sampler);
 }
 
-void RemoteGraphicsContextGL::isSampler(uint32_t sampler, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isSampler(WTF::CheckedUint32 sampler, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -1491,7 +1491,7 @@ void RemoteGraphicsContextGL::isSampler(uint32_t sampler, CompletionHandler<void
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::bindSampler(uint32_t unit, uint32_t sampler)
+void RemoteGraphicsContextGL::bindSampler(WTF::CheckedUint32 unit, WTF::CheckedUint32 sampler)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(sampler));
@@ -1500,7 +1500,7 @@ void RemoteGraphicsContextGL::bindSampler(uint32_t unit, uint32_t sampler)
     protect(m_context)->bindSampler(unit, sampler);
 }
 
-void RemoteGraphicsContextGL::samplerParameteri(uint32_t sampler, uint32_t pname, int32_t param)
+void RemoteGraphicsContextGL::samplerParameteri(WTF::CheckedUint32 sampler, WTF::CheckedUint32 pname, WTF::CheckedInt32 param)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(sampler));
@@ -1509,7 +1509,7 @@ void RemoteGraphicsContextGL::samplerParameteri(uint32_t sampler, uint32_t pname
     protect(m_context)->samplerParameteri(sampler, pname, param);
 }
 
-void RemoteGraphicsContextGL::samplerParameterf(uint32_t sampler, uint32_t pname, float param)
+void RemoteGraphicsContextGL::samplerParameterf(WTF::CheckedUint32 sampler, WTF::CheckedUint32 pname, float param)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(sampler));
@@ -1518,7 +1518,7 @@ void RemoteGraphicsContextGL::samplerParameterf(uint32_t sampler, uint32_t pname
     protect(m_context)->samplerParameterf(sampler, pname, param);
 }
 
-void RemoteGraphicsContextGL::getSamplerParameterf(uint32_t sampler, uint32_t pname, CompletionHandler<void(float)>&& completionHandler)
+void RemoteGraphicsContextGL::getSamplerParameterf(WTF::CheckedUint32 sampler, WTF::CheckedUint32 pname, CompletionHandler<void(float)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLfloat returnValue = { };
@@ -1529,7 +1529,7 @@ void RemoteGraphicsContextGL::getSamplerParameterf(uint32_t sampler, uint32_t pn
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getSamplerParameteri(uint32_t sampler, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getSamplerParameteri(WTF::CheckedUint32 sampler, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -1540,7 +1540,7 @@ void RemoteGraphicsContextGL::getSamplerParameteri(uint32_t sampler, uint32_t pn
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::fenceSync(uint32_t condition, uint32_t flags, CompletionHandler<void(uint64_t)>&& completionHandler)
+void RemoteGraphicsContextGL::fenceSync(WTF::CheckedUint32 condition, WTF::CheckedUint32 flags, CompletionHandler<void(uint64_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLsync returnValue = { };
@@ -1548,7 +1548,7 @@ void RemoteGraphicsContextGL::fenceSync(uint32_t condition, uint32_t flags, Comp
     completionHandler(static_cast<uint64_t>(reinterpret_cast<intptr_t>(returnValue)));
 }
 
-void RemoteGraphicsContextGL::isSync(uint64_t arg0, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isSync(WTF::CheckedUint64 arg0, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -1556,13 +1556,13 @@ void RemoteGraphicsContextGL::isSync(uint64_t arg0, CompletionHandler<void(bool)
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::deleteSync(uint64_t arg0)
+void RemoteGraphicsContextGL::deleteSync(WTF::CheckedUint64 arg0)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->deleteSync(reinterpret_cast<GCGLsync>(static_cast<intptr_t>(arg0)));
 }
 
-void RemoteGraphicsContextGL::clientWaitSync(uint64_t arg0, uint32_t flags, uint64_t timeout, CompletionHandler<void(uint32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::clientWaitSync(WTF::CheckedUint64 arg0, WTF::CheckedUint32 flags, WTF::CheckedUint64 timeout, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLenum returnValue = { };
@@ -1570,13 +1570,13 @@ void RemoteGraphicsContextGL::clientWaitSync(uint64_t arg0, uint32_t flags, uint
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::waitSync(uint64_t arg0, uint32_t flags, int64_t timeout)
+void RemoteGraphicsContextGL::waitSync(WTF::CheckedUint64 arg0, WTF::CheckedUint32 flags, WTF::CheckedInt64 timeout)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->waitSync(reinterpret_cast<GCGLsync>(static_cast<intptr_t>(arg0)), flags, static_cast<GCGLint64>(timeout));
 }
 
-void RemoteGraphicsContextGL::getSynci(uint64_t arg0, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getSynci(WTF::CheckedUint64 arg0, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -1584,7 +1584,7 @@ void RemoteGraphicsContextGL::getSynci(uint64_t arg0, uint32_t pname, Completion
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::createTransformFeedback(uint32_t name)
+void RemoteGraphicsContextGL::createTransformFeedback(WTF::CheckedUint32 name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -1593,7 +1593,7 @@ void RemoteGraphicsContextGL::createTransformFeedback(uint32_t name)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::deleteTransformFeedback(uint32_t id)
+void RemoteGraphicsContextGL::deleteTransformFeedback(WTF::CheckedUint32 id)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(id));
@@ -1603,7 +1603,7 @@ void RemoteGraphicsContextGL::deleteTransformFeedback(uint32_t id)
     protect(m_context)->deleteTransformFeedback(id);
 }
 
-void RemoteGraphicsContextGL::isTransformFeedback(uint32_t id, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isTransformFeedback(WTF::CheckedUint32 id, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -1614,7 +1614,7 @@ void RemoteGraphicsContextGL::isTransformFeedback(uint32_t id, CompletionHandler
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::bindTransformFeedback(uint32_t target, uint32_t id)
+void RemoteGraphicsContextGL::bindTransformFeedback(WTF::CheckedUint32 target, WTF::CheckedUint32 id)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(id));
@@ -1623,7 +1623,7 @@ void RemoteGraphicsContextGL::bindTransformFeedback(uint32_t target, uint32_t id
     protect(m_context)->bindTransformFeedback(target, id);
 }
 
-void RemoteGraphicsContextGL::beginTransformFeedback(uint32_t primitiveMode)
+void RemoteGraphicsContextGL::beginTransformFeedback(WTF::CheckedUint32 primitiveMode)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->beginTransformFeedback(primitiveMode);
@@ -1635,7 +1635,7 @@ void RemoteGraphicsContextGL::endTransformFeedback()
     protect(m_context)->endTransformFeedback();
 }
 
-void RemoteGraphicsContextGL::transformFeedbackVaryings(uint32_t program, Vector<CString>&& varyings, uint32_t bufferMode)
+void RemoteGraphicsContextGL::transformFeedbackVaryings(WTF::CheckedUint32 program, Vector<CString>&& varyings, WTF::CheckedUint32 bufferMode)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(program));
@@ -1644,7 +1644,7 @@ void RemoteGraphicsContextGL::transformFeedbackVaryings(uint32_t program, Vector
     protect(m_context)->transformFeedbackVaryings(program, varyings, bufferMode);
 }
 
-void RemoteGraphicsContextGL::getTransformFeedbackVarying(uint32_t program, uint32_t index, CompletionHandler<void(std::optional<WebCore::GCGLTransformFeedbackActiveInfo>&&)>&& completionHandler)
+void RemoteGraphicsContextGL::getTransformFeedbackVarying(WTF::CheckedUint32 program, WTF::CheckedUint32 index, CompletionHandler<void(std::optional<WebCore::GCGLTransformFeedbackActiveInfo>&&)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     std::optional<WebCore::GCGLTransformFeedbackActiveInfo> returnValue = { };
@@ -1667,7 +1667,7 @@ void RemoteGraphicsContextGL::resumeTransformFeedback()
     protect(m_context)->resumeTransformFeedback();
 }
 
-void RemoteGraphicsContextGL::bindBufferBase(uint32_t target, uint32_t index, uint32_t buffer)
+void RemoteGraphicsContextGL::bindBufferBase(WTF::CheckedUint32 target, WTF::CheckedUint32 index, WTF::CheckedUint32 buffer)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(buffer));
@@ -1676,7 +1676,7 @@ void RemoteGraphicsContextGL::bindBufferBase(uint32_t target, uint32_t index, ui
     protect(m_context)->bindBufferBase(target, index, buffer);
 }
 
-void RemoteGraphicsContextGL::bindBufferRange(uint32_t target, uint32_t index, uint32_t buffer, uint64_t offset, uint64_t arg4)
+void RemoteGraphicsContextGL::bindBufferRange(WTF::CheckedUint32 target, WTF::CheckedUint32 index, WTF::CheckedUint32 buffer, WTF::CheckedUint64 offset, WTF::CheckedUint64 arg4)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(buffer));
@@ -1685,7 +1685,7 @@ void RemoteGraphicsContextGL::bindBufferRange(uint32_t target, uint32_t index, u
     protect(m_context)->bindBufferRange(target, index, buffer, static_cast<GCGLintptr>(offset), static_cast<GCGLsizeiptr>(arg4));
 }
 
-void RemoteGraphicsContextGL::getUniformBlockIndex(uint32_t program, CString&& uniformBlockName, CompletionHandler<void(uint32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getUniformBlockIndex(WTF::CheckedUint32 program, CString&& uniformBlockName, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLuint returnValue = { };
@@ -1696,7 +1696,7 @@ void RemoteGraphicsContextGL::getUniformBlockIndex(uint32_t program, CString&& u
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getActiveUniformBlockName(uint32_t program, uint32_t uniformBlockIndex, CompletionHandler<void(CString&&)>&& completionHandler)
+void RemoteGraphicsContextGL::getActiveUniformBlockName(WTF::CheckedUint32 program, WTF::CheckedUint32 uniformBlockIndex, CompletionHandler<void(CString&&)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     CString returnValue = { };
@@ -1707,7 +1707,7 @@ void RemoteGraphicsContextGL::getActiveUniformBlockName(uint32_t program, uint32
     completionHandler(WTF::move(returnValue));
 }
 
-void RemoteGraphicsContextGL::uniformBlockBinding(uint32_t program, uint32_t uniformBlockIndex, uint32_t uniformBlockBinding)
+void RemoteGraphicsContextGL::uniformBlockBinding(WTF::CheckedUint32 program, WTF::CheckedUint32 uniformBlockIndex, WTF::CheckedUint32 uniformBlockBinding)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(program));
@@ -1716,7 +1716,7 @@ void RemoteGraphicsContextGL::uniformBlockBinding(uint32_t program, uint32_t uni
     protect(m_context)->uniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding);
 }
 
-void RemoteGraphicsContextGL::getActiveUniformBlockiv(uint32_t program, uint32_t uniformBlockIndex, uint32_t pname, uint64_t paramsSize, CompletionHandler<void(std::span<const int32_t>)>&& completionHandler)
+void RemoteGraphicsContextGL::getActiveUniformBlockiv(WTF::CheckedUint32 program, WTF::CheckedUint32 uniformBlockIndex, WTF::CheckedUint32 pname, WTF::CheckedUint64 paramsSize, CompletionHandler<void(std::span<const int32_t>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(program));
@@ -1729,7 +1729,7 @@ void RemoteGraphicsContextGL::getActiveUniformBlockiv(uint32_t program, uint32_t
     completionHandler(spanReinterpretCast<const int32_t>(params.span()));
 }
 
-void RemoteGraphicsContextGL::getTranslatedShaderSourceANGLE(uint32_t arg0, CompletionHandler<void(CString&&)>&& completionHandler)
+void RemoteGraphicsContextGL::getTranslatedShaderSourceANGLE(WTF::CheckedUint32 arg0, CompletionHandler<void(CString&&)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     CString returnValue = { };
@@ -1740,7 +1740,7 @@ void RemoteGraphicsContextGL::getTranslatedShaderSourceANGLE(uint32_t arg0, Comp
     completionHandler(WTF::move(returnValue));
 }
 
-void RemoteGraphicsContextGL::createQueryEXT(uint32_t name)
+void RemoteGraphicsContextGL::createQueryEXT(WTF::CheckedUint32 name)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(name));
@@ -1749,7 +1749,7 @@ void RemoteGraphicsContextGL::createQueryEXT(uint32_t name)
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::deleteQueryEXT(uint32_t query)
+void RemoteGraphicsContextGL::deleteQueryEXT(WTF::CheckedUint32 query)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(query));
@@ -1759,7 +1759,7 @@ void RemoteGraphicsContextGL::deleteQueryEXT(uint32_t query)
     protect(m_context)->deleteQueryEXT(query);
 }
 
-void RemoteGraphicsContextGL::isQueryEXT(uint32_t query, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::isQueryEXT(WTF::CheckedUint32 query, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLboolean returnValue = { };
@@ -1770,7 +1770,7 @@ void RemoteGraphicsContextGL::isQueryEXT(uint32_t query, CompletionHandler<void(
     completionHandler(static_cast<bool>(returnValue));
 }
 
-void RemoteGraphicsContextGL::beginQueryEXT(uint32_t target, uint32_t query)
+void RemoteGraphicsContextGL::beginQueryEXT(WTF::CheckedUint32 target, WTF::CheckedUint32 query)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(query));
@@ -1779,13 +1779,13 @@ void RemoteGraphicsContextGL::beginQueryEXT(uint32_t target, uint32_t query)
     protect(m_context)->beginQueryEXT(target, query);
 }
 
-void RemoteGraphicsContextGL::endQueryEXT(uint32_t target)
+void RemoteGraphicsContextGL::endQueryEXT(WTF::CheckedUint32 target)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->endQueryEXT(target);
 }
 
-void RemoteGraphicsContextGL::queryCounterEXT(uint32_t query, uint32_t target)
+void RemoteGraphicsContextGL::queryCounterEXT(WTF::CheckedUint32 query, WTF::CheckedUint32 target)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(m_objectNames.isValidKey(query));
@@ -1794,7 +1794,7 @@ void RemoteGraphicsContextGL::queryCounterEXT(uint32_t query, uint32_t target)
     protect(m_context)->queryCounterEXT(query, target);
 }
 
-void RemoteGraphicsContextGL::getQueryiEXT(uint32_t target, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getQueryiEXT(WTF::CheckedUint32 target, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -1802,7 +1802,7 @@ void RemoteGraphicsContextGL::getQueryiEXT(uint32_t target, uint32_t pname, Comp
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getQueryObjectiEXT(uint32_t query, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getQueryObjectiEXT(WTF::CheckedUint32 query, WTF::CheckedUint32 pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint returnValue = { };
@@ -1813,7 +1813,7 @@ void RemoteGraphicsContextGL::getQueryObjectiEXT(uint32_t query, uint32_t pname,
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::getQueryObjectui64EXT(uint32_t query, uint32_t pname, CompletionHandler<void(uint64_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getQueryObjectui64EXT(WTF::CheckedUint32 query, WTF::CheckedUint32 pname, CompletionHandler<void(uint64_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLuint64 returnValue = { };
@@ -1824,7 +1824,7 @@ void RemoteGraphicsContextGL::getQueryObjectui64EXT(uint32_t query, uint32_t pna
     completionHandler(static_cast<uint64_t>(returnValue));
 }
 
-void RemoteGraphicsContextGL::getInteger64EXT(uint32_t pname, CompletionHandler<void(int64_t)>&& completionHandler)
+void RemoteGraphicsContextGL::getInteger64EXT(WTF::CheckedUint32 pname, CompletionHandler<void(int64_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     GCGLint64 returnValue = { };
@@ -1832,73 +1832,73 @@ void RemoteGraphicsContextGL::getInteger64EXT(uint32_t pname, CompletionHandler<
     completionHandler(static_cast<int64_t>(returnValue));
 }
 
-void RemoteGraphicsContextGL::enableiOES(uint32_t target, uint32_t index)
+void RemoteGraphicsContextGL::enableiOES(WTF::CheckedUint32 target, WTF::CheckedUint32 index)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->enableiOES(target, index);
 }
 
-void RemoteGraphicsContextGL::disableiOES(uint32_t target, uint32_t index)
+void RemoteGraphicsContextGL::disableiOES(WTF::CheckedUint32 target, WTF::CheckedUint32 index)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->disableiOES(target, index);
 }
 
-void RemoteGraphicsContextGL::blendEquationiOES(uint32_t buf, uint32_t mode)
+void RemoteGraphicsContextGL::blendEquationiOES(WTF::CheckedUint32 buf, WTF::CheckedUint32 mode)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->blendEquationiOES(buf, mode);
 }
 
-void RemoteGraphicsContextGL::blendEquationSeparateiOES(uint32_t buf, uint32_t modeRGB, uint32_t modeAlpha)
+void RemoteGraphicsContextGL::blendEquationSeparateiOES(WTF::CheckedUint32 buf, WTF::CheckedUint32 modeRGB, WTF::CheckedUint32 modeAlpha)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->blendEquationSeparateiOES(buf, modeRGB, modeAlpha);
 }
 
-void RemoteGraphicsContextGL::blendFunciOES(uint32_t buf, uint32_t src, uint32_t dst)
+void RemoteGraphicsContextGL::blendFunciOES(WTF::CheckedUint32 buf, WTF::CheckedUint32 src, WTF::CheckedUint32 dst)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->blendFunciOES(buf, src, dst);
 }
 
-void RemoteGraphicsContextGL::blendFuncSeparateiOES(uint32_t buf, uint32_t srcRGB, uint32_t dstRGB, uint32_t srcAlpha, uint32_t dstAlpha)
+void RemoteGraphicsContextGL::blendFuncSeparateiOES(WTF::CheckedUint32 buf, WTF::CheckedUint32 srcRGB, WTF::CheckedUint32 dstRGB, WTF::CheckedUint32 srcAlpha, WTF::CheckedUint32 dstAlpha)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->blendFuncSeparateiOES(buf, srcRGB, dstRGB, srcAlpha, dstAlpha);
 }
 
-void RemoteGraphicsContextGL::colorMaskiOES(uint32_t buf, bool red, bool green, bool blue, bool alpha)
+void RemoteGraphicsContextGL::colorMaskiOES(WTF::CheckedUint32 buf, bool red, bool green, bool blue, bool alpha)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->colorMaskiOES(buf, static_cast<GCGLboolean>(red), static_cast<GCGLboolean>(green), static_cast<GCGLboolean>(blue), static_cast<GCGLboolean>(alpha));
 }
 
-void RemoteGraphicsContextGL::drawArraysInstancedBaseInstanceANGLE(uint32_t mode, int32_t first, int32_t count, int32_t instanceCount, uint32_t baseInstance)
+void RemoteGraphicsContextGL::drawArraysInstancedBaseInstanceANGLE(WTF::CheckedUint32 mode, WTF::CheckedInt32 first, WTF::CheckedInt32 count, WTF::CheckedInt32 instanceCount, WTF::CheckedUint32 baseInstance)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->drawArraysInstancedBaseInstanceANGLE(mode, first, count, instanceCount, baseInstance);
 }
 
-void RemoteGraphicsContextGL::drawElementsInstancedBaseVertexBaseInstanceANGLE(uint32_t mode, int32_t count, uint32_t type, uint64_t offset, int32_t instanceCount, int32_t baseVertex, uint32_t baseInstance)
+void RemoteGraphicsContextGL::drawElementsInstancedBaseVertexBaseInstanceANGLE(WTF::CheckedUint32 mode, WTF::CheckedInt32 count, WTF::CheckedUint32 type, WTF::CheckedUint64 offset, WTF::CheckedInt32 instanceCount, WTF::CheckedInt32 baseVertex, WTF::CheckedUint32 baseInstance)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->drawElementsInstancedBaseVertexBaseInstanceANGLE(mode, count, type, static_cast<GCGLintptr>(offset), instanceCount, baseVertex, baseInstance);
 }
 
-void RemoteGraphicsContextGL::clipControlEXT(uint32_t origin, uint32_t depth)
+void RemoteGraphicsContextGL::clipControlEXT(WTF::CheckedUint32 origin, WTF::CheckedUint32 depth)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->clipControlEXT(origin, depth);
 }
 
-void RemoteGraphicsContextGL::provokingVertexANGLE(uint32_t provokeMode)
+void RemoteGraphicsContextGL::provokingVertexANGLE(WTF::CheckedUint32 provokeMode)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->provokingVertexANGLE(provokeMode);
 }
 
-void RemoteGraphicsContextGL::polygonModeANGLE(uint32_t face, uint32_t mode)
+void RemoteGraphicsContextGL::polygonModeANGLE(WTF::CheckedUint32 face, WTF::CheckedUint32 mode)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->polygonModeANGLE(face, mode);
@@ -1910,13 +1910,13 @@ void RemoteGraphicsContextGL::polygonOffsetClampEXT(float factor, float units, f
     protect(m_context)->polygonOffsetClampEXT(factor, units, clamp);
 }
 
-void RemoteGraphicsContextGL::renderbufferStorageMultisampleANGLE(uint32_t target, int32_t samples, uint32_t internalformat, int32_t width, int32_t height)
+void RemoteGraphicsContextGL::renderbufferStorageMultisampleANGLE(WTF::CheckedUint32 target, WTF::CheckedInt32 samples, WTF::CheckedUint32 internalformat, WTF::CheckedInt32 width, WTF::CheckedInt32 height)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->renderbufferStorageMultisampleANGLE(target, samples, internalformat, width, height);
 }
 
-void RemoteGraphicsContextGL::getInternalformativ(uint32_t target, uint32_t internalformat, uint32_t pname, uint64_t paramsSize, CompletionHandler<void(std::span<const int32_t>)>&& completionHandler)
+void RemoteGraphicsContextGL::getInternalformativ(WTF::CheckedUint32 target, WTF::CheckedUint32 internalformat, WTF::CheckedUint32 pname, WTF::CheckedUint64 paramsSize, CompletionHandler<void(std::span<const int32_t>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     if (!WTF::isValidCapacityForVector<GCGLint>(paramsSize))
@@ -1927,7 +1927,7 @@ void RemoteGraphicsContextGL::getInternalformativ(uint32_t target, uint32_t inte
 }
 
 #if ENABLE(WEBXR)
-void RemoteGraphicsContextGL::createExternalImage(uint32_t name, WebCore::GraphicsContextGL::ExternalImageSource&& arg0, uint32_t internalFormat, int32_t layer)
+void RemoteGraphicsContextGL::createExternalImage(WTF::CheckedUint32 name, WebCore::GraphicsContextGL::ExternalImageSource&& arg0, WTF::CheckedUint32 internalFormat, WTF::CheckedInt32 layer)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(webXRPromptAccepted());
@@ -1937,7 +1937,7 @@ void RemoteGraphicsContextGL::createExternalImage(uint32_t name, WebCore::Graphi
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::deleteExternalImage(uint32_t handle)
+void RemoteGraphicsContextGL::deleteExternalImage(WTF::CheckedUint32 handle)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(webXRPromptAccepted());
@@ -1948,7 +1948,7 @@ void RemoteGraphicsContextGL::deleteExternalImage(uint32_t handle)
     protect(m_context)->deleteExternalImage(handle);
 }
 
-void RemoteGraphicsContextGL::bindExternalImage(uint32_t target, uint32_t arg1)
+void RemoteGraphicsContextGL::bindExternalImage(WTF::CheckedUint32 target, WTF::CheckedUint32 arg1)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(webXRPromptAccepted());
@@ -1958,7 +1958,7 @@ void RemoteGraphicsContextGL::bindExternalImage(uint32_t target, uint32_t arg1)
     protect(m_context)->bindExternalImage(target, arg1);
 }
 
-void RemoteGraphicsContextGL::createExternalSync(uint32_t name, WebCore::GraphicsContextGL::ExternalSyncSource&& arg0)
+void RemoteGraphicsContextGL::createExternalSync(WTF::CheckedUint32 name, WebCore::GraphicsContextGL::ExternalSyncSource&& arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(webXRPromptAccepted());
@@ -1968,7 +1968,7 @@ void RemoteGraphicsContextGL::createExternalSync(uint32_t name, WebCore::Graphic
         m_objectNames.add(name, result);
 }
 
-void RemoteGraphicsContextGL::deleteExternalSync(uint32_t arg0)
+void RemoteGraphicsContextGL::deleteExternalSync(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(webXRPromptAccepted());
@@ -1997,7 +1997,7 @@ void RemoteGraphicsContextGL::addFoveation(WebCore::IntSize&& physicalSizeLeft, 
     completionHandler(returnValue);
 }
 
-void RemoteGraphicsContextGL::enableFoveation(uint32_t arg0)
+void RemoteGraphicsContextGL::enableFoveation(WTF::CheckedUint32 arg0)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(webXRPromptAccepted());
@@ -2014,7 +2014,7 @@ void RemoteGraphicsContextGL::disableFoveation()
     protect(m_context)->disableFoveation();
 }
 
-void RemoteGraphicsContextGL::framebufferResolveRenderbuffer(uint32_t target, uint32_t attachment, uint32_t renderbuffertarget, uint32_t arg3)
+void RemoteGraphicsContextGL::framebufferResolveRenderbuffer(WTF::CheckedUint32 target, WTF::CheckedUint32 attachment, WTF::CheckedUint32 renderbuffertarget, WTF::CheckedUint32 arg3)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(webXRPromptAccepted());

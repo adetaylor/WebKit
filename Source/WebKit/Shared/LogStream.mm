@@ -111,7 +111,7 @@ void LogStream::stopListeningForIPC()
 #endif
 }
 
-void LogStream::logOnBehalfOfWebContent(std::span<const uint8_t> subsystemSpan, std::span<const uint8_t> categorySpan, std::span<const uint8_t> stringSpan, uint8_t logType)
+void LogStream::logOnBehalfOfWebContent(std::span<const uint8_t> subsystemSpan, std::span<const uint8_t> categorySpan, std::span<const uint8_t> stringSpan, WTF::CheckedUint8 logType)
 {
 #if ENABLE(STREAMING_IPC_IN_LOG_FORWARDING)
     ASSERT(!isMainRunLoop());
@@ -147,7 +147,7 @@ void LogStream::logOnBehalfOfWebContent(std::span<const uint8_t> subsystemSpan, 
     // Use '%{public}s' in the format string for the preprocessed string from the WebContent process.
     // This should not reveal any redacted information in the string, since it has already been composed in the WebContent process.
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
-    SUPPRESS_UNCOUNTED_LOCAL logWithProcessNamePrefix(osLog.get(), static_cast<os_log_type_t>(logType), m_processName, m_pid, string.data());
+    SUPPRESS_UNCOUNTED_LOCAL logWithProcessNamePrefix(osLog.get(), static_cast<os_log_type_t>(logType.value()), m_processName, m_pid, string.data());
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 }
 

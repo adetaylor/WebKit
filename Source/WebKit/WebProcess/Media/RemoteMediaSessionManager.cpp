@@ -243,7 +243,7 @@ void RemoteMediaSessionManager::audioOutputDeviceChanged()
 #endif
 
 #if USE(AUDIO_SESSION)
-void RemoteMediaSessionManager::setAudioSessionPreferredBufferSize(uint64_t preferredBufferSize)
+void RemoteMediaSessionManager::setAudioSessionPreferredBufferSize(WTF::CheckedUint64 preferredBufferSize)
 {
     WebCore::AudioSession::singleton().setPreferredBufferSize(preferredBufferSize);
 }

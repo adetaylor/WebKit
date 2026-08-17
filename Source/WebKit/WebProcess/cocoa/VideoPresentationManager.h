@@ -201,7 +201,7 @@ protected:
     void hasObjectViewBoxChanged(WebCore::MediaPlayerClientIdentifier, bool);
 
     // Messages from VideoPresentationManagerProxy
-    void requestFullscreenMode(WebCore::MediaPlayerClientIdentifier, WebCore::HTMLMediaElementEnums::VideoFullscreenMode, bool finishedWithMedia);
+    void requestFullscreenMode(WebCore::MediaPlayerClientIdentifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow>, bool finishedWithMedia);
     void requestUpdateInlineRect(WebCore::MediaPlayerClientIdentifier);
     void requestVideoContentLayer(WebCore::MediaPlayerClientIdentifier);
     void returnVideoContentLayer(WebCore::MediaPlayerClientIdentifier);
@@ -220,7 +220,7 @@ protected:
     void setVideoLayerFrameFenced(WebCore::MediaPlayerClientIdentifier, WebCore::FloatRect bounds, WTF::MachSendRightAnnotated&&);
     void setVideoLayerGravityEnum(WebCore::MediaPlayerClientIdentifier, unsigned gravity);
     void setVideoFullscreenFrame(WebCore::MediaPlayerClientIdentifier, WebCore::FloatRect);
-    void fullscreenModeChanged(WebCore::MediaPlayerClientIdentifier, WebCore::HTMLMediaElementEnums::VideoFullscreenMode);
+    void fullscreenModeChanged(WebCore::MediaPlayerClientIdentifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow>);
     void fullscreenMayReturnToInline(WebCore::MediaPlayerClientIdentifier, bool isPageVisible);
     void requestRouteSharingPolicyAndContextUID(WebCore::MediaPlayerClientIdentifier, CompletionHandler<void(WebCore::RouteSharingPolicy, String)>&&);
     void ensureUpdatedVideoDimensions(WebCore::MediaPlayerClientIdentifier, WebCore::FloatSize existingVideoDimensions);

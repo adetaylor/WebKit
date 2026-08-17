@@ -30,6 +30,7 @@
 #if PLATFORM(COCOA)
 #include <WebCore/CVUtilities.h>
 #endif
+#include <wtf/CheckedArithmetic.h>
 #include <wtf/Forward.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/RuntimeApplicationChecks.h>

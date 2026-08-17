@@ -653,12 +653,12 @@ void VideoPresentationManager::setPlayerIdentifier(WebCore::MediaPlayerClientIde
 
 #pragma mark Messages from VideoPresentationManagerProxy:
 
-void VideoPresentationManager::requestFullscreenMode(WebCore::MediaPlayerClientIdentifier contextId, WebCore::HTMLMediaElementEnums::VideoFullscreenMode mode, bool finishedWithMedia)
+void VideoPresentationManager::requestFullscreenMode(WebCore::MediaPlayerClientIdentifier contextId, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow> mode, bool finishedWithMedia)
 {
     ensureModel(contextId)->requestFullscreenMode(mode, finishedWithMedia);
 }
 
-void VideoPresentationManager::fullscreenModeChanged(WebCore::MediaPlayerClientIdentifier contextId, WebCore::HTMLMediaElementEnums::VideoFullscreenMode videoFullscreenMode)
+void VideoPresentationManager::fullscreenModeChanged(WebCore::MediaPlayerClientIdentifier contextId, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow> videoFullscreenMode)
 {
     auto [model, interface] = ensureModelAndInterface(contextId);
 #if PLATFORM(IOS)

@@ -267,7 +267,7 @@ const String& NetworkRTCProvider::attributedBundleIdentifierFromPageIdentifier(W
     }).iterator->value;
 }
 
-void NetworkRTCProvider::createUDPSocket(LibWebRTCSocketIdentifier identifier, const RTCNetwork::SocketAddress& address, uint16_t minPort, uint16_t maxPort, WebPageProxyIdentifier pageIdentifier, RTCSocketCreationFlags flags, WebCore::RegistrableDomain&& domain)
+void NetworkRTCProvider::createUDPSocket(LibWebRTCSocketIdentifier identifier, const RTCNetwork::SocketAddress& address, WTF::CheckedUint16 minPort, WTF::CheckedUint16 maxPort, WebPageProxyIdentifier pageIdentifier, RTCSocketCreationFlags flags, WebCore::RegistrableDomain&& domain)
 {
     assertIsRTCNetworkThread();
 
@@ -346,7 +346,7 @@ webrtc::Thread& NetworkRTCProvider::rtcNetworkThread()
     return *networkThread.get();
 }
 
-void NetworkRTCProvider::createUDPSocket(LibWebRTCSocketIdentifier identifier, const RTCNetwork::SocketAddress& address, uint16_t minPort, uint16_t maxPort, WebPageProxyIdentifier pageIdentifier, RTCSocketCreationFlags, WebCore::RegistrableDomain&& domain)
+void NetworkRTCProvider::createUDPSocket(LibWebRTCSocketIdentifier identifier, const RTCNetwork::SocketAddress& address, WTF::CheckedUint16 minPort, WTF::CheckedUint16 maxPort, WebPageProxyIdentifier pageIdentifier, RTCSocketCreationFlags, WebCore::RegistrableDomain&& domain)
 {
     assertIsRTCNetworkThread();
 

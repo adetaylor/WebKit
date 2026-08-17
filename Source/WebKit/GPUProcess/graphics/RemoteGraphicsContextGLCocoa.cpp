@@ -47,7 +47,7 @@
 namespace WebKit {
 
 #if ENABLE(VIDEO)
-void RemoteGraphicsContextGL::copyTextureFromVideoFrame(WebKit::SharedVideoFrame&& frame, PlatformGLObject texture, uint32_t target, int32_t level, uint32_t internalFormat, uint32_t format, uint32_t type, bool premultiplyAlpha, bool flipY, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::copyTextureFromVideoFrame(WebKit::SharedVideoFrame&& frame, PlatformGLObject texture, WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedUint32 internalFormat, WTF::CheckedUint32 format, WTF::CheckedUint32 type, bool premultiplyAlpha, bool flipY, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     RefPtr videoFrame = m_sharedVideoFrameReader.read(WTF::move(frame));

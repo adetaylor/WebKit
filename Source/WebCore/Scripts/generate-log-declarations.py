@@ -6,6 +6,22 @@ import sys
 PARAMETER_LIST_INCLUDE_TYPE = 1
 PARAMETER_LIST_INCLUDE_NAME = 2
 PARAMETER_LIST_MODIFY_CSTRING = 4
+# Used for the receiving side of the log IPC messages, where integers are attacker-controlled.
+PARAMETER_LIST_CHECKED_INTEGERS = 8
+# Unwraps those same integers again for consumption by variadic APIs such as os_log.
+PARAMETER_LIST_UNWRAP_CHECKED = 16
+
+CHECKED_INTEGER_TYPES = {
+    "int8_t": "WTF::CheckedInt8",
+    "uint8_t": "WTF::CheckedUint8",
+    "int16_t": "WTF::CheckedInt16",
+    "uint16_t": "WTF::CheckedUint16",
+    "int32_t": "WTF::CheckedInt32",
+    "uint32_t": "WTF::CheckedUint32",
+    "int64_t": "WTF::CheckedInt64",
+    "uint64_t": "WTF::CheckedUint64",
+    "size_t": "WTF::CheckedSize",
+}
 
 
 def get_argument_list(parameter_string):
@@ -16,9 +32,12 @@ def get_arguments_string(parameter_string, flags):
     arguments = get_argument_list(parameter_string)
     arguments_string = ""
     for index, argument in enumerate(arguments):
+        is_checked_integer = (flags & PARAMETER_LIST_CHECKED_INTEGERS) and argument in CHECKED_INTEGER_TYPES
         if flags & PARAMETER_LIST_INCLUDE_TYPE:
             if flags & PARAMETER_LIST_MODIFY_CSTRING and argument == "CString":
                 argument = "CString&&"
+            if is_checked_integer:
+                argument = CHECKED_INTEGER_TYPES[argument]
             arguments_string += argument
         if flags & PARAMETER_LIST_INCLUDE_NAME:
             if flags & PARAMETER_LIST_INCLUDE_TYPE:
@@ -26,6 +45,8 @@ def get_arguments_string(parameter_string, flags):
             arguments_string += "arg" + str(index)
             if (flags & PARAMETER_LIST_MODIFY_CSTRING) and (argument == "CString") and (not flags & PARAMETER_LIST_INCLUDE_TYPE):
                 arguments_string += ".data()"
+            if (flags & PARAMETER_LIST_UNWRAP_CHECKED) and (not flags & PARAMETER_LIST_INCLUDE_TYPE) and argument in CHECKED_INTEGER_TYPES:
+                arguments_string += ".value()"
         if index < len(arguments) - 1:
             arguments_string += ", "
     return arguments_string

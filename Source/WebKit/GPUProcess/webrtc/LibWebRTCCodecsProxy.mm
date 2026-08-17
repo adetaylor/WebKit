@@ -256,7 +256,7 @@ void LibWebRTCCodecsProxy::flushDecoder(VideoDecoderIdentifier identifier, Compl
     });
 }
 
-void LibWebRTCCodecsProxy::setDecoderFormatDescription(VideoDecoderIdentifier identifier, std::span<const uint8_t> data, uint16_t width, uint16_t height)
+void LibWebRTCCodecsProxy::setDecoderFormatDescription(VideoDecoderIdentifier identifier, std::span<const uint8_t> data, WTF::CheckedUint16 width, WTF::CheckedUint16 height)
 {
     doDecoderTask(identifier, [&](auto& decoder) {
         decoder.webrtcDecoder->setFormat(data, width, height);
@@ -270,7 +270,7 @@ void LibWebRTCCodecsProxy::setDecoderColorSpaceOverride(VideoDecoderIdentifier i
     });
 }
 
-void LibWebRTCCodecsProxy::decodeFrame(VideoDecoderIdentifier identifier, int64_t timeStamp, std::span<const uint8_t> data, CompletionHandler<void(bool)>&& callback) WTF_IGNORES_THREAD_SAFETY_ANALYSIS
+void LibWebRTCCodecsProxy::decodeFrame(VideoDecoderIdentifier identifier, WTF::CheckedInt64 timeStamp, std::span<const uint8_t> data, CompletionHandler<void(bool)>&& callback) WTF_IGNORES_THREAD_SAFETY_ANALYSIS
 {
     doDecoderTask(identifier, [identifier, connection = Ref { m_connection }, timeStamp, data, callback = WTF::move(callback)] (auto& decoder) mutable {
         if (decoder.frameRateMonitor)
@@ -284,7 +284,7 @@ void LibWebRTCCodecsProxy::decodeFrame(VideoDecoderIdentifier identifier, int64_
     });
 }
 
-void LibWebRTCCodecsProxy::setFrameSize(VideoDecoderIdentifier identifier, uint16_t width, uint16_t height) WTF_IGNORES_THREAD_SAFETY_ANALYSIS
+void LibWebRTCCodecsProxy::setFrameSize(VideoDecoderIdentifier identifier, WTF::CheckedUint16 width, WTF::CheckedUint16 height) WTF_IGNORES_THREAD_SAFETY_ANALYSIS
 {
     doDecoderTask(identifier, [&](auto& decoder) {
         decoder.webrtcDecoder->setFrameSize(width, height);
@@ -430,7 +430,7 @@ static bool NODELETE validateEncoderInitializationData(WebCore::VideoCodecType c
     return true;
 }
 
-void LibWebRTCCodecsProxy::initializeEncoder(VideoEncoderIdentifier identifier, uint16_t width, uint16_t height, unsigned startBitrate, unsigned maxBitrate, unsigned minBitrate, uint32_t maxFramerate)
+void LibWebRTCCodecsProxy::initializeEncoder(VideoEncoderIdentifier identifier, WTF::CheckedUint16 width, WTF::CheckedUint16 height, unsigned startBitrate, unsigned maxBitrate, unsigned minBitrate, WTF::CheckedUint32 maxFramerate)
 {
     assertIsCurrent(workQueue());
     auto* encoder = findEncoder(identifier);
@@ -468,7 +468,7 @@ static inline webrtc::VideoRotation NODELETE toWebRTCVideoRotation(WebCore::Vide
     return webrtc::kVideoRotation_0;
 }
 
-void LibWebRTCCodecsProxy::encodeFrame(VideoEncoderIdentifier identifier, SharedVideoFrame&& sharedVideoFrame, int64_t timeStamp, std::optional<uint64_t> duration, bool shouldEncodeAsKeyFrame, CompletionHandler<void(bool)>&& callback)
+void LibWebRTCCodecsProxy::encodeFrame(VideoEncoderIdentifier identifier, SharedVideoFrame&& sharedVideoFrame, WTF::CheckedInt64 timeStamp, std::optional<uint64_t> duration, bool shouldEncodeAsKeyFrame, CompletionHandler<void(bool)>&& callback)
 {
     assertIsCurrent(workQueue());
     auto* encoder = findEncoder(identifier);
@@ -544,7 +544,7 @@ void LibWebRTCCodecsProxy::flushEncoder(VideoEncoderIdentifier identifier, Compl
     m_queue->dispatch(WTF::move(callback));
 }
 
-void LibWebRTCCodecsProxy::setEncodeRates(VideoEncoderIdentifier identifier, uint32_t bitRate, uint32_t frameRate, CompletionHandler<void()>&& callback)
+void LibWebRTCCodecsProxy::setEncodeRates(VideoEncoderIdentifier identifier, WTF::CheckedUint32 bitRate, WTF::CheckedUint32 frameRate, CompletionHandler<void()>&& callback)
 {
     auto scope = makeScopeExit([&] {
         callback();

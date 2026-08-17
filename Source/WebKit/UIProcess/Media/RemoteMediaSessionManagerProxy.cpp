@@ -186,7 +186,7 @@ void RemoteMediaSessionManagerProxy::refreshSessionStates(IPC::Connection& conne
     }
 }
 
-void RemoteMediaSessionManagerProxy::updateMediaSessionStates(IPC::Connection& connection, WebCore::PageIdentifier pageIdentifier, Vector<RemoteMediaSessionState>&& sessions, uint64_t audioCaptureSourceCount)
+void RemoteMediaSessionManagerProxy::updateMediaSessionStates(IPC::Connection& connection, WebCore::PageIdentifier pageIdentifier, Vector<RemoteMediaSessionState>&& sessions, WTF::CheckedUint64 audioCaptureSourceCount)
 {
     refreshSessionStates(connection, sessions);
 
@@ -288,7 +288,7 @@ void RemoteMediaSessionManagerProxy::remoteAudioHardwareDidBecomeInactive()
         Ref { *m_audioHardwareListenerProxy }->audioHardwareDidBecomeInactive();
 }
 
-void RemoteMediaSessionManagerProxy::remoteAudioOutputDeviceChanged(uint64_t bufferSizeMinimum, uint64_t bufferSizeMaximum)
+void RemoteMediaSessionManagerProxy::remoteAudioOutputDeviceChanged(WTF::CheckedUint64 bufferSizeMinimum, WTF::CheckedUint64 bufferSizeMaximum)
 {
     if (m_audioHardwareListenerProxy)
         Ref { *m_audioHardwareListenerProxy }->audioOutputDeviceChanged(bufferSizeMinimum, bufferSizeMaximum);

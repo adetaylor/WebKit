@@ -156,7 +156,7 @@ void RemoteCaptureSampleManager::setVideoFrameObjectHeapProxy(RefPtr<RemoteVideo
     m_videoFrameObjectHeapProxy = WTF::move(proxy);
 }
 
-void RemoteCaptureSampleManager::audioStorageChanged(WebCore::RealtimeMediaSourceIdentifier identifier, ConsumerSharedCARingBuffer::Handle&& handle, const WebCore::CAAudioStreamDescription& description, IPC::Semaphore&& semaphore, const MediaTime& mediaTime, uint64_t frameChunkSize)
+void RemoteCaptureSampleManager::audioStorageChanged(WebCore::RealtimeMediaSourceIdentifier identifier, ConsumerSharedCARingBuffer::Handle&& handle, const WebCore::CAAudioStreamDescription& description, IPC::Semaphore&& semaphore, const MediaTime& mediaTime, WTF::CheckedUint64 frameChunkSize)
 {
     ASSERT(!WTF::isMainRunLoop());
 

@@ -100,7 +100,7 @@ void RemoteAudioSessionProxy::setCategory(AudioSession::CategoryType category, A
     protect(audioSessionManager())->updateCategory();
 }
 
-void RemoteAudioSessionProxy::setPreferredBufferSize(uint64_t size)
+void RemoteAudioSessionProxy::setPreferredBufferSize(WTF::CheckedUint64 size)
 {
     m_preferredBufferSize = size;
     protect(audioSessionManager())->updatePreferredBufferSizeForProcess();

@@ -71,8 +71,8 @@ private:
     std::optional<RangeAndOffset> rangeAndOffsetRelativeToSelection(int64_t offset, uint64_t length);
 
     // Message handlers.
-    void replaceRelativeToSelection(const WebCore::AttributedString&, int64_t selectionOffset, uint64_t length, uint64_t relativeReplacementLocation, uint64_t relativeReplacementLength);
-    void removeAnnotationRelativeToSelection(const String& annotationName, int64_t selectionOffset, uint64_t length);
+    void replaceRelativeToSelection(const WebCore::AttributedString&, WTF::CheckedInt64 selectionOffset, WTF::CheckedUint64 length, WTF::CheckedUint64 relativeReplacementLocation, WTF::CheckedUint64 relativeReplacementLength);
+    void removeAnnotationRelativeToSelection(const String& annotationName, WTF::CheckedInt64 selectionOffset, WTF::CheckedUint64 length);
 
     WeakRef<WebPage> m_page;
 };

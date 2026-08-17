@@ -144,7 +144,7 @@ private:
 #endif
 
 #if HAVE(DISPLAY_LINK)
-    void displayDidRefresh(WebCore::PlatformDisplayID, const WebCore::DisplayUpdate&, bool sendToMainThread);
+    void displayDidRefresh(Checked<WebCore::PlatformDisplayID, RecordOverflow>, const WebCore::DisplayUpdate&, bool sendToMainThread);
 #endif
 
 #if ENABLE(SCROLLING_THREAD)
@@ -164,7 +164,7 @@ private:
 #endif
 #endif
 
-    void pageScreenDidChange(WebCore::PageIdentifier, WebCore::PlatformDisplayID, std::optional<unsigned> nominalFramesPerSecond);
+    void pageScreenDidChange(WebCore::PageIdentifier, Checked<WebCore::PlatformDisplayID, RecordOverflow>, std::optional<unsigned> nominalFramesPerSecond);
 
     const CheckedRef<WebProcess> m_process;
     const Ref<WorkQueue> m_queue;

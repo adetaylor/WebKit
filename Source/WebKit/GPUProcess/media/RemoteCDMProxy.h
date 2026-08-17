@@ -84,7 +84,7 @@ private:
     void getSupportedConfiguration(WebCore::CDMKeySystemConfiguration&&, WebCore::CDMPrivate::LocalStorageAccess, CompletionHandler<void(std::optional<WebCore::CDMKeySystemConfiguration>)>&&);
     void createInstance(CompletionHandler<void(std::optional<RemoteCDMInstanceIdentifier>, RemoteCDMInstanceConfiguration&&)>&&);
     void loadAndInitialize();
-    void setLogIdentifier(uint64_t);
+    void setLogIdentifier(WTF::CheckedUint64);
 
     WeakPtr<RemoteCDMFactoryProxy> m_factory;
     const UniqueRef<WebCore::CDMPrivate> m_private;

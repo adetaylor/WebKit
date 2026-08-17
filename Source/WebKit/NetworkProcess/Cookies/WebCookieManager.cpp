@@ -125,14 +125,14 @@ void WebCookieManager::getCookies(PAL::SessionID sessionID, const URL& url, Comp
     completionHandler(WTF::move(cookies));
 }
 
-void WebCookieManager::setCookie(PAL::SessionID sessionID, const Vector<Cookie>& cookies, uint64_t cookiesVersion, CompletionHandler<void()>&& completionHandler)
+void WebCookieManager::setCookie(PAL::SessionID sessionID, const Vector<Cookie>& cookies, WTF::CheckedUint64 cookiesVersion, CompletionHandler<void()>&& completionHandler)
 {
     if (CheckedPtr storageSession = m_process->storageSession(sessionID)) {
         for (auto& cookie : cookies)
             storageSession->setCookie(cookie);
         storageSession->setCookiesVersion(cookiesVersion);
     } else
-        RELEASE_LOG_ERROR(Storage, "%p - WebCookieManager::setCookie failed to set cookies and version (%" PRIu64 ") for session %" PRIu64, this, cookiesVersion, sessionID.toUInt64());
+        RELEASE_LOG_ERROR(Storage, "%p - WebCookieManager::setCookie failed to set cookies and version (%" PRIu64 ") for session %" PRIu64, this, cookiesVersion.value(), sessionID.toUInt64());
     completionHandler();
 }
 

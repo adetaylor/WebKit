@@ -77,7 +77,7 @@ private:
 
     void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
 
-    void getBindGroupLayout(uint32_t index, WebGPUIdentifier);
+    void getBindGroupLayout(WTF::CheckedUint32 index, WebGPUIdentifier);
 
     void setLabel(String&&);
     void destruct();

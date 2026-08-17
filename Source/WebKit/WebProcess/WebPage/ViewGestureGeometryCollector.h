@@ -72,7 +72,7 @@ private:
 #if !PLATFORM(IOS_FAMILY)
     void collectGeometryForMagnificationGesture();
 
-    void setRenderTreeSizeNotificationThreshold(uint64_t);
+    void setRenderTreeSizeNotificationThreshold(WTF::CheckedUint64);
     void sendDidHitRenderTreeSizeThresholdIfNeeded();
 #endif
 

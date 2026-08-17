@@ -72,15 +72,15 @@ private:
     void createStreamTester(IPC::Connection&, IPCStreamTesterIdentifier, IPC::StreamServerConnection::Handle&&);
     void releaseStreamTester(IPCStreamTesterIdentifier, CompletionHandler<void()>&&);
     void createConnectionTester(IPC::Connection&, IPCConnectionTesterIdentifier, IPC::Connection::Handle&&);
-    void createConnectionTesterAndSendAsyncMessages(IPC::Connection&, IPCConnectionTesterIdentifier, IPC::Connection::Handle&&, uint32_t messageCount);
+    void createConnectionTesterAndSendAsyncMessages(IPC::Connection&, IPCConnectionTesterIdentifier, IPC::Connection::Handle&&, WTF::CheckedUint32 messageCount);
     void releaseConnectionTester(IPCConnectionTesterIdentifier, CompletionHandler<void()>&&);
     void sendSameSemaphoreBack(IPC::Connection&, IPC::Semaphore&&);
     void sendSemaphoreBackAndSignalProtocol(IPC::Connection&, IPC::Semaphore&&);
-    void sendAsyncMessageToReceiver(IPC::Connection&, uint32_t);
-    void sendAsyncMessageToReceiverRequestingReply(IPC::Connection&, uint32_t value, CompletionHandler<void(uint32_t, bool)>&&);
-    void asyncPing(uint32_t value, CompletionHandler<void(uint32_t)>&&);
-    void syncPing(IPC::Connection&, uint32_t value, CompletionHandler<void(uint32_t)>&&);
-    void syncPingEmptyReply(IPC::Connection&, uint32_t value, CompletionHandler<void()>&&);
+    void sendAsyncMessageToReceiver(IPC::Connection&, WTF::CheckedUint32);
+    void sendAsyncMessageToReceiverRequestingReply(IPC::Connection&, WTF::CheckedUint32 value, CompletionHandler<void(uint32_t, bool)>&&);
+    void asyncPing(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&&);
+    void syncPing(IPC::Connection&, WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&&);
+    void syncPingEmptyReply(IPC::Connection&, WTF::CheckedUint32 value, CompletionHandler<void()>&&);
     void asyncOptionalExceptionData(IPC::Connection&, bool sendEngaged, CompletionHandler<void(std::optional<WebCore::ExceptionData>, String)>&&);
     void emptyMessage() { }
     void emptyMessageWithReply(CompletionHandler<void(uint64_t)>&&);

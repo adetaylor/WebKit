@@ -94,13 +94,13 @@ private:
 
     void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
     void destruct();
-    void paintCompositedResultsToCanvas(WebCore::RenderingResourceIdentifier, uint32_t, CompletionHandler<void()>&&);
+    void paintCompositedResultsToCanvas(WebCore::RenderingResourceIdentifier, WTF::CheckedUint32, CompletionHandler<void()>&&);
 
 #if PLATFORM(COCOA)
     void recreateRenderBuffers(int width, int height, WebCore::DestinationColorSpace&&, WebCore::AlphaPremultiplication, WebCore::WebGPU::TextureFormat, unsigned bufferCount, WebKit::WebGPUIdentifier deviceIdentifier, CompletionHandler<void(Vector<MachSendRight>&&)>&&);
 #endif
 
-    void prepareForDisplay(uint32_t frameIndex, CompletionHandler<void(Seconds)>&&);
+    void prepareForDisplay(WTF::CheckedUint32 frameIndex, CompletionHandler<void(Seconds)>&&);
     void updateContentsHeadroom(float);
 
     const Ref<WebCore::WebGPU::CompositorIntegration> m_backing;

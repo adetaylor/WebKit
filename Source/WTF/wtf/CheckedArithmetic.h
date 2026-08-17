@@ -31,6 +31,7 @@
 #include <limits>
 #include <stdint.h>
 #include <type_traits>
+#include <utility>
 #include <wtf/StdLibExtras.h>
 
 /* On Linux with clang, libgcc is usually used instead of compiler-rt, and it does
@@ -174,6 +175,11 @@ template<typename T> struct RemoveChecked<Checked<T, CrashOnOverflow>> {
 };
 
 template<typename T> struct RemoveChecked<Checked<T, RecordOverflow>> {
+    typedef typename RemoveChecked<T>::CleanType CleanType;
+    static constexpr CleanType DefaultValue = 0;
+};
+
+template<typename T> struct RemoveChecked<Checked<T, RecordOverflowNoImplicitUnwrap>> {
     typedef typename RemoveChecked<T>::CleanType CleanType;
     static constexpr CleanType DefaultValue = 0;
 };
@@ -696,7 +702,7 @@ public:
         return m_value;
     }
 
-    operator T() const
+    operator T() const requires (OverflowHandler::allowsImplicitUnwrap)
     {
         if (this->hasOverflowed()) [[unlikely]]
             this->crash();
@@ -809,6 +815,17 @@ public:
     }
 
     // Other comparisons
+    template<typename U>
+        requires (std::is_integral_v<U>)
+    std::strong_ordering operator<=>(U rhs) const
+    {
+        if (this->hasOverflowed()) [[unlikely]]
+            this->crash();
+        if (std::cmp_equal(m_value, rhs))
+            return std::strong_ordering::equal;
+        return std::cmp_less(m_value, rhs) ? std::strong_ordering::less : std::strong_ordering::greater;
+    }
+
     template<typename V> std::strong_ordering operator<=>(Checked<T, V> rhs) const
     {
         return value() <=> rhs.value();
@@ -918,6 +935,18 @@ typedef Checked<int64_t, RecordOverflow> CheckedInt64;
 typedef Checked<uint64_t, RecordOverflow> CheckedUint64;
 typedef Checked<size_t, RecordOverflow> CheckedSize;
 
+// As the above, but without the implicit conversion back to the underlying integer, so that
+// discarding the overflow tracking has to be written as an explicit value() call.
+using StrictCheckedInt8 = Checked<int8_t, RecordOverflowNoImplicitUnwrap>;
+using StrictCheckedUint8 = Checked<uint8_t, RecordOverflowNoImplicitUnwrap>;
+using StrictCheckedInt16 = Checked<int16_t, RecordOverflowNoImplicitUnwrap>;
+using StrictCheckedUint16 = Checked<uint16_t, RecordOverflowNoImplicitUnwrap>;
+using StrictCheckedInt32 = Checked<int32_t, RecordOverflowNoImplicitUnwrap>;
+using StrictCheckedUint32 = Checked<uint32_t, RecordOverflowNoImplicitUnwrap>;
+using StrictCheckedInt64 = Checked<int64_t, RecordOverflowNoImplicitUnwrap>;
+using StrictCheckedUint64 = Checked<uint64_t, RecordOverflowNoImplicitUnwrap>;
+using StrictCheckedSize = Checked<size_t, RecordOverflowNoImplicitUnwrap>;
+
 template<typename T, typename... Args>
 requires (sizeof...(Args) >= 2)
 Checked<T, RecordOverflow> checkedSum(Args... args)
@@ -992,6 +1021,15 @@ using WTF::CheckedUint32;
 using WTF::CheckedInt64;
 using WTF::CheckedUint64;
 using WTF::CheckedSize;
+using WTF::StrictCheckedInt8;
+using WTF::StrictCheckedUint8;
+using WTF::StrictCheckedInt16;
+using WTF::StrictCheckedUint16;
+using WTF::StrictCheckedInt32;
+using WTF::StrictCheckedUint32;
+using WTF::StrictCheckedInt64;
+using WTF::StrictCheckedUint64;
+using WTF::StrictCheckedSize;
 using WTF::checkedSum;
 using WTF::checkedDifference;
 using WTF::checkedProduct;

@@ -694,7 +694,7 @@ private:
     void updateConsistentPrivacyQuirkFilter(ScriptTrackingPrivacyRules&&);
 
 #if HAVE(DISPLAY_LINK)
-    void displayDidRefresh(uint32_t displayID, const WebCore::DisplayUpdate&);
+    void displayDidRefresh(WTF::CheckedUint32 displayID, const WebCore::DisplayUpdate&);
 #endif
 
 #if PLATFORM(MAC)

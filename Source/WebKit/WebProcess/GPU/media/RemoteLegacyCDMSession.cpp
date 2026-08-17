@@ -187,7 +187,7 @@ void RemoteLegacyCDMSession::sendMessage(RefPtr<SharedBuffer>&& message, const S
     client->sendMessage(convertToUint8Array(WTF::move(message)).get(), destinationURL);
 }
 
-void RemoteLegacyCDMSession::sendError(WebCore::LegacyCDMSessionClient::MediaKeyErrorCode errorCode, uint32_t systemCode)
+void RemoteLegacyCDMSession::sendError(WebCore::LegacyCDMSessionClient::MediaKeyErrorCode errorCode, WTF::CheckedUint32 systemCode)
 {
     if (RefPtr client = m_client.get())
         client->sendError(errorCode, systemCode);

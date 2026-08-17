@@ -73,7 +73,7 @@ void IPCConnectionTester::didReceiveInvalidMessage(IPC::Connection&, IPC::Messag
     ASSERT_NOT_REACHED();
 }
 
-void IPCConnectionTester::asyncMessage(uint32_t value)
+void IPCConnectionTester::asyncMessage(WTF::CheckedUint32 value)
 {
     if (m_previousAsyncMessageValue != value - 1) {
         ASSERT_IS_TESTING_IPC();
@@ -82,7 +82,7 @@ void IPCConnectionTester::asyncMessage(uint32_t value)
     m_previousAsyncMessageValue = value;
 }
 
-void IPCConnectionTester::syncMessage(uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
+void IPCConnectionTester::syncMessage(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     completionHandler(value + m_previousAsyncMessageValue);
 }

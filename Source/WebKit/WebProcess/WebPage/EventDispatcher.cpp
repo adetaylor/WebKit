@@ -349,7 +349,7 @@ void EventDispatcher::notifyScrollingTreesDisplayDidRefresh(PlatformDisplayID di
 }
 
 #if HAVE(DISPLAY_LINK)
-void EventDispatcher::displayDidRefresh(PlatformDisplayID displayID, const DisplayUpdate& displayUpdate, bool sendToMainThread)
+void EventDispatcher::displayDidRefresh(Checked<PlatformDisplayID, RecordOverflow> displayID, const DisplayUpdate& displayUpdate, bool sendToMainThread)
 {
     tracePoint(DisplayRefreshDispatchingToMainThread, displayID, sendToMainThread);
 
@@ -370,7 +370,7 @@ void EventDispatcher::displayDidRefresh(PlatformDisplayID displayID, const Displ
 }
 #endif
 
-void EventDispatcher::pageScreenDidChange(PageIdentifier pageID, PlatformDisplayID displayID, std::optional<unsigned> nominalFramesPerSecond)
+void EventDispatcher::pageScreenDidChange(PageIdentifier pageID, Checked<PlatformDisplayID, RecordOverflow> displayID, std::optional<unsigned> nominalFramesPerSecond)
 {
 #if ENABLE(MOMENTUM_EVENT_DISPATCHER)
     m_momentumEventDispatcher->pageScreenDidChange(pageID, displayID, nominalFramesPerSecond);

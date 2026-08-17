@@ -177,14 +177,14 @@ void IPCTester::sendSemaphoreBackAndSignalProtocol(IPC::Connection& connection, 
     }
 }
 
-void IPCTester::sendAsyncMessageToReceiver(IPC::Connection& connection, uint32_t arg0)
+void IPCTester::sendAsyncMessageToReceiver(IPC::Connection& connection, WTF::CheckedUint32 arg0)
 {
     connection.sendWithAsyncReply(Messages::IPCTesterReceiver::AsyncMessage(arg0 + 1), [arg0](uint32_t newArg0) {
         ASSERT_UNUSED(arg0, newArg0 == arg0 + 2);
     }, 0);
 }
 
-void IPCTester::sendAsyncMessageToReceiverRequestingReply(IPC::Connection& connection, uint32_t arg0, CompletionHandler<void(uint32_t, bool)>&& completionHandler)
+void IPCTester::sendAsyncMessageToReceiverRequestingReply(IPC::Connection& connection, WTF::CheckedUint32 arg0, CompletionHandler<void(uint32_t, bool)>&& completionHandler)
 {
 #if ENABLE(IPC_TESTING_SWIFT)
     constexpr bool usingSwift = true;
@@ -204,7 +204,7 @@ void IPCTester::createConnectionTester(IPC::Connection& connection, IPCConnectio
     ASSERT_UNUSED(addResult, addResult.isNewEntry || IPC::isTestingIPC());
 }
 
-void IPCTester::createConnectionTesterAndSendAsyncMessages(IPC::Connection& connection, IPCConnectionTesterIdentifier identifier, IPC::Connection::Handle&& testedConnectionIdentifier, uint32_t messageCount)
+void IPCTester::createConnectionTesterAndSendAsyncMessages(IPC::Connection& connection, IPCConnectionTesterIdentifier identifier, IPC::Connection::Handle&& testedConnectionIdentifier, WTF::CheckedUint32 messageCount)
 {
     auto addResult = m_connectionTesters.ensure(identifier, [&] {
         return IPC::ScopedActiveMessageReceiveQueue<IPCConnectionTester> { IPCConnectionTester::create(connection, identifier, WTF::move(testedConnectionIdentifier)) };
@@ -222,17 +222,17 @@ void IPCTester::releaseConnectionTester(IPCConnectionTesterIdentifier identifier
     completionHandler();
 }
 
-void IPCTester::asyncPing(uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
+void IPCTester::asyncPing(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     completionHandler(value + 1);
 }
 
-void IPCTester::syncPing(IPC::Connection&, uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
+void IPCTester::syncPing(IPC::Connection&, WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     completionHandler(value + 1);
 }
 
-void IPCTester::syncPingEmptyReply(IPC::Connection&, uint32_t value, CompletionHandler<void()>&& completionHandler)
+void IPCTester::syncPingEmptyReply(IPC::Connection&, WTF::CheckedUint32 value, CompletionHandler<void()>&& completionHandler)
 {
     UNUSED_PARAM(value);
     completionHandler();

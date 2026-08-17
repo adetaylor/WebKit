@@ -131,14 +131,14 @@ void LibWebRTCNetwork::signalAddressReady(WebCore::LibWebRTCSocketIdentifier ide
         socket->signalAddressReady(address.rtcAddress());
 }
 
-void LibWebRTCNetwork::signalReadPacket(WebCore::LibWebRTCSocketIdentifier identifier, std::span<const uint8_t> data, const RTCNetwork::IPAddress& address, uint16_t port, int64_t timestamp, WebRTCNetwork::EcnMarking ecn)
+void LibWebRTCNetwork::signalReadPacket(WebCore::LibWebRTCSocketIdentifier identifier, std::span<const uint8_t> data, const RTCNetwork::IPAddress& address, WTF::CheckedUint16 port, WTF::CheckedInt64 timestamp, WebRTCNetwork::EcnMarking ecn)
 {
     ASSERT(!WTF::isMainRunLoop());
     if (CheckedPtr socket = m_socketFactory.socket(identifier))
         socket->signalReadPacket(data, webrtc::SocketAddress(address.rtcAddress(), port), timestamp, convertToWebRTCEcnMarking(ecn));
 }
 
-void LibWebRTCNetwork::signalSentPacket(WebCore::LibWebRTCSocketIdentifier identifier, int64_t rtcPacketID, int64_t sendTimeMs)
+void LibWebRTCNetwork::signalSentPacket(WebCore::LibWebRTCSocketIdentifier identifier, WTF::CheckedInt64 rtcPacketID, WTF::CheckedInt64 sendTimeMs)
 {
     ASSERT(!WTF::isMainRunLoop());
     if (CheckedPtr socket = m_socketFactory.socket(identifier))

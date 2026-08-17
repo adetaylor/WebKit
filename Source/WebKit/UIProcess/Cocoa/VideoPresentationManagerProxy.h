@@ -255,7 +255,7 @@ private:
 #endif
 
     // Messages from VideoPresentationManager
-    void setupFullscreenWithID(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, const WebCore::HostingContext&, const WebCore::FloatRect& screenRect, const WebCore::FloatSize& initialSize, const WebCore::FloatSize& videoDimensions, float hostingScaleFactor, WebCore::HTMLMediaElementEnums::VideoFullscreenMode, bool allowsPictureInPicture, bool standby, bool blocksReturnToFullscreenFromPictureInPicture, bool hasObjectViewBox);
+    void setupFullscreenWithID(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, const WebCore::HostingContext&, const WebCore::FloatRect& screenRect, const WebCore::FloatSize& initialSize, const WebCore::FloatSize& videoDimensions, float hostingScaleFactor, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow>, bool allowsPictureInPicture, bool standby, bool blocksReturnToFullscreenFromPictureInPicture, bool hasObjectViewBox);
     void setInlineRect(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, const WebCore::FloatRect& inlineRect, bool visible);
     void setHasVideoContentLayer(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, bool value);
     void setHasVideo(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, bool);
@@ -274,9 +274,9 @@ private:
     void cleanupFullscreen(IPC::Connection&, WebCore::HTMLMediaElementIdentifier);
     void preparedToReturnToInline(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, bool visible, WebCore::FloatRect inlineRect);
     void preparedToExitFullscreen(IPC::Connection&, WebCore::HTMLMediaElementIdentifier);
-    void exitFullscreenWithoutAnimationToMode(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, WebCore::HTMLMediaElementEnums::VideoFullscreenMode);
-    void setVideoFullscreenMode(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, WebCore::HTMLMediaElementEnums::VideoFullscreenMode);
-    void clearVideoFullscreenMode(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, WebCore::HTMLMediaElementEnums::VideoFullscreenMode);
+    void exitFullscreenWithoutAnimationToMode(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow>);
+    void setVideoFullscreenMode(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow>);
+    void clearVideoFullscreenMode(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow>);
     void setPlayerIdentifier(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, std::optional<WebCore::MediaPlayerIdentifier>);
     void textTrackRepresentationUpdate(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, WebCore::ShareableBitmap::Handle&& textTrack);
     void textTrackRepresentationSetContentsScale(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, float scale);

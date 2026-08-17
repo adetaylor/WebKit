@@ -86,7 +86,7 @@ void RemoteMesh::update(Vector<WebModel::UpdateMeshDescriptor>&& descriptor, Com
     completionHandler(true);
 }
 
-void RemoteMesh::render(uint32_t textureIndex, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteMesh::render(WTF::CheckedUint32 textureIndex, CompletionHandler<void(bool)>&& completionHandler)
 {
     Ref workQueue = m_gpu->workQueue();
     m_backing->render(textureIndex, [workQueue = WTF::move(workQueue), completionHandler = WTF::move(completionHandler)] (bool result) mutable {
@@ -156,7 +156,7 @@ void RemoteMesh::processRemovals(Vector<WebModel::TypedResourceId>&& meshRemoval
     m_backing->processRemovals(WTF::move(meshRemovals), WTF::move(materialRemovals), WTF::move(textureRemovals), WTF::move(completionHandler));
 }
 
-void RemoteMesh::paintCurrentFrameToImageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier, uint32_t bufferIndex, CompletionHandler<void()>&& completionHandler)
+void RemoteMesh::paintCurrentFrameToImageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier, WTF::CheckedUint32 bufferIndex, CompletionHandler<void()>&& completionHandler)
 {
     if (RefPtr nativeImage { m_backing->getCurrentFrameAsNativeImage(bufferIndex) })
         m_gpu->paintNativeImageToImageBuffer(*nativeImage, imageBufferIdentifier);

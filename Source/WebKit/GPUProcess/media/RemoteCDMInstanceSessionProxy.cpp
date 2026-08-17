@@ -54,7 +54,7 @@ RemoteCDMInstanceSessionProxy::RemoteCDMInstanceSessionProxy(WeakPtr<RemoteCDMPr
 
 RemoteCDMInstanceSessionProxy::~RemoteCDMInstanceSessionProxy() = default;
 
-void RemoteCDMInstanceSessionProxy::setLogIdentifier(uint64_t logIdentifier)
+void RemoteCDMInstanceSessionProxy::setLogIdentifier(WTF::CheckedUint64 logIdentifier)
 {
 #if !RELEASE_LOG_DISABLED
     protect(m_session)->setLogIdentifier(logIdentifier);

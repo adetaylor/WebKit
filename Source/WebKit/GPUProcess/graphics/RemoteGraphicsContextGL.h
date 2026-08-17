@@ -119,7 +119,7 @@ protected:
 
     // Messages to be received.
     void ensureExtensionEnabled(WebCore::GCGLExtension);
-    void reshape(int32_t width, int32_t height);
+    void reshape(WTF::CheckedInt32 width, WTF::CheckedInt32 height);
 #if PLATFORM(COCOA)
     virtual void prepareForDisplay(IPC::Semaphore&&, CompletionHandler<void(WTF::MachSendRight&&)>&&) = 0;
 #elif USE(GRAPHICS_LAYER_WC)
@@ -135,27 +135,27 @@ protected:
     void surfaceBufferToVideoFrame(WebCore::GraphicsContextGL::SurfaceBuffer, CompletionHandler<void(std::optional<WebKit::RemoteVideoFrameProxy::Properties>&&)>&&);
 #endif
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
-    void copyTextureFromVideoFrame(SharedVideoFrame&&, PlatformGLObject texture, uint32_t target, int32_t level, uint32_t internalFormat, uint32_t format, uint32_t type, bool premultiplyAlpha, bool flipY, CompletionHandler<void(bool)>&&);
+    void copyTextureFromVideoFrame(SharedVideoFrame&&, PlatformGLObject texture, WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedUint32 internalFormat, WTF::CheckedUint32 format, WTF::CheckedUint32 type, bool premultiplyAlpha, bool flipY, CompletionHandler<void(bool)>&&);
     void setSharedVideoFrameSemaphore(IPC::Semaphore&&);
     void setSharedVideoFrameMemory(WebCore::SharedMemory::Handle&&);
 #endif
     void simulateEventForTesting(WebCore::GraphicsContextGL::SimulatedEventForTesting);
-    void getBufferSubDataInline(uint32_t target, uint64_t offset, uint64_t dataSize, CompletionHandler<void(std::span<const uint8_t>)>&&);
-    void getBufferSubDataSharedMemory(uint32_t target, uint64_t offset, uint64_t dataSize, WebCore::SharedMemory::Handle, CompletionHandler<void(bool)>&&);
-    void readPixelsInline(WebCore::IntRect, uint32_t format, uint32_t type, bool packReverseRowOrder, CompletionHandler<void(std::optional<WebCore::IntSize>, std::span<const uint8_t>)>&&);
-    void readPixelsSharedMemory(WebCore::IntRect, uint32_t format, uint32_t type, bool packReverseRowOrder, WebCore::SharedMemory::Handle, CompletionHandler<void(std::optional<WebCore::IntSize>)>&&);
-    void multiDrawArraysANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& firstsAndCounts);
-    void multiDrawArraysInstancedANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& firstsCountsAndInstanceCounts);
-    void multiDrawElementsANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& countsAndOffsets, uint32_t type);
-    void multiDrawElementsInstancedANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& countsOffsetsAndInstanceCounts, uint32_t type);
-    void multiDrawArraysInstancedBaseInstanceANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, uint32_t>&& firstsCountsInstanceCountsAndBaseInstances);
-    void multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, int32_t, uint32_t>&& countsOffsetsInstanceCountsBaseVerticesAndBaseInstances, uint32_t type);
+    void getBufferSubDataInline(WTF::CheckedUint32 target, WTF::CheckedUint64 offset, WTF::CheckedUint64 dataSize, CompletionHandler<void(std::span<const uint8_t>)>&&);
+    void getBufferSubDataSharedMemory(WTF::CheckedUint32 target, WTF::CheckedUint64 offset, WTF::CheckedUint64 dataSize, WebCore::SharedMemory::Handle, CompletionHandler<void(bool)>&&);
+    void readPixelsInline(WebCore::IntRect, WTF::CheckedUint32 format, WTF::CheckedUint32 type, bool packReverseRowOrder, CompletionHandler<void(std::optional<WebCore::IntSize>, std::span<const uint8_t>)>&&);
+    void readPixelsSharedMemory(WebCore::IntRect, WTF::CheckedUint32 format, WTF::CheckedUint32 type, bool packReverseRowOrder, WebCore::SharedMemory::Handle, CompletionHandler<void(std::optional<WebCore::IntSize>)>&&);
+    void multiDrawArraysANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& firstsAndCounts);
+    void multiDrawArraysInstancedANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& firstsCountsAndInstanceCounts);
+    void multiDrawElementsANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& countsAndOffsets, WTF::CheckedUint32 type);
+    void multiDrawElementsInstancedANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& countsOffsetsAndInstanceCounts, WTF::CheckedUint32 type);
+    void multiDrawArraysInstancedBaseInstanceANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, uint32_t>&& firstsCountsInstanceCountsAndBaseInstances);
+    void multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, int32_t, uint32_t>&& countsOffsetsInstanceCountsBaseVerticesAndBaseInstances, WTF::CheckedUint32 type);
     void drawBuffers(std::span<const uint32_t>);
     void drawBuffersEXT(std::span<const uint32_t>);
-    void invalidateFramebuffer(uint32_t target, std::span<const uint32_t> attachments);
-    void invalidateSubFramebuffer(uint32_t target, std::span<const uint32_t> attachments, int32_t x, int32_t y, int32_t width, int32_t height);
+    void invalidateFramebuffer(WTF::CheckedUint32 target, std::span<const uint32_t> attachments);
+    void invalidateSubFramebuffer(WTF::CheckedUint32 target, std::span<const uint32_t> attachments, WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 width, WTF::CheckedInt32 height);
 #if ENABLE(WEBXR)
-    void framebufferDiscard(uint32_t target, std::span<const uint32_t> attachments);
+    void framebufferDiscard(WTF::CheckedUint32 target, std::span<const uint32_t> attachments);
 #endif
     void setDrawingBufferColorSpace(WebCore::DestinationColorSpace&&);
 

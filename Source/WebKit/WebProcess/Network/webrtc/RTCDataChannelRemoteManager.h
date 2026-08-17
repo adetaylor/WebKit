@@ -62,7 +62,7 @@ private:
     void changeReadyState(WebCore::RTCDataChannelIdentifier, WebCore::RTCDataChannelState);
     void receiveData(WebCore::RTCDataChannelIdentifier, bool isRaw, std::span<const uint8_t>);
     void detectError(WebCore::RTCDataChannelIdentifier, WebCore::RTCErrorDetailType, String&&);
-    void bufferedAmountIsDecreasing(WebCore::RTCDataChannelIdentifier, uint64_t);
+    void bufferedAmountIsDecreasing(WebCore::RTCDataChannelIdentifier, WTF::CheckedUint64);
 
     WebCore::RTCDataChannelRemoteSourceConnection& remoteSourceConnection();
     void postTaskToHandler(WebCore::RTCDataChannelIdentifier, Function<void(WebCore::RTCDataChannelRemoteHandler&)>&&);

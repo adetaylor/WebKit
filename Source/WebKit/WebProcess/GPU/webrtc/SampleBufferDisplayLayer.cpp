@@ -163,7 +163,7 @@ void SampleBufferDisplayLayer::setDidFail(bool value)
         client->sampleBufferDisplayLayerStatusDidFail();
 }
 
-void SampleBufferDisplayLayer::updateVideoFrameCounters(uint64_t totalVideoFrames, uint64_t droppedVideoFrames)
+void SampleBufferDisplayLayer::updateVideoFrameCounters(WTF::CheckedUint64 totalVideoFrames, WTF::CheckedUint64 droppedVideoFrames)
 {
     if (RefPtr client = m_client.get())
         client->updateVideoFrameCounters(totalVideoFrames, droppedVideoFrames);

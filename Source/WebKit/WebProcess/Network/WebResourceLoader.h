@@ -89,9 +89,9 @@ private:
     uint64_t messageSenderDestinationID() const override;
 
     void willSendRequest(WebCore::ResourceRequest&&, IPC::FormDataReference&& requestBody, WebCore::ResourceResponse&&, CompletionHandler<void(WebCore::ResourceRequest&&, bool)>&&);
-    void didSendData(uint64_t bytesSent, uint64_t totalBytesToBeSent);
+    void didSendData(WTF::CheckedUint64 bytesSent, WTF::CheckedUint64 totalBytesToBeSent);
     void didReceiveResponse(WebCore::ResourceResponse&&, PrivateRelayed, bool needsContinueDidReceiveResponseMessage, std::optional<WebCore::NetworkLoadMetrics>&&);
-    void didReceiveData(IPC::SharedBufferReference&& data, uint64_t bytesTransferredOverNetwork);
+    void didReceiveData(IPC::SharedBufferReference&& data, WTF::CheckedUint64 bytesTransferredOverNetwork);
     void didFinishResourceLoad(WebCore::NetworkLoadMetrics&&);
     void didFailResourceLoad(const WebCore::ResourceError&);
     void didFailServiceWorkerLoad(const WebCore::ResourceError&);

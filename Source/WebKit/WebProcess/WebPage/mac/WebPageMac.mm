@@ -949,7 +949,7 @@ void WebPage::immediateActionDidComplete()
         localMainFrame->eventHandler().setImmediateActionStage(ImmediateActionStage::ActionCompleted);
 }
 
-void WebPage::dataDetectorsDidPresentUI(PageOverlay::PageOverlayID overlayID)
+void WebPage::dataDetectorsDidPresentUI(Checked<PageOverlay::PageOverlayID, RecordOverflow> overlayID)
 {
     for (const auto& overlay : corePage()->pageOverlayController().pageOverlays()) {
         if (overlay->pageOverlayID() == overlayID) {
@@ -960,7 +960,7 @@ void WebPage::dataDetectorsDidPresentUI(PageOverlay::PageOverlayID overlayID)
     }
 }
 
-void WebPage::dataDetectorsDidChangeUI(PageOverlay::PageOverlayID overlayID)
+void WebPage::dataDetectorsDidChangeUI(Checked<PageOverlay::PageOverlayID, RecordOverflow> overlayID)
 {
     for (const auto& overlay : corePage()->pageOverlayController().pageOverlays()) {
         if (overlay->pageOverlayID() == overlayID) {
@@ -971,7 +971,7 @@ void WebPage::dataDetectorsDidChangeUI(PageOverlay::PageOverlayID overlayID)
     }
 }
 
-void WebPage::dataDetectorsDidHideUI(PageOverlay::PageOverlayID overlayID)
+void WebPage::dataDetectorsDidHideUI(Checked<PageOverlay::PageOverlayID, RecordOverflow> overlayID)
 {
     RefPtr localMainFrame = dynamicDowncast<WebCore::LocalFrame>(corePage()->mainFrame());
     if (!localMainFrame)

@@ -232,7 +232,7 @@ public:
 #if ENABLE(MODEL_PROCESS)
     void didSyncSharedPreferencesForWebProcessWithModelProcess(uint64_t syncedPreferencesVersion);
 #endif
-    void waitForSharedPreferencesForWebProcessToSync(uint64_t sharedPreferencesVersion, CompletionHandler<void(bool success)>&&);
+    void waitForSharedPreferencesForWebProcessToSync(WTF::CheckedUint64 sharedPreferencesVersion, CompletionHandler<void(bool success)>&&);
 
     enum class SiteState : uint8_t { NotYetSpecified, MultipleSites, SharedProcess };
     const Expected<WebCore::Site, SiteState>& site() const LIFETIME_BOUND { return m_site; }
@@ -393,7 +393,7 @@ public:
     void didExceedCPULimit();
     void didExceedActiveMemoryLimit();
     void didExceedInactiveMemoryLimit();
-    void didExceedMemoryFootprintThreshold(uint64_t);
+    void didExceedMemoryFootprintThreshold(WTF::CheckedUint64);
 
     void didCommitProvisionalLoad() { m_hasCommittedAnyProvisionalLoads = true; }
     bool hasCommittedAnyProvisionalLoads() const { return m_hasCommittedAnyProvisionalLoads; }
@@ -422,9 +422,9 @@ public:
     DisplayLink::Client& displayLinkClient() LIFETIME_BOUND { return m_displayLinkClient; }
     std::optional<unsigned> nominalFramesPerSecondForDisplay(WebCore::PlatformDisplayID);
 
-    void startDisplayLink(DisplayLinkObserverID, WebCore::PlatformDisplayID, WebCore::FramesPerSecond);
-    void stopDisplayLink(DisplayLinkObserverID, WebCore::PlatformDisplayID);
-    void setDisplayLinkPreferredFramesPerSecond(DisplayLinkObserverID, WebCore::PlatformDisplayID, WebCore::FramesPerSecond);
+    void startDisplayLink(DisplayLinkObserverID, Checked<WebCore::PlatformDisplayID, RecordOverflow>, WebCore::FramesPerSecond);
+    void stopDisplayLink(DisplayLinkObserverID, Checked<WebCore::PlatformDisplayID, RecordOverflow>);
+    void setDisplayLinkPreferredFramesPerSecond(DisplayLinkObserverID, Checked<WebCore::PlatformDisplayID, RecordOverflow>, WebCore::FramesPerSecond);
     void setDisplayLinkForDisplayWantsFullSpeedUpdates(WebCore::PlatformDisplayID, bool wantsFullSpeedUpdates);
 #endif
 

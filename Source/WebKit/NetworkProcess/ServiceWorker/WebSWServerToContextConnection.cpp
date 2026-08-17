@@ -368,7 +368,7 @@ void WebSWServerToContextConnection::openWindow(WebCore::ServiceWorkerIdentifier
     sendWithAsyncReplyToParentProcess(Messages::NetworkProcessProxy::OpenWindowFromServiceWorker { m_connection->sessionID(), url.string(), worker->origin().clientOrigin }, WTF::move(innerCallback));
 }
 
-void WebSWServerToContextConnection::reportConsoleMessage(WebCore::ServiceWorkerIdentifier serviceWorkerIdentifier, MessageSource source, MessageLevel level, const String& message, uint64_t requestIdentifier)
+void WebSWServerToContextConnection::reportConsoleMessage(WebCore::ServiceWorkerIdentifier serviceWorkerIdentifier, MessageSource source, MessageLevel level, const String& message, WTF::CheckedUint64 requestIdentifier)
 {
     RefPtr server = this->server();
     RefPtr worker = server ? server->workerByID(serviceWorkerIdentifier) : nullptr;

@@ -75,14 +75,14 @@ void DrawingAreaProxyWC::sizeDidChange()
         send(Messages::DrawingArea::UpdateGeometryWC(m_currentBackingStoreStateID, size(), page()->deviceScaleFactor(), page()->intrinsicDeviceScaleFactor()));
 }
 
-void DrawingAreaProxyWC::update(uint64_t backingStoreStateID, UpdateInfo&& updateInfo)
+void DrawingAreaProxyWC::update(WTF::CheckedUint64 backingStoreStateID, UpdateInfo&& updateInfo)
 {
     if (backingStoreStateID == m_currentBackingStoreStateID)
         incorporateUpdate(WTF::move(updateInfo));
     send(Messages::DrawingArea::DisplayDidRefresh(MonotonicTime::now()));
 }
 
-void DrawingAreaProxyWC::enterAcceleratedCompositingMode(uint64_t backingStoreStateID, const LayerTreeContext&)
+void DrawingAreaProxyWC::enterAcceleratedCompositingMode(WTF::CheckedUint64 backingStoreStateID, const LayerTreeContext&)
 {
     discardBackingStore();
 }

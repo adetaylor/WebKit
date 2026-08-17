@@ -105,7 +105,7 @@ void NetworkSocketChannel::finishClosingIfPossible()
     protect(m_connectionToWebProcess)->removeSocketChannel(m_identifier);
 }
 
-void NetworkSocketChannel::close(int32_t code, const String& reason)
+void NetworkSocketChannel::close(WTF::CheckedInt32 code, const String& reason)
 {
     protect(m_socket)->close(code, reason);
     finishClosingIfPossible();

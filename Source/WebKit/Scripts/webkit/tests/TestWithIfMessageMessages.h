@@ -27,6 +27,7 @@
 #include "ArgumentCoders.h"
 #include "Connection.h"
 #include "MessageNames.h"
+#include <wtf/CheckedArithmetic.h>
 #include <wtf/Forward.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -71,7 +72,7 @@ private:
 #if PLATFORM(GTK)
 class LoadURL {
 public:
-    using Arguments = std::tuple<String, int64_t>;
+    using Arguments = std::tuple<String, WTF::CheckedInt64>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithIfMessage_LoadURL; }
     static constexpr bool isSync = false;

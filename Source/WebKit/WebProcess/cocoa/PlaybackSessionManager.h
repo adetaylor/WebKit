@@ -210,8 +210,8 @@ private:
     void endScanning(WebCore::MediaPlayerClientIdentifier);
     void setDefaultPlaybackRate(WebCore::MediaPlayerClientIdentifier, float);
     void setPlaybackRate(WebCore::MediaPlayerClientIdentifier, float);
-    void selectAudioMediaOption(WebCore::MediaPlayerClientIdentifier, uint64_t index);
-    void selectLegibleMediaOption(WebCore::MediaPlayerClientIdentifier, uint64_t index);
+    void selectAudioMediaOption(WebCore::MediaPlayerClientIdentifier, WTF::CheckedUint64 index);
+    void selectLegibleMediaOption(WebCore::MediaPlayerClientIdentifier, WTF::CheckedUint64 index);
     void handleControlledElementIDRequest(WebCore::MediaPlayerClientIdentifier);
     void togglePictureInPicture(WebCore::MediaPlayerClientIdentifier);
     void enterFullscreen(WebCore::MediaPlayerClientIdentifier);

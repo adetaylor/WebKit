@@ -102,7 +102,7 @@ private:
     void addMediaSession(IPC::Connection&, RemoteMediaSessionState&&);
     void removeMediaSession(IPC::Connection&, RemoteMediaSessionState&&);
     void setCurrentMediaSession(IPC::Connection&, RemoteMediaSessionState&&);
-    void updateMediaSessionStates(IPC::Connection&, WebCore::PageIdentifier, Vector<RemoteMediaSessionState>&&, uint64_t audioCaptureSourceCount);
+    void updateMediaSessionStates(IPC::Connection&, WebCore::PageIdentifier, Vector<RemoteMediaSessionState>&&, WTF::CheckedUint64 audioCaptureSourceCount);
     void mediaSessionStateChanged(IPC::Connection&, WebKit::RemoteMediaSessionState&&);
     void mediaSessionWillBeginPlayback(IPC::Connection&, RemoteMediaSessionState&&);
 
@@ -121,7 +121,7 @@ private:
 #if PLATFORM(COCOA)
     void remoteAudioHardwareDidBecomeActive();
     void remoteAudioHardwareDidBecomeInactive();
-    void remoteAudioOutputDeviceChanged(uint64_t bufferSizeMinimum, uint64_t bufferSizeMaximum);
+    void remoteAudioOutputDeviceChanged(WTF::CheckedUint64 bufferSizeMinimum, WTF::CheckedUint64 bufferSizeMaximum);
 #endif
 
 #if USE(AUDIO_SESSION)

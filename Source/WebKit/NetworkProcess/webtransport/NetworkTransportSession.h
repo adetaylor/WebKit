@@ -85,15 +85,15 @@ public:
     void getSendStreamStats(WebCore::WebTransportStreamIdentifier, CompletionHandler<void(std::optional<WebCore::WebTransportSendStreamStats>&&)>&&);
     void getReceiveStreamStats(WebCore::WebTransportStreamIdentifier, CompletionHandler<void(std::optional<WebCore::WebTransportReceiveStreamStats>&&)>&&);
     void getSendGroupStats(WebCore::WebTransportSendGroupIdentifier, CompletionHandler<void(std::optional<WebCore::WebTransportSendStreamStats>&&)>&&);
-    void exportKeyingMaterial(std::span<const uint8_t> label, std::span<const uint8_t> context, uint32_t outputLength, CompletionHandler<void(std::optional<Vector<uint8_t>>)>&&);
+    void exportKeyingMaterial(std::span<const uint8_t> label, std::span<const uint8_t> context, WTF::CheckedUint32 outputLength, CompletionHandler<void(std::optional<Vector<uint8_t>>)>&&);
     void destroyOutgoingUnidirectionalStream(WebCore::WebTransportStreamIdentifier);
     void destroyBidirectionalStream(WebCore::WebTransportStreamIdentifier);
     void streamSendBytes(WebCore::WebTransportStreamIdentifier, std::span<const uint8_t>, bool withFin, CompletionHandler<void(std::optional<WebCore::Exception>&&)>&&);
-    void terminate(WebCore::WebTransportSessionErrorCode, CString&&);
+    void terminate(Checked<WebCore::WebTransportSessionErrorCode, RecordOverflow>, CString&&);
     void NODELETE datagramIncomingMaxAgeUpdated(std::optional<double>);
     void NODELETE datagramOutgoingMaxAgeUpdated(std::optional<double>);
-    void NODELETE incomingMaxBufferedDatagramsUpdated(uint32_t);
-    void NODELETE outgoingMaxBufferedDatagramsUpdated(uint32_t);
+    void NODELETE incomingMaxBufferedDatagramsUpdated(WTF::CheckedUint32);
+    void NODELETE outgoingMaxBufferedDatagramsUpdated(WTF::CheckedUint32);
 
     void receiveDatagram(std::span<const uint8_t>, bool, std::optional<WebCore::Exception>&&);
     void streamReceiveBytes(WebCore::WebTransportStreamIdentifier, std::span<const uint8_t>, bool, std::optional<WebCore::Exception>&&);

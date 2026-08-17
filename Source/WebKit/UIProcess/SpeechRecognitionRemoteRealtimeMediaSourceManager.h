@@ -67,7 +67,7 @@ public:
 
 private:
     // Messages::SpeechRecognitionRemoteRealtimeMediaSourceManager
-    void remoteAudioSamplesAvailable(WebCore::RealtimeMediaSourceIdentifier, const WTF::MediaTime&, uint64_t numberOfFrames);
+    void remoteAudioSamplesAvailable(WebCore::RealtimeMediaSourceIdentifier, const WTF::MediaTime&, WTF::CheckedUint64 numberOfFrames);
     void remoteCaptureFailed(WebCore::RealtimeMediaSourceIdentifier);
     void remoteSourceStopped(WebCore::RealtimeMediaSourceIdentifier);
 #if PLATFORM(COCOA)

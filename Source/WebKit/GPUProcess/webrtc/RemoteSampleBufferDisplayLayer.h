@@ -77,7 +77,7 @@ private:
     RemoteSampleBufferDisplayLayer(GPUConnectionToWebProcess&, SampleBufferDisplayLayerIdentifier, Ref<IPC::Connection>&&, RemoteSampleBufferDisplayLayerManager&);
 
 #if !RELEASE_LOG_DISABLED
-    void setLogIdentifier(uint64_t);
+    void setLogIdentifier(WTF::CheckedUint64);
 #endif
     void updateDisplayMode(bool hideDisplayLayer, bool hideRootLayer);
     void flush();

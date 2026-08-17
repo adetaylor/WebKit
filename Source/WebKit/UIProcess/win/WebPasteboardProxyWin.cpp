@@ -55,12 +55,12 @@ void WebPasteboardProxy::writeCustomData(IPC::Connection&, const Vector<Pasteboa
     completionHandler(PlatformPasteboard(pasteboardName).write(data));
 }
 
-void WebPasteboardProxy::allPasteboardItemInfo(IPC::Connection&, const String& pasteboardName, int64_t changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<Vector<PasteboardItemInfo>>&&)>&& completionHandler)
+void WebPasteboardProxy::allPasteboardItemInfo(IPC::Connection&, const String& pasteboardName, WTF::CheckedInt64 changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<Vector<PasteboardItemInfo>>&&)>&& completionHandler)
 {
     completionHandler(PlatformPasteboard(pasteboardName).allPasteboardItemInfo(changeCount));
 }
 
-void WebPasteboardProxy::informationForItemAtIndex(IPC::Connection&, uint64_t index, const String& pasteboardName, int64_t changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<PasteboardItemInfo>&&)>&& completionHandler)
+void WebPasteboardProxy::informationForItemAtIndex(IPC::Connection&, WTF::CheckedUint64 index, const String& pasteboardName, WTF::CheckedInt64 changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<PasteboardItemInfo>&&)>&& completionHandler)
 {
     completionHandler(PlatformPasteboard(pasteboardName).informationForItemAtIndex(index, changeCount));
 }
@@ -70,12 +70,12 @@ void WebPasteboardProxy::getPasteboardItemsCount(IPC::Connection&, const String&
     completionHandler(PlatformPasteboard(pasteboardName).count());
 }
 
-void WebPasteboardProxy::readStringFromPasteboard(IPC::Connection&, uint64_t index, const String& pasteboardType, const String& pasteboardName, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(String&&)>&& completionHandler)
+void WebPasteboardProxy::readStringFromPasteboard(IPC::Connection&, WTF::CheckedUint64 index, const String& pasteboardType, const String& pasteboardName, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(String&&)>&& completionHandler)
 {
     completionHandler(PlatformPasteboard(pasteboardName).readString(index, pasteboardType));
 }
 
-void WebPasteboardProxy::readURLFromPasteboard(IPC::Connection&, uint64_t, const String&, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(String&& url, String&& title)>&& completionHandler)
+void WebPasteboardProxy::readURLFromPasteboard(IPC::Connection&, WTF::CheckedUint64, const String&, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(String&& url, String&& title)>&& completionHandler)
 {
     completionHandler({ }, { });
 }

@@ -106,11 +106,11 @@ private:
     void didDeleteRecord(const WebCore::IDBResultData&);
     void didOpenCursor(const WebIDBResult&);
     void didIterateCursor(const WebIDBResult&);
-    void fireVersionChangeEvent(WebCore::IDBDatabaseConnectionIdentifier uniqueDatabaseConnectionIdentifier, const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion);
+    void fireVersionChangeEvent(WebCore::IDBDatabaseConnectionIdentifier uniqueDatabaseConnectionIdentifier, const WebCore::IDBResourceIdentifier& requestIdentifier, WTF::CheckedUint64 requestedVersion);
     void generateIndexKeyForRecord(const WebCore::IDBResourceIdentifier& requestIdentifier, const WebCore::IDBIndexInfo&, const std::optional<WebCore::IDBKeyPath>&, const WebCore::IDBKeyData&, const WebCore::IDBValue&, std::optional<int64_t> recordID);
     void didStartTransaction(const WebCore::IDBResourceIdentifier& transactionIdentifier, const WebCore::IDBError&);
     void didCloseFromServer(WebCore::IDBDatabaseConnectionIdentifier, const WebCore::IDBError&);
-    void notifyOpenDBRequestBlocked(const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t oldVersion, uint64_t newVersion);
+    void notifyOpenDBRequestBlocked(const WebCore::IDBResourceIdentifier& requestIdentifier, WTF::CheckedUint64 oldVersion, WTF::CheckedUint64 newVersion);
     void didGetAllDatabaseNamesAndVersions(const WebCore::IDBResourceIdentifier&, Vector<WebCore::IDBDatabaseNameAndVersion>&&);
 
     void attachStorageKeepAliveIfNeeded(const WebIDBResult&, const WebCore::IDBValue&);

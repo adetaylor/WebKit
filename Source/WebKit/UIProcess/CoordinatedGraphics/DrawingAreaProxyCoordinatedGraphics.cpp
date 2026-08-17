@@ -201,13 +201,13 @@ void DrawingAreaProxyCoordinatedGraphics::commitTransientZoom(double scale, Floa
 }
 #endif
 
-void DrawingAreaProxyCoordinatedGraphics::enterAcceleratedCompositingMode(uint64_t, const LayerTreeContext& layerTreeContext)
+void DrawingAreaProxyCoordinatedGraphics::enterAcceleratedCompositingMode(WTF::CheckedUint64, const LayerTreeContext& layerTreeContext)
 {
     enterAcceleratedCompositingMode(layerTreeContext);
 }
 
 #if !PLATFORM(WPE) && !PLATFORM(GTK)
-void DrawingAreaProxyCoordinatedGraphics::update(uint64_t, UpdateInfo&& updateInfo)
+void DrawingAreaProxyCoordinatedGraphics::update(WTF::CheckedUint64, UpdateInfo&& updateInfo)
 {
     if (m_isWaitingForDidUpdateGeometry && updateInfo.viewSize != m_lastSentSize) {
         send(Messages::DrawingArea::DisplayDidRefresh(MonotonicTime::now()));
@@ -222,14 +222,14 @@ void DrawingAreaProxyCoordinatedGraphics::update(uint64_t, UpdateInfo&& updateIn
         send(Messages::DrawingArea::DisplayDidRefresh(MonotonicTime::now()));
 }
 
-void DrawingAreaProxyCoordinatedGraphics::exitAcceleratedCompositingMode(uint64_t, UpdateInfo&& updateInfo)
+void DrawingAreaProxyCoordinatedGraphics::exitAcceleratedCompositingMode(WTF::CheckedUint64, UpdateInfo&& updateInfo)
 {
     exitAcceleratedCompositingMode();
     incorporateUpdate(WTF::move(updateInfo));
 }
 #endif
 
-void DrawingAreaProxyCoordinatedGraphics::updateAcceleratedCompositingMode(uint64_t, const LayerTreeContext& layerTreeContext)
+void DrawingAreaProxyCoordinatedGraphics::updateAcceleratedCompositingMode(WTF::CheckedUint64, const LayerTreeContext& layerTreeContext)
 {
     updateAcceleratedCompositingMode(layerTreeContext);
 }

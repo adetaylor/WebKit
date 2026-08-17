@@ -621,9 +621,32 @@ webkit_ipc_builtin_types = set(
 )
 
 
+# Integers decoded from a WebGL stream message are chosen by the web process, so the receiver is
+# handed them as WTF::Checked rather than bare integers - see checked_received_types in
+# Source/WebKit/Scripts/webkit/messages.py, which this must stay in step with.
+webkit_ipc_checked_integer_types = {
+    "int8_t": "WTF::CheckedInt8",
+    "uint8_t": "WTF::CheckedUint8",
+    "int16_t": "WTF::CheckedInt16",
+    "uint16_t": "WTF::CheckedUint16",
+    "int32_t": "WTF::CheckedInt32",
+    "uint32_t": "WTF::CheckedUint32",
+    "int64_t": "WTF::CheckedInt64",
+    "uint64_t": "WTF::CheckedUint64",
+    "size_t": "WTF::CheckedSize",
+}
+
+
+def webkit_ipc_get_checked_type(type: cpp_type) -> cpp_type:
+    checked = webkit_ipc_checked_integer_types.get(type.type_name, None)
+    if checked:
+        return get_cpp_type(checked)
+    return type
+
+
 def webkit_ipc_get_message_forwarder_type(type: cpp_type) -> cpp_type:
     if type.type_name in webkit_ipc_builtin_types:
-        return type
+        return webkit_ipc_get_checked_type(type)
     return type.get_rvalue_type()
 
 
@@ -1136,7 +1159,7 @@ class webkit_ipc_cpp_impl(object):
             self.out_exprs += [webkit_ipc_convert_expr(e, webkit_ipc_value_type)]
         elif a.type.is_dynamic_span():
             assert isinstance(a.type, cpp_type_container)
-            size_arg = cpp_arg(get_cpp_type("uint64_t"), f"{a.name}Size")
+            size_arg = cpp_arg(get_cpp_type("WTF::CheckedUint64"), f"{a.name}Size")
             self.args.args += [size_arg]
             store_arg = cpp_arg(webkit_ipc_get_span_store_type(a.type), a.name)
             inline_capacity = store_arg.type.arity

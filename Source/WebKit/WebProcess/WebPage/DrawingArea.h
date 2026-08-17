@@ -166,7 +166,7 @@ public:
     virtual void setIntrinsicDeviceScaleFactor(float) { }
 #endif
 #if USE(GRAPHICS_LAYER_WC)
-    virtual void updateGeometryWC(uint64_t, WebCore::IntSize, float deviceScaleFactor, float intrinsicDeviceScaleFactor) { };
+    virtual void updateGeometryWC(WTF::CheckedUint64, WebCore::IntSize, float deviceScaleFactor, float intrinsicDeviceScaleFactor) { };
 #endif
 
 #if USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)

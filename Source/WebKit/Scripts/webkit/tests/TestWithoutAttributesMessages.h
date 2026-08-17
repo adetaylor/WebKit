@@ -37,6 +37,7 @@
 #include <WebCore/PlatformLayerIdentifier.h>
 #include <WebCore/PluginData.h>
 #include <utility>
+#include <wtf/CheckedArithmetic.h>
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
 #include <wtf/MachSendRight.h>
@@ -198,7 +199,7 @@ private:
 
 class DidReceivePolicyDecision {
 public:
-    using Arguments = std::tuple<uint64_t, uint64_t, uint32_t>;
+    using Arguments = std::tuple<WTF::CheckedUint64, WTF::CheckedUint64, WTF::CheckedUint32>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithoutAttributes_DidReceivePolicyDecision; }
     static constexpr bool isSync = false;
@@ -332,7 +333,7 @@ private:
 
 class CreatePlugin {
 public:
-    using Arguments = std::tuple<uint64_t, WebKit::Plugin::Parameters>;
+    using Arguments = std::tuple<WTF::CheckedUint64, WebKit::Plugin::Parameters>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithoutAttributes_CreatePlugin; }
     static constexpr bool isSync = false;
@@ -365,7 +366,7 @@ private:
 
 class RunJavaScriptAlert {
 public:
-    using Arguments = std::tuple<uint64_t, String>;
+    using Arguments = std::tuple<WTF::CheckedUint64, String>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithoutAttributes_RunJavaScriptAlert; }
     static constexpr bool isSync = false;
@@ -481,7 +482,7 @@ private:
 
 class TestParameterAttributes {
 public:
-    using Arguments = std::tuple<uint64_t, double, double>;
+    using Arguments = std::tuple<WTF::CheckedUint64, double, double>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithoutAttributes_TestParameterAttributes; }
     static constexpr bool isSync = false;
@@ -624,7 +625,7 @@ private:
 #if PLATFORM(MAC)
 class InterpretKeyEvent {
 public:
-    using Arguments = std::tuple<uint32_t>;
+    using Arguments = std::tuple<WTF::CheckedUint32>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithoutAttributes_InterpretKeyEvent; }
     static constexpr bool isSync = false;

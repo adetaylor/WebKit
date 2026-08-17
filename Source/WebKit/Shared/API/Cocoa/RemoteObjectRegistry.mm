@@ -83,7 +83,7 @@ void RemoteObjectRegistry::invokeMethod(const RemoteObjectInvocation& invocation
     [m_remoteObjectRegistry.get() _invokeMethod:invocation];
 }
 
-void RemoteObjectRegistry::callReplyBlock(IPC::Connection& connection, uint64_t replyID, const UserData& blockInvocation)
+void RemoteObjectRegistry::callReplyBlock(IPC::Connection& connection, WTF::CheckedUint64 replyID, const UserData& blockInvocation)
 {
     bool wasRemoved = m_pendingReplies.remove(replyID);
     ASSERT_UNUSED(wasRemoved, wasRemoved);
@@ -96,7 +96,7 @@ void RemoteObjectRegistry::callReplyBlock(IPC::Connection& connection, uint64_t 
     }
 }
 
-void RemoteObjectRegistry::releaseUnusedReplyBlock(uint64_t replyID)
+void RemoteObjectRegistry::releaseUnusedReplyBlock(WTF::CheckedUint64 replyID)
 {
     bool wasRemoved = m_pendingReplies.remove(replyID);
     ASSERT_UNUSED(wasRemoved, wasRemoved);

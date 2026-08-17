@@ -841,7 +841,7 @@ public:
     void resourceLoadDidReceiveResponse(ResourceLoadInfo&&, WebCore::ResourceResponse&&);
     void resourceLoadDidCompleteWithError(ResourceLoadInfo&&, WebCore::ResourceResponse&&, WebCore::ResourceError&&);
 
-    void didChangeInspectorFrontendCount(uint32_t count) { m_inspectorFrontendCount = count; }
+    void didChangeInspectorFrontendCount(WTF::CheckedUint32 count) { m_inspectorFrontendCount = count; }
     unsigned inspectorFrontendCount() const { return m_inspectorFrontendCount; }
     bool hasInspectorFrontend() const { return m_inspectorFrontendCount > 0; }
 
@@ -1010,9 +1010,9 @@ public:
     // IPC entry point: the reply-less message discards the navigation, so keep it void to avoid
     // instantiating RefPtr<API::Navigation>'s destructor in the generated receiver (which lacks the
     // complete API::Navigation type). The traversal queue uses the RefPtr-returning variant below.
-    void goToBackForwardItemAtIndex(int32_t steps);
+    void goToBackForwardItemAtIndex(WTF::CheckedInt32 steps);
     RefPtr<API::Navigation> goToBackForwardItemAtIndexForTraversal(int32_t steps);
-    void enqueueHistoryTraversalDelta(int32_t delta);
+    void enqueueHistoryTraversalDelta(WTF::CheckedInt32 delta);
     int32_t inFlightTraversalDirection() const;
 
     bool shouldKeepCurrentBackForwardListItemInList(WebBackForwardListItem&);
@@ -1715,7 +1715,7 @@ public:
     void getImageForFindMatch(int32_t matchIndex);
     void selectFindMatch(int32_t matchIndex);
     void indicateFindMatch(int32_t matchIndex);
-    void didGetImageForFindMatch(WebCore::ImageBufferParameters&&, WebCore::ShareableBitmapHandle&& contentImageHandle, uint32_t matchIndex);
+    void didGetImageForFindMatch(WebCore::ImageBufferParameters&&, WebCore::ShareableBitmapHandle&& contentImageHandle, WTF::CheckedUint32 matchIndex);
     void hideFindUI();
     void countStringMatches(const String&, OptionSet<FindOptions>, unsigned maxMatchCount);
     void replaceMatches(Vector<uint32_t>&& matchIndices, const String& replacementText, bool selectionOnly, CompletionHandler<void(uint64_t)>&&);
@@ -2181,9 +2181,9 @@ public:
     void installActivityStateChangeCompletionHandler(CompletionHandler<void()>&&);
 
 #if USE(UNIFIED_TEXT_CHECKING)
-    void checkTextOfParagraph(const String& text, OptionSet<WebCore::TextCheckingType> checkingTypes, int32_t insertionPoint, CompletionHandler<void(Vector<WebCore::TextCheckingResult>&&)>&&);
+    void checkTextOfParagraph(const String& text, OptionSet<WebCore::TextCheckingType> checkingTypes, WTF::CheckedInt32 insertionPoint, CompletionHandler<void(Vector<WebCore::TextCheckingResult>&&)>&&);
 #endif
-    void getGuessesForWord(const String& word, const String& context, int32_t insertionPoint, CompletionHandler<void(Vector<String>&&)>&&);
+    void getGuessesForWord(const String& word, const String& context, WTF::CheckedInt32 insertionPoint, CompletionHandler<void(Vector<String>&&)>&&);
 
     void setShouldDispatchFakeMouseMoveEvents(bool);
 
@@ -2196,14 +2196,14 @@ public:
     void logDiagnosticMessageWithDomain(const String& message, WebCore::DiagnosticLoggingDomain);
 
     void logDiagnosticMessageFromWebProcess(IPC::Connection&, const String& message, const String& description, WebCore::ShouldSample);
-    void logDiagnosticMessageWithResultFromWebProcess(IPC::Connection&, const String& message, const String& description, uint32_t result, WebCore::ShouldSample);
+    void logDiagnosticMessageWithResultFromWebProcess(IPC::Connection&, const String& message, const String& description, WTF::CheckedUint32 result, WebCore::ShouldSample);
     void logDiagnosticMessageWithValueFromWebProcess(IPC::Connection&, const String& message, const String& description, double value, unsigned significantFigures, WebCore::ShouldSample);
     void logDiagnosticMessageWithEnhancedPrivacyFromWebProcess(IPC::Connection&, const String& message, const String& description, WebCore::ShouldSample);
     void logDiagnosticMessageWithValueDictionaryFromWebProcess(IPC::Connection&, const String& message, const String& description, const WebCore::DiagnosticLoggingDictionary&, WebCore::ShouldSample);
     void logDiagnosticMessageWithDomainFromWebProcess(IPC::Connection&, const String& message, WebCore::DiagnosticLoggingDomain);
 
     // Performance logging.
-    void logScrollingEvent(uint32_t eventType, MonotonicTime, uint64_t);
+    void logScrollingEvent(WTF::CheckedUint32 eventType, MonotonicTime, WTF::CheckedUint64);
 
     // Form validation messages.
     void showValidationMessage(const WebCore::IntRect& anchorClientRect, String&& message, std::optional<WebCore::FrameIdentifier>&& rootFrameID);
@@ -2569,9 +2569,9 @@ public:
 #endif
 
 #if ENABLE(PDF_PAGE_NUMBER_INDICATOR)
-    void createPDFPageNumberIndicator(PDFPluginIdentifier, const WebCore::IntRect&, uint64_t pageCount);
+    void createPDFPageNumberIndicator(PDFPluginIdentifier, const WebCore::IntRect&, WTF::CheckedUint64 pageCount);
     void updatePDFPageNumberIndicatorLocation(PDFPluginIdentifier, const WebCore::IntRect&);
-    void updatePDFPageNumberIndicatorCurrentPage(PDFPluginIdentifier, uint64_t pageIndex);
+    void updatePDFPageNumberIndicatorCurrentPage(PDFPluginIdentifier, WTF::CheckedUint64 pageIndex);
     void removePDFPageNumberIndicator(PDFPluginIdentifier);
 #endif
 
@@ -3223,7 +3223,7 @@ private:
     void showShareSheet(IPC::Connection&, WebCore::ShareDataWithParsedURL&&, CompletionHandler<void(bool)>&&);
     void showContactPicker(IPC::Connection&, WebCore::ContactsRequestData&&, CompletionHandler<void(std::optional<Vector<WebCore::ContactInfo>>&&)>&&);
     void printFrame(IPC::Connection&, WebCore::FrameIdentifier, String&&, const WebCore::FloatSize&,  CompletionHandler<void()>&&);
-    void exceededDatabaseQuota(WebCore::FrameIdentifier, const String& originIdentifier, const String& databaseName, const String& displayName, uint64_t currentQuota, uint64_t currentOriginUsage, uint64_t currentDatabaseUsage, uint64_t expectedUsage, CompletionHandler<void(uint64_t)>&&);
+    void exceededDatabaseQuota(WebCore::FrameIdentifier, const String& originIdentifier, const String& databaseName, const String& displayName, WTF::CheckedUint64 currentQuota, WTF::CheckedUint64 currentOriginUsage, WTF::CheckedUint64 currentDatabaseUsage, WTF::CheckedUint64 expectedUsage, CompletionHandler<void(uint64_t)>&&);
 
     void requestGeolocationPermissionForFrame(IPC::Connection&, GeolocationIdentifier, FrameInfoData&&);
     void revokeGeolocationAuthorizationToken(const String& authorizationToken);
@@ -3256,7 +3256,7 @@ private:
 
     void runModal();
     void NODELETE notifyScrollerThumbIsVisibleInRect(const WebCore::IntRect&);
-    void recommendedScrollbarStyleDidChange(int32_t newStyle);
+    void recommendedScrollbarStyleDidChange(IPC::Connection&, WTF::CheckedInt32 newStyle);
     void NODELETE didChangeScrollbarsForMainFrame(bool hasHorizontalScrollbar, bool hasVerticalScrollbar);
     void didChangeScrollOffsetPinningForMainFrame(WebCore::RectEdges<bool>);
     void NODELETE didChangePageCount(unsigned);
@@ -3342,7 +3342,7 @@ private:
 #endif
 
     // Popup Menu.
-    void showPopupMenuFromFrame(IPC::Connection&, WebCore::FrameIdentifier, const WebCore::IntRect&, uint64_t textDirection, Vector<WebPopupItem>&& items, int32_t selectedIndex, const PlatformPopupMenuData&);
+    void showPopupMenuFromFrame(IPC::Connection&, WebCore::FrameIdentifier, const WebCore::IntRect&, WTF::CheckedUint64 textDirection, Vector<WebPopupItem>&& items, WTF::CheckedInt32 selectedIndex, const PlatformPopupMenuData&);
     void showPopupMenu(IPC::Connection&, WebCore::FrameIdentifier, const WebCore::IntRect&, uint64_t textDirection, const Vector<WebPopupItem>& items, int32_t selectedIndex, const PlatformPopupMenuData&);
     void hidePopupMenu();
 
@@ -3385,8 +3385,8 @@ private:
     void updateSpellingUIWithGrammarString(const String& badGrammarPhrase, const WebCore::GrammarDetail&);
     void learnWord(IPC::Connection&, const String& word);
     void ignoreWord(IPC::Connection&, const String& word);
-    void requestCheckingOfString(TextCheckerRequestID, const WebCore::TextCheckingRequestData&, int32_t insertionPoint);
-    void requestExtendedCheckingOfString(TextCheckerRequestID, const WebCore::TextCheckingRequestData&, int32_t insertionPoint);
+    void requestCheckingOfString(TextCheckerRequestID, const WebCore::TextCheckingRequestData&, WTF::CheckedInt32 insertionPoint);
+    void requestExtendedCheckingOfString(TextCheckerRequestID, const WebCore::TextCheckingRequestData&, WTF::CheckedInt32 insertionPoint);
 
     void takeFocus(WebCore::FocusDirection);
     void setToolTip(const String&);
@@ -3476,7 +3476,7 @@ private:
 
     void updateBackingStoreDiscardableState();
 
-    void setRenderTreeSize(uint64_t treeSize) { m_renderTreeSize = treeSize; }
+    void setRenderTreeSize(WTF::CheckedUint64 treeSize) { m_renderTreeSize = treeSize; }
 
     void handleWheelEvent(const WebWheelEvent&);
     void sendWheelEvent(WebCore::FrameIdentifier, const WebWheelEvent&, OptionSet<WebCore::WheelEventProcessingSteps>, WebCore::RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges, std::optional<bool> willStartSwipe, bool wasHandledForScrolling);
@@ -3667,8 +3667,8 @@ private:
 
     void focusRemoteFrame(IPC::Connection&, WebCore::FrameIdentifier, std::optional<WebCore::UserGestureTokenIdentifier>);
     void postMessageToRemote(WebCore::FrameIdentifier source, const WebCore::SecurityOriginData& sourceOrigin, WebCore::FrameIdentifier target, std::optional<WebCore::SecurityOriginData> targetOrigin, const WebCore::MessageWithMessagePorts&, std::optional<WebCore::UserGestureTokenData>&&);
-    void renderTreeAsTextForTesting(WebCore::FrameIdentifier, uint64_t baseIndent, OptionSet<WebCore::RenderAsTextFlag>, CompletionHandler<void(String&&)>&&);
-    void layerTreeAsTextForTesting(WebCore::FrameIdentifier, uint64_t baseIndent, OptionSet<WebCore::LayerTreeAsTextOptions>, CompletionHandler<void(String&&)>&&);
+    void renderTreeAsTextForTesting(WebCore::FrameIdentifier, WTF::CheckedUint64 baseIndent, OptionSet<WebCore::RenderAsTextFlag>, CompletionHandler<void(String&&)>&&);
+    void layerTreeAsTextForTesting(WebCore::FrameIdentifier, WTF::CheckedUint64 baseIndent, OptionSet<WebCore::LayerTreeAsTextOptions>, CompletionHandler<void(String&&)>&&);
     void dispatchCrossOriginBeforeUnloadCheckForFrame(WebCore::FrameIdentifier, WebCore::SecurityOriginData&&);
     void addMessageToConsoleForTesting(String&&);
     void frameTextForTesting(WebCore::FrameIdentifier, CompletionHandler<void(String&&)>&&);

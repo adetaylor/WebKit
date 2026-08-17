@@ -524,27 +524,35 @@ uint64_t FileSystemStorageHandle::allocatedUnusedCapacity()
     return actualSize > m_activeSyncAccessHandle->capacity ? 0 : m_activeSyncAccessHandle->capacity - actualSize;
 }
 
-void FileSystemStorageHandle::requestNewCapacityForSyncAccessHandle(WebCore::FileSystemSyncAccessHandleIdentifier accessHandleIdentifier, uint64_t newCapacity, CompletionHandler<void(std::optional<uint64_t>)>&& completionHandler)
+void FileSystemStorageHandle::requestNewCapacityForSyncAccessHandle(WebCore::FileSystemSyncAccessHandleIdentifier accessHandleIdentifier, WTF::CheckedUint64 requestedCapacity, CompletionHandler<void(std::optional<uint64_t>)>&& completionHandler)
 {
     if (!isActiveSyncAccessHandle(accessHandleIdentifier))
         return completionHandler(std::nullopt);
 
     uint64_t currentCapacity = m_activeSyncAccessHandle->capacity;
-    if (newCapacity <= currentCapacity)
+    if (requestedCapacity <= currentCapacity)
         return completionHandler(currentCapacity);
 
     RefPtr manager = m_manager.get();
     if (!manager)
         return completionHandler(std::nullopt);
 
-    if (newCapacity < defaultInitialCapacity)
+    // Round the request up to the next growth step. requestedCapacity comes from the web process,
+    // so the rounding is done in checked arithmetic: rounding a value near the top of the range up
+    // to a multiple of defaultCapacityStep does not fit in a uint64_t.
+    WTF::CheckedUint64 newCapacity;
+    if (requestedCapacity < defaultInitialCapacity)
         newCapacity = defaultInitialCapacity;
-    else if (newCapacity < defaultMaxCapacityForExponentialGrowth)
-        newCapacity = pow(2, (int)std::log2(newCapacity) + 1);
+    else if (requestedCapacity < defaultMaxCapacityForExponentialGrowth)
+        newCapacity = static_cast<uint64_t>(pow(2, static_cast<int>(std::log2(requestedCapacity.value())) + 1));
     else
-        newCapacity = defaultCapacityStep * ((newCapacity / defaultCapacityStep) + 1);
+        newCapacity = defaultCapacityStep * ((requestedCapacity / defaultCapacityStep) + 1ULL);
 
-    manager->requestSpace(newCapacity - currentCapacity, [weakThis = WeakPtr { *this }, accessHandleIdentifier, newCapacity, completionHandler = WTF::move(completionHandler)](bool granted) mutable {
+    auto additionalCapacity = newCapacity - currentCapacity;
+    if (additionalCapacity.hasOverflowed())
+        return completionHandler(currentCapacity);
+
+    manager->requestSpace(additionalCapacity.value(), [weakThis = WeakPtr { *this }, accessHandleIdentifier, newCapacity = newCapacity.value(), completionHandler = WTF::move(completionHandler)](bool granted) mutable {
         RefPtr protectedThis = weakThis.get();
         if (!protectedThis)
             return completionHandler(std::nullopt);

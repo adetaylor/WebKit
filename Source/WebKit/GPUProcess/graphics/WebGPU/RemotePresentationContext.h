@@ -82,9 +82,9 @@ private:
 
     void configure(const WebGPU::CanvasConfiguration&);
     void unconfigure();
-    void present(uint32_t frameIndex);
+    void present(WTF::CheckedUint32 frameIndex);
 
-    void getCurrentTexture(WebGPUIdentifier, uint32_t frameIndex);
+    void getCurrentTexture(WebGPUIdentifier, WTF::CheckedUint32 frameIndex);
 
     const Ref<WebCore::WebGPU::PresentationContext> m_backing;
     WeakRef<WebGPU::ObjectHeap> m_objectHeap;

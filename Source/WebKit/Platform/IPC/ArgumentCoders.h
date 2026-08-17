@@ -55,6 +55,27 @@
 
 namespace IPC {
 
+// Integers arriving over IPC are attacker-controlled, so message receivers are handed them
+// wrapped in WTF::Checked. A value freshly read off the wire always fits its own type, so the
+// decoded wrapper never starts out in the overflowed state; it is the arithmetic the receiver
+// subsequently performs that the wrapper is there to police.
+template<typename T, typename OverflowHandler> struct ArgumentCoder<Checked<T, OverflowHandler>> {
+    template<typename Encoder>
+    static void encode(Encoder& encoder, const Checked<T, OverflowHandler>& value)
+    {
+        encoder << value.value();
+    }
+
+    template<typename Decoder>
+    static std::optional<Checked<T, OverflowHandler>> decode(Decoder& decoder)
+    {
+        auto value = decoder.template decode<T>();
+        if (!value) [[unlikely]]
+            return std::nullopt;
+        return Checked<T, OverflowHandler> { *value };
+    }
+};
+
 template<typename T, size_t Extent> struct ArgumentCoder<std::span<T, Extent>> {
     template<typename Encoder>
     static void encode(Encoder& encoder, std::span<T, Extent> span)

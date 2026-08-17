@@ -2380,7 +2380,7 @@ void WebProcess::setAppBadge(WebCore::Frame* frame, const WebCore::SecurityOrigi
 }
 
 #if HAVE(DISPLAY_LINK)
-void WebProcess::displayDidRefresh(uint32_t displayID, const DisplayUpdate& displayUpdate)
+void WebProcess::displayDidRefresh(WTF::CheckedUint32 displayID, const DisplayUpdate& displayUpdate)
 {
     ASSERT(RunLoop::isMain());
     protect(eventDispatcher())->notifyScrollingTreesDisplayDidRefresh(displayID);

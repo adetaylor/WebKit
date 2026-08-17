@@ -248,7 +248,7 @@ static PasteboardItemInfo pasteboardItemInfoFromFormats(Vector<String>&& formats
 }
 #endif
 
-void WebPasteboardProxy::allPasteboardItemInfo(IPC::Connection&, const String&, int64_t changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<Vector<PasteboardItemInfo>>&&)>&& completionHandler)
+void WebPasteboardProxy::allPasteboardItemInfo(IPC::Connection&, const String&, WTF::CheckedInt64 changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<Vector<PasteboardItemInfo>>&&)>&& completionHandler)
 {
 #if ENABLE(WPE_PLATFORM)
     if (WKWPE::isUsingWPEPlatformAPI()) {
@@ -265,7 +265,7 @@ void WebPasteboardProxy::allPasteboardItemInfo(IPC::Connection&, const String&, 
     completionHandler(std::nullopt);
 }
 
-void WebPasteboardProxy::informationForItemAtIndex(IPC::Connection&, uint64_t index, const String&, int64_t changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<PasteboardItemInfo>&&)>&& completionHandler)
+void WebPasteboardProxy::informationForItemAtIndex(IPC::Connection&, WTF::CheckedUint64 index, const String&, WTF::CheckedInt64 changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<PasteboardItemInfo>&&)>&& completionHandler)
 {
 #if ENABLE(WPE_PLATFORM)
     if (WKWPE::isUsingWPEPlatformAPI() && index) {
@@ -295,7 +295,7 @@ void WebPasteboardProxy::getPasteboardItemsCount(IPC::Connection&, const String&
     completionHandler(0);
 }
 
-void WebPasteboardProxy::readURLFromPasteboard(IPC::Connection& connection, uint64_t index, const String&, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(String&& url, String&& title)>&& completionHandler)
+void WebPasteboardProxy::readURLFromPasteboard(IPC::Connection& connection, WTF::CheckedUint64 index, const String&, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(String&& url, String&& title)>&& completionHandler)
 {
 #if ENABLE(WPE_PLATFORM)
     if (WKWPE::isUsingWPEPlatformAPI()) {

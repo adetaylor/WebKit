@@ -405,7 +405,7 @@ static inline String toMIMEType(WebExtensionTab::ImageFormat format)
     }
 }
 
-void WebExtensionContext::tabsCaptureVisibleTab(WebPageProxyIdentifier webPageProxyIdentifier, std::optional<WebExtensionWindowIdentifier> windowIdentifier, WebExtensionTab::ImageFormat imageFormat, uint8_t imageQuality, CompletionHandler<void(Expected<URL, WebExtensionError>&&)>&& completionHandler)
+void WebExtensionContext::tabsCaptureVisibleTab(WebPageProxyIdentifier webPageProxyIdentifier, std::optional<WebExtensionWindowIdentifier> windowIdentifier, WebExtensionTab::ImageFormat imageFormat, WTF::CheckedUint8 imageQuality, CompletionHandler<void(Expected<URL, WebExtensionError>&&)>&& completionHandler)
 {
     static NSString * const apiName = @"tabs.captureVisibleTab()";
 

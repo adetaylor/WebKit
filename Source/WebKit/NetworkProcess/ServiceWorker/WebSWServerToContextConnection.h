@@ -136,7 +136,7 @@ private:
     void connectionIsNoLongerNeeded() final;
     void terminateDueToUnresponsiveness() final;
     void openWindow(WebCore::ServiceWorkerIdentifier, const URL&, OpenWindowCallback&&) final;
-    void reportConsoleMessage(WebCore::ServiceWorkerIdentifier, MessageSource, MessageLevel, const String& message, uint64_t requestIdentifier);
+    void reportConsoleMessage(WebCore::ServiceWorkerIdentifier, MessageSource, MessageLevel, const String& message, WTF::CheckedUint64 requestIdentifier);
     void startPendingStreamUploadForwarding(WebCore::FetchIdentifier);
     void pendingStreamDataAvailable(WebCore::FetchIdentifier);
     void cancelPendingStreamUploadForwarding(WebCore::FetchIdentifier);

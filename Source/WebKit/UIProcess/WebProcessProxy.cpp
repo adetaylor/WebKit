@@ -730,18 +730,18 @@ std::optional<unsigned> WebProcessProxy::nominalFramesPerSecondForDisplay(WebCor
     return processPool().displayLinks().nominalFramesPerSecondForDisplay(displayID);
 }
 
-void WebProcessProxy::startDisplayLink(DisplayLinkObserverID observerID, WebCore::PlatformDisplayID displayID, WebCore::FramesPerSecond preferredFramesPerSecond)
+void WebProcessProxy::startDisplayLink(DisplayLinkObserverID observerID, Checked<WebCore::PlatformDisplayID, RecordOverflow> displayID, WebCore::FramesPerSecond preferredFramesPerSecond)
 {
     ASSERT(hasProcessPrivilege(ProcessPrivilege::CanCommunicateWithWindowServer));
     processPool().displayLinks().startDisplayLink(m_displayLinkClient.get(), observerID, displayID, preferredFramesPerSecond);
 }
 
-void WebProcessProxy::stopDisplayLink(DisplayLinkObserverID observerID, WebCore::PlatformDisplayID displayID)
+void WebProcessProxy::stopDisplayLink(DisplayLinkObserverID observerID, Checked<WebCore::PlatformDisplayID, RecordOverflow> displayID)
 {
     processPool().displayLinks().stopDisplayLink(m_displayLinkClient.get(), observerID, displayID);
 }
 
-void WebProcessProxy::setDisplayLinkPreferredFramesPerSecond(DisplayLinkObserverID observerID, WebCore::PlatformDisplayID displayID, WebCore::FramesPerSecond preferredFramesPerSecond)
+void WebProcessProxy::setDisplayLinkPreferredFramesPerSecond(DisplayLinkObserverID observerID, Checked<WebCore::PlatformDisplayID, RecordOverflow> displayID, WebCore::FramesPerSecond preferredFramesPerSecond)
 {
     processPool().displayLinks().setDisplayLinkPreferredFramesPerSecond(m_displayLinkClient.get(), observerID, displayID, preferredFramesPerSecond);
 }
@@ -2355,7 +2355,7 @@ void WebProcessProxy::didExceedInactiveMemoryLimit()
     requestTermination(ProcessTerminationReason::ExceededMemoryLimit);
 }
 
-void WebProcessProxy::didExceedMemoryFootprintThreshold(uint64_t footprint)
+void WebProcessProxy::didExceedMemoryFootprintThreshold(WTF::CheckedUint64 footprint)
 {
     WEBPROCESSPROXY_RELEASE_LOG(PerformanceLogging, "didExceedMemoryFootprintThreshold: WebProcess exceeded notification threshold (current footprint: %" PRIu64 " MB)", footprint >> 20);
 
@@ -2737,7 +2737,7 @@ void WebProcessProxy::didSyncSharedPreferencesForWebProcessWithModelProcess(uint
 }
 #endif
 
-void WebProcessProxy::waitForSharedPreferencesForWebProcessToSync(uint64_t sharedPreferencesVersion, CompletionHandler<void(bool success)>&& completionHandler)
+void WebProcessProxy::waitForSharedPreferencesForWebProcessToSync(WTF::CheckedUint64 sharedPreferencesVersion, CompletionHandler<void(bool success)>&& completionHandler)
 {
     ASSERT(!m_sharedPreferencesForWebProcessCompletionHandler);
     ASSERT(!m_awaitedSharedPreferencesVersion);

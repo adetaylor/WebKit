@@ -33,6 +33,7 @@ namespace WTF {
 class AssertNoOverflow {
 public:
     static constexpr OverflowPolicy policy = OverflowPolicy::AssertNoOverflow;
+    static constexpr bool allowsImplicitUnwrap = true;
 
     static NO_RETURN_DUE_TO_ASSERT void overflowed()
     {
@@ -53,6 +54,7 @@ public:
 class CrashOnOverflow {
 public:
     static constexpr OverflowPolicy policy = OverflowPolicy::CrashOnOverflow;
+    static constexpr bool allowsImplicitUnwrap = true;
 
     SUPPRESS_NODELETE static NO_RETURN_DUE_TO_CRASH void NODELETE overflowed()
     {
@@ -89,6 +91,7 @@ protected:
 
 public:
     static constexpr OverflowPolicy policy = OverflowPolicy::RecordOverflow;
+    static constexpr bool allowsImplicitUnwrap = true;
 
     SUPPRESS_NODELETE bool NODELETE hasOverflowed() const { return m_overflowed; }
     void overflowed() { m_overflowed = true; }
@@ -97,8 +100,19 @@ private:
     unsigned char m_overflowed;
 };
 
+// As RecordOverflow, but Checked<> will not implicitly convert back to the underlying integer:
+// dropping the overflow tracking requires an explicit value(). Use this for values whose provenance
+// makes unchecked arithmetic a security question rather than a style question - notably integers
+// decoded from an IPC message - so that every point at which the tracking is discarded is written
+// down, and so that arithmetic on the value is checked by construction rather than by review.
+class RecordOverflowNoImplicitUnwrap : public RecordOverflow {
+public:
+    static constexpr bool allowsImplicitUnwrap = false;
+};
+
 } // namespace WTF
 
 using WTF::AssertNoOverflow;
 using WTF::CrashOnOverflow;
 using WTF::RecordOverflow;
+using WTF::RecordOverflowNoImplicitUnwrap;

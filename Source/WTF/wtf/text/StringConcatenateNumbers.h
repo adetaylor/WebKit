@@ -51,6 +51,18 @@ private:
     Integer m_number;
 };
 
+// Lets an integer that is still wrapped in WTF::Checked be built into a string without having to
+// unwrap it first, so that code handling untrusted integers can keep the wrapper for as long as
+// possible. Formatting an overflowed value is a programming error, and crashes as usual.
+template<typename T, typename OverflowHandler>
+class StringTypeAdapter<Checked<T, OverflowHandler>> : public StringTypeAdapter<T> {
+public:
+    StringTypeAdapter(const Checked<T, OverflowHandler>& value)
+        : StringTypeAdapter<T> { value.value() }
+    {
+    }
+};
+
 template<typename Enum>
     requires (std::is_enum_v<Enum>)
 class StringTypeAdapter<Enum> {

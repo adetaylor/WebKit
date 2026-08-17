@@ -115,7 +115,7 @@ void AcceleratedBackingStore::updateSurfaceID(uint64_t surfaceID)
     }
 }
 
-void AcceleratedBackingStore::didChangeBufferConfiguration(uint32_t bufferCount)
+void AcceleratedBackingStore::didChangeBufferConfiguration(WTF::CheckedUint32 bufferCount)
 {
     m_targetBufferCount = bufferCount;
 }
@@ -136,7 +136,7 @@ void AcceleratedBackingStore::notifyBufferConfigurationIfNeeded()
     wpe_view_buffers_changed(m_wpeView.get(), buffersSpan.data(), buffersSpan.size());
 }
 
-void AcceleratedBackingStore::didCreateDMABufBuffer(uint64_t id, WebCore::DMABufBufferAttributes&& dmaBufAttributes, RendererBufferFormat::Usage usage)
+void AcceleratedBackingStore::didCreateDMABufBuffer(WTF::CheckedUint64 id, WebCore::DMABufBufferAttributes&& dmaBufAttributes, RendererBufferFormat::Usage usage)
 {
     Vector<int> fileDescriptors;
     fileDescriptors.reserveInitialCapacity(dmaBufAttributes.fds.size());
@@ -171,7 +171,7 @@ void AcceleratedBackingStore::didCreateSHMBuffer(uint64_t id, WebCore::Shareable
 }
 
 #if OS(ANDROID)
-void AcceleratedBackingStore::didCreateAndroidBuffer(uint64_t id, RefPtr<AHardwareBuffer>&& hardwareBuffer)
+void AcceleratedBackingStore::didCreateAndroidBuffer(WTF::CheckedUint64 id, RefPtr<AHardwareBuffer>&& hardwareBuffer)
 {
     RELEASE_ASSERT(hardwareBuffer);
 
@@ -183,7 +183,7 @@ void AcceleratedBackingStore::didCreateAndroidBuffer(uint64_t id, RefPtr<AHardwa
 }
 #endif // OS(ANDROID)
 
-void AcceleratedBackingStore::didDestroyBuffer(uint64_t id)
+void AcceleratedBackingStore::didDestroyBuffer(WTF::CheckedUint64 id)
 {
     if (auto buffer = m_buffers.take(id))
         m_bufferIDs.remove(buffer.get());

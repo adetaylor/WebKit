@@ -76,7 +76,7 @@ protected:
     void setCurrentMediaSession(std::optional<WebCore::MediaSessionIdentifier>);
 
 #if USE(AUDIO_SESSION)
-    void setAudioSessionPreferredBufferSize(uint64_t);
+    void setAudioSessionPreferredBufferSize(WTF::CheckedUint64);
 #endif
 
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&);

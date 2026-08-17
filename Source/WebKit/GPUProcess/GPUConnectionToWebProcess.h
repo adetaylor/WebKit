@@ -337,7 +337,7 @@ private:
     void configureLoggingChannel(const String&, WTFLogChannelState, WTFLogLevel);
 
 #if USE(GRAPHICS_LAYER_WC)
-    void createWCLayerTreeHost(WebKit::WCLayerTreeHostIdentifier, uint64_t nativeWindow, bool usesOffscreenRendering);
+    void createWCLayerTreeHost(WebKit::WCLayerTreeHostIdentifier, WTF::CheckedUint64 nativeWindow, bool usesOffscreenRendering);
     void releaseWCLayerTreeHost(WebKit::WCLayerTreeHostIdentifier);
 #endif
 

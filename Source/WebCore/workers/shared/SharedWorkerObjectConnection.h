@@ -27,6 +27,7 @@
 
 #include <WebCore/SharedWorkerObjectIdentifier.h>
 #include <WebCore/TransferredMessagePort.h>
+#include <wtf/CheckedArithmetic.h>
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
 #include <wtf/RefCounted.h>
@@ -58,7 +59,7 @@ protected:
     WEBCORE_EXPORT void postErrorToWorkerObject(SharedWorkerObjectIdentifier, const String& errorMessage, int lineNumber, int columnNumber, const String& sourceURL, bool isErrorEvent);
 
 #if ENABLE(CONTENT_EXTENSIONS)
-    WEBCORE_EXPORT void reportNetworkUsageToWorkerObject(SharedWorkerObjectIdentifier, uint64_t bytesTransferredOverNetworkDelta);
+    WEBCORE_EXPORT void reportNetworkUsageToWorkerObject(SharedWorkerObjectIdentifier, WTF::CheckedUint64 bytesTransferredOverNetworkDelta);
 #endif
 
     WEBCORE_EXPORT SharedWorkerObjectConnection();

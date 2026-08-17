@@ -27,6 +27,7 @@
 #include "ArgumentCoders.h"
 #include "Connection.h"
 #include "MessageNames.h"
+#include <wtf/CheckedArithmetic.h>
 #include <wtf/Forward.h>
 #include <wtf/MachSendRight.h>
 #include <wtf/RuntimeApplicationChecks.h>
@@ -257,7 +258,7 @@ private:
 
 class SendStringAsyncReply {
 public:
-    using Arguments = std::tuple<int64_t>;
+    using Arguments = std::tuple<WTF::CheckedInt64>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithStream_SendStringAsyncReply; }
     static constexpr bool isSync = false;

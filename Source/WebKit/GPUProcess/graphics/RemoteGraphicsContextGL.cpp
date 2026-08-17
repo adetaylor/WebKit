@@ -231,7 +231,7 @@ void RemoteGraphicsContextGL::updateMemoryCost()
     send(Messages::RemoteGraphicsContextGLProxy::MemoryCostChanged(memoryCost));
 }
 
-void RemoteGraphicsContextGL::reshape(int32_t width, int32_t height)
+void RemoteGraphicsContextGL::reshape(WTF::CheckedInt32 width, WTF::CheckedInt32 height)
 {
     assertIsCurrent(workQueue());
     if (width && height)
@@ -317,7 +317,7 @@ void RemoteGraphicsContextGL::simulateEventForTesting(WebCore::GraphicsContextGL
     protect(m_context)->simulateEventForTesting(event);
 }
 
-void RemoteGraphicsContextGL::getBufferSubDataInline(uint32_t target, uint64_t offset, uint64_t dataSize, CompletionHandler<void(std::span<const uint8_t>)>&& completionHandler)
+void RemoteGraphicsContextGL::getBufferSubDataInline(WTF::CheckedUint32 target, WTF::CheckedUint64 offset, WTF::CheckedUint64 dataSize, CompletionHandler<void(std::span<const uint8_t>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     static constexpr size_t getBufferSubDataInlineSizeLimit = 64 * KB; // NOTE: when changing, change the value in RemoteGraphicsContextGLProxy too.
@@ -339,7 +339,7 @@ void RemoteGraphicsContextGL::getBufferSubDataInline(uint32_t target, uint64_t o
     completionHandler(buffer.span());
 }
 
-void RemoteGraphicsContextGL::getBufferSubDataSharedMemory(uint32_t target, uint64_t offset, uint64_t dataSize, WebCore::SharedMemory::Handle handle, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGL::getBufferSubDataSharedMemory(WTF::CheckedUint32 target, WTF::CheckedUint64 offset, WTF::CheckedUint64 dataSize, WebCore::SharedMemory::Handle handle, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     bool validBufferData = false;
@@ -363,7 +363,7 @@ void RemoteGraphicsContextGL::getBufferSubDataSharedMemory(uint32_t target, uint
     completionHandler(validBufferData);
 }
 
-void RemoteGraphicsContextGL::readPixelsInline(WebCore::IntRect rect, uint32_t format, uint32_t type, bool packReverseRowOrder, CompletionHandler<void(std::optional<WebCore::IntSize>, std::span<const uint8_t>)>&& completionHandler)
+void RemoteGraphicsContextGL::readPixelsInline(WebCore::IntRect rect, WTF::CheckedUint32 format, WTF::CheckedUint32 type, bool packReverseRowOrder, CompletionHandler<void(std::optional<WebCore::IntSize>, std::span<const uint8_t>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     static constexpr size_t readPixelsInlineSizeLimit = 64 * KB; // NOTE: when changing, change the value in RemoteGraphicsContextGLProxy too.
@@ -389,7 +389,7 @@ void RemoteGraphicsContextGL::readPixelsInline(WebCore::IntRect rect, uint32_t f
 }
 
 
-void RemoteGraphicsContextGL::readPixelsSharedMemory(WebCore::IntRect rect, uint32_t format, uint32_t type, bool packReverseRowOrder, SharedMemory::Handle handle, CompletionHandler<void(std::optional<WebCore::IntSize>)>&& completionHandler)
+void RemoteGraphicsContextGL::readPixelsSharedMemory(WebCore::IntRect rect, WTF::CheckedUint32 format, WTF::CheckedUint32 type, bool packReverseRowOrder, SharedMemory::Handle handle, CompletionHandler<void(std::optional<WebCore::IntSize>)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     std::optional<WebCore::IntSize> readArea;
@@ -404,7 +404,7 @@ void RemoteGraphicsContextGL::readPixelsSharedMemory(WebCore::IntRect rect, uint
     completionHandler(readArea);
 }
 
-void RemoteGraphicsContextGL::multiDrawArraysANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& firstsAndCounts)
+void RemoteGraphicsContextGL::multiDrawArraysANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& firstsAndCounts)
 {
     assertIsCurrent(workQueue());
     // Copy the arrays. The contents are to be verified. The data might be in memory region shared by the caller.
@@ -413,7 +413,7 @@ void RemoteGraphicsContextGL::multiDrawArraysANGLE(uint32_t mode, IPC::ArrayRefe
     protect(m_context)->multiDrawArraysANGLE(mode, GCGLSpanTuple { firsts, counts });
 }
 
-void RemoteGraphicsContextGL::multiDrawArraysInstancedANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& firstsCountsAndInstanceCounts)
+void RemoteGraphicsContextGL::multiDrawArraysInstancedANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& firstsCountsAndInstanceCounts)
 {
     assertIsCurrent(workQueue());
     // Copy the arrays. The contents are to be verified. The data might be in memory region shared by the caller.
@@ -423,7 +423,7 @@ void RemoteGraphicsContextGL::multiDrawArraysInstancedANGLE(uint32_t mode, IPC::
     protect(m_context)->multiDrawArraysInstancedANGLE(mode, GCGLSpanTuple { firsts, counts, instanceCounts });
 }
 
-void RemoteGraphicsContextGL::multiDrawElementsANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& countsAndOffsets, uint32_t type)
+void RemoteGraphicsContextGL::multiDrawElementsANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& countsAndOffsets, WTF::CheckedUint32 type)
 {
     assertIsCurrent(workQueue());
     // Copy the arrays. The contents are to be verified. The data might be in memory region shared by the caller.
@@ -433,7 +433,7 @@ void RemoteGraphicsContextGL::multiDrawElementsANGLE(uint32_t mode, IPC::ArrayRe
     protect(m_context)->multiDrawElementsANGLE(mode, GCGLSpanTuple { counts.span().data(), offsets, counts.size() }, type);
 }
 
-void RemoteGraphicsContextGL::multiDrawElementsInstancedANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& countsOffsetsAndInstanceCounts, uint32_t type)
+void RemoteGraphicsContextGL::multiDrawElementsInstancedANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& countsOffsetsAndInstanceCounts, WTF::CheckedUint32 type)
 {
     assertIsCurrent(workQueue());
     // Copy the arrays. The contents are to be verified. The data might be in memory region shared by the caller.
@@ -444,7 +444,7 @@ void RemoteGraphicsContextGL::multiDrawElementsInstancedANGLE(uint32_t mode, IPC
     protect(m_context)->multiDrawElementsInstancedANGLE(mode, GCGLSpanTuple { counts.span().data(), offsets, instanceCounts.span().data(), counts.size() }, type);
 }
 
-void RemoteGraphicsContextGL::multiDrawArraysInstancedBaseInstanceANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, uint32_t>&& firstsCountsInstanceCountsAndBaseInstances)
+void RemoteGraphicsContextGL::multiDrawArraysInstancedBaseInstanceANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, uint32_t>&& firstsCountsInstanceCountsAndBaseInstances)
 {
     assertIsCurrent(workQueue());
     // Copy the arrays. The contents are to be verified. The data might be in memory region shared by the caller.
@@ -455,7 +455,7 @@ void RemoteGraphicsContextGL::multiDrawArraysInstancedBaseInstanceANGLE(uint32_t
     protect(m_context)->multiDrawArraysInstancedBaseInstanceANGLE(mode, GCGLSpanTuple { firsts, counts, instanceCounts, baseInstances });
 }
 
-void RemoteGraphicsContextGL::multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(uint32_t mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, int32_t, uint32_t>&& countsOffsetsInstanceCountsBaseVerticesAndBaseInstances, uint32_t type)
+void RemoteGraphicsContextGL::multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, int32_t, uint32_t>&& countsOffsetsInstanceCountsBaseVerticesAndBaseInstances, WTF::CheckedUint32 type)
 {
     assertIsCurrent(workQueue());
     // Copy the arrays. The contents are to be verified. The data might be in memory region shared by the caller.
@@ -480,13 +480,13 @@ void RemoteGraphicsContextGL::drawBuffersEXT(std::span<const uint32_t> bufs)
     protect(m_context)->drawBuffersEXT(Vector(bufs));
 }
 
-void RemoteGraphicsContextGL::invalidateFramebuffer(uint32_t target, std::span<const uint32_t> attachments)
+void RemoteGraphicsContextGL::invalidateFramebuffer(WTF::CheckedUint32 target, std::span<const uint32_t> attachments)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->invalidateFramebuffer(target, Vector(attachments));
 }
 
-void RemoteGraphicsContextGL::invalidateSubFramebuffer(uint32_t target, std::span<const uint32_t> attachments, int32_t x, int32_t y, int32_t width, int32_t height)
+void RemoteGraphicsContextGL::invalidateSubFramebuffer(WTF::CheckedUint32 target, std::span<const uint32_t> attachments, WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 width, WTF::CheckedInt32 height)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->invalidateSubFramebuffer(target, Vector(attachments), x, y, width, height);
@@ -494,7 +494,7 @@ void RemoteGraphicsContextGL::invalidateSubFramebuffer(uint32_t target, std::spa
 
 #if ENABLE(WEBXR)
 
-void RemoteGraphicsContextGL::framebufferDiscard(uint32_t target, std::span<const uint32_t> attachments)
+void RemoteGraphicsContextGL::framebufferDiscard(WTF::CheckedUint32 target, std::span<const uint32_t> attachments)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(webXRPromptAccepted());

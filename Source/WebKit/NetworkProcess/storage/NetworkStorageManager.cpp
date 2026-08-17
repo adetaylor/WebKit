@@ -1226,7 +1226,7 @@ void NetworkStorageManager::closeSyncAccessHandle(IPC::Connection& connection, W
     completionHandler();
 }
 
-void NetworkStorageManager::requestNewCapacityForSyncAccessHandle(IPC::Connection& connection, WebCore::FileSystemHandleIdentifier identifier, WebCore::FileSystemSyncAccessHandleIdentifier accessHandleIdentifier, uint64_t newCapacity, CompletionHandler<void(std::optional<uint64_t>)>&& completionHandler)
+void NetworkStorageManager::requestNewCapacityForSyncAccessHandle(IPC::Connection& connection, WebCore::FileSystemHandleIdentifier identifier, WebCore::FileSystemSyncAccessHandleIdentifier accessHandleIdentifier, WTF::CheckedUint64 newCapacity, CompletionHandler<void(std::optional<uint64_t>)>&& completionHandler)
 {
     ASSERT(!RunLoop::isMain());
 
@@ -2188,7 +2188,7 @@ void NetworkStorageManager::abortTransaction(IPC::Connection& connection, const 
         transaction->abort();
 }
 
-void NetworkStorageManager::commitTransaction(IPC::Connection& connection, const WebCore::IDBResourceIdentifier& transactionIdentifier, uint64_t handledRequestResultsCount)
+void NetworkStorageManager::commitTransaction(IPC::Connection& connection, const WebCore::IDBResourceIdentifier& transactionIdentifier, WTF::CheckedUint64 handledRequestResultsCount)
 {
     if (RefPtr transaction = m_idbStorageRegistry->transaction(transactionIdentifier, connection))
         transaction->commit(handledRequestResultsCount);
@@ -2417,7 +2417,7 @@ void NetworkStorageManager::cacheStorageRemoveCache(IPC::Connection& connection,
     cacheStorageManager->removeCache(cacheIdentifier, WTF::move(callback));
 }
 
-void NetworkStorageManager::cacheStorageAllCaches(IPC::Connection& connection, const WebCore::ClientOrigin& origin, uint64_t updateCounter, WebCore::DOMCacheEngine::CacheInfosCallback&& callback)
+void NetworkStorageManager::cacheStorageAllCaches(IPC::Connection& connection, const WebCore::ClientOrigin& origin, WTF::CheckedUint64 updateCounter, WebCore::DOMCacheEngine::CacheInfosCallback&& callback)
 {
     MESSAGE_CHECK_COMPLETION(isSiteAllowedForConnection(connection.uniqueID(), WebCore::RegistrableDomain { origin.topOrigin }), connection, callback(makeUnexpected(WebCore::DOMCacheEngine::Error::Internal)));
 

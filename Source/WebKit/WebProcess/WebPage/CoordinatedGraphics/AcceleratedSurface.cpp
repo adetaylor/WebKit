@@ -1158,7 +1158,7 @@ const std::optional<Damage>& AcceleratedSurface::renderTargetDamage()
 #endif
 
 #if PLATFORM(GTK) || ENABLE(WPE_PLATFORM)
-void AcceleratedSurface::releaseBuffer(uint64_t targetID, UnixFileDescriptor&& releaseFence)
+void AcceleratedSurface::releaseBuffer(WTF::CheckedUint64 targetID, UnixFileDescriptor&& releaseFence)
 {
 #if USE(WPE_RENDERER)
     ASSERT(m_swapChain.type() != SwapChain::Type::WPEBackend);

@@ -2081,10 +2081,11 @@ void WebProcessPool::updateHiddenPageThrottlingAutoIncreaseLimit()
     sendToAllProcesses(Messages::WebProcess::SetHiddenPageDOMTimerThrottlingIncreaseLimit(Seconds::fromMilliseconds(limitInMilliseconds)));
 }
 
-void WebProcessPool::reportWebContentCPUTime(Seconds cpuTime, uint64_t activityState)
+void WebProcessPool::reportWebContentCPUTime(IPC::Connection& connection, Seconds cpuTime, WTF::CheckedUint64 activityState)
 {
+    MESSAGE_CHECK_BASE(activityState <= static_cast<uint64_t>(WebCore::ActivityStateForCPUSampling::VisibleAndActive), connection);
 #if PLATFORM(MAC)
-    m_perActivityStateCPUUsageSampler->reportWebContentCPUTime(cpuTime, static_cast<WebCore::ActivityStateForCPUSampling>(activityState));
+    m_perActivityStateCPUUsageSampler->reportWebContentCPUTime(cpuTime, static_cast<WebCore::ActivityStateForCPUSampling>(activityState.value()));
 #else
     UNUSED_PARAM(cpuTime);
     UNUSED_PARAM(activityState);

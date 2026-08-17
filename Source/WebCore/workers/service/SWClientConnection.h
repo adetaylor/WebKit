@@ -34,6 +34,7 @@
 #include <WebCore/ScriptExecutionContextIdentifier.h>
 #include <WebCore/ServiceWorkerJob.h>
 #include <WebCore/ServiceWorkerTypes.h>
+#include <wtf/CheckedArithmetic.h>
 #include <wtf/CompletionHandler.h>
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
@@ -175,7 +176,7 @@ protected:
     WEBCORE_EXPORT void updateBackgroundFetchRegistration(const BackgroundFetchInformation&);
 
 #if ENABLE(CONTENT_EXTENSIONS)
-    WEBCORE_EXPORT void reportNetworkUsageToWorkerClient(ScriptExecutionContextIdentifier, uint64_t bytesTransferredOverNetwork);
+    WEBCORE_EXPORT void reportNetworkUsageToWorkerClient(ScriptExecutionContextIdentifier, WTF::CheckedUint64 bytesTransferredOverNetwork);
 #endif
 
     WEBCORE_EXPORT void clearPendingJobs();

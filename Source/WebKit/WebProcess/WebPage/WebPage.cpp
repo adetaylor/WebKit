@@ -3006,7 +3006,7 @@ String WebPage::frameTextForTestingIncludingSubframes(bool includeSubframes)
     return m_mainFrame->frameTextForTesting(includeSubframes);
 }
 
-void WebPage::windowScreenDidChange(PlatformDisplayID displayID, std::optional<unsigned> nominalFramesPerSecond)
+void WebPage::windowScreenDidChange(Checked<PlatformDisplayID, RecordOverflow> displayID, std::optional<unsigned> nominalFramesPerSecond)
 {
     m_page->chrome().windowScreenDidChange(displayID, nominalFramesPerSecond);
 
@@ -6189,7 +6189,7 @@ void WebPage::removeWebEditCommand(WebUndoStepID stepID)
         undoStep->didRemoveFromUndoManager();
 }
 
-void WebPage::unapplyEditCommand(uint32_t undoVersion, WebUndoStepID stepID, CompletionHandler<void()>&& completionHandler)
+void WebPage::unapplyEditCommand(WTF::CheckedUint32 undoVersion, WebUndoStepID stepID, CompletionHandler<void()>&& completionHandler)
 {
     if (undoVersion < m_currentUndoVersion)
         return completionHandler();
@@ -6204,7 +6204,7 @@ void WebPage::unapplyEditCommand(uint32_t undoVersion, WebUndoStepID stepID, Com
     completionHandler();
 }
 
-void WebPage::reapplyEditCommand(uint32_t undoVersion, WebUndoStepID stepID, CompletionHandler<void()>&& completionHandler)
+void WebPage::reapplyEditCommand(WTF::CheckedUint32 undoVersion, WebUndoStepID stepID, CompletionHandler<void()>&& completionHandler)
 {
     if (undoVersion < m_currentUndoVersion)
         return completionHandler();
@@ -6386,17 +6386,17 @@ void WebPage::removeLayerForFindOverlay(CompletionHandler<void()>&& completionHa
     completionHandler();
 }
 
-void WebPage::getImageForFindMatch(uint32_t matchIndex)
+void WebPage::getImageForFindMatch(WTF::CheckedUint32 matchIndex)
 {
     findController().getImageForFindMatch(matchIndex);
 }
 
-void WebPage::selectFindMatch(uint32_t matchIndex)
+void WebPage::selectFindMatch(WTF::CheckedUint32 matchIndex)
 {
     findController().selectFindMatch(matchIndex);
 }
 
-void WebPage::indicateFindMatch(uint32_t matchIndex)
+void WebPage::indicateFindMatch(WTF::CheckedUint32 matchIndex)
 {
     findController().indicateFindMatch(matchIndex);
 }
@@ -6418,7 +6418,7 @@ void WebPage::replaceMatches(const Vector<uint32_t>& matchIndices, const String&
 }
 
 #if !PLATFORM(IOS_FAMILY)
-void WebPage::didChangeSelectedIndexForActivePopupMenu(int32_t newIndex)
+void WebPage::didChangeSelectedIndexForActivePopupMenu(WTF::CheckedInt32 newIndex)
 {
     changeSelectedIndex(newIndex);
     m_activePopupMenu = nullptr;
@@ -6492,9 +6492,10 @@ void WebPage::userMediaAccessWasGranted(UserMediaRequestIdentifier userMediaID, 
     m_userMediaPermissionRequestManager->userMediaAccessWasGranted(userMediaID, WTF::move(audioDevice), WTF::move(videoDevice), WTF::move(mediaDeviceIdentifierHashSalts), WTF::move(completionHandler));
 }
 
-void WebPage::userMediaAccessWasDenied(UserMediaRequestIdentifier userMediaID, uint64_t reason, String&& message, WebCore::MediaConstraintType invalidConstraint)
+void WebPage::userMediaAccessWasDenied(UserMediaRequestIdentifier userMediaID, WTF::CheckedUint64 reason, String&& message, WebCore::MediaConstraintType invalidConstraint)
 {
-    m_userMediaPermissionRequestManager->userMediaAccessWasDenied(userMediaID, static_cast<MediaAccessDenialReason>(reason), WTF::move(message), invalidConstraint);
+    ASSERT(reason <= static_cast<uint64_t>(MediaAccessDenialReason::OtherFailure));
+    m_userMediaPermissionRequestManager->userMediaAccessWasDenied(userMediaID, static_cast<MediaAccessDenialReason>(reason.value()), WTF::move(message), invalidConstraint);
 }
 
 void WebPage::captureDevicesChanged()
@@ -6508,7 +6509,7 @@ void WebPage::voiceActivityDetected()
 }
 
 #if USE(GSTREAMER)
-void WebPage::setOrientationForMediaCapture(uint64_t rotation)
+void WebPage::setOrientationForMediaCapture(WTF::CheckedUint64 rotation)
 {
     m_page->forEachDocument([&](auto& document) {
         document.orientationChanged(rotation);
@@ -6659,7 +6660,7 @@ void WebPage::convertToSimplifiedChinese(FrameIdentifier frameID)
 #endif
 
 #if !PLATFORM(COCOA)
-void WebPage::setTextForActivePopupMenu(int32_t index)
+void WebPage::setTextForActivePopupMenu(WTF::CheckedInt32 index)
 {
     if (RefPtr menu = m_activePopupMenu)
         menu->setTextForIndex(index);
@@ -7640,7 +7641,7 @@ void WebPage::cancelComposition(const String& compositionString)
         protect(targetFrame->editor())->confirmComposition(compositionString);
 }
 
-void WebPage::deleteSurrounding(int64_t offset, unsigned characterCount)
+void WebPage::deleteSurrounding(WTF::CheckedInt64 offset, unsigned characterCount)
 {
     RefPtr targetFrame = targetFrameForEditing(*this);
     if (!targetFrame)
@@ -8555,7 +8556,7 @@ void WebPage::scheduleFullEditorStateUpdate()
     protect(corePage())->scheduleRenderingUpdate(RenderingUpdateStep::LayerFlush);
 }
 
-void WebPage::loadAndDecodeImage(WebCore::ResourceRequest&& request, std::optional<WebCore::FloatSize> sizeConstraint, uint64_t maximumBytesFromNetwork, CompletionHandler<void(Expected<Ref<WebCore::ShareableBitmap>, WebCore::ResourceError>&&)>&& completionHandler)
+void WebPage::loadAndDecodeImage(WebCore::ResourceRequest&& request, std::optional<WebCore::FloatSize> sizeConstraint, WTF::CheckedUint64 maximumBytesFromNetwork, CompletionHandler<void(Expected<Ref<WebCore::ShareableBitmap>, WebCore::ResourceError>&&)>&& completionHandler)
 {
     auto url = request.url();
     RefPtr page = corePage();
@@ -8913,9 +8914,10 @@ void WebPage::didRestoreScrollPosition()
     send(Messages::WebPageProxy::DidRestoreScrollPosition());
 }
 
-void WebPage::setUserInterfaceLayoutDirection(uint32_t direction)
+void WebPage::setUserInterfaceLayoutDirection(WTF::CheckedUint32 direction)
 {
-    m_userInterfaceLayoutDirection = static_cast<WebCore::UserInterfaceLayoutDirection>(direction);
+    ASSERT(direction <= static_cast<uint32_t>(WebCore::UserInterfaceLayoutDirection::RTL));
+    m_userInterfaceLayoutDirection = static_cast<WebCore::UserInterfaceLayoutDirection>(direction.value());
     protect(corePage())->setUserInterfaceLayoutDirection(m_userInterfaceLayoutDirection);
 }
 
@@ -10524,7 +10526,7 @@ void WebPage::remotePostMessage(WebCore::FrameIdentifier source, const WebCore::
     targetWindow->postMessageFromRemoteFrame(*globalObject, WTF::move(sourceWindow), sourceOrigin, WTF::move(targetOrigin), message, WTF::move(userGestureToken));
 }
 
-void WebPage::renderTreeAsTextForTesting(WebCore::FrameIdentifier frameID, uint64_t baseIndent, OptionSet<WebCore::RenderAsTextFlag> behavior, CompletionHandler<void(String&&)>&& completionHandler)
+void WebPage::renderTreeAsTextForTesting(WebCore::FrameIdentifier frameID, WTF::CheckedUint64 baseIndent, OptionSet<WebCore::RenderAsTextFlag> behavior, CompletionHandler<void(String&&)>&& completionHandler)
 {
     RefPtr webFrame = WebProcess::singleton().webFrame(frameID);
     if (!webFrame) {
@@ -10550,7 +10552,7 @@ void WebPage::renderTreeAsTextForTesting(WebCore::FrameIdentifier frameID, uint6
     completionHandler(ts.release());
 }
 
-void WebPage::layerTreeAsTextForTesting(WebCore::FrameIdentifier frameID, uint64_t baseIndent, OptionSet<WebCore::LayerTreeAsTextOptions> options, CompletionHandler<void(String&&)>&& completionHandler)
+void WebPage::layerTreeAsTextForTesting(WebCore::FrameIdentifier frameID, WTF::CheckedUint64 baseIndent, OptionSet<WebCore::LayerTreeAsTextOptions> options, CompletionHandler<void(String&&)>&& completionHandler)
 {
     RefPtr webFrame = WebProcess::singleton().webFrame(frameID);
     if (!webFrame) {

@@ -97,7 +97,7 @@ private:
 
     // Messages
     void setCategory(WebCore::AudioSession::CategoryType, WebCore::AudioSession::Mode, WebCore::RouteSharingPolicy);
-    void setPreferredBufferSize(uint64_t);
+    void setPreferredBufferSize(WTF::CheckedUint64);
     using SetActiveCompletion = CompletionHandler<void(bool)>;
     void tryToSetActive(bool, SetActiveCompletion&&);
     void tryToSetActiveSync(bool, SetActiveCompletion&&);
