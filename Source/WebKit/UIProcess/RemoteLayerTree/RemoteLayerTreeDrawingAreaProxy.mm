@@ -31,6 +31,7 @@
 #import "LayerProperties.h"
 #import "Logging.h"
 #import "MessageSenderInlines.h"
+#import "ProcessProvenanceAuthority.h"
 #import "ProcessThrottler.h"
 #import "RemoteLayerTreeCommitBundle.h"
 #import "RemoteLayerTreeDrawingAreaProxyMessages.h"
@@ -553,9 +554,15 @@ void RemoteLayerTreeDrawingAreaProxy::commitLayerTreeTransaction(IPC::Connection
     page->layerTreeCommitComplete();
 }
 
-void RemoteLayerTreeDrawingAreaProxy::asyncSetLayerContents(WebCore::PlatformLayerIdentifier layerID, RemoteLayerBackingStoreProperties&& properties)
+void RemoteLayerTreeDrawingAreaProxy::asyncSetLayerContents(IPC::Connection& connection, IPC::Untrusted<WebCore::PlatformLayerIdentifier>&& untrustedLayerID, RemoteLayerBackingStoreProperties&& properties)
 {
-    m_remoteLayerTreeHost->asyncSetLayerContents(layerID, WTF::move(properties));
+    // This proxy holds the layers of every process contributing to the page under site
+    // isolation, so an unvalidated identifier would let one of them paint into another's layer.
+    auto sendingProcess = WebProcessProxy::fromConnection(connection)->coreProcessIdentifier();
+    auto layerID = WTF::move(untrustedLayerID).validate(ProcessProvenanceAuthority { sendingProcess });
+    MESSAGE_CHECK_BASE(layerID, connection);
+
+    m_remoteLayerTreeHost->asyncSetLayerContents(*layerID, WTF::move(properties));
 }
 
 void RemoteLayerTreeDrawingAreaProxy::acceleratedAnimationDidStart(WebCore::PlatformLayerIdentifier layerID, const String& key, MonotonicTime startTime)

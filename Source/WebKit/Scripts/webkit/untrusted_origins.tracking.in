@@ -447,3 +447,127 @@
     MessageParam RemoteMediaPlayerProxy.Load url
 }
 
+# ----------------------------------------------------------------------------
+# ProcessQualified identifiers sent from web content to a privileged process.
+# The object part of one of these is a per-process counter starting at 1, so an
+# identifier valid in one web content process is guessable from another. Validating
+# means proving the sender minted it: see Shared/ProcessProvenanceAuthority.h.
+# ----------------------------------------------------------------------------
+
+[ValidatedElsewhere, Consequence=CrossProcessObjectAccess] WebCore::RTCDataChannelIdentifier {
+    # handler already MESSAGE_CHECKs provenance, or keys on per-connection state
+    MessageParam NetworkConnectionToWebProcess.ConnectToRTCDataChannelRemoteSource handler
+    MessageParam NetworkConnectionToWebProcess.ConnectToRTCDataChannelRemoteSource source
+    MessageParam RTCDataChannelRemoteManagerProxy.BufferedAmountIsDecreasing handler
+    MessageParam RTCDataChannelRemoteManagerProxy.ChangeReadyState handler
+    MessageParam RTCDataChannelRemoteManagerProxy.Close source
+    MessageParam RTCDataChannelRemoteManagerProxy.DetectError handler
+    MessageParam RTCDataChannelRemoteManagerProxy.ReceiveData handler
+    MessageParam RTCDataChannelRemoteManagerProxy.SendData source
+}
+
+[ValidatedElsewhere, Consequence=CrossProcessObjectAccess] WebCore::ScriptExecutionContextIdentifier {
+    # handler already MESSAGE_CHECKs provenance, or keys on per-connection state
+    MessageParam WebLockRegistryProxy.AbortLockRequest clientID
+    MessageParam WebLockRegistryProxy.ClientIsGoingAway clientId
+    MessageParam WebLockRegistryProxy.ReleaseLock clientID
+    MessageParam WebLockRegistryProxy.RequestLock clientID
+    MessageParam WebSWServerConnection.UnregisterServiceWorkerClient identifier
+    MessageParam WebSWServerToContextConnection.Focus serviceWorkerClientIdentifier
+    MessageParam WebSWServerToContextConnection.PostMessageToServiceWorkerClient destination
+}
+
+[ValidatedElsewhere, Consequence=CrossProcessObjectAccess] WebCore::SharedWorkerObjectIdentifier {
+    # handler already MESSAGE_CHECKs provenance, or keys on per-connection state
+    MessageParam WebSharedWorkerServerConnection.RequestSharedWorker sharedWorkerObjectIdentifier
+    MessageParam WebSharedWorkerServerConnection.ResumeForBackForwardCache sharedWorkerObjectIdentifier
+    MessageParam WebSharedWorkerServerConnection.SharedWorkerObjectIsGoingAway sharedWorkerObjectIdentifier
+    MessageParam WebSharedWorkerServerConnection.SuspendForBackForwardCache sharedWorkerObjectIdentifier
+}
+
+[ValidatedElsewhere, Consequence=CrossProcessObjectAccess] WebCore::WebLockIdentifier {
+    # handler already MESSAGE_CHECKs provenance, or keys on per-connection state
+    MessageParam WebLockRegistryProxy.AbortLockRequest identifier
+    MessageParam WebLockRegistryProxy.ReleaseLock identifier
+    MessageParam WebLockRegistryProxy.RequestLock identifier
+}
+
+[ValidatedElsewhere, Consequence=CrossProcessObjectAccess] WebKit::TransactionID {
+    # handler already MESSAGE_CHECKs provenance, or keys on per-connection state
+    MessageParam RemoteLayerTreeDrawingAreaProxy.NotifyFlushingLayerTree transactionID
+}
+
+[ValidatedElsewhere, Consequence=CrossProcessObjectAccess] std::optional<WebCore::ScriptExecutionContextIdentifier> {
+    # handler already MESSAGE_CHECKs provenance, or keys on per-connection state
+    MessageParam NetworkConnectionToWebProcess.EstablishSWContextConnection serviceWorkerPageIdentifier
+}
+
+[ValidatedElsewhere, Consequence=CrossProcessObjectAccess] std::optional<WebKit::TransactionID> {
+    # handler already MESSAGE_CHECKs provenance, or keys on per-connection state
+    MessageParam RemoteLayerTreeDrawingAreaProxy.NotifyPendingCommitLayerTree transactionID
+}
+
+[ValidatedElsewhere, Consequence=CrossProcessObjectAccess] WebCore::ScriptExecutionContextIdentifier {
+    # authorised by ownership: the client must belong to this worker. A provenance check would be wrong, as a service worker legitimately controls clients in other processes
+    MessageParam WebSWServerToContextConnection.Navigate clientIdentifier
+}
+
+[RequestTarget, Consequence=CrossProcessObjectAccess] WebCore::DOMCacheIdentifier {
+    # resolved in a session-wide registry, then the resolved cache's origin is checked against the connection
+    MessageParam NetworkStorageManager.CacheStorageDereference cacheIdentifier
+    MessageParam NetworkStorageManager.CacheStoragePutRecords cacheIdentifier
+    MessageParam NetworkStorageManager.CacheStorageReference cacheIdentifier
+    MessageParam NetworkStorageManager.CacheStorageRemoveCache cacheIdentifier
+    MessageParam NetworkStorageManager.CacheStorageRemoveRecords cacheIdentifier
+    MessageParam NetworkStorageManager.CacheStorageRetrieveRecords cacheIdentifier
+}
+
+[NeedsReview, Consequence=CrossProcessObjectAccess] WebCore::BackForwardFrameItemIdentifier {
+    # no authority check found on this path; needs review to choose provenance vs ownership
+    MessageParam WebBackForwardList.BackForwardClearChildren frameItemID
+    MessageParam WebBackForwardList.BackForwardSetChildItem frameItemID
+}
+
+[NeedsReview, Consequence=CrossProcessObjectAccess] WebCore::BackForwardItemIdentifier {
+    # no authority check found on this path; needs review to choose provenance vs ownership
+    MessageParam WebBackForwardList.BackForwardClearChildren itemID
+    MessageParam WebBackForwardList.BackForwardGoToItem itemID
+    MessageParam WebBackForwardList.BackForwardListContainsItem itemID
+    MessageParam WebPageProxy.DidCacheBackForwardItem itemID
+    MessageParam WebPageProxy.DidEvictBackForwardItem itemID
+    MessageParam WebPageProxy.DidTakeBackForwardItemForRestoration itemID
+    MessageParam WebPageProxy.ShouldGoToBackForwardListItem itemID
+    MessageParam WebPageProxy.ShouldGoToBackForwardListItemSync itemID
+}
+
+[NeedsReview, Consequence=CrossProcessObjectAccess] WebCore::PlaybackTargetClientContextIdentifier {
+    # no authority check found on this path; needs review to choose provenance vs ownership
+    MessageParam WebPageProxy.AddPlaybackTargetPickerClient contextId
+    MessageParam WebPageProxy.PlaybackTargetPickerClientStateDidChange contextId
+    MessageParam WebPageProxy.RemovePlaybackTargetPickerClient contextId
+    MessageParam WebPageProxy.ShowPlaybackTargetPicker contextId
+}
+
+[NeedsReview, Consequence=CrossProcessObjectAccess] WebCore::ScriptExecutionContextIdentifier {
+    # no authority check found on this path; needs review to choose provenance vs ownership
+    MessageParam NetworkMDNSRegister.RegisterMDNSName documentIdentifier
+    MessageParam NetworkMDNSRegister.UnregisterMDNSNames documentIdentifier
+}
+
+[NeedsReview, Consequence=CrossProcessObjectAccess] WebCore::UserGestureTokenIdentifier {
+    # no authority check found on this path; needs review to choose provenance vs ownership
+    MessageParam WebProcessProxy.DidDestroyUserGestureToken userGestureTokenID
+}
+
+[NeedsReview, Consequence=CrossProcessObjectAccess] std::optional<WebCore::ScrollingNodeID> {
+    # no authority check found on this path; needs review to choose provenance vs ownership
+    MessageParam WebPageProxy.ScrollingNodeScrollDidEndScroll nodeID
+    MessageParam WebPageProxy.ScrollingNodeScrollWillStartScroll nodeID
+}
+
+[NeedsReview, Consequence=CrossProcessObjectAccess] std::optional<WebCore::UserGestureTokenIdentifier> {
+    # no authority check found on this path; needs review to choose provenance vs ownership
+    MessageParam WebPageProxy.FocusRemoteFrame userGestureTokenIdentifier
+    MessageParam WebPageProxy.SetFocus userGestureTokenIdentifier
+}
+

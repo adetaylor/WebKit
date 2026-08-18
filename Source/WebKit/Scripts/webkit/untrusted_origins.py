@@ -48,6 +48,29 @@ UNTRUSTED_TYPES = {
     "WebCore::Site",
 }
 
+# Identifiers that carry the ProcessIdentifier of the process that minted them. A
+# privileged process holding objects for several web content processes must not act on
+# one of these without proving the sender minted it; see Shared/ProcessProvenanceAuthority.h
+# for why the object part alone is not enough.
+UNTRUSTED_IDENTIFIER_TYPES = {
+    "WebCore::BackForwardFrameItemIdentifier",
+    "WebCore::BackForwardItemIdentifier",
+    "WebCore::DOMCacheIdentifier",
+    "WebCore::JSHandleIdentifier",
+    "WebCore::PlatformLayerIdentifier",
+    "WebCore::PlaybackSessionContextIdentifier",
+    "WebCore::PlaybackTargetClientContextIdentifier",
+    "WebCore::RTCDataChannelIdentifier",
+    "WebCore::ScriptExecutionContextIdentifier",
+    "WebCore::ScrollingNodeID",
+    "WebCore::SharedWorkerObjectIdentifier",
+    "WebCore::UserGestureTokenIdentifier",
+    "WebCore::WebLockIdentifier",
+    "WebKit::ContentWorldIdentifier",
+    "WebKit::ScopedResourceLoaderIdentifier",
+    "WebKit::TransactionID",
+}
+
 # Processes that hold privilege a web content process does not, and so must not take
 # a web-content-supplied origin on trust.
 PRIVILEGED_PROCESSES = {
@@ -91,6 +114,7 @@ PREORDAINED_VALIDATOR_HEADERS = {
     "Platform/IPC/Untrusted.h",
     "NetworkProcess/FirstPartyForCookiesAuthority.h",
     "UIProcess/FirstPartyAuthority.h",
+    "Shared/ProcessProvenanceAuthority.h",
 }
 
 VALID_ATTRIBUTES = {
@@ -126,6 +150,9 @@ VALID_CONSEQUENCES = {
     "PolicyCorruption",
     # Reaches a local file or a sandbox extension.
     "LocalResource",
+    # Names an object belonging to another web content process: reads its state, mutates
+    # it, or spends authority it holds. Only reachable for ProcessQualified identifiers.
+    "CrossProcessObjectAccess",
     # No cross-origin consequence.
     "None",
 }
@@ -187,6 +214,13 @@ def unwrap_untrusted(type_str):
     return parameters[0]
 
 
+def describe_untrusted_value(untrusted_type):
+    """How to refer to an untrusted value of this type in a diagnostic."""
+    if untrusted_type in UNTRUSTED_IDENTIFIER_TYPES:
+        return "a process-qualified identifier"
+    return "a web origin or URL"
+
+
 def conveys_untrusted_value(type_str, visited=None):
     """Return the untrusted type conveyed by type_str, or None.
 
@@ -201,7 +235,7 @@ def conveys_untrusted_value(type_str, visited=None):
     visited.add(type_str)
 
     clean_type = _strip_const_and_whitespace(type_str)
-    if clean_type in UNTRUSTED_TYPES:
+    if clean_type in UNTRUSTED_TYPES or clean_type in UNTRUSTED_IDENTIFIER_TYPES:
         return clean_type
 
     container, parameters = _split_container(clean_type)
