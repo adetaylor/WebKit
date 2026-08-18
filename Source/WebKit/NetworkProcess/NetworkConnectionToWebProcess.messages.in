@@ -87,13 +87,13 @@ messages -> NetworkConnectionToWebProcess WantsDispatchMessage {
     ClearPageSpecificData(WebCore::PageIdentifier pageID);
 
     [EnabledBy=StorageAccessAPIEnabled] RemoveStorageAccessForFrame(WebCore::FrameIdentifier frameID, WebCore::PageIdentifier pageID);
-    LogUserInteraction(WebCore::RegistrableDomain domain)
+    LogUserInteraction(IPC::Untrusted<WebCore::RegistrableDomain> domain)
     ResourceLoadStatisticsUpdated(Vector<WebCore::ResourceLoadStatistics> statistics) -> ()
     [EnabledBy=StorageAccessAPIEnabled] HasStorageAccess(WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain, WebCore::FrameIdentifier frameID, WebCore::PageIdentifier pageID) -> (bool hasStorageAccess)
     [EnabledBy=StorageAccessAPIEnabled] RequestStorageAccess(WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain, WebCore::FrameIdentifier frameID, WebCore::PageIdentifier webPageID, WebKit::WebPageProxyIdentifier webPageProxyID, enum:bool WebCore::StorageAccessScope scope, enum:bool WebCore::HasUserGestureOrNoUserGestureRequired hasUserGestureOrNoUserGestureRequired) -> (struct WebCore::RequestStorageAccessResult result)
     [EnabledBy=StorageAccessAPIEnabled] QueryStorageAccessPermission(WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain, std::optional<WebKit::WebPageProxyIdentifier> webPageProxyID) -> (enum:uint8_t WebCore::PermissionState permissionState)
     [EnabledBy=StorageAccessAPIEnabled] StorageAccessQuirkForTopFrameDomain(URL topFrameURL) -> (Vector<WebCore::RegistrableDomain> domains)
-    [EnabledBy=StorageAccessAPIEnabled] RequestStorageAccessUnderOpener(WebCore::RegistrableDomain domainInNeedOfStorageAccess, WebCore::PageIdentifier openerPageID, WebCore::RegistrableDomain openerDomain)
+    [EnabledBy=StorageAccessAPIEnabled] RequestStorageAccessUnderOpener(IPC::Untrusted<WebCore::RegistrableDomain> domainInNeedOfStorageAccess, WebCore::PageIdentifier openerPageID, WebCore::RegistrableDomain openerDomain)
 
     [EnabledBy=AllowTestOnlyOriginAccessAllowListIPC] AddOriginAccessAllowListEntry(String sourceOrigin, String destinationProtocol, String destinationHost, bool allowDestinationSubdomains);
     [EnabledBy=AllowTestOnlyOriginAccessAllowListIPC] RemoveOriginAccessAllowListEntry(String sourceOrigin, String destinationProtocol, String destinationHost, bool allowDestinationSubdomains);

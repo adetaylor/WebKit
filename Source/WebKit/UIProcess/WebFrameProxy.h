@@ -29,6 +29,7 @@
 #include "FrameLoadState.h"
 #include "MessageReceiver.h"
 #include "ProvisionalFrameCreationParameters.h"
+#include "Untrusted.h"
 #include <WebCore/CertificateInfo.h>
 #include <WebCore/DocumentSecurityPolicy.h>
 #include <WebCore/FrameLoaderTypes.h>
@@ -288,7 +289,7 @@ public:
     bool isShowingInitialAboutBlank() const { return m_isShowingInitialAboutBlank; }
 
     WebCore::LayerHostingContextIdentifier layerHostingContextIdentifier() const { return m_layerHostingContextIdentifier; }
-    void setAppBadge(const WebCore::SecurityOriginData&, std::optional<uint64_t> badge);
+    void setAppBadge(IPC::Untrusted<WebCore::SecurityOriginData>&&, std::optional<uint64_t> badge);
     void didChangeCSPOriginsThatUpgradeInsecureNavigations(HashSet<WebCore::SecurityOriginData>&&);
     void findFocusableElementDescendingIntoRemoteFrame(WebCore::FocusDirection, const WebCore::FocusEventData&, WebCore::ShouldFocusElement, CompletionHandler<void(WebCore::FoundElementInRemoteFrame)>&&);
     void findFocusableElementContinuingFromFrame(WebCore::FocusDirection, WebCore::FrameIdentifier, const WebCore::FocusEventData&, WebCore::ShouldFocusElement);

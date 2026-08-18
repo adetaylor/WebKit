@@ -31,6 +31,7 @@
 
 #include "Decoder.h"
 #include "HandleMessage.h"
+#include "Untrusted.h"
 #include <JavaScriptCore/JSArray.h>
 #include <JavaScriptCore/JSArrayBuffer.h>
 #include <JavaScriptCore/JSCJSValueInlines.h>
@@ -73,6 +74,14 @@ template<> JSC::JSValue jsValueForDecodedArgumentValue(JSC::JSGlobalObject*, Web
 
 template<> JSC::JSValue jsValueForDecodedArgumentValue(JSC::JSGlobalObject*, IPC::Semaphore&&);
 template<> JSC::JSValue jsValueForDecodedArgumentValue(JSC::JSGlobalObject*, WebCore::SharedMemory::Handle&&);
+
+// Introspection only: describing a message never acts on the value, so it does not
+// need to be validated.
+template<typename T>
+JSC::JSValue jsValueForDecodedArgumentValue(JSC::JSGlobalObject* globalObject, Untrusted<T>&& untrusted)
+{
+    return jsValueForDecodedArgumentValue(globalObject, WTF::move(untrusted).extractWithoutValidation(UnvalidatedReason::IPCTestingAPIIntrospection));
+}
 
 template<typename T, std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
 JSC::JSValue jsValueForDecodedArgumentValue(JSC::JSGlobalObject*, T)

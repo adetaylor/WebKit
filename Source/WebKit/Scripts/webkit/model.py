@@ -24,6 +24,7 @@ import itertools
 
 from collections import Counter, defaultdict
 from .opaque_ipc_types import is_opaque_type, opaque_ipc_types
+from .untrusted_origins import conveys_untrusted_value, is_privileged_receiver, unwrap_untrusted, untrusted_origins
 
 BUILTIN_ATTRIBUTE = "Builtin"
 MAINTHREADCALLBACK_ATTRIBUTE = "MainThreadCallback"
@@ -79,6 +80,24 @@ class MessageReceiver(object):
                     if is_opaque_type(parameter.type):
                         if not opaque_ipc_types.message_param_reply_tracked(self.name, message.name, parameter.name, parameter.type):
                             raise Exception(f"Justification needed in opaque_ipc_types.tracking.in: [] MessageParamReply {self.name}.{message.name} {parameter.name} {parameter.type}")
+
+    def enforce_untrusted_origin_usage(self):
+        if not is_privileged_receiver(self):
+            return
+        for message in self.messages:
+            for parameter in message.parameters:
+                if conveys_untrusted_value(parameter.type) is None:
+                    continue
+                if unwrap_untrusted(parameter.type):
+                    continue
+                if untrusted_origins.message_param_tracked(self.name, message.name, parameter.name, parameter.type):
+                    continue
+                raise Exception(
+                    f"{self.name}.{message.name} passes a web origin or URL from web content into the "
+                    f"{self.receiver_dispatched_to} process without marking it untrusted. Either declare the parameter as "
+                    f"IPC::Untrusted<{parameter.type}> and validate it in the handler, or add a justification to "
+                    f"untrusted_origins.tracking.in: [LegacyNeedsAudit] MessageParam {self.name}.{message.name} "
+                    f"{parameter.name} {parameter.type}")
 
 
 class Message(object):

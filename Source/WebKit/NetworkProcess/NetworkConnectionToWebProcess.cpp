@@ -27,6 +27,7 @@
 #include "NetworkConnectionToWebProcess.h"
 
 #include "BlobDataFileReferenceWithSandboxExtension.h"
+#include "FirstPartyForCookiesAuthority.h"
 #include "LogInitialization.h"
 #include "Logging.h"
 #include "NetworkBroadcastChannelRegistry.h"
@@ -1351,13 +1352,14 @@ void NetworkConnectionToWebProcess::removeStorageAccessForFrame(FrameIdentifier 
         storageSession->removeStorageAccessForFrame(frameID, pageID);
 }
 
-void NetworkConnectionToWebProcess::logUserInteraction(RegistrableDomain&& domain)
+void NetworkConnectionToWebProcess::logUserInteraction(IPC::Untrusted<RegistrableDomain>&& untrustedDomain)
 {
-    MESSAGE_CHECK(m_networkProcess->allowsFirstPartyForCookies(m_webProcessIdentifier, domain) == NetworkProcess::AllowCookieAccess::Allow);
+    auto domain = WTF::move(untrustedDomain).validate(FirstPartyForCookiesAuthority { m_networkProcess, m_webProcessIdentifier });
+    MESSAGE_CHECK(domain);
 
     if (CheckedPtr networkSession = this->networkSession()) {
         if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics())
-            resourceLoadStatistics->logUserInteraction(WTF::move(domain), [] { });
+            resourceLoadStatistics->logUserInteraction(WTF::move(*domain), [] { });
     }
 }
 
@@ -1464,13 +1466,14 @@ void NetworkConnectionToWebProcess::storageAccessQuirkForTopFrameDomain(URL&& to
     completionHandler(NetworkStorageSession::storageAccessQuirkForTopFrameDomain(topFrameURL));
 }
 
-void NetworkConnectionToWebProcess::requestStorageAccessUnderOpener(WebCore::RegistrableDomain&& domainInNeedOfStorageAccess, PageIdentifier openerPageID, WebCore::RegistrableDomain&& openerDomain)
+void NetworkConnectionToWebProcess::requestStorageAccessUnderOpener(IPC::Untrusted<WebCore::RegistrableDomain>&& untrustedDomainInNeedOfStorageAccess, PageIdentifier openerPageID, WebCore::RegistrableDomain&& openerDomain)
 {
-    MESSAGE_CHECK(m_networkProcess->allowsFirstPartyForCookies(m_webProcessIdentifier, domainInNeedOfStorageAccess) == NetworkProcess::AllowCookieAccess::Allow);
+    auto domainInNeedOfStorageAccess = WTF::move(untrustedDomainInNeedOfStorageAccess).validate(FirstPartyForCookiesAuthority { m_networkProcess, m_webProcessIdentifier });
+    MESSAGE_CHECK(domainInNeedOfStorageAccess);
 
     if (CheckedPtr networkSession = this->networkSession()) {
         if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics())
-            resourceLoadStatistics->requestStorageAccessUnderOpener(WTF::move(domainInNeedOfStorageAccess), openerPageID, WTF::move(openerDomain));
+            resourceLoadStatistics->requestStorageAccessUnderOpener(WTF::move(*domainInNeedOfStorageAccess), openerPageID, WTF::move(openerDomain));
     }
 }
 

@@ -38,6 +38,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithDeferSendingOption_NoOptions"_s, ReceiverName::TestWithDeferSendingOption, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithDeferSendingOption_OneIndex"_s, ReceiverName::TestWithDeferSendingOption, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithDispatchedFromAndTo_AlwaysEnabled"_s, ReceiverName::TestWithDispatchedFromAndTo, false, false, false, ProcessName::WebContent, ProcessName::UI },
+    MessageDescription { "TestWithDispatchedFromAndTo_UntrustedOrigin"_s, ReceiverName::TestWithDispatchedFromAndTo, false, false, false, ProcessName::WebContent, ProcessName::UI },
     MessageDescription { "TestWithEnabledByAndConjunction_AlwaysEnabled"_s, ReceiverName::TestWithEnabledByAndConjunction, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithEnabledByOrConjunction_AlwaysEnabled"_s, ReceiverName::TestWithEnabledByOrConjunction, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithEnabledBy_AlwaysEnabled"_s, ReceiverName::TestWithEnabledBy, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
@@ -91,7 +92,6 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithLegacyReceiver_TouchEvent"_s, ReceiverName::TestWithLegacyReceiver, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
 #endif
     MessageDescription { "TestWithMultiLineExtendedAttributes_AlwaysEnabled"_s, ReceiverName::TestWithMultiLineExtendedAttributes, false, false, false, ProcessName::GPU, ProcessName::WebContent },
-    MessageDescription { "TestWithMultipleDispatchedFrom_AlwaysEnabled"_s, ReceiverName::TestWithMultipleDispatchedFrom, false, false, false, ProcessName::Unknown, ProcessName::UI },
     MessageDescription { "TestWithSemaphore_ReceiveSemaphore"_s, ReceiverName::TestWithSemaphore, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSemaphore_ReceiveSemaphoreReply"_s, ReceiverName::TestWithSemaphore, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSemaphore_SendSemaphore"_s, ReceiverName::TestWithSemaphore, false, false, false, ProcessName::Unknown, ProcessName::Unknown },

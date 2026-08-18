@@ -33,6 +33,7 @@
 #include "AuthenticatorManager.h"
 #include "DownloadProxyMap.h"
 #include "DrawingAreaProxy.h"
+#include "FirstPartyAuthority.h"
 #include "GPUProcessConnectionParameters.h"
 #include "GoToBackForwardItemParameters.h"
 #include "JavaScriptEvaluationResult.h"
@@ -3165,11 +3166,12 @@ WebProcessProxy::FirstPartyAccessResult WebProcessProxy::allowsFirstPartyAccess(
     RELEASE_ASSERT_NOT_REACHED();
 }
 
-void WebProcessProxy::setAppBadgeFromWorker(const SecurityOriginData& origin, std::optional<uint64_t> badge)
+void WebProcessProxy::setAppBadgeFromWorker(IPC::Untrusted<SecurityOriginData>&& untrustedOrigin, std::optional<uint64_t> badge)
 {
-    MESSAGE_CHECK(allowsFirstPartyAccess(WebCore::RegistrableDomain { origin }) == FirstPartyAccessResult::Pass);
+    auto origin = WTF::move(untrustedOrigin).validate(FirstPartyAuthority { *this });
+    MESSAGE_CHECK(origin);
     if (RefPtr dataStore = websiteDataStore())
-        dataStore->workerUpdatedAppBadge(origin, badge);
+        dataStore->workerUpdatedAppBadge(*origin, badge);
 }
 
 const WeakHashSet<WebProcessProxy>* WebProcessProxy::serviceWorkerClientProcesses() const

@@ -32,6 +32,7 @@
 #include "Connection.h"
 #include "DrawingAreaMessages.h"
 #include "DrawingAreaProxy.h"
+#include "FirstPartyAuthority.h"
 #include "FrameInspectorTarget.h"
 #include "FrameProcess.h"
 #include "FrameTreeCreationParameters.h"
@@ -1098,16 +1099,15 @@ void WebFrameProxy::updateScrollingMode(WebCore::ScrollbarMode scrollingMode)
         page->sendToProcessContainingFrame(m_frameID, Messages::WebPage::UpdateFrameScrollingMode(m_frameID, scrollingMode));
 }
 
-void WebFrameProxy::setAppBadge(const WebCore::SecurityOriginData& origin, std::optional<uint64_t> badge)
+void WebFrameProxy::setAppBadge(IPC::Untrusted<WebCore::SecurityOriginData>&& untrustedOrigin, std::optional<uint64_t> badge)
 {
-    Ref protectedProcess = process();
-    auto firstPartyAccessResult = protectedProcess->allowsFirstPartyAccess(WebCore::RegistrableDomain { origin });
-    if (firstPartyAccessResult == WebProcessProxy::FirstPartyAccessResult::SilentFailure)
+    auto origin = WTF::move(untrustedOrigin).validate(FirstPartyAuthority { process() });
+    if (!origin && origin.error() == IPC::ValidationFailure::Ignore)
         return;
-    MESSAGE_CHECK(firstPartyAccessResult == WebProcessProxy::FirstPartyAccessResult::Pass);
+    MESSAGE_CHECK(origin);
 
     if (RefPtr webPageProxy = m_page.get())
-        webPageProxy->uiClient().updateAppBadge(*webPageProxy, origin, badge);
+        webPageProxy->uiClient().updateAppBadge(*webPageProxy, *origin, badge);
 }
 
 void WebFrameProxy::didChangeCSPOriginsThatUpgradeInsecureNavigations(HashSet<WebCore::SecurityOriginData>&& cspOriginsThatUpgradeInsecureNavigations)

@@ -20,14 +20,10 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-[
-    WantsSendCancelReply,
-    DispatchedTo=UI,
-    DispatchedFrom=WebContent
-]
-messages -> WebFrameProxy {
-    [EnabledBy=AppBadgeEnabled] SetAppBadge(IPC::Untrusted<WebCore::SecurityOriginData> origin, std::optional<uint64_t> badge)
-    [EnabledBy=SiteIsolationEnabled] DidChangeCSPOriginsThatUpgradeInsecureNavigations(HashSet<WebCore::SecurityOriginData> cspOriginsThatUpgradeInsecureNavigations)
-    [EnabledBy=SiteIsolationEnabled] FindFocusableElementDescendingIntoRemoteFrame(enum:uint8_t WebCore::FocusDirection direction, struct WebCore::FocusEventData focusEventData, enum:bool WebCore::ShouldFocusElement shouldFocusElement) -> (enum:bool WebCore::FoundElementInRemoteFrame foundElement)
-    [EnabledBy=SiteIsolationEnabled] FindFocusableElementContinuingFromFrame(enum:uint8_t WebCore::FocusDirection direction, WebCore::FrameIdentifier frameIdentifer, struct WebCore::FocusEventData focusEventData, enum:bool WebCore::ShouldFocusElement shouldFocusElement)
+# See untrusted_origins.tracking.in for format documentation.
+
+[LegacyNeedsAudit] WebCore::SecurityOriginData {
+    MessageParam TestWithoutAttributes.TestUntrustedOrigin legacyOrigin
 }
+
+[NotSecuritySensitive] MessageParam TestWithoutAttributes.TestUntrustedOrigin reportedURL URL

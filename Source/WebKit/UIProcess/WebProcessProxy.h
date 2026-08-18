@@ -41,6 +41,7 @@
 #include "ScopedActiveMessageReceiveQueue.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "SpeechRecognitionServer.h"
+#include "Untrusted.h"
 #include "UserContentControllerIdentifier.h"
 #include "VisibleWebPageCounter.h"
 #include "WebPageProxyIdentifier.h"
@@ -556,7 +557,7 @@ public:
     void serializeAndWrapCryptoKey(WebCore::CryptoKeyData&&, CompletionHandler<void(std::optional<Vector<uint8_t>>&&)>&&);
     void unwrapCryptoKey(WebCore::WrappedCryptoKey&&, CompletionHandler<void(std::optional<Vector<uint8_t>>&&)>&&);
 
-    void setAppBadgeFromWorker(const WebCore::SecurityOriginData&, std::optional<uint64_t> badge);
+    void setAppBadgeFromWorker(IPC::Untrusted<WebCore::SecurityOriginData>&&, std::optional<uint64_t> badge);
 
     WebCore::CrossOriginMode crossOriginMode() const { return m_crossOriginMode; }
     LockdownMode lockdownMode() const { return m_lockdownMode; }

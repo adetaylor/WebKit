@@ -55,6 +55,8 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithDeferSendingOption_MultipleIndices>(globalObject, decoder);
     case MessageName::TestWithDispatchedFromAndTo_AlwaysEnabled:
         return jsValueForDecodedMessage<MessageName::TestWithDispatchedFromAndTo_AlwaysEnabled>(globalObject, decoder);
+    case MessageName::TestWithDispatchedFromAndTo_UntrustedOrigin:
+        return jsValueForDecodedMessage<MessageName::TestWithDispatchedFromAndTo_UntrustedOrigin>(globalObject, decoder);
     case MessageName::TestWithEnabledBy_AlwaysEnabled:
         return jsValueForDecodedMessage<MessageName::TestWithEnabledBy_AlwaysEnabled>(globalObject, decoder);
     case MessageName::TestWithEnabledBy_ConditionallyEnabled:
@@ -157,8 +159,6 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
 #endif
     case MessageName::TestWithMultiLineExtendedAttributes_AlwaysEnabled:
         return jsValueForDecodedMessage<MessageName::TestWithMultiLineExtendedAttributes_AlwaysEnabled>(globalObject, decoder);
-    case MessageName::TestWithMultipleDispatchedFrom_AlwaysEnabled:
-        return jsValueForDecodedMessage<MessageName::TestWithMultipleDispatchedFrom_AlwaysEnabled>(globalObject, decoder);
 #if (ENABLE(WEBKIT2) && (NESTED_MASTER_CONDITION || MASTER_OR && MASTER_AND))
     case MessageName::TestWithoutAttributes_LoadURL:
         return jsValueForDecodedMessage<MessageName::TestWithoutAttributes_LoadURL>(globalObject, decoder);
@@ -682,6 +682,10 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
         };
+    case MessageName::TestWithDispatchedFromAndTo_UntrustedOrigin:
+        return Vector<ArgumentDescription> {
+            { "origin"_s, "IPC::Untrusted<WebCore::SecurityOriginData>"_s },
+        };
     case MessageName::TestWithEnabledBy_AlwaysEnabled:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
@@ -859,10 +863,6 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
 #endif
 #endif
     case MessageName::TestWithMultiLineExtendedAttributes_AlwaysEnabled:
-        return Vector<ArgumentDescription> {
-            { "url"_s, "String"_s },
-        };
-    case MessageName::TestWithMultipleDispatchedFrom_AlwaysEnabled:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
         };

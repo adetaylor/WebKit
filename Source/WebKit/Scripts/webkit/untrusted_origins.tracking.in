@@ -1,0 +1,290 @@
+# Copyright (C) 2026 Apple Inc. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1.  Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+# 2.  Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# A privileged process cannot trust a web origin, site, registrable domain or URL that
+# a web content process supplied over IPC. Under site isolation a web process only has
+# authority over its own site, so an origin arriving from it must be proven to be one
+# that process was entitled to name before the privileged process acts on it.
+#
+# The type system enforces this. A parameter declared as IPC::Untrusted<T> in a
+# .messages.in file decodes to IPC::Untrusted<T>, so the receiving handler's signature
+# must accept the wrapper, and the wrapper has no accessors. The only ways to reach the
+# value are:
+#
+#   validate(validator)                 - runs one of the pre-ordained validation
+#                                         procedures, which confirm the sending process
+#                                         had authority over the origin or domain
+#   extractWithoutValidation(reason)    - bypass, and must name a justification
+#
+# See Source/WebKit/Platform/IPC/Untrusted.h for the wrapper, and
+# Source/WebKit/UIProcess/FirstPartyAuthority.h and
+# Source/WebKit/NetworkProcess/FirstPartyForCookiesAuthority.h for the validation
+# procedures themselves.
+#
+# This file lists the parameters that are NOT yet wrapped. Every entry is a code path
+# where a privileged process takes a web-content-supplied origin or URL on trust. The
+# build fails on any unlisted occurrence, so the list can only shrink.
+#
+# Additions or changes to this file will trigger a review with a security focus.
+
+# Each entry must carry one of the following justifications (in square brackets):
+#
+# LegacyNeedsAudit:      Predates this mechanism and has not been audited. This is the
+#                        burn-down list, not an assertion that the code path is safe.
+# ValidatedElsewhere:    An equivalent authority check already happens on this code path.
+# NotSecuritySensitive:  The value is not used to make a security decision.
+# NeedsReview:           Needs a security review before a final justification is given.
+#
+# Format, either grouped by type:
+#
+#   [Justification] TypeString {
+#       MessageParam Receiver.Message parameterName
+#   }
+#
+# or one entry per line:
+#
+#   [Justification] MessageParam Receiver.Message parameterName TypeString
+
+# ---------------------------------------------------------------------------
+# UI process (59)
+# ---------------------------------------------------------------------------
+
+[LegacyNeedsAudit] HashSet<WebCore::SecurityOriginData> {
+    MessageParam WebFrameProxy.DidChangeCSPOriginsThatUpgradeInsecureNavigations cspOriginsThatUpgradeInsecureNavigations
+    MessageParam WebPageProxy.DidCommitLoadForFrame cspOriginsThatUpgradeInsecureNavigations
+}
+
+[LegacyNeedsAudit] URL {
+    MessageParam ProxyingPageAgent.FrameNavigated url
+    MessageParam WebExtensionContext.CookiesGet url
+    MessageParam WebExtensionContext.CookiesGetAll url
+    MessageParam WebExtensionContext.CookiesRemove url
+    MessageParam WebInspectorUIExtensionControllerProxy.DidNavigateExtensionTab newURL
+    MessageParam WebInspectorUIExtensionControllerProxy.InspectedPageDidNavigate newURL
+    MessageParam WebPageProxy.AddMediaUsageManagerSession pageURL
+    MessageParam WebPageProxy.BeginSystemPreview url
+    MessageParam WebPageProxy.ContentRuleListNotification url
+    MessageParam WebPageProxy.DidApplyLinkDecorationFiltering adjustedURL
+    MessageParam WebPageProxy.DidApplyLinkDecorationFiltering originalURL
+    MessageParam WebPageProxy.DidChangeProvisionalURLForFrame url
+    MessageParam WebPageProxy.DidExplicitOpenForFrame url
+    MessageParam WebPageProxy.DidSameDocumentNavigationForFrame url
+    MessageParam WebPageProxy.DidSameDocumentNavigationForFrameViaJS url
+    MessageParam WebPageProxy.DidStartProvisionalLoadForFrame unreachableURL
+    MessageParam WebPageProxy.DidStartProvisionalLoadForFrame url
+    MessageParam WebPageProxy.ReportMixedContentViolation target
+    MessageParam WebPageProxy.RequestTextRecognition imageURL
+    MessageParam WebPageProxy.StartApplePayAMSUISession originatingURL
+    MessageParam WebPageProxy.WillSubmitForm requestURL
+    MessageParam WebProcessProxy.CreateServiceWorkerDebuggable url
+    MessageParam WebProcessProxy.GetNotifications registrationURL
+}
+
+[LegacyNeedsAudit] WebCore::ClientOrigin {
+    MessageParam SpeechRecognitionServer.Start origin
+    MessageParam WebLockRegistryProxy.AbortLockRequest clientOrigin
+    MessageParam WebLockRegistryProxy.ClientIsGoingAway clientOrigin
+    MessageParam WebLockRegistryProxy.ReleaseLock clientOrigin
+    MessageParam WebLockRegistryProxy.RequestLock clientOrigin
+    MessageParam WebLockRegistryProxy.Snapshot clientOrigin
+    MessageParam WebPageProxy.RequestMediaKeySystemPermissionForFrame clientOrigin
+    MessageParam WebPageProxy.ValidateCaptureStateUpdate clientOrigin
+    MessageParam WebPermissionControllerProxy.Query origin
+}
+
+[LegacyNeedsAudit] WebCore::RegistrableDomain {
+    MessageParam WebGeolocationManagerProxy.SetEnableHighAccuracy registrableDomain
+    MessageParam WebGeolocationManagerProxy.StartUpdating registrableDomain
+    MessageParam WebGeolocationManagerProxy.StopUpdating registrableDomain
+    MessageParam WebProcessProxy.DidCollectPrewarmInformation domain
+}
+
+[LegacyNeedsAudit] WebCore::SecurityOriginData {
+    MessageParam PlatformXRSystem.RequestPermissionOnSessionFeatures origin
+    MessageParam ProxyingPageAgent.FrameNavigated securityOrigin
+    MessageParam WebAuthenticatorCoordinatorProxy.GetClientCapabilities origin
+    MessageParam WebAuthenticatorCoordinatorProxy.IsUserVerifyingPlatformAuthenticatorAvailable origin
+    MessageParam WebAuthenticatorCoordinatorProxy.SignalAllAcceptedCredentials origin
+    MessageParam WebAuthenticatorCoordinatorProxy.SignalCurrentUserDetails origin
+    MessageParam WebAuthenticatorCoordinatorProxy.SignalUnknownCredential origin
+    MessageParam WebAuthenticatorCoordinatorProxy.isConditionalMediationAvailable origin
+    MessageParam WebAutomationSession.ScriptRealmCreated origin
+    MessageParam WebPageProxy.BeginSystemPreview topOrigin
+    MessageParam WebPageProxy.DispatchCrossOriginBeforeUnloadCheckForFrame navigatingFrameOrigin
+    MessageParam WebPageProxy.EnumerateMediaDevicesForFrame topLevelDocumentOriginIdentifier
+    MessageParam WebPageProxy.EnumerateMediaDevicesForFrame userMediaDocumentOriginIdentifier
+    MessageParam WebPageProxy.PostMessageToRemote sourceOrigin
+    MessageParam WebPageProxy.RequestUserMediaPermissionForFrame topLevelDocumentOriginIdentifier
+    MessageParam WebPageProxy.RequestUserMediaPermissionForFrame userMediaDocumentOriginIdentifier
+}
+
+[LegacyNeedsAudit] WebCore::Site {
+    MessageParam WebProcessProxy.DidCompleteAutofill site
+    MessageParam WebProcessProxy.DidObserveFirstPartyUserGesture site
+}
+
+[LegacyNeedsAudit] std::optional<URL> {
+    MessageParam WebExtensionContext.DevToolsInspectedWindowEval frameURL
+}
+
+[LegacyNeedsAudit] std::optional<WebCore::SecurityOriginData> {
+    MessageParam WebAuthenticatorCoordinatorProxy.GetAssertion parentOrigin
+    MessageParam WebPageProxy.PostMessageToRemote targetOrigin
+}
+
+# ---------------------------------------------------------------------------
+# Networking process (102)
+# ---------------------------------------------------------------------------
+
+[LegacyNeedsAudit] URL {
+    MessageParam NetworkConnectionToWebProcess.BlobSize url
+    MessageParam NetworkConnectionToWebProcess.BlobType url
+    MessageParam NetworkConnectionToWebProcess.CookieRequestHeaderFieldValue firstParty
+    MessageParam NetworkConnectionToWebProcess.CookieRequestHeaderFieldValue url
+    MessageParam NetworkConnectionToWebProcess.CookiesEnabled firstParty
+    MessageParam NetworkConnectionToWebProcess.CookiesEnabled url
+    MessageParam NetworkConnectionToWebProcess.CookiesEnabledSync firstParty
+    MessageParam NetworkConnectionToWebProcess.CookiesEnabledSync url
+    MessageParam NetworkConnectionToWebProcess.CookiesForDOM firstParty
+    MessageParam NetworkConnectionToWebProcess.CookiesForDOM url
+    MessageParam NetworkConnectionToWebProcess.CookiesForDOMAsync firstParty
+    MessageParam NetworkConnectionToWebProcess.CookiesForDOMAsync url
+    MessageParam NetworkConnectionToWebProcess.DeleteCookie firstParty
+    MessageParam NetworkConnectionToWebProcess.DeleteCookie url
+    MessageParam NetworkConnectionToWebProcess.DomCookiesForHost host
+    MessageParam NetworkConnectionToWebProcess.GetRawCookies firstParty
+    MessageParam NetworkConnectionToWebProcess.GetRawCookies url
+    MessageParam NetworkConnectionToWebProcess.InitializeWebTransportSession url
+    MessageParam NetworkConnectionToWebProcess.NavigatorGetPushPermissionState scopeURL
+    MessageParam NetworkConnectionToWebProcess.NavigatorGetPushSubscription scopeURL
+    MessageParam NetworkConnectionToWebProcess.NavigatorSubscribeToPushService scopeURL
+    MessageParam NetworkConnectionToWebProcess.NavigatorUnsubscribeFromPushService scopeURL
+    MessageParam NetworkConnectionToWebProcess.RegisterBlobURL srcURL
+    MessageParam NetworkConnectionToWebProcess.RegisterBlobURL url
+    MessageParam NetworkConnectionToWebProcess.RegisterBlobURLHandle url
+    MessageParam NetworkConnectionToWebProcess.RegisterInternalBlobURL url
+    MessageParam NetworkConnectionToWebProcess.RegisterInternalBlobURLForSlice srcURL
+    MessageParam NetworkConnectionToWebProcess.RegisterInternalBlobURLForSlice url
+    MessageParam NetworkConnectionToWebProcess.RegisterInternalBlobURLOptionallyFileBacked srcURL
+    MessageParam NetworkConnectionToWebProcess.RegisterInternalBlobURLOptionallyFileBacked url
+    MessageParam NetworkConnectionToWebProcess.RegisterInternalFileBlobURL url
+    MessageParam NetworkConnectionToWebProcess.SendH2Ping url
+    MessageParam NetworkConnectionToWebProcess.SetCookieFromDOMAsync firstParty
+    MessageParam NetworkConnectionToWebProcess.SetCookieFromDOMAsync url
+    MessageParam NetworkConnectionToWebProcess.SetCookiesFromDOM firstParty
+    MessageParam NetworkConnectionToWebProcess.SetCookiesFromDOM url
+    MessageParam NetworkConnectionToWebProcess.SetRawCookie firstParty
+    MessageParam NetworkConnectionToWebProcess.SetRawCookie url
+    MessageParam NetworkConnectionToWebProcess.StorageAccessQuirkForTopFrameDomain topFrameURL
+    MessageParam NetworkConnectionToWebProcess.SubscribeToCookieChangeNotifications firstParty
+    MessageParam NetworkConnectionToWebProcess.SubscribeToCookieChangeNotifications url
+    MessageParam NetworkConnectionToWebProcess.UnregisterBlobURL url
+    MessageParam NetworkConnectionToWebProcess.UnregisterBlobURLHandle url
+    MessageParam NetworkRTCProvider.GetInterfaceName url
+    MessageParam WebSWServerConnection.GetNotifications registrationURL
+    MessageParam WebSWServerConnection.GetRegistrations clientURL
+    MessageParam WebSWServerConnection.MatchRegistration clientURL
+    MessageParam WebSWServerConnection.WhenRegistrationReady clientURL
+    MessageParam WebSWServerToContextConnection.Navigate url
+    MessageParam WebSWServerToContextConnection.OpenWindow url
+    MessageParam WebSWServerToContextConnection.SetScriptResource scriptURL
+}
+
+[LegacyNeedsAudit] WebCore::ClientOrigin {
+    MessageParam NetworkBroadcastChannelRegistry.PostMessage origin
+    MessageParam NetworkBroadcastChannelRegistry.RegisterChannel origin
+    MessageParam NetworkBroadcastChannelRegistry.UnregisterChannel origin
+    MessageParam NetworkConnectionToWebProcess.CreateSocketChannel clientOrigin
+    MessageParam NetworkConnectionToWebProcess.InitializeWebTransportSession clientOrigin
+    MessageParam NetworkStorageManager.AddGlobalIdentifierReference origin
+    MessageParam NetworkStorageManager.CacheStorageAllCaches origin
+    MessageParam NetworkStorageManager.CacheStorageClearMemoryRepresentation origin
+    MessageParam NetworkStorageManager.CacheStorageOpenCache origin
+    MessageParam NetworkStorageManager.CancelConnectToStorageArea origin
+    MessageParam NetworkStorageManager.ConnectToStorageArea origin
+    MessageParam NetworkStorageManager.ConnectToStorageAreaSync origin
+    MessageParam NetworkStorageManager.Estimate origin
+    MessageParam NetworkStorageManager.FileSystemGetDirectory origin
+    MessageParam NetworkStorageManager.GetAllDatabaseNamesAndVersions origin
+    MessageParam NetworkStorageManager.LockCacheStorage origin
+    MessageParam NetworkStorageManager.Persist origin
+    MessageParam NetworkStorageManager.Persisted origin
+    MessageParam NetworkStorageManager.RemoveGlobalIdentifierReferences origin
+    MessageParam NetworkStorageManager.ResetQuotaUpdatedBasedOnUsageForTesting origin
+    MessageParam NetworkStorageManager.ResolveGlobalIdentifier origin
+    MessageParam NetworkStorageManager.UnlockCacheStorage origin
+    MessageParam WebSWServerConnection.RegisterServiceWorkerClient clientOrigin
+}
+
+[LegacyNeedsAudit] WebCore::RegistrableDomain {
+    MessageParam NetworkConnectionToWebProcess.HasStorageAccess subFrameDomain
+    MessageParam NetworkConnectionToWebProcess.HasStorageAccess topFrameDomain
+    MessageParam NetworkConnectionToWebProcess.IsLoggedIn domain
+    MessageParam NetworkConnectionToWebProcess.QueryStorageAccessPermission subFrameDomain
+    MessageParam NetworkConnectionToWebProcess.QueryStorageAccessPermission topFrameDomain
+    MessageParam NetworkConnectionToWebProcess.RequestStorageAccess subFrameDomain
+    MessageParam NetworkConnectionToWebProcess.RequestStorageAccess topFrameDomain
+    MessageParam NetworkConnectionToWebProcess.RequestStorageAccessUnderOpener openerDomain
+    MessageParam NetworkConnectionToWebProcess.SetLoginStatus domain
+    MessageParam NetworkConnectionToWebProcess.SubscribeToStorageAccessPermissionChanges subFrameDomain
+    MessageParam NetworkConnectionToWebProcess.SubscribeToStorageAccessPermissionChanges topFrameDomain
+    MessageParam NetworkConnectionToWebProcess.UnsubscribeFromStorageAccessPermissionChanges subFrameDomain
+    MessageParam NetworkConnectionToWebProcess.UnsubscribeFromStorageAccessPermissionChanges topFrameDomain
+    MessageParam NetworkRTCProvider.CreateClientTCPSocket domain
+    MessageParam NetworkRTCProvider.CreateUDPSocket domain
+    MessageParam NetworkRTCProvider.GetInterfaceName domain
+}
+
+[LegacyNeedsAudit] WebCore::SecurityOriginData {
+    MessageParam WebSWServerConnection.GetRegistrations topOrigin
+    MessageParam WebSWServerConnection.MatchRegistration topOrigin
+    MessageParam WebSWServerConnection.WhenRegistrationReady topOrigin
+    MessageParam WebSWServerToContextConnection.PostMessageToServiceWorkerClient sourceOrigin
+}
+
+[LegacyNeedsAudit] WebCore::Site {
+    MessageParam NetworkConnectionToWebProcess.EstablishSWContextConnection site
+    MessageParam NetworkConnectionToWebProcess.EstablishSharedWorkerContextConnection site
+}
+
+[LegacyNeedsAudit] std::optional<WebCore::SecurityOriginData> {
+    MessageParam NetworkConnectionToWebProcess.ConvertMainResourceLoadToDownload topOrigin
+    MessageParam NetworkConnectionToWebProcess.RegisterBlobURL topOrigin
+    MessageParam NetworkConnectionToWebProcess.RegisterBlobURLHandle topOrigin
+    MessageParam NetworkConnectionToWebProcess.StartDownload topOrigin
+    MessageParam NetworkConnectionToWebProcess.UnregisterBlobURL topOrigin
+    MessageParam NetworkConnectionToWebProcess.UnregisterBlobURLHandle topOrigin
+}
+
+# ---------------------------------------------------------------------------
+# GPU process (3)
+# ---------------------------------------------------------------------------
+
+[LegacyNeedsAudit] URL {
+    MessageParam RemoteGraphicsContext.SetURLForRect link
+    MessageParam RemoteMediaPlayerProxy.Load url
+}
+
+[LegacyNeedsAudit] WebCore::SecurityOriginData {
+    MessageParam RemoteMediaPlayerProxy.IsCrossOrigin origin
+}
+
