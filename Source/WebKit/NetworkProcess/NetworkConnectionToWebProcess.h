@@ -190,6 +190,7 @@ public:
     NetworkProcess& networkProcess() { return m_networkProcess.get(); }
 
     bool usesSingleWebProcess() const { return m_sharedPreferencesForWebProcess.usesSingleWebProcess; }
+    bool siteIsolationEnabled() const { return m_sharedPreferencesForWebProcess.siteIsolationEnabled; }
     bool blobFileAccessEnforcementEnabled() const { return m_sharedPreferencesForWebProcess.blobFileAccessEnforcementEnabled; }
 
     void didCleanupResourceLoader(NetworkResourceLoader&);

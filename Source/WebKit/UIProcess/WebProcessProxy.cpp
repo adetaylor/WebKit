@@ -298,6 +298,16 @@ void WebProcessProxy::addAllowedFirstPartyForCookies(const WebCore::RegistrableD
         m_allowedFirstPartiesForCookies.first = LoadedWebArchive::Yes;
 }
 
+void WebProcessProxy::addHostedDomain(const WebCore::RegistrableDomain& domain)
+{
+    if (domain.isEmpty())
+        return;
+    if (!m_hostedDomains.add(domain).isNewEntry)
+        return;
+    if (RefPtr dataStore = websiteDataStore())
+        protect(dataStore->networkProcess())->addHostedDomainForWebProcess(*this, domain, [] { });
+}
+
 Ref<WebProcessProxy> WebProcessProxy::create(WebProcessPool& processPool, WebsiteDataStore* websiteDataStore, LockdownMode lockdownMode, EnhancedSecurity enhancedSecurity, IsPrewarmed isPrewarmed, CrossOriginMode crossOriginMode, ShouldLaunchProcess shouldLaunchProcess)
 {
     Ref proxy = adoptRef(*new WebProcessProxy(processPool, websiteDataStore, isPrewarmed, crossOriginMode, lockdownMode, enhancedSecurity));
@@ -319,6 +329,7 @@ Ref<WebProcessProxy> WebProcessProxy::createForRemoteWorkers(RemoteWorkerType wo
 {
     Ref proxy = adoptRef(*new WebProcessProxy(processPool, &websiteDataStore, IsPrewarmed::No, crossOriginMode, lockdownMode, enhancedSecurity));
     proxy->m_committedSites.add(site);
+    proxy->m_hostedDomains.add(site.domain());
     proxy->m_site = WTF::move(site);
     proxy->enableRemoteWorkers(workerType, processPool.userContentControllerForRemoteWorkers());
     proxy->connect();
@@ -421,6 +432,7 @@ void WebProcessProxy::platformDestroy()
 void WebProcessProxy::addSharedProcessDomain(const RegistrableDomain& domain)
 {
     m_sharedProcessDomains.add(domain);
+    addHostedDomain(domain);
 }
 
 void WebProcessProxy::setIsolatedProcessType(IsolatedProcessType isolatedProcessType, std::optional<WebCore::Site> mainFrameSite)
@@ -2527,6 +2539,7 @@ void WebProcessProxy::updateSiteForMainFrameNavigation(const URL& url)
     else {
         // Associate the process with this site.
         m_committedSites.add(site);
+        addHostedDomain(site.domain());
         m_site = WTF::move(site);
     }
 }
@@ -2542,6 +2555,7 @@ void WebProcessProxy::didStartUsingProcessForSiteIsolation(const std::optional<W
     }
     ASSERT(m_site ? (m_site.value().isEmpty() || m_site.value() == *site || !m_hasCommittedAnyProvisionalLoads) : (m_site.error() == SiteState::NotYetSpecified || m_site.error() == SiteState::MultipleSites));
     m_committedSites.add(*site);
+    addHostedDomain(site->domain());
     m_site = *site;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,25 +25,38 @@
 
 #pragma once
 
-#include "LoadedWebArchive.h"
-#include "SharedPreferencesForWebProcess.h"
-#include "WebPageProxyIdentifier.h"
-#include <WebCore/PageIdentifier.h>
-#include <WebCore/RegistrableDomain.h>
-#include <wtf/HashMap.h>
+#include <wtf/text/WTFString.h>
 
-namespace WebKit {
+namespace WebCore {
 
-struct NetworkProcessConnectionParameters {
-    SharedPreferencesForWebProcess sharedPreferencesForWebProcess;
-#if ENABLE(IPC_TESTING_API)
-    bool ignoreInvalidMessageForTesting { false };
-#endif
-    Vector<WebPageProxyIdentifier> pagesWithRelaxedThirdPartyCookieBlocking;
-    LoadedWebArchive loadedWebArchive { LoadedWebArchive::No };
-    HashSet<WebCore::RegistrableDomain> allowedFirstPartiesForCookies;
-    HashSet<WebCore::RegistrableDomain> hostedDomains;
-    HashMap<WebCore::PageIdentifier, Vector<String>> corsDisablingPatternsPerPage;
+// The value of a Cookie request header field, or of document.cookie: the names and values
+// of every cookie matching some request, serialized into one string.
+//
+// This is as sensitive as the cookies it was built from, but a bare String cannot be told
+// apart from the many unremarkable strings that cross the same process boundaries. Giving
+// it a type of its own is what lets the IPC layer recognise it and require a permission
+// check before it is sent to a less privileged process.
+class CookieHeaderString {
+public:
+    CookieHeaderString() = default;
+
+    explicit CookieHeaderString(String&& string)
+        : m_string(WTF::move(string))
+    {
+    }
+
+    explicit CookieHeaderString(const String& string)
+        : m_string(string)
+    {
+    }
+
+    const String& string() const LIFETIME_BOUND { return m_string; }
+    String takeString() { return WTF::move(m_string); }
+
+    bool isEmpty() const { return m_string.isEmpty(); }
+
+private:
+    String m_string;
 };
 
-} // namespace WebKit
+} // namespace WebCore

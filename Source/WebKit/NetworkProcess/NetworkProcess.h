@@ -474,6 +474,13 @@ public:
     AllowCookieAccess allowsFirstPartyForCookies(WebCore::ProcessIdentifier, const RegistrableDomain&);
     void addAllowedFirstPartyForCookies(WebCore::ProcessIdentifier, WebCore::RegistrableDomain&&, LoadedWebArchive, CompletionHandler<void()>&&);
 
+    // Whether a web process is entitled to host content for a domain, which is a different
+    // question from whether it may name that domain as a first party. See
+    // WebProcessProxy::addHostedDomain for why this state can be trusted despite being a copy
+    // of the UI process's.
+    bool hostsDomain(WebCore::ProcessIdentifier, const RegistrableDomain&) const;
+    void addHostedDomainForWebProcess(WebCore::ProcessIdentifier, WebCore::RegistrableDomain&&, CompletionHandler<void()>&&);
+
     void requestBackgroundFetchPermission(PAL::SessionID, const WebCore::ClientOrigin&, CompletionHandler<void(bool)>&&);
     void setInspectionForServiceWorkersAllowed(PAL::SessionID, bool);
     void setStorageSiteValidationEnabled(PAL::SessionID, bool);
@@ -646,6 +653,7 @@ private:
     HashMap<PAL::SessionID, std::unique_ptr<NetworkSession>> m_networkSessions;
     HashMap<PAL::SessionID, std::unique_ptr<WebCore::NetworkStorageSession>> m_networkStorageSessions;
     HashMap<WebCore::ProcessIdentifier, std::pair<LoadedWebArchive, HashSet<WebCore::RegistrableDomain>>> m_allowedFirstPartiesForCookies;
+    HashMap<WebCore::ProcessIdentifier, HashSet<WebCore::RegistrableDomain>> m_hostedDomainsByProcess;
     HashMap<WebCore::ProcessIdentifier, HashSet<String>> m_pendingAllowedFilePathsByProcess;
 
 #if PLATFORM(COCOA)

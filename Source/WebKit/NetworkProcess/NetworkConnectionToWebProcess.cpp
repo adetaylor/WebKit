@@ -1079,10 +1079,13 @@ void NetworkConnectionToWebProcess::domCookiesForHost(const URL& url, Completion
 
 void NetworkConnectionToWebProcess::subscribeToCookieChangeNotifications(const URL& url, const URL& firstParty, WebCore::FrameIdentifier frameID, WebCore::PageIdentifier pageID, WebPageProxyIdentifier webPageProxyID, CompletionHandler<void(bool)>&& completionHandler)
 {
-    auto access = validateCookieAccess("subscribeToCookieChangeNotifications"_s, firstParty, url, nullptr);
-    MESSAGE_CHECK_COMPLETION(access != CookieAccess::Terminate, completionHandler(false));
-    if (access != CookieAccess::Allow)
-        return completionHandler({ });
+    // The authority checks both that this process may name firstParty and that it is entitled to
+    // url's cookies. Without the second check, a process could subscribe to the cookie changes of
+    // any site by naming a first party it does happen to have authority over.
+    auto authority = CookieRecipientAuthority::forDocumentCookieAccess(*this, "subscribeToCookieChangeNotifications"_s, firstParty, url);
+    MESSAGE_CHECK_COMPLETION(authority.access() != CookieRecipientAuthority::Access::Terminate, completionHandler(false));
+    if (authority.access() != CookieRecipientAuthority::Access::Permitted)
+        return completionHandler(false);
 
     auto host = url.host().toString();
     MESSAGE_CHECK_COMPLETION(m_hostsWithCookieListeners.isValidValue(host), completionHandler(false));

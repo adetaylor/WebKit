@@ -213,6 +213,18 @@ public:
     void addAllowedFirstPartyForCookies(const WebCore::RegistrableDomain&, LoadedWebArchive);
     const std::pair<LoadedWebArchive, HashSet<WebCore::RegistrableDomain>>& allowedFirstPartiesForCookiesData() const { return m_allowedFirstPartiesForCookies; }
 
+    // The domains this process has ever been entitled to host content for, as distinct from
+    // the first parties it is entitled to name. A subframe process is entitled to name the
+    // main frame's first party but hosts only its own site, so the two sets answer different
+    // questions and must not be conflated.
+    //
+    // Deliberately add-only, unlike m_site and m_sharedProcessDomains, which both narrow.
+    // The network process holds a copy, and a copy of a set that only grows can only ever be
+    // more restrictive than the truth - so a stale copy denies access it should have allowed,
+    // rather than allowing access it should have denied.
+    void addHostedDomain(const WebCore::RegistrableDomain&);
+    const HashSet<WebCore::RegistrableDomain>& hostedDomains() const LIFETIME_BOUND { return m_hostedDomains; }
+
     void initializeWebProcess(WebProcessCreationParameters&&);
 
     unsigned suspendedPageCount() const;
@@ -860,6 +872,7 @@ private:
     std::optional<WebCore::Site> m_sharedProcessMainFrameSite;
     HashSet<WebCore::RegistrableDomain> m_sharedProcessDomains;
     std::pair<LoadedWebArchive, HashSet<WebCore::RegistrableDomain>> m_allowedFirstPartiesForCookies { LoadedWebArchive::No, { } };
+    HashSet<WebCore::RegistrableDomain> m_hostedDomains;
     bool m_isInProcessCache { false };
     bool m_isShuttingDown { false };
 

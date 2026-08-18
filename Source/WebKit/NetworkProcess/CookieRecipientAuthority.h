@@ -25,10 +25,13 @@
 
 #pragma once
 
+#include "Logging.h"
 #include "NetworkConnectionToWebProcess.h"
+#include "NetworkProcess.h"
 #include "PermissionChecked.h"
 #include <WebCore/Cookie.h>
 #include <WebCore/CookieHeaderString.h>
+#include <WebCore/RegistrableDomain.h>
 
 namespace WebKit {
 
@@ -55,36 +58,55 @@ class CookieRecipientAuthority {
 public:
     enum class Access : uint8_t { Permitted, Denied, Terminate };
 
-    // Cookies read on behalf of a document: the receiving process must have authority over
-    // the first party the read was made against, and the read must be a plausible same-site
-    // request.
+    // Cookies read on behalf of a document. Two independent things must hold: the process must
+    // have authority over the first party the read was made against, and it must be entitled to
+    // the cookies of the host being read.
+    //
+    // The second is the part the first-party check cannot answer. A process legitimately hosting
+    // example.com may name example.com as a first party while asking for the cookies of any
+    // unrelated url, so without checking the host as well, authority over one site buys the
+    // cookies of every site.
     static CookieRecipientAuthority forDocumentCookieAccess(NetworkConnectionToWebProcess& connection, ASCIILiteral messageName, const URL& firstParty, const URL& url, const WebCore::SameSiteInfo* sameSiteInfo = nullptr)
     {
-        switch (connection.validateCookieAccess(messageName, firstParty, url, sameSiteInfo)) {
-        case NetworkConnectionToWebProcess::CookieAccess::Allow:
-            return CookieRecipientAuthority { Access::Permitted };
-        case NetworkConnectionToWebProcess::CookieAccess::Disallow:
-            return CookieRecipientAuthority { Access::Denied };
-        case NetworkConnectionToWebProcess::CookieAccess::Terminate:
-            return CookieRecipientAuthority { Access::Terminate };
+        auto access = [&] {
+            switch (connection.validateCookieAccess(messageName, firstParty, url, sameSiteInfo)) {
+            case NetworkConnectionToWebProcess::CookieAccess::Allow:
+                return Access::Permitted;
+            case NetworkConnectionToWebProcess::CookieAccess::Disallow:
+                return Access::Denied;
+            case NetworkConnectionToWebProcess::CookieAccess::Terminate:
+                return Access::Terminate;
+            }
+            RELEASE_ASSERT_NOT_REACHED();
+        }();
+
+        if (access == Access::Permitted && !isEntitledToDomain(connection, WebCore::RegistrableDomain { url })) {
+            RELEASE_LOG_ERROR(Network, "%" PUBLIC_LOG_STRING ": denying cookies for a host this web process is not entitled to", messageName.characters());
+            access = Access::Denied;
         }
-        RELEASE_ASSERT_NOT_REACHED();
+
+        return CookieRecipientAuthority { access };
     }
 
-    // Cookie change notifications: the receiving process is entitled to notifications for a
-    // host only if it subscribed to that host, which required a cookie access check for the
-    // document making the subscription. A host it never subscribed to - or has since
-    // unsubscribed from - is a race rather than an attack, so it is denied, not fatal.
-    static CookieRecipientAuthority forSubscribedCookieChangeHost(const NetworkConnectionToWebProcess& connection, const String& host)
+    // Cookie change notifications. The process must still be entitled to the host, and must have
+    // subscribed to it. The subscription alone is not enough: it only records that a request was
+    // made and accepted, not that it should have been.
+    //
+    // Both failures are races rather than attacks - an unsubscribe or a process being reused can
+    // both get here legitimately - so they are denied, not fatal.
+    static CookieRecipientAuthority forSubscribedCookieChangeHost(NetworkConnectionToWebProcess& connection, const String& host)
     {
 #if HAVE(COOKIE_CHANGE_LISTENER_API)
-        if (connection.m_hostsWithCookieListeners.contains(host))
-            return CookieRecipientAuthority { Access::Permitted };
+        if (!connection.m_hostsWithCookieListeners.contains(host))
+            return CookieRecipientAuthority { Access::Denied };
+        if (!isEntitledToDomain(connection, WebCore::RegistrableDomain::uncheckedCreateFromHost(host)))
+            return CookieRecipientAuthority { Access::Denied };
+        return CookieRecipientAuthority { Access::Permitted };
 #else
         UNUSED_PARAM(connection);
         UNUSED_PARAM(host);
-#endif
         return CookieRecipientAuthority { Access::Denied };
+#endif
     }
 
     Access access() const { return m_access; }
@@ -104,6 +126,26 @@ public:
     }
 
 private:
+    // A process is entitled to a domain's cookies if it hosts content for that domain, or if it
+    // may name that domain as a first party - which it can only do if it was navigated to that
+    // domain as a first party, so this does not widen authority beyond sites the process has
+    // legitimately been.
+    //
+    // Without site isolation there is no per-host authority to check: one process hosts every
+    // site a page pulls in, including its cross-site subframes, and WebProcessProxy only records
+    // the main frame's site as hosted. Asking the question there could only produce false
+    // denials, so it is not asked.
+    static bool isEntitledToDomain(NetworkConnectionToWebProcess& connection, const WebCore::RegistrableDomain& domain)
+    {
+        if (!connection.siteIsolationEnabled() || connection.usesSingleWebProcess())
+            return true;
+
+        Ref networkProcess = connection.networkProcess();
+        if (networkProcess->hostsDomain(connection.webProcessIdentifier(), domain))
+            return true;
+        return networkProcess->allowsFirstPartyForCookies(connection.webProcessIdentifier(), domain) == NetworkProcess::AllowCookieAccess::Allow;
+    }
+
     explicit CookieRecipientAuthority(Access access)
         : m_access(access)
     {
