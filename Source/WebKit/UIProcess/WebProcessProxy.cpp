@@ -2436,24 +2436,30 @@ const MemoryCompactLookupOnlyRobinHoodHashSet<String>& WebProcessProxy::platform
 }
 #endif
 
-void WebProcessProxy::didCollectPrewarmInformation(const WebCore::RegistrableDomain& domain, const WebCore::PrewarmInformation& prewarmInformation)
+void WebProcessProxy::didCollectPrewarmInformation(IPC::Untrusted<WebCore::RegistrableDomain>&& untrustedDomain, const WebCore::PrewarmInformation& prewarmInformation)
 {
-    MESSAGE_CHECK(!domain.isEmpty());
-    protect(processPool())->didCollectPrewarmInformation(domain, prewarmInformation);
+    auto domain = WTF::move(untrustedDomain).validate(FirstPartyAuthority { *this });
+    MESSAGE_CHECK(domain);
+    MESSAGE_CHECK(!domain->isEmpty());
+    protect(processPool())->didCollectPrewarmInformation(*domain, prewarmInformation);
 }
 
-void WebProcessProxy::didCompleteAutofill(const WebCore::Site& site)
+void WebProcessProxy::didCompleteAutofill(IPC::Untrusted<WebCore::Site>&& untrustedSite)
 {
-    MESSAGE_CHECK(!site.isEmpty());
+    auto site = WTF::move(untrustedSite).validate(FirstPartyAuthority { *this });
+    MESSAGE_CHECK(site);
+    MESSAGE_CHECK(!site->isEmpty());
     if (RefPtr dataStore = websiteDataStore())
-        protect(dataStore->isolatedSiteStore())->addSite(site, IsolatedSiteStore::Signal::Autofill);
+        protect(dataStore->isolatedSiteStore())->addSite(*site, IsolatedSiteStore::Signal::Autofill);
 }
 
-void WebProcessProxy::didObserveFirstPartyUserGesture(const WebCore::Site& site)
+void WebProcessProxy::didObserveFirstPartyUserGesture(IPC::Untrusted<WebCore::Site>&& untrustedSite)
 {
-    MESSAGE_CHECK(!site.isEmpty());
+    auto site = WTF::move(untrustedSite).validate(FirstPartyAuthority { *this });
+    MESSAGE_CHECK(site);
+    MESSAGE_CHECK(!site->isEmpty());
     if (RefPtr dataStore = websiteDataStore())
-        protect(dataStore->isolatedSiteStore())->addSite(site, IsolatedSiteStore::Signal::FirstPartyUserGesture);
+        protect(dataStore->isolatedSiteStore())->addSite(*site, IsolatedSiteStore::Signal::FirstPartyUserGesture);
 }
 
 void WebProcessProxy::activePagesDomainsForTesting(CompletionHandler<void(Vector<String>&&)>&& completionHandler)

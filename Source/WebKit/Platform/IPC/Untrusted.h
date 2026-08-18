@@ -48,16 +48,19 @@ enum class ValidationFailure : uint8_t {
 template<typename T> using Validated = Expected<T, ValidationFailure>;
 
 // Justification for bypassing validation entirely. Every use of
-// Untrusted::extractWithoutValidation() must name one of these, and is tracked in
-// Source/WebKit/Scripts/webkit/untrusted_origins.tracking.in.
+// Untrusted::extractWithoutValidation() must name one of these. The vocabulary matches
+// the justifications in Source/WebKit/Scripts/webkit/untrusted_origins.tracking.in.
 enum class UnvalidatedReason : uint8_t {
-    // Predates this mechanism and has not yet been audited. These are the burn-down
-    // list: each one is a code path where a privileged process trusts a web-content
-    // supplied origin or URL without proving the sender had authority over it.
-    LegacyNeedsAudit,
+    // A malicious sender can abuse this. Needs a security review before the right check
+    // can be chosen.
+    NeedsReview,
 
-    // The value is validated by an equivalent check elsewhere on this code path.
+    // The value is validated by an equivalent authority check elsewhere on this path.
     ValidatedElsewhere,
+
+    // The value names a resource the sender is asking about rather than authority the
+    // sender claims, and access control is applied downstream.
+    RequestTarget,
 
     // The value is not used to make a security decision.
     NotSecuritySensitive,
@@ -88,8 +91,6 @@ concept PreordainedValidator = IsPreordainedValidator<std::remove_cvref_t<Valida
 template<typename T>
 class Untrusted {
 public:
-    Untrusted() = default;
-
     explicit Untrusted(T&& value)
         : m_value(WTF::move(value))
     {
@@ -109,7 +110,7 @@ public:
 private:
     friend struct ArgumentCoder<Untrusted<T>>;
 
-    T m_value { };
+    T m_value;
 };
 
 template<typename T> struct ArgumentCoder<Untrusted<T>> {

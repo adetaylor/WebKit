@@ -96,12 +96,38 @@ PREORDAINED_VALIDATOR_HEADERS = {
 VALID_ATTRIBUTES = {
     # Predates this mechanism and has not been audited. The burn-down list.
     "LegacyNeedsAudit",
-    # An equivalent check already happens on this code path.
+    # An equivalent authority check already happens on this code path.
     "ValidatedElsewhere",
+    # The value names a resource the sender is asking about rather than authority the
+    # sender claims, and access control is applied downstream (typically keyed on a
+    # sibling parameter that IS authority-checked).
+    "RequestTarget",
     # The value is not used to make a security decision.
     "NotSecuritySensitive",
-    # Needs a security review before it can be given a final justification.
+    # A malicious web content process can abuse this. Needs a security review before
+    # the right check can be chosen; see the Consequence= class.
     "NeedsReview",
+}
+
+# What a malicious web content process achieves by naming an origin, site, domain or
+# URL it has no authority over. Recorded on every entry so the residual risk carried by
+# this file can be counted rather than guessed.
+VALID_CONSEQUENCES = {
+    # Reads another origin's data: cookies, storage, caches, credentials, locks,
+    # push subscriptions, or an oracle that discloses per-origin state.
+    "CrossOriginRead",
+    # Writes, deletes or corrupts another origin's data.
+    "CrossOriginWrite",
+    # Forges the origin the privileged process attributes something to: a permission
+    # prompt, the URL bar, a payment sheet, or a postMessage event.origin.
+    "OriginSpoofing",
+    # Corrupts privileged bookkeeping or policy: site-isolation site assignment,
+    # tracking-prevention classification, login status, quota, CSP state.
+    "PolicyCorruption",
+    # Reaches a local file or a sandbox extension.
+    "LocalResource",
+    # No cross-origin consequence.
+    "None",
 }
 
 
@@ -195,13 +221,24 @@ def conveys_untrusted_value(type_str, visited=None):
 class UntrustedOriginEntry(object):
     """A single unwrapped origin or URL parameter, with its justification."""
 
-    def __init__(self, attribute, receiver, message, parameter_name, parameter_type, docs=None):
-        self.attribute = attribute
+    def __init__(self, attribute, receiver, message, parameter_name, parameter_type):
+        self.attribute, self.consequence = self._split_attribute(attribute)
         self.receiver = receiver
         self.message = message
         self.parameter_name = parameter_name
         self.parameter_type = parameter_type
-        self.docs = docs
+
+    @staticmethod
+    def _split_attribute(attribute):
+        justification = None
+        consequence = None
+        for part in attribute.split(','):
+            part = part.strip()
+            if part.startswith('Consequence='):
+                consequence = part[len('Consequence='):].strip()
+            elif part:
+                justification = part
+        return justification, consequence
 
 
 class UntrustedOrigins(object):
@@ -242,13 +279,25 @@ class UntrustedOrigins(object):
             raise Exception('untrusted_origins.tracking.in unterminated group')
 
     def _validate_attribute(self, attribute, line):
+        justifications = 0
+        consequences = 0
         for part in attribute.split(','):
             part = part.strip()
-            if part.startswith('Docs='):
-                continue
-            if part not in VALID_ATTRIBUTES:
-                raise Exception("untrusted_origins.tracking.in unknown attribute '%s' in: %s. Valid attributes are: %s"
-                                % (part, line, ', '.join(sorted(VALID_ATTRIBUTES))))
+            if part.startswith('Consequence='):
+                value = part[len('Consequence='):].strip()
+                if value not in VALID_CONSEQUENCES:
+                    raise Exception("untrusted_origins.tracking.in unknown consequence '%s' in: %s. Valid consequences are: %s"
+                                    % (value, line, ', '.join(sorted(VALID_CONSEQUENCES))))
+                consequences += 1
+            elif part:
+                if part not in VALID_ATTRIBUTES:
+                    raise Exception("untrusted_origins.tracking.in unknown attribute '%s' in: %s. Valid attributes are: %s"
+                                    % (part, line, ', '.join(sorted(VALID_ATTRIBUTES))))
+                justifications += 1
+        if justifications != 1:
+            raise Exception('untrusted_origins.tracking.in needs exactly one justification in: %s' % line)
+        if consequences != 1:
+            raise Exception('untrusted_origins.tracking.in needs exactly one Consequence= in: %s' % line)
 
     def _parse_entry(self, line, group_attribute, group_type):
         if group_attribute is not None:

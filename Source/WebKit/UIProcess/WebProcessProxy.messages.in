@@ -56,11 +56,11 @@ messages -> WebProcessProxy WantsDispatchMessage {
 
     MemoryPressureStatusChanged(WTF::SystemMemoryPressureStatus status)
 
-    DidCollectPrewarmInformation(WebCore::RegistrableDomain domain, struct WebCore::PrewarmInformation prewarmInformation)
+    DidCollectPrewarmInformation(IPC::Untrusted<WebCore::RegistrableDomain> domain, struct WebCore::PrewarmInformation prewarmInformation)
 
-    DidCompleteAutofill(WebCore::Site site)
+    DidCompleteAutofill(IPC::Untrusted<WebCore::Site> site)
 
-    DidObserveFirstPartyUserGesture(WebCore::Site site)
+    DidObserveFirstPartyUserGesture(IPC::Untrusted<WebCore::Site> site)
 
 #if PLATFORM(COCOA)
     CacheMediaMIMETypes(Vector<String> types)

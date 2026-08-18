@@ -22,8 +22,8 @@
 
 # See untrusted_origins.tracking.in for format documentation.
 
-[LegacyNeedsAudit] WebCore::SecurityOriginData {
+[NeedsReview, Consequence=CrossOriginRead] WebCore::SecurityOriginData {
     MessageParam TestWithoutAttributes.TestUntrustedOrigin legacyOrigin
 }
 
-[NotSecuritySensitive] MessageParam TestWithoutAttributes.TestUntrustedOrigin reportedURL URL
+[NotSecuritySensitive, Consequence=None] MessageParam TestWithoutAttributes.TestUntrustedOrigin reportedURL URL

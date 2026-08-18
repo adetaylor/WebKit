@@ -747,10 +747,10 @@ private:
     void didChangeIsResponsive() override;
     bool canTerminateAuxiliaryProcess();
 
-    void didCollectPrewarmInformation(const WebCore::RegistrableDomain&, const WebCore::PrewarmInformation&);
+    void didCollectPrewarmInformation(IPC::Untrusted<WebCore::RegistrableDomain>&&, const WebCore::PrewarmInformation&);
 
-    void didCompleteAutofill(const WebCore::Site&);
-    void didObserveFirstPartyUserGesture(const WebCore::Site&);
+    void didCompleteAutofill(IPC::Untrusted<WebCore::Site>&&);
+    void didObserveFirstPartyUserGesture(IPC::Untrusted<WebCore::Site>&&);
 
     void logDiagnosticMessageForResourceLimitTermination(const String& limitKey);
     

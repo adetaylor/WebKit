@@ -27,6 +27,7 @@
 
 #include "Untrusted.h"
 #include "WebProcessProxy.h"
+#include <WebCore/ClientOrigin.h>
 #include <WebCore/RegistrableDomain.h>
 #include <WebCore/SecurityOriginData.h>
 #include <WebCore/Site.h>
@@ -100,6 +101,29 @@ private:
     Ref<const WebProcessProxy> m_process;
 };
 
+// The pre-ordained validation procedure for a WebCore::ClientOrigin that a web content
+// process sent to the UI process: the process must have committed a load for that exact
+// (top origin, client origin) pair, or be running a worker for it. Stronger than
+// FirstPartyAuthority because it validates the client origin as well as the top origin,
+// which matters for storage and locks that are partitioned on both.
+class CommittedClientOriginAuthority {
+public:
+    explicit CommittedClientOriginAuthority(const WebProcessProxy& process)
+        : m_process(process)
+    {
+    }
+
+    IPC::Validated<WebCore::ClientOrigin> validateUntrusted(WebCore::ClientOrigin&& origin) const
+    {
+        if (!m_process->hasCommittedClientOrigin(origin))
+            return std::unexpected { IPC::ValidationFailure::Terminate };
+        return IPC::Validated<WebCore::ClientOrigin> { WTF::move(origin) };
+    }
+
+private:
+    Ref<const WebProcessProxy> m_process;
+};
+
 } // namespace WebKit
 
 namespace IPC {
@@ -108,5 +132,7 @@ template<> struct IsPreordainedValidator<WebKit::FirstPartyAuthority, WebCore::S
 template<> struct IsPreordainedValidator<WebKit::FirstPartyAuthority, WebCore::RegistrableDomain> : std::true_type { };
 template<> struct IsPreordainedValidator<WebKit::FirstPartyAuthority, WebCore::Site> : std::true_type { };
 template<> struct IsPreordainedValidator<WebKit::FirstPartyAuthority, URL> : std::true_type { };
+
+template<> struct IsPreordainedValidator<WebKit::CommittedClientOriginAuthority, WebCore::ClientOrigin> : std::true_type { };
 
 } // namespace IPC
