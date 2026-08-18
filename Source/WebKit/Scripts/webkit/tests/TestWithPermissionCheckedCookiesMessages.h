@@ -36,7 +36,7 @@
 
 
 namespace Messages {
-namespace TestWithDispatchedFromAndTo {
+namespace TestWithPermissionCheckedCookies {
 
 static inline IPC::ReceiverName messageReceiverName()
 {
@@ -45,95 +45,67 @@ static inline IPC::ReceiverName messageReceiverName()
     std::call_once(
         onceFlag,
         [&] {
-            ASSERT(!isInAuxiliaryProcess());
+            ASSERT(isInWebProcess());
         }
     );
 #endif
-    return IPC::ReceiverName::TestWithDispatchedFromAndTo;
+    return IPC::ReceiverName::TestWithPermissionCheckedCookies;
 }
 
-class AlwaysEnabled {
+class CookiesAdded {
 public:
-    using Arguments = std::tuple<String>;
+    using Arguments = std::tuple<String, Vector<WebCore::Cookie>>;
 
-    static IPC::MessageName name() { return IPC::MessageName::TestWithDispatchedFromAndTo_AlwaysEnabled; }
+    static IPC::MessageName name() { return IPC::MessageName::TestWithPermissionCheckedCookies_CookiesAdded; }
     static constexpr bool isSync = false;
     static constexpr bool canDispatchOutOfOrder = false;
     static constexpr bool replyCanDispatchOutOfOrder = false;
     static constexpr bool deferSendingIfSuspended = false;
 
-    explicit AlwaysEnabled(const String& url)
-        : m_url(url)
+    CookiesAdded(const String& host, IPC::PermissionChecked<Vector<WebCore::Cookie>>&& cookies)
+        : m_host(host)
+        , m_cookies(WTF::move(cookies))
     {
-        ASSERT(isInWebProcess());
+        ASSERT(isInNetworkProcess());
     }
 
     template<typename Encoder>
     void encode(Encoder& encoder)
     {
-        encoder << m_url;
-    }
-
-private:
-    const String& m_url;
-};
-
-class GetCookies {
-public:
-    using Arguments = std::tuple<URL>;
-
-    static IPC::MessageName name() { return IPC::MessageName::TestWithDispatchedFromAndTo_GetCookies; }
-    static constexpr bool isSync = false;
-    static constexpr bool canDispatchOutOfOrder = false;
-    static constexpr bool replyCanDispatchOutOfOrder = false;
-    static constexpr bool deferSendingIfSuspended = false;
-
-    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithDispatchedFromAndTo_GetCookiesReply; }
-    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
-    using ReplyArguments = std::tuple<Vector<WebCore::Cookie>>;
-    using Reply = CompletionHandler<void(IPC::PermissionChecked<Vector<WebCore::Cookie>>&&)>;
-    using Promise = WTF::NativePromise<Vector<WebCore::Cookie>, IPC::Error>;
-    explicit GetCookies(const URL& url)
-        : m_url(url)
-    {
-        ASSERT(isInWebProcess());
-    }
-
-    template<typename Encoder>
-    void encode(Encoder& encoder)
-    {
-        SUPPRESS_FORWARD_DECL_ARG encoder << m_url;
-    }
-
-private:
-    SUPPRESS_FORWARD_DECL_MEMBER const URL& m_url;
-};
-
-class GetCookiesReply {
-public:
-    using Arguments = std::tuple<Vector<WebCore::Cookie>>;
-
-    static IPC::MessageName name() { return IPC::MessageName::TestWithDispatchedFromAndTo_GetCookiesReply; }
-    static constexpr bool isSync = false;
-    static constexpr bool canDispatchOutOfOrder = false;
-    static constexpr bool replyCanDispatchOutOfOrder = false;
-    static constexpr bool deferSendingIfSuspended = false;
-
-    explicit GetCookiesReply(IPC::PermissionChecked<Vector<WebCore::Cookie>>&& cookies)
-        : m_cookies(WTF::move(cookies))
-    {
-        ASSERT(isInWebProcess());
-    }
-
-    template<typename Encoder>
-    void encode(Encoder& encoder)
-    {
+        encoder << m_host;
         SUPPRESS_FORWARD_DECL_ARG encoder << WTF::move(m_cookies);
     }
 
 private:
+    const String& m_host;
     SUPPRESS_FORWARD_DECL_MEMBER IPC::PermissionChecked<Vector<WebCore::Cookie>>&& m_cookies;
 };
 
-} // namespace TestWithDispatchedFromAndTo
+class CookieHeaderChanged {
+public:
+    using Arguments = std::tuple<WebCore::CookieHeaderString>;
+
+    static IPC::MessageName name() { return IPC::MessageName::TestWithPermissionCheckedCookies_CookieHeaderChanged; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit CookieHeaderChanged(IPC::PermissionChecked<WebCore::CookieHeaderString>&& cookieString)
+        : m_cookieString(WTF::move(cookieString))
+    {
+        ASSERT(isInNetworkProcess());
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << WTF::move(m_cookieString);
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER IPC::PermissionChecked<WebCore::CookieHeaderString>&& m_cookieString;
+};
+
+} // namespace TestWithPermissionCheckedCookies
 } // namespace Messages

@@ -32,6 +32,7 @@
 #include "NetworkRTCProvider.h"
 #include "NetworkResourceLoadIdentifier.h"
 #include "NetworkResourceLoadMap.h"
+#include "PermissionChecked.h"
 #include "PolicyDecision.h"
 #include "SandboxExtension.h"
 #include "SharedPreferencesForWebProcess.h"
@@ -41,6 +42,7 @@
 #include "WebResourceLoadObserver.h"
 #include "WebSWServerToContextConnection.h"
 #include <JavaScriptCore/ConsoleTypes.h>
+#include <WebCore/CookieHeaderString.h>
 #include <WebCore/ExceptionData.h>
 #include <WebCore/FrameIdentifier.h>
 #include <WebCore/LayoutMilestone.h>
@@ -152,6 +154,11 @@ class NetworkConnectionToWebProcess final
     , public IPC::Connection::Client {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(NetworkConnectionToWebProcess);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(NetworkConnectionToWebProcess);
+
+    // The pre-ordained permission check for cookies sent to this connection's web content
+    // process. It answers from this connection's state, so it needs to see it.
+    friend class CookieRecipientAuthority;
+
 public:
     USING_CAN_MAKE_WEAKPTR(MessageReceiver);
     USING_CAN_MAKE_CHECKEDPTR(IPC::Connection::Client);
@@ -322,16 +329,16 @@ private:
     enum class CookieAccess : uint8_t { Disallow, Allow, Terminate };
     CookieAccess validateCookieAccess(ASCIILiteral messageName, const URL& firstParty, const URL&, const WebCore::SameSiteInfo*);
 
-    void cookiesForDOM(const URL& firstParty, const WebCore::SameSiteInfo&, const URL&, WebCore::FrameIdentifier, WebCore::PageIdentifier, WebCore::IncludeSecureCookies, WebPageProxyIdentifier, CompletionHandler<void(String cookieString, bool secureCookiesAccessed)>&&);
+    void cookiesForDOM(const URL& firstParty, const WebCore::SameSiteInfo&, const URL&, WebCore::FrameIdentifier, WebCore::PageIdentifier, WebCore::IncludeSecureCookies, WebPageProxyIdentifier, CompletionHandler<void(IPC::PermissionChecked<WebCore::CookieHeaderString>&& cookieString, bool secureCookiesAccessed)>&&);
     void setCookiesFromDOM(const URL& firstParty, const WebCore::SameSiteInfo&, const URL&, WebCore::FrameIdentifier, WebCore::PageIdentifier, const String& cookieString, WebCore::RequiresScriptTrackingPrivacy, WebPageProxyIdentifier);
-    void cookieRequestHeaderFieldValue(const URL& firstParty, const WebCore::SameSiteInfo&, const URL&, std::optional<WebCore::FrameIdentifier>, std::optional<WebCore::PageIdentifier>, WebCore::IncludeSecureCookies, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(String cookieString, bool secureCookiesAccessed)>&&);
-    void getRawCookies(const URL& firstParty, const WebCore::SameSiteInfo&, const URL&, std::optional<WebCore::FrameIdentifier>, std::optional<WebCore::PageIdentifier>, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(Vector<WebCore::Cookie>&&)>&&);
+    void cookieRequestHeaderFieldValue(const URL& firstParty, const WebCore::SameSiteInfo&, const URL&, std::optional<WebCore::FrameIdentifier>, std::optional<WebCore::PageIdentifier>, WebCore::IncludeSecureCookies, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(IPC::PermissionChecked<WebCore::CookieHeaderString>&& cookieString, bool secureCookiesAccessed)>&&);
+    void getRawCookies(const URL& firstParty, const WebCore::SameSiteInfo&, const URL&, std::optional<WebCore::FrameIdentifier>, std::optional<WebCore::PageIdentifier>, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(IPC::PermissionChecked<Vector<WebCore::Cookie>>&&)>&&);
     void setRawCookie(const URL& firstParty, const URL&, const WebCore::Cookie&, WebCore::ShouldPartitionCookie);
     void deleteCookie(const URL& firstParty, const URL&, const String& cookieName, CompletionHandler<void()>&&);
     void cookiesEnabledSync(const URL& firstParty, const URL&, std::optional<WebCore::FrameIdentifier>, std::optional<WebCore::PageIdentifier>, WebPageProxyIdentifier, CompletionHandler<void(bool enabled)>&&);
     void cookiesEnabled(const URL& firstParty, const URL&, std::optional<WebCore::FrameIdentifier>, std::optional<WebCore::PageIdentifier>, WebPageProxyIdentifier, CompletionHandler<void(bool enabled)>&&);
 
-    void cookiesForDOMAsync(const URL&, const WebCore::SameSiteInfo&, const URL&, std::optional<WebCore::FrameIdentifier>, std::optional<WebCore::PageIdentifier>, WebCore::IncludeSecureCookies, WebCore::CookieStoreGetOptions&&, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<Vector<WebCore::Cookie>>&&)>&&);
+    void cookiesForDOMAsync(const URL&, const WebCore::SameSiteInfo&, const URL&, std::optional<WebCore::FrameIdentifier>, std::optional<WebCore::PageIdentifier>, WebCore::IncludeSecureCookies, WebCore::CookieStoreGetOptions&&, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(IPC::PermissionChecked<std::optional<Vector<WebCore::Cookie>>>&&)>&&);
     void setCookieFromDOMAsync(const URL&, const WebCore::SameSiteInfo&, const URL&, std::optional<WebCore::FrameIdentifier>, std::optional<WebCore::PageIdentifier>, WebCore::Cookie&&, WebCore::RequiresScriptTrackingPrivacy, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(bool)>&&);
 
     void registerInternalFileBlobURL(const URL&, const String& path, const String& replacementPath, SandboxExtension::Handle&&, const String& contentType);
@@ -425,7 +432,7 @@ private:
 
     MessageBatchIdentifier nextMessageBatchIdentifier(CompletionHandler<void()>&&);
 
-    void domCookiesForHost(const URL& host, CompletionHandler<void(const Vector<WebCore::Cookie>&)>&&);
+    void domCookiesForHost(const URL& host, CompletionHandler<void(IPC::PermissionChecked<Vector<WebCore::Cookie>>&&)>&&);
 
 #if HAVE(COOKIE_CHANGE_LISTENER_API)
     void subscribeToCookieChangeNotifications(const URL&, const URL& firstParty, WebCore::FrameIdentifier, WebCore::PageIdentifier, WebPageProxyIdentifier, CompletionHandler<void(bool)>&&);

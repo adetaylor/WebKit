@@ -53,28 +53,29 @@ enum class ReceiverName : uint8_t {
     , TestWithLegacyReceiver = 9
     , TestWithMultiLineExtendedAttributes = 10
     , TestWithMultipleDispatchedFrom = 11
-    , TestWithSemaphore = 12
-    , TestWithSpanOfConst = 13
-    , TestWithStream = 14
-    , TestWithStreamBatched = 15
-    , TestWithStreamBuffer = 16
-    , TestWithStreamServerConnectionHandle = 17
-    , TestWithStreamSwift = 18
-    , TestWithStreamSwiftEnabledBy = 19
-    , TestWithSuperclass = 20
-    , TestWithSuperclassAndWantsAsyncDispatch = 21
-    , TestWithSuperclassAndWantsDispatch = 22
-    , TestWithSwift = 23
-    , TestWithSwiftConditionally = 24
-    , TestWithSwiftConditionallyAndEnabledBy = 25
-    , TestWithValidator = 26
-    , TestWithWantsAsyncDispatch = 27
-    , TestWithWantsDispatch = 28
-    , TestWithWantsDispatchNoSyncMessages = 29
-    , TestWithoutAttributes = 30
-    , TestWithoutUsingIPCConnection = 31
-    , IPC = 32
-    , Invalid = 33
+    , TestWithPermissionCheckedCookies = 12
+    , TestWithSemaphore = 13
+    , TestWithSpanOfConst = 14
+    , TestWithStream = 15
+    , TestWithStreamBatched = 16
+    , TestWithStreamBuffer = 17
+    , TestWithStreamServerConnectionHandle = 18
+    , TestWithStreamSwift = 19
+    , TestWithStreamSwiftEnabledBy = 20
+    , TestWithSuperclass = 21
+    , TestWithSuperclassAndWantsAsyncDispatch = 22
+    , TestWithSuperclassAndWantsDispatch = 23
+    , TestWithSwift = 24
+    , TestWithSwiftConditionally = 25
+    , TestWithSwiftConditionallyAndEnabledBy = 26
+    , TestWithValidator = 27
+    , TestWithWantsAsyncDispatch = 28
+    , TestWithWantsDispatch = 29
+    , TestWithWantsDispatchNoSyncMessages = 30
+    , TestWithoutAttributes = 31
+    , TestWithoutUsingIPCConnection = 32
+    , IPC = 33
+    , Invalid = 34
 };
 
 enum class MessageName : uint16_t {
@@ -88,6 +89,8 @@ enum class MessageName : uint16_t {
     TestWithDeferSendingOption_NoOptions,
     TestWithDeferSendingOption_OneIndex,
     TestWithDispatchedFromAndTo_AlwaysEnabled,
+    TestWithDispatchedFromAndTo_GetCookies,
+    TestWithDispatchedFromAndTo_GetCookiesReply,
     TestWithEnabledByAndConjunction_AlwaysEnabled,
     TestWithEnabledByOrConjunction_AlwaysEnabled,
     TestWithEnabledBy_AlwaysEnabled,
@@ -142,6 +145,8 @@ enum class MessageName : uint16_t {
 #endif
     TestWithMultiLineExtendedAttributes_AlwaysEnabled,
     TestWithMultipleDispatchedFrom_AlwaysEnabled,
+    TestWithPermissionCheckedCookies_CookieHeaderChanged,
+    TestWithPermissionCheckedCookies_CookiesAdded,
     TestWithSemaphore_ReceiveSemaphore,
     TestWithSemaphore_ReceiveSemaphoreReply,
     TestWithSemaphore_SendSemaphore,

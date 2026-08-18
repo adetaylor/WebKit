@@ -29,6 +29,7 @@
 #include "Logging.h"
 #include "MessageArgumentDescriptions.h"
 #include "MessageNames.h"
+#include "PermissionChecked.h"
 #include "StreamServerConnection.h"
 #include <functional>
 #include <wtf/Compiler.h>
@@ -480,7 +481,7 @@ void handleMessageSynchronous(Connection& connection, Decoder& decoder, UniqueRe
     if (!arguments) [[unlikely]]
         return;
 
-    static_assert(std::is_same_v<typename ValidationType::CompletionHandlerArguments, typename MessageType::ReplyArguments>);
+    static_assert(std::is_same_v<typename RemovePermissionCheckedFromTuple<typename ValidationType::CompletionHandlerArguments>::Type, typename MessageType::ReplyArguments>);
     using CompletionHandlerType = typename ValidationType::CompletionHandlerType;
 
     logMessage(connection, MessageType::name(), object, *arguments);
@@ -510,7 +511,7 @@ void handleMessageSynchronous(StreamServerConnection& connection, Decoder& decod
     if (!arguments) [[unlikely]]
         return;
 
-    static_assert(std::is_same_v<typename ValidationType::CompletionHandlerArguments, typename MessageType::ReplyArguments>);
+    static_assert(std::is_same_v<typename RemovePermissionCheckedFromTuple<typename ValidationType::CompletionHandlerArguments>::Type, typename MessageType::ReplyArguments>);
     using CompletionHandlerType = typename ValidationType::CompletionHandlerType;
 
     logMessage(connection, MessageType::name(), object, *arguments);
@@ -538,9 +539,9 @@ void handleMessageAsync(C& connection, Decoder& decoder, T* object, MF U::* func
         return;
 
     if constexpr (ValidationType::returnsVoid)
-        static_assert(std::is_same_v<typename ValidationType::CompletionHandlerArguments, typename MessageType::ReplyArguments>);
+        static_assert(std::is_same_v<typename RemovePermissionCheckedFromTuple<typename ValidationType::CompletionHandlerArguments>::Type, typename MessageType::ReplyArguments>);
     else
-        static_assert(std::is_same_v<typename AwaitableReturnTuple<typename ValidationType::ReturnType>::Type, typename MessageType::ReplyArguments>);
+        static_assert(std::is_same_v<typename RemovePermissionCheckedFromTuple<typename AwaitableReturnTuple<typename ValidationType::ReturnType>::Type>::Type, typename MessageType::ReplyArguments>);
 
     using CompletionHandlerType = std::conditional_t<ValidationType::returnsVoid, typename ValidationType::CompletionHandlerType, typename MessageType::Reply>;
 
@@ -585,7 +586,7 @@ void handleMessageAsyncWithoutUsingIPCConnection(Decoder& decoder, Function<void
     if (!arguments) [[unlikely]]
         return;
 
-    static_assert(std::is_same_v<typename ValidationType::CompletionHandlerArguments, typename MessageType::ReplyArguments>);
+    static_assert(std::is_same_v<typename RemovePermissionCheckedFromTuple<typename ValidationType::CompletionHandlerArguments>::Type, typename MessageType::ReplyArguments>);
     using CompletionHandlerType = typename ValidationType::CompletionHandlerType;
 
     CompletionHandlerType completionHandler {

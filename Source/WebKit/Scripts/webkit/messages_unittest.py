@@ -54,6 +54,7 @@ _test_receiver_names = [
     'TestWithMultipleDispatchedFrom',
     'TestWithoutAttributes',
     'TestWithoutUsingIPCConnection',
+    'TestWithPermissionCheckedCookies',
     'TestWithSemaphore',
     'TestWithSpanOfConst',
     'TestWithStream',

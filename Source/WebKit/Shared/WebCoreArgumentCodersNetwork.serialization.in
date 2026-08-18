@@ -76,6 +76,10 @@ struct WebCore::Cookie {
     WebCore::Cookie::SameSitePolicy sameSite;
 };
 
+class WebCore::CookieHeaderString {
+    String string()
+};
+
 [Nested, CustomHeader] struct WebCore::HTTPHeaderMap::CommonHeader {
     WebCore::HTTPHeaderName key;
     String value;

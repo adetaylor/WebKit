@@ -1,0 +1,87 @@
+# Copyright (C) 2026 Apple Inc. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1.  Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+# 2.  Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# A privileged process must not hand sensitive data to a less privileged one without
+# first checking that the recipient is permitted to receive it. Under site isolation a
+# web content process is entitled to the cookies of its own site and no others, so a
+# cookie may only be sent to it once someone has proven that this process may have this
+# cookie.
+#
+# The type system enforces this. A parameter declared as IPC::PermissionChecked<T> in a
+# .messages.in file makes the generated message class constructible only from a token,
+# so every sender must obtain one, and the only ways to obtain one are:
+#
+#   PermissionChecked<T>::check(checker, value)      - runs one of the pre-ordained
+#                                                      permission checks, which confirm
+#                                                      the recipient is entitled to the
+#                                                      value
+#   PermissionChecked<T>::withoutPermissionCheck(value, reason)
+#                                                    - bypass, and must name a
+#                                                      justification
+#
+# The wrapper has no decoder, so it cannot arrive over IPC: it can only be minted in the
+# process that holds the authority to mint it. Recipients are unaffected; their handler
+# signatures see a plain T.
+#
+# See Source/WebKit/Platform/IPC/PermissionChecked.h for the wrapper, and
+# Source/WebKit/NetworkProcess/CookieRecipientAuthority.h for the permission check.
+#
+# This file lists the parameters that are NOT yet wrapped. Every entry is a code path
+# where a privileged process hands sensitive data to a less privileged process without
+# proving it is entitled to it. The build fails on any unlisted occurrence, so the list
+# can only shrink.
+#
+# Additions or changes to this file will trigger a review with a security focus.
+
+# Each entry must carry one of the following justifications (in square brackets):
+#
+# LegacyNeedsAudit:      Predates this mechanism and has not been audited. This is the
+#                        burn-down list, not an assertion that the code path is safe.
+# CheckedElsewhere:      An equivalent permission check already happens on this code path.
+# NotSecuritySensitive:  The value is not sensitive in this context.
+# NeedsReview:           Needs a security review before a final justification is given.
+#
+# MessageParam covers a parameter of a message, which travels in the direction the
+# message is dispatched. MessageParamReply covers a parameter of a reply, which travels
+# the opposite way.
+#
+# Format, either grouped by type:
+#
+#   [Justification] TypeString {
+#       MessageParam Receiver.Message parameterName
+#       MessageParamReply Receiver.Message parameterName
+#   }
+#
+# or one entry per line:
+#
+#   [Justification] MessageParam Receiver.Message parameterName TypeString
+
+# The web extension cookie APIs gate access with [Validator=isCookiesMessageAllowed] and
+# host permission checks in the UI process, but whether those cover every path by which a
+# content script can name another site's cookies has not been audited here.
+[NeedsReview] Expected<std::optional<WebKit::WebExtensionCookieParameters>, WebKit::WebExtensionError> {
+    MessageParamReply WebExtensionContext.CookiesGet result
+    MessageParamReply WebExtensionContext.CookiesSet result
+    MessageParamReply WebExtensionContext.CookiesRemove result
+}
+
+[NeedsReview] MessageParamReply WebExtensionContext.CookiesGetAll result Expected<Vector<WebKit::WebExtensionCookieParameters>, WebKit::WebExtensionError>

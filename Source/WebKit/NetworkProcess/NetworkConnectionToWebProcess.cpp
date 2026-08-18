@@ -27,6 +27,7 @@
 #include "NetworkConnectionToWebProcess.h"
 
 #include "BlobDataFileReferenceWithSandboxExtension.h"
+#include "CookieRecipientAuthority.h"
 #include "LogInitialization.h"
 #include "Logging.h"
 #include "NetworkBroadcastChannelRegistry.h"
@@ -873,16 +874,16 @@ auto NetworkConnectionToWebProcess::validateCookieAccess(ASCIILiteral messageNam
     return CookieAccess::Allow;
 }
 
-void NetworkConnectionToWebProcess::cookiesForDOM(const URL& firstParty, const SameSiteInfo& sameSiteInfo, const URL& url, FrameIdentifier frameID, PageIdentifier pageID, IncludeSecureCookies includeSecureCookies, WebPageProxyIdentifier webPageProxyID, CompletionHandler<void(String cookieString, bool secureCookiesAccessed)>&& completionHandler)
+void NetworkConnectionToWebProcess::cookiesForDOM(const URL& firstParty, const SameSiteInfo& sameSiteInfo, const URL& url, FrameIdentifier frameID, PageIdentifier pageID, IncludeSecureCookies includeSecureCookies, WebPageProxyIdentifier webPageProxyID, CompletionHandler<void(PermissionCheckedCookieHeader&& cookieString, bool secureCookiesAccessed)>&& completionHandler)
 {
-    auto access = validateCookieAccess("cookiesForDOM"_s, firstParty, url, &sameSiteInfo);
-    MESSAGE_CHECK_COMPLETION(access != CookieAccess::Terminate, completionHandler({ }, false));
-    if (access != CookieAccess::Allow)
-        return completionHandler({ }, false);
+    auto authority = CookieRecipientAuthority::forDocumentCookieAccess(*this, "cookiesForDOM"_s, firstParty, url, &sameSiteInfo);
+    MESSAGE_CHECK_COMPLETION(authority.access() != CookieRecipientAuthority::Access::Terminate, completionHandler(PermissionCheckedCookieHeader::empty(), false));
+    if (authority.access() != CookieRecipientAuthority::Access::Permitted)
+        return completionHandler(PermissionCheckedCookieHeader::empty(), false);
 
     CheckedPtr networkStorageSession = storageSession();
     if (!networkStorageSession)
-        return completionHandler({ }, false);
+        return completionHandler(PermissionCheckedCookieHeader::empty(), false);
     auto result = networkStorageSession->cookiesForDOM(firstParty, sameSiteInfo, url, frameID, pageID, includeSecureCookies, ApplyTrackingPrevention::Yes, m_networkProcess->shouldRelaxThirdPartyCookieBlockingForPage(webPageProxyID), NetworkSession::isResourceFromKnownCrossSiteTracker(firstParty, url));
 #if !RELEASE_LOG_DISABLED
     if (CheckedPtr session = networkSession()) {
@@ -890,7 +891,10 @@ void NetworkConnectionToWebProcess::cookiesForDOM(const URL& firstParty, const S
             NetworkResourceLoader::logCookieInformation(*this, "NetworkConnectionToWebProcess::cookiesForDOM"_s, reinterpret_cast<const void*>(this), *networkStorageSession, firstParty, sameSiteInfo, url, emptyString(), frameID, pageID, std::nullopt);
     }
 #endif
-    completionHandler(WTF::move(result.first), result.second);
+    auto permitted = PermissionCheckedCookieHeader::check(authority, WebCore::CookieHeaderString { WTF::move(result.first) });
+    if (!permitted)
+        return completionHandler(PermissionCheckedCookieHeader::empty(), false);
+    completionHandler(WTF::move(*permitted), result.second);
 }
 
 void NetworkConnectionToWebProcess::setCookiesFromDOM(const URL& firstParty, const SameSiteInfo& sameSiteInfo, const URL& url, FrameIdentifier frameID, PageIdentifier pageID, const String& cookieString, RequiresScriptTrackingPrivacy requiresScriptTrackingPrivacy, WebPageProxyIdentifier webPageProxyID)
@@ -935,33 +939,39 @@ void NetworkConnectionToWebProcess::cookiesEnabled(const URL& firstParty, const 
     completionHandler(networkStorageSession->cookiesEnabled(firstParty, url, frameID, pageID, m_networkProcess->shouldRelaxThirdPartyCookieBlockingForPage(webPageProxyID), NetworkSession::isResourceFromKnownCrossSiteTracker(firstParty, url)));
 }
 
-void NetworkConnectionToWebProcess::cookieRequestHeaderFieldValue(const URL& firstParty, const SameSiteInfo& sameSiteInfo, const URL& url, std::optional<FrameIdentifier> frameID, std::optional<PageIdentifier> pageID, IncludeSecureCookies includeSecureCookies, std::optional<WebPageProxyIdentifier> webPageProxyID, CompletionHandler<void(String, bool)>&& completionHandler)
+void NetworkConnectionToWebProcess::cookieRequestHeaderFieldValue(const URL& firstParty, const SameSiteInfo& sameSiteInfo, const URL& url, std::optional<FrameIdentifier> frameID, std::optional<PageIdentifier> pageID, IncludeSecureCookies includeSecureCookies, std::optional<WebPageProxyIdentifier> webPageProxyID, CompletionHandler<void(PermissionCheckedCookieHeader&&, bool)>&& completionHandler)
 {
-    auto access = validateCookieAccess("cookieRequestHeaderFieldValue"_s, firstParty, url, &sameSiteInfo);
-    MESSAGE_CHECK_COMPLETION(access != CookieAccess::Terminate, completionHandler({ }, false));
-    if (access != CookieAccess::Allow)
-        return completionHandler({ }, false);
+    auto authority = CookieRecipientAuthority::forDocumentCookieAccess(*this, "cookieRequestHeaderFieldValue"_s, firstParty, url, &sameSiteInfo);
+    MESSAGE_CHECK_COMPLETION(authority.access() != CookieRecipientAuthority::Access::Terminate, completionHandler(PermissionCheckedCookieHeader::empty(), false));
+    if (authority.access() != CookieRecipientAuthority::Access::Permitted)
+        return completionHandler(PermissionCheckedCookieHeader::empty(), false);
 
     CheckedPtr networkStorageSession = storageSession();
     if (!networkStorageSession)
-        return completionHandler({ }, false);
+        return completionHandler(PermissionCheckedCookieHeader::empty(), false);
     auto result = networkStorageSession->cookieRequestHeaderFieldValue(firstParty, sameSiteInfo, url, frameID, pageID, includeSecureCookies, ApplyTrackingPrevention::Yes, m_networkProcess->shouldRelaxThirdPartyCookieBlockingForPage(webPageProxyID), NetworkSession::isResourceFromKnownCrossSiteTracker(firstParty, url));
-    completionHandler(WTF::move(result.first), result.second);
+    auto permitted = PermissionCheckedCookieHeader::check(authority, WebCore::CookieHeaderString { WTF::move(result.first) });
+    if (!permitted)
+        return completionHandler(PermissionCheckedCookieHeader::empty(), false);
+    completionHandler(WTF::move(*permitted), result.second);
 }
 
-void NetworkConnectionToWebProcess::getRawCookies(const URL& firstParty, const SameSiteInfo& sameSiteInfo, const URL& url, std::optional<FrameIdentifier> frameID, std::optional<PageIdentifier> pageID, std::optional<WebPageProxyIdentifier> webPageProxyID, CompletionHandler<void(Vector<WebCore::Cookie>&&)>&& completionHandler)
+void NetworkConnectionToWebProcess::getRawCookies(const URL& firstParty, const SameSiteInfo& sameSiteInfo, const URL& url, std::optional<FrameIdentifier> frameID, std::optional<PageIdentifier> pageID, std::optional<WebPageProxyIdentifier> webPageProxyID, CompletionHandler<void(PermissionCheckedCookies&&)>&& completionHandler)
 {
-    auto access = validateCookieAccess("getRawCookies"_s, firstParty, url, &sameSiteInfo);
-    MESSAGE_CHECK_COMPLETION(access != CookieAccess::Terminate, completionHandler({ }));
-    if (access != CookieAccess::Allow)
-        return completionHandler({ });
+    auto authority = CookieRecipientAuthority::forDocumentCookieAccess(*this, "getRawCookies"_s, firstParty, url, &sameSiteInfo);
+    MESSAGE_CHECK_COMPLETION(authority.access() != CookieRecipientAuthority::Access::Terminate, completionHandler(PermissionCheckedCookies::empty()));
+    if (authority.access() != CookieRecipientAuthority::Access::Permitted)
+        return completionHandler(PermissionCheckedCookies::empty());
 
     CheckedPtr networkStorageSession = storageSession();
     if (!networkStorageSession)
-        return completionHandler({ });
+        return completionHandler(PermissionCheckedCookies::empty());
     Vector<WebCore::Cookie> result;
     networkStorageSession->getRawCookies(firstParty, sameSiteInfo, url, frameID, pageID, ApplyTrackingPrevention::Yes, m_networkProcess->shouldRelaxThirdPartyCookieBlockingForPage(webPageProxyID), result);
-    completionHandler(WTF::move(result));
+    auto permitted = PermissionCheckedCookies::check(authority, WTF::move(result));
+    if (!permitted)
+        return completionHandler(PermissionCheckedCookies::empty());
+    completionHandler(WTF::move(*permitted));
 }
 
 void NetworkConnectionToWebProcess::setRawCookie(const URL& firstParty, const URL& url, const WebCore::Cookie& cookie, ShouldPartitionCookie shouldPartitionCookie)
@@ -1002,16 +1012,16 @@ void NetworkConnectionToWebProcess::deleteCookie(const URL& firstParty, const UR
     networkStorageSession->deleteCookie(firstParty, url, cookieName, WTF::move(completionHandler));
 }
 
-void NetworkConnectionToWebProcess::cookiesForDOMAsync(const URL& firstParty, const SameSiteInfo& sameSiteInfo, const URL& url, std::optional<WebCore::FrameIdentifier> frameID, std::optional<WebCore::PageIdentifier> pageID, IncludeSecureCookies includeSecureCookies, WebCore::CookieStoreGetOptions&& options, std::optional<WebPageProxyIdentifier> webPageProxyID, CompletionHandler<void(std::optional<Vector<WebCore::Cookie>>&&)>&& completionHandler)
+void NetworkConnectionToWebProcess::cookiesForDOMAsync(const URL& firstParty, const SameSiteInfo& sameSiteInfo, const URL& url, std::optional<WebCore::FrameIdentifier> frameID, std::optional<WebCore::PageIdentifier> pageID, IncludeSecureCookies includeSecureCookies, WebCore::CookieStoreGetOptions&& options, std::optional<WebPageProxyIdentifier> webPageProxyID, CompletionHandler<void(PermissionCheckedOptionalCookies&&)>&& completionHandler)
 {
-    auto access = validateCookieAccess("cookiesForDOMAsync"_s, firstParty, url, &sameSiteInfo);
-    MESSAGE_CHECK_COMPLETION(access != CookieAccess::Terminate, completionHandler(std::nullopt));
-    if (access != CookieAccess::Allow)
-        return completionHandler(std::nullopt);
+    auto authority = CookieRecipientAuthority::forDocumentCookieAccess(*this, "cookiesForDOMAsync"_s, firstParty, url, &sameSiteInfo);
+    MESSAGE_CHECK_COMPLETION(authority.access() != CookieRecipientAuthority::Access::Terminate, completionHandler(PermissionCheckedOptionalCookies::empty()));
+    if (authority.access() != CookieRecipientAuthority::Access::Permitted)
+        return completionHandler(PermissionCheckedOptionalCookies::empty());
 
     CheckedPtr networkStorageSession = storageSession();
     if (!networkStorageSession)
-        return completionHandler(std::nullopt);
+        return completionHandler(PermissionCheckedOptionalCookies::empty());
     auto result = networkStorageSession->cookiesForDOMAsVector(firstParty, sameSiteInfo, url, frameID, pageID, includeSecureCookies, ApplyTrackingPrevention::Yes, m_networkProcess->shouldRelaxThirdPartyCookieBlockingForPage(webPageProxyID), NetworkSession::isResourceFromKnownCrossSiteTracker(firstParty, url), WTF::move(options));
 #if !RELEASE_LOG_DISABLED
     if (CheckedPtr session = networkSession()) {
@@ -1019,7 +1029,10 @@ void NetworkConnectionToWebProcess::cookiesForDOMAsync(const URL& firstParty, co
             NetworkResourceLoader::logCookieInformation(*this, "NetworkConnectionToWebProcess::cookiesForDOMAsync"_s, reinterpret_cast<const void*>(this), *networkStorageSession, firstParty, sameSiteInfo, url, emptyString(), frameID, pageID, std::nullopt);
     }
 #endif
-    completionHandler(WTF::move(result));
+    auto permitted = PermissionCheckedOptionalCookies::check(authority, WTF::move(result));
+    if (!permitted)
+        return completionHandler(PermissionCheckedOptionalCookies::empty());
+    completionHandler(WTF::move(*permitted));
 }
 
 void NetworkConnectionToWebProcess::setCookieFromDOMAsync(const URL& firstParty, const SameSiteInfo& sameSiteInfo, const URL& url, std::optional<FrameIdentifier> frameID, std::optional<PageIdentifier> pageID, WebCore::Cookie&& cookie, RequiresScriptTrackingPrivacy requiresScriptTrackingPrivacy, std::optional<WebPageProxyIdentifier> webPageProxyID, CompletionHandler<void(bool)>&& completionHandler)
@@ -1043,20 +1056,23 @@ void NetworkConnectionToWebProcess::setCookieFromDOMAsync(const URL& firstParty,
     completionHandler(result);
 }
 
-void NetworkConnectionToWebProcess::domCookiesForHost(const URL& url, CompletionHandler<void(const Vector<WebCore::Cookie>&)>&& completionHandler)
+void NetworkConnectionToWebProcess::domCookiesForHost(const URL& url, CompletionHandler<void(PermissionCheckedCookies&&)>&& completionHandler)
 {
     auto host = url.host().toString();
-    MESSAGE_CHECK_COMPLETION(HashSet<String>::isValidValue(url.host().toString()), completionHandler({ }));
-    auto access = validateCookieAccess("domCookiesForHost"_s, url, url, nullptr);
-    MESSAGE_CHECK_COMPLETION(access != CookieAccess::Terminate, completionHandler({ }));
-    if (access != CookieAccess::Allow)
-        return completionHandler({ });
+    MESSAGE_CHECK_COMPLETION(HashSet<String>::isValidValue(url.host().toString()), completionHandler(PermissionCheckedCookies::empty()));
+    auto authority = CookieRecipientAuthority::forDocumentCookieAccess(*this, "domCookiesForHost"_s, url, url);
+    MESSAGE_CHECK_COMPLETION(authority.access() != CookieRecipientAuthority::Access::Terminate, completionHandler(PermissionCheckedCookies::empty()));
+    if (authority.access() != CookieRecipientAuthority::Access::Permitted)
+        return completionHandler(PermissionCheckedCookies::empty());
 
     CheckedPtr networkStorageSession = storageSession();
     if (!networkStorageSession)
-        return completionHandler({ });
+        return completionHandler(PermissionCheckedCookies::empty());
 
-    completionHandler(networkStorageSession->domCookiesForHost(url));
+    auto permitted = PermissionCheckedCookies::check(authority, networkStorageSession->domCookiesForHost(url));
+    if (!permitted)
+        return completionHandler(PermissionCheckedCookies::empty());
+    completionHandler(WTF::move(*permitted));
 }
 
 #if HAVE(COOKIE_CHANGE_LISTENER_API)
@@ -1093,12 +1109,18 @@ void NetworkConnectionToWebProcess::unsubscribeFromCookieChangeNotifications(con
 
 void NetworkConnectionToWebProcess::cookiesAdded(const String& host, const Vector<WebCore::Cookie>& cookies)
 {
-    m_connection->send(Messages::NetworkProcessConnection::CookiesAdded(host, cookies), 0);
+    auto permitted = PermissionCheckedCookies::check(CookieRecipientAuthority::forSubscribedCookieChangeHost(*this, host), Vector<WebCore::Cookie> { cookies });
+    if (!permitted)
+        return;
+    m_connection->send(Messages::NetworkProcessConnection::CookiesAdded(host, WTF::move(*permitted)), 0);
 }
 
 void NetworkConnectionToWebProcess::cookiesDeleted(const String& host, const Vector<WebCore::Cookie>& cookies)
 {
-    m_connection->send(Messages::NetworkProcessConnection::CookiesDeleted(host, cookies), 0);
+    auto permitted = PermissionCheckedCookies::check(CookieRecipientAuthority::forSubscribedCookieChangeHost(*this, host), Vector<WebCore::Cookie> { cookies });
+    if (!permitted)
+        return;
+    m_connection->send(Messages::NetworkProcessConnection::CookiesDeleted(host, WTF::move(*permitted)), 0);
 }
 
 void NetworkConnectionToWebProcess::allCookiesDeleted()

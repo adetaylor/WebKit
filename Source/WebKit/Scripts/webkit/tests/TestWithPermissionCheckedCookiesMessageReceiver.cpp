@@ -23,15 +23,15 @@
  */
 
 #include "config.h"
-#include "TestWithDispatchedFromAndTo.h"
+#include "TestWithPermissionCheckedCookies.h"
 
 #include "ArgumentCoders.h" // NOLINT
 #include "Decoder.h" // NOLINT
 #include "HandleMessage.h" // NOLINT
 #include "PermissionChecked.h" // NOLINT
-#include "TestWithDispatchedFromAndToMessages.h" // NOLINT
+#include "TestWithPermissionCheckedCookiesMessages.h" // NOLINT
 #include <WebCore/Cookie.h> // NOLINT
-#include <wtf/URLHash.h> // NOLINT
+#include <WebCore/CookieHeaderString.h> // NOLINT
 #include <wtf/Vector.h> // NOLINT
 #include <wtf/text/WTFString.h> // NOLINT
 
@@ -41,14 +41,14 @@
 
 namespace WebKit {
 
-void TestWithDispatchedFromAndTo::didReceiveMessage(IPC::Connection& connection, IPC::Decoder& decoder)
+void TestWithPermissionCheckedCookies::didReceiveMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
-    if (decoder.messageName() == Messages::TestWithDispatchedFromAndTo::AlwaysEnabled::name()) {
-        IPC::handleMessage<Messages::TestWithDispatchedFromAndTo::AlwaysEnabled>(connection, decoder, this, &TestWithDispatchedFromAndTo::alwaysEnabled);
+    if (decoder.messageName() == Messages::TestWithPermissionCheckedCookies::CookiesAdded::name()) {
+        IPC::handleMessage<Messages::TestWithPermissionCheckedCookies::CookiesAdded>(connection, decoder, this, &TestWithPermissionCheckedCookies::cookiesAdded);
         return;
     }
-    if (decoder.messageName() == Messages::TestWithDispatchedFromAndTo::GetCookies::name()) {
-        IPC::handleMessageAsync<Messages::TestWithDispatchedFromAndTo::GetCookies>(connection, decoder, this, &TestWithDispatchedFromAndTo::getCookies);
+    if (decoder.messageName() == Messages::TestWithPermissionCheckedCookies::CookieHeaderChanged::name()) {
+        IPC::handleMessage<Messages::TestWithPermissionCheckedCookies::CookieHeaderChanged>(connection, decoder, this, &TestWithPermissionCheckedCookies::cookieHeaderChanged);
         return;
     }
     UNUSED_PARAM(connection);
@@ -62,21 +62,13 @@ void TestWithDispatchedFromAndTo::didReceiveMessage(IPC::Connection& connection,
 
 namespace IPC {
 
-template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithDispatchedFromAndTo_AlwaysEnabled>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithPermissionCheckedCookies_CookiesAdded>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
-    return jsValueForDecodedArguments<Messages::TestWithDispatchedFromAndTo::AlwaysEnabled::Arguments>(globalObject, decoder);
+    return jsValueForDecodedArguments<Messages::TestWithPermissionCheckedCookies::CookiesAdded::Arguments>(globalObject, decoder);
 }
-template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithDispatchedFromAndTo_GetCookies>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithPermissionCheckedCookies_CookieHeaderChanged>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
-    return jsValueForDecodedArguments<Messages::TestWithDispatchedFromAndTo::GetCookies::Arguments>(globalObject, decoder);
-}
-template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithDispatchedFromAndTo_GetCookies>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
-{
-    return jsValueForDecodedArguments<Messages::TestWithDispatchedFromAndTo::GetCookies::ReplyArguments>(globalObject, decoder);
-}
-template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithDispatchedFromAndTo_GetCookiesReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
-{
-    return jsValueForDecodedArguments<Messages::TestWithDispatchedFromAndTo::GetCookiesReply::Arguments>(globalObject, decoder);
+    return jsValueForDecodedArguments<Messages::TestWithPermissionCheckedCookies::CookieHeaderChanged::Arguments>(globalObject, decoder);
 }
 
 }

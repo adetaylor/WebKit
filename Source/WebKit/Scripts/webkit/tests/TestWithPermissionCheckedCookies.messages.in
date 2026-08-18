@@ -1,4 +1,4 @@
-# Copyright (C) 2024 Apple Inc. All rights reserved.
+# Copyright (C) 2026 Apple Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -20,12 +20,17 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# A privileged process may only send a cookie to a web content process once it has
+# checked that this process is permitted to receive it. Declaring the parameter as
+# IPC::PermissionChecked<T> makes the message class constructible only from a token
+# minted by one of the pre-ordained permission checks.
+
 [
     ExceptionForEnabledBy,
-    DispatchedFrom=WebContent,
-    DispatchedTo=UI
+    DispatchedFrom=Networking,
+    DispatchedTo=WebContent
 ]
-messages -> TestWithDispatchedFromAndTo {
-    AlwaysEnabled(String url)
-    GetCookies(URL url) -> (IPC::PermissionChecked<Vector<WebCore::Cookie>> cookies)
+messages -> TestWithPermissionCheckedCookies {
+    CookiesAdded(String host, IPC::PermissionChecked<Vector<WebCore::Cookie>> cookies)
+    CookieHeaderChanged(IPC::PermissionChecked<WebCore::CookieHeaderString> cookieString)
 }

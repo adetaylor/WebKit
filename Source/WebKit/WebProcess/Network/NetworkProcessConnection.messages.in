@@ -37,8 +37,8 @@ messages -> NetworkProcessConnection WantsDispatchMessage {
     UpdateCachedCookiesEnabled();
 
 #if HAVE(COOKIE_CHANGE_LISTENER_API)
-    CookiesAdded(String host, Vector<WebCore::Cookie> cookies);
-    CookiesDeleted(String host, Vector<WebCore::Cookie> cookies);
+    CookiesAdded(String host, IPC::PermissionChecked<Vector<WebCore::Cookie>> cookies);
+    CookiesDeleted(String host, IPC::PermissionChecked<Vector<WebCore::Cookie>> cookies);
     AllCookiesDeleted();
 #endif
 

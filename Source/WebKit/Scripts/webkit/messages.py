@@ -26,6 +26,7 @@ import re
 import sys
 
 from webkit.opaque_ipc_types import opaque_ipc_types
+from webkit.permission_checked_data import unwrap_permission_checked
 from webkit import parser
 from webkit.model import BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, MessageReceiver, Message
 
@@ -226,6 +227,20 @@ builtin_types = frozenset([
     'WebCore::TrackID',
 ])
 
+def receiver_type(type):
+    # IPC::PermissionChecked<T> only exists on the sending side: it is what the sender must
+    # hold in order to construct the message at all. The recipient decodes a plain T, so the
+    # Arguments tuple - and therefore the handler's signature - is unwrapped, and the wire
+    # format is unchanged. See Platform/IPC/PermissionChecked.h.
+    return unwrap_permission_checked(type) or type
+
+
+def type_must_be_moved(type):
+    # A PermissionChecked<T> is a capability, not a value: it is move-only so that it cannot
+    # be duplicated once minted.
+    return type in types_that_must_be_moved() or unwrap_permission_checked(type) is not None
+
+
 def function_parameter_type(type, kind, for_reply=False):
     # Don't use references for built-in types.
     if type in builtin_types:
@@ -234,7 +249,7 @@ def function_parameter_type(type, kind, for_reply=False):
     if kind.startswith('enum:'):
         return type
 
-    if type in types_that_must_be_moved() or for_reply:
+    if type_must_be_moved(type) or for_reply:
         return '%s&&' % type
 
     return 'const %s&' % type
@@ -249,7 +264,7 @@ def function_parameter_requires_suppress_forward_decl(type, kind, for_reply=Fals
 
 
 def arguments_constructor_name(type, name):
-    if type in types_that_must_be_moved():
+    if type_must_be_moved(type):
         return 'WTF::move(%s)' % name
 
     return name
@@ -261,7 +276,7 @@ def message_to_struct_declaration(receiver, message):
 
     result.append('class %s {\n' % message.name)
     result.append('public:\n')
-    result.append('    using Arguments = std::tuple<%s>;\n' % ', '.join([parameter.type for parameter in message.parameters]))
+    result.append('    using Arguments = std::tuple<%s>;\n' % ', '.join([receiver_type(parameter.type) for parameter in message.parameters]))
     result.append('\n')
     result.append('    static IPC::MessageName name() { return IPC::MessageName::%s_%s; }\n' % (receiver.name, message.name))
     result.append('    static constexpr bool isSync = %s;\n' % ('false', 'true')[message.reply_parameters is not None and message.has_attribute(SYNCHRONOUS_ATTRIBUTE)])
@@ -287,15 +302,15 @@ def message_to_struct_declaration(receiver, message):
             result.append('    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::AnyThread;\n')
         else:
             result.append('    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;\n')
-        result.append('    using ReplyArguments = std::tuple<%s>;\n' % ', '.join([parameter.type for parameter in message.reply_parameters]))
+        result.append('    using ReplyArguments = std::tuple<%s>;\n' % ', '.join([receiver_type(parameter.type) for parameter in message.reply_parameters]))
         result.append('    using Reply = CompletionHandler<void(%s)>;\n' % ', '.join([function_parameter_type(x.type, x.kind, True) for x in message.reply_parameters]))
         if not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
             if len(message.reply_parameters) == 0:
                 result.append('    using Promise = WTF::NativePromise<void, IPC::Error>;\n')
             elif len(message.reply_parameters) == 1:
-                result.append('    using Promise = WTF::NativePromise<%s, IPC::Error>;\n' % message.reply_parameters[0].type)
+                result.append('    using Promise = WTF::NativePromise<%s, IPC::Error>;\n' % receiver_type(message.reply_parameters[0].type))
             else:
-                result.append('    using Promise = WTF::NativePromise<std::tuple<%s>, IPC::Error>;\n' % ', '.join([parameter.type for parameter in message.reply_parameters]))
+                result.append('    using Promise = WTF::NativePromise<std::tuple<%s>, IPC::Error>;\n' % ', '.join([receiver_type(parameter.type) for parameter in message.reply_parameters]))
 
     result.append('    %s%s(%s)\n' % (len(message.parameters) == 1 and 'explicit ' or '', message.name, ', '.join([' '.join(x) for x in function_parameters])))
     for i in range(len(message.parameters)):
@@ -336,7 +351,7 @@ def message_to_struct_declaration(receiver, message):
         result.append('        ')
         if requires_suppress_forward_decl[i]:
             result.append('SUPPRESS_FORWARD_DECL_ARG ')
-        if parameter.type in types_that_must_be_moved():
+        if type_must_be_moved(parameter.type):
             result.append('encoder << WTF::move(m_%s);\n' % parameter.name)
         else:
             result.append('encoder << m_%s;\n' % parameter.name)
@@ -1081,6 +1096,7 @@ def class_template_headers(template_string):
         'std::tuple': {'headers': ['<tuple>'], 'argument_coder_headers': ['"ArgumentCoders.h"']},
         'Variant': {'headers': ['<wtf/Variant.h>'], 'argument_coder_headers': ['"ArgumentCoders.h"']},
         'IPC::ArrayReferenceTuple': {'headers': ['"ArrayReferenceTuple.h"'], 'argument_coder_headers': ['"ArgumentCoders.h"']},
+        'IPC::PermissionChecked': {'headers': ['"PermissionChecked.h"'], 'argument_coder_headers': ['"PermissionChecked.h"']},
         'Ref': {'headers': ['<wtf/Ref.h>'], 'argument_coder_headers': ['"ArgumentCoders.h"']},
         'RefPtr': {'headers': ['<wtf/RefCounted.h>'], 'argument_coder_headers': ['"ArgumentCoders.h"']},
         'RetainPtr': {'headers': ['<wtf/RetainPtr.h>'], 'argument_coder_headers': []},
@@ -2411,7 +2427,7 @@ def generate_js_argument_descriptions(receivers, function_name, arguments_from_m
 
             result.append('        return Vector<ArgumentDescription> {')
             for argument in argument_list:
-                result.append('            { "%s"_s, "%s"_s },' % (argument.name, argument.type))
+                result.append('            { "%s"_s, "%s"_s },' % (argument.name, receiver_type(argument.type)))
             result.append('        };')
         if previous_message_condition:
             result.append('#endif')

@@ -33,6 +33,7 @@
 #include "WebPage.h"
 #include "WebProcess.h"
 #include <WebCore/Cookie.h>
+#include <WebCore/CookieHeaderString.h>
 #include <WebCore/CookieRequestHeaderFieldProxy.h>
 #include <WebCore/CookieStoreGetOptions.h>
 #include <WebCore/DeprecatedGlobalSettings.h>
@@ -155,9 +156,9 @@ String WebCookieJar::cookies(WebCore::Document& document, const URL& url) const
         return m_cache->cookiesForDOM(document.firstPartyForCookies(), sameSiteInfo, url, frameID, pageID, webPageProxyID, includeSecureCookies);
 
     auto sendResult = WebProcess::singleton().ensureNetworkProcessConnection().connection().sendSync(Messages::NetworkConnectionToWebProcess::CookiesForDOM(document.firstPartyForCookies(), sameSiteInfo, url, frameID, pageID, includeSecureCookies, webPageProxyID), 0);
-    auto [cookieString, secureCookiesAccessed] = sendResult.takeReplyOr(String { }, false);
+    auto [cookieString, secureCookiesAccessed] = sendResult.takeReplyOr(WebCore::CookieHeaderString { }, false);
 
-    return cookieString;
+    return cookieString.takeString();
 }
 
 void WebCookieJar::setCookies(WebCore::Document& document, const URL& url, const String& cookieString)
@@ -291,7 +292,7 @@ std::pair<String, WebCore::SecureCookiesAccessed> WebCookieJar::cookieRequestHea
         return { };
 
     auto [cookieString, secureCookiesAccessed] = sendResult.takeReply();
-    return { cookieString, secureCookiesAccessed ? WebCore::SecureCookiesAccessed::Yes : WebCore::SecureCookiesAccessed::No };
+    return { cookieString.takeString(), secureCookiesAccessed ? WebCore::SecureCookiesAccessed::Yes : WebCore::SecureCookiesAccessed::No };
 }
 
 bool WebCookieJar::getRawCookies(WebCore::Document& document, const URL& url, Vector<WebCore::Cookie>& rawCookies) const

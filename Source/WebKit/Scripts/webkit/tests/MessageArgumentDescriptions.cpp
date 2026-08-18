@@ -55,6 +55,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithDeferSendingOption_MultipleIndices>(globalObject, decoder);
     case MessageName::TestWithDispatchedFromAndTo_AlwaysEnabled:
         return jsValueForDecodedMessage<MessageName::TestWithDispatchedFromAndTo_AlwaysEnabled>(globalObject, decoder);
+    case MessageName::TestWithDispatchedFromAndTo_GetCookies:
+        return jsValueForDecodedMessage<MessageName::TestWithDispatchedFromAndTo_GetCookies>(globalObject, decoder);
+    case MessageName::TestWithDispatchedFromAndTo_GetCookiesReply:
+        return jsValueForDecodedMessage<MessageName::TestWithDispatchedFromAndTo_GetCookiesReply>(globalObject, decoder);
     case MessageName::TestWithEnabledBy_AlwaysEnabled:
         return jsValueForDecodedMessage<MessageName::TestWithEnabledBy_AlwaysEnabled>(globalObject, decoder);
     case MessageName::TestWithEnabledBy_ConditionallyEnabled:
@@ -253,6 +257,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithoutUsingIPCConnection_MessageWithArgumentAndEmptyReplyReply>(globalObject, decoder);
     case MessageName::TestWithoutUsingIPCConnection_MessageWithArgumentAndReplyWithArgumentReply:
         return jsValueForDecodedMessage<MessageName::TestWithoutUsingIPCConnection_MessageWithArgumentAndReplyWithArgumentReply>(globalObject, decoder);
+    case MessageName::TestWithPermissionCheckedCookies_CookiesAdded:
+        return jsValueForDecodedMessage<MessageName::TestWithPermissionCheckedCookies_CookiesAdded>(globalObject, decoder);
+    case MessageName::TestWithPermissionCheckedCookies_CookieHeaderChanged:
+        return jsValueForDecodedMessage<MessageName::TestWithPermissionCheckedCookies_CookieHeaderChanged>(globalObject, decoder);
     case MessageName::TestWithSemaphore_SendSemaphore:
         return jsValueForDecodedMessage<MessageName::TestWithSemaphore_SendSemaphore>(globalObject, decoder);
     case MessageName::TestWithSemaphore_ReceiveSemaphore:
@@ -386,6 +394,8 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
     case MessageName::TestWithCVPixelBuffer_ReceiveCVPixelBuffer:
         return jsValueForDecodedMessageReply<MessageName::TestWithCVPixelBuffer_ReceiveCVPixelBuffer>(globalObject, decoder);
 #endif
+    case MessageName::TestWithDispatchedFromAndTo_GetCookies:
+        return jsValueForDecodedMessageReply<MessageName::TestWithDispatchedFromAndTo_GetCookies>(globalObject, decoder);
     case MessageName::TestWithImageData_ReceiveImageData:
         return jsValueForDecodedMessageReply<MessageName::TestWithImageData_ReceiveImageData>(globalObject, decoder);
 #if (ENABLE(WEBKIT2) && (NESTED_MASTER_CONDITION || MASTER_OR && MASTER_AND))
@@ -681,6 +691,14 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
     case MessageName::TestWithDispatchedFromAndTo_AlwaysEnabled:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithDispatchedFromAndTo_GetCookies:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "URL"_s },
+        };
+    case MessageName::TestWithDispatchedFromAndTo_GetCookiesReply:
+        return Vector<ArgumentDescription> {
+            { "cookies"_s, "Vector<WebCore::Cookie>"_s },
         };
     case MessageName::TestWithEnabledBy_AlwaysEnabled:
         return Vector<ArgumentDescription> {
@@ -1029,6 +1047,15 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "reply"_s, "String"_s },
         };
+    case MessageName::TestWithPermissionCheckedCookies_CookiesAdded:
+        return Vector<ArgumentDescription> {
+            { "host"_s, "String"_s },
+            { "cookies"_s, "Vector<WebCore::Cookie>"_s },
+        };
+    case MessageName::TestWithPermissionCheckedCookies_CookieHeaderChanged:
+        return Vector<ArgumentDescription> {
+            { "cookieString"_s, "WebCore::CookieHeaderString"_s },
+        };
     case MessageName::TestWithSemaphore_SendSemaphore:
         return Vector<ArgumentDescription> {
             { "s0"_s, "IPC::Semaphore"_s },
@@ -1266,6 +1293,10 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
             { "r0"_s, "RetainPtr<CVPixelBufferRef>"_s },
         };
 #endif
+    case MessageName::TestWithDispatchedFromAndTo_GetCookies:
+        return Vector<ArgumentDescription> {
+            { "cookies"_s, "Vector<WebCore::Cookie>"_s },
+        };
     case MessageName::TestWithImageData_ReceiveImageData:
         return Vector<ArgumentDescription> {
             { "r0"_s, "RefPtr<WebCore::ImageData>"_s },

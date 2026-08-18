@@ -38,6 +38,8 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithDeferSendingOption_NoOptions"_s, ReceiverName::TestWithDeferSendingOption, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithDeferSendingOption_OneIndex"_s, ReceiverName::TestWithDeferSendingOption, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithDispatchedFromAndTo_AlwaysEnabled"_s, ReceiverName::TestWithDispatchedFromAndTo, false, false, false, ProcessName::WebContent, ProcessName::UI },
+    MessageDescription { "TestWithDispatchedFromAndTo_GetCookies"_s, ReceiverName::TestWithDispatchedFromAndTo, false, false, false, ProcessName::WebContent, ProcessName::UI },
+    MessageDescription { "TestWithDispatchedFromAndTo_GetCookiesReply"_s, ReceiverName::TestWithDispatchedFromAndTo, false, false, true, ProcessName::UI, ProcessName::WebContent },
     MessageDescription { "TestWithEnabledByAndConjunction_AlwaysEnabled"_s, ReceiverName::TestWithEnabledByAndConjunction, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithEnabledByOrConjunction_AlwaysEnabled"_s, ReceiverName::TestWithEnabledByOrConjunction, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithEnabledBy_AlwaysEnabled"_s, ReceiverName::TestWithEnabledBy, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
@@ -92,6 +94,8 @@ const MessageDescriptionsArray messageDescriptions {
 #endif
     MessageDescription { "TestWithMultiLineExtendedAttributes_AlwaysEnabled"_s, ReceiverName::TestWithMultiLineExtendedAttributes, false, false, false, ProcessName::GPU, ProcessName::WebContent },
     MessageDescription { "TestWithMultipleDispatchedFrom_AlwaysEnabled"_s, ReceiverName::TestWithMultipleDispatchedFrom, false, false, false, ProcessName::Unknown, ProcessName::UI },
+    MessageDescription { "TestWithPermissionCheckedCookies_CookieHeaderChanged"_s, ReceiverName::TestWithPermissionCheckedCookies, false, false, false, ProcessName::Networking, ProcessName::WebContent },
+    MessageDescription { "TestWithPermissionCheckedCookies_CookiesAdded"_s, ReceiverName::TestWithPermissionCheckedCookies, false, false, false, ProcessName::Networking, ProcessName::WebContent },
     MessageDescription { "TestWithSemaphore_ReceiveSemaphore"_s, ReceiverName::TestWithSemaphore, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSemaphore_ReceiveSemaphoreReply"_s, ReceiverName::TestWithSemaphore, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSemaphore_SendSemaphore"_s, ReceiverName::TestWithSemaphore, false, false, false, ProcessName::Unknown, ProcessName::Unknown },

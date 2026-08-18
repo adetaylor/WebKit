@@ -24,6 +24,7 @@ import itertools
 
 from collections import Counter, defaultdict
 from .opaque_ipc_types import is_opaque_type, opaque_ipc_types
+from .permission_checked_data import UNPRIVILEGED_PROCESS, category_of, conveys_sensitive_data, permission_checked_data, replies_to_unprivileged_process, sends_to_unprivileged_process, unwrap_permission_checked
 
 BUILTIN_ATTRIBUTE = "Builtin"
 MAINTHREADCALLBACK_ATTRIBUTE = "MainThreadCallback"
@@ -79,6 +80,34 @@ class MessageReceiver(object):
                     if is_opaque_type(parameter.type):
                         if not opaque_ipc_types.message_param_reply_tracked(self.name, message.name, parameter.name, parameter.type):
                             raise Exception(f"Justification needed in opaque_ipc_types.tracking.in: [] MessageParamReply {self.name}.{message.name} {parameter.name} {parameter.type}")
+
+    def enforce_permission_checked_data_usage(self):
+        sends = sends_to_unprivileged_process(self)
+        replies = replies_to_unprivileged_process(self)
+        if not sends and not replies:
+            return
+        for message in self.messages:
+            if sends:
+                self._enforce_permission_checked_parameters(message, message.parameters, is_reply=False)
+            if replies and message.reply_parameters is not None:
+                self._enforce_permission_checked_parameters(message, message.reply_parameters, is_reply=True)
+
+    def _enforce_permission_checked_parameters(self, message, parameters, is_reply):
+        for parameter in parameters:
+            sensitive_type = conveys_sensitive_data(parameter.type)
+            if sensitive_type is None:
+                continue
+            if unwrap_permission_checked(parameter.type):
+                continue
+            if permission_checked_data.message_param_tracked(self.name, message.name, parameter.name, parameter.type, is_reply):
+                continue
+            entry_kind = 'MessageParamReply' if is_reply else 'MessageParam'
+            raise Exception(
+                f"{self.name}.{message.name} sends {category_of(sensitive_type)} to the "
+                f"{UNPRIVILEGED_PROCESS} process without checking that it is permitted to receive it. Either "
+                f"declare the parameter as IPC::PermissionChecked<{parameter.type}> and mint the token with a "
+                f"permission check, or add a justification to permission_checked_data.tracking.in: "
+                f"[LegacyNeedsAudit] {entry_kind} {self.name}.{message.name} {parameter.name} {parameter.type}")
 
 
 class Message(object):

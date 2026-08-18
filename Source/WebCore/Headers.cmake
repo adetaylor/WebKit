@@ -2212,6 +2212,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/ContextMenu.h
     platform/ContextMenuItem.h
     platform/Cookie.h
+    platform/CookieHeaderString.h
     platform/CountedUserActivity.h
     platform/Cursor.h
     platform/DataListSuggestionPicker.h
