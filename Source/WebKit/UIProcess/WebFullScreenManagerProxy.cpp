@@ -443,6 +443,13 @@ void WebFullScreenManagerProxy::updateImageSource(FullScreenMediaDetails&& media
 
 Awaitable<void> WebFullScreenManagerProxy::exitFullScreen()
 {
+    // ExitFullScreen carries no frame identifier and so has no MESSAGE_CHECK; refuse it outright
+    // when there is no session rather than handing it to the client, which only drops it anyway.
+    if (!currentSession()) {
+        ERROR_LOG(LOGIDENTIFIER, "no fullscreen session to exit; dropping");
+        co_return;
+    }
+
 #if ENABLE(QUICKLOOK_FULLSCREEN)
     if (auto* session = currentSession())
         session->mediaDetails = std::nullopt;
@@ -458,13 +465,10 @@ Awaitable<void> WebFullScreenManagerProxy::exitFullScreen()
     }
 
     // Exhaustive so that a new state cannot be added without deciding whether the web process is
-    // allowed to start an exit from it.
+    // allowed to start an exit from it. NotInFullscreen is only reachable here if close() ran while
+    // the client was exiting.
     bool accepted = WTF::switchOn(std::exchange(m_state, NotInFullscreen { }),
-        [&] (NotInFullscreen&&) {
-            // There is no session to exit, and dispatching willExitFullscreen here would report an
-            // exit the client was never told about entering.
-            return false;
-        },
+        [&] (NotInFullscreen&&) { return false; },
         [&] (WaitingToEnterFullscreen&& state) { m_state = ExitingFullscreen { WTF::move(state.session), { } }; return true; },
         [&] (EnteringFullscreen&& state) { m_state = ExitingFullscreen { WTF::move(state.session), { } }; return true; },
         [&] (PresentingFullscreen&& state) { m_state = ExitingFullscreen { WTF::move(state.session), state.frameID }; return true; },
