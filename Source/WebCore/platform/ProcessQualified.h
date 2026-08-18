@@ -62,7 +62,7 @@ public:
     {
     }
 
-    operator bool() const
+    explicit operator bool() const
     {
         return static_cast<bool>(m_object);
     }
@@ -188,6 +188,17 @@ template<typename T>
 struct MarkableTraits<WebCore::ProcessQualified<T>> {
     static bool isEmptyValue(const WebCore::ProcessQualified<T>& identifier) { return MarkableTraits<T>::isEmptyValue(identifier.object()); }
     static constexpr WebCore::ProcessQualified<T> emptyValue() { return { MarkableTraits<T>::emptyValue(), MarkableTraits<WebCore::ProcessIdentifier>::emptyValue() }; }
+};
+
+template<bool, bool, typename> struct CrossThreadCopierBase;
+
+// Mirrors the ObjectIdentifierGeneric specialization in CrossThreadCopier.h: a process-qualified
+// identifier is a plain value, so isolating a copy is just a copy.
+template<typename T>
+struct CrossThreadCopierBase<false, false, WebCore::ProcessQualified<T>> {
+    using Type = WebCore::ProcessQualified<T>;
+    static constexpr bool IsNeeded = false;
+    static Type copy(const Type& source) { return source; }
 };
 
 } // namespace WTF
