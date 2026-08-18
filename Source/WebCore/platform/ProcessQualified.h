@@ -26,6 +26,7 @@
 #pragma once
 
 #include <WebCore/ProcessIdentifier.h>
+#include <type_traits>
 #include <wtf/GetPtr.h>
 #include <wtf/Hasher.h>
 #include <wtf/Markable.h>
@@ -196,6 +197,11 @@ template<bool, bool, typename> struct CrossThreadCopierBase;
 // identifier is a plain value, so isolating a copy is just a copy.
 template<typename T>
 struct CrossThreadCopierBase<false, false, WebCore::ProcessQualified<T>> {
+    // A shallow copy is only a complete copy while T owns nothing that needs isolating. If you are
+    // adding a ProcessQualified whose T is not trivially copyable, give it a specialization that
+    // isolates the wrapped object rather than relaxing this.
+    static_assert(std::is_trivially_copyable_v<T>, "ProcessQualified<T> is only copy-only while T is");
+
     using Type = WebCore::ProcessQualified<T>;
     static constexpr bool IsNeeded = false;
     static Type copy(const Type& source) { return source; }
