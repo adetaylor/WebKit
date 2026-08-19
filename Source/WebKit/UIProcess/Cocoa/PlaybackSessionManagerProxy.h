@@ -302,10 +302,10 @@ private:
     void bufferedTimeChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, double bufferedTime);
     void seekableRangesVectorChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, const WebCore::PlatformTimeRanges&, double lastModifiedTime, double liveUpdateInterval);
     void canPlayFastReverseChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, bool value);
-    void audioMediaSelectionOptionsChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, Vector<WebCore::MediaSelectionOption> options, WTF::CheckedUint64 selectedIndex);
-    void legibleMediaSelectionOptionsChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, Vector<WebCore::MediaSelectionOption> options, WTF::CheckedUint64 selectedIndex);
-    void audioMediaSelectionIndexChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, WTF::CheckedUint64 selectedIndex);
-    void legibleMediaSelectionIndexChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, WTF::CheckedUint64 selectedIndex);
+    void audioMediaSelectionOptionsChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, Vector<WebCore::MediaSelectionOption> options, WTF::UntrustedUint64 selectedIndex);
+    void legibleMediaSelectionOptionsChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, Vector<WebCore::MediaSelectionOption> options, WTF::UntrustedUint64 selectedIndex);
+    void audioMediaSelectionIndexChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, WTF::UntrustedUint64 selectedIndex);
+    void legibleMediaSelectionIndexChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, WTF::UntrustedUint64 selectedIndex);
     void externalPlaybackPropertiesChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, bool enabled, WebCore::PlaybackSessionModel::ExternalPlaybackTargetType, String localizedDeviceName);
     void wirelessVideoPlaybackDisabledChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, bool);
     void durationChanged(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, double duration);
@@ -368,7 +368,7 @@ private:
     void updateVideoControlsManager(PlaybackSessionContextIdentifier);
 
 #if !RELEASE_LOG_DISABLED
-    void setLogIdentifier(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, WTF::CheckedUint64);
+    void setLogIdentifier(IPC::Connection&, WebCore::HTMLMediaElementIdentifier, WTF::UntrustedUint64);
 
     const Logger& logger() const { return m_logger; }
     uint64_t logIdentifier() const { return m_logIdentifier; }

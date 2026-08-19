@@ -216,7 +216,7 @@ private:
     void getFile(IPC::Connection&, WebCore::FileSystemHandleIdentifier, CompletionHandler<void(Expected<String, FileSystemStorageError>)>&&);
     void createSyncAccessHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier, CompletionHandler<void(Expected<FileSystemSyncAccessHandleInfo, FileSystemStorageError>)>&&);
     void closeSyncAccessHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemSyncAccessHandleIdentifier, CompletionHandler<void()>&&);
-    void requestNewCapacityForSyncAccessHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemSyncAccessHandleIdentifier, WTF::CheckedUint64 newCapacity, CompletionHandler<void(std::optional<uint64_t>)>&&);
+    void requestNewCapacityForSyncAccessHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemSyncAccessHandleIdentifier, WTF::UntrustedUint64 newCapacity, CompletionHandler<void(std::optional<uint64_t>)>&&);
     void createWritable(IPC::Connection&, WebCore::FileSystemHandleIdentifier, bool keepExistingData, CompletionHandler<void(Expected<WebCore::FileSystemWritableFileStreamIdentifier, FileSystemStorageError>)>&&);
     void closeWritable(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemWritableFileStreamIdentifier, WebCore::FileSystemWriteCloseReason, CompletionHandler<void(std::optional<FileSystemStorageError>)>&&);
     void executeCommandForWritable(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemWritableFileStreamIdentifier, WebCore::FileSystemWriteCommandType, std::optional<uint64_t> position, std::optional<uint64_t> size, std::span<const uint8_t> dataBytes, bool hasDataError, CompletionHandler<void(std::optional<FileSystemStorageError>)>&&);
@@ -246,7 +246,7 @@ private:
     void didFireVersionChangeEvent(IPC::Connection&, WebCore::IDBDatabaseConnectionIdentifier, const WebCore::IDBResourceIdentifier& requestIdentifier, const WebCore::IndexedDB::ConnectionClosedOnBehalfOfServer);
     void didGenerateIndexKeyForRecord(IPC::Connection&, const WebCore::IDBResourceIdentifier& transactionIdentifier, const WebCore::IDBResourceIdentifier& requestIdentifier, const WebCore::IDBIndexInfo&, const WebCore::IDBKeyData&, const WebCore::IndexKey&, std::optional<int64_t> recordID);
     void abortTransaction(IPC::Connection&, const WebCore::IDBResourceIdentifier&);
-    void commitTransaction(IPC::Connection&, const WebCore::IDBResourceIdentifier&, WTF::CheckedUint64 handledRequestResultsCount);
+    void commitTransaction(IPC::Connection&, const WebCore::IDBResourceIdentifier&, WTF::UntrustedUint64 handledRequestResultsCount);
     void didFinishHandlingVersionChangeTransaction(IPC::Connection&, WebCore::IDBDatabaseConnectionIdentifier, const WebCore::IDBResourceIdentifier&);
     void createObjectStore(IPC::Connection&, const WebCore::IDBRequestData&, const WebCore::IDBObjectStoreInfo&);
     void deleteObjectStore(IPC::Connection&, const WebCore::IDBRequestData&, const String& objectStoreName);
@@ -269,7 +269,7 @@ private:
     // Message handlers for CacheStorage.
     void cacheStorageOpenCache(IPC::Connection&, const WebCore::ClientOrigin&, const String& cacheName, WebCore::DOMCacheEngine::CacheIdentifierCallback&&);
     void cacheStorageRemoveCache(IPC::Connection&, WebCore::DOMCacheIdentifier, WebCore::DOMCacheEngine::RemoveCacheIdentifierCallback&&);
-    void cacheStorageAllCaches(IPC::Connection&, const WebCore::ClientOrigin&, WTF::CheckedUint64 updateCounter, WebCore::DOMCacheEngine::CacheInfosCallback&&);
+    void cacheStorageAllCaches(IPC::Connection&, const WebCore::ClientOrigin&, WTF::UntrustedUint64 updateCounter, WebCore::DOMCacheEngine::CacheInfosCallback&&);
     void cacheStorageReference(IPC::Connection&, WebCore::DOMCacheIdentifier);
     void cacheStorageDereference(IPC::Connection&, WebCore::DOMCacheIdentifier);
     void lockCacheStorage(IPC::Connection&, const WebCore::ClientOrigin&);

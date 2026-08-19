@@ -81,7 +81,7 @@ private:
     void deleteAllCookies(PAL::SessionID, CompletionHandler<void()>&&);
     void deleteAllCookiesModifiedSince(PAL::SessionID, WallTime, CompletionHandler<void()>&&);
 
-    void setCookie(PAL::SessionID, const Vector<WebCore::Cookie>&, WTF::CheckedUint64 cookiesVersion, CompletionHandler<void()>&&);
+    void setCookie(PAL::SessionID, const Vector<WebCore::Cookie>&, WTF::UntrustedUint64 cookiesVersion, CompletionHandler<void()>&&);
     void setCookies(PAL::SessionID, const Vector<WebCore::Cookie>&, const URL&, const URL& mainDocumentURL, CompletionHandler<void()>&&);
     void getAllCookies(PAL::SessionID, CompletionHandler<void(Vector<WebCore::Cookie>&&)>&&);
     void getCookies(PAL::SessionID, const URL&, CompletionHandler<void(Vector<WebCore::Cookie>&&)>&&);

@@ -81,12 +81,12 @@ private:
 #endif
 
     // IPC message handlers
-    void enterAcceleratedCompositingMode(WTF::CheckedUint64 backingStoreStateID, const LayerTreeContext&) override;
+    void enterAcceleratedCompositingMode(WTF::UntrustedUint64 backingStoreStateID, const LayerTreeContext&) override;
 #if !PLATFORM(WPE) && !PLATFORM(GTK)
-    void update(WTF::CheckedUint64 backingStoreStateID, UpdateInfo&&) override;
-    void exitAcceleratedCompositingMode(WTF::CheckedUint64 backingStoreStateID, UpdateInfo&&) override;
+    void update(WTF::UntrustedUint64 backingStoreStateID, UpdateInfo&&) override;
+    void exitAcceleratedCompositingMode(WTF::UntrustedUint64 backingStoreStateID, UpdateInfo&&) override;
 #endif
-    void updateAcceleratedCompositingMode(WTF::CheckedUint64 backingStoreStateID, const LayerTreeContext&) override;
+    void updateAcceleratedCompositingMode(WTF::UntrustedUint64 backingStoreStateID, const LayerTreeContext&) override;
     void dispatchPresentationCallbacksAfterFlushingLayers(IPC::Connection&, Vector<IPC::AsyncReplyID>&&) override;
 
     bool shouldSendWheelEventsToEventDispatcher() const override { return true; }

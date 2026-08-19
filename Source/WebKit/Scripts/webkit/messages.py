@@ -233,15 +233,15 @@ builtin_types = frozenset([
 # error rather than a judgement call, and lets the checked-ness travel with the value into whatever
 # the handler computes from it. The sending side is unaffected - it still passes plain integers.
 checked_received_types = {
-    'int8_t': 'WTF::CheckedInt8',
-    'uint8_t': 'WTF::CheckedUint8',
-    'int16_t': 'WTF::CheckedInt16',
-    'uint16_t': 'WTF::CheckedUint16',
-    'int32_t': 'WTF::CheckedInt32',
-    'uint32_t': 'WTF::CheckedUint32',
-    'int64_t': 'WTF::CheckedInt64',
-    'uint64_t': 'WTF::CheckedUint64',
-    'size_t': 'WTF::CheckedSize',
+    'int8_t': 'WTF::UntrustedInt8',
+    'uint8_t': 'WTF::UntrustedUint8',
+    'int16_t': 'WTF::UntrustedInt16',
+    'uint16_t': 'WTF::UntrustedUint16',
+    'int32_t': 'WTF::UntrustedInt32',
+    'uint32_t': 'WTF::UntrustedUint32',
+    'int64_t': 'WTF::UntrustedInt64',
+    'uint64_t': 'WTF::UntrustedUint64',
+    'size_t': 'WTF::UntrustedSize',
 }
 
 

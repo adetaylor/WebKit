@@ -62,7 +62,7 @@ void RemoteComputePipeline::stopListeningForIPC()
     protect(m_streamConnection)->stopReceivingMessages(Messages::RemoteComputePipeline::messageReceiverName(), m_identifier.toUInt64());
 }
 
-void RemoteComputePipeline::getBindGroupLayout(WTF::CheckedUint32 index, WebGPUIdentifier identifier)
+void RemoteComputePipeline::getBindGroupLayout(WTF::UntrustedUint32 index, WebGPUIdentifier identifier)
 {
     // "A new GPUBindGroupLayout wrapper is returned each time"
     Ref objectHeap = m_objectHeap.get();

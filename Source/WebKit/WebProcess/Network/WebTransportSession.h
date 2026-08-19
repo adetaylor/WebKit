@@ -71,8 +71,8 @@ public:
     void receiveIncomingUnidirectionalStream(WebCore::WebTransportStreamIdentifier);
     void receiveBidirectionalStream(WebCore::WebTransportStreamIdentifier);
     void streamReceiveBytes(WebCore::WebTransportStreamIdentifier, std::span<const uint8_t>, bool, std::optional<WebCore::Exception>&&);
-    void streamReceiveError(WebCore::WebTransportStreamIdentifier, WTF::CheckedUint64);
-    void streamSendError(WebCore::WebTransportStreamIdentifier, WTF::CheckedUint64);
+    void streamReceiveError(WebCore::WebTransportStreamIdentifier, WTF::UntrustedUint64);
+    void streamSendError(WebCore::WebTransportStreamIdentifier, WTF::UntrustedUint64);
     void didFail(std::optional<uint32_t>&&, String&&);
     void didDrain();
 

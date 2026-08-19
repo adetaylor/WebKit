@@ -165,12 +165,12 @@ void NetworkTransportSession::datagramOutgoingMaxAgeUpdated(std::optional<double
     // FIXME: Use this value.
 }
 
-void NetworkTransportSession::incomingMaxBufferedDatagramsUpdated(WTF::CheckedUint32)
+void NetworkTransportSession::incomingMaxBufferedDatagramsUpdated(WTF::UntrustedUint32)
 {
     // FIXME: Use this value.
 }
 
-void NetworkTransportSession::outgoingMaxBufferedDatagramsUpdated(WTF::CheckedUint32)
+void NetworkTransportSession::outgoingMaxBufferedDatagramsUpdated(WTF::UntrustedUint32)
 {
     // FIXME: Use this value.
 }
@@ -257,7 +257,7 @@ void NetworkTransportSession::createStream(NetworkTransportStreamType, Completio
     completionHandler(std::nullopt);
 }
 
-void NetworkTransportSession::terminate(Checked<WebCore::WebTransportSessionErrorCode, RecordOverflow>, CString&&)
+void NetworkTransportSession::terminate(Checked<WebCore::WebTransportSessionErrorCode, RecordOverflowNoNarrowing>, CString&&)
 {
 }
 
@@ -266,7 +266,7 @@ bool NetworkTransportSession::isSessionClosed() const
     return false;
 }
 
-void NetworkTransportSession::exportKeyingMaterial(std::span<const uint8_t>, std::span<const uint8_t>, WTF::CheckedUint32, CompletionHandler<void(std::optional<Vector<uint8_t>>)>&& completionHandler)
+void NetworkTransportSession::exportKeyingMaterial(std::span<const uint8_t>, std::span<const uint8_t>, WTF::UntrustedUint32, CompletionHandler<void(std::optional<Vector<uint8_t>>)>&& completionHandler)
 {
     completionHandler(std::nullopt);
 }

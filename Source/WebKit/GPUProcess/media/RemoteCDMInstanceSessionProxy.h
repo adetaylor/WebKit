@@ -73,7 +73,7 @@ private:
     using StoreRecordCallback = CompletionHandler<void()>;
 
     // Messages
-    void setLogIdentifier(WTF::CheckedUint64);
+    void setLogIdentifier(WTF::UntrustedUint64);
     void requestLicense(LicenseType, KeyGroupingStrategy, String initDataType, RefPtr<WebCore::SharedBuffer>&& initData, LicenseCallback&&);
     void updateLicense(String sessionId, LicenseType, RefPtr<WebCore::SharedBuffer>&& response, LicenseUpdateCallback&&);
     void loadSession(LicenseType, String sessionId, String origin, LoadSessionCallback&&);

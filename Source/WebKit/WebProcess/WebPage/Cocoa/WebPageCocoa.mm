@@ -1924,7 +1924,7 @@ void WebPage::drawRectToImage(FrameIdentifier frameID, const PrintInfo& printInf
     completionHandler(WTF::move(handle));
 }
 
-void WebPage::drawPagesToPDF(FrameIdentifier frameID, const PrintInfo& printInfo, WTF::CheckedUint32 first, WTF::CheckedUint32 count, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&& callback)
+void WebPage::drawPagesToPDF(FrameIdentifier frameID, const PrintInfo& printInfo, WTF::UntrustedUint32 first, WTF::UntrustedUint32 count, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&& callback)
 {
     PrintContextAccessScope scope { *this };
     RefPtr<SharedBuffer> pdfPageData;
@@ -2020,7 +2020,7 @@ void WebPage::drawPrintingRectToSnapshot(RemoteSnapshotIdentifier snapshotIdenti
     m_remoteSnapshotState = std::nullopt;
 }
 
-void WebPage::drawPrintingPagesToSnapshot(RemoteSnapshotIdentifier snapshotIdentifier, FrameIdentifier frameID, const PrintInfo& printInfo, WTF::CheckedUint32 first, WTF::CheckedUint32 count, CompletionHandler<void(std::optional<WebCore::FloatSize>)>&& completionHandler)
+void WebPage::drawPrintingPagesToSnapshot(RemoteSnapshotIdentifier snapshotIdentifier, FrameIdentifier frameID, const PrintInfo& printInfo, WTF::UntrustedUint32 first, WTF::UntrustedUint32 count, CompletionHandler<void(std::optional<WebCore::FloatSize>)>&& completionHandler)
 {
     RefPtr frame = WebProcess::singleton().webFrame(frameID);
     if (!frame) {

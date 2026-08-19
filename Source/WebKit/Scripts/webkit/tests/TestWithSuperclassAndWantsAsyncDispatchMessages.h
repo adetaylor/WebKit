@@ -69,7 +69,7 @@ private:
 
 class TestSyncMessage {
 public:
-    using Arguments = std::tuple<WTF::CheckedUint32>;
+    using Arguments = std::tuple<WTF::UntrustedUint32>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithSuperclassAndWantsAsyncDispatch_TestSyncMessage; }
     static constexpr bool isSync = true;

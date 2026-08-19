@@ -107,7 +107,7 @@ void RemoteCDMInstanceProxy::setStorageDirectory(const String& directory)
         m_instance->setStorageDirectory(directory);
 }
 
-void RemoteCDMInstanceProxy::createSession(WTF::CheckedUint64 logIdentifier, CompletionHandler<void(std::optional<RemoteCDMInstanceSessionIdentifier>)>&& completion)
+void RemoteCDMInstanceProxy::createSession(WTF::UntrustedUint64 logIdentifier, CompletionHandler<void(std::optional<RemoteCDMInstanceSessionIdentifier>)>&& completion)
 {
     auto privSession = m_instance->createSession();
     if (!privSession || !m_cdm || !m_cdm->factory()) {

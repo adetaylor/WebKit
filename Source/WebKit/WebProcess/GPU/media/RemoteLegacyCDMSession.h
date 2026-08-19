@@ -72,7 +72,7 @@ private:
 
     // Messages
     void sendMessage(RefPtr<WebCore::SharedBuffer>&& message, const String& destinationURL);
-    void sendError(WebCore::LegacyCDMSessionClient::MediaKeyErrorCode, WTF::CheckedUint32 systemCode);
+    void sendError(WebCore::LegacyCDMSessionClient::MediaKeyErrorCode, WTF::UntrustedUint32 systemCode);
 
     WeakPtr<RemoteLegacyCDMFactory> m_factory;
     RemoteLegacyCDMSessionIdentifier m_identifier;

@@ -12,15 +12,15 @@ PARAMETER_LIST_CHECKED_INTEGERS = 8
 PARAMETER_LIST_UNWRAP_CHECKED = 16
 
 CHECKED_INTEGER_TYPES = {
-    "int8_t": "WTF::CheckedInt8",
-    "uint8_t": "WTF::CheckedUint8",
-    "int16_t": "WTF::CheckedInt16",
-    "uint16_t": "WTF::CheckedUint16",
-    "int32_t": "WTF::CheckedInt32",
-    "uint32_t": "WTF::CheckedUint32",
-    "int64_t": "WTF::CheckedInt64",
-    "uint64_t": "WTF::CheckedUint64",
-    "size_t": "WTF::CheckedSize",
+    "int8_t": "WTF::UntrustedInt8",
+    "uint8_t": "WTF::UntrustedUint8",
+    "int16_t": "WTF::UntrustedInt16",
+    "uint16_t": "WTF::UntrustedUint16",
+    "int32_t": "WTF::UntrustedInt32",
+    "uint32_t": "WTF::UntrustedUint32",
+    "int64_t": "WTF::UntrustedInt64",
+    "uint64_t": "WTF::UntrustedUint64",
+    "size_t": "WTF::UntrustedSize",
 }
 
 

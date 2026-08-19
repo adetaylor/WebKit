@@ -713,7 +713,7 @@ void AcceleratedBackingStore::BufferSHM::release()
     didRelease();
 }
 
-void AcceleratedBackingStore::didCreateDMABufBuffer(WTF::CheckedUint64 id, DMABufBufferAttributes&& dmaBufAttributes, RendererBufferFormat::Usage usage)
+void AcceleratedBackingStore::didCreateDMABufBuffer(WTF::UntrustedUint64 id, DMABufBufferAttributes&& dmaBufAttributes, RendererBufferFormat::Usage usage)
 {
     RefPtr webPage = m_webPage.get();
     if (!webPage)
@@ -751,7 +751,7 @@ void AcceleratedBackingStore::didCreateSHMBuffer(uint64_t id, ShareableBitmap::H
         m_buffers.add(id, WTF::move(buffer));
 }
 
-void AcceleratedBackingStore::didDestroyBuffer(WTF::CheckedUint64 id)
+void AcceleratedBackingStore::didDestroyBuffer(WTF::UntrustedUint64 id)
 {
     m_buffers.remove(id);
 }

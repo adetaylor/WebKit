@@ -41,7 +41,7 @@ PlatformXRCoordinator* PlatformXRSystem::xrCoordinator()
     return &xrCoordinator.get();
 }
 
-void PlatformXRSystem::createLayerProjection(IPC::Connection&, WTF::CheckedUint32 width, WTF::CheckedUint32 height, bool alpha, CompletionHandler<void(std::optional<PlatformXR::LayerInfo>)>&& reply)
+void PlatformXRSystem::createLayerProjection(IPC::Connection&, WTF::UntrustedUint32 width, WTF::UntrustedUint32 height, bool alpha, CompletionHandler<void(std::optional<PlatformXR::LayerInfo>)>&& reply)
 {
     ASSERT(RunLoop::isMain());
 

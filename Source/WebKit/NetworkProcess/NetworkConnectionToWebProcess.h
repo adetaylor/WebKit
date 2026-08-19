@@ -338,7 +338,7 @@ private:
     void registerInternalBlobURL(const URL&, Vector<WebCore::BlobPart>&&, const String& contentType);
     void registerBlobURL(const URL&, const URL& srcURL, WebCore::PolicyContainer&&, const std::optional<WebCore::SecurityOriginData>& topOrigin);
     void registerInternalBlobURLOptionallyFileBacked(URL&&, URL&& srcURL, const String& fileBackedPath, String&& contentType);
-    void registerInternalBlobURLForSlice(const URL&, const URL& srcURL, WTF::CheckedInt64 start, WTF::CheckedInt64 end, const String& contentType);
+    void registerInternalBlobURLForSlice(const URL&, const URL& srcURL, WTF::UntrustedInt64 start, WTF::UntrustedInt64 end, const String& contentType);
     void blobType(const URL&, CompletionHandler<void(String)>&&);
     void blobSize(const URL&, CompletionHandler<void(uint64_t)>&&);
     void unregisterBlobURL(const URL&, const std::optional<WebCore::SecurityOriginData>& topOrigin);
@@ -485,7 +485,7 @@ private:
 
     void hasUploadStateChanged(bool);
 
-    void loadImageForDecoding(WebCore::ResourceRequest&&, WebPageProxyIdentifier, WTF::CheckedUint64, CompletionHandler<void(Expected<Ref<WebCore::FragmentedSharedBuffer>, WebCore::ResourceError>&&)>&&);
+    void loadImageForDecoding(WebCore::ResourceRequest&&, WebPageProxyIdentifier, WTF::UntrustedUint64, CompletionHandler<void(Expected<Ref<WebCore::FragmentedSharedBuffer>, WebCore::ResourceError>&&)>&&);
 
     void setResourceLoadSchedulingMode(WebCore::PageIdentifier, WebCore::LoadSchedulingMode);
     void prioritizeResourceLoads(const Vector<WebCore::ResourceLoaderIdentifier>&);

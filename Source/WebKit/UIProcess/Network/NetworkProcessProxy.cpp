@@ -662,7 +662,7 @@ void NetworkProcessProxy::terminateIdleServiceWorkers(WebCore::ProcessIdentifier
     sendWithAsyncReply(Messages::NetworkProcess::TerminateIdleServiceWorkers(processIdentifier), WTF::move(callback), 0);
 }
 
-void NetworkProcessProxy::logDiagnosticMessageWithResult(WebPageProxyIdentifier pageID, const String& message, const String& description, WTF::CheckedUint32 result, WebCore::ShouldSample shouldSample)
+void NetworkProcessProxy::logDiagnosticMessageWithResult(WebPageProxyIdentifier pageID, const String& message, const String& description, WTF::UntrustedUint32 result, WebCore::ShouldSample shouldSample)
 {
     // FIXME: We do this null-check because by the time the decision to log is made, the page may be gone. We should refactor to avoid this,
     // but for now we simply drop the message in the rare case this happens.
@@ -1644,7 +1644,7 @@ void NetworkProcessProxy::requestStorageSpace(PAL::SessionID sessionID, const We
     });
 }
 
-void NetworkProcessProxy::increaseQuota(PAL::SessionID sessionID, const WebCore::ClientOrigin& origin, QuotaIncreaseRequestIdentifier identifier, WTF::CheckedUint64 currentQuota, WTF::CheckedUint64 currentUsage, WTF::CheckedUint64 spaceRequested)
+void NetworkProcessProxy::increaseQuota(PAL::SessionID sessionID, const WebCore::ClientOrigin& origin, QuotaIncreaseRequestIdentifier identifier, WTF::UntrustedUint64 currentQuota, WTF::UntrustedUint64 currentUsage, WTF::UntrustedUint64 spaceRequested)
 {
     requestStorageSpace(sessionID, origin, currentQuota, currentUsage, spaceRequested, [weakThis = WeakPtr { *this }, sessionID, origin, identifier](auto result) mutable {
         if (RefPtr protectedThis = weakThis.get())
@@ -1940,7 +1940,7 @@ void NetworkProcessProxy::openWindowFromServiceWorker(PAL::SessionID sessionID, 
     callback(std::nullopt);
 }
 
-void NetworkProcessProxy::reportConsoleMessage(PAL::SessionID sessionID, const URL& scriptURL, const WebCore::SecurityOriginData& clientOrigin, MessageSource source, MessageLevel level, const String& message, WTF::CheckedUint64 requestIdentifier)
+void NetworkProcessProxy::reportConsoleMessage(PAL::SessionID sessionID, const URL& scriptURL, const WebCore::SecurityOriginData& clientOrigin, MessageSource source, MessageLevel level, const String& message, WTF::UntrustedUint64 requestIdentifier)
 {
     if (RefPtr store = websiteDataStoreFromSessionID(sessionID))
         store->reportServiceWorkerConsoleMessage(scriptURL, clientOrigin, source, level, message, requestIdentifier);

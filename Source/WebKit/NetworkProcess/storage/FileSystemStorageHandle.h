@@ -77,7 +77,7 @@ public:
     Expected<std::optional<Vector<String>>, FileSystemStorageError> resolve(WebCore::FileSystemHandleIdentifier);
     Expected<Vector<String>, FileSystemStorageError> getHandleNames();
     Expected<WebCore::FileSystemHandleInfo, FileSystemStorageError> getHandle(IPC::Connection::UniqueID, String&& name);
-    void requestNewCapacityForSyncAccessHandle(WebCore::FileSystemSyncAccessHandleIdentifier, WTF::CheckedUint64 requestedCapacity, CompletionHandler<void(std::optional<uint64_t>)>&&);
+    void requestNewCapacityForSyncAccessHandle(WebCore::FileSystemSyncAccessHandleIdentifier, WTF::UntrustedUint64 requestedCapacity, CompletionHandler<void(std::optional<uint64_t>)>&&);
 
     Expected<FileSystemSyncAccessHandleInfo, FileSystemStorageError> createSyncAccessHandle();
     std::optional<FileSystemStorageError> closeSyncAccessHandle(WebCore::FileSystemSyncAccessHandleIdentifier);

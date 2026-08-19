@@ -79,7 +79,7 @@ private:
     void gpuProcessConnectionDidClose(GPUProcessConnection&) final;
 
     void setDidFail(bool);
-    void updateVideoFrameCounters(WTF::CheckedUint64, WTF::CheckedUint64);
+    void updateVideoFrameCounters(WTF::UntrustedUint64, WTF::UntrustedUint64);
 
     ThreadSafeWeakPtr<GPUProcessConnection> m_gpuProcessConnection;
     WeakPtr<SampleBufferDisplayLayerManager> m_manager;

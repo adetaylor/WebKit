@@ -171,7 +171,7 @@ static WebCore::PasteboardItemInfo pasteboardItemInfoFromFormats(Vector<String>&
     return info;
 }
 
-void WebPasteboardProxy::allPasteboardItemInfo(IPC::Connection&, const String& pasteboardName, WTF::CheckedInt64 changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<Vector<WebCore::PasteboardItemInfo>>&&)>&& completionHandler)
+void WebPasteboardProxy::allPasteboardItemInfo(IPC::Connection&, const String& pasteboardName, WTF::UntrustedInt64 changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<Vector<WebCore::PasteboardItemInfo>>&&)>&& completionHandler)
 {
     auto& clipboard = Clipboard::get(pasteboardName);
     if (changeCount != clipboard.changeCount()) {
@@ -184,7 +184,7 @@ void WebPasteboardProxy::allPasteboardItemInfo(IPC::Connection&, const String& p
     });
 }
 
-void WebPasteboardProxy::informationForItemAtIndex(IPC::Connection&, WTF::CheckedUint64 index, const String& pasteboardName, WTF::CheckedInt64 changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<WebCore::PasteboardItemInfo>&&)>&& completionHandler)
+void WebPasteboardProxy::informationForItemAtIndex(IPC::Connection&, WTF::UntrustedUint64 index, const String& pasteboardName, WTF::UntrustedInt64 changeCount, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(std::optional<WebCore::PasteboardItemInfo>&&)>&& completionHandler)
 {
     auto& clipboard = Clipboard::get(pasteboardName);
     if (changeCount != clipboard.changeCount() || index) {
@@ -204,7 +204,7 @@ void WebPasteboardProxy::getPasteboardItemsCount(IPC::Connection&, const String&
     });
 }
 
-void WebPasteboardProxy::readURLFromPasteboard(IPC::Connection& connection, WTF::CheckedUint64 index, const String& pasteboardName, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(String&& url, String&& title)>&& completionHandler)
+void WebPasteboardProxy::readURLFromPasteboard(IPC::Connection& connection, WTF::UntrustedUint64 index, const String& pasteboardName, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(String&& url, String&& title)>&& completionHandler)
 {
     if (index) {
         completionHandler({ }, { });

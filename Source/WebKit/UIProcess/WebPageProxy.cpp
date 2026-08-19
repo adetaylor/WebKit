@@ -3105,7 +3105,7 @@ void WebPageProxy::shouldGoToBackForwardListItemSync(BackForwardItemIdentifier i
     shouldGoToBackForwardListItem(itemID, false, WTF::move(completionHandler));
 }
 
-void WebPageProxy::goToBackForwardItemAtIndex(WTF::CheckedInt32 steps)
+void WebPageProxy::goToBackForwardItemAtIndex(WTF::UntrustedInt32 steps)
 {
     goToBackForwardItemAtIndexForTraversal(steps);
 }
@@ -3124,7 +3124,7 @@ RefPtr<API::Navigation> WebPageProxy::goToBackForwardItemAtIndexForTraversal(int
     return navigation && navigation->backForwardTraversalWasDispatched() ? navigation : nullptr;
 }
 
-void WebPageProxy::enqueueHistoryTraversalDelta(WTF::CheckedInt32 delta)
+void WebPageProxy::enqueueHistoryTraversalDelta(WTF::UntrustedInt32 delta)
 {
     m_sessionHistoryTraversalQueue->enqueueDelta(delta);
 }
@@ -12392,14 +12392,15 @@ void WebPageProxy::convertToSimplifiedChinese()
 }
 #endif
 
-void WebPageProxy::didGetImageForFindMatch(ImageBufferParameters&& parameters, ShareableBitmap::Handle&& contentImageHandle, WTF::CheckedUint32 matchIndex)
+void WebPageProxy::didGetImageForFindMatch(ImageBufferParameters&& parameters, ShareableBitmap::Handle&& contentImageHandle, WTF::UntrustedUint32 matchIndex)
 {
     Ref image = WebImage::create({ { WTF::move(parameters), WTF::move(contentImageHandle) } });
     if (image->isEmpty()) {
         ASSERT_NOT_REACHED();
         return;
     }
-    m_findMatchesClient->didGetImageForMatchResult(this, image.ptr(), matchIndex);
+    MESSAGE_CHECK(m_legacyMainFrameProcess, matchIndex <= std::numeric_limits<int32_t>::max());
+    m_findMatchesClient->didGetImageForMatchResult(this, image.ptr(), matchIndex.value());
 }
 
 #if !PLATFORM(COCOA)
@@ -12543,7 +12544,7 @@ void WebPageProxy::Internals::failedToShowPopupMenu()
 }
 #endif
 
-void WebPageProxy::showPopupMenuFromFrame(IPC::Connection& connection, FrameIdentifier frameID, const IntRect& rect, WTF::CheckedUint64 textDirection, Vector<WebPopupItem>&& items, WTF::CheckedInt32 selectedIndex, const PlatformPopupMenuData& data)
+void WebPageProxy::showPopupMenuFromFrame(IPC::Connection& connection, FrameIdentifier frameID, const IntRect& rect, WTF::UntrustedUint64 textDirection, Vector<WebPopupItem>&& items, WTF::UntrustedInt32 selectedIndex, const PlatformPopupMenuData& data)
 {
     RefPtr frame = WebFrameProxy::webFrame(frameID);
     if (!frame)
@@ -13067,7 +13068,7 @@ SpellDocumentTag WebPageProxy::spellDocumentTag()
 }
 
 #if USE(UNIFIED_TEXT_CHECKING)
-void WebPageProxy::checkTextOfParagraph(const String& text, OptionSet<TextCheckingType> checkingTypes, WTF::CheckedInt32 insertionPoint, CompletionHandler<void(Vector<WebCore::TextCheckingResult>&&)>&& completionHandler)
+void WebPageProxy::checkTextOfParagraph(const String& text, OptionSet<TextCheckingType> checkingTypes, WTF::UntrustedInt32 insertionPoint, CompletionHandler<void(Vector<WebCore::TextCheckingResult>&&)>&& completionHandler)
 {
     completionHandler(TextChecker::checkTextOfParagraph(spellDocumentTag(), text, insertionPoint, checkingTypes, m_initialCapitalizationEnabled));
 }
@@ -13105,7 +13106,7 @@ void WebPageProxy::updateSpellingUIWithGrammarString(const String& badGrammarPhr
     TextChecker::updateSpellingUIWithGrammarString(spellDocumentTag(), badGrammarPhrase, grammarDetail);
 }
 
-void WebPageProxy::getGuessesForWord(const String& word, const String& context, WTF::CheckedInt32 insertionPoint, CompletionHandler<void(Vector<String>&&)>&& completionHandler)
+void WebPageProxy::getGuessesForWord(const String& word, const String& context, WTF::UntrustedInt32 insertionPoint, CompletionHandler<void(Vector<String>&&)>&& completionHandler)
 {
     Vector<String> guesses;
     TextChecker::getGuessesForWord(spellDocumentTag(), word, context, insertionPoint, guesses, m_initialCapitalizationEnabled);
@@ -13128,13 +13129,13 @@ void WebPageProxy::ignoreWord(IPC::Connection& connection, const String& word)
     TextChecker::ignoreWord(spellDocumentTag(), word);
 }
 
-void WebPageProxy::requestCheckingOfString(TextCheckerRequestID requestID, const TextCheckingRequestData& request, WTF::CheckedInt32 insertionPoint)
+void WebPageProxy::requestCheckingOfString(TextCheckerRequestID requestID, const TextCheckingRequestData& request, WTF::UntrustedInt32 insertionPoint)
 {
     TextChecker::requestCheckingOfString(TextCheckerCompletion::create(requestID, request, *this), insertionPoint);
 }
 
 
-void WebPageProxy::requestExtendedCheckingOfString(TextCheckerRequestID requestID, const TextCheckingRequestData& request, WTF::CheckedInt32 insertionPoint)
+void WebPageProxy::requestExtendedCheckingOfString(TextCheckerRequestID requestID, const TextCheckingRequestData& request, WTF::UntrustedInt32 insertionPoint)
 {
 #if PLATFORM(COCOA)
     TextChecker::requestExtendedCheckingOfString(TextCheckerCompletion::create(requestID, request, *this), insertionPoint);
@@ -13440,7 +13441,7 @@ void WebPageProxy::logDiagnosticMessageWithResult(const String& message, const S
     effectiveClient->logDiagnosticMessageWithResult(this, message, description, static_cast<WebCore::DiagnosticLoggingResultType>(result));
 }
 
-void WebPageProxy::logDiagnosticMessageWithResultFromWebProcess(IPC::Connection& connection, const String& message, const String& description, WTF::CheckedUint32 result, WebCore::ShouldSample shouldSample)
+void WebPageProxy::logDiagnosticMessageWithResultFromWebProcess(IPC::Connection& connection, const String& message, const String& description, WTF::UntrustedUint32 result, WebCore::ShouldSample shouldSample)
 {
     MESSAGE_CHECK_BASE(message.containsOnlyASCII(), connection);
 
@@ -13523,7 +13524,7 @@ void WebPageProxy::logDiagnosticMessageWithDomainFromWebProcess(IPC::Connection&
     logDiagnosticMessageWithDomain(message, domain);
 }
 
-void WebPageProxy::logScrollingEvent(WTF::CheckedUint32 eventType, MonotonicTime timestamp, WTF::CheckedUint64 data)
+void WebPageProxy::logScrollingEvent(WTF::UntrustedUint32 eventType, MonotonicTime timestamp, WTF::UntrustedUint64 data)
 {
     MESSAGE_CHECK(m_legacyMainFrameProcess, eventType <= static_cast<uint32_t>(PerformanceLoggingClient::ScrollingEvent::StartedRubberbanding));
     PerformanceLoggingClient::ScrollingEvent event = static_cast<PerformanceLoggingClient::ScrollingEvent>(eventType.value());
@@ -13540,7 +13541,7 @@ void WebPageProxy::logScrollingEvent(WTF::CheckedUint32 eventType, MonotonicTime
         break;
     case PerformanceLoggingClient::ScrollingEvent::SwitchedScrollingMode:
         if (data)
-            WTFLogAlways("SCROLLING: Switching to main-thread scrolling mode. Time: %f Reason(s): %s\n", timestamp.secondsSinceEpoch().value(), PerformanceLoggingClient::synchronousScrollingReasonsAsString(OptionSet<SynchronousScrollingReason>::fromRaw(data)).utf8().data());
+            WTFLogAlways("SCROLLING: Switching to main-thread scrolling mode. Time: %f Reason(s): %s\n", timestamp.secondsSinceEpoch().value(), PerformanceLoggingClient::synchronousScrollingReasonsAsString(OptionSet<SynchronousScrollingReason>::fromRaw(data.value())).utf8().data());
         else
             WTFLogAlways("SCROLLING: Switching to threaded scrolling mode. Time: %f\n", timestamp.secondsSinceEpoch().value());
         break;
@@ -14637,7 +14638,7 @@ void WebPageProxy::didApplyLinkDecorationFiltering(const URL& originalURL, const
     m_navigationClient->didApplyLinkDecorationFiltering(*this, originalURL, adjustedURL);
 }
 
-void WebPageProxy::exceededDatabaseQuota(FrameIdentifier frameID, const String& originIdentifier, const String& databaseName, const String& displayName, WTF::CheckedUint64 currentQuota, WTF::CheckedUint64 currentOriginUsage, WTF::CheckedUint64 currentDatabaseUsage, WTF::CheckedUint64 expectedUsage, CompletionHandler<void(uint64_t)>&& reply)
+void WebPageProxy::exceededDatabaseQuota(FrameIdentifier frameID, const String& originIdentifier, const String& databaseName, const String& displayName, WTF::UntrustedUint64 currentQuota, WTF::UntrustedUint64 currentOriginUsage, WTF::UntrustedUint64 currentDatabaseUsage, WTF::UntrustedUint64 expectedUsage, CompletionHandler<void(uint64_t)>&& reply)
 {
     requestStorageSpace(frameID, originIdentifier, databaseName, displayName, currentQuota, currentOriginUsage, currentDatabaseUsage, expectedUsage, [reply = WTF::move(reply)](auto quota) mutable {
         reply(quota);
@@ -15421,7 +15422,7 @@ void WebPageProxy::notifyScrollerThumbIsVisibleInRect(const IntRect& scrollerThu
     internals().visibleScrollerThumbRect = scrollerThumb;
 }
 
-void WebPageProxy::recommendedScrollbarStyleDidChange(IPC::Connection& connection, WTF::CheckedInt32 newStyle)
+void WebPageProxy::recommendedScrollbarStyleDidChange(IPC::Connection& connection, WTF::UntrustedInt32 newStyle)
 {
     MESSAGE_CHECK_BASE(newStyle >= 0 && newStyle <= static_cast<int32_t>(WebCore::ScrollbarStyle::Overlay), connection);
 #if USE(APPKIT)
@@ -19123,7 +19124,7 @@ void WebPageProxy::postMessageToRemote(WebCore::FrameIdentifier source, const We
     });
 }
 
-void WebPageProxy::renderTreeAsTextForTesting(WebCore::FrameIdentifier frameID, WTF::CheckedUint64 baseIndent, OptionSet<WebCore::RenderAsTextFlag> behavior, CompletionHandler<void(String&&)>&& completionHandler)
+void WebPageProxy::renderTreeAsTextForTesting(WebCore::FrameIdentifier frameID, WTF::UntrustedUint64 baseIndent, OptionSet<WebCore::RenderAsTextFlag> behavior, CompletionHandler<void(String&&)>&& completionHandler)
 {
     auto sendResult = sendSyncToProcessContainingFrame(frameID, Messages::WebPage::RenderTreeAsTextForTesting(frameID, baseIndent, behavior), 1_s, IPC::SendSyncOption::MaintainOrderingWithAsyncMessages);
     if (!sendResult.succeeded())
@@ -19133,7 +19134,7 @@ void WebPageProxy::renderTreeAsTextForTesting(WebCore::FrameIdentifier frameID, 
     completionHandler(WTF::move(result));
 }
 
-void WebPageProxy::layerTreeAsTextForTesting(FrameIdentifier frameID, WTF::CheckedUint64 baseIndent, OptionSet<LayerTreeAsTextOptions> options, CompletionHandler<void(String&&)>&& completionHandler)
+void WebPageProxy::layerTreeAsTextForTesting(FrameIdentifier frameID, WTF::UntrustedUint64 baseIndent, OptionSet<LayerTreeAsTextOptions> options, CompletionHandler<void(String&&)>&& completionHandler)
 {
     auto sendResult = sendSyncToProcessContainingFrame(frameID, Messages::WebPage::LayerTreeAsTextForTesting(frameID, baseIndent, options));
     if (!sendResult.succeeded())

@@ -110,7 +110,7 @@ std::optional<TextCheckingControllerProxy::RangeAndOffset> TextCheckingControlle
     return { { resolveCharacterRange(scope, adjustedSelectionCharacterRange), adjustedSelectionCharacterRange.location } };
 }
 
-void TextCheckingControllerProxy::replaceRelativeToSelection(const WebCore::AttributedString& annotatedString, WTF::CheckedInt64 selectionOffset, WTF::CheckedUint64 length, WTF::CheckedUint64 relativeReplacementLocation, WTF::CheckedUint64 relativeReplacementLength)
+void TextCheckingControllerProxy::replaceRelativeToSelection(const WebCore::AttributedString& annotatedString, WTF::UntrustedInt64 selectionOffset, WTF::UntrustedUint64 length, WTF::UntrustedUint64 relativeReplacementLocation, WTF::UntrustedUint64 relativeReplacementLength)
 {
     RefPtr frame = m_page->corePage()->focusController().focusedOrMainFrame();
     if (!frame)
@@ -169,7 +169,7 @@ void TextCheckingControllerProxy::replaceRelativeToSelection(const WebCore::Attr
     }];
 }
 
-void TextCheckingControllerProxy::removeAnnotationRelativeToSelection(const String& annotation, WTF::CheckedInt64 selectionOffset, WTF::CheckedUint64 length)
+void TextCheckingControllerProxy::removeAnnotationRelativeToSelection(const String& annotation, WTF::UntrustedInt64 selectionOffset, WTF::UntrustedUint64 length)
 {
     auto rangeAndOffset = rangeAndOffsetRelativeToSelection(selectionOffset, length);
     if (!rangeAndOffset)

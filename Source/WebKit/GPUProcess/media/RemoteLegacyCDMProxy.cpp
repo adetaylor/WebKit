@@ -59,7 +59,7 @@ void RemoteLegacyCDMProxy::supportsMIMEType(const String& mimeType, SupportsMIME
     callback(protect(m_cdm)->supportsMIMEType(mimeType));
 }
 
-void RemoteLegacyCDMProxy::createSession(WTF::CheckedUint64 logIdentifier, CreateSessionCallback&& callback)
+void RemoteLegacyCDMProxy::createSession(WTF::UntrustedUint64 logIdentifier, CreateSessionCallback&& callback)
 {
     RefPtr factory = m_factory.get();
     if (!factory) {

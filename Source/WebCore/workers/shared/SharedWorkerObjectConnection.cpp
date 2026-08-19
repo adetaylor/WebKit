@@ -94,7 +94,7 @@ void SharedWorkerObjectConnection::postErrorToWorkerObject(SharedWorkerObjectIde
 }
 
 #if ENABLE(CONTENT_EXTENSIONS)
-void SharedWorkerObjectConnection::reportNetworkUsageToWorkerObject(SharedWorkerObjectIdentifier sharedWorkerObjectIdentifier, WTF::CheckedUint64 bytesTransferredOverNetworkDelta)
+void SharedWorkerObjectConnection::reportNetworkUsageToWorkerObject(SharedWorkerObjectIdentifier sharedWorkerObjectIdentifier, WTF::UntrustedUint64 bytesTransferredOverNetworkDelta)
 {
     ASSERT(isMainThread());
     RefPtr workerObject = SharedWorker::fromIdentifier(sharedWorkerObjectIdentifier);

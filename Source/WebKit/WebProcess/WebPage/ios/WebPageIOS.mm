@@ -1198,7 +1198,7 @@ void WebPage::setFocusedElementValue(const WebCore::ElementContext& context, con
         input->setValue(value, DispatchInputAndChangeEvent);
 }
 
-void WebPage::setFocusedElementSelectedIndex(const WebCore::ElementContext& context, WTF::CheckedUint32 index, bool allowMultipleSelection)
+void WebPage::setFocusedElementSelectedIndex(const WebCore::ElementContext& context, WTF::UntrustedUint32 index, bool allowMultipleSelection)
 {
     if (RefPtr select = dynamicDowncast<HTMLSelectElement>(elementForContext(context)))
         select->optionSelectedByUser(index, true, allowMultipleSelection);
@@ -1838,7 +1838,7 @@ void WebPage::selectWordBackward()
     protect(frame->selection())->setSelectedRange(makeSimpleRange(startPosition, position), position.affinity(), WebCore::FrameSelection::ShouldCloseTyping::Yes, UserTriggered::Yes);
 }
 
-void WebPage::moveSelectionByOffset(WTF::CheckedInt32 offset, CompletionHandler<void()>&& completionHandler)
+void WebPage::moveSelectionByOffset(WTF::UntrustedInt32 offset, CompletionHandler<void()>&& completionHandler)
 {
     RefPtr frame = m_page->focusController().focusedOrMainFrame();
     if (!frame)
@@ -1973,7 +1973,7 @@ void WebPage::requestEvasionRectsAboveSelection(CompletionHandler<void(const Vec
     reply(WTF::move(rectsToAvoidInRootViewCoordinates));
 }
 
-void WebPage::getRectsForGranularityWithSelectionOffset(WebCore::TextGranularity granularity, WTF::CheckedInt32 offset, CompletionHandler<void(const Vector<WebCore::SelectionGeometry>&)>&& completionHandler)
+void WebPage::getRectsForGranularityWithSelectionOffset(WebCore::TextGranularity granularity, WTF::UntrustedInt32 offset, CompletionHandler<void(const Vector<WebCore::SelectionGeometry>&)>&& completionHandler)
 {
     RefPtr frame = m_page->focusController().focusedOrMainFrame();
     if (!frame)
@@ -2016,7 +2016,7 @@ static std::optional<SimpleRange> rangeNearPositionMatchesText(const VisiblePosi
     return findClosestPlainText(range, matchText, { }, characterCount({ range.start, *boundaryPoint }, TextIteratorBehavior::EmitsCharactersBetweenAllVisiblePositions));
 }
 
-void WebPage::getRectsAtSelectionOffsetWithText(WTF::CheckedInt32 offset, const String& text, CompletionHandler<void(const Vector<WebCore::SelectionGeometry>&)>&& completionHandler)
+void WebPage::getRectsAtSelectionOffsetWithText(WTF::UntrustedInt32 offset, const String& text, CompletionHandler<void(const Vector<WebCore::SelectionGeometry>&)>&& completionHandler)
 {
     RefPtr frame = m_page->focusController().focusedOrMainFrame();
     if (!frame)
@@ -2514,7 +2514,7 @@ static void handleAnimationActions(Element& element, uint32_t action)
 #endif // ENABLE(ACCESSIBILITY_ANIMATION_CONTROL)
 }
 
-void WebPage::performActionOnElement(WTF::CheckedUint32 action, const String& authorizationToken, CompletionHandler<void()>&& completionHandler)
+void WebPage::performActionOnElement(WTF::UntrustedUint32 action, const String& authorizationToken, CompletionHandler<void()>&& completionHandler)
 {
     CompletionHandlerCallingScope callCompletionHandler(WTF::move(completionHandler));
 
@@ -2573,7 +2573,7 @@ void WebPage::performActionOnElement(WTF::CheckedUint32 action, const String& au
     handleAnimationActions(*element, action);
 }
 
-void WebPage::performActionOnElements(WTF::CheckedUint32 action, const Vector<WebCore::ElementContext>& elements)
+void WebPage::performActionOnElements(WTF::UntrustedUint32 action, const Vector<WebCore::ElementContext>& elements)
 {
     for (const auto& elementContext : elements) {
         if (RefPtr element = elementForContext(elementContext))
@@ -4131,7 +4131,7 @@ void WebPage::drawPrintingToSnapshotiOS(RemoteSnapshotIdentifier snapshotIdentif
     m_remoteSnapshotState = std::nullopt;
 }
 
-void WebPage::drawToPDFiOS(FrameIdentifier frameID, const PrintInfo& printInfo, WTF::CheckedUint64 pageCount, CompletionHandler<void(RefPtr<SharedBuffer>&&)>&& reply)
+void WebPage::drawToPDFiOS(FrameIdentifier frameID, const PrintInfo& printInfo, WTF::UntrustedUint64 pageCount, CompletionHandler<void(RefPtr<SharedBuffer>&&)>&& reply)
 {
     if (printInfo.snapshotFirstPage) {
         RefPtr localMainFrame = protect(m_page)->localMainFrame();
@@ -4162,7 +4162,7 @@ void WebPage::drawToPDFiOS(FrameIdentifier frameID, const PrintInfo& printInfo, 
     endPrinting();
 }
 
-void WebPage::drawPrintingPagesToSnapshotiOS(RemoteSnapshotIdentifier snapshotIdentifier, WebCore::FrameIdentifier frameID, const PrintInfo& printInfo, WTF::CheckedUint64 pageCount, CompletionHandler<void(std::optional<WebCore::FloatSize>)>&& completionHandler)
+void WebPage::drawPrintingPagesToSnapshotiOS(RemoteSnapshotIdentifier snapshotIdentifier, WebCore::FrameIdentifier frameID, const PrintInfo& printInfo, WTF::UntrustedUint64 pageCount, CompletionHandler<void(std::optional<WebCore::FloatSize>)>&& completionHandler)
 {
     RefPtr frame = WebProcess::singleton().webFrame(frameID);
     if (!frame) {
@@ -4313,7 +4313,7 @@ bool WebPage::platformPrefersTextLegibilityBasedZoomScaling() const
 #endif
 }
 
-void WebPage::updateSelectionWithDelta(WTF::CheckedInt64 locationDelta, WTF::CheckedInt64 lengthDelta, CompletionHandler<void()>&& completionHandler)
+void WebPage::updateSelectionWithDelta(WTF::UntrustedInt64 locationDelta, WTF::UntrustedInt64 lengthDelta, CompletionHandler<void()>&& completionHandler)
 {
     RefPtr frame = m_page->focusController().focusedOrMainFrame();
     if (!frame)

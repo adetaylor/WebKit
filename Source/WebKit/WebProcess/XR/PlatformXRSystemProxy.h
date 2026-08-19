@@ -86,7 +86,7 @@ private:
     // Message handlers
     void sessionDidEnd(XRDeviceIdentifier);
     void sessionDidUpdateVisibilityState(XRDeviceIdentifier, PlatformXR::VisibilityState);
-    void sessionDidInitializeRendering(XRDeviceIdentifier, WTF::CheckedUint32 width, WTF::CheckedUint32 height, WTF::CheckedUint32 arrayLength);
+    void sessionDidInitializeRendering(XRDeviceIdentifier, WTF::UntrustedUint32 width, WTF::UntrustedUint32 height, WTF::UntrustedUint32 arrayLength);
 
     PlatformXR::DeviceList m_devices;
     WeakRef<WebPage> m_page;

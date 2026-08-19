@@ -218,9 +218,9 @@ private:
 
     void failedDecoding(VideoDecoderIdentifier);
     void flushDecoderCompleted(VideoDecoderIdentifier);
-    void completedDecoding(VideoDecoderIdentifier, WTF::CheckedInt64 timeStamp, WTF::CheckedInt64 timeStampNs, RemoteVideoFrameProxy::Properties&&);
+    void completedDecoding(VideoDecoderIdentifier, WTF::UntrustedInt64 timeStamp, WTF::UntrustedInt64 timeStampNs, RemoteVideoFrameProxy::Properties&&);
     // FIXME: Will be removed once RemoteVideoFrameProxy providers are the only ones sending data.
-    void completedDecodingCV(VideoDecoderIdentifier, WTF::CheckedInt64 timeStamp, WTF::CheckedInt64 timeStampNs, RetainPtr<CVPixelBufferRef>&&);
+    void completedDecodingCV(VideoDecoderIdentifier, WTF::UntrustedInt64 timeStamp, WTF::UntrustedInt64 timeStampNs, RetainPtr<CVPixelBufferRef>&&);
     void completedEncoding(VideoEncoderIdentifier, std::span<const uint8_t>, const webrtc::WebKitEncodedFrameInfo&);
     void flushEncoderCompleted(VideoEncoderIdentifier);
     void setEncodingConfiguration(WebKit::VideoEncoderIdentifier, std::span<const uint8_t>, std::optional<WebCore::PlatformVideoColorSpace>);

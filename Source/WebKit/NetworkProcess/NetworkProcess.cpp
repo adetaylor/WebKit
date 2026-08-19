@@ -1176,11 +1176,12 @@ void NetworkProcess::domainIDExistsInDatabase(PAL::SessionID sessionID, int doma
     }
 }
 
-void NetworkProcess::mergeStatisticForTesting(PAL::SessionID sessionID, RegistrableDomain&& domain, RegistrableDomain&& topFrameDomain1, RegistrableDomain&& topFrameDomain2, Seconds lastSeen, bool hadUserInteraction, Seconds mostRecentUserInteraction, bool isGrandfathered, bool isPrevalent, bool isVeryPrevalent, WTF::CheckedUint64 dataRecordsRemoved, CompletionHandler<void()>&& completionHandler)
+void NetworkProcess::mergeStatisticForTesting(PAL::SessionID sessionID, RegistrableDomain&& domain, RegistrableDomain&& topFrameDomain1, RegistrableDomain&& topFrameDomain2, Seconds lastSeen, bool hadUserInteraction, Seconds mostRecentUserInteraction, bool isGrandfathered, bool isPrevalent, bool isVeryPrevalent, WTF::UntrustedUint64 dataRecordsRemoved, CompletionHandler<void()>&& completionHandler)
 {
+    ASSERT(dataRecordsRemoved <= std::numeric_limits<unsigned>::max());
     if (CheckedPtr session = networkSession(sessionID)) {
         if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->mergeStatisticForTesting(WTF::move(domain), WTF::move(topFrameDomain1), WTF::move(topFrameDomain2), lastSeen, hadUserInteraction, mostRecentUserInteraction, isGrandfathered, isPrevalent, isVeryPrevalent, unsigned(dataRecordsRemoved), WTF::move(completionHandler));
+            resourceLoadStatistics->mergeStatisticForTesting(WTF::move(domain), WTF::move(topFrameDomain1), WTF::move(topFrameDomain2), lastSeen, hadUserInteraction, mostRecentUserInteraction, isGrandfathered, isPrevalent, isVeryPrevalent, unsigned(dataRecordsRemoved.value()), WTF::move(completionHandler));
         else
             completionHandler();
     } else {
@@ -1189,11 +1190,11 @@ void NetworkProcess::mergeStatisticForTesting(PAL::SessionID sessionID, Registra
     }
 }
 
-void NetworkProcess::insertExpiredStatisticForTesting(PAL::SessionID sessionID, RegistrableDomain&& domain, WTF::CheckedUint64 numberOfOperatingDaysPassed, bool hadUserInteraction, bool isScheduledForAllButCookieDataRemoval, bool isPrevalent, CompletionHandler<void()>&& completionHandler)
+void NetworkProcess::insertExpiredStatisticForTesting(PAL::SessionID sessionID, RegistrableDomain&& domain, WTF::UntrustedUint64 numberOfOperatingDaysPassed, bool hadUserInteraction, bool isScheduledForAllButCookieDataRemoval, bool isPrevalent, CompletionHandler<void()>&& completionHandler)
 {
     if (CheckedPtr session = networkSession(sessionID)) {
         if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->insertExpiredStatisticForTesting(WTF::move(domain), unsigned(numberOfOperatingDaysPassed), hadUserInteraction, isScheduledForAllButCookieDataRemoval, isPrevalent, WTF::move(completionHandler));
+            resourceLoadStatistics->insertExpiredStatisticForTesting(WTF::move(domain), unsigned(numberOfOperatingDaysPassed.value()), hadUserInteraction, isScheduledForAllButCookieDataRemoval, isPrevalent, WTF::move(completionHandler));
         else
             completionHandler();
     } else {
@@ -1331,7 +1332,7 @@ void NetworkProcess::setGrandfatheringTime(PAL::SessionID sessionID, Seconds sec
     }
 }
 
-void NetworkProcess::setMaxStatisticsEntries(PAL::SessionID sessionID, WTF::CheckedUint64 maximumEntryCount, CompletionHandler<void()>&& completionHandler)
+void NetworkProcess::setMaxStatisticsEntries(PAL::SessionID sessionID, WTF::UntrustedUint64 maximumEntryCount, CompletionHandler<void()>&& completionHandler)
 {
     if (CheckedPtr session = networkSession(sessionID)) {
         if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
@@ -1357,7 +1358,7 @@ void NetworkProcess::setMinimumTimeBetweenDataRecordsRemoval(PAL::SessionID sess
     }
 }
 
-void NetworkProcess::setPruneEntriesDownTo(PAL::SessionID sessionID, WTF::CheckedUint64 pruneTargetCount, CompletionHandler<void()>&& completionHandler)
+void NetworkProcess::setPruneEntriesDownTo(PAL::SessionID sessionID, WTF::UntrustedUint64 pruneTargetCount, CompletionHandler<void()>&& completionHandler)
 {
     if (CheckedPtr session = networkSession(sessionID)) {
         if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
@@ -1709,7 +1710,7 @@ void NetworkProcess::setOptInCookiePartitioningEnabled(PAL::SessionID sessionID,
 }
 #endif
 
-void NetworkProcess::preconnectTo(PAL::SessionID sessionID, WebPageProxyIdentifier webPageProxyID, WebCore::PageIdentifier webPageID, WebCore::ResourceRequest&& request, WebCore::StoredCredentialsPolicy storedCredentialsPolicy, std::optional<NavigatingToAppBoundDomain> isNavigatingToAppBoundDomain, WTF::CheckedUint64 requiredCookiesVersion)
+void NetworkProcess::preconnectTo(PAL::SessionID sessionID, WebPageProxyIdentifier webPageProxyID, WebCore::PageIdentifier webPageID, WebCore::ResourceRequest&& request, WebCore::StoredCredentialsPolicy storedCredentialsPolicy, std::optional<NavigatingToAppBoundDomain> isNavigatingToAppBoundDomain, WTF::UntrustedUint64 requiredCookiesVersion)
 {
     auto url = request.url();
     auto userAgent = request.httpUserAgent();

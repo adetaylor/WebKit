@@ -571,7 +571,7 @@ void NetworkTransportSession::receiveDatagramLoop()
     }).get());
 }
 
-void NetworkTransportSession::terminate(Checked<WebCore::WebTransportSessionErrorCode, RecordOverflow> code, CString&& message)
+void NetworkTransportSession::terminate(Checked<WebCore::WebTransportSessionErrorCode, RecordOverflowNoNarrowing> code, CString&& message)
 {
     if (m_sessionMetadata) {
         nw_webtransport_metadata_set_session_error_code(m_sessionMetadata.get(), code);
@@ -595,7 +595,7 @@ bool NetworkTransportSession::isSessionClosed() const
     return false;
 }
 
-void NetworkTransportSession::exportKeyingMaterial(std::span<const uint8_t> label, std::span<const uint8_t> context, WTF::CheckedUint32 outputLength, CompletionHandler<void(std::optional<Vector<uint8_t>>)>&& completionHandler)
+void NetworkTransportSession::exportKeyingMaterial(std::span<const uint8_t> label, std::span<const uint8_t> context, WTF::UntrustedUint32 outputLength, CompletionHandler<void(std::optional<Vector<uint8_t>>)>&& completionHandler)
 {
     if (!m_sessionMetadata)
         return completionHandler(std::nullopt);

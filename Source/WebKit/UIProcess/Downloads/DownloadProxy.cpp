@@ -146,7 +146,7 @@ void DownloadProxy::willSendRequest(ResourceRequest&& proposedRequest, const Res
     });
 }
 
-void DownloadProxy::didReceiveData(WTF::CheckedUint64 bytesWritten, WTF::CheckedUint64 totalBytesWritten, WTF::CheckedUint64 totalBytesExpectedToWrite)
+void DownloadProxy::didReceiveData(WTF::UntrustedUint64 bytesWritten, WTF::UntrustedUint64 totalBytesWritten, WTF::UntrustedUint64 totalBytesExpectedToWrite)
 {
     protect(client())->didReceiveData(*this, bytesWritten, totalBytesWritten, totalBytesExpectedToWrite);
 }

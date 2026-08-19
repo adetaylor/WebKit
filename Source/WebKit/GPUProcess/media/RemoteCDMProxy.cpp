@@ -102,7 +102,7 @@ void RemoteCDMProxy::loadAndInitialize()
     m_private->loadAndInitialize();
 }
 
-void RemoteCDMProxy::setLogIdentifier(WTF::CheckedUint64 logIdentifier)
+void RemoteCDMProxy::setLogIdentifier(WTF::UntrustedUint64 logIdentifier)
 {
 #if !RELEASE_LOG_DISABLED
     m_logIdentifier = logIdentifier;

@@ -766,22 +766,22 @@ void PlaybackSessionManagerProxy::canPlayFastReverseChanged(IPC::Connection& con
     ensureModel(connection, identifier)->canPlayFastReverseChanged(value);
 }
 
-void PlaybackSessionManagerProxy::audioMediaSelectionOptionsChanged(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, Vector<MediaSelectionOption> options, WTF::CheckedUint64 selectedIndex)
+void PlaybackSessionManagerProxy::audioMediaSelectionOptionsChanged(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, Vector<MediaSelectionOption> options, WTF::UntrustedUint64 selectedIndex)
 {
     ensureModel(connection, identifier)->audioMediaSelectionOptionsChanged(options, selectedIndex);
 }
 
-void PlaybackSessionManagerProxy::legibleMediaSelectionOptionsChanged(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, Vector<MediaSelectionOption> options, WTF::CheckedUint64 selectedIndex)
+void PlaybackSessionManagerProxy::legibleMediaSelectionOptionsChanged(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, Vector<MediaSelectionOption> options, WTF::UntrustedUint64 selectedIndex)
 {
     ensureModel(connection, identifier)->legibleMediaSelectionOptionsChanged(options, selectedIndex);
 }
 
-void PlaybackSessionManagerProxy::audioMediaSelectionIndexChanged(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, WTF::CheckedUint64 selectedIndex)
+void PlaybackSessionManagerProxy::audioMediaSelectionIndexChanged(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, WTF::UntrustedUint64 selectedIndex)
 {
     ensureModel(connection, identifier)->audioMediaSelectionIndexChanged(selectedIndex);
 }
 
-void PlaybackSessionManagerProxy::legibleMediaSelectionIndexChanged(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, WTF::CheckedUint64 selectedIndex)
+void PlaybackSessionManagerProxy::legibleMediaSelectionIndexChanged(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, WTF::UntrustedUint64 selectedIndex)
 {
     ensureModel(connection, identifier)->legibleMediaSelectionIndexChanged(selectedIndex);
 }
@@ -1200,7 +1200,7 @@ std::optional<SharedPreferencesForWebProcess> PlaybackSessionManagerProxy::share
 }
 
 #if !RELEASE_LOG_DISABLED
-void PlaybackSessionManagerProxy::setLogIdentifier(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, WTF::CheckedUint64 logIdentifier)
+void PlaybackSessionManagerProxy::setLogIdentifier(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, WTF::UntrustedUint64 logIdentifier)
 {
     Ref model = ensureModel(connection, identifier);
     model->setLogIdentifier(logIdentifier);

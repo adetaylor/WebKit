@@ -91,8 +91,8 @@ private:
     void NODELETE didClear(uint64_t mapSeed);
 
     // Message handlers.
-    void dispatchStorageEvent(const std::optional<StorageAreaImplIdentifier>& sourceStorageAreaID, const String& key, const String& oldValue, const String& newValue, const String& urlString, WTF::CheckedUint64 messageIdentifier);
-    void clearCache(WTF::CheckedUint64 messageIdentifier);
+    void dispatchStorageEvent(const std::optional<StorageAreaImplIdentifier>& sourceStorageAreaID, const String& key, const String& oldValue, const String& newValue, const String& urlString, WTF::UntrustedUint64 messageIdentifier);
+    void clearCache(WTF::UntrustedUint64 messageIdentifier);
 
     void syncOneItem(const String& key, const String& value);
     void syncItems(HashMap<String, String>&&);

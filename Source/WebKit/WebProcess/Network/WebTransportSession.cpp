@@ -105,14 +105,14 @@ void WebTransportSession::streamReceiveBytes(WebCore::WebTransportStreamIdentifi
         strongClient->streamReceiveBytes(identifier, bytes, withFin, WTF::move(exception));
 }
 
-void WebTransportSession::streamReceiveError(WebCore::WebTransportStreamIdentifier identifier, WTF::CheckedUint64 errorCode)
+void WebTransportSession::streamReceiveError(WebCore::WebTransportStreamIdentifier identifier, WTF::UntrustedUint64 errorCode)
 {
     ASSERT(RunLoop::isMain());
     if (RefPtr strongClient = m_client.get())
         strongClient->streamReceiveError(identifier, errorCode);
 }
 
-void WebTransportSession::streamSendError(WebCore::WebTransportStreamIdentifier identifier, WTF::CheckedUint64 errorCode)
+void WebTransportSession::streamSendError(WebCore::WebTransportStreamIdentifier identifier, WTF::UntrustedUint64 errorCode)
 {
     ASSERT(RunLoop::isMain());
     if (RefPtr strongClient = m_client.get())

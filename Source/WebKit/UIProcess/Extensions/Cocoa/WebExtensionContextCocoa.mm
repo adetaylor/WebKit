@@ -259,7 +259,7 @@ void WebExtensionContext::clearError(Error error)
     }).get());
 }
 
-void WebExtensionContext::didEncounterScriptError(const String& message, const String& sourceURL, WTF::CheckedUint32 lineNumber, WTF::CheckedUint32 columnNumber, WebExtensionContentWorldType)
+void WebExtensionContext::didEncounterScriptError(const String& message, const String& sourceURL, WTF::UntrustedUint32 lineNumber, WTF::UntrustedUint32 columnNumber, WebExtensionContentWorldType)
 {
     auto path = sourceURL.isEmpty() ? String() : URL(sourceURL).path().toString();
     if (path.startsWith('/'))

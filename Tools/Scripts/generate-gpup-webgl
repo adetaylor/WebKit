@@ -625,15 +625,15 @@ webkit_ipc_builtin_types = set(
 # handed them as WTF::Checked rather than bare integers - see checked_received_types in
 # Source/WebKit/Scripts/webkit/messages.py, which this must stay in step with.
 webkit_ipc_checked_integer_types = {
-    "int8_t": "WTF::CheckedInt8",
-    "uint8_t": "WTF::CheckedUint8",
-    "int16_t": "WTF::CheckedInt16",
-    "uint16_t": "WTF::CheckedUint16",
-    "int32_t": "WTF::CheckedInt32",
-    "uint32_t": "WTF::CheckedUint32",
-    "int64_t": "WTF::CheckedInt64",
-    "uint64_t": "WTF::CheckedUint64",
-    "size_t": "WTF::CheckedSize",
+    "int8_t": "WTF::UntrustedInt8",
+    "uint8_t": "WTF::UntrustedUint8",
+    "int16_t": "WTF::UntrustedInt16",
+    "uint16_t": "WTF::UntrustedUint16",
+    "int32_t": "WTF::UntrustedInt32",
+    "uint32_t": "WTF::UntrustedUint32",
+    "int64_t": "WTF::UntrustedInt64",
+    "uint64_t": "WTF::UntrustedUint64",
+    "size_t": "WTF::UntrustedSize",
 }
 
 
@@ -1130,8 +1130,19 @@ class webkit_ipc_cpp_impl(object):
             self.args.args += [cpp_arg(get_cpp_type(f"CompletionHandler<void({out_arg_decls})>&&"), "completionHandler")]
 
     def process_in_arg(self, a: cpp_arg):
-        self.args.args += [cpp_arg(webkit_ipc_get_message_forwarder_type(webkit_ipc_types[a.type]), a.name)]
-        self.in_exprs += [webkit_ipc_convert_expr(cpp_expr(webkit_ipc_types[a.type], a.name), a.type)]
+        forwarder_type = webkit_ipc_get_message_forwarder_type(webkit_ipc_types[a.type])
+        self.args.args += [cpp_arg(forwarder_type, a.name)]
+        # A checked integer will not implicitly narrow, so unwrap it when handing it to a GL entry
+        # point whose parameter is a different (usually signed, pointer-sized) integer type. The
+        # value itself is validated by the GL implementation.
+        source_name = a.name
+        # Only the 64-bit values (buffer offsets and sizes) reach a GL parameter that cannot
+        # represent them all - GCGLintptr and GCGLsizeiptr are signed. Everything else converts
+        # implicitly and keeps its overflow tracking.
+        if str(forwarder_type) in ("WTF::UntrustedUint64", "WTF::UntrustedInt64") \
+                and str(webkit_ipc_types[a.type]) != str(a.type):
+            source_name = f"{a.name}.value()"
+        self.in_exprs += [webkit_ipc_convert_expr(cpp_expr(webkit_ipc_types[a.type], source_name), a.type)]
         if a.type.type_name in named_object_types:
             if self.is_create:
                 self.pre_call_stmts += [f"MESSAGE_CHECK({a.name});"]
@@ -1159,7 +1170,7 @@ class webkit_ipc_cpp_impl(object):
             self.out_exprs += [webkit_ipc_convert_expr(e, webkit_ipc_value_type)]
         elif a.type.is_dynamic_span():
             assert isinstance(a.type, cpp_type_container)
-            size_arg = cpp_arg(get_cpp_type("WTF::CheckedUint64"), f"{a.name}Size")
+            size_arg = cpp_arg(get_cpp_type("WTF::UntrustedUint64"), f"{a.name}Size")
             self.args.args += [size_arg]
             store_arg = cpp_arg(webkit_ipc_get_span_store_type(a.type), a.name)
             inline_capacity = store_arg.type.arity

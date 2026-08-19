@@ -92,9 +92,9 @@ private:
     // IPC::MessageReceiver.
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
 
-    void didCreateDMABufBuffer(WTF::CheckedUint64 id, WebCore::DMABufBufferAttributes&&, RendererBufferFormat::Usage);
-    void didCreateSHMBuffer(WTF::CheckedUint64 id, WebCore::ShareableBitmapHandle&&);
-    void didDestroyBuffer(WTF::CheckedUint64 id);
+    void didCreateDMABufBuffer(WTF::UntrustedUint64 id, WebCore::DMABufBufferAttributes&&, RendererBufferFormat::Usage);
+    void didCreateSHMBuffer(WTF::UntrustedUint64 id, WebCore::ShareableBitmapHandle&&);
+    void didDestroyBuffer(WTF::UntrustedUint64 id);
     void frame(uint64_t id, Rects&&, WTF::UnixFileDescriptor&&);
     void frameDone();
 

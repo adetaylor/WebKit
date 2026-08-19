@@ -85,7 +85,7 @@ void WebExtensionContext::addListener(WebCore::FrameIdentifier frameIdentifier, 
     sendQueuedTestMessagesIfNeeded(listenerType);
 }
 
-void WebExtensionContext::removeListener(WebCore::FrameIdentifier frameIdentifier, WebExtensionEventListenerType listenerType, WebExtensionContentWorldType contentWorldType, WTF::CheckedUint64 removedCount)
+void WebExtensionContext::removeListener(WebCore::FrameIdentifier frameIdentifier, WebExtensionEventListenerType listenerType, WebExtensionContentWorldType contentWorldType, WTF::UntrustedUint64 removedCount)
 {
     ASSERT(removedCount);
 

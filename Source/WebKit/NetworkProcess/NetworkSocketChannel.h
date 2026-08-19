@@ -87,7 +87,7 @@ private:
 
     void sendString(std::span<const uint8_t>, CompletionHandler<void()>&&);
     void sendData(std::span<const uint8_t>, CompletionHandler<void()>&&);
-    void close(WTF::CheckedInt32 code, const String& reason);
+    void close(WTF::UntrustedInt32 code, const String& reason);
     void sendDelayedError();
 
     NetworkSession* NODELETE session() const;

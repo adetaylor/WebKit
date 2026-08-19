@@ -216,7 +216,7 @@ void StorageAreaMap::applyChange(const String& key, const String& newValue)
     syncOneItem(key, newValue);
 }
 
-void StorageAreaMap::dispatchStorageEvent(const std::optional<StorageAreaImplIdentifier>& storageAreaImplID, const String& key, const String& oldValue, const String& newValue, const String& urlString, WTF::CheckedUint64 messageIdentifier)
+void StorageAreaMap::dispatchStorageEvent(const std::optional<StorageAreaImplIdentifier>& storageAreaImplID, const String& key, const String& oldValue, const String& newValue, const String& urlString, WTF::UntrustedUint64 messageIdentifier)
 {
     if (messageIdentifier < m_lastHandledMessageIdentifier)
         return;
@@ -233,7 +233,7 @@ void StorageAreaMap::dispatchStorageEvent(const std::optional<StorageAreaImplIde
         dispatchLocalStorageEvent(storageAreaImplID, key, oldValue, newValue, urlString);
 }
 
-void StorageAreaMap::clearCache(WTF::CheckedUint64 messageIdentifier)
+void StorageAreaMap::clearCache(WTF::UntrustedUint64 messageIdentifier)
 {
     if (messageIdentifier < m_lastHandledMessageIdentifier)
         return;

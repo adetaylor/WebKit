@@ -63,8 +63,8 @@ public:
 private:
     void setSocketFactoryConnection();
 
-    void signalReadPacket(WebCore::LibWebRTCSocketIdentifier, std::span<const uint8_t>, const RTCNetwork::IPAddress&, WTF::CheckedUint16 port, WTF::CheckedInt64, WebRTCNetwork::EcnMarking);
-    void signalSentPacket(WebCore::LibWebRTCSocketIdentifier, WTF::CheckedInt64, WTF::CheckedInt64);
+    void signalReadPacket(WebCore::LibWebRTCSocketIdentifier, std::span<const uint8_t>, const RTCNetwork::IPAddress&, WTF::UntrustedUint16 port, WTF::UntrustedInt64, WebRTCNetwork::EcnMarking);
+    void signalSentPacket(WebCore::LibWebRTCSocketIdentifier, WTF::UntrustedInt64, WTF::UntrustedInt64);
     void signalAddressReady(WebCore::LibWebRTCSocketIdentifier, const RTCNetwork::SocketAddress&);
     void signalConnect(WebCore::LibWebRTCSocketIdentifier);
     void signalClose(WebCore::LibWebRTCSocketIdentifier, int);

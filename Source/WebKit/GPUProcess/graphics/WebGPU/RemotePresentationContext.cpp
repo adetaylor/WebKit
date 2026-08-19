@@ -76,12 +76,12 @@ void RemotePresentationContext::unconfigure()
     protect(m_backing)->unconfigure();
 }
 
-void RemotePresentationContext::present(WTF::CheckedUint32 frameIndex)
+void RemotePresentationContext::present(WTF::UntrustedUint32 frameIndex)
 {
     protect(m_backing)->present(frameIndex);
 }
 
-void RemotePresentationContext::getCurrentTexture(WebGPUIdentifier identifier, WTF::CheckedUint32 frameIndex)
+void RemotePresentationContext::getCurrentTexture(WebGPUIdentifier identifier, WTF::UntrustedUint32 frameIndex)
 {
     auto texture = protect(m_backing)->getCurrentTexture(frameIndex);
     ASSERT(texture);

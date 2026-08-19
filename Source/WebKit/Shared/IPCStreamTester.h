@@ -64,14 +64,14 @@ private:
     void didReceiveInvalidMessage(IPC::StreamServerConnection&, IPC::MessageName, const Vector<uint32_t>&) final;
 
     // Messages.
-    void syncMessage(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&&);
-    void syncMessageNotStreamEncodableReply(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&&);
-    void syncMessageNotStreamEncodableBoth(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&&);
-    void syncMessageReturningSharedMemory1(WTF::CheckedUint32 byteCount, CompletionHandler<void(std::optional<WebCore::SharedMemory::Handle>&&)>&&);
-    void syncMessageEmptyReply(WTF::CheckedUint32, CompletionHandler<void()>&&);
-    void syncCrashOnZero(WTF::CheckedInt32, CompletionHandler<void(int32_t)>&&);
+    void syncMessage(WTF::UntrustedUint32 value, CompletionHandler<void(uint32_t)>&&);
+    void syncMessageNotStreamEncodableReply(WTF::UntrustedUint32 value, CompletionHandler<void(uint32_t)>&&);
+    void syncMessageNotStreamEncodableBoth(WTF::UntrustedUint32 value, CompletionHandler<void(uint32_t)>&&);
+    void syncMessageReturningSharedMemory1(WTF::UntrustedUint32 byteCount, CompletionHandler<void(std::optional<WebCore::SharedMemory::Handle>&&)>&&);
+    void syncMessageEmptyReply(WTF::UntrustedUint32, CompletionHandler<void()>&&);
+    void syncCrashOnZero(WTF::UntrustedInt32, CompletionHandler<void(int32_t)>&&);
     void checkAutoreleasePool(CompletionHandler<void(int32_t)>&&);
-    void asyncPing(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t)>&&);
+    void asyncPing(WTF::UntrustedUint32 value, CompletionHandler<void(uint32_t)>&&);
     void emptyMessage();
     void checkInvalidMessages(CompletionHandler<void(uint32_t)>&&);
 

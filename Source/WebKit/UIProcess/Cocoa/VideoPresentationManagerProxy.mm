@@ -1097,7 +1097,7 @@ Ref<WebCore::PlatformVideoPresentationInterface> VideoPresentationManagerProxy::
 
 #pragma mark Messages from VideoPresentationManager
 
-void VideoPresentationManagerProxy::setupFullscreenWithID(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, const WebCore::HostingContext& hostingContext, const WebCore::FloatRect& screenRect, const WebCore::FloatSize& initialSize, const WebCore::FloatSize& videoDimensions, float hostingDeviceScaleFactor, Checked<HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow> videoFullscreenMode, bool allowsPictureInPicture, bool standby, bool blocksReturnToFullscreenFromPictureInPicture, bool hasObjectViewBox)
+void VideoPresentationManagerProxy::setupFullscreenWithID(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, const WebCore::HostingContext& hostingContext, const WebCore::FloatRect& screenRect, const WebCore::FloatSize& initialSize, const WebCore::FloatSize& videoDimensions, float hostingDeviceScaleFactor, Checked<HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflowNoNarrowing> videoFullscreenMode, bool allowsPictureInPicture, bool standby, bool blocksReturnToFullscreenFromPictureInPicture, bool hasObjectViewBox)
 {
     RefPtr page = m_page.get();
     if (!page)
@@ -1300,7 +1300,7 @@ void VideoPresentationManagerProxy::exitFullscreen(IPC::Connection& connection, 
 #endif
 }
 
-void VideoPresentationManagerProxy::exitFullscreenWithoutAnimationToMode(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow> targetMode)
+void VideoPresentationManagerProxy::exitFullscreenWithoutAnimationToMode(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflowNoNarrowing> targetMode)
 {
     auto contextId = contextIdForConnection(connection, identifier);
     MESSAGE_CHECK((targetMode | HTMLMediaElementEnums::VideoFullscreenModeAllValidBitsMask) == HTMLMediaElementEnums::VideoFullscreenModeAllValidBitsMask);
@@ -1312,17 +1312,17 @@ void VideoPresentationManagerProxy::exitFullscreenWithoutAnimationToMode(IPC::Co
 
     ensureInterface(contextId)->exitFullscreenWithoutAnimationToMode(targetMode);
 
-    hasVideoInPictureInPictureDidChange(targetMode & MediaPlayerEnums::VideoFullscreenModePictureInPicture);
+    hasVideoInPictureInPictureDidChange(!!(targetMode & MediaPlayerEnums::VideoFullscreenModePictureInPicture));
 }
 
-void VideoPresentationManagerProxy::setVideoFullscreenMode(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow> mode)
+void VideoPresentationManagerProxy::setVideoFullscreenMode(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflowNoNarrowing> mode)
 {
     MESSAGE_CHECK((mode | HTMLMediaElementEnums::VideoFullscreenModeAllValidBitsMask) == HTMLMediaElementEnums::VideoFullscreenModeAllValidBitsMask);
 
     ensureInterface(connection, identifier)->setMode(mode, VideoPresentationModel::ShouldNotifyMediaElement::No);
 }
 
-void VideoPresentationManagerProxy::clearVideoFullscreenMode(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflow> mode)
+void VideoPresentationManagerProxy::clearVideoFullscreenMode(IPC::Connection& connection, HTMLMediaElementIdentifier identifier, Checked<WebCore::HTMLMediaElementEnums::VideoFullscreenMode, RecordOverflowNoNarrowing> mode)
 {
     MESSAGE_CHECK((mode | HTMLMediaElementEnums::VideoFullscreenModeAllValidBitsMask) == HTMLMediaElementEnums::VideoFullscreenModeAllValidBitsMask);
 

@@ -502,7 +502,7 @@ void LibWebRTCCodecs::failedDecoding(VideoDecoderIdentifier decoderIdentifier)
     }
 }
 
-void LibWebRTCCodecs::completedDecoding(VideoDecoderIdentifier decoderIdentifier, WTF::CheckedInt64 timeStamp, WTF::CheckedInt64 timeStampNs, RemoteVideoFrameProxy::Properties&& properties)
+void LibWebRTCCodecs::completedDecoding(VideoDecoderIdentifier decoderIdentifier, WTF::UntrustedInt64 timeStamp, WTF::UntrustedInt64 timeStampNs, RemoteVideoFrameProxy::Properties&& properties)
 {
     assertIsCurrent(workQueue());
 
@@ -530,13 +530,14 @@ void LibWebRTCCodecs::completedDecoding(VideoDecoderIdentifier decoderIdentifier
 
     auto frameSize = remoteVideoFrame->size();
     // The leakRef() call is balanced by the release callback of videoDecoderTaskComplete.
-    webrtc::videoDecoderTaskComplete(decoder->decodedImageCallback, timeStamp, &remoteVideoFrame.leakRef(),
+    ASSERT(timeStamp >= 0 && timeStamp <= std::numeric_limits<uint32_t>::max());
+    webrtc::videoDecoderTaskComplete(decoder->decodedImageCallback, static_cast<uint32_t>(timeStamp.value()), &remoteVideoFrame.leakRef(),
         [](auto* pointer) { return static_cast<RemoteVideoFrameProxy*>(pointer)->pixelBuffer(); },
         [](auto* pointer) { static_cast<RemoteVideoFrameProxy*>(pointer)->deref(); },
         frameSize.width(), frameSize.height());
 }
 
-void LibWebRTCCodecs::completedDecodingCV(VideoDecoderIdentifier decoderIdentifier, WTF::CheckedInt64 timeStamp, WTF::CheckedInt64 timeStampNs, RetainPtr<CVPixelBufferRef>&& pixelBuffer)
+void LibWebRTCCodecs::completedDecodingCV(VideoDecoderIdentifier decoderIdentifier, WTF::UntrustedInt64 timeStamp, WTF::UntrustedInt64 timeStampNs, RetainPtr<CVPixelBufferRef>&& pixelBuffer)
 {
     assertIsCurrent(workQueue());
 
@@ -560,7 +561,8 @@ void LibWebRTCCodecs::completedDecodingCV(VideoDecoderIdentifier decoderIdentifi
     if (!decoder->decodedImageCallback)
         return;
 
-    webrtc::videoDecoderTaskComplete(decoder->decodedImageCallback, timeStamp, pixelBuffer.get());
+    ASSERT(timeStamp >= 0 && timeStamp <= std::numeric_limits<uint32_t>::max());
+    webrtc::videoDecoderTaskComplete(decoder->decodedImageCallback, static_cast<uint32_t>(timeStamp.value()), pixelBuffer.get());
 }
 
 static inline webrtc::VideoCodecType NODELETE toWebRTCCodecType(WebCore::VideoCodecType type)

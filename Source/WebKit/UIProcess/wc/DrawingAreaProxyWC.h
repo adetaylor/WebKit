@@ -59,8 +59,8 @@ private:
     bool shouldSendWheelEventsToEventDispatcher() const final { return true; }
 
     // message handers
-    void update(WTF::CheckedUint64, UpdateInfo&&) override;
-    void enterAcceleratedCompositingMode(WTF::CheckedUint64, const LayerTreeContext&) override;
+    void update(WTF::UntrustedUint64, UpdateInfo&&) override;
+    void enterAcceleratedCompositingMode(WTF::UntrustedUint64, const LayerTreeContext&) override;
 
     void incorporateUpdate(UpdateInfo&&);
     void discardBackingStore();

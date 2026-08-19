@@ -164,13 +164,13 @@ private:
 
     // Message handlers.
     // FIXME: These should be pure virtual.
-    virtual void enterAcceleratedCompositingMode(WTF::CheckedUint64 /* backingStoreStateID */, const LayerTreeContext&) { }
-    virtual void updateAcceleratedCompositingMode(WTF::CheckedUint64 /* backingStoreStateID */, const LayerTreeContext&) { }
-    virtual void didFirstLayerFlush(WTF::CheckedUint64 /* backingStoreStateID */, const LayerTreeContext&) { }
+    virtual void enterAcceleratedCompositingMode(WTF::UntrustedUint64 /* backingStoreStateID */, const LayerTreeContext&) { }
+    virtual void updateAcceleratedCompositingMode(WTF::UntrustedUint64 /* backingStoreStateID */, const LayerTreeContext&) { }
+    virtual void didFirstLayerFlush(WTF::UntrustedUint64 /* backingStoreStateID */, const LayerTreeContext&) { }
 
 #if !PLATFORM(WPE) && !PLATFORM(GTK) && (USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER))
-    virtual void update(WTF::CheckedUint64 /* backingStoreStateID */, UpdateInfo&&) { }
-    virtual void exitAcceleratedCompositingMode(WTF::CheckedUint64 /* backingStoreStateID */, UpdateInfo&&) { }
+    virtual void update(WTF::UntrustedUint64 /* backingStoreStateID */, UpdateInfo&&) { }
+    virtual void exitAcceleratedCompositingMode(WTF::UntrustedUint64 /* backingStoreStateID */, UpdateInfo&&) { }
 #endif
 
     WeakPtr<WebPageProxy> m_webPageProxy;

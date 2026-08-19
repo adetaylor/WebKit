@@ -59,7 +59,7 @@ private:
     void changeReadyState(WebCore::RTCDataChannelIdentifier, WebCore::RTCDataChannelState);
     void receiveData(WebCore::RTCDataChannelIdentifier, bool isRaw, std::span<const uint8_t>);
     void detectError(WebCore::RTCDataChannelIdentifier, WebCore::RTCErrorDetailType, const String&);
-    void bufferedAmountIsDecreasing(WebCore::RTCDataChannelIdentifier, WTF::CheckedUint64 amount);
+    void bufferedAmountIsDecreasing(WebCore::RTCDataChannelIdentifier, WTF::UntrustedUint64 amount);
 
     std::optional<SharedPreferencesForWebProcess> NODELETE sharedPreferencesForWebProcess(const IPC::Connection&);
 

@@ -513,7 +513,7 @@ void MediaPlayerPrivateRemote::playbackStateChanged(bool paused, MediaTimeUpdate
         player->playbackStateChanged();
 }
 
-void MediaPlayerPrivateRemote::engineFailedToLoad(WTF::CheckedInt64 platformErrorCode)
+void MediaPlayerPrivateRemote::engineFailedToLoad(WTF::UntrustedInt64 platformErrorCode)
 {
     m_platformErrorCode = platformErrorCode;
     if (RefPtr player = m_player.get())
@@ -1455,7 +1455,7 @@ size_t MediaPlayerPrivateRemote::extraMemoryCost() const
     return 0;
 }
 
-void MediaPlayerPrivateRemote::reportGPUMemoryFootprint(WTF::CheckedUint64 footPrint)
+void MediaPlayerPrivateRemote::reportGPUMemoryFootprint(WTF::UntrustedUint64 footPrint)
 {
     if (RefPtr player = m_player.get())
         player->reportGPUMemoryFootprint(footPrint);

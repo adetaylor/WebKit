@@ -61,7 +61,7 @@ void RemoteCompositorIntegration::destruct()
     protect(m_objectHeap)->removeObject(m_identifier);
 }
 
-void RemoteCompositorIntegration::paintCompositedResultsToCanvas(WebCore::RenderingResourceIdentifier imageBufferIdentifier, WTF::CheckedUint32 bufferIndex, CompletionHandler<void()>&& completionHandler)
+void RemoteCompositorIntegration::paintCompositedResultsToCanvas(WebCore::RenderingResourceIdentifier imageBufferIdentifier, WTF::UntrustedUint32 bufferIndex, CompletionHandler<void()>&& completionHandler)
 {
     UNUSED_PARAM(imageBufferIdentifier);
     protect(m_backing)->withDisplayBufferAsNativeImage(bufferIndex, [gpu = m_gpu, imageBufferIdentifier, completionHandler = WTF::move(completionHandler)] (WebCore::NativeImage* image) mutable {
@@ -86,7 +86,7 @@ void RemoteCompositorIntegration::recreateRenderBuffers(int width, int height, W
 }
 #endif
 
-void RemoteCompositorIntegration::prepareForDisplay(WTF::CheckedUint32 frameIndex, CompletionHandler<void(Seconds)>&& completionHandler)
+void RemoteCompositorIntegration::prepareForDisplay(WTF::UntrustedUint32 frameIndex, CompletionHandler<void(Seconds)>&& completionHandler)
 {
     protect(m_backing)->prepareForDisplay(frameIndex, [completionHandler = WTF::move(completionHandler), backing = protect(m_backing)]() mutable {
         completionHandler(backing->lastFrameGPUCost());

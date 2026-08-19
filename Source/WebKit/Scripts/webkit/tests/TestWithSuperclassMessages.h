@@ -231,7 +231,7 @@ private:
 
 class TestSyncMessage {
 public:
-    using Arguments = std::tuple<WTF::CheckedUint32>;
+    using Arguments = std::tuple<WTF::UntrustedUint32>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithSuperclass_TestSyncMessage; }
     static constexpr bool isSync = true;
@@ -313,7 +313,7 @@ private:
 #if ENABLE(TEST_FEATURE)
 class TestAsyncMessageReply {
 public:
-    using Arguments = std::tuple<WTF::CheckedUint64>;
+    using Arguments = std::tuple<WTF::UntrustedUint64>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithSuperclass_TestAsyncMessageReply; }
     static constexpr bool isSync = false;
@@ -340,7 +340,7 @@ private:
 #if ENABLE(TEST_FEATURE)
 class TestAsyncMessageAnyThreadReply {
 public:
-    using Arguments = std::tuple<WTF::CheckedUint64>;
+    using Arguments = std::tuple<WTF::UntrustedUint64>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithSuperclass_TestAsyncMessageAnyThreadReply; }
     static constexpr bool isSync = false;
@@ -391,7 +391,7 @@ private:
 #if ENABLE(TEST_FEATURE)
 class TestAsyncMessageWithMultipleArgumentsReply {
 public:
-    using Arguments = std::tuple<bool, WTF::CheckedUint64>;
+    using Arguments = std::tuple<bool, WTF::UntrustedUint64>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithSuperclass_TestAsyncMessageWithMultipleArgumentsReply; }
     static constexpr bool isSync = false;

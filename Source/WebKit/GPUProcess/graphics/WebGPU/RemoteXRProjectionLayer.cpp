@@ -62,7 +62,7 @@ void RemoteXRProjectionLayer::destruct()
 }
 
 #if PLATFORM(COCOA)
-void RemoteXRProjectionLayer::startFrame(WTF::CheckedUint64 frameIndex, MachSendRight&& colorBuffer, MachSendRight&& depthBuffer, MachSendRight&& completionSyncEvent, WTF::CheckedUint64 reusableTextureIndex, PlatformXR::RateMapDescription&& rateMapDescription)
+void RemoteXRProjectionLayer::startFrame(WTF::UntrustedUint64 frameIndex, MachSendRight&& colorBuffer, MachSendRight&& depthBuffer, MachSendRight&& completionSyncEvent, WTF::UntrustedUint64 reusableTextureIndex, PlatformXR::RateMapDescription&& rateMapDescription)
 {
     protect(m_backing)->startFrame(frameIndex, WTF::move(colorBuffer), WTF::move(depthBuffer), WTF::move(completionSyncEvent), reusableTextureIndex, WTF::move(rateMapDescription));
 }

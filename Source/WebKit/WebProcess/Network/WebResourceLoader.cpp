@@ -205,7 +205,7 @@ void WebResourceLoader::willSendRequest(ResourceRequest&& proposedRequest, IPC::
     });
 }
 
-void WebResourceLoader::didSendData(WTF::CheckedUint64 bytesSent, WTF::CheckedUint64 totalBytesToBeSent)
+void WebResourceLoader::didSendData(WTF::UntrustedUint64 bytesSent, WTF::UntrustedUint64 totalBytesToBeSent)
 {
     ASSERT(bytesSent >= m_pendingStreamBytesSentByNetwork);
     if (bytesSent > m_pendingStreamBytesSentByNetwork) {
@@ -321,7 +321,7 @@ void WebResourceLoader::didReceiveResponse(ResourceResponse&& response, PrivateR
     coreLoader->didReceiveResponse(WTF::move(response), WTF::move(policyDecisionCompletionHandler));
 }
 
-void WebResourceLoader::didReceiveData(IPC::SharedBufferReference&& data, WTF::CheckedUint64 bytesTransferredOverNetwork)
+void WebResourceLoader::didReceiveData(IPC::SharedBufferReference&& data, WTF::UntrustedUint64 bytesTransferredOverNetwork)
 {
     RefPtr coreLoader = m_coreLoader;
     LOG(Network, "(WebProcess) WebResourceLoader::didReceiveData of size %zu for '%s'", data.size(), coreLoader->url().string().latin1().data());

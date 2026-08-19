@@ -99,7 +99,7 @@ private:
     void shutDownTrackingAndRendering(IPC::Connection&);
     void requestFrame(IPC::Connection&, std::optional<PlatformXR::RequestData>&&, CompletionHandler<void(PlatformXR::FrameData&&)>&&);
 #if USE(OPENXR)
-    void createLayerProjection(IPC::Connection&, WTF::CheckedUint32 width, WTF::CheckedUint32 height, bool alpha, CompletionHandler<void(std::optional<PlatformXR::LayerInfo>)>&&);
+    void createLayerProjection(IPC::Connection&, WTF::UntrustedUint32 width, WTF::UntrustedUint32 height, bool alpha, CompletionHandler<void(std::optional<PlatformXR::LayerInfo>)>&&);
     void submitFrame(IPC::Connection&, Vector<PlatformXR::DeviceLayer>&&);
 #else
     void submitFrame(IPC::Connection&);

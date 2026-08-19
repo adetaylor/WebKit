@@ -98,7 +98,7 @@ private:
     void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
     void destruct();
 #if PLATFORM(COCOA)
-    void startFrame(WTF::CheckedUint64 frameIndex, MachSendRight&& colorBuffer, MachSendRight&& depthBuffer, MachSendRight&& completionSyncEvent, WTF::CheckedUint64 reusableTextureIndex, PlatformXR::RateMapDescription&&);
+    void startFrame(WTF::UntrustedUint64 frameIndex, MachSendRight&& colorBuffer, MachSendRight&& depthBuffer, MachSendRight&& completionSyncEvent, WTF::UntrustedUint64 reusableTextureIndex, PlatformXR::RateMapDescription&&);
 #endif
     void NODELETE endFrame();
 

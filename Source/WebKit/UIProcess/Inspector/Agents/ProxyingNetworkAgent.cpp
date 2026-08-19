@@ -606,7 +606,7 @@ void ProxyingNetworkAgent::loadingFailed(ResourceID resourceID, double timestamp
     m_frontendDispatcher->loadingFailed(requestId, timestamp, errorText, canceled);
 }
 
-void ProxyingNetworkAgent::requestServedFromMemoryCache(ResourceID resourceID, FrameID frameID, const String& loaderId, const String& documentURL, const ResourceResponse& response, ResourceType resourceType, const String& sourceMapURL, WTF::CheckedUint64 bodySize, double timestamp)
+void ProxyingNetworkAgent::requestServedFromMemoryCache(ResourceID resourceID, FrameID frameID, const String& loaderId, const String& documentURL, const ResourceResponse& response, ResourceType resourceType, const String& sourceMapURL, WTF::UntrustedUint64 bodySize, double timestamp)
 {
     if (!m_enabled)
         return;
@@ -616,7 +616,7 @@ void ProxyingNetworkAgent::requestServedFromMemoryCache(ResourceID resourceID, F
     auto cachedResourceObject = Protocol::Network::CachedResource::create()
         .setUrl(response.url().string())
         .setType(toProtocolResourceType(resourceType))
-        .setBodySize(bodySize)
+        .setBodySize(bodySize.value())
         .release();
 
     if (auto responseObject = buildObjectForResourceResponse(response))

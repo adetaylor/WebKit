@@ -62,7 +62,7 @@ void RemoteRenderPipeline::stopListeningForIPC()
     protect(m_streamConnection)->stopReceivingMessages(Messages::RemoteRenderPipeline::messageReceiverName(), m_identifier.toUInt64());
 }
 
-void RemoteRenderPipeline::getBindGroupLayout(WTF::CheckedUint32 index, WebGPUIdentifier identifier)
+void RemoteRenderPipeline::getBindGroupLayout(WTF::UntrustedUint32 index, WebGPUIdentifier identifier)
 {
     // "A new GPUBindGroupLayout wrapper is returned each time"
     auto bindGroupLayout = protect(m_backing)->getBindGroupLayout(index);

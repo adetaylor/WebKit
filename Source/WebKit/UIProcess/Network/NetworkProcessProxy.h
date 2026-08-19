@@ -403,7 +403,7 @@ private:
     void didBlockLoadToKnownTracker(WebPageProxyIdentifier, const URL&);
     void setWebProcessHasUploads(WebCore::ProcessIdentifier, bool);
     void logDiagnosticMessage(WebPageProxyIdentifier, const String& message, const String& description, WebCore::ShouldSample);
-    void logDiagnosticMessageWithResult(WebPageProxyIdentifier, const String& message, const String& description, WTF::CheckedUint32 result, WebCore::ShouldSample);
+    void logDiagnosticMessageWithResult(WebPageProxyIdentifier, const String& message, const String& description, WTF::UntrustedUint32 result, WebCore::ShouldSample);
     void logDiagnosticMessageWithValue(WebPageProxyIdentifier, const String& message, const String& description, double value, unsigned significantFigures, WebCore::ShouldSample);
     void logTestingEvent(PAL::SessionID, const String& event);
     void didPerformEvictionForDomains(PAL::SessionID, const Vector<RegistrableDomain>&);
@@ -424,14 +424,14 @@ private:
     void establishRemoteWorkerContextConnectionToNetworkProcess(RemoteWorkerType, WebCore::Site&&, std::optional<WebCore::ProcessIdentifier> requestingProcessIdentifier, std::optional<WebCore::ScriptExecutionContextIdentifier> serviceWorkerPageIdentifier, PAL::SessionID, WebCore::CrossOriginEmbedderPolicyValue, CompletionHandler<void(std::optional<WebCore::ProcessIdentifier>)>&&);
     void registerRemoteWorkerClientProcess(RemoteWorkerType, WebCore::ProcessIdentifier clientProcessIdentifier, WebCore::ProcessIdentifier remoteWorkerProcessIdentifier);
     void unregisterRemoteWorkerClientProcess(RemoteWorkerType, WebCore::ProcessIdentifier clientProcessIdentifier, WebCore::ProcessIdentifier remoteWorkerProcessIdentifier);
-    void reportConsoleMessage(PAL::SessionID, const URL&, const WebCore::SecurityOriginData&, MessageSource, MessageLevel, const String& message, WTF::CheckedUint64 requestIdentifier);
+    void reportConsoleMessage(PAL::SessionID, const URL&, const WebCore::SecurityOriginData&, MessageSource, MessageLevel, const String& message, WTF::UntrustedUint64 requestIdentifier);
 
     void terminateWebProcess(WebCore::ProcessIdentifier, IPC::MessageName);
 
     void considerProcessSwapForNavigationResponse(WebPageProxyIdentifier, WebCore::NavigationIdentifier, WebCore::BrowsingContextGroupSwitchDecision, WebCore::NavigationResponseProcessSwapReason, const WebCore::Site& responseSite, NetworkResourceLoadIdentifier existingNetworkResourceLoadIdentifierToResume, MonotonicTime originalNavigationStartTime, CompletionHandler<void(bool success)>&&);
 
     void requestStorageSpace(PAL::SessionID, const WebCore::ClientOrigin&, uint64_t quota, uint64_t currentSize, uint64_t spaceRequired, CompletionHandler<void(std::optional<uint64_t> quota)>&&);
-    void increaseQuota(PAL::SessionID, const WebCore::ClientOrigin&, QuotaIncreaseRequestIdentifier, WTF::CheckedUint64 currentQuota, WTF::CheckedUint64 currentUsage, WTF::CheckedUint64 spaceRequested);
+    void increaseQuota(PAL::SessionID, const WebCore::ClientOrigin&, QuotaIncreaseRequestIdentifier, WTF::UntrustedUint64 currentQuota, WTF::UntrustedUint64 currentUsage, WTF::UntrustedUint64 spaceRequested);
 
     WebsiteDataStore* NODELETE websiteDataStoreFromSessionID(PAL::SessionID);
 

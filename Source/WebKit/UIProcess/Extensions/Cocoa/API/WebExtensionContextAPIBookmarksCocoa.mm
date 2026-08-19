@@ -377,7 +377,7 @@ void WebExtensionContext::bookmarksGetChildren(const String& bookmarkId, Complet
         completionHandler(Expected<Vector<WebExtensionBookmarksParameters>, WebExtensionError> { WTF::move(childrenParameters) });
     }];
 }
-void WebExtensionContext::bookmarksGetRecent(WTF::CheckedUint64 count, CompletionHandler<void(Expected<Vector<WebExtensionBookmarksParameters>, WebExtensionError>&&)>&& completionHandler)
+void WebExtensionContext::bookmarksGetRecent(WTF::UntrustedUint64 count, CompletionHandler<void(Expected<Vector<WebExtensionBookmarksParameters>, WebExtensionError>&&)>&& completionHandler)
 {
     static NSString *const apiName = @"bookmarks.getRecent()";
 

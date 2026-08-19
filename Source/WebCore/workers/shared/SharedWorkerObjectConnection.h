@@ -59,7 +59,7 @@ protected:
     WEBCORE_EXPORT void postErrorToWorkerObject(SharedWorkerObjectIdentifier, const String& errorMessage, int lineNumber, int columnNumber, const String& sourceURL, bool isErrorEvent);
 
 #if ENABLE(CONTENT_EXTENSIONS)
-    WEBCORE_EXPORT void reportNetworkUsageToWorkerObject(SharedWorkerObjectIdentifier, WTF::CheckedUint64 bytesTransferredOverNetworkDelta);
+    WEBCORE_EXPORT void reportNetworkUsageToWorkerObject(SharedWorkerObjectIdentifier, WTF::UntrustedUint64 bytesTransferredOverNetworkDelta);
 #endif
 
     WEBCORE_EXPORT SharedWorkerObjectConnection();

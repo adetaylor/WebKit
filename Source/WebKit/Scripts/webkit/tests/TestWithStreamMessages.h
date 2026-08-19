@@ -258,7 +258,7 @@ private:
 
 class SendStringAsyncReply {
 public:
-    using Arguments = std::tuple<WTF::CheckedInt64>;
+    using Arguments = std::tuple<WTF::UntrustedInt64>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithStream_SendStringAsyncReply; }
     static constexpr bool isSync = false;

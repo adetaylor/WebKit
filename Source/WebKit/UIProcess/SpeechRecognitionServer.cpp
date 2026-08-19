@@ -75,7 +75,7 @@ std::optional<SharedPreferencesForWebProcess> SpeechRecognitionServer::sharedPre
     return m_process ? m_process->sharedPreferencesForWebProcess() : std::nullopt;
 }
 
-void SpeechRecognitionServer::start(WebCore::SpeechRecognitionConnectionClientIdentifier clientIdentifier, String&& lang, bool continuous, bool interimResults, WTF::CheckedUint64 maxAlternatives, WebCore::ClientOrigin&& origin, WebCore::FrameIdentifier mainFrameIdentifier, FrameInfoData&& frameInfo)
+void SpeechRecognitionServer::start(WebCore::SpeechRecognitionConnectionClientIdentifier clientIdentifier, String&& lang, bool continuous, bool interimResults, WTF::UntrustedUint64 maxAlternatives, WebCore::ClientOrigin&& origin, WebCore::FrameIdentifier mainFrameIdentifier, FrameInfoData&& frameInfo)
 {
     MESSAGE_CHECK(!m_requests.contains(clientIdentifier));
     auto requestInfo = WebCore::SpeechRecognitionRequestInfo { clientIdentifier, WTF::move(lang), continuous, interimResults, maxAlternatives, WTF::move(origin), mainFrameIdentifier };

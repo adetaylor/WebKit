@@ -221,9 +221,9 @@ private:
     void dispatchTabsCreatedEvent(const WebExtensionTabParameters&);
     void dispatchTabsUpdatedEvent(const WebExtensionTabParameters&, const WebExtensionTabParameters& changedParameters);
     void dispatchTabsReplacedEvent(WebExtensionTabIdentifier replacedTabIdentifier, WebExtensionTabIdentifier newTabIdentifier);
-    void dispatchTabsDetachedEvent(WebExtensionTabIdentifier, WebExtensionWindowIdentifier oldWindowIdentifier, WTF::CheckedUint64 oldIndex);
-    void dispatchTabsMovedEvent(WebExtensionTabIdentifier, WebExtensionWindowIdentifier, WTF::CheckedUint64 oldIndex, WTF::CheckedUint64 newIndex);
-    void dispatchTabsAttachedEvent(WebExtensionTabIdentifier, WebExtensionWindowIdentifier newWindowIdentifier, WTF::CheckedUint64 newIndex);
+    void dispatchTabsDetachedEvent(WebExtensionTabIdentifier, WebExtensionWindowIdentifier oldWindowIdentifier, WTF::UntrustedUint64 oldIndex);
+    void dispatchTabsMovedEvent(WebExtensionTabIdentifier, WebExtensionWindowIdentifier, WTF::UntrustedUint64 oldIndex, WTF::UntrustedUint64 newIndex);
+    void dispatchTabsAttachedEvent(WebExtensionTabIdentifier, WebExtensionWindowIdentifier newWindowIdentifier, WTF::UntrustedUint64 newIndex);
     void dispatchTabsActivatedEvent(WebExtensionTabIdentifier previousActiveTabIdentifier, WebExtensionTabIdentifier newActiveTabIdentifier, WebExtensionWindowIdentifier);
     void dispatchTabsHighlightedEvent(const Vector<WebExtensionTabIdentifier>&, WebExtensionWindowIdentifier);
     void dispatchTabsRemovedEvent(WebExtensionTabIdentifier, WebExtensionWindowIdentifier, WebExtensionContext::WindowIsClosing);

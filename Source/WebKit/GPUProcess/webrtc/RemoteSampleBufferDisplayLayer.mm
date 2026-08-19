@@ -90,7 +90,7 @@ void RemoteSampleBufferDisplayLayer::initialize(bool hideRootLayer, IntSize size
 }
 
 #if !RELEASE_LOG_DISABLED
-void RemoteSampleBufferDisplayLayer::setLogIdentifier(WTF::CheckedUint64 identifier)
+void RemoteSampleBufferDisplayLayer::setLogIdentifier(WTF::UntrustedUint64 identifier)
 {
     m_sampleBufferDisplayLayer->setLogIdentifier(identifier);
 }

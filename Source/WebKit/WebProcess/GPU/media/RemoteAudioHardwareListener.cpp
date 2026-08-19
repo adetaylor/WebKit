@@ -86,7 +86,7 @@ void RemoteAudioHardwareListener::audioHardwareDidBecomeInactive()
     m_client.audioHardwareDidBecomeInactive();
 }
 
-void RemoteAudioHardwareListener::audioOutputDeviceChanged(WTF::CheckedUint64 bufferSizeMinimum, WTF::CheckedUint64 bufferSizeMaximum)
+void RemoteAudioHardwareListener::audioOutputDeviceChanged(WTF::UntrustedUint64 bufferSizeMinimum, WTF::UntrustedUint64 bufferSizeMaximum)
 {
     setSupportedBufferSizes({ bufferSizeMinimum, bufferSizeMaximum });
     m_client.audioOutputDeviceChanged();

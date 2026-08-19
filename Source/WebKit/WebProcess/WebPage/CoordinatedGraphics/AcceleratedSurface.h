@@ -181,7 +181,7 @@ private:
     // IPC::MessageReceiver.
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
 
-    void releaseBuffer(WTF::CheckedUint64, WTF::UnixFileDescriptor&&);
+    void releaseBuffer(WTF::UntrustedUint64, WTF::UnixFileDescriptor&&);
 #endif
     void frameDone();
     void releaseUnusedBuffersTimerFired();

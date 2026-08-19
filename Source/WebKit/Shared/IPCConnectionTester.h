@@ -63,8 +63,8 @@ private:
     void didReceiveInvalidMessage(IPC::Connection&, IPC::MessageName, const Vector<uint32_t>& indicesOfObjectsFailingDecoding) final;
 
     // Messages.
-    void asyncMessage(WTF::CheckedUint32 value);
-    void syncMessage(WTF::CheckedUint32 value, CompletionHandler<void(uint32_t sameValue)>&&);
+    void asyncMessage(WTF::UntrustedUint32 value);
+    void syncMessage(WTF::UntrustedUint32 value, CompletionHandler<void(uint32_t sameValue)>&&);
 
     const Ref<IPC::Connection> m_connection;
     const Ref<IPC::Connection> m_testedConnection;

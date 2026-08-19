@@ -119,7 +119,7 @@ protected:
 
     // Messages to be received.
     void ensureExtensionEnabled(WebCore::GCGLExtension);
-    void reshape(WTF::CheckedInt32 width, WTF::CheckedInt32 height);
+    void reshape(WTF::UntrustedInt32 width, WTF::UntrustedInt32 height);
 #if PLATFORM(COCOA)
     virtual void prepareForDisplay(IPC::Semaphore&&, CompletionHandler<void(WTF::MachSendRight&&)>&&) = 0;
 #elif USE(GRAPHICS_LAYER_WC)
@@ -135,27 +135,27 @@ protected:
     void surfaceBufferToVideoFrame(WebCore::GraphicsContextGL::SurfaceBuffer, CompletionHandler<void(std::optional<WebKit::RemoteVideoFrameProxy::Properties>&&)>&&);
 #endif
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
-    void copyTextureFromVideoFrame(SharedVideoFrame&&, PlatformGLObject texture, WTF::CheckedUint32 target, WTF::CheckedInt32 level, WTF::CheckedUint32 internalFormat, WTF::CheckedUint32 format, WTF::CheckedUint32 type, bool premultiplyAlpha, bool flipY, CompletionHandler<void(bool)>&&);
+    void copyTextureFromVideoFrame(SharedVideoFrame&&, PlatformGLObject texture, WTF::UntrustedUint32 target, WTF::UntrustedInt32 level, WTF::UntrustedUint32 internalFormat, WTF::UntrustedUint32 format, WTF::UntrustedUint32 type, bool premultiplyAlpha, bool flipY, CompletionHandler<void(bool)>&&);
     void setSharedVideoFrameSemaphore(IPC::Semaphore&&);
     void setSharedVideoFrameMemory(WebCore::SharedMemory::Handle&&);
 #endif
     void simulateEventForTesting(WebCore::GraphicsContextGL::SimulatedEventForTesting);
-    void getBufferSubDataInline(WTF::CheckedUint32 target, WTF::CheckedUint64 offset, WTF::CheckedUint64 dataSize, CompletionHandler<void(std::span<const uint8_t>)>&&);
-    void getBufferSubDataSharedMemory(WTF::CheckedUint32 target, WTF::CheckedUint64 offset, WTF::CheckedUint64 dataSize, WebCore::SharedMemory::Handle, CompletionHandler<void(bool)>&&);
-    void readPixelsInline(WebCore::IntRect, WTF::CheckedUint32 format, WTF::CheckedUint32 type, bool packReverseRowOrder, CompletionHandler<void(std::optional<WebCore::IntSize>, std::span<const uint8_t>)>&&);
-    void readPixelsSharedMemory(WebCore::IntRect, WTF::CheckedUint32 format, WTF::CheckedUint32 type, bool packReverseRowOrder, WebCore::SharedMemory::Handle, CompletionHandler<void(std::optional<WebCore::IntSize>)>&&);
-    void multiDrawArraysANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& firstsAndCounts);
-    void multiDrawArraysInstancedANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& firstsCountsAndInstanceCounts);
-    void multiDrawElementsANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& countsAndOffsets, WTF::CheckedUint32 type);
-    void multiDrawElementsInstancedANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& countsOffsetsAndInstanceCounts, WTF::CheckedUint32 type);
-    void multiDrawArraysInstancedBaseInstanceANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, uint32_t>&& firstsCountsInstanceCountsAndBaseInstances);
-    void multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(WTF::CheckedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, int32_t, uint32_t>&& countsOffsetsInstanceCountsBaseVerticesAndBaseInstances, WTF::CheckedUint32 type);
+    void getBufferSubDataInline(WTF::UntrustedUint32 target, WTF::UntrustedUint64 offset, WTF::UntrustedUint64 dataSize, CompletionHandler<void(std::span<const uint8_t>)>&&);
+    void getBufferSubDataSharedMemory(WTF::UntrustedUint32 target, WTF::UntrustedUint64 offset, WTF::UntrustedUint64 dataSize, WebCore::SharedMemory::Handle, CompletionHandler<void(bool)>&&);
+    void readPixelsInline(WebCore::IntRect, WTF::UntrustedUint32 format, WTF::UntrustedUint32 type, bool packReverseRowOrder, CompletionHandler<void(std::optional<WebCore::IntSize>, std::span<const uint8_t>)>&&);
+    void readPixelsSharedMemory(WebCore::IntRect, WTF::UntrustedUint32 format, WTF::UntrustedUint32 type, bool packReverseRowOrder, WebCore::SharedMemory::Handle, CompletionHandler<void(std::optional<WebCore::IntSize>)>&&);
+    void multiDrawArraysANGLE(WTF::UntrustedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& firstsAndCounts);
+    void multiDrawArraysInstancedANGLE(WTF::UntrustedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& firstsCountsAndInstanceCounts);
+    void multiDrawElementsANGLE(WTF::UntrustedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t>&& countsAndOffsets, WTF::UntrustedUint32 type);
+    void multiDrawElementsInstancedANGLE(WTF::UntrustedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t>&& countsOffsetsAndInstanceCounts, WTF::UntrustedUint32 type);
+    void multiDrawArraysInstancedBaseInstanceANGLE(WTF::UntrustedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, uint32_t>&& firstsCountsInstanceCountsAndBaseInstances);
+    void multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(WTF::UntrustedUint32 mode, IPC::ArrayReferenceTuple<int32_t, int32_t, int32_t, int32_t, uint32_t>&& countsOffsetsInstanceCountsBaseVerticesAndBaseInstances, WTF::UntrustedUint32 type);
     void drawBuffers(std::span<const uint32_t>);
     void drawBuffersEXT(std::span<const uint32_t>);
-    void invalidateFramebuffer(WTF::CheckedUint32 target, std::span<const uint32_t> attachments);
-    void invalidateSubFramebuffer(WTF::CheckedUint32 target, std::span<const uint32_t> attachments, WTF::CheckedInt32 x, WTF::CheckedInt32 y, WTF::CheckedInt32 width, WTF::CheckedInt32 height);
+    void invalidateFramebuffer(WTF::UntrustedUint32 target, std::span<const uint32_t> attachments);
+    void invalidateSubFramebuffer(WTF::UntrustedUint32 target, std::span<const uint32_t> attachments, WTF::UntrustedInt32 x, WTF::UntrustedInt32 y, WTF::UntrustedInt32 width, WTF::UntrustedInt32 height);
 #if ENABLE(WEBXR)
-    void framebufferDiscard(WTF::CheckedUint32 target, std::span<const uint32_t> attachments);
+    void framebufferDiscard(WTF::UntrustedUint32 target, std::span<const uint32_t> attachments);
 #endif
     void setDrawingBufferColorSpace(WebCore::DestinationColorSpace&&);
 

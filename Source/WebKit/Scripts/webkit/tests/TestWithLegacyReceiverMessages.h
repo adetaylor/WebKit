@@ -199,7 +199,7 @@ private:
 
 class DidReceivePolicyDecision {
 public:
-    using Arguments = std::tuple<WTF::CheckedUint64, WTF::CheckedUint64, WTF::CheckedUint32>;
+    using Arguments = std::tuple<WTF::UntrustedUint64, WTF::UntrustedUint64, WTF::UntrustedUint32>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithLegacyReceiver_DidReceivePolicyDecision; }
     static constexpr bool isSync = false;
@@ -333,7 +333,7 @@ private:
 
 class CreatePlugin {
 public:
-    using Arguments = std::tuple<WTF::CheckedUint64, WebKit::Plugin::Parameters>;
+    using Arguments = std::tuple<WTF::UntrustedUint64, WebKit::Plugin::Parameters>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithLegacyReceiver_CreatePlugin; }
     static constexpr bool isSync = false;
@@ -366,7 +366,7 @@ private:
 
 class RunJavaScriptAlert {
 public:
-    using Arguments = std::tuple<WTF::CheckedUint64, String>;
+    using Arguments = std::tuple<WTF::UntrustedUint64, String>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithLegacyReceiver_RunJavaScriptAlert; }
     static constexpr bool isSync = false;
@@ -482,7 +482,7 @@ private:
 
 class TestParameterAttributes {
 public:
-    using Arguments = std::tuple<WTF::CheckedUint64, double, double>;
+    using Arguments = std::tuple<WTF::UntrustedUint64, double, double>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithLegacyReceiver_TestParameterAttributes; }
     static constexpr bool isSync = false;
@@ -625,7 +625,7 @@ private:
 #if PLATFORM(MAC)
 class InterpretKeyEvent {
 public:
-    using Arguments = std::tuple<WTF::CheckedUint32>;
+    using Arguments = std::tuple<WTF::UntrustedUint32>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithLegacyReceiver_InterpretKeyEvent; }
     static constexpr bool isSync = false;

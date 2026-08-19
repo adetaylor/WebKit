@@ -57,9 +57,9 @@ private:
     void minimumSizeForAutoLayoutDidChange() override;
     void sizeToContentAutoSizeMaximumSizeDidChange() override;
 
-    void enterAcceleratedCompositingMode(WTF::CheckedUint64 backingStoreStateID, const LayerTreeContext&) override;
-    void updateAcceleratedCompositingMode(WTF::CheckedUint64 backingStoreStateID, const LayerTreeContext&) override;
-    void didFirstLayerFlush(WTF::CheckedUint64 /* backingStoreStateID */, const LayerTreeContext&) override;
+    void enterAcceleratedCompositingMode(WTF::UntrustedUint64 backingStoreStateID, const LayerTreeContext&) override;
+    void updateAcceleratedCompositingMode(WTF::UntrustedUint64 backingStoreStateID, const LayerTreeContext&) override;
+    void didFirstLayerFlush(WTF::UntrustedUint64 /* backingStoreStateID */, const LayerTreeContext&) override;
 
     void adjustTransientZoom(double scale, WebCore::FloatPoint originInLayerForPageScale, WebCore::FloatPoint originInVisibleRect) override;
     void commitTransientZoom(double scale, WebCore::FloatPoint originInLayerForPageScale) override;

@@ -112,19 +112,19 @@ void TiledCoreAnimationDrawingAreaProxy::sizeToContentAutoSizeMaximumSizeDidChan
     sendUpdateGeometry();
 }
 
-void TiledCoreAnimationDrawingAreaProxy::enterAcceleratedCompositingMode(WTF::CheckedUint64 backingStoreStateID, const LayerTreeContext& layerTreeContext)
+void TiledCoreAnimationDrawingAreaProxy::enterAcceleratedCompositingMode(WTF::UntrustedUint64 backingStoreStateID, const LayerTreeContext& layerTreeContext)
 {
     if (RefPtr page = this->page())
         page->enterAcceleratedCompositingMode(layerTreeContext);
 }
 
-void TiledCoreAnimationDrawingAreaProxy::updateAcceleratedCompositingMode(WTF::CheckedUint64 backingStoreStateID, const LayerTreeContext& layerTreeContext)
+void TiledCoreAnimationDrawingAreaProxy::updateAcceleratedCompositingMode(WTF::UntrustedUint64 backingStoreStateID, const LayerTreeContext& layerTreeContext)
 {
     if (RefPtr page = this->page())
         page->updateAcceleratedCompositingMode(layerTreeContext);
 }
 
-void TiledCoreAnimationDrawingAreaProxy::didFirstLayerFlush(WTF::CheckedUint64 /* backingStoreStateID */, const LayerTreeContext& layerTreeContext)
+void TiledCoreAnimationDrawingAreaProxy::didFirstLayerFlush(WTF::UntrustedUint64 /* backingStoreStateID */, const LayerTreeContext& layerTreeContext)
 {
     if (RefPtr page = this->page())
         page->didFirstLayerFlush(layerTreeContext);

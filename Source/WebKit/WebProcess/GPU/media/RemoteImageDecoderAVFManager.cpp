@@ -146,7 +146,7 @@ void RemoteImageDecoderAVFManager::setUseGPUProcess(bool useGPUProcess)
     });
 }
 
-void RemoteImageDecoderAVFManager::encodedDataStatusChanged(const ImageDecoderIdentifier& identifier, WTF::CheckedUint64 frameCount, const WebCore::IntSize& size, bool hasTrack)
+void RemoteImageDecoderAVFManager::encodedDataStatusChanged(const ImageDecoderIdentifier& identifier, WTF::UntrustedUint64 frameCount, const WebCore::IntSize& size, bool hasTrack)
 {
     if (!m_remoteImageDecoders.contains(identifier))
         return;

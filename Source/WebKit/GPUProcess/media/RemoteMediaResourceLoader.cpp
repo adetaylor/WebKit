@@ -134,7 +134,7 @@ void RemoteMediaResourceLoader::redirectReceived(RemoteMediaResourceIdentifier i
         completionHandler({ });
 }
 
-void RemoteMediaResourceLoader::dataSent(RemoteMediaResourceIdentifier identifier, WTF::CheckedUint64 bytesSent, WTF::CheckedUint64 totalBytesToBeSent)
+void RemoteMediaResourceLoader::dataSent(RemoteMediaResourceIdentifier identifier, WTF::UntrustedUint64 bytesSent, WTF::UntrustedUint64 totalBytesToBeSent)
 {
     assertIsCurrent(defaultQueue());
     if (RefPtr resource = resourceForId(identifier))

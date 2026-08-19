@@ -331,7 +331,7 @@ void WebIDBConnectionToServer::attachStorageKeepAliveIfNeeded(const WebIDBResult
         Ref { WebProcess::singleton().fileSystemStorageConnection() }));
 }
 
-void WebIDBConnectionToServer::fireVersionChangeEvent(IDBDatabaseConnectionIdentifier uniqueDatabaseConnectionIdentifier, const IDBResourceIdentifier& requestIdentifier, WTF::CheckedUint64 requestedVersion)
+void WebIDBConnectionToServer::fireVersionChangeEvent(IDBDatabaseConnectionIdentifier uniqueDatabaseConnectionIdentifier, const IDBResourceIdentifier& requestIdentifier, WTF::UntrustedUint64 requestedVersion)
 {
     m_connectionToServer->fireVersionChangeEvent(uniqueDatabaseConnectionIdentifier, requestIdentifier, requestedVersion);
 }
@@ -351,7 +351,7 @@ void WebIDBConnectionToServer::didCloseFromServer(IDBDatabaseConnectionIdentifie
     m_connectionToServer->didCloseFromServer(databaseConnectionIdentifier, error);
 }
 
-void WebIDBConnectionToServer::notifyOpenDBRequestBlocked(const IDBResourceIdentifier& requestIdentifier, WTF::CheckedUint64 oldVersion, WTF::CheckedUint64 newVersion)
+void WebIDBConnectionToServer::notifyOpenDBRequestBlocked(const IDBResourceIdentifier& requestIdentifier, WTF::UntrustedUint64 oldVersion, WTF::UntrustedUint64 newVersion)
 {
     m_connectionToServer->notifyOpenDBRequestBlocked(requestIdentifier, oldVersion, newVersion);
 }

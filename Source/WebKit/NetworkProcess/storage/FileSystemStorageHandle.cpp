@@ -524,7 +524,7 @@ uint64_t FileSystemStorageHandle::allocatedUnusedCapacity()
     return actualSize > m_activeSyncAccessHandle->capacity ? 0 : m_activeSyncAccessHandle->capacity - actualSize;
 }
 
-void FileSystemStorageHandle::requestNewCapacityForSyncAccessHandle(WebCore::FileSystemSyncAccessHandleIdentifier accessHandleIdentifier, WTF::CheckedUint64 requestedCapacity, CompletionHandler<void(std::optional<uint64_t>)>&& completionHandler)
+void FileSystemStorageHandle::requestNewCapacityForSyncAccessHandle(WebCore::FileSystemSyncAccessHandleIdentifier accessHandleIdentifier, WTF::UntrustedUint64 requestedCapacity, CompletionHandler<void(std::optional<uint64_t>)>&& completionHandler)
 {
     if (!isActiveSyncAccessHandle(accessHandleIdentifier))
         return completionHandler(std::nullopt);
@@ -540,7 +540,7 @@ void FileSystemStorageHandle::requestNewCapacityForSyncAccessHandle(WebCore::Fil
     // Round the request up to the next growth step. requestedCapacity comes from the web process,
     // so the rounding is done in checked arithmetic: rounding a value near the top of the range up
     // to a multiple of defaultCapacityStep does not fit in a uint64_t.
-    WTF::CheckedUint64 newCapacity;
+    WTF::UntrustedUint64 newCapacity;
     if (requestedCapacity < defaultInitialCapacity)
         newCapacity = defaultInitialCapacity;
     else if (requestedCapacity < defaultMaxCapacityForExponentialGrowth)

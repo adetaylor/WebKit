@@ -72,7 +72,7 @@ private:
 #if PLATFORM(GTK)
 class LoadURL {
 public:
-    using Arguments = std::tuple<String, WTF::CheckedInt64>;
+    using Arguments = std::tuple<String, WTF::UntrustedInt64>;
 
     static IPC::MessageName name() { return IPC::MessageName::TestWithIfMessage_LoadURL; }
     static constexpr bool isSync = false;

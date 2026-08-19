@@ -164,6 +164,26 @@ template<typename Target, typename Source> static inline constexpr bool convertS
     return true;
 }
 
+// True when every value of From is representable in To, so converting From -> To cannot lose
+// information. Used to decide which implicit unwraps a Checked<> handler will permit.
+template<typename From, typename To>
+constexpr bool isValuePreservingConversion()
+{
+    if constexpr (std::is_same_v<std::remove_cv_t<To>, bool>)
+        return false;
+    else if constexpr (std::is_floating_point_v<To>) {
+        // Exactly representable when the mantissa is at least as wide as the integer.
+        return std::numeric_limits<To>::digits >= std::numeric_limits<From>::digits;
+    } else if constexpr (!std::is_integral_v<To>)
+        return false;
+    else if constexpr (std::is_signed_v<From> == std::is_signed_v<To>)
+        return sizeof(To) >= sizeof(From);
+    else if constexpr (std::is_unsigned_v<From> && std::is_signed_v<To>)
+        return sizeof(To) > sizeof(From);
+    else
+        return false;
+}
+
 template<typename T> struct RemoveChecked {
     typedef T CleanType;
     static constexpr CleanType DefaultValue = 0;
@@ -180,6 +200,11 @@ template<typename T> struct RemoveChecked<Checked<T, RecordOverflow>> {
 };
 
 template<typename T> struct RemoveChecked<Checked<T, RecordOverflowNoImplicitUnwrap>> {
+    typedef typename RemoveChecked<T>::CleanType CleanType;
+    static constexpr CleanType DefaultValue = 0;
+};
+
+template<typename T> struct RemoveChecked<Checked<T, RecordOverflowNoNarrowing>> {
     typedef typename RemoveChecked<T>::CleanType CleanType;
     static constexpr CleanType DefaultValue = 0;
 };
@@ -655,6 +680,19 @@ public:
         return *this = Checked(rhs);
     }
     
+    // Negation is checked like any other arithmetic: -T::min() is not representable, and negating a
+    // non-zero unsigned value is not either. Without this, -checkedValue would unwrap first and
+    // negate the plain integer, which for a signed minimum is undefined behaviour.
+    Checked operator-() const
+    {
+        Checked result;
+        if (this->hasOverflowed()) [[unlikely]]
+            result.overflowed();
+        if (!safeSub<OverflowHandler>(static_cast<T>(0), m_value, result.m_value)) [[unlikely]]
+            result.overflowed();
+        return result;
+    }
+
     // prefix
     Checked& operator++()
     {
@@ -702,11 +740,33 @@ public:
         return m_value;
     }
 
-    operator T() const requires (OverflowHandler::allowsImplicitUnwrap)
+    operator T() const requires (OverflowHandler::implicitUnwrap == ImplicitUnwrap::Always)
     {
         if (this->hasOverflowed()) [[unlikely]]
             this->crash();
         return m_value;
+    }
+
+    // Only value-preserving destinations are reachable implicitly under this policy; narrowing
+    // requires an explicit value(), ideally behind a range check on the incoming value.
+    template<typename U>
+        requires (OverflowHandler::implicitUnwrap == ImplicitUnwrap::ValuePreservingOnly
+            && isValuePreservingConversion<T, U>())
+    operator U() const
+    {
+        if (this->hasOverflowed()) [[unlikely]]
+            this->crash();
+        return static_cast<U>(m_value);
+    }
+
+    // Bitwise results cannot exceed the operand's type, so they only carry any existing overflow.
+    Checked bitwiseResult(T value) const
+    {
+        Checked result;
+        if (this->hasOverflowed()) [[unlikely]]
+            result.overflowed();
+        result.m_value = value;
+        return result;
     }
 
     // Value accessors. value() will crash if there's been an overflow.
@@ -739,6 +799,40 @@ public:
             this->overflowed();
         return *this;
     }
+
+    template<typename U>
+        requires (std::is_integral_v<U> || std::is_enum_v<U>)
+    Checked operator&(U rhs) const { return bitwiseResult(m_value & rhs); }
+
+    template<typename U>
+        requires (std::is_integral_v<U> || std::is_enum_v<U>)
+    Checked operator|(U rhs) const { return bitwiseResult(m_value | rhs); }
+
+    template<typename U>
+        requires (std::is_integral_v<U> || std::is_enum_v<U>)
+    Checked operator^(U rhs) const { return bitwiseResult(m_value ^ rhs); }
+
+    template<typename U>
+        requires (std::is_integral_v<U> || std::is_enum_v<U>)
+    Checked operator>>(U rhs) const { return bitwiseResult(m_value >> rhs); }
+
+    template<typename U>
+        requires (std::is_integral_v<U> || std::is_enum_v<U>)
+    Checked operator<<(U rhs) const { return bitwiseResult(m_value << rhs); }
+
+    template<typename U>
+        requires (std::is_integral_v<U> || std::is_enum_v<U>)
+    Checked operator%(U rhs) const
+    {
+        if (!rhs) [[unlikely]]
+            return Checked { ResultOverflowed };
+        return bitwiseResult(m_value % rhs);
+    }
+
+    template<typename U, typename V> Checked operator&(Checked<U, V> rhs) const { return *this & rhs.value(); }
+    template<typename U, typename V> Checked operator|(Checked<U, V> rhs) const { return *this | rhs.value(); }
+    template<typename U, typename V> Checked operator^(Checked<U, V> rhs) const { return *this ^ rhs.value(); }
+    template<typename U, typename V> Checked operator%(Checked<U, V> rhs) const { return *this % rhs.value(); }
 
     template<typename U> Checked& operator|=(U rhs)
     {
@@ -947,6 +1041,19 @@ using StrictCheckedInt64 = Checked<int64_t, RecordOverflowNoImplicitUnwrap>;
 using StrictCheckedUint64 = Checked<uint64_t, RecordOverflowNoImplicitUnwrap>;
 using StrictCheckedSize = Checked<size_t, RecordOverflowNoImplicitUnwrap>;
 
+// Integers whose value was chosen by another process. Arithmetic on them is checked, and they will
+// not implicitly convert to a narrower integer, so a silent truncation of an attacker-chosen value
+// becomes a compile error rather than something to be spotted in review.
+using UntrustedInt8 = Checked<int8_t, RecordOverflowNoNarrowing>;
+using UntrustedUint8 = Checked<uint8_t, RecordOverflowNoNarrowing>;
+using UntrustedInt16 = Checked<int16_t, RecordOverflowNoNarrowing>;
+using UntrustedUint16 = Checked<uint16_t, RecordOverflowNoNarrowing>;
+using UntrustedInt32 = Checked<int32_t, RecordOverflowNoNarrowing>;
+using UntrustedUint32 = Checked<uint32_t, RecordOverflowNoNarrowing>;
+using UntrustedInt64 = Checked<int64_t, RecordOverflowNoNarrowing>;
+using UntrustedUint64 = Checked<uint64_t, RecordOverflowNoNarrowing>;
+using UntrustedSize = Checked<size_t, RecordOverflowNoNarrowing>;
+
 template<typename T, typename... Args>
 requires (sizeof...(Args) >= 2)
 Checked<T, RecordOverflow> checkedSum(Args... args)
@@ -1030,6 +1137,15 @@ using WTF::StrictCheckedUint32;
 using WTF::StrictCheckedInt64;
 using WTF::StrictCheckedUint64;
 using WTF::StrictCheckedSize;
+using WTF::UntrustedInt8;
+using WTF::UntrustedUint8;
+using WTF::UntrustedInt16;
+using WTF::UntrustedUint16;
+using WTF::UntrustedInt32;
+using WTF::UntrustedUint32;
+using WTF::UntrustedInt64;
+using WTF::UntrustedUint64;
+using WTF::UntrustedSize;
 using WTF::checkedSum;
 using WTF::checkedDifference;
 using WTF::checkedProduct;

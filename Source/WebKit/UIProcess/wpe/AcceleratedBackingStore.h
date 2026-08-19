@@ -83,13 +83,13 @@ private:
     // IPC::MessageReceiver.
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
 
-    void didCreateDMABufBuffer(WTF::CheckedUint64 id, WebCore::DMABufBufferAttributes&&, RendererBufferFormat::Usage);
-    void didCreateSHMBuffer(WTF::CheckedUint64 id, WebCore::ShareableBitmapHandle&&);
+    void didCreateDMABufBuffer(WTF::UntrustedUint64 id, WebCore::DMABufBufferAttributes&&, RendererBufferFormat::Usage);
+    void didCreateSHMBuffer(WTF::UntrustedUint64 id, WebCore::ShareableBitmapHandle&&);
 #if OS(ANDROID)
-    void didCreateAndroidBuffer(WTF::CheckedUint64 id, RefPtr<AHardwareBuffer>&&);
+    void didCreateAndroidBuffer(WTF::UntrustedUint64 id, RefPtr<AHardwareBuffer>&&);
 #endif
-    void didChangeBufferConfiguration(WTF::CheckedUint32 bufferCount);
-    void didDestroyBuffer(WTF::CheckedUint64 id);
+    void didChangeBufferConfiguration(WTF::UntrustedUint32 bufferCount);
+    void didDestroyBuffer(WTF::UntrustedUint64 id);
     void frame(uint64_t bufferID, Rects&&, WTF::UnixFileDescriptor&&);
     void frameDone();
     void renderPendingBuffer();

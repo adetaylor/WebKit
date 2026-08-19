@@ -125,7 +125,7 @@ void WebCookieManager::getCookies(PAL::SessionID sessionID, const URL& url, Comp
     completionHandler(WTF::move(cookies));
 }
 
-void WebCookieManager::setCookie(PAL::SessionID sessionID, const Vector<Cookie>& cookies, WTF::CheckedUint64 cookiesVersion, CompletionHandler<void()>&& completionHandler)
+void WebCookieManager::setCookie(PAL::SessionID sessionID, const Vector<Cookie>& cookies, WTF::UntrustedUint64 cookiesVersion, CompletionHandler<void()>&& completionHandler)
 {
     if (CheckedPtr storageSession = m_process->storageSession(sessionID)) {
         for (auto& cookie : cookies)

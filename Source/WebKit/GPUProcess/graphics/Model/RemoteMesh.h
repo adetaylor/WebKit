@@ -100,9 +100,9 @@ private:
     void setEnvironmentMap(WebModel::UpdateTextureDescriptor&&);
     void updateContentsHeadroom(float);
     void updateRenderBuffers(unsigned, unsigned, CompletionHandler<void(Vector<MachSendRight>&&)>&&);
-    void paintCurrentFrameToImageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier, WTF::CheckedUint32 bufferIndex, CompletionHandler<void()>&&);
+    void paintCurrentFrameToImageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier, WTF::UntrustedUint32 bufferIndex, CompletionHandler<void()>&&);
 
-    void render(WTF::CheckedUint32 textureIndex, CompletionHandler<void(bool)>&&);
+    void render(WTF::UntrustedUint32 textureIndex, CompletionHandler<void(bool)>&&);
     void processRemovals(Vector<WebModel::TypedResourceId>&& meshRemovals, Vector<WebModel::TypedResourceId>&& materialRemovals, Vector<WebModel::TypedResourceId>&& textureRemovals, CompletionHandler<void(bool)>&&);
 
     const Ref<WebKit::Mesh> m_backing;

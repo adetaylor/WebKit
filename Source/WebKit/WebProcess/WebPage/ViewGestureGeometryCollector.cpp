@@ -303,7 +303,7 @@ void ViewGestureGeometryCollector::collectGeometryForMagnificationGesture()
     webPage->send(Messages::ViewGestureController::DidCollectGeometryForMagnificationGesture(visibleContentRect, frameHandlesMagnificationGesture));
 }
 
-void ViewGestureGeometryCollector::setRenderTreeSizeNotificationThreshold(WTF::CheckedUint64 size)
+void ViewGestureGeometryCollector::setRenderTreeSizeNotificationThreshold(WTF::UntrustedUint64 size)
 {
     m_renderTreeSizeNotificationThreshold = size;
     sendDidHitRenderTreeSizeThresholdIfNeeded();

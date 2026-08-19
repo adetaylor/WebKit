@@ -176,7 +176,7 @@ protected:
     WEBCORE_EXPORT void updateBackgroundFetchRegistration(const BackgroundFetchInformation&);
 
 #if ENABLE(CONTENT_EXTENSIONS)
-    WEBCORE_EXPORT void reportNetworkUsageToWorkerClient(ScriptExecutionContextIdentifier, WTF::CheckedUint64 bytesTransferredOverNetwork);
+    WEBCORE_EXPORT void reportNetworkUsageToWorkerClient(ScriptExecutionContextIdentifier, WTF::UntrustedUint64 bytesTransferredOverNetwork);
 #endif
 
     WEBCORE_EXPORT void clearPendingJobs();

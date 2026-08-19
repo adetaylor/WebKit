@@ -325,7 +325,7 @@ void SWClientConnection::registerServiceWorkerClients()
 }
 
 #if ENABLE(CONTENT_EXTENSIONS)
-void SWClientConnection::reportNetworkUsageToWorkerClient(ScriptExecutionContextIdentifier destinationContextIdentifier, WTF::CheckedUint64 bytesTransferredOverNetworkDelta)
+void SWClientConnection::reportNetworkUsageToWorkerClient(ScriptExecutionContextIdentifier destinationContextIdentifier, WTF::UntrustedUint64 bytesTransferredOverNetworkDelta)
 {
     ASSERT(isMainThread());
 

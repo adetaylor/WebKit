@@ -91,17 +91,17 @@ private:
     void createDecoder(VideoDecoderIdentifier, WebCore::VideoCodecType, const String& codecString, bool useRemoteFrames, bool enableAdditionalLogging, std::optional<WebCore::PlatformVideoColorSpace>&& colorSpaceOverride, CompletionHandler<void(bool)>&&);
     void releaseDecoder(VideoDecoderIdentifier);
     void flushDecoder(VideoDecoderIdentifier, CompletionHandler<void()>&&);
-    void setDecoderFormatDescription(VideoDecoderIdentifier, std::span<const uint8_t>, WTF::CheckedUint16 width, WTF::CheckedUint16 height);
+    void setDecoderFormatDescription(VideoDecoderIdentifier, std::span<const uint8_t>, WTF::UntrustedUint16 width, WTF::UntrustedUint16 height);
     void setDecoderColorSpaceOverride(VideoDecoderIdentifier, std::optional<WebCore::PlatformVideoColorSpace>&&);
-    void decodeFrame(VideoDecoderIdentifier, WTF::CheckedInt64 timeStamp, std::span<const uint8_t>, CompletionHandler<void(bool)>&&);
-    void setFrameSize(VideoDecoderIdentifier, WTF::CheckedUint16 width, WTF::CheckedUint16 height);
+    void decodeFrame(VideoDecoderIdentifier, WTF::UntrustedInt64 timeStamp, std::span<const uint8_t>, CompletionHandler<void(bool)>&&);
+    void setFrameSize(VideoDecoderIdentifier, WTF::UntrustedUint16 width, WTF::UntrustedUint16 height);
 
     void createEncoder(VideoEncoderIdentifier, WebCore::VideoCodecType, const String& codecString, const Vector<std::pair<String, String>>&, bool useLowLatency, bool useAnnexB, WebCore::VideoEncoderScalabilityMode, CompletionHandler<void(bool)>&&);
     void releaseEncoder(VideoEncoderIdentifier);
-    void initializeEncoder(VideoEncoderIdentifier, WTF::CheckedUint16 width, WTF::CheckedUint16 height, unsigned startBitrate, unsigned maxBitrate, unsigned minBitrate, WTF::CheckedUint32 maxFramerate);
-    void encodeFrame(VideoEncoderIdentifier, SharedVideoFrame&&, WTF::CheckedInt64 timeStamp, std::optional<uint64_t> duration, bool shouldEncodeAsKeyFrame, CompletionHandler<void(bool)>&&);
+    void initializeEncoder(VideoEncoderIdentifier, WTF::UntrustedUint16 width, WTF::UntrustedUint16 height, unsigned startBitrate, unsigned maxBitrate, unsigned minBitrate, WTF::UntrustedUint32 maxFramerate);
+    void encodeFrame(VideoEncoderIdentifier, SharedVideoFrame&&, WTF::UntrustedInt64 timeStamp, std::optional<uint64_t> duration, bool shouldEncodeAsKeyFrame, CompletionHandler<void(bool)>&&);
     void flushEncoder(VideoEncoderIdentifier, CompletionHandler<void()>&&);
-    void setEncodeRates(VideoEncoderIdentifier, WTF::CheckedUint32 bitRate, WTF::CheckedUint32 frameRate, CompletionHandler<void()>&&);
+    void setEncodeRates(VideoEncoderIdentifier, WTF::UntrustedUint32 bitRate, WTF::UntrustedUint32 frameRate, CompletionHandler<void()>&&);
     void setSharedVideoFrameSemaphore(VideoEncoderIdentifier, IPC::Semaphore&&);
     void setSharedVideoFrameMemory(VideoEncoderIdentifier, WebCore::SharedMemory::Handle&&);
     void setRTCLoggingLevel(WTFLogLevel);

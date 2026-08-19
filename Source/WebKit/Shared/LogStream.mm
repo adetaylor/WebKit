@@ -111,7 +111,7 @@ void LogStream::stopListeningForIPC()
 #endif
 }
 
-void LogStream::logOnBehalfOfWebContent(std::span<const uint8_t> subsystemSpan, std::span<const uint8_t> categorySpan, std::span<const uint8_t> stringSpan, WTF::CheckedUint8 logType)
+void LogStream::logOnBehalfOfWebContent(std::span<const uint8_t> subsystemSpan, std::span<const uint8_t> categorySpan, std::span<const uint8_t> stringSpan, WTF::UntrustedUint8 logType)
 {
 #if ENABLE(STREAMING_IPC_IN_LOG_FORWARDING)
     ASSERT(!isMainRunLoop());
