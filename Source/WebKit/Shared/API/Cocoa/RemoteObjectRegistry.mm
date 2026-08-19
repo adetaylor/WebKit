@@ -68,14 +68,14 @@ void RemoteObjectRegistry::sendInvocation(const RemoteObjectInvocation& invocati
     send(Messages::RemoteObjectRegistry::InvokeMethod(invocation));
 }
 
-void RemoteObjectRegistry::sendReplyBlock(uint64_t replyID, const UserData& blockInvocation)
+void RemoteObjectRegistry::sendReplyBlock(RemoteObjectReplyIdentifier replyID, const UserData& blockInvocation)
 {
-    send(Messages::RemoteObjectRegistry::CallReplyBlock(replyID, blockInvocation));
+    send(Messages::RemoteObjectRegistry::CallReplyBlock(WTF::move(replyID), blockInvocation));
 }
 
-void RemoteObjectRegistry::sendUnusedReply(uint64_t replyID)
+void RemoteObjectRegistry::sendUnusedReply(RemoteObjectReplyIdentifier replyID)
 {
-    send(Messages::RemoteObjectRegistry::ReleaseUnusedReplyBlock(replyID));
+    send(Messages::RemoteObjectRegistry::ReleaseUnusedReplyBlock(WTF::move(replyID)));
 }
 
 void RemoteObjectRegistry::invokeMethod(const RemoteObjectInvocation& invocation)
@@ -83,7 +83,7 @@ void RemoteObjectRegistry::invokeMethod(const RemoteObjectInvocation& invocation
     [m_remoteObjectRegistry.get() _invokeMethod:invocation];
 }
 
-void RemoteObjectRegistry::callReplyBlock(IPC::Connection& connection, uint64_t replyID, const UserData& blockInvocation)
+void RemoteObjectRegistry::callReplyBlock(IPC::Connection& connection, RemoteObjectReplyIdentifier replyID, const UserData& blockInvocation)
 {
     bool wasRemoved = m_pendingReplies.remove(replyID);
     ASSERT_UNUSED(wasRemoved, wasRemoved);
@@ -96,7 +96,7 @@ void RemoteObjectRegistry::callReplyBlock(IPC::Connection& connection, uint64_t 
     }
 }
 
-void RemoteObjectRegistry::releaseUnusedReplyBlock(uint64_t replyID)
+void RemoteObjectRegistry::releaseUnusedReplyBlock(RemoteObjectReplyIdentifier replyID)
 {
     bool wasRemoved = m_pendingReplies.remove(replyID);
     ASSERT_UNUSED(wasRemoved, wasRemoved);

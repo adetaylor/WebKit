@@ -46,223 +46,14 @@
     MessageParam AcceleratedBackingStore.DidDestroyBuffer id
     MessageParam AcceleratedBackingStore.Frame id
     MessageParam AcceleratedSurface.ReleaseBuffer id
-    MessageParam RemoteObjectRegistry.CallReplyBlock replyID
-    MessageParam RemoteObjectRegistry.ReleaseUnusedReplyBlock replyID
+    StructMember WebKit::CallbackID m_id
+    StructMember WebKit::WebHitTestResultPlatformData detectedDataOriginatingPageOverlay
 }
 
 # seeded in bulk when this rule was turned on, and NOT individually reviewed. Carries no claim that the value is safe. Do not use in new code
 [LegacyUnreviewed] {
-    StructMember PlatformXR::FrameData predictedDisplayTime
-    StructMember PlatformXR::FrameData::InputSource handle
-    StructMember PlatformXR::FrameData::StageParameters id
-    StructMember PlatformXR::LayerInfo numImages
-    StructMember SkFontStyle::Slant data()
-    StructMember WTF::MediaTime timeFlags()
-    StructMember WTF::MediaTime timeScale()
-    StructMember WTF::MediaTime timeValue()
-    StructMember WTF::MemoryPressureHandlerConfiguration baseThreshold
-    StructMember WTF::UUID high()
-    StructMember WTF::UUID low()
-    StructMember WebCore::AXDebugInfo remoteTokenHash
-    StructMember WebCore::AXDebugInfo webProcessLocalTokenHash
-    StructMember WebCore::AdditionalNetworkLoadMetricsForWebInspector requestBodyBytesSent
-    StructMember WebCore::AdditionalNetworkLoadMetricsForWebInspector requestHeaderBytesSent
-    StructMember WebCore::AdditionalNetworkLoadMetricsForWebInspector responseHeaderBytesReceived
-    StructMember WebCore::ApplePayDateComponents days
-    StructMember WebCore::ApplePayDateComponents hours
-    StructMember WebCore::ApplePayDateComponents months
-    StructMember WebCore::ApplePayDateComponents years
-    StructMember WebCore::ApplePayPaymentAuthorizationResult status
-    StructMember WebCore::AudioSpecificInfoData bitDepth
-    StructMember WebCore::AudioSpecificInfoData channels
-    StructMember WebCore::AudioSpecificInfoData framesPerPacket
-    StructMember WebCore::AudioSpecificInfoData rate
-    StructMember WebCore::AuthenticationChallenge tlsPasswordFlags()
-    StructMember WebCore::BackgroundFetchInformation downloaded
-    StructMember WebCore::BackgroundFetchInformation uploaded
-    StructMember WebCore::CSPViolationReportBody columnNumber()
-    StructMember WebCore::CSPViolationReportBody statusCode()
-    StructMember WebCore::CSSValueKey cssValueID
-    StructMember WebCore::CameraCalibration lensIdentifier
-    StructMember WebCore::CertificateInfo verificationError()
-    StructMember WebCore::ContentSecurityPolicyResponseHeaders httpStatusCode()
-    StructMember WebCore::CryptoKeyData lengthBits
-    StructMember WebCore::CryptoKeyData usages
-    StructMember WebCore::DOMCacheEngine::CacheInfos updateCounter
-    StructMember WebCore::DOMCacheEngine::CrossThreadRecord identifier
-    StructMember WebCore::DOMCacheEngine::CrossThreadRecord updateResponseCounter
-    StructMember WebCore::DeprecationReportBody columnNumber()
-    StructMember WebCore::DropShadowFilterOperation stdDeviation()
-    StructMember WebCore::ExceptionDetails columnNumber
-    StructMember WebCore::FETurbulence numOctaves()
     StructMember WebCore::FormData m_identifier
-    StructMember WebCore::FormDataElement::EncodedFileData fileStart
-    StructMember WebCore::GCGLUniformActiveInfo arrayStride
-    StructMember WebCore::GCGLUniformActiveInfo isRowMajor
-    StructMember WebCore::GCGLUniformActiveInfo matrixStride
-    StructMember WebCore::GraphicsContextGLAttributes windowGPUID
-    StructMember WebCore::HostingContext contextID
-    StructMember WebCore::IDBDatabaseInfo m_maxIndexID
-    StructMember WebCore::IDBDatabaseInfo m_version
-    StructMember WebCore::IDBResultData m_resultInteger
-    StructMember WebCore::ImmersiveVideoMetadata horizontalDisparityAdjustment
-    StructMember WebCore::ImmersiveVideoMetadata horizontalFieldOfView
-    StructMember WebCore::ImmersiveVideoMetadata stereoCameraBaseline
-    StructMember WebCore::IntConstraint m_exact
-    StructMember WebCore::IntConstraint m_ideal
-    StructMember WebCore::IntConstraint m_max
-    StructMember WebCore::IntConstraint m_min
-    StructMember WebCore::JsonWebKey usages
-    StructMember WebCore::LayoutUnit rawValue()
-    StructMember WebCore::MediaControlsContextMenuItem id
-    StructMember WebCore::MediaSamplesBlock::MediaSampleItem flags
-    StructMember WebCore::MockMicrophoneProperties deviceID
-    StructMember WebCore::NetworkLoadMetrics responseBodyBytesReceived
-    StructMember WebCore::NotificationPayload appBadge
-    StructMember WebCore::NowPlayingInfo updateTime
-    StructMember WebCore::PCM::AttributionTriggerData data
-    StructMember WebCore::PCM::AttributionTriggerData priority
-    StructMember WebCore::ParagraphStyleTextList startingItemNumber
-    StructMember WebCore::PlatformMediaCapabilitiesAudioConfiguration samplerate
-    StructMember WebCore::PlatformTextTrackData m_uniqueId
-    StructMember WebCore::PrivateClickMeasurement adamID()
-    StructMember WebCore::PrivateClickMeasurement sourceID()
-    StructMember WebCore::PublicKeyCredentialCreationOptions timeout
-    StructMember WebCore::PublicKeyCredentialParameters alg
-    StructMember WebCore::PublicKeyCredentialRequestOptions timeout
-    StructMember WebCore::RTCDataChannelInit id
-    StructMember WebCore::ResourceError::IPCData errorCode
-    StructMember WebCore::ResourceLoadStatistics dataRecordsRemoved
-    StructMember WebCore::ResourceLoadStatistics timesAccessedAsFirstPartyDueToStorageAccessAPI
-    StructMember WebCore::ResourceLoadStatistics timesAccessedAsFirstPartyDueToUserInteraction
-    StructMember WebCore::ResourceResponseData httpStatusCode
-    StructMember WebCore::ScreenData displayMask
-    StructMember WebCore::ScreenData screenDepth
-    StructMember WebCore::ScreenData screenDepthPerComponent
-    StructMember WebCore::SecurityPolicyViolationEventInit columnNumber
-    StructMember WebCore::SecurityPolicyViolationEventInit statusCode
-    StructMember WebCore::SerializedScriptValueInternals memoryCost
-    StructMember WebCore::ServiceWorkerClientData focusOrder
-    StructMember WebCore::ShareableBitmapConfiguration bitsPerComponent()
-    StructMember WebCore::ShareableResourceHandle m_offset
-    StructMember WebCore::ShareableResourceHandle m_size
-    StructMember WebCore::SharedMemoryHandle m_size
-    StructMember WebCore::SourceBufferEvictionData numMediaSamples
-    StructMember WebCore::SystemSettingsState cursorBlinkTime
-    StructMember WebCore::SystemSettingsState fontWeight
-    StructMember WebCore::SystemSettingsState xftAntialias
-    StructMember WebCore::SystemSettingsState xftDPI
-    StructMember WebCore::SystemSettingsState xftHinting
-    StructMember WebCore::TextExtraction::Item enclosingBlockNumber
-    StructMember WebCore::TextExtraction::Item visualBlockContainerNumber
-    StructMember WebCore::TextList startingItemNumber
-    StructMember WebCore::TextTableBlock columnSpan
-    StructMember WebCore::TextTableBlock rowSpan
-    StructMember WebCore::TextTableBlock startingColumn
-    StructMember WebCore::TextTableBlock startingRow
-    StructMember WebCore::VideoSpecificInfoData bitDepth
-    StructMember WebCore::WebTransportOptions anticipatedConcurrentIncomingBidirectionalStreams
-    StructMember WebCore::WebTransportOptions anticipatedConcurrentIncomingUnidirectionalStreams
-    StructMember WebKit::BackgroundFetchState downloaded
-    StructMember WebKit::BackgroundFetchState uploaded
-    StructMember WebKit::BufferAndBackendInfo backendGeneration
-    StructMember WebKit::CallbackID m_id
-    StructMember WebKit::CoreIPCError m_code
-    StructMember WebKit::CoreIPCNSURLRequestData requestPriority
-    StructMember WebKit::CoreIPCPresentationIntent m_column
-    StructMember WebKit::CoreIPCPresentationIntent m_identity
-    StructMember WebKit::CoreIPCPresentationIntent m_intentKind
-    StructMember WebKit::CoreIPCPresentationIntent m_ordinal
-    StructMember WebKit::CoreIPCPresentationIntent m_row
-    StructMember WebKit::DynamicViewportSizeUpdate deviceOrientation
-    StructMember WebKit::DynamicViewportSizeUpdate identifier
-    StructMember WebKit::EditorState::PostLayoutData candidateRequestStartPosition
-    StructMember WebKit::EditorState::PostLayoutData surroundingContextCursorPosition
-    StructMember WebKit::EditorState::PostLayoutData surroundingContextSelectionPosition
-    StructMember WebKit::FrameState documentSequenceNumber
-    StructMember WebKit::FrameState itemSequenceNumber
-    StructMember WebKit::HTTPBody::Element::FileData fileStart
-    StructMember WebKit::HardwareKeyboardState countryCode
-    StructMember WebKit::HardwareKeyboardState keyboardType
-    StructMember WebKit::LayerTreeContext contextID
-    StructMember WebKit::MainFrameData dynamicViewportSizeUpdateID
-    StructMember WebKit::NetworkSessionCreationParameters overrideServiceWorkerRegistrationCountTestingValue
-    StructMember WebKit::NetworkSessionCreationParameters testSpeedMultiplier
-    StructMember WebKit::NetworkSessionCreationParameters volumeCapacityOverride
-    StructMember WebKit::OptionItem parentGroupID
-    StructMember WebKit::PDFContextMenu openInDefaultViewerTag
-    StructMember WebKit::PDFContextMenuItem state
-    StructMember WebKit::PDFContextMenuItem tag
-    StructMember WebKit::PlatformPopupMenuData m_clientInsetLeft
-    StructMember WebKit::PlatformPopupMenuData m_clientInsetRight
-    StructMember WebKit::PlatformPopupMenuData m_clientPaddingLeft
-    StructMember WebKit::PlatformPopupMenuData m_clientPaddingRight
-    StructMember WebKit::RTCNetwork id
-    StructMember WebKit::RTCNetwork preference
-    StructMember WebKit::RTCNetwork scopeID
-    StructMember WebKit::RTCNetwork type
-    StructMember WebKit::RTCPacketOptions::SerializableData packetId
-    StructMember WebKit::RTCPacketOptions::SerializableData rtpSendtimeExtensionId
-    StructMember WebKit::RemoteCDMConfiguration logIdentifier
-    StructMember WebKit::RemoteGraphicsContextGLInitializationState estimatedMemoryCost
-    StructMember WebKit::RemoteGraphicsContextGLInitializationState knownActiveExtensions
-    StructMember WebKit::RemoteGraphicsContextGLInitializationState requestableExtensions
-    StructMember WebKit::RemoteLayerTreeTransaction::LayerCreationProperties::CustomData hostingContextID
-    StructMember WebKit::RemoteMediaPlayerProxyConfiguration logIdentifier
-    StructMember WebKit::RemoteMediaSessionState logIdentifier
-    StructMember WebKit::RemoteNativeImageWriteReference pendingReads()
-    StructMember WebKit::RemoteObjectInvocation::ReplyInfo replyID
-    StructMember WebKit::RemoteSerializedImageBufferWriteReference pendingReads()
-    StructMember WebKit::RemoteVideoFrameProxyProperties pixelFormat
-    StructMember WebKit::RemoteVideoFrameWriteReference pendingReads()
-    StructMember WebKit::SharedPreferencesForWebProcess storageBlockingPolicy
-    StructMember WebKit::UserMessage::ErrorMessage errorCode
-    StructMember WebKit::WebFoundTextRange order
-    StructMember WebKit::WebFoundTextRange::CueData seekTimeMilliseconds
-    StructMember WebKit::WebFoundTextRange::PDFData endPage
-    StructMember WebKit::WebFoundTextRange::PDFData startPage
-    StructMember WebKit::WebGPU::CompilationMessage lineNum
-    StructMember WebKit::WebGPU::CompilationMessage linePos
-    StructMember WebKit::WebHitTestResultPlatformData detectedDataOriginatingPageOverlay
-    StructMember WebKit::WebKeyboardEvent macCharCode()
-    StructMember WebKit::WebKeyboardEvent nativeVirtualKeyCode()
-    StructMember WebKit::WebKeyboardEvent windowsVirtualKeyCode()
-    StructMember WebKit::WebMouseEvent buttons()
-    StructMember WebKit::WebMouseEvent eventNumber()
-    StructMember WebKit::WebMouseEvent menuTypeForEvent()
-    StructMember WebKit::WebMouseEvent pointerId()
-    StructMember WebKit::WebPageCreationParameters displayID
-    StructMember WebKit::WebPageCreationParameters nativeWindowHandle
-    StructMember WebKit::WebPageCreationParameters nominalFramesPerSecond
-    StructMember WebKit::WebPlatformTouchPoint id()
-    StructMember WebKit::WebPlatformTouchPoint identifier()
-    StructMember WebKit::WebProcessCreationParameters latencyQOS
-    StructMember WebKit::WebProcessCreationParameters throughputQOS
-    StructMember WebKit::WebRTCNetwork::InterfaceAddress ipv6Flags
-    StructMember WebKit::WebRTCNetwork::SocketAddress scopeID
-    StructMember WebModel::ImageAssetSwizzle alpha
-    StructMember WebModel::ImageAssetSwizzle blue
-    StructMember WebModel::ImageAssetSwizzle green
-    StructMember WebModel::ImageAssetSwizzle red
     StructMember WebModel::Primvar attributeFormat
-    StructMember WebModel::TextureLevelInfo byteCountPerImage
-    StructMember WebModel::TextureLevelInfo byteCountPerRow
-    StructMember WebModel::TypedResourceId hashValue
-    StructMember WebModel::UpdateMeshDescriptor updateType
-    StructMember WebModel::VertexLayout bufferStride
-    StructMember webrtc::EncodedImage::Timing encode_finish_ms
-    StructMember webrtc::EncodedImage::Timing encode_start_ms
-    StructMember webrtc::EncodedImage::Timing flags
-    StructMember webrtc::EncodedImage::Timing network2_timestamp_ms
-    StructMember webrtc::EncodedImage::Timing network_timestamp_ms
-    StructMember webrtc::EncodedImage::Timing pacer_exit_ms
-    StructMember webrtc::EncodedImage::Timing packetization_finish_ms
-    StructMember webrtc::EncodedImage::Timing receive_finish_ms
-    StructMember webrtc::EncodedImage::Timing receive_start_ms
-    StructMember webrtc::WebKitEncodedFrameInfo captureTimeMS
-    StructMember webrtc::WebKitEncodedFrameInfo ntpTimeMS
-    StructMember webrtc::WebKitEncodedFrameInfo qp
-    StructMember webrtc::WebKitEncodedFrameInfo timeStamp
 }
 
 # generation and epoch counters, compared against locally held state; legitimately zero, which ObjectIdentifier cannot represent
@@ -278,6 +69,22 @@
     MessageParam WebPageProxy.ExecuteUndoRedo undoVersion
     MessageParam WebProcessProxy.WaitForSharedPreferencesForWebProcessToSync sharedPreferencesVersion
     MessageParam WebSWServerToContextConnection.ReportConsoleMessage requestIdentifier
+    StructMember PlatformXR::FrameData::StageParameters id
+    StructMember WebCore::DOMCacheEngine::CacheInfos updateCounter
+    StructMember WebCore::DOMCacheEngine::CrossThreadRecord updateResponseCounter
+    StructMember WebCore::IDBDatabaseInfo m_maxIndexID
+    StructMember WebCore::IDBDatabaseInfo m_version
+    StructMember WebCore::NowPlayingInfo updateTime
+    StructMember WebCore::PlatformTextTrackData m_uniqueId
+    StructMember WebCore::ServiceWorkerClientData focusOrder
+    StructMember WebCore::TextExtraction::Item enclosingBlockNumber
+    StructMember WebCore::TextExtraction::Item visualBlockContainerNumber
+    StructMember WebKit::BufferAndBackendInfo backendGeneration
+    StructMember WebKit::DynamicViewportSizeUpdate identifier
+    StructMember WebKit::FrameState documentSequenceNumber
+    StructMember WebKit::FrameState itemSequenceNumber
+    StructMember WebKit::MainFrameData dynamicViewportSizeUpdateID
+    StructMember WebKit::WebPlatformTouchPoint identifier()
 }
 
 # assigned outside WebKit: CGDirectDisplayID, OS pids, NSPasteboard change counts, native window handles
@@ -299,6 +106,29 @@
     MessageParam WebProcessProxy.SetDisplayLinkPreferredFramesPerSecond displayID
     MessageParam WebProcessProxy.StartDisplayLink displayID
     MessageParam WebProcessProxy.StopDisplayLink displayID
+    StructMember PlatformXR::FrameData::InputSource handle
+    StructMember WebCore::CameraCalibration lensIdentifier
+    StructMember WebCore::GraphicsContextGLAttributes windowGPUID
+    StructMember WebCore::HostingContext contextID
+    StructMember WebCore::MockMicrophoneProperties deviceID
+    StructMember WebCore::PrivateClickMeasurement adamID()
+    StructMember WebCore::PrivateClickMeasurement sourceID()
+    StructMember WebCore::ScreenData displayMask
+    StructMember WebKit::CoreIPCPresentationIntent m_identity
+    StructMember WebKit::HardwareKeyboardState countryCode
+    StructMember WebKit::HardwareKeyboardState keyboardType
+    StructMember WebKit::LayerTreeContext contextID
+    StructMember WebKit::RemoteLayerTreeTransaction::LayerCreationProperties::CustomData hostingContextID
+    StructMember WebKit::RemoteVideoFrameProxyProperties pixelFormat
+    StructMember WebKit::WebKeyboardEvent macCharCode()
+    StructMember WebKit::WebKeyboardEvent nativeVirtualKeyCode()
+    StructMember WebKit::WebMouseEvent eventNumber()
+    StructMember WebKit::WebMouseEvent pointerId()
+    StructMember WebKit::WebPageCreationParameters displayID
+    StructMember WebKit::WebPageCreationParameters nativeWindowHandle
+    StructMember WebKit::WebPlatformTouchPoint id()
+    StructMember WebKit::WebRTCNetwork::SocketAddress scopeID
+    StructMember WebModel::TypedResourceId hashValue
 }
 
 # opaque values used only for log correlation, never dereferenced
@@ -310,11 +140,17 @@
     MessageParam RemoteLegacyCDMProxy.CreateSession logIdentifier
     MessageParam RemoteSampleBufferDisplayLayer.SetLogIdentifier logIdentifier
     MessageParam WebPageProxy.LogScrollingEvent data
+    StructMember WebCore::AXDebugInfo remoteTokenHash
+    StructMember WebCore::AXDebugInfo webProcessLocalTokenHash
+    StructMember WebKit::RemoteCDMConfiguration logIdentifier
+    StructMember WebKit::RemoteMediaPlayerProxyConfiguration logIdentifier
+    StructMember WebKit::RemoteMediaSessionState logIdentifier
 }
 
 # row identifiers assigned by SQLite
 [DatabaseRowID] {
     MessageParam NetworkStorageManager.DidGenerateIndexKeyForRecord recordID
+    StructMember WebCore::DOMCacheEngine::CrossThreadRecord identifier
 }
 
 # assigned by libwebrtc or CoreAudio; the wire format is not ours to choose
@@ -329,6 +165,12 @@
     MessageParam NetworkRTCProvider.CreateUDPSocket minPort
     MessageParam RemoteAudioDestinationManager.CreateAudioDestination audioUnitLatency
     MessageParam RemoteAudioDestinationManager.StartAudioDestination audioUnitLatency
+    StructMember WebCore::RTCDataChannelInit id
+    StructMember WebKit::RTCNetwork id
+    StructMember WebKit::RTCNetwork preference
+    StructMember WebKit::RTCNetwork scopeID
+    StructMember WebKit::RTCPacketOptions::SerializableData packetId
+    StructMember WebKit::RTCPacketOptions::SerializableData rtpSendtimeExtensionId
 }
 
 # error and status codes
@@ -342,6 +184,15 @@
     MessageParam RemoteLegacyCDMSessionProxy.GenerateKeyRequest systemCode
     MessageParam RemoteLegacyCDMSessionProxy.Update errorCode
     MessageParam RemoteLegacyCDMSessionProxy.Update systemCode
+    StructMember WebCore::ApplePayPaymentAuthorizationResult status
+    StructMember WebCore::CSPViolationReportBody statusCode()
+    StructMember WebCore::CertificateInfo verificationError()
+    StructMember WebCore::ContentSecurityPolicyResponseHeaders httpStatusCode()
+    StructMember WebCore::ResourceError::IPCData errorCode
+    StructMember WebCore::ResourceResponseData httpStatusCode
+    StructMember WebCore::SecurityPolicyViolationEventInit statusCode
+    StructMember WebKit::CoreIPCError m_code
+    StructMember WebKit::UserMessage::ErrorMessage errorCode
 }
 
 # flags or enumerations that have not been given an enum type
@@ -358,6 +209,39 @@
     MessageParam WebPageProxy.RecommendedScrollbarStyleDidChange newStyle
     MessageParam WebPageProxy.ShowPopupMenuFromFrame textDirection
     MessageParam WebProcessPool.ReportWebContentCPUTime activityState
+    StructMember SkFontStyle::Slant data()
+    StructMember WTF::MediaTime timeFlags()
+    StructMember WebCore::AuthenticationChallenge tlsPasswordFlags()
+    StructMember WebCore::CSSValueKey cssValueID
+    StructMember WebCore::CryptoKeyData usages
+    StructMember WebCore::GCGLUniformActiveInfo isRowMajor
+    StructMember WebCore::JsonWebKey usages
+    StructMember WebCore::MediaControlsContextMenuItem id
+    StructMember WebCore::MediaSamplesBlock::MediaSampleItem flags
+    StructMember WebCore::PublicKeyCredentialParameters alg
+    StructMember WebCore::SystemSettingsState xftAntialias
+    StructMember WebCore::SystemSettingsState xftHinting
+    StructMember WebKit::CoreIPCNSURLRequestData requestPriority
+    StructMember WebKit::CoreIPCPresentationIntent m_intentKind
+    StructMember WebKit::PDFContextMenu openInDefaultViewerTag
+    StructMember WebKit::PDFContextMenuItem state
+    StructMember WebKit::PDFContextMenuItem tag
+    StructMember WebKit::RTCNetwork type
+    StructMember WebKit::RemoteGraphicsContextGLInitializationState knownActiveExtensions
+    StructMember WebKit::RemoteGraphicsContextGLInitializationState requestableExtensions
+    StructMember WebKit::SharedPreferencesForWebProcess storageBlockingPolicy
+    StructMember WebKit::WebKeyboardEvent windowsVirtualKeyCode()
+    StructMember WebKit::WebMouseEvent buttons()
+    StructMember WebKit::WebMouseEvent menuTypeForEvent()
+    StructMember WebKit::WebProcessCreationParameters latencyQOS
+    StructMember WebKit::WebProcessCreationParameters throughputQOS
+    StructMember WebKit::WebRTCNetwork::InterfaceAddress ipv6Flags
+    StructMember WebModel::ImageAssetSwizzle alpha
+    StructMember WebModel::ImageAssetSwizzle blue
+    StructMember WebModel::ImageAssetSwizzle green
+    StructMember WebModel::ImageAssetSwizzle red
+    StructMember WebModel::UpdateMeshDescriptor updateType
+    StructMember webrtc::EncodedImage::Timing flags
 }
 
 # sizes, counts, indices, offsets, rates, durations and quotas
@@ -530,20 +414,39 @@
     StructMember IPC::SharedBufferReference::SerializableBuffer size
     StructMember Inspector::SearchMatch lineNumber
     StructMember Inspector::SearchResult matchesCount
+    StructMember PlatformXR::FrameData predictedDisplayTime
     StructMember PlatformXR::FrameData::ExternalTexture fourcc
     StructMember PlatformXR::FrameData::ExternalTexture modifier
     StructMember PlatformXR::FrameData::ExternalTextureData reusableTextureIndex
     StructMember PlatformXR::FrameData::LayerData renderingFrameIndex
+    StructMember PlatformXR::LayerInfo numImages
     StructMember SkFontStyle weight()
     StructMember SkFontStyle width()
+    StructMember WTF::MediaTime timeScale()
+    StructMember WTF::MediaTime timeValue()
+    StructMember WTF::MemoryPressureHandlerConfiguration baseThreshold
     StructMember WebCore::AccessibilitySearchCriteriaIPC resultsLimit
+    StructMember WebCore::AdditionalNetworkLoadMetricsForWebInspector requestBodyBytesSent
+    StructMember WebCore::AdditionalNetworkLoadMetricsForWebInspector requestHeaderBytesSent
+    StructMember WebCore::AdditionalNetworkLoadMetricsForWebInspector responseHeaderBytesReceived
+    StructMember WebCore::ApplePayDateComponents days
+    StructMember WebCore::ApplePayDateComponents hours
+    StructMember WebCore::ApplePayDateComponents months
+    StructMember WebCore::ApplePayDateComponents years
     StructMember WebCore::ApplePayLineItem recurringPaymentIntervalCount
     StructMember WebCore::AttributedString::Range length
     StructMember WebCore::AttributedString::Range location
+    StructMember WebCore::AudioSpecificInfoData bitDepth
+    StructMember WebCore::AudioSpecificInfoData channels
+    StructMember WebCore::AudioSpecificInfoData framesPerPacket
+    StructMember WebCore::AudioSpecificInfoData rate
     StructMember WebCore::AuthenticationChallenge previousFailureCount()
     StructMember WebCore::BackgroundFetchInformation downloadTotal
+    StructMember WebCore::BackgroundFetchInformation downloaded
     StructMember WebCore::BackgroundFetchInformation uploadTotal
+    StructMember WebCore::BackgroundFetchInformation uploaded
     StructMember WebCore::BackgroundFetchOptions downloadTotal
+    StructMember WebCore::CSPViolationReportBody columnNumber()
     StructMember WebCore::CSPViolationReportBody lineNumber()
     StructMember WebCore::CharacterRange length
     StructMember WebCore::CharacterRange location
@@ -551,18 +454,26 @@
     StructMember WebCore::CompositionHighlight startOffset
     StructMember WebCore::CompositionUnderline endOffset
     StructMember WebCore::CompositionUnderline startOffset
+    StructMember WebCore::CryptoKeyData lengthBits
     StructMember WebCore::DMABufBufferAttributes modifier
     StructMember WebCore::DOMCacheEngine::CrossThreadRecord responseBodySize
+    StructMember WebCore::DeprecationReportBody columnNumber()
     StructMember WebCore::DeprecationReportBody lineNumber()
     StructMember WebCore::DisplayUpdate updateIndex
+    StructMember WebCore::DropShadowFilterOperation stdDeviation()
+    StructMember WebCore::ExceptionDetails columnNumber
     StructMember WebCore::ExceptionDetails lineNumber
     StructMember WebCore::FEMerge numberOfEffectInputs()
+    StructMember WebCore::FETurbulence numOctaves()
     StructMember WebCore::FormData m_lengthInBytes
     StructMember WebCore::FormDataElement::EncodedFileData fileLength
+    StructMember WebCore::FormDataElement::EncodedFileData fileStart
     StructMember WebCore::FourCC value
     StructMember WebCore::GCGLAttribActiveInfo location
     StructMember WebCore::GCGLTransformFeedbackActiveInfo size
+    StructMember WebCore::GCGLUniformActiveInfo arrayStride
     StructMember WebCore::GCGLUniformActiveInfo blockIndex
+    StructMember WebCore::GCGLUniformActiveInfo matrixStride
     StructMember WebCore::GCGLUniformActiveInfo offset
     StructMember WebCore::GCGLUniformActiveInfo size
     StructMember WebCore::GraphicsContextGLExternalImageSource fourcc
@@ -572,6 +483,7 @@
     StructMember WebCore::IDBIterateCursorData count
     StructMember WebCore::IDBOpenRequestData m_requestedVersion
     StructMember WebCore::IDBRequestData m_requestedVersion
+    StructMember WebCore::IDBResultData m_resultInteger
     StructMember WebCore::IDBTransactionInfo newVersion()
     StructMember WebCore::ISO18013DocumentRequestInfo maximumResponseSize
     StructMember WebCore::ImageBufferResourceLimits acceleratedImageBufferForCanvasCount
@@ -582,10 +494,18 @@
     StructMember WebCore::ImageBufferResourceLimits globalImageBufferForCanvasLimit
     StructMember WebCore::ImageBufferResourceLimits imageBufferForCanvasCount
     StructMember WebCore::ImageBufferResourceLimits imageBufferForCanvasLimit
+    StructMember WebCore::ImmersiveVideoMetadata horizontalDisparityAdjustment
+    StructMember WebCore::ImmersiveVideoMetadata horizontalFieldOfView
+    StructMember WebCore::ImmersiveVideoMetadata stereoCameraBaseline
+    StructMember WebCore::IntConstraint m_exact
+    StructMember WebCore::IntConstraint m_ideal
+    StructMember WebCore::IntConstraint m_max
+    StructMember WebCore::IntConstraint m_min
     StructMember WebCore::IntPoint x()
     StructMember WebCore::IntPoint y()
     StructMember WebCore::IntSize height()
     StructMember WebCore::IntSize width()
+    StructMember WebCore::LayoutUnit rawValue()
     StructMember WebCore::LinkIcon size
     StructMember WebCore::LongCapabilityRange max()
     StructMember WebCore::LongCapabilityRange min()
@@ -595,13 +515,19 @@
     StructMember WebCore::MockWebAuthenticationConfiguration::HidConfiguration maxCredentialCountInList
     StructMember WebCore::MockWebAuthenticationConfiguration::HidConfiguration maxCredentialIdLength
     StructMember WebCore::NetworkLoadMetrics redirectCount
+    StructMember WebCore::NetworkLoadMetrics responseBodyBytesReceived
     StructMember WebCore::NetworkLoadMetrics responseBodyDecodedSize
+    StructMember WebCore::NotificationPayload appBadge
+    StructMember WebCore::PCM::AttributionTriggerData data
+    StructMember WebCore::PCM::AttributionTriggerData priority
     StructMember WebCore::PackedColor::RGBA value
     StructMember WebCore::ParagraphStyle headerLevel
+    StructMember WebCore::ParagraphStyleTextList startingItemNumber
     StructMember WebCore::PlatformAudioTrackConfiguration bitrate
     StructMember WebCore::PlatformAudioTrackConfiguration numberOfChannels
     StructMember WebCore::PlatformAudioTrackConfiguration sampleRate
     StructMember WebCore::PlatformMediaCapabilitiesAudioConfiguration bitrate
+    StructMember WebCore::PlatformMediaCapabilitiesAudioConfiguration samplerate
     StructMember WebCore::PlatformMediaCapabilitiesVideoConfiguration bitrate
     StructMember WebCore::PlatformMediaCapabilitiesVideoConfiguration height
     StructMember WebCore::PlatformMediaCapabilitiesVideoConfiguration width
@@ -609,6 +535,8 @@
     StructMember WebCore::PlatformVideoTrackConfiguration height
     StructMember WebCore::PlatformVideoTrackConfiguration width
     StructMember WebCore::ProtectionSpace port()
+    StructMember WebCore::PublicKeyCredentialCreationOptions timeout
+    StructMember WebCore::PublicKeyCredentialRequestOptions timeout
     StructMember WebCore::RTCDataChannelInit maxPacketLifeTime
     StructMember WebCore::RTCDataChannelInit maxRetransmits
     StructMember WebCore::RealtimeMediaSourceSettings height()
@@ -617,10 +545,15 @@
     StructMember WebCore::RealtimeMediaSourceSettings width()
     StructMember WebCore::Region::Span segmentIndex
     StructMember WebCore::Region::Span y
+    StructMember WebCore::ResourceLoadStatistics dataRecordsRemoved
+    StructMember WebCore::ResourceLoadStatistics timesAccessedAsFirstPartyDueToStorageAccessAPI
+    StructMember WebCore::ResourceLoadStatistics timesAccessedAsFirstPartyDueToUserInteraction
     StructMember WebCore::ResourceRequestPlatformData redirectCount
     StructMember WebCore::ResourceResponseData expectedContentLength
     StructMember WebCore::SVGFilterExpressionTerm index
     StructMember WebCore::SVGFilterExpressionTerm level
+    StructMember WebCore::ScreenData screenDepth
+    StructMember WebCore::ScreenData screenDepthPerComponent
     StructMember WebCore::ScrollingStateFrameScrollingNode currentHorizontalSnapPointIndex()
     StructMember WebCore::ScrollingStateFrameScrollingNode currentVerticalSnapPointIndex()
     StructMember WebCore::ScrollingStateFrameScrollingNode footerHeight()
@@ -630,13 +563,16 @@
     StructMember WebCore::ScrollingStatePluginScrollingNode currentHorizontalSnapPointIndex()
     StructMember WebCore::ScrollingStatePluginScrollingNode currentVerticalSnapPointIndex()
     StructMember WebCore::SecurityOriginData::Tuple port
+    StructMember WebCore::SecurityPolicyViolationEventInit columnNumber
     StructMember WebCore::SecurityPolicyViolationEventInit lineNumber
     StructMember WebCore::SelectionGeometry lineNumber()
     StructMember WebCore::SelectionGeometry maxX()
     StructMember WebCore::SelectionGeometry maxY()
     StructMember WebCore::SelectionGeometry minX()
     StructMember WebCore::SerializedScriptValueInternals exposedMessagePortCount
+    StructMember WebCore::SerializedScriptValueInternals memoryCost
     StructMember WebCore::ShapeDetection::FaceDetectorOptions maxDetectedFaces
+    StructMember WebCore::ShareableBitmapConfiguration bitsPerComponent()
     StructMember WebCore::ShareableBitmapConfiguration bytesPerPixel()
     StructMember WebCore::ShareableBitmapConfiguration bytesPerRow()
     StructMember WebCore::ShareableCVPixelBufferBytesConfiguration bytesPerRow()
@@ -645,18 +581,30 @@
     StructMember WebCore::ShareableCVPixelBufferConfiguration bytesPerRow()
     StructMember WebCore::ShareableCVPixelBufferConfiguration height()
     StructMember WebCore::ShareableCVPixelBufferConfiguration width()
+    StructMember WebCore::ShareableResourceHandle m_offset
+    StructMember WebCore::ShareableResourceHandle m_size
+    StructMember WebCore::SharedMemoryHandle m_size
     StructMember WebCore::SourceBufferEvictionData contentSize
     StructMember WebCore::SourceBufferEvictionData evictableSize
     StructMember WebCore::SourceBufferEvictionData maximumBufferSize
+    StructMember WebCore::SourceBufferEvictionData numMediaSamples
     StructMember WebCore::SpatialImageEyeProperties::GroupMetadata groupIndex
     StructMember WebCore::StepsTimingFunction numberOfSteps()
     StructMember WebCore::StorageEstimate quota
     StructMember WebCore::StorageEstimate usage
+    StructMember WebCore::SystemSettingsState cursorBlinkTime
+    StructMember WebCore::SystemSettingsState fontWeight
+    StructMember WebCore::SystemSettingsState xftDPI
     StructMember WebCore::TextExtraction::Result visibleTextLength
     StructMember WebCore::TextExtraction::TextFormControlData maxLength
     StructMember WebCore::TextExtraction::TextFormControlData minLength
+    StructMember WebCore::TextList startingItemNumber
     StructMember WebCore::TextManipulationControllerManipulationFailure index
     StructMember WebCore::TextTable numberOfColumns
+    StructMember WebCore::TextTableBlock columnSpan
+    StructMember WebCore::TextTableBlock rowSpan
+    StructMember WebCore::TextTableBlock startingColumn
+    StructMember WebCore::TextTableBlock startingRow
     StructMember WebCore::VideoFrameMetadata height
     StructMember WebCore::VideoFrameMetadata presentedFrames
     StructMember WebCore::VideoFrameMetadata rtpTimestamp
@@ -666,6 +614,7 @@
     StructMember WebCore::VideoPlaybackQualityMetrics displayCompositedVideoFrames
     StructMember WebCore::VideoPlaybackQualityMetrics droppedVideoFrames
     StructMember WebCore::VideoPlaybackQualityMetrics totalVideoFrames
+    StructMember WebCore::VideoSpecificInfoData bitDepth
     StructMember WebCore::WebCodecsEncodedAudioChunkData duration
     StructMember WebCore::WebCodecsEncodedAudioChunkData timestamp
     StructMember WebCore::WebCodecsEncodedVideoChunkData duration
@@ -673,6 +622,8 @@
     StructMember WebCore::WebTransportConnectionStats bytesReceived
     StructMember WebCore::WebTransportConnectionStats bytesSent
     StructMember WebCore::WebTransportConnectionStats estimatedSendRate
+    StructMember WebCore::WebTransportOptions anticipatedConcurrentIncomingBidirectionalStreams
+    StructMember WebCore::WebTransportOptions anticipatedConcurrentIncomingUnidirectionalStreams
     StructMember WebCore::WebTransportReceiveStreamStats bytesRead
     StructMember WebCore::WebTransportReceiveStreamStats bytesReceived
     StructMember WebCore::WebTransportSendStreamStats bytesAcknowledged
@@ -680,23 +631,33 @@
     StructMember WebCore::WebTransportSendStreamStats bytesWritten
     StructMember WebKit::BackForwardListState currentIndex
     StructMember WebKit::BackgroundFetchState downloadTotal
+    StructMember WebKit::BackgroundFetchState downloaded
     StructMember WebKit::BackgroundFetchState uploadTotal
+    StructMember WebKit::BackgroundFetchState uploaded
     StructMember WebKit::ConsumerSharedCARingBufferHandle frameCount
     StructMember WebKit::CoreIPCNSURLProtectionSpaceData port
     StructMember WebKit::CoreIPCNumber::Long value
     StructMember WebKit::CoreIPCNumber::UnsignedLong value
+    StructMember WebKit::CoreIPCPresentationIntent m_column
     StructMember WebKit::CoreIPCPresentationIntent m_columnCount
     StructMember WebKit::CoreIPCPresentationIntent m_headerLevel
+    StructMember WebKit::CoreIPCPresentationIntent m_ordinal
+    StructMember WebKit::CoreIPCPresentationIntent m_row
     StructMember WebKit::DocumentEditingContext::Range length
     StructMember WebKit::DocumentEditingContext::Range location
     StructMember WebKit::DocumentEditingContextRequest granularityCount
+    StructMember WebKit::DynamicViewportSizeUpdate deviceOrientation
     StructMember WebKit::EditingRange length
     StructMember WebKit::EditingRange location
+    StructMember WebKit::EditorState::PostLayoutData candidateRequestStartPosition
     StructMember WebKit::EditorState::PostLayoutData selectedTextLength
+    StructMember WebKit::EditorState::PostLayoutData surroundingContextCursorPosition
+    StructMember WebKit::EditorState::PostLayoutData surroundingContextSelectionPosition
     StructMember WebKit::FileSystemSyncAccessHandleInfo capacity
     StructMember WebKit::FocusedElementInformation selectedIndex
     StructMember WebKit::GamepadData index()
     StructMember WebKit::HTTPBody::Element::FileData fileLength
+    StructMember WebKit::HTTPBody::Element::FileData fileStart
     StructMember WebKit::IPCRange length
     StructMember WebKit::IPCRange location
     StructMember WebKit::IndexedColorSpace index
@@ -705,9 +666,17 @@
     StructMember WebKit::ModelProcessCreationParameters debugImmersiveEntityMemoryLimit
     StructMember WebKit::NetworkResourceLoadParameters requiredCookiesVersion
     StructMember WebKit::NetworkSessionCreationParameters cookiesVersion
+    StructMember WebKit::NetworkSessionCreationParameters overrideServiceWorkerRegistrationCountTestingValue
     StructMember WebKit::NetworkSessionCreationParameters perOriginStorageQuota
     StructMember WebKit::NetworkSessionCreationParameters standardVolumeCapacity
+    StructMember WebKit::NetworkSessionCreationParameters testSpeedMultiplier
+    StructMember WebKit::NetworkSessionCreationParameters volumeCapacityOverride
+    StructMember WebKit::OptionItem parentGroupID
     StructMember WebKit::PageData renderTreeSize
+    StructMember WebKit::PlatformPopupMenuData m_clientInsetLeft
+    StructMember WebKit::PlatformPopupMenuData m_clientInsetRight
+    StructMember WebKit::PlatformPopupMenuData m_clientPaddingLeft
+    StructMember WebKit::PlatformPopupMenuData m_clientPaddingRight
     StructMember WebKit::PlatformPopupMenuData m_popupWidth
     StructMember WebKit::RTCNetwork prefixLength
     StructMember WebKit::RTCPacketOptions::SerializableData srtpAuthTagLength
@@ -719,10 +688,14 @@
     StructMember WebKit::RemoteAudioSessionConfiguration preferredBufferSize
     StructMember WebKit::RemoteGPURequestAdapterResponse subgroupMaxSize
     StructMember WebKit::RemoteGPURequestAdapterResponse subgroupMinSize
+    StructMember WebKit::RemoteGraphicsContextGLInitializationState estimatedMemoryCost
     StructMember WebKit::RemoteMediaPlayerState totalBytes
     StructMember WebKit::RemoteNativeImageReference version()
+    StructMember WebKit::RemoteNativeImageWriteReference pendingReads()
     StructMember WebKit::RemoteSerializedImageBufferReference version()
+    StructMember WebKit::RemoteSerializedImageBufferWriteReference pendingReads()
     StructMember WebKit::RemoteVideoFrameReference version()
+    StructMember WebKit::RemoteVideoFrameWriteReference pendingReads()
     StructMember WebKit::RenderProcessInfo cpuPaintingThreadsCount
     StructMember WebKit::RenderProcessInfo gpuPaintingThreadsCount
     StructMember WebKit::RenderProcessInfo msaaSampleCount
@@ -748,12 +721,18 @@
     StructMember WebKit::WebExtensionBookmarksParameters index
     StructMember WebKit::WebExtensionTabParameters index
     StructMember WebKit::WebExtensionTabQueryParameters index
+    StructMember WebKit::WebFoundTextRange order
     StructMember WebKit::WebFoundTextRange::CueData documentOffset
+    StructMember WebKit::WebFoundTextRange::CueData seekTimeMilliseconds
     StructMember WebKit::WebFoundTextRange::DOMData length
     StructMember WebKit::WebFoundTextRange::DOMData location
     StructMember WebKit::WebFoundTextRange::PDFData endOffset
+    StructMember WebKit::WebFoundTextRange::PDFData endPage
     StructMember WebKit::WebFoundTextRange::PDFData startOffset
+    StructMember WebKit::WebFoundTextRange::PDFData startPage
     StructMember WebKit::WebGPU::CompilationMessage length
+    StructMember WebKit::WebGPU::CompilationMessage lineNum
+    StructMember WebKit::WebGPU::CompilationMessage linePos
     StructMember WebKit::WebGPU::CompilationMessage offset
     StructMember WebKit::WebGPU::RenderPassDescriptor maxDrawCount
     StructMember WebKit::WebGPU::SamplerDescriptor maxAnisotropy
@@ -795,6 +774,7 @@
     StructMember WebKit::WebMouseEvent clickCount()
     StructMember WebKit::WebPageCreationParameters footerBannerHeight
     StructMember WebKit::WebPageCreationParameters headerBannerHeight
+    StructMember WebKit::WebPageCreationParameters nominalFramesPerSecond
     StructMember WebKit::WebProcessCreationParameters backForwardCacheCapacity
     StructMember WebKit::WebProcessCreationParameters bytesPerRowIOSurfaceAlignment
     StructMember WebKit::WebRTCNetwork::SocketAddress port
@@ -813,18 +793,33 @@
     StructMember WebModel::MeshPart indexOffset
     StructMember WebModel::MeshPart materialIndex
     StructMember WebModel::SkinningData influencePerVertexCount
+    StructMember WebModel::TextureLevelInfo byteCountPerImage
+    StructMember WebModel::TextureLevelInfo byteCountPerRow
     StructMember WebModel::TextureLevelInfo dataOffset
     StructMember WebModel::VertexAttributeFormat layoutIndex
     StructMember WebModel::VertexAttributeFormat offset
     StructMember WebModel::VertexLayout bufferIndex
     StructMember WebModel::VertexLayout bufferOffset
+    StructMember WebModel::VertexLayout bufferStride
     StructMember WebModel::VertexLayout stepRate
     StructMember hb_feature_t end
     StructMember hb_feature_t start
     StructMember hb_feature_t value
+    StructMember webrtc::EncodedImage::Timing encode_finish_ms
+    StructMember webrtc::EncodedImage::Timing encode_start_ms
+    StructMember webrtc::EncodedImage::Timing network2_timestamp_ms
+    StructMember webrtc::EncodedImage::Timing network_timestamp_ms
+    StructMember webrtc::EncodedImage::Timing pacer_exit_ms
+    StructMember webrtc::EncodedImage::Timing packetization_finish_ms
+    StructMember webrtc::EncodedImage::Timing receive_finish_ms
+    StructMember webrtc::EncodedImage::Timing receive_start_ms
+    StructMember webrtc::WebKitEncodedFrameInfo captureTimeMS
     StructMember webrtc::WebKitEncodedFrameInfo duration
     StructMember webrtc::WebKitEncodedFrameInfo height
+    StructMember webrtc::WebKitEncodedFrameInfo ntpTimeMS
+    StructMember webrtc::WebKitEncodedFrameInfo qp
     StructMember webrtc::WebKitEncodedFrameInfo temporalIndex
+    StructMember webrtc::WebKitEncodedFrameInfo timeStamp
     StructMember webrtc::WebKitEncodedFrameInfo width
 }
 

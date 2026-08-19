@@ -48,7 +48,7 @@ class WebPageProxy;
 - (void)_sendInvocation:(NSInvocation *)invocation interface:(_WKRemoteObjectInterface *)interface;
 - (void)_invokeMethod:(const WebKit::RemoteObjectInvocation&)invocation;
 
-- (void)_callReplyWithID:(uint64_t)replyID blockInvocation:(const WebKit::UserData&)blockInvocation;
-- (void)_releaseReplyWithID:(uint64_t)replyID;
+- (void)_callReplyWithID:(WebKit::RemoteObjectReplyIdentifier)replyID blockInvocation:(const WebKit::UserData&)blockInvocation;
+- (void)_releaseReplyWithID:(WebKit::RemoteObjectReplyIdentifier)replyID;
 
 @end

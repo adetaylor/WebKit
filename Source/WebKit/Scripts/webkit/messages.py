@@ -194,6 +194,7 @@ def types_that_must_be_moved():
         'WebKit::UpdateInfo',
         'WebKit::WebProcessCreationParameters',
         'WebKit::RemoteLayerBackingStoreProperties',
+        'WebKit::RemoteObjectReplyIdentifier',
         'WebModel::ImageAsset',
         'WebModel::UpdateTextureDescriptor',
         'Vector<WebModel::UpdateTextureDescriptor>',

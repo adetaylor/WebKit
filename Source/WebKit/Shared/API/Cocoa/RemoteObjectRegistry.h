@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include "RemoteObjectReplyIdentifier.h"
 #include "MessageReceiver.h"
 #include "ProcessThrottler.h"
 #include "WebPageProxyIdentifier.h"
@@ -48,8 +49,8 @@ public:
     virtual ~RemoteObjectRegistry();
 
     virtual void sendInvocation(const RemoteObjectInvocation&);
-    void sendReplyBlock(uint64_t replyID, const UserData& blockInvocation);
-    void sendUnusedReply(uint64_t replyID);
+    void sendReplyBlock(RemoteObjectReplyIdentifier, const UserData& blockInvocation);
+    void sendUnusedReply(RemoteObjectReplyIdentifier);
 
     // IPC::MessageReceiver
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
@@ -65,11 +66,11 @@ private:
 
     // Message handlers
     void invokeMethod(const RemoteObjectInvocation&);
-    void callReplyBlock(IPC::Connection& connection, uint64_t replyID, const UserData& blockInvocation);
-    void releaseUnusedReplyBlock(uint64_t replyID);
+    void callReplyBlock(IPC::Connection&, RemoteObjectReplyIdentifier, const UserData& blockInvocation);
+    void releaseUnusedReplyBlock(RemoteObjectReplyIdentifier);
 
     WeakObjCPtr<_WKRemoteObjectRegistry> m_remoteObjectRegistry;
-    HashMap<uint64_t, RefPtr<ProcessThrottler::BackgroundActivity>> m_pendingReplies;
+    HashMap<RemoteObjectReplyIdentifier, RefPtr<ProcessThrottler::BackgroundActivity>> m_pendingReplies;
 };
 
 } // namespace WebKit

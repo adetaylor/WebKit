@@ -111,6 +111,14 @@ IDENTIFIER_RAW_VALUE_ACCESSORS = {
     "toUInt64()", "toRawValue()", "toUInt32()",
 }
 
+# Types that ARE an identifier value, serialized by decomposing into the integers that make
+# them up. WTF::UUID is 128 bits sent as high() and low(), guarded by its own
+# WTF::UUID::isValid validator - the same shape as an ObjectIdentifier's raw-value accessor,
+# so every member of such a type is exempt for the same reason.
+IDENTIFIER_VALUE_TYPES = {
+    "WTF::UUID",
+}
+
 
 # Receivers whose entire interface is a stream of scalars - a command stream for a
 # graphics API, where every parameter is a driver enum or dimension and none is a
@@ -175,8 +183,10 @@ def resolves_to_bare_integer(type_str, visited=None):
     return resolves_to_bare_integer(parameter, visited)
 
 
-def is_identifier_raw_value_accessor(member_name):
+def is_identifier_raw_value_accessor(member_name, type_name=None):
     """True when this serialized member is how a typed identifier reaches the wire."""
+    if type_name is not None and _strip_const_and_whitespace(type_name) in IDENTIFIER_VALUE_TYPES:
+        return True
     return member_name.strip() in IDENTIFIER_RAW_VALUE_ACCESSORS
 
 
@@ -321,7 +331,9 @@ if __name__ == '__main__':
             tracked = BareIntegerIPCTypes()
             needs_typing = tracked.needs_typing()
             self.assertIn(('AcceleratedBackingStore.Frame', 'id'), needs_typing)
-            self.assertIn(('RemoteObjectRegistry.CallReplyBlock', 'replyID'), needs_typing)
+            # RemoteObjectRegistry's replyID has been converted to RemoteObjectReplyIdentifier,
+            # so it must no longer appear here.
+            self.assertNotIn(('RemoteObjectRegistry.CallReplyBlock', 'replyID'), needs_typing)
 
         def test_unknown_category_is_rejected(self):
             import tempfile

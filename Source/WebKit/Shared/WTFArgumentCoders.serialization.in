@@ -96,6 +96,7 @@ template: enum class WebKit::ImageAnalysisRequestIdentifierType
 template: enum class WebKit::MediaDevicePermissionRequestIdentifierType
 template: enum class WebKit::RemoteAudioSessionIdentifierType
 template: struct WebKit::RemoteAudioVideoRendererIdentifierType
+template: struct WebKit::RemoteObjectReplyIdentifierType
 template: struct WebKit::RemoteCDMIdentifierType
 template: struct WebKit::RemoteCDMInstanceIdentifierType
 template: struct WebKit::RemoteCDMInstanceSessionIdentifierType

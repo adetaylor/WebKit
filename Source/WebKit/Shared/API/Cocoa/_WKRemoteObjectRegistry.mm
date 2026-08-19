@@ -76,7 +76,7 @@ struct PendingReply {
     RetainPtr<NSMapTable> _remoteObjectProxies;
     HashMap<String, std::pair<RetainPtr<id>, RetainPtr<_WKRemoteObjectInterface>>> _exportedObjects;
 
-    HashMap<uint64_t, PendingReply> _pendingReplies;
+    HashMap<WebKit::RemoteObjectReplyIdentifier, PendingReply> _pendingReplies;
 }
 
 - (void)registerExportedObject:(id)object interface:(_WKRemoteObjectInterface *)interface
@@ -133,13 +133,6 @@ struct PendingReply {
     _remoteObjectRegistry = nullptr;
 }
 
-static uint64_t NODELETE generateReplyIdentifier()
-{
-    static uint64_t identifier;
-
-    return ++identifier;
-}
-
 - (void)_sendInvocation:(NSInvocation *)invocation interface:(_WKRemoteObjectInterface *)interface
 {
     RELEASE_ASSERT(isMainRunLoop());
@@ -166,7 +159,7 @@ static uint64_t NODELETE generateReplyIdentifier()
         if (!methodHasReturnType<void>([NSMethodSignature signatureWithObjCTypes:replyBlockSignature]))
             [NSException raise:NSInvalidArgumentException format:@"Return value of block argument must be 'void'. (%s)", sel_getName(invocation.selector)];
 
-        replyInfo = makeUnique<WebKit::RemoteObjectInvocation::ReplyInfo>(generateReplyIdentifier(), String::fromLatin1(replyBlockSignature));
+        replyInfo = makeUnique<WebKit::RemoteObjectInvocation::ReplyInfo>(WebKit::RemoteObjectReplyIdentifier::generate(), String::fromLatin1(replyBlockSignature));
 
         // Replace the block object so we won't try to encode it.
         id null = nullptr;
@@ -263,11 +256,11 @@ static NSString *replyBlockSignature(Protocol *protocol, SEL selector, NSUIntege
         }
 
         RetainPtr<_WKRemoteObjectRegistry> remoteObjectRegistry = self;
-        uint64_t replyID = replyInfo->replyID;
+        auto replyID = replyInfo->replyID;
 
         class ReplyBlockCallChecker : public WTF::ThreadSafeRefCounted<ReplyBlockCallChecker, WTF::DestructionThread::MainRunLoop> {
         public:
-            static Ref<ReplyBlockCallChecker> create(_WKRemoteObjectRegistry *registry, uint64_t replyID) { return adoptRef(*new ReplyBlockCallChecker(registry, replyID)); }
+            static Ref<ReplyBlockCallChecker> create(_WKRemoteObjectRegistry *registry, WebKit::RemoteObjectReplyIdentifier replyID) { return adoptRef(*new ReplyBlockCallChecker(registry, replyID)); }
 
             ~ReplyBlockCallChecker()
             {
@@ -287,14 +280,14 @@ static NSString *replyBlockSignature(Protocol *protocol, SEL selector, NSUIntege
             void NODELETE didCallReplyBlock() { m_didCallReplyBlock = true; }
 
         private:
-            ReplyBlockCallChecker(_WKRemoteObjectRegistry *registry, uint64_t replyID)
+            ReplyBlockCallChecker(_WKRemoteObjectRegistry *registry, WebKit::RemoteObjectReplyIdentifier replyID)
                 : m_remoteObjectRegistry(registry)
                 , m_replyID(replyID)
             {
             }
 
             RetainPtr<_WKRemoteObjectRegistry> m_remoteObjectRegistry;
-            uint64_t m_replyID = 0;
+            WebKit::RemoteObjectReplyIdentifier m_replyID;
             bool m_didCallReplyBlock = false;
         };
 
@@ -326,7 +319,7 @@ static NSString *replyBlockSignature(Protocol *protocol, SEL selector, NSUIntege
     }
 }
 
-- (void)_callReplyWithID:(uint64_t)replyID blockInvocation:(const WebKit::UserData&)blockInvocation
+- (void)_callReplyWithID:(WebKit::RemoteObjectReplyIdentifier)replyID blockInvocation:(const WebKit::UserData&)blockInvocation
 {
     RefPtr encodedInvocation = blockInvocation.object();
     if (!encodedInvocation || encodedInvocation->type() != API::Object::Type::Dictionary)
@@ -347,7 +340,7 @@ static NSString *replyBlockSignature(Protocol *protocol, SEL selector, NSUIntege
     [replyInvocation invoke];
 }
 
-- (void)_releaseReplyWithID:(uint64_t)replyID
+- (void)_releaseReplyWithID:(WebKit::RemoteObjectReplyIdentifier)replyID
 {
     _pendingReplies.remove(replyID);
 }

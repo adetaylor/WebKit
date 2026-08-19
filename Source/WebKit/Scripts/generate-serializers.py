@@ -357,7 +357,7 @@ class SerializedType(object):
         looked at parameters would have missed it. See webkit/bare_integer_ipc.py.
         """
         for member in self.members:
-            if is_identifier_raw_value_accessor(member.name):
+            if is_identifier_raw_value_accessor(member.name, self.namespace_and_name()):
                 continue
             integer_type = resolves_to_bare_integer(member.type)
             if integer_type is None:
