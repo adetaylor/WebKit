@@ -32,9 +32,16 @@
 #include <WebCore/BackForwardItemIdentifier.h>
 #include <WebCore/LocalFrameLoaderClient.h>
 #include <wtf/Ref.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadGroup.h>
 #include <wtf/Vector.h>
 #include <wtf/WeakPtr.h>
+
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+#include "WebBackForwardListMessages.h"
+#include <wtf/RefCountable.h>
+#include <wtf/SwiftData.h>
+#endif
 
 namespace API {
 class Array;
@@ -50,29 +57,49 @@ struct WebBackForwardListCounts;
 
 enum class AllowSkippingBackForwardItems : bool { No, Yes };
 
-#if !ENABLE(BACK_FORWARD_LIST_SWIFT)
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
 
-class WebBackForwardList : public API::ObjectImpl<API::Object::Type::BackForwardList>, public IPC::MessageReceiver {
+// The Swift struct holding this class's state. Declared in WebBackForwardList.swift.
+struct WebBackForwardListSwiftData;
+
+// Callbacks handed to Swift are wrapped in RefCountable so that Swift can hold and
+// call them. FIXME(rdar://162361370) removes the need for this. The equivalents for
+// the IPC replies are generated into WebBackForwardListMessages.h.
+using WebBackForwardListItemFilter = WTF::RefCountable<Function<bool(WebBackForwardListItem&)>>;
+
+#endif
+
+// Where this class's member functions are implemented depends on
+// ENABLE(BACK_FORWARD_LIST_SWIFT):
+//  - enabled: the state lives in a Swift struct held by m_swiftData, and the member
+//    functions below marked as such are implemented by `@cxx @implementation`
+//    functions in WebBackForwardList.swift.
+//  - disabled: the state and every member function are plain C++, in
+//    WebBackForwardList.cpp.
+// The public API, and therefore every caller, is the same either way.
+class WebBackForwardList final : public API::ObjectImpl<API::Object::Type::BackForwardList>, public IPC::MessageReceiver {
 public:
     static Ref<WebBackForwardList> create(WebPageProxy& page)
     {
         return adoptRef(*new WebBackForwardList(page));
     }
 
+    ~WebBackForwardList();
+
     void ref() const final { API::ObjectImpl<API::Object::Type::BackForwardList>::ref(); }
     void deref() const final { API::ObjectImpl<API::Object::Type::BackForwardList>::deref(); }
 
+    // Implemented in Swift when ENABLE(BACK_FORWARD_LIST_SWIFT).
+
     void pageClosed();
 
-    virtual ~WebBackForwardList();
-
-    WebBackForwardListItem* itemForID(WebCore::BackForwardItemIdentifier);
+    WebBackForwardListItem* NODELETE WTF_NULLABLE itemForID(WebCore::BackForwardItemIdentifier);
 
     void goToItem(WebBackForwardListItem&);
     void removeAllItems();
     void clear();
 
-    WebBackForwardListItem* NODELETE currentItem() const;
+    WebBackForwardListItem* NODELETE WTF_NULLABLE currentItem() const;
     RefPtr<WebBackForwardListItem> backItem() const;
     RefPtr<WebBackForwardListItem> forwardItem() const;
 
@@ -80,39 +107,69 @@ public:
 
     RefPtr<WebBackForwardListItem> goBackItemSkippingItemsWithoutUserGesture() const;
     RefPtr<WebBackForwardListItem> goForwardItemSkippingItemsWithoutUserGesture() const;
+
     unsigned backListCountForAPI() const;
     unsigned forwardListCountForAPI() const;
-
-    Ref<API::Array> backList() const;
-    Ref<API::Array> forwardList() const;
 
     Ref<API::Array> backListAsAPIArrayWithLimit(unsigned limit) const;
     Ref<API::Array> forwardListAsAPIArrayWithLimit(unsigned limit) const;
 
-    BackForwardListState backForwardListState(WTF::Function<bool (WebBackForwardListItem&)>&&) const;
     void restoreFromState(BackForwardListState);
-
     void setItemsAsRestoredFromSession();
-    void setItemsAsRestoredFromSessionIf(NOESCAPE Function<bool(WebBackForwardListItem&)>&&);
-
-    void didReceiveMessage(IPC::Connection&, IPC::Decoder&);
-    void didReceiveProvisionalMessage(IPC::Connection&, IPC::Decoder&);
-    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
 
     void backForwardAddItemShared(IPC::Connection&, Ref<FrameState>&&, LoadedWebArchive);
     void backForwardGoToItemShared(WebCore::BackForwardItemIdentifier);
 
-    FrameState* findFrameStateInItem(WebCore::BackForwardItemIdentifier, WebCore::FrameIdentifier parentFrameID, WebCore::FrameIdentifier childFrameID, uint64_t childFrameIndex, const String& childFrameName);
+    FrameState* NODELETE WTF_NULLABLE findFrameStateInItem(WebCore::BackForwardItemIdentifier, WebCore::FrameIdentifier parentFrameID, WebCore::FrameIdentifier childFrameID, uint64_t childFrameIndex, const String& childFrameName);
     void updateFrameIdentifier(WebCore::FrameIdentifier oldFrameID, WebCore::FrameIdentifier newFrameID);
 
     void replaceFrameStateForChild(WebBackForwardListItem&, WebCore::FrameIdentifier, Ref<FrameState>&& newFrameState);
 
     String loggingString() const;
 
+    // Always implemented in C++, in WebBackForwardList.cpp.
+
+    Ref<API::Array> backList() const;
+    Ref<API::Array> forwardList() const;
+
+    BackForwardListState backForwardListState(WTF::Function<bool (WebBackForwardListItem&)>&&) const;
+    void setItemsAsRestoredFromSessionIf(NOESCAPE Function<bool(WebBackForwardListItem&)>&&);
+
+    void didReceiveMessage(IPC::Connection&, IPC::Decoder&);
+    void didReceiveProvisionalMessage(IPC::Connection&, IPC::Decoder&);
+    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
+
+#if !ENABLE(BACK_FORWARD_LIST_SWIFT)
     enum class MakeAPIArray : bool { No, Yes };
+#endif
 
 private:
     explicit WebBackForwardList(WebPageProxy&);
+
+#if ENABLE(BACK_FORWARD_LIST_SWIFT)
+
+    // Implemented in Swift. These exist because Swift cannot yet consume a
+    // WTF::Function or a WTF::CompletionHandler directly; the public entry points above
+    // wrap the callback for them.
+    BackForwardListState backForwardListStateMatching(WebBackForwardListItemFilter&) const;
+    void setItemsAsRestoredFromSessionMatching(WebBackForwardListItemFilter&);
+    void setHandlingProvisionalMessage(bool);
+    bool isSafeToDestroy() const;
+
+    // IPC messages, implemented in Swift and touching only the Swift state.
+    void backForwardAddItem(IPC::Connection&, Ref<FrameState>&&);
+    void backForwardSetChildItem(IPC::Connection&, WebCore::BackForwardFrameItemIdentifier, Ref<FrameState>&&);
+    void backForwardClearChildren(WebCore::BackForwardItemIdentifier, WebCore::BackForwardFrameItemIdentifier);
+    void backForwardUpdateItem(IPC::Connection&, Ref<FrameState>&&);
+    void backForwardGoToItem(WebCore::BackForwardItemIdentifier);
+    void backForwardAllItems(WebCore::FrameIdentifier, CompletionHandlers::WebBackForwardList::BackForwardAllItemsCompletionHandler*);
+    void backForwardItemAtIndexForWebContent(IPC::Connection*, int32_t index, WebCore::FrameIdentifier, CompletionHandlers::WebBackForwardList::BackForwardItemAtIndexForWebContentCompletionHandler*);
+    void backForwardListContainsItem(WebCore::BackForwardItemIdentifier, CompletionHandlers::WebBackForwardList::BackForwardListContainsItemCompletionHandler*);
+    void backForwardListCounts(CompletionHandlers::WebBackForwardList::BackForwardListCountsCompletionHandler*);
+
+    SwiftData<WebBackForwardListSwiftData> m_swiftData;
+
+#else // ENABLE(BACK_FORWARD_LIST_SWIFT)
 
     enum class NavigationDirection { Backward, Forward };
     std::pair<RefPtr<WebBackForwardListItem>, size_t> itemStartingAtIndexSkippingItemsAddedByJSWithoutUserGesture(NavigationDirection, size_t startingIndex) const;
@@ -146,63 +203,22 @@ private:
     BackForwardListItemVector m_entries;
     std::optional<size_t> m_currentIndex;
     bool m_handlingProvisionalMessage { false };
-};
-
-using WebBackForwardListWrapper = WebBackForwardList;
-
-#else // ENABLE(BACK_FORWARD_LIST_SWIFT)
-
-// Avoid including WebKit-Swift.h in header files to avoid dependency loops.
-class WebBackForwardList;
-class WebBackForwardListMessageForwarder;
-
-// This C++ stub object exists to forward API calls through to the Swift implementation.
-// Although the BackForwardList is in Swift, we retain a C++
-// API::Object subclass because Swift can't yet inherit from C++ -
-// rdar://163102366
-class WebBackForwardListWrapper : public API::ObjectImpl<API::Object::Type::BackForwardList> {
-public:
-    static Ref<WebBackForwardListWrapper> create(WebPageProxy& webPageProxy)
-    {
-        return adoptRef(*new WebBackForwardListWrapper(webPageProxy));
-    }
-
-    virtual ~WebBackForwardListWrapper();
-
-    void removeAllItems();
-    void clear();
-
-    WebBackForwardListItem* WTF_NULLABLE currentItem() const;
-
-    RefPtr<WebBackForwardListItem> itemAtDeltaFromCurrentIndex(int, AllowSkippingBackForwardItems = AllowSkippingBackForwardItems::Yes) const;
-    RefPtr<WebBackForwardListItem> backItem() const;
-    RefPtr<WebBackForwardListItem> forwardItem() const;
-
-    Ref<API::Array> backList() const;
-    Ref<API::Array> forwardList() const;
-
-    unsigned backListCountForAPI() const;
-    unsigned forwardListCountForAPI() const;
-
-    Ref<API::Array> backListAsAPIArrayWithLimit(unsigned limit) const;
-    Ref<API::Array> forwardListAsAPIArrayWithLimit(unsigned limit) const;
-
-    String loggingString();
-
-    WebBackForwardList& getImpl() { return *m_impl; }
-    WebBackForwardListMessageForwarder& messageReceiver() const;
-
-private:
-    explicit WebBackForwardListWrapper(WebPageProxy&);
-
-    std::unique_ptr<WebBackForwardList> m_impl;
-    Ref<WebBackForwardListMessageForwarder> m_messageForwarder;
-};
 
 #endif // ENABLE(BACK_FORWARD_LIST_SWIFT)
+} SWIFT_SHARED_REFERENCE(refBackForwardList, derefBackForwardList) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 } // namespace WebKit
 
-SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardListWrapper)
+inline void refBackForwardList(WebKit::WebBackForwardList* WTF_NONNULL list)
+{
+    list->ref();
+}
+
+inline void derefBackForwardList(WebKit::WebBackForwardList* WTF_NONNULL list)
+{
+    list->deref();
+}
+
+SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebBackForwardList)
 static bool isType(const API::Object& object) { return object.type() == API::Object::Type::BackForwardList; }
 SPECIALIZE_TYPE_TRAITS_END()

@@ -330,10 +330,6 @@
 #include "APIApplicationManifest.h"
 #endif
 
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-#include "WebBackForwardListSwiftUtilities.h"
-#endif
-
 #if ENABLE(WEBDRIVER_BIDI)
 #include "BidiDigitalCredentialsAgent.h"
 #include "WebDriverBidiProcessor.h"
@@ -935,7 +931,7 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, Ref
     , m_mainFrameProcessActivityState(makeUniqueRef<WebProcessActivityState>(*this))
     , m_initialCapitalizationEnabled(configuration->initialCapitalizationEnabled())
     , m_cpuLimit(configuration->cpuLimit())
-    , m_backForwardList(WebBackForwardListWrapper::create(*this))
+    , m_backForwardList(WebBackForwardList::create(*this))
     , m_waitsForPaintAfterViewDidMoveToWindow(configuration->waitsForPaintAfterViewDidMoveToWindow())
     , m_controlledByAutomation(configuration->isControlledByAutomation())
 #if PLATFORM(COCOA)
@@ -1125,7 +1121,7 @@ WebPageProxy::~WebPageProxy()
 void WebPageProxy::addAllMessageReceivers()
 {
     Ref process = m_legacyMainFrameProcess;
-    Ref backForwardListReceiver = backForwardListMessageReceiver();
+    Ref backForwardListReceiver = m_backForwardList;
     internals().messageReceiverRegistration.startReceivingMessages(process, m_webPageID, *this, backForwardListReceiver);
     process->addMessageReceiver(Messages::NotificationManagerMessageHandler::messageReceiverName(), m_webPageID, protect(internals().notificationManagerMessageHandler));
 }
@@ -2815,11 +2811,7 @@ RefPtr<API::Navigation> WebPageProxy::goToBackForwardItem(WebBackForwardListFram
         launchProcess(Site { URL { item->url() } }, ProcessLaunchReason::InitialProcess);
 
         if (item != backForwardList().currentItem())
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-            backForwardList().goToItem(&*item);
-#else
             backForwardList().goToItem(*item);
-#endif
     }
 
     Ref process = processForTheFrameItem(frameItem);
@@ -3114,7 +3106,7 @@ RefPtr<API::Navigation> WebPageProxy::goToBackForwardItemAtIndexForTraversal(int
 {
     WEBPAGEPROXY_RELEASE_LOG(Loading, "goToBackForwardItemAtIndex: steps=%d", steps);
 
-    RefPtr item = backForwardListWrapper().itemAtDeltaFromCurrentIndex(steps, AllowSkippingBackForwardItems::No);
+    RefPtr item = backForwardList().itemAtDeltaFromCurrentIndex(steps, AllowSkippingBackForwardItems::No);
     if (!item)
         return nullptr;
 
@@ -6548,11 +6540,7 @@ SessionState WebPageProxy::sessionState(WTF::Function<bool (WebBackForwardListIt
     RELEASE_ASSERT(RunLoop::isMain());
     SessionState sessionState;
 
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-    sessionState.backForwardListState = backForwardList().backForwardListState(WebBackForwardListItemFilter::create(WTF::move(filter)).ptr());
-#else
     sessionState.backForwardListState = backForwardList().backForwardListState(WTF::move(filter));
-#endif
 
     auto& pendingURL = internals().pageLoadState.pendingAPIRequestURL();
     auto& provisionalURL = !pendingURL.isEmpty() ? pendingURL : internals().pageLoadState.provisionalURL();
@@ -7570,7 +7558,7 @@ void WebPageProxy::getFrameTreesForBackForwardItem(int relativeIndex, Completion
         Vector<FrameTreeNodeData> m_data;
     };
 
-    RefPtr item = backForwardListWrapper().itemAtDeltaFromCurrentIndex(relativeIndex);
+    RefPtr item = backForwardList().itemAtDeltaFromCurrentIndex(relativeIndex);
     RefPtr entry = item ? item->backForwardCacheEntry() : nullptr;
     if (!entry)
         return completionHandler({ });
@@ -8607,11 +8595,7 @@ void WebPageProxy::recordFirstPartyVisit(const URL& url)
 void WebPageProxy::didCommitLoadForFrame(IPC::Connection& connection, FrameIdentifier frameID, FrameInfoData&& frameInfo, ResourceRequest&& request, std::optional<WebCore::NavigationIdentifier> navigationID, String&& mimeType, bool frameHasCustomContentProvider, FrameLoadType frameLoadType, bool hasCertificateInfo, bool usedLegacyTLS, bool wasPrivateRelayed, String&& proxyName, const WebCore::ResourceResponseSource source, bool containsPluginDocument, HasInsecureContent hasInsecureContent, MouseEventPolicy mouseEventPolicy, DocumentSecurityPolicy&& documentSecurityPolicy, HashSet<WebCore::SecurityOriginData>&& cspOriginsThatUpgradeInsecureNavigations, const UserData& userData, RestoredFromBackForwardCache restoredFromBackForwardCache, RefPtr<FrameState>&& redirectReplaceFrameState)
 {
     LOG(Loading, "(Loading) WebPageProxy %" PRIu64 " didCommitLoadForFrame in navigation %" PRIu64, identifier().toUInt64(), navigationID ? navigationID->toUInt64() : 0);
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-    LOG(BackForward, "(Back/Forward) After load commit, back/forward list is now:%s", std::string(backForwardList().loggingString()).data());
-#else
     LOG(BackForward, "(Back/Forward) After load commit, back/forward list is now:%s", backForwardList().loggingString().utf8().data());
-#endif
 
     RefPtr protectedPageClient { pageClient() };
 
@@ -8655,11 +8639,7 @@ void WebPageProxy::didCommitLoadForFrame(IPC::Connection& connection, FrameIdent
         MESSAGE_CHECK_BASE(!frame->isMainFrame(), connection);
         MESSAGE_CHECK_BASE(redirectReplaceFrameState->children.isEmpty(), connection);
         if (RefPtr currentItem = backForwardList().currentItem())
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-            backForwardList().replaceFrameStateForChild(&*currentItem, frameID, redirectReplaceFrameState.releaseNonNull());
-#else
             backForwardList().replaceFrameStateForChild(*currentItem, frameID, redirectReplaceFrameState.releaseNonNull());
-#endif
     }
 
     // Reattach iframe subtree from BFCache restore. Always drain the pending entry to avoid
@@ -12281,11 +12261,7 @@ void WebPageProxy::requestDOMPasteAccess(IPC::Connection& connection, DOMPasteAc
 
 void WebPageProxy::backForwardAddItemShared(IPC::Connection& connection, Ref<FrameState>&& navigatedFrameState, LoadedWebArchive loadedWebArchive)
 {
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-    backForwardList().backForwardAddItemShared(&connection, WTF::move(navigatedFrameState), loadedWebArchive);
-#else
     backForwardList().backForwardAddItemShared(connection, WTF::move(navigatedFrameState), loadedWebArchive);
-#endif
 }
 
 void WebPageProxy::backForwardGoToItemShared(BackForwardItemIdentifier itemID)
@@ -19770,15 +19746,6 @@ RefPtr<WebDeviceOrientationUpdateProviderProxy> WebPageProxy::webDeviceOrientati
 {
     return m_webDeviceOrientationUpdateProviderProxy;
 }
-#endif
-
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-
-WebBackForwardListMessageForwarder& WebPageProxy::backForwardListMessageReceiver() const
-{
-    return m_backForwardList->messageReceiver();
-}
-
 #endif
 
 void WebPageProxy::updateRemoteIntersectionObserversInOtherWebProcesses(IPC::Connection& connection)

@@ -942,7 +942,14 @@ def generate_messages_header(receiver):
         result.append('\n')
         result.append('} // namespace %s\n} // namespace CompletionHandlers\n' % receiver.name)
         result.append('\n')
-    if_swift_enabled(receiver, result, append_completion_handler_types_for_swift, None)
+    if receiver.swift_implementation_build_enabled_by:
+        # The C++ class is the message receiver in both configurations; only the shape of the
+        # handlers' completion handlers changes when they are implemented in Swift.
+        result.append('#if ENABLE(%s)\n' % receiver.swift_implementation_build_enabled_by)
+        append_completion_handler_types_for_swift(result)
+        result.append('#endif // ENABLE(%s)\n' % receiver.swift_implementation_build_enabled_by)
+    else:
+        if_swift_enabled(receiver, result, append_completion_handler_types_for_swift, None)
 
     if receiver.condition:
         result.append('\n#endif // %s\n' % receiver.condition)

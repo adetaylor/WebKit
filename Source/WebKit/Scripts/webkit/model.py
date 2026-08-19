@@ -35,7 +35,7 @@ SYNCHRONOUS_ATTRIBUTE = 'Synchronous'
 STREAM_ATTRIBUTE = "Stream"
 
 class MessageReceiver(object):
-    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, wants_send_cancel_reply, swift_receiver, swift_receiver_build_enabled_by, receiver_name):
+    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, wants_send_cancel_reply, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_implementation_build_enabled_by=None):
         self.name = name
         self.superclass = superclass
         self.attributes = frozenset(attributes or [])
@@ -53,6 +53,7 @@ class MessageReceiver(object):
         self.wants_send_cancel_reply = wants_send_cancel_reply
         self.swift_receiver = swift_receiver
         self.swift_receiver_build_enabled_by = swift_receiver_build_enabled_by
+        self.swift_implementation_build_enabled_by = swift_implementation_build_enabled_by
         self.receiver_name = receiver_name
 
     def iterparameters(self):

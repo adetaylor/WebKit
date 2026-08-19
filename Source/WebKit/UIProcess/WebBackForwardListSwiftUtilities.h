@@ -28,13 +28,10 @@
 #include "Logging.h"
 #include "WebBackForwardListFrameItem.h"
 #include "WebBackForwardListItem.h"
-#include "WebBackForwardListMessages.h"
 #include "WebProcessProxy.h"
 #include <cstdint>
 #include <wtf/Function.h>
 #include <wtf/Markable.h>
-#include <wtf/RefCountable.h>
-#include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/Vector.h>
 #include <wtf/WeakPtr.h>
@@ -56,16 +53,11 @@ inline bool contentsMatch(const T& lhs, const T& rhs)
     return lhs == rhs;
 }
 
-// Workaround for rdar://162193891
-WebCore::BackForwardFrameItemIdentifier generateBackForwardFrameItemIdentifier();
-
 // Workaround for rdar://129159672
 inline void setOptionalUInt32Value(std::optional<uint32_t>& optional, uint32_t value)
 {
     optional = value;
 }
-
-using WebBackForwardListItemFilter = WTF::RefCountable<WTF::Function<bool (WebKit::WebBackForwardListItem&)>>;
 
 // Workaround for rdar://168057355
 inline WebKit::FrameState* getFrameState(WebKit::WebBackForwardListFrameItem& item)

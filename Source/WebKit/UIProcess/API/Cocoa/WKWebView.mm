@@ -1019,7 +1019,7 @@ static void addBrowsingContextControllerMethodStubsIfNeeded()
 - (WKBackForwardList *)backForwardList
 {
     [self _didAccessBackForwardList];
-    return wrapper(_page->backForwardListWrapper());
+    return wrapper(_page->backForwardList());
 }
 
 - (id <WKNavigationDelegate>)navigationDelegate

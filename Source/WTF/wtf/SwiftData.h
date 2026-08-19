@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Igalia S.L.
+ * Copyright (C) 2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,10 +25,29 @@
 
 #pragma once
 
-#include "WebBackForwardList.h"
-#include "WebKitBackForwardList.h"
+// SwiftData<T> is the storage for the Swift-side state of a C++ class whose
+// member functions are implemented in Swift with `@cxx @implementation`. T is a
+// Swift struct; its fields are visible as native Swift stored properties from
+// within those member function implementations, and are inaccessible to C++.
+// The value is constructed by forwarding the constructor arguments to T's
+// Swift initializer, and destroyed with the enclosing C++ object.
+//
+// FIXME: neither this type nor `@cxx @implementation` exists yet. This
+// declaration is a stand-in which lets the C++ half of an implementation be
+// written and compiled; the resulting binary has no Swift state and cannot run.
 
-WebKitBackForwardList* webkitBackForwardListCreate(WebKit::WebBackForwardList*);
-WebKitBackForwardListItem* webkitBackForwardListItemGetOrCreate(WebKit::WebBackForwardListItem*);
-WebKit::WebBackForwardListItem* webkitBackForwardListItemGetItem(WebKitBackForwardListItem*);
-void webkitBackForwardListChanged(WebKitBackForwardList*, WebKit::WebBackForwardListItem* webAddedItem, const Vector<Ref<WebKit::WebBackForwardListItem>>&);
+namespace WTF {
+
+template<typename SwiftStruct>
+class SwiftData {
+public:
+    template<typename... Arguments>
+    explicit SwiftData(Arguments&&...) { }
+
+    SwiftData(const SwiftData&) = delete;
+    SwiftData& operator=(const SwiftData&) = delete;
+};
+
+} // namespace WTF
+
+using WTF::SwiftData;

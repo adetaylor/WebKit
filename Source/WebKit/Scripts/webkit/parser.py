@@ -55,6 +55,7 @@ def parse(file):
     wants_send_cancel_reply = False
     swift_receiver = False
     swift_receiver_build_enabled_by = None
+    swift_implementation_build_enabled_by = None
     destination = None
     messages = []
     conditions = []
@@ -80,6 +81,12 @@ def parse(file):
                     continue
                 if match.group('name') == 'SwiftReceiverBuildEnabledBy':
                     swift_receiver_build_enabled_by = match.group('value')
+                    continue
+                # The receiver stays a C++ class; when the feature is enabled its message
+                # handlers are implemented in Swift on that same class, so their completion
+                # handlers have to be reference-counted for Swift to hold them.
+                if match.group('name') == 'SwiftImplementationEnabledBy':
+                    swift_implementation_build_enabled_by = match.group('value')
                     continue
                 if match.group('name') == 'ReceiverName':
                     receiver_name = match.group('value')
@@ -108,6 +115,8 @@ def parse(file):
         raise Exception("ERROR: 'ExceptionForEnabledBy' cannot be used together with 'EnabledBy=%s'" % receiver_enabled_by)
     if swift_receiver and swift_receiver_build_enabled_by:
         raise Exception("ERROR: 'SwiftReceiver' cannot be used together with 'SwiftReceiverBuildEnabledBy=%s'" % swift_receiver_build_enabled_by)
+    if swift_implementation_build_enabled_by and (swift_receiver or swift_receiver_build_enabled_by):
+        raise Exception("ERROR: 'SwiftImplementationEnabledBy=%s' cannot be used together with 'SwiftReceiver' or 'SwiftReceiverBuildEnabledBy'" % swift_implementation_build_enabled_by)
 
     for line in file_contents:
         line = line.strip()
@@ -206,7 +215,7 @@ def parse(file):
     if receiver_dispatched_to and receiver_dispatched_to_exception:
         raise Exception("ERROR: 'ExceptionForDispatchedTo' cannot be used together with 'DispatchedTo=%s'" % receiver_dispatched_to)
 
-    return model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, wants_send_cancel_reply, swift_receiver, swift_receiver_build_enabled_by, receiver_name)
+    return model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, wants_send_cancel_reply, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_implementation_build_enabled_by)
 
 
 def parse_attributes_string(attributes_string):

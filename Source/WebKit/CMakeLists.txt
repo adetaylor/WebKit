@@ -954,24 +954,12 @@ endif ()
 
 if (SWIFT_REQUIRED)
     set(WebKit_SWIFT_INTEROP_SOURCES
-        UIProcess/ProvisionalPageProxy.cpp
-        UIProcess/RemotePageProxy.cpp
-        UIProcess/ViewGestureController.cpp
-        UIProcess/WebBackForwardList.cpp
         UIProcess/WebPageProxy.cpp
-        UIProcess/Automation/WebAutomationSession.cpp
         WebProcess/WebPage/IPCTestingAPI.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebBackForwardListMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
     )
     if (APPLE)
         list(APPEND WebKit_SWIFT_INTEROP_SOURCES
-            UIProcess/API/ios/WKWebViewIOS.mm
-            UIProcess/API/mac/WKWebViewMac.mm
-            UIProcess/ios/ViewGestureControllerIOS.mm
-            UIProcess/mac/ViewGestureControllerMac.mm
-            UIProcess/mac/WebViewImpl.mm
-
             UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
         )
     endif ()
@@ -1400,11 +1388,7 @@ if (ENABLE_SWIFT_DEMO_URI_SCHEME)
 endif ()
 
 if (ENABLE_BACK_FORWARD_LIST_SWIFT)
-    set_source_files_properties(
-        ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
-        PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
-        ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
         ${WEBKIT_DIR}/Shared/API/APIArray.swift
         ${WEBKIT_DIR}/UIProcess/StdlibExtras.swift
         ${WEBKIT_DIR}/UIProcess/WebBackForwardList.swift

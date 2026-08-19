@@ -357,6 +357,7 @@ set(WTF_PUBLIC_HEADERS
     SuspendableWorkQueue.h
     SwiftBridging.h
     SwiftCXXThunk.h
+    SwiftData.h
     SynchronizedFixedQueue.h
     SystemFree.h
     SystemMalloc.h

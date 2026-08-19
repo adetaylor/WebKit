@@ -43,15 +43,13 @@
 #include <wtf/Borrow.h>
 #include <wtf/DebugUtilities.h>
 #include <wtf/HexNumber.h>
+#include <wtf/Scope.h>
 #include <wtf/SetForScope.h>
 #include <wtf/text/StringBuilder.h>
 
 #if PLATFORM(COCOA)
 #include <wtf/cocoa/RuntimeApplicationChecksCocoa.h>
 #endif
-
-// FIXME: https://bugs.webkit.org/show_bug.cgi?id=306415
-#include "WebKit-Swift.h"
 
 namespace WebKit {
 using namespace WebCore;
@@ -63,7 +61,6 @@ static inline void setBackForwardItemIdentifiers(FrameState& frameState, BackFor
     for (auto& child : frameState.children)
         setBackForwardItemIdentifiers(child, itemID);
 }
-
 #if !ENABLE(BACK_FORWARD_LIST_SWIFT)
 
 static bool shouldSkipItemsWithoutUserGestureForWebKitAPI()
@@ -1009,96 +1006,63 @@ void WebBackForwardList::didReceiveProvisionalMessage(IPC::Connection& connectio
     didReceiveMessage(connection, decoder);
 }
 
+#undef MESSAGE_CHECK
+#undef MESSAGE_CHECK_COMPLETION
+#undef MESSAGE_CHECK_WITH_RETURN_VALUE
+
 #else // ENABLE(BACK_FORWARD_LIST_SWIFT)
 
-WebBackForwardListWrapper::WebBackForwardListWrapper(WebPageProxy& webPageProxy)
-    : m_impl(WTF::makeUniqueWithoutFastMallocCheck<WebBackForwardList>(WebBackForwardList::init(webPageProxy)))
-    , m_messageForwarder(m_impl->getMessageReceiver())
+WebBackForwardList::WebBackForwardList(WebPageProxy& page)
+    : m_swiftData(WeakPtr { page })
 {
 }
 
-WebBackForwardListWrapper::~WebBackForwardListWrapper() = default;
-
-WebBackForwardListMessageForwarder& WebBackForwardListWrapper::messageReceiver() const
+WebBackForwardList::~WebBackForwardList()
 {
-    return m_messageForwarder.get();
+    LOG(BackForward, "(Back/Forward) Destroying WebBackForwardList %p", this);
+
+    // A WebBackForwardList should never be destroyed unless its associated page has been closed or is invalid.
+    ASSERT(isSafeToDestroy());
 }
 
-WebBackForwardListItem* WebBackForwardListWrapper::currentItem() const
-{
-    return m_impl->currentItem();
-}
-
-RefPtr<WebBackForwardListItem> WebBackForwardListWrapper::backItem() const
-{
-    return m_impl->backItem();
-}
-
-RefPtr<WebBackForwardListItem> WebBackForwardListWrapper::forwardItem() const
-{
-    return m_impl->forwardItem();
-}
-
-RefPtr<WebBackForwardListItem> WebBackForwardListWrapper::itemAtDeltaFromCurrentIndex(int index, AllowSkippingBackForwardItems allowSkipping) const
-{
-    return m_impl->itemAtDeltaFromCurrentIndex(index, allowSkipping == AllowSkippingBackForwardItems::Yes ? true : false);
-}
-
-unsigned WebBackForwardListWrapper::backListCountForAPI() const
-{
-    return m_impl->backListCountForAPI();
-}
-
-unsigned WebBackForwardListWrapper::forwardListCountForAPI() const
-{
-    return m_impl->forwardListCountForAPI();
-}
-
-Ref<API::Array> WebBackForwardListWrapper::backList() const
+Ref<API::Array> WebBackForwardList::backList() const
 {
     return backListAsAPIArrayWithLimit(backListCountForAPI());
 }
 
-Ref<API::Array> WebBackForwardListWrapper::forwardList() const
+Ref<API::Array> WebBackForwardList::forwardList() const
 {
     return forwardListAsAPIArrayWithLimit(forwardListCountForAPI());
 }
 
-Ref<API::Array> WebBackForwardListWrapper::backListAsAPIArrayWithLimit(unsigned limit) const
+BackForwardListState WebBackForwardList::backForwardListState(WTF::Function<bool (WebBackForwardListItem&)>&& filter) const
 {
-    return m_impl->backListAsAPIArrayWithLimit(limit);
+    Ref refCountableFilter = WebBackForwardListItemFilter::create(WTF::move(filter));
+    return backForwardListStateMatching(refCountableFilter);
 }
 
-Ref<API::Array> WebBackForwardListWrapper::forwardListAsAPIArrayWithLimit(unsigned limit) const
+void WebBackForwardList::setItemsAsRestoredFromSessionIf(NOESCAPE Function<bool(WebBackForwardListItem&)>&& functor)
 {
-    return m_impl->forwardListAsAPIArrayWithLimit(limit);
+    Ref refCountableFunctor = WebBackForwardListItemFilter::create(WTF::move(functor));
+    setItemsAsRestoredFromSessionMatching(refCountableFunctor);
 }
 
-void WebBackForwardListWrapper::removeAllItems()
+void WebBackForwardList::didReceiveProvisionalMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
-    m_impl->removeAllItems();
-}
-
-void WebBackForwardListWrapper::clear()
-{
-    m_impl->clear();
-}
-
-String WebBackForwardListWrapper::loggingString()
-{
-    return String::fromUTF8WithLatin1Fallback(std::string(m_impl->loggingString()));
+    setHandlingProvisionalMessage(true);
+    auto clearHandlingProvisionalMessage = makeScopeExit([&] {
+        setHandlingProvisionalMessage(false);
+    });
+    didReceiveMessage(connection, decoder);
 }
 
 #endif // ENABLE(BACK_FORWARD_LIST_SWIFT)
 
 } // namespace WebKit
 
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-
-WebCore::BackForwardFrameItemIdentifier generateBackForwardFrameItemIdentifier()
-{
-    return WebCore::BackForwardFrameItemIdentifier::generate();
-}
+// The remainder of this file supports the Swift implementation in
+// WebBackForwardList.swift, working around gaps in what Swift can express
+// against C++ APIs. See WebBackForwardListSwiftUtilities.h.
 
 // rdar://168139823 is the task of doing a productionized version of WebKit Swift logging
 void doLog(const WTF::String& msg)
@@ -1110,6 +1074,7 @@ void doLoadingReleaseLog(const WTF::String& msg)
 {
     RELEASE_LOG(Loading, "%s", msg.utf8().data());
 }
+
 // rdar://168139740 is the task of doing a productionized Swift MESSAGE_CHECK
 void messageCheckFailed(Ref<WebKit::WebProcessProxy> process)
 {
@@ -1149,6 +1114,3 @@ WebKit::WebBackForwardListItem* itemAtIndexInBackForwardListItemVector(const Vec
 {
     return items[index].ptr();
 }
-
-
-#endif // ENABLE(BACK_FORWARD_LIST_SWIFT)

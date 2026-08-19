@@ -405,7 +405,7 @@ void WKPageGoForward(WKPageRef pageRef)
 
 bool WKPageCanGoForward(WKPageRef pageRef)
 {
-    return toImpl(pageRef)->backForwardListWrapper().forwardItem();
+    return toImpl(pageRef)->backForwardList().forwardItem();
 }
 
 void WKPageGoBack(WKPageRef pageRef)
@@ -421,7 +421,7 @@ void WKPageGoBack(WKPageRef pageRef)
 
 bool WKPageCanGoBack(WKPageRef pageRef)
 {
-    return toImpl(pageRef)->backForwardListWrapper().backItem();
+    return toImpl(pageRef)->backForwardList().backItem();
 }
 
 void WKPageGoToBackForwardListItem(WKPageRef pageRef, WKBackForwardListItemRef itemRef)
@@ -438,7 +438,7 @@ void WKPageTryRestoreScrollPosition(WKPageRef pageRef)
 
 WKBackForwardListRef WKPageGetBackForwardList(WKPageRef pageRef)
 {
-    return toAPI(&toImpl(pageRef)->backForwardListWrapper());
+    return toAPI(&toImpl(pageRef)->backForwardList());
 }
 
 bool WKPageWillHandleHorizontalScrollEvents(WKPageRef pageRef)

@@ -267,6 +267,12 @@ module WebKit_Internal [system] {
         export *
     }
 
+    module WebBackForwardList {
+        requires cplusplus20
+        header "../../UIProcess/WebBackForwardList.h"
+        export *
+    }
+
     module WebBackForwardListSwiftUtilities {
         requires cplusplus20
         header "../../UIProcess/WebBackForwardListSwiftUtilities.h"

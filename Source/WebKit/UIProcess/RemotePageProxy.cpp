@@ -82,9 +82,6 @@
 #include "RemotePagePlaybackSessionManagerProxy.h"
 #endif
 
-// FIXME: https://bugs.webkit.org/show_bug.cgi?id=306415
-#include "WebKit-Swift.h"
-
 namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemotePageProxy);
@@ -103,7 +100,7 @@ RemotePageProxy::RemotePageProxy(WebPageProxy& page, WebProcessProxy& process, c
     , m_site(site)
     , m_processActivityState(makeUniqueRef<WebProcessActivityState>(*this))
 {
-    Ref backForwardListReceiver = protect(page)->backForwardListMessageReceiver();
+    Ref backForwardListReceiver = protect(page)->backForwardList();
     if (registrationToTransfer)
         m_messageReceiverRegistration.transferMessageReceivingFrom(*registrationToTransfer, *this, backForwardListReceiver);
     else
@@ -277,7 +274,7 @@ void RemotePageProxy::didReceiveMessage(IPC::Connection& connection, IPC::Decode
         return;
 
     if (decoder.messageReceiverName() == Messages::WebBackForwardList::messageReceiverName()) {
-        Ref backForwardListReceiver = page->backForwardListMessageReceiver();
+        Ref backForwardListReceiver = page->backForwardList();
         backForwardListReceiver->didReceiveMessage(connection, decoder);
         return;
     }
@@ -288,7 +285,7 @@ void RemotePageProxy::didReceiveSyncMessage(IPC::Connection& connection, IPC::De
 {
     if (RefPtr page = m_page.get()) {
         if (decoder.messageReceiverName() == Messages::WebBackForwardList::messageReceiverName()) {
-            Ref backForwardListReceiver = page->backForwardListMessageReceiver();
+            Ref backForwardListReceiver = page->backForwardList();
             backForwardListReceiver->didReceiveSyncMessage(connection, decoder, encoder);
         } else
             page->didReceiveSyncMessage(connection, decoder, encoder);
