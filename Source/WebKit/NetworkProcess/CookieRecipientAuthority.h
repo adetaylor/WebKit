@@ -135,9 +135,13 @@ private:
     // site a page pulls in, including its cross-site subframes, and WebProcessProxy only records
     // the main frame's site as hosted. Asking the question there could only produce false
     // denials, so it is not asked.
+    //
+    // usesSingleWebProcess is deliberately NOT part of this gate. A single process still records
+    // every site it commits, so the question remains answerable, and gating on it would disable
+    // the check in configurations that do enable site isolation.
     static bool isEntitledToDomain(NetworkConnectionToWebProcess& connection, const WebCore::RegistrableDomain& domain)
     {
-        if (!connection.siteIsolationEnabled() || connection.usesSingleWebProcess())
+        if (!connection.siteIsolationEnabled())
             return true;
 
         Ref networkProcess = connection.networkProcess();
