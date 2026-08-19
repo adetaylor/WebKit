@@ -1,0 +1,310 @@
+# Copyright (C) 2026 Apple Inc. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1.  Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+# 2.  Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# Every bare integer that a less privileged process can send to a more privileged one is
+# listed here with a reason it is not an object identifier.
+#
+# The rule is inverted deliberately. Whether an integer is an identifier depends on how
+# the receiver uses it, which is not visible from the declaration, so the generator cannot
+# detect identifiers: a name-based test both misses real ones (an object handle named
+# "pageOverlay") and flags correct ones (displayID, logIdentifier, ANGLE object names).
+# Requiring a reason for every integer means a violation cannot be a silent omission,
+# only a false claim, and a false claim is something review can catch.
+#
+# Categories are defined in Source/WebKit/Scripts/webkit/bare_integer_ipc.py.
+#
+# Additions or changes to this file will trigger a review with a security focus.
+
+# these ARE object identifiers and must become ObjectIdentifier<Tag>. Burn-down list; do not add to it without a bug number
+[NeedsTyping] {
+    AcceleratedBackingStore.DidCreateAndroidBuffer id
+    AcceleratedBackingStore.DidCreateDMABufBuffer id
+    AcceleratedBackingStore.DidCreateSHMBuffer id
+    AcceleratedBackingStore.DidDestroyBuffer id
+    AcceleratedBackingStore.Frame id
+    AcceleratedSurface.ReleaseBuffer id
+    RemoteObjectRegistry.CallReplyBlock replyID
+    RemoteObjectRegistry.ReleaseUnusedReplyBlock replyID
+}
+
+# generation and epoch counters, compared against locally held state; legitimately zero, which ObjectIdentifier cannot represent
+[SequenceCounter] {
+    DrawingAreaProxy.DidFirstLayerFlush backingStoreStateID
+    DrawingAreaProxy.EnterAcceleratedCompositingMode backingStoreStateID
+    DrawingAreaProxy.ExitAcceleratedCompositingMode backingStoreStateID
+    DrawingAreaProxy.Update stateID
+    DrawingAreaProxy.UpdateAcceleratedCompositingMode backingStoreStateID
+    NetworkStorageManager.CacheStorageAllCaches updateCounter
+    NetworkStorageManager.ConnectToStorageArea messageIdentifier
+    NetworkStorageManager.ConnectToStorageAreaSync messageIdentifier
+    WebPageProxy.ExecuteUndoRedo undoVersion
+    WebProcessProxy.WaitForSharedPreferencesForWebProcessToSync sharedPreferencesVersion
+    WebSWServerToContextConnection.ReportConsoleMessage requestIdentifier
+}
+
+# assigned outside WebKit: CGDirectDisplayID, OS pids, NSPasteboard change counts, native window handles
+[PlatformValue] {
+    GPUConnectionToWebProcess.CreateWCLayerTreeHost nativeWindow
+    WebPageProxy.BindRemoteAccessibilityFrames processIdentifier
+    WebPasteboardProxy.AddPasteboardTypes changeCount
+    WebPasteboardProxy.AllPasteboardItemInfo changeCount
+    WebPasteboardProxy.GetPasteboardChangeCount changeCount
+    WebPasteboardProxy.InformationForItemAtIndex changeCount
+    WebPasteboardProxy.SetPasteboardBufferForType changeCount
+    WebPasteboardProxy.SetPasteboardColor changeCount
+    WebPasteboardProxy.SetPasteboardStringForType changeCount
+    WebPasteboardProxy.SetPasteboardTypes changeCount
+    WebPasteboardProxy.SetPasteboardURL changeCount
+    WebPasteboardProxy.TestIPCSharedMemory changeCount
+    WebPasteboardProxy.WriteCustomData changeCount
+    WebPasteboardProxy.WriteWebArchiveToPasteBoard changeCount
+    WebProcessProxy.SetDisplayLinkPreferredFramesPerSecond displayID
+    WebProcessProxy.StartDisplayLink displayID
+    WebProcessProxy.StopDisplayLink displayID
+}
+
+# opaque values used only for log correlation, never dereferenced
+[LoggingCookie] {
+    PlaybackSessionManagerProxy.SetLogIdentifier logIdentifier
+    RemoteCDMInstanceProxy.CreateSession logIdentifier
+    RemoteCDMInstanceSessionProxy.SetLogIdentifier logIdentifier
+    RemoteCDMProxy.SetLogIdentifier logIdentifier
+    RemoteLegacyCDMProxy.CreateSession logIdentifier
+    RemoteSampleBufferDisplayLayer.SetLogIdentifier logIdentifier
+    WebPageProxy.LogScrollingEvent data
+}
+
+# row identifiers assigned by SQLite
+[DatabaseRowID] {
+    NetworkStorageManager.DidGenerateIndexKeyForRecord recordID
+}
+
+# assigned by libwebrtc or CoreAudio; the wire format is not ours to choose
+[ExternalLibrary] {
+    LibWebRTCCodecsProxy.DecodeFrame timeStamp
+    LibWebRTCCodecsProxy.EncodeFrame timeStamp
+    LibWebRTCCodecsProxy.InitializeEncoder maxBitrate
+    LibWebRTCCodecsProxy.InitializeEncoder maxFramerate
+    LibWebRTCCodecsProxy.InitializeEncoder minBitrate
+    LibWebRTCCodecsProxy.InitializeEncoder startBitrate
+    NetworkRTCProvider.CreateUDPSocket maxPort
+    NetworkRTCProvider.CreateUDPSocket minPort
+    RemoteAudioDestinationManager.CreateAudioDestination audioUnitLatency
+    RemoteAudioDestinationManager.StartAudioDestination audioUnitLatency
+}
+
+# error and status codes
+[StatusCode] {
+    NetworkSocketChannel.Close code
+    NetworkTransportSession.CancelReceiveStream errorCode
+    NetworkTransportSession.CancelSendStream errorCode
+    NetworkTransportSession.DestroyStream errorCode
+    NetworkTransportSession.Terminate code
+    RemoteLegacyCDMSessionProxy.GenerateKeyRequest errorCode
+    RemoteLegacyCDMSessionProxy.GenerateKeyRequest systemCode
+    RemoteLegacyCDMSessionProxy.Update errorCode
+    RemoteLegacyCDMSessionProxy.Update systemCode
+}
+
+# flags or enumerations that have not been given an enum type
+[EnumLike] {
+    NetworkRTCProvider.CreateClientTCPSocket options
+    NetworkRTCProvider.SetSocketOption option
+    NetworkStorageManager.RequestNewCapacityForSyncAccessHandle result
+    VideoPresentationManagerProxy.ClearVideoFullscreenMode mode
+    VideoPresentationManagerProxy.ExitFullscreenWithoutAnimationToMode videoFullscreenMode
+    VideoPresentationManagerProxy.SetVideoFullscreenMode mode
+    VideoPresentationManagerProxy.SetupFullscreenWithID videoFullscreenMode
+    WebPageProxy.LogDiagnosticMessageWithResultFromWebProcess result
+    WebPageProxy.LogScrollingEvent eventType
+    WebPageProxy.RecommendedScrollbarStyleDidChange newStyle
+    WebPageProxy.ShowPopupMenuFromFrame textDirection
+    WebProcessPool.ReportWebContentCPUTime activityState
+}
+
+# sizes, counts, indices, offsets, rates, durations and quotas
+[Measurement] {
+    AcceleratedBackingStore.DidChangeBufferConfiguration bufferCount
+    IPCConnectionTester.AsyncMessage value
+    IPCConnectionTester.SyncMessage sameValue
+    IPCConnectionTester.SyncMessage value
+    IPCStreamTester.AsyncPing nextValue
+    IPCStreamTester.AsyncPing value
+    IPCStreamTester.CheckAutoreleasePool previousUseCount
+    IPCStreamTester.CheckInvalidMessages invalidMessages
+    IPCStreamTester.SyncCrashOnZero sameValue
+    IPCStreamTester.SyncCrashOnZero value
+    IPCStreamTester.SyncMessage sameValue
+    IPCStreamTester.SyncMessage value
+    IPCStreamTester.SyncMessageEmptyReply value
+    IPCStreamTester.SyncMessageNotStreamEncodableBoth sameValue
+    IPCStreamTester.SyncMessageNotStreamEncodableBoth value
+    IPCStreamTester.SyncMessageNotStreamEncodableReply sameValue
+    IPCStreamTester.SyncMessageNotStreamEncodableReply value
+    IPCStreamTester.SyncMessageReturningSharedMemory1 byteCount
+    IPCTester.AsyncPing nextValue
+    IPCTester.AsyncPing value
+    IPCTester.CreateConnectionTesterAndSendAsyncMessages messageCount
+    IPCTester.EmptyMessageWithReply valueq
+    IPCTester.SendAsyncMessageToReceiver arg0
+    IPCTester.SendAsyncMessageToReceiverRequestingReply nextValue
+    IPCTester.SendAsyncMessageToReceiverRequestingReply value
+    IPCTester.SyncPing nextValue
+    IPCTester.SyncPing value
+    IPCTester.SyncPingEmptyReply value
+    IPCTesterReceiver.AsyncMessage arg1
+    IPCTesterReceiver.AsyncMessage reply
+    LibWebRTCCodecsProxy.EncodeFrame duration
+    LibWebRTCCodecsProxy.InitializeEncoder height
+    LibWebRTCCodecsProxy.InitializeEncoder width
+    LibWebRTCCodecsProxy.SetDecoderFormatDescription height
+    LibWebRTCCodecsProxy.SetDecoderFormatDescription width
+    LibWebRTCCodecsProxy.SetEncodeRates bitRate
+    LibWebRTCCodecsProxy.SetEncodeRates frameRate
+    LibWebRTCCodecsProxy.SetFrameSize height
+    LibWebRTCCodecsProxy.SetFrameSize width
+    NetworkConnectionToWebProcess.BlobSize resultSize
+    NetworkConnectionToWebProcess.CountWebSocketChannelsForTesting count
+    NetworkConnectionToWebProcess.LoadImageForDecoding maximumBytesFromNetwork
+    NetworkConnectionToWebProcess.RegisterInternalBlobURLForSlice end
+    NetworkConnectionToWebProcess.RegisterInternalBlobURLForSlice start
+    NetworkRTCProvider.SetSocketOption value
+    NetworkStorageManager.CommitTransaction handledRequestResultsCount
+    NetworkStorageManager.ExecuteCommandForWritable position
+    NetworkStorageManager.ExecuteCommandForWritable size
+    NetworkStorageManager.RequestNewCapacityForSyncAccessHandle newCapacity
+    NetworkTransportSession.ExportKeyingMaterial outputLength
+    NetworkTransportSession.IncomingMaxBufferedDatagramsUpdated value
+    NetworkTransportSession.OutgoingMaxBufferedDatagramsUpdated value
+    NotificationManagerMessageHandler.SetAppBadge badge
+    PlatformXRSystem.CreateLayerProjection height
+    PlatformXRSystem.CreateLayerProjection width
+    PlaybackSessionManagerProxy.AudioMediaSelectionIndexChanged selectedIndex
+    PlaybackSessionManagerProxy.AudioMediaSelectionOptionsChanged selectedIndex
+    PlaybackSessionManagerProxy.LegibleMediaSelectionIndexChanged selectedIndex
+    PlaybackSessionManagerProxy.LegibleMediaSelectionOptionsChanged selectedIndex
+    ProxyingNetworkAgent.DataReceived dataLength
+    ProxyingNetworkAgent.DataReceived encodedDataLength
+    ProxyingNetworkAgent.RequestServedFromMemoryCache bodySize
+    PushClientConnection.GetAppBadgeForTesting badge
+    PushClientConnection.IncrementSilentPushCount newCount
+    PushClientConnection.RemoveAllPushSubscriptions removed
+    PushClientConnection.RemovePushSubscriptionsForOrigin removed
+    PushClientConnection.SetAppBadge badge
+    PushClientConnection.SetProtocolVersionForTesting version
+    RTCDataChannelRemoteManagerProxy.BufferedAmountIsDecreasing amount
+    RemoteAudioDestinationManager.CreateAudioDestination numberOfInputChannels
+    RemoteAudioDestinationManager.CreateAudioDestination numberOfOutputChannels
+    RemoteAudioMediaStreamTrackRendererInternalUnitManager.CreateUnit frameChunkSize
+    RemoteAudioSessionProxy.SetPreferredBufferSize preferredBufferSize
+    RemoteBuffer.Copy offset
+    RemoteBuffer.CopyWithCopy offset
+    RemoteCompositorIntegration.PaintCompositedResultsToCanvas bufferIndex
+    RemoteCompositorIntegration.PrepareForDisplay frameIndex
+    RemoteCompositorIntegration.RecreateRenderBuffers bufferCount
+    RemoteCompositorIntegration.RecreateRenderBuffers height
+    RemoteCompositorIntegration.RecreateRenderBuffers width
+    RemoteComputePipeline.GetBindGroupLayout index
+    RemoteGPU.CreateModelBacking height
+    RemoteGPU.CreateModelBacking width
+    RemoteImageDecoderAVFProxy.ClearFrameBufferCache index
+    RemoteImageDecoderAVFProxy.CreateFrameImageAtIndex index
+    RemoteImageDecoderAVFProxy.SetData frameCount
+    RemoteImageDecoderAVFProxy.SetExpectedContentSize expectedContentSize
+    RemoteLayerTreeDrawingAreaProxy.SetPreferredFramesPerSecond preferredFramesPerSecond
+    RemoteMediaResourceLoader.DataSent bytesSent
+    RemoteMediaResourceLoader.DataSent totalBytesToBeSent
+    RemoteMediaSessionManagerProxy.RemoteAudioOutputDeviceChanged bufferSizeMaximum
+    RemoteMediaSessionManagerProxy.RemoteAudioOutputDeviceChanged bufferSizeMinimum
+    RemoteMediaSessionManagerProxy.UpdateMediaSessionStates audioCaptureSourceCount
+    RemoteMesh.PaintCurrentFrameToImageBuffer bufferIndex
+    RemoteMesh.Render textureIndex
+    RemoteMesh.UpdateRenderBuffers height
+    RemoteMesh.UpdateRenderBuffers width
+    RemotePresentationContext.GetCurrentTexture frameIndex
+    RemotePresentationContext.Present frameIndex
+    RemoteRenderPipeline.GetBindGroupLayout index
+    RemoteXRProjectionLayer.StartFrame frameIndex
+    RemoteXRProjectionLayer.StartFrame textureIndex
+    SpeechRecognitionRemoteRealtimeMediaSourceManager.RemoteAudioSamplesAvailable numberOfFrames
+    SpeechRecognitionServer.Start maxAlternatives
+    WebBackForwardList.BackForwardItemAtIndexForWebContent itemIndex
+    WebExtensionContext.BookmarksCreate index
+    WebExtensionContext.BookmarksGetRecent count
+    WebExtensionContext.BookmarksMove index
+    WebExtensionContext.DidEncounterScriptError columnNumber
+    WebExtensionContext.DidEncounterScriptError lineNumber
+    WebExtensionContext.RemoveListener removedCount
+    WebExtensionContext.TabsCaptureVisibleTab imageQuality
+    WebExtensionController.TestAdded lineNumber
+    WebExtensionController.TestEqual lineNumber
+    WebExtensionController.TestFinished lineNumber
+    WebExtensionController.TestLogMessage lineNumber
+    WebExtensionController.TestResult lineNumber
+    WebExtensionController.TestSentMessage lineNumber
+    WebExtensionController.TestStarted lineNumber
+    WebFrameProxy.SetAppBadge badge
+    WebInspectorBackendProxy.SetEmulatedConditions bytesPerSecondLimit
+    WebInspectorUIProxy.SetAttachedWindowHeight height
+    WebInspectorUIProxy.SetAttachedWindowWidth width
+    WebPageProxy.CheckGrammarOfString badGrammarLength
+    WebPageProxy.CheckGrammarOfString badGrammarLocation
+    WebPageProxy.CheckSpellingOfString misspellingLength
+    WebPageProxy.CheckSpellingOfString misspellingLocation
+    WebPageProxy.CheckTextOfParagraph insertionPoint
+    WebPageProxy.CreatePDFPageNumberIndicator pageCount
+    WebPageProxy.DidChangeInspectorFrontendCount count
+    WebPageProxy.DidChangePageCount pageCount
+    WebPageProxy.DidGetImageForFindMatch matchIndex
+    WebPageProxy.EnqueueHistoryTraversalDelta delta
+    WebPageProxy.ExceededDatabaseQuota currentDatabaseUsage
+    WebPageProxy.ExceededDatabaseQuota currentOriginUsage
+    WebPageProxy.ExceededDatabaseQuota currentQuota
+    WebPageProxy.ExceededDatabaseQuota expectedUsage
+    WebPageProxy.ExceededDatabaseQuota newQuota
+    WebPageProxy.GetGuessesForWord insertionPoint
+    WebPageProxy.GoToBackForwardItemAtIndex steps
+    WebPageProxy.LayerTreeAsTextForTesting baseIndent
+    WebPageProxy.LogDiagnosticMessageWithValueFromWebProcess significantFigures
+    WebPageProxy.RenderTreeAsTextForTesting baseIndent
+    WebPageProxy.RequestCheckingOfString insertionPoint
+    WebPageProxy.RequestExtendedCheckingOfString insertionPoint
+    WebPageProxy.SetRenderTreeSize treeSize
+    WebPageProxy.ShowPDFContextMenu selectedItem
+    WebPageProxy.ShowPopupMenuFromFrame selectedIndex
+    WebPageProxy.UpdatePDFPageNumberIndicatorCurrentPage pageIndex
+    WebPasteboardProxy.GetNumberOfFiles numberOfFiles
+    WebPasteboardProxy.GetPasteboardItemsCount itemsCount
+    WebPasteboardProxy.InformationForItemAtIndex index
+    WebPasteboardProxy.ReadBufferFromPasteboard index
+    WebPasteboardProxy.ReadStringFromPasteboard index
+    WebPasteboardProxy.ReadURLFromPasteboard index
+    WebProcessPool.PlayGamepadEffect gamepadIndex
+    WebProcessPool.StopGamepadEffects gamepadIndex
+    WebProcessProxy.DidExceedMemoryFootprintThreshold footprint
+    WebProcessProxy.SetAppBadgeFromWorker badge
+    WebProcessProxy.SetDisplayLinkPreferredFramesPerSecond preferredFramesPerSecond
+    WebProcessProxy.StartDisplayLink preferredFramesPerSecond
+    WebSharedWorkerServerToContextConnection.PostErrorToWorkerObject columnNumber
+    WebSharedWorkerServerToContextConnection.PostErrorToWorkerObject lineNumber
+}
+

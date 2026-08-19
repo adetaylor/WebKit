@@ -24,6 +24,7 @@ import itertools
 
 from collections import Counter, defaultdict
 from .opaque_ipc_types import is_opaque_type, opaque_ipc_types
+from .bare_integer_ipc import bare_integer_ipc_types, receiver_is_in_scope, resolves_to_bare_integer, BULK_SCALAR_RECEIVERS
 from .untrusted_origins import conveys_untrusted_value, describe_untrusted_value, is_privileged_receiver, unwrap_untrusted, untrusted_origins
 
 BUILTIN_ATTRIBUTE = "Builtin"
@@ -99,6 +100,32 @@ class MessageReceiver(object):
                     f"IPC::Untrusted<{parameter.type}> and validate it in the handler, or add a justification to "
                     f"untrusted_origins.tracking.in: [NeedsReview, Consequence=...] MessageParam {self.name}.{message.name} "
                     f"{parameter.name} {parameter.type}")
+
+    def enforce_bare_integer_ipc_usage(self):
+        """An object identifier crossing IPC must be an ObjectIdentifier<Tag>.
+
+        Whether an integer is an identifier is not visible from its declaration, so rather
+        than guess, every bare integer a less privileged process can send here must name a
+        reason it is not one. See bare_integer_ipc.py.
+        """
+        if not receiver_is_in_scope(self) or self.name in BULK_SCALAR_RECEIVERS:
+            return
+        for message in self.messages:
+            parameters = list(message.parameters or [])
+            parameters += list(message.reply_parameters or [])
+            for parameter in parameters:
+                integer_type = resolves_to_bare_integer(parameter.type)
+                if integer_type is None:
+                    continue
+                if bare_integer_ipc_types.category_for(self.name, message.name, parameter.name):
+                    continue
+                raise Exception(
+                    f"{self.name}.{message.name} sends '{parameter.type} {parameter.name}' to the "
+                    f"{self.receiver_dispatched_to or 'unannotated'} process as a bare integer "
+                    f"({integer_type}). If it identifies an object it must be an "
+                    f"ObjectIdentifier<Tag> (see wtf/ObjectIdentifier.h); otherwise say why not in "
+                    f"bare_integer_ipc.tracking.in, for example:\n"
+                    f"    [Measurement] {{\n        {self.name}.{message.name} {parameter.name}\n    }}")
 
 
 class Message(object):

@@ -1075,6 +1075,8 @@ macro(GENERATE_MESSAGE_SOURCES _output_source _inputs)
             ${WEBKIT_DIR}/Scripts/webkit/__init__.py
             ${WEBKIT_DIR}/Scripts/webkit/messages.py
             ${WEBKIT_DIR}/Scripts/webkit/model.py
+            ${WEBKIT_DIR}/Scripts/webkit/bare_integer_ipc.py
+            ${WEBKIT_DIR}/Scripts/webkit/bare_integer_ipc.tracking.in
             ${WEBKIT_DIR}/Scripts/webkit/opaque_ipc_types.py
             ${WEBKIT_DIR}/Scripts/webkit/opaque_ipc_types.tracking.in
             ${WEBKIT_DIR}/Scripts/webkit/parser.py

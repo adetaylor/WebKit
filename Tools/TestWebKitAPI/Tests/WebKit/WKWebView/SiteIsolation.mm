@@ -27,6 +27,7 @@
 #import "FrameTreeChecks.h"
 #import "Helpers/PlatformUtilities.h"
 #import "Helpers/Utilities.h"
+#import "Helpers/cocoa/CGImagePixelReader.h"
 #import "Helpers/cocoa/DragAndDropSimulator.h"
 #import "Helpers/cocoa/FindInPageUtilities.h"
 #import "Helpers/cocoa/HTTPServer.h"
@@ -12847,4 +12848,116 @@ TEST(SiteIsolation, RestoredPageWithIframeIsRenderedAfterCrossSiteBFCacheRoundTr
     checkFrameTreesInProcesses(webView.get(), { { "https://b.com"_s } });
 }
 
+#if ENABLE(IPC_TESTING_API)
+
+// Demonstrates that a cross-origin subframe process can name a PlatformLayerIdentifier belonging
+// to the embedder's process and have the UI process act on it. RemoteLayerTreeDrawingAreaProxy
+// holds the layers of every process contributing to the page under site isolation in one
+// RemoteLayerTreeHost::m_nodes map, and AsyncSetLayerContents resolved the sender-supplied
+// identifier in that shared map with no proof the sender minted it.
+//
+// Proven in pixels: the embedder is solid green. RemoteLayerBackingStoreProperties with no buffer
+// makes applyBackingStoreToNode() call [layer _web_clearContents], so if the subframe can reach
+// the embedder's layer the green goes away in a view the embedder alone should control.
+static void enableIPCTestingAPIForLayerSpoofTest(WKWebViewConfiguration *configuration)
+{
+    for (_WKFeature *feature in [WKPreferences _features]) {
+        if ([feature.key isEqualToString:@"IPCTestingAPIEnabled"]) {
+            [[configuration preferences] _setEnabled:YES forFeature:feature];
+            break;
+        }
+    }
 }
+
+TEST(SiteIsolation, CrossProcessLayerContentsSpoof)
+{
+    HTTPServer server({
+        { "/example"_s, { "<html><body style='margin:0;background:#00c000'>"
+            "<iframe id='f' src='https://webkit.org/webkit' "
+            "style='position:absolute;left:10px;top:10px;width:60px;height:40px;border:0'></iframe>"
+            "</body></html>"_s } },
+        { "/webkit"_s, { "<html><body style='margin:0;background:#c00000'></body></html>"_s } },
+    }, HTTPServer::Protocol::HttpsProxy);
+
+    RetainPtr configuration = server.httpsProxyConfiguration();
+    enableIPCTestingAPIForLayerSpoofTest(configuration.get());
+    auto [webView, navigationDelegate] = siteIsolatedViewAndDelegate(configuration, CGRectMake(0, 0, 800, 600));
+
+    [webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"https://example.com/example"]]];
+    [navigationDelegate waitForDidFinishNavigation];
+    [webView waitForNextPresentationUpdate];
+
+    // Without a genuinely separate process for the subframe there is nothing to cross and the
+    // result below would be meaningless.
+    checkFrameTreesInProcesses(webView.get(), {
+        { "https://example.com"_s, { { RemoteFrame } } },
+        { RemoteFrame, { { "https://webkit.org"_s } } }
+    });
+
+    RetainPtr<WKFrameInfo> subframe;
+    RetainPtr trees = frameTrees(webView.get());
+    for (_WKFrameTreeNode *root in trees.get()) {
+        for (_WKFrameTreeNode *child in root.childFrames) {
+            if (child.info._isLocalFrame && [child.info.securityOrigin.host isEqualToString:@"webkit.org"])
+                subframe = child.info;
+        }
+    }
+    EXPECT_NOT_NULL(subframe.get());
+
+    auto centreColour = [&](const char* label) {
+        RetainPtr snapshot = [webView snapshotAfterScreenUpdates];
+        CGImagePixelReader reader { snapshot.get() };
+        auto colour = reader.cssColorAt(reader.width() / 2, reader.height() / 2);
+        WTFLogAlways("%s: centre pixel = %s", label, colour.utf8().data());
+        return colour;
+    };
+
+    EXPECT_WK_STREQ("rgb(0, 192, 0)", centreColour("before"));
+
+    // RemoteLayerBackingStoreProperties for this build: four empty optionals (bufferHandle,
+    // bufferSet, contentsRenderingResourceIdentifier, paintedRect), m_isOpaque, m_type
+    // (enum class Type : bool), then m_maxRequestedEDRHeadroom. RE_DYNAMIC_CONTENT_SCALING is off
+    // here so m_displayListBufferHandle is absent.
+    //
+    // PlatformLayerIdentifier is ProcessQualified: object() then processIdentifier(). Both parts,
+    // and the DrawingAreaIdentifier used as the destination, are per-process monotonic counters
+    // starting at 1, so the subframe can simply sweep the low range rather than being told them.
+    NSString *attack =
+        @"var ui = IPC.connectionForProcessTarget('UI');"
+        "var emptyProps = ["
+        "  {type:'bool', value:0},"   // m_bufferHandle
+        "  {type:'bool', value:0},"   // m_bufferSet
+        "  {type:'bool', value:0},"   // m_contentsRenderingResourceIdentifier
+        "  {type:'bool', value:0},"   // m_paintedRect
+        "  {type:'bool', value:0},"   // m_isOpaque
+        "  {type:'bool', value:0},"   // m_type = IOSurface
+        "  {type:'float', value:1.0}"     // m_maxRequestedEDRHeadroom
+        "];"
+        "var sent = 0; var firstError = '';"
+        "for (var dest = 1; dest <= 16; ++dest) {"
+        "  for (var pid = 1; pid <= 3; ++pid) {"
+        "    for (var layer = 1; layer <= 8; ++layer) {"
+        "      var layerID = [{type:'uint64_t', value:BigInt(layer)}, {type:'uint64_t', value:BigInt(pid)}];"
+        "      try {"
+        "        ui.sendMessage(IPC.messages.RemoteLayerTreeDrawingAreaProxy_AsyncSetLayerContents.name,"
+        "          dest, [layerID].concat(emptyProps));"
+        "        ++sent;"
+        "      } catch (e) { if (!firstError) firstError = String(e && e.message ? e.message : e); }"
+        "    }"
+        "  }"
+        "}"
+        "'sent=' + sent + ' firstError=' + firstError + ' hasMsg=' + (typeof IPC.messages.RemoteLayerTreeDrawingAreaProxy_AsyncSetLayerContents)";
+
+    id sentCount = [webView objectByEvaluatingJavaScript:attack inFrame:subframe.get()];
+    WTFLogAlways("attack result: %s", [[sentCount description] UTF8String]);
+
+    [webView waitForNextPresentationUpdate];
+    TestWebKitAPI::Util::runFor(0.5_s);
+
+    // If the identifier is validated, the embedder's layer is untouched and this stays green.
+    EXPECT_WK_STREQ("rgb(0, 192, 0)", centreColour("after"));
+}
+
+#endif // ENABLE(IPC_TESTING_API)
+
+} // namespace TestWebKitAPI
