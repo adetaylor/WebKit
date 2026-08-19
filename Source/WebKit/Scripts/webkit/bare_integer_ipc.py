@@ -97,7 +97,20 @@ VALID_CATEGORIES = {
     # This is an object identifier and should be an ObjectIdentifier<Tag>. The
     # burn-down list.
     "NeedsTyping",
+    # Predates this rule and has not been individually reviewed. Seeded in bulk so the
+    # ratchet could be turned on; carries no claim that the value is safe. Do not add to
+    # this category in new code - pick a real one, or NeedsTyping.
+    "LegacyUnreviewed",
 }
+
+# A typed identifier has to reach the wire as an integer somewhere, and it does so through
+# its own raw-value accessor. A serialized member that IS that accessor is the correct
+# pattern, not a violation of it: WTF::ObjectIdentifier { uint64_t toUInt64() } is the
+# definition every typed identifier is built on.
+IDENTIFIER_RAW_VALUE_ACCESSORS = {
+    "toUInt64()", "toRawValue()", "toUInt32()",
+}
+
 
 # Receivers whose entire interface is a stream of scalars - a command stream for a
 # graphics API, where every parameter is a driver enum or dimension and none is a
@@ -162,6 +175,11 @@ def resolves_to_bare_integer(type_str, visited=None):
     return resolves_to_bare_integer(parameter, visited)
 
 
+def is_identifier_raw_value_accessor(member_name):
+    """True when this serialized member is how a typed identifier reaches the wire."""
+    return member_name.strip() in IDENTIFIER_RAW_VALUE_ACCESSORS
+
+
 def receiver_is_in_scope(receiver):
     """True when this receiver's integers must be justified.
 
@@ -195,7 +213,8 @@ class BareIntegerIPCTypes(object):
     def __init__(self, tracking_file_path=None):
         if tracking_file_path is None:
             tracking_file_path = os.path.join(os.path.dirname(__file__), 'bare_integer_ipc.tracking.in')
-        self.parameters = {}
+        self.message_parameters = {}
+        self.struct_members = {}
         self._parse(tracking_file_path)
 
     def _parse(self, path):
@@ -219,16 +238,23 @@ class BareIntegerIPCTypes(object):
                 if category is None:
                     raise Exception(f'{os.path.basename(path)}:{number}: entry outside any [Category] group: {line}')
                 fields = line.split()
-                if len(fields) != 2:
+                if len(fields) != 3 or fields[0] not in ('MessageParam', 'StructMember'):
                     raise Exception(
-                        f'{os.path.basename(path)}:{number}: expected "Receiver.Message parameterName", got: {line}')
-                self.parameters[(fields[0], fields[1])] = category
+                        f'{os.path.basename(path)}:{number}: expected '
+                        f'"MessageParam Receiver.Message parameterName" or '
+                        f'"StructMember Namespace::Type memberName", got: {line}')
+                target = self.message_parameters if fields[0] == 'MessageParam' else self.struct_members
+                target[(fields[1], fields[2])] = category
 
     def category_for(self, receiver_name, message_name, parameter_name):
-        return self.parameters.get((f'{receiver_name}.{message_name}', parameter_name))
+        return self.message_parameters.get((f'{receiver_name}.{message_name}', parameter_name))
+
+    def category_for_struct_member(self, type_name, member_name):
+        return self.struct_members.get((type_name, member_name))
 
     def needs_typing(self):
-        return sorted(key for key, category in self.parameters.items() if category == 'NeedsTyping')
+        entries = list(self.message_parameters.items()) + list(self.struct_members.items())
+        return sorted(key for key, category in entries if category == 'NeedsTyping')
 
 
 bare_integer_ipc_types = BareIntegerIPCTypes()
@@ -272,9 +298,24 @@ if __name__ == '__main__':
 
         def test_production_tracking_file_parses(self):
             tracked = BareIntegerIPCTypes()
-            self.assertGreater(len(tracked.parameters), 100)
-            for category in tracked.parameters.values():
+            self.assertGreater(len(tracked.message_parameters), 100)
+            self.assertGreater(len(tracked.struct_members), 100)
+            for category in list(tracked.message_parameters.values()) + list(tracked.struct_members.values()):
                 self.assertIn(category, VALID_CATEGORIES)
+
+        def test_struct_members_are_tracked_separately_from_parameters(self):
+            tracked = BareIntegerIPCTypes()
+            self.assertIsNotNone(tracked.category_for_struct_member('PlatformXR::FrameData', 'predictedDisplayTime'))
+            # A struct member lookup must not be satisfied by a message parameter entry.
+            self.assertIsNone(tracked.category_for_struct_member('AcceleratedBackingStore.Frame', 'id'))
+
+        def test_identifier_raw_value_accessors_are_exempt(self):
+            # WTF::ObjectIdentifier { uint64_t toUInt64() } is the correct pattern, so the
+            # rule must not demand a justification for it.
+            for accessor in ('toUInt64()', 'toRawValue()'):
+                self.assertTrue(is_identifier_raw_value_accessor(accessor))
+            self.assertFalse(is_identifier_raw_value_accessor('id'))
+            self.assertIsNone(BareIntegerIPCTypes().category_for_struct_member('WTF::ObjectIdentifier', 'toUInt64()'))
 
         def test_known_untyped_identifiers_are_on_the_burn_down_list(self):
             tracked = BareIntegerIPCTypes()

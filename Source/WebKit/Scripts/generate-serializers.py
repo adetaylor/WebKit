@@ -29,6 +29,7 @@ import os
 import re
 import sys
 
+from webkit.bare_integer_ipc import bare_integer_ipc_types, is_identifier_raw_value_accessor, resolves_to_bare_integer
 from webkit.opaque_ipc_types import is_opaque_type, opaque_ipc_types
 
 # Generated serializers are split into per-bundle translation units to keep
@@ -347,6 +348,29 @@ class SerializedType(object):
                 namespace_and_name = self.namespace_and_name()
                 if not opaque_ipc_types.structure_param_tracked(namespace_and_name, member.name, member.type):
                     raise Exception(f"Justification needed in opaque_ipc_types.tracking.in: [] StructureParam {namespace_and_name}.{member.name} {member.type}")
+
+    def enforce_bare_integer_ipc_usage(self):
+        """An object identifier crossing IPC inside a struct must still be typed.
+
+        PageOverlayID reached the web process as a bare uint64_t member of
+        WebHitTestResultPlatformData, not as a message parameter, so a rule that only
+        looked at parameters would have missed it. See webkit/bare_integer_ipc.py.
+        """
+        for member in self.members:
+            if is_identifier_raw_value_accessor(member.name):
+                continue
+            integer_type = resolves_to_bare_integer(member.type)
+            if integer_type is None:
+                continue
+            namespace_and_name = self.namespace_and_name()
+            if bare_integer_ipc_types.category_for_struct_member(namespace_and_name, member.name):
+                continue
+            raise Exception(
+                f"{namespace_and_name}.{member.name} crosses IPC as a bare integer "
+                f"({integer_type}). If it identifies an object it must be an ObjectIdentifier<Tag> "
+                f"(see wtf/ObjectIdentifier.h); otherwise say why not in "
+                f"bare_integer_ipc.tracking.in, for example:\n"
+                f"    [Measurement] {{\n        StructMember {namespace_and_name} {member.name}\n    }}")
 
 
 class SerializedEnum(object):
@@ -2162,6 +2186,7 @@ def main(argv):
             new_types, new_enums, new_headers, new_using_statements, new_additional_forward_declarations, new_objc_wrapped_types = parse_serialized_types(file)
             for type in new_types:
                 type.enforce_opaque_ipc_types_usage()
+                type.enforce_bare_integer_ipc_usage()
                 type.bundle = bundle
                 serialized_types.append(type)
             for enum in new_enums:
