@@ -28,7 +28,9 @@
 #include "Untrusted.h"
 #include "WebSWServerConnection.h"
 #include <WebCore/ClientOrigin.h>
+#include <WebCore/RegistrableDomain.h>
 #include <WebCore/SecurityOriginData.h>
+#include <WebCore/Site.h>
 #include <wtf/URL.h>
 
 namespace WebKit {
@@ -67,6 +69,28 @@ private:
     Ref<WebSWServerConnection> m_connection;
 };
 
+// clients.openWindow() and WindowClient.navigate() both require a same-origin URL, so a
+// service worker process may only name URLs within the site its workers were created for.
+class ServiceWorkerSiteAuthority : public IPC::UntrustedContainerValidation<ServiceWorkerSiteAuthority> {
+public:
+    using IPC::UntrustedContainerValidation<ServiceWorkerSiteAuthority>::validateUntrusted;
+
+    explicit ServiceWorkerSiteAuthority(const WebCore::Site& site)
+        : m_domain(site.domain())
+    {
+    }
+
+    IPC::Validated<URL> validateUntrusted(URL&& url) const
+    {
+        if (WebCore::RegistrableDomain { url } != m_domain)
+            return std::unexpected { IPC::ValidationFailure::Terminate };
+        return IPC::Validated<URL> { WTF::move(url) };
+    }
+
+private:
+    WebCore::RegistrableDomain m_domain;
+};
+
 } // namespace WebKit
 
 namespace IPC {
@@ -74,5 +98,7 @@ namespace IPC {
 template<> struct IsPreordainedValidator<WebKit::ServiceWorkerClientOriginAuthority, WebCore::SecurityOriginData> : std::true_type { };
 template<> struct IsPreordainedValidator<WebKit::ServiceWorkerClientOriginAuthority, WebCore::ClientOrigin> : std::true_type { };
 template<> struct IsPreordainedValidator<WebKit::ServiceWorkerClientOriginAuthority, URL> : std::true_type { };
+
+template<> struct IsPreordainedValidator<WebKit::ServiceWorkerSiteAuthority, URL> : std::true_type { };
 
 } // namespace IPC
