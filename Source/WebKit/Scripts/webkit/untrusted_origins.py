@@ -92,6 +92,7 @@ UNTRUSTED_WRAPPER = "IPC::Untrusted"
 # test_preordained_validators_are_confined below.
 PREORDAINED_VALIDATOR_HEADERS = {
     "Platform/IPC/Untrusted.h",
+    "GPUProcess/GPUHostedDomainAuthority.h",
     "NetworkProcess/FirstPartyForCookiesAuthority.h",
     "NetworkProcess/ServiceWorker/ServiceWorkerOriginAuthority.h",
     "NetworkProcess/webrtc/RTCDomainAuthority.h",
