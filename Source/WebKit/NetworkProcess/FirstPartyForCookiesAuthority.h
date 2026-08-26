@@ -28,11 +28,13 @@
 #include "NetworkConnectionToWebProcess.h"
 #include "NetworkProcess.h"
 #include "Untrusted.h"
+#include <WebCore/BlobURL.h>
 #include <WebCore/ClientOrigin.h>
 #include <WebCore/ProcessIdentifier.h>
 #include <WebCore/RegistrableDomain.h>
 #include <WebCore/SecurityOriginData.h>
 #include <WebCore/Site.h>
+#include <wtf/URL.h>
 
 namespace WebKit {
 
@@ -74,6 +76,12 @@ public:
     {
         auto domain = site.domain();
         return validated(domain, WTF::move(site));
+    }
+
+    IPC::Validated<URL> validateUntrusted(URL&& url) const
+    {
+        auto domain = WebCore::RegistrableDomain { url };
+        return validated(domain, WTF::move(url));
     }
 
 private:
@@ -129,6 +137,13 @@ public:
         return IPC::Validated<WebCore::SecurityOriginData> { WTF::move(origin) };
     }
 
+    IPC::Validated<URL> validateUntrusted(URL&& url) const
+    {
+        if (!hosts(WebCore::RegistrableDomain { url }))
+            return std::unexpected { IPC::ValidationFailure::Terminate };
+        return IPC::Validated<URL> { WTF::move(url) };
+    }
+
     IPC::Validated<WebCore::ClientOrigin> validateUntrusted(WebCore::ClientOrigin&& origin) const
     {
         if (!hosts(WebCore::RegistrableDomain { origin.clientOrigin }))
@@ -150,6 +165,29 @@ private:
     WebCore::ProcessIdentifier m_webProcessIdentifier;
 };
 
+class BlobURLOriginAuthority : public IPC::UntrustedContainerValidation<BlobURLOriginAuthority> {
+public:
+    using IPC::UntrustedContainerValidation<BlobURLOriginAuthority>::validateUntrusted;
+
+    BlobURLOriginAuthority(NetworkProcess& networkProcess, WebCore::ProcessIdentifier webProcessIdentifier)
+        : m_inner(networkProcess, webProcessIdentifier)
+    {
+    }
+
+    IPC::Validated<URL> validateUntrusted(URL&& url) const
+    {
+        if (!url.protocolIsBlob())
+            return std::unexpected { IPC::ValidationFailure::Terminate };
+        auto validated = m_inner.validateUntrusted(WebCore::BlobURL::getOriginURL(url));
+        if (!validated)
+            return std::unexpected { validated.error() };
+        return IPC::Validated<URL> { WTF::move(url) };
+    }
+
+private:
+    HostedDomainAuthority m_inner;
+};
+
 } // namespace WebKit
 
 namespace IPC {
@@ -157,9 +195,13 @@ namespace IPC {
 template<> struct IsPreordainedValidator<WebKit::FirstPartyForCookiesAuthority, WebCore::SecurityOriginData> : std::true_type { };
 template<> struct IsPreordainedValidator<WebKit::FirstPartyForCookiesAuthority, WebCore::RegistrableDomain> : std::true_type { };
 template<> struct IsPreordainedValidator<WebKit::FirstPartyForCookiesAuthority, WebCore::Site> : std::true_type { };
+template<> struct IsPreordainedValidator<WebKit::FirstPartyForCookiesAuthority, URL> : std::true_type { };
 
 template<> struct IsPreordainedValidator<WebKit::HostedDomainAuthority, WebCore::RegistrableDomain> : std::true_type { };
 template<> struct IsPreordainedValidator<WebKit::HostedDomainAuthority, WebCore::SecurityOriginData> : std::true_type { };
 template<> struct IsPreordainedValidator<WebKit::HostedDomainAuthority, WebCore::ClientOrigin> : std::true_type { };
+template<> struct IsPreordainedValidator<WebKit::HostedDomainAuthority, URL> : std::true_type { };
+
+template<> struct IsPreordainedValidator<WebKit::BlobURLOriginAuthority, URL> : std::true_type { };
 
 } // namespace IPC
