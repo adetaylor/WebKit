@@ -43,22 +43,53 @@ public:
     {
     }
 
-    IPC::Validated<WebCore::SecurityOriginData> validateUntrusted(WebCore::SecurityOriginData&&) const
+    IPC::Validated<WebCore::SecurityOriginData> validateUntrusted(WebCore::SecurityOriginData&& origin) const
     {
-        RELEASE_ASSERT_NOT_REACHED();
+        auto domain = WebCore::RegistrableDomain { origin };
+        return validateDomain(domain, WTF::move(origin));
     }
 
-    IPC::Validated<WebCore::RegistrableDomain> validateUntrusted(WebCore::RegistrableDomain&&) const
+    IPC::Validated<WebCore::RegistrableDomain> validateUntrusted(WebCore::RegistrableDomain&& domain) const
     {
-        RELEASE_ASSERT_NOT_REACHED();
+        if (auto failure = failureFor(domain))
+            return std::unexpected { *failure };
+        return IPC::Validated<WebCore::RegistrableDomain> { WTF::move(domain) };
     }
 
-    IPC::Validated<WebCore::Site> validateUntrusted(WebCore::Site&&) const
+    IPC::Validated<WebCore::Site> validateUntrusted(WebCore::Site&& site) const
     {
-        RELEASE_ASSERT_NOT_REACHED();
+        auto domain = site.domain();
+        return validateDomain(domain, WTF::move(site));
     }
 
 private:
+    std::optional<IPC::ValidationFailure> failureFor(const WebCore::RegistrableDomain& domain) const
+    {
+        // Without site isolation, WebProcessProxy records only the main frame's site while the
+        // process hosts every site the page pulls in, so this question has no useful answer.
+        auto& preferences = m_process->sharedPreferencesForWebProcessValue();
+        if (!preferences.siteIsolationEnabled || preferences.usesSingleWebProcess)
+            return std::nullopt;
+
+        switch (m_process->allowsFirstPartyAccess(domain)) {
+        case WebProcessProxy::FirstPartyAccessResult::Pass:
+            return std::nullopt;
+        case WebProcessProxy::FirstPartyAccessResult::SilentFailure:
+            return IPC::ValidationFailure::Ignore;
+        case WebProcessProxy::FirstPartyAccessResult::HardFailure:
+            return IPC::ValidationFailure::Terminate;
+        }
+        RELEASE_ASSERT_NOT_REACHED();
+    }
+
+    template<typename T>
+    IPC::Validated<T> validateDomain(const WebCore::RegistrableDomain& domain, T&& value) const
+    {
+        if (auto failure = failureFor(domain))
+            return std::unexpected { *failure };
+        return IPC::Validated<T> { WTF::move(value) };
+    }
+
     Ref<const WebProcessProxy> m_process;
 };
 
@@ -71,9 +102,11 @@ public:
     {
     }
 
-    IPC::Validated<WebCore::ClientOrigin> validateUntrusted(WebCore::ClientOrigin&&) const
+    IPC::Validated<WebCore::ClientOrigin> validateUntrusted(WebCore::ClientOrigin&& origin) const
     {
-        RELEASE_ASSERT_NOT_REACHED();
+        if (!m_process->hasCommittedClientOrigin(origin))
+            return std::unexpected { IPC::ValidationFailure::Terminate };
+        return IPC::Validated<WebCore::ClientOrigin> { WTF::move(origin) };
     }
 
 private:
