@@ -48,7 +48,6 @@ enum class ValidationFailure : uint8_t {
 template<typename T> using Validated = Expected<T, ValidationFailure>;
 
 enum class UnvalidatedReason : uint8_t {
-    NeedsReview,
     ValidatedElsewhere,
     RequestTarget,
     NotSecuritySensitive,
