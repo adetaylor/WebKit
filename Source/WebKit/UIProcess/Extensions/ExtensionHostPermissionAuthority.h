@@ -33,20 +33,18 @@
 
 namespace WebKit {
 
-class ExtensionHostPermissionAuthority : public IPC::UntrustedContainerValidation<ExtensionHostPermissionAuthority> {
+class ExtensionHostPermissionAuthority : public IPC::UntrustedValidation<ExtensionHostPermissionAuthority> {
 public:
-    using IPC::UntrustedContainerValidation<ExtensionHostPermissionAuthority>::validateUntrusted;
-
     explicit ExtensionHostPermissionAuthority(WebExtensionContext& context)
         : m_context(context)
     {
     }
 
-    IPC::Validated<URL> validateUntrusted(URL&& url) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const URL& url) const
     {
         if (!m_context->hasPermission(url))
-            return std::unexpected { IPC::ValidationFailure::Ignore };
-        return IPC::Validated<URL> { WTF::move(url) };
+            return IPC::ValidationFailure::Ignore;
+        return std::nullopt;
     }
 
 private:

@@ -51,10 +51,8 @@ enum class StoragePolicyScope : bool {
     Strict,
 };
 
-class StorageOriginAuthority : public IPC::UntrustedContainerValidation<StorageOriginAuthority> {
+class StorageOriginAuthority : public IPC::UntrustedValidation<StorageOriginAuthority> {
 public:
-    using IPC::UntrustedContainerValidation<StorageOriginAuthority>::validateUntrusted;
-
     StorageOriginAuthority(const NetworkStorageManager& manager, IPC::Connection& connection, StoragePolicyScope scope)
         : m_manager(manager)
         , m_connection(connection)
@@ -62,15 +60,15 @@ public:
     {
     }
 
-    IPC::Validated<WebCore::ClientOrigin> validateUntrusted(WebCore::ClientOrigin&& origin) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::ClientOrigin& origin) const
     {
         auto domain = WebCore::RegistrableDomain { origin.topOrigin };
         bool allowed = m_scope == StoragePolicyScope::WebStorage
             ? m_manager->canConnectionAccessSiteForWebStorage(m_connection, domain)
             : m_manager->isSiteAllowedForConnection(m_connection->uniqueID(), domain);
         if (!allowed)
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        return IPC::Validated<WebCore::ClientOrigin> { WTF::move(origin) };
+            return IPC::ValidationFailure::Terminate;
+        return std::nullopt;
     }
 
 private:

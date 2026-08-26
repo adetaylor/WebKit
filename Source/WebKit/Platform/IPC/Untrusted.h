@@ -110,37 +110,44 @@ template<typename T> struct ArgumentCoder<Untrusted<T>> {
     }
 };
 
-// Derived classes must republish the base overloads:
-//     using UntrustedContainerValidation<MyAuthority>::validateUntrusted;
+template<typename> struct IsStdOptional : std::false_type { };
+template<typename T> struct IsStdOptional<std::optional<T>> : std::true_type { };
+
+// An authority states its procedure once, as a check on a single value, and this mixin derives
+// the forms Untrusted<T> needs: the value-returning validateUntrusted, and the lift over
+// optionals and sets.
+//
+// The procedure is a check rather than a transform so that nothing has to be copied, which lets
+// an authority check a non-copyable WebCore::SecurityOrigin.
 template<typename Derived>
-class UntrustedContainerValidation {
+class UntrustedValidation {
 public:
     template<typename T>
-    Validated<std::optional<T>> validateUntrusted(std::optional<T>&& value) const
+    Validated<T> validateUntrusted(T&& value) const
     {
-        if (!value)
-            return Validated<std::optional<T>> { std::nullopt };
-        auto validated = self().validateUntrusted(WTF::move(*value));
-        if (!validated)
-            return std::unexpected { validated.error() };
-        return Validated<std::optional<T>> { WTF::move(*validated) };
+        if (auto failure = checkAnyUntrusted(value))
+            return std::unexpected { *failure };
+        return Validated<T> { WTF::move(value) };
     }
 
-    template<typename Container> requires requires (Container& c) { c.begin(); c.takeAny(); }
-    Validated<Container> validateUntrusted(Container&& values) const
+    template<typename T>
+    std::optional<ValidationFailure> checkAnyUntrusted(const T& value) const
     {
-        Container validatedValues;
-        while (!values.isEmpty()) {
-            auto validated = self().validateUntrusted(values.takeAny());
-            if (!validated)
-                return std::unexpected { validated.error() };
-            validatedValues.add(WTF::move(*validated));
+        const Derived& validator = static_cast<const Derived&>(*this);
+        if constexpr (requires { validator.checkUntrusted(value); })
+            return validator.checkUntrusted(value);
+        else if constexpr (IsStdOptional<T>::value) {
+            if (!value)
+                return std::nullopt;
+            return checkAnyUntrusted(*value);
+        } else {
+            for (auto& item : value) {
+                if (auto failure = checkAnyUntrusted(item))
+                    return failure;
+            }
+            return std::nullopt;
         }
-        return Validated<Container> { WTF::move(validatedValues) };
     }
-
-private:
-    const Derived& self() const { return static_cast<const Derived&>(*this); }
 };
 
 template<typename Validator, typename T>

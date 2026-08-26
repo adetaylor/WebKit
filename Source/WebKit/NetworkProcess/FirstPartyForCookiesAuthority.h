@@ -49,39 +49,32 @@ inline bool canCheckDomainAuthority(NetworkProcess& networkProcess, WebCore::Pro
     return preferences.siteIsolationEnabled && !preferences.usesSingleWebProcess;
 }
 
-class FirstPartyForCookiesAuthority : public IPC::UntrustedContainerValidation<FirstPartyForCookiesAuthority> {
+class FirstPartyForCookiesAuthority : public IPC::UntrustedValidation<FirstPartyForCookiesAuthority> {
 public:
-    using IPC::UntrustedContainerValidation<FirstPartyForCookiesAuthority>::validateUntrusted;
-
     FirstPartyForCookiesAuthority(NetworkProcess& networkProcess, WebCore::ProcessIdentifier webProcessIdentifier)
         : m_networkProcess(networkProcess)
         , m_webProcessIdentifier(webProcessIdentifier)
     {
     }
 
-    IPC::Validated<WebCore::SecurityOriginData> validateUntrusted(WebCore::SecurityOriginData&& origin) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::SecurityOriginData& origin) const
     {
-        auto domain = WebCore::RegistrableDomain { origin };
-        return validated(domain, WTF::move(origin));
+        return failureFor(WebCore::RegistrableDomain { origin });
     }
 
-    IPC::Validated<WebCore::RegistrableDomain> validateUntrusted(WebCore::RegistrableDomain&& domain) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::RegistrableDomain& domain) const
     {
-        if (auto failure = failureFor(domain))
-            return std::unexpected { *failure };
-        return IPC::Validated<WebCore::RegistrableDomain> { WTF::move(domain) };
+        return failureFor(domain);
     }
 
-    IPC::Validated<WebCore::Site> validateUntrusted(WebCore::Site&& site) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::Site& site) const
     {
-        auto domain = site.domain();
-        return validated(domain, WTF::move(site));
+        return failureFor(site.domain());
     }
 
-    IPC::Validated<URL> validateUntrusted(URL&& url) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const URL& url) const
     {
-        auto domain = WebCore::RegistrableDomain { url };
-        return validated(domain, WTF::move(url));
+        return failureFor(WebCore::RegistrableDomain { url });
     }
 
 private:
@@ -101,87 +94,66 @@ private:
         RELEASE_ASSERT_NOT_REACHED();
     }
 
-    template<typename T>
-    IPC::Validated<T> validated(const WebCore::RegistrableDomain& domain, T&& value) const
-    {
-        if (auto failure = failureFor(domain))
-            return std::unexpected { *failure };
-        return IPC::Validated<T> { WTF::move(value) };
-    }
-
     Ref<NetworkProcess> m_networkProcess;
     WebCore::ProcessIdentifier m_webProcessIdentifier;
 };
 
-class HostedDomainAuthority : public IPC::UntrustedContainerValidation<HostedDomainAuthority> {
+class HostedDomainAuthority : public IPC::UntrustedValidation<HostedDomainAuthority> {
 public:
-    using IPC::UntrustedContainerValidation<HostedDomainAuthority>::validateUntrusted;
-
     HostedDomainAuthority(NetworkProcess& networkProcess, WebCore::ProcessIdentifier webProcessIdentifier)
         : m_networkProcess(networkProcess)
         , m_webProcessIdentifier(webProcessIdentifier)
     {
     }
 
-    IPC::Validated<WebCore::RegistrableDomain> validateUntrusted(WebCore::RegistrableDomain&& domain) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::RegistrableDomain& domain) const
     {
-        if (!hosts(domain))
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        return IPC::Validated<WebCore::RegistrableDomain> { WTF::move(domain) };
+        return failureFor(domain);
     }
 
-    IPC::Validated<WebCore::SecurityOriginData> validateUntrusted(WebCore::SecurityOriginData&& origin) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::SecurityOriginData& origin) const
     {
-        if (!hosts(WebCore::RegistrableDomain { origin }))
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        return IPC::Validated<WebCore::SecurityOriginData> { WTF::move(origin) };
+        return failureFor(WebCore::RegistrableDomain { origin });
     }
 
-    IPC::Validated<URL> validateUntrusted(URL&& url) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const URL& url) const
     {
-        if (!hosts(WebCore::RegistrableDomain { url }))
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        return IPC::Validated<URL> { WTF::move(url) };
+        return failureFor(WebCore::RegistrableDomain { url });
     }
 
-    IPC::Validated<WebCore::ClientOrigin> validateUntrusted(WebCore::ClientOrigin&& origin) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::ClientOrigin& origin) const
     {
-        if (!hosts(WebCore::RegistrableDomain { origin.clientOrigin }))
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        if (auto failure = FirstPartyForCookiesAuthority { m_networkProcess, m_webProcessIdentifier }
-            .validateUntrusted(WebCore::SecurityOriginData { origin.topOrigin }); !failure)
-            return std::unexpected { failure.error() };
-        return IPC::Validated<WebCore::ClientOrigin> { WTF::move(origin) };
+        if (auto failure = failureFor(WebCore::RegistrableDomain { origin.clientOrigin }))
+            return failure;
+        return FirstPartyForCookiesAuthority { m_networkProcess, m_webProcessIdentifier }.checkUntrusted(origin.topOrigin);
     }
 
 private:
-    bool hosts(const WebCore::RegistrableDomain& domain) const
+    std::optional<IPC::ValidationFailure> failureFor(const WebCore::RegistrableDomain& domain) const
     {
-        return !canCheckDomainAuthority(m_networkProcess, m_webProcessIdentifier)
-            || m_networkProcess->hostsDomain(m_webProcessIdentifier, domain);
+        if (!canCheckDomainAuthority(m_networkProcess, m_webProcessIdentifier))
+            return std::nullopt;
+        if (!m_networkProcess->hostsDomain(m_webProcessIdentifier, domain))
+            return IPC::ValidationFailure::Terminate;
+        return std::nullopt;
     }
 
     Ref<NetworkProcess> m_networkProcess;
     WebCore::ProcessIdentifier m_webProcessIdentifier;
 };
 
-class BlobURLOriginAuthority : public IPC::UntrustedContainerValidation<BlobURLOriginAuthority> {
+class BlobURLOriginAuthority : public IPC::UntrustedValidation<BlobURLOriginAuthority> {
 public:
-    using IPC::UntrustedContainerValidation<BlobURLOriginAuthority>::validateUntrusted;
-
     BlobURLOriginAuthority(NetworkProcess& networkProcess, WebCore::ProcessIdentifier webProcessIdentifier)
         : m_inner(networkProcess, webProcessIdentifier)
     {
     }
 
-    IPC::Validated<URL> validateUntrusted(URL&& url) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const URL& url) const
     {
         if (!url.protocolIsBlob())
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        auto validated = m_inner.validateUntrusted(WebCore::BlobURL::getOriginURL(url));
-        if (!validated)
-            return std::unexpected { validated.error() };
-        return IPC::Validated<URL> { WTF::move(url) };
+            return IPC::ValidationFailure::Terminate;
+        return m_inner.checkUntrusted(WebCore::BlobURL::getOriginURL(url));
     }
 
 private:

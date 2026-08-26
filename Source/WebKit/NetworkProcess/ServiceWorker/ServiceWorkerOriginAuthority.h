@@ -35,56 +35,53 @@
 
 namespace WebKit {
 
-class ServiceWorkerClientOriginAuthority : public IPC::UntrustedContainerValidation<ServiceWorkerClientOriginAuthority> {
+class ServiceWorkerClientOriginAuthority : public IPC::UntrustedValidation<ServiceWorkerClientOriginAuthority> {
 public:
-    using IPC::UntrustedContainerValidation<ServiceWorkerClientOriginAuthority>::validateUntrusted;
-
     explicit ServiceWorkerClientOriginAuthority(WebSWServerConnection& connection)
         : m_connection(connection)
     {
     }
 
-    IPC::Validated<WebCore::SecurityOriginData> validateUntrusted(WebCore::SecurityOriginData&& origin) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::SecurityOriginData& origin) const
     {
-        if (!m_connection->checkTopOrigin(origin))
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        return IPC::Validated<WebCore::SecurityOriginData> { WTF::move(origin) };
+        return failureFor(origin);
     }
 
-    IPC::Validated<URL> validateUntrusted(URL&& url) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const URL& url) const
     {
-        if (!m_connection->checkTopOrigin(WebCore::SecurityOriginData::fromURL(url)))
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        return IPC::Validated<URL> { WTF::move(url) };
+        return failureFor(WebCore::SecurityOriginData::fromURL(url));
     }
 
-    IPC::Validated<WebCore::ClientOrigin> validateUntrusted(WebCore::ClientOrigin&& origin) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::ClientOrigin& origin) const
     {
-        if (!m_connection->checkTopOrigin(origin.topOrigin))
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        return IPC::Validated<WebCore::ClientOrigin> { WTF::move(origin) };
+        return failureFor(origin.topOrigin);
     }
 
 private:
+    std::optional<IPC::ValidationFailure> failureFor(const WebCore::SecurityOriginData& topOrigin) const
+    {
+        if (!m_connection->checkTopOrigin(topOrigin))
+            return IPC::ValidationFailure::Terminate;
+        return std::nullopt;
+    }
+
     Ref<WebSWServerConnection> m_connection;
 };
 
 // clients.openWindow() and WindowClient.navigate() both require a same-origin URL, so a
 // service worker process may only name URLs within the site its workers were created for.
-class ServiceWorkerSiteAuthority : public IPC::UntrustedContainerValidation<ServiceWorkerSiteAuthority> {
+class ServiceWorkerSiteAuthority : public IPC::UntrustedValidation<ServiceWorkerSiteAuthority> {
 public:
-    using IPC::UntrustedContainerValidation<ServiceWorkerSiteAuthority>::validateUntrusted;
-
     explicit ServiceWorkerSiteAuthority(const WebCore::Site& site)
         : m_domain(site.domain())
     {
     }
 
-    IPC::Validated<URL> validateUntrusted(URL&& url) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const URL& url) const
     {
         if (WebCore::RegistrableDomain { url } != m_domain)
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        return IPC::Validated<URL> { WTF::move(url) };
+            return IPC::ValidationFailure::Terminate;
+        return std::nullopt;
     }
 
 private:

@@ -35,20 +35,18 @@
 
 namespace WebKit {
 
-class GPUHostedDomainAuthority : public IPC::UntrustedContainerValidation<GPUHostedDomainAuthority> {
+class GPUHostedDomainAuthority : public IPC::UntrustedValidation<GPUHostedDomainAuthority> {
 public:
-    using IPC::UntrustedContainerValidation<GPUHostedDomainAuthority>::validateUntrusted;
-
     explicit GPUHostedDomainAuthority(GPUConnectionToWebProcess& connection)
         : m_connection(connection)
     {
     }
 
-    IPC::Validated<WebCore::SecurityOriginData> validateUntrusted(WebCore::SecurityOriginData&& origin) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::SecurityOriginData& origin) const
     {
         if (!m_connection->gpuProcess().hostsDomain(m_connection->webProcessIdentifier(), WebCore::RegistrableDomain { origin }))
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        return IPC::Validated<WebCore::SecurityOriginData> { WTF::move(origin) };
+            return IPC::ValidationFailure::Terminate;
+        return std::nullopt;
     }
 
 private:

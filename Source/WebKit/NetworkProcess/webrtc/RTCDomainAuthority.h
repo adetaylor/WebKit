@@ -33,20 +33,18 @@
 
 namespace WebKit {
 
-class RTCDomainAuthority : public IPC::UntrustedContainerValidation<RTCDomainAuthority> {
+class RTCDomainAuthority : public IPC::UntrustedValidation<RTCDomainAuthority> {
 public:
-    using IPC::UntrustedContainerValidation<RTCDomainAuthority>::validateUntrusted;
-
     explicit RTCDomainAuthority(NetworkRTCProvider& provider)
         : m_provider(provider)
     {
     }
 
-    IPC::Validated<WebCore::RegistrableDomain> validateUntrusted(WebCore::RegistrableDomain&& domain) const
+    std::optional<IPC::ValidationFailure> checkUntrusted(const WebCore::RegistrableDomain& domain) const
     {
         if (!m_provider->hostsDomain(domain))
-            return std::unexpected { IPC::ValidationFailure::Terminate };
-        return IPC::Validated<WebCore::RegistrableDomain> { WTF::move(domain) };
+            return IPC::ValidationFailure::Terminate;
+        return std::nullopt;
     }
 
 private:

@@ -86,10 +86,10 @@ TRAVERSED_CONTAINERS = {
 
 UNTRUSTED_WRAPPER = "IPC::Untrusted"
 
-# Files permitted to declare a pre-ordained validation procedure by specializing
-# IPC::IsPreordainedValidator. Confining these keeps the set of ways to recover a
-# trusted value from an Untrusted<T> small and reviewable. Enforced by
-# test_preordained_validators_are_confined below.
+# Files permitted to declare a pre-ordained validation procedure, either by specializing
+# IPC::IsPreordainedValidator or by deriving from IPC::UntrustedValidation. Confining these
+# keeps the set of ways to recover a trusted value from an Untrusted<T> small and reviewable.
+# Enforced by test_preordained_validators_are_confined below.
 PREORDAINED_VALIDATOR_HEADERS = {
     "Platform/IPC/Untrusted.h",
     "GPUProcess/GPUHostedDomainAuthority.h",
@@ -100,6 +100,12 @@ PREORDAINED_VALIDATOR_HEADERS = {
     "UIProcess/Extensions/ExtensionHostPermissionAuthority.h",
     "UIProcess/FirstPartyAuthority.h",
 }
+
+# Text that declares a validation procedure, and so may only appear in the headers above.
+PREORDAINED_VALIDATOR_MARKERS = (
+    "struct IsPreordainedValidator",
+    "IPC::UntrustedValidation<",
+)
 
 def _strip_const_and_whitespace(type_str):
     if not type_str:
@@ -281,10 +287,11 @@ if __name__ == '__main__':
                         continue
                     path = os.path.join(directory, filename)
                     with open(path, 'r', errors='replace') as source_file:
-                        if 'struct IsPreordainedValidator' in source_file.read():
-                            found.add(os.path.relpath(path, source_root))
+                        contents = source_file.read()
+                    if any(marker in contents for marker in PREORDAINED_VALIDATOR_MARKERS):
+                        found.add(os.path.relpath(path, source_root))
             self.assertEqual(found, PREORDAINED_VALIDATOR_HEADERS,
-                             'IPC::IsPreordainedValidator may only be specialized in the headers listed in '
-                             'PREORDAINED_VALIDATOR_HEADERS. Adding a validation procedure needs a security review.')
+                             'A pre-ordained validation procedure may only be declared in the headers listed in '
+                             'PREORDAINED_VALIDATOR_HEADERS. Adding one needs a security review.')
 
     unittest.main()
