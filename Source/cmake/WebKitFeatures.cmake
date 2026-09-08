@@ -237,6 +237,7 @@ macro(WEBKIT_OPTION_BEGIN)
     WEBKIT_OPTION_DEFINE(ENABLE_IOS_GESTURE_EVENTS "Toggle iOS gesture events support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_IOS_TOUCH_EVENTS "Toggle iOS touch events support" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_IPC_TESTING_SWIFT "Toggle Swift-based IPC testing support" PRIVATE OFF)
+    WEBKIT_OPTION_DEFINE(ENABLE_SWIFT_IPC_RECEIVERS "Toggle the shared support for Swift IPC message receivers" PRIVATE OFF)
     WEBKIT_OPTION_DEFINE(ENABLE_JAVASCRIPT_SHELL "Toggle JavaScript shell and testing support" PRIVATE ON)
     WEBKIT_OPTION_DEFINE(ENABLE_JIT "Toggle JustInTime JavaScript support" PRIVATE ${ENABLE_JIT_DEFAULT})
     WEBKIT_OPTION_DEFINE(ENABLE_LAYOUT_TESTS "Toggle layout test support (DumpRenderTree/WebkitTestRunner)" PRIVATE OFF)
@@ -470,6 +471,10 @@ macro(WEBKIT_OPTION_END)
     if (ENABLE_LAYOUT_TESTS AND NOT DEVELOPER_MODE)
         set(ENABLE_LAYOUT_TESTS OFF)
         message(STATUS "Disabling ENABLE_LAYOUT_TESTS since DEVELOPER_MODE is disabled.")
+    endif ()
+
+    if (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT)
+        set(ENABLE_SWIFT_IPC_RECEIVERS ON)
     endif ()
 
     # Run through every possible depends to make sure we have disabled anything
