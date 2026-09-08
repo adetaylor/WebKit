@@ -27,7 +27,7 @@ import subprocess
 
 
 class SwiftChecker(object):
-    categories = set(['webkit/unsafe', 'webkit/wtf_platform'])
+    categories = set(['webkit/message_check', 'webkit/unsafe', 'webkit/wtf_platform'])
 
     _PLATFORM_CONDITIONS = [
         (re.compile(r'\bos\(macOS\)'), 'os(macOS)', 'WTF_PLATFORM_MAC'),
@@ -41,6 +41,9 @@ class SwiftChecker(object):
     ]
 
     _CONDITIONAL_DIRECTIVE_RE = re.compile(r'^\s*#(if|elseif)\b')
+
+    _MESSAGE_CHECK_MARKER_RE = re.compile(r'\bInvalidMessage\b|\bIncomingMessage\b')
+    _SWALLOWED_TRY_RE = re.compile(r'\btry\s*[?!]')
 
     def __init__(self, file_path, handle_style_error):
         self.file_path = file_path
@@ -99,6 +102,19 @@ class SwiftChecker(object):
             if re.search(r'@safe\b', line) and not re.search(r'@unsafe\b', line):
                 self.handle_style_error(index + 1, 'webkit/unsafe', 5, "Please avoid new use of '@safe' in WebKit. See https://github.com/WebKit/WebKit/wiki/Safer-Swift-Guidelines.")
 
+    # A failed IPC message check is a non-resumable failure of the whole message dispatch, so
+    # InvalidMessage must reach IPC dispatch. Only look at files that participate in the message
+    # check machinery, so that ordinary Swift error handling elsewhere is left alone.
+    def _check_message_check_not_swallowed(self, lines):
+        if not any(self._MESSAGE_CHECK_MARKER_RE.search(line) for line in lines):
+            return
+
+        for index, line in enumerate(lines):
+            if line.lstrip().startswith('//'):
+                continue
+            if self._SWALLOWED_TRY_RE.search(line):
+                self.handle_style_error(index + 1, 'webkit/message_check', 5, "Do not swallow a failed message check with 'try?' or 'try!'; let InvalidMessage propagate to IPC dispatch.")
+
     def _check_platform_conditions(self, lines):
         for index, line in enumerate(lines):
             if not self._CONDITIONAL_DIRECTIVE_RE.match(line):
@@ -111,4 +127,5 @@ class SwiftChecker(object):
     def check(self, lines, line_numbers=None):
         self._swift_format(self.file_path, lines, self.handle_style_error)
         self._check_unsafe(lines)
+        self._check_message_check_not_swallowed(lines)
         self._check_platform_conditions(lines)

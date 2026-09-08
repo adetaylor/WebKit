@@ -134,6 +134,46 @@ class SwiftCheckerTest(unittest.TestCase):
         self.assertEqual(errors, expected_errors)
 
 
+class SwiftMessageCheckTest(unittest.TestCase):
+
+    """Tests the _check_message_check_not_swallowed() method of SwiftChecker."""
+
+    def _errors_for_lines(self, lines):
+        errors = []
+
+        def _mock_handle_style_error(line_number, category, confidence, message):
+            errors.append((line_number, category, confidence, message))
+
+        checker = SwiftChecker("foo.swift", _mock_handle_style_error)
+        checker._check_message_check_not_swallowed(lines)
+        return errors
+
+    def test_swallowed_message_check_is_flagged(self):
+        lines = [
+            'func handle(_ ipc: IPC.IncomingMessage) {',   # 1: marks this as a receiver
+            '    try? ipc.check(condition, "reason")',      # 2: flagged
+            '    try! ipc.check(condition, "reason")',      # 3: flagged
+            '    try ipc.check(condition, "reason")',       # 4: not flagged
+            '    // try? ipc.check(condition, "reason")',   # 5: not flagged (comment)
+            '}',
+        ]
+
+        message = "Do not swallow a failed message check with 'try?' or 'try!'; let InvalidMessage propagate to IPC dispatch."
+        self.assertEqual(self._errors_for_lines(lines), [
+            (2, 'webkit/message_check', 5, message),
+            (3, 'webkit/message_check', 5, message),
+        ])
+
+    def test_unrelated_file_is_left_alone(self):
+        lines = [
+            'func parse() -> Int? {',
+            '    return try? decoder.decode(Int.self)',
+            '}',
+        ]
+
+        self.assertEqual(self._errors_for_lines(lines), [])
+
+
 class SwiftPlatformConditionTest(unittest.TestCase):
 
     """Tests the _check_platform_conditions() method of SwiftChecker."""
