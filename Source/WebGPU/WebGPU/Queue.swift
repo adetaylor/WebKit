@@ -44,7 +44,7 @@ extension WebGPU.Queue {
         var temporaryBufferOffset: UInt64 = 0
         let temporaryBuffer = newTemporaryBufferWithBytes(data, noCopy, &temporaryBufferOffset)
 
-        guard let temporaryBuffer = temporaryBuffer else {
+        guard temporaryBuffer.isValid() else {
             assertionFailure("temporaryBuffer should not be nil")
             return
         }
@@ -52,8 +52,7 @@ extension WebGPU.Queue {
         // Shared channel decision with the C++ backend (Queue::encodeStagedCopy): the staged copy
         // is encoded on the compute channel when possible, because standalone blit-only staging
         // command buffers interleaved with user compute submissions intermittently deadlock the
-        // AGX blit/DMA channel. See Queue.mm for the full rationale. Passing the staging buffer
-        // and byte offsets keeps this call free of span interop, so it needs no 'unsafe'.
+        // AGX blit/DMA channel. See Queue.mm for the full rationale.
         encodeStagedCopy(temporaryBuffer, temporaryBufferOffset, buffer, bufferOffset, UInt64(count), noCopy)
     }
 }

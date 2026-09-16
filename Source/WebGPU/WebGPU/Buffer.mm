@@ -321,6 +321,16 @@ std::span<uint8_t> Buffer::getBufferContents()
     return span<uint8_t>(m_buffer);
 }
 
+BufferBorrow BufferBorrow::create(const Borrow<Buffer>& borrow)
+{
+    return BufferBorrow(borrow.get());
+}
+
+WTF::MutableByteSpan BufferBorrow::bytes() const
+{
+    return WTF::MutableByteSpan::create(protect(m_buffer)->getBufferContents());
+}
+
 void Buffer::bufferCopy(std::span<const uint8_t> data, size_t offset)
 {
 #if ENABLE(WEBGPU_SWIFT)
@@ -429,8 +439,6 @@ void Buffer::setState(State state)
   
 void Buffer::unmap()
 {
-    crashIfBorrowed();
-
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
 
     if (!validateUnmap() && !m_device->isValid())

@@ -40,12 +40,9 @@ namespace WTF {
 
 // Byte spans for Swift interop. In order of preference:
 //
-//   SpanUInt8 / MutableSpanUInt8 (plain std::span). A C++ accessor returning one, marked
-//   LIFETIME_BOUND, imports into Swift as a Span whose lifetime Swift tracks. Use these
-//   whenever Swift is calling a C++ function.
-//   (You _can_ use these in Swift functions that need to be called from C++, but they
-//   import as unsafe without the special magic that turns them into safe Swift Span
-//   types, so avoid.)
+//   SpanUInt8 / MutableSpanUInt8 (plain std::span). C++ accessors on a non-reference-
+//   counted type with LIFETIME_BOUND or NOESCAPE which return or accept spans come through
+//   as a nice safe Span or MutableSpan. Use these when possible.
 //
 //   ByteSpan / MutableByteSpan. Non-escapable in Swift, so Swift cannot store one, and
 //   subspan() narrows without naming a pointer. Use these when C++ calls a Swift
@@ -66,20 +63,16 @@ template<typename T> class ByteSpanView;
 using ByteSpan = ByteSpanView<const uint8_t>;
 using MutableByteSpan = ByteSpanView<uint8_t>;
 
-void copyBytes(const MutableByteSpan& destination, const ByteSpan& source);
+void copyByteSpan(MutableByteSpan& destination, const ByteSpan& source);
 
 // Non-escapable wrapper for std::span, for Swift function signatures exposed to C++
 // (because std::span/Span cannot safely be used in that context.)
 //
 // Safe to template only because Swift never extends these: a Swift extension on a
-// template specialization emits unparseable .swiftinterface names. span() is hidden from
-// Swift so Swift never holds an unsafe span, and because a lifetimebound member returning
-// a dependent span crashes the compiler (rdar://187391842).
+// template specialization emits unparseable .swiftinterface names.
 template<typename T> class SWIFT_NONESCAPABLE ByteSpanView final {
 public:
     ByteSpanView() = default;
-
-    static ByteSpanView create(std::span<T> bytes LIFETIME_BOUND) { return ByteSpanView(bytes); }
 
     size_t size() const { return m_span.size(); }
 
@@ -89,13 +82,17 @@ public:
         return ByteSpanView(m_span.subspan(offset, count));
     }
 
-    // See above for why ifndef __swift__
+    // Hidden from Swift so that Swift can neither build one from an unsafe span nor take one
+    // back out; span() is also hidden because a lifetimebound member returning a dependent span
+    // crashes the compiler (rdar://187391842).
 #ifndef __swift__
+    static ByteSpanView create(std::span<T> bytes LIFETIME_BOUND) { return ByteSpanView(bytes); }
+
     std::span<T> span() const { return m_span; }
 #endif
 
 private:
-    friend void copyBytes(const MutableByteSpan&, const ByteSpan&);
+    friend void copyByteSpan(MutableByteSpan&, const ByteSpan&);
 
     explicit ByteSpanView(std::span<T> bytes LIFETIME_BOUND)
         : m_span(bytes)
@@ -105,7 +102,7 @@ private:
     std::span<T> m_span;
 };
 
-inline void copyBytes(const MutableByteSpan& destination, const ByteSpan& source)
+inline void copyByteSpan(MutableByteSpan& destination, const ByteSpan& source)
 {
     memcpySpan(destination.m_span, source.m_span);
 }
@@ -215,5 +212,5 @@ inline EscapableByteSpan escapableSpan(SpanUInt8 bytes LIFETIME_BOUND)
 using WTF::ByteSpan;
 using WTF::EscapableByteSpan;
 using WTF::MutableByteSpan;
-using WTF::copyBytes;
+using WTF::copyByteSpan;
 using WTF::escapableSpan;

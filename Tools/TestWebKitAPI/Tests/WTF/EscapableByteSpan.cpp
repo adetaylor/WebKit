@@ -139,13 +139,14 @@ TEST(WTF_MutableByteSpanDeathTest, SubspanWithWrappedOffsetCrashes)
     ASSERT_DEATH_IF_SUPPORTED(shouldCrash(), EXPECTED_BORROW_CRASH);
 }
 
-TEST(WTF_MutableByteSpan, CopyBytes)
+TEST(WTF_MutableByteSpan, CopyByteSpan)
 {
     std::array<uint8_t, 6> destination { 0, 0, 0, 0, 0, 0 };
     std::array<uint8_t, 3> source { 7, 8, 9 };
 
     auto bytes = MutableByteSpan::create(std::span<uint8_t> { destination });
-    copyBytes(bytes.subspan(2, 3), ByteSpan::create(std::span<const uint8_t> { source }));
+    auto middle = bytes.subspan(2, 3);
+    copyByteSpan(middle, ByteSpan::create(std::span<const uint8_t> { source }));
 
     EXPECT_EQ(destination[1], 0);
     EXPECT_EQ(destination[2], 7);
@@ -153,9 +154,10 @@ TEST(WTF_MutableByteSpan, CopyBytes)
     EXPECT_EQ(destination[5], 0);
 }
 
-TEST(WTF_MutableByteSpan, CopyBytesOfNothing)
+TEST(WTF_MutableByteSpan, CopyByteSpanOfNothing)
 {
-    copyBytes(MutableByteSpan(), ByteSpan());
+    auto empty = MutableByteSpan();
+    copyByteSpan(empty, ByteSpan());
 }
 
 // MARK: - EscapableByteSpan

@@ -27,7 +27,8 @@ import wtf
 
 extension WebGPU.BufferBorrow {
     func copy(from source: WTF.ByteSpan, offset: Int) {
-        WTF.copyBytes(bytes().subspan(offset, source.size()), source)
+        var destination = bytes().subspan(offset, source.size())
+        WTF.copyByteSpan(&destination, source)
     }
 }
 
