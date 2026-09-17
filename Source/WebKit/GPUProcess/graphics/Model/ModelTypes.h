@@ -38,6 +38,7 @@
 #include <WebKit/Float3.h>
 #include <WebKit/Float4x4.h>
 #include <wtf/ExportMacros.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/UUID.h>
 #include <wtf/UniqueRef.h>
@@ -776,7 +777,7 @@ struct TypedResourceId {
 struct UpdateMaterialDescriptor {
     MaterialGraph materialGraph;
     TypedResourceId identifier;
-};
+} SWIFT_ESCAPABLE;
 
 struct TextureLevelInfo {
     long dataOffset;
@@ -789,7 +790,7 @@ struct UpdateTextureDescriptor {
     TypedResourceId identifier;
     String hashString;
     Vector<TextureLevelInfo> layout;
-};
+} SWIFT_ESCAPABLE;
 
 struct SkinningData {
     uint8_t influencePerVertexCount;
@@ -833,7 +834,7 @@ struct UpdateMeshDescriptor {
     Vector<Float4x4> instanceTransforms;
     Vector<TypedResourceId> assignedMaterials;
     std::optional<DeformationData> deformationData;
-};
+} SWIFT_ESCAPABLE;
 
 struct ResizeMeshDescriptor {
     unsigned width;

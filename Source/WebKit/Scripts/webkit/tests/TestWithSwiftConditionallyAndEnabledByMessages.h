@@ -27,6 +27,7 @@
 #include "ArgumentCoders.h"
 #include "Connection.h"
 #include "MessageNames.h"
+#include "SharedPreferencesForWebProcess.h"
 #include <wtf/Forward.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -58,6 +59,8 @@ private:
     std::unique_ptr<WebKit::TestWithSwiftConditionallyAndEnabledBy> getMessageTarget();
     std::unique_ptr<WebKit::TestWithSwiftConditionallyAndEnabledByWeakRef> m_handler;
 } SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;
 
 }
 
@@ -165,8 +168,6 @@ using TestAsyncMessageCompletionHandler = WTF::RefCountable<Messages::TestWithSw
 using TestSyncMessageCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftConditionallyAndEnabledBy::TestSyncMessage::Reply>;
 
 void completeWithDefaultReply(TestAsyncMessageCompletionHandler&);
-
-void completeWithDefaultReply(TestSyncMessageCompletionHandler&);
 } // namespace TestWithSwiftConditionallyAndEnabledBy
 } // namespace CompletionHandlers
 

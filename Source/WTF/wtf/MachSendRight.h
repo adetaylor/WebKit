@@ -29,6 +29,7 @@
 #include <wtf/FastMalloc.h>
 #include <wtf/Forward.h>
 #include <wtf/Platform.h>
+#include <wtf/SwiftBridging.h>
 
 #if PLATFORM(COCOA)
 
@@ -60,7 +61,7 @@ private:
     explicit MachSendRight(mach_port_t);
 
     mach_port_t m_port { MACH_PORT_NULL };
-};
+} SWIFT_ESCAPABLE;
 
 WTF_EXPORT_PRIVATE void deallocateSendRightSafely(mach_port_t);
 

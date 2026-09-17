@@ -793,6 +793,10 @@ def forward_declarations_and_headers(receiver):
     if (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by) and receiver.has_attribute(STREAM_ATTRIBUTE):
         headers.add('"StreamMessageReceiver.h"')
 
+    # For the OptionalSharedPreferencesForWebProcess alias the Swift receiver returns.
+    if (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by) and receiver_needs_shared_preferences(receiver):
+        headers.add('"SharedPreferencesForWebProcess.h"')
+
     non_template_wtf_types = frozenset([
         'MachSendRight',
         'MediaType',
@@ -873,6 +877,24 @@ def message_to_completion_handler_using_declaration(receiver, message):
     return 'using %s = WTF::RefCountable<Messages::%s::%s::Reply>;' % (completion_handler_name, receiver.name, message.name)
 
 
+# One overload per distinct completion handler type, not per message: messages whose replies have
+# the same parameter types alias the same RefCountable<CompletionHandler<...>>, so an overload each
+# would be a redefinition. Connection::cancelReply<T> reads only T::ReplyArguments, so the first
+# message with a given reply shape stands in for the rest.
+def messages_with_distinct_reply_types(receiver):
+    seen = set()
+    result = []
+    for message in receiver.messages:
+        if message.reply_parameters is None:
+            continue
+        key = tuple(parameter.type for parameter in message.reply_parameters)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(message)
+    return result
+
+
 def message_to_complete_with_default_reply_declaration(receiver, message):
     return 'void completeWithDefaultReply(%sCompletionHandler&);' % message.name
 
@@ -941,6 +963,8 @@ def generate_messages_header(receiver):
         result.append('    std::unique_ptr<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
         result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
         result.append('} SWIFT_SHARED_REFERENCE(.ref, .deref);\n\n')
+        if receiver_needs_shared_preferences(receiver):
+            result.append('using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;\n\n')
         result.append('}\n')
         result.append('\n')
         result.append('using %s = Ref<WebKit::%s>;\n' % (ref_forwarder_class, forwarder_class))
@@ -987,7 +1011,7 @@ def generate_messages_header(receiver):
         result.append('\n')
         if reply_messages:
             result.append('\n')
-            result.append('\n\n'.join([message_to_complete_with_default_reply_declaration(receiver, x) for x in reply_messages]))
+            result.append('\n\n'.join([message_to_complete_with_default_reply_declaration(receiver, x) for x in messages_with_distinct_reply_types(receiver)]))
             result.append('\n')
         result.append('} // namespace %s\n} // namespace CompletionHandlers\n' % receiver.name)
         result.append('\n')
@@ -2008,6 +2032,10 @@ def process_name_enumerator(dispatched_x):
     return dispatched_x
 
 
+def receiver_needs_shared_preferences(receiver):
+    return bool(receiver.receiver_enabled_by) or any([message.enabled_by for message in receiver.messages])
+
+
 def generate_target_and_enabled_by_statements(receiver, messages):
     enabled_by = receiver.receiver_enabled_by
     enabled_by_conjunction = receiver.receiver_enabled_by_conjunction
@@ -2245,7 +2273,7 @@ def generate_message_handler(receiver):
             return
         result.append('\n')
         result.append('namespace CompletionHandlers {\nnamespace %s {\n\n' % receiver.name)
-        result.append('\n\n'.join([message_to_complete_with_default_reply_definition(receiver, x) for x in reply_messages]))
+        result.append('\n\n'.join([message_to_complete_with_default_reply_definition(receiver, x) for x in messages_with_distinct_reply_types(receiver)]))
         result.append('\n\n')
         result.append('} // namespace %s\n} // namespace CompletionHandlers\n' % receiver.name)
     if_swift_enabled(receiver, result, append_complete_with_default_reply_definitions, None)
@@ -2353,7 +2381,8 @@ def generate_swift_message_handler(receiver):
         if not generates_swift_trampoline(receiver, message):
             continue
 
-        parameters = ['connection: IPC.Connection']
+        connection_type = 'IPC.StreamServerConnection' if receiver.has_attribute(STREAM_ATTRIBUTE) else 'IPC.Connection'
+        parameters = ['connection: %s' % connection_type]
         arguments = ['connection: connection']
         for parameter in message.parameters:
             parameters.append('%s: %s' % (parameter.name, swift_type_name(parameter.type)))

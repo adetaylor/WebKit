@@ -35,6 +35,7 @@
 #include <WebCore/RenderingResource.h>
 #include <wtf/CheckedRef.h>
 #include <wtf/Lock.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/Vector.h>
 
@@ -145,6 +146,18 @@ protected:
 #if USE(SKIA)
     GrDirectContext* m_grContext { nullptr };
 #endif
-};
+} SWIFT_SHARED_REFERENCE(refNativeImage, derefNativeImage) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+
+using RefPtrNativeImage = RefPtr<NativeImage>;
 
 } // namespace WebCore
+
+inline void refNativeImage(WebCore::NativeImage* obj)
+{
+    obj->ref();
+}
+
+inline void derefNativeImage(WebCore::NativeImage* obj)
+{
+    obj->deref();
+}
