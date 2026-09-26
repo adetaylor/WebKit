@@ -40,6 +40,7 @@
 #include "BitmapImage.h"
 #include "Blob.h"
 #include "BoundaryPointInlines.h"
+#include "CSSCalcRandomCachingKeyMap.h"
 #include "CSSKeyframesRule.h"
 #include "CSSMediaRule.h"
 #include "CSSPropertyParser.h"
@@ -644,6 +645,7 @@ void Internals::resetToConsistentState(Page& page)
     page.setPagination(Pagination());
 
     CachedMatchFinder::setMaximumRunCountForTesting(std::nullopt);
+    CSSCalc::RandomCachingKeyMap::setBaseValuesDerivedFromKeyForTesting(false);
 
     page.setDefersLoading(false);
     page.setResourceCachingDisabledByWebInspector(false);
@@ -3528,6 +3530,11 @@ ExceptionOr<unsigned> Internals::countMatchesForText(const String& text, const V
 void Internals::setCachedFindMatchBufferLimitForTesting(unsigned maximumRunCount)
 {
     CachedMatchFinder::setMaximumRunCountForTesting(maximumRunCount);
+}
+
+void Internals::setCSSRandomBaseValuesDerivedFromKey(bool derived)
+{
+    CSSCalc::RandomCachingKeyMap::setBaseValuesDerivedFromKeyForTesting(derived);
 }
 
 ExceptionOr<unsigned> Internals::countFindMatches(const String& text, const Vector<String>& findOptions)
