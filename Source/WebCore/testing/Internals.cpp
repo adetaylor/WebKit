@@ -43,6 +43,7 @@
 #include "CSSCalcRandomCachingKeyMap.h"
 #include "CSSKeyframesRule.h"
 #include "CSSMediaRule.h"
+#include "CSSParserFastPaths.h"
 #include "CSSPropertyParser.h"
 #include "CSSPropertyParserConsumer+ColorInlines.h"
 #include "CSSSelectorParser.h"
@@ -646,6 +647,7 @@ void Internals::resetToConsistentState(Page& page)
 
     CachedMatchFinder::setMaximumRunCountForTesting(std::nullopt);
     CSSCalc::RandomCachingKeyMap::setBaseValuesDerivedFromKeyForTesting(false);
+    CSSParserFastPaths::setHitCountingEnabledForTesting(false);
 
     page.setDefersLoading(false);
     page.setResourceCachingDisabledByWebInspector(false);
@@ -3535,6 +3537,16 @@ void Internals::setCachedFindMatchBufferLimitForTesting(unsigned maximumRunCount
 void Internals::setCSSRandomBaseValuesDerivedFromKey(bool derived)
 {
     CSSCalc::RandomCachingKeyMap::setBaseValuesDerivedFromKeyForTesting(derived);
+}
+
+void Internals::setCSSPropertyFastPathHitCounting(bool enabled)
+{
+    CSSParserFastPaths::setHitCountingEnabledForTesting(enabled);
+}
+
+uint64_t Internals::cssPropertyFastPathHitCount() const
+{
+    return CSSParserFastPaths::hitCountForTesting();
 }
 
 ExceptionOr<unsigned> Internals::countFindMatches(const String& text, const Vector<String>& findOptions)
