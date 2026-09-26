@@ -1001,6 +1001,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/CSSStyleSheet.h
     css/CSSSubstitutionValue.h
     css/CSSToLengthConversionData.h
+    css/CSSUnitConversions.h
     css/CSSUnitType.h
     css/CSSUnits.h
     css/CSSValue.h
@@ -1032,6 +1033,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/calc/CSSCalcRandomSharing.h
     css/calc/CSSCalcSwiftTypes.h
     css/calc/CSSCalcSymbolTable.h
+    css/calc/CSSCalcTree+NumericIdentity.h
     css/calc/CSSCalcTree.h
     css/calc/CSSCalcType.h
     css/calc/CSSCalcValue.h
