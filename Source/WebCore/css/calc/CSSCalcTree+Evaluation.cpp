@@ -131,8 +131,10 @@ std::optional<double> LEGACY_NODELETE evaluate(const Number& number, const Evalu
     return number.value;
 }
 
-std::optional<double> LEGACY_NODELETE evaluate(const Percentage& percentage, const EvaluationOptions&)
+std::optional<double> LEGACY_NODELETE evaluate(const Percentage& percentage, const EvaluationOptions& options)
 {
+    if (options.percentageBasis)
+        return *options.percentageBasis * percentage.value / 100.0;
     return percentage.value;
 }
 
