@@ -300,8 +300,11 @@ static ResolvedFontSize fontSizeFromUnresolvedFontSize(const CSSPropertyParserHe
                     if (requiresConversionData(calc))
                         return { .size = 0.0f, .keyword = CSSValueID::Invalid };
 
+                    // Simplified and evaluated as a CSS calc rather than converted to a style value:
+                    // this runs on worker threads (OffscreenCanvas), and a style calculation is held
+                    // in a main-thread-only table.
                     return {
-                        .size = Style::evaluate<float>(Style::toStyleNoConversionDataRequired(calc), parentSize, Style::ZoomFactor::none()),
+                        .size = narrowPrecisionToFloat(calc.simplify(NoConversionDataRequiredToken { }).evaluate(NoConversionDataRequiredToken { }, parentSize)),
                         .keyword = CSSValueID::Invalid
                     };
                 }
