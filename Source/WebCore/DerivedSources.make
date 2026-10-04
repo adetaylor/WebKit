@@ -2059,6 +2059,7 @@ CSS_PROPERTY_NAME_FILES = \
     CSSPropertyNames.h \
     CSSPropertyParsing.cpp \
     CSSPropertyParsing.h \
+    CSSPropertyParsingSwift.swift \
     CSSStyleProperties+PropertyNames.idl \
     StyleBuilderGenerated.cpp \
     StyleComputedStyleProperties.cpp \
