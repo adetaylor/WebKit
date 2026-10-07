@@ -2404,15 +2404,16 @@ def generate_swift_message_handler(receiver):
             completion_handler = 'CompletionHandlers.%s.%sCompletionHandler' % (receiver.name, message.name)
             parameters.append('completionHandler: sending %s' % completion_handler)
 
-        # Any handler may be async: .messages.in cannot say, and even a Synchronous reply may be sent
-        # after dispatch returns, since handleMessageSynchronous moves the reply encoder into the
-        # completion handler. Handlers are isolated to the main actor, so dispatch enters it with
-        # assumeIsolated, which also asserts that IPC really did dispatch us on the main thread, and
-        # runs the handler in a Task which starts inline, so it stays in order with C++-handled
-        # messages, and which inherits that isolation, so it stays on the main thread. The work
-        # lives in an async method rather than the Task's closure: a typed `catch` inside the closure
-        # widens to `any Error`, and spelling the type makes the closure throwing, which
-        # -Werror NoUseUnstructuredThrowingTask rejects.
+        # Every handler is declared `async throws(InvalidMessage)`, so that one generated call fits
+        # them all: .messages.in cannot say whether a handler suspends or fails a message check, and
+        # even a Synchronous reply may be sent after dispatch returns, since handleMessageSynchronous
+        # moves the reply encoder into the completion handler. Handlers are isolated to the main
+        # actor, so dispatch enters it with assumeIsolated, which also asserts that IPC really did
+        # dispatch us on the main thread, and runs the handler in a Task which starts inline, so it
+        # stays in order with C++-handled messages, and which inherits that isolation, so it stays on
+        # the main thread. The work lives in an async method rather than the Task's closure: a typed
+        # `catch` inside the closure widens to `any Error`, and spelling the type makes the closure
+        # throwing, which -Werror NoUseUnstructuredThrowingTask rejects.
         result.append('\n')
         result.append('    @used\n')
         result.append('    func dispatch%s(\n' % message.name)
@@ -2442,10 +2443,8 @@ def generate_swift_message_handler(receiver):
         base = '        '
         result.append('%sdo {\n' % base)
         assignment = 'let reply = ' if message.reply_parameters else ''
-        call = ['%stry await mayThrowInvalidMessage(' % assignment]
-        call.append('    target.%s(' % handler_function_name(message))
-        call.append(',\n'.join(['        %s' % argument for argument in arguments]))
-        call.append('    )')
+        call = ['%stry await target.%s(' % (assignment, handler_function_name(message))]
+        call.append(',\n'.join(['    %s' % argument for argument in arguments]))
         call.append(')')
         for line in call:
             result.append('\n'.join(['%s    %s' % (base, part) for part in line.split('\n')]))

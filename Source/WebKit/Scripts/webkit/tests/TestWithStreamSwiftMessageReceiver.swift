@@ -62,11 +62,9 @@ final class TestWithStreamSwiftWeakRef: @unchecked Sendable {
         url: WTF.String
     ) async {
         do {
-            try await mayThrowInvalidMessage(
-                target.sendString(
-                    connection: connection,
-                    url: url
-                )
+            try await target.sendString(
+                connection: connection,
+                url: url
             )
         } catch {
             markMessageInvalid(error, on: connection)
@@ -102,11 +100,9 @@ final class TestWithStreamSwiftWeakRef: @unchecked Sendable {
         completionHandler: CompletionHandlers.TestWithStreamSwift.SendStringSyncCompletionHandler
     ) async {
         do {
-            let reply = try await mayThrowInvalidMessage(
-                target.sendStringSync(
-                    connection: connection,
-                    url: url
-                )
+            let reply = try await target.sendStringSync(
+                connection: connection,
+                url: url
             )
             completionHandler.pointee(reply)
         } catch {

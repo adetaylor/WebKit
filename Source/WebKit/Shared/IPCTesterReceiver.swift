@@ -51,7 +51,7 @@ final class IPCTesterReceiver {
     func asyncMessage(
         connection: IPC.Connection,
         arg1: UInt32
-    ) -> UInt32 {
+    ) async throws(InvalidMessage) -> UInt32 {
         arg1 + 2
     }
 
@@ -59,7 +59,7 @@ final class IPCTesterReceiver {
     func deferredReplyMessage(
         connection: IPC.Connection,
         arg1: UInt32
-    ) async -> UInt64 {
+    ) async throws(InvalidMessage) -> UInt64 {
         deferredReplyArgument = arg1
         return await withCheckedContinuation { continuation in
             pendingDeferredReply = continuation
@@ -67,7 +67,7 @@ final class IPCTesterReceiver {
     }
 
     @MainActor
-    func completeDeferredReply(connection: IPC.Connection, arg1: UInt32) {
+    func completeDeferredReply(connection: IPC.Connection, arg1: UInt32) async throws(InvalidMessage) {
         let continuation = pendingDeferredReply
         pendingDeferredReply = nil
         continuation?.resume(returning: UInt64(deferredReplyArgument) + UInt64(arg1) + 2)

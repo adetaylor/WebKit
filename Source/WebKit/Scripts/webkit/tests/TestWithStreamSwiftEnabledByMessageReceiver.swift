@@ -62,11 +62,9 @@ final class TestWithStreamSwiftEnabledByWeakRef: @unchecked Sendable {
         url: WTF.String
     ) async {
         do {
-            try await mayThrowInvalidMessage(
-                target.sendString(
-                    connection: connection,
-                    url: url
-                )
+            try await target.sendString(
+                connection: connection,
+                url: url
             )
         } catch {
             markMessageInvalid(error, on: connection)

@@ -68,11 +68,9 @@ final class TestWithSwiftConditionallyWeakRef: @unchecked Sendable {
         completionHandler: CompletionHandlers.TestWithSwiftConditionally.TestAsyncMessageCompletionHandler
     ) async {
         do {
-            let reply = try await mayThrowInvalidMessage(
-                target.testAsyncMessage(
-                    connection: connection,
-                    param: param
-                )
+            let reply = try await target.testAsyncMessage(
+                connection: connection,
+                param: param
             )
             completionHandler.pointee(reply)
         } catch {
@@ -110,11 +108,9 @@ final class TestWithSwiftConditionallyWeakRef: @unchecked Sendable {
         completionHandler: CompletionHandlers.TestWithSwiftConditionally.TestSyncMessageCompletionHandler
     ) async {
         do {
-            let reply = try await mayThrowInvalidMessage(
-                target.testSyncMessage(
-                    connection: connection,
-                    param: param
-                )
+            let reply = try await target.testSyncMessage(
+                connection: connection,
+                param: param
             )
             completionHandler.pointee(reply)
         } catch {

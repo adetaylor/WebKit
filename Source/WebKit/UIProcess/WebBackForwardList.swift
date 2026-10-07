@@ -1179,7 +1179,7 @@ final class WebBackForwardList {
     }
 
     @MainActor
-    func backForwardAddItem(connection: IPC.Connection, navigatedFrameState: WebKit.RefFrameState) throws(InvalidMessage) {
+    func backForwardAddItem(connection: IPC.Connection, navigatedFrameState: WebKit.RefFrameState) async throws(InvalidMessage) {
         if let page = page.get() {
             try addItemInternal(
                 connection: connection,
@@ -1194,7 +1194,7 @@ final class WebBackForwardList {
         connection: IPC.Connection,
         frameItemID: WebCore.BackForwardFrameItemIdentifier,
         frameState: WebKit.RefFrameState
-    ) throws(InvalidMessage) {
+    ) async throws(InvalidMessage) {
         let process = WebKit.WebProcessProxy.fromConnection(connection)
         try messageCheckItemURLs(frameState: frameState, process: process)
 
@@ -1212,14 +1212,14 @@ final class WebBackForwardList {
         connection: IPC.Connection,
         itemID: WebCore.BackForwardItemIdentifier,
         frameItemID: WebCore.BackForwardFrameItemIdentifier
-    ) {
+    ) async throws(InvalidMessage) {
         if let frameItem = WebKit.WebBackForwardListFrameItem.itemForID(itemID, frameItemID) {
             frameItem.clearChildren()
         }
     }
 
     @MainActor
-    func backForwardUpdateItem(connection: IPC.Connection, frameState: WebKit.RefFrameState) throws(InvalidMessage) {
+    func backForwardUpdateItem(connection: IPC.Connection, frameState: WebKit.RefFrameState) async throws(InvalidMessage) {
         let process = WebKit.WebProcessProxy.fromConnection(connection)
 
         // In the case of a process swap, the `backForwardUpdateItem` message can be received from the old process,
@@ -1292,7 +1292,7 @@ final class WebBackForwardList {
     }
 
     @MainActor
-    func backForwardGoToItem(connection: IPC.Connection, itemID: WebCore.BackForwardItemIdentifier) throws(InvalidMessage) {
+    func backForwardGoToItem(connection: IPC.Connection, itemID: WebCore.BackForwardItemIdentifier) async throws(InvalidMessage) {
         // On process swap, we tell the previous process to ignore the load, which causes it to restore its current back forward item to its previous
         // value. Since the load is really going on in a new provisional process, we want to ignore such requests from the committed process.
         // Any real new load in the committed process would have cleared m_provisionalPage.
@@ -1307,7 +1307,7 @@ final class WebBackForwardList {
     func backForwardListContainsItem(
         connection: IPC.Connection,
         itemID: WebCore.BackForwardItemIdentifier
-    ) -> Bool {
+    ) async throws(InvalidMessage) -> Bool {
         entryForID(itemID) != nil
     }
 
@@ -1359,7 +1359,7 @@ final class WebBackForwardList {
     func backForwardAllItems(
         connection: IPC.Connection,
         frameID: WebCore.FrameIdentifier
-    ) -> WebKit.VectorRefFrameState {
+    ) async throws(InvalidMessage) -> WebKit.VectorRefFrameState {
         guard frameOnPage(frameID) != nil else {
             return WebKit.VectorRefFrameState(array: [])
         }
@@ -1377,7 +1377,7 @@ final class WebBackForwardList {
         connection: IPC.Connection,
         delta: Int32,
         frameID: WebCore.FrameIdentifier
-    ) throws(InvalidMessage) -> WebKit.RefPtrFrameState {
+    ) async throws(InvalidMessage) -> WebKit.RefPtrFrameState {
         try itemAtIndexForWebContent(delta: delta, frameID: frameID)
     }
 
@@ -1408,7 +1408,7 @@ final class WebBackForwardList {
     @MainActor
     func backForwardListCounts(
         connection: IPC.Connection
-    ) -> WebKit.WebBackForwardListCounts {
+    ) async throws(InvalidMessage) -> WebKit.WebBackForwardListCounts {
         rawCounts()
     }
 }

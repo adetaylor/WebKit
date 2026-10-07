@@ -35,10 +35,10 @@ import wtf
 /// in Swift it is a thrown error, which makes the early exit visible at the call site as `try`
 /// and makes propagating it the compiler's job rather than the author's.
 ///
-/// A receiver can name this to declare `throws(InvalidMessage)`, and catch it, but cannot construct
-/// one: the stored properties are fileprivate, so the memberwise initializer is too and only
-/// `messageCheck(_:)` can originate the failure. A receiver must never swallow it with `try?` or
-/// `try!`.
+/// Every IPC message handler is declared `async throws(InvalidMessage)`. A receiver can catch this,
+/// but cannot construct one: the stored properties are fileprivate, so the memberwise initializer is
+/// too and only `messageCheck(_:)` can originate the failure. A receiver must never swallow it with
+/// `try?` or `try!`.
 struct InvalidMessage: Error {
     fileprivate let reason: StaticString
     fileprivate let function: StaticString
@@ -64,19 +64,6 @@ func messageCheck(
         logFailedMessageCheck(reason, function: function, file: file, line: line)
         throw InvalidMessage(reason: reason, function: function, file: file, line: line)
     }
-}
-
-// Lets generated dispatch mark every handler call with `try`, whether or not that handler throws.
-@inline(__always)
-@discardableResult
-func mayThrowInvalidMessage<T>(_ result: T) throws(InvalidMessage) -> T {
-    result
-}
-
-@inline(__always)
-@discardableResult
-nonisolated(nonsending) func mayThrowInvalidMessage<T>(_ result: T) async throws(InvalidMessage) -> T {
-    result
 }
 
 // Returns false if the message was invalid, so that generated dispatch can send a default reply.

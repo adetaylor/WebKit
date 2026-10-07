@@ -65,11 +65,9 @@ final class TestWithSwiftWeakRef: @unchecked Sendable {
         completionHandler: CompletionHandlers.TestWithSwift.TestAsyncMessageCompletionHandler
     ) async {
         do {
-            let reply = try await mayThrowInvalidMessage(
-                target.testAsyncMessage(
-                    connection: connection,
-                    param: param
-                )
+            let reply = try await target.testAsyncMessage(
+                connection: connection,
+                param: param
             )
             completionHandler.pointee(reply)
         } catch {
@@ -107,11 +105,9 @@ final class TestWithSwiftWeakRef: @unchecked Sendable {
         completionHandler: CompletionHandlers.TestWithSwift.TestSyncMessageCompletionHandler
     ) async {
         do {
-            let reply = try await mayThrowInvalidMessage(
-                target.testSyncMessage(
-                    connection: connection,
-                    param: param
-                )
+            let reply = try await target.testSyncMessage(
+                connection: connection,
+                param: param
             )
             completionHandler.pointee(reply)
         } catch {
@@ -146,11 +142,9 @@ final class TestWithSwiftWeakRef: @unchecked Sendable {
         frameState: WebKit.RefFrameState
     ) async {
         do {
-            try await mayThrowInvalidMessage(
-                target.testMessageWithAliasedParameter(
-                    connection: connection,
-                    frameState: frameState
-                )
+            try await target.testMessageWithAliasedParameter(
+                connection: connection,
+                frameState: frameState
             )
         } catch {
             markMessageInvalid(error, on: connection)
@@ -186,11 +180,9 @@ final class TestWithSwiftWeakRef: @unchecked Sendable {
         completionHandler: CompletionHandlers.TestWithSwift.TestThrowingMessageWithReplyCompletionHandler
     ) async {
         do {
-            let reply = try await mayThrowInvalidMessage(
-                target.testThrowingMessageWithReply(
-                    connection: connection,
-                    param: param
-                )
+            let reply = try await target.testThrowingMessageWithReply(
+                connection: connection,
+                param: param
             )
             completionHandler.pointee(reply)
         } catch {
@@ -228,12 +220,10 @@ final class TestWithSwiftWeakRef: @unchecked Sendable {
         frameID: WebCore.FrameIdentifier
     ) async {
         do {
-            try await mayThrowInvalidMessage(
-                target.testThrowingMessageWithoutReply(
-                    connection: connection,
-                    frameState: frameState,
-                    frameID: frameID
-                )
+            try await target.testThrowingMessageWithoutReply(
+                connection: connection,
+                frameState: frameState,
+                frameID: frameID
             )
         } catch {
             markMessageInvalid(error, on: connection)
@@ -269,11 +259,9 @@ final class TestWithSwiftWeakRef: @unchecked Sendable {
         completionHandler: CompletionHandlers.TestWithSwift.TestMessageWithEmptyReplyCompletionHandler
     ) async {
         do {
-            try await mayThrowInvalidMessage(
-                target.testMessageWithEmptyReply(
-                    connection: connection,
-                    param: param
-                )
+            try await target.testMessageWithEmptyReply(
+                connection: connection,
+                param: param
             )
             completionHandler.pointee()
         } catch {
