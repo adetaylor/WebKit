@@ -511,6 +511,8 @@ macro(WEBKIT_OPTION_END)
             "the configure step with CC=clang CXX=clang++.")
     endif ()
 
+    option(WK_USE_SWIFT_TEXT_CODEC_UTF8 "Replace the C++ UTF-8 decoder with PAL's TextCodecUTF8.swift" OFF)
+
     # Swift/C++ interop is now always required. Fail loudly if the
     # toolchain is too old. Apple is gated elsewhere; non-Clang is
     # already rejected above.
