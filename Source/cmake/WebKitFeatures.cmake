@@ -568,11 +568,7 @@ macro(WEBKIT_OPTION_END)
         endif ()
     endif ()
 
-    if (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT)
-        set(SWIFT_REQUIRED ON)
-    else ()
-        set(SWIFT_REQUIRED OFF)
-    endif ()
+    set(SWIFT_REQUIRED ON)
 endmacro()
 
 macro(PRINT_WEBKIT_OPTIONS)
