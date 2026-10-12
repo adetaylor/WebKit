@@ -512,6 +512,7 @@ macro(WEBKIT_OPTION_END)
     endif ()
 
     option(WK_USE_SWIFT_TEXT_CODEC_UTF8 "Replace the C++ UTF-8 decoder with PAL's TextCodecUTF8.swift" OFF)
+    option(WK_USE_SWIFT_HTML_FAST_PATH "Scan HTML fragments for the fast-path parser with WebCore's HTMLFastPathParser.swift" OFF)
 
     # Swift/C++ interop is now always required. Fail loudly if the
     # toolchain is too old. Apple is gated elsewhere; non-Clang is
