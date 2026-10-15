@@ -42,5 +42,9 @@
 // relevant headers must be included here.
 
 #include "TransformationMatrix.h"
+#include "ContainerNode.h"
+#include "Document.h"
+#include "Element.h"
+#include "HTMLFastPathParserTypes.h"
 
 #include "WebCoreSwift-Generated.h"
