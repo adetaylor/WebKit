@@ -46,4 +46,13 @@
 #include "ScrollerPairMacTypes.h"
 #include "ScrollingTreeScrollPhysicsClient.h"
 
+#if !defined(USE_SWIFT_HTML_FAST_PATH)
+#define USE_SWIFT_HTML_FAST_PATH 0
+#endif
+#if USE_SWIFT_HTML_FAST_PATH
+#include "ContainerNode.h"
+#include "Document.h"
+#include "Element.h"
+#include "HTMLFastPathParserTypes.h"
+#endif
 #include "WebCoreSwift-Generated.h"

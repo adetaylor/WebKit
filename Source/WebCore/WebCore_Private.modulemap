@@ -4,6 +4,12 @@ framework module WebCore_Private [system] {
         export *
     }
 
+    explicit module HTMLFastPathParserTypes {
+        header "HTMLFastPathParserTypes.h"
+        requires cplusplus
+        export *
+    }
+
     module Core {
         // Workaround for rdar://173516139: PrivateHeaders includes a header
         // "WorkAround173516139.h" that the build system regenerates whenever
@@ -42,6 +48,8 @@ framework module WebCore_Private [system] {
         exclude header "ScrollerPairMacTypes.h"
         exclude header "ScrollerImpDelegateBinding.h"
 
+        // In the explicit module HTMLFastPathParserTypes above, for WebCore's Swift.
+        exclude header "HTMLFastPathParserTypes.h"
         module * {
             export *
         }
