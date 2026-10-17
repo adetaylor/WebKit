@@ -269,6 +269,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/CBORValueTest.cpp
         Tests/WebCore/CBORWriterTest.cpp
         Tests/WebCore/CSSParser.cpp
+        Tests/WebCore/CSSSwiftBench.cpp
         Tests/WebCore/CSSParserFastPaths.cpp
         Tests/WebCore/CSSTokenizerTests.cpp
         Tests/WebCore/CSSValueAggregates.cpp
