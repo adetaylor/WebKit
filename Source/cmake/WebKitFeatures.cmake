@@ -512,7 +512,8 @@ macro(WEBKIT_OPTION_END)
     endif ()
 
     option(WK_USE_SWIFT_TEXT_CODEC_UTF8 "Replace the C++ UTF-8 decoder with PAL's TextCodecUTF8.swift" OFF)
-    option(WK_USE_SWIFT_HTML_FAST_PATH "Scan HTML fragments for the fast-path parser with WebCore's HTMLFastPathParser.swift" OFF)
+    option(WK_USE_SWIFT_HTML_FAST_PATH "Parse HTML fragments on the fast path, building their DOM, with WebCore's HTMLFastPathParser.swift" OFF)
+    option(WK_USE_SWIFT_HTML_TOKENIZER "Replace the C++ HTML tokenizer and entity decoder with WebCore's HTMLTokenizer.swift and HTMLEntityParser.swift (needs WK_USE_SWIFT_HTML_FAST_PATH)" OFF)
     option(WK_USE_SWIFT_CSS "Replace the C++ CSS tokenizer, property fast paths and calc() with WebCore's Swift" OFF)
 
     # Swift/C++ interop is now always required. Fail loudly if the
@@ -536,6 +537,15 @@ macro(WEBKIT_OPTION_END)
     # _webkit_cxx_preprocessor_definitions, which reads this directory's definitions.
     if (WK_USE_SWIFT_CSS)
         add_compile_definitions("$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_CSS=1>")
+    endif ()
+
+    # USE_SWIFT_HTML_TOKENIZER hides HTMLTokenizer, HTMLToken, SegmentedString and HTMLEntityParser members the C++
+    # tokenizer alone uses, so every C++ target that includes those headers sees the same declarations.
+    if (WK_USE_SWIFT_HTML_TOKENIZER)
+        if (NOT WK_USE_SWIFT_HTML_FAST_PATH)
+            message(FATAL_ERROR "WK_USE_SWIFT_HTML_TOKENIZER needs WK_USE_SWIFT_HTML_FAST_PATH: HTMLEntityParser.swift uses its boundary types")
+        endif ()
+        add_compile_definitions("$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_HTML_TOKENIZER=1>")
     endif ()
 endmacro()
 
