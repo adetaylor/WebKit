@@ -55,4 +55,14 @@
 #include "Element.h"
 #include "HTMLFastPathParserTypes.h"
 #endif
+
+#if !defined(USE_SWIFT_HTML_TOKENIZER)
+#define USE_SWIFT_HTML_TOKENIZER 0
+#endif
+#if USE_SWIFT_HTML_TOKENIZER
+#include "HTMLEntityParser.h"
+#include "HTMLTokenizer.h"
+#include "SegmentedString.h"
+#endif
+
 #include "WebCoreSwift-Generated.h"
