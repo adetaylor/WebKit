@@ -513,6 +513,7 @@ macro(WEBKIT_OPTION_END)
 
     option(WK_USE_SWIFT_TEXT_CODEC_UTF8 "Replace the C++ UTF-8 decoder with PAL's TextCodecUTF8.swift" OFF)
     option(WK_USE_SWIFT_HTML_FAST_PATH "Scan HTML fragments for the fast-path parser with WebCore's HTMLFastPathParser.swift" OFF)
+    option(WK_USE_SWIFT_CSS "Replace the C++ CSS tokenizer, property fast paths and calc() with WebCore's Swift" OFF)
 
     # Swift/C++ interop is now always required. Fail loudly if the
     # toolchain is too old. Apple is gated elsewhere; non-Clang is
@@ -527,6 +528,14 @@ macro(WEBKIT_OPTION_END)
                 "Detected: ${SWIFT_DETECTED_VERSION}. Install Swift 6.3 or newer "
                 "from swift.org and reconfigure.")
         endif ()
+    endif ()
+
+    # USE(SWIFT_CSS) changes the layout of CSSCalc::Tree and Style::Calculation::Tree, so every C++
+    # target that includes WebCore's headers needs it, as TestWebKitAPI's Base.xcconfig passes it.
+    # Swift's -D takes no value, so Swift gets none; every Swift target's clang importer gets it through
+    # _webkit_cxx_preprocessor_definitions, which reads this directory's definitions.
+    if (WK_USE_SWIFT_CSS)
+        add_compile_definitions("$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_CSS=1>")
     endif ()
 endmacro()
 
