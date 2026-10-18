@@ -104,4 +104,8 @@
 #include "HTMLDocumentParser.h"
 #include "HTMLParserOptions.h"
 #include "HTMLTreeBuilderSwiftSupport.h"
+#if !defined(USE_SWIFT_TRANSFORMATION_MATRIX)
+#define USE_SWIFT_TRANSFORMATION_MATRIX 0
+#if USE_SWIFT_TRANSFORMATION_MATRIX
+#include "TransformationMatrix.h"
 #include "WebCoreSwift-Generated.h"
