@@ -106,7 +106,7 @@ OTHER_SWIFT_FLAGS = $(inherited) $(WK_OTHER_SWIFT_FLAGS_WK_HAS_VALID_JSC_PRIVATE
 // markers clang's optimized code generation emits, and the backend cannot select them.
 WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS = -Xcc -O2;
 WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS[config=Debug] = ;
-WK_OTHER_SWIFT_FLAGS_WK_HAS_VALID_JSC_PRIVATE_MODULE_YES = -Xcc -std=c++2b -Xcc -fno-exceptions -Xcc -fignore-exceptions $(WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS) -Xllvm -enable-dfa-jump-thread -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -enable-experimental-feature SafeInteropWrappers;
+WK_OTHER_SWIFT_FLAGS_WK_HAS_VALID_JSC_PRIVATE_MODULE_YES = -Xcc -std=c++2b -Xcc -fno-exceptions -Xcc -fignore-exceptions $(WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS) -Xllvm -enable-dfa-jump-thread -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -enable-experimental-feature SafeInteropWrappers -Xcc -O2;
 
 SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 SWIFT_STRICT_CONCURRENCY = complete;
