@@ -316,6 +316,7 @@
 		07E047C3305A9DB000DFCC4B /* SwiftStub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07E047C2305A9DB000DFCC4B /* SwiftStub.swift */; };
 		5A1E00000000000000000002 /* SIMDHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E00000000000000000001 /* SIMDHelpers.swift */; };
 		C55A00000000000000000004 /* CSSTokenizerSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55A00000000000000000003 /* CSSTokenizerSwift.swift */; };
+		5A1F00000000000000000014 /* TransformationMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1F00000000000000000013 /* TransformationMatrix.swift */; };
 		5A1E00000000000000000004 /* SIMDTableLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E00000000000000000003 /* SIMDTableLookup.swift */; };
 		5A1E00000000000000000006 /* SIMDSaturatingSubtract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E00000000000000000005 /* SIMDSaturatingSubtract.swift */; };
 		5A1E00000000000000000008 /* SIMDHighBitMask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E00000000000000000007 /* SIMDHighBitMask.swift */; };
@@ -8184,6 +8185,7 @@
 		07DB47062BC27E0A00B5A958 /* WritingSuggestionData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WritingSuggestionData.h; sourceTree = "<group>"; };
 		07E047C2305A9DB000DFCC4B /* SwiftStub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftStub.swift; sourceTree = "<group>"; };
 		5A1E00000000000000000001 /* SIMDHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIMDHelpers.swift; sourceTree = "<group>"; };
+		5A1F00000000000000000013 /* TransformationMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransformationMatrix.swift; sourceTree = "<group>"; };
 		5A1E00000000000000000003 /* SIMDTableLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIMDTableLookup.swift; sourceTree = "<group>"; };
 		5A1E00000000000000000005 /* SIMDSaturatingSubtract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIMDSaturatingSubtract.swift; sourceTree = "<group>"; };
 		5A1E00000000000000000007 /* SIMDHighBitMask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIMDHighBitMask.swift; sourceTree = "<group>"; };
@@ -28723,6 +28725,7 @@
 				49E911BD0EF86D47009D0CAF /* SkewTransformOperation.h */,
 				49E911B30EF86D47009D0CAF /* TransformationMatrix.cpp */,
 				49E911B40EF86D47009D0CAF /* TransformationMatrix.h */,
+				5A1F00000000000000000013 /* TransformationMatrix.swift */,
 				0FE95F1C1CD543DF00D2F45A /* TransformOperation.cpp */,
 				49E911BE0EF86D47009D0CAF /* TransformOperation.h */,
 				49E911BF0EF86D47009D0CAF /* TransformOperations.cpp */,
@@ -51267,6 +51270,7 @@
 				072F696F2E755BFA00281FC5 /* TextListParser.cpp in Sources */,
 				BE39137129B267F500FA5D4F /* TextTransformCocoa.cpp in Sources */,
 				51DF6D800B92A18E00C2DC85 /* ThreadCheck.mm in Sources */,
+				5A1F00000000000000000014 /* TransformationMatrix.swift in Sources */,
 				0D0B4DA32EBD20E30053FB12 /* UnifiedSource1-ARC.mm in Sources */,
 				0B2AA9B7DC40569673FC9868 /* UnifiedSource1-header-RenderStyleGetters.cpp in Sources */,
 				538EC8031F96AF81004D22A8 /* UnifiedSource1-nonARC.mm in Sources */,

@@ -84,4 +84,11 @@
 #include "CSSTokenizerSwiftTypes.h"
 #endif
 
+#if !defined(USE_SWIFT_TRANSFORMATION_MATRIX)
+#define USE_SWIFT_TRANSFORMATION_MATRIX 0
+#endif
+#if USE_SWIFT_TRANSFORMATION_MATRIX
+#include "TransformationMatrix.h"
+#endif
+
 #include "WebCoreSwift-Generated.h"
