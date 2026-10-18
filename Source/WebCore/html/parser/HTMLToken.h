@@ -81,7 +81,7 @@ public:
 
     const DataVector& name() const LIFETIME_BOUND;
 
-    void appendToName(char16_t);
+    ALWAYS_INLINE void appendToName(char16_t);
 
     // DOCTYPE.
 
@@ -109,12 +109,12 @@ public:
     void beginEndTag(const Vector<Latin1Character, 32>&);
 
     void beginAttribute();
-    void appendToAttributeName(char16_t);
-    void appendToAttributeValue(char16_t);
+    ALWAYS_INLINE void appendToAttributeName(char16_t);
+    ALWAYS_INLINE void appendToAttributeValue(char16_t);
     void appendToAttributeValue(unsigned index, StringView value);
-    template<typename CharacterType> void appendToAttributeValue(std::span<const CharacterType>);
-    void appendToAttributeValue(std::span<const Latin1Character> characters NOESCAPE) { appendToAttributeValue<Latin1Character>(characters); }
-    void appendToAttributeValue(std::span<const char16_t> characters NOESCAPE) { appendToAttributeValue<char16_t>(characters); }
+    template<typename CharacterType> ALWAYS_INLINE void appendToAttributeValue(std::span<const CharacterType>);
+    ALWAYS_INLINE void appendToAttributeValue(std::span<const Latin1Character> characters NOESCAPE) { appendToAttributeValue<Latin1Character>(characters); }
+    ALWAYS_INLINE void appendToAttributeValue(std::span<const char16_t> characters NOESCAPE) { appendToAttributeValue<char16_t>(characters); }
     void endAttribute();
 
     void setSelfClosing();
@@ -129,12 +129,12 @@ public:
     bool charactersIsAll8BitData() const;
     bool isReplacedNullCharacter() const;
 
-    void appendToCharacter(Latin1Character);
-    void appendToCharacter(char16_t);
+    ALWAYS_INLINE void appendToCharacter(Latin1Character);
+    ALWAYS_INLINE void appendToCharacter(char16_t);
     void appendToCharacter(const Vector<Latin1Character, 32>&);
-    template<typename CharacterType> void appendToCharacter(std::span<const CharacterType>);
-    void appendToCharacter(std::span<const Latin1Character> characters NOESCAPE) { appendToCharacter<Latin1Character>(characters); }
-    void appendToCharacter(std::span<const char16_t> characters NOESCAPE) { appendToCharacter<char16_t>(characters); }
+    template<typename CharacterType> ALWAYS_INLINE void appendToCharacter(std::span<const CharacterType>);
+    ALWAYS_INLINE void appendToCharacter(std::span<const Latin1Character> characters NOESCAPE) { appendToCharacter<Latin1Character>(characters); }
+    ALWAYS_INLINE void appendToCharacter(std::span<const char16_t> characters NOESCAPE) { appendToCharacter<char16_t>(characters); }
 
     void makeReplacedNullCharacter();
 
