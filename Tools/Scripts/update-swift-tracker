@@ -1,0 +1,402 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2026 Apple Inc. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1.  Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+# 2.  Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# Records the proportion of WebKit's C-family and Swift code that is Swift, for
+# main and swift-experiments-main, in the weekly rows of a Quip tracking
+# spreadsheet.
+#
+#     update-swift-tracker
+#
+# Run it from a WebKit worktree with no uncommitted changes to tracked files; it
+# checks out historical commits and restores the original checkout when done.
+# Each row is the week that starts on its date. The row for the current week is
+# measured at the tip of each branch on every run, so that it ends up with the
+# week's last run. An earlier week keeps the commits recorded for it, or if they
+# are blank is measured at the last commit before the week ended (00:00 UTC
+# seven days after its date). Later weeks are left alone. Both the commit and
+# the result are recorded, and earlier weeks are measured again, at their
+# recorded commits, if this script or cloc has changed since the last run (as
+# recorded next to "Last run script revision"), so a rebased branch is still
+# measured at the commit originally chosen. Fetched branches and measured
+# commits are kept under refs/swift-progress/. It also prints the current
+# figures for the tip of each branch.
+#
+# Lines of code are counted by cloc in Source/, excluding vendored third-party
+# code, untracked files, blank lines and comments.
+#
+# Needs the URL of the spreadsheet, including the "#..." suffix that identifies
+# its table, in git config, and a Quip API token from
+# https://quip-apple.com/dev/token in the keychain:
+#
+#     git config swift-tracker.quip-url 'https://quip-apple.com/<document>#<table>'
+#     security add-generic-password -a "$USER" -s quip-api-token -w
+
+import collections
+import datetime
+import html
+import html.parser
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+SCRIPT_PATH = os.path.realpath(__file__)
+
+SPREADSHEET_CONFIG_KEY = 'swift-tracker.quip-url'
+QUIP_API_URL = 'https://platform.quip-apple.com/1'
+QUIP_REPLACE_SECTION = 4
+KEYCHAIN_SERVICE = 'quip-api-token'
+
+DATE_HEADER = 'Date'
+FINGERPRINT_LABEL = 'Last run script revision'
+
+Branch = collections.namedtuple('Branch', ['name', 'repository', 'commit_header', 'percentage_header'])
+BRANCHES = [
+    Branch('main', 'git@github.com:WebKit/WebKit.git', 'git reference used for main', 'main'),
+    Branch('swift-experiments-main', 'git@github.com:adetaylor/WebKit.git', 'git reference used for swift-experiments-main', 'swift-experiments-main'),
+]
+REF_NAMESPACE = 'refs/swift-progress'
+
+SWIFT_LANGUAGE = 'Swift'
+C_FAMILY_LANGUAGES = ['C', 'C++', 'C/C++ Header', 'Objective-C', 'Objective-C++']
+COUNTED_DIRECTORY = 'Source/'
+EXCLUDED_DIRECTORIES = (
+    'Source/ThirdParty/',
+    'Source/WebCore/PAL/ThirdParty/',
+    'Source/bmalloc/mimalloc/',
+    'Source/JavaScriptCore/disassembler/zydis/',
+)
+
+Spreadsheet = collections.namedtuple('Spreadsheet', ['url', 'document_id', 'table_id'])
+Cell = collections.namedtuple('Cell', ['name', 'section_id', 'text'])
+Row = collections.namedtuple('Row', ['date', 'cells'])
+Measurement = collections.namedtuple('Measurement', ['swift', 'c_family'])
+
+WEEK = datetime.timedelta(days=7)
+
+
+def run(*command, capture=True, check=True):
+    result = subprocess.run(command, stdout=subprocess.PIPE if capture else None, text=True)
+    if check and result.returncode:
+        sys.exit(f'Command failed: {" ".join(command)}')
+    return result.stdout.strip() if capture else None
+
+
+def git(*arguments, **options):
+    return run('git', *arguments, **options)
+
+
+def fingerprint():
+    script_hash = git('hash-object', SCRIPT_PATH)
+    cloc_version = run('cloc', '--version')
+    return f'{script_hash} cloc-{cloc_version}'
+
+
+def configured_spreadsheet():
+    url = git('config', '--get', SPREADSHEET_CONFIG_KEY, check=False)
+    match = re.fullmatch(r'https://[^/#]+/([A-Za-z0-9]+)#(\S+)', url)
+    if not match:
+        status = f'is set to "{url}", which is not a Quip spreadsheet URL' if url else 'is not set'
+        sys.exit(f'The git config item {SPREADSHEET_CONFIG_KEY} {status}. Set it to the URL of the Quip spreadsheet, including the "#..." suffix that identifies its table, with:\n'
+                 f"    git config {SPREADSHEET_CONFIG_KEY} 'https://quip-apple.com/<document>#<table>'")
+    return Spreadsheet(url, match.group(1), match.group(2))
+
+
+def quip_token():
+    result = subprocess.run(['security', 'find-generic-password', '-s', KEYCHAIN_SERVICE, '-w'], capture_output=True, text=True)
+    if result.returncode:
+        sys.exit(f'No Quip API token found in the keychain. Get one from https://quip-apple.com/dev/token and store it with:\n'
+                 f'    security add-generic-password -a "$USER" -s {KEYCHAIN_SERVICE} -w')
+    return result.stdout.strip()
+
+
+class Quip:
+    def __init__(self, token, spreadsheet):
+        self.token = token
+        self.spreadsheet = spreadsheet
+
+    def request(self, path, form=None):
+        data = urllib.parse.urlencode(form).encode() if form else None
+        request = urllib.request.Request(f'{QUIP_API_URL}/{path}', data=data, headers={'Authorization': f'Bearer {self.token}'})
+        for attempt in range(6):
+            try:
+                with urllib.request.urlopen(request, timeout=60) as response:
+                    return json.load(response)
+            except urllib.error.HTTPError as error:
+                if error.code not in (429, 500, 502, 503, 504) or attempt == 5:
+                    sys.exit(f'Quip API request {path} failed with HTTP {error.code}: {error.read().decode(errors="replace")}')
+                delay = int(error.headers.get('Retry-After') or 60) if error.code == 429 else 5 * (attempt + 1)
+                print(f'Quip API request {path} failed with HTTP {error.code}; retrying in {delay}s')
+                time.sleep(delay)
+
+    def document_html(self):
+        return self.request(f'threads/{self.spreadsheet.document_id}')['html']
+
+    def replace_cell(self, cell, value):
+        self.request('threads/edit-document', {
+            'thread_id': self.spreadsheet.document_id,
+            'format': 'html',
+            'location': QUIP_REPLACE_SECTION,
+            'section_id': cell.section_id.replace(';', '_'),
+            'content': html.escape(value),
+        })
+
+
+class TableParser(html.parser.HTMLParser):
+    def __init__(self, table_id):
+        super().__init__()
+        self.table_id = table_id
+        self.column_letters = []
+        self.rows = []
+        self.table_depth = 0
+        self.in_table = False
+        self.found_table = False
+        self.in_header = False
+        self.cell = None
+
+    def handle_starttag(self, tag, attributes):
+        if tag == 'table':
+            self.table_depth += 1
+            if self.table_depth == 1 and dict(attributes).get('id') == self.table_id:
+                self.in_table = self.found_table = True
+        if self.table_depth != 1 or not self.in_table:
+            return
+        if tag == 'thead':
+            self.in_header = True
+        elif tag == 'tr' and not self.in_header:
+            self.rows.append([])
+        elif tag in ('td', 'th'):
+            self.cell = {'id': dict(attributes).get('id'), 'text': []}
+
+    def handle_endtag(self, tag):
+        if tag == 'table':
+            self.table_depth -= 1
+            self.in_table = self.in_table and self.table_depth > 0
+            return
+        if self.table_depth != 1 or not self.in_table:
+            return
+        if tag == 'thead':
+            self.in_header = False
+        elif tag in ('td', 'th') and self.cell is not None:
+            text = ''.join(self.cell['text']).replace('\u200b', '').strip()
+            if self.in_header:
+                self.column_letters.append(text)
+            else:
+                self.rows[-1].append((self.cell['id'], text))
+            self.cell = None
+
+    def handle_data(self, data):
+        if self.cell is not None:
+            self.cell['text'].append(data)
+
+
+class Sheet:
+    def __init__(self, document_html, spreadsheet):
+        parser = TableParser(spreadsheet.table_id)
+        parser.feed(document_html)
+        if not parser.found_table:
+            sys.exit(f'Could not find the spreadsheet table {spreadsheet.table_id} in {spreadsheet.url}')
+        letters = parser.column_letters[1:]
+
+        def cells_of(row):
+            row_number = row[0][1]
+            return [Cell(f'{letter}{row_number}', section_id, text) for letter, (section_id, text) in zip(letters, row[1:])]
+
+        header = cells_of(parser.rows[0])
+        header_texts = [cell.text for cell in header]
+
+        def column(title):
+            if header_texts.count(title) != 1:
+                sys.exit(f'Expected exactly one "{title}" column header in the spreadsheet')
+            return header_texts.index(title)
+
+        fingerprint_label_column = column(FINGERPRINT_LABEL)
+        self.fingerprint_cell = header[fingerprint_label_column + 1]
+
+        date_column = column(DATE_HEADER)
+        self.columns = {branch.name: (column(branch.commit_header), column(branch.percentage_header)) for branch in BRANCHES}
+        self.rows = []
+        for row in parser.rows[1:]:
+            cells = cells_of(row)
+            if len(cells) <= max(date_column, *(index for pair in self.columns.values() for index in pair)):
+                continue
+            date_cell = cells[date_column]
+            if not date_cell.text:
+                continue
+            try:
+                date = datetime.datetime.strptime(date_cell.text, '%m/%d/%Y').date()
+            except ValueError:
+                sys.exit(f'{date_cell.name} should contain a date like 10/16/2026 but contains "{date_cell.text}"')
+            self.rows.append(Row(date, cells))
+
+        self.writable_section_ids = {self.fingerprint_cell.section_id}
+        for row in self.rows:
+            for pair in self.columns.values():
+                self.writable_section_ids.update(row.cells[index].section_id for index in pair)
+        if None in self.writable_section_ids:
+            sys.exit('Some spreadsheet cells have no section ID')
+
+    def cells(self, row, branch):
+        commit_column, percentage_column = self.columns[branch.name]
+        return row.cells[commit_column], row.cells[percentage_column]
+
+
+def check_worktree_is_clean():
+    if git('status', '--porcelain', '--untracked-files=no'):
+        sys.exit('This worktree has uncommitted changes to tracked files; commit or stash them first.')
+
+
+def fetch_branches():
+    for branch in BRANCHES:
+        print(f'Fetching {branch.name} from {branch.repository}')
+        git('fetch', '--no-tags', branch.repository, f'+refs/heads/{branch.name}:{tracking_ref(branch)}', capture=False)
+
+
+def tracking_ref(branch):
+    return f'{REF_NAMESPACE}/{branch.name}'
+
+
+def commit_before(branch, date):
+    end_of_previous_day = datetime.datetime.combine(date, datetime.time(), datetime.timezone.utc) - datetime.timedelta(seconds=1)
+    return git('rev-list', '-1', '--first-parent', f'--before={end_of_previous_day.isoformat()}', tracking_ref(branch)) or None
+
+
+def ensure_commit_is_available(branch, commit):
+    if subprocess.run(['git', 'cat-file', '-e', f'{commit}^{{commit}}'], stderr=subprocess.DEVNULL).returncode:
+        print(f'Fetching recorded commit {commit} from {branch.repository}')
+        git('fetch', '--no-tags', branch.repository, commit, capture=False)
+
+
+def counted_extensions():
+    languages = set(C_FAMILY_LANGUAGES + [SWIFT_LANGUAGE])
+    extensions = set()
+    for line in run('cloc', '--show-ext').splitlines():
+        extension, separator, language = line.partition('->')
+        language = language.strip()
+        if separator and (language in languages or languages.intersection(language.split('/'))):
+            extensions.add(extension.strip())
+    return extensions
+
+
+def measure(commit, extensions):
+    git('checkout', '--quiet', '--detach', commit)
+    files = []
+    for path in git('ls-files', '-z', '--', COUNTED_DIRECTORY).split('\0'):
+        extension = os.path.splitext(path)[1][1:]
+        if (extension in extensions or extension.lower() in extensions) and not path.startswith(EXCLUDED_DIRECTORIES):
+            files.append(path)
+    with tempfile.NamedTemporaryFile('w', suffix='.txt') as list_file:
+        list_file.write('\n'.join(files) + '\n')
+        list_file.flush()
+        counts = json.loads(run('cloc', '--quiet', '--json', '--timeout=0', f'--include-lang={",".join(C_FAMILY_LANGUAGES + [SWIFT_LANGUAGE])}', f'--list-file={list_file.name}'))
+    return Measurement(
+        swift=counts.get(SWIFT_LANGUAGE, {}).get('code', 0),
+        c_family=sum(counts.get(language, {}).get('code', 0) for language in C_FAMILY_LANGUAGES))
+
+
+def main():
+    sys.stdout.reconfigure(line_buffering=True)
+    os.chdir(git('rev-parse', '--show-toplevel'))
+    current_fingerprint = fingerprint()
+    spreadsheet = configured_spreadsheet()
+    quip = Quip(quip_token(), spreadsheet)
+    check_worktree_is_clean()
+    fetch_branches()
+
+    sheet = Sheet(quip.document_html(), spreadsheet)
+    remeasure_everything = sheet.fingerprint_cell.text != current_fingerprint
+    if remeasure_everything:
+        print(f'{sheet.fingerprint_cell.name} is "{sheet.fingerprint_cell.text}", not "{current_fingerprint}", so every row will be measured')
+
+    today = datetime.datetime.now(datetime.timezone.utc).date()
+    jobs = []
+    for row in sheet.rows:
+        if row.date > today:
+            continue
+        is_current_week = today < row.date + WEEK
+        for branch in BRANCHES:
+            commit_cell, percentage_cell = sheet.cells(row, branch)
+            if is_current_week or remeasure_everything or not commit_cell.text or not percentage_cell.text:
+                jobs.append((row, branch, commit_cell, percentage_cell, is_current_week))
+
+    def write(cell, value):
+        if cell.section_id not in sheet.writable_section_ids:
+            sys.exit(f'Refusing to write to {cell.name}')
+        print(f'    {cell.name} = {value}')
+        quip.replace_cell(cell, value)
+
+    original_checkout = git('symbolic-ref', '--quiet', '--short', 'HEAD', check=False) or git('rev-parse', 'HEAD')
+    extensions = counted_extensions()
+    measurements = {}
+
+    def proportion(commit, label):
+        if commit not in measurements:
+            print(f'{label}: measuring {commit}')
+            measurements[commit] = measure(commit, extensions)
+        measurement = measurements[commit]
+        result = measurement.swift / (measurement.swift + measurement.c_family)
+        print(f'{label}: {measurement.swift} Swift / ({measurement.swift} Swift + {measurement.c_family} C-family) = {result:.4%}')
+        return result
+
+    try:
+        for row, branch, commit_cell, percentage_cell, is_current_week in jobs:
+            if is_current_week:
+                commit = git('rev-parse', tracking_ref(branch))
+            elif commit_cell.text:
+                commit = commit_cell.text
+                if not re.fullmatch('[0-9a-f]{40}', commit):
+                    sys.exit(f'{commit_cell.name} should contain a full commit hash but contains "{commit}"')
+                ensure_commit_is_available(branch, commit)
+            else:
+                commit = commit_before(branch, row.date + WEEK)
+                if not commit:
+                    print(f'{row.date} {branch.name}: no commit found before the end of the week; skipping')
+                    continue
+            git('update-ref', f'{REF_NAMESPACE}/measured/{branch.name}/{row.date}', commit)
+            row_proportion = proportion(commit, f'{row.date} {branch.name}')
+            if commit_cell.text != commit:
+                write(commit_cell, commit)
+            write(percentage_cell, f'{row_proportion:.2%}')
+
+        for branch in BRANCHES:
+            proportion(git('rev-parse', tracking_ref(branch)), f'Now {branch.name}')
+    finally:
+        git('checkout', '--quiet', original_checkout)
+
+    if remeasure_everything:
+        write(sheet.fingerprint_cell, current_fingerprint)
+    if not jobs:
+        print('No spreadsheet rows needed measuring.')
+    print(spreadsheet.url)
+    subprocess.run(['open', spreadsheet.url])
+
+
+if __name__ == '__main__':
+    main()
