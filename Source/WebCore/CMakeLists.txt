@@ -3291,6 +3291,14 @@ list(APPEND WebCore_SOURCES ${WebCore_DERIVED_SOURCES_DIR}/Namespace.cpp)
 # compiles in WebCore_SwiftInterop, after WebCore's Swift module.
 if (WK_USE_SWIFT_HTML_FAST_PATH)
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLDocumentParserFastPath\\.cpp( |$)")
+    set(WebCore_SWIFT_HTML_FAST_PATH_SOURCES
+        ${WEBCORE_DIR}/SIMDHelpers.swift
+        ${WEBCORE_DIR}/SIMDHighBitMask.swift
+        ${WEBCORE_DIR}/SIMDSaturatingSubtract.swift
+        ${WEBCORE_DIR}/SIMDTableLookup.swift
+        ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
+    )
+    set(WebCore_SWIFT_HTML_FAST_PATH_INTEROP_SOURCES html/parser/HTMLDocumentParserFastPath.cpp)
 endif ()
 # Set by WK_USE_SWIFT_HTML_TOKENIZER: these include WebCore-Swift.h too.
 if (WK_USE_SWIFT_HTML_TOKENIZER)
@@ -3298,6 +3306,22 @@ if (WK_USE_SWIFT_HTML_TOKENIZER)
         "(^|/)HTMLTokenizer\\.cpp( |$)"
         "(^|/)WebVTTTokenizer\\.cpp( |$)"
         "(^|/)XMLDocumentParserLibxml2\\.cpp( |$)")
+    set(WebCore_SWIFT_HTML_TOKENIZER_SOURCES
+        ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLTokenizer.swift
+    )
+    set(WebCore_SWIFT_HTML_TOKENIZER_INTEROP_SOURCES
+        html/parser/HTMLTokenizer.cpp
+        html/track/WebVTTTokenizer.cpp
+        xml/parser/XMLDocumentParserLibxml2.cpp
+    )
+    # As in WebCore.xcconfig: the jump threading that lets each tokenizer transition branch straight to the next
+    # state, and -O2 for the inline C++ the tokenizer calls.
+    set(WebCore_SWIFT_HTML_TOKENIZER_SWIFT_OPTIONS
+        "-D USE_SWIFT_HTML_TOKENIZER"
+        "-Xllvm -enable-dfa-jump-thread"
+        "-Xcc -O2"
+    )
 endif ()
 
 # WK_USE_SWIFT_CSS, the counterpart of the WebCore.xcconfig setting: the Swift implementation of CSS
@@ -3415,6 +3439,43 @@ if (APPLE)
     # C++ sources that include WebCoreSwift-Generated.h.
     set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp)
 
+    # As WebCore.xcconfig's OTHER_SWIFT_FLAGS. The C++ is built without exceptions, and with the importer's
+    # clang emitting C++ inline functions with the C++ personality, or the cleanups exceptions would need,
+    # LLVM will not inline them into Swift. ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS=0 keeps the importer off
+    # the base-class Swift annotations, and BuiltinModule is for the vendored SIMD operations in SIMD*.swift.
+    webkit_target_add_swift_options(WebCore
+        "-Xcc -fno-exceptions"
+        "-Xcc -fignore-exceptions"
+        "-Xcc -DENABLE_SWIFT_BASE_CLASS_ANNOTATIONS=0"
+        "-enable-experimental-feature BuiltinModule"
+    )
+    # PSHUFB in SIMDTableLookup.swift needs SSSE3, which every x86_64 Mac target has.
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+        webkit_target_add_swift_options(WebCore "-D HAVE_SSSE3")
+    endif ()
+
+    # The Swift islands. WebCore_Private's boundary submodules are in the framework's module map here.
+    if (WK_USE_SWIFT_HTML_FAST_PATH)
+        target_sources(WebCore PRIVATE ${WebCore_SWIFT_HTML_FAST_PATH_SOURCES})
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_SWIFT_HTML_FAST_PATH_INTEROP_SOURCES})
+        target_compile_definitions(WebCore PRIVATE
+            "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_HTML_FAST_PATH=1>")
+        webkit_target_add_swift_options(WebCore "-D USE_SWIFT_HTML_FAST_PATH")
+    endif ()
+    if (WK_USE_SWIFT_HTML_TOKENIZER)
+        target_sources(WebCore PRIVATE ${WebCore_SWIFT_HTML_TOKENIZER_SOURCES})
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_SWIFT_HTML_TOKENIZER_INTEROP_SOURCES})
+        webkit_target_add_swift_options(WebCore ${WebCore_SWIFT_HTML_TOKENIZER_SWIFT_OPTIONS})
+    endif ()
+    if (WK_USE_SWIFT_CSS)
+        target_sources(WebCore PRIVATE ${WebCore_SWIFT_CSS_SOURCES})
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_SWIFT_CSS_INTEROP_SOURCES})
+        # Per-toolchain workarounds from the build script, e.g. a -sil-disable-pass for a compiler crash.
+        if (WK_SWIFT_CSS_EXTRA_SWIFT_FLAGS)
+            webkit_target_add_swift_options(WebCore ${WK_SWIFT_CSS_EXTRA_SWIFT_FLAGS})
+        endif ()
+    endif ()
+
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"
         "WebCoreSwift-Generated.h")
@@ -3429,14 +3490,8 @@ elseif (WK_USE_SWIFT_HTML_FAST_PATH OR WK_USE_SWIFT_CSS)
     set(_webcore_swift_core_submodules)
 
     if (WK_USE_SWIFT_HTML_FAST_PATH)
-        target_sources(WebCore PRIVATE
-            ${WEBCORE_DIR}/SIMDHelpers.swift
-            ${WEBCORE_DIR}/SIMDHighBitMask.swift
-            ${WEBCORE_DIR}/SIMDSaturatingSubtract.swift
-            ${WEBCORE_DIR}/SIMDTableLookup.swift
-            ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
-        )
-        list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLDocumentParserFastPath.cpp)
+        target_sources(WebCore PRIVATE ${WebCore_SWIFT_HTML_FAST_PATH_SOURCES})
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_SWIFT_HTML_FAST_PATH_INTEROP_SOURCES})
 
         # As in WebCore.xcconfig: the C++ and Swift conditions, and the Builtin module for the vendored
         # SIMD operations in SIMD*.swift.
@@ -3468,24 +3523,12 @@ elseif (WK_USE_SWIFT_HTML_FAST_PATH OR WK_USE_SWIFT_CSS)
     endif ()
 
     if (WK_USE_SWIFT_HTML_TOKENIZER)
-        target_sources(WebCore PRIVATE
-            ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
-            ${WEBCORE_DIR}/html/parser/HTMLTokenizer.swift
-        )
+        target_sources(WebCore PRIVATE ${WebCore_SWIFT_HTML_TOKENIZER_SOURCES})
         if (WIN32)
             target_sources(WebCore PRIVATE ${WEBCORE_DIR}/platform/text/SegmentedStringWindows.swift)
         endif ()
-        list(APPEND WebCore_SWIFT_INTEROP_SOURCES
-            html/parser/HTMLTokenizer.cpp
-            html/track/WebVTTTokenizer.cpp
-            xml/parser/XMLDocumentParserLibxml2.cpp)
-        # As in WebCore.xcconfig: the jump threading that lets each tokenizer transition branch straight to the next
-        # state, and -O2 for the inline C++ the tokenizer calls.
-        webkit_target_add_swift_options(WebCore
-            "-D USE_SWIFT_HTML_TOKENIZER"
-            "-Xllvm -enable-dfa-jump-thread"
-            "-Xcc -O2"
-        )
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_SWIFT_HTML_TOKENIZER_INTEROP_SOURCES})
+        webkit_target_add_swift_options(WebCore ${WebCore_SWIFT_HTML_TOKENIZER_SWIFT_OPTIONS})
         list(APPEND _webcore_swift_core_submodules
             platform/text/SegmentedString.h html/parser/HTMLToken.h html/parser/HTMLTokenizer.h
             html/parser/HTMLEntityParser.h html/parser/HTMLEntityTable.h css/parser/CSSTokenizerInputStream.h)
