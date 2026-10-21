@@ -512,9 +512,19 @@ macro(WEBKIT_OPTION_END)
     endif ()
 
     option(WK_USE_SWIFT_TEXT_CODEC_UTF8 "Replace the C++ UTF-8 decoder with PAL's TextCodecUTF8.swift" OFF)
-    option(WK_USE_SWIFT_HTML_FAST_PATH "Parse HTML fragments on the fast path, building their DOM, with WebCore's HTMLFastPathParser.swift" OFF)
+    # The defaults match the Xcode build's: WebCore.xcconfig turns the HTML fragment fast path's Swift on for
+    # every Apple SDK, and Configurations/CommonBase.xcconfig the Swift CSS on for macOS.
+    set(_wk_use_swift_html_fast_path_default OFF)
+    set(_wk_use_swift_css_default OFF)
+    if (APPLE)
+        set(_wk_use_swift_html_fast_path_default ON)
+        if (WEBKIT_SDK_IS_MACOS)
+            set(_wk_use_swift_css_default ON)
+        endif ()
+    endif ()
+    option(WK_USE_SWIFT_HTML_FAST_PATH "Parse HTML fragments on the fast path, building their DOM, with WebCore's HTMLFastPathParser.swift" ${_wk_use_swift_html_fast_path_default})
     option(WK_USE_SWIFT_HTML_TOKENIZER "Replace the C++ HTML tokenizer and entity decoder with WebCore's HTMLTokenizer.swift and HTMLEntityParser.swift (needs WK_USE_SWIFT_HTML_FAST_PATH)" OFF)
-    option(WK_USE_SWIFT_CSS "Replace the C++ CSS tokenizer, property fast paths and calc() with WebCore's Swift" OFF)
+    option(WK_USE_SWIFT_CSS "Replace the C++ CSS tokenizer, property fast paths and calc() with WebCore's Swift" ${_wk_use_swift_css_default})
 
     # Swift/C++ interop is now always required. Fail loudly if the
     # toolchain is too old. Apple is gated elsewhere; non-Clang is
