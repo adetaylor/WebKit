@@ -87,10 +87,10 @@ private:
 
     ExportMap m_exports;
 
-    static_assert(sizeof(ExportMap) == 4 * sizeof(void*) && alignof(ExportMap) == alignof(void*));
+    static_assert(sizeof(ExportMap) == sizeof(OrderedHashMap<unsigned, unsigned>) && alignof(ExportMap) == alignof(OrderedHashMap<unsigned, unsigned>));
 #else
     // Hidden from Swift, as AbstractModuleRecord::ImportEntries is.
-    alignas(void*) unsigned char m_exports[4 * sizeof(void*)];
+    alignas(OrderedHashMap<unsigned, unsigned>) unsigned char m_exports[sizeof(OrderedHashMap<unsigned, unsigned>)];
 #endif
     WriteBarrier<AbstractModuleRecord> m_moduleRecord;
     const bool m_isDeferred;
