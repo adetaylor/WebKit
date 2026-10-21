@@ -1923,8 +1923,8 @@ CSSCalcSwiftNumericResult CSSCalcSwiftBuilder::resolveAnchor(CSSCalcSwiftAlterna
 
     auto id = static_cast<CSSValueID>(valueID);
     auto result = alternative == CSSCalcSwiftAlternative::Anchor
-        ? Style::AnchorPositionEvaluator::evaluate(*builderState, WTF::move(elementName), id ? Style::AnchorPositionEvaluator::Side { id } : Style::AnchorPositionEvaluator::Side { sideFraction })
-        : Style::AnchorPositionEvaluator::evaluateSize(*builderState, WTF::move(elementName), id ? cssValueIDToAnchorSizeDimension(id) : std::nullopt);
+        ? Style::AnchorPositionEvaluator::evaluate(*builderState, WTF::move(elementName), id != CSSValueID::Invalid ? Style::AnchorPositionEvaluator::Side { id } : Style::AnchorPositionEvaluator::Side { sideFraction })
+        : Style::AnchorPositionEvaluator::evaluateSize(*builderState, WTF::move(elementName), id != CSSValueID::Invalid ? cssValueIDToAnchorSizeDimension(id) : std::nullopt);
     return result ? resolvedCanonicalLength(*result) : unresolvedNumber;
 }
 

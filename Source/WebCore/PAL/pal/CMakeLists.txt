@@ -151,10 +151,8 @@ if (PAL_SWIFT_SOURCES)
         )
     endif ()
     if (WK_USE_SWIFT_TEXT_CODEC_UTF8)
-        # Private to PAL, as in PAL.xcconfig. A Swift compilation condition too, so that without it
-        # TextCodecUTF8.swift compiles to nothing.
-        target_compile_definitions(PAL PRIVATE
-            "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_TEXT_CODEC_UTF8=1>")
+        # A Swift compilation condition, so that without it TextCodecUTF8.swift compiles to nothing. The C++
+        # definition is WebKitFeatures.cmake's.
         webkit_target_add_swift_options(PAL "-D USE_SWIFT_TEXT_CODEC_UTF8")
         # SIMDTableLookup.swift's table lookup (PSHUFB with SSSE3) needs the Builtin module, as in PAL.xcconfig.
         webkit_target_add_swift_options(PAL "-enable-experimental-feature BuiltinModule")

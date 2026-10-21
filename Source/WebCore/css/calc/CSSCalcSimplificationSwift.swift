@@ -3768,7 +3768,7 @@ public final class CSSCalcSwiftStoreBuilder {
                 return false
             }
             var children = UniqueArray<CalcNode>(capacity: count)
-            var k = stack.count &- count
+            let k = stack.count &- count
             while k < stack.count {
                 children.append(stack.remove(at: k))
             }
@@ -7677,7 +7677,7 @@ final class StyleCalcStore {
     /// Destroys the tree its one owner held. Traps on a slot that is not live: a second release,
     /// or a handle that was never handed out.
     func release(_ handle: UInt32) {
-        var dead = take(handle)
+        let dead = take(handle)
         _ = consume dead
         // `dead` is freed here, after every access has ended.
     }
@@ -8705,7 +8705,7 @@ struct TransformListSink: TransformFunctionSink {
 func makeTransformList(_ sink: consuming TransformListSink) -> WebCore.CSSValue? {
     guard !sink.list.isEmpty() else { return nil }
     // A whole-value move, so `list` is not copied (a `WTF::Vector` copy otherwise).
-    var list = (consume sink).list
+    let list = (consume sink).list
     var value = WebCore.CSSTransformListValue.create(consume list)
     return value.leakRef()
 }
@@ -8718,7 +8718,7 @@ typealias RefCSSValue = WebCore.CSSValueListBuilder.ValueType
 
 @inline(always)
 func cssKeywordValue(_ id: UInt16) -> WebCore.CSSValue {
-    var value = WebCore.CSSKeywordValue.create(WebCore.CSSValueID(rawValue: id))
+    var value = WebCore.CSSKeywordValue.create(WebCore.CSSValueID(rawValue: id)!)
     return value.leakRef()
 }
 

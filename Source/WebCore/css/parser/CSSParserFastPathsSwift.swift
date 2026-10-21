@@ -23,7 +23,23 @@
 
 // Only the boundary types, not the WebCore_Private umbrella, which reaches JavaScriptCore
 // headers whose definitions live in explicit submodules nothing imports.
-public import WebCore_Private.CSSTokenizerSwiftTypes
+internal import WebCore_Private.CSSTokenizerSwiftTypes
+
+// Latin-1 characters are single bytes that every value is valid for, so a span of them and a span of their
+// code units can stand for each other in place.
+fileprivate extension Span where Element == UInt8 {
+    @_lifetime(copy characters)
+    init(latin1 characters: Span<WTF.Latin1Character>) {
+        self = unsafe Span(_bytes: characters.bytes)
+    }
+}
+
+fileprivate extension Span where Element == WTF.Latin1Character {
+    @_lifetime(copy codeUnits)
+    init(latin1 codeUnits: Span<UInt8>) {
+        self = unsafe Span(_bytes: codeUnits.bytes)
+    }
+}
 
 // Swift implementation of the fast paths in CSSParserFastPaths.cpp, used when WebCore is built
 // with WK_USE_SWIFT_CSS: hex, named and `rgb()`/`hsl()` colors, simple transforms, lengths and
@@ -59,7 +75,7 @@ protocol CSSColorCodeUnit: CSSCodeUnit {
 extension UInt8: CSSColorCodeUnit {
     @inline(always)
     static func parseCSSNumber(_ characters: Span<UInt8>) -> WebCore.CSSSwiftDoubleScan {
-        WebCore.cssSwiftParseCSSNumber8(characters)
+        WebCore.cssSwiftParseCSSNumber8(Span<WTF.Latin1Character>(latin1: characters))
     }
 }
 
@@ -190,7 +206,7 @@ private func scanNamedColor<Unit: CSSCodeUnit>(_ characters: Span<Unit>) -> WebC
         folded[index] = toASCIILowerUnit(value)
     }
 
-    return WebCore.cssSwiftFindNamedColor(folded.span.extracting(0..<count))
+    return WebCore.cssSwiftFindNamedColor(Span<WTF.Latin1Character>(latin1: folded.span.extracting(0..<count)))
 }
 
 /// The one spelling of a rejection.
@@ -1296,7 +1312,7 @@ private func scanTranslateArguments<Unit: CSSColorCodeUnit>(
         guard let length = distanceToUnit(cursor, remaining == 1 ? 0x29 : 0x2C) else {
             return false
         }
-        guard var (value, unit) = parseTransformLength(cursor, cursor.offset, cursor.offset + length) else {
+        guard case (let value, var unit)? = parseTransformLength(cursor, cursor.offset, cursor.offset + length) else {
             return false
         }
         if value == 0, unit == WebCore.CSSUnitType.Number {
@@ -1522,7 +1538,7 @@ public func cssParseFastPathSwift8(
     _ sink: inout WebCore.CSSSwiftFastPathSink
 ) -> WebCore.CSSValue? {
     // rdar://186723514; invariants above.
-    scanFastPath(unsafe Span<UInt8>(_unsafeCxxSpan: text), kind, &sink)
+    scanFastPath(Span<UInt8>(latin1: unsafe Span<WTF.Latin1Character>(_unsafeCxxSpan: text)), kind, &sink)
 }
 
 /// The fast paths over UTF-16 text.

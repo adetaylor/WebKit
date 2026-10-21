@@ -47,6 +47,22 @@ internal import WebCore_Private.Core.NodeName
 internal import WebCore_Private.Core.QualifiedName
 internal import WebCore_Private.Core.Text
 
+// Latin-1 characters are single bytes that every value is valid for, so a span of them and a span of their
+// code units can stand for each other in place.
+fileprivate extension Span where Element == UInt8 {
+    @_lifetime(copy characters)
+    init(latin1 characters: Span<WTF.Latin1Character>) {
+        self = unsafe Span(_bytes: characters.bytes)
+    }
+}
+
+fileprivate extension Span where Element == WTF.Latin1Character {
+    @_lifetime(copy codeUnits)
+    init(latin1 codeUnits: Span<UInt8>) {
+        self = unsafe Span(_bytes: codeUnits.bytes)
+    }
+}
+
 /// Parses `source`, an 8-bit fragment, as the children of `contextElement` into `destinationParent`.
 ///
 /// Returns false if the fragment is outside the subset of HTML the fast path supports (HTMLDocumentParserFastPath.cpp).
@@ -63,7 +79,7 @@ func parseHTMLFragmentForFastPath(
     _ destinationParent: WebCore.ContainerNode,
     _ contextElement: WebCore.Element
 ) -> Bool {
-    let input = unsafe Span<UInt8>(_unsafeCxxSpan: source)
+    let input = Span<UInt8>(latin1: unsafe Span<WTF.Latin1Character>(_unsafeCxxSpan: source))
     return parseFragment(input, document, destinationParent, contextElement)
 }
 
@@ -234,7 +250,7 @@ extension UInt8: HTMLFastPathCodeUnit {
         // An empty UTF-16 source. A Span converted to a std::span must have an address, even when empty.
         let noCharacters = InlineArray<1, UInt16>(repeating: 0)
         return WebCore.consumeHTMLEntityForFastPath(
-            input,
+            Span<WTF.Latin1Character>(latin1: input),
             noCharacters.span.extracting(0..<0),
             additionalAllowedCharacter,
             &decoded,
@@ -245,17 +261,17 @@ extension UInt8: HTMLFastPathCodeUnit {
 
     @inline(always)
     static func makeString(_ characters: Span<UInt8>) -> WTF.String {
-        WTF.String(characters)
+        WTF.String(Span<WTF.Latin1Character>(latin1: characters))
     }
 
     @inline(always)
     static func makeAttributeQualifiedName(_ name: Span<UInt8>) -> WebCore.QualifiedName {
-        WebCore.HTMLNameCache.makeAttributeQualifiedName(name)
+        WebCore.HTMLNameCache.makeAttributeQualifiedName(Span<WTF.Latin1Character>(latin1: name))
     }
 
     @inline(always)
     static func makeAttributeValue(_ value: Span<UInt8>) -> WTF.AtomString {
-        WebCore.HTMLNameCache.makeAttributeValue(value)
+        WebCore.HTMLNameCache.makeAttributeValue(Span<WTF.Latin1Character>(latin1: value))
     }
 
     @inline(always)
@@ -287,7 +303,7 @@ extension UInt16: HTMLFastPathCodeUnit {
         // An empty Latin-1 source. A Span converted to a std::span must have an address, even when empty.
         let noCharacters = InlineArray<1, UInt8>(repeating: 0)
         return WebCore.consumeHTMLEntityForFastPath(
-            noCharacters.span.extracting(0..<0),
+            Span<WTF.Latin1Character>(latin1: noCharacters.span.extracting(0..<0)),
             input,
             additionalAllowedCharacter,
             &decoded,

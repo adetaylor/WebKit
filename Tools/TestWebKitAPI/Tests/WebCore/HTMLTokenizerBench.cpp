@@ -347,7 +347,8 @@ static void appendProse(StringBuilder& builder, Generator& generator, unsigned l
     while (appended < length) {
         unsigned pick = generator.below(64);
         if (!pick) {
-            builder.append("caf"_s, static_cast<Latin1Character>(0xE9), ' ');
+            static constexpr std::array<Latin1Character, 1> eAcute { 0xE9 };
+            builder.append("caf"_s, std::span { eAcute }, ' ');
             appended += 5;
         } else if (pick == 1) {
             builder.append('.', newline);
