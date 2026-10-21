@@ -54,7 +54,6 @@
 
 import collections
 import datetime
-import html
 import html.parser
 import json
 import os
@@ -160,12 +159,14 @@ class Quip:
         return self.request(f'threads/{self.spreadsheet.document_id}')['html']
 
     def replace_cell(self, cell, value):
+        # Markdown, not HTML: a value written as HTML stays text unless a Quip page has the spreadsheet
+        # open as the edit arrives, and a chart drops a series with a text cell in it.
         self.request('threads/edit-document', {
             'thread_id': self.spreadsheet.document_id,
-            'format': 'html',
+            'format': 'markdown',
             'location': QUIP_REPLACE_SECTION,
             'section_id': cell.section_id.replace(';', '_'),
-            'content': html.escape(value),
+            'content': value,
         })
 
 
