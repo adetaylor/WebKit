@@ -137,6 +137,13 @@ public:
     using ExportEntries = OrderedHashMap<RefPtr<UniquedStringImpl>, ExportEntry, IdentifierRepHash, HashTraits<RefPtr<UniquedStringImpl>>>;
 #endif
 
+    // Containers over a trivial type, with the layout of the ones hidden from the Clang importer below. A
+    // container's layout does not depend on its element types, but does on the build: Debug's HashTable
+    // carries CHECK_HASHTABLE_ITERATORS state.
+    using OrderedHashMapLayout = OrderedHashMap<unsigned, unsigned>;
+    using HashMapLayout = UncheckedKeyHashMap<unsigned, unsigned>;
+    using VectorLayout = Vector<unsigned>;
+
     struct ModuleRequest {
         Identifier m_specifier;
         RefPtr<ScriptFetchParameters> m_attributes;
@@ -284,11 +291,11 @@ private:
     // Map exportName -> ExportEntry.
     ExportEntries m_exportEntries;
 
-    static_assert(sizeof(ImportEntries) == 4 * sizeof(void*) && alignof(ImportEntries) == alignof(void*));
-    static_assert(sizeof(ExportEntries) == 4 * sizeof(void*) && alignof(ExportEntries) == alignof(void*));
+    static_assert(sizeof(ImportEntries) == sizeof(OrderedHashMapLayout) && alignof(ImportEntries) == alignof(OrderedHashMapLayout));
+    static_assert(sizeof(ExportEntries) == sizeof(OrderedHashMapLayout) && alignof(ExportEntries) == alignof(OrderedHashMapLayout));
 #else
-    alignas(void*) unsigned char m_importEntries[4 * sizeof(void*)];
-    alignas(void*) unsigned char m_exportEntries[4 * sizeof(void*)];
+    alignas(OrderedHashMapLayout) unsigned char m_importEntries[sizeof(OrderedHashMapLayout)];
+    alignas(OrderedHashMapLayout) unsigned char m_exportEntries[sizeof(OrderedHashMapLayout)];
 #endif
 
     // Save the occurrence order since resolveExport requires it.
@@ -299,10 +306,9 @@ private:
 #if !defined(__swift__)
     Vector<ModuleRequest> m_requestedModules;
 
-    static_assert(sizeof(Vector<ModuleRequest>) == sizeof(void*) + 2 * sizeof(unsigned));
-    static_assert(alignof(Vector<ModuleRequest>) == alignof(void*));
+    static_assert(sizeof(Vector<ModuleRequest>) == sizeof(VectorLayout) && alignof(Vector<ModuleRequest>) == alignof(VectorLayout));
 #else
-    alignas(void*) unsigned char m_requestedModules[sizeof(void*) + 2 * sizeof(unsigned)];
+    alignas(VectorLayout) unsigned char m_requestedModules[sizeof(VectorLayout)];
 #endif
 
     WriteBarrier<JSModuleNamespaceObject> m_moduleNamespaceObject;
@@ -318,9 +324,9 @@ private:
     typedef UncheckedKeyHashMap<RefPtr<UniquedStringImpl>, Resolution, IdentifierRepHash, HashTraits<RefPtr<UniquedStringImpl>>> Resolutions;
     Resolutions m_resolutionCache;
 
-    static_assert(sizeof(Resolutions) == sizeof(void*) && alignof(Resolutions) == alignof(void*));
+    static_assert(sizeof(Resolutions) == sizeof(HashMapLayout) && alignof(Resolutions) == alignof(HashMapLayout));
 #else
-    void* m_resolutionCache;
+    alignas(HashMapLayout) unsigned char m_resolutionCache[sizeof(HashMapLayout)];
 #endif
 
 protected:
@@ -329,9 +335,9 @@ protected:
 #if !defined(__swift__)
     ModuleMap<LoadedModuleRequest> m_loadedModules;
 
-    static_assert(sizeof(ModuleMap<LoadedModuleRequest>) == sizeof(void*) && alignof(ModuleMap<LoadedModuleRequest>) == alignof(void*));
+    static_assert(sizeof(ModuleMap<LoadedModuleRequest>) == sizeof(HashMapLayout) && alignof(ModuleMap<LoadedModuleRequest>) == alignof(HashMapLayout));
 #else
-    void* m_loadedModules;
+    alignas(HashMapLayout) unsigned char m_loadedModules[sizeof(HashMapLayout)];
 #endif
 
     Vector<WriteBarrier<AbstractModuleRecord>> m_asyncParentModules;
