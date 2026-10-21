@@ -978,6 +978,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/CSSFontFaceDescriptors.h
     css/CSSFontFaceRule.h
     css/CSSFontPaletteValuesRule.h
+    css/CSSFunctionValue.h
     css/CSSGridTemplateListValue.h
     css/CSSGroupingRule.h
     css/CSSImportRule.h
@@ -1001,6 +1002,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/CSSStyleSheet.h
     css/CSSSubstitutionValue.h
     css/CSSToLengthConversionData.h
+    css/CSSTransformListValue.h
     css/CSSUnitConversions.h
     css/CSSUnitType.h
     css/CSSUnits.h
@@ -1061,6 +1063,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/parser/CSSSelectorParserContext.h
     css/parser/CSSTokenizer.h
     css/parser/CSSTokenizerInputStream.h
+    css/parser/CSSTokenizerSwiftTypes.h
     css/parser/MutableCSSSelector.h
 
     css/query/ContainerQuery.h
@@ -1618,6 +1621,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     html/parser/HTMLDocumentParserFastPath.h
     html/parser/HTMLEntityParser.h
     html/parser/HTMLEntityTable.h
+    html/parser/HTMLFastPathParserTypes.h
     html/parser/HTMLNameCache.h
     html/parser/HTMLParserIdioms.h
     html/parser/HTMLParserOptions.h
@@ -3690,6 +3694,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     ${WebCore_DERIVED_SOURCES_DIR}/EventTargetInterfaces.h
     ${WebCore_DERIVED_SOURCES_DIR}/FrameTreeSyncData.h
     ${WebCore_DERIVED_SOURCES_DIR}/FrameTreeSyncClient.h
+    ${WebCore_DERIVED_SOURCES_DIR}/HTMLElementFactory.h
     ${WebCore_DERIVED_SOURCES_DIR}/HTMLElementTypeHelpers.h
     ${WebCore_DERIVED_SOURCES_DIR}/HTMLNames.h
     ${WebCore_DERIVED_SOURCES_DIR}/HTTPHeaderNames.h
