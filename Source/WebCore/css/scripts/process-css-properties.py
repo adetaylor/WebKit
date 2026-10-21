@@ -10403,9 +10403,9 @@ SWIFT_OVERRIDE_FUNCTIONS = {
 
 # The function name each override consumes, so a `MatchOne` of functions can dispatch on it.
 SWIFT_OVERRIDE_FUNCTION_NAMES = {
-    'consumeRotate3dFunction': 'WebCore.CSSValueRotate3d',
-    'consumeTranslateFunction': 'WebCore.CSSValueTranslate',
-    'consumeTranslate3dFunction': 'WebCore.CSSValueTranslate3d',
+    'consumeRotate3dFunction': 'WebCore.CSSValueID.Rotate3d',
+    'consumeTranslateFunction': 'WebCore.CSSValueID.Translate',
+    'consumeTranslate3dFunction': 'WebCore.CSSValueID.Translate3d',
 }
 
 # The most arguments `CSSFunctionValue::create` takes as `Ref<CSSValue>&&` operands.
@@ -10417,8 +10417,8 @@ class SwiftGenerationUnsupported(Exception):
 
 
 def swift_value_id(value_id):
-    # 'CSSValueID::CSSValueNone' -> 'WebCore.CSSValueNone'
-    return 'WebCore.' + value_id.split('::')[-1]
+    # 'CSSValueID::None' -> 'WebCore.CSSValueID.None'
+    return 'WebCore.CSSValueID.' + value_id.split('::')[-1]
 
 
 def swift_range_arguments(value_range):

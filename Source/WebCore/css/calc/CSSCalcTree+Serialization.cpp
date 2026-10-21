@@ -69,16 +69,16 @@ static void serializeRandomSharing(StringBuilder& builder, const CSS::Serializat
             }
             if (key.elementScoped) {
                 separate();
-                builder.append(nameLiteralForSerialization(CSSValueElementScoped));
+                builder.append(nameLiteralForSerialization(CSSValueID::ElementScoped));
             }
             if (key.propertyScoped) {
                 separate();
                 WTF::switchOn(*key.propertyScoped,
                     [&](const Random::Key::PropertyScoped&) {
-                        builder.append(nameLiteralForSerialization(CSSValuePropertyScoped));
+                        builder.append(nameLiteralForSerialization(CSSValueID::PropertyScoped));
                     },
                     [&](const Random::Key::PropertyIndexScoped&) {
-                        builder.append(nameLiteralForSerialization(CSSValuePropertyIndexScoped));
+                        builder.append(nameLiteralForSerialization(CSSValueID::PropertyIndexScoped));
                     }
                 );
             }
@@ -87,7 +87,7 @@ static void serializeRandomSharing(StringBuilder& builder, const CSS::Serializat
             builder.append(", "_s);
         },
         [&](const Random::SharingFixed& fixed) {
-            builder.append(nameLiteralForSerialization(CSSValueFixed), ' ');
+            builder.append(nameLiteralForSerialization(CSSValueID::Fixed), ' ');
             CSS::serializationForCSS(builder, context, fixed.value);
             builder.append(", "_s);
         }

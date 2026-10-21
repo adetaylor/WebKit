@@ -2015,17 +2015,17 @@ extension CalcNode {
             valueID = self.valueID
         case .SiblingCount:
             kind = .siblingCount
-            valueID = calcValueID(WebCore.CSSValueSiblingCount)
+            valueID = calcValueID(WebCore.CSSValueID.SiblingCount)
         case .SiblingIndex:
             kind = .siblingIndex
-            valueID = calcValueID(WebCore.CSSValueSiblingIndex)
+            valueID = calcValueID(WebCore.CSSValueID.SiblingIndex)
         case .Sum: kind = .sum
         case .Product: kind = .product
         case .Negate: kind = .negate
         case .Invert: kind = .invert
         case .Deg2Rad: kind = .transparent
         case .Clamp:
-            valueID = calcValueID(WebCore.CSSValueClamp)
+            valueID = calcValueID(WebCore.CSSValueID.Clamp)
             switch flags & CalcNodeFlags.clampNoneMask {
             case CalcNodeFlags.clampNoneMask: kind = .clampWithNoneMinimumAndMaximum
             case CalcNodeFlags.clampNoneMinimum: kind = .clampWithNoneMinimum
@@ -2034,31 +2034,31 @@ extension CalcNode {
             }
         case .RoundNearest:
             kind = .roundFunction
-            valueID = calcValueID(WebCore.CSSValueNearest)
+            valueID = calcValueID(WebCore.CSSValueID.Nearest)
         case .RoundUp:
             kind = .roundFunction
-            valueID = calcValueID(WebCore.CSSValueUp)
+            valueID = calcValueID(WebCore.CSSValueID.Up)
         case .RoundDown:
             kind = .roundFunction
-            valueID = calcValueID(WebCore.CSSValueDown)
+            valueID = calcValueID(WebCore.CSSValueID.Down)
         case .RoundToZero:
             kind = .roundFunction
-            valueID = calcValueID(WebCore.CSSValueToZero)
+            valueID = calcValueID(WebCore.CSSValueID.ToZero)
         case .ProgressNoClamp:
             kind = .progressNoClampFunction
-            valueID = calcValueID(WebCore.CSSValueProgress)
+            valueID = calcValueID(WebCore.CSSValueID.Progress)
         case .Random:
             kind = .randomFunction
-            valueID = calcValueID(WebCore.CSSValueRandom)
+            valueID = calcValueID(WebCore.CSSValueID.Random)
         case .CalcMix:
             kind = .calcMixFunction
-            valueID = calcValueID(WebCore.CSSValueCalcMix)
+            valueID = calcValueID(WebCore.CSSValueID.CalcMix)
         case .Anchor:
             kind = .anchorFunction
-            valueID = calcValueID(WebCore.CSSValueAnchor)
+            valueID = calcValueID(WebCore.CSSValueID.Anchor)
         case .AnchorSize:
             kind = .anchorSizeFunction
-            valueID = calcValueID(WebCore.CSSValueAnchorSize)
+            valueID = calcValueID(WebCore.CSSValueID.AnchorSize)
         case .Min, .Max, .Mod, .Rem, .Sin, .Cos, .Tan, .Asin, .Acos, .Atan, .Atan2, .Pow, .Sqrt, .Hypot,
             .Log, .Exp, .Abs, .Sign, .Progress:
             kind = .function
@@ -2123,25 +2123,25 @@ private func calcValueID(_ id: WebCore.CSSValueID) -> UInt16 {
 /// `Op::id` for the operations serialized as `name(args...)`.
 private func calcFunctionValueID(_ alternative: CalcAlternative) -> UInt16 {
     switch alternative {
-    case .Min: return calcValueID(WebCore.CSSValueMin)
-    case .Max: return calcValueID(WebCore.CSSValueMax)
-    case .Mod: return calcValueID(WebCore.CSSValueMod)
-    case .Rem: return calcValueID(WebCore.CSSValueRem)
-    case .Sin: return calcValueID(WebCore.CSSValueSin)
-    case .Cos: return calcValueID(WebCore.CSSValueCos)
-    case .Tan: return calcValueID(WebCore.CSSValueTan)
-    case .Asin: return calcValueID(WebCore.CSSValueAsin)
-    case .Acos: return calcValueID(WebCore.CSSValueAcos)
-    case .Atan: return calcValueID(WebCore.CSSValueAtan)
-    case .Atan2: return calcValueID(WebCore.CSSValueAtan2)
-    case .Pow: return calcValueID(WebCore.CSSValuePow)
-    case .Sqrt: return calcValueID(WebCore.CSSValueSqrt)
-    case .Hypot: return calcValueID(WebCore.CSSValueHypot)
-    case .Log: return calcValueID(WebCore.CSSValueLog)
-    case .Exp: return calcValueID(WebCore.CSSValueExp)
-    case .Abs: return calcValueID(WebCore.CSSValueAbs)
-    case .Sign: return calcValueID(WebCore.CSSValueSign)
-    case .Progress: return calcValueID(WebCore.CSSValueProgress)
+    case .Min: return calcValueID(WebCore.CSSValueID.Min)
+    case .Max: return calcValueID(WebCore.CSSValueID.Max)
+    case .Mod: return calcValueID(WebCore.CSSValueID.Mod)
+    case .Rem: return calcValueID(WebCore.CSSValueID.Rem)
+    case .Sin: return calcValueID(WebCore.CSSValueID.Sin)
+    case .Cos: return calcValueID(WebCore.CSSValueID.Cos)
+    case .Tan: return calcValueID(WebCore.CSSValueID.Tan)
+    case .Asin: return calcValueID(WebCore.CSSValueID.Asin)
+    case .Acos: return calcValueID(WebCore.CSSValueID.Acos)
+    case .Atan: return calcValueID(WebCore.CSSValueID.Atan)
+    case .Atan2: return calcValueID(WebCore.CSSValueID.Atan2)
+    case .Pow: return calcValueID(WebCore.CSSValueID.Pow)
+    case .Sqrt: return calcValueID(WebCore.CSSValueID.Sqrt)
+    case .Hypot: return calcValueID(WebCore.CSSValueID.Hypot)
+    case .Log: return calcValueID(WebCore.CSSValueID.Log)
+    case .Exp: return calcValueID(WebCore.CSSValueID.Exp)
+    case .Abs: return calcValueID(WebCore.CSSValueID.Abs)
+    case .Sign: return calcValueID(WebCore.CSSValueID.Sign)
+    case .Progress: return calcValueID(WebCore.CSSValueID.Progress)
     default: return 0
     }
 }
@@ -4055,10 +4055,10 @@ private struct CalcTokens: ~Escapable {
         return CalcToken(bits: eof, index: index)
     }
 
-    /// `id()`: the `CSSValueID` of an `IdentToken`, `CSSValueInvalid` for any other.
+    /// `id()`: the `CSSValueID` of an `IdentToken`, `CSSValueID.Invalid` for any other.
     @inline(always)
     func id(_ token: CalcToken) -> UInt16 { token.type == WebCore.IdentToken ? keyword(token) : 0 }
-    /// `functionId()`: the `CSSValueID` of a `FunctionToken`, `CSSValueInvalid` for any other.
+    /// `functionId()`: the `CSSValueID` of a `FunctionToken`, `CSSValueID.Invalid` for any other.
     @inline(always)
     func functionId(_ token: CalcToken) -> UInt16 { token.type == WebCore.FunctionToken ? keyword(token) : 0 }
     /// The token's keyword cache when it is filled, and C++ otherwise.
@@ -4076,7 +4076,7 @@ private struct CalcTokens: ~Escapable {
     @inline(always)
     func isPlainCalcFunction(_ token: CalcToken) -> Bool {
         let f = functionId(token)
-        return f == UInt16(WebCore.CSSValueCalc.rawValue) || f == UInt16(WebCore.CSSValueWebkitCalc.rawValue)
+        return f == UInt16(WebCore.CSSValueID.Calc.rawValue) || f == UInt16(WebCore.CSSValueID.WebkitCalc.rawValue)
     }
     /// For a `FunctionToken`: `isCalcFunction(functionId)`.
     @inline(always)
@@ -4449,11 +4449,11 @@ private func calcParseKeyword(
 private func calcConstantNumber(_ valueID: UInt16) -> Double? {
     switch valueID {
     // `std::numbers::e`. Not `M_E`: <math.h> defines it only on request (`_USE_MATH_DEFINES`) on Windows.
-    case WebCore.CSSValueE.rawValue: return 2.718281828459045235360287471352662
-    case WebCore.CSSValuePi.rawValue: return Double.pi
-    case WebCore.CSSValueInfinity.rawValue: return Double.infinity
-    case WebCore.CSSValueNegativeInfinity.rawValue: return -Double.infinity
-    case WebCore.CSSValueNaN.rawValue: return Double.nan
+    case WebCore.CSSValueID.E.rawValue: return 2.718281828459045235360287471352662
+    case WebCore.CSSValueID.Pi.rawValue: return Double.pi
+    case WebCore.CSSValueID.Infinity.rawValue: return Double.infinity
+    case WebCore.CSSValueID.NegativeInfinity.rawValue: return -Double.infinity
+    case WebCore.CSSValueID.NaN.rawValue: return Double.nan
     default: return nil
     }
 }
@@ -4613,33 +4613,33 @@ private func calcParseFunctionAlternative(
     -> (alternative: WebCore.CSSCalc.CSSCalcSwiftAlternative, arguments: CalcFunctionArguments)?
 {
     switch functionId {
-    case WebCore.CSSValueMin.rawValue: return (.Min, .oneOrMore)
-    case WebCore.CSSValueMax.rawValue: return (.Max, .oneOrMore)
-    case WebCore.CSSValueSin.rawValue: return (.Sin, .exactlyOne)
-    case WebCore.CSSValueCos.rawValue: return (.Cos, .exactlyOne)
-    case WebCore.CSSValueTan.rawValue: return (.Tan, .exactlyOne)
-    case WebCore.CSSValueAsin.rawValue: return (.Asin, .exactlyOne)
-    case WebCore.CSSValueAcos.rawValue: return (.Acos, .exactlyOne)
-    case WebCore.CSSValueAtan.rawValue: return (.Atan, .exactlyOne)
-    case WebCore.CSSValueSqrt.rawValue: return (.Sqrt, .exactlyOne)
-    case WebCore.CSSValueExp.rawValue: return (.Exp, .exactlyOne)
-    case WebCore.CSSValueAbs.rawValue: return (.Abs, .exactlyOne)
-    case WebCore.CSSValueSign.rawValue: return (.Sign, .exactlyOne)
-    case WebCore.CSSValueClamp.rawValue: return (.Clamp, .clamp)
-    case WebCore.CSSValueRound.rawValue: return (.RoundNearest, .round)
-    case WebCore.CSSValueLog.rawValue: return (.Log, .oneOrTwo)
-    case WebCore.CSSValueHypot.rawValue: return (.Hypot, .oneOrMore)
-    case WebCore.CSSValueMod.rawValue: return (.Mod, .exactlyTwo)
-    case WebCore.CSSValueRem.rawValue: return (.Rem, .exactlyTwo)
-    case WebCore.CSSValueAtan2.rawValue: return (.Atan2, .exactlyTwo)
-    case WebCore.CSSValuePow.rawValue: return (.Pow, .exactlyTwo)
-    case WebCore.CSSValueProgress.rawValue: return (.Progress, .progress)
-    case WebCore.CSSValueSiblingCount.rawValue: return (.SiblingCount, .zeroArguments)
-    case WebCore.CSSValueSiblingIndex.rawValue: return (.SiblingIndex, .zeroArguments)
-    case WebCore.CSSValueCalcMix.rawValue: return (.CalcMix, .calcMix)
-    case WebCore.CSSValueAnchor.rawValue: return (.Anchor, .anchor)
-    case WebCore.CSSValueAnchorSize.rawValue: return (.AnchorSize, .anchorSize)
-    case WebCore.CSSValueRandom.rawValue: return (.Random, .random)
+    case WebCore.CSSValueID.Min.rawValue: return (.Min, .oneOrMore)
+    case WebCore.CSSValueID.Max.rawValue: return (.Max, .oneOrMore)
+    case WebCore.CSSValueID.Sin.rawValue: return (.Sin, .exactlyOne)
+    case WebCore.CSSValueID.Cos.rawValue: return (.Cos, .exactlyOne)
+    case WebCore.CSSValueID.Tan.rawValue: return (.Tan, .exactlyOne)
+    case WebCore.CSSValueID.Asin.rawValue: return (.Asin, .exactlyOne)
+    case WebCore.CSSValueID.Acos.rawValue: return (.Acos, .exactlyOne)
+    case WebCore.CSSValueID.Atan.rawValue: return (.Atan, .exactlyOne)
+    case WebCore.CSSValueID.Sqrt.rawValue: return (.Sqrt, .exactlyOne)
+    case WebCore.CSSValueID.Exp.rawValue: return (.Exp, .exactlyOne)
+    case WebCore.CSSValueID.Abs.rawValue: return (.Abs, .exactlyOne)
+    case WebCore.CSSValueID.Sign.rawValue: return (.Sign, .exactlyOne)
+    case WebCore.CSSValueID.Clamp.rawValue: return (.Clamp, .clamp)
+    case WebCore.CSSValueID.Round.rawValue: return (.RoundNearest, .round)
+    case WebCore.CSSValueID.Log.rawValue: return (.Log, .oneOrTwo)
+    case WebCore.CSSValueID.Hypot.rawValue: return (.Hypot, .oneOrMore)
+    case WebCore.CSSValueID.Mod.rawValue: return (.Mod, .exactlyTwo)
+    case WebCore.CSSValueID.Rem.rawValue: return (.Rem, .exactlyTwo)
+    case WebCore.CSSValueID.Atan2.rawValue: return (.Atan2, .exactlyTwo)
+    case WebCore.CSSValueID.Pow.rawValue: return (.Pow, .exactlyTwo)
+    case WebCore.CSSValueID.Progress.rawValue: return (.Progress, .progress)
+    case WebCore.CSSValueID.SiblingCount.rawValue: return (.SiblingCount, .zeroArguments)
+    case WebCore.CSSValueID.SiblingIndex.rawValue: return (.SiblingIndex, .zeroArguments)
+    case WebCore.CSSValueID.CalcMix.rawValue: return (.CalcMix, .calcMix)
+    case WebCore.CSSValueID.Anchor.rawValue: return (.Anchor, .anchor)
+    case WebCore.CSSValueID.AnchorSize.rawValue: return (.AnchorSize, .anchorSize)
+    case WebCore.CSSValueID.Random.rawValue: return (.Random, .random)
     default: return nil
     }
 }
@@ -4892,7 +4892,7 @@ private func calcParseSumOrNone(
     _ depth: Int32,
     _ state: inout CalcParseState
 ) -> CalcParsedSumOrNone? {
-    if index < end, cursor.id(calcToken(cursor, &state, index)) == UInt16(WebCore.CSSValueNone.rawValue) {
+    if index < end, cursor.id(calcToken(cursor, &state, index)) == UInt16(WebCore.CSSValueID.None.rawValue) {
         index += 1
         calcSkipWhitespace(cursor, &index, end, &state)
         return CalcParsedSumOrNone(node: nil, type: CalcType(), isNone: true)
@@ -4973,10 +4973,10 @@ private func calcRoundingStrategyAlternative(
     -> WebCore.CSSCalc.CSSCalcSwiftAlternative?
 {
     switch id {
-    case UInt16(WebCore.CSSValueNearest.rawValue): return .RoundNearest
-    case UInt16(WebCore.CSSValueUp.rawValue): return .RoundUp
-    case UInt16(WebCore.CSSValueDown.rawValue): return .RoundDown
-    case UInt16(WebCore.CSSValueToZero.rawValue): return .RoundToZero
+    case UInt16(WebCore.CSSValueID.Nearest.rawValue): return .RoundNearest
+    case UInt16(WebCore.CSSValueID.Up.rawValue): return .RoundUp
+    case UInt16(WebCore.CSSValueID.Down.rawValue): return .RoundDown
+    case UInt16(WebCore.CSSValueID.ToZero.rawValue): return .RoundToZero
     default: return nil
     }
 }
@@ -5123,7 +5123,7 @@ private func calcParseProgress(
     calcSkipWhitespace(cursor, &index, end, &state)
 
     var alternative = WebCore.CSSCalc.CSSCalcSwiftAlternative.Progress
-    if index < end, cursor.id(calcToken(cursor, &state, index)) == UInt16(WebCore.CSSValueNoClamp.rawValue) {
+    if index < end, cursor.id(calcToken(cursor, &state, index)) == UInt16(WebCore.CSSValueID.NoClamp.rawValue) {
         index += 1
         calcSkipWhitespace(cursor, &index, end, &state)
         alternative = .ProgressNoClamp
@@ -5319,7 +5319,7 @@ private func calcParseDashedIdent(
 }
 
 /// `consumeIdentRaw` over a keyword test: the id of the accepted `IdentToken`, consumed, or
-/// `CSSValueInvalid` with the index unchanged.
+/// `CSSValueID.Invalid` with the index unchanged.
 @inline(always)
 private func calcParseAnchorKeyword(
     _ cursor: borrowing CalcTokens,
@@ -5340,12 +5340,12 @@ private func calcParseAnchorKeyword(
 @inline(always)
 private func calcIsAnchorSideKeyword(_ id: UInt16) -> Bool {
     switch id {
-    case WebCore.CSSValueInside.rawValue, WebCore.CSSValueOutside.rawValue,
-        WebCore.CSSValueTop.rawValue, WebCore.CSSValueLeft.rawValue,
-        WebCore.CSSValueRight.rawValue, WebCore.CSSValueBottom.rawValue,
-        WebCore.CSSValueStart.rawValue, WebCore.CSSValueEnd.rawValue,
-        WebCore.CSSValueSelfStart.rawValue, WebCore.CSSValueSelfEnd.rawValue,
-        WebCore.CSSValueCenter.rawValue:
+    case WebCore.CSSValueID.Inside.rawValue, WebCore.CSSValueID.Outside.rawValue,
+        WebCore.CSSValueID.Top.rawValue, WebCore.CSSValueID.Left.rawValue,
+        WebCore.CSSValueID.Right.rawValue, WebCore.CSSValueID.Bottom.rawValue,
+        WebCore.CSSValueID.Start.rawValue, WebCore.CSSValueID.End.rawValue,
+        WebCore.CSSValueID.SelfStart.rawValue, WebCore.CSSValueID.SelfEnd.rawValue,
+        WebCore.CSSValueID.Center.rawValue:
         return true
     default:
         return false
@@ -5356,9 +5356,9 @@ private func calcIsAnchorSideKeyword(_ id: UInt16) -> Bool {
 @inline(always)
 private func calcIsAnchorSizeKeyword(_ id: UInt16) -> Bool {
     switch id {
-    case WebCore.CSSValueWidth.rawValue, WebCore.CSSValueHeight.rawValue,
-        WebCore.CSSValueBlock.rawValue, WebCore.CSSValueInline.rawValue,
-        WebCore.CSSValueSelfBlock.rawValue, WebCore.CSSValueSelfInline.rawValue:
+    case WebCore.CSSValueID.Width.rawValue, WebCore.CSSValueID.Height.rawValue,
+        WebCore.CSSValueID.Block.rawValue, WebCore.CSSValueID.Inline.rawValue,
+        WebCore.CSSValueID.SelfBlock.rawValue, WebCore.CSSValueID.SelfInline.rawValue:
         return true
     default:
         return false
@@ -5994,7 +5994,7 @@ private func calcParseAttempt(
     let descent: CalcParsed?
     if state.options.bareCalcSum {
         // `parseAndSimplifyCalcSum`: `parseCalcSum(tokens, 0, state)`. `rootFunctionId` is
-        // `CSSValueInvalid`.
+        // `CSSValueID.Invalid`.
         descent = calcParseSum(cursor, &index, end, 0, &state)
     } else if let rootFunction = calcParseFunctionAlternative(state.options.rootFunctionId) {
         switch rootFunction.arguments {
@@ -6023,8 +6023,8 @@ private func calcParseAttempt(
         case .random:
             descent = calcParseRandom(cursor, &index, end, 0, &state)
         }
-    } else if state.options.rootFunctionId == UInt16(WebCore.CSSValueCalc.rawValue)
-        || state.options.rootFunctionId == UInt16(WebCore.CSSValueWebkitCalc.rawValue)
+    } else if state.options.rootFunctionId == UInt16(WebCore.CSSValueID.Calc.rawValue)
+        || state.options.rootFunctionId == UInt16(WebCore.CSSValueID.WebkitCalc.rawValue)
     {
         descent = calcParseSum(cursor, &index, end, 0, &state)
     } else {
@@ -6599,7 +6599,7 @@ public func cssCalcEvaluateSwift(
 private let styleCalcNumberUnit = UInt8(WebCore.CSSUnitType.Number.rawValue)
 private let styleCalcPercentageUnit = UInt8(WebCore.CSSUnitType.Percentage.rawValue)
 private let styleCalcDimensionUnit = UInt8(WebCore.CSSUnitType.Px.rawValue)
-private let styleCalcSizeValueID = UInt16(WebCore.CSSValueSize.rawValue)
+private let styleCalcSizeValueID = UInt16(WebCore.CSSValueID.Size.rawValue)
 
 @inline(always)
 private func styleCalcLeaf(
@@ -8178,17 +8178,17 @@ public func cssConsumeBackgroundSizeSwift(_ cursor: WebCore.CSSPropertyParserSwi
     let count = cursor.tokenCount()
     guard count > 0 else { return nil }
     let first = identId(cursor, 0, count)
-    if first == UInt16(WebCore.CSSValueContain.rawValue) || first == UInt16(WebCore.CSSValueCover.rawValue) {
+    if first == UInt16(WebCore.CSSValueID.Contain.rawValue) || first == UInt16(WebCore.CSSValueID.Cover.rawValue) {
         cursor.setNextIndex(skipWhitespace(cursor, 1))
         return cssKeywordValue(first)
     }
     var index: UInt32 = 0
-    // `consumeIdent<CSSValueAuto>`, then a `<length-percentage [0,∞]>`.
+    // `consumeIdent<CSSValueID.Auto>`, then a `<length-percentage [0,∞]>`.
     func component(_ allowAuto: Bool, _ coalescing: inout Bool) -> WebCore.CSSValue? {
         // `index` is below `cursor.tokenCount()` (a `UInt32`) at each `&+= 1`: the token at it was read.
-        if identId(cursor, index, count) == UInt16(WebCore.CSSValueAuto.rawValue) {
+        if identId(cursor, index, count) == UInt16(WebCore.CSSValueID.Auto.rawValue) {
             index &+= 1
-            return cssKeywordValue(UInt16(WebCore.CSSValueAuto.rawValue))
+            return cssKeywordValue(UInt16(WebCore.CSSValueID.Auto.rawValue))
         }
         let bits = cursor.bits(index)
         let type = UInt8(truncatingIfNeeded: bits.type)
@@ -8221,7 +8221,7 @@ public func cssConsumeBackgroundSizeSwift(_ cursor: WebCore.CSSPropertyParserSwi
         switch property {
         case 1: second = horizontal // "-webkit-background-size: 10px" is "background-size: 10px 10px".
         case 2: return horizontal
-        default: second = cssKeywordValue(UInt16(WebCore.CSSValueAuto.rawValue))
+        default: second = cssKeywordValue(UInt16(WebCore.CSSValueID.Auto.rawValue))
         }
     }
     return cssValuePair(horizontal, second, coalescing)
@@ -8281,12 +8281,12 @@ struct PropertyParser {
         return true
     }
 
-    /// `consumeIdent<CSSValueNone>`.
+    /// `consumeIdent<CSSValueID.None>`.
     mutating func consumeNone() -> WebCore.CSSValue? {
-        guard identId(cursor, index, end) == UInt16(WebCore.CSSValueNone.rawValue) else { return nil }
+        guard identId(cursor, index, end) == UInt16(WebCore.CSSValueID.None.rawValue) else { return nil }
         index &+= 1
         consumeWhitespace()
-        return cssKeywordValue(UInt16(WebCore.CSSValueNone.rawValue))
+        return cssKeywordValue(UInt16(WebCore.CSSValueID.None.rawValue))
     }
 
     /// `name( arguments )`, as `range.peek().functionId() == name`, then `consumeFunction`, `arguments`, and `args.atEnd()`.
@@ -8397,9 +8397,9 @@ struct PropertyParser {
 
     /// The grammar's `<rotate3d()-override-function>`, `<translate()-override-function>` and
     /// `<translate3d()-override-function>` (CSSProperties.json), which the generated transform consumers call.
-    mutating func rotate3dFunction() -> WebCore.CSSValue? { function(WebCore.CSSValueRotate3d) { $0.rotate3dArguments($1) } }
-    mutating func translateFunction() -> WebCore.CSSValue? { function(WebCore.CSSValueTranslate) { $0.translateArguments($1) } }
-    mutating func translate3dFunction() -> WebCore.CSSValue? { function(WebCore.CSSValueTranslate3d) { $0.translate3dArguments($1) } }
+    mutating func rotate3dFunction() -> WebCore.CSSValue? { function(WebCore.CSSValueID.Rotate3d) { $0.rotate3dArguments($1) } }
+    mutating func translateFunction() -> WebCore.CSSValue? { function(WebCore.CSSValueID.Translate) { $0.translateArguments($1) } }
+    mutating func translate3dFunction() -> WebCore.CSSValue? { function(WebCore.CSSValueID.Translate3d) { $0.translate3dArguments($1) } }
 
     // rotate3d() = rotate3d( <number> , <number> , <number> , [ <angle> | <zero> ] )
     mutating func rotate3dArguments(_ name: WebCore.CSSValueID) -> WebCore.CSSValue? {
@@ -8486,9 +8486,9 @@ struct PropertyParser {
                 consumeWhitespace()
                 continue
             }
-            // `consumeIdent<CSSValueX, CSSValueY, CSSValueZ>`.
+            // `consumeIdent<CSSValueID.X, CSSValueID.Y, CSSValueID.Z>`.
             let id = identId(cursor, index, end)
-            guard id == UInt16(WebCore.CSSValueX.rawValue) || id == UInt16(WebCore.CSSValueY.rawValue) || id == UInt16(WebCore.CSSValueZ.rawValue),
+            guard id == UInt16(WebCore.CSSValueID.X.rawValue) || id == UInt16(WebCore.CSSValueID.Y.rawValue) || id == UInt16(WebCore.CSSValueID.Z.rawValue),
                 axis == 0, numberCount == 0
             else { return nil }
             index &+= 1
@@ -8498,13 +8498,13 @@ struct PropertyParser {
         guard let angle else { return nil }
         if numberCount == 3, let x = number0, let y = number1, let z = number2 {
             // A vector along one axis serializes as that axis.
-            if x.isKnownNonZero && y.isKnownZero && z.isKnownZero { return cssSpaceSeparated(cssKeywordValue(UInt16(WebCore.CSSValueX.rawValue)), angle.value) }
-            if x.isKnownZero && y.isKnownNonZero && z.isKnownZero { return cssSpaceSeparated(cssKeywordValue(UInt16(WebCore.CSSValueY.rawValue)), angle.value) }
+            if x.isKnownNonZero && y.isKnownZero && z.isKnownZero { return cssSpaceSeparated(cssKeywordValue(UInt16(WebCore.CSSValueID.X.rawValue)), angle.value) }
+            if x.isKnownZero && y.isKnownNonZero && z.isKnownZero { return cssSpaceSeparated(cssKeywordValue(UInt16(WebCore.CSSValueID.Y.rawValue)), angle.value) }
             if x.isKnownZero && y.isKnownZero && z.isKnownNonZero { return cssSpaceSeparated(angle.value) }
             return cssSpaceSeparated(x.value, y.value, z.value, angle.value)
         }
         guard numberCount == 0 else { return nil }
-        if axis != 0 && axis != UInt16(WebCore.CSSValueZ.rawValue) { return cssSpaceSeparated(cssKeywordValue(axis), angle.value) }
+        if axis != 0 && axis != UInt16(WebCore.CSSValueID.Z.rawValue) { return cssSpaceSeparated(cssKeywordValue(axis), angle.value) }
         return cssSpaceSeparated(angle.value)
     }
 
@@ -8549,11 +8549,11 @@ struct PropertyParser {
     @inline(always)
     mutating func singleAnimationRange(isStart: Bool) -> WebCore.CSSValue? {
         let id = identId(cursor, index, end)
-        if id == UInt16(WebCore.CSSValueNormal.rawValue) || isTimelineRangeName(id) {
+        if id == UInt16(WebCore.CSSValueID.Normal.rawValue) || isTimelineRangeName(id) {
             index &+= 1
             consumeWhitespace()
             let name = cssKeywordValue(id)
-            guard id != UInt16(WebCore.CSSValueNormal.rawValue), let offset = primitive(.LengthPercentage) else { return name }
+            guard id != UInt16(WebCore.CSSValueID.Normal.rawValue), let offset = primitive(.LengthPercentage) else { return name }
             // The default offset (0% for a start, 100% for an end) is omitted. A calc() offset is never the default.
             if offset.isPercentage && offset.number == (isStart ? 0 : 100) { return name }
             return cssValuePair(name, offset.value, false)
@@ -8567,9 +8567,9 @@ struct PropertyParser {
 @inline(always)
 private func isTimelineRangeName(_ id: UInt16) -> Bool {
     switch id {
-    case UInt16(WebCore.CSSValueCover.rawValue), UInt16(WebCore.CSSValueContain.rawValue), UInt16(WebCore.CSSValueEntry.rawValue),
-        UInt16(WebCore.CSSValueExit.rawValue), UInt16(WebCore.CSSValueEntryCrossing.rawValue),
-        UInt16(WebCore.CSSValueExitCrossing.rawValue), UInt16(WebCore.CSSValueScroll.rawValue):
+    case UInt16(WebCore.CSSValueID.Cover.rawValue), UInt16(WebCore.CSSValueID.Contain.rawValue), UInt16(WebCore.CSSValueID.Entry.rawValue),
+        UInt16(WebCore.CSSValueID.Exit.rawValue), UInt16(WebCore.CSSValueID.EntryCrossing.rawValue),
+        UInt16(WebCore.CSSValueID.ExitCrossing.rawValue), UInt16(WebCore.CSSValueID.Scroll.rawValue):
         return true
     default:
         return false
@@ -8648,7 +8648,7 @@ struct TransformPrimitive {
     var isKnownNonZero: Bool { number != nil && number != 0 }
 }
 
-/// The `CSSValueID` of token `i` if it is a `type` token (`id()`, or `functionId()`), and `CSSValueInvalid` otherwise.
+/// The `CSSValueID` of token `i` if it is a `type` token (`id()`, or `functionId()`), and `CSSValueID.Invalid` otherwise.
 @inline(always)
 func identId(_ cursor: WebCore.CSSPropertyParserSwiftCursor, _ i: UInt32, _ end: UInt32, _ type: WebCore.CSSParserTokenType = WebCore.IdentToken) -> UInt16 {
     guard i < end else { return 0 }
