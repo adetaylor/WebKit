@@ -23,9 +23,25 @@
 
 // Only this file's boundary types, not the WebCore_Private umbrella, which reaches JavaScriptCore
 // headers whose inner structs sit in explicit submodules nothing imports.
-public import WebCore_Private.CSSTokenizerSwiftTypes
+internal import WebCore_Private.CSSTokenizerSwiftTypes
 // A header can appear in only one submodule, and `CSSUnitType` shares one with the unit constants.
 internal import WebCore_Private.CSSUnitsSwiftTypes
+
+// Latin-1 characters are single bytes that every value is valid for, so a span of them and a span of their
+// code units can stand for each other in place.
+fileprivate extension Span where Element == UInt8 {
+    @_lifetime(copy characters)
+    init(latin1 characters: Span<WTF.Latin1Character>) {
+        self = unsafe Span(_bytes: characters.bytes)
+    }
+}
+
+fileprivate extension Span where Element == WTF.Latin1Character {
+    @_lifetime(copy codeUnits)
+    init(latin1 codeUnits: Span<UInt8>) {
+        self = unsafe Span(_bytes: codeUnits.bytes)
+    }
+}
 
 // Swift tokenizer for the CSS parser, a port of CSSTokenizer.cpp and CSSTokenizerInputStream.h,
 // used when WebCore is built with WK_USE_SWIFT_CSS.
@@ -1229,7 +1245,7 @@ public func cssTokenizeSwiftAll8(
     _ data: WebCore.CSSTokenizerSpan8,
     _ sink: inout WebCore.CSSSwiftTokenSink
 ) -> Bool {
-    tokenizeAll(unsafe Span<UInt8>(_unsafeCxxSpan: data), &sink)
+    tokenizeAll(Span<UInt8>(latin1: unsafe Span<WTF.Latin1Character>(_unsafeCxxSpan: data)), &sink)
 }
 
 /// 16-bit input.

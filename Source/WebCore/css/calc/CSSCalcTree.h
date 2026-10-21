@@ -919,7 +919,7 @@ struct AnchorSize {
 // `<anchor-size>` as the `Style::AnchorSizeDimension` it names, or nothing. Defined in
 // CSSCalcTree+Parser.cpp; `CSSCalcSwiftBuilder::buildAnchor` uses it to build an `AnchorSize` from
 // the keyword's `CSSValueID`.
-std::optional<Style::AnchorSizeDimension> NODELETE cssValueIDToAnchorSizeDimension(CSSValueID);
+std::optional<Style::AnchorSizeDimension> LEGACY_NODELETE cssValueIDToAnchorSizeDimension(CSSValueID);
 
 // A value the parse resolves for a `CalcNode`: an `<anchor-element>`, a `<random-key>`, or a
 // `calc-mix()` item weight that is a math function. The node names it by index in `origin`.

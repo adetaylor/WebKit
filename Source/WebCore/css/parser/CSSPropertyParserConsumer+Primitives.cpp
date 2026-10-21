@@ -104,7 +104,7 @@ namespace WebCore {
 uint16_t CSSPropertyParserSwiftCursor::keywordId(uint32_t i) const
 {
     auto& token = m_range->peek(i);
-    return token.type() == FunctionToken ? token.functionId() : token.id();
+    return std::to_underlying(token.type() == FunctionToken ? token.functionId() : token.id());
 }
 
 CSSPrimitiveValue* CSSPropertyParserSwiftCursor::primitiveAt(uint32_t i, uint32_t end, uint8_t category, double min, double max, const CSSPropertyParserOptions& options) const

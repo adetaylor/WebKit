@@ -21,7 +21,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-public import WebCore_Private.CSSCalcSwiftTypes
+internal import WebCore_Private.CSSCalcSwiftTypes
 internal import WebCore_Private.Core
 
 // Swift port of CSSCalcTree+Serialization.cpp, used when WebCore is built with WK_USE_SWIFT_CSS.
