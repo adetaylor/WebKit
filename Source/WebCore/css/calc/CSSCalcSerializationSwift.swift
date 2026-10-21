@@ -396,7 +396,7 @@ private struct CalcSerialization {
         switch info.kind {
         case .roundFunction:
             // `valueID` is the strategy here, because all four rounding operations share the name.
-            sink.append(keyword: WebCore.CSSValueRound)
+            sink.append(keyword: WebCore.CSSValueID.Round)
             sink.append("(")
             sink.appendValueIDName(info.valueID)
             sink.append(", ")
@@ -431,7 +431,7 @@ private struct CalcSerialization {
             let trailingNone = info.kind == .clampWithNoneMaximum || info.kind == .clampWithNoneMinimumAndMaximum
             var index: UInt32 = leadingNone ? 1 : 0
             if leadingNone {
-                sink.append(keyword: WebCore.CSSValueNone)
+                sink.append(keyword: WebCore.CSSValueID.None)
                 sink.append(", ")
                 serializeCalculationTree(node[0], includingGroupingParenthesis: false, &sink)
             }
@@ -444,7 +444,7 @@ private struct CalcSerialization {
             }
             if trailingNone {
                 sink.append(", ")
-                sink.append(keyword: WebCore.CSSValueNone)
+                sink.append(keyword: WebCore.CSSValueID.None)
             }
         }
 

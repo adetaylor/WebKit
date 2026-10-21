@@ -429,7 +429,7 @@ std::optional<CSS::BorderImage> consumeUnresolvedBorderImage(CSSParserTokenRange
 // `consumeBackgroundSize` is `cssConsumeBackgroundSizeSwift` (CSSCalcSimplificationSwift.swift).
 template<CSSPropertyID property> static RefPtr<CSSValue> consumeBackgroundSize(CSSParserTokenRange& range, CSS::PropertyParserState& state)
 {
-    constexpr uint8_t kind = property == CSSPropertyWebkitBackgroundSize ? 1 : property == CSSPropertyMaskSize ? 2 : 0;
+    constexpr uint8_t kind = property == CSSPropertyID::WebkitBackgroundSize ? 1 : property == CSSPropertyID::MaskSize ? 2 : 0;
     auto mode = state.context.mode;
     uint32_t nextIndex = 0;
     RefPtr value = adoptRef(cssConsumeBackgroundSizeSwift(CSSPropertyParserSwiftCursor { range, state, nextIndex }, kind, mode, swiftNumericConsumerFlags(true, mode, state, { })));

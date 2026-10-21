@@ -265,8 +265,8 @@ struct SWIFT_SAFE CSSCalcSwiftBuilder {
 
     // `evaluateWithoutFallback` for `Anchor`, and its `AnchorSize` counterpart, without the fallback
     // and without marking the property invalid. `valueID` is the node's: the side keyword, or
-    // `CSSValueInvalid` when the side is `sideFraction` (the `<percentage>` subtree evaluated, / 100);
-    // for `AnchorSize` the dimension, or `CSSValueInvalid` for none.
+    // `CSSValueID::Invalid` when the side is `sideFraction` (the `<percentage>` subtree evaluated, / 100);
+    // for `AnchorSize` the dimension, or `CSSValueID::Invalid` for none.
     WEBCORE_EXPORT CSSCalcSwiftNumericResult resolveAnchor(CSSCalcSwiftAlternative, uint32_t elementNamePayload, uint16_t valueID, double sideFraction) const noexcept;
 
     WEBCORE_EXPORT CSSCalcSwiftNumericResult resolveCalcMixWeight(double value, bool present, uint32_t payload) const noexcept;

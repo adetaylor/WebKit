@@ -126,7 +126,7 @@ static bool randomAllowedIn(const CSS::PropertyParserState& propertyParserState)
 {
     return propertyParserState.context.cssRandomFunctionEnabled
         && (propertyParserState.currentRule == StyleRuleType::Style || propertyParserState.currentRule == StyleRuleType::Keyframe)
-        && propertyParserState.currentProperty != CSSPropertyInvalid
+        && propertyParserState.currentProperty != CSSPropertyID::Invalid
         && !propertyParserState.randomFunctionsDisallowed;
 }
 
@@ -135,7 +135,7 @@ static bool treeCountingAllowedIn(const CSS::PropertyParserState& propertyParser
 {
     return propertyParserState.context.cssTreeCountingFunctionsEnabled
         && (propertyParserState.currentRule == StyleRuleType::Style || propertyParserState.currentRule == StyleRuleType::Keyframe)
-        && (propertyParserState.currentProperty != CSSPropertyInvalid || propertyParserState.treeCountingFunctionsAllowed);
+        && (propertyParserState.currentProperty != CSSPropertyID::Invalid || propertyParserState.treeCountingFunctionsAllowed);
 }
 
 // Shared by both Swift entry points, so a context condition dropped from one of them cannot make
@@ -256,9 +256,9 @@ std::optional<Tree> parseAndSimplifyCalcSum(CSSParserTokenRange& tokens, CSS::Pr
 #if !CSS_CALC_CPP_PARSER_COMPILED_IN
     {
         uint32_t consumedTokens = 0;
-        // `bareCalcSum` never consults the root function; `CSSValueInvalid` makes a use of it fail
+        // `bareCalcSum` never consults the root function; `CSSValueID::Invalid` makes a use of it fail
         // rather than parse as `calc()`.
-        auto tree = attemptSwiftParse(tokens, propertyParserState, parserOptions, simplificationOptions, CSSValueInvalid, true, consumedTokens);
+        auto tree = attemptSwiftParse(tokens, propertyParserState, parserOptions, simplificationOptions, CSSValueID::Invalid, true, consumedTokens);
         // The Swift entry takes the range by const reference, so the advance is replayed here.
         // Clamped so that a count past the end cannot be a span violation.
         if (tree)
@@ -1779,7 +1779,7 @@ static_assert(static_cast<uint8_t>(CSSParserToken::BlockEnd) == 2);
 
 // Swift reads a raw `CSSValueID` of 0 as "absent", which is what `CSSParserToken::id()` and
 // `functionId()` return for a token of the wrong type.
-static_assert(static_cast<uint16_t>(CSSValueInvalid) == 0);
+static_assert(static_cast<uint16_t>(CSSValueID::Invalid) == 0);
 
 static_assert(static_cast<uint8_t>(PercentHint::Length) != 0, "a stored node's percentHint uses 0 as \"no hint\"");
 

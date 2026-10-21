@@ -2012,7 +2012,7 @@ template<typename Payload> static uint32_t storePayload(CSSCalcSwiftFlatPayloads
 static bool storeNode(CSSCalcSwiftStoreBuilder& builder, CSSCalcSwiftFlatPayloads& payloads, const Child& node)
 {
     auto alternative = static_cast<CSSCalcSwiftAlternative>(node.value.index());
-    auto leaf = [&](double value, CSSUnitType unit, uint8_t percentHint = 0, CSSValueID valueID = CSSValueInvalid) {
+    auto leaf = [&](double value, CSSUnitType unit, uint8_t percentHint = 0, CSSValueID valueID = CSSValueID::Invalid) {
         builder.pushLeaf(alternative, value, static_cast<uint8_t>(unit), percentHint, static_cast<uint16_t>(valueID));
         return true;
     };

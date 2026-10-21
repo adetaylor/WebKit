@@ -1306,8 +1306,8 @@ private func scanTranslateArguments<Unit: CSSColorCodeUnit>(
             return false
         }
         if unit == WebCore.CSSUnitType.Percentage,
-            function == WebCore.CSSValueTranslateZ
-                || (function == WebCore.CSSValueTranslate3d && remaining == 1)
+            function == WebCore.CSSValueID.TranslateZ
+                || (function == WebCore.CSSValueID.Translate3d && remaining == 1)
         {
             return false
         }
@@ -1367,17 +1367,17 @@ private func scanTransformValue<Unit: CSSColorCodeUnit, Sink: TransformFunctionS
         var argumentStart = 11
         let c9 = lower(9)
         if c9 == 0x78, raw(10) == 0x28 {
-            function = WebCore.CSSValueTranslateX
+            function = WebCore.CSSValueID.TranslateX
         } else if c9 == 0x79, raw(10) == 0x28 {
-            function = WebCore.CSSValueTranslateY
+            function = WebCore.CSSValueID.TranslateY
         } else if c9 == 0x7A, raw(10) == 0x28 {
-            function = WebCore.CSSValueTranslateZ
+            function = WebCore.CSSValueID.TranslateZ
         } else if c9 == 0x28 {
-            function = WebCore.CSSValueTranslate
+            function = WebCore.CSSValueID.Translate
             expectedArgumentCount = 2
             argumentStart = 10
         } else if c9 == 0x33, lower(10) == 0x64, raw(11) == 0x28 {
-            function = WebCore.CSSValueTranslate3d
+            function = WebCore.CSSValueID.Translate3d
             expectedArgumentCount = 3
             argumentStart = 12
         } else {
@@ -1398,7 +1398,7 @@ private func scanTransformValue<Unit: CSSColorCodeUnit, Sink: TransformFunctionS
         guard scanNumberArguments(&cursor, 16, &arguments) else {
             return false
         }
-        sink.append(WebCore.CSSValueMatrix3d, arguments.span.extracting(0..<16))
+        sink.append(WebCore.CSSValueID.Matrix3d, arguments.span.extracting(0..<16))
         return true
     }
 
@@ -1409,7 +1409,7 @@ private func scanTransformValue<Unit: CSSColorCodeUnit, Sink: TransformFunctionS
         guard scanNumberArguments(&cursor, 3, &arguments) else {
             return false
         }
-        sink.append(WebCore.CSSValueScale3d, arguments.span.extracting(0..<3))
+        sink.append(WebCore.CSSValueID.Scale3d, arguments.span.extracting(0..<3))
         return true
     }
 
@@ -1418,9 +1418,9 @@ private func scanTransformValue<Unit: CSSColorCodeUnit, Sink: TransformFunctionS
         var argumentStart = 7
         let c6 = lower(6)
         if c6 == 0x28 {
-            function = WebCore.CSSValueRotate
+            function = WebCore.CSSValueID.Rotate
         } else if c6 == 0x7A, raw(7) == 0x28 {
-            function = WebCore.CSSValueRotateZ
+            function = WebCore.CSSValueID.RotateZ
             argumentStart = 8
         } else {
             return false
