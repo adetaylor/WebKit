@@ -13,8 +13,8 @@ class Constraint
         Constraint.new type.name
     end
 
-    def to_cpp
-        "Constraints::#{self}"
+    def to_swift
+        ".#{Swift::lower_camel(name)}"
     end
 end
 
@@ -48,30 +48,31 @@ class Variable
         "#{@name.to_s}#{constraint}"
     end
 
-    def to_cpp
-        if @kind == DSL::type_variable
-            "allocateAbstractType(#{@name.to_s})"
-        else
-            @name.to_s
-        end
-    end
-
     def is_abstract?
         @kind != nil
     end
 
-    def declaration(context)
-        index = context[kind]
-        context[kind] += 1
-        constraint = ", #{@constraint.to_cpp}" if @constraint
-        "#{kind} #{name} { #{index}#{constraint} };"
+    # A type or value variable is referenced by its local name; a variable without a kind is a
+    # texture kind (Types::Texture::Kind::Texture1d -> .texture1d).
+    def to_swift
+        return ".variable(#{@name})" if @kind
+        ".#{Swift::lower_camel(@name.to_s.split("::").last)}"
     end
 
-    def append
+    def concrete_swift
+        raise "Unexpected variable in a concrete type: #{self}" if @kind
+        to_swift
+    end
+
+    def swift_declaration(context)
+        index = context[kind]
+        context[kind] += 1
         if @kind == DSL::type_variable
-            "candidate.typeVariables.append(#{name});"
+            constraint = ", constraint: #{@constraint.to_swift}" if @constraint
+            "let #{name} = TypeVariable(id: #{index}#{constraint})"
         else
-            "candidate.valueVariables.append(#{name});"
+            raise "Unexpected constraint on the value variable #{self}" if @constraint
+            "let #{name} = ValueVariable(id: #{index})"
         end
     end
 end
@@ -91,8 +92,17 @@ class AbstractValue
       value.to_s
     end
 
-    def to_cpp
-        "AbstractValue { static_cast<unsigned>(#{value}) }"
+    # 4 -> .constant(4); AddressSpace::Storage -> .addressSpace(.storage)
+    def to_swift
+        return ".constant(#{value})" if value.is_a? Integer
+        enum, member = value.to_s.split("::")
+        raise "Unexpected abstract value: #{value}" unless ["AddressSpace", "AccessMode"].include?(enum) and member
+        ".#{Swift::lower_camel(enum)}(.#{Swift::lower_camel(member)})"
+    end
+
+    def concrete_swift
+        raise "Unexpected abstract value in a concrete type: #{value}" unless value.is_a? Integer
+        value.to_s
     end
 end
 
@@ -150,12 +160,14 @@ class Constructor
         false
     end
 
-    def concrete_type
-        "m_types.#{name}Type(#{arguments.map { |a| a.respond_to? :concrete_type and a.concrete_type or a}.join ", "})"
+    # vector[2, f32] -> .vector(2, .fixed(FixedTypeID.f32))
+    def concrete_swift
+        raise "Unexpected concrete type constructor: #{name}" unless Swift::CONCRETE_TYPE_CONSTRUCTORS.include?(name.to_s)
+        ".#{name}(#{arguments.map(&:concrete_swift).join ", "})"
     end
 
-    def to_cpp
-        "allocateAbstractType(#{concrete_type})"
+    def to_swift
+        ".concrete(#{concrete_swift})"
     end
 end
 
@@ -174,12 +186,13 @@ class PrimitiveType
         false
     end
 
-    def concrete_type
-        "m_types.#{name[0].downcase}#{name[1..]}Type()"
+    # f32 -> .fixed(FixedTypeID.f32): TypeStore allocates every primitive at a fixed ID.
+    def concrete_swift
+        ".fixed(FixedTypeID.#{Swift::lower_camel(name)})"
     end
 
-    def to_cpp
-        "allocateAbstractType(#{concrete_type})"
+    def to_swift
+        ".concrete(#{concrete_swift})"
     end
 end
 
@@ -199,8 +212,9 @@ class ParameterizedAbstractType
         "#{base}<#{arguments.join(", ")}>"
     end
 
-    def to_cpp
-        "allocateAbstractType(Abstract#{base} { #{arguments.map(&:to_cpp).join ", "} })"
+    # Vector<N, T> -> .vector(.variable(N), .variable(T))
+    def to_swift
+        ".#{Swift::lower_camel(base)}(#{arguments.map(&:to_swift).join ", "})"
     end
 end
 
@@ -218,27 +232,24 @@ class FunctionType
         "#{variables}(#{@parameters.join(', ')}) -> #{@return_type.to_s}"
     end
 
-    def to_cpp(name)
+    def to_swift(name)
         context = {
             DSL::type_variable => 0,
             DSL::numeric_variable => 0,
         }
+        type_variables = variables.select { |v| v.kind == DSL::type_variable }.map(&:name)
+        value_variables = variables.select { |v| v.kind == DSL::numeric_variable }.map(&:name)
         out = []
-        out << "([&]() -> OverloadCandidate {"
-
-        def append(name)
-            "candidate.parameters.append(#{name});"
-        end
-
-        prefix = "    "
-        out << prefix + "// #{name} :: #{to_s}"
-        out << prefix + "OverloadCandidate candidate;"
-        out += variables.map { |v| prefix + v.declaration(context) }
-        out += variables.map { |v| prefix + v.append }
-        out += parameters.map { |p| prefix + append(p.to_cpp) }
-        out << prefix + "candidate.result = #{return_type.to_cpp};"
-        out << prefix + "return candidate;"
-        out << "}())"
+        out << "    do {"
+        out << "        // #{name} :: #{to_s}"
+        out += variables.map { |v| "        " + v.swift_declaration(context) }
+        out << "        overloads.append("
+        out << "            OverloadCandidate("
+        out << "                typeVariables: [#{type_variables.join ", "}],"
+        out << "                valueVariables: [#{value_variables.join ", "}],"
+        out << "                parameters: [#{parameters.map(&:to_swift).join ", "}],"
+        out << "                result: #{return_type.to_swift}))"
+        out << "    }"
         out.join "\n"
     end
 end
@@ -279,6 +290,72 @@ class AggregateConstructor
         else
             @constructor[*values]
         end
+    end
+end
+
+module Swift
+    # The type constructors the table may apply to concrete arguments: the composite cases of
+    # ConcreteTypeDescriptor.
+    CONCRETE_TYPE_CONSTRUCTORS = ["vector", "matrix", "texture", "atomic", "frexpResult", "modfResult", "atomicCompareExchangeResult"]
+
+    # The field names of the primitive structs frexp_result, modf_result and
+    # atomic_compare_exchange_result. They follow the builtin declaration names in SymbolTable.predeclared.
+    PRIMITIVE_STRUCT_FIELD_NAMES = ["fract", "exp", "whole", "old_value", "exchanged"]
+
+    # BuiltinSymbols case names for the operators: the stems of their constant functions.
+    OPERATOR_NAMES = {
+        "!" => "not",
+        "||" => "or",
+        "&&" => "and",
+        "|" => "bitwiseOr",
+        "&" => "bitwiseAnd",
+        "-" => "minus",
+        "+" => "add",
+        "*" => "multiply",
+        "/" => "divide",
+        "%" => "modulo",
+        "==" => "equal",
+        "!=" => "notEqual",
+        "<" => "lt",
+        "<=" => "ltEq",
+        ">" => "gt",
+        ">=" => "gtEq",
+        "~" => "bitwiseNot",
+        "^" => "bitwiseXor",
+        "<<" => "bitwiseShiftLeft",
+        ">>" => "bitwiseShiftRight",
+    }
+
+    KEYWORDS = ["Any", "Self", "as", "associatedtype", "break", "case", "catch", "class", "continue", "default", "defer", "deinit", "do", "else", "enum", "extension", "fallthrough", "false", "fileprivate", "for", "func", "guard", "if", "import", "in", "init", "inout", "internal", "is", "let", "nil", "open", "operator", "private", "protocol", "public", "repeat", "rethrows", "return", "self", "static", "struct", "subscript", "super", "switch", "throw", "throws", "true", "try", "typealias", "var", "where", "while"]
+
+    def self.lower_camel(name)
+        name = name.to_s
+        name[0].downcase + name[1..]
+    end
+
+    def self.string_literal(name)
+        "\"" + name.to_s.gsub("\\", "\\\\\\\\").gsub("\"", "\\\\\"") + "\""
+    end
+
+    # A case name; .some and .none would be ambiguous with Optional's cases, and .init and .self are not
+    # members.
+    def self.case_name(name)
+        raise "Not a Swift identifier: #{name}" unless name =~ /\A[a-z][A-Za-z0-9]*\z/
+        raise "Unusable case name: #{name}" if ["some", "none", "init", "self"].include?(name)
+        KEYWORDS.include?(name) ? "`#{name}`" : name
+    end
+
+    # "!" -> not, "old_value" -> oldValue, "arrayLength" -> arrayLength
+    def self.symbol_case_name(name)
+        return OPERATOR_NAMES[name] if OPERATOR_NAMES[name]
+        raise "Unknown operator: #{name}; add it to OPERATOR_NAMES" unless name =~ /\A[A-Za-z_][A-Za-z0-9_]*\z/
+        name.gsub(/_([a-z0-9])/) { $1.upcase }
+    end
+
+    # constantNot -> not; validateSubgroupShuffle -> subgroupShuffle
+    def self.function_case_name(function, prefix)
+        raise "#{function} does not start with #{prefix}" unless function.start_with?(prefix) and function.length > prefix.length
+        lower_camel(function[prefix.length..])
     end
 end
 
@@ -349,60 +426,183 @@ module DSL
         @aliases[name] = type
     end
 
-    def self.declarations_to_cpp
-        out = []
-
-        @aliases.each do |name, type|
-            out << "CHECK(introduceType(AST::Identifier::make(\"#{name}\"_s), #{type.concrete_type}));"
+    def self.function_name(entry_name, value, prefix)
+        case value
+        when false
+            nil
+        when true
+            "#{prefix}#{entry_name[0].upcase}#{entry_name[1..]}"
+        else
+            value
         end
+    end
 
-        out << "" # xcode compilation fails if there's not newline at the end of the file
+    # The constant or validation functions the table references, in first-use order.
+    def self.functions_for_swift(key, prefix)
+        functions = []
+        @entries.each do |name, entry|
+            function = function_name(name.to_s, entry[key], prefix)
+            functions << function if function and !functions.include?(function)
+        end
+        functions
+    end
+
+    # SymbolTable.predeclared in intern order: the builtin declaration names first, so that builtin i
+    # is predeclared symbol i, then the field names and the type-alias names not already present.
+    def self.predeclared_symbol_names
+        names = @entries.keys.map(&:to_s)
+        raise "Duplicate builtin declaration names" if names.uniq.length != names.length
+        (Swift::PRIMITIVE_STRUCT_FIELD_NAMES + @aliases.keys.map(&:to_s)).each do |name|
+            names << name unless names.include?(name)
+        end
+        names
+    end
+
+    def self.symbol_case(name)
+        "BuiltinSymbols.#{Swift::case_name(Swift::symbol_case_name(name.to_s))}"
+    end
+
+    def self.function_case(enum, function, prefix)
+        "#{enum}.#{Swift::case_name(Swift::function_case_name(function, prefix))}"
+    end
+
+    def self.string_list_to_swift(out, name, strings)
+        out << "let #{name}: [StaticString] = ["
+        strings.each { |string| out << "    #{Swift::string_literal(string)}," }
+        out << "]"
+    end
+
+    def self.function_enum_to_swift(out, enum, functions, prefix)
+        out << "enum #{enum}: UInt8, Sendable {"
+        functions.each { |function| out << "    case #{Swift::case_name(Swift::function_case_name(function, prefix))}" }
+        out << "}"
+    end
+
+    def self.names_to_swift
+        predeclared = predeclared_symbol_names
+        case_names = predeclared.map { |name| Swift::case_name(Swift::symbol_case_name(name)) }
+        raise "Duplicate BuiltinSymbols case names" if case_names.uniq.length != case_names.length
+        constant_functions = functions_for_swift(:const, "constant")
+        validation_functions = functions_for_swift(:validate, "validate")
+        raise "Too many constant functions for UInt8" if constant_functions.length > 256
+        raise "Too many validation functions for UInt8" if validation_functions.length > 256
+
+        out = []
+        out << "/// The builtin declaration names in TypeDeclarations.rb order: builtinDeclarationNames[i] names"
+        out << "/// makeBuiltinDeclarations()[i] and is predeclared symbol i."
+        string_list_to_swift(out, "builtinDeclarationNames", @entries.keys)
+        out << ""
+        out << "/// The type-alias names in TypeDeclarations.rb order."
+        string_list_to_swift(out, "builtinTypeAliasNames", @aliases.keys)
+        out << ""
+        out << "/// SymbolTable.predeclared in intern order: the builtin declaration names, then the primitive-struct"
+        out << "/// field names and the type-alias names that are not already present."
+        string_list_to_swift(out, "predeclaredSymbolNames", predeclared)
+        out << ""
+        out << "/// A predeclared symbol."
+        out << "///"
+        out << "/// The raw value is its index in predeclaredSymbolNames, which is its Symbol index in every module's"
+        out << "/// SymbolTable."
+        out << "enum BuiltinSymbols: UInt32, Sendable {"
+        predeclared.each_with_index do |name, index|
+            spelling = case_names[index] == name ? "" : " // #{name}"
+            out << "    case #{case_names[index]} = #{index}#{spelling}"
+        end
+        out << "}"
+        out << ""
+        out << "extension BuiltinSymbols {"
+        out << "    /// Predeclared symbols 0..<builtinDeclarationCount name the builtin declarations, in table order."
+        out << "    static let builtinDeclarationCount: UInt32 = #{@entries.length}"
+        out << "}"
+        out << ""
+        out << "/// The constant functions the table names, in first-use order; case x calls constantX."
+        function_enum_to_swift(out, "ConstantFunction", constant_functions, "constant")
+        out << ""
+        out << "/// The validation functions the table names, in first-use order; case x calls validateX."
+        function_enum_to_swift(out, "ValidationFunction", validation_functions, "validate")
         out.join "\n"
     end
 
-    def self.overloads_to_cpp
+    def self.function_dispatch_to_swift
         out = []
-
-        @entries.each do |name, entry|
-            constant_function = case entry[:const]
-            when false
-                "nullptr"
-            when true
-                "constant#{name[0].upcase}#{name[1..]}"
-            else
-                entry[:const]
-            end
-
-            validation_function = case entry[:validate]
-            when false
-                "nullptr"
-            when true
-                "validate#{name[0].upcase}#{name[1..]}"
-            else
-                entry[:validate]
-            end
-
-            stages = entry[:stage].kind_of?(Array) ? entry[:stage] : [entry[:stage]]
-            visibility = stages.map { |s| "ShaderStage::#{s.to_s.capitalize}" }.join ", "
-
-            out << "{"
-            out << "auto result = m_overloadedOperations.add(\"#{name}\"_s, OverloadedDeclaration {"
-            out << "    .kind = OverloadedDeclaration::#{entry[:kind].to_s.capitalize},"
-            out << "    .mustUse = #{entry[:must_use]},"
-            out << "    .constantFunction = #{constant_function},"
-            out << "    .validationFunction = #{validation_function},"
-            out << "    .visibility = { #{visibility} },"
-            out << "    .overloads = { }"
-            out << "});"
-            out << "ASSERT_UNUSED(result, result.isNewEntry);"
-            entry[:overloads].each do |function|
-                out << "result.iterator->value.overloads.append(#{function.to_cpp(name)});"
-            end
-            out << "}"
-            out << ""
+        out << "extension ConstantFunction {"
+        out << "    func callAsFunction("
+        out << "        _ shaderModule: borrowing ShaderModule,"
+        out << "        _ resultType: TypeID,"
+        out << "        _ arguments: borrowing [ConstantValue]"
+        out << "    ) -> ConstantResult {"
+        out << "        switch self {"
+        functions_for_swift(:const, "constant").each do |function|
+            out << "        case .#{Swift::case_name(Swift::function_case_name(function, "constant"))}: return #{function}(shaderModule, resultType, arguments)"
         end
+        out << "        }"
+        out << "    }"
+        out << "}"
+        out << ""
+        out << "extension ValidationFunction {"
+        out << "    func callAsFunction("
+        out << "        _ shaderModule: borrowing ShaderModule,"
+        out << "        _ arguments: borrowing [ConstantValue?],"
+        out << "        _ types: borrowing [TypeID]"
+        out << "    ) -> MessageText? {"
+        out << "        switch self {"
+        functions_for_swift(:validate, "validate").each do |function|
+            out << "        case .#{Swift::case_name(Swift::function_case_name(function, "validate"))}: return #{function}(shaderModule, arguments, types)"
+        end
+        out << "        }"
+        out << "    }"
+        out << "}"
+        out.join "\n"
+    end
 
-        out << "" # xcode compilation fails if there's not newline at the end of the file
+    def self.declarations_to_swift
+        out = []
+        out << "let builtinTypeAliases: [BuiltinTypeAlias] = ["
+        @aliases.each do |name, type|
+            out << "    BuiltinTypeAlias(name: #{symbol_case(name)}, type: #{type.concrete_swift}),"
+        end
+        out << "]"
+        out.join "\n"
+    end
+
+    # One small, explicitly typed function per declaration keeps type checking and -Onone code linear.
+    def self.overloads_to_swift
+        functions = []
+        @entries.each_with_index do |(name, entry), index|
+            constant_function = function_name(name.to_s, entry[:const], "constant")
+            validation_function = function_name(name.to_s, entry[:validate], "validate")
+            stages = entry[:stage].kind_of?(Array) ? entry[:stage] : [entry[:stage]]
+            function = []
+            function << "// #{name}"
+            function << "private func builtinDeclaration#{index}() -> OverloadedDeclaration {"
+            function << "    var overloads: [OverloadCandidate] = []"
+            function << "    overloads.reserveCapacity(#{entry[:overloads].length})"
+            entry[:overloads].each do |overload|
+                function << overload.to_swift(name)
+            end
+            function << "    return OverloadedDeclaration("
+            function << "        name: #{symbol_case(name)},"
+            function << "        kind: .#{entry[:kind]},"
+            function << "        mustUse: #{entry[:must_use]},"
+            function << "        constantFunction: #{constant_function ? function_case("ConstantFunction", constant_function, "constant") : "nil"},"
+            function << "        validationFunction: #{validation_function ? function_case("ValidationFunction", validation_function, "validate") : "nil"},"
+            function << "        visibility: [#{stages.map { |s| ".#{s}" }.join ", "}],"
+            function << "        overloads: overloads)"
+            function << "}"
+            functions << function.join("\n")
+        end
+        out = []
+        out << "// In TypeDeclarations.rb order."
+        out << "func makeBuiltinDeclarations() -> [OverloadedDeclaration] {"
+        out << "    var declarations: [OverloadedDeclaration] = []"
+        out << "    declarations.reserveCapacity(#{@entries.length})"
+        @entries.each_with_index do |_, index|
+            out << "    declarations.append(builtinDeclaration#{index}())"
+        end
+        out << "    return declarations"
+        out << "}"
+        out << ""
+        out << functions.join("\n\n")
         out.join "\n"
     end
 
@@ -563,17 +763,22 @@ module DSL
         @context.eval(File.open(file).read, file)
     end
 
-    def self.write_to(output_declarations, output_overloads)
-        File.open(output_declarations, 'w') { |file| file.write(declarations_to_cpp) }
-        File.open(output_overloads, 'w') { |file| file.write(overloads_to_cpp) }
+    def self.write_to(output)
+        parts = [
+            "// Generated from TypeDeclarations.rb by generator/main.rb --swift. Do not edit.",
+            names_to_swift,
+            function_dispatch_to_swift,
+            declarations_to_swift,
+            overloads_to_swift,
+        ]
+        File.open(output, 'w') { |file| file.write(parts.join("\n\n") + "\n") }
     end
 end
 
-raise "usage: #{__FILE__} <declaration-file> <output-type-declarations> <output-type-overloads>" if ARGV.length != 3
-input = ARGV[0]
-output_declarations = ARGV[1]
-output_overloads = ARGV[2]
+raise "usage: #{__FILE__} --swift <declaration-file> <output-swift>" if ARGV.length != 3 or ARGV[0] != "--swift"
+input = ARGV[1]
+output = ARGV[2]
 
 DSL::prologue()
 DSL::run(input)
-DSL::write_to(output_declarations, output_overloads)
+DSL::write_to(output)

@@ -27,14 +27,8 @@
 #import "ShaderModule.h"
 
 #import "APIConversions.h"
-#import "ASTBuiltinAttribute.h"
-#import "ASTFunction.h"
-#import "ASTStructure.h"
-#import "ASTStructureMember.h"
 #import "Device.h"
 #import "PipelineLayout.h"
-#import "Types.h"
-#import "WGSLShaderModule.h"
 
 #import <WebGPU/WebGPU.h>
 #import <wtf/BlockPtr.h>
@@ -42,7 +36,84 @@
 #import <wtf/StringPrintStream.h>
 #import <wtf/TZoneMallocInlines.h>
 
+#if HAVE(WGSL_COMPILER)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WGPUTextureImpl.h>
+#import "WebGPUSwift-Generated.h"
+#import <notify.h>
+#import <unicode/uchar.h>
+#import <unicode/uset.h>
+#import <wtf/Threading.h>
+#import <wtf/darwin/DispatchExtras.h>
+
+namespace WGSL::Interop {
+
+IdentifierRanges icuIdentifierRanges(bool xidContinue)
+{
+    UErrorCode status = U_ZERO_ERROR;
+    const USet* set = u_getBinaryPropertySet(xidContinue ? UCHAR_XID_CONTINUE : UCHAR_XID_START, &status);
+    RELEASE_ASSERT(U_SUCCESS(status));
+    int32_t itemCount = uset_getItemCount(set);
+    IdentifierRanges result;
+    result.reserveInitialCapacity(2 * itemCount);
+    for (int32_t i = 0; i < itemCount; ++i) {
+        UChar32 start = 0;
+        UChar32 end = 0;
+        auto stringLength = uset_getItem(set, i, &start, &end, nullptr, 0, &status);
+        RELEASE_ASSERT(!stringLength && U_SUCCESS(status));
+        result.append(start);
+        result.append(end + 1);
+    }
+    return result;
+}
+
+} // namespace WGSL::Interop
+#endif
+
 namespace WebGPU::Metal {
+
+struct WGSLModule {
+    WTF_MAKE_STRUCT_TZONE_ALLOCATED(WGSLModule);
+#if HAVE(WGSL_COMPILER)
+    WebGPU::WGSLShaderModule module;
+#endif
+};
+
+WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(WGSLModule);
+
+#if HAVE(WGSL_COMPILER)
+// The compiler built without optimization needs a larger stack than the WebGPU thread's; it then runs on its own thread.
+static void runOnWGSLCompileThread(NOESCAPE const Function<void()>& work)
+{
+    auto stackSize = WebGPU::wgslRecommendedCompileStackSize();
+    if (!stackSize) {
+        work();
+        return;
+    }
+
+    Thread::create("WGSL compile"_s, [&work] {
+        work();
+    }, ThreadType::Graphics, Thread::QOS::UserInteractive, Thread::SchedulingPolicy::Other, StackAllocationSpecification::RequestSize(stackSize))->waitForCompletion();
+}
+
+static void dumpMetalCodeIfNeeded(const String& metalCode)
+{
+    static bool dumpMetalCode = false;
+    static std::once_flag onceFlag;
+    std::call_once(onceFlag, [] {
+        int dumpMetalCodeToken;
+        notify_register_dispatch("com.apple.WebKit.WebGPU.TogglePrintMetalCode", &dumpMetalCodeToken, mainDispatchQueueSingleton(), ^(int) {
+            dumpMetalCode = !dumpMetalCode;
+        });
+    });
+
+    if (dumpMetalCode) {
+        dataLogLn("Generated Metal code:");
+        dataLogLn(metalCode);
+    }
+}
+#endif
 
 static MTLCompileOptions *compileOptions(const WGSL::DeviceState& deviceState)
 {
@@ -109,47 +180,6 @@ void ShaderModule::createLibraryAsync(id<MTLDevice> device, NSString *msl, NSStr
     }).get()];
 }
 
-static RefPtr<ShaderModule> earlyCompileShaderModule(Device& device, Variant<WGSL::SuccessfulCheck, WGSL::FailedCheck>&& checkResult, std::span<const WebGPU::ShaderModuleCompilationHint> suppliedHints, String&& label)
-{
-    HashMap<String, Ref<PipelineLayout>> hints;
-    HashMap<String, WGSL::PipelineLayout*> wgslHints;
-    Vector<WGSL::PipelineLayout> wgslPipelineLayouts;
-    wgslPipelineLayouts.reserveCapacity(suppliedHints.size());
-    for (const auto& hint : suppliedHints) {
-        auto& hintKey = hint.entryPoint;
-        Ref layout = metal(hint.layout.get());
-        hints.add(hintKey, layout);
-        WGSL::PipelineLayout* convertedPipelineLayout = nullptr;
-        if (layout->numberOfBindGroupLayouts()) {
-            wgslPipelineLayouts.append(ShaderModule::convertPipelineLayout(layout));
-            convertedPipelineLayout = &wgslPipelineLayouts.last();
-        }
-        wgslHints.add(hintKey, WTF::move(convertedPipelineLayout));
-    }
-
-    auto& shaderModule = std::get<WGSL::SuccessfulCheck>(checkResult).ast;
-    auto prepareResult = WGSL::prepare(shaderModule, wgslHints);
-    if (std::holds_alternative<WGSL::Error>(prepareResult))
-        return nullptr;
-    auto& result = std::get<WGSL::PrepareResult>(prepareResult);
-    HashMap<String, WGSL::ConstantValue> wgslConstantValues;
-    auto generationResult = WGSL::generate(shaderModule, result, wgslConstantValues, WGSL::DeviceState {
-        .appleGPUFamily = device.appleGPUFamily(),
-        .shaderValidationEnabled = device.isShaderValidationEnabled()
-    });
-    if (std::holds_alternative<WGSL::Error>(generationResult))
-        return nullptr;
-    auto& msl = std::get<String>(generationResult);
-    NSError *error = nil;
-    auto library = ShaderModule::createLibrary(device.device(), msl, WTF::move(label), &error, WGSL::DeviceState {
-        .appleGPUFamily = device.appleGPUFamily(),
-        .shaderValidationEnabled = device.isShaderValidationEnabled()
-    });
-    if (!library)
-        return nullptr;
-    return ShaderModule::create(WTF::move(checkResult), WTF::move(hints), WTF::move(result.entryPoints), library, device);
-}
-
 static String featureName(WebGPU::FeatureName feature)
 {
     switch (feature) {
@@ -202,35 +232,46 @@ static String featureName(WebGPU::FeatureName feature)
     }
 }
 
-static const HashSet<String> buildFeatureSet(const Vector<WebGPU::FeatureName>& features)
+static OptionSet<WGSL::Feature> wgslFeatures(const Vector<WebGPU::FeatureName>& features)
 {
-    HashSet<String> result;
-    for (auto feature : features)
-        result.add(featureName(feature));
-
+    OptionSet<WGSL::Feature> result;
+    for (auto feature : features) {
+        switch (feature) {
+        case WebGPU::FeatureName::ClipDistances:
+            result.add(WGSL::Feature::ClipDistances);
+            break;
+        case WebGPU::FeatureName::ShaderF16:
+            result.add(WGSL::Feature::ShaderF16);
+            break;
+        case WebGPU::FeatureName::PrimitiveIndex:
+            result.add(WGSL::Feature::PrimitiveIndex);
+            break;
+        case WebGPU::FeatureName::Subgroups:
+            result.add(WGSL::Feature::Subgroups);
+            break;
+        default:
+            break;
+        }
+    }
     return result;
 }
 
-static Ref<ShaderModule> handleShaderSuccessOrFailure(WebGPU::Metal::Device &object, Variant<WGSL::SuccessfulCheck, WGSL::FailedCheck> &checkResult, const WebGPU::ShaderModuleDescriptor &descriptor)
+static Ref<ShaderModule> handleShaderSuccessOrFailure(WebGPU::Metal::Device &object, std::unique_ptr<WGSLModule>&& module, WGSL::StaticCheckResult&& checkResult, const WebGPU::ShaderModuleDescriptor &descriptor)
 {
-    if (std::holds_alternative<WGSL::SuccessfulCheck>(checkResult)) {
-        if (!descriptor.hints.empty()) {
-            // FIXME: re-enable early compilation later on once deferred compilation is fully implemented
-            // https://bugs.webkit.org/show_bug.cgi?id=254258
-            UNUSED_PARAM(earlyCompileShaderModule);
-        }
-
-        return ShaderModule::create(WTF::move(checkResult), { }, { }, nil, object);
+    if (module) {
+        // FIXME: re-enable early compilation of descriptor.hints later on once deferred compilation is fully implemented
+        // https://bugs.webkit.org/show_bug.cgi?id=254258
+        UNUSED_PARAM(descriptor);
+        return ShaderModule::create(WTF::move(module), WTF::move(checkResult), { }, { }, nil, object);
     }
 
-    auto& failedCheck = std::get<WGSL::FailedCheck>(checkResult);
     StringPrintStream message;
-    message.print(String::number(failedCheck.errors.size()), " error", failedCheck.errors.size() != 1 ? "s" : "", " generated while compiling the shader:"_s);
-    for (const auto& error : failedCheck.errors)
+    message.print(String::number(checkResult.errors.size()), " error", checkResult.errors.size() != 1 ? "s" : "", " generated while compiling the shader:"_s);
+    for (const auto& error : checkResult.errors)
         message.print("\n"_s, error);
 
     object.generateAValidationError(message.toString());
-    return ShaderModule::createInvalid(object, failedCheck);
+    return ShaderModule::createInvalid(object, WTF::move(checkResult));
 }
 
 RefPtr<WebGPU::ShaderModule> Device::createShaderModule(const WebGPU::ShaderModuleDescriptor& descriptor)
@@ -238,86 +279,90 @@ RefPtr<WebGPU::ShaderModule> Device::createShaderModule(const WebGPU::ShaderModu
     if (!isValid())
         return ShaderModule::createInvalid(*this);
 
-    auto supportedFeatures = buildFeatureSet(m_capabilities.features);
-    auto checkResult = WGSL::staticCheck(descriptor.code, std::nullopt, WGSL::Configuration {
+    WGSL::Configuration configuration {
         .maxBuffersPlusVertexBuffersForVertexStage = maxBuffersPlusVertexBuffersForVertexStage(),
         .maxBuffersForFragmentStage = maxBuffersForFragmentStage(),
         .maxBuffersForComputeStage = maxBuffersForComputeStage(),
         .maximumCombinedWorkgroupVariablesSize = limits().maxComputeWorkgroupStorageSize,
-        .supportedFeatures = WTF::move(supportedFeatures)
-    });
+        .supportedFeatures = wgslFeatures(m_capabilities.features)
+    };
 
-    return handleShaderSuccessOrFailure(*this, checkResult, descriptor);
+    WGSL::StaticCheckResult checkResult;
+    std::unique_ptr<WGSLModule> module;
+#if HAVE(WGSL_COMPILER)
+    runOnWGSLCompileThread([&] {
+        if (auto checkedModule = WebGPU::wgslStaticCheck(descriptor.code, configuration, checkResult))
+            module = makeUnique<WGSLModule>(WGSLModule { checkedModule.get() });
+    });
+#else
+    UNUSED_VARIABLE(configuration);
+    checkResult.errors.append(WGSL::CompilationMessage { "WGSL shader compilation is not available in this configuration"_s, 0, 0, 0, 0 });
+#endif
+
+    return handleShaderSuccessOrFailure(*this, WTF::move(module), WTF::move(checkResult), descriptor);
 }
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(ShaderModule);
 
-auto ShaderModule::convertCheckResult(Variant<WGSL::SuccessfulCheck, WGSL::FailedCheck>&& checkResult) -> CheckResult
-{
-    return WTF::switchOn(WTF::move(checkResult), [](auto&& check) -> CheckResult {
-        return std::forward<decltype(check)>(check);
-    });
-}
-
-static MTLDataType LEGACY_NODELETE metalDataTypeFromPrimitive(const WGSL::Types::Primitive *primitiveType, int vectorSize = 1)
+static MTLDataType LEGACY_NODELETE metalDataTypeFromScalar(WGSL::IOType::Scalar scalar, int vectorSize = 1)
 {
     switch (vectorSize) {
     case 1:
-        switch (primitiveType->kind) {
-        case WGSL::Types::Primitive::I32:
+        switch (scalar) {
+        case WGSL::IOType::Scalar::I32:
             return MTLDataTypeInt;
-        case WGSL::Types::Primitive::U32:
+        case WGSL::IOType::Scalar::U32:
             return MTLDataTypeUInt;
-        case WGSL::Types::Primitive::F16:
+        case WGSL::IOType::Scalar::F16:
             return MTLDataTypeHalf;
-        case WGSL::Types::Primitive::F32:
+        case WGSL::IOType::Scalar::F32:
             return MTLDataTypeFloat;
-        case WGSL::Types::Primitive::Bool:
+        case WGSL::IOType::Scalar::Bool:
             return MTLDataTypeBool;
         default:
             RELEASE_ASSERT_NOT_REACHED();
         }
     case 2:
-        switch (primitiveType->kind) {
-        case WGSL::Types::Primitive::I32:
+        switch (scalar) {
+        case WGSL::IOType::Scalar::I32:
             return MTLDataTypeInt2;
-        case WGSL::Types::Primitive::U32:
+        case WGSL::IOType::Scalar::U32:
             return MTLDataTypeUInt2;
-        case WGSL::Types::Primitive::F16:
+        case WGSL::IOType::Scalar::F16:
             return MTLDataTypeHalf2;
-        case WGSL::Types::Primitive::F32:
+        case WGSL::IOType::Scalar::F32:
             return MTLDataTypeFloat2;
-        case WGSL::Types::Primitive::Bool:
+        case WGSL::IOType::Scalar::Bool:
             return MTLDataTypeBool2;
         default:
             RELEASE_ASSERT_NOT_REACHED();
         }
     case 3:
-        switch (primitiveType->kind) {
-        case WGSL::Types::Primitive::I32:
+        switch (scalar) {
+        case WGSL::IOType::Scalar::I32:
             return MTLDataTypeInt3;
-        case WGSL::Types::Primitive::U32:
+        case WGSL::IOType::Scalar::U32:
             return MTLDataTypeUInt3;
-        case WGSL::Types::Primitive::F16:
+        case WGSL::IOType::Scalar::F16:
             return MTLDataTypeHalf3;
-        case WGSL::Types::Primitive::F32:
+        case WGSL::IOType::Scalar::F32:
             return MTLDataTypeFloat3;
-        case WGSL::Types::Primitive::Bool:
+        case WGSL::IOType::Scalar::Bool:
             return MTLDataTypeBool3;
         default:
             RELEASE_ASSERT_NOT_REACHED();
         }
     case 4:
-        switch (primitiveType->kind) {
-        case WGSL::Types::Primitive::I32:
+        switch (scalar) {
+        case WGSL::IOType::Scalar::I32:
             return MTLDataTypeInt4;
-        case WGSL::Types::Primitive::U32:
+        case WGSL::IOType::Scalar::U32:
             return MTLDataTypeUInt4;
-        case WGSL::Types::Primitive::F16:
+        case WGSL::IOType::Scalar::F16:
             return MTLDataTypeHalf4;
-        case WGSL::Types::Primitive::F32:
+        case WGSL::IOType::Scalar::F32:
             return MTLDataTypeFloat4;
-        case WGSL::Types::Primitive::Bool:
+        case WGSL::IOType::Scalar::Bool:
             return MTLDataTypeBool4;
         default:
             RELEASE_ASSERT_NOT_REACHED();
@@ -327,57 +372,57 @@ static MTLDataType LEGACY_NODELETE metalDataTypeFromPrimitive(const WGSL::Types:
     }
 }
 
-static WebGPU::VertexFormat LEGACY_NODELETE vertexFormatTypeFromPrimitive(const WGSL::Types::Primitive *primitiveType, int vectorSize)
+static WebGPU::VertexFormat LEGACY_NODELETE vertexFormatTypeFromScalar(WGSL::IOType::Scalar scalar, int vectorSize)
 {
     switch (vectorSize) {
     case 1:
-        switch (primitiveType->kind) {
-        case WGSL::Types::Primitive::I32:
+        switch (scalar) {
+        case WGSL::IOType::Scalar::I32:
             return WebGPU::VertexFormat::Sint32;
-        case WGSL::Types::Primitive::U32:
+        case WGSL::IOType::Scalar::U32:
             return WebGPU::VertexFormat::Uint32;
-        case WGSL::Types::Primitive::F16:
+        case WGSL::IOType::Scalar::F16:
             return WebGPU::VertexFormat::Float32;
-        case WGSL::Types::Primitive::F32:
+        case WGSL::IOType::Scalar::F32:
             return WebGPU::VertexFormat::Float32;
         default:
             RELEASE_ASSERT_NOT_REACHED();
         }
     case 2:
-        switch (primitiveType->kind) {
-        case WGSL::Types::Primitive::I32:
+        switch (scalar) {
+        case WGSL::IOType::Scalar::I32:
             return WebGPU::VertexFormat::Sint32x2;
-        case WGSL::Types::Primitive::U32:
+        case WGSL::IOType::Scalar::U32:
             return WebGPU::VertexFormat::Uint32x2;
-        case WGSL::Types::Primitive::F16:
+        case WGSL::IOType::Scalar::F16:
             return WebGPU::VertexFormat::Float16x2;
-        case WGSL::Types::Primitive::F32:
+        case WGSL::IOType::Scalar::F32:
             return WebGPU::VertexFormat::Float32x2;
         default:
             RELEASE_ASSERT_NOT_REACHED();
         }
     case 3:
-        switch (primitiveType->kind) {
-        case WGSL::Types::Primitive::I32:
+        switch (scalar) {
+        case WGSL::IOType::Scalar::I32:
             return WebGPU::VertexFormat::Sint32x3;
-        case WGSL::Types::Primitive::U32:
+        case WGSL::IOType::Scalar::U32:
             return WebGPU::VertexFormat::Uint32x3;
-        case WGSL::Types::Primitive::F16:
+        case WGSL::IOType::Scalar::F16:
             return WebGPU::VertexFormat::Float16x4;
-        case WGSL::Types::Primitive::F32:
+        case WGSL::IOType::Scalar::F32:
             return WebGPU::VertexFormat::Float32x3;
         default:
             RELEASE_ASSERT_NOT_REACHED();
         }
     case 4:
-        switch (primitiveType->kind) {
-        case WGSL::Types::Primitive::I32:
+        switch (scalar) {
+        case WGSL::IOType::Scalar::I32:
             return WebGPU::VertexFormat::Sint32x4;
-        case WGSL::Types::Primitive::U32:
+        case WGSL::IOType::Scalar::U32:
             return WebGPU::VertexFormat::Uint32x4;
-        case WGSL::Types::Primitive::F16:
+        case WGSL::IOType::Scalar::F16:
             return WebGPU::VertexFormat::Float16x4;
-        case WGSL::Types::Primitive::F32:
+        case WGSL::IOType::Scalar::F32:
             return WebGPU::VertexFormat::Float32x4;
         default:
             RELEASE_ASSERT_NOT_REACHED();
@@ -387,139 +432,67 @@ static WebGPU::VertexFormat LEGACY_NODELETE vertexFormatTypeFromPrimitive(const 
     }
 }
 
-static MTLDataType metalDataTypeForStructMember(const WGSL::Type* type)
+static MTLDataType metalDataTypeForIOType(const WGSL::IOType& type)
 {
-    if (!type)
+    switch (type.shape) {
+    case WGSL::IOType::Shape::Missing:
+    case WGSL::IOType::Shape::Other:
         return MTLDataTypeNone;
-
-    auto* vectorType = std::get_if<WGSL::Types::Vector>(type);
-    auto* primitiveType = std::get_if<WGSL::Types::Primitive>(vectorType ? vectorType->element : type);
-    if (!primitiveType)
-        return MTLDataTypeNone;
-
-    auto vectorSize = vectorType ? vectorType->size : 1;
-    return metalDataTypeFromPrimitive(primitiveType, vectorSize);
+    case WGSL::IOType::Shape::Scalar:
+        return metalDataTypeFromScalar(type.scalar);
+    case WGSL::IOType::Shape::Vector:
+        return metalDataTypeFromScalar(type.scalar, type.vectorSize);
+    }
+    RELEASE_ASSERT_NOT_REACHED();
 }
 
-static WebGPU::VertexFormat vertexFormatTypeForStructMember(const WGSL::Type* type)
+static WebGPU::VertexFormat vertexFormatTypeForIOType(const WGSL::IOType& type)
 {
-    if (!type)
+    switch (type.shape) {
+    case WGSL::IOType::Shape::Missing:
+    case WGSL::IOType::Shape::Other:
         RELEASE_ASSERT_NOT_REACHED();
-
-    auto* vectorType = std::get_if<WGSL::Types::Vector>(type);
-    auto* primitiveType = std::get_if<WGSL::Types::Primitive>(vectorType ? vectorType->element : type);
-    if (!primitiveType)
-        RELEASE_ASSERT_NOT_REACHED();
-
-    auto vectorSize = vectorType ? vectorType->size : 1;
-    return vertexFormatTypeFromPrimitive(primitiveType, vectorSize);
+    case WGSL::IOType::Shape::Scalar:
+        return vertexFormatTypeFromScalar(type.scalar, 1);
+    case WGSL::IOType::Shape::Vector:
+        return vertexFormatTypeFromScalar(type.scalar, type.vectorSize);
+    }
+    RELEASE_ASSERT_NOT_REACHED();
 }
 
-void ShaderModule::populateOutputState(const String& entryPoint, WGSL::Builtin builtIn)
+static ShaderModule::VertexStageIn stageInMap(const Vector<WGSL::IOLocation>& locations)
 {
-    switch (builtIn) {
-    case WGSL::Builtin::SampleMask:
-        populateShaderModuleState(entryPoint).usesSampleMaskInOutput = true;
-        break;
-    case WGSL::Builtin::FragDepth:
-        populateShaderModuleState(entryPoint).usesFragDepth = true;
-        break;
-    default:
-        break;
-    }
+    ShaderModule::VertexStageIn result;
+    for (auto& location : locations)
+        result.add(location.location, vertexFormatTypeForIOType(location.type));
+    return result;
 }
 
-ShaderModule::FragmentOutputs ShaderModule::parseFragmentReturnType(const WGSL::Type& type, const WGSL::CallGraph::EntryPoint& entryPoint)
+static ShaderModule::VertexOutputs interStageMap(const Vector<WGSL::IOLocation>& locations)
 {
-    ShaderModule::FragmentOutputs fragmentOutputs;
-    if (auto* returnPrimitive = std::get_if<WGSL::Types::Primitive>(&type)) {
-        fragmentOutputs.add(entryPoint.function.returnTypeLocation().value_or(0), metalDataTypeFromPrimitive(returnPrimitive));
-        return fragmentOutputs;
-    }
-    if (std::get_if<WGSL::Types::Vector>(&type)) {
-        fragmentOutputs.add(entryPoint.function.returnTypeLocation().value_or(0), metalDataTypeForStructMember(&type));
-        return fragmentOutputs;
-    }
-    auto* returnStruct = std::get_if<WGSL::Types::Struct>(&type);
-    if (!returnStruct)
-        return fragmentOutputs;
-
-    for (auto& member : returnStruct->structure.members()) {
-        if (member.builtin())
-            populateOutputState(entryPoint.originalName, *member.builtin());
-
-        for (auto& attribute : member.attributes()) {
-            auto* builtinAttribute = dynamicDowncast<WGSL::AST::BuiltinAttribute>(attribute);
-            if (!builtinAttribute)
-                continue;
-            populateOutputState(entryPoint.originalName, builtinAttribute->builtin());
-        }
-
-        if (!member.location() || member.builtin())
-            continue;
-
-        auto location = *member.location();
-        fragmentOutputs.add(location, metalDataTypeForStructMember(member.type().inferredType()));
-    }
-
-    return fragmentOutputs;
-}
-
-static ShaderModule::VertexOutputs parseVertexReturnType(const WGSL::Type& type)
-{
-    ShaderModule::VertexOutputs vertexOutputs;
-    if (auto* returnPrimitive = std::get_if<WGSL::Types::Primitive>(&type)) {
-        vertexOutputs.add(0, ShaderModule::VertexOutputFragmentInput {
-            .dataType = metalDataTypeFromPrimitive(returnPrimitive),
-            .interpolation = std::nullopt
-        });
-        return vertexOutputs;
-    }
-    if (std::get_if<WGSL::Types::Vector>(&type)) {
-        vertexOutputs.add(0, ShaderModule::VertexOutputFragmentInput {
-            .dataType = metalDataTypeForStructMember(&type),
-            .interpolation = std::nullopt
-        });
-        return vertexOutputs;
-    }
-    auto* returnStruct = std::get_if<WGSL::Types::Struct>(&type);
-    if (!returnStruct)
-        return vertexOutputs;
-
-    for (auto& member : returnStruct->structure.members()) {
-        if (!member.location() || member.builtin())
-            continue;
-
-        auto location = *member.location();
-        vertexOutputs.add(location, ShaderModule::VertexOutputFragmentInput {
-            .dataType = metalDataTypeForStructMember(member.type().inferredType()),
-            .interpolation = member.interpolation()
+    ShaderModule::VertexOutputs result;
+    for (auto& location : locations) {
+        result.add(location.location, ShaderModule::VertexOutputFragmentInput {
+            .dataType = metalDataTypeForIOType(location.type),
+            .interpolation = location.interpolation
         });
     }
-
-    return vertexOutputs;
+    return result;
 }
 
-static void populateStageInMap(const WGSL::Type& type, ShaderModule::VertexStageIn& vertexStageIn, const std::optional<unsigned>& optionalLocation)
+static ShaderModule::FragmentOutputs fragmentOutputMap(const Vector<WGSL::IOLocation>& locations)
 {
-    auto* inputStruct = std::get_if<WGSL::Types::Struct>(&type);
-    if (!inputStruct) {
-        if (optionalLocation)
-            vertexStageIn.add(*optionalLocation, vertexFormatTypeForStructMember(&type));
-        return;
-    }
-
-    for (auto& member : inputStruct->structure.members()) {
-        if (!member.location())
-            continue;
-        auto location = *member.location();
-        auto dataType = vertexFormatTypeForStructMember(member.type().inferredType());
-        vertexStageIn.add(location, dataType);
-    }
+    ShaderModule::FragmentOutputs result;
+    for (auto& location : locations)
+        result.add(location.location, metalDataTypeForIOType(location.type));
+    return result;
 }
 
 const ShaderModule::ShaderModuleState* ShaderModule::shaderModuleState(const String& entryPoint) const
 {
+    if (entryPoint.isNull())
+        return nullptr;
+
     if (auto it = m_usageInformationPerEntryPoint.find(entryPoint); it != m_usageInformationPerEntryPoint.end())
         return &it->value;
 
@@ -595,171 +568,78 @@ uint32_t ShaderModule::clipDistancesCount(const String& entryPoint) const
     return 0;
 }
 
-void ShaderModule::populateFragmentInputs(const WGSL::Type& type, ShaderModule::FragmentInputs& fragmentInputs, const String& entryPointName)
-{
-    auto* inputStruct = std::get_if<WGSL::Types::Struct>(&type);
-    if (!inputStruct)
-        return;
-
-    for (auto& member : inputStruct->structure.members()) {
-        if (member.builtin()) {
-            using enum WGSL::Builtin;
-            switch (*member.builtin()) {
-            case ClipDistances:
-                break;
-            case FragDepth:
-                populateShaderModuleState(entryPointName).usesFragDepth = true;
-                break;
-            case FrontFacing:
-                populateShaderModuleState(entryPointName).usesFrontFacingInInput = true;
-                break;
-            case GlobalInvocationId:
-                break;
-            case InstanceIndex:
-                break;
-            case LocalInvocationId:
-                break;
-            case LocalInvocationIndex:
-                break;
-            case NumWorkgroups:
-                break;
-            case Position:
-                break;
-            case PrimitiveIndex:
-                populateShaderModuleState(entryPointName).usesPrimitiveIndexInInput = true;
-                break;
-            case SampleIndex:
-                populateShaderModuleState(entryPointName).usesSampleIndexInInput = true;
-                break;
-            case SampleMask:
-                populateShaderModuleState(entryPointName).usesSampleMaskInInput = true;
-                break;
-            case SubgroupInvocationId:
-                populateShaderModuleState(entryPointName).usesSubgroupInvocationIdInInput = true;
-                break;
-            case SubgroupSize:
-                populateShaderModuleState(entryPointName).usesSubgroupSizeInInput = true;
-                break;
-            case SubgroupId:
-                break;
-            case NumSubgroups:
-                break;
-            case VertexIndex:
-                break;
-            case WorkgroupId:
-                break;
-            }
-        }
-        if (!member.location())
-            continue;
-        auto location = *member.location();
-        auto dataType = metalDataTypeForStructMember(member.type().inferredType());
-        fragmentInputs.add(location, ShaderModule::VertexOutputFragmentInput {
-            .dataType = dataType,
-            .interpolation = member.interpolation()
-        });
-    }
-}
-
-static ShaderModule::VertexStageIn parseStageIn(const WGSL::AST::Function& function)
-{
-    ShaderModule::VertexStageIn result;
-    for (auto& parameter : function.parameters()) {
-        if (parameter.role() != WGSL::AST::ParameterRole::UserDefined)
-            continue;
-
-        if (auto* inferredType = parameter.typeName().inferredType())
-            populateStageInMap(*inferredType, result, parameter.location());
-    }
-
-    return result;
-}
-
-ShaderModule::FragmentInputs ShaderModule::parseFragmentInputs(const WGSL::AST::Function& function, const String& entryPointName)
-{
-    ShaderModule::FragmentInputs result;
-    for (auto& parameter : function.parameters()) {
-        if (parameter.role() != WGSL::AST::ParameterRole::UserDefined)
-            continue;
-
-        if (auto* inferredType = parameter.typeName().inferredType())
-            populateFragmentInputs(*inferredType, result, entryPointName);
-    }
-
-    return result;
-}
-
-ShaderModule::ShaderModule(Variant<WGSL::SuccessfulCheck, WGSL::FailedCheck>&& checkResult, HashMap<String, Ref<PipelineLayout>>&& pipelineLayoutHints, HashMap<String, WGSL::Reflection::EntryPointInformation>&& entryPointInformation, id<MTLLibrary> library, Device& device)
-    : m_checkResult(convertCheckResult(WTF::move(checkResult)))
+ShaderModule::ShaderModule(std::unique_ptr<WGSLModule>&& module, WGSL::StaticCheckResult&& checkResult, HashMap<String, Ref<PipelineLayout>>&& pipelineLayoutHints, HashMap<String, WGSL::CompiledEntryPoint>&& entryPointInformation, id<MTLLibrary> library, Device& device)
+    : m_checkResult(WTF::move(checkResult))
+    , m_wgslModule(WTF::move(module))
     , m_pipelineLayoutHints(WTF::move(pipelineLayoutHints))
     , m_entryPointInformation(WTF::move(entryPointInformation))
     , m_library(library)
     , m_device(device)
 {
     bool allowVertexDefault = true, allowFragmentDefault = true, allowComputeDefault = true;
-    if (std::holds_alternative<WGSL::SuccessfulCheck>(m_checkResult)) {
-        auto& check = std::get<WGSL::SuccessfulCheck>(m_checkResult);
-        for (auto& entryPoint : check.ast->callGraph().entrypoints()) {
-            switch (entryPoint.stage) {
-            case WGSL::ShaderStage::Vertex: {
-                m_stageInTypesForEntryPoint.add(entryPoint.originalName, parseStageIn(entryPoint.function));
-                if (auto expression = entryPoint.function.maybeReturnType()) {
-                    if (auto* inferredType = expression->inferredType()) {
-                        m_vertexReturnTypeForEntryPoint.add(entryPoint.originalName, parseVertexReturnType(*inferredType));
+    if (!m_wgslModule)
+        return;
 
-                        // Check for @builtin(clip_distances) in vertex output
-                        if (auto* returnStruct = std::get_if<WGSL::Types::Struct>(inferredType)) {
-                            for (auto& member : returnStruct->structure.members()) {
-                                if (member.builtin() && *member.builtin() == WGSL::Builtin::ClipDistances) {
-                                    // Extract the array size from array<f32, N>
-                                    if (auto* arrayType = std::get_if<WGSL::Types::Array>(member.type().inferredType())) {
-                                        if (auto* size = std::get_if<unsigned>(&arrayType->size))
-                                            populateShaderModuleState(entryPoint.originalName).clipDistancesCount = *size;
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                if (!allowVertexDefault || m_defaultVertexEntryPoint.length()) {
-                    allowVertexDefault = false;
-                    m_defaultVertexEntryPoint = emptyString();
-                    continue;
-                }
-                m_defaultVertexEntryPoint = entryPoint.originalName;
-            } break;
-            case WGSL::ShaderStage::Fragment: {
-                m_fragmentInputsForEntryPoint.add(entryPoint.originalName, parseFragmentInputs(entryPoint.function, entryPoint.originalName));
-                if (auto expression = entryPoint.function.maybeReturnType()) {
-                    if (auto* inferredType = expression->inferredType())
-                        m_fragmentReturnTypeForEntryPoint.add(entryPoint.originalName, parseFragmentReturnType(*inferredType, entryPoint));
-                }
-                if (!allowFragmentDefault || m_defaultFragmentEntryPoint.length()) {
-                    allowFragmentDefault = false;
-                    m_defaultFragmentEntryPoint = emptyString();
-                    continue;
-                }
-                m_defaultFragmentEntryPoint = entryPoint.originalName;
-            } break;
-            case WGSL::ShaderStage::Compute: {
-                if (!allowComputeDefault || m_defaultComputeEntryPoint.length()) {
-                    allowComputeDefault = false;
-                    m_defaultComputeEntryPoint = emptyString();
-                    continue;
-                }
-                m_defaultComputeEntryPoint = entryPoint.originalName;
-            } break;
-            default:
-                ASSERT_NOT_REACHED();
-                break;
+    for (auto& entryPoint : m_checkResult.entryPoints) {
+        ShaderModuleState state {
+            .usesFrontFacingInInput = entryPoint.usesFrontFacingInInput,
+            .usesSampleIndexInInput = entryPoint.usesSampleIndexInInput,
+            .usesSampleMaskInInput = entryPoint.usesSampleMaskInInput,
+            .usesSampleMaskInOutput = entryPoint.usesSampleMaskInOutput,
+            .usesFragDepth = entryPoint.usesFragDepth,
+            .usesPrimitiveIndexInInput = entryPoint.usesPrimitiveIndexInInput,
+            .usesSubgroupInvocationIdInInput = entryPoint.usesSubgroupInvocationIdInInput,
+            .usesSubgroupSizeInInput = entryPoint.usesSubgroupSizeInInput,
+            .clipDistancesCount = entryPoint.clipDistancesCount,
+        };
+        // Only entry points that use one of these have a state.
+        if (state.usesFrontFacingInInput || state.usesSampleIndexInInput || state.usesSampleMaskInInput || state.usesSampleMaskInOutput
+            || state.usesFragDepth || state.usesPrimitiveIndexInInput || state.usesSubgroupInvocationIdInInput || state.usesSubgroupSizeInInput
+            || state.clipDistancesCount)
+            populateShaderModuleState(entryPoint.name) = state;
+        switch (entryPoint.stage) {
+        case WGSL::ShaderStage::Vertex: {
+            m_stageInTypesForEntryPoint.add(entryPoint.name, stageInMap(entryPoint.stageIn));
+            if (entryPoint.vertexOutputs)
+                m_vertexReturnTypeForEntryPoint.add(entryPoint.name, interStageMap(*entryPoint.vertexOutputs));
+            if (!allowVertexDefault || m_defaultVertexEntryPoint.length()) {
+                allowVertexDefault = false;
+                m_defaultVertexEntryPoint = emptyString();
+                continue;
             }
+            m_defaultVertexEntryPoint = entryPoint.name;
+        } break;
+        case WGSL::ShaderStage::Fragment: {
+            m_fragmentInputsForEntryPoint.add(entryPoint.name, interStageMap(entryPoint.fragmentInputs));
+            if (entryPoint.fragmentOutputs)
+                m_fragmentReturnTypeForEntryPoint.add(entryPoint.name, fragmentOutputMap(*entryPoint.fragmentOutputs));
+            if (!allowFragmentDefault || m_defaultFragmentEntryPoint.length()) {
+                allowFragmentDefault = false;
+                m_defaultFragmentEntryPoint = emptyString();
+                continue;
+            }
+            m_defaultFragmentEntryPoint = entryPoint.name;
+        } break;
+        case WGSL::ShaderStage::Compute: {
+            if (!allowComputeDefault || m_defaultComputeEntryPoint.length()) {
+                allowComputeDefault = false;
+                m_defaultComputeEntryPoint = emptyString();
+                continue;
+            }
+            m_defaultComputeEntryPoint = entryPoint.name;
+        } break;
+        default:
+            ASSERT_NOT_REACHED();
+            break;
         }
     }
 }
 
 const ShaderModule::FragmentInputs* ShaderModule::fragmentInputsForEntryPoint(const String& entryPoint) const
 {
+    if (entryPoint.isNull())
+        return nullptr;
+
     if (auto it = m_fragmentInputsForEntryPoint.find(entryPoint); it != m_fragmentInputsForEntryPoint.end())
         return &it->value;
 
@@ -768,6 +648,9 @@ const ShaderModule::FragmentInputs* ShaderModule::fragmentInputsForEntryPoint(co
 
 const ShaderModule::FragmentOutputs* ShaderModule::fragmentReturnTypeForEntryPoint(const String& entryPoint) const
 {
+    if (entryPoint.isNull())
+        return nullptr;
+
     if (auto it = m_fragmentReturnTypeForEntryPoint.find(entryPoint); it != m_fragmentReturnTypeForEntryPoint.end())
         return &it->value;
 
@@ -776,6 +659,9 @@ const ShaderModule::FragmentOutputs* ShaderModule::fragmentReturnTypeForEntryPoi
 
 const ShaderModule::VertexOutputs* ShaderModule::vertexReturnTypeForEntryPoint(const String& entryPoint) const
 {
+    if (entryPoint.isNull())
+        return nullptr;
+
     if (auto it = m_vertexReturnTypeForEntryPoint.find(entryPoint); it != m_vertexReturnTypeForEntryPoint.end())
         return &it->value;
 
@@ -793,7 +679,7 @@ const ShaderModule::VertexStageIn* ShaderModule::stageInTypesForEntryPoint(const
     return nullptr;
 }
 
-ShaderModule::ShaderModule(Device& device, CheckResult&& checkResult)
+ShaderModule::ShaderModule(Device& device, WGSL::StaticCheckResult&& checkResult)
     : m_checkResult(WTF::move(checkResult))
     , m_device(device)
 {
@@ -823,13 +709,8 @@ static void appendMessages(Vector<WebGPU::CompilationMessage>& result, const Mes
 void ShaderModule::compilationInfo(CompletionHandler<void(WebGPU::CompilationInfo&&)>&& callback)
 {
     WebGPU::CompilationInfo compilationInfo;
-    WTF::switchOn(m_checkResult, [&](const WGSL::SuccessfulCheck& successfulCheck) {
-        appendMessages(compilationInfo.messages, { successfulCheck.warnings, WebGPU::CompilationMessageType::Warning });
-    }, [&](const WGSL::FailedCheck& failedCheck) {
-        appendMessages(compilationInfo.messages, { failedCheck.errors, WebGPU::CompilationMessageType::Error });
-        appendMessages(compilationInfo.messages, { failedCheck.warnings, WebGPU::CompilationMessageType::Warning });
-    }, [&](std::monostate) {
-    });
+    appendMessages(compilationInfo.messages, { m_checkResult.errors, WebGPU::CompilationMessageType::Error });
+    appendMessages(compilationInfo.messages, { m_checkResult.warnings, WebGPU::CompilationMessageType::Warning });
     callback(WTF::move(compilationInfo));
 }
 
@@ -1079,16 +960,56 @@ WGSL::PipelineLayout ShaderModule::convertPipelineLayout(const PipelineLayout& p
     return { .bindGroupLayouts = bindGroupLayouts };
 }
 
-WGSL::ShaderModule* ShaderModule::ast() const
+WGSL::CompilationResult ShaderModule::compile(const String& entryPoint, WGSL::PipelineLayout* pipelineLayout, std::span<const WebGPU::ConstantEntry> constants, const WGSL::DeviceState& deviceState) const
 {
-    return WTF::switchOn(m_checkResult, [&](const WGSL::SuccessfulCheck& successfulCheck) -> WGSL::ShaderModule* {
-        return successfulCheck.ast.ptr();
-    }, [&](const WGSL::FailedCheck&) -> WGSL::ShaderModule* {
-        return nullptr;
-    }, [](std::monostate) -> WGSL::ShaderModule* {
-        ASSERT_NOT_REACHED();
-        return nullptr;
+    RELEASE_ASSERT(m_wgslModule);
+#if HAVE(WGSL_COMPILER)
+    WGSL::Interop::PipelineConstants pipelineConstants;
+    pipelineConstants.reserveInitialCapacity(constants.size());
+    for (auto& constant : constants)
+        pipelineConstants.append({ constant.key, constant.value });
+    WGSL::PipelineLayout unusedLayout;
+    WGSL::CompilationResult result;
+    runOnWGSLCompileThread([&] {
+        result = m_wgslModule->module.compile(entryPoint, pipelineLayout ? *pipelineLayout : unusedLayout, !!pipelineLayout, pipelineConstants, deviceState);
     });
+    if (result.failure == WGSL::CompilationFailure::None)
+        dumpMetalCodeIfNeeded(result.msl);
+    return result;
+#else
+    UNUSED_PARAM(entryPoint);
+    UNUSED_PARAM(pipelineLayout);
+    UNUSED_PARAM(constants);
+    UNUSED_PARAM(deviceState);
+    RELEASE_ASSERT_NOT_REACHED();
+#endif
+}
+
+std::optional<WGSL::WorkgroupSize> ShaderModule::evaluateWorkgroupSize(const String& entryPoint, const WGSL::ResolvedOverrides& overrides) const
+{
+    RELEASE_ASSERT(m_wgslModule);
+#if HAVE(WGSL_COMPILER)
+    std::optional<WGSL::WorkgroupSize> result;
+    runOnWGSLCompileThread([&] {
+        result = m_wgslModule->module.evaluateWorkgroupSize(entryPoint, overrides);
+    });
+    return result;
+#else
+    UNUSED_PARAM(entryPoint);
+    UNUSED_PARAM(overrides);
+    RELEASE_ASSERT_NOT_REACHED();
+#endif
+}
+
+// The Swift function is integer arithmetic only; the analyzer cannot see through the generated thunk.
+SUPPRESS_NODELETE uint32_t ShaderModule::vertexBufferIndexForBindGroup(uint32_t groupIndex, uint32_t maxIndex)
+{
+#if HAVE(WGSL_COMPILER)
+    return WebGPU::wgslVertexBufferIndexForBindGroup(groupIndex, maxIndex);
+#else
+    // Without a WGSL compiler no shader module is valid, so no generated code depends on this.
+    return groupIndex > maxIndex ? groupIndex : (maxIndex - groupIndex);
+#endif
 }
 
 const PipelineLayout* ShaderModule::pipelineLayoutHint(const String& name) const
@@ -1099,7 +1020,7 @@ const PipelineLayout* ShaderModule::pipelineLayoutHint(const String& name) const
     return iterator->value.ptr();
 }
 
-const WGSL::Reflection::EntryPointInformation* ShaderModule::entryPointInformation(const String& name) const
+const WGSL::CompiledEntryPoint* ShaderModule::entryPointInformation(const String& name) const
 {
     auto iterator = m_entryPointInformation.find(name);
     if (iterator != m_entryPointInformation.end())

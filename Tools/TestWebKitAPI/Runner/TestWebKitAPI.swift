@@ -137,13 +137,21 @@ struct TestWebKitAPI {
 
         let (googleTestsPassed, didRunGoogleTests) = try await instance.runGoogleTests(with: configuration)
 
-        #if WTF_PLATFORM_MAC
+        #if WTF_PLATFORM_MAC && !BUILDING_TEST_WGSL
         // Some tests synthesize HID events that the system delivers only to the frontmost app, and
         // delivery requires a running AppKit event loop. Only start it when we will actually run
         // Swift tests: i.e. when running (not listing) tests and no GoogleTest tests have run.
+        // TestWGSL needs none, and as a regular app it would load WebKit.framework (through AppKit's
+        // WritingToolsUI) and with it a second copy of the WGSL module, in WebGPU.framework.
         if !configuration.listTests && !didRunGoogleTests {
             let application = NSApplication.shared
             application.setActivationPolicy(.regular)
+
+            let activity = ProcessInfo.processInfo.beginActivity(
+                options: ProcessInfo.ActivityOptions([.userInitiatedAllowingIdleSystemSleep, .latencyCritical])
+                    .subtracting([.suddenTerminationDisabled, .automaticTerminationDisabled]),
+                reason: "TestWebKitAPI should not be subject to process suppression"
+            )
 
             Task { @MainActor in
                 do {
@@ -154,12 +162,14 @@ struct TestWebKitAPI {
             }
 
             application.activate(ignoringOtherApps: true)
-            application.run()
+            withExtendedLifetime(activity) {
+                application.run()
+            }
             return
         }
         #endif
 
-        // Non-macOS, or macOS when listing tests / after GoogleTest tests ran: no event loop needed.
+        // Non-macOS, TestWGSL, or macOS when listing tests / after GoogleTest tests ran: no event loop needed.
         try await instance.runSwiftTests(with: configuration, googleTestsPassed: googleTestsPassed)
     }
 }

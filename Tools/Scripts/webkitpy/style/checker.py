@@ -71,6 +71,7 @@ from webkitpy.style.checkers.swift_build_registration import SwiftBuildRegistrat
 from webkitpy.style.checkers.test_expectations import TestExpectationsChecker
 from webkitpy.style.checkers.text import TextChecker
 from webkitpy.style.checkers.watchlist import WatchListChecker
+from webkitpy.style.checkers.wgsl_swift import WebGPUHeaderChecker, WGSLSwiftChecker, is_webgpu_header_path, is_wgsl_swift_path
 from webkitpy.style.checkers.xcodeproj import XcodeProjectFileChecker
 from webkitpy.style.checkers.xcscheme import XcodeSchemeChecker
 from webkitpy.style.checkers.xml import XMLChecker
@@ -703,6 +704,8 @@ def _all_categories():
     categories = categories.union(SwiftChecker.categories)
     categories = categories.union(SwiftAssociationChecker.categories)
     categories = categories.union(SwiftBuildRegistrationChecker.categories)
+    categories = categories.union(WGSLSwiftChecker.categories)
+    categories = categories.union(WebGPUHeaderChecker.categories)
 
     # FIXME: Consider adding all of the pep8 categories.  Since they
     #        are not too meaningful for documentation purposes, for
@@ -1015,8 +1018,11 @@ class CheckerDispatcher(object):
             checker = ChangeLogChecker(file_path, handle_style_error, should_line_be_checked)
         elif file_type == FileType.CPP:
             file_extension = self._file_extension(file_path)
-            checker = CppChecker(file_path, file_extension,
-                                 handle_style_error, min_confidence)
+            if is_webgpu_header_path(file_path):
+                checker = WebGPUHeaderChecker(file_path, file_extension, handle_style_error, min_confidence)
+            else:
+                checker = CppChecker(file_path, file_extension,
+                                     handle_style_error, min_confidence)
         elif file_type == FileType.JS:
             basename = os.path.basename(file_path)
             # Do not attempt to check non-Inspector or 3rd-party JavaScript files as JS.
@@ -1053,7 +1059,10 @@ class CheckerDispatcher(object):
             else:
                 checker = PythonChecker(file_path, handle_style_error)
         elif file_type == FileType.SWIFT:
-            checker = SwiftChecker(file_path, handle_style_error)
+            if is_wgsl_swift_path(file_path):
+                checker = WGSLSwiftChecker(file_path, handle_style_error)
+            else:
+                checker = SwiftChecker(file_path, handle_style_error)
         elif file_type == FileType.XML:
             checker = XMLChecker(file_path, handle_style_error)
         elif file_type == FileType.XCSCHEME:

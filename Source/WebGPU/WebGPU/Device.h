@@ -28,7 +28,7 @@
 #import "BindableResource.h"
 #import "HardwareCapabilities.h"
 #import "Queue.h"
-#import "WGSL.h"
+#import "WGSLAPI.h"
 #import <CoreVideo/CVMetalTextureCache.h>
 #import <CoreVideo/CoreVideo.h>
 #import <IOSurface/IOSurfaceRef.h>
