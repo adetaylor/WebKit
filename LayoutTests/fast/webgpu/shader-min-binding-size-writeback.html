@@ -1,0 +1,53 @@
+<script>
+globalThis.testRunner?.waitUntilDone();
+globalThis.testRunner?.dumpAsText();
+const log = console.debug;
+
+// The bind group layout leaves minBindingSize at 0, which defers the buffer size check to dispatch. There it uses
+// the size the shader compiler writes back into the explicit pipeline layout: 64 bytes for array<vec4f, 4>.
+onload = async () => {
+    const adapter = await navigator.gpu.requestAdapter();
+    const device = await adapter.requestDevice();
+
+    const module = device.createShaderModule({ code: `
+@group(0) @binding(0) var<storage, read_write> a: array<vec4f, 4>;
+
+@compute @workgroup_size(1)
+fn main() {
+    a[3] = vec4f(1);
+}
+` });
+    const bindGroupLayout = device.createBindGroupLayout({ entries: [
+        { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage', minBindingSize: 0 } },
+    ]});
+    device.pushErrorScope('validation');
+    const pipeline = device.createComputePipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] }),
+        compute: { module, entryPoint: 'main' },
+    });
+    const pipelineError = await device.popErrorScope();
+    log(`createComputePipeline: ${pipelineError?.message ?? 'accepted'}`);
+
+    for (const size of [32, 64]) {
+        const buffer = device.createBuffer({ size, usage: GPUBufferUsage.STORAGE });
+
+        device.pushErrorScope('validation');
+        const bindGroup = device.createBindGroup({ layout: bindGroupLayout, entries: [{ binding: 0, resource: { buffer } }] });
+        const bindGroupError = await device.popErrorScope();
+        log(`${size}-byte buffer, createBindGroup: ${bindGroupError?.message ?? 'accepted'}`);
+
+        device.pushErrorScope('validation');
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginComputePass();
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(0, bindGroup);
+        pass.dispatchWorkgroups(1);
+        pass.end();
+        device.queue.submit([encoder.finish()]);
+        const dispatchError = await device.popErrorScope();
+        log(`${size}-byte buffer, dispatch: ${dispatchError?.message ?? 'accepted'}`);
+    }
+
+    globalThis.testRunner?.notifyDone();
+};
+</script>

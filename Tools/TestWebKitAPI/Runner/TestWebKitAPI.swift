@@ -145,6 +145,12 @@ struct TestWebKitAPI {
             let application = NSApplication.shared
             application.setActivationPolicy(.regular)
 
+            let activity = ProcessInfo.processInfo.beginActivity(
+                options: ProcessInfo.ActivityOptions([.userInitiatedAllowingIdleSystemSleep, .latencyCritical])
+                    .subtracting([.suddenTerminationDisabled, .automaticTerminationDisabled]),
+                reason: "TestWebKitAPI should not be subject to process suppression"
+            )
+
             Task { @MainActor in
                 do {
                     try await instance.runSwiftTests(with: configuration, googleTestsPassed: googleTestsPassed)
@@ -154,7 +160,9 @@ struct TestWebKitAPI {
             }
 
             application.activate(ignoringOtherApps: true)
-            application.run()
+            withExtendedLifetime(activity) {
+                application.run()
+            }
             return
         }
         #endif

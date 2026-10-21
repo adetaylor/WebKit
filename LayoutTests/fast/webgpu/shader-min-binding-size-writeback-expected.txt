@@ -1,0 +1,6 @@
+CONSOLE MESSAGE: createComputePipeline: accepted
+CONSOLE MESSAGE: 32-byte buffer, createBindGroup: accepted
+CONSOLE MESSAGE: 32-byte buffer, dispatch: buffer length(32) minus offset(0), (resourceOffset(0) + dynamicOffset(0)), is less than required bufferSize(64)
+CONSOLE MESSAGE: 64-byte buffer, createBindGroup: accepted
+CONSOLE MESSAGE: 64-byte buffer, dispatch: accepted
+

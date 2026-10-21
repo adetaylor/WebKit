@@ -27,7 +27,6 @@
 #import "ComputePipeline.h"
 
 #import "APIConversions.h"
-#import "ASTExpression.h"
 #import "BindGroupLayout.h"
 #import "Device.h"
 #import "Instance.h"
@@ -35,7 +34,6 @@
 #import "Pipeline.h"
 #import "PipelineLayout.h"
 #import "ShaderModule.h"
-#import "WGSL.h"
 #import <wtf/Scope.h>
 
 namespace WebGPU::Metal {
@@ -56,15 +54,13 @@ static MTLComputePipelineDescriptor *createComputePipelineDescriptor(id<MTLFunct
     return computePipelineDescriptor;
 }
 
-static std::optional<MTLSize> metalSize(WGSL::ShaderModule& shaderModule, auto workgroupSize, const HashMap<String, WGSL::ConstantValue>& wgslConstantValues)
+static std::optional<MTLSize> metalSize(const ShaderModule& shaderModule, const String& entryPoint, const WGSL::ResolvedOverrides& wgslConstantValues)
 {
-    auto width = WGSL::evaluate(shaderModule, *workgroupSize.width, wgslConstantValues);
-    auto height = workgroupSize.height ? WGSL::evaluate(shaderModule, *workgroupSize.height, wgslConstantValues) : 1;
-    auto depth = workgroupSize.depth ? WGSL::evaluate(shaderModule, *workgroupSize.depth, wgslConstantValues) : 1;
-    if (!width.has_value() || !height.has_value() || !depth.has_value())
+    auto size = shaderModule.evaluateWorkgroupSize(entryPoint, wgslConstantValues);
+    if (!size)
         return std::nullopt;
 
-    return MTLSizeMake(width->integerValue(), height->integerValue(), depth->integerValue());
+    return MTLSizeMake(size->width, size->height, size->depth);
 }
 
 static std::pair<Ref<ComputePipeline>, NSString*> returnInvalidComputePipeline(WebGPU::Metal::Device &object, bool isAsync, NSString* error = nil)
@@ -112,14 +108,13 @@ void Device::createComputePipeline(const WebGPU::ComputePipelineDescriptor& desc
     const auto& wgslConstantValues = preparedLibrary->wgslConstantValues;
     const auto& entryPointInformation = preparedLibrary->entryPointInformation;
 
-    if (!std::holds_alternative<WGSL::Reflection::Compute>(entryPointInformation.typedEntryPoint))
+    if (entryPointInformation.stage != WGSL::ShaderStage::Compute || !entryPointInformation.hasWorkgroupSize)
         return callback(returnInvalidComputePipeline(*this, isAsync));
-    WGSL::Reflection::Compute computeInformation = std::get<WGSL::Reflection::Compute>(entryPointInformation.typedEntryPoint);
 
     if (entryPointInformation.specializationConstants.size() != wgslConstantValues.size())
         return callback(returnInvalidComputePipeline(*this, isAsync));
 
-    auto evaluatedSize = metalSize(*shaderModule->ast(), computeInformation.workgroupSize, wgslConstantValues);
+    auto evaluatedSize = metalSize(shaderModule.get(), entryPointName, wgslConstantValues);
     if (!evaluatedSize)
         return callback(returnInvalidComputePipeline(*this, isAsync, @"Failed to evaluate overrides"));
     auto size = *evaluatedSize;
