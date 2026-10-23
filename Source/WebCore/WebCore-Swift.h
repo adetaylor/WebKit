@@ -80,4 +80,8 @@
 #include "HTMLTreeBuilderSwiftSupport.h"
 #endif
 
+#if USE_SWIFT_CSS_TOKENIZER
+#include "CSSTokenizerSwiftTypes.h"
+#endif
+
 #include "WebCoreSwift-Generated.h"
