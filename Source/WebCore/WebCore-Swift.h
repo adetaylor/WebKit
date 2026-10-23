@@ -64,5 +64,6 @@
 #if !PLATFORM(COCOA)
 #include "ImageDecoderSwiftTypes.h"
 #endif
+#include "CSSTokenizerSwiftTypes.h"
 
 #include "WebCoreSwift-Generated.h"
