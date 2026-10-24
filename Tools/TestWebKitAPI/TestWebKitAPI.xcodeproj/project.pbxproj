@@ -829,6 +829,7 @@
 			membershipExceptions = (
 				JavaScriptCore/DisallowVMEntry.cpp,
 				JavaScriptCore/InspectorConsoleMessage.cpp,
+				JavaScriptCore/JSONParseBench.cpp,
 				JavaScriptCore/JSRunLoopTimer.mm,
 				JavaScriptCore/MarkedVector.cpp,
 				JavaScriptCore/PropertySlot.cpp,
