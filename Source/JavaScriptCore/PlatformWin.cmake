@@ -91,3 +91,44 @@ if (WK_USE_SWIFT_BIGINT_DIGITS)
     # JSBigInt.h declares its digit helpers only when this is 0, so every JavaScriptCore translation unit gets it.
     add_compile_definitions(USE_SWIFT_BIGINT_DIGITS=1)
 endif ()
+# WK_USE_SWIFT_JSON_PARSER is the counterpart of BaseTarget.xcconfig's setting of the same name: LiteralParser parses
+# in Swift (runtime/LiteralParserSwift.swift), and LiteralParser.cpp's parser is not compiled. The Swift imports only
+# LiteralParserSwiftTypes.h, which includes only the standard library, so one command compiles it whole-module into
+# an object JavaScriptCore links, and writes the JavaScriptCore-Swift.h that LiteralParserSwiftFacade.cpp includes.
+# Under LTO_MODE the object is LLVM bitcode with a ThinLTO summary, so the link optimizes the Swift with its C++.
+option(WK_USE_SWIFT_JSON_PARSER "Parse JSON with LiteralParser's Swift implementation" OFF)
+if (WK_USE_SWIFT_JSON_PARSER)
+    if (WTF_CPU_ARM64)
+        set(_jsc_swift_arch aarch64)
+    else ()
+        set(_jsc_swift_arch x86_64)
+    set(_jsc_swift_lib_dir "${_jsc_swift_sdk}/usr/lib/swift/windows/${_jsc_swift_arch}")
+    set(_jsc_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/LiteralParserSwift")
+    set(_jsc_swift_obj "${_jsc_swift_dir}/LiteralParserSwift.obj")
+    set(_jsc_swift_hdr "${JavaScriptCore_DERIVED_SOURCES_DIR}/JavaScriptCore-Swift.h")
+    # JavaScriptCore_Private.modulemap's LiteralParserSwiftTypes, the one submodule the Swift imports.
+    file(WRITE "${_jsc_swift_dir}/module.modulemap"
+        "module JavaScriptCore_Private {\n"
+        "    explicit module LiteralParserSwiftTypes {\n"
+        "        header \"${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwiftTypes.h\"\n"
+        "        requires cplusplus\n"
+        "        export *\n"
+        "    }\n"
+        "}\n")
+    # JavaScriptCore.xcconfig's and CommonBase.xcconfig's Swift settings for this file, with CodeView debug info for the
+    # PDB.
+        -module-name JavaScriptCore -parse-as-library -wmo -O -num-threads 0 -swift-version 6
+        -sdk "${_jsc_swift_sdk}" -D USE_SWIFT_JSON_PARSER -g -debug-info-format=codeview
+        -cxx-interoperability-mode=default -Xcc -std=c++2b -Xcc -fvisibility=hidden -Xcc "-I${_jsc_swift_dir}"
+        -enable-experimental-feature ImportNonPublicCxxMembers -enable-experimental-feature LifetimeDependence
+        -enable-experimental-feature Lifetimes -enable-experimental-feature SafeInteropWrappers
+        -strict-memory-safety -warnings-as-errors -Werror SendableClosureCaptures
+        COMMAND "${JSC_SWIFTC}" ${_jsc_swift_flags}
+            -c "${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwift.swift" -o "${_jsc_swift_obj}"
+        DEPENDS "${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwift.swift" "${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwiftTypes.h"
+        COMMENT "Compiling LiteralParserSwift.swift"
+    list(APPEND JavaScriptCore_SOURCES runtime/LiteralParserSwiftFacade.cpp "${_jsc_swift_obj}")
+    set_source_files_properties(runtime/LiteralParserSwiftFacade.cpp PROPERTIES OBJECT_DEPENDS "${_jsc_swift_hdr}")
+    string(APPEND CMAKE_EXE_LINKER_FLAGS " /LIBPATH:\"${_jsc_swift_lib_dir}\"")
+    # Every C++ translation unit that includes LiteralParser.h must agree on the class it declares.
+    add_compile_definitions(USE_SWIFT_JSON_PARSER=1)
