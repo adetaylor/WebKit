@@ -1,0 +1,77 @@
+<script>
+globalThis.testRunner?.waitUntilDone();
+globalThis.testRunner?.dumpAsText();
+const log = console.debug;
+
+// The fragment stage names no entry point, and its module has no fragment entry point, so the stage's default entry point
+// is the null string. A vertex entry point that writes clip distances gives the module per-entry-point state, which the
+// pipeline creation looks up with that default entry point. The pipeline must fail as it does for a missing entry point.
+const vertexWithClipDistances = `
+enable clip_distances;
+
+struct VertexOutput {
+    @builtin(position) position: vec4f,
+    @builtin(clip_distances) clipDistances: array<f32, 1>,
+}
+
+@vertex fn clipped() -> VertexOutput {
+    var output: VertexOutput;
+    output.position = vec4f(0, 0, 0, 1);
+    output.clipDistances[0] = 1;
+    return output;
+}
+`;
+
+const plainVertex = `
+@vertex fn plain() -> @builtin(position) vec4f { return vec4f(0, 0, 0, 1); }
+`;
+
+onload = async () => {
+    const adapter = await navigator.gpu.requestAdapter();
+    const device = await adapter.requestDevice({ requiredFeatures: ['clip-distances'] });
+
+    device.pushErrorScope('validation');
+    const clippedModule = device.createShaderModule({ code: vertexWithClipDistances });
+    const plainModule = device.createShaderModule({ code: plainVertex });
+    const moduleError = await device.popErrorScope();
+    log(`createShaderModule: ${moduleError?.message ?? 'accepted'}`);
+
+    const shapes = [
+        { name: 'the vertex module as the fragment module', vertex: clippedModule, fragment: clippedModule },
+        { name: 'another module as the fragment module', vertex: plainModule, fragment: clippedModule },
+    ];
+    const writeMasks = [GPUColorWrite.ALL, 0];
+
+    for (const shape of shapes) {
+        for (const writeMask of writeMasks) {
+            const descriptor = (entryPoint) => ({
+                layout: 'auto',
+                vertex: { module: shape.vertex },
+                fragment: { module: shape.fragment, ...(entryPoint ? { entryPoint } : { }), targets: [{ format: 'rgba8unorm', writeMask }] },
+            });
+
+            device.pushErrorScope('validation');
+            device.createRenderPipeline(descriptor('missing'));
+            const missingError = await device.popErrorScope();
+
+            device.pushErrorScope('validation');
+            device.createRenderPipeline(descriptor(undefined));
+            const defaultError = await device.popErrorScope();
+
+            let asyncError;
+            try {
+                await device.createRenderPipelineAsync(descriptor(undefined));
+            } catch (error) {
+                asyncError = error;
+            }
+
+            log(`${shape.name}, writeMask ${writeMask}: a missing entry point: ${missingError?.message ?? 'accepted'}`);
+            log(`${shape.name}, writeMask ${writeMask}: no entry point: ${defaultError?.message === missingError?.message ? 'the same error' : defaultError?.message ?? 'accepted'}`);
+            log(`${shape.name}, writeMask ${writeMask}: no entry point, async: ${asyncError ? asyncError.name : 'accepted'}`);
+        }
+    }
+
+    log('Pass');
+    globalThis.testRunner?.notifyDone();
+};
+</script>

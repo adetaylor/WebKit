@@ -40,7 +40,6 @@ set(WebDriver_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/WebDriver/DerivedSources"
 set(WebKitLegacy_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/WebKitLegacy/DerivedSources")
 set(WebKit_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/WebKit/DerivedSources")
 set(WebInspectorUI_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/WebInspectorUI/DerivedSources")
-set(WGSLCore_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/WGSL/DerivedSources")
 set(WebGPU_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/WebGPU/DerivedSources")
 set(MiniBrowser_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/MiniBrowser/DerivedSources")
 set(TestRunnerShared_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/TestRunnerShared/DerivedSources")
