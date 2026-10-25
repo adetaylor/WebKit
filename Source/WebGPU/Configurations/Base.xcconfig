@@ -22,6 +22,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../../Configurations/CommonBase.xcconfig"
+#include "WebGPUSwift.xcconfig"
 
 CODE_SIGN_IDENTITY = -;
 AD_HOC_CODE_SIGNING_ALLOWED = YES;

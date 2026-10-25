@@ -1,0 +1,15 @@
+CONSOLE MESSAGE: createShaderModule: accepted
+CONSOLE MESSAGE: the vertex module as the fragment module, writeMask 15: a missing entry point: writeMask is invalid
+CONSOLE MESSAGE: the vertex module as the fragment module, writeMask 15: no entry point: the same error
+CONSOLE MESSAGE: the vertex module as the fragment module, writeMask 15: no entry point, async: GPUPipelineError
+CONSOLE MESSAGE: the vertex module as the fragment module, writeMask 0: a missing entry point: Fragment library could not be created
+CONSOLE MESSAGE: the vertex module as the fragment module, writeMask 0: no entry point: the same error
+CONSOLE MESSAGE: the vertex module as the fragment module, writeMask 0: no entry point, async: GPUPipelineError
+CONSOLE MESSAGE: another module as the fragment module, writeMask 15: a missing entry point: writeMask is invalid
+CONSOLE MESSAGE: another module as the fragment module, writeMask 15: no entry point: the same error
+CONSOLE MESSAGE: another module as the fragment module, writeMask 15: no entry point, async: GPUPipelineError
+CONSOLE MESSAGE: another module as the fragment module, writeMask 0: a missing entry point: Fragment library could not be created
+CONSOLE MESSAGE: another module as the fragment module, writeMask 0: no entry point: the same error
+CONSOLE MESSAGE: another module as the fragment module, writeMask 0: no entry point, async: GPUPipelineError
+CONSOLE MESSAGE: Pass
+

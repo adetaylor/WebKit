@@ -54,6 +54,14 @@ PROJECT_CONTENTS = '\n'.join([
     '\t\t\t);',
     '\t\t\ttarget = 7CCE7E8B1A41144E00447C4C /* TestWebKitAPILibrary */;',
     '\t\t};',
+    '\t\t07C913DF2F820CCA003A09D8 /* Exceptions for "Tests" folder in "TestWGSL" target */ = {',
+    '\t\t\tisa = PBXFileSystemSynchronizedBuildFileExceptionSet;',
+    '\t\t\tmembershipExceptions = (',
+    '\t\t\t\tWGSL/LexerTests.swift,',
+    '\t\t\t\tWGSL/OnlyInXcodeTests.swift,',
+    '\t\t\t);',
+    '\t\t\ttarget = 3A15783C28D1505B00142DB1 /* TestWGSL */;',
+    '\t\t};',
 ])
 
 CMAKE_CONTENTS = '\n'.join([
@@ -64,6 +72,11 @@ CMAKE_CONTENTS = '\n'.join([
     '',
     'list(APPEND TestWebKit_SOURCES',
     '    Tests/WebKit/WebPage/InBoth.swift',
+    ')',
+    '',
+    'list(APPEND TestWGSL_SOURCES',
+    '    ${TESTWEBKITAPI_DIR}/Tests/WGSL/LexerTests.swift',
+    '    ${TESTWEBKITAPI_DIR}/Tests/WGSL/OnlyInCMakeTests.swift',
     ')',
     '',
     '# FIXME: Support tests which need the _WebKit_SwiftUI cross-import overlay linked.',
@@ -167,6 +180,36 @@ class SwiftBuildRegistrationCheckerTest(unittest.TestCase):
         errors = self.check(self.added(TEST_DIRECTORY + '/Tests/WebKit/WebPage/MyOnlyInXcode.swift'))
         self.assertEqual(len(errors), 1)
         self.assertIn('is in neither', errors[0][1])
+
+    def test_wgsl_test_added_to_both_builds(self):
+        self.assertEqual(self.check(self.added(TEST_DIRECTORY + '/Tests/WGSL/LexerTests.swift')), [])
+
+    def test_wgsl_test_added_to_xcode_only(self):
+        errors = self.check(self.added(TEST_DIRECTORY + '/Tests/WGSL/OnlyInXcodeTests.swift'))
+        self.assertEqual(len(errors), 1)
+        self.assertIn('not in Tools/TestWebKitAPI/PlatformCocoa.cmake', errors[0][1])
+        self.assertIn('list(APPEND TestWGSL_SOURCES ...)', errors[0][1])
+
+    def test_wgsl_test_added_to_cmake_only(self):
+        errors = self.check(self.added(TEST_DIRECTORY + '/Tests/WGSL/OnlyInCMakeTests.swift'))
+        self.assertEqual(len(errors), 1)
+        self.assertIn('Tests/WGSL/OnlyInCMakeTests.swift is not named in', errors[0][1])
+        self.assertIn('check TestWGSL under Target Membership', errors[0][1])
+
+    def test_wgsl_test_added_to_neither_build(self):
+        errors = self.check(self.added(TEST_DIRECTORY + '/Tests/WGSL/NowhereTests.swift'))
+        self.assertEqual(len(errors), 1)
+        self.assertIn('is in neither', errors[0][1])
+
+    def test_wgsl_test_removed_but_still_in_both_builds(self):
+        errors = self.check({TEST_DIRECTORY + '/Tests/WGSL/LexerTests.swift': None})
+        self.assertEqual([error[0] for error in errors], [PROJECT_PATH, CMAKE_PATH])
+
+    def test_wgsl_test_resources_are_ignored(self):
+        self.assertEqual(self.check({
+            TEST_DIRECTORY + '/Tests/WGSL/goldens/shaders.golden': [1, 2, 3],
+            TEST_DIRECTORY + '/Tests/WGSL/shaders/triangle.wgsl': [1, 2, 3],
+        }), [])
 
     def test_modified_file_is_not_checked(self):
         self.assertEqual(self.check({TEST_DIRECTORY + '/Tests/WebKit/WebPage/OnlyInXcode.swift': [7, 8]}), [])

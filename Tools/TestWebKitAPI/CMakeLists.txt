@@ -767,15 +767,9 @@ endif ()
 
 # TestWGSL definitions
 if (APPLE AND ENABLE_WEBGPU)
+    # The WGSL tests are Swift Testing suites (PlatformCocoa.cmake); gtest only drives the runner.
     set(TestWGSL_SOURCES
         Runner/TestsController.cpp
-
-        Tests/WGSL/ASTStringDumperTests.cpp
-        Tests/WGSL/ConstLiteralTests.cpp
-        Tests/WGSL/LexerTests.cpp
-        Tests/WGSL/MetalGenerationTests.cpp
-        Tests/WGSL/ParserTests.cpp
-        Tests/WGSL/TestWGSLAPI.cpp
     )
 
     set(TestWGSL_PRIVATE_INCLUDE_DIRECTORIES
@@ -785,7 +779,6 @@ if (APPLE AND ENABLE_WEBGPU)
     )
 
     set(TestWGSL_LIBRARIES
-        WGSLCore
         WebKit::gtest
     )
 
