@@ -3306,6 +3306,11 @@ endif ()
 if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER)
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
 endif ()
+# Set by WK_USE_SWIFT_CSS_TOKENIZER. CSSTokenizer.cpp then includes WebCore-Swift.h, so it compiles in
+# WebCore_SwiftInterop, after WebCore's Swift module.
+if (WK_USE_SWIFT_CSS_TOKENIZER)
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSTokenizer\\.cpp( |$)")
+endif ()
 
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
@@ -3465,6 +3470,14 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         list(APPEND _webcore_swift_core_submodules
             html/parser/HTMLResourcePreloader.h html/parser/CSSPreloadScanner.h html/parser/HTMLPreloadScanner.h
             html/HTMLImageElement.h loader/LinkLoader.h)
+    endif ()
+
+    # As WebCore.xcconfig's WK_USE_SWIFT_CSS_TOKENIZER: the C++ and Swift conditions.
+    if (WK_USE_SWIFT_CSS_TOKENIZER)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSTokenizer.cpp)
+        target_compile_definitions(WebCore PRIVATE "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_CSS_TOKENIZER=1>")
+        webkit_target_add_swift_options(WebCore "-D USE_SWIFT_CSS_TOKENIZER")
+        list(APPEND _webcore_swift_core_submodules css/parser/CSSParserToken.h css/parser/CSSTokenizerSwiftTypes.h)
     endif ()
 
     webkit_target_add_swift_options(WebCore
