@@ -72,89 +72,12 @@
 		1C5ACAE9273A55FD0095F8D5 /* Sampler.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAE8273A55FD0095F8D5 /* Sampler.mm */; };
 		1C5ACAEB273A560D0095F8D5 /* TextureView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAEA273A560D0095F8D5 /* TextureView.mm */; };
 		1C9F7CDF29762F51006B5BE9 /* PresentationContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C9F7CDD29762F51006B5BE9 /* PresentationContext.mm */; };
-		1CA5B4F42A6F28C400E5F297 /* wgslfuzz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1CA5B4F32A6F28C400E5F297 /* wgslfuzz.cpp */; };
-		1CA5B4FF2A6F2A5800E5F297 /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CA5B4FE2A6F2A5800E5F297 /* JavaScriptCore.framework */; };
 		1CA5B5002A6F2A5E00E5F297 /* libwgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD7F22716B2CC00A5254D /* libwgsl.a */; };
 		1CBAB0922718CCA0006080BB /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CBAB0912718CCA0006080BB /* JavaScriptCore.framework */; };
 		1CBD2E992977DAC900BBF52C /* PresentationContextIOSurface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1CBD2E952977DAC900BBF52C /* PresentationContextIOSurface.mm */; };
 		1CEBD7E72716AFBA00A5254D /* WebGPU.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CEBD7E62716AFBA00A5254D /* WebGPU.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		1CEBD7F82716B34400A5254D /* WGSL.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CEBD7F72716B34400A5254D /* WGSL.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		1CEBD8032716BF8200A5254D /* WGSL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1CEBD8022716BF8200A5254D /* WGSL.cpp */; };
 		1CEBD8262716CACC00A5254D /* libwgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD7F22716B2CC00A5254D /* libwgsl.a */; };
-		338BB2CE27B6B60200E066AB /* Token.h in Headers */ = {isa = PBXBuildFile; fileRef = 338BB2CD27B6B60200E066AB /* Token.h */; };
-		338BB2D027B6B61B00E066AB /* Token.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 338BB2CF27B6B61B00E066AB /* Token.cpp */; };
-		338BB2D227B6B63F00E066AB /* SourceSpan.h in Headers */ = {isa = PBXBuildFile; fileRef = 338BB2D127B6B63F00E066AB /* SourceSpan.h */; };
-		338BB2D427B6B66C00E066AB /* Lexer.h in Headers */ = {isa = PBXBuildFile; fileRef = 338BB2D327B6B66C00E066AB /* Lexer.h */; };
-		338BB2D627B6B68700E066AB /* Lexer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 338BB2D527B6B68700E066AB /* Lexer.cpp */; };
-		339B7B1827D7FFA40072BF9A /* Parser.h in Headers */ = {isa = PBXBuildFile; fileRef = 339B7B1727D7FFA40072BF9A /* Parser.h */; };
-		339B7B1B27D800090072BF9A /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 339B7B1A27D800090072BF9A /* Parser.cpp */; };
-		339B7B1E27D816270072BF9A /* CompilationMessage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33EA186727BC1B1400A1DD52 /* CompilationMessage.cpp */; };
-		33EA185E27BC194F00A1DD52 /* ASTNode.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA185D27BC194F00A1DD52 /* ASTNode.h */; };
-		33EA186027BC198100A1DD52 /* ASTDirective.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA185F27BC198100A1DD52 /* ASTDirective.h */; };
-		33EA186427BC1A1D00A1DD52 /* ASTVariable.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA186327BC1A1D00A1DD52 /* ASTVariable.h */; };
-		33EA186627BC1AD500A1DD52 /* CompilationMessage.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA186527BC1AD500A1DD52 /* CompilationMessage.h */; };
-		33EA186A27BC1BE600A1DD52 /* ASTAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA186927BC1BE600A1DD52 /* ASTAttribute.h */; };
-		33EA186C27BC1CBC00A1DD52 /* ASTExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA186B27BC1CBC00A1DD52 /* ASTExpression.h */; };
-		33EA187227BC1FE100A1DD52 /* ASTVariableQualifier.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA187127BC1FE100A1DD52 /* ASTVariableQualifier.h */; };
-		33EA187427BC204900A1DD52 /* ASTStructure.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA187327BC204900A1DD52 /* ASTStructure.h */; };
-		33EA187627BC216B00A1DD52 /* ASTFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA187527BC216B00A1DD52 /* ASTFunction.h */; };
-		33EA187927BC22AA00A1DD52 /* ASTStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA187827BC22AA00A1DD52 /* ASTStatement.h */; };
-		33EA187B27BC230E00A1DD52 /* ASTCompoundStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA187A27BC230E00A1DD52 /* ASTCompoundStatement.h */; };
-		33EA187E27BC249000A1DD52 /* ASTReturnStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA187D27BC249000A1DD52 /* ASTReturnStatement.h */; };
-		33EA188027BC24E200A1DD52 /* ASTAssignmentStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA187F27BC24E200A1DD52 /* ASTAssignmentStatement.h */; };
-		33EA188227BC25D000A1DD52 /* ASTIdentifierExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA188127BC25D000A1DD52 /* ASTIdentifierExpression.h */; };
-		33EA188427BC268600A1DD52 /* ASTFieldAccessExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA188327BC268600A1DD52 /* ASTFieldAccessExpression.h */; };
-		33EA188627BC26DF00A1DD52 /* ASTCallExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 33EA188527BC26DF00A1DD52 /* ASTCallExpression.h */; };
-		3A12AEAA28FCE94C00C1B975 /* ASTBuiltinAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9028FCE94A00C1B975 /* ASTBuiltinAttribute.h */; };
-		3A12AEAC28FCE94C00C1B975 /* ASTLocationAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9228FCE94A00C1B975 /* ASTLocationAttribute.h */; };
-		3A12AEAD28FCE94C00C1B975 /* ASTPhonyStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9328FCE94A00C1B975 /* ASTPhonyStatement.h */; };
-		3A12AEAF28FCE94C00C1B975 /* ASTIfStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9528FCE94B00C1B975 /* ASTIfStatement.h */; };
-		3A12AEB028FCE94C00C1B975 /* ASTForStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9628FCE94B00C1B975 /* ASTForStatement.h */; };
-		3A12AEB128FCE94C00C1B975 /* ASTGroupAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9728FCE94B00C1B975 /* ASTGroupAttribute.h */; };
-		3A12AEB228FCE94C00C1B975 /* ASTWorkgroupSizeAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9828FCE94B00C1B975 /* ASTWorkgroupSizeAttribute.h */; };
-		3A12AEB328FCE94C00C1B975 /* ASTStageAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9928FCE94B00C1B975 /* ASTStageAttribute.h */; };
-		3A12AEB428FCE94C00C1B975 /* ASTLoopStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9A28FCE94B00C1B975 /* ASTLoopStatement.h */; };
-		3A12AEB528FCE94C00C1B975 /* ASTIdAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9B28FCE94B00C1B975 /* ASTIdAttribute.h */; };
-		3A12AEB628FCE94C00C1B975 /* ASTInvariantAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9C28FCE94B00C1B975 /* ASTInvariantAttribute.h */; };
-		3A12AEB728FCE94C00C1B975 /* AST.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9D28FCE94B00C1B975 /* AST.h */; };
-		3A12AEB828FCE94C00C1B975 /* ASTConstAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9E28FCE94B00C1B975 /* ASTConstAttribute.h */; };
-		3A12AEB928FCE94C00C1B975 /* ASTBreakStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AE9F28FCE94B00C1B975 /* ASTBreakStatement.h */; };
-		3A12AEBA28FCE94C00C1B975 /* ASTIdentifier.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEA028FCE94B00C1B975 /* ASTIdentifier.h */; };
-		3A12AEBB28FCE94C00C1B975 /* ASTSizeAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEA128FCE94B00C1B975 /* ASTSizeAttribute.h */; };
-		3A12AEBC28FCE94C00C1B975 /* ASTContinueStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEA228FCE94C00C1B975 /* ASTContinueStatement.h */; };
-		3A12AEBD28FCE94C00C1B975 /* ASTCompoundAssignmentStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEA328FCE94C00C1B975 /* ASTCompoundAssignmentStatement.h */; };
-		3A12AEBE28FCE94C00C1B975 /* ASTDecrementIncrementStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEA428FCE94C00C1B975 /* ASTDecrementIncrementStatement.h */; };
-		3A12AEBF28FCE94C00C1B975 /* ASTAlignAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEA528FCE94C00C1B975 /* ASTAlignAttribute.h */; };
-		3A12AEC028FCE94C00C1B975 /* ASTParameter.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEA628FCE94C00C1B975 /* ASTParameter.h */; };
-		3A12AEC128FCE94C00C1B975 /* ASTBindingAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEA728FCE94C00C1B975 /* ASTBindingAttribute.h */; };
-		3A12AEC228FCE94C00C1B975 /* ASTDiscardStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEA828FCE94C00C1B975 /* ASTDiscardStatement.h */; };
-		3A12AEC328FCE94C00C1B975 /* ASTInterpolateAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEA928FCE94C00C1B975 /* ASTInterpolateAttribute.h */; };
-		3A12AEC728FCEEC400C1B975 /* ASTStructureMember.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEC428FCEEC400C1B975 /* ASTStructureMember.h */; };
-		3A12AEC828FCEEC400C1B975 /* ASTWhileStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AEC528FCEEC400C1B975 /* ASTWhileStatement.h */; };
-		3A12AECC28FCFA9800C1B975 /* ASTUnsigned32Literal.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AECA28FCFA9800C1B975 /* ASTUnsigned32Literal.h */; };
-		3A12AED428FCFC5600C1B975 /* ASTSigned32Literal.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AECE28FCFC5500C1B975 /* ASTSigned32Literal.h */; };
-		3A12AED528FCFC5600C1B975 /* ASTAbstractIntegerLiteral.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AECF28FCFC5500C1B975 /* ASTAbstractIntegerLiteral.h */; };
-		3A12AED628FCFC5600C1B975 /* ASTBoolLiteral.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AED028FCFC5500C1B975 /* ASTBoolLiteral.h */; };
-		3A12AED728FCFC5600C1B975 /* ASTAbstractFloatLiteral.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AED128FCFC5500C1B975 /* ASTAbstractFloatLiteral.h */; };
-		3A12AED828FCFC5600C1B975 /* ASTFloat32Literal.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A12AED228FCFC5500C1B975 /* ASTFloat32Literal.h */; };
-		3A1337E728FBD56400F29B73 /* ASTVisitor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3A1337E528FBD56300F29B73 /* ASTVisitor.cpp */; };
-		3A1337E828FBD56400F29B73 /* ASTVisitor.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A1337E628FBD56400F29B73 /* ASTVisitor.h */; };
-		3A1337EA28FBD56E00F29B73 /* ASTForward.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A1337E928FBD56E00F29B73 /* ASTForward.h */; };
-		3A1A1F0228FD35E800C5934A /* ASTSwitchStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A1A1EFE28FD35E800C5934A /* ASTSwitchStatement.h */; };
-		3A7E164C28C57BB8003F49C9 /* ASTIndexAccessExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A7E164B28C57BB7003F49C9 /* ASTIndexAccessExpression.h */; };
-		3A9D02A0298390A000888A75 /* ASTPointerDereference.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A9D029F298390A000888A75 /* ASTPointerDereference.h */; };
-		3A9D02A4298390CF00888A75 /* ASTStringDumper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3A9D02A1298390CF00888A75 /* ASTStringDumper.cpp */; };
-		3A9D02A6298390CF00888A75 /* ASTStringDumper.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A9D02A3298390CF00888A75 /* ASTStringDumper.h */; };
-		3AAE4EB428C56E9A00DA484B /* ASTUnaryExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 3AAE4EB328C56E9A00DA484B /* ASTUnaryExpression.h */; };
-		3AD0D2332988D3C10080D728 /* ASTDeclaration.h in Headers */ = {isa = PBXBuildFile; fileRef = 3AD0D2302988D3C10080D728 /* ASTDeclaration.h */; };
-		3AD0D2342988D3C10080D728 /* ASTIdentityExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 3AD0D2312988D3C10080D728 /* ASTIdentityExpression.h */; };
-		3AD0D2372988D3F90080D728 /* API.h in Headers */ = {isa = PBXBuildFile; fileRef = 3AD0D2362988D3F90080D728 /* API.h */; };
-		3AD0D23B2988ED8F0080D728 /* ASTUnaryExpression.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3AD0D23A2988ED8F0080D728 /* ASTUnaryExpression.cpp */; };
-		3AD0D23E2988F3AB0080D728 /* ASTBinaryExpression.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3AD0D23C2988F3AA0080D728 /* ASTBinaryExpression.cpp */; };
-		3AD0D23F2988F3AB0080D728 /* ASTBinaryExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 3AD0D23D2988F3AA0080D728 /* ASTBinaryExpression.h */; };
-		3AE27DB528C1BA480043A8E0 /* ASTVariableStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 3AE27DB428C1BA480043A8E0 /* ASTVariableStatement.h */; };
 		664C92FD286A66090008D143 /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 664C92FC286A66090008D143 /* IOSurface.framework */; };
-		66DC575528627E0B0014CABD /* ParserPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = 66DC575428627E0B0014CABD /* ParserPrivate.h */; };
 		941C1EE52CA328F7004D4220 /* Queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 941C1EE42CA328EE004D4220 /* Queue.swift */; };
 		941C1EE62CA33255004D4220 /* Queue.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACA9C273A426D0095F8D5 /* Queue.h */; };
 		941C1EE72CA46829004D4220 /* Instance.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA0273A426D0095F8D5 /* Instance.h */; };
@@ -165,108 +88,114 @@
 		94200C522CADBE5200484401 /* CommandsMixin.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C582FF827E04131009B40F0 /* CommandsMixin.h */; };
 		9478714A2C98CECB003DB695 /* Buffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 947871492C98CEC6003DB695 /* Buffer.swift */; };
 		94E02AFC2CF03B580052068F /* Buffer.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA5273A426D0095F8D5 /* Buffer.h */; };
-		97099AC12AA60D58003B41F8 /* ASTElaboratedTypeExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 97099ABE2AA60D58003B41F8 /* ASTElaboratedTypeExpression.h */; };
-		97099AC22AA60D58003B41F8 /* ASTReferenceTypeExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 97099ABF2AA60D58003B41F8 /* ASTReferenceTypeExpression.h */; };
-		97099AC32AA60D58003B41F8 /* ASTArrayTypeExpression.h in Headers */ = {isa = PBXBuildFile; fileRef = 97099AC02AA60D58003B41F8 /* ASTArrayTypeExpression.h */; };
-		97099AC62AC49AAB003B41F8 /* WGSLEnums.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97099AC42AC49AAB003B41F8 /* WGSLEnums.cpp */; };
-		97099AC72AC49AAB003B41F8 /* WGSLEnums.h in Headers */ = {isa = PBXBuildFile; fileRef = 97099AC52AC49AAB003B41F8 /* WGSLEnums.h */; };
-		97099ACA2ACB2213003B41F8 /* PointerRewriter.h in Headers */ = {isa = PBXBuildFile; fileRef = 97099AC82ACB2213003B41F8 /* PointerRewriter.h */; };
-		97099ACB2ACB2213003B41F8 /* PointerRewriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97099AC92ACB2213003B41F8 /* PointerRewriter.cpp */; };
-		9728B36E2BB5B31E00A8DA23 /* libicucore.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD8302716CB3800A5254D /* libicucore.tbd */; };
-		9728B36F2BB5B32500A8DA23 /* libicucore.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD8302716CB3800A5254D /* libicucore.tbd */; };
 		9728B3702BB5B53D00A8DA23 /* libicucore.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD8302716CB3800A5254D /* libicucore.tbd */; };
-		97296766299C09BC001C8BD4 /* TypeDeclarations.rb in Sources */ = {isa = PBXBuildFile; fileRef = 97296765299C09B0001C8BD4 /* TypeDeclarations.rb */; };
 		973F784729C8A78200166C66 /* Pipeline.h in Headers */ = {isa = PBXBuildFile; fileRef = 973F784529C8A78200166C66 /* Pipeline.h */; };
 		973F784829C8A78200166C66 /* Pipeline.mm in Sources */ = {isa = PBXBuildFile; fileRef = 973F784629C8A78200166C66 /* Pipeline.mm */; };
-		9776BE732992A236002D6D93 /* Overload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9776BE712992A236002D6D93 /* Overload.cpp */; };
-		9776BE742992A236002D6D93 /* Overload.h in Headers */ = {isa = PBXBuildFile; fileRef = 9776BE722992A236002D6D93 /* Overload.h */; };
-		9776BE7629957E12002D6D93 /* WGSLShaderModule.h in Headers */ = {isa = PBXBuildFile; fileRef = 9776BE7529957E12002D6D93 /* WGSLShaderModule.h */; };
-		977F5AC02B73057700D05129 /* CompilationScope.h in Headers */ = {isa = PBXBuildFile; fileRef = 977F5ABE2B73057700D05129 /* CompilationScope.h */; };
-		977F5AC12B73057700D05129 /* CompilationScope.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 977F5ABF2B73057700D05129 /* CompilationScope.cpp */; };
-		977F5AC42B7A9EC000D05129 /* BoundsCheck.h in Headers */ = {isa = PBXBuildFile; fileRef = 977F5AC22B7A9EC000D05129 /* BoundsCheck.h */; };
-		977F5AC52B7A9EC000D05129 /* BoundsCheck.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 977F5AC32B7A9EC000D05129 /* BoundsCheck.cpp */; };
-		97835C9329F7C9C600939EBA /* ASTBuilder.h in Headers */ = {isa = PBXBuildFile; fileRef = 97835C9229F7C9C600939EBA /* ASTBuilder.h */; };
-		97835C9529F7D85A00939EBA /* ASTBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97835C9429F7D85A00939EBA /* ASTBuilder.cpp */; };
-		9789C31A297EA105009E9006 /* CallGraph.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9789C318297EA105009E9006 /* CallGraph.cpp */; };
-		978A9125298A4E8400B37E5E /* MangleNames.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 978A9123298A4E8400B37E5E /* MangleNames.cpp */; };
-		978A9126298A4E8400B37E5E /* MangleNames.h in Headers */ = {isa = PBXBuildFile; fileRef = 978A9124298A4E8400B37E5E /* MangleNames.h */; };
-		978A912A298AB60200B37E5E /* ContextProvider.h in Headers */ = {isa = PBXBuildFile; fileRef = 978A9129298AB60200B37E5E /* ContextProvider.h */; };
-		978A912C298AB8EE00B37E5E /* ContextProviderInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 978A912B298AB8EE00B37E5E /* ContextProviderInlines.h */; };
-		978A912F298AD3DA00B37E5E /* TypeCheck.h in Headers */ = {isa = PBXBuildFile; fileRef = 978A912D298AD3DA00B37E5E /* TypeCheck.h */; };
-		978A9130298AD3DA00B37E5E /* TypeCheck.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 978A912E298AD3DA00B37E5E /* TypeCheck.cpp */; };
-		978A9133298BBFD300B37E5E /* Types.h in Headers */ = {isa = PBXBuildFile; fileRef = 978A9131298BBFD300B37E5E /* Types.h */; };
-		978A9134298BBFD300B37E5E /* Types.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 978A9132298BBFD300B37E5E /* Types.cpp */; };
-		978A9137298D40F100B37E5E /* TypeStore.h in Headers */ = {isa = PBXBuildFile; fileRef = 978A9135298D40F100B37E5E /* TypeStore.h */; };
-		978A9138298D40F100B37E5E /* TypeStore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 978A9136298D40F100B37E5E /* TypeStore.cpp */; };
-		979240B6297018290050EA2C /* MetalCodeGenerator.h in Headers */ = {isa = PBXBuildFile; fileRef = 979240B2297018290050EA2C /* MetalCodeGenerator.h */; };
-		979240B7297018290050EA2C /* MetalFunctionWriter.h in Headers */ = {isa = PBXBuildFile; fileRef = 979240B3297018290050EA2C /* MetalFunctionWriter.h */; };
-		979240B8297018290050EA2C /* MetalCodeGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 979240B4297018290050EA2C /* MetalCodeGenerator.cpp */; };
-		979240B9297018290050EA2C /* MetalFunctionWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 979240B5297018290050EA2C /* MetalFunctionWriter.cpp */; };
-		979240C029753B2A0050EA2C /* PhaseTimer.h in Headers */ = {isa = PBXBuildFile; fileRef = 979240BC29753B2A0050EA2C /* PhaseTimer.h */; };
-		979240C829769AC00050EA2C /* EntryPointRewriter.h in Headers */ = {isa = PBXBuildFile; fileRef = 979240C629769AC00050EA2C /* EntryPointRewriter.h */; };
-		979240C929769AC00050EA2C /* EntryPointRewriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 979240C729769AC00050EA2C /* EntryPointRewriter.cpp */; };
-		E00000012026000000000003 /* EvaluationOrderRewriter.h in Headers */ = {isa = PBXBuildFile; fileRef = E00000012026000000000001 /* EvaluationOrderRewriter.h */; };
-		E00000012026000000000004 /* EvaluationOrderRewriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E00000012026000000000002 /* EvaluationOrderRewriter.cpp */; };
-		9797BA442B6D5BA70020F22E /* ASTConstAssertStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 9797BA422B6D5BA60020F22E /* ASTConstAssertStatement.h */; };
-		9797BA452B6D5BA70020F22E /* ASTConstAssert.h in Headers */ = {isa = PBXBuildFile; fileRef = 9797BA432B6D5BA60020F22E /* ASTConstAssert.h */; };
-		979EDBB12A826B2800B4B7D0 /* GlobalSorting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 979EDBAF2A826B2800B4B7D0 /* GlobalSorting.cpp */; };
-		979EDBB22A826B2800B4B7D0 /* GlobalSorting.h in Headers */ = {isa = PBXBuildFile; fileRef = 979EDBB02A826B2800B4B7D0 /* GlobalSorting.h */; };
-		97A448A12AE3544800A4E147 /* AttributeValidator.h in Headers */ = {isa = PBXBuildFile; fileRef = 97A4489F2AE3544800A4E147 /* AttributeValidator.h */; };
-		97A448A22AE3544800A4E147 /* AttributeValidator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97A448A02AE3544800A4E147 /* AttributeValidator.cpp */; };
-		97A448A62AE3546700A4E147 /* ASTMustUseAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 97A448A32AE3546700A4E147 /* ASTMustUseAttribute.h */; };
-		97A448A72AE3546700A4E147 /* ASTDiagnosticAttribute.h in Headers */ = {isa = PBXBuildFile; fileRef = 97A448A42AE3546700A4E147 /* ASTDiagnosticAttribute.h */; };
-		97A448A82AE3546700A4E147 /* ASTCallStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 97A448A52AE3546700A4E147 /* ASTCallStatement.h */; };
-		97B4CFCB2CAAF3CD00C87163 /* WGSLShaderModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97B4CFCA2CAAF3CD00C87163 /* WGSLShaderModule.cpp */; };
-		97BCD6AE29D7422B00A82577 /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CBAB0912718CCA0006080BB /* JavaScriptCore.framework */; };
-		97C36CFE29F1730100CFB379 /* Constraints.h in Headers */ = {isa = PBXBuildFile; fileRef = 97C36CFC29F1730000CFB379 /* Constraints.h */; };
-		97C36CFF29F1730100CFB379 /* Constraints.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97C36CFD29F1730000CFB379 /* Constraints.cpp */; };
-		97CB27C02F43C25F0024DD32 /* AliasAnalysis.h in Headers */ = {isa = PBXBuildFile; fileRef = 97CB27BE2F43C25F0024DD32 /* AliasAnalysis.h */; };
-		97CB27C12F43C25F0024DD32 /* AliasAnalysis.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97CB27BF2F43C25F0024DD32 /* AliasAnalysis.cpp */; };
-		97CB27CC2F579A6F0024DD32 /* UniformityAnalysis.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97CB27CB2F579A6F0024DD32 /* UniformityAnalysis.cpp */; };
-		97CB27CD2F579A6F0024DD32 /* UniformityAnalysis.h in Headers */ = {isa = PBXBuildFile; fileRef = 97CB27CA2F579A6F0024DD32 /* UniformityAnalysis.h */; };
-		97CB27D22F730F670024DD32 /* IOValidator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97CB27D12F730F670024DD32 /* IOValidator.cpp */; };
-		97CB27D32F730F670024DD32 /* IOValidator.h in Headers */ = {isa = PBXBuildFile; fileRef = 97CB27D02F730F670024DD32 /* IOValidator.h */; };
-		97D398E32B05106000D8C4AA /* ASTFloat16Literal.h in Headers */ = {isa = PBXBuildFile; fileRef = 97D398E22B05106000D8C4AA /* ASTFloat16Literal.h */; };
-		97D398E62B06A85B00D8C4AA /* ASTDiagnosticDirective.h in Headers */ = {isa = PBXBuildFile; fileRef = 97D398E42B06A85B00D8C4AA /* ASTDiagnosticDirective.h */; };
-		97D398E72B06A85B00D8C4AA /* ASTDiagnostic.h in Headers */ = {isa = PBXBuildFile; fileRef = 97D398E52B06A85B00D8C4AA /* ASTDiagnostic.h */; };
-		97D398E92B2387F300D8C4AA /* ASTTypeAlias.h in Headers */ = {isa = PBXBuildFile; fileRef = 97D398E82B2387F300D8C4AA /* ASTTypeAlias.h */; };
-		97DE28472C348D8A00F4DEC3 /* VisibilityValidator.h in Headers */ = {isa = PBXBuildFile; fileRef = 97DE28452C348D8A00F4DEC3 /* VisibilityValidator.h */; };
-		97DE28482C348D8A00F4DEC3 /* VisibilityValidator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97DE28462C348D8A00F4DEC3 /* VisibilityValidator.cpp */; };
-		97E21C8B2A1F5DCC009CEB0E /* ASTDecrementIncrementStatement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97E21C8A2A1F5DCC009CEB0E /* ASTDecrementIncrementStatement.cpp */; };
-		97E21C972A2512F7009CEB0E /* ConstantValue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97E21C942A2512F7009CEB0E /* ConstantValue.cpp */; };
-		97E21C982A2512F7009CEB0E /* ConstantValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 97E21C952A2512F7009CEB0E /* ConstantValue.h */; };
-		97E21C992A2512F7009CEB0E /* ConstantFunctions.h in Headers */ = {isa = PBXBuildFile; fileRef = 97E21C962A2512F7009CEB0E /* ConstantFunctions.h */; };
-		97E709522B6ACCB50080E489 /* ASTScopedVisitor.h in Headers */ = {isa = PBXBuildFile; fileRef = 97E709502B6ACCB50080E489 /* ASTScopedVisitor.h */; };
-		97E709552B6AD0030080E489 /* ASTScopedVisitorInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 97E709542B6AD0030080E489 /* ASTScopedVisitorInlines.h */; };
-		97F547B8298055D90011D79A /* GlobalVariableRewriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97F547B6298055D90011D79A /* GlobalVariableRewriter.cpp */; };
-		97F547B9298055D90011D79A /* GlobalVariableRewriter.h in Headers */ = {isa = PBXBuildFile; fileRef = 97F547B7298055D90011D79A /* GlobalVariableRewriter.h */; };
-		97FA1A8E29C086230052D650 /* wgslc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FA1A8729C085A60052D650 /* wgslc.cpp */; };
 		97FA1AA729C0DA890052D650 /* libwgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD7F22716B2CC00A5254D /* libwgsl.a */; };
-		DD05A35C27BF09C60096EFAB /* libWTF.a in Product Dependencies */ = {isa = PBXBuildFile; fileRef = 1CEBD8292716CAE700A5254D /* libWTF.a */; };
 		DD5697FE2DC1316A00050321 /* rdar150228472.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5697FC2DC1311D00050321 /* rdar150228472.swift */; };
 		DDE748802F7B4337008013AB /* WorkAround173516139.h in Headers */ = {isa = PBXBuildFile; fileRef = DDE7487F2F7B4331008013AB /* WorkAround173516139.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		596E957DAF12D022D09D9ED4 /* WebGPUCpp.h in Headers */ = {isa = PBXBuildFile; fileRef = B6D2ACF0E901738C24D0DDFE /* WebGPUCpp.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CFABBD75A0EC0E1A9B26F610 /* WebGPUCppBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 34D758CE51B9FCF776C71CF5 /* WebGPUCppBridge.h */; };
 		1BAE0AF932075C6734283F13 /* WebGPUCppConversions.h in Headers */ = {isa = PBXBuildFile; fileRef = 83EC38181D0F6A5B9E6D5F46 /* WebGPUCppConversions.h */; };
+		E5009A344517FCDB9EFF3070 /* CompilationMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50BC1713CCCB996D1FA8383 /* CompilationMessage.swift */; };
+		E5018B78E298D554417139F4 /* ConstantValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5FB2B54F94AFC5DF83D83FD /* ConstantValue.swift */; };
+		E50AC74F45295C39C74510B0 /* ASTIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5932807EEE796F8627A299E /* ASTIdentifier.swift */; };
+		E50B251809F9FDD6D555C412 /* Token.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51B55B7A65FACD70141A750 /* Token.swift */; };
+		E5101F8EFE00767BBC50C4DA /* ConstantFunctions+Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A0C8378B10CB33BA95E8E9 /* ConstantFunctions+Validation.swift */; };
+		E510FD3D1C65DAE4CF6595C4 /* MSLWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5848E3D8381E2E5398A365F /* MSLWriter.swift */; };
+		E511CD565835D947E0129D2C /* BinaryEmission.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5820E7911D2BA6BBAF7EDBD /* BinaryEmission.swift */; };
+		E511FA600204AAE8C07CB22A /* ByteSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52B63BD842F7CE8E1D05D5C /* ByteSink.swift */; };
+		E513C1CB96C91584034BA060 /* BoundsCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = E536A1218BC193EAACEB39FD /* BoundsCheck.swift */; };
+		E513F66BF4EDAFE087BE499C /* GlobalVariableRewriter+Reads.swift in Sources */ = {isa = PBXBuildFile; fileRef = E529AA4880EFBF628E1B4954 /* GlobalVariableRewriter+Reads.swift */; };
+		E517906F18F750F7F43DBEB1 /* Half.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53EC1FDF5CC46EEF2D9CA53 /* Half.swift */; };
+		E521DAA7CA8C54BFBDC46146 /* ASTNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A56B9B4BEE04766DC07F99 /* ASTNode.swift */; };
+		E522844A9736B139EB22AFA7 /* ASTDeclarations.swift in Sources */ = {isa = PBXBuildFile; fileRef = E56CFC224C0176B4CE4FB1EF /* ASTDeclarations.swift */; };
+		E529624D86CDA557F599C7B6 /* NumberParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C083BD2C1FC4F702220A77 /* NumberParsing.swift */; };
+		E52DCCF248F5B883F1D4A19C /* MetalFunctionWriter+Expressions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E533BC54FA501AEE001562A4 /* MetalFunctionWriter+Expressions.swift */; };
+		E5320959DB16638F2C092BBA /* MetalFunctionWriter+Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = E57AC028B514287B913F639D /* MetalFunctionWriter+Helpers.swift */; };
+		E53213012A807D8B6A39DC8A /* Lexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E59168FAD955776D38D5A6A8 /* Lexer.swift */; };
+		E5397D72C170B9F5AB5BCA7F /* TypeDeclarations.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50EBFB88E033E70BAE7E364 /* TypeDeclarations.swift */; };
+		E53D7694BB732DE2BB1FC71B /* UniformityAnalysis+Statements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51A500230D362227CAD4475 /* UniformityAnalysis+Statements.swift */; };
+		E53D8B9B5BB76BFB49720665 /* Evaluate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E529DD41934CD43808BE5F17 /* Evaluate.swift */; };
+		E53E7A52E2524F733766C80B /* AttributeValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C69F01AC3FFA2A5CF46664 /* AttributeValidator.swift */; };
+		E53F53B74FA25D0337266DAF /* ConstantFunctions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5EDD43D9CD3BBB607BC0E59 /* ConstantFunctions.swift */; };
+		E541148C35E4863A1B6182E4 /* TypeCheck+Calls.swift in Sources */ = {isa = PBXBuildFile; fileRef = E526D2101AFAAA0FC8071B99 /* TypeCheck+Calls.swift */; };
+		E5451EC6D088FEC7B724F8D3 /* ASTVisitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C31AEFE0EDB953E046A7D3 /* ASTVisitor.swift */; };
+		E545EF97F9B3FC54A037A116 /* MetalFunctionWriter+Statements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E54E8EFE3D43B973D22778D5 /* MetalFunctionWriter+Statements.swift */; };
+		E54630846CBE2D754275AE9D /* Parser+Expressions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E57ABC5726D581B245F9D7B7 /* Parser+Expressions.swift */; };
+		E5471345C01BF4ECE7F2B997 /* MetalCodeGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5FD5C5F22EA1B5F3D7CB42F /* MetalCodeGenerator.swift */; };
+		E54B23D5B5757A1B26E80A9D /* WTFNumberFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BAFA685D2256BB8585E52F /* WTFNumberFormat.swift */; };
+		E54B5A10162468A4CBDC041D /* GlobalVariableRewriter+ExplicitLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BE3845C00DFD640953617D /* GlobalVariableRewriter+ExplicitLayout.swift */; };
+		E54DA3EC2860EF9CEFFFAB3D /* UniformityAnalysis+Expressions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50C9BD1495EB581E8CA0C95 /* UniformityAnalysis+Expressions.swift */; };
+		E54FB585B240C6489066977A /* MetalFunctionWriter+Builtins.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E72F1DB2338161F0DA5C46 /* MetalFunctionWriter+Builtins.swift */; };
+		E551ACE0AF91A959BFFAEBC0 /* CallGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5118BAEF898086A4AF7AECE /* CallGraph.swift */; };
+		E552FBCDAC33C1E89229C816 /* LibM.swift in Sources */ = {isa = PBXBuildFile; fileRef = E593802FCAC88740715F861C /* LibM.swift */; };
+		E5531E47E4CC9F6380AC267F /* VisibilityValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5563DCE1C9D6410FDCC7F83 /* VisibilityValidator.swift */; };
+		E5563FA129D5B06034A9365E /* WGSLFatal.swift in Sources */ = {isa = PBXBuildFile; fileRef = E584A05CE5E53A0703C53F8E /* WGSLFatal.swift */; };
+		E5581308FF4E5FC0EF4F6097 /* ConstantFunctions+Packing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E54F0EEB535FF4D6EFFB67E7 /* ConstantFunctions+Packing.swift */; };
+		E559B44A078A5E38AB3FA304 /* TypeCheck+Statements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5100B632B6BBB904BDF488F /* TypeCheck+Statements.swift */; };
+		E55AB12D72DB0C5C88B441A6 /* ByteSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C68A12193B0CA508B43CE6 /* ByteSize.swift */; };
+		E55CCCD0B9A220C9C6000060 /* TypeCheck+Declarations.swift in Sources */ = {isa = PBXBuildFile; fileRef = E55391A81A06BD48EBF977BC /* TypeCheck+Declarations.swift */; };
+		E55D5B4F9B06C5BC06333024 /* WGSLStub.c in Sources */ = {isa = PBXBuildFile; fileRef = E55DD998A91DEAEB48A184BB /* WGSLStub.c */; };
+		E55DF3CB2D3E5A10D201375B /* AliasAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C1C4171000EB1B4BEA2BFC /* AliasAnalysis.swift */; };
+		E55F1977DA96725BC95894F4 /* MetalFunctionWriter+Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = E55AD513417E2D7D5A65B9C5 /* MetalFunctionWriter+Types.swift */; };
+		E56099A2179874B7FFEE7291 /* IOValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E544853E0F32BC34D5C3E88C /* IOValidator.swift */; };
+		E564E8FADE8804B32508432C /* WGSLBench.swift in Sources */ = {isa = PBXBuildFile; fileRef = E59E67B6C5E45E20C3F452F5 /* WGSLBench.swift */; };
+		E56884C63398997B5E72C9BE /* ContextProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E58A5E6B6505C87509F1993B /* ContextProvider.swift */; };
+		E56916ABD503D7C391952BC8 /* MTLWorkarounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = E55885279F0D8BFB82D5B000 /* MTLWorkarounds.swift */; };
+		E56AF5CB6DBC7277630643F9 /* wgslc.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5ADFC1CE3B8BAE6EC90A253 /* wgslc.swift */; };
+		E520729C82E111F4D321E5B0 /* wgslfuzz.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5FC38CB9B9BBC809F28E8AE /* wgslfuzz.swift */; };
+		E571733450B049FDF395F546 /* ASTExpressions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E589AE281F4286042AFAFDE1 /* ASTExpressions.swift */; };
+		E57227DBFF15F07253AB38C4 /* TypeCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = E549A539CDF2D768B68D8F3E /* TypeCheck.swift */; };
+		E573FDDF2068566B65B127B2 /* TypeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5FF7FA756E61C0BA9081617 /* TypeStore.swift */; };
+		E578311FEE500A6BD78942EA /* RecursionBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E58E0A2A1AA0F4FA4BA7D10E /* RecursionBudget.swift */; };
+		E581496FBFE4F2123F4B77E1 /* MetalFunctionWriter+Declarations.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F80ECB91A8506AA06D7064 /* MetalFunctionWriter+Declarations.swift */; };
+		E583912DFAE102F791789CD2 /* EvaluationOrderRewriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E59A9CE07A3532DACEB129D2 /* EvaluationOrderRewriter.swift */; };
+		E58537D35B12D351E64E4831 /* Constraints.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5626509F742F313ED54DA33 /* Constraints.swift */; };
+		E586252BBE0391ABAE43C080 /* MinBindingSizeWriteBack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5D73BDA8F6A5C9D0B0324C5 /* MinBindingSizeWriteBack.swift */; };
+		E588F3268B2E7F0271EE8C5B /* ASTStringDumper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E54E779D123312A3D5C66ABE /* ASTStringDumper.swift */; };
+		E58A9D4F107C5B2E73152274 /* GlobalVariableRewriter+Globals.swift in Sources */ = {isa = PBXBuildFile; fileRef = E544F25C622EF3839879AE62 /* GlobalVariableRewriter+Globals.swift */; };
+		E58DC321FF97EA3A9CB42571 /* Reflection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E56C72E4EE001DFE0857CE91 /* Reflection.swift */; };
+		E58DF2ED1C7C27F428195A7C /* MessageText.swift in Sources */ = {isa = PBXBuildFile; fileRef = E55CABAEC1A3F4BA0CFA54AC /* MessageText.swift */; };
+		E590F68481D5F8108F521646 /* GlobalVariableRewriter+Packing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E514E92F3BA28ED87E9A94F3 /* GlobalVariableRewriter+Packing.swift */; };
+		E597CD616F6D3F1A3CECD294 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E975D5F00A67A8EE52E929 /* Types.swift */; };
+		E59C52B86E99DE79FE6D5B61 /* PipelineConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50053683C497C0909D68144 /* PipelineConstants.swift */; };
+		E59CE875BCBBEE68DE6826D4 /* WGSLShaderModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5DE79B99CF26E3BF0A60229 /* WGSLShaderModule.swift */; };
+		E59F2A0BE9159044854FF61F /* GlobalVariableRewriter+LayoutValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5D7DCE871368C13476B6C79 /* GlobalVariableRewriter+LayoutValidation.swift */; };
+		E5A18A5659592208FD5E7080 /* PointerRewriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E56BC257798DC07DC5F30800 /* PointerRewriter.swift */; };
+		E5A2D8874039E5EAAEB22C1D /* TypeCheck+Expressions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E549789FE83502BB9097014E /* TypeCheck+Expressions.swift */; };
+		E5A3035D01403AB469273AC7 /* WGSLEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = E54F809F35CADF84667DFDE6 /* WGSLEnums.swift */; };
+		E5A628D872DB4E10C8407C68 /* GlobalVariableRewriter+DefaultLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E55B0D9703A9727E7F006991 /* GlobalVariableRewriter+DefaultLayout.swift */; };
+		E5AB8E4E757BC61E48F920C7 /* WGSLBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5377693A9440F15945504CC /* WGSLBridge.swift */; };
+		E507D492F7242205FB9C29E0 /* WGSLAPI.h in Headers */ = {isa = PBXBuildFile; fileRef = E5DC6FD3527B4AD4801F5857 /* WGSLAPI.h */; };
+		E5ACA5902D15F5B25195F1FC /* GlobalVariableRewriter+Callees.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53F4A40373B795E1889204A /* GlobalVariableRewriter+Callees.swift */; };
+		E5AD1197518210A21FF5E801 /* Overload.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5940C2E8325C4564CFC8F07 /* Overload.swift */; };
+		E5B17B770C18833669F96F34 /* UniformityAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = E533B9294203BDCAE6B07F6B /* UniformityAnalysis.swift */; };
+		E5B180BE2EAA35075D4EAA7B /* WGSL.swift in Sources */ = {isa = PBXBuildFile; fileRef = E59B59762B73BF9ED32312F9 /* WGSL.swift */; };
+		E5B5FA045A927A3A728FA9E8 /* EntryPointRewriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E515891C440CBDC6CF25D41B /* EntryPointRewriter.swift */; };
+		E5BADE26781BDC0AC118E4E9 /* ModuleState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E1BF0D95E11A5CE3F44464 /* ModuleState.swift */; };
+		E5BDE4A5A2BAAE94655C7FF4 /* WTFHashTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = E57BE6FD4B664EA66F44DE35 /* WTFHashTable.swift */; };
+		E5C0D15A14399A9AD6D34E9B /* CodeUnits.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5AD44077A67DF4AA382FBC9 /* CodeUnits.swift */; };
+		E5C2CE7E5569FA58063BD059 /* ConstEvalArithmetic.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5AA20904B6670356AAD55A2 /* ConstEvalArithmetic.swift */; };
+		E5C50AAA5B3CCE0D1EE32024 /* Parser+Statements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E34FFEA0C198EB67A11B94 /* Parser+Statements.swift */; };
+		E5D42668D649A29910D75C64 /* MetalFunctionWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5ACE3B076FFD0F3BCEAE999 /* MetalFunctionWriter.swift */; };
+		E5D8D93B1CF9980E327A0852 /* ASTScopedVisitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5FDA300276D86A1021694A6 /* ASTScopedVisitor.swift */; };
+		E5D96229E88B671A89E4A100 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5EFA5A13D62D270F8A07CE3 /* Parser.swift */; };
+		E5DE00DA081E836F62B01DB7 /* ASTStatements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E514EC7EDA68CD7DEBB0DE93 /* ASTStatements.swift */; };
+		E5DE4596633213184D8BE382 /* SourceSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51383CD8416AF43902AC8FF /* SourceSpan.swift */; };
+		E5DE4C584398BA9A871D683C /* ConstantFunctions+Numeric.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52AFAEDA965BB9064E40F16 /* ConstantFunctions+Numeric.swift */; };
+		E5E2768345AC50593AE63466 /* Parser+Declarations.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53EE1A67B1D16B678AD5AEA /* Parser+Declarations.swift */; };
+		E5E32458E75F25433C91E411 /* ASTAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E577A9847E3E31F66D3F57D7 /* ASTAttributes.swift */; };
+		E5E7C71F2F83CD863DC9E6D6 /* ConstantFunctions+Operators.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C7F22C31A9C174BF1F4A14 /* ConstantFunctions+Operators.swift */; };
+		E5E8EA4D8220742ACD082CBA /* GlobalVariableRewriter+Initialization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C781A702EC29BC7C7189DB /* GlobalVariableRewriter+Initialization.swift */; };
+		E5EB44C364011316C0BBC358 /* IRStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52922BA2DA888E917978656 /* IRStorage.swift */; };
+		E5EC6177670B9124BA81CCB9 /* MangleNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F2DFF1CF6F4CDD85EEE70E /* MangleNames.swift */; };
+		E5EECBCF45CF1B5EBA9DD104 /* GlobalSorting.swift in Sources */ = {isa = PBXBuildFile; fileRef = E59CD1C5E06EA18496557BEE /* GlobalSorting.swift */; };
+		E5F83D4A223E69263F92605F /* Containers.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5280A85290F037766692ECD /* Containers.swift */; };
+		E5FBED770F3D800C096688FC /* GlobalVariableRewriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C7B78E2C16D487F1355426 /* GlobalVariableRewriter.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
-		9729675F299BF1BE001C8BD4 /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.proxy.script;
-			filePatterns = "*.rb";
-			fileType = pattern.proxy;
-			inputFiles = (
-				"$(SRCROOT)/WGSL/generator/main.rb",
-			);
-			isEditable = 1;
-			outputFiles = (
-				"$(BUILT_PRODUCTS_DIR)/DerivedSources/WGSL/TypeDeclarations.h",
-				"$(BUILT_PRODUCTS_DIR)/DerivedSources/WGSL/TypeOverloads.h",
-			);
-			runOncePerArchitecture = 0;
-			script = "/usr/bin/env ruby \"${SCRIPT_INPUT_FILE_0}\" \"${INPUT_FILE_PATH}\" \"${SCRIPT_OUTPUT_FILE_0}\" \"${SCRIPT_OUTPUT_FILE_1}\"\n";
-		};
 		DDE748762F7B28F4008013AB /* PBXBuildRule */ = {
 			isa = PBXBuildRule;
 			compilerSpec = com.apple.compilers.proxy.script;
@@ -306,6 +235,13 @@
 			remoteGlobalIDString = 1CA5B4F02A6F28C400E5F297;
 			remoteInfo = wgslfuzz;
 		};
+		E5620C8E0F9807D1A9350468 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1CEBD7DA2716AFBA00A5254D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1CEBD7F12716B2CC00A5254D;
+			remoteInfo = WGSL;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -326,17 +262,6 @@
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 1;
-		};
-		DD05A35B27BF09B60096EFAB /* Product Dependencies */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 16;
-			files = (
-				DD05A35C27BF09C60096EFAB /* libWTF.a in Product Dependencies */,
-			);
-			name = "Product Dependencies";
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
@@ -412,7 +337,6 @@
 		1C9F7CDD29762F51006B5BE9 /* PresentationContext.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PresentationContext.mm; sourceTree = "<group>"; };
 		1C9F7CDE29762F51006B5BE9 /* PresentationContext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PresentationContext.h; sourceTree = "<group>"; };
 		1CA5B4F12A6F28C400E5F297 /* wgslfuzz */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = wgslfuzz; sourceTree = BUILT_PRODUCTS_DIR; };
-		1CA5B4F32A6F28C400E5F297 /* wgslfuzz.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = wgslfuzz.cpp; sourceTree = "<group>"; };
 		1CA5B4F92A6F28E500E5F297 /* wgslfuzz.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = wgslfuzz.xcconfig; sourceTree = "<group>"; };
 		1CA5B4FE2A6F2A5800E5F297 /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/System/iOSSupport/System/Library/Frameworks/JavaScriptCore.framework; sourceTree = DEVELOPER_DIR; };
 		1CBAB0912718CCA0006080BB /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = JavaScriptCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -422,13 +346,10 @@
 		1CEBD7E32716AFBA00A5254D /* WebGPU.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = WebGPU.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1CEBD7E62716AFBA00A5254D /* WebGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPU.h; sourceTree = "<group>"; };
 		1CEBD7F22716B2CC00A5254D /* libwgsl.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libwgsl.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		1CEBD7F72716B34400A5254D /* WGSL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WGSL.h; sourceTree = "<group>"; };
 		1CEBD7FA2716B3D500A5254D /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		1CEBD7FB2716B5B400A5254D /* DebugRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = DebugRelease.xcconfig; sourceTree = "<group>"; };
 		1CEBD7FC2716B64400A5254D /* WebGPU.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebGPU.xcconfig; sourceTree = "<group>"; };
 		1CEBD7FD2716B64F00A5254D /* WGSL.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WGSL.xcconfig; sourceTree = "<group>"; };
-		1CEBD8022716BF8200A5254D /* WGSL.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WGSL.cpp; sourceTree = "<group>"; };
-		1CEBD8042716BFAB00A5254D /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		1CEBD80A2716C36C00A5254D /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		1CEBD80B2716C37900A5254D /* ExportMacros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ExportMacros.h; sourceTree = "<group>"; };
 		1CEBD80D2716C3D800A5254D /* ShaderModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderModule.h; sourceTree = "<group>"; };
@@ -444,158 +365,15 @@
 		2B1B1C6A2E3A874700D7D9ED /* UnretainedCallArgsCheckerExpectations */ = {isa = PBXFileReference; lastKnownFileType = text; path = UnretainedCallArgsCheckerExpectations; sourceTree = "<group>"; };
 		2B1B1C6B2E3A874700D7D9ED /* UnretainedLambdaCapturesCheckerExpectations */ = {isa = PBXFileReference; lastKnownFileType = text; path = UnretainedLambdaCapturesCheckerExpectations; sourceTree = "<group>"; };
 		2B1B1C6C2E3A874700D7D9ED /* UnretainedLocalVarsCheckerExpectations */ = {isa = PBXFileReference; lastKnownFileType = text; path = UnretainedLocalVarsCheckerExpectations; sourceTree = "<group>"; };
-		338BB2CD27B6B60200E066AB /* Token.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Token.h; sourceTree = "<group>"; };
-		338BB2CF27B6B61B00E066AB /* Token.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Token.cpp; sourceTree = "<group>"; };
-		338BB2D127B6B63F00E066AB /* SourceSpan.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SourceSpan.h; sourceTree = "<group>"; };
-		338BB2D327B6B66C00E066AB /* Lexer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Lexer.h; sourceTree = "<group>"; };
-		338BB2D527B6B68700E066AB /* Lexer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Lexer.cpp; sourceTree = "<group>"; };
-		339B7B1727D7FFA40072BF9A /* Parser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Parser.h; sourceTree = "<group>"; };
-		339B7B1A27D800090072BF9A /* Parser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Parser.cpp; sourceTree = "<group>"; };
-		33EA185D27BC194F00A1DD52 /* ASTNode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ASTNode.h; path = WGSL/AST/ASTNode.h; sourceTree = SOURCE_ROOT; };
-		33EA185F27BC198100A1DD52 /* ASTDirective.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTDirective.h; sourceTree = "<group>"; };
-		33EA186327BC1A1D00A1DD52 /* ASTVariable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTVariable.h; sourceTree = "<group>"; };
-		33EA186527BC1AD500A1DD52 /* CompilationMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CompilationMessage.h; sourceTree = "<group>"; };
-		33EA186727BC1B1400A1DD52 /* CompilationMessage.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CompilationMessage.cpp; sourceTree = "<group>"; };
-		33EA186927BC1BE600A1DD52 /* ASTAttribute.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTAttribute.h; sourceTree = "<group>"; };
-		33EA186B27BC1CBC00A1DD52 /* ASTExpression.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTExpression.h; sourceTree = "<group>"; };
-		33EA187127BC1FE100A1DD52 /* ASTVariableQualifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTVariableQualifier.h; sourceTree = "<group>"; };
-		33EA187327BC204900A1DD52 /* ASTStructure.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTStructure.h; sourceTree = "<group>"; };
-		33EA187527BC216B00A1DD52 /* ASTFunction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTFunction.h; sourceTree = "<group>"; };
-		33EA187827BC22AA00A1DD52 /* ASTStatement.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTStatement.h; sourceTree = "<group>"; };
-		33EA187A27BC230E00A1DD52 /* ASTCompoundStatement.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTCompoundStatement.h; sourceTree = "<group>"; };
-		33EA187D27BC249000A1DD52 /* ASTReturnStatement.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTReturnStatement.h; sourceTree = "<group>"; };
-		33EA187F27BC24E200A1DD52 /* ASTAssignmentStatement.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTAssignmentStatement.h; sourceTree = "<group>"; };
-		33EA188127BC25D000A1DD52 /* ASTIdentifierExpression.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTIdentifierExpression.h; sourceTree = "<group>"; };
-		33EA188327BC268600A1DD52 /* ASTFieldAccessExpression.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTFieldAccessExpression.h; sourceTree = "<group>"; };
-		33EA188527BC26DF00A1DD52 /* ASTCallExpression.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASTCallExpression.h; sourceTree = "<group>"; };
-		3A12AE9028FCE94A00C1B975 /* ASTBuiltinAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTBuiltinAttribute.h; sourceTree = "<group>"; };
-		3A12AE9228FCE94A00C1B975 /* ASTLocationAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTLocationAttribute.h; sourceTree = "<group>"; };
-		3A12AE9328FCE94A00C1B975 /* ASTPhonyStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTPhonyStatement.h; sourceTree = "<group>"; };
-		3A12AE9528FCE94B00C1B975 /* ASTIfStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTIfStatement.h; sourceTree = "<group>"; };
-		3A12AE9628FCE94B00C1B975 /* ASTForStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTForStatement.h; sourceTree = "<group>"; };
-		3A12AE9728FCE94B00C1B975 /* ASTGroupAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTGroupAttribute.h; sourceTree = "<group>"; };
-		3A12AE9828FCE94B00C1B975 /* ASTWorkgroupSizeAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTWorkgroupSizeAttribute.h; sourceTree = "<group>"; };
-		3A12AE9928FCE94B00C1B975 /* ASTStageAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTStageAttribute.h; sourceTree = "<group>"; };
-		3A12AE9A28FCE94B00C1B975 /* ASTLoopStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTLoopStatement.h; sourceTree = "<group>"; };
-		3A12AE9B28FCE94B00C1B975 /* ASTIdAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTIdAttribute.h; sourceTree = "<group>"; };
-		3A12AE9C28FCE94B00C1B975 /* ASTInvariantAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTInvariantAttribute.h; sourceTree = "<group>"; };
-		3A12AE9D28FCE94B00C1B975 /* AST.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AST.h; sourceTree = "<group>"; };
-		3A12AE9E28FCE94B00C1B975 /* ASTConstAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTConstAttribute.h; sourceTree = "<group>"; };
-		3A12AE9F28FCE94B00C1B975 /* ASTBreakStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTBreakStatement.h; sourceTree = "<group>"; };
-		3A12AEA028FCE94B00C1B975 /* ASTIdentifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTIdentifier.h; sourceTree = "<group>"; };
-		3A12AEA128FCE94B00C1B975 /* ASTSizeAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTSizeAttribute.h; sourceTree = "<group>"; };
-		3A12AEA228FCE94C00C1B975 /* ASTContinueStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTContinueStatement.h; sourceTree = "<group>"; };
-		3A12AEA328FCE94C00C1B975 /* ASTCompoundAssignmentStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTCompoundAssignmentStatement.h; sourceTree = "<group>"; };
-		3A12AEA428FCE94C00C1B975 /* ASTDecrementIncrementStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTDecrementIncrementStatement.h; sourceTree = "<group>"; };
-		3A12AEA528FCE94C00C1B975 /* ASTAlignAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTAlignAttribute.h; sourceTree = "<group>"; };
-		3A12AEA628FCE94C00C1B975 /* ASTParameter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTParameter.h; sourceTree = "<group>"; };
-		3A12AEA728FCE94C00C1B975 /* ASTBindingAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTBindingAttribute.h; sourceTree = "<group>"; };
-		3A12AEA828FCE94C00C1B975 /* ASTDiscardStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTDiscardStatement.h; sourceTree = "<group>"; };
-		3A12AEA928FCE94C00C1B975 /* ASTInterpolateAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTInterpolateAttribute.h; sourceTree = "<group>"; };
-		3A12AEC428FCEEC400C1B975 /* ASTStructureMember.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTStructureMember.h; sourceTree = "<group>"; };
-		3A12AEC528FCEEC400C1B975 /* ASTWhileStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTWhileStatement.h; sourceTree = "<group>"; };
-		3A12AECA28FCFA9800C1B975 /* ASTUnsigned32Literal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTUnsigned32Literal.h; sourceTree = "<group>"; };
-		3A12AECE28FCFC5500C1B975 /* ASTSigned32Literal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTSigned32Literal.h; sourceTree = "<group>"; };
-		3A12AECF28FCFC5500C1B975 /* ASTAbstractIntegerLiteral.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTAbstractIntegerLiteral.h; sourceTree = "<group>"; };
-		3A12AED028FCFC5500C1B975 /* ASTBoolLiteral.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTBoolLiteral.h; sourceTree = "<group>"; };
-		3A12AED128FCFC5500C1B975 /* ASTAbstractFloatLiteral.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTAbstractFloatLiteral.h; sourceTree = "<group>"; };
-		3A12AED228FCFC5500C1B975 /* ASTFloat32Literal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTFloat32Literal.h; sourceTree = "<group>"; };
-		3A1337E528FBD56300F29B73 /* ASTVisitor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ASTVisitor.cpp; sourceTree = "<group>"; };
-		3A1337E628FBD56400F29B73 /* ASTVisitor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTVisitor.h; sourceTree = "<group>"; };
-		3A1337E928FBD56E00F29B73 /* ASTForward.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTForward.h; sourceTree = "<group>"; };
-		3A1A1EFE28FD35E800C5934A /* ASTSwitchStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTSwitchStatement.h; sourceTree = "<group>"; };
-		3A7E164B28C57BB7003F49C9 /* ASTIndexAccessExpression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTIndexAccessExpression.h; sourceTree = "<group>"; };
-		3A9D029F298390A000888A75 /* ASTPointerDereference.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTPointerDereference.h; sourceTree = "<group>"; };
-		3A9D02A1298390CF00888A75 /* ASTStringDumper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ASTStringDumper.cpp; sourceTree = "<group>"; };
-		3A9D02A3298390CF00888A75 /* ASTStringDumper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTStringDumper.h; sourceTree = "<group>"; };
-		3AAE4EB328C56E9A00DA484B /* ASTUnaryExpression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTUnaryExpression.h; sourceTree = "<group>"; };
-		3AD0D2302988D3C10080D728 /* ASTDeclaration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTDeclaration.h; sourceTree = "<group>"; };
-		3AD0D2312988D3C10080D728 /* ASTIdentityExpression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTIdentityExpression.h; sourceTree = "<group>"; };
-		3AD0D2362988D3F90080D728 /* API.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = API.h; sourceTree = "<group>"; };
-		3AD0D23A2988ED8F0080D728 /* ASTUnaryExpression.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ASTUnaryExpression.cpp; sourceTree = "<group>"; };
-		3AD0D23C2988F3AA0080D728 /* ASTBinaryExpression.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ASTBinaryExpression.cpp; sourceTree = "<group>"; };
-		3AD0D23D2988F3AA0080D728 /* ASTBinaryExpression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTBinaryExpression.h; sourceTree = "<group>"; };
-		3AE27DB428C1BA480043A8E0 /* ASTVariableStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTVariableStatement.h; sourceTree = "<group>"; };
 		664C92FC286A66090008D143 /* IOSurface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOSurface.framework; path = System/Library/Frameworks/IOSurface.framework; sourceTree = SDKROOT; };
-		66DC575428627E0B0014CABD /* ParserPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ParserPrivate.h; sourceTree = "<group>"; };
 		941C1EE42CA328EE004D4220 /* Queue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Queue.swift; sourceTree = "<group>"; };
 		94200C502CADBD6B00484401 /* CommandEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandEncoder.swift; sourceTree = "<group>"; };
 		947871492C98CEC6003DB695 /* Buffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buffer.swift; sourceTree = "<group>"; };
-		97099ABE2AA60D58003B41F8 /* ASTElaboratedTypeExpression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTElaboratedTypeExpression.h; sourceTree = "<group>"; };
-		97099ABF2AA60D58003B41F8 /* ASTReferenceTypeExpression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTReferenceTypeExpression.h; sourceTree = "<group>"; };
-		97099AC02AA60D58003B41F8 /* ASTArrayTypeExpression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTArrayTypeExpression.h; sourceTree = "<group>"; };
-		97099AC42AC49AAB003B41F8 /* WGSLEnums.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WGSLEnums.cpp; sourceTree = "<group>"; };
-		97099AC52AC49AAB003B41F8 /* WGSLEnums.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WGSLEnums.h; sourceTree = "<group>"; };
-		97099AC82ACB2213003B41F8 /* PointerRewriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PointerRewriter.h; sourceTree = "<group>"; };
-		97099AC92ACB2213003B41F8 /* PointerRewriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PointerRewriter.cpp; sourceTree = "<group>"; };
 		97296764299BFB72001C8BD4 /* main.rb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.ruby; path = main.rb; sourceTree = "<group>"; };
 		97296765299C09B0001C8BD4 /* TypeDeclarations.rb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.ruby; path = TypeDeclarations.rb; sourceTree = "<group>"; };
 		973F784529C8A78200166C66 /* Pipeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Pipeline.h; sourceTree = "<group>"; };
 		973F784629C8A78200166C66 /* Pipeline.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Pipeline.mm; sourceTree = "<group>"; };
-		9776BE712992A236002D6D93 /* Overload.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Overload.cpp; sourceTree = "<group>"; };
-		9776BE722992A236002D6D93 /* Overload.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Overload.h; sourceTree = "<group>"; };
-		9776BE7529957E12002D6D93 /* WGSLShaderModule.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WGSLShaderModule.h; sourceTree = "<group>"; };
-		977F5ABE2B73057700D05129 /* CompilationScope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CompilationScope.h; sourceTree = "<group>"; };
-		977F5ABF2B73057700D05129 /* CompilationScope.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CompilationScope.cpp; sourceTree = "<group>"; };
-		977F5AC22B7A9EC000D05129 /* BoundsCheck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BoundsCheck.h; sourceTree = "<group>"; };
-		977F5AC32B7A9EC000D05129 /* BoundsCheck.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BoundsCheck.cpp; sourceTree = "<group>"; };
-		97835C9229F7C9C600939EBA /* ASTBuilder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTBuilder.h; sourceTree = "<group>"; };
-		97835C9429F7D85A00939EBA /* ASTBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ASTBuilder.cpp; sourceTree = "<group>"; };
-		9789C318297EA105009E9006 /* CallGraph.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CallGraph.cpp; sourceTree = "<group>"; };
-		9789C319297EA105009E9006 /* CallGraph.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CallGraph.h; sourceTree = "<group>"; };
-		978A9123298A4E8400B37E5E /* MangleNames.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MangleNames.cpp; sourceTree = "<group>"; };
-		978A9124298A4E8400B37E5E /* MangleNames.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MangleNames.h; sourceTree = "<group>"; };
-		978A9129298AB60200B37E5E /* ContextProvider.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ContextProvider.h; sourceTree = "<group>"; };
-		978A912B298AB8EE00B37E5E /* ContextProviderInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ContextProviderInlines.h; sourceTree = "<group>"; };
-		978A912D298AD3DA00B37E5E /* TypeCheck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TypeCheck.h; sourceTree = "<group>"; };
-		978A912E298AD3DA00B37E5E /* TypeCheck.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TypeCheck.cpp; sourceTree = "<group>"; };
-		978A9131298BBFD300B37E5E /* Types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Types.h; sourceTree = "<group>"; };
-		978A9132298BBFD300B37E5E /* Types.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Types.cpp; sourceTree = "<group>"; };
-		978A9135298D40F100B37E5E /* TypeStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TypeStore.h; sourceTree = "<group>"; };
-		978A9136298D40F100B37E5E /* TypeStore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TypeStore.cpp; sourceTree = "<group>"; };
-		979240B2297018290050EA2C /* MetalCodeGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MetalCodeGenerator.h; sourceTree = "<group>"; };
-		979240B3297018290050EA2C /* MetalFunctionWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MetalFunctionWriter.h; sourceTree = "<group>"; };
-		979240B4297018290050EA2C /* MetalCodeGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MetalCodeGenerator.cpp; sourceTree = "<group>"; };
-		979240B5297018290050EA2C /* MetalFunctionWriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MetalFunctionWriter.cpp; sourceTree = "<group>"; };
-		979240BC29753B2A0050EA2C /* PhaseTimer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PhaseTimer.h; sourceTree = "<group>"; };
-		979240C629769AC00050EA2C /* EntryPointRewriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EntryPointRewriter.h; sourceTree = "<group>"; };
-		979240C729769AC00050EA2C /* EntryPointRewriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EntryPointRewriter.cpp; sourceTree = "<group>"; };
-		E00000012026000000000001 /* EvaluationOrderRewriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluationOrderRewriter.h; sourceTree = "<group>"; };
-		E00000012026000000000002 /* EvaluationOrderRewriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EvaluationOrderRewriter.cpp; sourceTree = "<group>"; };
-		9797BA422B6D5BA60020F22E /* ASTConstAssertStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTConstAssertStatement.h; sourceTree = "<group>"; };
-		9797BA432B6D5BA60020F22E /* ASTConstAssert.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTConstAssert.h; sourceTree = "<group>"; };
-		979EDBAF2A826B2800B4B7D0 /* GlobalSorting.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GlobalSorting.cpp; sourceTree = "<group>"; };
-		979EDBB02A826B2800B4B7D0 /* GlobalSorting.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GlobalSorting.h; sourceTree = "<group>"; };
-		97A4489F2AE3544800A4E147 /* AttributeValidator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AttributeValidator.h; sourceTree = "<group>"; };
-		97A448A02AE3544800A4E147 /* AttributeValidator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AttributeValidator.cpp; sourceTree = "<group>"; };
-		97A448A32AE3546700A4E147 /* ASTMustUseAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTMustUseAttribute.h; sourceTree = "<group>"; };
-		97A448A42AE3546700A4E147 /* ASTDiagnosticAttribute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTDiagnosticAttribute.h; sourceTree = "<group>"; };
-		97A448A52AE3546700A4E147 /* ASTCallStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTCallStatement.h; sourceTree = "<group>"; };
-		97B4CFCA2CAAF3CD00C87163 /* WGSLShaderModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WGSLShaderModule.cpp; sourceTree = "<group>"; };
-		97C36CFC29F1730000CFB379 /* Constraints.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Constraints.h; sourceTree = "<group>"; };
-		97C36CFD29F1730000CFB379 /* Constraints.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Constraints.cpp; sourceTree = "<group>"; };
-		97CB27BE2F43C25F0024DD32 /* AliasAnalysis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AliasAnalysis.h; sourceTree = "<group>"; };
-		97CB27BF2F43C25F0024DD32 /* AliasAnalysis.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AliasAnalysis.cpp; sourceTree = "<group>"; };
-		97CB27CA2F579A6F0024DD32 /* UniformityAnalysis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UniformityAnalysis.h; sourceTree = "<group>"; };
-		97CB27CB2F579A6F0024DD32 /* UniformityAnalysis.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = UniformityAnalysis.cpp; sourceTree = "<group>"; };
-		97CB27D02F730F670024DD32 /* IOValidator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOValidator.h; sourceTree = "<group>"; };
-		97CB27D12F730F670024DD32 /* IOValidator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IOValidator.cpp; sourceTree = "<group>"; };
-		97D398E22B05106000D8C4AA /* ASTFloat16Literal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTFloat16Literal.h; sourceTree = "<group>"; };
-		97D398E42B06A85B00D8C4AA /* ASTDiagnosticDirective.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTDiagnosticDirective.h; sourceTree = "<group>"; };
-		97D398E52B06A85B00D8C4AA /* ASTDiagnostic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTDiagnostic.h; sourceTree = "<group>"; };
-		97D398E82B2387F300D8C4AA /* ASTTypeAlias.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTTypeAlias.h; sourceTree = "<group>"; };
-		97DE28452C348D8A00F4DEC3 /* VisibilityValidator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VisibilityValidator.h; sourceTree = "<group>"; };
-		97DE28462C348D8A00F4DEC3 /* VisibilityValidator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VisibilityValidator.cpp; sourceTree = "<group>"; };
-		97E21C8A2A1F5DCC009CEB0E /* ASTDecrementIncrementStatement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ASTDecrementIncrementStatement.cpp; sourceTree = "<group>"; };
-		97E21C942A2512F7009CEB0E /* ConstantValue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ConstantValue.cpp; sourceTree = "<group>"; };
-		97E21C952A2512F7009CEB0E /* ConstantValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConstantValue.h; sourceTree = "<group>"; };
-		97E21C962A2512F7009CEB0E /* ConstantFunctions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConstantFunctions.h; sourceTree = "<group>"; };
-		97E709502B6ACCB50080E489 /* ASTScopedVisitor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTScopedVisitor.h; sourceTree = "<group>"; };
-		97E709542B6AD0030080E489 /* ASTScopedVisitorInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTScopedVisitorInlines.h; sourceTree = "<group>"; };
-		97F547B6298055D90011D79A /* GlobalVariableRewriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GlobalVariableRewriter.cpp; sourceTree = "<group>"; };
-		97F547B7298055D90011D79A /* GlobalVariableRewriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GlobalVariableRewriter.h; sourceTree = "<group>"; };
 		97FA1A7F29C085740052D650 /* wgslc */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = wgslc; sourceTree = BUILT_PRODUCTS_DIR; };
-		97FA1A8729C085A60052D650 /* wgslc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = wgslc.cpp; path = WGSL/wgslc.cpp; sourceTree = SOURCE_ROOT; };
 		97FA1AA229C0BB700052D650 /* wgslc.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = wgslc.xcconfig; sourceTree = "<group>"; };
 		DD5697FC2DC1311D00050321 /* rdar150228472.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rdar150228472.swift; sourceTree = "<group>"; };
 		DD7181312E21D3C800A096B7 /* AllowedSPI.toml */ = {isa = PBXFileReference; lastKnownFileType = text; path = AllowedSPI.toml; sourceTree = "<group>"; };
@@ -605,6 +383,103 @@
 		B6D2ACF0E901738C24D0DDFE /* WebGPUCpp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUCpp.h; sourceTree = "<group>"; };
 		34D758CE51B9FCF776C71CF5 /* WebGPUCppBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUCppBridge.h; sourceTree = "<group>"; };
 		83EC38181D0F6A5B9E6D5F46 /* WebGPUCppConversions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUCppConversions.h; sourceTree = "<group>"; };
+		E50053683C497C0909D68144 /* PipelineConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineConstants.swift; sourceTree = "<group>"; };
+		E50BC1713CCCB996D1FA8383 /* CompilationMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompilationMessage.swift; sourceTree = "<group>"; };
+		E50C9BD1495EB581E8CA0C95 /* UniformityAnalysis+Expressions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UniformityAnalysis+Expressions.swift"; sourceTree = "<group>"; };
+		E50EBFB88E033E70BAE7E364 /* TypeDeclarations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypeDeclarations.swift; sourceTree = "<group>"; };
+		E5100B632B6BBB904BDF488F /* TypeCheck+Statements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TypeCheck+Statements.swift"; sourceTree = "<group>"; };
+		E5118BAEF898086A4AF7AECE /* CallGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallGraph.swift; sourceTree = "<group>"; };
+		E51383CD8416AF43902AC8FF /* SourceSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceSpan.swift; sourceTree = "<group>"; };
+		E514E92F3BA28ED87E9A94F3 /* GlobalVariableRewriter+Packing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlobalVariableRewriter+Packing.swift"; sourceTree = "<group>"; };
+		E514EC7EDA68CD7DEBB0DE93 /* ASTStatements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASTStatements.swift; sourceTree = "<group>"; };
+		E515891C440CBDC6CF25D41B /* EntryPointRewriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryPointRewriter.swift; sourceTree = "<group>"; };
+		E51A500230D362227CAD4475 /* UniformityAnalysis+Statements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UniformityAnalysis+Statements.swift"; sourceTree = "<group>"; };
+		E51B55B7A65FACD70141A750 /* Token.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Token.swift; sourceTree = "<group>"; };
+		E526D2101AFAAA0FC8071B99 /* TypeCheck+Calls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TypeCheck+Calls.swift"; sourceTree = "<group>"; };
+		E5280A85290F037766692ECD /* Containers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Containers.swift; sourceTree = "<group>"; };
+		E52922BA2DA888E917978656 /* IRStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IRStorage.swift; sourceTree = "<group>"; };
+		E529AA4880EFBF628E1B4954 /* GlobalVariableRewriter+Reads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlobalVariableRewriter+Reads.swift"; sourceTree = "<group>"; };
+		E529DD41934CD43808BE5F17 /* Evaluate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Evaluate.swift; sourceTree = "<group>"; };
+		E52AFAEDA965BB9064E40F16 /* ConstantFunctions+Numeric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ConstantFunctions+Numeric.swift"; sourceTree = "<group>"; };
+		E52B63BD842F7CE8E1D05D5C /* ByteSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ByteSink.swift; sourceTree = "<group>"; };
+		E533B9294203BDCAE6B07F6B /* UniformityAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformityAnalysis.swift; sourceTree = "<group>"; };
+		E533BC54FA501AEE001562A4 /* MetalFunctionWriter+Expressions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetalFunctionWriter+Expressions.swift"; sourceTree = "<group>"; };
+		E536A1218BC193EAACEB39FD /* BoundsCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundsCheck.swift; sourceTree = "<group>"; };
+		E53EC1FDF5CC46EEF2D9CA53 /* Half.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Half.swift; sourceTree = "<group>"; };
+		E53EE1A67B1D16B678AD5AEA /* Parser+Declarations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Parser+Declarations.swift"; sourceTree = "<group>"; };
+		E53F4A40373B795E1889204A /* GlobalVariableRewriter+Callees.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlobalVariableRewriter+Callees.swift"; sourceTree = "<group>"; };
+		E544853E0F32BC34D5C3E88C /* IOValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOValidator.swift; sourceTree = "<group>"; };
+		E544F25C622EF3839879AE62 /* GlobalVariableRewriter+Globals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlobalVariableRewriter+Globals.swift"; sourceTree = "<group>"; };
+		E549789FE83502BB9097014E /* TypeCheck+Expressions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TypeCheck+Expressions.swift"; sourceTree = "<group>"; };
+		E549A539CDF2D768B68D8F3E /* TypeCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypeCheck.swift; sourceTree = "<group>"; };
+		E54E779D123312A3D5C66ABE /* ASTStringDumper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASTStringDumper.swift; sourceTree = "<group>"; };
+		E54E8EFE3D43B973D22778D5 /* MetalFunctionWriter+Statements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetalFunctionWriter+Statements.swift"; sourceTree = "<group>"; };
+		E54F0EEB535FF4D6EFFB67E7 /* ConstantFunctions+Packing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ConstantFunctions+Packing.swift"; sourceTree = "<group>"; };
+		E54F809F35CADF84667DFDE6 /* WGSLEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WGSLEnums.swift; sourceTree = "<group>"; };
+		E55391A81A06BD48EBF977BC /* TypeCheck+Declarations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TypeCheck+Declarations.swift"; sourceTree = "<group>"; };
+		E5563DCE1C9D6410FDCC7F83 /* VisibilityValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisibilityValidator.swift; sourceTree = "<group>"; };
+		E55885279F0D8BFB82D5B000 /* MTLWorkarounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTLWorkarounds.swift; sourceTree = "<group>"; };
+		E55AD513417E2D7D5A65B9C5 /* MetalFunctionWriter+Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetalFunctionWriter+Types.swift"; sourceTree = "<group>"; };
+		E55B0D9703A9727E7F006991 /* GlobalVariableRewriter+DefaultLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlobalVariableRewriter+DefaultLayout.swift"; sourceTree = "<group>"; };
+		E55CABAEC1A3F4BA0CFA54AC /* MessageText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageText.swift; sourceTree = "<group>"; };
+		E5626509F742F313ED54DA33 /* Constraints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constraints.swift; sourceTree = "<group>"; };
+		E56BC257798DC07DC5F30800 /* PointerRewriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointerRewriter.swift; sourceTree = "<group>"; };
+		E56C72E4EE001DFE0857CE91 /* Reflection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reflection.swift; sourceTree = "<group>"; };
+		E56CFC224C0176B4CE4FB1EF /* ASTDeclarations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASTDeclarations.swift; sourceTree = "<group>"; };
+		E577A9847E3E31F66D3F57D7 /* ASTAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASTAttributes.swift; sourceTree = "<group>"; };
+		E57ABC5726D581B245F9D7B7 /* Parser+Expressions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Parser+Expressions.swift"; sourceTree = "<group>"; };
+		E57AC028B514287B913F639D /* MetalFunctionWriter+Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetalFunctionWriter+Helpers.swift"; sourceTree = "<group>"; };
+		E57BE6FD4B664EA66F44DE35 /* WTFHashTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WTFHashTable.swift; sourceTree = "<group>"; };
+		E5820E7911D2BA6BBAF7EDBD /* BinaryEmission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BinaryEmission.swift; sourceTree = "<group>"; };
+		E5848E3D8381E2E5398A365F /* MSLWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MSLWriter.swift; sourceTree = "<group>"; };
+		E584A05CE5E53A0703C53F8E /* WGSLFatal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WGSLFatal.swift; sourceTree = "<group>"; };
+		E589AE281F4286042AFAFDE1 /* ASTExpressions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASTExpressions.swift; sourceTree = "<group>"; };
+		E58A5E6B6505C87509F1993B /* ContextProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextProvider.swift; sourceTree = "<group>"; };
+		E58E0A2A1AA0F4FA4BA7D10E /* RecursionBudget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecursionBudget.swift; sourceTree = "<group>"; };
+		E59168FAD955776D38D5A6A8 /* Lexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lexer.swift; sourceTree = "<group>"; };
+		E5932807EEE796F8627A299E /* ASTIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASTIdentifier.swift; sourceTree = "<group>"; };
+		E593802FCAC88740715F861C /* LibM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibM.swift; sourceTree = "<group>"; };
+		E5940C2E8325C4564CFC8F07 /* Overload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Overload.swift; sourceTree = "<group>"; };
+		E59A9CE07A3532DACEB129D2 /* EvaluationOrderRewriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluationOrderRewriter.swift; sourceTree = "<group>"; };
+		E59B59762B73BF9ED32312F9 /* WGSL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WGSL.swift; sourceTree = "<group>"; };
+		E59CD1C5E06EA18496557BEE /* GlobalSorting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalSorting.swift; sourceTree = "<group>"; };
+		E5A0C8378B10CB33BA95E8E9 /* ConstantFunctions+Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ConstantFunctions+Validation.swift"; sourceTree = "<group>"; };
+		E5A56B9B4BEE04766DC07F99 /* ASTNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASTNode.swift; sourceTree = "<group>"; };
+		E5AA20904B6670356AAD55A2 /* ConstEvalArithmetic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstEvalArithmetic.swift; sourceTree = "<group>"; };
+		E5ACE3B076FFD0F3BCEAE999 /* MetalFunctionWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalFunctionWriter.swift; sourceTree = "<group>"; };
+		E5AD44077A67DF4AA382FBC9 /* CodeUnits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeUnits.swift; sourceTree = "<group>"; };
+		E5BAFA685D2256BB8585E52F /* WTFNumberFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WTFNumberFormat.swift; sourceTree = "<group>"; };
+		E5BE3845C00DFD640953617D /* GlobalVariableRewriter+ExplicitLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlobalVariableRewriter+ExplicitLayout.swift"; sourceTree = "<group>"; };
+		E5C083BD2C1FC4F702220A77 /* NumberParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumberParsing.swift; sourceTree = "<group>"; };
+		E5C1C4171000EB1B4BEA2BFC /* AliasAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliasAnalysis.swift; sourceTree = "<group>"; };
+		E5C31AEFE0EDB953E046A7D3 /* ASTVisitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASTVisitor.swift; sourceTree = "<group>"; };
+		E5C68A12193B0CA508B43CE6 /* ByteSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ByteSize.swift; sourceTree = "<group>"; };
+		E5C69F01AC3FFA2A5CF46664 /* AttributeValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributeValidator.swift; sourceTree = "<group>"; };
+		E5C781A702EC29BC7C7189DB /* GlobalVariableRewriter+Initialization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlobalVariableRewriter+Initialization.swift"; sourceTree = "<group>"; };
+		E5C7B78E2C16D487F1355426 /* GlobalVariableRewriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalVariableRewriter.swift; sourceTree = "<group>"; };
+		E5C7F22C31A9C174BF1F4A14 /* ConstantFunctions+Operators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ConstantFunctions+Operators.swift"; sourceTree = "<group>"; };
+		E5D73BDA8F6A5C9D0B0324C5 /* MinBindingSizeWriteBack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinBindingSizeWriteBack.swift; sourceTree = "<group>"; };
+		E5D7DCE871368C13476B6C79 /* GlobalVariableRewriter+LayoutValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlobalVariableRewriter+LayoutValidation.swift"; sourceTree = "<group>"; };
+		E5DE79B99CF26E3BF0A60229 /* WGSLShaderModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WGSLShaderModule.swift; sourceTree = "<group>"; };
+		E5E1BF0D95E11A5CE3F44464 /* ModuleState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleState.swift; sourceTree = "<group>"; };
+		E5E34FFEA0C198EB67A11B94 /* Parser+Statements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Parser+Statements.swift"; sourceTree = "<group>"; };
+		E5E72F1DB2338161F0DA5C46 /* MetalFunctionWriter+Builtins.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetalFunctionWriter+Builtins.swift"; sourceTree = "<group>"; };
+		E5E975D5F00A67A8EE52E929 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
+		E5EDD43D9CD3BBB607BC0E59 /* ConstantFunctions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstantFunctions.swift; sourceTree = "<group>"; };
+		E5EFA5A13D62D270F8A07CE3 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
+		E5F2DFF1CF6F4CDD85EEE70E /* MangleNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangleNames.swift; sourceTree = "<group>"; };
+		E5F80ECB91A8506AA06D7064 /* MetalFunctionWriter+Declarations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetalFunctionWriter+Declarations.swift"; sourceTree = "<group>"; };
+		E5FB2B54F94AFC5DF83D83FD /* ConstantValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstantValue.swift; sourceTree = "<group>"; };
+		E5FD5C5F22EA1B5F3D7CB42F /* MetalCodeGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalCodeGenerator.swift; sourceTree = "<group>"; };
+		E5FDA300276D86A1021694A6 /* ASTScopedVisitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASTScopedVisitor.swift; sourceTree = "<group>"; };
+		E5FF7FA756E61C0BA9081617 /* TypeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypeStore.swift; sourceTree = "<group>"; };
+		E55DD998A91DEAEB48A184BB /* WGSLStub.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = WGSLStub.c; sourceTree = "<group>"; };
+		E59E67B6C5E45E20C3F452F5 /* WGSLBench.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WGSLBench.swift; sourceTree = "<group>"; };
+		E5ADFC1CE3B8BAE6EC90A253 /* wgslc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = wgslc.swift; sourceTree = "<group>"; };
+		E5FC38CB9B9BBC809F28E8AE /* wgslfuzz.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = wgslfuzz.swift; sourceTree = "<group>"; };
+		E5377693A9440F15945504CC /* WGSLBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WGSLBridge.swift; sourceTree = "<group>"; };
+		E5DC6FD3527B4AD4801F5857 /* WGSLAPI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WGSLAPI.h; sourceTree = "<group>"; };
+		E5B3A25F1B0B7C0D5FE90E55 /* WebGPUSwift.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebGPUSwift.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -612,8 +487,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1CA5B4FF2A6F2A5800E5F297 /* JavaScriptCore.framework in Frameworks */,
-				9728B36E2BB5B31E00A8DA23 /* libicucore.tbd in Frameworks */,
 				1CA5B5002A6F2A5E00E5F297 /* libwgsl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -643,8 +516,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				97BCD6AE29D7422B00A82577 /* JavaScriptCore.framework in Frameworks */,
-				9728B36F2BB5B32500A8DA23 /* libicucore.tbd in Frameworks */,
 				97FA1AA729C0DA890052D650 /* libwgsl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -755,6 +626,8 @@
 				07607E0D2EFC966700A2F311 /* WebGPU_Private.modulemap */,
 				34D758CE51B9FCF776C71CF5 /* WebGPUCppBridge.h */,
 				83EC38181D0F6A5B9E6D5F46 /* WebGPUCppConversions.h */,
+				E5DC6FD3527B4AD4801F5857 /* WGSLAPI.h */,
+				E5377693A9440F15945504CC /* WGSLBridge.swift */,
 				DDE7487F2F7B4331008013AB /* WorkAround173516139.h */,
 				0D943C0D2C6571BC00D33BA5 /* XRBinding.h */,
 				0D943C0E2C6571BC00D33BA5 /* XRBinding.mm */,
@@ -774,71 +647,67 @@
 				33EA185C27BC193D00A1DD52 /* AST */,
 				97296763299BFB72001C8BD4 /* generator */,
 				979240B1297018290050EA2C /* Metal */,
-				97CB27BF2F43C25F0024DD32 /* AliasAnalysis.cpp */,
-				97CB27BE2F43C25F0024DD32 /* AliasAnalysis.h */,
-				3AD0D2362988D3F90080D728 /* API.h */,
-				97A448A02AE3544800A4E147 /* AttributeValidator.cpp */,
-				97A4489F2AE3544800A4E147 /* AttributeValidator.h */,
-				977F5AC32B7A9EC000D05129 /* BoundsCheck.cpp */,
-				977F5AC22B7A9EC000D05129 /* BoundsCheck.h */,
-				9789C318297EA105009E9006 /* CallGraph.cpp */,
-				9789C319297EA105009E9006 /* CallGraph.h */,
-				33EA186727BC1B1400A1DD52 /* CompilationMessage.cpp */,
-				33EA186527BC1AD500A1DD52 /* CompilationMessage.h */,
-				977F5ABF2B73057700D05129 /* CompilationScope.cpp */,
-				977F5ABE2B73057700D05129 /* CompilationScope.h */,
-				1CEBD8042716BFAB00A5254D /* config.h */,
-				97E21C962A2512F7009CEB0E /* ConstantFunctions.h */,
-				97E21C942A2512F7009CEB0E /* ConstantValue.cpp */,
-				97E21C952A2512F7009CEB0E /* ConstantValue.h */,
-				97C36CFD29F1730000CFB379 /* Constraints.cpp */,
-				97C36CFC29F1730000CFB379 /* Constraints.h */,
-				978A9129298AB60200B37E5E /* ContextProvider.h */,
-				978A912B298AB8EE00B37E5E /* ContextProviderInlines.h */,
-				979240C729769AC00050EA2C /* EntryPointRewriter.cpp */,
-				979240C629769AC00050EA2C /* EntryPointRewriter.h */,
-				E00000012026000000000002 /* EvaluationOrderRewriter.cpp */,
-				E00000012026000000000001 /* EvaluationOrderRewriter.h */,
-				979EDBAF2A826B2800B4B7D0 /* GlobalSorting.cpp */,
-				979EDBB02A826B2800B4B7D0 /* GlobalSorting.h */,
-				97F547B6298055D90011D79A /* GlobalVariableRewriter.cpp */,
-				97F547B7298055D90011D79A /* GlobalVariableRewriter.h */,
-				97CB27D12F730F670024DD32 /* IOValidator.cpp */,
-				97CB27D02F730F670024DD32 /* IOValidator.h */,
-				338BB2D527B6B68700E066AB /* Lexer.cpp */,
-				338BB2D327B6B66C00E066AB /* Lexer.h */,
-				978A9123298A4E8400B37E5E /* MangleNames.cpp */,
-				978A9124298A4E8400B37E5E /* MangleNames.h */,
-				9776BE712992A236002D6D93 /* Overload.cpp */,
-				9776BE722992A236002D6D93 /* Overload.h */,
-				339B7B1A27D800090072BF9A /* Parser.cpp */,
-				339B7B1727D7FFA40072BF9A /* Parser.h */,
-				66DC575428627E0B0014CABD /* ParserPrivate.h */,
-				979240BC29753B2A0050EA2C /* PhaseTimer.h */,
-				97099AC92ACB2213003B41F8 /* PointerRewriter.cpp */,
-				97099AC82ACB2213003B41F8 /* PointerRewriter.h */,
-				338BB2D127B6B63F00E066AB /* SourceSpan.h */,
-				338BB2CF27B6B61B00E066AB /* Token.cpp */,
-				338BB2CD27B6B60200E066AB /* Token.h */,
-				978A912E298AD3DA00B37E5E /* TypeCheck.cpp */,
-				978A912D298AD3DA00B37E5E /* TypeCheck.h */,
+				E58D0FD8675223397DC0AA4D /* Support */,
+				E5F76F70B6B0F94B0C32BA25 /* wgslc */,
+				E5ECF6D5E7BCD1D2FD653858 /* wgslfuzz */,
+				E5C1C4171000EB1B4BEA2BFC /* AliasAnalysis.swift */,
+				E5C69F01AC3FFA2A5CF46664 /* AttributeValidator.swift */,
+				E536A1218BC193EAACEB39FD /* BoundsCheck.swift */,
+				E5118BAEF898086A4AF7AECE /* CallGraph.swift */,
+				E50BC1713CCCB996D1FA8383 /* CompilationMessage.swift */,
+				E52AFAEDA965BB9064E40F16 /* ConstantFunctions+Numeric.swift */,
+				E5C7F22C31A9C174BF1F4A14 /* ConstantFunctions+Operators.swift */,
+				E54F0EEB535FF4D6EFFB67E7 /* ConstantFunctions+Packing.swift */,
+				E5A0C8378B10CB33BA95E8E9 /* ConstantFunctions+Validation.swift */,
+				E5EDD43D9CD3BBB607BC0E59 /* ConstantFunctions.swift */,
+				E5FB2B54F94AFC5DF83D83FD /* ConstantValue.swift */,
+				E5626509F742F313ED54DA33 /* Constraints.swift */,
+				E58A5E6B6505C87509F1993B /* ContextProvider.swift */,
+				E515891C440CBDC6CF25D41B /* EntryPointRewriter.swift */,
+				E529DD41934CD43808BE5F17 /* Evaluate.swift */,
+				E59A9CE07A3532DACEB129D2 /* EvaluationOrderRewriter.swift */,
+				E59CD1C5E06EA18496557BEE /* GlobalSorting.swift */,
+				E53F4A40373B795E1889204A /* GlobalVariableRewriter+Callees.swift */,
+				E55B0D9703A9727E7F006991 /* GlobalVariableRewriter+DefaultLayout.swift */,
+				E5BE3845C00DFD640953617D /* GlobalVariableRewriter+ExplicitLayout.swift */,
+				E544F25C622EF3839879AE62 /* GlobalVariableRewriter+Globals.swift */,
+				E5C781A702EC29BC7C7189DB /* GlobalVariableRewriter+Initialization.swift */,
+				E5D7DCE871368C13476B6C79 /* GlobalVariableRewriter+LayoutValidation.swift */,
+				E514E92F3BA28ED87E9A94F3 /* GlobalVariableRewriter+Packing.swift */,
+				E529AA4880EFBF628E1B4954 /* GlobalVariableRewriter+Reads.swift */,
+				E5C7B78E2C16D487F1355426 /* GlobalVariableRewriter.swift */,
+				E544853E0F32BC34D5C3E88C /* IOValidator.swift */,
+				E59168FAD955776D38D5A6A8 /* Lexer.swift */,
+				E5F2DFF1CF6F4CDD85EEE70E /* MangleNames.swift */,
+				E5D73BDA8F6A5C9D0B0324C5 /* MinBindingSizeWriteBack.swift */,
+				E5E1BF0D95E11A5CE3F44464 /* ModuleState.swift */,
+				E5940C2E8325C4564CFC8F07 /* Overload.swift */,
+				E53EE1A67B1D16B678AD5AEA /* Parser+Declarations.swift */,
+				E57ABC5726D581B245F9D7B7 /* Parser+Expressions.swift */,
+				E5E34FFEA0C198EB67A11B94 /* Parser+Statements.swift */,
+				E5EFA5A13D62D270F8A07CE3 /* Parser.swift */,
+				E50053683C497C0909D68144 /* PipelineConstants.swift */,
+				E56BC257798DC07DC5F30800 /* PointerRewriter.swift */,
+				E56C72E4EE001DFE0857CE91 /* Reflection.swift */,
+				E51383CD8416AF43902AC8FF /* SourceSpan.swift */,
+				E51B55B7A65FACD70141A750 /* Token.swift */,
+				E526D2101AFAAA0FC8071B99 /* TypeCheck+Calls.swift */,
+				E55391A81A06BD48EBF977BC /* TypeCheck+Declarations.swift */,
+				E549789FE83502BB9097014E /* TypeCheck+Expressions.swift */,
+				E5100B632B6BBB904BDF488F /* TypeCheck+Statements.swift */,
+				E549A539CDF2D768B68D8F3E /* TypeCheck.swift */,
 				97296765299C09B0001C8BD4 /* TypeDeclarations.rb */,
-				978A9132298BBFD300B37E5E /* Types.cpp */,
-				978A9131298BBFD300B37E5E /* Types.h */,
-				978A9136298D40F100B37E5E /* TypeStore.cpp */,
-				978A9135298D40F100B37E5E /* TypeStore.h */,
-				97CB27CB2F579A6F0024DD32 /* UniformityAnalysis.cpp */,
-				97CB27CA2F579A6F0024DD32 /* UniformityAnalysis.h */,
-				97DE28462C348D8A00F4DEC3 /* VisibilityValidator.cpp */,
-				97DE28452C348D8A00F4DEC3 /* VisibilityValidator.h */,
-				1CEBD8022716BF8200A5254D /* WGSL.cpp */,
-				1CEBD7F72716B34400A5254D /* WGSL.h */,
-				97FA1A8729C085A60052D650 /* wgslc.cpp */,
-				97099AC42AC49AAB003B41F8 /* WGSLEnums.cpp */,
-				97099AC52AC49AAB003B41F8 /* WGSLEnums.h */,
-				1CA5B4F32A6F28C400E5F297 /* wgslfuzz.cpp */,
-				97B4CFCA2CAAF3CD00C87163 /* WGSLShaderModule.cpp */,
-				9776BE7529957E12002D6D93 /* WGSLShaderModule.h */,
+				E5E975D5F00A67A8EE52E929 /* Types.swift */,
+				E5FF7FA756E61C0BA9081617 /* TypeStore.swift */,
+				E50C9BD1495EB581E8CA0C95 /* UniformityAnalysis+Expressions.swift */,
+				E51A500230D362227CAD4475 /* UniformityAnalysis+Statements.swift */,
+				E533B9294203BDCAE6B07F6B /* UniformityAnalysis.swift */,
+				E5563DCE1C9D6410FDCC7F83 /* VisibilityValidator.swift */,
+				E59B59762B73BF9ED32312F9 /* WGSL.swift */,
+				E54F809F35CADF84667DFDE6 /* WGSLEnums.swift */,
+				E584A05CE5E53A0703C53F8E /* WGSLFatal.swift */,
+				E5DE79B99CF26E3BF0A60229 /* WGSLShaderModule.swift */,
+				E55DD998A91DEAEB48A184BB /* WGSLStub.c */,
 			);
 			path = WGSL;
 			sourceTree = "<group>";
@@ -851,6 +720,7 @@
 				1CEBD7FA2716B3D500A5254D /* Base.xcconfig */,
 				1CEBD7FB2716B5B400A5254D /* DebugRelease.xcconfig */,
 				1CEBD7FC2716B64400A5254D /* WebGPU.xcconfig */,
+				E5B3A25F1B0B7C0D5FE90E55 /* WebGPUSwift.xcconfig */,
 				1CEBD7FD2716B64F00A5254D /* WGSL.xcconfig */,
 				97FA1AA229C0BB700052D650 /* wgslc.xcconfig */,
 				1CA5B4F92A6F28E500E5F297 /* wgslfuzz.xcconfig */,
@@ -892,85 +762,16 @@
 		33EA185C27BC193D00A1DD52 /* AST */ = {
 			isa = PBXGroup;
 			children = (
-				3A12AE9D28FCE94B00C1B975 /* AST.h */,
-				3A12AED128FCFC5500C1B975 /* ASTAbstractFloatLiteral.h */,
-				3A12AECF28FCFC5500C1B975 /* ASTAbstractIntegerLiteral.h */,
-				3A12AEA528FCE94C00C1B975 /* ASTAlignAttribute.h */,
-				97099AC02AA60D58003B41F8 /* ASTArrayTypeExpression.h */,
-				33EA187F27BC24E200A1DD52 /* ASTAssignmentStatement.h */,
-				33EA186927BC1BE600A1DD52 /* ASTAttribute.h */,
-				3AD0D23C2988F3AA0080D728 /* ASTBinaryExpression.cpp */,
-				3AD0D23D2988F3AA0080D728 /* ASTBinaryExpression.h */,
-				3A12AEA728FCE94C00C1B975 /* ASTBindingAttribute.h */,
-				3A12AED028FCFC5500C1B975 /* ASTBoolLiteral.h */,
-				3A12AE9F28FCE94B00C1B975 /* ASTBreakStatement.h */,
-				97835C9429F7D85A00939EBA /* ASTBuilder.cpp */,
-				97835C9229F7C9C600939EBA /* ASTBuilder.h */,
-				3A12AE9028FCE94A00C1B975 /* ASTBuiltinAttribute.h */,
-				33EA188527BC26DF00A1DD52 /* ASTCallExpression.h */,
-				97A448A52AE3546700A4E147 /* ASTCallStatement.h */,
-				3A12AEA328FCE94C00C1B975 /* ASTCompoundAssignmentStatement.h */,
-				33EA187A27BC230E00A1DD52 /* ASTCompoundStatement.h */,
-				9797BA432B6D5BA60020F22E /* ASTConstAssert.h */,
-				9797BA422B6D5BA60020F22E /* ASTConstAssertStatement.h */,
-				3A12AE9E28FCE94B00C1B975 /* ASTConstAttribute.h */,
-				3A12AEA228FCE94C00C1B975 /* ASTContinueStatement.h */,
-				3AD0D2302988D3C10080D728 /* ASTDeclaration.h */,
-				97E21C8A2A1F5DCC009CEB0E /* ASTDecrementIncrementStatement.cpp */,
-				3A12AEA428FCE94C00C1B975 /* ASTDecrementIncrementStatement.h */,
-				97D398E52B06A85B00D8C4AA /* ASTDiagnostic.h */,
-				97A448A42AE3546700A4E147 /* ASTDiagnosticAttribute.h */,
-				97D398E42B06A85B00D8C4AA /* ASTDiagnosticDirective.h */,
-				33EA185F27BC198100A1DD52 /* ASTDirective.h */,
-				3A12AEA828FCE94C00C1B975 /* ASTDiscardStatement.h */,
-				97099ABE2AA60D58003B41F8 /* ASTElaboratedTypeExpression.h */,
-				33EA186B27BC1CBC00A1DD52 /* ASTExpression.h */,
-				33EA188327BC268600A1DD52 /* ASTFieldAccessExpression.h */,
-				97D398E22B05106000D8C4AA /* ASTFloat16Literal.h */,
-				3A12AED228FCFC5500C1B975 /* ASTFloat32Literal.h */,
-				3A12AE9628FCE94B00C1B975 /* ASTForStatement.h */,
-				3A1337E928FBD56E00F29B73 /* ASTForward.h */,
-				33EA187527BC216B00A1DD52 /* ASTFunction.h */,
-				3A12AE9728FCE94B00C1B975 /* ASTGroupAttribute.h */,
-				3A12AE9B28FCE94B00C1B975 /* ASTIdAttribute.h */,
-				3A12AEA028FCE94B00C1B975 /* ASTIdentifier.h */,
-				33EA188127BC25D000A1DD52 /* ASTIdentifierExpression.h */,
-				3AD0D2312988D3C10080D728 /* ASTIdentityExpression.h */,
-				3A12AE9528FCE94B00C1B975 /* ASTIfStatement.h */,
-				3A7E164B28C57BB7003F49C9 /* ASTIndexAccessExpression.h */,
-				3A12AEA928FCE94C00C1B975 /* ASTInterpolateAttribute.h */,
-				3A12AE9C28FCE94B00C1B975 /* ASTInvariantAttribute.h */,
-				3A12AE9228FCE94A00C1B975 /* ASTLocationAttribute.h */,
-				3A12AE9A28FCE94B00C1B975 /* ASTLoopStatement.h */,
-				97A448A32AE3546700A4E147 /* ASTMustUseAttribute.h */,
-				33EA185D27BC194F00A1DD52 /* ASTNode.h */,
-				3A12AEA628FCE94C00C1B975 /* ASTParameter.h */,
-				3A12AE9328FCE94A00C1B975 /* ASTPhonyStatement.h */,
-				3A9D029F298390A000888A75 /* ASTPointerDereference.h */,
-				97099ABF2AA60D58003B41F8 /* ASTReferenceTypeExpression.h */,
-				33EA187D27BC249000A1DD52 /* ASTReturnStatement.h */,
-				97E709502B6ACCB50080E489 /* ASTScopedVisitor.h */,
-				97E709542B6AD0030080E489 /* ASTScopedVisitorInlines.h */,
-				3A12AECE28FCFC5500C1B975 /* ASTSigned32Literal.h */,
-				3A12AEA128FCE94B00C1B975 /* ASTSizeAttribute.h */,
-				3A12AE9928FCE94B00C1B975 /* ASTStageAttribute.h */,
-				33EA187827BC22AA00A1DD52 /* ASTStatement.h */,
-				3A9D02A1298390CF00888A75 /* ASTStringDumper.cpp */,
-				3A9D02A3298390CF00888A75 /* ASTStringDumper.h */,
-				33EA187327BC204900A1DD52 /* ASTStructure.h */,
-				3A12AEC428FCEEC400C1B975 /* ASTStructureMember.h */,
-				3A1A1EFE28FD35E800C5934A /* ASTSwitchStatement.h */,
-				97D398E82B2387F300D8C4AA /* ASTTypeAlias.h */,
-				3AD0D23A2988ED8F0080D728 /* ASTUnaryExpression.cpp */,
-				3AAE4EB328C56E9A00DA484B /* ASTUnaryExpression.h */,
-				3A12AECA28FCFA9800C1B975 /* ASTUnsigned32Literal.h */,
-				33EA186327BC1A1D00A1DD52 /* ASTVariable.h */,
-				33EA187127BC1FE100A1DD52 /* ASTVariableQualifier.h */,
-				3AE27DB428C1BA480043A8E0 /* ASTVariableStatement.h */,
-				3A1337E528FBD56300F29B73 /* ASTVisitor.cpp */,
-				3A1337E628FBD56400F29B73 /* ASTVisitor.h */,
-				3A12AEC528FCEEC400C1B975 /* ASTWhileStatement.h */,
-				3A12AE9828FCE94B00C1B975 /* ASTWorkgroupSizeAttribute.h */,
+				E577A9847E3E31F66D3F57D7 /* ASTAttributes.swift */,
+				E56CFC224C0176B4CE4FB1EF /* ASTDeclarations.swift */,
+				E589AE281F4286042AFAFDE1 /* ASTExpressions.swift */,
+				E5932807EEE796F8627A299E /* ASTIdentifier.swift */,
+				E5A56B9B4BEE04766DC07F99 /* ASTNode.swift */,
+				E5FDA300276D86A1021694A6 /* ASTScopedVisitor.swift */,
+				E514EC7EDA68CD7DEBB0DE93 /* ASTStatements.swift */,
+				E54E779D123312A3D5C66ABE /* ASTStringDumper.swift */,
+				E5C31AEFE0EDB953E046A7D3 /* ASTVisitor.swift */,
+				E52922BA2DA888E917978656 /* IRStorage.swift */,
 			);
 			path = AST;
 			sourceTree = "<group>";
@@ -986,10 +787,17 @@
 		979240B1297018290050EA2C /* Metal */ = {
 			isa = PBXGroup;
 			children = (
-				979240B4297018290050EA2C /* MetalCodeGenerator.cpp */,
-				979240B2297018290050EA2C /* MetalCodeGenerator.h */,
-				979240B5297018290050EA2C /* MetalFunctionWriter.cpp */,
-				979240B3297018290050EA2C /* MetalFunctionWriter.h */,
+				E5820E7911D2BA6BBAF7EDBD /* BinaryEmission.swift */,
+				E5FD5C5F22EA1B5F3D7CB42F /* MetalCodeGenerator.swift */,
+				E5E72F1DB2338161F0DA5C46 /* MetalFunctionWriter+Builtins.swift */,
+				E5F80ECB91A8506AA06D7064 /* MetalFunctionWriter+Declarations.swift */,
+				E533BC54FA501AEE001562A4 /* MetalFunctionWriter+Expressions.swift */,
+				E57AC028B514287B913F639D /* MetalFunctionWriter+Helpers.swift */,
+				E54E8EFE3D43B973D22778D5 /* MetalFunctionWriter+Statements.swift */,
+				E55AD513417E2D7D5A65B9C5 /* MetalFunctionWriter+Types.swift */,
+				E5ACE3B076FFD0F3BCEAE999 /* MetalFunctionWriter.swift */,
+				E5848E3D8381E2E5398A365F /* MSLWriter.swift */,
+				E55885279F0D8BFB82D5B000 /* MTLWorkarounds.swift */,
 			);
 			path = Metal;
 			sourceTree = "<group>";
@@ -998,6 +806,7 @@
 			isa = PBXGroup;
 			children = (
 				DD5697FC2DC1311D00050321 /* rdar150228472.swift */,
+				E50EBFB88E033E70BAE7E364 /* TypeDeclarations.swift */,
 			);
 			name = "Derived Sources";
 			path = DerivedSources/WebGPU;
@@ -1009,6 +818,42 @@
 				DD8EE22F2CE6B4B3004DD6F8 /* module.modulemap */,
 			);
 			path = Internal;
+			sourceTree = "<group>";
+		};
+		E58D0FD8675223397DC0AA4D /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				E52B63BD842F7CE8E1D05D5C /* ByteSink.swift */,
+				E5C68A12193B0CA508B43CE6 /* ByteSize.swift */,
+				E5AD44077A67DF4AA382FBC9 /* CodeUnits.swift */,
+				E5AA20904B6670356AAD55A2 /* ConstEvalArithmetic.swift */,
+				E5280A85290F037766692ECD /* Containers.swift */,
+				E53EC1FDF5CC46EEF2D9CA53 /* Half.swift */,
+				E593802FCAC88740715F861C /* LibM.swift */,
+				E55CABAEC1A3F4BA0CFA54AC /* MessageText.swift */,
+				E5C083BD2C1FC4F702220A77 /* NumberParsing.swift */,
+				E58E0A2A1AA0F4FA4BA7D10E /* RecursionBudget.swift */,
+				E57BE6FD4B664EA66F44DE35 /* WTFHashTable.swift */,
+				E5BAFA685D2256BB8585E52F /* WTFNumberFormat.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		E5F76F70B6B0F94B0C32BA25 /* wgslc */ = {
+			isa = PBXGroup;
+			children = (
+				E59E67B6C5E45E20C3F452F5 /* WGSLBench.swift */,
+				E5ADFC1CE3B8BAE6EC90A253 /* wgslc.swift */,
+			);
+			path = wgslc;
+			sourceTree = "<group>";
+		};
+		E5ECF6D5E7BCD1D2FD653858 /* wgslfuzz */ = {
+			isa = PBXGroup;
+			children = (
+				E5FC38CB9B9BBC809F28E8AE /* wgslfuzz.swift */,
+			);
+			path = wgslfuzz;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1058,126 +903,12 @@
 				596E957DAF12D022D09D9ED4 /* WebGPUCpp.h in Headers */,
 				CFABBD75A0EC0E1A9B26F610 /* WebGPUCppBridge.h in Headers */,
 				1BAE0AF932075C6734283F13 /* WebGPUCppConversions.h in Headers */,
+				E507D492F7242205FB9C29E0 /* WGSLAPI.h in Headers */,
 				DDE748802F7B4337008013AB /* WorkAround173516139.h in Headers */,
 				0D943C0F2C6571BC00D33BA5 /* XRBinding.h in Headers */,
 				0DD5FD352C66947B004AF552 /* XRProjectionLayer.h in Headers */,
 				0D943C242C65E46400D33BA5 /* XRSubImage.h in Headers */,
 				0D6D0AAE2C6BA0400073F63D /* XRView.h in Headers */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		1CEBD7EE2716B2CC00A5254D /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				97CB27C02F43C25F0024DD32 /* AliasAnalysis.h in Headers */,
-				3AD0D2372988D3F90080D728 /* API.h in Headers */,
-				3A12AEB728FCE94C00C1B975 /* AST.h in Headers */,
-				3A12AED728FCFC5600C1B975 /* ASTAbstractFloatLiteral.h in Headers */,
-				3A12AED528FCFC5600C1B975 /* ASTAbstractIntegerLiteral.h in Headers */,
-				3A12AEBF28FCE94C00C1B975 /* ASTAlignAttribute.h in Headers */,
-				97099AC32AA60D58003B41F8 /* ASTArrayTypeExpression.h in Headers */,
-				33EA188027BC24E200A1DD52 /* ASTAssignmentStatement.h in Headers */,
-				33EA186A27BC1BE600A1DD52 /* ASTAttribute.h in Headers */,
-				3AD0D23F2988F3AB0080D728 /* ASTBinaryExpression.h in Headers */,
-				3A12AEC128FCE94C00C1B975 /* ASTBindingAttribute.h in Headers */,
-				3A12AED628FCFC5600C1B975 /* ASTBoolLiteral.h in Headers */,
-				3A12AEB928FCE94C00C1B975 /* ASTBreakStatement.h in Headers */,
-				97835C9329F7C9C600939EBA /* ASTBuilder.h in Headers */,
-				3A12AEAA28FCE94C00C1B975 /* ASTBuiltinAttribute.h in Headers */,
-				33EA188627BC26DF00A1DD52 /* ASTCallExpression.h in Headers */,
-				97A448A82AE3546700A4E147 /* ASTCallStatement.h in Headers */,
-				3A12AEBD28FCE94C00C1B975 /* ASTCompoundAssignmentStatement.h in Headers */,
-				33EA187B27BC230E00A1DD52 /* ASTCompoundStatement.h in Headers */,
-				9797BA452B6D5BA70020F22E /* ASTConstAssert.h in Headers */,
-				9797BA442B6D5BA70020F22E /* ASTConstAssertStatement.h in Headers */,
-				3A12AEB828FCE94C00C1B975 /* ASTConstAttribute.h in Headers */,
-				3A12AEBC28FCE94C00C1B975 /* ASTContinueStatement.h in Headers */,
-				3AD0D2332988D3C10080D728 /* ASTDeclaration.h in Headers */,
-				3A12AEBE28FCE94C00C1B975 /* ASTDecrementIncrementStatement.h in Headers */,
-				97D398E72B06A85B00D8C4AA /* ASTDiagnostic.h in Headers */,
-				97A448A72AE3546700A4E147 /* ASTDiagnosticAttribute.h in Headers */,
-				97D398E62B06A85B00D8C4AA /* ASTDiagnosticDirective.h in Headers */,
-				33EA186027BC198100A1DD52 /* ASTDirective.h in Headers */,
-				3A12AEC228FCE94C00C1B975 /* ASTDiscardStatement.h in Headers */,
-				97099AC12AA60D58003B41F8 /* ASTElaboratedTypeExpression.h in Headers */,
-				33EA186C27BC1CBC00A1DD52 /* ASTExpression.h in Headers */,
-				33EA188427BC268600A1DD52 /* ASTFieldAccessExpression.h in Headers */,
-				97D398E32B05106000D8C4AA /* ASTFloat16Literal.h in Headers */,
-				3A12AED828FCFC5600C1B975 /* ASTFloat32Literal.h in Headers */,
-				3A12AEB028FCE94C00C1B975 /* ASTForStatement.h in Headers */,
-				3A1337EA28FBD56E00F29B73 /* ASTForward.h in Headers */,
-				33EA187627BC216B00A1DD52 /* ASTFunction.h in Headers */,
-				3A12AEB128FCE94C00C1B975 /* ASTGroupAttribute.h in Headers */,
-				3A12AEB528FCE94C00C1B975 /* ASTIdAttribute.h in Headers */,
-				3A12AEBA28FCE94C00C1B975 /* ASTIdentifier.h in Headers */,
-				33EA188227BC25D000A1DD52 /* ASTIdentifierExpression.h in Headers */,
-				3AD0D2342988D3C10080D728 /* ASTIdentityExpression.h in Headers */,
-				3A12AEAF28FCE94C00C1B975 /* ASTIfStatement.h in Headers */,
-				3A7E164C28C57BB8003F49C9 /* ASTIndexAccessExpression.h in Headers */,
-				3A12AEC328FCE94C00C1B975 /* ASTInterpolateAttribute.h in Headers */,
-				3A12AEB628FCE94C00C1B975 /* ASTInvariantAttribute.h in Headers */,
-				3A12AEAC28FCE94C00C1B975 /* ASTLocationAttribute.h in Headers */,
-				3A12AEB428FCE94C00C1B975 /* ASTLoopStatement.h in Headers */,
-				97A448A62AE3546700A4E147 /* ASTMustUseAttribute.h in Headers */,
-				33EA185E27BC194F00A1DD52 /* ASTNode.h in Headers */,
-				3A12AEC028FCE94C00C1B975 /* ASTParameter.h in Headers */,
-				3A12AEAD28FCE94C00C1B975 /* ASTPhonyStatement.h in Headers */,
-				3A9D02A0298390A000888A75 /* ASTPointerDereference.h in Headers */,
-				97099AC22AA60D58003B41F8 /* ASTReferenceTypeExpression.h in Headers */,
-				33EA187E27BC249000A1DD52 /* ASTReturnStatement.h in Headers */,
-				97E709522B6ACCB50080E489 /* ASTScopedVisitor.h in Headers */,
-				97E709552B6AD0030080E489 /* ASTScopedVisitorInlines.h in Headers */,
-				3A12AED428FCFC5600C1B975 /* ASTSigned32Literal.h in Headers */,
-				3A12AEBB28FCE94C00C1B975 /* ASTSizeAttribute.h in Headers */,
-				3A12AEB328FCE94C00C1B975 /* ASTStageAttribute.h in Headers */,
-				33EA187927BC22AA00A1DD52 /* ASTStatement.h in Headers */,
-				3A9D02A6298390CF00888A75 /* ASTStringDumper.h in Headers */,
-				33EA187427BC204900A1DD52 /* ASTStructure.h in Headers */,
-				3A12AEC728FCEEC400C1B975 /* ASTStructureMember.h in Headers */,
-				3A1A1F0228FD35E800C5934A /* ASTSwitchStatement.h in Headers */,
-				97D398E92B2387F300D8C4AA /* ASTTypeAlias.h in Headers */,
-				3AAE4EB428C56E9A00DA484B /* ASTUnaryExpression.h in Headers */,
-				3A12AECC28FCFA9800C1B975 /* ASTUnsigned32Literal.h in Headers */,
-				33EA186427BC1A1D00A1DD52 /* ASTVariable.h in Headers */,
-				33EA187227BC1FE100A1DD52 /* ASTVariableQualifier.h in Headers */,
-				3AE27DB528C1BA480043A8E0 /* ASTVariableStatement.h in Headers */,
-				3A1337E828FBD56400F29B73 /* ASTVisitor.h in Headers */,
-				3A12AEC828FCEEC400C1B975 /* ASTWhileStatement.h in Headers */,
-				3A12AEB228FCE94C00C1B975 /* ASTWorkgroupSizeAttribute.h in Headers */,
-				97A448A12AE3544800A4E147 /* AttributeValidator.h in Headers */,
-				977F5AC42B7A9EC000D05129 /* BoundsCheck.h in Headers */,
-				33EA186627BC1AD500A1DD52 /* CompilationMessage.h in Headers */,
-				977F5AC02B73057700D05129 /* CompilationScope.h in Headers */,
-				97E21C992A2512F7009CEB0E /* ConstantFunctions.h in Headers */,
-				97E21C982A2512F7009CEB0E /* ConstantValue.h in Headers */,
-				97C36CFE29F1730100CFB379 /* Constraints.h in Headers */,
-				978A912A298AB60200B37E5E /* ContextProvider.h in Headers */,
-				978A912C298AB8EE00B37E5E /* ContextProviderInlines.h in Headers */,
-				979240C829769AC00050EA2C /* EntryPointRewriter.h in Headers */,
-				E00000012026000000000003 /* EvaluationOrderRewriter.h in Headers */,
-				979EDBB22A826B2800B4B7D0 /* GlobalSorting.h in Headers */,
-				97F547B9298055D90011D79A /* GlobalVariableRewriter.h in Headers */,
-				97CB27D32F730F670024DD32 /* IOValidator.h in Headers */,
-				338BB2D427B6B66C00E066AB /* Lexer.h in Headers */,
-				978A9126298A4E8400B37E5E /* MangleNames.h in Headers */,
-				979240B6297018290050EA2C /* MetalCodeGenerator.h in Headers */,
-				979240B7297018290050EA2C /* MetalFunctionWriter.h in Headers */,
-				9776BE742992A236002D6D93 /* Overload.h in Headers */,
-				339B7B1827D7FFA40072BF9A /* Parser.h in Headers */,
-				66DC575528627E0B0014CABD /* ParserPrivate.h in Headers */,
-				979240C029753B2A0050EA2C /* PhaseTimer.h in Headers */,
-				97099ACA2ACB2213003B41F8 /* PointerRewriter.h in Headers */,
-				338BB2D227B6B63F00E066AB /* SourceSpan.h in Headers */,
-				338BB2CE27B6B60200E066AB /* Token.h in Headers */,
-				978A912F298AD3DA00B37E5E /* TypeCheck.h in Headers */,
-				978A9133298BBFD300B37E5E /* Types.h in Headers */,
-				978A9137298D40F100B37E5E /* TypeStore.h in Headers */,
-				97CB27CD2F579A6F0024DD32 /* UniformityAnalysis.h in Headers */,
-				97DE28472C348D8A00F4DEC3 /* VisibilityValidator.h in Headers */,
-				1CEBD7F82716B34400A5254D /* WGSL.h in Headers */,
-				97099AC72AC49AAB003B41F8 /* WGSLEnums.h in Headers */,
-				9776BE7629957E12002D6D93 /* WGSLShaderModule.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1230,13 +961,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1CEBD7F32716B2CC00A5254D /* Build configuration list for PBXNativeTarget "WGSL" */;
 			buildPhases = (
-				DD05A35B27BF09B60096EFAB /* Product Dependencies */,
-				1CEBD7EE2716B2CC00A5254D /* Headers */,
+				E594C1CCBA492AA36B24EC44 /* Generate TypeDeclarations.swift */,
 				1CEBD7EF2716B2CC00A5254D /* Sources */,
 				1CEBD7F02716B2CC00A5254D /* Frameworks */,
 			);
 			buildRules = (
-				9729675F299BF1BE001C8BD4 /* PBXBuildRule */,
 			);
 			dependencies = (
 			);
@@ -1256,6 +985,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				E5DBFEFF7777C0A39E6EF3F3 /* PBXTargetDependency */,
 			);
 			name = wgslc;
 			productName = wgslc;
@@ -1387,6 +1117,27 @@
 			shellPath = /bin/sh;
 			shellScript = "if [ -f \"${SCRIPT_INPUT_FILE_0}\" ]\nthen \"${SCRIPT_INPUT_FILE_0}\" \"${BUILT_PRODUCTS_DIR}/${EXECUTABLE_PATH}\" -framework JavaScriptCore\nfi && touch \"${DERIVED_FILES_DIR}/audit-spi.d\"\n";
 		};
+		E594C1CCBA492AA36B24EC44 /* Generate TypeDeclarations.swift */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/WGSL/generator/main.rb",
+				"$(SRCROOT)/WGSL/TypeDeclarations.rb",
+			);
+			name = "Generate TypeDeclarations.swift";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/DerivedSources/WebGPU/TypeDeclarations.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/usr/bin/env ruby \"${SCRIPT_INPUT_FILE_0}\" --swift \"${SCRIPT_INPUT_FILE_1}\" \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -1394,7 +1145,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1CA5B4F42A6F28C400E5F297 /* wgslfuzz.cpp in Sources */,
+				E520729C82E111F4D321E5B0 /* wgslfuzz.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1434,6 +1185,7 @@
 				14C834402EBA7CBB003B591A /* StdLibExtras.swift in Sources */,
 				1C5ACACF273A426E0095F8D5 /* Texture.mm in Sources */,
 				1C5ACAEB273A560D0095F8D5 /* TextureView.mm in Sources */,
+				E5AB8E4E757BC61E48F920C7 /* WGSLBridge.swift in Sources */,
 				0D943C102C6571BC00D33BA5 /* XRBinding.mm in Sources */,
 				0DD5FD362C66947B004AF552 /* XRProjectionLayer.mm in Sources */,
 				0D943C232C65E46400D33BA5 /* XRSubImage.mm in Sources */,
@@ -1445,42 +1197,97 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				97CB27C12F43C25F0024DD32 /* AliasAnalysis.cpp in Sources */,
-				3AD0D23E2988F3AB0080D728 /* ASTBinaryExpression.cpp in Sources */,
-				97835C9529F7D85A00939EBA /* ASTBuilder.cpp in Sources */,
-				97E21C8B2A1F5DCC009CEB0E /* ASTDecrementIncrementStatement.cpp in Sources */,
-				3A9D02A4298390CF00888A75 /* ASTStringDumper.cpp in Sources */,
-				3AD0D23B2988ED8F0080D728 /* ASTUnaryExpression.cpp in Sources */,
-				3A1337E728FBD56400F29B73 /* ASTVisitor.cpp in Sources */,
-				97A448A22AE3544800A4E147 /* AttributeValidator.cpp in Sources */,
-				977F5AC52B7A9EC000D05129 /* BoundsCheck.cpp in Sources */,
-				9789C31A297EA105009E9006 /* CallGraph.cpp in Sources */,
-				339B7B1E27D816270072BF9A /* CompilationMessage.cpp in Sources */,
-				977F5AC12B73057700D05129 /* CompilationScope.cpp in Sources */,
-				97E21C972A2512F7009CEB0E /* ConstantValue.cpp in Sources */,
-				97C36CFF29F1730100CFB379 /* Constraints.cpp in Sources */,
-				979240C929769AC00050EA2C /* EntryPointRewriter.cpp in Sources */,
-				E00000012026000000000004 /* EvaluationOrderRewriter.cpp in Sources */,
-				979EDBB12A826B2800B4B7D0 /* GlobalSorting.cpp in Sources */,
-				97F547B8298055D90011D79A /* GlobalVariableRewriter.cpp in Sources */,
-				97CB27D22F730F670024DD32 /* IOValidator.cpp in Sources */,
-				338BB2D627B6B68700E066AB /* Lexer.cpp in Sources */,
-				978A9125298A4E8400B37E5E /* MangleNames.cpp in Sources */,
-				979240B8297018290050EA2C /* MetalCodeGenerator.cpp in Sources */,
-				979240B9297018290050EA2C /* MetalFunctionWriter.cpp in Sources */,
-				9776BE732992A236002D6D93 /* Overload.cpp in Sources */,
-				339B7B1B27D800090072BF9A /* Parser.cpp in Sources */,
-				97099ACB2ACB2213003B41F8 /* PointerRewriter.cpp in Sources */,
-				338BB2D027B6B61B00E066AB /* Token.cpp in Sources */,
-				978A9130298AD3DA00B37E5E /* TypeCheck.cpp in Sources */,
-				97296766299C09BC001C8BD4 /* TypeDeclarations.rb in Sources */,
-				978A9134298BBFD300B37E5E /* Types.cpp in Sources */,
-				978A9138298D40F100B37E5E /* TypeStore.cpp in Sources */,
-				97CB27CC2F579A6F0024DD32 /* UniformityAnalysis.cpp in Sources */,
-				97DE28482C348D8A00F4DEC3 /* VisibilityValidator.cpp in Sources */,
-				1CEBD8032716BF8200A5254D /* WGSL.cpp in Sources */,
-				97099AC62AC49AAB003B41F8 /* WGSLEnums.cpp in Sources */,
-				97B4CFCB2CAAF3CD00C87163 /* WGSLShaderModule.cpp in Sources */,
+				E55DF3CB2D3E5A10D201375B /* AliasAnalysis.swift in Sources */,
+				E5E32458E75F25433C91E411 /* ASTAttributes.swift in Sources */,
+				E522844A9736B139EB22AFA7 /* ASTDeclarations.swift in Sources */,
+				E571733450B049FDF395F546 /* ASTExpressions.swift in Sources */,
+				E50AC74F45295C39C74510B0 /* ASTIdentifier.swift in Sources */,
+				E521DAA7CA8C54BFBDC46146 /* ASTNode.swift in Sources */,
+				E5D8D93B1CF9980E327A0852 /* ASTScopedVisitor.swift in Sources */,
+				E5DE00DA081E836F62B01DB7 /* ASTStatements.swift in Sources */,
+				E588F3268B2E7F0271EE8C5B /* ASTStringDumper.swift in Sources */,
+				E5451EC6D088FEC7B724F8D3 /* ASTVisitor.swift in Sources */,
+				E53E7A52E2524F733766C80B /* AttributeValidator.swift in Sources */,
+				E511CD565835D947E0129D2C /* BinaryEmission.swift in Sources */,
+				E513C1CB96C91584034BA060 /* BoundsCheck.swift in Sources */,
+				E511FA600204AAE8C07CB22A /* ByteSink.swift in Sources */,
+				E55AB12D72DB0C5C88B441A6 /* ByteSize.swift in Sources */,
+				E551ACE0AF91A959BFFAEBC0 /* CallGraph.swift in Sources */,
+				E5C0D15A14399A9AD6D34E9B /* CodeUnits.swift in Sources */,
+				E5009A344517FCDB9EFF3070 /* CompilationMessage.swift in Sources */,
+				E5DE4C584398BA9A871D683C /* ConstantFunctions+Numeric.swift in Sources */,
+				E5E7C71F2F83CD863DC9E6D6 /* ConstantFunctions+Operators.swift in Sources */,
+				E5581308FF4E5FC0EF4F6097 /* ConstantFunctions+Packing.swift in Sources */,
+				E5101F8EFE00767BBC50C4DA /* ConstantFunctions+Validation.swift in Sources */,
+				E53F53B74FA25D0337266DAF /* ConstantFunctions.swift in Sources */,
+				E5018B78E298D554417139F4 /* ConstantValue.swift in Sources */,
+				E5C2CE7E5569FA58063BD059 /* ConstEvalArithmetic.swift in Sources */,
+				E58537D35B12D351E64E4831 /* Constraints.swift in Sources */,
+				E5F83D4A223E69263F92605F /* Containers.swift in Sources */,
+				E56884C63398997B5E72C9BE /* ContextProvider.swift in Sources */,
+				E5B5FA045A927A3A728FA9E8 /* EntryPointRewriter.swift in Sources */,
+				E53D8B9B5BB76BFB49720665 /* Evaluate.swift in Sources */,
+				E583912DFAE102F791789CD2 /* EvaluationOrderRewriter.swift in Sources */,
+				E5EECBCF45CF1B5EBA9DD104 /* GlobalSorting.swift in Sources */,
+				E5ACA5902D15F5B25195F1FC /* GlobalVariableRewriter+Callees.swift in Sources */,
+				E5A628D872DB4E10C8407C68 /* GlobalVariableRewriter+DefaultLayout.swift in Sources */,
+				E54B5A10162468A4CBDC041D /* GlobalVariableRewriter+ExplicitLayout.swift in Sources */,
+				E58A9D4F107C5B2E73152274 /* GlobalVariableRewriter+Globals.swift in Sources */,
+				E5E8EA4D8220742ACD082CBA /* GlobalVariableRewriter+Initialization.swift in Sources */,
+				E59F2A0BE9159044854FF61F /* GlobalVariableRewriter+LayoutValidation.swift in Sources */,
+				E590F68481D5F8108F521646 /* GlobalVariableRewriter+Packing.swift in Sources */,
+				E513F66BF4EDAFE087BE499C /* GlobalVariableRewriter+Reads.swift in Sources */,
+				E5FBED770F3D800C096688FC /* GlobalVariableRewriter.swift in Sources */,
+				E517906F18F750F7F43DBEB1 /* Half.swift in Sources */,
+				E56099A2179874B7FFEE7291 /* IOValidator.swift in Sources */,
+				E5EB44C364011316C0BBC358 /* IRStorage.swift in Sources */,
+				E53213012A807D8B6A39DC8A /* Lexer.swift in Sources */,
+				E552FBCDAC33C1E89229C816 /* LibM.swift in Sources */,
+				E5EC6177670B9124BA81CCB9 /* MangleNames.swift in Sources */,
+				E58DF2ED1C7C27F428195A7C /* MessageText.swift in Sources */,
+				E5471345C01BF4ECE7F2B997 /* MetalCodeGenerator.swift in Sources */,
+				E54FB585B240C6489066977A /* MetalFunctionWriter+Builtins.swift in Sources */,
+				E581496FBFE4F2123F4B77E1 /* MetalFunctionWriter+Declarations.swift in Sources */,
+				E52DCCF248F5B883F1D4A19C /* MetalFunctionWriter+Expressions.swift in Sources */,
+				E5320959DB16638F2C092BBA /* MetalFunctionWriter+Helpers.swift in Sources */,
+				E545EF97F9B3FC54A037A116 /* MetalFunctionWriter+Statements.swift in Sources */,
+				E55F1977DA96725BC95894F4 /* MetalFunctionWriter+Types.swift in Sources */,
+				E5D42668D649A29910D75C64 /* MetalFunctionWriter.swift in Sources */,
+				E586252BBE0391ABAE43C080 /* MinBindingSizeWriteBack.swift in Sources */,
+				E5BADE26781BDC0AC118E4E9 /* ModuleState.swift in Sources */,
+				E510FD3D1C65DAE4CF6595C4 /* MSLWriter.swift in Sources */,
+				E56916ABD503D7C391952BC8 /* MTLWorkarounds.swift in Sources */,
+				E529624D86CDA557F599C7B6 /* NumberParsing.swift in Sources */,
+				E5AD1197518210A21FF5E801 /* Overload.swift in Sources */,
+				E5E2768345AC50593AE63466 /* Parser+Declarations.swift in Sources */,
+				E54630846CBE2D754275AE9D /* Parser+Expressions.swift in Sources */,
+				E5C50AAA5B3CCE0D1EE32024 /* Parser+Statements.swift in Sources */,
+				E5D96229E88B671A89E4A100 /* Parser.swift in Sources */,
+				E59C52B86E99DE79FE6D5B61 /* PipelineConstants.swift in Sources */,
+				E5A18A5659592208FD5E7080 /* PointerRewriter.swift in Sources */,
+				E578311FEE500A6BD78942EA /* RecursionBudget.swift in Sources */,
+				E58DC321FF97EA3A9CB42571 /* Reflection.swift in Sources */,
+				E5DE4596633213184D8BE382 /* SourceSpan.swift in Sources */,
+				E50B251809F9FDD6D555C412 /* Token.swift in Sources */,
+				E541148C35E4863A1B6182E4 /* TypeCheck+Calls.swift in Sources */,
+				E55CCCD0B9A220C9C6000060 /* TypeCheck+Declarations.swift in Sources */,
+				E5A2D8874039E5EAAEB22C1D /* TypeCheck+Expressions.swift in Sources */,
+				E559B44A078A5E38AB3FA304 /* TypeCheck+Statements.swift in Sources */,
+				E57227DBFF15F07253AB38C4 /* TypeCheck.swift in Sources */,
+				E5397D72C170B9F5AB5BCA7F /* TypeDeclarations.swift in Sources */,
+				E597CD616F6D3F1A3CECD294 /* Types.swift in Sources */,
+				E573FDDF2068566B65B127B2 /* TypeStore.swift in Sources */,
+				E54DA3EC2860EF9CEFFFAB3D /* UniformityAnalysis+Expressions.swift in Sources */,
+				E53D7694BB732DE2BB1FC71B /* UniformityAnalysis+Statements.swift in Sources */,
+				E5B17B770C18833669F96F34 /* UniformityAnalysis.swift in Sources */,
+				E5531E47E4CC9F6380AC267F /* VisibilityValidator.swift in Sources */,
+				E5B180BE2EAA35075D4EAA7B /* WGSL.swift in Sources */,
+				E5A3035D01403AB469273AC7 /* WGSLEnums.swift in Sources */,
+				E5563FA129D5B06034A9365E /* WGSLFatal.swift in Sources */,
+				E59CE875BCBBEE68DE6826D4 /* WGSLShaderModule.swift in Sources */,
+				E55D5B4F9B06C5BC06333024 /* WGSLStub.c in Sources */,
+				E5BDE4A5A2BAAE94655C7FF4 /* WTFHashTable.swift in Sources */,
+				E54B23D5B5757A1B26E80A9D /* WTFNumberFormat.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1488,7 +1295,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				97FA1A8E29C086230052D650 /* wgslc.cpp in Sources */,
+				E564E8FADE8804B32508432C /* WGSLBench.swift in Sources */,
+				E56AF5CB6DBC7277630643F9 /* wgslc.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1509,6 +1317,11 @@
 			isa = PBXTargetDependency;
 			target = 1CA5B4F02A6F28C400E5F297 /* wgslfuzz */;
 			targetProxy = 31EAB9DE2CD039A100E92E40 /* PBXContainerItemProxy */;
+		};
+		E5DBFEFF7777C0A39E6EF3F3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1CEBD7F12716B2CC00A5254D /* WGSL */;
+			targetProxy = E5620C8E0F9807D1A9350468 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

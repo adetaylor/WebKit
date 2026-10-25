@@ -172,6 +172,11 @@ module WebGPU_Internal [system] {
         export *
     }
 
+    explicit module WGSLAPI {
+        header "../WGSLAPI.h"
+        export *
+    }
+
     explicit module WebGPUCppBridge {
         header "../WebGPUCppBridge.h"
         export *

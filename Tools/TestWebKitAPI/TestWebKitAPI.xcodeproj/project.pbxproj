@@ -418,6 +418,14 @@
 			);
 			name = "Product Dependencies";
 		};
+		E5A83F6807878FA6095A974A /* Copy WGSL Goldens */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = goldens;
+			dstSubfolder = Resources;
+			files = (
+			);
+			name = "Copy WGSL Goldens";
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -1511,14 +1519,63 @@
 		07C913DF2F820CCA003A09D8 /* Exceptions for "Tests" folder in "TestWGSL" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				WGSL/ASTStringDumperTests.cpp,
-				WGSL/ConstLiteralTests.cpp,
-				WGSL/LexerTests.cpp,
-				WGSL/MetalCompilationTests.mm,
-				WGSL/MetalGenerationTests.cpp,
-				WGSL/ParserTests.cpp,
-				WGSL/TestWGSLAPI.cpp,
-				WGSL/TypeCheckingTests.mm,
+				WGSL/AliasAnalysisTests.swift,
+				WGSL/ASTStringDumperTests.swift,
+				WGSL/AttributeValidatorTests.swift,
+				WGSL/BinaryEmissionTests.swift,
+				WGSL/BoundsCheckTests.swift,
+				WGSL/BuildConfigurationTests.swift,
+				WGSL/ByteSizeTests.swift,
+				WGSL/CallGraphTests.swift,
+				WGSL/CodeUnitTests.swift,
+				WGSL/ConstantFunctionsTests.swift,
+				WGSL/ConstantTableTests.swift,
+				WGSL/ConstantValueTests.swift,
+				WGSL/ConstEvalArithmeticTests.swift,
+				WGSL/ConstLiteralTests.swift,
+				WGSL/ContainersTests.swift,
+				WGSL/EntryPointRewriterTests.swift,
+				WGSL/EvaluateTests.swift,
+				WGSL/EvaluationOrderRewriterTests.swift,
+				WGSL/GlobalSortingTests.swift,
+				WGSL/GlobalVariableRewriterInitializationTests.swift,
+				WGSL/GlobalVariableRewriterTests.swift,
+				WGSL/HalfTests.swift,
+				WGSL/IOValidatorTests.swift,
+				WGSL/IRStorageTests.swift,
+				WGSL/LexerTests.swift,
+				WGSL/MangleNamesTests.swift,
+				WGSL/MetalCompilationTests.swift,
+				WGSL/MetalFunctionWriterStatementsTests.swift,
+				WGSL/MetalFunctionWriterTests.swift,
+				WGSL/MetalFunctionWriterTypesTests.swift,
+				WGSL/MetalGenerationTests.swift,
+				WGSL/MinBindingSizeWriteBackTests.swift,
+				WGSL/MSLWriterTests.swift,
+				WGSL/NumberFormatTests.swift,
+				WGSL/NumberParsingTests.swift,
+				WGSL/OverloadTests.swift,
+				WGSL/ParserTests.swift,
+				WGSL/ParserTokenStreamTests.swift,
+				WGSL/PipelineConstantsTests.swift,
+				WGSL/PointerRewriterTests.swift,
+				WGSL/RecursionBudgetTests.swift,
+				WGSL/ReflectionTests.swift,
+				WGSL/ReplaceSiteTests.swift,
+				WGSL/RollbackTests.swift,
+				WGSL/ScopedVisitorTests.swift,
+				WGSL/SymbolTableTests.swift,
+				WGSL/TestWGSLAPI.swift,
+				WGSL/TraversalOrderTests.swift,
+				WGSL/TypeCheckingTests.swift,
+				WGSL/TypeQueryTests.swift,
+				WGSL/TypeStoreTests.swift,
+				WGSL/UniformityAnalysisTests.swift,
+				WGSL/WGSLDump.swift,
+				WGSL/WGSLEnumsTests.swift,
+				WGSL/WGSLGoldenTests.swift,
+				WGSL/WorkaroundGoldenTests.swift,
+				WGSL/WTFHashTests.swift,
 			);
 			target = 3A15783C28D1505B00142DB1 /* TestWGSL */;
 		};
@@ -1706,6 +1763,15 @@
 				WGSL/shaders/while.wgsl,
 			);
 		};
+		E50591ADD7103C24A0B643EF /* Exceptions for "Tests" folder in "Copy WGSL Goldens" phase from "TestWGSL" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = E5A83F6807878FA6095A974A /* Copy WGSL Goldens */;
+			membershipExceptions = (
+				WGSL/goldens/corpus.golden,
+				WGSL/goldens/inline.golden,
+				WGSL/goldens/shaders.golden,
+			);
+		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -1769,13 +1835,13 @@
 				07C913DE2F820CCA003A09D8 /* Exceptions for "Tests" folder in "TestWebKitAPIBundle" target */,
 				07C913DF2F820CCA003A09D8 /* Exceptions for "Tests" folder in "TestWGSL" target */,
 				07C913E02F820CCA003A09D8 /* Exceptions for "Tests" folder in "Copy Files" phase from "TestWGSL" target */,
+				E50591ADD7103C24A0B643EF /* Exceptions for "Tests" folder in "Copy WGSL Goldens" phase from "TestWGSL" target */,
 				07AA229F303BD11300B7274D /* Exceptions for "Tests" folder in "TestWTF" target */,
 				07C913E12F820CCA003A09D8 /* Exceptions for "Tests" folder in "InjectedBundleTestWebKitAPI" target */,
 				07C913E22F820CCA003A09D8 /* Exceptions for "Tests" folder in "WebProcessPlugIn" target */,
 			);
 			explicitFileTypes = {
 				TestWebKitAPIAdditionsHook.mm = sourcecode.cpp.objcpp;
-				WGSL/MetalCompilationTests.mm = sourcecode.cpp.objcpp;
 				WTF/darwin/TypeCastsOSObjectCF.cpp = sourcecode.cpp.cpp;
 			};
 			path = Tests;
@@ -2119,6 +2185,7 @@
 				3A15783F28D1505B00142DB1 /* Sources */,
 				3A15784628D1505B00142DB1 /* Frameworks */,
 				97FB42742E1D629F00C63F41 /* CopyFiles */,
+				E5A83F6807878FA6095A974A /* Copy WGSL Goldens */,
 			);
 			buildRules = (
 			);

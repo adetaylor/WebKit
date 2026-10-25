@@ -23,7 +23,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#import "ConstantValue.h"
 #import "ShaderModule.h"
 #import <wtf/Function.h>
 #import <wtf/Scope.h>
@@ -43,8 +42,8 @@ struct PreparedLibrary {
     String msl;
     String label;
     WGSL::DeviceState deviceState;
-    WGSL::Reflection::EntryPointInformation entryPointInformation; // FIXME(PERFORMANCE): This is big. Don't copy this around.
-    HashMap<String, WGSL::ConstantValue> wgslConstantValues;
+    WGSL::CompiledEntryPoint entryPointInformation; // FIXME(PERFORMANCE): This is big. Don't copy this around.
+    WGSL::ResolvedOverrides wgslConstantValues;
 };
 
 std::optional<PreparedLibrary> prepareLibrary(const ShaderModule&, PipelineLayout*, const String& entryPointName, NSString *label, std::span<const WebGPU::ConstantEntry> constants, BufferBindingSizesForPipeline&, NSError **);
@@ -66,7 +65,7 @@ void createRenderPipelineStateAsync(id<MTLDevice>, Instance&, MTLRenderPipelineD
 
 ScopeExit<Function<void()>> scopedErrorReporting(Device&, bool suppressErrors);
 
-id<MTLFunction> createFunction(id<MTLLibrary>, const WGSL::Reflection::EntryPointInformation&, NSString *label);
+id<MTLFunction> createFunction(id<MTLLibrary>, const WGSL::CompiledEntryPoint&, NSString *label);
 
 NSString* errorValidatingBindGroup(const BindGroup&, const BufferBindingSizesForBindGroup*, const Vector<uint32_t>*);
 

@@ -34,7 +34,6 @@
 #import "Pipeline.h"
 #import "RenderBundleEncoder.h"
 #import "TextureOrTextureView.h"
-#import "WGSLShaderModule.h"
 #import <wtf/IndexedRange.h>
 #import <wtf/Scope.h>
 #import <wtf/TZoneMallocInlines.h>
@@ -1400,11 +1399,11 @@ static NSString* errorValidatingInterstageShaderInterfaces(WebGPU::Metal::Device
             return @"maxFragmentShaderInputComponents is less than zero due to subgroup size";
 
         if (fragmentInputs) {
-            WGSL::AST::Interpolation defaultInterpolation {
+            WGSL::Interpolation defaultInterpolation {
                 .type = WGSL::InterpolationType::Perspective,
                 .sampling = WGSL::InterpolationSampling::Center
             };
-            auto notEqual = ^(const WGSL::AST::Interpolation& interpolateA, const WGSL::AST::Interpolation& interpolateB) {
+            auto notEqual = ^(const WGSL::Interpolation& interpolateA, const WGSL::Interpolation& interpolateB) {
                 return interpolateA.type != interpolateB.type || interpolateA.sampling != interpolateB.sampling;
             };
             uint32_t fragmentScalarComponents = 0;
@@ -1510,7 +1509,7 @@ void Device::createRenderPipeline(const WebGPU::RenderPipelineDescriptor& descri
     ShaderModule::VertexStageIn shaderLocations;
     {
         Ref vertexModule = metal(descriptor.vertex.stage.module.get());
-        if (!vertexModule->isValid() || !vertexModule->ast())
+        if (!vertexModule->isValid())
             return callback(returnInvalidRenderPipeline(*this, isAsync, "Vertex module is not valid"_s));
         if (&vertexModule->device() != this)
             return callback(returnInvalidRenderPipeline(*this, isAsync, "Vertex module was created with a different device"_s));
@@ -1547,14 +1546,13 @@ void Device::createRenderPipeline(const WebGPU::RenderPipelineDescriptor& descri
         const auto& fragmentDescriptor = *descriptor.fragment;
 
         fragmentModule = &metal(fragmentDescriptor.stage.module.get());
-        if (!fragmentModule->isValid() || !fragmentModule->ast())
+        if (!fragmentModule->isValid())
             return callback(returnInvalidRenderPipeline(*this, isAsync, "Fragment module is invalid"_s));
 
         if (&fragmentModule->device() != this)
             return callback(returnInvalidRenderPipeline(*this, isAsync, "Fragment module was created with a different device"_s));
 
-        auto fragmentShaderModule = fragmentModule->ast();
-        RELEASE_ASSERT(fragmentShaderModule);
+        RELEASE_ASSERT(fragmentModule->isValid());
         const auto& fragmentEntryPoint = fragmentDescriptor.stage.entryPoint.isNull() ? fragmentModule->defaultFragmentEntryPoint() : fragmentDescriptor.stage.entryPoint;
         usesFragDepth = fragmentModule->usesFragDepth(fragmentEntryPoint);
         usesSampleMask = fragmentModule->usesSampleMaskInOutput(fragmentEntryPoint);

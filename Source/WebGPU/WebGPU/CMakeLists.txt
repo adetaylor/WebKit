@@ -51,7 +51,6 @@ set(WebGPU_PRIVATE_LIBRARIES
     ${METAL_FRAMEWORK}
     ${QUARTZCORE_FRAMEWORK}
     ICU::uc
-    WGSLCore
 )
 
 # WebKit::WebGPU aliases an INTERFACE library whose only link content is this
@@ -82,6 +81,7 @@ set(WebGPU_SWIFT_INTEROP_SOURCES
     Buffer.mm
     CommandEncoder.mm
     Queue.mm
+    ShaderModule.mm
 )
 foreach (_f IN LISTS WebGPU_SWIFT_INTEROP_SOURCES)
     list(APPEND WebGPU_UNIFIED_SOURCE_EXCLUDES "(^|/)${_f}( |$)")
@@ -132,7 +132,6 @@ set(WebGPU_DEPENDENCIES
     WebGPU_CopyHeaders
     WebGPU_CopyPrivateHeaders
     WebGPU_CopyModules
-    wgsl-types
 )
 
 set(_webgpu_swiftmodule_dir "${_webgpu_modules_dir}/WebGPU.swiftmodule")
@@ -154,6 +153,19 @@ target_sources(WebGPU PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Queue.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/StdLibExtras.swift
 )
+
+if (ENABLE_WEBGPU_SWIFT)
+    # The WGSL compiler (Source/WebGPU/WGSL) and its bridge to ShaderModule.mm.
+    target_sources(WebGPU PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/WGSLBridge.swift)
+    target_link_libraries(WebGPU PRIVATE WGSL)
+    # Without -force_load the linker drops archive members that hold only types and conformances.
+    # The compiler's Swift symbols are an implementation detail of WebGPU.framework.
+    target_link_options(WebGPU PRIVATE
+        "LINKER:-force_load,$<TARGET_FILE:WGSL>"
+        "LINKER:-unexported_symbol,_$s*4WGSL*"
+    )
+    webkit_target_compile_definitions(WebGPU PRIVATE HAVE_WGSL_COMPILER=1)
+endif ()
 
 webkit_target_add_swift_options(WebGPU
     -I${CMAKE_CURRENT_SOURCE_DIR}/Internal
