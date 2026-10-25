@@ -3336,6 +3336,7 @@ list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES
     "(^|/)WebVTTTokenizer\\.cpp( |$)"
     "(^|/)XMLDocumentParserLibxml2\\.cpp( |$)")
 list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
+list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSTokenizer\\.cpp( |$)")
 
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
@@ -3512,6 +3513,8 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         "        requires cplusplus\n"
         "        export *\n"
         "    }\n")
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSTokenizer.cpp)
+    list(APPEND _webcore_swift_core_submodules css/parser/CSSParserToken.h css/parser/CSSTokenizerSwiftTypes.h)
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
         # For the vendored SIMD operations in SIMD*.swift, until the standard library has them.
