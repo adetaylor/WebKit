@@ -29,7 +29,6 @@
 #import "Device.h"
 #import "Instance.h"
 #import "ShaderModule.h"
-#import "WGSLShaderModule.h"
 #import <memory>
 #import <wtf/BlockPtr.h>
 #import <wtf/Scope.h>
@@ -51,7 +50,7 @@ static bool enablePsoLogging();
 
 std::optional<PreparedLibrary> prepareLibrary(const ShaderModule& shaderModule, PipelineLayout* pipelineLayout, const String& entryPoint, NSString *label, std::span<const WebGPU::ConstantEntry> constants, BufferBindingSizesForPipeline& mininumBufferSizes, NSError **error)
 {
-    HashMap<String, WGSL::ConstantValue> wgslConstantValues;
+    WGSL::ResolvedOverrides wgslConstantValues;
 
     if (!entryPoint.length() || !shaderModule.isValid())
         return std::nullopt;
@@ -65,78 +64,24 @@ std::optional<PreparedLibrary> prepareLibrary(const ShaderModule& shaderModule, 
         }
     }
 
-    auto* ast = shaderModule.ast();
-    RELEASE_ASSERT(ast);
-
     std::optional<WGSL::PipelineLayout> wgslPipelineLayout { std::nullopt };
     if (pipelineLayout && pipelineLayout->numberOfBindGroupLayouts())
         wgslPipelineLayout = ShaderModule::convertPipelineLayout(*pipelineLayout);
 
-    auto prepareResult = WGSL::prepare(*ast, entryPoint, wgslPipelineLayout ? &*wgslPipelineLayout : nullptr);
-    if (std::holds_alternative<WGSL::Error>(prepareResult)) {
-        auto wgslError = std::get<WGSL::Error>(prepareResult);
-        *error = [NSError errorWithDomain:@"WebGPU" code:1 userInfo:@{ NSLocalizedDescriptionKey: wgslError.message().createNSString().get() }];
+    auto result = shaderModule.compile(entryPoint, wgslPipelineLayout ? &*wgslPipelineLayout : nullptr, constants, WGSL::DeviceState {
+        .appleGPUFamily = shaderModule.device().appleGPUFamily(),
+        .shaderValidationEnabled = shaderModule.device().isShaderValidationEnabled()
+    });
+    switch (result.failure) {
+    case WGSL::CompilationFailure::PrepareFailed:
+    case WGSL::CompilationFailure::GenerateFailed:
+        *error = [NSError errorWithDomain:@"WebGPU" code:1 userInfo:@{ NSLocalizedDescriptionKey: result.errorMessage.createNSString().get() }];
         return std::nullopt;
-    }
-
-    auto& result = std::get<WGSL::PrepareResult>(prepareResult);
-    auto iterator = result.entryPoints.find(entryPoint);
-    if (iterator == result.entryPoints.end())
+    case WGSL::CompilationFailure::EntryPointNotFound:
+    case WGSL::CompilationFailure::InvalidPipelineConstant:
         return std::nullopt;
-
-    const auto& entryPointInformation = iterator->value;
-
-    for (const auto& entry : constants) {
-        auto& keyEntry = entry.key;
-        auto indexIterator = entryPointInformation.specializationConstants.find(keyEntry);
-        if (indexIterator == entryPointInformation.specializationConstants.end()) {
-            // Per WebGPU spec: providing a value for an override declared in the
-            // shader module but not statically used by this entry point is valid
-            // and the value is ignored. Returning an invalid pipeline only when
-            // the identifier does not refer to any override in the module.
-            if (ast->containsOverride(keyEntry))
-                continue;
-            return { };
-        }
-
-        const auto& specializationConstant = indexIterator->value;
-        switch (specializationConstant.type) {
-        case WGSL::Reflection::SpecializationConstantType::Boolean: {
-            bool value = entry.value;
-            wgslConstantValues.set(keyEntry, value);
-            break;
-        }
-        case WGSL::Reflection::SpecializationConstantType::Float: {
-            if (entry.value < std::numeric_limits<float>::lowest() || entry.value > std::numeric_limits<float>::max())
-                return std::nullopt;
-            float value = entry.value;
-            wgslConstantValues.set(keyEntry, value);
-            break;
-        }
-        case WGSL::Reflection::SpecializationConstantType::Int: {
-            if (entry.value < std::numeric_limits<int32_t>::min() || entry.value > std::numeric_limits<int32_t>::max())
-                return std::nullopt;
-            int value = entry.value;
-            wgslConstantValues.set(keyEntry, value);
-            break;
-        }
-        case WGSL::Reflection::SpecializationConstantType::Unsigned: {
-            if (entry.value < 0 || entry.value > std::numeric_limits<uint32_t>::max())
-                return std::nullopt;
-            unsigned value = entry.value;
-            wgslConstantValues.set(keyEntry, value);
-            break;
-        }
-        case WGSL::Reflection::SpecializationConstantType::Half: {
-            constexpr double halfMax = 0x1.ffcp15;
-            constexpr double halfLowest = -halfMax;
-            if (entry.value < halfLowest || entry.value > halfMax)
-                return std::nullopt;
-            WGSL::half value = entry.value;
-            wgslConstantValues.set(keyEntry, value);
-            break;
-        }
-        }
+    case WGSL::CompilationFailure::None:
+        break;
     }
 
     if (pipelineLayout) {
@@ -157,21 +102,12 @@ std::optional<PreparedLibrary> prepareLibrary(const ShaderModule& shaderModule, 
         }
     }
 
-    auto generationResult = WGSL::generate(*ast, result, wgslConstantValues, WGSL::DeviceState {
-        .appleGPUFamily = shaderModule.device().appleGPUFamily(),
-        .shaderValidationEnabled = shaderModule.device().isShaderValidationEnabled()
-    });
-    if (auto* generationError = std::get_if<WGSL::Error>(&generationResult)) {
-        *error = [NSError errorWithDomain:@"WebGPU" code:1 userInfo:@{ NSLocalizedDescriptionKey: generationError->message().createNSString().get() }];
-        return std::nullopt;
-    }
-    auto& msl = std::get<String>(generationResult);
-
-    return { { nil, msl, label, WGSL::DeviceState {
+    auto usesInvariant = result.entryPoint.usesInvariant;
+    return { { nil, WTF::move(result.msl), label, WGSL::DeviceState {
         .appleGPUFamily = shaderModule.device().appleGPUFamily(),
         .shaderValidationEnabled = shaderModule.device().isShaderValidationEnabled(),
-        .usesInvariant = entryPointInformation.usesInvariant
-    }, entryPointInformation, wgslConstantValues } };
+        .usesInvariant = usesInvariant
+    }, WTF::move(result.entryPoint), WTF::move(result.resolvedOverrides) } };
 }
 
 LibraryCompileRequest libraryCompileRequest(const PreparedLibrary& preparedLibrary)
@@ -313,7 +249,7 @@ void Device::createComputePipelineState(MTLComputePipelineDescriptor *descriptor
     callback(computePipelineState);
 }
 
-id<MTLFunction> createFunction(id<MTLLibrary> library, const WGSL::Reflection::EntryPointInformation& entryPointInformation, NSString *label)
+id<MTLFunction> createFunction(id<MTLLibrary> library, const WGSL::CompiledEntryPoint& entryPointInformation, NSString *label)
 {
     auto functionDescriptor = [MTLFunctionDescriptor new];
     functionDescriptor.name = entryPointInformation.mangledName.createNSString().get();

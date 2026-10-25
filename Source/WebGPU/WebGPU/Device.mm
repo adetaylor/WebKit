@@ -26,7 +26,6 @@
 #import "config.h"
 #import "Device.h"
 
-#import "API.h"
 #import "APIConversions.h"
 #import "BindGroup.h"
 #import "BindGroupLayout.h"
@@ -1190,7 +1189,7 @@ bool Device::pauseErrorReporting(bool pauseReporting)
 uint32_t Device::vertexBufferIndexForBindGroup(uint32_t groupIndex) const
 {
     ASSERT(maxBuffersPlusVertexBuffersForVertexStage() > 0);
-    return WGSL::vertexBufferIndexForBindGroup(groupIndex, maxBuffersPlusVertexBuffersForVertexStage() - 1);
+    return ShaderModule::vertexBufferIndexForBindGroup(groupIndex, maxBuffersPlusVertexBuffersForVertexStage() - 1);
 }
 
 id<MTLSharedEvent> Device::resolveTimestampsSharedEvent()

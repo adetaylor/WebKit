@@ -25,42 +25,33 @@
 
 #pragma once
 
-#import "ASTInterpolateAttribute.h"
-#import "CallGraph.h"
-#import "WGSL.h"
+#import "WGSLAPI.h"
 #import <WebGPU/WebGPUCpp.h>
 #import <variant>
 #import <wtf/CompletionHandler.h>
 #import <wtf/FastMalloc.h>
+#import <wtf/HashMap.h>
 #import <wtf/Ref.h>
 #import <wtf/TZoneMalloc.h>
 #import <wtf/text/StringHash.h>
 #import <wtf/text/WTFString.h>
 
 
-namespace WGSL {
-namespace AST {
-class Function;
-}
-struct Type;
-}
-
 namespace WebGPU::Metal {
 
 class Device;
 class PipelineLayout;
+struct WGSLModule;
 
 // https://gpuweb.github.io/gpuweb/#gpushadermodule
 class ShaderModule final : public WebGPU::ShaderModule {
     WTF_MAKE_TZONE_ALLOCATED(ShaderModule);
-
-    using CheckResult = Variant<WGSL::SuccessfulCheck, WGSL::FailedCheck, std::monostate>;
 public:
-    static Ref<ShaderModule> create(Variant<WGSL::SuccessfulCheck, WGSL::FailedCheck>&& checkResult, HashMap<String, Ref<PipelineLayout>>&& pipelineLayoutHints, HashMap<String, WGSL::Reflection::EntryPointInformation>&& entryPointInformation, id<MTLLibrary> library, Device& device)
+    static Ref<ShaderModule> create(std::unique_ptr<WGSLModule>&& module, WGSL::StaticCheckResult&& checkResult, HashMap<String, Ref<PipelineLayout>>&& pipelineLayoutHints, HashMap<String, WGSL::CompiledEntryPoint>&& entryPointInformation, id<MTLLibrary> library, Device& device)
     {
-        return adoptRef(*new ShaderModule(WTF::move(checkResult), WTF::move(pipelineLayoutHints), WTF::move(entryPointInformation), library, device));
+        return adoptRef(*new ShaderModule(WTF::move(module), WTF::move(checkResult), WTF::move(pipelineLayoutHints), WTF::move(entryPointInformation), library, device));
     }
-    static Ref<ShaderModule> createInvalid(Device& device, CheckResult&& checkResult = std::monostate { })
+    static Ref<ShaderModule> createInvalid(Device& device, WGSL::StaticCheckResult&& checkResult = { })
     {
         return adoptRef(*new ShaderModule(device, WTF::move(checkResult)));
     }
@@ -70,17 +61,22 @@ public:
     void compilationInfo(CompletionHandler<void(WebGPU::CompilationInfo&&)>&&) final;
     void setLabel(String&&) final;
 
-    bool isValid() const final { return std::holds_alternative<WGSL::SuccessfulCheck>(m_checkResult); }
+    bool isValid() const final { return !!m_wgslModule; }
 
     static WGSL::PipelineLayout convertPipelineLayout(const PipelineLayout&);
     static id<MTLLibrary> createLibrary(id<MTLDevice>, const String& msl, String&& label, NSError **, WGSL::DeviceState&&);
     static id<MTLLibrary> createLibrary(id<MTLDevice>, NSString *msl, NSString *label, NSError **, const WGSL::DeviceState&);
     static void createLibraryAsync(id<MTLDevice>, NSString *msl, NSString *label, const WGSL::DeviceState&, CompletionHandler<void(id<MTLLibrary>, NSError *)>&&);
 
-    WGSL::ShaderModule* ast() const;
+    // Pipeline.mm's prepareLibrary: prepare + generate one entry point and roll the module back. A null
+    // layout asks the compiler for the default layout; otherwise it writes minBindingSize back into it.
+    WGSL::CompilationResult compile(const String& entryPoint, WGSL::PipelineLayout*, std::span<const WebGPU::ConstantEntry>, const WGSL::DeviceState&) const;
+    std::optional<WGSL::WorkgroupSize> evaluateWorkgroupSize(const String& entryPoint, const WGSL::ResolvedOverrides&) const;
+    // The same function the compiler uses for vertex bind group [[buffer(n)]] indices.
+    static uint32_t LEGACY_NODELETE vertexBufferIndexForBindGroup(uint32_t groupIndex, uint32_t maxIndex);
 
     const PipelineLayout* pipelineLayoutHint(const String&) const;
-    const WGSL::Reflection::EntryPointInformation* entryPointInformation(const String&) const;
+    const WGSL::CompiledEntryPoint* entryPointInformation(const String&) const;
     id<MTLLibrary> library() const { return m_library; }
 
     Device& device() const { return m_device; }
@@ -92,7 +88,7 @@ public:
     using FragmentOutputs = HashMap<uint32_t, MTLDataType, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>>;
     struct VertexOutputFragmentInput {
         MTLDataType dataType { MTLDataTypeNone };
-        std::optional<WGSL::AST::Interpolation> interpolation { std::nullopt };
+        std::optional<WGSL::Interpolation> interpolation { std::nullopt };
     };
     using VertexOutputs = HashMap<uint32_t, VertexOutputFragmentInput, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>>;
     using FragmentInputs = VertexOutputs;
@@ -111,20 +107,16 @@ public:
     uint32_t clipDistancesCount(const String&) const;
 
 private:
-    ShaderModule(Variant<WGSL::SuccessfulCheck, WGSL::FailedCheck>&&, HashMap<String, Ref<PipelineLayout>>&&, HashMap<String, WGSL::Reflection::EntryPointInformation>&&, id<MTLLibrary>, Device&);
-    ShaderModule(Device&, CheckResult&&);
+    ShaderModule(std::unique_ptr<WGSLModule>&&, WGSL::StaticCheckResult&&, HashMap<String, Ref<PipelineLayout>>&&, HashMap<String, WGSL::CompiledEntryPoint>&&, id<MTLLibrary>, Device&);
+    ShaderModule(Device&, WGSL::StaticCheckResult&&);
 
-    CheckResult convertCheckResult(Variant<WGSL::SuccessfulCheck, WGSL::FailedCheck>&&);
-
-    const CheckResult m_checkResult;
+    // Errors and warnings for getCompilationInfo, and the IO reflection the constructor reads.
+    const WGSL::StaticCheckResult m_checkResult;
+    // The checked Swift module; null iff the shader module is invalid.
+    const std::unique_ptr<WGSLModule> m_wgslModule;
     const HashMap<String, Ref<PipelineLayout>> m_pipelineLayoutHints;
-    const HashMap<String, WGSL::Reflection::EntryPointInformation> m_entryPointInformation;
+    const HashMap<String, WGSL::CompiledEntryPoint> m_entryPointInformation;
     const id<MTLLibrary> m_library { nil }; // This is only non-null if we could compile the module early.
-    void populateFragmentInputs(const WGSL::Type&, ShaderModule::FragmentInputs&, const String&);
-    FragmentInputs parseFragmentInputs(const WGSL::AST::Function&, const String& entryPointName);
-    void populateOutputState(const String&, WGSL::Builtin);
-
-    ShaderModule::FragmentOutputs parseFragmentReturnType(const WGSL::Type&, const WGSL::CallGraph::EntryPoint&);
 
     const Ref<Device> m_device;
     HashMap<String, FragmentOutputs> m_fragmentReturnTypeForEntryPoint;
