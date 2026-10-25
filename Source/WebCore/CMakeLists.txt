@@ -3400,6 +3400,7 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         ${WEBCORE_DIR}/SIMDHighBitMask.swift
         ${WEBCORE_DIR}/SIMDSaturatingSubtract.swift
         ${WEBCORE_DIR}/SIMDTableLookup.swift
+        ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
         ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
@@ -3560,7 +3561,7 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         # them directly: through dllimport it would ask for __imp_ symbols the DLL does not import, and
         # leave the inline functions and templates of an exported class to a DLL that is itself. Undefined
         # and defined again after the shared flags, so these definitions win without a redefinition
-        # warning.
+        # warning, which -warnings-as-errors makes an error.
         webkit_target_add_swift_options(WebCore
             "-Xcc -UWEBCORE_EXPORT" "-Xcc -DWEBCORE_EXPORT="
             "-Xcc -UPAL_EXPORT" "-Xcc -DPAL_EXPORT=")
