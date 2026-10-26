@@ -320,6 +320,10 @@
 		5A1E00000000000000000004 /* SIMDTableLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E00000000000000000003 /* SIMDTableLookup.swift */; };
 		5A1E00000000000000000006 /* SIMDSaturatingSubtract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E00000000000000000005 /* SIMDSaturatingSubtract.swift */; };
 		5A1E00000000000000000008 /* SIMDHighBitMask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E00000000000000000007 /* SIMDHighBitMask.swift */; };
+		B4B3B213B38019AA5A40E14D /* SafeCFNumber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D1D0F9489AA841E6676033 /* SafeCFNumber.swift */; };
+		88C34489AB3494E36F0B2E95 /* ImageDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 497FC327EBC4E5B9C5128FAC /* ImageDecoding.swift */; };
+		ED666582528540CAF79EE240 /* ImageDecoderCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = F123D54F8A383CE1B55FCBAD /* ImageDecoderCG.swift */; };
+		0C8AB8D60605AC220A644356 /* ImageDecodingCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0466F593C29D685485891EB /* ImageDecodingCG.swift */; };
 		07E047C5305A9DB000DFCC4B /* SwiftStubInterop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 07E047C4305A9DB000DFCC4B /* SwiftStubInterop.cpp */; };
 		07E047C7305A9DB000DFCC4B /* WebCore-Swift.h in Headers */ = {isa = PBXBuildFile; fileRef = 07E047C6305A9DB000DFCC4B /* WebCore-Swift.h */; };
 		07E2C0732C1396FE00BE6743 /* WritingToolsTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 07E2C0722C1396F600BE6743 /* WritingToolsTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -8189,6 +8193,10 @@
 		5A1E00000000000000000003 /* SIMDTableLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIMDTableLookup.swift; sourceTree = "<group>"; };
 		5A1E00000000000000000005 /* SIMDSaturatingSubtract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIMDSaturatingSubtract.swift; sourceTree = "<group>"; };
 		5A1E00000000000000000007 /* SIMDHighBitMask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIMDHighBitMask.swift; sourceTree = "<group>"; };
+		06D1D0F9489AA841E6676033 /* SafeCFNumber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeCFNumber.swift; sourceTree = "<group>"; };
+		497FC327EBC4E5B9C5128FAC /* ImageDecoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDecoding.swift; sourceTree = "<group>"; };
+		F123D54F8A383CE1B55FCBAD /* ImageDecoderCG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDecoderCG.swift; sourceTree = "<group>"; };
+		D0466F593C29D685485891EB /* ImageDecodingCG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDecodingCG.swift; sourceTree = "<group>"; };
 		07E047C4305A9DB000DFCC4B /* SwiftStubInterop.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SwiftStubInterop.cpp; sourceTree = "<group>"; };
 		07E047C6305A9DB000DFCC4B /* WebCore-Swift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "WebCore-Swift.h"; sourceTree = "<group>"; };
 		07E117061489EBEB00EC5ACE /* JSTextTrackCueCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSTextTrackCueCustom.cpp; sourceTree = "<group>"; };
@@ -25645,6 +25653,7 @@
 				5CBC8DAA1AAA302200E1C803 /* MediaAccessibilitySoftLink.cpp */,
 				5CBC8DAB1AAA302200E1C803 /* MediaAccessibilitySoftLink.h */,
 				2D76BB8319456F8100CFD29A /* RunLoopObserverCF.cpp */,
+				06D1D0F9489AA841E6676033 /* SafeCFNumber.swift */,
 				512DD8E20D91E2B4000F89EE /* SharedBufferCF.cpp */,
 			);
 			path = cf;
@@ -36639,6 +36648,8 @@
 				72BAC3AB23E1E544008D741C /* ImageBufferIOSurfaceBackend.h */,
 				555B87EA1CAAF0AB00349425 /* ImageDecoderCG.cpp */,
 				555B87EB1CAAF0AB00349425 /* ImageDecoderCG.h */,
+				F123D54F8A383CE1B55FCBAD /* ImageDecoderCG.swift */,
+				D0466F593C29D685485891EB /* ImageDecodingCG.swift */,
 				55BBD42624DB534300BB6E0C /* ImageUtilitiesCG.cpp */,
 				B27535320B053814002CE64F /* IntPointCG.cpp */,
 				B27535330B053814002CE64F /* IntRectCG.cpp */,
@@ -36943,6 +36954,7 @@
 				CD19FEA71F573972000C42FB /* ImageDecoder.cpp */,
 				CD19FEA61F573972000C42FB /* ImageDecoder.h */,
 				1D47658D25CCA778007AF312 /* ImageDecoderIdentifier.h */,
+				497FC327EBC4E5B9C5128FAC /* ImageDecoding.swift */,
 				BC734350306983F500B13901 /* ImageDrawingExtras.cpp */,
 				89AAA5F5CEBC35EFDF20580F /* ImageDrawingExtras.h */,
 				7B0C389D2ACED2F000F1FDDC /* ImageDrawingOptions.cpp */,
@@ -51184,6 +51196,9 @@
 				5A1F00000000000000000008 /* HTMLTokenizer.swift in Sources */,
 				5A1F0000000000000000000C /* HTMLTreeBuilder.swift in Sources */,
 				1AC900C31943C0FC008625B5 /* HTTPHeaderNames.cpp in Sources */,
+				ED666582528540CAF79EE240 /* ImageDecoderCG.swift in Sources */,
+				88C34489AB3494E36F0B2E95 /* ImageDecoding.swift in Sources */,
+				0C8AB8D60605AC220A644356 /* ImageDecodingCG.swift in Sources */,
 				CD27AE5122A9868700947FF9 /* ImageRotationSessionVT.mm in Sources */,
 				070E2D0F26F250890014AAC3 /* InbandChapterTrackPrivateAVFObjC.mm in Sources */,
 				46CA943127B8695800F4F5FF /* InbandTextTrackPrivateAVFObjC.mm in Sources */,
@@ -51241,6 +51256,7 @@
 				CDA29A301CBF74D400901CCF /* PlaybackSessionInterfaceCocoa.mm in Sources */,
 				CDA29A161CBDA56C00901CCF /* PlaybackSessionInterfaceMac.mm in Sources */,
 				CD20ED3D27878FFB0038BE44 /* QueuedVideoOutput.mm in Sources */,
+				B4B3B213B38019AA5A40E14D /* SafeCFNumber.swift in Sources */,
 				BC51156E12B1749C00C96754 /* ScrollAnimatorMac.mm in Sources */,
 				1209CD7E2AF1B9710046C3F0 /* ScrollbarMac.mm in Sources */,
 				021D763A29C2AC6B00063684 /* ScrollbarsControllerMac.mm in Sources */,
