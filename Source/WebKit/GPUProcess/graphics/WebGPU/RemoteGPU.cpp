@@ -92,10 +92,53 @@ void RemoteGPU::initialize()
 void RemoteGPU::stopListeningForIPC()
 {
     assertIsMainRunLoop();
+    {
+        Locker locker { m_scheduledWorkLock };
+        m_workQueueState = WorkQueueState::Stopping;
+    }
     m_workQueue->dispatch([protectedThis = protect(*this)]() {
         protectedThis->workQueueUninitialize();
     });
-    m_workQueue->stopAndWaitForCompletion();
+    m_workQueue->stopAndWaitForCompletion([this] {
+        assertIsCurrent(workQueue());
+        performWorkScheduledWhileStopping(WorkQueueState::Stopped);
+        // The work can create objects, such as asynchronously created pipelines.
+        m_objectHeap->clear();
+        m_modelObjectHeap->clear();
+    });
+}
+
+void RemoteGPU::scheduleWork(Function<void()>&& workItem)
+{
+    Locker locker { m_scheduledWorkLock };
+    switch (m_workQueueState) {
+    case WorkQueueState::Running:
+        m_workQueue->dispatch(WTF::move(workItem));
+        return;
+    case WorkQueueState::Stopping:
+        m_workScheduledWhileStopping.append(WTF::move(workItem));
+        return;
+    case WorkQueueState::Stopped:
+        return;
+    }
+}
+
+void RemoteGPU::performWorkScheduledWhileStopping(WorkQueueState stateWhenDone)
+{
+    assertIsCurrent(workQueue());
+    while (true) {
+        Deque<Function<void()>> workItems;
+        {
+            Locker locker { m_scheduledWorkLock };
+            if (m_workScheduledWhileStopping.isEmpty()) {
+                m_workQueueState = stateWhenDone;
+                return;
+            }
+            workItems = std::exchange(m_workScheduledWhileStopping, { });
+        }
+        for (auto& workItem : workItems)
+            workItem();
+    }
 }
 
 void RemoteGPU::workQueueInitialize()
@@ -114,7 +157,7 @@ void RemoteGPU::workQueueInitialize()
     // The retain cycle is broken in workQueueUninitialize().
     auto gpuProcessConnection = m_gpuConnectionToWebProcess.get();
     auto backing = WebCore::createWebGPUIntegration([protectedThis = protect(*this)](Function<void()>&& workItem) {
-        protectedThis->m_workQueue->dispatch(WTF::move(workItem));
+        protectedThis->scheduleWork(WTF::move(workItem));
     }, gpuProcessConnection ? &gpuProcessConnection->webProcessIdentity() : nullptr);
 #else
     RefPtr<WebCore::WebGPUIntegration> backing;
@@ -133,6 +176,11 @@ void RemoteGPU::workQueueUninitialize()
     streamConnection->stopReceivingMessages(Messages::RemoteGPU::messageReceiverName(), m_identifier.toUInt64());
     streamConnection->invalidate();
     m_streamConnection = nullptr;
+    performWorkScheduledWhileStopping(WorkQueueState::Stopping);
+    // Once the work queue stops, nothing can run the work that would call the callbacks pending on the
+    // devices' queues, so destroying the devices calls them now.
+    for (Ref device : m_objectHeap->devices())
+        device->destroy();
     m_objectHeap->clear();
     m_modelObjectHeap->clear();
     m_backing = nullptr;
