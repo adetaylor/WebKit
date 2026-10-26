@@ -1618,6 +1618,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
 
     html/forms/FileIconLoader.h
 
+    html/parser/CSSPreloadScanner.h
     html/parser/HTMLDocumentParserFastPath.h
     html/parser/HTMLEntityParser.h
     html/parser/HTMLEntityTable.h
@@ -1626,6 +1627,8 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     html/parser/HTMLParserIdioms.h
     html/parser/HTMLParserOptions.h
     html/parser/HTMLParserScriptingFlagPolicy.h
+    html/parser/HTMLPreloadScanner.h
+    html/parser/HTMLResourcePreloader.h
     html/parser/HTMLToken.h
     html/parser/HTMLTokenizer.h
     html/parser/InputStreamPreprocessor.h
