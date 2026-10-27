@@ -83,7 +83,12 @@ private:
     bool LEGACY_NODELETE hasFinishedRuleValue() const;
 #endif
 
+#if USE_SWIFT_HTML_PRELOAD_SCANNER
+    // Read and written by HTMLPreloadScanner.swift, which the C++ compiler cannot see.
+    [[maybe_unused]] State m_state;
+#else
     State m_state;
+#endif
     Vector<char16_t> m_rule;
     Vector<char16_t> m_ruleValue;
     Vector<char16_t> m_ruleConditions;
