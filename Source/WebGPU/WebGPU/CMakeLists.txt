@@ -244,7 +244,7 @@ if (SWIFT_REQUIRED)
 
     # Whole-module optimization outside Debug, as for WGSL: the C++ classes call small Swift methods
     # on every command, which need cross-file inlining.
-    WGSL_SETUP_SWIFT_TARGET(WebGPU)
+    WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebGPU)
 
     # Outside the dyld shared cache, the Objective-C runtime rewrites an image's @protocol references when it loads it.
     # The Swift code references Metal's protocols, so keep those references in __DATA, on the page the selector
