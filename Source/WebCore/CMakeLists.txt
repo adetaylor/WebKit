@@ -3367,6 +3367,18 @@ list(REMOVE_DUPLICATES WebCore_UNIFIED_SOURCE_EXCLUDES)
 # Some of them are also in a platform's WebCore_SOURCES, outside the unified sources.
 list(REMOVE_ITEM WebCore_SOURCES ${_webcore_swift_interop_excludes})
 
+if (SWIFT_REQUIRED AND APPLE)
+    # C++ sources that include WebCore-Swift.h. They build in the WebCore_SwiftInterop subtarget,
+    # which is ordered after the Swift compile that generates WebCoreSwift-Generated.h, so keep them
+    # out of the unified sources.
+    set(WebCore_SWIFT_INTEROP_SOURCES
+        platform/graphics/PixelBufferConversion.cpp
+    )
+    foreach (_f IN LISTS WebCore_SWIFT_INTEROP_SOURCES)
+        list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_f}( |$)")
+    endforeach ()
+endif ()
+
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
 WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(WebCore WebCoreJSBindings
@@ -3439,8 +3451,12 @@ if (NOT USE_HEADER_MAPS)
 endif ()
 
 if (APPLE)
-    # FIXME: Remove SwiftStub.swift once WebCore has real Swift sources.
-    target_sources(WebCore PRIVATE ${WEBCORE_DIR}/SwiftStub.swift)
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/platform/graphics/PixelBufferConversion.swift
+    )
+
+    # Matches WebCore.xcconfig. C++ and Swift both test it, so set it for the whole target.
+    webkit_target_compile_definitions(WebCore PRIVATE ENABLE_WEBCORE_SWIFT=1)
 
     # The Swift ports, as in WebCore.xcodeproj.
     target_sources(WebCore PRIVATE
@@ -3525,11 +3541,20 @@ if (APPLE)
     webkit_target_add_swift_options(WebCore "-Xcc -Wno-incomplete-umbrella")
 
     # C++ sources that include WebCoreSwift-Generated.h.
-    set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp ${_webcore_swift_interop_sources_all_ports}
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_interop_sources_all_ports}
         ${_webcore_swift_interop_sources_apple})
 
+    # Whole-module optimization outside Debug, as for WebGPU.
+    WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebCore)
+
+    # As in WebCore.xcconfig, keep the Swift "Cxx" module's symbols private (rdar://139232237, rdar://165050676).
+    target_link_options(WebCore PRIVATE "LINKER:-unexported_symbol,_$s*3Cxx*")
+
+    # WebCore's Swift imports WebCore's own headers through the WebCore_Internal module, which only
+    # its Swift compile can see (as SWIFT_INCLUDE_PATHS does in Xcode).
+    set(WebCore_SWIFT_INTEROP_MODULE_PATH_SWIFT_ONLY TRUE)
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
-        "${WebCore_PRIVATE_HEADERS_DIR}"
+        "${WEBCORE_DIR}/Modules/Internal"
         "WebCoreSwift-Generated.h")
 else ()
     # The Swift sources the WebCore Xcode project compiles, with WebCore.xcconfig's Swift settings.

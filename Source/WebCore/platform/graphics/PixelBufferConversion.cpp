@@ -38,6 +38,10 @@
 #include <wtf/text/ParsingUtilities.h>
 #include <wtf/text/TextStream.h>
 
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
+
 #if USE(ACCELERATE) && USE(CG)
 #include <Accelerate/Accelerate.h>
 #if CPU(ARM64)
@@ -561,7 +565,9 @@ static bool platformConvertImagePixels(const ConstPixelBufferConversionView& sou
 }
 #endif // !(USE(ACCELERATE) && USE(CG))
 
+#if !ENABLE(WEBCORE_SWIFT)
 // The rows the conversion reads and writes have to be inside the buffer the view describes.
+// With Swift, PixelBufferConversion.swift implements this.
 template<typename View>
 NODELETE static bool hasEnoughBytesForConversion(const View& view, const IntSize& destinationSize)
 {
@@ -572,6 +578,7 @@ NODELETE static bool hasEnoughBytesForConversion(const View& view, const IntSize
     requiredBytes += CheckedSize { static_cast<size_t>(destinationSize.width()) } * PixelBuffer::bytesPerPixel(view.format.pixelFormat);
     return !requiredBytes.hasOverflowed() && view.rows.size_bytes() >= requiredBytes.value();
 }
+#endif
 
 static void zeroImagePixels(const PixelBufferConversionView& destination, const IntSize& destinationSize)
 {

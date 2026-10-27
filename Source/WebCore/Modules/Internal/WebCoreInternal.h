@@ -25,12 +25,7 @@
 
 #pragma once
 
-#import <Foundation/Foundation.h>
-
-#import <simd/simd.h>
-
-NS_HEADER_AUDIT_BEGIN(nullability, sendability)
-
-
-
-NS_HEADER_AUDIT_END(nullability, sendability)
+// The first header of the WebCore_Internal module. WebCore's headers expect what config.h gives
+// every C++ source first; their submodules are built after this one and see its macros.
+#include <wtf/Assertions.h>
+#include <wtf/Platform.h>
