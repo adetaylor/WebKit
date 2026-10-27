@@ -32,6 +32,7 @@
 #import "ScrollAnimationRubberBand.h"
 #import "ScrollExtents.h"
 #import "ScrollableArea.h"
+#import "ScrollingEffectsClock.h"
 #import <pal/spi/mac/NSScrollViewSPI.h>
 #import <sys/sysctl.h>
 #import <sys/time.h>
@@ -779,7 +780,7 @@ void ScrollingEffectsController::rubberBandTargetOffsetDidChange()
 
 void ScrollingEffectsController::startRubberBandAnimationIfNecessary(const PlatformWheelEvent& wheelEvent)
 {
-    auto timeDelta = MonotonicTime::now() - m_lastMomentumScrollTimestamp;
+    auto timeDelta = scrollingEffectsClockNow() - m_lastMomentumScrollTimestamp;
     if (m_lastMomentumScrollTimestamp && timeDelta >= scrollVelocityZeroingTimeout)
         m_momentumVelocity = { };
 
@@ -1087,7 +1088,7 @@ std::optional<RubberbandingState> ScrollingEffectsController::captureRubberbandi
         return std::nullopt;
 
     RubberbandingState state;
-    state.captureTime = MonotonicTime::now();
+    state.captureTime = scrollingEffectsClockNow();
     state.rubberbandingEdges = m_rubberBandingEdges;
 
     if (CheckedPtr rubberBandAnimation = dynamicDowncast<ScrollAnimationRubberBand>(m_currentAnimation.get())) {
@@ -1104,7 +1105,7 @@ std::optional<RubberbandingState> ScrollingEffectsController::captureRubberbandi
     state.initialVelocity = { };
     state.initialOverscroll = stretchAmount;
     state.targetOverscroll = m_client.rubberBandTargetOffset();
-    state.animationStartTime = MonotonicTime::now();
+    state.animationStartTime = scrollingEffectsClockNow();
 
     LOG_WITH_STREAM(ScrollAnimations, stream << "ScrollingEffectsController::captureRubberbandingState - captured outside of animation: initialOverscroll=" << state.initialOverscroll << " targetOverscroll=" << state.targetOverscroll << " initialVelocity=" << state.initialVelocity);
     return state;
@@ -1115,7 +1116,7 @@ bool ScrollingEffectsController::restoreRubberbandingState(const RubberbandingSt
     if (!shouldAttemptRubberbandingRestoration(state))
         return false;
 
-    const auto now = MonotonicTime::now();
+    const auto now = scrollingEffectsClockNow();
     const auto timeSinceCapture = now - state.captureTime;
     const auto totalElapsed = (state.captureTime - state.animationStartTime) + timeSinceCapture;
 
