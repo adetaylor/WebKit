@@ -44,11 +44,6 @@ PresentationContext::PresentationContext() = default;
 
 PresentationContext::~PresentationContext() = default;
 
-WebGPU::TextureFormat PresentationContext::getPreferredFormat(const Adapter&)
-{
-    return WebGPU::TextureFormat::Bgra8unorm;
-}
-
 void PresentationContext::configure(const WebGPU::CanvasConfiguration&)
 {
 }
@@ -69,11 +64,6 @@ Texture* PresentationContext::currentTexture(uint32_t)
 RefPtr<WebGPU::Texture> PresentationContext::getCurrentTexture(uint32_t frameIndex)
 {
     return currentTexture(frameIndex);
-}
-
-TextureView* PresentationContext::getCurrentTextureView()
-{
-    return nullptr;
 }
 
 } // namespace WebGPU::Metal

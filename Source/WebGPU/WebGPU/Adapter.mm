@@ -29,84 +29,77 @@
 #import "APIConversions.h"
 #import "Device.h"
 #import "Instance.h"
-#import <algorithm>
-#import <ranges>
 #import <wtf/StdLibExtras.h>
 #import <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(WEBGPU_SWIFT)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WebGPU.h>
+#import "WebGPUSwift-Generated.h"
+#endif
+
 namespace WebGPU::Metal {
+
+struct AdapterImplBox {
+    WTF_MAKE_STRUCT_TZONE_ALLOCATED(AdapterImplBox);
+    WebGPU::AdapterImpl impl;
+};
+WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(AdapterImplBox);
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(Adapter);
 
-Adapter::Adapter(id<MTLDevice> device, Instance& instance, bool xrCompatible, HardwareCapabilities&& capabilities)
-    : m_device(device)
-    , m_instance(&instance)
-    , m_capabilities(WTF::move(capabilities))
-    , m_xrCompatible(xrCompatible)
+Ref<Adapter> Adapter::create(id<MTLDevice> device, Instance& instance, bool xrCompatible, HardwareCapabilities&& capabilities)
 {
+    auto box = makeUnique<AdapterImplBox>(AdapterImplBox { .impl = makeAdapterImpl(device, xrCompatible, capabilities) });
+    return adoptRef(*new Adapter(WTF::move(box), instance));
 }
 
-Adapter::Adapter(Instance& instance)
-    : m_instance(&instance)
+Adapter::Adapter(std::unique_ptr<AdapterImplBox>&& impl, Instance& instance)
+    : m_impl(WTF::move(impl))
+    , m_instance(&instance)
 {
 }
 
 Adapter::~Adapter() = default;
 
-Vector<WebGPU::FeatureName> Adapter::features() const
+WebGPU::Limits Adapter::limits() const
 {
-    return m_capabilities.features;
+    return m_impl->impl.limits();
 }
 
-
-static uint32_t subgroupSize(id<MTLDevice> device)
+MachSendRight Adapter::webProcessIdentity() const
 {
-    // Apple Silicon GPUs have a fixed SIMD-group width of 32,
-    // so there's no need to compile a pipeline just to discover it.
-    if ([device supportsFamily:MTLGPUFamilyApple4])
-        return 32;
+    RefPtr instance = m_instance;
+    if (!instance)
+        return { };
+    auto webProcessID = instance->webProcessID();
+    if (!webProcessID)
+        return { };
+    return MachSendRight { WTF::move(*webProcessID) };
+}
 
-    // On non-Apple (Intel/AMD) GPUs the SIMD-group width isn't a fixed device
-    // constant, so query it from a compute pipeline state's threadExecutionWidth.
-    // Fall back to 32 if the probe pipeline can't be built for any reason.
-    NSError *error = nil;
-    id<MTLLibrary> library = [device newLibraryWithSource:@"#include <metal_stdlib>\nusing namespace metal;\nkernel void _webgpu_subgroup_size_probe() { }" options:nil error:&error];
-    if (!library)
-        return 32;
-    id<MTLFunction> function = [library newFunctionWithName:@"_webgpu_subgroup_size_probe"];
-    if (!function)
-        return 32;
-    id<MTLComputePipelineState> pipelineState = [device newComputePipelineStateWithFunction:function error:&error];
-    if (!pipelineState)
-        return 32;
-    return static_cast<uint32_t>(pipelineState.threadExecutionWidth);
+Vector<WebGPU::FeatureName> Adapter::features() const
+{
+    Vector<WebGPU::FeatureName> features;
+    m_impl->impl.copyFeatures(features);
+    return features;
 }
 
 WebGPU::AdapterInfo Adapter::info()
 {
     WebGPU::AdapterInfo info {
-        .name = m_device.name,
+        .name = device().name,
         // A Metal device is never a fallback (software) adapter.
         .isFallbackAdapter = false,
     };
-    if (hasFeature(WebGPU::FeatureName::Subgroups)) {
-        // Metal exposes a single SIMD-group (subgroup) width per device, so
-        // min and max are equal. It's a fixed 32 on Apple Silicon; on other
-        // GPUs it's derived from a compute pipeline's threadExecutionWidth.
-        uint32_t size = subgroupSize(m_device);
-        info.subgroupMinSize = size;
-        info.subgroupMaxSize = size;
-    } else {
-        // Spec defaults when the feature is unsupported: https://github.com/gpuweb/gpuweb/pull/4963
-        info.subgroupMinSize = 4;
-        info.subgroupMaxSize = 128;
-    }
+    m_impl->impl.subgroupSizes(info.subgroupMinSize, info.subgroupMaxSize);
     return info;
 }
 
 bool Adapter::hasFeature(WebGPU::FeatureName feature)
 {
-    return m_capabilities.features.contains(feature);
+    return m_impl->impl.hasFeature(feature);
 }
 
 void Adapter::requestDevice(const WebGPU::DeviceDescriptor& descriptor, CompletionHandler<void(RefPtr<WebGPU::Device>&&)>&& callback)
@@ -118,50 +111,42 @@ void Adapter::requestDevice(const WebGPU::DeviceDescriptor& descriptor, Completi
 
 void Adapter::requestDeviceOrError(const WebGPU::DeviceDescriptor& descriptor, CompletionHandler<void(std::expected<Ref<Device>, String>&&)>&& callback)
 {
-    if (m_deviceRequested) {
-        callback(makeUnexpected("Adapter can only request one device"_s));
-        makeInvalid();
+    HardwareCapabilities capabilities { .features = { descriptor.requiredFeatures } };
+    bool invalidatesAdapter = false;
+    if (NSString* error = m_impl->impl.errorRequestingDevice(descriptor.requiredLimits.has_value(), descriptor.requiredLimits.value_or(Limits { }), capabilities, invalidatesAdapter)) {
+        callback(makeUnexpected(String(error)));
+        if (invalidatesAdapter)
+            makeInvalid();
         return;
     }
-
-    Limits limits { };
-
-    if (descriptor.requiredLimits) {
-        limits = *descriptor.requiredLimits;
-
-        if (!WebGPU::Metal::isValid(limits)) {
-            callback(makeUnexpected("Device does not support requested limits"_s));
-            return;
-        }
-
-        if (anyLimitIsBetterThan(limits, m_capabilities.limits)) {
-            callback(makeUnexpected("Device does not support requested limits"_s));
-            return;
-        }
-    } else
-        limits = defaultLimits();
-
-    Vector<WebGPU::FeatureName> features { descriptor.requiredFeatures };
-    if (includesUnsupportedFeatures(features, m_capabilities.features)) {
-        callback(makeUnexpected("Device does not support requested features"_s));
-        return;
-    }
-
-    HardwareCapabilities capabilities {
-        limits,
-        WTF::move(features),
-        m_capabilities.baseCapabilities,
-    };
 
     auto label = descriptor.label;
-    m_deviceRequested = true;
     // FIXME: this should be asynchronous - https://bugs.webkit.org/show_bug.cgi?id=233621
-    callback(Device::create(this->m_device, WTF::move(label), WTF::move(capabilities), *this));
+    callback(Device::create(device(), WTF::move(label), WTF::move(capabilities), *this));
+}
+
+void Adapter::setLabel(String&&)
+{
+}
+
+bool Adapter::isValid() const
+{
+    return m_impl->impl.isValid();
+}
+
+id<MTLDevice> Adapter::device() const
+{
+    return m_impl->impl.device();
+}
+
+void Adapter::makeInvalid()
+{
+    m_impl->impl.makeInvalid();
 }
 
 bool Adapter::isXRCompatible() const
 {
-    return m_xrCompatible;
+    return m_impl->impl.isXRCompatible();
 }
 
 } // namespace WebGPU::Metal

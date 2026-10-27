@@ -28,186 +28,217 @@
 
 #import "APIConversions.h"
 #import "CommandEncoder.h"
+#import "Device.h"
+#import "Texture.h"
 #import <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(WEBGPU_SWIFT)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WebGPU.h>
+#import "WebGPUSwift-Generated.h"
+#endif
 
 namespace WebGPU::Metal {
 
+static_assert(sizeof(WebGPU::TextureViewImpl) == sizeof(void*) && alignof(WebGPU::TextureViewImpl) == alignof(void*));
+
 WTF_MAKE_TZONE_ALLOCATED_IMPL(TextureView);
 
-TextureView::TextureView(id<MTLTexture> texture, id<MTLTexture> sampledTexture, const ResolvedTextureViewDescriptor& descriptor, const std::optional<WebGPU::Extent3D>& renderExtent, Texture& parentTexture, Device& device)
-    : m_texture(texture)
-    , m_sampledTexture(sampledTexture)
-    , m_format(descriptor.format)
-    , m_dimension(descriptor.dimension)
-    , m_baseMipLevel(descriptor.baseMipLevel)
-    , m_mipLevelCount(descriptor.mipLevelCount)
-    , m_baseArrayLayer(descriptor.baseArrayLayer)
-    , m_arrayLayerCount(descriptor.arrayLayerCount)
-    , m_aspect(descriptor.aspect)
-    , m_usage(descriptor.usage)
-    , m_hasSwizzle(!descriptor.swizzle.isIdentity())
-    , m_renderExtent(renderExtent)
-    , m_device(device)
-    , m_parentTexture(parentTexture)
+Ref<TextureView> TextureView::create(const WebGPU::TextureViewImpl& impl)
 {
+    return adoptRef(*new TextureView(impl));
 }
 
-TextureView::TextureView(Texture& texture, Device& device)
-    : m_device(device)
-    , m_parentTexture(texture)
+Ref<TextureView> TextureView::createInvalid(Texture& texture, Device& device)
 {
+    return create(makeInvalidTextureViewImpl(&texture, texture.swiftImpl(), &device));
 }
 
-TextureView::~TextureView() = default;
+TextureView::TextureView(const WebGPU::TextureViewImpl& impl)
+{
+    new (m_impl) WebGPU::TextureViewImpl(impl);
+}
+
+TextureView::~TextureView()
+{
+    std::destroy_at(&swiftImpl());
+}
+
+WebGPU::TextureViewImpl& TextureView::swiftImpl() const
+{
+    return *std::launder(reinterpret_cast<WebGPU::TextureViewImpl*>(const_cast<std::byte*>(m_impl)));
+}
+
+Device& TextureView::device() const
+{
+    return borrowSwiftRetained(swiftImpl().shellDevice());
+}
 
 void TextureView::setLabel(String&& label)
 {
-    m_texture.label = label.createNSString().get();
-    m_sampledTexture.label = m_texture.label;
+    swiftImpl().setLabel(WTF::move(label));
 }
 
 id<MTLTexture> TextureView::parentTexture() const
 {
-    return m_parentTexture->texture();
-}
-
-bool TextureView::previouslyCleared() const
-{
-    return m_parentTexture->previouslyCleared(m_texture.parentRelativeLevel, m_texture.parentRelativeSlice);
-}
-
-void TextureView::setPreviouslyCleared(uint32_t mipLevel, uint32_t slice)
-{
-    m_parentTexture->setPreviouslyCleared(m_texture.parentRelativeLevel + mipLevel, m_texture.parentRelativeSlice + slice);
-}
-
-uint32_t TextureView::parentRelativeMipLevel() const
-{
-    RELEASE_ASSERT(baseMipLevel() == m_texture.parentRelativeLevel);
-    return m_texture.parentRelativeLevel;
-}
-
-uint32_t TextureView::parentRelativeSlice() const
-{
-    return m_texture.parentRelativeSlice;
+    return swiftImpl().parentTexture();
 }
 
 uint32_t TextureView::width() const
 {
-    return m_parentTexture->physicalMiplevelSpecificTextureExtent(baseMipLevel()).width;
+    return swiftImpl().width();
 }
 
 uint32_t TextureView::height() const
 {
-    return m_parentTexture->physicalMiplevelSpecificTextureExtent(baseMipLevel()).height;
+    return swiftImpl().height();
 }
 
 uint32_t TextureView::depthOrArrayLayers() const
 {
-    return m_parentTexture->physicalMiplevelSpecificTextureExtent(baseMipLevel()).depthOrArrayLayers;
-}
-
-OptionSet<WebGPU::TextureUsage> TextureView::usage() const
-{
-    // The descriptor's usage was resolved to the parent texture's usage when the view was created
-    // if the view did not narrow it, so this is the set of usages the view itself allows.
-    return m_usage;
-}
-
-id<MTLTexture> TextureView::texture() const
-{
-    return isDestroyed() ? parentTexture() : m_texture;
-}
-
-id<MTLTexture> TextureView::sampledTexture() const
-{
-    if (isDestroyed())
-        return parentTexture();
-
-    return m_sampledTexture ? m_sampledTexture : m_texture;
+    return swiftImpl().depthOrArrayLayers();
 }
 
 uint32_t TextureView::sampleCount() const
 {
-    return m_parentTexture->sampleCount();
+    return swiftImpl().sampleCount();
 }
 
 WebGPU::TextureFormat TextureView::parentFormat() const
 {
-    return m_parentTexture->format();
-}
-
-WebGPU::TextureFormat TextureView::format() const
-{
-    return m_format.value_or(WebGPU::TextureFormat::Rgba8unorm);
+    return static_cast<WebGPU::TextureFormat>(swiftImpl().parentFormat());
 }
 
 uint32_t TextureView::parentMipLevelCount() const
 {
-    return m_parentTexture->mipLevelCount();
+    return swiftImpl().parentMipLevelCount();
+}
+
+uint32_t TextureView::parentRelativeMipLevel() const
+{
+    uint32_t level = swiftImpl().parentRelativeMipLevel();
+    RELEASE_ASSERT(baseMipLevel() == level);
+    return level;
+}
+
+uint32_t TextureView::parentRelativeSlice() const
+{
+    return swiftImpl().parentRelativeSlice();
+}
+
+OptionSet<WebGPU::TextureUsage> TextureView::usage() const
+{
+    return OptionSet<WebGPU::TextureUsage>::fromRaw(swiftImpl().usage());
+}
+
+id<MTLTexture> TextureView::texture() const
+{
+    return swiftImpl().texture();
+}
+
+id<MTLTexture> TextureView::sampledTexture() const
+{
+    return swiftImpl().sampledTexture();
+}
+
+bool TextureView::hasSwizzle() const
+{
+    return swiftImpl().hasSwizzle();
+}
+
+WebGPU::TextureFormat TextureView::format() const
+{
+    return static_cast<WebGPU::TextureFormat>(swiftImpl().format());
+}
+
+std::optional<WebGPU::TextureFormat> TextureView::optionalFormat() const
+{
+    if (!swiftImpl().hasDescriptor())
+        return std::nullopt;
+    return format();
 }
 
 uint32_t TextureView::mipLevelCount() const
 {
-    return m_mipLevelCount;
+    return swiftImpl().mipLevelCount();
 }
 
 uint32_t TextureView::baseMipLevel() const
 {
-    return m_baseMipLevel;
+    return swiftImpl().baseMipLevel();
 }
 
 WebGPU::TextureAspect TextureView::aspect() const
 {
-    return m_aspect;
+    return static_cast<WebGPU::TextureAspect>(swiftImpl().aspect());
 }
 
 uint32_t TextureView::arrayLayerCount() const
 {
-    return m_arrayLayerCount;
+    return swiftImpl().arrayLayerCount();
 }
 
 uint32_t TextureView::baseArrayLayer() const
 {
-    return m_baseArrayLayer;
+    return swiftImpl().baseArrayLayer();
 }
 
 WebGPU::TextureViewDimension TextureView::dimension() const
 {
-    return m_dimension.value_or(WebGPU::TextureViewDimension::_2d);
+    return static_cast<WebGPU::TextureViewDimension>(swiftImpl().dimension());
+}
+
+std::optional<WebGPU::TextureViewDimension> TextureView::optionalDimension() const
+{
+    if (!swiftImpl().hasDescriptor())
+        return std::nullopt;
+    return dimension();
+}
+
+bool TextureView::is2DTexture() const
+{
+    return swiftImpl().is2DTexture();
+}
+
+bool TextureView::is2DArrayTexture() const
+{
+    return swiftImpl().is2DArrayTexture();
+}
+
+bool TextureView::is3DTexture() const
+{
+    return swiftImpl().is3DTexture();
 }
 
 bool TextureView::isDestroyed() const
 {
-    return m_parentTexture->isDestroyed();
+    return swiftImpl().isDestroyed();
 }
 
 bool TextureView::isValid() const
 {
-    return m_texture || isDestroyed();
-}
-
-void TextureView::destroy()
-{
-    m_texture = protect(m_device)->placeholderTexture(format());
-    m_sampledTexture = nil;
-    if (!m_parentTexture->isCanvasBacking())
-        m_device->makeSubmitInvalidClearingEncoders(m_commandEncoders);
-
-    m_commandEncoders.clear();
+    return swiftImpl().isValid();
 }
 
 void TextureView::setCommandEncoder(CommandEncoder& commandEncoder) const
 {
-    CommandEncoder::trackEncoder(commandEncoder, m_commandEncoders);
-    m_parentTexture->setCommandEncoder(commandEncoder);
-    if (isDestroyed() && !m_parentTexture->isCanvasBacking())
-        commandEncoder.makeSubmitInvalid();
+    swiftImpl().setCommandEncoder(commandEncoder.swiftImpl());
+}
+
+const Texture& TextureView::apiParentTexture() const
+{
+    return borrowSwiftRetained(swiftImpl().apiParentTexture());
+}
+
+Texture& TextureView::apiParentTexture()
+{
+    return borrowSwiftRetained(swiftImpl().apiParentTexture());
 }
 
 id<MTLRasterizationRateMap> TextureView::rasterizationMapForSlice(uint32_t slice) const
 {
-    return apiParentTexture().rasterizationMapForSlice(slice);
+    return swiftImpl().rasterizationMapForSlice(slice);
 }
 
 } // namespace WebGPU::Metal

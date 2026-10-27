@@ -27,158 +27,135 @@
 #import "CommandBuffer.h"
 
 #import "APIConversions.h"
+#import "CommandEncoder.h"
+#import "Device.h"
 #import "Instance.h"
+#import "Queue.h"
 #import <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(WEBGPU_SWIFT)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WebGPU.h>
+#import "WebGPUSwift-Generated.h"
+#endif
 
 namespace WebGPU::Metal {
 
+struct CommandBufferImplBox {
+    WTF_MAKE_STRUCT_TZONE_ALLOCATED(CommandBufferImplBox);
+    WebGPU::CommandBufferImpl impl;
+    // The impl's completion, taken once, so that registering the Metal handler needs no call into Swift.
+    WebGPU::CommandBufferCompletion completion;
+};
+WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(CommandBufferImplBox);
+
+static std::unique_ptr<CommandBufferImplBox> makeCommandBufferImplBox(WebGPU::CommandBufferImpl impl)
+{
+    return makeUnique<CommandBufferImplBox>(CommandBufferImplBox { .impl = impl, .completion = impl.completion() });
+}
+
 WTF_MAKE_TZONE_ALLOCATED_IMPL(CommandBuffer);
 
-CommandBuffer::CommandBuffer(id<MTLCommandBuffer> commandBuffer, Device& device, id<MTLSharedEvent> sharedEvent, uint64_t sharedEventSignalValue, Vector<Function<bool(CommandBuffer&, CommandEncoder&)>>&& onCommitHandlers, CommandEncoder& commandEncoder)
-    : m_commandBuffer(commandBuffer)
-    , m_device(device)
-    , m_sharedEvent(sharedEvent)
-    , m_preCommitHandlers(WTF::move(onCommitHandlers))
-    , m_sharedEventSignalValue(sharedEventSignalValue)
-    , m_commandEncoder(&commandEncoder)
+Ref<CommandBuffer> CommandBuffer::create(id<MTLCommandBuffer> commandBuffer, Device& device, id<MTLSharedEvent> sharedEvent, uint64_t sharedEventSignalValue, CommandEncoder& commandEncoder)
 {
+    auto box = makeCommandBufferImplBox(makeCommandBufferImpl(commandBuffer, sharedEvent, sharedEventSignalValue, &commandEncoder, commandEncoder.swiftImpl(), &device, device.swiftImpl()));
+    return adoptRef(*new CommandBuffer(WTF::move(box)));
 }
 
-CommandBuffer::CommandBuffer(Device& device)
-    : m_device(device)
+Ref<CommandBuffer> CommandBuffer::createInvalid(Device& device)
 {
+    return adoptRef(*new CommandBuffer(makeCommandBufferImplBox(makeInvalidCommandBufferImpl(&device, device.swiftImpl()))));
 }
 
-void CommandBuffer::retainTimestampsForOneUpdateLoop()
+CommandBuffer::CommandBuffer(std::unique_ptr<CommandBufferImplBox>&& impl)
+    : m_impl(WTF::move(impl))
 {
-    // Workaround for rdar://143905417
-    if (RefPtr commandEncoder = m_commandEncoder)
-        m_device->getQueue()->retainTimestampsForOneUpdate(commandEncoder->timestampBuffers());
 }
 
 CommandBuffer::~CommandBuffer()
 {
-    retainTimestampsForOneUpdateLoop();
-    releasePriorCommandBuffers();
-    m_device->getQueue()->removeMTLCommandBuffer(m_commandBuffer);
-    m_commandBuffer = nil;
-    m_cachedCommandBuffer = nil;
+    // Never passes the dying shell into Swift.
+    m_impl->impl.commandBufferWillBeDestroyed();
 }
 
-void CommandBuffer::setPriorCommandBuffers(Vector<RetainPtr<id<MTLCommandBuffer>>>&& commandBuffers)
+bool CommandBuffer::isValid() const
 {
-    m_priorCommandBuffers = WTF::move(commandBuffers);
+    return m_impl->impl.isValid();
 }
 
-Vector<RetainPtr<id<MTLCommandBuffer>>> CommandBuffer::takePriorCommandBuffers()
+WebGPU::CommandBufferImpl& CommandBuffer::swiftImpl() const
 {
-    return std::exchange(m_priorCommandBuffers, { });
+    return m_impl->impl;
 }
 
-void CommandBuffer::releasePriorCommandBuffers()
+Device& CommandBuffer::device() const
 {
-    auto commandBuffers = takePriorCommandBuffers();
-    Ref queue = m_device->getQueue();
-    for (auto& commandBuffer : commandBuffers)
-        queue->removeMTLCommandBuffer(commandBuffer.get());
+    return borrowSwiftRetained(m_impl->impl.shellDevice());
+}
+
+id<MTLCommandBuffer> CommandBuffer::commandBuffer() const
+{
+    return m_impl->impl.commandBuffer();
 }
 
 void CommandBuffer::setLabel(String&& label)
 {
-    m_commandBuffer.label = label.createNSString().get();
+    m_impl->impl.setLabel(label.createNSString().get());
+}
+
+void CommandBuffer::setBufferMapCount(int bufferMapCount)
+{
+    m_impl->impl.setBufferMapCount(bufferMapCount);
+}
+
+int CommandBuffer::bufferMapCount() const
+{
+    return m_impl->impl.bufferMapCount();
+}
+
+double CommandBuffer::gpuExecutionDurationSeconds() const
+{
+    return m_impl->impl.gpuExecutionDurationSeconds();
 }
 
 void CommandBuffer::makeInvalid(NSString* lastError)
 {
-    if (!m_commandBuffer || m_commandBuffer.status >= MTLCommandBufferStatusCommitted)
-        return;
-
-    m_lastErrorString = lastError;
-    m_device->getQueue()->removeMTLCommandBuffer(m_commandBuffer);
-    retainTimestampsForOneUpdateLoop();
-    releasePriorCommandBuffers();
-    m_commandBuffer = nil;
-    m_cachedCommandBuffer = nil;
-    if (RefPtr commandEncoder = m_commandEncoder)
-        commandEncoder->clearTracking();
-    m_commandEncoder = nullptr;
-    m_preCommitHandlers.clear();
-    m_postCommitHandlers.clear();
+    m_impl->impl.makeInvalid(this, lastError);
 }
 
-bool CommandBuffer::preCommitHandler()
+// Called with the command buffer CommandBufferImpl::willCommit() returned, just before the queue commits it. The Device
+// is read here, on the API thread: the handler, which runs on a Metal thread, only uses what it captures, and hands
+// its references to the command buffer and the queue over to the work item, so that they are released on the API
+// thread.
+void CommandBuffer::registerCompletedHandler(id<MTLCommandBuffer> commandBuffer)
 {
-    bool result = true;
-    if (RefPtr commandEncoder = m_commandEncoder) {
-        auto& commandEncoderRef = *commandEncoder;
-        for (auto& function : m_preCommitHandlers)
-            result = function(*this, commandEncoderRef) && result;
-    }
-
-    m_preCommitHandlers.clear();
-    return result;
-}
-
-void CommandBuffer::postCommitHandler()
-{
-    for (auto& function : m_postCommitHandlers)
-        function(m_cachedCommandBuffer);
-
-    m_postCommitHandlers.clear();
-}
-
-void CommandBuffer::addPostCommitHandler(Function<void(id<MTLCommandBuffer>)>&& function)
-{
-    m_postCommitHandlers.append(WTF::move(function));
-}
-
-void CommandBuffer::makeInvalidDueToCommit(NSString* lastError)
-{
-    if (m_sharedEvent)
-        [m_commandBuffer encodeSignalEvent:m_sharedEvent value:m_sharedEventSignalValue];
-
-    m_cachedCommandBuffer = m_commandBuffer;
-    if (RefPtr instance = m_device->instance())
-        instance->retainCommandBuffer(*this, m_commandBuffer);
-    [m_commandBuffer addCompletedHandler:[protectedThis = protect(*this)](id<MTLCommandBuffer> completedCommandBuffer) {
+    Ref device = this->device();
+    if (RefPtr instance = device->instance())
+        instance->retainCommandBuffer(*this, commandBuffer);
+    [commandBuffer addCompletedHandler:[protectedThis = protect(*this), queue = device->getQueue(), completion = m_impl->completion](id<MTLCommandBuffer> completedCommandBuffer) mutable {
         // GPUStartTime/GPUEndTime bracket execution on the GPU; kernelStartTime/kernelEndTime only bracket the driver scheduling it.
         double gpuStartTime = completedCommandBuffer.GPUStartTime;
         double gpuEndTime = completedCommandBuffer.GPUEndTime;
-        protectedThis->m_gpuExecutionDurationSeconds.store(gpuEndTime - gpuStartTime, std::memory_order_relaxed);
-        protectedThis->m_commandBufferComplete.signal();
-        protectedThis->m_device->getQueue()->scheduleWork([weakThis = ThreadSafeWeakPtr { protectedThis.get() }, gpuStartTime, gpuEndTime]() mutable {
-            RefPtr protectedThis { weakThis.get() };
-            if (!protectedThis)
-                return;
-            protectedThis->m_cachedCommandBuffer = nil;
-            if (RefPtr commandEncoder = protectedThis->m_commandEncoder) {
-                commandEncoder->recordGPUExecutionWindowOnCanvasTextures(gpuStartTime, gpuEndTime);
-                commandEncoder->clearTracking();
-            }
+        completion.didComplete(gpuStartTime, gpuEndTime);
+        Queue& hop = queue.get();
+        hop.scheduleWork([protectedThis = WTF::move(protectedThis), queue = WTF::move(queue), gpuStartTime, gpuEndTime] {
+            protectedThis->m_impl->impl.commandBufferDidComplete(gpuStartTime, gpuEndTime);
 
-            protectedThis->m_commandEncoder = nullptr;
-
-            if (RefPtr instance = protectedThis->m_device->instance())
+            if (RefPtr instance = protectedThis->device().instance())
                 instance->releaseCompletedCommandBuffers();
         });
     }];
-    m_lastErrorString = lastError;
-    m_commandBuffer = nil;
 }
 
 NSString* CommandBuffer::lastError() const
 {
-    return m_lastErrorString;
+    return m_impl->impl.lastError();
 }
 
 bool CommandBuffer::waitForCompletion()
 {
-    auto status = [m_cachedCommandBuffer status];
-    constexpr auto commandBufferSubmissionTimeout = 500_ms;
-    if (status == MTLCommandBufferStatusCommitted || status == MTLCommandBufferStatusScheduled)
-        return m_commandBufferComplete.waitFor(commandBufferSubmissionTimeout);
-
-    return true;
+    return m_impl->impl.waitForCompletion();
 }
 
 } // namespace WebGPU::Metal

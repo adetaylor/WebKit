@@ -24,54 +24,28 @@
  */
 
 #import "ShaderModule.h"
+#import "WGSLAPI.h"
+#import <span>
 #import <wtf/Function.h>
-#import <wtf/Scope.h>
 
 namespace WebGPU::Metal {
 
-class BindGroup;
-class Device;
-class Instance;
-class ShaderModule;
+// For Pipeline.swift. Swift imports -newLibraryWithSource:options:error: and
+// -newComputePipelineStateWithDescriptor:options:reflection:error: as throwing calls, which drop the error (warnings)
+// that Metal returns together with an object; these call `result` with both before returning.
+void newLibraryWithSource(id<MTLDevice>, NSString *source, MTLCompileOptions *, NOESCAPE void (^result)(id<MTLLibrary>, NSError *));
+// Debug and fuzzing builds also write the PSO repro case around the compile.
+void newComputePipelineState(id<MTLDevice>, MTLComputePipelineDescriptor *, const String& shaderSource, NOESCAPE void (^result)(id<MTLComputePipelineState>, NSError *));
 
-using BufferBindingSizesForBindGroup = HashMap<uint32_t, uint64_t, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>>;
-using BufferBindingSizesForPipeline = HashMap<uint32_t, BufferBindingSizesForBindGroup, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>>;
-
-struct PreparedLibrary {
-    id<MTLLibrary> library { nil };
-    String msl;
-    String label;
-    WGSL::DeviceState deviceState;
-    WGSL::CompiledEntryPoint entryPointInformation; // FIXME(PERFORMANCE): This is big. Don't copy this around.
-    WGSL::ResolvedOverrides wgslConstantValues;
-};
-
-std::optional<PreparedLibrary> prepareLibrary(const ShaderModule&, PipelineLayout*, const String& entryPointName, NSString *label, std::span<const WebGPU::ConstantEntry> constants, BufferBindingSizesForPipeline&, NSError **);
-
-struct LibraryCompileRequest {
-    id<MTLLibrary> cachedLibrary { nil };
-    NSString *msl { nil };
-    NSString *label { nil };
-    WGSL::DeviceState deviceState;
-};
-
-LibraryCompileRequest libraryCompileRequest(const PreparedLibrary&);
-
-id<MTLLibrary> compileLibrary(id<MTLDevice>, const LibraryCompileRequest&, NSError **);
-
-void compileLibraryAsync(id<MTLDevice>, Instance&, const LibraryCompileRequest&, CompletionHandler<void(id<MTLLibrary>, NSError *)>&&);
-void createComputePipelineStateAsync(id<MTLDevice>, Instance&, MTLComputePipelineDescriptor *, CompletionHandler<void(id<MTLComputePipelineState>, NSError *)>&&);
-void createRenderPipelineStateAsync(id<MTLDevice>, Instance&, MTLRenderPipelineDescriptor *, CompletionHandler<void(id<MTLRenderPipelineState>, NSError *)>&&);
-
-ScopeExit<Function<void()>> scopedErrorReporting(Device&, bool suppressErrors);
-
-id<MTLFunction> createFunction(id<MTLLibrary>, const WGSL::CompiledEntryPoint&, NSString *label);
-
-NSString* errorValidatingBindGroup(const BindGroup&, const BufferBindingSizesForBindGroup*, const Vector<uint32_t>*);
+// The PSO repro tooling of debug and fuzzing builds, which Swift cannot see (NDEBUG, ASAN_ENABLED): whether PSO logging
+// makes every compile synchronous, and the render pipeline's repro case with its synchronous pipeline-state compile,
+// whose error message (a null String without an error) makes the pipeline invalid. False and null in other builds.
+bool psoLoggingIsEnabled();
+String reproduceRenderPipelineState(id<MTLDevice>, uint32_t maxVertexBuffers, MTLRenderPipelineDescriptor *, const String& vertexShaderSource, const String& fragmentShaderSource, std::span<const uint32_t> shaderLocations NOESCAPE);
 
 #if !defined(NDEBUG) || (defined(ENABLE_LIBFUZZER) && ENABLE_LIBFUZZER && defined(ASAN_ENABLED) && ASAN_ENABLED)
 void dumpMetalReproCaseComputePSO(String&& shaderSource, String&& functionName);
-bool dumpMetalReproCaseRenderPSO(String&& vertexShaderSource, String&& vertexFunctionName, String&& fragmentShaderSource, String&& fragmentFunctionName, MTLRenderPipelineDescriptor*, ShaderModule::VertexStageIn& shaderLocations, const Device&);
+bool dumpMetalReproCaseRenderPSO(String&& vertexShaderSource, String&& vertexFunctionName, String&& fragmentShaderSource, String&& fragmentFunctionName, MTLRenderPipelineDescriptor*, std::span<const uint32_t> shaderLocations, uint32_t maxVertexBuffers);
 void clearMetalPSORepro();
 #endif
 

@@ -26,52 +26,36 @@
 #pragma once
 
 #import "BindableResource.h"
+#import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
+#import <cstddef>
+#import <memory>
 #import <wtf/FastMalloc.h>
-#import <wtf/HashSet.h>
 #import <wtf/Ref.h>
 #import <wtf/TZoneMalloc.h>
-#import <wtf/Vector.h>
 
-
-@interface ResourceUsageAndRenderStage : NSObject
-- (instancetype)initWithUsage:(MTLResourceUsage)usage renderStages:(MTLRenderStages)renderStages entryUsage:(OptionSet<WebGPU::Metal::BindGroupEntryUsage>)entryUsage binding:(uint32_t)binding resource:(WebGPU::Metal::BindGroupEntryUsageData::Resource)resource;
-
-@property (nonatomic) MTLResourceUsage usage;
-@property (nonatomic) MTLRenderStages renderStages;
-@property (nonatomic) OptionSet<WebGPU::Metal::BindGroupEntryUsage> entryUsage;
-@property (nonatomic) uint32_t binding;
-@property (nonatomic) WebGPU::Metal::BindGroupEntryUsageData::Resource resource;
-@end
-
-@class RenderBundleICBWithResources;
+#if !defined(__swift__)
+namespace WebGPU {
+class RenderBundleImpl;
+}
+#endif
 
 namespace WebGPU::Metal {
 
-class BindGroup;
-class Buffer;
-class CommandEncoder;
 class Device;
-class RenderBundleEncoder;
-class RenderPassEncoder;
-class RenderPipeline;
-class TextureOrTextureView;
-class TextureView;
+
+// Writes the viewport depth range into an ICB's fragment dynamic-offset buffer through the device's queue.
+void writeRenderBundleDepthRange(Device&, id<MTLBuffer>, float minDepth, float maxDepth);
 
 // https://gpuweb.github.io/gpuweb/#gpurenderbundle
+// Forwards to the Swift RenderBundleImpl, which RenderBundleEncoderImpl.finish() builds and which owns the bundle's
+// state.
 class RenderBundle final : public WebGPU::RenderBundle {
     WTF_MAKE_TZONE_ALLOCATED(RenderBundle);
 public:
-    using MinVertexCountsContainer = HashMap<uint64_t, IndexBufferAndIndexData, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>>;
-    using ResourcesContainer = NSMapTable<id<MTLResource>, ResourceUsageAndRenderStage*>;
-    static Ref<RenderBundle> create(NSArray<RenderBundleICBWithResources*> *resources, Vector<WebGPU::Metal::BindableResources>&& bindableResources, RefPtr<WebGPU::Metal::RenderBundleEncoder> encoder, std::span<const std::optional<WebGPU::TextureFormat>> colorFormats, std::optional<WebGPU::TextureFormat> depthStencilFormat, uint32_t sampleCount, bool depthReadOnly, bool stencilReadOnly, uint64_t commandCount, bool makeSubmitInvalid, HashSet<RefPtr<const BindGroup>>&& bindGroups, Device& device)
-    {
-        return adoptRef(*new RenderBundle(resources, WTF::move(bindableResources), encoder, colorFormats, depthStencilFormat, sampleCount, depthReadOnly, stencilReadOnly, commandCount, makeSubmitInvalid, WTF::move(bindGroups), device));
-    }
-    static Ref<RenderBundle> createInvalid(Device& device, NSString* errorString)
-    {
-        return adoptRef(*new RenderBundle(device, errorString));
-    }
+#if !defined(__swift__)
+    static Ref<RenderBundle> create(const WebGPU::RenderBundleImpl&);
+#endif
 
     ~RenderBundle();
 
@@ -79,41 +63,18 @@ public:
 
     bool LEGACY_NODELETE isValid() const final;
 
-    Device& device() const { return m_device; }
-    NSArray<RenderBundleICBWithResources*> *renderBundlesResources() const { return m_renderBundlesResources; }
-
-    void replayCommands(RenderPassEncoder&) const;
-    void updateMinMaxDepths(float minDepth, float maxDepth);
-    bool validateRenderPass(bool depthReadOnly, bool stencilReadOnly, const Vector<TextureOrTextureView>&, const std::optional<TextureOrTextureView>&) const;
-    bool LEGACY_NODELETE validatePipeline(const RenderPipeline*);
-    uint64_t LEGACY_NODELETE drawCount() const;
-    NSString* LEGACY_NODELETE lastError() const;
-    bool LEGACY_NODELETE requiresCommandReplay() const;
-    bool LEGACY_NODELETE makeSubmitInvalid() const;
-    bool rebindSamplersIfNeeded() const;
-    void releaseDestroyedResources();
-    const Vector<WebGPU::Metal::BindableResources>& resources() LIFETIME_BOUND { return m_resources; }
+#if !defined(__swift__)
+    WebGPU::RenderBundleImpl& swiftImpl() const LIFETIME_BOUND;
+#endif
 
 private:
-    RenderBundle(NSArray<RenderBundleICBWithResources*> *, Vector<WebGPU::Metal::BindableResources>&&, RefPtr<RenderBundleEncoder>, std::span<const std::optional<WebGPU::TextureFormat>> colorFormats, std::optional<WebGPU::TextureFormat> depthStencilFormat, uint32_t sampleCount, bool depthReadOnly, bool stencilReadOnly, uint64_t, bool makeSubmitInvalid, HashSet<RefPtr<const BindGroup>>&&, Device&);
-    RenderBundle(Device&, NSString*);
+#if !defined(__swift__)
+    explicit RenderBundle(const WebGPU::RenderBundleImpl&);
+#endif
 
-    const Ref<Device> m_device;
-    RefPtr<RenderBundleEncoder> m_renderBundleEncoder;
-    NSArray<RenderBundleICBWithResources*> *m_renderBundlesResources;
-    Vector<WebGPU::Metal::BindableResources> m_resources;
-    const Vector<std::optional<WebGPU::TextureFormat>> m_colorFormats;
-    const std::optional<WebGPU::TextureFormat> m_depthStencilFormat;
-    const uint32_t m_sampleCount { 0 };
-    const bool m_depthReadOnly { false };
-    const bool m_stencilReadOnly { false };
-    HashSet<RefPtr<const BindGroup>> m_bindGroups;
-
-    NSString* m_lastErrorString { nil };
-    uint64_t m_commandCount { 0 };
-    float m_minDepth { 0.f };
-    float m_maxDepth { 1.f };
-    bool m_makeSubmitInvalid { false };
+    // The Swift object: one generated WebGPU::RenderBundleImpl, a single strong reference. RenderBundle.mm, where the
+    // generated header is includable, builds it in place in the constructor and destroys it in the destructor.
+    alignas(void*) std::byte m_impl[sizeof(void*)];
 };
 
 } // namespace WebGPU::Metal

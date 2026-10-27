@@ -26,16 +26,14 @@
 #pragma once
 
 #import "PresentationContext.h"
-#import <wtf/Deque.h>
 #import <wtf/MachSendRight.h>
 #import <wtf/TZoneMalloc.h>
-#import <wtf/Vector.h>
 #import <wtf/spi/cocoa/IOSurfaceSPI.h>
 
 namespace WebGPU::Metal {
 
-class Device;
 class Instance;
+struct PresentationContextIOSurfaceImplBox;
 
 class PresentationContextIOSurface : public PresentationContext {
     WTF_MAKE_TZONE_ALLOCATED(PresentationContextIOSurface);
@@ -49,49 +47,20 @@ public:
 
     void present(uint32_t) override;
     Texture* currentTexture(uint32_t) override;
-    TextureView* getCurrentTextureView() override;
 
-    Seconds lastFrameGPUCost() const override { return m_lastDrainedFrameGPUCost; }
-    Seconds lastFramePresentStall() const override { return m_lastFramePresentStall; }
-
-    bool isPresentationContextIOSurface() const override { return true; }
+    Seconds lastFrameGPUCost() const override;
+    Seconds lastFramePresentStall() const override;
 
     bool isValid() const final { return true; }
 private:
-    explicit PresentationContextIOSurface(const Instance&);
+    explicit PresentationContextIOSurface(std::unique_ptr<PresentationContextIOSurfaceImplBox>&&);
 
-    void renderBuffersWereRecreated(NSArray<IOSurface *> *renderBuffers);
+    void renderBuffersWereRecreated(std::span<const IOSurfaceRef>);
     void onSubmittedWorkScheduled(Function<void()>&&);
     RetainPtr<CGImageRef> getTextureAsNativeImage(uint32_t bufferIndex, bool& isIOSurfaceSupportedFormat) final;
-    void copyTextureToTexture(id<MTLTexture> destination, id<MTLTexture> source, id<MTLCommandBuffer>);
-    id<MTLComputePipelineState> resizeComputePipelineState();
 
-    void waitForInFlightFrameSlot();
-
-    NSArray<IOSurface *> *m_ioSurfaces { nil };
-    struct RenderBuffer {
-        Ref<Texture> texture;
-        RefPtr<Texture> luminanceClampTexture;
-    };
-    Vector<RenderBuffer> m_renderBuffers;
-    Vector<RenderBuffer> m_existingRenderBuffers;
-    RefPtr<Device> m_device;
-    RefPtr<Texture> m_invalidTexture;
-    id<MTLFunction> m_luminanceClampFunction;
-    id<MTLComputePipelineState> m_computePipelineState;
-    id<MTLComputePipelineState> m_resizeComputePipelineState;
-    Deque<Ref<Texture>> m_inFlightFrames;
-    size_t m_maximumInFlightFrames { 0 };
-    Seconds m_lastDrainedFrameGPUCost { 0_s };
-    Seconds m_lastFramePresentStall { 0_s };
-#if HAVE(IOSURFACE_SET_OWNERSHIP_IDENTITY) && HAVE(TASK_IDENTITY_TOKEN)
-    std::optional<const MachSendRight> m_webProcessID;
-#endif
-    WebGPU::PredefinedColorSpace m_colorSpace { WebGPU::PredefinedColorSpace::SRGB };
-    WebGPU::CanvasToneMappingMode m_toneMappingMode { WebGPU::CanvasToneMappingMode::Standard };
-    WebGPU::CanvasAlphaMode m_alphaMode { WebGPU::CanvasAlphaMode::Premultiplied };
+    // The web process identity, device, IOSurfaces, render buffers, frames in flight, pipelines and canvas modes.
+    const std::unique_ptr<PresentationContextIOSurfaceImplBox> m_impl;
 };
 
 } // namespace WebGPU::Metal
-
-SPECIALIZE_TYPE_TRAITS_WEBGPU_PRESENTATION_CONTEXT(PresentationContextIOSurface, isPresentationContextIOSurface());

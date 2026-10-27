@@ -27,30 +27,27 @@
 
 #import "BindableResource.h"
 #import "CommandBuffer.h"
-#import "CommandsMixin.h"
 #import "Device.h"
 #import <WebGPU/WebGPU.h>
 #import <WebGPU/WebGPUCpp.h>
+#import <memory>
+#import <span>
 #import <wtf/FastMalloc.h>
 #import <wtf/Function.h>
 #import <wtf/Ref.h>
 #import <wtf/RetainPtr.h>
 #import <wtf/SwiftBridging.h>
 #import <wtf/TZoneMalloc.h>
-#import <wtf/TaggedPtr.h>
 #import <wtf/Vector.h>
 #import <wtf/WeakPtr.h>
 
 IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
-@interface TextureAndClearColor : NSObject
-- (instancetype)initWithTexture:(id<MTLTexture> _Nonnull)texture NS_DESIGNATED_INITIALIZER;
-- (instancetype)init NS_UNAVAILABLE;
-@property (nonatomic, nonnull) id<MTLTexture> texture;
-@property (nonatomic) MTLClearColor clearColor;
-@property (nonatomic) NSUInteger depthPlane;
-@end
-
+#if !defined(__swift__)
+namespace WebGPU {
+class CommandEncoderImpl;
+}
+#endif
 
 namespace WebGPU::Metal {
 
@@ -65,8 +62,22 @@ class Sampler;
 class Texture;
 class TextureView;
 
+// setBindGroup's dynamic offsets, borrowed for the duration of the call, for the encoders' Swift: a nonescapable view
+// whose span() Swift reads as a lifetime-checked Span, where a std::span parameter would be unsafe (rdar://161269480).
+struct DynamicOffsetsView {
+    std::span<const uint32_t> offsets;
+
+    std::span<const uint32_t> span() const LIFETIME_BOUND { return offsets; }
+} SWIFT_VIEW;
+
+// Defined in CommandEncoder.mm, where the generated Swift header declaring WebGPU::CommandEncoderImpl is
+// includable.
+struct CommandEncoderImplBox;
+
 // https://gpuweb.github.io/gpuweb/#gpucommandencoder
-class CommandEncoder final : public WebGPU::CommandEncoder, public CommandsMixin {
+// Forwards to the Swift CommandEncoderImpl, which owns the encoder's state and logic. The shell resolves the objects
+// the methods take to their Impls.
+class CommandEncoder final : public WebGPU::CommandEncoder {
     WTF_MAKE_TZONE_ALLOCATED(CommandEncoder);
 public:
     static Ref<CommandEncoder> create(id<MTLCommandBuffer> commandBuffer, Device& device, uint64_t uniqueId)
@@ -77,168 +88,36 @@ public:
     {
         return adoptRef(*new CommandEncoder(device));
     }
-#if ENABLE(WEBGPU_SWIFT)
-    inline Ref<CommandBuffer> createCommandBuffer(id<MTLCommandBuffer> commandBuffer, Device& device, id<MTLSharedEvent> sharedEvent, uint64_t sharedEventSignalValue)
-    {
-        Ref result = CommandBuffer::create(commandBuffer, device, sharedEvent, sharedEventSignalValue, WTF::move(m_onCommitHandlers), *this);
-        result->setPriorCommandBuffers(std::exchange(m_priorCommandBuffers, { }));
-        return result;
-    }
-#endif
 
     ~CommandEncoder();
 
-    Ref<ComputePassEncoder> beginComputePass(const WebGPU::ComputePassDescriptor&);
+    RefPtr<WebGPU::ComputePassEncoder> beginComputePass(const std::optional<WebGPU::ComputePassDescriptor>&) final;
     RefPtr<WebGPU::RenderPassEncoder> beginRenderPass(const WebGPU::RenderPassDescriptor&) final;
-    void copyBufferToBuffer(const Buffer& source, uint64_t sourceOffset, Buffer& destination, uint64_t destinationOffset, uint64_t size);
+    void copyBufferToBuffer(const WebGPU::Buffer& source, uint64_t sourceOffset, WebGPU::Buffer& destination, uint64_t destinationOffset, uint64_t size) final;
     void copyBufferToTexture(const WebGPU::TexelCopyBufferInfo& source, const WebGPU::TexelCopyTextureInfo& destination, const WebGPU::Extent3D& copySize) final;
     void copyTextureToBuffer(const WebGPU::TexelCopyTextureInfo& source, const WebGPU::TexelCopyBufferInfo& destination, const WebGPU::Extent3D& copySize) final;
     void copyTextureToTexture(const WebGPU::TexelCopyTextureInfo& source, const WebGPU::TexelCopyTextureInfo& destination, const WebGPU::Extent3D& copySize) final;
-    void runClearEncoder(NSMutableDictionary<NSNumber*, TextureAndClearColor*> *attachmentsToClear, id<MTLTexture> depthStencilAttachmentToClear, bool depthAttachmentToClear, bool stencilAttachmentToClear, float depthClearValue = 0, uint32_t stencilClearValue = 0, id<MTLRenderCommandEncoder> existingEncoder = nil);
     // std::nullopt is the rest of the buffer after the offset.
-    void clearBuffer(Buffer&, uint64_t offset, std::optional<uint64_t> size);
+    void clearBuffer(WebGPU::Buffer&, uint64_t offset, std::optional<uint64_t> size) final;
     RefPtr<WebGPU::CommandBuffer> finish(const WebGPU::CommandBufferDescriptor&) final;
     void insertDebugMarker(String&& markerLabel) final;
     void popDebugGroup() final;
     void pushDebugGroup(String&& groupLabel) final;
-    void resolveQuerySet(const QuerySet&, uint32_t firstQuery, uint32_t queryCount, Buffer& destination, uint64_t destinationOffset);
-    void writeTimestamp(QuerySet&, uint32_t queryIndex);
-
-    // The WebGPU::CommandEncoder methods that take objects. Every object they take was created
-    // by this implementation, so they cast it to its WebGPU::Metal type.
-    RefPtr<WebGPU::ComputePassEncoder> beginComputePass(const std::optional<WebGPU::ComputePassDescriptor>&) final;
-    void copyBufferToBuffer(const WebGPU::Buffer& source, uint64_t sourceOffset, WebGPU::Buffer& destination, uint64_t destinationOffset, uint64_t size) final;
-    void clearBuffer(WebGPU::Buffer&, uint64_t offset, std::optional<uint64_t> size) final;
-    void writeTimestamp(WebGPU::QuerySet&, uint32_t queryIndex) final;
     void resolveQuerySet(const WebGPU::QuerySet&, uint32_t firstQuery, uint32_t queryCount, WebGPU::Buffer& destination, uint64_t destinationOffset) final;
+    void writeTimestamp(WebGPU::QuerySet&, uint32_t queryIndex) final;
     void setLabel(String&&) final;
 
-    Device& device() const { return m_device; }
-
-    bool isValid() const final { return m_commandBuffer; }
-    void lock(bool);
-    bool isLocked() const { return m_state == EncoderState::Locked; }
-
-    bool isFinished() const { return m_state == EncoderState::Ended; }
-
-#if ENABLE(WEBGPU_SWIFT)
-    void setEncoderState(EncoderState state) { m_state = state; }
-    EncoderState getEncoderState() { return m_state; }
+    bool isValid() const final;
+#if !defined(__swift__)
+    WebGPU::CommandEncoderImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
-
-    id<MTLBlitCommandEncoder> ensureBlitCommandEncoder();
-    void finalizeBlitCommandEncoder();
-    static void clearTextureIfNeeded(const WebGPU::TexelCopyTextureInfo&, NSUInteger, const Device&, id<MTLBlitCommandEncoder>);
-    static void clearTextureIfNeeded(Texture&, NSUInteger, NSUInteger, const Device&, id<MTLBlitCommandEncoder>);
-    void clearTextureIfNeeded(const WebGPU::TexelCopyTextureInfo&, NSUInteger);
-    void makeInvalid(NSString*);
-    void makeSubmitInvalid(NSString* = nil);
-    void incrementBufferMapCount();
-    void decrementBufferMapCount();
-    void endEncoding(id<MTLCommandEncoder>);
-    void setLastError(NSString*);
-    bool waitForCommandBufferCompletion();
-    void recordGPUExecutionWindowOnCanvasTextures(double startTime, double endTime) const;
-    bool encoderIsCurrent(id<MTLCommandEncoder>) const;
-    bool submitWillBeInvalid() const { return m_makeSubmitInvalid; }
-    void addBuffer(id<MTLBuffer>);
-    void addBuffer(id<MTLCounterSampleBuffer>);
-    void addICB(id<MTLIndirectCommandBuffer>);
-    void addTexture(id<MTLTexture>);
-    void addTexture(const Texture&);
-    void addSampler(const Sampler&);
-    id<MTLCommandBuffer> _Nullable LEGACY_NODELETE commandBuffer() const;
-    void setExistingEncoder(id<MTLCommandEncoder>);
-
-    // IOGPU can only fit on the order of 37000 MTLRenderCommandEncoders in a single MTLCommandBuffer
-    // before the buffer fails with kIOGPUCommandBufferCallbackErrorOutOfMemory, which loses the
-    // device. Roll over to a fresh MTLCommandBuffer well short of that and let the queue commit them
-    // back to back; a page encoding tens of thousands of render passes into one GPUCommandEncoder is
-    // legal WebGPU.
-    void rotateCommandBufferIfNeeded();
-    void didCreateRenderCommandEncoder() { ++m_renderCommandEncoderCount; }
-    id<MTLRenderCommandEncoder> _Nullable makeRenderCommandEncoder(MTLRenderPassDescriptor*);
-    // A render pass that loads and stores every attachment and has no occlusion query cannot change
-    // anything unless it encodes a command, so its render command encoder is not created until the
-    // pass actually encodes one. This keeps the (common) empty-pass case off the budget above.
-    bool canDeferRenderCommandEncoder(MTLRenderPassDescriptor*) const;
-    void encodeDeferredRenderPassTimestamps(MTLRenderPassDescriptor*);
-    Ref<RenderPassEncoder> createRenderPassEncoder(const WebGPU::RenderPassDescriptor&, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, id<MTLBuffer> _Nullable visibilityResultBuffer, uint64_t maxDrawCount, MTLRenderPassDescriptor*);
-    void generateInvalidEncoderStateError();
-    bool LEGACY_NODELETE validateClearBuffer(const Buffer&, uint64_t offset, uint64_t size);
-    void clearTracking();
-    bool trackEncoderForBuffer(const Buffer&, TrackedResourceContainer&);
-    void trackEncoderForTexture(const Texture&, TrackedResourceContainer&);
-    void trackEncoderForTextureView(const TextureView&, TrackedResourceContainer&);
-    void trackEncoderForExternalTexture(const ExternalTexture&, TrackedResourceContainer&);
-    void trackEncoderForQuerySet(const QuerySet&, TrackedResourceContainer&);
-    static void trackEncoder(CommandEncoder&, HashSet<uint64_t, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>>&);
-    static size_t computeSize(TrackedResourceContainer&, const Device&);
-    uint64_t uniqueId() const { return m_uniqueId; }
-    NSMutableSet<id<MTLCounterSampleBuffer>> * _Nullable timestampBuffers() const { return m_retainedTimestampBuffers; };
-    void addOnCommitHandler(Function<bool(CommandBuffer&, CommandEncoder&)>&&);
-#if ENABLE(WEBGPU_BY_DEFAULT)
-    bool useResidencySet(id<MTLResidencySet>);
-#endif
-    void skippedDrawIndexedValidation(uint64_t bufferIdentifier, DrawIndexCacheContainerIterator);
-    void rebindSamplersPreCommit(const BindGroup&);
 
 private:
     CommandEncoder(id<MTLCommandBuffer>, Device&, uint64_t uniqueId);
     CommandEncoder(Device&);
 
-    bool LEGACY_NODELETE validatePopDebugGroup() const;
-
-    NSString * _Nullable validateFinishError() const;
-    NSString * _Nullable errorValidatingCopyBufferToBuffer(const Buffer& source, uint64_t sourceOffset, const Buffer& destination, uint64_t destinationOffset, uint64_t size);
-    NSString * _Nullable errorValidatingComputePassDescriptor(const WebGPU::ComputePassDescriptor&) const;
-    NSString * _Nullable errorValidatingRenderPassDescriptor(const WebGPU::RenderPassDescriptor&) const;
-    NSString * _Nullable errorValidatingImageCopyBuffer(const WebGPU::TexelCopyBufferInfo&) const;
-    NSString * _Nullable errorValidatingCopyBufferToTexture(const WebGPU::TexelCopyBufferInfo&, const WebGPU::TexelCopyTextureInfo&, const WebGPU::Extent3D&) const;
-    NSString * _Nullable errorValidatingCopyTextureToBuffer(const WebGPU::TexelCopyTextureInfo&, const WebGPU::TexelCopyBufferInfo&, const WebGPU::Extent3D&) const;
-    NSString * _Nullable errorValidatingCopyTextureToTexture(const WebGPU::TexelCopyTextureInfo& source, const WebGPU::TexelCopyTextureInfo& destination, const WebGPU::Extent3D& copySize) const;
-
-    void discardCommandBuffer();
-    void retainTimestampsForOneUpdateLoop();
-    void releasePriorCommandBuffers();
-
-    id<MTLCommandBuffer> _Nullable m_commandBuffer { nil };
-    Vector<RetainPtr<id<MTLCommandBuffer>>> m_priorCommandBuffers;
-    uint32_t m_renderCommandEncoderCount { 0 };
-    id<MTLCommandEncoder> _Nullable m_existingCommandEncoder { nil };
-    id<MTLBlitCommandEncoder> _Nullable m_blitCommandEncoder { nil };
-    NSString* _Nullable m_lastErrorString { nil };
-    uint64_t m_debugGroupStackSize { 0 };
-    ThreadSafeWeakPtr<CommandBuffer> m_cachedCommandBuffer;
-#if CPU(X86_64) && (PLATFORM(MAC) || PLATFORM(MACCATALYST))
-    NSMutableSet<id<MTLTexture>> * _Nullable m_managedTextures { nil };
-    NSMutableSet<id<MTLBuffer>> * _Nullable m_managedBuffers { nil };
-#endif // CPU(X86_64) && (PLATFORM(MAC) || PLATFORM(MACCATALYST))
-private:
-    NSMutableSet<id<MTLIndirectCommandBuffer>> * _Nullable m_retainedICBs { nil };
-    NSMutableSet<id<MTLTexture>> * _Nullable m_retainedTextures { nil };
-    NSMutableSet<id<MTLBuffer>> * _Nullable m_retainedBuffers { nil };
-    HashSet<RefPtr<const Sampler>> m_retainedSamplers;
-    NSMutableSet<id<MTLCounterSampleBuffer>> * _Nullable m_retainedTimestampBuffers { nil };
-    Vector<Function<bool(CommandBuffer&, CommandEncoder&)>> m_onCommitHandlers;
-    HashMap<uint64_t, Vector<std::pair<DrawIndexCacheContainerValue, uint32_t>>, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>> m_skippedDrawIndexedValidationKeys;
-    Vector<Ref<const BindGroup>> m_bindGroups;
-    Vector<Ref<const Buffer>> m_trackedBuffers;
-    Vector<Ref<const Texture>> m_trackedTextures;
-    Vector<Ref<const TextureView>> m_trackedTextureViews;
-    Vector<Ref<const ExternalTexture>> m_trackedExternalTextures;
-    Vector<Ref<const QuerySet>> m_trackedQuerySets;
-
-    int m_bufferMapCount { 0 };
-    bool m_makeSubmitInvalid { false };
-    id<MTLSharedEvent> _Nullable m_sharedEvent { nil };
-    uint64_t m_sharedEventSignalValue { 0 };
-    const Ref<Device> m_device;
-    uint64_t m_uniqueId;
-#if ENABLE(WEBGPU_BY_DEFAULT)
-    uint32_t m_currentResidencySetCount { 0 };
-#endif
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refCommandEncoder, derefCommandEncoder) SWIFT_PRIVATE_FILEID("WebGPU/CommandEncoder.swift");
+    const std::unique_ptr<CommandEncoderImplBox> m_impl;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refCommandEncoder, derefCommandEncoder);
 
 } // namespace WebGPU::Metal
 

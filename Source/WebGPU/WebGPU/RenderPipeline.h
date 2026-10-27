@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (c) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,7 +28,11 @@
 #import "Pipeline.h"
 #import "PipelineLayout.h"
 
+#import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
+#import <memory>
+#import <optional>
+#import <wtf/CompletionHandler.h>
 #import <wtf/FastMalloc.h>
 #import <wtf/HashMap.h>
 #import <wtf/HashTraits.h>
@@ -36,6 +40,11 @@
 #import <wtf/TZoneMalloc.h>
 #import <wtf/WeakPtr.h>
 
+#if !defined(__swift__)
+namespace WebGPU {
+class RenderPipelineImpl;
+}
+#endif
 
 namespace WebGPU::Metal {
 
@@ -44,107 +53,111 @@ class Device;
 class TextureOrTextureView;
 class TextureView;
 
+// The scalar pipeline state, which the render encoders read as one value.
+struct RenderPipelineParameters {
+    MTLPrimitiveType primitiveType { MTLPrimitiveTypePoint };
+    MTLWinding frontFace { MTLWindingClockwise };
+    MTLCullMode cullMode { MTLCullModeNone };
+    MTLDepthClipMode depthClipMode { MTLDepthClipModeClip };
+    float depthBias { 0 };
+    float depthBiasSlopeScale { 0 };
+    float depthBiasClamp { 0 };
+    uint32_t sampleMask { UINT32_MAX };
+    uint32_t colorAttachmentCount { 0 };
+    uint32_t sampleCount { 0 };
+    uint32_t vertexShaderBindingCount { 0 };
+    uint64_t uniqueId { 0 };
+    bool hasFragment { false };
+    bool writesStencil { false };
+};
+
+// For RenderPipeline.swift: the parts of a WebGPU::RenderPipelineDescriptor it cannot read as Spans or directly: the
+// vertex buffer layouts (optionals of a struct holding a span) and the optional fragment state (a view).
+struct RenderPipelineVertexBufferFields {
+    uint64_t arrayStride { 0 };
+    WebGPU::VertexStepMode stepMode { WebGPU::VertexStepMode::Vertex };
+};
+
+using OptionalColorTargetState = std::optional<WebGPU::ColorTargetState>;
+
+inline size_t renderPipelineVertexBufferCount(const WebGPU::RenderPipelineDescriptor& descriptor)
+{
+    return descriptor.vertex.buffers.size();
+}
+
+// std::nullopt for an empty vertex buffer slot.
+inline std::optional<RenderPipelineVertexBufferFields> renderPipelineVertexBuffer(const WebGPU::RenderPipelineDescriptor& descriptor, size_t index)
+{
+    auto& buffer = descriptor.vertex.buffers[index];
+    if (!buffer)
+        return std::nullopt;
+    return RenderPipelineVertexBufferFields { .arrayStride = buffer->arrayStride, .stepMode = buffer->stepMode };
+}
+
+// Empty for an empty vertex buffer slot.
+inline std::span<const WebGPU::VertexAttribute> renderPipelineVertexAttributes(const WebGPU::RenderPipelineDescriptor& descriptor LIFETIME_BOUND, size_t index)
+{
+    auto& buffer = descriptor.vertex.buffers[index];
+    return buffer ? buffer->attributes : std::span<const WebGPU::VertexAttribute> { };
+}
+
+inline bool renderPipelineHasFragment(const WebGPU::RenderPipelineDescriptor& descriptor)
+{
+    return !!descriptor.fragment;
+}
+
+// Only called when renderPipelineHasFragment().
+inline String renderPipelineFragmentEntryPoint(const WebGPU::RenderPipelineDescriptor& descriptor)
+{
+    return descriptor.fragment->stage.entryPoint;
+}
+
+// Empty without a fragment state.
+inline std::span<const WebGPU::ConstantEntry> renderPipelineFragmentConstants(const WebGPU::RenderPipelineDescriptor& descriptor LIFETIME_BOUND)
+{
+    return descriptor.fragment ? descriptor.fragment->stage.constants : std::span<const WebGPU::ConstantEntry> { };
+}
+
+inline std::span<const OptionalColorTargetState> renderPipelineColorTargets(const WebGPU::RenderPipelineDescriptor& descriptor LIFETIME_BOUND)
+{
+    return descriptor.fragment ? descriptor.fragment->targets : std::span<const OptionalColorTargetState> { };
+}
+
+// For RenderPipeline.swift: what Swift cannot do itself (call a private selector). Defined in RenderPipeline.mm.
+void setRenderPipelineSampleMask(MTLRenderPipelineDescriptor *, uint32_t);
+
+struct RenderPipelineImplBox;
+
 // https://gpuweb.github.io/gpuweb/#gpurenderpipeline
+// Forwards to the Swift RenderPipelineImpl, which the render encoders read directly.
 class RenderPipeline final : public WebGPU::RenderPipeline {
     WTF_MAKE_TZONE_ALLOCATED(RenderPipeline);
 public:
-    struct BufferData {
-        uint64_t stride { 0 };
-        uint64_t lastStride { 0 };
-        WebGPU::VertexStepMode stepMode { WebGPU::VertexStepMode::Vertex };
-    };
-    using RequiredBufferIndicesContainer = HashMap<uint32_t, BufferData, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>>;
-
-    static Ref<RenderPipeline> create(MTLPrimitiveType primitiveType, std::optional<MTLIndexType> indexType, MTLWinding frontFace, MTLCullMode cullMode, MTLDepthClipMode depthClipMode, MTLDepthStencilDescriptor *depthStencilDescriptor, Ref<PipelineLayout>&& pipelineLayout, float depthBias, float depthBiasSlopeScale, float depthBiasClamp, uint32_t sampleMask, MTLRenderPipelineDescriptor* renderPipelineDescriptor, uint32_t colorAttachmentCount, WebGPU::PrimitiveTopology primitiveTopology, std::optional<WebGPU::IndexFormat> stripIndexFormat, uint32_t sampleCount, bool hasFragment, Vector<std::optional<WebGPU::TextureFormat>>&& colorTargetFormats, std::optional<WebGPU::TextureFormat> depthStencilFormat, bool writesStencil, RequiredBufferIndicesContainer&& requiredBufferIndices, BufferBindingSizesForPipeline&& minimumBufferSizes, uint64_t uniqueId, uint32_t vertexShaderBindingCount, Device& device)
-    {
-        return adoptRef(*new RenderPipeline(primitiveType, indexType, frontFace, cullMode, depthClipMode, depthStencilDescriptor, WTF::move(pipelineLayout), depthBias, depthBiasSlopeScale, depthBiasClamp, sampleMask, renderPipelineDescriptor, colorAttachmentCount, primitiveTopology, stripIndexFormat, sampleCount, hasFragment, WTF::move(colorTargetFormats), depthStencilFormat, writesStencil, WTF::move(requiredBufferIndices), WTF::move(minimumBufferSizes), uniqueId, vertexShaderBindingCount, device));
-    }
-
-    static Ref<RenderPipeline> createInvalid(Device& device)
-    {
-        return adoptRef(*new RenderPipeline(device));
-    }
+    static Ref<RenderPipeline> create(std::unique_ptr<RenderPipelineImplBox>&&);
+    static Ref<RenderPipeline> createInvalid(Device&);
+    // For RenderPipeline.swift: wraps the Impl staged in DeviceImpl.stagedRenderPipelineImpl.
+    static Ref<RenderPipeline> createWithStagedImpl(Device&);
 
     ~RenderPipeline();
 
     Ref<WebGPU::BindGroupLayout> getBindGroupLayout(uint32_t groupIndex) final;
     void LEGACY_NODELETE setLabel(String&&) final;
 
-    bool isValid() const final { return m_renderPipelineDescriptor && m_pipelineLayout->isValid(); }
+    bool isValid() const final;
+#if !defined(__swift__)
+    WebGPU::RenderPipelineImpl& swiftImpl() const LIFETIME_BOUND;
+#endif
 
-    MTLRenderPipelineDescriptor* renderPipelineDescriptor() const { return m_renderPipelineDescriptor; }
-    id<MTLRenderPipelineState> renderPipelineState() const;
-    id<MTLRenderPipelineState> icbRenderPipelineState() const;
-
-    void setPrecompiledRenderPipelineState(id<MTLRenderPipelineState>);
-
-    id<MTLDepthStencilState> LEGACY_NODELETE depthStencilState() const;
-    bool validateDepthStencilState(bool depthReadOnly, bool stencilReadOnly) const;
-    MTLPrimitiveType primitiveType() const { return m_primitiveType; }
-    MTLWinding frontFace() const { return m_frontFace; }
-    MTLCullMode cullMode() const { return m_cullMode; }
-    MTLDepthClipMode depthClipMode() const { return m_clipMode; }
-    MTLDepthStencilDescriptor *depthStencilDescriptor() const { return m_depthStencilDescriptor; }
-    float depthBias() const { return m_depthBias; }
-    float depthBiasSlopeScale() const { return m_depthBiasSlopeScale; }
-    float depthBiasClamp() const { return m_depthBiasClamp; }
-    uint32_t sampleMask() const { return m_sampleMask; }
-
-    Device& device() const { return m_device; }
-    PipelineLayout& pipelineLayout() const { return m_pipelineLayout; }
-    NSString* errorValidatingColorDepthStencilTargets(const Vector<TextureOrTextureView>&, const std::optional<TextureOrTextureView>&) const;
-    bool validateRenderBundle(bool depthReadOnly, bool stencilReadOnly, uint32_t sampleCount, std::span<const std::optional<WebGPU::TextureFormat>> colorFormats, std::optional<WebGPU::TextureFormat> depthStencilFormat) const;
-    bool writesDepth() const;
-    bool LEGACY_NODELETE writesStencil() const;
-
-    const RequiredBufferIndicesContainer& requiredBufferIndices() const LIFETIME_BOUND { return m_requiredBufferIndices; }
-    WebGPU::PrimitiveTopology primitiveTopology() const { return m_primitiveTopology; }
-
-    // Nullopt when the pipeline did not specify a stripIndexFormat, which no index buffer format
-    // can ever match.
-    std::optional<MTLIndexType> stripIndexFormat() const { return m_indexType; }
-
-    const BufferBindingSizesForBindGroup* LEGACY_NODELETE minimumBufferSizes(uint32_t) const;
-    RefPtr<RenderPipeline> recomputeLastStrideAsStride() const;
-    uint64_t uniqueId() const { return m_uniqueId; }
-    uint32_t vertexShaderBindingCount() const { return m_vertexShaderBindingCount; }
+    PipelineLayout& pipelineLayout() const;
 
 private:
-    RenderPipeline(MTLPrimitiveType, std::optional<MTLIndexType>, MTLWinding, MTLCullMode, MTLDepthClipMode, MTLDepthStencilDescriptor *, Ref<PipelineLayout>&&, float depthBias, float depthBiasSlopeScale, float depthBiasClamp, uint32_t sampleMask, MTLRenderPipelineDescriptor*, uint32_t colorAttachmentCount, WebGPU::PrimitiveTopology, std::optional<WebGPU::IndexFormat> stripIndexFormat, uint32_t sampleCount, bool hasFragment, Vector<std::optional<WebGPU::TextureFormat>>&& colorTargetFormats, std::optional<WebGPU::TextureFormat> depthStencilFormat, bool writesStencil, RequiredBufferIndicesContainer&&, BufferBindingSizesForPipeline&&, uint64_t uniqueId, uint32_t vertexShaderBindingCount, Device&);
-    RenderPipeline(Device&);
-    bool colorTargetsMatch(MTLRenderPassDescriptor*, uint32_t) const;
-    bool depthAttachmentMatches(MTLRenderPassDepthAttachmentDescriptor*) const;
-    bool stencilAttachmentMatches(MTLRenderPassStencilAttachmentDescriptor*) const;
+    explicit RenderPipeline(std::unique_ptr<RenderPipelineImplBox>&&);
 
-    mutable id<MTLRenderPipelineState> m_renderPipelineState { nil };
-
-    const Ref<Device> m_device;
-    MTLPrimitiveType m_primitiveType;
-    std::optional<MTLIndexType> m_indexType;
-    MTLWinding m_frontFace;
-    MTLCullMode m_cullMode;
-    MTLDepthClipMode m_clipMode;
-    float m_depthBias { 0 };
-    float m_depthBiasSlopeScale { 0 };
-    float m_depthBiasClamp { 0 };
-    uint32_t m_sampleMask { UINT32_MAX };
-    MTLRenderPipelineDescriptor* m_renderPipelineDescriptor { nil };
-    uint32_t m_colorAttachmentCount { 0 };
-    MTLDepthStencilDescriptor *m_depthStencilDescriptor { nil };
-    id<MTLDepthStencilState> m_depthStencilState;
-    RequiredBufferIndicesContainer m_requiredBufferIndices;
-    const Ref<PipelineLayout> m_pipelineLayout;
-    mutable RefPtr<RenderPipeline> m_lastStrideAsStridePipeline;
-    const WebGPU::PrimitiveTopology m_primitiveTopology { WebGPU::PrimitiveTopology::TriangleList };
-    const std::optional<WebGPU::IndexFormat> m_stripIndexFormat;
-    const uint32_t m_sampleCount { 0 };
-    const bool m_hasFragment { false };
-    const Vector<std::optional<WebGPU::TextureFormat>> m_colorTargetFormats;
-    const std::optional<WebGPU::TextureFormat> m_depthStencilFormat;
-    const BufferBindingSizesForPipeline m_minimumBufferSizes;
-    const uint64_t m_uniqueId { 0 };
-    const uint32_t m_vertexShaderBindingCount { 0 };
-    const bool m_writesStencil { false };
+    const std::unique_ptr<RenderPipelineImplBox> m_impl;
 };
+
+// As callCreateComputePipelineAsyncCallback.
+using CreateRenderPipelineAsyncCallback = CompletionHandler<void(std::expected<Ref<WebGPU::RenderPipeline>, WebGPU::PipelineError>&&)>;
+void callCreateRenderPipelineAsyncCallback(CreateRenderPipelineAsyncCallback&, RenderPipeline&, bool succeeded, NSString *errorMessage);
 
 } // namespace WebGPU::Metal

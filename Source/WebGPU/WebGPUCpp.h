@@ -57,12 +57,14 @@
 #include <expected>
 #include <optional>
 #include <span>
+#include <type_traits>
 #include <variant> // NOLINT: See the Swift C++ interop constraints above.
 #include <wtf/Forward.h>
 #include <wtf/OptionSet.h>
 #include <wtf/Ref.h>
 #include <wtf/Seconds.h>
 #include <wtf/SwiftBridging.h>
+#include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/Variant.h>
 #include <wtf/Vector.h>
@@ -73,7 +75,10 @@
 #include <wtf/RetainPtr.h>
 
 typedef struct CGImage* CGImageRef;
-typedef struct __CVBuffer* CVPixelBufferRef;
+// CoreVideo's own chain: Swift treats a CVPixelBuffer as a CVBuffer only when these match it.
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 typedef struct __IOSurface* IOSurfaceRef;
 #endif
 
@@ -694,6 +699,7 @@ class Adapter;
 class BindGroup;
 class BindGroupLayout;
 class Buffer;
+class ByteOwner;
 class CommandBuffer;
 class CommandEncoder;
 class ComputePassEncoder;
@@ -917,6 +923,8 @@ struct CanvasConfiguration {
     bool reportValidationErrors { true };
     uint32_t width { 0 };
     uint32_t height { 0 };
+
+    std::span<const TextureFormat> viewFormatsSpan() const LIFETIME_BOUND { return viewFormats; }
 } SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpucopyexternalimagedestinfo
@@ -971,6 +979,10 @@ struct XRProjectionLayerDescriptor {
     double scaleFactor { 1 };
 };
 
+// The element types of spans that the span accessors below hand to Swift, which can name a specialization only through
+// a type alias.
+using OptionalTextureFormat = std::optional<TextureFormat>;
+
 // https://gpuweb.github.io/gpuweb/#dictdef-gpurenderbundleencoderdescriptor
 struct RenderBundleEncoderDescriptor {
     String label;
@@ -980,6 +992,8 @@ struct RenderBundleEncoderDescriptor {
     uint32_t sampleCount { 1 };
     bool depthReadOnly { false };
     bool stencilReadOnly { false };
+
+    std::span<const OptionalTextureFormat> colorFormatsSpan() const LIFETIME_BOUND { return colorFormats; }
 } SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpurenderbundledescriptor
@@ -1019,6 +1033,8 @@ struct ProgrammableStage {
     Ref<ShaderModule> module;
     String entryPoint; // A null string: the only entry point of the module for the stage.
     std::span<const ConstantEntry> constants; // Borrowed for the duration of the call.
+
+    std::span<const ConstantEntry> constantsSpan() const LIFETIME_BOUND { return constants; }
 } SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpucomputepipelinedescriptor
@@ -1047,7 +1063,7 @@ struct VertexState {
     ProgrammableStage stage;
     // Borrowed for the duration of the call. std::nullopt: no vertex buffer in that slot.
     std::span<const std::optional<VertexBufferLayout>> buffers;
-};
+} SWIFT_VIEW SWIFT_SAFE;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpublendcomponent
 struct BlendComponent {
@@ -1074,7 +1090,7 @@ struct FragmentState {
     ProgrammableStage stage;
     // Borrowed for the duration of the call. std::nullopt: no color target in that slot.
     std::span<const std::optional<ColorTargetState>> targets;
-};
+} SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpuprimitivestate
 struct PrimitiveState {
@@ -1123,7 +1139,7 @@ struct RenderPipelineDescriptor {
     std::optional<DepthStencilState> depthStencil;
     MultisampleState multisample;
     std::optional<FragmentState> fragment;
-} SWIFT_VIEW;
+} SWIFT_VIEW SWIFT_SAFE;
 
 // https://gpuweb.github.io/gpuweb/#gpupipelineerror
 struct PipelineError {
@@ -1193,6 +1209,8 @@ struct BindGroupLayoutEntry {
 struct BindGroupLayoutDescriptor {
     String label;
     std::span<const BindGroupLayoutEntry> entries; // Borrowed for the duration of the call.
+
+    std::span<const BindGroupLayoutEntry> entriesSpan() const LIFETIME_BOUND { return entries; }
 } SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpupipelinelayoutdescriptor
@@ -1238,6 +1256,8 @@ inline void refWebGPUBindGroupLayout(::WebGPU::BindGroupLayout*);
 inline void derefWebGPUBindGroupLayout(::WebGPU::BindGroupLayout*);
 inline void refWebGPUBuffer(::WebGPU::Buffer*);
 inline void derefWebGPUBuffer(::WebGPU::Buffer*);
+inline void refWebGPUByteOwner(::WebGPU::ByteOwner*);
+inline void derefWebGPUByteOwner(::WebGPU::ByteOwner*);
 inline void refWebGPUCommandBuffer(::WebGPU::CommandBuffer*);
 inline void derefWebGPUCommandBuffer(::WebGPU::CommandBuffer*);
 inline void refWebGPUCommandEncoder(::WebGPU::CommandEncoder*);
@@ -1293,7 +1313,7 @@ public:
     virtual ~Adapter() = default;
 
     virtual Vector<FeatureName> features() const = 0;
-    virtual const Limits& limits() const = 0;
+    virtual Limits limits() const = 0;
     virtual AdapterInfo info() = 0;
     virtual bool isXRCompatible() const = 0;
     // Completes with nullptr when the device cannot be created. An adapter creates one device.
@@ -1351,6 +1371,51 @@ public:
 protected:
     Buffer() = default;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refWebGPUBuffer, derefWebGPUBuffer);
+
+// Bytes that stay at the same address and size, and that this process does not change, for as long as any reference
+// to their owner exists. The span is fixed at creation and only read through, the reference count is atomic, and the
+// last reference may be dropped on any thread. Another process sharing the memory behind the bytes can still change
+// them.
+class ByteOwner : public ThreadSafeRefCounted<ByteOwner> {
+public:
+    // `owner` owns the bytes its span() returns, at the same address and size, until it is destroyed, as
+    // WebCore::SharedMemory does.
+    template<typename T> static Ref<ByteOwner> create(Ref<T>&& owner);
+
+    virtual ~ByteOwner() = default;
+
+    std::span<const uint8_t> span() const LIFETIME_BOUND { return m_bytes; }
+
+private:
+    template<typename> friend class ByteOwnerOf;
+
+    explicit ByteOwner(std::span<const uint8_t> bytes)
+        : m_bytes(bytes)
+    {
+    }
+
+    const std::span<const uint8_t> m_bytes;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refWebGPUByteOwner, derefWebGPUByteOwner);
+
+template<typename T> class ByteOwnerOf final : public ByteOwner {
+private:
+    friend class ByteOwner;
+
+    // The base is initialized first, from the object that the member then holds.
+    explicit ByteOwnerOf(Ref<T>&& owner)
+        : ByteOwner(owner->span())
+        , m_owner(WTF::move(owner))
+    {
+    }
+
+    const Ref<T> m_owner;
+};
+
+template<typename T> Ref<ByteOwner> ByteOwner::create(Ref<T>&& owner)
+{
+    static_assert(std::is_base_of_v<WTF::ThreadSafeRefCountedBase, T>, "The last reference to a ByteOwner may be dropped on any thread");
+    return adoptRef(*new ByteOwnerOf<T>(WTF::move(owner)));
+}
 
 class CommandBuffer : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<CommandBuffer> {
 public:
@@ -1427,7 +1492,7 @@ public:
     virtual ~Device() = default;
 
     virtual Vector<FeatureName> features() const = 0;
-    virtual const Limits& limits() const = 0;
+    virtual Limits limits() const = 0;
     virtual Ref<Queue> queue() = 0;
     virtual void destroy() = 0;
 
@@ -1551,7 +1616,8 @@ protected:
     QuerySet() = default;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refWebGPUQuerySet, derefWebGPUQuerySet);
 
-// Queue::writeBuffer() and Queue::writeTexture() may alias rather than copy data of at least this size.
+// Queue::writeBuffer() and Queue::writeTexture() may read at least this many bytes of a ByteOwner in place, rather
+// than copy them.
 constexpr uint64_t largeBufferSize = 32 * 1024 * 1024;
 
 class Queue : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Queue> {
@@ -1560,9 +1626,7 @@ public:
 
     virtual void submit(Vector<Ref<CommandBuffer>>&&) = 0;
     virtual void onSubmittedWorkDone(CompletionHandler<void()>&&) = 0;
-    // A write of at least largeBufferSize bytes may alias `data` rather than copy it, until the work
-    // submitted after it has completed. The caller keeps it alive until then, for example with
-    // onSubmittedWorkDone().
+    // The span writes are done with `data` when they return.
     virtual void writeBuffer(Buffer&, uint64_t bufferOffset, std::span<const uint8_t> data) = 0;
     virtual void writeTexture(const TexelCopyTextureInfo& destination, std::span<const uint8_t> data, const TexelCopyBufferLayout&, const Extent3D& writeSize) = 0;
 #if PLATFORM(COCOA)
@@ -1570,6 +1634,10 @@ public:
 #endif
     virtual void setLabel(String&&) = 0;
     virtual bool isValid() const = 0;
+    // The span writes, except that an implementation may read the bytes after returning (see largeBufferSize), and
+    // then keeps a reference to their owner until it has. By default, they are read before returning.
+    virtual void writeBuffer(Buffer& buffer, uint64_t bufferOffset, Ref<ByteOwner>&& data) { writeBuffer(buffer, bufferOffset, data->span()); }
+    virtual void writeTexture(const TexelCopyTextureInfo& destination, Ref<ByteOwner>&& data, const TexelCopyBufferLayout& dataLayout, const Extent3D& writeSize) { writeTexture(destination, data->span(), dataLayout, writeSize); }
 
 protected:
     Queue() = default;
@@ -1804,6 +1872,16 @@ inline void refWebGPUBuffer(::WebGPU::Buffer* object)
 }
 
 inline void derefWebGPUBuffer(::WebGPU::Buffer* object)
+{
+    object->deref();
+}
+
+inline void refWebGPUByteOwner(::WebGPU::ByteOwner* object)
+{
+    object->ref();
+}
+
+inline void derefWebGPUByteOwner(::WebGPU::ByteOwner* object)
 {
     object->deref();
 }

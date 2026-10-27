@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Apple Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,10 +31,26 @@
 #import "TextureView.h"
 #import <wtf/CheckedArithmetic.h>
 #import <wtf/MathExtras.h>
+#import <wtf/RetainPtr.h>
+#import <wtf/StdLibExtras.h>
 #import <wtf/TZoneMallocInlines.h>
-#import <wtf/spi/cocoa/IOSurfaceSPI.h>
+
+#if ENABLE(WEBGPU_SWIFT)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WebGPU.h>
+#import "WebGPUSwift-Generated.h"
+#endif
 
 namespace WebGPU::Metal {
+
+struct ExternalTextureImplBox {
+    WTF_MAKE_STRUCT_TZONE_ALLOCATED(ExternalTextureImplBox);
+    WebGPU::ExternalTextureImpl impl;
+};
+WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(ExternalTextureImplBox);
+
+#pragma mark Device factory
 
 RefPtr<WebGPU::ExternalTexture> Device::importExternalTexture(const WebGPU::ExternalTextureDescriptor& descriptor)
 {
@@ -42,83 +58,62 @@ RefPtr<WebGPU::ExternalTexture> Device::importExternalTexture(const WebGPU::Exte
         return ExternalTexture::createInvalid(*this);
 
     // The external texture keeps the C API color space, which the pixel buffer conversions take.
-    return ExternalTexture::create(descriptor.pixelBuffer.get(), descriptor.colorSpace, simd::uint2 { descriptor.visibleSize.width, descriptor.visibleSize.height }, *this);
+    return ExternalTexture::create(descriptor.pixelBuffer.get(), descriptor.colorSpace, descriptor.visibleSize, *this);
 }
+
+#pragma mark Shell
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(ExternalTexture);
 
-ExternalTexture::ExternalTexture(CVPixelBufferRef pixelBuffer, WebGPU::PredefinedColorSpace colorSpace, simd::uint2 visibleSize, Device& device)
-    : m_pixelBuffer(pixelBuffer)
-    , m_colorSpace(colorSpace)
-    , m_visibleSize(visibleSize)
-    , m_device(device)
+Ref<ExternalTexture> ExternalTexture::create(CVPixelBufferRef pixelBuffer, WebGPU::PredefinedColorSpace colorSpace, const WebGPU::Extent2D& visibleSize, Device& device)
 {
-    update(pixelBuffer);
+    auto box = makeUnique<ExternalTextureImplBox>(ExternalTextureImplBox {
+        .impl = makeExternalTextureImpl(colorSpace, visibleSize.width, visibleSize.height, &device, device.swiftImpl())
+    });
+    Ref externalTexture = adoptRef(*new ExternalTexture(WTF::move(box)));
+    externalTexture->update(pixelBuffer);
+    return externalTexture;
 }
 
-ExternalTexture::ExternalTexture(Device& device)
-    : m_device(device)
+Ref<ExternalTexture> ExternalTexture::createInvalid(Device& device)
 {
+    auto box = makeUnique<ExternalTextureImplBox>(ExternalTextureImplBox { .impl = makeInvalidExternalTextureImpl(&device, device.swiftImpl()) });
+    return adoptRef(*new ExternalTexture(WTF::move(box)));
 }
 
-bool ExternalTexture::isValid() const
+ExternalTexture::ExternalTexture(std::unique_ptr<ExternalTextureImplBox>&& impl)
+    : m_impl(WTF::move(impl))
 {
-    return m_pixelBuffer.get() || m_destroyed;
 }
 
 ExternalTexture::~ExternalTexture() = default;
 
+WebGPU::ExternalTextureImpl& ExternalTexture::swiftImpl() const
+{
+    return m_impl->impl;
+}
+
+bool ExternalTexture::isValid() const
+{
+    return m_impl->impl.isValid();
+}
+
 void ExternalTexture::destroy()
 {
-    m_pixelBuffer = nil;
-    m_destroyed = true;
-    m_device->makeSubmitInvalidClearingEncoders(m_commandEncoders);
+    m_impl->impl.destroy();
 }
 
 void ExternalTexture::undestroy()
 {
-    m_commandEncoders.clear();
-    m_destroyed = false;
-}
-
-void ExternalTexture::setCommandEncoder(CommandEncoder& commandEncoder) const
-{
-    CommandEncoder::trackEncoder(commandEncoder, m_commandEncoders);
-    commandEncoder.addTexture(m_texture0);
-    commandEncoder.addTexture(m_texture1);
-    if (isDestroyed())
-        commandEncoder.makeSubmitInvalid();
-}
-
-void ExternalTexture::updateExternalTextures(id<MTLTexture> texture0, id<MTLTexture> texture1)
-{
-    m_texture0 = texture0;
-    m_texture1 = texture1;
-}
-
-bool ExternalTexture::isDestroyed() const
-{
-    return m_destroyed;
+    m_impl->impl.undestroy();
 }
 
 void ExternalTexture::update(CVPixelBufferRef pixelBuffer)
 {
-#if HAVE(IOSURFACE_SET_OWNERSHIP_IDENTITY) && HAVE(TASK_IDENTITY_TOKEN)
-    if (RetainPtr ioSurface = CVPixelBufferGetIOSurface(pixelBuffer)) {
-        if (auto optionalWebProcessID = protect(m_device)->webProcessID()) {
-            if (auto webProcessID = optionalWebProcessID->sendRight())
-                IOSurfaceSetOwnershipIdentity(ioSurface.get(), webProcessID, kIOSurfaceMemoryLedgerTagGraphics, 0);
-        }
-    }
-#endif
-    m_pixelBuffer = pixelBuffer;
-    m_commandEncoders.clear();
-    m_destroyed = false;
-}
-
-size_t ExternalTexture::openCommandEncoderCount() const
-{
-    return CommandEncoder::computeSize(m_commandEncoders, m_device.get());
+    if (pixelBuffer)
+        m_impl->impl.update(pixelBuffer);
+    else
+        m_impl->impl.updateWithoutPixelBuffer();
 }
 
 } // namespace WebGPU::Metal

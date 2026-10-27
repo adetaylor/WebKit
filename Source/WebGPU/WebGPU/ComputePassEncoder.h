@@ -26,9 +26,12 @@
 #pragma once
 
 #import "CommandEncoder.h"
-#import "CommandsMixin.h"
 #import <WebGPU/WebGPU.h>
 #import <WebGPU/WebGPUCpp.h>
+#import <array>
+#import <memory>
+#import <optional>
+#import <span>
 #import <wtf/FastMalloc.h>
 #import <wtf/HashMap.h>
 #import <wtf/Ref.h>
@@ -44,12 +47,15 @@ class BindGroup;
 class Buffer;
 class ComputePipeline;
 class Device;
-class QuerySet;
 
-struct BindableResources;
+// Defined in ComputePassEncoder.mm, where the generated Swift header declaring WebGPU::ComputePassEncoderImpl
+// is includable.
+struct ComputePassEncoderImplBox;
 
 // https://gpuweb.github.io/gpuweb/#gpucomputepassencoder
-class ComputePassEncoder final : public WebGPU::ComputePassEncoder, public CommandsMixin {
+// Shell over the Swift-owned ComputePassEncoderImpl, which owns the pass's state, runs every method's logic and reports
+// its errors.
+class ComputePassEncoder final : public WebGPU::ComputePassEncoder {
     WTF_MAKE_TZONE_ALLOCATED(ComputePassEncoder);
 public:
     static Ref<ComputePassEncoder> create(id<MTLComputeCommandEncoder> computeCommandEncoder, const WebGPU::ComputePassDescriptor& descriptor, CommandEncoder& parentEncoder, Device& device)
@@ -70,62 +76,35 @@ public:
     ~ComputePassEncoder();
 
     void dispatch(uint32_t x, uint32_t y, uint32_t z) final;
-    void dispatchIndirect(const Buffer& indirectBuffer, uint64_t indirectOffset);
-    void endPass();
     void insertDebugMarker(String&& markerLabel) final;
     void popDebugGroup() final;
     void pushDebugGroup(String&& groupLabel) final;
-
-    // std::nullopt dynamic offsets are not validated against the bind group layout.
-    void setBindGroup(uint32_t groupIndex, const BindGroup*, std::optional<std::span<const uint32_t>> dynamicOffsets);
-    void setPipeline(const ComputePipeline&);
 
     // The WebGPU::ComputePassEncoder methods. Every object they take was created by this
     // implementation, so they cast it to its WebGPU::Metal type.
     void setPipeline(const WebGPU::ComputePipeline&) final;
     void dispatchIndirect(const WebGPU::Buffer& indirectBuffer, uint64_t indirectOffset) final;
-    void end() final { endPass(); }
+    void end() final;
+    // std::nullopt dynamic offsets are not validated against the bind group layout.
     void setBindGroup(uint32_t groupIndex, const WebGPU::BindGroup*, std::optional<std::span<const uint32_t>> dynamicOffsets) final;
     void setLabel(String&&) final;
 
-    Device& device() const { return m_device; }
-
-    bool LEGACY_NODELETE isValid() const final;
-    id<MTLComputeCommandEncoder> LEGACY_NODELETE computeCommandEncoder() const;
+    bool isValid() const final;
 
     // A pass begun while its command encoder was not open never took the encoder over, so it can
     // never be ended. https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-end
-    void markEncoderStateWasNotOpen() { m_encoderStateWasNotOpen = true; }
+    void markEncoderStateWasNotOpen();
 
 private:
     ComputePassEncoder(id<MTLComputeCommandEncoder>, const WebGPU::ComputePassDescriptor&, CommandEncoder&, Device&);
     ComputePassEncoder(CommandEncoder&, Device&, NSString*);
 
-    bool LEGACY_NODELETE validatePopDebugGroup() const;
-
-    void makeInvalid(NSString* = nil);
-    void executePreDispatchCommands(const Buffer* = nullptr);
-    id<MTLBuffer> runPredispatchIndirectCallValidation(const Buffer&, uint64_t);
-
-    id<MTLComputeCommandEncoder> m_computeCommandEncoder { nil };
-
-    uint64_t m_debugGroupStackSize { 0 };
-
-    const Ref<Device> m_device;
-    MTLSize m_threadsPerThreadgroup;
-    Vector<uint32_t> m_computeDynamicOffsets;
-    Vector<uint32_t> m_priorComputeDynamicOffsets;
-    RefPtr<const ComputePipeline> m_pipeline;
-    const Ref<CommandEncoder> m_parentEncoder;
-    HashMap<uint32_t, Vector<uint32_t>, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>> m_bindGroupDynamicOffsets;
-    HashMap<uint32_t, Vector<const BindableResources*>, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>> m_bindGroupResources;
-    HashMap<uint32_t, Ref<const BindGroup>, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>> m_bindGroups;
-    std::array<uint32_t, 32> m_maxDynamicOffsetAtIndex;
-    NSString *m_lastErrorString { nil };
-    bool m_passEnded { false };
-    bool m_encoderStateWasNotOpen { false };
+    const std::unique_ptr<ComputePassEncoderImplBox> m_impl;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refComputePassEncoder, derefComputePassEncoder);
 
+// For ComputePassEncoder.swift. Free functions, so that the span gets a safe Span overload (rdar://161274084).
+
+void setComputeDynamicOffsets(id<MTLComputeCommandEncoder>, std::span<const uint32_t> dynamicOffsets NOESCAPE, NSUInteger bufferIndex);
 
 } // namespace WebGPU::Metal
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (c) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,8 +27,10 @@
 
 #import "BindGroupLayout.h"
 #import "BindableResource.h"
-#import "ShaderStage.h"
 #import <WebGPU/WebGPUCpp.h>
+#import <cstddef>
+#import <memory>
+#import <span>
 #import <wtf/EnumeratedArray.h>
 #import <wtf/FastMalloc.h>
 #import <wtf/HashTraits.h>
@@ -37,6 +39,11 @@
 #import <wtf/Vector.h>
 #import <wtf/WeakPtr.h>
 
+#if !defined(__swift__)
+namespace WebGPU {
+class BindGroupImpl;
+}
+#endif
 
 namespace WebGPU::Metal {
 
@@ -51,80 +58,61 @@ struct ExternalTextureIndices {
     NSUInteger argumentBufferIndex { NSNotFound };
 };
 
+// The constants an external texture binding writes into an argument buffer after its two planes. The matrices are
+// column-major, as the shader's float3x2, float4x3 and float3x3 lay them out.
+struct ExternalTextureConstants {
+    float uvRemapping[6] { };
+    float colorSpaceConversion[12] { };
+    float primariesConversion[9] { };
+    uint32_t visibleWidth { 0 };
+    uint32_t visibleHeight { 0 };
+};
+
+// For BindGroup.swift, which cannot address argument-buffer constant data without unsafe.
+void writeExternalTextureConstants(id<MTLArgumentEncoder>, NSUInteger firstIndex, const ExternalTextureConstants&);
+void writeBufferLengthConstant(id<MTLArgumentEncoder>, NSUInteger index, uint32_t length);
+// buffer.label = encoder.label, without bridging the label through a Swift String.
+void copyArgumentEncoderLabel(id<MTLArgumentEncoder>, id<MTLBuffer>);
+// The WTF::HashSet that checks EncoderModel.swift's WTFHashMap replica. An operation >= 0 adds that key, a negative one
+// removes -operation - 1, and INT64_MIN clears; `keys` receives the keys in iteration order, and the result is the set's
+// size.
+size_t wtfHashSetOrderForOperations(std::span<const int64_t> operations NOESCAPE, std::span<uint32_t> keys NOESCAPE);
+
 // https://gpuweb.github.io/gpuweb/#gpubindgroup
+// BindGroup.swift owns the resources, argument buffers, samplers, dynamic buffers, validation cache and the Device, and
+// runs creation and every check.
 class BindGroup final : public WebGPU::BindGroup {
     WTF_MAKE_TZONE_ALLOCATED(BindGroup);
 public:
-    template <typename T>
-    using ShaderStageArray = EnumeratedArray<ShaderStage, T, ShaderStage::Compute>;
-    using SamplersContainer = HashMap<Ref<Sampler>, ShaderStageArray<std::optional<uint32_t>>>;
-    struct BufferAndType {
-        BindGroupLayout::BufferBindingType type;
-        uint64_t bindingSize;
-        uint64_t bufferSize;
-        uint32_t bindingIndex;
-    };
-    using DynamicBuffersContainer = Vector<BufferAndType>;
-
-    static constexpr MTLRenderStages MTLRenderStageCompute = static_cast<MTLRenderStages>(0);
-    static constexpr MTLRenderStages MTLRenderStageUndefined = static_cast<MTLRenderStages>(MTLRenderStageFragment + 1);
-    static Ref<BindGroup> create(id<MTLBuffer> vertexArgumentBuffer, id<MTLBuffer> fragmentArgumentBuffer, id<MTLBuffer> computeArgumentBuffer, Vector<BindableResources>&& resources, const BindGroupLayout& bindGroupLayout, DynamicBuffersContainer&& dynamicBuffers, SamplersContainer&& samplers, ShaderStageArray<ExternalTextureIndices>&& externalTextureIndices, uint32_t uniqueIdentifier, Device& device)
-    {
-        return adoptRef(*new BindGroup(vertexArgumentBuffer, fragmentArgumentBuffer, computeArgumentBuffer, WTF::move(resources), bindGroupLayout, WTF::move(dynamicBuffers), WTF::move(samplers), WTF::move(externalTextureIndices), uniqueIdentifier, device));
-    }
-    static Ref<BindGroup> createInvalid(Device& device)
-    {
-        return adoptRef(*new BindGroup(device));
-    }
+#if !defined(__swift__)
+    // `makeImpl` returns the WebGPU::BindGroupImpl. Defined in BindGroup.mm.
+    template<typename MakeImpl> static Ref<BindGroup> create(MakeImpl&&);
+#endif
+    static Ref<BindGroup> createInvalid(Device&);
 
     ~BindGroup();
 
     void setLabel(String&&) final;
 
     bool LEGACY_NODELETE isValid() const final;
-
-    id<MTLBuffer> vertexArgumentBuffer() const { return m_vertexArgumentBuffer; }
-    id<MTLBuffer> fragmentArgumentBuffer() const { return m_fragmentArgumentBuffer; }
-    id<MTLBuffer> computeArgumentBuffer() const { return m_computeArgumentBuffer; }
-
-    const Vector<BindableResources>& resources() const LIFETIME_BOUND { return m_resources; }
-
-    Device& device() const { return m_device; }
-    static bool LEGACY_NODELETE allowedUsage(const OptionSet<BindGroupEntryUsage>&);
-    static NSString* usageName(const OptionSet<BindGroupEntryUsage>&);
-    static uint64_t LEGACY_NODELETE makeEntryMapKey(uint32_t baseMipLevel, uint32_t baseArrayLayer, WebGPU::TextureAspect);
-
-    const BindGroupLayout* bindGroupLayout() const { return m_bindGroupLayout.get(); }
-
-    const BufferAndType* LEGACY_NODELETE dynamicBuffer(uint32_t) const;
-    uint32_t LEGACY_NODELETE dynamicOffset(uint32_t bindingIndex, const Vector<uint32_t>*) const;
-    bool rebindSamplersIfNeeded() const;
     bool updateExternalTextures(WebGPU::ExternalTexture&) final;
+    // For a destroyed Buffer or Texture that this group holds.
     void releaseDestroyedResources();
-    bool makeSubmitInvalid(ShaderStage, const BindGroupLayout*) const;
-    const SamplersContainer& samplers() const LIFETIME_BOUND { return m_samplers; }
-    uint32_t uniqueId() const { return m_uniqueIdentifier; }
-    void validatedSuccessfully(uint32_t groupIndex, uint64_t pipelineIndex, uint32_t maxOffset) const;
-    bool LEGACY_NODELETE previouslyValidatedBindGroup(uint32_t groupIndex, uint64_t pipelineIndex, uint32_t maxOffset) const;
-    bool hasSamplers() const { return m_samplers.size(); }
+
+#if !defined(__swift__)
+    WebGPU::BindGroupImpl& swiftImpl() const LIFETIME_BOUND;
+    // Borrowed from the Impl, which holds the reference.
+    Device& device() const;
+#endif
 
 private:
-    BindGroup(id<MTLBuffer> vertexArgumentBuffer, id<MTLBuffer> fragmentArgumentBuffer, id<MTLBuffer> computeArgumentBuffer, Vector<BindableResources>&&, const BindGroupLayout&, DynamicBuffersContainer&&, SamplersContainer&&, ShaderStageArray<ExternalTextureIndices>&&, uint32_t uniqueIdentifier, Device&);
-    BindGroup(Device&);
+#if !defined(__swift__)
+    template<typename MakeImpl> explicit BindGroup(MakeImpl&&);
+#endif
 
-    const id<MTLBuffer> m_vertexArgumentBuffer { nil };
-    const id<MTLBuffer> m_fragmentArgumentBuffer { nil };
-    const id<MTLBuffer> m_computeArgumentBuffer { nil };
-
-    const Ref<Device> m_device;
-    Vector<BindableResources> m_resources;
-    RefPtr<const BindGroupLayout> m_bindGroupLayout;
-    DynamicBuffersContainer m_dynamicBuffers;
-    HashMap<uint32_t, uint32_t, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>> m_dynamicOffsetsIndices;
-    mutable HashMap<uint64_t, uint32_t, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>> m_validatedBindGroup;
-    SamplersContainer m_samplers;
-    ShaderStageArray<ExternalTextureIndices> m_externalTextureIndices;
-    uint32_t m_uniqueIdentifier { 0 };
+    // The Swift object: one generated WebGPU::BindGroupImpl, a single strong reference. BindGroup.mm, where the generated
+    // header is includable, builds it in place in the constructor and destroys it in the destructor.
+    alignas(void*) std::byte m_impl[sizeof(void*)];
 };
 
 } // namespace WebGPU::Metal

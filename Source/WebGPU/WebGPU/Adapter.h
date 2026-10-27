@@ -30,10 +30,12 @@
 #import <WebGPU/WebGPUCpp.h>
 #import <bmalloc/CompactAllocationMode.h>
 #import <expected>
+#import <memory>
 #import <wtf/Assertions.h>
 #import <wtf/CompletionHandler.h>
 #import <wtf/FastMalloc.h>
 #import <wtf/HashSet.h>
+#import <wtf/MachSendRight.h>
 #import <wtf/Ref.h>
 #import <wtf/RefPtr.h>
 #import <wtf/TZoneMalloc.h>
@@ -46,23 +48,19 @@ namespace WebGPU::Metal {
 class Device;
 class Instance;
 
+// Opaque box holding the Swift AdapterImpl; defined in Adapter.mm.
+struct AdapterImplBox;
+
 // https://gpuweb.github.io/gpuweb/#gpuadapter
 class Adapter final : public WebGPU::Adapter {
     WTF_MAKE_TZONE_ALLOCATED(Adapter);
 public:
-    static Ref<Adapter> create(id<MTLDevice> device, Instance& instance, bool xrCompatible, HardwareCapabilities&& capabilities)
-    {
-        return adoptRef(*new Adapter(device, instance, xrCompatible, WTF::move(capabilities)));
-    }
-    static Ref<Adapter> createInvalid(Instance& instance)
-    {
-        return adoptRef(*new Adapter(instance));
-    }
+    static Ref<Adapter> create(id<MTLDevice>, Instance&, bool xrCompatible, HardwareCapabilities&&);
 
     ~Adapter();
 
     Vector<WebGPU::FeatureName> features() const final;
-    const WebGPU::Limits& limits() const LIFETIME_BOUND final { return m_capabilities.limits; }
+    WebGPU::Limits limits() const final;
     WebGPU::AdapterInfo info() final;
     // The C API adapter info, which has members that WebGPU::AdapterInfo does not have.
     bool hasFeature(WebGPU::FeatureName);
@@ -70,25 +68,23 @@ public:
     // requestDevice() with the reason a device could not be created, for the C API.
     void requestDeviceOrError(const WebGPU::DeviceDescriptor&, CompletionHandler<void(std::expected<Ref<Device>, String>&&)>&&);
 
-    void setLabel(String&&) final { }
-    bool isValid() const final { return m_device; }
-    id<MTLDevice> device() const { return m_device; }
-    void makeInvalid() { m_device = nil; }
-    bool LEGACY_NODELETE isXRCompatible() const final;
+    void setLabel(String&&) final;
+    bool isValid() const final;
+    id<MTLDevice> device() const;
+    void makeInvalid();
+    bool isXRCompatible() const final;
 
     RefPtr<Instance> instance() const { return m_instance.get(); }
     ThreadSafeWeakPtr<Instance> weakInstance() const { return m_instance; }
+    // For DeviceImpl's resource attribution: the Instance's web process identity, or an empty right when the Instance
+    // has none or is gone.
+    MachSendRight webProcessIdentity() const;
 
 private:
-    Adapter(id<MTLDevice>, Instance&, bool xrCompatible, HardwareCapabilities&&);
-    Adapter(Instance&);
+    Adapter(std::unique_ptr<AdapterImplBox>&&, Instance&);
 
-    id<MTLDevice> m_device { nil };
+    const std::unique_ptr<AdapterImplBox> m_impl;
     const ThreadSafeWeakPtr<Instance> m_instance;
-
-    const HardwareCapabilities m_capabilities { };
-    bool m_deviceRequested { false };
-    bool m_xrCompatible { false };
 };
 
 } // namespace WebGPU::Metal

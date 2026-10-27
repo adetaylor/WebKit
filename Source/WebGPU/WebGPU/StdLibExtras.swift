@@ -23,33 +23,6 @@
 
 // FIXME (rdar://164119356): Move StdLibExtras.swift from WebGPU to WTF
 
-private import CxxStdlib
-import WebGPU_Internal.Texture
-import WebGPU_Private.WebGPU
-
-// FIXME (rdar://162375123): This should be in the standard library.
-extension MutableSpan where Element: BitwiseCopyable {
-    @_lifetime(self: copy self)
-    mutating func copyMemory(from source: Span<Element>) {
-        // Safety: This is lifetime safe because we have exclusive access to 'self' and we don't escape 'selfBuffer'
-        unsafe withUnsafeMutableBufferPointer { selfBuffer in
-            // Safety: This is lifetime safe because we have exclusive access to 'source' and we don't escape 'sourceBuffer'
-            unsafe source.withUnsafeBufferPointer { sourceBuffer in
-                // Safety: This is bounds safe because we do a manual bounds check
-                // Safety: This is type safe because we statically declare that our element types match and are BitwiseCopyable
-                precondition(sourceBuffer.count <= selfBuffer.count)
-                _ = unsafe memcpy(selfBuffer.baseAddress, sourceBuffer.baseAddress, sourceBuffer.count)
-            }
-        }
-    }
-}
-
-// FIXME(rdar://130765784): We should be able use the built-in ===, but AnyObject currently excludes foreign reference types
-func === (_ lhs: WebGPU.Metal.Texture, _ rhs: WebGPU.Metal.Texture) -> Bool {
-    // Safety: Swift represents all reference types, including foreign reference types, as raw pointers
-    unsafe unsafeBitCast(lhs, to: UnsafeRawPointer.self) == unsafeBitCast(rhs, to: UnsafeRawPointer.self)
-}
-
 extension Comparable {
     /// Returns this comparable value clamped to the given limiting range.
     ///
@@ -57,5 +30,15 @@ extension Comparable {
     /// - Returns: A value guaranteed to be in the range `[limits.lowerBound, limits.upperBound]`
     func clamped(to limits: ClosedRange<Self>) -> Self {
         min(max(self, limits.lowerBound), limits.upperBound)
+    }
+}
+
+extension Int {
+    /// A UInt32 for an NSUInteger parameter, which Swift imports as Int. On arm64_32 (watchOS) Int is 32 bits, so a value
+    /// of 2^31 or more is passed as its bit pattern, the NSUInteger the callee reads, where Int(value) would trap.
+    /// Elsewhere this is Int(value).
+    @inline(__always)
+    init(nsUInteger value: UInt32) {
+        self.init(truncatingIfNeeded: value)
     }
 }

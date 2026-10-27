@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Apple Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,11 +25,13 @@
 
 #pragma once
 
+#import "Texture.h"
+#import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
+#import <memory>
 #import <utility>
 #import <wtf/CompletionHandler.h>
 #import <wtf/FastMalloc.h>
-#import <wtf/HashMap.h>
 #import <wtf/Ref.h>
 #import <wtf/ThreadSafeWeakPtr.h>
 #import <wtf/WeakPtr.h>
@@ -42,17 +44,19 @@ class Device;
 class Texture;
 class XRProjectionLayer;
 
+// Defined in XRSubImage.mm, where the generated Swift header declaring WebGPU::XRSubImageImpl is includable.
+struct XRSubImageImplBox;
+
+// The Texture operations XRSubImageImpl::update needs, in forms Swift can call. createXRTexture() wraps an XR
+// layer texture in a Texture that allows views in viewFormat.
+Texture& createXRTexture(id<MTLTexture>, bool isDepthTexture, WebGPU::TextureFormat, WebGPU::TextureFormat viewFormat, Device&) SWIFT_RETURNS_RETAINED;
+void updateXRTextureCompletionEvent(Texture&, id<MTLSharedEvent>, uint64_t signalValue);
+void setXRTextureRasterizationRateMaps(Texture&, id<MTLRasterizationRateMap> left, id<MTLRasterizationRateMap> right);
+
 class XRSubImage final : public WebGPU::XRSubImage {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(XRSubImage);
 public:
-    static Ref<XRSubImage> create(Device& device)
-    {
-        return adoptRef(*new XRSubImage(true, device));
-    }
-    static Ref<XRSubImage> createInvalid(Device& device)
-    {
-        return adoptRef(*new XRSubImage(device));
-    }
+    static Ref<XRSubImage> create(Device&);
 
     ~XRSubImage();
 
@@ -60,19 +64,17 @@ public:
 
     bool LEGACY_NODELETE isValid() const final;
     void update(const XRProjectionLayer&);
-    Texture* currentColorTexture();
     Texture* depthTexture();
     RefPtr<WebGPU::Texture> colorTexture() final;
     RefPtr<WebGPU::Texture> depthStencilTexture() final;
 
 private:
-    XRSubImage(bool, Device&);
-    XRSubImage(Device&);
+    XRSubImage(std::unique_ptr<XRSubImageImplBox>&&, Device&);
 
-    HashMap<uint64_t, Ref<Texture>, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>> m_colorTextures;
-    HashMap<uint64_t, Ref<Texture>, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>> m_depthTextures;
-    uint64_t m_currentTextureIndex { 0 };
+    // Owns the color/depth texture maps and the current texture index.
+    const std::unique_ptr<XRSubImageImplBox> m_impl;
 
+    // Weak because the Device owns this object.
     ThreadSafeWeakPtr<Device> m_device;
 };
 

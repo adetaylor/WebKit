@@ -86,6 +86,8 @@ def dependency_files(output_file_map, module_name=None, whole_module=False):
     # from the output-file-map, and that one has the fullest view of the
     # module's imports, so pick it up from the map's own directory.
     paths += (str(path) for path in Path(output_file_map).parent.glob("*.emit-module.d"))
+    # In whole-module mode the driver writes a single <module>.d there instead of the per-file depfiles.
+    paths += (str(path) for path in Path(output_file_map).parent.glob("*.d") if not path.name.endswith(".emit-module.d"))
     return [path for path in paths if os.path.exists(path)]
 
 

@@ -27,7 +27,6 @@ BindGroupLayout.mm
 Buffer.mm
 CommandBuffer.mm
 CommandEncoder.mm
-CommandsMixin.mm
 ComputePassEncoder.mm
 ComputePipeline.mm
 Device.mm

@@ -29,18 +29,34 @@
 #import "APIConversions.h"
 #import "Adapter.h"
 #import "CommandBuffer.h"
+#import "Device.h"
 #import "HardwareCapabilities.h"
 #import "PresentationContext.h"
-#import <cstring>
-#import <dlfcn.h>
 #import <wtf/BlockPtr.h>
 #import <wtf/MachSendRight.h>
 #import <wtf/StdLibExtras.h>
 #import <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(WEBGPU_SWIFT)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WebGPU.h>
+#import "WebGPUSwift-Generated.h"
+
 namespace WebGPU::Metal {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(Instance);
+
+// Destroyed in reverse order: the embedder's scheduleWork first, then the web process ID and the retained
+// CommandBuffers and Devices, and the work items still waiting for processEvents() last.
+struct InstanceImplBox {
+    WTF_MAKE_STRUCT_TZONE_ALLOCATED(InstanceImplBox);
+    WebGPU::InstanceEventQueue events;
+    WebGPU::InstanceImpl impl;
+    WebGPU::InstanceScheduler scheduler;
+    WebGPU::InstanceSchedulerHandle schedulerHandle;
+};
+WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(InstanceImplBox);
 
 static NSArray<id<MTLDevice>>* getDevices()
 {
@@ -56,36 +72,27 @@ static NSArray<id<MTLDevice>>* getDevices()
 
 Ref<Instance> Instance::create(WebGPU::InstanceDescriptor&& descriptor)
 {
-    return adoptRef(*new Instance(WTF::move(descriptor.scheduleWork), descriptor.webProcessResourceOwner ? &*descriptor.webProcessResourceOwner : nullptr));
+    auto events = makeInstanceEventQueue();
+    auto scheduler = descriptor.scheduleWork ? makeInstanceScheduler(descriptor.scheduleWork, events) : makeInstanceSchedulerWithoutEmbedder(events);
+    auto box = makeUnique<InstanceImplBox>(InstanceImplBox { .events = events, .impl = makeInstanceImpl(descriptor.webProcessResourceOwner), .scheduler = scheduler, .schedulerHandle = makeInstanceSchedulerHandle(scheduler) });
+    return adoptRef(*new Instance(WTF::move(box)));
 }
 
-Instance::Instance(Function<void(WorkItem&&)>&& scheduleWork, const MachSendRight* webProcessResourceOwner)
-    : m_webProcessID(webProcessResourceOwner ? std::optional<MachSendRight>(*webProcessResourceOwner) : std::nullopt)
-    , m_scheduleWork(WTF::move(scheduleWork))
-{
-}
-
-Instance::Instance()
-    : m_isValid(false)
+Instance::Instance(std::unique_ptr<InstanceImplBox>&& impl)
+    : m_impl(WTF::move(impl))
 {
 }
 
 Instance::~Instance() = default;
 
+bool Instance::isValid() const
+{
+    return true;
+}
+
 void Instance::waitForCommandBufferCompletions()
 {
-    auto retainedCommandBuffers { std::exchange(m_retainedCommandBufferInstances, { }) };
-    auto retainedDevices { std::exchange(retainedDeviceInstances, { }) };
-    for (const auto& [_, weakCommandBuffer] : retainedCommandBuffers) {
-        if (id<MTLCommandBuffer> commandBuffer = weakCommandBuffer.get().get(); commandBuffer.status >= MTLCommandBufferStatusCommitted)
-            [commandBuffer waitUntilCompleted];
-    }
-    for (const auto& container : retainedDevices.values()) {
-        for (const auto& weakCommandBuffer : container) {
-            if (id<MTLCommandBuffer> commandBuffer = weakCommandBuffer.get().get(); commandBuffer.status >= MTLCommandBufferStatusCommitted)
-                [commandBuffer waitUntilCompleted];
-        }
-    }
+    m_impl->impl.waitForCommandBufferCompletions();
 }
 
 RefPtr<WebGPU::PresentationContext> Instance::createPresentationContext(const WebGPU::PresentationContextDescriptor& descriptor)
@@ -95,80 +102,37 @@ RefPtr<WebGPU::PresentationContext> Instance::createPresentationContext(const We
 
 void Instance::scheduleWork(WorkItem&& workItem)
 {
-    if (!m_scheduleWork) {
-        defaultScheduleWork(WTF::move(workItem));
-        return;
-    }
-    m_scheduleWork(WTF::move(workItem));
+    m_impl->scheduler.scheduleWork(workItem);
 }
 
-const std::optional<const MachSendRight>& Instance::webProcessID() const
+WebGPU::InstanceSchedulerHandle Instance::schedulerHandle() const
 {
-    return m_webProcessID;
+    return m_impl->schedulerHandle;
 }
 
-void Instance::defaultScheduleWork(WorkItem&& workItem)
+std::optional<MachSendRight> Instance::webProcessID() const
 {
-    Locker locker(m_lock);
-    m_pendingWork.append(WTF::move(workItem));
-    m_condition.notifyAll();
+    return m_impl->impl.webProcessID();
 }
 
 uint64_t Instance::createFuture()
 {
-    Locker locker(m_lock);
-    return m_nextFuture++;
+    return m_impl->events.createFuture();
 }
 
 void Instance::completeFuture(uint64_t future)
 {
-    Locker locker(m_lock);
-    m_completedFutures.add(future);
-    m_condition.notifyAll();
+    m_impl->events.completeFuture(future);
 }
 
 bool Instance::waitForAnyFuture(std::span<const uint64_t> futures, Seconds timeout, NOESCAPE const Function<void(size_t)>& didComplete)
 {
-    auto deadline = MonotonicTime::timePointFromNow(timeout);
-    while (true) {
-        processEvents();
-        {
-            Locker locker(m_lock);
-            if (anyFutureCompleted(futures)) {
-                for (auto [index, future] : indexedRange(futures)) {
-                    if (m_completedFutures.remove(future))
-                        didComplete(index);
-                }
-                return true;
-            }
-            if (m_pendingWork.isEmpty() && !m_condition.waitUntil(m_lock, deadline, [&] WTF_REQUIRES_LOCK(m_lock) { return !m_pendingWork.isEmpty() || anyFutureCompleted(futures); }))
-                return false;
-        }
-    }
-}
-
-bool Instance::anyFutureCompleted(std::span<const uint64_t> futures) const
-{
-    for (auto future : futures) {
-        if (m_completedFutures.contains(future))
-            return true;
-    }
-    return false;
+    return m_impl->events.waitForAnyFuture(CxxBridging::FutureIDsView { futures }, timeout.value(), didComplete);
 }
 
 void Instance::processEvents()
 {
-    while (true) {
-        Deque<WorkItem> localWork;
-        {
-            Locker locker(m_lock);
-            std::swap(m_pendingWork, localWork);
-        }
-        if (localWork.isEmpty())
-            return;
-        for (auto& workItem : localWork)
-            workItem();
-    }
+    m_impl->events.processEvents();
 }
 
 static NSArray<id<MTLDevice>> *sortedDevices(NSArray<id<MTLDevice>> *devices, std::optional<WebGPU::PowerPreference> powerPreference)
@@ -238,40 +202,17 @@ void Instance::requestAdapter(const WebGPU::RequestAdapterOptions& options, Comp
 
 void Instance::retainDevice(Device& device, id<MTLCommandBuffer> commandBuffer)
 {
-    auto& container = retainedDeviceInstances.ensure(device, [] {
-        return CommandBufferContainer { };
-    }).iterator->value;
-
-    container.append(commandBuffer);
-
-    releaseCompletedCommandBuffers();
+    m_impl->impl.retainDevice(&device, reinterpret_cast<uintptr_t>(&device), commandBuffer);
 }
 
 void Instance::retainCommandBuffer(CommandBuffer& commandBuffer, id<MTLCommandBuffer> mtlCommandBuffer)
 {
-    releaseCompletedCommandBuffers();
-    m_retainedCommandBufferInstances.append({ commandBuffer, mtlCommandBuffer });
+    m_impl->impl.retainCommandBuffer(&commandBuffer, mtlCommandBuffer);
 }
 
 void Instance::releaseCompletedCommandBuffers()
 {
-    m_retainedCommandBufferInstances.removeAllMatching([](auto& pair) {
-        return !pair.second;
-    });
-
-    for (auto& container : retainedDeviceInstances.values()) {
-        container.removeAllMatching([&](auto& pair) {
-            return !pair;
-        });
-    }
-    retainedDeviceInstances.removeIf([&](auto& pair) {
-        return !pair.value.size();
-    });
-}
-
-id<MTLDevice> Instance::device() const
-{
-    return getDevices().firstObject;
+    m_impl->impl.releaseCompletedCommandBuffers();
 }
 
 } // namespace WebGPU::Metal
@@ -358,3 +299,17 @@ WGPUWaitStatus wgpuInstanceWaitAny(WGPUInstance instance, size_t futureCount, WG
     });
     return completed ? WGPUWaitStatus_Success : WGPUWaitStatus_TimedOut;
 }
+
+#else
+
+namespace WebGPU {
+
+// Without Swift there is no WebGPU implementation. WebCore links against this, and a null instance means no WebGPU.
+RefPtr<Instance> createInstance(InstanceDescriptor&&)
+{
+    return nullptr;
+}
+
+} // namespace WebGPU
+
+#endif // ENABLE(WEBGPU_SWIFT)

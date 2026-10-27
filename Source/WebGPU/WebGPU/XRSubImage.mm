@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Apple Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,16 +33,29 @@
 
 #import <wtf/CheckedArithmetic.h>
 #import <wtf/StdLibExtras.h>
+#import <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(WEBGPU_SWIFT)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WebGPU.h>
+#import "WebGPUSwift-Generated.h"
+#endif
 
 namespace WebGPU::Metal {
 
-// A texture for an XR layer texture. The texture allows views in viewFormat.
-static Ref<Texture> createXRTexture(id<MTLTexture> texture, ASCIILiteral label, WebGPU::TextureFormat format, WebGPU::TextureFormat viewFormat, Device& device)
+struct XRSubImageImplBox {
+    WTF_MAKE_STRUCT_TZONE_ALLOCATED(XRSubImageImplBox);
+    WebGPU::XRSubImageImpl impl;
+};
+WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(XRSubImageImplBox);
+
+Texture& createXRTexture(id<MTLTexture> texture, bool isDepthTexture, WebGPU::TextureFormat format, WebGPU::TextureFormat viewFormat, Device& device)
 {
     Vector<WebGPU::TextureFormat> viewFormats { viewFormat };
 
     WebGPU::TextureDescriptor descriptor {
-        .label = label,
+        .label = isDepthTexture ? "depth texture"_s : "color texture"_s,
         .usage = WebGPU::TextureUsage::RenderAttachment,
         .dimension = WebGPU::TextureDimension::_2d,
         .size = {
@@ -55,28 +68,32 @@ static Ref<Texture> createXRTexture(id<MTLTexture> texture, ASCIILiteral label, 
         .sampleCount = static_cast<uint32_t>(texture.sampleCount),
         .viewFormats = singleElementSpan(format),
     };
-    return Texture::create(texture, descriptor, WTF::move(viewFormats), device);
+    return Texture::create(texture, descriptor, WTF::move(viewFormats), device).leakRef();
 }
 
-XRSubImage::XRSubImage(bool, Device& device)
-    : m_device(device)
+void updateXRTextureCompletionEvent(Texture& texture, id<MTLSharedEvent> event, uint64_t signalValue)
 {
+    texture.updateCompletionEvent(std::make_pair(event, signalValue));
 }
 
-XRSubImage::XRSubImage(Device& device)
-    : m_device(device)
+void setXRTextureRasterizationRateMaps(Texture& texture, id<MTLRasterizationRateMap> left, id<MTLRasterizationRateMap> right)
+{
+    texture.setRasterizationRateMaps(std::make_pair(left, right));
+}
+
+Ref<XRSubImage> XRSubImage::create(Device& device)
+{
+    auto box = makeUnique<XRSubImageImplBox>(XRSubImageImplBox { .impl = makeXRSubImageImpl() });
+    return adoptRef(*new XRSubImage(WTF::move(box), device));
+}
+
+XRSubImage::XRSubImage(std::unique_ptr<XRSubImageImplBox>&& impl, Device& device)
+    : m_impl(WTF::move(impl))
+    , m_device(device)
 {
 }
 
 XRSubImage::~XRSubImage() = default;
-
-Ref<XRSubImage> Device::createXRSubImage()
-{
-    if (!isValid())
-        return XRSubImage::createInvalid(*this);
-
-    return XRSubImage::create(*this);
-}
 
 void XRSubImage::setLabel(String&&)
 {
@@ -89,70 +106,32 @@ bool XRSubImage::isValid() const
 
 void XRSubImage::update(const XRProjectionLayer& projectionLayer)
 {
-    RefPtr device = m_device.get();
+    RefPtr device = m_device;
     if (!device)
         return;
 
-    id<MTLTexture> colorTexture = projectionLayer.colorTexture();
-    id<MTLTexture> depthTexture =  projectionLayer.depthTexture();
-    size_t currentTextureIndex = projectionLayer.reusableTextureIndex();
-    const std::pair<id<MTLSharedEvent>, uint64_t>& sharedEvent = projectionLayer.completionEvent();
-
-    WebGPU::TextureFormat targetColorFormat = projectionLayer.colorFormat();
-    std::optional<WebGPU::TextureFormat> targetDepthStencilFormat = projectionLayer.optionalDepthStencilFormat();
-
-    m_currentTextureIndex = currentTextureIndex;
-    RefPtr texture = this->currentColorTexture();
-    if (!texture || texture->texture() != colorTexture) {
-        auto colorFormat = Texture::textureFormat(colorTexture.pixelFormat);
-        if (!colorFormat)
-            return;
-        if (*colorFormat != targetColorFormat)
-            colorTexture = [colorTexture newTextureViewWithPixelFormat:Texture::pixelFormat(*colorFormat)];
-
-        Ref newTexture = createXRTexture(colorTexture, "color texture"_s, targetColorFormat, *colorFormat, *device);
-        newTexture->updateCompletionEvent(sharedEvent);
-        newTexture->setRasterizationRateMaps(projectionLayer.rasterizationRateMaps());
-        m_colorTextures.set(currentTextureIndex, WTF::move(newTexture));
-    } else
-        texture->updateCompletionEvent(sharedEvent);
-
-    if (!targetDepthStencilFormat) {
-        m_depthTextures.remove(currentTextureIndex);
-        return;
-    }
-
-    if (texture = this->depthTexture(); !texture || texture->texture() != depthTexture) {
-        auto depthFormat = Texture::textureFormat(depthTexture.pixelFormat);
-        if (*targetDepthStencilFormat != depthFormat) {
-            depthFormat = *targetDepthStencilFormat;
-            depthTexture = [depthTexture newTextureViewWithPixelFormat:Texture::pixelFormat(*depthFormat)];
-        }
-        if (!depthFormat)
-            return;
-
-        m_depthTextures.set(currentTextureIndex, createXRTexture(depthTexture, "depth texture"_s, *depthFormat, *depthFormat, *device));
-    }
-}
-
-Texture* XRSubImage::currentColorTexture()
-{
-    return m_colorTextures.get(m_currentTextureIndex);
+    m_impl->impl.update(device.get(), projectionLayer.swiftImpl());
 }
 
 RefPtr<WebGPU::Texture> XRSubImage::colorTexture()
 {
-    return currentColorTexture();
+    if (!m_impl->impl.hasCurrentColorTexture())
+        return nullptr;
+    return adoptRef(m_impl->impl.currentColorTexture());
 }
 
 RefPtr<WebGPU::Texture> XRSubImage::depthStencilTexture()
 {
-    return depthTexture();
+    if (!m_impl->impl.hasCurrentDepthTexture())
+        return nullptr;
+    return adoptRef(m_impl->impl.currentDepthTexture());
 }
 
 Texture* XRSubImage::depthTexture()
 {
-    return m_depthTextures.get(m_currentTextureIndex);
+    if (!m_impl->impl.hasCurrentDepthTexture())
+        return nullptr;
+    return &borrowSwiftRetained(m_impl->impl.currentDepthTexture());
 }
 
 RefPtr<XRSubImage> XRBinding::getViewSubImage(XRProjectionLayer& projectionLayer)

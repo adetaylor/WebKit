@@ -28,10 +28,16 @@
 #import "APIConversions.h"
 #import "Device.h"
 #import "Instance.h"
+#import "RenderPipeline.h"
 #import "ShaderModule.h"
 #import <memory>
-#import <wtf/BlockPtr.h>
-#import <wtf/Scope.h>
+
+#if ENABLE(WEBGPU_SWIFT)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WebGPU.h>
+#import "WebGPUSwift-Generated.h"
+#endif
 
 #if !defined(NDEBUG) || (defined(ENABLE_LIBFUZZER) && ENABLE_LIBFUZZER && defined(ASAN_ENABLED) && ASAN_ENABLED)
 #include <csignal>
@@ -48,261 +54,59 @@ namespace WebGPU::Metal {
 static bool enablePsoLogging();
 #endif
 
-std::optional<PreparedLibrary> prepareLibrary(const ShaderModule& shaderModule, PipelineLayout* pipelineLayout, const String& entryPoint, NSString *label, std::span<const WebGPU::ConstantEntry> constants, BufferBindingSizesForPipeline& mininumBufferSizes, NSError **error)
+void newLibraryWithSource(id<MTLDevice> device, NSString *source, MTLCompileOptions *options, NOESCAPE void (^result)(id<MTLLibrary>, NSError *))
 {
-    WGSL::ResolvedOverrides wgslConstantValues;
-
-    if (!entryPoint.length() || !shaderModule.isValid())
-        return std::nullopt;
-
-    if (shaderModule.library() && pipelineLayout) {
-        if (const RefPtr pipelineLayoutHint = shaderModule.pipelineLayoutHint(entryPoint)) {
-            if (*pipelineLayoutHint == *pipelineLayout) {
-                if (const auto* entryPointInformation = shaderModule.entryPointInformation(entryPoint))
-                    return { { shaderModule.library(), { }, label, { }, *entryPointInformation, wgslConstantValues } };
-            }
-        }
-    }
-
-    std::optional<WGSL::PipelineLayout> wgslPipelineLayout { std::nullopt };
-    if (pipelineLayout && pipelineLayout->numberOfBindGroupLayouts())
-        wgslPipelineLayout = ShaderModule::convertPipelineLayout(*pipelineLayout);
-
-    auto result = shaderModule.compile(entryPoint, wgslPipelineLayout ? &*wgslPipelineLayout : nullptr, constants, WGSL::DeviceState {
-        .appleGPUFamily = shaderModule.device().appleGPUFamily(),
-        .shaderValidationEnabled = shaderModule.device().isShaderValidationEnabled()
-    });
-    switch (result.failure) {
-    case WGSL::CompilationFailure::PrepareFailed:
-    case WGSL::CompilationFailure::GenerateFailed:
-        *error = [NSError errorWithDomain:@"WebGPU" code:1 userInfo:@{ NSLocalizedDescriptionKey: result.errorMessage.createNSString().get() }];
-        return std::nullopt;
-    case WGSL::CompilationFailure::EntryPointNotFound:
-    case WGSL::CompilationFailure::InvalidPipelineConstant:
-        return std::nullopt;
-    case WGSL::CompilationFailure::None:
-        break;
-    }
-
-    if (pipelineLayout) {
-        for (unsigned i = 0; i < pipelineLayout->numberOfBindGroupLayouts(); ++i) {
-            auto& wgslBindGroupLayout = wgslPipelineLayout->bindGroupLayouts[i];
-            auto it = mininumBufferSizes.add(i, BufferBindingSizesForBindGroup()).iterator;
-            BufferBindingSizesForBindGroup& shaderBindingSizeForBuffer = it->value;
-            for (unsigned i = 0; i < wgslBindGroupLayout.entries.size(); ++i) {
-                auto& wgslBindGroupLayoutEntry = wgslBindGroupLayout.entries[i];
-                auto* wgslBufferBinding = std::get_if<WGSL::BufferBindingLayout>(&wgslBindGroupLayoutEntry.bindingMember);
-                if (wgslBufferBinding && wgslBufferBinding->minBindingSize) {
-                    auto newValue = wgslBufferBinding->minBindingSize;
-                    if (auto existingValueIt = shaderBindingSizeForBuffer.find(wgslBindGroupLayoutEntry.binding); existingValueIt != shaderBindingSizeForBuffer.end())
-                        newValue = std::max(newValue, existingValueIt->value);
-                    shaderBindingSizeForBuffer.set(wgslBindGroupLayoutEntry.binding, newValue);
-                }
-            }
-        }
-    }
-
-    auto usesInvariant = result.entryPoint.usesInvariant;
-    return { { nil, WTF::move(result.msl), label, WGSL::DeviceState {
-        .appleGPUFamily = shaderModule.device().appleGPUFamily(),
-        .shaderValidationEnabled = shaderModule.device().isShaderValidationEnabled(),
-        .usesInvariant = usesInvariant
-    }, WTF::move(result.entryPoint), WTF::move(result.resolvedOverrides) } };
-}
-
-LibraryCompileRequest libraryCompileRequest(const PreparedLibrary& preparedLibrary)
-{
-    return {
-        preparedLibrary.library,
-        preparedLibrary.msl.createNSString().get(),
-        preparedLibrary.label.createNSString().get(),
-        preparedLibrary.deviceState
-    };
-}
-
-id<MTLLibrary> compileLibrary(id<MTLDevice> device, const LibraryCompileRequest& request, NSError **error)
-{
-    if (request.cachedLibrary)
-        return request.cachedLibrary;
-
-    return ShaderModule::createLibrary(device, request.msl, request.label, error, request.deviceState);
-}
-
-template<typename Result>
-static CompletionHandler<void(Result, NSError *)> callOnWebGPUThread(Instance& instance, CompletionHandler<void(Result, NSError *)>&& callback)
-{
-    using Callback = CompletionHandler<void(Result, NSError *)>;
-
-    auto* callbackToHopBack = new Callback(WTF::move(callback));
-    // Metal runs its completion handlers on its own queues, so the returned handler is called on an
-    // arbitrary thread. It is the hop below which returns to the thread `callback` was created on.
-    return Callback { [protectedInstance = Ref { instance }, callbackToHopBack](Result result, NSError *error) mutable {
-        protectedInstance->scheduleWork([callbackToHopBack, result, error]() mutable {
-            std::unique_ptr<Callback> callback(callbackToHopBack);
-            (*callback)(result, error);
-        });
-    }, CompletionHandlerCallThread::AnyThread };
-}
-
-void compileLibraryAsync(id<MTLDevice> device, Instance& instance, const LibraryCompileRequest& request, CompletionHandler<void(id<MTLLibrary>, NSError *)>&& callback)
-{
-    // A library which was already compiled needs no hop: this is still running on the WebGPU thread.
-    if (request.cachedLibrary) {
-        callback(request.cachedLibrary, nil);
-        return;
-    }
-
-    // nil device here means the device is either lost or destroyed, all which report no error
-    if (!device) {
-        callback(nil, nil);
-        return;
-    }
-
-    ShaderModule::createLibraryAsync(device, request.msl, request.label, request.deviceState, callOnWebGPUThread<id<MTLLibrary>>(instance, WTF::move(callback)));
-}
-
-void createComputePipelineStateAsync(id<MTLDevice> device, Instance& instance, MTLComputePipelineDescriptor *descriptor, CompletionHandler<void(id<MTLComputePipelineState>, NSError *)>&& callback)
-{
-    // See the comment in compileLibraryAsync(): a lost device is nil and would never call back.
-    if (!device) {
-        callback(nil, nil);
-        return;
-    }
-
-    [device newComputePipelineStateWithDescriptor:descriptor options:MTLPipelineOptionNone completionHandler:makeBlockPtr([hopBack = callOnWebGPUThread<id<MTLComputePipelineState>>(instance, WTF::move(callback))](id<MTLComputePipelineState> computePipelineState, MTLComputePipelineReflection *, NSError *error) mutable {
-        hopBack(computePipelineState, error);
-    }).get()];
-}
-
-void createRenderPipelineStateAsync(id<MTLDevice> device, Instance& instance, MTLRenderPipelineDescriptor *descriptor, CompletionHandler<void(id<MTLRenderPipelineState>, NSError *)>&& callback)
-{
-    // See the comment in compileLibraryAsync(): a lost device is nil and would never call back.
-    if (!device) {
-        callback(nil, nil);
-        return;
-    }
-
-    [device newRenderPipelineStateWithDescriptor:descriptor completionHandler:makeBlockPtr([hopBack = callOnWebGPUThread<id<MTLRenderPipelineState>>(instance, WTF::move(callback))](id<MTLRenderPipelineState> renderPipelineState, NSError *error) mutable {
-        hopBack(renderPipelineState, error);
-    }).get()];
-}
-
-ScopeExit<Function<void()>> scopedErrorReporting(Device& device, bool suppressErrors)
-{
-    bool wasErrorReportingPaused = device.pauseErrorReporting(suppressErrors);
-    return makeScopeExit(Function<void()> { [protectedDevice = protect(device), wasErrorReportingPaused] {
-        protectedDevice->pauseErrorReporting(wasErrorReportingPaused);
-    } });
-}
-
-Device::LibraryCompilation Device::asynchronousIfPossible()
-{
-#if !defined(NDEBUG) || (defined(ENABLE_LIBFUZZER) && ENABLE_LIBFUZZER && defined(ASAN_ENABLED) && ASAN_ENABLED)
-    if (enablePsoLogging())
-        return LibraryCompilation::Synchronous;
-#endif
-    return LibraryCompilation::Asynchronous;
-}
-
-void Device::compileLibrary(const LibraryCompileRequest& request, LibraryCompilation libraryCompilation, CompletionHandler<void(id<MTLLibrary>, NSError *)>&& callback)
-{
-    if (libraryCompilation == LibraryCompilation::Asynchronous) {
-        if (RefPtr protectedInstance = instance()) {
-            compileLibraryAsync(m_device, *protectedInstance, request, WTF::move(callback));
-            return;
-        }
-    }
-
     NSError *error = nil;
-    id<MTLLibrary> library = WebGPU::Metal::compileLibrary(m_device, request, &error);
-    callback(library, error);
+    id<MTLLibrary> library = [device newLibraryWithSource:source options:options error:&error];
+    result(library, error);
 }
 
-void Device::createComputePipelineState(MTLComputePipelineDescriptor *descriptor, String&& shaderSource, LibraryCompilation libraryCompilation, CompletionHandler<void(id<MTLComputePipelineState>)>&& callback)
+void newComputePipelineState(id<MTLDevice> device, MTLComputePipelineDescriptor *descriptor, const String& shaderSource, NOESCAPE void (^result)(id<MTLComputePipelineState>, NSError *))
 {
-    auto reportError = [](NSError *error) {
-        if (error)
-            WTFLogAlways("Pipeline state creation error: %@", error); // NOLINT
-    };
-
-    if (libraryCompilation == LibraryCompilation::Asynchronous) {
-        if (RefPtr protectedInstance = instance()) {
-            createComputePipelineStateAsync(m_device, *protectedInstance, descriptor, [reportError, callback = WTF::move(callback)](id<MTLComputePipelineState> computePipelineState, NSError *error) mutable {
-                reportError(error);
-                callback(computePipelineState);
-            });
-            return;
-        }
-    }
-
     NSError *error = nil;
 #if !defined(NDEBUG) || (defined(ENABLE_LIBFUZZER) && ENABLE_LIBFUZZER && defined(ASAN_ENABLED) && ASAN_ENABLED)
-    dumpMetalReproCaseComputePSO(WTF::move(shaderSource), descriptor.computeFunction.name);
+    dumpMetalReproCaseComputePSO(String { shaderSource }, descriptor.computeFunction.name);
 #else
     UNUSED_PARAM(shaderSource);
 #endif
-    id<MTLComputePipelineState> computePipelineState = [m_device newComputePipelineStateWithDescriptor:descriptor options:MTLPipelineOptionNone reflection:nil error:&error];
+    id<MTLComputePipelineState> computePipelineState = [device newComputePipelineStateWithDescriptor:descriptor options:MTLPipelineOptionNone reflection:nil error:&error];
 #if !defined(NDEBUG) || (defined(ENABLE_LIBFUZZER) && ENABLE_LIBFUZZER && defined(ASAN_ENABLED) && ASAN_ENABLED)
     clearMetalPSORepro();
 #endif
-    reportError(error);
-    callback(computePipelineState);
+    result(computePipelineState, error);
 }
 
-id<MTLFunction> createFunction(id<MTLLibrary> library, const WGSL::CompiledEntryPoint& entryPointInformation, NSString *label)
+bool psoLoggingIsEnabled()
 {
-    auto functionDescriptor = [MTLFunctionDescriptor new];
-    functionDescriptor.name = entryPointInformation.mangledName.createNSString().get();
+#if !defined(NDEBUG) || (defined(ENABLE_LIBFUZZER) && ENABLE_LIBFUZZER && defined(ASAN_ENABLED) && ASAN_ENABLED)
+    return enablePsoLogging();
+#else
+    return false;
+#endif
+}
+
+String reproduceRenderPipelineState(id<MTLDevice> device, uint32_t maxVertexBuffers, MTLRenderPipelineDescriptor *renderPipelineDescriptor, const String& vertexShaderSource, const String& fragmentShaderSource, std::span<const uint32_t> shaderLocations NOESCAPE)
+{
+#if !defined(NDEBUG) || (defined(ENABLE_LIBFUZZER) && ENABLE_LIBFUZZER && defined(ASAN_ENABLED) && ASAN_ENABLED)
+    Vector<uint32_t> sortedShaderLocations { shaderLocations };
+    sortInWTFHashTableOrder(sortedShaderLocations.mutableSpan());
+    if (!dumpMetalReproCaseRenderPSO(String { vertexShaderSource }, renderPipelineDescriptor.vertexFunction.name, String { fragmentShaderSource }, renderPipelineDescriptor.fragmentFunction.name, renderPipelineDescriptor, sortedShaderLocations.span(), maxVertexBuffers))
+        return { };
+    renderPipelineDescriptor.supportIndirectCommandBuffers = YES;
     NSError *error = nil;
-    id<MTLFunction> function = [library newFunctionWithDescriptor:functionDescriptor error:&error];
-    if (error)
-        WTFLogAlways("Function creation error: %@", error);
-    function.label = label;
-    return function;
-}
-
-NSString* errorValidatingBindGroup(const BindGroup& bindGroup, const BufferBindingSizesForBindGroup* mininumBufferSizes, const Vector<uint32_t>* dynamicOffsets)
-{
-    RefPtr bindGroupLayout = bindGroup.bindGroupLayout();
-    if (!bindGroupLayout)
-        return nil;
-
-    auto& bindGroupLayoutEntries = bindGroupLayout->entries();
-    for (const auto& resourceVector : bindGroup.resources()) {
-        for (const auto& resource : resourceVector.resourceUsages) {
-            auto bindingIndex = resource.binding;
-            auto* buffer = get_if<RefPtr<Buffer>>(&resource.resource);
-            if (!buffer)
-                continue;
-
-            auto it = bindGroupLayoutEntries.find(bindingIndex);
-            if (it == bindGroupLayoutEntries.end())
-                return [NSString stringWithFormat:@"Buffer size is missing for binding at index %u bind group", bindingIndex];
-
-            uint64_t bufferSize = 0;
-            if (auto* bufferBinding = get_if<BindGroupLayout::BufferBindingLayout>(&it->value.bindingLayout))
-                bufferSize = bufferBinding->minBindingSize;
-            if (mininumBufferSizes) {
-                if (auto bufferSizeIt = mininumBufferSizes->find(it->value.binding); bufferSizeIt != mininumBufferSizes->end()) {
-                    if (bufferSize && bufferSizeIt->value > bufferSize)
-                        return [NSString stringWithFormat:@"buffer size from WGSL shader(%llu) is less than the binding buffer size(%llu)", bufferSizeIt->value, bufferSize];
-                    bufferSize = std::max(bufferSize, bufferSizeIt->value);
-                }
-            }
-
-            if (bufferSize && buffer->get()) {
-                auto dynamicOffset = bindGroup.dynamicOffset(bindingIndex, dynamicOffsets);
-                auto checkedTotalOffset = checkedSum<uint64_t>(resource.entryOffset, dynamicOffset);
-                if (checkedTotalOffset.hasOverflowed())
-                    return [NSString stringWithFormat:@"resourceOffset(%llu) + dynamicOffset(%u) overflows uint64_t", resource.entryOffset, dynamicOffset];
-                auto totalOffset = checkedTotalOffset.value();
-                auto mtlBufferLength = buffer->get()->currentSize();
-                if (totalOffset > mtlBufferLength || (mtlBufferLength - totalOffset) < bufferSize || bufferSize > resource.entrySize)
-                    return [NSString stringWithFormat:@"buffer length(%llu) minus offset(%llu), (resourceOffset(%llu) + dynamicOffset(%u)), is less than required bufferSize(%llu)", mtlBufferLength, totalOffset, resource.entryOffset, dynamicOffset, bufferSize];
-            }
-        }
-    }
-    return nil;
+    id<MTLRenderPipelineState> renderPipelineState = [device newRenderPipelineStateWithDescriptor:renderPipelineDescriptor error:&error];
+    UNUSED_PARAM(renderPipelineState);
+    clearMetalPSORepro();
+    return error ? String { error.localizedDescription } : String { };
+#else
+    UNUSED_PARAM(device);
+    UNUSED_PARAM(maxVertexBuffers);
+    UNUSED_PARAM(renderPipelineDescriptor);
+    UNUSED_PARAM(vertexShaderSource);
+    UNUSED_PARAM(fragmentShaderSource);
+    UNUSED_PARAM(shaderLocations);
+    return { };
+#endif
 }
 
 #if !defined(NDEBUG) || (defined(ENABLE_LIBFUZZER) && ENABLE_LIBFUZZER && defined(ASAN_ENABLED) && ASAN_ENABLED)
@@ -360,8 +164,10 @@ static void printPsoOnProgramExit(int sig)
     if (psoReproStringBuilder().length())
         /* NOLINT */ SAFE_WTFLOGALWAYS("// ------------------------------------------------------------------------\n// Dumping Metal repro case:\n// ------------------------------------------------------------------------\n%s\n// ------------------------------------------------------------------------\n// End of repro case\n// ------------------------------------------------------------------------", psoReproStringBuilder().toString().utf8());
 
-    if (existingSigabortHandlers()[sig])
-        existingSigabortHandlers()[sig](sig);
+    // SIG_DFL is null; SIG_IGN and SIG_ERR are not functions either.
+    auto previousHandler = existingSigabortHandlers()[sig];
+    if (previousHandler && previousHandler != SIG_IGN && previousHandler != SIG_ERR)
+        previousHandler(sig);
 }
 
 static bool registerPsoExitHandlers()
@@ -479,14 +285,12 @@ void dumpMetalReproCaseComputePSO(String&& shaderSource, String&& functionName)
         printToFileForPsoRepro();
 }
 
-bool dumpMetalReproCaseRenderPSO(String&& vertexShaderSource, String&& vertexFunctionName, String&& fragmentShaderSource, String&& fragmentFunctionName, MTLRenderPipelineDescriptor* descriptor, ShaderModule::VertexStageIn& shaderLocations, const Device& device)
+bool dumpMetalReproCaseRenderPSO(String&& vertexShaderSource, String&& vertexFunctionName, String&& fragmentShaderSource, String&& fragmentFunctionName, MTLRenderPipelineDescriptor* descriptor, std::span<const uint32_t> shaderLocations, uint32_t maxVertexBuffers)
 {
     if (!enablePsoLogging())
         return false;
 
     bool printToFile = !registerPsoExitHandlers();
-
-    const auto maxVertexBuffers = device.limits().maxVertexBuffers;
 
     auto& sb = psoReproStringBuilder();
     sb.append(psoPreamble());
@@ -559,7 +363,7 @@ bool dumpMetalReproCaseRenderPSO(String&& vertexShaderSource, String&& vertexFun
         }
     }
 
-    for (auto shaderLocation : shaderLocations.keys()) {
+    for (auto shaderLocation : shaderLocations) {
         if (MTLVertexAttributeDescriptor* a = descriptor.vertexDescriptor.attributes[shaderLocation]) {
             sb.append("{uint32_t shaderLocation = "_s);
             sb.append(makeString(shaderLocation));

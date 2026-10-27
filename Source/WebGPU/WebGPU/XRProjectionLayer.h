@@ -25,30 +25,55 @@
 
 #pragma once
 
+#import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
+#import <memory>
+#import <span>
 #import <utility>
 #import <wtf/CompletionHandler.h>
 #import <wtf/FastMalloc.h>
 #import <wtf/Ref.h>
 #import <wtf/WeakPtr.h>
 
+#if !defined(__swift__)
+namespace WebGPU {
+class XRProjectionLayerImpl;
+}
+#endif
 
 namespace WebGPU::Metal {
 
 class CommandEncoder;
 class Device;
 
+// Defined in XRProjectionLayer.mm, where the generated Swift header declaring WebGPU::XRProjectionLayerImpl is includable.
+struct XRProjectionLayerImplBox;
+
+// The descriptor values, handed to Swift in one value: std::optional and OptionSet stay on this side.
+struct XRProjectionLayerParameters {
+    WebGPU::TextureFormat colorFormat { WebGPU::TextureFormat::Bgra8unorm };
+    bool hasDepthStencilFormat { false };
+    WebGPU::TextureFormat depthStencilFormat { WebGPU::TextureFormat::Bgra8unorm };
+    uint8_t textureUsage { 0 };
+    double scaleFactor { 1 };
+};
+
+// A frame's rasterization samples, borrowed for the duration of startFrame: a nonescapable view, which Swift hands back
+// to makeXRRasterizationRateMaps without reading it, where a std::span would be unsafe to pass.
+struct XRRasterizationSamples {
+    std::span<const float> samples;
+} SWIFT_VIEW;
+
+// The SPI and soft-linked CompositorServices calls XRProjectionLayerImpl::startFrame makes. They return nil
+// outside visionOS device builds with the internal SDK, where XRProjectionLayer::startFrame never reaches Swift.
+id<MTLTexture> makeXRSharedTexture(id<MTLDevice>, mach_port_t);
+id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice>, mach_port_t);
+NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned screenWidth, unsigned screenHeight, const XRRasterizationSamples& horizontalSamplesLeft, const XRRasterizationSamples& horizontalSamplesRight, const XRRasterizationSamples& verticalSamples);
+
 class XRProjectionLayer final : public WebGPU::XRProjectionLayer {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(XRProjectionLayer);
 public:
-    static Ref<XRProjectionLayer> create(const WebGPU::XRProjectionLayerDescriptor& descriptor, Device& device)
-    {
-        return adoptRef(*new XRProjectionLayer(descriptor, device));
-    }
-    static Ref<XRProjectionLayer> createInvalid(Device& device)
-    {
-        return adoptRef(*new XRProjectionLayer(device));
-    }
+    static Ref<XRProjectionLayer> create(const WebGPU::XRProjectionLayerDescriptor&, Device&);
 
     ~XRProjectionLayer();
 
@@ -58,36 +83,16 @@ public:
     void LEGACY_NODELETE startFrame(size_t frameIndex, MachSendRight&& colorBuffer, MachSendRight&& depthBuffer, MachSendRight&& completionSyncEvent, size_t reusableTextureIndex, unsigned screenWidth, unsigned screenHeight, Vector<float>&& horizontalSamplesLeft, Vector<float>&& horizontalSamplesRight, Vector<float>&& verticalSamples) final;
     void endFrame() final { }
 
-    id<MTLTexture> LEGACY_NODELETE colorTexture() const;
-    id<MTLTexture> LEGACY_NODELETE depthTexture() const;
-    const std::pair<id<MTLSharedEvent>, uint64_t>& LEGACY_NODELETE completionEvent() const;
-    size_t LEGACY_NODELETE reusableTextureIndex() const;
-    WebGPU::TextureFormat colorFormat() const { return m_colorFormat; }
-    std::optional<WebGPU::TextureFormat> optionalDepthStencilFormat() const { return m_optionalDepthStencilFormat; }
-    OptionSet<WebGPU::TextureUsage> flags() const { return m_flags; }
-    double scale() const { return m_scale; }
+#if !defined(__swift__)
+    WebGPU::XRProjectionLayerImpl& swiftImpl() const LIFETIME_BOUND;
+#endif
 
-    std::pair<id<MTLRasterizationRateMap>, id<MTLRasterizationRateMap>> rasterizationRateMaps() const { return std::make_pair(m_rasterizationMapLeft, m_rasterizationMapRight); }
 private:
-    XRProjectionLayer(const WebGPU::XRProjectionLayerDescriptor&, Device&);
-    XRProjectionLayer(Device&);
+    explicit XRProjectionLayer(std::unique_ptr<XRProjectionLayerImplBox>&&);
 
-    void clearDepthTexture();
-
-    NSMutableDictionary<NSNumber*, id<MTLTexture>>* m_colorTextures { nil };
-    NSMutableDictionary<NSNumber*, id<MTLTexture>>* m_depthTextures { nil };
-    id<MTLTexture> m_colorTexture { nil };
-    id<MTLTexture> m_depthTexture { nil };
-    std::pair<id<MTLSharedEvent>, uint64_t> m_sharedEvent;
-    size_t m_reusableTextureIndex { 0 };
-    WebGPU::TextureFormat m_colorFormat { WebGPU::TextureFormat::Bgra8unorm };
-    std::optional<WebGPU::TextureFormat> m_optionalDepthStencilFormat;
-    OptionSet<WebGPU::TextureUsage> m_flags;
-    id<MTLRasterizationRateMap> m_rasterizationMapLeft { nil };
-    id<MTLRasterizationRateMap> m_rasterizationMapRight { nil };
-    double m_scale { 1.f };
-
-    const Ref<Device> m_device;
+    // Owns the descriptor values, the per-frame textures (and their per-index caches), the completion event,
+    // the current reusable texture index, the rasterization rate maps and the Device.
+    const std::unique_ptr<XRProjectionLayerImplBox> m_impl;
 };
 
 } // namespace WebGPU::Metal

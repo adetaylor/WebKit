@@ -27,176 +27,56 @@
 #import "RenderBundle.h"
 
 #import "APIConversions.h"
-#import "BindGroup.h"
-#import "RenderBundleEncoder.h"
-#import "TextureOrTextureView.h"
+#import "Device.h"
 #import <wtf/TZoneMallocInlines.h>
 
-@implementation ResourceUsageAndRenderStage
-- (instancetype)initWithUsage:(MTLResourceUsage)usage renderStages:(MTLRenderStages)renderStages entryUsage:(OptionSet<WebGPU::Metal::BindGroupEntryUsage>)entryUsage binding:(uint32_t)binding resource:(WebGPU::Metal::BindGroupEntryUsageData::Resource)resource
-{
-    if (!(self = [super init]))
-        return nil;
-
-    _usage = usage;
-    _renderStages = renderStages;
-    _entryUsage = entryUsage;
-    _binding = binding;
-    _resource = resource;
-
-    return self;
-}
-@end
+#if ENABLE(WEBGPU_SWIFT)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WebGPU.h>
+#import "WebGPUSwift-Generated.h"
+#endif
 
 namespace WebGPU::Metal {
 
+static_assert(sizeof(WebGPU::RenderBundleImpl) == sizeof(void*) && alignof(WebGPU::RenderBundleImpl) == alignof(void*));
+
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RenderBundle);
 
-RenderBundle::RenderBundle(NSArray<RenderBundleICBWithResources*> *resources, Vector<WebGPU::Metal::BindableResources>&& bindableResources, RefPtr<RenderBundleEncoder> encoder, std::span<const std::optional<WebGPU::TextureFormat>> colorFormats, std::optional<WebGPU::TextureFormat> depthStencilFormat, uint32_t sampleCount, bool depthReadOnly, bool stencilReadOnly, uint64_t commandCount, bool makeSubmitInvalid, HashSet<RefPtr<const BindGroup>>&& bindGroups, Device& device)
-    : m_device(device)
-    , m_renderBundleEncoder(encoder)
-    , m_renderBundlesResources(resources)
-    , m_resources(WTF::move(bindableResources))
-    , m_colorFormats(colorFormats)
-    , m_depthStencilFormat(depthStencilFormat)
-    , m_sampleCount(sampleCount)
-    , m_depthReadOnly(depthReadOnly)
-    , m_stencilReadOnly(stencilReadOnly)
-    , m_bindGroups(bindGroups)
-    , m_commandCount(commandCount)
-    , m_makeSubmitInvalid(makeSubmitInvalid)
+void writeRenderBundleDepthRange(Device& device, id<MTLBuffer> buffer, float minDepth, float maxDepth)
 {
-    ASSERT(m_renderBundleEncoder || m_renderBundlesResources);
+    std::array<float, 2> twoFloats = { minDepth, maxDepth };
+    device.getQueue()->writeBuffer(buffer, 0, asWritableBytes(std::span(twoFloats)));
 }
 
-RenderBundle::RenderBundle(Device& device, NSString* errorString)
-    : m_device(device)
-    , m_lastErrorString(errorString)
+Ref<RenderBundle> RenderBundle::create(const WebGPU::RenderBundleImpl& impl)
 {
+    return adoptRef(*new RenderBundle(impl));
 }
 
-RenderBundle::~RenderBundle() = default;
+RenderBundle::RenderBundle(const WebGPU::RenderBundleImpl& impl)
+{
+    new (m_impl) WebGPU::RenderBundleImpl(impl);
+}
+
+RenderBundle::~RenderBundle()
+{
+    std::destroy_at(&swiftImpl());
+}
 
 bool RenderBundle::isValid() const
 {
-    return m_renderBundleEncoder || m_renderBundlesResources;
+    return swiftImpl().isValid();
+}
+
+WebGPU::RenderBundleImpl& RenderBundle::swiftImpl() const
+{
+    return *std::launder(reinterpret_cast<WebGPU::RenderBundleImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
 void RenderBundle::setLabel(String&& label)
 {
-    m_renderBundlesResources.firstObject.indirectCommandBuffer.label = label.createNSString().get();
-}
-
-void RenderBundle::replayCommands(RenderPassEncoder& renderPassEncoder) const
-{
-    if (RefPtr renderBundleEncoder = m_renderBundleEncoder)
-        renderBundleEncoder->replayCommands(renderPassEncoder);
-}
-
-bool RenderBundle::requiresCommandReplay() const
-{
-    return !!m_renderBundleEncoder.get();
-}
-
-void RenderBundle::updateMinMaxDepths(float minDepth, float maxDepth)
-{
-    if (m_minDepth == minDepth && m_maxDepth == maxDepth)
-        return;
-
-    m_minDepth = minDepth;
-    m_maxDepth = maxDepth;
-    std::array<float, 2> twoFloats = { m_minDepth, m_maxDepth };
-    for (RenderBundleICBWithResources* icb in m_renderBundlesResources)
-        m_device->getQueue()->writeBuffer(icb.fragmentDynamicOffsetsBuffer, 0, asWritableBytes(std::span(twoFloats)));
-}
-
-uint64_t RenderBundle::drawCount() const
-{
-    return m_commandCount;
-}
-
-bool RenderBundle::validateRenderPass(bool depthReadOnly, bool stencilReadOnly, const Vector<TextureOrTextureView>& colorAttachmentViews, const std::optional<TextureOrTextureView>& depthStencilView) const
-{
-    if (depthReadOnly && !m_depthReadOnly)
-        return false;
-
-    if (stencilReadOnly && !m_stencilReadOnly)
-        return false;
-
-    if (m_colorFormats.size() != colorAttachmentViews.size())
-        return false;
-
-    uint32_t defaultRasterSampleCount = 0;
-    for (size_t i = 0, colorFormatCount = std::max(colorAttachmentViews.size(), m_colorFormats.size()); i < colorFormatCount; ++i) {
-        auto descriptorColorFormat = i < m_colorFormats.size() ? m_colorFormats[i] : std::nullopt;
-        if (i >= colorAttachmentViews.size()) {
-            if (!descriptorColorFormat)
-                continue;
-            return false;
-        }
-        auto& attachmentView = colorAttachmentViews[i];
-        if (!attachmentView) {
-            if (!descriptorColorFormat)
-                continue;
-            return false;
-        }
-        if (descriptorColorFormat != attachmentView.format())
-            return false;
-        defaultRasterSampleCount = attachmentView.sampleCount();
-    }
-
-    if (depthStencilView) {
-        if (!*depthStencilView) {
-            if (m_depthStencilFormat)
-                return false;
-        } else {
-            auto& texture = *depthStencilView;
-            if (texture.format() != m_depthStencilFormat)
-                return false;
-            defaultRasterSampleCount = texture.sampleCount();
-        }
-    } else if (m_depthStencilFormat)
-        return false;
-
-    if (m_sampleCount != defaultRasterSampleCount)
-        return false;
-
-    return true;
-}
-
-bool RenderBundle::validatePipeline(const RenderPipeline*)
-{
-    return true;
-}
-
-NSString* RenderBundle::lastError() const
-{
-    return m_lastErrorString;
-}
-
-bool RenderBundle::makeSubmitInvalid() const
-{
-    return m_makeSubmitInvalid;
-}
-
-bool RenderBundle::rebindSamplersIfNeeded() const
-{
-    bool result = true;
-    for (RefPtr bindGroup : m_bindGroups)
-        result = bindGroup->rebindSamplersIfNeeded() && result;
-
-    return result;
-}
-
-void RenderBundle::releaseDestroyedResources()
-{
-    if (!replaceDestroyedResourcesWithPlaceholders(m_resources))
-        return;
-
-    m_makeSubmitInvalid = true;
-
-    if (RefPtr renderBundleEncoder = m_renderBundleEncoder)
-        renderBundleEncoder->releaseDestroyedResources();
+    swiftImpl().setLabel(label.createNSString().get());
 }
 
 } // namespace WebGPU::Metal

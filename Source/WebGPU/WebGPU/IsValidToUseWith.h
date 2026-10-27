@@ -28,23 +28,6 @@
 namespace WebGPU::Metal {
 
 template <typename T, typename U>
-bool isValidToUseWith(const T& object, const U& targetObject)
-{
-    // https://gpuweb.github.io/gpuweb/#abstract-opdef-valid-to-use-with
-
-    if (!object.isValid())
-        return false;
-
-    if (!object.device().isValid())
-        return false;
-
-    if (&object.device() != &targetObject.device())
-        return false;
-
-    return true;
-}
-
-template <typename T, typename U>
 bool isValidToUseWithDevice(const T& object, const U& targetObject)
 {
     // https://gpuweb.github.io/gpuweb/#abstract-opdef-valid-to-use-with
@@ -52,20 +35,14 @@ bool isValidToUseWithDevice(const T& object, const U& targetObject)
     if (!object.isValid())
         return false;
 
-    if (!object.device().isValid())
+    auto& device = object.device();
+    if (!device.isValid())
         return false;
 
-    if (&object.device() != &targetObject)
+    if (&device != &targetObject)
         return false;
 
     return true;
 }
-
-template <typename T, typename U>
-bool isValidToUseWith(const Ref<T>& object, const U& targetObject)
-{
-    return isValidToUseWith(object.get(), targetObject);
-}
-
 
 } // namespace WebGPU::Metal

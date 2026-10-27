@@ -49,48 +49,7 @@ class RenderBundle;
 class Texture;
 class TextureView;
 
-enum class BindGroupEntryUsage {
-    Undefined = 0,
-    Input = 1 << 0,
-    Constant = 1 << 1,
-    Storage = 1 << 2,
-    StorageRead = 1 << 3,
-    Attachment = 1 << 4,
-    AttachmentRead = 1 << 5,
-    ConstantTexture = 1 << 6,
-    StorageTextureWriteOnly = 1 << 7,
-    StorageTextureRead = 1 << 8,
-    StorageTextureReadWrite = 1 << 9,
-};
-
-static constexpr auto isTextureBindGroupEntryUsage(OptionSet<BindGroupEntryUsage> usage)
-{
-    return usage.toRaw() >= static_cast<std::underlying_type<BindGroupEntryUsage>::type>(BindGroupEntryUsage::Attachment);
-}
-
-struct BindGroupEntryUsageData {
-    OptionSet<BindGroupEntryUsage> usage { BindGroupEntryUsage::Undefined };
-    uint32_t binding { 0 };
-    using Resource = Variant<RefPtr<Buffer>, RefPtr<const Texture>, RefPtr<const TextureView>, RefPtr<const ExternalTexture>>;
-    Resource resource;
-    uint64_t entryOffset { 0 };
-    uint64_t entrySize { 0 };
-    static constexpr uint32_t invalidBindingIndex = INT_MAX;
-    static constexpr BindGroupEntryUsage invalidBindGroupUsage = static_cast<BindGroupEntryUsage>(std::numeric_limits<std::underlying_type<BindGroupEntryUsage>::type>::max());
-};
-
-struct BindableResources {
-    Vector<id<MTLResource>> mtlResources;
-    Vector<BindGroupEntryUsageData> resourceUsages;
-    MTLResourceUsage usage;
-    MTLRenderStages renderStages;
-};
-
-void registerResourceHolder(const Vector<BindableResources>&, const BindGroup&);
-void registerResourceHolder(const Vector<BindableResources>&, const RenderBundle&);
-id<MTLResource> placeholderForDestroyedResource(const BindGroupEntryUsageData::Resource&);
-bool replaceDestroyedResourcesWithPlaceholders(Vector<BindableResources>&);
-
+// The layout the indirect-command-buffer clamp shader declares for its index data.
 struct IndexData {
     uint64_t renderCommand { 0 };
     uint32_t minVertexCount { UINT32_MAX };
@@ -104,80 +63,19 @@ struct IndexData {
     uint32_t firstInstance { 0 };
     uint32_t primitiveType { MTLPrimitiveTypeTriangle };
 };
-
-struct IndexBufferAndIndexData {
-    RefPtr<Buffer> indexBuffer;
-    MTLIndexType indexType { MTLIndexTypeUInt16 };
-    NSUInteger indexBufferOffsetInBytes { 0 };
-    IndexData indexData;
-};
-
-// Records an indirect draw so its call can be GPU-encoded into the bundle's ICB slot at executeBundles() time.
-struct IndirectDrawData {
-    uint64_t renderCommand { 0 };
-    RefPtr<Buffer> indirectBuffer;
-    uint64_t indirectOffset { 0 };
-    uint32_t minVertexCount { UINT32_MAX };
-    uint32_t minInstanceCount { UINT32_MAX };
-    RefPtr<Buffer> indexBuffer; // nullptr for non-indexed
-    MTLIndexType indexType { MTLIndexTypeUInt16 };
-    NSUInteger indexBufferOffset { 0 };
-    MTLPrimitiveType primitiveType { MTLPrimitiveTypeTriangle };
-    bool isIndexed { false };
-    // Skip re-encoding while the source buffers' generations are unchanged.
-    bool encodedAtLeastOnce { false };
-    uint64_t lastIndirectGeneration { 0 };
-    uint64_t lastIndexGeneration { 0 };
-};
-
-using IndirectDrawForSlotContainer = HashMap<uint64_t, IndirectDrawData, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>>;
-
-using DrawIndexCacheContainerKey = std::array<uint32_t, 5>;
-inline void add(Hasher& hasher, const DrawIndexCacheContainerKey& input)
-{
-    for (auto value : input)
-        WTF::add(hasher, value);
-}
-
-struct DrawIndexCacheContainerValue {
-    uint32_t firstIndex { 0 };
-    uint32_t indexCount { 0 };
-    uint32_t primitiveOffsetWithIndexType { 0 };
-    union {
-        uint64_t icb { 0 };
-        struct {
-            uint32_t icb1;
-            uint32_t icb2;
-        };
-    };
-    DrawIndexCacheContainerValue() { }
-    DrawIndexCacheContainerValue(const DrawIndexCacheContainerKey& key)
-        : firstIndex(key[0])
-        , indexCount(key[1])
-        , primitiveOffsetWithIndexType(key[2])
-        , icb1(key[3])
-        , icb2(key[4])
-    {
-    }
-    uint32_t primitiveOffset() { return static_cast<MTLIndexType>(primitiveOffsetWithIndexType & 0x1); }
-    MTLIndexType indexType() { return static_cast<MTLIndexType>(primitiveOffsetWithIndexType & 0x2); }
-};
-
-struct DrawIndexValidationCacheEntry {
-    uint32_t vertexCount { 0 };
-    uint64_t indexContentsGeneration { 0 };
-};
-
-using DrawIndexCacheContainer = HashMap<GenericHashKey<DrawIndexCacheContainerKey>, DrawIndexValidationCacheEntry>;
-using DrawIndexCacheContainerIterator = DrawIndexCacheContainer::const_iterator;
-
-using TrackedResourceContainer = HashSet<uint64_t, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>>;
-struct TrackedResource {
-    mutable TrackedResourceContainer m_commandEncoders;
-    void removeEncoder(uint64_t identifier) const
-    {
-        m_commandEncoders.remove(identifier);
-    }
-};
+// The clamp shader's IndexDataUshort/IndexDataUint (DeviceHelpers.swift) assert the same offsets, which Swift reads
+// from this struct.
+static_assert(sizeof(IndexData) == 56);
+static_assert(!offsetof(IndexData, renderCommand));
+static_assert(offsetof(IndexData, minVertexCount) == 8);
+static_assert(offsetof(IndexData, minInstanceCount) == 12);
+static_assert(offsetof(IndexData, bufferGpuAddress) == 16);
+static_assert(offsetof(IndexData, indexBufferElementCountMinusOne) == 24);
+static_assert(offsetof(IndexData, indexCount) == 28);
+static_assert(offsetof(IndexData, instanceCount) == 32);
+static_assert(offsetof(IndexData, firstIndex) == 36);
+static_assert(offsetof(IndexData, baseVertex) == 40);
+static_assert(offsetof(IndexData, firstInstance) == 44);
+static_assert(offsetof(IndexData, primitiveType) == 48);
 
 } // namespace WebGPU::Metal
