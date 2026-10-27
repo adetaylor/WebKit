@@ -95,4 +95,13 @@
 #if USE_SWIFT_HTML_PRELOAD_SCANNER
 #include "Document.h"
 #include "HTMLPreloadScanner.h"
+#if !defined(USE_SWIFT_HTML_TREE_BUILDER)
+#define USE_SWIFT_HTML_TREE_BUILDER 0
+#if USE_SWIFT_HTML_TREE_BUILDER
+#include "CustomElementRegistry.h"
+#include "DocumentFragment.h"
+#include "HTMLDocument.h"
+#include "HTMLDocumentParser.h"
+#include "HTMLParserOptions.h"
+#include "HTMLTreeBuilderSwiftSupport.h"
 #include "WebCoreSwift-Generated.h"
