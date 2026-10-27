@@ -537,27 +537,32 @@ macro(WEBKIT_OPTION_END)
     endif ()
 
     option(WK_BUILD_WEBCORE_SWIFT "Build WebCore's Swift sources, as the Xcode project does" OFF)
+    # The HTML settings below default to on for Apple platforms, as WebCore.xcconfig sets them for every Apple SDK.
+    set(_wk_use_swift_html_default OFF)
+    if (APPLE)
+        set(_wk_use_swift_html_default ON)
+    endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: the HTML fragment fast path
     # parses and builds its DOM in HTMLFastPathParser.swift.
-    option(WK_USE_SWIFT_HTML_FAST_PATH "Parse HTML fragments on the fast path with WebCore's HTMLFastPathParser.swift" OFF)
+    option(WK_USE_SWIFT_HTML_FAST_PATH "Parse HTML fragments on the fast path with WebCore's HTMLFastPathParser.swift" ${_wk_use_swift_html_default})
     if (WK_USE_SWIFT_HTML_FAST_PATH)
         set(WK_BUILD_WEBCORE_SWIFT ON)
     endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: HTMLTokenizer::processToken and the
     # HTML entity decoder are HTMLTokenizer.swift and HTMLEntityParser.swift.
-    option(WK_USE_SWIFT_HTML_TOKENIZER "Tokenize HTML and decode character references with WebCore's HTMLTokenizer.swift and HTMLEntityParser.swift" OFF)
+    option(WK_USE_SWIFT_HTML_TOKENIZER "Tokenize HTML and decode character references with WebCore's HTMLTokenizer.swift and HTMLEntityParser.swift" ${_wk_use_swift_html_default})
     if (WK_USE_SWIFT_HTML_TOKENIZER AND NOT WK_USE_SWIFT_HTML_FAST_PATH)
         message(FATAL_ERROR "WK_USE_SWIFT_HTML_TOKENIZER needs WK_USE_SWIFT_HTML_FAST_PATH: the C++ fast path calls the C++ entity decoder")
     endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: HTMLTokenizer.swift makes the tree
     # builder's tag names and attributes as it scans.
-    option(WK_USE_SWIFT_HTML_PER_TOKEN "Make the HTML tree builder's tag names and attributes in WebCore's HTMLTokenizer.swift" OFF)
+    option(WK_USE_SWIFT_HTML_PER_TOKEN "Make the HTML tree builder's tag names and attributes in WebCore's HTMLTokenizer.swift" ${_wk_use_swift_html_default})
     if (WK_USE_SWIFT_HTML_PER_TOKEN AND NOT WK_USE_SWIFT_HTML_TOKENIZER)
         message(FATAL_ERROR "WK_USE_SWIFT_HTML_PER_TOKEN needs WK_USE_SWIFT_HTML_TOKENIZER, whose HTMLTokenizer.swift makes them")
     endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: the HTML preload scanner is
     # HTMLPreloadScanner.swift.
-    option(WK_USE_SWIFT_HTML_PRELOAD_SCANNER "Scan HTML for resources to preload with WebCore's HTMLPreloadScanner.swift" OFF)
+    option(WK_USE_SWIFT_HTML_PRELOAD_SCANNER "Scan HTML for resources to preload with WebCore's HTMLPreloadScanner.swift" ${_wk_use_swift_html_default})
     if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER AND NOT WK_USE_SWIFT_HTML_PER_TOKEN)
         message(FATAL_ERROR "WK_USE_SWIFT_HTML_PRELOAD_SCANNER needs WK_USE_SWIFT_HTML_PER_TOKEN, whose HTMLToken accessors it reads attributes with")
     endif ()

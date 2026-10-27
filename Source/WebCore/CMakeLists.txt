@@ -3396,12 +3396,66 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/cg/ImageDecodingCG.swift
     )
 
+    # The Swift islands, as in WebCore.xcodeproj. Each file is empty unless its WK_USE_SWIFT_* setting (below)
+    # is on.
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/SIMDHelpers.swift
+        ${WEBCORE_DIR}/SIMDHighBitMask.swift
+        ${WEBCORE_DIR}/SIMDSaturatingSubtract.swift
+        ${WEBCORE_DIR}/SIMDTableLookup.swift
+        ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
+        ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
+        ${WEBCORE_DIR}/html/parser/HTMLTokenizer.swift
+    )
+
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
+        # As WebCore.xcconfig's OTHER_SWIFT_FLAGS: the C++ is built without exceptions, and without
+        # -fno-exceptions and -fignore-exceptions the C++ inline functions the Swift calls carry an exception
+        # personality and cleanups, and LLVM does not inline them into it. -O2 rather than the importer's -Os
+        # for that C++, jump threading for state machines written as a switch in a loop, and the Builtin module
+        # for the vendored SIMD operations in SIMD*.swift.
+        "-Xcc -fno-exceptions"
+        "-Xcc -fignore-exceptions"
+        "-Xcc -O2"
+        "-Xllvm -enable-dfa-jump-thread"
+        "-enable-experimental-feature BuiltinModule"
+        "-Werror DeprecatedDeclaration"
+        "-Werror SendableClosureCaptures"
     )
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+        # PSHUFB in SIMDTableLookup.swift needs SSSE3, which every x86_64 Mac target has.
+        webkit_target_add_swift_options(WebCore "-D HAVE_SSSE3")
+    endif ()
 
     # C++ sources that include WebCoreSwift-Generated.h.
     set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp)
+
+    # As WebCore.xcconfig's WK_USE_SWIFT_* settings: the C++ and Swift conditions, and the C++ condition for the
+    # headers the Swift imports. WebCore_Private's submodules are in the framework's module map here.
+    foreach (_island IN ITEMS HTML_FAST_PATH HTML_TOKENIZER HTML_PER_TOKEN HTML_PRELOAD_SCANNER CSS_TOKENIZER)
+        if (WK_USE_SWIFT_${_island})
+            target_compile_definitions(WebCore PRIVATE "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_${_island}=1>")
+            webkit_target_add_swift_options(WebCore "-D USE_SWIFT_${_island}" "-Xcc -DUSE_SWIFT_${_island}=1")
+        endif ()
+    endforeach ()
+    if (WK_USE_SWIFT_HTML_FAST_PATH)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLDocumentParserFastPath.cpp)
+    endif ()
+    if (WK_USE_SWIFT_HTML_TOKENIZER)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES
+            html/parser/HTMLTokenizer.cpp
+            html/track/WebVTTTokenizer.cpp
+            xml/parser/XMLDocumentParserLibxml2.cpp)
+    endif ()
+    if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLPreloadScanner.cpp)
+    endif ()
+    if (WK_USE_SWIFT_CSS_TOKENIZER)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSTokenizer.cpp)
+    endif ()
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"
