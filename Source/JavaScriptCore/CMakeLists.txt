@@ -1328,6 +1328,7 @@ set(JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
     runtime/LazyProperty.h
     runtime/LazyPropertyInlines.h
     runtime/LeafExecutable.h
+    runtime/LiteralParserSwiftTypes.h
     runtime/Lookup.h
     runtime/MachineContext.h
     runtime/MarkedVector.h
