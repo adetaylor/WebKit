@@ -36,6 +36,8 @@
 #include "ScrollExtents.h"
 #include "ScrollableArea.h"
 #include <wtf/SetForScope.h>
+#include "ScrollingEffectsClock.h"
+#include <atomic>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/text/TextStream.h>
 
@@ -50,6 +52,20 @@
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(ScrollingEffectsControllerTimer);
+
+static std::atomic<ScrollingEffectsClockFunction> scrollingEffectsClock;
+
+MonotonicTime scrollingEffectsClockNow()
+{
+    if (auto clock = scrollingEffectsClock.load(std::memory_order_relaxed))
+        return clock();
+    return MonotonicTime::now();
+}
+
+void setScrollingEffectsClockForTesting(ScrollingEffectsClockFunction clock)
+{
+    scrollingEffectsClock.store(clock, std::memory_order_relaxed);
+}
 
 ScrollingEffectsController::ScrollingEffectsController(ScrollingEffectsControllerClient& client)
     : m_client(client)
