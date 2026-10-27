@@ -42,6 +42,9 @@
 # commits are kept under refs/swift-progress/. It also prints the current
 # figures for the tip of each branch.
 #
+# For swift-experiments-main it also records the proportion that is Swift of
+# each kind of code in CATEGORIES, for comparison with the overall proportion.
+#
 # Lines of code are counted by cloc in Source/, excluding vendored third-party
 # code, untracked files, blank lines and comments.
 #
@@ -79,7 +82,67 @@ FINGERPRINT_LABEL = 'Last run script revision'
 Branch = collections.namedtuple('Branch', ['name', 'repository', 'commit_header', 'percentage_header'])
 BRANCHES = [
     Branch('main', 'git@github.com:WebKit/WebKit.git', 'git reference used for main', 'main'),
-    Branch('swift-experiments-main', 'git@github.com:adetaylor/WebKit.git', 'git reference used for swift-experiments-main', 'swift-experiments-main'),
+    Branch('swift-experiments-main', 'git@github.com:adetaylor/WebKit.git', 'git reference used for swift-experiments-main', 'swift-adoption'),
+]
+
+# Kinds of code each covering a quarter to a third of the counted code. A directory ending in "/" counts
+# its whole subtree; one without counts only the files directly in it.
+Category = collections.namedtuple('Category', ['header', 'directories'])
+CATEGORIES_BRANCH = 'swift-experiments-main'
+CATEGORIES = [
+    # The folders of the functions a profile found most invoked, as the profile attributed them.
+    Category('Performance sensitive', [
+        'Source/WTF/wtf',
+        'Source/WebCore/rendering',
+        'Source/WebKit/Platform/IPC',
+        'Source/WebCore/platform/graphics',
+        'Source/WebCore/style',
+        'Source/JavaScriptCore/dfg',
+        'Source/WebCore/html/canvas',
+        'Source/WebCore/dom',
+        'Source/WebCore/html',
+        'Source/JavaScriptCore/runtime',
+        'Source/JavaScriptCore/bytecode',
+        'Source/JavaScriptCore/b3',
+        'Source/WebKit/WebProcess/GPU/graphics',
+        'Source/JavaScriptCore/heap',
+        'Source/WebCore/style/computed',
+        'Source/JavaScriptCore/assembler',
+        'Source/WebCore/css',
+        'Source/WebCore/platform/graphics/cg',
+        'Source/WebCore/platform/graphics/displaylists',
+        'Source/WTF/wtf/text',
+        'Source/bmalloc/libpas',
+        'Source/WebCore/page',
+        'Source/WebCore/platform/graphics/transforms',
+        'Source/WebKit/GPUProcess/graphics',
+        'Source/WebCore/rendering/svg/legacy',
+        'Source/WebCore/svg',
+        'Source/WebCore/platform',
+        'Source/WebCore/rendering/updating',
+        'Source/WebCore/layout/integration/inline',
+        'Source/JavaScriptCore/jit',
+        'Source/JavaScriptCore/b3/air',
+        'Source/WebCore/svg/properties',
+    ]),
+    # The privileged processes, and the libraries they use.
+    Category('Security sensitive', [
+        'Source/WTF/',
+        'Source/WebKit/UIProcess/',
+        'Source/WebKit/NetworkProcess/',
+        'Source/WebKit/Shared/',
+        'Source/WebKit/GPUProcess/',
+        'Source/WebKit/ModelProcess/',
+        'Source/WebGPU/',
+    ]),
+    # The folders with the most lines added.
+    Category('Frequently changing', [
+        'Source/WebCore/platform/',
+        'Source/WebKit/UIProcess/',
+        'Source/WebCore/Modules/',
+        'Source/JavaScriptCore/runtime/',
+        'Source/WebCore/style/',
+    ]),
 ]
 REF_NAMESPACE = 'refs/swift-progress'
 
@@ -94,7 +157,7 @@ EXCLUDED_DIRECTORIES = (
 )
 
 Spreadsheet = collections.namedtuple('Spreadsheet', ['url', 'document_id', 'table_id'])
-Cell = collections.namedtuple('Cell', ['name', 'section_id', 'text'])
+Cell = collections.namedtuple('Cell', ['name', 'section_id', 'text', 'is_formula'])
 Row = collections.namedtuple('Row', ['date', 'cells'])
 Measurement = collections.namedtuple('Measurement', ['swift', 'c_family'])
 
@@ -159,8 +222,8 @@ class Quip:
         return self.request(f'threads/{self.spreadsheet.document_id}')['html']
 
     def replace_cell(self, cell, value):
-        # Markdown, not HTML: a value written as HTML stays text unless a Quip page has the spreadsheet
-        # open as the edit arrives, and a chart drops a series with a text cell in it.
+        # Quip stores what the API writes as text. A Quip page with the spreadsheet open turns it into a
+        # number when the spreadsheet is next clicked; until then, a chart drops each series it is in.
         self.request('threads/edit-document', {
             'thread_id': self.spreadsheet.document_id,
             'format': 'markdown',
@@ -194,7 +257,9 @@ class TableParser(html.parser.HTMLParser):
         elif tag == 'tr' and not self.in_header:
             self.rows.append([])
         elif tag in ('td', 'th'):
-            self.cell = {'id': dict(attributes).get('id'), 'text': []}
+            self.cell = {'id': dict(attributes).get('id'), 'text': [], 'is_formula': False}
+        elif tag == 'span' and self.cell is not None and 'formula' in dict(attributes):
+            self.cell['is_formula'] = True
 
     def handle_endtag(self, tag):
         if tag == 'table':
@@ -210,7 +275,7 @@ class TableParser(html.parser.HTMLParser):
             if self.in_header:
                 self.column_letters.append(text)
             else:
-                self.rows[-1].append((self.cell['id'], text))
+                self.rows[-1].append((self.cell['id'], text, self.cell['is_formula']))
             self.cell = None
 
     def handle_data(self, data):
@@ -228,10 +293,11 @@ class Sheet:
 
         def cells_of(row):
             row_number = row[0][1]
-            return [Cell(f'{letter}{row_number}', section_id, text) for letter, (section_id, text) in zip(letters, row[1:])]
+            return [Cell(f'{letter}{row_number}', *cell) for letter, cell in zip(letters, row[1:])]
 
         header = cells_of(parser.rows[0])
-        header_texts = [cell.text for cell in header]
+        # A column headed by a formula, such as a copy of another column for a chart, is never one of these.
+        header_texts = [None if cell.is_formula else cell.text for cell in header]
 
         def column(title):
             if header_texts.count(title) != 1:
@@ -243,10 +309,11 @@ class Sheet:
 
         date_column = column(DATE_HEADER)
         self.columns = {branch.name: (column(branch.commit_header), column(branch.percentage_header)) for branch in BRANCHES}
+        self.category_columns = [column(category.header) for category in CATEGORIES]
         self.rows = []
         for row in parser.rows[1:]:
             cells = cells_of(row)
-            if len(cells) <= max(date_column, *(index for pair in self.columns.values() for index in pair)):
+            if len(cells) <= max(date_column, *self.category_columns, *(index for pair in self.columns.values() for index in pair)):
                 continue
             date_cell = cells[date_column]
             if not date_cell.text:
@@ -261,12 +328,14 @@ class Sheet:
         for row in self.rows:
             for pair in self.columns.values():
                 self.writable_section_ids.update(row.cells[index].section_id for index in pair)
+            self.writable_section_ids.update(row.cells[index].section_id for index in self.category_columns)
         if None in self.writable_section_ids:
             sys.exit('Some spreadsheet cells have no section ID')
 
     def cells(self, row, branch):
         commit_column, percentage_column = self.columns[branch.name]
-        return row.cells[commit_column], row.cells[percentage_column]
+        category_cells = [row.cells[index] for index in self.category_columns] if branch.name == CATEGORIES_BRANCH else []
+        return row.cells[commit_column], row.cells[percentage_column], category_cells
 
 
 def check_worktree_is_clean():
@@ -316,10 +385,18 @@ def measure(commit, extensions):
     with tempfile.NamedTemporaryFile('w', suffix='.txt') as list_file:
         list_file.write('\n'.join(files) + '\n')
         list_file.flush()
-        counts = json.loads(run('cloc', '--quiet', '--json', '--timeout=0', f'--include-lang={",".join(C_FAMILY_LANGUAGES + [SWIFT_LANGUAGE])}', f'--list-file={list_file.name}'))
-    return Measurement(
-        swift=counts.get(SWIFT_LANGUAGE, {}).get('code', 0),
-        c_family=sum(counts.get(language, {}).get('code', 0) for language in C_FAMILY_LANGUAGES))
+        counts = json.loads(run('cloc', '--quiet', '--json', '--by-file', '--timeout=0', f'--include-lang={",".join(C_FAMILY_LANGUAGES + [SWIFT_LANGUAGE])}', f'--list-file={list_file.name}'))
+    return {path: Measurement(swift=entry['code'], c_family=0) if entry['language'] == SWIFT_LANGUAGE else Measurement(swift=0, c_family=entry['code'])
+            for path, entry in counts.items() if path not in ('header', 'SUM')}
+
+
+def in_directories(path, directories):
+    return any(path.startswith(directory) if directory.endswith('/') else os.path.dirname(path) == directory for directory in directories)
+
+
+def total(files, directories=None):
+    selected = [measurement for path, measurement in files.items() if directories is None or in_directories(path, directories)]
+    return Measurement(swift=sum(m.swift for m in selected), c_family=sum(m.c_family for m in selected))
 
 
 def main():
@@ -343,9 +420,9 @@ def main():
             continue
         is_current_week = today < row.date + WEEK
         for branch in BRANCHES:
-            commit_cell, percentage_cell = sheet.cells(row, branch)
-            if is_current_week or remeasure_everything or not commit_cell.text or not percentage_cell.text:
-                jobs.append((row, branch, commit_cell, percentage_cell, is_current_week))
+            commit_cell, percentage_cell, category_cells = sheet.cells(row, branch)
+            if is_current_week or remeasure_everything or not all(cell.text for cell in [commit_cell, percentage_cell, *category_cells]):
+                jobs.append((row, branch, commit_cell, percentage_cell, category_cells, is_current_week))
 
     def write(cell, value):
         if cell.section_id not in sheet.writable_section_ids:
@@ -357,17 +434,20 @@ def main():
     extensions = counted_extensions()
     measurements = {}
 
-    def proportion(commit, label):
+    def files_at(commit, label):
         if commit not in measurements:
             print(f'{label}: measuring {commit}')
             measurements[commit] = measure(commit, extensions)
-        measurement = measurements[commit]
+        return measurements[commit]
+
+    def proportion(files, label, directories=None):
+        measurement = total(files, directories)
         result = measurement.swift / (measurement.swift + measurement.c_family)
         print(f'{label}: {measurement.swift} Swift / ({measurement.swift} Swift + {measurement.c_family} C-family) = {result:.4%}')
         return result
 
     try:
-        for row, branch, commit_cell, percentage_cell, is_current_week in jobs:
+        for row, branch, commit_cell, percentage_cell, category_cells, is_current_week in jobs:
             if is_current_week:
                 commit = git('rev-parse', tracking_ref(branch))
             elif commit_cell.text:
@@ -381,13 +461,20 @@ def main():
                     print(f'{row.date} {branch.name}: no commit found before the end of the week; skipping')
                     continue
             git('update-ref', f'{REF_NAMESPACE}/measured/{branch.name}/{row.date}', commit)
-            row_proportion = proportion(commit, f'{row.date} {branch.name}')
+            files = files_at(commit, f'{row.date} {branch.name}')
+            row_proportion = proportion(files, f'{row.date} {branch.name}')
             if commit_cell.text != commit:
                 write(commit_cell, commit)
             write(percentage_cell, f'{row_proportion:.2%}')
+            for category, category_cell in zip(CATEGORIES, category_cells):
+                write(category_cell, f'{proportion(files, f"{row.date} {category.header}", category.directories):.2%}')
 
         for branch in BRANCHES:
-            proportion(git('rev-parse', tracking_ref(branch)), f'Now {branch.name}')
+            files = files_at(git('rev-parse', tracking_ref(branch)), f'Now {branch.name}')
+            proportion(files, f'Now {branch.name}')
+            if branch.name == CATEGORIES_BRANCH:
+                for category in CATEGORIES:
+                    proportion(files, f'Now {category.header}', category.directories)
     finally:
         git('checkout', '--quiet', original_checkout)
 
@@ -396,6 +483,7 @@ def main():
     if not jobs:
         print('No spreadsheet rows needed measuring.')
     print(spreadsheet.url)
+    print('Click anywhere in the spreadsheet once it has loaded, so that Quip turns the new values into numbers; until then its chart leaves them out.')
     subprocess.run(['open', spreadsheet.url])
 
 
