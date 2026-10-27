@@ -814,6 +814,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     bindings/js/IDBBindingUtilities.h
     bindings/js/JSCSSRuleCustom.h
     bindings/js/JSCSSStyleDeclarationCustom.h
+    bindings/js/JSCustomElementInterface.h
     bindings/js/JSDOMBinding.h
     bindings/js/JSDOMBindingFacade.h
     bindings/js/JSDOMBindingSecurity.h
@@ -1191,6 +1192,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     dom/DOMRectList.h
     dom/DOMRectReadOnly.h
     dom/DataTransfer.h
+    dom/DecodedDataDocumentParser.h
     dom/DeviceOrientationClient.h
     dom/DeviceOrientationData.h
     dom/DeviceOrientationOrMotionPermissionState.h
@@ -1295,6 +1297,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     dom/NodeType.h
     dom/OriginKeyed.h
     dom/ParserContentPolicy.h
+    dom/PendingScriptClient.h
     dom/PointerEvent.h
     dom/PointerEventTypeNames.h
     dom/PointerLockOptions.h
@@ -1322,6 +1325,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     dom/ScriptExecutionContextInlines.h
     dom/ScriptRunner.h
     dom/ScriptType.h
+    dom/ScriptableDocumentParser.h
     dom/SecurityContext.h
     dom/SecurityPolicyViolationEvent.h
     dom/SecurityPolicyViolationEventDisposition.h
@@ -1546,6 +1550,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     html/HTMLTablePartElement.h
     html/HTMLTableRowElement.h
     html/HTMLTableSectionElement.h
+    html/HTMLTemplateElement.h
     html/HTMLTextAreaElement.h
     html/HTMLTextFormControlElement.h
     html/HTMLTitleElement.h
@@ -1614,6 +1619,10 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     html/forms/FileIconLoader.h
 
     html/parser/HTMLDocumentParserFastPath.h
+    html/parser/HTMLEntityParser.h
+    html/parser/HTMLEntityTable.h
+    html/parser/HTMLInputStream.h
+    html/parser/HTMLNameCache.h
     html/parser/HTMLParserIdioms.h
     html/parser/HTMLParserScriptingFlagPolicy.h
 
@@ -3699,6 +3708,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     ${WebCore_DERIVED_SOURCES_DIR}/EventTargetInterfaces.h
     ${WebCore_DERIVED_SOURCES_DIR}/FrameTreeSyncData.h
     ${WebCore_DERIVED_SOURCES_DIR}/FrameTreeSyncClient.h
+    ${WebCore_DERIVED_SOURCES_DIR}/HTMLElementFactory.h
     ${WebCore_DERIVED_SOURCES_DIR}/HTMLElementTypeHelpers.h
     ${WebCore_DERIVED_SOURCES_DIR}/HTMLNames.h
     ${WebCore_DERIVED_SOURCES_DIR}/HTTPHeaderNames.h
@@ -3755,7 +3765,9 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     ${WebCore_DERIVED_SOURCES_DIR}/WebCoreLogDefinitions.h
     ${WebCore_DERIVED_SOURCES_DIR}/WebCoreVirtualLogFunctions.h
     ${WebCore_DERIVED_SOURCES_DIR}/WebKitFontFamilyNames.h
+    ${WebCore_DERIVED_SOURCES_DIR}/XLinkNames.h
     ${WebCore_DERIVED_SOURCES_DIR}/XMLNSNames.h
+    ${WebCore_DERIVED_SOURCES_DIR}/XMLNames.h
 )
 
 # FIXME: Eventually add all non-installed headers to this list, so that the
