@@ -29,13 +29,19 @@
 #include <WebGPU/WebGPU.h>
 #include <WebGPU/WebGPUCpp.h>
 #include <optional>
+#include <wtf/SwiftBridging.h>
 #include <wtf/Vector.h>
 
 namespace WebGPU::Metal {
 
+// Swift cannot spell a class template specialization, only a typedef of one.
+using FeatureNames = Vector<WebGPU::FeatureName>;
+
+// Carries the capabilities from the adapter request to the Swift AdapterImpl and DeviceImpl, which own them.
+// SWIFT_SELF_CONTAINED: these own everything they refer to (ARC retains the counter sets).
 struct HardwareCapabilities {
     Limits limits { };
-    Vector<WebGPU::FeatureName> features;
+    FeatureNames features;
 
     struct BaseCapabilities {
         MTLArgumentBuffersTier argumentBuffersTier { MTLArgumentBuffersTier1 };
@@ -45,16 +51,13 @@ struct HardwareCapabilities {
         bool supportsNonPrivateDepthStencilTextures { false };
         bool supportsMemorylessTextures { false };
         bool canPresentRGB10A2PixelFormats { false };
-        bool supportsResidencySets { false };
-    } baseCapabilities;
-};
+    } SWIFT_SELF_CONTAINED;
+    BaseCapabilities baseCapabilities;
+} SWIFT_SELF_CONTAINED;
 
 std::optional<HardwareCapabilities> hardwareCapabilities(id<MTLDevice>);
-bool LEGACY_NODELETE isValid(const Limits&);
-Limits LEGACY_NODELETE defaultLimits();
-bool LEGACY_NODELETE anyLimitIsBetterThan(const Limits& target, const Limits& reference);
-bool includesUnsupportedFeatures(const Vector<WebGPU::FeatureName>& target, const Vector<WebGPU::FeatureName>& reference);
 bool isShaderValidationEnabled(id<MTLDevice>);
-bool isWebGPUSwiftEnabled();
+// For HardwareCapabilities.swift.
+bool isPhysicalHardware();
 
 } // namespace WebGPU::Metal

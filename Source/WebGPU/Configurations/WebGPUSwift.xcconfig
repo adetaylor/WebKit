@@ -36,10 +36,14 @@ ENABLE_WEBGPU_SWIFT[sdk=iphone*26.3*] = ;
 // (https://bugs.webkit.org/show_bug.cgi?id=300146).
 ENABLE_WEBGPU_SWIFT[sdk=iphonesimulator26*] = ;
 
-ENABLE_WEBGPU_SWIFT[sdk=xros*] = ENABLE_WEBGPU_SWIFT;
-ENABLE_WEBGPU_SWIFT[sdk=xros*26.2*] = ;
-ENABLE_WEBGPU_SWIFT[sdk=xros*26.3*] = ;
+ENABLE_WEBGPU_SWIFT[sdk=xr*] = ENABLE_WEBGPU_SWIFT;
+ENABLE_WEBGPU_SWIFT[sdk=xr*26.2*] = ;
+ENABLE_WEBGPU_SWIFT[sdk=xr*26.3*] = ;
+ENABLE_WEBGPU_SWIFT[sdk=xrsimulator26*] = ;
 
-ENABLE_WEBGPU_SWIFT[sdk=appletvos*] = ;
+// WebKit builds C++-interop Swift on tvOS and watchOS from the 27 SDKs.
+ENABLE_WEBGPU_SWIFT[sdk=appletv*] = ENABLE_WEBGPU_SWIFT;
+ENABLE_WEBGPU_SWIFT[sdk=appletv*26*] = ;
 
-ENABLE_WEBGPU_SWIFT[sdk=watch*] = ;
+ENABLE_WEBGPU_SWIFT[sdk=watch*] = ENABLE_WEBGPU_SWIFT;
+ENABLE_WEBGPU_SWIFT[sdk=watch*26*] = ;

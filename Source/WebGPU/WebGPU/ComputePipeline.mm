@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (c) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,236 +29,121 @@
 #import "APIConversions.h"
 #import "BindGroupLayout.h"
 #import "Device.h"
-#import "Instance.h"
-#import "IsValidToUseWith.h"
 #import "Pipeline.h"
 #import "PipelineLayout.h"
 #import "ShaderModule.h"
-#import <wtf/Scope.h>
+#import <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(WEBGPU_SWIFT)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WebGPU.h>
+#import "WebGPUSwift-Generated.h"
+#endif
 
 namespace WebGPU::Metal {
 
-static MTLComputePipelineDescriptor *createComputePipelineDescriptor(id<MTLFunction> function, const PipelineLayout& pipelineLayout, NSString *label, GPUShaderValidation validationState)
+static_assert(sizeof(WebGPU::ComputePipelineImpl) == sizeof(void*) && alignof(WebGPU::ComputePipelineImpl) == alignof(void*));
+
+// The creation is ComputePipelineBuilder (ComputePipeline.swift). This resolves what Swift cannot downcast: the shader
+// module and the layout (the replaced pipeline's or the descriptor's).
+static WebGPU::ComputePipelineBuilder computePipelineBuilder(Device& device, const WebGPU::ComputePipelineDescriptor& descriptor, const ComputePipeline* pipelineToReplace)
 {
-    auto computePipelineDescriptor = [MTLComputePipelineDescriptor new];
-#if ENABLE(WEBGPU_BY_DEFAULT)
-    computePipelineDescriptor.shaderValidation = validationState;
-#else
-    UNUSED_PARAM(validationState);
-#endif
-
-    computePipelineDescriptor.computeFunction = function;
-    for (size_t i = 0; i < pipelineLayout.numberOfBindGroupLayouts(); ++i)
-        computePipelineDescriptor.buffers[i].mutability = MTLMutabilityImmutable; // Argument buffers are always immutable in WebGPU.
-    computePipelineDescriptor.label = label;
-    return computePipelineDescriptor;
-}
-
-static std::optional<MTLSize> metalSize(const ShaderModule& shaderModule, const String& entryPoint, const WGSL::ResolvedOverrides& wgslConstantValues)
-{
-    auto size = shaderModule.evaluateWorkgroupSize(entryPoint, wgslConstantValues);
-    if (!size)
-        return std::nullopt;
-
-    return MTLSizeMake(size->width, size->height, size->depth);
-}
-
-static std::pair<Ref<ComputePipeline>, NSString*> returnInvalidComputePipeline(WebGPU::Metal::Device &object, bool isAsync, NSString* error = nil)
-{
-    if (!isAsync)
-        object.generateAValidationError(error ?: @"createComputePipeline failed");
-    return std::make_pair(ComputePipeline::createInvalid(object), error);
+    Ref shaderModule = metal(descriptor.compute.module.get());
+    auto builder = makeComputePipelineBuilder(&device, device.swiftImpl(), shaderModule->swiftImpl());
+    if (pipelineToReplace) {
+        Ref pipelineLayout = pipelineToReplace->pipelineLayout();
+        builder.setPipelineLayout(pipelineLayout.ptr(), pipelineLayout->swiftImpl(), true);
+    } else if (descriptor.layout) {
+        Ref pipelineLayout = metal(*descriptor.layout);
+        builder.setPipelineLayout(pipelineLayout.ptr(), pipelineLayout->swiftImpl(), false);
+    }
+    return builder;
 }
 
 RefPtr<WebGPU::ComputePipeline> Device::createComputePipeline(const WebGPU::ComputePipelineDescriptor& descriptor)
 {
-    std::optional<std::pair<Ref<ComputePipeline>, NSString*>> result;
-    createComputePipeline(descriptor, false, nullptr, LibraryCompilation::Synchronous, [&](std::pair<Ref<ComputePipeline>, NSString*>&& pipelineAndError) {
-        result = WTF::move(pipelineAndError);
-    });
-    // LibraryCompilation::Synchronous never defers the completion handler.
-    RELEASE_ASSERT(result);
-    return WTF::move(result->first);
-}
-
-void Device::createComputePipeline(const WebGPU::ComputePipelineDescriptor& descriptor, bool isAsync, const ComputePipeline* pipelineToReplace, LibraryCompilation libraryCompilation, CompletionHandler<void(std::pair<Ref<ComputePipeline>, NSString*>&&)>&& callback)
-{
-    Ref shaderModule = metal(descriptor.compute.module.get());
-    RefPtr<PipelineLayout> pipelineLayout;
-    if (pipelineToReplace)
-        pipelineLayout = &pipelineToReplace->pipelineLayout();
-    else if (descriptor.layout)
-        pipelineLayout = &metal(*descriptor.layout);
-
-    if (!shaderModule->isValid() || &shaderModule->device() != this || !pipelineLayout)
-        return callback(returnInvalidComputePipeline(*this, isAsync));
-
-    if (!isValidToUseWithDevice(*pipelineLayout, *this))
-        return callback(returnInvalidComputePipeline(*this, isAsync, @"GPUDevice.createComputePipeline: Pipeline layout is invalid"));
-
-    auto& deviceLimits = limits();
-    auto label = descriptor.label.createNSString();
-    auto entryPointName = descriptor.compute.entryPoint.isNull() ? shaderModule->defaultComputeEntryPoint() : descriptor.compute.entryPoint;
-    NSError *error;
-    BufferBindingSizesForPipeline minimumBufferSizes;
-    auto preparedLibrary = prepareLibrary(shaderModule.get(), pipelineLayout.get(), entryPointName, label.get(), descriptor.compute.constants, minimumBufferSizes, &error);
-    if (!preparedLibrary || &pipelineLayout->device() != this)
-        return callback(returnInvalidComputePipeline(*this, isAsync, error.localizedDescription ?: @"Compute library failed creation"));
-
-    const auto& wgslConstantValues = preparedLibrary->wgslConstantValues;
-    const auto& entryPointInformation = preparedLibrary->entryPointInformation;
-
-    if (entryPointInformation.stage != WGSL::ShaderStage::Compute || !entryPointInformation.hasWorkgroupSize)
-        return callback(returnInvalidComputePipeline(*this, isAsync));
-
-    if (entryPointInformation.specializationConstants.size() != wgslConstantValues.size())
-        return callback(returnInvalidComputePipeline(*this, isAsync));
-
-    auto evaluatedSize = metalSize(shaderModule.get(), entryPointName, wgslConstantValues);
-    if (!evaluatedSize)
-        return callback(returnInvalidComputePipeline(*this, isAsync, @"Failed to evaluate overrides"));
-    auto size = *evaluatedSize;
-    if (entryPointInformation.sizeForWorkgroupVariables > deviceLimits.maxComputeWorkgroupStorageSize)
-        return callback(returnInvalidComputePipeline(*this, isAsync));
-
-    if (!size.width || size.width > deviceLimits.maxComputeWorkgroupSizeX || !size.height || size.height > deviceLimits.maxComputeWorkgroupSizeY || !size.depth || size.depth > deviceLimits.maxComputeWorkgroupSizeZ || size.width * size.height * size.depth > deviceLimits.maxComputeInvocationsPerWorkgroup)
-        return callback(returnInvalidComputePipeline(*this, isAsync));
-
-    if (m_pipelineId == Device::maxPipelines) {
-        loseTheDevice(WebGPU::DeviceLostReason::Unknown);
-        return callback(returnInvalidComputePipeline(*this, isAsync, @"too many compute pipelines"));
-    }
-
-    // Resolve the bind group layout now, while the descriptor is still guaranteed to be alive.
-    Ref finalPipelineLayout = *pipelineLayout;
-    if (!pipelineToReplace && pipelineLayout->isAutoLayout() && entryPointInformation.defaultLayout) {
-        Vector<Vector<ResolvedBindGroupLayoutEntry>> bindGroupEntries;
-        if (NSString *layoutError = addPipelineLayouts(bindGroupEntries, entryPointInformation.defaultLayout))
-            return callback(returnInvalidComputePipeline(*this, isAsync, layoutError));
-
-        auto generatedPipelineLayout = generatePipelineLayout(bindGroupEntries);
-        if (!generatedPipelineLayout->isValid())
-            return callback(returnInvalidComputePipeline(*this, isAsync));
-        finalPipelineLayout = WTF::move(generatedPipelineLayout);
-    }
-
-    // Claim the id up front so that concurrently compiling pipelines can't be handed the same one.
-    auto pipelineId = ++m_pipelineId;
-    auto compileRequest = libraryCompileRequest(*preparedLibrary);
-
-    // Nothing below this point reads `descriptor`, so it may run after the MSL compile finishes.
-    CompletionHandler<void(id<MTLLibrary>, NSError *)> finishCreation = [protectedThis = protect(*this), isAsync, suppressErrors = m_supressAllErrors, libraryCompilation, label = WTF::move(label), pipelineLayout = WTF::move(finalPipelineLayout), libraryInfo = WTF::move(*preparedLibrary), minimumBufferSizes = WTF::move(minimumBufferSizes), size, pipelineId, callback = WTF::move(callback)](id<MTLLibrary> library, NSError *libraryError) mutable {
-        auto errorReporting = scopedErrorReporting(protectedThis, suppressErrors);
-
-        if (!library)
-            return callback(returnInvalidComputePipeline(protectedThis, isAsync, libraryError.localizedDescription ?: @"Compute library failed creation"));
-
-        auto function = createFunction(library, libraryInfo.entryPointInformation, label.get());
-        if (!function || function.functionType != MTLFunctionTypeKernel)
-            return callback(returnInvalidComputePipeline(protectedThis, isAsync));
-
-        // The pipeline state is the second half of the compile, and it is what a dispatch actually needs,
-        // so the pipeline isn't handed back until Metal is done with it.
-        auto computePipelineDescriptor = createComputePipelineDescriptor(function, pipelineLayout, label.get(), protectedThis->shaderValidationState());
-        protectedThis->createComputePipelineState(computePipelineDescriptor, WTF::move(libraryInfo.msl), libraryCompilation, [protectedThis, isAsync, suppressErrors, pipelineLayout = WTF::move(pipelineLayout), minimumBufferSizes = WTF::move(minimumBufferSizes), size, pipelineId, callback = WTF::move(callback)](id<MTLComputePipelineState> computePipelineState) mutable {
-            auto errorReporting = scopedErrorReporting(protectedThis, suppressErrors);
-
-            if (!computePipelineState) {
-                protectedThis->generateAnOutOfMemoryError("Compute pipeline failed compilation likely due to being too complex, please reduce its size"_s);
-                return callback(returnInvalidComputePipeline(protectedThis, isAsync, @"GPUCompuePipeline could not compile"));
-            }
-
-            callback(std::make_pair(ComputePipeline::create(computePipelineState, WTF::move(pipelineLayout), size, WTF::move(minimumBufferSizes), pipelineId, protectedThis), nil));
-        });
-    };
-
-    compileLibrary(compileRequest, libraryCompilation, WTF::move(finishCreation));
-}
-
-static CompletionHandler<void(std::pair<Ref<ComputePipeline>, NSString*>&&)> asyncComputePipelineCompletion(Device& device, CompletionHandler<void(std::expected<Ref<WebGPU::ComputePipeline>, WebGPU::PipelineError>&&)>&& callback)
-{
-    return [protectedDevice = protect(device), callback = WTF::move(callback)](std::pair<Ref<ComputePipeline>, NSString*>&& pipelineAndError) mutable {
-        auto reportResult = [protectedDevice, callback = WTF::move(callback), pipeline = WTF::move(pipelineAndError.first), message = String { pipelineAndError.second }]() mutable {
-            // A lost device makes invalid objects without errors.
-            if (pipeline->isValid() || protectedDevice->isDestroyed())
-                return callback(Ref<WebGPU::ComputePipeline> { WTF::move(pipeline) });
-            callback(makeUnexpected(WebGPU::PipelineError { .reason = WebGPU::PipelineErrorReason::Validation, .message = WTF::move(message) }));
-        };
-
-        // Resolve on a later turn of the WebGPU thread, never re-entrantly from the caller.
-        if (RefPtr protectedInstance = protectedDevice->instance()) {
-            protectedInstance->scheduleWork(WTF::move(reportResult));
-            return;
-        }
-        reportResult();
-    };
+    return adoptRef(*computePipelineBuilder(*this, descriptor, nullptr).create(descriptor));
 }
 
 void Device::createComputePipelineAsync(const WebGPU::ComputePipelineDescriptor& descriptor, CompletionHandler<void(std::expected<Ref<WebGPU::ComputePipeline>, WebGPU::PipelineError>&&)>&& callback)
 {
-    createComputePipeline(descriptor, true, nullptr, asynchronousIfPossible(), asyncComputePipelineCompletion(*this, WTF::move(callback)));
+    computePipelineBuilder(*this, descriptor, nullptr).createAsync(descriptor, callback);
 }
 
 void Device::createComputePipelineWithPipelineLayoutFromPipelineAsync(const WebGPU::ComputePipelineDescriptor& descriptor, const WebGPU::ComputePipeline& pipelineToReplace, CompletionHandler<void(std::expected<Ref<WebGPU::ComputePipeline>, WebGPU::PipelineError>&&)>&& callback)
 {
-    bool wasErrorReportingPaused = pauseErrorReporting(true);
-    createComputePipeline(descriptor, true, &downcast<ComputePipeline>(pipelineToReplace), asynchronousIfPossible(), asyncComputePipelineCompletion(*this, WTF::move(callback)));
-    pauseErrorReporting(wasErrorReportingPaused);
+    computePipelineBuilder(*this, descriptor, &downcast<ComputePipeline>(pipelineToReplace)).createAsync(descriptor, callback);
+}
+
+void callCreateComputePipelineAsyncCallback(CreateComputePipelineAsyncCallback& callback, ComputePipeline& pipeline, bool succeeded, NSString *errorMessage)
+{
+    if (succeeded)
+        return callback(Ref<WebGPU::ComputePipeline> { pipeline });
+    callback(makeUnexpected(WebGPU::PipelineError { .reason = WebGPU::PipelineErrorReason::Validation, .message = String { errorMessage } }));
 }
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(ComputePipeline);
 
-ComputePipeline::ComputePipeline(id<MTLComputePipelineState> computePipelineState, Ref<PipelineLayout>&& pipelineLayout, MTLSize threadsPerThreadgroup, BufferBindingSizesForPipeline&& minimumBufferSizes, uint64_t uniqueId, Device& device)
-    : m_computePipelineState(computePipelineState)
-    , m_device(device)
-    , m_threadsPerThreadgroup(threadsPerThreadgroup)
-    , m_pipelineLayout(WTF::move(pipelineLayout))
-    , m_minimumBufferSizes(WTF::move(minimumBufferSizes))
-    , m_uniqueId(uniqueId)
+#pragma mark Shell
+
+template<typename MakeImpl>
+Ref<ComputePipeline> ComputePipeline::create(MakeImpl&& makeImpl)
 {
+    return adoptRef(*new ComputePipeline(std::forward<MakeImpl>(makeImpl)));
 }
 
-ComputePipeline::ComputePipeline(Device& device)
-    : m_device(device)
-    , m_threadsPerThreadgroup(MTLSizeMake(0, 0, 0))
-    , m_pipelineLayout(PipelineLayout::createInvalid(device))
-    , m_minimumBufferSizes({ })
+Ref<ComputePipeline> ComputePipeline::createWithStagedImpl(Device& device)
 {
+    return create([&] {
+        return device.swiftImpl().takeStagedComputePipelineImpl();
+    });
 }
 
-ComputePipeline::~ComputePipeline() = default;
+Ref<ComputePipeline> ComputePipeline::createInvalid(Device& device)
+{
+    // An invalid pipeline still holds an invalid PipelineLayout, so pipelineLayout() never returns null.
+    Ref invalidPipelineLayout = PipelineLayout::createInvalid(device);
+    return create([&] {
+        return makeInvalidComputePipelineImpl(&device, device.swiftImpl(), invalidPipelineLayout.ptr(), invalidPipelineLayout->swiftImpl());
+    });
+}
+
+template<typename MakeImpl>
+ComputePipeline::ComputePipeline(MakeImpl&& makeImpl)
+{
+    // Initialized from the prvalue directly: no copy, so no extra retain and release.
+    new (m_impl) WebGPU::ComputePipelineImpl(makeImpl());
+}
+
+ComputePipeline::~ComputePipeline()
+{
+    std::destroy_at(&swiftImpl());
+}
+
+bool ComputePipeline::isValid() const
+{
+    return swiftImpl().isValid();
+}
+
+WebGPU::ComputePipelineImpl& ComputePipeline::swiftImpl() const
+{
+    return *std::launder(reinterpret_cast<WebGPU::ComputePipelineImpl*>(const_cast<std::byte*>(m_impl)));
+}
+
+PipelineLayout& ComputePipeline::pipelineLayout() const
+{
+    return borrowSwiftRetained(swiftImpl().pipelineLayout());
+}
 
 Ref<WebGPU::BindGroupLayout> ComputePipeline::getBindGroupLayout(uint32_t groupIndex)
 {
-    Ref device = m_device;
-    Ref pipelineLayout = m_pipelineLayout;
-
-    if (!isValid()) {
-        device->generateAValidationError("getBindGroupLayout: ComputePipeline is invalid"_s);
-        pipelineLayout->makeInvalid();
-        return BindGroupLayout::createInvalid(device);
-    }
-
-    if (groupIndex >= pipelineLayout->numberOfBindGroupLayouts()) {
-        if (groupIndex >= device->limits().maxBindGroups) {
-            device->generateAValidationError("getBindGroupLayout: groupIndex is out of range"_s);
-            pipelineLayout->makeInvalid();
-        }
-        return BindGroupLayout::createInvalid(device);
-    }
-
-    return pipelineLayout->bindGroupLayout(groupIndex);
+    return adoptRef(*swiftImpl().getBindGroupLayout(groupIndex));
 }
 
 void ComputePipeline::setLabel(String&&)
 {
     // MTLComputePipelineState's labels are read-only.
-}
-
-const BufferBindingSizesForBindGroup* ComputePipeline::minimumBufferSizes(uint32_t index) const
-{
-    auto it = m_minimumBufferSizes.find(index);
-    return it == m_minimumBufferSizes.end() ? nullptr : &it->value;
 }
 
 } // namespace WebGPU::Metal

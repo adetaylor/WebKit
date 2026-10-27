@@ -110,19 +110,29 @@ OTHER_LDFLAGS_SHARED_CACHE_NO = -Wl,-not_for_dyld_shared_cache;
 // Swift (WGSLStub.c).
 WGSL_LDFLAGS = -Wl,-force_load,$(BUILT_PRODUCTS_DIR)/libwgsl.a -Wl,-unexported_symbol,_$s*4WGSL*;
 
-OTHER_LDFLAGS = $(inherited) $(UNEXPORT_SWIFT_CXX_LDFLAGS) $(WGSL_LDFLAGS) $(SOURCE_VERSION_LDFLAGS) $(WK_NO_STATIC_INITIALIZERS) $(OTHER_LDFLAGS_SHARED_CACHE) $(OTHER_LDFLAGS_ADDITIONAL_FRAMEWORKS) -Wl,-unexported_symbol,*s_heapSpec;
+// Outside the dyld shared cache, the Objective-C runtime rewrites an image's @protocol references when it loads it. The
+// Swift code references Metal's protocols, so keep those references in __DATA, on the page the selector references
+// already dirty, rather than dirtying a page of __DATA_CONST in every process that maps WebGPU.
+OBJC_PROTOCOL_REFERENCES_LDFLAGS = -Wl,-rename_section,__DATA_CONST,__objc_protorefs,__DATA,__objc_protorefs;
+
+OTHER_LDFLAGS = $(inherited) $(UNEXPORT_SWIFT_CXX_LDFLAGS) $(WGSL_LDFLAGS) $(OBJC_PROTOCOL_REFERENCES_LDFLAGS) $(SOURCE_VERSION_LDFLAGS) $(WK_NO_STATIC_INITIALIZERS) $(OTHER_LDFLAGS_SHARED_CACHE) $(OTHER_LDFLAGS_ADDITIONAL_FRAMEWORKS) -Wl,-unexported_symbol,*s_heapSpec;
 
 SWIFT_OBJC_INTERFACE_HEADER_NAME = WebGPUSwift-Generated.h;
 SWIFT_INSTALL_OBJC_HEADER = NO;
 SWIFT_OBJC_INTEROP_MODE = $(WK_SWIFT_OBJC_INTEROP_MODE_$(ENABLE_WEBGPU_SWIFT))
 WK_SWIFT_OBJC_INTEROP_MODE_ENABLE_WEBGPU_SWIFT = objcxx;
 SWIFT_LIBRARY_LEVEL = spi;
+SWIFT_COMPILATION_MODE = wholemodule;
+SWIFT_COMPILATION_MODE[config=Debug] = singlefile;
 
-OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebGPU/platform-enabled-swift-args.$(arch).resp -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -enable-experimental-feature LifetimeDependence -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal;
+OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebGPU/platform-enabled-swift-args.$(arch).resp -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -enable-experimental-feature LifetimeDependence -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -Werror SendableClosureCaptures;
 
+// Without Swift there is no WebGPU: only Instance.mm is built, for the createInstance() WebCore links against.
 EXCLUDED_SOURCE_FILE_NAMES = $(EXCLUDED_SOURCE_FILE_NAMES_$(ENABLE_WEBGPU_SWIFT));
 EXCLUDED_SOURCE_FILE_NAMES_ENABLE_WEBGPU_SWIFT =;
-EXCLUDED_SOURCE_FILE_NAMES_ = *.swift;
+EXCLUDED_SOURCE_FILE_NAMES_ = *.swift *.mm;
+INCLUDED_SOURCE_FILE_NAMES = $(INCLUDED_SOURCE_FILE_NAMES_$(ENABLE_WEBGPU_SWIFT));
+INCLUDED_SOURCE_FILE_NAMES_ = Instance.mm;
 
 BUILD_LIBRARY_FOR_DISTRIBUTION = YES; // This is required for all frameworks in the OS.
 RUN_SWIFT_ABI_CHECKER_TOOL = NO;

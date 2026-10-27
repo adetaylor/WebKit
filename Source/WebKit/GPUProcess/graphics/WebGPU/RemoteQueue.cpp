@@ -50,16 +50,6 @@ namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteQueue);
 
-// Transfers of at least WebGPU::largeBufferSize bytes may alias `data`'s mapping; keep it alive until the GPU has consumed the bytes. Smaller transfers are copied, so `data` can be released as soon as we return.
-static void keepAliveUntilSubmittedWorkDone(::WebGPU::Queue& backing, RefPtr<WebCore::SharedMemory>&& data)
-{
-    if (!data || data->size() < ::WebGPU::largeBufferSize)
-        return;
-    backing.onSubmittedWorkDone([data = WTF::move(data)]() mutable {
-        data = nullptr;
-    });
-}
-
 RemoteQueue::RemoteQueue([[maybe_unused]] GPUConnectionToWebProcess& gpuConnectionToWebProcess, ::WebGPU::Queue& queue, WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
     : m_backing(queue)
     , m_objectHeap(objectHeap)
@@ -124,9 +114,8 @@ void RemoteQueue::writeBuffer(
         return;
     }
 
-    Ref backing = protect(m_backing);
-    backing->writeBuffer(protect(*convertedBuffer), bufferOffset, data->span());
-    keepAliveUntilSubmittedWorkDone(backing, WTF::move(data));
+    // A large write reads the mapping in place, and keeps it alive until the GPU has.
+    protect(m_backing)->writeBuffer(protect(*convertedBuffer), bufferOffset, ::WebGPU::ByteOwner::create(data.releaseNonNull()));
     completionHandler(true);
 }
 
@@ -160,9 +149,7 @@ void RemoteQueue::writeTexture(
         return;
     }
 
-    Ref backing = protect(m_backing);
-    backing->writeTexture(*convertedDestination, data->span(), dataLayout, size);
-    keepAliveUntilSubmittedWorkDone(backing, WTF::move(data));
+    protect(m_backing)->writeTexture(*convertedDestination, ::WebGPU::ByteOwner::create(data.releaseNonNull()), dataLayout, size);
     completionHandler(true);
 }
 
