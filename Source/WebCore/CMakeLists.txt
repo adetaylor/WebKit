@@ -3343,6 +3343,9 @@ if (WK_USE_SWIFT_CSS_CALC)
         list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_name}( |$)")
     endforeach ()
 endif ()
+# Set by WK_USE_SWIFT_HTML_PRELOAD_SCANNER: HTMLPreloadScanner.cpp includes WebCore-Swift.h too.
+if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER)
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
 
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
@@ -3448,6 +3451,7 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
         ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
         ${WEBCORE_DIR}/html/parser/HTMLTokenizer.swift
     )
 
@@ -3554,6 +3558,14 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
             "        requires cplusplus\n"
             "        export *\n"
             "    }\n")
+    # As WebCore.xcconfig's WK_USE_SWIFT_HTML_PRELOAD_SCANNER.
+    if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLPreloadScanner.cpp)
+        target_compile_definitions(WebCore PRIVATE "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_HTML_PRELOAD_SCANNER=1>")
+        webkit_target_add_swift_options(WebCore "-D USE_SWIFT_HTML_PRELOAD_SCANNER" "-Xcc -DUSE_SWIFT_HTML_PRELOAD_SCANNER=1")
+        list(APPEND _webcore_swift_core_submodules
+            html/parser/HTMLResourcePreloader.h html/parser/CSSPreloadScanner.h html/parser/HTMLPreloadScanner.h
+            html/HTMLImageElement.h loader/LinkLoader.h)
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
         # For the vendored SIMD operations in SIMD*.swift, until the standard library has them.

@@ -90,4 +90,9 @@
 #define USE_SWIFT_IMAGE_DECODERS 0
 #if USE_SWIFT_IMAGE_DECODERS
 #include "ImageDecoderSwiftTypes.h"
+#if !defined(USE_SWIFT_HTML_PRELOAD_SCANNER)
+#define USE_SWIFT_HTML_PRELOAD_SCANNER 0
+#if USE_SWIFT_HTML_PRELOAD_SCANNER
+#include "Document.h"
+#include "HTMLPreloadScanner.h"
 #include "WebCoreSwift-Generated.h"
