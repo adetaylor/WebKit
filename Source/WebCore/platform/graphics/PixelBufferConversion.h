@@ -27,21 +27,27 @@
 
 #include <WebCore/PixelBufferFormat.h>
 #include <span>
+#include <wtf/SwiftBridging.h>
 
 namespace WebCore {
 
 class IntSize;
 
-struct PixelBufferConversionView {
+// Imported as ~Escapable, so Swift reads the rows as a lifetime-checked Span, with no `unsafe`.
+struct SWIFT_VIEW PixelBufferConversionView {
     PixelBufferFormat format;
     unsigned bytesPerRow;
     std::span<uint8_t> rows;
+
+    std::span<uint8_t> span() const LIFETIME_BOUND { return rows; }
 };
 
-struct ConstPixelBufferConversionView {
+struct SWIFT_VIEW ConstPixelBufferConversionView {
     PixelBufferFormat format;
     unsigned bytesPerRow;
     std::span<const uint8_t> rows;
+
+    std::span<const uint8_t> span() const LIFETIME_BOUND { return rows; }
 };
 
 WEBCORE_EXPORT void convertImagePixels(const ConstPixelBufferConversionView& source, const PixelBufferConversionView& destination, const IntSize&);

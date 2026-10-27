@@ -59,6 +59,24 @@ function(webkit_target_add_swift_options _target)
     endif ()
 endfunction()
 
+# Compiles a target's Swift incrementally in batch mode in Debug and as a whole module in the other
+# configurations, for cross-file inlining. The driver ignores -enable-batch-mode under -wmo, with a
+# warning, so the global one only applies to Debug here.
+function(WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG _target)
+    set_target_properties(${_target} PROPERTIES
+        Swift_COMPILATION_MODE "$<IF:$<CONFIG:Debug>,incremental,wholemodule>"
+    )
+    set(_debug_batch_mode "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-enable-batch-mode>")
+    get_target_property(_options ${_target} COMPILE_OPTIONS)
+    string(REPLACE "$<$<COMPILE_LANGUAGE:Swift>:-enable-batch-mode>" "${_debug_batch_mode}" _options "${_options}")
+    string(REPLACE "${_debug_batch_mode}" "" _other_options "${_options}")
+    string(FIND "${_other_options}" "-enable-batch-mode" _batch_mode)
+    if (NOT _batch_mode EQUAL -1)
+        message(FATAL_ERROR "${_target}: -enable-batch-mode would reach the -wmo configurations; match the spelling of it below")
+    endif ()
+    set_target_properties(${_target} PROPERTIES COMPILE_OPTIONS "${_options}")
+endfunction()
+
 # Global flag sets
 
 set(WEBKIT_SWIFT_LANGUAGE_FLAGS

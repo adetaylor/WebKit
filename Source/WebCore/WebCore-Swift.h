@@ -40,6 +40,8 @@
 
 // If Swift function parameters or return types depend on C++ types, the
 // relevant headers must be included here.
+#include "IntSize.h"
+#include "PixelBufferConversion.h"
 
 #include "ScrollAnimatorScrollPhysicsClient.h"
 #include "ScrollPhysicsTypes.h"
