@@ -154,26 +154,12 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     endif ()
 endif ()
 
-function(WGSL_SETUP_SWIFT_TARGET _target)
-    set_target_properties(${_target} PROPERTIES
-        Swift_COMPILATION_MODE "$<IF:$<CONFIG:Debug>,incremental,wholemodule>"
-    )
-    set(_debug_batch_mode "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-enable-batch-mode>")
-    get_target_property(_options ${_target} COMPILE_OPTIONS)
-    string(REPLACE "$<$<COMPILE_LANGUAGE:Swift>:-enable-batch-mode>" "${_debug_batch_mode}" _options "${_options}")
-    string(REPLACE "${_debug_batch_mode}" "" _other_options "${_options}")
-    string(FIND "${_other_options}" "-enable-batch-mode" _batch_mode)
-    if (NOT _batch_mode EQUAL -1)
-        message(FATAL_ERROR "${_target}: -enable-batch-mode would reach the -wmo configurations; match WebKitSwiftFlags.cmake's spelling of it here")
-    endif ()
-    set_target_properties(${_target} PROPERTIES COMPILE_OPTIONS "${_options}")
-endfunction()
 
 add_library(WGSL STATIC ${WGSL_SOURCES})
 set_target_properties(WGSL PROPERTIES
     Swift_MODULE_NAME WGSL
 )
-WGSL_SETUP_SWIFT_TARGET(WGSL)
+WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WGSL)
 webkit_target_add_swift_options(WGSL
     "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-DWGSL_UNOPTIMIZED>"
 )
@@ -191,7 +177,7 @@ if (WEBKIT_SDK_IS_IOS_FAMILY)
     set_target_properties(wgslc PROPERTIES MACOSX_BUNDLE FALSE)
 endif ()
 WEBKIT_EXECUTABLE(wgslc)
-WGSL_SETUP_SWIFT_TARGET(wgslc)
+WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(wgslc)
 # @main outside a file named main.swift.
 webkit_target_add_swift_options(wgslc
     -parse-as-library
