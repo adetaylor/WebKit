@@ -3409,6 +3409,9 @@ if (NOT USE_HEADER_MAPS)
 endif ()
 
 if (SWIFT_REQUIRED AND APPLE)
+    # Matches WebCore.xcconfig. C++ and Swift both test it, so set it for the whole target.
+    webkit_target_compile_definitions(WebCore PRIVATE ENABLE_WEBCORE_SWIFT=1)
+
     # FIXME: Remove SwiftStub.swift once WebCore has real Swift sources.
     target_sources(WebCore PRIVATE ${WEBCORE_DIR}/SwiftStub.swift)
 
