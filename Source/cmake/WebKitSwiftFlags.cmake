@@ -191,10 +191,11 @@ if (APPLE)
         )
     endif ()
 
-    # FIXME: Consider building with -wmo in release / performance builds.
-    webkit_add_swift_options(
-        -enable-batch-mode
-    )
+    # swiftc ignores -enable-batch-mode, with a warning, in a whole-module compile. WGSL_SETUP_SWIFT_TARGET matches
+    # this spelling.
+    set(WEBKIT_SWIFT_BATCH_MODE_OPTION
+        "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<OR:$<CONFIG:Debug>,$<NOT:$<BOOL:${WEBKIT_SWIFT_WHOLE_MODULE}>>>>:-enable-batch-mode>")
+    webkit_add_swift_options("${WEBKIT_SWIFT_BATCH_MODE_OPTION}")
 else ()
     webkit_add_swift_options(
         "-Xcc -fmodules-validate-system-headers"
