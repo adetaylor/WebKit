@@ -65,7 +65,7 @@ public:
     WebGPUIdentifier backing() const { return m_backing; }
 
     Vector<::WebGPU::FeatureName> features() const final { return m_features; }
-    const ::WebGPU::Limits& limits() const LIFETIME_BOUND final { return m_limits; }
+    ::WebGPU::Limits limits() const final { return m_limits; }
     Ref<::WebGPU::Queue> LEGACY_NODELETE queue() final;
     void destroy() final;
 

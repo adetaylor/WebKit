@@ -2899,8 +2899,8 @@ if (NOT USE_FRAMEWORK_BUNDLES)
     set(WebCore_INTERFACE_INCLUDE_DIRECTORIES ${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR})
 endif ()
 
-if (NOT APPLE)
-    # The WebGPU C++ API header, <WebGPU/WebGPUCpp.h>, which ports without WebGPU.framework copy to
+if (NOT APPLE OR NOT ENABLE_WEBGPU)
+    # The WebGPU C++ API header, <WebGPU/WebGPUCpp.h>, which builds without WebGPU.framework copy to
     # a plain include directory. WebCore headers include it, so the users of WebCore need it too.
     list(APPEND WebCore_PRIVATE_INCLUDE_DIRECTORIES ${WebGPU_PRIVATE_FRAMEWORK_HEADERS_DIR})
     list(APPEND WebCore_INTERFACE_INCLUDE_DIRECTORIES ${WebGPU_PRIVATE_FRAMEWORK_HEADERS_DIR})

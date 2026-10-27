@@ -27,7 +27,7 @@
 
 #import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
-#import <atomic>
+#import <memory>
 #import <wtf/FastMalloc.h>
 #import <wtf/Ref.h>
 #import <wtf/RetainPtr.h>
@@ -36,76 +36,62 @@
 #import <wtf/ThreadSafeWeakPtr.h>
 #import <wtf/Vector.h>
 #import <wtf/WeakPtr.h>
-#import <wtf/threads/BinarySemaphore.h>
 
+#if !defined(__swift__)
+namespace WebGPU {
+class CommandBufferImpl;
+}
+#endif
 
 namespace WebGPU::Metal {
 
 class CommandEncoder;
 class Device;
 
+// Opaque box holding the Swift CommandBufferImpl; defined in CommandBuffer.mm.
+struct CommandBufferImplBox;
+
 // https://gpuweb.github.io/gpuweb/#gpucommandbuffer
+// The state is in CommandBufferImpl; the shell registers the Metal completion handler.
 class CommandBuffer final : public WebGPU::CommandBuffer {
     WTF_MAKE_TZONE_ALLOCATED(CommandBuffer);
 public:
-    static Ref<CommandBuffer> create(id<MTLCommandBuffer> commandBuffer, Device& device, id<MTLSharedEvent> sharedEvent, uint64_t sharedEventSignalValue, Vector<Function<bool(CommandBuffer&, CommandEncoder&)>>&& onCommitHandlers, CommandEncoder& commandEncoder)
-    {
-        return adoptRef(*new CommandBuffer(commandBuffer, device, sharedEvent, sharedEventSignalValue, WTF::move(onCommitHandlers), commandEncoder));
-    }
-    static Ref<CommandBuffer> createInvalid(Device& device)
-    {
-        return adoptRef(*new CommandBuffer(device));
-    }
+    static Ref<CommandBuffer> create(id<MTLCommandBuffer>, Device&, id<MTLSharedEvent>, uint64_t sharedEventSignalValue, CommandEncoder&);
+    static Ref<CommandBuffer> createInvalid(Device&);
 
     ~CommandBuffer();
 
     void setLabel(String&&) final;
 
-    bool isValid() const final { return m_commandBuffer; }
+    bool isValid() const final;
+#if !defined(__swift__)
+    WebGPU::CommandBufferImpl& swiftImpl() const LIFETIME_BOUND;
+#endif
 
-    id<MTLCommandBuffer> commandBuffer() const { return m_commandBuffer; }
+    id<MTLCommandBuffer> commandBuffer() const;
 
-    // A single MTLCommandBuffer can only hold so many MTLRenderCommandEncoders before IOGPU runs out
-    // of memory for it, so CommandEncoder rolls over to a fresh MTLCommandBuffer and hands the filled
-    // ones here. The queue commits them, in order, immediately before commandBuffer().
-    void setPriorCommandBuffers(Vector<RetainPtr<id<MTLCommandBuffer>>>&&);
-    Vector<RetainPtr<id<MTLCommandBuffer>>> takePriorCommandBuffers();
-
-    Device& device() const { return m_device; }
+#if !defined(__swift__)
+    // Borrowed from the Impl, which holds the reference. On the API thread only.
+    Device& device() const;
+#endif
     void makeInvalid(NSString*);
-    void makeInvalidDueToCommit(NSString*);
-    void setBufferMapCount(int bufferMapCount) { m_bufferMapCount = bufferMapCount; }
-    int bufferMapCount() const { return m_bufferMapCount; }
+    void setBufferMapCount(int);
+    int bufferMapCount() const;
 
-    NSString* LEGACY_NODELETE lastError() const;
+    NSString* lastError() const;
     bool waitForCompletion();
-    bool preCommitHandler();
-    void postCommitHandler();
-    void addPostCommitHandler(Function<void(id<MTLCommandBuffer>)>&&);
 
-    double gpuExecutionDurationSeconds() const { return m_gpuExecutionDurationSeconds.load(std::memory_order_relaxed); }
+    double gpuExecutionDurationSeconds() const;
+
+    // For Queue.swift, just before the queue commits the command buffer CommandBufferImpl::willCommit() returned.
+    void registerCompletedHandler(id<MTLCommandBuffer>);
 
 private:
-    CommandBuffer(id<MTLCommandBuffer>, Device&, id<MTLSharedEvent>, uint64_t sharedEventSignalValue, Vector<Function<bool(CommandBuffer&, CommandEncoder&)>>&&, CommandEncoder&);
-    CommandBuffer(Device&);
-    void retainTimestampsForOneUpdateLoop();
-    void releasePriorCommandBuffers();
+    explicit CommandBuffer(std::unique_ptr<CommandBufferImplBox>&&);
 
-    id<MTLCommandBuffer> m_commandBuffer { nil };
-    id<MTLCommandBuffer> m_cachedCommandBuffer { nil };
-    Vector<RetainPtr<id<MTLCommandBuffer>>> m_priorCommandBuffers;
-    int m_bufferMapCount { 0 };
-
-    const Ref<Device> m_device;
-    NSString* m_lastErrorString { nil };
-    id<MTLSharedEvent> m_sharedEvent { nil };
-    Vector<Function<bool(CommandBuffer&, CommandEncoder&)>> m_preCommitHandlers;
-    Vector<Function<void(id<MTLCommandBuffer>)>> m_postCommitHandlers;
-    const uint64_t m_sharedEventSignalValue { 0 };
-    // FIXME: we should not need this semaphore - https://bugs.webkit.org/show_bug.cgi?id=272353
-    BinarySemaphore m_commandBufferComplete;
-    RefPtr<CommandEncoder> m_commandEncoder;
-    std::atomic<double> m_gpuExecutionDurationSeconds { 0 };
+    // API thread only. The Metal completion handler captures the box's CommandBufferCompletion, which is Sendable,
+    // instead.
+    const std::unique_ptr<CommandBufferImplBox> m_impl;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refCommandBuffer, derefCommandBuffer);
 
 } // namespace WebGPU::Metal

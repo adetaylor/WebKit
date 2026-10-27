@@ -25,6 +25,8 @@
 
 #pragma once
 
+#import <CoreGraphics/CoreGraphics.h>
+#import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
 #import <wtf/FastMalloc.h>
 #import <wtf/Ref.h>
@@ -37,24 +39,16 @@
 
 namespace WebGPU::Metal {
 
-class Adapter;
 class Device;
 class Instance;
 class Texture;
-class TextureView;
 
 class PresentationContext : public WebGPU::PresentationContext {
     WTF_MAKE_TZONE_ALLOCATED(PresentationContext);
 public:
     static Ref<PresentationContext> create(const WebGPU::PresentationContextDescriptor&, const Instance&);
-    static Ref<PresentationContext> createInvalid()
-    {
-        return adoptRef(*new PresentationContext());
-    }
 
     virtual ~PresentationContext();
-
-    WebGPU::TextureFormat LEGACY_NODELETE getPreferredFormat(const Adapter&);
 
     void configure(const WebGPU::CanvasConfiguration&) override;
     void unconfigure() override;
@@ -63,13 +57,10 @@ public:
     // The texture is owned by the presentation context.
     virtual Texture* currentTexture(uint32_t);
     RefPtr<WebGPU::Texture> getCurrentTexture(uint32_t) final;
-    virtual TextureView* getCurrentTextureView(); // FIXME: This should return a TextureView&.
 
     Seconds lastFrameGPUCost() const override { return 0_s; }
     Seconds lastFramePresentStall() const override { return 0_s; }
 
-    virtual bool isPresentationContextIOSurface() const { return false; }
-    virtual bool isPresentationContextCoreAnimation() const { return false; }
     RetainPtr<CGImageRef> getTextureAsNativeImage(uint32_t, bool&) override { return nullptr; }
 
     void setLabel(String&&) override { }
@@ -78,9 +69,16 @@ protected:
     explicit PresentationContext();
 };
 
-} // namespace WebGPU::Metal
+// For PresentationContextIOSurface.swift, which cannot build a WebGPU::TextureDescriptor, copy raw bytes, set the
+// deprecated fastMathEnabled or call the variadic WTFLogAlways. Declared here because PresentationContextIOSurface.h is
+// not a Swift module header; defined in PresentationContextIOSurface.mm.
+NSString *errorValidatingCanvasTextureCreation(Device&, const WebGPU::CanvasConfiguration&, WebGPU::TextureFormat effectiveFormat, uint32_t width, uint32_t height);
+// The texture's descriptor has the given format, and effectiveFormat as its only view format when the
+// configuration lists none.
+Ref<Texture> createCanvasTexture(id<MTLTexture>, const WebGPU::CanvasConfiguration&, WebGPU::TextureFormat, WebGPU::TextureFormat effectiveFormat, uint32_t width, uint32_t height, Device&);
+// nil, logged, when Metal reports any error, including warnings alongside a library.
+id<MTLLibrary> compileLibraryWithFastMath(id<MTLDevice>, NSString *source);
+// nullptr when the bytes cannot be allocated.
+CGImageRef createImageWithTextureBytes(id<MTLTexture>, size_t width, size_t height, size_t bitsPerComponent, size_t bitsPerPixel, size_t bytesPerRow, CGColorSpaceRef, CGBitmapInfo) CF_RETURNS_RETAINED;
 
-#define SPECIALIZE_TYPE_TRAITS_WEBGPU_PRESENTATION_CONTEXT(ToValueTypeName, predicate) \
-SPECIALIZE_TYPE_TRAITS_BEGIN(WebGPU::Metal::ToValueTypeName) \
-    static bool isType(const WebGPU::Metal::PresentationContext& presentationContext) { return presentationContext.predicate; } \
-SPECIALIZE_TYPE_TRAITS_END()
+} // namespace WebGPU::Metal

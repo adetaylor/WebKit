@@ -28,16 +28,22 @@
 #import "BindableResource.h"
 #import <WebGPU/WebGPU.h>
 #import <WebGPU/WebGPUCpp.h>
+#import <cstddef>
+#import <memory>
 #import <optional>
 #import <wtf/FastMalloc.h>
-#import <wtf/Range.h>
-#import <wtf/RangeSet.h>
 #import <wtf/Ref.h>
 #import <wtf/SwiftBridging.h>
 #import <wtf/TZoneMalloc.h>
 #import <wtf/Vector.h>
 #import <wtf/WeakHashSet.h>
 #import <wtf/WeakPtr.h>
+
+#if !defined(__swift__)
+namespace WebGPU {
+class QuerySetImpl;
+}
+#endif
 
 namespace WebGPU::Metal {
 
@@ -46,7 +52,7 @@ class CommandEncoder;
 class Device;
 
 // https://gpuweb.github.io/gpuweb/#gpuqueryset
-class QuerySet final : public WebGPU::QuerySet, public TrackedResource {
+class QuerySet final : public WebGPU::QuerySet {
     WTF_MAKE_TZONE_ALLOCATED(QuerySet);
 public:
     struct CounterSampleBuffer {
@@ -54,69 +60,39 @@ public:
         uint32_t offset { 0 };
     } SWIFT_SELF_CONTAINED;
 
-    static Ref<QuerySet> create(id<MTLBuffer> visibilityBuffer, uint32_t count, WebGPU::QueryType type, Device& device)
-    {
-        return adoptRef(*new QuerySet(visibilityBuffer, count, type, device));
-    }
-    static Ref<QuerySet> create(CounterSampleBuffer&& counterSampleBuffer, uint32_t count, WebGPU::QueryType type, Device& device)
-    {
-        return adoptRef(*new QuerySet(WTF::move(counterSampleBuffer), count, type, device));
-    }
-    static Ref<QuerySet> createInvalid(Device& device)
-    {
-        return adoptRef(*new QuerySet(device));
-    }
+    // Validates the descriptor, generating the validation error, and returns an invalid query set if it fails.
+    static Ref<QuerySet> create(const WebGPU::QuerySetDescriptor&, Device&);
+    static Ref<QuerySet> createInvalid(Device&);
 
     ~QuerySet();
 
     void destroy() final;
     void setLabel(String&&) final;
 
-    bool LEGACY_NODELETE isValid() const final;
+    bool isValid() const final;
 
-    void LEGACY_NODELETE setOverrideLocation(QuerySet& otherQuerySet, uint32_t beginningOfPassIndex, uint32_t endOfPassIndex);
-
-    Device& device() const { return m_device; }
-    uint32_t count() const { return m_count; }
+    // Borrowed from the Impl, which holds the reference. Swift reads QuerySetImpl.device instead.
+    Device& device() const;
+    uint32_t count() const;
     // std::nullopt only for invalid query sets.
-    std::optional<WebGPU::QueryType> type() const { return m_type; }
-    id<MTLBuffer> visibilityBuffer() const { return m_visibilityBuffer; }
-    CounterSampleBuffer LEGACY_NODELETE counterSampleBufferWithOffset() const;
+    std::optional<WebGPU::QueryType> type() const;
+    id<MTLBuffer> visibilityBuffer() const;
+    CounterSampleBuffer counterSampleBufferWithOffset() const;
 
     void setCommandEncoder(CommandEncoder&) const;
-    bool LEGACY_NODELETE isDestroyed() const;
-    static void destroyQuerySet(const QuerySet&);
-    static CounterSampleBuffer counterSampleBufferWithOffsetForDevice(size_t, const Device&);
-    static void createContainersIfNeeded();
+    bool isDestroyed() const;
+#if !defined(__swift__)
+    WebGPU::QuerySetImpl& swiftImpl() const LIFETIME_BOUND;
+#endif
 
 private:
-    QuerySet(id<MTLBuffer>, uint32_t, WebGPU::QueryType, Device&);
-    QuerySet(CounterSampleBuffer&&, uint32_t, WebGPU::QueryType, Device&);
-    QuerySet(Device&);
+#if !defined(__swift__)
+    template<typename MakeImpl> explicit QuerySet(MakeImpl&&);
+#endif
 
-    const Ref<Device> m_device;
-    id<MTLBuffer> m_visibilityBuffer { nil };
-    CounterSampleBuffer m_timestampBufferWithOffset;
-    uint32_t m_count { 0 };
-    const std::optional<WebGPU::QueryType> m_type;
-
-    // rdar://91371495 is about how we can't just naively transform PassDescriptor.timestampWrites into MTLComputePassDescriptor.sampleBufferAttachments.
-    // Instead, we can resolve all the information to a dummy counter sample buffer, and then internally remember that the data
-    // is in a different place than where it's supposed to be. That's what this "overrides" vector is: A way to remember, when we resolve the data, that we
-    // should resolve it from our dummy buffer instead of from where it's supposed to be.
-    //
-    // When rdar://91371495 is fixed, we can delete this indirection, and put the data directly where it's supposed to go.
-    struct OverrideLocation {
-        Ref<QuerySet> other;
-        uint32_t otherIndex;
-    };
-    bool m_destroyed { false };
-
-    // static is intentional here as the limit is per process
-    static constexpr uint32_t maxCounterSampleBuffers = 32;
-    static Lock querySetLock;
-    static std::unique_ptr<Vector<id<MTLCounterSampleBuffer>>> m_counterSampleBuffers WTF_GUARDED_BY_LOCK(querySetLock);
-    static std::unique_ptr<Vector<RangeSet<Range<uint32_t>>>> m_counterSampleBufferFreeRanges WTF_GUARDED_BY_LOCK(querySetLock);
+    // Storage for the Swift QuerySetImpl (one strong reference), built in place in QuerySet.mm, where the generated
+    // header is visible.
+    alignas(void*) std::byte m_impl[sizeof(void*)];
 } SWIFT_SHARED_REFERENCE(refQuerySet, derefQuerySet) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 } // namespace WebGPU::Metal

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (c) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,16 +25,18 @@
 
 #pragma once
 
+#import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
-#import <wtf/FastMalloc.h>
-#import <wtf/GenericHashKey.h>
-#import <wtf/Hasher.h>
-#import <wtf/ListHashSet.h>
-#import <wtf/Lock.h>
+#import <cstddef>
+#import <memory>
 #import <wtf/Ref.h>
 #import <wtf/TZoneMalloc.h>
-#import <wtf/WeakObjCPtr.h>
 
+#if !defined(__swift__)
+namespace WebGPU {
+class SamplerImpl;
+}
+#endif
 
 namespace WebGPU::Metal {
 
@@ -44,56 +46,29 @@ class Device;
 class Sampler final : public WebGPU::Sampler {
     WTF_MAKE_TZONE_ALLOCATED(Sampler);
 public:
-    using UniqueSamplerIdentifier = std::array<uint32_t, 4>;
-
-    inline void add(Hasher& hasher, const UniqueSamplerIdentifier& input)
-    {
-        for (auto value : input)
-            WTF::add(hasher, value);
-    }
-
-    static Ref<Sampler> create(UniqueSamplerIdentifier&& samplerIdentifier, const WebGPU::SamplerDescriptor& descriptor, Device& device)
-    {
-        return adoptRef(*new Sampler(WTF::move(samplerIdentifier), descriptor, device));
-    }
-    static Ref<Sampler> createInvalid(Device& device)
-    {
-        return adoptRef(*new Sampler(device));
-    }
+    // Validates the descriptor, generating the validation error, and returns an invalid sampler if it fails.
+    static Ref<Sampler> create(const WebGPU::SamplerDescriptor&, Device&);
+    static Ref<Sampler> createInvalid(Device&);
 
     ~Sampler();
 
     void setLabel(String&&) final;
+    bool isValid() const final;
 
-    bool LEGACY_NODELETE isValid() const final;
-
-    id<MTLSamplerState> cachedSamplerState() const { return m_cachedSamplerState; }
-    id<MTLSamplerState> tryCacheSamplerState() const;
-    bool isComparison() const { return !!m_compare; }
-    bool isFiltering() const { return m_minFilter == WebGPU::FilterMode::Linear || m_magFilter == WebGPU::FilterMode::Linear || m_mipmapFilter == WebGPU::MipmapFilterMode::Linear; }
-
-    Device& device() const { return m_device; }
+#if !defined(__swift__)
+    WebGPU::SamplerImpl& swiftImpl() const LIFETIME_BOUND;
+    // Borrowed from the Impl, which holds the reference.
+    Device& device() const;
+#endif
 
 private:
-    Sampler(UniqueSamplerIdentifier&&, const WebGPU::SamplerDescriptor&, Device&);
-    Sampler(Device&);
+#if !defined(__swift__)
+    template<typename MakeImpl> explicit Sampler(MakeImpl&&);
+#endif
 
-    std::optional<UniqueSamplerIdentifier> m_samplerIdentifier;
-    String m_label;
-    WebGPU::AddressMode m_addressModeU { WebGPU::AddressMode::ClampToEdge };
-    WebGPU::AddressMode m_addressModeV { WebGPU::AddressMode::ClampToEdge };
-    WebGPU::AddressMode m_addressModeW { WebGPU::AddressMode::ClampToEdge };
-    WebGPU::FilterMode m_magFilter { WebGPU::FilterMode::Nearest };
-    WebGPU::FilterMode m_minFilter { WebGPU::FilterMode::Nearest };
-    WebGPU::MipmapFilterMode m_mipmapFilter { WebGPU::MipmapFilterMode::Nearest };
-    float m_lodMinClamp { 0 };
-    float m_lodMaxClamp { 0 };
-    std::optional<WebGPU::CompareFunction> m_compare;
-    uint16_t m_maxAnisotropy { 0 };
-
-    const Ref<Device> m_device;
-
-    mutable __weak id<MTLSamplerState> m_cachedSamplerState { nil };
+    // Storage for the Swift SamplerImpl (one strong reference), built in place in Sampler.mm, where the generated header
+    // is visible.
+    alignas(void*) std::byte m_impl[sizeof(void*)];
 };
 
 } // namespace WebGPU::Metal

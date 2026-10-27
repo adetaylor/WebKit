@@ -27,18 +27,16 @@
 
 #import <WebGPU/WebGPU.h>
 #import <WebGPU/WebGPUCpp.h>
+#import <memory>
+#import <span>
 #import <wtf/CompletionHandler.h>
-#import <wtf/Condition.h>
-#import <wtf/Deque.h>
 #import <wtf/FastMalloc.h>
 #import <wtf/HashMap.h>
-#import <wtf/HashSet.h>
-#import <wtf/Lock.h>
 #import <wtf/MachSendRight.h>
 #import <wtf/Ref.h>
+#import <wtf/Seconds.h>
 #import <wtf/TZoneMalloc.h>
 #import <wtf/ThreadSafeWeakPtr.h>
-#import <wtf/ThreadSafetyAnalysis.h>
 #import <wtf/WeakObjCPtr.h>
 #import <wtf/WeakPtr.h>
 
@@ -46,6 +44,12 @@
 namespace WTF {
 class MachSendRight;
 }
+
+#if !defined(__swift__)
+namespace WebGPU {
+class InstanceSchedulerHandle;
+}
+#endif
 
 namespace WebGPU::Metal {
 
@@ -55,15 +59,14 @@ class Device;
 class PresentationContext;
 class Texture;
 
+// Box holding the Swift objects; defined in Instance.mm.
+struct InstanceImplBox;
+
 // https://gpuweb.github.io/gpuweb/#gpu
 class Instance final : public WebGPU::Instance {
     WTF_MAKE_TZONE_ALLOCATED(Instance);
 public:
     static Ref<Instance> create(WebGPU::InstanceDescriptor&&);
-    static Ref<Instance> createInvalid()
-    {
-        return adoptRef(*new Instance());
-    }
 
     virtual ~Instance();
 
@@ -72,7 +75,7 @@ public:
     RefPtr<WebGPU::PresentationContext> createPresentationContext(const WebGPU::PresentationContextDescriptor&) final;
 
     void setLabel(String&&) final { }
-    bool isValid() const final { return m_isValid; }
+    bool isValid() const final;
     void retainDevice(Device&, id<MTLCommandBuffer>);
     void retainCommandBuffer(CommandBuffer&, id<MTLCommandBuffer>);
     void releaseCompletedCommandBuffers();
@@ -81,8 +84,13 @@ public:
     // This can be called on a background thread.
     using WorkItem = Function<void()>;
     void scheduleWork(WorkItem&&);
-    const std::optional<const MachSendRight>& LEGACY_NODELETE webProcessID() const;
-    id<MTLDevice> device() const;
+#if !defined(__swift__)
+    // For the handlers that run on Metal and observer threads, which must not reference the Instance. The handle
+    // drops the work once the Instance is gone; a reference to the scheduler keeps delivering it to the embedder's
+    // scheduleWork (or to the event queue, which nothing then drains).
+    WebGPU::InstanceSchedulerHandle schedulerHandle() const;
+#endif
+    std::optional<MachSendRight> webProcessID() const;
 
     // The futures of the C API. A future completes when the callback it stands for has run.
     uint64_t createFuture();
@@ -93,27 +101,11 @@ public:
     bool waitForAnyFuture(std::span<const uint64_t> futures, Seconds timeout, NOESCAPE const Function<void(size_t)>& didComplete);
 
 private:
-    Instance(Function<void(WorkItem&&)>&& scheduleWork, const WTF::MachSendRight* webProcessResourceOwner);
-    explicit Instance();
+    explicit Instance(std::unique_ptr<InstanceImplBox>&&);
 
-    // This can be called on a background thread.
-    void defaultScheduleWork(WorkItem&&);
-    bool anyFutureCompleted(std::span<const uint64_t> futures) const WTF_REQUIRES_LOCK(m_lock);
-
-    // This can be used on a background thread.
-    Deque<WorkItem> m_pendingWork WTF_GUARDED_BY_LOCK(m_lock);
-    uint64_t m_nextFuture WTF_GUARDED_BY_LOCK(m_lock) { 1 };
-    HashSet<uint64_t, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>> m_completedFutures WTF_GUARDED_BY_LOCK(m_lock);
-    // Signalled when work is appended to m_pendingWork or a future completes.
-    Condition m_condition;
-    using CommandBufferContainer = Vector<WeakObjCPtr<id<MTLCommandBuffer>>>;
-    HashMap<Ref<Device>, CommandBufferContainer> retainedDeviceInstances;
-    Vector<std::pair<Ref<CommandBuffer>, WeakObjCPtr<id<MTLCommandBuffer>>>> m_retainedCommandBufferInstances;
-    const std::optional<const MachSendRight> m_webProcessID;
-    // Null when the work waits in m_pendingWork for processEvents().
-    const Function<void(WorkItem&&)> m_scheduleWork;
-    Lock m_lock;
-    bool m_isValid { true };
+    // The scheduler, which any thread may use, and the web process ID and the retained Device / CommandBuffer
+    // containers, which only the API thread uses.
+    const std::unique_ptr<InstanceImplBox> m_impl;
 };
 
 } // namespace WebGPU::Metal
