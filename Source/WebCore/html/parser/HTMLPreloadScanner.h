@@ -140,15 +140,17 @@ private:
 
     CSSPreloadScanner m_cssScanner;
     const URL m_documentURL;
-    const float m_deviceScaleFactor { 1 };
+    // With USE_SWIFT_HTML_PRELOAD_SCANNER, only HTMLPreloadScanner.swift uses the [[maybe_unused]] fields, and the C++
+    // compiler cannot see it.
+    [[maybe_unused]] const float m_deviceScaleFactor { 1 };
 
     URL m_predictedBaseElementURL;
-    bool m_inStyle { false };
+    [[maybe_unused]] bool m_inStyle { false };
     
     Vector<PreloadScannerPictureState> m_pictureSourceState;
 
-    unsigned m_templateCount { 0 };
-    unsigned m_foreignContentCount { 0 };
+    [[maybe_unused]] unsigned m_templateCount { 0 };
+    [[maybe_unused]] unsigned m_foreignContentCount { 0 };
 };
 
 #if USE_SWIFT_HTML_PRELOAD_SCANNER
