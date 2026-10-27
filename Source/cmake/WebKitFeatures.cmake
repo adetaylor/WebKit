@@ -593,6 +593,10 @@ macro(WEBKIT_OPTION_END)
     else ()
         set(SWIFT_REQUIRED OFF)
     endif ()
+
+    # <pal/text/TextCodecUTF8.h> tests USE_SWIFT_TEXT_CODEC_UTF8, so every C++ target that includes it needs
+    # PAL's value, which PAL.xcconfig and WebCore.xcconfig define as 0 or 1 together.
+    add_compile_definitions("$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_TEXT_CODEC_UTF8=$<BOOL:${WK_USE_SWIFT_TEXT_CODEC_UTF8}>>")
 endmacro()
 
 macro(PRINT_WEBKIT_OPTIONS)
