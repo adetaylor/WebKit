@@ -32,7 +32,7 @@
 #include "WebGPUImpl.h"
 #include <WebCore/WebGPUCppAPI.h>
 
-#if PLATFORM(COCOA)
+#if PLATFORM(COCOA) && ENABLE(WEBGPU)
 #include <wtf/darwin/WeakLinking.h>
 
 namespace WebGPU {
@@ -44,6 +44,11 @@ namespace WebCore {
 
 RefPtr<WebGPUIntegration> createWebGPUIntegration(WebGPUScheduleWorkFunction&& scheduleWorkFunction, const ProcessIdentity* webProcessIdentity)
 {
+#if !ENABLE(WEBGPU)
+    UNUSED_PARAM(scheduleWorkFunction);
+    UNUSED_PARAM(webProcessIdentity);
+    return nullptr;
+#else
 #if !HAVE(TASK_IDENTITY_TOKEN)
     UNUSED_PARAM(webProcessIdentity);
 #endif
@@ -62,6 +67,7 @@ RefPtr<WebGPUIntegration> createWebGPUIntegration(WebGPUScheduleWorkFunction&& s
     if (!instance)
         return nullptr;
     return WebGPUIntegrationImpl::create(instance.releaseNonNull());
+#endif
 }
 
 } // namespace WebCore

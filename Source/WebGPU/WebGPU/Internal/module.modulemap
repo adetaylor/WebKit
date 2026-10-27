@@ -62,11 +62,6 @@ module WebGPU_Internal [system] {
         export *
     }
 
-    explicit module CommandsMixin {
-        header "../CommandsMixin.h"
-        export *
-    }
-
     explicit module ComputePassEncoder {
         header "../ComputePassEncoder.h"
         export *
