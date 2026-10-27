@@ -1,4 +1,71 @@
-module WebCore_Internal {
-    header "WebCoreInternal.h"
-    export *
+// WebCore's own headers, for WebCore's Swift; only its Swift compile searches this directory
+// (SWIFT_INCLUDE_PATHS, or -I in CMake). WebCoreInternal stays first. Every WebCore header that a
+// listed header includes has to be listed too, as its own submodule. Otherwise the compile reaches
+// it through the whole WebCore_Private umbrella or parses it into two submodules, and fails.
+module WebCore_Internal [system] {
+    explicit module WebCoreInternal {
+        requires cplusplus20
+        header "WebCoreInternal.h"
+        export *
+    }
+
+    explicit module PlatformExportMacros {
+        requires cplusplus20
+        header "../../platform/PlatformExportMacros.h"
+        export *
+    }
+
+    explicit module AlphaPremultiplication {
+        requires cplusplus20
+        header "../../platform/graphics/AlphaPremultiplication.h"
+        export *
+    }
+
+    explicit module PlatformColorSpace {
+        requires cplusplus20
+        header "../../platform/graphics/PlatformColorSpace.h"
+        export *
+    }
+
+    explicit module ColorSpace {
+        requires cplusplus20
+        header "../../platform/graphics/ColorSpace.h"
+        export *
+    }
+
+    explicit module ContentsFormat {
+        requires cplusplus20
+        header "../../platform/graphics/ContentsFormat.h"
+        export *
+    }
+
+    explicit module PixelFormat {
+        requires cplusplus20
+        header "../../platform/graphics/PixelFormat.h"
+        export *
+    }
+
+    explicit module PixelBufferFormat {
+        requires cplusplus20
+        header "../../platform/graphics/PixelBufferFormat.h"
+        export *
+    }
+
+    explicit module IntSize {
+        requires cplusplus20
+        header "../../platform/graphics/IntSize.h"
+        export *
+    }
+
+    explicit module PixelBuffer {
+        requires cplusplus20
+        header "../../platform/graphics/PixelBuffer.h"
+        export *
+    }
+
+    explicit module PixelBufferConversion {
+        requires cplusplus20
+        header "../../platform/graphics/PixelBufferConversion.h"
+        export *
+    }
 }
