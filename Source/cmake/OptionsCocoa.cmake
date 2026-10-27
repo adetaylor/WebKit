@@ -376,6 +376,18 @@ if (NOT USE_APPLE_INTERNAL_SDK AND EXISTS "/usr/local/include/WebKitAdditions" A
     unset(_apple_features_stub)
 endif ()
 
+# Toolchains other than Xcode's don't search their own usr/include, so they don't find <swift/bridging>
+# and wtf/SwiftBridging.h silently drops every Swift annotation (rdar://160275190). Xcode's toolchain
+# already searches it at this position, so there this is a no-op.
+get_filename_component(_cxx_toolchain_usr_dir "${CMAKE_CXX_COMPILER}/../.." ABSOLUTE)
+get_filename_component(_swift_toolchain_usr_dir "${CMAKE_Swift_COMPILER}/../.." ABSOLUTE)
+add_compile_options(
+    "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:-idirafter${_cxx_toolchain_usr_dir}/include>"
+    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -idirafter${_swift_toolchain_usr_dir}/include>"
+)
+unset(_cxx_toolchain_usr_dir)
+unset(_swift_toolchain_usr_dir)
+
 # FIXME: Audit and reduce these suppressions. https://bugs.webkit.org/show_bug.cgi?id=312034
 add_compile_options(
     "$<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-Wno-shadow-ivar>"
