@@ -66,8 +66,14 @@ WK_PRESERVE_MOST_DEFINES = $(WK_PRESERVE_MOST_DEFINES_$(LLVM_LTO));
 WK_PRESERVE_MOST_DEFINES_YES = HAVE_PRESERVE_MOST=1;
 WK_PRESERVE_MOST_DEFINES_YES_THIN = HAVE_PRESERVE_MOST=1;
 
+// Toolchains other than Xcode's don't search their own usr/include, so they don't find <swift/bridging>
+// and wtf/SwiftBridging.h silently drops every Swift annotation (rdar://160275190). Xcode's toolchain
+// already searches it at this position, so there this is a no-op.
+WK_TOOLCHAIN_INCLUDE_FLAGS = -idirafter $(TOOLCHAIN_DIR)/usr/include;
+WK_TOOLCHAIN_INCLUDE_SWIFT_FLAGS = -Xcc -idirafter -Xcc $(TOOLCHAIN_DIR)/usr/include;
+
 // -fwrapv: Make signed integer overflow two's compliment rather than UB.
-WK_COMMON_OTHER_CFLAGS = -fwrapv $(WK_AVAILABILITY_OVERLAY_FLAGS) $(WK_SANITIZER_OTHER_CFLAGS) $(WK_COMMON_OTHER_CFLAGS_CLANG_PGO_$(WK_OR_$(WK_ENABLE_CLANG_PGO_USE)_$(ENABLE_LLVM_PROFILE_GENERATION)));
+WK_COMMON_OTHER_CFLAGS = -fwrapv $(WK_AVAILABILITY_OVERLAY_FLAGS) $(WK_TOOLCHAIN_INCLUDE_FLAGS) $(WK_SANITIZER_OTHER_CFLAGS) $(WK_COMMON_OTHER_CFLAGS_CLANG_PGO_$(WK_OR_$(WK_ENABLE_CLANG_PGO_USE)_$(ENABLE_LLVM_PROFILE_GENERATION)));
 // Work around rdar://141760829 until the fix is available on all clang-1700
 // based toolchains.
 // Fix from rdar://178983382 to avoid symbol module prefix differences causing performance loss.
@@ -75,7 +81,7 @@ WK_COMMON_OTHER_CFLAGS_CLANG_PGO_YES = -mllvm -system-headers-coverage -mllvm -s
 
 OTHER_CFLAGS = $(inherited) $(WK_COMMON_OTHER_CFLAGS);
 
-WK_COMMON_OTHER_CPLUSPLUSFLAGS = $(WK_AVAILABILITY_OVERLAY_FLAGS) $(WK_LIBCPP_ASSERTIONS_CFLAGS);
+WK_COMMON_OTHER_CPLUSPLUSFLAGS = $(WK_AVAILABILITY_OVERLAY_FLAGS) $(WK_TOOLCHAIN_INCLUDE_FLAGS) $(WK_LIBCPP_ASSERTIONS_CFLAGS);
 OTHER_CPLUSPLUSFLAGS = $(inherited) $(WK_COMMON_OTHER_CPLUSPLUSFLAGS);
 
 _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES = YES;
@@ -155,6 +161,6 @@ WK_SWIFT_CLANG_DEPLOYMENT_TARGET_macosx = -clang-target $(CURRENT_ARCH)-apple-ma
 
 // rdar://170129992: remove -track-system-dependencies when resolved
 // FIXME(rdar://189511928, rdar://189512247): remove -disable-round-trip-debug-types when both are resolved
-OTHER_SWIFT_FLAGS = $(inherited) $(WK_AVAILABILITY_OVERLAY_SWIFT_FLAGS) -Xcc -fvisibility=hidden -Werror ExistentialAny -Werror NoUseUnstructuredThrowingTask -Werror NoUsage $(WK_SWIFT_VARIABLE_NEVER_MUTATED_ERROR_FLAGS) $(WK_SWIFT_UNUSED_IMPORT_ACCESS_ERROR_FLAGS) -enable-upcoming-feature ExistentialAny $(WK_SWIFT_MEMORY_SAFETY_FLAGS) $(WK_SWIFT_MEMORY_SAFETY_ERROR_FLAGS) $(WK_SWIFT_CLANG_DEPLOYMENT_TARGET) $(WK_SANITIZER_OTHER_SWIFT_FLAGS) -enable-upcoming-feature InternalImportsByDefault -enable-upcoming-feature MemberImportVisibility -track-system-dependencies -enable-experimental-feature ImportCxxMembersLazily -enable-experimental-feature SuppressedAssociatedTypes -enable-experimental-feature SuppressedAssociatedTypesWithDefaults -enable-experimental-feature ForeignReferenceTypeInheritance -Xfrontend -disable-round-trip-debug-types -enable-experimental-feature SafeInteropWrappers;
+OTHER_SWIFT_FLAGS = $(inherited) $(WK_AVAILABILITY_OVERLAY_SWIFT_FLAGS) $(WK_TOOLCHAIN_INCLUDE_SWIFT_FLAGS) -Xcc -fvisibility=hidden -Werror ExistentialAny -Werror NoUseUnstructuredThrowingTask -Werror NoUsage $(WK_SWIFT_VARIABLE_NEVER_MUTATED_ERROR_FLAGS) $(WK_SWIFT_UNUSED_IMPORT_ACCESS_ERROR_FLAGS) -enable-upcoming-feature ExistentialAny $(WK_SWIFT_MEMORY_SAFETY_FLAGS) $(WK_SWIFT_MEMORY_SAFETY_ERROR_FLAGS) $(WK_SWIFT_CLANG_DEPLOYMENT_TARGET) $(WK_SANITIZER_OTHER_SWIFT_FLAGS) -enable-upcoming-feature InternalImportsByDefault -enable-upcoming-feature MemberImportVisibility -track-system-dependencies -enable-experimental-feature ImportCxxMembersLazily -enable-experimental-feature SuppressedAssociatedTypes -enable-experimental-feature SuppressedAssociatedTypesWithDefaults -enable-experimental-feature ForeignReferenceTypeInheritance -Xfrontend -disable-round-trip-debug-types -enable-experimental-feature SafeInteropWrappers;
 
 OTHER_LIBTOOLFLAGS = -no_warning_for_no_symbols;
