@@ -1223,7 +1223,6 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/PlatformContentFilter.h
     platform/ScrollAlignment.h
     platform/ScrollAnimation.h
-    platform/ScrollSnapAnimatorState.h
     platform/ScrollingEffectsController.h
     platform/SharedTimer.h
     platform/SystemSoundManager.h
