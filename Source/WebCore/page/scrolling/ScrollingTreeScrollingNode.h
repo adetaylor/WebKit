@@ -83,7 +83,7 @@ public:
     FloatPoint lastCommittedScrollPosition() const { return m_lastCommittedScrollPosition; }
     FloatSize scrollDeltaSinceLastCommit() const { return m_currentScrollPosition - m_lastCommittedScrollPosition; }
 
-    const IntPoint& scrollOrigin() const LIFETIME_BOUND { return m_scrollOrigin; }
+    IntPoint scrollOrigin() const { return m_scrollOrigin; }
 
     RectEdges<bool> edgePinnedState() const;
 
@@ -123,8 +123,8 @@ public:
     bool hasNonRepaintSynchronousScrollingReasons() const { return !(m_synchronousScrollingReasons - SynchronousScrollingReason::HasSlowRepaintObjects).isEmpty(); }
 #endif
 
-    const FloatSize& scrollableAreaSize() const LIFETIME_BOUND { return m_scrollableAreaSize; }
-    const FloatSize& totalContentsSize() const LIFETIME_BOUND { return m_totalContentsSize; }
+    FloatSize scrollableAreaSize() const { return m_scrollableAreaSize; }
+    FloatSize totalContentsSize() const { return m_totalContentsSize; }
 
     NativeScrollbarVisibility horizontalNativeScrollbarVisibility() const { return m_scrollableAreaParameters.horizontalNativeScrollbarVisibility; }
     NativeScrollbarVisibility verticalNativeScrollbarVisibility() const { return m_scrollableAreaParameters.verticalNativeScrollbarVisibility; }
@@ -162,11 +162,24 @@ public:
 
     NODELETE ScrollbarRevealBehavior takeScrollbarRevealBehaviorForNextScrollbarUpdate();
 
-protected:
-    ScrollingTreeScrollingNode(ScrollingTree&, ScrollingNodeType, ScrollingNodeID);
-
     virtual FloatPoint minimumScrollPosition() const;
     virtual FloatPoint maximumScrollPosition() const;
+
+    void willStartAnimatedScroll();
+    void didStopAnimatedScroll();
+    void willStartWheelEventScroll();
+    void didStopWheelEventScroll();
+
+    void setScrollAnimationInProgress(bool);
+    void setTotalContentsSizeForRubberBand(const FloatSize& totalContentsSizeForRubberBand) { m_totalContentsSizeForRubberBand = totalContentsSizeForRubberBand; }
+
+    ScrollElasticity horizontalScrollElasticity() const { return m_scrollableAreaParameters.horizontalScrollElasticity; }
+    ScrollElasticity verticalScrollElasticity() const { return m_scrollableAreaParameters.verticalScrollElasticity; }
+
+    bool shouldRubberBandOnSide(BoxSide, RectEdges<bool> pinnedEdges) const;
+
+protected:
+    ScrollingTreeScrollingNode(ScrollingTree&, ScrollingNodeType, ScrollingNodeID);
 
     FloatPoint clampScrollPosition(const FloatPoint&) const;
     
@@ -174,13 +187,7 @@ protected:
     
     FloatPoint adjustedScrollPosition(const FloatPoint&, ScrollClamping = ScrollClamping::Clamped) const;
 
-    void willStartAnimatedScroll();
-    void didStopAnimatedScroll();
-    void willStartWheelEventScroll();
-    void didStopWheelEventScroll();
     void didStopProgrammaticScroll();
-
-    void setScrollAnimationInProgress(bool);
 
     virtual void currentScrollPositionChanged(ScrollType, ScrollingLayerPositionAction = ScrollingLayerPositionAction::Sync);
     virtual void updateViewportForCurrentScrollPosition(std::optional<FloatRect> = { }) { }
@@ -199,10 +206,6 @@ protected:
     // computing the stretchAmount(). Using the old value will keep the animation smooth. When there is no rubber-band in progress at
     // all, m_totalContentsSizeForRubberBand should be equivalent to m_totalContentsSize.
     const FloatSize& totalContentsSizeForRubberBand() const LIFETIME_BOUND { return m_totalContentsSizeForRubberBand; }
-    void setTotalContentsSizeForRubberBand(const FloatSize& totalContentsSizeForRubberBand) { m_totalContentsSizeForRubberBand = totalContentsSizeForRubberBand; }
-
-    ScrollElasticity horizontalScrollElasticity() const { return m_scrollableAreaParameters.horizontalScrollElasticity; }
-    ScrollElasticity verticalScrollElasticity() const { return m_scrollableAreaParameters.verticalScrollElasticity; }
 
     bool horizontalOverscrollBehaviorPreventsPropagation() const { return m_scrollableAreaParameters.horizontalOverscrollBehavior != OverscrollBehavior::Auto; }
     bool verticalOverscrollBehaviorPreventsPropagation() const { return m_scrollableAreaParameters.verticalOverscrollBehavior != OverscrollBehavior::Auto; }
@@ -215,7 +218,6 @@ protected:
     bool overscrollBehaviorAllowsRubberBand() const { return m_scrollableAreaParameters.horizontalOverscrollBehavior != OverscrollBehavior::None ||  m_scrollableAreaParameters.verticalOverscrollBehavior != OverscrollBehavior::None; }
 
     bool shouldRubberBand(const PlatformWheelEvent&, EventTargeting) const;
-    bool shouldRubberBandOnSide(BoxSide, RectEdges<bool> pinnedEdges) const;
 
     void handleScrollPositionRequest(const RequestedScrollData&);
 
