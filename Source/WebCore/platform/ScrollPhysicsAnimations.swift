@@ -56,18 +56,18 @@ protocol ScrollPhysicsAnimationBase: AnyObject {
 }
 
 extension ScrollPhysicsAnimationBase {
-    func didStart(_ c: inout WebCore.ScrollPhysicsClient, _ controller: ScrollPhysicsController, _ currentTime: Double) {
+    func didStart<C: ScrollPhysicsClientProtocol & ~Copyable>(_ c: inout C, _ controller: ScrollPhysicsController, _ currentTime: Double) {
         startTime = currentTime
         isActive = true
         controller.scrollAnimationWillStart(&c, Self.animationType)
     }
 
-    func didEnd(_ c: inout WebCore.ScrollPhysicsClient, _ controller: ScrollPhysicsController) {
+    func didEnd<C: ScrollPhysicsClientProtocol & ~Copyable>(_ c: inout C, _ controller: ScrollPhysicsController) {
         isActive = false
         controller.scrollAnimationDidEnd(&c, Self.animationType)
     }
 
-    func stopIfActive(_ c: inout WebCore.ScrollPhysicsClient, _ controller: ScrollPhysicsController) {
+    func stopIfActive<C: ScrollPhysicsClientProtocol & ~Copyable>(_ c: inout C, _ controller: ScrollPhysicsController) {
         if !isActive {
             return
         }
@@ -107,8 +107,8 @@ final class SmoothScrollAnimation: ScrollPhysicsAnimationBase {
         timingFunction = WebCore.CubicBezierTimingFunction.create().get()
     }
 
-    func startAnimatedScrollToDestination(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func startAnimatedScrollToDestination<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ fromOffset: ScrollPoint,
         _ destination: ScrollPoint
@@ -138,8 +138,8 @@ final class SmoothScrollAnimation: ScrollPhysicsAnimationBase {
     }
 
     // Moves the start time and offset and replaces the timing function even when it returns false.
-    func retargetActiveAnimation(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func retargetActiveAnimation<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ newOffset: ScrollPoint
     ) -> Bool {
@@ -163,7 +163,7 @@ final class SmoothScrollAnimation: ScrollPhysicsAnimationBase {
         return true
     }
 
-    func updateScrollExtents(_ c: inout WebCore.ScrollPhysicsClient, _ controller: ScrollPhysicsController) {
+    func updateScrollExtents<C: ScrollPhysicsClientProtocol & ~Copyable>(_ c: inout C, _ controller: ScrollPhysicsController) {
         let extents = ScrollPhysicsExtents(c.scrollExtents())
         // FIXME: Ideally fix up startOffset so currentOffset doesn't go backwards.
         destinationOffset = destinationOffset.constrainedBetween(extents.minimumScrollOffset, extents.maximumScrollOffset)
@@ -174,8 +174,8 @@ final class SmoothScrollAnimation: ScrollPhysicsAnimationBase {
         return stdMin(Double(distance / animationSpeed), maxAnimationDuration)
     }
 
-    func serviceAnimation(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func serviceAnimation<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ currentTime: Double,
         _ generation: UInt64
@@ -276,8 +276,8 @@ final class KeyboardScrollAnimation: ScrollPhysicsAnimationBase {
         }
     }
 
-    func serviceAnimation(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func serviceAnimation<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ currentTime: Double,
         _ generation: UInt64
@@ -285,8 +285,8 @@ final class KeyboardScrollAnimation: ScrollPhysicsAnimationBase {
         animateScroll(&c, controller, currentTime, generation)
     }
 
-    func startKeyboardScroll(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func startKeyboardScroll<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ scrollData: WebCore.KeyboardScroll
     ) -> Bool {
@@ -304,7 +304,7 @@ final class KeyboardScrollAnimation: ScrollPhysicsAnimationBase {
         return true
     }
 
-    private func stopKeyboardScrollAnimation(_ c: inout WebCore.ScrollPhysicsClient) {
+    private func stopKeyboardScrollAnimation<C: ScrollPhysicsClientProtocol & ~Copyable>(_ c: inout C) {
         guard let currentKeyboardScroll else {
             return
         }
@@ -337,7 +337,11 @@ final class KeyboardScrollAnimation: ScrollPhysicsAnimationBase {
         self.currentKeyboardScroll = nil
     }
 
-    func finishKeyboardScroll(_ c: inout WebCore.ScrollPhysicsClient, _ controller: ScrollPhysicsController, _ immediate: Bool) {
+    func finishKeyboardScroll<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
+        _ controller: ScrollPhysicsController,
+        _ immediate: Bool
+    ) {
         if !scrollTriggeringKeyIsPressed && !immediate {
             return
         }
@@ -354,8 +358,8 @@ final class KeyboardScrollAnimation: ScrollPhysicsAnimationBase {
         }
     }
 
-    private func animateScroll(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    private func animateScroll<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ currentTime: Double,
         _ generation: UInt64
@@ -452,8 +456,8 @@ final class MomentumScrollAnimation: ScrollPhysicsAnimationBase {
         momentumCalculator = nil
     }
 
-    func startAnimatedScrollWithInitialVelocity(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func startAnimatedScrollWithInitialVelocity<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ initialOffset: ScrollPoint,
         _ initialVelocity: ScrollSize,
@@ -486,8 +490,8 @@ final class MomentumScrollAnimation: ScrollPhysicsAnimationBase {
     }
 
     // Ends the animation when the retargeted animation still has time to run, and returns false then.
-    func retargetActiveAnimation(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func retargetActiveAnimation<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ newDestination: ScrollPoint
     ) -> Bool {
@@ -505,15 +509,15 @@ final class MomentumScrollAnimation: ScrollPhysicsAnimationBase {
         return false
     }
 
-    func stop(_ c: inout WebCore.ScrollPhysicsClient, _ controller: ScrollPhysicsController) {
+    func stop<C: ScrollPhysicsClientProtocol & ~Copyable>(_ c: inout C, _ controller: ScrollPhysicsController) {
         momentumCalculator = nil
         stopIfActive(&c, controller)
     }
 
     // Out of line, so the registers the calculator needs are saved only on momentum frames.
     @inline(never)
-    func serviceAnimation(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func serviceAnimation<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ currentTime: Double,
         _ generation: UInt64
@@ -538,7 +542,7 @@ final class MomentumScrollAnimation: ScrollPhysicsAnimationBase {
     }
 
     // Traps when the animation has stopped and has no calculator.
-    func updateScrollExtents(_ c: inout WebCore.ScrollPhysicsClient, _ controller: ScrollPhysicsController) {
+    func updateScrollExtents<C: ScrollPhysicsClientProtocol & ~Copyable>(_ c: inout C, _ controller: ScrollPhysicsController) {
         let extents = ScrollPhysicsExtents(c.scrollExtents())
         let predictedScrollOffset = momentumCalculator!.destinationScrollOffset
         let constrainedOffset = predictedScrollOffset.constrainedBetween(extents.minimumScrollOffset, extents.maximumScrollOffset)
@@ -751,8 +755,8 @@ final class RubberBandScrollAnimation: ScrollPhysicsAnimationBase {
     }
 
     // targetOverscroll is where the animation snaps to, which an NSRefreshController can move.
-    func startRubberBandAnimation(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func startRubberBandAnimation<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ initialVelocity: ScrollSize,
         _ initialOverscroll: ScrollSize,
@@ -766,8 +770,8 @@ final class RubberBandScrollAnimation: ScrollPhysicsAnimationBase {
         return true
     }
 
-    func startRubberBandAnimationWithElapsedTime(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func startRubberBandAnimationWithElapsedTime<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ initialVelocity: ScrollSize,
         _ initialOverscroll: ScrollSize,
@@ -782,8 +786,8 @@ final class RubberBandScrollAnimation: ScrollPhysicsAnimationBase {
         return true
     }
 
-    func serviceAnimation(
-        _ c: inout WebCore.ScrollPhysicsClient,
+    func serviceAnimation<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
         _ controller: ScrollPhysicsController,
         _ currentTime: Double,
         _ generation: UInt64
