@@ -54,6 +54,10 @@ framework module WebCore_Private [system] {
         exclude header "HTTPHeaderParsersTypes.h"
         // WebCore's Swift imports it as WebCore_Private.ScrollPhysicsTypes.
         exclude header "ScrollPhysicsTypes.h"
+
+        // WebCore's Swift imports it as WebCore_Private.ScrollingTreeScrollPhysicsClient.
+        exclude header "ScrollingTreeScrollPhysicsClient.h"
+
         module * {
             export *
         }
@@ -61,6 +65,12 @@ framework module WebCore_Private [system] {
 
     explicit module ScrollPhysicsTypes {
         header "ScrollPhysicsTypes.h"
+        requires cplusplus
+        export *
+    }
+
+    explicit module ScrollingTreeScrollPhysicsClient {
+        header "ScrollingTreeScrollPhysicsClient.h"
         requires cplusplus
         export *
     }
