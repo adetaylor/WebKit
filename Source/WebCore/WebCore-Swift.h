@@ -83,4 +83,6 @@
 #include "ParsedContentRange.h"
 #include "ServerTiming.h"
 
+#include "ScrollPhysicsTypes.h"
+
 #include "WebCoreSwift-Generated.h"

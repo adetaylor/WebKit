@@ -991,6 +991,7 @@
 				WebCore/RenderStyleChange.cpp,
 				WebCore/ResourceResponsePersistence.cpp,
 				WebCore/SampleMap.cpp,
+				WebCore/ScrollPhysics.cpp,
 				WebCore/ScrollPhysicsBench.cpp,
 				WebCore/SecurityOrigin.cpp,
 				WebCore/SerializedScriptValue.cpp,
