@@ -2648,6 +2648,9 @@
 		5C0A11000000000000000006 /* ScrollPhysicsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A11000000000000000005 /* ScrollPhysicsController.swift */; };
 		5C0A11000000000000000008 /* ScrollPhysicsAnimations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A11000000000000000007 /* ScrollPhysicsAnimations.swift */; };
 		5C0A1100000000000000000E /* ScrollPhysicsClientProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A1100000000000000000D /* ScrollPhysicsClientProtocol.swift */; };
+		5C0A16000000000000000002 /* ScrollingTreeScrollPhysicsClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C0A16000000000000000001 /* ScrollingTreeScrollPhysicsClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		5C0A16000000000000000004 /* ScrollingTreeScrollPhysicsDelegateHolder.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C0A16000000000000000003 /* ScrollingTreeScrollPhysicsDelegateHolder.h */; };
+		5C0A16000000000000000006 /* ScrollingTreeScrollingNodeDelegateMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A16000000000000000005 /* ScrollingTreeScrollingNodeDelegateMac.swift */; };
 		5C0A1100000000000000000A /* ScrollPhysicsGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A11000000000000000009 /* ScrollPhysicsGeometry.swift */; };
 		5C0A1100000000000000000C /* ScrollSnapAnimationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A1100000000000000000B /* ScrollSnapAnimationState.swift */; };
 		5B46656325D14C0A000CFE14 /* ScrollingEffectsController.h in Headers */ = {isa = PBXBuildFile; fileRef = 5B46655F25D14C09000CFE14 /* ScrollingEffectsController.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -13630,6 +13633,9 @@
 		5C0A11000000000000000005 /* ScrollPhysicsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollPhysicsController.swift; sourceTree = "<group>"; };
 		5C0A11000000000000000007 /* ScrollPhysicsAnimations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollPhysicsAnimations.swift; sourceTree = "<group>"; };
 		5C0A1100000000000000000D /* ScrollPhysicsClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollPhysicsClientProtocol.swift; sourceTree = "<group>"; };
+		5C0A16000000000000000001 /* ScrollingTreeScrollPhysicsClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollingTreeScrollPhysicsClient.h; sourceTree = "<group>"; };
+		5C0A16000000000000000003 /* ScrollingTreeScrollPhysicsDelegateHolder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollingTreeScrollPhysicsDelegateHolder.h; sourceTree = "<group>"; };
+		5C0A16000000000000000005 /* ScrollingTreeScrollingNodeDelegateMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeScrollingNodeDelegateMac.swift; sourceTree = "<group>"; };
 		5C0A11000000000000000009 /* ScrollPhysicsGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollPhysicsGeometry.swift; sourceTree = "<group>"; };
 		5C0A1100000000000000000B /* ScrollSnapAnimationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSnapAnimationState.swift; sourceTree = "<group>"; };
 		5B46655F25D14C09000CFE14 /* ScrollingEffectsController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScrollingEffectsController.h; sourceTree = "<group>"; };
@@ -25964,6 +25970,8 @@
 				9391A99B1629D70000297330 /* ScrollingTreeScrollingNode.h */,
 				A6D5A99A1629D6FF00297330 /* ScrollingTreeScrollingNodeDelegate.cpp */,
 				A6D5A99B1629D70000297330 /* ScrollingTreeScrollingNodeDelegate.h */,
+				5C0A16000000000000000001 /* ScrollingTreeScrollPhysicsClient.h */,
+				5C0A16000000000000000003 /* ScrollingTreeScrollPhysicsDelegateHolder.h */,
 				5B92C4292716E23300A37CC0 /* ScrollingTreeStickyNode.cpp */,
 				5B92C42B2716E23300A37CC0 /* ScrollingTreeStickyNode.h */,
 				F4F0E2762DBC69A200E2F385 /* ScrollingTreeViewportConstrainedNode.cpp */,
@@ -26002,6 +26010,7 @@
 				2D222D412B05587F009F4ADD /* ScrollingTreePluginScrollingNodeMac.mm */,
 				0F37F0842202ACB700A89C0B /* ScrollingTreeScrollingNodeDelegateMac.h */,
 				0F37F0832202AC8F00A89C0B /* ScrollingTreeScrollingNodeDelegateMac.mm */,
+				5C0A16000000000000000005 /* ScrollingTreeScrollingNodeDelegateMac.swift */,
 			);
 			path = mac;
 			sourceTree = "<group>";
@@ -49164,6 +49173,8 @@
 				9391A99D1629D70000297330 /* ScrollingTreeScrollingNode.h in Headers */,
 				A6D5A99D1629D70000297330 /* ScrollingTreeScrollingNodeDelegate.h in Headers */,
 				0F37F0852202BF9800A89C0B /* ScrollingTreeScrollingNodeDelegateMac.h in Headers */,
+				5C0A16000000000000000002 /* ScrollingTreeScrollPhysicsClient.h in Headers */,
+				5C0A16000000000000000004 /* ScrollingTreeScrollPhysicsDelegateHolder.h in Headers */,
 				5B92C42D2716E28A00A37CC0 /* ScrollingTreeStickyNode.h in Headers */,
 				0F94B6492208FE3B00157014 /* ScrollingTreeStickyNodeCocoa.h in Headers */,
 				F4F0E2772DBC6CE400E2F385 /* ScrollingTreeViewportConstrainedNode.h in Headers */,
@@ -51523,6 +51534,7 @@
 				1209CD7E2AF1B9710046C3F0 /* ScrollbarMac.mm in Sources */,
 				021D763A29C2AC6B00063684 /* ScrollbarsControllerMac.mm in Sources */,
 				BCEF869F0E844E9D00A85CD5 /* ScrollbarThemeMac.mm in Sources */,
+				5C0A16000000000000000006 /* ScrollingTreeScrollingNodeDelegateMac.swift in Sources */,
 				5C0A11000000000000000008 /* ScrollPhysicsAnimations.swift in Sources */,
 				5C0A1100000000000000000E /* ScrollPhysicsClientProtocol.swift in Sources */,
 				5C0A11000000000000000006 /* ScrollPhysicsController.swift in Sources */,
