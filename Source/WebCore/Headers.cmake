@@ -2349,9 +2349,8 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/ScriptExecutionContextIdentifier.h
     platform/ScrollAlignment.h
     platform/ScrollAnimation.h
-    platform/ScrollAnimationMomentum.h
     platform/ScrollAnimator.h
-    platform/ScrollSnapAnimatorState.h
+    platform/ScrollPhysicsTypes.h
     platform/ScrollTypes.h
     platform/ScrollView.h
     platform/ScrollableArea.h
