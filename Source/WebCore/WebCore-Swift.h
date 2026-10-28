@@ -86,4 +86,8 @@
 #include "CSSCalcSwiftTypes.h"
 #endif
 
+#if !defined(USE_SWIFT_IMAGE_DECODERS)
+#define USE_SWIFT_IMAGE_DECODERS 0
+#if USE_SWIFT_IMAGE_DECODERS
+#include "ImageDecoderSwiftTypes.h"
 #include "WebCoreSwift-Generated.h"

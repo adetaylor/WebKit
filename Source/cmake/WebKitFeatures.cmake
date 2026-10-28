@@ -597,6 +597,10 @@ macro(WEBKIT_OPTION_END)
     # USE_SWIFT_CSS_CALC changes the layout of CSSCalc::Tree and Style::Calculation::Child, whose headers are included
     # outside WebCore, so every target sees it, through cmakeconfig.h.
     SET_AND_EXPOSE_TO_BUILD(USE_SWIFT_CSS_CALC ${WK_USE_SWIFT_CSS_CALC})
+    # GIFImageDecoder, BMPImageDecoder and ICOImageDecoder decode in Swift (platform/image-decoders/*.swift). The
+    # Cocoa ports decode with ImageIO and build none of these decoders.
+    option(WK_USE_SWIFT_IMAGE_DECODERS "Decode GIF, BMP and ICO images with WebCore's Swift decoders" OFF)
+    if (WK_USE_SWIFT_IMAGE_DECODERS)
 
     # A Swift feature still on with a too-old toolchain was requested explicitly
     # (the default declines to auto-enable it), so fail loudly rather than drop it
