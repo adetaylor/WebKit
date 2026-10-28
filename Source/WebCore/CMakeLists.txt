@@ -3416,6 +3416,7 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         ${WEBCORE_DIR}/SIMDHighBitMask.swift
         ${WEBCORE_DIR}/SIMDSaturatingSubtract.swift
         ${WEBCORE_DIR}/SIMDTableLookup.swift
+        ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
         ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
