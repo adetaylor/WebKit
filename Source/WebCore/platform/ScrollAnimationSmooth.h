@@ -29,6 +29,7 @@
 #include <WebCore/ScrollAnimation.h>
 #include <wtf/TZoneMalloc.h>
 
+#if !USE_SWIFT_SCROLL_PHYSICS
 namespace WebCore {
 
 class FloatPoint;
@@ -73,3 +74,4 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_SCROLL_ANIMATION(WebCore::ScrollAnimationSmooth, type() == WebCore::ScrollAnimation::Type::Smooth)
+#endif // !USE_SWIFT_SCROLL_PHYSICS
