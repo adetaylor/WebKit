@@ -72,7 +72,7 @@ extension TestRunner.Configuration {
 
         self.help = Self.flag(arguments, for: "--help") || Self.flag(arguments, for: "-h")
         self.force = Self.flag(arguments, for: "--force")
-        self.listTests = Self.flag(arguments, for: "--list-tests")
+        self.listTests = Self.flag(arguments, for: "--list-tests") || Self.flag(arguments, for: "--gtest_list_tests")
         self.pretty = Self.flag(arguments, for: "--pretty")
         self.parallel = Self.flag(arguments, for: "--parallel")
     }
