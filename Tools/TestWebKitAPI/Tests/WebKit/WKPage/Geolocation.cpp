@@ -399,6 +399,7 @@ TEST(WebKit, GeolocationWatchMultiprocess)
     WKPageLoadURL(view2.page(), url.get());
     Util::run(&testContext.didRun);
     EXPECT_EQ(testContext.alertText, "SUCCESS");
+    WKPageSetPageUIClient(view2.page(), nullptr);
 
     clearGeolocationProvider(context.get());
 }
