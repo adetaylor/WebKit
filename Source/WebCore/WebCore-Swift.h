@@ -84,6 +84,7 @@
 #include "ServerTiming.h"
 
 #include "ScrollPhysicsTypes.h"
+#include "ScrollerPairMacTypes.h"
 #include "ScrollingTreeScrollPhysicsClient.h"
 
 #include "WebCoreSwift-Generated.h"
