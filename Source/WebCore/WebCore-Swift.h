@@ -66,4 +66,6 @@
 #endif
 #include "CSSTokenizerSwiftTypes.h"
 
+#include "CSSParserFastPathsSwiftTypes.h"
+
 #include "WebCoreSwift-Generated.h"
