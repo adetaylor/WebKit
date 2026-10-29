@@ -287,6 +287,7 @@ TEST(WebKit, DecidePolicyForNavigationActionCancelAfterDiscardingForwardItems)
     TestWebKitAPI::Util::run(&decidedPolicy);
     [webView waitForNextPresentationUpdate];
     [[webView backForwardList] currentItem];
+    shouldCancelNavigation = false;
 
     newWebView = nullptr;
     action = nullptr;
@@ -315,6 +316,7 @@ TEST(WebKit, DecidePolicyForNavigationActionCancelAfterDiscardingForwardItemsWit
     TestWebKitAPI::Util::run(&decidedPolicy);
     [webView waitForNextPresentationUpdate];
     [[webView backForwardList] currentItem];
+    shouldCancelNavigation = false;
 
     newWebView = nullptr;
     action = nullptr;
@@ -344,6 +346,7 @@ TEST(WebKit, DecidePolicyForNavigationActionCancelAfterDiscardingForwardItemsWit
     TestWebKitAPI::Util::run(&decidedPolicy);
     [webView waitForNextPresentationUpdate];
     [[webView backForwardList] currentItem];
+    shouldCancelNavigation = false;
 
     newWebView = nullptr;
     action = nullptr;
