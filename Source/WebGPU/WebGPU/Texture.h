@@ -53,7 +53,6 @@ class TextureImpl;
 
 namespace WebGPU::Metal {
 
-class CommandEncoder;
 class Device;
 class TextureView;
 
@@ -128,14 +127,8 @@ public:
     static NSString* errorValidatingImageCopyTexture(const WebGPU::TexelCopyTextureInfo&, const WebGPU::Extent3D&);
     static NSString* errorValidatingTextureCopyRange(const WebGPU::TexelCopyTextureInfo&, const WebGPU::Extent3D&);
 
-    WebGPU::Extent3D logicalMiplevelSpecificTextureExtent(uint32_t mipLevel);
-    WebGPU::Extent3D physicalMiplevelSpecificTextureExtent(uint32_t mipLevel);
-
     id<MTLTexture> texture() const;
-    // A texture bound directly, rather than through a view, has no swizzle to apply.
-    id<MTLTexture> LEGACY_NODELETE sampledTexture() const;
-    bool hasSwizzle() const { return false; }
-
+#if !defined(__swift__)
     uint32_t LEGACY_NODELETE width() const;
     uint32_t LEGACY_NODELETE height() const;
     uint32_t LEGACY_NODELETE depthOrArrayLayers() const;
@@ -148,35 +141,21 @@ public:
     std::optional<WebGPU::TextureFormat> optionalFormat() const;
     OptionSet<WebGPU::TextureUsage> LEGACY_NODELETE usage() const;
 
-    // Borrowed from the Impl, which holds the reference. Swift reads TextureImpl.device instead.
+    // Borrowed from the Impl, which holds the reference.
     Device& device() const;
+#endif
 
     bool isDestroyed() const;
 
     void recreateIfNeeded();
     void LEGACY_NODELETE makeCanvasBacking();
-    void setCommandEncoder(CommandEncoder&) const;
-    bool isCanvasBacking() const;
 
     bool waitForCommandBufferCompletion();
-    void recordGPUExecutionWindow(double startTime, double endTime) const;
     Seconds gpuFrameCost() const;
-    void resetGPUFrameCost() const;
+#if !defined(__swift__)
     void LEGACY_NODELETE updateCompletionEvent(const std::pair<id<MTLSharedEvent>, uint64_t>&);
-    id<MTLSharedEvent> LEGACY_NODELETE sharedEvent() const;
-    uint64_t LEGACY_NODELETE sharedEventSignalValue() const;
     void setRasterizationRateMaps(std::pair<id<MTLRasterizationRateMap>, id<MTLRasterizationRateMap>>&&);
-    id<MTLRasterizationRateMap> rasterizationMapForSlice(uint32_t slice) const;
-    uint32_t LEGACY_NODELETE arrayLayerCount() const;
-    WebGPU::TextureAspect aspect() const { return WebGPU::TextureAspect::All; }
-    uint32_t baseArrayLayer() const { return 0; }
-    uint32_t baseMipLevel() const { return 0; }
-    uint32_t parentRelativeSlice() const { return 0; }
-    bool LEGACY_NODELETE is2DTexture() const;
-    bool LEGACY_NODELETE is2DArrayTexture() const;
-    bool LEGACY_NODELETE is3DTexture() const;
-    id<MTLTexture> parentTexture() const;
-    const Texture& apiParentTexture() const { return *this; }
+#endif
 
 private:
 #if !defined(__swift__)

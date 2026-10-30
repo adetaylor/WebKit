@@ -182,11 +182,6 @@ uint32_t Texture::sampleCount() const
     return swiftImpl().sampleCount();
 }
 
-uint32_t Texture::arrayLayerCount() const
-{
-    return swiftImpl().arrayLayerCount();
-}
-
 WebGPU::TextureDimension Texture::dimension() const
 {
     return static_cast<WebGPU::TextureDimension>(swiftImpl().dimension());
@@ -209,21 +204,6 @@ OptionSet<WebGPU::TextureUsage> Texture::usage() const
     return OptionSet<WebGPU::TextureUsage>::fromRaw(swiftImpl().usage());
 }
 
-bool Texture::is2DTexture() const
-{
-    return swiftImpl().is2DTexture();
-}
-
-bool Texture::is2DArrayTexture() const
-{
-    return swiftImpl().is2DArrayTexture();
-}
-
-bool Texture::is3DTexture() const
-{
-    return swiftImpl().is3DTexture();
-}
-
 RefPtr<WebGPU::TextureView> Texture::createView(const std::optional<WebGPU::TextureViewDescriptor>& optionalDescriptor)
 {
     const WebGPU::TextureViewDescriptor defaultDescriptor;
@@ -242,11 +222,6 @@ void Texture::makeCanvasBacking()
     swiftImpl().makeCanvasBacking();
 }
 
-bool Texture::isCanvasBacking() const
-{
-    return swiftImpl().isCanvasBacking();
-}
-
 bool Texture::isDestroyed() const
 {
     return swiftImpl().isDestroyed();
@@ -257,40 +232,15 @@ id<MTLTexture> Texture::texture() const
     return swiftImpl().texture();
 }
 
-id<MTLTexture> Texture::sampledTexture() const
-{
-    return swiftImpl().texture();
-}
-
-id<MTLTexture> Texture::parentTexture() const
-{
-    return swiftImpl().texture();
-}
-
 bool Texture::waitForCommandBufferCompletion()
 {
     return swiftImpl().waitForCommandBufferCompletion();
-}
-
-void Texture::recordGPUExecutionWindow(double startTime, double endTime) const
-{
-    swiftImpl().recordGPUExecutionWindow(startTime, endTime);
 }
 
 Seconds Texture::gpuFrameCost() const
 {
     double seconds = swiftImpl().gpuFrameCostSeconds();
     return seconds > 0 ? Seconds { seconds } : 0_s;
-}
-
-void Texture::resetGPUFrameCost() const
-{
-    swiftImpl().resetGPUFrameCost();
-}
-
-void Texture::setCommandEncoder(CommandEncoder& commandEncoder) const
-{
-    swiftImpl().setCommandEncoder(commandEncoder.swiftImpl());
 }
 
 void Texture::undestroy()
@@ -308,37 +258,9 @@ void Texture::setLabel(String&& label)
     swiftImpl().setLabel(WTF::move(label));
 }
 
-WebGPU::Extent3D Texture::logicalMiplevelSpecificTextureExtent(uint32_t mipLevel)
-{
-    return {
-        .width = swiftImpl().logicalMiplevelSpecificTextureWidth(mipLevel),
-        .height = swiftImpl().logicalMiplevelSpecificTextureHeight(mipLevel),
-        .depthOrArrayLayers = swiftImpl().logicalMiplevelSpecificTextureDepthOrArrayLayers(mipLevel),
-    };
-}
-
-WebGPU::Extent3D Texture::physicalMiplevelSpecificTextureExtent(uint32_t mipLevel)
-{
-    return {
-        .width = swiftImpl().physicalMiplevelSpecificTextureWidth(mipLevel),
-        .height = swiftImpl().physicalMiplevelSpecificTextureHeight(mipLevel),
-        .depthOrArrayLayers = swiftImpl().physicalMiplevelSpecificTextureDepthOrArrayLayers(mipLevel),
-    };
-}
-
 bool Texture::isValid() const
 {
     return swiftImpl().isValid();
-}
-
-id<MTLSharedEvent> Texture::sharedEvent() const
-{
-    return swiftImpl().sharedEvent();
-}
-
-uint64_t Texture::sharedEventSignalValue() const
-{
-    return swiftImpl().sharedEventSignalValue();
 }
 
 void Texture::updateCompletionEvent(const std::pair<id<MTLSharedEvent>, uint64_t>& completionEvent)
@@ -349,11 +271,6 @@ void Texture::updateCompletionEvent(const std::pair<id<MTLSharedEvent>, uint64_t
 void Texture::setRasterizationRateMaps(std::pair<id<MTLRasterizationRateMap>, id<MTLRasterizationRateMap>>&& rateMaps)
 {
     swiftImpl().setRasterizationRateMaps(rateMaps.first, rateMaps.second);
-}
-
-id<MTLRasterizationRateMap> Texture::rasterizationMapForSlice(uint32_t slice) const
-{
-    return swiftImpl().rasterizationMapForSlice(slice);
 }
 
 } // namespace WebGPU::Metal
