@@ -341,7 +341,7 @@ void Queue::writeBuffer(Buffer& buffer, uint64_t bufferOffset, std::span<uint8_t
     if (!device)
         return;
 
-    m_impl->impl.writeBuffer(this, device.get(), device->swiftImpl(), &buffer, buffer.swiftImpl(), bufferOffset, QueueBytes { data });
+    m_impl->impl.writeBuffer(this, device.get(), device->swiftImpl(), buffer.swiftImpl(), bufferOffset, QueueBytes { data });
 }
 
 id<MTLBuffer> newBufferAliasingOwner(const Device& device, const WebGPU::ByteOwner& owner, uint64_t offset, uint64_t length)
@@ -578,7 +578,7 @@ void Queue::writeBuffer(WebGPU::Buffer& buffer, uint64_t bufferOffset, Ref<WebGP
     if (!device)
         return;
 
-    m_impl->impl.writeBufferFromOwner(this, device.get(), device->swiftImpl(), &downcast<Buffer>(buffer), downcast<Buffer>(buffer).swiftImpl(), bufferOffset, QueueBytes { data->span() }, data.ptr());
+    m_impl->impl.writeBufferFromOwner(this, device.get(), device->swiftImpl(), downcast<Buffer>(buffer).swiftImpl(), bufferOffset, QueueBytes { data->span() }, data.ptr());
 }
 
 void Queue::writeTexture(const WebGPU::TexelCopyTextureInfo& destination, Ref<WebGPU::ByteOwner>&& data, const WebGPU::TexelCopyBufferLayout& dataLayout, const WebGPU::Extent3D& writeSize)
