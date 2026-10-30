@@ -337,8 +337,10 @@ final class CommandBufferImpl {
         postCommitActions = []
         for action in actions {
             switch action {
-            case .restoreIndexBufferContents(let buffer, _, let priorContents):
-                WebGPU.Metal.restoreIndexBufferContents(buffer, cachedCommandBuffer, priorContents)
+            case .restoreIndexBufferContents(let buffer, let bufferImpl, let priorContents):
+                cachedCommandBuffer?.waitUntilCompleted()
+                bufferImpl.indexBufferContentsWillBeRestored()
+                WebGPU.Metal.restoreIndexBufferContents(buffer, priorContents)
             case .clearMustTakeSlowIndexValidationPath(_, let pair):
                 if let buffer = pair.buffer, !buffer.isDestroyed() {
                     buffer.clearMustTakeSlowIndexValidationPath()

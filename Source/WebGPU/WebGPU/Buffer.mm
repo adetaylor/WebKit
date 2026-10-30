@@ -32,7 +32,6 @@
 #import "CommandEncoder.h"
 #import "Device.h"
 #import "RenderBundle.h"
-#import "RenderBundleEncoder.h"
 
 #import <wtf/Borrow.h>
 #import <wtf/CheckedArithmetic.h>
@@ -282,22 +281,69 @@ std::span<uint8_t> cpuVisibleContents(id<MTLBuffer> buffer)
     return unsafeMakeSpan(static_cast<uint8_t*>(contents), length);
 }
 
-NSMutableData* takeSlowIndexValidationPath(Buffer& buffer, uint32_t firstIndex, uint32_t indexCount, bool isUInt16, uint32_t primitiveOffset, uint32_t vertexCount)
+bool verifyIndexBufferForSlowPath(Buffer& buffer, uint32_t firstIndex, uint32_t indexCount, bool isUInt16, uint32_t primitiveOffset, uint32_t vertexCount)
 {
     WTFLogAlways("WARNING: Severe performance penalty due to encoding drawIndexed calls out of order with submission"); // NOLINT
     Ref queue = buffer.device().getQueue();
     id<MTLBuffer> mtlBuffer = buffer.buffer();
     queue->waitForAllCommitedWorkToComplete();
     queue->synchronizeResourceAndWait(mtlBuffer);
-    bool verified = false;
     if (isUInt16)
-        verified = verifyIndexBufferData<uint16_t>(mtlBuffer, firstIndex, indexCount, vertexCount, primitiveOffset);
-    else
-        verified = verifyIndexBufferData<uint32_t>(mtlBuffer, firstIndex, indexCount, vertexCount, primitiveOffset);
+        return verifyIndexBufferData<uint16_t>(mtlBuffer, firstIndex, indexCount, vertexCount, primitiveOffset);
+    return verifyIndexBufferData<uint32_t>(mtlBuffer, firstIndex, indexCount, vertexCount, primitiveOffset);
+}
 
-    if (verified)
-        return nil;
+// Mirrors what vsUshortIndexClamp()/vsUintIndexClamp() enforce on the GPU, over every index the clamp
+// dispatch could have read: the dispatch's index count is itself clamped to the index buffer's length, and
+// each fetched index is offset by primitiveRestart and saturating-added to baseVertex before the bounds
+// comparison. Scanning the whole buffer rather than [indexStart, indexStart + indexCount) keeps this a
+// superset of what the shader reads, since the baked slot holds an already-clamped index count while the
+// indirect arguments still hold the values the page asked for.
+template <typename T>
+static bool verifyClampedIndirectIndexBufferData(id<MTLBuffer> buffer, uint64_t indexBufferOffsetInBytes, uint32_t vertexCount, uint32_t primitiveRestart, int32_t baseVertex)
+{
+    auto indexData = span<T>(buffer, indexBufferOffsetInBytes);
+    if (indexData.empty())
+        return false;
 
+    auto vertexCountBound = static_cast<uint64_t>(vertexCount) + primitiveRestart;
+    for (auto indexValue : indexData) {
+        uint32_t vertexIndex = primitiveRestart + static_cast<uint32_t>(indexValue);
+        auto shiftedVertexIndex = std::min<uint64_t>(static_cast<uint64_t>(vertexIndex) + static_cast<uint32_t>(baseVertex), UINT32_MAX);
+        if (shiftedVertexIndex >= vertexCountBound)
+            return false;
+    }
+
+    return true;
+}
+
+bool verifyBundleIndirectDrawIndexBufferForSlowPath(Buffer& buffer, id<MTLBuffer> indirectBuffer, uint64_t indirectOffset, uint64_t indexBufferOffset, bool isUInt16, uint32_t vertexCount, uint32_t primitiveOffset)
+{
+    WTFLogAlways("WARNING: Severe performance penalty due to writing an index buffer used by a render bundle's indirect draw out of order with submission"); // NOLINT
+    Ref queue = buffer.device().getQueue();
+    id<MTLBuffer> mtlBuffer = buffer.buffer();
+    queue->waitForAllCommitedWorkToComplete();
+    queue->synchronizeResourceAndWait(mtlBuffer);
+    if (!indirectBuffer)
+        return false;
+    queue->synchronizeResourceAndWait(indirectBuffer);
+
+    auto argumentsEnd = checkedSum<uint64_t>(indirectOffset, sizeof(MTLDrawIndexedPrimitivesIndirectArguments));
+    if (argumentsEnd.hasOverflowed() || indirectBuffer.length < argumentsEnd.value())
+        return false;
+    auto argumentsSpan = span<MTLDrawIndexedPrimitivesIndirectArguments>(indirectBuffer, indirectOffset);
+    if (argumentsSpan.empty())
+        return false;
+    auto baseVertex = argumentsSpan.front().baseVertex;
+    if (isUInt16)
+        return verifyClampedIndirectIndexBufferData<uint16_t>(mtlBuffer, indexBufferOffset, vertexCount, primitiveOffset, baseVertex);
+    return verifyClampedIndirectIndexBufferData<uint32_t>(mtlBuffer, indexBufferOffset, vertexCount, primitiveOffset, baseVertex);
+}
+
+NSMutableData* clearIndexBufferContents(Buffer& buffer)
+{
+    Ref queue = buffer.device().getQueue();
+    id<MTLBuffer> mtlBuffer = buffer.buffer();
     SUPPRESS_UNCOUNTED_ARG NSMutableData* priorData = copyContents(borrow(buffer)->getBufferContents());
 
     queue->clearBuffer(mtlBuffer);
@@ -311,16 +357,10 @@ NSMutableData* takeSlowIndexValidationPath(Buffer& buffer, uint32_t firstIndex, 
     return priorData;
 }
 
-void restoreIndexBufferContents(Buffer& buffer, id<MTLCommandBuffer> commandBuffer, NSMutableData* priorData)
+void restoreIndexBufferContents(Buffer& buffer, NSMutableData* priorData)
 {
-    [commandBuffer waitUntilCompleted];
     Ref queue = buffer.device().getQueue();
     queue->writeBuffer(static_cast<WebGPU::Buffer&>(buffer), 0, WTF::span(priorData));
-}
-
-void Buffer::skippedBundleIndirectDrawValidation(CommandEncoder& commandEncoder, ReusedIndirectIndexedDraw&& draw)
-{
-    commandEncoder.skippedBundleIndirectDrawValidation(m_buffer.gpuAddress, WTF::move(draw));
 }
 
 bool Buffer::didReadOOB(id<MTLIndirectCommandBuffer> icb) const
