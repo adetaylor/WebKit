@@ -31,12 +31,30 @@
 #import "Texture.h"
 #import <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(WEBGPU_SWIFT)
+#import "CxxBridging.h"
+#import <WebGPU/CxxBridgingPublic.h>
+#import <WebGPU/WebGPU.h>
+#import "WebGPUSwift-Generated.h"
+#endif
+
 namespace WebGPU::Metal {
+
+struct PresentationContextCoreAnimationImplBox {
+    WTF_MAKE_STRUCT_TZONE_ALLOCATED(PresentationContextCoreAnimationImplBox);
+    WebGPU::PresentationContextCoreAnimationImpl impl;
+};
+WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(PresentationContextCoreAnimationImplBox);
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(PresentationContextCoreAnimation);
 
-PresentationContextCoreAnimation::PresentationContextCoreAnimation(CAMetalLayer *layer)
-    : m_layer(layer)
+Ref<PresentationContextCoreAnimation> PresentationContextCoreAnimation::create(CAMetalLayer *layer)
+{
+    return adoptRef(*new PresentationContextCoreAnimation(makeUnique<PresentationContextCoreAnimationImplBox>(PresentationContextCoreAnimationImplBox { .impl = makePresentationContextCoreAnimationImpl(layer) })));
+}
+
+PresentationContextCoreAnimation::PresentationContextCoreAnimation(std::unique_ptr<PresentationContextCoreAnimationImplBox>&& impl)
+    : m_impl(WTF::move(impl))
 {
 }
 
@@ -44,88 +62,46 @@ PresentationContextCoreAnimation::~PresentationContextCoreAnimation() = default;
 
 void PresentationContextCoreAnimation::configure(const WebGPU::CanvasConfiguration& configuration)
 {
-    m_configuration = std::nullopt;
-    m_currentFrame = std::nullopt;
-
     Ref device = metal(configuration.device.get());
-    // The formats that a CAMetalLayer can present.
-    switch (configuration.format) {
-    case WebGPU::TextureFormat::Bgra8unorm:
-    case WebGPU::TextureFormat::Bgra8unormSRGB:
-    case WebGPU::TextureFormat::Rgba16float:
-        break;
-    case WebGPU::TextureFormat::Rgb10a2unorm:
-        if (device->baseCapabilities().canPresentRGB10A2PixelFormats)
-            break;
-        [[fallthrough]];
-    default:
-        if (configuration.reportValidationErrors)
-            device->generateAValidationError("Requested texture format cannot be presented"_s);
-        return;
-    }
-
-    m_layer.pixelFormat = Texture::pixelFormat(configuration.format);
-    m_layer.framebufferOnly = configuration.usage == WebGPU::TextureUsage::RenderAttachment;
-    m_layer.drawableSize = CGSizeMake(configuration.width, configuration.height);
-    m_layer.opaque = configuration.compositingAlphaMode == WebGPU::CanvasAlphaMode::Opaque;
-    m_layer.device = device->device();
-
-    m_configuration = Configuration {
-        .device = WTF::move(device),
-        .format = configuration.format,
-        .usage = configuration.usage,
-        .viewFormats = Vector<WebGPU::TextureFormat> { configuration.viewFormats },
-        .width = configuration.width,
-        .height = configuration.height,
-    };
+    m_impl->impl.configure(configuration, device.ptr(), device->swiftImpl());
 }
 
 void PresentationContextCoreAnimation::unconfigure()
 {
-    m_configuration = std::nullopt;
-    m_currentFrame = std::nullopt;
-}
-
-auto PresentationContextCoreAnimation::currentFrame() -> Frame*
-{
-    if (!m_configuration)
-        return nullptr;
-    if (m_currentFrame)
-        return &*m_currentFrame;
-
-    id<CAMetalDrawable> drawable = [m_layer nextDrawable];
-    if (!drawable)
-        return nullptr;
-
-    WebGPU::TextureDescriptor descriptor {
-        .label = "CAMetalLayer drawable"_s,
-        .usage = m_configuration->usage,
-        .dimension = WebGPU::TextureDimension::_2d,
-        .size = { .width = m_configuration->width, .height = m_configuration->height, .depthOrArrayLayers = 1 },
-        .format = m_configuration->format,
-        .mipLevelCount = 1,
-        .sampleCount = 1,
-        .viewFormats = m_configuration->viewFormats.span(),
-    };
-    Ref texture = Texture::create(drawable.texture, descriptor, Vector<WebGPU::TextureFormat> { m_configuration->viewFormats }, m_configuration->device);
-    m_currentFrame = Frame { .drawable = drawable, .texture = WTF::move(texture) };
-    return &*m_currentFrame;
+    m_impl->impl.unconfigure();
 }
 
 Texture* PresentationContextCoreAnimation::currentTexture(uint32_t)
 {
-    auto* frame = currentFrame();
-    return frame ? frame->texture.ptr() : nullptr;
+    if (!m_impl->impl.acquireCurrentFrame())
+        return nullptr;
+    return &borrowSwiftRetained(m_impl->impl.currentFrameTexture());
 }
 
 // The drawable is presented when the work that renders into it, which has been submitted, completes.
 void PresentationContextCoreAnimation::present(uint32_t)
 {
-    auto* frame = currentFrame();
-    if (!frame)
-        return;
-    [frame->drawable present];
-    m_currentFrame = std::nullopt;
+    m_impl->impl.present();
+}
+
+bool PresentationContextCoreAnimation::isValid() const
+{
+    return m_impl->impl.isConfigured();
+}
+
+Ref<Texture> createDrawableTexture(id<MTLTexture> texture, WebGPU::TextureFormat format, uint8_t usage, SpanConstTextureFormat viewFormats, uint32_t width, uint32_t height, Device& device)
+{
+    WebGPU::TextureDescriptor descriptor {
+        .label = "CAMetalLayer drawable"_s,
+        .usage = OptionSet<WebGPU::TextureUsage>::fromRaw(usage),
+        .dimension = WebGPU::TextureDimension::_2d,
+        .size = { .width = width, .height = height, .depthOrArrayLayers = 1 },
+        .format = format,
+        .mipLevelCount = 1,
+        .sampleCount = 1,
+        .viewFormats = viewFormats,
+    };
+    return Texture::create(texture, descriptor, Vector<WebGPU::TextureFormat> { viewFormats }, device);
 }
 
 } // namespace WebGPU::Metal
