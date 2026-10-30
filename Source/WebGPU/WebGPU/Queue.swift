@@ -1825,7 +1825,7 @@ final class QueueImpl {
             return errorString("destination texture is not valid")
         }
 
-        if let error = WebGPU.Metal.Texture.errorValidatingImageCopyTexture(destination, size) {
+        if let error = errorValidatingImageCopyTexture(textureImpl, destination.mipLevel, destination.origin, size) {
             return errorString(error)
         }
 
@@ -1837,7 +1837,7 @@ final class QueueImpl {
             return errorString("destinationTexture sampleCount is not 1")
         }
 
-        if let error = WebGPU.Metal.Texture.errorValidatingTextureCopyRange(destination, size) {
+        if let error = errorValidatingTextureCopyRange(textureImpl, destination.mipLevel, destination.origin, size) {
             return errorString(error)
         }
 
@@ -2590,11 +2590,11 @@ final class QueueImpl {
 
         let texelCopyDestination = untaggedDestination(destination)
 
-        if let error = WebGPU.Metal.Texture.errorValidatingImageCopyTexture(texelCopyDestination, copySize) {
+        if let error = errorValidatingImageCopyTexture(textureImpl, texelCopyDestination.mipLevel, texelCopyDestination.origin, copySize) {
             return errorString(error)
         }
 
-        if let error = WebGPU.Metal.Texture.errorValidatingTextureCopyRange(texelCopyDestination, copySize) {
+        if let error = errorValidatingTextureCopyRange(textureImpl, texelCopyDestination.mipLevel, texelCopyDestination.origin, copySize) {
             return errorString(error)
         }
 

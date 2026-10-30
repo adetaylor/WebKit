@@ -123,9 +123,6 @@ public:
 
     // The format rules C++ uses; Swift calls the functions in TextureFormats.swift directly.
     static bool LEGACY_NODELETE isDepthOrStencilFormat(WebGPU::TextureFormat);
-    // For Swift, which cannot get the TextureImpl of a WebGPU::TexelCopyTextureInfo's texture.
-    static NSString* errorValidatingImageCopyTexture(const WebGPU::TexelCopyTextureInfo&, const WebGPU::Extent3D&);
-    static NSString* errorValidatingTextureCopyRange(const WebGPU::TexelCopyTextureInfo&, const WebGPU::Extent3D&);
 
     id<MTLTexture> texture() const;
 #if !defined(__swift__)
