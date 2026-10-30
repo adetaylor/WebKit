@@ -190,7 +190,7 @@ final class CommandBufferImpl {
     // Workaround for rdar://143905417
     private func retainTimestampsForOneUpdate(_ queue: WebGPU.Metal.Queue) {
         if let encoder = commandEncoder.first {
-            queue.retainTimestampsForOneUpdate(encoder.impl.timestampBuffers())
+            deviceImpl.defaultQueueImpl.retainTimestampsForOneUpdate(queue, encoder.impl.timestampBuffers())
         }
     }
 

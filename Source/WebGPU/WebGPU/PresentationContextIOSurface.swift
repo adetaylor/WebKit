@@ -350,7 +350,7 @@ final class PresentationContextIOSurfaceImpl {
             depth: 1
         )
         computeEncoder?.dispatchThreadgroups(threadgroupCount, threadsPerThreadgroup: threadgroupSize)
-        deviceQueue.endEncoding(computeEncoder, commandBuffer)
+        deviceImpl.defaultQueueImpl.endEncoding(deviceQueue, computeEncoder, commandBuffer)
     }
 
     @_expose(Cxx)
@@ -416,7 +416,7 @@ final class PresentationContextIOSurfaceImpl {
                 depth: 1
             )
             computeEncoder?.dispatchThreadgroups(threadgroupCount, threadsPerThreadgroup: threadgroupSize)
-            deviceQueue.endEncoding(computeEncoder, commandBuffer)
+            queueImpl.endEncoding(deviceQueue, computeEncoder, commandBuffer)
             queueImpl.commitMTLCommandBuffer(deviceQueue, commandBuffer)
         }
 

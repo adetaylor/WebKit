@@ -95,8 +95,7 @@ Queue::~Queue()
     // It's actually fine, though, because we can just drop any pending copies on the floor.
     // If the queue is being destroyed, this is unobservable.
     // This must not pass the dying shell into Swift.
-    if (id<MTLCommandEncoder> stagingEncoder = m_impl->impl.stagingEncoder())
-        endEncoding(stagingEncoder, m_impl->impl.stagingCommandBuffer());
+    m_impl->impl.endStagingEncoderOfDyingQueue();
 }
 
 bool Queue::isValid() const
@@ -136,18 +135,6 @@ void Queue::setStagedCopyArguments(id<MTLComputeCommandEncoder> encoder, uint64_
 {
     StagedCopyArguments arguments { sourceWordOffset, destinationWordOffset, wordCount };
     [encoder setBytes:&arguments length:sizeof(arguments) atIndex:2];
-}
-
-void Queue::endEncoding(id<MTLCommandEncoder> commandEncoder, id<MTLCommandBuffer> commandBuffer) const
-{
-    if (m_impl->impl.endEncodingIfCurrent(commandEncoder, commandBuffer))
-        resolveDeviceTimestamps(commandBuffer);
-}
-
-void Queue::resolveDeviceTimestamps(id<MTLCommandBuffer> commandBuffer) const
-{
-    if (RefPtr device = m_device.get())
-        device->resolveTimestampsForBuffer(commandBuffer);
 }
 
 void Queue::loseTheDevice(WebGPU::DeviceLostReason reason)
@@ -294,17 +281,6 @@ uint64_t Queue::retainCounterSampleBuffer(CommandEncoder& encoder)
 void Queue::releaseCounterSampleBuffer(uint64_t encoderHandle)
 {
     m_impl->impl.releaseCounterSampleBuffers(encoderHandle);
-}
-
-void Queue::retainTimestampsForOneUpdate(NSMutableSet<id<MTLCounterSampleBuffer>> *timestamps)
-{
-    // Workaround for rdar://143905417
-    if (!timestamps)
-        return;
-
-    scheduleWork([protectedThis = protect(*this), timestamps] {
-        UNUSED_PARAM(timestamps);
-    });
 }
 
 void Queue::synchronizeResourceAndWait(id<MTLBuffer> buffer)

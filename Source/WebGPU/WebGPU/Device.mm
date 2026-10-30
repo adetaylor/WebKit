@@ -44,6 +44,7 @@
 #import "XRSubImage.h"
 #import <algorithm>
 #import <notify.h>
+#import <wtf/BlockPtr.h>
 #import <wtf/StdLibExtras.h>
 #import <wtf/TZoneMallocInlines.h>
 #import <wtf/WeakPtr.h>
@@ -84,83 +85,30 @@ uint64_t notifyState(int token)
     return state;
 }
 
+void logTimestampsWhenCompleted(id<MTLCommandBuffer> commandBuffer, NSMutableArray *resolvedBuffers, Queue& queue, void (^forget)(id<MTLCommandBuffer>))
+{
+    // The handler, on a Metal thread, only logs the buffers it captured; it hands `forget` to a work item.
+    [commandBuffer addCompletedHandler:[protectedQueue = Ref { queue }, resolvedBuffers = RetainPtr { resolvedBuffers }, forget = makeBlockPtr(forget)](id<MTLCommandBuffer> completedCommandBuffer) mutable {
+        for (id<MTLBuffer> buffer in resolvedBuffers.get()) {
+            if (!buffer.contents)
+                continue;
+            auto timestamps = unsafeMakeSpan(static_cast<const MTLCounterResultTimestamp*>(buffer.contents), buffer.length / sizeof(MTLCounterResultTimestamp));
+            WTFLogAlways("Timestamps for buffer %@", buffer.label); // NOLINT
+            for (size_t i = 0; i + 1 < timestamps.size(); i += 2) {
+                auto timeDifference = timestamps[i + 1].timestamp - timestamps[i].timestamp;
+                WTFLogAlways("\tencoder time %f", timeDifference / 100000.0f); // NOLINT
+            }
+        }
+        Queue& hop = protectedQueue.get();
+        hop.scheduleWork([queue = WTF::move(protectedQueue), forget = WTF::move(forget), completedCommandBuffer = RetainPtr { completedCommandBuffer }] {
+            forget(completedCommandBuffer.get());
+        });
+    }];
+}
+
 bool Device::enableEncoderTimestamps() const
 {
     return WebGPU::enableEncoderTimestamps();
-}
-
-id<MTLCounterSampleBuffer> Device::timestampsBuffer(id<MTLCommandBuffer> commandBuffer, size_t timestampCount)
-{
-#if !PLATFORM(WATCHOS)
-    MTLCounterSampleBufferDescriptor* sampleBufferDesc = [MTLCounterSampleBufferDescriptor new];
-    sampleBufferDesc.sampleCount = timestampCount;
-    sampleBufferDesc.storageMode = MTLStorageModeShared;
-    sampleBufferDesc.counterSet = timestampCounterSet();
-
-    NSError* error = nil;
-    id<MTLCounterSampleBuffer> buffer = [device() newCounterSampleBufferWithDescriptor:sampleBufferDesc error:&error];
-    if (error) {
-        WTFLogAlways("newCounterSamplerBufferWithDescriptor failed %@", error.localizedDescription);
-        return nil;
-    }
-
-    trackTimestampsBuffer(commandBuffer, buffer);
-
-    return buffer;
-#else
-    UNUSED_PARAM(commandBuffer);
-    UNUSED_PARAM(timestampCount);
-    return nil;
-#endif
-}
-
-void Device::resolveTimestampsForBuffer(id<MTLCommandBuffer> commandBuffer)
-{
-    if (!enableEncoderTimestamps())
-        return;
-
-    NSMutableArray<id<MTLCounterSampleBuffer>>* sampleBufferArray = [m_sampleCounterBuffers objectForKey:commandBuffer];
-    if (!sampleBufferArray)
-        return;
-
-    [m_sampleCounterBuffers removeObjectForKey:commandBuffer];
-    for (id<MTLCounterSampleBuffer> sampleBuffer in sampleBufferArray) {
-        id<MTLBlitCommandEncoder> blitCommandEncoder = [commandBuffer blitCommandEncoder];
-        auto timestampCount = sampleBuffer.sampleCount;
-        id<MTLBuffer> counterDataBuffer = safeCreateBuffer(sizeof(MTLCounterResultTimestamp) * timestampCount);
-        if (!counterDataBuffer) {
-            [blitCommandEncoder endEncoding];
-            continue;
-        }
-        [blitCommandEncoder resolveCounters:sampleBuffer inRange:NSMakeRange(0, timestampCount) destinationBuffer:counterDataBuffer destinationOffset:0];
-        [blitCommandEncoder endEncoding];
-        NSMutableArray<id<MTLBuffer>>* resolvedBuffers = [m_resolvedSampleCounterBuffers objectForKey:commandBuffer];
-        if (!resolvedBuffers) {
-            resolvedBuffers = [NSMutableArray arrayWithObject:counterDataBuffer];
-            [m_resolvedSampleCounterBuffers setObject:resolvedBuffers forKey:commandBuffer];
-        } else
-            [resolvedBuffers addObject:counterDataBuffer];
-
-        // The map is only touched on the API thread: the handler, on a Metal thread, logs the resolved buffers it
-        // captured and hands the removal, with a weak pointer to this device, to a work item.
-        [commandBuffer addCompletedHandler:[weakThis = ThreadSafeWeakPtr { *this }, queue = getQueue(), resolvedBuffers = RetainPtr { resolvedBuffers }](id<MTLCommandBuffer> completedCommandBuffer) mutable {
-            for (id<MTLBuffer> buffer in resolvedBuffers.get()) {
-                if (!buffer.contents)
-                    continue;
-                auto timestamps = unsafeMakeSpan(static_cast<const MTLCounterResultTimestamp*>(buffer.contents), buffer.length / sizeof(MTLCounterResultTimestamp));
-                WTFLogAlways("Timestamps for buffer %@", buffer.label); // NOLINT
-                for (size_t i = 0; i + 1 < timestamps.size(); i += 2) {
-                    auto timeDifference = timestamps[i + 1].timestamp - timestamps[i].timestamp;
-                    WTFLogAlways("\tencoder time %f", timeDifference / 100000.0f); // NOLINT
-                }
-            }
-            Queue& hop = queue.get();
-            hop.scheduleWork([weakThis = WTF::move(weakThis), queue = WTF::move(queue), completedCommandBuffer = RetainPtr { completedCommandBuffer }] {
-                if (RefPtr protectedThis = weakThis)
-                    [protectedThis->m_resolvedSampleCounterBuffers removeObjectForKey:completedCommandBuffer.get()];
-            });
-        }];
-    }
 }
 
 bool Device::shouldStopCaptureAfterSubmit()
@@ -279,9 +227,6 @@ Device::Device(id<MTLDevice> device, id<MTLCommandQueue> defaultQueue, const Har
 #endif
 
     WebGPU::registerForFrameCapture(device);
-
-    m_sampleCounterBuffers = [NSMapTable weakToStrongObjectsMapTable];
-    m_resolvedSampleCounterBuffers = [NSMapTable weakToStrongObjectsMapTable];
 }
 
 Device::Device(Adapter& adapter)
@@ -458,16 +403,6 @@ bool Device::pauseErrorReporting(bool pauseReporting)
 id<MTLSharedEvent> Device::resolveTimestampsSharedEvent()
 {
     return m_impl->impl.resolveTimestampsSharedEvent();
-}
-
-void Device::trackTimestampsBuffer(id<MTLCommandBuffer> commandBuffer, id<MTLCounterSampleBuffer> counterSampleBuffer)
-{
-    NSMutableArray<id<MTLCounterSampleBuffer>>* sampleBufferArray = [m_sampleCounterBuffers objectForKey:commandBuffer];
-    if (!sampleBufferArray) {
-        sampleBufferArray = [NSMutableArray array];
-        [m_sampleCounterBuffers setObject:sampleBufferArray forKey:commandBuffer];
-    }
-    [sampleBufferArray addObject:counterSampleBuffer];
 }
 
 } // namespace WebGPU::Metal

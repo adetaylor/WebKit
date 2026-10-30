@@ -348,7 +348,7 @@ final class ExternalTextureImporter {
             depth: 1
         )
         computeEncoder?.dispatchThreadgroups(threadgroupCount, threadsPerThreadgroup: threadgroupSize)
-        queue.endEncoding(computeEncoder, commandBuffer)
+        deviceImpl.defaultQueueImpl.endEncoding(queue, computeEncoder, commandBuffer)
         deviceImpl.defaultQueueImpl.commitMTLCommandBuffer(queue, commandBuffer)
 
         return destination

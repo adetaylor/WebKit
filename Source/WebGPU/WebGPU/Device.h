@@ -97,6 +97,10 @@ inline String deviceDestroyedMessage() { return ""_s; }
 // WTFLogAlways("%@", message), for Swift, which cannot call a C variadic macro.
 void logAlways(NSString *message);
 
+// The debug encoder timestamps: logs `resolvedBuffers`, which hold MTLCounterResultTimestamps, when `commandBuffer`
+// completes, then hands the command buffer to `forget` on the API thread.
+void logTimestampsWhenCompleted(id<MTLCommandBuffer>, NSMutableArray *resolvedBuffers, Queue&, void (^forget)(id<MTLCommandBuffer>));
+
 // notify(3) for DebugToggles.swift, with no pointer crossing into Swift: the registration's token and the state are
 // out-parameters, which Swift can only pass as unsafe pointers. The handler stays registered, and runs on the main queue.
 void registerNotifyHandler(NSString *name, void (^ NS_SWIFT_SENDABLE handler)(int token));
@@ -117,8 +121,7 @@ struct WebKitMTLDrawPrimitivesIndirectArguments { \
 WEBKIT_DRAW_INDIRECT_STRUCT_TYPE
 
 // https://gpuweb.github.io/gpuweb/#gpudevice
-// The state is in DeviceImpl, except the device-observer registration and the debug timestamp maps, which Metal and
-// observer threads use.
+// The state is in DeviceImpl, except the device-observer registration, which observer threads use.
 class Device final : public WebGPU::Device {
     WTF_MAKE_TZONE_ALLOCATED(Device);
 public:
@@ -206,12 +209,9 @@ public:
     id<MTLTexture> _Nullable getXRViewSubImageDepthTexture() const;
     bool LEGACY_NODELETE pauseErrorReporting(bool pauseReporting);
     bool enableEncoderTimestamps() const;
-    id<MTLCounterSampleBuffer> timestampsBuffer(id<MTLCommandBuffer>, size_t);
-    void resolveTimestampsForBuffer(id<MTLCommandBuffer>);
     // Nil once the device is lost.
     id<MTLSharedEvent> _Nullable resolveTimestampsSharedEvent();
     uint32_t maxVerticesPerDrawCall() const;
-    void trackTimestampsBuffer(id<MTLCommandBuffer>, id<MTLCounterSampleBuffer>);
 
     static constexpr uint64_t maxBindGroups = (1ull << 5);
     uint32_t appleGPUFamily() const;
@@ -222,8 +222,6 @@ private:
 
     // First, so it is built before and destroyed after everything the constructor/destructor hand `*this` to.
     const std::unique_ptr<DeviceImplBox> m_impl;
-    NSMapTable<id<MTLCommandBuffer>, NSMutableArray<id<MTLCounterSampleBuffer>>*>* m_sampleCounterBuffers;
-    NSMapTable<id<MTLCommandBuffer>, NSMutableArray<id<MTLBuffer>>*>* m_resolvedSampleCounterBuffers;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refDevice, derefDevice);
 
 } // namespace WebGPU::Metal
