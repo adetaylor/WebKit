@@ -96,8 +96,6 @@ public:
 
     bool LEGACY_NODELETE isValid() const final;
     bool updateExternalTextures(WebGPU::ExternalTexture&) final;
-    // For a destroyed Buffer or Texture that this group holds.
-    void releaseDestroyedResources();
 
 #if !defined(__swift__)
     WebGPU::BindGroupImpl& swiftImpl() const LIFETIME_BOUND;

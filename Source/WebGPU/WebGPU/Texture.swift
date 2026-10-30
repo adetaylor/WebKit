@@ -204,7 +204,7 @@ final class TextureImpl {
     var tracking = EncoderTracking()
     // The views made with a descriptor, and the bind groups and render bundles that hold the texture.
     private var views = WeakImplList<TextureViewImpl>()
-    private var bindGroupHolders = CxxBridging.BindGroupHolders()
+    private var bindGroupHolders = WeakImplList<BindGroupImpl>()
     private var renderBundleHolders = WeakImplList<RenderBundleImpl>()
     // The shell that owns this Impl, for the strong references encoders hold.
     private var ownerShell = CxxBridging.TextureWeakPtr()
@@ -441,7 +441,11 @@ final class TextureImpl {
             for view in liveViews {
                 view.destroy()
             }
-            bindGroupHolders.releaseDestroyedResourcesAndClear()
+            let bindGroups = bindGroupHolders.values
+            for bindGroup in bindGroups {
+                bindGroup.releaseDestroyedResources()
+            }
+            bindGroupHolders.removeAll()
             let renderBundles = renderBundleHolders.values
             for renderBundle in renderBundles {
                 renderBundle.releaseDestroyedResources()
@@ -475,7 +479,7 @@ final class TextureImpl {
 
     /// A destroyed texture has nothing to release later, so it records no holder.
     @_expose(!Cxx)
-    func addBindGroupHolder(_ bindGroup: WebGPU.Metal.BindGroup) {
+    func addBindGroupHolder(_ bindGroup: BindGroupImpl) {
         if destroyed {
             return
         }
