@@ -772,7 +772,7 @@ enum TrackedImpl {
     }
 
     /// Records a bind group that holds the resource.
-    func addBindGroupHolder(_ bindGroup: WebGPU.Metal.BindGroup) {
+    func addBindGroupHolder(_ bindGroup: BindGroupImpl) {
         switch self {
         case .buffer(let impl): impl.addBindGroupHolder(bindGroup)
         case .texture(let impl): impl.addBindGroupHolder(bindGroup)
@@ -1085,7 +1085,7 @@ struct ResourceSet {
     }
 
     /// Registers the bind group with the resource of every record; the holder sets drop repeats.
-    func registerBindGroupHolder(_ bindGroup: WebGPU.Metal.BindGroup) {
+    func registerBindGroupHolder(_ bindGroup: BindGroupImpl) {
         for index in records.indices {
             records[index].impl?.addBindGroupHolder(bindGroup)
         }
@@ -1139,7 +1139,7 @@ struct WeakImplList<T: AnyObject> {
 
 /// Weak references to the shells of the textures a device made, sharing the control block TextureImpl.ownerShell made.
 ///
-/// A dead entry at a sweeping cursor is replaced in place, as in CxxBridging.BindGroupHolders. API thread only.
+/// A dead entry at a sweeping cursor is replaced in place. API thread only.
 struct TextureShellList {
     private var entries: [CxxBridging.TextureWeakPtr] = []
     private var cursor = 0

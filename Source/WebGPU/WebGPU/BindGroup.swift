@@ -124,6 +124,8 @@ final class BindGroupImpl {
         self.uniqueId = uniqueId
         self.deviceImpl = deviceImpl
         self.device = device.shell
+        // Each resource keeps a weak reference to the group.
+        self.resources.registerBindGroupHolder(self)
     }
 
     private init(invalidFor device: consuming DeviceShell, _ deviceImpl: DeviceImpl) {
@@ -318,14 +320,7 @@ final class BindGroupImpl {
         return true
     }
 
-    /// Called from the shell's constructor: each resource keeps a weak reference to the shell
-    /// (CxxBridging.BindGroupHolders).
-    @_expose(Cxx)
-    func registerAsResourceHolder(_ shell: WebGPU.Metal.BindGroup) {
-        resources.registerBindGroupHolder(shell)
-    }
-
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func releaseDestroyedResources() {
         modifyMTLResources { lists in
             _ = resources.replaceDestroyedResourcesWithPlaceholders(&lists)
@@ -555,7 +550,6 @@ private func makeBindGroupImpl(
         return .invalid(device, deviceImpl)
     }
 
-    // The shell registers the group as a holder of its resources once it exists (registerAsResourceHolder).
     return creation.makeImpl(
         device: device,
         layout: layout,

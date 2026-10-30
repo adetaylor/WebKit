@@ -119,64 +119,6 @@ inline bool isTextureGone(const TextureWeakPtr& shell)
     return !shell.get();
 }
 
-// The bind groups that hold a Buffer or Texture, held by BufferImpl and TextureImpl on the API thread. A bind group can
-// die on a Metal thread, so these are weak references to the shells, kept in C++: a Swift weak reference would give each
-// BindGroupImpl a side table, and ThreadSafeWeakPtrs in a Swift array would go through value witnesses. A dead entry at
-// the sweeping cursor is replaced in place, so the list stays within one sweep of its live count.
-class BindGroupHolders {
-    WTF_MAKE_NONCOPYABLE(BindGroupHolders);
-public:
-    BindGroupHolders() = default;
-    BindGroupHolders(BindGroupHolders&&) = default;
-    BindGroupHolders& operator=(BindGroupHolders&&) = default;
-
-    // A group registers with a resource once per record, so a repeat is the last addition.
-    void add(const WebGPU::Metal::BindGroup& bindGroup)
-    {
-        auto identity = reinterpret_cast<uintptr_t>(&bindGroup);
-        if (m_lastAdded < m_entries.size() && m_entries[m_lastAdded].identity == identity && m_entries[m_lastAdded].bindGroup.get())
-            return;
-        Entry entry { ThreadSafeWeakPtr { bindGroup }, identity };
-        if (m_cursor < m_entries.size()) {
-            auto index = m_cursor++;
-            if (!m_entries[index].bindGroup.get()) {
-                m_entries[index] = WTF::move(entry);
-                m_lastAdded = index;
-                return;
-            }
-        } else
-            m_cursor = 0;
-        m_lastAdded = m_entries.size();
-        m_entries.append(WTF::move(entry));
-    }
-
-    // For a destroyed resource: every live group's releaseDestroyedResources(), then none.
-    void releaseDestroyedResourcesAndClear()
-    {
-        Vector<Ref<WebGPU::Metal::BindGroup>> bindGroups;
-        for (auto& entry : m_entries) {
-            if (RefPtr bindGroup = entry.bindGroup)
-                bindGroups.append(bindGroup.releaseNonNull());
-        }
-        for (auto& bindGroup : bindGroups)
-            bindGroup->releaseDestroyedResources();
-        m_entries.clear();
-        m_cursor = 0;
-        m_lastAdded = std::numeric_limits<unsigned>::max();
-    }
-
-private:
-    struct Entry {
-        ThreadSafeWeakPtr<WebGPU::Metal::BindGroup> bindGroup;
-        // The shell's address when added, compared before anything takes a lock; a match is confirmed by the group
-        // being alive, so a reused address is never taken for it.
-        uintptr_t identity { 0 };
-    };
-    Vector<Entry> m_entries;
-    unsigned m_cursor { 0 };
-    unsigned m_lastAdded { std::numeric_limits<unsigned>::max() };
-} SWIFT_SELF_CONTAINED;
-
 // CommandEncoderImpl's cached command buffer, which can die on a Metal thread (so it is not a Swift weak reference).
 // Each does nothing once the command buffer is gone.
 inline void makeCommandBufferInvalid(const CommandBufferWeakPtr& commandBuffer, NSString* errorString)

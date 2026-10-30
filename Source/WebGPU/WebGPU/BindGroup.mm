@@ -148,7 +148,6 @@ BindGroup::BindGroup(MakeImpl&& makeImpl)
 {
     // Initialized from the prvalue directly: no copy, so no extra retain and release.
     new (m_impl) WebGPU::BindGroupImpl(makeImpl());
-    swiftImpl().registerAsResourceHolder(this);
 }
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(BindGroup);
@@ -176,11 +175,6 @@ Device& BindGroup::device() const
 void BindGroup::setLabel(String&& label)
 {
     swiftImpl().setLabel(WTF::move(label));
-}
-
-void BindGroup::releaseDestroyedResources()
-{
-    swiftImpl().releaseDestroyedResources();
 }
 
 bool BindGroup::updateExternalTextures(WebGPU::ExternalTexture& apiExternalTexture)
