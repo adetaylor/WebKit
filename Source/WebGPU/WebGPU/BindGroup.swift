@@ -343,7 +343,22 @@ final class BindGroupImpl {
 
     @_expose(Cxx)
     func updateExternalTextures(_ externalTexture: ExternalTextureImpl) -> Bool {
-        guard let layoutImpl, externalTexture.openCommandEncoderCount() == 0, !externalTexture.hasPendingUsers() else {
+        guard let layoutImpl, !externalTexture.hasPendingUsers() else {
+            return false
+        }
+
+        // Only the external texture this group binds, and only while no open encoder uses it.
+        var foundBoundExternalTexture = false
+        for record in resources.records {
+            guard case .externalTexture(let boundExternalTexture) = record.impl else {
+                continue
+            }
+            guard boundExternalTexture === externalTexture, boundExternalTexture.openCommandEncoderCount() == 0 else {
+                return false
+            }
+            foundBoundExternalTexture = true
+        }
+        guard foundBoundExternalTexture else {
             return false
         }
 
