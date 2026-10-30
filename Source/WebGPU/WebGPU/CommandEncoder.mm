@@ -36,7 +36,6 @@
 #import "RenderPassEncoder.h"
 #import "Sampler.h"
 #import "Texture.h"
-#import "TextureOrTextureView.h"
 #if ENABLE(WEBGPU_SWIFT)
 #import "CxxBridging.h"
 #import <WebGPU/CxxBridgingPublic.h>
@@ -97,11 +96,37 @@ RefPtr<WebGPU::ComputePassEncoder> CommandEncoder::beginComputePass(const std::o
 
 RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::RenderPassDescriptor& descriptor)
 {
+    auto& impl = m_impl->impl;
+    for (auto& attachment : descriptor.colorAttachments) {
+        if (!attachment) {
+            impl.stageEmptyColorAttachment();
+            continue;
+        }
+        std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
+            impl.stageColorAttachmentView(downcast<TextureView>(view.get()).swiftImpl());
+        }, [&](const Ref<WebGPU::Texture>& texture) {
+            impl.stageColorAttachmentTexture(downcast<Texture>(texture.get()).swiftImpl());
+        }), attachment->view);
+        if (attachment->resolveTarget) {
+            std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
+                impl.stageResolveTargetView(downcast<TextureView>(view.get()).swiftImpl());
+            }, [&](const Ref<WebGPU::Texture>& texture) {
+                impl.stageResolveTargetTexture(downcast<Texture>(texture.get()).swiftImpl());
+            }), *attachment->resolveTarget);
+        }
+    }
+    if (auto& attachment = descriptor.depthStencilAttachment) {
+        std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
+            impl.stageDepthStencilAttachmentView(downcast<TextureView>(view.get()).swiftImpl());
+        }, [&](const Ref<WebGPU::Texture>& texture) {
+            impl.stageDepthStencilAttachmentTexture(downcast<Texture>(texture.get()).swiftImpl());
+        }), attachment->view);
+    }
     if (RefPtr occlusionQuerySet = metalOrNull(descriptor.occlusionQuerySet))
-        m_impl->impl.stageOcclusionQuerySet(occlusionQuerySet->swiftImpl());
+        impl.stageOcclusionQuerySet(occlusionQuerySet->swiftImpl());
     if (descriptor.timestampWrites)
-        m_impl->impl.stageTimestampWritesQuerySet(metal(descriptor.timestampWrites->querySet).swiftImpl());
-    return m_impl->impl.beginRenderPass(this, descriptor);
+        impl.stageTimestampWritesQuerySet(metal(descriptor.timestampWrites->querySet).swiftImpl());
+    return impl.beginRenderPass(this, descriptor);
 }
 
 void CommandEncoder::copyBufferToBuffer(const WebGPU::Buffer& source, uint64_t sourceOffset, WebGPU::Buffer& destination, uint64_t destinationOffset, uint64_t size)

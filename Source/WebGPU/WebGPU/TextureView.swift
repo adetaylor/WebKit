@@ -25,7 +25,6 @@ import Metal
 import WebGPU_Internal.CommandEncoder
 import WebGPU_Internal.CxxBridging
 import WebGPU_Internal.Texture
-import WebGPU_Internal.TextureOrTextureView
 import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
@@ -305,17 +304,16 @@ func makeInvalidTextureViewImpl(
 
 // MARK: - Render pass attachment checks
 
-// beginRenderPass's checks of an attachment's texture or texture view. Each reads the borrowed attachment before any
-// || or &&, which would otherwise consume it.
+// beginRenderPass's checks of an attachment's texture or texture view.
 
 // A view can narrow the usages it allows, but it cannot make a memoryless texture behave like a regular one, so the
 // transient rule follows the texture the view is a view of.
 private func isAllowableTextureView(
-    _ texture: borrowing WebGPU.Metal.TextureOrTextureView,
+    _ texture: AttachmentImpl,
     _ loadOp: WebGPU.LoadOp?,
     _ storeOp: WebGPU.StoreOp?
 ) -> Bool {
-    if texture.apiParentTexture().usage().contains(WebGPU.TextureUsage.Transient) {
+    if texture.isTransient {
         if loadOp != .Clear || storeOp != .Discard {
             return false
         }
@@ -326,7 +324,7 @@ private func isAllowableTextureView(
 // A depth stencil attachment has a load and store op per aspect, and only the aspects present in its format may
 // specify them, so the transient rule has to be applied per present aspect.
 private func isAllowableDepthStencilTextureView(
-    _ texture: borrowing WebGPU.Metal.TextureOrTextureView,
+    _ texture: AttachmentImpl,
     _ hasDepthComponent: Bool,
     _ depthLoadOp: WebGPU.LoadOp?,
     _ depthStoreOp: WebGPU.StoreOp?,
@@ -347,20 +345,13 @@ private func isAllowableDepthStencilTextureView(
 
 // A swizzle only describes how a shader reads the view; an attachment writes it, so a view with one is not renderable.
 // https://gpuweb.github.io/gpuweb/#abstract-opdef-renderable-texture-view
-private func hasRenderableTextureViewProperties(_ texture: borrowing WebGPU.Metal.TextureOrTextureView) -> Bool {
-    let usage = texture.usage()
-    let is2DTexture = texture.is2DTexture()
-    let is2DArrayTexture = texture.is2DArrayTexture()
-    let is3DTexture = texture.is3DTexture()
-    let mipLevelCount = texture.mipLevelCount()
-    let arrayLayerCount = texture.arrayLayerCount()
-    let hasSwizzle = texture.hasSwizzle()
-    return usage.contains(WebGPU.TextureUsage.RenderAttachment) && (is2DTexture || is2DArrayTexture || is3DTexture) && mipLevelCount == 1
-        && arrayLayerCount <= 1 && !hasSwizzle
+private func hasRenderableTextureViewProperties(_ texture: AttachmentImpl) -> Bool {
+    texture.usageContains(.RenderAttachment) && (texture.is2DTexture || texture.is2DArrayTexture || texture.is3DTexture)
+        && texture.mipLevelCount == 1 && texture.arrayLayerCount <= 1 && !texture.hasSwizzle
 }
 
 func isRenderableTextureView(
-    _ texture: borrowing WebGPU.Metal.TextureOrTextureView,
+    _ texture: AttachmentImpl,
     _ loadOp: WebGPU.LoadOp,
     _ storeOp: WebGPU.StoreOp
 ) -> Bool {
@@ -373,7 +364,7 @@ func isRenderableTextureView(
 // The renderable properties of a depth stencil attachment only describe something while the view still has memory
 // behind it, but the per-aspect transient rule applies to a destroyed view just the same.
 func isRenderableDepthStencilTextureView(
-    _ texture: borrowing WebGPU.Metal.TextureOrTextureView,
+    _ texture: AttachmentImpl,
     _ isDestroyed: Bool,
     _ hasDepthComponent: Bool,
     _ depthLoadOp: WebGPU.LoadOp?,
@@ -383,7 +374,7 @@ func isRenderableDepthStencilTextureView(
     _ stencilStoreOp: WebGPU.StoreOp?
 ) -> Bool {
     if !isDestroyed {
-        if !isDepthStencilRenderableFormat(texture.format()) {
+        if !isDepthStencilRenderableFormat(texture.format) {
             return false
         }
         if !hasRenderableTextureViewProperties(texture) {

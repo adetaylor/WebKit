@@ -157,11 +157,6 @@ module WebGPU_Internal [system] {
         export *
     }
 
-    explicit module TextureOrTextureView {
-        header "../TextureOrTextureView.h"
-        export *
-    }
-
     explicit module TextureView {
         header "../TextureView.h"
         export *

@@ -48,7 +48,6 @@ class QuerySetImpl;
 namespace WebGPU::Metal {
 
 class Buffer;
-class CommandEncoder;
 class Device;
 
 // QuerySet::type()'s type, which the timestamp writes' validation message prints.
