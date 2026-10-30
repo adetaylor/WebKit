@@ -650,6 +650,9 @@ private func isValidToUse(_ objectIsValid: Bool, _ objectDeviceImpl: DeviceImpl,
 @_expose(Cxx)
 final class QueueImpl {
     private var backingCommandQueue: (any MTLCommandQueue)?
+    // The device whose encoder timestamps this queue resolves. Weak: the device holds the queue.
+    @_expose(!Cxx)
+    weak var encoderTimestampsDevice: DeviceImpl?
     private let backingCompletion = QueueCompletion()
 
     private var backingStagingCommandBuffer: (any MTLCommandBuffer)?
@@ -794,10 +797,8 @@ final class QueueImpl {
         return openCommandEncoders?.object(forKey: commandBuffer) as? any MTLCommandEncoder
     }
 
-    // Ends the encoder if it is the one open on the command buffer. The shell's endEncoding() then resolves the
-    // Device's timestamps; it must not pass the shell in, because ~Queue calls it.
-    @_expose(Cxx)
-    func endEncodingIfCurrent(_ commandEncoder: (any MTLCommandEncoder)?, _ commandBuffer: (any MTLCommandBuffer)?) -> Bool {
+    // Ends the encoder if it is the one open on the command buffer.
+    private func endEncodingIfCurrent(_ commandEncoder: (any MTLCommandEncoder)?, _ commandBuffer: (any MTLCommandBuffer)?) -> Bool {
         guard let currentEncoder = encoderForBuffer(commandBuffer), let commandEncoder, currentEncoder === commandEncoder else {
             return false
         }
@@ -809,14 +810,40 @@ final class QueueImpl {
         return true
     }
 
-    private func endEncoding(
+    // Ends the encoder if it is the one open on the command buffer, then resolves the device's encoder timestamps of the
+    // command buffer.
+    @_expose(!Cxx)
+    func endEncoding(
         _ queue: WebGPU.Metal.Queue,
         _ commandEncoder: (any MTLCommandEncoder)?,
         _ commandBuffer: (any MTLCommandBuffer)?
     ) {
         if endEncodingIfCurrent(commandEncoder, commandBuffer) {
-            queue.resolveDeviceTimestamps(commandBuffer)
+            resolveDeviceTimestamps(commandBuffer)
         }
+    }
+
+    // ~Queue, which must not pass the dying shell in.
+    @_expose(Cxx)
+    func endStagingEncoderOfDyingQueue() {
+        if let encoder = stagingEncoder(), endEncodingIfCurrent(encoder, backingStagingCommandBuffer) {
+            resolveDeviceTimestamps(backingStagingCommandBuffer)
+        }
+    }
+
+    private func resolveDeviceTimestamps(_ commandBuffer: (any MTLCommandBuffer)?) {
+        if enableEncoderTimestamps(), let device = encoderTimestampsDevice {
+            device.resolveTimestampsForBuffer(commandBuffer)
+        }
+    }
+
+    // Workaround for rdar://143905417: keeps the counter sample buffers until the API thread's next work item has run.
+    @_expose(!Cxx)
+    func retainTimestampsForOneUpdate(_ queue: WebGPU.Metal.Queue, _ timestamps: NSMutableSet?) {
+        guard let timestamps else {
+            return
+        }
+        queue.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { withExtendedLifetime((queue, timestamps)) {} })
     }
 
     @_expose(Cxx)

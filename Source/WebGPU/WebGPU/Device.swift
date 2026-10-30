@@ -129,6 +129,10 @@ final class DeviceImpl {
     // process never changes and a gone Instance never comes back, so without one nothing is ever attributed.
     private let attributesResources: Bool
     private var xrSubImages: [WebGPU.Metal.XRSubImage] = []
+    // The debug encoder timestamps: each command buffer's counter sample buffers until its last encoder ends, then the
+    // buffers they were resolved into until it completes. The command buffers are weak keys.
+    private let sampleCounterBuffers = NSMapTable<AnyObject, NSMutableArray>.weakToStrongObjects()
+    private let resolvedSampleCounterBuffers = NSMapTable<AnyObject, NSMutableArray>.weakToStrongObjects()
     private var backingDeviceObserver: (any NSObjectProtocol)?
 
     fileprivate init(
@@ -156,6 +160,7 @@ final class DeviceImpl {
             backingPlaceholderBuffer = nil
             backingPlaceholderTexture = nil
             backingPlaceholderDepthStencilTexture = nil
+            defaultQueueImpl.encoderTimestampsDevice = self
             return
         }
         backingAppleGPUFamily = computeAppleGPUFamily(metalDevice)
@@ -166,6 +171,7 @@ final class DeviceImpl {
         DeviceImpl.setOwnerWithIdentity(placeholderBuffer, adapter)
         backingPlaceholderBuffer = placeholderBuffer
         (backingPlaceholderTexture, backingPlaceholderDepthStencilTexture) = makePlaceholderTextures(metalDevice)
+        defaultQueueImpl.encoderTimestampsDevice = self
     }
 
     // MARK: Validity and loss
@@ -523,6 +529,76 @@ final class DeviceImpl {
         let function = compileNopVertexFunction(device())
         nopVertexFunctionCache = .some(function)
         return function
+    }
+
+    // MARK: Debug encoder timestamps (DebugToggles.enableEncoderTimestamps())
+
+    // A counter sample buffer of `timestampCount` samples for a pass of `commandBuffer`, tracked for it.
+    @_expose(!Cxx)
+    func timestampsBuffer(_ commandBuffer: (any MTLCommandBuffer)?, _ timestampCount: Int) -> (any MTLCounterSampleBuffer)? {
+        #if WTF_PLATFORM_WATCHOS
+        return nil
+        #else
+        guard let metalDevice else {
+            return nil
+        }
+        let descriptor = MTLCounterSampleBufferDescriptor()
+        descriptor.sampleCount = timestampCount
+        descriptor.storageMode = .shared
+        descriptor.counterSet = timestampCounterSet()
+        let buffer: any MTLCounterSampleBuffer
+        do {
+            buffer = try metalDevice.makeCounterSampleBuffer(descriptor: descriptor)
+        } catch {
+            WebGPU.Metal.logAlways("newCounterSamplerBufferWithDescriptor failed \(error.localizedDescription)")
+            return nil
+        }
+        trackTimestampsBuffer(commandBuffer, buffer)
+        return buffer
+        #endif
+    }
+
+    // Records a counter sample buffer of `commandBuffer`, to resolve when its last encoder ends.
+    @_expose(!Cxx)
+    func trackTimestampsBuffer(_ commandBuffer: (any MTLCommandBuffer)?, _ counterSampleBuffer: any MTLCounterSampleBuffer) {
+        guard let commandBuffer else {
+            return
+        }
+        if let sampleBuffers = sampleCounterBuffers.object(forKey: commandBuffer) {
+            sampleBuffers.add(counterSampleBuffer)
+        } else {
+            sampleCounterBuffers.setObject(NSMutableArray(object: counterSampleBuffer), forKey: commandBuffer)
+        }
+    }
+
+    // Resolves the counter sample buffers tracked for `commandBuffer` into buffers that are logged when it completes.
+    @_expose(!Cxx)
+    func resolveTimestampsForBuffer(_ commandBuffer: (any MTLCommandBuffer)?) {
+        guard enableEncoderTimestamps(), let commandBuffer, let sampleBuffers = sampleCounterBuffers.object(forKey: commandBuffer) else {
+            return
+        }
+        sampleCounterBuffers.removeObject(forKey: commandBuffer)
+        for case let sampleBuffer as any MTLCounterSampleBuffer in sampleBuffers {
+            let blitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
+            let timestampCount = sampleBuffer.sampleCount
+            guard let counterDataBuffer = safeCreateBuffer(UInt(MemoryLayout<MTLCounterResultTimestamp>.size) * UInt(timestampCount)) else {
+                blitCommandEncoder?.endEncoding()
+                continue
+            }
+            blitCommandEncoder?.resolveCounters(sampleBuffer, range: 0..<timestampCount, destinationBuffer: counterDataBuffer, destinationOffset: 0)
+            blitCommandEncoder?.endEncoding()
+            let resolvedBuffers: NSMutableArray
+            if let existing = resolvedSampleCounterBuffers.object(forKey: commandBuffer) {
+                existing.add(counterDataBuffer)
+                resolvedBuffers = existing
+            } else {
+                resolvedBuffers = NSMutableArray(object: counterDataBuffer)
+                resolvedSampleCounterBuffers.setObject(resolvedBuffers, forKey: commandBuffer)
+            }
+            WebGPU.Metal.logTimestampsWhenCompleted(commandBuffer, resolvedBuffers, backingDefaultQueue) { [weak self] completedCommandBuffer in
+                self?.resolvedSampleCounterBuffers.removeObject(forKey: completedCommandBuffer)
+            }
+        }
     }
 
     // Not created on a lost device; once created it outlives the loss.

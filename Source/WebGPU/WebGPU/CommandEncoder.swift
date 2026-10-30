@@ -412,7 +412,7 @@ extension CommandEncoderImpl {
         }
         clearRenderCommandEncoder?.setCullMode(.none)
         clearRenderCommandEncoder?.drawPrimitives(type: .point, vertexStart: 0, vertexCount: 1, instanceCount: 1, baseInstance: 0)
-        deviceImpl.defaultQueue().endEncoding(clearRenderCommandEncoder, backingCommandBuffer)
+        deviceImpl.defaultQueueImpl.endEncoding(deviceImpl.defaultQueue(), clearRenderCommandEncoder, backingCommandBuffer)
         setExistingEncoder(nil)
     }
 
@@ -939,10 +939,10 @@ extension CommandEncoderImpl {
                     mtlDescriptor.sampleBufferAttachments[0].endOfVertexSampleIndex
                 mtlDescriptor.sampleBufferAttachments[0].endOfFragmentSampleIndex =
                     mtlDescriptor.sampleBufferAttachments[0].endOfVertexSampleIndex
-                device.trackTimestampsBuffer(commandBuffer(), buffer)
+                deviceImpl.trackTimestampsBuffer(commandBuffer(), buffer)
             } else {
                 mtlDescriptor.sampleBufferAttachments[0].sampleBuffer =
-                    counterSampleBuffer.buffer ?? device.timestampsBuffer(commandBuffer(), 4)
+                    counterSampleBuffer.buffer ?? deviceImpl.timestampsBuffer(commandBuffer(), 4)
                 mtlDescriptor.sampleBufferAttachments[0].startOfVertexSampleIndex = 0
                 mtlDescriptor.sampleBufferAttachments[0].endOfVertexSampleIndex = 1
                 mtlDescriptor.sampleBufferAttachments[0].startOfFragmentSampleIndex = 2
@@ -2551,7 +2551,7 @@ extension CommandEncoderImpl {
             // swift-format-ignore: NeverForceUnwrap
             let timestampWrites = optionalTimestampWrites!
             computePassDescriptor.sampleBufferAttachments[0].sampleBuffer =
-                counterSampleBuffer.buffer ?? device.timestampsBuffer(commandBuffer(), 2)
+                counterSampleBuffer.buffer ?? deviceImpl.timestampsBuffer(commandBuffer(), 2)
 
             computePassDescriptor.sampleBufferAttachments[0].startOfEncoderSampleIndex = timestampWriteIndex(
                 writeIndex: writeIndex(timestampWrites, beginning: true),
@@ -2566,7 +2566,7 @@ extension CommandEncoderImpl {
             )
 
             if let buffer = counterSampleBuffer.buffer {
-                device.trackTimestampsBuffer(commandBuffer(), buffer)
+                deviceImpl.trackTimestampsBuffer(commandBuffer(), buffer)
             }
         }
         guard let computeCommandEncoder = commandBuffer()?.makeComputeCommandEncoder(descriptor: computePassDescriptor) else {
@@ -3044,7 +3044,7 @@ final class CommandEncoderImpl {
         let queue = deviceImpl.defaultQueue()
         let existingEncoder = deviceImpl.defaultQueueImpl.encoderForBuffer(backingCommandBuffer)
         if existingEncoder !== encoder {
-            queue.endEncoding(existingEncoder, backingCommandBuffer)
+            deviceImpl.defaultQueueImpl.endEncoding(queue, existingEncoder, backingCommandBuffer)
             setExistingEncoder(nil)
             if lastErrorString != nil {
                 discardCommandBuffer()
@@ -3052,7 +3052,7 @@ final class CommandEncoderImpl {
             return
         }
 
-        queue.endEncoding(existingCommandEncoder, backingCommandBuffer)
+        deviceImpl.defaultQueueImpl.endEncoding(queue, existingCommandEncoder, backingCommandBuffer)
         setExistingEncoder(nil)
         backingBlitCommandEncoder = nil
         if lastErrorString != nil {
@@ -3073,7 +3073,7 @@ final class CommandEncoderImpl {
 
         let queue = deviceImpl.defaultQueue()
         let existingEncoder = deviceImpl.defaultQueueImpl.encoderForBuffer(backingCommandBuffer)
-        queue.endEncoding(existingEncoder, backingCommandBuffer)
+        deviceImpl.defaultQueueImpl.endEncoding(queue, existingEncoder, backingCommandBuffer)
         deviceImpl.defaultQueueImpl.removeMTLCommandBuffer(queue, backingCommandBuffer)
         retainTimestampsForOneUpdateLoop()
         backingCommandBuffer = nil
@@ -3090,7 +3090,7 @@ final class CommandEncoderImpl {
 
     private func retainTimestampsForOneUpdateLoop() {
         // Workaround for rdar://143905417
-        deviceImpl.defaultQueue().retainTimestampsForOneUpdate(retainedTimestampBuffers)
+        deviceImpl.defaultQueueImpl.retainTimestampsForOneUpdate(deviceImpl.defaultQueue(), retainedTimestampBuffers)
     }
 
     @_expose(!Cxx)
