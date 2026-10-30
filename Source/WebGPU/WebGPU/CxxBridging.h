@@ -109,11 +109,6 @@ inline WebGPU::Metal::Texture* protectedTexture(const TextureWeakPtr& shell) SWI
     return shell.get().leakRef();
 }
 
-inline bool isTextureGone(const TextureWeakPtr& shell)
-{
-    return !shell.get();
-}
-
 // CommandEncoderImpl's cached command buffer, which can die on a Metal thread (so it is not a Swift weak reference).
 // Each does nothing once the command buffer is gone.
 inline void makeCommandBufferInvalid(const CommandBufferWeakPtr& commandBuffer, NSString* errorString)
