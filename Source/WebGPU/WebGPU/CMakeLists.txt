@@ -101,6 +101,7 @@ if (SWIFT_REQUIRED)
         Instance.mm
         Pipeline.mm
         PipelineLayout.mm
+        PresentationContextCoreAnimation.mm
         PresentationContextIOSurface.mm
         QuerySet.mm
         Queue.mm
@@ -204,6 +205,7 @@ if (SWIFT_REQUIRED)
         ${CMAKE_CURRENT_SOURCE_DIR}/Pipeline.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/PipelineLayout.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/PipelineModel.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/PresentationContextCoreAnimation.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/PresentationContextIOSurface.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/QuerySet.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/Queue.swift

@@ -33,6 +33,7 @@
 #include "IsValidToUseWith.h"
 #include "RenderPassEncoder.h"
 #include "Texture.h"
+#include <QuartzCore/CAMetalLayer.h>
 #include <optional>
 #include <span>
 #include <wtf/CheckedArithmetic.h>
