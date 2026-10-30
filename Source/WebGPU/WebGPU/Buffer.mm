@@ -154,10 +154,14 @@ std::span<uint8_t> Buffer::getMappedRangeSpan(uint64_t apiOffset, std::optional<
     return getBufferContents().subspan(offset, rangeSize);
 }
 
-std::span<uint8_t> Buffer::mappedRangeForCAPI(uint64_t offset, std::optional<uint64_t> size)
+std::span<uint8_t> Buffer::mappedRangeForCAPI(uint64_t apiOffset, std::optional<uint64_t> size)
 {
-    size_t rangeSize = size ? *size : computeRangeSize(initialSize(), offset);
-    if (!isValid() || !validateMappedRangeBounds(offset, rangeSize) || !m_buffer.contents)
+    auto offsetAndSize = mappedRangeOffsetAndSize(initialSize(), apiOffset, size);
+    if (!offsetAndSize)
+        return { };
+    auto [offset, rangeSize] = *offsetAndSize;
+
+    if (!m_impl->impl.validateMappedRangeForCAPI(offset, rangeSize))
         return { };
     return getBufferContents().subspan(offset, rangeSize);
 }

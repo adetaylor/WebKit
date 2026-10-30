@@ -407,6 +407,16 @@ final class BufferImpl {
         return buffer.storageMode != .private && buffer.storageMode != .memoryless && buffer.length != 0
     }
 
+    // reserveMappedRange() for the C API, whose ranges may overlap: they are pointers into the mapping, not
+    // ArrayBuffers that unmap detaches, so they are validated but not recorded.
+    @_expose(Cxx)
+    func validateMappedRangeForCAPI(_ offset: UInt64, _ rangeSize: UInt64) -> Bool {
+        guard isValid(), validatedMappedRangeBounds(offset, rangeSize) != nil, let buffer = backingBuffer else {
+            return false
+        }
+        return buffer.storageMode != .private && buffer.storageMode != .memoryless && buffer.length != 0
+    }
+
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
     @_expose(Cxx)
     func unmap() {
@@ -656,6 +666,18 @@ final class BufferImpl {
     }
 
     private func validatedMappedRange(_ offset: UInt64, _ rangeSize: UInt64) -> Range<UInt64>? {
+        guard let range = validatedMappedRangeBounds(offset, rangeSize) else {
+            return nil
+        }
+        // An empty range overlaps nothing.
+        guard !mappedRanges.contains(where: { $0.overlaps(range) }) else {
+            return nil
+        }
+        return range
+    }
+
+    // validatedMappedRange() without the check that the range does not overlap one that was handed out.
+    private func validatedMappedRangeBounds(_ offset: UInt64, _ rangeSize: UInt64) -> Range<UInt64>? {
         guard let mapping = mapState.mapping else {
             return nil
         }
@@ -666,12 +688,7 @@ final class BufferImpl {
         guard !overflowed, end <= mapping.upperBound else {
             return nil
         }
-        let range = offset..<end
-        // An empty range overlaps nothing.
-        guard !mappedRanges.contains(where: { $0.overlaps(range) }) else {
-            return nil
-        }
-        return range
+        return offset..<end
     }
 
     // Keeps mappedRanges sorted, with touching ranges merged.
