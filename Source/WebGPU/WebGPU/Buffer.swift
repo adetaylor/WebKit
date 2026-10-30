@@ -151,7 +151,7 @@ final class BufferImpl {
     var tracking = EncoderTracking()
     private var drawIndexedCache = WTFHashMap<DrawIndexKey, DrawIndexValidationEntry>()
     // The bind groups and render bundles that hold the buffer.
-    private var bindGroupHolders = CxxBridging.BindGroupHolders()
+    private var bindGroupHolders = WeakImplList<BindGroupImpl>()
     private var renderBundleHolders = WeakImplList<RenderBundleImpl>()
     // The encoders that skipped validating a draw with this index buffer.
     private var skippedValidationEncoders = EncoderTracking()
@@ -255,7 +255,11 @@ final class BufferImpl {
             encoder.makeSubmitInvalid(nil)
         }
 
-        bindGroupHolders.releaseDestroyedResourcesAndClear()
+        let bindGroups = bindGroupHolders.values
+        for bindGroup in bindGroups {
+            bindGroup.releaseDestroyedResources()
+        }
+        bindGroupHolders.removeAll()
         let renderBundles = renderBundleHolders.values
         for renderBundle in renderBundles {
             renderBundle.releaseDestroyedResources()
@@ -290,7 +294,7 @@ final class BufferImpl {
 
     /// A destroyed buffer has nothing to release later, so it records no holder.
     @_expose(!Cxx)
-    func addBindGroupHolder(_ bindGroup: WebGPU.Metal.BindGroup) {
+    func addBindGroupHolder(_ bindGroup: BindGroupImpl) {
         if isDestroyed() {
             return
         }
