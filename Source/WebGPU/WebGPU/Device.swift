@@ -115,7 +115,7 @@ final class DeviceImpl {
     let bindGroupBuilder = BindGroupBuilder()
     /// The valid textures createTexture made, which destroy() destroys.
     @_expose(!Cxx)
-    var textures = TextureShellList()
+    var textures = WeakImplList<TextureImpl>()
 
     // The default queue, with its Impl; C++ callers get the shell.
     private let backingDefaultQueue: WebGPU.Metal.Queue
@@ -612,7 +612,7 @@ final class DeviceImpl {
         let liveTextures = textures.values
         textures.removeAll()
         for texture in liveTextures where !texture.isDestroyed() {
-            texture.destroy()
+            texture.destroyAndReleaseHolders()
         }
     }
 
