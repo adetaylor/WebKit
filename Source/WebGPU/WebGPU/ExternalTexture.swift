@@ -83,7 +83,12 @@ final class ExternalTextureImpl {
 
     @_expose(Cxx)
     func undestroy() {
-        tracking.removeAll()
+        guard destroyed else {
+            return
+        }
+        for encoder in tracking.takeLive() {
+            encoder.makeSubmitInvalid(nil)
+        }
         destroyed = false
     }
 
