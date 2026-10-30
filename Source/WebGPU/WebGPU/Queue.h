@@ -146,7 +146,6 @@ public:
     Ref<Device> device() const;
 #endif
     void generateAValidationError(String&&);
-    void endEncoding(id<MTLCommandEncoder>, id<MTLCommandBuffer>) const;
 
     id<MTLBlitCommandEncoder> ensureBlitCommandEncoder();
     void finalizeBlitCommandEncoder();
@@ -156,7 +155,6 @@ public:
     [[nodiscard]] uint64_t retainCounterSampleBuffer(CommandEncoder&);
     // API thread only.
     void releaseCounterSampleBuffer(uint64_t);
-    void retainTimestampsForOneUpdate(NSMutableSet<id<MTLCounterSampleBuffer>> *);
     void waitForAllCommitedWorkToComplete();
     void synchronizeResourceAndWait(id<MTLBuffer>);
     std::pair<id<MTLBuffer>, uint64_t> newTemporaryBufferWithBytes(std::span<uint8_t> data, bool noCopy);
@@ -165,7 +163,6 @@ public:
     // of this class, not to QueueImpl. Each reads the weak Device or Instance pointer, registers Metal handlers, or
     // hands Metal the bytes of a C struct; none calls back into QueueImpl. The ones that move bytes are free
     // functions, below the class.
-    void resolveDeviceTimestamps(id<MTLCommandBuffer>) const;
     void loseTheDevice(WebGPU::DeviceLostReason);
     void retainDeviceUntilCompleted(id<MTLCommandBuffer> _Nullable);
     void addCommitHandlers(id<MTLCommandBuffer>);

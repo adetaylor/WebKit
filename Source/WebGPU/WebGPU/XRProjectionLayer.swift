@@ -160,7 +160,7 @@ final class XRProjectionLayerImpl {
 
             if let clearEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) {
                 queueImpl.setEncoderForBuffer(queue, commandBuffer, clearEncoder)
-                queue.endEncoding(clearEncoder, commandBuffer)
+                queueImpl.endEncoding(queue, clearEncoder, commandBuffer)
             }
         }
 
