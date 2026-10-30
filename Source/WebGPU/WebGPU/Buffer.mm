@@ -217,11 +217,6 @@ uint64_t Buffer::initialSize() const
     return m_impl->impl.initialSize();
 }
 
-uint64_t Buffer::currentSize() const
-{
-    return m_impl->impl.currentSize();
-}
-
 OptionSet<WebGPU::BufferUsage> Buffer::usage() const
 {
     return OptionSet<WebGPU::BufferUsage>::fromRaw(m_impl->impl.usageRawValue());
@@ -230,11 +225,6 @@ OptionSet<WebGPU::BufferUsage> Buffer::usage() const
 Buffer::State Buffer::state() const
 {
     return static_cast<State>(m_impl->impl.stateRawValue());
-}
-
-bool Buffer::isDestroyed() const
-{
-    return m_impl->impl.isDestroyed();
 }
 
 bool Buffer::isValid() const
@@ -371,21 +361,6 @@ bool Buffer::didReadOOB(id<MTLIndirectCommandBuffer> icb) const
 void Buffer::didReadOOB(uint32_t v, id<MTLIndirectCommandBuffer> icb)
 {
     m_impl->impl.recordReadOOB(indirectCommandBufferKey(icb), !!v);
-}
-
-void Buffer::indirectBufferInvalidated()
-{
-    m_impl->impl.indirectBufferInvalidatedWithoutEncoder();
-}
-
-bool Buffer::needsIndexValidation(uint32_t maxUnsignedIndex, uint16_t maxUshortIndex)
-{
-    return m_impl->impl.needsIndexValidation(maxUnsignedIndex, maxUshortIndex);
-}
-
-void Buffer::indexBufferContentsModified(uint32_t maxUintValue, uint16_t maxUshortValue)
-{
-    m_impl->impl.indexBufferContentsModified(maxUintValue, maxUshortValue);
 }
 
 bool Buffer::allIndexValuesBelow(MTLIndexType indexType, uint32_t vertexCount) const
