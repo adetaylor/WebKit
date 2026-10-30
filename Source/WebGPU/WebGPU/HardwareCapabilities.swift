@@ -221,7 +221,7 @@ private func isSorted(_ features: [WebGPU.FeatureName]) -> Bool {
 }
 
 #if arch(x86_64)
-private func isIntel(_ device: any MTLDevice) -> Bool {
+func isIntel(_ device: any MTLDevice) -> Bool {
     device.name.localizedCaseInsensitiveContains("intel")
 }
 #endif

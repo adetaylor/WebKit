@@ -696,7 +696,7 @@ final class TextureImpl {
             return invalidView(texture)
         }
 
-        if let error = errorValidatingTextureViewCreation(resolved, device) {
+        if let error = errorValidatingTextureViewCreation(resolved) {
             deviceImpl.generateAValidationError(error)
             return invalidView(texture)
         }
@@ -764,7 +764,7 @@ final class TextureImpl {
         // never needs one.
         var sampledTexture: (any MTLTexture)?
         if textureUsageContains(resolved.usage, .TextureBinding) && !isMemoryless {
-            if let swizzle = composedSwizzleChannels(resolved, device) {
+            if let swizzle = composedSwizzleChannels(resolved, deviceImpl) {
                 guard
                     let swizzled = mtlTexture.makeTextureView(
                         pixelFormat: viewPixelFormat,
@@ -875,7 +875,7 @@ final class TextureImpl {
         )
     }
 
-    private func errorValidatingTextureViewCreation(_ descriptor: ResolvedTextureViewDescriptor, _ device: WebGPU.Metal.Device) -> String? {
+    private func errorValidatingTextureViewCreation(_ descriptor: ResolvedTextureViewDescriptor) -> String? {
         func errorString(_ message: String) -> String {
             "GPUTexture.createView: " + message
         }
@@ -913,12 +913,12 @@ final class TextureImpl {
 
         let format = descriptor.format
 
-        if textureUsageContains(descriptor.usage, .StorageBinding) && !hasStorageBindingCapability(format, device, .WriteOnly) {
+        if textureUsageContains(descriptor.usage, .StorageBinding) && !hasStorageBindingCapability(format, deviceImpl, .WriteOnly) {
             return errorString("view usage contains storage binding and the view's format does not support it")
         }
 
         if textureUsageContains(descriptor.usage, .RenderAttachment) && !isDepthOrStencilFormat(format)
-            && !isColorRenderableFormat(format, device)
+            && !isColorRenderableFormat(format, deviceImpl)
         {
             return errorString("view usage contains render attachment and the view's format is not color renderable")
         }
@@ -1046,14 +1046,14 @@ private func composeComponentSwizzle(_ component: WebGPU.ComponentSwizzle, _ bas
 // Metal applies anyway and no second MTLTexture is needed.
 private func composedSwizzleChannels(
     _ descriptor: ResolvedTextureViewDescriptor,
-    _ device: WebGPU.Metal.Device
+    _ deviceImpl: DeviceImpl
 ) -> MTLTextureSwizzleChannels? {
     var base = MTLTextureSwizzleChannels(red: .red, green: .green, blue: .blue, alpha: .alpha)
 
     // https://gpuweb.github.io/gpuweb/#reading-depth-stencil
     // A depth or stencil aspect has to read as (V, 0, 0, 1) once the feature is enabled. Metal
     // reads it as (V, V, V, 1) on its own, so the zeroes have to be asked for.
-    if isDepthOrStencilFormat(descriptor.format) && device.hasFeature(WebGPU.FeatureName.TextureComponentSwizzle) {
+    if isDepthOrStencilFormat(descriptor.format) && deviceImpl.hasFeature(WebGPU.FeatureName.TextureComponentSwizzle) {
         base = MTLTextureSwizzleChannels(red: .red, green: .zero, blue: .zero, alpha: .one)
     }
 
@@ -1270,11 +1270,11 @@ private func textureCreationError(
                 "createTexture: descriptor.sampleCount > 1 and (descriptor.usage & WGPUTextureUsage_StorageBinding) || !(descriptor.usage & WGPUTextureUsage_RenderAttachment)"
         }
 
-        if !isRenderableFormat(format, device) {
+        if !isRenderableFormat(format, deviceImpl) {
             return "createTexture: descriptor.sampleCount > 1 and !isRenderableFormat(descriptor.format, *this)"
         }
 
-        if !supportsMultisampling(format, device) {
+        if !supportsMultisampling(format, deviceImpl) {
             return "createTexture: descriptor.sampleCount > 1 and !supportsMultisampling(descriptor.format, *this)"
         }
     }
@@ -1286,7 +1286,7 @@ private func textureCreationError(
     }
 
     if textureUsageContains(descriptor.usage, .RenderAttachment) {
-        if !isRenderableFormat(format, device) {
+        if !isRenderableFormat(format, deviceImpl) {
             return "createTexture: descriptor.usage & WGPUTextureUsage_RenderAttachment && !isRenderableFormat(descriptor.format, *this)"
         }
 
@@ -1297,7 +1297,7 @@ private func textureCreationError(
     }
 
     if textureUsageContains(descriptor.usage, .StorageBinding) {
-        if !hasStorageBindingCapability(format, device) {
+        if !hasStorageBindingCapability(format, deviceImpl) {
             return "createTexture: descriptor.usage & WGPUTextureUsage_StorageBinding && !hasStorageBindingCapability(descriptor.format)"
         }
     }
@@ -1438,7 +1438,7 @@ func createTextureImpl(
     // FIXME(PERFORMANCE): Consider implementing hazard tracking ourself.
 
     guard let texture = deviceImpl.device()?.makeTexture(descriptor: textureDescriptor) else {
-        device.generateAnOutOfMemoryError(consuming: wtfString("out of memory"))
+        deviceImpl.generateAnOutOfMemoryError("out of memory")
         return makeInvalidTextureImpl(device, deviceImpl)
     }
 

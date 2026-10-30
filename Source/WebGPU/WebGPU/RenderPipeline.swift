@@ -805,7 +805,7 @@ final class RenderPipelineBuilder {
                 return PendingRenderPipeline(errorMessage: "Using alphaToCoverage requires a fragment state")
             }
             let firstTarget = colorTargetCount == 0 ? nil : Optional(fromCxx: colorTargets[0])
-            guard let firstTarget, hasAlphaChannel(firstTarget.format), supportsBlending(firstTarget.format, device) else {
+            guard let firstTarget, hasAlphaChannel(firstTarget.format), supportsBlending(firstTarget.format, deviceImpl) else {
                 return PendingRenderPipeline(errorMessage: "Using alphaToCoverage requires a fragment state")
             }
             if multisample.count == 1 {
@@ -956,7 +956,7 @@ final class RenderPipelineBuilder {
         // swift-format-ignore: NeverForceUnwrap
         let mtlColorAttachment = renderPipelineDescriptor.colorAttachments[index]!
 
-        if isDepthOrStencilFormat(targetFormat) || !isRenderableFormat(targetFormat, device) {
+        if isDepthOrStencilFormat(targetFormat) || !isRenderableFormat(targetFormat, deviceImpl) {
             return "Depth / stencil format passed to color format"
         }
 
@@ -979,7 +979,7 @@ final class RenderPipelineBuilder {
 
         var readsAlpha = false
         if let blend = Optional(fromCxx: target.blend) {
-            if !supportsBlending(targetFormat, device) {
+            if !supportsBlending(targetFormat, deviceImpl) {
                 return "Color target attempted to use blending on non-blendable format"
             }
             mtlColorAttachment.isBlendingEnabled = true

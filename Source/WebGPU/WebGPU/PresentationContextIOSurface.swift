@@ -428,7 +428,7 @@ final class PresentationContextIOSurfaceImpl {
         if isValidFrameIndex(index) {
             return true
         }
-        configuredDevice.first?.device.generateAValidationError("GPUCanvasContext is not configured correctly")
+        configuredDevice.first?.impl.generateAValidationError("GPUCanvasContext is not configured correctly")
         return false
     }
 

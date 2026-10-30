@@ -45,9 +45,9 @@ private func addingColorAttachmentBytes(_ bytesPerSample: UInt32, _ format: WebG
 private func errorValidatingRenderBundleEncoderCreation(
     _ colorFormats: [WebGPU.TextureFormat?],
     _ depthStencilFormat: WebGPU.TextureFormat?,
-    _ device: WebGPU.Metal.Device
+    _ device: DeviceImpl
 ) -> String? {
-    let limits = device.limitsCopy()
+    let limits = device.deviceLimits()
     if colorFormats.count > Int(limits.maxColorAttachments) {
         return "descriptor.colorFormatCount(\(colorFormats.count)) > limits().maxColorAttachments(\(limits.maxColorAttachments))"
     }
@@ -96,7 +96,7 @@ func createRenderBundleEncoderImpl(
     }
     let depthStencilFormat = Optional(fromCxx: descriptor.depthStencilFormat)
 
-    if let error = errorValidatingRenderBundleEncoderCreation(colorFormats, depthStencilFormat, device) {
+    if let error = errorValidatingRenderBundleEncoderCreation(colorFormats, depthStencilFormat, deviceImpl) {
         deviceImpl.generateAValidationError(error)
         return makeInvalidRenderBundleEncoderImpl(device, deviceImpl, error as NSString)
     }

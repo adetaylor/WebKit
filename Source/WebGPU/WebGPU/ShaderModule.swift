@@ -380,23 +380,23 @@ func createShaderModuleImpl(
     _ descriptor: borrowing WebGPU.ShaderModuleDescriptor
 ) -> ShaderModuleImpl {
     var supportedFeatures: Features = []
-    if device.hasFeature(WebGPU.FeatureName.ClipDistances) {
+    if deviceImpl.hasFeature(WebGPU.FeatureName.ClipDistances) {
         supportedFeatures.insert(.clipDistances)
     }
-    if device.hasFeature(WebGPU.FeatureName.ShaderF16) {
+    if deviceImpl.hasFeature(WebGPU.FeatureName.ShaderF16) {
         supportedFeatures.insert(.shaderF16)
     }
-    if device.hasFeature(WebGPU.FeatureName.PrimitiveIndex) {
+    if deviceImpl.hasFeature(WebGPU.FeatureName.PrimitiveIndex) {
         supportedFeatures.insert(.primitiveIndex)
     }
-    if device.hasFeature(WebGPU.FeatureName.Subgroups) {
+    if deviceImpl.hasFeature(WebGPU.FeatureName.Subgroups) {
         supportedFeatures.insert(.subgroups)
     }
     let configuration = Configuration(
-        maxBuffersPlusVertexBuffersForVertexStage: device.maxBuffersPlusVertexBuffersForVertexStage(),
-        maxBuffersForFragmentStage: device.maxBuffersForFragmentStage(),
-        maxBuffersForComputeStage: device.maxBuffersForComputeStage(),
-        maximumCombinedWorkgroupVariablesSize: device.limitsCopy().maxComputeWorkgroupStorageSize,
+        maxBuffersPlusVertexBuffersForVertexStage: deviceImpl.maxBuffersPlusVertexBuffersForVertexStage(),
+        maxBuffersForFragmentStage: deviceImpl.maxBuffersForFragmentStage(),
+        maxBuffersForComputeStage: deviceImpl.maxBuffersForComputeStage(),
+        maximumCombinedWorkgroupVariablesSize: deviceImpl.deviceLimits().maxComputeWorkgroupStorageSize,
         supportedFeatures: supportedFeatures,
         identifierCharacterClasses: icuIdentifierCharacterClasses
     )

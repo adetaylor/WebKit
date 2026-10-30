@@ -393,7 +393,7 @@ std::pair<id<MTLBuffer>, uint64_t> Queue::newTemporaryBufferWithBytes(std::span<
         return std::make_pair(nil, 0ull);
 
     uint64_t offset = 0;
-    id<MTLBuffer> buffer = m_impl->impl.newTemporaryBufferWithBytes(device.get(), QueueBytes { data }, noCopy, offset);
+    id<MTLBuffer> buffer = m_impl->impl.newTemporaryBufferWithBytes(device.get(), device->swiftImpl(), QueueBytes { data }, noCopy, offset);
     return std::make_pair(buffer, offset);
 }
 
@@ -631,7 +631,7 @@ bool Queue::clearTextureViewIfNeeded(TextureView& textureView)
         return false;
 
     Ref parentTexture = textureView.apiParentTexture();
-    return m_impl->impl.clearTextureIfNeeded(this, device.get(), parentTexture->swiftImpl(), textureView.aspect(), textureView.mipLevelCount(), textureView.arrayLayerCount(), textureView.baseMipLevel(), textureView.baseArrayLayer());
+    return m_impl->impl.clearTextureIfNeeded(this, device->swiftImpl(), parentTexture->swiftImpl(), textureView.aspect(), textureView.mipLevelCount(), textureView.arrayLayerCount(), textureView.baseMipLevel(), textureView.baseArrayLayer());
 }
 
 bool Queue::clearTextureViewIfNeeded(Texture& texture)
@@ -640,7 +640,7 @@ bool Queue::clearTextureViewIfNeeded(Texture& texture)
     if (!device)
         return false;
 
-    return m_impl->impl.clearTextureIfNeeded(this, device.get(), texture.swiftImpl(), WebGPU::TextureAspect::All, texture.mipLevelCount(), texture.arrayLayerCount(), 0, 0);
+    return m_impl->impl.clearTextureIfNeeded(this, device->swiftImpl(), texture.swiftImpl(), WebGPU::TextureAspect::All, texture.mipLevelCount(), texture.arrayLayerCount(), 0, 0);
 }
 
 } // namespace WebGPU::Metal

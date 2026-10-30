@@ -116,14 +116,14 @@ func pipelineBindGroupLayout(
     _ groupIndex: UInt32
 ) -> WebGPU.Metal.BindGroupLayout {
     if !pipelineIsValid {
-        device.generateAValidationError(invalidPipelineMessage)
+        deviceImpl.generateAValidationError(invalidPipelineMessage)
         layoutImpl.makeInvalid()
         return WebGPU.Metal.BindGroupLayout.createInvalid(device).ptr()
     }
 
     if groupIndex >= layoutImpl.numberOfBindGroupLayouts() {
         if groupIndex >= deviceImpl.limits.maxBindGroups {
-            device.generateAValidationError("getBindGroupLayout: groupIndex is out of range")
+            deviceImpl.generateAValidationError("getBindGroupLayout: groupIndex is out of range")
             layoutImpl.makeInvalid()
         }
         return WebGPU.Metal.BindGroupLayout.createInvalid(device).ptr()

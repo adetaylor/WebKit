@@ -84,7 +84,6 @@ final class ExternalTextureImporter {
     /// filtered. copyExternalImageToTexture() carries the frame's color through unchanged instead, and asks for the
     /// planes as they arrived. A nil pixel buffer (a destroyed external texture) fails.
     func importPixelBuffer(
-        _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
         _ pixelBuffer: CVPixelBuffer?,
         _ colorSpace: WebGPU.PredefinedColorSpace,
@@ -110,14 +109,14 @@ final class ExternalTextureImporter {
         if let textureCache {
             CVMetalTextureCacheFlush(textureCache, 0)
         }
-        let supportsExtendedFormats = device.device()?.supportsFamily(.apple4) ?? false
+        let supportsExtendedFormats = deviceImpl.device()?.supportsFamily(.apple4) ?? false
         guard let pixelBuffer else {
             return failure
         }
-        if pixelBufferIOSurface(pixelBuffer) == nil || device.isIntel() {
-            return importByCopying(device, pixelBuffer, constants, premultiplyParameters, supportsExtendedFormats) ?? failure
+        if pixelBufferIOSurface(pixelBuffer) == nil || isIntelDevice(deviceImpl) {
+            return importByCopying(deviceImpl, pixelBuffer, constants, premultiplyParameters, supportsExtendedFormats) ?? failure
         }
-        return importThroughTextureCache(device, deviceImpl, pixelBuffer, constants, premultiplyParameters, supportsExtendedFormats)
+        return importThroughTextureCache(deviceImpl, pixelBuffer, constants, premultiplyParameters, supportsExtendedFormats)
             ?? failure
         #else
         return failure
@@ -126,7 +125,7 @@ final class ExternalTextureImporter {
 
     // A frame without an IOSurface (or any frame on Intel) has its planes copied into new textures.
     private func importByCopying(
-        _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
         _ pixelBuffer: CVPixelBuffer,
         _ constants: WebGPU.Metal.ExternalTextureConstants,
         _ premultiplyParameters: PremultiplyParameters,
@@ -160,10 +159,10 @@ final class ExternalTextureImporter {
             }
             descriptor.mipmapLevelCount = 1
             descriptor.sampleCount = 1
-            descriptor.storageMode = externalTexturePlaneStorageMode(device.hasUnifiedMemory())
+            descriptor.storageMode = externalTexturePlaneStorageMode(hasUnifiedMemory(deviceImpl))
 
             // FIXME: This failure leaves the base address locked.
-            guard let texture = device.device()?.makeTexture(descriptor: descriptor) else {
+            guard let texture = deviceImpl.device()?.makeTexture(descriptor: descriptor) else {
                 return nil
             }
             WebGPU.Metal.copyPixelBufferPlane(texture, pixelBuffer, plane, copiedBytesPerPixel(descriptor.pixelFormat))
@@ -178,7 +177,7 @@ final class ExternalTextureImporter {
             result.constants.colorSpaceConversion = yCbCrToRGBMatrix(pixelBuffer)
         } else {
             result.constants.colorSpaceConversion = identityColorSpaceConversion
-            let premultiplied = premultipliedAlphaTexture(device, textures[0], premultiplyParameters)
+            let premultiplied = premultipliedAlphaTexture(deviceImpl, textures[0], premultiplyParameters)
             if let premultiplied {
                 result.texture0 = premultiplied
             }
@@ -195,7 +194,6 @@ final class ExternalTextureImporter {
     #if HAVE_WEBGPU_IMPLEMENTATION && (WTF_PLATFORM_MAC || WTF_PLATFORM_IOS || WTF_PLATFORM_VISION)
     // An IOSurface-backed frame's planes are wrapped by the CoreVideo texture cache, without a copy.
     private func importThroughTextureCache(
-        _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
         _ pixelBuffer: CVPixelBuffer,
         _ constants: WebGPU.Metal.ExternalTextureConstants,
@@ -229,7 +227,7 @@ final class ExternalTextureImporter {
         }
         var baseTexture = CVMetalTextureGetTexture(plane0)
         var texture0 = baseTexture
-        device.setOwnerWithIdentity(texture0)
+        deviceImpl.setOwnerWithIdentity(texture0)
         let texCoords = WebGPU.Metal.cleanTexCoords(plane0)
         if let firstPlaneSwizzle {
             texture0 = textureView(texture0, swizzle: firstPlaneSwizzle)
@@ -238,7 +236,7 @@ final class ExternalTextureImporter {
         var texture1: (any MTLTexture)?
         if let plane1 {
             texture1 = CVMetalTextureGetTexture(plane1)
-            device.setOwnerWithIdentity(texture1)
+            deviceImpl.setOwnerWithIdentity(texture1)
             if let secondPlaneSwizzle {
                 texture1 = textureView(texture1, swizzle: secondPlaneSwizzle)
             }
@@ -262,7 +260,7 @@ final class ExternalTextureImporter {
             result.constants.colorSpaceConversion = yCbCrToRGBMatrix(pixelBuffer)
         } else {
             result.constants.colorSpaceConversion = identityColorSpaceConversion
-            let premultiplied = premultipliedAlphaTexture(device, baseTexture, premultiplyParameters)
+            let premultiplied = premultipliedAlphaTexture(deviceImpl, baseTexture, premultiplyParameters)
             if let premultiplied {
                 result.texture0 = premultiplied
                 baseTexture = premultiplied
@@ -294,14 +292,14 @@ final class ExternalTextureImporter {
 
     // nil when the parameters leave the frame alone, or when anything fails.
     private func premultipliedAlphaTexture(
-        _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
         _ source: (any MTLTexture)?,
         _ parameters: PremultiplyParameters
     ) -> (any MTLTexture)? {
         if parameters.destinationFormat == .invalid {
             return nil
         }
-        guard let pipeline = premultiplyPipeline(device), let source else {
+        guard let pipeline = premultiplyPipeline(deviceImpl), let source else {
             return nil
         }
 
@@ -315,10 +313,10 @@ final class ExternalTextureImporter {
         descriptor.sampleCount = 1
         descriptor.storageMode = .private
 
-        guard let destination = device.device()?.makeTexture(descriptor: descriptor) else {
+        guard let destination = deviceImpl.device()?.makeTexture(descriptor: descriptor) else {
             return nil
         }
-        device.setOwnerWithIdentity(destination)
+        deviceImpl.setOwnerWithIdentity(destination)
 
         let input: (any MTLTexture)?
         if let sourceSwizzle = parameters.sourceSwizzle {
@@ -329,7 +327,7 @@ final class ExternalTextureImporter {
 
         // The pass goes on the default queue, so the commands the page submits afterwards see the result
         // without any further synchronization.
-        let queue = device.getQueue().ptr()
+        let queue = deviceImpl.defaultQueue()
         guard let commandBuffer = queue.commandBufferWithDescriptor(MTLCommandBufferDescriptor()) else {
             return nil
         }
@@ -357,11 +355,11 @@ final class ExternalTextureImporter {
     }
 
     // Built on first use; a failure is retried next time.
-    private func premultiplyPipeline(_ device: WebGPU.Metal.Device) -> (any MTLComputePipelineState)? {
+    private func premultiplyPipeline(_ deviceImpl: DeviceImpl) -> (any MTLComputePipelineState)? {
         if let premultiplyAlphaPipeline {
             return premultiplyAlphaPipeline
         }
-        guard let metalDevice = device.device() else {
+        guard let metalDevice = deviceImpl.device() else {
             return nil
         }
 
@@ -387,6 +385,14 @@ final class ExternalTextureImporter {
 // MARK: CoreVideo and IOSurface helpers
 
 // The frame's IOSurface, which the frame keeps alive.
+private func isIntelDevice(_ deviceImpl: DeviceImpl) -> Bool {
+    #if arch(x86_64)
+    deviceImpl.device().map(isIntel) ?? false
+    #else
+    false
+    #endif
+}
+
 func pixelBufferIOSurface(_ pixelBuffer: CVPixelBuffer) -> IOSurfaceRef? {
     WebGPU.Metal.pixelBufferIOSurface(pixelBuffer)
 }
