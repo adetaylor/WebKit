@@ -1399,8 +1399,7 @@ extension CommandEncoderImpl {
         _ mtlDescriptor: MTLRenderPassDescriptor
     ) -> CxxBridging.RefRenderPassEncoder {
         if canDeferRenderCommandEncoder(mtlDescriptor) {
-            let renderPassEncoder = WebGPU.Metal.RenderPassEncoder.create(
-                nil,
+            return WebGPU.Metal.RenderPassEncoder.createWithDeferredRenderCommandEncoder(
                 descriptor,
                 visibilityResultBufferSize,
                 depthReadOnly,
@@ -1411,8 +1410,6 @@ extension CommandEncoderImpl {
                 device,
                 mtlDescriptor
             )
-            renderPassEncoder.ptr().deferRenderCommandEncoder(mtlDescriptor)
-            return renderPassEncoder
         }
 
         let mtlRenderCommandEncoder = makeRenderCommandEncoder(mtlDescriptor)

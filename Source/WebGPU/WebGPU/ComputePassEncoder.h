@@ -66,12 +66,9 @@ public:
     {
         return adoptRef(*new ComputePassEncoder(parentEncoder, device, errorString));
     }
-    static Ref<ComputePassEncoder> createInvalidWithEncoderStateNotOpen(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
-    {
-        Ref computePassEncoder = createInvalid(parentEncoder, device, errorString);
-        computePassEncoder->markEncoderStateWasNotOpen();
-        return computePassEncoder;
-    }
+    // A pass begun while its command encoder was not open never took the encoder over, so it can
+    // never be ended. https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-end
+    static Ref<ComputePassEncoder> createInvalidWithEncoderStateNotOpen(CommandEncoder& parentEncoder, Device&, NSString* errorString);
 
     ~ComputePassEncoder();
 
@@ -90,10 +87,6 @@ public:
     void setLabel(String&&) final;
 
     bool isValid() const final;
-
-    // A pass begun while its command encoder was not open never took the encoder over, so it can
-    // never be ended. https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-end
-    void markEncoderStateWasNotOpen();
 
 private:
     ComputePassEncoder(id<MTLComputeCommandEncoder>, const WebGPU::ComputePassDescriptor&, CommandEncoder&, Device&);
