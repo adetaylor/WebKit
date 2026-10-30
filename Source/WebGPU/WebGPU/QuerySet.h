@@ -51,15 +51,13 @@ class Buffer;
 class CommandEncoder;
 class Device;
 
+// QuerySet::type()'s type, which the timestamp writes' validation message prints.
+using OptionalQueryType = std::optional<WebGPU::QueryType>;
+
 // https://gpuweb.github.io/gpuweb/#gpuqueryset
 class QuerySet final : public WebGPU::QuerySet {
     WTF_MAKE_TZONE_ALLOCATED(QuerySet);
 public:
-    struct CounterSampleBuffer {
-        id<MTLCounterSampleBuffer> buffer { nil }; // Safety: ARC retains this pointer
-        uint32_t offset { 0 };
-    } SWIFT_SELF_CONTAINED;
-
     // Validates the descriptor, generating the validation error, and returns an invalid query set if it fails.
     static Ref<QuerySet> create(const WebGPU::QuerySetDescriptor&, Device&);
     static Ref<QuerySet> createInvalid(Device&);
@@ -71,17 +69,10 @@ public:
 
     bool isValid() const final;
 
-    // Borrowed from the Impl, which holds the reference. Swift reads QuerySetImpl.device instead.
-    Device& device() const;
+#if !defined(__swift__)
     uint32_t count() const;
     // std::nullopt only for invalid query sets.
     std::optional<WebGPU::QueryType> type() const;
-    id<MTLBuffer> visibilityBuffer() const;
-    CounterSampleBuffer counterSampleBufferWithOffset() const;
-
-    void setCommandEncoder(CommandEncoder&) const;
-    bool isDestroyed() const;
-#if !defined(__swift__)
     WebGPU::QuerySetImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
