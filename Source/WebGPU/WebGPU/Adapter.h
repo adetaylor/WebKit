@@ -42,6 +42,11 @@
 #import <wtf/ThreadSafeWeakPtr.h>
 #import <wtf/WeakPtr.h>
 
+#if !defined(__swift__)
+namespace WebGPU {
+class AdapterImpl;
+}
+#endif
 
 namespace WebGPU::Metal {
 
@@ -71,7 +76,10 @@ public:
     void setLabel(String&&) final;
     bool isValid() const final;
     id<MTLDevice> device() const;
+#if !defined(__swift__)
     void makeInvalid();
+    WebGPU::AdapterImpl& swiftImpl() const LIFETIME_BOUND;
+#endif
     bool isXRCompatible() const final;
 
     RefPtr<Instance> instance() const { return m_instance.get(); }

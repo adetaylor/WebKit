@@ -144,6 +144,11 @@ void Adapter::makeInvalid()
     m_impl->impl.makeInvalid();
 }
 
+WebGPU::AdapterImpl& Adapter::swiftImpl() const
+{
+    return m_impl->impl;
+}
+
 bool Adapter::isXRCompatible() const
 {
     return m_impl->impl.isXRCompatible();
