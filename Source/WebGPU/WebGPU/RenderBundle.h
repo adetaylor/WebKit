@@ -42,11 +42,6 @@ class RenderBundleImpl;
 
 namespace WebGPU::Metal {
 
-class Device;
-
-// Writes the viewport depth range into an ICB's fragment dynamic-offset buffer through the device's queue.
-void writeRenderBundleDepthRange(Device&, id<MTLBuffer>, float minDepth, float maxDepth);
-
 // https://gpuweb.github.io/gpuweb/#gpurenderbundle
 // Forwards to the Swift RenderBundleImpl, which RenderBundleEncoderImpl.finish() builds and which owns the bundle's
 // state.

@@ -1401,6 +1401,18 @@ final class QueueImpl {
         stageBufferWrite(queue, device, deviceImpl, buffer, bufferOffset, bytes: bytes, nil)
     }
 
+    @_expose(!Cxx)
+    func stageBufferWrite(
+        _ queue: WebGPU.Metal.Queue,
+        _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
+        _ buffer: (any MTLBuffer)?,
+        _ bufferOffset: UInt64,
+        bytes data: Span<UInt8>
+    ) {
+        stageBufferWrite(queue, device, deviceImpl, buffer, bufferOffset, bytes: data, nil)
+    }
+
     private func stageBufferWrite(
         _ queue: WebGPU.Metal.Queue,
         _ device: WebGPU.Metal.Device,

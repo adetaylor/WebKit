@@ -43,12 +43,6 @@ static_assert(sizeof(WebGPU::RenderBundleImpl) == sizeof(void*) && alignof(WebGP
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RenderBundle);
 
-void writeRenderBundleDepthRange(Device& device, id<MTLBuffer> buffer, float minDepth, float maxDepth)
-{
-    std::array<float, 2> twoFloats = { minDepth, maxDepth };
-    device.getQueue()->writeBuffer(buffer, 0, asWritableBytes(std::span(twoFloats)));
-}
-
 Ref<RenderBundle> RenderBundle::create(const WebGPU::RenderBundleImpl& impl)
 {
     return adoptRef(*new RenderBundle(impl));
