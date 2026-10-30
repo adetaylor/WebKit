@@ -181,6 +181,10 @@ extension Parser {
             case .identifier:
                 let statement = try parseCallOrVariableUpdatingStatement()
                 maybeInitializer = statement
+            case .parenLeft, .and, .star:
+                // A variable_updating_statement whose lhs_expression starts with `(`, `&` or `*`.
+                let statement = try parseVariableUpdatingStatement()
+                maybeInitializer = statement
             case .underbar:
                 // A phony assignment is a variable_updating_statement, so it is allowed here.
                 let phonyAssignment = try parsePhonyAssignmentStatement()
@@ -198,16 +202,18 @@ extension Parser {
         try consumeType(.semicolon, startOfElementPosition)
 
         if current.type != .parenRight {
-            if current.type == .underbar {
-                let phonyAssignment = try parsePhonyAssignmentStatement()
-                maybeUpdate = phonyAssignment
-            } else {
-                guard current.type == .identifier else {
-                    throw fail("Invalid for-loop update clause", startOfElementPosition)
-                }
-
+            switch current.type {
+            case .identifier:
                 let statement = try parseCallOrVariableUpdatingStatement()
                 maybeUpdate = statement
+            case .parenLeft, .and, .star:
+                let statement = try parseVariableUpdatingStatement()
+                maybeUpdate = statement
+            case .underbar:
+                let phonyAssignment = try parsePhonyAssignmentStatement()
+                maybeUpdate = phonyAssignment
+            default: // lint-exempt(L-ENUM-1): every other token type is an error, as the C++ default
+                throw fail("Invalid for-loop update clause", startOfElementPosition)
             }
         }
         try consumeType(.parenRight, startOfElementPosition)
