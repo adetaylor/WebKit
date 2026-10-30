@@ -124,6 +124,7 @@ final class DeviceImpl {
     // The adapter also provides the Instance. A valid device has one XR sub-image, which its constructor installs. The
     // device observer is the token of the shell's macOS device-removal observer, which ~Device unregisters.
     private let backingAdapter: WebGPU.Metal.Adapter
+    private let adapterImpl: AdapterImpl
     // Whether the Instance had a web process to attribute resources to when the device was made. The Instance's web
     // process never changes and a gone Instance never comes back, so without one nothing is ever attributed.
     private let attributesResources: Bool
@@ -134,11 +135,13 @@ final class DeviceImpl {
         metalDevice: (any MTLDevice)?,
         capabilities: borrowing WebGPU.Metal.HardwareCapabilities,
         adapter: WebGPU.Metal.Adapter,
+        adapterImpl: AdapterImpl,
         defaultQueue: WebGPU.Metal.Queue,
         defaultQueueImpl: QueueImpl
     ) {
         self.metalDevice = metalDevice
         backingAdapter = adapter
+        self.adapterImpl = adapterImpl
         attributesResources = DeviceImpl.instanceHasWebProcess(adapter)
         backingDefaultQueue = defaultQueue
         self.defaultQueueImpl = defaultQueueImpl
@@ -197,7 +200,7 @@ final class DeviceImpl {
     @_expose(Cxx)
     func loseTheDevice(_ reason: WebGPU.DeviceLostReason) {
         metalDevice = nil
-        backingAdapter.makeInvalid()
+        adapterImpl.makeInvalid()
         if var callback = deviceLostCallback.take() {
             callback(reason, consuming: WebGPU.Metal.deviceLostMessage())
         }
@@ -224,7 +227,7 @@ final class DeviceImpl {
         deviceLostCallback = hasCallback ? consume incoming : nil
         if lost {
             loseTheDevice(.Destroyed)
-        } else if !backingAdapter.isValid() {
+        } else if !adapterImpl.isValid() {
             loseTheDevice(.Unknown)
         }
     }
@@ -807,6 +810,7 @@ func makeDeviceImpl(
     _ metalDevice: (any MTLDevice)?,
     _ capabilities: borrowing WebGPU.Metal.HardwareCapabilities,
     _ adapter: WebGPU.Metal.Adapter,
+    _ adapterImpl: AdapterImpl,
     _ defaultQueue: WebGPU.Metal.Queue,
     _ defaultQueueImpl: QueueImpl
 ) -> DeviceImpl {
@@ -814,6 +818,7 @@ func makeDeviceImpl(
         metalDevice: metalDevice,
         capabilities: capabilities,
         adapter: adapter,
+        adapterImpl: adapterImpl,
         defaultQueue: defaultQueue,
         defaultQueueImpl: defaultQueueImpl
     )
