@@ -238,7 +238,7 @@ final class BufferImpl {
 
     @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
-        backingBuffer?.label = CxxBridging.convertWTFStringToNSString(label) as String?
+        backingBuffer?.label = stringNilIfEmpty(label)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
@@ -806,7 +806,7 @@ func createBufferImpl(
         return makeInvalidBufferImpl(device, deviceImpl)
     }
 
-    buffer.label = CxxBridging.convertWTFStringToNSString(label) as String? ?? ""
+    buffer.label = stringNilIfEmpty(label) ?? ""
     return BufferImpl(
         buffer: buffer,
         size: parameters.size,

@@ -121,6 +121,28 @@ func wtfString(_ string: Swift.String) -> WTF.String {
     wtfString(utf8: ContiguousArray(string.utf8))
 }
 
+// nsStringNilIfEmpty() for Swift. The labels and Metal sources it converts are never read back through the API; a lone
+// surrogate becomes U+FFFD, where the NSString kept it.
+func stringNilIfEmpty(_ string: borrowing WTF.String) -> Swift.String? {
+    let length = Int(string.length())
+    if length == 0 {
+        return nil
+    }
+    if string.is8Bit() {
+        var latin1 = ContiguousArray<UInt8>(repeating: 0, count: length)
+        var destination = latin1.mutableSpan
+        WGSL.Interop.copyLatin1CodeUnits(string, &destination)
+        if latin1.allSatisfy({ $0 < 0x80 }) {
+            return Swift.String(decoding: latin1, as: UTF8.self)
+        }
+        return Swift.String(Swift.String.UnicodeScalarView(latin1.lazy.map { Unicode.Scalar($0) }))
+    }
+    var utf16 = ContiguousArray<UInt16>(repeating: 0, count: length)
+    var destination = utf16.mutableSpan
+    WGSL.Interop.copyUTF16CodeUnits(string, &destination)
+    return Swift.String(decoding: utf16, as: UTF16.self)
+}
+
 // MARK: - Pipeline constants
 
 func pipelineConstants(_ stage: borrowing WebGPU.ProgrammableStage) -> [PipelineConstant] {

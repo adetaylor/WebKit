@@ -220,7 +220,7 @@ extension CommandEncoderImpl {
 
         let commandBuffer = takeCommandBufferForFinish()
 
-        commandBuffer?.label = CxxBridging.convertWTFStringToNSString(descriptor.label)
+        commandBuffer?.label = stringNilIfEmpty(descriptor.label)
 
         #if arch(x86_64) && (WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST)
         if (backingManagedBuffers?.count ?? 0) != 0 || (backingManagedTextures?.count ?? 0) != 0 {
@@ -2576,7 +2576,7 @@ extension CommandEncoderImpl {
         self.setExistingEncoder(computeCommandEncoder)
         // FIXME: Figure out a way so that WTFString does not override String in the global
         //        namespace. At the moment it is and that's why we need this.
-        computeCommandEncoder.label = CxxBridging.convertWTFStringToNSString(descriptor.label)
+        computeCommandEncoder.label = stringNilIfEmpty(descriptor.label)
 
         return WebGPU.Metal.ComputePassEncoder.create(computeCommandEncoder, descriptor, shell, device)
     }

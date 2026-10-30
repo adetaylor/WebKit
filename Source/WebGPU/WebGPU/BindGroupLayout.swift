@@ -177,10 +177,10 @@ final class BindGroupLayoutImpl {
     }
 
     private func applyLabelToEncoders() {
-        let nsLabel = CxxBridging.convertWTFStringToNSString(label)
-        vertexEncoder?.label = nsLabel as String?
-        fragmentEncoder?.label = nsLabel as String?
-        computeEncoder?.label = nsLabel as String?
+        let metalLabel = stringNilIfEmpty(label)
+        vertexEncoder?.label = metalLabel
+        fragmentEncoder?.label = metalLabel
+        computeEncoder?.label = metalLabel
     }
 
     /// `stage` is a Stage raw value; any other value has no encoder.

@@ -251,7 +251,7 @@ func compileLibrary(
     _ completion: @escaping ((any MTLLibrary)?, NSError?) -> Void
 ) {
     let metalDevice = deviceImpl.device()
-    let source = (CxxBridging.convertWTFStringToNSString(library.metalSource) ?? "") as Swift.String
+    let source = stringNilIfEmpty(library.metalSource) ?? ""
     let label = (library.label ?? "") as Swift.String
 
     if let scheduler = asynchronousCompileScheduler(compilation, device, deviceImpl) {

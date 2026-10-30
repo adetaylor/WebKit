@@ -536,7 +536,7 @@ final class RenderPipelineBuilder {
                         shaderLocations.span
                     )
                     if !error.isNull() {
-                        return fail(CxxBridging.convertWTFStringToNSString(error).map { $0 as String } ?? "")
+                        return fail(stringNilIfEmpty(error) ?? "")
                     }
                 }
 
@@ -584,7 +584,7 @@ final class RenderPipelineBuilder {
         }
 
         // createNSString() semantics: an empty or null label is @"", not nil.
-        let label = (CxxBridging.convertWTFStringToNSString(descriptor.label) ?? "") as NSString
+        let label = (stringNilIfEmpty(descriptor.label) ?? "") as NSString
 
         // The pipeline stores and validates with the C API enums.
         let primitiveTopology = descriptor.primitive.topology
