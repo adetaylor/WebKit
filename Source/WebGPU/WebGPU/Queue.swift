@@ -1203,21 +1203,20 @@ final class QueueImpl {
     // MARK: writeBuffer
 
     private func validateWriteBuffer(
-        _ buffer: WebGPU.Metal.Buffer,
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
         _ size: Int,
         _ deviceImpl: DeviceImpl
     ) -> Bool {
-        if !isValidToUse(buffer.isValid(), bufferImpl.deviceImpl, deviceImpl) {
+        if !isValidToUse(bufferImpl.isValid(), bufferImpl.deviceImpl, deviceImpl) {
             return false
         }
 
-        if buffer.state() != WebGPU.Metal.Buffer.State.Unmapped {
+        if !bufferImpl.isUnmapped {
             return false
         }
 
-        if !buffer.usage().contains(WebGPU.BufferUsage.CopyDestination) {
+        if !bufferImpl.hasUsage(.CopyDestination) {
             return false
         }
 
@@ -1229,7 +1228,7 @@ final class QueueImpl {
             return false
         }
 
-        guard let end = checkedSum(UInt64.self, bufferOffset, UInt64(size)), end <= buffer.currentSize() else {
+        guard let end = checkedSum(UInt64.self, bufferOffset, UInt64(size)), end <= bufferImpl.currentSize() else {
             return false
         }
 
@@ -1241,13 +1240,12 @@ final class QueueImpl {
         _ queue: WebGPU.Metal.Queue,
         _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
-        _ buffer: WebGPU.Metal.Buffer,
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
         _ data: WebGPU.Metal.QueueBytes
     ) {
         let bytes: Span<UInt8> = data.span()
-        writeBuffer(queue, device, deviceImpl, buffer, bufferImpl, bufferOffset, bytes: bytes, nil)
+        writeBuffer(queue, device, deviceImpl, bufferImpl, bufferOffset, bytes: bytes, nil)
     }
 
     // writeBuffer() of all of `owner`'s bytes, `data`.
@@ -1256,14 +1254,13 @@ final class QueueImpl {
         _ queue: WebGPU.Metal.Queue,
         _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
-        _ buffer: WebGPU.Metal.Buffer,
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
         _ data: WebGPU.Metal.QueueBytes,
         _ owner: WebGPU.ByteOwner
     ) {
         let bytes: Span<UInt8> = data.span()
-        writeBuffer(queue, device, deviceImpl, buffer, bufferImpl, bufferOffset, bytes: bytes, AliasableBytes(owner))
+        writeBuffer(queue, device, deviceImpl, bufferImpl, bufferOffset, bytes: bytes, AliasableBytes(owner))
     }
 
     // `aliasable` owns exactly `data`.
@@ -1271,7 +1268,6 @@ final class QueueImpl {
         _ queue: WebGPU.Metal.Queue,
         _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
-        _ buffer: WebGPU.Metal.Buffer,
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
         bytes data: Span<UInt8>,
@@ -1280,8 +1276,8 @@ final class QueueImpl {
         // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer
 
         let dataSize = data.count
-        if !validateWriteBuffer(buffer, bufferImpl, bufferOffset, dataSize, deviceImpl)
-            || !isValidToUse(buffer.isValid(), bufferImpl.deviceImpl, deviceImpl)
+        if !validateWriteBuffer(bufferImpl, bufferOffset, dataSize, deviceImpl)
+            || !isValidToUse(bufferImpl.isValid(), bufferImpl.deviceImpl, deviceImpl)
         {
             deviceImpl.generateAValidationError("Validation failure.")
             return
@@ -1291,7 +1287,7 @@ final class QueueImpl {
             return
         }
 
-        if buffer.isDestroyed() {
+        if bufferImpl.isDestroyed() {
             deviceImpl.generateAValidationError("GPUQueue.writeBuffer: destination buffer is destroyed")
             return
         }
@@ -1300,22 +1296,21 @@ final class QueueImpl {
         // we could detect whether this specific resource is idle, if we tracked every resource.
         var needsInvalidation = true
 
-        if dataSize < 16 * 1024 && buffer.usage().contains(WebGPU.BufferUsage.Index)
-            && !buffer.usage().contains(WebGPU.BufferUsage.Indirect)
+        if dataSize < 16 * 1024 && bufferImpl.hasUsage(.Index) && !bufferImpl.hasUsage(.Indirect)
         {
             let maxValues = maxIndexValue(data)
-            if !buffer.needsIndexValidation(maxValues.maxUInt32, maxValues.maxUInt16) {
+            if !bufferImpl.needsIndexValidation(maxValues.maxUInt32, maxValues.maxUInt16) {
                 needsInvalidation = false
-                buffer.indexBufferContentsModified(maxValues.maxUInt32, maxValues.maxUInt16)
+                bufferImpl.indexBufferContentsModified(maxValues.maxUInt32, maxValues.maxUInt16)
             }
         }
         if needsInvalidation {
-            buffer.indirectBufferInvalidated()
+            bufferImpl.indirectBufferInvalidatedWithoutEncoder()
         }
         if isIdle() {
-            switch writeStorage(buffer.buffer()) {
+            switch writeStorage(bufferImpl.buffer()) {
             case .cpu:
-                WebGPU.Metal.writeBufferContents(buffer.buffer(), bufferOffset, data)
+                WebGPU.Metal.writeBufferContents(bufferImpl.buffer(), bufferOffset, data)
                 return
             case .gpu:
                 break
@@ -1324,7 +1319,7 @@ final class QueueImpl {
                 return
             }
         }
-        stageBufferWrite(queue, device, deviceImpl, buffer.buffer(), bufferOffset, bytes: data, aliasable)
+        stageBufferWrite(queue, device, deviceImpl, bufferImpl.buffer(), bufferOffset, bytes: data, aliasable)
     }
 
     private func temporaryBufferNeedsReplacement(_ dataSize: UInt64) -> Bool {

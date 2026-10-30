@@ -134,16 +134,16 @@ public:
         Destroyed,
     };
 
+#if !defined(__swift__)
     id<MTLBuffer> buffer() const;
-
-    uint64_t initialSize() const;
-    uint64_t currentSize() const;
     OptionSet<WebGPU::BufferUsage> usage() const;
     State state() const;
+#endif
+
+    uint64_t initialSize() const;
 
     // Borrowed from the Impl, which holds the reference.
     Device& device() const;
-    bool isDestroyed() const;
 
     std::span<uint8_t> getBufferContents() final;
 
@@ -152,13 +152,10 @@ public:
     bool didReadOOB(id<MTLIndirectCommandBuffer> = nil) const;
     void didReadOOB(uint32_t v, id<MTLIndirectCommandBuffer> = nil);
 
-    void indirectBufferInvalidated();
     // Bumped whenever the contents change in a way that invalidates a previously GPU-encoded indirect draw.
     uint64_t contentsGeneration() const;
     uint64_t indexContentsGeneration() const;
-    void indexBufferContentsModified(uint32_t maxUintValue, uint16_t maxUshortValue);
     bool allIndexValuesBelow(MTLIndexType, uint32_t vertexCount) const;
-    bool needsIndexValidation(uint32_t, uint16_t);
 
 private:
     explicit Buffer(std::unique_ptr<BufferImplBox>&&);

@@ -228,6 +228,14 @@ final class BufferImpl {
         isDestroyed() || backingBuffer != nil
     }
 
+    @_expose(!Cxx)
+    var isUnmapped: Bool {
+        if case .unmapped = mapState {
+            return true
+        }
+        return false
+    }
+
     @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
         backingBuffer?.label = CxxBridging.convertWTFStringToNSString(label) as String?
@@ -716,7 +724,8 @@ final class BufferImpl {
         didReadOOBByCommandBuffer[commandBufferKey] = didRead || didReadOOB(commandBufferKey)
     }
 
-    private func hasUsage(_ usage: WebGPU.BufferUsage) -> Bool {
+    @_expose(!Cxx)
+    func hasUsage(_ usage: WebGPU.BufferUsage) -> Bool {
         usageBits & usage.rawValue != 0
     }
 
