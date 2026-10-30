@@ -1508,16 +1508,6 @@ func errorValidatingImageCopyTexture(
     return nil
 }
 
-@_expose(Cxx)
-func errorValidatingImageCopyTextureRaw(
-    _ texture: TextureImpl,
-    _ mipLevel: UInt32,
-    _ origin: WebGPU.Origin3D,
-    _ copySize: WebGPU.Extent3D
-) -> NSString? {
-    errorValidatingImageCopyTexture(texture, mipLevel, origin, copySize).map { $0 as NSString }
-}
-
 func errorValidatingTextureCopyRange(
     _ texture: TextureImpl,
     _ mipLevel: UInt32,
@@ -1559,12 +1549,3 @@ func errorValidatingTextureCopyRange(
     return nil
 }
 
-@_expose(Cxx)
-func errorValidatingTextureCopyRangeRaw(
-    _ texture: TextureImpl,
-    _ mipLevel: UInt32,
-    _ origin: WebGPU.Origin3D,
-    _ copySize: WebGPU.Extent3D
-) -> NSString? {
-    errorValidatingTextureCopyRange(texture, mipLevel, origin, copySize).map { $0 as NSString }
-}

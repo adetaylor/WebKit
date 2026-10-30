@@ -95,16 +95,6 @@ NSString *Device::errorValidatingTextureCreation(const WebGPU::TextureDescriptor
     return WebGPU::errorValidatingTextureCreationRaw(this, swiftImpl(), textureParameters(descriptor), TextureFormatsView { descriptor.viewFormats });
 }
 
-NSString* Texture::errorValidatingImageCopyTexture(const WebGPU::TexelCopyTextureInfo& imageCopyTexture, const WebGPU::Extent3D& copySize)
-{
-    return WebGPU::errorValidatingImageCopyTextureRaw(metal(imageCopyTexture.texture).swiftImpl(), imageCopyTexture.mipLevel, imageCopyTexture.origin, copySize);
-}
-
-NSString* Texture::errorValidatingTextureCopyRange(const WebGPU::TexelCopyTextureInfo& imageCopyTexture, const WebGPU::Extent3D& copySize)
-{
-    return WebGPU::errorValidatingTextureCopyRangeRaw(metal(imageCopyTexture.texture).swiftImpl(), imageCopyTexture.mipLevel, imageCopyTexture.origin, copySize);
-}
-
 // Swift records the valid textures in DeviceImpl, for destroy().
 RefPtr<WebGPU::Texture> Device::createTexture(const WebGPU::TextureDescriptor& descriptor)
 {
