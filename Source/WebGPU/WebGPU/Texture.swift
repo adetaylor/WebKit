@@ -414,7 +414,7 @@ final class TextureImpl {
 
     @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
-        backingTexture?.label = CxxBridging.convertWTFStringToNSString(label) as String?
+        backingTexture?.label = stringNilIfEmpty(label)
     }
 
     // Texture::create, once the shell exists.
@@ -757,7 +757,7 @@ final class TextureImpl {
             return invalidView(texture)
         }
 
-        view.label = CxxBridging.convertWTFStringToNSString(label) as String? ?? ""
+        view.label = stringNilIfEmpty(label) ?? ""
         if view.label?.isEmpty ?? true {
             view.label = mtlTexture.label
         }
@@ -1447,7 +1447,7 @@ func createTextureImpl(
     }
 
     deviceImpl.setOwnerWithIdentity(texture)
-    texture.label = CxxBridging.convertWTFStringToNSString(label) as String? ?? ""
+    texture.label = stringNilIfEmpty(label) ?? ""
 
     let impl = TextureImpl(texture: texture, parameters: descriptor, viewFormats: viewFormats, device: device, deviceImpl: deviceImpl)
     impl.registersWithDevice = true

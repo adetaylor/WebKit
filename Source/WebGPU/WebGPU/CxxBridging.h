@@ -79,11 +79,6 @@ inline WebGPU::Metal::Instance* protectedInstance(const WebGPU::Metal::Device& d
     return device.instance().leakRef();
 }
 
-inline NSString * convertWTFStringToNSString(const String& input)
-{
-    return nsStringNilIfEmpty(input).autorelease();
-}
-
 using CommandBufferWeakPtr = ThreadSafeWeakPtr<WebGPU::Metal::CommandBuffer>;
 using BufferWeakPtr = ThreadSafeWeakPtr<WebGPU::Metal::Buffer>;
 using TextureWeakPtr = ThreadSafeWeakPtr<WebGPU::Metal::Texture>;

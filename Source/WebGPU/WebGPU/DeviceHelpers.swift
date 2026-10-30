@@ -617,7 +617,7 @@ func makeDefaultCommandQueue(_ metalDevice: (any MTLDevice)?, _ deviceLabel: WTF
     guard let commandQueue = metalDevice?.makeCommandQueue(maxCommandBufferCount: 4096) else {
         return nil
     }
-    if let label = CxxBridging.convertWTFStringToNSString(deviceLabel) as String? {
+    if let label = stringNilIfEmpty(deviceLabel) {
         commandQueue.label = "Default queue for device \(label)"
     } else {
         commandQueue.label = "Default queue"
