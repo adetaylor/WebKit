@@ -70,6 +70,58 @@ struct DynamicOffsetsView {
     std::span<const uint32_t> span() const LIFETIME_BOUND { return offsets; }
 } SWIFT_VIEW;
 
+// A WebGPU::RenderPassColorAttachment without its views, for Swift, which cannot get the alternatives of the variant
+// members of the C++ API struct. CommandEncoder::beginRenderPass() stages the views' Impls.
+struct ResolvedRenderPassColorAttachment {
+    std::optional<uint32_t> depthSlice;
+    WebGPU::Color clearValue;
+    WebGPU::LoadOp loadOp { WebGPU::LoadOp::Load };
+    WebGPU::StoreOp storeOp { WebGPU::StoreOp::Store };
+};
+
+// A WebGPU::RenderPassDepthStencilAttachment, as ResolvedRenderPassColorAttachment.
+struct ResolvedRenderPassDepthStencilAttachment {
+    float depthClearValue { 0 };
+    std::optional<WebGPU::LoadOp> depthLoadOp;
+    std::optional<WebGPU::StoreOp> depthStoreOp;
+    bool depthReadOnly { false };
+    uint32_t stencilClearValue { 0 };
+    std::optional<WebGPU::LoadOp> stencilLoadOp;
+    std::optional<WebGPU::StoreOp> stencilStoreOp;
+    bool stencilReadOnly { false };
+};
+
+// std::nullopt for an empty color attachment slot.
+inline std::optional<ResolvedRenderPassColorAttachment> resolvedColorAttachment(const WebGPU::RenderPassDescriptor& descriptor, size_t index)
+{
+    auto& attachment = descriptor.colorAttachments[index];
+    if (!attachment)
+        return std::nullopt;
+    return ResolvedRenderPassColorAttachment {
+        .depthSlice = attachment->depthSlice,
+        .clearValue = attachment->clearValue,
+        .loadOp = attachment->loadOp,
+        .storeOp = attachment->storeOp,
+    };
+}
+
+inline std::optional<ResolvedRenderPassDepthStencilAttachment> resolvedDepthStencilAttachment(const WebGPU::RenderPassDescriptor& descriptor)
+{
+    auto& attachment = descriptor.depthStencilAttachment;
+    if (!attachment)
+        return std::nullopt;
+    return ResolvedRenderPassDepthStencilAttachment {
+        .depthClearValue = attachment->depthClearValue,
+        .depthLoadOp = attachment->depthLoadOp,
+        .depthStoreOp = attachment->depthStoreOp,
+        .depthReadOnly = attachment->depthReadOnly,
+        .stencilClearValue = attachment->stencilClearValue,
+        .stencilLoadOp = attachment->stencilLoadOp,
+        .stencilStoreOp = attachment->stencilStoreOp,
+        .stencilReadOnly = attachment->stencilReadOnly,
+    };
+}
+
 // Defined in CommandEncoder.mm, where the generated Swift header declaring WebGPU::CommandEncoderImpl is
 // includable.
 struct CommandEncoderImplBox;

@@ -32,7 +32,6 @@
 		07D291802EC9CF1D00A32120 /* ShaderModule.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CEBD80D2716C3D800A5254D /* ShaderModule.h */; };
 		07D291812EC9CF2200A32120 /* Texture.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACA99273A426D0095F8D5 /* Texture.h */; };
 		07D291822EC9CF2A00A32120 /* TextureView.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACADD273A4F3D0095F8D5 /* TextureView.h */; };
-		0D164A3A2E8EE14700864EA1 /* TextureOrTextureView.h in Headers */ = {isa = PBXBuildFile; fileRef = 0D164A392E8EE14700864EA1 /* TextureOrTextureView.h */; };
 		0D212A652BC26336001160BF /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D212A642BC26336001160BF /* CoreGraphics.framework */; };
 		0D30F93729F1F94A0055D9F1 /* ExternalTexture.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0D30F93629F1F94A0055D9F1 /* ExternalTexture.mm */; };
 		AD5A3100000000000000B002 /* ExternalTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5A3100000000000000B001 /* ExternalTexture.swift */; };
@@ -302,7 +301,6 @@
 		07607E0D2EFC966700A2F311 /* WebGPU_Private.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = WebGPU_Private.modulemap; sourceTree = "<group>"; };
 		079861932EF13A1100659042 /* CxxBridgingPublic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CxxBridgingPublic.h; sourceTree = "<group>"; };
 		07D2916C2EC9C4D200A32120 /* CxxBridging.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CxxBridging.h; sourceTree = "<group>"; };
-		0D164A392E8EE14700864EA1 /* TextureOrTextureView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextureOrTextureView.h; sourceTree = "<group>"; };
 		0D212A642BC26336001160BF /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		0D30F93629F1F94A0055D9F1 /* ExternalTexture.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ExternalTexture.mm; sourceTree = "<group>"; };
 		AD5A3100000000000000B001 /* ExternalTexture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalTexture.swift; sourceTree = "<group>"; };
@@ -714,7 +712,6 @@
 				1C5ACAB1273A426D0095F8D5 /* Texture.mm */,
 				AD5A3100000000000000BE01 /* Texture.swift */,
 				AD5A3100000000000000D001 /* TextureFormats.swift */,
-				0D164A392E8EE14700864EA1 /* TextureOrTextureView.h */,
 				1C5ACADD273A4F3D0095F8D5 /* TextureView.h */,
 				1C5ACAEA273A560D0095F8D5 /* TextureView.mm */,
 				AD5A3100000000000000BB01 /* TextureView.swift */,
@@ -996,7 +993,6 @@
 				07D2917F2EC9CF1900A32120 /* Sampler.h in Headers */,
 				07D291802EC9CF1D00A32120 /* ShaderModule.h in Headers */,
 				07D291812EC9CF2200A32120 /* Texture.h in Headers */,
-				0D164A3A2E8EE14700864EA1 /* TextureOrTextureView.h in Headers */,
 				07D291822EC9CF2A00A32120 /* TextureView.h in Headers */,
 				596E957DAF12D022D09D9ED4 /* WebGPUCpp.h in Headers */,
 				CFABBD75A0EC0E1A9B26F610 /* WebGPUCppBridge.h in Headers */,

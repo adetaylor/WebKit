@@ -241,10 +241,24 @@ private func entryMapKey(_ mipLevel: UInt32, _ arrayLayer: UInt32, _ aspect: Web
     return aspectBit | UInt64(mipLevel) << 1 | UInt64(arrayLayer) << 32
 }
 
-/// The Impl half of an attachment (TextureOrTextureView), for the logic that never needs the shell.
-private enum AttachmentImpl {
+/// The Impl half of a render pass attachment: a texture or a texture view.
+enum AttachmentImpl {
     case texture(TextureImpl)
     case textureView(TextureViewImpl)
+
+    var isValid: Bool {
+        switch self {
+        case .texture(let impl): impl.isValid()
+        case .textureView(let impl): impl.isValid()
+        }
+    }
+
+    var deviceImpl: DeviceImpl {
+        switch self {
+        case .texture(let impl): impl.deviceImpl
+        case .textureView(let impl): impl.deviceImpl
+        }
+    }
 
     var isDestroyed: Bool {
         switch self {
@@ -264,6 +278,78 @@ private enum AttachmentImpl {
         switch self {
         case .texture(let impl): impl.width()
         case .textureView(let impl): impl.width()
+        }
+    }
+
+    var height: UInt32 {
+        switch self {
+        case .texture(let impl): impl.height()
+        case .textureView(let impl): impl.height()
+        }
+    }
+
+    var depthOrArrayLayers: UInt32 {
+        switch self {
+        case .texture(let impl): impl.depthOrArrayLayers()
+        case .textureView(let impl): impl.depthOrArrayLayers()
+        }
+    }
+
+    /// The usages the view itself allows.
+    func usageContains(_ usage: WebGPU.TextureUsage) -> Bool {
+        switch self {
+        case .texture(let impl): impl.usage() & usage.rawValue != 0
+        case .textureView(let impl): impl.usage() & usage.rawValue != 0
+        }
+    }
+
+    var is2DTexture: Bool {
+        switch self {
+        case .texture(let impl): impl.is2DTexture()
+        case .textureView(let impl): impl.is2DTexture()
+        }
+    }
+
+    var is2DArrayTexture: Bool {
+        switch self {
+        case .texture(let impl): impl.is2DArrayTexture()
+        case .textureView(let impl): impl.is2DArrayTexture()
+        }
+    }
+
+    var is3DTexture: Bool {
+        switch self {
+        case .texture(let impl): impl.is3DTexture()
+        case .textureView(let impl): impl.is3DTexture()
+        }
+    }
+
+    var hasSwizzle: Bool {
+        switch self {
+        case .texture: false
+        case .textureView(let impl): impl.hasSwizzle()
+        }
+    }
+
+    /// The Metal texture of the texture itself, or of the view's parent.
+    var parentMetalTexture: (any MTLTexture)? {
+        switch self {
+        case .texture(let impl): impl.texture()
+        case .textureView(let impl): impl.parentTexture()
+        }
+    }
+
+    var parentRelativeSlice: UInt32 {
+        switch self {
+        case .texture: 0
+        case .textureView(let impl): impl.parentRelativeSlice()
+        }
+    }
+
+    func rasterizationMapForSlice(_ slice: UInt32) -> (any MTLRasterizationRateMap)? {
+        switch self {
+        case .texture(let impl): impl.rasterizationMapForSlice(slice)
+        case .textureView(let impl): impl.rasterizationMapForSlice(slice)
         }
     }
 
@@ -295,6 +381,11 @@ private enum AttachmentImpl {
         case .textureView(let impl): (impl.baseMipLevel(), impl.mipLevelCount(), impl.baseArrayLayer(), impl.arrayLayerCount())
         }
     }
+
+    var baseMipLevel: UInt32 { subresources.baseMipLevel }
+    var mipLevelCount: UInt32 { subresources.mipLevelCount }
+    var baseArrayLayer: UInt32 { subresources.baseArrayLayer }
+    var arrayLayerCount: UInt32 { subresources.arrayLayerCount }
 
     /// The regions of the attached subresource that `aspect` selects; .All selects every aspect of the attachment.
     func initRegions(aspect: WebGPU.TextureAspect) -> InitRegions {

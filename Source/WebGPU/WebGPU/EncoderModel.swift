@@ -1171,7 +1171,7 @@ struct TextureShellList {
 
 // MARK: Render pass attachments
 
-/// TextureOrTextureView without its null state.
+/// A render pass attachment: a texture or a texture view, with its shell.
 enum AttachmentView {
     case texture(WebGPU.Metal.Texture, TextureImpl)
     case textureView(WebGPU.Metal.TextureView, TextureViewImpl)
