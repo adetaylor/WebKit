@@ -77,6 +77,7 @@ static float scrollWheelMultiplier()
 }
 #endif
 
+#if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
 ScrollingEffectsController::~ScrollingEffectsController()
 {
     ASSERT(m_timersWereStopped);
@@ -99,6 +100,7 @@ void ScrollingEffectsController::stopAllTimers()
     m_timersWereStopped = true;
 #endif
 }
+#endif
 
 static ScrollEventAxis LEGACY_NODELETE dominantAxisFavoringVertical(FloatSize delta)
 {
@@ -184,6 +186,7 @@ void ScrollingEffectsController::handleWheelEventDuringSpringAnimation(const Pla
 #endif
 }
 
+#if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
 bool ScrollingEffectsController::handleWheelEvent(const PlatformWheelEvent& wheelEvent)
 {
 #if USE_SWIFT_SCROLL_PHYSICS
@@ -345,6 +348,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
     return handled;
 #endif
 }
+#endif
 
 #if !USE_SWIFT_SCROLL_PHYSICS
 void ScrollingEffectsController::clampDeltaForAllowedAxes(const PlatformWheelEvent& wheelEvent, FloatSize& delta)
@@ -692,6 +696,7 @@ void ScrollingEffectsController::updateRubberBandAnimatingState()
 }
 #endif
 
+#if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
 void ScrollingEffectsController::scrollPositionChanged()
 {
 #if USE_SWIFT_SCROLL_PHYSICS
@@ -753,6 +758,7 @@ void ScrollingEffectsController::stopRubberBanding()
     updateRubberBandingState();
 #endif
 }
+#endif
 
 #if !USE_SWIFT_SCROLL_PHYSICS
 bool ScrollingEffectsController::startRubberBandAnimation(const FloatSize& initialVelocity, const FloatSize& initialOverscroll)
@@ -806,6 +812,7 @@ void ScrollingEffectsController::didStopRubberBandAnimation()
 }
 #endif
 
+#if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
 void ScrollingEffectsController::startRubberBandSnapBack()
 {
 #if USE_SWIFT_SCROLL_PHYSICS
@@ -839,6 +846,7 @@ void ScrollingEffectsController::rubberBandTargetOffsetDidChange()
     startRubberBandAnimation({ }, stretchAmount);
 #endif
 }
+#endif
 
 #if !USE_SWIFT_SCROLL_PHYSICS
 void ScrollingEffectsController::startRubberBandAnimationIfNecessary(const PlatformWheelEvent& wheelEvent)
@@ -1034,6 +1042,7 @@ void ScrollingEffectsController::scheduleDiscreteScrollSnap(const FloatSize& del
 }
 #endif
 
+#if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
 void ScrollingEffectsController::scheduleScrollendTimer()
 {
     static const Seconds discreteScrollDelay = 100_ms;
@@ -1221,6 +1230,7 @@ bool ScrollingEffectsController::restoreRubberbandingState(const RubberbandingSt
     return started;
 #endif
 }
+#endif
 
 #if USE_SWIFT_SCROLL_PHYSICS
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
