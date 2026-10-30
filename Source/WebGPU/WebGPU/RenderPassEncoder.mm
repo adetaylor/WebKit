@@ -264,14 +264,18 @@ bool RenderPassEncoder::isValid() const
     return m_impl->impl.isValid();
 }
 
-void RenderPassEncoder::markEncoderStateWasNotOpen()
+Ref<RenderPassEncoder> RenderPassEncoder::createInvalidWithEncoderStateNotOpen(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
 {
-    m_impl->impl.markEncoderStateWasNotOpen();
+    Ref renderPassEncoder = createInvalid(parentEncoder, device, errorString);
+    renderPassEncoder->m_impl->impl.markEncoderStateWasNotOpen();
+    return renderPassEncoder;
 }
 
-void RenderPassEncoder::deferRenderCommandEncoder(MTLRenderPassDescriptor* descriptor)
+Ref<RenderPassEncoder> RenderPassEncoder::createWithDeferredRenderCommandEncoder(const WebGPU::RenderPassDescriptor& descriptor, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device& device, MTLRenderPassDescriptor* mtlDescriptor)
 {
-    m_impl->impl.deferRenderCommandEncoder(descriptor);
+    Ref renderPassEncoder = create(nil, descriptor, visibilityResultBufferSize, depthReadOnly, stencilReadOnly, parentEncoder, visibilityResultBuffer, maxDrawCount, device, mtlDescriptor);
+    renderPassEncoder->m_impl->impl.deferRenderCommandEncoder(mtlDescriptor);
+    return renderPassEncoder;
 }
 
 #pragma mark Primitives for RenderPassEncoder.swift

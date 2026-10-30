@@ -85,12 +85,15 @@ public:
     {
         return adoptRef(*new RenderPassEncoder(parentEncoder, device, errorString));
     }
-    static Ref<RenderPassEncoder> createInvalidWithEncoderStateNotOpen(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
-    {
-        Ref renderPassEncoder = createInvalid(parentEncoder, device, errorString);
-        renderPassEncoder->markEncoderStateWasNotOpen();
-        return renderPassEncoder;
-    }
+    // A pass begun while its command encoder was not open never took the encoder over, so it can
+    // never be ended. https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end
+    static Ref<RenderPassEncoder> createInvalidWithEncoderStateNotOpen(CommandEncoder& parentEncoder, Device&, NSString* errorString);
+    // A render pass whose attachments all load and store and which has no occlusion query cannot
+    // change anything unless it encodes a command, so CommandEncoder hands the descriptor over here
+    // instead of creating the MTLRenderCommandEncoder up front. The encoder is created the first time
+    // this pass actually needs one; if nothing ever does, the pass costs nothing. See
+    // canDeferRenderCommandEncoder in CommandEncoder.swift.
+    static Ref<RenderPassEncoder> createWithDeferredRenderCommandEncoder(const WebGPU::RenderPassDescriptor&, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device&, MTLRenderPassDescriptor*);
 
     ~RenderPassEncoder();
 
@@ -124,16 +127,6 @@ public:
 #if !defined(__swift__)
     WebGPU::RenderPassEncoderImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
-    // A pass begun while its command encoder was not open never took the encoder over, so it can
-    // never be ended. https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end
-    void markEncoderStateWasNotOpen();
-
-    // A render pass whose attachments all load and store and which has no occlusion query cannot
-    // change anything unless it encodes a command, so CommandEncoder hands the descriptor over here
-    // instead of creating the MTLRenderCommandEncoder up front. The encoder is created the first time
-    // this pass actually needs one; if nothing ever does, the pass costs nothing. See
-    // canDeferRenderCommandEncoder in CommandEncoder.swift.
-    void deferRenderCommandEncoder(MTLRenderPassDescriptor*);
     void makeInvalid(NSString* = nil);
 
 private:
