@@ -27,27 +27,19 @@
 
 #import "PresentationContext.h"
 #import <QuartzCore/CAMetalLayer.h>
-#import <optional>
-#import <wtf/OptionSet.h>
-#import <wtf/Ref.h>
-#import <wtf/RefPtr.h>
+#import <memory>
 #import <wtf/TZoneMalloc.h>
-#import <wtf/Vector.h>
 
 namespace WebGPU::Metal {
 
-class Device;
-class Texture;
+struct PresentationContextCoreAnimationImplBox;
 
 // A presentation context that presents into a CAMetalLayer, for the surfaces of the C API that
 // are made from one (WGPUSurfaceSourceMetalLayer).
 class PresentationContextCoreAnimation final : public PresentationContext {
     WTF_MAKE_TZONE_ALLOCATED(PresentationContextCoreAnimation);
 public:
-    static Ref<PresentationContextCoreAnimation> create(CAMetalLayer *layer)
-    {
-        return adoptRef(*new PresentationContextCoreAnimation(layer));
-    }
+    static Ref<PresentationContextCoreAnimation> create(CAMetalLayer *);
 
     virtual ~PresentationContextCoreAnimation();
 
@@ -57,33 +49,13 @@ public:
     void present(uint32_t) final;
     Texture* currentTexture(uint32_t) final;
 
-    bool isPresentationContextCoreAnimation() const final { return true; }
-    bool isValid() const final { return !!m_configuration; }
+    bool isValid() const final;
 
 private:
-    explicit PresentationContextCoreAnimation(CAMetalLayer *);
+    explicit PresentationContextCoreAnimation(std::unique_ptr<PresentationContextCoreAnimationImplBox>&&);
 
-    struct Configuration {
-        Ref<Device> device;
-        WebGPU::TextureFormat format;
-        OptionSet<WebGPU::TextureUsage> usage;
-        Vector<WebGPU::TextureFormat> viewFormats;
-        uint32_t width { 0 };
-        uint32_t height { 0 };
-    };
-
-    // The drawable of the frame, and its texture, until the frame is presented.
-    struct Frame {
-        id<CAMetalDrawable> drawable;
-        Ref<Texture> texture;
-    };
-    Frame* currentFrame();
-
-    CAMetalLayer *m_layer { nil };
-    std::optional<Configuration> m_configuration;
-    std::optional<Frame> m_currentFrame;
+    // The layer, the configuration and the drawable of the current frame.
+    const std::unique_ptr<PresentationContextCoreAnimationImplBox> m_impl;
 };
 
 } // namespace WebGPU::Metal
-
-SPECIALIZE_TYPE_TRAITS_WEBGPU_PRESENTATION_CONTEXT(PresentationContextCoreAnimation, isPresentationContextCoreAnimation());

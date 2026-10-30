@@ -105,6 +105,7 @@
 		1CBAB0922718CCA0006080BB /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CBAB0912718CCA0006080BB /* JavaScriptCore.framework */; };
 		1CBD2E992977DAC900BBF52C /* PresentationContextIOSurface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1CBD2E952977DAC900BBF52C /* PresentationContextIOSurface.mm */; };
 		6D3D311C148A05F444361152 /* PresentationContextCoreAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = CAE2F03DFDACC7D53EBE42B1 /* PresentationContextCoreAnimation.mm */; };
+		AD5A3100000000000000E102 /* PresentationContextCoreAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5A3100000000000000E101 /* PresentationContextCoreAnimation.swift */; };
 		AD5A3100000000000000C202 /* PresentationContextIOSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5A3100000000000000C201 /* PresentationContextIOSurface.swift */; };
 		1CEBD7E72716AFBA00A5254D /* WebGPU.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CEBD7E62716AFBA00A5254D /* WebGPU.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1CEBD8262716CACC00A5254D /* libwgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD7F22716B2CC00A5254D /* libwgsl.a */; };
@@ -403,6 +404,7 @@
 		1CBD2E952977DAC900BBF52C /* PresentationContextIOSurface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PresentationContextIOSurface.mm; sourceTree = "<group>"; };
 		1E2E1926E3067FF865B423AE /* PresentationContextCoreAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PresentationContextCoreAnimation.h; sourceTree = "<group>"; };
 		CAE2F03DFDACC7D53EBE42B1 /* PresentationContextCoreAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PresentationContextCoreAnimation.mm; sourceTree = "<group>"; };
+		AD5A3100000000000000E101 /* PresentationContextCoreAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationContextCoreAnimation.swift; sourceTree = "<group>"; };
 		AD5A3100000000000000C201 /* PresentationContextIOSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationContextIOSurface.swift; sourceTree = "<group>"; };
 		1CC0C8C9273A7D8900D0B481 /* WebGPU.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = WebGPU.modulemap; sourceTree = "<group>"; };
 		1CEBD7E32716AFBA00A5254D /* WebGPU.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = WebGPU.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -677,6 +679,7 @@
 				1C9F7CDD29762F51006B5BE9 /* PresentationContext.mm */,
 				1E2E1926E3067FF865B423AE /* PresentationContextCoreAnimation.h */,
 				CAE2F03DFDACC7D53EBE42B1 /* PresentationContextCoreAnimation.mm */,
+				AD5A3100000000000000E101 /* PresentationContextCoreAnimation.swift */,
 				1CBD2E942977DAC900BBF52C /* PresentationContextIOSurface.h */,
 				1CBD2E952977DAC900BBF52C /* PresentationContextIOSurface.mm */,
 				AD5A3100000000000000C201 /* PresentationContextIOSurface.swift */,
@@ -1284,6 +1287,7 @@
 				AD5A3100000000000000D502 /* PipelineModel.swift in Sources */,
 				1C9F7CDF29762F51006B5BE9 /* PresentationContext.mm in Sources */,
 				6D3D311C148A05F444361152 /* PresentationContextCoreAnimation.mm in Sources */,
+				AD5A3100000000000000E102 /* PresentationContextCoreAnimation.swift in Sources */,
 				1CBD2E992977DAC900BBF52C /* PresentationContextIOSurface.mm in Sources */,
 				AD5A3100000000000000C202 /* PresentationContextIOSurface.swift in Sources */,
 				1C5ACABD273A426D0095F8D5 /* QuerySet.mm in Sources */,
