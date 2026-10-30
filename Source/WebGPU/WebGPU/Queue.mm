@@ -150,21 +150,6 @@ void Queue::resolveDeviceTimestamps(id<MTLCommandBuffer> commandBuffer) const
         device->resolveTimestampsForBuffer(commandBuffer);
 }
 
-id<MTLCommandEncoder> Queue::encoderForBuffer(id<MTLCommandBuffer> commandBuffer) const
-{
-    return m_impl->impl.encoderForBuffer(commandBuffer);
-}
-
-void Queue::setEncoderForBuffer(id<MTLCommandBuffer> commandBuffer, id<MTLCommandEncoder> commandEncoder)
-{
-    m_impl->impl.setEncoderForBuffer(this, commandBuffer, commandEncoder);
-}
-
-id<MTLCommandBuffer> Queue::commandBufferWithDescriptor(MTLCommandBufferDescriptor* descriptor)
-{
-    return m_impl->impl.commandBufferWithDescriptor(this, descriptor);
-}
-
 void Queue::loseTheDevice(WebGPU::DeviceLostReason reason)
 {
     if (RefPtr device = m_device)
@@ -202,11 +187,6 @@ void Queue::onSubmittedWorkScheduled(Function<void()>&& completionHandler)
     m_impl->impl.onSubmittedWorkScheduled(this, isUsable(device), completionHandler);
 }
 
-void Queue::removeMTLCommandBuffer(id<MTLCommandBuffer> commandBuffer)
-{
-    m_impl->impl.removeMTLCommandBuffer(this, commandBuffer);
-}
-
 void Queue::waitForAllCommitedWorkToComplete()
 {
     m_impl->impl.waitForAllCommittedWorkToComplete();
@@ -227,11 +207,6 @@ template<unsigned errorCode>
     if (device)
         device->loseTheDevice(WebGPU::DeviceLostReason::Unknown);
     RELEASE_ASSERT_NOT_REACHED();
-}
-
-void Queue::commitMTLCommandBuffer(id<MTLCommandBuffer> commandBuffer)
-{
-    m_impl->impl.commitMTLCommandBuffer(this, commandBuffer);
 }
 
 // Called by QueueImpl just before each commit. The handlers are in C++ because they capture the Queue and hop to the
@@ -622,25 +597,6 @@ void Queue::scheduleWork(Instance::WorkItem&& workItem)
     // before the call returns.
     if (auto scheduler = m_impl->scheduler)
         scheduler->scheduleWork(workItem);
-}
-
-bool Queue::clearTextureViewIfNeeded(TextureView& textureView)
-{
-    RefPtr device = m_device;
-    if (!device)
-        return false;
-
-    Ref parentTexture = textureView.apiParentTexture();
-    return m_impl->impl.clearTextureIfNeeded(this, device->swiftImpl(), parentTexture->swiftImpl(), textureView.aspect(), textureView.mipLevelCount(), textureView.arrayLayerCount(), textureView.baseMipLevel(), textureView.baseArrayLayer());
-}
-
-bool Queue::clearTextureViewIfNeeded(Texture& texture)
-{
-    RefPtr device = m_device;
-    if (!device)
-        return false;
-
-    return m_impl->impl.clearTextureIfNeeded(this, device->swiftImpl(), texture.swiftImpl(), WebGPU::TextureAspect::All, texture.mipLevelCount(), texture.arrayLayerCount(), 0, 0);
 }
 
 } // namespace WebGPU::Metal

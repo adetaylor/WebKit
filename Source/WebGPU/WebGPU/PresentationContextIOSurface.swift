@@ -242,7 +242,7 @@ final class PresentationContextIOSurfaceImpl {
             renderBuffers.append(RenderBuffer(texture: parentTexture, luminanceClampTexture: luminanceClampTexture))
             if existingRenderBuffers.count >= renderBuffers.count {
                 if resizeCommandBuffer == nil {
-                    resizeCommandBuffer = deviceQueue.commandBufferWithDescriptor(MTLCommandBufferDescriptor())
+                    resizeCommandBuffer = deviceImpl.defaultQueueImpl.commandBufferWithDescriptor(deviceQueue, MTLCommandBufferDescriptor())
                 }
 
                 let existing = existingRenderBuffers[renderBuffers.count - 1]
@@ -252,7 +252,7 @@ final class PresentationContextIOSurfaceImpl {
                     existing.texture.texture(),
                     resizeCommandBuffer,
                     metalDevice,
-                    deviceQueue
+                    deviceImpl
                 )
                 if let luminanceClampParent = luminanceClampTexture.first, let luminanceClampDescriptor,
                     !existing.luminanceClampTexture.isEmpty
@@ -265,14 +265,14 @@ final class PresentationContextIOSurfaceImpl {
                         existing.luminanceClampTexture.first?.texture(),
                         resizeCommandBuffer,
                         metalDevice,
-                        deviceQueue
+                        deviceImpl
                     )
                 }
             }
         }
 
         if let resizeCommandBuffer {
-            deviceQueue.commitMTLCommandBuffer(resizeCommandBuffer)
+            deviceImpl.defaultQueueImpl.commitMTLCommandBuffer(deviceQueue, resizeCommandBuffer)
         }
         assert(ioSurfaces.count == renderBuffers.count)
         maximumInFlightFrames = renderBuffers.count > 1 ? renderBuffers.count - 1 : 1
@@ -327,8 +327,9 @@ final class PresentationContextIOSurfaceImpl {
         _ source: (any MTLTexture)?,
         _ commandBuffer: (any MTLCommandBuffer)?,
         _ metalDevice: (any MTLDevice)?,
-        _ deviceQueue: WebGPU.Metal.Queue
+        _ deviceImpl: DeviceImpl
     ) {
+        let deviceQueue = deviceImpl.defaultQueue()
         guard let source, let destination, let pipelineState = resizePipelineState(metalDevice) else {
             return
         }
@@ -337,7 +338,7 @@ final class PresentationContextIOSurfaceImpl {
         computeDescriptor.dispatchType = .serial
 
         let computeEncoder = commandBuffer?.makeComputeCommandEncoder(descriptor: computeDescriptor)
-        deviceQueue.setEncoderForBuffer(commandBuffer, computeEncoder)
+        deviceImpl.defaultQueueImpl.setEncoderForBuffer(deviceQueue, commandBuffer, computeEncoder)
         computeEncoder?.setComputePipelineState(pipelineState)
 
         computeEncoder?.setTexture(source, index: 0)
@@ -394,15 +395,16 @@ final class PresentationContextIOSurfaceImpl {
 
         waitForInFlightFrameSlot()
 
-        let deviceQueue = configured.device.getQueue().ptr()
+        let deviceQueue = configured.impl.defaultQueue()
+        let queueImpl = configured.impl.defaultQueueImpl
         let renderBuffer = renderBuffers[Int(currentIndex)]
         if let computePipelineState = luminanceClampPipeline, let luminanceClampTexture = renderBuffer.luminanceClampTexture.first {
-            let commandBuffer = deviceQueue.commandBufferWithDescriptor(MTLCommandBufferDescriptor())
+            let commandBuffer = queueImpl.commandBufferWithDescriptor(deviceQueue, MTLCommandBufferDescriptor())
             let computeDescriptor = MTLComputePassDescriptor()
             computeDescriptor.dispatchType = .serial
 
             let computeEncoder = commandBuffer?.makeComputeCommandEncoder(descriptor: computeDescriptor)
-            deviceQueue.setEncoderForBuffer(commandBuffer, computeEncoder)
+            queueImpl.setEncoderForBuffer(deviceQueue, commandBuffer, computeEncoder)
             computeEncoder?.setComputePipelineState(computePipelineState)
             let inputTexture = luminanceClampTexture.texture()
             computeEncoder?.setTexture(inputTexture, index: 0)
@@ -415,7 +417,7 @@ final class PresentationContextIOSurfaceImpl {
             )
             computeEncoder?.dispatchThreadgroups(threadgroupCount, threadsPerThreadgroup: threadgroupSize)
             deviceQueue.endEncoding(computeEncoder, commandBuffer)
-            deviceQueue.commitMTLCommandBuffer(commandBuffer)
+            queueImpl.commitMTLCommandBuffer(deviceQueue, commandBuffer)
         }
 
         inFlightFrames.append(renderBuffer.presentedTexture)
