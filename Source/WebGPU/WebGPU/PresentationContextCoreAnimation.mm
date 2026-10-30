@@ -89,19 +89,4 @@ bool PresentationContextCoreAnimation::isValid() const
     return m_impl->impl.isConfigured();
 }
 
-Ref<Texture> createDrawableTexture(id<MTLTexture> texture, WebGPU::TextureFormat format, uint8_t usage, SpanConstTextureFormat viewFormats, uint32_t width, uint32_t height, Device& device)
-{
-    WebGPU::TextureDescriptor descriptor {
-        .label = "CAMetalLayer drawable"_s,
-        .usage = OptionSet<WebGPU::TextureUsage>::fromRaw(usage),
-        .dimension = WebGPU::TextureDimension::_2d,
-        .size = { .width = width, .height = height, .depthOrArrayLayers = 1 },
-        .format = format,
-        .mipLevelCount = 1,
-        .sampleCount = 1,
-        .viewFormats = viewFormats,
-    };
-    return Texture::create(texture, descriptor, Vector<WebGPU::TextureFormat> { viewFormats }, device);
-}
-
 } // namespace WebGPU::Metal

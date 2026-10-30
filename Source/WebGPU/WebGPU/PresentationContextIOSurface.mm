@@ -144,39 +144,6 @@ Seconds PresentationContextIOSurface::lastFramePresentStall() const
     return Seconds { m_impl->impl.lastFramePresentStallSeconds() };
 }
 
-static WebGPU::TextureDescriptor canvasTextureDescriptor(const WebGPU::CanvasConfiguration& configuration, WebGPU::TextureFormat format, const std::array<WebGPU::TextureFormat, 1>& effectiveViewFormats, uint32_t width, uint32_t height)
-{
-    return WebGPU::TextureDescriptor {
-        .label = { },
-        .usage = configuration.usage,
-        .dimension = WebGPU::TextureDimension::_2d,
-        .size = {
-            .width = width,
-            .height = height,
-            .depthOrArrayLayers = 1,
-        },
-        .format = format,
-        .mipLevelCount = 1,
-        .sampleCount = 1,
-        // Without view formats in the configuration, the validation takes the format of the textures as
-        // their only view format.
-        .viewFormats = configuration.viewFormats.empty() ? std::span<const WebGPU::TextureFormat> { effectiveViewFormats } : configuration.viewFormats,
-    };
-}
-
-NSString *errorValidatingCanvasTextureCreation(Device& device, const WebGPU::CanvasConfiguration& configuration, WebGPU::TextureFormat effectiveFormat, uint32_t width, uint32_t height)
-{
-    std::array effectiveViewFormats { effectiveFormat };
-    return device.errorValidatingTextureCreation(canvasTextureDescriptor(configuration, effectiveFormat, effectiveViewFormats, width, height));
-}
-
-Ref<Texture> createCanvasTexture(id<MTLTexture> texture, const WebGPU::CanvasConfiguration& configuration, WebGPU::TextureFormat format, WebGPU::TextureFormat effectiveFormat, uint32_t width, uint32_t height, Device& device)
-{
-    std::array effectiveViewFormats { effectiveFormat };
-    // The textures allow views only in the formats that the configuration lists.
-    return Texture::create(texture, canvasTextureDescriptor(configuration, format, effectiveViewFormats, width, height), Vector<WebGPU::TextureFormat> { configuration.viewFormats }, device);
-}
-
 id<MTLLibrary> compileLibraryWithFastMath(id<MTLDevice> device, NSString *source)
 {
     NSError *error = nil;
