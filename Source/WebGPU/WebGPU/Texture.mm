@@ -103,19 +103,19 @@ RefPtr<WebGPU::Texture> Device::createTexture(const WebGPU::TextureDescriptor& d
     });
 }
 
-Ref<Texture> Texture::create(id<MTLTexture> texture, const WebGPU::TextureDescriptor& descriptor, Vector<WebGPU::TextureFormat>&& viewFormats, Device& device)
-{
-    return create([&] {
-        return makeTextureImpl(texture, textureParameters(descriptor), TextureFormatsView { viewFormats.span() }, &device, device.swiftImpl());
-    });
-}
-
 template<typename MakeImpl>
 Ref<Texture> Texture::create(MakeImpl&& makeImpl)
 {
     Ref result = adoptRef(*new Texture(std::forward<MakeImpl>(makeImpl)));
     result->swiftImpl().setShell(result.ptr());
     return result;
+}
+
+Ref<Texture> Texture::createWithStagedImpl(Device& device)
+{
+    return create([&] {
+        return device.swiftImpl().takeStagedTextureImpl();
+    });
 }
 
 Ref<Texture> Texture::createInvalid(Device& device)
@@ -202,40 +202,14 @@ RefPtr<WebGPU::TextureView> Texture::createView(const std::optional<WebGPU::Text
     return TextureView::create(impl);
 }
 
-void Texture::recreateIfNeeded()
-{
-    swiftImpl().recreateIfNeeded();
-}
-
-void Texture::makeCanvasBacking()
-{
-    swiftImpl().makeCanvasBacking();
-}
-
-bool Texture::isDestroyed() const
-{
-    return swiftImpl().isDestroyed();
-}
-
 id<MTLTexture> Texture::texture() const
 {
     return swiftImpl().texture();
 }
 
-bool Texture::waitForCommandBufferCompletion()
-{
-    return swiftImpl().waitForCommandBufferCompletion();
-}
-
-Seconds Texture::gpuFrameCost() const
-{
-    double seconds = swiftImpl().gpuFrameCostSeconds();
-    return seconds > 0 ? Seconds { seconds } : 0_s;
-}
-
 void Texture::undestroy()
 {
-    recreateIfNeeded();
+    swiftImpl().recreateIfNeeded();
 }
 
 void Texture::destroy()
@@ -251,16 +225,6 @@ void Texture::setLabel(String&& label)
 bool Texture::isValid() const
 {
     return swiftImpl().isValid();
-}
-
-void Texture::updateCompletionEvent(const std::pair<id<MTLSharedEvent>, uint64_t>& completionEvent)
-{
-    swiftImpl().updateCompletionEvent(completionEvent.first, completionEvent.second);
-}
-
-void Texture::setRasterizationRateMaps(std::pair<id<MTLRasterizationRateMap>, id<MTLRasterizationRateMap>>&& rateMaps)
-{
-    swiftImpl().setRasterizationRateMaps(rateMaps.first, rateMaps.second);
 }
 
 } // namespace WebGPU::Metal

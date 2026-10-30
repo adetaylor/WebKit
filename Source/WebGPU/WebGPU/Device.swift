@@ -103,6 +103,7 @@ final class DeviceImpl {
     var stagedPipelineLayoutImpl: PipelineLayoutImpl?
     var stagedRenderPipelineImpl: RenderPipelineImpl?
     var stagedComputePipelineImpl: ComputePipelineImpl?
+    var stagedTextureImpl: TextureImpl?
     // The scheduler of the Instance of the device's adapter, if it had one when the device was made: the asynchronous
     // pipeline compiles hop back through it.
     private var instanceSchedulerHandle: InstanceSchedulerHandle?
@@ -693,6 +694,15 @@ final class DeviceImpl {
     }
 
     // MARK: Staged Impls (see stagedBindGroupLayoutImpl)
+
+    @_expose(Cxx)
+    func takeStagedTextureImpl() -> TextureImpl {
+        guard let impl = stagedTextureImpl else {
+            preconditionFailure("No staged TextureImpl")
+        }
+        stagedTextureImpl = nil
+        return impl
+    }
 
     @_expose(Cxx)
     func takeStagedBindGroupLayoutImpl() -> BindGroupLayoutImpl {

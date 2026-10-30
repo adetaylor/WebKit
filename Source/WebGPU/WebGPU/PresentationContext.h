@@ -69,17 +69,9 @@ protected:
     explicit PresentationContext();
 };
 
-// For PresentationContextIOSurface.swift, which cannot build a WebGPU::TextureDescriptor, copy raw bytes, set the
-// deprecated fastMathEnabled or call the variadic WTFLogAlways. Declared here because PresentationContextIOSurface.h is
-// not a Swift module header; defined in PresentationContextIOSurface.mm.
-NSString *errorValidatingCanvasTextureCreation(Device&, const WebGPU::CanvasConfiguration&, WebGPU::TextureFormat effectiveFormat, uint32_t width, uint32_t height);
-// The texture's descriptor has the given format, and effectiveFormat as its only view format when the
-// configuration lists none.
-Ref<Texture> createCanvasTexture(id<MTLTexture>, const WebGPU::CanvasConfiguration&, WebGPU::TextureFormat, WebGPU::TextureFormat effectiveFormat, uint32_t width, uint32_t height, Device&);
-// For PresentationContextCoreAnimation.swift, which cannot build a WebGPU::TextureDescriptor: the texture of a
-// CAMetalLayer drawable. Defined in PresentationContextCoreAnimation.mm.
-using SpanConstTextureFormat = std::span<const WebGPU::TextureFormat>;
-Ref<Texture> createDrawableTexture(id<MTLTexture>, WebGPU::TextureFormat, uint8_t usage, SpanConstTextureFormat viewFormats, uint32_t width, uint32_t height, Device&);
+// For PresentationContextIOSurface.swift, which cannot copy raw bytes, set the deprecated fastMathEnabled or call the
+// variadic WTFLogAlways. Declared here because PresentationContextIOSurface.h is not a Swift module header; defined in
+// PresentationContextIOSurface.mm.
 // nil, logged, when Metal reports any error, including warnings alongside a library.
 id<MTLLibrary> compileLibraryWithFastMath(id<MTLDevice>, NSString *source);
 // nullptr when the bytes cannot be allocated.

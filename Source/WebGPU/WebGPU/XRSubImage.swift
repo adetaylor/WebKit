@@ -35,15 +35,15 @@ import WebGPU_Private.WebGPUCpp
 // non-optional getter.
 @_expose(Cxx)
 final class XRSubImageImpl {
-    private var colorTextures: [UInt64: WebGPU.Metal.Texture] = [:]
-    private var depthTextures: [UInt64: WebGPU.Metal.Texture] = [:]
+    private var colorTextures: [UInt64: TextureShellAndImpl] = [:]
+    private var depthTextures: [UInt64: TextureShellAndImpl] = [:]
     private var currentTextureIndex: UInt64 = 0
 
     fileprivate init() {
     }
 
     @_expose(Cxx)
-    func update(_ device: WebGPU.Metal.Device, _ projectionLayer: XRProjectionLayerImpl) {
+    func update(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ projectionLayer: XRProjectionLayerImpl) {
         var colorTexture = projectionLayer.colorTexture
         var depthTexture = projectionLayer.depthTexture
         let textureIndex = projectionLayer.reusableTextureIndex
@@ -53,8 +53,8 @@ final class XRSubImageImpl {
         let targetDepthStencilFormat = projectionLayer.depthStencilFormat
 
         currentTextureIndex = textureIndex
-        if let texture = colorTextures[textureIndex], texture.texture() === colorTexture {
-            WebGPU.Metal.updateXRTextureCompletionEvent(texture, completionEvent, completionEventSignalValue)
+        if let texture = colorTextures[textureIndex], texture.impl.texture() === colorTexture {
+            texture.impl.updateCompletionEvent(completionEvent, completionEventSignalValue)
         } else {
             guard let colorFormat = textureFormat(colorTexture?.pixelFormat ?? .invalid) else {
                 return
@@ -62,13 +62,9 @@ final class XRSubImageImpl {
             if colorFormat != targetColorFormat {
                 colorTexture = colorTexture?.makeTextureView(pixelFormat: texturePixelFormat(colorFormat))
             }
-            let newTexture = WebGPU.Metal.createXRTexture(colorTexture, false, targetColorFormat, colorFormat, device)
-            WebGPU.Metal.updateXRTextureCompletionEvent(newTexture, completionEvent, completionEventSignalValue)
-            WebGPU.Metal.setXRTextureRasterizationRateMaps(
-                newTexture,
-                projectionLayer.leftRasterizationMap,
-                projectionLayer.rightRasterizationMap
-            )
+            let newTexture = makeXRTexture(colorTexture, targetColorFormat, colorFormat, device, deviceImpl)
+            newTexture.impl.updateCompletionEvent(completionEvent, completionEventSignalValue)
+            newTexture.impl.setRasterizationRateMaps(projectionLayer.leftRasterizationMap, projectionLayer.rightRasterizationMap)
             colorTextures[textureIndex] = newTexture
         }
 
@@ -78,19 +74,13 @@ final class XRSubImageImpl {
             return
         }
 
-        if let texture = depthTextures[textureIndex], texture.texture() === depthTexture {
+        if let texture = depthTextures[textureIndex], texture.impl.texture() === depthTexture {
             return
         }
         if textureFormat(depthTexture?.pixelFormat ?? .invalid) != targetDepthStencilFormat {
             depthTexture = depthTexture?.makeTextureView(pixelFormat: texturePixelFormat(targetDepthStencilFormat))
         }
-        depthTextures[textureIndex] = WebGPU.Metal.createXRTexture(
-            depthTexture,
-            true,
-            targetDepthStencilFormat,
-            targetDepthStencilFormat,
-            device
-        )
+        depthTextures[textureIndex] = makeXRTexture(depthTexture, targetDepthStencilFormat, targetDepthStencilFormat, device, deviceImpl)
     }
 
     @_expose(Cxx)
@@ -103,7 +93,7 @@ final class XRSubImageImpl {
         guard let texture = colorTextures[currentTextureIndex] else {
             preconditionFailure("Only after hasCurrentColorTexture()")
         }
-        return texture
+        return texture.shell
     }
 
     @_expose(Cxx)
@@ -116,11 +106,30 @@ final class XRSubImageImpl {
         guard let texture = depthTextures[currentTextureIndex] else {
             preconditionFailure("Only after hasCurrentDepthTexture()")
         }
-        return texture
+        return texture.shell
     }
 }
 
 @_expose(Cxx)
 func makeXRSubImageImpl() -> XRSubImageImpl {
     XRSubImageImpl()
+}
+
+// An XR layer texture as a render attachment texture that allows views in `viewFormat`.
+private func makeXRTexture(
+    _ texture: (any MTLTexture)?,
+    _ format: WebGPU.TextureFormat,
+    _ viewFormat: WebGPU.TextureFormat,
+    _ device: WebGPU.Metal.Device,
+    _ deviceImpl: DeviceImpl
+) -> TextureShellAndImpl {
+    let parameters = twoDimensionalTextureParameters(
+        format,
+        usage: WebGPU.TextureUsage.RenderAttachment.rawValue,
+        width: UInt32(truncatingIfNeeded: texture?.width ?? 0),
+        height: UInt32(truncatingIfNeeded: texture?.height ?? 0),
+        depthOrArrayLayers: UInt32(truncatingIfNeeded: texture?.arrayLength ?? 0),
+        sampleCount: UInt32(truncatingIfNeeded: texture?.sampleCount ?? 0)
+    )
+    return makeTexture(texture, parameters, viewFormats: [viewFormat], device, deviceImpl)
 }
