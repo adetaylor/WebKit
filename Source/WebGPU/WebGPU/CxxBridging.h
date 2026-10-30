@@ -69,12 +69,7 @@ struct FutureIDsView {
     std::span<const uint64_t> span() const LIFETIME_BOUND { return futureIDs; }
 } SWIFT_VIEW;
 
-// The render and compute pass descriptors' query sets and attachments, which Swift cannot resolve to their Impls.
-inline bool isValidToUseWithQuerySet(const WebGPU::Metal::QuerySet& querySet, const WebGPU::Metal::Device& device)
-{
-    return WebGPU::Metal::isValidToUseWithDevice(querySet, device);
-}
-
+// The render pass descriptors' attachments, which Swift cannot resolve to their Impls.
 inline bool isValidToUseWith(const WebGPU::Metal::TextureOrTextureView& texture, const WebGPU::Metal::Device& device)
 {
     return WebGPU::Metal::isValidToUseWithDevice(texture, device);
