@@ -152,7 +152,9 @@ public:
     Vector<WebGPU::FeatureName> features() const final;
     Ref<WebGPU::Queue> queue() final;
     Ref<Queue> getQueue() const;
+#if !defined(__swift__)
     bool hasFeature(WebGPU::FeatureName) const;
+#endif
     void popErrorScope(CompletionHandler<void(bool, std::optional<WebGPU::Error>&&)>&&) final;
     void pushErrorScope(WebGPU::ErrorFilter) final;
     void resolveDeviceLostPromise(CompletionHandler<void(WebGPU::DeviceLostReason, String&&)>&&) final;
@@ -166,32 +168,27 @@ public:
     WebGPU::DeviceImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
     Limits LEGACY_NODELETE limits() const final;
-    // For the Swift callers that have not switched to DeviceImpl.capabilities.limits.
-    Limits limitsCopy() const { return limits(); }
     id<MTLCounterSet> timestampCounterSet() const;
     uint32_t memoryBarrierLimit() const;
     bool supportsNonPrivateDepthStencilTextures() const;
     bool supportsMemorylessTextures() const;
 
+#if !defined(__swift__)
     id<MTLDevice> _Nullable device() const;
     void generateAValidationError(NSString * message);
     void generateAValidationError(String&& message);
-    void generateAnOutOfMemoryError(String&& message);
+#endif
 
     RefPtr<Instance> instance() const;
     Adapter& adapter() const;
+#if !defined(__swift__)
 #if CPU(X86_64)
     bool hasUnifiedMemory() const { return false; }
 #else
     bool hasUnifiedMemory() const { return device().hasUnifiedMemory; }
 #endif
     bool isShaderValidationEnabled() const;
-
-    uint32_t maxBuffersPlusVertexBuffersForVertexStage() const;
-    uint32_t maxBuffersForFragmentStage() const;
-    uint32_t maxBuffersForComputeStage() const;
-
-    id<MTLTexture> newTextureWithDescriptor(MTLTextureDescriptor *, IOSurfaceRef = nullptr, NSUInteger plane = 0) const;
+#endif
 
     bool LEGACY_NODELETE shouldStopCaptureAfterSubmit();
     id<MTLBuffer> placeholderBuffer() const;
@@ -199,18 +196,14 @@ public:
     id<MTLTexture> LEGACY_NODELETE placeholderTexture(WebGPU::TextureFormat) const;
     bool LEGACY_NODELETE isDestroyed() const;
     NSString *errorValidatingTextureCreation(const WebGPU::TextureDescriptor&);
+#if !defined(__swift__)
     id<MTLBuffer> safeCreateBuffer(NSUInteger length, MTLStorageMode, bool skipMemoryAttribution = false, MTLCPUCacheMode = MTLCPUCacheModeDefaultCache, MTLHazardTrackingMode = MTLHazardTrackingModeDefault) const;
     id<MTLBuffer> safeCreateBuffer(NSUInteger, bool skipMemoryAttribution = false) const;
     void loseTheDevice(WebGPU::DeviceLostReason);
-    void setOwnerWithIdentity(id<MTLResource>) const;
+#endif
     RefPtr<XRSubImage> getXRViewSubImage(XRProjectionLayer&);
     RefPtr<XRSubImage> LEGACY_NODELETE getXRViewSubImage() const;
     id<MTLTexture> _Nullable getXRViewSubImageDepthTexture() const;
-#if CPU(X86_64)
-    bool isIntel() const { return [device().name localizedCaseInsensitiveContainsString:@"intel"]; }
-#else
-    constexpr bool isIntel() const { return false; }
-#endif
     bool LEGACY_NODELETE pauseErrorReporting(bool pauseReporting);
     bool enableEncoderTimestamps() const;
     id<MTLCounterSampleBuffer> timestampsBuffer(id<MTLCommandBuffer>, size_t);

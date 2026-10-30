@@ -345,11 +345,6 @@ void Device::loseTheDevice(WebGPU::DeviceLostReason reason)
     m_impl->impl.loseTheDevice(reason);
 }
 
-void Device::setOwnerWithIdentity(id<MTLResource> resource) const
-{
-    m_impl->impl.setOwnerWithIdentity(resource);
-}
-
 void Device::destroy()
 {
     m_impl->impl.destroy();
@@ -387,21 +382,6 @@ bool Device::supportsMemorylessTextures() const
     return m_impl->impl.supportsMemorylessTextures();
 }
 
-uint32_t Device::maxBuffersPlusVertexBuffersForVertexStage() const
-{
-    return m_impl->impl.maxBuffersPlusVertexBuffersForVertexStage();
-}
-
-uint32_t Device::maxBuffersForFragmentStage() const
-{
-    return m_impl->impl.maxBuffersForFragmentStage();
-}
-
-uint32_t Device::maxBuffersForComputeStage() const
-{
-    return m_impl->impl.maxBuffersForComputeStage();
-}
-
 id<MTLTexture> Device::placeholderTexture(WebGPU::TextureFormat format) const
 {
     return m_impl->impl.placeholderTexture(Texture::isDepthOrStencilFormat(format));
@@ -421,17 +401,6 @@ void Device::generateAValidationError(String&& message)
 {
     // https://gpuweb.github.io/gpuweb/#abstract-opdef-generate-a-validation-error
     m_impl->impl.generateAnError(WebGPU::ErrorFilter::Validation, WebGPU::ErrorType::Validation, message);
-}
-
-void Device::generateAnOutOfMemoryError(String&& message)
-{
-    // https://gpuweb.github.io/gpuweb/#abstract-opdef-generate-an-out-of-memory-error
-    m_impl->impl.generateAnError(WebGPU::ErrorFilter::OutOfMemory, WebGPU::ErrorType::OutOfMemory, message);
-}
-
-id<MTLTexture> Device::newTextureWithDescriptor(MTLTextureDescriptor *textureDescriptor, IOSurfaceRef ioSurface, NSUInteger plane) const
-{
-    return m_impl->impl.newTextureWithDescriptor(textureDescriptor, ioSurface, plane);
 }
 
 id<MTLBuffer> Device::safeCreateBuffer(NSUInteger length, MTLStorageMode storageMode, bool skipAttribution, MTLCPUCacheMode cpuCacheMode, MTLHazardTrackingMode hazardTrackingMode) const

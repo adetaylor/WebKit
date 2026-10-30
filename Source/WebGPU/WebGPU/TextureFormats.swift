@@ -672,7 +672,7 @@ func texelBlockHeight(_ format: WebGPU.TextureFormat) -> UInt32 {
     }
 }
 
-func isColorRenderableFormat(_ format: WebGPU.TextureFormat, _ device: WebGPU.Metal.Device) -> Bool {
+func isColorRenderableFormat(_ format: WebGPU.TextureFormat, _ device: DeviceImpl) -> Bool {
     // https://gpuweb.github.io/gpuweb/#renderable-format
     switch format {
     case .R8unorm,
@@ -899,7 +899,7 @@ func isDepthStencilRenderableFormat(_ format: WebGPU.TextureFormat) -> Bool {
     }
 }
 
-func isRenderableFormat(_ format: WebGPU.TextureFormat, _ device: WebGPU.Metal.Device) -> Bool {
+func isRenderableFormat(_ format: WebGPU.TextureFormat, _ device: DeviceImpl) -> Bool {
     // https://gpuweb.github.io/gpuweb/#renderable-format
     switch format {
     case .R8unorm,
@@ -1243,7 +1243,7 @@ func renderTargetPixelByteAlignment(_ format: WebGPU.TextureFormat) -> UInt32 {
     }
 }
 
-func supportsMultisampling(_ format: WebGPU.TextureFormat, _ device: WebGPU.Metal.Device) -> Bool {
+func supportsMultisampling(_ format: WebGPU.TextureFormat, _ device: DeviceImpl) -> Bool {
     switch format {
     // https://gpuweb.github.io/gpuweb/#texture-format-caps
     case .R8unorm,
@@ -1358,7 +1358,7 @@ func supportsMultisampling(_ format: WebGPU.TextureFormat, _ device: WebGPU.Meta
     }
 }
 
-func supportsResolve(_ format: WebGPU.TextureFormat, _ device: WebGPU.Metal.Device) -> Bool {
+func supportsResolve(_ format: WebGPU.TextureFormat, _ device: DeviceImpl) -> Bool {
     switch format {
     case .R8unorm,
         .R16float,
@@ -1471,7 +1471,7 @@ func supportsResolve(_ format: WebGPU.TextureFormat, _ device: WebGPU.Metal.Devi
     }
 }
 
-func supportsBlending(_ format: WebGPU.TextureFormat, _ device: WebGPU.Metal.Device) -> Bool {
+func supportsBlending(_ format: WebGPU.TextureFormat, _ device: DeviceImpl) -> Bool {
     switch format {
     // https://gpuweb.github.io/gpuweb/#texture-format-caps
     case .R8unorm,
@@ -1588,7 +1588,7 @@ func supportsBlending(_ format: WebGPU.TextureFormat, _ device: WebGPU.Metal.Dev
 
 func hasStorageBindingCapability(
     _ format: WebGPU.TextureFormat,
-    _ device: WebGPU.Metal.Device,
+    _ device: DeviceImpl,
     _ access: WebGPU.StorageTextureAccess? = nil
 ) -> Bool {
     // https://gpuweb.github.io/gpuweb/#plain-color-formats
