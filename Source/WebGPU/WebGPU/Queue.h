@@ -146,14 +146,6 @@ public:
     Ref<Device> device() const;
 #endif
     void generateAValidationError(String&&);
-    id<MTLCommandBuffer> _Nullable commandBufferWithDescriptor(MTLCommandBufferDescriptor*);
-    void commitMTLCommandBuffer(id<MTLCommandBuffer>);
-    void removeMTLCommandBuffer(id<MTLCommandBuffer>);
-    void setEncoderForBuffer(id<MTLCommandBuffer>, id<MTLCommandEncoder>);
-    id<MTLCommandEncoder> _Nullable encoderForBuffer(id<MTLCommandBuffer>) const;
-    // False when the view could not be zero-filled, so nothing may read it.
-    bool clearTextureViewIfNeeded(TextureView&);
-    bool clearTextureViewIfNeeded(Texture&);
     void endEncoding(id<MTLCommandEncoder>, id<MTLCommandBuffer>) const;
 
     id<MTLBlitCommandEncoder> ensureBlitCommandEncoder();

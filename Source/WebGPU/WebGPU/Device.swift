@@ -190,7 +190,7 @@ final class DeviceImpl {
     @_expose(Cxx)
     func makeInvalid() {
         metalDevice = nil
-        backingDefaultQueue.makeInvalid()
+        defaultQueueImpl.makeInvalid(backingDefaultQueue)
     }
 
     // The callback runs between the adapter's invalidation and the queue's.
@@ -201,7 +201,7 @@ final class DeviceImpl {
         if var callback = deviceLostCallback.take() {
             callback(reason, consuming: WebGPU.Metal.deviceLostMessage())
         }
-        backingDefaultQueue.makeInvalid()
+        defaultQueueImpl.makeInvalid(backingDefaultQueue)
         lost = true
     }
 
