@@ -58,7 +58,7 @@ func deviceCreateCommandEncoder(_ device: WebGPU.Metal.Device, _ deviceImpl: Dev
     }
 
     captureSingleFrameIfNeeded(deviceImpl.device())
-    guard let commandBuffer = deviceImpl.defaultQueue().commandBufferWithDescriptor(MTLCommandBufferDescriptor()) else {
+    guard let commandBuffer = deviceImpl.defaultQueueImpl.commandBufferWithDescriptor(deviceImpl.defaultQueue(), MTLCommandBufferDescriptor()) else {
         return WebGPU.Metal.CommandEncoder.createInvalid(device).ptr()
     }
 
@@ -2954,7 +2954,7 @@ final class CommandEncoderImpl {
     func setExistingEncoder(_ encoder: (any MTLCommandEncoder)?) {
         assert(existingCommandEncoder == nil || encoder == nil)
         existingCommandEncoder = encoder
-        deviceImpl.defaultQueue().setEncoderForBuffer(backingCommandBuffer, encoder)
+        deviceImpl.defaultQueueImpl.setEncoderForBuffer(deviceImpl.defaultQueue(), backingCommandBuffer, encoder)
     }
 
     @_expose(!Cxx)
@@ -2999,7 +2999,7 @@ final class CommandEncoderImpl {
     @_expose(!Cxx)
     func endEncoding(_ encoder: (any MTLCommandEncoder)?) {
         let queue = deviceImpl.defaultQueue()
-        let existingEncoder = queue.encoderForBuffer(backingCommandBuffer)
+        let existingEncoder = deviceImpl.defaultQueueImpl.encoderForBuffer(backingCommandBuffer)
         if existingEncoder !== encoder {
             queue.endEncoding(existingEncoder, backingCommandBuffer)
             setExistingEncoder(nil)
@@ -3029,9 +3029,9 @@ final class CommandEncoderImpl {
         }
 
         let queue = deviceImpl.defaultQueue()
-        let existingEncoder = queue.encoderForBuffer(backingCommandBuffer)
+        let existingEncoder = deviceImpl.defaultQueueImpl.encoderForBuffer(backingCommandBuffer)
         queue.endEncoding(existingEncoder, backingCommandBuffer)
-        queue.removeMTLCommandBuffer(backingCommandBuffer)
+        deviceImpl.defaultQueueImpl.removeMTLCommandBuffer(queue, backingCommandBuffer)
         retainTimestampsForOneUpdateLoop()
         backingCommandBuffer = nil
     }
@@ -3041,7 +3041,7 @@ final class CommandEncoderImpl {
         priorCommandBuffers = []
         let queue = deviceImpl.defaultQueue()
         for commandBuffer in commandBuffers {
-            queue.removeMTLCommandBuffer(commandBuffer)
+            deviceImpl.defaultQueueImpl.removeMTLCommandBuffer(queue, commandBuffer)
         }
     }
 
@@ -3070,7 +3070,7 @@ final class CommandEncoderImpl {
             return
         }
 
-        guard let nextCommandBuffer = deviceImpl.defaultQueue().commandBufferWithDescriptor(MTLCommandBufferDescriptor()) else {
+        guard let nextCommandBuffer = deviceImpl.defaultQueueImpl.commandBufferWithDescriptor(deviceImpl.defaultQueue(), MTLCommandBufferDescriptor()) else {
             return
         }
 
@@ -3129,7 +3129,7 @@ final class CommandEncoderImpl {
         backingBlitCommandEncoder = nil
         existingCommandEncoder = nil
         releasePriorCommandBuffers()
-        deviceImpl.defaultQueue().removeMTLCommandBuffer(backingCommandBuffer)
+        deviceImpl.defaultQueueImpl.removeMTLCommandBuffer(deviceImpl.defaultQueue(), backingCommandBuffer)
 
         backingCommandBuffer = nil
         dropInitializationLedger()
@@ -3454,7 +3454,7 @@ final class CommandEncoderImpl {
     func encoderWillBeDestroyed() {
         finalizeBlitCommandEncoder()
         releasePriorCommandBuffers()
-        deviceImpl.defaultQueue().removeMTLCommandBuffer(backingCommandBuffer)
+        deviceImpl.defaultQueueImpl.removeMTLCommandBuffer(deviceImpl.defaultQueue(), backingCommandBuffer)
         retainTimestampsForOneUpdateLoop()
         backingCommandBuffer = nil // Do not remove, this is needed to workaround rdar://143905417
         dropInitializationLedger()

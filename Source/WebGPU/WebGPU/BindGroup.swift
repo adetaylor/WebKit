@@ -1112,7 +1112,18 @@ private struct BindGroupCreation {
     func clearAndRead(_ resource: TextureResource) -> BoundTexture? {
         switch resource {
         case .texture(let shell, let impl, let sameDevice):
-            if sameDevice && !deviceImpl.defaultQueue().clearTextureViewIfNeeded(shell) {
+            if sameDevice
+                && !deviceImpl.defaultQueueImpl.clearTextureIfNeeded(
+                    deviceImpl.defaultQueue(),
+                    deviceImpl,
+                    impl,
+                    .All,
+                    impl.mipLevelCount(),
+                    impl.arrayLayerCount(),
+                    0,
+                    0
+                )
+            {
                 return nil
             }
             let texture = impl.texture()
@@ -1141,10 +1152,21 @@ private struct BindGroupCreation {
                 mipLevelCount: impl.mipLevelCount()
             )
         case .textureView(let shell, let impl, let sameDevice):
-            if sameDevice && !deviceImpl.defaultQueue().clearTextureViewIfNeeded(shell) {
+            let aspect = WebGPU.TextureAspect(rawValue: impl.aspect()) ?? .All
+            if sameDevice
+                && !deviceImpl.defaultQueueImpl.clearTextureIfNeeded(
+                    deviceImpl.defaultQueue(),
+                    deviceImpl,
+                    impl.parentTextureImpl,
+                    aspect,
+                    impl.mipLevelCount(),
+                    impl.arrayLayerCount(),
+                    impl.baseMipLevel(),
+                    impl.baseArrayLayer()
+                )
+            {
                 return nil
             }
-            let aspect = WebGPU.TextureAspect(rawValue: impl.aspect()) ?? .All
             return BoundTexture(
                 owner: .textureView(shell, impl),
                 tracking: TrackingInfo(
