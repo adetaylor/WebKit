@@ -2661,6 +2661,33 @@ struct SkippedDrawIndexedValidation {
     var keys: [(key: DrawIndexKey, vertexCount: UInt32)]
 }
 
+/// An indexed indirect draw whose baked ICB slot was reused rather than re-encoded, retained until commit so its index
+/// buffer can be revalidated if those indices changed after the slot was baked.
+struct ReusedIndirectIndexedDraw: Equatable {
+    let indirectBuffer: WebGPU.Metal.Buffer
+    let indirectBufferImpl: BufferImpl
+    let indirectOffset: UInt64
+    let indexBufferOffset: UInt64
+    let indirectGeneration: UInt64
+    let indexGeneration: UInt64
+    let minVertexCount: CountBound
+    let indexType: MTLIndexType
+    let primitiveType: MTLPrimitiveType
+
+    static func == (lhs: ReusedIndirectIndexedDraw, rhs: ReusedIndirectIndexedDraw) -> Bool {
+        lhs.indirectBufferImpl === rhs.indirectBufferImpl && lhs.indirectOffset == rhs.indirectOffset
+            && lhs.indexBufferOffset == rhs.indexBufferOffset && lhs.indirectGeneration == rhs.indirectGeneration
+            && lhs.indexGeneration == rhs.indexGeneration && lhs.minVertexCount == rhs.minVertexCount
+            && lhs.indexType == rhs.indexType && lhs.primitiveType == rhs.primitiveType
+    }
+}
+
+/// The reused indirect indexed draws of one index buffer.
+struct ReusedIndirectIndexedDraws {
+    weak var buffer: BufferImpl?
+    var draws: [ReusedIndirectIndexedDraw]
+}
+
 // One per GPUCommandEncoder, owned by the C++ CommandEncoder. Runs every WebGPU method; the copies, the passes, finish()
 // and resolveQuerySet are in the extension above, behind the entry points the shell calls.
 //
@@ -2717,6 +2744,8 @@ final class CommandEncoderImpl {
     private var bindGroupsToRebind: [(WebGPU.Metal.BindGroup, BindGroupImpl)] = []
     // The skipped draw-indexed validations, keyed by the BufferImpl's identity.
     private var skippedDrawIndexedValidations = WTFHashMap<UInt64, SkippedDrawIndexedValidation>()
+    // The reused indirect indexed draws of executeBundles, keyed by the index buffer's BufferImpl identity.
+    private var reusedIndirectIndexedDraws = WTFHashMap<UInt64, ReusedIndirectIndexedDraws>()
     // Whether the constructor's commit action is still to run.
     private var constructorCommitActionPending: Bool
     // The other commit actions. After finish() they are the CommandBuffer's.
@@ -3570,6 +3599,20 @@ final class CommandEncoderImpl {
         }
     }
 
+    @_expose(!Cxx)
+    func recordReusedIndirectIndexedDraw(_ buffer: BufferImpl, _ draw: ReusedIndirectIndexedDraw) {
+        let identity = identityKey(ObjectIdentifier(buffer))
+        // Another BufferImpl at the address of one that died starts a new list.
+        if reusedIndirectIndexedDraws.value(forKey: identity)?.buffer !== buffer {
+            reusedIndirectIndexedDraws.set(identity, ReusedIndirectIndexedDraws(buffer: buffer, draws: []))
+        }
+        reusedIndirectIndexedDraws.modifyValue(forKey: identity) { reused in
+            if !reused.draws.contains(draw) {
+                reused.draws.append(draw)
+            }
+        }
+    }
+
     // MARK: Commit actions
 
     // Dropped when the encoder is invalid, which it is from finish() on.
@@ -3589,6 +3632,7 @@ final class CommandEncoderImpl {
         if constructorCommitActionPending {
             constructorCommitActionPending = false
             runSkippedDrawIndexedValidations(commandBuffer, commandBufferImpl)
+            runReusedIndirectIndexedDrawValidations(commandBufferImpl)
             let groups = bindGroupsToRebind
             for (_, group) in groups {
                 _ = group.rebindSamplersIfNeeded()
@@ -3636,6 +3680,20 @@ final class CommandEncoderImpl {
                 commandBufferImpl.addPostCommitAction(
                     .clearMustTakeSlowIndexValidationPath(commandBufferImpl.device, WeakBufferAndEncoder(buffer: buffer, encoder: nil))
                 )
+            }
+        }
+    }
+
+    // The constructor's action's second walk, in WTF::HashMap order: the reused draws whose index buffer's contents
+    // changed since their slot was baked. A buffer destroyed since is skipped.
+    private func runReusedIndirectIndexedDrawValidations(_ commandBufferImpl: CommandBufferImpl) {
+        let reusedDraws = reusedIndirectIndexedDraws
+        reusedDraws.forEachInWTFOrder { _, reused in
+            guard let buffer = reused.buffer, !buffer.isDestroyed() else {
+                return
+            }
+            for draw in reused.draws where draw.indexGeneration != buffer.indexContentsGeneration() {
+                buffer.takeSlowBundleIndirectDrawValidationPath(commandBufferImpl, draw)
             }
         }
     }

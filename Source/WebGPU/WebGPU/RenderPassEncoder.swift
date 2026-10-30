@@ -2166,9 +2166,28 @@ final class RenderPassEncoderImpl {
 
                     let indirectGeneration = indirectBuffer.contentsGeneration()
                     let indexGeneration = indexBuffer?.indexContentsGeneration() ?? 0
+                    // Unlike the cache above, this needs no didReadOOB() check: the slot holds arguments the encode
+                    // kernel already clamped, not app-authored counts an OOB scan had to vet, so equal generations
+                    // mean the baked command is still in bounds.
                     if data.encodedAtLeastOnce && data.lastIndirectGeneration == indirectGeneration
                         && data.lastIndexGeneration == indexGeneration
                     {
+                        if data.isIndexed, let indexBuffer {
+                            indexBuffer.skippedBundleIndirectDrawValidation(
+                                parentImpl,
+                                ReusedIndirectIndexedDraw(
+                                    indirectBuffer: data.indirectBuffer,
+                                    indirectBufferImpl: indirectBuffer,
+                                    indirectOffset: data.indirectOffset,
+                                    indexBufferOffset: UInt64(data.indexBufferOffset),
+                                    indirectGeneration: indirectGeneration,
+                                    indexGeneration: indexGeneration,
+                                    minVertexCount: data.bounds.vertices,
+                                    indexType: data.indexType,
+                                    primitiveType: data.primitiveType
+                                )
+                            )
+                        }
                         return
                     }
 

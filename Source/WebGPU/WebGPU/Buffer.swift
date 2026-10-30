@@ -157,6 +157,9 @@ final class BufferImpl {
     private var skippedValidationEncoders = EncoderTracking()
     // The shell that owns this Impl, for the strong references encoders and post-commit actions hold.
     private var ownerShell = CxxBridging.BufferWeakPtr()
+    // The command buffer this buffer was last cleared for, so that several failed validations sharing one command
+    // buffer do not each capture a "prior" copy and queue a restore of it.
+    private var clearedForCommandBuffer: ObjectIdentifier?
     // Declared last, so that the device outlives the rest of the buffer.
     let device: WebGPU.Metal.Device
     @_expose(Cxx)
@@ -632,16 +635,72 @@ final class BufferImpl {
             return
         }
         let isUInt16 = key.indexTypeRawValue == MTLIndexType.uint16.rawValue
-        if let priorContents = WebGPU.Metal.takeSlowIndexValidationPath(
+        let verified = WebGPU.Metal.verifyIndexBufferForSlowPath(
             shell,
             key.firstIndex,
             key.indexCount,
             isUInt16,
             key.primitiveOffset,
             vertexCount
-        ) {
+        )
+        if !verified {
+            clearIndexBuffer(shell, for: commandBuffer)
+        }
+    }
+
+    /// Right after executeBundles reused the baked ICB slot of an indexed indirect draw that indexes this buffer.
+    @_expose(!Cxx)
+    func skippedBundleIndirectDrawValidation(_ encoder: CommandEncoderImpl, _ draw: ReusedIndirectIndexedDraw) {
+        encoder.recordReusedIndirectIndexedDraw(self, draw)
+    }
+
+    /// At commit, for a reused draw whose indices changed after its slot was baked: as takeSlowIndexValidationPath(),
+    /// with the checks of the clamp shader.
+    @_expose(!Cxx)
+    func takeSlowBundleIndirectDrawValidationPath(_ commandBuffer: CommandBufferImpl, _ draw: ReusedIndirectIndexedDraw) {
+        guard let shell = CxxBridging.protectedBuffer(ownerShell) else {
+            return
+        }
+        // The baked slot holds the baseVertex the clamp shader saw, so the arguments are only a usable stand-in for it
+        // while nothing has rewritten them since. Anything else falls back to clearing unconditionally.
+        let indirectBuffer = draw.indirectBufferImpl
+        let indirectArguments =
+            !indirectBuffer.isDestroyed() && indirectBuffer.contentsGeneration() == draw.indirectGeneration
+            ? indirectBuffer.buffer() : nil
+        let primitiveOffset: UInt32 = draw.primitiveType == .lineStrip || draw.primitiveType == .triangleStrip ? 1 : 0
+        let verified = withExtendedLifetime(draw.indirectBuffer) {
+            WebGPU.Metal.verifyBundleIndirectDrawIndexBufferForSlowPath(
+                shell,
+                indirectArguments,
+                draw.indirectOffset,
+                draw.indexBufferOffset,
+                draw.indexType == .uint16,
+                draw.minVertexCount.indexClampVertexCount(primitiveOffset: primitiveOffset),
+                primitiveOffset
+            )
+        }
+        if !verified {
+            clearIndexBuffer(shell, for: commandBuffer)
+        }
+    }
+
+    /// Clears the buffer for the GPU work in `commandBuffer`, at most once per command buffer, and queues the write of
+    /// its old contents once that work completed.
+    private func clearIndexBuffer(_ shell: WebGPU.Metal.Buffer, for commandBuffer: CommandBufferImpl) {
+        let commandBufferIdentity = commandBuffer.commandBuffer().map { ObjectIdentifier($0) }
+        if let commandBufferIdentity, clearedForCommandBuffer == commandBufferIdentity {
+            return
+        }
+        clearedForCommandBuffer = commandBufferIdentity
+        if let priorContents = WebGPU.Metal.clearIndexBufferContents(shell) {
             commandBuffer.addPostCommitAction(.restoreIndexBufferContents(shell, self, priorContents))
         }
+    }
+
+    /// The restore of the contents clearIndexBuffer cleared is next, once the command buffer completed.
+    @_expose(!Cxx)
+    func indexBufferContentsWillBeRestored() {
+        clearedForCommandBuffer = nil
     }
 
     // MARK: Out-of-bounds reads

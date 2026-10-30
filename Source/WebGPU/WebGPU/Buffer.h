@@ -69,10 +69,16 @@ struct BufferParameters {
     bool mappedAtCreation { false };
 };
 
-// The slow index validation path's GPU waits, read-back and clear, for Buffer.swift. Returns the contents to write back
-// once the command buffer completed (restoreIndexBufferContents), or nil when the indices were valid.
-NSMutableData* takeSlowIndexValidationPath(Buffer&, uint32_t firstIndex, uint32_t indexCount, bool isUInt16, uint32_t primitiveOffset, uint32_t vertexCount);
-void restoreIndexBufferContents(Buffer&, id<MTLCommandBuffer>, NSMutableData*);
+// The slow index validation paths' GPU waits and read-backs, for Buffer.swift: whether the indices are valid.
+bool verifyIndexBufferForSlowPath(Buffer&, uint32_t firstIndex, uint32_t indexCount, bool isUInt16, uint32_t primitiveOffset, uint32_t vertexCount);
+// For a reused indexed indirect draw of a render bundle: whether every index from indexBufferOffset on stays in bounds
+// as the clamp shader checks it, with the baseVertex of the arguments at indirectOffset of indirectBuffer, which is nil
+// when those are not the arguments the draw's slot was baked with.
+bool verifyBundleIndirectDrawIndexBufferForSlowPath(Buffer&, id<MTLBuffer> _Nullable indirectBuffer, uint64_t indirectOffset, uint64_t indexBufferOffset, bool isUInt16, uint32_t vertexCount, uint32_t primitiveOffset);
+// Clears the buffer through the queue. Returns its prior contents, to write back once the command buffer
+// completed (restoreIndexBufferContents).
+NSMutableData* clearIndexBufferContents(Buffer&);
+void restoreIndexBufferContents(Buffer&, NSMutableData*);
 
 #if !defined(__swift__)
 // The bytes of a buffer the CPU writes into: the staging and temporary buffers the queue copies through, and a render
