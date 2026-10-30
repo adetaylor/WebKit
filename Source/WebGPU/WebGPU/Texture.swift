@@ -174,7 +174,7 @@ final class TextureImpl {
     private var backingTexture: (any MTLTexture)?
     private var destroyed = false
     private var canvasBacking = false
-    /// Made by Device::createTexture: setShell adds the shell to DeviceImpl.textures.
+    /// Made by Device::createTexture: setShell adds the texture to DeviceImpl.textures.
     fileprivate var registersWithDevice = false
     // Discards recorded by encoders whose command buffers were neither committed nor dropped yet: while one is pending, an
     // initialized region can become uninitialized before a reader runs, so readers record a requirement.
@@ -422,7 +422,7 @@ final class TextureImpl {
     func setShell(_ shell: WebGPU.Metal.Texture) {
         ownerShell = CxxBridging.textureThreadSafeWeakPtr(shell)
         if registersWithDevice {
-            deviceImpl.textures.add(ownerShell)
+            deviceImpl.textures.add(self)
         }
     }
 

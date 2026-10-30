@@ -1137,38 +1137,6 @@ struct WeakImplList<T: AnyObject> {
     }
 }
 
-/// Weak references to the shells of the textures a device made, sharing the control block TextureImpl.ownerShell made.
-///
-/// A dead entry at a sweeping cursor is replaced in place. API thread only.
-struct TextureShellList {
-    private var entries: [CxxBridging.TextureWeakPtr] = []
-    private var cursor = 0
-
-    mutating func add(_ texture: consuming CxxBridging.TextureWeakPtr) {
-        let index = cursor
-        if index < entries.count {
-            cursor += 1
-            if CxxBridging.isTextureGone(entries[index]) {
-                entries[index] = texture
-                return
-            }
-        } else {
-            cursor = 0
-        }
-        entries.append(texture)
-    }
-
-    /// The live ones, as strong references for the duration of the caller's walk.
-    var values: [WebGPU.Metal.Texture] {
-        entries.compactMap { CxxBridging.protectedTexture($0) }
-    }
-
-    mutating func removeAll() {
-        entries = []
-        cursor = 0
-    }
-}
-
 // MARK: Render pass attachments
 
 /// A render pass attachment: a texture or a texture view, with its shell.
