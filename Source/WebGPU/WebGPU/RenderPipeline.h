@@ -50,7 +50,6 @@ namespace WebGPU::Metal {
 
 class BindGroupLayout;
 class Device;
-class TextureOrTextureView;
 class TextureView;
 
 // The scalar pipeline state, which the render encoders read as one value.

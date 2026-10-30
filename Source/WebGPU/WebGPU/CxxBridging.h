@@ -30,7 +30,6 @@
 #include "CommandBuffer.h"
 #include "ComputePassEncoder.h"
 #include "Instance.h"
-#include "IsValidToUseWith.h"
 #include "RenderPassEncoder.h"
 #include "Texture.h"
 #include <QuartzCore/CAMetalLayer.h>
@@ -68,12 +67,6 @@ struct FutureIDsView {
 
     std::span<const uint64_t> span() const LIFETIME_BOUND { return futureIDs; }
 } SWIFT_VIEW;
-
-// The render pass descriptors' attachments, which Swift cannot resolve to their Impls.
-inline bool isValidToUseWith(const WebGPU::Metal::TextureOrTextureView& texture, const WebGPU::Metal::Device& device)
-{
-    return WebGPU::Metal::isValidToUseWithDevice(texture, device);
-}
 
 // FIXME: rdar://130765784 (=== does not accept foreign reference types)
 inline bool areDevicesEqual(const WebGPU::Metal::Device& a, const WebGPU::Metal::Device& b)

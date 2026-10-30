@@ -45,7 +45,6 @@ class TextureViewImpl;
 
 namespace WebGPU::Metal {
 
-class CommandEncoder;
 class Device;
 class Texture;
 
@@ -69,46 +68,6 @@ public:
 #if !defined(__swift__)
     WebGPU::TextureViewImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
-
-    NODELETE id<MTLTexture> texture() const;
-    // The view as a shader reads it: the same texels seen through the swizzle the descriptor asked
-    // for, which is the plain texture whenever that swizzle is the identity.
-    NODELETE id<MTLTexture> sampledTexture() const;
-    NODELETE id<MTLTexture> parentTexture() const;
-    // True when the descriptor asked for a swizzle other than "rgba"; the base swizzle the format
-    // imposes on top of that one does not count.
-    bool hasSwizzle() const;
-
-    // Borrowed from the Impl, which holds the reference.
-    Device& device() const;
-    NODELETE uint32_t width() const;
-    NODELETE uint32_t height() const;
-    NODELETE uint32_t depthOrArrayLayers() const;
-    NODELETE OptionSet<WebGPU::TextureUsage> usage() const;
-    NODELETE uint32_t sampleCount() const;
-    NODELETE WebGPU::TextureFormat parentFormat() const;
-    // Invalid views may have no format or dimension. format() and dimension() then report arbitrary
-    // ones, which only the validation that rejects the view sees.
-    NODELETE WebGPU::TextureFormat format() const;
-    std::optional<WebGPU::TextureFormat> optionalFormat() const;
-    NODELETE uint32_t parentMipLevelCount() const;
-    NODELETE uint32_t mipLevelCount() const;
-    NODELETE uint32_t baseMipLevel() const;
-    NODELETE WebGPU::TextureAspect aspect() const;
-    NODELETE uint32_t arrayLayerCount() const;
-    NODELETE uint32_t baseArrayLayer() const;
-    NODELETE WebGPU::TextureViewDimension dimension() const;
-    std::optional<WebGPU::TextureViewDimension> optionalDimension() const;
-    NODELETE bool isDestroyed() const;
-    void setCommandEncoder(CommandEncoder&) const;
-    const Texture& apiParentTexture() const;
-    Texture& apiParentTexture();
-    uint32_t parentRelativeSlice() const;
-    uint32_t parentRelativeMipLevel() const;
-    bool is2DTexture() const;
-    bool is2DArrayTexture() const;
-    bool is3DTexture() const;
-    NODELETE id<MTLRasterizationRateMap> rasterizationMapForSlice(uint32_t slice) const;
 
 private:
 #if !defined(__swift__)

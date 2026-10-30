@@ -26,7 +26,6 @@
 #pragma once
 
 #import "BindableResource.h"
-#import "TextureOrTextureView.h"
 #import <WebGPU/WebGPUCpp.h>
 #import <memory>
 #import <span>
