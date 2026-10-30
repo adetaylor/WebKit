@@ -159,8 +159,19 @@ final class RenderBundleImpl {
         }
         minDepth = newMinDepth
         maxDepth = newMaxDepth
+        // The two floats, in memory order.
+        let depthRange = [newMinDepth.bitPattern, newMaxDepth.bitPattern].flatMap { bits in
+            (0..<4).map { UInt8(truncatingIfNeeded: bits >> ($0 * 8)) }
+        }
         for icb in icbs {
-            WebGPU.Metal.writeRenderBundleDepthRange(device, icb.fragmentDynamicOffsetsBuffer, newMinDepth, newMaxDepth)
+            deviceImpl.defaultQueueImpl.stageBufferWrite(
+                deviceImpl.defaultQueue(),
+                device,
+                deviceImpl,
+                icb.fragmentDynamicOffsetsBuffer,
+                0,
+                bytes: depthRange.span
+            )
         }
     }
 
