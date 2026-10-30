@@ -163,10 +163,10 @@ final class BindGroupImpl {
 
     @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
-        let nsLabel = CxxBridging.convertWTFStringToNSString(label)
-        argumentBuffers.vertex?.label = nsLabel as String?
-        argumentBuffers.fragment?.label = nsLabel as String?
-        argumentBuffers.compute?.label = nsLabel as String?
+        let metalLabel = stringNilIfEmpty(label)
+        argumentBuffers.vertex?.label = metalLabel
+        argumentBuffers.fragment?.label = metalLabel
+        argumentBuffers.compute?.label = metalLabel
     }
 
     /// `minimumBufferSizes` is the pipeline's; `dynamicOffsets` the encoder's offsets for this group.

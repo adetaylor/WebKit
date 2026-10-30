@@ -326,7 +326,7 @@ private func prepareComputePipeline(
 ) -> PendingComputePipeline {
     let limits = deviceImpl.capabilities.limits
     // createNSString() semantics: an empty or null label is @"", not nil.
-    let label: String = CxxBridging.convertWTFStringToNSString(descriptor.label) ?? ""
+    let label: String = stringNilIfEmpty(descriptor.label) ?? ""
     let entryPoint = wgslName(descriptor.compute.entryPoint) ?? shaderModuleImpl.defaultComputeEntryPoint
     var minimumBufferSizes = MinimumBufferSizes()
     let library: PreparedLibrary

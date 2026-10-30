@@ -88,7 +88,7 @@ final class TextureViewImpl {
 
     @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
-        backingTexture?.label = CxxBridging.convertWTFStringToNSString(label) as String?
+        backingTexture?.label = stringNilIfEmpty(label)
         backingSampledTexture?.label = backingTexture?.label
     }
 

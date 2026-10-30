@@ -128,7 +128,7 @@ final class QuerySetImpl {
     @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
         // MTLCounterSampleBuffer's label property is read-only.
-        backingVisibilityBuffer?.label = CxxBridging.convertWTFStringToNSString(label) as String?
+        backingVisibilityBuffer?.label = stringNilIfEmpty(label)
     }
 
     @_expose(Cxx)
@@ -201,7 +201,7 @@ func createQuerySetImpl(
         )
     case WebGPU.QueryType.Occlusion:
         let buffer = deviceImpl.safeCreateBuffer(UInt(MemoryLayout<UInt64>.size) * UInt(count), .private)
-        buffer?.label = CxxBridging.convertWTFStringToNSString(descriptor.label) as String?
+        buffer?.label = stringNilIfEmpty(descriptor.label)
         return QuerySetImpl(
             visibilityBuffer: buffer,
             counterSampleBuffer: nil,
