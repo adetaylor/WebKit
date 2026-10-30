@@ -1814,7 +1814,6 @@ final class QueueImpl {
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
         _ size: WebGPU.Extent3D,
         _ dataByteSize: Int,
-        _ texture: WebGPU.Metal.Texture,
         _ textureImpl: TextureImpl,
         _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl
@@ -1822,7 +1821,7 @@ final class QueueImpl {
         func errorString(_ error: String) -> String {
             "GPUQueue.writeTexture: \(error)"
         }
-        if !isValidToUse(texture.isValid(), textureImpl.deviceImpl, deviceImpl) {
+        if !isValidToUse(textureImpl.isValid(), textureImpl.deviceImpl, deviceImpl) {
             return errorString("destination texture is not valid")
         }
 
@@ -1830,11 +1829,11 @@ final class QueueImpl {
             return errorString(error)
         }
 
-        if !texture.usage().contains(WebGPU.TextureUsage.CopyDestination) {
+        if !textureUsageContains(textureImpl.usage(), .CopyDestination) {
             return errorString("texture usage does not contain CopyDst")
         }
 
-        if texture.sampleCount() != 1 {
+        if textureImpl.sampleCount() != 1 {
             return errorString("destinationTexture sampleCount is not 1")
         }
 
@@ -1842,18 +1841,18 @@ final class QueueImpl {
             return errorString(error)
         }
 
-        if !refersToSingleAspect(texture.format(), destination.aspect) {
+        if !refersToSingleAspect(textureImpl.formatOrDefault, destination.aspect) {
             return errorString("refersToSingleAspect failed")
         }
 
-        var copyFormat = texture.format()
+        var copyFormat = textureImpl.formatOrDefault
 
-        if isDepthOrStencilFormat(texture.format()) {
-            if !isValidDepthStencilCopyDestination(texture.format(), destination.aspect) {
+        if isDepthOrStencilFormat(textureImpl.formatOrDefault) {
+            if !isValidDepthStencilCopyDestination(textureImpl.formatOrDefault, destination.aspect) {
                 return errorString("isValidDepthStencilCopyDestination failed")
             }
 
-            guard let format = aspectSpecificFormat(texture.format(), destination.aspect) else {
+            guard let format = aspectSpecificFormat(textureImpl.formatOrDefault, destination.aspect) else {
                 return errorString("destination aspect has no aspect-specific format")
             }
             copyFormat = format
@@ -1935,13 +1934,12 @@ final class QueueImpl {
         // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writetexture
 
         var dataByteSize = data.count
-        let texture = WebGPU.Metal.metal(destination.texture)
-        if texture.isDestroyed() {
+        if textureImpl.isDestroyed() {
             deviceImpl.generateAValidationError("GPUQueue.writeTexture: destination texture is destroyed")
             return false
         }
 
-        var textureFormat = texture.format()
+        var textureFormat = textureImpl.formatOrDefault
         if isDepthOrStencilFormat(textureFormat) {
             guard let aspectSpecificFormat = aspectSpecificFormat(textureFormat, destination.aspect) else {
                 deviceImpl.generateAValidationError("Invalid depth-stencil format")
@@ -1956,7 +1954,6 @@ final class QueueImpl {
                 dataLayout,
                 size,
                 dataByteSize,
-                texture,
                 textureImpl,
                 device,
                 deviceImpl
@@ -1971,7 +1968,7 @@ final class QueueImpl {
         }
 
         let blockSize = texelBlockSize(textureFormat)
-        let logicalSize = texture.logicalMiplevelSpecificTextureExtent(destination.mipLevel)
+        let logicalSize = textureImpl.logicalMiplevelSpecificTextureExtent(destination.mipLevel)
         let widthForMetal = logicalSize.width < destination.origin.x ? 0 : min(size.width, logicalSize.width - destination.origin.x)
         if widthForMetal == 0 {
             return false
@@ -1985,12 +1982,12 @@ final class QueueImpl {
         var bytesPerRow = UInt(Optional(fromCxx: dataLayout.bytesPerRow) ?? UInt32(WGPU_COPY_STRIDE_UNDEFINED))
         if bytesPerRow == WGPU_COPY_STRIDE_UNDEFINED {
             let dataBytesPerRow = size.height != 0 ? (dataByteSize / Int(size.height)) : dataByteSize
-            let textureBytesPerRow = textureBytesPerRow(textureFormat, widthForMetal, texture.sampleCount())
+            let textureBytesPerRow = textureBytesPerRow(textureFormat, widthForMetal, textureImpl.sampleCount())
             bytesPerRow = UInt(max(UInt32(truncatingIfNeeded: dataBytesPerRow), UInt32(truncatingIfNeeded: textureBytesPerRow)))
         }
 
         let limits = deviceImpl.capabilities.limits
-        switch texture.dimension() {
+        switch textureImpl.backingDimension {
         case WebGPU.TextureDimension._1d:
             if let blockSizeTimes1DTextureLimit = checkedProduct(UInt32.self, UInt64(blockSize), UInt64(limits.maxTextureDimension1D)) {
                 bytesPerRow = UInt(min(UInt32(truncatingIfNeeded: bytesPerRow), blockSizeTimes1DTextureLimit))
@@ -2021,8 +2018,8 @@ final class QueueImpl {
             break
         }
 
-        let mtlTexture = texture.texture()
-        let textureDimension = texture.dimension()
+        let mtlTexture = textureImpl.texture()
+        let textureDimension = textureImpl.backingDimension
         let sliceCount = textureDimension == WebGPU.TextureDimension._3d ? 1 : size.depthOrArrayLayers
         // Marked once the write below has been encoded or performed.
         var regionsWrittenInFull: [InitRegion] = []
@@ -2453,7 +2450,7 @@ final class QueueImpl {
         assert(UInt(temporaryBuffer.length) >= newBufferSize)
 
         if let mtlTexture {
-            switch texture.dimension() {
+            switch textureImpl.backingDimension {
             case WebGPU.TextureDimension._1d:
                 // https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400771-copyfrombuffer?language=objc
                 // "When you copy to a 1D texture, height and depth must be 1."
@@ -2501,7 +2498,7 @@ final class QueueImpl {
                 // "When you copy to a 2D texture, depth must be 1."
                 let sourceSize = MTLSize(width: Int(widthForMetal), height: Int(heightForMetal), depth: 1)
                 if widthForMetal == 0 || heightForMetal == 0
-                    || (bytesPerRow != 0 && bytesPerRow < textureBytesPerRow(textureFormat, widthForMetal, texture.sampleCount()))
+                    || (bytesPerRow != 0 && bytesPerRow < textureBytesPerRow(textureFormat, widthForMetal, textureImpl.sampleCount()))
                 {
                     return false
                 }
@@ -2536,7 +2533,7 @@ final class QueueImpl {
                 let sourceSize = MTLSize(width: Int(widthForMetal), height: Int(heightForMetal), depth: Int(depthForMetal))
                 let destinationOrigin = MTLOrigin(x: Int(destination.origin.x), y: Int(destination.origin.y), z: Int(destination.origin.z))
                 if widthForMetal == 0 || heightForMetal == 0 || depthForMetal == 0
-                    || (bytesPerRow != 0 && bytesPerRow < textureBytesPerRow(textureFormat, widthForMetal, texture.sampleCount()))
+                    || (bytesPerRow != 0 && bytesPerRow < textureBytesPerRow(textureFormat, widthForMetal, textureImpl.sampleCount()))
                 {
                     return false
                 }
@@ -2579,7 +2576,6 @@ final class QueueImpl {
     private func errorValidatingCopyExternalImageToTexture(
         _ destination: WebGPU.ImageCopyTextureTagged,
         _ copySize: WebGPU.Extent3D,
-        _ texture: WebGPU.Metal.Texture,
         _ textureImpl: TextureImpl,
         _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl
@@ -2588,7 +2584,7 @@ final class QueueImpl {
         func errorString(_ error: String) -> String {
             "GPUQueue.copyExternalImageToTexture: \(error)"
         }
-        if !isValidToUse(texture.isValid(), textureImpl.deviceImpl, deviceImpl) {
+        if !isValidToUse(textureImpl.isValid(), textureImpl.deviceImpl, deviceImpl) {
             return errorString("destination texture is not valid")
         }
 
@@ -2610,25 +2606,25 @@ final class QueueImpl {
             return errorString("destination aspect is not All")
         }
 
-        if texture.dimension() != WebGPU.TextureDimension._2d {
+        if textureImpl.backingDimension != WebGPU.TextureDimension._2d {
             return errorString("destination texture dimension is not 2D")
         }
 
-        if texture.sampleCount() != 1 {
+        if textureImpl.sampleCount() != 1 {
             return errorString("destination texture sampleCount is not 1")
         }
 
-        if !texture.usage().contains(WebGPU.TextureUsage.CopyDestination) {
+        if !textureUsageContains(textureImpl.usage(), .CopyDestination) {
             return errorString("destination texture usage does not contain CopyDst")
         }
 
         // The copy is performed by rendering into the destination, which is why the spec asks for this on
         // top of CopyDst.
-        if !texture.usage().contains(WebGPU.TextureUsage.RenderAttachment) {
+        if !textureUsageContains(textureImpl.usage(), .RenderAttachment) {
             return errorString("destination texture usage does not contain RenderAttachment")
         }
 
-        if !isValidCopyExternalImageDestinationFormat(texture.format(), deviceImpl) {
+        if !isValidCopyExternalImageDestinationFormat(textureImpl.formatOrDefault, deviceImpl) {
             return errorString("destination texture format cannot be a copyExternalImageToTexture destination")
         }
 
@@ -2648,13 +2644,12 @@ final class QueueImpl {
         _ copySize: WebGPU.Extent3D
     ) {
         // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture
-        let texture = WebGPU.Metal.metal(destination.texture)
-        if texture.isDestroyed() {
+        if textureImpl.isDestroyed() {
             deviceImpl.generateAValidationError("GPUQueue.copyExternalImageToTexture: destination texture is destroyed")
             return
         }
 
-        if let error = errorValidatingCopyExternalImageToTexture(destination, copySize, texture, textureImpl, device, deviceImpl) {
+        if let error = errorValidatingCopyExternalImageToTexture(destination, copySize, textureImpl, device, deviceImpl) {
             deviceImpl.generateAValidationError(error)
             return
         }
@@ -2666,14 +2661,14 @@ final class QueueImpl {
 
         // errorValidatingTextureCopyRange() has already rejected a copy reaching past the destination mip
         // level, so this only ever clamps away an empty copy.
-        let logicalSize = texture.logicalMiplevelSpecificTextureExtent(destination.mipLevel)
+        let logicalSize = textureImpl.logicalMiplevelSpecificTextureExtent(destination.mipLevel)
         let widthForMetal = logicalSize.width < destination.origin.x ? 0 : min(copySize.width, logicalSize.width - destination.origin.x)
         let heightForMetal = logicalSize.height < destination.origin.y ? 0 : min(copySize.height, logicalSize.height - destination.origin.y)
         if widthForMetal == 0 || heightForMetal == 0 {
             return
         }
 
-        let destinationFormat = texture.format()
+        let destinationFormat = textureImpl.formatOrDefault
         guard let pipelineState = copyExternalImagePipelineState(deviceImpl, texturePixelFormat(destinationFormat)) else {
             return
         }
@@ -2835,7 +2830,7 @@ final class QueueImpl {
         endStagingEncoders(queue)
 
         let renderPassDescriptor = MTLRenderPassDescriptor()
-        renderPassDescriptor.colorAttachments[0].texture = texture.texture()
+        renderPassDescriptor.colorAttachments[0].texture = textureImpl.texture()
         renderPassDescriptor.colorAttachments[0].level = Int(destination.mipLevel)
         renderPassDescriptor.colorAttachments[0].slice = Int(destinationSlice)
         // The copy may cover only part of the level, and the rest has to survive it.
