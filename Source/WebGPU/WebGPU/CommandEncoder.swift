@@ -102,6 +102,20 @@ struct TextureAndClearColor {
     }
 }
 
+/// The Impls of a pass descriptor's occlusionQuerySet and timestampWrites.querySet.
+struct PassQuerySets {
+    var occlusion: QuerySetImpl?
+    var timestampWrites: QuerySetImpl?
+
+    /// Only for a descriptor with timestampWrites, whose query set CommandEncoder.mm always stages.
+    func timestampWritesQuerySet() -> QuerySetImpl {
+        guard let timestampWrites else {
+            preconditionFailure("the timestamp writes' query set was not staged")
+        }
+        return timestampWrites
+    }
+}
+
 extension CommandEncoderImpl {
     // https://gpuweb.github.io/gpuweb/#abstract-opdef-valid-to-use-with
     private func isValidToUseWith(_ buffer: BufferImpl) -> Bool {
@@ -752,17 +766,20 @@ extension CommandEncoderImpl {
         return nil
     }
 
-    private func errorValidatingRenderPassDescriptor(descriptor: borrowing WebGPU.RenderPassDescriptor) -> String? {
-        if let occlusionQuery = WebGPU.Metal.metalOrNull(descriptor.occlusionQuerySet) {
-            if !CxxBridging.isValidToUseWithQuerySet(occlusionQuery, device) {
+    private func errorValidatingRenderPassDescriptor(
+        descriptor: borrowing WebGPU.RenderPassDescriptor,
+        _ querySets: PassQuerySets
+    ) -> String? {
+        if let occlusionQuery = querySets.occlusion {
+            if !isValidToUseWith(occlusionQuery) {
                 return "occlusion query does not match the device"
             }
-            if Optional(fromCxx: occlusionQuery.type()) != WebGPU.QueryType.Occlusion {
+            if occlusionQuery.queryType != WebGPU.QueryType.Occlusion {
                 return "occlusion query type is not occlusion"
             }
         }
         if let timestampWrites = Optional(fromCxx: descriptor.timestampWrites) {
-            return errorValidatingTimestampWrites(timestampWrites: timestampWrites)
+            return errorValidatingTimestampWrites(timestampWrites: timestampWrites, querySets.timestampWritesQuerySet())
         }
         return nil
     }
@@ -773,17 +790,17 @@ extension CommandEncoderImpl {
         return Optional(fromCxx: index) ?? UInt32(WGPU_QUERY_SET_INDEX_UNDEFINED)
     }
 
-    private func errorValidatingTimestampWrites(timestampWrites: WebGPU.PassTimestampWrites) -> String? {
+    private func errorValidatingTimestampWrites(timestampWrites: WebGPU.PassTimestampWrites, _ querySet: QuerySetImpl) -> String? {
         if !deviceImpl.hasFeature(WebGPU.FeatureName.TimestampQuery) {
             return "device does not have timestamp query feature"
         }
 
-        let querySet = WebGPU.Metal.metal(timestampWrites.querySet)
-        if Optional(fromCxx: querySet.type()) != WebGPU.QueryType.Timestamp {
-            return "query type is not timestamp but \(querySet.type())"
+        if querySet.queryType != WebGPU.QueryType.Timestamp {
+            // main prints the C++ optional, whose description does not depend on its value.
+            return "query type is not timestamp but \(WebGPU.Metal.OptionalQueryType())"
         }
 
-        if !CxxBridging.isValidToUseWithQuerySet(querySet, device) {
+        if !isValidToUseWith(querySet) {
             return "device mismatch"
         }
 
@@ -802,9 +819,9 @@ extension CommandEncoderImpl {
         return nil
     }
 
-    private func errorValidatingComputePassDescriptor(descriptor: WebGPU.ComputePassDescriptor) -> String? {
+    private func errorValidatingComputePassDescriptor(descriptor: WebGPU.ComputePassDescriptor, _ querySets: PassQuerySets) -> String? {
         if let timestampWrites = Optional(fromCxx: descriptor.timestampWrites) {
-            return errorValidatingTimestampWrites(timestampWrites: timestampWrites)
+            return errorValidatingTimestampWrites(timestampWrites: timestampWrites, querySets.timestampWritesQuerySet())
         }
         return nil
     }
@@ -846,7 +863,8 @@ extension CommandEncoderImpl {
     // `shell` is this encoder's, which the pass holds.
     fileprivate func beginRenderPass(
         shell: WebGPU.Metal.CommandEncoder,
-        descriptor: borrowing WebGPU.RenderPassDescriptor
+        descriptor: borrowing WebGPU.RenderPassDescriptor,
+        _ querySets: PassQuerySets
     ) -> CxxBridging.RefRenderPassEncoder {
         let maxDrawCount = Optional(fromCxx: descriptor.maxDrawCount) ?? UInt64.max
 
@@ -858,7 +876,7 @@ extension CommandEncoderImpl {
             return WebGPU.Metal.RenderPassEncoder.createInvalidWithEncoderStateNotOpen(shell, device, "encoder state is not valid")
         }
 
-        if let error = errorValidatingRenderPassDescriptor(descriptor: descriptor) {
+        if let error = errorValidatingRenderPassDescriptor(descriptor: descriptor, querySets) {
             return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, error)
         }
 
@@ -871,12 +889,12 @@ extension CommandEncoderImpl {
         rotateCommandBufferIfNeeded()
 
         let mtlDescriptor = MTLRenderPassDescriptor()
-        var counterSampleBuffer = WebGPU.Metal.QuerySet.CounterSampleBuffer()
+        var counterSampleBuffer: (buffer: (any MTLCounterSampleBuffer)?, offset: UInt32) = (nil, 0)
         let optionalTimestampWrites = Optional(fromCxx: descriptor.timestampWrites)
-        if let timestampWrites = optionalTimestampWrites {
-            let timestampsWrites = WebGPU.Metal.metal(timestampWrites.querySet)
-            counterSampleBuffer = timestampsWrites.counterSampleBufferWithOffset()
-            timestampsWrites.setCommandEncoder(shell)
+        if optionalTimestampWrites != nil {
+            let timestampsWrites = querySets.timestampWritesQuerySet()
+            counterSampleBuffer = (timestampsWrites.counterSampleBuffer(), timestampsWrites.counterSampleBufferOffset())
+            timestampsWrites.setCommandEncoder(self)
         }
 
         if enableEncoderTimestamps() || counterSampleBuffer.buffer != nil {
@@ -1273,9 +1291,9 @@ extension CommandEncoderImpl {
 
         var visibilityResultBufferSize: UInt = 0
         var visibilityResultBuffer: (any MTLBuffer)? = nil
-        if let occlusionQuery = WebGPU.Metal.metalOrNull(descriptor.occlusionQuerySet) {
-            occlusionQuery.setCommandEncoder(shell)
-            if Optional(fromCxx: occlusionQuery.type()) != WebGPU.QueryType.Occlusion {
+        if let occlusionQuery = querySets.occlusion {
+            occlusionQuery.setCommandEncoder(self)
+            if occlusionQuery.queryType != WebGPU.QueryType.Occlusion {
                 return WebGPU.Metal.RenderPassEncoder.createInvalid(
                     shell,
                     device,
@@ -1284,7 +1302,7 @@ extension CommandEncoderImpl {
             }
             mtlDescriptor.visibilityResultBuffer = occlusionQuery.visibilityBuffer()
             visibilityResultBuffer = mtlDescriptor.visibilityResultBuffer
-            visibilityResultBufferSize = occlusionQuery.isDestroyed() ? UInt.max : UInt(occlusionQuery.visibilityBuffer().length)
+            visibilityResultBufferSize = occlusionQuery.isDestroyed() ? UInt.max : UInt(occlusionQuery.visibilityBuffer()?.length ?? 0)
         }
 
         if !deviceImpl.isValid() {
@@ -2467,7 +2485,8 @@ extension CommandEncoderImpl {
     // `shell` is this encoder's, which the pass holds.
     fileprivate func beginComputePass(
         shell: WebGPU.Metal.CommandEncoder,
-        descriptor: WebGPU.ComputePassDescriptor
+        descriptor: WebGPU.ComputePassDescriptor,
+        _ querySets: PassQuerySets
     ) -> CxxBridging.RefComputePassEncoder {
         let optionalTimestampWrites = Optional(fromCxx: descriptor.timestampWrites)
 
@@ -2479,7 +2498,7 @@ extension CommandEncoderImpl {
             return WebGPU.Metal.ComputePassEncoder.createInvalidWithEncoderStateNotOpen(shell, device, "encoder state is invalid")
         }
 
-        if let error = self.errorValidatingComputePassDescriptor(descriptor: descriptor) {
+        if let error = self.errorValidatingComputePassDescriptor(descriptor: descriptor, querySets) {
             return WebGPU.Metal.ComputePassEncoder.createInvalid(shell, device, String(error))
         }
 
@@ -2498,11 +2517,11 @@ extension CommandEncoderImpl {
         }
         let computePassDescriptor = MTLComputePassDescriptor()
         computePassDescriptor.dispatchType = .serial
-        var counterSampleBuffer = WebGPU.Metal.QuerySet.CounterSampleBuffer()
-        if let timestampWrites = optionalTimestampWrites {
-            let timestampsWrites = WebGPU.Metal.metal(timestampWrites.querySet)
-            counterSampleBuffer = timestampsWrites.counterSampleBufferWithOffset()
-            timestampsWrites.setCommandEncoder(shell)
+        var counterSampleBuffer: (buffer: (any MTLCounterSampleBuffer)?, offset: UInt32) = (nil, 0)
+        if optionalTimestampWrites != nil {
+            let timestampsWrites = querySets.timestampWritesQuerySet()
+            counterSampleBuffer = (timestampsWrites.counterSampleBuffer(), timestampsWrites.counterSampleBufferOffset())
+            timestampsWrites.setCommandEncoder(self)
         }
 
         if enableEncoderTimestamps() || counterSampleBuffer.buffer != nil {
@@ -2755,6 +2774,8 @@ final class CommandEncoderImpl {
     // What this encoder did to lazily initialized texture regions. Moved into the CommandBuffer finish() makes, and
     // dropped with the encoder's work when that is discarded or made invalid.
     private var initializationLedger: InitializationLedger? = InitializationLedger()
+    // The Impls of the next pass descriptor's query sets, which Swift cannot reach from the descriptor.
+    private var stagedQuerySets = PassQuerySets()
     // Declared last, so that the device outlives the rest of the encoder.
     let device: WebGPU.Metal.Device
     @_expose(Cxx)
@@ -3343,12 +3364,26 @@ final class CommandEncoderImpl {
         finish(shell: shell, descriptor: descriptor)
     }
 
+    // CommandEncoder::beginRenderPass() and beginComputePass() call these just before them, for the descriptor's query
+    // sets.
+    @_expose(Cxx)
+    func stageOcclusionQuerySet(_ querySet: QuerySetImpl) {
+        stagedQuerySets.occlusion = querySet
+    }
+
+    @_expose(Cxx)
+    func stageTimestampWritesQuerySet(_ querySet: QuerySetImpl) {
+        stagedQuerySets.timestampWrites = querySet
+    }
+
     @_expose(Cxx)
     func beginRenderPass(
         _ shell: WebGPU.Metal.CommandEncoder,
         _ descriptor: borrowing WebGPU.RenderPassDescriptor
     ) -> CxxBridging.RefRenderPassEncoder {
-        beginRenderPass(shell: shell, descriptor: descriptor)
+        let querySets = stagedQuerySets
+        stagedQuerySets = PassQuerySets()
+        return beginRenderPass(shell: shell, descriptor: descriptor, querySets)
     }
 
     @_expose(Cxx)
@@ -3356,7 +3391,9 @@ final class CommandEncoderImpl {
         _ shell: WebGPU.Metal.CommandEncoder,
         _ descriptor: WebGPU.ComputePassDescriptor
     ) -> CxxBridging.RefComputePassEncoder {
-        beginComputePass(shell: shell, descriptor: descriptor)
+        let querySets = stagedQuerySets
+        stagedQuerySets = PassQuerySets()
+        return beginComputePass(shell: shell, descriptor: descriptor, querySets)
     }
 
     @_expose(Cxx)

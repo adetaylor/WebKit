@@ -49,7 +49,8 @@ final class QuerySetImpl {
     private let counterSampleOffset: UInt32
     private let queryCount: UInt32
     // nil only for invalid query sets.
-    private let queryType: WebGPU.QueryType?
+    @_expose(!Cxx)
+    let queryType: WebGPU.QueryType?
     private var destroyed = false
     let deviceImpl: DeviceImpl
     /// The encoders that used this query set: emptied only by destroy(), never by the encoders.

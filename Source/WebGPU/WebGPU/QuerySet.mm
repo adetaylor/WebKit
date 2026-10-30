@@ -85,19 +85,9 @@ WebGPU::QuerySetImpl& QuerySet::swiftImpl() const
     return *std::launder(reinterpret_cast<WebGPU::QuerySetImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
-Device& QuerySet::device() const
-{
-    return borrowSwiftRetained(swiftImpl().shellDevice());
-}
-
 bool QuerySet::isValid() const
 {
     return swiftImpl().isValid();
-}
-
-bool QuerySet::isDestroyed() const
-{
-    return swiftImpl().isDestroyed();
 }
 
 void QuerySet::destroy()
@@ -120,21 +110,6 @@ std::optional<WebGPU::QueryType> QuerySet::type() const
     if (!swiftImpl().hasType())
         return std::nullopt;
     return static_cast<WebGPU::QueryType>(swiftImpl().typeRawValue());
-}
-
-id<MTLBuffer> QuerySet::visibilityBuffer() const
-{
-    return swiftImpl().visibilityBuffer();
-}
-
-void QuerySet::setCommandEncoder(CommandEncoder& commandEncoder) const
-{
-    swiftImpl().setCommandEncoder(commandEncoder.swiftImpl());
-}
-
-QuerySet::CounterSampleBuffer QuerySet::counterSampleBufferWithOffset() const
-{
-    return CounterSampleBuffer { swiftImpl().counterSampleBuffer(), swiftImpl().counterSampleBufferOffset() };
 }
 
 } // namespace WebGPU::Metal
