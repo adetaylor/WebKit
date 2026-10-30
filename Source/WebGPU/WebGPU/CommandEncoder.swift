@@ -3015,7 +3015,7 @@ final class CommandEncoderImpl {
             finalizeBlitCommandEncoder()
         }
 
-        if !device.isValid() {
+        if !deviceImpl.isValid() {
             return nil
         }
 
