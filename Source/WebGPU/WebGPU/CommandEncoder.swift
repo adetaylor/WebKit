@@ -972,7 +972,7 @@ extension CommandEncoderImpl {
                 let textureIsDestroyed = texture.isDestroyed()
                 if !textureIsDestroyed {
                     if !texture.usage().contains(WebGPU.TextureUsage.RenderAttachment)
-                        || !isColorRenderableFormat(textureFormat, device)
+                        || !isColorRenderableFormat(textureFormat, deviceImpl)
                     {
                         return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "color attachment is not renderable")
                     }
@@ -1095,7 +1095,7 @@ extension CommandEncoderImpl {
                         || !isMultisampleTexture(texture: mtlTexture)
                         || !isRenderableTextureView(resolveTarget, attachment.loadOp, attachment.storeOp)
                         || mtlTexture.pixelFormat != resolveTexture.pixelFormat
-                        || !supportsResolve(resolveTarget.format(), device)
+                        || !supportsResolve(resolveTarget.format(), deviceImpl)
                     {
                         return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "resolve target is invalid")
                     }

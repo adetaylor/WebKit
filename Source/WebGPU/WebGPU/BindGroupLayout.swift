@@ -377,7 +377,7 @@ private func textureArgument(_ texture: TextureLayout) -> ArgumentKind? {
 
 private func storageTextureArgument(
     _ storageTexture: StorageTextureLayout,
-    device: WebGPU.Metal.Device,
+    device: DeviceImpl,
     visibility: StageMask
 ) -> ArgumentKind? {
     if visibility.contains(.vertex) && storageTexture.access != WebGPU.StorageTextureAccess.ReadOnly {
@@ -542,7 +542,7 @@ func makeBindGroupLayoutImpl(
             primaryArgument = textureArgument(texture)
             layoutError = "Texture layout not valid"
         case .storageTexture(let storageTexture):
-            primaryArgument = storageTextureArgument(storageTexture, device: device, visibility: entry.visibility)
+            primaryArgument = storageTextureArgument(storageTexture, device: deviceImpl, visibility: entry.visibility)
             layoutError = "Storage texture layout not valid"
         case .externalTexture:
             isExternalTexture = true

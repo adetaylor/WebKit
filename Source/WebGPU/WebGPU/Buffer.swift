@@ -789,7 +789,7 @@ func createBufferImpl(
     // FIXME(PERFORMANCE): Consider implementing hazard tracking ourself.
     let storageMode = bufferStorageMode(hasUnifiedMemory(deviceImpl), parameters.usage, parameters.mappedAtCreation)
     guard let buffer = deviceImpl.safeCreateBuffer(UInt(parameters.size), storageMode) else {
-        device.generateAnOutOfMemoryError(consuming: wtfString("Allocation failure."))
+        deviceImpl.generateAnOutOfMemoryError("Allocation failure.")
         return makeInvalidBufferImpl(device, deviceImpl)
     }
 

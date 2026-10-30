@@ -616,7 +616,7 @@ private func tuple12(_ values: [Float]) -> (Float, Float, Float, Float, Float, F
 // channels are normalized or floating point, because the fragment stage writes floats. Which formats
 // are renderable depends on the features the device enabled - texture-formats-tier1 and
 // rg11b10ufloat-renderable both widen the set - so ask Texture rather than keeping a list here.
-private func isValidCopyExternalImageDestinationFormat(_ format: WebGPU.TextureFormat, _ device: WebGPU.Metal.Device) -> Bool {
+private func isValidCopyExternalImageDestinationFormat(_ format: WebGPU.TextureFormat, _ device: DeviceImpl) -> Bool {
     if !isColorRenderableFormat(format, device) {
         return false
     }
@@ -1157,7 +1157,7 @@ final class QueueImpl {
 
         // Lazy zero-initialization, decided now that the commit order is known: before willCommit, so that a failure can
         // still reject the whole submit, and before the staging command buffer is committed, which may now hold zero fills.
-        let initializationFailed = validationError == nil && !stageInitializationFixUps(queue, device, submissions)
+        let initializationFailed = validationError == nil && !stageInitializationFixUps(queue, deviceImpl, submissions)
         finalizeBlitCommandEncoder(queue)
 
         for command in commands {
@@ -1338,17 +1338,19 @@ final class QueueImpl {
     @_expose(Cxx)
     func newTemporaryBufferWithBytes(
         _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
         _ data: WebGPU.Metal.QueueBytes,
         _ noCopy: Bool,
         _ offset: inout UInt64
     ) -> (any MTLBuffer)? {
         let bytes: Span<UInt8> = data.span()
-        return newTemporaryBuffer(device, bytes: bytes, aliasing: nil, from: 0, noCopy, &offset)
+        return newTemporaryBuffer(device, deviceImpl, bytes: bytes, aliasing: nil, from: 0, noCopy, &offset)
     }
 
     // `data` starts `ownerOffset` bytes into the bytes `aliasable` owns.
     private func newTemporaryBuffer(
         _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
         bytes data: Span<UInt8>,
         aliasing aliasable: AliasableBytes?,
         from ownerOffset: UInt64,
@@ -1362,14 +1364,14 @@ final class QueueImpl {
             }
             // Without an owner, nothing keeps `data` alive until the GPU has read it. So it is copied, into a buffer
             // of its own that the command buffer which reads it releases: the temporary buffer does not grow to its size.
-            guard let buffer = device.safeCreateBuffer(UInt(data.count), true) else {
+            guard let buffer = deviceImpl.safeCreateBuffer(UInt(data.count), true) else {
                 return nil
             }
             WebGPU.Metal.copyBytesToBuffer(buffer, 0, data)
             return buffer
         }
 
-        let priorOffset = reserveTemporaryBufferRange(device, UInt64(data.count))
+        let priorOffset = reserveTemporaryBufferRange(deviceImpl, UInt64(data.count))
         // An empty span from C++ may have a null base address, which the Span overload's conversion back traps on.
         if !data.isEmpty {
             WebGPU.Metal.copyBytesToBuffer(backingTemporaryBuffer, priorOffset, data)
@@ -1379,9 +1381,9 @@ final class QueueImpl {
     }
 
     // Returns where `dataSize` bytes go in the temporary buffer, replacing the buffer first if they do not fit.
-    private func reserveTemporaryBufferRange(_ device: WebGPU.Metal.Device, _ dataSize: UInt64) -> UInt64 {
+    private func reserveTemporaryBufferRange(_ deviceImpl: DeviceImpl, _ dataSize: UInt64) -> UInt64 {
         if temporaryBufferNeedsReplacement(dataSize) {
-            backingTemporaryBuffer = device.safeCreateBuffer(UInt(max(dataSize, 64 * 1024)), true)
+            backingTemporaryBuffer = deviceImpl.safeCreateBuffer(UInt(max(dataSize, 64 * 1024)), true)
             temporaryBufferOffset = 0
         }
 
@@ -1419,7 +1421,7 @@ final class QueueImpl {
 
         let noCopy = UInt64(data.count) >= largeBufferSize
         var temporaryBufferOffset: UInt64 = 0
-        guard let temporaryBuffer = newTemporaryBuffer(device, bytes: data, aliasing: aliasable, from: 0, noCopy, &temporaryBufferOffset)
+        guard let temporaryBuffer = newTemporaryBuffer(device, deviceImpl, bytes: data, aliasing: aliasable, from: 0, noCopy, &temporaryBufferOffset)
         else {
             assertionFailure()
             return
@@ -1595,11 +1597,11 @@ final class QueueImpl {
 
     // MARK: Lazy zero-initialization
 
-    private func stagingZeroBuffer(_ device: WebGPU.Metal.Device, length: UInt) -> (any MTLBuffer)? {
+    private func stagingZeroBuffer(_ deviceImpl: DeviceImpl, length: UInt) -> (any MTLBuffer)? {
         if let zeroBuffer, UInt(zeroBuffer.length) >= length {
             return zeroBuffer
         }
-        let buffer = device.safeCreateBuffer(length, false)
+        let buffer = deviceImpl.safeCreateBuffer(length, false)
         if length <= Self.maximumKeptZeroBufferLength {
             zeroBuffer = buffer
         }
@@ -1665,7 +1667,7 @@ final class QueueImpl {
     /// encoded: the region stays uninitialized.
     private func stageZeroFill(
         _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
         _ texture: TextureImpl,
         _ region: InitRegion
     ) -> Bool {
@@ -1690,7 +1692,7 @@ final class QueueImpl {
             guard let blit = ensureBlitCommandEncoder(queue) else {
                 return false
             }
-            encoded = encodeBlitZeroFill(texture, region, blit, zeroBuffer: { stagingZeroBuffer(device, length: $0) })
+            encoded = encodeBlitZeroFill(texture, region, blit, zeroBuffer: { stagingZeroBuffer(deviceImpl, length: $0) })
         }
         guard encoded else {
             return false
@@ -1703,7 +1705,7 @@ final class QueueImpl {
     /// Zero-fills `fixUp` at the end of `commandBuffer`, a finished command buffer of the submit in progress.
     private func encodeZeroFill(
         _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
         _ fixUp: InitFixUp,
         into commandBuffer: any MTLCommandBuffer
     ) -> Bool {
@@ -1714,7 +1716,7 @@ final class QueueImpl {
             return false
         }
         setEncoderForBuffer(queue, commandBuffer, blit)
-        let encoded = encodeBlitZeroFill(fixUp.texture, fixUp.region, blit, zeroBuffer: { stagingZeroBuffer(device, length: $0) })
+        let encoded = encodeBlitZeroFill(fixUp.texture, fixUp.region, blit, zeroBuffer: { stagingZeroBuffer(deviceImpl, length: $0) })
         endEncoding(queue, blit, commandBuffer)
         return encoded
     }
@@ -1735,7 +1737,7 @@ final class QueueImpl {
     /// buffer, which is committed first. False when a zero fill could not be encoded.
     private func stageInitializationFixUps(
         _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
         _ submissions: [(commandBuffer: any MTLCommandBuffer, command: SubmittedCommand)]
     ) -> Bool {
         // The steady state: no encoder read a region that might not be initialized when it runs.
@@ -1764,12 +1766,12 @@ final class QueueImpl {
             }
         }
         for fixUp in beforeAll {
-            guard stageZeroFill(queue, device, fixUp.texture, fixUp.region) else {
+            guard stageZeroFill(queue, deviceImpl, fixUp.texture, fixUp.region) else {
                 return false
             }
         }
         for (index, fixUp) in afterDiscarder {
-            guard encodeZeroFill(queue, device, fixUp, into: submissions[index].commandBuffer) else {
+            guard encodeZeroFill(queue, deviceImpl, fixUp, into: submissions[index].commandBuffer) else {
                 return false
             }
             submissions[index].command.impl.noteAppendedZeroFill(fixUp)
@@ -1782,7 +1784,7 @@ final class QueueImpl {
     @_expose(Cxx)
     func clearTextureIfNeeded(
         _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
         _ parentImpl: TextureImpl,
         _ aspect: WebGPU.TextureAspect,
         _ mipLevelCount: UInt32,
@@ -1800,7 +1802,7 @@ final class QueueImpl {
                         return false
                     }
                     for region in parentImpl.initRegions(mipLevel: parentMipLevel, layer: parentSlice, aspect: aspect)
-                    where !stageZeroFill(queue, device, parentImpl, region) {
+                    where !stageZeroFill(queue, deviceImpl, parentImpl, region) {
                         initialized = false
                     }
                 }
@@ -2051,7 +2053,7 @@ final class QueueImpl {
                         regionsWrittenInFull.append(region)
                     } else {
                         clearWasNeeded = true
-                        guard stageZeroFill(queue, device, textureImpl, region) else {
+                        guard stageZeroFill(queue, deviceImpl, textureImpl, region) else {
                             return false
                         }
                     }
@@ -2438,10 +2440,11 @@ final class QueueImpl {
         let stagedBuffer: (any MTLBuffer)?
         if isRepacked {
             // The repacked bytes are copied, even into a buffer of their own: nothing else would keep them alive.
-            stagedBuffer = newTemporaryBuffer(device, bytes: source, aliasing: nil, from: 0, noCopy, &temporaryBufferOffset)
+            stagedBuffer = newTemporaryBuffer(device, deviceImpl, bytes: source, aliasing: nil, from: 0, noCopy, &temporaryBufferOffset)
         } else {
             stagedBuffer = newTemporaryBuffer(
                 device,
+                deviceImpl,
                 bytes: data.extracting(Int(dataLayoutOffset)..<data.count),
                 aliasing: aliasable,
                 from: dataLayoutOffset,
@@ -2630,7 +2633,7 @@ final class QueueImpl {
             return errorString("destination texture usage does not contain RenderAttachment")
         }
 
-        if !isValidCopyExternalImageDestinationFormat(texture.format(), device) {
+        if !isValidCopyExternalImageDestinationFormat(texture.format(), deviceImpl) {
             return errorString("destination texture format cannot be a copyExternalImageToTexture destination")
         }
 
@@ -2696,7 +2699,6 @@ final class QueueImpl {
             // The frame's planes are wrapped in MTLTextures exactly the way importExternalTexture() wraps
             // them, so a video reaches the destination without its pixels ever leaving the GPU.
             let frame = deviceImpl.externalTextureImporter.importPixelBuffer(
-                device,
                 deviceImpl,
                 pixelBuffer,
                 source.colorSpace,
@@ -2823,7 +2825,7 @@ final class QueueImpl {
             if writesAll {
                 regionsWrittenInFull.append(region)
             } else {
-                guard stageZeroFill(queue, device, textureImpl, region) else {
+                guard stageZeroFill(queue, deviceImpl, textureImpl, region) else {
                     return
                 }
             }
