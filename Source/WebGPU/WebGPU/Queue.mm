@@ -36,9 +36,11 @@
 #import "TextureView.h"
 #import <wtf/BlockPtr.h>
 #import <wtf/Borrow.h>
+#import <wtf/Box.h>
 #import <wtf/CheckedArithmetic.h>
 #import <wtf/StdLibExtras.h>
 #import <wtf/TZoneMallocInlines.h>
+#import <wtf/darwin/DispatchExtras.h>
 
 #if ENABLE(WEBGPU_SWIFT)
 #import "CxxBridging.h"
@@ -219,6 +221,14 @@ template<unsigned errorCode>
     RELEASE_ASSERT_NOT_REACHED();
 }
 
+[[noreturn]] static void crashGPUProcess(const RefPtr<Device>& device, NSString *error)
+{
+    WTFLogAlways("Encountered fatal GPU error %@", error); // NOLINT
+    if (device)
+        device->loseTheDevice(WebGPU::DeviceLostReason::Unknown);
+    RELEASE_ASSERT_NOT_REACHED();
+}
+
 void Queue::commitMTLCommandBuffer(id<MTLCommandBuffer> commandBuffer)
 {
     m_impl->impl.commitMTLCommandBuffer(this, commandBuffer);
@@ -229,16 +239,18 @@ void Queue::commitMTLCommandBuffer(id<MTLCommandBuffer> commandBuffer)
 // its own.
 void Queue::addCommitHandlers(id<MTLCommandBuffer> commandBuffer)
 {
-    // Both handlers run on Metal threads and touch only the Sendable completion, the box's scheduler handle and the
-    // refcount. Each hands its reference to the queue over to its work item, so that the queue is released on the
-    // API thread, where the work items run.
+    // Both handlers run on Metal threads and touch only the Sendable completion, the box's scheduler handle, the
+    // refcount and the timeout's flag. Each hands its reference to the queue over to its work item, so that the
+    // queue is released on the API thread, where the work items run.
     [commandBuffer addScheduledHandler:[protectedThis = protect(*this)](id<MTLCommandBuffer>) mutable {
         Queue& queue = protectedThis.get();
         queue.scheduleWork([protectedThis = WTF::move(protectedThis)] {
             protectedThis->m_impl->impl.didScheduleCommandBuffer();
         });
     }];
-    [commandBuffer addCompletedHandler:[protectedThis = protect(*this), completion = m_impl->completion](id<MTLCommandBuffer> mtlCommandBuffer) mutable {
+    auto didComplete = Box<std::atomic<bool>>::create(false);
+    [commandBuffer addCompletedHandler:[protectedThis = protect(*this), completion = m_impl->completion, didComplete](id<MTLCommandBuffer> mtlCommandBuffer) mutable {
+        didComplete->store(true, std::memory_order_relaxed);
         MTLCommandBufferStatus status = mtlCommandBuffer.status;
         bool loseTheDevice = false;
         if (NSError *error = mtlCommandBuffer.error; status != MTLCommandBufferStatusCompleted) {
@@ -278,6 +290,14 @@ void Queue::addCommitHandlers(id<MTLCommandBuffer> commandBuffer)
             }
         });
     }];
+
+    // QueueImpl commits the command buffer as soon as this returns.
+    NSString *label = commandBuffer.label;
+    ThreadSafeWeakPtr weakDevice = m_device;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), globalDispatchQueueSingleton(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        if (!didComplete->load(std::memory_order_relaxed))
+            crashGPUProcess(weakDevice.get(), [NSString stringWithFormat:@"WebGPU: command buffer %@ did not complete within 3s timeout", label]);
+    });
 }
 
 void Queue::submit(Vector<Ref<WebGPU::Metal::CommandBuffer>>&& commands)
