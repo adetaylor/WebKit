@@ -170,13 +170,13 @@ private struct IOValidator: ASTScopedVisitor, ~Copyable {
     }
 
     mutating func visit(_ statement: VariableStatement, _ id: StatementID) {
-        introduceVariable(shaderModule[statement.variable].name, nil)
         visitChildren(statement, id)
+        introduceVariable(shaderModule[statement.variable].name, nil)
     }
 
     mutating func visit(_ parameter: ParameterID) {
-        introduceVariable(shaderModule[parameter].name, nil)
         visitChildren(parameter)
+        introduceVariable(shaderModule[parameter].name, nil)
     }
 
     mutating func visit(_ identifier: IdentifierExpression, _ id: ExpressionID) {

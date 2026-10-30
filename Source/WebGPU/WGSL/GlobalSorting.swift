@@ -149,13 +149,13 @@ private struct GraphBuilder: ASTScopedVisitor, ~Copyable {
     }
 
     mutating func visit(_ parameter: ParameterID) {
-        introduceVariable(shaderModule[parameter].name)
         visitChildren(parameter)
+        introduceVariable(shaderModule[parameter].name)
     }
 
     mutating func visit(_ variable: VariableStatement, _ id: StatementID) {
-        introduceVariable(shaderModule[variable.variable].name)
         visitChildren(variable, id)
+        introduceVariable(shaderModule[variable.variable].name)
     }
 
     mutating func visit(_ expression: ExpressionID) {
