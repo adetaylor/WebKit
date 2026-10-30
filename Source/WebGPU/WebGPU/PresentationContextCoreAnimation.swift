@@ -133,20 +133,18 @@ final class PresentationContextCoreAnimationImpl {
         guard let drawable = layer.nextDrawable() else {
             return false
         }
-        // The helper copies the view formats before it returns.
-        let texture = configuration.viewFormats.withUnsafeBufferPointer { viewFormats in
-            unsafe WebGPU.Metal
-                .createDrawableTexture(
-                    drawable.texture,
-                    configuration.format,
-                    configuration.usage,
-                    WebGPU.Metal.SpanConstTextureFormat(viewFormats),
-                    configuration.width,
-                    configuration.height,
-                    configuration.device
-                )
-                .ptr()
-        }
+        let texture = makeTexture(
+            drawable.texture,
+            twoDimensionalTextureParameters(
+                configuration.format,
+                usage: configuration.usage,
+                width: configuration.width,
+                height: configuration.height
+            ),
+            viewFormats: Array(configuration.viewFormats),
+            configuration.device,
+            configuration.deviceImpl
+        ).shell
         currentFrame = [Frame(drawable: drawable, texture: texture)]
         return true
     }

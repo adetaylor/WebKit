@@ -50,37 +50,6 @@ struct XRSubImageImplBox {
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(XRSubImageImplBox);
 
-Texture& createXRTexture(id<MTLTexture> texture, bool isDepthTexture, WebGPU::TextureFormat format, WebGPU::TextureFormat viewFormat, Device& device)
-{
-    Vector<WebGPU::TextureFormat> viewFormats { viewFormat };
-
-    WebGPU::TextureDescriptor descriptor {
-        .label = isDepthTexture ? "depth texture"_s : "color texture"_s,
-        .usage = WebGPU::TextureUsage::RenderAttachment,
-        .dimension = WebGPU::TextureDimension::_2d,
-        .size = {
-            .width = static_cast<uint32_t>(texture.width),
-            .height = static_cast<uint32_t>(texture.height),
-            .depthOrArrayLayers = static_cast<uint32_t>(texture.arrayLength),
-        },
-        .format = format,
-        .mipLevelCount = 1,
-        .sampleCount = static_cast<uint32_t>(texture.sampleCount),
-        .viewFormats = singleElementSpan(format),
-    };
-    return Texture::create(texture, descriptor, WTF::move(viewFormats), device).leakRef();
-}
-
-void updateXRTextureCompletionEvent(Texture& texture, id<MTLSharedEvent> event, uint64_t signalValue)
-{
-    texture.updateCompletionEvent(std::make_pair(event, signalValue));
-}
-
-void setXRTextureRasterizationRateMaps(Texture& texture, id<MTLRasterizationRateMap> left, id<MTLRasterizationRateMap> right)
-{
-    texture.setRasterizationRateMaps(std::make_pair(left, right));
-}
-
 Ref<XRSubImage> XRSubImage::create(Device& device)
 {
     auto box = makeUnique<XRSubImageImplBox>(XRSubImageImplBox { .impl = makeXRSubImageImpl() });
@@ -110,7 +79,7 @@ void XRSubImage::update(const XRProjectionLayer& projectionLayer)
     if (!device)
         return;
 
-    m_impl->impl.update(device.get(), projectionLayer.swiftImpl());
+    m_impl->impl.update(device.get(), device->swiftImpl(), projectionLayer.swiftImpl());
 }
 
 RefPtr<WebGPU::Texture> XRSubImage::colorTexture()

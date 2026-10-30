@@ -47,12 +47,6 @@ class XRProjectionLayer;
 // Defined in XRSubImage.mm, where the generated Swift header declaring WebGPU::XRSubImageImpl is includable.
 struct XRSubImageImplBox;
 
-// The Texture operations XRSubImageImpl::update needs, in forms Swift can call. createXRTexture() wraps an XR
-// layer texture in a Texture that allows views in viewFormat.
-Texture& createXRTexture(id<MTLTexture>, bool isDepthTexture, WebGPU::TextureFormat, WebGPU::TextureFormat viewFormat, Device&) SWIFT_RETURNS_RETAINED;
-void updateXRTextureCompletionEvent(Texture&, id<MTLSharedEvent>, uint64_t signalValue);
-void setXRTextureRasterizationRateMaps(Texture&, id<MTLRasterizationRateMap> left, id<MTLRasterizationRateMap> right);
-
 class XRSubImage final : public WebGPU::XRSubImage {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(XRSubImage);
 public:

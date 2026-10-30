@@ -1454,16 +1454,56 @@ func createTextureImpl(
     return impl
 }
 
-// Texture::create, for textures made elsewhere (canvas render buffers, XR); they allow views in `viewFormats`.
-@_expose(Cxx)
-func makeTextureImpl(
+/// A texture that Swift holds as its shell and its Impl.
+struct TextureShellAndImpl {
+    let shell: WebGPU.Metal.Texture
+    let impl: TextureImpl
+}
+
+/// A texture made elsewhere (the canvas render buffers, XR), which allows views in `viewFormats`: Swift makes the Impl
+/// and Texture::createWithStagedImpl wraps it in a shell.
+func makeTexture(
     _ texture: (any MTLTexture)?,
     _ parameters: WebGPU.Metal.TextureParameters,
-    _ viewFormats: borrowing WebGPU.Metal.TextureFormatsView,
+    viewFormats: [WebGPU.TextureFormat],
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
-) -> TextureImpl {
-    TextureImpl(texture: texture, parameters: parameters, viewFormats: copyViewFormats(viewFormats), device: device, deviceImpl: deviceImpl)
+) -> TextureShellAndImpl {
+    let impl = TextureImpl(texture: texture, parameters: parameters, viewFormats: viewFormats, device: device, deviceImpl: deviceImpl)
+    precondition(deviceImpl.stagedTextureImpl == nil)
+    deviceImpl.stagedTextureImpl = impl
+    return TextureShellAndImpl(shell: WebGPU.Metal.Texture.createWithStagedImpl(device).ptr(), impl: impl)
+}
+
+/// The parameters of a 2D texture of one mip level.
+func twoDimensionalTextureParameters(
+    _ format: WebGPU.TextureFormat,
+    usage: UInt8,
+    width: UInt32,
+    height: UInt32,
+    depthOrArrayLayers: UInt32 = 1,
+    sampleCount: UInt32 = 1
+) -> WebGPU.Metal.TextureParameters {
+    var parameters = WebGPU.Metal.TextureParameters()
+    parameters.width = width
+    parameters.height = height
+    parameters.depthOrArrayLayers = depthOrArrayLayers
+    parameters.mipLevelCount = 1
+    parameters.sampleCount = sampleCount
+    parameters.dimension = ._2d
+    parameters.format = format
+    parameters.usage = usage
+    return parameters
+}
+
+/// Device::errorValidatingTextureCreation() for Swift callers.
+func errorValidatingTextureCreation(
+    _ device: WebGPU.Metal.Device,
+    _ deviceImpl: DeviceImpl,
+    _ parameters: WebGPU.Metal.TextureParameters,
+    viewFormats: [WebGPU.TextureFormat]
+) -> String? {
+    textureCreationError(device, deviceImpl, parameters, viewFormats)
 }
 
 @_expose(Cxx)

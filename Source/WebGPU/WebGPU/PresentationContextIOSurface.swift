@@ -36,12 +36,12 @@ import WebGPU_Private.WebGPUCpp
 @_expose(Cxx)
 final class PresentationContextIOSurfaceImpl {
     private struct RenderBuffer {
-        let texture: WebGPU.Metal.Texture
+        let texture: TextureShellAndImpl
         // The rgba16float texture the canvas draws into under standard tone mapping; `texture` then holds the
         // clamped copy. Empty or one element: an Optional of a foreign reference is avoided.
-        let luminanceClampTexture: [WebGPU.Metal.Texture]
+        let luminanceClampTexture: [TextureShellAndImpl]
 
-        var presentedTexture: WebGPU.Metal.Texture {
+        var presentedTexture: TextureShellAndImpl {
             luminanceClampTexture.first ?? texture
         }
     }
@@ -64,7 +64,7 @@ final class PresentationContextIOSurfaceImpl {
     private var luminanceClampPipeline: (any MTLComputePipelineState)?
     private var resizePipeline: (any MTLComputePipelineState)?
     // Oldest first.
-    private var inFlightFrames: [WebGPU.Metal.Texture] = []
+    private var inFlightFrames: [TextureShellAndImpl] = []
     private var maximumInFlightFrames = 0
     private var lastDrainedFrameGPUCost: Double = 0
     private var lastFramePresentStall: Double = 0
@@ -178,7 +178,20 @@ final class PresentationContextIOSurfaceImpl {
             }
         }
 
-        if let error = WebGPU.Metal.errorValidatingCanvasTextureCreation(device, configuration, effectiveFormat, width, height) {
+        // Without view formats in the configuration, the validation takes the format of the textures as their only
+        // view format; the textures allow views only in the formats that the configuration lists.
+        var configuredViewFormats: [WebGPU.TextureFormat] = []
+        configuredViewFormats.reserveCapacity(viewFormats.count)
+        for index in viewFormats.indices {
+            configuredViewFormats.append(viewFormats[index])
+        }
+        let usage = configuration.usage.toRaw()
+        if let error = errorValidatingTextureCreation(
+            device,
+            deviceImpl,
+            twoDimensionalTextureParameters(effectiveFormat, usage: usage, width: width, height: height),
+            viewFormats: configuredViewFormats.isEmpty ? [effectiveFormat] : configuredViewFormats
+        ) {
             generateAValidationError(error)
             return
         }
@@ -201,7 +214,7 @@ final class PresentationContextIOSurfaceImpl {
         var apiFormat = effectiveFormat
         var resizeCommandBuffer: (any MTLCommandBuffer)?
         for ioSurface in ioSurfaces {
-            var luminanceClampTexture: [WebGPU.Metal.Texture] = []
+            var luminanceClampTexture: [TextureShellAndImpl] = []
             var luminanceClampDescriptor: MTLTextureDescriptor?
             if needsLuminanceClampFunction {
                 textureDescriptor.pixelFormat = .rgba16Float
@@ -209,36 +222,28 @@ final class PresentationContextIOSurfaceImpl {
                 textureDescriptor.usage = existingUsage
                 textureDescriptor.usage.insert(.shaderRead)
                 luminanceClampDescriptor = textureDescriptor
-                let texture = WebGPU.Metal
-                    .createCanvasTexture(
-                        deviceImpl.newTextureWithDescriptor(textureDescriptor, nil, 0),
-                        configuration,
-                        apiFormat,
-                        effectiveFormat,
-                        width,
-                        height,
-                        device
-                    )
-                    .ptr()
-                texture.makeCanvasBacking()
+                let texture = makeTexture(
+                    deviceImpl.newTextureWithDescriptor(textureDescriptor, nil, 0),
+                    twoDimensionalTextureParameters(apiFormat, usage: usage, width: width, height: height),
+                    viewFormats: configuredViewFormats,
+                    device,
+                    deviceImpl
+                )
+                texture.impl.makeCanvasBacking()
                 luminanceClampTexture = [texture]
                 textureDescriptor.pixelFormat = .bgra8Unorm
                 apiFormat = WebGPU.TextureFormat.Bgra8unorm
                 textureDescriptor.usage = existingUsage.union(.shaderWrite)
             }
 
-            let parentTexture = WebGPU.Metal
-                .createCanvasTexture(
-                    deviceImpl.newTextureWithDescriptor(textureDescriptor, ioSurface, 0),
-                    configuration,
-                    apiFormat,
-                    effectiveFormat,
-                    width,
-                    height,
-                    device
-                )
-                .ptr()
-            parentTexture.makeCanvasBacking()
+            let parentTexture = makeTexture(
+                deviceImpl.newTextureWithDescriptor(textureDescriptor, ioSurface, 0),
+                twoDimensionalTextureParameters(apiFormat, usage: usage, width: width, height: height),
+                viewFormats: configuredViewFormats,
+                device,
+                deviceImpl
+            )
+            parentTexture.impl.makeCanvasBacking()
             renderBuffers.append(RenderBuffer(texture: parentTexture, luminanceClampTexture: luminanceClampTexture))
             if existingRenderBuffers.count >= renderBuffers.count {
                 if resizeCommandBuffer == nil {
@@ -248,8 +253,8 @@ final class PresentationContextIOSurfaceImpl {
                 let existing = existingRenderBuffers[renderBuffers.count - 1]
                 textureDescriptor.usage.insert(.shaderWrite)
                 copyTextureToTexture(
-                    deviceImpl.newTextureWithDescriptor(textureDescriptor, parentTexture.texture()?.iosurface, 0),
-                    existing.texture.texture(),
+                    deviceImpl.newTextureWithDescriptor(textureDescriptor, parentTexture.impl.texture()?.iosurface, 0),
+                    existing.texture.impl.texture(),
                     resizeCommandBuffer,
                     metalDevice,
                     deviceImpl
@@ -261,8 +266,8 @@ final class PresentationContextIOSurfaceImpl {
                     // texture rather than into luminanceClampParent.
                     luminanceClampDescriptor.usage.insert(.shaderWrite)
                     copyTextureToTexture(
-                        deviceImpl.newTextureWithDescriptor(luminanceClampDescriptor, luminanceClampParent.texture()?.iosurface, 0),
-                        existing.luminanceClampTexture.first?.texture(),
+                        deviceImpl.newTextureWithDescriptor(luminanceClampDescriptor, luminanceClampParent.impl.texture()?.iosurface, 0),
+                        existing.luminanceClampTexture.first?.impl.texture(),
                         resizeCommandBuffer,
                         metalDevice,
                         deviceImpl
@@ -379,9 +384,10 @@ final class PresentationContextIOSurfaceImpl {
             let oldestFrame = inFlightFrames.removeFirst()
             // Blocking here is what tells the frame pacer the canvas is presenting faster than the GPU retires frames.
             let waitStartTime = clock.now
-            let completed = oldestFrame.waitForCommandBufferCompletion()
+            let completed = oldestFrame.impl.waitForCommandBufferCompletion()
             stall += waitStartTime.duration(to: clock.now)
-            lastDrainedFrameGPUCost = completed ? oldestFrame.gpuFrameCost().value() : 0
+            let gpuFrameCost = oldestFrame.impl.gpuFrameCostSeconds()
+            lastDrainedFrameGPUCost = completed && gpuFrameCost > 0 ? gpuFrameCost : 0
         }
         let (seconds, attoseconds) = stall.components
         lastFramePresentStall = Double(seconds) + Double(attoseconds) * 1e-18
@@ -406,9 +412,9 @@ final class PresentationContextIOSurfaceImpl {
             let computeEncoder = commandBuffer?.makeComputeCommandEncoder(descriptor: computeDescriptor)
             queueImpl.setEncoderForBuffer(deviceQueue, commandBuffer, computeEncoder)
             computeEncoder?.setComputePipelineState(computePipelineState)
-            let inputTexture = luminanceClampTexture.texture()
+            let inputTexture = luminanceClampTexture.impl.texture()
             computeEncoder?.setTexture(inputTexture, index: 0)
-            computeEncoder?.setTexture(renderBuffer.texture.texture(), index: 1)
+            computeEncoder?.setTexture(renderBuffer.texture.impl.texture(), index: 1)
             let threadgroupSize = MTLSize(width: 16, height: 16, depth: 1)
             let threadgroupCount = MTLSize(
                 width: ((inputTexture?.width ?? 0) + threadgroupSize.width - 1) / threadgroupSize.width,
@@ -450,8 +456,8 @@ final class PresentationContextIOSurfaceImpl {
     @_expose(Cxx)
     func currentFrameTexture(_ index: UInt32) -> WebGPU.Metal.Texture {
         let texture = renderBuffers[Int(index)].presentedTexture
-        texture.recreateIfNeeded()
-        return texture
+        texture.impl.recreateIfNeeded()
+        return texture.shell
     }
 
     // CF_RETURNS_RETAINED; the shell adopts it. Null, with isIOSurfaceSupportedFormat set, when the compositor
@@ -463,7 +469,7 @@ final class PresentationContextIOSurfaceImpl {
             return nil
         }
 
-        let texture = renderBuffers[Int(bufferIndex)].presentedTexture
+        let texture = renderBuffers[Int(bufferIndex)].presentedTexture.impl
         guard texture.waitForCommandBufferCompletion() else {
             return nil
         }

@@ -99,9 +99,9 @@ struct TextureFormatsView {
 class Texture final : public WebGPU::Texture {
     WTF_MAKE_TZONE_ALLOCATED(Texture);
 public:
-    // The texture allows views in the given view formats, not in descriptor.viewFormats.
-    static Ref<Texture> create(id<MTLTexture>, const WebGPU::TextureDescriptor&, Vector<WebGPU::TextureFormat>&& viewFormats, Device&);
     static Ref<Texture> createInvalid(Device&);
+    // For the canvas render buffers and XR, whose TextureImpls Swift makes and stages on the DeviceImpl.
+    static Ref<Texture> createWithStagedImpl(Device&);
 #if !defined(__swift__)
     // `makeImpl` returns the WebGPU::TextureImpl. Defined in Texture.mm.
     template<typename MakeImpl> static Ref<Texture> create(MakeImpl&&);
@@ -124,8 +124,8 @@ public:
     // The format rules C++ uses; Swift calls the functions in TextureFormats.swift directly.
     static bool LEGACY_NODELETE isDepthOrStencilFormat(WebGPU::TextureFormat);
 
-    id<MTLTexture> texture() const;
 #if !defined(__swift__)
+    id<MTLTexture> texture() const;
     uint32_t LEGACY_NODELETE width() const;
     uint32_t LEGACY_NODELETE height() const;
     uint32_t LEGACY_NODELETE depthOrArrayLayers() const;
@@ -140,18 +140,6 @@ public:
 
     // Borrowed from the Impl, which holds the reference.
     Device& device() const;
-#endif
-
-    bool isDestroyed() const;
-
-    void recreateIfNeeded();
-    void LEGACY_NODELETE makeCanvasBacking();
-
-    bool waitForCommandBufferCompletion();
-    Seconds gpuFrameCost() const;
-#if !defined(__swift__)
-    void LEGACY_NODELETE updateCompletionEvent(const std::pair<id<MTLSharedEvent>, uint64_t>&);
-    void setRasterizationRateMaps(std::pair<id<MTLRasterizationRateMap>, id<MTLRasterizationRateMap>>&&);
 #endif
 
 private:
