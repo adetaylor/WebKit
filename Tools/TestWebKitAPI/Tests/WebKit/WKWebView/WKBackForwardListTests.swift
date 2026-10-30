@@ -29,6 +29,17 @@ import Testing
 import WebKit
 private import WebKit_Private.WKBackForwardListPrivate
 private import WebKit_Private.WKWebViewPrivate
+private import WebKit_Private._WKDiagnosticLoggingDelegate
+
+@MainActor
+private final class DiagnosticMessageRecorder: NSObject, @preconcurrency _WKDiagnosticLoggingDelegate {
+    private(set) var descriptions: [String: [String]] = [:]
+
+    // swift-format-ignore: NoLeadingUnderscores
+    func _webView(_ webView: WKWebView, logDiagnosticMessage message: String, description: String) {
+        descriptions[message, default: []].append(description)
+    }
+}
 
 @MainActor
 final class WKBackForwardListTests {
@@ -100,6 +111,18 @@ final class WKBackForwardListTests {
 
         #expect(weakItem1 == nil)
         #expect(weakItem2 == nil)
+    }
+
+    @Test
+    func backNavigationLogsItsDelta() async throws {
+        let webView = try #require(self.webView)
+        let recorder = DiagnosticMessageRecorder()
+        webView._diagnosticLoggingDelegate = recorder
+
+        webView.goBack()
+        try await webView._test_waitForDidFinishNavigation()
+
+        #expect(recorder.descriptions["backNavigationDelta"] == ["1"])
     }
 
     @Test
