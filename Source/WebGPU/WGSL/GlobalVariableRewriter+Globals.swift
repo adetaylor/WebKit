@@ -760,9 +760,15 @@ extension RewriteGlobalVariables {
 
             let group = resource.group
             let binding = resource.binding
-            usedGlobals.resources.modify(UInt64(group), default: IndexMap<Global>()) { bindings in
-                let bindingResult = bindings.add(UInt64(binding), global)
-                assert(bindingResult)
+            let isNewEntry = usedGlobals.resources.modify(UInt64(group), default: IndexMap<Global>()) { bindings in
+                bindings.add(UInt64(binding), global)
+            }
+            guard isNewEntry else {
+                let entryPointName = shaderModule.symbols.text(of: entryPoint.originalName)
+                throw CompilationMessage(
+                    text: "entry point '\(entryPointName)' uses two variables with the same resource binding: @group(\(group)) @binding(\(binding))",
+                    span: function.span
+                )
             }
         }
 

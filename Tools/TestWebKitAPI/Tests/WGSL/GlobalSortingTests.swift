@@ -328,7 +328,7 @@ private let cxxCases: [CxxCase] = [
             """
     ),
     CxxCase(
-        "a local is introduced before its initializer is visited",
+        "a local's initializer is visited before the local is introduced",
         source: """
             fn f() { let a = a; }
             const a = 1;
@@ -336,12 +336,12 @@ private let cxxCases: [CxxCase] = [
             """,
         error: nil,
         dump: """
+            var a = 1;
             fn f()
             {
                 var a = a;
             }
 
-            var a = 1;
 
             """
     ),

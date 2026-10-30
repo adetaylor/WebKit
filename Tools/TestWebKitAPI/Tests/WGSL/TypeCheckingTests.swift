@@ -775,6 +775,77 @@ struct WGSLTypeCheckingTests {
     }
 
     @Test
+    func ResourceBinding() {
+        expectStaticCheckErrorContaining(
+            "@group(0) @binding(0) var<storage, read_write> big: array<u32>;"
+                + "@group(0) @binding(0) var<storage, read_write> tiny: array<u32>;"
+                + "@compute @workgroup_size(1) fn main() {"
+                + "tiny[0] = 1u;"
+                + "var big: u32 = arrayLength(&big);"
+                + "tiny[1] = big;"
+                + "}",
+            "both which use the same resource binding: @group(0) @binding(0)"
+        )
+
+        expectStaticCheckErrorContaining(
+            "@group(0) @binding(0) var<storage, read_write> big: array<u32>;"
+                + "@group(0) @binding(0) var<storage, read_write> tiny: array<u32>;"
+                + "@compute @workgroup_size(1) fn main() {"
+                + "tiny[0] = arrayLength(&big);"
+                + "}",
+            "both which use the same resource binding: @group(0) @binding(0)"
+        )
+
+        expectNoError(
+            "@group(0) @binding(0) var<storage, read_write> big: array<u32>;"
+                + "@group(0) @binding(0) var<storage, read_write> tiny: array<u32>;"
+                + "@compute @workgroup_size(1) fn main() {"
+                + "tiny[0] = arrayLength(&tiny);"
+                + "}"
+        )
+
+        expectNoError(
+            "@group(0) @binding(0) var<storage, read_write> big: array<u32>;"
+                + "@group(0) @binding(0) var<storage, read_write> tiny: array<u32>;"
+                + "@compute @workgroup_size(1) fn main() {"
+                + "var big: u32 = 0u;"
+                + "big = big + 1u;"
+                + "tiny[0] = big;"
+                + "}"
+        )
+    }
+
+    @Test
+    func DeclarationScope() {
+        expectTypeError(
+            "var<workgroup> w: u32;"
+                + "@vertex fn main() -> @builtin(position) vec4<f32> {"
+                + "var w: u32 = w;"
+                + "return vec4<f32>(f32(w));"
+                + "}",
+            "var with `workgroup` address space cannot be used by `vertex` pipeline stage"
+        )
+
+        expectNoError(
+            "fn f() -> u32 { var g: u32 = g(); return g; }"
+                + "fn g() -> u32 { return 7u; }"
+                + "@compute @workgroup_size(1) fn main() { _ = f(); }"
+        )
+
+        expectNoError(
+            "fn f() -> u32 { var g: u32 = g; return g; }"
+                + "var<private> g: u32 = 7u;"
+                + "@compute @workgroup_size(1) fn main() { _ = f(); }"
+        )
+
+        expectTypeError(
+            "fn f() -> u32 { var f: u32 = f(); return f; }"
+                + "@compute @workgroup_size(1) fn main() { _ = f(); }",
+            "encountered a dependency cycle: f -> f"
+        )
+    }
+
+    @Test
     func Return() {
         expectTypeError(
             "fn noReturn() { return 0i; }",
@@ -1057,6 +1128,28 @@ struct WGSLTypeCheckingTests {
                 )
         )
     }
+}
+
+private func expectStaticCheckErrorContaining(
+    _ wgsl: String,
+    _ errorMessageSubstring: String,
+    sourceLocation: SourceLocation = #_sourceLocation
+) {
+    let result = onCompileThread { compileThread -> FailedCheck? in
+        switch compileThread.staticCheck(wtfSource(wgsl)) {
+        case .success:
+            return nil
+        case .failure(let failedCheck):
+            return failedCheck
+        }
+    }
+    guard let result else {
+        Issue.record("staticCheck succeeded", sourceLocation: sourceLocation)
+        return
+    }
+    #expect(result.errors.count == 1, sourceLocation: sourceLocation)
+    let message = result.errors.first?.message ?? ""
+    #expect(message.contains(errorMessageSubstring), "\"\(message)\" does not contain \"\(errorMessageSubstring)\"", sourceLocation: sourceLocation)
 }
 
 private func expectTypeError(
