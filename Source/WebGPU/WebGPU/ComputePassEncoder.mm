@@ -135,9 +135,11 @@ bool ComputePassEncoder::isValid() const
     return m_impl->impl.isValid();
 }
 
-void ComputePassEncoder::markEncoderStateWasNotOpen()
+Ref<ComputePassEncoder> ComputePassEncoder::createInvalidWithEncoderStateNotOpen(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
 {
-    m_impl->impl.markEncoderStateWasNotOpen();
+    Ref computePassEncoder = createInvalid(parentEncoder, device, errorString);
+    computePassEncoder->m_impl->impl.markEncoderStateWasNotOpen();
+    return computePassEncoder;
 }
 
 } // namespace WebGPU::Metal
