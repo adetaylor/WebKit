@@ -352,7 +352,7 @@ constexpr CSSUnitType toCSSUnitType(AngleUnit angleUnit)
     case Turn:   return CSSUnitType::Turn;
     }
 
-    WTF_UNREACHABLE();
+    RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
 }
 
 constexpr std::optional<AngleUnit> toAngleUnit(CSSUnitType cssUnit)
@@ -391,7 +391,7 @@ template<AngleUnit To, typename T> constexpr T convertAngle(T value, AngleUnit u
             return turn2deg(value);
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     } else if constexpr (To == Rad) {
         switch (unit) {
         case Deg:
@@ -404,7 +404,7 @@ template<AngleUnit To, typename T> constexpr T convertAngle(T value, AngleUnit u
             return turn2rad(value);
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     } else if constexpr (To == Grad) {
         switch (unit) {
         case Deg:
@@ -417,7 +417,7 @@ template<AngleUnit To, typename T> constexpr T convertAngle(T value, AngleUnit u
             return turn2grad(value);
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     } else if constexpr (To == Turn) {
         switch (unit) {
         case Deg:
@@ -430,7 +430,7 @@ template<AngleUnit To, typename T> constexpr T convertAngle(T value, AngleUnit u
             return value;
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     }
 }
 
@@ -572,7 +572,7 @@ constexpr CSSUnitType toCSSUnitType(LengthUnit lengthUnit)
     case Cqmax:     return CSSUnitType::Cqmax;
     }
 
-    WTF_UNREACHABLE();
+    RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
 }
 
 constexpr std::optional<LengthUnit> toLengthUnit(CSSUnitType cssUnit)
@@ -695,7 +695,7 @@ constexpr bool conversionToCanonicalUnitRequiresConversionData(LengthUnit unit)
         return true;
     }
 
-    WTF_UNREACHABLE();
+    RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
 }
 
 constexpr bool isFontRelativeLength(LengthUnit lengthUnit)
@@ -871,7 +871,7 @@ constexpr CSSUnitType toCSSUnitType(TimeUnit timeUnit)
     case Ms:   return CSSUnitType::Ms;
     }
 
-    WTF_UNREACHABLE();
+    RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
 }
 
 constexpr std::optional<TimeUnit> toTimeUnit(CSSUnitType cssUnit)
@@ -904,7 +904,7 @@ template<TimeUnit To, typename T> constexpr T convertTime(T value, TimeUnit unit
             return value * secondsPerMillisecond;
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     } else if constexpr (To == Ms) {
         switch (unit) {
         case S:
@@ -913,7 +913,7 @@ template<TimeUnit To, typename T> constexpr T convertTime(T value, TimeUnit unit
             return value;
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     }
 }
 
@@ -949,7 +949,7 @@ constexpr CSSUnitType toCSSUnitType(FrequencyUnit frequencyUnit)
     case Khz:   return CSSUnitType::Khz;
     }
 
-    WTF_UNREACHABLE();
+    RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
 }
 
 constexpr std::optional<FrequencyUnit> toFrequencyUnit(CSSUnitType cssUnit)
@@ -982,7 +982,7 @@ template<FrequencyUnit To, typename T> constexpr T convertFrequency(T value, Fre
             return value * hertzPerKilohertz;
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     } else if constexpr (To == Khz) {
         switch (unit) {
         case Hz:
@@ -991,7 +991,7 @@ template<FrequencyUnit To, typename T> constexpr T convertFrequency(T value, Fre
             return value;
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     }
 }
 
@@ -1031,7 +1031,7 @@ constexpr CSSUnitType toCSSUnitType(ResolutionUnit resolutionUnit)
     case Dpcm:   return CSSUnitType::Dpcm;
     }
 
-    WTF_UNREACHABLE();
+    RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
 }
 
 constexpr std::optional<ResolutionUnit> toResolutionUnit(CSSUnitType cssUnit)
@@ -1070,7 +1070,7 @@ template<ResolutionUnit To, typename T> constexpr T convertResolution(T value, R
             return value * dppxPerDpcm;
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     } else if constexpr (To == X) {
         switch (unit) {
         case Dppx:
@@ -1083,7 +1083,7 @@ template<ResolutionUnit To, typename T> constexpr T convertResolution(T value, R
             return value * dppxPerDpcm / dppxPerX;
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     } else if constexpr (To == Dpi) {
         switch (unit) {
         case Dppx:
@@ -1096,7 +1096,7 @@ template<ResolutionUnit To, typename T> constexpr T convertResolution(T value, R
             return value * dppxPerDpcm / dppxPerDpi;
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     } else if constexpr (To == Dpcm) {
         switch (unit) {
         case Dppx:
@@ -1109,7 +1109,7 @@ template<ResolutionUnit To, typename T> constexpr T convertResolution(T value, R
             return value;
         }
 
-        WTF_UNREACHABLE();
+        RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
     }
 }
 
@@ -1207,7 +1207,7 @@ constexpr CSSUnitType toCSSUnitType(AnglePercentageUnit anglePercentageUnit)
     case Percentage:    return CSSUnitType::Percentage;
     }
 
-    WTF_UNREACHABLE();
+    RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
 }
 
 constexpr std::optional<AnglePercentageUnit> toAnglePercentageUnit(CSSUnitType cssUnit)
@@ -1404,7 +1404,7 @@ constexpr CSSUnitType toCSSUnitType(LengthPercentageUnit lengthPercentageUnit)
     case Percentage:    return CSSUnitType::Percentage;
     }
 
-    WTF_UNREACHABLE();
+    RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
 }
 
 constexpr std::optional<LengthPercentageUnit> toLengthPercentageUnit(CSSUnitType cssUnit)
@@ -1529,7 +1529,7 @@ constexpr bool conversionToCanonicalUnitRequiresConversionData(LengthPercentageU
         return true;
     }
 
-    WTF_UNREACHABLE();
+    RELEASE_ASSERT_NOT_REACHED_UNDER_CONSTEXPR_CONTEXT();
 }
 
 template<> struct UnitTraits<LengthPercentageUnit> {
