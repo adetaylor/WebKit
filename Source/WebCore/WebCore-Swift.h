@@ -88,15 +88,22 @@
 
 #if !defined(USE_SWIFT_IMAGE_DECODERS)
 #define USE_SWIFT_IMAGE_DECODERS 0
+#endif
 #if USE_SWIFT_IMAGE_DECODERS
 #include "ImageDecoderSwiftTypes.h"
+#endif
+
 #if !defined(USE_SWIFT_HTML_PRELOAD_SCANNER)
 #define USE_SWIFT_HTML_PRELOAD_SCANNER 0
+#endif
 #if USE_SWIFT_HTML_PRELOAD_SCANNER
 #include "Document.h"
 #include "HTMLPreloadScanner.h"
+#endif
+
 #if !defined(USE_SWIFT_HTML_TREE_BUILDER)
 #define USE_SWIFT_HTML_TREE_BUILDER 0
+#endif
 #if USE_SWIFT_HTML_TREE_BUILDER
 #include "CustomElementRegistry.h"
 #include "DocumentFragment.h"
@@ -104,8 +111,13 @@
 #include "HTMLDocumentParser.h"
 #include "HTMLParserOptions.h"
 #include "HTMLTreeBuilderSwiftSupport.h"
+#endif
+
 #if !defined(USE_SWIFT_TRANSFORMATION_MATRIX)
 #define USE_SWIFT_TRANSFORMATION_MATRIX 0
+#endif
 #if USE_SWIFT_TRANSFORMATION_MATRIX
 #include "TransformationMatrix.h"
+#endif
+
 #include "WebCoreSwift-Generated.h"
