@@ -164,6 +164,7 @@ static FloatSize hyperbolicReboundDeltaForElasticDelta(IntSize stretchAmount, fl
 }
 #endif
 
+#if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
 void ScrollingEffectsController::handleWheelEventDuringSpringAnimation(const PlatformWheelEvent& wheelEvent)
 {
 #if USE_SWIFT_SCROLL_PHYSICS
@@ -185,6 +186,7 @@ void ScrollingEffectsController::handleWheelEventDuringSpringAnimation(const Pla
         stopSpringAnimation();
 #endif
 }
+#endif
 
 #if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
 bool ScrollingEffectsController::handleWheelEvent(const PlatformWheelEvent& wheelEvent)

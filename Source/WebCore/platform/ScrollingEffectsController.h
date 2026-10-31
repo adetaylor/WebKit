@@ -222,9 +222,11 @@ public:
 #endif
 
 #if PLATFORM(MAC)
+#if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
     // Stops a running spring animation, or ignores the rest of a momentum scroll while one runs. Called before the wheel event
     // scrolls anything, including for events with PlatformWheelEventPhase::MayBegin.
     void handleWheelEventDuringSpringAnimation(const PlatformWheelEvent&);
+#endif
 
     static FloatSize LEGACY_NODELETE wheelDeltaBiasingTowardsVertical(const FloatSize&);
     static bool LEGACY_NODELETE isScrollDeltaOpposingStretch(IntSize stretch, ScrollEventAxis, float delta);
@@ -262,7 +264,9 @@ public:
 #endif
 
 private:
+#if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
     bool isSpringAnimationRunning() const;
+#endif
 
 #if !USE_SWIFT_SCROLL_PHYSICS
     void updateRubberBandAnimatingState();

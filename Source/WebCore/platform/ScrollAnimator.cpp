@@ -156,11 +156,12 @@ bool ScrollAnimator::singleAxisScroll(ScrollEventAxis axis, float scrollDelta, E
             options.animationCurve = documentEdgeScrollAnimationCurve();
             // On the other axis, keep the destination of an animation running on the main thread, such as the inline edge that Home and End scroll to first.
 #if USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
-            if (auto destinationOffset = m_physics->controller.animatedScrollDestinationOffset(ScrollAnimatorScrollPhysicsClientState(*this).facade()))
+            if (FloatPoint destinationOffset; m_physics->controller.animatedScrollDestinationOffset(destinationOffset))
+                newPosition = setValueForAxis(positionFromOffset(destinationOffset), axis, valueForAxis(newPosition, axis));
 #else
             if (auto destinationOffset = m_scrollController.animatedScrollDestinationOffset())
-#endif
                 newPosition = setValueForAxis(positionFromOffset(*destinationOffset), axis, valueForAxis(newPosition, axis));
+#endif
         } else {
 #if USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
             if (m_physics->controller.retargetAnimatedScrollBy(ScrollAnimatorScrollPhysicsClientState(*this).facade(), delta))

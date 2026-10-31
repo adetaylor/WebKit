@@ -294,6 +294,7 @@ void ScrollingEffectsController::stopAnimatedScroll()
 }
 #endif
 
+#if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS
 bool ScrollingEffectsController::isSpringAnimationRunning() const
 {
 #if USE_SWIFT_SCROLL_PHYSICS
@@ -319,6 +320,7 @@ void ScrollingEffectsController::stopSpringAnimation()
         startScrollSnapAnimation();
 #endif
 }
+#endif
 
 #if !USE_SWIFT_SCROLL_PHYSICS
 bool ScrollingEffectsController::startMomentumScrollWithInitialVelocity(const FloatPoint& initialOffset, const FloatSize& initialVelocity, const FloatSize& initialDelta, NOESCAPE const Function<FloatPoint(const FloatPoint&)>& destinationModifier)
