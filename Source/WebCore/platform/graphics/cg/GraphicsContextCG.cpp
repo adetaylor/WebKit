@@ -47,6 +47,7 @@
 #include <pal/spi/cg/ImageIOSPI.h>
 #include <wtf/MathExtras.h>
 #include <wtf/RetainPtr.h>
+#include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/URL.h>
 #include <wtf/ZippedRange.h>
@@ -57,6 +58,10 @@
 #endif
 
 #include <pal/cg/CoreGraphicsSoftLink.h>
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 #if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/IOSurfaceAdditionsBefore.mm>)
 #include <WebKitAdditions/IOSurfaceAdditionsBefore.mm>
@@ -72,6 +77,37 @@ static inline bool CGIOSurfaceContextUsingWebKitBehavior(CGContextRef)
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextCG);
+
+struct GraphicsContextCG::SwiftRenderer {
+    WTF_MAKE_STRUCT_TZONE_ALLOCATED(SwiftRenderer);
+#if ENABLE(WEBCORE_SWIFT)
+    CGRenderer renderer;
+#endif
+};
+
+WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(GraphicsContextCG::SwiftRenderer);
+
+static std::atomic<GraphicsContextCG::RendererForTesting> rendererForTesting { GraphicsContextCG::RendererForTesting::Default };
+
+void GraphicsContextCG::setRendererForTesting(RendererForTesting renderer)
+{
+    rendererForTesting = renderer;
+}
+
+#if ENABLE(WEBCORE_SWIFT)
+static bool shouldUseSwiftRenderer()
+{
+    switch (rendererForTesting.load()) {
+    case GraphicsContextCG::RendererForTesting::CPlusPlus:
+        return false;
+    case GraphicsContextCG::RendererForTesting::Swift:
+        return true;
+    case GraphicsContextCG::RendererForTesting::Default:
+        break;
+    }
+    return isInGPUProcess();
+}
+#endif
 
 static void setCGFillColor(CGContextRef context, const Color& color, const ColorSpace& colorSpace)
 {
@@ -339,6 +375,10 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
 {
     if (!cgContext)
         return;
+#if ENABLE(WEBCORE_SWIFT)
+    if (shouldUseSwiftRenderer())
+        m_swiftRenderer = makeUnique<SwiftRenderer>(CGRenderer::init(cgContext, m_renderingMode == RenderingMode::Unaccelerated, CGContextGetType(cgContext) == kCGContextTypePDF, imageInterpolationQuality()));
+#endif
     // Make sure the context starts in sync with our state.
     didUpdateState(m_state);
 }
@@ -381,6 +421,12 @@ const ColorSpace& GraphicsContextCG::colorSpace() const
 void GraphicsContextCG::save(GraphicsContextState::Purpose purpose)
 {
     GraphicsContext::save(purpose);
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_swiftRenderer->renderer.save(purpose == GraphicsContextState::Purpose::TransparencyLayer);
+        return;
+    }
+#endif
     CGContextSaveGState(contextForState());
 }
 
@@ -390,7 +436,12 @@ void GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
         return;
 
     GraphicsContext::restore(purpose);
-    CGContextRestoreGState(contextForState());
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer)
+        m_swiftRenderer->renderer.restore();
+    else
+#endif
+        CGContextRestoreGState(contextForState());
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
@@ -399,6 +450,26 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
     auto image = nativeImage.platformImage();
     if (!image)
         return;
+
+#if ENABLE(WEBCORE_SWIFT) && HAVE(SUPPORT_HDR_DISPLAY_APIS)
+    if (m_swiftRenderer && options.orientation() == ImageOrientation::Orientation::None
+#if ENABLE(AX_CUSTOM_COLOR_MODE)
+        && options.invertContent() == InvertContent::No
+#endif
+        && !(options.dynamicRangeLimit() == PlatformDynamicRangeLimit::standard() && options.drawsHDRContent() == DrawsHDRContent::Yes)) {
+        auto headroom = options.headroom();
+        if (headroom == Headroom::FromImage)
+            headroom = nativeImage.headroom();
+        if (m_maxEDRHeadroom)
+            headroom = Headroom(std::min<float>(headroom, *m_maxEDRHeadroom));
+        FloatSize imageSize = nativeImage.size();
+        auto result = m_swiftRenderer->renderer.drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), nativeImage.headroom(), headroom);
+        if (result == 1)
+            m_hasDrawn = true;
+        if (result)
+            return;
+    }
+#endif
 
 #if ENABLE(AX_CUSTOM_COLOR_MODE) && HAVE(CGSTYLE_COLORMATRIX_BLUR)
     if (auto invertContent = options.invertContent(); invertContent == InvertContent::Yes || invertContent == InvertContent::Forced) {
@@ -962,6 +1033,10 @@ void GraphicsContextCG::strokePath(const Path& path)
 void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requiresClipToRect)
 {
     const RetainPtr<CGContextRef>& context = contextForDraw();
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer && m_swiftRenderer->renderer.fillRect(rect))
+        return;
+#endif
 
     if (RefPtr fillGradient = this->fillGradient()) {
         fillRect(rect, *fillGradient, fillGradientSpaceTransform(), requiresClipToRect);
@@ -999,6 +1074,12 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, Gradient& gradient, cons
 void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
 {
     const RetainPtr<CGContextRef>& context = contextForDraw();
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        if (auto packedColor = color.tryGetAsPackedInline(); packedColor && m_swiftRenderer->renderer.fillRect(rect, packedColor->value))
+            return;
+    }
+#endif
     Color oldFillColor = fillColor();
 
     if (oldFillColor != color)
@@ -1106,16 +1187,37 @@ void GraphicsContextCG::fillRectWithRoundedHole(const FloatRect& rect, const Flo
 
 void GraphicsContextCG::resetClip()
 {
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.resetClip();
+        return;
+    }
+#endif
     CGContextResetClip(contextForDraw());
 }
 
 void GraphicsContextCG::clip(const FloatRect& rect)
 {
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.clip(rect);
+        return;
+    }
+#endif
     CGContextClipToRect(contextForDraw(), rect);
 }
 
 void GraphicsContextCG::clipOut(const FloatRect& rect)
 {
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.clipOut(rect);
+        return;
+    }
+#endif
     // FIXME: Using CGRectInfinite is much faster than getting the clip bounding box. However, due
     // to <rdar://problem/12584492>, CGRectInfinite can't be used with an accelerated context that
     // has certain transforms that aren't just a translation or a scale. And due to <rdar://problem/14634453>
@@ -1185,12 +1287,28 @@ void GraphicsContextCG::clipToNativeImage(const NativeImage& nativeImage, const 
 
 IntRect GraphicsContextCG::clipBounds() const
 {
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        return enclosingIntRect(m_swiftRenderer->renderer.clipBoundingBox());
+    }
+#endif
     return enclosingIntRect(CGContextGetClipBoundingBox(contextForDraw()));
 }
 
 void GraphicsContextCG::beginTransparencyLayer(float opacity)
 {
     GraphicsContext::beginTransparencyLayer(opacity);
+
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.beginTransparencyLayer(opacity);
+        m_userToDeviceTransformKnownToBeIdentity = false;
+        return;
+    }
+#endif
 
     save(GraphicsContextState::Purpose::TransparencyLayer);
 
@@ -1203,6 +1321,16 @@ void GraphicsContextCG::beginTransparencyLayer(float opacity)
 
 void GraphicsContextCG::beginTransparencyLayer(CompositeOperator, BlendMode)
 {
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        GraphicsContext::beginTransparencyLayer(state().alpha());
+        GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.beginTransparencyLayerWithCurrentAlpha();
+        m_userToDeviceTransformKnownToBeIdentity = false;
+        return;
+    }
+#endif
     // Passing state().alpha() to beginTransparencyLayer(opacity) will
     // preserve the current global alpha.
     beginTransparencyLayer(state().alpha());
@@ -1211,6 +1339,18 @@ void GraphicsContextCG::beginTransparencyLayer(CompositeOperator, BlendMode)
 void GraphicsContextCG::endTransparencyLayer()
 {
     GraphicsContext::endTransparencyLayer();
+
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.endTransparencyLayer();
+        if (stackSize()) {
+            GraphicsContext::restore(GraphicsContextState::Purpose::TransparencyLayer);
+            m_userToDeviceTransformKnownToBeIdentity = false;
+        }
+        return;
+    }
+#endif
 
     const RetainPtr<CGContextRef>& context = contextForDraw();
     CGContextEndTransparencyLayer(context);
@@ -1340,8 +1480,112 @@ void GraphicsContextCG::setCGStyle(const std::optional<GraphicsStyle>& style, bo
     );
 }
 
+#if ENABLE(WEBCORE_SWIFT)
+void GraphicsContextCG::didUpdateStateForSwiftRenderer(SwiftRenderer& swiftRenderer, GraphicsContextState& state)
+{
+    auto changes = state.changes();
+    if (!changes)
+        return;
+
+    if (changes.contains(GraphicsContextState::Change::ShadowsIgnoreTransforms)) {
+        if (state.dropShadow())
+            changes.add(GraphicsContextState::Change::DropShadow);
+        if (state.style())
+            changes.add(GraphicsContextState::Change::Style);
+    }
+
+    m_hasDrawn = true;
+    auto& renderer = swiftRenderer.renderer;
+
+    for (auto change : changes) {
+        switch (change) {
+        case GraphicsContextState::Change::FillBrush: {
+            auto& brush = state.fillBrush();
+            if (auto packedColor = brush.color().tryGetAsPackedInline())
+                renderer.setFillPackedColor(packedColor->value, brush.hasPatternOrGradient());
+            else
+                renderer.setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), brush.hasPatternOrGradient());
+            break;
+        }
+
+        case GraphicsContextState::Change::FillRule:
+            renderer.setFillRule(static_cast<uint8_t>(state.fillRule()));
+            break;
+
+        case GraphicsContextState::Change::StrokeBrush: {
+            auto& brush = state.strokeBrush();
+            if (auto packedColor = brush.color().tryGetAsPackedInline())
+                renderer.setStrokePackedColor(packedColor->value, brush.hasPatternOrGradient());
+            else
+                renderer.setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), brush.hasPatternOrGradient());
+            break;
+        }
+
+        case GraphicsContextState::Change::StrokeThickness:
+            renderer.setStrokeThickness(state.strokeThickness());
+            break;
+
+        case GraphicsContextState::Change::StrokeStyle:
+            renderer.setStrokeStyle(static_cast<uint8_t>(state.strokeStyle()));
+            break;
+
+        case GraphicsContextState::Change::CompositeMode:
+            renderer.setCompositeMode(state.compositeMode().operation, state.compositeMode().blendMode);
+            break;
+
+        case GraphicsContextState::Change::DropShadow:
+            setCGDropShadow(state.dropShadow(), state.shadowsIgnoreTransforms());
+            renderer.setDropShadow(state.dropShadow() && state.dropShadow()->isBlurred());
+            break;
+
+        case GraphicsContextState::Change::Style:
+            setCGStyle(state.style(), state.shadowsIgnoreTransforms());
+            renderer.setHasStyle(!!state.style());
+            break;
+
+        case GraphicsContextState::Change::Alpha:
+            renderer.setAlpha(state.alpha());
+            break;
+
+        case GraphicsContextState::Change::ImageInterpolationQuality:
+            renderer.setImageInterpolationQuality(state.imageInterpolationQuality());
+            break;
+
+        case GraphicsContextState::Change::TextDrawingMode:
+            renderer.setTextDrawingMode(state.textDrawingMode().toRaw());
+            break;
+
+        case GraphicsContextState::Change::ShouldAntialias:
+            renderer.setShouldAntialias(state.shouldAntialias());
+            break;
+
+        case GraphicsContextState::Change::ShouldSmoothFonts:
+            renderer.setShouldSmoothFonts(state.shouldSmoothFonts());
+            break;
+
+        case GraphicsContextState::Change::ShouldSubpixelQuantizeFonts:
+            renderer.setShouldSubpixelQuantizeFonts(state.shouldSubpixelQuantizeFonts());
+            break;
+
+        case GraphicsContextState::Change::ShadowsIgnoreTransforms:
+            renderer.setShadowsIgnoreTransforms(state.shadowsIgnoreTransforms());
+            break;
+        }
+    }
+
+    state.didApplyChanges();
+}
+#endif
+
 void GraphicsContextCG::didUpdateState(GraphicsContextState& state)
 {
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        didUpdateStateForSwiftRenderer(*m_swiftRenderer, state);
+        return;
+    }
+#endif
+
     auto changes = state.changes();
     if (!changes)
         return;
@@ -1418,12 +1662,23 @@ void GraphicsContextCG::setMiterLimit(float limit)
 
 void GraphicsContextCG::clearRect(const FloatRect& r)
 {
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.clearRect(r);
+        return;
+    }
+#endif
     CGContextClearRect(contextForDraw(), r);
 }
 
 void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
 {
     const RetainPtr<CGContextRef>& context = contextForDraw();
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer && m_swiftRenderer->renderer.strokeRect(rect, lineWidth))
+        return;
+#endif
 
     if (RefPtr strokeGradient = this->strokeGradient()) {
         paintGradientInClip(*strokeGradient, strokeGradientSpaceTransform(), [&] {
@@ -1535,36 +1790,72 @@ void GraphicsContextCG::setLineJoin(LineJoin join)
 
 void GraphicsContextCG::scale(const FloatSize& size)
 {
-    CGContextScaleCTM(contextForDraw(), size.width(), size.height());
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.scale(size.width(), size.height());
+    } else
+#endif
+        CGContextScaleCTM(contextForDraw(), size.width(), size.height());
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::rotate(float angle)
 {
-    CGContextRotateCTM(contextForDraw(), angle);
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.rotate(angle);
+    } else
+#endif
+        CGContextRotateCTM(contextForDraw(), angle);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::translate(float x, float y)
 {
-    CGContextTranslateCTM(contextForDraw(), x, y);
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.translate(x, y);
+    } else
+#endif
+        CGContextTranslateCTM(contextForDraw(), x, y);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::concatCTM(const AffineTransform& transform)
 {
-    CGContextConcatCTM(contextForDraw(), transform);
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.concatCTM(transform);
+    } else
+#endif
+        CGContextConcatCTM(contextForDraw(), transform);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::setCTM(const AffineTransform& transform)
 {
-    CGContextSetCTM(contextForDraw(), transform);
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        m_swiftRenderer->renderer.setCTM(transform);
+    } else
+#endif
+        CGContextSetCTM(contextForDraw(), transform);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 AffineTransform GraphicsContextCG::getCTM(IncludeDeviceScale includeScale) const
 {
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer) {
+        m_hasDrawn = true;
+        return m_swiftRenderer->renderer.ctm(includeScale == DefinitelyIncludeDeviceScale);
+    }
+#endif
     // The CTM usually includes the deviceScaleFactor except in WebKit 1 when the
     // content is non-composited, since the scale factor is integrated at a lower
     // level. To guarantee the deviceScale is included, we can use this CG API.
@@ -1690,6 +1981,10 @@ void GraphicsContextCG::beginPage(const FloatRect& pageRect)
 
     ASSERT(!stackSize());
     m_state = GraphicsContextState { GraphicsContextState::basicChangeFlags, coreInterpolationQuality(context.get()) };
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_swiftRenderer)
+        m_swiftRenderer->renderer.resetState(m_state.imageInterpolationQuality());
+#endif
     didUpdateState(m_state);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }

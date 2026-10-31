@@ -3382,6 +3382,7 @@ if (APPLE)
         platform/graphics/ShadowBlur.cpp
         platform/graphics/ShareableBitmap.cpp
 
+        platform/graphics/cg/GraphicsContextCG.cpp
         platform/graphics/cg/ShareableBitmapCG.mm
 
         platform/graphics/coreimage/FilterCoreImageSwiftBridge.mm
@@ -3538,6 +3539,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/ShadowBlurGeometry.swift
         ${WEBCORE_DIR}/platform/graphics/ShadowBlurKernel.swift
         ${WEBCORE_DIR}/platform/graphics/ShareableBitmapLayout.swift
+        ${WEBCORE_DIR}/platform/graphics/cg/CGRenderer.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+BoxConvolve.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+ColorMatrix.swift

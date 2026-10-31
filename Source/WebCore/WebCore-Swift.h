@@ -62,6 +62,7 @@
 #include "FilterGraphicsBridge.h"
 #include "FilterSwiftBridge.h"
 #include "FloatRect.h"
+#include "GraphicsTypes.h"
 #include "ImageBuffer.h"
 #include "IntRect.h"
 #include "IntSize.h"

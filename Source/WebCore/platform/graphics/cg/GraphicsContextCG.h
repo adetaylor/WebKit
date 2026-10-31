@@ -160,7 +160,15 @@ public:
     void setMaxEDRHeadroom(std::optional<float>) final;
 #endif
 
+    // By default, contexts draw with the Swift renderer only in the GPU process.
+    enum class RendererForTesting : uint8_t { Default, CPlusPlus, Swift };
+    static void setRendererForTesting(RendererForTesting);
+    bool usesSwiftRenderer() const { return !!m_swiftRenderer; }
+
 private:
+    struct SwiftRenderer;
+
+    void didUpdateStateForSwiftRenderer(SwiftRenderer&, GraphicsContextState&);
     void setCGDropShadow(const std::optional<GraphicsDropShadow>&, bool shadowsIgnoreTransforms);
     void clearCGDropShadow();
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
@@ -179,6 +187,7 @@ private:
     NODELETE const RetainPtr<CGContextRef>& contextForState() const;
 
     const RetainPtr<CGContextRef> m_cgContext;
+    std::unique_ptr<SwiftRenderer> m_swiftRenderer;
     mutable std::optional<ColorSpace> m_colorSpace;
 #if HAVE(SUPPORT_HDR_DISPLAY)
     std::optional<float> m_maxEDRHeadroom;
