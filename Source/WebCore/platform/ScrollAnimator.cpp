@@ -177,7 +177,7 @@ bool ScrollAnimator::singleAxisScroll(ScrollEventAxis axis, float scrollDelta, E
 
     return scrollToPositionWithoutAnimation(currentPosition() + delta);
 #else
-    return m_physics->controller.scrollAnimatorSingleAxisScroll(ScrollAnimatorScrollPhysicsClientState(*this).facade(), axis, scrollDelta, behavior.contains(ScrollBehavior::RespectScrollSnap), behavior.contains(ScrollBehavior::Paged), behavior.contains(ScrollBehavior::NeverAnimate));
+    return m_physics->controller.scrollAnimatorSingleAxisScroll(ScrollAnimatorScrollPhysicsClientState(*this).facade(), axis, scrollDelta, behavior.contains(ScrollBehavior::RespectScrollSnap), behavior.contains(ScrollBehavior::Paged), behavior.contains(ScrollBehavior::NeverAnimate), behavior.contains(ScrollBehavior::DocumentEdge));
 #endif
 }
 

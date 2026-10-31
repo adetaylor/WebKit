@@ -1879,7 +1879,8 @@ final class ScrollPhysicsController {
         _ scrollDelta: Float,
         _ respectScrollSnap: Bool,
         _ paged: Bool,
-        _ neverAnimate: Bool
+        _ neverAnimate: Bool,
+        _ documentEdge: Bool
     ) -> Bool {
         c.setScrollbarAnimationsUnsuspendedByUserInteraction(true)
 
@@ -1918,10 +1919,15 @@ final class ScrollPhysicsController {
         }
 
         if c.scrollAnimatorEnabled() && !neverAnimate {
+            let newPosition = ScrollPoint(c.currentPosition()) + delta
+            if documentEdge {
+                scrollAnimatorScrollToDocumentEdgeWithAnimation(&c, axis, newPosition)
+                return true
+            }
             if retargetAnimatedScrollBy(&c, delta.floatSize) {
                 return true
             }
-            c.scrollToPositionWithAnimation((ScrollPoint(c.currentPosition()) + delta).floatPoint, delta.floatSize)
+            c.scrollToPositionWithAnimation(newPosition.floatPoint, delta.floatSize)
             return true
         }
 
@@ -1954,7 +1960,8 @@ final class ScrollPhysicsController {
     func scrollAnimatorScrollToPositionWithAnimation(
         _ c: inout MainThreadScrollPhysicsClient,
         _ position: WebCore.FloatPoint,
-        _ clamping: WebCore.ScrollClamping
+        _ clamping: WebCore.ScrollClamping,
+        _ curve: WebCore.ScrollAnimationCurve
     ) -> Bool {
         let adjustedPosition = scrollAnimatorAdjustedPosition(&c, ScrollPoint(position), clamping)
         let positionChanged = adjustedPosition != ScrollPoint(c.currentPosition())
@@ -1964,12 +1971,16 @@ final class ScrollPhysicsController {
 
         let startOffset = scrollAnimatorOffsetFromPosition(&c, ScrollPoint(c.currentPosition()))
         let destinationOffset = scrollAnimatorOffsetFromPosition(&c, adjustedPosition)
-        return startAnimatedScrollToDestination(&c, startOffset.floatPoint, destinationOffset.floatPoint)
+        return startAnimatedScrollToDestination(&c, startOffset.floatPoint, destinationOffset.floatPoint, curve)
     }
 
     @_expose(Cxx)
-    func scrollAnimatorRetargetRunningAnimation(_ c: inout MainThreadScrollPhysicsClient, _ newPosition: WebCore.FloatPoint) -> Bool {
-        retargetAnimatedScroll(&c, scrollAnimatorOffsetFromPosition(&c, ScrollPoint(newPosition)).floatPoint)
+    func scrollAnimatorRetargetRunningAnimation(
+        _ c: inout MainThreadScrollPhysicsClient,
+        _ newPosition: WebCore.FloatPoint,
+        _ curve: WebCore.ScrollAnimationCurve
+    ) -> Bool {
+        retargetAnimatedScroll(&c, scrollAnimatorOffsetFromPosition(&c, ScrollPoint(newPosition)).floatPoint, curve)
     }
 
     // ScrollAnimator::handleWheelEvent(), with the event's timestamp in seconds. Every ScrollAnimator on macOS is a
@@ -2094,6 +2105,7 @@ final class ScrollPhysicsController {
     ) -> Bool {
         c.setScrollbarAnimationsUnsuspendedByUserInteraction(true)
         updateGestureInProgressState(&c, wheelEvent)
+        handleWheelEventDuringSpringAnimation(&c, wheelEvent)
 
         // Events in the PlatformWheelEventPhase::MayBegin phase have no deltas, and therefore never passes through the
         // scroll handling logic below. This causes us to return with an 'unhandled' return state, even though this event
@@ -2153,12 +2165,13 @@ final class ScrollPhysicsController {
             return false
         }
 
-        if granularity == .Document || (!isKeyRepeat && granularity == .Page) {
-            c.endKeyboardScroll(false)
-            // IntPoint(FloatPoint): toward zero.
-            let destination = ScrollPoint(c.currentPosition()) + ScrollSize(scroll.offset)
-            let newPosition = WebCore.FloatPoint(Float(clampToInt32(destination.x)), Float(clampToInt32(destination.y)))
-            _ = scrollAnimatorScrollToPositionWithAnimation(&c, newPosition, .Clamped)
+        if granularity == .Document {
+            keyboardScrollingAnimatorScrollToDocumentEdge(&c, direction)
+            return true
+        }
+
+        if !isKeyRepeat && granularity == .Page {
+            keyboardScrollingAnimatorScrollByPage(&c, ScrollSize(scroll.offset))
             return true
         }
 

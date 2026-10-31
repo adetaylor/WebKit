@@ -82,7 +82,7 @@ extension ScrollPhysicsController {
                 }
 
                 let scrollDelta = c.scrollbarPixelStep(.Vertical) * -deltaY // Wheel deltas are reversed from scrolling direction.
-                _ = scrollAnimatorSingleAxisScroll(&c, .Vertical, scrollDelta, true, false, neverAnimate)
+                _ = scrollAnimatorSingleAxisScroll(&c, .Vertical, scrollDelta, true, false, neverAnimate, false)
             }
 
             if deltaX != 0 {
@@ -91,7 +91,7 @@ extension ScrollPhysicsController {
                 }
 
                 let scrollDelta = c.scrollbarPixelStep(.Horizontal) * -deltaX // Wheel deltas are reversed from scrolling direction.
-                _ = scrollAnimatorSingleAxisScroll(&c, .Horizontal, scrollDelta, true, false, neverAnimate)
+                _ = scrollAnimatorSingleAxisScroll(&c, .Horizontal, scrollDelta, true, false, neverAnimate, false)
             }
         }
         return handled
@@ -148,6 +148,32 @@ extension ScrollPhysicsController {
     func scrollAnimatorOffsetFromPosition(_ c: inout MainThreadScrollPhysicsClient, _ position: ScrollPoint) -> ScrollPoint {
         let scrollOrigin = c.scrollOrigin()
         return position + ScrollSize(width: Float(scrollOrigin.x()), height: Float(scrollOrigin.y()))
+    }
+
+    // ScrollAnimator::positionFromOffset(): ScrollableArea::scrollPositionFromOffset() with the area's scroll origin.
+    func scrollAnimatorPositionFromOffset(_ c: inout MainThreadScrollPhysicsClient, _ offset: ScrollPoint) -> ScrollPoint {
+        let scrollOrigin = c.scrollOrigin()
+        return ScrollPoint(x: offset.x - Float(scrollOrigin.x()), y: offset.y - Float(scrollOrigin.y()))
+    }
+
+    // Requests the edge itself, rather than a delta that is relative to a position that may be out of date while an
+    // animation runs. On the other axis, keeps the destination of an animation running on the main thread, such as the
+    // inline edge that Home and End scroll to first.
+    func scrollAnimatorScrollToDocumentEdgeWithAnimation(
+        _ c: inout MainThreadScrollPhysicsClient,
+        _ axis: WebCore.ScrollEventAxis,
+        _ edgePosition: ScrollPoint
+    ) {
+        var newPosition = edgePosition
+        if let destinationOffset = animatedScrollDestinationOffset() {
+            let destinationPosition = scrollAnimatorPositionFromOffset(&c, ScrollPoint(destinationOffset))
+            if axis == .Horizontal {
+                newPosition.y = destinationPosition.y
+            } else {
+                newPosition.x = destinationPosition.x
+            }
+        }
+        c.scrollToPositionWithAnimation(newPosition.floatPoint, WebCore.documentEdgeScrollAnimationCurve())
     }
 }
 

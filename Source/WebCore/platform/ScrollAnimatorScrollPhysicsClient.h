@@ -128,6 +128,13 @@ public:
     bool scrollOriginChanged() { return area().scrollOriginChanged(); }
     bool scrollAnimatorEnabled() { return area().scrollAnimatorEnabled(); }
     void scrollToPositionWithAnimation(FloatPoint position, FloatSize originalScrollDelta) { area().scrollToPositionWithAnimation(position, ScrollPositionChangeOptions::createProgrammaticWithOptions(ScrollClamping::Clamped, ScrollIsAnimated::No, ScrollSnapPointSelectionMethod::Closest, originalScrollDelta)); }
+    void scrollToPositionWithAnimation(FloatPoint position, ScrollAnimationCurve curve)
+    {
+        auto options = ScrollPositionChangeOptions::createProgrammatic();
+        options.animationCurve = curve;
+        area().scrollToPositionWithAnimation(position, options);
+    }
+    bool scroll(ScrollDirection direction, ScrollGranularity granularity) { return area().scroll(direction, granularity); }
     void scrollDidEnd() { area().scrollDidEnd(); }
     bool hasSteppedScrolling() { return area().hasSteppedScrolling(); }
     void clearScrollAnchor() { area().clearScrollAnchor(); }
