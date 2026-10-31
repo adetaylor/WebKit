@@ -42,12 +42,20 @@ final class XRProjectionLayerImpl {
 
     private var colorTextures: [UInt64: any MTLTexture] = [:]
     private var depthTextures: [UInt64: any MTLTexture] = [:]
+    // Read by XRSubImageImpl. Not exposed to C++, which never sets them.
+    @_expose(!Cxx)
     private(set) var colorTexture: (any MTLTexture)?
+    @_expose(!Cxx)
     private(set) var depthTexture: (any MTLTexture)?
+    @_expose(!Cxx)
     private(set) var reusableTextureIndex: UInt64 = 0
+    @_expose(!Cxx)
     private(set) var completionEvent: (any MTLSharedEvent)?
+    @_expose(!Cxx)
     private(set) var completionEventSignalValue: UInt64 = 0
+    @_expose(!Cxx)
     private(set) var leftRasterizationMap: (any MTLRasterizationRateMap)?
+    @_expose(!Cxx)
     private(set) var rightRasterizationMap: (any MTLRasterizationRateMap)?
     // Declared last, so that the device outlives the rest of the layer.
     private let deviceImpl: DeviceImpl
