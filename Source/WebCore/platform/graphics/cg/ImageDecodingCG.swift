@@ -216,7 +216,7 @@ final class AnyCGImageDecoder: Sendable {
     /// NOT retain it (measured, Swift 6.4), so the caller must pass a +1
     /// reference (RetainPtr::leakRef()).
     @usableFromInline
-    static func makeForImageSource(_ source: sending CGImageSource, _ supportedImageTypes: CFArray, _ shouldPreferRGB32Key: CFString, _ skipMetadataKey: CFString, _ useHardwareAccelerationKey: CFString, _ hardwareAcceleratedDecodingDisabled: Bool, _ enableRestrictedDecoding: Bool, _ createUnpremultipliedPNG: Bool) -> AnyCGImageDecoder {
+    static func makeForImageSource(_ source: sending ImageIO.CGImageSource, _ supportedImageTypes: CFArray, _ shouldPreferRGB32Key: CFString, _ skipMetadataKey: CFString, _ useHardwareAccelerationKey: CFString, _ hardwareAcceleratedDecodingDisabled: Bool, _ enableRestrictedDecoding: Bool, _ createUnpremultipliedPNG: Bool) -> AnyCGImageDecoder {
         let supported = Set((supportedImageTypes as NSArray).compactMap { $0 as? String })
         let configuration = ImageSourceConfiguration(
             hardwareAcceleratedDecodingDisabled: hardwareAcceleratedDecodingDisabled,
@@ -259,7 +259,7 @@ final class AnyCGImageDecoder: Sendable {
     /// uti()/isAllDataReceived()/encodedDataStatus()/frameCount()/setData on
     /// other threads do not wait for the decode. Same +1 result as above.
     @usableFromInline
-    func createFrameImageAtIndex(_ source: CGImageSource, _ index: Int, _ subsampling: Int, _ mode: UInt8, _ destination: UInt8, _ sizeForDrawing: ImageDecoderIntSize?) -> CGImage? {
+    func createFrameImageAtIndex(_ source: ImageIO.CGImageSource, _ index: Int, _ subsampling: Int, _ mode: UInt8, _ destination: UInt8, _ sizeForDrawing: ImageDecoderIntSize?) -> CGImage? {
         base.createFrameImage(using: source, at: index, subsampling: subsampling, options: AnyImageDecoder.options(mode, destination, sizeForDrawing))
     }
 }
