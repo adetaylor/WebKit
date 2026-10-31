@@ -302,7 +302,7 @@ public:
         auto animations = std::exchange(m_pendingScrollAnimations, { });
         for (auto& [id, request] : animations) {
             if (RefPtr node = dynamicDowncast<ScrollingTreeScrollingNode>(nodeForID(id)))
-                node->startAnimatedScrollToPosition(request.destinationPosition(node->currentScrollPosition()));
+                node->startAnimatedScrollToPosition(request.destinationPosition(node->currentScrollPosition()), request.animationCurve);
         }
         auto keyboardScrolls = std::exchange(m_pendingKeyboardScrolls, { });
         for (auto& [id, request] : keyboardScrolls) {

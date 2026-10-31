@@ -1219,7 +1219,7 @@ private:
     {
         TraceLine(m_trace, 'E', "retargetRunningAnimation").pt("to", destination);
         m_trace.countEntry();
-        bool result = animator().retargetRunningAnimation(destination);
+        bool result = animator().retargetRunningAnimation(destination, ScrollAnimationCurve::Default);
         TraceLine(m_trace, 'R', "retargetRunningAnimation", true).b("r", result);
     }
 
