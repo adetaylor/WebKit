@@ -1837,12 +1837,12 @@
 		46CF504A27AB1EA40070DBC8 /* SharedWorkerContextManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 46CF504827AB1EA10070DBC8 /* SharedWorkerContextManager.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		46D0004026A0FEB300D1BF1E /* SubmitEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 46D0003E26A0FE6F00D1BF1E /* SubmitEvent.h */; };
 		46D21F192993268400835FBA /* HTMLDocumentParserFastPath.h in Headers */ = {isa = PBXBuildFile; fileRef = 46D21F182993268000835FBA /* HTMLDocumentParserFastPath.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5A1F00000000000000000002 /* HTMLFastPathParserTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 5A1F00000000000000000001 /* HTMLFastPathParserTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		B03D963A672BF45841B1E087 /* HTMLFastPathParserTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 8C74C7AAC91BD6A96ECAF2C3 /* HTMLFastPathParserTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5A1F00000000000000000004 /* HTMLFastPathParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1F00000000000000000003 /* HTMLFastPathParser.swift */; };
 		5A1F00000000000000000006 /* HTMLEntityParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1F00000000000000000005 /* HTMLEntityParser.swift */; };
 		5A1F00000000000000000008 /* HTMLTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1F00000000000000000007 /* HTMLTokenizer.swift */; };
 		5A1F0000000000000000000A /* HTMLPreloadScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1F00000000000000000009 /* HTMLPreloadScanner.swift */; };
-		5A1F0000000000000000000A /* HTMLTreeBuilderSwiftSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = 5A1F00000000000000000009 /* HTMLTreeBuilderSwiftSupport.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		CBB405DD90C773DF9D5080AA /* HTMLTreeBuilderSwiftSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = AA0A91D01B99692255C26150 /* HTMLTreeBuilderSwiftSupport.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5A1F0000000000000000000C /* HTMLTreeBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1F0000000000000000000B /* HTMLTreeBuilder.swift */; };
 		5A1F0000000000000000000E /* HTMLElementStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1F0000000000000000000D /* HTMLElementStack.swift */; };
 		5A1F00000000000000000010 /* HTMLConstructionSite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1F0000000000000000000F /* HTMLConstructionSite.swift */; };
@@ -4047,10 +4047,8 @@
 		977B386C122883E900B81FF8 /* HTMLEntitySearch.h in Headers */ = {isa = PBXBuildFile; fileRef = 977B3853122883E900B81FF8 /* HTMLEntitySearch.h */; };
 		977B386D122883E900B81FF8 /* HTMLEntityTable.h in Headers */ = {isa = PBXBuildFile; fileRef = 977B3854122883E900B81FF8 /* HTMLEntityTable.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		977B386F122883E900B81FF8 /* HTMLFormattingElementList.h in Headers */ = {isa = PBXBuildFile; fileRef = 977B3856122883E900B81FF8 /* HTMLFormattingElementList.h */; };
-		977B3871122883E900B81FF8 /* HTMLParserScheduler.h in Headers */ = {isa = PBXBuildFile; fileRef = 977B3858122883E900B81FF8 /* HTMLParserScheduler.h */; };
 		977B3873122883E900B81FF8 /* HTMLPreloadScanner.h in Headers */ = {isa = PBXBuildFile; fileRef = 977B385A122883E900B81FF8 /* HTMLPreloadScanner.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		977B3871122883E900B81FF8 /* HTMLParserScheduler.h in Headers */ = {isa = PBXBuildFile; fileRef = 977B3858122883E900B81FF8 /* HTMLParserScheduler.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		977B3873122883E900B81FF8 /* HTMLPreloadScanner.h in Headers */ = {isa = PBXBuildFile; fileRef = 977B385A122883E900B81FF8 /* HTMLPreloadScanner.h */; };
 		977B3875122883E900B81FF8 /* HTMLScriptRunner.h in Headers */ = {isa = PBXBuildFile; fileRef = 977B385C122883E900B81FF8 /* HTMLScriptRunner.h */; };
 		977B3876122883E900B81FF8 /* HTMLScriptRunnerHost.h in Headers */ = {isa = PBXBuildFile; fileRef = 977B385D122883E900B81FF8 /* HTMLScriptRunnerHost.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5A2F00000000000000000001 /* HTMLToken.h in Headers */ = {isa = PBXBuildFile; fileRef = 97C1F552122855CB00EDE616 /* HTMLToken.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -12101,12 +12099,12 @@
 		46D0003F26A0FE7000D1BF1E /* SubmitEvent.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SubmitEvent.idl; sourceTree = "<group>"; };
 		46D21F172993268000835FBA /* HTMLDocumentParserFastPath.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = HTMLDocumentParserFastPath.cpp; sourceTree = "<group>"; };
 		46D21F182993268000835FBA /* HTMLDocumentParserFastPath.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTMLDocumentParserFastPath.h; sourceTree = "<group>"; };
-		5A1F00000000000000000001 /* HTMLFastPathParserTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTMLFastPathParserTypes.h; sourceTree = "<group>"; };
+		8C74C7AAC91BD6A96ECAF2C3 /* HTMLFastPathParserTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTMLFastPathParserTypes.h; sourceTree = "<group>"; };
 		5A1F00000000000000000003 /* HTMLFastPathParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLFastPathParser.swift; sourceTree = "<group>"; };
 		5A1F00000000000000000005 /* HTMLEntityParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLEntityParser.swift; sourceTree = "<group>"; };
 		5A1F00000000000000000007 /* HTMLTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLTokenizer.swift; sourceTree = "<group>"; };
 		5A1F00000000000000000009 /* HTMLPreloadScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLPreloadScanner.swift; sourceTree = "<group>"; };
-		5A1F00000000000000000009 /* HTMLTreeBuilderSwiftSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTMLTreeBuilderSwiftSupport.h; sourceTree = "<group>"; };
+		AA0A91D01B99692255C26150 /* HTMLTreeBuilderSwiftSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTMLTreeBuilderSwiftSupport.h; sourceTree = "<group>"; };
 		5A1F0000000000000000000B /* HTMLTreeBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLTreeBuilder.swift; sourceTree = "<group>"; };
 		5A1F0000000000000000000D /* HTMLElementStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLElementStack.swift; sourceTree = "<group>"; };
 		5A1F0000000000000000000F /* HTMLConstructionSite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLConstructionSite.swift; sourceTree = "<group>"; };
@@ -34366,7 +34364,7 @@
 				977B3853122883E900B81FF8 /* HTMLEntitySearch.h */,
 				977B3854122883E900B81FF8 /* HTMLEntityTable.h */,
 				5A1F00000000000000000003 /* HTMLFastPathParser.swift */,
-				5A1F00000000000000000001 /* HTMLFastPathParserTypes.h */,
+				8C74C7AAC91BD6A96ECAF2C3 /* HTMLFastPathParserTypes.h */,
 				977B3855122883E900B81FF8 /* HTMLFormattingElementList.cpp */,
 				977B3856122883E900B81FF8 /* HTMLFormattingElementList.h */,
 				97BC849A12370A4B000C6161 /* HTMLInputStream.h */,
@@ -34399,7 +34397,7 @@
 				977B37211228721700B81FF8 /* HTMLTreeBuilder.cpp */,
 				977B37221228721700B81FF8 /* HTMLTreeBuilder.h */,
 				5A1F0000000000000000000B /* HTMLTreeBuilder.swift */,
-				5A1F00000000000000000009 /* HTMLTreeBuilderSwiftSupport.h */,
+				AA0A91D01B99692255C26150 /* HTMLTreeBuilderSwiftSupport.h */,
 				A8805AF116C96AEA000E9D98 /* InputStreamPreprocessor.h */,
 				00C60E3E13D76D7E0092A275 /* MarkupTokenizerInlines.h */,
 				8A309C9E123950BE00CB9204 /* NestingLevelIncrementer.h */,
@@ -46301,8 +46299,8 @@
 				977B386A122883E900B81FF8 /* HTMLEntityParser.h in Headers */,
 				977B386C122883E900B81FF8 /* HTMLEntitySearch.h in Headers */,
 				977B386D122883E900B81FF8 /* HTMLEntityTable.h in Headers */,
-				5A1F00000000000000000002 /* HTMLFastPathParserTypes.h in Headers */,
-				5A1F0000000000000000000A /* HTMLTreeBuilderSwiftSupport.h in Headers */,
+				B03D963A672BF45841B1E087 /* HTMLFastPathParserTypes.h in Headers */,
+				CBB405DD90C773DF9D5080AA /* HTMLTreeBuilderSwiftSupport.h in Headers */,
 				A81369D4097374F600D74463 /* HTMLFieldSetElement.h in Headers */,
 				A8CFF7A60A156978000A4234 /* HTMLFontElement.h in Headers */,
 				977B386F122883E900B81FF8 /* HTMLFormattingElementList.h in Headers */,
