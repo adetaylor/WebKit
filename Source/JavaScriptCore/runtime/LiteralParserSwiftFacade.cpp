@@ -623,7 +623,9 @@ ALWAYS_INLINE_LAMBDA bool JSONParseSink<CharType, sinkMode>::stringValue(size_t 
 {
     auto& state = static_cast<StateFor<CharType, sinkMode>&>(*this);
     RELEASE_ASSERT(start <= state.input.size() && length <= state.input.size() - start);
-    JSString* string = state.jsonCache.makeJSString(state.vm, state.input.subspan(start, length));
+    // These characters are the source text between the quotes, which is how LiteralParser's
+    // currentStringIsSourceText() reads a string without escapes in strict JSON.
+    JSString* string = state.jsonCache.makeJSString(state.vm, state.input.subspan(start, length), state.mode() == StrictJSON);
     if (cache) {
         // The source text from the opening quote to the closing one is exactly what a later match compares against.
         RELEASE_ASSERT(state.is8Bit && state.mode() == StrictJSON && start && length < state.input.size() - start);
@@ -637,18 +639,21 @@ template<typename CharType, JSONParseSinkMode sinkMode>
 ALWAYS_INLINE_LAMBDA bool JSONParseSink<CharType, sinkMode>::decodedStringValue(JSONParseInput8 characters8 NOESCAPE, JSONParseInput16 characters16 NOESCAPE)
 {
     auto& state = static_cast<StateFor<CharType, sinkMode>&>(*this);
-    return state.leafValue(characters16.empty() ? state.jsonCache.makeJSString(state.vm, stateCharacters(characters8)) : state.jsonCache.makeJSString(state.vm, characters16));
+    return state.leafValue(characters16.empty() ? state.jsonCache.makeJSString(state.vm, stateCharacters(characters8), false) : state.jsonCache.makeJSString(state.vm, characters16, false));
 }
 
 template<typename CharType, JSONParseSinkMode sinkMode>
 ALWAYS_INLINE_LAMBDA bool JSONParseSink<CharType, sinkMode>::cachedStringValue(std::span<const CharType> remaining NOESCAPE, size_t& length)
 {
     auto& state = static_cast<StateFor<CharType, sinkMode>&>(*this);
-    RELEASE_ASSERT(state.is8Bit && state.mode() == StrictJSON);
+    // JSONCache reads remaining as a string token from its opening quote.
+    RELEASE_ASSERT(state.is8Bit && state.mode() == StrictJSON && !remaining.empty());
     if constexpr (std::is_same_v<CharType, uint8_t>) {
-        if (auto* entry = state.jsonCache.findString(stateCharacters(remaining))) {
-            length = entry->textLength;
-            return state.leafValue(entry->string);
+        // A long value without escapes is created and cached here, which can run a GC. The pending Structure is held
+        // as a pointer in this stack-resident state, which conservative scanning finds, so it needs no keepAlive.
+        if (auto* entry = state.jsonCache.findOrCreateString(state.vm, stateCharacters(remaining), StructureID())) {
+            length = entry->textLength();
+            return state.leafValue(entry->string());
         }
     }
     return true;
