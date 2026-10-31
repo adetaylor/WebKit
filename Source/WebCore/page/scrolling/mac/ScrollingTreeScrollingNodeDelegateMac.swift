@@ -468,6 +468,12 @@ extension WebCore.ScrollingTreeScrollPhysicsClient: ScrollPhysicsClientProtocol 
         node().scrollBy(delta, clamping)
     }
 
+    #if USE_SWIFT_SCROLL_ANIMATOR
+    mutating func immediateScrollBy(_ delta: WebCore.FloatSize, _ clamping: WebCore.ScrollClamping, _ controller: ScrollPhysicsController) {
+        immediateScrollBy(delta, clamping)
+    }
+    #endif
+
     mutating func allowsHorizontalStretching(_ event: borrowing @_addressable WebCore.PlatformWheelEvent) -> Bool {
         let node = self.node()
         switch node.horizontalScrollElasticity() {

@@ -101,6 +101,16 @@ TEST(ScrollPhysicsBench, MixedSession)
     runScrollPhysicsShape(mixedSessionShape, "MixedSession", 1500, 0x0e4827fdd49e9173ull);
 }
 
+TEST(ScrollPhysicsBench, ProgrammaticScroll)
+{
+    runScrollPhysicsShape(programmaticScrollShape, "ProgrammaticScroll", 1400, 0x01fcc8e14d521de7ull);
+}
+
+TEST(ScrollPhysicsBench, SteppedWheel)
+{
+    runScrollPhysicsShape(steppedWheelShape, "SteppedWheel", 7000, 0xacdd0876573a25c5ull);
+}
+
 } // namespace TestWebKitAPI
 
 #endif // PLATFORM(MAC)
