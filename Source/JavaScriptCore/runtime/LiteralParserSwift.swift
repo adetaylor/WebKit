@@ -404,6 +404,32 @@ private func isASCIIDigit<Unit: FixedWidthInteger & UnsignedInteger>(_ character
     character >= 0x30 && character <= 0x39
 }
 
+// ParseInt.h's numberOfDigitsForSafeInt32, which LiteralParser.cpp pins: the numbers from -999999999 to 999999999 are
+// always in range of Int32.
+private let numberOfDigitsForSafeInt32 = 9
+
+/// LiteralParser.cpp's scanJSONIntegerDigits: scans (0 | [1-9][0-9]*) from `character`, the digit at `start`, and
+/// returns the end of the scan. The value wraps beyond numberOfDigitsForSafeInt32 digits, so the caller must check the
+/// length before using it.
+@inline(always)
+private func scanIntegerDigits<Unit: FixedWidthInteger & UnsignedInteger>(
+    _ input: Span<Unit>,
+    _ character: Unit,
+    at start: Int,
+    _ accumulated: inout UInt32
+) -> Int {
+    var index = start + 1
+    accumulated = UInt32(truncatingIfNeeded: character) - 0x30
+    if character != 0x30 {
+        while isInBounds(index, input.count) && isASCIIDigit(input[index]) {
+            // Wraps past 9 digits, as LiteralParser.cpp's scanJSONIntegerDigits does; such a value is not used.
+            accumulated = accumulated &* 10 &+ (UInt32(truncatingIfNeeded: input[index]) &- 0x30)
+            index += 1
+        }
+    }
+    return index
+}
+
 @inline(always)
 private func asciiHexValue<Unit: FixedWidthInteger & UnsignedInteger>(_ character: Unit) -> UInt16? {
     if character >= 0x30 && character <= 0x39 {
@@ -1418,15 +1444,7 @@ private struct JSONParser<Unit: JSONCharacter, Sink: JSONSink & ~Copyable>: ~Cop
 
         var accumulated: UInt32 = 0
         if isASCIIDigit(character) {
-            index += 1
-            accumulated = UInt32(truncatingIfNeeded: character) - 0x30
-            if character != 0x30 {
-                while isInBounds(index, count) && isASCIIDigit(input[index]) {
-                    // Wraps past 9 digits, as LiteralParser.cpp's lexer does; such a value is not used.
-                    accumulated = accumulated &* 10 &+ (UInt32(truncatingIfNeeded: input[index]) &- 0x30)
-                    index += 1
-                }
-            }
+            index = scanIntegerDigits(input, character, at: index, &accumulated)
         } else {
             position = index
             lexError = .invalidNumber
@@ -1434,8 +1452,6 @@ private struct JSONParser<Unit: JSONCharacter, Sink: JSONSink & ~Copyable>: ~Cop
         }
         position = index
 
-        // The numbers from -999999999 to 999999999 are always in range of Int32.
-        let numberOfDigitsForSafeInt32 = 9
         if isInBounds(index, count), input[index] != 0x2E && input[index] != 0x65 && input[index] != 0x45,
             index - start <= numberOfDigitsForSafeInt32
         {
@@ -1524,24 +1540,36 @@ private struct JSONParser<Unit: JSONCharacter, Sink: JSONSink & ~Copyable>: ~Cop
     /// The next key, when JSONCache predicts it: StrictJSON only.
     @inline(always)
     mutating func consumeCachedKey(_ input: Span<Unit>, _ sink: inout Sink, consumedColon: inout Bool) -> Bool {
-        if isInBounds(position, input.count) && input[position] != quote {
-            while isInBounds(position, input.count) && isJSONWhiteSpace(input[position]) {
-                position += 1
+        var index = position
+        let consumed = Self.consumeCachedKey(input, &sink, at: &index)
+        position = index
+        if consumed {
+            consumedColon = true
+        }
+        return consumed
+    }
+
+    /// The next key and the colon after it at `index`, after any whitespace, when JSONCache predicts them: StrictJSON
+    /// only. `index` is after the colon if so, and after the whitespace if not.
+    @inline(always)
+    static func consumeCachedKey(_ input: Span<Unit>, _ sink: inout Sink, at index: inout Int) -> Bool {
+        if isInBounds(index, input.count) && input[index] != quote {
+            while isInBounds(index, input.count) && isJSONWhiteSpace(input[index]) {
+                index += 1
             }
         }
         // JSONCache matches only Latin1 names.
-        // position is at most the count, so this cannot overflow.
-        let afterQuote = position &+ 1
-        if Unit.bitWidth == 16 && isInBounds(afterQuote, input.count) && input[position] == quote && input[afterQuote] > 0xFF {
+        // index is at most the count, so this cannot overflow.
+        let afterQuote = index &+ 1
+        if Unit.bitWidth == 16 && isInBounds(afterQuote, input.count) && input[index] == quote && input[afterQuote] > 0xFF {
             return false
         }
-        let length = sink.consumeCachedKey(input.extracting(droppingFirst: position))
+        let length = sink.consumeCachedKey(input.extracting(droppingFirst: index))
         if length == 0 {
             return false
         }
-        // length is at most the count of characters after position, so this cannot overflow.
-        position &+= length
-        consumedColon = true
+        // length is at most the count of characters after index, so this cannot overflow.
+        index &+= length
         return true
     }
 
@@ -1706,7 +1734,7 @@ private struct JSONParser<Unit: JSONCharacter, Sink: JSONSink & ~Copyable>: ~Cop
         var key = input.extracting(first: 0)
         var keyCharactersToEnd = 0
         var step = JSONStep.value
-        while true {
+        steps: while true {
             switch step {
             case .value:
                 switch token {
@@ -1823,6 +1851,80 @@ private struct JSONParser<Unit: JSONCharacter, Sink: JSONSink & ~Copyable>: ~Cop
                 // neither looked up in JSONCache nor recorded there.
                 var character: Unit = 0
                 var cachesString = isStrict && Unit.bitWidth == 8
+                // The string at position was looked up in JSONCache and is not there.
+                var lookedUpString = false
+                if consumed {
+                    // JSON.parse meets same-shaped objects repeatedly, so the keys JSONCache predicts, and their values
+                    // when they are strings JSONCache holds or integers of at most numberOfDigitsForSafeInt32 digits
+                    // that end the property, are read here through a local cursor. Any other value is read below from
+                    // the same position, and any other key after a comma takes the `.key` step.
+                    var cursor = position
+                    while true {
+                        // The name text ends at the colon. Whitespace after it is left to the code below.
+                        var taken = false
+                        if isInBounds(cursor, input.count) {
+                            let first = input[cursor]
+                            if Unit.bitWidth == 8 && first == quote {
+                                var length = 0
+                                let succeeded = sink.cachedStringValue(input.extracting(droppingFirst: cursor), &length)
+                                if length != 0 {
+                                    guard succeeded else {
+                                        return stop()
+                                    }
+                                    // length is at most the count of characters after cursor, so this cannot overflow.
+                                    cursor &+= length
+                                    taken = true
+                                } else {
+                                    lookedUpString = true
+                                }
+                            } else if isASCIIDigit(first) {
+                                // Anything else, including a fraction, an exponent or a leading zero, is left to the
+                                // code below.
+                                var integer: UInt32 = 0
+                                let digits = scanIntegerDigits(input, first, at: cursor, &integer)
+                                // digits is after cursor, so this cannot overflow.
+                                if digits &- cursor <= numberOfDigitsForSafeInt32 && isInBounds(digits, input.count)
+                                    && (input[digits] == 0x2C || input[digits] == 0x7D)
+                                {
+                                    guard sink.int32Value(Int32(truncatingIfNeeded: integer)) else {
+                                        return stop()
+                                    }
+                                    cursor = digits
+                                    taken = true
+                                }
+                            }
+                        }
+                        if !taken {
+                            position = cursor
+                            break
+                        }
+
+                        if isInBounds(cursor, input.count) && input[cursor] == 0x2C {
+                            cursor += 1
+                        } else if isInBounds(cursor, input.count) && input[cursor] == 0x7D {
+                            _ = setPunctuator(.rightBrace, at: cursor)
+                            step = .afterValue
+                            continue steps
+                        } else {
+                            position = cursor
+                            if nextAfterValue(input, &sink) != .comma {
+                                step = .afterValue
+                                continue steps
+                            }
+                            cursor = position
+                        }
+                        if Self.consumeCachedKey(input, &sink, at: &cursor) {
+                            continue
+                        }
+                        position = cursor
+                        _ = next(input, &sink)
+                        if !isPropertyKey {
+                            return fail(.propertyNameNotString)
+                        }
+                        step = .key(consumed: false, sliced: false)
+                        continue steps
+                    }
+                }
                 while isInBounds(position, input.count) {
                     character = input[position]
                     if !isJSONWhiteSpace(character) {
@@ -1834,7 +1936,7 @@ private struct JSONParser<Unit: JSONCharacter, Sink: JSONSink & ~Copyable>: ~Cop
                 }
                 step = .afterValue
                 if character == quote {
-                    if cachesString {
+                    if cachesString && !lookedUpString {
                         var length = 0
                         let succeeded = sink.cachedStringValue(input.extracting(droppingFirst: position), &length)
                         if length != 0 {
