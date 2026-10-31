@@ -390,15 +390,17 @@ final class ScrollPhysicsController {
     func startAnimatedScrollToDestination(
         client c: inout MainThreadScrollPhysicsClient,
         _ startOffset: WebCore.FloatPoint,
-        _ destinationOffset: WebCore.FloatPoint
+        _ destinationOffset: WebCore.FloatPoint,
+        _ curve: WebCore.ScrollAnimationCurve
     ) -> Bool {
-        return startAnimatedScrollToDestination(&c, startOffset, destinationOffset)
+        return startAnimatedScrollToDestination(&c, startOffset, destinationOffset, curve)
     }
 
     func startAnimatedScrollToDestination<C: ScrollPhysicsClientProtocol & ~Copyable>(
         _ c: inout C,
         _ startOffset: WebCore.FloatPoint,
-        _ destinationOffset: WebCore.FloatPoint
+        _ destinationOffset: WebCore.FloatPoint,
+        _ curve: WebCore.ScrollAnimationCurve
     ) -> Bool {
         stopCurrentAnimation(&c)
 
@@ -406,23 +408,28 @@ final class ScrollPhysicsController {
         // animationCallback() clears it.
         smoothAnimation.reset()
         setCurrentAnimationType(.smooth)
-        return smoothAnimation.startAnimatedScrollToDestination(&c, self, ScrollPoint(startOffset), ScrollPoint(destinationOffset))
+        return smoothAnimation.startAnimatedScrollToDestination(&c, self, ScrollPoint(startOffset), ScrollPoint(destinationOffset), curve)
     }
 
     /// `c` is made on the caller's stack for this call; nothing else reaches it.
     @_expose(Cxx)
-    func retargetAnimatedScroll(client c: inout MainThreadScrollPhysicsClient, _ newDestinationOffset: WebCore.FloatPoint) -> Bool {
-        return retargetAnimatedScroll(&c, newDestinationOffset)
+    func retargetAnimatedScroll(
+        client c: inout MainThreadScrollPhysicsClient,
+        _ newDestinationOffset: WebCore.FloatPoint,
+        _ curve: WebCore.ScrollAnimationCurve
+    ) -> Bool {
+        return retargetAnimatedScroll(&c, newDestinationOffset, curve)
     }
 
     func retargetAnimatedScroll<C: ScrollPhysicsClientProtocol & ~Copyable>(
         _ c: inout C,
-        _ newDestinationOffset: WebCore.FloatPoint
+        _ newDestinationOffset: WebCore.FloatPoint,
+        _ curve: WebCore.ScrollAnimationCurve
     ) -> Bool {
         guard currentAnimationType == .smooth else {
             return false
         }
-        return smoothAnimation.retargetActiveAnimation(&c, self, ScrollPoint(newDestinationOffset))
+        return smoothAnimation.retargetActiveAnimation(&c, self, ScrollPoint(newDestinationOffset), curve)
     }
 
     /// `c` is made on the caller's stack for this call; nothing else reaches it.
@@ -435,7 +442,95 @@ final class ScrollPhysicsController {
         guard currentAnimationType == .smooth, smoothAnimation.isActive else {
             return false
         }
-        return smoothAnimation.retargetActiveAnimation(&c, self, smoothAnimation.destinationOffset + ScrollSize(offset))
+
+        // A spring's destination is an edge of the document, so adding the delta to it would keep scrolling toward that edge.
+        // Let the caller scroll by the delta from the current position instead.
+        if smoothAnimation.curve == .Spring {
+            return false
+        }
+
+        // Scrolling by a delta isn't a scroll to an edge of the document, so it uses the default curve.
+        return smoothAnimation.retargetActiveAnimation(&c, self, smoothAnimation.destinationOffset + ScrollSize(offset), .Default)
+    }
+
+    /// Sets `destinationOffset` and returns true when an animated scroll to a destination is running.
+    @_expose(Cxx)
+    func animatedScrollDestinationOffset(_ destinationOffset: inout WebCore.FloatPoint) -> Bool {
+        guard let offset = animatedScrollDestinationOffset() else {
+            return false
+        }
+        destinationOffset = offset
+        return true
+    }
+
+    func animatedScrollDestinationOffset() -> WebCore.FloatPoint? {
+        guard currentAnimationType == .smooth, smoothAnimation.isActive else {
+            return nil
+        }
+        return smoothAnimation.destinationOffset.floatPoint
+    }
+
+    @_expose(Cxx)
+    func isSpringAnimationRunning() -> Bool {
+        currentAnimationType == .smooth && smoothAnimation.isActive && smoothAnimation.curve == .Spring
+    }
+
+    /// `c` is made on the caller's stack for this call; nothing else reaches it.
+    @_expose(Cxx)
+    func stopSpringAnimation(client c: inout MainThreadScrollPhysicsClient) {
+        stopSpringAnimation(&c)
+    }
+
+    func stopSpringAnimation<C: ScrollPhysicsClientProtocol & ~Copyable>(_ c: inout C) {
+        if !isSpringAnimationRunning() {
+            return
+        }
+
+        stopAnimatedScroll(&c)
+
+        // Stopping partway can leave a scroll snap container between snap positions, so snap to the nearest one, as at the end of a scroll gesture.
+        guard let scrollSnapState else {
+            return
+        }
+        let extents = ScrollPhysicsExtents(c.scrollExtents())
+        let pageScale = c.pageScaleFactor()
+        let scrollOffset = ScrollPoint(c.scrollOffset())
+        if scrollSnapState.transitionToSnapAnimationState(&c, self, extents, pageScale, scrollOffset) {
+            startScrollSnapAnimation(&c)
+        }
+    }
+
+    /// `c` is made on the caller's stack for this call; nothing else reaches it.
+    @_expose(Cxx)
+    func handleWheelEventDuringSpringAnimation(
+        client c: inout MainThreadScrollPhysicsClient,
+        _ wheelEvent: borrowing @_addressable WebCore.PlatformWheelEvent
+    ) {
+        handleWheelEventDuringSpringAnimation(&c, wheelEvent)
+    }
+
+    // Stops a running spring animation, or ignores the rest of a momentum scroll while one runs. Called before the wheel event
+    // scrolls anything, including for events with PlatformWheelEventPhase::MayBegin.
+    func handleWheelEventDuringSpringAnimation<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
+        _ wheelEvent: borrowing @_addressable WebCore.PlatformWheelEvent
+    ) {
+        if !isSpringAnimationRunning() {
+            return
+        }
+
+        // Ignore the rest of a momentum scroll, which would otherwise fight the spring animation, and keep scrolling once it finishes.
+        if wheelEvent.isMomentumEvent() {
+            ignoreMomentumScrolls = true
+            momentumScrollInProgress = false
+            return
+        }
+
+        // Spring animations last long enough that the user may want to take over before they finish, either by touching
+        // the trackpad (as with momentum scrolling) or by scrolling.
+        if wheelEvent.isGestureStart() ? true : wheelEvent.isNonGestureEvent() {
+            stopSpringAnimation(&c)
+        }
     }
 
     #if !USE_SWIFT_SCROLL_ANIMATOR_PHYSICS

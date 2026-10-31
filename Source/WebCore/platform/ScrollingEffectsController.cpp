@@ -240,7 +240,10 @@ bool ScrollingEffectsController::retargetAnimatedScrollBy(FloatSize offset)
 std::optional<FloatPoint> ScrollingEffectsController::animatedScrollDestinationOffset() const
 {
 #if USE_SWIFT_SCROLL_PHYSICS
-    return m_physics->controller.animatedScrollDestinationOffset();
+    FloatPoint destinationOffset;
+    if (!m_physics->controller.animatedScrollDestinationOffset(destinationOffset))
+        return std::nullopt;
+    return destinationOffset;
 #else
     CheckedPtr animation = dynamicDowncast<ScrollAnimationSmooth>(m_currentAnimation);
     if (!animation || !animation->isActive())
