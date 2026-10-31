@@ -399,6 +399,12 @@ private func isAttributeNameCharacter(_ c: UInt32) -> Bool {
     isASCIIAlpha(c) || isASCIIDigit(c) || c == hyphenMinus || c == lowLine
 }
 
+/// An attribute name character other than an ASCII upper-case letter (isNonUppercaseAttributeNameChar).
+@inline(always)
+private func isNonUppercaseAttributeNameCharacter(_ c: UInt32) -> Bool {
+    isASCIILower(c) || isASCIIDigit(c) || c == hyphenMinus || c == lowLine
+}
+
 @inline(always)
 private func isCharacterAfterTagNameOrAttribute(_ c: UInt32) -> Bool {
     isASCIIWhitespace(c) || c == greaterThanSign || c == solidus
@@ -1178,8 +1184,9 @@ private struct HTMLFastPathParser<CodeUnit: HTMLFastPathCodeUnit>: ~Copyable, ~E
                 cursor = nameStart &+ nameBits >> 2
                 c = unit(input, cursor)
             } else {
-                // A name of sixteen characters or more, or one near the end of the input.
-                while isASCIILower(c) {
+                // A name of sixteen characters or more, or one near the end of the input. Input that ends in a name
+                // without upper case declines before the name is interned.
+                while isNonUppercaseAttributeNameCharacter(c) {
                     cursor &+= 1
                     c = unit(input, cursor)
                 }
@@ -1326,11 +1333,11 @@ private struct HTMLFastPathParser<CodeUnit: HTMLFastPathCodeUnit>: ~Copyable, ~E
             } else {
                 keepAttribute(WebCore.Attribute(name, value), nameLocation)
             }
-            // The next name: lower-case letters, then any other name characters.
+            // The next name: name characters other than upper case, then any name characters.
             let nameStart = cursor
             var c = unit(input, cursor)
             var isFolded = false
-            while isASCIILower(c) {
+            while isNonUppercaseAttributeNameCharacter(c) {
                 cursor &+= 1
                 c = unit(input, cursor)
             }
