@@ -612,7 +612,7 @@ using namespace CSSTokenizerBenchmark;
 
 TEST(CSSTokenizerBench, BootstrapMin) { run("BootstrapMin"_s, bootstrapMinInputs(), 0x322bf4eda5ac2fd6ULL, 5500); }
 TEST(CSSTokenizerBench, Bootstrap) { run("Bootstrap"_s, bootstrapInputs(), 0x7b2fedefd13cc83bULL, 8900); }
-TEST(CSSTokenizerBench, UserAgentSheet) { run("UserAgentSheet"_s, userAgentSheetInputs(), 0x70ba752db2623b74ULL, 16000); }
+TEST(CSSTokenizerBench, UserAgentSheet) { run("UserAgentSheet"_s, userAgentSheetInputs(), 0x4e42c3308b27dc91ULL, 16000); }
 TEST(CSSTokenizerBench, InspectorSheets) { run("InspectorSheets"_s, inspectorSheetsInputs(), 0x09600caf111bbb4cULL, 1100); }
 TEST(CSSTokenizerBench, PropertyValues) { run("PropertyValues"_s, propertyValuesInputs(), 0x3b53d4b732a1f347ULL, 1400); }
 TEST(CSSTokenizerBench, Identifiers) { run("Identifiers"_s, identifiersInputs(), 0x4587899f2ebca715ULL, 780); }

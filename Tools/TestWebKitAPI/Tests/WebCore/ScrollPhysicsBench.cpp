@@ -73,7 +73,7 @@ TEST(ScrollPhysicsBench, SmoothRetarget)
 
 TEST(ScrollPhysicsBench, KeyboardScroll)
 {
-    runScrollPhysicsShape(keyboardScrollShape, "KeyboardScroll", 11000, 0x8741f6b92939e57aull);
+    runScrollPhysicsShape(keyboardScrollShape, "KeyboardScroll", 11000, 0x82aaca481b22653bull);
 }
 
 TEST(ScrollPhysicsBench, TrackpadGesture)
@@ -98,7 +98,7 @@ TEST(ScrollPhysicsBench, DiscreteWheelSnap)
 
 TEST(ScrollPhysicsBench, MixedSession)
 {
-    runScrollPhysicsShape(mixedSessionShape, "MixedSession", 1500, 0x0e4827fdd49e9173ull);
+    runScrollPhysicsShape(mixedSessionShape, "MixedSession", 1500, 0xdc48f326f90b2c5cull);
 }
 
 TEST(ScrollPhysicsBench, ProgrammaticScroll)

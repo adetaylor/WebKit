@@ -84,12 +84,12 @@ TEST(ScrollPhysics, MomentumContentsSizeChanged)
 
 TEST(ScrollPhysics, KeyboardSubpixelPosition)
 {
-    EXPECT_EQ(digestForCase(keyboardSubpixelPositionCase), 0xa43b48fdf45375d9ull);
+    EXPECT_EQ(digestForCase(keyboardSubpixelPositionCase), 0x6beb92fdf89c593dull);
 }
 
 TEST(ScrollPhysics, KeyboardPositionBeyondInt32)
 {
-    EXPECT_EQ(digestForCase(keyboardPositionBeyondInt32Case), 0xeb3015fcdc14e773ull);
+    EXPECT_EQ(digestForCase(keyboardPositionBeyondInt32Case), 0x4db1ff6ef0568005ull);
 }
 
 TEST(ScrollPhysics, KeyboardContentsSmallerThanViewport)

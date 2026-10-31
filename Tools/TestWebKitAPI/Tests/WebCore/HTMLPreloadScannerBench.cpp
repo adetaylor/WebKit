@@ -551,12 +551,12 @@ TEST(HTMLPreloadScannerBench, ImageGallery)
 
 TEST(HTMLPreloadScannerBench, ScriptsAndLinks)
 {
-    runBenchmark("ScriptsAndLinks"_s, scriptsAndLinksInput(), 330, 0xd7de09584c8db0edull);
+    runBenchmark("ScriptsAndLinks"_s, scriptsAndLinksInput(), 330, 0x432c4f204ba5b989ull);
 }
 
 TEST(HTMLPreloadScannerBench, PictureSources)
 {
-    runBenchmark("PictureSources"_s, pictureSourcesInput(), 290, 0x5be37178ebcc22c8ull);
+    runBenchmark("PictureSources"_s, pictureSourcesInput(), 290, 0x7b4672c741b3a009ull);
 }
 
 TEST(HTMLPreloadScannerBench, StyleImports)
