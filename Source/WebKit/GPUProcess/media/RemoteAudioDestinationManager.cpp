@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -187,64 +187,17 @@ private:
     {
         ASSERT(!isMainRunLoop());
 
-        OSStatus status = -1;
         if (!m_ringBuffer)
-            return status;
+            return -1;
 
-        if (m_ringBuffer->fetchIfHasEnoughData(ioData, numberOfFrames, m_startFrame)) {
-            m_startFrame += numberOfFrames;
-            rememberLastRenderedSamples(ioData, numberOfFrames);
-            status = noErr;
-        } else {
-            // Ring buffer underrun (common at stream start or under load). Rather than
-            // leaving stale samples in the output buffer, fade out from the last rendered
-            // samples down to silence to avoid an audible click, then output silence.
-            fadeOutToSilence(ioData, numberOfFrames);
-        }
+        // On a ring buffer underrun (common at stream start or under load), this fades out from the last rendered samples
+        // to silence rather than leave stale samples in the output buffer.
+        bool rendered = m_ringBuffer->renderForAudioDestination(m_startFrame, ioData, m_lastRenderedSamples.mutableSpan(), numberOfFrames);
 
         incrementTotalFrameCount(numberOfFrames);
         m_renderSemaphore.signal();
 
-        return status;
-    }
-
-    // The audio buffers are deinterleaved Float32, so there is one buffer per channel.
-    void rememberLastRenderedSamples(AudioBufferList* ioData, UInt32 numberOfFrames)
-    {
-        if (!numberOfFrames)
-            return;
-
-        auto buffers = span(*ioData);
-        for (size_t channel = 0; channel < m_lastRenderedSamples.size(); ++channel) {
-            if (channel >= buffers.size())
-                break;
-            auto samples = mutableSpan<float>(buffers[channel]);
-            auto frameCount = std::min<size_t>(numberOfFrames, samples.size());
-            m_lastRenderedSamples[channel] = frameCount ? samples[frameCount - 1] : 0.f;
-        }
-    }
-
-    void fadeOutToSilence(AudioBufferList* ioData, UInt32 numberOfFrames)
-    {
-        auto buffers = span(*ioData);
-        for (size_t channel = 0; channel < buffers.size(); ++channel) {
-            auto samples = mutableSpan<float>(buffers[channel]);
-            auto frameCount = std::min<size_t>(numberOfFrames, samples.size());
-            float startSample = channel < m_lastRenderedSamples.size() ? m_lastRenderedSamples[channel] : 0.f;
-            if (startSample && frameCount) {
-                // Linear ramp from the last rendered sample down to zero to declick.
-                float step = startSample / frameCount;
-                float value = startSample;
-                for (size_t frame = 0; frame < frameCount; ++frame) {
-                    value -= step;
-                    samples[frame] = value;
-                }
-                zeroSpan(samples.subspan(frameCount));
-            } else
-                zeroSpan(samples);
-        }
-        // We are now silent, so any subsequent consecutive underrun outputs pure silence.
-        m_lastRenderedSamples.fill(0.f);
+        return rendered ? noErr : -1;
     }
 #endif
 

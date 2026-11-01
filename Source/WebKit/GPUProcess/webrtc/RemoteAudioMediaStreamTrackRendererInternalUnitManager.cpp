@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -301,22 +301,16 @@ OSStatus RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::render(size
 {
     ASSERT(!isMainRunLoop());
 
-    OSStatus status = -1;
-
-    if (m_ringBuffer->fetchIfHasEnoughData(&list, sampleCount, m_readOffset)) {
-        m_readOffset += sampleCount;
-        status = noErr;
-    } else {
+    auto result = m_ringBuffer->renderForTrackRenderer(m_readOffset, m_generateOffset, list, sampleCount, m_frameChunkSize);
+    if (!result.fetched) {
         WebCore::AudioSampleBufferList::zeroABL(list, static_cast<size_t>(sampleCount * m_description->bytesPerFrame()));
         flags = kAudioUnitRenderAction_OutputIsSilence;
     }
 
-    auto requestedSamplesCount = m_generateOffset;
-    for (; requestedSamplesCount < sampleCount; requestedSamplesCount += m_frameChunkSize)
+    for (uint64_t i = 0; i < result.signalCount; ++i)
         m_renderSemaphore.signal();
-    m_generateOffset = requestedSamplesCount - sampleCount;
 
-    return status;
+    return result.fetched ? noErr : -1;
 }
 
 void RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::captureUnitIsStarting()

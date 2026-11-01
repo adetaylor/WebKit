@@ -6280,6 +6280,7 @@
 		3A759A057D9A7ED11EE5AF5F /* CARingBufferSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 23C11178A44EF240B0FC3F05 /* CARingBufferSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		589A09BBFD51CB6D4E3152F5 /* CARingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C4FF0344F6FE56159CDA13 /* CARingBuffer.swift */; };
 		0C61C10E24FB833C7279F056 /* CARingBufferMix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298A3F550CA51EF8DEEF4421 /* CARingBufferMix.swift */; };
+		3F8D1F1FEDB47370162C9C14 /* CARingBufferPlayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443D5D95EA55098A1F2F5F5C /* CARingBufferPlayout.swift */; };
 		CDC7470424BE2FC700C1868B /* PowerSourceNotifier.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC7470024BE267900C1868B /* PowerSourceNotifier.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDC8B5A2180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm in Sources */ = {isa = PBXBuildFile; fileRef = CDC8B5A0180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm */; };
 		CDC8B5A3180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC8B5A1180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.h */; };
@@ -21791,6 +21792,7 @@
 		CDC734131977896C0046BFC5 /* CARingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CARingBuffer.h; sourceTree = "<group>"; };
 		E3C4FF0344F6FE56159CDA13 /* CARingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBuffer.swift; sourceTree = "<group>"; };
 		298A3F550CA51EF8DEEF4421 /* CARingBufferMix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBufferMix.swift; sourceTree = "<group>"; };
+		443D5D95EA55098A1F2F5F5C /* CARingBufferPlayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBufferPlayout.swift; sourceTree = "<group>"; };
 		23C11178A44EF240B0FC3F05 /* CARingBufferSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CARingBufferSwiftBridge.h; sourceTree = "<group>"; };
 		CDC7470024BE267900C1868B /* PowerSourceNotifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PowerSourceNotifier.h; sourceTree = "<group>"; };
 		CDC7470124BE267900C1868B /* PowerSourceNotifier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PowerSourceNotifier.mm; sourceTree = "<group>"; };
@@ -40674,6 +40676,7 @@
 				CDC734131977896C0046BFC5 /* CARingBuffer.h */,
 				E3C4FF0344F6FE56159CDA13 /* CARingBuffer.swift */,
 				298A3F550CA51EF8DEEF4421 /* CARingBufferMix.swift */,
+				443D5D95EA55098A1F2F5F5C /* CARingBufferPlayout.swift */,
 				23C11178A44EF240B0FC3F05 /* CARingBufferSwiftBridge.h */,
 				417F7AED2139BF6500FBA7EC /* MediaSessionManagerCocoa.h */,
 				417F7AEA2139BF6400FBA7EC /* MediaSessionManagerCocoa.mm */,
@@ -51769,6 +51772,7 @@
 				CA38D08B34C7904DF472CD2E /* ByteCursor.swift in Sources */,
 				589A09BBFD51CB6D4E3152F5 /* CARingBuffer.swift in Sources */,
 				0C61C10E24FB833C7279F056 /* CARingBufferMix.swift in Sources */,
+				3F8D1F1FEDB47370162C9C14 /* CARingBufferPlayout.swift in Sources */,
 				CDF4B7151E00B7E500E235A2 /* CDM.cpp in Sources */,
 				9145528A7E6202985AAE1C4B /* CDMClearKeyBridge.swift in Sources */,
 				CDB7045B1F7465A1003923DF /* CDMFairPlayStreaming.cpp in Sources */,

@@ -67,6 +67,13 @@ struct CARingBufferStorageSize {
 };
 static_assert(sizeof(CARingBufferStorageSize) == 24);
 
+// What a track renderer's render quantum did: whether it fetched, and how many chunks to ask the writer for.
+struct CARingBufferTrackRenderResult {
+    uint64_t signalCount { 0 };
+    bool fetched { false };
+};
+static_assert(sizeof(CARingBufferTrackRenderResult) == 16);
+
 // The floating-point mixes of a fetch, as CARingBuffer's C++ did them: through VectorMath::add(), so vDSP decides which
 // NaN a sum of two NaNs gives. The byteCount / sample size samples of source from sourceOffset are added to those of
 // destination from destinationOffset; this traps unless the bytes from each offset to the end of its span are a whole
@@ -169,6 +176,24 @@ public:
 
 private:
     const ::AudioBufferList* m_list;
+};
+
+// Floats Swift writes, such as an audio destination's last rendered samples.
+class SWIFT_NONCOPYABLE SWIFT_NONESCAPABLE SWIFT_SAFE FloatSamplesView {
+public:
+#if !defined(__swift__)
+    explicit FloatSamplesView(std::span<float> samples)
+        : m_samples(samples)
+    {
+    }
+#endif
+    FloatSamplesView(const FloatSamplesView&) = delete;
+    FloatSamplesView(FloatSamplesView&&) = default;
+
+    ALWAYS_INLINE std::span<float> mutableSamples() LIFETIME_BOUND { return m_samples; }
+
+private:
+    std::span<float> m_samples;
 };
 
 } // namespace WebCore

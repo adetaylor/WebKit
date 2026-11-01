@@ -89,7 +89,7 @@ private func roundUpToPowerOfTwo(_ value: UInt) -> UInt {
 }
 
 // Zeroes count bytes of bytes from offset, as memset does. Traps unless the range is inside the span.
-private func zeroAudioBytes(_ bytes: inout MutableSpan<UInt8>, at offset: Int, count: Int) {
+func zeroAudioBytes(_ bytes: inout MutableSpan<UInt8>, at offset: Int, count: Int) {
     precondition(count >= 0 && offset >= 0 && count <= bytes.count &- offset)
     withMutableSubspan(of: &bytes, offset..<(offset &+ count)) { subspan in
         subspan.update(repeating: 0)
@@ -318,21 +318,24 @@ func caRingBufferFetchIfHasEnoughData(
     _ startFrame: UInt64,
     _ mode: UInt32
 ) -> Bool {
+    fetchIfHasEnoughData(ring, &destination, frameCount, startFrame, CARingBufferFetchMode(rawValue: mode))
+}
+
+@inline(__always)
+func fetchIfHasEnoughData(
+    _ ring: borrowing WebCore.CARingBufferReadView,
+    _ destination: inout WebCore.AudioBufferListView,
+    _ frameCount: UInt64,
+    _ startFrame: UInt64,
+    _ mode: CARingBufferFetchMode?
+) -> Bool {
     let layout = RingLayout(ring.geometry())
     let bounds = fetchBounds(layout, ring.storedBounds())
     if startFrame < bounds.startFrame || startFrame &+ frameCount > bounds.endFrame {
         return false
     }
     let channels: Span<UInt8> = ring.channels()
-    fetchFrames(
-        layout,
-        channels,
-        &destination,
-        UInt(truncatingIfNeeded: frameCount),
-        startFrame,
-        CARingBufferFetchMode(rawValue: mode),
-        bounds
-    )
+    fetchFrames(layout, channels, &destination, UInt(truncatingIfNeeded: frameCount), startFrame, mode, bounds)
     return true
 }
 
