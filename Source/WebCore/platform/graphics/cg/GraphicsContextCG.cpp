@@ -373,7 +373,13 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
     if (!cgContext)
         return;
 #if ENABLE(WEBCORE_SWIFT)
-    static_assert(sizeof(CGRenderer) == swiftRendererSize && alignof(CGRenderer) <= 8);
+    // Exact where pointers are 8 bytes, so that the storage doesn't outgrow the struct; with 4-byte pointers the struct is smaller.
+#if CPU(ADDRESS64)
+    static_assert(sizeof(CGRenderer) == swiftRendererSize);
+#else
+    static_assert(sizeof(CGRenderer) <= swiftRendererSize);
+#endif
+    static_assert(alignof(CGRenderer) <= 8);
     if (shouldUseSwiftRenderer()) {
         new (m_swiftRendererStorage) CGRenderer(CGRenderer::init(cgContext, m_renderingMode == RenderingMode::Unaccelerated, CGContextGetType(cgContext) == kCGContextTypePDF, imageInterpolationQuality()));
         m_usesSwiftRenderer = true;
