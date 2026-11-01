@@ -979,6 +979,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/CSSFontFaceDescriptors.h
     css/CSSFontFaceRule.h
     css/CSSFontPaletteValuesRule.h
+    css/CSSFunctionValue.h
     css/CSSGridTemplateListValue.h
     css/CSSGroupingRule.h
     css/CSSImportRule.h
@@ -1002,6 +1003,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/CSSStyleSheet.h
     css/CSSSubstitutionValue.h
     css/CSSToLengthConversionData.h
+    css/CSSTransformListValue.h
     css/CSSUnits.h
     css/CSSValue.h
     css/CSSValueList.h
@@ -1053,6 +1055,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/parser/CSSParserMode.h
     css/parser/CSSParserToken.h
     css/parser/CSSParserTokenRange.h
+    css/parser/CSSPropertyConsumerSwiftTypes.h
     css/parser/CSSPropertyParser.h
     css/parser/CSSPropertyParserConsumer+Color.h
     css/parser/CSSPropertyParserState.h
