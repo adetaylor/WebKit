@@ -481,8 +481,9 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
     if (!image)
         return;
 
-#if ENABLE(WEBCORE_SWIFT) && HAVE(SUPPORT_HDR_DISPLAY_APIS)
-    if (m_usesSwiftRenderer && options.orientation() == ImageOrientation::Orientation::None
+// The renderer doesn't do the iOS family's pixel alignment of images yet: it can't be checked against the C++ here.
+#if ENABLE(WEBCORE_SWIFT) && HAVE(SUPPORT_HDR_DISPLAY_APIS) && !PLATFORM(IOS_FAMILY)
+    if (m_usesSwiftRenderer
 #if ENABLE(AX_CUSTOM_COLOR_MODE)
         && options.invertContent() == InvertContent::No
 #endif
@@ -493,7 +494,7 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
         if (m_maxEDRHeadroom)
             headroom = Headroom(std::min<float>(headroom, *m_maxEDRHeadroom));
         FloatSize imageSize = nativeImage.size();
-        auto result = swiftRenderer().drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), nativeImage.headroom(), headroom);
+        auto result = swiftRenderer().drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), nativeImage.headroom(), headroom);
         if (result == 1)
             m_hasDrawn = true;
         if (result)
@@ -689,6 +690,21 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
 
     LOG_WITH_STREAM(Images, stream << "GraphicsContextCG::drawNativeImage " << image.get() << " size " << imageSize << " into " << destRect << " took " << (MonotonicTime::now() - startTime).milliseconds() << "ms");
 }
+
+#if ENABLE(WEBCORE_SWIFT)
+} // namespace WebCore
+
+CGImageRef CGRendererCopySubimage(CGImageRef image, CGRect rect)
+{
+#if CACHE_SUBIMAGES
+    if (!(CGImageGetCachingFlags(image) & kCGImageCachingTransient))
+        return WebCore::CGSubimageCacheWithTimer::getSubimage(image, rect).leakRef();
+#endif
+    return CGImageCreateWithImageInRect(image, rect);
+}
+
+namespace WebCore {
+#endif
 
 static void drawPatternCallback(void* info, CGContextRef context)
 {

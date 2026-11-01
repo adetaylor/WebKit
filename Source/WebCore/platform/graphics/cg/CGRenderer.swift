@@ -61,6 +61,17 @@ private func cxxMin(_ a: Float, _ b: Float) -> Float {
     b < a ? b : a
 }
 
+// WTF's clampTo<int>(float): NaN gives INT_MIN.
+private func clampToInt(_ value: Float) -> Int32 {
+    if value >= 2_147_483_648 {
+        return .max
+    }
+    if !(value > -2_147_483_648) {
+        return .min
+    }
+    return Int32(value)
+}
+
 // C++'s float to int conversion where it's undefined, as the processor does it: arm64 saturates and gives 0 for NaN, x86
 // gives INT_MIN.
 private func cxxIntConversion(_ value: Float) -> Int32 {
@@ -171,6 +182,119 @@ private struct CGRendererRect: Equatable {
     }
 
     var cgRect: CGRect { CGRect(x: CGFloat(x), y: CGFloat(y), width: CGFloat(width), height: CGFloat(height)) }
+}
+
+// IntRect, for enclosingIntRect().
+private struct CGRendererIntRect {
+    var x: Int32
+    var y: Int32
+    var width: Int32
+    var height: Int32
+
+    init(enclosing rect: CGRendererRect) {
+        let locationX = Float(clampToInt(rect.x.rounded(.down)))
+        let locationY = Float(clampToInt(rect.y.rounded(.down)))
+        let maxX = Float(clampToInt(rect.maxX.rounded(.up)))
+        let maxY = Float(clampToInt(rect.maxY.rounded(.up)))
+        x = clampToInt(locationX)
+        y = clampToInt(locationY)
+        width = clampToInt(maxX - locationX)
+        height = clampToInt(maxY - locationY)
+    }
+
+    var rect: CGRendererRect { CGRendererRect(x: Float(x), y: Float(y), width: Float(width), height: Float(height)) }
+}
+
+// ImageOrientation::Orientation; 0 is FromImage, which callers resolve before drawing.
+private enum CGRendererOrientation {
+    static let none: UInt8 = 1
+
+    static func usesWidthAsHeight(_ orientation: UInt8) -> Bool {
+        (5...8).contains(orientation)
+    }
+}
+
+// AffineTransform's arithmetic, in Double as the C++ does it, for the transforms of image orientations.
+private struct CGRendererTransform {
+    var a: Double
+    var b: Double
+    var c: Double
+    var d: Double
+    var e: Double
+    var f: Double
+
+    // ImageOrientation::transformFromDefault(); FromImage is the identity.
+    init(fromDefault orientation: UInt8, _ width: Float, _ height: Float) {
+        let w = Double(width)
+        let h = Double(height)
+        switch orientation {
+        case 2: (a, b, c, d, e, f) = (-1, 0, 0, 1, w, 0)
+        case 3: (a, b, c, d, e, f) = (-1, 0, 0, -1, w, h)
+        case 4: (a, b, c, d, e, f) = (1, 0, 0, -1, 0, h)
+        case 5: (a, b, c, d, e, f) = (0, 1, 1, 0, 0, 0)
+        case 6: (a, b, c, d, e, f) = (0, 1, -1, 0, w, 0)
+        case 7: (a, b, c, d, e, f) = (0, -1, -1, 0, w, h)
+        case 8: (a, b, c, d, e, f) = (0, -1, 1, 0, 0, h)
+        default: (a, b, c, d, e, f) = (1, 0, 0, 1, 0, 0)
+        }
+    }
+
+    private init(_ a: Double, _ b: Double, _ c: Double, _ d: Double, _ e: Double, _ f: Double) {
+        (self.a, self.b, self.c, self.d, self.e, self.f) = (a, b, c, d, e, f)
+    }
+
+    var isIdentityOrTranslation: Bool { a == 1 && b == 0 && c == 0 && d == 1 }
+
+    var cgAffineTransform: CGAffineTransform { CGAffineTransform(a: a, b: b, c: c, d: d, tx: e, ty: f) }
+
+    func inverse() -> CGRendererTransform? {
+        if isIdentityOrTranslation {
+            return CGRendererTransform(1, 0, 0, 1, -e, -f)
+        }
+        let determinant = a * d - b * c
+        if !determinant.isNormal {
+            return nil
+        }
+        return CGRendererTransform(
+            d / determinant,
+            -b / determinant,
+            -c / determinant,
+            a / determinant,
+            (c * f - d * e) / determinant,
+            (b * e - a * f) / determinant
+        )
+    }
+
+    func mapRect(_ rect: CGRendererRect) -> CGRendererRect {
+        if isIdentityOrTranslation {
+            return CGRendererRect(x: rect.x + Float(e), y: rect.y + Float(f), width: rect.width, height: rect.height)
+        }
+        let left = Double(rect.x)
+        let top = Double(rect.y)
+        let right = Double(rect.maxX)
+        let bottom = Double(rect.maxY)
+        let aLeft = a * left
+        let aRight = a * right
+        let bLeft = b * left
+        let bRight = b * right
+        let cTop = c * top
+        let cBottom = c * bottom
+        let dTop = d * top
+        let dBottom = d * bottom
+        let x1 = Float(aLeft + cTop + e)
+        let y1 = Float(bLeft + dTop + f)
+        let x2 = Float(aRight + cTop + e)
+        let y2 = Float(bRight + dTop + f)
+        let x3 = Float(aRight + cBottom + e)
+        let y3 = Float(bRight + dBottom + f)
+        let x4 = Float(aLeft + cBottom + e)
+        let y4 = Float(bLeft + dBottom + f)
+        let minX = cxxMin(cxxMin(x1, x2), cxxMin(x3, x4))
+        let minY = cxxMin(cxxMin(y1, y2), cxxMin(y3, y4))
+        let maxX = cxxMax(cxxMax(x1, x2), cxxMax(x3, x4))
+        let maxY = cxxMax(cxxMax(y1, y2), cxxMax(y3, y4))
+        return CGRendererRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+    }
 }
 
 private func safeFPDivision(_ u: Double, _ v: Double) -> Double {
@@ -1015,9 +1139,8 @@ struct CGRenderer {
         CGRendererDrawPath(context, mode, copy path)
     }
 
-    // GraphicsContextCG::drawNativeImage() for an image drawn without a sub-image, with no orientation and no dynamic
-    // range limit. The caller resolved the options' headroom and the image's. Returns 0 if it didn't draw, 1 if it drew,
-    // 2 if there was nothing to draw.
+    // GraphicsContextCG::drawNativeImage() but for a dynamic range limit, which the C++ draws. The caller resolved the options'
+    // headroom and the image's. Returns 0 if it didn't draw, 1 if it drew, 2 if there was nothing to draw.
     @_expose(Cxx)
     func drawNativeImage(
         _ image: borrowing CGImage,
@@ -1034,10 +1157,14 @@ struct CGRenderer {
         _ compositeOperator: WebCore.CompositeOperator,
         _ blendMode: WebCore.BlendMode,
         _ optionsInterpolationQuality: WebCore.InterpolationQuality,
+        _ orientation: UInt8,
         _ imageHeadroom: Float,
         _ headroom: Float
     ) -> UInt8 {
-        let imageRect = CGRendererRect(x: 0, y: 0, width: imageWidth, height: imageHeight)
+        let usesWidthAsHeight = CGRendererOrientation.usesWidthAsHeight(orientation)
+        let logicalWidth = usesWidthAsHeight ? imageHeight : imageWidth
+        let logicalHeight = usesWidthAsHeight ? imageWidth : imageHeight
+        let imageRect = CGRendererRect(x: 0, y: 0, width: logicalWidth, height: logicalHeight)
         let normalizedSourceRect = CGRendererRect(x: sourceX, y: sourceY, width: sourceWidth, height: sourceHeight).normalized
         let normalizedDestinationRect = CGRendererRect(x: destinationX, y: destinationY, width: destinationWidth, height: destinationHeight)
             .normalized
@@ -1049,21 +1176,41 @@ struct CGRenderer {
         let oldInterpolationQuality = state.imageInterpolationQuality
         let interpolationQuality = optionsInterpolationQuality == .Default ? state.imageInterpolationQuality : optionsInterpolationQuality
 
+        var subimage: CGImage? = copy image
         var adjustedDestinationRect = normalizedDestinationRect
         var clipsToDestination = false
         if normalizedSourceRect != imageRect {
             let scaleX = normalizedDestinationRect.width / normalizedSourceRect.width
             let scaleY = normalizedDestinationRect.height / normalizedSourceRect.height
             if shouldUseSubimage(interpolationQuality, normalizedDestinationRect, normalizedSourceRect, transform) {
-                return 0
+                // A copy of only the source rect, so that high-quality interpolation doesn't bleed pixels from outside it into
+                // the destination (rdar://6112909).
+                let subimageRect = CGRendererIntRect(enclosing: normalizedSourceRect)
+                subimage = self.subimage(copy image, logicalWidth, logicalHeight, subimageRect.rect, orientation)
+                let paddingX = normalizedSourceRect.x - Float(subimageRect.x)
+                let paddingY = normalizedSourceRect.y - Float(subimageRect.y)
+                adjustedDestinationRect = CGRendererRect(
+                    x: adjustedDestinationRect.x - paddingX * scaleX,
+                    y: adjustedDestinationRect.y - paddingY * scaleY,
+                    width: Float(subimageRect.width) * scaleX,
+                    height: Float(subimageRect.height) * scaleY
+                )
+            } else {
+                // The whole image, scaled, with a clip to the source rect's part of it.
+                adjustedDestinationRect = CGRendererRect(
+                    x: adjustedDestinationRect.x - normalizedSourceRect.x * scaleX,
+                    y: adjustedDestinationRect.y - normalizedSourceRect.y * scaleY,
+                    width: logicalWidth * scaleX,
+                    height: logicalHeight * scaleY
+                )
             }
-            adjustedDestinationRect = CGRendererRect(
-                x: adjustedDestinationRect.x - normalizedSourceRect.x * scaleX,
-                y: adjustedDestinationRect.y - normalizedSourceRect.y * scaleY,
-                width: imageWidth * scaleX,
-                height: imageHeight * scaleY
-            )
             clipsToDestination = !normalizedDestinationRect.contains(adjustedDestinationRect)
+        }
+
+        // CGImageCreateWithImageInRect() found no image there: the C++ draws a null image, which CG ignores, and puts the
+        // state back.
+        guard let subimage else {
+            return 1
         }
 
         if clipsToDestination {
@@ -1085,12 +1232,21 @@ struct CGRenderer {
         }
 
         context.translateBy(x: CGFloat(adjustedDestinationRect.x), y: CGFloat(adjustedDestinationRect.y))
-        let drawRect = CGRect(x: 0, y: 0, width: CGFloat(adjustedDestinationRect.width), height: CGFloat(adjustedDestinationRect.height))
+        var drawWidth = adjustedDestinationRect.width
+        var drawHeight = adjustedDestinationRect.height
+        if orientation != CGRendererOrientation.none {
+            context.concatenate(CGRendererTransform(fromDefault: orientation, drawWidth, drawHeight).cgAffineTransform)
+            // The destination's width and height are the oriented image's, as layout needed them: back to the image's.
+            if usesWidthAsHeight {
+                swap(&drawWidth, &drawHeight)
+            }
+        }
+        let drawRect = CGRect(x: 0, y: 0, width: CGFloat(drawWidth), height: CGFloat(drawHeight))
 
         context.translateBy(x: 0, y: drawRect.height)
         context.scaleBy(x: 1, y: -1)
 
-        context.draw(copy image, in: drawRect)
+        context.draw(subimage, in: drawRect)
 
         if clipsToDestination {
             context.restoreGState()
@@ -1103,6 +1259,25 @@ struct CGRenderer {
             _ = context.setEDRTargetHeadroom(oldHeadroom)
         }
         return 1
+    }
+
+    // The sub-image for a rect in the oriented image's coordinates.
+    private func subimage(
+        _ image: CGImage,
+        _ logicalWidth: Float,
+        _ logicalHeight: Float,
+        _ rect: CGRendererRect,
+        _ orientation: UInt8
+    )
+        -> CGImage?
+    {
+        var physicalRect = rect
+        if orientation != CGRendererOrientation.none,
+            let transform = CGRendererTransform(fromDefault: orientation, logicalWidth, logicalHeight).inverse()
+        {
+            physicalRect = transform.mapRect(rect)
+        }
+        return CGRendererCopySubimage(image, physicalRect.cgRect)
     }
 
     private func shouldUseSubimage(
