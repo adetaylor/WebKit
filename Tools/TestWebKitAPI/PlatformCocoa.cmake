@@ -200,6 +200,7 @@ list(APPEND TestWebCore_SOURCES
     Tests/WebCore/HysteresisActivityTests.cpp
     Tests/WebCore/ISOBox.cpp
     Tests/WebCore/KeyboardScrollingKeys.cpp
+    Tests/WebCore/ISOVTTCueTests.cpp
     Tests/WebCore/Logging.cpp
     Tests/WebCore/MacScrollersBench.mm
     Tests/WebCore/MarkedText.cpp
@@ -221,10 +222,12 @@ list(APPEND TestWebCore_SOURCES
     Tests/WebCore/cocoa/AudioStreamDescriptionCocoa.mm
     Tests/WebCore/cocoa/AudioVideoRendererAVFObjCTests.mm
     Tests/WebCore/cocoa/BifurcatedGraphicsContextTestsCG.cpp
+    Tests/WebCore/cocoa/CDMFairPlayStreamingTests.cpp
     Tests/WebCore/cocoa/CaptionPreferencesTests.mm
     Tests/WebCore/cocoa/CoreMediaUtilities.mm
     Tests/WebCore/cocoa/DatabaseTrackerTest.mm
     Tests/WebCore/cocoa/DecodedMediaSamplesBlockTests.mm
+    Tests/WebCore/cocoa/FormatDescriptionUtilitiesTests.mm
     Tests/WebCore/cocoa/GraphicsContextCGTests.mm
     Tests/WebCore/cocoa/H264UtilitiesCocoaTests.mm
     Tests/WebCore/cocoa/HEVCUtilitiesCocoaTests.mm
@@ -246,6 +249,7 @@ list(APPEND TestWebCore_SOURCES
     Tests/WebCore/cocoa/TestGraphicsContextGLCocoa.mm
     Tests/WebCore/cocoa/TestUTIRegistry.cpp
     Tests/WebCore/cocoa/TestUTIUtilities.cpp
+    Tests/WebCore/cocoa/VP9UtilitiesCocoaTests.mm
     Tests/WebCore/cocoa/WebCoreDecompressionSessionTests.mm
     Tests/WebCore/cocoa/WebCoreNSURLSession.mm
     Tests/WebCore/cocoa/XMLParsing.mm

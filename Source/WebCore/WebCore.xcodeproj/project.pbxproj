@@ -6076,7 +6076,7 @@
 		CD0445E12992F1740059B997 /* WebAVPlayerLayerView.h in Headers */ = {isa = PBXBuildFile; fileRef = CD0445DF2992F1740059B997 /* WebAVPlayerLayerView.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD0445E22992F1740059B997 /* WebAVPlayerLayerView.mm in Sources */ = {isa = PBXBuildFile; fileRef = CD0445E02992F1740059B997 /* WebAVPlayerLayerView.mm */; };
 		CD063F821E23FA8900812BE3 /* InitDataRegistry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CD063F801E23FA8900812BE3 /* InitDataRegistry.cpp */; };
-		CD063F831E23FA8900812BE3 /* InitDataRegistry.h in Headers */ = {isa = PBXBuildFile; fileRef = CD063F811E23FA8900812BE3 /* InitDataRegistry.h */; };
+		CD063F831E23FA8900812BE3 /* InitDataRegistry.h in Headers */ = {isa = PBXBuildFile; fileRef = CD063F811E23FA8900812BE3 /* InitDataRegistry.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD0664492E72218900B7D658 /* RenderElementStyleInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = CD0664482E72218900B7D658 /* RenderElementStyleInlines.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD06644B2E723F3D00B7D658 /* StyleableInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = CD06644A2E723F3D00B7D658 /* StyleableInlines.h */; };
 		CD06644D2E72415A00B7D658 /* NodeDocument.h in Headers */ = {isa = PBXBuildFile; fileRef = CD06644C2E72415A00B7D658 /* NodeDocument.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -6256,7 +6256,7 @@
 		CDAD8DFB2BED3B0200107D24 /* VideoTarget.h in Headers */ = {isa = PBXBuildFile; fileRef = CDAD8DF42BED37E600107D24 /* VideoTarget.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDAD8DFC2BED4D2C00107D24 /* VideoTargetFactory.h in Headers */ = {isa = PBXBuildFile; fileRef = CDAD8DED2BEC7B8000107D24 /* VideoTargetFactory.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDB6354923F6023A00C0F9DE /* WebAVPlayerController.h in Headers */ = {isa = PBXBuildFile; fileRef = CDA29A2C1CBF73FC00901CCF /* WebAVPlayerController.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		CDB7045A1F7465A1003923DF /* CDMFairPlayStreaming.h in Headers */ = {isa = PBXBuildFile; fileRef = CDB704581F7465A1003923DF /* CDMFairPlayStreaming.h */; };
+		CDB7045A1F7465A1003923DF /* CDMFairPlayStreaming.h in Headers */ = {isa = PBXBuildFile; fileRef = CDB704581F7465A1003923DF /* CDMFairPlayStreaming.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDB7045B1F7465A1003923DF /* CDMFairPlayStreaming.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDB704591F7465A1003923DF /* CDMFairPlayStreaming.cpp */; };
 		CDBA1F362F8D9FEA00D30314 /* YouTubeCaptionQuirk.js in Product Dependencies */ = {isa = PBXBuildFile; fileRef = CDBA1F352F8D9EB300D30314 /* YouTubeCaptionQuirk.js */; };
 		CDBA1F382F8D9FEA00D30314 /* CNNCaptionQuirk.js in Product Dependencies */ = {isa = PBXBuildFile; fileRef = CDBA1F372F8D9EB300D30314 /* CNNCaptionQuirk.js */; };
@@ -7724,6 +7724,34 @@
 		807547D380B36BF6457BF6C4 /* ColorAppearance.h in Headers */ = {isa = PBXBuildFile; fileRef = A0FE1D51155B617031EC275F /* ColorAppearance.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5A8EA984E6E737343E65221A /* ImageContentSettings.h in Headers */ = {isa = PBXBuildFile; fileRef = 9696F89359DB2093C05E5988 /* ImageContentSettings.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DECA8791265D4C1DBC7BA7F1 /* PageAnimationAgent.h in Headers */ = {isa = PBXBuildFile; fileRef = 61D2ED4C387044AEAE6FA67C /* PageAnimationAgent.h */; };
+		3403349175235111656FB814 /* WTFCompatParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE738D2A6BEF14456A1FBD03 /* WTFCompatParsing.swift */; };
+		08473BF78C412A3FCB42B366 /* BitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8BFAC2687CDD8B79EDE6757 /* BitReader.swift */; };
+		CA38D08B34C7904DF472CD2E /* ByteCursor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB472CEAD5B9F4191B9AAA45 /* ByteCursor.swift */; };
+		1B2A99B925F22C6752D0BB3B /* MutableSpanCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88A39DC1AACC936612FDA624 /* MutableSpanCopy.swift */; };
+		4614665A8FB982FD5C9CFB4D /* AnnexB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D75E17842BBC0929CF0735D /* AnnexB.swift */; };
+		58F08132C7971973C8F2FA25 /* WTFBase64.swift in Sources */ = {isa = PBXBuildFile; fileRef = 012AF69D6E5D314D5CA99F41 /* WTFBase64.swift */; };
+		78ABC124E9B883BD3F327D6C /* AV1Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28F2149C344019F5513E30DF /* AV1Utilities.swift */; };
+		9BE3EA3ABD32700570EBC343 /* VP9Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B562C541C6401560AA17EF /* VP9Utilities.swift */; };
+		B0A964DA066DB62E57C49C40 /* HEVCCodecStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A8B8DE4F05619F8D6ACBB3F /* HEVCCodecStrings.swift */; };
+		197517565C5615893EA685B3 /* H264Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B0EC871A694C19AE456DD6 /* H264Utilities.swift */; };
+		B1416F72350D05D960F8308D /* HEVCBitstreamParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72102AACC617C150E6E1414 /* HEVCBitstreamParser.swift */; };
+		2653C6D27D97ADA649EE4AEC /* ISOBoxes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9120E3628B4F2F0B2784DA8C /* ISOBoxes.swift */; };
+		77D8E7F6A75292D03DD77910 /* ISOFairPlayStreamingPssh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20C22CC099A47C37E539A0BD /* ISOFairPlayStreamingPssh.swift */; };
+		71837F278D1F314AED51ADEF /* ISOVTTCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E81478238DCCACF9250A3EA /* ISOVTTCue.swift */; };
+		164E2985AC07D03F56C95977 /* InitDataRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB7E52CFF3ABC2D95E849EC /* InitDataRegistry.swift */; };
+		9145528A7E6202985AAE1C4B /* CDMClearKeyParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2B821A9C3F4145C1069A19 /* CDMClearKeyParsing.swift */; };
+		003DCD8B025B13FA41385C7F /* CDMFairPlayStreamingParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */; };
+		B240ABE6B3772366E0BDCA3C /* CMUtilitiesParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */; };
+		182D187F1A4EF0CCD58D4057 /* FormatDescriptionCodecString.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70750DFDF816DC5FB591ADD /* FormatDescriptionCodecString.swift */; };
+		34D6913D83C54474255F32FD /* MediaParsersCxxBridging.h in Headers */ = {isa = PBXBuildFile; fileRef = BF1F83AA251C9642C7C554B8 /* MediaParsersCxxBridging.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		3DD0C96E4128987F5865E3B2 /* EMEParseResults.h in Headers */ = {isa = PBXBuildFile; fileRef = 7A084C59D53BDCFF766625F6 /* EMEParseResults.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		CC09F386955112D064A96BBB /* AV1CodecConfigurationRecord.h in Headers */ = {isa = PBXBuildFile; fileRef = 58DA878E5C3074F5939F9B91 /* AV1CodecConfigurationRecord.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		29030879AA103C09C3834CDC /* HEVCBitstreamParser.h in Headers */ = {isa = PBXBuildFile; fileRef = 0369F2676C75EDC15E7CD6CE /* HEVCBitstreamParser.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		1E097E8463449AB93E342EF4 /* VPCodecConfigurationRecord.h in Headers */ = {isa = PBXBuildFile; fileRef = D9A83C35F177909085B9D3D7 /* VPCodecConfigurationRecord.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		6493DF6982AF46D14AF7535F /* VideoCodecParameterTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 0EF9F4BB576825450DA070B7 /* VideoCodecParameterTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		875E7E864FEDECD171D6059A /* ISOParseResults.h in Headers */ = {isa = PBXBuildFile; fileRef = CBFA8EF2B4A8EA7E0D835D20 /* ISOParseResults.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		C7E3DF2D22DAF71E5E025979 /* CMParsingTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 151B943875D447C254665961 /* CMParsingTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		49C1635FCC3E3B7CC587E3D0 /* MediaParsersShellSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = AAAB94B92BC9B2EB0915B92B /* MediaParsersShellSupport.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -24391,6 +24419,36 @@
 		E0BA4176CB20FD04A40E4570 /* ImageRenditionOptions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ImageRenditionOptions.cpp; sourceTree = "<group>"; };
 		61D2ED4C387044AEAE6FA67C /* PageAnimationAgent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PageAnimationAgent.h; sourceTree = "<group>"; };
 		9829198B5E944BBE98399502 /* PageAnimationAgent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PageAnimationAgent.cpp; sourceTree = "<group>"; };
+		DE738D2A6BEF14456A1FBD03 /* WTFCompatParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WTFCompatParsing.swift; sourceTree = "<group>"; };
+		F8BFAC2687CDD8B79EDE6757 /* BitReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitReader.swift; sourceTree = "<group>"; };
+		EB472CEAD5B9F4191B9AAA45 /* ByteCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ByteCursor.swift; sourceTree = "<group>"; };
+		88A39DC1AACC936612FDA624 /* MutableSpanCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutableSpanCopy.swift; sourceTree = "<group>"; };
+		2D75E17842BBC0929CF0735D /* AnnexB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnexB.swift; sourceTree = "<group>"; };
+		012AF69D6E5D314D5CA99F41 /* WTFBase64.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WTFBase64.swift; sourceTree = "<group>"; };
+		28F2149C344019F5513E30DF /* AV1Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AV1Utilities.swift; sourceTree = "<group>"; };
+		54B562C541C6401560AA17EF /* VP9Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VP9Utilities.swift; sourceTree = "<group>"; };
+		8A8B8DE4F05619F8D6ACBB3F /* HEVCCodecStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEVCCodecStrings.swift; sourceTree = "<group>"; };
+		23B0EC871A694C19AE456DD6 /* H264Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = H264Utilities.swift; sourceTree = "<group>"; };
+		D72102AACC617C150E6E1414 /* HEVCBitstreamParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEVCBitstreamParser.swift; sourceTree = "<group>"; };
+		9120E3628B4F2F0B2784DA8C /* ISOBoxes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISOBoxes.swift; sourceTree = "<group>"; };
+		20C22CC099A47C37E539A0BD /* ISOFairPlayStreamingPssh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISOFairPlayStreamingPssh.swift; sourceTree = "<group>"; };
+		0E81478238DCCACF9250A3EA /* ISOVTTCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISOVTTCue.swift; sourceTree = "<group>"; };
+		4CB7E52CFF3ABC2D95E849EC /* InitDataRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitDataRegistry.swift; sourceTree = "<group>"; };
+		5E2B821A9C3F4145C1069A19 /* CDMClearKeyParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMClearKeyParsing.swift; sourceTree = "<group>"; };
+		8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMFairPlayStreamingParsing.swift; sourceTree = "<group>"; };
+		ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMUtilitiesParsing.swift; sourceTree = "<group>"; };
+		E70750DFDF816DC5FB591ADD /* FormatDescriptionCodecString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatDescriptionCodecString.swift; sourceTree = "<group>"; };
+		BF1F83AA251C9642C7C554B8 /* MediaParsersCxxBridging.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaParsersCxxBridging.h; sourceTree = "<group>"; };
+		7A084C59D53BDCFF766625F6 /* EMEParseResults.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EMEParseResults.h; sourceTree = "<group>"; };
+		58DA878E5C3074F5939F9B91 /* AV1CodecConfigurationRecord.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AV1CodecConfigurationRecord.h; sourceTree = "<group>"; };
+		0369F2676C75EDC15E7CD6CE /* HEVCBitstreamParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HEVCBitstreamParser.h; sourceTree = "<group>"; };
+		D9A83C35F177909085B9D3D7 /* VPCodecConfigurationRecord.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VPCodecConfigurationRecord.h; sourceTree = "<group>"; };
+		0EF9F4BB576825450DA070B7 /* VideoCodecParameterTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VideoCodecParameterTypes.h; sourceTree = "<group>"; };
+		CBFA8EF2B4A8EA7E0D835D20 /* ISOParseResults.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ISOParseResults.h; sourceTree = "<group>"; };
+		151B943875D447C254665961 /* CMParsingTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMParsingTypes.h; sourceTree = "<group>"; };
+		AAAB94B92BC9B2EB0915B92B /* MediaParsersShellSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaParsersShellSupport.h; sourceTree = "<group>"; };
+		C1A6538B3A431B6167D4AD0D /* HEVCBitstreamParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = HEVCBitstreamParser.cpp; sourceTree = "<group>"; };
+		F796FB33E6A1B5857103996B /* MediaParsersShellSupport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MediaParsersShellSupport.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -24832,7 +24890,9 @@
 				CD336F5F17F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.mm */,
 				CDB704591F7465A1003923DF /* CDMFairPlayStreaming.cpp */,
 				CDB704581F7465A1003923DF /* CDMFairPlayStreaming.h */,
+				8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */,
 				A1C7D7C12AB7AD010055AD62 /* ContentKeyGroupDataSource.h */,
+				E70750DFDF816DC5FB591ADD /* FormatDescriptionCodecString.swift */,
 				CDD8D311271F2C8D00DAA256 /* FormatDescriptionUtilities.cpp */,
 				CDD8D310271F2C8D00DAA256 /* FormatDescriptionUtilities.h */,
 				721B02F62FBE7E7700688E0A /* ImageDecoderFactoryAVF.cpp */,
@@ -24841,6 +24901,7 @@
 				07E9E12D18F5E2760011A3A4 /* InbandMetadataTextTrackPrivateAVF.h */,
 				07B442D4166C70B000556CAD /* InbandTextTrackPrivateAVF.cpp */,
 				07B442D5166C70B000556CAD /* InbandTextTrackPrivateAVF.h */,
+				20C22CC099A47C37E539A0BD /* ISOFairPlayStreamingPssh.swift */,
 				CD720B4722682C7E00047FDE /* ISOFairPlayStreamingPsshBox.cpp */,
 				CD720B4922682C7F00047FDE /* ISOFairPlayStreamingPsshBox.h */,
 				CD318621199F1E2A0030A0F7 /* LegacyCDMPrivateAVFObjC.h */,
@@ -36950,8 +37011,10 @@
 				BEF29EE91715DD0900C4B4C9 /* AudioTrackPrivate.h */,
 				CD1F9B152702360E00617EB6 /* AudioTrackPrivateClient.h */,
 				5128B71E2E4B221B00975E0A /* AudioVideoRenderer.h */,
+				58DA878E5C3074F5939F9B91 /* AV1CodecConfigurationRecord.h */,
 				CD1A22572B0759AC0038923E /* AV1Utilities.cpp */,
 				CD1A22582B0759AD0038923E /* AV1Utilities.h */,
+				28F2149C344019F5513E30DF /* AV1Utilities.swift */,
 				BE21E01000000000000000B2 /* BezierUtilities.cpp */,
 				BE21E01000000000000000B1 /* BezierUtilities.h */,
 				2DD87147265F4364005F997C /* BifurcatedGraphicsContext.cpp */,
@@ -37144,6 +37207,11 @@
 				FE3DC9902D0BA6F00021B6FC /* GraphicsTZoneImpls.cpp */,
 				4A1E9F3D5A4C8D227E1F60B2 /* H264Utilities.cpp */,
 				9C6B4A2E8F5D1037C4B0A9E1 /* H264Utilities.h */,
+				23B0EC871A694C19AE456DD6 /* H264Utilities.swift */,
+				C1A6538B3A431B6167D4AD0D /* HEVCBitstreamParser.cpp */,
+				0369F2676C75EDC15E7CD6CE /* HEVCBitstreamParser.h */,
+				D72102AACC617C150E6E1414 /* HEVCBitstreamParser.swift */,
+				8A8B8DE4F05619F8D6ACBB3F /* HEVCCodecStrings.swift */,
 				CDA595922146DEC300A84185 /* HEVCUtilities.cpp */,
 				CDA595912146DEC300A84185 /* HEVCUtilities.h */,
 				E3BFBA6B2E036BE600A38E4F /* HostingContext.h */,
@@ -37206,6 +37274,8 @@
 				0F36E7381BD184B9002DB891 /* LayoutSize.cpp */,
 				141DC04E164834B900371E5A /* LayoutSize.h */,
 				CDDE02E918B3DFC700CF7FF1 /* LegacyCDMSession.h */,
+				F796FB33E6A1B5857103996B /* MediaParsersShellSupport.cpp */,
+				AAAB94B92BC9B2EB0915B92B /* MediaParsersShellSupport.h */,
 				07E3DFD01A9E786500764CA8 /* MediaPlaybackTarget.h */,
 				079216531AA560AA00A3C049 /* MediaPlaybackTargetClient.h */,
 				078E43D71ABB6C7E001C2FA6 /* MediaPlaybackTargetPicker.cpp */,
@@ -37378,6 +37448,7 @@
 				E4AFCFA40DAF29A300F5F55C /* UnitBezier.h */,
 				0F5A57CA229B18AE0025EDA9 /* VelocityData.cpp */,
 				0F1A0C36229A481800D37ADB /* VelocityData.h */,
+				0EF9F4BB576825450DA070B7 /* VideoCodecParameterTypes.h */,
 				1DAB3113251D725C00FC9485 /* VideoLayerManager.h */,
 				075033A6252BD36800F70CE3 /* VideoPlaybackQualityMetrics.h */,
 				CDAD8DF42BED37E600107D24 /* VideoTarget.h */,
@@ -37386,6 +37457,8 @@
 				AA0CE5D12E6F00A100C0FFEE /* ViewCoordinateSpaceRect.h */,
 				CD6FE5BB24BCE7B6009FCDA4 /* VP9Utilities.cpp */,
 				CD6FE5BA24BCE7B6009FCDA4 /* VP9Utilities.h */,
+				54B562C541C6401560AA17EF /* VP9Utilities.swift */,
+				D9A83C35F177909085B9D3D7 /* VPCodecConfigurationRecord.h */,
 				0D54CF5E301D5E9000DEB1E8 /* WebGPUFramePacer.cpp */,
 				0D54CF5D301D5E6900DEB1E8 /* WebGPUFramePacer.h */,
 				5AB19B9628650168004B5DE2 /* WebMResourceClient.cpp */,
@@ -37482,8 +37555,10 @@
 				CDF9950024C28149002EA062 /* AudioTrackPrivateWebM.h */,
 				CD1A225B2B075A6D0038923E /* AV1UtilitiesCocoa.h */,
 				CD1A225C2B075A6D0038923E /* AV1UtilitiesCocoa.mm */,
+				151B943875D447C254665961 /* CMParsingTypes.h */,
 				5150B5DC27CDF2E0004FC81E /* CMUtilities.h */,
 				5150B5DE27CDF499004FC81E /* CMUtilities.mm */,
+				ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */,
 				F48D2AA32159740D00C6752B /* ColorCocoa.h */,
 				F48D2AA42159740D00C6752B /* ColorCocoa.mm */,
 				72BDED102F8D9F9700199F64 /* CVPixelBufferUtilities.cpp */,
@@ -39925,6 +40000,7 @@
 				A59E3C1B11580F340072928E /* ios */,
 				A396B1C229232B4F00469612 /* libwebrtc */,
 				6582A14809999D6C00BEEB6D /* mac */,
+				B0198C112F606ADB23A5F8A4 /* media-parsers */,
 				BCD8FA182F27F17300B42872 /* mediacapabilities */,
 				4D3B5012217E58A300665DB1 /* mediarecorder */,
 				07221B9217CF0AD400848E51 /* mediastream */,
@@ -40031,6 +40107,7 @@
 				7AE6C93A1BE0C60100E19E03 /* MainThreadSharedTimer.h */,
 				4A1C0D7E2EB0A11500C0FFEE /* MediaChannelLayout.h */,
 				CDF2B003181F059C00F2B424 /* MediaDescription.h */,
+				BF1F83AA251C9642C7C554B8 /* MediaParsersCxxBridging.h */,
 				5154F6EE2B02340900B857D9 /* MediaPromiseTypes.h */,
 				CD641EC7181ED60100EE4C41 /* MediaSample.h */,
 				513C7B762E7CD9CA00079881 /* MediaSamplesBlock.cpp */,
@@ -40578,8 +40655,10 @@
 			children = (
 				CD871C681FB52B6900F0B965 /* ISOBox.cpp */,
 				CD871C621FB52B6500F0B965 /* ISOBox.h */,
+				9120E3628B4F2F0B2784DA8C /* ISOBoxes.swift */,
 				CD871C6A1FB52B6A00F0B965 /* ISOOriginalFormatBox.cpp */,
 				CD871C671FB52B6800F0B965 /* ISOOriginalFormatBox.h */,
+				CBFA8EF2B4A8EA7E0D835D20 /* ISOParseResults.h */,
 				CD871C5E1FB52B6400F0B965 /* ISOProtectionSchemeInfoBox.cpp */,
 				CD871C601FB52B6500F0B965 /* ISOProtectionSchemeInfoBox.h */,
 				451A49F8F8726BE071518BE2 /* ISOProtectionSystemSpecificHeaderBox.cpp */,
@@ -40592,6 +40671,7 @@
 				CD871C661FB52B6800F0B965 /* ISOTrackEncryptionBox.h */,
 				CD871C691FB52B6900F0B965 /* ISOVTTCue.cpp */,
 				CD871C651FB52B6700F0B965 /* ISOVTTCue.h */,
+				0E81478238DCCACF9250A3EA /* ISOVTTCue.swift */,
 			);
 			path = iso;
 			sourceTree = "<group>";
@@ -40634,6 +40714,7 @@
 				CDBEEF9B2ECF966900963F77 /* CDMTypesForward.h */,
 				CDE3AE1324B4936F00128E7E /* CDMUtilities.cpp */,
 				CDE3AE1024B4916900128E7E /* CDMUtilities.h */,
+				7A084C59D53BDCFF766625F6 /* EMEParseResults.h */,
 			);
 			path = encryptedmedia;
 			sourceTree = "<group>";
@@ -40643,6 +40724,7 @@
 			children = (
 				CD94A5DB1F71CBB000F525C5 /* CDMClearKey.cpp */,
 				CD94A5DA1F71CBB000F525C5 /* CDMClearKey.h */,
+				5E2B821A9C3F4145C1069A19 /* CDMClearKeyParsing.swift */,
 			);
 			path = clearkey;
 			sourceTree = "<group>";
@@ -40691,6 +40773,7 @@
 				CD94A5C91F71CA9D00F525C5 /* CDMClient.h */,
 				CD063F801E23FA8900812BE3 /* InitDataRegistry.cpp */,
 				CD063F811E23FA8900812BE3 /* InitDataRegistry.h */,
+				4CB7E52CFF3ABC2D95E849EC /* InitDataRegistry.swift */,
 				CDF7569D215C244400EFCB50 /* MediaKeyEncryptionScheme.h */,
 				CDF7569E215C285E00EFCB50 /* MediaKeyEncryptionScheme.idl */,
 				2D9BF72F1DBFDC0F007A7D99 /* MediaKeyMessageEvent.cpp */,
@@ -44510,6 +44593,19 @@
 			path = cocoa;
 			sourceTree = "<group>";
 		};
+		B0198C112F606ADB23A5F8A4 /* media-parsers */ = {
+			isa = PBXGroup;
+			children = (
+				2D75E17842BBC0929CF0735D /* AnnexB.swift */,
+				F8BFAC2687CDD8B79EDE6757 /* BitReader.swift */,
+				EB472CEAD5B9F4191B9AAA45 /* ByteCursor.swift */,
+				88A39DC1AACC936612FDA624 /* MutableSpanCopy.swift */,
+				012AF69D6E5D314D5CA99F41 /* WTFBase64.swift */,
+				DE738D2A6BEF14456A1FBD03 /* WTFCompatParsing.swift */,
+			);
+			path = "media-parsers";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -44890,6 +44986,7 @@
 				45830D4E1679B4F800ACF8C3 /* AutoscrollController.h in Headers */,
 				BC8C1C122EF4F43F00A2FD9B /* AutosizeStatus.h in Headers */,
 				A8CFF04E0A154F09000A4234 /* AutoTableLayout.h in Headers */,
+				CC09F386955112D064A96BBB /* AV1CodecConfigurationRecord.h in Headers */,
 				41D126092B6D111D003EB7AA /* AV1Utilities.h in Headers */,
 				41D126022B6D0BD6003EB7AA /* AV1UtilitiesCocoa.h in Headers */,
 				6325E2DF2A8A08D400F6EE78 /* AvailableLineWidthOverride.h in Headers */,
@@ -45165,6 +45262,7 @@
 				97AABD1314FA09D5007457AE /* CloseEvent.h in Headers */,
 				A39FFDFB2B449A28006CF211 /* CloseWatcher.h in Headers */,
 				A3A0ED792BFFD22A003F5C07 /* CloseWatcherManager.h in Headers */,
+				C7E3DF2D22DAF71E5E025979 /* CMParsingTypes.h in Headers */,
 				5150B5DD27CDF2E0004FC81E /* CMUtilities.h in Headers */,
 				803798AB2D48AFFC00F5F581 /* CocoaAccessibilityConstants.h in Headers */,
 				33883889308047B7007ECDC2 /* CocoaBezierPath.h in Headers */,
@@ -46045,6 +46143,7 @@
 				3B7C4D205F60718293A4B5C8 /* ElementVolumetricScene.h in Headers */,
 				6FD1EBC028AEECC700FFF5D2 /* EllipsisBoxPainter.h in Headers */,
 				F55B3DBC1251F12D003EF269 /* EmailInputType.h in Headers */,
+				3DD0C96E4128987F5865E3B2 /* EMEParseResults.h in Headers */,
 				E36D702027B72013006531B7 /* EmptyAttachmentElementClient.h in Headers */,
 				512B6794294B91BA000C0760 /* EmptyBadgeClient.h in Headers */,
 				B25599A50D00D8BA00BB825C /* EmptyClients.h in Headers */,
@@ -46486,6 +46585,7 @@
 				463EF33E293941E200069115 /* HashMapStylePropertyMapReadOnly.h in Headers */,
 				A8748BE012CBF2DC001FBA41 /* HashTools.h in Headers */,
 				E4ED3ECC2768A51D00F17AC8 /* HasSelectorFilter.h in Headers */,
+				29030879AA103C09C3834CDC /* HEVCBitstreamParser.h in Headers */,
 				F4D47E983CE143537A2F7169 /* HevcEncoderConfig.h in Headers */,
 				CDA595932146DEC300A84185 /* HEVCUtilities.h in Headers */,
 				CDA595982146DF7800A84185 /* HEVCUtilitiesCocoa.h in Headers */,
@@ -46959,6 +47059,7 @@
 				CD5FF4992162E2BE004BD86F /* ISOBox.h in Headers */,
 				CD720B4F2268B51300047FDE /* ISOFairPlayStreamingPsshBox.h in Headers */,
 				CD5FF49E2162E4E8004BD86F /* ISOOriginalFormatBox.h in Headers */,
+				875E7E864FEDECD171D6059A /* ISOParseResults.h in Headers */,
 				CD5FF49D2162E4DB004BD86F /* ISOProtectionSchemeInfoBox.h in Headers */,
 				CD5FF49C2162E4CF004BD86F /* ISOProtectionSystemSpecificHeaderBox.h in Headers */,
 				CD5FF49A2162E4A6004BD86F /* ISOSchemeInformationBox.h in Headers */,
@@ -48084,6 +48185,8 @@
 				A8EA800E0A19516E00A8EF5F /* MediaList.h in Headers */,
 				0782894825C23FE500A7BA03 /* MediaMetadata.h in Headers */,
 				0782894C25C3700B00A7BA03 /* MediaMetadataInit.h in Headers */,
+				34D6913D83C54474255F32FD /* MediaParsersCxxBridging.h in Headers */,
+				49C1635FCC3E3B7CC587E3D0 /* MediaParsersShellSupport.h in Headers */,
 				5EBB89311C7777FF00C65D41 /* MediaPayload.h in Headers */,
 				07E3DFD11A9E786500764CA8 /* MediaPlaybackTarget.h in Headers */,
 				079216551AA560AA00A3C049 /* MediaPlaybackTargetClient.h in Headers */,
@@ -50527,6 +50630,7 @@
 				8A28C3C228E4EC07001018B9 /* ValidityStateFlags.h in Headers */,
 				FD3160AF12B026F700C1A359 /* VectorMath.h in Headers */,
 				0F1A0C38229A481800D37ADB /* VelocityData.h in Headers */,
+				6493DF6982AF46D14AF7535F /* VideoCodecParameterTypes.h in Headers */,
 				41BDAB352C7CE1280005C965 /* VideoCodecType.h in Headers */,
 				41DD3C2C2902C46C00369BEF /* VideoColorPrimaries.h in Headers */,
 				41DD3C2B2902C42F00369BEF /* VideoColorSpace.h in Headers */,
@@ -50593,6 +50697,7 @@
 				CD9CC58524C6BBEB00CD3C64 /* VP9Utilities.h in Headers */,
 				CDAC068324C6A95A002F727F /* VP9UtilitiesCocoa.h in Headers */,
 				0704D7BE2F16D3B8008CA1C0 /* VP9UtilitiesCocoaInternal.h in Headers */,
+				1E097E8463449AB93E342EF4 /* VPCodecConfigurationRecord.h in Headers */,
 				BE20507A18A4586B0080647E /* VTTCue.h in Headers */,
 				7AF9B20318CFB2DF00C64BEF /* VTTRegion.h in Headers */,
 				7AF9B20618CFB2DF00C64BEF /* VTTRegionList.h in Headers */,
@@ -51573,6 +51678,7 @@
 				A9787CB41F5F5C6600C551C6 /* AccessibilityMediaHelpers.cpp in Sources */,
 				7BE37F7D27BB86CD007A6CD3 /* ANGLEUtilities.cpp in Sources */,
 				7BE37F7C27BB86B8007A6CD3 /* ANGLEUtilitiesCocoa.mm in Sources */,
+				4614665A8FB982FD5C9CFB4D /* AnnexB.swift in Sources */,
 				031A366633FC5C13DAF5FD89 /* Arm64Truncating.swift in Sources */,
 				CD0EEE0E14743F39003EAFA2 /* AudioOutputUnitAdaptorIOS.cpp in Sources */,
 				CDE104F329E6220C00CBAE11 /* AudioSessionCocoa.mm in Sources */,
@@ -51580,6 +51686,7 @@
 				CD8A7BBB197735FE00CBD643 /* AudioSourceProviderAVFObjC.mm in Sources */,
 				52B07441284680CA00511B65 /* AuthenticationExtensionsClientInputs.cpp in Sources */,
 				52B074432846810A00511B65 /* AuthenticationExtensionsClientOutputs.cpp in Sources */,
+				78ABC124E9B883BD3F327D6C /* AV1Utilities.swift in Sources */,
 				CD1A22672B080A5C0038923E /* AV1UtilitiesCocoa.mm in Sources */,
 				46BA49B827BB44330077F63F /* AVAssetTrackUtilities.mm in Sources */,
 				0FCA293526FC3917006B4AEB /* AVAudioSessionCaptureDeviceManager.mm in Sources */,
@@ -51587,11 +51694,16 @@
 				0738E5EC2499839000DA101C /* AVOutputDeviceMenuControllerTargetPicker.mm in Sources */,
 				CD336F6117F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.mm in Sources */,
 				4996C0F627177488002C125D /* AVVideoCaptureSource.mm in Sources */,
+				08473BF78C412A3FCB42B366 /* BitReader.swift in Sources */,
+				CA38D08B34C7904DF472CD2E /* ByteCursor.swift in Sources */,
 				CDF4B7151E00B7E500E235A2 /* CDM.cpp in Sources */,
+				9145528A7E6202985AAE1C4B /* CDMClearKeyParsing.swift in Sources */,
 				CDB7045B1F7465A1003923DF /* CDMFairPlayStreaming.cpp in Sources */,
+				003DCD8B025B13FA41385C7F /* CDMFairPlayStreamingParsing.swift in Sources */,
 				CDC224281F756966005F077B /* CDMInstanceFairPlayStreamingAVFObjC.mm in Sources */,
 				23B6FEB7BC8E6912CC678555 /* CheckedMath.swift in Sources */,
 				5150B5DF27CDF499004FC81E /* CMUtilities.mm in Sources */,
+				B240ABE6B3772366E0BDCA3C /* CMUtilitiesParsing.swift in Sources */,
 				A14090FB1AA51E1D0091191A /* ContentFilterUnblockHandlerCocoa.mm in Sources */,
 				418BC5E02C5CBDB600152089 /* CoreAudioCaptureUnit.mm in Sources */,
 				463642A729687D53003D43F2 /* CoreHapticsSoftLink.mm in Sources */,
@@ -51661,6 +51773,7 @@
 				E4DCB2E8232B2774CE214DFE /* FilterImageImpl.swift in Sources */,
 				44428BC0239608D55EA7B2DD /* FilterMath.swift in Sources */,
 				7CE6CBFD187F394900D46BF5 /* FormatConverter.cpp in Sources */,
+				182D187F1A4EF0CCD58D4057 /* FormatDescriptionCodecString.swift in Sources */,
 				4667EA3E2968D9DA00BAB1E2 /* GameControllerHapticEffect.mm in Sources */,
 				46FE73D32968E52000B8064C /* GameControllerHapticEngines.mm in Sources */,
 				5130F2F624AEA60A00E1D0A0 /* GameControllerSoftLink.mm in Sources */,
@@ -51672,6 +51785,9 @@
 				837964CF1F8DB69D00218EA0 /* GeolocationPositionDataCocoa.mm in Sources */,
 				6E72F54E229DCD1000B3E151 /* GraphicsContextGLANGLE.cpp in Sources */,
 				7BE37F7A27BB86AB007A6CD3 /* GraphicsContextGLCocoa.mm in Sources */,
+				197517565C5615893EA685B3 /* H264Utilities.swift in Sources */,
+				B1416F72350D05D960F8308D /* HEVCBitstreamParser.swift in Sources */,
+				B0A964DA066DB62E57C49C40 /* HEVCCodecStrings.swift in Sources */,
 				5A1F00000000000000000010 /* HTMLConstructionSite.swift in Sources */,
 				7C3E510B18DF8F3500C112F7 /* HTMLConverter.mm in Sources */,
 				5A1F0000000000000000000E /* HTMLElementStack.swift in Sources */,
@@ -51689,6 +51805,10 @@
 				070E2D0F26F250890014AAC3 /* InbandChapterTrackPrivateAVFObjC.mm in Sources */,
 				46CA943127B8695800F4F5FF /* InbandTextTrackPrivateAVFObjC.mm in Sources */,
 				CD063F821E23FA8900812BE3 /* InitDataRegistry.cpp in Sources */,
+				164E2985AC07D03F56C95977 /* InitDataRegistry.swift in Sources */,
+				2653C6D27D97ADA649EE4AEC /* ISOBoxes.swift in Sources */,
+				77D8E7F6A75292D03DD77910 /* ISOFairPlayStreamingPssh.swift in Sources */,
+				71837F278D1F314AED51ADEF /* ISOVTTCue.swift in Sources */,
 				EE042903F1A0DE0100A1B2C3 /* JSDOMBindingFacade.cpp in Sources */,
 				2D1CE026F32F4DD98F662746 /* JSDOMWindow.cpp in Sources */,
 				AE9D0D864E151BAC3ECB750E /* JSDOMWindowConstructorAttributes.cpp in Sources */,
@@ -51726,6 +51846,7 @@
 				E3952FEE27C6DF140086F5D9 /* MockContentFilterManager.cpp in Sources */,
 				E3952FF027C7CDAC0086F5D9 /* MockContentFilterSettings.cpp in Sources */,
 				E169FDA82F85C319005AD4C7 /* MockParentalControlsURLFilter.mm in Sources */,
+				1B2A99B925F22C6752D0BB3B /* MutableSpanCopy.swift in Sources */,
 				329C0C2428BD96DE00F187D2 /* Namespace.cpp in Sources */,
 				2D9BF7421DBFDC27007A7D99 /* NavigatorEME.cpp in Sources */,
 				51A4BB101954D62700FA5C2E /* NavigatorGamepad.cpp in Sources */,
@@ -52494,6 +52615,7 @@
 				CFF1676880E095F27D7D94DE /* VImageBridge+ColorMatrix.swift in Sources */,
 				7E38067BBE2DD5D953221F77 /* VImageBridge+Conversion.swift in Sources */,
 				C85D977768D6677F509D4047 /* VImageBridge.swift in Sources */,
+				9BE3EA3ABD32700570EBC343 /* VP9Utilities.swift in Sources */,
 				CDED1C3C24CD305700934E12 /* VP9UtilitiesCocoa.mm in Sources */,
 				A14832B1187F61E100DA63A6 /* WAKAppKitStubs.mm in Sources */,
 				A14832B3187F629100DA63A6 /* WAKClipView.mm in Sources */,
@@ -52521,6 +52643,8 @@
 				1CAF34820A6C405200ABE06E /* WebScriptObject.mm in Sources */,
 				CECDC93C21F2972900976BD1 /* WebVideoFullscreenControllerAVKit.mm in Sources */,
 				A14832C2187F65C700DA63A6 /* WKUtilities.cpp in Sources */,
+				58F08132C7971973C8F2FA25 /* WTFBase64.swift in Sources */,
+				3403349175235111656FB814 /* WTFCompatParsing.swift in Sources */,
 				A833C7CC0A2CF07400D57664 /* XLinkNames.cpp in Sources */,
 				A833C80C0A2CF25600D57664 /* XMLNames.cpp in Sources */,
 				E15A36D91104572700B7B639 /* XMLNSNames.cpp in Sources */,

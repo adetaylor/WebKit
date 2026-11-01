@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Apple Inc. All rights reserved.
+ * Copyright (C) 2018-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,6 +33,7 @@
 #import "FourCC.h"
 #import "HEVCUtilities.h"
 #import "Logging.h"
+#import "MediaParsersShellSupport.h"
 #import "PlatformMediaCapabilitiesInfo.h"
 #import "TrackInfo.h"
 #import <algorithm>
@@ -40,6 +41,10 @@
 #import <wtf/cocoa/TypeCastsCocoa.h>
 #import <wtf/cocoa/VectorCocoa.h>
 #import <wtf/text/StringToIntegerConversion.h>
+
+#if ENABLE(WEBCORE_SWIFT)
+#import "WebCore-Swift.h"
+#endif
 
 #import "VideoToolboxSoftLink.h"
 #import <pal/cf/CoreMediaSoftLink.h>
@@ -219,33 +224,27 @@ static RetainPtr<CMFormatDescriptionRef> createHEVCFormatDescriptionFromParamete
     return adoptCF(rawDescription);
 }
 
-NODELETE static bool hevcAnnexBVpsIsFollowedBySpsAndPps(std::span<const uint8_t> data, const Vector<NaluIndex>& naluIndices, size_t vpsIndex)
-{
-    if (vpsIndex + 2 >= naluIndices.size())
-        return false;
+#if ENABLE(WEBCORE_SWIFT)
 
-    auto& spsIndex = naluIndices[vpsIndex + 1];
-    auto& ppsIndex = naluIndices[vpsIndex + 2];
-    return spsIndex.payloadSize && hevcNaluType(data[spsIndex.payloadStartOffset]) == HEVCNaluType::Sps
-        && ppsIndex.payloadSize && hevcNaluType(data[ppsIndex.payloadStartOffset]) == HEVCNaluType::Pps;
-}
+// findHEVCAnnexBParameterSetsImpl()'s results (HEVCBitstreamParser.swift).
+enum class HEVCAnnexBParameterSetSearch : uint8_t { NotFound, NotFollowedBySpsAndPps, Found };
 
 RefPtr<VideoInfo> createVideoInfoFromHEVCAnnexBStream(std::span<const uint8_t> data, const Vector<NaluIndex>& naluIndices)
 {
-    auto vpsIndex = findHEVCAnnexBVpsIndex(data, naluIndices);
-    if (vpsIndex == notFound)
+    std::array<ParameterSetRange, 3> ranges;
+    switch (static_cast<HEVCAnnexBParameterSetSearch>(findHEVCAnnexBParameterSetsImpl({ data }, { naluIndices.span() }, ranges[0], ranges[1], ranges[2]))) {
+    case HEVCAnnexBParameterSetSearch::NotFound:
         return nullptr;
-
-    if (!hevcAnnexBVpsIsFollowedBySpsAndPps(data, naluIndices, vpsIndex)) {
+    case HEVCAnnexBParameterSetSearch::NotFollowedBySpsAndPps:
         RELEASE_LOG_ERROR(WebRTC, "createVideoInfoFromHEVCAnnexBStream NAL units following VPS are not SPS/PPS");
         return nullptr;
+    case HEVCAnnexBParameterSetSearch::Found:
+        break;
     }
 
     std::array<std::span<const uint8_t>, 3> paramSets;
-    for (size_t i = 0; i < paramSets.size(); ++i) {
-        auto& index = naluIndices[vpsIndex + i];
-        paramSets[i] = data.subspan(index.payloadStartOffset, index.payloadSize);
-    }
+    for (size_t i = 0; i < paramSets.size(); ++i)
+        paramSets[i] = data.subspan(ranges[i].offset, ranges[i].size);
     std::array<const uint8_t*, 3> paramSetPointers { paramSets[0].data(), paramSets[1].data(), paramSets[2].data() };
     std::array<size_t, 3> paramSetSizes { paramSets[0].size(), paramSets[1].size(), paramSets[2].size() };
 
@@ -253,7 +252,10 @@ RefPtr<VideoInfo> createVideoInfoFromHEVCAnnexBStream(std::span<const uint8_t> d
     if (!description)
         return nullptr;
 
-    return createVideoInfoFromFormatDescription(description, findHEVCAnnexBMaxNumReorderPics(data, naluIndices));
+    std::optional<uint8_t> maxNumReorderPics;
+    if (uint8_t value = 0; parseHEVCVpsMaxNumReorderPicsImpl({ paramSets[0] }, value))
+        maxNumReorderPics = value;
+    return createVideoInfoFromFormatDescription(description, maxNumReorderPics);
 }
 
 Vector<uint8_t> convertHEVCAnnexBToLengthPrefixed(std::span<const uint8_t> data, const Vector<NaluIndex>& naluIndices)
@@ -261,17 +263,61 @@ Vector<uint8_t> convertHEVCAnnexBToLengthPrefixed(std::span<const uint8_t> data,
     // FIXME: We basically assume that VPS is first, SPS is second and  PPS is thitd. But there may be nalus between them, and VPS/SPS/PPS order is not guaranteed.
     // We also need to validate what to do for a frame with a VPS, or a SPS or a PPS but not all three of them.
     // For now, we skip all NAL units up to and including the VPS/SPS/PPS triplet, if present, as parameter sets belong in the format description, not in the per-sample data.
-    size_t startIndex = 0;
-    auto vpsIndex = findHEVCAnnexBVpsIndex(data, naluIndices);
-    if (vpsIndex != notFound) {
-        if (hevcAnnexBVpsIsFollowedBySpsAndPps(data, naluIndices, vpsIndex))
-            startIndex = vpsIndex + 3;
-        else
-            RELEASE_LOG_ERROR(WebRTC, "convertHEVCAnnexBToLengthPrefixed NAL units following VPS are not SPS/PPS");
-    }
-
-    return annexBToLengthPrefixed(data, naluIndices.subspan(startIndex));
+    Vector<uint8_t> result;
+    if (!convertHEVCAnnexBToLengthPrefixedImpl({ data }, { naluIndices.span() }, result))
+        RELEASE_LOG_ERROR(WebRTC, "convertHEVCAnnexBToLengthPrefixed NAL units following VPS are not SPS/PPS");
+    return result;
 }
+
+static WebRTCVideoCodec webRTCVideoCodec(VideoCodecType codecType)
+{
+    switch (codecType) {
+    case VideoCodecType::H264:
+        return WebRTCVideoCodec::H264;
+    case VideoCodecType::H265:
+        return WebRTCVideoCodec::H265;
+    case VideoCodecType::VP9:
+        return WebRTCVideoCodec::VP9;
+    case VideoCodecType::AV1:
+        return WebRTCVideoCodec::AV1;
+    }
+    RELEASE_ASSERT_NOT_REACHED();
+}
+
+static WebRTCScalabilityMode webRTCScalabilityMode(VideoEncoderScalabilityMode mode)
+{
+    switch (mode) {
+    case VideoEncoderScalabilityMode::L1T1:
+        return WebRTCScalabilityMode::L1T1;
+    case VideoEncoderScalabilityMode::L1T2:
+        return WebRTCScalabilityMode::L1T2;
+    case VideoEncoderScalabilityMode::L1T3:
+        return WebRTCScalabilityMode::L1T3;
+    }
+    RELEASE_ASSERT_NOT_REACHED();
+}
+
+static bool isAcceptedByWebRTC(const WebRTCCodecStringCheck& check)
+{
+    if (check.needsHEVCDecoderCheck)
+        return !!validateHEVCParameters(makeHEVCParameters(check.hevcFields), false, false);
+    return check.valid;
+}
+
+bool isValidWebRTCDecoderCodecString(VideoCodecType codecType, StringView codecString)
+{
+    ASSERT(codecType != VideoCodecType::VP9 || codecString.startsWith("vp09.0"_s));
+    ASSERT(codecType != VideoCodecType::AV1 || codecString.startsWith("av01."_s));
+    return isAcceptedByWebRTC(webRTCDecoderCodecStringCheckImpl(webRTCVideoCodec(codecType), mediaParserText(codecString)));
+}
+
+bool isValidWebRTCEncoderConfiguration(VideoCodecType codecType, StringView codecString, bool useLowLatency, VideoEncoderScalabilityMode scalabilityMode)
+{
+    ASSERT(codecType == VideoCodecType::H264 || codecType == VideoCodecType::H265);
+    return isAcceptedByWebRTC(webRTCEncoderConfigurationCheckImpl(webRTCVideoCodec(codecType), mediaParserText(codecString), !codecString.isNull(), useLowLatency, webRTCScalabilityMode(scalabilityMode)));
+}
+
+#endif // ENABLE(WEBCORE_SWIFT)
 
 RefPtr<VideoInfo> createVideoInfoFromHVCC(const HVCCParameterSets& parameterSets)
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -293,7 +293,7 @@ static String contentTypeFromRTPVideoMimeType(const String& mimeType)
 
         auto profile = contentType.parameter("profile"_s);
         if (!profile.isEmpty()) {
-            auto result = parseEnumFromStringView<AV1ConfigurationProfile>(profile);
+            auto result = parseAV1ProfileString(profile);
             if (!result)
                 return { };
             parameters.profile = *result;
@@ -301,7 +301,7 @@ static String contentTypeFromRTPVideoMimeType(const String& mimeType)
 
         auto levelIdx = contentType.parameter("level-idx"_s);
         if (!levelIdx.isEmpty()) {
-            auto result = parseEnumFromStringView<AV1ConfigurationLevel>(levelIdx);
+            auto result = parseAV1LevelString(levelIdx);
             if (!result)
                 return { };
             parameters.level = *result;

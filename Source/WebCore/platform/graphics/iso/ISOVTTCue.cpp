@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,65 +26,31 @@
 #include "config.h"
 #include "ISOVTTCue.h"
 
-#include "Logging.h"
 #include <wtf/CrossThreadCopier.h>
 #include <wtf/JSONValues.h>
 #include <wtf/URL.h>
+#include <wtf/text/AtomString.h>
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 namespace WebCore {
 
-class ISOStringBox final : public ISOBox {
-public:
-    NODELETE const String& contents() { return m_contents; }
-
-private:
-    bool parse(const ByteView& view, unsigned& offset) override
-    {
-        unsigned localOffset = offset;
-        if (!ISOBox::parse(view, localOffset))
-            return false;
-
-        auto characterCount = m_size - (localOffset - offset);
-        if (!characterCount) {
-            m_contents = emptyString();
-            return true;
-        }
-
-        auto bytesRemaining = view.size() - localOffset;
-        if (characterCount > bytesRemaining)
-            return false;
-
-        Vector<Latin1Character> characters(ReserveCapacityTag { }, static_cast<size_t>(characterCount));
-        while (characterCount--) {
-            int8_t character = 0;
-            if (!checkedRead<int8_t>(character, view, localOffset, BigEndian))
-                return false;
-            characters.append(character);
-        }
-
-        m_contents = String::fromUTF8(characters);
-        offset = localOffset;
-        return true;
-    }
-    String m_contents;
-};
-
-NODELETE static FourCC vttIdBoxType() { return std::span { "iden" }; }
-NODELETE static FourCC vttSettingsBoxType() { return std::span { "sttg" }; }
-NODELETE static FourCC vttPayloadBoxType() { return std::span { "payl" }; }
-NODELETE static FourCC vttCurrentTimeBoxType() { return std::span { "ctim" }; }
-NODELETE static FourCC vttCueSourceIDBoxType() { return std::span { "vsid" }; }
-
 ISOWebVTTCue::ISOWebVTTCue(const MediaTime& presentationTime, const MediaTime& duration)
-    : ISOBox(boxTypeName())
-    , m_presentationTime(presentationTime)
+    : m_presentationTime(presentationTime)
     , m_duration(duration)
 {
 }
 
+ISOWebVTTCue::ISOWebVTTCue(const MediaTime& presentationTime, const MediaTime& duration, std::span<const uint8_t> source, const ISOWebVTTCueRanges& ranges)
+    : ISOWebVTTCue(presentationTime, duration)
+{
+    setStrings(source, ranges);
+}
+
 ISOWebVTTCue::ISOWebVTTCue(const MediaTime& presentationTime, const MediaTime& duration, String&& cueID, String&& cueText, String&& settings, String&& sourceID, String&& originalStartTime)
-    : ISOBox(boxTypeName())
-    , m_presentationTime(presentationTime)
+    : m_presentationTime(presentationTime)
     , m_duration(duration)
     , m_sourceID(WTF::move(sourceID))
     , m_identifier(WTF::move(cueID))
@@ -94,37 +60,51 @@ ISOWebVTTCue::ISOWebVTTCue(const MediaTime& presentationTime, const MediaTime& d
 {
 }
 
-ISOWebVTTCue::ISOWebVTTCue()
-    : ISOBox(boxTypeName())
-{
-}
-
+ISOWebVTTCue::ISOWebVTTCue() = default;
 ISOWebVTTCue::ISOWebVTTCue(ISOWebVTTCue&&) = default;
 ISOWebVTTCue::~ISOWebVTTCue() = default;
 
-bool ISOWebVTTCue::parse(const ByteView& view, unsigned& offset)
+// An empty string box gives an empty string, and invalid UTF-8 a null one.
+static String stringFromContents(std::span<const uint8_t> source, const ISOByteRange& contents)
 {
-    if (!ISOBox::parse(view, offset))
-        return false;
-
-    ISOStringBox stringBox;
-
-    while (stringBox.read(view, offset)) {
-        if (stringBox.boxType() == vttCueSourceIDBoxType())
-            m_sourceID = stringBox.contents();
-        else if (stringBox.boxType() == vttIdBoxType())
-            m_identifier = AtomString { stringBox.contents() };
-        else if (stringBox.boxType() == vttCurrentTimeBoxType())
-            m_originalStartTime = stringBox.contents();
-        else if (stringBox.boxType() == vttSettingsBoxType())
-            m_settings = stringBox.contents();
-        else if (stringBox.boxType() == vttPayloadBoxType())
-            m_cueText = stringBox.contents();
-        else
-            LOG(Media, "ISOWebVTTCue::ISOWebVTTCue - skipping box id = \"%s\", size = %" PRIu64, stringBox.boxType().string().data(), stringBox.size());
-    }
-    return true;
+    if (!contents.size)
+        return emptyString();
+    return String::fromUTF8(source.subspan(contents.offset, contents.size));
 }
+
+void ISOWebVTTCue::setStrings(std::span<const uint8_t> source, const ISOWebVTTCueRanges& ranges)
+{
+    if (ranges.sourceID.isPresent)
+        m_sourceID = stringFromContents(source, ranges.sourceID.contents);
+    if (ranges.identifier.isPresent)
+        m_identifier = AtomString { stringFromContents(source, ranges.identifier.contents) };
+    if (ranges.originalStartTime.isPresent)
+        m_originalStartTime = stringFromContents(source, ranges.originalStartTime.contents);
+    if (ranges.settings.isPresent)
+        m_settings = stringFromContents(source, ranges.settings.contents);
+    if (ranges.cueText.isPresent)
+        m_cueText = stringFromContents(source, ranges.cueText.contents);
+}
+
+#if ENABLE(WEBCORE_SWIFT)
+
+bool ISOWebVTTCue::read(std::span<const uint8_t> view)
+{
+    ISOWebVTTCueRanges ranges;
+    bool result = readWebVTTCueImpl({ view }, ranges);
+    setStrings(view, ranges);
+    return result;
+}
+
+bool ISOWebVTTCue::parse(std::span<const uint8_t> view, unsigned& offset)
+{
+    ISOWebVTTCueRanges ranges;
+    bool result = parseWebVTTCueImpl({ view }, offset, ranges);
+    setStrings(view, ranges);
+    return result;
+}
+
+#endif // ENABLE(WEBCORE_SWIFT)
 
 String ISOWebVTTCue::toJSONString() const
 {

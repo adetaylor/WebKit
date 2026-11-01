@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,18 +31,48 @@ namespace WebCore {
 
 class ISOOriginalFormatBox final : public ISOBox {
 public:
-    NODELETE WEBCORE_EXPORT ISOOriginalFormatBox();
-    NODELETE WEBCORE_EXPORT virtual ~ISOOriginalFormatBox();
+    ISOOriginalFormatBox()
+        : ISOBox(boxTypeName())
+    {
+    }
 
     static FourCC boxTypeName() { return std::span { "frma" }; }
 
     FourCC dataFormat() const { return m_dataFormat; }
 
-    WEBCORE_EXPORT bool parse(const ByteView&, unsigned& offset) final;
-    bool pack(MutableByteView&, unsigned& offset) const final;
+    using ISOBox::parse;
+
+    bool pack(MutableByteView& view, unsigned& offset) const final
+    {
+        if (!ISOBox::pack(view, offset))
+            return false;
+
+        return checkedWrite<uint32_t>(m_dataFormat.value, view, offset, BigEndian);
+    }
 
 private:
+    friend class ISOProtectionSchemeInfoBox;
+
     uint64_t partialSize() const final { return ISOBox::partialSize() + 4; }
+
+    bool parseUsingSwift(const ByteView& view, unsigned& offset, ISOBoxParseMode mode) final
+    {
+        auto fields = this->fields();
+        bool result = parseFields(view, offset, mode, fields);
+        setFields(fields);
+        return result;
+    }
+
+    ISOOriginalFormatBoxFields fields() const { return { boxFields(), m_dataFormat.value }; }
+
+    void setFields(const ISOOriginalFormatBoxFields& fields)
+    {
+        setBoxFields(fields.box);
+        m_dataFormat = fields.dataFormat;
+    }
+
+    WEBCORE_EXPORT static bool parseFields(const ByteView&, unsigned& offset, ISOBoxParseMode, ISOOriginalFormatBoxFields&);
+
     FourCC m_dataFormat;
 };
 

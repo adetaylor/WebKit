@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,8 +34,6 @@
 OBJC_CLASS AVContentKeyRequest;
 
 namespace WebCore {
-
-struct FourCC;
 
 class CDMFactoryFairPlayStreaming final : public CDMFactory {
     WTF_MAKE_TZONE_ALLOCATED(CDMFactoryFairPlayStreaming);
@@ -87,21 +85,19 @@ public:
     std::optional<String> sanitizeSessionId(const String&) const override;
 
     static const String& sinfName();
-    static std::optional<Vector<Ref<SharedBuffer>>> extractKeyIDsSinf(const SharedBuffer&);
+    WEBCORE_EXPORT static std::optional<Vector<Ref<SharedBuffer>>> extractKeyIDsSinf(const SharedBuffer&);
     static RefPtr<SharedBuffer> sanitizeSinf(const SharedBuffer&);
 
     static const String& skdName();
-    static std::optional<Vector<Ref<SharedBuffer>>> extractKeyIDsSkd(const SharedBuffer&);
+    WEBCORE_EXPORT static std::optional<Vector<Ref<SharedBuffer>>> extractKeyIDsSkd(const SharedBuffer&);
     static RefPtr<SharedBuffer> sanitizeSkd(const SharedBuffer&);
 
 #if HAVE(FAIRPLAYSTREAMING_MTPS_INITDATA)
     static const String& mptsName();
-    static std::optional<Vector<Ref<SharedBuffer>>> extractKeyIDsMpts(const SharedBuffer&);
+    WEBCORE_EXPORT static std::optional<Vector<Ref<SharedBuffer>>> extractKeyIDsMpts(const SharedBuffer&);
     static RefPtr<SharedBuffer> sanitizeMpts(const SharedBuffer&);
     static const Vector<Ref<SharedBuffer>>& mptsKeyIDs();
 #endif
-
-    static const Vector<FourCC>& validFairPlayStreamingSchemes();
 
 #if HAVE(AVCONTENTKEYSESSION)
     static Vector<Ref<SharedBuffer>> keyIDsForRequest(AVContentKeyRequest *);

@@ -3399,6 +3399,36 @@ if (SWIFT_REQUIRED AND APPLE)
         rendering/CSSFilterRenderer.cpp
 
         svg/graphics/filters/SVGFilterRenderer.cpp
+
+        Modules/encryptedmedia/InitDataRegistry.cpp
+
+        platform/encryptedmedia/clearkey/CDMClearKey.cpp
+
+        platform/graphics/AV1Utilities.cpp
+        platform/graphics/AnnexBUtilities.cpp
+        platform/graphics/H264Utilities.cpp
+        platform/graphics/HEVCBitstreamParser.cpp
+        platform/graphics/HEVCUtilities.cpp
+        platform/graphics/VP9Utilities.cpp
+
+        platform/graphics/avfoundation/CDMFairPlayStreaming.cpp
+        platform/graphics/avfoundation/FormatDescriptionUtilities.cpp
+        platform/graphics/avfoundation/ISOFairPlayStreamingPsshBox.cpp
+        platform/graphics/avfoundation/InbandTextTrackPrivateAVF.cpp
+
+        platform/graphics/cocoa/CMUtilities.mm
+        platform/graphics/cocoa/H264UtilitiesCocoa.mm
+        platform/graphics/cocoa/HEVCUtilitiesCocoa.mm
+        platform/graphics/cocoa/VP9UtilitiesCocoa.mm
+
+        platform/graphics/iso/ISOBox.cpp
+        platform/graphics/iso/ISOOriginalFormatBox.cpp
+        platform/graphics/iso/ISOProtectionSchemeInfoBox.cpp
+        platform/graphics/iso/ISOProtectionSystemSpecificHeaderBox.cpp
+        platform/graphics/iso/ISOSchemeInformationBox.cpp
+        platform/graphics/iso/ISOSchemeTypeBox.cpp
+        platform/graphics/iso/ISOTrackEncryptionBox.cpp
+        platform/graphics/iso/ISOVTTCue.cpp
     )
     foreach (_f IN LISTS WebCore_SWIFT_INTEROP_SOURCES)
         list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_f}( |$)")
@@ -3544,6 +3574,26 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/filters/software/SourceGraphicSoftwareApplier.swift
         ${WEBCORE_DIR}/rendering/CSSFilterRenderer.swift
         ${WEBCORE_DIR}/svg/graphics/filters/SVGFilterRenderer.swift
+
+        ${WEBCORE_DIR}/Modules/encryptedmedia/InitDataRegistry.swift
+        ${WEBCORE_DIR}/platform/encryptedmedia/clearkey/CDMClearKeyParsing.swift
+        ${WEBCORE_DIR}/platform/graphics/AV1Utilities.swift
+        ${WEBCORE_DIR}/platform/graphics/H264Utilities.swift
+        ${WEBCORE_DIR}/platform/graphics/HEVCBitstreamParser.swift
+        ${WEBCORE_DIR}/platform/graphics/HEVCCodecStrings.swift
+        ${WEBCORE_DIR}/platform/graphics/VP9Utilities.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/CDMFairPlayStreamingParsing.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/FormatDescriptionCodecString.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/ISOFairPlayStreamingPssh.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/CMUtilitiesParsing.swift
+        ${WEBCORE_DIR}/platform/graphics/iso/ISOBoxes.swift
+        ${WEBCORE_DIR}/platform/graphics/iso/ISOVTTCue.swift
+        ${WEBCORE_DIR}/platform/media-parsers/AnnexB.swift
+        ${WEBCORE_DIR}/platform/media-parsers/BitReader.swift
+        ${WEBCORE_DIR}/platform/media-parsers/ByteCursor.swift
+        ${WEBCORE_DIR}/platform/media-parsers/MutableSpanCopy.swift
+        ${WEBCORE_DIR}/platform/media-parsers/WTFBase64.swift
+        ${WEBCORE_DIR}/platform/media-parsers/WTFCompatParsing.swift
     )
 
     # Matches WebCore.xcconfig. C++ and Swift both test it, so set it for the whole target.

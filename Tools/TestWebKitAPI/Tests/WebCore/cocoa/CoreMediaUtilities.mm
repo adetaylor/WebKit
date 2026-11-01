@@ -134,6 +134,80 @@ TEST(CMUtilities, GetKeyIDsWithActiveGigacage)
     }
 }
 
+TEST(CMUtilities, GetKeyIDsWithoutTenc)
+{
+    EXPECT_TRUE(WebCore::getKeyIDs(nullptr).isEmpty());
+
+    CMFormatDescriptionRef rawDesc = nullptr;
+    PAL::CMVideoFormatDescriptionCreate(kCFAllocatorDefault, kCMVideoCodecType_H264, 16, 16, nullptr, &rawDesc);
+    RetainPtr desc = adoptCF(rawDesc);
+    ASSERT_TRUE(desc);
+    EXPECT_TRUE(WebCore::getKeyIDs(desc.get()).isEmpty());
+}
+
+TEST(CMUtilities, GetKeyIDsVersion1TencWithConstantIV)
+{
+    constexpr uint8_t tenc[] = {
+        0x01, // version = 1
+        0x00, 0x00, 0x00, // flags
+        0x00, // reserved
+        0x19, // defaultCryptByteBlock = 1, defaultSkipByteBlock = 9
+        0x01, // defaultIsProtected = 1
+        0x00, // defaultPerSampleIVSize = 0
+        0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, // defaultKID (16 bytes)
+        0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff,
+        0x08, // defaultConstantIVSize = 8
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17 // defaultConstantIV
+    };
+    auto desc = makeFormatDescriptionWithTencData(tenc);
+    ASSERT_TRUE(desc);
+    auto keyIDs = WebCore::getKeyIDs(desc.get());
+    ASSERT_EQ(keyIDs.size(), 1u);
+    ASSERT_EQ(keyIDs[0]->size(), 16u);
+    auto span = keyIDs[0]->span();
+    for (size_t i = 0; i < 16; ++i)
+        EXPECT_EQ(span[i], uint8_t(0xf0 + i));
+
+    // The constant IV must be all there.
+    auto desc2 = makeFormatDescriptionWithTencData(std::span { tenc }.first(sizeof(tenc) - 1));
+    ASSERT_TRUE(desc2);
+    EXPECT_TRUE(WebCore::getKeyIDs(desc2.get()).isEmpty());
+}
+
+// A description from AVFoundation can carry any property list as its tenc. Only data is a tenc box.
+TEST(CMUtilities, GetKeyIDsIgnoresTencThatIsNotData)
+{
+    constexpr uint8_t validTenc[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08,
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+    };
+    NSData *validTencData = [NSData dataWithBytes:validTenc length:sizeof(validTenc)];
+    NSArray *values = @[ @"tenc", @42, @[ validTencData ], @{ @"tenc": validTencData } ];
+    for (NSUInteger i = 0; i < values.count; ++i) {
+        CMFormatDescriptionRef rawDesc = nullptr;
+        PAL::CMVideoFormatDescriptionCreate(kCFAllocatorDefault, kCMVideoCodecType_H264, 1920, 1080, (__bridge CFDictionaryRef)@{ @"CommonEncryptionTrackEncryptionBox": values[i] }, &rawDesc);
+        RetainPtr desc = adoptCF(rawDesc);
+        ASSERT_TRUE(desc);
+        EXPECT_TRUE(WebCore::getKeyIDs(desc.get()).isEmpty());
+    }
+}
+
+#if HAVE(FAIRPLAYSTREAMING_MTPS_INITDATA)
+TEST(CMUtilities, GetKeyIDsOfTransportStream)
+{
+    constexpr uint8_t initData[] = { '{', '}' };
+    RetainPtr data = adoptCF(CFDataCreate(kCFAllocatorDefault, initData, sizeof(initData)));
+    CMFormatDescriptionRef rawDesc = nullptr;
+    PAL::CMVideoFormatDescriptionCreate(kCFAllocatorDefault, kCMVideoCodecType_H264, 1920, 1080, (__bridge CFDictionaryRef)@{ @"TransportStreamEncryptionInitData": (__bridge NSData *)data.get() }, &rawDesc);
+    RetainPtr desc = adoptCF(rawDesc);
+    ASSERT_TRUE(desc);
+    auto keyIDs = WebCore::getKeyIDs(desc.get());
+    ASSERT_EQ(keyIDs.size(), 1u);
+    EXPECT_TRUE(equalSpans(keyIDs[0]->span(), byteCast<uint8_t>("TransportStreamIdentifier"_span)));
+}
+#endif
+
 // Verifies that when a video format description carries both encryption extensions and
 // SampleDescriptionExtensionAtoms, each atom is emitted exactly once (as CFData) rather than
 // as a CFArray of duplicate entries.
@@ -659,6 +733,81 @@ TEST(CMUtilities, ExtensionAtomsRoundTripPreservesMultipleSameFourCC)
     EXPECT_EQ(span1[2], 0x05);
 }
 
+// The FourCCs of a VideoInfo can be any value; only printable ASCII ones can be keys.
+TEST(CMUtilities, CreateFormatDescriptionSkipsAtomsWhoseFourCCIsNotPrintable)
+{
+    constexpr uint8_t avcC[] = { 0x01 };
+    constexpr uint8_t other[] = { 0x02 };
+    auto otherBuffer = [&] {
+        return WebCore::SharedBuffer::create(std::span<const uint8_t> { other });
+    };
+    auto videoInfo = makeVideoInfoWithAtoms({
+        { WebCore::FourCC(0xA9787978), otherBuffer() },
+        { WebCore::FourCC(0x61620063), otherBuffer() },
+        { WebCore::FourCC(0x01020304), otherBuffer() },
+        { WebCore::FourCC(0x6176637F), otherBuffer() },
+        { WebCore::FourCC('avcC'), WebCore::SharedBuffer::create(std::span<const uint8_t> { avcC }) },
+    });
+    auto desc = WebCore::createFormatDescriptionFromTrackInfo(videoInfo);
+    ASSERT_TRUE(desc);
+    RetainPtr atomDict = dynamic_cf_cast<CFDictionaryRef>(PAL::CMFormatDescriptionGetExtension(desc.get(), PAL::kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms));
+    ASSERT_TRUE(atomDict);
+    EXPECT_EQ(CFDictionaryGetCount(atomDict.get()), 1);
+    EXPECT_TRUE(CFDictionaryGetValue(atomDict.get(), CFSTR("avcC")));
+
+    auto withoutValidAtoms = makeVideoInfoWithAtoms({ { WebCore::FourCC(0x80808080), otherBuffer() } });
+    auto descWithoutAtoms = WebCore::createFormatDescriptionFromTrackInfo(withoutValidAtoms);
+    ASSERT_TRUE(descWithoutAtoms);
+    EXPECT_FALSE(PAL::CMFormatDescriptionGetExtension(descWithoutAtoms.get(), PAL::kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms));
+}
+
+// Only four-character keys are FourCCs; each character gives its low 8 bits.
+TEST(CMUtilities, ExtensionAtomKeysThatAreNotFourCCsAreSkipped)
+{
+    constexpr uint8_t buf[] = { 0x5A };
+    NSData *data = [NSData dataWithBytes:buf length:sizeof(buf)];
+    auto desc = makeVideoFormatDescriptionWithAtoms(@{ @"": data, @"avc": data, @"avcCC": data, @"avcC": data, @"ab\u00E9d": data });
+    ASSERT_TRUE(desc);
+
+    auto videoInfo = WebCore::createVideoInfoFromFormatDescription(desc.get());
+    ASSERT_TRUE(videoInfo);
+    auto& atoms = videoInfo->extensionAtoms();
+    ASSERT_EQ(atoms.size(), 2u);
+    auto hasAtom = [&](WebCore::FourCC fourCC) {
+        return std::ranges::any_of(atoms, [&](auto& atom) {
+            return atom.first == fourCC && atom.second->span().size() == 1;
+        });
+    };
+    EXPECT_TRUE(hasAtom(WebCore::FourCC('avcC')));
+    EXPECT_TRUE(hasAtom(WebCore::FourCC(0x6162E964)));
+}
+
+TEST(CMUtilities, FormatDescriptionOfUnrepresentableSizeIsNotCreated)
+{
+    for (float width : { std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 3e9f, -3e9f }) {
+        auto videoInfo = WebCore::VideoInfo::create({
+            { .codecName = WebCore::FourCC('avc1') }, {
+                .size = { width, 480 },
+                .displaySize = { 640, 480 },
+            }
+        });
+        EXPECT_FALSE(WebCore::createFormatDescriptionFromTrackInfo(videoInfo)) << width;
+    }
+
+    // Fractional sizes are truncated.
+    auto videoInfo = WebCore::VideoInfo::create({
+        { .codecName = WebCore::FourCC('avc1') }, {
+            .size = { 640.75, 480.5 },
+            .displaySize = { 640, 480 },
+        }
+    });
+    RetainPtr desc = WebCore::createFormatDescriptionFromTrackInfo(videoInfo);
+    ASSERT_TRUE(desc);
+    auto dimensions = PAL::CMVideoFormatDescriptionGetDimensions(desc.get());
+    EXPECT_EQ(dimensions.width, 640);
+    EXPECT_EQ(dimensions.height, 480);
+}
+
 // ---- Chroma Location ----
 
 TEST(CMUtilities, ChromaLocationRoundTrip)
@@ -862,6 +1011,68 @@ TEST(CMUtilities, SquarePixelAspectRatioEmitsNoExtension)
     EXPECT_FALSE(pixelAspectRatio);
 }
 
+// displaySize comes from IPC; spacings that don't fit in 64 bits give no ratio.
+TEST(CMUtilities, PixelAspectRatioOfUnrepresentableSpacingsIsAbsent)
+{
+    for (float displayWidth : { std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(), 1e30f, 3e16f }) {
+        auto videoInfo = WebCore::VideoInfo::create({
+            { .codecName = WebCore::FourCC('avc1') }, {
+                .size = { 720, 480 },
+                .displaySize = { displayWidth, 480 },
+            }
+        });
+        RetainPtr desc = WebCore::createFormatDescriptionFromTrackInfo(videoInfo);
+        ASSERT_TRUE(desc);
+        EXPECT_FALSE(PAL::CMFormatDescriptionGetExtension(desc.get(), kCVImageBufferPixelAspectRatioKey)) << displayWidth;
+    }
+}
+
+static OSStatus getNoParameterSets(CMFormatDescriptionRef, size_t, const uint8_t**, size_t*, size_t* parameterSetCount, int* nalUnitHeaderLength)
+{
+    if (parameterSetCount)
+        *parameterSetCount = 0;
+    if (nalUnitHeaderLength)
+        *nalUnitHeaderLength = 4;
+    return noErr;
+}
+
+static Vector<uint8_t> convertToAnnexB(std::span<const uint8_t> lengthPrefixed)
+{
+    CMFormatDescriptionRef rawDescription = nullptr;
+    PAL::CMVideoFormatDescriptionCreate(kCFAllocatorDefault, kCMVideoCodecType_H264, 16, 16, nullptr, &rawDescription);
+    RetainPtr description = adoptCF(rawDescription);
+    CMBlockBufferRef rawBlockBuffer = nullptr;
+    PAL::CMBlockBufferCreateWithMemoryBlock(kCFAllocatorDefault, nullptr, lengthPrefixed.size(), kCFAllocatorDefault, nullptr, 0, lengthPrefixed.size(), kCMBlockBufferAssureMemoryNowFlag, &rawBlockBuffer);
+    RetainPtr blockBuffer = adoptCF(rawBlockBuffer);
+    PAL::CMBlockBufferReplaceDataBytes(lengthPrefixed.data(), blockBuffer.get(), 0, lengthPrefixed.size());
+    CMSampleTimingInfo timing = { PAL::CMTimeMake(1, 30), PAL::CMTimeMake(0, 30), PAL::CMTimeMake(0, 30) };
+    size_t sampleSize = lengthPrefixed.size();
+    CMSampleBufferRef rawSampleBuffer = nullptr;
+    PAL::CMSampleBufferCreate(kCFAllocatorDefault, blockBuffer.get(), true, nullptr, nullptr, description.get(), 1, 1, &timing, 1, &sampleSize, &rawSampleBuffer);
+    RetainPtr sampleBuffer = adoptCF(rawSampleBuffer);
+    if (!sampleBuffer)
+        return { };
+    return WebCore::convertParameterSetsCMSampleBufferToAnnexB(sampleBuffer.get(), true, getNoParameterSets);
+}
+
+TEST(CMUtilities, AnnexBConversionKeepsEmptyNALUnits)
+{
+    constexpr uint8_t lengthPrefixed[] = { 0, 0, 0, 0, 0, 0, 0, 3, 'a', 'b', 'c', 0, 0, 0, 0 };
+    constexpr uint8_t annexB[] = { 0, 0, 0, 1, 0, 0, 0, 1, 'a', 'b', 'c', 0, 0, 0, 1 };
+    EXPECT_TRUE(equalSpans(convertToAnnexB(lengthPrefixed).span(), std::span { annexB }));
+}
+
+TEST(CMUtilities, AnnexBConversionRejectsIncompleteNALUnits)
+{
+    // A length that runs past the end, trailing bytes too short for a length, and a length near 2^32.
+    constexpr uint8_t tooLong[] = { 0, 0, 0, 2, 'a', 'b', 0, 0, 0, 2, 'c' };
+    EXPECT_TRUE(convertToAnnexB(tooLong).isEmpty());
+    constexpr uint8_t trailingBytes[] = { 0, 0, 0, 1, 'a', 0, 0, 0 };
+    EXPECT_TRUE(convertToAnnexB(trailingBytes).isEmpty());
+    constexpr uint8_t hugeLength[] = { 0xff, 0xff, 0xff, 0xfd, 'a' };
+    EXPECT_TRUE(convertToAnnexB(hugeLength).isEmpty());
+}
+
 static MediaTime aacFrames(int64_t frames)
 {
     return MediaTime(frames, 48000);
@@ -949,6 +1160,62 @@ TEST(CMUtilities, InvalidAudioTrimsAreRejected)
     EXPECT_FALSE(convert(MediaTime::zeroTime(), MediaTime::positiveInfiniteTime(), aacFrames(1024)));
     EXPECT_FALSE(convert(MediaTime::invalidTime(), MediaTime::zeroTime(), aacFrames(1024)));
     EXPECT_FALSE(convert(aacFrames(1024), aacFrames(64), aacFrames(-64)));
+}
+
+// The samples of a block come from IPC.
+TEST(CMUtilities, ToCMSampleBufferRejectsSampleWithoutData)
+{
+    Ref info = makeAACInfo();
+    auto items = makeAACPackets(2);
+    items[1].data = nullptr;
+    auto result = WebCore::toCMSampleBuffer(WebCore::MediaSamplesBlock { info.ptr(), WTF::move(items) });
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error(), "No sample data"_s);
+}
+
+TEST(CMUtilities, NotSyncAttachmentThatIsNotABooleanIsIgnored)
+{
+    Ref info = makeAACInfo();
+    auto sampleBuffer = WebCore::toCMSampleBuffer(WebCore::MediaSamplesBlock { info.ptr(), makeAACPackets(1) });
+    ASSERT_TRUE(sampleBuffer);
+    RetainPtr attachmentsArray = PAL::CMSampleBufferGetSampleAttachmentsArray(sampleBuffer->get(), true);
+    ASSERT_TRUE(attachmentsArray);
+    RetainPtr attachments = checked_cf_cast<CFMutableDictionaryRef>(CFArrayGetValueAtIndex(attachmentsArray.get(), 0));
+
+    CFDictionarySetValue(attachments.get(), PAL::kCMSampleAttachmentKey_NotSync, kCFBooleanTrue);
+    EXPECT_FALSE(WebCore::isCMSampleBufferRandomAccess(sampleBuffer->get()));
+    CFDictionarySetValue(attachments.get(), PAL::kCMSampleAttachmentKey_NotSync, CFSTR("true"));
+    EXPECT_TRUE(WebCore::isCMSampleBufferRandomAccess(sampleBuffer->get()));
+    CFDictionarySetValue(attachments.get(), PAL::kCMSampleAttachmentKey_NotSync, kCFBooleanFalse);
+    EXPECT_TRUE(WebCore::isCMSampleBufferRandomAccess(sampleBuffer->get()));
+}
+
+static RefPtr<WebCore::AudioInfo> audioInfoWithSampleRate(Float64 sampleRate)
+{
+    AudioStreamBasicDescription description { };
+    description.mSampleRate = sampleRate;
+    description.mFormatID = kAudioFormatMPEG4AAC;
+    description.mFramesPerPacket = 1024;
+    description.mChannelsPerFrame = 2;
+    CMAudioFormatDescriptionRef rawDescription = nullptr;
+    PAL::CMAudioFormatDescriptionCreate(kCFAllocatorDefault, &description, 0, nullptr, 0, nullptr, nullptr, &rawDescription);
+    RetainPtr formatDescription = adoptCF(rawDescription);
+    if (!formatDescription)
+        return nullptr;
+    return WebCore::createAudioInfoFromFormatDescription(formatDescription.get());
+}
+
+// A sample rate that doesn't fit in uint32_t gives 0.
+TEST(CMUtilities, AudioInfoSampleRateIsTruncated)
+{
+    RefPtr audioInfo = audioInfoWithSampleRate(44100.75);
+    ASSERT_TRUE(audioInfo);
+    EXPECT_EQ(audioInfo->rate(), 44100u);
+    for (Float64 sampleRate : { std::numeric_limits<Float64>::quiet_NaN(), std::numeric_limits<Float64>::infinity(), 1e20, -5.0 }) {
+        // CoreMedia may refuse some of these itself.
+        if (RefPtr audioInfo = audioInfoWithSampleRate(sampleRate))
+            EXPECT_EQ(audioInfo->rate(), 0u) << sampleRate;
+    }
 }
 
 } // namespace TestWebKitAPI

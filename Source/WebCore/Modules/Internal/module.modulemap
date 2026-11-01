@@ -686,4 +686,94 @@ module WebCore_Internal [system] {
         header "../../platform/graphics/filters/parameters/SourceGraphicParameters.h"
         export *
     }
+
+    explicit module MediaParsersCxxBridging {
+        requires cplusplus20
+        header "../../platform/MediaParsersCxxBridging.h"
+        export *
+    }
+
+    explicit module PlatformVideoColorPrimaries {
+        requires cplusplus20
+        header "../../platform/graphics/PlatformVideoColorPrimaries.h"
+        export *
+    }
+
+    explicit module PlatformVideoMatrixCoefficients {
+        requires cplusplus20
+        header "../../platform/graphics/PlatformVideoMatrixCoefficients.h"
+        export *
+    }
+
+    explicit module PlatformVideoTransferCharacteristics {
+        requires cplusplus20
+        header "../../platform/graphics/PlatformVideoTransferCharacteristics.h"
+        export *
+    }
+
+    explicit module VideoCodecParameterTypes {
+        requires cplusplus20
+        header "../../platform/graphics/VideoCodecParameterTypes.h"
+        export *
+    }
+
+    explicit module AV1CodecConfigurationRecord {
+        requires cplusplus20
+        header "../../platform/graphics/AV1CodecConfigurationRecord.h"
+        export *
+    }
+
+    explicit module VPCodecConfigurationRecord {
+        requires cplusplus20
+        header "../../platform/graphics/VPCodecConfigurationRecord.h"
+        export *
+    }
+
+    explicit module AnnexBUtilities {
+        requires cplusplus20
+        header "../../platform/graphics/AnnexBUtilities.h"
+        export *
+    }
+
+    explicit module ISOParseResults {
+        requires cplusplus20
+        header "../../platform/graphics/iso/ISOParseResults.h"
+        export *
+    }
+
+    explicit module CDMEncryptionScheme {
+        requires cplusplus20
+        header "../../platform/encryptedmedia/CDMEncryptionScheme.h"
+        export *
+    }
+
+    explicit module CDMKeyStatus {
+        requires cplusplus20
+        header "../../platform/encryptedmedia/CDMKeyStatus.h"
+        export *
+    }
+
+    explicit module CDMRequirement {
+        requires cplusplus20
+        header "../../platform/encryptedmedia/CDMRequirement.h"
+        export *
+    }
+
+    explicit module CDMSessionType {
+        requires cplusplus20
+        header "../../platform/encryptedmedia/CDMSessionType.h"
+        export *
+    }
+
+    explicit module EMEParseResults {
+        requires cplusplus20
+        header "../../platform/encryptedmedia/EMEParseResults.h"
+        export *
+    }
+
+    explicit module CMParsingTypes {
+        requires cplusplus20
+        header "../../platform/graphics/cocoa/CMParsingTypes.h"
+        export *
+    }
 }

@@ -272,6 +272,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
 
     Modules/encryptedmedia/CDM.h
     Modules/encryptedmedia/CDMClient.h
+    Modules/encryptedmedia/InitDataRegistry.h
     Modules/encryptedmedia/MediaKeySystemClient.h
     Modules/encryptedmedia/MediaKeySystemController.h
     Modules/encryptedmedia/MediaKeySystemRequest.h
@@ -3863,6 +3864,17 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     ${WebCore_DERIVED_SOURCES_DIR}/XLinkNames.h
     ${WebCore_DERIVED_SOURCES_DIR}/XMLNSNames.h
     ${WebCore_DERIVED_SOURCES_DIR}/XMLNames.h
+
+    platform/MediaParsersCxxBridging.h
+
+    platform/encryptedmedia/EMEParseResults.h
+
+    platform/graphics/AV1CodecConfigurationRecord.h
+    platform/graphics/HEVCBitstreamParser.h
+    platform/graphics/VPCodecConfigurationRecord.h
+    platform/graphics/VideoCodecParameterTypes.h
+
+    platform/graphics/iso/ISOParseResults.h
 )
 
 # FIXME: Eventually add all non-installed headers to this list, so that the
