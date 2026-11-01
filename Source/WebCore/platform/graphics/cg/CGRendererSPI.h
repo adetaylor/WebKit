@@ -98,6 +98,14 @@ CF_IMPLICIT_BRIDGING_DISABLED
 #endif
 #endif
 
+extern "C" void CGContextDrawPathDirect(CGContextRef, CGPathDrawingMode, CGPathRef, const CGRect* boundingBox);
+
+// CGContextDrawPathDirect() without a bounding box, which Swift would pass as a pointer.
+inline void CGRendererDrawPath(CGContextRef context, CGPathDrawingMode mode, CGPathRef path)
+{
+    CGContextDrawPathDirect(context, mode, path, nullptr);
+}
+
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
 CF_IMPLICIT_BRIDGING_ENABLED
 

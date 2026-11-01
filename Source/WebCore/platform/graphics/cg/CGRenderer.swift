@@ -61,6 +61,19 @@ private func cxxMin(_ a: Float, _ b: Float) -> Float {
     b < a ? b : a
 }
 
+// C++'s float to int conversion where it's undefined, as the processor does it: arm64 saturates and gives 0 for NaN, x86
+// gives INT_MIN.
+private func cxxIntConversion(_ value: Float) -> Int32 {
+    if value.isNaN || value >= 2_147_483_648 || value < -2_147_483_648 {
+        #if arch(arm64)
+        return value.isNaN ? 0 : (value < 0 ? .min : .max)
+        #else
+        return .min
+        #endif
+    }
+    return Int32(value)
+}
+
 private func cgColor(packed: UInt32) -> CGColor {
     CGColor(
         srgbRed: CGFloat(Float(UInt8(truncatingIfNeeded: packed >> 24)) / 255),
@@ -184,6 +197,16 @@ private struct CGRendererBrush {
     // 0 for packedColor, otherwise 1 + the index of a color that isn't sRGBA8 in CGRenderer.platformColors.
     var platformColorSlot: UInt32 = 0
     var hasPatternOrGradient = false
+    var isColorVisible = true
+
+    // SourceBrush::isVisible().
+    var isVisible: Bool { hasPatternOrGradient || isColorVisible }
+}
+
+private enum CGRendererStrokeStyle {
+    static let noStroke: UInt8 = 0
+    static let dottedStroke: UInt8 = 2
+    static let dashedStroke: UInt8 = 3
 }
 
 // A GraphicsDropShadow. Its color is as a brush's.
@@ -305,6 +328,10 @@ struct CGRenderer {
     private var platformColors: [CGColor] = []
     private var colorCache = CGRendererColorCache()
     private var clipOutRects = [CGRect.zero, CGRect.zero]
+    // Reused, so that only a context's first use of them allocates.
+    private var rectScratch: [CGRect] = []
+    private var dashLengths: [CGFloat] = []
+    private var lineSegment: [CGPoint] = []
 
     // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
     // uses it (rdar://179098545).
@@ -368,16 +395,16 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setFillPackedColor(_ packed: UInt32, _ hasPatternOrGradient: Bool) {
-        state.fill = CGRendererBrush(packedColor: packed, hasPatternOrGradient: hasPatternOrGradient)
+        state.fill = CGRendererBrush(packedColor: packed, hasPatternOrGradient: hasPatternOrGradient, isColorVisible: packed & 0xFF != 0)
         if !hasPatternOrGradient {
             context.setFillColor(colorCache.color(packed))
         }
     }
 
     @_expose(Cxx)
-    mutating func setFillPlatformColor(_ color: borrowing CGColor, _ hasPatternOrGradient: Bool) {
+    mutating func setFillPlatformColor(_ color: borrowing CGColor, _ hasPatternOrGradient: Bool, _ isColorVisible: Bool) {
         let slot = platformColorSlot(copy color)
-        state.fill = CGRendererBrush(platformColorSlot: slot, hasPatternOrGradient: hasPatternOrGradient)
+        state.fill = CGRendererBrush(platformColorSlot: slot, hasPatternOrGradient: hasPatternOrGradient, isColorVisible: isColorVisible)
         if !hasPatternOrGradient {
             context.setFillColor(color)
         }
@@ -385,16 +412,16 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setStrokePackedColor(_ packed: UInt32, _ hasPatternOrGradient: Bool) {
-        state.stroke = CGRendererBrush(packedColor: packed, hasPatternOrGradient: hasPatternOrGradient)
+        state.stroke = CGRendererBrush(packedColor: packed, hasPatternOrGradient: hasPatternOrGradient, isColorVisible: packed & 0xFF != 0)
         if !hasPatternOrGradient {
             context.setStrokeColor(colorCache.color(packed))
         }
     }
 
     @_expose(Cxx)
-    mutating func setStrokePlatformColor(_ color: borrowing CGColor, _ hasPatternOrGradient: Bool) {
+    mutating func setStrokePlatformColor(_ color: borrowing CGColor, _ hasPatternOrGradient: Bool, _ isColorVisible: Bool) {
         let slot = platformColorSlot(copy color)
-        state.stroke = CGRendererBrush(platformColorSlot: slot, hasPatternOrGradient: hasPatternOrGradient)
+        state.stroke = CGRendererBrush(platformColorSlot: slot, hasPatternOrGradient: hasPatternOrGradient, isColorVisible: isColorVisible)
         if !hasPatternOrGradient {
             context.setStrokeColor(color)
         }
@@ -715,17 +742,17 @@ struct CGRenderer {
         return true
     }
 
+    // The caller compares the colors: C++ Color equality includes flags this state doesn't have.
     @_expose(Cxx)
-    mutating func fillRect(_ rect: CGRect, packedColor: UInt32) -> Bool {
+    mutating func fillRect(_ rect: CGRect, packedColor: UInt32, _ changesFillColor: Bool) -> Bool {
         if canUseShadowBlur {
             return false
         }
-        let colorChanges = state.fill.platformColorSlot != 0 || state.fill.packedColor != packedColor
-        if colorChanges {
+        if changesFillColor {
             context.setFillColor(colorCache.color(packedColor))
         }
         context.fill(rect)
-        if colorChanges {
+        if changesFillColor {
             context.setFillColor(platformColor(state.fill))
         }
         return true
@@ -743,6 +770,249 @@ struct CGRenderer {
         context.strokePath()
         context.setLineWidth(CGFloat(cxxMax(state.strokeThickness, 0)))
         return true
+    }
+
+    // A filled rect with a border of four filled rects in the stroke color.
+    @_expose(Cxx)
+    mutating func drawRect(_ rect: CGRect, _ borderThickness: Float, _ changesFillColor: Bool) {
+        context.fill(rect)
+        if state.strokeStyle == CGRendererStrokeStyle.noStroke {
+            return
+        }
+        if changesFillColor {
+            context.setFillColor(platformColor(state.stroke))
+        }
+        let x = Float(rect.origin.x)
+        let y = Float(rect.origin.y)
+        let width = Float(rect.size.width)
+        let height = Float(rect.size.height)
+        let sideHeight = height - 2 * borderThickness
+        rectScratch.removeAll(keepingCapacity: true)
+        rectScratch.append(CGRendererRect(x: x, y: y, width: width, height: borderThickness).cgRect)
+        rectScratch.append(CGRendererRect(x: x, y: y + height - borderThickness, width: width, height: borderThickness).cgRect)
+        rectScratch.append(CGRendererRect(x: x, y: y + borderThickness, width: borderThickness, height: sideHeight).cgRect)
+        rectScratch.append(
+            CGRendererRect(x: x + width - borderThickness, y: y + borderThickness, width: borderThickness, height: sideHeight).cgRect
+        )
+        context.fill(rectScratch)
+        if changesFillColor {
+            context.setFillColor(platformColor(state.fill))
+        }
+    }
+
+    // A border line, from point 1 to point 2 one stroke thickness to its right (vertical) or straight across. Returns whether
+    // it touched the context.
+    @_expose(Cxx)
+    mutating func drawLine(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float) -> Bool {
+        if state.strokeStyle == CGRendererStrokeStyle.noStroke {
+            return false
+        }
+        let thickness = state.strokeThickness
+        let isVerticalLine = x1 + thickness == x2
+        var strokeWidth = isVerticalLine ? y2 - y1 : x2 - x1
+        if thickness == 0 || strokeWidth == 0 {
+            return false
+        }
+
+        let drawsDashedLine =
+            state.strokeStyle == CGRendererStrokeStyle.dottedStroke || state.strokeStyle == CGRendererStrokeStyle.dashedStroke
+        var cornerWidth: Float = 0
+        if drawsDashedLine {
+            context.saveGState()
+            // The end points are filled, so corners are always painted.
+            cornerWidth = dashedLineCornerWidth(strokeWidth)
+            context.setFillColor(platformColor(state.stroke))
+            if isVerticalLine {
+                context.fill(CGRendererRect(x: x1, y: y1, width: thickness, height: cornerWidth).cgRect)
+                context.fill(CGRendererRect(x: x1, y: y2 - cornerWidth, width: thickness, height: cornerWidth).cgRect)
+            } else {
+                context.fill(CGRendererRect(x: x1, y: y1, width: cornerWidth, height: thickness).cgRect)
+                context.fill(CGRendererRect(x: x2 - cornerWidth, y: y1, width: cornerWidth, height: thickness).cgRect)
+            }
+            strokeWidth -= 2 * cornerWidth
+            let patternWidth = dashedLinePatternWidth(strokeWidth)
+            // The corners cover the line.
+            if strokeWidth <= patternWidth + 1 {
+                context.restoreGState()
+                return true
+            }
+            let patternOffset = dashedLinePatternOffset(patternWidth, strokeWidth)
+            dashLengths.removeAll(keepingCapacity: true)
+            dashLengths.append(CGFloat(patternWidth))
+            dashLengths.append(CGFloat(patternWidth))
+            context.setLineDash(phase: CGFloat(patternOffset), lengths: dashLengths)
+        }
+
+        // GraphicsContext::centerLineAndCutOffCorners().
+        var start = (x: x1, y: y1)
+        var end = (x: x2, y: y2)
+        if isVerticalLine {
+            let centerOffset = (x2 - x1) / 2
+            start = (x: x1 + centerOffset, y: y1 + cornerWidth)
+            end = (x: x2 - centerOffset, y: y2 - cornerWidth)
+        } else {
+            let centerOffset = (y2 - y1) / 2
+            start = (x: x1 + cornerWidth, y: y1 + centerOffset)
+            end = (x: x2 - cornerWidth, y: y2 - centerOffset)
+        }
+
+        if state.shouldAntialias {
+            #if WTF_PLATFORM_IOS_FAMILY
+            // Line patterns don't look good without antialiasing (rdar://5459772).
+            context.setShouldAntialias(drawsDashedLine)
+            #else
+            context.setShouldAntialias(false)
+            #endif
+        }
+        context.beginPath()
+        context.move(to: CGPoint(x: CGFloat(start.x), y: CGFloat(start.y)))
+        context.addLine(to: CGPoint(x: CGFloat(end.x), y: CGFloat(end.y)))
+        context.strokePath()
+        if state.shouldAntialias {
+            context.setShouldAntialias(true)
+        }
+        if drawsDashedLine {
+            context.restoreGState()
+        }
+        return true
+    }
+
+    // GraphicsContext::dashedLineCornerWidthForStrokeWidth().
+    private func dashedLineCornerWidth(_ strokeWidth: Float) -> Float {
+        let thickness = state.strokeThickness
+        return state.strokeStyle == CGRendererStrokeStyle.dottedStroke
+            ? thickness : cxxMin(2 * thickness, cxxMax(thickness, strokeWidth / 3))
+    }
+
+    // GraphicsContext::dashedLinePatternWidthForStrokeWidth().
+    private func dashedLinePatternWidth(_ strokeWidth: Float) -> Float {
+        let thickness = state.strokeThickness
+        return state.strokeStyle == CGRendererStrokeStyle.dottedStroke
+            ? thickness : cxxMin(3 * thickness, cxxMax(thickness, strokeWidth / 3))
+    }
+
+    // GraphicsContext::dashedLinePatternOffsetForPatternAndStrokeWidth(): the pattern starts with its empty phase after the
+    // corner, and an even number of segments or a remainder moves it so that it's balanced between the corners.
+    private func dashedLinePatternOffset(_ patternWidth: Float, _ strokeWidth: Float) -> Float {
+        var patternOffset = patternWidth
+        let numberOfSegments = cxxIntConversion((strokeWidth / patternWidth).rounded(.down))
+        let oddNumberOfSegments = numberOfSegments % 2 != 0
+        let remainder = strokeWidth - Float(numberOfSegments) * patternWidth
+        if oddNumberOfSegments && remainder != 0 {
+            patternOffset -= remainder / 2
+        } else if !oddNumberOfSegments {
+            if remainder != 0 {
+                patternOffset += patternOffset - (patternWidth + remainder) / 2
+            } else {
+                patternOffset += patternWidth / 2
+            }
+        }
+        return patternOffset
+    }
+
+    @_expose(Cxx)
+    func fillEllipse(_ rect: CGRect) -> Bool {
+        if state.fill.hasPatternOrGradient {
+            return false
+        }
+        context.fillEllipse(in: rect)
+        return true
+    }
+
+    @_expose(Cxx)
+    func strokeEllipse(_ rect: CGRect) -> Bool {
+        if state.stroke.hasPatternOrGradient {
+            return false
+        }
+        context.strokeEllipse(in: rect)
+        return true
+    }
+
+    // The rects of drawLinesForText(), in the color GraphicsContext computed for them.
+    @_expose(Cxx)
+    mutating func fillRectsInPackedColor(_ rects: CGRendererRects, _ packedColor: UInt32, _ changesFillColor: Bool) {
+        if changesFillColor {
+            context.setFillColor(colorCache.color(packedColor))
+        }
+        fillRects(rects)
+        if changesFillColor {
+            context.setFillColor(platformColor(state.fill))
+        }
+    }
+
+    @_expose(Cxx)
+    mutating func fillRectsInPlatformColor(_ rects: CGRendererRects, _ color: borrowing CGColor, _ changesFillColor: Bool) {
+        if changesFillColor {
+            context.setFillColor(color)
+        }
+        fillRects(rects)
+        if changesFillColor {
+            context.setFillColor(platformColor(state.fill))
+        }
+    }
+
+    private mutating func fillRects(_ rects: CGRendererRects) {
+        rectScratch.removeAll(keepingCapacity: true)
+        for index in 0..<rects.size() {
+            rectScratch.append(rects.at(index))
+        }
+        context.fill(rectScratch)
+    }
+
+    // MARK: Paths
+
+    // A path is converted to a CGPath only to be drawn, so the caller asks first whether this renderer draws it. Functions,
+    // not properties: a Release build (-O -wmo) drops the getters of properties only C++ uses.
+    @_expose(Cxx)
+    func fillsWithColor() -> Bool {
+        !state.fill.hasPatternOrGradient
+    }
+
+    @_expose(Cxx)
+    func strokesWithColor() -> Bool {
+        !state.stroke.hasPatternOrGradient
+    }
+
+    @_expose(Cxx)
+    func fillPath(_ path: borrowing CGPath) {
+        assert(fillsWithColor())
+        CGRendererDrawPath(context, state.fillRule == 1 ? .eoFill : .fill, copy path)
+    }
+
+    @_expose(Cxx)
+    func strokePath(_ path: borrowing CGPath) {
+        assert(strokesWithColor())
+        CGRendererDrawPath(context, .stroke, copy path)
+    }
+
+    // A single-line path or a PathDataLine.
+    @_expose(Cxx)
+    mutating func strokeLineSegment(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float) {
+        assert(strokesWithColor())
+        lineSegment.removeAll(keepingCapacity: true)
+        lineSegment.append(CGPoint(x: CGFloat(x1), y: CGFloat(y1)))
+        lineSegment.append(CGPoint(x: CGFloat(x2), y: CGFloat(y2)))
+        context.strokeLineSegments(between: lineSegment)
+    }
+
+    // Whether drawPath() draws anything, when both brushes are colors.
+    @_expose(Cxx)
+    func drawsPath() -> Bool {
+        state.fill.isVisible || state.stroke.isVisible || state.strokeStyle != CGRendererStrokeStyle.noStroke
+    }
+
+    @_expose(Cxx)
+    func drawPath(_ path: borrowing CGPath) {
+        assert(fillsWithColor() && strokesWithColor() && drawsPath())
+        let evenOdd = state.fillRule == 1
+        let mode: CGPathDrawingMode
+        if state.fill.isVisible {
+            let shouldStroke = state.stroke.isVisible || state.strokeStyle != CGRendererStrokeStyle.noStroke
+            mode = shouldStroke ? (evenOdd ? .eoFillStroke : .fillStroke) : (evenOdd ? .eoFill : .fill)
+        } else {
+            mode = .stroke
+        }
+        CGRendererDrawPath(context, mode, copy path)
     }
 
     // GraphicsContextCG::drawNativeImage() for an image drawn without a sub-image, with no orientation and no dynamic

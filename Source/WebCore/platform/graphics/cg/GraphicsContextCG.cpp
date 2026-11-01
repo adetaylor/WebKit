@@ -811,6 +811,13 @@ void GraphicsContextCG::drawRect(const FloatRect& rect, float borderThickness)
 
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        swiftRenderer().drawRect(rect, borderThickness, fillColor() != strokeColor());
+        return;
+    }
+#endif
+
     CGContextFillRect(context, rect);
 
     if (strokeStyle() != StrokeStyle::NoStroke) {
@@ -834,6 +841,13 @@ void GraphicsContextCG::drawRect(const FloatRect& rect, float borderThickness)
 void GraphicsContextCG::drawLine(const FloatPoint& point1, const FloatPoint& point2)
 {
     CAPTURE(drawLine(point1, point2));
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        if (swiftRenderer().drawLine(point1.x(), point1.y(), point2.x(), point2.y()))
+            m_hasDrawn = true;
+        return;
+    }
+#endif
     if (strokeStyle() == StrokeStyle::NoStroke)
         return;
 
@@ -976,6 +990,17 @@ void GraphicsContextCG::drawPath(const Path& path)
 
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        auto& renderer = swiftRenderer();
+        if (renderer.fillsWithColor() && renderer.strokesWithColor()) {
+            if (renderer.drawsPath())
+                renderer.drawPath(protect(path.platformPath()).get());
+            return;
+        }
+    }
+#endif
+
     if (fillGradient() || strokeGradient()) {
         // We don't have any optimized way to fill & stroke a path using gradients
         // FIXME: Be smarter about this.
@@ -1001,6 +1026,13 @@ void GraphicsContextCG::fillPath(const Path& path)
         return;
 
     const RetainPtr<CGContextRef>& context = contextForDraw();
+
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer && swiftRenderer().fillsWithColor()) {
+        swiftRenderer().fillPath(protect(path.platformPath()).get());
+        return;
+    }
+#endif
 
     if (RefPtr fillGradient = this->fillGradient()) {
         paintGradientInClip(*fillGradient, fillGradientSpaceTransform(), [&] {
@@ -1035,6 +1067,16 @@ void GraphicsContextCG::strokePath(const Path& path)
         return;
 
     const RetainPtr<CGContextRef>& context = contextForDraw();
+
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer && swiftRenderer().strokesWithColor()) {
+        if (auto line = path.singleDataLine())
+            swiftRenderer().strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y());
+        else
+            swiftRenderer().strokePath(protect(path.platformPath()).get());
+        return;
+    }
+#endif
 
     if (RefPtr strokeGradient = this->strokeGradient()) {
         paintGradientInClip(*strokeGradient, strokeGradientSpaceTransform(), [&] {
@@ -1111,7 +1153,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
-        if (auto packedColor = color.tryGetAsPackedInline(); packedColor && swiftRenderer().fillRect(rect, packedColor->value))
+        if (auto packedColor = color.tryGetAsPackedInline(); packedColor && swiftRenderer().fillRect(rect, packedColor->value, fillColor() != color))
             return;
     }
 #endif
@@ -1578,7 +1620,7 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
             if (auto packedColor = brush.color().tryGetAsPackedInline())
                 renderer.setFillPackedColor(packedColor->value, brush.hasPatternOrGradient());
             else
-                renderer.setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), brush.hasPatternOrGradient());
+                renderer.setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), brush.hasPatternOrGradient(), brush.color().isVisible());
             break;
         }
 
@@ -1591,7 +1633,7 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
             if (auto packedColor = brush.color().tryGetAsPackedInline())
                 renderer.setStrokePackedColor(packedColor->value, brush.hasPatternOrGradient());
             else
-                renderer.setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), brush.hasPatternOrGradient());
+                renderer.setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), brush.hasPatternOrGradient(), brush.color().isVisible());
             break;
         }
 
@@ -1830,6 +1872,13 @@ void GraphicsContextCG::strokeArc(const PathArc& arc)
 void GraphicsContextCG::strokeLine(const PathDataLine& line)
 {
     CAPTURE(strokeLine(line));
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer && swiftRenderer().strokesWithColor()) {
+        m_hasDrawn = true;
+        swiftRenderer().strokeLineSegment(line.start().x(), line.start().y(), line.end().x(), line.end().y());
+        return;
+    }
+#endif
     // Gradient stroking requires building a stroked path and clipping to it,
     // which CGContextStrokeLineSegments cannot do. Defer to strokePath() via
     // the base class for that case. Patterns can be inlined as long as we set
@@ -1997,6 +2046,17 @@ void GraphicsContextCG::drawLinesForText(const FloatPoint& origin, float thickne
     if (rects.isEmpty())
         return;
     bool changeFillColor = fillColor() != color;
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        m_hasDrawn = true;
+        CGRendererRects rectsView { rects.span() };
+        if (auto packedColor = color.tryGetAsPackedInline())
+            swiftRenderer().fillRectsInPackedColor(rectsView, packedColor->value, changeFillColor);
+        else
+            swiftRenderer().fillRectsInPlatformColor(rectsView, cachedCGColorInDestinationStandardRange(color, colorSpace()).get(), changeFillColor);
+        return;
+    }
+#endif
     if (changeFillColor)
         setCGFillColor(contextForDraw(), color, colorSpace());
     CGContextFillRects(contextForDraw(), rects.span().data(), rects.size());
@@ -2055,6 +2115,12 @@ void GraphicsContextCG::applyDeviceScaleFactor(float deviceScaleFactor)
 void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 {
     CAPTURE(fillEllipse(ellipse));
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer && swiftRenderer().fillEllipse(ellipse)) {
+        m_hasDrawn = true;
+        return;
+    }
+#endif
     // CGContextFillEllipseInRect only supports solid colors.
     if (fillGradient() || fillPattern()) {
         fillEllipseAsPath(ellipse);
@@ -2068,6 +2134,12 @@ void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 void GraphicsContextCG::strokeEllipse(const FloatRect& ellipse)
 {
     CAPTURE(strokeEllipse(ellipse));
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer && swiftRenderer().strokeEllipse(ellipse)) {
+        m_hasDrawn = true;
+        return;
+    }
+#endif
     // CGContextStrokeEllipseInRect only supports solid colors.
     if (strokeGradient() || strokePattern()) {
         strokeEllipseAsPath(ellipse);

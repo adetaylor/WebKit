@@ -27,7 +27,10 @@
 
 // The values GraphicsContextCG passes to CGRenderer.swift.
 
+#include <CoreGraphics/CoreGraphics.h>
+#include <span>
 #include <stdint.h>
+#include <wtf/SwiftBridging.h>
 
 // A GraphicsDropShadow, with its color passed separately when it isn't sRGBA8.
 struct CGRendererShadowValues {
@@ -45,3 +48,18 @@ struct CGRendererColorMatrix {
     float values[20];
 };
 #endif
+
+// Rects lent to CGRenderer.swift for one call.
+class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererRects {
+public:
+    explicit CGRendererRects(std::span<const CGRect> rects LIFETIME_BOUND)
+        : m_rects(rects)
+    {
+    }
+
+    size_t size() const { return m_rects.size(); }
+    CGRect at(size_t index) const { return m_rects[index]; }
+
+private:
+    std::span<const CGRect> m_rects;
+};
