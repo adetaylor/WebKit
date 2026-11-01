@@ -1261,6 +1261,103 @@ struct CGRenderer {
         return 1
     }
 
+    // GraphicsContextCG::drawPattern(): the image's tile, repeated across the destination by the pattern transform (only its
+    // scale is used) from the phase, with spacing between tiles. The caller checked that the transform is invertible.
+    @_expose(Cxx)
+    mutating func drawPattern(
+        _ image: borrowing CGImage,
+        _ imageWidth: Float,
+        _ imageHeight: Float,
+        _ destinationX: Float,
+        _ destinationY: Float,
+        _ destinationWidth: Float,
+        _ destinationHeight: Float,
+        _ tileX: Float,
+        _ tileY: Float,
+        _ tileWidth: Float,
+        _ tileHeight: Float,
+        _ patternA: Double,
+        _ patternD: Double,
+        _ phaseX: Float,
+        _ phaseY: Float,
+        _ spacingWidth: Float,
+        _ spacingHeight: Float,
+        _ compositeOperator: WebCore.CompositeOperator,
+        _ blendMode: WebCore.BlendMode,
+        _ optionsInterpolationQuality: WebCore.InterpolationQuality
+    ) {
+        context.saveGState()
+        defer {
+            context.restoreGState()
+        }
+        context.clip(to: CGRendererRect(x: destinationX, y: destinationY, width: destinationWidth, height: destinationHeight).cgRect)
+        context.setBlendMode(cgBlendMode(compositeOperator, blendMode))
+        let interpolationQuality = optionsInterpolationQuality == .Default ? state.imageInterpolationQuality : optionsInterpolationQuality
+        if interpolationQuality != state.imageInterpolationQuality {
+            context.interpolationQuality = cgInterpolationQuality(interpolationQuality)
+        }
+
+        context.translateBy(x: CGFloat(destinationX), y: CGFloat(destinationY + destinationHeight))
+        context.scaleBy(x: 1, y: -1)
+
+        // In these coordinates the destination's bottom left corner is the origin.
+        let a = Float(patternA)
+        let d = Float(patternD)
+        let scaledTileHeight = tileHeight * d
+        let adjustedX = phaseX - destinationX + tileX * a
+        let adjustedY = destinationHeight - (phaseY - destinationY + tileY * d + scaledTileHeight)
+
+        let width = Float(image.width)
+        let height = Float(image.height)
+        // Sub-images are only used for border-image, which draws fully decoded images. A tile outside the image is null.
+        let tile: CGImage?
+        if tileWidth == imageWidth && tileHeight == imageHeight {
+            tile = copy image
+        } else {
+            tile = image.cropping(to: CGRendererRect(x: tileX, y: tileY, width: tileWidth, height: tileHeight).cgRect)
+        }
+
+        let scaledTileWidth = tileWidth * a
+        if width == imageWidth && height == imageHeight && spacingWidth == 0 && spacingHeight == 0 {
+            // CG seems to snap the tiles to integral sizes (FIXME in GraphicsContextCG).
+            CGRendererDrawTiledImage(
+                context,
+                CGRendererRect(x: adjustedX, y: adjustedY, width: scaledTileWidth, height: scaledTileHeight).cgRect,
+                tile
+            )
+            return
+        }
+
+        // A partially decoded image or spacing between tiles: a CGPattern, which fills the clip even without a tile. The top of a
+        // partially decoded image is drawn at the bottom of the tile, so it moves up.
+        let matrix = CGAffineTransform(
+            a: CGFloat(patternA),
+            b: 0,
+            c: 0,
+            d: CGFloat(patternD),
+            tx: CGFloat(adjustedX),
+            ty: CGFloat(adjustedY)
+        )
+        .concatenating(context.ctm)
+        .translatedBy(x: 0, y: CGFloat(imageHeight - height))
+        let xStep = tileWidth + spacingWidth * (1 / a)
+        let yStep = tileHeight + spacingHeight * (1 / d)
+        let tileBounds = CGRect(x: 0, y: 0, width: CGFloat(tileWidth), height: CGFloat(tileHeight))
+        guard let pattern = CGRendererCreateImagePattern(tile, tileBounds, matrix, CGFloat(xStep), CGFloat(yStep)),
+            let patternSpace = CGColorSpace(patternBaseSpace: nil)
+        else {
+            return
+        }
+        let color = CGRendererCreatePatternColor(patternSpace, pattern)
+        context.setFillColorSpace(patternSpace)
+        CGContextSetBaseCTM(context, .identity)
+        context.setPatternPhase(.zero)
+        if let color {
+            context.setFillColor(color)
+        }
+        context.fill(context.boundingBoxOfClipPath)
+    }
+
     // The sub-image for a rect in the oriented image's coordinates.
     private func subimage(
         _ image: CGImage,

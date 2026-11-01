@@ -84,6 +84,7 @@ typedef struct CGColorMatrixStyle CGColorMatrixStyle;
 
 CF_IMPLICIT_BRIDGING_ENABLED
 void CGContextSetCTM(CGContextRef, CGAffineTransform);
+void CGContextSetBaseCTM(CGContextRef, CGAffineTransform);
 CGAffineTransform CGContextGetBaseCTM(CGContextRef);
 void CGContextSetStyle(CGContextRef, CGStyleRef);
 CGStyleRef CGStyleCreateShadow2(CGSize offset, CGFloat radius, CGColorRef);
@@ -99,6 +100,24 @@ CF_IMPLICIT_BRIDGING_DISABLED
 #endif
 
 extern "C" void CGContextDrawPathDirect(CGContextRef, CGPathDrawingMode, CGPathRef, const CGRect* boundingBox);
+
+CF_IMPLICIT_BRIDGING_ENABLED
+
+// An opaque color of a pattern, whose components Swift would pass as a pointer.
+inline CGColorRef CGRendererCreatePatternColor(CGColorSpaceRef patternSpace, CGPatternRef pattern)
+{
+    CGFloat alpha = 1;
+    return CGColorCreateWithPattern(patternSpace, pattern, &alpha);
+}
+
+CF_IMPLICIT_BRIDGING_DISABLED
+
+// CGContextDrawTiledImage(), which Swift's overlay doesn't let draw a null image; the C++ does when the tile is outside the
+// image, and that changes how CG draws next.
+inline void CGRendererDrawTiledImage(CGContextRef context, CGRect rect, CGImageRef _Nullable image)
+{
+    CGContextDrawTiledImage(context, rect, image);
+}
 
 // CGContextDrawPathDirect() without a bounding box, which Swift would pass as a pointer.
 inline void CGRendererDrawPath(CGContextRef context, CGPathDrawingMode mode, CGPathRef path)

@@ -81,6 +81,7 @@ enum class GraphicsContextCGCaptureOp : uint16_t {
     DrawNativeImage,
     DrawLinesForText,
     DrawDotsForDocumentMarker,
+    DrawPattern,
 };
 
 constexpr uint32_t graphicsContextCGCaptureVersion = 1;
@@ -149,6 +150,7 @@ public:
     void setMiterLimit(float);
     void setLineDash(const DashArray&, float dashOffset);
     void drawNativeImage(const NativeImage&, const FloatRect& destination, const FloatRect& source, ImageDrawingOptions);
+    void drawPattern(const NativeImage&, const FloatRect& destination, const FloatRect& tile, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, ImageDrawingOptions);
     void drawLinesForText(const FloatPoint&, float thickness, std::span<const FloatSegment>, bool isPrinting, bool doubleLines, StrokeStyle);
     void drawDotsForDocumentMarker(const FloatRect&, DocumentMarkerLineStyle);
     void unsupported(ASCIILiteral);

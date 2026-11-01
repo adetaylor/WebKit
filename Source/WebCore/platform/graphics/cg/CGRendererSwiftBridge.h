@@ -52,6 +52,10 @@ struct CGRendererColorMatrix {
 // A sub-image of an image, from WebCore's cache of them unless the image is transient (CGImageCreateWithImageInRect()).
 CGImageRef _Nullable CGRendererCopySubimage(CGImageRef _Nonnull, CGRect) CF_RETURNS_RETAINED;
 
+// drawPattern()'s pattern of an image: CGPatternCreateWithImageTransformStep() where CoreGraphics has it, otherwise
+// CGPatternCreate() with callbacks that draw the image, aligned to device pixels.
+CGPatternRef _Nullable CGRendererCreateImagePattern(CGImageRef _Nullable, CGRect tileBounds, CGAffineTransform, CGFloat xStep, CGFloat yStep) CF_RETURNS_RETAINED;
+
 // Rects lent to CGRenderer.swift for one call.
 class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererRects {
 public:

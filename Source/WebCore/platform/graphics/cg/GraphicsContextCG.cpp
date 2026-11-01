@@ -719,9 +719,27 @@ static void drawPatternReleaseCallback(void* info)
     SUPPRESS_RETAINPTR_CTOR_ADOPT callOnMainThread([image = adoptCF(static_cast<CGImageRef>(info))] { });
 }
 
+#if ENABLE(WEBCORE_SWIFT)
+} // namespace WebCore
+
+CGPatternRef CGRendererCreateImagePattern(CGImageRef image, CGRect tileBounds, CGAffineTransform matrix, CGFloat xStep, CGFloat yStep)
+{
+#if HAVE(CGPATTERN_CREATE_WITH_IMAGE_TRANSFORM_STEP)
+    if (PAL::canLoad_CoreGraphics_CGPatternCreateWithImageTransformStep())
+        return PAL::softLink_CoreGraphics_CGPatternCreateWithImageTransformStep(image, matrix, xStep, yStep, kCGPatternTilingConstantSpacing);
+#endif
+    static const CGPatternCallbacks patternCallbacks = { 0, WebCore::drawPatternCallback, WebCore::drawPatternReleaseCallback };
+    // The pattern takes this reference to the image, which drawPatternReleaseCallback() releases.
+    // FIXME: If CGPatternCreate() returns NULL, drawPatternReleaseCallback() never runs and the image reference leaks.
+    return CGPatternCreate(RetainPtr { image }.leakRef(), tileBounds, matrix, xStep, yStep, kCGPatternTilingConstantSpacing, true, &patternCallbacks);
+}
+
+namespace WebCore {
+#endif
+
 void GraphicsContextCG::drawPattern(const NativeImage& nativeImage, const FloatRect& destRect, const FloatRect& tileRect, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, RasterDrawingOptions options)
 {
-    CAPTURE(unsupported("drawPattern"_s));
+    CAPTURE(drawPattern(nativeImage, destRect, tileRect, patternTransform, phase, spacing, options));
     if (!patternTransform.isInvertible())
         return;
 
@@ -741,6 +759,14 @@ void GraphicsContextCG::drawPattern(const NativeImage& nativeImage, const FloatR
 
     auto image = nativeImage.platformImage();
     auto imageSize = nativeImage.size();
+
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer && image) {
+        m_hasDrawn = true;
+        swiftRenderer().drawPattern(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), tileRect.x(), tileRect.y(), tileRect.width(), tileRect.height(), patternTransform.a(), patternTransform.d(), phase.x(), phase.y(), spacing.width(), spacing.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality());
+        return;
+    }
+#endif
 
     const RetainPtr<CGContextRef>& context = contextForDraw();
     CGContextStateSaver stateSaver(context);

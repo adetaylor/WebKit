@@ -747,6 +747,32 @@ void GraphicsContextCGCapture::drawNativeImage(const NativeImage& nativeImage, c
     end();
 }
 
+void GraphicsContextCGCapture::drawPattern(const NativeImage& nativeImage, const FloatRect& destination, const FloatRect& tile, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, ImageDrawingOptions options)
+{
+    RetainPtr image = nativeImage.platformImage();
+    if (!image)
+        return;
+    auto identifier = imageIdentifier(image.get());
+    if (!identifier) {
+        stop("image"_s);
+        return;
+    }
+    ++m_draws;
+    begin(Op::DrawPattern);
+    writeValue(*identifier);
+    writeRect(destination);
+    writeRect(tile);
+    writeTransform(patternTransform);
+    writeValue(phase.x());
+    writeValue(phase.y());
+    writeValue(spacing.width());
+    writeValue(spacing.height());
+    writeValue(static_cast<uint8_t>(options.compositeOperator()));
+    writeValue(static_cast<uint8_t>(options.blendMode()));
+    writeValue(static_cast<uint8_t>(options.interpolationQuality()));
+    end();
+}
+
 void GraphicsContextCGCapture::drawLinesForText(const FloatPoint& origin, float thickness, std::span<const FloatSegment> segments, bool isPrinting, bool doubleLines, StrokeStyle strokeStyle)
 {
     ++m_draws;
