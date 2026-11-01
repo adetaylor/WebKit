@@ -42,6 +42,7 @@
 // relevant headers must be included here.
 #include "AffineTransform.h"
 #include "CARingBufferSwiftBridge.h"
+#include "CGRendererSwiftBridge.h"
 #include "CSSFilterRendererView.h"
 #include "FEBlendParameters.h"
 #include "FEColorMatrixParameters.h"

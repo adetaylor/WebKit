@@ -543,6 +543,12 @@ module WebCore_Internal [system] {
         export *
     }
 
+    explicit module CGRendererSwiftBridge {
+        requires cplusplus20
+        header "../../platform/graphics/cg/CGRendererSwiftBridge.h"
+        export *
+    }
+
     explicit module CGRendererSPI {
         requires cplusplus20
         header "../../platform/graphics/cg/CGRendererSPI.h"

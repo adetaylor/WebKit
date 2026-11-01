@@ -1530,6 +1530,27 @@ void GraphicsContextCG::setCGStyle(const std::optional<GraphicsStyle>& style, bo
 }
 
 #if ENABLE(WEBCORE_SWIFT)
+void GraphicsContextCG::setSwiftRendererShadow(CGRenderer& renderer, const GraphicsDropShadow& shadow, bool isStyle)
+{
+    auto packedColor = shadow.color.tryGetAsPackedInline();
+    CGRendererShadowValues values {
+        shadow.offset.width(), shadow.offset.height(), shadow.radius, shadow.opacity,
+        packedColor ? packedColor->value : 0, shadow.color.isValid(), shadow.color.isVisible()
+    };
+    if (packedColor || !values.isValid) {
+        if (isStyle)
+            renderer.setDropShadowStyle(values);
+        else
+            renderer.setDropShadow(values);
+        return;
+    }
+    RetainPtr color = cachedCGColorInDestinationStandardRange(shadow.color, colorSpace());
+    if (isStyle)
+        renderer.setDropShadowStyle(values, color.get());
+    else
+        renderer.setDropShadow(values, color.get());
+}
+
 void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& state)
 {
     auto changes = state.changes();
@@ -1545,6 +1566,10 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
 
     m_hasDrawn = true;
     auto& renderer = swiftRenderer();
+
+    // The shadow and style below are converted with the new value, as C++'s state already has it.
+    if (changes.contains(GraphicsContextState::Change::ShadowsIgnoreTransforms))
+        renderer.setShadowsIgnoreTransforms(state.shadowsIgnoreTransforms());
 
     for (auto change : changes) {
         switch (change) {
@@ -1583,13 +1608,38 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
             break;
 
         case GraphicsContextState::Change::DropShadow:
-            setCGDropShadow(state.dropShadow(), state.shadowsIgnoreTransforms());
-            renderer.setDropShadow(state.dropShadow() && state.dropShadow()->isBlurred());
+            if (auto& shadow = state.dropShadow())
+                setSwiftRendererShadow(renderer, *shadow, false);
+            else
+                renderer.clearDropShadow();
             break;
 
         case GraphicsContextState::Change::Style:
-            setCGStyle(state.style(), state.shadowsIgnoreTransforms());
-            renderer.setHasStyle(!!state.style());
+            if (auto& style = state.style()) {
+                WTF::switchOn(*style,
+                    [&](const GraphicsDropShadow& shadow) {
+                        setSwiftRendererShadow(renderer, shadow, true);
+                    },
+                    [&](const GraphicsGaussianBlur& gaussianBlur) {
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+                        ASSERT(gaussianBlur.radius.width() == gaussianBlur.radius.height());
+                        renderer.setGaussianBlurStyle(gaussianBlur.radius.width());
+#else
+                        UNUSED_PARAM(gaussianBlur);
+#endif
+                    },
+                    [&](const GraphicsColorMatrix& colorMatrix) {
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+                        CGRendererColorMatrix values;
+                        for (auto [destination, source] : zippedRange(values.values, colorMatrix.values))
+                            destination = source;
+                        renderer.setColorMatrixStyle(values);
+#else
+                        UNUSED_PARAM(colorMatrix);
+#endif
+                    });
+            } else
+                renderer.setNoStyle();
             break;
 
         case GraphicsContextState::Change::Alpha:
@@ -1617,7 +1667,6 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
             break;
 
         case GraphicsContextState::Change::ShadowsIgnoreTransforms:
-            renderer.setShadowsIgnoreTransforms(state.shadowsIgnoreTransforms());
             break;
         }
     }

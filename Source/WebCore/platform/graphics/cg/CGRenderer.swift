@@ -49,6 +49,7 @@
 
 import CoreGraphics
 import WebCore_Internal.CGRendererSPI
+import WebCore_Internal.CGRendererSwiftBridge
 import WebCore_Internal.GraphicsTypes
 
 // std::max's choice: the first argument unless it is less than the second, so -0 and NaN stay.
@@ -185,6 +186,30 @@ private struct CGRendererBrush {
     var hasPatternOrGradient = false
 }
 
+// A GraphicsDropShadow. Its color is as a brush's.
+private struct CGRendererShadow {
+    var width: Float
+    var height: Float
+    var radius: Float
+    var opacity: Float
+    var packedColor: UInt32
+    var platformColorSlot: UInt32
+    var isValid: Bool
+    var isVisible: Bool
+
+    var isBlurred: Bool { isVisible && radius != 0 }
+
+    // FloatSize::isZero().
+    var hasZeroOffset: Bool { abs(width) < Float.ulpOfOne && abs(height) < Float.ulpOfOne }
+}
+
+private enum CGRendererStyle {
+    case none
+    case dropShadow(CGRendererShadow)
+    case gaussianBlur(radius: Float)
+    case colorMatrix
+}
+
 private struct CGRendererState {
     var fill = CGRendererBrush()
     var stroke = CGRendererBrush()
@@ -193,8 +218,8 @@ private struct CGRendererState {
     var strokeStyle: UInt8 = 1
     var compositeOperator = WebCore.CompositeOperator.SourceOver
     var blendMode = WebCore.BlendMode.Normal
-    var hasBlurredDropShadow = false
-    var hasStyle = false
+    var dropShadow: CGRendererShadow? = nil
+    var style = CGRendererStyle.none
     var alpha: Float = 1
     var textDrawingMode: UInt8 = 1
     var imageInterpolationQuality: WebCore.InterpolationQuality
@@ -210,8 +235,8 @@ private struct CGRendererState {
     // GraphicsContextState::repurpose(TransparencyLayer): CGContextBeginTransparencyLayer() resets these in CG.
     mutating func resetForTransparencyLayer() {
         alpha = 1
-        hasStyle = false
-        hasBlurredDropShadow = false
+        style = .none
+        dropShadow = nil
         compositeOperator = .SourceOver
         blendMode = .Normal
     }
@@ -288,7 +313,12 @@ struct CGRenderer {
 
     // The context is borrowed.
     @_expose(Cxx)
-    init(_ context: borrowing CGContext, _ isUnaccelerated: Bool, _ isPDFContext: Bool, _ imageInterpolationQuality: WebCore.InterpolationQuality) {
+    init(
+        _ context: borrowing CGContext,
+        _ isUnaccelerated: Bool,
+        _ isPDFContext: Bool,
+        _ imageInterpolationQuality: WebCore.InterpolationQuality
+    ) {
         self.context = copy context
         self.isUnaccelerated = isUnaccelerated
         self.isPDFContext = isPDFContext
@@ -297,25 +327,36 @@ struct CGRenderer {
     }
 
     private var canUseShadowBlur: Bool {
-        isUnaccelerated && state.hasBlurredDropShadow && !state.shadowsIgnoreTransforms
+        isUnaccelerated && (state.dropShadow?.isBlurred ?? false) && !state.shadowsIgnoreTransforms
+    }
+
+    private mutating func platformColor(packed: UInt32, slot: UInt32) -> CGColor {
+        slot == 0 ? colorCache.color(packed) : platformColors[Int(slot) - 1]
     }
 
     private mutating func platformColor(_ brush: CGRendererBrush) -> CGColor {
-        brush.platformColorSlot == 0 ? colorCache.color(brush.packedColor) : platformColors[Int(brush.platformColorSlot) - 1]
+        platformColor(packed: brush.packedColor, slot: brush.platformColorSlot)
     }
 
-    // When nothing is saved, only the current brushes refer to platformColors, so the others can go.
+    // When nothing is saved, only the current state refers to platformColors, so the others can go.
     private mutating func platformColorSlot(_ color: CGColor) -> UInt32 {
         if depth == 0 && !platformColors.isEmpty {
             var kept: [CGColor] = []
-            for slot in [state.fill.platformColorSlot, state.stroke.platformColorSlot] where slot != 0 {
-                kept.append(platformColors[Int(slot) - 1])
+            func keep(_ slot: inout UInt32) {
+                if slot != 0 {
+                    kept.append(platformColors[Int(slot) - 1])
+                    slot = UInt32(kept.count)
+                }
             }
-            if state.fill.platformColorSlot != 0 {
-                state.fill.platformColorSlot = 1
+            keep(&state.fill.platformColorSlot)
+            keep(&state.stroke.platformColorSlot)
+            if var shadow = state.dropShadow {
+                keep(&shadow.platformColorSlot)
+                state.dropShadow = shadow
             }
-            if state.stroke.platformColorSlot != 0 {
-                state.stroke.platformColorSlot = UInt32(kept.count)
+            if case .dropShadow(var shadow) = state.style {
+                keep(&shadow.platformColorSlot)
+                state.style = .dropShadow(shadow)
             }
             platformColors = kept
         }
@@ -382,15 +423,116 @@ struct CGRenderer {
         context.setBlendMode(cgBlendMode(compositeOperator, blendMode))
     }
 
-    // The CG shadow and style are still set by GraphicsContextCG; the renderer only needs to know about them.
     @_expose(Cxx)
-    mutating func setDropShadow(_ isBlurred: Bool) {
-        state.hasBlurredDropShadow = isBlurred
+    mutating func clearDropShadow() {
+        state.dropShadow = nil
+        CGContextSetStyle(context, nil)
     }
 
     @_expose(Cxx)
-    mutating func setHasStyle(_ hasStyle: Bool) {
-        state.hasStyle = hasStyle
+    mutating func setDropShadow(_ values: CGRendererShadowValues) {
+        let shadow = makeShadow(values, platformColorSlot: 0)
+        state.dropShadow = shadow
+        applyShadow(shadow)
+    }
+
+    @_expose(Cxx)
+    mutating func setDropShadow(_ values: CGRendererShadowValues, _ color: borrowing CGColor) {
+        let shadow = makeShadow(values, platformColorSlot: platformColorSlot(copy color))
+        state.dropShadow = shadow
+        applyShadow(shadow)
+    }
+
+    @_expose(Cxx)
+    mutating func setNoStyle() {
+        state.style = .none
+        CGContextSetStyle(context, nil)
+    }
+
+    @_expose(Cxx)
+    mutating func setDropShadowStyle(_ values: CGRendererShadowValues) {
+        let shadow = makeShadow(values, platformColorSlot: 0)
+        state.style = .dropShadow(shadow)
+        applyShadow(shadow)
+    }
+
+    @_expose(Cxx)
+    mutating func setDropShadowStyle(_ values: CGRendererShadowValues, _ color: borrowing CGColor) {
+        let shadow = makeShadow(values, platformColorSlot: platformColorSlot(copy color))
+        state.style = .dropShadow(shadow)
+        applyShadow(shadow)
+    }
+
+    #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+    @_expose(Cxx)
+    mutating func setGaussianBlurStyle(_ radius: Float) {
+        state.style = .gaussianBlur(radius: radius)
+        let blurRadius = scaledBlurRadius(CGFloat(radius), userToBaseCTM)
+        CGContextSetStyle(context, CGRendererCreateGaussianBlurStyle(blurRadius))
+    }
+
+    @_expose(Cxx)
+    mutating func setColorMatrixStyle(_ matrix: CGRendererColorMatrix) {
+        state.style = .colorMatrix
+        CGContextSetStyle(context, CGRendererCreateColorMatrixStyle(matrix))
+    }
+    #endif
+
+    private func makeShadow(_ values: CGRendererShadowValues, platformColorSlot: UInt32) -> CGRendererShadow {
+        CGRendererShadow(
+            width: values.width,
+            height: values.height,
+            radius: values.radius,
+            opacity: values.opacity,
+            packedColor: values.packedColor,
+            platformColorSlot: platformColorSlot,
+            isValid: values.isValid,
+            isVisible: values.isVisible
+        )
+    }
+
+    private var userToBaseCTM: CGAffineTransform {
+        context.ctm.concatenating(CGContextGetBaseCTM(context).inverted())
+    }
+
+    // Extreme blur values can make text drawing crash or take very long, so they are clamped.
+    private func scaledBlurRadius(_ blurRadius: CGFloat, _ userToBaseCTM: CGAffineTransform) -> CGFloat {
+        var radius = blurRadius
+        if !state.shadowsIgnoreTransforms {
+            radius *= smallestSingularValue(userToBaseCTM)
+        }
+        return 1000 < radius ? 1000 : radius
+    }
+
+    private func smallestSingularValue(_ t: CGAffineTransform) -> CGFloat {
+        let a = t.a * t.a + t.b * t.b
+        let b = t.a * t.c + t.b * t.d
+        let d = t.c * t.c + t.d * t.d
+        let discriminant = -(4 * b * b + (a - d) * (a - d)).squareRoot()
+        return (0.5 * ((a + d) + discriminant)).squareRoot()
+    }
+
+    // GraphicsContextCG::setCGDropShadow(), with the CTM at the time the shadow is set.
+    private mutating func applyShadow(_ shadow: CGRendererShadow) {
+        if !shadow.isValid || (shadow.hasZeroOffset && shadow.radius == 0) {
+            CGContextSetStyle(context, nil)
+            return
+        }
+        let userToBaseCTM = self.userToBaseCTM
+        let width = CGFloat(shadow.width)
+        let height = CGFloat(shadow.height)
+        var offset = CGSize(width: width, height: height)
+        if !state.shadowsIgnoreTransforms {
+            // Not CGSize.applying(_:): the importer compiles CG's inline version with FMA contraction.
+            offset = CGSize(
+                width: userToBaseCTM.a * width + userToBaseCTM.c * height,
+                height: userToBaseCTM.b * width + userToBaseCTM.d * height
+            )
+        }
+        let blurRadius = scaledBlurRadius(CGFloat(shadow.radius), userToBaseCTM)
+        context.setAlpha(CGFloat(shadow.opacity))
+        let color = platformColor(packed: shadow.packedColor, slot: shadow.platformColorSlot)
+        CGContextSetStyle(context, CGStyleCreateShadow2(offset, blurRadius, color))
     }
 
     @_expose(Cxx)
@@ -627,7 +769,8 @@ struct CGRenderer {
     ) -> UInt8 {
         let imageRect = CGRendererRect(x: 0, y: 0, width: imageWidth, height: imageHeight)
         let normalizedSourceRect = CGRendererRect(x: sourceX, y: sourceY, width: sourceWidth, height: sourceHeight).normalized
-        let normalizedDestinationRect = CGRendererRect(x: destinationX, y: destinationY, width: destinationWidth, height: destinationHeight).normalized
+        let normalizedDestinationRect = CGRendererRect(x: destinationX, y: destinationY, width: destinationWidth, height: destinationHeight)
+            .normalized
         if !imageRect.intersects(normalizedSourceRect) {
             return 2
         }
