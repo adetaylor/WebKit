@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2023-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,6 +87,24 @@ TEST_F(SequenceLockedTest, Works)
         maxValue = t.a;
     }
     done = true;
+}
+
+TEST_F(SequenceLockedTest, LoadWithRetryLimit)
+{
+    SequenceLocked<Tester> tester;
+    tester.store({ 1, 2, 3, 4 });
+    auto t = tester.loadWithRetryLimit(1);
+    EXPECT_EQ(t.a, 1u);
+    EXPECT_EQ(t.b, 2u);
+    EXPECT_EQ(t.c, 3u);
+    EXPECT_EQ(t.d, 4u);
+
+    // A writer that never finishes leaves the version odd. load() would wait for it forever.
+    auto& version = *reinterpret_cast<std::atomic<uint64_t>*>(&tester);
+    version.store(version.load() + 1);
+    t = tester.loadWithRetryLimit(64);
+    EXPECT_EQ(t.a, 1u);
+    EXPECT_EQ(t.d, 4u);
 }
 
 TEST_F(SequenceLockedTest, DISABLED_WithoutSequenceLockedFails)

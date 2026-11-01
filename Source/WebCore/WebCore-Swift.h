@@ -41,6 +41,7 @@
 // If Swift function parameters or return types depend on C++ types, the
 // relevant headers must be included here.
 #include "AffineTransform.h"
+#include "CARingBufferSwiftBridge.h"
 #include "CSSFilterRendererView.h"
 #include "FEBlendParameters.h"
 #include "FEColorMatrixParameters.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,6 +29,7 @@
 
 #include <JavaScriptCore/ArrayBuffer.h>
 #include <WebCore/AudioStreamDescription.h>
+#include <WebCore/CARingBufferSwiftBridge.h>
 #include <optional>
 #include <wtf/CheckedArithmetic.h>
 #include <wtf/Lock.h>
@@ -52,12 +53,7 @@ public:
         Ok,
         TooMuch, // fetch start time is earlier than buffer start time and fetch end time is later than buffer end time
     };
-    struct TimeBounds {
-        uint64_t startFrame { 0 };
-        uint64_t endFrame { 0 };
-        uint64_t writeAhead { 0 };
-        bool operator<=>(const TimeBounds&) const = default;
-    };
+    using TimeBounds = CARingBufferBounds;
     NODELETE WEBCORE_EXPORT TimeBounds getStoreTimeBounds();
     WEBCORE_EXPORT Error store(const AudioBufferList*, size_t frameCount, uint64_t startFrame, uint64_t writeAhead = 0);
 

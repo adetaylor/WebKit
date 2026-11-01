@@ -1238,6 +1238,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/audio/cocoa/AudioUtilitiesCocoa.h
     platform/audio/cocoa/CAAudioStreamDescription.h
     platform/audio/cocoa/CARingBuffer.h
+    platform/audio/cocoa/CARingBufferSwiftBridge.h
     platform/audio/cocoa/MediaSessionManagerCocoa.h
     platform/audio/cocoa/SpatialAudioExperienceHelper.h
     platform/audio/cocoa/SpatialAudioPlaybackHelper.h

@@ -1,5 +1,6 @@
 //
 // Copyright 2020 The Abseil Authors.
+// Copyright (C) 2026 Apple Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 
 #include <array>
 #include <atomic>
+#include <bit>
 #include <type_traits>
 #include <wtf/Compiler.h>
 #include <wtf/StdLibExtras.h>
@@ -69,13 +71,29 @@ public:
         return result;
     }
 
+    // Like load(), but gives up after maxAttempts and then returns the last copy, which a write in
+    // progress may have torn. For readers that must not wait for a writer they don't trust.
+    T loadWithRetryLimit(unsigned maxAttempts) const
+    {
+        T result { };
+        for (unsigned attempt = 0; attempt < maxAttempts; ++attempt) {
+            uint64_t versionBefore = m_version.load(std::memory_order_acquire);
+            relaxedCopyFromAtomic(asMutableByteSpan(result), std::span { m_storage });
+            std::atomic_thread_fence(std::memory_order_acquire);
+            uint64_t versionAfter = m_version.load(std::memory_order_relaxed);
+            if (!(versionBefore & 1) && versionBefore == versionAfter) [[likely]]
+                break;
+        }
+        return result;
+    }
+
     // Copy value to store as a write-side critical section
     // of the sequence lock. Any concurrent readers will be forced to retry
     // until they get a read that does not conflict with this write.
     //
     // This call must be externally synchronized against other calls to write,
     // but may proceed concurrently with reads.
-    void store(const T& value)
+    ALWAYS_INLINE void store(const T& value)
     {
         // We can use relaxed instructions to increment the counter since we
         // are extenally synchronized. The std::atomic_thread_fence below
@@ -90,7 +108,13 @@ public:
         // this barrier is not for the fetch_add above. A release barrier for the
         // fetch_add would be before it, not after.
         std::atomic_thread_fence(std::memory_order_release);
-        relaxedCopyToAtomic(std::span { m_storage }, asByteSpan(value));
+        if constexpr (sizeof(T) == storageSize * sizeof(uint64_t)) {
+            // Without the byte span helpers, so that this inlines into Swift callers too.
+            auto words = std::bit_cast<std::array<uint64_t, storageSize>>(value);
+            for (size_t i = 0; i < storageSize; ++i)
+                m_storage[i].store(words[i], std::memory_order_relaxed);
+        } else
+            relaxedCopyToAtomic(std::span { m_storage }, asByteSpan(value));
         // "Release" semantics ensure that none of the writes done by
         // relaxedCopyToAtomic() can be reordered after the following modification.
         m_version.store(version + 2, std::memory_order_release);
