@@ -187,10 +187,9 @@ set(WebCore_PRIVATE_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/gamepad"
     "${WEBCORE_DIR}/platform/graphics"
     "${WEBCORE_DIR}/platform/graphics/cpu/arm"
-    "${WEBCORE_DIR}/platform/graphics/cpu/arm/filters"
     "${WEBCORE_DIR}/platform/graphics/displaylists"
     "${WEBCORE_DIR}/platform/graphics/filters"
-    "${WEBCORE_DIR}/platform/graphics/filters/software"
+    "${WEBCORE_DIR}/platform/graphics/filters/parameters"
     "${WEBCORE_DIR}/platform/graphics/controls"
     "${WEBCORE_DIR}/platform/graphics/iso"
     "${WEBCORE_DIR}/platform/graphics/opentype"
@@ -3373,10 +3372,39 @@ if (SWIFT_REQUIRED AND APPLE)
     # out of the unified sources.
     set(WebCore_SWIFT_INTEROP_SOURCES
         platform/graphics/PixelBufferConversion.cpp
+        platform/cocoa/SharedVideoFrameInfo.mm
+
+        platform/graphics/ImageBufferBackend.cpp
+        platform/graphics/ShadowBlur.cpp
+        platform/graphics/ShareableBitmap.cpp
+
+        platform/graphics/cg/ShareableBitmapCG.mm
+
+        platform/graphics/coreimage/FilterCoreImageSwiftBridge.mm
+
+        platform/graphics/filters/FEColorMatrix.cpp
+        platform/graphics/filters/FEConvolveMatrix.cpp
+        platform/graphics/filters/FEDisplacementMap.cpp
+        platform/graphics/filters/FEDropShadow.cpp
+        platform/graphics/filters/FEGaussianBlur.cpp
+        platform/graphics/filters/FEOffset.cpp
+        platform/graphics/filters/Filter.cpp
+        platform/graphics/filters/FilterEffect.cpp
+        platform/graphics/filters/FilterGraphicsBridge.cpp
+        platform/graphics/filters/FilterResults.cpp
+
+        platform/graphics/filters/parameters/FEImageBridge.cpp
+        platform/graphics/filters/parameters/SourceGraphicBridge.cpp
+
+        rendering/CSSFilterRenderer.cpp
+
+        svg/graphics/filters/SVGFilterRenderer.cpp
     )
     foreach (_f IN LISTS WebCore_SWIFT_INTEROP_SOURCES)
         list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_f}( |$)")
     endforeach ()
+    # Some of them are also in a platform's WebCore_SOURCES, as members of the unified sources.
+    list(REMOVE_ITEM WebCore_SOURCES ${WebCore_SWIFT_INTEROP_SOURCES})
 endif ()
 
 WEBKIT_COMPUTE_SOURCES(WebCore)
@@ -3453,6 +3481,69 @@ endif ()
 if (APPLE)
     target_sources(WebCore PRIVATE
         ${WEBCORE_DIR}/platform/graphics/PixelBufferConversion.swift
+        ${WEBCORE_DIR}/platform/graphics/Arm64Truncating.swift
+        ${WEBCORE_DIR}/platform/graphics/CheckedMath.swift
+        ${WEBCORE_DIR}/platform/graphics/PixelConversion.swift
+        ${WEBCORE_DIR}/platform/graphics/PixelConversionSIMD.swift
+        ${WEBCORE_DIR}/platform/graphics/PixelConversionScalar.swift
+        ${WEBCORE_DIR}/platform/graphics/PixelTransfer.swift
+        ${WEBCORE_DIR}/platform/graphics/ShadowBlurDrawing.swift
+        ${WEBCORE_DIR}/platform/graphics/ShadowBlurGeometry.swift
+        ${WEBCORE_DIR}/platform/graphics/ShadowBlurKernel.swift
+        ${WEBCORE_DIR}/platform/graphics/ShareableBitmapLayout.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+BoxConvolve.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+ColorMatrix.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+Conversion.swift
+        ${WEBCORE_DIR}/platform/cocoa/SharedVideoFrameLayout.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEBlendCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEColorMatrixCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEComponentTransferCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FECompositeCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEConvolveMatrixCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEDisplacementMapCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEDropShadowCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEFloodCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEGaussianBlurCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEImageCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FELightingCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEMergeCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEMorphologyCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEOffsetCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FETileCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FETurbulenceCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/SourceAlphaCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/SourceGraphicCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FilterImageCoreImage.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterApply.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterEngine.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterGeometryMath.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterImageImpl.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterMath.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/LightingModel.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/ParallelRows.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEBlendSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEColorMatrixSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEComponentTransferSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FECompositeSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FECompositeSoftwareArithmeticApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEConvolveMatrixSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEDisplacementMapSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEDropShadowSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEFloodSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEGaussianBlurSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEImageSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FELightingSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FELightingSoftwareParallelApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEMergeSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEMorphologySoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEOffsetSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FETileSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FETurbulenceSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/SourceAlphaSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/SourceGraphicSoftwareApplier.swift
+        ${WEBCORE_DIR}/rendering/CSSFilterRenderer.swift
+        ${WEBCORE_DIR}/svg/graphics/filters/SVGFilterRenderer.swift
     )
 
     # Matches WebCore.xcconfig. C++ and Swift both test it, so set it for the whole target.

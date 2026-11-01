@@ -2,7 +2,7 @@
  * Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -22,41 +22,10 @@
 
 #pragma once
 
+#include <WebCore/FEComponentTransferParameters.h>
 #include <WebCore/FilterEffect.h>
 #include <wtf/EnumeratedArray.h>
 #include <wtf/Vector.h>
-
-namespace WebCore {
-
-enum class ComponentTransferType : uint8_t {
-    FECOMPONENTTRANSFER_TYPE_UNKNOWN  = 0,
-    FECOMPONENTTRANSFER_TYPE_IDENTITY = 1,
-    FECOMPONENTTRANSFER_TYPE_TABLE    = 2,
-    FECOMPONENTTRANSFER_TYPE_DISCRETE = 3,
-    FECOMPONENTTRANSFER_TYPE_LINEAR   = 4,
-    FECOMPONENTTRANSFER_TYPE_GAMMA    = 5
-};
-
-struct ComponentTransferFunction {
-    ComponentTransferType type { ComponentTransferType::FECOMPONENTTRANSFER_TYPE_UNKNOWN };
-
-    // For linear
-    float slope { 1 };
-    float intercept { 0 };
-
-    // For gamma
-    float amplitude { 1 };
-    float exponent { 1 };
-    float offset { 0 };
-
-    Vector<float> tableValues;
-
-    bool operator==(const ComponentTransferFunction&) const = default;
-};
-
-enum class ComponentTransferChannel : uint8_t { Red, Green, Blue, Alpha };
-
-} // namespace WebCore
 
 namespace WebCore {
 
@@ -69,15 +38,12 @@ public:
     WEBCORE_EXPORT static Ref<FEComponentTransfer> create(const ComponentTransferFunction& redFunc, const ComponentTransferFunction& greenFunc, const ComponentTransferFunction& blueFunc, const ComponentTransferFunction& alphaFunc, ColorSpace = ColorSpace::SRGB());
     NODELETE static Ref<FEComponentTransfer> create(ComponentTransferFunctions&&);
 
-    using LookupTable = std::array<uint8_t, 256>;
-    static LookupTable computeLookupTable(const ComponentTransferFunction&);
-
     bool operator==(const FEComponentTransfer&) const;
 
-    ComponentTransferFunction redFunction() const { return m_functions[ComponentTransferChannel::Red]; }
-    ComponentTransferFunction greenFunction() const { return m_functions[ComponentTransferChannel::Green]; }
-    ComponentTransferFunction blueFunction() const { return m_functions[ComponentTransferChannel::Blue]; }
-    ComponentTransferFunction alphaFunction() const { return m_functions[ComponentTransferChannel::Alpha]; }
+    ComponentTransferFunction redFunction() const { return m_parameters.red; }
+    ComponentTransferFunction greenFunction() const { return m_parameters.green; }
+    ComponentTransferFunction blueFunction() const { return m_parameters.blue; }
+    ComponentTransferFunction alphaFunction() const { return m_parameters.alpha; }
 
     NODELETE bool setType(ComponentTransferChannel, ComponentTransferType);
     NODELETE bool setSlope(ComponentTransferChannel, float);
@@ -87,6 +53,8 @@ public:
     NODELETE bool setOffset(ComponentTransferChannel, float);
     bool setTableValues(ComponentTransferChannel, Vector<float>&&);
 
+    const FEComponentTransferParameters& parameters() const LIFETIME_BOUND { return m_parameters; }
+
 private:
     FEComponentTransfer(const ComponentTransferFunction& redFunc, const ComponentTransferFunction& greenFunc, const ComponentTransferFunction& blueFunc, const ComponentTransferFunction& alphaFunc, ColorSpace);
     FEComponentTransfer(ComponentTransferFunctions&&);
@@ -94,12 +62,12 @@ private:
     bool operator==(const FilterEffect& other) const override { return areEqual<FEComponentTransfer>(*this, other); }
 
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const override;
-    std::unique_ptr<FilterEffectApplier> createAcceleratedApplier() const override;
-    std::unique_ptr<FilterEffectApplier> createSoftwareApplier() const override;
 
     WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation) const override;
 
-    ComponentTransferFunctions m_functions;
+    ComponentTransferFunction& function(ComponentTransferChannel);
+
+    FEComponentTransferParameters m_parameters;
 };
 
 } // namespace WebCore

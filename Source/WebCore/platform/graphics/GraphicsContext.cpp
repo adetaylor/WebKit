@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2003-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,7 +28,6 @@
 
 #include "DisplayList.h"
 #include "Filter.h"
-#include "FilterImage.h"
 #include "FloatRoundedRect.h"
 #include "Gradient.h"
 #include "ImageBuffer.h"
@@ -416,16 +415,12 @@ void GraphicsContext::drawConsumingImageBuffer(RefPtr<ImageBuffer> image, const 
 
 void GraphicsContext::drawFilteredImageBuffer(ImageBuffer* sourceImage, const FloatRect& sourceImageRect, Filter& filter, FilterResults& results)
 {
-    auto result = filter.apply(sourceImage, sourceImageRect, results);
+    auto result = filter.apply(sourceImage, sourceImageRect, results, FilterResultBuffer::Rendered);
     if (!result)
         return;
 
-    RefPtr imageBuffer = filter.filterResultBuffer(*result);
-    if (!imageBuffer)
-        return;
-
     scale({ 1 / filter.filterScale().width(), 1 / filter.filterScale().height() });
-    drawImageBuffer(*imageBuffer, result->absoluteImageRect());
+    drawImageBuffer(result->imageBuffer, result->absoluteImageRect);
     scale(filter.filterScale());
 }
 

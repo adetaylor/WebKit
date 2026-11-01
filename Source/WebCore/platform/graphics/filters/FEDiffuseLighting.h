@@ -2,7 +2,7 @@
  * Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -36,7 +36,7 @@ public:
 
     bool operator==(const FEDiffuseLighting& other) const { return FELighting::operator==(other); }
 
-    float diffuseConstant() const { return m_diffuseConstant; }
+    float diffuseConstant() const { return m_parameters.diffuseConstant; }
     NODELETE bool setDiffuseConstant(float);
 
     WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation) const override;

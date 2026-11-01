@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2022-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,12 +29,12 @@
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
 
 #include "CVUtilities.h"
-#include "IOSurface.h"
 #include "Logging.h"
-#include <wtf/Scope.h>
-#include <wtf/StdLibExtras.h>
-#include <wtf/persistence/PersistentCoders.h>
-#include <wtf/text/ParsingUtilities.h>
+#include "PixelBufferSwiftBridge.h"
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 #if USE(LIBWEBRTC)
 
@@ -47,229 +47,86 @@ WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_END
 
 #endif // USE(LIBWEBRTC)
 
-#include <pal/cf/CoreMediaSoftLink.h>
 #include "CoreVideoSoftLink.h"
 
 namespace WebCore {
 
+// The layout, encoding and plane copies are in SharedVideoFrameLayout.swift.
+
+SharedVideoFrameInfo::SharedVideoFrameInfo(const SharedVideoFrameLayout& layout)
+    : SharedVideoFrameInfo(layout.bufferType, layout.width, layout.height, layout.bytesPerRow, layout.widthPlaneB, layout.heightPlaneB, layout.bytesPerRowPlaneB, layout.bytesPerRowPlaneAlpha)
+{
+}
+
+SharedVideoFrameLayout SharedVideoFrameInfo::layout() const
+{
+    return { m_bufferType, m_width, m_height, m_bytesPerRow, m_widthPlaneB, m_heightPlaneB, m_bytesPerRowPlaneB, m_bytesPerRowPlaneAlpha };
+}
+
 SharedVideoFrameInfo SharedVideoFrameInfo::fromCVPixelBuffer(CVPixelBufferRef pixelBuffer)
 {
-    auto type = CVPixelBufferGetPixelFormatType(pixelBuffer);
-    if (type == kCVPixelFormatType_32BGRA || type == kCVPixelFormatType_32ARGB)
-        return { type, static_cast<uint32_t>(CVPixelBufferGetWidth(pixelBuffer)), static_cast<uint32_t>(CVPixelBufferGetHeight(pixelBuffer)), static_cast<uint32_t>(CVPixelBufferGetBytesPerRow(pixelBuffer)) };
-
-    return { type, static_cast<uint32_t>(CVPixelBufferGetWidthOfPlane(pixelBuffer, 0)), static_cast<uint32_t>(CVPixelBufferGetHeightOfPlane(pixelBuffer, 0)), static_cast<uint32_t>(CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0)), static_cast<uint32_t>(CVPixelBufferGetWidthOfPlane(pixelBuffer, 1)), static_cast<uint32_t>(CVPixelBufferGetHeightOfPlane(pixelBuffer, 1)), static_cast<uint32_t>(CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1)),
-        type == kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar ? static_cast<uint32_t>(CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 2)) : 0
-    };
+    return SharedVideoFrameInfo { sharedVideoFrameLayout(pixelBuffer) };
 }
 
 bool SharedVideoFrameInfo::isReadWriteSupported() const
 {
-    return m_bufferType == kCVPixelFormatType_32BGRA
-        || m_bufferType == kCVPixelFormatType_32ARGB
-        || m_bufferType == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
-        || m_bufferType == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
-        || m_bufferType == kCVPixelFormatType_420YpCbCr10BiPlanarFullRange
-        || m_bufferType == kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange
-        || m_bufferType == kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar;
+    return sharedVideoFrameIsReadWriteSupported(layout());
 }
 
 size_t SharedVideoFrameInfo::storageSize() const
 {
-    if (m_storageSize)
-        return m_storageSize;
-
-    size_t sizePlaneA;
-    if (!WTF::safeMultiply(m_bytesPerRow, m_height, sizePlaneA))
-        return 0;
-
-    size_t sizePlaneB;
-    if (!WTF::safeMultiply(m_bytesPerRowPlaneB, m_heightPlaneB, sizePlaneB))
-        return 0;
-
-    size_t size;
-    if (!WTF::safeAdd(sizePlaneA, sizePlaneB, size) || !WTF::safeAdd(size, sizeof(SharedVideoFrameInfo), size))
-        return 0;
-
-    if (m_bufferType == kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar) {
-        size_t sizePlaneAlpha;
-        if (!WTF::safeMultiply(m_bytesPerRowPlaneAlpha, m_height, sizePlaneAlpha) || !WTF::safeAdd(sizePlaneAlpha, size, size))
-            return 0;
-    }
-
-    const_cast<SharedVideoFrameInfo*>(this)->m_storageSize = size;
+    if (!m_storageSize)
+        const_cast<SharedVideoFrameInfo*>(this)->m_storageSize = sharedVideoFrameStorageSize(layout(), sizeof(SharedVideoFrameInfo));
     return m_storageSize;
 }
 
-void SharedVideoFrameInfo::encode(std::span<uint8_t> destination)
+void SharedVideoFrameInfo::encode(NOESCAPE std::span<uint8_t> destination)
 {
-    WTF::Persistence::Encoder encoder;
-
-    encoder << (uint32_t)m_bufferType;
-    encoder << m_width;
-    encoder << m_height;
-    encoder << m_bytesPerRow;
-    encoder << m_widthPlaneB;
-    encoder << m_heightPlaneB;
-    encoder << m_bytesPerRowPlaneB;
-    encoder << m_bytesPerRowPlaneAlpha;
-    ASSERT(sizeof(SharedVideoFrameInfo) == encoder.bufferSize() + sizeof(size_t));
-    memcpySpan(destination, encoder.span());
+    MutablePixelBytes bytes { destination };
+    sharedVideoFrameEncode(layout(), bytes);
 }
 
-std::optional<SharedVideoFrameInfo> SharedVideoFrameInfo::decode(std::span<const uint8_t> span)
+OptionalSharedVideoFrameInfo SharedVideoFrameInfo::decode(NOESCAPE std::span<const uint8_t> span)
 {
-    WTF::Persistence::Decoder decoder(span);
-
-    std::optional<uint32_t> bufferType;
-    decoder >> bufferType;
-    if (!bufferType)
+    SharedVideoFrameLayout layout;
+    if (!sharedVideoFrameDecode(PixelBytes { span }, sizeof(SharedVideoFrameInfo), layout))
         return std::nullopt;
-
-    std::optional<uint32_t> width;
-    decoder >> width;
-    if (!width)
-        return std::nullopt;
-
-    std::optional<uint32_t> height;
-    decoder >> height;
-    if (!height)
-        return std::nullopt;
-
-    std::optional<uint32_t> bytesPerRow;
-    decoder >> bytesPerRow;
-    if (!bytesPerRow)
-        return std::nullopt;
-
-    std::optional<uint32_t> widthPlaneB;
-    decoder >> widthPlaneB;
-    if (!widthPlaneB)
-        return std::nullopt;
-
-    std::optional<uint32_t> heightPlaneB;
-    decoder >> heightPlaneB;
-    if (!heightPlaneB)
-        return std::nullopt;
-
-    std::optional<uint32_t> bytesPerRowPlaneB;
-    decoder >> bytesPerRowPlaneB;
-    if (!bytesPerRowPlaneB)
-        return std::nullopt;
-
-    std::optional<uint32_t> bytesPerRowPlaneAlpha;
-    decoder >> bytesPerRowPlaneAlpha;
-    if (!bytesPerRowPlaneAlpha)
-        return std::nullopt;
-
-    SharedVideoFrameInfo info { *bufferType, *width, *height, *bytesPerRow , *widthPlaneB, *heightPlaneB, *bytesPerRowPlaneB, *bytesPerRowPlaneAlpha };
-    if (!info.storageSize())
-        return std::nullopt;
-
-    return info;
+    return SharedVideoFrameInfo { layout };
 }
 
-static std::span<const uint8_t> copyToCVPixelBufferPlane(CVPixelBufferRef pixelBuffer, size_t planeIndex, std::span<const uint8_t> source, size_t height, uint32_t bytesPerRowSource)
-{
-    auto destination = CVPixelBufferGetSpanOfPlane(pixelBuffer, planeIndex);
-    uint32_t bytesPerRowDestination = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, planeIndex);
-    for (unsigned i = 0; i < height; ++i) {
-        memcpySpan(destination, source.first(std::min(bytesPerRowSource, bytesPerRowDestination)));
-        if (bytesPerRowSource < bytesPerRowDestination)
-            memsetSpan(destination.subspan(bytesPerRowSource, bytesPerRowDestination - bytesPerRowSource), 0);
-        skip(source, bytesPerRowSource);
-        skip(destination, bytesPerRowDestination);
-    }
-    memsetSpan(destination, 0);
-
-    return source;
-}
-
-RetainPtr<CVPixelBufferRef> SharedVideoFrameInfo::createPixelBufferFromMemory(std::span<const uint8_t> data, CVPixelBufferPoolRef bufferPool)
+RetainPtr<CVPixelBufferRef> SharedVideoFrameInfo::createPixelBufferFromMemory(NOESCAPE std::span<const uint8_t> data, CVPixelBufferPoolRef bufferPool)
 {
     ASSERT(isReadWriteSupported());
-    CVPixelBufferRef rawPixelBuffer = nullptr;
-    if (bufferPool) {
-        auto status = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, bufferPool, &rawPixelBuffer);
-        if (status != noErr || !rawPixelBuffer)
-            return nullptr;
-
-        ASSERT(CVPixelBufferGetWidthOfPlane(rawPixelBuffer, 0) == m_width);
-        ASSERT(CVPixelBufferGetHeightOfPlane(rawPixelBuffer, 0) == m_height);
-        ASSERT(CVPixelBufferGetPixelFormatType(rawPixelBuffer) == m_bufferType);
-    } else {
-        auto status = CVPixelBufferCreate(kCFAllocatorDefault, m_width, m_height, m_bufferType, nullptr, &rawPixelBuffer);
-        if (status != noErr || !rawPixelBuffer)
-            return nullptr;
-    }
-
-    RetainPtr pixelBuffer = adoptCF(rawPixelBuffer);
-    auto status = CVPixelBufferLockBaseAddress(pixelBuffer.get(), 0);
-    if (status != noErr)
-        return nullptr;
-
-    auto scope = makeScopeExit([pixelBuffer] {
-        CVPixelBufferUnlockBaseAddress(pixelBuffer.get(), 0);
-    });
-
-    data = copyToCVPixelBufferPlane(rawPixelBuffer, 0, data, m_height, m_bytesPerRow);
-    if (CVPixelBufferGetPlaneCount(rawPixelBuffer) >= 2) {
-        data = copyToCVPixelBufferPlane(rawPixelBuffer, 1, data, std::min<size_t>(m_heightPlaneB, CVPixelBufferGetHeightOfPlane(rawPixelBuffer, 1)), m_bytesPerRowPlaneB);
-        if (CVPixelBufferGetPlaneCount(rawPixelBuffer) == 3)
-            copyToCVPixelBufferPlane(rawPixelBuffer, 2, data, m_height, m_bytesPerRowPlaneAlpha);
-    }
-
-    return pixelBuffer;
+    return adoptCF(sharedVideoFrameCreatePixelBuffer(layout(), PixelBytes { data }, bufferPool));
 }
 
-bool SharedVideoFrameInfo::writePixelBuffer(CVPixelBufferRef pixelBuffer, std::span<uint8_t> data)
+bool SharedVideoFrameInfo::writePixelBuffer(CVPixelBufferRef pixelBuffer, NOESCAPE std::span<uint8_t> data)
 {
-    auto result = CVPixelBufferLockBaseAddress(pixelBuffer, kCVPixelBufferLock_ReadOnly);
-    if (result != kCVReturnSuccess) {
+    MutablePixelBytes bytes { data };
+    switch (sharedVideoFrameWritePixelBuffer(layout(), pixelBuffer, sizeof(SharedVideoFrameInfo), bytes)) {
+    case SharedVideoFrameWriteResult::Success:
+        return true;
+    case SharedVideoFrameWriteResult::LockFailed:
         RELEASE_LOG_ERROR(WebRTC, "SharedVideoFrameInfo::writePixelBuffer lock failed");
         return false;
-    }
-
-    auto scope = makeScopeExit([pixelBuffer = RetainPtr { pixelBuffer }] {
-        CVPixelBufferUnlockBaseAddress(pixelBuffer.get(), kCVPixelBufferLock_ReadOnly);
-    });
-
-    if (!CVPixelBufferGetBaseAddress(pixelBuffer)) {
+    case SharedVideoFrameWriteResult::NotReadable:
         RELEASE_LOG_FAULT(WebRTC, "SharedVideoFrameInfo::writePixelBuffer pixel buffer is not readable");
         return false;
-    }
-
-    encode(data);
-    skip(data, sizeof(SharedVideoFrameInfo));
-
-    auto planeA = CVPixelBufferGetSpanOfPlane(pixelBuffer, 0);
-    if (!planeA.data()) {
+    case SharedVideoFrameWriteResult::PlaneANull:
         RELEASE_LOG_FAULT(WebRTC, "SharedVideoFrameInfo::writePixelBuffer plane A is null");
         return false;
+    case SharedVideoFrameWriteResult::PlaneBNull:
+        RELEASE_LOG_ERROR(WebRTC, "SharedVideoFrameInfo::writePixelBuffer plane B is null");
+        return false;
+    case SharedVideoFrameWriteResult::PlaneAlphaNull:
+        RELEASE_LOG_ERROR(WebRTC, "SharedVideoFrameInfo::writePixelBuffer plane A is null");
+        return false;
+    case SharedVideoFrameWriteResult::StorageTooSmall:
+        RELEASE_LOG_ERROR(WebRTC, "SharedVideoFrameInfo::writePixelBuffer storage is too small");
+        return false;
     }
-
-    memcpySpan(data, planeA);
-
-    if (CVPixelBufferGetPlaneCount(pixelBuffer) >= 2) {
-        auto planeB = CVPixelBufferGetSpanOfPlane(pixelBuffer, 1);
-        if (!planeB.data()) {
-            RELEASE_LOG_ERROR(WebRTC, "SharedVideoFrameInfo::writePixelBuffer plane B is null");
-            return false;
-        }
-
-        memcpySpan(data.subspan(planeA.size()), planeB);
-
-        if (CVPixelBufferGetPlaneCount(pixelBuffer) == 3) {
-            auto planeAlpha = CVPixelBufferGetSpanOfPlane(pixelBuffer, 2);
-            if (!planeAlpha.data()) {
-                RELEASE_LOG_ERROR(WebRTC, "SharedVideoFrameInfo::writePixelBuffer plane A is null");
-                return false;
-            }
-
-            memcpySpan(data.subspan(planeA.size() + planeB.size()), planeAlpha);
-        }
-    }
-
-    return true;
+    ASSERT_NOT_REACHED();
+    return false;
 }
 
 RetainPtr<CVPixelBufferPoolRef> SharedVideoFrameInfo::createCompatibleBufferPool() const

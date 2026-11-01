@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2022-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,11 +28,9 @@
 #include <wtf/Platform.h>
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
 
+#include <WebCore/SharedVideoFrameSwiftBridge.h>
 #include <span>
 #include <wtf/RetainPtr.h>
-
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
-typedef struct __CVPixelBufferPool* CVPixelBufferPoolRef;
 
 namespace webrtc {
 class VideoFrameBuffer;
@@ -40,16 +38,20 @@ class VideoFrameBuffer;
 
 namespace WebCore {
 
+class SharedVideoFrameInfo;
+// Swift synthesizes decode's safe Span overload only when the optional is spelled through a typedef.
+using OptionalSharedVideoFrameInfo = std::optional<SharedVideoFrameInfo>;
+
 class SharedVideoFrameInfo {
 public:
     SharedVideoFrameInfo() = default;
     SharedVideoFrameInfo(OSType, uint32_t width, uint32_t height, uint32_t bytesPerRow, uint32_t widthPlaneB = 0, uint32_t heightPlaneB = 0, uint32_t bytesPerRowPlaneB = 0, uint32_t bytesPerRowPlaneA = 0);
 
-    WEBCORE_EXPORT void encode(std::span<uint8_t>);
-    WEBCORE_EXPORT static std::optional<SharedVideoFrameInfo> decode(std::span<const uint8_t>);
+    WEBCORE_EXPORT void encode(NOESCAPE std::span<uint8_t>);
+    WEBCORE_EXPORT static OptionalSharedVideoFrameInfo decode(NOESCAPE std::span<const uint8_t>);
 
     WEBCORE_EXPORT static SharedVideoFrameInfo fromCVPixelBuffer(CVPixelBufferRef);
-    WEBCORE_EXPORT bool writePixelBuffer(CVPixelBufferRef, std::span<uint8_t> data);
+    WEBCORE_EXPORT bool writePixelBuffer(CVPixelBufferRef, NOESCAPE std::span<uint8_t> data);
 
 #if USE(LIBWEBRTC)
     WEBCORE_EXPORT static SharedVideoFrameInfo fromVideoFrameBuffer(const webrtc::VideoFrameBuffer&);
@@ -58,7 +60,7 @@ public:
 
     NODELETE WEBCORE_EXPORT size_t storageSize() const;
 
-    WEBCORE_EXPORT RetainPtr<CVPixelBufferRef> createPixelBufferFromMemory(std::span<const uint8_t> data, CVPixelBufferPoolRef = nullptr);
+    WEBCORE_EXPORT RetainPtr<CVPixelBufferRef> createPixelBufferFromMemory(NOESCAPE std::span<const uint8_t> data, CVPixelBufferPoolRef = nullptr);
 
     NODELETE WEBCORE_EXPORT bool isReadWriteSupported() const;
     WEBCORE_EXPORT RetainPtr<CVPixelBufferPoolRef> createCompatibleBufferPool() const;
@@ -68,6 +70,9 @@ public:
     uint32_t height() const { return m_height; };
 
 private:
+    explicit SharedVideoFrameInfo(const SharedVideoFrameLayout&);
+    SharedVideoFrameLayout layout() const;
+
     OSType m_bufferType { 0 };
     uint32_t m_width { 0 };
     uint32_t m_height { 0 };

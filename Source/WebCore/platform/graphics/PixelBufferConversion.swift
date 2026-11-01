@@ -23,58 +23,78 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-// The safe Span overloads Swift synthesizes for the views' span() call Cxx's Span(_unsafeCxxSpan:).
+// The safe Span overloads Swift synthesizes for the views' span accessors call Cxx's Span(_unsafeCxxSpan:).
 // Xcode builds don't find it unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.IntSize
-import WebCore_Internal.PixelBuffer
-import WebCore_Internal.PixelBufferConversion
+import WebCore_Internal.PixelBufferFormat
+import WebCore_Internal.PixelBufferSwiftBridge
 
-// The rows the conversion reads and writes have to be inside the buffer the view describes.
-private func hasEnoughBytesForConversion(
-    pixelFormat: WebCore.PixelFormat,
-    bytesPerRow: UInt32,
-    byteCount: Int,
-    destinationSize: borrowing WebCore.IntSize
-) -> Bool {
-    let width = destinationSize.width()
-    let height = destinationSize.height()
-    if width <= 0 || height <= 0 {
-        return true
-    }
-
-    let (rowsBytes, rowsOverflow) = UInt(height - 1).multipliedReportingOverflow(by: UInt(bytesPerRow))
-    let bytesPerPixel = UInt(WebCore.PixelBuffer.bytesPerPixel(pixelFormat))
-    let (lastRowBytes, lastRowOverflow) = UInt(width).multipliedReportingOverflow(by: bytesPerPixel)
-    let (requiredBytes, sumOverflow) = rowsBytes.addingReportingOverflow(lastRowBytes)
-    return !rowsOverflow && !lastRowOverflow && !sumOverflow && UInt(byteCount) >= requiredBytes
-}
+// The Swift side of convertImagePixels() and copyRowsInternal() (PixelBufferConversion.cpp), which hand over views
+// that don't overlap, except for the one view of an in-place conversion.
 
 @_expose(Cxx)
-func hasEnoughBytesForConversion(
-    _ view: borrowing WebCore.ConstPixelBufferConversionView,
-    _ destinationSize: borrowing WebCore.IntSize
-) -> Bool {
-    let rows: Span<UInt8> = view.span()
-    return hasEnoughBytesForConversion(
-        pixelFormat: view.format.pixelFormat,
-        bytesPerRow: view.bytesPerRow,
-        byteCount: rows.count,
-        destinationSize: destinationSize
+func pixelConversionConvert(
+    _ sourceFormat: borrowing WebCore.PixelBufferFormat,
+    _ sourceBytesPerRow: UInt32,
+    _ source: borrowing WebCore.PixelBytes,
+    _ destinationFormat: borrowing WebCore.PixelBufferFormat,
+    _ destinationBytesPerRow: UInt32,
+    _ destination: inout WebCore.MutablePixelBytes,
+    _ width: Int32,
+    _ height: Int32
+) {
+    let sourceBytes: Span<UInt8> = source.span()
+    var destinationBytes: MutableSpan<UInt8> = destination.mutableSpan()
+    PixelConversion.convert(
+        source: sourceBytes,
+        sourceFormat: sourceFormat,
+        sourceBytesPerRow: Int(sourceBytesPerRow),
+        destination: &destinationBytes,
+        destinationFormat: destinationFormat,
+        destinationBytesPerRow: Int(destinationBytesPerRow),
+        width: Int(width),
+        height: Int(height)
     )
 }
 
 @_expose(Cxx)
-func hasEnoughBytesForConversion(
-    _ view: borrowing WebCore.PixelBufferConversionView,
-    _ destinationSize: borrowing WebCore.IntSize
-) -> Bool {
-    let rows: MutableSpan<UInt8> = view.span()
-    return hasEnoughBytesForConversion(
-        pixelFormat: view.format.pixelFormat,
-        bytesPerRow: view.bytesPerRow,
-        byteCount: rows.count,
-        destinationSize: destinationSize
+func pixelConversionConvertInPlace(
+    _ sourceFormat: borrowing WebCore.PixelBufferFormat,
+    _ destinationFormat: borrowing WebCore.PixelBufferFormat,
+    _ bytesPerRow: UInt32,
+    _ bytes: inout WebCore.MutablePixelBytes,
+    _ width: Int32,
+    _ height: Int32
+) {
+    var span: MutableSpan<UInt8> = bytes.mutableSpan()
+    PixelConversion.convertInPlace(
+        &span,
+        bytesPerRow: Int(bytesPerRow),
+        from: sourceFormat,
+        to: destinationFormat,
+        width: Int(width),
+        height: Int(height)
+    )
+}
+
+@_expose(Cxx)
+func pixelConversionCopyRows(
+    _ sourceBytesPerRow: UInt32,
+    _ source: borrowing WebCore.PixelBytes,
+    _ destinationBytesPerRow: UInt32,
+    _ destination: inout WebCore.MutablePixelBytes,
+    _ rows: UInt32,
+    _ copyBytesPerRow: UInt32
+) {
+    let sourceBytes: Span<UInt8> = source.span()
+    var destinationBytes: MutableSpan<UInt8> = destination.mutableSpan()
+    copyRowsAsCopyRowsInternal(
+        source: sourceBytes,
+        sourceBytesPerRow: Int(sourceBytesPerRow),
+        destination: &destinationBytes,
+        destinationBytesPerRow: Int(destinationBytesPerRow),
+        rows: Int(rows),
+        rowBytes: Int(copyBytesPerRow)
     )
 }
 

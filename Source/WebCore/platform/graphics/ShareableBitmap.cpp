@@ -31,31 +31,60 @@
 #include "SharedMemory.h"
 #include <wtf/DebugHeap.h>
 
+#if HAVE(IOSURFACE)
+#include "IOSurface.h"
+#endif
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
+
 namespace WebCore {
 
 DECLARE_ALLOCATOR_WITH_HEAP_IDENTIFIER_AND_EXPORT(ShareableBitmap, WTF_INTERNAL);
 DEFINE_ALLOCATOR_WITH_HEAP_IDENTIFIER(ShareableBitmap);
 
+static CheckedUint32 checkedSize(ShareableBitmapCheckedSize size)
+{
+    CheckedUint32 result = size.value;
+    if (size.hasOverflowed)
+        result.overflowed();
+    return result;
+}
+
+static ShareableBitmapLayout calculateLayout(const IntSize& size, std::optional<PixelFormat> pixelFormat, const ColorSpace& colorSpace, bool isOpaque)
+{
+#if ENABLE(PIXEL_FORMAT_RGBA16F)
+    bool colorSpaceUsesExtendedRange = !pixelFormat && colorSpace.usesExtendedRange();
+#else
+    UNUSED_PARAM(colorSpace);
+    bool colorSpaceUsesExtendedRange = false;
+#endif
+#if HAVE(IOSURFACE)
+    size_t bytesPerRowAlignment = IOSurface::bytesPerRowAlignment();
+#else
+    size_t bytesPerRowAlignment = 1;
+#endif
+    return shareableBitmapLayout({ size.width(), pixelFormat.value_or(PixelFormat::RGBA8), pixelFormat.has_value(), colorSpaceUsesExtendedRange, isOpaque, bytesPerRowAlignment });
+}
+
 ShareableBitmapConfiguration::ShareableBitmapConfiguration(const IntSize& size, const ColorSpace& colorSpace, std::optional<PixelFormat> pixelFormat, Headroom baseImageHeadroom, bool isOpaque)
     : m_size(size)
     , m_colorSpace(validateColorSpace(colorSpace))
-#if ENABLE(PIXEL_FORMAT_RGBA16F)
-    , m_pixelFormat(pixelFormat ? *pixelFormat : (m_colorSpace.usesExtendedRange() ? PixelFormat::RGBA16F : PixelFormat::RGBA8))
-#else
-    , m_pixelFormat(pixelFormat ? *pixelFormat : PixelFormat::RGBA8)
-#endif
     , m_baseImageHeadroom(baseImageHeadroom)
     , m_isOpaque(isOpaque)
-    , m_bitsPerComponent(calculateBitsPerComponent(m_pixelFormat, m_colorSpace))
-    , m_bytesPerPixel(calculateBytesPerPixel(m_pixelFormat, m_colorSpace))
-    , m_bytesPerRow(calculateBytesPerRow(size, m_pixelFormat, m_colorSpace))
-#if USE(CG)
-    , m_bitmapInfo(calculateBitmapInfo(m_pixelFormat, isOpaque))
-#endif
 #if USE(SKIA)
     , m_imageInfo(SkImageInfo::MakeN32Premul(size.width(), size.height(), m_colorSpace.platformColorSpace()))
 #endif
 {
+    auto layout = calculateLayout(size, pixelFormat, m_colorSpace, isOpaque);
+    m_pixelFormat = layout.pixelFormat;
+    m_bitsPerComponent = layout.bitsPerComponent;
+    m_bytesPerPixel = layout.bytesPerPixel;
+    m_bytesPerRow = checkedSize(layout.bytesPerRow);
+#if USE(CG)
+    m_bitmapInfo = layout.bitmapInfo;
+#endif
     ASSERT(!m_size.isEmpty());
     ASSERT(m_baseImageHeadroom >= Headroom::None);
 }
@@ -87,9 +116,26 @@ ShareableBitmapConfiguration::ShareableBitmapConfiguration(const IntSize& size, 
     ASSERT(m_baseImageHeadroom >= Headroom::None);
 }
 
+ShareableBitmapGeometry ShareableBitmapConfiguration::layoutGeometry() const
+{
+    bool bytesPerRowOverflowed = m_bytesPerRow.hasOverflowed();
+    return { m_size.width(), m_size.height(), { bytesPerRowOverflowed ? 0 : m_bytesPerRow.value(), bytesPerRowOverflowed } };
+}
+
+CheckedUint32 ShareableBitmapConfiguration::sizeInBytes() const
+{
+    return checkedSize(shareableBitmapSizeInBytes(layoutGeometry()));
+}
+
+CheckedUint32 ShareableBitmapConfiguration::calculateBytesPerRow(const IntSize& size, PixelFormat pixelFormat, const ColorSpace& colorSpace)
+{
+    return checkedSize(calculateLayout(size, pixelFormat, colorSpace, false).bytesPerRow);
+}
+
 CheckedUint32 ShareableBitmapConfiguration::calculateSizeInBytes(const IntSize& size, PixelFormat pixelFormat, const ColorSpace& colorSpace)
 {
-    return calculateBytesPerRow(size, pixelFormat, colorSpace) * size.height();
+    auto layout = calculateLayout(size, pixelFormat, colorSpace, false);
+    return checkedSize(shareableBitmapSizeInBytes({ size.width(), size.height(), layout.bytesPerRow }));
 }
 
 RefPtr<ShareableBitmap> ShareableBitmap::create(const ShareableBitmapConfiguration& configuration)
@@ -108,12 +154,8 @@ RefPtr<ShareableBitmap> ShareableBitmap::create(const ShareableBitmapConfigurati
 
 RefPtr<ShareableBitmap> ShareableBitmap::create(const ShareableBitmapConfiguration& configuration, Ref<SharedMemory>&& sharedMemory)
 {
-    auto sizeInBytes = configuration.sizeInBytes();
-    if (sizeInBytes.hasOverflowed())
-        return nullptr;
-
-    if (sharedMemory->size() < sizeInBytes) {
-        ASSERT_NOT_REACHED();
+    if (!shareableBitmapFitsInMemory(configuration.layoutGeometry(), sharedMemory->size())) {
+        ASSERT(configuration.sizeInBytes().hasOverflowed());
         return nullptr;
     }
 
@@ -160,6 +202,9 @@ std::optional<Ref<ShareableBitmap>> ShareableBitmap::createReadOnly(std::optiona
 
     auto sharedMemory = SharedMemory::map(WTF::move(handle->m_handle), SharedMemory::Protection::ReadOnly, defaultCopyOnWrite);
     if (!sharedMemory)
+        return std::nullopt;
+
+    if (!shareableBitmapFitsInMemory(handle->m_configuration.layoutGeometry(), sharedMemory->size()))
         return std::nullopt;
 
     return adoptRef(*new ShareableBitmap(handle->m_configuration, sharedMemory.releaseNonNull()));

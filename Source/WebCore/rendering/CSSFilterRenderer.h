@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,7 +55,7 @@ public:
 
     FilterEffectVector effectsOfType(FilterFunction::Type) const final;
 
-    RefPtr<FilterImage> apply(FilterImage* sourceImage, FilterResults&) final;
+    std::optional<FilterResult> apply(ImageBuffer* sourceImage, const FloatRect& sourceImageRect, FilterResults&, FilterResultBuffer) final;
     FilterStyleVector createFilterStyles(GraphicsContext&, const FilterStyle& sourceStyle) const final;
 
     static bool isIdentity(const RenderElement&, const Style::Filter&);

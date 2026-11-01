@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2022-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,39 +25,51 @@
 
 #pragma once
 
-#include <WebCore/FilterEffect.h>
-#include <WebCore/FilterImageVector.h>
 #include <WebCore/ImageBufferAllocator.h>
-#include <wtf/HashMap.h>
-#include <wtf/HashSet.h>
+#include <memory>
+#include <wtf/Noncopyable.h>
 #include <wtf/TZoneMalloc.h>
+
+#if !defined(__swift__)
+namespace WebCore {
+class FilterResultsImpl;
+}
+#endif
 
 namespace WebCore {
 
-class FilterEffect;
-class FilterImage;
+class Filter;
 
+// The results of the effects of filters applied with it, which later applies reuse until an effect changes, and the
+// allocator of the filters' images. Its state is in FilterResultsImpl (FilterEngine.swift), a Swift struct that it stores
+// inline.
 class FilterResults {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(FilterResults, WEBCORE_EXPORT);
+    WTF_MAKE_NONCOPYABLE(FilterResults);
 public:
     WEBCORE_EXPORT FilterResults(std::unique_ptr<ImageBufferAllocator>&& = nullptr);
+    WEBCORE_EXPORT ~FilterResults();
 
     ImageBufferAllocator& allocator() const { return *m_allocator; }
 
-    FilterImage* effectResult(FilterEffect&) const;
-    void setEffectResult(FilterEffect&, std::span<const Ref<FilterImage>> inputs, Ref<FilterImage>&& result);
-    void clearEffectResult(FilterEffect&);
+    // Forgets the result of the effect at `effectIndex` of `filter` (its function in a CSS filter, its effect in an SVG
+    // filter), and the results made from it.
+    void clearEffectResult(const Filter&, unsigned effectIndex);
+
+#if !defined(__swift__)
+    FilterResultsImpl& swiftImpl() LIFETIME_BOUND;
+#endif
 
 private:
-    size_t memoryCost() const;
-    bool canCacheResult(const FilterImage&) const;
+    // The stored properties of FilterResultsImpl, for the size and alignment of its storage, which FilterResults.cpp
+    // checks against the Swift struct.
+    struct ImplLayout {
+        void* results;
+        void* references;
+    };
 
-    HashMap<Ref<FilterEffect>, Ref<FilterImage>> m_results;
-
-    // The value is a list of FilterEffects, whose FilterImages depend on the key FilterImage.
-    using FilterEffectSet = HashSet<Ref<FilterEffect>>;
-    HashMap<Ref<FilterImage>, FilterEffectSet> m_resultReferences;
-
+    // The FilterResultsImpl, which FilterResults.cpp builds in place in the constructor and destroys in the destructor.
+    alignas(ImplLayout) std::byte m_impl[sizeof(ImplLayout)];
     const std::unique_ptr<ImageBufferAllocator> m_allocator;
 };
 

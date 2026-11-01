@@ -2,7 +2,7 @@
  * Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2021 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  * Copyright (C) 2014 Google Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
@@ -43,9 +43,9 @@ FEDiffuseLighting::FEDiffuseLighting(const Color& lightingColor, float surfaceSc
 bool FEDiffuseLighting::setDiffuseConstant(float diffuseConstant)
 {
     diffuseConstant = std::max(diffuseConstant, 0.0f);
-    if (m_diffuseConstant == diffuseConstant)
+    if (m_parameters.diffuseConstant == diffuseConstant)
         return false;
-    m_diffuseConstant = diffuseConstant;
+    m_parameters.diffuseConstant = diffuseConstant;
     return true;
 }
 
@@ -54,9 +54,9 @@ TextStream& FEDiffuseLighting::externalRepresentation(TextStream& ts, FilterRepr
     ts << indent << "[feDiffuseLighting"_s;
     FilterEffect::externalRepresentation(ts, representation);
 
-    ts << " surfaceScale=\""_s << m_surfaceScale << '"';
-    ts << " diffuseConstant=\""_s << m_diffuseConstant << '"';
-    ts << " kernelUnitLength=\""_s << m_kernelUnitLengthX << ", "_s << m_kernelUnitLengthY << '"';
+    ts << " surfaceScale=\""_s << m_parameters.surfaceScale << '"';
+    ts << " diffuseConstant=\""_s << m_parameters.diffuseConstant << '"';
+    ts << " kernelUnitLength=\""_s << m_parameters.kernelUnitLengthX << ", "_s << m_parameters.kernelUnitLengthY << '"';
 
     ts << "]\n"_s;
     return ts;

@@ -4,7 +4,7 @@
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) Research In Motion Limited 2010. All rights reserved.
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -26,11 +26,10 @@
 #include "FEOffset.h"
 
 #include "Filter.h"
-#include "FEOffsetSoftwareApplier.h"
 #include <wtf/text/TextStream.h>
 
-#if USE(CORE_IMAGE)
-#include "FEOffsetCoreImageApplier.h"
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
 #endif
 
 namespace WebCore {
@@ -42,61 +41,34 @@ Ref<FEOffset> FEOffset::create(float dx, float dy, ColorSpace colorSpace)
 
 FEOffset::FEOffset(float dx, float dy, ColorSpace colorSpace)
     : FilterEffect(FilterEffect::Type::FEOffset, colorSpace)
-    , m_dx(dx)
-    , m_dy(dy)
+    , m_parameters { dx, dy }
 {
 }
 
 bool FEOffset::operator==(const FEOffset& other) const
 {
-    return FilterEffect::operator==(other)
-        && m_dx == other.m_dx
-        && m_dy == other.m_dy;
+    return FilterEffect::operator==(other) && m_parameters == other.m_parameters;
 }
 
 bool FEOffset::setDx(float dx)
 {
-    if (m_dx == dx)
+    if (m_parameters.dx == dx)
         return false;
-    m_dx = dx;
+    m_parameters.dx = dx;
     return true;
 }
 
 bool FEOffset::setDy(float dy)
 {
-    if (m_dy == dy)
+    if (m_parameters.dy == dy)
         return false;
-    m_dy = dy;
+    m_parameters.dy = dy;
     return true;
-}
-
-FloatRect FEOffset::calculateImageRect(const Filter& filter, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const
-{
-    auto imageRect = inputImageRects[0];
-    imageRect.move(filter.resolvedSize({ m_dx, m_dy }));
-    return filter.clipToMaxEffectRect(imageRect, primitiveSubregion);
 }
 
 IntOutsets FEOffset::calculateOutsets(const FloatSize& offset)
 {
-    auto adjustedOffset = expandedIntSize(offset);
-
-    IntOutsets outsets;
-    if (adjustedOffset.height() < 0)
-        outsets.setTop(-adjustedOffset.height());
-    else
-        outsets.setBottom(adjustedOffset.height());
-    if (adjustedOffset.width() < 0)
-        outsets.setLeft(-adjustedOffset.width());
-    else
-        outsets.setRight(adjustedOffset.width());
-
-    return outsets;
-}
-
-bool FEOffset::resultIsAlphaImage(std::span<const Ref<FilterImage>> inputs) const
-{
-    return inputs[0]->isAlphaImage();
+    return feOffsetOutsets(offset).intOutsets();
 }
 
 OptionSet<FilterRenderingMode> FEOffset::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
@@ -106,20 +78,6 @@ OptionSet<FilterRenderingMode> FEOffset::supportedFilterRenderingModes(OptionSet
     modes.add(FilterRenderingMode::Accelerated);
 #endif
     return modes & preferredFilterRenderingModes;
-}
-
-std::unique_ptr<FilterEffectApplier> FEOffset::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEOffsetCoreImageApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FEOffset::createSoftwareApplier() const
-{
-    return FilterEffectApplier::create<FEOffsetSoftwareApplier>(*this);
 }
 
 TextStream& FEOffset::externalRepresentation(TextStream& ts, FilterRepresentation representation) const

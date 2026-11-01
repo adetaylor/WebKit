@@ -1,4 +1,4 @@
-// Copyright (C) 2017-2024 Apple Inc. All rights reserved.
+// Copyright (C) 2017-2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -2717,6 +2717,7 @@ platform/graphics/GraphicsContext.cpp
 platform/graphics/GraphicsContextGL.cpp
 platform/graphics/GraphicsContextGLImageExtractor.cpp
 platform/graphics/GraphicsContextState.cpp
+platform/graphics/GraphicsContextSwiftBridge.cpp
 platform/graphics/GraphicsContextSwitcher.cpp
 platform/graphics/GraphicsLayer.cpp
 platform/graphics/GraphicsLayerAnimation.cpp
@@ -2774,6 +2775,9 @@ platform/graphics/PathUtilities.cpp
 platform/graphics/Pattern.cpp
 platform/graphics/PixelBuffer.cpp
 platform/graphics/PixelBufferConversion.cpp
+platform/graphics/filters/FilterGraphicsBridge.cpp
+platform/graphics/filters/parameters/FEImageBridge.cpp
+platform/graphics/filters/parameters/SourceGraphicBridge.cpp
 platform/graphics/PixelBufferFormat.cpp
 platform/graphics/PixelFormat.cpp
 platform/graphics/PlatformDynamicRangeLimit.cpp
@@ -2815,9 +2819,6 @@ platform/graphics/controls/EmptyControlFactory.cpp
 platform/graphics/controls/MeterPart.cpp
 platform/graphics/controls/ProgressBarPart.cpp
 platform/graphics/controls/SliderTrackPart.cpp
-platform/graphics/cpu/arm/filters/FEBlendNeonApplier.cpp
-platform/graphics/cpu/arm/filters/FECompositeNeonArithmeticApplier.cpp
-platform/graphics/cpu/arm/filters/FELightingNeonParallelApplier.cpp
 platform/graphics/displaylists/DisplayList.cpp
 platform/graphics/displaylists/DisplayListItem.cpp
 platform/graphics/displaylists/DisplayListItems.cpp
@@ -2844,8 +2845,8 @@ platform/graphics/filters/FETile.cpp
 platform/graphics/filters/FETurbulence.cpp
 platform/graphics/filters/Filter.cpp
 platform/graphics/filters/FilterEffect.cpp
+platform/graphics/filters/FilterEffectView.cpp
 platform/graphics/filters/FilterFunction.cpp
-platform/graphics/filters/FilterImage.cpp
 platform/graphics/filters/FilterOperation.cpp
 platform/graphics/filters/FilterOperations.cpp
 platform/graphics/filters/FilterRenderingMode.cpp
@@ -2854,26 +2855,6 @@ platform/graphics/filters/PointLightSource.cpp
 platform/graphics/filters/SourceAlpha.cpp
 platform/graphics/filters/SourceGraphic.cpp
 platform/graphics/filters/SpotLightSource.cpp
-platform/graphics/filters/software/FEBlendSoftwareApplier.cpp
-platform/graphics/filters/software/FEColorMatrixSoftwareApplier.cpp
-platform/graphics/filters/software/FEComponentTransferSoftwareApplier.cpp
-platform/graphics/filters/software/FECompositeSoftwareApplier.cpp
-platform/graphics/filters/software/FECompositeSoftwareArithmeticApplier.cpp
-platform/graphics/filters/software/FEConvolveMatrixSoftwareApplier.cpp
-platform/graphics/filters/software/FEDisplacementMapSoftwareApplier.cpp
-platform/graphics/filters/software/FEDropShadowSoftwareApplier.cpp
-platform/graphics/filters/software/FEFloodSoftwareApplier.cpp
-platform/graphics/filters/software/FEGaussianBlurSoftwareApplier.cpp
-platform/graphics/filters/software/FEImageSoftwareApplier.cpp
-platform/graphics/filters/software/FELightingSoftwareApplier.cpp
-platform/graphics/filters/software/FELightingSoftwareParallelApplier.cpp
-platform/graphics/filters/software/FEMergeSoftwareApplier.cpp
-platform/graphics/filters/software/FEMorphologySoftwareApplier.cpp
-platform/graphics/filters/software/FEOffsetSoftwareApplier.cpp
-platform/graphics/filters/software/FETileSoftwareApplier.cpp
-platform/graphics/filters/software/FETurbulenceSoftwareApplier.cpp
-platform/graphics/filters/software/SourceAlphaSoftwareApplier.cpp
-platform/graphics/filters/software/SourceGraphicSoftwareApplier.cpp
 platform/graphics/iso/ISOBox.cpp
 platform/graphics/iso/ISOOriginalFormatBox.cpp
 platform/graphics/iso/ISOProtectionSchemeInfoBox.cpp
@@ -3012,6 +2993,7 @@ rendering/BorderPainter.cpp @header:RenderStyleGetters @cost:6
 rendering/BorderShape.cpp @header:RenderStyleGetters @cost:5
 rendering/BreakablePositions.cpp
 rendering/CSSFilterRenderer.cpp @header:RenderStyleGetters @cost:6
+rendering/CSSFilterRendererView.cpp
 rendering/CaretRectComputation.cpp @header:RenderStyleGetters @cost:6
 rendering/ClipPathPaintScope.cpp
 rendering/ClipRect.cpp
@@ -3751,6 +3733,7 @@ svg/animation/SMILTimeContainer.cpp
 svg/animation/SVGSMILElement.cpp
 svg/graphics/filters/SVGFilterPrimitiveGraph.cpp
 svg/graphics/filters/SVGFilterRenderer.cpp
+svg/graphics/filters/SVGFilterRendererView.cpp
 svg/properties/SVGAnimatedPropertyBase.cpp
 svg/properties/SVGAnimatedString.cpp
 svg/properties/SVGAnimationAdditiveValueFunctionImpl.cpp

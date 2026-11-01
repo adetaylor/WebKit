@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
- * Copyright (C) 2007-2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2007-2026 Apple Inc. All rights reserved.
  * Copyright (C) 2010 Torch Mobile (Beijing) Co. Ltd. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <wtf/Function.h>
 #include <wtf/OptionSet.h>
 #include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 
@@ -98,7 +99,7 @@ class ImageBuffer : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Image
 public:
     using Parameters = ImageBufferParameters;
 
-    static RefPtr<ImageBuffer> create(const FloatSize& size, RenderingMode mode, RenderingPurpose purpose, float resolutionScale, const ColorSpace& colorSpace, PixelFormat bufferFormat, GraphicsClient* client = nullptr)
+    SWIFT_SAFE static RefPtr<ImageBuffer> create(const FloatSize& size, RenderingMode mode, RenderingPurpose purpose, float resolutionScale, const ColorSpace& colorSpace, PixelFormat bufferFormat, GraphicsClient* client = nullptr)
     {
         return create(size, mode, purpose, resolutionScale, colorSpace, ImageBufferFormat { bufferFormat }, client);
     }

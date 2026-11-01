@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,8 +31,12 @@
 #include "Logging.h"
 #include "NativeImage.h"
 #include "PixelBuffer.h"
-#include "PixelBufferConversion.h"
+#include "PixelBufferSwiftBridge.h"
 #include <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 namespace WebCore {
 
@@ -93,18 +97,8 @@ void ImageBufferBackend::convertToLuminanceMaskUint8()
         return;
     getPixelBuffer(sourceRect, *pixelBuffer);
 
-    unsigned pixelArrayLength = pixelBuffer->bytes().size();
-    for (unsigned pixelOffset = 0; pixelOffset < pixelArrayLength; pixelOffset += 4) {
-        uint8_t a = pixelBuffer->item(pixelOffset + 3);
-        if (!a)
-            continue;
-        uint8_t r = pixelBuffer->item(pixelOffset);
-        uint8_t g = pixelBuffer->item(pixelOffset + 1);
-        uint8_t b = pixelBuffer->item(pixelOffset + 2);
-
-        double luma = (r * 0.2125 + g * 0.7154 + b * 0.0721) * ((double)a / 255.0);
-        pixelBuffer->set(pixelOffset + 3, luma);
-    }
+    MutablePixelBytes pixels { pixelBuffer->bytes() };
+    luminanceMaskApply(pixels);
 
     putPixelBuffer(*pixelBuffer, sourceRect, IntPoint::zero(), AlphaPremultiplication::Premultiplied);
 }
@@ -119,76 +113,51 @@ void ImageBufferBackend::convertToLuminanceMask()
         convertToLuminanceMaskUint8();
 }
 
+// The transfers themselves are in PixelTransfer.swift. Swift assumes that the bytes it reads don't overlap the bytes
+// it writes, so overlapping sources are copied first.
+
+static bool transferBytesOverlap(std::span<const uint8_t> source, std::span<const uint8_t> destination)
+{
+    return !source.empty() && !destination.empty() && spansOverlap(source, destination);
+}
+
+static PixelTransferGeometry pixelTransferGeometry(const IntRect& sourceRect, const IntPoint& destinationPoint, const IntSize& pixelBufferSize, const IntSize& backendSize, unsigned backendBytesPerRow)
+{
+    return {
+        sourceRect.x(), sourceRect.y(), sourceRect.width(), sourceRect.height(),
+        destinationPoint.x(), destinationPoint.y(),
+        pixelBufferSize.width(), pixelBufferSize.height(),
+        backendSize.width(), backendSize.height(),
+        backendBytesPerRow
+    };
+}
+
 void ImageBufferBackend::getPixelBuffer(const IntRect& sourceRect, std::span<const uint8_t> sourceData, PixelBuffer& destinationPixelBuffer)
 {
-    IntRect backendRect { { }, size() };
-    auto sourceRectClipped = intersection(backendRect, sourceRect);
-    IntRect destinationRect { IntPoint::zero(), sourceRectClipped.size() };
-
-    if (sourceRect.x() < 0)
-        destinationRect.setX(-sourceRect.x());
-
-    if (sourceRect.y() < 0)
-        destinationRect.setY(-sourceRect.y());
-
-    if (destinationRect.size() != sourceRect.size())
-        destinationPixelBuffer.zeroFill();
-
-    auto sourcePixelFormat = pixelFormat();
-    unsigned sourceBytesPerRow = bytesPerRow();
-    ConstPixelBufferConversionView source {
-        { AlphaPremultiplication::Premultiplied, sourcePixelFormat, colorSpace() },
-        sourceBytesPerRow,
-        sourceData.subspan(sourceRectClipped.y() * sourceBytesPerRow + sourceRectClipped.x() * PixelBuffer::bytesPerPixel(sourcePixelFormat))
-    };
-
-    auto destinationBytesPerPixel = PixelBuffer::bytesPerPixel(destinationPixelBuffer.format().pixelFormat);
-    auto destinationBytesPerRow = uint32_t(sourceRect.width()) * destinationBytesPerPixel;
-    size_t offset = destinationRect.y() * destinationBytesPerRow + destinationRect.x() * destinationBytesPerPixel;
-    if (offset > destinationPixelBuffer.bytes().size())
+    auto geometry = pixelTransferGeometry(sourceRect, { }, { }, m_backendSize, bytesPerRow());
+    PixelBufferFormat sourceFormat { AlphaPremultiplication::Premultiplied, pixelFormat(), colorSpace() };
+    auto destinationData = destinationPixelBuffer.bytes();
+    MutablePixelBytes destination { destinationData };
+    if (transferBytesOverlap(sourceData, destinationData)) {
+        Vector<uint8_t> sourceCopy(sourceData);
+        pixelTransferGetPixelBuffer(geometry, sourceFormat, PixelBytes { sourceCopy.span() }, destinationPixelBuffer.format(), destination);
         return;
-    PixelBufferConversionView destination {
-        destinationPixelBuffer.format(),
-        destinationBytesPerRow,
-        destinationPixelBuffer.bytes().subspan(offset)
-    };
-
-    convertImagePixels(source, destination, destinationRect.size());
+    }
+    pixelTransferGetPixelBuffer(geometry, sourceFormat, PixelBytes { sourceData }, destinationPixelBuffer.format(), destination);
 }
 
 void ImageBufferBackend::putPixelBuffer(const PixelBufferSourceView& sourcePixelBuffer, const IntRect& sourceRect, const IntPoint& destinationPoint, AlphaPremultiplication destinationAlphaFormat, std::span<uint8_t> destinationData)
 {
-    IntRect backendRect { { }, size() };
-    auto sourceRectClipped = intersection({ IntPoint::zero(), sourcePixelBuffer.size() }, sourceRect);
-    auto destinationRect = sourceRectClipped;
-    destinationRect.moveBy(destinationPoint);
-
-    if (sourceRect.x() < 0)
-        destinationRect.setX(destinationRect.x() - sourceRect.x());
-
-    if (sourceRect.y() < 0)
-        destinationRect.setY(destinationRect.y() - sourceRect.y());
-
-    destinationRect.intersect(backendRect);
-    sourceRectClipped.setSize(destinationRect.size());
-
-    auto sourceBytesPerPixel = PixelBuffer::bytesPerPixel(sourcePixelBuffer.format().pixelFormat);
-    auto sourceBytesPerRow = uint32_t(sourcePixelBuffer.size().width()) * sourceBytesPerPixel;
-    ConstPixelBufferConversionView source {
-        sourcePixelBuffer.format(),
-        sourceBytesPerRow,
-        sourcePixelBuffer.bytes().subspan(sourceRectClipped.y() * sourceBytesPerRow + sourceRectClipped.x() * sourceBytesPerPixel)
-    };
-
-    auto destinationPixelFormat = pixelFormat();
-    unsigned destinationBytesPerRow = bytesPerRow();
-    PixelBufferConversionView destination {
-        { destinationAlphaFormat, destinationPixelFormat, colorSpace() },
-        destinationBytesPerRow,
-        destinationData.subspan(destinationRect.y() * destinationBytesPerRow + destinationRect.x() * PixelBuffer::bytesPerPixel(destinationPixelFormat))
-    };
-
-    convertImagePixels(source, destination, destinationRect.size());
+    auto geometry = pixelTransferGeometry(sourceRect, destinationPoint, sourcePixelBuffer.size(), m_backendSize, bytesPerRow());
+    PixelBufferFormat destinationFormat { destinationAlphaFormat, pixelFormat(), colorSpace() };
+    auto sourceData = sourcePixelBuffer.bytes();
+    MutablePixelBytes destination { destinationData };
+    if (transferBytesOverlap(sourceData, destinationData)) {
+        Vector<uint8_t> sourceCopy(sourceData);
+        pixelTransferPutPixelBuffer(geometry, sourcePixelBuffer.format(), PixelBytes { sourceCopy.span() }, destinationFormat, destination);
+        return;
+    }
+    pixelTransferPutPixelBuffer(geometry, sourcePixelBuffer.format(), PixelBytes { sourceData }, destinationFormat, destination);
 }
 
 NODELETE static AffineTransform baseTransformForBackingStore(const IntSize& backendSize, float resolutionScale)

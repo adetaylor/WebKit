@@ -5,7 +5,7 @@
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) 2012 Nokia Corporation and/or its subsidiary(-ies)
  * Copyright (C) 2014 Adobe Systems Incorporated. All rights reserved.
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -26,14 +26,8 @@
 #include "config.h"
 #include "FEBlend.h"
 
-#include "FEBlendNeonApplier.h"
-#include "FEBlendSoftwareApplier.h"
-#include "ImageBuffer.h"
+#include "Filter.h"
 #include <wtf/text/TextStream.h>
-
-#if USE(CORE_IMAGE)
-#include "FEBlendCoreImageApplier.h"
-#endif
 
 namespace WebCore {
 
@@ -44,20 +38,20 @@ Ref<FEBlend> FEBlend::create(BlendMode mode, ColorSpace colorSpace)
 
 FEBlend::FEBlend(BlendMode mode, ColorSpace colorSpace)
     : FilterEffect(FilterEffect::Type::FEBlend, colorSpace)
-    , m_mode(mode)
+    , m_parameters { mode }
 {
 }
 
 bool FEBlend::operator==(const FEBlend& other) const
 {
-    return FilterEffect::operator==(other) && m_mode == other.m_mode;
+    return FilterEffect::operator==(other) && m_parameters == other.m_parameters;
 }
 
 bool FEBlend::setBlendMode(BlendMode mode)
 {
-    if (m_mode == mode)
+    if (m_parameters.mode == mode)
         return false;
-    m_mode = mode;
+    m_parameters.mode = mode;
     return true;
 }
 
@@ -70,30 +64,12 @@ OptionSet<FilterRenderingMode> FEBlend::supportedFilterRenderingModes(OptionSet<
     return modes & preferredFilterRenderingModes;
 }
 
-std::unique_ptr<FilterEffectApplier> FEBlend::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEBlendCoreImageApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FEBlend::createSoftwareApplier() const
-{
-#if HAVE(ARM_NEON_INTRINSICS)
-    return FilterEffectApplier::create<FEBlendNeonApplier>(*this);
-#else
-    return FilterEffectApplier::create<FEBlendSoftwareApplier>(*this);
-#endif
-}
-
 TextStream& FEBlend::externalRepresentation(TextStream& ts, FilterRepresentation representation) const
 {
     ts << indent << "[feBlend"_s;
     FilterEffect::externalRepresentation(ts, representation);
 
-    ts << " mode=\"" << (m_mode == BlendMode::Normal ? "normal"_s : compositeOperatorName(CompositeOperator::SourceOver, m_mode));
+    ts << " mode=\"" << (m_parameters.mode == BlendMode::Normal ? "normal"_s : compositeOperatorName(CompositeOperator::SourceOver, m_parameters.mode));
 
     ts << "\"]\n"_s;
     return ts;

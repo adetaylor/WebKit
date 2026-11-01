@@ -1036,6 +1036,7 @@ if (SWIFT_REQUIRED)
             UIProcess/RemoteLayerTree/mac/RemoteLayerTreeEventDispatcher.mm
             WebProcess/WebPage/MomentumEventDispatcher.cpp
             WebProcess/WebPage/RemoteLayerTree/RemoteScrollingCoordinator.mm
+            WebProcess/GPU/webrtc/SharedVideoFrame.cpp
         )
     endif ()
     foreach (_f IN LISTS WebKit_SWIFT_INTEROP_SOURCES)

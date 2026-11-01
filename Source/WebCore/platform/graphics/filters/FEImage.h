@@ -3,7 +3,7 @@
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2010 Dirk Schulze <krit@webkit.org>
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <WebCore/FEImageParameters.h>
 #include <WebCore/FilterEffect.h>
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/SourceImage.h>
@@ -42,7 +43,9 @@ public:
     const SourceImage& sourceImage() const LIFETIME_BOUND { return m_sourceImage; }
     void setImageSource(SourceImage&& sourceImage) { m_sourceImage = WTF::move(sourceImage); }
 
-    FloatRect sourceImageRect() const { return m_sourceImageRect; }
+    FloatRect sourceImageRect() const { return m_parameters.sourceImageRect; }
+
+    const FEImageParameters& parameters() const LIFETIME_BOUND { return m_parameters; }
 
 private:
     FEImage(SourceImage&&, const FloatRect& sourceImageRect);
@@ -54,16 +57,12 @@ private:
     // FEImage results are always in ColorSpace::SRGB()
     void setOperatingColorSpace(const ColorSpace&) override { }
 
-    FloatRect calculateImageRect(const Filter&, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const override;
-
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode>) const override;
-    std::unique_ptr<FilterEffectApplier> createAcceleratedApplier() const override;
-    std::unique_ptr<FilterEffectApplier> createSoftwareApplier() const final;
 
     WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation) const final;
 
     SourceImage m_sourceImage;
-    FloatRect m_sourceImageRect;
+    FEImageParameters m_parameters;
 };
 
 } // namespace WebCore

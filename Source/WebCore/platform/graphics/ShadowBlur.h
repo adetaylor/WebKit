@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2026 Apple Inc. All rights reserved.
  * Copyright (C) 2010 Sencha, Inc.
  * Copyright (C) 2010 Igalia S.L.
  * All rights reserved.
@@ -32,7 +32,7 @@
 #include "FloatRect.h"
 #include "FloatRoundedRect.h"
 #include "GraphicsStyle.h"
-#include <wtf/Function.h>
+#include "ShadowBlurSwiftBridge.h"
 #include <wtf/Noncopyable.h>
 
 namespace WebCore {
@@ -42,7 +42,8 @@ class GraphicsContext;
 struct DropShadow;
 class ImageBuffer;
 
-class ShadowBlur {
+// The Swift (ShadowBlurGeometry.swift, ShadowBlurDrawing.swift) plans and draws the shadow.
+class WEBCORE_EXPORT ShadowBlur {
     WTF_MAKE_NONCOPYABLE(ShadowBlur);
 public:
     enum ShadowType {
@@ -51,23 +52,17 @@ public:
         BlurShadow
     };
 
-    NODELETE ShadowBlur();
     NODELETE ShadowBlur(const FloatSize& radius, const FloatSize& offset, const Color&, bool shadowsIgnoreTransforms = false);
     NODELETE ShadowBlur(const GraphicsDropShadow&, bool shadowsIgnoreTransforms = false);
-
-    void setShadowValues(const FloatSize&, const FloatSize& , const Color&, bool ignoreTransforms = false);
-
-    void setShadowsIgnoreTransforms(bool ignoreTransforms) { m_shadowsIgnoreTransforms = ignoreTransforms; }
-    bool shadowsIgnoreTransforms() const { return m_shadowsIgnoreTransforms; }
 
     void drawRectShadow(GraphicsContext&, const FloatRoundedRect&);
     void drawInsetShadow(GraphicsContext&, const FloatRect&, const FloatRoundedRect& holeRect);
 
-    using DrawBufferCallback = Function<void(ImageBuffer&, const FloatPoint&, const FloatSize&)>;
-    using DrawImageCallback = Function<void(ImageBuffer&, const FloatRect&, const FloatRect&)>;
-    using FillRectCallback = Function<void(const FloatRect&, const Color&)>;
-    using FillRectWithHoleCallback = Function<void(const FloatRect&, const FloatRect&, const Color&)>;
-    using DrawShadowCallback = Function<void(GraphicsContext&)>;
+    using DrawBufferCallback = ShadowBlurDestination::DrawBufferCallback;
+    using DrawImageCallback = ShadowBlurDestination::DrawImageCallback;
+    using FillRectCallback = ShadowBlurDestination::FillRectCallback;
+    using FillRectWithHoleCallback = ShadowBlurDestination::FillRectWithHoleCallback;
+    using DrawShadowCallback = ShadowBlurDestination::DrawShadowCallback;
 
     // DrawBufferCallback is for drawing shadow without tiling.
     // DrawImageCallback and FillRectCallback is for drawing shadow with tiling.
@@ -77,55 +72,11 @@ public:
 
     void blurLayerImage(std::span<uint8_t>, const IntSize&, int stride);
 
-    void clear();
-
-    ShadowType type() const { return m_type; }
+    ShadowType type() const;
 
 private:
-    NODELETE void updateShadowBlurValues();
-
-    void drawShadowBuffer(GraphicsContext&, ImageBuffer&, const FloatPoint&, const FloatSize&);
-
-    void adjustBlurRadius(const AffineTransform&);
-
-    enum ShadowDirection {
-        OuterShadow,
-        InnerShadow
-    };
-
-    struct LayerImageProperties {
-        FloatSize shadowedResultSize; // Size of the result of shadowing which is same as shadowedRect + blurred edges.
-        FloatPoint layerOrigin; // Top-left corner of the (possibly clipped) bounding rect to draw the shadow to.
-        FloatSize layerSize; // Size of layerImage pixels that need blurring.
-        FloatSize layerContextTranslation; // Translation to apply to layerContext for the shadow to be correctly clipped.
-    };
-
-    std::optional<ShadowBlur::LayerImageProperties> calculateLayerBoundingRect(const AffineTransform&, const FloatRect& layerArea, const IntRect& clipRect);
-    NODELETE IntSize templateSize(const IntSize& blurredEdgeSize, const CornerRadii&) const;
-
-    void blurShadowBuffer(ImageBuffer& layerImage, const IntSize& templateSize);
-    void blurAndColorShadowBuffer(ImageBuffer& layerImage, const IntSize& templateSize);
-
-    void drawInsetShadowWithoutTiling(const AffineTransform&, const FloatRect& fullRect, const FloatRoundedRect& holeRect, const LayerImageProperties&, NOESCAPE const DrawBufferCallback&);
-    void drawInsetShadowWithTiling(const AffineTransform&, const FloatRect& fullRect, const FloatRoundedRect& holeRect, const IntSize& shadowTemplateSize, const IntSize& blurredEdgeSize, NOESCAPE const DrawImageCallback&, NOESCAPE const FillRectWithHoleCallback&);
-    void drawInsetShadowWithTilingWithLayerImageBuffer(ImageBuffer& layerImage, const AffineTransform&, const FloatRect& fullRect, const FloatRoundedRect& holeRect, const IntSize& shadowTemplateSize, const IntSize& blurredEdgeSize, NOESCAPE const DrawImageCallback&, NOESCAPE const FillRectWithHoleCallback&, const FloatRect& templateBounds, const FloatRect& templateHole, bool redrawNeeded = true);
-
-    void drawRectShadowWithoutTiling(const AffineTransform&, const FloatRoundedRect& shadowedRect, const LayerImageProperties&, NOESCAPE const DrawBufferCallback&);
-    void drawRectShadowWithTiling(const AffineTransform&, const FloatRoundedRect& shadowedRect, const IntSize& shadowTemplateSize, const IntSize& blurredEdgeSize, NOESCAPE const DrawImageCallback&, NOESCAPE const FillRectCallback&, const LayerImageProperties&);
-    void drawRectShadowWithTilingWithLayerImageBuffer(ImageBuffer& layerImage, const AffineTransform&, const FloatRoundedRect& shadowedRect, const IntSize& templateSize, const IntSize& edgeSize, NOESCAPE const DrawImageCallback&, NOESCAPE const FillRectCallback&, const FloatRect& templateShadow, bool redrawNeeded = true);
-
-    void drawLayerPiecesAndFillCenter(ImageBuffer& layerImage, const FloatRect& shadowBounds, const CornerRadii&, const IntSize& roundedRadius, const IntSize& templateSize, NOESCAPE const DrawImageCallback&, NOESCAPE const FillRectCallback&);
-    void drawLayerPieces(ImageBuffer& layerImage, const FloatRect& shadowBounds, const CornerRadii&, const IntSize& roundedRadius, const IntSize& templateSize, NOESCAPE const DrawImageCallback&);
-
-    IntSize blurredEdgeSize() const;
-
-    ShadowType m_type { NoShadow };
-
     Color m_color;
-    FloatSize m_blurRadius;
-    FloatSize m_offset;
-
-    bool m_shadowsIgnoreTransforms { false };
+    ShadowBlurState m_state;
 };
 
 } // namespace WebCore

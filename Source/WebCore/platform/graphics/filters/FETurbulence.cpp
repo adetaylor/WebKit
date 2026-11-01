@@ -5,7 +5,7 @@
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) 2010 Renata Hodovan <reni@inf.u-szeged.hu>
  * Copyright (C) 2011 Gabor Loki <loki@webkit.org>
- * Copyright (C) 2017-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -26,13 +26,8 @@
 #include "config.h"
 #include "FETurbulence.h"
 
-#include "FETurbulenceSoftwareApplier.h"
 #include "Filter.h"
 #include <wtf/text/TextStream.h>
-
-#if USE(CORE_IMAGE)
-#include "FETurbulenceCoreImageApplier.h"
-#endif
 
 namespace WebCore {
 
@@ -43,77 +38,61 @@ Ref<FETurbulence> FETurbulence::create(TurbulenceType type, float baseFrequencyX
 
 FETurbulence::FETurbulence(TurbulenceType type, float baseFrequencyX, float baseFrequencyY, int numOctaves, float seed, bool stitchTiles, ColorSpace colorSpace)
     : FilterEffect(FilterEffect::Type::FETurbulence, colorSpace)
-    , m_type(type)
-    , m_baseFrequencyX(baseFrequencyX)
-    , m_baseFrequencyY(baseFrequencyY)
-    , m_numOctaves(numOctaves)
-    , m_seed(seed)
-    , m_stitchTiles(stitchTiles)
+    , m_parameters { type, baseFrequencyX, baseFrequencyY, numOctaves, seed, stitchTiles }
 {
 }
 
 bool FETurbulence::operator==(const FETurbulence& other) const
 {
-    return FilterEffect::operator==(other)
-        && m_type == other.m_type
-        && m_baseFrequencyX == other.m_baseFrequencyX
-        && m_baseFrequencyY == other.m_baseFrequencyY
-        && m_numOctaves == other.m_numOctaves
-        && m_seed == other.m_seed
-        && m_stitchTiles == other.m_stitchTiles;
+    return FilterEffect::operator==(other) && m_parameters == other.m_parameters;
 }
 
 bool FETurbulence::setType(TurbulenceType type)
 {
-    if (m_type == type)
+    if (m_parameters.type == type)
         return false;
-    m_type = type;
+    m_parameters.type = type;
     return true;
 }
 
 bool FETurbulence::setBaseFrequencyY(float baseFrequencyY)
 {
-    if (m_baseFrequencyY == baseFrequencyY)
+    if (m_parameters.baseFrequencyY == baseFrequencyY)
         return false;
-    m_baseFrequencyY = baseFrequencyY;
+    m_parameters.baseFrequencyY = baseFrequencyY;
     return true;
 }
 
 bool FETurbulence::setBaseFrequencyX(float baseFrequencyX)
 {
-    if (m_baseFrequencyX == baseFrequencyX)
+    if (m_parameters.baseFrequencyX == baseFrequencyX)
         return false;
-    m_baseFrequencyX = baseFrequencyX;
+    m_parameters.baseFrequencyX = baseFrequencyX;
     return true;
 }
 
 bool FETurbulence::setSeed(float seed)
 {
-    if (m_seed == seed)
+    if (m_parameters.seed == seed)
         return false;
-    m_seed = seed;
+    m_parameters.seed = seed;
     return true;
 }
 
 bool FETurbulence::setNumOctaves(int numOctaves)
 {
-    if (m_numOctaves == numOctaves)
+    if (m_parameters.numOctaves == numOctaves)
         return false;
-    m_numOctaves = numOctaves;
+    m_parameters.numOctaves = numOctaves;
     return true;
 }
 
 bool FETurbulence::setStitchTiles(bool stitch)
 {
-    if (m_stitchTiles == stitch)
+    if (m_parameters.stitchTiles == stitch)
         return false;
-    m_stitchTiles = stitch;
+    m_parameters.stitchTiles = stitch;
     return true;
-}
-
-FloatRect FETurbulence::calculateImageRect(const Filter& filter, std::span<const FloatRect>, const FloatRect& primitiveSubregion) const
-{
-    return filter.maxEffectRect(primitiveSubregion);
 }
 
 OptionSet<FilterRenderingMode> FETurbulence::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
@@ -123,20 +102,6 @@ OptionSet<FilterRenderingMode> FETurbulence::supportedFilterRenderingModes(Optio
     modes.add(FilterRenderingMode::Accelerated);
 #endif
     return modes & preferredFilterRenderingModes;
-}
-
-std::unique_ptr<FilterEffectApplier> FETurbulence::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FETurbulenceCoreImageApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FETurbulence::createSoftwareApplier() const
-{
-    return FilterEffectApplier::create<FETurbulenceSoftwareApplier>(*this);
 }
 
 static TextStream& operator<<(TextStream& ts, TurbulenceType type)
@@ -159,7 +124,7 @@ TextStream& FETurbulence::externalRepresentation(TextStream& ts, FilterRepresent
 {
     ts << indent << "[feTurbulence"_s;
     FilterEffect::externalRepresentation(ts, representation);
-    
+
     ts << " type=\""_s << type() << '"';
     ts << " baseFrequency=\""_s << baseFrequencyX() << ", "_s << baseFrequencyY() << '"';
     ts << " seed=\""_s << seed() << '"';

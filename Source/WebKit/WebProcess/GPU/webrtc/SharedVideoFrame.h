@@ -34,8 +34,7 @@
 #include <WebCore/PlatformVideoColorSpace.h>
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/SharedMemory.h>
-#include <atomic>
-#include <wtf/Atomics.h>
+#include <cstddef>
 #include <wtf/MediaTime.h>
 #include <wtf/RefPtr.h>
 #include <wtf/RetainPtr.h>
@@ -43,14 +42,12 @@
 #include <wtf/UniqueRef.h>
 
 typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
-typedef struct __CVPixelBufferPool* CVPixelBufferPoolRef;
 
 namespace IPC {
 class Connection;
 }
 
 namespace WebCore {
-class SharedVideoFrameInfo;
 class VideoFrame;
 enum class VideoFrameRotation : uint16_t;
 }
@@ -63,6 +60,10 @@ class VideoFrameBuffer;
 namespace WebKit {
 
 class RemoteVideoFrameObjectHeap;
+#if !defined(__swift__)
+class SharedVideoFrameReaderImpl;
+class SharedVideoFrameWriterImpl;
+#endif
 
 struct SharedVideoFrame {
     MediaTime time;
@@ -78,6 +79,9 @@ class SharedVideoFrameWriter {
     WTF_MAKE_TZONE_ALLOCATED(SharedVideoFrameWriter);
 public:
     SharedVideoFrameWriter();
+    SharedVideoFrameWriter(SharedVideoFrameWriter&&);
+    SharedVideoFrameWriter& operator=(SharedVideoFrameWriter&&);
+    ~SharedVideoFrameWriter();
 
     // The IPC::Connection is the GPU process connection that the result is sent on, directly or through a stream
     // created on it. Writing a RemoteVideoFrameProxy of another connection fails.
@@ -88,35 +92,34 @@ public:
 #endif
     std::optional<SharedVideoFrame::Buffer> writeBuffer(const WebCore::VideoFrame&, const IPC::Connection&, NOESCAPE const Function<void(IPC::Semaphore&)>&, NOESCAPE const Function<void(WebCore::SharedMemory::Handle&&)>&);
 
+    // Can be called from another thread, to unblock a writer waiting for the reader without taking its locks.
     void disable();
-    bool isDisabled() { return WTF::atomicLoad<MemoryOrder::Relaxed>(&m_isDisabled); }
+    bool isDisabled();
 
 private:
-    static constexpr Seconds defaultTimeout = 3_s;
+    friend class SharedVideoFrameWriterContext;
 
-    bool wait(NOESCAPE const Function<void(IPC::Semaphore&)>&);
-    bool allocateStorage(size_t, NOESCAPE const Function<void(WebCore::SharedMemory::Handle&&)>&);
-    bool prepareWriting(const WebCore::SharedVideoFrameInfo&, NOESCAPE const Function<void(IPC::Semaphore&)>&, NOESCAPE const Function<void(WebCore::SharedMemory::Handle&&)>&);
+    static constexpr Seconds defaultTimeout = 3_s;
 
 #if USE(LIBWEBRTC)
     std::optional<SharedVideoFrame::Buffer> writeBuffer(webrtc::VideoFrameBuffer&, NOESCAPE const Function<void(IPC::Semaphore&)>&, NOESCAPE const Function<void(WebCore::SharedMemory::Handle&&)>&);
 #endif
-    void signalInCaseOfError();
+
+#if !defined(__swift__)
+    SharedVideoFrameWriterImpl& swiftImpl() LIFETIME_BOUND;
+#endif
 
     UniqueRef<IPC::Semaphore> m_semaphore;
     RefPtr<WebCore::SharedMemory> m_storage;
     std::unique_ptr<WebCore::PixelBufferConformerCV> m_compressedPixelBufferConformer;
-    bool m_isSemaphoreInUse { false };
-    // Written by disable() from another thread without holding any lock, so that a writer
-    // blocked in wait() while holding m_encodersConnectionLock can be unblocked without deadlock.
-    // Accessed with WTF::atomicLoad/atomicStore rather than declared std::atomic so that this
-    // class stays assignable from a default-constructed temporary.
-    bool m_isDisabled { false };
-    bool m_shouldSignalInCaseOfError { false };
+    // Storage for the Swift SharedVideoFrameWriterImpl (one strong reference), built in place in SharedVideoFrame.cpp, where
+    // the generated header is visible.
+    alignas(void*) std::byte m_impl[sizeof(void*)];
 };
 
 class SharedVideoFrameReader {
     WTF_MAKE_TZONE_ALLOCATED(SharedVideoFrameReader);
+    WTF_MAKE_NONCOPYABLE(SharedVideoFrameReader);
 public:
     ~SharedVideoFrameReader();
 
@@ -131,21 +134,21 @@ public:
     RetainPtr<CVPixelBufferRef> readBuffer(SharedVideoFrame::Buffer&&);
 
 private:
-    CVPixelBufferPoolRef pixelBufferPool(const WebCore::SharedVideoFrameInfo&);
-    RetainPtr<CVPixelBufferRef> readBufferFromSharedMemory();
+    friend class SharedVideoFrameReaderContext;
+
+#if !defined(__swift__)
+    SharedVideoFrameReaderImpl& swiftImpl() LIFETIME_BOUND;
+#endif
 
     const RefPtr<RemoteVideoFrameObjectHeap> m_objectHeap;
     WebCore::ProcessIdentity m_resourceOwner;
-    UseIOSurfaceBufferPool m_useIOSurfaceBufferPool { UseIOSurfaceBufferPool::No };
     std::optional<IPC::Semaphore> m_semaphore;
     RefPtr<WebCore::SharedMemory> m_storage;
-
-    RetainPtr<CVPixelBufferPoolRef> m_bufferPool;
-    OSType m_bufferPoolType { 0 };
-    uint32_t m_bufferPoolWidth { 0 };
-    uint32_t m_bufferPoolHeight { 0 };
     WebCore::IntSize m_blackFrameSize;
     RetainPtr<CVPixelBufferRef> m_blackFrame;
+    // Storage for the Swift SharedVideoFrameReaderImpl (one strong reference), built in place in SharedVideoFrame.cpp, where
+    // the generated header is visible.
+    alignas(void*) std::byte m_impl[sizeof(void*)];
 };
 
 }

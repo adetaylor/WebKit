@@ -1,4 +1,4 @@
-// Copyright (C) 2017-2024 Apple Inc. All rights reserved.
+// Copyright (C) 2017-2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -519,25 +519,7 @@ platform/graphics/cv/CVUtilities.mm @nonARC
 platform/graphics/cv/ImageTransferSessionVT.mm @nonARC
 platform/graphics/cv/PixelBufferConformerCV.cpp
 platform/graphics/cv/VideoFrameCV.mm @nonARC
-platform/graphics/coreimage/FEBlendCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEColorMatrixCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEComponentTransferCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FECompositeCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEConvolveMatrixCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEDisplacementMapCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEDropShadowCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEFloodCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEGaussianBlurCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEImageCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FELightingCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEMergeCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEMorphologyCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FEOffsetCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FETileCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FETurbulenceCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/FilterImageCoreImage.mm @nonARC
-platform/graphics/coreimage/SourceAlphaCoreImageApplier.mm @nonARC
-platform/graphics/coreimage/SourceGraphicCoreImageApplier.mm @nonARC
+platform/graphics/coreimage/FilterCoreImageSwiftBridge.mm @nonARC
 platform/graphics/ios/DisplayRefreshMonitorIOS.mm @nonARC
 platform/graphics/ios/IconIOS.mm @nonARC
 platform/graphics/ios/controls/ControlFactoryIOS.mm @nonARC
