@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,17 +47,10 @@ SharedCARingBufferBase::SharedCARingBufferBase(size_t bytesPerFrame, size_t fram
 
 std::unique_ptr<ConsumerSharedCARingBuffer> ConsumerSharedCARingBuffer::map(uint32_t bytesPerFrame, uint32_t numChannelStreams, ConsumerSharedCARingBuffer::Handle&& handle)
 {
-    if (!std::in_range<size_t>(handle.frameCount)) {
-        RELEASE_LOG_FAULT(Media, "ConsumerSharedCARingBuffer::map: handle.frameCount doesn't fit in a size_t");
-        return nullptr;
-    }
-
-    auto frameCount = roundUpToPowerOfTwo(static_cast<size_t>(handle.frameCount));
-
     // Validate the parameters as they may be coming from an untrusted process.
-    auto expectedStorageSize = computeSizeForBuffers(bytesPerFrame, frameCount, numChannelStreams) + sizeof(TimeBoundsBuffer);
-    if (expectedStorageSize.hasOverflowed()) {
-        RELEASE_LOG_FAULT(Media, "ConsumerSharedCARingBuffer::map: Overflowed when trying to compute the storage size");
+    auto storageSize = sharedStorageSizeForMapping(bytesPerFrame, handle.frameCount, numChannelStreams);
+    if (!storageSize.isValid) {
+        RELEASE_LOG_FAULT(Media, "ConsumerSharedCARingBuffer::map: Invalid frame count, or overflowed when trying to compute the storage size");
         return nullptr;
     }
     auto storage = WebCore::SharedMemory::map(WTF::move(handle.memory), WebCore::SharedMemory::Protection::ReadOnly);
@@ -65,28 +58,27 @@ std::unique_ptr<ConsumerSharedCARingBuffer> ConsumerSharedCARingBuffer::map(uint
         RELEASE_LOG_FAULT(Media, "ConsumerSharedCARingBuffer::map: Failed to map memory");
         return nullptr;
     }
-    if (storage->size() < expectedStorageSize) {
+    if (storage->size() < storageSize.byteCount) {
         RELEASE_LOG_FAULT(Media, "ConsumerSharedCARingBuffer::map: Storage size is insufficient for format and frameCount");
         return nullptr;
     }
 
-    std::unique_ptr<ConsumerSharedCARingBuffer> result { new ConsumerSharedCARingBuffer { bytesPerFrame, frameCount, numChannelStreams, storage.releaseNonNull() } };
+    std::unique_ptr<ConsumerSharedCARingBuffer> result { new ConsumerSharedCARingBuffer { bytesPerFrame, static_cast<size_t>(storageSize.frameCount), numChannelStreams, storage.releaseNonNull() } };
     result->initialize();
     return result;
 }
 
 std::optional<ProducerSharedCARingBuffer::Pair> ProducerSharedCARingBuffer::allocate(const WebCore::CAAudioStreamDescription& format, size_t frameCount)
 {
-    frameCount = roundUpToPowerOfTwo(frameCount);
     auto bytesPerFrame = format.bytesPerFrame();
     auto numChannelStreams = format.numberOfChannelStreams();
 
-    auto checkedSharedMemorySize = computeSizeForBuffers(bytesPerFrame, frameCount, numChannelStreams) + sizeof(TimeBoundsBuffer);
-    if (checkedSharedMemorySize.hasOverflowed()) {
+    auto storageSize = sharedStorageSizeForAllocation(bytesPerFrame, frameCount, numChannelStreams);
+    if (!storageSize.isValid) {
         RELEASE_LOG_FAULT(Media, "ProducerSharedCARingBuffer::allocate: Overflowed when trying to compute the storage size");
         return std::nullopt;
     }
-    auto sharedMemory = WebCore::SharedMemory::allocate(checkedSharedMemorySize.value());
+    auto sharedMemory = WebCore::SharedMemory::allocate(storageSize.byteCount);
     if (!sharedMemory)
         return std::nullopt;
 
@@ -95,9 +87,9 @@ std::optional<ProducerSharedCARingBuffer::Pair> ProducerSharedCARingBuffer::allo
         return std::nullopt;
 
     new (NotNull, sharedMemory->mutableSpan().data()) TimeBoundsBuffer;
-    std::unique_ptr<ProducerSharedCARingBuffer> result { new ProducerSharedCARingBuffer { bytesPerFrame, frameCount, numChannelStreams, sharedMemory.releaseNonNull() } };
+    std::unique_ptr<ProducerSharedCARingBuffer> result { new ProducerSharedCARingBuffer { bytesPerFrame, static_cast<size_t>(storageSize.frameCount), numChannelStreams, sharedMemory.releaseNonNull() } };
     result->initialize();
-    return Pair { WTF::move(result), { WTF::move(*handle), frameCount } };
+    return Pair { WTF::move(result), { WTF::move(*handle), storageSize.frameCount } };
 }
 
 } // namespace WebKit

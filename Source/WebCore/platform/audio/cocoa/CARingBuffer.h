@@ -73,8 +73,9 @@ protected:
     WEBCORE_EXPORT CARingBuffer(size_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams);
     WEBCORE_EXPORT void initialize();
 
-    NODELETE WEBCORE_EXPORT static CheckedSize computeCapacityBytes(size_t bytesPerFrame, size_t frameCount);
-    NODELETE WEBCORE_EXPORT static CheckedSize computeSizeForBuffers(size_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams);
+    // The storage of a shared ring: its bounds, then its channels. For a handle from another process, use the mapping one.
+    WEBCORE_EXPORT static CARingBufferStorageSize sharedStorageSizeForAllocation(uint32_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams);
+    WEBCORE_EXPORT static CARingBufferStorageSize sharedStorageSizeForMapping(uint32_t bytesPerFrame, uint64_t frameCount, uint32_t numChannelStreams);
 
     virtual void* data() LIFETIME_BOUND = 0;
     std::span<uint8_t> span() LIFETIME_BOUND { return unsafeMakeSpan(static_cast<uint8_t*>(data()), static_cast<size_t>(m_geometry.channelCount * m_geometry.capacityBytes)); }

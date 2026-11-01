@@ -52,14 +52,14 @@ CARingBuffer::CARingBuffer(size_t bytesPerFrame, size_t frameCount, uint32_t num
 
 CARingBuffer::~CARingBuffer() = default;
 
-CheckedSize CARingBuffer::computeCapacityBytes(size_t bytesPerFrame, size_t frameCount)
+CARingBufferStorageSize CARingBuffer::sharedStorageSizeForAllocation(uint32_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams)
 {
-    return CheckedSize { bytesPerFrame } * frameCount;
+    return caRingBufferStorageSize(bytesPerFrame, frameCount, numChannelStreams, sizeof(TimeBoundsBuffer));
 }
 
-CheckedSize CARingBuffer::computeSizeForBuffers(size_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams)
+CARingBufferStorageSize CARingBuffer::sharedStorageSizeForMapping(uint32_t bytesPerFrame, uint64_t frameCount, uint32_t numChannelStreams)
 {
-    return computeCapacityBytes(bytesPerFrame, frameCount) * numChannelStreams;
+    return caRingBufferMappedStorageSize(bytesPerFrame, frameCount, numChannelStreams, sizeof(TimeBoundsBuffer));
 }
 
 void CARingBuffer::initialize()

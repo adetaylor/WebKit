@@ -129,6 +129,23 @@ func caRingBufferStorageSize(_ bytesPerFrame: UInt32, _ frameCount: UInt64, _ ch
     return size
 }
 
+// The storage a shared ring's handle needs, for a handle that may come from another process: not valid if its frame
+// count doesn't fit in a size_t, if the storage size overflows, or if the frame count, rounded up, doesn't fit in the
+// 32 bits a ring keeps of it.
+@_expose(Cxx)
+func caRingBufferMappedStorageSize(_ bytesPerFrame: UInt32, _ frameCount: UInt64, _ channelCount: UInt32, _ headerSize: UInt64)
+    -> WebCore.CARingBufferStorageSize
+{
+    guard let frames = UInt(exactly: frameCount) else {
+        return WebCore.CARingBufferStorageSize()
+    }
+    var size = caRingBufferStorageSize(bytesPerFrame, UInt64(frames), channelCount, headerSize)
+    if size.frameCount > UInt64(UInt32.max) {
+        size.isValid = false
+    }
+    return size
+}
+
 private func setBounds(
     _ storeBounds: inout WebCore.CARingBufferBounds,
     _ ring: inout WebCore.CARingBufferWriteView,
