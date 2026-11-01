@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -278,6 +278,77 @@ TEST_F(CARingBufferTest, FetchTimeBoundsInvalid)
 
     boundsBuffer.store({ std::numeric_limits<uint64_t>::max() - 1u, std::numeric_limits<uint64_t>::max() });
     EXPECT_EQ(makeBounds(std::numeric_limits<uint64_t>::max() - 32u, std::numeric_limits<uint64_t>::max()), ringBuffer().getFetchTimeBounds());
+}
+
+TEST_F(CARingBufferTest, StoreOfFewerBytesThanFramesLeavesTheRestSilent)
+{
+    const size_t capacity = 32;
+    setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
+    std::array<float, capacity> sourceBuffer;
+    sourceBuffer.fill(1);
+    setListDataBuffer(sourceBuffer);
+    EXPECT_EQ(ringBuffer().store(&bufferList(), capacity, 0), CARingBuffer::Ok);
+
+    // 8 frames from a buffer that holds 4, over frames the ring held before.
+    sourceBuffer.fill(2);
+    bufferList().mBuffers[0].mDataByteSize = 4 * sizeof(float);
+    EXPECT_EQ(ringBuffer().store(&bufferList(), 8, capacity), CARingBuffer::Ok);
+
+    std::array<float, 8> destinationBuffer;
+    destinationBuffer.fill(-1);
+    setListDataBuffer(destinationBuffer);
+    EXPECT_TRUE(ringBuffer().fetchIfHasEnoughData(&bufferList(), 8, capacity));
+    for (size_t i = 0; i < 4; ++i)
+        EXPECT_EQ(destinationBuffer[i], 2) << "at frame " << i;
+    for (size_t i = 4; i < 8; ++i)
+        EXPECT_EQ(destinationBuffer[i], 0) << "at frame " << i;
+}
+
+TEST_F(CARingBufferTest, StoreCopiesAsMuchOfEachBufferAsItHolds)
+{
+    const size_t capacity = 32;
+    setup(44100, 2, CAAudioStreamDescription::PCMFormat::Float32, false, capacity);
+    std::array<float, 2 * capacity> samples;
+    samples.fill(1);
+    auto& list = bufferList();
+    list.mNumberBuffers = 2;
+    list.mBuffers[0] = { 1, capacity * sizeof(float), samples.data() };
+    list.mBuffers[1] = { 1, 4 * sizeof(float), samples.data() + capacity };
+    EXPECT_EQ(ringBuffer().store(&list, 8, 0), CARingBuffer::Ok);
+
+    samples.fill(-1);
+    list.mBuffers[0].mDataByteSize = 8 * sizeof(float);
+    list.mBuffers[1].mDataByteSize = 8 * sizeof(float);
+    EXPECT_TRUE(ringBuffer().fetchIfHasEnoughData(&list, 8, 0));
+    for (size_t i = 0; i < 8; ++i)
+        EXPECT_EQ(samples[i], 1) << "at frame " << i;
+    for (size_t i = 0; i < 4; ++i)
+        EXPECT_EQ(samples[capacity + i], 1) << "at frame " << i;
+    for (size_t i = 4; i < 8; ++i)
+        EXPECT_EQ(samples[capacity + i], 0) << "at frame " << i;
+}
+
+TEST_F(CARingBufferTest, FetchSilencesTheFramesTheRingDoesNotHoldInEveryBuffer)
+{
+    const size_t capacity = 32;
+    setup(44100, 2, CAAudioStreamDescription::PCMFormat::Float32, false, capacity);
+    std::array<float, 2 * capacity> samples;
+    samples.fill(1);
+    auto& list = bufferList();
+    list.mNumberBuffers = 2;
+    list.mBuffers[0] = { 1, capacity * sizeof(float), samples.data() };
+    list.mBuffers[1] = { 1, capacity * sizeof(float), samples.data() + capacity };
+    EXPECT_EQ(ringBuffer().store(&list, 10, 0), CARingBuffer::Ok);
+
+    // Frames [0, 20), into a first buffer that ends before the frames the ring doesn't hold.
+    samples.fill(-1);
+    list.mBuffers[0].mDataByteSize = 4 * sizeof(float);
+    list.mBuffers[1].mDataByteSize = 20 * sizeof(float);
+    ringBuffer().fetch(&list, 20, 0);
+    for (size_t i = 0; i < 10; ++i)
+        EXPECT_EQ(samples[capacity + i], 1) << "at frame " << i;
+    for (size_t i = 10; i < 20; ++i)
+        EXPECT_EQ(samples[capacity + i], 0) << "at frame " << i;
 }
 
 // FIXME when rdar://151622059 is resolved.

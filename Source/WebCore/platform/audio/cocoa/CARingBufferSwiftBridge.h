@@ -67,6 +67,13 @@ struct CARingBufferStorageSize {
 };
 static_assert(sizeof(CARingBufferStorageSize) == 24);
 
+// The floating-point mixes of a fetch, as CARingBuffer's C++ did them: through VectorMath::add(), so vDSP decides which
+// NaN a sum of two NaNs gives. The byteCount / sample size samples of source from sourceOffset are added to those of
+// destination from destinationOffset; this traps unless the bytes from each offset to the end of its span are a whole
+// number of samples, and unless both ranges are inside their spans.
+void mixFloat32Samples(std::span<uint8_t> destination NOESCAPE, size_t destinationOffset, std::span<const uint8_t> source NOESCAPE, size_t sourceOffset, size_t byteCount);
+void mixFloat64Samples(std::span<uint8_t> destination NOESCAPE, size_t destinationOffset, std::span<const uint8_t> source NOESCAPE, size_t sourceOffset, size_t byteCount);
+
 // A ring, for a fetch: its geometry, the bounds the C++ read from it and its channels.
 class SWIFT_NONCOPYABLE SWIFT_NONESCAPABLE SWIFT_SAFE CARingBufferReadView {
 public:

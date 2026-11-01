@@ -45,4 +45,88 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE_WEBCORE_SWIFT
+
+// The integer mixes of CARingBuffer's fetch: each adds the byteCount / sample size samples of source at sourceOffset to
+// those of destination at destinationOffset, wrapping. Each traps unless the bytes from each offset to the end of its
+// span are a whole number of samples, as the C++'s spanReinterpretCast() does, and unless both ranges are inside their
+// spans. (The floating-point mixes are C++, CARingBufferSwiftBridge.h.)
+//
+// Samples need not be aligned. Each loop moves 64-byte SIMD vectors, then single samples. The kernels stay out of line, which
+// keeps the copy path that calls them small.
+
+@inline(__always)
+private func checkMixRanges(
+    _ source: borrowing RawSpan,
+    _ sourceOffset: Int,
+    _ destination: borrowing MutableRawSpan,
+    _ destinationOffset: Int,
+    _ byteCount: Int,
+    _ sampleSize: Int
+) {
+    // Every operand is non-negative before the subtractions, so they can't overflow.
+    precondition(
+        sourceOffset >= 0 && destinationOffset >= 0 && byteCount >= 0 && sourceOffset <= source.byteCount
+            && destinationOffset <= destination.byteCount
+            && (source.byteCount &- sourceOffset) % sampleSize == 0
+            && (destination.byteCount &- destinationOffset) % sampleSize == 0
+            && byteCount <= source.byteCount &- sourceOffset && byteCount <= destination.byteCount &- destinationOffset
+    )
+}
+
+@inline(never)
+func mixInt16Samples(
+    _ source: Span<UInt8>,
+    _ sourceOffset: Int,
+    _ destination: inout MutableSpan<UInt8>,
+    _ destinationOffset: Int,
+    _ byteCount: Int
+) {
+    let sourceBytes = source.bytes
+    var destinationBytes = destination.mutableBytes
+    checkMixRanges(sourceBytes, sourceOffset, destinationBytes, destinationOffset, byteCount, 2)
+    let end = byteCount & ~1
+    let vectorEnd = byteCount & ~63
+    var i = 0
+    while i < vectorEnd {
+        let s = sourceBytes.load(fromByteOffset: sourceOffset &+ i, as: SIMD32<Int16>.self)
+        let d = destinationBytes.load(fromByteOffset: destinationOffset &+ i, as: SIMD32<Int16>.self)
+        destinationBytes.storeBytes(of: d &+ s, toByteOffset: destinationOffset &+ i, as: SIMD32<Int16>.self)
+        i &+= 64
+    }
+    while i < end {
+        let s = sourceBytes.load(fromByteOffset: sourceOffset &+ i, as: Int16.self)
+        let d = destinationBytes.load(fromByteOffset: destinationOffset &+ i, as: Int16.self)
+        destinationBytes.storeBytes(of: d &+ s, toByteOffset: destinationOffset &+ i, as: Int16.self)
+        i &+= 2
+    }
+}
+
+@inline(never)
+func mixInt32Samples(
+    _ source: Span<UInt8>,
+    _ sourceOffset: Int,
+    _ destination: inout MutableSpan<UInt8>,
+    _ destinationOffset: Int,
+    _ byteCount: Int
+) {
+    let sourceBytes = source.bytes
+    var destinationBytes = destination.mutableBytes
+    checkMixRanges(sourceBytes, sourceOffset, destinationBytes, destinationOffset, byteCount, 4)
+    let end = byteCount & ~3
+    let vectorEnd = byteCount & ~63
+    var i = 0
+    while i < vectorEnd {
+        let s = sourceBytes.load(fromByteOffset: sourceOffset &+ i, as: SIMD16<Int32>.self)
+        let d = destinationBytes.load(fromByteOffset: destinationOffset &+ i, as: SIMD16<Int32>.self)
+        destinationBytes.storeBytes(of: d &+ s, toByteOffset: destinationOffset &+ i, as: SIMD16<Int32>.self)
+        i &+= 64
+    }
+    while i < end {
+        let s = sourceBytes.load(fromByteOffset: sourceOffset &+ i, as: Int32.self)
+        let d = destinationBytes.load(fromByteOffset: destinationOffset &+ i, as: Int32.self)
+        destinationBytes.storeBytes(of: d &+ s, toByteOffset: destinationOffset &+ i, as: Int32.self)
+        i &+= 4
+    }
+}
+
 #endif // ENABLE_WEBCORE_SWIFT

@@ -3371,6 +3371,7 @@ if (APPLE)
     # which is ordered after the Swift compile that generates WebCoreSwift-Generated.h, so keep them
     # out of the unified sources.
     set(WebCore_SWIFT_INTEROP_SOURCES
+        platform/audio/cocoa/CARingBuffer.cpp
         platform/graphics/PixelBufferConversion.cpp
         platform/cocoa/SharedVideoFrameInfo.mm
 

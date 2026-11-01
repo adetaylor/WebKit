@@ -66,8 +66,8 @@ public:
 
     WEBCORE_EXPORT TimeBounds getFetchTimeBounds();
 
-    uint32_t channelCount() const { return m_channelCount; }
-    uint32_t frameCount() const { return m_frameCount; }
+    uint32_t channelCount() const { return m_geometry.channelCount; }
+    uint32_t frameCount() const { return m_geometry.frameCount; }
 
 protected:
     WEBCORE_EXPORT CARingBuffer(size_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams);
@@ -77,20 +77,17 @@ protected:
     NODELETE WEBCORE_EXPORT static CheckedSize computeSizeForBuffers(size_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams);
 
     virtual void* data() LIFETIME_BOUND = 0;
-    std::span<uint8_t> span() LIFETIME_BOUND { return unsafeMakeSpan(static_cast<uint8_t*>(data()), m_channelCount * m_capacityBytes); }
+    std::span<uint8_t> span() LIFETIME_BOUND { return unsafeMakeSpan(static_cast<uint8_t*>(data()), static_cast<size_t>(m_geometry.channelCount * m_geometry.capacityBytes)); }
     using TimeBoundsBuffer = SequenceLocked<TimeBounds>;
     virtual TimeBoundsBuffer& timeBoundsBuffer() LIFETIME_BOUND = 0;
 
 private:
-    size_t frameOffset(uint64_t frameNumber) const { return (frameNumber % m_frameCount) * m_bytesPerFrame; }
-    void setTimeBounds(TimeBounds bufferBounds);
-    void fetchInternal(AudioBufferList*, size_t frameCount, uint64_t startFrame, FetchMode, TimeBounds bufferBounds);
+    TimeBounds loadBounds() const;
 
-    Vector<std::span<Byte>> m_channels;
-    const uint32_t m_channelCount;
-    const size_t m_bytesPerFrame;
-    const uint32_t m_frameCount;
-    const size_t m_capacityBytes;
+    // CARingBuffer.swift implements the ring's logic over these.
+    const CARingBufferGeometry m_geometry;
+    std::span<uint8_t> m_channelData;
+    TimeBoundsBuffer* m_timeBounds { nullptr };
 
     // Stored range.
     TimeBounds m_storeBounds;
