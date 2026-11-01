@@ -2,7 +2,7 @@
  * Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -24,6 +24,7 @@
 
 #include <WebCore/Color.h>
 #include <WebCore/ColorSpace.h>
+#include <WebCore/FEFloodParameters.h>
 #include <WebCore/FilterEffect.h>
 
 namespace WebCore {
@@ -36,10 +37,10 @@ public:
 
     bool operator==(const FEFlood&) const;
 
-    const Color& floodColor() const LIFETIME_BOUND { return m_floodColor; }
+    const Color& floodColor() const LIFETIME_BOUND { return m_parameters.floodColor; }
     bool setFloodColor(const Color&);
 
-    float floodOpacity() const { return m_floodOpacity; }
+    float floodOpacity() const { return m_parameters.floodOpacity; }
     bool LEGACY_NODELETE setFloodOpacity(float);
 
 #if !USE(CG) && !USE(SKIA)
@@ -48,6 +49,8 @@ public:
     void setOperatingColorSpace(const ColorSpace&) override { }
 #endif
 
+    const FEFloodParameters& parameters() const LIFETIME_BOUND { return m_parameters; }
+
 private:
     FEFlood(const Color& floodColor, float floodOpacity, ColorSpace = ColorSpace::SRGB());
 
@@ -55,16 +58,11 @@ private:
 
     unsigned numberOfEffectInputs() const override { return 0; }
 
-    FloatRect calculateImageRect(const Filter&, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const override;
-
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const override;
-    std::unique_ptr<FilterEffectApplier> createAcceleratedApplier() const override;
-    std::unique_ptr<FilterEffectApplier> createSoftwareApplier() const override;
 
     WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation) const override;
 
-    Color m_floodColor;
-    float m_floodOpacity;
+    FEFloodParameters m_parameters;
 };
 
 } // namespace WebCore

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2026 Apple Inc. All rights reserved.
  * Copyright (C) 2011 Brent Fulgham <bfulgham@webkit.org>
  * Copyright (C) 2011 Igalia S.L.
  *
@@ -34,6 +34,10 @@
 #include "NativeImage.h"
 #include "NotImplemented.h"
 
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
+
 namespace WebCore {
 
 static const cairo_format_t cairoFormat = CAIRO_FORMAT_ARGB32;
@@ -43,35 +47,11 @@ ColorSpace ShareableBitmapConfiguration::validateColorSpace(const ColorSpace& co
     return colorSpace;
 }
 
-CheckedUint32 ShareableBitmapConfiguration::calculateBitsPerComponent(PixelFormat pixelFormat, const ColorSpace& colorSpace)
+static inline RefPtr<cairo_surface_t> createSurfaceFromData(std::span<uint8_t> data, const IntSize& size)
 {
-    return (calculateBytesPerPixel(pixelFormat, colorSpace) / 4) * 8;
-}
-
-CheckedUint32 ShareableBitmapConfiguration::calculateBytesPerPixel(PixelFormat pixelFormat, const ColorSpace&)
-{
-#if ENABLE(PIXEL_FORMAT_RGBA16F)
-    RELEASE_ASSERT(pixelFormat != PixelFormat::RGBA16F);
-#else
-    UNUSED_PARAM(pixelFormat);
-#endif
-    return 4;
-}
-
-CheckedUint32 ShareableBitmapConfiguration::calculateBytesPerRow(const IntSize& size, PixelFormat pixelFormat, const ColorSpace&)
-{
-#if ENABLE(PIXEL_FORMAT_RGBA16F)
-    RELEASE_ASSERT(pixelFormat != PixelFormat::RGBA16F);
-#else
-    UNUSED_PARAM(pixelFormat);
-#endif
-    return cairo_format_stride_for_width(cairoFormat, size.width());
-}
-
-static inline RefPtr<cairo_surface_t> createSurfaceFromData(uint8_t* data, const IntSize& size)
-{
-    const int stride = cairo_format_stride_for_width(cairoFormat, size.width());
-    return adoptRef(cairo_image_surface_create_for_data(data, cairoFormat, size.width(), size.height(), stride));
+    // The stride is -1 when the surface doesn't fit in data, and cairo then returns an error surface that never touches it.
+    int stride = shareableBitmapCairoSurfaceStride(size.width(), size.height(), data.size());
+    return adoptRef(cairo_image_surface_create_for_data(data.data(), cairoFormat, size.width(), size.height(), stride));
 }
 
 std::unique_ptr<GraphicsContext> ShareableBitmap::createGraphicsContext()
@@ -87,7 +67,7 @@ void ShareableBitmap::paint(GraphicsContext& context, const IntPoint& dstPoint, 
 
 void ShareableBitmap::paint(GraphicsContext& context, float scaleFactor, const IntPoint& dstPoint, const IntRect& srcRect)
 {
-    RefPtr<cairo_surface_t> surface = createSurfaceFromData(mutableSpan().data(), size());
+    RefPtr<cairo_surface_t> surface = createSurfaceFromData(mutableSpan(), size());
     cairo_surface_set_device_scale(surface.get(), scaleFactor, scaleFactor);
     FloatRect destRect(dstPoint, srcRect.size());
 
@@ -110,12 +90,15 @@ PlatformImagePtr ShareableBitmap::createPlatformImage(BackingStoreCopy copyBehav
 
 RefPtr<cairo_surface_t> ShareableBitmap::createPersistentCairoSurface()
 {
-    return createSurfaceFromData(mutableSpan().data(), size());
+    return createSurfaceFromData(mutableSpan(), size());
 }
 
 RefPtr<cairo_surface_t> ShareableBitmap::createCairoSurface()
 {
-    RefPtr<cairo_surface_t> image = createSurfaceFromData(mutableSpan().data(), size());
+    RefPtr<cairo_surface_t> image = createSurfaceFromData(mutableSpan(), size());
+    // An error surface keeps no user data, so it would never call releaseSurfaceData.
+    if (cairo_surface_status(image.get()) != CAIRO_STATUS_SUCCESS)
+        return image;
 
     ref(); // Balanced by deref in releaseSurfaceData.
     static cairo_user_data_key_t dataKey;

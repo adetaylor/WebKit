@@ -2,7 +2,7 @@
  * Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -22,20 +22,13 @@
 
 #pragma once
 
+#include <WebCore/FEColorMatrixParameters.h>
 #include <WebCore/FilterEffect.h>
 #include <wtf/Vector.h>
 
 namespace WebCore {
 
 template<size_t, size_t> class ColorMatrix;
-
-enum class ColorMatrixType : uint8_t {
-    FECOLORMATRIX_TYPE_UNKNOWN          = 0,
-    FECOLORMATRIX_TYPE_MATRIX           = 1,
-    FECOLORMATRIX_TYPE_SATURATE         = 2,
-    FECOLORMATRIX_TYPE_HUEROTATE        = 3,
-    FECOLORMATRIX_TYPE_LUMINANCETOALPHA = 4
-};
 
 class FEColorMatrix final : public FilterEffect {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(FEColorMatrix);
@@ -46,34 +39,28 @@ public:
 
     bool operator==(const FEColorMatrix&) const;
 
-    ColorMatrixType type() const { return m_type; }
+    ColorMatrixType type() const { return m_parameters.type; }
     bool LEGACY_NODELETE setType(ColorMatrixType);
 
-    const Vector<float>& values() const LIFETIME_BOUND { return m_values; }
+    const Vector<float>& values() const LIFETIME_BOUND { return m_parameters.values; }
     bool setValues(const Vector<float>&);
 
     WEBCORE_EXPORT static bool LEGACY_NODELETE areValuesValidForType(ColorMatrixType, const Vector<float>& values);
-    static void LEGACY_NODELETE calculateSaturateComponents(std::span<float, 9> components, float value);
-    static void LEGACY_NODELETE calculateHueRotateComponents(std::span<float, 9> components, float value);
-    static Vector<float> normalizedFloats(const Vector<float>& values);
+
+    const FEColorMatrixParameters& parameters() const LIFETIME_BOUND { return m_parameters; }
 
 private:
     FEColorMatrix(ColorMatrixType, Vector<float>&&, ColorSpace);
 
     bool operator==(const FilterEffect& other) const override { return areEqual<FEColorMatrix>(*this, other); }
 
-    bool resultIsAlphaImage(std::span<const Ref<FilterImage>> inputs) const override;
-
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const override;
 
-    std::unique_ptr<FilterEffectApplier> createAcceleratedApplier() const override;
-    std::unique_ptr<FilterEffectApplier> createSoftwareApplier() const override;
     std::optional<GraphicsStyle> createGraphicsStyle(GraphicsContext&, const Filter&) const override;
 
     WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation) const override;
 
-    ColorMatrixType m_type;
-    Vector<float> m_values;
+    FEColorMatrixParameters m_parameters;
 };
 
 } // namespace WebCore

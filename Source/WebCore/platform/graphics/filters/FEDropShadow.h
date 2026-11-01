@@ -1,6 +1,6 @@
 /*
  * Copyright (C) Research In Motion Limited 2011. All rights reserved.
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -22,10 +22,11 @@
 
 #include <WebCore/Color.h>
 #include <WebCore/ColorSpace.h>
+#include <WebCore/FEDropShadowParameters.h>
 #include <WebCore/FilterEffect.h>
 
 namespace WebCore {
-    
+
 class FEDropShadow final : public FilterEffect {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(FEDropShadow);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(FEDropShadow);
@@ -34,22 +35,22 @@ public:
 
     bool operator==(const FEDropShadow&) const;
 
-    float stdDeviationX() const { return m_stdX; }
+    float stdDeviationX() const { return m_parameters.stdDeviationX; }
     bool LEGACY_NODELETE setStdDeviationX(float);
 
-    float stdDeviationY() const { return m_stdY; }
+    float stdDeviationY() const { return m_parameters.stdDeviationY; }
     bool LEGACY_NODELETE setStdDeviationY(float);
 
-    float dx() const { return m_dx; }
+    float dx() const { return m_parameters.dx; }
     bool LEGACY_NODELETE setDx(float);
 
-    float dy() const { return m_dy; }
+    float dy() const { return m_parameters.dy; }
     bool LEGACY_NODELETE setDy(float);
 
-    const Color& shadowColor() const LIFETIME_BOUND { return m_shadowColor; } 
+    const Color& shadowColor() const LIFETIME_BOUND { return m_parameters.shadowColor; }
     bool setShadowColor(const Color&);
 
-    float shadowOpacity() const { return m_shadowOpacity; }
+    float shadowOpacity() const { return m_parameters.shadowOpacity; }
     bool LEGACY_NODELETE setShadowOpacity(float);
 
     static IntOutsets calculateOutsets(const FloatSize& offset, const FloatSize& stdDeviation);
@@ -58,27 +59,20 @@ public:
     void setOperatingColorSpace(const ColorSpace&) override { }
 #endif
 
+    const FEDropShadowParameters& parameters() const LIFETIME_BOUND { return m_parameters; }
+
 private:
     FEDropShadow(float stdX, float stdY, float dx, float dy, const Color& shadowColor, float shadowOpacity, ColorSpace);
 
     bool operator==(const FilterEffect& other) const override { return areEqual<FEDropShadow>(*this, other); }
 
-    FloatRect calculateImageRect(const Filter&, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const override;
-
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const override;
 
-    std::unique_ptr<FilterEffectApplier> createAcceleratedApplier() const override;
-    std::unique_ptr<FilterEffectApplier> createSoftwareApplier() const override;
     std::optional<GraphicsStyle> createGraphicsStyle(GraphicsContext&, const Filter&) const override;
 
     WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation) const override;
 
-    float m_stdX;
-    float m_stdY;
-    float m_dx;
-    float m_dy;
-    Color m_shadowColor;
-    float m_shadowOpacity;
+    FEDropShadowParameters m_parameters;
 };
 
 } // namespace WebCore

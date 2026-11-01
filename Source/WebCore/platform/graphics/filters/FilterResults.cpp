@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2022-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,8 +26,12 @@
 #include "config.h"
 #include "FilterResults.h"
 
-#include "ImageBuffer.h"
+#include <new>
 #include <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 namespace WebCore {
 
@@ -36,59 +40,23 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(FilterResults);
 FilterResults::FilterResults(std::unique_ptr<ImageBufferAllocator>&& allocator)
     : m_allocator(allocator ? WTF::move(allocator) : makeUnique<ImageBufferAllocator>())
 {
+    static_assert(sizeof(FilterResultsImpl) == sizeof(m_impl) && alignof(FilterResultsImpl) == alignof(ImplLayout));
+    new (m_impl) FilterResultsImpl(FilterResultsImpl::init());
 }
 
-FilterImage* FilterResults::effectResult(FilterEffect& effect) const
+FilterResults::~FilterResults()
 {
-    return m_results.get(effect);
+    std::destroy_at(&swiftImpl());
 }
 
-size_t FilterResults::memoryCost() const
+FilterResultsImpl& FilterResults::swiftImpl()
 {
-    CheckedSize memoryCost;
-
-    for (auto& result : m_results.values())
-        memoryCost += result->memoryCost();
-
-    return memoryCost;
+    return *std::launder(reinterpret_cast<FilterResultsImpl*>(m_impl));
 }
 
-bool FilterResults::canCacheResult(const FilterImage& result) const
+void FilterResults::clearEffectResult(const Filter& filter, unsigned effectIndex)
 {
-    static constexpr size_t maxAllowedMemoryCost = 100 * MB;
-    CheckedSize totalMemoryCost = memoryCost();
-
-    totalMemoryCost += result.memoryCost();
-    if (totalMemoryCost.hasOverflowed())
-        return false;
-
-    return totalMemoryCost <= maxAllowedMemoryCost;
-}
-
-void FilterResults::setEffectResult(FilterEffect& effect, std::span<const Ref<FilterImage>> inputs, Ref<FilterImage>&& result)
-{
-    if (!canCacheResult(result))
-        return;
-
-    m_results.set({ effect }, WTF::move(result));
-
-    for (auto& input : inputs)
-        m_resultReferences.add(input, FilterEffectSet()).iterator->value.add(effect);
-}
-
-void FilterResults::clearEffectResult(FilterEffect& effect)
-{
-    auto iterator = m_results.find(effect);
-    if (iterator == m_results.end())
-        return;
-
-    auto result = iterator->value;
-    m_results.remove(iterator);
-
-    for (auto& reference : m_resultReferences.get(result))
-        clearEffectResult(reference);
-
-    m_resultReferences.remove(result);
+    swiftImpl().clearEffectResult(reinterpret_cast<uintptr_t>(&filter), effectIndex);
 }
 
 } // namespace WebCore

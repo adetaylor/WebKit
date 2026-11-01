@@ -60,6 +60,10 @@
 /* Begin PBXBuildFile section */
 		B37D5734449A2CF7D02E4B5A /* RasterDrawingOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = 2346E0FF92D1BDEFA870881B /* RasterDrawingOptions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0E527AEF888254BE1ED24498 /* InspectorObjectIdentifier.h in Headers */ = {isa = PBXBuildFile; fileRef = DDB320A5233FB9CC6D07408D /* InspectorObjectIdentifier.h */; };
+		10ECDBE58AB82CA197AC07B6 /* FilterEffectView.h in Headers */ = {isa = PBXBuildFile; fileRef = BDCDA9A73BA6C7EE1597E72B /* FilterEffectView.h */; };
+		B3EB2DB70F227C6C09C46FF4 /* CSSFilterRendererView.h in Headers */ = {isa = PBXBuildFile; fileRef = F933F399ADDF994469C752A3 /* CSSFilterRendererView.h */; };
+		238C3CAE41B4DE18ED2F3FBC /* SVGFilterRendererView.h in Headers */ = {isa = PBXBuildFile; fileRef = 3227AB52B52BE1076973335C /* SVGFilterRendererView.h */; };
+		EBBE3AC62075A0224822DACB /* FilterEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD873A3B592F9AF8769F7B2B /* FilterEngine.swift */; };
 		2E86B6A6E3E4C9B02D5AAD6D /* CSSValueKeywords.serialization.in in Headers */ = {isa = PBXBuildFile; fileRef = A41992C7F8B4034E8D8344E8 /* CSSValueKeywords.serialization.in */; settings = {ATTRIBUTES = (Private, ); }; };
 		4C1117D4C483A9BC36554D2F /* SVGImageElementSizing.h in Headers */ = {isa = PBXBuildFile; fileRef = 775ED9913673971DA280FD1E /* SVGImageElementSizing.h */; };
 		281A941CB72C48E5886C9BC1 /* ImageInputTypeSizing.h in Headers */ = {isa = PBXBuildFile; fileRef = 67E6257C27C4E92D1FA4CBD1 /* ImageInputTypeSizing.h */; };
@@ -341,6 +345,93 @@
 		ED666582528540CAF79EE240 /* ImageDecoderCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = F123D54F8A383CE1B55FCBAD /* ImageDecoderCG.swift */; };
 		0C8AB8D60605AC220A644356 /* ImageDecodingCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0466F593C29D685485891EB /* ImageDecodingCG.swift */; };
 		07E047C8305A9DB000DFCC4B /* PixelBufferConversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07E047C9305A9DB000DFCC4B /* PixelBufferConversion.swift */; };
+		031A366633FC5C13DAF5FD89 /* Arm64Truncating.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89A4B5A802618BF7BCC9FFA5 /* Arm64Truncating.swift */; };
+		23B6FEB7BC8E6912CC678555 /* CheckedMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16DD84A6049DB7051CB0DE93 /* CheckedMath.swift */; };
+		F8DE2B2A42FAA637D995EBEC /* PixelConversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7AD0E52EDA1968CFBAC45B /* PixelConversion.swift */; };
+		3A6C1BA2D5C013C4DFE39EDB /* PixelConversionSIMD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A42037BC09BC36546A8F619 /* PixelConversionSIMD.swift */; };
+		6601DDA59C6A42DAC7EE4A20 /* PixelConversionScalar.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E88DBB1100584DD4D049F6 /* PixelConversionScalar.swift */; };
+		81C6BA80865F4B7977BE283F /* PixelTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC73B9472BE1E2A447EDAA3C /* PixelTransfer.swift */; };
+		A4354737BE6DE24C98E1D7DF /* ShareableBitmapLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9FFF9190FFE02204AB2B423 /* ShareableBitmapLayout.swift */; };
+		33F386FDB57DCC37192407D5 /* ShadowBlurDrawing.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD9D218729E0D0C79EC9827 /* ShadowBlurDrawing.swift */; };
+		8856FDD854DD284B35701E61 /* ShadowBlurGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22257F3C64F0CCF4837AD34F /* ShadowBlurGeometry.swift */; };
+		8D1A63B609FF70005A50202A /* ShadowBlurKernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */; };
+		C85D977768D6677F509D4047 /* VImageBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63866A9D038D86C964446936 /* VImageBridge.swift */; };
+		C56DFE43F7178BFD17970722 /* VImageBridge+BoxConvolve.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */; };
+		CFF1676880E095F27D7D94DE /* VImageBridge+ColorMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */; };
+		7E38067BBE2DD5D953221F77 /* VImageBridge+Conversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3505F5F351141D3E115BAF01 /* VImageBridge+Conversion.swift */; };
+		697E4E5B022F8F10F20979C5 /* SharedVideoFrameLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 082B40FB2E94DC14D4A82F54 /* SharedVideoFrameLayout.swift */; };
+		C692924099778690E1A10A7F /* FEBlendCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68FDBDB522C65ED430530767 /* FEBlendCoreImageApplier.swift */; };
+		B9F6776EB2C0E6B3A62C2385 /* FEColorMatrixCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB08B3AB5B1A8CD3C23634AE /* FEColorMatrixCoreImageApplier.swift */; };
+		372BE22DC8FF50B69C86A911 /* FEComponentTransferCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD4A77B7227DBDACBFE6D4EA /* FEComponentTransferCoreImageApplier.swift */; };
+		8B73E87EF9B13D86F052AAFD /* FECompositeCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B25AC539B6B3763EF99D16 /* FECompositeCoreImageApplier.swift */; };
+		FADEF290AC0D9B1080C9CBA3 /* FEConvolveMatrixCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C81E1C54E6422E9CA60A1986 /* FEConvolveMatrixCoreImageApplier.swift */; };
+		E05CFFFBFC58D29FE7D64D68 /* FEDisplacementMapCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E35B8F06F0224BA66B2DE615 /* FEDisplacementMapCoreImageApplier.swift */; };
+		D77A1C13C4CAF3D38213C533 /* FEDropShadowCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0114E9B0A6D2B13B2E4DDC /* FEDropShadowCoreImageApplier.swift */; };
+		2736E5FDAE74F4EC53D733BC /* FEFloodCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D1B6B8F8675EB40CE30F27 /* FEFloodCoreImageApplier.swift */; };
+		3922302A73C753EA25C5EB01 /* FEGaussianBlurCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72E573DD5E49B6C908FFCB5F /* FEGaussianBlurCoreImageApplier.swift */; };
+		0A4292F113B770CCC401EBCC /* FEImageCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EAE657C65B80534C97A3658 /* FEImageCoreImageApplier.swift */; };
+		8EAC80FE975A1D3B4C8F17C4 /* FELightingCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A23C1325C759CD529B3CFE7 /* FELightingCoreImageApplier.swift */; };
+		80B63C292A41A7F3EA2F830C /* FEMergeCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 488A347F4E8C651111483AD6 /* FEMergeCoreImageApplier.swift */; };
+		25BA72B005842894755F36B2 /* FEMorphologyCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61692EB86A420052DC52708D /* FEMorphologyCoreImageApplier.swift */; };
+		302C29DC86EFC615E31B91EA /* FEOffsetCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFCC44A9D40A926CCBE7E69 /* FEOffsetCoreImageApplier.swift */; };
+		29B402C67B0FAF893A3FEC72 /* FETileCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632404D336CAB7F04C3C802E /* FETileCoreImageApplier.swift */; };
+		C5A8869A8017446784B2C58F /* FETurbulenceCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66051D42536399ED407461F1 /* FETurbulenceCoreImageApplier.swift */; };
+		FAFC665E50AE3137A8B4F14B /* SourceAlphaCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3F36DBCF0AB8A0460F8E48 /* SourceAlphaCoreImageApplier.swift */; };
+		6E26C8A1B6891DA43ED61C49 /* SourceGraphicCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891274330DA336C9F62B4FD9 /* SourceGraphicCoreImageApplier.swift */; };
+		051878F9FFBBDCAB67019E3B /* FilterImageCoreImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 858741E091BCC484DB9EA870 /* FilterImageCoreImage.swift */; };
+		30BFCF0D446FC8041CA913A4 /* FilterApply.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039255D9989BF1E4550183E8 /* FilterApply.swift */; };
+		44428BC0239608D55EA7B2DD /* FilterMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A7C036C6BBBA8E0F949BE2 /* FilterMath.swift */; };
+		AA8E6DEB3ECFC1BED5278B35 /* FilterGeometryMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57101E2FF013E790B43ACD55 /* FilterGeometryMath.swift */; };
+		E4DCB2E8232B2774CE214DFE /* FilterImageImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = F89B5A6F6D9A2A037611404B /* FilterImageImpl.swift */; };
+		38303D7198597155D871F9FB /* LightingModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E613DF9B5FA9EC820EEB374 /* LightingModel.swift */; };
+		0FE54007A73DE0CC5F290112 /* ParallelRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7790065560F4E8BA2B80172A /* ParallelRows.swift */; };
+		FE07764C75DF15FEE86D230E /* ParallelRowsDispatch.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC96FF7DA0E5D2ECEB6E12B /* ParallelRowsDispatch.h */; };
+		8B960D34DEB7579629359065 /* GraphicsContextSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 8000E7BCC14B40CE6A2302C6 /* GraphicsContextSwiftBridge.h */; };
+		06F918D8AAA5C08CDD4ECCB2 /* FEBlendSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA8FC8D14864AF04A5F423D2 /* FEBlendSoftwareApplier.swift */; };
+		A8E70E4504B1BBEAACE0AADC /* FEColorMatrixSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020B67EE871B8CCCC844C36F /* FEColorMatrixSoftwareApplier.swift */; };
+		CDCBEE83EB374AD9C94D9C70 /* FEComponentTransferSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C820EA4BBC70D90D5BADD728 /* FEComponentTransferSoftwareApplier.swift */; };
+		6598343220885FACBAA30731 /* FECompositeSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B0190BA997921EA25695A64 /* FECompositeSoftwareApplier.swift */; };
+		5122FADE3E20DAC54BB6C5C7 /* FECompositeSoftwareArithmeticApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF4AC53F5931735EFD2C47C /* FECompositeSoftwareArithmeticApplier.swift */; };
+		43F473AD2D4666C039905BDC /* FEConvolveMatrixSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 208C184E8269B468191F22BD /* FEConvolveMatrixSoftwareApplier.swift */; };
+		07318BB3F5B61A9D518C7296 /* FEDisplacementMapSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3637D1C8ECE9095DD64E0B0 /* FEDisplacementMapSoftwareApplier.swift */; };
+		0FEB9BA6BEC881BD9DE0B65A /* FEDropShadowSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179AB2F86FE8AC170A39EBB1 /* FEDropShadowSoftwareApplier.swift */; };
+		B9349CB249C04CF69D4D64FC /* FEFloodSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A37E934F6230BEA6E9F37A /* FEFloodSoftwareApplier.swift */; };
+		4AEEC6838C50DD4F350AE518 /* FEGaussianBlurSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D8E8FD48901B3E7487AD73 /* FEGaussianBlurSoftwareApplier.swift */; };
+		580B28FC7F5A201AF891DA6D /* FEImageSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF3C72DBDD8678496405954A /* FEImageSoftwareApplier.swift */; };
+		58B90A5910F175124D2BA6D2 /* FELightingSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD4813685A20C827FF1CB66 /* FELightingSoftwareApplier.swift */; };
+		3CA6BFA970093338659B7063 /* FELightingSoftwareParallelApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE799F2F6003134A99731BE2 /* FELightingSoftwareParallelApplier.swift */; };
+		0EED5488AF1500694017825F /* FEMergeSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33305EF9AA6844FD3CF70C63 /* FEMergeSoftwareApplier.swift */; };
+		E5861383C5FDA54E95E56E35 /* FEMorphologySoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADD65AB91B83DC55C3A8ECD3 /* FEMorphologySoftwareApplier.swift */; };
+		2FB1886BC76C158FB96C58D2 /* FEOffsetSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B6ECFE544ED1244B8892DEB /* FEOffsetSoftwareApplier.swift */; };
+		438198B3980CE97E3546B5C3 /* FETileSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46A0AF3D370F5B01DCA1810D /* FETileSoftwareApplier.swift */; };
+		7CA7E13AB4D056ECF711EB51 /* FETurbulenceSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 851D79E46E04217A4D1F11FB /* FETurbulenceSoftwareApplier.swift */; };
+		649031DC6302DE3AC23EAFFE /* SourceAlphaSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B981824F960EB014A2EDBD /* SourceAlphaSoftwareApplier.swift */; };
+		D584A87F59BF340BC0E6D503 /* SourceGraphicSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55C1A45B7012F3B457A1D2CF /* SourceGraphicSoftwareApplier.swift */; };
+		0D44E4F7866406B16EE8E5A3 /* CSSFilterRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE43B67961D1CD180A07BC /* CSSFilterRenderer.swift */; };
+		92C095638807E40F0E344621 /* SVGFilterRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C196A8044702205F700598D9 /* SVGFilterRenderer.swift */; };
+		820D9DDAE9141040365D8443 /* SharedVideoFrameSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = E0938AED654BDD2B4EE9BDBE /* SharedVideoFrameSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		F91AB5580E91710AF2261E44 /* PixelBufferSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = C47D5C3F84A19CF3FE2CC4A8 /* PixelBufferSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		5D324F22006496D971F5DE69 /* ShadowBlurSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = CF453B487F95E0C826425DDC /* ShadowBlurSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		A78C76D0A3616FD3119EA676 /* ShareableBitmapSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = FBBDE67E1BE26F3BCC9CCA3C /* ShareableBitmapSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		8A9EA8CC56F28F26650DD688 /* FilterCoreImageSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 46B6531DB6016610F82FDF81 /* FilterCoreImageSwiftBridge.h */; };
+		288F6560F4089D9C8D4C9D2D /* FilterGraphicsBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = D49B8CEBEA7F5E4F363DC5E4 /* FilterGraphicsBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		386FC1C6DD067E44979F4636 /* FilterSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = E32BE83091990D8A31002167 /* FilterSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		7E49B11CDA66D995F296F9C9 /* FEBlendParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 7F1DDE0D16C361FA3B757813 /* FEBlendParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		BBDE97847B208D7687992087 /* FEColorMatrixParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = FC272918B8E3EF437043817A /* FEColorMatrixParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		5B4666A244D42EAFAE9F58F9 /* FEComponentTransferParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 77664AB7C1DDB991BB4D7C44 /* FEComponentTransferParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		75308D039657616024F1DCC4 /* FECompositeParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 21E8C733F5E899E0C032F00F /* FECompositeParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		D74035B4C669838D4A5013AA /* FEConvolveMatrixParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = F18EAAA0E3C203DEACB8CF83 /* FEConvolveMatrixParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		37F88BA7FDC7AC22952C33B4 /* FEDisplacementMapParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = DFF460DC1627A946FAB0DD58 /* FEDisplacementMapParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		108F64B3494B6EB4C6ACC987 /* FEDropShadowParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 56F624BFBF418B6D88B09D66 /* FEDropShadowParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		E4B789E8B97753F379CA369A /* FEFloodParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = DC343599F241293426C33A52 /* FEFloodParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		2210200E112355D20A90DC7A /* FEGaussianBlurParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 2C240C4CAF5FCC4E57594B3F /* FEGaussianBlurParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		64131103C0BBA215D6D5BAEB /* FEImageParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = CDE65C044888FC0194C4E797 /* FEImageParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		B7A63EFF2321F32F360412F6 /* FELightingParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = F3CC6E25CFF60EAEA3DECC67 /* FELightingParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		CE7154F3D34F0064C5294A92 /* FEMorphologyParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 8BF5DCE7EBC47D7F22B3FA3B /* FEMorphologyParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		F4C27DED9C3CD8F3CBDAAB8C /* FEOffsetParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 136608DAF871B59F63FF56CD /* FEOffsetParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		82B2FB981FD3E2AB75FAB269 /* FETurbulenceParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 30F051B06E1F24FF5B88D240 /* FETurbulenceParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		C225AD28FF3AEDD439F1CBD3 /* LightSourceParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 8325AC4CE73D1300C42C6938 /* LightSourceParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		BA82ABCC815FE398B2CECD1E /* SourceGraphicParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = C638AB6C688AA89AEFE42C7C /* SourceGraphicParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		07E047C7305A9DB000DFCC4B /* WebCore-Swift.h in Headers */ = {isa = PBXBuildFile; fileRef = 07E047C6305A9DB000DFCC4B /* WebCore-Swift.h */; };
 		07E2C0732C1396FE00BE6743 /* WritingToolsTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 07E2C0722C1396F600BE6743 /* WritingToolsTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		07E2C0772C13A9D100BE6743 /* WritingToolsController.h in Headers */ = {isa = PBXBuildFile; fileRef = 07E2C0742C13A9D100BE6743 /* WritingToolsController.h */; };
@@ -451,7 +542,7 @@
 		0F1A0C38229A481800D37ADB /* VelocityData.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F1A0C36229A481800D37ADB /* VelocityData.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F1A2B3C4D5E6F7080910A01 /* FrameProcessIndicators.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F1A2B3C4D5E6F7080910A02 /* FrameProcessIndicators.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F37F0852202BF9800A89C0B /* ScrollingTreeScrollingNodeDelegateMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F37F0842202ACB700A89C0B /* ScrollingTreeScrollingNodeDelegateMac.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		0F3DD45012F5EA1B000D9190 /* ShadowBlur.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F3DD44E12F5EA1B000D9190 /* ShadowBlur.h */; };
+		0F3DD45012F5EA1B000D9190 /* ShadowBlur.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F3DD44E12F5EA1B000D9190 /* ShadowBlur.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F3F0E5A157030C3006DA57F /* RenderGeometryMap.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F3F0E58157030C3006DA57F /* RenderGeometryMap.h */; };
 		0F4710AF1DB56AFC002DCEC3 /* DOMRect.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F4710A91DB56AFC002DCEC3 /* DOMRect.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F4710B11DB56AFC002DCEC3 /* DOMRectInit.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F4710AB1DB56AFC002DCEC3 /* DOMRectInit.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -2986,7 +3077,6 @@
 		722AF2E627E1D0A10078D997 /* CGContextStateSaver.h in Headers */ = {isa = PBXBuildFile; fileRef = 722AF2E527E1D09E0078D997 /* CGContextStateSaver.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7246963B275C5FA600A9156A /* CSSFilterRenderer.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F53FB83213B1BB800C40D34 /* CSSFilterRenderer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7246963D275C614400A9156A /* FilterEffectVector.h in Headers */ = {isa = PBXBuildFile; fileRef = 7214B9B7274458FA003BE6DF /* FilterEffectVector.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		7246963E275C616700A9156A /* FilterImageVector.h in Headers */ = {isa = PBXBuildFile; fileRef = 72B4EF7C274EE37F00293C2F /* FilterImageVector.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7246F02B2A1541A000FD74F1 /* PathElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 7246F0232A1540F000FD74F1 /* PathElement.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7246F02C2A1541B200FD74F1 /* PathSegment.h in Headers */ = {isa = PBXBuildFile; fileRef = 7246F0262A1540F200FD74F1 /* PathSegment.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7246F02D2A1541B200FD74F1 /* PathStream.h in Headers */ = {isa = PBXBuildFile; fileRef = 7246F0202A1540ED00FD74F1 /* PathStream.h */; };
@@ -3011,7 +3101,6 @@
 		727610562988B09800897621 /* ApplePayButtonPart.h in Headers */ = {isa = PBXBuildFile; fileRef = 72F8898A29887AB900A6E07A /* ApplePayButtonPart.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		727A7F3A24078B84004D2931 /* ImageBufferIOSurfaceBackend.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BAC3AB23E1E544008D741C /* ImageBufferIOSurfaceBackend.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7287A84029879CF2004A50E2 /* SearchFieldResultsPart.h in Headers */ = {isa = PBXBuildFile; fileRef = 7287A83A29879695004A50E2 /* SearchFieldResultsPart.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		728D4791279A48B700BA7C0E /* FilterEffectApplier.h in Headers */ = {isa = PBXBuildFile; fileRef = 72A13A9F274C5CC700E2A88E /* FilterEffectApplier.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		72963B6D29510A38004FF6FB /* TextAreaPart.h in Headers */ = {isa = PBXBuildFile; fileRef = 72963B6C29510287004FF6FB /* TextAreaPart.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7299BC6723D6A53200CC6883 /* AlphaPremultiplication.h in Headers */ = {isa = PBXBuildFile; fileRef = 7299BC6423D686A600CC6883 /* AlphaPremultiplication.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7299BC6823D6A53E00CC6883 /* RenderingMode.h in Headers */ = {isa = PBXBuildFile; fileRef = 7299BC6623D686C600CC6883 /* RenderingMode.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -3027,7 +3116,6 @@
 		72ACC9C627629A7700D523F7 /* SVGPreserveAspectRatioValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 7C8F22461DD3D1C500E92DA3 /* SVGPreserveAspectRatioValue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		72B2213129502059002B5609 /* TextFieldPart.h in Headers */ = {isa = PBXBuildFile; fileRef = 72B2212E295015BB002B5609 /* TextFieldPart.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		72B8B0352753438600F752AA /* FilterFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = 7262D756272A174100C56A09 /* FilterFunction.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		72B8B0362753441400F752AA /* FilterImage.h in Headers */ = {isa = PBXBuildFile; fileRef = 72435EF4273D07670005E7EE /* FilterImage.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		72BA2ACF2952445D00678507 /* ProgressBarPart.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BA2ACE2952354E00678507 /* ProgressBarPart.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		72BAC3AE23E1F0B0008D741C /* ImageBufferBackend.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BAC3A523E17328008D741C /* ImageBufferBackend.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		72BB9E87295257FA00842DBB /* ToggleButtonPart.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BB9E86295257F800842DBB /* ToggleButtonPart.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -7809,6 +7897,13 @@
 /* Begin PBXFileReference section */
 		2346E0FF92D1BDEFA870881B /* RasterDrawingOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RasterDrawingOptions.h; sourceTree = "<group>"; };
 		F4545C832C4D153807E9E90E /* RasterDrawingOptions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RasterDrawingOptions.cpp; sourceTree = "<group>"; };
+		BDCDA9A73BA6C7EE1597E72B /* FilterEffectView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterEffectView.h; sourceTree = "<group>"; };
+		4F1398459A92E646A990CF98 /* FilterEffectView.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FilterEffectView.cpp; sourceTree = "<group>"; };
+		F933F399ADDF994469C752A3 /* CSSFilterRendererView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSFilterRendererView.h; sourceTree = "<group>"; };
+		9C1866E6942EFB83FB5AF688 /* CSSFilterRendererView.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CSSFilterRendererView.cpp; sourceTree = "<group>"; };
+		3227AB52B52BE1076973335C /* SVGFilterRendererView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SVGFilterRendererView.h; sourceTree = "<group>"; };
+		20BC81CD0A662BB9F72ACE1E /* SVGFilterRendererView.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SVGFilterRendererView.cpp; sourceTree = "<group>"; };
+		DD873A3B592F9AF8769F7B2B /* FilterEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterEngine.swift; sourceTree = "<group>"; };
 		02C7A954E7356C44F0D32986 /* WorkerInternals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WorkerInternals.h; sourceTree = "<group>"; };
 		0CC942725BC2AC733B0941DC /* JSWorkerInternals.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSWorkerInternals.cpp; sourceTree = "<group>"; };
 		2A60F92AA328DB579A254028 /* JSSimulatedWebGLContextEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSSimulatedWebGLContextEvent.cpp; sourceTree = "<group>"; };
@@ -8464,12 +8559,6 @@
 		0F283A9123563126004794CA /* BorderData.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BorderData.cpp; sourceTree = "<group>"; };
 		0F29D8732C6EFE3B00CEA122 /* BorderShape.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BorderShape.h; sourceTree = "<group>"; };
 		0F29D8742C6EFE3C00CEA122 /* BorderShape.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BorderShape.cpp; sourceTree = "<group>"; };
-		0F2F14B82F0C7416001B0536 /* FEDisplacementMapCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEDisplacementMapCoreImageApplier.h; sourceTree = "<group>"; };
-		0F2F14B92F0C7416001B0536 /* FEDisplacementMapCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEDisplacementMapCoreImageApplier.mm; sourceTree = "<group>"; };
-		0F2F14BE2F0C766B001B0536 /* FEConvolveMatrixCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEConvolveMatrixCoreImageApplier.h; sourceTree = "<group>"; };
-		0F2F14BF2F0C766B001B0536 /* FEConvolveMatrixCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEConvolveMatrixCoreImageApplier.mm; sourceTree = "<group>"; };
-		0F2F14C42F0C7B82001B0536 /* FELightingCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FELightingCoreImageApplier.h; sourceTree = "<group>"; };
-		0F2F14C52F0C7B82001B0536 /* FELightingCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FELightingCoreImageApplier.mm; sourceTree = "<group>"; };
 		0F36E7361BD1837A002DB891 /* LayoutPoint.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = LayoutPoint.cpp; sourceTree = "<group>"; };
 		0F36E7381BD184B9002DB891 /* LayoutSize.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = LayoutSize.cpp; sourceTree = "<group>"; };
 		0F376F3F2994C58D004CA2F9 /* FontSelector.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FontSelector.cpp; sourceTree = "<group>"; };
@@ -8518,20 +8607,6 @@
 		0F4966A81DB40C4300A274BB /* JSDOMPointReadOnly.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSDOMPointReadOnly.cpp; sourceTree = "<group>"; };
 		0F4966A91DB40C4300A274BB /* JSDOMPointReadOnly.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSDOMPointReadOnly.h; sourceTree = "<group>"; };
 		0F4CDEAA23D91A8A00251B02 /* ScrollTypes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScrollTypes.cpp; sourceTree = "<group>"; };
-		0F53074A2EF7A88300F0B6B2 /* FEFloodCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEFloodCoreImageApplier.h; sourceTree = "<group>"; };
-		0F53074B2EF7A88300F0B6B2 /* FEFloodCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEFloodCoreImageApplier.mm; sourceTree = "<group>"; };
-		0F53074C2EF7AF0400F0B6B2 /* FEBlendCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEBlendCoreImageApplier.h; sourceTree = "<group>"; };
-		0F53074D2EF7AF0400F0B6B2 /* FEBlendCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEBlendCoreImageApplier.mm; sourceTree = "<group>"; };
-		0F53C97F2F086C88008FB212 /* FEMergeCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEMergeCoreImageApplier.h; sourceTree = "<group>"; };
-		0F53C9802F086C88008FB212 /* FEMergeCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEMergeCoreImageApplier.mm; sourceTree = "<group>"; };
-		0F53C9872F086EB1008FB212 /* FEDropShadowCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEDropShadowCoreImageApplier.h; sourceTree = "<group>"; };
-		0F53C9882F086EB1008FB212 /* FEDropShadowCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEDropShadowCoreImageApplier.mm; sourceTree = "<group>"; };
-		0F53C98B2F08725B008FB212 /* FETileCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FETileCoreImageApplier.h; sourceTree = "<group>"; };
-		0F53C98C2F08725B008FB212 /* FETileCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FETileCoreImageApplier.mm; sourceTree = "<group>"; };
-		0F53C98F2F0874D7008FB212 /* FETurbulenceCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FETurbulenceCoreImageApplier.h; sourceTree = "<group>"; };
-		0F53C9902F0874D7008FB212 /* FETurbulenceCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FETurbulenceCoreImageApplier.mm; sourceTree = "<group>"; };
-		0F53C9B32F08A48E008FB212 /* FEImageCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEImageCoreImageApplier.h; sourceTree = "<group>"; };
-		0F53C9B42F08A48E008FB212 /* FEImageCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEImageCoreImageApplier.mm; sourceTree = "<group>"; };
 		0F53FB81213B1BB800C40D34 /* CSSFilterRenderer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CSSFilterRenderer.cpp; sourceTree = "<group>"; };
 		0F53FB83213B1BB800C40D34 /* CSSFilterRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSSFilterRenderer.h; sourceTree = "<group>"; };
 		0F53FB83213B786400C40D34 /* RenderLayerScrollableArea.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RenderLayerScrollableArea.cpp; sourceTree = "<group>"; };
@@ -8712,12 +8787,6 @@
 		0FEC120922BF2CC7004E9D35 /* LayerAncestorClippingStack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LayerAncestorClippingStack.h; sourceTree = "<group>"; };
 		0FEC120B22BF2CC7004E9D35 /* LayerAncestorClippingStack.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LayerAncestorClippingStack.cpp; sourceTree = "<group>"; };
 		0FEF20CF1BD4A64F00128E5D /* RenderStyleConstants.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RenderStyleConstants.cpp; sourceTree = "<group>"; };
-		0FF1F95D2EFA147000484443 /* FECompositeCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FECompositeCoreImageApplier.h; sourceTree = "<group>"; };
-		0FF1F95E2EFA147000484443 /* FECompositeCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FECompositeCoreImageApplier.mm; sourceTree = "<group>"; };
-		0FF1F96D2EFA37F700484443 /* FEGaussianBlurCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEGaussianBlurCoreImageApplier.h; sourceTree = "<group>"; };
-		0FF1F96E2EFA37F700484443 /* FEGaussianBlurCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEGaussianBlurCoreImageApplier.mm; sourceTree = "<group>"; };
-		0FF1F97F2EFB2EB200484443 /* FEOffsetCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEOffsetCoreImageApplier.h; sourceTree = "<group>"; };
-		0FF1F9802EFB2EB200484443 /* FEOffsetCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEOffsetCoreImageApplier.mm; sourceTree = "<group>"; };
 		0FF29A5325101A61003C34E2 /* LayoutBoxGeometry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LayoutBoxGeometry.h; sourceTree = "<group>"; };
 		0FF29A5525101A61003C34E2 /* LayoutBoxGeometry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LayoutBoxGeometry.cpp; sourceTree = "<group>"; };
 		0FF2E80C1EE0D430009EABD4 /* PerformanceLoggingClient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PerformanceLoggingClient.cpp; sourceTree = "<group>"; };
@@ -14474,6 +14543,7 @@
 		722AF2DB27E1C2040078D997 /* GraphicsContextStateSaver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphicsContextStateSaver.h; sourceTree = "<group>"; };
 		722AF2DC27E1C2050078D997 /* GraphicsContextState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphicsContextState.h; sourceTree = "<group>"; };
 		722AF2DD27E1C2050078D997 /* GraphicsContextState.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GraphicsContextState.cpp; sourceTree = "<group>"; };
+		F5F562EB050C06F0F5CB83CB /* GraphicsContextSwiftBridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GraphicsContextSwiftBridge.cpp; sourceTree = "<group>"; };
 		722AF2E127E1C4030078D997 /* PlatformGraphicsContext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlatformGraphicsContext.h; sourceTree = "<group>"; };
 		722AF2E327E1CF110078D997 /* TextRunIterator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TextRunIterator.h; sourceTree = "<group>"; };
 		722AF2E527E1D09E0078D997 /* CGContextStateSaver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CGContextStateSaver.h; sourceTree = "<group>"; };
@@ -14481,12 +14551,6 @@
 		7233A885305A0BF100EBAD2C /* RenderTreeBuilderCanvas.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RenderTreeBuilderCanvas.cpp; sourceTree = "<group>"; };
 		7236E0012B804C880051BE69 /* CanvasLayerContextSwitcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CanvasLayerContextSwitcher.h; sourceTree = "<group>"; };
 		7236E0022B804C890051BE69 /* CanvasLayerContextSwitcher.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CanvasLayerContextSwitcher.cpp; sourceTree = "<group>"; };
-		7241361A28985069007B3FCD /* FEBlendNeonApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEBlendNeonApplier.cpp; sourceTree = "<group>"; };
-		7241361F289863AC007B3FCD /* FECompositeNeonArithmeticApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FECompositeNeonArithmeticApplier.cpp; sourceTree = "<group>"; };
-		724136202898652A007B3FCD /* FECompositeSoftwareArithmeticApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FECompositeSoftwareArithmeticApplier.cpp; sourceTree = "<group>"; };
-		724136212898652A007B3FCD /* FECompositeSoftwareArithmeticApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FECompositeSoftwareArithmeticApplier.h; sourceTree = "<group>"; };
-		72435EF4273D07670005E7EE /* FilterImage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterImage.h; sourceTree = "<group>"; };
-		72435EF5273D07670005E7EE /* FilterImage.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FilterImage.cpp; sourceTree = "<group>"; };
 		7246F0202A1540ED00FD74F1 /* PathStream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PathStream.h; sourceTree = "<group>"; };
 		7246F0212A1540EF00FD74F1 /* PathStream.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PathStream.cpp; sourceTree = "<group>"; };
 		7246F0222A1540F000FD74F1 /* PathImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PathImpl.h; sourceTree = "<group>"; };
@@ -14553,7 +14617,6 @@
 		727AFED11A2EA6A0000442E8 /* EXTsRGB.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EXTsRGB.cpp; sourceTree = "<group>"; };
 		727AFED21A2EA6A0000442E8 /* EXTsRGB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EXTsRGB.h; sourceTree = "<group>"; };
 		727AFED31A2EA6A0000442E8 /* EXTsRGB.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = EXTsRGB.idl; sourceTree = "<group>"; };
-		7284557E2F4F787C00AE13F7 /* FilterEffectSoftwareParallelApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterEffectSoftwareParallelApplier.h; sourceTree = "<group>"; };
 		72854E5C2B6987B300E0181A /* ImageFrameAnimator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImageFrameAnimator.cpp; sourceTree = "<group>"; };
 		72854E5E2B6987B300E0181A /* ImageFrameAnimator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageFrameAnimator.h; sourceTree = "<group>"; };
 		72854E662B6987B600E0181A /* BitmapImageSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BitmapImageSource.h; sourceTree = "<group>"; };
@@ -14571,39 +14634,6 @@
 		729E39483066D74800AFE142 /* UpdateElementGeometryOptions.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = UpdateElementGeometryOptions.idl; sourceTree = "<group>"; };
 		729E39493066D76E00AFE142 /* UpdateElementGeometryOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UpdateElementGeometryOptions.h; sourceTree = "<group>"; };
 		729E394A3066E85F00AFE142 /* UpdateElementGeometryOptions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = UpdateElementGeometryOptions.cpp; sourceTree = "<group>"; };
-		72A13A9F274C5CC700E2A88E /* FilterEffectApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterEffectApplier.h; sourceTree = "<group>"; };
-		72A13AB6274DCEDC00E2A88E /* FEColorMatrixSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEColorMatrixSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13AB7274DCEDC00E2A88E /* FEColorMatrixSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEColorMatrixSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13AB8274DDEC000E2A88E /* FEComponentTransferSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEComponentTransferSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13AB9274DDEC000E2A88E /* FEComponentTransferSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEComponentTransferSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13ABA274DE01200E2A88E /* FECompositeSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FECompositeSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13ABB274DE01200E2A88E /* FECompositeSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FECompositeSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13ABE274DE33F00E2A88E /* FEConvolveMatrixSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEConvolveMatrixSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13ABF274DE33F00E2A88E /* FEConvolveMatrixSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEConvolveMatrixSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13AC0274DE35900E2A88E /* FEDisplacementMapSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEDisplacementMapSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13AC1274DE35900E2A88E /* FEDisplacementMapSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEDisplacementMapSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13AC2274DE38700E2A88E /* FEDropShadowSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEDropShadowSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13AC3274DE38700E2A88E /* FEDropShadowSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEDropShadowSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13AC4274DE39E00E2A88E /* FEFloodSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEFloodSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13AC5274DE39E00E2A88E /* FEFloodSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEFloodSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13AC6274DE3B700E2A88E /* FEGaussianBlurSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEGaussianBlurSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13AC7274DE3B700E2A88E /* FEGaussianBlurSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEGaussianBlurSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13AC8274DE3D100E2A88E /* FELightingSoftwareParallelApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FELightingSoftwareParallelApplier.cpp; sourceTree = "<group>"; };
-		72A13AC9274DE3D100E2A88E /* FELightingSoftwareParallelApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FELightingSoftwareParallelApplier.h; sourceTree = "<group>"; };
-		72A13ACA274DE3E500E2A88E /* FEMergeSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEMergeSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13ACB274DE3E500E2A88E /* FEMergeSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEMergeSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13ACC274DE43700E2A88E /* FEMorphologySoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEMorphologySoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13ACD274DE43700E2A88E /* FEMorphologySoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEMorphologySoftwareApplier.h; sourceTree = "<group>"; };
-		72A13ACE274DE46C00E2A88E /* FEOffsetSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEOffsetSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13ACF274DE46C00E2A88E /* FEOffsetSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEOffsetSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13AD0274DE48900E2A88E /* FETileSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FETileSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13AD1274DE48900E2A88E /* FETileSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FETileSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13AD2274DE51800E2A88E /* FETurbulenceSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FETurbulenceSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13AD3274DE51800E2A88E /* FETurbulenceSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FETurbulenceSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13AD4274DE54E00E2A88E /* SourceAlphaSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SourceAlphaSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13AD5274DE54E00E2A88E /* SourceAlphaSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SourceAlphaSoftwareApplier.h; sourceTree = "<group>"; };
-		72A13AD6274DE57800E2A88E /* SourceGraphicSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SourceGraphicSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72A13AD7274DE57800E2A88E /* SourceGraphicSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SourceGraphicSoftwareApplier.h; sourceTree = "<group>"; };
 		72A6451F2948F25900C14BA3 /* WebControlView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebControlView.h; sourceTree = "<group>"; };
 		72A645A4294FCDC600C14BA3 /* ControlStyle.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ControlStyle.cpp; sourceTree = "<group>"; };
 		72B2212E295015BB002B5609 /* TextFieldPart.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextFieldPart.h; sourceTree = "<group>"; };
@@ -14611,18 +14641,6 @@
 		72B22130295015D5002B5609 /* TextFieldMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextFieldMac.h; sourceTree = "<group>"; };
 		72B221472950FFEB002B5609 /* TextAreaMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TextAreaMac.mm; sourceTree = "<group>"; };
 		72B221482950FFEB002B5609 /* TextAreaMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextAreaMac.h; sourceTree = "<group>"; };
-		72B4C13A2B4DF3A2008A72B9 /* FELightingSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FELightingSoftwareApplier.h; sourceTree = "<group>"; };
-		72B4C13B2B4DF3A2008A72B9 /* FELightingSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FELightingSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72B4EF74274E233300293C2F /* FEBlendSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEBlendSoftwareApplier.h; sourceTree = "<group>"; };
-		72B4EF75274E233400293C2F /* FEBlendSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEBlendSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72B4EF7C274EE37F00293C2F /* FilterImageVector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterImageVector.h; sourceTree = "<group>"; };
-		72B8B0142751084D00F752AA /* SourceGraphicCoreImageApplier.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SourceGraphicCoreImageApplier.mm; sourceTree = "<group>"; };
-		72B8B0162751086A00F752AA /* SourceGraphicCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SourceGraphicCoreImageApplier.h; sourceTree = "<group>"; };
-		72B8B01B2751B6BC00F752AA /* FEComponentTransferCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEComponentTransferCoreImageApplier.mm; sourceTree = "<group>"; };
-		72B8B01D2751B82B00F752AA /* FEComponentTransferCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEComponentTransferCoreImageApplier.h; sourceTree = "<group>"; };
-		72B8B01E2751B91000F752AA /* FEColorMatrixCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEColorMatrixCoreImageApplier.mm; sourceTree = "<group>"; };
-		72B8B01F2751B92800F752AA /* FEColorMatrixCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEColorMatrixCoreImageApplier.h; sourceTree = "<group>"; };
-		72B8B0202751C4B700F752AA /* FilterImageCoreImage.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FilterImageCoreImage.mm; sourceTree = "<group>"; };
 		72B8B03227533F8100F752AA /* Filter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Filter.cpp; sourceTree = "<group>"; };
 		72BA2ACB295233B900678507 /* ProgressBarMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ProgressBarMac.mm; sourceTree = "<group>"; };
 		72BA2ACC295233B900678507 /* ProgressBarMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ProgressBarMac.h; sourceTree = "<group>"; };
@@ -14723,8 +14741,6 @@
 		AA0CE5D12E6F00A100C0FFEE /* ViewCoordinateSpaceRect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ViewCoordinateSpaceRect.h; sourceTree = "<group>"; };
 		72F7E74E279CEDE800D82D2D /* FEImage.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEImage.cpp; sourceTree = "<group>"; };
 		72F7E74F279CEDE800D82D2D /* FEImage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEImage.h; sourceTree = "<group>"; };
-		72F7E751279CEE5C00D82D2D /* FEImageSoftwareApplier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEImageSoftwareApplier.cpp; sourceTree = "<group>"; };
-		72F7E752279CEE5C00D82D2D /* FEImageSoftwareApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEImageSoftwareApplier.h; sourceTree = "<group>"; };
 		72F8898929887AB900A6E07A /* ApplePayButtonPart.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ApplePayButtonPart.cpp; sourceTree = "<group>"; };
 		72F8898A29887AB900A6E07A /* ApplePayButtonPart.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ApplePayButtonPart.h; sourceTree = "<group>"; };
 		72F8898C298885FB00A6E07A /* ControlFactoryCocoa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ControlFactoryCocoa.h; sourceTree = "<group>"; };
@@ -16367,12 +16383,6 @@
 		9331BAD829F033F800137ED2 /* RenderMathMLBlockInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderMathMLBlockInlines.h; sourceTree = "<group>"; };
 		9331BADA29F0D87700137ED2 /* RenderTableRowInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderTableRowInlines.h; sourceTree = "<group>"; };
 		9332AB3D16515D7700D827EC /* GraphicsContextGLNEON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphicsContextGLNEON.h; sourceTree = "<group>"; };
-		9332AB871653A97900D827EC /* FEBlendNeonApplier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FEBlendNeonApplier.h; sourceTree = "<group>"; };
-		9332AB881653A97900D827EC /* FECompositeNeonArithmeticApplier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FECompositeNeonArithmeticApplier.h; sourceTree = "<group>"; };
-		9332AB891653A97900D827EC /* FEGaussianBlurNEON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FEGaussianBlurNEON.h; sourceTree = "<group>"; };
-		9332AB8A1653A97900D827EC /* FELightingNeonParallelApplier.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FELightingNeonParallelApplier.cpp; sourceTree = "<group>"; };
-		9332AB8B1653A97900D827EC /* FELightingNeonParallelApplier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FELightingNeonParallelApplier.h; sourceTree = "<group>"; };
-		9332AB8C1653A97900D827EC /* NEONHelpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NEONHelpers.h; sourceTree = "<group>"; };
 		93354A3B0B24F8C9003F6DEA /* UIEventWithKeyState.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UIEventWithKeyState.cpp; sourceTree = "<group>"; };
 		933A142B0B7D188600A53FFD /* TextEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextEvent.cpp; sourceTree = "<group>"; };
 		933A142C0B7D188600A53FFD /* TextEvent.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TextEvent.idl; sourceTree = "<group>"; };
@@ -17174,10 +17184,6 @@
 		FEEDFACE000000000000A001 /* UsedStyle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UsedStyle.h; sourceTree = "<group>"; };
 		FEEDFACE000000000000A007 /* UsedStyleReferenceSize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UsedStyleReferenceSize.h; sourceTree = "<group>"; };
 		9E3E301A4FF9CC03FB16C8B2 /* UnifiedSource18-header-RenderStyleGetters.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "UnifiedSource18-header-RenderStyleGetters.cpp"; sourceTree = "<group>"; };
-		9E47A8222F01986A00D57716 /* FEMorphologyCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEMorphologyCoreImageApplier.h; sourceTree = "<group>"; };
-		9E47A8242F0198AA00D57716 /* FEMorphologyCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FEMorphologyCoreImageApplier.mm; sourceTree = "<group>"; };
-		9E5F6AC02E441ABC001C81D8 /* SourceAlphaCoreImageApplier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SourceAlphaCoreImageApplier.h; sourceTree = "<group>"; };
-		9E5F6AC12E441B09001C81D8 /* SourceAlphaCoreImageApplier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SourceAlphaCoreImageApplier.mm; sourceTree = "<group>"; };
 		9E68A6952DC9406100039106 /* FrameMemoryMonitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FrameMemoryMonitor.h; sourceTree = "<group>"; };
 		9E68A6962DC9407300039106 /* FrameMemoryMonitor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FrameMemoryMonitor.cpp; sourceTree = "<group>"; };
 		9E89B7DB68E9CE297AC2CD6A /* UnifiedSource34-header-RenderStyleGetters.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "UnifiedSource34-header-RenderStyleGetters.cpp"; sourceTree = "<group>"; };
@@ -19196,6 +19202,97 @@
 		BC0CA74C264AED0A004FDC62 /* PixelBufferConversion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PixelBufferConversion.h; sourceTree = "<group>"; };
 		BC0CA74D264AED0A004FDC62 /* PixelBufferConversion.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PixelBufferConversion.cpp; sourceTree = "<group>"; };
 		07E047C9305A9DB000DFCC4B /* PixelBufferConversion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelBufferConversion.swift; sourceTree = "<group>"; };
+		89A4B5A802618BF7BCC9FFA5 /* Arm64Truncating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arm64Truncating.swift; sourceTree = "<group>"; };
+		16DD84A6049DB7051CB0DE93 /* CheckedMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckedMath.swift; sourceTree = "<group>"; };
+		7A7AD0E52EDA1968CFBAC45B /* PixelConversion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelConversion.swift; sourceTree = "<group>"; };
+		2A42037BC09BC36546A8F619 /* PixelConversionSIMD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelConversionSIMD.swift; sourceTree = "<group>"; };
+		D6E88DBB1100584DD4D049F6 /* PixelConversionScalar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelConversionScalar.swift; sourceTree = "<group>"; };
+		FC73B9472BE1E2A447EDAA3C /* PixelTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelTransfer.swift; sourceTree = "<group>"; };
+		C9FFF9190FFE02204AB2B423 /* ShareableBitmapLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableBitmapLayout.swift; sourceTree = "<group>"; };
+		CDD9D218729E0D0C79EC9827 /* ShadowBlurDrawing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowBlurDrawing.swift; sourceTree = "<group>"; };
+		22257F3C64F0CCF4837AD34F /* ShadowBlurGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowBlurGeometry.swift; sourceTree = "<group>"; };
+		C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowBlurKernel.swift; sourceTree = "<group>"; };
+		63866A9D038D86C964446936 /* VImageBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VImageBridge.swift; sourceTree = "<group>"; };
+		C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+BoxConvolve.swift"; sourceTree = "<group>"; };
+		0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+ColorMatrix.swift"; sourceTree = "<group>"; };
+		3505F5F351141D3E115BAF01 /* VImageBridge+Conversion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+Conversion.swift"; sourceTree = "<group>"; };
+		082B40FB2E94DC14D4A82F54 /* SharedVideoFrameLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedVideoFrameLayout.swift; sourceTree = "<group>"; };
+		68FDBDB522C65ED430530767 /* FEBlendCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEBlendCoreImageApplier.swift; sourceTree = "<group>"; };
+		AB08B3AB5B1A8CD3C23634AE /* FEColorMatrixCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEColorMatrixCoreImageApplier.swift; sourceTree = "<group>"; };
+		BD4A77B7227DBDACBFE6D4EA /* FEComponentTransferCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEComponentTransferCoreImageApplier.swift; sourceTree = "<group>"; };
+		20B25AC539B6B3763EF99D16 /* FECompositeCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FECompositeCoreImageApplier.swift; sourceTree = "<group>"; };
+		C81E1C54E6422E9CA60A1986 /* FEConvolveMatrixCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEConvolveMatrixCoreImageApplier.swift; sourceTree = "<group>"; };
+		E35B8F06F0224BA66B2DE615 /* FEDisplacementMapCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEDisplacementMapCoreImageApplier.swift; sourceTree = "<group>"; };
+		FA0114E9B0A6D2B13B2E4DDC /* FEDropShadowCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEDropShadowCoreImageApplier.swift; sourceTree = "<group>"; };
+		65D1B6B8F8675EB40CE30F27 /* FEFloodCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEFloodCoreImageApplier.swift; sourceTree = "<group>"; };
+		72E573DD5E49B6C908FFCB5F /* FEGaussianBlurCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEGaussianBlurCoreImageApplier.swift; sourceTree = "<group>"; };
+		4EAE657C65B80534C97A3658 /* FEImageCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEImageCoreImageApplier.swift; sourceTree = "<group>"; };
+		8A23C1325C759CD529B3CFE7 /* FELightingCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FELightingCoreImageApplier.swift; sourceTree = "<group>"; };
+		488A347F4E8C651111483AD6 /* FEMergeCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEMergeCoreImageApplier.swift; sourceTree = "<group>"; };
+		61692EB86A420052DC52708D /* FEMorphologyCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEMorphologyCoreImageApplier.swift; sourceTree = "<group>"; };
+		EEFCC44A9D40A926CCBE7E69 /* FEOffsetCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEOffsetCoreImageApplier.swift; sourceTree = "<group>"; };
+		632404D336CAB7F04C3C802E /* FETileCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FETileCoreImageApplier.swift; sourceTree = "<group>"; };
+		66051D42536399ED407461F1 /* FETurbulenceCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FETurbulenceCoreImageApplier.swift; sourceTree = "<group>"; };
+		FD3F36DBCF0AB8A0460F8E48 /* SourceAlphaCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceAlphaCoreImageApplier.swift; sourceTree = "<group>"; };
+		891274330DA336C9F62B4FD9 /* SourceGraphicCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceGraphicCoreImageApplier.swift; sourceTree = "<group>"; };
+		858741E091BCC484DB9EA870 /* FilterImageCoreImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterImageCoreImage.swift; sourceTree = "<group>"; };
+		039255D9989BF1E4550183E8 /* FilterApply.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterApply.swift; sourceTree = "<group>"; };
+		49A7C036C6BBBA8E0F949BE2 /* FilterMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterMath.swift; sourceTree = "<group>"; };
+		57101E2FF013E790B43ACD55 /* FilterGeometryMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterGeometryMath.swift; sourceTree = "<group>"; };
+		F89B5A6F6D9A2A037611404B /* FilterImageImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterImageImpl.swift; sourceTree = "<group>"; };
+		1E613DF9B5FA9EC820EEB374 /* LightingModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightingModel.swift; sourceTree = "<group>"; };
+		7790065560F4E8BA2B80172A /* ParallelRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParallelRows.swift; sourceTree = "<group>"; };
+		CDC96FF7DA0E5D2ECEB6E12B /* ParallelRowsDispatch.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ParallelRowsDispatch.h; sourceTree = "<group>"; };
+		8000E7BCC14B40CE6A2302C6 /* GraphicsContextSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GraphicsContextSwiftBridge.h; sourceTree = "<group>"; };
+		EA8FC8D14864AF04A5F423D2 /* FEBlendSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEBlendSoftwareApplier.swift; sourceTree = "<group>"; };
+		020B67EE871B8CCCC844C36F /* FEColorMatrixSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEColorMatrixSoftwareApplier.swift; sourceTree = "<group>"; };
+		C820EA4BBC70D90D5BADD728 /* FEComponentTransferSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEComponentTransferSoftwareApplier.swift; sourceTree = "<group>"; };
+		5B0190BA997921EA25695A64 /* FECompositeSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FECompositeSoftwareApplier.swift; sourceTree = "<group>"; };
+		AAF4AC53F5931735EFD2C47C /* FECompositeSoftwareArithmeticApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FECompositeSoftwareArithmeticApplier.swift; sourceTree = "<group>"; };
+		208C184E8269B468191F22BD /* FEConvolveMatrixSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEConvolveMatrixSoftwareApplier.swift; sourceTree = "<group>"; };
+		F3637D1C8ECE9095DD64E0B0 /* FEDisplacementMapSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEDisplacementMapSoftwareApplier.swift; sourceTree = "<group>"; };
+		179AB2F86FE8AC170A39EBB1 /* FEDropShadowSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEDropShadowSoftwareApplier.swift; sourceTree = "<group>"; };
+		87A37E934F6230BEA6E9F37A /* FEFloodSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEFloodSoftwareApplier.swift; sourceTree = "<group>"; };
+		34D8E8FD48901B3E7487AD73 /* FEGaussianBlurSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEGaussianBlurSoftwareApplier.swift; sourceTree = "<group>"; };
+		AF3C72DBDD8678496405954A /* FEImageSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEImageSoftwareApplier.swift; sourceTree = "<group>"; };
+		9FD4813685A20C827FF1CB66 /* FELightingSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FELightingSoftwareApplier.swift; sourceTree = "<group>"; };
+		DE799F2F6003134A99731BE2 /* FELightingSoftwareParallelApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FELightingSoftwareParallelApplier.swift; sourceTree = "<group>"; };
+		33305EF9AA6844FD3CF70C63 /* FEMergeSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEMergeSoftwareApplier.swift; sourceTree = "<group>"; };
+		ADD65AB91B83DC55C3A8ECD3 /* FEMorphologySoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEMorphologySoftwareApplier.swift; sourceTree = "<group>"; };
+		3B6ECFE544ED1244B8892DEB /* FEOffsetSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FEOffsetSoftwareApplier.swift; sourceTree = "<group>"; };
+		46A0AF3D370F5B01DCA1810D /* FETileSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FETileSoftwareApplier.swift; sourceTree = "<group>"; };
+		851D79E46E04217A4D1F11FB /* FETurbulenceSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FETurbulenceSoftwareApplier.swift; sourceTree = "<group>"; };
+		A1B981824F960EB014A2EDBD /* SourceAlphaSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceAlphaSoftwareApplier.swift; sourceTree = "<group>"; };
+		55C1A45B7012F3B457A1D2CF /* SourceGraphicSoftwareApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceGraphicSoftwareApplier.swift; sourceTree = "<group>"; };
+		65BE43B67961D1CD180A07BC /* CSSFilterRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSFilterRenderer.swift; sourceTree = "<group>"; };
+		C196A8044702205F700598D9 /* SVGFilterRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGFilterRenderer.swift; sourceTree = "<group>"; };
+		E0938AED654BDD2B4EE9BDBE /* SharedVideoFrameSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SharedVideoFrameSwiftBridge.h; sourceTree = "<group>"; };
+		C47D5C3F84A19CF3FE2CC4A8 /* PixelBufferSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PixelBufferSwiftBridge.h; sourceTree = "<group>"; };
+		CF453B487F95E0C826425DDC /* ShadowBlurSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShadowBlurSwiftBridge.h; sourceTree = "<group>"; };
+		FBBDE67E1BE26F3BCC9CCA3C /* ShareableBitmapSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShareableBitmapSwiftBridge.h; sourceTree = "<group>"; };
+		46B6531DB6016610F82FDF81 /* FilterCoreImageSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterCoreImageSwiftBridge.h; sourceTree = "<group>"; };
+		D49B8CEBEA7F5E4F363DC5E4 /* FilterGraphicsBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterGraphicsBridge.h; sourceTree = "<group>"; };
+		E32BE83091990D8A31002167 /* FilterSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterSwiftBridge.h; sourceTree = "<group>"; };
+		7F1DDE0D16C361FA3B757813 /* FEBlendParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEBlendParameters.h; sourceTree = "<group>"; };
+		FC272918B8E3EF437043817A /* FEColorMatrixParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEColorMatrixParameters.h; sourceTree = "<group>"; };
+		77664AB7C1DDB991BB4D7C44 /* FEComponentTransferParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEComponentTransferParameters.h; sourceTree = "<group>"; };
+		21E8C733F5E899E0C032F00F /* FECompositeParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FECompositeParameters.h; sourceTree = "<group>"; };
+		F18EAAA0E3C203DEACB8CF83 /* FEConvolveMatrixParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEConvolveMatrixParameters.h; sourceTree = "<group>"; };
+		DFF460DC1627A946FAB0DD58 /* FEDisplacementMapParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEDisplacementMapParameters.h; sourceTree = "<group>"; };
+		56F624BFBF418B6D88B09D66 /* FEDropShadowParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEDropShadowParameters.h; sourceTree = "<group>"; };
+		DC343599F241293426C33A52 /* FEFloodParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEFloodParameters.h; sourceTree = "<group>"; };
+		2C240C4CAF5FCC4E57594B3F /* FEGaussianBlurParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEGaussianBlurParameters.h; sourceTree = "<group>"; };
+		CDE65C044888FC0194C4E797 /* FEImageParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEImageParameters.h; sourceTree = "<group>"; };
+		F3CC6E25CFF60EAEA3DECC67 /* FELightingParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FELightingParameters.h; sourceTree = "<group>"; };
+		8BF5DCE7EBC47D7F22B3FA3B /* FEMorphologyParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEMorphologyParameters.h; sourceTree = "<group>"; };
+		136608DAF871B59F63FF56CD /* FEOffsetParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FEOffsetParameters.h; sourceTree = "<group>"; };
+		30F051B06E1F24FF5B88D240 /* FETurbulenceParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FETurbulenceParameters.h; sourceTree = "<group>"; };
+		8325AC4CE73D1300C42C6938 /* LightSourceParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LightSourceParameters.h; sourceTree = "<group>"; };
+		C638AB6C688AA89AEFE42C7C /* SourceGraphicParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SourceGraphicParameters.h; sourceTree = "<group>"; };
+		4E2312F01649DD4E250DB7DE /* FilterCoreImageSwiftBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FilterCoreImageSwiftBridge.mm; sourceTree = "<group>"; };
+		C2E5AE65466A756170D6F85D /* FilterGraphicsBridge.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FilterGraphicsBridge.cpp; sourceTree = "<group>"; };
+		5B402E89F9CE4EBEC55E8C53 /* FEImageBridge.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FEImageBridge.cpp; sourceTree = "<group>"; };
+		FC58207C5686DA2A8B781991 /* SourceGraphicBridge.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SourceGraphicBridge.cpp; sourceTree = "<group>"; };
 		BC0D730E2FB64F6000952D29 /* CSSMaskBorder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSMaskBorder.h; sourceTree = "<group>"; };
 		BC0D730F2FB64F6000952D29 /* CSSMaskBorder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CSSMaskBorder.cpp; sourceTree = "<group>"; };
 		BC0D73102FB64F6000952D29 /* CSSMaskBorderOutset.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSMaskBorderOutset.h; sourceTree = "<group>"; };
@@ -27062,43 +27159,27 @@
 		2CE1189824C2402C003770E9 /* coreimage */ = {
 			isa = PBXGroup;
 			children = (
-				0F53074C2EF7AF0400F0B6B2 /* FEBlendCoreImageApplier.h */,
-				0F53074D2EF7AF0400F0B6B2 /* FEBlendCoreImageApplier.mm */,
-				72B8B01F2751B92800F752AA /* FEColorMatrixCoreImageApplier.h */,
-				72B8B01E2751B91000F752AA /* FEColorMatrixCoreImageApplier.mm */,
-				72B8B01D2751B82B00F752AA /* FEComponentTransferCoreImageApplier.h */,
-				72B8B01B2751B6BC00F752AA /* FEComponentTransferCoreImageApplier.mm */,
-				0FF1F95D2EFA147000484443 /* FECompositeCoreImageApplier.h */,
-				0FF1F95E2EFA147000484443 /* FECompositeCoreImageApplier.mm */,
-				0F2F14BE2F0C766B001B0536 /* FEConvolveMatrixCoreImageApplier.h */,
-				0F2F14BF2F0C766B001B0536 /* FEConvolveMatrixCoreImageApplier.mm */,
-				0F2F14B82F0C7416001B0536 /* FEDisplacementMapCoreImageApplier.h */,
-				0F2F14B92F0C7416001B0536 /* FEDisplacementMapCoreImageApplier.mm */,
-				0F53C9872F086EB1008FB212 /* FEDropShadowCoreImageApplier.h */,
-				0F53C9882F086EB1008FB212 /* FEDropShadowCoreImageApplier.mm */,
-				0F53074A2EF7A88300F0B6B2 /* FEFloodCoreImageApplier.h */,
-				0F53074B2EF7A88300F0B6B2 /* FEFloodCoreImageApplier.mm */,
-				0FF1F96D2EFA37F700484443 /* FEGaussianBlurCoreImageApplier.h */,
-				0FF1F96E2EFA37F700484443 /* FEGaussianBlurCoreImageApplier.mm */,
-				0F53C9B32F08A48E008FB212 /* FEImageCoreImageApplier.h */,
-				0F53C9B42F08A48E008FB212 /* FEImageCoreImageApplier.mm */,
-				0F2F14C42F0C7B82001B0536 /* FELightingCoreImageApplier.h */,
-				0F2F14C52F0C7B82001B0536 /* FELightingCoreImageApplier.mm */,
-				0F53C97F2F086C88008FB212 /* FEMergeCoreImageApplier.h */,
-				0F53C9802F086C88008FB212 /* FEMergeCoreImageApplier.mm */,
-				9E47A8222F01986A00D57716 /* FEMorphologyCoreImageApplier.h */,
-				9E47A8242F0198AA00D57716 /* FEMorphologyCoreImageApplier.mm */,
-				0FF1F97F2EFB2EB200484443 /* FEOffsetCoreImageApplier.h */,
-				0FF1F9802EFB2EB200484443 /* FEOffsetCoreImageApplier.mm */,
-				0F53C98B2F08725B008FB212 /* FETileCoreImageApplier.h */,
-				0F53C98C2F08725B008FB212 /* FETileCoreImageApplier.mm */,
-				0F53C98F2F0874D7008FB212 /* FETurbulenceCoreImageApplier.h */,
-				0F53C9902F0874D7008FB212 /* FETurbulenceCoreImageApplier.mm */,
-				72B8B0202751C4B700F752AA /* FilterImageCoreImage.mm */,
-				9E5F6AC02E441ABC001C81D8 /* SourceAlphaCoreImageApplier.h */,
-				9E5F6AC12E441B09001C81D8 /* SourceAlphaCoreImageApplier.mm */,
-				72B8B0162751086A00F752AA /* SourceGraphicCoreImageApplier.h */,
-				72B8B0142751084D00F752AA /* SourceGraphicCoreImageApplier.mm */,
+				68FDBDB522C65ED430530767 /* FEBlendCoreImageApplier.swift */,
+				AB08B3AB5B1A8CD3C23634AE /* FEColorMatrixCoreImageApplier.swift */,
+				BD4A77B7227DBDACBFE6D4EA /* FEComponentTransferCoreImageApplier.swift */,
+				20B25AC539B6B3763EF99D16 /* FECompositeCoreImageApplier.swift */,
+				C81E1C54E6422E9CA60A1986 /* FEConvolveMatrixCoreImageApplier.swift */,
+				E35B8F06F0224BA66B2DE615 /* FEDisplacementMapCoreImageApplier.swift */,
+				FA0114E9B0A6D2B13B2E4DDC /* FEDropShadowCoreImageApplier.swift */,
+				65D1B6B8F8675EB40CE30F27 /* FEFloodCoreImageApplier.swift */,
+				72E573DD5E49B6C908FFCB5F /* FEGaussianBlurCoreImageApplier.swift */,
+				4EAE657C65B80534C97A3658 /* FEImageCoreImageApplier.swift */,
+				8A23C1325C759CD529B3CFE7 /* FELightingCoreImageApplier.swift */,
+				488A347F4E8C651111483AD6 /* FEMergeCoreImageApplier.swift */,
+				61692EB86A420052DC52708D /* FEMorphologyCoreImageApplier.swift */,
+				EEFCC44A9D40A926CCBE7E69 /* FEOffsetCoreImageApplier.swift */,
+				632404D336CAB7F04C3C802E /* FETileCoreImageApplier.swift */,
+				66051D42536399ED407461F1 /* FETurbulenceCoreImageApplier.swift */,
+				46B6531DB6016610F82FDF81 /* FilterCoreImageSwiftBridge.h */,
+				4E2312F01649DD4E250DB7DE /* FilterCoreImageSwiftBridge.mm */,
+				858741E091BCC484DB9EA870 /* FilterImageCoreImage.swift */,
+				FD3F36DBCF0AB8A0460F8E48 /* SourceAlphaCoreImageApplier.swift */,
+				891274330DA336C9F62B4FD9 /* SourceGraphicCoreImageApplier.swift */,
 			);
 			path = coreimage;
 			sourceTree = "<group>";
@@ -32361,47 +32442,26 @@
 		72A13AB4274DCEA300E2A88E /* software */ = {
 			isa = PBXGroup;
 			children = (
-				72B4EF75274E233400293C2F /* FEBlendSoftwareApplier.cpp */,
-				72B4EF74274E233300293C2F /* FEBlendSoftwareApplier.h */,
-				72A13AB6274DCEDC00E2A88E /* FEColorMatrixSoftwareApplier.cpp */,
-				72A13AB7274DCEDC00E2A88E /* FEColorMatrixSoftwareApplier.h */,
-				72A13AB8274DDEC000E2A88E /* FEComponentTransferSoftwareApplier.cpp */,
-				72A13AB9274DDEC000E2A88E /* FEComponentTransferSoftwareApplier.h */,
-				72A13ABA274DE01200E2A88E /* FECompositeSoftwareApplier.cpp */,
-				72A13ABB274DE01200E2A88E /* FECompositeSoftwareApplier.h */,
-				724136202898652A007B3FCD /* FECompositeSoftwareArithmeticApplier.cpp */,
-				724136212898652A007B3FCD /* FECompositeSoftwareArithmeticApplier.h */,
-				72A13ABE274DE33F00E2A88E /* FEConvolveMatrixSoftwareApplier.cpp */,
-				72A13ABF274DE33F00E2A88E /* FEConvolveMatrixSoftwareApplier.h */,
-				72A13AC0274DE35900E2A88E /* FEDisplacementMapSoftwareApplier.cpp */,
-				72A13AC1274DE35900E2A88E /* FEDisplacementMapSoftwareApplier.h */,
-				72A13AC2274DE38700E2A88E /* FEDropShadowSoftwareApplier.cpp */,
-				72A13AC3274DE38700E2A88E /* FEDropShadowSoftwareApplier.h */,
-				72A13AC4274DE39E00E2A88E /* FEFloodSoftwareApplier.cpp */,
-				72A13AC5274DE39E00E2A88E /* FEFloodSoftwareApplier.h */,
-				72A13AC6274DE3B700E2A88E /* FEGaussianBlurSoftwareApplier.cpp */,
-				72A13AC7274DE3B700E2A88E /* FEGaussianBlurSoftwareApplier.h */,
-				72F7E751279CEE5C00D82D2D /* FEImageSoftwareApplier.cpp */,
-				72F7E752279CEE5C00D82D2D /* FEImageSoftwareApplier.h */,
-				72B4C13B2B4DF3A2008A72B9 /* FELightingSoftwareApplier.cpp */,
-				72B4C13A2B4DF3A2008A72B9 /* FELightingSoftwareApplier.h */,
-				72A13AC8274DE3D100E2A88E /* FELightingSoftwareParallelApplier.cpp */,
-				72A13AC9274DE3D100E2A88E /* FELightingSoftwareParallelApplier.h */,
-				72A13ACA274DE3E500E2A88E /* FEMergeSoftwareApplier.cpp */,
-				72A13ACB274DE3E500E2A88E /* FEMergeSoftwareApplier.h */,
-				72A13ACC274DE43700E2A88E /* FEMorphologySoftwareApplier.cpp */,
-				72A13ACD274DE43700E2A88E /* FEMorphologySoftwareApplier.h */,
-				72A13ACE274DE46C00E2A88E /* FEOffsetSoftwareApplier.cpp */,
-				72A13ACF274DE46C00E2A88E /* FEOffsetSoftwareApplier.h */,
-				72A13AD0274DE48900E2A88E /* FETileSoftwareApplier.cpp */,
-				72A13AD1274DE48900E2A88E /* FETileSoftwareApplier.h */,
-				72A13AD2274DE51800E2A88E /* FETurbulenceSoftwareApplier.cpp */,
-				72A13AD3274DE51800E2A88E /* FETurbulenceSoftwareApplier.h */,
-				7284557E2F4F787C00AE13F7 /* FilterEffectSoftwareParallelApplier.h */,
-				72A13AD4274DE54E00E2A88E /* SourceAlphaSoftwareApplier.cpp */,
-				72A13AD5274DE54E00E2A88E /* SourceAlphaSoftwareApplier.h */,
-				72A13AD6274DE57800E2A88E /* SourceGraphicSoftwareApplier.cpp */,
-				72A13AD7274DE57800E2A88E /* SourceGraphicSoftwareApplier.h */,
+				EA8FC8D14864AF04A5F423D2 /* FEBlendSoftwareApplier.swift */,
+				020B67EE871B8CCCC844C36F /* FEColorMatrixSoftwareApplier.swift */,
+				C820EA4BBC70D90D5BADD728 /* FEComponentTransferSoftwareApplier.swift */,
+				5B0190BA997921EA25695A64 /* FECompositeSoftwareApplier.swift */,
+				AAF4AC53F5931735EFD2C47C /* FECompositeSoftwareArithmeticApplier.swift */,
+				208C184E8269B468191F22BD /* FEConvolveMatrixSoftwareApplier.swift */,
+				F3637D1C8ECE9095DD64E0B0 /* FEDisplacementMapSoftwareApplier.swift */,
+				179AB2F86FE8AC170A39EBB1 /* FEDropShadowSoftwareApplier.swift */,
+				87A37E934F6230BEA6E9F37A /* FEFloodSoftwareApplier.swift */,
+				34D8E8FD48901B3E7487AD73 /* FEGaussianBlurSoftwareApplier.swift */,
+				AF3C72DBDD8678496405954A /* FEImageSoftwareApplier.swift */,
+				9FD4813685A20C827FF1CB66 /* FELightingSoftwareApplier.swift */,
+				DE799F2F6003134A99731BE2 /* FELightingSoftwareParallelApplier.swift */,
+				33305EF9AA6844FD3CF70C63 /* FEMergeSoftwareApplier.swift */,
+				ADD65AB91B83DC55C3A8ECD3 /* FEMorphologySoftwareApplier.swift */,
+				3B6ECFE544ED1244B8892DEB /* FEOffsetSoftwareApplier.swift */,
+				46A0AF3D370F5B01DCA1810D /* FETileSoftwareApplier.swift */,
+				851D79E46E04217A4D1F11FB /* FETurbulenceSoftwareApplier.swift */,
+				A1B981824F960EB014A2EDBD /* SourceAlphaSoftwareApplier.swift */,
+				55C1A45B7012F3B457A1D2CF /* SourceGraphicSoftwareApplier.swift */,
 			);
 			path = software;
 			sourceTree = "<group>";
@@ -33223,25 +33283,9 @@
 		9332AB3C16515D7700D827EC /* arm */ = {
 			isa = PBXGroup;
 			children = (
-				9332AB861653A97900D827EC /* filters */,
 				9332AB3D16515D7700D827EC /* GraphicsContextGLNEON.h */,
 			);
 			path = arm;
-			sourceTree = "<group>";
-		};
-		9332AB861653A97900D827EC /* filters */ = {
-			isa = PBXGroup;
-			children = (
-				7241361A28985069007B3FCD /* FEBlendNeonApplier.cpp */,
-				9332AB871653A97900D827EC /* FEBlendNeonApplier.h */,
-				7241361F289863AC007B3FCD /* FECompositeNeonArithmeticApplier.cpp */,
-				9332AB881653A97900D827EC /* FECompositeNeonArithmeticApplier.h */,
-				9332AB891653A97900D827EC /* FEGaussianBlurNEON.h */,
-				9332AB8A1653A97900D827EC /* FELightingNeonParallelApplier.cpp */,
-				9332AB8B1653A97900D827EC /* FELightingNeonParallelApplier.h */,
-				9332AB8C1653A97900D827EC /* NEONHelpers.h */,
-			);
-			path = filters;
 			sourceTree = "<group>";
 		};
 		93B0A64226CDC57400AA21E4 /* permissions */ = {
@@ -34951,6 +34995,8 @@
 				4688C4B42B6B0697003533C9 /* SharedMemoryCocoa.mm */,
 				41DC04FB27A83C92008CF968 /* SharedVideoFrameInfo.h */,
 				41DC04FD27A83C93008CF968 /* SharedVideoFrameInfo.mm */,
+				082B40FB2E94DC14D4A82F54 /* SharedVideoFrameLayout.swift */,
+				E0938AED654BDD2B4EE9BDBE /* SharedVideoFrameSwiftBridge.h */,
 				ECA680C61E67724500731D20 /* StringUtilities.h */,
 				ECA680C81E67730B00731D20 /* StringUtilities.mm */,
 				C1692DD423D23AE0006E88F7 /* SystemBattery.h */,
@@ -34995,6 +35041,7 @@
 		A75E8B7F0E1DE2B0007F2481 /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				691D117C4C1841D0E5810265 /* parameters */,
 				72A13AB4274DCEA300E2A88E /* software */,
 				A1E1154313015C3D0054AC8C /* DistantLightSource.cpp */,
 				84730D5A1248F0B300D3A9C9 /* DistantLightSource.h */,
@@ -35036,16 +35083,21 @@
 				84730D701248F0B300D3A9C9 /* FETurbulence.h */,
 				72B8B03227533F8100F752AA /* Filter.cpp */,
 				845E72F70FD261EE00A87D79 /* Filter.h */,
+				039255D9989BF1E4550183E8 /* FilterApply.swift */,
 				08C925170FCC7C4A00480DEC /* FilterEffect.cpp */,
 				08C925180FCC7C4A00480DEC /* FilterEffect.h */,
-				72A13A9F274C5CC700E2A88E /* FilterEffectApplier.h */,
 				729661A2275960A500E7DF9B /* FilterEffectGeometry.h */,
 				7214B9B7274458FA003BE6DF /* FilterEffectVector.h */,
+				4F1398459A92E646A990CF98 /* FilterEffectView.cpp */,
+				BDCDA9A73BA6C7EE1597E72B /* FilterEffectView.h */,
+				DD873A3B592F9AF8769F7B2B /* FilterEngine.swift */,
 				7262D757272A174100C56A09 /* FilterFunction.cpp */,
 				7262D756272A174100C56A09 /* FilterFunction.h */,
-				72435EF5273D07670005E7EE /* FilterImage.cpp */,
-				72435EF4273D07670005E7EE /* FilterImage.h */,
-				72B4EF7C274EE37F00293C2F /* FilterImageVector.h */,
+				57101E2FF013E790B43ACD55 /* FilterGeometryMath.swift */,
+				C2E5AE65466A756170D6F85D /* FilterGraphicsBridge.cpp */,
+				D49B8CEBEA7F5E4F363DC5E4 /* FilterGraphicsBridge.h */,
+				F89B5A6F6D9A2A037611404B /* FilterImageImpl.swift */,
+				49A7C036C6BBBA8E0F949BE2 /* FilterMath.swift */,
 				49ECEB631499790D00CDD3A4 /* FilterOperation.cpp */,
 				49ECEB641499790D00CDD3A4 /* FilterOperation.h */,
 				49ECEB651499790D00CDD3A4 /* FilterOperations.cpp */,
@@ -35055,7 +35107,11 @@
 				724DCF1D28485C330026ACF4 /* FilterResults.cpp */,
 				7211B5D6276536820076FEF8 /* FilterResults.h */,
 				7272D336292F767D00F74D99 /* FilterStyle.h */,
+				E32BE83091990D8A31002167 /* FilterSwiftBridge.h */,
+				1E613DF9B5FA9EC820EEB374 /* LightingModel.swift */,
 				84730D741248F0B300D3A9C9 /* LightSource.h */,
+				7790065560F4E8BA2B80172A /* ParallelRows.swift */,
+				CDC96FF7DA0E5D2ECEB6E12B /* ParallelRowsDispatch.h */,
 				A1E1154513015C4E0054AC8C /* PointLightSource.cpp */,
 				84730D751248F0B300D3A9C9 /* PointLightSource.h */,
 				84A81F3B0FC7DFF000955300 /* SourceAlpha.cpp */,
@@ -35066,6 +35122,31 @@
 				84730D761248F0B300D3A9C9 /* SpotLightSource.h */,
 			);
 			path = filters;
+			sourceTree = "<group>";
+		};
+		691D117C4C1841D0E5810265 /* parameters */ = {
+			isa = PBXGroup;
+			children = (
+				7F1DDE0D16C361FA3B757813 /* FEBlendParameters.h */,
+				FC272918B8E3EF437043817A /* FEColorMatrixParameters.h */,
+				77664AB7C1DDB991BB4D7C44 /* FEComponentTransferParameters.h */,
+				21E8C733F5E899E0C032F00F /* FECompositeParameters.h */,
+				F18EAAA0E3C203DEACB8CF83 /* FEConvolveMatrixParameters.h */,
+				DFF460DC1627A946FAB0DD58 /* FEDisplacementMapParameters.h */,
+				56F624BFBF418B6D88B09D66 /* FEDropShadowParameters.h */,
+				DC343599F241293426C33A52 /* FEFloodParameters.h */,
+				2C240C4CAF5FCC4E57594B3F /* FEGaussianBlurParameters.h */,
+				5B402E89F9CE4EBEC55E8C53 /* FEImageBridge.cpp */,
+				CDE65C044888FC0194C4E797 /* FEImageParameters.h */,
+				F3CC6E25CFF60EAEA3DECC67 /* FELightingParameters.h */,
+				8BF5DCE7EBC47D7F22B3FA3B /* FEMorphologyParameters.h */,
+				136608DAF871B59F63FF56CD /* FEOffsetParameters.h */,
+				30F051B06E1F24FF5B88D240 /* FETurbulenceParameters.h */,
+				8325AC4CE73D1300C42C6938 /* LightSourceParameters.h */,
+				FC58207C5686DA2A8B781991 /* SourceGraphicBridge.cpp */,
+				C638AB6C688AA89AEFE42C7C /* SourceGraphicParameters.h */,
+			);
+			path = parameters;
 			sourceTree = "<group>";
 		};
 		A83B79080CCAFF2B000B0825 /* HTML */ = {
@@ -36697,6 +36778,9 @@
 				72D075142DB9231000F75BC1 /* SVGFilterPrimitiveGraph.h */,
 				845E72F90FD2623900A87D79 /* SVGFilterRenderer.cpp */,
 				845E72FA0FD2623900A87D79 /* SVGFilterRenderer.h */,
+				C196A8044702205F700598D9 /* SVGFilterRenderer.swift */,
+				20BC81CD0A662BB9F72ACE1E /* SVGFilterRendererView.cpp */,
+				3227AB52B52BE1076973335C /* SVGFilterRendererView.h */,
 			);
 			path = filters;
 			sourceTree = "<group>";
@@ -36805,6 +36889,7 @@
 				722A815C238FD50500C00583 /* AnimationFrameRate.h */,
 				8F219E9CB0EB53F16947CCF2 /* AnnexBUtilities.cpp */,
 				149D439536B3216FDAEEB975 /* AnnexBUtilities.h */,
+				89A4B5A802618BF7BCC9FFA5 /* Arm64Truncating.swift */,
 				74A860E73006046D00A943A1 /* ArrayPixelBuffer.cpp */,
 				74A860E63006046D00A943A1 /* ArrayPixelBuffer.h */,
 				BCEF60A53066CFEB001AE01A /* AspectRatioFit.h */,
@@ -36819,6 +36904,7 @@
 				2DD87149265F4365005F997C /* BifurcatedGraphicsContext.h */,
 				72C172102983717500136E02 /* CachedSubimage.cpp */,
 				72C172112983717500136E02 /* CachedSubimage.h */,
+				16DD84A6049DB7051CB0DE93 /* CheckedMath.swift */,
 				CDF4CD672B15255C00933B3F /* CodecUtilities.cpp */,
 				CDF4CD662B15255C00933B3F /* CodecUtilities.h */,
 				B27535380B053814002CE64F /* Color.cpp */,
@@ -36977,6 +37063,8 @@
 				722AF2DD27E1C2050078D997 /* GraphicsContextState.cpp */,
 				722AF2DC27E1C2050078D997 /* GraphicsContextState.h */,
 				722AF2DB27E1C2040078D997 /* GraphicsContextStateSaver.h */,
+				F5F562EB050C06F0F5CB83CB /* GraphicsContextSwiftBridge.cpp */,
+				8000E7BCC14B40CE6A2302C6 /* GraphicsContextSwiftBridge.h */,
 				724E09062901CD27000AF3EB /* GraphicsContextSwitcher.cpp */,
 				724E09072901CD27000AF3EB /* GraphicsContextSwitcher.h */,
 				0F580B090F12A2690051D689 /* GraphicsLayer.cpp */,
@@ -37131,8 +37219,13 @@
 				07E047C9305A9DB000DFCC4B /* PixelBufferConversion.swift */,
 				BC635E8F264C2ECE000EF33A /* PixelBufferFormat.cpp */,
 				BC635E8B264C2CAE000EF33A /* PixelBufferFormat.h */,
+				C47D5C3F84A19CF3FE2CC4A8 /* PixelBufferSwiftBridge.h */,
+				7A7AD0E52EDA1968CFBAC45B /* PixelConversion.swift */,
+				D6E88DBB1100584DD4D049F6 /* PixelConversionScalar.swift */,
+				2A42037BC09BC36546A8F619 /* PixelConversionSIMD.swift */,
 				BC635E90264C469F000EF33A /* PixelFormat.cpp */,
 				BCA55912263DBD79007F19B3 /* PixelFormat.h */,
+				FC73B9472BE1E2A447EDAA3C /* PixelTransfer.swift */,
 				A9B89CA5BE67878133E151A8 /* PlaceholderFrameIdentifier.h */,
 				CDD08ABF277E54F000EA3755 /* PlatformAudioTrackConfiguration.h */,
 				BC3E62422659791700548ACD /* PlatformColorSpace.h */,
@@ -37172,10 +37265,16 @@
 				0E9C1155291BF3CC00A2C2F2 /* ScreenDataOverrides.h */,
 				0F3DD44D12F5EA1B000D9190 /* ShadowBlur.cpp */,
 				0F3DD44E12F5EA1B000D9190 /* ShadowBlur.h */,
+				CDD9D218729E0D0C79EC9827 /* ShadowBlurDrawing.swift */,
+				22257F3C64F0CCF4837AD34F /* ShadowBlurGeometry.swift */,
+				C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */,
+				CF453B487F95E0C826425DDC /* ShadowBlurSwiftBridge.h */,
 				46C963C12B6C9921002F46D1 /* ShareableBitmap.cpp */,
 				46C963C02B6C9921002F46D1 /* ShareableBitmap.h */,
 				46C963C52B6C9CAE002F46D1 /* ShareableBitmapHandle.cpp */,
 				46C963C42B6C9CAE002F46D1 /* ShareableBitmapHandle.h */,
+				C9FFF9190FFE02204AB2B423 /* ShareableBitmapLayout.swift */,
+				FBBDE67E1BE26F3BCC9CCA3C /* ShareableBitmapSwiftBridge.h */,
 				1C4DB02427339E5E007B0AD1 /* ShouldLocalizeAxisNames.h */,
 				72FD30A927E3217A0023CDAC /* SourceBrush.cpp */,
 				72FD30AA27E3217B0023CDAC /* SourceBrush.h */,
@@ -37402,6 +37501,10 @@
 				CDAD8DEE2BEC7B8000107D24 /* VideoTargetFactory.mm */,
 				CDF994FF24C28136002EA062 /* VideoTrackPrivateWebM.cpp */,
 				CDF994FE24C28136002EA062 /* VideoTrackPrivateWebM.h */,
+				C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */,
+				0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */,
+				3505F5F351141D3E115BAF01 /* VImageBridge+Conversion.swift */,
+				63866A9D038D86C964446936 /* VImageBridge.swift */,
 				CD6FE5B724BCE645009FCDA4 /* VP9UtilitiesCocoa.h */,
 				CD6FE5B824BCE645009FCDA4 /* VP9UtilitiesCocoa.mm */,
 				0704D7BD2F16D3B8008CA1C0 /* VP9UtilitiesCocoaInternal.h */,
@@ -42505,6 +42608,9 @@
 				9392F14B0AD1861B00691BD4 /* CounterNode.h */,
 				0F53FB81213B1BB800C40D34 /* CSSFilterRenderer.cpp */,
 				0F53FB83213B1BB800C40D34 /* CSSFilterRenderer.h */,
+				65BE43B67961D1CD180A07BC /* CSSFilterRenderer.swift */,
+				9C1866E6942EFB83FB5AF688 /* CSSFilterRendererView.cpp */,
+				F933F399ADDF994469C752A3 /* CSSFilterRendererView.h */,
 				E3BBC2452383551A006EC39F /* CSSValueKey.h */,
 				6FD1EBC128AEECDA00FFF5D2 /* EllipsisBoxPainter.cpp */,
 				6FD1EBBF28AEECC700FFF5D2 /* EllipsisBoxPainter.h */,
@@ -45308,6 +45414,7 @@
 				BCB272162CC1F21B00265123 /* CSSFillRule.h in Headers */,
 				FBB0C5B817BBD629003D3677 /* CSSFilterImageValue.h in Headers */,
 				7246963B275C5FA600A9156A /* CSSFilterRenderer.h in Headers */,
+				B3EB2DB70F227C6C09C46FF4 /* CSSFilterRendererView.h in Headers */,
 				7A4C91E120FE3B4100C1E5A2 /* CSSFlexWrap.h in Headers */,
 				BC64B4D60CB4298A005F2B62 /* CSSFontFace.h in Headers */,
 				BC2388132D89D94800698102 /* CSSFontFaceDescriptors.h in Headers */,
@@ -45899,21 +46006,34 @@
 				1C9F4C1D29E529660015819E /* FaceDetectorOptionsInterface.h in Headers */,
 				5B970BEE42D448CC9F33BB6E /* FallbackPopupMenu.h in Headers */,
 				A75E8B890E1DE2D6007F2481 /* FEBlend.h in Headers */,
+				7E49B11CDA66D995F296F9C9 /* FEBlendParameters.h in Headers */,
 				A75E8B8B0E1DE2D6007F2481 /* FEColorMatrix.h in Headers */,
+				BBDE97847B208D7687992087 /* FEColorMatrixParameters.h in Headers */,
 				A75E8B8D0E1DE2D6007F2481 /* FEComponentTransfer.h in Headers */,
+				5B4666A244D42EAFAE9F58F9 /* FEComponentTransferParameters.h in Headers */,
 				A75E8B8F0E1DE2D6007F2481 /* FEComposite.h in Headers */,
+				75308D039657616024F1DCC4 /* FECompositeParameters.h in Headers */,
 				84730D791248F0B300D3A9C9 /* FEConvolveMatrix.h in Headers */,
+				D74035B4C669838D4A5013AA /* FEConvolveMatrixParameters.h in Headers */,
 				FC260000000000FC00000003 /* FederatedCredentialRequestOptions.h in Headers */,
 				84730D7B1248F0B300D3A9C9 /* FEDiffuseLighting.h in Headers */,
 				84730D7D1248F0B300D3A9C9 /* FEDisplacementMap.h in Headers */,
+				37F88BA7FDC7AC22952C33B4 /* FEDisplacementMapParameters.h in Headers */,
 				4358E8811360A31700E4748C /* FEDropShadow.h in Headers */,
+				108F64B3494B6EB4C6ACC987 /* FEDropShadowParameters.h in Headers */,
 				84730D7F1248F0B300D3A9C9 /* FEFlood.h in Headers */,
+				E4B789E8B97753F379CA369A /* FEFloodParameters.h in Headers */,
 				84801955108BAFB300CB2B1F /* FEGaussianBlur.h in Headers */,
+				2210200E112355D20A90DC7A /* FEGaussianBlurParameters.h in Headers */,
 				7256078E279D34B6007D2DD3 /* FEImage.h in Headers */,
+				64131103C0BBA215D6D5BAEB /* FEImageParameters.h in Headers */,
 				84730D811248F0B300D3A9C9 /* FELighting.h in Headers */,
+				B7A63EFF2321F32F360412F6 /* FELightingParameters.h in Headers */,
 				84730D831248F0B300D3A9C9 /* FEMerge.h in Headers */,
 				84730D851248F0B300D3A9C9 /* FEMorphology.h in Headers */,
+				CE7154F3D34F0064C5294A92 /* FEMorphologyParameters.h in Headers */,
 				84730D871248F0B300D3A9C9 /* FEOffset.h in Headers */,
+				F4C27DED9C3CD8F3CBDAAB8C /* FEOffsetParameters.h in Headers */,
 				84730D891248F0B300D3A9C9 /* FESpecularLighting.h in Headers */,
 				517A535B1F588A4C00DCDC0A /* FetchBodyConsumer.h in Headers */,
 				4129C9971F59B963009D7403 /* FetchBodySource.h in Headers */,
@@ -45943,6 +46063,7 @@
 				57093D1324C97C8F0086C52D /* FetchResponse.h in Headers */,
 				84730D8B1248F0B300D3A9C9 /* FETile.h in Headers */,
 				84730D8D1248F0B300D3A9C9 /* FETurbulence.h in Headers */,
+				82B2FB981FD3E2AB75FAB269 /* FETurbulenceParameters.h in Headers */,
 				FD31609512B026F700C1A359 /* FFTConvolver.h in Headers */,
 				FD31609712B026F700C1A359 /* FFTFrame.h in Headers */,
 				57BAF28C2167D316008E954E /* FidoConstants.h in Headers */,
@@ -45989,18 +46110,19 @@
 				073930D82AC6445D00C1D1B1 /* FillLightMode.h in Headers */,
 				712BE4831FE865DD002031CC /* FillMode.h in Headers */,
 				845E72F80FD261EE00A87D79 /* Filter.h in Headers */,
+				8A9EA8CC56F28F26650DD688 /* FilterCoreImageSwiftBridge.h in Headers */,
 				08C9251A0FCC7C4A00480DEC /* FilterEffect.h in Headers */,
-				728D4791279A48B700BA7C0E /* FilterEffectApplier.h in Headers */,
 				726CDE202759735000A445B2 /* FilterEffectGeometry.h in Headers */,
 				7246963D275C614400A9156A /* FilterEffectVector.h in Headers */,
+				10ECDBE58AB82CA197AC07B6 /* FilterEffectView.h in Headers */,
 				72B8B0352753438600F752AA /* FilterFunction.h in Headers */,
-				72B8B0362753441400F752AA /* FilterImage.h in Headers */,
-				7246963E275C616700A9156A /* FilterImageVector.h in Headers */,
+				288F6560F4089D9C8D4C9D2D /* FilterGraphicsBridge.h in Headers */,
 				49ECEB6E1499790D00CDD3A4 /* FilterOperation.h in Headers */,
 				49ECEB701499790D00CDD3A4 /* FilterOperations.h in Headers */,
 				727003E6292F2DD50094C64B /* FilterRenderingMode.h in Headers */,
 				72D73644278461A000398663 /* FilterResults.h in Headers */,
 				7272D337292F818E00F74D99 /* FilterStyle.h in Headers */,
+				386FC1C6DD067E44979F4636 /* FilterSwiftBridge.h in Headers */,
 				372C00D9129619F8005C9575 /* FindOptions.h in Headers */,
 				494BDBDF2E16156A0079E324 /* FindRevealAlgorithms.h in Headers */,
 				F44CD9F52D29DBB600276C79 /* FixedContainerEdges.h in Headers */,
@@ -46212,6 +46334,7 @@
 				7B95CFEB2754FF6E000060CE /* GraphicsContextGLState.h in Headers */,
 				722AF2DF27E1C2060078D997 /* GraphicsContextState.h in Headers */,
 				722AF2DE27E1C2060078D997 /* GraphicsContextStateSaver.h in Headers */,
+				8B960D34DEB7579629359065 /* GraphicsContextSwiftBridge.h in Headers */,
 				0F580B0D0F12A2690051D689 /* GraphicsLayer.h in Headers */,
 				49E912AB0EFAC906009D0CAF /* GraphicsLayerAnimation.h in Headers */,
 				D2042D552EFC45610047B572 /* GraphicsLayerAnimationValue.h in Headers */,
@@ -47711,6 +47834,7 @@
 				A396B1C829232B4F00469612 /* LibWebRTCVPXVideoDecoder.h in Headers */,
 				A396B1CA29232B4F00469612 /* LibWebRTCVPXVideoEncoder.h in Headers */,
 				84730D911248F0B300D3A9C9 /* LightSource.h in Headers */,
+				C225AD28FF3AEDD439F1CBD3 /* LightSourceParameters.h in Headers */,
 				B22279650D00BF220071B782 /* LinearGradientAttributes.h in Headers */,
 				DD4B9CF72C80E8E8001A6830 /* LineClampUpdater.h in Headers */,
 				DDD517EC2A9FC5440069AF81 /* LineLayoutResult.h in Headers */,
@@ -48244,6 +48368,7 @@
 				FD31601A12B0267600C1A359 /* PannerNode.h in Headers */,
 				E71467B624ABAF1D00FB2F50 /* PannerOptions.h in Headers */,
 				83040282249A7A5F00A90D8D /* PanningModelType.h in Headers */,
+				FE07764C75DF15FEE86D230E /* ParallelRowsDispatch.h in Headers */,
 				A18890AF1AA13F250026C301 /* ParentalControlsContentFilter.h in Headers */,
 				3ACF57B32D8892CD0067DE45 /* ParentalControlsURLFilter.h in Headers */,
 				3A2A9AB42E4BAF48009E5497 /* ParentalControlsURLFilterParameters.h in Headers */,
@@ -48371,6 +48496,7 @@
 				CD7D33441C7A123F00041293 /* PixelBufferConformerCV.h in Headers */,
 				BC635E8E264C2CE7000EF33A /* PixelBufferConversion.h in Headers */,
 				BC635E8C264C2CAE000EF33A /* PixelBufferFormat.h in Headers */,
+				F91AB5580E91710AF2261E44 /* PixelBufferSwiftBridge.h in Headers */,
 				BCA55914263DBD79007F19B3 /* PixelFormat.h in Headers */,
 				115CFA82208B8EDA001E6991 /* PlacedFloats.h in Headers */,
 				A5B342862E77F75A009BFF3F /* PlacedGridItem.h in Headers */,
@@ -49197,6 +49323,7 @@
 				7CD58DFB1F9565A500112791 /* Settings.h in Headers */,
 				7CC9722E1F93E3360004D4CF /* SettingsBase.h in Headers */,
 				0F3DD45012F5EA1B000D9190 /* ShadowBlur.h in Headers */,
+				5D324F22006496D971F5DE69 /* ShadowBlurSwiftBridge.h in Headers */,
 				A6D169641346B4C1000EB770 /* ShadowRoot.h in Headers */,
 				056A7AC8256C4F48002F9DDC /* ShadowRootInit.h in Headers */,
 				46DFF4981DC2603100B80B48 /* ShadowRootMode.h in Headers */,
@@ -49204,6 +49331,7 @@
 				FD45A952175D3F3E00C21EC8 /* ShapeOutsideInfo.h in Headers */,
 				46C963C22B6C992A002F46D1 /* ShareableBitmap.h in Headers */,
 				46C963C62B6C9CAE002F46D1 /* ShareableBitmapHandle.h in Headers */,
+				A78C76D0A3616FD3119EA676 /* ShareableBitmapSwiftBridge.h in Headers */,
 				72BDED122F8DAC0A00199F64 /* ShareableCVPixelBuffer.h in Headers */,
 				72C99A9F2F9944110070F060 /* ShareableCVPixelFormat.h in Headers */,
 				72C9B6532F99998D0070F060 /* ShareableGainMap.h in Headers */,
@@ -49222,6 +49350,7 @@
 				D5E6F7081920A1B2C3D4E5F6 /* SharedTimebaseHandle.h in Headers */,
 				93309EA3099EB78C0056E581 /* SharedTimer.h in Headers */,
 				41DC04FE27A83C93008CF968 /* SharedVideoFrameInfo.h in Headers */,
+				820D9DDAE9141040365D8443 /* SharedVideoFrameSwiftBridge.h in Headers */,
 				46CF504A27AB1EA40070DBC8 /* SharedWorkerContextManager.h in Headers */,
 				46EC444A27AB338900FFCD96 /* SharedWorkerIdentifier.h in Headers */,
 				46985F2327A4A6AD0097A32B /* SharedWorkerKey.h in Headers */,
@@ -49273,6 +49402,7 @@
 				CDC8B5AB18047FF10016E685 /* SourceBufferPrivateAVFObjC.h in Headers */,
 				CDC8B5AD1804AE5D0016E685 /* SourceBufferPrivateClient.h in Headers */,
 				84A81F420FC7E02700955300 /* SourceGraphic.h in Headers */,
+				BA82ABCC815FE398B2CECD1E /* SourceGraphicParameters.h in Headers */,
 				72F7E746279B8F7500D82D2D /* SourceImage.h in Headers */,
 				D01A27AE10C9BFD800026A42 /* SpaceSplitString.h in Headers */,
 				CD722A132D693CFF00F2E1E7 /* SpatialAudioExperienceHelper.h in Headers */,
@@ -49888,6 +50018,7 @@
 				72A5D192275E8FFE0065833E /* SVGFilterExpression.h in Headers */,
 				B2227A0F0D00BF220071B782 /* SVGFilterPrimitiveStandardAttributes.h in Headers */,
 				845E72FC0FD2623900A87D79 /* SVGFilterRenderer.h in Headers */,
+				238C3CAE41B4DE18ED2F3FBC /* SVGFilterRendererView.h in Headers */,
 				B2227A120D00BF220071B782 /* SVGFitToViewBox.h in Headers */,
 				B2A1F2AB0CEF0ABF00442F6A /* SVGFontElement.h in Headers */,
 				B2227A150D00BF220071B782 /* SVGFontFaceElement.h in Headers */,
@@ -51329,6 +51460,7 @@
 				A9787CB41F5F5C6600C551C6 /* AccessibilityMediaHelpers.cpp in Sources */,
 				7BE37F7D27BB86CD007A6CD3 /* ANGLEUtilities.cpp in Sources */,
 				7BE37F7C27BB86B8007A6CD3 /* ANGLEUtilitiesCocoa.mm in Sources */,
+				031A366633FC5C13DAF5FD89 /* Arm64Truncating.swift in Sources */,
 				CD0EEE0E14743F39003EAFA2 /* AudioOutputUnitAdaptorIOS.cpp in Sources */,
 				CDE104F329E6220C00CBAE11 /* AudioSessionCocoa.mm in Sources */,
 				CDA79827170A279100D45C55 /* AudioSessionIOS.mm in Sources */,
@@ -51345,16 +51477,58 @@
 				CDF4B7151E00B7E500E235A2 /* CDM.cpp in Sources */,
 				CDB7045B1F7465A1003923DF /* CDMFairPlayStreaming.cpp in Sources */,
 				CDC224281F756966005F077B /* CDMInstanceFairPlayStreamingAVFObjC.mm in Sources */,
+				23B6FEB7BC8E6912CC678555 /* CheckedMath.swift in Sources */,
 				5150B5DF27CDF499004FC81E /* CMUtilities.mm in Sources */,
 				A14090FB1AA51E1D0091191A /* ContentFilterUnblockHandlerCocoa.mm in Sources */,
 				418BC5E02C5CBDB600152089 /* CoreAudioCaptureUnit.mm in Sources */,
 				463642A729687D53003D43F2 /* CoreHapticsSoftLink.mm in Sources */,
 				46C696CC1E7205FC00597937 /* CPUMonitor.cpp in Sources */,
+				0D44E4F7866406B16EE8E5A3 /* CSSFilterRenderer.swift in Sources */,
 				1ABA76CA11D20E50004C201C /* CSSPropertyNames.cpp in Sources */,
 				2D22830323A8470700364B7E /* CursorMac.mm in Sources */,
 				5CBD59592280E926002B22AA /* CustomHeaderFields.cpp in Sources */,
 				07E4BDBF2A3A5FAB000D5509 /* DictationCaretAnimator.cpp in Sources */,
 				0749E9512E275A23009B912B /* EditingHTMLConverter.mm in Sources */,
+				C692924099778690E1A10A7F /* FEBlendCoreImageApplier.swift in Sources */,
+				06F918D8AAA5C08CDD4ECCB2 /* FEBlendSoftwareApplier.swift in Sources */,
+				B9F6776EB2C0E6B3A62C2385 /* FEColorMatrixCoreImageApplier.swift in Sources */,
+				A8E70E4504B1BBEAACE0AADC /* FEColorMatrixSoftwareApplier.swift in Sources */,
+				372BE22DC8FF50B69C86A911 /* FEComponentTransferCoreImageApplier.swift in Sources */,
+				CDCBEE83EB374AD9C94D9C70 /* FEComponentTransferSoftwareApplier.swift in Sources */,
+				8B73E87EF9B13D86F052AAFD /* FECompositeCoreImageApplier.swift in Sources */,
+				6598343220885FACBAA30731 /* FECompositeSoftwareApplier.swift in Sources */,
+				5122FADE3E20DAC54BB6C5C7 /* FECompositeSoftwareArithmeticApplier.swift in Sources */,
+				FADEF290AC0D9B1080C9CBA3 /* FEConvolveMatrixCoreImageApplier.swift in Sources */,
+				43F473AD2D4666C039905BDC /* FEConvolveMatrixSoftwareApplier.swift in Sources */,
+				E05CFFFBFC58D29FE7D64D68 /* FEDisplacementMapCoreImageApplier.swift in Sources */,
+				07318BB3F5B61A9D518C7296 /* FEDisplacementMapSoftwareApplier.swift in Sources */,
+				D77A1C13C4CAF3D38213C533 /* FEDropShadowCoreImageApplier.swift in Sources */,
+				0FEB9BA6BEC881BD9DE0B65A /* FEDropShadowSoftwareApplier.swift in Sources */,
+				2736E5FDAE74F4EC53D733BC /* FEFloodCoreImageApplier.swift in Sources */,
+				B9349CB249C04CF69D4D64FC /* FEFloodSoftwareApplier.swift in Sources */,
+				3922302A73C753EA25C5EB01 /* FEGaussianBlurCoreImageApplier.swift in Sources */,
+				4AEEC6838C50DD4F350AE518 /* FEGaussianBlurSoftwareApplier.swift in Sources */,
+				0A4292F113B770CCC401EBCC /* FEImageCoreImageApplier.swift in Sources */,
+				580B28FC7F5A201AF891DA6D /* FEImageSoftwareApplier.swift in Sources */,
+				8EAC80FE975A1D3B4C8F17C4 /* FELightingCoreImageApplier.swift in Sources */,
+				58B90A5910F175124D2BA6D2 /* FELightingSoftwareApplier.swift in Sources */,
+				3CA6BFA970093338659B7063 /* FELightingSoftwareParallelApplier.swift in Sources */,
+				80B63C292A41A7F3EA2F830C /* FEMergeCoreImageApplier.swift in Sources */,
+				0EED5488AF1500694017825F /* FEMergeSoftwareApplier.swift in Sources */,
+				25BA72B005842894755F36B2 /* FEMorphologyCoreImageApplier.swift in Sources */,
+				E5861383C5FDA54E95E56E35 /* FEMorphologySoftwareApplier.swift in Sources */,
+				302C29DC86EFC615E31B91EA /* FEOffsetCoreImageApplier.swift in Sources */,
+				2FB1886BC76C158FB96C58D2 /* FEOffsetSoftwareApplier.swift in Sources */,
+				29B402C67B0FAF893A3FEC72 /* FETileCoreImageApplier.swift in Sources */,
+				438198B3980CE97E3546B5C3 /* FETileSoftwareApplier.swift in Sources */,
+				C5A8869A8017446784B2C58F /* FETurbulenceCoreImageApplier.swift in Sources */,
+				7CA7E13AB4D056ECF711EB51 /* FETurbulenceSoftwareApplier.swift in Sources */,
+				30BFCF0D446FC8041CA913A4 /* FilterApply.swift in Sources */,
+				EBBE3AC62075A0224822DACB /* FilterEngine.swift in Sources */,
+				AA8E6DEB3ECFC1BED5278B35 /* FilterGeometryMath.swift in Sources */,
+				051878F9FFBBDCAB67019E3B /* FilterImageCoreImage.swift in Sources */,
+				E4DCB2E8232B2774CE214DFE /* FilterImageImpl.swift in Sources */,
+				44428BC0239608D55EA7B2DD /* FilterMath.swift in Sources */,
 				7CE6CBFD187F394900D46BF5 /* FormatConverter.cpp in Sources */,
 				4667EA3E2968D9DA00BAB1E2 /* GameControllerHapticEffect.mm in Sources */,
 				46FE73D32968E52000B8064C /* GameControllerHapticEngines.mm in Sources */,
@@ -51390,6 +51564,7 @@
 				CDE8B5EC1A69777300B4B66A /* LegacyCDMPrivateClearKey.cpp in Sources */,
 				CDCA98EB18B2C8EB00C12FF9 /* LegacyCDMPrivateMediaPlayer.cpp in Sources */,
 				CDE8B5F01A69778B00B4B66A /* LegacyCDMSessionClearKey.cpp in Sources */,
+				38303D7198597155D871F9FB /* LightingModel.swift in Sources */,
 				A100D94D2AB251A500E00D67 /* LocalSampleBufferDisplayLayer.mm in Sources */,
 				FABE72FE1059C21100D999DD /* MathMLNames.cpp in Sources */,
 				41E9EE1F28B51067006A2298 /* MediaCaptureStatusBarManager.mm in Sources */,
@@ -51427,8 +51602,13 @@
 				1A569D1A0D7E2B82007C3983 /* objc_utility.mm in Sources */,
 				E16982601134636A00894115 /* ObjCRuntimeObject.mm in Sources */,
 				07E4BDC32A3A6191000D5509 /* OpacityCaretAnimator.cpp in Sources */,
+				0FE54007A73DE0CC5F290112 /* ParallelRows.swift in Sources */,
 				41B71FFC2DE076DD00467A31 /* PixelBufferConformerCV.mm in Sources */,
 				07E047C8305A9DB000DFCC4B /* PixelBufferConversion.swift in Sources */,
+				F8DE2B2A42FAA637D995EBEC /* PixelConversion.swift in Sources */,
+				6601DDA59C6A42DAC7EE4A20 /* PixelConversionScalar.swift in Sources */,
+				3A6C1BA2D5C013C4DFE39EDB /* PixelConversionSIMD.swift in Sources */,
+				81C6BA80865F4B7977BE283F /* PixelTransfer.swift in Sources */,
 				CEA284662141E84900E407E8 /* PlatformEventFactoryIOS.mm in Sources */,
 				AA12DF491743DF83004DAFDF /* PlatformSpeechSynthesizerCocoa.mm in Sources */,
 				A19311042D113B7C003C8410 /* PlatformTimeRangesCocoa.mm in Sources */,
@@ -51444,14 +51624,24 @@
 				26AA0F9E18D2A18B00419381 /* SelectorPseudoElementMap.cpp in Sources */,
 				5CFC9C842B71AE1800F8D289 /* SerializedPlatformDataCueValue.mm in Sources */,
 				7CD58DFD1F9565A800112791 /* Settings.cpp in Sources */,
+				33F386FDB57DCC37192407D5 /* ShadowBlurDrawing.swift in Sources */,
+				8856FDD854DD284B35701E61 /* ShadowBlurGeometry.swift in Sources */,
+				8D1A63B609FF70005A50202A /* ShadowBlurKernel.swift in Sources */,
 				46C963C82B6CA1BC002F46D1 /* ShareableBitmapCG.mm in Sources */,
+				A4354737BE6DE24C98E1D7DF /* ShareableBitmapLayout.swift in Sources */,
 				B6F201102EAC22B200BBF4AA /* ShareableSpatialImage.cpp in Sources */,
 				41DF2D5E27A9452A00F25A21 /* SharedVideoFrameInfo.mm in Sources */,
+				697E4E5B022F8F10F20979C5 /* SharedVideoFrameLayout.swift in Sources */,
+				FAFC665E50AE3137A8B4F14B /* SourceAlphaCoreImageApplier.swift in Sources */,
+				649031DC6302DE3AC23EAFFE /* SourceAlphaSoftwareApplier.swift in Sources */,
 				A100D94F2AB251C400E00D67 /* SourceBufferParserAVFObjC.mm in Sources */,
 				CDC8B5AA18047FF10016E685 /* SourceBufferPrivateAVFObjC.mm in Sources */,
+				6E26C8A1B6891DA43ED61C49 /* SourceGraphicCoreImageApplier.swift in Sources */,
+				D584A87F59BF340BC0E6D503 /* SourceGraphicSoftwareApplier.swift in Sources */,
 				51D8380C2F5ACAA000E06540 /* SpatialAudioPlaybackHelperIOS.mm in Sources */,
 				B9CA3B412CAB1D3E00B2607C /* SpatialImageControls.cpp in Sources */,
 				41514FDB2E92DC40002074EA /* StreamPipeToUtilities.cpp in Sources */,
+				92C095638807E40F0E344621 /* SVGFilterRenderer.swift in Sources */,
 				A833C7CA0A2CF06B00D57664 /* SVGNames.cpp in Sources */,
 				5A1E00000000000000000002 /* SIMDHelpers.swift in Sources */,
 				5C0A11000000000000000006 /* ScrollPhysicsController.swift in Sources */,
@@ -52178,6 +52368,10 @@
 				3FBC4AF3189881560046EE38 /* VideoPresentationInterfaceIOS.mm in Sources */,
 				CDAD8DF12BEC7EDF00107D24 /* VideoTargetFactory.mm in Sources */,
 				26F9A83818A046AC00AEB88A /* ViewportConfiguration.cpp in Sources */,
+				C56DFE43F7178BFD17970722 /* VImageBridge+BoxConvolve.swift in Sources */,
+				CFF1676880E095F27D7D94DE /* VImageBridge+ColorMatrix.swift in Sources */,
+				7E38067BBE2DD5D953221F77 /* VImageBridge+Conversion.swift in Sources */,
+				C85D977768D6677F509D4047 /* VImageBridge.swift in Sources */,
 				CDED1C3C24CD305700934E12 /* VP9UtilitiesCocoa.mm in Sources */,
 				A14832B1187F61E100DA63A6 /* WAKAppKitStubs.mm in Sources */,
 				A14832B3187F629100DA63A6 /* WAKClipView.mm in Sources */,

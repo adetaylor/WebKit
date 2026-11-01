@@ -175,6 +175,8 @@ list(APPEND WebKit_SOURCES
 
     UIProcess/ios/fullscreen/FullscreenTouchSecheuristicParameters.cpp
 
+    WebProcess/GPU/webrtc/SharedVideoFrameImpl.swift
+
     WebProcess/WebAuthentication/WebAuthenticatorCoordinator.cpp
 
     WebProcess/cocoa/AudioSessionRoutingArbitrator.cpp

@@ -4,7 +4,7 @@
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2010 Zoltan Herczeg <zherczeg@webkit.org>
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  * Copyright (C) 2014 Google Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include <WebCore/FloatPoint3D.h>
+#include <WebCore/LightSourceParameters.h>
 #include <wtf/RefCounted.h>
 
 namespace WTF {
@@ -34,31 +34,9 @@ class TextStream;
 
 namespace WebCore {
 
-enum class LightType : uint8_t {
-    LS_DISTANT,
-    LS_POINT,
-    LS_SPOT
-};
-
-class Filter;
-class FilterImage;
-
 class LightSource : public RefCounted<LightSource> {
 public:
-    struct ComputedLightingData {
-        FloatPoint3D lightVector;
-        FloatPoint3D colorVector;
-        float lightVectorLength;
-    };
-
-    struct PaintingData {
-        ComputedLightingData initialLightingData;
-        FloatPoint3D directionVector;
-        float coneCutOffLimit;
-        float coneFullLight;
-    };
-
-    LightSource(LightType type)
+    explicit LightSource(LightType type)
         : m_type(type)
     { }
 
@@ -66,17 +44,12 @@ public:
 
     virtual bool operator==(const LightSource& other) const
     {
-        return m_type == other.m_type;
+        return type() == other.type();
     }
 
     LightType type() const { return m_type; }
+    virtual LightSourceParameters parameters() const = 0;
     virtual WTF::TextStream& externalRepresentation(WTF::TextStream&) const = 0;
-
-    virtual void initPaintingData(const Filter&, const FilterImage& result, PaintingData&) const = 0;
-    // z is a float number, since it is the alpha value scaled by a user
-    // specified "surfaceScale" constant, which type is <number> in the SVG standard.
-    // x and y are in the coordinates of the FilterEffect's buffer.
-    virtual ComputedLightingData LEGACY_NODELETE computePixelLightingData(const PaintingData&, int x, int y, float z) const = 0;
 
     virtual bool setAzimuth(float) { return false; }
     virtual bool setElevation(float) { return false; }

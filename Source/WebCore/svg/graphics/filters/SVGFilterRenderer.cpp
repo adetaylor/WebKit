@@ -2,7 +2,7 @@
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) Research In Motion Limited 2010. All rights reserved.
  * Copyright (C) 2013 Google Inc. All rights reserved.
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -24,15 +24,18 @@
 #include "SVGFilterRenderer.h"
 
 #include "ElementChildIteratorInlines.h"
-#include "FilterImage.h"
 #include "FilterResults.h"
-#include "GeometryUtilities.h"
+#include "FilterSwiftBridge.h"
 #include "Logging.h"
 #include "SVGFilterEffectGraph.h"
 #include "SVGFilterElement.h"
 #include "SVGFilterPrimitiveGraph.h"
 #include "SVGFilterPrimitiveStandardAttributes.h"
-#include <numbers>
+#include "SVGFilterRendererView.h"
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 namespace WebCore {
 
@@ -203,46 +206,22 @@ IntOutsets SVGFilterRenderer::calculateOutsets(SVGFilterElement& filterElement, 
     if (!graph)
         return { };
 
-    Vector<std::pair<IntOutsets, unsigned>> outsetsStack;
-
-    // Remove the outsets of the last level and return their maximum.
-    auto lastLevelOutsets([](auto& outsetsStack) -> IntOutsets {
-        IntOutsets lastLevelOutsets;
-        for (unsigned lastLevel = outsetsStack.last().second; lastLevel == outsetsStack.last().second; outsetsStack.takeLast())
-            lastLevelOutsets = max(lastLevelOutsets, outsetsStack.last().first);
-        return lastLevelOutsets;
-    });
+    Vector<FilterOutsetsAtLevel> primitiveOutsets;
 
     bool result = graph->visit([&](SVGFilterPrimitiveStandardAttributes& primitive, unsigned level) {
-        auto primitiveOutsets = primitive.outsets(targetBoundingBox, filterElement.primitiveUnits());
-        unsigned lastLevel = outsetsStack.isEmpty() ? 0 : outsetsStack.last().second;
-
-        // Expand the last outsets of this level with the maximum of the outsets of its children.
-        if (level < lastLevel) {
-            auto childrenOutsets = lastLevelOutsets(outsetsStack);
-            outsetsStack.last().first += childrenOutsets;
-        }
-
-        outsetsStack.append(std::make_pair(primitiveOutsets, level));
+        primitiveOutsets.append({ FilterOutsets::fromIntOutsets(primitive.outsets(targetBoundingBox, filterElement.primitiveUnits())), level });
     });
 
     if (!result)
         return IntOutsets();
 
-    ASSERT(!outsetsStack.isEmpty());
-
-    // Calculate the whole filter outsets by going back to the lastNode of the graph.
-    while (outsetsStack.size() > 1) {
-        auto childrenOutsets = lastLevelOutsets(outsetsStack);
-        outsetsStack.last().first += childrenOutsets;
-    }
-
-    return outsetsStack.takeLast().first;
+    ASSERT(!primitiveOutsets.isEmpty());
+    return svgFilterOutsets(FilterOutsetsAtLevels { primitiveOutsets.span() }).intOutsets();
 }
 
 FloatSize SVGFilterRenderer::calculateResolvedSize(const FloatSize& size, const FloatRect& targetBoundingBox, SVGUnitTypes::SVGUnitType primitiveUnits)
 {
-    return primitiveUnits == SVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX ? size * targetBoundingBox.size() : size;
+    return svgFilterResolvedSize(size, targetBoundingBox, primitiveUnits == SVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
 }
 
 FloatSize SVGFilterRenderer::resolvedSize(const FloatSize& size) const
@@ -250,25 +229,9 @@ FloatSize SVGFilterRenderer::resolvedSize(const FloatSize& size) const
     return calculateResolvedSize(size, referenceBox(), m_primitiveUnits);
 }
 
-FloatPoint3D SVGFilterRenderer::resolvedPoint3D(const FloatPoint3D& point) const
-{
-    if (m_primitiveUnits != SVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX)
-        return point;
-
-    auto referenceBox = this->referenceBox();
-    FloatPoint3D resolvedPoint;
-    resolvedPoint.setX(referenceBox.x() + point.x() * referenceBox.width());
-    resolvedPoint.setY(referenceBox.y() + point.y() * referenceBox.height());
-
-    // https://www.w3.org/TR/SVG/filters.html#fePointLightZAttribute and https://www.w3.org/TR/SVG/coords.html#Units_viewport_percentage
-    resolvedPoint.setZ(point.z() * euclidianDistance(referenceBox.minXMinYCorner(), referenceBox.maxXMaxYCorner()) / std::numbers::sqrt2_v<float>);
-
-    return resolvedPoint;
-}
-
 OptionSet<FilterRenderingMode> SVGFilterRenderer::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
 {
-    OptionSet<FilterRenderingMode> modes = allFilterRenderingModes;
+    auto modes = allFilterRenderingModes.toRaw();
 
     for (auto& effect : m_effects) {
         auto effectModes = effect->supportedFilterRenderingModes(preferredFilterRenderingModes);
@@ -276,11 +239,11 @@ OptionSet<FilterRenderingMode> SVGFilterRenderer::supportedFilterRenderingModes(
         if (preferredFilterRenderingModes.contains(FilterRenderingMode::Accelerated) && !effectModes.contains(FilterRenderingMode::Accelerated))
             LOG_WITH_STREAM(Filters, stream << "SVGFilterRenderer::supportedFilterRenderingModes: accelerated rendering not supported by " << effect.get());
 #endif
-        modes = modes & effectModes;
+        modes = filterRenderingModesIntersection(modes, effectModes.toRaw());
     }
 
     ASSERT(modes);
-    return modes;
+    return OptionSet<FilterRenderingMode>::fromRaw(modes);
 }
 
 FilterEffectVector SVGFilterRenderer::effectsOfType(FilterFunction::Type filterType) const
@@ -304,8 +267,12 @@ FilterResults& SVGFilterRenderer::ensureResults(NOESCAPE const FilterResultsCrea
 
 void SVGFilterRenderer::clearEffectResult(FilterEffect& effect)
 {
-    if (m_results)
-        m_results->clearEffectResult(effect);
+    if (!m_results)
+        return;
+    for (unsigned index = 0; index < m_effects.size(); ++index) {
+        if (m_effects[index].ptr() == &effect)
+            m_results->clearEffectResult(*this, index);
+    }
 }
 
 void SVGFilterRenderer::mergeEffects(const FilterEffectVector& effects)
@@ -316,67 +283,20 @@ void SVGFilterRenderer::mergeEffects(const FilterEffectVector& effects)
         if (arePointingToEqualData(m_effects[index], effects[index]))
             continue;
 
-        clearEffectResult(m_effects[index]);
+        if (m_results)
+            m_results->clearEffectResult(*this, index);
         m_effects[index] = effects[index];
     }
 }
 
-RefPtr<FilterImage> SVGFilterRenderer::apply(const Filter&, FilterImage& sourceImage, FilterResults& results)
+std::optional<FilterResult> SVGFilterRenderer::apply(ImageBuffer* sourceImage, const FloatRect& sourceImageRect, FilterResults& results, FilterResultBuffer resultBuffer)
 {
-    if (areEssentiallyEqual(sourceImage.primitiveSubregion(), filterRegion()))
-        return apply(&sourceImage, results);
-
-    // Per the SVG spec, standard inputs (SourceGraphic, SourceAlpha, etc.) use
-    // the filter region as their default primitive subregion. The source image
-    // may come from an outer CSSFilterRenderer whose filter region is the
-    // element's bounding box, which is smaller than this SVG filter's region.
-    // Adjust the primitive subregion to match the SVG filter region so that
-    // downstream effects (e.g., feOffset) are not incorrectly clipped.
-    if (RefPtr input = FilterImage::create(filterRegion(), sourceImage, results.allocator()))
-        return apply(input.get(), results);
-
-    return nullptr;
-}
-
-RefPtr<FilterImage> SVGFilterRenderer::apply(FilterImage* sourceImage, FilterResults& results)
-{
-    ASSERT(!m_expression.isEmpty());
-    ASSERT(filterRenderingModes().contains(FilterRenderingMode::Software));
-    ASSERT(isValidSVGFilterExpression(m_expression, m_effects));
-
     LOG_WITH_STREAM(Filters, stream << "\nSVGFilterRenderer " << this << " apply - filterRegion " << filterRegion() << " scale " << filterScale());
-
-    FilterImageVector stack;
-
-    for (auto& term : m_expression) {
-        auto& effect = m_effects[term.index];
-        auto& geometry = term.geometry;
-
-        if (effect->filterType() == FilterEffect::Type::SourceGraphic) {
-            if (RefPtr result = results.effectResult(effect)) {
-                stack.append(result.releaseNonNull());
-                continue;
-            }
-
-            if (!sourceImage)
-                return nullptr;
-
-            // Add sourceImage as an input to the SourceGraphic.
-            stack.append(protect(*sourceImage));
-        }
-
-        // Need to remove the inputs here in case the effect already has a result.
-        auto inputs = effect->takeImageInputs(stack);
-
-        auto result = effect->apply(*this, inputs, results, geometry);
-        if (!result)
-            return nullptr;
-
-        stack.append(result.releaseNonNull());
-    }
-
-    ASSERT(stack.size() == 1);
-    return stack.takeLast();
+    IntRect absoluteImageRect;
+    RefPtr imageBuffer = svgFilterApply(SVGFilterRendererView { *this }, sourceImage, sourceImageRect, FilterImageAllocator { results.allocator() }, results.swiftImpl(), resultBuffer == FilterResultBuffer::Rendered, absoluteImageRect);
+    if (!imageBuffer)
+        return std::nullopt;
+    return FilterResult { imageBuffer.releaseNonNull(), absoluteImageRect };
 }
 
 bool SVGFilterRenderer::isValidSVGFilterExpression(const SVGFilterExpression& expression, const FilterEffectVector& effects)

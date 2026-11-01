@@ -2,7 +2,7 @@
  * Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -22,21 +22,11 @@
 
 #pragma once
 
+#include <WebCore/FECompositeParameters.h>
 #include <WebCore/FilterEffect.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
-
-enum class CompositeOperationType : uint8_t {
-    FECOMPOSITE_OPERATOR_UNKNOWN    = 0,
-    FECOMPOSITE_OPERATOR_OVER       = 1,
-    FECOMPOSITE_OPERATOR_IN         = 2,
-    FECOMPOSITE_OPERATOR_OUT        = 3,
-    FECOMPOSITE_OPERATOR_ATOP       = 4,
-    FECOMPOSITE_OPERATOR_XOR        = 5,
-    FECOMPOSITE_OPERATOR_ARITHMETIC = 6,
-    FECOMPOSITE_OPERATOR_LIGHTER    = 7
-};
 
 class FEComposite final : public FilterEffect {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(FEComposite);
@@ -46,20 +36,22 @@ public:
 
     bool operator==(const FEComposite&) const;
 
-    CompositeOperationType operation() const { return m_type; }
+    CompositeOperationType operation() const { return m_parameters.operation; }
     bool LEGACY_NODELETE setOperation(CompositeOperationType);
 
-    float k1() const { return m_k1; }
+    float k1() const { return m_parameters.k1; }
     bool LEGACY_NODELETE setK1(float);
 
-    float k2() const { return m_k2; }
+    float k2() const { return m_parameters.k2; }
     bool LEGACY_NODELETE setK2(float);
 
-    float k3() const { return m_k3; }
+    float k3() const { return m_parameters.k3; }
     bool LEGACY_NODELETE setK3(float);
 
-    float k4() const { return m_k4; }
+    float k4() const { return m_parameters.k4; }
     bool LEGACY_NODELETE setK4(float);
+
+    const FECompositeParameters& parameters() const LIFETIME_BOUND { return m_parameters; }
 
 private:
     FEComposite(const CompositeOperationType&, float k1, float k2, float k3, float k4, ColorSpace);
@@ -68,28 +60,11 @@ private:
 
     unsigned numberOfEffectInputs() const override { return 2; }
 
-    FloatRect calculateImageRect(const Filter&, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const override;
-
-    bool resultIsValidPremultiplied() const override { return m_type != CompositeOperationType::FECOMPOSITE_OPERATOR_ARITHMETIC; }
-
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode>) const override;
-    std::unique_ptr<FilterEffectApplier> createAcceleratedApplier() const override;
-    std::unique_ptr<FilterEffectApplier> createSoftwareApplier() const override;
 
     WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation) const override;
 
-#if HAVE(ARM_NEON_INTRINSICS)
-    template <int b1, int b4>
-    static inline void computeArithmeticPixelsNeon(const uint8_t* source, uint8_t* destination, unsigned pixelArrayLength, float k1, float k2, float k3, float k4);
-
-    static inline void platformArithmeticNeon(const uint8_t* source, uint8_t* destination, unsigned pixelArrayLength, float k1, float k2, float k3, float k4);
-#endif
-
-    CompositeOperationType m_type;
-    float m_k1;
-    float m_k2;
-    float m_k3;
-    float m_k4;
+    FECompositeParameters m_parameters;
 };
 
 } // namespace WebCore

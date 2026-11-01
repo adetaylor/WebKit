@@ -2,7 +2,7 @@
  * Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  * Copyright (C) 2014 Google Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
@@ -43,18 +43,18 @@ FESpecularLighting::FESpecularLighting(const Color& lightingColor, float surface
 bool FESpecularLighting::setSpecularConstant(float specularConstant)
 {
     specularConstant = std::max(specularConstant, 0.0f);
-    if (m_specularConstant == specularConstant)
+    if (m_parameters.specularConstant == specularConstant)
         return false;
-    m_specularConstant = specularConstant;
+    m_parameters.specularConstant = specularConstant;
     return true;
 }
 
 bool FESpecularLighting::setSpecularExponent(float specularExponent)
 {
     specularExponent = clampTo<float>(specularExponent, 1.0f, 128.0f);
-    if (m_specularExponent == specularExponent)
+    if (m_parameters.specularExponent == specularExponent)
         return false;
-    m_specularExponent = specularExponent;
+    m_parameters.specularExponent = specularExponent;
     return true;
 }
 
@@ -63,9 +63,9 @@ TextStream& FESpecularLighting::externalRepresentation(TextStream& ts, FilterRep
     ts << indent << "[feSpecularLighting"_s;
     FilterEffect::externalRepresentation(ts, representation);
     
-    ts << " surfaceScale=\""_s << m_surfaceScale << '"';
-    ts << " specularConstant=\""_s << m_specularConstant << '"';
-    ts << " specularExponent=\""_s << m_specularExponent << '"';
+    ts << " surfaceScale=\""_s << m_parameters.surfaceScale << '"';
+    ts << " specularConstant=\""_s << m_parameters.specularConstant << '"';
+    ts << " specularExponent=\""_s << m_parameters.specularExponent << '"';
 
     ts << "]\n"_s;
     return ts;

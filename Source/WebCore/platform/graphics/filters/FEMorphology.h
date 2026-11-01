@@ -2,7 +2,7 @@
  * Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -22,15 +22,10 @@
 
 #pragma once
 
+#include <WebCore/FEMorphologyParameters.h>
 #include <WebCore/FilterEffect.h>
 
 namespace WebCore {
-
-enum class MorphologyOperatorType : uint8_t {
-    Unknown,
-    Erode,
-    Dilate
-};
 
 class FEMorphology final : public FilterEffect {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(FEMorphology);
@@ -40,33 +35,27 @@ public:
 
     bool operator==(const FEMorphology&) const;
 
-    MorphologyOperatorType morphologyOperator() const { return m_type; }
+    MorphologyOperatorType morphologyOperator() const { return m_parameters.type; }
     bool LEGACY_NODELETE setMorphologyOperator(MorphologyOperatorType);
 
-    float radiusX() const { return m_radiusX; }
+    float radiusX() const { return m_parameters.radiusX; }
     bool LEGACY_NODELETE setRadiusX(float);
 
-    float radiusY() const { return m_radiusY; }
+    float radiusY() const { return m_parameters.radiusY; }
     bool LEGACY_NODELETE setRadiusY(float);
+
+    const FEMorphologyParameters& parameters() const LIFETIME_BOUND { return m_parameters; }
 
 private:
     FEMorphology(MorphologyOperatorType, float radiusX, float radiusY, ColorSpace);
 
     bool operator==(const FilterEffect& other) const override { return areEqual<FEMorphology>(*this, other); }
 
-    FloatRect calculateImageRect(const Filter&, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const override;
-
-    bool resultIsAlphaImage(std::span<const Ref<FilterImage>> inputs) const override;
-
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const override;
-    std::unique_ptr<FilterEffectApplier> createAcceleratedApplier() const override;
-    std::unique_ptr<FilterEffectApplier> createSoftwareApplier() const override;
 
     WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation) const override;
 
-    MorphologyOperatorType m_type;
-    float m_radiusX;
-    float m_radiusY;
+    FEMorphologyParameters m_parameters;
 };
 
 } // namespace WebCore

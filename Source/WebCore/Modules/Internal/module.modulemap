@@ -68,4 +68,622 @@ module WebCore_Internal [system] {
         header "../../platform/graphics/PixelBufferConversion.h"
         export *
     }
+
+    explicit module CompositeOperation {
+        requires cplusplus20
+        header "../../animation/CompositeOperation.h"
+        export *
+    }
+
+    explicit module FloatConversion {
+        requires cplusplus20
+        header "../../platform/FloatConversion.h"
+        export *
+    }
+
+    explicit module LayoutUnit {
+        requires cplusplus20
+        header "../../platform/LayoutUnit.h"
+        export *
+    }
+
+    explicit module ProcessIdentity {
+        requires cplusplus20
+        header "../../platform/ProcessIdentity.h"
+        export *
+    }
+
+    explicit module AspectRatioFit {
+        requires cplusplus20
+        header "../../platform/graphics/AspectRatioFit.h"
+        export *
+    }
+
+    explicit module ColorComponents {
+        requires cplusplus20
+        header "../../platform/graphics/ColorComponents.h"
+        export *
+    }
+
+    explicit module ColorMatrix {
+        requires cplusplus20
+        header "../../platform/graphics/ColorMatrix.h"
+        export *
+    }
+
+    explicit module ColorModels {
+        requires cplusplus20
+        header "../../platform/graphics/ColorModels.h"
+        export *
+    }
+
+    explicit module ColorTransferFunctions {
+        requires cplusplus20
+        header "../../platform/graphics/ColorTransferFunctions.h"
+        export *
+    }
+
+    explicit module CopyImageOptions {
+        requires cplusplus20
+        header "../../platform/graphics/CopyImageOptions.h"
+        export *
+    }
+
+    explicit module GraphicsTypesGL {
+        requires cplusplus20
+        header "../../platform/graphics/GraphicsTypesGL.h"
+        export *
+    }
+
+    explicit module ImageBufferTransferIdentifier {
+        requires cplusplus20
+        header "../../platform/graphics/ImageBufferTransferIdentifier.h"
+        export *
+    }
+
+    explicit module ImageTypes {
+        requires cplusplus20
+        header "../../platform/graphics/ImageTypes.h"
+        export *
+    }
+
+    explicit module PlaceholderFrameIdentifier {
+        requires cplusplus20
+        header "../../platform/graphics/PlaceholderFrameIdentifier.h"
+        export *
+    }
+
+    explicit module PlatformDynamicRangeLimit {
+        requires cplusplus20
+        header "../../platform/graphics/PlatformDynamicRangeLimit.h"
+        export *
+    }
+
+    explicit module PlatformLayer {
+        requires cplusplus20
+        header "../../platform/graphics/PlatformLayer.h"
+        export *
+    }
+
+    explicit module RenderingMode {
+        requires cplusplus20
+        header "../../platform/graphics/RenderingMode.h"
+        export *
+    }
+
+    explicit module RenderingResourceIdentifier {
+        requires cplusplus20
+        header "../../platform/graphics/RenderingResourceIdentifier.h"
+        export *
+    }
+
+    explicit module WindRule {
+        requires cplusplus20
+        header "../../platform/graphics/WindRule.h"
+        export *
+    }
+
+    explicit module FilterRenderingMode {
+        requires cplusplus20
+        header "../../platform/graphics/filters/FilterRenderingMode.h"
+        export *
+    }
+
+    explicit module WritingMode {
+        requires cplusplus20
+        header "../../platform/text/WritingMode.h"
+        export *
+    }
+
+    explicit module BoxSides {
+        requires cplusplus20
+        header "../../platform/BoxSides.h"
+        export *
+    }
+
+    explicit module ProcessIdentifier {
+        requires cplusplus20
+        header "../../platform/ProcessIdentifier.h"
+        export *
+    }
+
+    explicit module ProcessQualified {
+        requires cplusplus20
+        header "../../platform/ProcessQualified.h"
+        export *
+    }
+
+    explicit module RectEdges {
+        requires cplusplus20
+        header "../../platform/RectEdges.h"
+        export *
+    }
+
+    explicit module DecodingOptions {
+        requires cplusplus20
+        header "../../platform/graphics/DecodingOptions.h"
+        export *
+    }
+
+    explicit module DoubleSize {
+        requires cplusplus20
+        header "../../platform/graphics/DoubleSize.h"
+        export *
+    }
+
+    explicit module ImageBufferFormat {
+        requires cplusplus20
+        header "../../platform/graphics/ImageBufferFormat.h"
+        export *
+    }
+
+    explicit module IntPoint {
+        requires cplusplus20
+        header "../../platform/graphics/IntPoint.h"
+        export *
+    }
+
+    explicit module IntSizeHash {
+        requires cplusplus20
+        header "../../platform/graphics/IntSizeHash.h"
+        export *
+    }
+
+    explicit module PlatformLayerIdentifier {
+        requires cplusplus20
+        header "../../platform/graphics/PlatformLayerIdentifier.h"
+        export *
+    }
+
+    explicit module BoxExtents {
+        requires cplusplus20
+        header "../../platform/BoxExtents.h"
+        export *
+    }
+
+    explicit module ColorTypes {
+        requires cplusplus20
+        header "../../platform/graphics/ColorTypes.h"
+        export *
+    }
+
+    explicit module DoublePoint {
+        requires cplusplus20
+        header "../../platform/graphics/DoublePoint.h"
+        export *
+    }
+
+    explicit module IntRect {
+        requires cplusplus20
+        header "../../platform/graphics/IntRect.h"
+        export *
+    }
+
+    explicit module ColorUtilities {
+        requires cplusplus20
+        header "../../platform/graphics/ColorUtilities.h"
+        export *
+    }
+
+    explicit module FloatSize {
+        requires cplusplus20
+        header "../../platform/graphics/FloatSize.h"
+        export *
+    }
+
+    explicit module GraphicsLayerContentsDisplayDelegate {
+        requires cplusplus20
+        header "../../platform/graphics/GraphicsLayerContentsDisplayDelegate.h"
+        export *
+    }
+
+    explicit module ColorConversion {
+        requires cplusplus20
+        header "../../platform/graphics/ColorConversion.h"
+        export *
+    }
+
+    explicit module ColorSpaceName {
+        requires cplusplus20
+        header "../../platform/graphics/ColorSpaceName.h"
+        export *
+    }
+
+    explicit module FloatPoint {
+        requires cplusplus20
+        header "../../platform/graphics/FloatPoint.h"
+        export *
+    }
+
+    explicit module FloatPoint3D {
+        requires cplusplus20
+        header "../../platform/graphics/FloatPoint3D.h"
+        export *
+    }
+
+    explicit module ImageBufferAllocator {
+        requires cplusplus20
+        header "../../platform/graphics/ImageBufferAllocator.h"
+        export *
+    }
+
+    explicit module IOSurface {
+        requires cplusplus20
+        header "../../platform/graphics/cocoa/IOSurface.h"
+        export *
+    }
+
+    explicit module Color {
+        requires cplusplus20
+        header "../../platform/graphics/Color.h"
+        export *
+    }
+
+    explicit module IOSurfacePool {
+        requires cplusplus20
+        header "../../platform/graphics/cg/IOSurfacePool.h"
+        export *
+    }
+
+    explicit module AffineTransform {
+        requires cplusplus20
+        header "../../platform/graphics/transforms/AffineTransform.h"
+        export *
+    }
+
+    explicit module ImageOrientation {
+        requires cplusplus20
+        header "../../platform/graphics/ImageOrientation.h"
+        export *
+    }
+
+    explicit module ImageBufferParameters {
+        requires cplusplus20
+        header "../../platform/graphics/ImageBufferParameters.h"
+        export *
+    }
+
+    explicit module FloatRect {
+        requires cplusplus20
+        header "../../platform/graphics/FloatRect.h"
+        export *
+    }
+
+    explicit module FloatQuad {
+        requires cplusplus20
+        header "../../platform/graphics/FloatQuad.h"
+        export *
+    }
+
+    explicit module FilterEffectGeometry {
+        requires cplusplus20
+        header "../../platform/graphics/filters/FilterEffectGeometry.h"
+        export *
+    }
+
+    explicit module ScreenProperties {
+        requires cplusplus20
+        header "../../platform/ScreenProperties.h"
+        export *
+    }
+
+    explicit module GraphicsTypes {
+        requires cplusplus20
+        header "../../platform/graphics/GraphicsTypes.h"
+        export *
+    }
+
+    explicit module PlatformScreen {
+        requires cplusplus20
+        header "../../platform/PlatformScreen.h"
+        export *
+    }
+
+    explicit module ImageDrawingOptions {
+        requires cplusplus20
+        header "../../platform/graphics/ImageDrawingOptions.h"
+        export *
+    }
+
+    explicit module ImageBufferBackend {
+        requires cplusplus20
+        header "../../platform/graphics/ImageBufferBackend.h"
+        export *
+    }
+
+    explicit module ImageBuffer {
+        requires cplusplus20
+        header "../../platform/graphics/ImageBuffer.h"
+        export *
+    }
+
+    explicit module PathElement {
+        requires cplusplus20
+        header "../../platform/graphics/PathElement.h"
+        export *
+    }
+
+    explicit module PathImpl {
+        requires cplusplus20
+        header "../../platform/graphics/PathImpl.h"
+        export *
+    }
+
+    explicit module FloatRoundedRect {
+        requires cplusplus20
+        header "../../platform/graphics/FloatRoundedRect.h"
+        export *
+    }
+
+    explicit module CornerRadii {
+        requires cplusplus20
+        header "../../platform/graphics/CornerRadii.h"
+        export *
+    }
+
+    explicit module LayoutRoundedRect {
+        requires cplusplus20
+        header "../../platform/graphics/LayoutRoundedRect.h"
+        export *
+    }
+
+    explicit module LayoutRect {
+        requires cplusplus20
+        header "../../platform/graphics/LayoutRect.h"
+        export *
+    }
+
+    explicit module LayoutPoint {
+        requires cplusplus20
+        header "../../platform/graphics/LayoutPoint.h"
+        export *
+    }
+
+    explicit module LayoutSize {
+        requires cplusplus20
+        header "../../platform/graphics/LayoutSize.h"
+        export *
+    }
+
+    explicit module LayoutRange {
+        requires cplusplus20
+        header "../../platform/graphics/LayoutRange.h"
+        export *
+    }
+
+    explicit module Region {
+        requires cplusplus20
+        header "../../platform/graphics/Region.h"
+        export *
+    }
+
+    explicit module PathSegment {
+        requires cplusplus20
+        header "../../platform/graphics/PathSegment.h"
+        export *
+    }
+
+    explicit module PathSegmentData {
+        requires cplusplus20
+        header "../../platform/graphics/PathSegmentData.h"
+        export *
+    }
+
+    explicit module RotationDirection {
+        requires cplusplus20
+        header "../../platform/graphics/RotationDirection.h"
+        export *
+    }
+
+    explicit module RenderingResource {
+        requires cplusplus20
+        header "../../platform/graphics/RenderingResource.h"
+        export *
+    }
+
+    explicit module PlatformPath {
+        requires cplusplus20
+        header "../../platform/graphics/PlatformPath.h"
+        export *
+    }
+
+    explicit module Path {
+        requires cplusplus20
+        header "../../platform/graphics/Path.h"
+        export *
+    }
+
+    explicit module FilterEffectView {
+        requires cplusplus20
+        header "../../platform/graphics/filters/FilterEffectView.h"
+        export *
+    }
+
+    explicit module CSSFilterRendererView {
+        requires cplusplus20
+        header "../../rendering/CSSFilterRendererView.h"
+        export *
+    }
+
+    explicit module SVGFilterRendererView {
+        requires cplusplus20
+        header "../../svg/graphics/filters/SVGFilterRendererView.h"
+        export *
+    }
+
+    explicit module PixelBufferSwiftBridge {
+        requires cplusplus20
+        header "../../platform/graphics/PixelBufferSwiftBridge.h"
+        export *
+    }
+
+    explicit module GraphicsContextSwiftBridge {
+        requires cplusplus20
+        header "../../platform/graphics/GraphicsContextSwiftBridge.h"
+        export *
+    }
+
+    explicit module ShadowBlurSwiftBridge {
+        requires cplusplus20
+        header "../../platform/graphics/ShadowBlurSwiftBridge.h"
+        export *
+    }
+
+    explicit module ShareableBitmapSwiftBridge {
+        requires cplusplus20
+        header "../../platform/graphics/ShareableBitmapSwiftBridge.h"
+        export *
+    }
+
+    explicit module SharedVideoFrameSwiftBridge {
+        requires cplusplus20
+        header "../../platform/cocoa/SharedVideoFrameSwiftBridge.h"
+        export *
+    }
+
+    explicit module FilterSwiftBridge {
+        requires cplusplus20
+        header "../../platform/graphics/filters/FilterSwiftBridge.h"
+        export *
+    }
+
+    explicit module FilterGraphicsBridge {
+        requires cplusplus20
+        header "../../platform/graphics/filters/FilterGraphicsBridge.h"
+        export *
+    }
+
+    explicit module ParallelRowsDispatch {
+        requires cplusplus20
+        header "../../platform/graphics/filters/ParallelRowsDispatch.h"
+        export *
+    }
+
+    explicit module FilterCoreImageSwiftBridge {
+        requires cplusplus20
+        header "../../platform/graphics/coreimage/FilterCoreImageSwiftBridge.h"
+        export *
+    }
+
+    explicit module FilterSkiaBridge {
+        requires cplusplus20
+        header "../../platform/graphics/filters/skia/FilterSkiaBridge.h"
+        export *
+    }
+
+    explicit module LightSourceParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/LightSourceParameters.h"
+        export *
+    }
+
+    explicit module FEBlendParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEBlendParameters.h"
+        export *
+    }
+
+    explicit module FEColorMatrixParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEColorMatrixParameters.h"
+        export *
+    }
+
+    explicit module FEComponentTransferParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEComponentTransferParameters.h"
+        export *
+    }
+
+    explicit module FECompositeParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FECompositeParameters.h"
+        export *
+    }
+
+    explicit module FEConvolveMatrixParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEConvolveMatrixParameters.h"
+        export *
+    }
+
+    explicit module FEDisplacementMapParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEDisplacementMapParameters.h"
+        export *
+    }
+
+    explicit module FEDropShadowParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEDropShadowParameters.h"
+        export *
+    }
+
+    explicit module FEFloodParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEFloodParameters.h"
+        export *
+    }
+
+    explicit module FEGaussianBlurParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEGaussianBlurParameters.h"
+        export *
+    }
+
+    explicit module FEImageParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEImageParameters.h"
+        export *
+    }
+
+    explicit module FELightingParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FELightingParameters.h"
+        export *
+    }
+
+    explicit module FEMorphologyParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEMorphologyParameters.h"
+        export *
+    }
+
+    explicit module FEOffsetParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FEOffsetParameters.h"
+        export *
+    }
+
+    explicit module FETurbulenceParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/FETurbulenceParameters.h"
+        export *
+    }
+
+    explicit module SourceGraphicParameters {
+        requires cplusplus20
+        header "../../platform/graphics/filters/parameters/SourceGraphicParameters.h"
+        export *
+    }
 }

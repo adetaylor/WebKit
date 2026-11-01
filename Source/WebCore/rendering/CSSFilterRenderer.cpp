@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2026 Apple Inc. All rights reserved.
  * Copyright (C) 2013 Google Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,10 @@
 #include "config.h"
 #include "CSSFilterRenderer.h"
 
+#include "CSSFilterRendererView.h"
+#include "FilterResults.h"
+
+#include "FilterSwiftBridge.h"
 #include "Logging.h"
 #include "ReferencedSVGResources.h"
 #include "RenderElement.h"
@@ -38,6 +42,10 @@
 #include "StyleFilter.h"
 #include "StylePrimitiveNumericTypes+Logging.h"
 #include <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 namespace WebCore {
 
@@ -202,13 +210,13 @@ FilterEffectVector CSSFilterRenderer::effectsOfType(FilterFunction::Type filterT
 
 OptionSet<FilterRenderingMode> CSSFilterRenderer::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
 {
-    OptionSet<FilterRenderingMode> modes = allFilterRenderingModes;
+    auto modes = allFilterRenderingModes.toRaw();
 
     for (auto& function : m_functions)
-        modes = modes & function->supportedFilterRenderingModes(preferredFilterRenderingModes);
+        modes = filterRenderingModesIntersection(modes, function->supportedFilterRenderingModes(preferredFilterRenderingModes).toRaw());
 
     ASSERT(modes);
-    return modes;
+    return OptionSet<FilterRenderingMode>::fromRaw(modes);
 }
 
 void CSSFilterRenderer::expandFilterRegionForSVGReferences()
@@ -254,11 +262,12 @@ void CSSFilterRenderer::expandFilterRegionForSVGReferences()
 void CSSFilterRenderer::computeEnclosingFilterRegion(OptionSet<FilterRenderingOption> renderingOptions)
 {
 #if USE(CORE_IMAGE)
-    auto enclosingFilterRegion = filterRegion();
+    Vector<FloatRect, 4> functionFilterRegions;
     for (auto& function : m_functions) {
         if (auto* filter = dynamicDowncast<Filter>(function))
-            enclosingFilterRegion.unite(filter->filterRegion());
+            functionFilterRegions.append(filter->filterRegion());
     }
+    auto enclosingFilterRegion = cssFilterEnclosingFilterRegion(filterRegion(), FilterImageRects { functionFilterRegions.span() });
     setEnclosingFilterRegion(enclosingFilterRegion);
 
     if (renderingOptions.contains(FilterRenderingOption::ApplyToSVGRenderer)) {
@@ -273,23 +282,14 @@ void CSSFilterRenderer::computeEnclosingFilterRegion(OptionSet<FilterRenderingOp
 #endif
 }
 
-RefPtr<FilterImage> CSSFilterRenderer::apply(FilterImage* sourceImage, FilterResults& results)
+std::optional<FilterResult> CSSFilterRenderer::apply(ImageBuffer* sourceImage, const FloatRect& sourceImageRect, FilterResults& results, FilterResultBuffer resultBuffer)
 {
-    ASSERT(filterRenderingModes().contains(FilterRenderingMode::Software));
-
-    if (!sourceImage)
-        return nullptr;
-
     LOG_WITH_STREAM(Filters, stream << "\nCSSFilterRenderer " << this << " apply - filterRegion " << filterRegion() << " scale " << filterScale());
-    RefPtr<FilterImage> result = sourceImage;
-
-    for (auto& function : m_functions) {
-        result = function->apply(*this, *result, results);
-        if (!result)
-            return nullptr;
-    }
-
-    return result;
+    IntRect absoluteImageRect;
+    RefPtr imageBuffer = cssFilterApply(CSSFilterRendererView { *this }, sourceImage, sourceImageRect, FilterImageAllocator { results.allocator() }, results.swiftImpl(), resultBuffer == FilterResultBuffer::Rendered, absoluteImageRect);
+    if (!imageBuffer)
+        return std::nullopt;
+    return FilterResult { imageBuffer.releaseNonNull(), absoluteImageRect };
 }
 
 FilterStyleVector CSSFilterRenderer::createFilterStyles(GraphicsContext& context, const FilterStyle& sourceStyle) const
@@ -343,26 +343,26 @@ bool CSSFilterRenderer::isIdentity(const RenderElement& renderer, const Style::F
 
 IntOutsets CSSFilterRenderer::calculateOutsets(const RenderElement& renderer, const Style::Filter& filter, const FloatRect& targetBoundingBox)
 {
-    IntOutsets outsets;
+    Vector<FilterOutsets, 4> functionOutsets;
 
     auto zoom = renderer.style().usedZoomForLength();
 
     for (auto& value : filter) {
         WTF::switchOn(value,
             [&](const Style::FilterReference& filterReference) {
-                outsets += calculateReferenceFilterOutsets(filterReference, renderer, targetBoundingBox);
+                functionOutsets.append(FilterOutsets::fromIntOutsets(calculateReferenceFilterOutsets(filterReference, renderer, targetBoundingBox)));
             },
             [&](const Style::BlurFunction& blurFunction) {
-                outsets += blurFunction->calculateOutsets(zoom);
+                functionOutsets.append(FilterOutsets::fromIntOutsets(blurFunction->calculateOutsets(zoom)));
             },
             [&](const Style::DropShadowFunction& dropShadowFunction) {
-                outsets += dropShadowFunction->calculateOutsets(zoom);
+                functionOutsets.append(FilterOutsets::fromIntOutsets(dropShadowFunction->calculateOutsets(zoom)));
             },
             []<CSSValueID C, typename T>(const FunctionNotation<C, T>&) { }
         );
     }
 
-    return outsets;
+    return cssFilterOutsets(FilterOutsetsList { functionOutsets.span() }).intOutsets();
 }
 
 TextStream& CSSFilterRenderer::externalRepresentation(TextStream& ts, FilterRepresentation representation) const

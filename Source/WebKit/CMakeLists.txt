@@ -1026,6 +1026,8 @@ if (SWIFT_REQUIRED)
             UIProcess/mac/WebViewImpl.mm
 
             UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
+
+            WebProcess/GPU/webrtc/SharedVideoFrame.cpp
         )
     endif ()
     foreach (_f IN LISTS WebKit_SWIFT_INTEROP_SOURCES)

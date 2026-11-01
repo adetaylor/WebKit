@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,19 +29,22 @@
 #include <span>
 #include <wtf/SwiftBridging.h>
 
+#if USE(SKIA)
+// The convertImagePixelsSkia() declarations below get Swift Span overloads only with every parameter type complete.
+#include <WebCore/IntSize.h>
+#endif
+
 namespace WebCore {
 
 class IntSize;
 
-// Imported as ~Escapable, so Swift reads the rows as a lifetime-checked Span, with no `unsafe`.
 struct SWIFT_VIEW PixelBufferConversionView {
     PixelBufferFormat format;
     unsigned bytesPerRow;
     std::span<uint8_t> rows;
-
-    std::span<uint8_t> span() const LIFETIME_BOUND { return rows; }
 };
 
+// Imported as ~Escapable, so Swift reads the rows as a lifetime-checked Span, with no `unsafe`.
 struct SWIFT_VIEW ConstPixelBufferConversionView {
     PixelBufferFormat format;
     unsigned bytesPerRow;
@@ -58,12 +61,12 @@ inline void copyRows(unsigned sourceBytesPerRow, std::span<const uint8_t> source
 {
     if (!rows || !copyBytesPerRow)
         return;
-    unsigned requiredSourceBytes = sourceBytesPerRow * (rows - 1) + copyBytesPerRow;
+    uint64_t requiredSourceBytes = static_cast<uint64_t>(sourceBytesPerRow) * (rows - 1) + copyBytesPerRow;
     if (source.size() < requiredSourceBytes) {
         ASSERT_NOT_REACHED();
         return;
     }
-    unsigned requiredDestinationBytes = destinationBytesPerRow * (rows - 1) + copyBytesPerRow;
+    uint64_t requiredDestinationBytes = static_cast<uint64_t>(destinationBytesPerRow) * (rows - 1) + copyBytesPerRow;
     if (destination.size() < requiredDestinationBytes) {
         ASSERT_NOT_REACHED();
         return;
@@ -74,5 +77,11 @@ inline void copyRows(unsigned sourceBytesPerRow, std::span<const uint8_t> source
     }
     copyRowsInternal(sourceBytesPerRow, source, destinationBytesPerRow, destination, rows, copyBytesPerRow);
 }
+
+#if USE(SKIA)
+// SkPixmap::readPixels() conversions for PixelConversion.swift; false if Skia has no color type for a format.
+bool convertImagePixelsSkia(const PixelBufferFormat& sourceFormat, unsigned sourceBytesPerRow, NOESCAPE std::span<const uint8_t> source, const PixelBufferFormat& destinationFormat, unsigned destinationBytesPerRow, NOESCAPE std::span<uint8_t> destination, const IntSize&);
+bool convertImagePixelsSkiaInPlace(const PixelBufferFormat& sourceFormat, const PixelBufferFormat& destinationFormat, unsigned bytesPerRow, NOESCAPE std::span<uint8_t>, const IntSize&);
+#endif
 
 }

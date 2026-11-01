@@ -4,7 +4,7 @@
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) 2010 Zoltan Herczeg <zherczeg@webkit.org>
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -25,12 +25,11 @@
 #include "config.h"
 #include "FEConvolveMatrix.h"
 
-#include "FEConvolveMatrixSoftwareApplier.h"
 #include "Filter.h"
 #include <wtf/text/TextStream.h>
 
-#if USE(CORE_IMAGE)
-#include "FEConvolveMatrixCoreImageApplier.h"
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
 #endif
 
 namespace WebCore {
@@ -42,75 +41,60 @@ Ref<FEConvolveMatrix> FEConvolveMatrix::create(const IntSize& kernelSize, float 
 
 FEConvolveMatrix::FEConvolveMatrix(const IntSize& kernelSize, float divisor, float bias, const IntPoint& targetOffset, EdgeModeType edgeMode, const FloatPoint& kernelUnitLength, bool preserveAlpha, const Vector<float>& kernelMatrix, ColorSpace colorSpace)
     : FilterEffect(FilterEffect::Type::FEConvolveMatrix, colorSpace)
-    , m_kernelSize(kernelSize)
-    , m_divisor(divisor)
-    , m_bias(bias)
-    , m_targetOffset(targetOffset)
-    , m_edgeMode(edgeMode)
-    , m_kernelUnitLength(kernelUnitLength)
-    , m_preserveAlpha(preserveAlpha)
-    , m_kernelMatrix(kernelMatrix)
+    , m_parameters { kernelSize, divisor, bias, targetOffset, edgeMode, kernelUnitLength, preserveAlpha, kernelMatrix }
 {
-    ASSERT(m_kernelSize.width() > 0);
-    ASSERT(m_kernelSize.height() > 0);
+    ASSERT(m_parameters.kernelSize.width() > 0);
+    ASSERT(m_parameters.kernelSize.height() > 0);
     ASSERT(IntRect(IntPoint::zero(), kernelSize).contains(targetOffset));
 }
 
 bool FEConvolveMatrix::operator==(const FEConvolveMatrix& other) const
 {
-    return FilterEffect::operator==(other)
-        && m_kernelSize == other.m_kernelSize
-        && m_divisor == other.m_divisor
-        && m_bias == other.m_bias
-        && m_targetOffset == other.m_targetOffset
-        && m_edgeMode == other.m_edgeMode
-        && m_kernelUnitLength == other.m_kernelUnitLength
-        && m_preserveAlpha == other.m_preserveAlpha
-        && m_kernelMatrix == other.m_kernelMatrix;
+    return FilterEffect::operator==(other) && m_parameters == other.m_parameters;
 }
 
 void FEConvolveMatrix::setKernelSize(const IntSize& kernelSize)
 {
     ASSERT(kernelSize.width() > 0);
     ASSERT(kernelSize.height() > 0);
-    m_kernelSize = kernelSize;
+    m_parameters.kernelSize = kernelSize;
 }
 
 void FEConvolveMatrix::setKernel(const Vector<float>& kernel)
 {
-    m_kernelMatrix = kernel; 
+    m_parameters.kernel = kernel;
 }
 
 bool FEConvolveMatrix::setDivisor(float divisor)
 {
     ASSERT(divisor);
-    if (m_divisor == divisor)
+    if (m_parameters.divisor == divisor)
         return false;
-    m_divisor = divisor;
+    m_parameters.divisor = divisor;
     return true;
 }
 
 bool FEConvolveMatrix::setBias(float bias)
 {
-    if (m_bias == bias)
+    if (m_parameters.bias == bias)
         return false;
-    m_bias = bias;
+    m_parameters.bias = bias;
     return true;
 }
 
 bool FEConvolveMatrix::setTargetOffset(const IntPoint& targetOffset)
 {
-    if (m_targetOffset == targetOffset)
+    if (m_parameters.targetOffset == targetOffset)
         return false;
-    m_targetOffset = targetOffset;
+    m_parameters.targetOffset = targetOffset;
     return true;
 }
 
 bool FEConvolveMatrix::setEdgeMode(EdgeModeType edgeMode)
 {
-    if (m_edgeMode == edgeMode)
+    if (m_parameters.edgeMode == edgeMode)
         return false;
-    m_edgeMode = edgeMode;
+    m_parameters.edgeMode = edgeMode;
     return true;
 }
 
@@ -118,47 +102,28 @@ bool FEConvolveMatrix::setKernelUnitLength(const FloatPoint& kernelUnitLength)
 {
     ASSERT(kernelUnitLength.x() > 0);
     ASSERT(kernelUnitLength.y() > 0);
-    if (m_kernelUnitLength == kernelUnitLength)
+    if (m_parameters.kernelUnitLength == kernelUnitLength)
         return false;
-    m_kernelUnitLength = kernelUnitLength;
+    m_parameters.kernelUnitLength = kernelUnitLength;
     return true;
 }
 
 bool FEConvolveMatrix::setPreserveAlpha(bool preserveAlpha)
 {
-    if (m_preserveAlpha == preserveAlpha)
+    if (m_parameters.preserveAlpha == preserveAlpha)
         return false;
-    m_preserveAlpha = preserveAlpha;
+    m_parameters.preserveAlpha = preserveAlpha;
     return true;
-}
-
-FloatRect FEConvolveMatrix::calculateImageRect(const Filter& filter, std::span<const FloatRect>, const FloatRect& primitiveSubregion) const
-{
-    return filter.maxEffectRect(primitiveSubregion);
 }
 
 OptionSet<FilterRenderingMode> FEConvolveMatrix::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
 {
     OptionSet<FilterRenderingMode> modes = FilterRenderingMode::Software;
 #if USE(CORE_IMAGE)
-    if (FEConvolveMatrixCoreImageApplier::supportsCoreImageRendering(*this))
+    if (feConvolveMatrixSupportsCoreImage(FEConvolveMatrixParametersView { m_parameters }))
         modes.add(FilterRenderingMode::Accelerated);
 #endif
     return modes & preferredFilterRenderingModes;
-}
-
-std::unique_ptr<FilterEffectApplier> FEConvolveMatrix::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEConvolveMatrixCoreImageApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FEConvolveMatrix::createSoftwareApplier() const
-{
-    return FilterEffectApplier::create<FEConvolveMatrixSoftwareApplier>(*this);
 }
 
 static TextStream& operator<<(TextStream& ts, const EdgeModeType& type)
@@ -185,14 +150,14 @@ TextStream& FEConvolveMatrix::externalRepresentation(TextStream& ts, FilterRepre
     ts << indent << "[feConvolveMatrix"_s;
     FilterEffect::externalRepresentation(ts, representation);
 
-    ts << " order=\"" << m_kernelSize << '"';
-    ts << " kernelMatrix=\"" << m_kernelMatrix  << '"';
-    ts << " divisor=\"" << m_divisor << '"';
-    ts << " bias=\"" << m_bias << '"';
-    ts << " target=\"" << m_targetOffset << '"';
-    ts << " edgeMode=\"" << m_edgeMode << '"';
-    ts << " kernelUnitLength=\"" << m_kernelUnitLength << '"';
-    ts << " preserveAlpha=\"" << m_preserveAlpha << '"';
+    ts << " order=\"" << m_parameters.kernelSize << '"';
+    ts << " kernelMatrix=\"" << m_parameters.kernel << '"';
+    ts << " divisor=\"" << m_parameters.divisor << '"';
+    ts << " bias=\"" << m_parameters.bias << '"';
+    ts << " target=\"" << m_parameters.targetOffset << '"';
+    ts << " edgeMode=\"" << m_parameters.edgeMode << '"';
+    ts << " kernelUnitLength=\"" << m_parameters.kernelUnitLength << '"';
+    ts << " preserveAlpha=\"" << m_parameters.preserveAlpha << '"';
 
     ts << "]\n"_s;
     return ts;

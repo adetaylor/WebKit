@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) 2013 Google Inc. All rights reserved.
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -32,7 +32,6 @@
 namespace WebCore {
 
 class FilterEffect;
-class FilterImage;
 class FilterResults;
 
 struct FilterGeometry {
@@ -41,6 +40,16 @@ struct FilterGeometry {
     FloatSize scale;
 };
 
+// The result of applying a filter: its image buffer and its rect in user-space coordinates.
+struct FilterResult {
+    Ref<ImageBuffer> imageBuffer;
+    IntRect absoluteImageRect;
+};
+
+// Which image buffer Filter::apply() returns. Rendered: with Core Image, the result rendered into a new image buffer.
+// Existing: the result's own image buffer, which a Core Image result doesn't have.
+enum class FilterResultBuffer : bool { Existing, Rendered };
+
 enum class FilterRenderingOption : uint8_t {
     ShowDebugOverlay    = 1 << 0,
     FastAndLowQuality   = 1 << 1,
@@ -48,7 +57,6 @@ enum class FilterRenderingOption : uint8_t {
 };
 
 class Filter : public FilterFunction {
-    using FilterFunction::apply;
     using FilterFunction::createFilterStyles;
 
 public:
@@ -71,14 +79,10 @@ public:
     FloatRect referenceBox() const { return m_geometry.referenceBox; }
 
     virtual FloatSize resolvedSize(const FloatSize& size) const { return size; }
-    virtual FloatPoint3D resolvedPoint3D(const FloatPoint3D& point) const { return point; }
+    // An SVG filter whose primitive units are objectBoundingBox.
+    virtual bool primitiveUnitsAreObjectBoundingBox() const { return false; }
 
-    FloatPoint LEGACY_NODELETE scaledByFilterScale(const FloatPoint&) const;
-    FloatSize LEGACY_NODELETE scaledByFilterScale(const FloatSize&) const;
     FloatRect LEGACY_NODELETE scaledByFilterScale(const FloatRect&) const;
-
-    FloatRect LEGACY_NODELETE maxEffectRect(const FloatRect& primitiveSubregion) const;
-    FloatRect LEGACY_NODELETE clipToMaxEffectRect(const FloatRect& imageRect, const FloatRect& primitiveSubregion) const;
 
 #if USE(CORE_IMAGE)
     // When CSS filter has a mixture of CSS and SVG filters, we need to compute CI filter geometry
@@ -86,25 +90,21 @@ public:
     // of all the filters in the chain.
     FloatRect enclosingFilterRegion() const { return m_enclosingFilterRegion; }
     void setEnclosingFilterRegion(const FloatRect& rect) { m_enclosingFilterRegion = rect; }
-
-    FloatRect LEGACY_NODELETE absoluteEnclosingFilterRegion() const;
-    FloatRect LEGACY_NODELETE flippedRectRelativeToAbsoluteEnclosingFilterRegion(const FloatRect&) const;
 #endif
 
     virtual FilterEffectVector effectsOfType(FilterFunction::Type) const = 0;
 
     bool clampFilterRegionIfNeeded();
 
-    WEBCORE_EXPORT RefPtr<FilterImage> apply(ImageBuffer* sourceImage, const FloatRect& sourceImageRect, FilterResults&);
+    // Applies the filter to the source image, in WebCore's Swift (FilterEngine.swift). Nullopt if the filter fails or its
+    // result has no image buffer.
+    virtual std::optional<FilterResult> apply(ImageBuffer* sourceImage, const FloatRect& sourceImageRect, FilterResults&, FilterResultBuffer) = 0;
     WEBCORE_EXPORT FilterStyleVector createFilterStyles(GraphicsContext&, const FloatRect& sourceImageRect) const;
-
-    ImageBuffer* filterResultBuffer(FilterImage&) const;
 
 protected:
     Filter(Filter::Type, std::optional<RenderingResourceIdentifier> = std::nullopt);
     Filter(Filter::Type, const FilterGeometry&, OptionSet<FilterRenderingOption> = { }, std::optional<RenderingResourceIdentifier> = std::nullopt);
 
-    virtual RefPtr<FilterImage> apply(FilterImage* sourceImage, FilterResults&) = 0;
     virtual FilterStyleVector createFilterStyles(GraphicsContext&, const FilterStyle& sourceStyle) const = 0;
 
 private:

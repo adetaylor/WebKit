@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 University of Szeged
  * Copyright (C) 2010 Zoltan Herczeg
- * Copyright (C) 2021-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,13 +29,12 @@
 
 #include <WebCore/Color.h>
 #include <WebCore/DistantLightSource.h>
+#include <WebCore/FELightingParameters.h>
 #include <WebCore/FilterEffect.h>
 #include <WebCore/PointLightSource.h>
 #include <WebCore/SpotLightSource.h>
 
 namespace WebCore {
-
-struct FELightingPaintingDataForNeon;
 
 class FELighting : public FilterEffect {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(FELighting);
@@ -46,40 +45,39 @@ public:
     const Color& lightingColor() const LIFETIME_BOUND { return m_lightingColor; }
     bool setLightingColor(const Color&);
 
-    float surfaceScale() const { return m_surfaceScale; }
+    float surfaceScale() const { return m_parameters.surfaceScale; }
     bool LEGACY_NODELETE setSurfaceScale(float);
 
-    float diffuseConstant() const { return m_diffuseConstant; }
-    float specularConstant() const { return m_specularConstant; }
-    float specularExponent() const { return m_specularExponent; }
+    float diffuseConstant() const { return m_parameters.diffuseConstant; }
+    float specularConstant() const { return m_parameters.specularConstant; }
+    float specularExponent() const { return m_parameters.specularExponent; }
 
-    float kernelUnitLengthX() const { return m_kernelUnitLengthX; }
+    float kernelUnitLengthX() const { return m_parameters.kernelUnitLengthX; }
     bool LEGACY_NODELETE setKernelUnitLengthX(float);
 
-    float kernelUnitLengthY() const { return m_kernelUnitLengthY; }
+    float kernelUnitLengthY() const { return m_parameters.kernelUnitLengthY; }
     bool LEGACY_NODELETE setKernelUnitLengthY(float);
 
     LightSource& lightSource() const { return m_lightSource; }
+
+    const FELightingParameters& parameters() const LIFETIME_BOUND { return m_parameters; }
 
 protected:
     FELighting(Type, const Color& lightingColor, float surfaceScale, float diffuseConstant, float specularConstant, float specularExponent, float kernelUnitLengthX, float kernelUnitLengthY, Ref<LightSource>&&, ColorSpace);
 
     using FilterEffect::operator==;
 
-    FloatRect calculateImageRect(const Filter&, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const override;
-
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode>) const override;
-    std::unique_ptr<FilterEffectApplier> createAcceleratedApplier() const override;
-    std::unique_ptr<FilterEffectApplier> createSoftwareApplier() const override;
 
+    // m_parameters first: it fits in FilterEffect's tail padding, which keeps FELighting from growing into a larger
+    // size class.
+    FELightingParameters m_parameters;
     Color m_lightingColor;
-    float m_surfaceScale;
-    float m_diffuseConstant;
-    float m_specularConstant;
-    float m_specularExponent;
-    float m_kernelUnitLengthX;
-    float m_kernelUnitLengthY;
     const Ref<LightSource> m_lightSource;
 };
 
 } // namespace WebCore
+
+SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::FELighting)
+    static bool isType(const WebCore::FilterFunction& function) { return function.filterType() == WebCore::FilterFunction::Type::FEDiffuseLighting || function.filterType() == WebCore::FilterFunction::Type::FESpecularLighting; }
+SPECIALIZE_TYPE_TRAITS_END()

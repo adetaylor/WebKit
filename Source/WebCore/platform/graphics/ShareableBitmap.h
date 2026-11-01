@@ -53,6 +53,7 @@ namespace WebCore {
 
 class GraphicsContext;
 class NativeImage;
+struct ShareableBitmapGeometry;
 
 inline constexpr auto unspecifiedPixelFormat = std::optional<PixelFormat> { };
 inline constexpr auto defaultCopyOnWrite = SharedMemory::CopyOnWrite::No;
@@ -88,7 +89,8 @@ public:
     const SkImageInfo& imageInfo() const LIFETIME_BOUND { return m_imageInfo; }
 #endif
 
-    CheckedUint32 sizeInBytes() const { return m_bytesPerRow * m_size.height(); }
+    WEBCORE_EXPORT CheckedUint32 LEGACY_NODELETE sizeInBytes() const;
+    ShareableBitmapGeometry LEGACY_NODELETE layoutGeometry() const;
 
     WEBCORE_EXPORT static CheckedUint32 calculateBytesPerRow(const IntSize&, PixelFormat, const ColorSpace&);
     WEBCORE_EXPORT static CheckedUint32 calculateSizeInBytes(const IntSize&, PixelFormat, const ColorSpace&);
@@ -103,11 +105,6 @@ private:
     );
 
     static ColorSpace validateColorSpace(const ColorSpace&);
-    static CheckedUint32 LEGACY_NODELETE calculateBitsPerComponent(PixelFormat, const ColorSpace&);
-    static CheckedUint32 LEGACY_NODELETE calculateBytesPerPixel(PixelFormat, const ColorSpace&);
-#if USE(CG)
-    static CGBitmapInfo LEGACY_NODELETE calculateBitmapInfo(PixelFormat, bool isOpaque);
-#endif
 
     IntSize m_size;
     ColorSpace m_colorSpace { ColorSpace::SRGB() };
