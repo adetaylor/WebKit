@@ -439,6 +439,7 @@ platform/graphics/cg/FloatSizeCG.cpp
 platform/graphics/cg/GradientCG.cpp
 platform/graphics/cg/GradientRendererCG.cpp
 platform/graphics/cg/GraphicsContextCG.cpp
+platform/graphics/cg/GraphicsContextCGCapture.cpp
 platform/graphics/cg/GraphicsContextGLCG.cpp
 platform/graphics/cg/IOSurfacePool.mm @nonARC
 platform/graphics/cg/ImageBackingStoreCG.cpp

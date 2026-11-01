@@ -34,6 +34,7 @@
 namespace WebCore {
 
 class CGRenderer;
+class GraphicsContextCGCapture;
 
 class WEBCORE_EXPORT GraphicsContextCG : public GraphicsContext {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(GraphicsContextCG, WEBCORE_EXPORT);
@@ -164,7 +165,7 @@ public:
 
     enum class RendererForTesting : uint8_t { Default, CPlusPlus, Swift };
     static void setRendererForTesting(RendererForTesting);
-    bool usesSwiftRenderer() const { return m_usesSwiftRenderer; }
+    bool usesSwiftRenderer() const;
 
 private:
     CGRenderer& swiftRenderer() const;
@@ -187,6 +188,9 @@ private:
     NODELETE const RetainPtr<CGContextRef>& contextForState() const;
 
     const RetainPtr<CGContextRef> m_cgContext;
+#if ASSERT_ENABLED
+    std::unique_ptr<GraphicsContextCGCapture> m_capture;
+#endif
     // The CGRenderer (CGRenderer.swift) this context draws with, built in place. GraphicsContextCG.cpp checks the size.
     static constexpr size_t swiftRendererSize = 152;
     alignas(8) mutable std::byte m_swiftRendererStorage[swiftRendererSize];

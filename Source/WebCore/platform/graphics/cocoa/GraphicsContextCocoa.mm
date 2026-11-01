@@ -29,6 +29,7 @@
 #import "DisplayListRecorder.h"
 #import "Font.h"
 #import "GraphicsContextCG.h"
+#import "GraphicsContextCGCapture.h"
 #import "IOSurface.h"
 #import "IntRect.h"
 #import <CoreText/CoreText.h>
@@ -58,11 +59,21 @@
 
 namespace WebCore {
 
+#if ASSERT_ENABLED
+#define CAPTURE(call) \
+    GraphicsContextCGCapture::Scope captureScope(m_capture.get()); \
+    if (auto* capture = captureScope.outermost()) \
+        capture->call
+#else
+#define CAPTURE(call)
+#endif
+
 // NSColor, NSBezierPath, and NSGraphicsContext calls do not raise exceptions
 // so we don't block exceptions.
 
 void GraphicsContextCG::drawFocusRing(const Path& path, float, const Color& color, float zoomFactor)
 {
+    CAPTURE(unsupported("drawFocusRing"_s));
     if (path.isEmpty())
         return;
 
@@ -104,6 +115,7 @@ void GraphicsContextCG::drawFocusRing(const Path& path, float, const Color& colo
 
 void GraphicsContextCG::drawFocusRing(const Vector<FloatRect>& rects, float outlineWidth, const Color& color, float zoomFactor)
 {
+    CAPTURE(unsupported("drawFocusRing"_s));
     Path path;
     for (const auto& rect : rects)
         path.addRect(rect);
@@ -167,6 +179,7 @@ static inline void drawRoundedRectForDocumentMarker(CGContextRef context, const 
 
 void GraphicsContextCG::drawDotsForDocumentMarker(const FloatRect& rect, DocumentMarkerLineStyle style)
 {
+    CAPTURE(drawDotsForDocumentMarker(rect, style));
 #if HAVE(AUTOCORRECTION_ENHANCEMENTS)
     if (style.mode == DocumentMarkerLineStyleMode::AutocorrectionReplacement) {
         drawRoundedRectForDocumentMarker(protect(this->platformContext()), rect, style);
@@ -175,5 +188,7 @@ void GraphicsContextCG::drawDotsForDocumentMarker(const FloatRect& rect, Documen
 #endif
     WebCore::drawDotsForDocumentMarker(protect(this->platformContext()), rect, style);
 }
+
+#undef CAPTURE
 
 } // namespace WebCore

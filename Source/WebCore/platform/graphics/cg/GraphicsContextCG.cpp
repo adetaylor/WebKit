@@ -35,6 +35,7 @@
 #include "DisplayListRecorder.h"
 #include "FloatConversion.h"
 #include "Gradient.h"
+#include "GraphicsContextCGCapture.h"
 #include "ImageBuffer.h"
 #include "ImageOrientation.h"
 #include "Logging.h"
@@ -56,11 +57,11 @@
 #include <WebKitAdditions/AXCustomColorModeController.h>
 #endif
 
-#include <pal/cg/CoreGraphicsSoftLink.h>
-
 #if ENABLE(WEBCORE_SWIFT)
 #include "WebCore-Swift.h"
 #endif
+
+#include <pal/cg/CoreGraphicsSoftLink.h>
 
 #if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/IOSurfaceAdditionsBefore.mm>)
 #include <WebKitAdditions/IOSurfaceAdditionsBefore.mm>
@@ -77,11 +78,25 @@ namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextCG);
 
+#if ASSERT_ENABLED
+#define CAPTURE(call) \
+    GraphicsContextCGCapture::Scope captureScope(m_capture.get()); \
+    if (auto* capture = captureScope.outermost()) \
+        capture->call
+#else
+#define CAPTURE(call)
+#endif
+
 static std::atomic<GraphicsContextCG::RendererForTesting> rendererForTesting { GraphicsContextCG::RendererForTesting::Default };
 
 void GraphicsContextCG::setRendererForTesting(RendererForTesting renderer)
 {
     rendererForTesting = renderer;
+}
+
+bool GraphicsContextCG::usesSwiftRenderer() const
+{
+    return m_usesSwiftRenderer;
 }
 
 #if ENABLE(WEBCORE_SWIFT)
@@ -366,6 +381,9 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
 #endif
     // Make sure the context starts in sync with our state.
     didUpdateState(m_state);
+#if ASSERT_ENABLED
+    m_capture = GraphicsContextCGCapture::createIfEnabled(cgContext, m_renderingMode, m_isLayerCGContext);
+#endif
 }
 
 GraphicsContextCG::~GraphicsContextCG()
@@ -419,6 +437,7 @@ const ColorSpace& GraphicsContextCG::colorSpace() const
 
 void GraphicsContextCG::save(GraphicsContextState::Purpose purpose)
 {
+    CAPTURE(save(purpose));
     GraphicsContext::save(purpose);
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
@@ -431,6 +450,7 @@ void GraphicsContextCG::save(GraphicsContextState::Purpose purpose)
 
 void GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
 {
+    CAPTURE(restore(purpose));
     if (!stackSize())
         return;
 #if ENABLE(WEBCORE_SWIFT)
@@ -450,6 +470,7 @@ void GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
 
 void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions options)
 {
+    CAPTURE(drawNativeImage(nativeImage, destRect, srcRect, options));
     auto image = nativeImage.platformImage();
     if (!image)
         return;
@@ -678,6 +699,7 @@ static void drawPatternReleaseCallback(void* info)
 
 void GraphicsContextCG::drawPattern(const NativeImage& nativeImage, const FloatRect& destRect, const FloatRect& tileRect, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, RasterDrawingOptions options)
 {
+    CAPTURE(unsupported("drawPattern"_s));
     if (!patternTransform.isInvertible())
         return;
 
@@ -783,6 +805,7 @@ void GraphicsContextCG::drawPattern(const NativeImage& nativeImage, const FloatR
 // Draws a filled rectangle with a stroked border.
 void GraphicsContextCG::drawRect(const FloatRect& rect, float borderThickness)
 {
+    CAPTURE(drawRect(rect, borderThickness));
     // FIXME: this function does not handle patterns and gradients like drawPath does, it probably should.
     ASSERT(!rect.isEmpty());
 
@@ -810,6 +833,7 @@ void GraphicsContextCG::drawRect(const FloatRect& rect, float borderThickness)
 // This is only used to draw borders.
 void GraphicsContextCG::drawLine(const FloatPoint& point1, const FloatPoint& point2)
 {
+    CAPTURE(drawLine(point1, point2));
     if (strokeStyle() == StrokeStyle::NoStroke)
         return;
 
@@ -877,6 +901,7 @@ void GraphicsContextCG::drawEllipse(const FloatRect& rect)
 
 void GraphicsContextCG::applyStrokePattern()
 {
+    CAPTURE(unsupported("applyStrokePattern"_s));
     RefPtr strokePattern = this->strokePattern();
     if (!strokePattern)
         return;
@@ -897,6 +922,7 @@ void GraphicsContextCG::applyStrokePattern()
 
 void GraphicsContextCG::applyFillPattern()
 {
+    CAPTURE(unsupported("applyFillPattern"_s));
     RefPtr fillPattern = this->fillPattern();
     if (!fillPattern)
         return;
@@ -944,6 +970,7 @@ NODELETE static inline bool calculateDrawingMode(const GraphicsContext& context,
 
 void GraphicsContextCG::drawPath(const Path& path)
 {
+    CAPTURE(drawPath(path));
     if (path.isEmpty())
         return;
 
@@ -969,6 +996,7 @@ void GraphicsContextCG::drawPath(const Path& path)
 
 void GraphicsContextCG::fillPath(const Path& path)
 {
+    CAPTURE(fillPath(path));
     if (path.isEmpty())
         return;
 
@@ -1002,6 +1030,7 @@ void GraphicsContextCG::fillPath(const Path& path)
 
 void GraphicsContextCG::strokePath(const Path& path)
 {
+    CAPTURE(strokePath(path));
     if (path.isEmpty())
         return;
 
@@ -1035,6 +1064,7 @@ void GraphicsContextCG::strokePath(const Path& path)
 
 void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requiresClipToRect)
 {
+    CAPTURE(fillRect(rect, requiresClipToRect));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer && swiftRenderer().fillRect(rect))
@@ -1066,6 +1096,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
 
 void GraphicsContextCG::fillRect(const FloatRect& rect, Gradient& gradient, const AffineTransform& gradientSpaceTransform, RequiresClipToRect requiresClipToRect)
 {
+    CAPTURE(unsupported("fillRect with a gradient"_s));
     paintGradientInClip(gradient, gradientSpaceTransform, [&] {
         return rect;
     }, [&](CGContextRef clipContext) {
@@ -1076,6 +1107,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, Gradient& gradient, cons
 
 void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
 {
+    CAPTURE(fillRect(rect, color));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
@@ -1111,6 +1143,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
 
 void GraphicsContextCG::fillRoundedRectImpl(const FloatRoundedRect& rect, const Color& color)
 {
+    CAPTURE(fillRoundedRect(rect, color));
     const RetainPtr<CGContextRef>& context = contextForDraw();
     Color oldFillColor = fillColor();
 
@@ -1151,6 +1184,7 @@ void GraphicsContextCG::fillRoundedRectImpl(const FloatRoundedRect& rect, const 
 
 void GraphicsContextCG::fillRectWithRoundedHole(const FloatRect& rect, const FloatRoundedRect& roundedHoleRect, const Color& color)
 {
+    CAPTURE(fillRectWithRoundedHole(rect, roundedHoleRect, color));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
     Path path;
@@ -1190,6 +1224,7 @@ void GraphicsContextCG::fillRectWithRoundedHole(const FloatRect& rect, const Flo
 
 void GraphicsContextCG::resetClip()
 {
+    CAPTURE(resetClip());
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
@@ -1202,6 +1237,7 @@ void GraphicsContextCG::resetClip()
 
 void GraphicsContextCG::clip(const FloatRect& rect)
 {
+    CAPTURE(clip(rect));
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
@@ -1214,6 +1250,7 @@ void GraphicsContextCG::clip(const FloatRect& rect)
 
 void GraphicsContextCG::clipOut(const FloatRect& rect)
 {
+    CAPTURE(clipOut(rect));
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
@@ -1236,6 +1273,7 @@ void GraphicsContextCG::clipOut(const FloatRect& rect)
 
 void GraphicsContextCG::clipOut(const Path& path)
 {
+    CAPTURE(clipOut(path));
     const RetainPtr<CGContextRef>& context = contextForDraw();
     CGContextBeginPath(context);
     CGContextAddRect(context, CGContextGetClipBoundingBox(context));
@@ -1246,6 +1284,7 @@ void GraphicsContextCG::clipOut(const Path& path)
 
 void GraphicsContextCG::clipPath(const Path& path, WindRule clipRule)
 {
+    CAPTURE(clipPath(path, clipRule));
     const RetainPtr<CGContextRef>& context = contextForDraw();
     if (path.isEmpty())
         CGContextClipToRect(context, CGRectZero);
@@ -1278,6 +1317,7 @@ void GraphicsContextCG::clipTransformedPath(const AffineTransform& pathTransform
 
 void GraphicsContextCG::clipToNativeImage(const NativeImage& nativeImage, const FloatRect& destRect)
 {
+    CAPTURE(unsupported("clipToImageBuffer"_s));
     // FIXME: This image needs to be grayscale to be used as an alpha mask here.
     const RetainPtr<CGContextRef>& context = contextForDraw();
     CGContextTranslateCTM(context, destRect.x(), destRect.maxY());
@@ -1301,6 +1341,7 @@ IntRect GraphicsContextCG::clipBounds() const
 
 void GraphicsContextCG::beginTransparencyLayer(float opacity)
 {
+    CAPTURE(beginTransparencyLayer(opacity));
     GraphicsContext::beginTransparencyLayer(opacity);
 
 #if ENABLE(WEBCORE_SWIFT)
@@ -1322,8 +1363,11 @@ void GraphicsContextCG::beginTransparencyLayer(float opacity)
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
-void GraphicsContextCG::beginTransparencyLayer(CompositeOperator, BlendMode)
+void GraphicsContextCG::beginTransparencyLayer(CompositeOperator compositeOperator, BlendMode blendMode)
 {
+    CAPTURE(beginTransparencyLayer(compositeOperator, blendMode));
+    UNUSED_PARAM(compositeOperator);
+    UNUSED_PARAM(blendMode);
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         GraphicsContext::beginTransparencyLayer(state().alpha());
@@ -1341,6 +1385,7 @@ void GraphicsContextCG::beginTransparencyLayer(CompositeOperator, BlendMode)
 
 void GraphicsContextCG::endTransparencyLayer()
 {
+    CAPTURE(endTransparencyLayer());
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         if (!stackSize() || m_state.purpose() != GraphicsContextState::Purpose::TransparencyLayer)
@@ -1583,6 +1628,7 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
 
 void GraphicsContextCG::didUpdateState(GraphicsContextState& state)
 {
+    CAPTURE(stateUpdate(state));
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         didUpdateStateForSwiftRenderer(state);
@@ -1661,11 +1707,13 @@ void GraphicsContextCG::didUpdateState(GraphicsContextState& state)
 
 void GraphicsContextCG::setMiterLimit(float limit)
 {
+    CAPTURE(setMiterLimit(limit));
     CGContextSetMiterLimit(contextForDraw(), limit);
 }
 
 void GraphicsContextCG::clearRect(const FloatRect& r)
 {
+    CAPTURE(clearRect(r));
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
@@ -1678,6 +1726,7 @@ void GraphicsContextCG::clearRect(const FloatRect& r)
 
 void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
 {
+    CAPTURE(strokeRect(rect, lineWidth));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer && swiftRenderer().strokeRect(rect, lineWidth))
@@ -1715,6 +1764,7 @@ void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
 
 void GraphicsContextCG::strokeArc(const PathArc& arc)
 {
+    CAPTURE(strokeArc(arc));
 #if HAVE(CGCONTEXT_STROKE_ARC)
     if (!strokeGradient()) {
         if (strokePattern())
@@ -1730,6 +1780,7 @@ void GraphicsContextCG::strokeArc(const PathArc& arc)
 
 void GraphicsContextCG::strokeLine(const PathDataLine& line)
 {
+    CAPTURE(strokeLine(line));
     // Gradient stroking requires building a stroked path and clipping to it,
     // which CGContextStrokeLineSegments cannot do. Defer to strokePath() via
     // the base class for that case. Patterns can be inlined as long as we set
@@ -1748,6 +1799,7 @@ void GraphicsContextCG::strokeLine(const PathDataLine& line)
 
 void GraphicsContextCG::setLineCap(LineCap cap)
 {
+    CAPTURE(setLineCap(cap));
     switch (cap) {
     case LineCap::Butt:
         CGContextSetLineCap(contextForDraw(), kCGLineCapButt);
@@ -1763,6 +1815,7 @@ void GraphicsContextCG::setLineCap(LineCap cap)
 
 void GraphicsContextCG::setLineDash(const DashArray& dashes, float dashOffset)
 {
+    CAPTURE(setLineDash(dashes, dashOffset));
     if (dashOffset < 0) {
         float length = 0;
         for (size_t i = 0; i < dashes.size(); ++i)
@@ -1779,6 +1832,7 @@ void GraphicsContextCG::setLineDash(const DashArray& dashes, float dashOffset)
 
 void GraphicsContextCG::setLineJoin(LineJoin join)
 {
+    CAPTURE(setLineJoin(join));
     switch (join) {
     case LineJoin::Miter:
         CGContextSetLineJoin(contextForDraw(), kCGLineJoinMiter);
@@ -1794,6 +1848,7 @@ void GraphicsContextCG::setLineJoin(LineJoin join)
 
 void GraphicsContextCG::scale(const FloatSize& size)
 {
+    CAPTURE(scale(size));
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
@@ -1806,6 +1861,7 @@ void GraphicsContextCG::scale(const FloatSize& size)
 
 void GraphicsContextCG::rotate(float angle)
 {
+    CAPTURE(rotate(angle));
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
@@ -1818,6 +1874,7 @@ void GraphicsContextCG::rotate(float angle)
 
 void GraphicsContextCG::translate(float x, float y)
 {
+    CAPTURE(translate(x, y));
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
@@ -1830,6 +1887,7 @@ void GraphicsContextCG::translate(float x, float y)
 
 void GraphicsContextCG::concatCTM(const AffineTransform& transform)
 {
+    CAPTURE(concatCTM(transform));
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
@@ -1842,6 +1900,7 @@ void GraphicsContextCG::concatCTM(const AffineTransform& transform)
 
 void GraphicsContextCG::setCTM(const AffineTransform& transform)
 {
+    CAPTURE(setCTM(transform));
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
@@ -1884,6 +1943,7 @@ FloatRect GraphicsContextCG::roundToDevicePixels(const FloatRect& rect) const
 
 void GraphicsContextCG::drawLinesForText(const FloatPoint& origin, float thickness, std::span<const FloatSegment> lineSegments, bool isPrinting, bool doubleLines, StrokeStyle strokeStyle)
 {
+    CAPTURE(drawLinesForText(origin, thickness, lineSegments, isPrinting, doubleLines, strokeStyle));
     auto [rects, color] = computeRectsAndStrokeColorForLinesForText(origin, thickness, lineSegments, isPrinting, doubleLines, strokeStyle);
     if (rects.isEmpty())
         return;
@@ -1897,6 +1957,7 @@ void GraphicsContextCG::drawLinesForText(const FloatPoint& origin, float thickne
 
 void GraphicsContextCG::setURLForRect(const URL& link, const FloatRect& destRect)
 {
+    CAPTURE(unsupported("setURLForRect"_s));
     RetainPtr<CFURLRef> urlRef = link.createCFURL();
     if (!urlRef)
         return;
@@ -1933,6 +1994,7 @@ RenderingMode GraphicsContextCG::renderingMode() const
 
 void GraphicsContextCG::applyDeviceScaleFactor(float deviceScaleFactor)
 {
+    CAPTURE(applyDeviceScaleFactor(deviceScaleFactor));
     GraphicsContext::applyDeviceScaleFactor(deviceScaleFactor);
 
     // CoreGraphics expects the base CTM of a HiDPI context to have the scale factor applied to it.
@@ -1943,6 +2005,7 @@ void GraphicsContextCG::applyDeviceScaleFactor(float deviceScaleFactor)
 
 void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 {
+    CAPTURE(fillEllipse(ellipse));
     // CGContextFillEllipseInRect only supports solid colors.
     if (fillGradient() || fillPattern()) {
         fillEllipseAsPath(ellipse);
@@ -1955,6 +2018,7 @@ void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 
 void GraphicsContextCG::strokeEllipse(const FloatRect& ellipse)
 {
+    CAPTURE(strokeEllipse(ellipse));
     // CGContextStrokeEllipseInRect only supports solid colors.
     if (strokeGradient() || strokePattern()) {
         strokeEllipseAsPath(ellipse);
@@ -1967,6 +2031,7 @@ void GraphicsContextCG::strokeEllipse(const FloatRect& ellipse)
 
 void GraphicsContextCG::beginPage(const FloatRect& pageRect)
 {
+    CAPTURE(unsupported("beginPage"_s));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
     if (CGContextGetType(context) != kCGContextTypePDF) {
@@ -1995,6 +2060,7 @@ void GraphicsContextCG::beginPage(const FloatRect& pageRect)
 
 void GraphicsContextCG::endPage()
 {
+    CAPTURE(unsupported("endPage"_s));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
     if (CGContextGetType(context) != kCGContextTypePDF) {
@@ -2012,6 +2078,7 @@ bool GraphicsContextCG::supportsInternalLinks() const
 
 void GraphicsContextCG::setDestinationForRect(const String& name, const FloatRect& destRect)
 {
+    CAPTURE(unsupported("setDestinationForRect"_s));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
     FloatRect rect = destRect;
@@ -2023,6 +2090,7 @@ void GraphicsContextCG::setDestinationForRect(const String& name, const FloatRec
 
 void GraphicsContextCG::addDestinationAtPoint(const String& name, const FloatPoint& position)
 {
+    CAPTURE(unsupported("addDestinationAtPoint"_s));
     const RetainPtr<CGContextRef>& context = contextForDraw();
     CGPoint transformedPoint = CGPointApplyAffineTransform(position, CGContextGetCTM(context));
     CGPDFContextAddDestinationAtPoint(context, name.createCFString().get(), transformedPoint);
@@ -2043,6 +2111,7 @@ bool GraphicsContextCG::consumeHasDrawn()
 #if HAVE(SUPPORT_HDR_DISPLAY)
 void GraphicsContextCG::setMaxEDRHeadroom(std::optional<float> headroom)
 {
+    CAPTURE(unsupported("setMaxEDRHeadroom"_s));
     m_maxEDRHeadroom = headroom;
 }
 #endif
