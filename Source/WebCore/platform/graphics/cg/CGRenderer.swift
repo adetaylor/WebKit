@@ -266,11 +266,11 @@ private struct CGRendererColorCache {
     }
 }
 
-// GraphicsContextCG's drawing into its CGContext, with its own copy of the GraphicsContext state. The GraphicsContextCG
-// shell forwards each state change, save, restore and draw. A draw returns false when this renderer doesn't do that case
-// yet; the shell then draws it in C++, with the same state.
+// GraphicsContextCG's drawing into its CGContext, with its own copy of the GraphicsContext state. GraphicsContextCG stores it
+// in place and forwards each state change, save, restore and draw. A draw returns false when this renderer doesn't do that
+// case yet; GraphicsContextCG then draws it in C++, with the same state.
 @_expose(Cxx)
-final class CGRenderer {
+struct CGRenderer {
     private let context: CGContext
     private let isUnaccelerated: Bool
     private let isPDFContext: Bool
@@ -281,8 +281,8 @@ final class CGRenderer {
     private var colorCache = CGRendererColorCache()
     private var clipOutRects = [CGRect.zero, CGRect.zero]
 
-    // C++ reads this class's type metadata, whose accessor a Release build (-O -wmo) drops unless Swift uses it
-    // (rdar://179098545).
+    // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
+    // uses it (rdar://179098545).
     @used
     private static let cxxTypeMetadata: Any.Type = CGRenderer.self
 
@@ -300,12 +300,12 @@ final class CGRenderer {
         isUnaccelerated && state.hasBlurredDropShadow && !state.shadowsIgnoreTransforms
     }
 
-    private func platformColor(_ brush: CGRendererBrush) -> CGColor {
+    private mutating func platformColor(_ brush: CGRendererBrush) -> CGColor {
         brush.platformColorSlot == 0 ? colorCache.color(brush.packedColor) : platformColors[Int(brush.platformColorSlot) - 1]
     }
 
     // When nothing is saved, only the current brushes refer to platformColors, so the others can go.
-    private func platformColorSlot(_ color: CGColor) -> UInt32 {
+    private mutating func platformColorSlot(_ color: CGColor) -> UInt32 {
         if depth == 0 && !platformColors.isEmpty {
             var kept: [CGColor] = []
             for slot in [state.fill.platformColorSlot, state.stroke.platformColorSlot] where slot != 0 {
@@ -326,7 +326,7 @@ final class CGRenderer {
     // MARK: State
 
     @_expose(Cxx)
-    func setFillPackedColor(_ packed: UInt32, _ hasPatternOrGradient: Bool) {
+    mutating func setFillPackedColor(_ packed: UInt32, _ hasPatternOrGradient: Bool) {
         state.fill = CGRendererBrush(packedColor: packed, hasPatternOrGradient: hasPatternOrGradient)
         if !hasPatternOrGradient {
             context.setFillColor(colorCache.color(packed))
@@ -334,8 +334,8 @@ final class CGRenderer {
     }
 
     @_expose(Cxx)
-    func setFillPlatformColor(_ color: CGColor, _ hasPatternOrGradient: Bool) {
-        let slot = platformColorSlot(color)
+    mutating func setFillPlatformColor(_ color: borrowing CGColor, _ hasPatternOrGradient: Bool) {
+        let slot = platformColorSlot(copy color)
         state.fill = CGRendererBrush(platformColorSlot: slot, hasPatternOrGradient: hasPatternOrGradient)
         if !hasPatternOrGradient {
             context.setFillColor(color)
@@ -343,7 +343,7 @@ final class CGRenderer {
     }
 
     @_expose(Cxx)
-    func setStrokePackedColor(_ packed: UInt32, _ hasPatternOrGradient: Bool) {
+    mutating func setStrokePackedColor(_ packed: UInt32, _ hasPatternOrGradient: Bool) {
         state.stroke = CGRendererBrush(packedColor: packed, hasPatternOrGradient: hasPatternOrGradient)
         if !hasPatternOrGradient {
             context.setStrokeColor(colorCache.color(packed))
@@ -351,8 +351,8 @@ final class CGRenderer {
     }
 
     @_expose(Cxx)
-    func setStrokePlatformColor(_ color: CGColor, _ hasPatternOrGradient: Bool) {
-        let slot = platformColorSlot(color)
+    mutating func setStrokePlatformColor(_ color: borrowing CGColor, _ hasPatternOrGradient: Bool) {
+        let slot = platformColorSlot(copy color)
         state.stroke = CGRendererBrush(platformColorSlot: slot, hasPatternOrGradient: hasPatternOrGradient)
         if !hasPatternOrGradient {
             context.setStrokeColor(color)
@@ -360,23 +360,23 @@ final class CGRenderer {
     }
 
     @_expose(Cxx)
-    func setFillRule(_ fillRule: UInt8) {
+    mutating func setFillRule(_ fillRule: UInt8) {
         state.fillRule = fillRule
     }
 
     @_expose(Cxx)
-    func setStrokeThickness(_ thickness: Float) {
+    mutating func setStrokeThickness(_ thickness: Float) {
         state.strokeThickness = thickness
         context.setLineWidth(CGFloat(cxxMax(thickness, 0)))
     }
 
     @_expose(Cxx)
-    func setStrokeStyle(_ strokeStyle: UInt8) {
+    mutating func setStrokeStyle(_ strokeStyle: UInt8) {
         state.strokeStyle = strokeStyle
     }
 
     @_expose(Cxx)
-    func setCompositeMode(_ compositeOperator: WebCore.CompositeOperator, _ blendMode: WebCore.BlendMode) {
+    mutating func setCompositeMode(_ compositeOperator: WebCore.CompositeOperator, _ blendMode: WebCore.BlendMode) {
         state.compositeOperator = compositeOperator
         state.blendMode = blendMode
         context.setBlendMode(cgBlendMode(compositeOperator, blendMode))
@@ -384,65 +384,65 @@ final class CGRenderer {
 
     // The CG shadow and style are still set by GraphicsContextCG; the renderer only needs to know about them.
     @_expose(Cxx)
-    func setDropShadow(_ isBlurred: Bool) {
+    mutating func setDropShadow(_ isBlurred: Bool) {
         state.hasBlurredDropShadow = isBlurred
     }
 
     @_expose(Cxx)
-    func setHasStyle(_ hasStyle: Bool) {
+    mutating func setHasStyle(_ hasStyle: Bool) {
         state.hasStyle = hasStyle
     }
 
     @_expose(Cxx)
-    func setAlpha(_ alpha: Float) {
+    mutating func setAlpha(_ alpha: Float) {
         state.alpha = alpha
         context.setAlpha(CGFloat(alpha))
     }
 
     @_expose(Cxx)
-    func setTextDrawingMode(_ mode: UInt8) {
+    mutating func setTextDrawingMode(_ mode: UInt8) {
         state.textDrawingMode = mode
         context.setTextDrawingMode(cgTextDrawingMode(mode))
     }
 
     @_expose(Cxx)
-    func setImageInterpolationQuality(_ quality: WebCore.InterpolationQuality) {
+    mutating func setImageInterpolationQuality(_ quality: WebCore.InterpolationQuality) {
         state.imageInterpolationQuality = quality
         context.interpolationQuality = cgInterpolationQuality(quality)
     }
 
     @_expose(Cxx)
-    func setShouldAntialias(_ shouldAntialias: Bool) {
+    mutating func setShouldAntialias(_ shouldAntialias: Bool) {
         state.shouldAntialias = shouldAntialias
         context.setShouldAntialias(shouldAntialias)
     }
 
     @_expose(Cxx)
-    func setShouldSmoothFonts(_ shouldSmoothFonts: Bool) {
+    mutating func setShouldSmoothFonts(_ shouldSmoothFonts: Bool) {
         state.shouldSmoothFonts = shouldSmoothFonts
         context.setShouldSmoothFonts(shouldSmoothFonts)
     }
 
     @_expose(Cxx)
-    func setShouldSubpixelQuantizeFonts(_ shouldSubpixelQuantizeFonts: Bool) {
+    mutating func setShouldSubpixelQuantizeFonts(_ shouldSubpixelQuantizeFonts: Bool) {
         state.shouldSubpixelQuantizeFonts = shouldSubpixelQuantizeFonts
     }
 
     @_expose(Cxx)
-    func setShadowsIgnoreTransforms(_ shadowsIgnoreTransforms: Bool) {
+    mutating func setShadowsIgnoreTransforms(_ shadowsIgnoreTransforms: Bool) {
         state.shadowsIgnoreTransforms = shadowsIgnoreTransforms
     }
 
     // BeginPage: the state goes back to its initial value; the stack is left alone.
     @_expose(Cxx)
-    func resetState(_ imageInterpolationQuality: WebCore.InterpolationQuality) {
+    mutating func resetState(_ imageInterpolationQuality: WebCore.InterpolationQuality) {
         state = CGRendererState(imageInterpolationQuality: imageInterpolationQuality)
     }
 
     // MARK: Stack
 
     @_expose(Cxx)
-    func save(_ isTransparencyLayer: Bool) {
+    mutating func save(_ isTransparencyLayer: Bool) {
         let saved = CGRendererSavedState(state: state, purpose: isTransparencyLayer ? .transparencyLayer : .saveRestore)
         if depth == stack.count {
             stack.append(saved)
@@ -457,17 +457,23 @@ final class CGRenderer {
     }
 
     @_expose(Cxx)
-    func restore() {
-        guard depth > 0 else {
+    // A restore pops only a save, and an end only a transparency layer (DEV-1): anything else is ignored, so this state's
+    // stack and CG's can't disagree.
+    mutating func restore() {
+        guard depth > 0, stack[depth - 1].purpose == .saveRestore else {
             return
         }
+        pop()
+    }
+
+    private mutating func pop() {
         depth -= 1
         state = stack[depth].state
         context.restoreGState()
     }
 
     @_expose(Cxx)
-    func beginTransparencyLayer(_ opacity: Float) {
+    mutating func beginTransparencyLayer(_ opacity: Float) {
         save(true)
         context.setAlpha(CGFloat(opacity))
         context.beginTransparencyLayer(auxiliaryInfo: nil)
@@ -475,14 +481,17 @@ final class CGRenderer {
 
     // BeginTransparencyLayerWithCompositeMode: CG keeps the current alpha and ignores the composite mode.
     @_expose(Cxx)
-    func beginTransparencyLayerWithCurrentAlpha() {
+    mutating func beginTransparencyLayerWithCurrentAlpha() {
         beginTransparencyLayer(state.alpha)
     }
 
     @_expose(Cxx)
-    func endTransparencyLayer() {
+    mutating func endTransparencyLayer() {
+        guard depth > 0, stack[depth - 1].purpose == .transparencyLayer else {
+            return
+        }
         context.endTransparencyLayer()
-        restore()
+        pop()
     }
 
     // MARK: Transforms
@@ -525,7 +534,7 @@ final class CGRenderer {
     }
 
     @_expose(Cxx)
-    func clipOut(_ rect: CGRect) {
+    mutating func clipOut(_ rect: CGRect) {
         // CGRectInfinite is much faster than the clip bounding box, but can't be used with an accelerated context whose
         // transform isn't just a translation or a scale (rdar://12584492), or with a printing context (rdar://14634453).
         let ctm = context.ctm
@@ -556,7 +565,7 @@ final class CGRenderer {
     }
 
     @_expose(Cxx)
-    func fillRect(_ rect: CGRect) -> Bool {
+    mutating func fillRect(_ rect: CGRect) -> Bool {
         if state.fill.hasPatternOrGradient || canUseShadowBlur {
             return false
         }
@@ -565,7 +574,7 @@ final class CGRenderer {
     }
 
     @_expose(Cxx)
-    func fillRect(_ rect: CGRect, packedColor: UInt32) -> Bool {
+    mutating func fillRect(_ rect: CGRect, packedColor: UInt32) -> Bool {
         if canUseShadowBlur {
             return false
         }
@@ -599,7 +608,7 @@ final class CGRenderer {
     // 2 if there was nothing to draw.
     @_expose(Cxx)
     func drawNativeImage(
-        _ image: CGImage,
+        _ image: borrowing CGImage,
         _ imageWidth: Float,
         _ imageHeight: Float,
         _ destinationX: Float,
@@ -668,7 +677,7 @@ final class CGRenderer {
         context.translateBy(x: 0, y: drawRect.height)
         context.scaleBy(x: 1, y: -1)
 
-        context.draw(image, in: drawRect)
+        context.draw(copy image, in: drawRect)
 
         if clipsToDestination {
             context.restoreGState()

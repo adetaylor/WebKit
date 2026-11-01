@@ -47,7 +47,6 @@
 #include <pal/spi/cg/ImageIOSPI.h>
 #include <wtf/MathExtras.h>
 #include <wtf/RetainPtr.h>
-#include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/URL.h>
 #include <wtf/ZippedRange.h>
@@ -78,15 +77,6 @@ namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextCG);
 
-struct GraphicsContextCG::SwiftRenderer {
-    WTF_MAKE_STRUCT_TZONE_ALLOCATED(SwiftRenderer);
-#if ENABLE(WEBCORE_SWIFT)
-    CGRenderer renderer;
-#endif
-};
-
-WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(GraphicsContextCG::SwiftRenderer);
-
 static std::atomic<GraphicsContextCG::RendererForTesting> rendererForTesting { GraphicsContextCG::RendererForTesting::Default };
 
 void GraphicsContextCG::setRendererForTesting(RendererForTesting renderer)
@@ -97,15 +87,7 @@ void GraphicsContextCG::setRendererForTesting(RendererForTesting renderer)
 #if ENABLE(WEBCORE_SWIFT)
 static bool shouldUseSwiftRenderer()
 {
-    switch (rendererForTesting.load()) {
-    case GraphicsContextCG::RendererForTesting::CPlusPlus:
-        return false;
-    case GraphicsContextCG::RendererForTesting::Swift:
-        return true;
-    case GraphicsContextCG::RendererForTesting::Default:
-        break;
-    }
-    return isInGPUProcess();
+    return rendererForTesting.load() != GraphicsContextCG::RendererForTesting::CPlusPlus;
 }
 #endif
 
@@ -376,14 +358,31 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
     if (!cgContext)
         return;
 #if ENABLE(WEBCORE_SWIFT)
-    if (shouldUseSwiftRenderer())
-        m_swiftRenderer = makeUnique<SwiftRenderer>(CGRenderer::init(cgContext, m_renderingMode == RenderingMode::Unaccelerated, CGContextGetType(cgContext) == kCGContextTypePDF, imageInterpolationQuality()));
+    static_assert(sizeof(CGRenderer) == swiftRendererSize && alignof(CGRenderer) <= 8);
+    if (shouldUseSwiftRenderer()) {
+        new (m_swiftRendererStorage) CGRenderer(CGRenderer::init(cgContext, m_renderingMode == RenderingMode::Unaccelerated, CGContextGetType(cgContext) == kCGContextTypePDF, imageInterpolationQuality()));
+        m_usesSwiftRenderer = true;
+    }
 #endif
     // Make sure the context starts in sync with our state.
     didUpdateState(m_state);
 }
 
-GraphicsContextCG::~GraphicsContextCG() = default;
+GraphicsContextCG::~GraphicsContextCG()
+{
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer)
+        std::destroy_at(&swiftRenderer());
+#endif
+}
+
+#if ENABLE(WEBCORE_SWIFT)
+CGRenderer& GraphicsContextCG::swiftRenderer() const
+{
+    ASSERT(m_usesSwiftRenderer);
+    return *std::launder(reinterpret_cast<CGRenderer*>(m_swiftRendererStorage));
+}
+#endif
 
 bool GraphicsContextCG::hasPlatformContext() const
 {
@@ -422,8 +421,8 @@ void GraphicsContextCG::save(GraphicsContextState::Purpose purpose)
 {
     GraphicsContext::save(purpose);
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
-        m_swiftRenderer->renderer.save(purpose == GraphicsContextState::Purpose::TransparencyLayer);
+    if (m_usesSwiftRenderer) {
+        swiftRenderer().save(purpose == GraphicsContextState::Purpose::TransparencyLayer);
         return;
     }
 #endif
@@ -434,11 +433,15 @@ void GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
 {
     if (!stackSize())
         return;
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer && m_state.purpose() != purpose)
+        return;
+#endif
 
     GraphicsContext::restore(purpose);
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer)
-        m_swiftRenderer->renderer.restore();
+    if (m_usesSwiftRenderer)
+        swiftRenderer().restore();
     else
 #endif
         CGContextRestoreGState(contextForState());
@@ -452,7 +455,7 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
         return;
 
 #if ENABLE(WEBCORE_SWIFT) && HAVE(SUPPORT_HDR_DISPLAY_APIS)
-    if (m_swiftRenderer && options.orientation() == ImageOrientation::Orientation::None
+    if (m_usesSwiftRenderer && options.orientation() == ImageOrientation::Orientation::None
 #if ENABLE(AX_CUSTOM_COLOR_MODE)
         && options.invertContent() == InvertContent::No
 #endif
@@ -463,7 +466,7 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
         if (m_maxEDRHeadroom)
             headroom = Headroom(std::min<float>(headroom, *m_maxEDRHeadroom));
         FloatSize imageSize = nativeImage.size();
-        auto result = m_swiftRenderer->renderer.drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), nativeImage.headroom(), headroom);
+        auto result = swiftRenderer().drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), nativeImage.headroom(), headroom);
         if (result == 1)
             m_hasDrawn = true;
         if (result)
@@ -1034,7 +1037,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
 {
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer && m_swiftRenderer->renderer.fillRect(rect))
+    if (m_usesSwiftRenderer && swiftRenderer().fillRect(rect))
         return;
 #endif
 
@@ -1075,8 +1078,8 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
 {
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
-        if (auto packedColor = color.tryGetAsPackedInline(); packedColor && m_swiftRenderer->renderer.fillRect(rect, packedColor->value))
+    if (m_usesSwiftRenderer) {
+        if (auto packedColor = color.tryGetAsPackedInline(); packedColor && swiftRenderer().fillRect(rect, packedColor->value))
             return;
     }
 #endif
@@ -1188,9 +1191,9 @@ void GraphicsContextCG::fillRectWithRoundedHole(const FloatRect& rect, const Flo
 void GraphicsContextCG::resetClip()
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.resetClip();
+        swiftRenderer().resetClip();
         return;
     }
 #endif
@@ -1200,9 +1203,9 @@ void GraphicsContextCG::resetClip()
 void GraphicsContextCG::clip(const FloatRect& rect)
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.clip(rect);
+        swiftRenderer().clip(rect);
         return;
     }
 #endif
@@ -1212,9 +1215,9 @@ void GraphicsContextCG::clip(const FloatRect& rect)
 void GraphicsContextCG::clipOut(const FloatRect& rect)
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.clipOut(rect);
+        swiftRenderer().clipOut(rect);
         return;
     }
 #endif
@@ -1288,9 +1291,9 @@ void GraphicsContextCG::clipToNativeImage(const NativeImage& nativeImage, const 
 IntRect GraphicsContextCG::clipBounds() const
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        return enclosingIntRect(m_swiftRenderer->renderer.clipBoundingBox());
+        return enclosingIntRect(swiftRenderer().clipBoundingBox());
     }
 #endif
     return enclosingIntRect(CGContextGetClipBoundingBox(contextForDraw()));
@@ -1301,10 +1304,10 @@ void GraphicsContextCG::beginTransparencyLayer(float opacity)
     GraphicsContext::beginTransparencyLayer(opacity);
 
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.beginTransparencyLayer(opacity);
+        swiftRenderer().beginTransparencyLayer(opacity);
         m_userToDeviceTransformKnownToBeIdentity = false;
         return;
     }
@@ -1322,11 +1325,11 @@ void GraphicsContextCG::beginTransparencyLayer(float opacity)
 void GraphicsContextCG::beginTransparencyLayer(CompositeOperator, BlendMode)
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         GraphicsContext::beginTransparencyLayer(state().alpha());
         GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.beginTransparencyLayerWithCurrentAlpha();
+        swiftRenderer().beginTransparencyLayerWithCurrentAlpha();
         m_userToDeviceTransformKnownToBeIdentity = false;
         return;
     }
@@ -1338,19 +1341,20 @@ void GraphicsContextCG::beginTransparencyLayer(CompositeOperator, BlendMode)
 
 void GraphicsContextCG::endTransparencyLayer()
 {
-    GraphicsContext::endTransparencyLayer();
-
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
+        if (!stackSize() || m_state.purpose() != GraphicsContextState::Purpose::TransparencyLayer)
+            return;
+        GraphicsContext::endTransparencyLayer();
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.endTransparencyLayer();
-        if (stackSize()) {
-            GraphicsContext::restore(GraphicsContextState::Purpose::TransparencyLayer);
-            m_userToDeviceTransformKnownToBeIdentity = false;
-        }
+        swiftRenderer().endTransparencyLayer();
+        GraphicsContext::restore(GraphicsContextState::Purpose::TransparencyLayer);
+        m_userToDeviceTransformKnownToBeIdentity = false;
         return;
     }
 #endif
+
+    GraphicsContext::endTransparencyLayer();
 
     const RetainPtr<CGContextRef>& context = contextForDraw();
     CGContextEndTransparencyLayer(context);
@@ -1481,7 +1485,7 @@ void GraphicsContextCG::setCGStyle(const std::optional<GraphicsStyle>& style, bo
 }
 
 #if ENABLE(WEBCORE_SWIFT)
-void GraphicsContextCG::didUpdateStateForSwiftRenderer(SwiftRenderer& swiftRenderer, GraphicsContextState& state)
+void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& state)
 {
     auto changes = state.changes();
     if (!changes)
@@ -1495,7 +1499,7 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(SwiftRenderer& swiftRende
     }
 
     m_hasDrawn = true;
-    auto& renderer = swiftRenderer.renderer;
+    auto& renderer = swiftRenderer();
 
     for (auto change : changes) {
         switch (change) {
@@ -1580,8 +1584,8 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(SwiftRenderer& swiftRende
 void GraphicsContextCG::didUpdateState(GraphicsContextState& state)
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
-        didUpdateStateForSwiftRenderer(*m_swiftRenderer, state);
+    if (m_usesSwiftRenderer) {
+        didUpdateStateForSwiftRenderer(state);
         return;
     }
 #endif
@@ -1663,9 +1667,9 @@ void GraphicsContextCG::setMiterLimit(float limit)
 void GraphicsContextCG::clearRect(const FloatRect& r)
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.clearRect(r);
+        swiftRenderer().clearRect(r);
         return;
     }
 #endif
@@ -1676,7 +1680,7 @@ void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
 {
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer && m_swiftRenderer->renderer.strokeRect(rect, lineWidth))
+    if (m_usesSwiftRenderer && swiftRenderer().strokeRect(rect, lineWidth))
         return;
 #endif
 
@@ -1791,9 +1795,9 @@ void GraphicsContextCG::setLineJoin(LineJoin join)
 void GraphicsContextCG::scale(const FloatSize& size)
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.scale(size.width(), size.height());
+        swiftRenderer().scale(size.width(), size.height());
     } else
 #endif
         CGContextScaleCTM(contextForDraw(), size.width(), size.height());
@@ -1803,9 +1807,9 @@ void GraphicsContextCG::scale(const FloatSize& size)
 void GraphicsContextCG::rotate(float angle)
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.rotate(angle);
+        swiftRenderer().rotate(angle);
     } else
 #endif
         CGContextRotateCTM(contextForDraw(), angle);
@@ -1815,9 +1819,9 @@ void GraphicsContextCG::rotate(float angle)
 void GraphicsContextCG::translate(float x, float y)
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.translate(x, y);
+        swiftRenderer().translate(x, y);
     } else
 #endif
         CGContextTranslateCTM(contextForDraw(), x, y);
@@ -1827,9 +1831,9 @@ void GraphicsContextCG::translate(float x, float y)
 void GraphicsContextCG::concatCTM(const AffineTransform& transform)
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.concatCTM(transform);
+        swiftRenderer().concatCTM(transform);
     } else
 #endif
         CGContextConcatCTM(contextForDraw(), transform);
@@ -1839,9 +1843,9 @@ void GraphicsContextCG::concatCTM(const AffineTransform& transform)
 void GraphicsContextCG::setCTM(const AffineTransform& transform)
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        m_swiftRenderer->renderer.setCTM(transform);
+        swiftRenderer().setCTM(transform);
     } else
 #endif
         CGContextSetCTM(contextForDraw(), transform);
@@ -1851,9 +1855,9 @@ void GraphicsContextCG::setCTM(const AffineTransform& transform)
 AffineTransform GraphicsContextCG::getCTM(IncludeDeviceScale includeScale) const
 {
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer) {
+    if (m_usesSwiftRenderer) {
         m_hasDrawn = true;
-        return m_swiftRenderer->renderer.ctm(includeScale == DefinitelyIncludeDeviceScale);
+        return swiftRenderer().ctm(includeScale == DefinitelyIncludeDeviceScale);
     }
 #endif
     // The CTM usually includes the deviceScaleFactor except in WebKit 1 when the
@@ -1982,8 +1986,8 @@ void GraphicsContextCG::beginPage(const FloatRect& pageRect)
     ASSERT(!stackSize());
     m_state = GraphicsContextState { GraphicsContextState::basicChangeFlags, coreInterpolationQuality(context.get()) };
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_swiftRenderer)
-        m_swiftRenderer->renderer.resetState(m_state.imageInterpolationQuality());
+    if (m_usesSwiftRenderer)
+        swiftRenderer().resetState(m_state.imageInterpolationQuality());
 #endif
     didUpdateState(m_state);
     m_userToDeviceTransformKnownToBeIdentity = false;

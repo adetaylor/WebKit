@@ -33,6 +33,8 @@
 
 namespace WebCore {
 
+class CGRenderer;
+
 class WEBCORE_EXPORT GraphicsContextCG : public GraphicsContext {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(GraphicsContextCG, WEBCORE_EXPORT);
 public:
@@ -160,15 +162,13 @@ public:
     void setMaxEDRHeadroom(std::optional<float>) final;
 #endif
 
-    // By default, contexts draw with the Swift renderer only in the GPU process.
     enum class RendererForTesting : uint8_t { Default, CPlusPlus, Swift };
     static void setRendererForTesting(RendererForTesting);
-    bool usesSwiftRenderer() const { return !!m_swiftRenderer; }
+    bool usesSwiftRenderer() const { return m_usesSwiftRenderer; }
 
 private:
-    struct SwiftRenderer;
-
-    void didUpdateStateForSwiftRenderer(SwiftRenderer&, GraphicsContextState&);
+    CGRenderer& swiftRenderer() const;
+    void didUpdateStateForSwiftRenderer(GraphicsContextState&);
     void setCGDropShadow(const std::optional<GraphicsDropShadow>&, bool shadowsIgnoreTransforms);
     void clearCGDropShadow();
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
@@ -187,7 +187,9 @@ private:
     NODELETE const RetainPtr<CGContextRef>& contextForState() const;
 
     const RetainPtr<CGContextRef> m_cgContext;
-    std::unique_ptr<SwiftRenderer> m_swiftRenderer;
+    // The CGRenderer (CGRenderer.swift) this context draws with, built in place. GraphicsContextCG.cpp checks the size.
+    static constexpr size_t swiftRendererSize = 152;
+    alignas(8) mutable std::byte m_swiftRendererStorage[swiftRendererSize];
     mutable std::optional<ColorSpace> m_colorSpace;
 #if HAVE(SUPPORT_HDR_DISPLAY)
     std::optional<float> m_maxEDRHeadroom;
@@ -201,6 +203,7 @@ private:
     mutable bool m_userToDeviceTransformKnownToBeIdentity : 1 { false };
     // Flag for pending draws. Start with true because we do not know what commands have been scheduled to the context.
     mutable bool m_hasDrawn : 1 { true };
+    bool m_usesSwiftRenderer : 1 { false };
 };
 
 CGAffineTransform getUserToBaseCTM(CGContextRef);
