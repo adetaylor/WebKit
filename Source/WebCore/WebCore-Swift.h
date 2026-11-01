@@ -120,4 +120,11 @@
 #include "TransformationMatrix.h"
 #endif
 
+#if !defined(USE_SWIFT_CSS_PROPERTY_CONSUMERS)
+#define USE_SWIFT_CSS_PROPERTY_CONSUMERS 0
+#endif
+#if USE_SWIFT_CSS_PROPERTY_CONSUMERS
+#include "CSSPropertyConsumerSwiftTypes.h"
+#endif
+
 #include "WebCoreSwift-Generated.h"
