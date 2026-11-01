@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  * Copyright (C) 2018 Metrological Group B.V.
  * Copyright (C) 2018 Igalia S.L
  *
@@ -36,34 +36,126 @@ public:
     using KeyID = std::array<uint8_t, 16>;
     using SystemID = std::array<uint8_t, 16>;
 
-    WEBCORE_EXPORT static const SystemID& LEGACY_NODELETE commonSystemID();
+    static const SystemID& LEGACY_NODELETE commonSystemID()
+    {
+        static constexpr SystemID systemID { 0x10, 0x77, 0xef, 0xec, 0xc0, 0xb2, 0x4d, 0x02, 0xac, 0xe3, 0x3c, 0x1e, 0x52, 0xe2, 0xfb, 0x4b };
+        return systemID;
+    }
 
-    WEBCORE_EXPORT ISOProtectionSystemSpecificHeaderBox();
-    WEBCORE_EXPORT ISOProtectionSystemSpecificHeaderBox(const ISOProtectionSystemSpecificHeaderBox&);
-    WEBCORE_EXPORT ISOProtectionSystemSpecificHeaderBox(ISOProtectionSystemSpecificHeaderBox&&);
-    WEBCORE_EXPORT ISOProtectionSystemSpecificHeaderBox(SystemID);
-    WEBCORE_EXPORT virtual ~ISOProtectionSystemSpecificHeaderBox();
+    ISOProtectionSystemSpecificHeaderBox()
+        : ISOFullBox(boxTypeName(), 0, 0)
+        , m_systemID { }
+    {
+    }
+
+    ISOProtectionSystemSpecificHeaderBox(SystemID systemID)
+        : ISOFullBox(boxTypeName(), 0, 0)
+        , m_systemID { systemID }
+    {
+    }
 
     static FourCC boxTypeName() { return std::span { "pssh" }; }
-
-    WEBCORE_EXPORT static std::optional<SystemID> peekSystemID(ByteView&, unsigned offset);
 
     const SystemID& systemID() const LIFETIME_BOUND { return m_systemID; }
     const Vector<KeyID>& keyIDs() const LIFETIME_BOUND { return m_keyIDs; }
     const Vector<uint8_t>& data() const LIFETIME_BOUND { return m_data; }
 
-    WEBCORE_EXPORT bool parse(const ByteView&, unsigned& offset) override;
-    WEBCORE_EXPORT bool pack(MutableByteView&, unsigned& offset) const override;
+    using ISOBox::parse;
+
+    bool pack(MutableByteView& view, unsigned& offset) const override
+    {
+        if (!ISOFullBox::pack(view, offset))
+            return false;
+
+        if (!checkedWriteSequence<uint8_t>(m_systemID, view, offset, BigEndian))
+            return false;
+
+        if (m_version) {
+            if (!checkedWrite<uint32_t>(m_keyIDs.size(), view, offset, BigEndian))
+                return false;
+            for (auto& keyID : m_keyIDs) {
+                if (!checkedWriteSequence<uint8_t>(keyID, view, offset, BigEndian))
+                    return false;
+            }
+        }
+
+        if (!checkedWrite<uint32_t>(dataSize(), view, offset, BigEndian))
+            return false;
+
+        return writeData(view, offset);
+    }
 
 protected:
     virtual uint64_t dataSize() const { return m_data.size(); }
-    virtual bool parseData(const ByteView&, unsigned& offset, uint64_t size);
-    virtual bool writeData(MutableByteView&, unsigned& offset) const;
-    uint64_t partialSize() const override;
+
+    virtual bool writeData(MutableByteView& view, unsigned& offset) const
+    {
+        return checkedWriteSequence<uint8_t>(m_data, view, offset, BigEndian);
+    }
+
+    uint64_t partialSize() const override
+    {
+        uint64_t size = ISOFullBox::partialSize();
+
+        // unsigned int(8)[16] SystemID;
+        size += 16;
+
+        if (version() > 0) {
+            // unsigned int(32) KID_count;
+            size += 4;
+            // {
+            // unsigned int(8)[16] KID;
+            // } [KID_count];
+            size += 16 * m_keyIDs.size();
+        }
+
+        // unsigned int(32) DataSize;
+        size += 4;
+        // unsigned int(8)[DataSize] Data;
+        size += m_data.size();
+
+        return size;
+    }
+
+    ISOProtectionSystemSpecificHeaderBoxFields psshFields() const
+    {
+        ISOProtectionSystemSpecificHeaderBoxFields fields;
+        fields.fullBox = fullBoxFields();
+        fields.systemID = inlineBytes16(m_systemID);
+        return fields;
+    }
+
+    void setPsshFields(const ISOProtectionSystemSpecificHeaderBoxFields& fields, const ByteView& view)
+    {
+        setFullBoxFields(fields.fullBox);
+        m_systemID = fields.systemID.bytes();
+        if (fields.keyIDsWereRead) {
+            auto keyIDs = view.subspan(fields.keyIDs.offset, fields.keyIDs.size);
+            m_keyIDs.clear();
+            for (size_t keyIDOffset = 0; keyIDOffset < keyIDs.size(); keyIDOffset += sizeof(KeyID)) {
+                KeyID keyID;
+                memcpySpan(std::span { keyID }, keyIDs.subspan(keyIDOffset, sizeof(KeyID)));
+                m_keyIDs.append(keyID);
+            }
+        }
+        if (fields.dataWasRead)
+            m_data = bytes(view, fields.data);
+    }
 
     SystemID m_systemID;
     Vector<KeyID> m_keyIDs;
     Vector<uint8_t> m_data;
+
+private:
+    bool parseUsingSwift(const ByteView& view, unsigned& offset, ISOBoxParseMode mode) override
+    {
+        auto fields = psshFields();
+        bool result = parseFields(view, offset, mode, fields);
+        setPsshFields(fields, view);
+        return result;
+    }
+
+    WEBCORE_EXPORT static bool parseFields(const ByteView&, unsigned& offset, ISOBoxParseMode, ISOProtectionSystemSpecificHeaderBoxFields&);
 };
 
 }

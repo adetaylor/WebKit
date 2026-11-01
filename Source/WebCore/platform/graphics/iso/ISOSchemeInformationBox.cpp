@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,65 +26,17 @@
 #include "config.h"
 #include "ISOSchemeInformationBox.h"
 
-#include "ISOTrackEncryptionBox.h"
+#if ENABLE(WEBCORE_SWIFT)
+
+#include "WebCore-Swift.h"
 
 namespace WebCore {
 
-ISOSchemeInformationBox::ISOSchemeInformationBox()
-    : ISOBox(boxTypeName())
+bool ISOSchemeInformationBox::parseFields(const ByteView& view, unsigned& offset, ISOBoxParseMode mode, ISOSchemeInformationBoxFields& fields)
 {
-}
-
-ISOSchemeInformationBox::~ISOSchemeInformationBox() = default;
-
-bool ISOSchemeInformationBox::parse(const ByteView& view, unsigned& offset)
-{
-    unsigned localOffset = offset;
-    if (!ISOBox::parse(view, localOffset))
-        return false;
-
-    auto schemeSpecificBoxType = ISOBox::peekBox(view, localOffset);
-    if (!schemeSpecificBoxType)
-        return false;
-
-    if (schemeSpecificBoxType.value().first == ISOTrackEncryptionBox::boxTypeName()) {
-        if (localOffset + schemeSpecificBoxType.value().second > offset + m_size)
-            return false;
-
-        auto tencBox = makeUnique<ISOTrackEncryptionBox>();
-        if (!tencBox->read(view, localOffset))
-            return false;
-
-        m_schemeSpecificData = WTF::move(tencBox);
-    }
-
-    return true;
-}
-
-bool ISOSchemeInformationBox::pack(MutableByteView& view, unsigned& offset) const
-{
-    if (!ISOBox::pack(view, offset))
-        return false;
-
-    if (m_schemeSpecificData)
-        return m_schemeSpecificData->write(view, offset);
-
-    return true;
-}
-
-void ISOSchemeInformationBox::updateSize()
-{
-    if (m_schemeSpecificData)
-        m_schemeSpecificData->updateSize();
-    ISOBox::updateSize();
-}
-
-uint64_t ISOSchemeInformationBox::partialSize() const
-{
-    auto size = ISOBox::partialSize();
-    if (m_schemeSpecificData)
-        size += m_schemeSpecificData->requiredSize();
-    return size;
+    return parseISOSchemeInformationBoxImpl({ view }, offset, mode, fields);
 }
 
 }
+
+#endif // ENABLE(WEBCORE_SWIFT)

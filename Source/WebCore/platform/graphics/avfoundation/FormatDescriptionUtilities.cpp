@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,14 +26,14 @@
 #include "config.h"
 #include "FormatDescriptionUtilities.h"
 
-#include "AV1Utilities.h"
+#if ENABLE(WEBCORE_SWIFT)
+
 #include "FloatSize.h"
 #include "FourCC.h"
-#include "HEVCUtilities.h"
 #include "ImmersiveVideoMetadata.h"
 #include "Logging.h"
 #include "PlatformVideoColorSpace.h"
-#include "SharedBuffer.h"
+#include "WebCore-Swift.h"
 #include <wtf/cf/TypeCastsCF.h>
 #include <wtf/cf/VectorCF.h>
 
@@ -245,93 +245,53 @@ String codecFromFormatDescription(CMFormatDescriptionRef formatDescription)
     if (RetainPtr originalFormat = dynamic_cf_cast<CFNumberRef>(PAL::CMFormatDescriptionGetExtension(formatDescription, originalFormatKey)))
         CFNumberGetValue(originalFormat.get(), kCFNumberSInt32Type, &subType);
 
-    switch (subType) {
-    case kCMVideoCodecType_H264:
-    case 'cavc': {
-        RetainPtr sampleExtensionsDict = dynamic_cf_cast<CFDictionaryRef>(PAL::CMFormatDescriptionGetExtension(formatDescription, PAL::kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms));
-        if (!sampleExtensionsDict)
-            return "avc1"_s;
-        RetainPtr sampleExtensions = dynamic_cf_cast<CFDataRef>(CFDictionaryGetValue(sampleExtensionsDict.get(), CFSTR("avcC")));
-        if (!sampleExtensions)
-            return "avc1"_s;
-        auto configurationRecordBuffer = SharedBuffer::create(sampleExtensions.get());
-        auto parameters = parseAVCDecoderConfigurationRecord(configurationRecordBuffer);
-        if (!parameters)
-            return "avc1"_s;
-        return createAVCCodecParametersString(*parameters);
+    RetainPtr<CFDataRef> atom;
+    if (auto atomType = codecConfigurationAtomTypeImpl(subType)) {
+        if (RetainPtr atoms = dynamic_cf_cast<CFDictionaryRef>(PAL::CMFormatDescriptionGetExtension(formatDescription, PAL::kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms))) {
+            RetainPtr atomKey = adoptCF(CFStringCreateWithCString(kCFAllocatorDefault, FourCC { atomType }.string().data(), kCFStringEncodingASCII));
+            atom = dynamic_cf_cast<CFDataRef>(CFDictionaryGetValue(atoms.get(), atomKey.get()));
+        }
     }
-    case kCMVideoCodecType_HEVC:
-    case kCMVideoCodecType_HEVCWithAlpha:
-    case 'chvc': {
-        RetainPtr sampleExtensionsDict = dynamic_cf_cast<CFDictionaryRef>(PAL::CMFormatDescriptionGetExtension(formatDescription, PAL::kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms));
-        if (!sampleExtensionsDict)
-            return "hvc1"_s;
-        RetainPtr sampleExtensions = dynamic_cf_cast<CFDataRef>(CFDictionaryGetValue(sampleExtensionsDict.get(), CFSTR("hvcC")));
-        if (!sampleExtensions)
-            return "hvc1"_s;
-        auto configurationRecordBuffer = SharedBuffer::create(sampleExtensions.get());
-        auto parameters = parseHEVCDecoderConfigurationRecord(kCMVideoCodecType_HEVC, configurationRecordBuffer);
-        if (!parameters)
-            return "hvc1"_s;
-        return createHEVCCodecParametersString(*parameters);
-    }
-    case kCMVideoCodecType_DolbyVisionHEVC:
-    case 'cdh1': {
-        RetainPtr sampleExtensionsDict = dynamic_cf_cast<CFDictionaryRef>(PAL::CMFormatDescriptionGetExtension(formatDescription, PAL::kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms));
-        if (!sampleExtensionsDict)
-            return "dvh1"_s;
-        RetainPtr sampleExtensions = dynamic_cf_cast<CFDataRef>(CFDictionaryGetValue(sampleExtensionsDict.get(), CFSTR("dvcC")));
-        if (!sampleExtensions)
-            return "dvh1"_s;
-        auto configurationRecordBuffer = SharedBuffer::create(sampleExtensions.get());
-        auto parameters = parseDoViDecoderConfigurationRecord(configurationRecordBuffer);
-        if (!parameters)
-            return "dvh1"_s;
-        return createDoViCodecParametersString(*parameters);
-    }
-    case kCMVideoCodecType_MPEG4Video:
+    auto codec = codecStringFromFormatDescriptionImpl(subType, { atom ? span(atom.get()) : std::span<const uint8_t> { } }, !!atom);
+    switch (codec.name) {
+    case FormatDescriptionCodecName::Unknown:
+        return emptyString();
+    case FormatDescriptionCodecName::Parsed:
+        return makeStringFromShortString(codec.codecString);
+    case FormatDescriptionCodecName::Avc1:
+        return "avc1"_s;
+    case FormatDescriptionCodecName::Hvc1:
+        return "hvc1"_s;
+    case FormatDescriptionCodecName::Dvh1:
+        return "dvh1"_s;
+    case FormatDescriptionCodecName::Av01:
+        return "av01"_s;
+    case FormatDescriptionCodecName::Mp4v:
         return "mp4v"_s;
-    case kCMVideoCodecType_VP9:
+    case FormatDescriptionCodecName::Vp09:
         return "vp09"_s;
-    case kAudioFormatAC3:
+    case FormatDescriptionCodecName::Ac3:
         return "ac-3"_s;
-    case kAudioFormatMPEG4AAC:
+    case FormatDescriptionCodecName::Mp4a40_2:
         return "mp4a.40.2"_s;
-    case kAudioFormatMPEG4AAC_HE:
+    case FormatDescriptionCodecName::Mp4a40_5:
         return "mp4a.40.5"_s;
-    case kAudioFormatMPEG4AAC_HE_V2:
+    case FormatDescriptionCodecName::Mp4a40_29:
         return "mp4a.40.29"_s;
-    case kAudioFormatMPEG4AAC_LD:
+    case FormatDescriptionCodecName::Mp4a40_23:
         return "mp4a.40.23"_s;
-    case kAudioFormatMPEG4AAC_ELD:
+    case FormatDescriptionCodecName::Mp4a40_39:
         return "mp4a.40.39"_s;
-    case kAudioFormatFLAC:
+    case FormatDescriptionCodecName::Flac:
         return "flac"_s;
-    case kAudioFormatOpus:
+    case FormatDescriptionCodecName::Opus:
         return "opus"_s;
-    case kAudioFormatEnhancedAC3:
-    case 'ec+3':
-    case 'qec3':
-    case 'ce-3':
+    case FormatDescriptionCodecName::Ec3:
         return "ec-3"_s;
-    case 'dts ':
+    case FormatDescriptionCodecName::Dts:
         return "dts"_s;
-#if ENABLE(AV1)
-    case kCMVideoCodecType_AV1: {
-        RetainPtr sampleExtensionsDict = dynamic_cf_cast<CFDictionaryRef>(PAL::CMFormatDescriptionGetExtension(formatDescription, PAL::kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms));
-        if (!sampleExtensionsDict)
-            return "av01"_s;
-        RetainPtr sampleExtensions = dynamic_cf_cast<CFDataRef>(CFDictionaryGetValue(sampleExtensionsDict.get(), CFSTR("av1C")));
-        if (!sampleExtensions)
-            return "av01"_s;
-        auto parameters = parseAV1DecoderConfigurationRecord(span(sampleExtensions.get()));
-        if (!parameters)
-            return "av01"_s;
-        return createAV1CodecParametersString(*parameters);
     }
-#endif
-    }
-
+    ASSERT_NOT_REACHED();
     return emptyString();
 }
 
@@ -745,3 +705,5 @@ RetainPtr<CFDictionaryRef> formatDescriptionDictionaryFromImmersiveVideoMetadata
 #endif
 
 } // namespace WebCore
+
+#endif // ENABLE(WEBCORE_SWIFT)

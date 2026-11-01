@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2012-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,6 +28,7 @@
 
 #if ENABLE(VIDEO) && (USE(AVFOUNDATION) || PLATFORM(IOS_FAMILY))
 
+#include "FourCC.h"
 #include "ISOVTTCue.h"
 #include "InbandTextTrackPrivateClient.h"
 #include "Logging.h"
@@ -47,6 +48,10 @@
 #include <wtf/text/StringBuilder.h>
 #include <wtf/text/WTFString.h>
 #include <wtf/unicode/CharacterNames.h>
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 #include <pal/cf/CoreMediaSoftLink.h>
 
@@ -520,6 +525,8 @@ bool InbandTextTrackPrivateAVF::processVTTFileHeader(CMFormatDescriptionRef form
     return true;
 }
 
+#if ENABLE(WEBCORE_SWIFT)
+
 void InbandTextTrackPrivateAVF::processVTTSample(CMSampleBufferRef sampleBuffer, const MediaTime& presentationTime)
 {
     RetainPtr<CMFormatDescriptionRef> formatDescription;
@@ -533,37 +540,28 @@ void InbandTextTrackPrivateAVF::processVTTSample(CMSampleBufferRef sampleBuffer,
         return;
     }
 
-    while (true) {
-        auto view = m_sampleInputBuffer.span();
-
-        auto peekResult = ISOBox::peekBox(view, 0);
-        if (!peekResult)
-            break;
-
-        auto type = peekResult->first;
-        auto boxLength = peekResult.value().second;
-        ALWAYS_LOG(LOGIDENTIFIER, "chunk type = '", type, "', size = ", boxLength);
-
-        if (boxLength > view.size()) {
-            ERROR_LOG(LOGIDENTIFIER, "ISO box larger than buffer length!");
-            break;
-        }
+    // ISOVTTCue.swift walks the boxes. Bytes too few for a box header stay for the next sample.
+    auto buffer = m_sampleInputBuffer.span();
+    unsigned offset = 0;
+    ISOWebVTTSampleBox box;
+    while (parseWebVTTSampleBoxImpl({ buffer }, offset, box)) {
+        ALWAYS_LOG(LOGIDENTIFIER, "chunk type = '", FourCC { box.type }, "', size = ", box.size);
 
         if (!m_haveReportedVTTHeader && formatDescription)
             m_haveReportedVTTHeader = processVTTFileHeader(formatDescription.get());
 
-        if (type == ISOWebVTTCue::boxTypeName()) {
-            ISOWebVTTCue cueData = ISOWebVTTCue(presentationTime, PAL::toMediaTime(timingInfo.duration));
-            cueData.read(view);
+        if (!box.isCue)
+            continue;
 
-            notifyMainThreadClient([cueData = crossThreadCopy(WTF::move(cueData))](auto& client) mutable {
-                downcast<InbandTextTrackPrivateClient>(client).parseWebVTTCueData(WTF::move(cueData));
-            });
-        }
-
-        m_sampleInputBuffer.removeAt(0, (size_t)boxLength);
+        ISOWebVTTCue cueData { presentationTime, PAL::toMediaTime(timingInfo.duration), buffer, box.cue };
+        notifyMainThreadClient([cueData = crossThreadCopy(WTF::move(cueData))](auto& client) mutable {
+            downcast<InbandTextTrackPrivateClient>(client).parseWebVTTCueData(WTF::move(cueData));
+        });
     }
+    m_sampleInputBuffer.removeAt(0, offset);
 }
+
+#endif // ENABLE(WEBCORE_SWIFT)
 
 void InbandTextTrackPrivateAVF::processVTTSamples(CFArrayRef nativeSamples, const MediaTime& presentationTime)
 {
@@ -592,7 +590,8 @@ bool InbandTextTrackPrivateAVF::readVTTSampleBuffer(CMSampleBufferRef sampleBuff
 #else
     RetainPtr blockBuffer = PAL::CMSampleBufferGetDataBuffer(sampleBuffer);
     auto bufferLength = PAL::CMBlockBufferGetDataLength(blockBuffer.get());
-    if (bufferLength < ISOBox::minimumBoxSize()) {
+    // The size and type of an ISO box header.
+    if (bufferLength < 2 * sizeof(uint32_t)) {
         ERROR_LOG(LOGIDENTIFIER, "CMSampleBuffer size length unexpectedly small ", bufferLength);
         return false;
     }

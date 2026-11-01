@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2021 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,27 +26,24 @@
 #import "config.h"
 #import "CMUtilities.h"
 
-#if PLATFORM(COCOA)
+#if PLATFORM(COCOA) && ENABLE(WEBCORE_SWIFT)
 
 #import "CAAudioStreamDescription.h"
 #import "CDMFairPlayStreaming.h"
 #import "FormatDescriptionUtilities.h"
-#import "ISOTrackEncryptionBox.h"
 #import "Logging.h"
 #import "MediaSampleAVFObjC.h"
 #import "MediaSamplesBlock.h"
 #import "MediaUtilities.h"
 #import "SharedBuffer.h"
+#import "WebCore-Swift.h"
 #import "WebMAudioUtilitiesCocoa.h"
 #import <CoreMedia/CMFormatDescription.h>
-#import <cmath>
-#import <numeric>
 #import <pal/avfoundation/MediaTimeAVFoundation.h>
 #import <pal/cf/CoreAudioExtras.h>
 #import <pal/spi/cocoa/AudioToolboxSPI.h>
 #import <wtf/Scope.h>
 #import <wtf/TZoneMallocInlines.h>
-#import <wtf/FlipBytes.h>
 #import <wtf/StdLibExtras.h>
 #import <wtf/cf/TypeCastsCF.h>
 #import <wtf/cf/VectorCF.h>
@@ -91,14 +88,23 @@ CAAudioStreamDescription audioStreamDescriptionFromAudioInfo(const AudioInfo& in
     return asbd;
 }
 
-static FourCC cfStringToFourCC(CFStringRef string)
+static std::optional<FourCC> fourCCFromExtensionAtomKey(CFStringRef string)
 {
-    ASSERT(CFStringGetLength(string) >= 4);
-    return char(CFStringGetCharacterAtIndex(string, 0)) << 24 | char(CFStringGetCharacterAtIndex(string, 1)) << 16 | char(CFStringGetCharacterAtIndex(string, 2)) << 8 | char(CFStringGetCharacterAtIndex(string, 3));
+    ExtensionAtomKey key;
+    auto characters = std::span { key.characters };
+    CFIndex length = std::min<CFIndex>(CFStringGetLength(string), characters.size());
+    for (CFIndex index = 0; index < length; ++index)
+        characters[index] = CFStringGetCharacterAtIndex(string, index);
+    key.length = static_cast<uint8_t>(length);
+    auto fourCC = extensionAtomFourCCImpl(key);
+    if (!fourCC.valid)
+        return std::nullopt;
+    return FourCC { fourCC.value };
 }
 
 static RetainPtr<CFStringRef> cfStringFromFourCC(FourCC fourCC)
 {
+    ASSERT(isExtensionAtomFourCCImpl(fourCC.value));
     auto string = fourCC.string();
     return adoptCF(CFStringCreateWithCString(kCFAllocatorDefault, string.begin(), kCFStringEncodingASCII));
 }
@@ -118,7 +124,12 @@ static Vector<std::pair<FourCC, Ref<SharedBuffer>>> parseExtensionAtomsDictionar
     // of CFData (multiple atoms of the same FourCC). Expand arrays into multiple
     // entries sharing a FourCC.
     for (CFIndex index = indexStart; index < extensionCount; ++index) {
-        auto fourCC = cfStringToFourCC(protect(checked_cf_cast<CFStringRef>(keys[index])));
+        auto keyFourCC = fourCCFromExtensionAtomKey(protect(checked_cf_cast<CFStringRef>(keys[index])));
+        if (!keyFourCC) {
+            RELEASE_LOG_ERROR(Media, "Ignoring a SampleDescriptionExtensionAtoms key that isn't a FourCC");
+            continue;
+        }
+        auto fourCC = *keyFourCC;
         RetainPtr value = static_cast<CFTypeRef>(values[index]);
         if (RetainPtr data = dynamic_cf_cast<CFDataRef>(value))
             result.append({ fourCC, SharedBuffer::create(data.get()) });
@@ -141,6 +152,11 @@ static RetainPtr<CFDictionaryRef> createExtensionAtomsDictionary(const Vector<st
     orderedKeys.reserveInitialCapacity(configurations.size());
     groupedDatas.reserveInitialCapacity(configurations.size());
     for (auto& [fourCC, buffer] : configurations) {
+        // FourCCs come from IPC; one that isn't printable ASCII can't be a key.
+        if (!isExtensionAtomFourCCImpl(fourCC.value)) {
+            RELEASE_LOG_ERROR(Media, "Ignoring an extension atom whose FourCC isn't printable");
+            continue;
+        }
         size_t existingIndex = notFound;
         for (size_t i = 0; i < orderedKeys.size(); ++i) {
             if (orderedKeys[i] == fourCC) {
@@ -154,6 +170,8 @@ static RetainPtr<CFDictionaryRef> createExtensionAtomsDictionary(const Vector<st
         } else
             groupedDatas[existingIndex].append(buffer->createCFData());
     }
+    if (orderedKeys.isEmpty())
+        return nullptr;
 
     Vector<RetainPtr<CFTypeRef>> retainedKeys = { orderedKeys.size(), [&](auto index) -> RetainPtr<CFTypeRef> {
         return cfStringFromFourCC(orderedKeys[index]);
@@ -292,8 +310,8 @@ static RetainPtr<CFMutableDictionaryRef> createExtensionsDictionary(const TrackI
     if (info.isVideo())
         configurations.appendVector(downcast<const VideoInfo>(info).extensionAtoms());
 
-    if (configurations.size())
-        CFDictionaryAddValue(extensions.get(), PAL::kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms, createExtensionAtomsDictionary(configurations).get());
+    if (RetainPtr atoms = createExtensionAtomsDictionary(configurations))
+        CFDictionaryAddValue(extensions.get(), PAL::kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms, atoms.get());
 
     return extensions;
 }
@@ -475,21 +493,14 @@ static void addImageBufferProperties(const VideoInfo& videoInfo, Add&& add)
             add(kCVImageBufferFieldDetailKey, cmFieldDetail.get());
     }
 
-    if (!videoInfo.size().isEmpty() && !videoInfo.displaySize().isEmpty() && videoInfo.size() != videoInfo.displaySize()) {
-        // The two spacings are the numerator and denominator of a single fraction, as stored in
-        // the `pasp` box. Emit them as an exact integer pair rather than as the two quotients
-        // displaySize / size, which only approximate the ratio.
-        auto horizontalSpacing = std::llround(videoInfo.displaySize().width() * videoInfo.size().height());
-        auto verticalSpacing = std::llround(videoInfo.displaySize().height() * videoInfo.size().width());
-        if (horizontalSpacing > 0 && verticalSpacing > 0) {
-            auto divisor = std::gcd(horizontalSpacing, verticalSpacing);
-            horizontalSpacing /= divisor;
-            verticalSpacing /= divisor;
-            add(kCVImageBufferPixelAspectRatioKey, @{
-                (__bridge NSString*)kCVImageBufferPixelAspectRatioHorizontalSpacingKey : @(horizontalSpacing),
-                (__bridge NSString*)kCVImageBufferPixelAspectRatioVerticalSpacingKey : @(verticalSpacing)
-            });
-        }
+    // The two spacings are the numerator and denominator of a single fraction, as stored in
+    // the `pasp` box. Emit them as an exact integer pair rather than as the two quotients
+    // displaySize / size, which only approximate the ratio.
+    if (auto pixelAspectRatio = pixelAspectRatioImpl(videoInfo.size().width(), videoInfo.size().height(), videoInfo.displaySize().width(), videoInfo.displaySize().height()); pixelAspectRatio.valid) {
+        add(kCVImageBufferPixelAspectRatioKey, @{
+            (__bridge NSString*)kCVImageBufferPixelAspectRatioHorizontalSpacingKey : @(pixelAspectRatio.spacings.horizontal),
+            (__bridge NSString*)kCVImageBufferPixelAspectRatioVerticalSpacingKey : @(pixelAspectRatio.spacings.vertical)
+        });
     }
 }
 
@@ -591,8 +602,15 @@ RetainPtr<CMFormatDescriptionRef> createFormatDescriptionFromTrackInfo(const Tra
     }
 #endif
 
+    auto videoDimensions = videoDimensionsImpl(videoInfo.size().width(), videoInfo.size().height());
+    if (!videoDimensions.valid) {
+        RELEASE_LOG_ERROR(Media, "createFormatDescriptionFromTrackInfo: invalid video size");
+        return nullptr;
+    }
+    auto dimensions = videoDimensions.dimensions;
+
     CMVideoFormatDescriptionRef formatDescription = nullptr;
-    auto error = PAL::CMVideoFormatDescriptionCreate(kCFAllocatorDefault, codecType, videoInfo.size().width(), videoInfo.size().height(), extensions.get(), &formatDescription);
+    auto error = PAL::CMVideoFormatDescriptionCreate(kCFAllocatorDefault, codecType, dimensions.width, dimensions.height, extensions.get(), &formatDescription);
     if (error != noErr) {
         RELEASE_LOG_ERROR(Media, "CMVideoFormatDescriptionCreate failed with error %d (%.4s)", (int)error, (char*)&error);
         return nullptr;
@@ -622,7 +640,7 @@ RefPtr<AudioInfo> createAudioInfoFromFormatDescription(CMFormatDescriptionRef de
             .encryptionData = getEncryptionDataCollection(description)
 #endif
         }, {
-            .rate = static_cast<uint32_t>(asbd->mSampleRate),
+            .rate = audioSampleRateImpl(asbd->mSampleRate),
             .channels = asbd->mChannelsPerFrame,
             .framesPerPacket = asbd->mFramesPerPacket,
             .bitDepth = static_cast<uint8_t>(asbd->mBitsPerChannel),
@@ -751,52 +769,37 @@ static std::expected<RetainPtr<CMSampleBufferRef>, ASCIILiteral> decodedAudioToC
     return sampleBuffer;
 }
 
+void interleaveBytes(std::span<uint8_t> destination NOESCAPE, size_t offset, std::span<const uint8_t> first NOESCAPE, std::span<const uint8_t> second NOESCAPE)
+{
+    // Bounding the size lets clang see that 2 * index can't wrap, drop the bounds checks from the loop and vectorize it.
+    size_t count = first.size();
+    RELEASE_ASSERT(count <= std::numeric_limits<size_t>::max() / 4);
+    auto row = destination.subspan(offset, 2 * count);
+    auto secondRow = second.first(count);
+    for (size_t index = 0; index < count; ++index) {
+        row[2 * index] = first[index];
+        row[2 * index + 1] = secondRow[index];
+    }
+}
+
 static bool copyI420ToBiplanarPixelBuffer(std::span<const uint8_t> source, CVPixelBufferRef pixelBuffer, size_t width, size_t height)
 {
-    size_t chromaWidth = (width + 1) / 2;
-    size_t chromaHeight = (height + 1) / 2;
-    size_t lumaSize = width * height;
-    size_t chromaSize = chromaWidth * chromaHeight;
-    if (source.size() != lumaSize + 2 * chromaSize)
-        return false;
-
-    if (CVPixelBufferGetPlaneCount(pixelBuffer) != 2
-        || CVPixelBufferGetWidthOfPlane(pixelBuffer, 0) != width
-        || CVPixelBufferGetHeightOfPlane(pixelBuffer, 0) != height
-        || CVPixelBufferGetWidthOfPlane(pixelBuffer, 1) != chromaWidth
-        || CVPixelBufferGetHeightOfPlane(pixelBuffer, 1) != chromaHeight)
-        return false;
-
     if (CVPixelBufferLockBaseAddress(pixelBuffer, 0) != kCVReturnSuccess)
         return false;
     auto unlock = makeScopeExit([pixelBuffer] {
         CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
     });
 
-    auto lumaSource = source.first(lumaSize);
-    auto uSource = source.subspan(lumaSize, chromaSize);
-    auto vSource = source.subspan(lumaSize + chromaSize, chromaSize);
-
-    auto lumaDestination = CVPixelBufferGetSpanOfPlane(pixelBuffer, 0);
-    size_t lumaStride = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0);
-    auto chromaDestination = CVPixelBufferGetSpanOfPlane(pixelBuffer, 1);
-    size_t chromaStride = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1);
-    if (lumaStride < width || chromaStride < 2 * chromaWidth || lumaDestination.size() < lumaStride * height || chromaDestination.size() < chromaStride * chromaHeight)
-        return false;
-
-    for (size_t y = 0; y < height; ++y)
-        memcpySpan(lumaDestination.subspan(y * lumaStride, width), lumaSource.subspan(y * width, width));
-
-    for (size_t y = 0; y < chromaHeight; ++y) {
-        auto destination = chromaDestination.subspan(y * chromaStride, 2 * chromaWidth);
-        auto u = uSource.subspan(y * chromaWidth, chromaWidth);
-        auto v = vSource.subspan(y * chromaWidth, chromaWidth);
-        for (size_t x = 0; x < chromaWidth; ++x) {
-            destination[2 * x] = u[x];
-            destination[2 * x + 1] = v[x];
-        }
-    }
-    return true;
+    BiplanarPixelBufferLayout layout {
+        .planeCount = CVPixelBufferGetPlaneCount(pixelBuffer),
+        .lumaWidth = CVPixelBufferGetWidthOfPlane(pixelBuffer, 0),
+        .lumaHeight = CVPixelBufferGetHeightOfPlane(pixelBuffer, 0),
+        .lumaBytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0),
+        .chromaWidth = CVPixelBufferGetWidthOfPlane(pixelBuffer, 1),
+        .chromaHeight = CVPixelBufferGetHeightOfPlane(pixelBuffer, 1),
+        .chromaBytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1),
+    };
+    return copyI420ToBiplanarImpl({ source }, width, height, layout, { CVPixelBufferGetSpanOfPlane(pixelBuffer, 0) }, { CVPixelBufferGetSpanOfPlane(pixelBuffer, 1) });
 }
 
 // A CMSampleBuffer holds a single image buffer, so the block must hold exactly one frame.
@@ -815,10 +818,11 @@ static std::expected<RetainPtr<CMSampleBufferRef>, ASCIILiteral> decodedVideoToC
     if (!sampleData)
         return makeUnexpected("No decoded video data"_s);
 
-    int width = info.size().width();
-    int height = info.size().height();
-    if (width <= 0 || height <= 0)
+    auto dimensions = videoDimensionsImpl(info.size().width(), info.size().height());
+    if (!dimensions.valid || dimensions.dimensions.width <= 0 || dimensions.dimensions.height <= 0)
         return makeUnexpected("Invalid decoded video size"_s);
+    int width = dimensions.dimensions.width;
+    int height = dimensions.dimensions.height;
 
     RetainPtr attributes = adoptCF(CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
     RetainPtr surfaceProperties = adoptCF(CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
@@ -890,6 +894,8 @@ std::expected<RetainPtr<CMSampleBufferRef>, ASCIILiteral> toCMSampleBuffer(const
     auto cumulativeTrimDurationAtEnd = MediaTime::zeroTime();
     for (auto& sample : samples) {
         RefPtr sampleData = sample.data;
+        if (!sampleData)
+            return makeUnexpected("No sample data"_s);
         auto blockBuffer = sampleData->createCMBlockBuffer();
         if (!blockBuffer)
             return makeUnexpected("Couldn't create CMBlockBuffer"_s);
@@ -1145,9 +1151,9 @@ PlatformVideoColorSpace computeVideoFrameColorSpace(CVPixelBufferRef pixelBuffer
     else if (safeCFEqual(pixelTransfer, PAL::kCMFormatDescriptionTransferFunction_ITU_R_2020))
         transfer = PlatformVideoTransferCharacteristics::Bt2020_10bit;
     else if (safeCFEqual(pixelTransfer, kCVImageBufferTransferFunction_UseGamma)) {
-        if (auto gammaLevel = CVBufferGetAttachment(pixelBuffer, kCVImageBufferGammaLevelKey, nil)) {
+        if (RetainPtr gammaLevel = dynamic_cf_cast<CFNumberRef>(CVBufferGetAttachment(pixelBuffer, kCVImageBufferGammaLevelKey, nil))) {
             double gamma = 0;
-            CFNumberGetValue(static_cast<CFNumberRef>(gammaLevel), kCFNumberFloat64Type, &gamma);
+            CFNumberGetValue(gammaLevel.get(), kCFNumberFloat64Type, &gamma);
             transfer = gamma < 2.5 ? PlatformVideoTransferCharacteristics::Gamma22curve : PlatformVideoTransferCharacteristics::Gamma28curve;
         }
     }
@@ -1195,6 +1201,10 @@ PacketDurationParser::PacketDurationParser(const AudioInfo& info)
     asbd.mFormatID = info.codecName().value;
     UInt32 size = sizeof(asbd);
     RefPtr cookieData = info.cookieData();
+    if (!cookieData) {
+        RELEASE_LOG_ERROR(Media, "PacketDurationParser: no magic cookie");
+        return;
+    }
     auto cookieDataSpan = cookieData->span();
     auto error = PAL::AudioFormatGetProperty(kAudioFormatProperty_FormatInfo, cookieDataSpan.size(), cookieDataSpan.data(), &size, &asbd);
     if (error || !info.rate()) {
@@ -1211,24 +1221,14 @@ PacketDurationParser::PacketDurationParser(const AudioInfo& info)
         AudioFormatInfo formatInfo = { asbd, cookieDataSpan.data(), (UInt32)cookieDataSpan.size() };
         UInt32 propertySize = sizeof(AudioFormatVorbisModeInfo);
         m_vorbisModeInfo = std::make_unique<AudioFormatVorbisModeInfo>();
-        if (PAL::AudioFormatGetProperty(kAudioFormatProperty_VorbisModeInfo, sizeof(formatInfo), &formatInfo, &propertySize, m_vorbisModeInfo.get()) != noErr || !m_vorbisModeInfo->mModeCount) {
+        auto modeMask = PAL::AudioFormatGetProperty(kAudioFormatProperty_VorbisModeInfo, sizeof(formatInfo), &formatInfo, &propertySize, m_vorbisModeInfo.get()) == noErr ? vorbisModeMaskImpl(m_vorbisModeInfo->mModeCount) : VorbisModeMaskResult { };
+        if (modeMask.valid)
+            m_vorbisModeMask = modeMask.modeMask;
+        else {
             m_vorbisModeInfo.reset();
             // No mode info or invalid mode info.
             return;
         }
-
-        auto ilog = [] (uint32_t v) {
-            int ret = 0;
-            while (v) {
-                ret++;
-                v >>= 1;
-            }
-            return ret;
-        };
-
-        uint32_t modeBitCount = ilog(m_vorbisModeInfo->mModeCount - 1);
-        for (uint32_t thisModeBit = 0; thisModeBit < modeBitCount; ++thisModeBit)
-            m_vorbisModeMask |= 1 << thisModeBit;
         }
         break;
 #endif
@@ -1263,34 +1263,19 @@ size_t PacketDurationParser::framesInPacket(std::span<const uint8_t> packet)
 #endif
 #if ENABLE(VORBIS)
     case kAudioFormatVorbis: {
-        // The following calculation corresponds to the duration of the "finished audiodata"
-        // produced by the decoder from the current packet in its position within
-        // the stream, as documented by Xiph in the Vorbis I specification.
-        // It also corresponds to the delta in granule position of the packet within
-        // the same sequence of packets in an Ogg file, with the possible exception of
-        // the ultimate packet, which may be assigned a smaller delta for the purpose
-        // of trimming.
-        constexpr uint8_t kVorbisPacketTypeFlag = 0b00000001;
-
-        auto leadingByte = packet[0];
-        if (leadingByte & kVorbisPacketTypeFlag)
-            return 0; // Not an audio packet.
-
-        uint32_t modeIndex = (leadingByte >> 1) & m_vorbisModeMask;
-        if (modeIndex >= m_vorbisModeInfo->mModeCount)
-            return 0; // Invalid mode.
-
-        uint32_t blockSize = 0;
-        if (!(m_vorbisModeInfo->mModeFlags & (1ULL << modeIndex)))
-            blockSize = m_vorbisModeInfo->mShortBlockSize;
-        else
-            blockSize = m_vorbisModeInfo->mLongBlockSize;
-        // The first vorbis packet decoded doesn't output audible content, and should be undetermined.
-        // However as content could be fed in any order, we must assume that previous content could be available at some stage.
-        size_t framesOfOutput = (blockSize + m_lastVorbisBlockSize) / 4;
-        m_lastVorbisBlockSize = blockSize;
-
-        return framesOfOutput;
+        // Only a valid parser has mode info.
+        if (!m_vorbisModeInfo)
+            return 0;
+        VorbisModeParameters mode {
+            .shortBlockSize = m_vorbisModeInfo->mShortBlockSize,
+            .longBlockSize = m_vorbisModeInfo->mLongBlockSize,
+            .modeCount = m_vorbisModeInfo->mModeCount,
+            .modeFlags = m_vorbisModeInfo->mModeFlags,
+            .modeMask = m_vorbisModeMask,
+        };
+        auto frames = vorbisPacketFramesImpl({ packet }, mode, m_lastVorbisBlockSize);
+        m_lastVorbisBlockSize = frames.lastBlockSize;
+        return frames.frames;
         }
 #endif
     default:
@@ -1562,23 +1547,9 @@ Vector<uint8_t> convertParameterSetsCMSampleBufferToAnnexB(CMSampleBufferRef sam
         return { };
     }
 
-    auto data = *dataSpan;
-    while (data.size() > 0) {
-        if (data.size() < avccHeaderByteSize) {
-            RELEASE_LOG_ERROR(WebRTC, "convertParameterSetsCMSampleBufferToAnnexB missing data");
-            return { };
-        }
-        uint32_t packetSize;
-        memcpySpan(asMutableByteSpan(packetSize), data.first(avccHeaderByteSize));
-        packetSize = flipBytes(packetSize);
-        size_t bytesWritten = packetSize + avccHeaderByteSize;
-        if (bytesWritten > data.size()) {
-            RELEASE_LOG_ERROR(WebRTC, "convertParameterSetsCMSampleBufferToAnnexB missing data");
-            return { };
-        }
-        annexBBuffer.append(std::span { annexBHeaderBytes });
-        annexBBuffer.append(data.subspan(avccHeaderByteSize, packetSize));
-        data = data.subspan(bytesWritten);
+    if (!appendAnnexBFromLengthPrefixedImpl({ *dataSpan }, annexBBuffer)) {
+        RELEASE_LOG_ERROR(WebRTC, "convertParameterSetsCMSampleBufferToAnnexB missing data");
+        return { };
     }
 
     return annexBBuffer;
@@ -1600,14 +1571,18 @@ Vector<Ref<SharedBuffer>> getKeyIDs(CMFormatDescriptionRef description)
 {
     if (!description)
         return { };
-    if (RetainPtr trackEncryptionData = static_cast<CFDataRef>(PAL::CMFormatDescriptionGetExtension(description, CFSTR("CommonEncryptionTrackEncryptionBox")))) {
+    if (RetainPtr extension = PAL::CMFormatDescriptionGetExtension(description, CFSTR("CommonEncryptionTrackEncryptionBox"))) {
         // AVStreamDataParser will attach the 'tenc' box to each sample, not including the leading
         // size and boxType data. Extract the 'tenc' box and use that box to derive the sample's
         // keyID.
-        ISOTrackEncryptionBox trackEncryptionBox;
-        if (!trackEncryptionBox.parseWithoutTypeAndSize(span(trackEncryptionData.get())))
+        RetainPtr trackEncryptionData = dynamic_cf_cast<CFDataRef>(WTF::move(extension));
+        if (!trackEncryptionData)
             return { };
-        return { SharedBuffer::create(trackEncryptionBox.defaultKID()) };
+        ISOTrackEncryptionFields trackEncryptionBox;
+        if (!parseTrackEncryptionBoxWithoutTypeAndSizeImpl({ span(trackEncryptionData.get()) }, trackEncryptionBox))
+            return { };
+        auto keyID = trackEncryptionBox.defaultKID.bytes();
+        return { SharedBuffer::create(std::span<const uint8_t> { keyID }) };
     }
 
 #if HAVE(FAIRPLAYSTREAMING_MTPS_INITDATA)
@@ -1713,9 +1688,10 @@ bool isCMSampleBufferRandomAccess(CMSampleBufferRef sample)
     if (!CFDictionaryGetValueIfPresent(firstAttachment.get(), PAL::kCMSampleAttachmentKey_NotSync, &notSync))
         return true;
 
-    return !notSync || !CFBooleanGetValue(static_cast<CFBooleanRef>(notSync));
+    RetainPtr notSyncValue = dynamic_cf_cast<CFBooleanRef>(notSync);
+    return !notSyncValue || !CFBooleanGetValue(notSyncValue.get());
 }
 
 } // namespace WebCore
 
-#endif // PLATFORM(COCOA)
+#endif // PLATFORM(COCOA) && ENABLE(WEBCORE_SWIFT)

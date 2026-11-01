@@ -5482,3 +5482,6 @@ JSXRWebGLBinding.cpp
 JSXRWebGLLayerInit.cpp
 JSXRWebGLSubImage.cpp
 JSXSLTProcessor.cpp
+
+platform/graphics/HEVCBitstreamParser.cpp
+platform/graphics/MediaParsersShellSupport.cpp

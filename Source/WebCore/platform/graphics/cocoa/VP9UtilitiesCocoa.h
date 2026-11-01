@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,15 +31,12 @@
 #include <WebCore/VP9Utilities.h>
 #include <wtf/Lock.h>
 
-typedef const struct opaqueCMFormatDescription* CMVideoFormatDescriptionRef;
-
 namespace WebCore {
 
 struct PlatformMediaCapabilitiesInfo;
 struct PlatformMediaCapabilitiesVideoConfiguration;
 class VideoInfo;
 
-WEBCORE_EXPORT bool shouldEnableVP9Decoder();
 WEBCORE_EXPORT bool shouldEnableSWVP9Decoder();
 WEBCORE_EXPORT void registerWebKitVP9Decoder();
 WEBCORE_EXPORT void registerSupplementalVP9Decoder();
@@ -52,25 +49,11 @@ bool isVPCodecConfigurationRecordSupported(const VPCodecConfigurationRecord&);
 std::optional<PlatformMediaCapabilitiesInfo> validateVPParameters(const VPCodecConfigurationRecord&, const PlatformMediaCapabilitiesVideoConfiguration&);
 std::optional<PlatformMediaCapabilitiesInfo> computeVPParameters(const PlatformMediaCapabilitiesVideoConfiguration&, bool vp9HardwareDecoderAvailable);
 bool LEGACY_NODELETE isVPSoftwareDecoderSmooth(const PlatformMediaCapabilitiesVideoConfiguration&);
-RetainPtr<CMVideoFormatDescriptionRef> createVP9FormatDescriptionFromRecord(const VPCodecConfigurationRecord&, const std::optional<PlatformVideoColorSpace>& colorSpaceOverride = std::nullopt);
 WEBCORE_EXPORT Ref<VideoInfo> createVideoInfoFromVPCodecConfigurationRecord(const VPCodecConfigurationRecord&, const std::optional<PlatformVideoColorSpace>& colorSpaceOverride = std::nullopt);
 // FIXME: createVideoInfoFromVP9Stream should take optional width/height parameters.
 WEBCORE_EXPORT RefPtr<VideoInfo> createVideoInfoFromVP9Stream(std::span<const uint8_t>, uint16_t width, uint16_t height);
 
-struct VP8FrameHeader {
-    bool keyframe { false };
-    uint8_t version { 0 };
-    bool showFrame { true };
-    uint32_t partitionSize { 0 };
-    uint8_t horizontalScale { 0 };
-    uint16_t width { 0 };
-    uint8_t verticalScale { 0 };
-    uint16_t height;
-    bool colorSpace { false };
-    bool needsClamping { false };
-};
-
-std::optional<VP8FrameHeader> parseVP8FrameHeader(std::span<const uint8_t>);
+WEBCORE_EXPORT std::optional<VP8FrameHeader> parseVP8FrameHeader(std::span<const uint8_t>);
 
 class VP9TestingOverrides {
 public:

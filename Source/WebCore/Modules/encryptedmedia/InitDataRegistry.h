@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,15 +28,12 @@
 #if ENABLE(ENCRYPTED_MEDIA)
 
 #include <WebCore/CDMTypesForward.h>
-#include <wtf/Function.h>
 #include <wtf/Ref.h>
 #include <wtf/RefPtr.h>
-#include <wtf/RobinHoodHashMap.h>
 #include <wtf/Vector.h>
 
 namespace WebCore {
 
-class ISOProtectionSystemSpecificHeaderBox;
 class SharedBuffer;
 
 class InitDataRegistry {
@@ -44,23 +41,13 @@ public:
     WEBCORE_EXPORT static InitDataRegistry& singleton();
     friend class NeverDestroyed<InitDataRegistry>;
 
-    RefPtr<SharedBuffer> sanitizeInitData(const String& initDataType, const SharedBuffer&);
+    WEBCORE_EXPORT RefPtr<SharedBuffer> sanitizeInitData(const String& initDataType, const SharedBuffer&);
     WEBCORE_EXPORT std::optional<CDMKeyIDs> extractKeyIDs(const String& initDataType, const SharedBuffer&);
-
-    struct InitDataTypeCallbacks {
-        using SanitizeInitDataCallback = Function<RefPtr<SharedBuffer>(const SharedBuffer&)>;
-        using ExtractKeyIDsCallback = Function<std::optional<CDMKeyIDs>(const SharedBuffer&)>;
-
-        SanitizeInitDataCallback sanitizeInitData;
-        ExtractKeyIDsCallback extractKeyIDs;
-    };
-    void registerInitDataType(const String& initDataType, InitDataTypeCallbacks&&);
 
     static const String& cencName();
     static const String& keyidsName();
     static const String& webmName();
 
-    static std::optional<Vector<std::unique_ptr<ISOProtectionSystemSpecificHeaderBox>>> extractPsshBoxesFromCenc(const SharedBuffer&);
     static std::optional<CDMKeyIDs> extractKeyIDsCenc(const SharedBuffer&);
     static RefPtr<SharedBuffer> sanitizeCenc(const SharedBuffer&);
 
@@ -70,14 +57,12 @@ public:
     // AVFoundation's PSSH parser only inspects the first PSSH atom in the supplied data
     // and rejects the entire blob if its SystemID isn't FairPlay's, so callers must
     // filter to a FairPlay-only buffer before forwarding to AVContentKeySession.
-    static RefPtr<SharedBuffer> extractFairPlayPsshFromCenc(const SharedBuffer&);
+    WEBCORE_EXPORT static RefPtr<SharedBuffer> extractFairPlayPsshFromCenc(const SharedBuffer&);
 #endif
 
 private:
     InitDataRegistry();
     ~InitDataRegistry();
-
-    MemoryCompactRobinHoodHashMap<String, InitDataTypeCallbacks> m_types;
 };
 
 }

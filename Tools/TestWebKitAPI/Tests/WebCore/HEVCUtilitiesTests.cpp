@@ -183,4 +183,61 @@ TEST(HEVCBitstreamParser, RejectsOutOfRangeQp)
     EXPECT_FALSE(highParser.lastSliceQP().has_value());
 }
 
+TEST(HEVCBitstreamParser, EmptyInput)
+{
+    static constexpr uint8_t nonNullEmpty[1] { };
+    Vector<uint8_t> emptyVector;
+
+    HEVCBitstreamParser parser;
+    parser.parseBitstream({ });
+    parser.parseBitstream(emptyVector.span());
+    parser.parseBitstream(std::span { nonNullEmpty }.first(0));
+    EXPECT_FALSE(parser.lastSliceQP().has_value());
+
+    parser.parseBitstream(std::span { kH265BitstreamChunk });
+    parser.parseBitstream({ });
+    EXPECT_EQ(parser.lastSliceQP(), 34);
+
+    EXPECT_FALSE(findHVCCMaxNumReorderPics({ }).has_value());
+    EXPECT_FALSE(findHVCCMaxNumReorderPics({ { { HEVCNaluType::Vps, { } } }, 4 }).has_value());
+    EXPECT_FALSE(findHVCCMaxNumReorderPics({ { { HEVCNaluType::Vps, std::span { nonNullEmpty }.first(0) } }, 4 }).has_value());
+}
+
+TEST(HEVCBitstreamParser, ParameterSetsKeepTheLastSliceQp)
+{
+    HEVCBitstreamParser parser;
+    parser.parseBitstream(std::span { kH265BitstreamChunk });
+    parser.parseBitstream(std::span { kH265VpsSpsPps });
+    EXPECT_EQ(parser.lastSliceQP(), 34);
+}
+
+TEST(HEVCBitstreamParser, OtherNaluTypesClearTheLastSliceQp)
+{
+    // An end of sequence NAL unit (type 36) is parsed as a slice header, as in libwebrtc, and has no QP.
+    static constexpr uint8_t endOfSequence[] = { 0x00, 0x00, 0x01, 0x48, 0x01, 0x00 };
+
+    HEVCBitstreamParser parser;
+    parser.parseBitstream(std::span { kH265BitstreamChunk });
+    parser.parseBitstream(std::span { endOfSequence });
+    EXPECT_FALSE(parser.lastSliceQP().has_value());
+}
+
+TEST(HEVCBitstreamParser, ReportsNoQpForSliceWithUnknownPps)
+{
+    HEVCBitstreamParser parser;
+    parser.parseBitstream(std::span { kH265BitstreamNextImageSliceChunk });
+    EXPECT_FALSE(parser.lastSliceQP().has_value());
+}
+
+TEST(HEVCBitstreamParser, FindsHVCCMaxNumReorderPics)
+{
+    // The VPS of kH265VpsSpsPps, then the same VPS truncated after its NAL unit header and in its profile_tier_level().
+    auto vps = std::span { kH265VpsSpsPps }.subspan(4, 23);
+    auto sps = std::span { kH265VpsSpsPps }.subspan(31, 41);
+    EXPECT_EQ(findHVCCMaxNumReorderPics({ { { HEVCNaluType::Sps, sps }, { HEVCNaluType::Vps, vps } }, 4 }), 2);
+    EXPECT_FALSE(findHVCCMaxNumReorderPics({ { { HEVCNaluType::Vps, vps.first(2) }, { HEVCNaluType::Vps, vps } }, 4 }).has_value());
+    EXPECT_FALSE(findHVCCMaxNumReorderPics({ { { HEVCNaluType::Vps, vps.first(10) } }, 4 }).has_value());
+    EXPECT_FALSE(findHVCCMaxNumReorderPics({ { { HEVCNaluType::Sps, sps } }, 4 }).has_value());
+}
+
 } // namespace TestWebKitAPI
