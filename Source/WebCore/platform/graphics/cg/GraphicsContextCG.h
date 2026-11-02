@@ -173,6 +173,9 @@ private:
     void didUpdateStateForSwiftRenderer(GraphicsContextState&);
     void setSwiftRendererShadow(CGRenderer&, const GraphicsDropShadow&, bool isStyle);
     RetainPtr<CGPatternRef> swiftFillPattern();
+    bool swiftDrawsShadowBlur() const;
+    bool shadowColorChangesFill(const Color&) const;
+    float swiftMaxEDRHeadroom() const;
     RetainPtr<CGPatternRef> swiftStrokePattern();
     void setCGDropShadow(const std::optional<GraphicsDropShadow>&, bool shadowsIgnoreTransforms);
     void clearCGDropShadow();
@@ -196,7 +199,7 @@ private:
     std::unique_ptr<GraphicsContextCGCapture> m_capture;
 #endif
     // The CGRenderer (CGRenderer.swift) this context draws with, built in place. GraphicsContextCG.cpp checks the size.
-    static constexpr size_t swiftRendererSize = 224;
+    static constexpr size_t swiftRendererSize = 240;
     alignas(8) mutable std::byte m_swiftRendererStorage[swiftRendererSize];
     mutable std::optional<ColorSpace> m_colorSpace;
 #if HAVE(SUPPORT_HDR_DISPLAY)

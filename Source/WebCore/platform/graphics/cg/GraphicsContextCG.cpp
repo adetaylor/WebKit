@@ -742,6 +742,15 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
 #if ENABLE(WEBCORE_SWIFT)
 } // namespace WebCore
 
+CGImageRef CGRendererCopyImageBufferImage(WebCore::ImageBuffer& imageBuffer, float& headroom)
+{
+    RefPtr nativeImage = imageBuffer.createNativeImageReference();
+    if (!nativeImage)
+        return nullptr;
+    headroom = nativeImage->headroom();
+    return RetainPtr { nativeImage->platformImage() }.leakRef();
+}
+
 CGImageRef CGRendererCopySubimage(CGImageRef image, CGRect rect)
 {
 #if CACHE_SUBIMAGES
@@ -1071,6 +1080,32 @@ RetainPtr<CGPatternRef> GraphicsContextCG::swiftStrokePattern()
     return strokePattern->createPlatformPattern(AffineTransform(getUserToBaseCTM(contextForDraw())));
 }
 
+// The renderer draws ShadowBlur's shadows itself where it draws ShadowBlur's images itself (drawNativeImage()).
+bool GraphicsContextCG::swiftDrawsShadowBlur() const
+{
+#if HAVE(SUPPORT_HDR_DISPLAY_APIS) && !PLATFORM(IOS_FAMILY)
+    return canUseShadowBlur();
+#else
+    return false;
+#endif
+}
+
+// Whether GraphicsContextState::setFillColor() of a shadow's color, as ShadowBlur sets it through a GraphicsContextView,
+// would change the fill and so CG's fill color.
+bool GraphicsContextCG::shadowColorChangesFill(const Color& shadowColor) const
+{
+    return !(fillBrush() == SourceBrush { shadowColor }) || m_state.indeterminateProperties().contains(GraphicsContextState::Change::FillBrush);
+}
+
+float GraphicsContextCG::swiftMaxEDRHeadroom() const
+{
+#if HAVE(SUPPORT_HDR_DISPLAY)
+    return m_maxEDRHeadroom.value_or(0);
+#else
+    return 0;
+#endif
+}
+
 static uint8_t swiftBrushKind(const SourceBrush& brush)
 {
     if (brush.gradient())
@@ -1275,8 +1310,17 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
     CAPTURE(fillRect(rect, requiresClipToRect));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_usesSwiftRenderer && swiftRenderer().fillRect(rect, swiftFillPattern().get()))
-        return;
+    if (m_usesSwiftRenderer) {
+        auto& renderer = swiftRenderer();
+        RetainPtr pattern = swiftFillPattern();
+        if (renderer.fillRect(rect, pattern.get()))
+            return;
+        if (swiftDrawsShadowBlur() && !fillGradient()) {
+            auto shadow = dropShadow();
+            renderer.fillRectWithShadowBlur(rect, pattern.get(), shadow->color, shadow->radiusMode == ShadowRadiusMode::Legacy, shadowColorChangesFill(shadow->color), swiftMaxEDRHeadroom());
+            return;
+        }
+    }
 #endif
 
     if (RefPtr fillGradient = this->fillGradient()) {
@@ -1319,8 +1363,17 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
-        if (auto packedColor = color.tryGetAsPackedInline(); packedColor && swiftRenderer().fillRect(rect, packedColor->value, fillColor() != color))
-            return;
+        if (auto packedColor = color.tryGetAsPackedInline()) {
+            auto& renderer = swiftRenderer();
+            bool changesFillColor = fillColor() != color;
+            if (renderer.fillRect(rect, packedColor->value, changesFillColor))
+                return;
+            if (swiftDrawsShadowBlur()) {
+                auto shadow = dropShadow();
+                renderer.fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadow->radiusMode == ShadowRadiusMode::Legacy, shadowColorChangesFill(shadow->color), swiftMaxEDRHeadroom());
+                return;
+            }
+        }
     }
 #endif
     Color oldFillColor = fillColor();

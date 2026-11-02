@@ -119,6 +119,14 @@ private:
     std::span<CGPoint> m_positions;
 };
 
+namespace WebCore {
+class ImageBuffer;
+}
+
+// The image of an ImageBuffer ShadowBlur drew a shadow into, as GraphicsContext::drawImageBuffer() and
+// GraphicsContextCG::clipToImageBuffer() take it, and the image's headroom.
+CGImageRef _Nullable CGRendererCopyImageBufferImage(WebCore::ImageBuffer&, float& headroom) CF_RETURNS_RETAINED;
+
 // Rects lent to CGRenderer.swift for one call.
 class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererRects {
 public:

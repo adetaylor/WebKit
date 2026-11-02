@@ -52,9 +52,18 @@
 private import Cxx
 import CoreGraphics
 import CoreText
+import WebCore_Internal.AffineTransform
 import WebCore_Internal.CGRendererSPI
 import WebCore_Internal.CGRendererSwiftBridge
+import WebCore_Internal.Color
+import WebCore_Internal.FloatPoint
+import WebCore_Internal.FloatRect
+import WebCore_Internal.FloatSize
 import WebCore_Internal.GraphicsTypes
+import WebCore_Internal.ImageBuffer
+import WebCore_Internal.IntRect
+import WebCore_Internal.IntSize
+import WebCore_Internal.ShadowBlurSwiftBridge
 
 // std::max's choice: the first argument unless it is less than the second, so -0 and NaN stay.
 private func cxxMax(_ a: Float, _ b: Float) -> Float {
@@ -364,6 +373,135 @@ private func isIntegral(_ value: Float) -> Bool {
     !value.isInfinite && value.rounded(.towardZero) == value
 }
 
+// What a ShadowBlur shadow the renderer draws for itself needs besides the state: the fill to set for the shadow's color (nil
+// when the C++ state's fill is that color already, so GraphicsContextState::setFillColor() wouldn't touch CG), and
+// GraphicsContextCG's EDR headroom limit (0 for none).
+private struct CGRendererShadowBlurDrawing {
+    var fill: CGRendererBrush?
+    var maxEDRHeadroom: Float
+}
+
+// ShadowBlur's pieces, drawn as GraphicsContext would draw them through a GraphicsContextView of the GraphicsContextCG: each in
+// a save, with the shadow cleared and the shadow's color as the fill. The color ShadowBlur passes is the shadow's, which
+// fillRectWithShadowBlur() turned into a fill already. Swift calls these, so they stay out of the C++ header.
+extension CGRenderer: ShadowDrawing {
+    @_expose(!Cxx)
+    mutating func drawShadowBuffer(
+        _ layerImage: WebCore.ImageBuffer,
+        _ layerOrigin: WebCore.FloatPoint,
+        _ layerSize: WebCore.FloatSize,
+        _ color: borrowing WebCore.Color
+    ) {
+        save(false)
+        let bufferSize = layerImage.backendSize()
+        let bufferWidth = Float(bufferSize.width())
+        let bufferHeight = Float(bufferSize.height())
+        let layerRect = CGRendererRect(x: layerOrigin.x(), y: layerOrigin.y(), width: layerSize.width(), height: layerSize.height())
+        if bufferWidth != layerSize.width() || bufferHeight != layerSize.height() {
+            // The rect passed to clipToImageBuffer() has to be the size of the entire buffer, but we may not have cleared it
+            // all, so clip to the filled part first.
+            clip(layerRect.cgRect)
+        }
+        clipToImageBuffer(layerImage, CGRendererRect(x: layerOrigin.x(), y: layerOrigin.y(), width: bufferWidth, height: bufferHeight))
+        setShadowBlurFill()
+        clearDropShadow()
+        _ = fillRect(layerRect.cgRect, nil)
+        restore()
+    }
+
+    @_expose(!Cxx)
+    mutating func drawShadowLayerPieces(_ layerImage: WebCore.ImageBuffer, _ tiles: ShadowBlurTiles) {
+        var imageHeadroom: Float = 1
+        guard let image = CGRendererCopyImageBufferImage(layerImage, &imageHeadroom) else {
+            return
+        }
+        let resolutionScale = layerImage.resolutionScale()
+        drawShadowImage(image, imageHeadroom, resolutionScale, tiles.top)
+        drawShadowImage(image, imageHeadroom, resolutionScale, tiles.bottom)
+        drawShadowImage(image, imageHeadroom, resolutionScale, tiles.left)
+        drawShadowImage(image, imageHeadroom, resolutionScale, tiles.right)
+        drawShadowImage(image, imageHeadroom, resolutionScale, tiles.topLeft)
+        drawShadowImage(image, imageHeadroom, resolutionScale, tiles.topRight)
+        drawShadowImage(image, imageHeadroom, resolutionScale, tiles.bottomRight)
+        drawShadowImage(image, imageHeadroom, resolutionScale, tiles.bottomLeft)
+    }
+
+    @_expose(!Cxx)
+    mutating func fillShadowRect(_ rect: WebCore.FloatRect, _ color: borrowing WebCore.Color) {
+        save(false)
+        setShadowBlurFill()
+        clearDropShadow()
+        _ = fillRect(CGRendererRect(x: rect.x(), y: rect.y(), width: rect.width(), height: rect.height()).cgRect, nil)
+        restore()
+    }
+
+    @_expose(!Cxx)
+    mutating func fillShadowRectWithHole(_ rect: WebCore.FloatRect, _ holeRect: WebCore.FloatRect, _ color: borrowing WebCore.Color) {
+        let path = CGMutablePath()
+        path.addRect(CGRendererRect(x: rect.x(), y: rect.y(), width: rect.width(), height: rect.height()).cgRect)
+        path.addRect(CGRendererRect(x: holeRect.x(), y: holeRect.y(), width: holeRect.width(), height: holeRect.height()).cgRect)
+        save(false)
+        setFillRule(1)
+        setShadowBlurFill()
+        clearDropShadow()
+        fillPath(path, nil)
+        restore()
+    }
+
+    private mutating func setShadowBlurFill() {
+        guard let fill = shadowBlurDrawing?.fill else {
+            return
+        }
+        state.fill = fill
+        context.setFillColor(platformColor(fill))
+    }
+
+    // GraphicsContextCG::clipToImageBuffer().
+    private func clipToImageBuffer(_ imageBuffer: WebCore.ImageBuffer, _ rect: CGRendererRect) {
+        var headroom: Float = 1
+        guard let image = CGRendererCopyImageBufferImage(imageBuffer, &headroom) else {
+            return
+        }
+        let size = CGRect(x: 0, y: 0, width: CGFloat(rect.width), height: CGFloat(rect.height))
+        context.translateBy(x: CGFloat(rect.x), y: CGFloat(rect.maxY))
+        context.scaleBy(x: 1, y: -1)
+        context.clip(to: size)
+        context.clip(to: size, mask: image)
+        context.scaleBy(x: 1, y: -1)
+        context.translateBy(x: CGFloat(-rect.x), y: CGFloat(-rect.maxY))
+    }
+
+    // GraphicsContext::drawImageBuffer() of a piece, with default options but the composite operator, in a save without a
+    // shadow.
+    private mutating func drawShadowImage(_ image: CGImage, _ imageHeadroom: Float, _ resolutionScale: Float, _ tile: ShadowBlurTile) {
+        let destination = tile.destination.floatRect
+        let source = tile.source.floatRect
+        save(false)
+        clearDropShadow()
+        let maxEDRHeadroom = shadowBlurDrawing?.maxEDRHeadroom ?? 0
+        _ = drawNativeImage(
+            image,
+            Float(image.width),
+            Float(image.height),
+            destination.x(),
+            destination.y(),
+            destination.width(),
+            destination.height(),
+            source.x() * resolutionScale,
+            source.y() * resolutionScale,
+            source.width() * resolutionScale,
+            source.height() * resolutionScale,
+            .SourceOver,
+            .Normal,
+            .Default,
+            CGRendererOrientation.none,
+            imageHeadroom,
+            maxEDRHeadroom > 0 ? cxxMin(imageHeadroom, maxEDRHeadroom) : imageHeadroom
+        )
+        restore()
+    }
+}
+
 // GradientSpreadMethod.
 private enum CGRendererSpreadMethod {
     static let pad: UInt8 = 0
@@ -499,6 +637,7 @@ struct CGRenderer {
     private var rectScratch: [CGRect] = []
     private var dashLengths: [CGFloat] = []
     private var lineSegment: [CGPoint] = []
+    private var shadowBlurDrawing: CGRendererShadowBlurDrawing? = nil
 
     // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
     // uses it (rdar://179098545).
@@ -939,6 +1078,91 @@ struct CGRenderer {
             context.setFillColor(platformColor(state.fill))
         }
         return true
+    }
+
+    // GraphicsContextCG::fillRect() with a blurred drop shadow on an unaccelerated context (canUseShadowBlur): ShadowBlur draws
+    // the shadow through this renderer, then the rect is filled without one. The caller passes the shadow's Color, which
+    // ShadowBlur takes, whether its radius is the legacy one, whether setting the shadow's color as the fill changes the C++
+    // state, and GraphicsContextCG's EDR headroom limit (0 for none).
+    @_expose(Cxx)
+    mutating func fillRectWithShadowBlur(
+        _ rect: CGRect,
+        _ fillPattern: CGPattern?,
+        _ shadowColor: borrowing WebCore.Color,
+        _ legacyRadius: Bool,
+        _ shadowColorChangesFill: Bool,
+        _ maxEDRHeadroom: Float
+    ) {
+        assert(!state.fill.hasGradient && canUseShadowBlur)
+        applyPattern(fillPattern, fill: true)
+        context.saveGState()
+        CGContextSetStyle(context, nil)
+        drawRectShadowBlur(rect, shadowColor, legacyRadius, shadowColorChangesFill, maxEDRHeadroom)
+        context.fill(rect)
+        context.restoreGState()
+    }
+
+    @_expose(Cxx)
+    mutating func fillRectWithShadowBlur(
+        _ rect: CGRect,
+        packedColor: UInt32,
+        _ changesFillColor: Bool,
+        _ shadowColor: borrowing WebCore.Color,
+        _ legacyRadius: Bool,
+        _ shadowColorChangesFill: Bool,
+        _ maxEDRHeadroom: Float
+    ) {
+        assert(canUseShadowBlur)
+        if changesFillColor {
+            context.setFillColor(colorCache.color(packedColor))
+        }
+        context.saveGState()
+        CGContextSetStyle(context, nil)
+        drawRectShadowBlur(rect, shadowColor, legacyRadius, shadowColorChangesFill, maxEDRHeadroom)
+        context.fill(rect)
+        context.restoreGState()
+        if changesFillColor {
+            context.setFillColor(platformColor(state.fill))
+        }
+    }
+
+    // ShadowBlur(GraphicsDropShadow, shadowsIgnoreTransforms).drawRectShadow(context, FloatRoundedRect(rect)).
+    private mutating func drawRectShadowBlur(
+        _ rect: CGRect,
+        _ shadowColor: borrowing WebCore.Color,
+        _ legacyRadius: Bool,
+        _ shadowColorChangesFill: Bool,
+        _ maxEDRHeadroom: Float
+    ) {
+        guard let shadow = state.dropShadow else {
+            return
+        }
+        var shadowState = shadowBlurState(
+            WebCore.ShadowBlurSize(width: shadow.radius, height: shadow.radius),
+            WebCore.ShadowBlurSize(width: shadow.width, height: shadow.height),
+            shadow.isVisible,
+            state.shadowsIgnoreTransforms,
+            legacyRadius
+        )
+        let ctm = context.ctm
+        let transform = WebCore.AffineTransform(ctm.a, ctm.b, ctm.c, ctm.d, ctm.tx, ctm.ty)
+        let clipBox = context.boundingBoxOfClipPath
+        let clip = CGRendererIntRect(
+            enclosing: CGRendererRect(x: Float(clipBox.origin.x), y: Float(clipBox.origin.y), width: Float(clipBox.size.width), height: Float(clipBox.size.height))
+        )
+        let shadowedRect = WebCore.ShadowBlurRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.size.width), height: Float(rect.size.height))
+        let fill = CGRendererBrush(packedColor: shadow.packedColor, platformColorSlot: shadow.platformColorSlot, kind: 0, isColorVisible: shadow.isVisible)
+        shadowBlurDrawing = CGRendererShadowBlurDrawing(fill: shadowColorChangesFill ? fill : nil, maxEDRHeadroom: maxEDRHeadroom)
+        shadowBlurDrawRectShadow(
+            &shadowState,
+            transform,
+            WebCore.IntRect(clip.x, clip.y, clip.width, clip.height),
+            shadowedRect,
+            WebCore.ShadowBlurCornerRadii(),
+            shadowColor,
+            into: &self
+        )
+        shadowBlurDrawing = nil
     }
 
     @_expose(Cxx)
