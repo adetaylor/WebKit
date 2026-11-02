@@ -24,7 +24,7 @@
 
 import WebKit_Internal
 
-// Safety: target is only written in init, assumeIsolated asserts the main thread, and weak loads are atomic in the Swift runtime
+// Safety: target is only written in init, dispatch asserts the stream connection's work queue, and weak loads are atomic in the Swift runtime
 @_expose(Cxx)
 final class TestWithStreamSwiftEnabledByWeakRef: @unchecked Sendable {
     private weak var target: TestWithStreamSwiftEnabledBy?
@@ -42,48 +42,19 @@ final class TestWithStreamSwiftEnabledByWeakRef: @unchecked Sendable {
         connection: sending IPC.StreamServerConnection,
         url: sending WTF.String
     ) {
-        MainActor.assumeIsolated {
-            guard let target else {
-                return
-            }
-            Task.immediateOnMainActor {
-                await SendStringInvocation(
-                    target: target,
+        assert(connection.isCurrentWorkQueue())
+        guard let target else {
+            return
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendString(
                     connection: connection,
                     url: url
                 )
-                .run()
-            }
-        }
-    }
-
-    private final class SendStringInvocation {
-        private let target: TestWithStreamSwiftEnabledBy
-        private let connection: IPC.StreamServerConnection
-        private let url: WTF.String
-
-        init(
-            target: TestWithStreamSwiftEnabledBy,
-            connection: IPC.StreamServerConnection,
-            url: WTF.String
-        ) {
-            self.target = target
-            self.connection = connection
-            self.url = url
-        }
-
-        @MainActor
-        func run() async {
-            do {
-                try await mayThrowInvalidMessage(
-                    target.sendString(
-                        connection: connection,
-                        url: url
-                    )
-                )
-            } catch {
-                markMessageInvalid(error, on: connection)
-            }
+            )
+        } catch {
+            markMessageInvalid(error, on: connection)
         }
     }
 }
