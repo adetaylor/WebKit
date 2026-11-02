@@ -816,43 +816,13 @@ static uint8_t swiftBrushKind(const SourceBrush& brush)
 void GraphicsContextCG::applyStrokePattern()
 {
     CAPTURE(unsupported("applyStrokePattern"_s));
-    RefPtr strokePattern = this->strokePattern();
-    if (!strokePattern)
-        return;
-
-    const RetainPtr<CGContextRef>& cgContext = contextForDraw();
-    AffineTransform userToBaseCTM = AffineTransform(getUserToBaseCTM(cgContext));
-
-    auto platformPattern = strokePattern->createPlatformPattern(userToBaseCTM);
-    if (!platformPattern)
-        return;
-
-    RetainPtr<CGColorSpaceRef> patternSpace = adoptCF(CGColorSpaceCreatePattern(0));
-    CGContextSetStrokeColorSpace(cgContext, patternSpace.get());
-
-    const CGFloat patternAlpha = 1;
-    CGContextSetStrokePattern(cgContext, platformPattern.get(), &patternAlpha);
+    swiftRenderer().applyStrokePattern();
 }
 
 void GraphicsContextCG::applyFillPattern()
 {
     CAPTURE(unsupported("applyFillPattern"_s));
-    RefPtr fillPattern = this->fillPattern();
-    if (!fillPattern)
-        return;
-
-    const RetainPtr<CGContextRef>& cgContext = contextForDraw();
-    AffineTransform userToBaseCTM = AffineTransform(getUserToBaseCTM(cgContext));
-
-    auto platformPattern = fillPattern->createPlatformPattern(userToBaseCTM);
-    if (!platformPattern)
-        return;
-
-    RetainPtr<CGColorSpaceRef> patternSpace = adoptCF(CGColorSpaceCreatePattern(nullptr));
-    CGContextSetFillColorSpace(cgContext, patternSpace.get());
-
-    const CGFloat patternAlpha = 1;
-    CGContextSetFillPattern(cgContext, platformPattern.get(), &patternAlpha);
+    swiftRenderer().applyFillPattern();
 }
 
 void GraphicsContextCG::drawPath(const Path& path)
@@ -1405,7 +1375,7 @@ void GraphicsContextCG::didUpdateState(GraphicsContextState& state)
 void GraphicsContextCG::setMiterLimit(float limit)
 {
     CAPTURE(setMiterLimit(limit));
-    CGContextSetMiterLimit(contextForDraw(), limit);
+    swiftRenderer().setMiterLimit(limit);
 }
 
 void GraphicsContextCG::clearRect(const FloatRect& r)
@@ -1466,50 +1436,23 @@ void GraphicsContextCG::strokeLine(const PathDataLine& line)
 void GraphicsContextCG::setLineCap(LineCap cap)
 {
     CAPTURE(setLineCap(cap));
-    switch (cap) {
-    case LineCap::Butt:
-        CGContextSetLineCap(contextForDraw(), kCGLineCapButt);
-        break;
-    case LineCap::Round:
-        CGContextSetLineCap(contextForDraw(), kCGLineCapRound);
-        break;
-    case LineCap::Square:
-        CGContextSetLineCap(contextForDraw(), kCGLineCapSquare);
-        break;
-    }
+    swiftRenderer().setLineCap(cap);
 }
 
 void GraphicsContextCG::setLineDash(const DashArray& dashes, float dashOffset)
 {
     CAPTURE(setLineDash(dashes, dashOffset));
-    if (dashOffset < 0) {
-        float length = 0;
-        for (size_t i = 0; i < dashes.size(); ++i)
-            length += static_cast<float>(dashes[i]);
-        // CGContextSetLineDash repeats odd-length arrays, so the effective cycle is twice the sum.
-        if (dashes.size() % 2)
-            length *= 2;
-        if (length)
-            dashOffset = fmod(dashOffset, length) + length;
-    }
-    auto dashesSpan = dashes.span();
-    CGContextSetLineDash(contextForDraw(), dashOffset, dashesSpan.data(), dashesSpan.size());
+    auto& renderer = swiftRenderer();
+    renderer.clearLineDash();
+    for (auto dash : dashes)
+        renderer.appendLineDash(dash);
+    renderer.applyLineDash(dashOffset);
 }
 
 void GraphicsContextCG::setLineJoin(LineJoin join)
 {
     CAPTURE(setLineJoin(join));
-    switch (join) {
-    case LineJoin::Miter:
-        CGContextSetLineJoin(contextForDraw(), kCGLineJoinMiter);
-        break;
-    case LineJoin::Round:
-        CGContextSetLineJoin(contextForDraw(), kCGLineJoinRound);
-        break;
-    case LineJoin::Bevel:
-        CGContextSetLineJoin(contextForDraw(), kCGLineJoinBevel);
-        break;
-    }
+    swiftRenderer().setLineJoin(join);
 }
 
 void GraphicsContextCG::scale(const FloatSize& size)

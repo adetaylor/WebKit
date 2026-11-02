@@ -662,6 +662,7 @@ struct CGRenderer {
     // Reused, so that only a context's first use of them allocates.
     private var rectScratch: [CGRect] = []
     private var dashLengths: [CGFloat] = []
+    private var lineDash: [CGFloat] = []
     private var lineSegment: [CGPoint] = []
     private var shadowBlurDrawing: CGRendererShadowBlurDrawing? = nil
     // GraphicsContextCG::setMaxEDRHeadroom(): a context's, not a state's.
@@ -1054,6 +1055,75 @@ struct CGRenderer {
         state = CGRendererState(imageInterpolationQuality: imageInterpolationQuality)
     }
 
+    // MARK: Lines
+
+    // The CGContext's line attributes, which the state doesn't keep.
+    @_expose(Cxx)
+    mutating func setLineCap(_ cap: WebCore.LineCap) {
+        hasDrawn = true
+        switch cap {
+        case .Butt: context.setLineCap(.butt)
+        case .Round: context.setLineCap(.round)
+        case .Square: context.setLineCap(.square)
+        @unknown default: break
+        }
+    }
+
+    @_expose(Cxx)
+    mutating func setLineJoin(_ join: WebCore.LineJoin) {
+        hasDrawn = true
+        switch join {
+        case .Miter: context.setLineJoin(.miter)
+        case .Round: context.setLineJoin(.round)
+        case .Bevel: context.setLineJoin(.bevel)
+        @unknown default: break
+        }
+    }
+
+    @_expose(Cxx)
+    mutating func setMiterLimit(_ limit: Float) {
+        hasDrawn = true
+        context.setMiterLimit(CGFloat(limit))
+    }
+
+    @_expose(!Cxx)
+    mutating func setLineDash(_ dashes: [CGFloat], _ offset: Float) {
+        lineDash = dashes
+        applyLineDash(offset)
+    }
+
+    // C++ passes the dashes one at a time, then applies them with their offset.
+    @_expose(Cxx)
+    mutating func clearLineDash() {
+        lineDash.removeAll(keepingCapacity: true)
+    }
+
+    @_expose(Cxx)
+    mutating func appendLineDash(_ length: Double) {
+        lineDash.append(CGFloat(length))
+    }
+
+    // A negative offset is moved into the first dash cycle.
+    @_expose(Cxx)
+    mutating func applyLineDash(_ offset: Float) {
+        hasDrawn = true
+        var offset = offset
+        if offset < 0 {
+            var length: Float = 0
+            for dash in lineDash {
+                length += Float(dash)
+            }
+            // CGContextSetLineDash() repeats odd-length arrays, so the cycle is twice the sum.
+            if lineDash.count % 2 != 0 {
+                length *= 2
+            }
+            if length != 0 {
+                offset = offset.truncatingRemainder(dividingBy: length) + length
+            }
+        }
+        context.setLineDash(phase: CGFloat(offset), lengths: lineDash)
+    }
+
     // MARK: Stack
 
     @_expose(Cxx)
@@ -1212,6 +1282,23 @@ struct CGRenderer {
         applyPattern(fill: true)
         context.fill(rect)
         return true
+    }
+
+    // ApplyFillPattern and ApplyStrokePattern: the pattern brush's CGPattern, for the C++ that then draws with the CGContext.
+    @_expose(Cxx)
+    mutating func applyFillPattern() {
+        if state.fill.hasPattern {
+            hasDrawn = true
+        }
+        applyPattern(fill: true)
+    }
+
+    @_expose(Cxx)
+    mutating func applyStrokePattern() {
+        if state.stroke.hasPattern {
+            hasDrawn = true
+        }
+        applyPattern(fill: false)
     }
 
     private func applyPattern(fill: Bool) {
