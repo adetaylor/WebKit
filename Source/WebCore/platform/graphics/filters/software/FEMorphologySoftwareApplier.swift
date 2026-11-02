@@ -29,17 +29,17 @@ import _Builtin_intrinsics.arm.neon
 // The safe Span overloads Swift synthesizes for PixelBufferAccess call Cxx's Span(_unsafeCxxSpan:). Xcode builds don't
 // find it unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.AlphaPremultiplication
-import WebCore_Internal.ColorSpace
-import WebCore_Internal.FEMorphologyParameters
-import WebCore_Internal.FilterGraphicsBridge
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
-import WebCore_Internal.PixelBuffer
-import WebCore_Internal.PixelBufferSwiftBridge
+import WebCore_Private.Core.AlphaPremultiplication
+import WebCore_Private.Core.ColorSpace
+import WebCore_Private.Core.FEMorphologyParameters
+import WebCore_Private.Core.FilterGraphicsBridge
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
+import WebCore_Private.Core.PixelBuffer
+import WebCore_Private.Core.PixelBufferSwiftBridge
 
 // FEMorphology::calculateImageRect().
 func feMorphologyImageRect(

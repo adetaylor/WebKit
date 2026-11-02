@@ -20,8 +20,8 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntRect
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntRect
 
 // FEMergeSoftwareApplier::apply(), which FEMerge runs input by input: feMergeBeginSoftware() fails if the result has no
 // image buffer, then feMergeAddSoftwareInput() draws each input that has one over the result.

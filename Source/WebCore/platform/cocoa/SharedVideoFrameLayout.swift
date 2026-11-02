@@ -27,8 +27,8 @@ import CoreVideo
 // The safe Span overloads Swift synthesizes for the views' span accessors call Cxx's Span(_unsafeCxxSpan:).
 // Xcode builds don't find it unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.PixelBufferSwiftBridge
-import WebCore_Internal.SharedVideoFrameSwiftBridge
+import WebCore_Private.Core.PixelBufferSwiftBridge
+import WebCore_Private.Core.SharedVideoFrameSwiftBridge
 
 // The encoded layout: its eight fields as native-endian 32-bit integers, in declaration order.
 private let encodedLayoutByteCount = 32

@@ -28,13 +28,13 @@ import CoreGraphics
 import CoreImage
 import Darwin
 import Foundation
-import WebCore_Internal.FELightingParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.IntRect
-import WebCore_Internal.LightSourceParameters
+import WebCore_Private.Core.FELightingParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.LightSourceParameters
 
 // FEDiffuseLighting and FESpecularLighting in Core Image: the lighting Metal kernel with the effect's and the light
 // source's constants (positions resolved for the filter).

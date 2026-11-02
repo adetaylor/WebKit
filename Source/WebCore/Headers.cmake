@@ -2787,6 +2787,10 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
 
     platform/graphics/filters/FilterGraphicsBridge.h
     platform/graphics/filters/FilterSwiftBridge.h
+    platform/graphics/GraphicsContextSwiftBridge.h
+    platform/graphics/coreimage/FilterCoreImageSwiftBridge.h
+    platform/graphics/filters/ParallelRowsDispatch.h
+    platform/graphics/filters/skia/FilterSkiaBridge.h
 
     platform/graphics/filters/parameters/FEBlendParameters.h
     platform/graphics/filters/parameters/FEColorMatrixParameters.h

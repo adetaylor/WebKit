@@ -21,14 +21,14 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import WebCore_Internal.FEFloodParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.GraphicsContextSwiftBridge
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntRect
+import WebCore_Private.Core.FEFloodParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.GraphicsContextSwiftBridge
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntRect
 
 // FEFloodSoftwareApplier::apply(): the result filled with the flood color, its alpha multiplied by the flood opacity.
 func feFloodApplySoftware(_ parameters: borrowing WebCore.FEFloodParameters, _ result: inout FilterImageImpl) -> Bool {

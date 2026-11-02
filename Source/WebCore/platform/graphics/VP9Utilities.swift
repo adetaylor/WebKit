@@ -28,12 +28,12 @@
 // Swift builds the safe Span overloads of the views' span() with the Cxx module, which Xcode builds only find if this file
 // imports it.
 private import Cxx
-import WebCore_Internal.MediaParsersCxxBridging
-import WebCore_Internal.PlatformVideoColorPrimaries
-import WebCore_Internal.PlatformVideoMatrixCoefficients
-import WebCore_Internal.PlatformVideoTransferCharacteristics
-import WebCore_Internal.VPCodecConfigurationRecord
-import WebCore_Internal.VideoCodecParameterTypes
+import WebCore_Private.Core.MediaParsersCxxBridging
+import WebCore_Private.Core.PlatformVideoColorPrimaries
+import WebCore_Private.Core.PlatformVideoMatrixCoefficients
+import WebCore_Private.Core.PlatformVideoTransferCharacteristics
+import WebCore_Private.Core.VPCodecConfigurationRecord
+import WebCore_Private.Core.VideoCodecParameterTypes
 import wtf
 
 // The VP8 and VP9 parsing of VP9Utilities.cpp and VP9UtilitiesCocoa.mm: codec strings, vpcC records, frame headers, and

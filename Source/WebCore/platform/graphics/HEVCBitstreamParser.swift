@@ -28,9 +28,9 @@
 // The safe Span overloads Swift synthesizes for the views' span() call a Span initializer from Cxx, which Xcode
 // builds don't find unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.AnnexBUtilities
-import WebCore_Internal.MediaParsersCxxBridging
-import WebCore_Internal.VideoCodecParameterTypes
+import WebCore_Private.Core.AnnexBUtilities
+import WebCore_Private.Core.MediaParsersCxxBridging
+import WebCore_Private.Core.VideoCodecParameterTypes
 
 // The H.265 (https://www.itu.int/rec/T-REC-H.265) parsing behind HEVCBitstreamParser.cpp and HEVCUtilitiesCocoa.mm: the
 // VPS reorder depth, the Annex B parameter set locators, and the SPS/PPS/slice header state that recovers the QP of the

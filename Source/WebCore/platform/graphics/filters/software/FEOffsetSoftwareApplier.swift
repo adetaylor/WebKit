@@ -22,14 +22,14 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import WebCore_Internal.FEOffsetParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.GraphicsContextSwiftBridge
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
+import WebCore_Private.Core.FEOffsetParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.GraphicsContextSwiftBridge
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
 
 // FEOffset::calculateImageRect(): the input image rect, moved by the offset.
 func feOffsetImageRect(

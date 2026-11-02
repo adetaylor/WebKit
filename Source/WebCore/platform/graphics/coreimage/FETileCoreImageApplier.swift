@@ -27,8 +27,8 @@
 import CoreGraphics
 import CoreImage
 import CoreImage.CIFilterBuiltins
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatRect
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatRect
 
 // FETileCoreImageApplier::apply(): the input's maximum effect rect, extended with transparent black where the input
 // doesn't cover it, tiled and cropped to the result.

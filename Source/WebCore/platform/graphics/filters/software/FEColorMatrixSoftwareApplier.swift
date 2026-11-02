@@ -78,20 +78,20 @@ import Glibc
 #if arch(arm64)
 import _Builtin_intrinsics.arm.neon
 #endif
-import WebCore_Internal.AlphaPremultiplication
-import WebCore_Internal.ColorSpace
-import WebCore_Internal.FEColorMatrixParameters
-import WebCore_Internal.FilterGraphicsBridge
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntPoint
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
-import WebCore_Internal.PixelBuffer
-import WebCore_Internal.PixelBufferFormat
-import WebCore_Internal.PixelBufferSwiftBridge
-import WebCore_Internal.PixelFormat
+import WebCore_Private.Core.AlphaPremultiplication
+import WebCore_Private.Core.ColorSpace
+import WebCore_Private.Core.FEColorMatrixParameters
+import WebCore_Private.Core.FilterGraphicsBridge
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntPoint
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
+import WebCore_Private.Core.PixelBuffer
+import WebCore_Private.Core.PixelBufferFormat
+import WebCore_Private.Core.PixelBufferSwiftBridge
+import WebCore_Private.Core.PixelFormat
 #if USE_SKIA
-import WebCore_Internal.FilterSkiaBridge
+import WebCore_Private.Core.FilterSkiaBridge
 #endif
 
 // FEColorMatrixSoftwareApplier::apply(): draws the input into the result's image buffer, then applies the matrix to its

@@ -28,7 +28,7 @@
 #if ENABLE_WEBCORE_SWIFT
 
 private import Cxx
-import WebCore_Internal.MediaParsersCxxBridging
+import WebCore_Private.Core.MediaParsersCxxBridging
 
 // WTF's string parsing semantics over the code units of a Latin-1 (UInt8) or UTF-16 (UInt16) string, leniencies
 // included, so that ports of StringView-based parsers accept exactly what they accepted in C++.

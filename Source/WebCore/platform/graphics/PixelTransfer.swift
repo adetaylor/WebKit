@@ -26,10 +26,10 @@
 // The safe Span overloads Swift synthesizes for the views' span accessors call Cxx's Span(_unsafeCxxSpan:).
 // Xcode builds don't find it unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.PixelBuffer
-import WebCore_Internal.PixelBufferFormat
-import WebCore_Internal.PixelBufferSwiftBridge
-import WebCore_Internal.PixelFormat
+import WebCore_Private.Core.PixelBuffer
+import WebCore_Private.Core.PixelBufferFormat
+import WebCore_Private.Core.PixelBufferSwiftBridge
+import WebCore_Private.Core.PixelFormat
 
 // The Swift side of ImageBufferBackend::getPixelBuffer(), putPixelBuffer() and convertToLuminanceMaskUint8()
 // (ImageBufferBackend.cpp), which hand over views that don't overlap.

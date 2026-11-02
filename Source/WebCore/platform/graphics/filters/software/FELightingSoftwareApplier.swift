@@ -29,16 +29,16 @@
 // Xcode builds don't find it unless this file imports Cxx.
 private import Cxx
 import Darwin
-import WebCore_Internal.AlphaPremultiplication
-import WebCore_Internal.FELightingParameters
-import WebCore_Internal.FilterGraphicsBridge
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatRect
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
-import WebCore_Internal.LightSourceParameters
-import WebCore_Internal.PixelBuffer
-import WebCore_Internal.PixelBufferSwiftBridge
+import WebCore_Private.Core.AlphaPremultiplication
+import WebCore_Private.Core.FELightingParameters
+import WebCore_Private.Core.FilterGraphicsBridge
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
+import WebCore_Private.Core.LightSourceParameters
+import WebCore_Private.Core.PixelBuffer
+import WebCore_Private.Core.PixelBufferSwiftBridge
 
 // FEDiffuseLighting and FESpecularLighting in software: the light that `lightSource` (its positions resolved for the
 // filter) casts on the surface whose height is the input's alpha, as seen from straight above (diffuse) or as a

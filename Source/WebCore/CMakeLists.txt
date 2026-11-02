@@ -3599,11 +3599,8 @@ if (SWIFT_REQUIRED AND APPLE)
     # As in WebCore.xcconfig, keep the Swift "Cxx" module's symbols private (rdar://139232237, rdar://165050676).
     target_link_options(WebCore PRIVATE "LINKER:-unexported_symbol,_$s*3Cxx*")
 
-    # WebCore's Swift imports WebCore's own headers through the WebCore_Internal module, which only
-    # its Swift compile can see (as SWIFT_INCLUDE_PATHS does in Xcode).
-    set(WebCore_SWIFT_INTEROP_MODULE_PATH_SWIFT_ONLY TRUE)
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
-        "${WEBCORE_DIR}/Modules/Internal"
+        "${WebCore_PRIVATE_HEADERS_DIR}"
         "WebCoreSwift-Generated.h")
 elseif (WK_BUILD_WEBCORE_SWIFT)
     # The Swift sources the WebCore Xcode project compiles, with WebCore.xcconfig's Swift settings.

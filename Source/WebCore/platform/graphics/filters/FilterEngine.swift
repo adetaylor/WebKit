@@ -50,17 +50,17 @@
 #if ENABLE_WEBCORE_SWIFT
 
 private import Cxx
-import WebCore_Internal.ColorSpace
-import WebCore_Internal.FilterEffectView
-import WebCore_Internal.FilterGraphicsBridge
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatRect
-import WebCore_Internal.GraphicsContextSwiftBridge
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntRect
-import WebCore_Internal.RenderingMode
+import WebCore_Private.Core.ColorSpace
+import WebCore_Private.Core.FilterEffectView
+import WebCore_Private.Core.FilterGraphicsBridge
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.GraphicsContextSwiftBridge
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.RenderingMode
 #if USE_CORE_IMAGE
-import WebCore_Internal.FilterCoreImageSwiftBridge
+import WebCore_Private.Core.FilterCoreImageSwiftBridge
 #endif
 
 // An image of a filter being applied: its source image or an effect's result. The effects that read it and FilterResults

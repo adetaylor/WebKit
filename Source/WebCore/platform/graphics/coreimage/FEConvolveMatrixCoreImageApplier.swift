@@ -25,11 +25,11 @@
 #if USE_CORE_IMAGE
 
 import CoreImage
-import WebCore_Internal.FEConvolveMatrixParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.IntPoint
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
+import WebCore_Private.Core.FEConvolveMatrixParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.IntPoint
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
 
 // FEConvolveMatrixCoreImageApplier::supportsCoreImageRendering().
 @_expose(Cxx)

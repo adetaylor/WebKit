@@ -54,15 +54,15 @@ import Darwin
 #elseif canImport(Glibc)
 import Glibc
 #endif
-import WebCore_Internal.AlphaPremultiplication
-import WebCore_Internal.FEComponentTransferParameters
-import WebCore_Internal.IntRect
-import WebCore_Internal.PixelBuffer
-import WebCore_Internal.PixelBufferSwiftBridge
+import WebCore_Private.Core.AlphaPremultiplication
+import WebCore_Private.Core.FEComponentTransferParameters
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.PixelBuffer
+import WebCore_Private.Core.PixelBufferSwiftBridge
 #if USE_SKIA
-import WebCore_Internal.FilterSkiaBridge
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntPoint
+import WebCore_Private.Core.FilterSkiaBridge
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntPoint
 #endif
 
 // FEComponentTransferSoftwareApplier::apply().

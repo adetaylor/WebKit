@@ -47,11 +47,11 @@
 #if USE_CORE_IMAGE
 import CoreGraphics
 #endif
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.IntRect
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.IntRect
 
 // The geometry functions of Filter (Filter.cpp) for the Swift code of effects, which gets a FilterApplyContext in place
 // of the Filter. Each one does what the Filter function of the same name does, in the same order.

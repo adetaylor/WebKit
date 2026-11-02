@@ -25,9 +25,9 @@
 
 import CoreImage
 import CoreImage.CIFilterBuiltins
-import WebCore_Internal.FEDropShadowParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatSize
+import WebCore_Private.Core.FEDropShadowParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatSize
 
 // FEDropShadowCoreImageApplier::apply(): the input's alpha, blurred, moved by the offset and filled with the shadow
 // color, under the input. C++ resolves the shadow color (with the shadow opacity) in the operating color space.

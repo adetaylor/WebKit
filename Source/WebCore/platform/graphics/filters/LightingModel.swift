@@ -55,10 +55,10 @@
 #if ENABLE_WEBCORE_SWIFT
 
 import Darwin
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatPoint3D
-import WebCore_Internal.LightSourceParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatPoint3D
+import WebCore_Private.Core.LightSourceParameters
 
 // The light that a light source casts on each pixel of a lighting result (LightSource::initPaintingData() and
 // computePixelLightingData() in C++). The float operations are the C++ ones, in the same order.

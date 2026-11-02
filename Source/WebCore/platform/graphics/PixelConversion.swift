@@ -25,14 +25,14 @@
 
 #if USE_SKIA
 private import Cxx
-import WebCore_Internal.PixelBufferConversion
+import WebCore_Private.Core.PixelBufferConversion
 #endif
-import WebCore_Internal.AlphaPremultiplication
-import WebCore_Internal.ColorSpace
-import WebCore_Internal.IntSize
-import WebCore_Internal.PixelBuffer
-import WebCore_Internal.PixelBufferFormat
-import WebCore_Internal.PixelFormat
+import WebCore_Private.Core.AlphaPremultiplication
+import WebCore_Private.Core.ColorSpace
+import WebCore_Private.Core.IntSize
+import WebCore_Private.Core.PixelBuffer
+import WebCore_Private.Core.PixelBufferFormat
+import WebCore_Private.Core.PixelFormat
 
 // Pixel format conversion of images in byte spans, whose consecutive rows start `bytesPerRow` apart. C++ reaches it
 // through convertImagePixels() and copyRows() (PixelBufferConversion.h).

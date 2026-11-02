@@ -26,9 +26,9 @@
 // The safe Span overloads Swift synthesizes for the views' span() call a Span initializer from Cxx, which Xcode
 // builds don't find unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.EMEParseResults
-import WebCore_Internal.ISOParseResults
-import WebCore_Internal.MediaParsersCxxBridging
+import WebCore_Private.Core.EMEParseResults
+import WebCore_Private.Core.ISOParseResults
+import WebCore_Private.Core.MediaParsersCxxBridging
 
 // The names this file compares with, packed for MediaParserName comparisons.
 private enum InitDataNames {
