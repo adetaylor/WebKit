@@ -95,6 +95,7 @@ private:
 #if ENABLE(IPC_TESTING_SWIFT)
     void sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&)>&&);
     void benchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t messageCount, CompletionHandler<void(uint64_t)>&&);
+    void fuzzSwiftStreamReceiver(uint64_t seed, uint32_t iterations, CompletionHandler<void(uint32_t, uint32_t, String&&)>&&);
 #endif
     void stopIfNeeded();
 
