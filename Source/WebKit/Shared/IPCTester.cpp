@@ -611,6 +611,20 @@ void IPCTester::sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&
     auto digest = streamConnection->sendSync(Messages::IPCSwiftStreamTester::TakeRecordedDigest(), identifier);
     check(digest.succeeded() && std::get<0>(digest.reply()) == expectedDigest, "TakeRecordedDigest"_s);
 
+    auto digestSwift = streamConnection->sendSync(Messages::IPCSwiftStreamTester::TakeRecordedDigestSwift(), identifier);
+    check(digestSwift.succeeded() && !std::get<0>(digestSwift.reply()), "TakeRecordedDigestSwift"_s);
+
+    // Replies that fit in the stream buffer, and one that has to be sent out of stream.
+    for (uint32_t count : { 0u, 1u, 3u, 300u }) {
+        StringBuilder expected;
+        for (uint32_t i = 0; i < count; ++i)
+            expected.append("abc"_s);
+        auto repeated = streamConnection->sendSync(Messages::IPCSwiftStreamTester::RepeatTextSwift("abc"_s, count), identifier);
+        check(repeated.succeeded() && std::get<0>(repeated.reply()) == expected.toString(), "RepeatTextSwift"_s);
+    }
+    auto repeatedNull = streamConnection->sendSync(Messages::IPCSwiftStreamTester::RepeatTextSwift(String(), 2), identifier);
+    check(repeatedNull.succeeded() && std::get<0>(repeatedNull.reply()).isNull(), "RepeatTextSwift null"_s);
+
     // A malformed message invalidates the stream connection, so nothing more is answered.
     check(streamConnection->send(MalformedRecordTextSwift { }, identifier) == IPC::Error::NoError, "MalformedRecordTextSwift"_s);
     auto afterMalformed = streamConnection->sendSync(Messages::IPCSwiftStreamTester::TakeRecordedDigest(), identifier);

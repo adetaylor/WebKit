@@ -63,6 +63,17 @@ final class IPCSwiftStreamTester {
         a &+ b
     }
 
+    func repeatTextSwift(connection: IPC.StreamServerConnection, text: String?, count: UInt32) -> String? {
+        guard let text else {
+            return nil
+        }
+        return String(repeating: text, count: Int(count))
+    }
+
+    func takeRecordedDigestSwift(connection: IPC.StreamServerConnection) -> UInt32 {
+        takeRecordedDigest(connection: connection)
+    }
+
     // Records the UTF-8 form of the text, then a terminating 0, so a null string records only the 0.
     func recordTextSwift(connection: IPC.StreamServerConnection, text: String?) {
         for byte in text?.utf8 ?? "".utf8 {
