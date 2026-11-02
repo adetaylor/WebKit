@@ -80,11 +80,16 @@ private:
     void asyncPing(uint32_t value, CompletionHandler<void(uint32_t)>&&);
     void emptyMessage();
     void checkInvalidMessages(CompletionHandler<void(uint32_t)>&&);
+    void benchFourValues(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { m_benchSink += a + b + c + d; }
+    void benchString(String&& text) { m_benchSink += text.length(); }
+    void benchVector(Vector<uint32_t>&& values) { m_benchSink += values.size(); }
+    void benchSync(uint64_t value, CompletionHandler<void(uint64_t)>&& completionHandler) { completionHandler(value); }
 
     const Ref<IPC::StreamConnectionWorkQueue> m_workQueue;
     const Ref<IPC::StreamServerConnection> m_streamConnection;
     const IPCStreamTesterIdentifier m_identifier;
     uint32_t m_invalidMessages { 0 };
+    uint64_t m_benchSink { 0 };
     std::shared_ptr<bool> m_autoreleasePoolCheckValue;
 #if ENABLE(IPC_TESTING_SWIFT)
     // Receives IPCSwiftStreamTester messages on the same stream connection. Only used on the work queue.
