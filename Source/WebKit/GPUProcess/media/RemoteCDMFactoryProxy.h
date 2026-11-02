@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,73 +27,35 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
 
-#include "Connection.h"
-#include "GPUConnectionToWebProcess.h"
 #include "MessageReceiver.h"
 #include "RemoteCDMIdentifier.h"
 #include "RemoteCDMInstanceIdentifier.h"
 #include "RemoteCDMInstanceSessionIdentifier.h"
-#include <WebCore/CDMPrivate.h>
+#include <wtf/CompletionHandler.h>
+#include <wtf/RefCounted.h>
 #include <wtf/TZoneMalloc.h>
-#include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/UniqueRef.h>
 #include <wtf/WeakPtr.h>
 
 namespace WebKit {
 
-class RemoteCDMInstanceProxy;
-class RemoteCDMInstanceSessionProxy;
-class RemoteCDMProxy;
+class RemoteCDMRegistry;
 struct RemoteCDMConfiguration;
+struct SharedPreferencesForWebProcess;
 
-class RemoteCDMFactoryProxy final : public RefCounted<RemoteCDMFactoryProxy>, public IPC::MessageReceiver, WebCore::CDMPrivateClient {
+class RemoteCDMFactoryProxy final : public RefCounted<RemoteCDMFactoryProxy>, public IPC::MessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(RemoteCDMFactoryProxy);
 public:
-    static Ref<RemoteCDMFactoryProxy> create(GPUConnectionToWebProcess& gpuConnection)
-    {
-        return adoptRef(*new RemoteCDMFactoryProxy(gpuConnection));
-    }
-    virtual ~RemoteCDMFactoryProxy();
+    static Ref<RemoteCDMFactoryProxy> create(RemoteCDMRegistry&);
+    ~RemoteCDMFactoryProxy();
 
     void ref() const final { RefCounted::ref(); }
     void deref() const final { RefCounted::deref(); }
 
-    void clear();
-
-    void didReceiveMessageFromWebProcess(IPC::Connection& connection, IPC::Decoder& decoder) { didReceiveMessage(connection, decoder); }
-    void didReceiveSyncMessageFromWebProcess(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& encoder) { return didReceiveSyncMessage(connection, decoder, encoder); }
-    void didReceiveCDMMessage(IPC::Connection&, IPC::Decoder&);
-    void didReceiveCDMInstanceMessage(IPC::Connection&, IPC::Decoder&);
-    void didReceiveCDMInstanceSessionMessage(IPC::Connection&, IPC::Decoder&);
-    void didReceiveSyncCDMMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
-    void didReceiveSyncCDMInstanceMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
-    void didReceiveSyncCDMInstanceSessionMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
-
-    void addProxy(const RemoteCDMIdentifier&, Ref<RemoteCDMProxy>&&);
-    void removeProxy(const RemoteCDMIdentifier&);
-
-    void addInstance(const RemoteCDMInstanceIdentifier&, Ref<RemoteCDMInstanceProxy>&&);
-    void removeInstance(const RemoteCDMInstanceIdentifier&);
-    RemoteCDMInstanceProxy* getInstance(const RemoteCDMInstanceIdentifier&);
-
-    void addSession(const RemoteCDMInstanceSessionIdentifier&, Ref<RemoteCDMInstanceSessionProxy>&&);
-    void removeSession(const RemoteCDMInstanceSessionIdentifier&);
-
-    RefPtr<GPUConnectionToWebProcess> gpuConnectionToWebProcess() { return m_gpuConnectionToWebProcess.get(); }
-
-    NODELETE bool allowsExitUnderMemoryPressure() const;
-
-    String mediaKeysStorageDirectory() const LIFETIME_BOUND;
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
-#if !RELEASE_LOG_DISABLED
-    const Logger& logger() const;
-#endif
-
 private:
-    RemoteCDMFactoryProxy(GPUConnectionToWebProcess&);
+    explicit RemoteCDMFactoryProxy(RemoteCDMRegistry&);
 
-    friend class GPUProcessConnection;
     // IPC::MessageReceiver
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
     void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&) final;
@@ -101,15 +63,10 @@ private:
     // Messages
     void createCDM(const String& keySystem, const String& mediaKeysHashSalt, CompletionHandler<void(std::optional<RemoteCDMIdentifier>&&, RemoteCDMConfiguration&&)>&&);
     void supportsKeySystem(const String& keySystem, CompletionHandler<void(bool)>&&);
+    void removeInstance(const RemoteCDMInstanceIdentifier&);
+    void removeSession(const RemoteCDMInstanceSessionIdentifier&);
 
-    ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
-    HashMap<RemoteCDMIdentifier, Ref<RemoteCDMProxy>> m_proxies;
-    HashMap<RemoteCDMInstanceIdentifier, Ref<RemoteCDMInstanceProxy>> m_instances;
-    HashMap<RemoteCDMInstanceSessionIdentifier, Ref<RemoteCDMInstanceSessionProxy>> m_sessions;
-
-#if !RELEASE_LOG_DISABLED
-    mutable RefPtr<Logger> m_logger;
-#endif
+    WeakPtr<RemoteCDMRegistry> m_registry;
 };
 
 }

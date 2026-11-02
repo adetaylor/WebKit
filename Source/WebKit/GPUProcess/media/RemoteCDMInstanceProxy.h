@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,47 +27,39 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
 
-#include "Connection.h"
 #include "MessageReceiver.h"
 #include "RemoteCDMInstanceIdentifier.h"
 #include "RemoteCDMInstanceSessionIdentifier.h"
-#include "RemoteCDMProxy.h"
 #include <WebCore/CDMInstance.h>
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
-#include <wtf/UniqueRef.h>
+#include <wtf/WeakPtr.h>
 
 namespace WebCore {
-class CDMInstance;
 struct CDMKeySystemConfiguration;
-}
-
-namespace IPC {
-class SharedBufferReference;
 }
 
 namespace WebKit {
 
-struct RemoteCDMInstanceConfiguration;
-class RemoteCDMInstanceSessionProxy;
+class RemoteCDMPrivateHandle;
+class RemoteCDMRegistry;
+struct SharedPreferencesForWebProcess;
 
 class RemoteCDMInstanceProxy : public WebCore::CDMInstanceClient, private IPC::MessageReceiver, public RefCounted<RemoteCDMInstanceProxy>  {
 public:
     USING_CAN_MAKE_WEAKPTR(WebCore::CDMInstanceClient);
 
-    static Ref<RemoteCDMInstanceProxy> create(RemoteCDMProxy&, Ref<WebCore::CDMInstance>&&, RemoteCDMInstanceIdentifier);
+    static Ref<RemoteCDMInstanceProxy> create(RemoteCDMRegistry&, RemoteCDMPrivateHandle&, Ref<WebCore::CDMInstance>&&, RemoteCDMInstanceIdentifier);
     ~RemoteCDMInstanceProxy();
 
     void ref() const final { RefCounted::ref(); }
     void deref() const final { RefCounted::deref(); }
 
-    const RemoteCDMInstanceConfiguration& configuration() const LIFETIME_BOUND { return m_configuration.get(); }
-    WebCore::CDMInstance& instance() { return m_instance; }
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
 private:
-    friend class RemoteCDMFactoryProxy;
-    RemoteCDMInstanceProxy(RemoteCDMProxy&, Ref<WebCore::CDMInstance>&&, UniqueRef<RemoteCDMInstanceConfiguration>&&, RemoteCDMInstanceIdentifier);
+    friend class RemoteCDMRegistry;
+    RemoteCDMInstanceProxy(RemoteCDMRegistry&, RemoteCDMPrivateHandle&, Ref<WebCore::CDMInstance>&&, RemoteCDMInstanceIdentifier);
 
     // CDMInstanceClient
     void unrequestedInitializationDataReceived(const String&, Ref<WebCore::SharedBuffer>&&) final;
@@ -90,11 +82,10 @@ private:
     void setStorageDirectory(const String&);
     void createSession(uint64_t logIdentifier, CompletionHandler<void(std::optional<RemoteCDMInstanceSessionIdentifier>)>&&);
 
-    WeakPtr<RemoteCDMProxy> m_cdm;
+    WeakPtr<RemoteCDMRegistry> m_registry;
+    WeakPtr<RemoteCDMPrivateHandle> m_cdm;
     const Ref<WebCore::CDMInstance> m_instance;
-    const UniqueRef<RemoteCDMInstanceConfiguration> m_configuration;
     RemoteCDMInstanceIdentifier m_identifier;
-    HashMap<RemoteCDMInstanceSessionIdentifier, Ref<RemoteCDMInstanceSessionProxy>> m_sessions;
 
 #if !RELEASE_LOG_DISABLED
     const Ref<const Logger> m_logger;

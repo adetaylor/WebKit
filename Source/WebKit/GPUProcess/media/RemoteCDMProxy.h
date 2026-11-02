@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,54 +27,37 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
 
-#include "Connection.h"
 #include "MessageReceiver.h"
-#include "RemoteCDMFactoryProxy.h"
 #include "RemoteCDMInstanceIdentifier.h"
 #include <WebCore/CDMPrivate.h>
+#include <wtf/CompletionHandler.h>
 #include <wtf/Forward.h>
-#include <wtf/UniqueRef.h>
+#include <wtf/RefCounted.h>
+#include <wtf/WeakPtr.h>
 
 namespace WebCore {
-class SharedBuffer;
-enum class CDMRequirement : uint8_t;
-enum class CDMSessionType : uint8_t;
 struct CDMKeySystemConfiguration;
-struct CDMRestrictions;
 }
 
 namespace WebKit {
 
-class RemoteCDMInstanceProxy;
+class RemoteCDMPrivateHandle;
+class RemoteCDMRegistry;
 struct RemoteCDMInstanceConfiguration;
-struct RemoteCDMConfiguration;
 struct SharedPreferencesForWebProcess;
 
 class RemoteCDMProxy : public RefCounted<RemoteCDMProxy>, public IPC::MessageReceiver {
 public:
-    static Ref<RemoteCDMProxy> create(RemoteCDMFactoryProxy&, UniqueRef<WebCore::CDMPrivate>&&);
+    static Ref<RemoteCDMProxy> create(RemoteCDMRegistry&, Ref<RemoteCDMPrivateHandle>&&);
     ~RemoteCDMProxy();
 
     void ref() const final { RefCounted::ref(); }
     void deref() const final { RefCounted::deref(); }
 
-    const RemoteCDMConfiguration& configuration() const LIFETIME_BOUND { return m_configuration.get(); }
-
-    RemoteCDMFactoryProxy* factory() const { return m_factory.get(); }
-
-    bool supportsInitData(const String&, const WebCore::SharedBuffer&);
-    RefPtr<WebCore::SharedBuffer> sanitizeResponse(const WebCore::SharedBuffer& response);
-    std::optional<String> sanitizeSessionId(const String& sessionId);
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
-#if !RELEASE_LOG_DISABLED
-    const Logger& logger() const { return m_logger; }
-    uint64_t logIdentifier() const { return m_logIdentifier; }
-#endif
-
 private:
-    friend class RemoteCDMFactoryProxy;
-    RemoteCDMProxy(RemoteCDMFactoryProxy&, UniqueRef<WebCore::CDMPrivate>&&, UniqueRef<RemoteCDMConfiguration>&&);
+    RemoteCDMProxy(RemoteCDMRegistry&, Ref<RemoteCDMPrivateHandle>&&);
 
     // IPC::MessageReceiver
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
@@ -86,14 +69,8 @@ private:
     void loadAndInitialize();
     void setLogIdentifier(uint64_t);
 
-    WeakPtr<RemoteCDMFactoryProxy> m_factory;
-    const UniqueRef<WebCore::CDMPrivate> m_private;
-    const UniqueRef<RemoteCDMConfiguration> m_configuration;
-
-#if !RELEASE_LOG_DISABLED
-    const Ref<const Logger> m_logger;
-    uint64_t m_logIdentifier { 0 };
-#endif
+    WeakPtr<RemoteCDMRegistry> m_registry;
+    const Ref<RemoteCDMPrivateHandle> m_cdm;
 };
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,24 +29,25 @@
 #if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
 
 #include "GPUConnectionToWebProcess.h"
-#include "RemoteCDMFactoryProxy.h"
 #include "RemoteCDMInstanceSessionMessages.h"
+#include "RemoteCDMRegistry.h"
 #include <WebCore/SharedBuffer.h>
 
 namespace WebKit {
 
 using namespace WebCore;
 
-Ref<RemoteCDMInstanceSessionProxy> RemoteCDMInstanceSessionProxy::create(WeakPtr<RemoteCDMProxy>&& proxy, Ref<WebCore::CDMInstanceSession>&& session, uint64_t logIdentifier, RemoteCDMInstanceSessionIdentifier identifier)
+Ref<RemoteCDMInstanceSessionProxy> RemoteCDMInstanceSessionProxy::create(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, Ref<WebCore::CDMInstanceSession>&& session, RemoteCDMInstanceSessionIdentifier identifier)
 {
-    Ref sessionProxy = adoptRef(*new RemoteCDMInstanceSessionProxy(WTF::move(proxy), WTF::move(session), logIdentifier, identifier));
+    Ref sessionProxy = adoptRef(*new RemoteCDMInstanceSessionProxy(registry, cdm, WTF::move(session), identifier));
     WeakPtr<WebCore::CDMInstanceSessionClient> client = sessionProxy.get();
     protect(sessionProxy->m_session)->setClient(WTF::move(client));
     return sessionProxy;
 }
 
-RemoteCDMInstanceSessionProxy::RemoteCDMInstanceSessionProxy(WeakPtr<RemoteCDMProxy>&& cdm, Ref<WebCore::CDMInstanceSession>&& session, uint64_t logIdentifier, RemoteCDMInstanceSessionIdentifier identifier)
-    : m_cdm(WTF::move(cdm))
+RemoteCDMInstanceSessionProxy::RemoteCDMInstanceSessionProxy(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, Ref<WebCore::CDMInstanceSession>&& session, RemoteCDMInstanceSessionIdentifier identifier)
+    : m_registry(registry)
+    , m_cdm(cdm)
     , m_session(WTF::move(session))
     , m_identifier(identifier)
 {
@@ -138,11 +139,11 @@ void RemoteCDMInstanceSessionProxy::updateKeyStatuses(KeyStatusVector&& keyStatu
     if (!m_cdm)
         return;
 
-    RefPtr factory = m_cdm->factory();
-    if (!factory)
+    RefPtr registry = m_registry;
+    if (!registry)
         return;
 
-    RefPtr gpuConnectionToWebProcess = factory->gpuConnectionToWebProcess();
+    RefPtr gpuConnectionToWebProcess = registry->gpuConnectionToWebProcess();
     if (!gpuConnectionToWebProcess)
         return;
 
@@ -154,11 +155,11 @@ void RemoteCDMInstanceSessionProxy::sendMessage(CDMMessageType type, Ref<SharedB
     if (!m_cdm)
         return;
 
-    RefPtr factory = m_cdm->factory();
-    if (!factory)
+    RefPtr registry = m_registry;
+    if (!registry)
         return;
 
-    RefPtr gpuConnectionToWebProcess = factory->gpuConnectionToWebProcess();
+    RefPtr gpuConnectionToWebProcess = registry->gpuConnectionToWebProcess();
     if (!gpuConnectionToWebProcess)
         return;
 
@@ -170,11 +171,11 @@ void RemoteCDMInstanceSessionProxy::sessionIdChanged(const String& sessionId)
     if (!m_cdm)
         return;
 
-    RefPtr factory = m_cdm->factory();
-    if (!factory)
+    RefPtr registry = m_registry;
+    if (!registry)
         return;
 
-    RefPtr gpuConnectionToWebProcess = factory->gpuConnectionToWebProcess();
+    RefPtr gpuConnectionToWebProcess = registry->gpuConnectionToWebProcess();
     if (!gpuConnectionToWebProcess)
         return;
 
@@ -186,7 +187,9 @@ std::optional<SharedPreferencesForWebProcess> RemoteCDMInstanceSessionProxy::sha
     if (!m_cdm)
         return std::nullopt;
 
-    return protect(m_cdm)->sharedPreferencesForWebProcess();
+    if (RefPtr registry = m_registry)
+        return registry->sharedPreferencesForWebProcess();
+    return std::nullopt;
 }
 
 }

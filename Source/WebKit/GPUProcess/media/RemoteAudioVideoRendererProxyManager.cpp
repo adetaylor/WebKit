@@ -34,8 +34,7 @@
 #include "LayerHostingContext.h"
 #include "Logging.h"
 #include "RemoteAudioVideoRendererProxyManagerMessages.h"
-#include "RemoteCDMFactoryProxy.h"
-#include "RemoteCDMInstanceProxy.h"
+#include "RemoteCDMRegistry.h"
 #include "RemoteLegacyCDMFactoryProxy.h"
 #include "RemoteLegacyCDMSessionProxy.h"
 #include "RemoteVideoFrameObjectHeap.h"
@@ -829,8 +828,8 @@ void RemoteAudioVideoRendererProxyManager::setCDMInstance(RemoteAudioVideoRender
         renderer->setCDMInstance(nullptr);
         return;
     }
-    if (RefPtr instanceProxy = protect(m_gpuConnectionToWebProcess.get()->cdmFactoryProxy())->getInstance(*instanceId))
-        renderer->setCDMInstance(&instanceProxy->instance());
+    if (RefPtr instance = protect(m_gpuConnectionToWebProcess.get()->cdmRegistry())->cdmInstance(*instanceId))
+        renderer->setCDMInstance(instance.get());
     else
         ALWAYS_LOG(LOGIDENTIFIER, "Unable to find CDMInstance: ", instanceId->loggingString());
 }

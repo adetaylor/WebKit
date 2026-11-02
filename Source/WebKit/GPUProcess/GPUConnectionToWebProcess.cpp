@@ -87,11 +87,11 @@
 #endif
 
 #if ENABLE(ENCRYPTED_MEDIA)
-#include "RemoteCDMFactoryProxy.h"
 #include "RemoteCDMFactoryProxyMessages.h"
 #include "RemoteCDMInstanceProxyMessages.h"
 #include "RemoteCDMInstanceSessionProxyMessages.h"
 #include "RemoteCDMProxyMessages.h"
+#include "RemoteCDMRegistry.h"
 #endif
 
 #if ENABLE(MEDIA_SOURCE)
@@ -467,8 +467,8 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
     m_libWebRTCCodecsProxy = nullptr;
 #endif
 #if ENABLE(ENCRYPTED_MEDIA)
-    if (m_cdmFactoryProxy)
-        m_cdmFactoryProxy->clear();
+    if (m_cdmRegistry)
+        m_cdmRegistry->clear();
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
@@ -567,7 +567,7 @@ bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
         return false;
 #endif
 #if ENABLE(ENCRYPTED_MEDIA)
-    if (auto* cdmFactoryProxy = m_cdmFactoryProxy.get(); cdmFactoryProxy && !cdmFactoryProxy->allowsExitUnderMemoryPressure())
+    if (auto* cdmRegistry = m_cdmRegistry.get(); cdmRegistry && !cdmRegistry->allowsExitUnderMemoryPressure())
         return false;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
@@ -661,12 +661,12 @@ void GPUConnectionToWebProcess::canDecodeExtendedType(PlatformMediaDecodingType 
 #endif
 
 #if ENABLE(ENCRYPTED_MEDIA)
-RemoteCDMFactoryProxy& GPUConnectionToWebProcess::cdmFactoryProxy()
+RemoteCDMRegistry& GPUConnectionToWebProcess::cdmRegistry()
 {
-    if (!m_cdmFactoryProxy)
-        lazyInitialize(m_cdmFactoryProxy, RemoteCDMFactoryProxy::create(*this));
+    if (!m_cdmRegistry)
+        lazyInitialize(m_cdmRegistry, RemoteCDMRegistry::create(*this));
 
-    return *m_cdmFactoryProxy;
+    return *m_cdmRegistry;
 }
 #endif
 
@@ -1101,22 +1101,22 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
 #endif
 #if ENABLE(ENCRYPTED_MEDIA)
     if (decoder.messageReceiverName() == Messages::RemoteCDMFactoryProxy::messageReceiverName()) {
-        protect(cdmFactoryProxy())->didReceiveMessageFromWebProcess(connection, decoder);
+        protect(cdmRegistry())->didReceiveFactoryMessage(connection, decoder);
         return true;
     }
 
     if (decoder.messageReceiverName() == Messages::RemoteCDMProxy::messageReceiverName()) {
-        protect(cdmFactoryProxy())->didReceiveCDMMessage(connection, decoder);
+        protect(cdmRegistry())->didReceiveCDMMessage(connection, decoder);
         return true;
     }
 
     if (decoder.messageReceiverName() == Messages::RemoteCDMInstanceProxy::messageReceiverName()) {
-        protect(cdmFactoryProxy())->didReceiveCDMInstanceMessage(connection, decoder);
+        protect(cdmRegistry())->didReceiveCDMInstanceMessage(connection, decoder);
         return true;
     }
 
     if (decoder.messageReceiverName() == Messages::RemoteCDMInstanceSessionProxy::messageReceiverName()) {
-        protect(cdmFactoryProxy())->didReceiveCDMInstanceSessionMessage(connection, decoder);
+        protect(cdmRegistry())->didReceiveCDMInstanceSessionMessage(connection, decoder);
         return true;
     }
 #endif
@@ -1209,22 +1209,22 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
 #endif
 #if ENABLE(ENCRYPTED_MEDIA)
     if (decoder.messageReceiverName() == Messages::RemoteCDMFactoryProxy::messageReceiverName()) {
-        protect(cdmFactoryProxy())->didReceiveSyncMessageFromWebProcess(connection, decoder, replyEncoder);
+        protect(cdmRegistry())->didReceiveSyncFactoryMessage(connection, decoder, replyEncoder);
         return true;
     }
 
     if (decoder.messageReceiverName() == Messages::RemoteCDMProxy::messageReceiverName()) {
-        protect(cdmFactoryProxy())->didReceiveSyncCDMMessage(connection, decoder, replyEncoder);
+        protect(cdmRegistry())->didReceiveSyncCDMMessage(connection, decoder, replyEncoder);
         return true;
     }
 
     if (decoder.messageReceiverName() == Messages::RemoteCDMInstanceProxy::messageReceiverName()) {
-        protect(cdmFactoryProxy())->didReceiveSyncCDMInstanceMessage(connection, decoder, replyEncoder);
+        protect(cdmRegistry())->didReceiveSyncCDMInstanceMessage(connection, decoder, replyEncoder);
         return true;
     }
 
     if (decoder.messageReceiverName() == Messages::RemoteCDMInstanceSessionProxy::messageReceiverName()) {
-        protect(cdmFactoryProxy())->didReceiveSyncCDMInstanceSessionMessage(connection, decoder, replyEncoder);
+        protect(cdmRegistry())->didReceiveSyncCDMInstanceSessionMessage(connection, decoder, replyEncoder);
         return true;
     }
 #endif

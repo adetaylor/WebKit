@@ -61,7 +61,7 @@
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/UniqueRef.h>
 #if ENABLE(ENCRYPTED_MEDIA)
-#include "RemoteCDMFactoryProxy.h"
+#include "RemoteCDMRegistry.h"
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
@@ -1078,8 +1078,8 @@ void RemoteMediaPlayerProxy::cdmInstanceAttached(RemoteCDMInstanceIdentifier&& i
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instanceProxy = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->getInstance(instanceId))
-        m_player->cdmInstanceAttached(instanceProxy->instance());
+    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmRegistry())->cdmInstance(instanceId))
+        m_player->cdmInstanceAttached(*instance);
 }
 
 void RemoteMediaPlayerProxy::cdmInstanceDetached(RemoteCDMInstanceIdentifier&& instanceId)
@@ -1089,8 +1089,8 @@ void RemoteMediaPlayerProxy::cdmInstanceDetached(RemoteCDMInstanceIdentifier&& i
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instanceProxy = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->getInstance(instanceId))
-        m_player->cdmInstanceDetached(instanceProxy->instance());
+    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmRegistry())->cdmInstance(instanceId))
+        m_player->cdmInstanceDetached(*instance);
 }
 
 void RemoteMediaPlayerProxy::attemptToDecryptWithInstance(RemoteCDMInstanceIdentifier&& instanceId)
@@ -1100,8 +1100,8 @@ void RemoteMediaPlayerProxy::attemptToDecryptWithInstance(RemoteCDMInstanceIdent
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instanceProxy = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->getInstance(instanceId))
-        m_player->attemptToDecryptWithInstance(instanceProxy->instance());
+    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmRegistry())->cdmInstance(instanceId))
+        m_player->attemptToDecryptWithInstance(*instance);
 }
 #endif
 
