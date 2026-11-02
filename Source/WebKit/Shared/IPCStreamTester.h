@@ -43,6 +43,10 @@ class StreamConnectionWorkQueue;
 
 namespace WebKit {
 
+#if ENABLE(IPC_TESTING_SWIFT)
+class IPCSwiftStreamTester;
+#endif
+
 // Interface to test various IPC stream related activities.
 class IPCStreamTester final : public IPC::StreamServerConnection::Client {
     WTF_MAKE_TZONE_ALLOCATED(IPCStreamTester);
@@ -80,6 +84,10 @@ private:
     const IPCStreamTesterIdentifier m_identifier;
     uint32_t m_invalidMessages { 0 };
     std::shared_ptr<bool> m_autoreleasePoolCheckValue;
+#if ENABLE(IPC_TESTING_SWIFT)
+    // Receives IPCSwiftStreamTester messages on the same stream connection. Only used on the work queue.
+    std::unique_ptr<IPCSwiftStreamTester> m_swiftTester;
+#endif
 };
 
 }
