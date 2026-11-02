@@ -34,6 +34,8 @@ final class IPCSwiftStreamTester {
 
     private var recordedDigest: UInt32 = 0
 
+    private var benchSink: UInt64 = 0
+
     private var deferredSum: UInt32 = 0
     private var deferredReply: IPCSwiftStreamTesterDeferAddSwiftReply?
 
@@ -90,6 +92,31 @@ final class IPCSwiftStreamTester {
         if send {
             reply.send(deferredSum)
         }
+    }
+
+    // The handlers of IPCTester::benchmarkStreamDispatch(), which IPCStreamTester's C++ ones match.
+
+    func benchFourValues(connection: IPC.StreamServerConnection, a: UInt32, b: UInt32, c: UInt32, d: UInt32) {
+        benchSink &+= UInt64(a &+ b &+ c &+ d)
+    }
+
+    func benchEmptySwift(connection: IPC.StreamServerConnection) {
+    }
+
+    func benchFourValuesSwift(connection: IPC.StreamServerConnection, a: UInt32, b: UInt32, c: UInt32, d: UInt32) {
+        benchSink &+= UInt64(a &+ b &+ c &+ d)
+    }
+
+    func benchStringSwift(connection: IPC.StreamServerConnection, text: String?) {
+        benchSink &+= UInt64(text?.utf8.count ?? 0)
+    }
+
+    func benchVectorSwift(connection: IPC.StreamServerConnection, values: [UInt32]) {
+        benchSink &+= UInt64(values.count)
+    }
+
+    func benchSyncSwift(connection: IPC.StreamServerConnection, value: UInt64) -> UInt64 {
+        value
     }
 
     func takeRecordedDigestSwift(connection: IPC.StreamServerConnection) -> UInt32 {

@@ -94,6 +94,7 @@ private:
     void removeReceiverForSwiftTypesTesting(IPC::Connection&, CompletionHandler<void()>&&);
 #if ENABLE(IPC_TESTING_SWIFT)
     void sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&)>&&);
+    void benchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t messageCount, CompletionHandler<void(uint64_t)>&&);
 #endif
     void stopIfNeeded();
 

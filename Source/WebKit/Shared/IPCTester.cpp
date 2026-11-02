@@ -31,6 +31,7 @@
 #include "Decoder.h"
 #include "IPCConnectionTester.h"
 #include "IPCStreamTester.h"
+#include "IPCStreamTesterMessages.h"
 #include "IPCTesterMessages.h"
 #include "IPCTesterPayload.h"
 #include "IPCTesterReceiver.h"
@@ -650,6 +651,79 @@ void IPCTester::sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&
     protectedTester->stopListeningForIPC(protectedTester.copyRef());
     check(protectedTester->invalidMessageCount() == 1, "invalid message count"_s);
     completionHandler(makeStringByJoining(failures.span(), ", "_s));
+}
+
+// Times sending messageCount messages of one shape through the stream buffer, from this process, to IPCStreamTester's
+// C++ handlers or IPCSwiftStreamTester's Swift ones, until the last one has been handled. The stream buffer is large
+// enough that the time is the server's dispatch rather than the client waiting for room. Replies with 0 on failure.
+void IPCTester::benchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t messageCount, CompletionHandler<void(uint64_t)>&& completionHandler)
+{
+    constexpr unsigned bufferSizeLog2 = 20;
+    auto connectionPair = IPC::StreamClientConnection::create(bufferSizeLog2, 10_s);
+    if (!connectionPair) {
+        completionHandler(0);
+        return;
+    }
+    Ref streamConnection = WTF::move(connectionPair->streamConnection);
+    auto identifier = IPCStreamTesterIdentifier::generate();
+    RefPtr tester = IPCStreamTester::create(identifier, WTF::move(connectionPair->connectionHandle), false);
+    Ref client = InProcessStreamConnectionClient::create();
+    streamConnection->open(client);
+
+    String text = "0123456789abcdef"_s;
+    Vector<uint32_t> values;
+    values.fill(7, 16);
+    bool succeeded = true;
+    auto sendOne = [&](uint32_t index) {
+        IPC::Error error = IPC::Error::NoError;
+        switch (kind) {
+        case 0:
+            error = swift ? streamConnection->send(Messages::IPCSwiftStreamTester::BenchEmptySwift(), identifier) : streamConnection->send(Messages::IPCStreamTester::EmptyMessage(), identifier);
+            break;
+        case 1:
+            error = swift ? streamConnection->send(Messages::IPCSwiftStreamTester::BenchFourValuesSwift(index, 1, 2, 3), identifier) : streamConnection->send(Messages::IPCStreamTester::BenchFourValues(index, 1, 2, 3), identifier);
+            break;
+        case 2:
+            error = swift ? streamConnection->send(Messages::IPCSwiftStreamTester::BenchStringSwift(text), identifier) : streamConnection->send(Messages::IPCStreamTester::BenchString(text), identifier);
+            break;
+        case 3:
+            error = swift ? streamConnection->send(Messages::IPCSwiftStreamTester::BenchVectorSwift(values), identifier) : streamConnection->send(Messages::IPCStreamTester::BenchVector(values), identifier);
+            break;
+        case 4:
+            if (swift) {
+                auto result = streamConnection->sendSync(Messages::IPCSwiftStreamTester::BenchSyncSwift(index), identifier);
+                succeeded &= result.succeeded() && std::get<0>(result.reply()) == index;
+            } else {
+                auto result = streamConnection->sendSync(Messages::IPCStreamTester::BenchSync(index), identifier);
+                succeeded &= result.succeeded() && std::get<0>(result.reply()) == index;
+            }
+            break;
+        case 5:
+            // Swift taking C++ types.
+            error = swift ? streamConnection->send(Messages::IPCSwiftStreamTester::BenchFourValues(index, 1, 2, 3), identifier) : streamConnection->send(Messages::IPCStreamTester::BenchFourValues(index, 1, 2, 3), identifier);
+            break;
+        default:
+            succeeded = false;
+        }
+        succeeded &= error == IPC::Error::NoError;
+    };
+    auto waitUntilHandled = [&] {
+        succeeded &= streamConnection->sendSync(Messages::IPCStreamTester::SyncMessage(0), identifier).succeeded();
+    };
+
+    for (uint32_t index = 0; index < 1000; ++index)
+        sendOne(index);
+    waitUntilHandled();
+    auto start = MonotonicTime::now();
+    for (uint32_t index = 0; index < messageCount; ++index)
+        sendOne(index);
+    waitUntilHandled();
+    auto elapsed = MonotonicTime::now() - start;
+
+    streamConnection->invalidate();
+    Ref protectedTester = tester.releaseNonNull();
+    protectedTester->stopListeningForIPC(protectedTester.copyRef());
+    completionHandler(succeeded ? static_cast<uint64_t>(elapsed.nanoseconds()) : 0);
 }
 
 #endif
