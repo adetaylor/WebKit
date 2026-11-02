@@ -367,7 +367,7 @@ inline void FloatRect::inflate(float deltaX, float deltaY, float deltaMaxX, floa
     setHeight(height() + deltaY + deltaMaxY);
 }
 
-NODELETE FloatRect normalizeRect(const FloatRect&);
+NODELETE WEBCORE_EXPORT FloatRect normalizeRect(const FloatRect&);
 WEBCORE_EXPORT FloatRect encloseRectToDevicePixels(const FloatRect&, float deviceScaleFactor);
 WEBCORE_EXPORT IntRect enclosingIntRect(const FloatRect&);
 WEBCORE_EXPORT IntRect enclosingIntRectPreservingEmptyRects(const FloatRect&);

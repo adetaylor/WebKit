@@ -398,10 +398,10 @@ protected:
 
     FloatRect computeLineBoundsAndAntialiasingModeForText(const FloatRect&, bool printing, Color&);
 
-    NODELETE float dashedLineCornerWidthForStrokeWidth(float) const;
-    NODELETE float dashedLinePatternWidthForStrokeWidth(float) const;
-    NODELETE float dashedLinePatternOffsetForPatternAndStrokeWidth(float patternWidth, float strokeWidth) const;
-    Vector<FloatPoint> centerLineAndCutOffCorners(bool isVerticalLine, float cornerWidth, FloatPoint point1, FloatPoint point2) const;
+    NODELETE WEBCORE_EXPORT float dashedLineCornerWidthForStrokeWidth(float) const;
+    NODELETE WEBCORE_EXPORT float dashedLinePatternWidthForStrokeWidth(float) const;
+    NODELETE WEBCORE_EXPORT float dashedLinePatternOffsetForPatternAndStrokeWidth(float patternWidth, float strokeWidth) const;
+    WEBCORE_EXPORT Vector<FloatPoint> centerLineAndCutOffCorners(bool isVerticalLine, float cornerWidth, FloatPoint point1, FloatPoint point2) const;
 
     struct RectsAndStrokeColor {
 #if USE(CG)
@@ -411,7 +411,7 @@ protected:
 #endif
         Color strokeColor;
     };
-    RectsAndStrokeColor computeRectsAndStrokeColorForLinesForText(const FloatPoint& origin, float thickness, std::span<const FloatSegment>, bool isPrinting, bool doubleLines, StrokeStyle);
+    WEBCORE_EXPORT RectsAndStrokeColor computeRectsAndStrokeColorForLinesForText(const FloatPoint& origin, float thickness, std::span<const FloatSegment>, bool isPrinting, bool doubleLines, StrokeStyle);
 
     GraphicsContextState m_state;
 private:

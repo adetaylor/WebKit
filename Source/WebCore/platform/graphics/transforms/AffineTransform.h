@@ -139,7 +139,7 @@ public:
     WEBCORE_EXPORT double xScale() const;
     WEBCORE_EXPORT double yScale() const;
 
-    NODELETE bool isInvertible() const; // If you call this, you're probably doing it wrong.
+    NODELETE WEBCORE_EXPORT bool isInvertible() const; // If you call this, you're probably doing it wrong.
     NODELETE WEBCORE_EXPORT std::optional<AffineTransform> inverse() const;
 
     WEBCORE_EXPORT void blend(const AffineTransform& from, double progress, CompositeOperation = CompositeOperation::Replace);

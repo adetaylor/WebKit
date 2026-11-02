@@ -93,7 +93,7 @@ private:
     RetainPtr<CGMutablePathRef> m_platformPath;
 };
 
-void addToCGContextPath(CGContextRef, const Path&);
+WEBCORE_EXPORT void addToCGContextPath(CGContextRef, const Path&);
 
 } // namespace WebCore
 
