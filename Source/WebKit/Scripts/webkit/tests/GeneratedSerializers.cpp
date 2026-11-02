@@ -1763,6 +1763,7 @@ void ArgumentCoder<Namespace::SwiftStruct>::encode(Encoder& encoder, const Names
     static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.m_name)>, String>);
     static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.m_numbers)>, Vector<uint64_t>>);
     static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.m_strings)>, Vector<String>>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.m_atoms)>, Vector<AtomString>>);
     static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.m_optionalDouble)>, std::optional<double>>);
     static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.m_markableFrameID)>, Markable<WebCore::FrameIdentifier>>);
     static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.m_frameID)>, WebCore::FrameIdentifier>);
@@ -1781,6 +1782,7 @@ void ArgumentCoder<Namespace::SwiftStruct>::encode(Encoder& encoder, const Names
     encoder << instance.m_name;
     encoder << instance.m_numbers;
     encoder << instance.m_strings;
+    encoder << instance.m_atoms;
     encoder << instance.m_optionalDouble;
     encoder << instance.m_markableFrameID;
     encoder << instance.m_frameID;
@@ -1801,6 +1803,7 @@ std::optional<Namespace::SwiftStruct> ArgumentCoder<Namespace::SwiftStruct>::dec
     auto m_name = decoder.decode<String>();
     auto m_numbers = decoder.decode<Vector<uint64_t>>();
     auto m_strings = decoder.decode<Vector<String>>();
+    auto m_atoms = decoder.decode<Vector<AtomString>>();
     auto m_optionalDouble = decoder.decode<std::optional<double>>();
     auto m_markableFrameID = decoder.decode<Markable<WebCore::FrameIdentifier>>();
     auto m_frameID = decoder.decode<WebCore::FrameIdentifier>();
@@ -1821,6 +1824,7 @@ std::optional<Namespace::SwiftStruct> ArgumentCoder<Namespace::SwiftStruct>::dec
             WTF::move(*m_name),
             WTF::move(*m_numbers),
             WTF::move(*m_strings),
+            WTF::move(*m_atoms),
             WTF::move(*m_optionalDouble),
             WTF::move(*m_markableFrameID),
             WTF::move(*m_frameID),

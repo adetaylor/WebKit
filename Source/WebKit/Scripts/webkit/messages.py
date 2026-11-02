@@ -848,6 +848,10 @@ def forward_declarations_and_headers(receiver):
     if (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by) and receiver.has_attribute(STREAM_ATTRIBUTE):
         headers.add('"StreamMessageReceiver.h"')
 
+    # For OptionalSharedPreferencesForWebProcess, which a Swift receiver's sharedPreferencesForWebProcess() returns.
+    if receiver.is_swift_receiver() and receiver_needs_shared_preferences(receiver):
+        headers.add('"SharedPreferencesForWebProcess.h"')
+
     non_template_wtf_types = frozenset([
         'MachSendRight',
         'MediaType',
@@ -1037,9 +1041,11 @@ def generate_messages_header(receiver):
             result.append('    void deref() const final { RefCounted::deref(); }\n')
         result.append('private:\n')
         result.append('    ' + forwarder_class + '(' + handler_namespace + '::' + weak_ref_class + '* WTF_NONNULL);\n')
-        result.append('    std::unique_ptr<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
+        result.append('    std::optional<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
         result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
         result.append('} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);\n\n')
+        if receiver_needs_shared_preferences(receiver):
+            result.append('using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;\n\n')
         result.append('}\n')
         result.append('\n')
         result.append('using %s = Ref<WebKit::%s>;\n' % (ref_forwarder_class, forwarder_class))
@@ -1200,14 +1206,14 @@ def swift_trampoline_function(receiver, message):
 def swift_dispatch_target_and_function(receiver, message):
     if generates_swift_trampoline(receiver, message):
         return ('m_handler.get()', swift_trampoline_function(receiver, message))
-    return ('target.get()', handler_function(receiver, message))
+    return ('std::addressof(*target)', handler_function(receiver, message))
 
 
 # How a Swift handler's return value is handed to the C++ completion handler. C++ reply types are
-# moved into the handler. A primitive reply goes through complete(), whose parameter is spelled with
-# the reply's typedef: Swift maps uint64_t to UInt64 by name, but the completion handler itself is a
-# template instantiation, whose parameter has the canonical type, and that is unsigned long (UInt)
-# on Linux but unsigned long long (UInt64) on Darwin.
+# moved into the handler, except enums, which it takes by value. A primitive reply goes through
+# complete(), whose parameter is spelled with the reply's typedef: Swift maps uint64_t to UInt64 by
+# name, but the completion handler itself is a template instantiation, whose parameter has the
+# canonical type, and that is unsigned long (UInt) on Linux but unsigned long long (UInt64) on Darwin.
 def swift_reply_completion_call(receiver, message, reply_variable):
     reply_parameters = message.reply_parameters or []
     if not reply_parameters:
@@ -1217,6 +1223,8 @@ def swift_reply_completion_call(receiver, message, reply_variable):
                                   "a tuple return, which is not implemented." % message.name)
     if swift_primitive_reply_type(message):
         return 'CompletionHandlers.%s.complete(completionHandler, %s)' % (receiver.name, reply_variable)
+    if reply_parameters[0].kind.startswith('enum:'):
+        return 'completionHandler.pointee(%s)' % reply_variable
     return 'completionHandler.pointee(consuming: %s)' % reply_variable
 
 
@@ -2133,6 +2141,11 @@ def process_name_enumerator(dispatched_x):
     return dispatched_x
 
 
+# Whether the generated dispatch asks the receiver for the web process's shared preferences.
+def receiver_needs_shared_preferences(receiver):
+    return bool(receiver.receiver_enabled_by) or any(message.enabled_by for message in receiver.messages)
+
+
 def generate_target_and_enabled_by_statements(receiver, messages):
     enabled_by = receiver.receiver_enabled_by
     enabled_by_conjunction = receiver.receiver_enabled_by_conjunction
@@ -2317,12 +2330,17 @@ def generate_message_handler(receiver):
         result.append('}\n')
         result.append('\n')
 
-        result.append('std::unique_ptr<%s> %s::getMessageTarget()\n' % (class_name, forwarder_class))
+        result.append('std::optional<%s> %s::getMessageTarget()\n' % (class_name, forwarder_class))
         result.append('{\n')
-        result.append('    auto target = m_handler->getMessageTarget();\n')
-        result.append('    if (target)\n')
-        result.append('        return WTF::makeUniqueWithoutFastMallocCheck<%s>(target.get());\n' % (class_name))
-        result.append('    return nullptr;\n')
+        if receiver.has_attribute(STREAM_ATTRIBUTE):
+            result.append('    auto target = m_handler->getMessageTarget();\n')
+            result.append('    if (target)\n')
+            result.append('        return target.get();\n')
+            result.append('    return std::nullopt;\n')
+        else:
+            result.append('    if (!m_handler->hasMessageTarget())\n')
+            result.append('        return std::nullopt;\n')
+            result.append('    return m_handler->messageTarget();\n')
         result.append('}\n')
         result.append('\n')
 
@@ -2406,8 +2424,25 @@ def convert_enable_macros_to_swift_syntax(condition):
     return re.sub(r'ENABLE\(([^)]+)\)', r'ENABLE_\1', condition)
 
 
+# Generated Swift dispatches a message that takes Swift types on the main actor, through MainActor.assumeIsolated,
+# except on a stream receiver, which has its own dispatch. A message whose reply is AnyThread or MainThreadCallback
+# belongs to a receiver dispatched on a work queue, so it can't take Swift types.
+def check_swift_types_are_dispatched_on_main_thread(receiver):
+    if receiver.has_attribute(STREAM_ATTRIBUTE):
+        return
+    for message in receiver.messages:
+        if not receiver.takes_swift_types(message):
+            continue
+        for attribute in (ANYTHREADCALLBACK_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE):
+            if message.has_attribute(attribute):
+                raise Exception('ERROR: Message %s.%s takes Swift types, which are dispatched on the main thread, but is %s, '
+                                'which is for a receiver dispatched on a work queue. Only a stream receiver can take Swift '
+                                'types off the main thread.' % (receiver.name, message.name, attribute))
+
+
 def generate_swift_message_handler(receiver):
     assert (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by)
+    check_swift_types_are_dispatched_on_main_thread(receiver)
     result = []
     result.append(block_to_line_comments(_license_header))
     result.append('\n')
@@ -2442,10 +2477,26 @@ def generate_swift_message_handler(receiver):
     result.append('    }\n')
     result.append('\n')
     # @used ensures these are retained even with -O -wmo: rdar://179098545
-    result.append('    @used\n')
-    result.append('    func getMessageTarget() -> %s? {\n' % (class_name))
-    result.append('        target\n')
-    result.append('    }\n')
+    if receiver.has_attribute(STREAM_ATTRIBUTE):
+        result.append('    @used\n')
+        result.append('    func getMessageTarget() -> %s? {\n' % (class_name))
+        result.append('        target\n')
+        result.append('    }\n')
+    else:
+        # Two calls rather than one returning an Optional, which C++ handles through Swift's generic
+        # value witnesses. Both are on the main thread, so the target can't go away between them.
+        result.append('    @used\n')
+        result.append('    func hasMessageTarget() -> Bool {\n')
+        result.append('        target != nil\n')
+        result.append('    }\n')
+        result.append('\n')
+        result.append('    @used\n')
+        result.append('    func messageTarget() -> %s {\n' % (class_name))
+        result.append('        guard let target else {\n')
+        result.append('            fatalError("messageTarget() called without a message target")\n')
+        result.append('        }\n')
+        result.append('        return target\n')
+        result.append('    }\n')
 
     # A Swift handler cannot throw across the C++ boundary - swiftc will not represent a throwing
     # function in C++ at all - so IPC dispatch is pointed at one of these instead. Each catches a
@@ -2454,6 +2505,7 @@ def generate_swift_message_handler(receiver):
         if not generates_swift_trampoline(receiver, message):
             continue
 
+        message_start = len(result)
         connection_type = 'IPC.StreamServerConnection' if receiver.has_attribute(STREAM_ATTRIBUTE) else 'IPC.Connection'
         # A message that takes Swift types is decoded here, from a decoder C++ lends for the duration of
         # this call, and its reply is encoded by the Invocation. Returning false tells C++ that the
@@ -2570,6 +2622,15 @@ def generate_swift_message_handler(receiver):
         result.append('%s}\n' % base)
         result.append('        }\n')
         result.append('    }\n')
+
+        # The C++ dispatch of a message declared under #if only exists under that condition.
+        if message.condition:
+            try:
+                condition = swift_types.swift_condition(message.condition)
+            except swift_types.UnmappableSwiftCondition as error:
+                raise Exception('ERROR: Message %s.%s is under a condition Swift cannot evaluate: %s' % (receiver.name, message.name, error))
+            result.insert(message_start, '\n    #if %s' % condition)
+            result.append('    #endif\n')
 
     result.append('}\n')
     result.append('\n')

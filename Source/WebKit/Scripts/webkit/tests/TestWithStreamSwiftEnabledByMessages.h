@@ -27,6 +27,7 @@
 #include "ArgumentCoders.h"
 #include "Connection.h"
 #include "MessageNames.h"
+#include "SharedPreferencesForWebProcess.h"
 #include "StreamMessageReceiver.h"
 #include <wtf/Forward.h>
 #include <wtf/RuntimeApplicationChecks.h>
@@ -53,9 +54,11 @@ public:
     void deref() const { StreamMessageReceiver::deref(); }
 private:
     TestWithStreamSwiftEnabledByMessageForwarder(WebKit::TestWithStreamSwiftEnabledByWeakRef* WTF_NONNULL);
-    std::unique_ptr<WebKit::TestWithStreamSwiftEnabledBy> getMessageTarget();
+    std::optional<WebKit::TestWithStreamSwiftEnabledBy> getMessageTarget();
     std::unique_ptr<WebKit::TestWithStreamSwiftEnabledByWeakRef> m_handler;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;
 
 }
 

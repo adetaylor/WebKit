@@ -636,6 +636,10 @@ Vector<SerializedTypeInfo> allSerializedTypes()
                 "m_strings"_s
             },
             {
+                "Vector<AtomString>"_s,
+                "m_atoms"_s
+            },
+            {
                 "std::optional<double>"_s,
                 "m_optionalDouble"_s
             },

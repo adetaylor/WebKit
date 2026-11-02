@@ -28,6 +28,7 @@
 #if ENABLE(IPC_TESTING_API)
 
 #include "IPCConnectionTesterIdentifier.h"
+#include "SharedPreferencesForWebProcess.h"
 #include <optional>
 #include <wtf/Markable.h>
 #include <wtf/OptionSet.h>
@@ -118,6 +119,14 @@ private:
     String m_name;
     Vector<Ref<IPCTesterNode>> m_children;
 };
+
+// The preferences IPCTesterReceiver checks the EnabledBy of its messages against.
+inline std::optional<SharedPreferencesForWebProcess> ipcTesterSharedPreferences()
+{
+    SharedPreferencesForWebProcess preferences;
+    preferences.allowTestOnlyIPC = true;
+    return preferences;
+}
 
 // What IPCTesterReceiver replies, which its Swift (IPCTesterReceiver.swift) and C++ implementations
 // compute identically. Each changes every field, so that a field decoded or encoded in the wrong place

@@ -2244,7 +2244,7 @@ def generate_webkit_secure_coding_header(serialized_types):
     return '\n'.join(result)
 
 
-SWIFT_FILE_CONDITION = 'ENABLE_BACK_FORWARD_LIST_SWIFT || (ENABLE_IPC_TESTING_API && ENABLE_IPC_TESTING_SWIFT)'
+SWIFT_FILE_CONDITION = 'ENABLE_SWIFT_IPC_RECEIVERS'
 
 _SWIFT_KEYWORDS = frozenset([
     'Any', 'Self', 'as', 'associatedtype', 'await', 'break', 'case', 'catch', 'class', 'continue', 'default', 'defer', 'deinit',

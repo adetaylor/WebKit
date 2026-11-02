@@ -62,6 +62,18 @@ _SINGLE_ARGUMENT_TEMPLATES = {
 # Ref<T> is encoded as T, and OptionSet<E> is the Swift OptionSet generated for E.
 _TRANSPARENT_TEMPLATES = ('Ref', 'OptionSet')
 
+# A std::pair is its two members, in order.
+_TWO_ARGUMENT_TEMPLATES = {
+    'std::pair': ('(%s, %s)', 'IPCCoding.Pair<%s, %s>'),
+}
+
+# C++-decoded values: types whose Swift form is the C++ object itself. Their C++ ArgumentCoder decodes and encodes
+# them, through the helpers each coder in IPCCoding.CxxDecoded calls, so Swift accepts exactly what C++ does and
+# copies nothing. Ref<T> and RefPtr<T> of them map to T and T?.
+_CXX_DECODED_TYPES = {
+    'WebCore::SharedBuffer': ('WebCore.SharedBuffer', 'IPCCoding.CxxDecoded.SharedBuffer'),
+}
+
 
 class UnmappableSwiftType(Exception):
     pass
@@ -108,13 +120,22 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         swift_type = _PRIMITIVE_TYPES[cpp_type]
         return (swift_type, swift_type)
 
-    if cpp_type in ('String', 'WTF::String'):
+    # An AtomString is encoded as its String.
+    if cpp_type in ('String', 'WTF::String', 'AtomString', 'WTF::AtomString'):
         return ('String?', 'IPCCoding.WTFString')
+
+    if cpp_type.removeprefix('::') in _CXX_DECODED_TYPES:
+        return _CXX_DECODED_TYPES[cpp_type.removeprefix('::')]
 
     match = re.match(r'^([A-Za-z_][A-Za-z_0-9:]*)<(.+)>$', cpp_type)
     if match:
         template, arguments = match.group(1), split_template_arguments(match.group(2))
         template = re.sub(r'^WTF::', '', template)
+        if template in _TWO_ARGUMENT_TEMPLATES and len(arguments) == 2:
+            value_format, coder_format = _TWO_ARGUMENT_TEMPLATES[template]
+            first_type, first_coder = swift_type_and_coder(arguments[0], cxx_name_coders)
+            second_type, second_coder = swift_type_and_coder(arguments[1], cxx_name_coders)
+            return (value_format % (first_type, second_type), coder_format % (first_coder, second_coder))
         if template in _SINGLE_ARGUMENT_TEMPLATES and (len(arguments) == 1 or template == 'Markable'):
             value_format, coder_format = _SINGLE_ARGUMENT_TEMPLATES[template]
             inner_type, inner_coder = swift_type_and_coder(arguments[0], cxx_name_coders)
@@ -134,8 +155,8 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, String, Vector, std::optional, Markable, Ref, RefPtr, OptionSet and types "
-                              "marked [Swift] in a .serialization.in file." % cpp_type)
+                              "double, String, AtomString, Vector, std::optional, std::pair, Markable, Ref, RefPtr, OptionSet, "
+                              "types marked [Swift] in a .serialization.in file, and the C++-decoded types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES))))
 
 
 def swift_coder(cpp_type):
