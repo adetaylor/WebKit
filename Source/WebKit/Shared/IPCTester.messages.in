@@ -60,6 +60,7 @@ messages -> IPCTester {
     RemoveReceiverForSwiftTypesTesting() -> () Synchronous
 #if ENABLE(IPC_TESTING_SWIFT)
     SendSwiftStreamMessagesInProcess() -> (String failures) Synchronous
+    BenchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t messageCount) -> (uint64_t nanoseconds) Synchronous
 #endif
 }
 
