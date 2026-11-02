@@ -87,6 +87,7 @@ GPUProcess/media/RemoteCDMInstanceProxy.cpp
 GPUProcess/media/RemoteCDMInstanceSessionProxy.cpp
 GPUProcess/media/RemoteCDMProxy.cpp
 GPUProcess/media/RemoteCDMRegistry.cpp
+GPUProcess/media/RemoteCDMSwiftSupport.cpp
 GPUProcess/media/RemoteLegacyCDMFactoryProxy.cpp
 GPUProcess/media/RemoteLegacyCDMProxy.cpp @cost:3
 GPUProcess/media/RemoteLegacyCDMSessionProxy.cpp
