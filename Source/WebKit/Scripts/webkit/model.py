@@ -91,8 +91,6 @@ class MessageReceiver(object):
     def enforce_swift_types_constraints(self):
         if self.swift_types and not self.is_swift_receiver():
             raise Exception("ERROR: Receiver %s has 'SwiftTypes' but is not a Swift receiver: it also needs 'SwiftReceiver' or 'SwiftReceiverBuildEnabledBy='" % self.name)
-        if self.swift_types and self.has_attribute(STREAM_ATTRIBUTE):
-            raise Exception("ERROR: Receiver %s has 'SwiftTypes', which stream receivers do not support" % self.name)
         for message in self.messages:
             self._enforce_swift_types_constraints_for_message(message)
 
@@ -112,8 +110,8 @@ class MessageReceiver(object):
         def unsupported(what):
             return Exception("ERROR: Message %s takes Swift types, which is not supported %s" % (description, what))
 
-        if self.has_attribute(STREAM_ATTRIBUTE):
-            raise unsupported('on a stream receiver')
+        if self.has_attribute(STREAM_ATTRIBUTE) and message.reply_parameters is not None:
+            raise unsupported('with a reply on a stream receiver')
         for attribute in (NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE):
             if self.has_attribute(attribute):
                 raise unsupported("on a receiver with '%s'" % attribute)

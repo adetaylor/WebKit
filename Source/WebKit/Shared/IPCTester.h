@@ -92,6 +92,9 @@ private:
     void sendSwiftTypesMessagesToReceiver(IPC::Connection&, CompletionHandler<void(String&&)>&&);
     void addReceiverForSwiftTypesTesting(IPC::Connection&, CompletionHandler<void(bool)>&&);
     void removeReceiverForSwiftTypesTesting(IPC::Connection&, CompletionHandler<void()>&&);
+#if ENABLE(IPC_TESTING_SWIFT)
+    void sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&)>&&);
+#endif
     void stopIfNeeded();
 
     RefPtr<WorkQueue> m_testQueue;
