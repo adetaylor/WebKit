@@ -23,11 +23,11 @@
 
 import Foundation
 import Metal
-internal import WGSL
-import WebGPU_Internal.ComputePipeline
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
-import WebGPU_Internal.PipelineLayout
+@_implementationOnly import WGSL
+@_implementationOnly import WebGPU_Internal.ComputePipeline
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.PipelineLayout
 import WebGPU_Private.WebGPUCpp
 
 // One per GPUComputePipeline, owned by the C++ ComputePipeline. The compute pass reads it directly.

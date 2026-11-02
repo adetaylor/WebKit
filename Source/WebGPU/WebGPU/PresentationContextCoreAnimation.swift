@@ -23,10 +23,10 @@
 
 import Metal
 import QuartzCore
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
-import WebGPU_Internal.PresentationContext
-import WebGPU_Internal.Texture
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.PresentationContext
+@_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPUCpp
 
 // The state of a C API surface that presents into a CAMetalLayer (WGPUSurfaceSourceMetalLayer). Used only on its

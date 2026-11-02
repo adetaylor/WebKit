@@ -24,13 +24,13 @@
 // The encoder model shared by BindGroup, the resource classes, the three encoders and RenderBundle.
 
 import Metal
-import WebGPU_Internal.BindGroup
-import WebGPU_Internal.BindableResource
-import WebGPU_Internal.Buffer
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.ExternalTexture
-import WebGPU_Internal.Texture
-import WebGPU_Internal.TextureView
+@_implementationOnly import WebGPU_Internal.BindGroup
+@_implementationOnly import WebGPU_Internal.BindableResource
+@_implementationOnly import WebGPU_Internal.Buffer
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.ExternalTexture
+@_implementationOnly import WebGPU_Internal.Texture
+@_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
 // MARK: WTF::HashTable replica

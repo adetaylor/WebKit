@@ -23,13 +23,13 @@
 
 import Foundation
 import Metal
-import WebGPU_Internal.BindGroup
-import WebGPU_Internal.Buffer
-import WebGPU_Internal.CommandEncoder
-import WebGPU_Internal.ComputePassEncoder
-import WebGPU_Internal.ComputePipeline
-import WebGPU_Internal.Device
-import WebGPU_Internal.PipelineLayout
+@_implementationOnly import WebGPU_Internal.BindGroup
+@_implementationOnly import WebGPU_Internal.Buffer
+@_implementationOnly import WebGPU_Internal.CommandEncoder
+@_implementationOnly import WebGPU_Internal.ComputePassEncoder
+@_implementationOnly import WebGPU_Internal.ComputePipeline
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.PipelineLayout
 import WebGPU_Private.WebGPUCpp
 
 // The render stages of a bind group's compute resources.

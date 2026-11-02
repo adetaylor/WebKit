@@ -24,7 +24,7 @@
 // Bind group layouts between WebGPU's model (PipelineModel.swift) and the WGSL compiler's PipelineLayout, both ways.
 // WGSL module types are used unqualified (WGSLBridge.swift explains why).
 
-internal import WGSL
+@_implementationOnly import WGSL
 import WebGPU_Private.WebGPUCpp
 
 // RenderBundleEncoder::startIndexForFragmentDynamicOffsets.

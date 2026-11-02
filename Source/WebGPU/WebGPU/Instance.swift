@@ -24,9 +24,9 @@
 import Dispatch
 import Metal
 import Synchronization
-import WebGPU_Internal.CommandBuffer
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.CommandBuffer
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
 
 // A work item waiting for processEvents(). Sendable because the item is moved into a Mutex of its own, which the

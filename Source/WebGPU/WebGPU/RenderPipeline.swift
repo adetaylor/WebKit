@@ -22,13 +22,13 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Metal
-internal import WGSL
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
-import WebGPU_Internal.PipelineLayout
-import WebGPU_Internal.PresentationContext
-import WebGPU_Internal.RenderPipeline
-import WebGPU_Internal.ShaderModule
+@_implementationOnly import WGSL
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.PipelineLayout
+@_implementationOnly import WebGPU_Internal.PresentationContext
+@_implementationOnly import WebGPU_Internal.RenderPipeline
+@_implementationOnly import WebGPU_Internal.ShaderModule
 import WebGPU_Private.WebGPUCpp
 
 private let defaultRenderPipelineSampleMask = UInt32.max

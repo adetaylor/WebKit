@@ -24,12 +24,12 @@
 import Foundation
 import IOSurface
 import Metal
-import WebGPU_Internal.Adapter
-import WebGPU_Internal.Device
-import WebGPU_Internal.Instance
-import WebGPU_Internal.Queue
-import WebGPU_Internal.ShaderModule
-import WebGPU_Internal.XRSubImage
+@_implementationOnly import WebGPU_Internal.Adapter
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Instance
+@_implementationOnly import WebGPU_Internal.Queue
+@_implementationOnly import WebGPU_Internal.ShaderModule
+@_implementationOnly import WebGPU_Internal.XRSubImage
 import WebGPU_Private.WebGPUCpp
 
 /// A strong reference to a C++ shell that follows the usual Swift parameter conventions.

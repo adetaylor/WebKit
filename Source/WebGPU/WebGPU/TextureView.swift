@@ -22,10 +22,10 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Metal
-import WebGPU_Internal.CommandEncoder
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Texture
-import WebGPU_Internal.TextureView
+@_implementationOnly import WebGPU_Internal.CommandEncoder
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Texture
+@_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
 // The state of a GPUTextureView, owned by the C++ shell WebGPU::Metal::TextureView. It reads the parent's state

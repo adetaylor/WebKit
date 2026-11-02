@@ -22,7 +22,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Metal
-import WebGPU_Internal.HardwareCapabilities
+@_implementationOnly import WebGPU_Internal.HardwareCapabilities
 import WebGPU_Private.WebGPUCpp
 
 // Owned by the C++ shell WebGPU::Metal::Adapter, which keeps the Instance back-reference.

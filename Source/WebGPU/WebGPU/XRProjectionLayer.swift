@@ -22,8 +22,8 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Metal
-import WebGPU_Internal.Queue
-import WebGPU_Internal.XRProjectionLayer
+@_implementationOnly import WebGPU_Internal.Queue
+@_implementationOnly import WebGPU_Internal.XRProjectionLayer
 import WebGPU_Private.WebGPUCpp
 
 // The descriptor values and per-frame state of an XRProjectionLayer: the compositor textures cached per reusable

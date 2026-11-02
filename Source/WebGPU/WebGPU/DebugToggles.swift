@@ -24,7 +24,7 @@
 import Foundation
 import Metal
 import Synchronization
-import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Device
 
 // The process-wide developer toggles, flipped by `notifyutil -p <name>` on the main queue and read on every Instance's
 // API thread. Each notification handler is registered by the first reader.

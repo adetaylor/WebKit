@@ -24,7 +24,7 @@
 private import CxxStdlib
 import Metal
 import Synchronization
-import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
 
 // Owned by the C++ shell WebGPU::Metal::Sampler. API thread only; the process-wide MTLSamplerState pool it leases from

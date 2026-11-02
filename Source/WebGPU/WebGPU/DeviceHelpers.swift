@@ -24,9 +24,9 @@
 import Foundation
 import Metal
 import Synchronization
-import WebGPU_Internal.BindableResource
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.BindableResource
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
 
 // The device's helper pipelines: the GPU-side clamps of index buffers and indirect draw arguments, the ICB encode and
 // clamp shaders of render bundles, and the indirect dispatch clamp's buffer and pipeline. DeviceImpl caches the

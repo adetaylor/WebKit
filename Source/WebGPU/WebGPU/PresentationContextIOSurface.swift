@@ -24,11 +24,11 @@
 import CoreGraphics
 import IOSurface
 import Metal
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
-import WebGPU_Internal.PresentationContext
-import WebGPU_Internal.Queue
-import WebGPU_Internal.Texture
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.PresentationContext
+@_implementationOnly import WebGPU_Internal.Queue
+@_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPUCpp
 
 // The state of a canvas context that presents through the compositor's IOSurfaces. Used only on its Instance's API

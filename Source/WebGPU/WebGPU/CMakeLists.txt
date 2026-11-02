@@ -234,6 +234,7 @@ webkit_target_add_swift_options(WebGPU
     -I${CMAKE_CURRENT_SOURCE_DIR}/Internal
     "-library-level spi"
     "-Werror SendableClosureCaptures"
+    "-enable-experimental-feature CheckImplementationOnly"
 )
 
 set(WebGPU_SWIFT_EMIT_CLANG_HEADER_MIN_ACCESS internal)

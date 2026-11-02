@@ -23,8 +23,8 @@
 
 import Metal
 import Synchronization
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
 
 // Owned by the C++ shell WebGPU::Metal::QuerySet. API thread only. A timestamp query set owns a lease on a range of the

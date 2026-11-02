@@ -23,17 +23,17 @@
 
 import Foundation
 import Metal
-import WebGPU_Internal.BindGroup
-import WebGPU_Internal.BindGroupLayout
-import WebGPU_Internal.Buffer
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
-import WebGPU_Internal.ExternalTexture
-import WebGPU_Internal.PresentationContext
-import WebGPU_Internal.Queue
-import WebGPU_Internal.Sampler
-import WebGPU_Internal.Texture
-import WebGPU_Internal.TextureView
+@_implementationOnly import WebGPU_Internal.BindGroup
+@_implementationOnly import WebGPU_Internal.BindGroupLayout
+@_implementationOnly import WebGPU_Internal.Buffer
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.ExternalTexture
+@_implementationOnly import WebGPU_Internal.PresentationContext
+@_implementationOnly import WebGPU_Internal.Queue
+@_implementationOnly import WebGPU_Internal.Sampler
+@_implementationOnly import WebGPU_Internal.Texture
+@_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPU
 import WebGPU_Private.WebGPUCpp
 

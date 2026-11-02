@@ -25,10 +25,10 @@ import CoreVideo
 import Foundation
 import IOSurface
 import Metal
-import WebGPU_Internal.BindGroup
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
-import WebGPU_Internal.Queue
+@_implementationOnly import WebGPU_Internal.BindGroup
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Queue
 import WebGPU_Private.WebGPUCpp
 
 /// An imported frame: its planes, and the constants the shader converts them with.

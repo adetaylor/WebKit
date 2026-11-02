@@ -26,9 +26,9 @@
 // shadows the module name); the Swift module's declarations are used unqualified.
 
 private import CxxStdlib
-internal import WGSL
-import WebGPU_Internal.ShaderModule
-import WebGPU_Internal.WGSLAPI
+@_implementationOnly import WGSL
+@_implementationOnly import WebGPU_Internal.ShaderModule
+@_implementationOnly import WebGPU_Internal.WGSLAPI
 import WebGPU_Private.WebGPUCpp
 
 // MARK: - Called from C++

@@ -23,17 +23,17 @@
 
 import Foundation
 import Metal
-import WebGPU_Internal.BindGroup
-import WebGPU_Internal.Buffer
-import WebGPU_Internal.CommandEncoder
-import WebGPU_Internal.Device
-import WebGPU_Internal.PipelineLayout
-import WebGPU_Internal.RenderBundle
-import WebGPU_Internal.RenderBundleEncoder
-import WebGPU_Internal.RenderPassEncoder
-import WebGPU_Internal.RenderPipeline
-import WebGPU_Internal.Texture
-import WebGPU_Internal.TextureView
+@_implementationOnly import WebGPU_Internal.BindGroup
+@_implementationOnly import WebGPU_Internal.Buffer
+@_implementationOnly import WebGPU_Internal.CommandEncoder
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.PipelineLayout
+@_implementationOnly import WebGPU_Internal.RenderBundle
+@_implementationOnly import WebGPU_Internal.RenderBundleEncoder
+@_implementationOnly import WebGPU_Internal.RenderPassEncoder
+@_implementationOnly import WebGPU_Internal.RenderPipeline
+@_implementationOnly import WebGPU_Internal.Texture
+@_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
 // MARK: Indirect draws: the only arguments Metal's indirect draws take are clamped ones

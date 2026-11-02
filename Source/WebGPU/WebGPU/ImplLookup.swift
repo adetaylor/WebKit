@@ -22,9 +22,9 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Synchronization
-import WebGPU_Internal.BindGroup
-import WebGPU_Internal.ExternalTexture
-import WebGPU_Internal.QuerySet
+@_implementationOnly import WebGPU_Internal.BindGroup
+@_implementationOnly import WebGPU_Internal.ExternalTexture
+@_implementationOnly import WebGPU_Internal.QuerySet
 import WebGPU_Private.WebGPUCpp
 
 // The Impls behind the ::WebGPU C++ API objects that the GPU process's Swift receivers are given, until they create

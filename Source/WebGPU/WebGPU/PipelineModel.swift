@@ -27,7 +27,7 @@
 // is imported. No type here reuses a WGSL module type name.
 
 import Metal
-internal import WGSL
+@_implementationOnly import WGSL
 import WebGPU_Private.WebGPUCpp
 
 enum Stage: Int, CaseIterable {
@@ -311,7 +311,7 @@ struct StageInLocation {
 }
 
 /// A vertex stage output or fragment stage input.
-struct InterStageVariable {
+@_implementationOnly struct InterStageVariable {
     let location: UInt32
     let dataType: MTLDataType
     let interpolation: Interpolation?
@@ -327,7 +327,7 @@ struct FragmentOutput {
 ///
 /// Each list holds the first entry per location, in WTF::HashTable iteration order (see inWTFHashTableOrder in
 /// ShaderModule.swift); lookups are linear because the lists are tiny.
-struct EntryPointReflection {
+@_implementationOnly struct EntryPointReflection {
     let name: Name
     let stage: ShaderStage
     /// Non-nil for every vertex entry point, possibly empty (stageInTypesForEntryPoint).

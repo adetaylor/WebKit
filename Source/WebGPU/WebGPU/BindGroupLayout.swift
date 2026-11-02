@@ -24,9 +24,9 @@
 private import CxxStdlib
 import Foundation
 import Metal
-import WebGPU_Internal.BindGroupLayout
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.BindGroupLayout
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
 
 // One per GPUBindGroupLayout, owned by the C++ shell WebGPU::Metal::BindGroupLayout through an opaque box. Owns the

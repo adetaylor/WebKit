@@ -24,10 +24,10 @@
 private import CxxStdlib
 import Foundation
 import Metal
-import WebGPU_Internal.BindGroup
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
-import WebGPU_Internal.Texture
+@_implementationOnly import WebGPU_Internal.BindGroup
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPUCpp
 
 // A WebGPU::TextureViewDescriptor after

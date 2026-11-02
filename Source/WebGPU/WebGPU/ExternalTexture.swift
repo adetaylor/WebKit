@@ -23,7 +23,7 @@
 
 import CoreVideo
 import Metal
-import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
 
 // The state of a GPUExternalTexture. Used only on its Instance's API thread, so not Sendable.

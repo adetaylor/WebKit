@@ -23,7 +23,7 @@
 
 import Foundation
 import Metal
-import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPU
 import WebGPU_Private.WebGPUCpp
 

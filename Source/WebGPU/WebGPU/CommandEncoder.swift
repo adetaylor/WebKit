@@ -24,26 +24,26 @@
 private import CxxStdlib
 import Metal
 import Synchronization
-import WebGPU_Internal.Adapter
-import WebGPU_Internal.BindGroup
-import WebGPU_Internal.BindGroupLayout
-import WebGPU_Internal.Buffer
-import WebGPU_Internal.CommandEncoder
-import WebGPU_Internal.ComputePipeline
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.ExternalTexture
-import WebGPU_Internal.PipelineLayout
-import WebGPU_Internal.PresentationContext
-import WebGPU_Internal.QuerySet
-import WebGPU_Internal.RenderBundle
-import WebGPU_Internal.RenderBundleEncoder
-import WebGPU_Internal.RenderPipeline
-import WebGPU_Internal.Sampler
-import WebGPU_Internal.ShaderModule
-import WebGPU_Internal.XRBinding
-import WebGPU_Internal.XRProjectionLayer
-import WebGPU_Internal.XRSubImage
-import WebGPU_Internal.XRView
+@_implementationOnly import WebGPU_Internal.Adapter
+@_implementationOnly import WebGPU_Internal.BindGroup
+@_implementationOnly import WebGPU_Internal.BindGroupLayout
+@_implementationOnly import WebGPU_Internal.Buffer
+@_implementationOnly import WebGPU_Internal.CommandEncoder
+@_implementationOnly import WebGPU_Internal.ComputePipeline
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.ExternalTexture
+@_implementationOnly import WebGPU_Internal.PipelineLayout
+@_implementationOnly import WebGPU_Internal.PresentationContext
+@_implementationOnly import WebGPU_Internal.QuerySet
+@_implementationOnly import WebGPU_Internal.RenderBundle
+@_implementationOnly import WebGPU_Internal.RenderBundleEncoder
+@_implementationOnly import WebGPU_Internal.RenderPipeline
+@_implementationOnly import WebGPU_Internal.Sampler
+@_implementationOnly import WebGPU_Internal.ShaderModule
+@_implementationOnly import WebGPU_Internal.XRBinding
+@_implementationOnly import WebGPU_Internal.XRProjectionLayer
+@_implementationOnly import WebGPU_Internal.XRSubImage
+@_implementationOnly import WebGPU_Internal.XRView
 import WebGPU_Private.WebGPU
 
 typealias String = Swift.String

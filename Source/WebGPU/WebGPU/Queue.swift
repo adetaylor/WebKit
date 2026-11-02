@@ -26,15 +26,15 @@ import Dispatch
 import Foundation
 import IOSurface
 import Metal
-import WebGPU_Internal.APIConversions
-import WebGPU_Internal.BindGroup
-import WebGPU_Internal.Buffer
-import WebGPU_Internal.CommandBuffer
-import WebGPU_Internal.CommandEncoder
-import WebGPU_Internal.CxxBridging
-import WebGPU_Internal.Device
-import WebGPU_Internal.Queue
-import WebGPU_Internal.Texture
+@_implementationOnly import WebGPU_Internal.APIConversions
+@_implementationOnly import WebGPU_Internal.BindGroup
+@_implementationOnly import WebGPU_Internal.Buffer
+@_implementationOnly import WebGPU_Internal.CommandBuffer
+@_implementationOnly import WebGPU_Internal.CommandEncoder
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Queue
+@_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPU
 import WebGPU_Private.WebGPUCpp
 import simd

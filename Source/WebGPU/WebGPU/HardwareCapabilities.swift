@@ -23,7 +23,7 @@
 
 import Foundation
 import Metal
-import WebGPU_Internal.HardwareCapabilities
+@_implementationOnly import WebGPU_Internal.HardwareCapabilities
 import WebGPU_Private.WebGPUCpp
 
 // FIXME: these two limits should be 30 and 30, but they fail the tests

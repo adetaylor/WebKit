@@ -22,9 +22,9 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Metal
-internal import WGSL
-import WebGPU_Internal.Device
-import WebGPU_Internal.ShaderModule
+@_implementationOnly import WGSL
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.ShaderModule
 import WebGPU_Private.WebGPUCpp
 
 private struct Message {
@@ -205,7 +205,7 @@ final class ShaderModuleImpl {
 }
 
 // The default entry point of a stage: its only entry point, else none.
-private struct DefaultEntryPoint {
+@_implementationOnly private struct DefaultEntryPoint {
     // nil before the first entry point; an empty Name once there is more than one.
     private var candidate: Name?
     private var allowed = true

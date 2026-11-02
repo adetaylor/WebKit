@@ -25,11 +25,11 @@ import Dispatch
 import Foundation
 import Metal
 import Synchronization
-import WebGPU_Internal.Buffer
-import WebGPU_Internal.CommandBuffer
-import WebGPU_Internal.CommandEncoder
-import WebGPU_Internal.Device
-import WebGPU_Internal.Queue
+@_implementationOnly import WebGPU_Internal.Buffer
+@_implementationOnly import WebGPU_Internal.CommandBuffer
+@_implementationOnly import WebGPU_Internal.CommandEncoder
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Queue
 
 private let commandBufferSubmissionTimeoutSeconds = 0.5
 

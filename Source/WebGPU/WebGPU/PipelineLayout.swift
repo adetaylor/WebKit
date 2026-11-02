@@ -22,9 +22,9 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Foundation
-import WebGPU_Internal.BindGroupLayout
-import WebGPU_Internal.Device
-import WebGPU_Internal.PipelineLayout
+@_implementationOnly import WebGPU_Internal.BindGroupLayout
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.PipelineLayout
 import WebGPU_Private.WebGPUCpp
 
 /// The Impls of a pipeline layout's bind group layouts, in group order.
