@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,27 +29,24 @@
 #if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
 
 #include "GPUConnectionToWebProcess.h"
-#include "RemoteCDMInstanceConfiguration.h"
 #include "RemoteCDMInstanceMessages.h"
-#include "RemoteCDMInstanceSessionProxy.h"
+#include "RemoteCDMRegistry.h"
 #include <WebCore/CDMInstance.h>
+#include <WebCore/CDMInstanceSession.h>
 
 namespace WebKit {
 
 using namespace WebCore;
 
-Ref<RemoteCDMInstanceProxy> RemoteCDMInstanceProxy::create(RemoteCDMProxy& cdm, Ref<CDMInstance>&& priv, RemoteCDMInstanceIdentifier identifier)
+Ref<RemoteCDMInstanceProxy> RemoteCDMInstanceProxy::create(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, Ref<CDMInstance>&& priv, RemoteCDMInstanceIdentifier identifier)
 {
-    auto configuration = makeUniqueRefWithoutFastMallocCheck<RemoteCDMInstanceConfiguration, RemoteCDMInstanceConfiguration&&>({
-        priv->keySystem(),
-    });
-    return adoptRef(*new RemoteCDMInstanceProxy(cdm, WTF::move(priv), WTF::move(configuration), identifier));
+    return adoptRef(*new RemoteCDMInstanceProxy(registry, cdm, WTF::move(priv), identifier));
 }
 
-RemoteCDMInstanceProxy::RemoteCDMInstanceProxy(RemoteCDMProxy& cdm, Ref<CDMInstance>&& priv, UniqueRef<RemoteCDMInstanceConfiguration>&& configuration, RemoteCDMInstanceIdentifier identifier)
-    : m_cdm(cdm)
+RemoteCDMInstanceProxy::RemoteCDMInstanceProxy(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, Ref<CDMInstance>&& priv, RemoteCDMInstanceIdentifier identifier)
+    : m_registry(registry)
+    , m_cdm(cdm)
     , m_instance(WTF::move(priv))
-    , m_configuration(WTF::move(configuration))
     , m_identifier(identifier)
 #if !RELEASE_LOG_DISABLED
     , m_logger(cdm.logger())
@@ -69,11 +66,11 @@ void RemoteCDMInstanceProxy::unrequestedInitializationDataReceived(const String&
     if (!m_cdm)
         return;
 
-    RefPtr factory = m_cdm->factory();
-    if (!factory)
+    RefPtr registry = m_registry;
+    if (!registry)
         return;
 
-    RefPtr gpuConnectionToWebProcess = factory->gpuConnectionToWebProcess();
+    RefPtr gpuConnectionToWebProcess = registry->gpuConnectionToWebProcess();
     if (!gpuConnectionToWebProcess)
         return;
 
@@ -95,11 +92,11 @@ void RemoteCDMInstanceProxy::setStorageDirectory(const String& directory)
     if (!m_cdm)
         return;
 
-    RefPtr factory = m_cdm->factory();
-    if (!factory)
+    RefPtr registry = m_registry;
+    if (!registry)
         return;
 
-    auto mediaKeysStorageDirectory = factory->mediaKeysStorageDirectory();
+    auto mediaKeysStorageDirectory = registry->mediaKeysStorageDirectory();
     if (mediaKeysStorageDirectory.isEmpty())
         return;
 
@@ -107,10 +104,12 @@ void RemoteCDMInstanceProxy::setStorageDirectory(const String& directory)
         m_instance->setStorageDirectory(directory);
 }
 
-void RemoteCDMInstanceProxy::createSession(uint64_t logIdentifier, CompletionHandler<void(std::optional<RemoteCDMInstanceSessionIdentifier>)>&& completion)
+void RemoteCDMInstanceProxy::createSession(uint64_t, CompletionHandler<void(std::optional<RemoteCDMInstanceSessionIdentifier>)>&& completion)
 {
-    auto privSession = m_instance->createSession();
-    if (!privSession || !m_cdm || !m_cdm->factory()) {
+    RefPtr privSession = m_instance->createSession();
+    RefPtr cdm = m_cdm;
+    RefPtr registry = m_registry;
+    if (!privSession || !cdm || !registry) {
         completion(std::nullopt);
         return;
     }
@@ -119,10 +118,7 @@ void RemoteCDMInstanceProxy::createSession(uint64_t logIdentifier, CompletionHan
     privSession->setLogIdentifier(m_logIdentifier);
 #endif
 
-    auto identifier = RemoteCDMInstanceSessionIdentifier::generate();
-    auto session = RemoteCDMInstanceSessionProxy::create(m_cdm.get(), privSession.releaseNonNull(), logIdentifier, identifier);
-    protect(protect(m_cdm)->factory())->addSession(identifier, WTF::move(session));
-    completion(identifier);
+    completion(registry->createSession(*cdm, privSession.releaseNonNull()));
 }
 
 std::optional<SharedPreferencesForWebProcess> RemoteCDMInstanceProxy::sharedPreferencesForWebProcess() const
@@ -130,7 +126,9 @@ std::optional<SharedPreferencesForWebProcess> RemoteCDMInstanceProxy::sharedPref
     if (!m_cdm)
         return std::nullopt;
 
-    return protect(m_cdm)->sharedPreferencesForWebProcess();
+    if (RefPtr registry = m_registry)
+        return registry->sharedPreferencesForWebProcess();
+    return std::nullopt;
 }
 
 }

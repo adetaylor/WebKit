@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,7 +30,6 @@
 #include "Connection.h"
 #include "MessageReceiver.h"
 #include "RemoteCDMInstanceSessionIdentifier.h"
-#include "RemoteCDMProxy.h"
 #include <WebCore/CDMInstanceSession.h>
 #include <wtf/CompletionHandler.h>
 #include <wtf/RefCounted.h>
@@ -42,9 +41,13 @@ class SharedBuffer;
 
 namespace WebKit {
 
+class RemoteCDMPrivateHandle;
+class RemoteCDMRegistry;
+struct SharedPreferencesForWebProcess;
+
 class RemoteCDMInstanceSessionProxy final : private IPC::MessageReceiver, private WebCore::CDMInstanceSessionClient, public RefCounted<RemoteCDMInstanceSessionProxy> {
 public:
-    static Ref<RemoteCDMInstanceSessionProxy> create(WeakPtr<RemoteCDMProxy>&&, Ref<WebCore::CDMInstanceSession>&&, uint64_t logIdentifier, RemoteCDMInstanceSessionIdentifier);
+    static Ref<RemoteCDMInstanceSessionProxy> create(RemoteCDMRegistry&, RemoteCDMPrivateHandle&, Ref<WebCore::CDMInstanceSession>&&, RemoteCDMInstanceSessionIdentifier);
     virtual ~RemoteCDMInstanceSessionProxy();
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
@@ -53,8 +56,8 @@ public:
     void deref() const final { RefCounted::deref(); }
 
 private:
-    friend class RemoteCDMFactoryProxy;
-    RemoteCDMInstanceSessionProxy(WeakPtr<RemoteCDMProxy>&&, Ref<WebCore::CDMInstanceSession>&&, uint64_t logIdentifier, RemoteCDMInstanceSessionIdentifier);
+    friend class RemoteCDMRegistry;
+    RemoteCDMInstanceSessionProxy(RemoteCDMRegistry&, RemoteCDMPrivateHandle&, Ref<WebCore::CDMInstanceSession>&&, RemoteCDMInstanceSessionIdentifier);
 
     // IPC::MessageReceiver
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
@@ -87,7 +90,8 @@ private:
     void sessionIdChanged(const String&) final;
     PlatformDisplayID displayID() final { return m_displayID; }
 
-    WeakPtr<RemoteCDMProxy> m_cdm;
+    WeakPtr<RemoteCDMRegistry> m_registry;
+    WeakPtr<RemoteCDMPrivateHandle> m_cdm;
     const Ref<WebCore::CDMInstanceSession> m_session;
     RemoteCDMInstanceSessionIdentifier m_identifier;
     PlatformDisplayID m_displayID { 0 };
