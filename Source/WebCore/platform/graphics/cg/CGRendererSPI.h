@@ -112,6 +112,19 @@ inline CGColorRef CGRendererCreatePatternColor(CGColorSpaceRef patternSpace, CGP
 
 CF_IMPLICIT_BRIDGING_DISABLED
 
+// A pattern brush's opaque pattern, whose components Swift would pass as a pointer.
+inline void CGRendererSetFillPattern(CGContextRef context, CGPatternRef pattern)
+{
+    CGFloat alpha = 1;
+    CGContextSetFillPattern(context, pattern, &alpha);
+}
+
+inline void CGRendererSetStrokePattern(CGContextRef context, CGPatternRef pattern)
+{
+    CGFloat alpha = 1;
+    CGContextSetStrokePattern(context, pattern, &alpha);
+}
+
 // CGContextDrawTiledImage(), which Swift's overlay doesn't let draw a null image; the C++ does when the tile is outside the
 // image, and that changes how CG draws next.
 inline void CGRendererDrawTiledImage(CGContextRef context, CGRect rect, CGImageRef _Nullable image)

@@ -85,7 +85,7 @@ enum class GraphicsContextCGCaptureOp : uint16_t {
     FillRectWithGradient,
 };
 
-// 2: brushes start with their kind (0 color, 1 gradient).
+// 2: brushes start with their kind (0 color, 1 gradient, 2 pattern).
 constexpr uint32_t graphicsContextCGCaptureVersion = 2;
 
 #if ASSERT_ENABLED

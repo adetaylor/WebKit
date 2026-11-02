@@ -328,8 +328,12 @@ private struct CGRendererBrush {
     var packedColor: UInt32 = 0x0000_00FF
     // 0 for packedColor, otherwise 1 + the index of a color that isn't sRGBA8 in CGRenderer.platformColors.
     var platformColorSlot: UInt32 = 0
-    var hasPatternOrGradient = false
+    // 0 for a color, 1 for a gradient, 2 for a pattern.
+    var kind: UInt8 = 0
     var isColorVisible = true
+
+    var hasPatternOrGradient: Bool { kind != 0 }
+    var hasGradient: Bool { kind == 1 }
 
     // SourceBrush::isVisible().
     var isVisible: Bool { hasPatternOrGradient || isColorVisible }
@@ -532,35 +536,35 @@ struct CGRenderer {
     // MARK: State
 
     @_expose(Cxx)
-    mutating func setFillPackedColor(_ packed: UInt32, _ hasPatternOrGradient: Bool) {
-        state.fill = CGRendererBrush(packedColor: packed, hasPatternOrGradient: hasPatternOrGradient, isColorVisible: packed & 0xFF != 0)
-        if !hasPatternOrGradient {
+    mutating func setFillPackedColor(_ packed: UInt32, _ brushKind: UInt8) {
+        state.fill = CGRendererBrush(packedColor: packed, kind: brushKind, isColorVisible: packed & 0xFF != 0)
+        if !state.fill.hasPatternOrGradient {
             context.setFillColor(colorCache.color(packed))
         }
     }
 
     @_expose(Cxx)
-    mutating func setFillPlatformColor(_ color: borrowing CGColor, _ hasPatternOrGradient: Bool, _ isColorVisible: Bool) {
+    mutating func setFillPlatformColor(_ color: borrowing CGColor, _ brushKind: UInt8, _ isColorVisible: Bool) {
         let slot = platformColorSlot(copy color)
-        state.fill = CGRendererBrush(platformColorSlot: slot, hasPatternOrGradient: hasPatternOrGradient, isColorVisible: isColorVisible)
-        if !hasPatternOrGradient {
+        state.fill = CGRendererBrush(platformColorSlot: slot, kind: brushKind, isColorVisible: isColorVisible)
+        if !state.fill.hasPatternOrGradient {
             context.setFillColor(color)
         }
     }
 
     @_expose(Cxx)
-    mutating func setStrokePackedColor(_ packed: UInt32, _ hasPatternOrGradient: Bool) {
-        state.stroke = CGRendererBrush(packedColor: packed, hasPatternOrGradient: hasPatternOrGradient, isColorVisible: packed & 0xFF != 0)
-        if !hasPatternOrGradient {
+    mutating func setStrokePackedColor(_ packed: UInt32, _ brushKind: UInt8) {
+        state.stroke = CGRendererBrush(packedColor: packed, kind: brushKind, isColorVisible: packed & 0xFF != 0)
+        if !state.stroke.hasPatternOrGradient {
             context.setStrokeColor(colorCache.color(packed))
         }
     }
 
     @_expose(Cxx)
-    mutating func setStrokePlatformColor(_ color: borrowing CGColor, _ hasPatternOrGradient: Bool, _ isColorVisible: Bool) {
+    mutating func setStrokePlatformColor(_ color: borrowing CGColor, _ brushKind: UInt8, _ isColorVisible: Bool) {
         let slot = platformColorSlot(copy color)
-        state.stroke = CGRendererBrush(platformColorSlot: slot, hasPatternOrGradient: hasPatternOrGradient, isColorVisible: isColorVisible)
-        if !hasPatternOrGradient {
+        state.stroke = CGRendererBrush(platformColorSlot: slot, kind: brushKind, isColorVisible: isColorVisible)
+        if !state.stroke.hasPatternOrGradient {
             context.setStrokeColor(color)
         }
     }
@@ -871,13 +875,29 @@ struct CGRenderer {
         context.clear(rect)
     }
 
+    // A pattern brush's CGPattern comes from the C++ Pattern for each draw, as GraphicsContextCG::applyFillPattern() makes it;
+    // it is nil for any other brush, or when the pattern has no image.
     @_expose(Cxx)
-    mutating func fillRect(_ rect: CGRect) -> Bool {
-        if state.fill.hasPatternOrGradient || canUseShadowBlur {
+    mutating func fillRect(_ rect: CGRect, _ fillPattern: CGPattern?) -> Bool {
+        if state.fill.hasGradient || canUseShadowBlur {
             return false
         }
+        applyPattern(fillPattern, fill: true)
         context.fill(rect)
         return true
+    }
+
+    private func applyPattern(_ pattern: CGPattern?, fill: Bool) {
+        guard let pattern, let patternSpace = CGColorSpace(patternBaseSpace: nil) else {
+            return
+        }
+        if fill {
+            context.setFillColorSpace(patternSpace)
+            CGRendererSetFillPattern(context, pattern)
+        } else {
+            context.setStrokeColorSpace(patternSpace)
+            CGRendererSetStrokePattern(context, pattern)
+        }
     }
 
     // The caller compares the colors: C++ Color equality includes flags this state doesn't have.
@@ -897,10 +917,11 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func strokeRect(_ rect: CGRect, _ lineWidth: Float) -> Bool {
-        if state.stroke.hasPatternOrGradient {
+    func strokeRect(_ rect: CGRect, _ lineWidth: Float, _ strokePattern: CGPattern?) -> Bool {
+        if state.stroke.hasGradient {
             return false
         }
+        applyPattern(strokePattern, fill: false)
         // CGContextStrokeRect() and CGContextStrokeRectWithWidth() fail to apply some attributes of the graphics state
         // in some cases (https://bugs.webkit.org/show_bug.cgi?id=132948).
         context.setLineWidth(CGFloat(cxxMax(lineWidth, 0)))
@@ -1099,49 +1120,54 @@ struct CGRenderer {
 
     // MARK: Paths
 
-    // A path is converted to a CGPath only to be drawn, so the caller asks first whether this renderer draws it. Functions,
-    // not properties: a Release build (-O -wmo) drops the getters of properties only C++ uses.
+    // A path is converted to a CGPath only to be drawn, so the caller asks first whether this renderer draws it: everything
+    // but a gradient. Functions, not properties: a Release build (-O -wmo) drops the getters of properties only C++ uses.
     @_expose(Cxx)
-    func fillsWithColor() -> Bool {
-        !state.fill.hasPatternOrGradient
+    func fillsWithoutGradient() -> Bool {
+        !state.fill.hasGradient
     }
 
     @_expose(Cxx)
-    func strokesWithColor() -> Bool {
-        !state.stroke.hasPatternOrGradient
+    func strokesWithoutGradient() -> Bool {
+        !state.stroke.hasGradient
     }
 
     @_expose(Cxx)
-    func fillPath(_ path: borrowing CGPath) {
-        assert(fillsWithColor())
+    func fillPath(_ path: borrowing CGPath, _ fillPattern: CGPattern?) {
+        assert(fillsWithoutGradient())
+        applyPattern(fillPattern, fill: true)
         CGRendererDrawPath(context, state.fillRule == 1 ? .eoFill : .fill, copy path)
     }
 
     @_expose(Cxx)
-    func strokePath(_ path: borrowing CGPath) {
-        assert(strokesWithColor())
+    func strokePath(_ path: borrowing CGPath, _ strokePattern: CGPattern?) {
+        assert(strokesWithoutGradient())
+        applyPattern(strokePattern, fill: false)
         CGRendererDrawPath(context, .stroke, copy path)
     }
 
     // A single-line path or a PathDataLine.
     @_expose(Cxx)
-    mutating func strokeLineSegment(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float) {
-        assert(strokesWithColor())
+    mutating func strokeLineSegment(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float, _ strokePattern: CGPattern?) {
+        assert(strokesWithoutGradient())
+        applyPattern(strokePattern, fill: false)
         lineSegment.removeAll(keepingCapacity: true)
         lineSegment.append(CGPoint(x: CGFloat(x1), y: CGFloat(y1)))
         lineSegment.append(CGPoint(x: CGFloat(x2), y: CGFloat(y2)))
         context.strokeLineSegments(between: lineSegment)
     }
 
-    // Whether drawPath() draws anything, when both brushes are colors.
+    // Whether drawPath() draws anything, when neither brush is a gradient.
     @_expose(Cxx)
     func drawsPath() -> Bool {
         state.fill.isVisible || state.stroke.isVisible || state.strokeStyle != CGRendererStrokeStyle.noStroke
     }
 
     @_expose(Cxx)
-    func drawPath(_ path: borrowing CGPath) {
-        assert(fillsWithColor() && strokesWithColor() && drawsPath())
+    func drawPath(_ path: borrowing CGPath, _ fillPattern: CGPattern?, _ strokePattern: CGPattern?) {
+        assert(fillsWithoutGradient() && strokesWithoutGradient() && drawsPath())
+        applyPattern(fillPattern, fill: true)
+        applyPattern(strokePattern, fill: false)
         let evenOdd = state.fillRule == 1
         let mode: CGPathDrawingMode
         if state.fill.isVisible {

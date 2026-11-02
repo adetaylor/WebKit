@@ -1006,6 +1006,32 @@ void GraphicsContextCG::drawEllipse(const FloatRect& rect)
     drawPath(path);
 }
 
+#if ENABLE(WEBCORE_SWIFT)
+// The CGPattern applyFillPattern() and applyStrokePattern() set, for the Swift renderer to set.
+RetainPtr<CGPatternRef> GraphicsContextCG::swiftFillPattern()
+{
+    RefPtr fillPattern = this->fillPattern();
+    if (!fillPattern)
+        return nullptr;
+    return fillPattern->createPlatformPattern(AffineTransform(getUserToBaseCTM(contextForDraw())));
+}
+
+RetainPtr<CGPatternRef> GraphicsContextCG::swiftStrokePattern()
+{
+    RefPtr strokePattern = this->strokePattern();
+    if (!strokePattern)
+        return nullptr;
+    return strokePattern->createPlatformPattern(AffineTransform(getUserToBaseCTM(contextForDraw())));
+}
+
+static uint8_t swiftBrushKind(const SourceBrush& brush)
+{
+    if (brush.gradient())
+        return 1;
+    return brush.pattern() ? 2 : 0;
+}
+#endif
+
 void GraphicsContextCG::applyStrokePattern()
 {
     CAPTURE(unsupported("applyStrokePattern"_s));
@@ -1086,9 +1112,9 @@ void GraphicsContextCG::drawPath(const Path& path)
 #if ENABLE(WEBCORE_SWIFT)
     if (m_usesSwiftRenderer) {
         auto& renderer = swiftRenderer();
-        if (renderer.fillsWithColor() && renderer.strokesWithColor()) {
+        if (renderer.fillsWithoutGradient() && renderer.strokesWithoutGradient()) {
             if (renderer.drawsPath())
-                renderer.drawPath(protect(path.platformPath()).get());
+                renderer.drawPath(protect(path.platformPath()).get(), swiftFillPattern().get(), swiftStrokePattern().get());
             return;
         }
     }
@@ -1121,8 +1147,8 @@ void GraphicsContextCG::fillPath(const Path& path)
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_usesSwiftRenderer && swiftRenderer().fillsWithColor()) {
-        swiftRenderer().fillPath(protect(path.platformPath()).get());
+    if (m_usesSwiftRenderer && swiftRenderer().fillsWithoutGradient()) {
+        swiftRenderer().fillPath(protect(path.platformPath()).get(), swiftFillPattern().get());
         return;
     }
 #endif
@@ -1162,11 +1188,11 @@ void GraphicsContextCG::strokePath(const Path& path)
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_usesSwiftRenderer && swiftRenderer().strokesWithColor()) {
+    if (m_usesSwiftRenderer && swiftRenderer().strokesWithoutGradient()) {
         if (auto line = path.singleDataLine())
-            swiftRenderer().strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y());
+            swiftRenderer().strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y(), swiftStrokePattern().get());
         else
-            swiftRenderer().strokePath(protect(path.platformPath()).get());
+            swiftRenderer().strokePath(protect(path.platformPath()).get(), swiftStrokePattern().get());
         return;
     }
 #endif
@@ -1202,7 +1228,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
     CAPTURE(fillRect(rect, requiresClipToRect));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_usesSwiftRenderer && swiftRenderer().fillRect(rect))
+    if (m_usesSwiftRenderer && swiftRenderer().fillRect(rect, swiftFillPattern().get()))
         return;
 #endif
 
@@ -1711,9 +1737,9 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
         case GraphicsContextState::Change::FillBrush: {
             auto& brush = state.fillBrush();
             if (auto packedColor = brush.color().tryGetAsPackedInline())
-                renderer.setFillPackedColor(packedColor->value, brush.hasPatternOrGradient());
+                renderer.setFillPackedColor(packedColor->value, swiftBrushKind(brush));
             else
-                renderer.setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), brush.hasPatternOrGradient(), brush.color().isVisible());
+                renderer.setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), swiftBrushKind(brush), brush.color().isVisible());
             break;
         }
 
@@ -1724,9 +1750,9 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
         case GraphicsContextState::Change::StrokeBrush: {
             auto& brush = state.strokeBrush();
             if (auto packedColor = brush.color().tryGetAsPackedInline())
-                renderer.setStrokePackedColor(packedColor->value, brush.hasPatternOrGradient());
+                renderer.setStrokePackedColor(packedColor->value, swiftBrushKind(brush));
             else
-                renderer.setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), brush.hasPatternOrGradient(), brush.color().isVisible());
+                renderer.setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), swiftBrushKind(brush), brush.color().isVisible());
             break;
         }
 
@@ -1913,7 +1939,7 @@ void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
     CAPTURE(strokeRect(rect, lineWidth));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_usesSwiftRenderer && swiftRenderer().strokeRect(rect, lineWidth))
+    if (m_usesSwiftRenderer && swiftRenderer().strokeRect(rect, lineWidth, swiftStrokePattern().get()))
         return;
 #endif
 
@@ -1966,9 +1992,9 @@ void GraphicsContextCG::strokeLine(const PathDataLine& line)
 {
     CAPTURE(strokeLine(line));
 #if ENABLE(WEBCORE_SWIFT)
-    if (m_usesSwiftRenderer && swiftRenderer().strokesWithColor()) {
+    if (m_usesSwiftRenderer && swiftRenderer().strokesWithoutGradient()) {
         m_hasDrawn = true;
-        swiftRenderer().strokeLineSegment(line.start().x(), line.start().y(), line.end().x(), line.end().y());
+        swiftRenderer().strokeLineSegment(line.start().x(), line.start().y(), line.end().x(), line.end().y(), swiftStrokePattern().get());
         return;
     }
 #endif

@@ -171,6 +171,8 @@ private:
     CGRenderer& swiftRenderer() const;
     void didUpdateStateForSwiftRenderer(GraphicsContextState&);
     void setSwiftRendererShadow(CGRenderer&, const GraphicsDropShadow&, bool isStyle);
+    RetainPtr<CGPatternRef> swiftFillPattern();
+    RetainPtr<CGPatternRef> swiftStrokePattern();
     void setCGDropShadow(const std::optional<GraphicsDropShadow>&, bool shadowsIgnoreTransforms);
     void clearCGDropShadow();
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)

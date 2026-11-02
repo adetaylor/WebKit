@@ -31,6 +31,7 @@
 #include "FloatRoundedRect.h"
 #include "Gradient.h"
 #include "NativeImage.h"
+#include "Pattern.h"
 #include "Path.h"
 #include <fcntl.h>
 #include <pal/spi/cg/CoreGraphicsSPI.h>
@@ -416,6 +417,17 @@ void GraphicsContextCGCapture::stateUpdate(const GraphicsContextState& state)
     auto changes = state.changes();
     if (!changes)
         return;
+    // A pattern brush's tile image is defined before the update that refers to it.
+    for (auto* brush : { changes.contains(Change::FillBrush) ? &state.fillBrush() : nullptr, changes.contains(Change::StrokeBrush) ? &state.strokeBrush() : nullptr }) {
+        if (RefPtr pattern = brush ? brush->pattern() : nullptr) {
+            if (RefPtr tile = pattern->tileNativeImage()) {
+                if (RetainPtr tileImage = tile->platformImage())
+                    imageIdentifier(tileImage.get());
+            }
+        }
+    }
+    if (m_stopped)
+        return;
     begin(Op::StateUpdate);
     writeValue(changes.toRaw());
     for (auto change : changes) {
@@ -423,11 +435,20 @@ void GraphicsContextCGCapture::stateUpdate(const GraphicsContextState& state)
         case Change::FillBrush:
         case Change::StrokeBrush: {
             auto& brush = change == Change::FillBrush ? state.fillBrush() : state.strokeBrush();
-            if (brush.pattern()) {
-                stop("pattern brush"_s);
-                return;
-            }
-            if (RefPtr gradient = brush.gradient()) {
+            if (RefPtr pattern = brush.pattern()) {
+                RefPtr tile = pattern->tileNativeImage();
+                RetainPtr tileImage = tile ? tile->platformImage() : nullptr;
+                auto identifier = tileImage ? imageIdentifier(tileImage.get()) : std::nullopt;
+                if (!identifier) {
+                    stop("pattern brush"_s);
+                    return;
+                }
+                writeValue(static_cast<uint8_t>(2));
+                writeValue(*identifier);
+                writeValue(static_cast<uint8_t>(pattern->repeatX()));
+                writeValue(static_cast<uint8_t>(pattern->repeatY()));
+                writeTransform(pattern->patternSpaceTransform());
+            } else if (RefPtr gradient = brush.gradient()) {
                 writeValue(static_cast<uint8_t>(1));
                 writeGradient(*gradient);
                 writeTransform(brush.gradientSpaceTransform());
