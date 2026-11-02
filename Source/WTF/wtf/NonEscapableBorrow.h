@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <memory>
 #include <wtf/Borrow.h>
 #include <wtf/ForbidHeapAllocation.h>
 #include <wtf/Noncopyable.h>
@@ -35,24 +36,34 @@
 
 namespace WTF {
 
-// Lends a C++ object to Swift, for the duration of a call, as a view that no mistake in Swift can use to
-// reach the object once the call is over.
+// Lends a C++ object to Swift as a view that no mistake in Swift can use to reach the object once the lend is
+// over.
 //
-// The object must implement the CanBorrow protocol. A NonEscapableBorrowLender, which must be a stack
-// local of the C++ code that lends the object, holds a Borrow of it for as long as it lends it, so
-// CanBorrow catches the object being destroyed while it is lent. The view, a subclass of
-// NonEscapableBorrow, reaches the object only through a ref-counted NonEscapableBorrowLease, whose
-// pointer to the object the lender sets after its Borrow begins and clears before it ends. Using the
-// view, or any copy of it, after that, or on another thread, crashes.
+// The object must implement the CanBorrow protocol, and is borrowed for as long as it is lent, so CanBorrow
+// catches it being destroyed while it is lent. There are two lenders:
 //
-// The view is SWIFT_NONESCAPABLE, so Swift rejects most attempts to keep it beyond the call, and the lease
+// - A NonEscapableBorrowLender lends an object for the duration of a call. It must be a stack local of the
+//   C++ code that lends the object, and holds a Borrow of it.
+// - A NonEscapableBorrowOwningLender owns the object, on the heap, and lends it for the lender's whole life,
+//   so that the lender can live anywhere, such as in a value that Swift keeps. It marks the object borrowed
+//   when it takes it, crashing if it already is, and unmarks it only as it destroys it. It must be destroyed
+//   on the thread that made it. Moving it leaves the object and its views as they were, and the moved-from
+//   lender lending nothing.
+//
+// The view, a subclass of NonEscapableBorrow, reaches the object only through a ref-counted
+// NonEscapableBorrowLease, whose pointer to the object a lender sets after the object's borrow begins and
+// clears before it ends. Using the view, or any copy of it, after that, or on a thread other than the one
+// that made the lender, crashes.
+//
+// The view is SWIFT_NONESCAPABLE, so Swift rejects most attempts to keep it beyond the lend, and the lease
 // catches the rest at run time. Swift treats it as safe without SWIFT_SAFE, because all it holds is a Ref.
 // It is copyable because Swift 6.3 leaves Swift functions that take a non-copyable C++ type out of the
 // generated C++ header.
 //
 // To give Swift operations on a type, subclass NonEscapableBorrow, implement them with borrowed(), and
-// make the constructor private, so that only a lender can make the view. The constructor's parameter
-// needs LIFETIME_BOUND, without which some Swift compilers cannot import a non-escapable type:
+// make the constructor private, with the lenders that may lend the type as friends, so that only they can
+// make the view. The constructor's parameter needs LIFETIME_BOUND, without which some Swift compilers
+// cannot import a non-escapable type:
 //
 //     class CounterView : public NonEscapableBorrow<Counter> {
 //     public:
@@ -60,6 +71,7 @@ namespace WTF {
 //
 //     private:
 //         friend class NonEscapableBorrowLender<CounterView>;
+//         friend class NonEscapableBorrowOwningLender<CounterView>;
 //
 //         explicit CounterView(NonEscapableBorrowLease<Counter>& lease LIFETIME_BOUND)
 //             : NonEscapableBorrow(lease)
@@ -67,10 +79,21 @@ namespace WTF {
 //         }
 //     } SWIFT_NONESCAPABLE;
 //
-// and lend an object to a Swift function that takes `inout CounterView`:
+// Lend an object to a Swift function that takes `inout CounterView`:
 //
 //     NonEscapableBorrowLender<CounterView> lender { counter };
 //     swiftObject.useCounter(lender.view());
+//
+// or give one to an owning lender in a type whose LIFETIME_BOUND accessor returns the view, so that Swift
+// can use the object for as long as it keeps a value of that type:
+//
+//     class CounterHolder {
+//     public:
+//         CounterView counter() const LIFETIME_BOUND { return m_lender.view(); }
+//
+//     private:
+//         NonEscapableBorrowOwningLender<CounterView> m_lender { makeUnique<Counter>() };
+//     };
 
 template<typename> class NonEscapableBorrowLease;
 
@@ -101,6 +124,49 @@ private:
     View m_view;
 };
 
+template<typename View>
+class NonEscapableBorrowOwningLender {
+    WTF_MAKE_NONCOPYABLE(NonEscapableBorrowOwningLender);
+public:
+    using BorrowedType = typename View::BorrowedType;
+
+    explicit NonEscapableBorrowOwningLender(std::unique_ptr<BorrowedType>&& object)
+        : m_object(borrow(WTF::move(object)))
+        , m_lease(adoptRef(*new NonEscapableBorrowLease<BorrowedType>(*m_object)))
+    {
+    }
+
+    NonEscapableBorrowOwningLender(NonEscapableBorrowOwningLender&&) = default;
+
+    ~NonEscapableBorrowOwningLender()
+    {
+        if (!m_object)
+            return;
+        RELEASE_ASSERT(Thread::currentSingleton().uid() == m_lease->m_threadUID);
+        m_lease->end();
+        m_object->setIsBorrowed(false);
+    }
+
+    View view() const LIFETIME_BOUND
+    {
+        RELEASE_ASSERT(m_object);
+        return View { m_lease.get() };
+    }
+
+private:
+    static std::unique_ptr<BorrowedType> borrow(std::unique_ptr<BorrowedType>&& object)
+    {
+        RELEASE_ASSERT(object);
+        bool wasBorrowed = object->setIsBorrowed(true);
+        RELEASE_ASSERT(!wasBorrowed);
+        return WTF::move(object);
+    }
+
+    std::unique_ptr<BorrowedType> m_object;
+    // A move copies this, so a moved-from lender keeps the lease but, without the object, never ends it.
+    const Ref<NonEscapableBorrowLease<BorrowedType>> m_lease;
+};
+
 template<typename T>
 class NonEscapableBorrowLease final : public ThreadSafeRefCounted<NonEscapableBorrowLease<T>> {
 public:
@@ -113,6 +179,7 @@ public:
 
 private:
     template<typename> friend class NonEscapableBorrowLender;
+    template<typename> friend class NonEscapableBorrowOwningLender;
 
     explicit NonEscapableBorrowLease(T& object)
         : m_object(&object)
@@ -148,3 +215,4 @@ private:
 using WTF::NonEscapableBorrow;
 using WTF::NonEscapableBorrowLease;
 using WTF::NonEscapableBorrowLender;
+using WTF::NonEscapableBorrowOwningLender;
