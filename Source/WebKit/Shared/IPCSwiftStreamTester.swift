@@ -119,6 +119,16 @@ final class IPCSwiftStreamTester {
         value
     }
 
+    func benchEnabledFourValuesSwift(connection: IPC.StreamServerConnection, a: UInt32, b: UInt32, c: UInt32, d: UInt32) {
+        benchSink &+= UInt64(a &+ b &+ c &+ d)
+    }
+
+    // A message with EnabledBy makes dispatch check these, as WebGPU's receivers check theirs.
+    @used
+    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
+        WebKit.ipcTesterSharedPreferences()
+    }
+
     func takeRecordedDigestSwift(connection: IPC.StreamServerConnection) -> UInt32 {
         takeRecordedDigest(connection: connection)
     }

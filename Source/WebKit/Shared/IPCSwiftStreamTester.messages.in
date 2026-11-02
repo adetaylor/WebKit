@@ -45,6 +45,7 @@ messages -> IPCSwiftStreamTester Stream {
     BenchStringSwift(String text) SwiftTypes
     BenchVectorSwift(Vector<uint32_t> values) SwiftTypes
     BenchSyncSwift(uint64_t value) -> (uint64_t sameValue) Synchronous SwiftTypes
+    [EnabledBy=AllowTestOnlyIPC] BenchEnabledFourValuesSwift(uint32_t a, uint32_t b, uint32_t c, uint32_t d) SwiftTypes
 }
 
 #endif
