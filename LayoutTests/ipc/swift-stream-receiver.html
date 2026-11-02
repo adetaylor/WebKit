@@ -1,0 +1,51 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift stream receiver handles messages on its work queue.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<body>
+<script>
+async function runTest() {
+    const defaultTimeout = 1000;
+    const bufferSizeLog2 = 9;
+    const streamTesterID = 447;
+
+    for (const processTarget of IPC.processTargets) {
+        const [streamConnection, serverConnectionHandle] = IPC.createStreamClientConnection(bufferSizeLog2, defaultTimeout);
+        streamConnection.open();
+        IPC.sendMessage(processTarget, 0, IPC.messages.IPCTester_CreateStreamTester.name, [
+            { type: 'uint64_t', value: streamTesterID },
+            { type: 'StreamServerConnectionHandle', value: serverConnectionHandle },
+        ]);
+        try {
+            // Few enough that the out-of-stream markers don't wrap the stream buffer.
+            let expectedDigest = 0;
+            for (let value = 1; value <= 20; ++value) {
+                streamConnection.sendMessage(streamTesterID, IPC.messages.IPCSwiftStreamTester_Record.name, [{ type: 'uint32_t', value }]);
+                expectedDigest = (Math.imul(expectedDigest, 31) + value) >>> 0;
+            }
+            const digestReply = streamConnection.sendSyncMessage(streamTesterID, IPC.messages.IPCSwiftStreamTester_TakeRecordedDigest.name, []);
+            assert_equals(digestReply.arguments[0].value, expectedDigest, `TakeRecordedDigest for ${processTarget}`);
+
+            let sumReply;
+            const asyncReplyID = streamConnection.sendWithAsyncReply(streamTesterID, IPC.messages.IPCSwiftStreamTester_Add.name, [{ type: 'uint32_t', value: 40 }, { type: 'uint32_t', value: 2 }], message => {
+                sumReply = message;
+            });
+            if (!sumReply)
+                streamConnection.waitForAsyncReplyAndDispatchImmediately(asyncReplyID, IPC.messages.IPCSwiftStreamTester_AddReply.name);
+            assert_equals(sumReply.arguments[0].value, 42, `Add for ${processTarget}`);
+        } finally {
+            IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_ReleaseStreamTester.name, defaultTimeout, [{ type: 'uint64_t', value: streamTesterID }]);
+            streamConnection.invalidate();
+        }
+    }
+    done();
+}
+
+setup({ single_test: true });
+// The receiver only exists where WebKit's IPC testing code is built with Swift.
+if (window.IPC && IPC.messages.IPCSwiftStreamTester_Record)
+    runTest();
+else
+    done();
+</script>
+</body>

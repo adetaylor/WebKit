@@ -97,6 +97,12 @@ void StreamServerConnection::invalidate()
     m_outOfStreamMessages.clear();
 }
 
+bool StreamServerConnection::isCurrentWorkQueue() const
+{
+    RefPtr workQueue = m_workQueue;
+    return workQueue && workQueue->isCurrent();
+}
+
 void StreamServerConnection::startReceivingMessages(StreamMessageReceiver& receiver, ReceiverName receiverName, uint64_t destinationID)
 {
     auto key = std::make_pair(static_cast<uint8_t>(receiverName), destinationID);

@@ -2468,7 +2468,10 @@ def generate_swift_message_handler(receiver):
     if receiver.swift_receiver_build_enabled_by:
         result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
 
-    result.append('// Safety: target is only written in init, assumeIsolated asserts the main thread, and weak loads are atomic in the Swift runtime\n')
+    if receiver.has_attribute(STREAM_ATTRIBUTE):
+        result.append('// Safety: target is only written in init, dispatch asserts the stream connection\'s work queue, and weak loads are atomic in the Swift runtime\n')
+    else:
+        result.append('// Safety: target is only written in init, assumeIsolated asserts the main thread, and weak loads are atomic in the Swift runtime\n')
     result.append('@_expose(Cxx)\n')
     result.append('final class %s: @unchecked Sendable {\n' % (weak_ref_class))
     result.append('    private weak var target: %s?\n' % (class_name))
@@ -2541,7 +2544,11 @@ def generate_swift_message_handler(receiver):
         # -Werror NoUseUnstructuredThrowingTask rejects.
         # A SwiftSyncHandler handler is called directly instead, with no Task or Invocation. Calling an
         # async handler there does not compile.
-        sync_handler = message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE)
+        # A stream receiver's handler is always called directly, on the stream connection's work queue
+        # rather than the main actor. The receiver is confined to that queue, so dispatch asserts it is
+        # there instead of entering an actor.
+        is_stream = receiver.has_attribute(STREAM_ATTRIBUTE)
+        sync_handler = message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) or is_stream
         # FIXME(rdar://189495426): store arguments in an Invocation class to work around Windows tail
         # call problem.
         invocation_class = '%sInvocation' % message.name
@@ -2559,6 +2566,8 @@ def generate_swift_message_handler(receiver):
         result.append('    func dispatch%s(\n' % message.name)
         result.append(',\n'.join(['        %s' % parameter for parameter in parameters]))
         result.append('\n    ) -> Bool {\n' if takes_swift_types else '\n    ) {\n')
+        if is_stream:
+            result.append('        assert(connection.isCurrentWorkQueue())\n')
         if decoded_parameters:
             for name, swift_type, _ in decoded_parameters:
                 result.append('        let %s: %s\n' % (name, swift_type))
@@ -2596,13 +2605,21 @@ def generate_swift_message_handler(receiver):
                 result.append('%s    %s\n' % (base, statement))
             result.append('%s}\n' % base)
 
-        if sync_handler:
+        if is_stream:
+            result.append('        guard let target else {\n')
+            for statement in cancel_statements:
+                result.append('            %s\n' % statement)
+            result.append('            return\n')
+            result.append('        }\n')
+            append_handler_call('        ', '', True)
+        elif sync_handler:
             result.append('        MainActor.assumeIsolated {\n')
             result.append('            guard let target else {\n')
             result.append('                return\n')
             result.append('            }\n')
             append_handler_call('            ', '', True)
             result.append('        }\n')
+        if sync_handler:
             if takes_swift_types:
                 result.append('        return true\n')
             result.append('    }\n')

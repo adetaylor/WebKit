@@ -66,6 +66,9 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/IPCConnectionTesterMessageReceiv
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/IPCConnectionTesterMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/IPCStreamTesterMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/IPCStreamTesterMessages.h
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/IPCSwiftStreamTesterMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/IPCSwiftStreamTesterMessageReceiver.swift
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/IPCSwiftStreamTesterMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/IPCTesterMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/IPCTesterMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/IPCTesterReceiverMessageReceiver.cpp

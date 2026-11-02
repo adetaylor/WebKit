@@ -314,6 +314,7 @@ set(WebKit_MESSAGES_IN_FILES
     Shared/AuxiliaryProcess
     Shared/IPCConnectionTester
     Shared/IPCStreamTester
+    Shared/IPCSwiftStreamTester
     Shared/IPCTester
     Shared/IPCTesterReceiver
 
@@ -1006,6 +1007,7 @@ endif ()
 
 if (SWIFT_REQUIRED)
     set(WebKit_SWIFT_INTEROP_SOURCES
+        Shared/IPCStreamTester.cpp
         Shared/IPCTester.cpp
         UIProcess/ProvisionalPageProxy.cpp
         UIProcess/RemotePageProxy.cpp
@@ -1014,6 +1016,7 @@ if (SWIFT_REQUIRED)
         UIProcess/Automation/WebAutomationSession.cpp
         WebProcess/WebPage/IPCTestingAPI.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebBackForwardListMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftStreamTesterMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
     )
     if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
@@ -1615,15 +1618,18 @@ endif ()
 
 if (SWIFT_REQUIRED)
     set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/Shared/Concurrency+Extras.swift
         ${WEBKIT_DIR}/Shared/Foundation+Extras.swift
+        ${WEBKIT_DIR}/Shared/IPCSwiftStreamTester.swift
         ${WEBKIT_DIR}/Shared/IPCTesterReceiver.swift
         ${WEBKIT_DIR}/Shared/RunJavaScriptResult.swift
         ${WEBKIT_DIR}/Shared/WTFCompletionHandler+Extras.swift
         ${WEBKIT_DIR}/Shared/WTFExpected+Extras.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
     )
 endif ()

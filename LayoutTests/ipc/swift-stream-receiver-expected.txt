@@ -1,0 +1,3 @@
+
+PASS Test that a Swift stream receiver handles messages on its work queue.
+
