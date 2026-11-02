@@ -86,11 +86,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteAdapter& adapter)
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteBindGroup& bindGroup)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, BindGroupObject&& bindGroup)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup> { protect(bindGroup) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(bindGroup) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteBindGroup& bindGroup)
+{
+    auto result = m_objects.add(identifier, Object { BindGroupObject { protect(bindGroup) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteBindGroupLayout& bindGroupLayout)
 {
@@ -278,9 +286,9 @@ RefPtr<::WebGPU::Adapter> ObjectHeap::convertAdapterFromBacking(WebGPUIdentifier
 RefPtr<::WebGPU::BindGroup> ObjectHeap::convertBindGroupFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<BindGroupObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup>>(iterator->value)->backing();
+    return &std::get<BindGroupObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::BindGroupLayout> ObjectHeap::convertBindGroupLayoutFromBacking(WebGPUIdentifier identifier)
