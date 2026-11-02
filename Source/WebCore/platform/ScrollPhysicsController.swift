@@ -922,8 +922,8 @@ final class ScrollPhysicsController {
         delta += eventDelta
 
         if wheelEvent.isGestureEvent() {
-            // Automation events are already directionally locked upstream in WKAppKitGestureController.
-            let alreadyDirectionallyLocked = wheelEvent.inputSource() == .Automation
+            // Events from the touch screen are already directionally locked upstream in WKAppKitGestureController.
+            let alreadyDirectionallyLocked = wheelEvent.inputSource() == .Touch
 
             // FIXME: This axis locking replicates what WheelEventDeltaFilter does. We should apply that to events in all phases, and remove axis locking here (webkit.org/b/231207).
             if !alreadyDirectionallyLocked {
@@ -1057,7 +1057,7 @@ final class ScrollPhysicsController {
         _ isHorizontallyStretched: Bool,
         _ isVerticallyStretched: Bool
     ) -> Bool {
-        let allowsDiagonalRubberbanding = wheelEvent.inputSource() == .Automation
+        let allowsDiagonalRubberbanding = wheelEvent.inputSource() == .Touch
 
         let affectedSide = affectedSideOnDominantAxis(delta)
         let horizontalSide = targetSideForScrollDelta(delta, .Horizontal)
@@ -1196,7 +1196,7 @@ final class ScrollPhysicsController {
         let horizontalDeltaOpposesStretch = isHorizontallyStretched && c.isScrollDeltaOpposingStretch(.Horizontal, delta.width)
         let verticalDeltaOpposesStretch = isVerticallyStretched && c.isScrollDeltaOpposingStretch(.Vertical, delta.height)
 
-        let allowsDiagonalRubberbanding = wheelEvent.inputSource() == .Automation
+        let allowsDiagonalRubberbanding = wheelEvent.inputSource() == .Touch
         let canScrollHorizontally = !isHorizontallyStretched && (horizontalSide.map { !c.isPinnedOnSide($0) } ?? false)
         let canScrollVertically = !isVerticallyStretched && (verticalSide.map { !c.isPinnedOnSide($0) } ?? false)
 
@@ -1460,7 +1460,7 @@ final class ScrollPhysicsController {
 
         var initialVelocity = momentumVelocity
 
-        let allowsDiagonalRubberbanding = wheelEvent.inputSource() == .Automation
+        let allowsDiagonalRubberbanding = wheelEvent.inputSource() == .Touch
         if allowsDiagonalRubberbanding {
             let isHorizontallyStretched =
                 stretchAmount.width() != 0 || targetOffset.x != constrainedOffset.x || stretchScrollForce.width != 0
@@ -1840,7 +1840,7 @@ final class ScrollPhysicsController {
             if retargetAnimatedScrollBy(&c, delta.floatSize) {
                 return true
             }
-            c.scrollToPositionWithAnimation(newPosition.floatPoint, delta.floatSize)
+            scrollableAreaScrollToPositionWithAnimation(&c, newPosition.floatPoint, options: .createProgrammaticWithOptions(.Clamped, .No, .Closest, .init(delta.floatSize)))
             return true
         }
 
@@ -1926,7 +1926,7 @@ final class ScrollPhysicsController {
         if notify {
             c.notifyContentAreaScrolled(delta.floatSize)
             let roundedPosition = roundedIntPoint(ScrollPoint(c.currentPosition()))
-            c.setScrollPositionFromAnimation(WebCore.IntPoint(roundedPosition.x, roundedPosition.y))
+            scrollableAreaSetScrollPositionFromAnimation(&c, WebCore.IntPoint(roundedPosition.x, roundedPosition.y))
             scrollPositionChanged(&c)
         } else {
             c.clearScrollAnchor()
@@ -2054,7 +2054,7 @@ final class ScrollPhysicsController {
 
         if c.isUserScrollInProgress() {
             c.setKeyboardScrollTriggeringKeyIsPressed(false)
-            c.endKeyboardScroll(true)
+            scrollableAreaEndKeyboardScroll(&c, true)
             return true
         }
 
@@ -2078,6 +2078,10 @@ final class ScrollPhysicsController {
             return false
         }
 
+        // Each branch below starts an animation that applies its positions after this function returns, so the
+        // relativity is set now.
+        c.setCurrentScrollRelativity(WebCore.scrollRelativityFor(granularity))
+
         if granularity == .Document {
             keyboardScrollingAnimatorScrollToDocumentEdge(&c, direction)
             return true
@@ -2090,7 +2094,7 @@ final class ScrollPhysicsController {
 
         c.setKeyboardScrollTriggeringKeyIsPressed(true)
 
-        c.beginKeyboardScroll(scroll)
+        scrollableAreaBeginKeyboardScroll(&c, scroll)
 
         return true
     }
@@ -2103,13 +2107,13 @@ final class ScrollPhysicsController {
 
         c.setKeyboardScrollTriggeringKeyIsPressed(false)
 
-        c.endKeyboardScroll(false)
+        scrollableAreaEndKeyboardScroll(&c, false)
     }
 
     @_expose(Cxx)
     func keyboardScrollingAnimatorStopScrollingImmediately(_ c: inout MainThreadScrollPhysicsClient) {
         c.setKeyboardScrollTriggeringKeyIsPressed(false)
-        c.endKeyboardScroll(true)
+        scrollableAreaEndKeyboardScroll(&c, true)
     }
 }
 
