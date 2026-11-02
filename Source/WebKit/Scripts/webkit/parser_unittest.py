@@ -416,11 +416,10 @@ class SwiftTypesTest(unittest.TestCase):
         receiver = parse_swift_receiver(['Message(uint32_t value) SwiftTypes'], extended_attributes=['SwiftReceiver'], receiver_attributes='Stream')
         self.assertTrue(receiver.takes_swift_types(receiver.messages[0]))
 
-    def test_error_swift_types_reply_on_stream_receiver(self):
-        receiver = parse_swift_receiver(['Message(uint32_t value) -> (uint32_t reply) Synchronous'], receiver_attributes='Stream')
+    def test_swift_types_reply_on_stream_receiver(self):
+        receiver = parse_swift_receiver(['Message(uint32_t value) -> (uint32_t reply) Synchronous', 'AsyncMessage(uint32_t value) -> (uint32_t reply)'], receiver_attributes='Stream')
         self.assertTrue(receiver.takes_swift_types(receiver.messages[0]))
-        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported with an asynchronous reply on a stream receiver"):
-            parse_swift_receiver(['Message(uint32_t value) -> (uint32_t reply)'], receiver_attributes='Stream')
+        self.assertTrue(receiver.takes_swift_types(receiver.messages[1]))
 
     def test_error_unmappable_parameter(self):
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, but cannot take parameter 'url': 'URL' has no Swift form"):

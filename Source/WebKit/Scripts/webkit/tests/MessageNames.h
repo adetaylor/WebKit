@@ -149,8 +149,11 @@ enum class MessageName : uint16_t {
     TestWithStreamServerConnectionHandle_SendStreamServerConnection,
     TestWithStreamSwiftEnabledBy_SendString,
     TestWithStreamSwiftTypes_SendCxxString,
+    TestWithStreamSwiftTypes_SendEmptyAsyncReply,
     TestWithStreamSwiftTypes_SendString,
+    TestWithStreamSwiftTypes_SendStringAsyncReply,
     TestWithStreamSwiftTypes_SendValues,
+    TestWithStreamSwiftTypes_SendValuesAsyncReply,
     TestWithStreamSwift_SendString,
     TestWithStream_CallWithIdentifierReply,
 #if PLATFORM(COCOA)
@@ -268,6 +271,9 @@ enum class MessageName : uint16_t {
     TestWithLegacyReceiver_OpaqueTypeSecurityAssertion,
     TestWithLegacyReceiver_RunJavaScriptAlert,
     TestWithSemaphore_ReceiveSemaphore,
+    TestWithStreamSwiftTypes_SendEmptyAsync,
+    TestWithStreamSwiftTypes_SendStringAsync,
+    TestWithStreamSwiftTypes_SendValuesAsync,
     TestWithStream_CallWithIdentifier,
     TestWithStream_SendStringAsync,
 #if ENABLE(TEST_FEATURE)
