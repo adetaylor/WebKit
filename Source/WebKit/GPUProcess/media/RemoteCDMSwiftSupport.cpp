@@ -31,6 +31,8 @@
 #include "RemoteCDMInstanceConfiguration.h"
 #include "RemoteCDMProxyMessages.h"
 #include <WebCore/CDMInstance.h>
+#include <WebCore/CDMInstanceSession.h>
+#include <WebCore/SharedBuffer.h>
 
 namespace WebKit {
 
@@ -44,6 +46,41 @@ uint64_t createRemoteCDMInstance(const RemoteCDMRegistryWeakReference& registryR
         return 0;
     auto identifier = registry->createInstance(cdm, instance.releaseNonNull(), configuration);
     return identifier ? identifier->toUInt64() : 0;
+}
+
+uint64_t createRemoteCDMInstanceSession(const RemoteCDMRegistryWeakReference& registryReference, const RemoteCDMPrivateHandleWeakReference& cdmReference, CDMInstance& instance, uint64_t logIdentifier)
+{
+    RefPtr session = instance.createSession();
+    RefPtr cdm = adoptRef(cdmReference.get());
+    RefPtr registry = adoptRef(registryReference.get());
+    if (!session || !cdm || !registry)
+        return 0;
+
+#if !RELEASE_LOG_DISABLED
+    session->setLogIdentifier(logIdentifier);
+#else
+    UNUSED_PARAM(logIdentifier);
+#endif
+
+    auto identifier = registry->createSession(*cdm, session.releaseNonNull());
+    return identifier ? identifier->toUInt64() : 0;
+}
+
+void initializeRemoteCDMInstance(CDMInstance& instance, RemoteCDMKeySystemConfigurationBuilder& builder, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&& completionHandler)
+{
+    auto allowDistinctiveIdentifiers = distinctiveIdentifiersAllowed ? CDMInstance::AllowDistinctiveIdentifiers::Yes : CDMInstance::AllowDistinctiveIdentifiers::No;
+    auto allowPersistentState = persistentStateAllowed ? CDMInstance::AllowPersistentState::Yes : CDMInstance::AllowPersistentState::No;
+    instance.initializeWithConfiguration(builder.take(), allowDistinctiveIdentifiers, allowPersistentState, WTF::move(completionHandler));
+}
+
+void setRemoteCDMInstanceServerCertificate(CDMInstance& instance, SharedBuffer& certificate, RemoteCDMInstanceSuccessCompletionHandler&& completionHandler)
+{
+    instance.setServerCertificate(certificate, WTF::move(completionHandler));
+}
+
+void setRemoteCDMInstanceStorageDirectory(CDMInstance& instance, const String& directory)
+{
+    instance.setStorageDirectory(directory);
 }
 
 static std::unique_ptr<IPC::Decoder> decoderForConfiguration(const std::optional<CDMKeySystemConfiguration>& configuration)

@@ -32,6 +32,7 @@
 #include "RemoteCDMInstanceConfiguration.h"
 #include "RemoteCDMRegistry.h"
 #include "SwiftCoding.h"
+#include <WebCore/CDMInstance.h>
 #include <WebCore/CDMKeySystemConfiguration.h>
 #include <WebCore/CDMMediaCapability.h>
 #include <wtf/CompletionHandler.h>
@@ -133,6 +134,29 @@ inline IPC::SwiftDecoder swiftDecoder(const RemoteCDMEncodedConfiguration& confi
 using RemoteCDMSupportedConfigurationCompletionHandler = CompletionHandler<void(RemoteCDMEncodedConfiguration&&)>;
 
 void getSupportedRemoteCDMConfiguration(RemoteCDMPrivateHandle&, RemoteCDMKeySystemConfigurationBuilder&, bool localStorageAccessAllowed, RemoteCDMSupportedConfigurationCompletionHandler&&);
+
+class RemoteCDMPrivateHandleWeakReference {
+public:
+    explicit RemoteCDMPrivateHandleWeakReference(RemoteCDMPrivateHandle& cdm)
+        : m_cdm(cdm)
+    {
+    }
+
+    // A new reference, so that Swift keeps the handle alive for as long as it uses it.
+    RemoteCDMPrivateHandle* WTF_NULLABLE get() const SWIFT_RETURNS_RETAINED { return RefPtr { m_cdm.get() }.leakRef(); }
+
+private:
+    WeakPtr<RemoteCDMPrivateHandle> m_cdm;
+} SWIFT_SELF_CONTAINED;
+
+// Returns 0 if no session was created.
+uint64_t createRemoteCDMInstanceSession(const RemoteCDMRegistryWeakReference&, const RemoteCDMPrivateHandleWeakReference&, WebCore::CDMInstance&, uint64_t logIdentifier);
+
+using RemoteCDMInstanceSuccessCompletionHandler = CompletionHandler<void(WebCore::CDMInstanceSuccessValue)>;
+
+void initializeRemoteCDMInstance(WebCore::CDMInstance&, RemoteCDMKeySystemConfigurationBuilder&, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&&);
+void setRemoteCDMInstanceServerCertificate(WebCore::CDMInstance&, WebCore::SharedBuffer&, RemoteCDMInstanceSuccessCompletionHandler&&);
+void setRemoteCDMInstanceStorageDirectory(WebCore::CDMInstance&, const String&);
 
 } // namespace WebKit
 
