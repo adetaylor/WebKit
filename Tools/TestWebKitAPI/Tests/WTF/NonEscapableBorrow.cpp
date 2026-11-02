@@ -53,6 +53,7 @@ public:
 
 private:
     friend class NonEscapableBorrowLender<CounterView>;
+    friend class NonEscapableBorrowOwningLender<CounterView>;
 
     explicit CounterView(NonEscapableBorrowLease<Counter>& lease LIFETIME_BOUND)
         : NonEscapableBorrow(lease)
@@ -112,6 +113,17 @@ TEST(WTF_NonEscapableBorrow, NestedLenders)
     EXPECT_EQ(counter.value, 2);
 }
 
+TEST(WTF_NonEscapableBorrow, OwningLenderLendsTheObjectItOwnsWhenMoved)
+{
+    auto counter = makeUniqueWithoutFastMallocCheck<Counter>();
+    counter->value = 41;
+    NonEscapableBorrowOwningLender<CounterView> lender { WTF::move(counter) };
+    CounterView view = lender.view();
+    NonEscapableBorrowOwningLender<CounterView> moved { WTF::move(lender) };
+    view.increment();
+    EXPECT_EQ(moved.view().value(), 42);
+}
+
 // A copy that outlives its lender, as one a Swift mistake stashed would, crashes when it is used rather
 // than reaching the object. These are RELEASE_ASSERTs, so they fire in release builds too.
 
@@ -140,6 +152,19 @@ TEST(WTF_NonEscapableBorrowDeathTest, CopyOfACopyReadAfterTheLendEndsCrashes)
             stash.emplace(copy);
         }
         stash->value();
+    };
+    ASSERT_DEATH_IF_SUPPORTED(shouldCrash(), EXPECTED_BORROW_CRASH);
+}
+
+TEST(WTF_NonEscapableBorrowDeathTest, CopyUsedAfterTheOwningLenderIsDestroyedCrashes)
+{
+    auto shouldCrash = [] {
+        std::optional<CounterView> stash;
+        {
+            NonEscapableBorrowOwningLender<CounterView> lender { makeUniqueWithoutFastMallocCheck<Counter>() };
+            stash.emplace(lender.view());
+        }
+        stash->increment();
     };
     ASSERT_DEATH_IF_SUPPORTED(shouldCrash(), EXPECTED_BORROW_CRASH);
 }
