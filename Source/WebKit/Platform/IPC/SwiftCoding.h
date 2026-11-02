@@ -28,6 +28,8 @@
 #include "Connection.h"
 #include "Decoder.h"
 #include "Encoder.h"
+#include "StreamConnectionEncoder.h"
+#include "StreamServerConnection.h"
 #include <WebCore/SharedBuffer.h>
 #include <wtf/EscapableByteSpan.h>
 #include <wtf/NonEscapableBorrow.h>
@@ -171,6 +173,11 @@ private:
 // The reply to a message whose Swift receiver takes Swift types, which generated Swift encodes and sends.
 // Cancelling it, or dropping it unsent, sends the default reply that cancelling a C++ handler's
 // completion handler would.
+//
+// The Synchronous reply to a stream message goes into the stream buffer, as StreamServerConnection::sendSyncReply()
+// puts a C++ handler's, unless it doesn't fit. Then send() returns false, and generated Swift encodes the reply a
+// second time, out of stream, and sends it again. Such a reply can only be used while its message is being
+// dispatched.
 class SwiftReplyEncoder final : public ThreadSafeRefCounted<SwiftReplyEncoder> {
 public:
     using DefaultReplyEncoder = void (*)(Encoder&);
@@ -180,9 +187,14 @@ public:
         return adoptRef(*new SwiftReplyEncoder(connection, WTF::move(encoder), encodeDefaultReply));
     }
 
+    static Ref<SwiftReplyEncoder> createForStreamSyncReply(StreamServerConnection& connection, Connection::SyncRequestID syncRequestID, bool isReplyStreamEncodable, DefaultReplyEncoder encodeDefaultReply)
+    {
+        return adoptRef(*new SwiftReplyEncoder(connection, syncRequestID, isReplyStreamEncodable, encodeDefaultReply));
+    }
+
     ~SwiftReplyEncoder()
     {
-        if (m_encoder)
+        if (m_encoder || m_inStream)
             cancel();
     }
 
@@ -208,32 +220,66 @@ public:
     // Encodes the characters of an ASCII string as String's encoder encodes an 8-bit string's.
     void encodeASCIICharacters(WTF::SpanUInt8 characters NOESCAPE)
     {
-        RELEASE_ASSERT(m_encoder);
         ASSERT(charactersAreAllASCII(characters));
+        if (m_inStream) {
+            streamEncoder().encodeSpan(characters);
+            return;
+        }
+        RELEASE_ASSERT(m_encoder);
         m_encoder->encodeSpan(characters);
     }
 
     // Encodes a C++-decoded value with its own ArgumentCoder.
     void encodeSharedBuffer(const WebCore::SharedBuffer&);
 
-    void send()
+    // Returns false if the reply didn't fit in the stream buffer. It must then be encoded again, out of stream,
+    // and sent again.
+    bool send()
     {
+        if (m_inStream) {
+            m_inStream = false;
+            bool fits = streamEncoder().isValid();
+            m_streamEncoder.reset();
+            if (fits)
+                return true;
+            continueOutOfStream();
+            return false;
+        }
         if (auto encoder = std::exchange(m_encoder, nullptr))
-            m_connection->sendSyncReply(makeUniqueRefFromNonNullUniquePtr(WTF::move(encoder)));
+            sendOutOfStream(makeUniqueRefFromNonNullUniquePtr(WTF::move(encoder)));
+        return true;
     }
 
     void cancel()
     {
+        if (m_inStream) {
+            m_inStream = false;
+            m_streamEncoder.reset();
+            continueOutOfStream();
+        }
         auto encoder = std::exchange(m_encoder, nullptr);
         if (!encoder)
             return;
         m_encodeDefaultReply(*encoder);
-        m_connection->sendSyncReply(makeUniqueRefFromNonNullUniquePtr(WTF::move(encoder)));
+        sendOutOfStream(makeUniqueRefFromNonNullUniquePtr(WTF::move(encoder)));
     }
 
     // Gives back the unsent encoder of a message that failed to decode, so IPC replies as for any
     // unhandled message.
-    std::unique_ptr<Encoder> discard() { return std::exchange(m_encoder, nullptr); }
+    std::unique_ptr<Encoder> discard()
+    {
+        m_inStream = false;
+        m_streamEncoder.reset();
+        return std::exchange(m_encoder, nullptr);
+    }
+
+    // Called when the dispatch of a stream message ends: replies with the default reply if generated Swift
+    // didn't reply, and makes later use crash, since the stream buffer is no longer the reply's.
+    void endStreamDispatch()
+    {
+        cancel();
+        m_streamConnection = nullptr;
+    }
 
 private:
     SwiftReplyEncoder(Connection& connection, UniqueRef<Encoder>&& encoder, DefaultReplyEncoder encodeDefaultReply)
@@ -243,15 +289,70 @@ private:
     {
     }
 
+    SwiftReplyEncoder(StreamServerConnection& connection, Connection::SyncRequestID syncRequestID, bool isReplyStreamEncodable, DefaultReplyEncoder encodeDefaultReply)
+        : m_connection(connection.connection())
+        , m_encodeDefaultReply(encodeDefaultReply)
+        , m_streamConnection(&connection)
+        , m_syncRequestID(syncRequestID)
+        , m_inStream(isReplyStreamEncodable && connection.m_isProcessingStreamMessage)
+    {
+        if (!m_inStream)
+            m_encoder = makeUnique<Encoder>(MessageName::SyncMessageReply, syncRequestID.toUInt64());
+    }
+
     template<typename T> void encode(T value)
     {
+        if (m_inStream) {
+            streamEncoder() << value;
+            return;
+        }
         RELEASE_ASSERT(m_encoder);
         *m_encoder << value;
+    }
+
+    // The stream buffer is only acquired when the reply is first encoded, after its message is decoded.
+    StreamConnectionEncoder& streamEncoder()
+    {
+        RELEASE_ASSERT(m_streamConnection);
+        if (!m_streamEncoder) {
+            m_streamSpan = m_streamConnection->m_buffer.acquireAll();
+            m_streamEncoder.emplace(MessageName::SyncMessageReply, m_streamSpan);
+        }
+        return *m_streamEncoder;
+    }
+
+    // Tells the client in the stream that the reply comes out of stream, as sendSyncReply() does.
+    void continueOutOfStream()
+    {
+        RELEASE_ASSERT(m_streamConnection);
+        if (m_streamSpan.empty())
+            m_streamSpan = m_streamConnection->m_buffer.acquireAll();
+        StreamConnectionEncoder { MessageName::ProcessOutOfStreamMessage, m_streamSpan };
+        m_encoder = makeUnique<Encoder>(MessageName::SyncMessageReply, m_syncRequestID->toUInt64());
+    }
+
+    void sendOutOfStream(UniqueRef<Encoder>&& encoder)
+    {
+        if (!m_streamConnection) {
+            m_connection->sendSyncReply(WTF::move(encoder));
+            return;
+        }
+        // As sendSyncReply(), a reply to a message in the stream is sent after the stream buffer is released.
+        if (m_streamConnection->m_isProcessingStreamMessage) {
+            m_streamConnection->m_syncReplyToDispatch = encoder.moveToUniquePtr();
+            return;
+        }
+        m_connection->sendSyncReply(WTF::move(encoder));
     }
 
     const Ref<Connection> m_connection;
     std::unique_ptr<Encoder> m_encoder;
     DefaultReplyEncoder m_encodeDefaultReply;
+    RefPtr<StreamServerConnection> m_streamConnection;
+    std::optional<Connection::SyncRequestID> m_syncRequestID;
+    std::span<uint8_t> m_streamSpan;
+    std::optional<StreamConnectionEncoder> m_streamEncoder;
+    bool m_inStream { false };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // The 8-bit WTF::String that C++ decoding gives for ASCII characters.

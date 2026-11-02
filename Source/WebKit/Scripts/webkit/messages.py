@@ -2564,7 +2564,11 @@ def generate_swift_message_handler(receiver):
         reply_statements = []
         cancel_statements = []
         if takes_swift_types and has_reply:
-            reply_statements = swift_reply_encoding_statements(message, 'reply', 'replyEncoder') + ['replyEncoder.send()']
+            encoding_statements = swift_reply_encoding_statements(message, 'reply', 'replyEncoder')
+            reply_statements = encoding_statements + ['replyEncoder.send()']
+            if is_stream:
+                # A Synchronous reply that doesn't fit in the stream buffer is encoded a second time, out of stream.
+                reply_statements = encoding_statements + ['if !replyEncoder.send() {'] + ['    %s' % statement for statement in encoding_statements] + ['    replyEncoder.send()', '}']
             cancel_statements = ['replyEncoder.cancel()']
         elif has_reply:
             reply_statements = [swift_reply_completion_call(receiver, message, 'reply')]

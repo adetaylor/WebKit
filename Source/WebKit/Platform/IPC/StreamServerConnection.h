@@ -173,6 +173,7 @@ private:
     bool m_isDispatchingMessage { false };
 #endif
     friend class StreamConnectionWorkQueue;
+    friend class SwiftReplyEncoder;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refStreamServerConnection, derefStreamServerConnection);
 
 template<typename T>

@@ -32,6 +32,9 @@ async function runTest() {
             const digestReply = streamConnection.sendSyncMessage(streamTesterID, IPC.messages.IPCSwiftStreamTester_TakeRecordedDigest.name, []);
             assert_equals(digestReply.arguments[0].value, expectedDigest, `TakeRecordedDigest for ${processTarget}`);
 
+            const repeatReply = streamConnection.sendSyncMessage(streamTesterID, IPC.messages.IPCSwiftStreamTester_RepeatTextSwift.name, [{ type: 'String', value: 'ab' }, { type: 'uint32_t', value: 3 }]);
+            assert_equals(repeatReply.arguments[0].value, 'ababab', `RepeatTextSwift for ${processTarget}`);
+
             let sumReply;
             const asyncReplyID = streamConnection.sendWithAsyncReply(streamTesterID, IPC.messages.IPCSwiftStreamTester_Add.name, [{ type: 'uint32_t', value: 40 }, { type: 'uint32_t', value: 2 }], message => {
                 sumReply = message;
@@ -39,6 +42,10 @@ async function runTest() {
             if (!sumReply)
                 streamConnection.waitForAsyncReplyAndDispatchImmediately(asyncReplyID, IPC.messages.IPCSwiftStreamTester_AddReply.name);
             assert_equals(sumReply.arguments[0].value, 42, `Add for ${processTarget}`);
+
+            assert_throws_js(TypeError, () => {
+                streamConnection.sendSyncMessage(streamTesterID, IPC.messages.IPCSwiftStreamTester_RepeatTextSwift.name, [{ type: 'uint32_t', value: 1 }, { type: 'uint8_t', value: 2 }]);
+            }, `malformed RepeatTextSwift for ${processTarget}`);
         } finally {
             IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_ReleaseStreamTester.name, defaultTimeout, [{ type: 'uint64_t', value: streamTesterID }]);
             streamConnection.invalidate();

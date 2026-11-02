@@ -31,4 +31,6 @@ messages -> TestWithStreamSwiftTypes Stream {
     void SendString(String url)
     void SendValues(uint32_t value, std::optional<uint64_t> optionalValue, Vector<uint8_t> bytes)
     void SendCxxString(String url) CxxTypes
+    void SendStringSync(String url) -> (String reply, uint64_t length) Synchronous
+    void SendEmptySync() -> () Synchronous
 }
