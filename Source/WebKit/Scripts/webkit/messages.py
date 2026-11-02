@@ -2511,7 +2511,14 @@ def generate_swift_message_handler(receiver):
         has_reply = message.reply_parameters is not None
         # `sending` rather than marking these types Sendable: C++ hands each value to dispatch and
         # does not use it again, which is a far narrower claim than the type being safe to share.
-        parameters = ['connection: %s%s' % ('' if receiver.has_attribute(STREAM_ATTRIBUTE) else 'sending ', connection_type)]
+        # A stream message that takes Swift types has its connection lent to dispatch and its handler, rather than
+        # passed: Swift would retain a connection argument that it uses after calling C++, as dispatch does to decode.
+        lends_connection = takes_swift_types and receiver.has_attribute(STREAM_ATTRIBUTE)
+        connection = 'connection.get()' if lends_connection else 'connection'
+        if lends_connection:
+            parameters = ['connection: IPC.SwiftStreamConnection']
+        else:
+            parameters = ['connection: %s%s' % ('' if receiver.has_attribute(STREAM_ATTRIBUTE) else 'sending ', connection_type)]
         arguments = ['connection: connection']
         decoded_parameters = []
         for parameter in message.parameters:
@@ -2561,7 +2568,7 @@ def generate_swift_message_handler(receiver):
         result.append(',\n'.join(['        %s' % parameter for parameter in parameters]))
         result.append('\n    ) -> Bool {\n' if takes_swift_types else '\n    ) {\n')
         if is_stream:
-            result.append('        assert(connection.isCurrentWorkQueue())\n')
+            result.append('        assert(%s.isCurrentWorkQueue())\n' % connection)
         if decoded_parameters:
             for name, swift_type, _ in decoded_parameters:
                 result.append('        let %s: %s\n' % (name, swift_type))
@@ -2607,7 +2614,7 @@ def generate_swift_message_handler(receiver):
             for statement in reply_statements:
                 result.append('%s    %s\n' % (base, statement))
             result.append('%s} catch {\n' % base)
-            result.append('%s    markMessageInvalid(error, on: connection)\n' % base)
+            result.append('%s    markMessageInvalid(error, on: %s)\n' % (base, connection))
             for statement in cancel_statements:
                 result.append('%s    %s\n' % (base, statement))
             result.append('%s}\n' % base)
