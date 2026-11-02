@@ -67,7 +67,8 @@ private enum BindGroupLayoutShell {
 // the per-pipeline validation cache, and runs every check the encoders make on a group. Used only on its Instance's API
 // thread, so not Sendable.
 @_expose(Cxx)
-final class BindGroupImpl {
+@_spi(WebKitGPU)
+public final class BindGroupImpl {
     /// Paired with layoutImpl: `.none` exactly when the group is invalid.
     private let layoutShell: BindGroupLayoutShell
     let layoutImpl: BindGroupLayoutImpl?
@@ -163,7 +164,13 @@ final class BindGroupImpl {
 
     @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
-        let metalLabel = stringNilIfEmpty(label)
+        setLabel(stringNilIfEmpty(label))
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setLabel(_ label: Swift.String?) {
+        let metalLabel = label?.isEmpty == false ? label : nil
         argumentBuffers.vertex?.label = metalLabel
         argumentBuffers.fragment?.label = metalLabel
         argumentBuffers.compute?.label = metalLabel
@@ -337,7 +344,8 @@ final class BindGroupImpl {
     }
 
     @_expose(Cxx)
-    func updateExternalTextures(_ externalTexture: ExternalTextureImpl) -> Bool {
+    @_spi(WebKitGPU)
+    public func updateExternalTextures(_ externalTexture: ExternalTextureImpl) -> Bool {
         guard let layoutImpl, !externalTexture.hasPendingUsers() else {
             return false
         }

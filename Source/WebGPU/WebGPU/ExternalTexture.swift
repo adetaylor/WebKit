@@ -28,7 +28,8 @@ import WebGPU_Private.WebGPUCpp
 
 // The state of a GPUExternalTexture. Used only on its Instance's API thread, so not Sendable.
 @_expose(Cxx)
-final class ExternalTextureImpl {
+@_spi(WebKitGPU)
+public final class ExternalTextureImpl {
     // nil: no frame.
     private var backingPixelBuffer: CVPixelBuffer?
     private var destroyed = false

@@ -113,4 +113,7 @@ private:
     alignas(void*) std::byte m_impl[sizeof(void*)];
 };
 
+// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the BindGroupImpl of a WebGPU::BindGroup.
+void deliverBindGroupImpl(WebGPU::BindGroup&);
+
 } // namespace WebGPU::Metal

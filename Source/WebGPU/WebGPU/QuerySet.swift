@@ -30,7 +30,8 @@ import WebGPU_Private.WebGPUCpp
 // Owned by the C++ shell WebGPU::Metal::QuerySet. API thread only. A timestamp query set owns a lease on a range of the
 // process-wide counter sample buffer pool below and returns it on destroy() or deinit.
 @_expose(Cxx)
-final class QuerySetImpl {
+@_spi(WebKitGPU)
+public final class QuerySetImpl {
     // Occlusion query sets own a private MTLBuffer; timestamp query sets lease
     // [counterSampleOffset, counterSampleOffset + queryCount) samples of a pooled counter buffer.
     private var backing: QuerySetBacking
@@ -103,7 +104,8 @@ final class QuerySetImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-destroy
     @_expose(Cxx)
-    func destroy() {
+    @_spi(WebKitGPU)
+    public func destroy() {
         destroyed = true
         releaseCounterSampleRange()
         backing = .none
@@ -127,8 +129,14 @@ final class QuerySetImpl {
 
     @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
+        setLabel(stringNilIfEmpty(label))
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setLabel(_ label: Swift.String?) {
         // MTLCounterSampleBuffer's label property is read-only.
-        backingVisibilityBuffer?.label = stringNilIfEmpty(label)
+        backingVisibilityBuffer?.label = label?.isEmpty == false ? label : nil
     }
 
     @_expose(Cxx)

@@ -77,4 +77,7 @@ private:
     const std::unique_ptr<ExternalTextureImplBox> m_impl;
 };
 
+// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the ExternalTextureImpl of a WebGPU::ExternalTexture.
+void deliverExternalTextureImpl(WebGPU::ExternalTexture&);
+
 } // namespace WebGPU::Metal

@@ -85,6 +85,9 @@ private:
     alignas(void*) std::byte m_impl[sizeof(void*)];
 } SWIFT_SHARED_REFERENCE(refQuerySet, derefQuerySet) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
+// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the QuerySetImpl of a WebGPU::QuerySet.
+void deliverQuerySetImpl(WebGPU::QuerySet&);
+
 } // namespace WebGPU::Metal
 
 inline void refQuerySet(WebGPU::Metal::QuerySet* obj)
