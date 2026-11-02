@@ -2649,6 +2649,7 @@
 		5C0A1100000000000000000E /* ScrollPhysicsClientProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A1100000000000000000D /* ScrollPhysicsClientProtocol.swift */; };
 		5C0A18000000000000000002 /* ScrollAnimatorScrollPhysicsClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C0A18000000000000000001 /* ScrollAnimatorScrollPhysicsClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C0A18000000000000000004 /* ScrollAnimatorScrollPhysicsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A18000000000000000003 /* ScrollAnimatorScrollPhysicsClient.swift */; };
+		5C0A1A000000000000000002 /* ScrollableArea.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A1A000000000000000001 /* ScrollableArea.swift */; };
 		5C0A18000000000000000006 /* ScrollAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A18000000000000000005 /* ScrollAnimator.swift */; };
 		5C0A18000000000000000008 /* KeyboardScrollingAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A18000000000000000007 /* KeyboardScrollingAnimator.swift */; };
 		5C0A16000000000000000002 /* ScrollingTreeScrollPhysicsClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C0A16000000000000000001 /* ScrollingTreeScrollPhysicsClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -13641,6 +13642,7 @@
 		5C0A1100000000000000000D /* ScrollPhysicsClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollPhysicsClientProtocol.swift; sourceTree = "<group>"; };
 		5C0A18000000000000000001 /* ScrollAnimatorScrollPhysicsClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollAnimatorScrollPhysicsClient.h; sourceTree = "<group>"; };
 		5C0A18000000000000000003 /* ScrollAnimatorScrollPhysicsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollAnimatorScrollPhysicsClient.swift; sourceTree = "<group>"; };
+		5C0A1A000000000000000001 /* ScrollableArea.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollableArea.swift; sourceTree = "<group>"; };
 		5C0A18000000000000000005 /* ScrollAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollAnimator.swift; sourceTree = "<group>"; };
 		5C0A18000000000000000007 /* KeyboardScrollingAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardScrollingAnimator.swift; sourceTree = "<group>"; };
 		5C0A16000000000000000001 /* ScrollingTreeScrollPhysicsClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollingTreeScrollPhysicsClient.h; sourceTree = "<group>"; };
@@ -40023,6 +40025,7 @@
 				411223B8260244FE00B0A0B6 /* ScriptExecutionContextIdentifier.h */,
 				BC8AE34C12EA096A00EB3AE6 /* ScrollableArea.cpp */,
 				BC8AE34D12EA096A00EB3AE6 /* ScrollableArea.h */,
+				5C0A1A000000000000000001 /* ScrollableArea.swift */,
 				5B2D766E27B1460700F9BA3C /* ScrollAlignment.cpp */,
 				5B2D767027B1460800F9BA3C /* ScrollAlignment.h */,
 				0F6EAD6626FE728000064D03 /* ScrollAnimation.cpp */,
@@ -51557,6 +51560,7 @@
 				CDA29A161CBDA56C00901CCF /* PlaybackSessionInterfaceMac.mm in Sources */,
 				CD20ED3D27878FFB0038BE44 /* QueuedVideoOutput.mm in Sources */,
 				B4B3B213B38019AA5A40E14D /* SafeCFNumber.swift in Sources */,
+				5C0A1A000000000000000002 /* ScrollableArea.swift in Sources */,
 				5C0A18000000000000000006 /* ScrollAnimator.swift in Sources */,
 				BC51156E12B1749C00C96754 /* ScrollAnimatorMac.mm in Sources */,
 				5C0A18000000000000000004 /* ScrollAnimatorScrollPhysicsClient.swift in Sources */,
