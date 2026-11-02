@@ -79,6 +79,7 @@
 		B3EB2DB70F227C6C09C46FF4 /* CSSFilterRendererView.h in Headers */ = {isa = PBXBuildFile; fileRef = F933F399ADDF994469C752A3 /* CSSFilterRendererView.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		238C3CAE41B4DE18ED2F3FBC /* SVGFilterRendererView.h in Headers */ = {isa = PBXBuildFile; fileRef = 3227AB52B52BE1076973335C /* SVGFilterRendererView.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		EBBE3AC62075A0224822DACB /* FilterEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD873A3B592F9AF8769F7B2B /* FilterEngine.swift */; };
+		61C029A6BD383110885018DE /* CGRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2598CCCD38E2A8CFB8CC9F0F /* CGRenderer.swift */; };
 		2E86B6A6E3E4C9B02D5AAD6D /* CSSValueKeywords.serialization.in in Headers */ = {isa = PBXBuildFile; fileRef = A41992C7F8B4034E8D8344E8 /* CSSValueKeywords.serialization.in */; settings = {ATTRIBUTES = (Private, ); }; };
 		4C1117D4C483A9BC36554D2F /* SVGImageElementSizing.h in Headers */ = {isa = PBXBuildFile; fileRef = 775ED9913673971DA280FD1E /* SVGImageElementSizing.h */; };
 		281A941CB72C48E5886C9BC1 /* ImageInputTypeSizing.h in Headers */ = {isa = PBXBuildFile; fileRef = 67E6257C27C4E92D1FA4CBD1 /* ImageInputTypeSizing.h */; };
@@ -8016,6 +8017,11 @@
 		3227AB52B52BE1076973335C /* SVGFilterRendererView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SVGFilterRendererView.h; sourceTree = "<group>"; };
 		20BC81CD0A662BB9F72ACE1E /* SVGFilterRendererView.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SVGFilterRendererView.cpp; sourceTree = "<group>"; };
 		DD873A3B592F9AF8769F7B2B /* FilterEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterEngine.swift; sourceTree = "<group>"; };
+		2598CCCD38E2A8CFB8CC9F0F /* CGRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGRenderer.swift; sourceTree = "<group>"; };
+		33699738F78ACB05E43CC890 /* CGRendererSPI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGRendererSPI.h; sourceTree = "<group>"; };
+		718073F018835BABCB345356 /* CGRendererSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGRendererSwiftBridge.h; sourceTree = "<group>"; };
+		40A482CCC9884347A2C6892F /* GraphicsContextCGCapture.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GraphicsContextCGCapture.cpp; sourceTree = "<group>"; };
+		61E4B4B41B8AF1D2D989AC54 /* GraphicsContextCGCapture.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GraphicsContextCGCapture.h; sourceTree = "<group>"; };
 		02C7A954E7356C44F0D32986 /* WorkerInternals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WorkerInternals.h; sourceTree = "<group>"; };
 		0CC942725BC2AC733B0941DC /* JSWorkerInternals.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSWorkerInternals.cpp; sourceTree = "<group>"; };
 		2A60F92AA328DB579A254028 /* JSSimulatedWebGLContextEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSSimulatedWebGLContextEvent.cpp; sourceTree = "<group>"; };
@@ -36948,6 +36954,9 @@
 			isa = PBXGroup;
 			children = (
 				722AF2E527E1D09E0078D997 /* CGContextStateSaver.h */,
+				2598CCCD38E2A8CFB8CC9F0F /* CGRenderer.swift */,
+				33699738F78ACB05E43CC890 /* CGRendererSPI.h */,
+				718073F018835BABCB345356 /* CGRendererSwiftBridge.h */,
 				1FC40FB81655C5910040F29E /* CGSubimageCacheWithTimer.cpp */,
 				1FC40FB71655C5910040F29E /* CGSubimageCacheWithTimer.h */,
 				7B187BC92AC6FB34009E7993 /* CGUtilities.h */,
@@ -36964,6 +36973,8 @@
 				BC19CDF0276FFB260053F734 /* GradientRendererCG.h */,
 				B2ED97700B1F55CE00257D0F /* GraphicsContextCG.cpp */,
 				934907E3125BBBC8007F23A0 /* GraphicsContextCG.h */,
+				40A482CCC9884347A2C6892F /* GraphicsContextCGCapture.cpp */,
+				61E4B4B41B8AF1D2D989AC54 /* GraphicsContextCGCapture.h */,
 				6E21C6C11126339900A7BE02 /* GraphicsContextGLCG.cpp */,
 				1C5B71A72905E53000973EF5 /* ImageBackingStoreCG.cpp */,
 				72BAC3AC23E1E545008D741C /* ImageBufferCGBackend.cpp */,
@@ -51786,6 +51797,7 @@
 				CDB7045B1F7465A1003923DF /* CDMFairPlayStreaming.cpp in Sources */,
 				003DCD8B025B13FA41385C7F /* CDMFairPlayStreamingParsing.swift in Sources */,
 				CDC224281F756966005F077B /* CDMInstanceFairPlayStreamingAVFObjC.mm in Sources */,
+				61C029A6BD383110885018DE /* CGRenderer.swift in Sources */,
 				23B6FEB7BC8E6912CC678555 /* CheckedMath.swift in Sources */,
 				5150B5DF27CDF499004FC81E /* CMUtilities.mm in Sources */,
 				B240ABE6B3772366E0BDCA3C /* CMUtilitiesParsing.swift in Sources */,
