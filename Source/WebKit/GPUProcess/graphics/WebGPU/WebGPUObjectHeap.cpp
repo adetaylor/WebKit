@@ -120,11 +120,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteBuffer& buffer)
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCommandBuffer& commandBuffer)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, CommandBufferObject&& commandBuffer)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteCommandBuffer> { protect(commandBuffer) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(commandBuffer) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCommandBuffer& commandBuffer)
+{
+    auto result = m_objects.add(identifier, Object { CommandBufferObject { protect(commandBuffer) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCommandEncoder& commandEncoder)
 {
@@ -374,9 +382,9 @@ RefPtr<::WebGPU::Buffer> ObjectHeap::convertBufferFromBacking(WebGPUIdentifier i
 RefPtr<::WebGPU::CommandBuffer> ObjectHeap::convertCommandBufferFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteCommandBuffer>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<CommandBufferObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteCommandBuffer>>(iterator->value)->backing();
+    return &std::get<CommandBufferObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::CommandEncoder> ObjectHeap::convertCommandEncoderFromBacking(WebGPUIdentifier identifier)

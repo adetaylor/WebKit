@@ -57,6 +57,7 @@
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 #include "RemoteBindGroupLayoutMessages.h"
 #include "RemoteBindGroupMessages.h"
+#include "RemoteCommandBufferMessages.h"
 #include "RemoteComputePipelineMessages.h"
 #include "RemoteExternalTextureMessages.h"
 #include "RemotePipelineLayoutMessages.h"

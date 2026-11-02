@@ -40,6 +40,11 @@
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "RemoteCommandBufferMessages.h"
+#include "WebKit-Swift.h"
+#endif
+
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_streamConnection)
 
 namespace WebKit {
@@ -222,8 +227,14 @@ void RemoteCommandEncoder::finish(const WebGPU::CommandBufferDescriptor& descrip
     Ref objectHeap = m_objectHeap.get();
     auto commandBuffer = protect(m_backing)->finish(descriptor);
     MESSAGE_CHECK(commandBuffer);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteCommandBuffer = RemoteCommandBuffer::init(RemoteCommandBufferBacking { *commandBuffer }, context);
+    objectHeap->addObject(identifier, WebGPU::CommandBufferObject { *commandBuffer, WTF::move(remoteCommandBuffer), context, protect(m_streamConnection), Messages::RemoteCommandBuffer::messageReceiverName(), identifier });
+#else
     auto remoteCommandBuffer = RemoteCommandBuffer::create(*commandBuffer, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteCommandBuffer);
+#endif
 }
 
 void RemoteCommandEncoder::setLabel(String&& label)

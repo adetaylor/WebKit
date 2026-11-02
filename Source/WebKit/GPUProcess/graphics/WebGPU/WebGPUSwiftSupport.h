@@ -153,6 +153,19 @@ private:
     Ref<::WebGPU::ExternalTexture> m_backing;
 } SWIFT_SELF_CONTAINED;
 
+class RemoteCommandBufferBacking {
+public:
+    explicit RemoteCommandBufferBacking(::WebGPU::CommandBuffer& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::CommandBuffer& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::CommandBuffer> m_backing;
+} SWIFT_SELF_CONTAINED;
+
 class RemoteQuerySetBacking {
 public:
     explicit RemoteQuerySetBacking(::WebGPU::QuerySet& backing)
