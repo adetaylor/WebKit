@@ -180,6 +180,8 @@ protected:
     WebCore::GraphicsContext& context() LIFETIME_BOUND { return m_context; }
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const;
     std::optional<WebCore::SourceImage> sourceImage(WebCore::RenderingResourceIdentifier) const;
+    // Whether this context draws into the image buffer: a pattern can't take it as its tile.
+    virtual bool drawsInto(const WebCore::ImageBuffer&) const { return false; }
 
     void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) override;
 

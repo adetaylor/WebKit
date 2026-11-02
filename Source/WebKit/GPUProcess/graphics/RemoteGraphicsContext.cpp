@@ -163,6 +163,7 @@ void RemoteGraphicsContext::setFillPatternImageBuffer(RenderingResourceIdentifie
 {
     RefPtr tileImageBuffer = this->imageBuffer(identifier);
     MESSAGE_CHECK(tileImageBuffer);
+    MESSAGE_CHECK(!drawsInto(*tileImageBuffer));
     context().setFillPattern(WebCore::Pattern::create({ tileImageBuffer.releaseNonNull() }, parameters));
 }
 
@@ -204,6 +205,7 @@ void RemoteGraphicsContext::setStrokePatternImageBuffer(RenderingResourceIdentif
 {
     RefPtr tileImageBuffer = imageBuffer(identifier);
     MESSAGE_CHECK(tileImageBuffer);
+    MESSAGE_CHECK(!drawsInto(*tileImageBuffer));
     context().setStrokePattern(WebCore::Pattern::create({ tileImageBuffer.releaseNonNull() }, parameters));
 }
 

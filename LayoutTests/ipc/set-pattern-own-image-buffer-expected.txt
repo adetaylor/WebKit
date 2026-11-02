@@ -1,0 +1,7 @@
+This test passes if the GPU process rejects a fill or stroke pattern whose tile is the image buffer being drawn into.
+
+PASS: unaccelerated fill pattern of the destination rejected
+PASS: unaccelerated stroke pattern of the destination rejected
+PASS: accelerated fill pattern of the destination rejected
+PASS: accelerated stroke pattern of the destination rejected
+
