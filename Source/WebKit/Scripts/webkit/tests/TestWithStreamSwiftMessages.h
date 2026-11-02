@@ -53,7 +53,6 @@ public:
     void deref() const { StreamMessageReceiver::deref(); }
 private:
     TestWithStreamSwiftMessageForwarder(WebKit::TestWithStreamSwiftWeakRef* WTF_NONNULL);
-    std::optional<WebKit::TestWithStreamSwift> getMessageTarget();
     std::unique_ptr<WebKit::TestWithStreamSwiftWeakRef> m_handler;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 

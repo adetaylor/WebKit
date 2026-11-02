@@ -38,11 +38,6 @@ namespace WebKit {
 
 void TestWithStreamSwiftMessageForwarder::didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder)
 {
-    auto target = getMessageTarget();
-    if (!target) {
-        decoder.markInvalid();
-        return;
-    }
     if (decoder.messageName() == Messages::TestWithStreamSwift::SendString::name()) {
         IPC::handleMessage<Messages::TestWithStreamSwift::SendString>(connection, decoder, m_handler.get(), &TestWithStreamSwiftWeakRef::dispatchSendString);
         return;
@@ -64,14 +59,6 @@ static std::unique_ptr<TestWithStreamSwiftWeakRef> makeTestWithStreamSwiftWeakRe
 TestWithStreamSwiftMessageForwarder::TestWithStreamSwiftMessageForwarder(TestWithStreamSwiftWeakRef* WTF_NONNULL target)
     : m_handler(makeTestWithStreamSwiftWeakRefUniquePtr(target))
 {
-}
-
-std::optional<TestWithStreamSwift> TestWithStreamSwiftMessageForwarder::getMessageTarget()
-{
-    auto target = m_handler->getMessageTarget();
-    if (target)
-        return target.get();
-    return std::nullopt;
 }
 
 TestWithStreamSwiftMessageForwarder::~TestWithStreamSwiftMessageForwarder()

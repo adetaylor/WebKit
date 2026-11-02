@@ -33,13 +33,8 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
     }
 
     @used
-    func getMessageTarget() -> TestWithStreamSwiftTypes? {
-        target
-    }
-
-    @used
     func dispatchSendString(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         decoder: inout IPC.SwiftDecoder
     ) -> Bool {
         assert(connection.isCurrentWorkQueue())
@@ -67,7 +62,7 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendValues(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         decoder: inout IPC.SwiftDecoder
     ) -> Bool {
         assert(connection.isCurrentWorkQueue())
@@ -101,7 +96,7 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendCxxString(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         url: sending WTF.String
     ) {
         assert(connection.isCurrentWorkQueue())
@@ -122,7 +117,7 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendStringSync(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
@@ -160,7 +155,7 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendEmptySync(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
@@ -187,7 +182,7 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendStringAsync(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
@@ -217,7 +212,7 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendValuesAsync(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
@@ -247,7 +242,7 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendEmptyAsync(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
