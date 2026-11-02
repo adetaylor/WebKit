@@ -7038,6 +7038,7 @@
 		5CEB40A42A535E8E00563C91 /* WebPageProxyMessageReceiverRegistration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebPageProxyMessageReceiverRegistration.h; sourceTree = "<group>"; };
 		5CF250AE2EE06491006A7172 /* IPCTesterReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCTesterReceiver.swift; sourceTree = "<group>"; };
 		E4617A992E8E49048237BAE2 /* IPCSwiftStreamTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCSwiftStreamTester.swift; sourceTree = "<group>"; };
+		F9E8B20BC6E714A51D022EB1 /* IPCSwiftStreamTesterCount.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IPCSwiftStreamTesterCount.h; sourceTree = "<group>"; };
 		5CF62B9428D4436A00C0EAE0 /* DaemonCoders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaemonCoders.h; sourceTree = "<group>"; };
 		5CF62B9528D4436A00C0EAE0 /* DaemonCoders.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DaemonCoders.cpp; sourceTree = "<group>"; };
 		5CFC9C7E2B717EFA00F8D289 /* CoreIPCCFDictionary.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = CoreIPCCFDictionary.serialization.in; sourceTree = "<group>"; };
@@ -10649,6 +10650,7 @@
 				7BE37F9227C7C518007A6CD3 /* IPCStreamTesterIdentifier.h */,
 				9B2DFE707344A6CC7E77B3DE /* IPCSwiftStreamTester.messages.in */,
 				E4617A992E8E49048237BAE2 /* IPCSwiftStreamTester.swift */,
+				F9E8B20BC6E714A51D022EB1 /* IPCSwiftStreamTesterCount.h */,
 				7B50E97F2771F6CE003DAAC4 /* IPCTester.cpp */,
 				7B50E9802771F6CF003DAAC4 /* IPCTester.h */,
 				86EFFA402B03A6B900ABE77D /* IPCTester.messages.in */,

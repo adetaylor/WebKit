@@ -38,7 +38,13 @@ final class IPCSwiftStreamTester {
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
-    init() {}
+    init() {
+        WebKit.didCreateSwiftStreamTester()
+    }
+
+    deinit {
+        WebKit.didDestroySwiftStreamTester()
+    }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
     @used
