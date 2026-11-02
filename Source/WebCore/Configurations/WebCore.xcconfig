@@ -253,9 +253,6 @@ SWIFT_OBJC_INTERFACE_HEADER_NAME = WebCoreSwift-Generated.h;
 ENABLE_WEBCORE_SWIFT = ENABLE_WEBCORE_SWIFT;
 ENABLE_WEBCORE_SWIFT[sdk=*26*] = ;
 
-// WebCore's Swift imports WebCore's own headers through the WebCore_Internal module there.
-SWIFT_INCLUDE_PATHS = $(SRCROOT)/Modules/Internal $(inherited);
-
 MODULEMAP_FILE = $(SRCROOT)/WebCore.modulemap;
 MODULEMAP_PRIVATE_FILE = $(SRCROOT)/WebCore_Private.modulemap;
 
