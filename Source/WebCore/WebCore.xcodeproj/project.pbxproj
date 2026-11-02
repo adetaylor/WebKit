@@ -445,6 +445,8 @@
 		820D9DDAE9141040365D8443 /* SharedVideoFrameSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = E0938AED654BDD2B4EE9BDBE /* SharedVideoFrameSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		F91AB5580E91710AF2261E44 /* PixelBufferSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = C47D5C3F84A19CF3FE2CC4A8 /* PixelBufferSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5D324F22006496D971F5DE69 /* ShadowBlurSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = CF453B487F95E0C826425DDC /* ShadowBlurSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		F00C7C6C861988892AC02105 /* CGRendererSPI.h in Headers */ = {isa = PBXBuildFile; fileRef = 33699738F78ACB05E43CC890 /* CGRendererSPI.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		E8462544D918BA9F383A0145 /* CGRendererSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 718073F018835BABCB345356 /* CGRendererSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A78C76D0A3616FD3119EA676 /* ShareableBitmapSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = FBBDE67E1BE26F3BCC9CCA3C /* ShareableBitmapSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		8A9EA8CC56F28F26650DD688 /* FilterCoreImageSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 46B6531DB6016610F82FDF81 /* FilterCoreImageSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		288F6560F4089D9C8D4C9D2D /* FilterGraphicsBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = D49B8CEBEA7F5E4F363DC5E4 /* FilterGraphicsBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -45303,6 +45305,8 @@
 				5FA904CA178E61F5004C8A2D /* CertificateInfo.h in Headers */,
 				91B8F0B521953D65000C2B00 /* CertificateSummary.h in Headers */,
 				722AF2E627E1D0A10078D997 /* CGContextStateSaver.h in Headers */,
+				F00C7C6C861988892AC02105 /* CGRendererSPI.h in Headers */,
+				E8462544D918BA9F383A0145 /* CGRendererSwiftBridge.h in Headers */,
 				1FC40FBA1655CCB90040F29E /* CGSubimageCacheWithTimer.h in Headers */,
 				072954F12C78F40300651E8F /* CGWindowUtilities.h in Headers */,
 				FE36FD1516C7826500F887C1 /* ChangeVersionData.h in Headers */,

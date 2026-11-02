@@ -51,59 +51,14 @@
 
 #pragma once
 
-// The CoreGraphics SPI CGRenderer.swift calls, declared so that Swift manages CGStyle. Only WebCore's Swift sees it: C++
-// uses PAL's declarations. WebCore's Swift can't import PAL's SPI module: its headers' forward declaration of
-// CVPixelBufferRef changes how the whole Swift module sees CoreVideo's.
+// The CoreGraphics calls CGRenderer.swift makes through C: those that take a pointer or a null, which Swift would pass
+// unsafely. The SPI itself is PAL's.
 
 #include "CGRendererSwiftBridge.h"
 #include <CoreGraphics/CoreGraphics.h>
 #include <CoreText/CoreText.h>
 #include <algorithm>
-
-#if USE(APPLE_INTERNAL_SDK)
-#include <CoreGraphics/CGStylePrivate.h>
-#include <CoreGraphics/CoreGraphicsPrivate.h>
-#else
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef struct CF_BRIDGED_TYPE(id) CGStyle *CGStyleRef;
-
-#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-struct CGGaussianBlurStyle {
-    unsigned version;
-    CGFloat radius;
-};
-typedef struct CGGaussianBlurStyle CGGaussianBlurStyle;
-
-struct CGColorMatrixStyle {
-    unsigned version;
-    CGFloat matrix[20];
-};
-typedef struct CGColorMatrixStyle CGColorMatrixStyle;
-#endif
-
-CF_IMPLICIT_BRIDGING_ENABLED
-void CGContextSetCTM(CGContextRef, CGAffineTransform);
-void CGContextSetShouldAntialiasFonts(CGContextRef, bool);
-CGColorRef CGContextGetFillColorAsColor(CGContextRef);
-void CGContextSetBaseCTM(CGContextRef, CGAffineTransform);
-CGAffineTransform CGContextGetBaseCTM(CGContextRef);
-void CGContextSetStyle(CGContextRef, CGStyleRef);
-CGStyleRef CGStyleCreateShadow2(CGSize offset, CGFloat radius, CGColorRef);
-#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-CGStyleRef CGStyleCreateGaussianBlur(const CGGaussianBlurStyle*);
-CGStyleRef CGStyleCreateColorMatrix(const CGColorMatrixStyle*);
-#endif
-CF_IMPLICIT_BRIDGING_DISABLED
-
-#ifdef __cplusplus
-}
-#endif
-#endif
-
-extern "C" void CGContextDrawPathDirect(CGContextRef, CGPathDrawingMode, CGPathRef, const CGRect* boundingBox);
+#include <pal/spi/cg/CoreGraphicsSPI.h>
 
 CF_IMPLICIT_BRIDGING_ENABLED
 
