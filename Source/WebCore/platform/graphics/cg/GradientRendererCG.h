@@ -45,6 +45,7 @@ public:
     void drawConicGradient(CGContextRef, CGPoint center, CGFloat angle);
 
     const std::optional<ColorSpace>& colorSpace() const { return m_colorSpace; }
+    CGGradientRef platformGradient() const { return m_gradient.get(); }
 
     static RetainPtr<CGGradientRef> createGradientBySampling(ColorInterpolationMethod, const GradientColorStopVector&, const std::optional<ColorSpace>& = { });
 

@@ -82,9 +82,11 @@ enum class GraphicsContextCGCaptureOp : uint16_t {
     DrawLinesForText,
     DrawDotsForDocumentMarker,
     DrawPattern,
+    FillRectWithGradient,
 };
 
-constexpr uint32_t graphicsContextCGCaptureVersion = 1;
+// 2: brushes start with their kind (0 color, 1 gradient).
+constexpr uint32_t graphicsContextCGCaptureVersion = 2;
 
 #if ASSERT_ENABLED
 
@@ -133,6 +135,7 @@ public:
     void clearRect(const FloatRect&);
     void fillRect(const FloatRect&, GraphicsContext::RequiresClipToRect);
     void fillRect(const FloatRect&, const Color&);
+    void fillRect(const FloatRect&, const Gradient&, const AffineTransform& gradientSpaceTransform, GraphicsContext::RequiresClipToRect);
     void strokeRect(const FloatRect&, float lineWidth);
     void fillRoundedRect(const FloatRoundedRect&, const Color&);
     void fillRectWithRoundedHole(const FloatRect&, const FloatRoundedRect&, const Color&);
@@ -170,6 +173,7 @@ private:
     void writePath(const Path&);
     void writeRoundedRect(const FloatRoundedRect&);
     void writeShadow(const GraphicsDropShadow&);
+    void writeGradient(const Gradient&);
     std::optional<uint32_t> imageIdentifier(CGImageRef);
 
     Vector<uint8_t> m_data;

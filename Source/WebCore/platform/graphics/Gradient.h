@@ -116,6 +116,9 @@ public:
 #if USE(CG)
     void paint(GraphicsContext&);
     void paint(CGContextRef, std::optional<ColorSpace> = { });
+    // The CGGradient paint() draws with, for a context in this color space; paintColorSpace() gives the one for a context.
+    CGGradientRef platformGradient(std::optional<ColorSpace> = { });
+    static std::optional<ColorSpace> paintColorSpace(const GraphicsContext&);
 #endif
 
 #if USE(SKIA)

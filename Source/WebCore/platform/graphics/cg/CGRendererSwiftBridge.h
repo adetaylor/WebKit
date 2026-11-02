@@ -49,6 +49,20 @@ struct CGRendererColorMatrix {
 };
 #endif
 
+// A Gradient's geometry (Gradient::LinearData, RadialData or ConicData) and spread method.
+struct CGRendererGradientGeometry {
+    uint8_t kind; // 0 linear, 1 radial, 2 conic.
+    uint8_t spreadMethod; // GradientSpreadMethod.
+    float x0;
+    float y0;
+    float x1;
+    float y1;
+    float startRadius;
+    float endRadius;
+    float aspectRatio;
+    float angleRadians;
+};
+
 // A sub-image of an image, from WebCore's cache of them unless the image is transient (CGImageCreateWithImageInRect()).
 CGImageRef _Nullable CGRendererCopySubimage(CGImageRef _Nonnull, CGRect) CF_RETURNS_RETAINED;
 

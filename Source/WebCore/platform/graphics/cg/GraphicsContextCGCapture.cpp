@@ -29,6 +29,7 @@
 #if USE(CG) && ASSERT_ENABLED
 
 #include "FloatRoundedRect.h"
+#include "Gradient.h"
 #include "NativeImage.h"
 #include "Path.h"
 #include <fcntl.h>
@@ -271,6 +272,61 @@ void GraphicsContextCGCapture::writePath(const Path& path)
     write(elements.span());
 }
 
+void GraphicsContextCGCapture::writeGradient(const Gradient& gradient)
+{
+    WTF::switchOn(gradient.data(),
+        [&](const Gradient::LinearData& data) {
+            writeValue(static_cast<uint8_t>(0));
+            writeValue(data.point0.x());
+            writeValue(data.point0.y());
+            writeValue(data.point1.x());
+            writeValue(data.point1.y());
+        },
+        [&](const Gradient::RadialData& data) {
+            writeValue(static_cast<uint8_t>(1));
+            writeValue(data.point0.x());
+            writeValue(data.point0.y());
+            writeValue(data.point1.x());
+            writeValue(data.point1.y());
+            writeValue(data.startRadius);
+            writeValue(data.endRadius);
+            writeValue(data.aspectRatio);
+        },
+        [&](const Gradient::ConicData& data) {
+            writeValue(static_cast<uint8_t>(2));
+            writeValue(data.point0.x());
+            writeValue(data.point0.y());
+            writeValue(data.angleRadians);
+        });
+    writeValue(static_cast<uint8_t>(gradient.spreadMethod()));
+    auto method = gradient.colorInterpolationMethod();
+    writeValue(static_cast<uint8_t>(method.colorSpace.index()));
+    writeValue(WTF::switchOn(method.colorSpace, [](const auto& colorSpace) -> uint8_t {
+        if constexpr (requires { colorSpace.hueInterpolationMethod; })
+            return static_cast<uint8_t>(colorSpace.hueInterpolationMethod);
+        else
+            return 0;
+    }));
+    writeValue(static_cast<uint8_t>(method.alphaPremultiplication));
+    auto& stops = gradient.stops();
+    writeValue(static_cast<uint32_t>(stops.size()));
+    for (auto& stop : stops) {
+        writeValue(stop.offset);
+        writeColor(stop.color);
+    }
+}
+
+void GraphicsContextCGCapture::fillRect(const FloatRect& rect, const Gradient& gradient, const AffineTransform& gradientSpaceTransform, GraphicsContext::RequiresClipToRect requiresClipToRect)
+{
+    ++m_draws;
+    begin(Op::FillRectWithGradient);
+    writeRect(rect);
+    writeGradient(gradient);
+    writeTransform(gradientSpaceTransform);
+    writeValue(static_cast<uint8_t>(requiresClipToRect));
+    end();
+}
+
 void GraphicsContextCGCapture::writeShadow(const GraphicsDropShadow& shadow)
 {
     writeValue(shadow.offset.width());
@@ -367,10 +423,16 @@ void GraphicsContextCGCapture::stateUpdate(const GraphicsContextState& state)
         case Change::FillBrush:
         case Change::StrokeBrush: {
             auto& brush = change == Change::FillBrush ? state.fillBrush() : state.strokeBrush();
-            if (brush.hasPatternOrGradient()) {
-                stop("gradient or pattern brush"_s);
+            if (brush.pattern()) {
+                stop("pattern brush"_s);
                 return;
             }
+            if (RefPtr gradient = brush.gradient()) {
+                writeValue(static_cast<uint8_t>(1));
+                writeGradient(*gradient);
+                writeTransform(brush.gradientSpaceTransform());
+            } else
+                writeValue(static_cast<uint8_t>(0));
             writeColor(brush.color());
             break;
         }

@@ -61,6 +61,14 @@ private func cxxMin(_ a: Float, _ b: Float) -> Float {
     b < a ? b : a
 }
 
+private func cxxMax(_ a: CGFloat, _ b: CGFloat) -> CGFloat {
+    a < b ? b : a
+}
+
+private func cxxMin(_ a: CGFloat, _ b: CGFloat) -> CGFloat {
+    b < a ? b : a
+}
+
 // WTF's clampTo<int>(float): NaN gives INT_MIN.
 private func clampToInt(_ value: Float) -> Int32 {
     if value >= 2_147_483_648 {
@@ -325,6 +333,12 @@ private struct CGRendererBrush {
 
     // SourceBrush::isVisible().
     var isVisible: Bool { hasPatternOrGradient || isColorVisible }
+}
+
+// GradientSpreadMethod.
+private enum CGRendererSpreadMethod {
+    static let pad: UInt8 = 0
+    static let reflect: UInt8 = 1
 }
 
 private enum CGRendererStrokeStyle {
@@ -1356,6 +1370,147 @@ struct CGRenderer {
             context.setFillColor(color)
         }
         context.fill(context.boundingBoxOfClipPath)
+    }
+
+    // Gradient::paint(): a gradient across the clip of `context`, which is this renderer's context or a layer's. The CGGradient
+    // (the stops, converted and sampled into an output color space) comes from the C++ Gradient, which caches it.
+    @_expose(Cxx)
+    static func paintGradient(_ context: borrowing CGContext, _ gradient: borrowing CGGradient, _ geometry: CGRendererGradientGeometry) {
+        let context = copy context
+        let gradient = copy gradient
+        let extendOptions: CGGradientDrawingOptions = [.drawsBeforeStartLocation, .drawsAfterEndLocation]
+        switch geometry.kind {
+        case 0:
+            if geometry.spreadMethod == CGRendererSpreadMethod.pad {
+                context.drawLinearGradient(
+                    gradient,
+                    start: CGPoint(x: CGFloat(geometry.x0), y: CGFloat(geometry.y0)),
+                    end: CGPoint(x: CGFloat(geometry.x1), y: CGFloat(geometry.y1)),
+                    options: extendOptions
+                )
+            } else {
+                paintRepeatingLinearGradient(context, gradient, geometry)
+            }
+        case 1:
+            let needsScaling = geometry.aspectRatio != 1
+            if needsScaling {
+                // Scaled from the center: only non-deprecated gradients, whose two points are the same, have an aspect ratio.
+                context.saveGState()
+                context.translateBy(x: CGFloat(geometry.x0), y: CGFloat(geometry.y0))
+                context.scaleBy(x: 1, y: CGFloat(1 / geometry.aspectRatio))
+                context.translateBy(x: CGFloat(-geometry.x0), y: CGFloat(-geometry.y0))
+            }
+            context.drawRadialGradient(
+                gradient,
+                startCenter: CGPoint(x: CGFloat(geometry.x0), y: CGFloat(geometry.y0)),
+                startRadius: CGFloat(geometry.startRadius),
+                endCenter: CGPoint(x: CGFloat(geometry.x1), y: CGFloat(geometry.y1)),
+                endRadius: CGFloat(geometry.endRadius),
+                options: extendOptions
+            )
+            if needsScaling {
+                context.restoreGState()
+            }
+        default:
+            context.saveGState()
+            context.translateBy(x: CGFloat(geometry.x0), y: CGFloat(geometry.y0))
+            context.rotate(by: -CGFloat(Double.pi / 2))
+            context.translateBy(x: CGFloat(-geometry.x0), y: CGFloat(-geometry.y0))
+            CGContextDrawConicGradient(
+                context,
+                gradient,
+                CGPoint(x: CGFloat(geometry.x0), y: CGFloat(geometry.y0)),
+                CGFloat(geometry.angleRadians)
+            )
+            context.restoreGState()
+        }
+    }
+
+    // A repeating or reflecting linear gradient: in coordinates rotated so that the gradient runs along x, copies of it side by
+    // side, forwards and backwards from its start, across the clip's bounding box.
+    private static func paintRepeatingLinearGradient(_ context: CGContext, _ gradient: CGGradient, _ geometry: CGRendererGradientGeometry) {
+        context.saveGState()
+        defer {
+            context.restoreGState()
+        }
+        // FloatPoint::normalize().
+        var normX = geometry.x1 - geometry.x0
+        var normY = geometry.y1 - geometry.y0
+        let length = hypot(normX, normY)
+        if length != 0 {
+            normX /= length
+            normY /= length
+        }
+        let angle: CGFloat = normX == 0 && normY == 0 ? 0 : CGFloat(atan2(normY, normX))
+        context.rotate(by: angle)
+
+        let boundingBox = context.boundingBoxOfClipPath
+        if boundingBox.isInfinite || boundingBox.isEmpty {
+            return
+        }
+
+        // CGPointApplyAffineTransform(), in Swift's arithmetic, then narrowed to FloatPoint.
+        let rotation = CGAffineTransform(rotationAngle: -angle)
+        func rotatedX(_ x: Float, _ y: Float) -> Float {
+            Float(rotation.a * CGFloat(x) + rotation.c * CGFloat(y) + rotation.tx)
+        }
+        let point0X = rotatedX(geometry.x0, geometry.y0)
+        let point1X = rotatedX(geometry.x1, geometry.y1)
+        var dx = CGFloat(point1X - point0X)
+
+        let pixelSize = abs(context.convertToUserSpace(CGSize(width: 1, height: 1)).width)
+        if abs(dx) < pixelSize {
+            dx = dx < 0 ? -pixelSize : pixelSize
+        }
+
+        let reflects = geometry.spreadMethod == CGRendererSpreadMethod.reflect
+        func draw(_ start: CGFloat, _ end: CGFloat, _ flip: Bool) {
+            context.drawLinearGradient(
+                gradient,
+                start: CGPoint(x: flip ? end : start, y: 0),
+                end: CGPoint(x: flip ? start : end, y: 0),
+                options: []
+            )
+        }
+        func isLeftOf(_ start: CGFloat, _ end: CGFloat) -> Bool {
+            cxxMax(start, end) <= boundingBox.minX
+        }
+        func isRightOf(_ start: CGFloat, _ end: CGFloat) -> Bool {
+            cxxMin(start, end) >= boundingBox.maxX
+        }
+        func isIntersecting(_ start: CGFloat, _ end: CGFloat) -> Bool {
+            cxxMin(start, end) < boundingBox.maxX && boundingBox.minX < cxxMax(start, end)
+        }
+
+        var flip = false
+        var start = CGFloat(point0X)
+        // Forwards to the bounding box, then across it.
+        if (dx > 0 && isLeftOf(start, start + dx)) || (dx < 0 && isRightOf(start, start + dx)) {
+            while !isIntersecting(start, start + dx) {
+                flip = !flip && reflects
+                start += dx
+            }
+        }
+        while isIntersecting(start, start + dx) {
+            draw(start, start + dx, flip)
+            flip = !flip && reflects
+            start += dx
+        }
+
+        flip = reflects
+        var end = CGFloat(point0X)
+        // Backwards to the bounding box, then across it.
+        if (dx < 0 && isLeftOf(end, end - dx)) || (dx > 0 && isRightOf(end, end - dx)) {
+            while !isIntersecting(end, end - dx) {
+                flip = !flip && reflects
+                end -= dx
+            }
+        }
+        while isIntersecting(end, end - dx) {
+            draw(end - dx, end, flip)
+            flip = !flip && reflects
+            end -= dx
+        }
     }
 
     // The sub-image for a rect in the oriented image's coordinates.

@@ -277,6 +277,39 @@ static FloatRect strokedPathBoundingBox(CGContextRef context, NOESCAPE const Inv
     return bounds;
 }
 
+#if ENABLE(WEBCORE_SWIFT)
+static CGRendererGradientGeometry gradientGeometry(const Gradient& gradient)
+{
+    CGRendererGradientGeometry geometry { };
+    geometry.spreadMethod = static_cast<uint8_t>(gradient.spreadMethod());
+    WTF::switchOn(gradient.data(),
+        [&](const Gradient::LinearData& data) {
+            geometry.kind = 0;
+            geometry.x0 = data.point0.x();
+            geometry.y0 = data.point0.y();
+            geometry.x1 = data.point1.x();
+            geometry.y1 = data.point1.y();
+        },
+        [&](const Gradient::RadialData& data) {
+            geometry.kind = 1;
+            geometry.x0 = data.point0.x();
+            geometry.y0 = data.point0.y();
+            geometry.x1 = data.point1.x();
+            geometry.y1 = data.point1.y();
+            geometry.startRadius = data.startRadius;
+            geometry.endRadius = data.endRadius;
+            geometry.aspectRatio = data.aspectRatio;
+        },
+        [&](const Gradient::ConicData& data) {
+            geometry.kind = 2;
+            geometry.x0 = data.point0.x();
+            geometry.y0 = data.point0.y();
+            geometry.angleRadians = data.angleRadians;
+        });
+    return geometry;
+}
+#endif
+
 #if !HAVE(CGSTYLE_FIXES_DROP_SHADOW_BLUR)
 // Older transparency layers are bounded by the clip, so content outside of it would lose its shadow.
 void GraphicsContextCG::paintGradientInCGLayer(Gradient& gradient, const AffineTransform& gradientSpaceTransform, const FloatRect& contentBounds, NOESCAPE const Invocable<void(CGContextRef)> auto& clip)
@@ -294,7 +327,13 @@ void GraphicsContextCG::paintGradientInCGLayer(Gradient& gradient, const AffineT
     CGContextTranslateCTM(layerContext.get(), -layerBounds.x(), -layerBounds.y());
     clip(layerContext.get());
     CGContextConcatCTM(layerContext.get(), gradientSpaceTransform);
-    gradient.paint(layerContext.get());
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        if (RetainPtr platformGradient = gradient.platformGradient())
+            CGRenderer::paintGradient(layerContext.get(), platformGradient.get(), gradientGeometry(gradient));
+    } else
+#endif
+        gradient.paint(layerContext.get());
     CGContextDrawLayerInRect(context.get(), layerBounds, layer.get());
 }
 #endif
@@ -328,7 +367,13 @@ void GraphicsContextCG::paintGradientInClip(Gradient& gradient, const AffineTran
         CGContextStateSaver stateSaver(context.get());
         clip(context.get());
         CGContextConcatCTM(context.get(), gradientSpaceTransform);
-        gradient.paint(*this);
+#if ENABLE(WEBCORE_SWIFT)
+        if (m_usesSwiftRenderer) {
+            if (RetainPtr platformGradient = gradient.platformGradient(Gradient::paintColorSpace(*this)))
+                CGRenderer::paintGradient(context.get(), platformGradient.get(), gradientGeometry(gradient));
+        } else
+#endif
+            gradient.paint(*this);
     }
     if (hasDropShadow) {
         CGContextEndTransparencyLayer(context.get());
@@ -1186,7 +1231,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
 
 void GraphicsContextCG::fillRect(const FloatRect& rect, Gradient& gradient, const AffineTransform& gradientSpaceTransform, RequiresClipToRect requiresClipToRect)
 {
-    CAPTURE(unsupported("fillRect with a gradient"_s));
+    CAPTURE(fillRect(rect, gradient, gradientSpaceTransform, requiresClipToRect));
     paintGradientInClip(gradient, gradientSpaceTransform, [&] {
         return rect;
     }, [&](CGContextRef clipContext) {
