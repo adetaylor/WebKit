@@ -157,6 +157,65 @@ private:
     const String& m_url;
 };
 
+class SendStringSync {
+public:
+    using Arguments = std::tuple<String>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftTypes_SendStringSync; }
+    static constexpr bool isSync = true;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isReplyStreamEncodable = true;
+    static constexpr bool isStreamBatched = false;
+
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<String, uint64_t>;
+    using Reply = CompletionHandler<void(String&&, uint64_t)>;
+    explicit SendStringSync(const String& url)
+        : m_url(url)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_url;
+    }
+
+private:
+    const String& m_url;
+};
+
+class SendEmptySync {
+public:
+    using Arguments = std::tuple<>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftTypes_SendEmptySync; }
+    static constexpr bool isSync = true;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isReplyStreamEncodable = true;
+    static constexpr bool isStreamBatched = false;
+
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<>;
+    using Reply = CompletionHandler<void()>;
+    SendEmptySync()
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+    }
+
+private:
+};
+
 } // namespace TestWithStreamSwiftTypes
 } // namespace Messages
 
