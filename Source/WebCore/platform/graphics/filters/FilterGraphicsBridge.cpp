@@ -32,17 +32,26 @@ namespace WebCore::FilterGraphicsBridge {
 
 RefPtr<PixelBuffer> createPixelBuffer(const FilterImageAllocator& allocator, const PixelBufferFormat& format, const IntSize& size)
 {
-    return allocator.allocator().createPixelBuffer(format, size);
+    auto* imageBufferAllocator = allocator.allocator();
+    if (!imageBufferAllocator)
+        return nullptr;
+    return imageBufferAllocator->createPixelBuffer(format, size);
 }
 
 RefPtr<ImageBuffer> createImageBuffer(const FilterImageAllocator& allocator, const FloatSize& size, const ColorSpace& colorSpace, RenderingMode renderingMode)
 {
-    return allocator.allocator().createImageBuffer(size, colorSpace, renderingMode);
+    auto* imageBufferAllocator = allocator.allocator();
+    if (!imageBufferAllocator)
+        return nullptr;
+    return imageBufferAllocator->createImageBuffer(size, colorSpace, renderingMode);
 }
 
 RefPtr<PixelBuffer> getPixelBuffer(const ImageBuffer& imageBuffer, const PixelBufferFormat& format, const IntRect& sourceRect, const FilterImageAllocator& allocator)
 {
-    return imageBuffer.getPixelBuffer(format, sourceRect, allocator.allocator());
+    auto* imageBufferAllocator = allocator.allocator();
+    if (!imageBufferAllocator)
+        return nullptr;
+    return imageBuffer.getPixelBuffer(format, sourceRect, *imageBufferAllocator);
 }
 
 void putPixelBuffer(ImageBuffer& imageBuffer, const PixelBuffer& pixelBuffer, const IntRect& sourceRect)

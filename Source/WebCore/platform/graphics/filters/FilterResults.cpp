@@ -26,6 +26,7 @@
 #include "config.h"
 #include "FilterResults.h"
 
+#include "FilterGraphicsBridge.h"
 #include <new>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -39,6 +40,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(FilterResults);
 
 FilterResults::FilterResults(std::unique_ptr<ImageBufferAllocator>&& allocator)
     : m_allocator(allocator ? WTF::move(allocator) : makeUnique<ImageBufferAllocator>())
+    , m_imageAllocator(FilterImageAllocator::create(*m_allocator))
 {
     static_assert(sizeof(FilterResultsImpl) == sizeof(m_impl) && alignof(FilterResultsImpl) == alignof(ImplLayout));
     new (m_impl) FilterResultsImpl(FilterResultsImpl::init());
@@ -47,6 +49,7 @@ FilterResults::FilterResults(std::unique_ptr<ImageBufferAllocator>&& allocator)
 FilterResults::~FilterResults()
 {
     std::destroy_at(&swiftImpl());
+    m_imageAllocator->revoke();
 }
 
 FilterResultsImpl& FilterResults::swiftImpl()

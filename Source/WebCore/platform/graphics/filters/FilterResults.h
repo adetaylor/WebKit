@@ -28,6 +28,7 @@
 #include <WebCore/ImageBufferAllocator.h>
 #include <memory>
 #include <wtf/Noncopyable.h>
+#include <wtf/Ref.h>
 #include <wtf/TZoneMalloc.h>
 
 #if !defined(__swift__)
@@ -39,6 +40,7 @@ class FilterResultsImpl;
 namespace WebCore {
 
 class Filter;
+class FilterImageAllocator;
 
 // The results of the effects of filters applied with it, which later applies reuse until an effect changes, and the
 // allocator of the filters' images. Its state is in FilterResultsImpl (FilterEngine.swift), a Swift struct that it stores
@@ -51,6 +53,7 @@ public:
     WEBCORE_EXPORT ~FilterResults();
 
     ImageBufferAllocator& allocator() const { return *m_allocator; }
+    FilterImageAllocator& imageAllocator() const { return m_imageAllocator; }
 
     // Forgets the result of the effect at `effectIndex` of `filter` (its function in a CSS filter, its effect in an SVG
     // filter), and the results made from it.
@@ -71,6 +74,7 @@ private:
     // The FilterResultsImpl, which FilterResults.cpp builds in place in the constructor and destroys in the destructor.
     alignas(ImplLayout) std::byte m_impl[sizeof(ImplLayout)];
     const std::unique_ptr<ImageBufferAllocator> m_allocator;
+    const Ref<FilterImageAllocator> m_imageAllocator;
 };
 
 using FilterResultsCreator = Function<std::unique_ptr<FilterResults>()>;
