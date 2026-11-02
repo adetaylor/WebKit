@@ -293,7 +293,7 @@ std::optional<FilterResult> SVGFilterRenderer::apply(ImageBuffer* sourceImage, c
 {
     LOG_WITH_STREAM(Filters, stream << "\nSVGFilterRenderer " << this << " apply - filterRegion " << filterRegion() << " scale " << filterScale());
     IntRect absoluteImageRect;
-    RefPtr imageBuffer = svgFilterApply(SVGFilterRendererView { *this }, sourceImage, sourceImageRect, FilterImageAllocator { results.allocator() }, results.swiftImpl(), resultBuffer == FilterResultBuffer::Rendered, absoluteImageRect);
+    RefPtr imageBuffer = svgFilterApply(SVGFilterRendererView { *this }, sourceImage, sourceImageRect, protect(results.imageAllocator()).ptr(), results.swiftImpl(), resultBuffer == FilterResultBuffer::Rendered, absoluteImageRect);
     if (!imageBuffer)
         return std::nullopt;
     return FilterResult { imageBuffer.releaseNonNull(), absoluteImageRect };

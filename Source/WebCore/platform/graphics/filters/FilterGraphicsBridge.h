@@ -33,6 +33,7 @@
 #include <WebCore/PixelBuffer.h>
 #include <WebCore/PixelBufferFormat.h>
 #include <WebCore/RenderingMode.h>
+#include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
 #include <wtf/SwiftBridging.h>
 
@@ -45,28 +46,31 @@ class ImageBufferAllocator;
 using RefPtrImageBuffer = RefPtr<ImageBuffer>;
 using RefPtrPixelBuffer = RefPtr<PixelBuffer>;
 
-// The allocator of a filter's images, which each FilterImageImpl stores and passes to the functions below. It isn't a
-// reference count: the FilterResults that owns the allocator keeps it for as long as it makes images with it. Swift
-// can't read it.
-class SWIFT_SAFE FilterImageAllocator {
+// The allocator of a filter's images, which each FilterImageImpl keeps and passes to the functions below. The
+// FilterResults that owns the allocator revokes it when it is destroyed, and the functions below then return null.
+// Swift can't read it.
+class FilterImageAllocator : public RefCounted<FilterImageAllocator> {
 public:
 #if !defined(__swift__)
+    static Ref<FilterImageAllocator> create(ImageBufferAllocator& allocator) { return adoptRef(*new FilterImageAllocator(allocator)); }
+
+    ImageBufferAllocator* allocator() const { return m_allocator; }
+    void revoke() { m_allocator = nullptr; }
+#endif
+
+private:
     explicit FilterImageAllocator(ImageBufferAllocator& allocator)
         : m_allocator(&allocator)
     {
     }
 
-    ImageBufferAllocator& allocator() const { return *m_allocator; }
-#endif
-
-private:
     ImageBufferAllocator* m_allocator;
 };
 
 // What FilterImageImpl needs from C++: its allocator, and the ImageBuffer operations Swift can't call itself.
 namespace FilterGraphicsBridge {
 
-// Null if the allocator fails.
+// Null if the allocator fails or is revoked.
 RefPtr<PixelBuffer> createPixelBuffer(const FilterImageAllocator&, const PixelBufferFormat&, const IntSize&);
 RefPtr<ImageBuffer> createImageBuffer(const FilterImageAllocator&, const FloatSize&, const ColorSpace&, RenderingMode);
 RefPtr<PixelBuffer> getPixelBuffer(const ImageBuffer&, const PixelBufferFormat&, const IntRect& sourceRect, const FilterImageAllocator&);
