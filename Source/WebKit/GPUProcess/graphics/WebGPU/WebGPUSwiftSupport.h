@@ -45,6 +45,12 @@ namespace WebGPU {
 class ObjectHeap;
 }
 
+// A child object that a message to a receiver written in Swift makes, from the receiver's own object.
+enum class WebGPUSwiftChildKind : uint8_t {
+    ComputePipelineBindGroupLayout,
+    RenderPipelineBindGroupLayout,
+};
+
 // What a WebGPU receiver written in Swift uses of the C++ around it, which Swift can't hold directly: the object
 // heap that owns the receiver and the RemoteGPU it serves, both weakly, and its identifier.
 class WebGPUSwiftReceiverContext {
@@ -53,6 +59,10 @@ public:
 
     void removeFromObjectHeap() const;
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
+
+    // Makes the receiver of a child of this receiver's object, and adds it to the object heap under that identifier. Returns
+    // false if the message that makes it is invalid.
+    bool makeChild(WebGPUSwiftChildKind, uint32_t index, uint64_t identifier) const;
 
     // The external texture with that identifier in the object heap, if there is one.
     ::WebGPU::ExternalTexture* WTF_NULLABLE externalTexture(uint64_t identifier) const SWIFT_RETURNS_RETAINED;

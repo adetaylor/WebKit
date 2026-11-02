@@ -144,11 +144,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteComputePassEncoder
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteComputePipeline& computePipeline)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, ComputePipelineObject&& computePipeline)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteComputePipeline> { protect(computePipeline) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(computePipeline) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteComputePipeline& computePipeline)
+{
+    auto result = m_objects.add(identifier, Object { ComputePipelineObject { protect(computePipeline) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteDevice& device)
 {
@@ -237,11 +245,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderPassEncoder&
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderPipeline& renderPipeline)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RenderPipelineObject&& renderPipeline)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPipeline> { protect(renderPipeline) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(renderPipeline) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderPipeline& renderPipeline)
+{
+    auto result = m_objects.add(identifier, Object { RenderPipelineObject { protect(renderPipeline) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, SamplerObject&& sampler)
@@ -390,9 +406,9 @@ RefPtr<::WebGPU::ComputePassEncoder> ObjectHeap::convertComputePassEncoderFromBa
 RefPtr<::WebGPU::ComputePipeline> ObjectHeap::convertComputePipelineFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteComputePipeline>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<ComputePipelineObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteComputePipeline>>(iterator->value)->backing();
+    return &std::get<ComputePipelineObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::Device> ObjectHeap::convertDeviceFromBacking(WebGPUIdentifier identifier)
@@ -470,9 +486,9 @@ RefPtr<::WebGPU::RenderPassEncoder> ObjectHeap::convertRenderPassEncoderFromBack
 RefPtr<::WebGPU::RenderPipeline> ObjectHeap::convertRenderPipelineFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPipeline>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<RenderPipelineObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPipeline>>(iterator->value)->backing();
+    return &std::get<RenderPipelineObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::Sampler> ObjectHeap::convertSamplerFromBacking(WebGPUIdentifier identifier)

@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteRenderPipeline.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteBindGroupLayout.h"
 #include "RemoteRenderPipelineMessages.h"
@@ -34,11 +34,6 @@
 #include "WebGPUObjectHeap.h"
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/TZoneMallocInlines.h>
-
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-#include "RemoteBindGroupLayoutMessages.h"
-#include "WebKit-Swift.h"
-#endif
 
 namespace WebKit {
 
@@ -71,14 +66,8 @@ void RemoteRenderPipeline::getBindGroupLayout(uint32_t index, WebGPUIdentifier i
     // "A new GPUBindGroupLayout wrapper is returned each time"
     auto bindGroupLayout = protect(m_backing)->getBindGroupLayout(index);
     Ref objectHeap = m_objectHeap.get();
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteBindGroupLayout = RemoteBindGroupLayout::init(RemoteBindGroupLayoutBacking { bindGroupLayout }, context);
-    objectHeap->addObject(identifier, WebGPU::BindGroupLayoutObject { bindGroupLayout, WTF::move(remoteBindGroupLayout), context, protect(m_streamConnection), Messages::RemoteBindGroupLayout::messageReceiverName(), identifier });
-#else
     auto remoteBindGroupLayout = RemoteBindGroupLayout::create(bindGroupLayout, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteBindGroupLayout);
-#endif
 }
 
 void RemoteRenderPipeline::setLabel(String&& label)
@@ -88,4 +77,4 @@ void RemoteRenderPipeline::setLabel(String&& label)
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

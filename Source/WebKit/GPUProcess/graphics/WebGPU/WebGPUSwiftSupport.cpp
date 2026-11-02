@@ -28,8 +28,11 @@
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
+#include "RemoteBindGroupLayoutMessages.h"
 #include "RemoteGPU.h"
+#include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
+#include "WebKit-Swift.h"
 
 namespace WebKit {
 
@@ -51,6 +54,45 @@ std::optional<SharedPreferencesForWebProcess> WebGPUSwiftReceiverContext::shared
     if (RefPtr gpu = m_gpu.get())
         return gpu->sharedPreferencesForWebProcess();
     return std::nullopt;
+}
+
+static void addBindGroupLayout(WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu, IPC::StreamServerConnection& streamConnection, ::WebGPU::BindGroupLayout& bindGroupLayout, WebGPUIdentifier identifier)
+{
+    WebGPUSwiftReceiverContext context { objectHeap, gpu, identifier };
+    auto remoteBindGroupLayout = RemoteBindGroupLayout::init(RemoteBindGroupLayoutBacking { bindGroupLayout }, context);
+    objectHeap.addObject(identifier, WebGPU::BindGroupLayoutObject { bindGroupLayout, WTF::move(remoteBindGroupLayout), context, streamConnection, Messages::RemoteBindGroupLayout::messageReceiverName(), identifier });
+}
+
+bool WebGPUSwiftReceiverContext::makeChild(WebGPUSwiftChildKind kind, uint32_t index, uint64_t identifier) const
+{
+    RefPtr objectHeap = m_objectHeap.get();
+    RefPtr gpu = m_gpu.get();
+    if (!objectHeap || !gpu)
+        return true;
+    RefPtr streamConnection = gpu->m_streamConnection;
+    if (!streamConnection)
+        return true;
+
+    WebGPUIdentifier childIdentifier { identifier };
+    switch (kind) {
+    case WebGPUSwiftChildKind::ComputePipelineBindGroupLayout: {
+        RefPtr computePipeline = objectHeap->convertComputePipelineFromBacking(m_identifier);
+        if (!computePipeline)
+            return false;
+        Ref bindGroupLayout = computePipeline->getBindGroupLayout(index);
+        addBindGroupLayout(*objectHeap, *gpu, *streamConnection, bindGroupLayout, childIdentifier);
+        return true;
+    }
+    case WebGPUSwiftChildKind::RenderPipelineBindGroupLayout: {
+        RefPtr renderPipeline = objectHeap->convertRenderPipelineFromBacking(m_identifier);
+        if (!renderPipeline)
+            return false;
+        Ref bindGroupLayout = renderPipeline->getBindGroupLayout(index);
+        addBindGroupLayout(*objectHeap, *gpu, *streamConnection, bindGroupLayout, childIdentifier);
+        return true;
+    }
+    }
+    RELEASE_ASSERT_NOT_REACHED();
 }
 
 ::WebGPU::ExternalTexture* WebGPUSwiftReceiverContext::externalTexture(uint64_t identifier) const

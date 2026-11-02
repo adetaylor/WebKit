@@ -228,6 +228,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCompositorIntegrationMessa
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteComputePassEncoderMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteComputePassEncoderMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteComputePipelineMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteComputePipelineMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteComputePipelineMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteDeviceMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteDeviceMessages.h
@@ -318,6 +319,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderBundleMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderPassEncoderMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderPassEncoderMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderPipelineMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderPipelineMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderPipelineMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderingBackendMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderingBackendMessages.h
