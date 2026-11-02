@@ -72,6 +72,9 @@ void IPCStreamTester::initialize()
 #if ENABLE(IPC_TESTING_SWIFT)
         m_swiftTester = WTF::makeUniqueWithoutFastMallocCheck<IPCSwiftStreamTester>(IPCSwiftStreamTester::init());
         Ref swiftReceiver = m_swiftTester->getMessageReceiver();
+        swiftReceiver->setSharedPreferencesProvider([] {
+            return ipcTesterSharedPreferences();
+        });
         m_streamConnection->startReceivingMessages(swiftReceiver, Messages::IPCSwiftStreamTester::messageReceiverName(), m_identifier.toUInt64());
 #endif
     });

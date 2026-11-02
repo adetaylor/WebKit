@@ -30,6 +30,7 @@
 #include "SharedPreferencesForWebProcess.h"
 #include "StreamMessageReceiver.h"
 #include <wtf/Forward.h>
+#include <wtf/Function.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/text/WTFString.h>
@@ -52,9 +53,12 @@ public:
     void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
     void ref() const { StreamMessageReceiver::ref(); }
     void deref() const { StreamMessageReceiver::deref(); }
+    // Lets the C++ that registers the receiver supply its shared preferences, which dispatch otherwise asks Swift for.
+    void setSharedPreferencesProvider(Function<std::optional<SharedPreferencesForWebProcess>()>&& provider) { m_sharedPreferencesProvider = WTF::move(provider); }
 private:
     TestWithStreamSwiftEnabledByMessageForwarder(WebKit::TestWithStreamSwiftEnabledByWeakRef* WTF_NONNULL);
     std::unique_ptr<WebKit::TestWithStreamSwiftEnabledByWeakRef> m_handler;
+    Function<std::optional<SharedPreferencesForWebProcess>()> m_sharedPreferencesProvider;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;

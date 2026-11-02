@@ -39,7 +39,7 @@ namespace WebKit {
 
 void TestWithStreamSwiftEnabledByMessageForwarder::didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder)
 {
-    auto sharedPreferences = m_handler->sharedPreferencesForWebProcess();
+    auto sharedPreferences = m_sharedPreferencesProvider ? m_sharedPreferencesProvider() : m_handler->sharedPreferencesForWebProcess();
     UNUSED_VARIABLE(sharedPreferences);
     if (!sharedPreferences || !sharedPreferences->someFeature) {
         RELEASE_LOG_ERROR(IPC, "Message %s received by a disabled message receiver TestWithStreamSwiftEnabledBy", IPC::description(decoder.messageName()).characters());
