@@ -73,9 +73,9 @@ void RenderBundle::setLabel(String&& label)
     swiftImpl().setLabel(label.createNSString().get());
 }
 
-void deliverRenderBundleImpl(WebGPU::RenderBundle& renderBundle)
+void deliverImpl(WebGPU::RenderBundle& renderBundle)
 {
-    WebGPUSwift::receiveRenderBundleImpl(downcast<RenderBundle>(renderBundle).swiftImpl());
+    WebGPUSwift::receiveImpl(downcast<RenderBundle>(renderBundle).swiftImpl());
 }
 
 } // namespace WebGPU::Metal

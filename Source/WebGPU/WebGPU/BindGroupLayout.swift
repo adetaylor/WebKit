@@ -35,7 +35,7 @@ import WebGPU_Private.WebGPUCpp
 // Used only on its Instance's API thread, so not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class BindGroupLayoutImpl {
+public final class BindGroupLayoutImpl: DeliverableImpl {
     // nil when the stage has no arguments, or for an invalid layout.
     private let vertexEncoder: (any MTLArgumentEncoder)?
     private let fragmentEncoder: (any MTLArgumentEncoder)?
@@ -92,6 +92,7 @@ public final class BindGroupLayoutImpl {
         self.counts = counts
         self.deviceImpl = deviceImpl
         self.device = device
+        super.init()
         applyLabelToEncoders()
     }
 

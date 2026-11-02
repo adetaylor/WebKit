@@ -37,7 +37,7 @@ import WebGPU_Private.WebGPUCpp
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class RenderBundleImpl {
+public final class RenderBundleImpl: DeliverableImpl {
     let deviceImpl: DeviceImpl
     /// Paired with the mutable `mtlResources`.
     let resources: ResourceSet

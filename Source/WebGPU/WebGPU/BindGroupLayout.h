@@ -86,6 +86,6 @@ private:
 };
 
 // For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the BindGroupLayoutImpl of a WebGPU::BindGroupLayout.
-void deliverBindGroupLayoutImpl(WebGPU::BindGroupLayout&);
+void deliverImpl(WebGPU::BindGroupLayout&);
 
 } // namespace WebGPU::Metal

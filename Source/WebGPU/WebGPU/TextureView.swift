@@ -33,7 +33,7 @@ import WebGPU_Private.WebGPUCpp
 // Instance's API thread.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class TextureViewImpl {
+public final class TextureViewImpl: DeliverableImpl {
     // nil only for an invalid view. Replaced by the device placeholder when the parent is destroyed.
     private var backingTexture: (any MTLTexture)?
     // The swizzled view a shader reads; nil when the swizzle is the identity.

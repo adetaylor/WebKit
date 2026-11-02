@@ -112,9 +112,9 @@ std::optional<WebGPU::QueryType> QuerySet::type() const
     return static_cast<WebGPU::QueryType>(swiftImpl().typeRawValue());
 }
 
-void deliverQuerySetImpl(WebGPU::QuerySet& querySet)
+void deliverImpl(WebGPU::QuerySet& querySet)
 {
-    WebGPUSwift::receiveQuerySetImpl(downcast<QuerySet>(querySet).swiftImpl());
+    WebGPUSwift::receiveImpl(downcast<QuerySet>(querySet).swiftImpl());
 }
 
 } // namespace WebGPU::Metal

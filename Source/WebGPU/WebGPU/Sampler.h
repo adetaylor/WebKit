@@ -72,6 +72,6 @@ private:
 };
 
 // For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the SamplerImpl of a WebGPU::Sampler.
-void deliverSamplerImpl(WebGPU::Sampler&);
+void deliverImpl(WebGPU::Sampler&);
 
 } // namespace WebGPU::Metal

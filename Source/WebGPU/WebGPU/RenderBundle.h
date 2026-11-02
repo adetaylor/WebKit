@@ -73,6 +73,6 @@ private:
 };
 
 // For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the RenderBundleImpl of a WebGPU::RenderBundle.
-void deliverRenderBundleImpl(WebGPU::RenderBundle&);
+void deliverImpl(WebGPU::RenderBundle&);
 
 } // namespace WebGPU::Metal

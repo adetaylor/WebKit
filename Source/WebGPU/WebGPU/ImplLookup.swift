@@ -36,74 +36,52 @@ import WebGPU_Private.WebGPUCpp
 
 @_spi(WebKitGPU)
 public func impl(of querySet: WebGPU.QuerySet) -> QuerySetImpl {
-    ImplLookup.lookUp(QuerySetImpl.self) { WebGPU.Metal.deliverQuerySetImpl(querySet) }
+    ImplLookup.lookUp(QuerySetImpl.self) { WebGPU.Metal.deliverImpl(querySet) }
 }
 
 @_spi(WebKitGPU)
 public func impl(of bindGroup: WebGPU.BindGroup) -> BindGroupImpl {
-    ImplLookup.lookUp(BindGroupImpl.self) { WebGPU.Metal.deliverBindGroupImpl(bindGroup) }
+    ImplLookup.lookUp(BindGroupImpl.self) { WebGPU.Metal.deliverImpl(bindGroup) }
 }
 
 @_spi(WebKitGPU)
 public func impl(of externalTexture: WebGPU.ExternalTexture) -> ExternalTextureImpl {
-    ImplLookup.lookUp(ExternalTextureImpl.self) { WebGPU.Metal.deliverExternalTextureImpl(externalTexture) }
+    ImplLookup.lookUp(ExternalTextureImpl.self) { WebGPU.Metal.deliverImpl(externalTexture) }
 }
 
 @_spi(WebKitGPU)
 public func impl(of sampler: WebGPU.Sampler) -> SamplerImpl {
-    ImplLookup.lookUp(SamplerImpl.self) { WebGPU.Metal.deliverSamplerImpl(sampler) }
+    ImplLookup.lookUp(SamplerImpl.self) { WebGPU.Metal.deliverImpl(sampler) }
 }
 
 @_spi(WebKitGPU)
 public func impl(of textureView: WebGPU.TextureView) -> TextureViewImpl {
-    ImplLookup.lookUp(TextureViewImpl.self) { WebGPU.Metal.deliverTextureViewImpl(textureView) }
+    ImplLookup.lookUp(TextureViewImpl.self) { WebGPU.Metal.deliverImpl(textureView) }
 }
 
 @_spi(WebKitGPU)
 public func impl(of bindGroupLayout: WebGPU.BindGroupLayout) -> BindGroupLayoutImpl {
-    ImplLookup.lookUp(BindGroupLayoutImpl.self) { WebGPU.Metal.deliverBindGroupLayoutImpl(bindGroupLayout) }
+    ImplLookup.lookUp(BindGroupLayoutImpl.self) { WebGPU.Metal.deliverImpl(bindGroupLayout) }
 }
 
 @_spi(WebKitGPU)
 public func impl(of renderBundle: WebGPU.RenderBundle) -> RenderBundleImpl {
-    ImplLookup.lookUp(RenderBundleImpl.self) { WebGPU.Metal.deliverRenderBundleImpl(renderBundle) }
+    ImplLookup.lookUp(RenderBundleImpl.self) { WebGPU.Metal.deliverImpl(renderBundle) }
+}
+
+// The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().
+@_expose(Cxx)
+@_spi(WebKitGPU)
+public class DeliverableImpl {
+    init() {
+    }
 }
 
 // `sending` lets ImplLookup box the Impl in a Sendable Delivery. C++ doesn't really hand the Impl over, since its shell
 // keeps a reference, but an Impl is only used on its Instance's API thread, and the Delivery is only seen on that thread,
 // by the lookUp() whose synchronous call into C++ made this call.
 @_expose(Cxx)
-func receiveQuerySetImpl(_ impl: sending QuerySetImpl) {
-    ImplLookup.receive(impl)
-}
-
-@_expose(Cxx)
-func receiveBindGroupImpl(_ impl: sending BindGroupImpl) {
-    ImplLookup.receive(impl)
-}
-
-@_expose(Cxx)
-func receiveExternalTextureImpl(_ impl: sending ExternalTextureImpl) {
-    ImplLookup.receive(impl)
-}
-
-@_expose(Cxx)
-func receiveSamplerImpl(_ impl: sending SamplerImpl) {
-    ImplLookup.receive(impl)
-}
-
-@_expose(Cxx)
-func receiveTextureViewImpl(_ impl: sending TextureViewImpl) {
-    ImplLookup.receive(impl)
-}
-
-@_expose(Cxx)
-func receiveBindGroupLayoutImpl(_ impl: sending BindGroupLayoutImpl) {
-    ImplLookup.receive(impl)
-}
-
-@_expose(Cxx)
-func receiveRenderBundleImpl(_ impl: sending RenderBundleImpl) {
+func receiveImpl(_ impl: sending DeliverableImpl) {
     ImplLookup.receive(impl)
 }
 
@@ -113,14 +91,14 @@ func receiveRenderBundleImpl(_ impl: sending RenderBundleImpl) {
 private enum ImplLookup {
     // Sendable, so that a task-local value can hold it.
     final class Delivery: Sendable {
-        private let impl: Mutex<AnyObject?>
+        private let impl: Mutex<DeliverableImpl?>
 
-        init(_ impl: sending AnyObject) {
+        init(_ impl: sending DeliverableImpl) {
             self.impl = Mutex(impl)
         }
 
-        func take() -> AnyObject? {
-            impl.withLock { impl -> sending AnyObject? in
+        func take() -> DeliverableImpl? {
+            impl.withLock { impl -> sending DeliverableImpl? in
                 let taken = impl
                 impl = nil
                 return taken
@@ -134,7 +112,7 @@ private enum ImplLookup {
 
     @TaskLocal private static var slot: Slot?
 
-    static func lookUp<Impl: AnyObject>(_: Impl.Type, _ deliver: () -> Void) -> Impl {
+    static func lookUp<Impl: DeliverableImpl>(_: Impl.Type, _ deliver: () -> Void) -> Impl {
         let slot = Slot()
         $slot.withValue(slot) {
             deliver()
@@ -145,7 +123,7 @@ private enum ImplLookup {
         return impl
     }
 
-    static func receive(_ impl: sending AnyObject) {
+    static func receive(_ impl: sending DeliverableImpl) {
         guard let slot else {
             preconditionFailure("C++ delivered an Impl outside ImplLookup.lookUp()")
         }

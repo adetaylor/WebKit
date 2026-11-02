@@ -95,9 +95,9 @@ bool Sampler::isValid() const
     return swiftImpl().isValid();
 }
 
-void deliverSamplerImpl(WebGPU::Sampler& sampler)
+void deliverImpl(WebGPU::Sampler& sampler)
 {
-    WebGPUSwift::receiveSamplerImpl(downcast<Sampler>(sampler).swiftImpl());
+    WebGPUSwift::receiveImpl(downcast<Sampler>(sampler).swiftImpl());
 }
 
 } // namespace WebGPU::Metal

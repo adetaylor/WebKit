@@ -80,9 +80,9 @@ bool TextureView::isValid() const
     return swiftImpl().isValid();
 }
 
-void deliverTextureViewImpl(WebGPU::TextureView& textureView)
+void deliverImpl(WebGPU::TextureView& textureView)
 {
-    WebGPUSwift::receiveTextureViewImpl(downcast<TextureView>(textureView).swiftImpl());
+    WebGPUSwift::receiveImpl(downcast<TextureView>(textureView).swiftImpl());
 }
 
 } // namespace WebGPU::Metal

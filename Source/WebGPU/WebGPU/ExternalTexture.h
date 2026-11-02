@@ -78,6 +78,6 @@ private:
 };
 
 // For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the ExternalTextureImpl of a WebGPU::ExternalTexture.
-void deliverExternalTextureImpl(WebGPU::ExternalTexture&);
+void deliverImpl(WebGPU::ExternalTexture&);
 
 } // namespace WebGPU::Metal

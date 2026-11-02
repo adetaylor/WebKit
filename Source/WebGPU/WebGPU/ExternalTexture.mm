@@ -116,9 +116,9 @@ void ExternalTexture::update(CVPixelBufferRef pixelBuffer)
         m_impl->impl.updateWithoutPixelBuffer();
 }
 
-void deliverExternalTextureImpl(WebGPU::ExternalTexture& externalTexture)
+void deliverImpl(WebGPU::ExternalTexture& externalTexture)
 {
-    WebGPUSwift::receiveExternalTextureImpl(downcast<ExternalTexture>(externalTexture).swiftImpl());
+    WebGPUSwift::receiveImpl(downcast<ExternalTexture>(externalTexture).swiftImpl());
 }
 
 } // namespace WebGPU::Metal
