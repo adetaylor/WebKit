@@ -1,0 +1,3 @@
+
+PASS Test that a Swift stream receiver accepts or rejects messages with arbitrary arguments.
+

@@ -559,6 +559,30 @@ private:
     void didReceiveInvalidMessage(IPC::Connection&, IPC::MessageName, const Vector<uint32_t>&) final { }
 };
 
+// A message to IPCSwiftStreamTester without a reply, with arbitrary bytes for arguments. It goes out of stream, where
+// its decoder ends with it: in the stream buffer, bytes the receiver doesn't decode would be read as the next message.
+template<IPC::MessageName messageName>
+struct ArbitrarySwiftStreamTesterMessage {
+    static constexpr bool isSync = false;
+    static constexpr bool isStreamEncodable = false;
+    static constexpr bool isStreamBatched = false;
+    static constexpr IPC::MessageName name() { return messageName; }
+
+    template<typename Encoder> void encode(Encoder& encoder)
+    {
+        for (auto byte : bytes)
+            encoder << byte;
+    }
+
+    Vector<uint8_t> bytes;
+};
+
+template<IPC::MessageName messageName>
+IPC::Error sendArbitrarySwiftStreamTesterMessage(IPC::StreamClientConnection& connection, IPCStreamTesterIdentifier identifier, Vector<uint8_t>&& bytes)
+{
+    return connection.send(ArbitrarySwiftStreamTesterMessage<messageName> { WTF::move(bytes) }, identifier);
+}
+
 // RecordTextSwift whose is8Bit flag is not a bool, whichever bytes follow it in the stream buffer.
 struct MalformedRecordTextSwift {
     static constexpr bool isSync = false;
@@ -651,6 +675,112 @@ void IPCTester::sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&
     protectedTester->stopListeningForIPC(protectedTester.copyRef());
     check(protectedTester->invalidMessageCount() == 1, "invalid message count"_s);
     completionHandler(makeStringByJoining(failures.span(), ", "_s));
+}
+
+// Sends IPCSwiftStreamTester each of its messages with arbitrary arguments through the stream buffer, each on a new
+// stream connection, then checks with TakeRecordedDigest whether the connection accepted it or rejected it as malformed.
+// The arguments are a valid encoding, then that encoding cut short, then random bytes, in turn. Replies with how many
+// were accepted and rejected, and with the iterations where neither happened.
+void IPCTester::fuzzSwiftStreamReceiver(uint64_t seed, uint32_t iterations, CompletionHandler<void(uint32_t, uint32_t, String&&)>&& completionHandler)
+{
+    // The messages without replies, since the arguments are sent without a reply ID.
+    static constexpr std::array messageNames {
+        IPC::MessageName::IPCSwiftStreamTester_Record,
+        IPC::MessageName::IPCSwiftStreamTester_RecordTextSwift,
+        IPC::MessageName::IPCSwiftStreamTester_CompleteDeferredAddSwift,
+        IPC::MessageName::IPCSwiftStreamTester_BenchFourValues,
+        IPC::MessageName::IPCSwiftStreamTester_BenchEmptySwift,
+        IPC::MessageName::IPCSwiftStreamTester_BenchFourValuesSwift,
+        IPC::MessageName::IPCSwiftStreamTester_BenchStringSwift,
+        IPC::MessageName::IPCSwiftStreamTester_BenchVectorSwift,
+    };
+    static constexpr std::array senders {
+        &sendArbitrarySwiftStreamTesterMessage<messageNames[0]>,
+        &sendArbitrarySwiftStreamTesterMessage<messageNames[1]>,
+        &sendArbitrarySwiftStreamTesterMessage<messageNames[2]>,
+        &sendArbitrarySwiftStreamTesterMessage<messageNames[3]>,
+        &sendArbitrarySwiftStreamTesterMessage<messageNames[4]>,
+        &sendArbitrarySwiftStreamTesterMessage<messageNames[5]>,
+        &sendArbitrarySwiftStreamTesterMessage<messageNames[6]>,
+        &sendArbitrarySwiftStreamTesterMessage<messageNames[7]>,
+    };
+    static_assert(senders.size() == messageNames.size());
+    uint64_t state = seed ? seed : 1;
+    auto random = [&state] {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        return state;
+    };
+
+    uint32_t accepted = 0;
+    uint32_t rejected = 0;
+    Vector<String> failures;
+
+    // A message that decodes, but fails the handler's message check.
+    {
+        auto connectionPair = IPC::StreamClientConnection::create(9, 2_s);
+        if (!connectionPair) {
+            completionHandler(0, 0, "create"_s);
+            return;
+        }
+        Ref streamConnection = WTF::move(connectionPair->streamConnection);
+        auto identifier = IPCStreamTesterIdentifier::generate();
+        RefPtr tester = IPCStreamTester::create(identifier, WTF::move(connectionPair->connectionHandle), false);
+        Ref client = InProcessStreamConnectionClient::create();
+        streamConnection->open(client);
+        auto reply = streamConnection->sendSync(Messages::IPCSwiftStreamTester::RepeatTextSwift("a"_s, 5000), identifier);
+        streamConnection->invalidate();
+        Ref protectedTester = tester.releaseNonNull();
+        protectedTester->stopListeningForIPC(protectedTester.copyRef());
+        if (reply.succeeded() || protectedTester->invalidMessageCount() != 1)
+            failures.append("RepeatTextSwift message check"_s);
+    }
+
+    for (uint32_t iteration = 0; iteration < iterations; ++iteration) {
+        // A rejected message invalidates the connection, which the next sync message waits for until it times out.
+        auto connectionPair = IPC::StreamClientConnection::create(9, 250_ms);
+        if (!connectionPair) {
+            failures.append(makeString("create "_s, iteration));
+            break;
+        }
+        Ref streamConnection = WTF::move(connectionPair->streamConnection);
+        auto identifier = IPCStreamTesterIdentifier::generate();
+        RefPtr tester = IPCStreamTester::create(identifier, WTF::move(connectionPair->connectionHandle), false);
+        Ref client = InProcessStreamConnectionClient::create();
+        streamConnection->open(client);
+
+        // A valid-looking prefix: a small count or length, a bool, then text, then more small values.
+        Vector<uint8_t> valid { 3, 0, 0, 0, 1, 'a', 'b', 'c', 2, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0 };
+        Vector<uint8_t> bytes;
+        switch (iteration % 3) {
+        case 0:
+            bytes = valid;
+            break;
+        case 1:
+            bytes = valid.subvector(0, random() % valid.size());
+            break;
+        default:
+            for (size_t count = random() % 64; count; --count)
+                bytes.append(static_cast<uint8_t>(random()));
+            break;
+        }
+        auto index = random() % messageNames.size();
+        auto messageName = messageNames[index];
+        bool sent = senders[index](streamConnection, identifier, WTF::move(bytes)) == IPC::Error::NoError;
+        auto reply = streamConnection->sendSync(Messages::IPCSwiftStreamTester::TakeRecordedDigest(), identifier);
+
+        streamConnection->invalidate();
+        Ref protectedTester = tester.releaseNonNull();
+        protectedTester->stopListeningForIPC(protectedTester.copyRef());
+        if (sent && reply.succeeded() && !protectedTester->invalidMessageCount())
+            ++accepted;
+        else if (sent && !reply.succeeded() && protectedTester->invalidMessageCount() == 1)
+            ++rejected;
+        else
+            failures.append(makeString(iteration, ' ', IPC::description(messageName)));
+    }
+    completionHandler(accepted, rejected, makeStringByJoining(failures.span(), ", "_s));
 }
 
 // Times sending messageCount messages of one shape through the stream buffer, from this process, to IPCStreamTester's
