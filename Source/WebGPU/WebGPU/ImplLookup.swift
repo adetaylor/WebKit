@@ -24,6 +24,7 @@
 import Synchronization
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.BindGroupLayout
+@_implementationOnly import WebGPU_Internal.CommandBuffer
 @_implementationOnly import WebGPU_Internal.ExternalTexture
 @_implementationOnly import WebGPU_Internal.QuerySet
 @_implementationOnly import WebGPU_Internal.RenderBundle
@@ -67,6 +68,11 @@ public func impl(of bindGroupLayout: WebGPU.BindGroupLayout) -> BindGroupLayoutI
 @_spi(WebKitGPU)
 public func impl(of renderBundle: WebGPU.RenderBundle) -> RenderBundleImpl {
     ImplLookup.lookUp(RenderBundleImpl.self) { WebGPU.Metal.deliverImpl(renderBundle) }
+}
+
+@_spi(WebKitGPU)
+public func impl(of commandBuffer: WebGPU.CommandBuffer) -> CommandBufferImpl {
+    ImplLookup.lookUp(CommandBufferImpl.self) { WebGPU.Metal.deliverImpl(commandBuffer) }
 }
 
 // The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().

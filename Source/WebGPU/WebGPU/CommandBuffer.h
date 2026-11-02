@@ -94,6 +94,9 @@ private:
     const std::unique_ptr<CommandBufferImplBox> m_impl;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refCommandBuffer, derefCommandBuffer);
 
+// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the CommandBufferImpl of a WebGPU::CommandBuffer.
+void deliverImpl(WebGPU::CommandBuffer&);
+
 } // namespace WebGPU::Metal
 
 #if !ENABLE(SWIFT_BASE_CLASS_ANNOTATIONS)

@@ -82,7 +82,8 @@ private struct FinishedEncoder {
 // Used only on its Instance's API thread, so deliberately not Sendable; the Metal thread only ever gets
 // `completion()`.
 @_expose(Cxx)
-final class CommandBufferImpl {
+@_spi(WebKitGPU)
+public final class CommandBufferImpl: DeliverableImpl {
     private var backingCommandBuffer: (any MTLCommandBuffer)?
     // The committed command buffer, until the completion handler's work item runs.
     private var cachedCommandBuffer: (any MTLCommandBuffer)?
@@ -141,6 +142,13 @@ final class CommandBufferImpl {
     @_expose(Cxx)
     func setLabel(_ label: NSString?) {
         backingCommandBuffer?.label = label as String?
+    }
+
+    // As WTF::String::createNSString() makes the label for setLabel(NSString?), a null one is empty.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setLabel(_ label: Swift.String?) {
+        backingCommandBuffer?.label = label ?? ""
     }
 
     @_expose(!Cxx)
