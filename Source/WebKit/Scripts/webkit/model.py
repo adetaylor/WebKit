@@ -110,8 +110,6 @@ class MessageReceiver(object):
         def unsupported(what):
             return Exception("ERROR: Message %s takes Swift types, which is not supported %s" % (description, what))
 
-        if self.has_attribute(STREAM_ATTRIBUTE) and message.reply_parameters is not None and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
-            raise unsupported('with an asynchronous reply on a stream receiver')
         for attribute in (NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE):
             if self.has_attribute(attribute):
                 raise unsupported("on a receiver with '%s'" % attribute)

@@ -683,6 +683,20 @@ void handleSwiftMessageAsync(Connection& connection, Decoder& decoder, T* object
     decoder.markHandled();
 }
 
+// The reply goes through the stream connection's underlying Connection, as a C++ handler's does.
+template<typename MessageType, typename T, typename U, typename MF>
+void handleSwiftMessageAsync(StreamServerConnection& connection, Decoder& decoder, T* object, MF U::* function)
+{
+    Ref replyEncoder = SwiftReplyEncoder::create(connection.connection(), makeUniqueRef<Encoder>(MessageType::asyncMessageReplyName(), decoder.asyncReplyID().toUInt64()), encodeDefaultSwiftReply<MessageType>);
+    NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
+    SUPPRESS_UNCOUNTED_ARG if (!(object->*function)(&connection, swiftDecoderLender.view(), replyEncoder.ptr())) {
+        replyEncoder->discard();
+        markSwiftArgumentsInvalid(decoder);
+        return;
+    }
+    decoder.markHandled();
+}
+
 template<typename MessageType, typename T, typename U, typename MF>
 void handleSwiftMessageSynchronous(StreamServerConnection& connection, Decoder& decoder, T* object, MF U::* function)
 {
