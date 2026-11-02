@@ -44,6 +44,12 @@ messages -> IPCTesterReceiver {
     RecordSwift(String text) SwiftTypes
     TakeRecordedSwift() -> (Vector<String> texts) SwiftTypes
     ClearRecordedSwift() -> () SwiftTypes
+    ReverseAtomsSwift(Vector<AtomString> atoms) -> (Vector<AtomString> reversed) SwiftTypes
+    RoundTripStringThroughCxxSwift(String text) -> (String roundTripped, uint32_t cxxLength, bool cxxIsNull, bool cxxIs8Bit) SwiftTypes
+    RoundTripBufferSwift(RefPtr<WebCore::SharedBuffer> buffer) -> (RefPtr<WebCore::SharedBuffer> roundTripped, uint64_t size) SwiftTypes
+    SwapPairsSwift(Vector<std::pair<String, uint32_t>> pairs) -> (Vector<std::pair<uint32_t, String>> swapped) SwiftTypes
+    [EnabledBy=AllowTestOnlyIPC] EnabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes
+    [EnabledBy=EncryptedMediaAPIEnabled] DisabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes
 }
 
 #endif

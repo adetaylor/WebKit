@@ -28,6 +28,7 @@
 #include "Connection.h"
 #include "MessageNames.h"
 #include "SessionState.h"
+#include <utility>
 #include <wtf/Forward.h>
 #include <wtf/Markable.h>
 #include <wtf/OptionSet.h>
@@ -68,7 +69,7 @@ public:
     void deref() const final { RefCounted::deref(); }
 private:
     TestWithSwiftTypesMessageForwarder(WebKit::TestWithSwiftTypesWeakRef* WTF_NONNULL);
-    std::unique_ptr<WebKit::TestWithSwiftTypes> getMessageTarget();
+    std::optional<WebKit::TestWithSwiftTypes> getMessageTarget();
     std::unique_ptr<WebKit::TestWithSwiftTypesWeakRef> m_handler;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
@@ -362,6 +363,71 @@ private:
     uint32_t m_param;
 };
 
+class MessageWithBuffersAndPairs {
+public:
+    using Arguments = std::tuple<RefPtr<WebCore::SharedBuffer>, Vector<std::pair<String, uint32_t>>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairsReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>>>;
+    using Reply = CompletionHandler<void(std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>>&&)>;
+    using Promise = WTF::NativePromise<std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>>, IPC::Error>;
+    MessageWithBuffersAndPairs(const RefPtr<WebCore::SharedBuffer>& buffer, const Vector<std::pair<String, uint32_t>>& pairs)
+        : m_buffer(buffer)
+        , m_pairs(pairs)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_buffer;
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_pairs;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const RefPtr<WebCore::SharedBuffer>& m_buffer;
+    SUPPRESS_FORWARD_DECL_MEMBER const Vector<std::pair<String, uint32_t>>& m_pairs;
+};
+
+#if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
+class ConditionalMessage {
+public:
+    using Arguments = std::tuple<AtomString>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_ConditionalMessage; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftTypes_ConditionalMessageReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<uint32_t>;
+    using Reply = CompletionHandler<void(uint32_t)>;
+    using Promise = WTF::NativePromise<uint32_t, IPC::Error>;
+    explicit ConditionalMessage(const AtomString& name)
+        : m_name(name)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_name;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const AtomString& m_name;
+};
+#endif
+
 class MessageWithReplyReply {
 public:
     using Arguments = std::tuple<WebKit::TestSwiftStruct>;
@@ -489,6 +555,58 @@ public:
 private:
     uint8_t m_reply;
 };
+
+class MessageWithBuffersAndPairsReply {
+public:
+    using Arguments = std::tuple<std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairsReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit MessageWithBuffersAndPairsReply(const std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>>& reply)
+        : m_reply(reply)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_reply;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>>& m_reply;
+};
+
+#if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
+class ConditionalMessageReply {
+public:
+    using Arguments = std::tuple<uint32_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_ConditionalMessageReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit ConditionalMessageReply(uint32_t reply)
+        : m_reply(reply)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_reply;
+    }
+
+private:
+    uint32_t m_reply;
+};
+#endif
 
 } // namespace TestWithSwiftTypes
 } // namespace Messages

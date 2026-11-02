@@ -26,6 +26,7 @@
 # cd Source/WebKit/Scripts && python3 -m unittest discover -p '*_unittest.py'
 
 from __future__ import print_function
+import io
 import os
 import re
 import sys
@@ -142,6 +143,87 @@ class GeneratedFileContentsTest(unittest.TestCase):
         receiver_header_files = ['{}Messages.h'.format(receiver.name) for receiver in self.receivers]
         implementation_contents = messages.generate_message_argument_description_implementation(self.receivers, receiver_header_files)
         self.assertGeneratedFileContentsEqual(implementation_contents, os.path.join(tests_directory, 'MessageArgumentDescriptions.cpp'))
+
+
+def parse_swift_receiver(attributes, messages_text):
+    return parser.parse(io.StringIO("""
+[
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    %s
+]
+messages -> TestReceiver {
+%s
+}
+""" % (',\n    '.join(attributes), messages_text)))
+
+
+class SwiftReceiverTest(unittest.TestCase):
+    def test_conditional_message(self):
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
+    Message(uint32_t value)
+#if PLATFORM(COCOA) && ENABLE(FEATURE)
+    ConditionalMessage(uint32_t value) -> (uint32_t reply)
+#endif
+""")
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertRegex(swift, r'\n    #if WTF_PLATFORM_COCOA && ENABLE_FEATURE\n    @used\n    func dispatchConditionalMessage\(')
+        self.assertRegex(swift, r'private final class ConditionalMessageInvocation \{(.|\n)*\n    \}\n    #endif\n\}\n')
+        self.assertNotRegex(swift, r'#if[^\n]*\n    @used\n    func dispatchMessage\(')
+
+    def test_error_message_condition_swift_cannot_evaluate(self):
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """
+#if defined(SOME_MACRO)
+    Message(uint32_t value)
+#endif
+""")
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message is under a condition Swift cannot evaluate"):
+            messages.generate_swift_message_handler(receiver)
+
+    def test_shared_preferences_alias(self):
+        for attributes, has_alias in [
+            (['EnabledBy=SomeFeature', 'SwiftReceiver'], True),
+            (['ExceptionForEnabledBy', 'SwiftReceiverBuildEnabledBy=SOME_FLAG'], False),
+            (['EnabledBy=SomeFeature'], False),
+        ]:
+            header = messages.generate_messages_header(parse_swift_receiver(attributes, '    Message(uint32_t value)'))
+            self.assertEqual('using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;' in header, has_alias, attributes)
+            self.assertEqual('#include "SharedPreferencesForWebProcess.h"' in header, has_alias, attributes)
+
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    [EnabledBy=SomeFeature] Message(uint32_t value)')
+        self.assertIn('using OptionalSharedPreferencesForWebProcess', messages.generate_messages_header(receiver))
+
+    def test_swift_types_off_the_main_thread(self):
+        for attribute in ['AnyThread', 'MainThreadCallback']:
+            receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
+    Message(uint32_t value) -> (uint32_t reply) %s
+""" % attribute)
+            with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which are dispatched on the main thread, but is %s" % attribute):
+                messages.generate_swift_message_handler(receiver)
+
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """
+    Message(uint32_t value) -> (uint32_t reply) AnyThread
+""")
+        messages.generate_swift_message_handler(receiver)
+
+        stream_receiver = parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver]
+messages -> TestReceiver Stream {
+    Message(uint32_t value) -> (uint32_t reply) AnyThread
+}
+"""))
+        self.assertIn('func dispatchMessage(', messages.generate_swift_message_handler(stream_receiver))
+
+    def test_cxx_typed_replies(self):
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
+    PrimitiveReply(Ref<WebKit::FrameState> frameState) -> (uint8_t reply) CxxTypes
+    EnumReply(Ref<WebKit::FrameState> frameState) -> (enum:bool WebKit::TestEnum reply) CxxTypes
+    StructReply(Ref<WebKit::FrameState> frameState) -> (WebKit::TestStruct reply) CxxTypes
+""")
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertIn('CompletionHandlers.TestReceiver.complete(completionHandler, reply)', swift)
+        self.assertRegex(swift, r'EnumReplyInvocation \{(.|\n)*?\n                completionHandler\.pointee\(reply\)\n')
+        self.assertRegex(swift, r'StructReplyInvocation \{(.|\n)*?\n                completionHandler\.pointee\(consuming: reply\)\n')
 
 
 def parse_sys_argv():

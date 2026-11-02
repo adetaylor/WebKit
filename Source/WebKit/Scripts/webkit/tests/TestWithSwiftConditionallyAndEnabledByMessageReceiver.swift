@@ -36,8 +36,16 @@ final class TestWithSwiftConditionallyAndEnabledByWeakRef: @unchecked Sendable {
     }
 
     @used
-    func getMessageTarget() -> TestWithSwiftConditionallyAndEnabledBy? {
-        target
+    func hasMessageTarget() -> Bool {
+        target != nil
+    }
+
+    @used
+    func messageTarget() -> TestWithSwiftConditionallyAndEnabledBy {
+        guard let target else {
+            fatalError("messageTarget() called without a message target")
+        }
+        return target
     }
 
     @used

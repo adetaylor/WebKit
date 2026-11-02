@@ -118,6 +118,10 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithSwiftTypesOptIn_CxxTypedMessageReply"_s, ReceiverName::TestWithSwiftTypesOptIn, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypesOptIn_SwiftTypedMessageReply"_s, ReceiverName::TestWithSwiftTypesOptIn, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypesOptIn_SwiftTypedMessageWithoutReply"_s, ReceiverName::TestWithSwiftTypesOptIn, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
+#if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
+    MessageDescription { "TestWithSwiftTypes_ConditionalMessageReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
+#endif
+    MessageDescription { "TestWithSwiftTypes_MessageWithBuffersAndPairsReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithCxxTypesReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithEmptyReplyReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithMultipleRepliesReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
@@ -216,6 +220,10 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithSwiftConditionally_TestAsyncMessage"_s, ReceiverName::TestWithSwiftConditionally, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypesOptIn_CxxTypedMessage"_s, ReceiverName::TestWithSwiftTypesOptIn, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypesOptIn_SwiftTypedMessage"_s, ReceiverName::TestWithSwiftTypesOptIn, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
+#if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
+    MessageDescription { "TestWithSwiftTypes_ConditionalMessage"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
+#endif
+    MessageDescription { "TestWithSwiftTypes_MessageWithBuffersAndPairs"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithCxxTypes"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithEmptyReply"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithMultipleReplies"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },

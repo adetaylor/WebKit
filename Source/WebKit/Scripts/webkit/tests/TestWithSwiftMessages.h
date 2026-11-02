@@ -58,7 +58,7 @@ public:
     void deref() const final { RefCounted::deref(); }
 private:
     TestWithSwiftMessageForwarder(WebKit::TestWithSwiftWeakRef* WTF_NONNULL);
-    std::unique_ptr<WebKit::TestWithSwift> getMessageTarget();
+    std::optional<WebKit::TestWithSwift> getMessageTarget();
     std::unique_ptr<WebKit::TestWithSwiftWeakRef> m_handler;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
