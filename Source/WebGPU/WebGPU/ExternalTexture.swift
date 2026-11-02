@@ -74,7 +74,8 @@ public final class ExternalTextureImpl {
     }
 
     @_expose(Cxx)
-    func destroy() {
+    @_spi(WebKitGPU)
+    public func destroy() {
         backingPixelBuffer = nil
         destroyed = true
         for encoder in tracking.takeLive() {
@@ -83,7 +84,8 @@ public final class ExternalTextureImpl {
     }
 
     @_expose(Cxx)
-    func undestroy() {
+    @_spi(WebKitGPU)
+    public func undestroy() {
         guard destroyed else {
             return
         }

@@ -72,4 +72,7 @@ private:
     alignas(void*) std::byte m_impl[sizeof(void*)];
 };
 
+// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the RenderBundleImpl of a WebGPU::RenderBundle.
+void deliverRenderBundleImpl(WebGPU::RenderBundle&);
+
 } // namespace WebGPU::Metal

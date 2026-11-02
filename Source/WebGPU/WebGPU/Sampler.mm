@@ -95,6 +95,11 @@ bool Sampler::isValid() const
     return swiftImpl().isValid();
 }
 
+void deliverSamplerImpl(WebGPU::Sampler& sampler)
+{
+    WebGPUSwift::receiveSamplerImpl(downcast<Sampler>(sampler).swiftImpl());
+}
+
 } // namespace WebGPU::Metal
 
 #pragma mark WGPU Stubs

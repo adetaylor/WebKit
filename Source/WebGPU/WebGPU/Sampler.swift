@@ -30,7 +30,8 @@ import WebGPU_Private.WebGPUCpp
 // Owned by the C++ shell WebGPU::Metal::Sampler. API thread only; the process-wide MTLSamplerState pool it leases from
 // is the Mutex-protected `samplerStates` below.
 @_expose(Cxx)
-final class SamplerImpl {
+@_spi(WebKitGPU)
+public final class SamplerImpl {
     fileprivate struct Configuration {
         let metal: MetalSamplerConfiguration
         let comparison: Bool
@@ -86,6 +87,12 @@ final class SamplerImpl {
     @_expose(Cxx)
     func setLabel(_ newLabel: WTF.String) {
         label = newLabel
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setLabel(_ newLabel: Swift.String?) {
+        label = WTF.String(newLabel ?? "")
     }
 
     func isComparison() -> Bool {

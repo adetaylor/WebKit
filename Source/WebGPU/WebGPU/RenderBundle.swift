@@ -36,7 +36,8 @@ import WebGPU_Private.WebGPUCpp
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
-final class RenderBundleImpl {
+@_spi(WebKitGPU)
+public final class RenderBundleImpl {
     let deviceImpl: DeviceImpl
     /// Paired with the mutable `mtlResources`.
     let resources: ResourceSet
@@ -120,7 +121,14 @@ final class RenderBundleImpl {
 
     @_expose(Cxx)
     func setLabel(_ label: NSString) {
-        icbs.first?.indirectCommandBuffer.label = label as String
+        setLabel(label as String)
+    }
+
+    // As WTF::String::createNSString() makes the label for setLabel(NSString), a null one is empty.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setLabel(_ label: Swift.String?) {
+        icbs.first?.indirectCommandBuffer.label = label ?? ""
     }
 
     @_expose(!Cxx)

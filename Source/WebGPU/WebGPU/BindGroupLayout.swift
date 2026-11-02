@@ -34,7 +34,8 @@ import WebGPU_Private.WebGPUCpp
 // (Device::createBindGroupLayout). BindGroupImpl and the encoders read it directly. It also holds the Device.
 // Used only on its Instance's API thread, so not Sendable.
 @_expose(Cxx)
-final class BindGroupLayoutImpl {
+@_spi(WebKitGPU)
+public final class BindGroupLayoutImpl {
     // nil when the stage has no arguments, or for an invalid layout.
     private let vertexEncoder: (any MTLArgumentEncoder)?
     private let fragmentEncoder: (any MTLArgumentEncoder)?
@@ -174,6 +175,12 @@ final class BindGroupLayoutImpl {
     func setLabel(_ newLabel: WTF.String) {
         label = newLabel
         applyLabelToEncoders()
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setLabel(_ newLabel: Swift.String?) {
+        setLabel(WTF.String(newLabel ?? ""))
     }
 
     private func applyLabelToEncoders() {

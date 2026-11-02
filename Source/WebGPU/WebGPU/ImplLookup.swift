@@ -23,8 +23,12 @@
 
 import Synchronization
 @_implementationOnly import WebGPU_Internal.BindGroup
+@_implementationOnly import WebGPU_Internal.BindGroupLayout
 @_implementationOnly import WebGPU_Internal.ExternalTexture
 @_implementationOnly import WebGPU_Internal.QuerySet
+@_implementationOnly import WebGPU_Internal.RenderBundle
+@_implementationOnly import WebGPU_Internal.Sampler
+@_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
 // The Impls behind the ::WebGPU C++ API objects that the GPU process's Swift receivers are given, until they create
@@ -45,6 +49,26 @@ public func impl(of externalTexture: WebGPU.ExternalTexture) -> ExternalTextureI
     ImplLookup.lookUp(ExternalTextureImpl.self) { WebGPU.Metal.deliverExternalTextureImpl(externalTexture) }
 }
 
+@_spi(WebKitGPU)
+public func impl(of sampler: WebGPU.Sampler) -> SamplerImpl {
+    ImplLookup.lookUp(SamplerImpl.self) { WebGPU.Metal.deliverSamplerImpl(sampler) }
+}
+
+@_spi(WebKitGPU)
+public func impl(of textureView: WebGPU.TextureView) -> TextureViewImpl {
+    ImplLookup.lookUp(TextureViewImpl.self) { WebGPU.Metal.deliverTextureViewImpl(textureView) }
+}
+
+@_spi(WebKitGPU)
+public func impl(of bindGroupLayout: WebGPU.BindGroupLayout) -> BindGroupLayoutImpl {
+    ImplLookup.lookUp(BindGroupLayoutImpl.self) { WebGPU.Metal.deliverBindGroupLayoutImpl(bindGroupLayout) }
+}
+
+@_spi(WebKitGPU)
+public func impl(of renderBundle: WebGPU.RenderBundle) -> RenderBundleImpl {
+    ImplLookup.lookUp(RenderBundleImpl.self) { WebGPU.Metal.deliverRenderBundleImpl(renderBundle) }
+}
+
 // `sending` lets ImplLookup box the Impl in a Sendable Delivery. C++ doesn't really hand the Impl over, since its shell
 // keeps a reference, but an Impl is only used on its Instance's API thread, and the Delivery is only seen on that thread,
 // by the lookUp() whose synchronous call into C++ made this call.
@@ -60,6 +84,26 @@ func receiveBindGroupImpl(_ impl: sending BindGroupImpl) {
 
 @_expose(Cxx)
 func receiveExternalTextureImpl(_ impl: sending ExternalTextureImpl) {
+    ImplLookup.receive(impl)
+}
+
+@_expose(Cxx)
+func receiveSamplerImpl(_ impl: sending SamplerImpl) {
+    ImplLookup.receive(impl)
+}
+
+@_expose(Cxx)
+func receiveTextureViewImpl(_ impl: sending TextureViewImpl) {
+    ImplLookup.receive(impl)
+}
+
+@_expose(Cxx)
+func receiveBindGroupLayoutImpl(_ impl: sending BindGroupLayoutImpl) {
+    ImplLookup.receive(impl)
+}
+
+@_expose(Cxx)
+func receiveRenderBundleImpl(_ impl: sending RenderBundleImpl) {
     ImplLookup.receive(impl)
 }
 

@@ -32,7 +32,8 @@ import WebGPU_Private.WebGPUCpp
 // (destroyed, initialized, canvas backing, rate maps, descriptor) from the parent's TextureImpl. Used only on its
 // Instance's API thread.
 @_expose(Cxx)
-final class TextureViewImpl {
+@_spi(WebKitGPU)
+public final class TextureViewImpl {
     // nil only for an invalid view. Replaced by the device placeholder when the parent is destroyed.
     private var backingTexture: (any MTLTexture)?
     // The swizzled view a shader reads; nil when the swizzle is the identity.
@@ -88,7 +89,13 @@ final class TextureViewImpl {
 
     @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
-        backingTexture?.label = stringNilIfEmpty(label)
+        setLabel(stringNilIfEmpty(label))
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setLabel(_ label: Swift.String?) {
+        backingTexture?.label = label?.isEmpty == false ? label : nil
         backingSampledTexture?.label = backingTexture?.label
     }
 
