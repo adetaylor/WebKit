@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteCDMFactoryProxy.h"
 
-#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA) && !ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #include "RemoteCDMConfiguration.h"
 #include "RemoteCDMRegistry.h"

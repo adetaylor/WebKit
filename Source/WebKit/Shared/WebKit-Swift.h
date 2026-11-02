@@ -61,6 +61,11 @@
 #include "SharedVideoFrameImplBridge.h"
 #endif
 
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+#include "RemoteCDMFactoryProxyMessages.h"
+#include "RemoteCDMSwiftSupport.h"
+#endif
+
 #if ENABLE(PHONE_NUMBER_POSSESSION)
 #include "PhoneNumberPossessionTypes.h"
 #endif
