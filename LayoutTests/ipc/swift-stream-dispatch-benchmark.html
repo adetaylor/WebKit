@@ -9,7 +9,7 @@
 const messageCount = 100;
 const repetitions = 1;
 const printResults = false;
-const shapes = ['empty', 'four uint32_t', '16-character String', '16-element Vector<uint32_t>', 'Synchronous uint64_t', 'four uint32_t, Swift taking C++ types'];
+const shapes = ['empty', 'four uint32_t', '16-character String', '16-element Vector<uint32_t>', 'Synchronous uint64_t', 'four uint32_t, Swift taking C++ types', 'four uint32_t with EnabledBy'];
 
 setup({ single_test: true });
 if (window.IPC && IPC.messages.IPCTester_BenchmarkStreamDispatch) {

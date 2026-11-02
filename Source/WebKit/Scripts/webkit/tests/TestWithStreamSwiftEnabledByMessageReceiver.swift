@@ -33,13 +33,16 @@ final class TestWithStreamSwiftEnabledByWeakRef: @unchecked Sendable {
     }
 
     @used
-    func getMessageTarget() -> TestWithStreamSwiftEnabledBy? {
-        target
+    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
+        guard let target else {
+            return WebKit.OptionalSharedPreferencesForWebProcess()
+        }
+        return target.sharedPreferencesForWebProcess()
     }
 
     @used
     func dispatchSendString(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         url: sending WTF.String
     ) {
         assert(connection.isCurrentWorkQueue())

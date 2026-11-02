@@ -39,12 +39,7 @@ namespace WebKit {
 
 void TestWithStreamSwiftEnabledByMessageForwarder::didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder)
 {
-    auto target = getMessageTarget();
-    if (!target) {
-        decoder.markInvalid();
-        return;
-    }
-    auto sharedPreferences = target->sharedPreferencesForWebProcess();
+    auto sharedPreferences = m_handler->sharedPreferencesForWebProcess();
     UNUSED_VARIABLE(sharedPreferences);
     if (!sharedPreferences || !sharedPreferences->someFeature) {
         RELEASE_LOG_ERROR(IPC, "Message %s received by a disabled message receiver TestWithStreamSwiftEnabledBy", IPC::description(decoder.messageName()).characters());
@@ -68,14 +63,6 @@ static std::unique_ptr<TestWithStreamSwiftEnabledByWeakRef> makeTestWithStreamSw
 TestWithStreamSwiftEnabledByMessageForwarder::TestWithStreamSwiftEnabledByMessageForwarder(TestWithStreamSwiftEnabledByWeakRef* WTF_NONNULL target)
     : m_handler(makeTestWithStreamSwiftEnabledByWeakRefUniquePtr(target))
 {
-}
-
-std::optional<TestWithStreamSwiftEnabledBy> TestWithStreamSwiftEnabledByMessageForwarder::getMessageTarget()
-{
-    auto target = m_handler->getMessageTarget();
-    if (target)
-        return target.get();
-    return std::nullopt;
 }
 
 TestWithStreamSwiftEnabledByMessageForwarder::~TestWithStreamSwiftEnabledByMessageForwarder()
