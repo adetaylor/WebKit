@@ -1031,6 +1031,10 @@ if (SWIFT_REQUIRED)
 
             GPUProcess/media/RemoteCDMRegistry.cpp
 
+            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySetMessageReceiver.cpp
+            GPUProcess/graphics/WebGPU/RemoteDevice.cpp
+            GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
+
             UIProcess/API/ios/WKWebViewIOS.mm
             UIProcess/API/mac/WKWebViewMac.mm
 
@@ -1651,6 +1655,17 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMInstanceProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMInstanceSessionProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMProxyMessageReceiver.swift
+    )
+endif ()
+
+# Each compiles to nothing unless ENABLE_GPU_PROCESS_WEBGPU_SWIFT is set.
+if (SWIFT_REQUIRED AND APPLE)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteQuerySetMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySet.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteQuerySetMessageReceiver.swift
     )
 endif ()
 
