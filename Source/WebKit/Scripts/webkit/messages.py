@@ -2501,6 +2501,8 @@ def generate_swift_message_handler(receiver):
         result.append('        return target\n')
         result.append('    }\n')
 
+    stream_reply_values = []
+
     # A Swift handler cannot throw across the C++ boundary - swiftc will not represent a throwing
     # function in C++ at all - so IPC dispatch is pointed at one of these instead. Each catches a
     # failed message check on the handler's behalf, and supplies the reply if the message has one.
@@ -2579,20 +2581,29 @@ def generate_swift_message_handler(receiver):
             result.append('        }\n')
         reply_statements = []
         cancel_statements = []
+        reply_value_type = None
         if takes_swift_types and has_reply:
             encoding_statements = swift_reply_encoding_statements(message, 'reply', 'replyEncoder')
             reply_statements = encoding_statements + ['replyEncoder.send()']
-            if is_stream:
+            cancel_statements = ['replyEncoder.cancel()']
+            if is_stream and message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
                 # A Synchronous reply that doesn't fit in the stream buffer is encoded a second time, out of stream.
                 reply_statements = encoding_statements + ['if !replyEncoder.send() {'] + ['    %s' % statement for statement in encoding_statements] + ['    replyEncoder.send()', '}']
-            cancel_statements = ['replyEncoder.cancel()']
+            elif is_stream:
+                # A stream receiver's handler is synchronous, so it is given its asynchronous reply as a value to send
+                # when it has the reply, or drop to send the default reply.
+                reply_value_type = '%s%sReply' % (receiver.name, message.name)
+                arguments.append('reply: %s(replyEncoder: replyEncoder)' % reply_value_type)
+                reply_statements = []
+                cancel_statements = []
+                stream_reply_values.append((message, reply_value_type, encoding_statements))
         elif has_reply:
             reply_statements = [swift_reply_completion_call(receiver, message, 'reply')]
             cancel_statements = ['CompletionHandlers.%s.completeWithDefaultReply(completionHandler)' % receiver.name]
 
         def append_handler_call(base, await_keyword, typed_do):
             result.append('%sdo%s {\n' % (base, ' throws(InvalidMessage)' if typed_do else ''))
-            assignment = 'let reply = ' if message.reply_parameters else ''
+            assignment = 'let reply = ' if message.reply_parameters and not reply_value_type else ''
             call = ['%stry %smayThrowInvalidMessage(' % (assignment, await_keyword)]
             call.append('    target.%s(' % handler_function_name(message))
             call.append(',\n'.join(['        %s' % argument for argument in arguments]))
@@ -2679,6 +2690,38 @@ def generate_swift_message_handler(receiver):
             result.append('    #endif\n')
 
     result.append('}\n')
+
+    for message, reply_value_type, encoding_statements in stream_reply_values:
+        reply_types = [swift_types.swift_type_and_coder(parameter.type)[0] for parameter in message.reply_parameters]
+        if not reply_types:
+            send_parameter = ''
+        elif len(reply_types) == 1:
+            send_parameter = '_ reply: %s' % reply_types[0]
+        else:
+            send_parameter = '_ reply: (%s)' % ', '.join('%s: %s' % (parameter.name, swift_type) for parameter, swift_type in zip(message.reply_parameters, reply_types))
+        result.append('\n')
+        if message.condition:
+            result.append('#if %s\n' % swift_types.swift_condition(message.condition))
+        result.append('struct %s: ~Copyable {\n' % reply_value_type)
+        result.append('    private let replyEncoder: IPC.SwiftReplyEncoder\n')
+        result.append('\n')
+        result.append('    fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {\n')
+        result.append('        self.replyEncoder = replyEncoder\n')
+        result.append('    }\n')
+        result.append('\n')
+        result.append('    consuming func send(%s) {\n' % send_parameter)
+        for statement in encoding_statements:
+            result.append('        %s\n' % statement)
+        result.append('        replyEncoder.send()\n')
+        result.append('    }\n')
+        result.append('\n')
+        result.append('    deinit {\n')
+        result.append('        replyEncoder.cancel()\n')
+        result.append('    }\n')
+        result.append('}\n')
+        if message.condition:
+            result.append('#endif\n')
+
     result.append('\n')
     result.append('extension WebKit.%s {\n' % (message_forwarder_class))
     result.append('    static func create(target: %s) -> %s {\n' % (class_name, ref_message_forwarder_class))

@@ -625,6 +625,21 @@ void IPCTester::sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&
     auto repeatedNull = streamConnection->sendSync(Messages::IPCSwiftStreamTester::RepeatTextSwift(String(), 2), identifier);
     check(repeatedNull.succeeded() && std::get<0>(repeatedNull.reply()).isNull(), "RepeatTextSwift null"_s);
 
+    // Asynchronous replies, sent at once, later, and dropped for the default reply.
+    auto sendAdd = [&]<typename Message>(Message&& message, std::optional<bool> sendDeferredReply, uint32_t expected, ASCIILiteral description) {
+        auto sum = std::make_shared<std::optional<uint32_t>>();
+        auto replyID = streamConnection->sendWithAsyncReply(std::forward<Message>(message), [sum](uint32_t reply) {
+            *sum = reply;
+        }, identifier);
+        if (sendDeferredReply)
+            check(streamConnection->send(Messages::IPCSwiftStreamTester::CompleteDeferredAddSwift(*sendDeferredReply), identifier) == IPC::Error::NoError, description);
+        check(replyID && streamConnection->waitForAsyncReplyAndDispatchImmediately<std::remove_cvref_t<Message>>(*replyID) == IPC::Error::NoError, description);
+        check(*sum == expected, description);
+    };
+    sendAdd(Messages::IPCSwiftStreamTester::AddSwift(40, 2), std::nullopt, 42, "AddSwift"_s);
+    sendAdd(Messages::IPCSwiftStreamTester::DeferAddSwift(40, 2), true, 42, "DeferAddSwift"_s);
+    sendAdd(Messages::IPCSwiftStreamTester::DeferAddSwift(40, 2), false, 0, "DeferAddSwift dropped"_s);
+
     // A malformed message invalidates the stream connection, so nothing more is answered.
     check(streamConnection->send(MalformedRecordTextSwift { }, identifier) == IPC::Error::NoError, "MalformedRecordTextSwift"_s);
     auto afterMalformed = streamConnection->sendSync(Messages::IPCSwiftStreamTester::TakeRecordedDigest(), identifier);
