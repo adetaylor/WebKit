@@ -106,12 +106,11 @@ TestWithSwiftConditionallyMessageForwarder::TestWithSwiftConditionallyMessageFor
 {
 }
 
-std::unique_ptr<TestWithSwiftConditionally> TestWithSwiftConditionallyMessageForwarder::getMessageTarget()
+std::optional<TestWithSwiftConditionally> TestWithSwiftConditionallyMessageForwarder::getMessageTarget()
 {
-    auto target = m_handler->getMessageTarget();
-    if (target)
-        return WTF::makeUniqueWithoutFastMallocCheck<TestWithSwiftConditionally>(target.get());
-    return nullptr;
+    if (!m_handler->hasMessageTarget())
+        return std::nullopt;
+    return m_handler->messageTarget();
 }
 
 TestWithSwiftConditionallyMessageForwarder::~TestWithSwiftConditionallyMessageForwarder()

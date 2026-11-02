@@ -40,6 +40,7 @@
 #include "TestParameter.h"
 #include "WebKit-Swift.h"
 #include <WebCore/ExceptionData.h>
+#include <array>
 #include <atomic>
 #include <dlfcn.h>
 #include <stdio.h>
@@ -410,6 +411,59 @@ void IPCTester::sendSwiftTypesMessagesToReceiver(IPC::Connection& connection, Co
     connection.sendWithAsyncReply(Messages::IPCTesterReceiver::ClearRecordedSwift(), [aggregator] { }, 0);
     connection.sendWithAsyncReply(Messages::IPCTesterReceiver::TakeRecordedSwift(), [aggregator, check](Vector<String>&& texts) {
         check(texts.isEmpty(), "ClearRecordedSwift"_s);
+    }, 0);
+
+    Vector<AtomString> atoms { AtomString { "one"_s }, nullAtom(), AtomString { latin1 }, AtomString { utf16 } };
+    connection.sendWithAsyncReply(Messages::IPCTesterReceiver::ReverseAtomsSwift(atoms), [aggregator, check, atoms](Vector<AtomString>&& reversed) {
+        check(reversed == Vector<AtomString> { atoms[3], atoms[2], atoms[1], atoms[0] } && reversed[2].isNull(), "ReverseAtomsSwift"_s);
+    }, 0);
+
+#if ENABLE(IPC_TESTING_SWIFT)
+    constexpr bool usingSwift = true;
+#else
+    constexpr bool usingSwift = false;
+#endif
+    // Swift has no String with an unpaired surrogate, so it decodes one as U+FFFD.
+    const std::array<char16_t, 2> loneSurrogate { 0xD800, 'x' };
+    const std::array<char16_t, 2> replacedLoneSurrogate { 0xFFFD, 'x' };
+    Vector<std::pair<String, String>> textsAndRoundTrips {
+        { String(), String() },
+        { emptyString(), emptyString() },
+        { "abc"_s, "abc"_s },
+        { latin1, latin1 },
+        { utf16, utf16 },
+        { String(std::span { loneSurrogate }), String(std::span { usingSwift ? replacedLoneSurrogate : loneSurrogate }) },
+    };
+    for (auto& [text, expected] : textsAndRoundTrips) {
+        connection.sendWithAsyncReply(Messages::IPCTesterReceiver::RoundTripStringThroughCxxSwift(text), [aggregator, check, expected](String&& roundTripped, uint32_t cxxLength, bool cxxIsNull, bool cxxIs8Bit) {
+            check(roundTripped == expected && roundTripped.isNull() == expected.isNull() && cxxLength == expected.length() && cxxIsNull == expected.isNull() && cxxIs8Bit == expected.is8Bit(), "RoundTripStringThroughCxxSwift"_s);
+        }, 0);
+    }
+
+    // Below 4096 bytes a SharedBuffer is sent inline, and from 4096 in shared memory.
+    for (size_t size : { 0, 1, 4095, 4096, 10000 }) {
+        Vector<uint8_t> bytes(size);
+        for (size_t index = 0; index < size; ++index)
+            bytes[index] = static_cast<uint8_t>(index * 7);
+        RefPtr<WebCore::SharedBuffer> buffer = WebCore::SharedBuffer::create(WTF::move(bytes));
+        connection.sendWithAsyncReply(Messages::IPCTesterReceiver::RoundTripBufferSwift(buffer), [aggregator, check, buffer](RefPtr<WebCore::SharedBuffer>&& roundTripped, uint64_t size) {
+            check(roundTripped && size == buffer->size() && equalSpans(roundTripped->span(), buffer->span()), "RoundTripBufferSwift"_s);
+        }, 0);
+    }
+    connection.sendWithAsyncReply(Messages::IPCTesterReceiver::RoundTripBufferSwift(nullptr), [aggregator, check](RefPtr<WebCore::SharedBuffer>&& roundTripped, uint64_t size) {
+        check(!roundTripped && !size, "RoundTripBufferSwift null"_s);
+    }, 0);
+
+    Vector<std::pair<String, uint32_t>> pairs { { "one"_s, 1 }, { String(), 2 }, { latin1, 3 }, { utf16, 4 } };
+    connection.sendWithAsyncReply(Messages::IPCTesterReceiver::SwapPairsSwift(pairs), [aggregator, check, pairs](Vector<std::pair<uint32_t, String>>&& swapped) {
+        bool matches = swapped.size() == pairs.size();
+        for (size_t index = 0; matches && index < pairs.size(); ++index)
+            matches = swapped[index].first == pairs[index].second && swapped[index].second == pairs[index].first && swapped[index].second.isNull() == pairs[index].first.isNull();
+        check(matches, "SwapPairsSwift"_s);
+    }, 0);
+
+    connection.sendWithAsyncReply(Messages::IPCTesterReceiver::EnabledMessageSwift(21), [aggregator, check](uint32_t doubled) {
+        check(doubled == 42, "EnabledMessageSwift"_s);
     }, 0);
 }
 

@@ -1174,6 +1174,12 @@
 #define ENABLE_IPC_TESTING_SWIFT 1
 #endif
 
+// Whether any IPC message receiver is in Swift, which needs the Swift IPC support code.
+#if !defined(ENABLE_SWIFT_IPC_RECEIVERS) \
+    && (ENABLE(BACK_FORWARD_LIST_SWIFT) || (ENABLE(IPC_TESTING_API) && ENABLE(IPC_TESTING_SWIFT)))
+#define ENABLE_SWIFT_IPC_RECEIVERS 1
+#endif
+
 // Non-Cocoa ports set this from CMake, based on the Swift compiler version.
 #if !defined(ENABLE_SWIFT_BASE_CLASS_ANNOTATIONS) \
     && ((PLATFORM(MAC) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 270000) \

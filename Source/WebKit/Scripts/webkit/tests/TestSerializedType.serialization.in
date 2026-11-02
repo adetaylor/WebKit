@@ -425,6 +425,7 @@ headers: "SwiftTypes.h"
     String m_name;
     Vector<uint64_t> m_numbers;
     Vector<String> m_strings;
+    Vector<AtomString> m_atoms;
     std::optional<double> m_optionalDouble;
     Markable<WebCore::FrameIdentifier> m_markableFrameID;
     WebCore::FrameIdentifier m_frameID;

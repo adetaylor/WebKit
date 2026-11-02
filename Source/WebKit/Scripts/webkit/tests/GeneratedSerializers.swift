@@ -22,7 +22,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-#if ENABLE_BACK_FORWARD_LIST_SWIFT || (ENABLE_IPC_TESTING_API && ENABLE_IPC_TESTING_SWIFT)
+#if ENABLE_SWIFT_IPC_RECEIVERS
 
 import WebKit_Internal
 
@@ -139,6 +139,7 @@ extension IPCTypes {
         var name: String?
         var numbers: [UInt64]
         var strings: [String?]
+        var atoms: [String?]
         var optionalDouble: Double?
         var markableFrameID: IPCTypes.FrameIdentifier?
         var frameID: IPCTypes.FrameIdentifier
@@ -163,6 +164,7 @@ extension IPCTypes.SwiftStruct: IPCCoder {
         self.name = try IPCCoding.WTFString.decode(from: &decoder)
         self.numbers = try IPCCoding.Vector<UInt64>.decode(from: &decoder)
         self.strings = try IPCCoding.Vector<IPCCoding.WTFString>.decode(from: &decoder)
+        self.atoms = try IPCCoding.Vector<IPCCoding.WTFString>.decode(from: &decoder)
         self.optionalDouble = try IPCCoding.StdOptional<Double>.decode(from: &decoder)
         self.markableFrameID = try IPCCoding.Markable<IPCTypes.FrameIdentifier>.decode(from: &decoder)
         self.frameID = try IPCTypes.FrameIdentifier.decode(from: &decoder)
@@ -189,6 +191,7 @@ extension IPCTypes.SwiftStruct: IPCCoder {
         IPCCoding.WTFString.encode(value.name, to: encoder)
         IPCCoding.Vector<UInt64>.encode(value.numbers, to: encoder)
         IPCCoding.Vector<IPCCoding.WTFString>.encode(value.strings, to: encoder)
+        IPCCoding.Vector<IPCCoding.WTFString>.encode(value.atoms, to: encoder)
         IPCCoding.StdOptional<Double>.encode(value.optionalDouble, to: encoder)
         IPCCoding.Markable<IPCTypes.FrameIdentifier>.encode(value.markableFrameID, to: encoder)
         IPCTypes.FrameIdentifier.encode(value.frameID, to: encoder)
