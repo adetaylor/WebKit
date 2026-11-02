@@ -27,12 +27,12 @@
 // The safe Span overloads Swift synthesizes for FilterOutsetsList.span() and FilterImageRects.span() call Cxx's
 // Span(_unsafeCxxSpan:). Xcode builds don't find it unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.CSSFilterRendererView
-import WebCore_Internal.FilterGraphicsBridge
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatRect
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntRect
+import WebCore_Private.Core.CSSFilterRendererView
+import WebCore_Private.Core.FilterGraphicsBridge
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntRect
 
 // Filter::supportedFilterRenderingModes() of the CSS and SVG filter renderers: the modes that all of a renderer's
 // functions or effects support. Starting from all modes, the renderer folds in the modes of each with this.

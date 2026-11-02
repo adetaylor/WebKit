@@ -26,8 +26,8 @@
 
 import CoreImage
 import CoreImage.CIFilterBuiltins
-import WebCore_Internal.FEBlendParameters
-import WebCore_Internal.GraphicsTypes
+import WebCore_Private.Core.FEBlendParameters
+import WebCore_Private.Core.GraphicsTypes
 
 // FEBlendCoreImageApplier::apply(): the first input blended over the second one.
 func feBlendApplyCoreImage(

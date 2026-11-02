@@ -24,9 +24,9 @@
 #if ENABLE_WEBCORE_SWIFT && USE_CORE_IMAGE
 
 import CoreImage
-import WebCore_Internal.FEGaussianBlurParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatSize
+import WebCore_Private.Core.FEGaussianBlurParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatSize
 
 // FEGaussianBlurCoreImageApplier::apply(). Edge modes aren't supported.
 func feGaussianBlurApplyCoreImage(

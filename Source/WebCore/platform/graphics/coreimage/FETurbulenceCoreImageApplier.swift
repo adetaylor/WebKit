@@ -25,13 +25,13 @@
 #if USE_CORE_IMAGE
 
 import CoreImage
-import WebCore_Internal.FETurbulenceParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
+import WebCore_Private.Core.FETurbulenceParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
 
 // FETurbulenceCoreImageApplier::apply().
 func feTurbulenceApplyCoreImage(

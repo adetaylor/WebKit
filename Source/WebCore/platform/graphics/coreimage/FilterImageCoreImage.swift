@@ -29,15 +29,15 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import IOSurface
 import Synchronization
-import WebCore_Internal.ColorSpace
-import WebCore_Internal.FilterCoreImageSwiftBridge
-import WebCore_Internal.FilterGraphicsBridge
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
-import WebCore_Internal.RenderingMode
+import WebCore_Private.Core.ColorSpace
+import WebCore_Private.Core.FilterCoreImageSwiftBridge
+import WebCore_Private.Core.FilterGraphicsBridge
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
+import WebCore_Private.Core.RenderingMode
 
 // The image buffer of a filter image with a Core Image result: the first call renders the result into a new accelerated
 // image buffer, which becomes the image's image buffer. Null if that fails. Without a Core Image result, the image

@@ -26,10 +26,10 @@
 
 import CoreGraphics
 import CoreImage
-import WebCore_Internal.FEDisplacementMapParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatSize
-import WebCore_Internal.IntRect
+import WebCore_Private.Core.FEDisplacementMapParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.IntRect
 
 // The C++ applier's kernel string, byte for byte, including the comment that C++ needed at its start.
 // FIXME: Why not a CIColorKernel?

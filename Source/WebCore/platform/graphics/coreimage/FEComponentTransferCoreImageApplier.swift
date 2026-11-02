@@ -31,14 +31,14 @@ import CoreGraphics
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import IOSurface
-import WebCore_Internal.FEComponentTransferParameters
-import WebCore_Internal.FilterCoreImageSwiftBridge
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntRect
-import WebCore_Internal.SourceGraphicParameters
+import WebCore_Private.Core.FEComponentTransferParameters
+import WebCore_Private.Core.FilterCoreImageSwiftBridge
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.SourceGraphicParameters
 
 // FEComponentTransferCoreImageApplier::apply().
 func feComponentTransferApplyCoreImage(

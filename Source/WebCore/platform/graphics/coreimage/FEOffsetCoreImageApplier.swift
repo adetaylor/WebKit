@@ -26,9 +26,9 @@
 
 import CoreGraphics
 import CoreImage
-import WebCore_Internal.FEOffsetParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatSize
+import WebCore_Private.Core.FEOffsetParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatSize
 
 // FEOffsetCoreImageApplier::apply(): the input moved by the offset, cropped to the result.
 func feOffsetApplyCoreImage(

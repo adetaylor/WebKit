@@ -27,9 +27,9 @@
 // The safe Span overloads Swift synthesizes for the views' span() call a Span initializer from Cxx, which Xcode
 // builds don't find unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.AnnexBUtilities
-import WebCore_Internal.MediaParsersCxxBridging
-import WebCore_Internal.VideoCodecParameterTypes
+import WebCore_Private.Core.AnnexBUtilities
+import WebCore_Private.Core.MediaParsersCxxBridging
+import WebCore_Private.Core.VideoCodecParameterTypes
 
 private let h264NaluHeaderSize = 1
 

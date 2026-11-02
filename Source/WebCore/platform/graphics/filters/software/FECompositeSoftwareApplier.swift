@@ -22,15 +22,15 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import WebCore_Internal.FECompositeParameters
-import WebCore_Internal.FilterGraphicsBridge
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatRect
-import WebCore_Internal.GraphicsContextSwiftBridge
-import WebCore_Internal.GraphicsTypes
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntPoint
-import WebCore_Internal.IntRect
+import WebCore_Private.Core.FECompositeParameters
+import WebCore_Private.Core.FilterGraphicsBridge
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.GraphicsContextSwiftBridge
+import WebCore_Private.Core.GraphicsTypes
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntPoint
+import WebCore_Private.Core.IntRect
 
 // FEComposite::calculateImageRect(): from the second input's image rect and the union of both.
 func feCompositeImageRect(

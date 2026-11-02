@@ -26,12 +26,12 @@
 // The safe Span overloads Swift synthesizes for the views' span() call a Span initializer from Cxx, which Xcode
 // builds don't find unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.AV1CodecConfigurationRecord
-import WebCore_Internal.MediaParsersCxxBridging
-import WebCore_Internal.PlatformVideoColorPrimaries
-import WebCore_Internal.PlatformVideoMatrixCoefficients
-import WebCore_Internal.PlatformVideoTransferCharacteristics
-import WebCore_Internal.VideoCodecParameterTypes
+import WebCore_Private.Core.AV1CodecConfigurationRecord
+import WebCore_Private.Core.MediaParsersCxxBridging
+import WebCore_Private.Core.PlatformVideoColorPrimaries
+import WebCore_Private.Core.PlatformVideoMatrixCoefficients
+import WebCore_Private.Core.PlatformVideoTransferCharacteristics
+import WebCore_Private.Core.VideoCodecParameterTypes
 import wtf
 
 // AV1CodecConfigurationRecord's static constexpr defaults, which don't import.

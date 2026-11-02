@@ -23,15 +23,15 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import WebCore_Internal.FEImageParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.GraphicsContextSwiftBridge
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntPoint
-import WebCore_Internal.IntRect
+import WebCore_Private.Core.FEImageParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.GraphicsContextSwiftBridge
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntPoint
+import WebCore_Private.Core.IntRect
 
 // FEImageSoftwareApplier::apply(): all of the source image drawn into its place in the result. NativeImage sources are
 // drawn by C++ (FEImageBridge.cpp).

@@ -34,15 +34,15 @@ import Glibc
 #if arch(arm64)
 import _Builtin_intrinsics.arm.neon
 #endif
-import WebCore_Internal.AlphaPremultiplication
-import WebCore_Internal.FETurbulenceParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
-import WebCore_Internal.PixelBuffer
-import WebCore_Internal.PixelBufferSwiftBridge
+import WebCore_Private.Core.AlphaPremultiplication
+import WebCore_Private.Core.FETurbulenceParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
+import WebCore_Private.Core.PixelBuffer
+import WebCore_Private.Core.PixelBufferSwiftBridge
 
 // The turbulence calculation is an adapted version of what appears in the SVG 1.1 specification:
 // http://www.w3.org/TR/SVG11/filters.html#feTurbulence

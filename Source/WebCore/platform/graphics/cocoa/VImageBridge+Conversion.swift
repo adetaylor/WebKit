@@ -25,10 +25,10 @@
 
 import Accelerate
 import CoreGraphics
-import WebCore_Internal.ColorSpace
-import WebCore_Internal.PixelBufferFormat
-import WebCore_Internal.PixelBufferSwiftBridge
-import WebCore_Internal.PixelFormat
+import WebCore_Private.Core.ColorSpace
+import WebCore_Private.Core.PixelBufferFormat
+import WebCore_Private.Core.PixelBufferSwiftBridge
+import WebCore_Private.Core.PixelFormat
 import Synchronization
 import os
 

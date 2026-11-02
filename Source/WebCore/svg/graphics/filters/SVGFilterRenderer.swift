@@ -28,16 +28,16 @@ import Glibc
 // The safe Span overload Swift synthesizes for FilterOutsetsAtLevels.span() calls Cxx's Span(_unsafeCxxSpan:). Xcode
 // builds don't find it unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.FilterEffectView
-import WebCore_Internal.FilterGraphicsBridge
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatPoint3D
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntRect
-import WebCore_Internal.SVGFilterRendererView
+import WebCore_Private.Core.FilterEffectView
+import WebCore_Private.Core.FilterGraphicsBridge
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatPoint3D
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.SVGFilterRendererView
 
 // SVGFilterRenderer::calculateResolvedSize(): a size given in primitive units, in user space. objectBoundingBox units
 // are fractions of the target's bounding box.

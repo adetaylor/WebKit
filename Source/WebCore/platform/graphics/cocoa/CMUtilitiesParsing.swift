@@ -24,8 +24,8 @@
 #if ENABLE_WEBCORE_SWIFT
 
 private import Cxx
-import WebCore_Internal.CMParsingTypes
-import WebCore_Internal.MediaParsersCxxBridging
+import WebCore_Private.Core.CMParsingTypes
+import WebCore_Private.Core.MediaParsersCxxBridging
 
 // The parsing and arithmetic of CMUtilities.mm, whose CoreMedia, CoreVideo and AudioToolbox calls stay in C++.
 

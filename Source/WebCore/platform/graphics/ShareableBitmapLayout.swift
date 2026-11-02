@@ -32,9 +32,9 @@ import CoreGraphics
 // The safe Span overloads Swift synthesizes for the byte views' accessors call Cxx's Span(_unsafeCxxSpan:).
 // Xcode builds don't find it unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.PixelBufferSwiftBridge
-import WebCore_Internal.PixelFormat
-import WebCore_Internal.ShareableBitmapSwiftBridge
+import WebCore_Private.Core.PixelBufferSwiftBridge
+import WebCore_Private.Core.PixelFormat
+import WebCore_Private.Core.ShareableBitmapSwiftBridge
 
 // ShareableBitmapCheckedSize mirrors a C++ CheckedUint32, including the value an overflowed one holds, which
 // ShareableBitmapConfiguration's accessors return.

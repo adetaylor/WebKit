@@ -19,18 +19,18 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import WebCore_Internal.AffineTransform
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.GraphicsContextSwiftBridge
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntPoint
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
-import WebCore_Internal.PixelFormat
-import WebCore_Internal.RenderingMode
+import WebCore_Private.Core.AffineTransform
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.GraphicsContextSwiftBridge
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntPoint
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
+import WebCore_Private.Core.PixelFormat
+import WebCore_Private.Core.RenderingMode
 
 // FETileSoftwareApplier::apply(): the input drawn into a new image of the tile rect (filter coordinates scaled by the
 // filter scale), and the result filled with that image repeated. False if the image can't be created.

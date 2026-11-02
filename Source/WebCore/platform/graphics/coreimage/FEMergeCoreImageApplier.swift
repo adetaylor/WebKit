@@ -25,7 +25,7 @@
 #if USE_CORE_IMAGE
 
 import CoreImage
-import WebCore_Internal.FilterSwiftBridge
+import WebCore_Private.Core.FilterSwiftBridge
 
 // FEMergeCoreImageApplier::apply(), which FEMerge runs input by input: feMergeAddCoreImageInput() composites each input
 // that has a Core Image result over the result's (the inputs so far), then feMergeFinishCoreImage() crops it, or fails

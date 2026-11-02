@@ -27,13 +27,13 @@
 import CoreGraphics
 import CoreImage
 import IOSurface
-import WebCore_Internal.AffineTransform
-import WebCore_Internal.FEImageParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.IntRect
+import WebCore_Private.Core.AffineTransform
+import WebCore_Private.Core.FEImageParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.IntRect
 
 // FEImageCoreImageApplier::apply(): the source image, mapped to its place in the absolute enclosing filter region.
 func feImageApplyCoreImage(

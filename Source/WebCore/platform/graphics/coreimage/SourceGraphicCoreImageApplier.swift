@@ -27,12 +27,12 @@
 import CoreGraphics
 import CoreImage
 import IOSurface
-import WebCore_Internal.FilterCoreImageSwiftBridge
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.SourceGraphicParameters
+import WebCore_Private.Core.FilterCoreImageSwiftBridge
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.SourceGraphicParameters
 
 // SourceGraphicCoreImageApplier::apply(): the input's Core Image result, or else its image buffer, moved to the
 // result's place in the absolute enclosing filter region.

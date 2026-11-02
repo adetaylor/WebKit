@@ -29,9 +29,9 @@
 private import Cxx
 import CoreImage
 import CoreImage.CIFilterBuiltins
-import WebCore_Internal.FEColorMatrixParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.IntRect
+import WebCore_Private.Core.FEColorMatrixParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.IntRect
 
 // FEColorMatrixCoreImageApplier::supportsCoreImageRendering().
 @_expose(Cxx)

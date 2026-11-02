@@ -24,7 +24,7 @@
 #if ENABLE_WEBCORE_SWIFT
 
 #if ENABLE_THREADING_LIBDISPATCH
-import WebCore_Internal.ParallelRowsDispatch
+import WebCore_Private.Core.ParallelRowsDispatch
 #else
 import Dispatch
 #endif

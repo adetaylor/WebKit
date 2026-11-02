@@ -28,13 +28,13 @@ import _Builtin_intrinsics.arm.neon
 // The safe Span overloads Swift synthesizes for PixelBufferAccess call Cxx's Span(_unsafeCxxSpan:). Xcode builds don't
 // find it unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.AlphaPremultiplication
-import WebCore_Internal.ColorSpace
-import WebCore_Internal.FECompositeParameters
-import WebCore_Internal.FilterGraphicsBridge
-import WebCore_Internal.IntRect
-import WebCore_Internal.PixelBuffer
-import WebCore_Internal.PixelBufferSwiftBridge
+import WebCore_Private.Core.AlphaPremultiplication
+import WebCore_Private.Core.ColorSpace
+import WebCore_Private.Core.FECompositeParameters
+import WebCore_Private.Core.FilterGraphicsBridge
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.PixelBuffer
+import WebCore_Private.Core.PixelBufferSwiftBridge
 
 // FECompositeSoftwareArithmeticApplier::apply(): the arithmetic operator, k1 * i1 * i2 + k2 * i1 + k3 * i2 + k4 for each
 // premultiplied component, with i1 from the first input and i2 from the second.

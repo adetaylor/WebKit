@@ -26,8 +26,8 @@
 
 import CoreGraphics
 import CoreImage
-import WebCore_Internal.FilterCoreImageSwiftBridge
-import WebCore_Internal.FilterSwiftBridge
+import WebCore_Private.Core.FilterCoreImageSwiftBridge
+import WebCore_Private.Core.FilterSwiftBridge
 
 // FEFloodCoreImageApplier::apply(): the flood color, cropped to the result. C++ resolves the color (with the flood
 // opacity) in the operating color space.

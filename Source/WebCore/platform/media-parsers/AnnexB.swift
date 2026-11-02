@@ -26,8 +26,8 @@
 // The safe Span overloads Swift synthesizes for the views' span() call a Span initializer from Cxx, which Xcode
 // builds don't find unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.AnnexBUtilities
-import WebCore_Internal.MediaParsersCxxBridging
+import WebCore_Private.Core.AnnexBUtilities
+import WebCore_Private.Core.MediaParsersCxxBridging
 
 // The NAL units of an Annex B stream, as findNaluIndices() finds them: a NAL unit starts at each 00 00 01 that begins
 // before count - 3 (one byte earlier for 00 00 00 01), and its payload runs to the next one or to the end.

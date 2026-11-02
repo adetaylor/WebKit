@@ -41,9 +41,9 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.GraphicsContextSwiftBridge
-import WebCore_Internal.ImageBuffer
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.GraphicsContextSwiftBridge
+import WebCore_Private.Core.ImageBuffer
 
 // SourceGraphicSoftwareApplier::apply(), also what SourceGraphicSkiaApplier did in both modes: the source image drawn at
 // the origin.

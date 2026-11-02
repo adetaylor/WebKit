@@ -41,26 +41,26 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import WebCore_Internal.Color
-import WebCore_Internal.ColorSpace
-import WebCore_Internal.FEDropShadowParameters
-import WebCore_Internal.FilterGraphicsBridge
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.GraphicsContextSwiftBridge
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.ImageBufferAllocator
-import WebCore_Internal.IntPoint
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
-import WebCore_Internal.PixelBuffer
-import WebCore_Internal.PixelBufferFormat
-import WebCore_Internal.PixelBufferSwiftBridge
-import WebCore_Internal.ShadowBlurSwiftBridge
+import WebCore_Private.Core.Color
+import WebCore_Private.Core.ColorSpace
+import WebCore_Private.Core.FEDropShadowParameters
+import WebCore_Private.Core.FilterGraphicsBridge
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.GraphicsContextSwiftBridge
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.ImageBufferAllocator
+import WebCore_Private.Core.IntPoint
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
+import WebCore_Private.Core.PixelBuffer
+import WebCore_Private.Core.PixelBufferFormat
+import WebCore_Private.Core.PixelBufferSwiftBridge
+import WebCore_Private.Core.ShadowBlurSwiftBridge
 #if USE_SKIA
-import WebCore_Internal.FilterSkiaBridge
+import WebCore_Private.Core.FilterSkiaBridge
 #endif
 
 // FEDropShadow::calculateImageRect(): the input rect, its shadow's, and the blur around both.

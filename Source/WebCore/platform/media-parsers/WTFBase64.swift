@@ -72,7 +72,7 @@
 // Swift builds the safe Span overloads of the views' span() with the Cxx module, which Xcode builds only find if this file
 // imports it.
 private import Cxx
-import WebCore_Internal.MediaParsersCxxBridging
+import WebCore_Private.Core.MediaParsersCxxBridging
 import wtf
 
 // WTF's base64 and base64url (wtf/text/Base64.cpp), with the same results for every input and option.

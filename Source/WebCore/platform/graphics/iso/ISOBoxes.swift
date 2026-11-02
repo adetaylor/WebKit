@@ -29,8 +29,8 @@
 // The safe Span overloads Swift synthesizes for the views' span() call a Span initializer from Cxx, which Xcode
 // builds don't find unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.ISOParseResults
-import WebCore_Internal.MediaParsersCxxBridging
+import WebCore_Private.Core.ISOParseResults
+import WebCore_Private.Core.MediaParsersCxxBridging
 
 // ISO BMFF boxes (ISO/IEC 14496-12), for the C++ ISOBox shells. A box holds exactly the fields of its C++ shell
 // (ISOBox.h, the iso/ISO*Box.h files; ISOParseResults.h) and parses in place, setting each field as it is read, so that

@@ -25,9 +25,9 @@
 #if USE_CORE_IMAGE
 
 import CoreImage
-import WebCore_Internal.FEMorphologyParameters
-import WebCore_Internal.FilterSwiftBridge
-import WebCore_Internal.FloatSize
+import WebCore_Private.Core.FEMorphologyParameters
+import WebCore_Private.Core.FilterSwiftBridge
+import WebCore_Private.Core.FloatSize
 
 func feMorphologyApplyCoreImage(
     _ context: borrowing WebCore.FilterApplyContext,

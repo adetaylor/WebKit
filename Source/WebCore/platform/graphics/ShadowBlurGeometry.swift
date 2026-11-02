@@ -30,15 +30,15 @@
 // The safe MutableSpan overload Swift synthesizes for MutablePixelBytes's span accessor, and std::optional's value, come
 // from Cxx. Xcode builds don't find them unless this file imports Cxx.
 private import Cxx
-import WebCore_Internal.AffineTransform
-import WebCore_Internal.Color
-import WebCore_Internal.FloatQuad
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
-import WebCore_Internal.PixelBufferSwiftBridge
-import WebCore_Internal.ShadowBlurSwiftBridge
+import WebCore_Private.Core.AffineTransform
+import WebCore_Private.Core.Color
+import WebCore_Private.Core.FloatQuad
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
+import WebCore_Private.Core.PixelBufferSwiftBridge
+import WebCore_Private.Core.ShadowBlurSwiftBridge
 
 // ShadowBlur's constructors: the shadow's blur radius, offset and type.
 @_expose(Cxx)

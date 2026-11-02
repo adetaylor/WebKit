@@ -75,9 +75,9 @@
 		23C6322090A1AF4671DB76DD /* CSSSepiaFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = BC3078AC2CFFF2B000630D75 /* CSSSepiaFunction.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		B37D5734449A2CF7D02E4B5A /* RasterDrawingOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = 2346E0FF92D1BDEFA870881B /* RasterDrawingOptions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0E527AEF888254BE1ED24498 /* InspectorObjectIdentifier.h in Headers */ = {isa = PBXBuildFile; fileRef = DDB320A5233FB9CC6D07408D /* InspectorObjectIdentifier.h */; };
-		10ECDBE58AB82CA197AC07B6 /* FilterEffectView.h in Headers */ = {isa = PBXBuildFile; fileRef = BDCDA9A73BA6C7EE1597E72B /* FilterEffectView.h */; };
-		B3EB2DB70F227C6C09C46FF4 /* CSSFilterRendererView.h in Headers */ = {isa = PBXBuildFile; fileRef = F933F399ADDF994469C752A3 /* CSSFilterRendererView.h */; };
-		238C3CAE41B4DE18ED2F3FBC /* SVGFilterRendererView.h in Headers */ = {isa = PBXBuildFile; fileRef = 3227AB52B52BE1076973335C /* SVGFilterRendererView.h */; };
+		10ECDBE58AB82CA197AC07B6 /* FilterEffectView.h in Headers */ = {isa = PBXBuildFile; fileRef = BDCDA9A73BA6C7EE1597E72B /* FilterEffectView.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		B3EB2DB70F227C6C09C46FF4 /* CSSFilterRendererView.h in Headers */ = {isa = PBXBuildFile; fileRef = F933F399ADDF994469C752A3 /* CSSFilterRendererView.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		238C3CAE41B4DE18ED2F3FBC /* SVGFilterRendererView.h in Headers */ = {isa = PBXBuildFile; fileRef = 3227AB52B52BE1076973335C /* SVGFilterRendererView.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		EBBE3AC62075A0224822DACB /* FilterEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD873A3B592F9AF8769F7B2B /* FilterEngine.swift */; };
 		2E86B6A6E3E4C9B02D5AAD6D /* CSSValueKeywords.serialization.in in Headers */ = {isa = PBXBuildFile; fileRef = A41992C7F8B4034E8D8344E8 /* CSSValueKeywords.serialization.in */; settings = {ATTRIBUTES = (Private, ); }; };
 		4C1117D4C483A9BC36554D2F /* SVGImageElementSizing.h in Headers */ = {isa = PBXBuildFile; fileRef = 775ED9913673971DA280FD1E /* SVGImageElementSizing.h */; };
@@ -417,8 +417,8 @@
 		E4DCB2E8232B2774CE214DFE /* FilterImageImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = F89B5A6F6D9A2A037611404B /* FilterImageImpl.swift */; };
 		38303D7198597155D871F9FB /* LightingModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E613DF9B5FA9EC820EEB374 /* LightingModel.swift */; };
 		0FE54007A73DE0CC5F290112 /* ParallelRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7790065560F4E8BA2B80172A /* ParallelRows.swift */; };
-		FE07764C75DF15FEE86D230E /* ParallelRowsDispatch.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC96FF7DA0E5D2ECEB6E12B /* ParallelRowsDispatch.h */; };
-		8B960D34DEB7579629359065 /* GraphicsContextSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 8000E7BCC14B40CE6A2302C6 /* GraphicsContextSwiftBridge.h */; };
+		FE07764C75DF15FEE86D230E /* ParallelRowsDispatch.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC96FF7DA0E5D2ECEB6E12B /* ParallelRowsDispatch.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		8B960D34DEB7579629359065 /* GraphicsContextSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 8000E7BCC14B40CE6A2302C6 /* GraphicsContextSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		06F918D8AAA5C08CDD4ECCB2 /* FEBlendSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA8FC8D14864AF04A5F423D2 /* FEBlendSoftwareApplier.swift */; };
 		A8E70E4504B1BBEAACE0AADC /* FEColorMatrixSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020B67EE871B8CCCC844C36F /* FEColorMatrixSoftwareApplier.swift */; };
 		CDCBEE83EB374AD9C94D9C70 /* FEComponentTransferSoftwareApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C820EA4BBC70D90D5BADD728 /* FEComponentTransferSoftwareApplier.swift */; };
@@ -445,7 +445,7 @@
 		F91AB5580E91710AF2261E44 /* PixelBufferSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = C47D5C3F84A19CF3FE2CC4A8 /* PixelBufferSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5D324F22006496D971F5DE69 /* ShadowBlurSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = CF453B487F95E0C826425DDC /* ShadowBlurSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A78C76D0A3616FD3119EA676 /* ShareableBitmapSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = FBBDE67E1BE26F3BCC9CCA3C /* ShareableBitmapSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		8A9EA8CC56F28F26650DD688 /* FilterCoreImageSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 46B6531DB6016610F82FDF81 /* FilterCoreImageSwiftBridge.h */; };
+		8A9EA8CC56F28F26650DD688 /* FilterCoreImageSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 46B6531DB6016610F82FDF81 /* FilterCoreImageSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		288F6560F4089D9C8D4C9D2D /* FilterGraphicsBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = D49B8CEBEA7F5E4F363DC5E4 /* FilterGraphicsBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		386FC1C6DD067E44979F4636 /* FilterSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = E32BE83091990D8A31002167 /* FilterSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7E49B11CDA66D995F296F9C9 /* FEBlendParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 7F1DDE0D16C361FA3B757813 /* FEBlendParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };

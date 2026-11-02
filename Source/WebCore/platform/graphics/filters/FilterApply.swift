@@ -23,7 +23,7 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import WebCore_Internal.FilterRenderingMode
+import WebCore_Private.Core.FilterRenderingMode
 
 // Filter::setFilterRenderingModes(): the rendering modes the filter's effects support, with Software added. Every
 // filter can render in Software, so FilterEffect::apply() always has a mode to apply.

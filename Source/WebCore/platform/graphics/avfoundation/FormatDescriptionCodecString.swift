@@ -24,10 +24,10 @@
 #if ENABLE_WEBCORE_SWIFT
 
 private import Cxx
-import WebCore_Internal.AV1CodecConfigurationRecord
-import WebCore_Internal.CMParsingTypes
-import WebCore_Internal.MediaParsersCxxBridging
-import WebCore_Internal.VideoCodecParameterTypes
+import WebCore_Private.Core.AV1CodecConfigurationRecord
+import WebCore_Private.Core.CMParsingTypes
+import WebCore_Private.Core.MediaParsersCxxBridging
+import WebCore_Private.Core.VideoCodecParameterTypes
 import wtf
 
 // The codec strings of codecFromFormatDescription(), whose shell reads the media subtype and fetches the decoder
