@@ -62,6 +62,17 @@ inline size_t writeUTF8ForLatin1Characters(std::span<const Latin1Character> char
     return length;
 }
 
+// The element spans of the arrays generated Swift decodes in one call, named so that Swift sees them as MutableSpan.
+using MutableSpanUInt16 = std::span<uint16_t>;
+using MutableSpanUInt32 = std::span<uint32_t>;
+using MutableSpanUInt64 = std::span<uint64_t>;
+using MutableSpanInt8 = std::span<int8_t>;
+using MutableSpanInt16 = std::span<int16_t>;
+using MutableSpanInt32 = std::span<int32_t>;
+using MutableSpanInt64 = std::span<int64_t>;
+using MutableSpanFloat = std::span<float>;
+using MutableSpanDouble = std::span<double>;
+
 // The primitive decoders of the Decoder of a message whose Swift receiver takes Swift types, lent to
 // generated Swift. A failed decode returns false and invalidates the decoder. Values are returned
 // through out parameters because Swift would import std::optional<uint64_t> as Optional<UInt> on Linux.
@@ -78,6 +89,19 @@ public:
     [[nodiscard]] bool decodeInt64(int64_t& value) { return decode(value); }
     [[nodiscard]] bool decodeFloat(float& value) { return decode(value); }
     [[nodiscard]] bool decodeDouble(double& value) { return decode(value); }
+
+    // Decode values.size() values as Decoder::decodeSpan decodes a Vector's elements of a trivially copyable type,
+    // in one call rather than one per element.
+    [[nodiscard]] bool decodeUInt8s(WTF::MutableSpanUInt8 values NOESCAPE) { return decodeSpan(values); }
+    [[nodiscard]] bool decodeUInt16s(MutableSpanUInt16 values NOESCAPE) { return decodeSpan(values); }
+    [[nodiscard]] bool decodeUInt32s(MutableSpanUInt32 values NOESCAPE) { return decodeSpan(values); }
+    [[nodiscard]] bool decodeUInt64s(MutableSpanUInt64 values NOESCAPE) { return decodeSpan(values); }
+    [[nodiscard]] bool decodeInt8s(MutableSpanInt8 values NOESCAPE) { return decodeSpan(values); }
+    [[nodiscard]] bool decodeInt16s(MutableSpanInt16 values NOESCAPE) { return decodeSpan(values); }
+    [[nodiscard]] bool decodeInt32s(MutableSpanInt32 values NOESCAPE) { return decodeSpan(values); }
+    [[nodiscard]] bool decodeInt64s(MutableSpanInt64 values NOESCAPE) { return decodeSpan(values); }
+    [[nodiscard]] bool decodeFloats(MutableSpanFloat values NOESCAPE) { return decodeSpan(values); }
+    [[nodiscard]] bool decodeDoubles(MutableSpanDouble values NOESCAPE) { return decodeSpan(values); }
 
     // Aligns the decoder as Decoder::decodeSpan aligns elementCount contiguous integers of elementSize
     // (1, 2, 4 or 8) bytes, even when elementCount is 0, and checks they are all there, so they can be
@@ -150,6 +174,16 @@ private:
         if (!decoded)
             return false;
         value = *decoded;
+        return true;
+    }
+
+    template<typename T> [[nodiscard]] bool decodeSpan(std::span<T> values)
+    {
+        static_assert(std::is_trivially_copyable_v<T> && !std::is_same_v<T, bool>);
+        auto decoded = borrowed().decodeSpan<T>(values.size());
+        if (!decoded.data())
+            return false;
+        memcpySpan(values, decoded);
         return true;
     }
 } SWIFT_NONESCAPABLE;

@@ -132,6 +132,29 @@ final class IPCSwiftStreamTester {
         WebKit.ipcTesterSharedPreferences()
     }
 
+    // Must match the digest IPCTester::sendSwiftStreamMessagesInProcess() computes.
+    func digestVectorsSwift(
+        connection: IPC.StreamServerConnection,
+        shorts: [UInt16],
+        words: [UInt32],
+        longs: [Int64],
+        doubles: [Double]
+    ) -> UInt64 {
+        var digest: UInt64 = 0
+        func mix(_ value: UInt64) {
+            digest = digest &* 31 &+ value
+        }
+        mix(UInt64(shorts.count))
+        shorts.forEach { mix(UInt64($0)) }
+        mix(UInt64(words.count))
+        words.forEach { mix(UInt64($0)) }
+        mix(UInt64(longs.count))
+        longs.forEach { mix(UInt64(bitPattern: $0)) }
+        mix(UInt64(doubles.count))
+        doubles.forEach { mix($0.bitPattern) }
+        return digest
+    }
+
     func takeRecordedDigestSwift(connection: IPC.StreamServerConnection) -> UInt32 {
         takeRecordedDigest(connection: connection)
     }

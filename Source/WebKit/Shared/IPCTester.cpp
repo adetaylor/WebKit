@@ -639,6 +639,38 @@ void IPCTester::sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&
     auto digestSwift = streamConnection->sendSync(Messages::IPCSwiftStreamTester::TakeRecordedDigestSwift(), identifier);
     check(digestSwift.succeeded() && !std::get<0>(digestSwift.reply()), "TakeRecordedDigestSwift"_s);
 
+    // Vectors of trivially copyable primitives, which Swift decodes as blocks.
+    for (size_t count : { 0, 1, 7, 100 }) {
+        Vector<uint16_t> shorts;
+        Vector<uint32_t> words;
+        Vector<int64_t> longs;
+        Vector<double> doubles;
+        for (size_t i = 0; i < count; ++i) {
+            shorts.append(static_cast<uint16_t>(i * 7));
+            words.append(static_cast<uint32_t>(i * 0x01010101));
+            longs.append(-static_cast<int64_t>(i) * 1000003);
+            doubles.append(static_cast<double>(i) / 3);
+        }
+        uint64_t expected = 0;
+        auto mix = [&expected](uint64_t value) {
+            expected = expected * 31 + value;
+        };
+        mix(shorts.size());
+        for (auto value : shorts)
+            mix(value);
+        mix(words.size());
+        for (auto value : words)
+            mix(value);
+        mix(longs.size());
+        for (auto value : longs)
+            mix(static_cast<uint64_t>(value));
+        mix(doubles.size());
+        for (auto value : doubles)
+            mix(std::bit_cast<uint64_t>(value));
+        auto digest = streamConnection->sendSync(Messages::IPCSwiftStreamTester::DigestVectorsSwift(shorts, words, longs, doubles), identifier);
+        check(digest.succeeded() && std::get<0>(digest.reply()) == expected, "DigestVectorsSwift"_s);
+    }
+
     // Replies that fit in the stream buffer, and one that has to be sent out of stream.
     for (uint32_t count : { 0u, 1u, 3u, 300u }) {
         StringBuilder expected;
