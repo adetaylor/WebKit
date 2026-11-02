@@ -26,17 +26,16 @@
 @_spi(WebKitGPU) import WebGPUSwift
 import WebKit_Internal
 
-// Receives the messages of a WebGPU bind group, on its stream connection's work queue, and calls the bind group
-// through the ::WebGPU C++ API.
+// Receives the messages of a WebGPU bind group, on its stream connection's work queue, and calls its BindGroupImpl.
 @_expose(Cxx)
 final class RemoteBindGroup {
-    private let backing: WebGPU.BindGroup
+    private let impl: BindGroupImpl
     private let context: WebKit.WebGPUSwiftReceiverContext
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
     init(backing: WebKit.RemoteBindGroupBacking, context: WebKit.WebGPUSwiftReceiverContext) {
-        self.backing = backing.get()
+        self.impl = WebGPUSwift.impl(of: backing.get())
         self.context = context
     }
 
@@ -56,7 +55,7 @@ final class RemoteBindGroup {
     }
 
     func setLabel(label: String?) {
-        backing.setLabel(consuming: IPCCoding.WTFString.cxxString(label))
+        impl.setLabel(label)
     }
 
     func updateExternalTextures(
@@ -65,7 +64,7 @@ final class RemoteBindGroup {
         guard let externalTexture = context.externalTexture(externalTextureIdentifier.rawValue) else {
             return false
         }
-        return backing.updateExternalTextures(externalTexture)
+        return impl.updateExternalTextures(WebGPUSwift.impl(of: externalTexture))
     }
 }
 

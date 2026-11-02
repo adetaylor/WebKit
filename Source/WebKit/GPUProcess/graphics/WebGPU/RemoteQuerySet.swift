@@ -26,17 +26,16 @@
 @_spi(WebKitGPU) import WebGPUSwift
 import WebKit_Internal
 
-// Receives the messages of a WebGPU query set, on its stream connection's work queue, and calls the query set
-// through the ::WebGPU C++ API.
+// Receives the messages of a WebGPU query set, on its stream connection's work queue, and calls its QuerySetImpl.
 @_expose(Cxx)
 final class RemoteQuerySet {
-    private let backing: WebGPU.QuerySet
+    private let impl: QuerySetImpl
     private let context: WebKit.WebGPUSwiftReceiverContext
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
     init(backing: WebKit.RemoteQuerySetBacking, context: WebKit.WebGPUSwiftReceiverContext) {
-        self.backing = backing.get()
+        self.impl = WebGPUSwift.impl(of: backing.get())
         self.context = context
     }
 
@@ -52,7 +51,7 @@ final class RemoteQuerySet {
     }
 
     func destroy() {
-        backing.destroy()
+        impl.destroy()
     }
 
     func destruct() {
@@ -60,7 +59,7 @@ final class RemoteQuerySet {
     }
 
     func setLabel(label: String?) {
-        backing.setLabel(consuming: IPCCoding.WTFString.cxxString(label))
+        impl.setLabel(label)
     }
 }
 
