@@ -23,6 +23,7 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
 
+@_spi(WebKitGPU) import WebGPUSwift
 import WebKit_Internal
 
 // Receives the messages of a WebGPU bind group, on its stream connection's work queue, and calls the bind group

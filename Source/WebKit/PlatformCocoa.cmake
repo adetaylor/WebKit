@@ -2427,6 +2427,12 @@ if (WEBKIT_SDK_IS_IOS_FAMILY)
     list(REMOVE_DUPLICATES WebKit_PRIVATE_FRAMEWORK_HEADERS)
 endif ()
 
+# The Swift WebGPU receivers call WebGPU.framework's Swift module, WebGPUSwift.
+if (TARGET WebGPU)
+    webkit_target_add_swift_options(WebKit -I${WebGPU_SWIFT_MODULES_DIR})
+    target_link_libraries(WebKit PRIVATE WebGPU)
+endif ()
+
 # Headers which import WebKitAdditions fragments have to be run through the
 # replacement script rather than being copied verbatim. The processed copy takes
 # the source header's place in the list, so that the header maps resolve

@@ -166,7 +166,9 @@ set(WebGPU_DEPENDENCIES
     WebGPU_CopyModules
 )
 
-set(_webgpu_swiftmodule_dir "${_webgpu_modules_dir}/WebGPUSwift.swiftmodule")
+# In a directory of its own rather than the framework's Modules, so that a Swift client can add it to its import search
+# path without clang reading the framework's module maps from there too.
+set(_webgpu_swiftmodule_dir "${WebGPU_SWIFT_MODULES_DIR}/WebGPUSwift.swiftmodule")
 set(WebGPU_POST_BUILD_COMMAND
     ${CMAKE_COMMAND} -E make_directory "${_webgpu_swiftmodule_dir}")
 foreach (_ext IN ITEMS swiftmodule swiftdoc abi.json)

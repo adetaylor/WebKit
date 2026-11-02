@@ -41,6 +41,7 @@ set(WebKitLegacy_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/WebKitLegacy/DerivedSo
 set(WebKit_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/WebKit/DerivedSources")
 set(WebInspectorUI_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/WebInspectorUI/DerivedSources")
 set(WebGPU_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/WebGPU/DerivedSources")
+set(WebGPU_SWIFT_MODULES_DIR "${CMAKE_BINARY_DIR}/WebGPU/SwiftModules")
 set(MiniBrowser_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/MiniBrowser/DerivedSources")
 set(TestRunnerShared_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/TestRunnerShared/DerivedSources")
 set(DumpRenderTree_DERIVED_SOURCES_DIR "${CMAKE_BINARY_DIR}/DumpRenderTree/DerivedSources")
