@@ -877,8 +877,17 @@ struct CGRenderer {
             )
         }
         let blurRadius = scaledBlurRadius(CGFloat(shadow.radius), userToBaseCTM)
-        context.setAlpha(CGFloat(shadow.opacity))
-        let color = platformColor(packed: shadow.packedColor, slot: shadow.platformColorSlot)
+        // The opacity is the shadow color's: as the context alpha it would override the alpha of the drawing.
+        let color: CGColor
+        if shadow.platformColorSlot == 0 {
+            // Color::colorWithAlphaMultipliedBy() of a packed color.
+            let alpha = shadow.opacity * (Float(shadow.packedColor & 0xFF) / 255)
+            let alphaByte = UInt32(min(max((alpha * 255).rounded(.toNearestOrAwayFromZero), 0), 255))
+            color = colorCache.color((shadow.packedColor & 0xFFFF_FF00) | alphaByte)
+        } else {
+            let platformColor = platformColors[Int(shadow.platformColorSlot) - 1]
+            color = platformColor.copy(alpha: CGFloat(Float(platformColor.alpha) * shadow.opacity)) ?? platformColor
+        }
         CGContextSetStyle(context, CGStyleCreateShadow2(offset, blurRadius, color))
     }
 
@@ -1174,6 +1183,21 @@ struct CGRenderer {
             into: &self
         )
         shadowBlurDrawing = nil
+    }
+
+    @_expose(Cxx)
+    mutating func fillRect(_ rect: CGRect, platformColor color: borrowing CGColor, _ changesFillColor: Bool) -> Bool {
+        if canUseShadowBlur {
+            return false
+        }
+        if changesFillColor {
+            context.setFillColor(copy color)
+        }
+        context.fill(rect)
+        if changesFillColor {
+            context.setFillColor(platformColor(state.fill))
+        }
+        return true
     }
 
     @_expose(Cxx)

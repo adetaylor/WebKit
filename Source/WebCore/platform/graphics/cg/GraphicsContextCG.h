@@ -164,10 +164,6 @@ public:
     void setMaxEDRHeadroom(std::optional<float>) final;
 #endif
 
-    enum class RendererForTesting : uint8_t { Default, CPlusPlus, Swift };
-    static void setRendererForTesting(RendererForTesting);
-    bool usesSwiftRenderer() const;
-
 private:
     CGRenderer& swiftRenderer() const;
     void didUpdateStateForSwiftRenderer(GraphicsContextState&);
@@ -176,13 +172,7 @@ private:
     bool swiftDrawsShadowBlur() const;
     bool shadowColorChangesFill(const Color&) const;
     RetainPtr<CGPatternRef> swiftStrokePattern();
-    void setCGDropShadow(const std::optional<GraphicsDropShadow>&, bool shadowsIgnoreTransforms);
     void clearCGDropShadow();
-#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-    void setCGGaussianBlur(const GraphicsGaussianBlur&, bool shadowsIgnoreTransforms);
-    void setCGColorMatrix(const GraphicsColorMatrix&);
-#endif
-    void setCGStyle(const std::optional<GraphicsStyle>&, bool shadowsIgnoreTransforms);
 
     FloatRect boundsIncludingDropShadow(const FloatRect&);
     void paintGradientInClip(Gradient&, const AffineTransform& gradientSpaceTransform, NOESCAPE const Invocable<FloatRect()> auto& computeContentBounds, NOESCAPE const Invocable<void(CGContextRef)> auto& clip);
@@ -206,14 +196,9 @@ private:
 #endif
     const RenderingMode m_renderingMode : 2; // NOLINT
     const bool m_isLayerCGContext : 1;
-#if HAVE(CGCONTEXT_STROKE_ARC)
-    // Whether the renderer draws a butt-capped stroked arc with exactly the coverage of filling its outline.
-    const bool m_strokesArcsLikeFills : 1;
-#endif
     mutable bool m_userToDeviceTransformKnownToBeIdentity : 1 { false };
     // Flag for pending draws. Start with true because we do not know what commands have been scheduled to the context.
     mutable bool m_hasDrawn : 1 { true };
-    bool m_usesSwiftRenderer : 1 { false };
 };
 
 CGAffineTransform getUserToBaseCTM(CGContextRef);
