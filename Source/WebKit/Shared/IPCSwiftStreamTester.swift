@@ -34,6 +34,9 @@ final class IPCSwiftStreamTester {
 
     private var recordedDigest: UInt32 = 0
 
+    private var deferredSum: UInt32 = 0
+    private var deferredReply: IPCSwiftStreamTesterDeferAddSwiftReply?
+
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
     init() {
@@ -68,6 +71,25 @@ final class IPCSwiftStreamTester {
             return nil
         }
         return String(repeating: text, count: Int(count))
+    }
+
+    func addSwift(connection: IPC.StreamServerConnection, a: UInt32, b: UInt32, reply: consuming IPCSwiftStreamTesterAddSwiftReply) {
+        reply.send(a &+ b)
+    }
+
+    func deferAddSwift(connection: IPC.StreamServerConnection, a: UInt32, b: UInt32, reply: consuming IPCSwiftStreamTesterDeferAddSwiftReply) {
+        deferredSum = a &+ b
+        deferredReply = consume reply
+    }
+
+    // Sends the deferred reply, or drops it, which sends the default reply.
+    func completeDeferredAddSwift(connection: IPC.StreamServerConnection, send: Bool) {
+        guard let reply = deferredReply.take() else {
+            return
+        }
+        if send {
+            reply.send(deferredSum)
+        }
     }
 
     func takeRecordedDigestSwift(connection: IPC.StreamServerConnection) -> UInt32 {

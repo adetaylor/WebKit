@@ -57,6 +57,18 @@ void TestWithStreamSwiftTypesMessageForwarder::didReceiveStreamMessage(IPC::Stre
         IPC::handleMessage<Messages::TestWithStreamSwiftTypes::SendCxxString>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendCxxString);
         return;
     }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendStringAsync::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithStreamSwiftTypes::SendStringAsync>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendStringAsync);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendValuesAsync::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithStreamSwiftTypes::SendValuesAsync>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendValuesAsync);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendEmptyAsync::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithStreamSwiftTypes::SendEmptyAsync>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendEmptyAsync);
+        return;
+    }
     if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendStringSync::name()) {
         IPC::handleSwiftMessageSynchronous<Messages::TestWithStreamSwiftTypes::SendStringSync>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendStringSync);
         return;
@@ -126,6 +138,42 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendEmptySync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendEmptySync::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendStringAsync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendStringAsync::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendStringAsync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendStringAsync::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendValuesAsync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendValuesAsync::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendValuesAsync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendValuesAsync::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendEmptyAsync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendEmptyAsync::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendEmptyAsync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendEmptyAsync::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendStringAsyncReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendValuesAsyncReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendValuesAsyncReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendEmptyAsyncReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendEmptyAsyncReply::Arguments>(globalObject, decoder);
 }
 
 }
