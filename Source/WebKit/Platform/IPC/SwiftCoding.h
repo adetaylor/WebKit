@@ -253,6 +253,24 @@ private:
     NonEscapableBorrowOwningLender<SwiftDecoder> m_lender;
 };
 
+// The stream connection a message that takes Swift types came on, lent to generated Swift's dispatch of it and to
+// its handler, which can't keep it, since it's non-escapable. Swift takes a connection argument without retaining
+// it, so it would retain one for every message, since dispatch calls C++ to decode before passing the connection
+// on. Swift retains what get() returns only where it's used.
+class SwiftStreamConnection {
+public:
+    explicit SwiftStreamConnection(StreamServerConnection& connection LIFETIME_BOUND)
+        : m_connection(connection)
+    {
+    }
+
+    ALWAYS_INLINE StreamServerConnection& get() const SWIFT_RETURNS_UNRETAINED { return m_connection; }
+
+private:
+    // The caller of dispatch keeps the connection alive, and this can't outlive the dispatch.
+    SUPPRESS_UNCOUNTED_MEMBER StreamServerConnection& m_connection;
+} SWIFT_NONESCAPABLE SWIFT_SAFE;
+
 // The reply to a message whose Swift receiver takes Swift types, which generated Swift encodes and sends.
 // Cancelling it, or dropping it unsent, sends the default reply that cancelling a C++ handler's
 // completion handler would.
