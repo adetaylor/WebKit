@@ -37,6 +37,7 @@
 #include "IPCTesterReceiver.h"
 #include "IPCTesterReceiverMessages.h"
 #if ENABLE(IPC_TESTING_SWIFT)
+#include "IPCSwiftStreamTesterCount.h"
 #include "IPCSwiftStreamTesterMessages.h"
 #endif
 #include "IPCUtilities.h"
@@ -893,6 +894,11 @@ void IPCTester::benchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t mess
     Ref protectedTester = tester.releaseNonNull();
     protectedTester->stopListeningForIPC(protectedTester.copyRef());
     completionHandler(succeeded ? static_cast<uint64_t>(elapsed.nanoseconds()) : 0);
+}
+
+void IPCTester::swiftStreamTesterCount(CompletionHandler<void(uint32_t)>&& completionHandler)
+{
+    completionHandler(WebKit::swiftStreamTesterCount());
 }
 
 #endif
