@@ -132,6 +132,7 @@
 		1D81557F1BA06B31D988096A /* RemoteBindGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75FFEAD1E819D990CC620000 /* RemoteBindGroup.swift */; };
 		57B6EEC5DD4A9E8DCD8FB27B /* RemoteBindGroupMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE2FDB87CC7F37E8EE053E4 /* RemoteBindGroupMessageReceiver.swift */; };
 		D9797CECC457AFEC6D777023 /* RemoteQuerySetMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D341671445A36D6816316A60 /* RemoteQuerySetMessageReceiver.swift */; };
+		5EA9E78A285873CF0B909BDE /* WebGPUSwiftSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D46AC1AD668E5C48C240E8 /* WebGPUSwiftSupport.swift */; };
 		9FE00196C18CBAD266AC9430 /* RemoteCommandBufferMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98CDA46A30EAC943F41C668A /* RemoteCommandBufferMessageReceiver.swift */; };
 		09EC92B83A015B1046A1E4D1 /* RemoteCommandBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20B9871C9DBF3E49E10FFA4 /* RemoteCommandBuffer.swift */; };
 		341158B326284441995DA83B /* RemoteRenderPipelineMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D6A88F35BF75F545303118 /* RemoteRenderPipelineMessageReceiver.swift */; };
@@ -4634,6 +4635,7 @@
 		D341671445A36D6816316A60 /* RemoteQuerySetMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteQuerySetMessageReceiver.swift; sourceTree = "<group>"; };
 		4619C7CCD9E98B118E40FEA7 /* WebGPUSwiftSupport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebGPUSwiftSupport.cpp; sourceTree = "<group>"; };
 		B298AC711AFBF8A690306E10 /* WebGPUSwiftSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUSwiftSupport.h; sourceTree = "<group>"; };
+		72D46AC1AD668E5C48C240E8 /* WebGPUSwiftSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebGPUSwiftSupport.swift; sourceTree = "<group>"; };
 		1C98C03B27446A0A002CCB78 /* RemoteComputePipeline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteComputePipeline.cpp; sourceTree = "<group>"; };
 		AEEF99B3E6E1849A526ED461 /* RemoteComputePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteComputePipeline.swift; sourceTree = "<group>"; };
 		3F7CCB489DCB7E24BC18DC1B /* RemoteComputePipelineMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteComputePipelineMessageReceiver.swift; sourceTree = "<group>"; };
@@ -11709,6 +11711,7 @@
 				1CBD753D2747AA31004FA0FF /* WebGPUObjectHeap.h */,
 				4619C7CCD9E98B118E40FEA7 /* WebGPUSwiftSupport.cpp */,
 				B298AC711AFBF8A690306E10 /* WebGPUSwiftSupport.h */,
+				72D46AC1AD668E5C48C240E8 /* WebGPUSwiftSupport.swift */,
 			);
 			path = WebGPU;
 			sourceTree = "<group>";
@@ -22998,6 +23001,7 @@
 				1CB0A0010000000000000002 /* WebExtensionAdditionsHook.mm in Sources */,
 				1C974FE72AFAD17D009DE8FC /* WebExtensionCommand.cpp in Sources */,
 				1CC1A36C2B0D9A0900373759 /* WebExtensionMenuItem.cpp in Sources */,
+				5EA9E78A285873CF0B909BDE /* WebGPUSwiftSupport.swift in Sources */,
 				C18F3A152563334300797E66 /* WebInspectorPreferenceObserver.mm in Sources */,
 				1A6280F31919982A006AD9F9 /* WebKit.m in Sources */,
 				A181A79821ACC74B0059A316 /* WebKitAdditions.mm in Sources */,

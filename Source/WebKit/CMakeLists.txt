@@ -1741,6 +1741,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderPipelineMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteSamplerMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureViewMessageReceiver.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.swift
     )
 endif ()
 

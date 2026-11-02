@@ -28,7 +28,7 @@ enum class ::WebGPU::ErrorFilter : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::IndexFormat : uint8_t {
+[Swift] enum class ::WebGPU::IndexFormat : uint8_t {
     Uint16,
     Uint32,
 };
