@@ -95,6 +95,9 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithStreamBuffer_SendStreamBuffer"_s, ReceiverName::TestWithStreamBuffer, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamServerConnectionHandle_SendStreamServerConnection"_s, ReceiverName::TestWithStreamServerConnectionHandle, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftEnabledBy_SendString"_s, ReceiverName::TestWithStreamSwiftEnabledBy, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftTypes_SendCxxString"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftTypes_SendString"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftTypes_SendValues"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwift_SendString"_s, ReceiverName::TestWithStreamSwift, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStream_CallWithIdentifierReply"_s, ReceiverName::TestWithStream, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
 #if PLATFORM(COCOA)
