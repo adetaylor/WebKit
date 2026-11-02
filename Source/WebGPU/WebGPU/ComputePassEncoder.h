@@ -40,6 +40,11 @@
 #import <wtf/Vector.h>
 #import <wtf/WeakPtr.h>
 
+#if !defined(__swift__)
+namespace WebGPUSwift {
+class ComputePassEncoderImpl;
+}
+#endif
 
 namespace WebGPU::Metal {
 
@@ -88,6 +93,10 @@ public:
 
     bool isValid() const final;
 
+#if !defined(__swift__)
+    WebGPUSwift::ComputePassEncoderImpl& swiftImpl() const LIFETIME_BOUND;
+#endif
+
 private:
     ComputePassEncoder(id<MTLComputeCommandEncoder>, const WebGPU::ComputePassDescriptor&, CommandEncoder&, Device&);
     ComputePassEncoder(CommandEncoder&, Device&, NSString*);
@@ -98,6 +107,9 @@ private:
 // For ComputePassEncoder.swift. Free functions, so that the span gets a safe Span overload (rdar://161274084).
 
 void setComputeDynamicOffsets(id<MTLComputeCommandEncoder>, std::span<const uint32_t> dynamicOffsets NOESCAPE, NSUInteger bufferIndex);
+
+// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the ComputePassEncoderImpl of a WebGPU::ComputePassEncoder.
+void deliverImpl(WebGPU::ComputePassEncoder&);
 
 } // namespace WebGPU::Metal
 

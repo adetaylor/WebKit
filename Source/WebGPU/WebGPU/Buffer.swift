@@ -122,7 +122,8 @@ enum BufferMapState {
 // The state of a GPUBuffer, owned by the C++ shell WebGPU::Metal::Buffer. Used only on the instance's API thread, so
 // not Sendable.
 @_expose(Cxx)
-final class BufferImpl {
+@_spi(WebKitGPU)
+public final class BufferImpl: DeliverableImpl {
     private var backingBuffer: (any MTLBuffer)?
     private let initialByteSize: UInt64
     private let usageBits: UInt16

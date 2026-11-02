@@ -66,7 +66,8 @@ private struct DispatchStateCache {
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
-final class ComputePassEncoderImpl {
+@_spi(WebKitGPU)
+public final class ComputePassEncoderImpl: DeliverableImpl {
     // nil once the pass is invalid, has ended or no longer holds its command encoder's current encoder.
     private var backingComputeCommandEncoder: (any MTLComputeCommandEncoder)?
     private let parentEncoder: WebGPU.Metal.CommandEncoder
@@ -427,7 +428,8 @@ final class ComputePassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func dispatch(_ x: UInt32, _ y: UInt32, _ z: UInt32) {
+    @_spi(WebKitGPU)
+    public func dispatch(_ x: UInt32, _ y: UInt32, _ z: UInt32) {
         if encodingHasFinished() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::ComputePassEncoder::dispatch(uint32_t, uint32_t, uint32_t): failed as encoding has finished"
@@ -456,7 +458,8 @@ final class ComputePassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func dispatchIndirect(_ indirectBufferImpl: BufferImpl, _ indirectOffset: UInt64) {
+    @_spi(WebKitGPU)
+    public func dispatchIndirect(_ indirectBufferImpl: BufferImpl, _ indirectOffset: UInt64) {
         if encodingHasFinished() {
             generateAValidationError(
                 "void WebGPU::Metal::ComputePassEncoder::dispatchIndirect(const Buffer &, uint64_t): failed as encoding has finished"
@@ -524,7 +527,8 @@ final class ComputePassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func endPass() {
+    @_spi(WebKitGPU)
+    public func endPass() {
         if passEnded {
             generateAValidationError("void WebGPU::Metal::ComputePassEncoder::endPass(): failed as pass is already ended")
             return
@@ -580,6 +584,14 @@ final class ComputePassEncoderImpl {
     // No encoder-state check: a pass's own encoder state is always open.
     @_expose(Cxx)
     func insertDebugMarker(_ markerLabel: NSString) {
+        insertDebugMarker(markerLabel as String)
+    }
+
+    // As WTF::String::createNSString() makes the label for the NSString overloads, a null one is empty.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func insertDebugMarker(_ markerLabel: Swift.String?) {
+        let markerLabel = markerLabel ?? ""
         if encodingHasFinished() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::ComputePassEncoder::insertDebugMarker(String &&): failed as encoding has finished"
@@ -591,7 +603,7 @@ final class ComputePassEncoderImpl {
         }
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker
 
-        backingComputeCommandEncoder?.insertDebugSignpost(markerLabel as String)
+        backingComputeCommandEncoder?.insertDebugSignpost(markerLabel)
     }
 
     private func validatePopDebugGroup() -> Bool {
@@ -599,7 +611,8 @@ final class ComputePassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func popDebugGroup() {
+    @_spi(WebKitGPU)
+    public func popDebugGroup() {
         if encodingHasFinished() {
             generateAValidationError("virtual void WebGPU::Metal::ComputePassEncoder::popDebugGroup(): failed as encoding has finished")
             return
@@ -620,6 +633,13 @@ final class ComputePassEncoderImpl {
 
     @_expose(Cxx)
     func pushDebugGroup(_ groupLabel: NSString) {
+        pushDebugGroup(groupLabel as String)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func pushDebugGroup(_ groupLabel: Swift.String?) {
+        let groupLabel = groupLabel ?? ""
         if encodingHasFinished() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::ComputePassEncoder::pushDebugGroup(String &&): failed as encoding has finished"
@@ -632,7 +652,7 @@ final class ComputePassEncoderImpl {
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup
 
         debugGroupStackSize &+= 1
-        backingComputeCommandEncoder?.pushDebugGroup(groupLabel as String)
+        backingComputeCommandEncoder?.pushDebugGroup(groupLabel)
     }
 
     private func validateGroupIndex(
@@ -677,14 +697,32 @@ final class ComputePassEncoderImpl {
         _ hasDynamicOffsets: Bool,
         _ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsView
     ) -> Bool {
+        // The encoder keeps its own copy. Without dynamic offsets the span is empty.
+        setBindGroup(groupIndex, groupImpl, hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
+    }
+
+    // setBindGroup, for a Swift caller that has the group's shell too.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {
+        guard let group else {
+            clearBindGroup(groupIndex, dynamicOffsets != nil, UInt(dynamicOffsets?.count ?? 0))
+            return
+        }
+        if setBindGroup(groupIndex, group.impl, dynamicOffsets) {
+            storeBindGroupShell(groupIndex, group.shell)
+        }
+    }
+
+    private func setBindGroup(_ groupIndex: UInt32, _ groupImpl: BindGroupImpl, _ dynamicOffsets: [UInt32]?) -> Bool {
         if encodingHasFinished() {
             generateAValidationError(
                 "void WebGPU::Metal::ComputePassEncoder::setBindGroup(uint32_t, const BindGroup *, std::optional<std::span<const uint32_t>>): failed as encoding has finished"
             )
             return false
         }
-        // The encoder keeps its own copy. Without dynamic offsets the span is empty.
-        let offsets = hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : []
+        let hasDynamicOffsets = dynamicOffsets != nil
+        let offsets = dynamicOffsets ?? []
         let expectedDynamicOffsetCount = groupImpl.layoutImpl?.counts.dynamicBufferCount ?? 0
         guard holdsCurrentEncoder(),
             validateGroupIndex(groupIndex, expectedDynamicOffsetCount: expectedDynamicOffsetCount, hasDynamicOffsets, UInt(offsets.count))
@@ -790,6 +828,15 @@ final class ComputePassEncoderImpl {
         return isNewPipeline
     }
 
+    // setPipeline, for a Swift caller that has the pipeline's shell too.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setPipeline(_ pipeline: ComputePipelineReference) {
+        if setPipeline(pipeline.impl) {
+            storePipelineShell(pipeline.shell)
+        }
+    }
+
     // The second step of a setPipeline that returned true: `pipeline` is currentPipelineImpl's shell.
     @_expose(Cxx)
     func storePipelineShell(_ pipeline: WebGPU.Metal.ComputePipeline) {
@@ -816,7 +863,13 @@ final class ComputePassEncoderImpl {
 
     @_expose(Cxx)
     func setLabel(_ label: NSString) {
-        backingComputeCommandEncoder?.label = label as String
+        setLabel(label as String)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setLabel(_ label: Swift.String?) {
+        backingComputeCommandEncoder?.label = label ?? ""
     }
 }
 

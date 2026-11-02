@@ -68,6 +68,11 @@ ComputePassEncoder::~ComputePassEncoder()
     m_impl->impl.passWillBeDestroyed();
 }
 
+WebGPUSwift::ComputePassEncoderImpl& ComputePassEncoder::swiftImpl() const
+{
+    return m_impl->impl;
+}
+
 void ComputePassEncoder::dispatch(uint32_t x, uint32_t y, uint32_t z)
 {
     m_impl->impl.dispatch(x, y, z);
@@ -140,6 +145,11 @@ Ref<ComputePassEncoder> ComputePassEncoder::createInvalidWithEncoderStateNotOpen
     Ref computePassEncoder = createInvalid(parentEncoder, device, errorString);
     computePassEncoder->m_impl->impl.markEncoderStateWasNotOpen();
     return computePassEncoder;
+}
+
+void deliverImpl(WebGPU::ComputePassEncoder& computePassEncoder)
+{
+    WebGPUSwift::receiveImpl(downcast<ComputePassEncoder>(computePassEncoder).swiftImpl());
 }
 
 } // namespace WebGPU::Metal

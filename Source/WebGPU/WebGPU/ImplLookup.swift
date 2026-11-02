@@ -24,7 +24,10 @@
 import Synchronization
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.BindGroupLayout
+@_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandBuffer
+@_implementationOnly import WebGPU_Internal.ComputePassEncoder
+@_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.ExternalTexture
 @_implementationOnly import WebGPU_Internal.QuerySet
 @_implementationOnly import WebGPU_Internal.RenderBundle
@@ -42,7 +45,7 @@ public func impl(of querySet: WebGPU.QuerySet) -> QuerySetImpl {
 
 @_spi(WebKitGPU)
 public func impl(of bindGroup: WebGPU.BindGroup) -> BindGroupImpl {
-    ImplLookup.lookUp(BindGroupImpl.self) { WebGPU.Metal.deliverImpl(bindGroup) }
+    ImplLookup.lookUp(BindGroupImpl.self) { _ = WebGPU.Metal.deliverImpl(bindGroup) }
 }
 
 @_spi(WebKitGPU)
@@ -73,6 +76,61 @@ public func impl(of renderBundle: WebGPU.RenderBundle) -> RenderBundleImpl {
 @_spi(WebKitGPU)
 public func impl(of commandBuffer: WebGPU.CommandBuffer) -> CommandBufferImpl {
     ImplLookup.lookUp(CommandBufferImpl.self) { WebGPU.Metal.deliverImpl(commandBuffer) }
+}
+
+@_spi(WebKitGPU)
+public func impl(of buffer: WebGPU.Buffer) -> BufferImpl {
+    ImplLookup.lookUp(BufferImpl.self) { WebGPU.Metal.deliverImpl(buffer) }
+}
+
+@_spi(WebKitGPU)
+public func impl(of computePassEncoder: WebGPU.ComputePassEncoder) -> ComputePassEncoderImpl {
+    ImplLookup.lookUp(ComputePassEncoderImpl.self) { WebGPU.Metal.deliverImpl(computePassEncoder) }
+}
+
+// An Impl with the shell of the same object, for the encoders that keep the shells of the objects they're given, which
+// WebKit can't name.
+
+@_spi(WebKitGPU)
+public final class BindGroupReference {
+    public let impl: BindGroupImpl
+    let shell: WebGPU.Metal.BindGroup
+
+    init(_ impl: BindGroupImpl, _ shell: WebGPU.Metal.BindGroup) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
+@_spi(WebKitGPU)
+public func reference(of bindGroup: WebGPU.BindGroup) -> BindGroupReference {
+    var shell: WebGPU.Metal.BindGroup?
+    let impl = ImplLookup.lookUp(BindGroupImpl.self) { shell = WebGPU.Metal.deliverImpl(bindGroup) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return BindGroupReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
+public final class ComputePipelineReference {
+    public let impl: ComputePipelineImpl
+    let shell: WebGPU.Metal.ComputePipeline
+
+    init(_ impl: ComputePipelineImpl, _ shell: WebGPU.Metal.ComputePipeline) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
+@_spi(WebKitGPU)
+public func reference(of computePipeline: WebGPU.ComputePipeline) -> ComputePipelineReference {
+    var shell: WebGPU.Metal.ComputePipeline?
+    let impl = ImplLookup.lookUp(ComputePipelineImpl.self) { shell = WebGPU.Metal.deliverImpl(computePipeline) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return ComputePipelineReference(impl, shell)
 }
 
 // The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().

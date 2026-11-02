@@ -378,6 +378,11 @@ uint64_t Buffer::indexContentsGeneration() const
     return m_impl->impl.indexContentsGeneration();
 }
 
+void deliverImpl(WebGPU::Buffer& buffer)
+{
+    WebGPUSwift::receiveImpl(downcast<Buffer>(buffer).swiftImpl());
+}
+
 } // namespace WebGPU::Metal
 
 #pragma mark WGPU Stubs
