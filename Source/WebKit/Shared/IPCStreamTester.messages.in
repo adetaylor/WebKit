@@ -39,6 +39,11 @@ messages -> IPCStreamTester Stream {
     AsyncPing(uint32_t value) -> (uint32_t nextValue)
     EmptyMessage()
     CheckInvalidMessages() -> (uint32_t invalidMessages) Synchronous
+
+    BenchFourValues(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+    BenchString(String text)
+    BenchVector(Vector<uint32_t> values)
+    BenchSync(uint64_t value) -> (uint64_t sameValue) Synchronous
 }
 
 #endif
