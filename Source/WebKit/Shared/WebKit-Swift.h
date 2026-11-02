@@ -64,6 +64,7 @@
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 #include "RemoteCDMFactoryProxyMessages.h"
 #include "RemoteCDMInstanceProxyMessages.h"
+#include "RemoteCDMInstanceSessionProxyMessages.h"
 #include "RemoteCDMProxyMessages.h"
 #include "RemoteCDMSwiftSupport.h"
 #endif
