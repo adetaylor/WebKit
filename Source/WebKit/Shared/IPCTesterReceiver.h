@@ -72,6 +72,9 @@ private:
     void reverseAtomsSwift(const Vector<AtomString>&, CompletionHandler<void(Vector<AtomString>&&)>&&);
     void roundTripStringThroughCxxSwift(const String&, CompletionHandler<void(String&&, uint32_t, bool, bool)>&&);
     void roundTripBufferSwift(RefPtr<WebCore::SharedBuffer>&&, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&, uint64_t)>&&);
+    void halveEvenNumberSyncHandlerSwift(IPC::Connection&, uint32_t, CompletionHandler<void(uint32_t)>&&);
+    void transformPayloadSyncHandlerSwift(const IPCTesterPayload&, CompletionHandler<void(IPCTesterPayload&&)>&&);
+    void recordSyncHandlerSwift(const String&);
     void swapPairsSwift(const Vector<std::pair<String, uint32_t>>&, CompletionHandler<void(Vector<std::pair<uint32_t, String>>&&)>&&);
     void enabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
     void disabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);

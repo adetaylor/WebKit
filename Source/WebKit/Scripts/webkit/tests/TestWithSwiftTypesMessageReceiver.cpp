@@ -86,6 +86,18 @@ void TestWithSwiftTypesMessageForwarder::didReceiveMessage(IPC::Connection& conn
         IPC::handleMessageAsync<Messages::TestWithSwiftTypes::MessageWithCxxTypes>(connection, decoder, m_handler.get(), &TestWithSwiftTypesWeakRef::dispatchMessageWithCxxTypes);
         return;
     }
+    if (decoder.messageName() == Messages::TestWithSwiftTypes::SyncHandlerMessage::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithSwiftTypes::SyncHandlerMessage>(connection, decoder, m_handler.get(), &TestWithSwiftTypesWeakRef::dispatchSyncHandlerMessage);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftTypes::SyncHandlerMessageWithoutReply::name()) {
+        IPC::handleSwiftMessage<Messages::TestWithSwiftTypes::SyncHandlerMessageWithoutReply>(connection, decoder, m_handler.get(), &TestWithSwiftTypesWeakRef::dispatchSyncHandlerMessageWithoutReply);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftTypes::SyncHandlerMessageWithCxxTypes::name()) {
+        IPC::handleMessageAsync<Messages::TestWithSwiftTypes::SyncHandlerMessageWithCxxTypes>(connection, decoder, m_handler.get(), &TestWithSwiftTypesWeakRef::dispatchSyncHandlerMessageWithCxxTypes);
+        return;
+    }
     if (decoder.messageName() == Messages::TestWithSwiftTypes::MessageWithBuffersAndPairs::name()) {
         IPC::handleSwiftMessageAsync<Messages::TestWithSwiftTypes::MessageWithBuffersAndPairs>(connection, decoder, m_handler.get(), &TestWithSwiftTypesWeakRef::dispatchMessageWithBuffersAndPairs);
         return;
@@ -117,6 +129,10 @@ void TestWithSwiftTypesMessageForwarder::didReceiveSyncMessage(IPC::Connection& 
     }
     if (decoder.messageName() == Messages::TestWithSwiftTypes::SynchronousMessageWithoutParameters::name()) {
         IPC::handleSwiftMessageSynchronous<Messages::TestWithSwiftTypes::SynchronousMessageWithoutParameters>(connection, decoder, replyEncoder, m_handler.get(), &TestWithSwiftTypesWeakRef::dispatchSynchronousMessageWithoutParameters);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftTypes::SynchronousSyncHandlerMessage::name()) {
+        IPC::handleSwiftMessageSynchronous<Messages::TestWithSwiftTypes::SynchronousSyncHandlerMessage>(connection, decoder, replyEncoder, m_handler.get(), &TestWithSwiftTypesWeakRef::dispatchSynchronousSyncHandlerMessage);
         return;
     }
     UNUSED_PARAM(connection);
@@ -234,6 +250,34 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::MessageWithCxxTypes::ReplyArguments>(globalObject, decoder);
 }
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessage>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SyncHandlerMessage::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_SyncHandlerMessage>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SyncHandlerMessage::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SynchronousSyncHandlerMessage>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SynchronousSyncHandlerMessage::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_SynchronousSyncHandlerMessage>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SynchronousSyncHandlerMessage::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithoutReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SyncHandlerMessageWithoutReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SyncHandlerMessageWithCxxTypes::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SyncHandlerMessageWithCxxTypes::ReplyArguments>(globalObject, decoder);
+}
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::MessageWithBuffersAndPairs::Arguments>(globalObject, decoder);
@@ -271,6 +315,14 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithCxxTypesReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::MessageWithCxxTypesReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SyncHandlerMessageReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypesReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SyncHandlerMessageWithCxxTypesReply::Arguments>(globalObject, decoder);
 }
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairsReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {

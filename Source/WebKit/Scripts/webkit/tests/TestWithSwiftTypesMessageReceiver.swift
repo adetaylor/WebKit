@@ -642,6 +642,126 @@ final class TestWithSwiftTypesWeakRef: @unchecked Sendable {
     }
 
     @used
+    func dispatchSyncHandlerMessage(
+        connection: sending IPC.Connection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        let value: UInt32
+        do {
+            value = try UInt32.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            do throws(InvalidMessage) {
+                let reply = try mayThrowInvalidMessage(
+                    target.syncHandlerMessage(
+                        connection: connection,
+                        value: value
+                    )
+                )
+                UInt32.encode(reply, to: replyEncoder)
+                replyEncoder.send()
+            } catch {
+                markMessageInvalid(error, on: connection)
+                replyEncoder.cancel()
+            }
+        }
+        return true
+    }
+
+    @used
+    func dispatchSynchronousSyncHandlerMessage(
+        connection: sending IPC.Connection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        let name: String?
+        do {
+            name = try IPCCoding.WTFString.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            do throws(InvalidMessage) {
+                let reply = try mayThrowInvalidMessage(
+                    target.synchronousSyncHandlerMessage(
+                        connection: connection,
+                        name: name
+                    )
+                )
+                Bool.encode(reply, to: replyEncoder)
+                replyEncoder.send()
+            } catch {
+                markMessageInvalid(error, on: connection)
+                replyEncoder.cancel()
+            }
+        }
+        return true
+    }
+
+    @used
+    func dispatchSyncHandlerMessageWithoutReply(
+        connection: sending IPC.Connection,
+        decoder: inout IPC.SwiftDecoder
+    ) -> Bool {
+        let value: UInt64
+        do {
+            value = try UInt64.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            do throws(InvalidMessage) {
+                try mayThrowInvalidMessage(
+                    target.syncHandlerMessageWithoutReply(
+                        connection: connection,
+                        value: value
+                    )
+                )
+            } catch {
+                markMessageInvalid(error, on: connection)
+            }
+        }
+        return true
+    }
+
+    @used
+    func dispatchSyncHandlerMessageWithCxxTypes(
+        connection: sending IPC.Connection,
+        frameState: sending WebKit.RefFrameState,
+        completionHandler: sending CompletionHandlers.TestWithSwiftTypes.SyncHandlerMessageWithCxxTypesCompletionHandler
+    ) {
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            do throws(InvalidMessage) {
+                let reply = try mayThrowInvalidMessage(
+                    target.syncHandlerMessageWithCxxTypes(
+                        connection: connection,
+                        frameState: frameState
+                    )
+                )
+                CompletionHandlers.TestWithSwiftTypes.complete(completionHandler, reply)
+            } catch {
+                markMessageInvalid(error, on: connection)
+                CompletionHandlers.TestWithSwiftTypes.completeWithDefaultReply(completionHandler)
+            }
+        }
+    }
+
+    @used
     func dispatchMessageWithBuffersAndPairs(
         connection: sending IPC.Connection,
         decoder: inout IPC.SwiftDecoder,
