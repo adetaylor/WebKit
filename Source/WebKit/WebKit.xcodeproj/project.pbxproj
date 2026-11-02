@@ -1601,6 +1601,7 @@
 		5C411DAD27CED4220068241A /* UnifiedSource129.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C411DA327CED4220068241A /* UnifiedSource129.cpp */; };
 		5C411DAE27CED4220068241A /* UnifiedSource124.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C411DA427CED4220068241A /* UnifiedSource124.cpp */; };
 		5C448C662EE06E11008931C7 /* IPCTesterReceiverMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C448C652EE06E11008931C7 /* IPCTesterReceiverMessageReceiver.swift */; };
+		2F91FA1CDEACAF899B5A59E8 /* IPCSwiftStreamTesterMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDCF2237C31F1BA3C820D6EB /* IPCSwiftStreamTesterMessageReceiver.swift */; };
 		5C4609E7224317B4009943C2 /* _WKContentRuleListAction.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C4609E222430E4C009943C2 /* _WKContentRuleListAction.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C4609E8224317BB009943C2 /* _WKContentRuleListActionInternal.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C4609E422430E4D009943C2 /* _WKContentRuleListActionInternal.h */; };
 		5C4B9D8B210A8CCF008F14D1 /* UndoOrRedo.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C4B9D8A210A8C46008F14D1 /* UndoOrRedo.h */; };
@@ -1666,6 +1667,7 @@
 		5CE912122293C278005BEC78 /* AuxiliaryProcessMain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CE9120F2293C25F005BEC78 /* AuxiliaryProcessMain.cpp */; };
 		5CE912142293C280005BEC78 /* WKMain.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE9120B2293C1E0005BEC78 /* WKMain.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CF250AF2EE06491006A7172 /* IPCTesterReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF250AE2EE06491006A7172 /* IPCTesterReceiver.swift */; };
+		6557892C92BD46381365332E /* IPCSwiftStreamTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4617A992E8E49048237BAE2 /* IPCSwiftStreamTester.swift */; };
 		5CF62B9628D4436A00C0EAE0 /* DaemonCoders.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CF62B9428D4436A00C0EAE0 /* DaemonCoders.h */; };
 		5CFC9C812B71809600F8D289 /* CoreIPCCFDictionary.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5CFC9C7F2B717EFA00F8D289 /* CoreIPCCFDictionary.mm */; };
 		5EEC724C2DC1B30700D012DD /* BidiStorageAgent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5EEC724B2DC1B30700D012DD /* BidiStorageAgent.cpp */; };
@@ -6801,6 +6803,7 @@
 		5C411DA427CED4220068241A /* UnifiedSource124.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UnifiedSource124.cpp; sourceTree = "<group>"; };
 		5C426B5A28BEC8D200C695CF /* WebCoreArgumentCoders.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = WebCoreArgumentCoders.serialization.in; sourceTree = "<group>"; };
 		5C448C652EE06E11008931C7 /* IPCTesterReceiverMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCTesterReceiverMessageReceiver.swift; sourceTree = "<group>"; };
+		DDCF2237C31F1BA3C820D6EB /* IPCSwiftStreamTesterMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCSwiftStreamTesterMessageReceiver.swift; sourceTree = "<group>"; };
 		5C4609E222430E4C009943C2 /* _WKContentRuleListAction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _WKContentRuleListAction.h; sourceTree = "<group>"; };
 		5C4609E322430E4D009943C2 /* _WKContentRuleListAction.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKContentRuleListAction.mm; sourceTree = "<group>"; };
 		5C4609E422430E4D009943C2 /* _WKContentRuleListActionInternal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _WKContentRuleListActionInternal.h; sourceTree = "<group>"; };
@@ -7013,6 +7016,7 @@
 		5CEB40A32A535E8E00563C91 /* WebPageProxyMessageReceiverRegistration.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebPageProxyMessageReceiverRegistration.cpp; sourceTree = "<group>"; };
 		5CEB40A42A535E8E00563C91 /* WebPageProxyMessageReceiverRegistration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebPageProxyMessageReceiverRegistration.h; sourceTree = "<group>"; };
 		5CF250AE2EE06491006A7172 /* IPCTesterReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCTesterReceiver.swift; sourceTree = "<group>"; };
+		E4617A992E8E49048237BAE2 /* IPCSwiftStreamTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCSwiftStreamTester.swift; sourceTree = "<group>"; };
 		5CF62B9428D4436A00C0EAE0 /* DaemonCoders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaemonCoders.h; sourceTree = "<group>"; };
 		5CF62B9528D4436A00C0EAE0 /* DaemonCoders.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DaemonCoders.cpp; sourceTree = "<group>"; };
 		5CFC9C7E2B717EFA00F8D289 /* CoreIPCCFDictionary.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = CoreIPCCFDictionary.serialization.in; sourceTree = "<group>"; };
@@ -7520,6 +7524,7 @@
 		86EB7201298D310900C1DC77 /* SecItemShim.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SecItemShim.mm; sourceTree = "<group>"; };
 		86EB7202298D310900C1DC77 /* SecItemShim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SecItemShim.h; sourceTree = "<group>"; };
 		86EFFA3F2B03A6B900ABE77D /* IPCStreamTester.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = IPCStreamTester.messages.in; sourceTree = "<group>"; };
+		9B2DFE707344A6CC7E77B3DE /* IPCSwiftStreamTester.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = IPCSwiftStreamTester.messages.in; sourceTree = "<group>"; };
 		86EFFA402B03A6B900ABE77D /* IPCTester.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = IPCTester.messages.in; sourceTree = "<group>"; };
 		86F07F7C2FCE0FE400BFFFDC /* RemoteObjectInvocation.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteObjectInvocation.serialization.in; sourceTree = "<group>"; };
 		86F4FE1E2A98B9AE007378EE /* RemoteGraphicsContextGLInitializationState.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteGraphicsContextGLInitializationState.serialization.in; sourceTree = "<group>"; };
@@ -10615,6 +10620,8 @@
 				7BE37F9427C7CD51007A6CD3 /* IPCStreamTester.h */,
 				86EFFA3F2B03A6B900ABE77D /* IPCStreamTester.messages.in */,
 				7BE37F9227C7C518007A6CD3 /* IPCStreamTesterIdentifier.h */,
+				9B2DFE707344A6CC7E77B3DE /* IPCSwiftStreamTester.messages.in */,
+				E4617A992E8E49048237BAE2 /* IPCSwiftStreamTester.swift */,
 				7B50E97F2771F6CE003DAAC4 /* IPCTester.cpp */,
 				7B50E9802771F6CF003DAAC4 /* IPCTester.h */,
 				86EFFA402B03A6B900ABE77D /* IPCTester.messages.in */,
@@ -13837,8 +13844,8 @@
 				0F5562DE27EE28D000953585 /* GPUProcessMessages.h */,
 				0F5562E827EE28D200953585 /* GPUProcessProxyMessageReceiver.cpp */,
 				0F5562E427EE28D100953585 /* GPUProcessProxyMessages.h */,
+				DDCF2237C31F1BA3C820D6EB /* IPCSwiftStreamTesterMessageReceiver.swift */,
 				5C448C652EE06E11008931C7 /* IPCTesterReceiverMessageReceiver.swift */,
-				12464BCBBDD4E0073147E8AA /* RemoteCDMInstanceSessionProxyMessageReceiver.swift */,
 				2984F586164BA095004BC0C6 /* LegacyCustomProtocolManagerMessageReceiver.cpp */,
 				2984F587164BA095004BC0C6 /* LegacyCustomProtocolManagerMessages.h */,
 				2984F57A164B915F004BC0C6 /* LegacyCustomProtocolManagerProxyMessageReceiver.cpp */,
@@ -13909,6 +13916,7 @@
 				CD466181240105640047CA35 /* RemoteCDMInstanceSessionMessageReceiver.cpp */,
 				CD466182240105640047CA35 /* RemoteCDMInstanceSessionMessages.h */,
 				CDAC20EC23FC38380021DEE3 /* RemoteCDMInstanceSessionProxyMessageReceiver.cpp */,
+				12464BCBBDD4E0073147E8AA /* RemoteCDMInstanceSessionProxyMessageReceiver.swift */,
 				CDAC20ED23FC38380021DEE3 /* RemoteCDMInstanceSessionProxyMessages.h */,
 				CDAC20EF23FC38390021DEE3 /* RemoteCDMProxyMessageReceiver.cpp */,
 				4A1E1F5AC7DF3C6BE07B1F44 /* RemoteCDMProxyMessageReceiver.swift */,
@@ -22442,9 +22450,9 @@
 				2749F6452146561E008380BF /* InjectedBundleRangeHandle.cpp in Sources */,
 				48E4FD912C91486DA934D031 /* InspectorPassthroughChannel.cpp in Sources */,
 				074D6A652F385435006089F6 /* IntRectCG.swift in Sources */,
+				6557892C92BD46381365332E /* IPCSwiftStreamTester.swift in Sources */,
+				2F91FA1CDEACAF899B5A59E8 /* IPCSwiftStreamTesterMessageReceiver.swift in Sources */,
 				5CF250AF2EE06491006A7172 /* IPCTesterReceiver.swift in Sources */,
-				D94A0CB32963988E08E39998 /* RemoteCDMInstanceSessionProxyMessageReceiver.swift in Sources */,
-				C1F221367DC80B2D11331F6F /* RemoteCDMInstanceSessionProxy.swift in Sources */,
 				5C448C662EE06E11008931C7 /* IPCTesterReceiverMessageReceiver.swift in Sources */,
 				077F49BC3036E23900861A64 /* JavaScriptEvaluationArrayDecoder.swift in Sources */,
 				07EB34D93037F60700B217DD /* JavaScriptEvaluationCodableValue.swift in Sources */,
@@ -22489,6 +22497,8 @@
 				F50B56AC6615BC9A9822B44F /* RemoteCDMFactoryProxyMessageReceiver.swift in Sources */,
 				CA678D5B4DF7D49ECD183D58 /* RemoteCDMInstanceProxy.swift in Sources */,
 				F402B3F402DFBD93CABE6F75 /* RemoteCDMInstanceProxyMessageReceiver.swift in Sources */,
+				C1F221367DC80B2D11331F6F /* RemoteCDMInstanceSessionProxy.swift in Sources */,
+				D94A0CB32963988E08E39998 /* RemoteCDMInstanceSessionProxyMessageReceiver.swift in Sources */,
 				4CE9100D75E4D8BA2750538C /* RemoteCDMProxy.swift in Sources */,
 				367C194497AF283FC69D36AD /* RemoteCDMProxyMessageReceiver.swift in Sources */,
 				2D72A1FA212BF46E00517A20 /* RemoteLayerTreeDrawingArea.mm in Sources */,
