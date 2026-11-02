@@ -74,12 +74,12 @@ final class RemoteComputePassEncoder {
 
     func dispatchIndirect(indirectBuffer: IPCTypes.WebGPUIdentifier, indirectOffset: UInt64) {
         let buffer = objects.entry(indirectBuffer.rawValue) {
-            context.buffer(indirectBuffer.rawValue).map { WebGPUSwift.impl(of: $0) }
+            context.buffer(indirectBuffer.rawValue).map { WebGPUSwift.reference(of: $0) }
         }
         guard let buffer else {
             return
         }
-        impl.dispatchIndirect(buffer, indirectOffset)
+        impl.dispatchIndirect(buffer.impl, indirectOffset)
     }
 
     func end() {

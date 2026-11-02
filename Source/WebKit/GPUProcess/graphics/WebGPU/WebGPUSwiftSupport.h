@@ -68,6 +68,8 @@ public:
     ::WebGPU::BindGroup* WTF_NULLABLE bindGroup(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
     ::WebGPU::Buffer* WTF_NULLABLE buffer(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
     ::WebGPU::ComputePipeline* WTF_NULLABLE computePipeline(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
+    ::WebGPU::RenderBundle* WTF_NULLABLE renderBundle(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
+    ::WebGPU::RenderPipeline* WTF_NULLABLE renderPipeline(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
 
     // The external texture with that identifier in the object heap, if there is one.
     ::WebGPU::ExternalTexture* WTF_NULLABLE externalTexture(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
@@ -182,6 +184,19 @@ public:
 
 private:
     Ref<::WebGPU::ComputePassEncoder> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+class RemoteRenderPassEncoderBacking {
+public:
+    explicit RemoteRenderPassEncoderBacking(::WebGPU::RenderPassEncoder& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::RenderPassEncoder& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::RenderPassEncoder> m_backing;
 } SWIFT_SELF_CONTAINED;
 
 class RemoteQuerySetBacking {

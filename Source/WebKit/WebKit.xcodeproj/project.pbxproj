@@ -132,6 +132,8 @@
 		1D81557F1BA06B31D988096A /* RemoteBindGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75FFEAD1E819D990CC620000 /* RemoteBindGroup.swift */; };
 		57B6EEC5DD4A9E8DCD8FB27B /* RemoteBindGroupMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE2FDB87CC7F37E8EE053E4 /* RemoteBindGroupMessageReceiver.swift */; };
 		D9797CECC457AFEC6D777023 /* RemoteQuerySetMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D341671445A36D6816316A60 /* RemoteQuerySetMessageReceiver.swift */; };
+		AE068C1B7529B6B326A9E0A3 /* RemoteRenderPassEncoderMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFB06D53415594B42590710 /* RemoteRenderPassEncoderMessageReceiver.swift */; };
+		B5287D27CA6057AB0BDC45A7 /* RemoteRenderPassEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71BFF1DC463DBB2E7F102D9A /* RemoteRenderPassEncoder.swift */; };
 		DC9FEDA4A25AD12B0AF24DC2 /* RemoteComputePassEncoderMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B59BA0F4425535431C41C6F3 /* RemoteComputePassEncoderMessageReceiver.swift */; };
 		0CC061041EEDEC74CC214BBD /* RemoteComputePassEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FB7746AEDA3A7DDAB261E4D /* RemoteComputePassEncoder.swift */; };
 		5EA9E78A285873CF0B909BDE /* WebGPUSwiftSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D46AC1AD668E5C48C240E8 /* WebGPUSwiftSupport.swift */; };
@@ -4601,6 +4603,8 @@
 		1C98C02327446A05002CCB78 /* RemoteShaderModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteShaderModule.cpp; sourceTree = "<group>"; };
 		1C98C02527446A06002CCB78 /* RemoteTexture.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteTexture.h; sourceTree = "<group>"; };
 		1C98C02627446A06002CCB78 /* RemoteRenderPassEncoder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteRenderPassEncoder.cpp; sourceTree = "<group>"; };
+		71BFF1DC463DBB2E7F102D9A /* RemoteRenderPassEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderPassEncoder.swift; sourceTree = "<group>"; };
+		6AFB06D53415594B42590710 /* RemoteRenderPassEncoderMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderPassEncoderMessageReceiver.swift; sourceTree = "<group>"; };
 		1C98C02727446A06002CCB78 /* RemoteRenderPassEncoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteRenderPassEncoder.h; sourceTree = "<group>"; };
 		1C98C02827446A06002CCB78 /* RemoteSampler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSampler.cpp; sourceTree = "<group>"; };
 		4D6DF9B7DCCEA71B88471B81 /* RemoteSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSampler.swift; sourceTree = "<group>"; };
@@ -11682,6 +11686,7 @@
 				1C98C02627446A06002CCB78 /* RemoteRenderPassEncoder.cpp */,
 				1C98C02727446A06002CCB78 /* RemoteRenderPassEncoder.h */,
 				1C98C0812744BD98002CCB78 /* RemoteRenderPassEncoder.messages.in */,
+				71BFF1DC463DBB2E7F102D9A /* RemoteRenderPassEncoder.swift */,
 				1C98C03327446A08002CCB78 /* RemoteRenderPipeline.cpp */,
 				1C98C02927446A07002CCB78 /* RemoteRenderPipeline.h */,
 				1C98C0862744BD99002CCB78 /* RemoteRenderPipeline.messages.in */,
@@ -14107,6 +14112,7 @@
 				F4517D7726FBCCE4004C8475 /* RemoteRenderingBackendMessageReceiver.cpp */,
 				F4517D7A26FBCD38004C8475 /* RemoteRenderingBackendMessages.h */,
 				1C55A57F275457C500EB7E95 /* RemoteRenderPassEncoderMessageReceiver.cpp */,
+				6AFB06D53415594B42590710 /* RemoteRenderPassEncoderMessageReceiver.swift */,
 				1C55A596275457C900EB7E95 /* RemoteRenderPassEncoderMessages.h */,
 				1C55A574275457C400EB7E95 /* RemoteRenderPipelineMessageReceiver.cpp */,
 				C3D6A88F35BF75F545303118 /* RemoteRenderPipelineMessageReceiver.swift */,
@@ -22681,6 +22687,8 @@
 				D9797CECC457AFEC6D777023 /* RemoteQuerySetMessageReceiver.swift in Sources */,
 				DD663F9A1853FC844E8A25AA /* RemoteRenderBundle.swift in Sources */,
 				C51A6A54FF93206D16C06AC9 /* RemoteRenderBundleMessageReceiver.swift in Sources */,
+				B5287D27CA6057AB0BDC45A7 /* RemoteRenderPassEncoder.swift in Sources */,
+				AE068C1B7529B6B326A9E0A3 /* RemoteRenderPassEncoderMessageReceiver.swift in Sources */,
 				95350091F683CDE5D234B818 /* RemoteRenderPipeline.swift in Sources */,
 				341158B326284441995DA83B /* RemoteRenderPipelineMessageReceiver.swift in Sources */,
 				63CAB87C31D7746E018E693A /* RemoteSampler.swift in Sources */,

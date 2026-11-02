@@ -32,6 +32,17 @@ extension IPCTypes.CxxName {
     typealias WebKit_WebGPU_Color = IPCTypes.Color
 }
 
+extension WebGPU.IndexFormat {
+    init(_ format: IPCTypes.IndexFormat) {
+        switch format {
+        case .uint16:
+            self = .Uint16
+        case .uint32:
+            self = .Uint32
+        }
+    }
+}
+
 // The Impls of the objects in a RemoteGPU's object heap that its Swift receivers have looked up by identifier, each with
 // its shell where an encoder keeps that too, so that a message naming an object finds it without leaving Swift after
 // the first time. Used only on the RemoteGPU's work queue, as the heap is.
@@ -60,7 +71,8 @@ final class WebGPUImplTable {
     }
 
     // The entry for that identifier, which lookUp() finds in the object heap the first time. nil if the heap has no
-    // such object, or an object of another kind.
+    // such object, or an object of another kind. Each kind of object is kept as one type, whichever receiver looks it up
+    // first: a BufferReference, BindGroupReference, RenderBundleReference or pipeline reference.
     @_expose(!Cxx)
     func entry<Entry: AnyObject>(_ identifier: UInt64, _ lookUp: () -> Entry?) -> Entry? {
         if let entry = entries[identifier] {

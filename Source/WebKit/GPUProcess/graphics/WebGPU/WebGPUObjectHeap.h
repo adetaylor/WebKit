@@ -90,6 +90,7 @@ using ExternalTextureObject = SwiftReceiverObject<::WebGPU::ExternalTexture, Rem
 using PipelineLayoutObject = SwiftReceiverObject<::WebGPU::PipelineLayout, RemotePipelineLayout>;
 using QuerySetObject = SwiftReceiverObject<::WebGPU::QuerySet, RemoteQuerySet>;
 using RenderBundleObject = SwiftReceiverObject<::WebGPU::RenderBundle, RemoteRenderBundle>;
+using RenderPassEncoderObject = SwiftReceiverObject<::WebGPU::RenderPassEncoder, RemoteRenderPassEncoder>;
 using RenderPipelineObject = SwiftReceiverObject<::WebGPU::RenderPipeline, RemoteRenderPipeline>;
 using SamplerObject = SwiftReceiverObject<::WebGPU::Sampler, RemoteSampler>;
 using TextureViewObject = SwiftReceiverObject<::WebGPU::TextureView, RemoteTextureView>;
@@ -103,6 +104,7 @@ using ExternalTextureObject = IPC::ScopedActiveMessageReceiveQueue<RemoteExterna
 using PipelineLayoutObject = IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout>;
 using QuerySetObject = IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>;
 using RenderBundleObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundle>;
+using RenderPassEncoderObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPassEncoder>;
 using RenderPipelineObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPipeline>;
 using SamplerObject = IPC::ScopedActiveMessageReceiveQueue<RemoteSampler>;
 using TextureViewObject = IPC::ScopedActiveMessageReceiveQueue<RemoteTextureView>;
@@ -171,7 +173,11 @@ public:
 #else
     void addObject(WebGPUIdentifier, RemoteRenderBundle&);
 #endif
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    void addObject(WebGPUIdentifier, RenderPassEncoderObject&&);
+#else
     void addObject(WebGPUIdentifier, RemoteRenderPassEncoder&);
+#endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, RenderPipelineObject&&);
 #else
@@ -261,7 +267,7 @@ private:
         IPC::ScopedActiveMessageReceiveQueue<RemoteQueue>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder>,
         RenderBundleObject,
-        IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPassEncoder>,
+        RenderPassEncoderObject,
         RenderPipelineObject,
         SamplerObject,
         IPC::ScopedActiveMessageReceiveQueue<RemoteShaderModule>,

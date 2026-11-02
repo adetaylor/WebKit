@@ -271,11 +271,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderBundle& rend
 }
 #endif
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderPassEncoder& renderPassEncoder)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RenderPassEncoderObject&& renderPassEncoder)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPassEncoder> { protect(renderPassEncoder) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(renderPassEncoder) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderPassEncoder& renderPassEncoder)
+{
+    auto result = m_objects.add(identifier, Object { RenderPassEncoderObject { protect(renderPassEncoder) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RenderPipelineObject&& renderPipeline)
@@ -518,9 +526,9 @@ RefPtr<::WebGPU::RenderBundle> ObjectHeap::convertRenderBundleFromBacking(WebGPU
 RefPtr<::WebGPU::RenderPassEncoder> ObjectHeap::convertRenderPassEncoderFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPassEncoder>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<RenderPassEncoderObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPassEncoder>>(iterator->value)->backing();
+    return &std::get<RenderPassEncoderObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::RenderPipeline> ObjectHeap::convertRenderPipelineFromBacking(WebGPUIdentifier identifier)

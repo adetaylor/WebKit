@@ -81,11 +81,6 @@ public func impl(of commandBuffer: WebGPU.CommandBuffer) -> CommandBufferImpl {
 }
 
 @_spi(WebKitGPU)
-public func impl(of buffer: WebGPU.Buffer) -> BufferImpl {
-    ImplLookup.lookUp(BufferImpl.self) { _ = WebGPU.Metal.deliverImpl(buffer) }
-}
-
-@_spi(WebKitGPU)
 public func impl(of computePassEncoder: WebGPU.ComputePassEncoder) -> ComputePassEncoderImpl {
     ImplLookup.lookUp(ComputePassEncoderImpl.self) { WebGPU.Metal.deliverImpl(computePassEncoder) }
 }

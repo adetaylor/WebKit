@@ -64,6 +64,7 @@
 #include "RemotePipelineLayoutMessages.h"
 #include "RemoteQuerySetMessages.h"
 #include "RemoteRenderBundleMessages.h"
+#include "RemoteRenderPassEncoderMessages.h"
 #include "RemoteRenderPipelineMessages.h"
 #include "RemoteSamplerMessages.h"
 #include "RemoteTextureViewMessages.h"
