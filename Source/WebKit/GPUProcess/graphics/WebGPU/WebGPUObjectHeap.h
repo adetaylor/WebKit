@@ -78,8 +78,10 @@ class RemoteXRView;
 namespace WebKit::WebGPU {
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+using BindGroupObject = SwiftReceiverObject<::WebGPU::BindGroup, RemoteBindGroup>;
 using QuerySetObject = SwiftReceiverObject<::WebGPU::QuerySet, RemoteQuerySet>;
 #else
+using BindGroupObject = IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup>;
 using QuerySetObject = IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>;
 #endif
 
@@ -94,7 +96,11 @@ public:
     ~ObjectHeap();
 
     void addObject(WebGPUIdentifier, RemoteAdapter&);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    void addObject(WebGPUIdentifier, BindGroupObject&&);
+#else
     void addObject(WebGPUIdentifier, RemoteBindGroup&);
+#endif
     void addObject(WebGPUIdentifier, RemoteBindGroupLayout&);
     void addObject(WebGPUIdentifier, RemoteBuffer&);
     void addObject(WebGPUIdentifier, RemoteCommandBuffer&);
@@ -170,7 +176,7 @@ private:
     using Object = Variant<
         std::monostate,
         IPC::ScopedActiveMessageReceiveQueue<RemoteAdapter>,
-        IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup>,
+        BindGroupObject,
         IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroupLayout>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteBuffer>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteCommandBuffer>,

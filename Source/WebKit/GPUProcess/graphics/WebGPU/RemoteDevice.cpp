@@ -64,6 +64,7 @@
 #include <wtf/TZoneMallocInlines.h>
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "RemoteBindGroupMessages.h"
 #include "RemoteQuerySetMessages.h"
 #include "WebKit-Swift.h"
 #endif
@@ -258,8 +259,13 @@ void RemoteDevice::createBindGroup(const WebGPU::BindGroupDescriptor& descriptor
 
     auto bindGroup = m_backing->createBindGroup(*convertedDescriptor);
     MESSAGE_CHECK(bindGroup);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    auto remoteBindGroup = RemoteBindGroup::init(RemoteBindGroupBacking { *bindGroup }, WebGPUSwiftReceiverContext { objectHeap, protect(m_gpu), identifier });
+    objectHeap->addObject(identifier, WebGPU::BindGroupObject { *bindGroup, WTF::move(remoteBindGroup), protect(m_streamConnection), Messages::RemoteBindGroup::messageReceiverName(), identifier });
+#else
     auto remoteBindGroup = RemoteBindGroup::create(*bindGroup, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteBindGroup);
+#endif
 }
 
 void RemoteDevice::createShaderModule(const WebGPU::ShaderModuleDescriptor& descriptor, WebGPUIdentifier identifier)
