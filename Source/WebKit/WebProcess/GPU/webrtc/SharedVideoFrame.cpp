@@ -40,6 +40,7 @@
 #include <WebCore/VideoFrameLibWebRTC.h>
 #include <array>
 #include <new>
+#include <wtf/Scope.h>
 #include <wtf/TZoneMallocInlines.h>
 
 #if USE(LIBWEBRTC)
@@ -109,6 +110,9 @@ size_t SharedVideoFrameWriterContext::storageSize() const
 
 bool SharedVideoFrameWriterContext::allocateStorage(size_t size)
 {
+    if (m_writer.m_storage)
+        m_writer.m_retiredStorage.append(m_writer.m_storage.releaseNonNull());
+
     RefPtr storage = SharedMemory::allocate(size);
     m_writer.m_storage = storage;
     if (!storage)
@@ -206,6 +210,7 @@ std::optional<SharedVideoFrame::Buffer> SharedVideoFrameWriter::writeBuffer(CVPi
             return MachSendRight::adopt(IOSurfaceCreateMachPort(surface.get()));
     }
 
+    auto releaseRetiredStorage = makeScopeExit([this] { m_retiredStorage.clear(); });
     SharedVideoFrameWriterContext context { *this, newSemaphoreCallback, newMemoryCallback };
     if (!swiftImpl().writePixelBuffer(pixelBuffer, context))
         return { };
@@ -226,6 +231,7 @@ std::optional<SharedVideoFrame::Buffer> SharedVideoFrameWriter::writeBuffer(cons
 
 std::optional<SharedVideoFrame::Buffer> SharedVideoFrameWriter::writeBuffer(webrtc::VideoFrameBuffer& frameBuffer, NOESCAPE const Function<void(IPC::Semaphore&)>& newSemaphoreCallback, NOESCAPE const Function<void(SharedMemory::Handle&&)>& newMemoryCallback)
 {
+    auto releaseRetiredStorage = makeScopeExit([this] { m_retiredStorage.clear(); });
     SharedVideoFrameWriterContext context { *this, newSemaphoreCallback, newMemoryCallback };
     auto info = SharedVideoFrameInfo::fromVideoFrameBuffer(frameBuffer);
     if (!swiftImpl().prepareWriting(info, context) || !info.writeVideoFrameBuffer(frameBuffer, m_storage->mutableSpan())) {
