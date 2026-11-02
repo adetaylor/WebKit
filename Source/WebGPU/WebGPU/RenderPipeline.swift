@@ -45,7 +45,8 @@ private enum PipelineStateCompilation {
 // One per GPURenderPipeline, owned by the C++ RenderPipeline. Owns all of the pipeline's state, including the Device;
 // the render encoders read it directly.
 @_expose(Cxx)
-final class RenderPipelineImpl {
+@_spi(WebKitGPU)
+public final class RenderPipelineImpl: DeliverableImpl {
     // nil == invalid pipeline.
     private let backingRenderPipelineDescriptor: MTLRenderPipelineDescriptor?
     // What render passes draw with: compiled lazily or installed by the async precompile, and replaced by the indirect

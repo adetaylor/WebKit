@@ -163,8 +163,8 @@ private:
     const std::unique_ptr<BufferImplBox> m_impl;
 } SWIFT_SHARED_REFERENCE(refBuffer, derefBuffer) SWIFT_PRIVATE_FILEID("WebGPUSwift/Buffer.swift") SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
-// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the BufferImpl of a WebGPU::Buffer.
-void deliverImpl(WebGPU::Buffer&);
+// For reference(of:) in ImplLookup.swift, which gives WebKit's Swift the BufferImpl of a WebGPU::Buffer, and its shell.
+Buffer& deliverImpl(WebGPU::Buffer&) SWIFT_RETURNS_UNRETAINED;
 
 } // namespace WebGPU::Metal
 

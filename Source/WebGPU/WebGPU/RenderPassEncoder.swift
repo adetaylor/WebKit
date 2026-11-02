@@ -464,7 +464,8 @@ private struct IndirectEncodeWork {
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
-final class RenderPassEncoderImpl {
+@_spi(WebKitGPU)
+public final class RenderPassEncoderImpl: DeliverableImpl {
     // nil while the pass is deferred, and once it is invalid, has ended or no longer holds its command
     // encoder's current encoder.
     private var backingRenderCommandEncoder: (any MTLRenderCommandEncoder)?
@@ -2554,7 +2555,8 @@ final class RenderPassEncoderImpl {
     // Each "failed as encoding has finished" message names the entry point with its C++ __PRETTY_FUNCTION__ spelling.
 
     @_expose(Cxx)
-    func draw(_ vertexCount: UInt32, _ instanceCount: UInt32, _ firstVertex: UInt32, _ firstInstance: UInt32) {
+    @_spi(WebKitGPU)
+    public func draw(_ vertexCount: UInt32, _ instanceCount: UInt32, _ firstVertex: UInt32, _ firstInstance: UInt32) {
         if encodingHasFinished() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::RenderPassEncoder::draw(uint32_t, uint32_t, uint32_t, uint32_t): failed as encoding has finished"
@@ -2596,7 +2598,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func drawIndexed(_ indexCount: UInt32, _ instanceCount: UInt32, _ firstIndex: UInt32, _ baseVertex: Int32, _ firstInstance: UInt32) {
+    @_spi(WebKitGPU)
+    public func drawIndexed(_ indexCount: UInt32, _ instanceCount: UInt32, _ firstIndex: UInt32, _ baseVertex: Int32, _ firstInstance: UInt32) {
         if encodingHasFinished() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::RenderPassEncoder::drawIndexed(uint32_t, uint32_t, uint32_t, int32_t, uint32_t): failed as encoding has finished"
@@ -2714,7 +2717,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func drawIndexedIndirect(_ indirectBuffer: BufferImpl, _ indirectOffset: UInt64) {
+    @_spi(WebKitGPU)
+    public func drawIndexedIndirect(_ indirectBuffer: BufferImpl, _ indirectOffset: UInt64) {
         if encodingHasFinished() {
             generateAValidationError(
                 "void WebGPU::Metal::RenderPassEncoder::drawIndexedIndirect(Buffer &, uint64_t): failed as encoding has finished"
@@ -2808,7 +2812,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func drawIndirect(_ indirectBuffer: BufferImpl, _ indirectOffset: UInt64) {
+    @_spi(WebKitGPU)
+    public func drawIndirect(_ indirectBuffer: BufferImpl, _ indirectOffset: UInt64) {
         if encodingHasFinished() {
             generateAValidationError(
                 "void WebGPU::Metal::RenderPassEncoder::drawIndirect(Buffer &, uint64_t): failed as encoding has finished"
@@ -2872,7 +2877,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func beginOcclusionQuery(_ initialQueryIndex: UInt32) {
+    @_spi(WebKitGPU)
+    public func beginOcclusionQuery(_ initialQueryIndex: UInt32) {
         if encodingHasFinished() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::RenderPassEncoder::beginOcclusionQuery(uint32_t): failed as encoding has finished"
@@ -2911,7 +2917,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func endOcclusionQuery() {
+    @_spi(WebKitGPU)
+    public func endOcclusionQuery() {
         if encodingHasFinished() {
             generateAValidationError("virtual void WebGPU::Metal::RenderPassEncoder::endOcclusionQuery(): failed as encoding has finished")
             return
@@ -2932,7 +2939,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func endPass() {
+    @_spi(WebKitGPU)
+    public func endPass() {
         if passEnded {
             generateAValidationError("void WebGPU::Metal::RenderPassEncoder::endPass(): failed as pass is already ended")
             return
@@ -3021,6 +3029,14 @@ final class RenderPassEncoderImpl {
 
     @_expose(Cxx)
     func insertDebugMarker(_ markerLabel: NSString) {
+        insertDebugMarker(markerLabel as String)
+    }
+
+    // As WTF::String::createNSString() makes the label for the NSString overloads, a null one is empty.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func insertDebugMarker(_ markerLabel: Swift.String?) {
+        let markerLabel = markerLabel ?? ""
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker
         if encodingHasFinished() {
             generateAValidationError(
@@ -3032,7 +3048,7 @@ final class RenderPassEncoderImpl {
             return
         }
 
-        backingRenderCommandEncoder?.insertDebugSignpost(markerLabel as String)
+        backingRenderCommandEncoder?.insertDebugSignpost(markerLabel)
     }
 
     private func validatePopDebugGroup() -> Bool {
@@ -3040,7 +3056,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func popDebugGroup() {
+    @_spi(WebKitGPU)
+    public func popDebugGroup() {
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup
         if encodingHasFinished() {
             generateAValidationError("virtual void WebGPU::Metal::RenderPassEncoder::popDebugGroup(): failed as encoding has finished")
@@ -3061,6 +3078,13 @@ final class RenderPassEncoderImpl {
 
     @_expose(Cxx)
     func pushDebugGroup(_ groupLabel: NSString) {
+        pushDebugGroup(groupLabel as String)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func pushDebugGroup(_ groupLabel: Swift.String?) {
+        let groupLabel = groupLabel ?? ""
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup
         if encodingHasFinished() {
             generateAValidationError(
@@ -3073,7 +3097,7 @@ final class RenderPassEncoderImpl {
         }
 
         debugGroupStackSize &+= 1
-        backingRenderCommandEncoder?.pushDebugGroup(groupLabel as String)
+        backingRenderCommandEncoder?.pushDebugGroup(groupLabel)
     }
 
     private func validateGroupIndex(_ groupIndex: UInt32, expectedDynamicOffsetCount: UInt32, _ dynamicOffsetCount: Int?) -> Bool {
@@ -3098,6 +3122,10 @@ final class RenderPassEncoderImpl {
         _ hasDynamicOffsets: Bool,
         _ dynamicOffsetsView: borrowing WebGPU.Metal.DynamicOffsetsView
     ) -> Bool {
+        setBindGroup(groupIndex, groupImpl, hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsetsView) : nil)
+    }
+
+    private func setBindGroup(_ groupIndex: UInt32, _ groupImpl: BindGroupImpl, _ dynamicOffsets: [UInt32]?) -> Bool {
         if encodingHasFinished() {
             generateAValidationError(
                 "void WebGPU::Metal::RenderPassEncoder::setBindGroup(uint32_t, const BindGroup *, std::optional<std::span<const uint32_t>>): failed as encoding has finished"
@@ -3108,7 +3136,6 @@ final class RenderPassEncoderImpl {
             return false
         }
 
-        let dynamicOffsets = hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsetsView) : nil
         if !validateGroupIndex(
             groupIndex,
             expectedDynamicOffsetCount: groupImpl.layoutImpl?.counts.dynamicBufferCount ?? 0,
@@ -3195,7 +3222,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func setBlendConstant(_ color: WebGPU.Color) {
+    @_spi(WebKitGPU)
+    public func setBlendConstant(_ color: WebGPU.Color) {
         if encodingHasFinished() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::RenderPassEncoder::setBlendConstant(const WebGPU::Color &): failed as encoding has finished"
@@ -3280,7 +3308,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func setScissorRect(_ x: UInt32, _ y: UInt32, _ width: UInt32, _ height: UInt32) {
+    @_spi(WebKitGPU)
+    public func setScissorRect(_ x: UInt32, _ y: UInt32, _ width: UInt32, _ height: UInt32) {
         if encodingHasFinished() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::RenderPassEncoder::setScissorRect(uint32_t, uint32_t, uint32_t, uint32_t): failed as encoding has finished"
@@ -3333,7 +3362,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func setStencilReference(_ reference: UInt32) {
+    @_spi(WebKitGPU)
+    public func setStencilReference(_ reference: UInt32) {
         if encodingHasFinished() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::RenderPassEncoder::setStencilReference(uint32_t): failed as encoding has finished"
@@ -3348,7 +3378,8 @@ final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func setViewport(_ x: Float, _ y: Float, _ width: Float, _ height: Float, _ minDepth: Float, _ maxDepth: Float) {
+    @_spi(WebKitGPU)
+    public func setViewport(_ x: Float, _ y: Float, _ width: Float, _ height: Float, _ minDepth: Float, _ maxDepth: Float) {
         if encodingHasFinished() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::RenderPassEncoder::setViewport(float, float, float, float, float, float): failed as encoding has finished"
@@ -3517,7 +3548,63 @@ final class RenderPassEncoderImpl {
 
     @_expose(Cxx)
     func setLabel(_ label: NSString) {
-        backingRenderCommandEncoder?.label = label as String
+        setLabel(label as String)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setLabel(_ label: Swift.String?) {
+        backingRenderCommandEncoder?.label = label ?? ""
+    }
+
+    // setPipeline, for a Swift caller that has the pipeline's shell too.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setPipeline(_ pipeline: RenderPipelineReference) {
+        if setPipeline(pipeline.impl) {
+            storePipelineShell(pipeline.shell)
+        }
+    }
+
+    // setBindGroup, for a Swift caller that has the group's shell too.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {
+        guard let group else {
+            clearBindGroup(groupIndex, dynamicOffsets != nil, UInt(dynamicOffsets?.count ?? 0))
+            return
+        }
+        if setBindGroup(groupIndex, group.impl, dynamicOffsets) {
+            storeBindGroupShell(groupIndex, group.shell)
+        }
+    }
+
+    // setIndexBuffer, for a Swift caller.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setIndexBuffer(_ buffer: BufferReference, _ format: WebGPU.IndexFormat, _ offset: UInt64, _ size: UInt64?) {
+        setIndexBuffer(buffer.shell, buffer.impl, format, offset, size != nil, size ?? 0)
+    }
+
+    // setVertexBuffer, for a Swift caller, which clears the slot without a buffer.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func setVertexBuffer(_ slot: UInt32, _ buffer: BufferImpl?, _ offset: UInt64, _ size: UInt64?) {
+        guard let buffer else {
+            clearVertexBuffer(slot)
+            return
+        }
+        setVertexBuffer(slot, buffer, offset, size != nil, size ?? 0)
+    }
+
+    // executeBundles, for a Swift caller that has the bundles' shells too.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func executeBundles(_ bundles: [RenderBundleReference]) {
+        for bundle in bundles {
+            appendPendingBundle(bundle.shell, bundle.impl)
+        }
+        executeBundles()
     }
 
     // MARK: Splitting the pass

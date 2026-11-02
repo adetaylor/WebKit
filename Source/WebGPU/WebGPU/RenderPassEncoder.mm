@@ -442,6 +442,11 @@ void registerIndirectDeviceLostChecks(CommandEncoder& parentEncoder, Device& par
     }];
 }
 
+void deliverImpl(WebGPU::RenderPassEncoder& renderPassEncoder)
+{
+    WebGPUSwift::receiveImpl(downcast<RenderPassEncoder>(renderPassEncoder).swiftImpl());
+}
+
 } // namespace WebGPU::Metal
 
 #pragma mark WGPU Stubs

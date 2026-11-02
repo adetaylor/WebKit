@@ -30,6 +30,8 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.ExternalTexture
 @_implementationOnly import WebGPU_Internal.QuerySet
+@_implementationOnly import WebGPU_Internal.RenderPassEncoder
+@_implementationOnly import WebGPU_Internal.RenderPipeline
 @_implementationOnly import WebGPU_Internal.RenderBundle
 @_implementationOnly import WebGPU_Internal.Sampler
 @_implementationOnly import WebGPU_Internal.TextureView
@@ -70,7 +72,7 @@ public func impl(of bindGroupLayout: WebGPU.BindGroupLayout) -> BindGroupLayoutI
 
 @_spi(WebKitGPU)
 public func impl(of renderBundle: WebGPU.RenderBundle) -> RenderBundleImpl {
-    ImplLookup.lookUp(RenderBundleImpl.self) { WebGPU.Metal.deliverImpl(renderBundle) }
+    ImplLookup.lookUp(RenderBundleImpl.self) { _ = WebGPU.Metal.deliverImpl(renderBundle) }
 }
 
 @_spi(WebKitGPU)
@@ -80,12 +82,17 @@ public func impl(of commandBuffer: WebGPU.CommandBuffer) -> CommandBufferImpl {
 
 @_spi(WebKitGPU)
 public func impl(of buffer: WebGPU.Buffer) -> BufferImpl {
-    ImplLookup.lookUp(BufferImpl.self) { WebGPU.Metal.deliverImpl(buffer) }
+    ImplLookup.lookUp(BufferImpl.self) { _ = WebGPU.Metal.deliverImpl(buffer) }
 }
 
 @_spi(WebKitGPU)
 public func impl(of computePassEncoder: WebGPU.ComputePassEncoder) -> ComputePassEncoderImpl {
     ImplLookup.lookUp(ComputePassEncoderImpl.self) { WebGPU.Metal.deliverImpl(computePassEncoder) }
+}
+
+@_spi(WebKitGPU)
+public func impl(of renderPassEncoder: WebGPU.RenderPassEncoder) -> RenderPassEncoderImpl {
+    ImplLookup.lookUp(RenderPassEncoderImpl.self) { WebGPU.Metal.deliverImpl(renderPassEncoder) }
 }
 
 // An Impl with the shell of the same object, for the encoders that keep the shells of the objects they're given, which
@@ -131,6 +138,69 @@ public func reference(of computePipeline: WebGPU.ComputePipeline) -> ComputePipe
         preconditionFailure("C++ delivered no shell")
     }
     return ComputePipelineReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
+public final class BufferReference {
+    public let impl: BufferImpl
+    let shell: WebGPU.Metal.Buffer
+
+    init(_ impl: BufferImpl, _ shell: WebGPU.Metal.Buffer) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
+@_spi(WebKitGPU)
+public func reference(of buffer: WebGPU.Buffer) -> BufferReference {
+    var shell: WebGPU.Metal.Buffer?
+    let impl = ImplLookup.lookUp(BufferImpl.self) { shell = WebGPU.Metal.deliverImpl(buffer) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return BufferReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
+public final class RenderBundleReference {
+    public let impl: RenderBundleImpl
+    let shell: WebGPU.Metal.RenderBundle
+
+    init(_ impl: RenderBundleImpl, _ shell: WebGPU.Metal.RenderBundle) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
+@_spi(WebKitGPU)
+public func reference(of renderBundle: WebGPU.RenderBundle) -> RenderBundleReference {
+    var shell: WebGPU.Metal.RenderBundle?
+    let impl = ImplLookup.lookUp(RenderBundleImpl.self) { shell = WebGPU.Metal.deliverImpl(renderBundle) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return RenderBundleReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
+public final class RenderPipelineReference {
+    public let impl: RenderPipelineImpl
+    let shell: WebGPU.Metal.RenderPipeline
+
+    init(_ impl: RenderPipelineImpl, _ shell: WebGPU.Metal.RenderPipeline) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
+@_spi(WebKitGPU)
+public func reference(of renderPipeline: WebGPU.RenderPipeline) -> RenderPipelineReference {
+    var shell: WebGPU.Metal.RenderPipeline?
+    let impl = ImplLookup.lookUp(RenderPipelineImpl.self) { shell = WebGPU.Metal.deliverImpl(renderPipeline) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return RenderPipelineReference(impl, shell)
 }
 
 // The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().

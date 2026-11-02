@@ -155,6 +155,9 @@ void registerICBIndexValidationCompletion(CommandEncoder&, Device&, Buffer& inde
 // The block runs on the API thread once the command buffer completed, and returns whether to lose the device.
 void registerIndirectDeviceLostChecks(CommandEncoder&, Device&, bool (^takeLostOrOOBRead)(void));
 
+// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the RenderPassEncoderImpl of a WebGPU::RenderPassEncoder.
+void deliverImpl(WebGPU::RenderPassEncoder&);
+
 } // namespace WebGPU::Metal
 
 #if !ENABLE(SWIFT_BASE_CLASS_ANNOTATIONS)
