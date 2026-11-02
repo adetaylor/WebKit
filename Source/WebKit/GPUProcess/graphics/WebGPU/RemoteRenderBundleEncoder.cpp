@@ -37,6 +37,11 @@
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "RemoteRenderBundleMessages.h"
+#include "WebKit-Swift.h"
+#endif
+
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_streamConnection)
 
 namespace WebKit {
@@ -171,8 +176,14 @@ void RemoteRenderBundleEncoder::finish(const WebGPU::RenderBundleDescriptor& des
     Ref objectHeap = m_objectHeap.get();
     auto renderBundle = protect(m_backing)->finish(descriptor);
     MESSAGE_CHECK(renderBundle);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteRenderBundle = RemoteRenderBundle::init(RemoteRenderBundleBacking { *renderBundle }, context);
+    objectHeap->addObject(identifier, WebGPU::RenderBundleObject { *renderBundle, WTF::move(remoteRenderBundle), context, protect(m_streamConnection), Messages::RemoteRenderBundle::messageReceiverName(), identifier });
+#else
     auto remoteRenderBundle = RemoteRenderBundle::create(*renderBundle, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteRenderBundle);
+#endif
 }
 
 void RemoteRenderBundleEncoder::setLabel(String&& label)

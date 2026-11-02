@@ -64,8 +64,12 @@
 #include <wtf/TZoneMallocInlines.h>
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "RemoteBindGroupLayoutMessages.h"
 #include "RemoteBindGroupMessages.h"
+#include "RemoteExternalTextureMessages.h"
+#include "RemotePipelineLayoutMessages.h"
 #include "RemoteQuerySetMessages.h"
+#include "RemoteSamplerMessages.h"
 #include "WebKit-Swift.h"
 #endif
 
@@ -151,8 +155,14 @@ void RemoteDevice::createSampler(const WebGPU::SamplerDescriptor& descriptor, We
     Ref objectHeap = m_objectHeap.get();
     auto sampler = m_backing->createSampler(descriptor);
     MESSAGE_CHECK(sampler);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteSampler = RemoteSampler::init(RemoteSamplerBacking { *sampler }, context);
+    objectHeap->addObject(identifier, WebGPU::SamplerObject { *sampler, WTF::move(remoteSampler), context, protect(m_streamConnection), Messages::RemoteSampler::messageReceiverName(), identifier });
+#else
     auto remoteSampler = RemoteSampler::create(*sampler, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteSampler);
+#endif
 }
 
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
@@ -198,8 +208,14 @@ void RemoteDevice::importExternalTextureFromVideoFrame(const WebGPU::ExternalTex
         return;
     auto externalTexture = gpu->importExternalTexture(m_backing, *convertedDescriptor);
     MESSAGE_CHECK(externalTexture);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteExternalTexture = RemoteExternalTexture::init(RemoteExternalTextureBacking { *externalTexture }, context);
+    objectHeap->addObject(identifier, WebGPU::ExternalTextureObject { *externalTexture, WTF::move(remoteExternalTexture), context, protect(m_streamConnection), Messages::RemoteExternalTexture::messageReceiverName(), identifier });
+#else
     auto remoteExternalTexture = RemoteExternalTexture::create(*externalTexture, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteExternalTexture);
+#endif
 }
 
 void RemoteDevice::updateExternalTexture(WebKit::WebGPUIdentifier externalTextureIdentifier, const WebCore::MediaPlayerIdentifier& mediaPlayerIdentifier)
@@ -233,8 +249,14 @@ void RemoteDevice::createBindGroupLayout(const WebGPU::BindGroupLayoutDescriptor
 
     auto bindGroupLayout = m_backing->createBindGroupLayout(*convertedDescriptor);
     MESSAGE_CHECK(bindGroupLayout);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteBindGroupLayout = RemoteBindGroupLayout::init(RemoteBindGroupLayoutBacking { *bindGroupLayout }, context);
+    objectHeap->addObject(identifier, WebGPU::BindGroupLayoutObject { *bindGroupLayout, WTF::move(remoteBindGroupLayout), context, protect(m_streamConnection), Messages::RemoteBindGroupLayout::messageReceiverName(), identifier });
+#else
     auto remoteBindGroupLayout = RemoteBindGroupLayout::create(*bindGroupLayout, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteBindGroupLayout);
+#endif
 }
 
 void RemoteDevice::createPipelineLayout(const WebGPU::PipelineLayoutDescriptor& descriptor, WebGPUIdentifier identifier)
@@ -246,8 +268,14 @@ void RemoteDevice::createPipelineLayout(const WebGPU::PipelineLayoutDescriptor& 
 
     auto pipelineLayout = m_backing->createPipelineLayout(*convertedDescriptor);
     MESSAGE_CHECK(pipelineLayout);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remotePipelineLayout = RemotePipelineLayout::init(context);
+    objectHeap->addObject(identifier, WebGPU::PipelineLayoutObject { *pipelineLayout, WTF::move(remotePipelineLayout), context, protect(m_streamConnection), Messages::RemotePipelineLayout::messageReceiverName(), identifier });
+#else
     auto remotePipelineLayout = RemotePipelineLayout::create(*pipelineLayout,  objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remotePipelineLayout);
+#endif
 }
 
 void RemoteDevice::createBindGroup(const WebGPU::BindGroupDescriptor& descriptor, WebGPUIdentifier identifier)

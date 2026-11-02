@@ -35,6 +35,11 @@
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "RemoteBindGroupLayoutMessages.h"
+#include "WebKit-Swift.h"
+#endif
+
 namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteComputePipeline);
@@ -66,8 +71,14 @@ void RemoteComputePipeline::getBindGroupLayout(uint32_t index, WebGPUIdentifier 
     // "A new GPUBindGroupLayout wrapper is returned each time"
     Ref objectHeap = m_objectHeap.get();
     auto bindGroupLayout = protect(m_backing)->getBindGroupLayout(index);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteBindGroupLayout = RemoteBindGroupLayout::init(RemoteBindGroupLayoutBacking { bindGroupLayout }, context);
+    objectHeap->addObject(identifier, WebGPU::BindGroupLayoutObject { bindGroupLayout, WTF::move(remoteBindGroupLayout), context, protect(m_streamConnection), Messages::RemoteBindGroupLayout::messageReceiverName(), identifier });
+#else
     auto remoteBindGroupLayout = RemoteBindGroupLayout::create(bindGroupLayout, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteBindGroupLayout);
+#endif
 }
 
 void RemoteComputePipeline::setLabel(String&& label)

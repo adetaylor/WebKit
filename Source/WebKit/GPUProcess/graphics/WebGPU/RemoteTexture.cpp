@@ -38,6 +38,11 @@
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "RemoteTextureViewMessages.h"
+#include "WebKit-Swift.h"
+#endif
+
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_streamConnection)
 
 namespace WebKit {
@@ -67,8 +72,14 @@ void RemoteTexture::createView(const std::optional<WebGPU::TextureViewDescriptor
     Ref objectHeap = m_objectHeap.get();
     auto textureView = protect(m_backing)->createView(descriptor);
     MESSAGE_CHECK(textureView);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteTextureView = RemoteTextureView::init(RemoteTextureViewBacking { *textureView }, context);
+    objectHeap->addObject(identifier, WebGPU::TextureViewObject { *textureView, WTF::move(remoteTextureView), context, protect(m_streamConnection), Messages::RemoteTextureView::messageReceiverName(), identifier });
+#else
     auto remoteTextureView = RemoteTextureView::create(textureView.releaseNonNull(), objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteTextureView);
+#endif
 }
 
 void RemoteTexture::destroy()

@@ -78,6 +78,71 @@ private:
     Ref<::WebGPU::BindGroup> m_backing;
 } SWIFT_SELF_CONTAINED;
 
+class RemoteSamplerBacking {
+public:
+    explicit RemoteSamplerBacking(::WebGPU::Sampler& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::Sampler& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::Sampler> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+class RemoteTextureViewBacking {
+public:
+    explicit RemoteTextureViewBacking(::WebGPU::TextureView& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::TextureView& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::TextureView> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+class RemoteBindGroupLayoutBacking {
+public:
+    explicit RemoteBindGroupLayoutBacking(::WebGPU::BindGroupLayout& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::BindGroupLayout& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::BindGroupLayout> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+class RemoteRenderBundleBacking {
+public:
+    explicit RemoteRenderBundleBacking(::WebGPU::RenderBundle& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::RenderBundle& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::RenderBundle> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+class RemoteExternalTextureBacking {
+public:
+    explicit RemoteExternalTextureBacking(::WebGPU::ExternalTexture& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::ExternalTexture& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::ExternalTexture> m_backing;
+} SWIFT_SELF_CONTAINED;
+
 class RemoteQuerySetBacking {
 public:
     explicit RemoteQuerySetBacking(::WebGPU::QuerySet& backing)

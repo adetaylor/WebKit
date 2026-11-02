@@ -100,11 +100,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteBindGroup& bindGro
 }
 #endif
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteBindGroupLayout& bindGroupLayout)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, BindGroupLayoutObject&& bindGroupLayout)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroupLayout> { protect(bindGroupLayout) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(bindGroupLayout) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteBindGroupLayout& bindGroupLayout)
+{
+    auto result = m_objects.add(identifier, Object { BindGroupLayoutObject { protect(bindGroupLayout) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteBuffer& buffer)
 {
@@ -149,17 +157,33 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteDevice& device)
     m_devices.add(device.backing());
 }
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, ExternalTextureObject&& externalTexture)
+{
+    auto result = m_objects.add(identifier, Object { WTF::move(externalTexture) });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#else
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteExternalTexture& externalTexture)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteExternalTexture> { protect(externalTexture) } });
+    auto result = m_objects.add(identifier, Object { ExternalTextureObject { protect(externalTexture) } });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#endif
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, PipelineLayoutObject&& pipelineLayout)
+{
+    auto result = m_objects.add(identifier, Object { WTF::move(pipelineLayout) });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#else
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemotePipelineLayout& pipelineLayout)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout> { protect(pipelineLayout) } });
+    auto result = m_objects.add(identifier, Object { PipelineLayoutObject { protect(pipelineLayout) } });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemotePresentationContext& presentationContext)
 {
@@ -193,11 +217,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderBundleEncode
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderBundle& renderBundle)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RenderBundleObject&& renderBundle)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundle> { protect(renderBundle) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(renderBundle) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderBundle& renderBundle)
+{
+    auto result = m_objects.add(identifier, Object { RenderBundleObject { protect(renderBundle) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderPassEncoder& renderPassEncoder)
 {
@@ -211,11 +243,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderPipeline& re
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteSampler& sampler)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, SamplerObject&& sampler)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteSampler> { protect(sampler) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(sampler) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteSampler& sampler)
+{
+    auto result = m_objects.add(identifier, Object { SamplerObject { protect(sampler) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteShaderModule& shaderModule)
 {
@@ -229,11 +269,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteTexture& texture)
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteTextureView& textureView)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, TextureViewObject&& textureView)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteTextureView> { protect(textureView) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(textureView) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteTextureView& textureView)
+{
+    auto result = m_objects.add(identifier, Object { TextureViewObject { protect(textureView) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteXRBinding& xrBinding)
 {
@@ -294,9 +342,9 @@ RefPtr<::WebGPU::BindGroup> ObjectHeap::convertBindGroupFromBacking(WebGPUIdenti
 RefPtr<::WebGPU::BindGroupLayout> ObjectHeap::convertBindGroupLayoutFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroupLayout>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<BindGroupLayoutObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroupLayout>>(iterator->value)->backing();
+    return &std::get<BindGroupLayoutObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::Buffer> ObjectHeap::convertBufferFromBacking(WebGPUIdentifier identifier)
@@ -358,17 +406,17 @@ RefPtr<::WebGPU::Device> ObjectHeap::convertDeviceFromBacking(WebGPUIdentifier i
 ThreadSafeWeakPtr<::WebGPU::ExternalTexture> ObjectHeap::convertExternalTextureFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteExternalTexture>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<ExternalTextureObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteExternalTexture>>(iterator->value)->backing();
+    return &std::get<ExternalTextureObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::PipelineLayout> ObjectHeap::convertPipelineLayoutFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<PipelineLayoutObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout>>(iterator->value)->backing();
+    return &std::get<PipelineLayoutObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::PresentationContext> ObjectHeap::convertPresentationContextFromBacking(WebGPUIdentifier identifier)
@@ -406,9 +454,9 @@ RefPtr<::WebGPU::RenderBundleEncoder> ObjectHeap::convertRenderBundleEncoderFrom
 RefPtr<::WebGPU::RenderBundle> ObjectHeap::convertRenderBundleFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundle>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<RenderBundleObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundle>>(iterator->value)->backing();
+    return &std::get<RenderBundleObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::RenderPassEncoder> ObjectHeap::convertRenderPassEncoderFromBacking(WebGPUIdentifier identifier)
@@ -430,9 +478,9 @@ RefPtr<::WebGPU::RenderPipeline> ObjectHeap::convertRenderPipelineFromBacking(We
 RefPtr<::WebGPU::Sampler> ObjectHeap::convertSamplerFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteSampler>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<SamplerObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteSampler>>(iterator->value)->backing();
+    return &std::get<SamplerObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::ShaderModule> ObjectHeap::convertShaderModuleFromBacking(WebGPUIdentifier identifier)
@@ -454,9 +502,9 @@ RefPtr<::WebGPU::Texture> ObjectHeap::convertTextureFromBacking(WebGPUIdentifier
 RefPtr<::WebGPU::TextureView> ObjectHeap::convertTextureViewFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteTextureView>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<TextureViewObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteTextureView>>(iterator->value)->backing();
+    return &std::get<TextureViewObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::XRBinding> ObjectHeap::convertXRBindingFromBacking(WebGPUIdentifier identifier)

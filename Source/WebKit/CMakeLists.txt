@@ -1033,9 +1033,19 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteCGRendererMessageReceiver.cpp
         GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
 
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupLayoutMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteExternalTextureMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemotePipelineLayoutMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySetMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteRenderBundleMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteSamplerMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureViewMessageReceiver.cpp
+        GPUProcess/graphics/WebGPU/RemoteComputePipeline.cpp
         GPUProcess/graphics/WebGPU/RemoteDevice.cpp
+        GPUProcess/graphics/WebGPU/RemoteRenderBundleEncoder.cpp
+        GPUProcess/graphics/WebGPU/RemoteRenderPipeline.cpp
+        GPUProcess/graphics/WebGPU/RemoteTexture.cpp
         GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
 
         UIProcess/API/ios/WKWebViewIOS.mm
@@ -1693,14 +1703,32 @@ endif ()
 # Each compiles to nothing unless ENABLE_GPU_PROCESS_WEBGPU_SWIFT is set.
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteExternalTextureMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemotePipelineLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteQuerySetMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderBundleMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteSamplerMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureViewMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroup.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupLayout.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteExternalTexture.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemotePipelineLayout.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySet.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteRenderBundle.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteSampler.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureView.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteExternalTextureMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemotePipelineLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteQuerySetMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderBundleMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteSamplerMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureViewMessageReceiver.swift
     )
 endif ()
 

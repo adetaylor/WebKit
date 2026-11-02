@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemotePipelineLayout.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemotePipelineLayoutMessages.h"
 #include "StreamServerConnection.h"
@@ -67,4 +67,4 @@ void RemotePipelineLayout::setLabel(String&& label)
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

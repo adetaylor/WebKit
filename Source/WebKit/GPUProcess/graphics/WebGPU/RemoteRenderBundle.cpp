@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteRenderBundle.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteRenderBundleMessages.h"
 #include "StreamServerConnection.h"
@@ -67,4 +67,4 @@ void RemoteRenderBundle::setLabel(String&& label)
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
