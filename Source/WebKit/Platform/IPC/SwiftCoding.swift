@@ -462,8 +462,8 @@ enum IPCCoding {
             guard let count = Int(exactly: length) else {
                 throw IPCDecodingError()
             }
-            if is8Bit, #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
-                return try decodeLatin1(count, from: &decoder)
+            if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                return try is8Bit ? decodeLatin1(count, from: &decoder) : decodeUTF16(count, from: &decoder)
             }
             guard decoder.beginArray(count, is8Bit ? 1 : 2) else {
                 throw IPCDecodingError()
@@ -501,6 +501,33 @@ enum IPCCoding {
             var utf8 = [UInt8](repeating: 0, count: 2 * count)
             var utf8Span = utf8.mutableSpan
             guard decoder.decodeLatin1Characters(count, &utf8Span, &length) else {
+                throw IPCDecodingError()
+            }
+            return String(decoding: utf8[..<length], as: Unicode.UTF8.self)
+        }
+
+        /// The longest 16-bit string whose UTF-8 is made on the stack.
+        private static let inlineUTF16Capacity = 32
+
+        @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+        private static func decodeUTF16(_ count: Int, from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> String {
+            // Each code unit takes two bytes of the message, so a count beyond what is left is malformed.
+            guard count <= decoder.remainingByteCount() / 2 else {
+                decoder.markInvalid()
+                throw IPCDecodingError()
+            }
+            var length = 0
+            if count <= inlineUTF16Capacity {
+                var utf8 = InlineArray<96, UInt8>(repeating: 0)
+                var utf8Span = utf8.mutableSpan
+                guard decoder.decodeUTF16Characters(count, &utf8Span, &length) else {
+                    throw IPCDecodingError()
+                }
+                return try string(fromUTF8: utf8.span.extracting(0..<length))
+            }
+            var utf8 = [UInt8](repeating: 0, count: 3 * count)
+            var utf8Span = utf8.mutableSpan
+            guard decoder.decodeUTF16Characters(count, &utf8Span, &length) else {
                 throw IPCDecodingError()
             }
             return String(decoding: utf8[..<length], as: Unicode.UTF8.self)
