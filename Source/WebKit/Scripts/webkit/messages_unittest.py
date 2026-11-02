@@ -214,6 +214,24 @@ messages -> TestReceiver Stream {
 """))
         self.assertIn('func dispatchMessage(', messages.generate_swift_message_handler(stream_receiver))
 
+    def test_sync_handler(self):
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
+    SyncMessage(uint32_t value) -> (uint32_t reply) SwiftSyncHandler
+    AsyncMessage(uint32_t value) -> (uint32_t reply)
+""")
+        swift = messages.generate_swift_message_handler(receiver)
+        sync_dispatch = re.search(r'func dispatchSyncMessage\((.|\n)*?\n    \}\n', swift).group(0)
+        self.assertIn('MainActor.assumeIsolated {', sync_dispatch)
+        self.assertIn('do throws(InvalidMessage) {', sync_dispatch)
+        self.assertIn('let reply = try mayThrowInvalidMessage(', sync_dispatch)
+        self.assertNotIn('await', sync_dispatch)
+        self.assertNotIn('Task', sync_dispatch)
+        self.assertNotIn('SyncMessageInvocation', swift)
+        self.assertIn('private final class AsyncMessageInvocation', swift)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftSyncHandler', which is for messages a Swift receiver handles"):
+            parse_swift_receiver(['ExceptionForEnabledBy'], '    Message(uint32_t value) SwiftSyncHandler')
+
     def test_cxx_typed_replies(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
     PrimitiveReply(Ref<WebKit::FrameState> frameState) -> (uint8_t reply) CxxTypes

@@ -129,6 +129,21 @@ void IPCTesterReceiver::roundTripBufferSwift(RefPtr<WebCore::SharedBuffer>&& buf
     completionHandler(WTF::move(buffer), size);
 }
 
+void IPCTesterReceiver::halveEvenNumberSyncHandlerSwift(IPC::Connection& connection, uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
+{
+    halveEvenNumberSwift(connection, value, WTF::move(completionHandler));
+}
+
+void IPCTesterReceiver::transformPayloadSyncHandlerSwift(const IPCTesterPayload& payload, CompletionHandler<void(IPCTesterPayload&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterTransformed(payload));
+}
+
+void IPCTesterReceiver::recordSyncHandlerSwift(const String& text)
+{
+    recordSwift(text);
+}
+
 void IPCTesterReceiver::swapPairsSwift(const Vector<std::pair<String, uint32_t>>& pairs, CompletionHandler<void(Vector<std::pair<uint32_t, String>>&&)>&& completionHandler)
 {
     completionHandler(pairs.map([](auto& pair) {

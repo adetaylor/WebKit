@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
 
 _license_header = """/*
  * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
@@ -2514,15 +2514,18 @@ def generate_swift_message_handler(receiver):
         elif has_reply:
             parameters.append('completionHandler: sending CompletionHandlers.%s.%sCompletionHandler' % (receiver.name, message.name))
 
-        # Any handler may be async: .messages.in cannot say, and even a Synchronous reply may be sent
-        # after dispatch returns, since handleMessageSynchronous moves the reply encoder into the
-        # completion handler. Handlers are isolated to the main actor, so dispatch enters it with
+        # A handler may be async, unless the message is SwiftSyncHandler, and even a Synchronous reply
+        # may be sent after dispatch returns, since handleMessageSynchronous moves the reply encoder into
+        # the completion handler. Handlers are isolated to the main actor, so dispatch enters it with
         # assumeIsolated, which also asserts that IPC really did dispatch us on the main thread, and
         # runs the handler in a Task which starts inline, so it stays in order with C++-handled
         # messages, and which inherits that isolation, so it stays on the main thread. The work
         # lives in an async method rather than the Task's closure: a typed `catch` inside the closure
         # widens to `any Error`, and spelling the type makes the closure throwing, which
         # -Werror NoUseUnstructuredThrowingTask rejects.
+        # A SwiftSyncHandler handler is called directly instead, with no Task or Invocation. Calling an
+        # async handler there does not compile.
+        sync_handler = message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE)
         # FIXME(rdar://189495426): store arguments in an Invocation class to work around Windows tail
         # call problem.
         invocation_class = '%sInvocation' % message.name
@@ -2549,6 +2552,53 @@ def generate_swift_message_handler(receiver):
             result.append('        } catch {\n')
             result.append('            return false\n')
             result.append('        }\n')
+        reply_statements = []
+        cancel_statements = []
+        if takes_swift_types and has_reply:
+            reply_statements = swift_reply_encoding_statements(message, 'reply', 'replyEncoder') + ['replyEncoder.send()']
+            cancel_statements = ['replyEncoder.cancel()']
+        elif has_reply:
+            reply_statements = [swift_reply_completion_call(receiver, message, 'reply')]
+            cancel_statements = ['CompletionHandlers.%s.completeWithDefaultReply(completionHandler)' % receiver.name]
+
+        def append_handler_call(base, await_keyword, typed_do):
+            result.append('%sdo%s {\n' % (base, ' throws(InvalidMessage)' if typed_do else ''))
+            assignment = 'let reply = ' if message.reply_parameters else ''
+            call = ['%stry %smayThrowInvalidMessage(' % (assignment, await_keyword)]
+            call.append('    target.%s(' % handler_function_name(message))
+            call.append(',\n'.join(['        %s' % argument for argument in arguments]))
+            call.append('    )')
+            call.append(')')
+            for line in call:
+                result.append('\n'.join(['%s    %s' % (base, part) for part in line.split('\n')]))
+                result.append('\n')
+            for statement in reply_statements:
+                result.append('%s    %s\n' % (base, statement))
+            result.append('%s} catch {\n' % base)
+            result.append('%s    markMessageInvalid(error, on: connection)\n' % base)
+            for statement in cancel_statements:
+                result.append('%s    %s\n' % (base, statement))
+            result.append('%s}\n' % base)
+
+        if sync_handler:
+            result.append('        MainActor.assumeIsolated {\n')
+            result.append('            guard let target else {\n')
+            result.append('                return\n')
+            result.append('            }\n')
+            append_handler_call('            ', '', True)
+            result.append('        }\n')
+            if takes_swift_types:
+                result.append('        return true\n')
+            result.append('    }\n')
+            if message.condition:
+                try:
+                    condition = swift_types.swift_condition(message.condition)
+                except swift_types.UnmappableSwiftCondition as error:
+                    raise Exception('ERROR: Message %s.%s is under a condition Swift cannot evaluate: %s' % (receiver.name, message.name, error))
+                result.insert(message_start, '\n    #if %s' % condition)
+                result.append('    #endif\n')
+            continue
+
         result.append('        MainActor.assumeIsolated {\n')
         result.append('            guard let target else {\n')
         result.append('                return\n')
@@ -2578,32 +2628,7 @@ def generate_swift_message_handler(receiver):
         result.append('\n')
         result.append('        @MainActor\n')
         result.append('        func run() async {\n')
-        base = '            '
-        result.append('%sdo {\n' % base)
-        assignment = 'let reply = ' if message.reply_parameters else ''
-        call = ['%stry await mayThrowInvalidMessage(' % assignment]
-        call.append('    target.%s(' % handler_function_name(message))
-        call.append(',\n'.join(['        %s' % argument for argument in arguments]))
-        call.append('    )')
-        call.append(')')
-        for line in call:
-            result.append('\n'.join(['%s    %s' % (base, part) for part in line.split('\n')]))
-            result.append('\n')
-        reply_statements = []
-        cancel_statements = []
-        if takes_swift_types and has_reply:
-            reply_statements = swift_reply_encoding_statements(message, 'reply', 'replyEncoder') + ['replyEncoder.send()']
-            cancel_statements = ['replyEncoder.cancel()']
-        elif has_reply:
-            reply_statements = [swift_reply_completion_call(receiver, message, 'reply')]
-            cancel_statements = ['CompletionHandlers.%s.completeWithDefaultReply(completionHandler)' % receiver.name]
-        for statement in reply_statements:
-            result.append('%s    %s\n' % (base, statement))
-        result.append('%s} catch {\n' % base)
-        result.append('%s    markMessageInvalid(error, on: connection)\n' % base)
-        for statement in cancel_statements:
-            result.append('%s    %s\n' % (base, statement))
-        result.append('%s}\n' % base)
+        append_handler_call('            ', 'await ', False)
         result.append('        }\n')
         result.append('    }\n')
 
