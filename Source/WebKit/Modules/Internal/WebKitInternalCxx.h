@@ -27,3 +27,8 @@
 
 #include "IPCTesterReceiverMessages.h"
 #include "SecurityFlags.h"
+
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+#include "RemoteCDMFactoryProxyMessages.h"
+#include "RemoteCDMSwiftSupport.h"
+#endif

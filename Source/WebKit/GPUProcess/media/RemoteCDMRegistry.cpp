@@ -43,6 +43,10 @@
 #include <WebCore/SharedBuffer.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+#include "WebKit-Swift.h"
+#endif
+
 namespace WebKit {
 
 using namespace WebCore;
@@ -50,15 +54,36 @@ using namespace WebCore;
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMRegistry);
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMPrivateHandle);
 
+struct RemoteCDMRegistry::SwiftReceivers {
+    WTF_MAKE_STRUCT_TZONE_ALLOCATED(SwiftReceivers);
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+    std::unique_ptr<RemoteCDMFactoryProxy> factory;
+#endif
+};
+
+WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(RemoteCDMRegistry::SwiftReceivers);
+
 Ref<RemoteCDMRegistry> RemoteCDMRegistry::create(GPUConnectionToWebProcess& connection)
 {
-    return adoptRef(*new RemoteCDMRegistry(connection));
+    Ref registry = adoptRef(*new RemoteCDMRegistry(connection));
+    registry->createFactory();
+    return registry;
 }
 
 RemoteCDMRegistry::RemoteCDMRegistry(GPUConnectionToWebProcess& connection)
     : m_gpuConnectionToWebProcess(connection)
-    , m_factory(RemoteCDMFactoryProxy::create(*this))
+    , m_swiftReceivers(makeUnique<SwiftReceivers>())
 {
+}
+
+void RemoteCDMRegistry::createFactory()
+{
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+    m_swiftReceivers->factory = makeUniqueWithoutFastMallocCheck<RemoteCDMFactoryProxy>(RemoteCDMFactoryProxy::init(this));
+    m_factory = m_swiftReceivers->factory->getMessageReceiver();
+#else
+    m_factory = RemoteCDMFactoryProxy::create(*this);
+#endif
 }
 
 RemoteCDMRegistry::~RemoteCDMRegistry()
@@ -73,12 +98,12 @@ void RemoteCDMRegistry::clear()
 
 void RemoteCDMRegistry::didReceiveFactoryMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
-    m_factory->didReceiveMessage(connection, decoder);
+    protect(m_factory)->didReceiveMessage(connection, decoder);
 }
 
 void RemoteCDMRegistry::didReceiveSyncFactoryMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& encoder)
 {
-    m_factory->didReceiveSyncMessage(connection, decoder, encoder);
+    protect(m_factory)->didReceiveSyncMessage(connection, decoder, encoder);
 }
 
 void RemoteCDMRegistry::didReceiveCDMMessage(IPC::Connection& connection, IPC::Decoder& decoder)

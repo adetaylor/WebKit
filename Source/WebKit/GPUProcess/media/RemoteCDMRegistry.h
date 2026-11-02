@@ -101,8 +101,13 @@ public:
 private:
     explicit RemoteCDMRegistry(GPUConnectionToWebProcess&);
 
+    void createFactory();
+
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
-    const Ref<IPC::MessageReceiver> m_factory;
+    // The receivers that are in Swift, which C++ holds through the generated header.
+    struct SwiftReceivers;
+    std::unique_ptr<SwiftReceivers> m_swiftReceivers;
+    RefPtr<IPC::MessageReceiver> m_factory;
     HashMap<RemoteCDMIdentifier, Ref<IPC::MessageReceiver>> m_cdms;
     HashMap<RemoteCDMInstanceIdentifier, Ref<IPC::MessageReceiver>> m_instances;
     HashMap<RemoteCDMInstanceIdentifier, Ref<WebCore::CDMInstance>> m_cdmInstances;
