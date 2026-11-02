@@ -38,6 +38,122 @@ protocol IPCCoder {
 
     static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Value
     static func encode(_ value: Value, to encoder: IPC.SwiftReplyEncoder)
+
+    /// The elements of a Vector<T>, after its count.
+    static func decodeArray(count: Int, from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> [Value]
+}
+
+extension IPCCoder {
+    /// Decoding one element at a time reads the same bytes as the block C++ sends for arithmetic types.
+    static func decodeArray(count: Int, from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> [Value] {
+        var result: [Value] = []
+        // Each element takes at least a byte.
+        result.reserveCapacity(min(count, decoder.remainingByteCount()))
+        for _ in 0..<count {
+            result.append(try decode(from: &decoder))
+        }
+        return result
+    }
+}
+
+/// A trivially copyable primitive, a Vector of which C++ encodes as one block that Swift decodes in one call.
+protocol IPCBlockPrimitive: IPCCoder, AdditiveArithmetic, Sendable where Value == Self {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<Self>, from decoder: inout IPC.SwiftDecoder) -> Bool
+}
+
+extension IPCBlockPrimitive {
+    static func decodeArray(count: Int, from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> [Self] {
+        guard #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) else {
+            var result: [Self] = []
+            result.reserveCapacity(min(count, decoder.remainingByteCount()))
+            for _ in 0..<count {
+                result.append(try decode(from: &decoder))
+            }
+            return result
+        }
+        // A count beyond what is left of the message is malformed, and mustn't be allocated.
+        guard count <= decoder.remainingByteCount() / MemoryLayout<Self>.size else {
+            decoder.markInvalid()
+            throw IPCDecodingError()
+        }
+        var result = [Self](repeating: .zero, count: count)
+        var span = result.mutableSpan
+        guard decodeBlock(&span, from: &decoder) else {
+            throw IPCDecodingError()
+        }
+        return result
+    }
+}
+
+extension UInt8: IPCBlockPrimitive {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<UInt8>, from decoder: inout IPC.SwiftDecoder) -> Bool {
+        decoder.decodeUInt8s(&values)
+    }
+}
+
+extension UInt16: IPCBlockPrimitive {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<UInt16>, from decoder: inout IPC.SwiftDecoder) -> Bool {
+        decoder.decodeUInt16s(&values)
+    }
+}
+
+extension UInt32: IPCBlockPrimitive {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<UInt32>, from decoder: inout IPC.SwiftDecoder) -> Bool {
+        decoder.decodeUInt32s(&values)
+    }
+}
+
+extension UInt64: IPCBlockPrimitive {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<UInt64>, from decoder: inout IPC.SwiftDecoder) -> Bool {
+        decoder.decodeUInt64s(&values)
+    }
+}
+
+extension Int8: IPCBlockPrimitive {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<Int8>, from decoder: inout IPC.SwiftDecoder) -> Bool {
+        decoder.decodeInt8s(&values)
+    }
+}
+
+extension Int16: IPCBlockPrimitive {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<Int16>, from decoder: inout IPC.SwiftDecoder) -> Bool {
+        decoder.decodeInt16s(&values)
+    }
+}
+
+extension Int32: IPCBlockPrimitive {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<Int32>, from decoder: inout IPC.SwiftDecoder) -> Bool {
+        decoder.decodeInt32s(&values)
+    }
+}
+
+extension Int64: IPCBlockPrimitive {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<Int64>, from decoder: inout IPC.SwiftDecoder) -> Bool {
+        decoder.decodeInt64s(&values)
+    }
+}
+
+extension Float: IPCBlockPrimitive {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<Float>, from decoder: inout IPC.SwiftDecoder) -> Bool {
+        decoder.decodeFloats(&values)
+    }
+}
+
+extension Double: IPCBlockPrimitive {
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    static func decodeBlock(_ values: inout MutableSpan<Double>, from decoder: inout IPC.SwiftDecoder) -> Bool {
+        decoder.decodeDoubles(&values)
+    }
 }
 
 /// Swift types generated from .serialization.in types marked [Swift].
@@ -296,18 +412,12 @@ enum IPCCoding {
     }
 
     /// Vector<T>.
-    ///
-    /// Decoding one element at a time reads the same bytes as the block C++ sends for arithmetic types.
     enum Vector<Element: IPCCoder>: IPCCoder {
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> [Element.Value] {
-            let count = try UInt64.decode(from: &decoder)
-            var result: [Element.Value] = []
-            // Each element takes at least a byte.
-            result.reserveCapacity(Int(min(count, UInt64(decoder.remainingByteCount()))))
-            for _ in 0..<count {
-                result.append(try Element.decode(from: &decoder))
+            guard let count = Int(exactly: try UInt64.decode(from: &decoder)) else {
+                throw IPCDecodingError()
             }
-            return result
+            return try Element.decodeArray(count: count, from: &decoder)
         }
 
         static func encode(_ value: [Element.Value], to encoder: IPC.SwiftReplyEncoder) {
@@ -347,12 +457,7 @@ enum IPCCoding {
                 }
                 return String(scalars)
             }
-            var units: [UInt16] = []
-            units.reserveCapacity(count)
-            for _ in 0..<count {
-                units.append(try UInt16.decode(from: &decoder))
-            }
-            return String(decoding: units, as: Unicode.UTF16.self)
+            return String(decoding: try UInt16.decodeArray(count: count, from: &decoder), as: Unicode.UTF16.self)
         }
 
         /// The longest 8-bit string whose UTF-8 is converted on the stack; most strings in messages are short.
