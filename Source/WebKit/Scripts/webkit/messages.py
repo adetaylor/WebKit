@@ -842,6 +842,8 @@ def forward_declarations_and_headers(receiver):
     # For OptionalSharedPreferencesForWebProcess, which a Swift receiver's sharedPreferencesForWebProcess() returns.
     if receiver.is_swift_receiver() and receiver_needs_shared_preferences(receiver):
         headers.add('"SharedPreferencesForWebProcess.h"')
+        if receiver.has_attribute(STREAM_ATTRIBUTE):
+            headers.add('<wtf/Function.h>')
 
     non_template_wtf_types = frozenset([
         'MachSendRight',
@@ -1027,6 +1029,9 @@ def generate_messages_header(receiver):
         if is_stream:
             result.append('    void ref() const { StreamMessageReceiver::ref(); }\n')
             result.append('    void deref() const { StreamMessageReceiver::deref(); }\n')
+            if receiver_needs_shared_preferences(receiver):
+                result.append('    // Lets the C++ that registers the receiver supply its shared preferences, which dispatch otherwise asks Swift for.\n')
+                result.append('    void setSharedPreferencesProvider(Function<std::optional<SharedPreferencesForWebProcess>()>&& provider) { m_sharedPreferencesProvider = WTF::move(provider); }\n')
         else:
             result.append('    void ref() const final { RefCounted::ref(); }\n')
             result.append('    void deref() const final { RefCounted::deref(); }\n')
@@ -1035,6 +1040,8 @@ def generate_messages_header(receiver):
         if not is_stream:
             result.append('    std::optional<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
         result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
+        if is_stream and receiver_needs_shared_preferences(receiver):
+            result.append('    Function<std::optional<SharedPreferencesForWebProcess>()> m_sharedPreferencesProvider;\n')
         result.append('} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);\n\n')
         if receiver_needs_shared_preferences(receiver):
             result.append('using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;\n\n')
@@ -2142,9 +2149,10 @@ def generate_target_and_enabled_by_statements(receiver, messages):
             # A stream receiver's target is held weakly and checked by its Swift dispatch, which decodes the message
             # first, so a target gone in a benign teardown race leaves the stream buffer in step. Asking Swift for the
             # target here as well costs more than the dispatch itself. A gone target has no shared preferences, so a
-            # receiver with EnabledBy marks the message invalid then.
+            # receiver with EnabledBy marks the message invalid then. Asking Swift for the shared preferences costs
+            # about as much, so they come from a C++ provider when the receiver's host has set one.
             if needs_shared_preferences:
-                result.append('    auto sharedPreferences = m_handler->sharedPreferencesForWebProcess();\n')
+                result.append('    auto sharedPreferences = m_sharedPreferencesProvider ? m_sharedPreferencesProvider() : m_handler->sharedPreferencesForWebProcess();\n')
             return
         result.append('    auto target = getMessageTarget();\n')
         # If target is a nullptr, this means the Swift message receiver has been destroyed.

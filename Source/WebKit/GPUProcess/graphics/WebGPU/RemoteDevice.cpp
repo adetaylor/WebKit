@@ -260,8 +260,9 @@ void RemoteDevice::createBindGroup(const WebGPU::BindGroupDescriptor& descriptor
     auto bindGroup = m_backing->createBindGroup(*convertedDescriptor);
     MESSAGE_CHECK(bindGroup);
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    auto remoteBindGroup = RemoteBindGroup::init(RemoteBindGroupBacking { *bindGroup }, WebGPUSwiftReceiverContext { objectHeap, protect(m_gpu), identifier });
-    objectHeap->addObject(identifier, WebGPU::BindGroupObject { *bindGroup, WTF::move(remoteBindGroup), protect(m_streamConnection), Messages::RemoteBindGroup::messageReceiverName(), identifier });
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteBindGroup = RemoteBindGroup::init(RemoteBindGroupBacking { *bindGroup }, context);
+    objectHeap->addObject(identifier, WebGPU::BindGroupObject { *bindGroup, WTF::move(remoteBindGroup), context, protect(m_streamConnection), Messages::RemoteBindGroup::messageReceiverName(), identifier });
 #else
     auto remoteBindGroup = RemoteBindGroup::create(*bindGroup, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteBindGroup);
@@ -425,8 +426,9 @@ void RemoteDevice::createQuerySet(const WebGPU::QuerySetDescriptor& descriptor, 
     auto querySet = m_backing->createQuerySet(descriptor);
     MESSAGE_CHECK(querySet);
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    auto remoteQuerySet = RemoteQuerySet::init(RemoteQuerySetBacking { *querySet }, WebGPUSwiftReceiverContext { objectHeap, protect(m_gpu), identifier });
-    objectHeap->addObject(identifier, WebGPU::QuerySetObject { *querySet, WTF::move(remoteQuerySet), protect(m_streamConnection), Messages::RemoteQuerySet::messageReceiverName(), identifier });
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteQuerySet = RemoteQuerySet::init(RemoteQuerySetBacking { *querySet }, context);
+    objectHeap->addObject(identifier, WebGPU::QuerySetObject { *querySet, WTF::move(remoteQuerySet), context, protect(m_streamConnection), Messages::RemoteQuerySet::messageReceiverName(), identifier });
 #else
     auto remoteQuerySet = RemoteQuerySet::create(*querySet, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteQuerySet);
