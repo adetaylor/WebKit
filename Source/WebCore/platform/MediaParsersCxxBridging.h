@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <wtf/Noncopyable.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/Vector.h>
@@ -121,9 +122,10 @@ inline String makeStringFromShortString(const MediaParserShortString& string)
 
 // A new Latin-1 String of a known length for Swift to fill in place (makeLatin1String() in WTFCompatParsing.swift):
 // mutableSpan() lends its characters, zeroed, and takeString() hands it over.
-// The span always points into m_string's own buffer (a copy holds a reference to the same one), and is empty once the
-// String has been taken.
-class SWIFT_SELF_CONTAINED MediaParserLatin1StringBuffer {
+// The span always points into m_string's own buffer, and is empty once the String has been taken or moved out. It is
+// noncopyable, so no other buffer lends the same characters.
+class SWIFT_SELF_CONTAINED SWIFT_NONCOPYABLE MediaParserLatin1StringBuffer {
+    WTF_MAKE_NONCOPYABLE(MediaParserLatin1StringBuffer);
 public:
     explicit MediaParserLatin1StringBuffer(unsigned length)
     {
@@ -136,6 +138,14 @@ public:
         zeroSpan(characters);
         m_characters = byteCast<uint8_t>(characters);
     }
+
+    MediaParserLatin1StringBuffer(MediaParserLatin1StringBuffer&& other)
+        : m_string(std::exchange(other.m_string, { }))
+        , m_characters(std::exchange(other.m_characters, std::span { mediaParserEmptyMutableBytes }.first<0>()))
+    {
+    }
+
+    MediaParserLatin1StringBuffer& operator=(MediaParserLatin1StringBuffer&&) = delete;
 
     ALWAYS_INLINE std::span<uint8_t> mutableSpan() LIFETIME_BOUND { return m_characters; }
 
