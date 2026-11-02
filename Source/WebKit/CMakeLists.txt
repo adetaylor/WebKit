@@ -1021,6 +1021,10 @@ if (SWIFT_REQUIRED)
     endif ()
     if (APPLE)
         list(APPEND WebKit_SWIFT_INTEROP_SOURCES
+            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp
+
+            GPUProcess/media/RemoteCDMRegistry.cpp
+
             UIProcess/API/ios/WKWebViewIOS.mm
             UIProcess/API/mac/WKWebViewMac.mm
 
@@ -1618,6 +1622,17 @@ if (SWIFT_REQUIRED)
         ${WEBKIT_DIR}/Shared/WTFCompletionHandler+Extras.swift
         ${WEBKIT_DIR}/Shared/WTFExpected+Extras.swift
         ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
+    )
+endif ()
+
+# Each compiles to nothing unless ENABLE_GPU_PROCESS_CDM_SWIFT is set.
+if (SWIFT_REQUIRED AND APPLE)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMFactoryProxyMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteCDMFactoryProxy.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMFactoryProxyMessageReceiver.swift
     )
 endif ()
 
