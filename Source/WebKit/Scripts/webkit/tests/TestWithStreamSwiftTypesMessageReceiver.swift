@@ -119,6 +119,71 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
             markMessageInvalid(error, on: connection)
         }
     }
+
+    @used
+    func dispatchSendStringSync(
+        connection: sending IPC.StreamServerConnection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        assert(connection.isCurrentWorkQueue())
+        let url: String?
+        do {
+            url = try IPCCoding.WTFString.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        guard let target else {
+            replyEncoder.cancel()
+            return true
+        }
+        do throws(InvalidMessage) {
+            let reply = try mayThrowInvalidMessage(
+                target.sendStringSync(
+                    connection: connection,
+                    url: url
+                )
+            )
+            IPCCoding.WTFString.encode(reply.0, to: replyEncoder)
+            UInt64.encode(reply.1, to: replyEncoder)
+            if !replyEncoder.send() {
+                IPCCoding.WTFString.encode(reply.0, to: replyEncoder)
+                UInt64.encode(reply.1, to: replyEncoder)
+                replyEncoder.send()
+            }
+        } catch {
+            markMessageInvalid(error, on: connection)
+            replyEncoder.cancel()
+        }
+        return true
+    }
+
+    @used
+    func dispatchSendEmptySync(
+        connection: sending IPC.StreamServerConnection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        assert(connection.isCurrentWorkQueue())
+        guard let target else {
+            replyEncoder.cancel()
+            return true
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendEmptySync(
+                    connection: connection
+                )
+            )
+            if !replyEncoder.send() {
+                replyEncoder.send()
+            }
+        } catch {
+            markMessageInvalid(error, on: connection)
+            replyEncoder.cancel()
+        }
+        return true
+    }
 }
 
 extension WebKit.TestWithStreamSwiftTypesMessageForwarder {

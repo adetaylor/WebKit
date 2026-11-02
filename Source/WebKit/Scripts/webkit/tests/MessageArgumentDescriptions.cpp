@@ -305,6 +305,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendValues>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendCxxString:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendCxxString>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendStringSync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendEmptySync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendEmptySync>(globalObject, decoder);
     case MessageName::TestWithSuperclass_LoadURL:
         return jsValueForDecodedMessage<MessageName::TestWithSuperclass_LoadURL>(globalObject, decoder);
 #if ENABLE(TEST_FEATURE)
@@ -534,6 +538,10 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
 #endif
     case MessageName::TestWithStreamSwift_SendStringSync:
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwift_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendStringSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendEmptySync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendEmptySync>(globalObject, decoder);
 #if ENABLE(TEST_FEATURE)
     case MessageName::TestWithSuperclass_TestAsyncMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSuperclass_TestAsyncMessage>(globalObject, decoder);
@@ -1255,6 +1263,12 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
         };
+    case MessageName::TestWithStreamSwiftTypes_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftTypes_SendEmptySync:
+        return Vector<ArgumentDescription> { };
     case MessageName::TestWithSuperclass_LoadURL:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
@@ -1671,6 +1685,13 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
         return Vector<ArgumentDescription> {
             { "returnValue"_s, "int64_t"_s },
         };
+    case MessageName::TestWithStreamSwiftTypes_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+            { "length"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftTypes_SendEmptySync:
+        return Vector<ArgumentDescription> { };
 #if ENABLE(TEST_FEATURE)
     case MessageName::TestWithSuperclass_TestAsyncMessage:
         return Vector<ArgumentDescription> {
