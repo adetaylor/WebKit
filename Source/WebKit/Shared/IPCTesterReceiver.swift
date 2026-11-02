@@ -173,6 +173,49 @@ final class IPCTesterReceiver {
         recordedTexts = []
     }
 
+    @MainActor
+    func reverseAtomsSwift(connection: IPC.Connection, atoms: [String?]) -> [String?] {
+        atoms.reversed()
+    }
+
+    // Hands the string to C++ and back, as a handler passing a Swift-typed argument on to C++ would.
+    @MainActor
+    func roundTripStringThroughCxxSwift(
+        connection: IPC.Connection,
+        text: String?
+    ) -> (roundTripped: String?, cxxLength: UInt32, cxxIsNull: Bool, cxxIs8Bit: Bool) {
+        let cxxString = IPCCoding.WTFString.cxxString(text)
+        return (IPCCoding.WTFString.swiftString(cxxString), cxxString.length(), cxxString.isNull(), cxxString.is8Bit())
+    }
+
+    @MainActor
+    func roundTripBufferSwift(
+        connection: IPC.Connection,
+        buffer: WebCore.SharedBuffer?
+    ) -> (roundTripped: WebCore.SharedBuffer?, size: UInt64) {
+        (buffer, UInt64(buffer?.size() ?? 0))
+    }
+
+    @MainActor
+    func swapPairsSwift(connection: IPC.Connection, pairs: [(String?, UInt32)]) -> [(UInt32, String?)] {
+        pairs.map { ($0.1, $0.0) }
+    }
+
+    @MainActor
+    func enabledMessageSwift(connection: IPC.Connection, value: UInt32) -> UInt32 {
+        value &* 2
+    }
+
+    @MainActor
+    func disabledMessageSwift(connection: IPC.Connection, value: UInt32) -> UInt32 {
+        value &* 2
+    }
+
+    @used
+    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
+        WebKit.ipcTesterSharedPreferences()
+    }
+
     private static func exclaimed(_ string: String?) -> String? {
         string.map { $0 + "!" }
     }

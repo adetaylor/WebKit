@@ -88,6 +88,28 @@ promise_test(async t => {
         assert_equals(result.arguments[0].value, 4);
         assert_equals(takeInvalidMessageString(), '');
 
+        // C++ decodes a SharedBuffer for Swift, so Swift accepts and rejects exactly what C++ does: under 4096 bytes
+        // it is inline, and from 4096 in shared memory.
+        const roundTripBuffer = args => send(IPC.messages.IPCTesterReceiver_RoundTripBufferSwift.name, args);
+        const inlineBuffer = bytes => [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 1 }, { type: 'Vector', value: bytes.length ? [[{ type: 'uint64_t', value: bytes.length }, ...bytes.map(value => ({ type: 'uint8_t', value }))]] : [] }];
+        result = await roundTripBuffer(inlineBuffer([1, 2, 3]));
+        assert_equals(result.arguments[result.arguments.length - 1].value, 3);
+        assert_equals(takeInvalidMessageString(), '');
+        for (const [description, args] of [
+            ['an unknown representation', [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 2 }]],
+            ['4096 bytes inline', inlineBuffer(Array(4096).fill(65))],
+            ['a missing presence flag', []],
+        ]) {
+            assert_equals(await roundTripBuffer(args), null, `A buffer with ${description} is not handled`);
+            takeInvalidMessageString();
+        }
+
+        // EnabledBy is checked against the receiver's preferences before Swift decodes anything.
+        result = await send(IPC.messages.IPCTesterReceiver_EnabledMessageSwift.name, [{ type: 'uint32_t', value: 21 }]);
+        assert_equals(result.arguments[0].value, 42);
+        assert_equals(await send(IPC.messages.IPCTesterReceiver_DisabledMessageSwift.name, [{ type: 'uint32_t', value: 21 }]), null, 'A message whose EnabledBy preference is off is not handled');
+        takeInvalidMessageString();
+
         // A handler that finds its message invalid replies with the default reply.
         result = await send(IPC.messages.IPCTesterReceiver_HalveEvenNumberSwift.name, [{ type: 'uint32_t', value: 7 }]);
         assert_equals(result.arguments[0].value, 0);

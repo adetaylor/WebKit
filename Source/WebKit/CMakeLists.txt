@@ -1572,7 +1572,8 @@ if (ENABLE_BACK_FORWARD_LIST_SWIFT)
     )
 endif ()
 
-if (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT)
+# These compile to nothing unless ENABLE_SWIFT_IPC_RECEIVERS is set.
+if (SWIFT_REQUIRED)
     set_source_files_properties(
         ${WebKit_DERIVED_SOURCES_DIR}/GeneratedSerializers.swift
         PROPERTIES GENERATED TRUE)

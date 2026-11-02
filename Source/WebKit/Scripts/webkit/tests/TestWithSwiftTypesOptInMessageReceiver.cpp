@@ -154,12 +154,11 @@ TestWithSwiftTypesOptInMessageForwarder::TestWithSwiftTypesOptInMessageForwarder
 {
 }
 
-std::unique_ptr<TestWithSwiftTypesOptIn> TestWithSwiftTypesOptInMessageForwarder::getMessageTarget()
+std::optional<TestWithSwiftTypesOptIn> TestWithSwiftTypesOptInMessageForwarder::getMessageTarget()
 {
-    auto target = m_handler->getMessageTarget();
-    if (target)
-        return WTF::makeUniqueWithoutFastMallocCheck<TestWithSwiftTypesOptIn>(target.get());
-    return nullptr;
+    if (!m_handler->hasMessageTarget())
+        return std::nullopt;
+    return m_handler->messageTarget();
 }
 
 TestWithSwiftTypesOptInMessageForwarder::~TestWithSwiftTypesOptInMessageForwarder()

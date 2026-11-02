@@ -21,9 +21,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-#if ENABLE_BACK_FORWARD_LIST_SWIFT || (ENABLE_IPC_TESTING_API && ENABLE_IPC_TESTING_SWIFT)
+#if ENABLE_SWIFT_IPC_RECEIVERS
 
 import WebKit_Internal
+import wtf
 
 /// A malformed message argument, which makes C++ mark the message invalid.
 struct IPCDecodingError: Error {}
@@ -41,6 +42,10 @@ protocol IPCCoder {
 
 /// Swift types generated from .serialization.in types marked [Swift].
 enum IPCTypes {}
+
+// Safety: a SharedBuffer's contents never change, and its reference count is thread-safe.
+@available(macOS 13.3, iOS 16.4, tvOS 16.4, watchOS 9.4, visionOS 1, *)
+extension WebCore.SharedBuffer: @retroactive @unchecked Sendable {}
 
 extension Bool: IPCCoder {
     static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Bool {
@@ -242,6 +247,37 @@ enum IPCCoding {
         }
     }
 
+    /// std::pair<First, Second>: the first member, then the second.
+    enum Pair<First: IPCCoder, Second: IPCCoder>: IPCCoder {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> (First.Value, Second.Value) {
+            let first = try First.decode(from: &decoder)
+            return (first, try Second.decode(from: &decoder))
+        }
+
+        static func encode(_ value: (First.Value, Second.Value), to encoder: IPC.SwiftReplyEncoder) {
+            First.encode(value.0, to: encoder)
+            Second.encode(value.1, to: encoder)
+        }
+    }
+
+    /// C++-decoded values: C++ objects that their own ArgumentCoder decodes and encodes, so that Swift accepts
+    /// exactly what C++ does, and copies nothing.
+    enum CxxDecoded {
+        /// WebCore::SharedBuffer, whether it came inline or in shared memory.
+        enum SharedBuffer: IPCCoder {
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WebCore.SharedBuffer {
+                guard let buffer = decoder.decodeSharedBuffer() else {
+                    throw IPCDecodingError()
+                }
+                return buffer
+            }
+
+            static func encode(_ value: WebCore.SharedBuffer, to encoder: IPC.SwiftReplyEncoder) {
+                encoder.encodeSharedBuffer(value)
+            }
+        }
+    }
+
     /// Markable<T>, whose flag is set when the value is absent.
     enum Markable<Wrapped: IPCCoder>: IPCCoder {
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Wrapped.Value? {
@@ -294,7 +330,13 @@ enum IPCCoding {
                 return nil
             }
             let is8Bit = try Bool.decode(from: &decoder)
-            guard let count = Int(exactly: length), decoder.beginArray(count, is8Bit ? 1 : 2) else {
+            guard let count = Int(exactly: length) else {
+                throw IPCDecodingError()
+            }
+            if is8Bit, #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                return try decodeLatin1(count, from: &decoder)
+            }
+            guard decoder.beginArray(count, is8Bit ? 1 : 2) else {
                 throw IPCDecodingError()
             }
             if is8Bit {
@@ -313,9 +355,111 @@ enum IPCCoding {
             return String(decoding: units, as: Unicode.UTF16.self)
         }
 
+        /// The longest 8-bit string whose UTF-8 is converted on the stack; most strings in messages are short.
+        private static let inlineLatin1Capacity = 32
+
+        @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+        private static func decodeLatin1(_ count: Int, from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> String {
+            // Each character takes at least a byte of the message, so a count beyond what is left is malformed.
+            guard count <= decoder.remainingByteCount() else {
+                decoder.markInvalid()
+                throw IPCDecodingError()
+            }
+            var length = 0
+            if count <= inlineLatin1Capacity {
+                var utf8 = InlineArray<64, UInt8>(repeating: 0)
+                var utf8Span = utf8.mutableSpan
+                guard decoder.decodeLatin1Characters(count, &utf8Span, &length) else {
+                    throw IPCDecodingError()
+                }
+                return try string(fromUTF8: utf8.span.extracting(0..<length))
+            }
+            var utf8 = [UInt8](repeating: 0, count: 2 * count)
+            var utf8Span = utf8.mutableSpan
+            guard decoder.decodeLatin1Characters(count, &utf8Span, &length) else {
+                throw IPCDecodingError()
+            }
+            return String(decoding: utf8[..<length], as: Unicode.UTF8.self)
+        }
+
+        @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+        private static func string(fromUTF8 utf8: Span<UInt8>) throws(IPCDecodingError) -> String {
+            do {
+                return String(copying: try UTF8Span(validating: utf8))
+            } catch {
+                throw IPCDecodingError()
+            }
+        }
+
+        @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+        private static func swiftLatin1String(_ value: borrowing WTF.String) -> String {
+            let count = Int(value.length())
+            if count <= inlineLatin1Capacity {
+                var utf8 = InlineArray<64, UInt8>(repeating: 0)
+                var utf8Span = utf8.mutableSpan
+                let length = IPC.writeUTF8ForLatin1String(value, &utf8Span)
+                return (try? string(fromUTF8: utf8.span.extracting(0..<length))) ?? ""
+            }
+            var utf8 = [UInt8](repeating: 0, count: 2 * count)
+            var utf8Span = utf8.mutableSpan
+            let length = IPC.writeUTF8ForLatin1String(value, &utf8Span)
+            return String(decoding: utf8[..<length], as: Unicode.UTF8.self)
+        }
+
+        /// The WTF::String that C++ would have decoded where Swift decoded `value`, for handing it to C++.
+        static func cxxString(_ value: String?) -> WTF.String {
+            guard let value else {
+                return WTF.String()
+            }
+            if value.utf8.allSatisfy({ $0 < 0x80 }), #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                return IPC.stringForASCIICharacters(value.utf8Span.span)
+            }
+            var builder = IPC.SwiftStringBuilder()
+            if value.unicodeScalars.allSatisfy({ $0.value <= 0xFF }) {
+                for scalar in value.unicodeScalars {
+                    builder.appendLatin1(UInt8(scalar.value))
+                }
+            } else {
+                for unit in value.utf16 {
+                    builder.appendUTF16(unit)
+                }
+            }
+            return builder.toString()
+        }
+
+        /// The Swift form of a WTF::String from C++, as if it had been decoded.
+        static func swiftString(_ value: borrowing WTF.String) -> String? {
+            if value.isNull() {
+                return nil
+            }
+            if value.is8Bit(), #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                return swiftLatin1String(value)
+            }
+            let length = value.length()
+            if value.is8Bit() {
+                var scalars = String.UnicodeScalarView()
+                for index in 0..<length {
+                    scalars.append(Unicode.Scalar(UInt8(truncatingIfNeeded: value.codeUnitAt(index))))
+                }
+                return String(scalars)
+            }
+            var units: [UInt16] = []
+            units.reserveCapacity(Int(length))
+            for index in 0..<length {
+                units.append(value.codeUnitAt(index))
+            }
+            return String(decoding: units, as: Unicode.UTF16.self)
+        }
+
         static func encode(_ value: String?, to encoder: IPC.SwiftReplyEncoder) {
             guard let value else {
                 encoder.encodeUInt32(nullStringLength)
+                return
+            }
+            if value.utf8.allSatisfy({ $0 < 0x80 }), #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                encoder.encodeUInt32(UInt32(value.utf8.count))
+                encoder.encodeBool(true)
+                encoder.encodeASCIICharacters(value.utf8Span.span)
                 return
             }
             if value.unicodeScalars.allSatisfy({ $0.value <= 0xFF }) {
@@ -335,4 +479,4 @@ enum IPCCoding {
     }
 }
 
-#endif // ENABLE_BACK_FORWARD_LIST_SWIFT || (ENABLE_IPC_TESTING_API && ENABLE_IPC_TESTING_SWIFT)
+#endif // ENABLE_SWIFT_IPC_RECEIVERS

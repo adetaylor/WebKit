@@ -84,7 +84,7 @@ class GeneratedSwiftTest(unittest.TestCase):
 
     def test_no_swift_types(self):
         swift = generate_swift('struct WebKit::NotSwift {\n    uint32_t value;\n}\n')
-        self.assertIn('#if ENABLE_BACK_FORWARD_LIST_SWIFT || (ENABLE_IPC_TESTING_API && ENABLE_IPC_TESTING_SWIFT)\n\nimport WebKit_Internal\n\n#endif\n', swift)
+        self.assertIn('#if ENABLE_SWIFT_IPC_RECEIVERS\n\nimport WebKit_Internal\n\n#endif\n', swift)
         self.assertNotIn('extension', swift)
 
     def test_same_type_under_exclusive_conditions(self):
@@ -137,7 +137,7 @@ class GeneratedSwiftTest(unittest.TestCase):
 ''')
         self.assertIn('        var a: UInt32\n        #if ENABLE_B\n        var b: UInt32\n        #endif\n', swift)
         self.assertIn('        self.a = try UInt32.decode(from: &decoder)\n        #if ENABLE_B\n', swift)
-        self.assertNotRegex(swift, r'\n#(?!if ENABLE_BACK_FORWARD_LIST_SWIFT |endif\n$)')
+        self.assertNotRegex(swift, r'\n#(?!if ENABLE_SWIFT_IPC_RECEIVERS\n|endif\n$)')
 
     def test_enum_value_assertions(self):
         self.assertEqual(enum_value_assertions('''

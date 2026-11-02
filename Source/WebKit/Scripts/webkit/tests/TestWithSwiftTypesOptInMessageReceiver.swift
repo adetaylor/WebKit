@@ -36,8 +36,16 @@ final class TestWithSwiftTypesOptInWeakRef: @unchecked Sendable {
     }
 
     @used
-    func getMessageTarget() -> TestWithSwiftTypesOptIn? {
-        target
+    func hasMessageTarget() -> Bool {
+        target != nil
+    }
+
+    @used
+    func messageTarget() -> TestWithSwiftTypesOptIn {
+        guard let target else {
+            fatalError("messageTarget() called without a message target")
+        }
+        return target
     }
 
     @used

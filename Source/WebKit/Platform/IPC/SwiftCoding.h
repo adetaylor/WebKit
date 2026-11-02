@@ -28,12 +28,37 @@
 #include "Connection.h"
 #include "Decoder.h"
 #include "Encoder.h"
+#include <WebCore/SharedBuffer.h>
+#include <wtf/EscapableByteSpan.h>
 #include <wtf/NonEscapableBorrow.h>
+#include <wtf/Noncopyable.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/UniqueRef.h>
+#include <wtf/text/StringBuilder.h>
 
 namespace IPC {
+
+// Writes the UTF-8 form of Latin-1 characters to utf8, which must have room for twice as many bytes, so that
+// Swift can make a String of them without converting one character at a time. Returns the length written.
+inline size_t writeUTF8ForLatin1Characters(std::span<const Latin1Character> characters, std::span<uint8_t> utf8)
+{
+    RELEASE_ASSERT(utf8.size() / 2 >= characters.size());
+    if (charactersAreAllASCII(characters)) {
+        memcpySpan(utf8, asByteSpan(characters));
+        return characters.size();
+    }
+    size_t length = 0;
+    for (auto character : characters) {
+        if (isASCII(character))
+            utf8[length++] = character;
+        else {
+            utf8[length++] = 0xC0 | (character >> 6);
+            utf8[length++] = 0x80 | (character & 0x3F);
+        }
+    }
+    return length;
+}
 
 // The primitive decoders of the Decoder of a message whose Swift receiver takes Swift types, lent to
 // generated Swift. A failed decode returns false and invalidates the decoder. Values are returned
@@ -54,8 +79,7 @@ public:
 
     // Aligns the decoder as Decoder::decodeSpan aligns elementCount contiguous integers of elementSize
     // (1, 2, 4 or 8) bytes, even when elementCount is 0, and checks they are all there, so they can be
-    // decoded one at a time. No span crosses into Swift because not every Swift toolchain imports one
-    // as a safe Span.
+    // decoded one at a time.
     [[nodiscard]] bool beginArray(size_t elementCount, size_t elementSize)
     {
         auto& decoder = borrowed();
@@ -80,6 +104,24 @@ public:
         return true;
     }
 
+    // Decodes characterCount Latin-1 characters as String's decoder decodes an 8-bit string's, writing their
+    // UTF-8 form to utf8, which must have room for twice as many bytes, and its length to utf8Length.
+    [[nodiscard]] bool decodeLatin1Characters(size_t characterCount, WTF::MutableSpanUInt8 utf8 NOESCAPE, size_t& utf8Length)
+    {
+        auto& decoder = borrowed();
+        auto characters = decoder.decodeSpan<Latin1Character>(characterCount);
+        if (!characters.data() || utf8.size() / 2 < characters.size()) [[unlikely]] {
+            decoder.markInvalid();
+            return false;
+        }
+        utf8Length = writeUTF8ForLatin1Characters(characters, utf8);
+        return true;
+    }
+
+    // Decodes a C++-decoded value (IPCCoding.CxxDecoded in Swift) with its own ArgumentCoder. Returns null if
+    // it is malformed.
+    WebCore::SharedBuffer* WTF_NULLABLE decodeSharedBuffer() SWIFT_RETURNS_RETAINED;
+
     size_t remainingByteCount() const
     {
         auto& decoder = borrowed();
@@ -93,6 +135,7 @@ public:
 
 private:
     friend class NonEscapableBorrowLender<SwiftDecoder>;
+    friend class NonEscapableBorrowOwningLender<SwiftDecoder>;
 
     explicit SwiftDecoder(NonEscapableBorrowLease<Decoder>& lease LIFETIME_BOUND)
         : NonEscapableBorrow(lease)
@@ -108,6 +151,22 @@ private:
         return true;
     }
 } SWIFT_NONESCAPABLE;
+
+// A Decoder that generated Swift decodes from outside the dispatch of a message, such as a value or a reply that
+// C++ encodes as IPC would, for Swift to decode with its messages' coders. It owns the Decoder and lends it as
+// swiftDecoder(), on the thread that made it and until it is destroyed.
+class SwiftOwnedDecoder {
+public:
+    explicit SwiftOwnedDecoder(std::unique_ptr<Decoder>&& decoder)
+        : m_lender(WTF::move(decoder))
+    {
+    }
+
+    SwiftDecoder swiftDecoder() const LIFETIME_BOUND { return m_lender.view(); }
+
+private:
+    NonEscapableBorrowOwningLender<SwiftDecoder> m_lender;
+};
 
 // The reply to a message whose Swift receiver takes Swift types, which generated Swift encodes and sends.
 // Cancelling it, or dropping it unsent, sends the default reply that cancelling a C++ handler's
@@ -146,6 +205,17 @@ public:
     void encodeFloat(float value) { encode(value); }
     void encodeDouble(double value) { encode(value); }
 
+    // Encodes the characters of an ASCII string as String's encoder encodes an 8-bit string's.
+    void encodeASCIICharacters(WTF::SpanUInt8 characters NOESCAPE)
+    {
+        RELEASE_ASSERT(m_encoder);
+        ASSERT(charactersAreAllASCII(characters));
+        m_encoder->encodeSpan(characters);
+    }
+
+    // Encodes a C++-decoded value with its own ArgumentCoder.
+    void encodeSharedBuffer(const WebCore::SharedBuffer&);
+
     void send()
     {
         if (auto encoder = std::exchange(m_encoder, nullptr))
@@ -183,5 +253,34 @@ private:
     std::unique_ptr<Encoder> m_encoder;
     DefaultReplyEncoder m_encodeDefaultReply;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// The 8-bit WTF::String that C++ decoding gives for ASCII characters.
+inline String stringForASCIICharacters(WTF::SpanUInt8 characters NOESCAPE)
+{
+    ASSERT(charactersAreAllASCII(characters));
+    if (characters.empty())
+        return emptyString();
+    return String { byteCast<Latin1Character>(characters) };
+}
+
+// Writes the UTF-8 form of an 8-bit WTF::String to utf8, which must have room for twice its length. Returns the
+// length written.
+inline size_t writeUTF8ForLatin1String(const String& string, WTF::MutableSpanUInt8 utf8 NOESCAPE)
+{
+    RELEASE_ASSERT(string.is8Bit());
+    return writeUTF8ForLatin1Characters(string.span8(), utf8);
+}
+
+// Builds the WTF::String that generated Swift hands to C++ for a Swift String, one code unit at a time
+// as SwiftReplyEncoder encodes one.
+class SwiftStringBuilder {
+public:
+    void appendLatin1(uint8_t character) { m_builder.append(Latin1Character { character }); }
+    void appendUTF16(uint16_t codeUnit) { m_builder.append(static_cast<char16_t>(codeUnit)); }
+    String toString() { return m_builder.toString(); }
+
+private:
+    StringBuilder m_builder;
+} SWIFT_SELF_CONTAINED;
 
 } // namespace IPC
