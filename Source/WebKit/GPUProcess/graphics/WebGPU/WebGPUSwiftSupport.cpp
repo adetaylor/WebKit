@@ -29,6 +29,7 @@
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteBindGroupLayoutMessages.h"
+#include "RemoteRenderBundleMessages.h"
 #include "RemoteGPU.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
@@ -91,6 +92,39 @@ bool WebGPUSwiftReceiverContext::makeChild(WebGPUSwiftChildKind kind, uint32_t i
         addBindGroupLayout(*objectHeap, *gpu, *streamConnection, bindGroupLayout, childIdentifier);
         return true;
     }
+    case WebGPUSwiftChildKind::RenderBundleEncoderRenderBundle:
+        break;
+    }
+    RELEASE_ASSERT_NOT_REACHED();
+}
+
+bool WebGPUSwiftReceiverContext::makeChild(WebGPUSwiftChildKind kind, const String& label, uint64_t identifier) const
+{
+    RefPtr objectHeap = m_objectHeap.get();
+    RefPtr gpu = m_gpu.get();
+    if (!objectHeap || !gpu)
+        return true;
+    RefPtr streamConnection = gpu->m_streamConnection;
+    if (!streamConnection)
+        return true;
+
+    WebGPUIdentifier childIdentifier { identifier };
+    switch (kind) {
+    case WebGPUSwiftChildKind::RenderBundleEncoderRenderBundle: {
+        RefPtr renderBundleEncoder = objectHeap->convertRenderBundleEncoderFromBacking(m_identifier);
+        if (!renderBundleEncoder)
+            return false;
+        RefPtr renderBundle = renderBundleEncoder->finish(::WebGPU::RenderBundleDescriptor { label });
+        if (!renderBundle)
+            return false;
+        WebGPUSwiftReceiverContext context { *objectHeap, *gpu, childIdentifier };
+        auto remoteRenderBundle = RemoteRenderBundle::init(RemoteRenderBundleBacking { *renderBundle }, context);
+        objectHeap->addObject(childIdentifier, WebGPU::RenderBundleObject { *renderBundle, WTF::move(remoteRenderBundle), context, *streamConnection, Messages::RemoteRenderBundle::messageReceiverName(), childIdentifier });
+        return true;
+    }
+    case WebGPUSwiftChildKind::ComputePipelineBindGroupLayout:
+    case WebGPUSwiftChildKind::RenderPipelineBindGroupLayout:
+        break;
     }
     RELEASE_ASSERT_NOT_REACHED();
 }

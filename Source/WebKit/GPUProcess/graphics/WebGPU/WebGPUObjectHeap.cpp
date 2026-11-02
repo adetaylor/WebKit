@@ -251,11 +251,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteQueue& queue)
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderBundleEncoder& renderBundleEncoder)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RenderBundleEncoderObject&& renderBundleEncoder)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder> { protect(renderBundleEncoder) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(renderBundleEncoder) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteRenderBundleEncoder& renderBundleEncoder)
+{
+    auto result = m_objects.add(identifier, Object { RenderBundleEncoderObject { protect(renderBundleEncoder) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RenderBundleObject&& renderBundle)
@@ -510,9 +518,9 @@ RefPtr<::WebGPU::Queue> ObjectHeap::convertQueueFromBacking(WebGPUIdentifier ide
 RefPtr<::WebGPU::RenderBundleEncoder> ObjectHeap::convertRenderBundleEncoderFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<RenderBundleEncoderObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder>>(iterator->value)->backing();
+    return &std::get<RenderBundleEncoderObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::RenderBundle> ObjectHeap::convertRenderBundleFromBacking(WebGPUIdentifier identifier)

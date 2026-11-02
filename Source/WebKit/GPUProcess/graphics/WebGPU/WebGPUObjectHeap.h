@@ -89,6 +89,7 @@ using ComputePipelineObject = SwiftReceiverObject<::WebGPU::ComputePipeline, Rem
 using ExternalTextureObject = SwiftReceiverObject<::WebGPU::ExternalTexture, RemoteExternalTexture>;
 using PipelineLayoutObject = SwiftReceiverObject<::WebGPU::PipelineLayout, RemotePipelineLayout>;
 using QuerySetObject = SwiftReceiverObject<::WebGPU::QuerySet, RemoteQuerySet>;
+using RenderBundleEncoderObject = SwiftReceiverObject<::WebGPU::RenderBundleEncoder, RemoteRenderBundleEncoder>;
 using RenderBundleObject = SwiftReceiverObject<::WebGPU::RenderBundle, RemoteRenderBundle>;
 using RenderPassEncoderObject = SwiftReceiverObject<::WebGPU::RenderPassEncoder, RemoteRenderPassEncoder>;
 using RenderPipelineObject = SwiftReceiverObject<::WebGPU::RenderPipeline, RemoteRenderPipeline>;
@@ -103,6 +104,7 @@ using ComputePipelineObject = IPC::ScopedActiveMessageReceiveQueue<RemoteCompute
 using ExternalTextureObject = IPC::ScopedActiveMessageReceiveQueue<RemoteExternalTexture>;
 using PipelineLayoutObject = IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout>;
 using QuerySetObject = IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>;
+using RenderBundleEncoderObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder>;
 using RenderBundleObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundle>;
 using RenderPassEncoderObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPassEncoder>;
 using RenderPipelineObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPipeline>;
@@ -167,7 +169,11 @@ public:
     void addObject(WebGPUIdentifier, RemoteQuerySet&);
 #endif
     void addObject(WebGPUIdentifier, RemoteQueue&);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    void addObject(WebGPUIdentifier, RenderBundleEncoderObject&&);
+#else
     void addObject(WebGPUIdentifier, RemoteRenderBundleEncoder&);
+#endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, RenderBundleObject&&);
 #else
@@ -265,7 +271,7 @@ private:
         IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>,
         QuerySetObject,
         IPC::ScopedActiveMessageReceiveQueue<RemoteQueue>,
-        IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder>,
+        RenderBundleEncoderObject,
         RenderBundleObject,
         RenderPassEncoderObject,
         RenderPipelineObject,

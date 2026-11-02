@@ -30,6 +30,7 @@ extension IPCTypes.CxxName {
     // The generator names the Swift forms of the C++ types it describes, not of their aliases, which the WebGPU
     // receivers' messages use.
     typealias WebKit_WebGPU_Color = IPCTypes.Color
+    typealias WebKit_WebGPU_RenderBundleDescriptor = IPCTypes.RenderBundleDescriptor
 }
 
 extension WebGPU.IndexFormat {

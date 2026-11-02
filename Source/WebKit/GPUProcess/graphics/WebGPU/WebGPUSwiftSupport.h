@@ -49,6 +49,7 @@ class ObjectHeap;
 enum class WebGPUSwiftChildKind : uint8_t {
     ComputePipelineBindGroupLayout,
     RenderPipelineBindGroupLayout,
+    RenderBundleEncoderRenderBundle,
 };
 
 // What a WebGPU receiver written in Swift uses of the C++ around it, which Swift can't hold directly: the object
@@ -63,6 +64,8 @@ public:
     // Makes the receiver of a child of this receiver's object, and adds it to the object heap under that identifier. Returns
     // false if the message that makes it is invalid.
     bool makeChild(WebGPUSwiftChildKind, uint32_t index, uint64_t identifier) const;
+    // The same, for a child made with a label.
+    bool makeChild(WebGPUSwiftChildKind, const String& label, uint64_t identifier) const;
 
     // The objects with those identifiers in the object heap, if there are such objects, for WebGPUImplTable.
     ::WebGPU::BindGroup* WTF_NULLABLE bindGroup(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
@@ -197,6 +200,19 @@ public:
 
 private:
     Ref<::WebGPU::RenderPassEncoder> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+class RemoteRenderBundleEncoderBacking {
+public:
+    explicit RemoteRenderBundleEncoderBacking(::WebGPU::RenderBundleEncoder& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::RenderBundleEncoder& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::RenderBundleEncoder> m_backing;
 } SWIFT_SELF_CONTAINED;
 
 class RemoteQuerySetBacking {

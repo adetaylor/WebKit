@@ -70,6 +70,7 @@
 #include "RemoteExternalTextureMessages.h"
 #include "RemotePipelineLayoutMessages.h"
 #include "RemoteQuerySetMessages.h"
+#include "RemoteRenderBundleEncoderMessages.h"
 #include "RemoteRenderPipelineMessages.h"
 #include "RemoteSamplerMessages.h"
 #include "WebKit-Swift.h"
@@ -482,8 +483,14 @@ void RemoteDevice::createRenderBundleEncoder(const WebGPU::RenderBundleEncoderDe
 
     auto renderBundleEncoder = m_backing->createRenderBundleEncoder(*convertedDescriptor);
     MESSAGE_CHECK(renderBundleEncoder);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteRenderBundleEncoder = RemoteRenderBundleEncoder::init(RemoteRenderBundleEncoderBacking { *renderBundleEncoder }, context, objectHeap->swiftImplTable());
+    objectHeap->addObject(identifier, WebGPU::RenderBundleEncoderObject { *renderBundleEncoder, WTF::move(remoteRenderBundleEncoder), context, protect(m_streamConnection), Messages::RemoteRenderBundleEncoder::messageReceiverName(), identifier });
+#else
     auto remoteRenderBundleEncoder = RemoteRenderBundleEncoder::create(*m_gpuConnectionToWebProcess.get(), protect(m_gpu), *renderBundleEncoder, objectHeap, protect(m_streamConnection), identifier);
     objectHeap->addObject(identifier, remoteRenderBundleEncoder);
+#endif
 }
 
 void RemoteDevice::createQuerySet(const WebGPU::QuerySetDescriptor& descriptor, WebGPUIdentifier identifier)

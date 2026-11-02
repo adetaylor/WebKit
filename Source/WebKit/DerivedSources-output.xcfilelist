@@ -314,6 +314,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRemoteCommandListenerMessa
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRemoteCommandListenerProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRemoteCommandListenerProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderBundleEncoderMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderBundleEncoderMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderBundleEncoderMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderBundleMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderBundleMessageReceiver.swift
