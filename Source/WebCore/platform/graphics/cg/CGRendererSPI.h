@@ -57,6 +57,8 @@
 
 #include "CGRendererSwiftBridge.h"
 #include <CoreGraphics/CoreGraphics.h>
+#include <CoreText/CoreText.h>
+#include <algorithm>
 
 #if USE(APPLE_INTERNAL_SDK)
 #include <CoreGraphics/CGStylePrivate.h>
@@ -84,6 +86,8 @@ typedef struct CGColorMatrixStyle CGColorMatrixStyle;
 
 CF_IMPLICIT_BRIDGING_ENABLED
 void CGContextSetCTM(CGContextRef, CGAffineTransform);
+void CGContextSetShouldAntialiasFonts(CGContextRef, bool);
+CGColorRef CGContextGetFillColorAsColor(CGContextRef);
 void CGContextSetBaseCTM(CGContextRef, CGAffineTransform);
 CGAffineTransform CGContextGetBaseCTM(CGContextRef);
 void CGContextSetStyle(CGContextRef, CGStyleRef);
@@ -123,6 +127,14 @@ inline void CGRendererSetStrokePattern(CGContextRef context, CGPatternRef patter
 {
     CGFloat alpha = 1;
     CGContextSetStrokePattern(context, pattern, &alpha);
+}
+
+// CTFontDrawGlyphs() of a run's glyphs at the positions Swift computed, which reach C as pointers.
+inline void CGRendererDrawGlyphs(CTFontRef font, const CGRendererGlyphRun& run, const CGRendererGlyphPositions& positions, CGContextRef context)
+{
+    auto glyphs = run.glyphs();
+    auto points = positions.span();
+    CTFontDrawGlyphs(font, glyphs.data(), points.data(), std::min(glyphs.size(), points.size()), context);
 }
 
 // CGContextDrawTiledImage(), which Swift's overlay doesn't let draw a null image; the C++ does when the tile is outside the

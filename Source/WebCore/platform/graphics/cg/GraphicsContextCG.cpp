@@ -34,6 +34,8 @@
 #include "CGUtilities.h"
 #include "DisplayListRecorder.h"
 #include "FloatConversion.h"
+#include "Font.h"
+#include "FontCascade.h"
 #include "Gradient.h"
 #include "GraphicsContextCGCapture.h"
 #include "ImageBuffer.h"
@@ -47,6 +49,7 @@
 #include <pal/spi/cg/CoreGraphicsSPI.h>
 #include <pal/spi/cg/ImageIOSPI.h>
 #include <wtf/MathExtras.h>
+#include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/URL.h>
@@ -997,6 +1000,50 @@ void GraphicsContextCG::drawLine(const FloatPoint& point1, const FloatPoint& poi
     CGContextStrokePath(context);
     if (shouldAntialias())
         CGContextSetShouldAntialias(context, true);
+}
+
+void GraphicsContextCG::drawGlyphsImmediate(const FontBase& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode smoothingMode)
+{
+    CAPTURE(drawGlyphs(font, glyphs, advances, point, smoothingMode));
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        // FontCascade::drawGlyphs(), with what the renderer can't know about the font worked out here.
+        const auto& platformData = font.platformData();
+        if (!platformData.size())
+            return;
+        if (isInGPUProcess() && font.hasAnyComplexColorFormatGlyphs(glyphs)) {
+            ASSERT_NOT_REACHED();
+            return;
+        }
+        if (!font.allowsAntialiasing())
+            smoothingMode = FontSmoothingMode::None;
+        m_hasDrawn = true;
+
+        Vector<CGSize, 256> translations;
+        float ascentDelta = 0;
+        RetainPtr ctFont = platformData.ctFont();
+        if (platformData.orientation() == FontOrientation::Vertical && !glyphs.empty()) {
+            translations.resize(glyphs.size());
+            CTFontGetVerticalTranslationsForGlyphs(ctFont.get(), glyphs.data(), translations.mutableSpan().data(), glyphs.size());
+            ascentDelta = font.fontMetrics().ascent(FontBaseline::Ideographic) - font.fontMetrics().ascent();
+        }
+
+        // A shadow with no blur may be drawn as glyphs in its color, whose alpha is multiplied by the fill color's.
+        RetainPtr<CGColorRef> shadowFillColor;
+        if (auto shadow = dropShadow(); shadow && shadow->color.isValid() && !shadow->radius)
+            shadowFillColor = cachedCGColorInDestinationStandardRange(shadow->color.colorWithAlphaMultipliedBy(fillColor().alphaAsFloat()), colorSpace());
+
+        static const CGAffineTransform verticalTranslationMatrix = computeBaseVerticalTextMatrix(computeBaseOverallTextMatrix(std::nullopt));
+        CGRendererGlyphDrawFacts facts {
+            computeTextMatrix(font), verticalTranslationMatrix, platformData.size(), font.syntheticBoldOffset(), ascentDelta,
+            static_cast<uint8_t>(smoothingMode), platformData.isColorBitmapFont(), isInTransparencyLayer()
+        };
+        Vector<CGPoint, 256> positions(glyphs.size());
+        swiftRenderer().drawGlyphs(ctFont.get(), CGRendererGlyphRun { glyphs, advances, translations.span() }, CGRendererGlyphPositions { positions.mutableSpan() }, facts, shadowFillColor.get(), point.x(), point.y());
+        return;
+    }
+#endif
+    GraphicsContext::drawGlyphsImmediate(font, glyphs, advances, point, smoothingMode);
 }
 
 void GraphicsContextCG::drawEllipse(const FloatRect& rect)

@@ -30,6 +30,7 @@
 #include <WebCore/GraphicsContext.h>
 #include <wtf/HashMap.h>
 #include <wtf/Vector.h>
+#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
@@ -83,10 +84,12 @@ enum class GraphicsContextCGCaptureOp : uint16_t {
     DrawDotsForDocumentMarker,
     DrawPattern,
     FillRectWithGradient,
+    DefineFont,
+    DrawGlyphs,
 };
 
-// 2: brushes start with their kind (0 color, 1 gradient, 2 pattern).
-constexpr uint32_t graphicsContextCGCaptureVersion = 2;
+// 2: brushes start with their kind (0 color, 1 gradient, 2 pattern). 3: fonts and glyphs.
+constexpr uint32_t graphicsContextCGCaptureVersion = 3;
 
 #if ASSERT_ENABLED
 
@@ -156,6 +159,7 @@ public:
     void drawPattern(const NativeImage&, const FloatRect& destination, const FloatRect& tile, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, ImageDrawingOptions);
     void drawLinesForText(const FloatPoint&, float thickness, std::span<const FloatSegment>, bool isPrinting, bool doubleLines, StrokeStyle);
     void drawDotsForDocumentMarker(const FloatRect&, DocumentMarkerLineStyle);
+    void drawGlyphs(const FontBase&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode);
     void unsupported(ASCIILiteral);
 
 private:
@@ -175,10 +179,12 @@ private:
     void writeShadow(const GraphicsDropShadow&);
     void writeGradient(const Gradient&);
     std::optional<uint32_t> imageIdentifier(CGImageRef);
+    std::optional<uint32_t> fontIdentifier(const FontBase&);
 
     Vector<uint8_t> m_data;
     size_t m_recordStart { 0 };
     HashMap<uint64_t, uint32_t> m_imageIdentifiers;
+    HashMap<String, uint32_t> m_fontIdentifiers;
     unsigned m_depth { 0 };
     unsigned m_draws { 0 };
     bool m_stopped { false };

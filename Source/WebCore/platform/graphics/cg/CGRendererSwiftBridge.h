@@ -70,6 +70,55 @@ CGImageRef _Nullable CGRendererCopySubimage(CGImageRef _Nonnull, CGRect) CF_RETU
 // CGPatternCreate() with callbacks that draw the image, aligned to device pixels.
 CGPatternRef _Nullable CGRendererCreateImagePattern(CGImageRef _Nullable, CGRect tileBounds, CGAffineTransform, CGFloat xStep, CGFloat yStep) CF_RETURNS_RETAINED;
 
+// What GraphicsContextCG knows about a run of glyphs' font that the renderer draws with (FontCascade::drawGlyphs()).
+struct CGRendererGlyphDrawFacts {
+    CGAffineTransform textMatrix; // computeTextMatrix().
+    CGAffineTransform verticalTranslationMatrix; // The text matrix without synthetic oblique, for vertical glyph translations.
+    float fontSize;
+    float syntheticBoldOffset;
+    float ascentDelta; // From the alphabetic to the ideographic baseline, for vertical text.
+    uint8_t smoothingMode; // FontSmoothingMode, None when the font doesn't allow antialiasing.
+    bool isColorBitmapFont;
+    bool isInTransparencyLayer;
+};
+
+// A run of glyphs lent to CGRenderer.swift for one call: their advances, and for vertical text their translations.
+class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererGlyphRun {
+public:
+    CGRendererGlyphRun(std::span<const CGGlyph> glyphs LIFETIME_BOUND, std::span<const CGSize> advances LIFETIME_BOUND, std::span<const CGSize> translations LIFETIME_BOUND)
+        : m_glyphs(glyphs)
+        , m_advances(advances)
+        , m_translations(translations)
+    {
+    }
+
+    size_t size() const { return m_glyphs.size(); }
+    CGSize advance(size_t index) const { return m_advances[index]; }
+    bool isVertical() const { return !m_translations.empty(); }
+    CGSize translation(size_t index) const { return m_translations[index]; }
+    std::span<const CGGlyph> glyphs() const LIFETIME_BOUND { return m_glyphs; }
+
+private:
+    std::span<const CGGlyph> m_glyphs;
+    std::span<const CGSize> m_advances;
+    std::span<const CGSize> m_translations;
+};
+
+// Storage for a run's glyph positions, which CGRenderer.swift computes, lent for one call.
+class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererGlyphPositions {
+public:
+    explicit CGRendererGlyphPositions(std::span<CGPoint> positions LIFETIME_BOUND)
+        : m_positions(positions)
+    {
+    }
+
+    std::span<CGPoint> mutableSpan() LIFETIME_BOUND { return m_positions; }
+    std::span<const CGPoint> span() const LIFETIME_BOUND { return m_positions; }
+
+private:
+    std::span<CGPoint> m_positions;
+};
+
 // Rects lent to CGRenderer.swift for one call.
 class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererRects {
 public:

@@ -60,6 +60,7 @@ public:
     using GraphicsContext::drawNativeImage;
     void drawNativeImage(const NativeImage&, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions = { }) final;
     void drawRect(const FloatRect&, float borderThickness = 1) final;
+    void drawGlyphsImmediate(const FontBase&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode) final;
     void drawLine(const FloatPoint&, const FloatPoint&) final;
     void drawEllipse(const FloatRect&) final;
 

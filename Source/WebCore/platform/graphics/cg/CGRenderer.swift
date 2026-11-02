@@ -47,7 +47,11 @@
 
 #if ENABLE_WEBCORE_SWIFT && USE_CG
 
+// The safe MutableSpan overload Swift synthesizes for CGRendererGlyphPositions's span accessor comes from Cxx. Xcode builds
+// don't find it unless this file imports Cxx.
+private import Cxx
 import CoreGraphics
+import CoreText
 import WebCore_Internal.CGRendererSPI
 import WebCore_Internal.CGRendererSwiftBridge
 import WebCore_Internal.GraphicsTypes
@@ -337,6 +341,27 @@ private struct CGRendererBrush {
 
     // SourceBrush::isVisible().
     var isVisible: Bool { hasPatternOrGradient || isColorVisible }
+}
+
+// FontSmoothingMode.
+private enum CGRendererFontSmoothing {
+    static let none: UInt8 = 1
+    static let antialiased: UInt8 = 2
+}
+
+// TextDrawingMode: fill alone.
+private enum CGRendererTextDrawingMode {
+    static let fill: UInt8 = 1
+}
+
+// AffineTransform::isIdentityOrTranslationOrFlipped().
+private func isIdentityOrTranslationOrFlipped(_ t: CGAffineTransform) -> Bool {
+    t.a == 1 && t.b == 0 && t.c == 0 && (t.d == 1 || t.d == -1)
+}
+
+// WTF::isIntegral(float).
+private func isIntegral(_ value: Float) -> Bool {
+    !value.isInfinite && value.rounded(.towardZero) == value
 }
 
 // GradientSpreadMethod.
@@ -1177,6 +1202,146 @@ struct CGRenderer {
             mode = .stroke
         }
         CGRendererDrawPath(context, mode, copy path)
+    }
+
+    // FontCascade::drawGlyphs(): a run of glyphs in a font, from an anchor point, with the font smoothing it asks for, a shadow
+    // with no blur drawn as glyphs in the shadow color, and synthetic bold as a second, offset run. The state it changes for
+    // the glyphs goes back afterwards, as GraphicsContext::updatePlatformContextState() puts it back for the C++.
+    @_expose(Cxx)
+    mutating func drawGlyphs(
+        _ font: borrowing CTFont,
+        _ run: CGRendererGlyphRun,
+        _ positions: CGRendererGlyphPositions,
+        _ facts: CGRendererGlyphDrawFacts,
+        _ shadowFillColor: CGColor?,
+        _ x: Float,
+        _ y: Float
+    ) {
+        let font = copy font
+        var positions = positions
+        let ctm = context.ctm
+        var syntheticBoldOffset = facts.syntheticBoldOffset
+        if syntheticBoldOffset != 0 && !isIdentityOrTranslationOrFlipped(ctm) {
+            // AffineTransform::mapSize(FloatSize(1, 0)), so that a scaled down context doesn't widen the gap between the runs.
+            let width = Float(1 * hypot(Double(ctm.a), Double(ctm.b)))
+            let height = Float(0 * hypot(Double(ctm.c), Double(ctm.d)))
+            let horizontalUnitLength = (width * width + height * height).squareRoot()
+            if horizontalUnitLength != 0 {
+                syntheticBoldOffset = cxxMin(syntheticBoldOffset, syntheticBoldOffset / horizontalUnitLength)
+            }
+        }
+
+        var hasSimpleShadow = false
+        if let shadow = state.dropShadow, state.textDrawingMode == CGRendererTextDrawingMode.fill, shadow.isValid, shadow.radius == 0,
+            !facts.isColorBitmapFont, !state.shadowsIgnoreTransforms || isIdentityOrTranslationOrFlipped(ctm), !facts.isInTransparencyLayer
+        {
+            hasSimpleShadow = true
+        }
+
+        var restoresSmoothing = false
+        #if !WTF_PLATFORM_IOS_FAMILY
+        let shouldSmoothFonts = facts.smoothingMode != CGRendererFontSmoothing.antialiased && facts.smoothingMode != CGRendererFontSmoothing.none
+        if shouldSmoothFonts != state.shouldSmoothFonts {
+            restoresSmoothing = true
+            context.setShouldSmoothFonts(shouldSmoothFonts)
+        }
+        #endif
+        var restoresAntialiasing = false
+        let shouldAntialias = facts.smoothingMode != CGRendererFontSmoothing.none
+        if shouldAntialias != state.shouldAntialias {
+            restoresAntialiasing = true
+            context.setShouldAntialias(shouldAntialias)
+        }
+
+        context.textMatrix = facts.textMatrix
+        context.setFontSize(CGFloat(facts.fontSize))
+        CGContextSetShouldAntialiasFonts(context, true)
+        context.setShouldSubpixelPositionFonts(true)
+
+        let isTranslationOrIntegralScale = isIntegral(Float(ctm.a)) && isIntegral(Float(ctm.d)) && ctm.b == 0 && ctm.c == 0
+        let isRotated = (ctm.b != 0 || ctm.c != 0) && (ctm.a != 0 || ctm.d != 0)
+        context.setShouldSubpixelQuantizeFonts(isTranslationOrIntegralScale || (!isRotated && state.shouldSubpixelQuantizeFonts))
+
+        if hasSimpleShadow, let shadow = state.dropShadow, let shadowFillColor {
+            // Simple shadows are drawn here rather than by CG, which would lose subpixel antialiasing.
+            let shadowX = x + shadow.width
+            let shadowY = y + (state.shadowsIgnoreTransforms ? -shadow.height : shadow.height)
+            let originalFillColor = CGContextGetFillColorAsColor(context)
+            CGContextSetStyle(context, nil)
+            context.setFillColor(shadowFillColor)
+            showGlyphs(font, run, &positions, facts, shadowX, shadowY)
+            if syntheticBoldOffset != 0 {
+                showGlyphs(font, run, &positions, facts, shadowX + syntheticBoldOffset, shadowY)
+            }
+            if let originalFillColor {
+                context.setFillColor(originalFillColor)
+            }
+        }
+
+        showGlyphs(font, run, &positions, facts, x, y)
+        if syntheticBoldOffset != 0 {
+            showGlyphs(font, run, &positions, facts, x + syntheticBoldOffset, y)
+        }
+
+        // Platform drawing may assume an identity text matrix.
+        context.textMatrix = .identity
+
+        // The changes GraphicsContext::updatePlatformContextState() would apply, in GraphicsContextState::Change's order.
+        if hasSimpleShadow, let shadow = state.dropShadow {
+            applyShadow(shadow)
+        }
+        if restoresAntialiasing {
+            context.setShouldAntialias(state.shouldAntialias)
+        }
+        if restoresSmoothing {
+            context.setShouldSmoothFonts(state.shouldSmoothFonts)
+        }
+    }
+
+    // RepeatedDrawGlyphs::showGlyphsWithAdvances(): the glyphs' positions in text space, from the anchor and the advances
+    // (and, for vertical text, each glyph's translation), then CTFontDrawGlyphs().
+    private func showGlyphs(
+        _ font: CTFont,
+        _ run: CGRendererGlyphRun,
+        _ positions: inout CGRendererGlyphPositions,
+        _ facts: CGRendererGlyphDrawFacts,
+        _ x: Float,
+        _ y: Float
+    ) {
+        let count = run.size()
+        if count == 0 {
+            return
+        }
+        let matrix = facts.textMatrix.inverted()
+        // CGPointApplyAffineTransform() and CGSizeApplyAffineTransform(), in Swift's arithmetic.
+        func apply(_ t: CGAffineTransform, _ px: CGFloat, _ py: CGFloat) -> CGPoint {
+            CGPoint(x: t.a * px + t.c * py + t.tx, y: t.b * px + t.d * py + t.ty)
+        }
+        func applyToSize(_ t: CGAffineTransform, _ size: CGSize) -> CGSize {
+            CGSize(width: t.a * size.width + t.c * size.height, height: t.b * size.width + t.d * size.height)
+        }
+        do {
+            var output: MutableSpan<CGPoint> = positions.mutableSpan()
+            if run.isVertical() {
+                var positionX = CGFloat(x)
+                var positionY = CGFloat(y + facts.ascentDelta)
+                for index in 0..<count {
+                    let translation = applyToSize(facts.verticalTranslationMatrix, run.translation(index))
+                    output[index] = apply(matrix, positionX + translation.width, positionY + translation.height)
+                    let advance = run.advance(index)
+                    positionX += advance.width
+                    positionY += advance.height
+                }
+            } else {
+                output[0] = apply(matrix, CGFloat(x), CGFloat(y))
+                for index in 1..<count {
+                    let advance = applyToSize(matrix, run.advance(index - 1))
+                    let previous = output[index - 1]
+                    output[index] = CGPoint(x: previous.x + advance.width, y: previous.y + advance.height)
+                }
+            }
+        }
+        CGRendererDrawGlyphs(font, run, positions, context)
     }
 
     // GraphicsContextCG::drawNativeImage() but for a dynamic range limit, which the C++ draws. The caller resolved the options'

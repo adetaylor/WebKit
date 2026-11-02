@@ -29,6 +29,8 @@
 #if USE(CG) && ASSERT_ENABLED
 
 #include "FloatRoundedRect.h"
+#include "FontBase.h"
+#include "FontPlatformData.h"
 #include "Gradient.h"
 #include "NativeImage.h"
 #include "Pattern.h"
@@ -407,6 +409,36 @@ std::optional<uint32_t> GraphicsContextCGCapture::imageIdentifier(CGImageRef ima
     writeColorSpace(CGImageGetColorSpace(image), m_data);
     writeValue(static_cast<uint32_t>(bytes.size()));
     write(bytes);
+    end();
+    return identifier;
+}
+
+// A font by PostScript name, which a replay looks up on its own system, with what WebCore draws it with.
+std::optional<uint32_t> GraphicsContextCGCapture::fontIdentifier(const FontBase& font)
+{
+    auto& platformData = font.platformData();
+    RetainPtr ctFont = platformData.ctFont();
+    if (!ctFont)
+        return std::nullopt;
+    String name = adoptCF(CTFontCopyPostScriptName(ctFont.get())).get();
+    float ctFontSize = CTFontGetSize(ctFont.get());
+    float size = platformData.size();
+    uint8_t flags = (platformData.syntheticBold() ? 1 : 0) | (platformData.syntheticOblique() ? 2 : 0)
+        | (platformData.orientation() == FontOrientation::Vertical ? 4 : 0) | (font.isTextOrientationFallback() ? 8 : 0);
+    auto key = makeString(name, '|', std::bit_cast<uint32_t>(ctFontSize), '|', std::bit_cast<uint32_t>(size), '|', flags);
+    auto result = m_fontIdentifiers.add(key, m_fontIdentifiers.size() + 1);
+    uint32_t identifier = result.iterator->value;
+    if (!result.isNewEntry)
+        return identifier;
+
+    begin(Op::DefineFont);
+    writeValue(identifier);
+    auto utf8 = name.utf8();
+    writeValue(static_cast<uint32_t>(utf8.length()));
+    write(byteCast<uint8_t>(utf8.span()));
+    writeValue(ctFontSize);
+    writeValue(size);
+    writeValue(flags);
     end();
     return identifier;
 }
@@ -871,6 +903,30 @@ void GraphicsContextCGCapture::drawLinesForText(const FloatPoint& origin, float 
     writeValue(static_cast<uint8_t>(isPrinting));
     writeValue(static_cast<uint8_t>(doubleLines));
     writeValue(static_cast<uint8_t>(strokeStyle));
+    end();
+}
+
+void GraphicsContextCGCapture::drawGlyphs(const FontBase& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode smoothingMode)
+{
+    auto identifier = fontIdentifier(font);
+    if (!identifier) {
+        stop("font"_s);
+        return;
+    }
+    ++m_draws;
+    begin(Op::DrawGlyphs);
+    writeValue(*identifier);
+    writeValue(point.x());
+    writeValue(point.y());
+    writeValue(static_cast<uint8_t>(smoothingMode));
+    writeValue(static_cast<uint32_t>(glyphs.size()));
+    for (auto glyph : glyphs)
+        writeValue(static_cast<uint16_t>(glyph));
+    writeValue(static_cast<uint32_t>(advances.size()));
+    for (auto& advance : advances) {
+        writeValue(static_cast<double>(advance.width));
+        writeValue(static_cast<double>(advance.height));
+    }
     end();
 }
 
