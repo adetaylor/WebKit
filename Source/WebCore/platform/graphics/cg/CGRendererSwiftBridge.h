@@ -30,6 +30,7 @@
 #include <CoreGraphics/CoreGraphics.h>
 #include <span>
 #include <stdint.h>
+#include <wtf/RefPtr.h>
 #include <wtf/SwiftBridging.h>
 
 // A GraphicsDropShadow, with its color passed separately when it isn't sRGBA8.
@@ -120,8 +121,34 @@ private:
 };
 
 namespace WebCore {
+class Gradient;
 class ImageBuffer;
+class Pattern;
+class SourceBrush;
 }
+
+class CGRendererBrushSource;
+
+// A pattern brush's CGPattern for one draw, as GraphicsContextCG::applyFillPattern() makes it: null when the pattern has no
+// image.
+CGPatternRef _Nullable CGRendererCreateBrushPattern(const CGRendererBrushSource&, CGContextRef _Nonnull) CF_RETURNS_RETAINED;
+
+// A brush's gradient or pattern, which CGRenderer.swift keeps for the C++ that draws the gradient or makes the pattern's
+// CGPattern.
+class SWIFT_ESCAPABLE CGRendererBrushSource {
+public:
+    explicit CGRendererBrushSource(const WebCore::SourceBrush&);
+    CGRendererBrushSource(const CGRendererBrushSource&);
+    CGRendererBrushSource& operator=(const CGRendererBrushSource&);
+    ~CGRendererBrushSource();
+
+private:
+    friend CGPatternRef _Nullable CGRendererCreateBrushPattern(const CGRendererBrushSource&, CGContextRef _Nonnull);
+
+    RefPtr<WebCore::Gradient> m_gradient;
+    CGAffineTransform m_gradientSpaceTransform;
+    RefPtr<WebCore::Pattern> m_pattern;
+};
 
 // The image of an ImageBuffer ShadowBlur drew a shadow into, as GraphicsContext::drawImageBuffer() and
 // GraphicsContextCG::clipToImageBuffer() take it, and the image's headroom.

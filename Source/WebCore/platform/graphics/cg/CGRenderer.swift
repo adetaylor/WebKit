@@ -356,12 +356,15 @@ private struct CGRendererBrush {
     var packedColor: UInt32 = 0x0000_00FF
     // 0 for packedColor, otherwise 1 + the index of a color that isn't sRGBA8 in CGRenderer.platformColors.
     var platformColorSlot: UInt32 = 0
+    // For a gradient or a pattern, 1 + the index of its CGRendererBrushSource in CGRenderer.brushSources.
+    var sourceSlot: UInt32 = 0
     // 0 for a color, 1 for a gradient, 2 for a pattern.
     var kind: UInt8 = 0
     var isColorVisible = true
 
     var hasPatternOrGradient: Bool { kind != 0 }
     var hasGradient: Bool { kind == 1 }
+    var hasPattern: Bool { kind == 2 }
 
     // SourceBrush::isVisible().
     var isVisible: Bool { hasPatternOrGradient || isColorVisible }
@@ -418,7 +421,7 @@ extension CGRenderer: ShadowDrawing {
         clipToImageBuffer(layerImage, CGRendererRect(x: layerOrigin.x(), y: layerOrigin.y(), width: bufferWidth, height: bufferHeight))
         setShadowBlurFill()
         clearDropShadow()
-        _ = fillRect(layerRect.cgRect, nil)
+        _ = fillRect(layerRect.cgRect)
         restore()
     }
 
@@ -444,7 +447,7 @@ extension CGRenderer: ShadowDrawing {
         save(false)
         setShadowBlurFill()
         clearDropShadow()
-        _ = fillRect(CGRendererRect(x: rect.x(), y: rect.y(), width: rect.width(), height: rect.height()).cgRect, nil)
+        _ = fillRect(CGRendererRect(x: rect.x(), y: rect.y(), width: rect.width(), height: rect.height()).cgRect)
         restore()
     }
 
@@ -457,7 +460,7 @@ extension CGRenderer: ShadowDrawing {
         setFillRule(1)
         setShadowBlurFill()
         clearDropShadow()
-        fillPath(path, nil)
+        fillPath(path)
         restore()
     }
 
@@ -590,6 +593,16 @@ private enum CGRendererPurpose {
 private struct CGRendererSavedState {
     var state: CGRendererState
     var purpose: CGRendererPurpose
+    // The side tables' sizes at the save: the restore drops what was added after it.
+    var platformColorCount: UInt32 = 0
+    var brushSourceCount: UInt32 = 0
+}
+
+// How many entries a side table can gain since the last save before those the state no longer refers to go. A restore drops
+// the entries added since its save.
+private enum CGRendererSideTable {
+    static let platformColorLimit = 8
+    static let brushSourceLimit = 4
 }
 
 // The CGColors of the last few packed colors this renderer set. A context is used by one thread at a time.
@@ -643,6 +656,7 @@ struct CGRenderer {
     private var stack: [CGRendererSavedState]
     private var depth = 0
     private var platformColors: [CGColor] = []
+    private var brushSources: [CGRendererBrushSource] = []
     private var colorCache = CGRendererColorCache()
     private var clipOutRects = [CGRect.zero, CGRect.zero]
     // Reused, so that only a context's first use of them allocates.
@@ -685,30 +699,89 @@ struct CGRenderer {
         platformColor(packed: brush.packedColor, slot: brush.platformColorSlot)
     }
 
-    // When nothing is saved, only the current state refers to platformColors, so the others can go.
     private mutating func platformColorSlot(_ color: CGColor) -> UInt32 {
-        if depth == 0 && !platformColors.isEmpty {
-            var kept: [CGColor] = []
-            func keep(_ slot: inout UInt32) {
-                if slot != 0 {
-                    kept.append(platformColors[Int(slot) - 1])
-                    slot = UInt32(kept.count)
-                }
-            }
-            keep(&state.fill.platformColorSlot)
-            keep(&state.stroke.platformColorSlot)
-            if var shadow = state.dropShadow {
-                keep(&shadow.platformColorSlot)
-                state.dropShadow = shadow
-            }
-            if case .dropShadow(var shadow) = state.style {
-                keep(&shadow.platformColorSlot)
-                state.style = .dropShadow(shadow)
-            }
-            platformColors = kept
+        let base = depth == 0 ? 0 : Int(stack[depth - 1].platformColorCount)
+        if platformColors.count - base >= CGRendererSideTable.platformColorLimit {
+            compactPlatformColors(from: base)
         }
         platformColors.append(color)
         return UInt32(platformColors.count)
+    }
+
+    // Only the current state and ShadowBlur's fill refer to the colors added since the last save.
+    private mutating func compactPlatformColors(from base: Int) {
+        var kept = base
+        for index in base..<platformColors.count {
+            let slot = UInt32(index + 1)
+            let newSlot = UInt32(kept + 1)
+            var isReferenced = false
+            func move(_ reference: inout UInt32) {
+                if reference == slot {
+                    reference = newSlot
+                    isReferenced = true
+                }
+            }
+            move(&state.fill.platformColorSlot)
+            move(&state.stroke.platformColorSlot)
+            if var shadow = state.dropShadow {
+                move(&shadow.platformColorSlot)
+                state.dropShadow = shadow
+            }
+            if case .dropShadow(var shadow) = state.style {
+                move(&shadow.platformColorSlot)
+                state.style = .dropShadow(shadow)
+            }
+            if var drawing = shadowBlurDrawing, var fill = drawing.fill {
+                move(&fill.platformColorSlot)
+                drawing.fill = fill
+                shadowBlurDrawing = drawing
+            }
+            if isReferenced {
+                platformColors.swapAt(index, kept)
+                kept += 1
+            }
+        }
+        platformColors.removeLast(platformColors.count - kept)
+    }
+
+    private mutating func brushSourceSlot(_ source: borrowing CGRendererBrushSource) -> UInt32 {
+        let base = depth == 0 ? 0 : Int(stack[depth - 1].brushSourceCount)
+        if brushSources.count - base >= CGRendererSideTable.brushSourceLimit {
+            compactBrushSources(from: base)
+        }
+        brushSources.append(copy source)
+        return UInt32(brushSources.count)
+    }
+
+    private mutating func compactBrushSources(from base: Int) {
+        var kept = base
+        for index in base..<brushSources.count {
+            let slot = UInt32(index + 1)
+            let newSlot = UInt32(kept + 1)
+            var isReferenced = false
+            func move(_ reference: inout UInt32) {
+                if reference == slot {
+                    reference = newSlot
+                    isReferenced = true
+                }
+            }
+            move(&state.fill.sourceSlot)
+            move(&state.stroke.sourceSlot)
+            if isReferenced {
+                brushSources.swapAt(index, kept)
+                kept += 1
+            }
+        }
+        brushSources.removeLast(brushSources.count - kept)
+    }
+
+    // A pattern brush's CGPattern, made for each draw from the C++ Pattern: nil for any other brush, or when the pattern has
+    // no image.
+    private func brushPattern(_ brush: CGRendererBrush) -> CGPattern? {
+        guard brush.hasPattern, brush.sourceSlot != 0 else {
+            return nil
+        }
+        return CGRendererCreateBrushPattern(brushSources[Int(brush.sourceSlot) - 1], context)
     }
 
     // MARK: State
@@ -745,6 +818,17 @@ struct CGRenderer {
         if !state.stroke.hasPatternOrGradient {
             context.setStrokeColor(color)
         }
+    }
+
+    // After the color, for a gradient or a pattern.
+    @_expose(Cxx)
+    mutating func setFillSource(_ source: borrowing CGRendererBrushSource) {
+        state.fill.sourceSlot = brushSourceSlot(source)
+    }
+
+    @_expose(Cxx)
+    mutating func setStrokeSource(_ source: borrowing CGRendererBrushSource) {
+        state.stroke.sourceSlot = brushSourceSlot(source)
     }
 
     @_expose(Cxx)
@@ -941,7 +1025,12 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func save(_ isTransparencyLayer: Bool) {
-        let saved = CGRendererSavedState(state: state, purpose: isTransparencyLayer ? .transparencyLayer : .saveRestore)
+        let saved = CGRendererSavedState(
+            state: state,
+            purpose: isTransparencyLayer ? .transparencyLayer : .saveRestore,
+            platformColorCount: UInt32(platformColors.count),
+            brushSourceCount: UInt32(brushSources.count)
+        )
         if depth == stack.count {
             stack.append(saved)
         } else {
@@ -967,6 +1056,14 @@ struct CGRenderer {
     private mutating func pop() {
         depth -= 1
         state = stack[depth].state
+        let platformColorCount = Int(stack[depth].platformColorCount)
+        if platformColors.count > platformColorCount {
+            platformColors.removeLast(platformColors.count - platformColorCount)
+        }
+        let brushSourceCount = Int(stack[depth].brushSourceCount)
+        if brushSources.count > brushSourceCount {
+            brushSources.removeLast(brushSources.count - brushSourceCount)
+        }
         context.restoreGState()
     }
 
@@ -1062,20 +1159,18 @@ struct CGRenderer {
         context.clear(rect)
     }
 
-    // A pattern brush's CGPattern comes from the C++ Pattern for each draw, as GraphicsContextCG::applyFillPattern() makes it;
-    // it is nil for any other brush, or when the pattern has no image.
     @_expose(Cxx)
-    mutating func fillRect(_ rect: CGRect, _ fillPattern: CGPattern?) -> Bool {
+    mutating func fillRect(_ rect: CGRect) -> Bool {
         if state.fill.hasGradient || canUseShadowBlur {
             return false
         }
-        applyPattern(fillPattern, fill: true)
+        applyPattern(fill: true)
         context.fill(rect)
         return true
     }
 
-    private func applyPattern(_ pattern: CGPattern?, fill: Bool) {
-        guard let pattern, let patternSpace = CGColorSpace(patternBaseSpace: nil) else {
+    private func applyPattern(fill: Bool) {
+        guard let pattern = brushPattern(fill ? state.fill : state.stroke), let patternSpace = CGColorSpace(patternBaseSpace: nil) else {
             return
         }
         if fill {
@@ -1110,13 +1205,12 @@ struct CGRenderer {
     @_expose(Cxx)
     mutating func fillRectWithShadowBlur(
         _ rect: CGRect,
-        _ fillPattern: CGPattern?,
         _ shadowColor: borrowing WebCore.Color,
         _ legacyRadius: Bool,
         _ shadowColorChangesFill: Bool
     ) {
         assert(!state.fill.hasGradient && canUseShadowBlur)
-        applyPattern(fillPattern, fill: true)
+        applyPattern(fill: true)
         context.saveGState()
         CGContextSetStyle(context, nil)
         drawRectShadowBlur(rect, shadowColor, legacyRadius, shadowColorChangesFill)
@@ -1201,11 +1295,11 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func strokeRect(_ rect: CGRect, _ lineWidth: Float, _ strokePattern: CGPattern?) -> Bool {
+    func strokeRect(_ rect: CGRect, _ lineWidth: Float) -> Bool {
         if state.stroke.hasGradient {
             return false
         }
-        applyPattern(strokePattern, fill: false)
+        applyPattern(fill: false)
         // CGContextStrokeRect() and CGContextStrokeRectWithWidth() fail to apply some attributes of the graphics state
         // in some cases (https://bugs.webkit.org/show_bug.cgi?id=132948).
         context.setLineWidth(CGFloat(cxxMax(lineWidth, 0)))
@@ -1417,24 +1511,24 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func fillPath(_ path: borrowing CGPath, _ fillPattern: CGPattern?) {
+    func fillPath(_ path: borrowing CGPath) {
         assert(fillsWithoutGradient())
-        applyPattern(fillPattern, fill: true)
+        applyPattern(fill: true)
         CGRendererDrawPath(context, state.fillRule == 1 ? .eoFill : .fill, copy path)
     }
 
     @_expose(Cxx)
-    func strokePath(_ path: borrowing CGPath, _ strokePattern: CGPattern?) {
+    func strokePath(_ path: borrowing CGPath) {
         assert(strokesWithoutGradient())
-        applyPattern(strokePattern, fill: false)
+        applyPattern(fill: false)
         CGRendererDrawPath(context, .stroke, copy path)
     }
 
     // A single-line path or a PathDataLine.
     @_expose(Cxx)
-    mutating func strokeLineSegment(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float, _ strokePattern: CGPattern?) {
+    mutating func strokeLineSegment(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float) {
         assert(strokesWithoutGradient())
-        applyPattern(strokePattern, fill: false)
+        applyPattern(fill: false)
         lineSegment.removeAll(keepingCapacity: true)
         lineSegment.append(CGPoint(x: CGFloat(x1), y: CGFloat(y1)))
         lineSegment.append(CGPoint(x: CGFloat(x2), y: CGFloat(y2)))
@@ -1448,10 +1542,10 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func drawPath(_ path: borrowing CGPath, _ fillPattern: CGPattern?, _ strokePattern: CGPattern?) {
+    func drawPath(_ path: borrowing CGPath) {
         assert(fillsWithoutGradient() && strokesWithoutGradient() && drawsPath())
-        applyPattern(fillPattern, fill: true)
-        applyPattern(strokePattern, fill: false)
+        applyPattern(fill: true)
+        applyPattern(fill: false)
         let evenOdd = state.fillRule == 1
         let mode: CGPathDrawingMode
         if state.fill.isVisible {

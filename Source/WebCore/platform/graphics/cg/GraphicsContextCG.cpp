@@ -643,6 +643,25 @@ CGImageRef CGRendererCopyImageBufferImage(WebCore::ImageBuffer& imageBuffer, flo
     return RetainPtr { nativeImage->platformImage() }.leakRef();
 }
 
+CGRendererBrushSource::CGRendererBrushSource(const WebCore::SourceBrush& brush)
+    : m_gradient(brush.gradient())
+    , m_gradientSpaceTransform(brush.gradientSpaceTransform())
+    , m_pattern(brush.pattern())
+{
+}
+
+CGRendererBrushSource::CGRendererBrushSource(const CGRendererBrushSource&) = default;
+CGRendererBrushSource& CGRendererBrushSource::operator=(const CGRendererBrushSource&) = default;
+CGRendererBrushSource::~CGRendererBrushSource() = default;
+
+CGPatternRef CGRendererCreateBrushPattern(const CGRendererBrushSource& source, CGContextRef context)
+{
+    RefPtr pattern = source.m_pattern;
+    if (!pattern)
+        return nullptr;
+    return pattern->createPlatformPattern(WebCore::AffineTransform(WebCore::getUserToBaseCTM(context))).leakRef();
+}
+
 CGImageRef CGRendererCopySubimage(CGImageRef image, CGRect rect)
 {
 #if CACHE_SUBIMAGES
@@ -776,23 +795,6 @@ void GraphicsContextCG::drawEllipse(const FloatRect& rect)
     drawPath(path);
 }
 
-// The CGPattern applyFillPattern() and applyStrokePattern() set, for the Swift renderer to set.
-RetainPtr<CGPatternRef> GraphicsContextCG::swiftFillPattern()
-{
-    RefPtr fillPattern = this->fillPattern();
-    if (!fillPattern)
-        return nullptr;
-    return fillPattern->createPlatformPattern(AffineTransform(getUserToBaseCTM(contextForDraw())));
-}
-
-RetainPtr<CGPatternRef> GraphicsContextCG::swiftStrokePattern()
-{
-    RefPtr strokePattern = this->strokePattern();
-    if (!strokePattern)
-        return nullptr;
-    return strokePattern->createPlatformPattern(AffineTransform(getUserToBaseCTM(contextForDraw())));
-}
-
 // The renderer draws ShadowBlur's shadows itself where it draws ShadowBlur's images itself (drawNativeImage()).
 bool GraphicsContextCG::swiftDrawsShadowBlur() const
 {
@@ -869,7 +871,7 @@ void GraphicsContextCG::drawPath(const Path& path)
     auto& renderer = swiftRenderer();
     if (renderer.fillsWithoutGradient() && renderer.strokesWithoutGradient()) {
         if (renderer.drawsPath())
-            renderer.drawPath(protect(path.platformPath()).get(), swiftFillPattern().get(), swiftStrokePattern().get());
+            renderer.drawPath(protect(path.platformPath()).get());
         return;
     }
 
@@ -886,7 +888,7 @@ void GraphicsContextCG::fillPath(const Path& path)
 
     m_hasDrawn = true;
     if (swiftRenderer().fillsWithoutGradient()) {
-        swiftRenderer().fillPath(protect(path.platformPath()).get(), swiftFillPattern().get());
+        swiftRenderer().fillPath(protect(path.platformPath()).get());
         return;
     }
 
@@ -912,9 +914,9 @@ void GraphicsContextCG::strokePath(const Path& path)
     const RetainPtr<CGContextRef>& context = contextForDraw();
     if (swiftRenderer().strokesWithoutGradient()) {
         if (auto line = path.singleDataLine())
-            swiftRenderer().strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y(), swiftStrokePattern().get());
+            swiftRenderer().strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y());
         else
-            swiftRenderer().strokePath(protect(path.platformPath()).get(), swiftStrokePattern().get());
+            swiftRenderer().strokePath(protect(path.platformPath()).get());
         return;
     }
 
@@ -936,8 +938,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
     CAPTURE(fillRect(rect, requiresClipToRect));
     const RetainPtr<CGContextRef>& context = contextForDraw();
     auto& renderer = swiftRenderer();
-    RetainPtr pattern = swiftFillPattern();
-    if (renderer.fillRect(rect, pattern.get()))
+    if (renderer.fillRect(rect))
         return;
 
     if (RefPtr fillGradient = this->fillGradient()) {
@@ -949,7 +950,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
     ASSERT(canUseShadowBlur());
     auto shadow = dropShadow();
     if (swiftDrawsShadowBlur()) {
-        renderer.fillRectWithShadowBlur(rect, pattern.get(), shadow->color, shadow->radiusMode == ShadowRadiusMode::Legacy, shadowColorChangesFill(shadow->color));
+        renderer.fillRectWithShadowBlur(rect, shadow->color, shadow->radiusMode == ShadowRadiusMode::Legacy, shadowColorChangesFill(shadow->color));
         return;
     }
 
@@ -1310,6 +1311,8 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
                 renderer.setFillPackedColor(packedColor->value, swiftBrushKind(brush));
             else
                 renderer.setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), swiftBrushKind(brush), brush.color().isVisible());
+            if (brush.hasPatternOrGradient())
+                renderer.setFillSource(CGRendererBrushSource { brush });
             break;
         }
 
@@ -1323,6 +1326,8 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
                 renderer.setStrokePackedColor(packedColor->value, swiftBrushKind(brush));
             else
                 renderer.setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), swiftBrushKind(brush), brush.color().isVisible());
+            if (brush.hasPatternOrGradient())
+                renderer.setStrokeSource(CGRendererBrushSource { brush });
             break;
         }
 
@@ -1428,7 +1433,7 @@ void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
 {
     CAPTURE(strokeRect(rect, lineWidth));
     const RetainPtr<CGContextRef>& context = contextForDraw();
-    if (swiftRenderer().strokeRect(rect, lineWidth, swiftStrokePattern().get()))
+    if (swiftRenderer().strokeRect(rect, lineWidth))
         return;
 
     // The renderer declines only gradients.
@@ -1467,7 +1472,7 @@ void GraphicsContextCG::strokeLine(const PathDataLine& line)
     CAPTURE(strokeLine(line));
     if (swiftRenderer().strokesWithoutGradient()) {
         m_hasDrawn = true;
-        swiftRenderer().strokeLineSegment(line.start().x(), line.start().y(), line.end().x(), line.end().y(), swiftStrokePattern().get());
+        swiftRenderer().strokeLineSegment(line.start().x(), line.start().y(), line.end().x(), line.end().y());
         return;
     }
     // Gradient stroking requires building a stroked path and clipping to it: strokePath() via the base class.
