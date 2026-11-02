@@ -224,12 +224,12 @@ public:
     WEBCORE_EXPORT virtual RefPtr<SharedBuffer> sinkIntoPDFDocument();
 
     WEBCORE_EXPORT bool isInUse() const;
-    WEBCORE_EXPORT virtual void releaseGraphicsContext();
+    SWIFT_UNSAFE WEBCORE_EXPORT virtual void releaseGraphicsContext();
     WEBCORE_EXPORT bool setVolatile();
     WEBCORE_EXPORT SetNonVolatileResult setNonVolatile();
     WEBCORE_EXPORT VolatilityState volatilityState() const;
     WEBCORE_EXPORT void setVolatilityState(VolatilityState);
-    WEBCORE_EXPORT void setVolatileAndPurgeForTesting();
+    SWIFT_UNSAFE WEBCORE_EXPORT void setVolatileAndPurgeForTesting();
     WEBCORE_EXPORT virtual std::unique_ptr<ThreadSafeImageBufferFlusher> createFlusher();
 
     // This value increments when the ImageBuffer gets a new backend, which can happen if, for example, the GPU Process exits.
