@@ -2472,12 +2472,19 @@ def generate_swift_message_handler(receiver):
         result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
 
     if receiver.has_attribute(STREAM_ATTRIBUTE):
-        result.append('// Safety: target is only written in init, dispatch asserts the stream connection\'s work queue, and weak loads are atomic in the Swift runtime\n')
+        # A stream receiver's forwarder keeps its target alive, as the stream connection keeps a C++ receiver alive
+        # while it is registered and while it dispatches a batch of messages to it. A weak reference, loaded for
+        # each message, costs more than anything else in dispatch, and makes the target's reference counting go
+        # through a side table. The target must not keep its forwarder.
+        result.append('// Safety: target is immutable, and dispatch asserts the stream connection\'s work queue\n')
     else:
         result.append('// Safety: target is only written in init, assumeIsolated asserts the main thread, and weak loads are atomic in the Swift runtime\n')
     result.append('@_expose(Cxx)\n')
     result.append('final class %s: @unchecked Sendable {\n' % (weak_ref_class))
-    result.append('    private weak var target: %s?\n' % (class_name))
+    if receiver.has_attribute(STREAM_ATTRIBUTE):
+        result.append('    private let target: %s\n' % (class_name))
+    else:
+        result.append('    private weak var target: %s?\n' % (class_name))
     result.append('    init(target: %s) {\n' % (class_name))
     result.append('        self.target = target\n')
     result.append('    }\n')
@@ -2487,10 +2494,7 @@ def generate_swift_message_handler(receiver):
             result.append('\n')
             result.append('    @used\n')
             result.append('    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {\n')
-            result.append('        guard let target else {\n')
-            result.append('            return WebKit.OptionalSharedPreferencesForWebProcess()\n')
-            result.append('        }\n')
-            result.append('        return target.sharedPreferencesForWebProcess()\n')
+            result.append('        target.sharedPreferencesForWebProcess()\n')
             result.append('    }\n')
     else:
         # Two calls rather than one returning an Optional, which C++ handles through Swift's generic
@@ -2636,11 +2640,6 @@ def generate_swift_message_handler(receiver):
             result.append('%s}\n' % base)
 
         if is_stream:
-            result.append('        guard let target else {\n')
-            for statement in cancel_statements:
-                result.append('            %s\n' % statement)
-            result.append('            return%s\n' % (' true' if takes_swift_types else ''))
-            result.append('        }\n')
             append_handler_call('        ', '', True)
         elif sync_handler:
             result.append('        MainActor.assumeIsolated {\n')
