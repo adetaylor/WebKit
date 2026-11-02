@@ -25,6 +25,7 @@
 
 // Add project-level C++ header files here to be able to access them from within Swift sources.
 
+#include "IPCSwiftStreamTesterCount.h"
 #include "IPCSwiftStreamTesterMessages.h"
 #include "IPCTesterReceiverMessages.h"
 #include "SecurityFlags.h"

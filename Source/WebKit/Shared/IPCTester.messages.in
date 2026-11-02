@@ -62,6 +62,7 @@ messages -> IPCTester {
     SendSwiftStreamMessagesInProcess() -> (String failures) Synchronous
     BenchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t messageCount) -> (uint64_t nanoseconds) Synchronous
     FuzzSwiftStreamReceiver(uint64_t seed, uint32_t iterations) -> (uint32_t accepted, uint32_t rejected, String failures) Synchronous
+    SwiftStreamTesterCount() -> (uint32_t count) Synchronous
 #endif
 }
 
