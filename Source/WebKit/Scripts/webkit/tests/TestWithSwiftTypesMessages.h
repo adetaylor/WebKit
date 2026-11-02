@@ -363,6 +363,119 @@ private:
     uint32_t m_param;
 };
 
+class SyncHandlerMessage {
+public:
+    using Arguments = std::tuple<uint32_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_SyncHandlerMessage; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftTypes_SyncHandlerMessageReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<uint32_t>;
+    using Reply = CompletionHandler<void(uint32_t)>;
+    using Promise = WTF::NativePromise<uint32_t, IPC::Error>;
+    explicit SyncHandlerMessage(uint32_t value)
+        : m_value(value)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_value;
+    }
+
+private:
+    uint32_t m_value;
+};
+
+class SynchronousSyncHandlerMessage {
+public:
+    using Arguments = std::tuple<String>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_SynchronousSyncHandlerMessage; }
+    static constexpr bool isSync = true;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<bool>;
+    using Reply = CompletionHandler<void(bool)>;
+    explicit SynchronousSyncHandlerMessage(const String& name)
+        : m_name(name)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_name;
+    }
+
+private:
+    const String& m_name;
+};
+
+class SyncHandlerMessageWithoutReply {
+public:
+    using Arguments = std::tuple<uint64_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_SyncHandlerMessageWithoutReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit SyncHandlerMessageWithoutReply(uint64_t value)
+        : m_value(value)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_value;
+    }
+
+private:
+    uint64_t m_value;
+};
+
+class SyncHandlerMessageWithCxxTypes {
+public:
+    using Arguments = std::tuple<Ref<WebKit::FrameState>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypesReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<uint8_t>;
+    using Reply = CompletionHandler<void(uint8_t)>;
+    using Promise = WTF::NativePromise<uint8_t, IPC::Error>;
+    explicit SyncHandlerMessageWithCxxTypes(const Ref<WebKit::FrameState>& frameState)
+        : m_frameState(frameState)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_frameState;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const Ref<WebKit::FrameState>& m_frameState;
+};
+
 class MessageWithBuffersAndPairs {
 public:
     using Arguments = std::tuple<RefPtr<WebCore::SharedBuffer>, Vector<std::pair<String, uint32_t>>>;
@@ -556,6 +669,56 @@ private:
     uint8_t m_reply;
 };
 
+class SyncHandlerMessageReply {
+public:
+    using Arguments = std::tuple<uint32_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_SyncHandlerMessageReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit SyncHandlerMessageReply(uint32_t reply)
+        : m_reply(reply)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_reply;
+    }
+
+private:
+    uint32_t m_reply;
+};
+
+class SyncHandlerMessageWithCxxTypesReply {
+public:
+    using Arguments = std::tuple<uint8_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypesReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit SyncHandlerMessageWithCxxTypesReply(uint8_t reply)
+        : m_reply(reply)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_reply;
+    }
+
+private:
+    uint8_t m_reply;
+};
+
 class MessageWithBuffersAndPairsReply {
 public:
     using Arguments = std::tuple<std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>>>;
@@ -614,6 +777,7 @@ private:
 namespace CompletionHandlers {
 namespace TestWithSwiftTypes {
 using MessageWithCxxTypesCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftTypes::MessageWithCxxTypes::Reply>;
+using SyncHandlerMessageWithCxxTypesCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftTypes::SyncHandlerMessageWithCxxTypes::Reply>;
 
 void completeWithDefaultReply(MessageWithCxxTypesCompletionHandler&);
 

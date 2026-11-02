@@ -440,6 +440,16 @@ void IPCTester::sendSwiftTypesMessagesToReceiver(IPC::Connection& connection, Co
         }, 0);
     }
 
+    connection.sendWithAsyncReply(Messages::IPCTesterReceiver::HalveEvenNumberSyncHandlerSwift(10), [aggregator, check](uint32_t half) {
+        check(half == 5, "HalveEvenNumberSyncHandlerSwift"_s);
+    }, 0);
+    auto syncHandlerResult = connection.sendSync(Messages::IPCTesterReceiver::TransformPayloadSyncHandlerSwift(payloads[0]), 0);
+    check(syncHandlerResult.succeeded() && std::get<0>(syncHandlerResult.reply()) == ipcTesterTransformed(payloads[0]), "TransformPayloadSyncHandlerSwift"_s);
+    connection.send(Messages::IPCTesterReceiver::RecordSyncHandlerSwift("three"_s), 0);
+    connection.sendWithAsyncReply(Messages::IPCTesterReceiver::TakeRecordedSwift(), [aggregator, check](Vector<String>&& texts) {
+        check(texts == Vector<String> { "three"_s }, "RecordSyncHandlerSwift"_s);
+    }, 0);
+
     // Below 4096 bytes a SharedBuffer is sent inline, and from 4096 in shared memory.
     for (size_t size : { 0, 1, 4095, 4096, 10000 }) {
         Vector<uint8_t> bytes(size);

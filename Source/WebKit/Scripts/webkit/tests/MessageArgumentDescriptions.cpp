@@ -385,6 +385,14 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SynchronousMessageWithoutParameters>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithCxxTypes:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithCxxTypes>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessage:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessage>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_SynchronousSyncHandlerMessage:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SynchronousSyncHandlerMessage>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithoutReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithoutReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs>(globalObject, decoder);
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
@@ -401,6 +409,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithRefsReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithCxxTypesReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithCxxTypesReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypesReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypesReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairsReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairsReply>(globalObject, decoder);
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
@@ -566,6 +578,12 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_SynchronousMessageWithoutParameters>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithCxxTypes:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_MessageWithCxxTypes>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessage:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_SyncHandlerMessage>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_SynchronousSyncHandlerMessage:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_SynchronousSyncHandlerMessage>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs>(globalObject, decoder);
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
@@ -1381,6 +1399,22 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "frameState"_s, "Ref<WebKit::FrameState>"_s },
             { "param"_s, "uint32_t"_s },
         };
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessage:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+        };
+    case MessageName::TestWithSwiftTypes_SynchronousSyncHandlerMessage:
+        return Vector<ArgumentDescription> {
+            { "name"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithoutReply:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes:
+        return Vector<ArgumentDescription> {
+            { "frameState"_s, "Ref<WebKit::FrameState>"_s },
+        };
     case MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs:
         return Vector<ArgumentDescription> {
             { "buffer"_s, "RefPtr<WebCore::SharedBuffer>"_s },
@@ -1409,6 +1443,14 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "reply"_s, "RefPtr<WebKit::TestSwiftRefCountedClass>"_s },
         };
     case MessageName::TestWithSwiftTypes_MessageWithCxxTypesReply:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "uint8_t"_s },
+        };
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageReply:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "uint32_t"_s },
+        };
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypesReply:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
         };
@@ -1700,6 +1742,18 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
             { "name"_s, "String"_s },
         };
     case MessageName::TestWithSwiftTypes_MessageWithCxxTypes:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "uint8_t"_s },
+        };
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessage:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "uint32_t"_s },
+        };
+    case MessageName::TestWithSwiftTypes_SynchronousSyncHandlerMessage:
+        return Vector<ArgumentDescription> {
+            { "found"_s, "bool"_s },
+        };
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
         };
