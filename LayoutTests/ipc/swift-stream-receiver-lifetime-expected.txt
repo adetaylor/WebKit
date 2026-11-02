@@ -1,0 +1,3 @@
+
+PASS Test that releasing a stream tester destroys its Swift stream receiver.
+
