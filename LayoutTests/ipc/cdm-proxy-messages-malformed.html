@@ -1,0 +1,73 @@
+<!DOCTYPE html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that the GPU process's EME CDM message receivers reject malformed messages.</title>
+<pre id="log"></pre>
+<script src="resources/cdm-proxy-messages.js"></script>
+<script>
+if (window.testRunner) {
+    testRunner.dumpAsText();
+    testRunner.waitUntilDone();
+}
+
+async function check(description, name, destination, args, synchronous)
+{
+    const result = synchronous ? sendSync(name, destination, args) : await sendWithReply(name, destination, args);
+    log(`${name} with ${description}: ${result ? 'handled' : 'not handled'}`);
+}
+
+async function run()
+{
+    if (!window.IPC) {
+        log('This test needs the IPC testing API.');
+        return;
+    }
+
+    const cdm = identifierIn(sendSync('RemoteCDMFactoryProxy_CreateCDM', 0, [string('org.w3.clearkey'), string('salt')]));
+    const instance = cdm && identifierIn(sendSync('RemoteCDMProxy_CreateInstance', cdm, []));
+    const session = instance && identifierIn(sendSync('RemoteCDMInstanceProxy_CreateSession', instance, [uint64(1)]));
+    if (!session) {
+        log('Could not create a CDM session.');
+        return;
+    }
+
+    await check('a valid key system', 'RemoteCDMFactoryProxy_SupportsKeySystem', 0, [string('org.w3.clearkey')], true);
+    await check('a String with an invalid 8-bit flag', 'RemoteCDMFactoryProxy_SupportsKeySystem', 0, [{ type: 'uint32_t', value: 3 }, uint8(2), uint8(97), uint8(98), uint8(99)], true);
+    await check('a String longer than the message', 'RemoteCDMFactoryProxy_SupportsKeySystem', 0, [{ type: 'uint32_t', value: 1000 }, bool(true)], true);
+    await check('no argument', 'RemoteCDMFactoryProxy_SupportsKeySystem', 0, [], true);
+    await check('a missing argument', 'RemoteCDMFactoryProxy_CreateCDM', 0, [string('org.w3.clearkey')], true);
+
+    const valid = configuration({ initDataTypes: ['keyids'], sessionTypes: [0] });
+    await check('a valid configuration', 'RemoteCDMProxy_GetSupportedConfiguration', cdm, [...valid, bool(false)]);
+    const withRequirement = value => [...valid.slice(0, 4), uint8(value), ...valid.slice(5)];
+    await check('an unknown CDMRequirement', 'RemoteCDMProxy_GetSupportedConfiguration', cdm, [...withRequirement(3), bool(false)]);
+    await check('an unknown CDMSessionType', 'RemoteCDMProxy_GetSupportedConfiguration', cdm, [...valid.slice(0, 6), vector([[uint8(3)]]), bool(false)]);
+    await check('an encryption scheme that is not a bool', 'RemoteCDMProxy_GetSupportedConfiguration', cdm, [string(''), vector([]), vector([[string('audio/mp4'), string(''), bool(true), uint8(2)]]), ...valid.slice(3), bool(false)]);
+    await check('a local storage access that is not a bool', 'RemoteCDMProxy_GetSupportedConfiguration', cdm, [...valid, uint8(2)]);
+    await check('a truncated configuration', 'RemoteCDMProxy_GetSupportedConfiguration', cdm, valid.slice(0, 3));
+
+    await check('a distinctive identifier choice that is not a bool', 'RemoteCDMInstanceProxy_InitializeWithConfiguration', instance, [...valid, uint8(2), bool(false)]);
+    await check('a buffer with an unknown representation', 'RemoteCDMInstanceProxy_SetServerCertificate', instance, [uint8(2)]);
+    const large = Array(4096).fill(uint8(65));
+    await check('a buffer of 4096 bytes sent inline', 'RemoteCDMInstanceProxy_SetServerCertificate', instance, [uint8(1), vector([[uint64(4096), ...large]])]);
+
+    await check('a buffer of 100 bytes in shared memory', 'RemoteCDMInstanceProxy_SetServerCertificate', instance, sharedMemoryBuffer(100, 'c'));
+    await check('a buffer with an unknown representation', 'RemoteCDMInstanceSessionProxy_RequestLicense', session, [uint8(0), bool(false), string('keyids'), bool(true), uint8(2)]);
+    await check('a buffer of 4096 bytes sent inline', 'RemoteCDMInstanceSessionProxy_UpdateLicense', session, [string('1'), uint8(0), bool(true), uint8(1), vector([[uint64(4096), ...large]])]);
+    await check('a buffer of 100 bytes in shared memory', 'RemoteCDMInstanceSessionProxy_UpdateLicense', session, [string('1'), uint8(0), bool(true), ...sharedMemoryBuffer(100, ' ')]);
+    await check('an unknown CDMSessionType', 'RemoteCDMInstanceSessionProxy_RequestLicense', session, [uint8(3), bool(false), string('keyids'), ...optionalBuffer('{}')]);
+    await check('a key grouping strategy that is not a bool', 'RemoteCDMInstanceSessionProxy_RequestLicense', session, [uint8(0), uint8(2), string('keyids'), ...optionalBuffer('{}')]);
+    await check('an optional buffer flag that is not a bool', 'RemoteCDMInstanceSessionProxy_RequestLicense', session, [uint8(0), bool(false), string('keyids'), uint8(2)]);
+    await check('an unknown CDMSessionType', 'RemoteCDMInstanceSessionProxy_UpdateLicense', session, [string('1'), uint8(9), ...optionalBuffer('{}')]);
+    await check('an unknown CDMSessionType', 'RemoteCDMInstanceSessionProxy_LoadSession', session, [uint8(3), string('1'), string('')]);
+    await check('an unknown CDMSessionType', 'RemoteCDMInstanceSessionProxy_RemoveSessionData', session, [string('1'), uint8(4)]);
+
+    await check('a zero identifier', 'RemoteCDMInstanceProxy_CreateSession', 0, [uint64(1)], true);
+    send('RemoteCDMFactoryProxy_RemoveInstance', 0, [uint64(0)]);
+    send('RemoteCDMFactoryProxy_RemoveSession', 0, [uint64(18446744073709551615n)]);
+
+    await check('valid arguments after the malformed messages', 'RemoteCDMFactoryProxy_SupportsKeySystem', 0, [string('org.w3.clearkey')], true);
+    await check('valid arguments after the malformed messages', 'RemoteCDMInstanceSessionProxy_CloseSession', session, [string('1')]);
+    sendSync('GPUConnectionToWebProcess_TakeInvalidMessageStringForTesting', 0, []);
+}
+
+run().finally(() => window.testRunner?.notifyDone());
+</script>

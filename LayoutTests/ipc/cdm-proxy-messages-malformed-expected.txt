@@ -1,0 +1,28 @@
+RemoteCDMFactoryProxy_SupportsKeySystem with a valid key system: handled
+RemoteCDMFactoryProxy_SupportsKeySystem with a String with an invalid 8-bit flag: not handled
+RemoteCDMFactoryProxy_SupportsKeySystem with a String longer than the message: not handled
+RemoteCDMFactoryProxy_SupportsKeySystem with no argument: not handled
+RemoteCDMFactoryProxy_CreateCDM with a missing argument: not handled
+RemoteCDMProxy_GetSupportedConfiguration with a valid configuration: handled
+RemoteCDMProxy_GetSupportedConfiguration with an unknown CDMRequirement: not handled
+RemoteCDMProxy_GetSupportedConfiguration with an unknown CDMSessionType: not handled
+RemoteCDMProxy_GetSupportedConfiguration with an encryption scheme that is not a bool: not handled
+RemoteCDMProxy_GetSupportedConfiguration with a local storage access that is not a bool: not handled
+RemoteCDMProxy_GetSupportedConfiguration with a truncated configuration: not handled
+RemoteCDMInstanceProxy_InitializeWithConfiguration with a distinctive identifier choice that is not a bool: not handled
+RemoteCDMInstanceProxy_SetServerCertificate with a buffer with an unknown representation: not handled
+RemoteCDMInstanceProxy_SetServerCertificate with a buffer of 4096 bytes sent inline: not handled
+RemoteCDMInstanceProxy_SetServerCertificate with a buffer of 100 bytes in shared memory: not handled
+RemoteCDMInstanceSessionProxy_RequestLicense with a buffer with an unknown representation: not handled
+RemoteCDMInstanceSessionProxy_UpdateLicense with a buffer of 4096 bytes sent inline: not handled
+RemoteCDMInstanceSessionProxy_UpdateLicense with a buffer of 100 bytes in shared memory: not handled
+RemoteCDMInstanceSessionProxy_RequestLicense with an unknown CDMSessionType: not handled
+RemoteCDMInstanceSessionProxy_RequestLicense with a key grouping strategy that is not a bool: not handled
+RemoteCDMInstanceSessionProxy_RequestLicense with an optional buffer flag that is not a bool: not handled
+RemoteCDMInstanceSessionProxy_UpdateLicense with an unknown CDMSessionType: not handled
+RemoteCDMInstanceSessionProxy_LoadSession with an unknown CDMSessionType: not handled
+RemoteCDMInstanceSessionProxy_RemoveSessionData with an unknown CDMSessionType: not handled
+RemoteCDMInstanceProxy_CreateSession with a zero identifier: not handled
+RemoteCDMFactoryProxy_SupportsKeySystem with valid arguments after the malformed messages: handled
+RemoteCDMInstanceSessionProxy_CloseSession with valid arguments after the malformed messages: handled
+
