@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteCDMInstanceProxy.h"
 
-#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA) && !ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
 #include "RemoteCDMInstanceMessages.h"

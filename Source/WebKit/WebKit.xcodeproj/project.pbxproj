@@ -122,6 +122,8 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		F402B3F402DFBD93CABE6F75 /* RemoteCDMInstanceProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF050E0BDE46A34DDA9D8B2 /* RemoteCDMInstanceProxyMessageReceiver.swift */; };
+		CA678D5B4DF7D49ECD183D58 /* RemoteCDMInstanceProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0671F99062299038E0C08EF2 /* RemoteCDMInstanceProxy.swift */; };
 		367C194497AF283FC69D36AD /* RemoteCDMProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E1F5AC7DF3C6BE07B1F44 /* RemoteCDMProxyMessageReceiver.swift */; };
 		4CE9100D75E4D8BA2750538C /* RemoteCDMProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD63B7D416097CBEA80CB2A4 /* RemoteCDMProxy.swift */; };
 		F50B56AC6615BC9A9822B44F /* RemoteCDMFactoryProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82E58EFC64C6F792B961BDD8 /* RemoteCDMFactoryProxyMessageReceiver.swift */; };
@@ -3441,6 +3443,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5AF050E0BDE46A34DDA9D8B2 /* RemoteCDMInstanceProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCDMInstanceProxyMessageReceiver.swift; sourceTree = "<group>"; };
+		0671F99062299038E0C08EF2 /* RemoteCDMInstanceProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCDMInstanceProxy.swift; sourceTree = "<group>"; };
 		4A1E1F5AC7DF3C6BE07B1F44 /* RemoteCDMProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCDMProxyMessageReceiver.swift; sourceTree = "<group>"; };
 		A5462344BF22395DA5D97A06 /* RemoteCDMSwiftSupport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCDMSwiftSupport.cpp; sourceTree = "<group>"; };
 		AD63B7D416097CBEA80CB2A4 /* RemoteCDMProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCDMProxy.swift; sourceTree = "<group>"; };
@@ -9997,6 +10001,7 @@
 				CDAC20B323FB58F20021DEE3 /* RemoteCDMInstanceProxy.cpp */,
 				CDAC20B223FB58F20021DEE3 /* RemoteCDMInstanceProxy.h */,
 				CDAC20B123FB58E20021DEE3 /* RemoteCDMInstanceProxy.messages.in */,
+				0671F99062299038E0C08EF2 /* RemoteCDMInstanceProxy.swift */,
 				CDAC20AF23FB582B0021DEE3 /* RemoteCDMInstanceSessionProxy.cpp */,
 				CDAC20AE23FB582B0021DEE3 /* RemoteCDMInstanceSessionProxy.h */,
 				CDAC20AD23FB582B0021DEE3 /* RemoteCDMInstanceSessionProxy.messages.in */,
@@ -13912,6 +13917,7 @@
 				CDA6D45025A989AC004B1DF6 /* RemoteCDMInstanceMessageReceiver.cpp */,
 				CDA6D44F25A989AC004B1DF6 /* RemoteCDMInstanceMessages.h */,
 				CDAC20F523FC383B0021DEE3 /* RemoteCDMInstanceProxyMessageReceiver.cpp */,
+				5AF050E0BDE46A34DDA9D8B2 /* RemoteCDMInstanceProxyMessageReceiver.swift */,
 				CDAC20EB23FC38380021DEE3 /* RemoteCDMInstanceProxyMessages.h */,
 				CD466181240105640047CA35 /* RemoteCDMInstanceSessionMessageReceiver.cpp */,
 				CD466182240105640047CA35 /* RemoteCDMInstanceSessionMessages.h */,
@@ -22526,6 +22532,8 @@
 				9B1229CE23FF25F2008CA751 /* RemoteAudioDestinationManager.cpp in Sources */,
 				6C90A0A1D672DE5E289862A3 /* RemoteCDMFactoryProxy.swift in Sources */,
 				F50B56AC6615BC9A9822B44F /* RemoteCDMFactoryProxyMessageReceiver.swift in Sources */,
+				CA678D5B4DF7D49ECD183D58 /* RemoteCDMInstanceProxy.swift in Sources */,
+				F402B3F402DFBD93CABE6F75 /* RemoteCDMInstanceProxyMessageReceiver.swift in Sources */,
 				4CE9100D75E4D8BA2750538C /* RemoteCDMProxy.swift in Sources */,
 				367C194497AF283FC69D36AD /* RemoteCDMProxyMessageReceiver.swift in Sources */,
 				2D72A1FA212BF46E00517A20 /* RemoteLayerTreeDrawingArea.mm in Sources */,

@@ -68,7 +68,7 @@ final class RemoteCDMProxy {
         candidateConfiguration: IPCTypes.CDMKeySystemConfiguration,
         access: IPCTypes.CDMPrivateLocalStorageAccess
     ) async -> IPCTypes.CDMKeySystemConfiguration? {
-        var builder = Self.builder(for: candidateConfiguration)
+        var builder = remoteCDMKeySystemConfigurationBuilder(candidateConfiguration)
         return await withCheckedContinuation { continuation in
             WebKit.getSupportedRemoteCDMConfiguration(
                 cdm,
@@ -102,31 +102,34 @@ final class RemoteCDMProxy {
     func setLogIdentifier(connection: IPC.Connection, logIdentifier: UInt64) {
         cdm.setLogIdentifier(logIdentifier)
     }
+}
 
-    private static func builder(for configuration: IPCTypes.CDMKeySystemConfiguration) -> WebKit.RemoteCDMKeySystemConfigurationBuilder {
-        var builder = WebKit.RemoteCDMKeySystemConfigurationBuilder()
-        builder.setLabel(IPCCoding.WTFString.cxxString(configuration.label))
-        for type in configuration.initDataTypes {
-            builder.appendInitDataType(IPCCoding.WTFString.cxxString(type))
-        }
-        for (isVideo, capabilities) in [(false, configuration.audioCapabilities), (true, configuration.videoCapabilities)] {
-            for capability in capabilities {
-                builder.appendCapability(
-                    isVideo,
-                    IPCCoding.WTFString.cxxString(capability.contentType),
-                    IPCCoding.WTFString.cxxString(capability.robustness),
-                    capability.encryptionScheme != nil,
-                    capability.encryptionScheme == .cbcs
-                )
-            }
-        }
-        builder.setDistinctiveIdentifier(configuration.distinctiveIdentifier.rawValue)
-        builder.setPersistentState(configuration.persistentState.rawValue)
-        for type in configuration.sessionTypes {
-            builder.appendSessionType(type.rawValue)
-        }
-        return builder
+// The C++ form of a configuration that a Swift receiver hands to a CDM.
+func remoteCDMKeySystemConfigurationBuilder(
+    _ configuration: IPCTypes.CDMKeySystemConfiguration
+) -> WebKit.RemoteCDMKeySystemConfigurationBuilder {
+    var builder = WebKit.RemoteCDMKeySystemConfigurationBuilder()
+    builder.setLabel(IPCCoding.WTFString.cxxString(configuration.label))
+    for type in configuration.initDataTypes {
+        builder.appendInitDataType(IPCCoding.WTFString.cxxString(type))
     }
+    for (isVideo, capabilities) in [(false, configuration.audioCapabilities), (true, configuration.videoCapabilities)] {
+        for capability in capabilities {
+            builder.appendCapability(
+                isVideo,
+                IPCCoding.WTFString.cxxString(capability.contentType),
+                IPCCoding.WTFString.cxxString(capability.robustness),
+                capability.encryptionScheme != nil,
+                capability.encryptionScheme == .cbcs
+            )
+        }
+    }
+    builder.setDistinctiveIdentifier(configuration.distinctiveIdentifier.rawValue)
+    builder.setPersistentState(configuration.persistentState.rawValue)
+    for type in configuration.sessionTypes {
+        builder.appendSessionType(type.rawValue)
+    }
+    return builder
 }
 
 #endif // ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
