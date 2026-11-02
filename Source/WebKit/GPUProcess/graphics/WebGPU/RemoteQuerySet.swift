@@ -31,23 +31,18 @@ import WebKit_Internal
 final class RemoteQuerySet {
     private let backing: WebGPU.QuerySet
     private let context: WebKit.WebGPUSwiftReceiverContext
-    // Optional just because of an initialization order issue. Always occupied after initialization finished.
-    private var messageForwarder: RefRemoteQuerySetMessageForwarder?
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
     init(backing: WebKit.RemoteQuerySetBacking, context: WebKit.WebGPUSwiftReceiverContext) {
         self.backing = backing.get()
         self.context = context
-        self.messageForwarder = WebKit.RemoteQuerySetMessageForwarder.create(target: self)
     }
 
+    // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
     @used
     func getMessageReceiver() -> RefRemoteQuerySetMessageForwarder {
-        guard let messageForwarder = self.messageForwarder else {
-            fatalError("Unreachable - guaranteed to exist")
-        }
-        return messageForwarder
+        WebKit.RemoteQuerySetMessageForwarder.create(target: self)
     }
 
     @used

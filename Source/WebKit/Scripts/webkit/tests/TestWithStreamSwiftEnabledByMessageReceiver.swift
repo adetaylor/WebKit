@@ -24,20 +24,17 @@
 
 import WebKit_Internal
 
-// Safety: target is only written in init, dispatch asserts the stream connection's work queue, and weak loads are atomic in the Swift runtime
+// Safety: target is immutable, and dispatch asserts the stream connection's work queue
 @_expose(Cxx)
 final class TestWithStreamSwiftEnabledByWeakRef: @unchecked Sendable {
-    private weak var target: TestWithStreamSwiftEnabledBy?
+    private let target: TestWithStreamSwiftEnabledBy
     init(target: TestWithStreamSwiftEnabledBy) {
         self.target = target
     }
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        guard let target else {
-            return WebKit.OptionalSharedPreferencesForWebProcess()
-        }
-        return target.sharedPreferencesForWebProcess()
+        target.sharedPreferencesForWebProcess()
     }
 
     @used
@@ -46,9 +43,6 @@ final class TestWithStreamSwiftEnabledByWeakRef: @unchecked Sendable {
         url: sending WTF.String
     ) {
         assert(connection.isCurrentWorkQueue())
-        guard let target else {
-            return
-        }
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendString(
