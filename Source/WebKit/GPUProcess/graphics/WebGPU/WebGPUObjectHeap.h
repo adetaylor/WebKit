@@ -30,6 +30,7 @@
 #include "ScopedActiveMessageReceiveQueue.h"
 #include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUIdentifier.h"
+#include "WebGPUSwiftSupport.h"
 #include <WebCore/WebGPUCppAPI.h>
 #include <WebCore/WebGPUDevice.h>
 #include <functional>
@@ -76,6 +77,12 @@ class RemoteXRView;
 
 namespace WebKit::WebGPU {
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+using QuerySetObject = SwiftReceiverObject<::WebGPU::QuerySet, RemoteQuerySet>;
+#else
+using QuerySetObject = IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>;
+#endif
+
 class ObjectHeap final : public RefCountedAndCanMakeWeakPtr<ObjectHeap>, public WebGPU::ConvertFromBackingContext {
     WTF_MAKE_TZONE_ALLOCATED(ObjectHeap);
 public:
@@ -99,7 +106,11 @@ public:
     void addObject(WebGPUIdentifier, RemoteExternalTexture&);
     void addObject(WebGPUIdentifier, RemotePipelineLayout&);
     void addObject(WebGPUIdentifier, RemotePresentationContext&);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    void addObject(WebGPUIdentifier, QuerySetObject&&);
+#else
     void addObject(WebGPUIdentifier, RemoteQuerySet&);
+#endif
     void addObject(WebGPUIdentifier, RemoteQueue&);
     void addObject(WebGPUIdentifier, RemoteRenderBundleEncoder&);
     void addObject(WebGPUIdentifier, RemoteRenderBundle&);
@@ -171,7 +182,7 @@ private:
         IPC::ScopedActiveMessageReceiveQueue<RemoteExternalTexture>,
         IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout>,
         IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>,
-        IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>,
+        QuerySetObject,
         IPC::ScopedActiveMessageReceiveQueue<RemoteQueue>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundle>,
