@@ -95,7 +95,8 @@ namespace WebGPU {
 
 // The object heap's entry for a receiver written in Swift. It owns the receiver, keeps the backing that other
 // receivers look up by identifier, and keeps the receiver's messages coming for as long as it exists, as
-// IPC::ScopedActiveMessageReceiveQueue does for a receiver written in C++. It also gives the receiver's message
+// IPC::ScopedActiveMessageReceiveQueue does for a receiver written in C++. The receiver's message forwarder keeps
+// the receiver alive too, while the stream connection holds it, as the connection keeps a C++ receiver alive. It also gives the receiver's message
 // forwarder the shared preferences from C++, so that dispatching a message doesn't ask Swift for them.
 template<typename Backing, typename SwiftReceiver>
 class SwiftReceiverObject {

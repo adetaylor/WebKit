@@ -29,9 +29,6 @@ import WebKit_Internal
 // stream receiver, it is confined to the connection's work queue.
 @_expose(Cxx)
 final class IPCSwiftStreamTester {
-    // Optional just because of an initialization order issue. Always occupied after initialization finished.
-    private var messageForwarder: RefIPCSwiftStreamTesterMessageForwarder?
-
     private var recordedDigest: UInt32 = 0
 
     private var benchSink: UInt64 = 0
@@ -41,16 +38,12 @@ final class IPCSwiftStreamTester {
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
-    init() {
-        self.messageForwarder = WebKit.IPCSwiftStreamTesterMessageForwarder.create(target: self)
-    }
+    init() {}
 
+    // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
     @used
     func getMessageReceiver() -> RefIPCSwiftStreamTesterMessageForwarder {
-        guard let messageForwarder = self.messageForwarder else {
-            fatalError("Unreachable - guaranteed to exist")
-        }
-        return messageForwarder
+        WebKit.IPCSwiftStreamTesterMessageForwarder.create(target: self)
     }
 
     func record(connection: IPC.StreamServerConnection, value: UInt32) {
