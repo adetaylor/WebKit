@@ -162,11 +162,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCompositorIntegrat
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteComputePassEncoder& computePassEncoder)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, ComputePassEncoderObject&& computePassEncoder)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteComputePassEncoder> { protect(computePassEncoder) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(computePassEncoder) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteComputePassEncoder& computePassEncoder)
+{
+    auto result = m_objects.add(identifier, Object { ComputePassEncoderObject { protect(computePassEncoder) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, ComputePipelineObject&& computePipeline)
@@ -430,9 +438,9 @@ WeakPtr<WebCore::WebGPUCompositorIntegration> ObjectHeap::convertCompositorInteg
 RefPtr<::WebGPU::ComputePassEncoder> ObjectHeap::convertComputePassEncoderFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteComputePassEncoder>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<ComputePassEncoderObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteComputePassEncoder>>(iterator->value)->backing();
+    return &std::get<ComputePassEncoderObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::ComputePipeline> ObjectHeap::convertComputePipelineFromBacking(WebGPUIdentifier identifier)

@@ -1036,6 +1036,7 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupLayoutMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteCommandBufferMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteComputePassEncoderMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteComputePipelineMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteExternalTextureMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemotePipelineLayoutMessageReceiver.cpp
@@ -1709,6 +1710,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCommandBufferMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteComputePassEncoderMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteComputePipelineMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteExternalTextureMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemotePipelineLayoutMessageReceiver.swift
@@ -1722,6 +1724,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroup.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupLayout.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteCommandBuffer.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteComputePassEncoder.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteComputePipeline.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteExternalTexture.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemotePipelineLayout.swift
@@ -1733,6 +1736,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCommandBufferMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteComputePassEncoderMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteComputePipelineMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteExternalTextureMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemotePipelineLayoutMessageReceiver.swift

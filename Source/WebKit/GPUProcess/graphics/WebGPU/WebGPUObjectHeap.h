@@ -84,6 +84,7 @@ namespace WebKit::WebGPU {
 using BindGroupLayoutObject = SwiftReceiverObject<::WebGPU::BindGroupLayout, RemoteBindGroupLayout>;
 using BindGroupObject = SwiftReceiverObject<::WebGPU::BindGroup, RemoteBindGroup>;
 using CommandBufferObject = SwiftReceiverObject<::WebGPU::CommandBuffer, RemoteCommandBuffer>;
+using ComputePassEncoderObject = SwiftReceiverObject<::WebGPU::ComputePassEncoder, RemoteComputePassEncoder>;
 using ComputePipelineObject = SwiftReceiverObject<::WebGPU::ComputePipeline, RemoteComputePipeline>;
 using ExternalTextureObject = SwiftReceiverObject<::WebGPU::ExternalTexture, RemoteExternalTexture>;
 using PipelineLayoutObject = SwiftReceiverObject<::WebGPU::PipelineLayout, RemotePipelineLayout>;
@@ -96,6 +97,7 @@ using TextureViewObject = SwiftReceiverObject<::WebGPU::TextureView, RemoteTextu
 using BindGroupLayoutObject = IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroupLayout>;
 using BindGroupObject = IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup>;
 using CommandBufferObject = IPC::ScopedActiveMessageReceiveQueue<RemoteCommandBuffer>;
+using ComputePassEncoderObject = IPC::ScopedActiveMessageReceiveQueue<RemoteComputePassEncoder>;
 using ComputePipelineObject = IPC::ScopedActiveMessageReceiveQueue<RemoteComputePipeline>;
 using ExternalTextureObject = IPC::ScopedActiveMessageReceiveQueue<RemoteExternalTexture>;
 using PipelineLayoutObject = IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout>;
@@ -135,7 +137,11 @@ public:
 #endif
     void addObject(WebGPUIdentifier, RemoteCommandEncoder&);
     void addObject(WebGPUIdentifier, RemoteCompositorIntegration&);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    void addObject(WebGPUIdentifier, ComputePassEncoderObject&&);
+#else
     void addObject(WebGPUIdentifier, RemoteComputePassEncoder&);
+#endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, ComputePipelineObject&&);
 #else
@@ -245,7 +251,7 @@ private:
         CommandBufferObject,
         IPC::ScopedActiveMessageReceiveQueue<RemoteCommandEncoder>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>,
-        IPC::ScopedActiveMessageReceiveQueue<RemoteComputePassEncoder>,
+        ComputePassEncoderObject,
         ComputePipelineObject,
         IPC::ScopedActiveMessageReceiveQueue<RemoteDevice>,
         ExternalTextureObject,

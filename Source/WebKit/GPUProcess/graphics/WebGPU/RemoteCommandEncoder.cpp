@@ -42,6 +42,7 @@
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 #include "RemoteCommandBufferMessages.h"
+#include "RemoteComputePassEncoderMessages.h"
 #include "WebKit-Swift.h"
 #endif
 
@@ -99,8 +100,14 @@ void RemoteCommandEncoder::beginComputePass(const std::optional<WebGPU::ComputeP
 
     auto computePassEncoder = protect(m_backing)->beginComputePass(convertedDescriptor);
     MESSAGE_CHECK(computePassEncoder);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteComputePassEncoder = RemoteComputePassEncoder::init(RemoteComputePassEncoderBacking { *computePassEncoder }, context, objectHeap->swiftImplTable());
+    objectHeap->addObject(identifier, WebGPU::ComputePassEncoderObject { *computePassEncoder, WTF::move(remoteComputePassEncoder), context, protect(m_streamConnection), Messages::RemoteComputePassEncoder::messageReceiverName(), identifier });
+#else
     auto computeRenderPassEncoder = RemoteComputePassEncoder::create(*computePassEncoder, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, computeRenderPassEncoder);
+#endif
 }
 
 void RemoteCommandEncoder::copyBufferToBuffer(

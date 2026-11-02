@@ -89,6 +89,7 @@
 #include "RemoteBindGroupLayoutMessages.h"
 #include "RemoteBindGroupMessages.h"
 #include "RemoteCommandBufferMessages.h"
+#include "RemoteComputePassEncoderMessages.h"
 #include "RemoteComputePipelineMessages.h"
 #include "RemoteExternalTextureMessages.h"
 #include "RemotePipelineLayoutMessages.h"

@@ -95,6 +95,24 @@ bool WebGPUSwiftReceiverContext::makeChild(WebGPUSwiftChildKind kind, uint32_t i
     RELEASE_ASSERT_NOT_REACHED();
 }
 
+::WebGPU::BindGroup* WebGPUSwiftReceiverContext::bindGroup(uint64_t identifier) const
+{
+    RefPtr objectHeap = m_objectHeap.get();
+    return objectHeap ? objectHeap->convertBindGroupFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
+}
+
+::WebGPU::Buffer* WebGPUSwiftReceiverContext::buffer(uint64_t identifier) const
+{
+    RefPtr objectHeap = m_objectHeap.get();
+    return objectHeap ? objectHeap->convertBufferFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
+}
+
+::WebGPU::ComputePipeline* WebGPUSwiftReceiverContext::computePipeline(uint64_t identifier) const
+{
+    RefPtr objectHeap = m_objectHeap.get();
+    return objectHeap ? objectHeap->convertComputePipelineFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
+}
+
 ::WebGPU::ExternalTexture* WebGPUSwiftReceiverContext::externalTexture(uint64_t identifier) const
 {
     RefPtr objectHeap = m_objectHeap.get();
