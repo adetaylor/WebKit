@@ -108,7 +108,22 @@ func shadowBlurDrawRectShadow(
     _ destination: borrowing WebCore.ShadowBlurDestination
 ) {
     let plan = state.rectShadowPlan(transform, clipBounds, shadowedRect, radii)
-    shadowBlurDrawRectShadowPlan(state, plan, shadowedRect, radii, color, destination)
+    var destination = copy destination
+    shadowBlurDrawRectShadowPlan(state, plan, shadowedRect, radii, color, &destination)
+}
+
+// ShadowBlur::drawRectShadow() through a renderer that draws the shadow's pieces itself.
+func shadowBlurDrawRectShadow<Destination: ShadowDrawing & ~Escapable>(
+    _ state: inout WebCore.ShadowBlurState,
+    _ transform: borrowing WebCore.AffineTransform,
+    _ clipBounds: WebCore.IntRect,
+    _ shadowedRect: WebCore.ShadowBlurRect,
+    _ radii: WebCore.ShadowBlurCornerRadii,
+    _ color: borrowing WebCore.Color,
+    into destination: inout Destination
+) {
+    let plan = state.rectShadowPlan(transform, clipBounds, shadowedRect, radii)
+    shadowBlurDrawRectShadowPlan(state, plan, shadowedRect, radii, color, &destination)
 }
 
 // ShadowBlur::drawInsetShadow().
@@ -124,7 +139,8 @@ func shadowBlurDrawInsetShadow(
     _ destination: borrowing WebCore.ShadowBlurDestination
 ) {
     let plan = state.insetShadowPlan(transform, clipBounds, fullRect, holeRect, holeRadii)
-    shadowBlurDrawInsetShadowPlan(state, plan, fullRect, holeRect, holeRadii, color, destination)
+    var destination = copy destination
+    shadowBlurDrawInsetShadowPlan(state, plan, fullRect, holeRect, holeRadii, color, &destination)
 }
 
 // ShadowBlur::drawShadowLayer().

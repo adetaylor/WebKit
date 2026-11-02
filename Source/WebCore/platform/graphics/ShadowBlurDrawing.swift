@@ -118,6 +118,44 @@ private func shadowBlurFillRectWithHole(
     }
 }
 
+// Where a shadow's pieces are drawn: a ShadowBlurDestination, or a renderer that draws them itself.
+protocol ShadowDrawing: ~Escapable {
+    // The layer image, a blurred mask, filled with the shadow's color at the layer's place.
+    mutating func drawShadowBuffer(
+        _ layerImage: WebCore.ImageBuffer,
+        _ layerOrigin: WebCore.FloatPoint,
+        _ layerSize: WebCore.FloatSize,
+        _ color: borrowing WebCore.Color
+    )
+    // The eight pieces of a tiled shadow's template.
+    mutating func drawShadowLayerPieces(_ layerImage: WebCore.ImageBuffer, _ tiles: ShadowBlurTiles)
+    mutating func fillShadowRect(_ rect: WebCore.FloatRect, _ color: borrowing WebCore.Color)
+    mutating func fillShadowRectWithHole(_ rect: WebCore.FloatRect, _ holeRect: WebCore.FloatRect, _ color: borrowing WebCore.Color)
+}
+
+extension WebCore.ShadowBlurDestination: ShadowDrawing {
+    mutating func drawShadowBuffer(
+        _ layerImage: WebCore.ImageBuffer,
+        _ layerOrigin: WebCore.FloatPoint,
+        _ layerSize: WebCore.FloatSize,
+        _ color: borrowing WebCore.Color
+    ) {
+        shadowBlurDrawBuffer(self, layerImage, layerOrigin, layerSize, color)
+    }
+
+    mutating func drawShadowLayerPieces(_ layerImage: WebCore.ImageBuffer, _ tiles: ShadowBlurTiles) {
+        shadowBlurDrawLayerPieces(layerImage, tiles, self)
+    }
+
+    mutating func fillShadowRect(_ rect: WebCore.FloatRect, _ color: borrowing WebCore.Color) {
+        shadowBlurFillRect(self, rect, color)
+    }
+
+    mutating func fillShadowRectWithHole(_ rect: WebCore.FloatRect, _ holeRect: WebCore.FloatRect, _ color: borrowing WebCore.Color) {
+        shadowBlurFillRectWithHole(self, rect, holeRect, color)
+    }
+}
+
 // MARK: The GraphicsContext overloads
 
 // ShadowBlur::drawShadowBuffer().
@@ -195,40 +233,40 @@ private func shadowBlurFillRectWithHole(
 
 // MARK: Shadows
 
-func shadowBlurDrawRectShadowPlan(
+func shadowBlurDrawRectShadowPlan<Destination: ShadowDrawing & ~Escapable>(
     _ shadow: borrowing WebCore.ShadowBlurState,
     _ plan: ShadowBlurRectShadowPlan,
     _ shadowedRect: WebCore.ShadowBlurRect,
     _ radii: WebCore.ShadowBlurCornerRadii,
     _ color: borrowing WebCore.Color,
-    _ destination: borrowing WebCore.ShadowBlurDestination
+    _ destination: inout Destination
 ) {
     switch plan.drawing {
     case .none:
         return
     case .withoutTiling:
-        shadowBlurDrawRectShadowWithoutTiling(shadow, shadowedRect, radii, plan.layer, color, destination)
+        shadowBlurDrawRectShadowWithoutTiling(shadow, shadowedRect, radii, plan.layer, color, &destination)
     case .withTiling:
-        shadowBlurDrawRectShadowWithTiling(shadow, plan, radii, color, destination)
+        shadowBlurDrawRectShadowWithTiling(shadow, plan, radii, color, &destination)
     }
 }
 
-func shadowBlurDrawInsetShadowPlan(
+func shadowBlurDrawInsetShadowPlan<Destination: ShadowDrawing & ~Escapable>(
     _ shadow: borrowing WebCore.ShadowBlurState,
     _ plan: ShadowBlurInsetShadowPlan,
     _ fullRect: WebCore.ShadowBlurRect,
     _ holeRect: WebCore.ShadowBlurRect,
     _ holeRadii: WebCore.ShadowBlurCornerRadii,
     _ color: borrowing WebCore.Color,
-    _ destination: borrowing WebCore.ShadowBlurDestination
+    _ destination: inout Destination
 ) {
     switch plan.drawing {
     case .none:
         return
     case .withoutTiling:
-        shadowBlurDrawInsetShadowWithoutTiling(shadow, fullRect, holeRect, holeRadii, plan.layer, color, destination)
+        shadowBlurDrawInsetShadowWithoutTiling(shadow, fullRect, holeRect, holeRadii, plan.layer, color, &destination)
     case .withTiling:
-        shadowBlurDrawInsetShadowWithTiling(shadow, plan, holeRadii, color, destination)
+        shadowBlurDrawInsetShadowWithTiling(shadow, plan, holeRadii, color, &destination)
     }
 }
 
@@ -260,13 +298,13 @@ func shadowBlurDrawShadowLayerPlan(
     destination.drawBuffer(layerImage, plan.layer.layerOrigin.floatPoint, plan.layer.layerSize.floatSize)
 }
 
-private func shadowBlurDrawRectShadowWithoutTiling(
+private func shadowBlurDrawRectShadowWithoutTiling<Destination: ShadowDrawing & ~Escapable>(
     _ shadow: borrowing WebCore.ShadowBlurState,
     _ shadowedRect: WebCore.ShadowBlurRect,
     _ radii: WebCore.ShadowBlurCornerRadii,
     _ layer: ShadowBlurLayerImageProperties,
     _ color: borrowing WebCore.Color,
-    _ destination: borrowing WebCore.ShadowBlurDestination
+    _ destination: inout Destination
 ) {
     let layerSize = shadowBlurExpandedIntSize(layer.layerSize)
     let layerImageBuffer = shadowBlurCreateImageBuffer(layerSize)
@@ -293,18 +331,18 @@ private func shadowBlurDrawRectShadowWithoutTiling(
     shadowBlurBlurShadowBuffer(shadow, layerImage, layerSize)
     shadowContext.restore()
 
-    shadowBlurDrawBuffer(destination, layerImage, layer.layerOrigin.floatPoint, layer.layerSize.floatSize, color)
+    destination.drawShadowBuffer(layerImage, layer.layerOrigin.floatPoint, layer.layerSize.floatSize, color)
     shadowContext.restore()
 }
 
-private func shadowBlurDrawInsetShadowWithoutTiling(
+private func shadowBlurDrawInsetShadowWithoutTiling<Destination: ShadowDrawing & ~Escapable>(
     _ shadow: borrowing WebCore.ShadowBlurState,
     _ fullRect: WebCore.ShadowBlurRect,
     _ holeRect: WebCore.ShadowBlurRect,
     _ holeRadii: WebCore.ShadowBlurCornerRadii,
     _ layer: ShadowBlurLayerImageProperties,
     _ color: borrowing WebCore.Color,
-    _ destination: borrowing WebCore.ShadowBlurDestination
+    _ destination: inout Destination
 ) {
     let layerSize = shadowBlurExpandedIntSize(layer.layerSize)
     let layerImageBuffer = shadowBlurCreateImageBuffer(layerSize)
@@ -332,26 +370,25 @@ private func shadowBlurDrawInsetShadowWithoutTiling(
     shadowBlurBlurShadowBuffer(shadow, layerImage, layerSize)
     shadowContext.restore()
 
-    shadowBlurDrawBuffer(destination, layerImage, layer.layerOrigin.floatPoint, layer.layerSize.floatSize, color)
+    destination.drawShadowBuffer(layerImage, layer.layerOrigin.floatPoint, layer.layerSize.floatSize, color)
 }
 
-private func shadowBlurDrawRectShadowWithTiling(
+private func shadowBlurDrawRectShadowWithTiling<Destination: ShadowDrawing & ~Escapable>(
     _ shadow: borrowing WebCore.ShadowBlurState,
     _ plan: ShadowBlurRectShadowPlan,
     _ radii: WebCore.ShadowBlurCornerRadii,
     _ color: borrowing WebCore.Color,
-    _ destination: borrowing WebCore.ShadowBlurDestination
+    _ destination: inout Destination
 ) {
     #if USE_CG
     let shadow = copy shadow
     let color = copy color
-    let destination = copy destination
     let drewWithScratchBuffer: Bool? = shadowBlurScratchBuffer.withLockIfAvailable { scratchBuffer in
         guard let layerImage = scratchBuffer.imageBuffer(plan.templateSize) else {
             return true
         }
         let redrawNeeded = scratchBuffer.setCachedShadowValues(plan.blurRadius, color, plan.templateShadow, radii, plan.layer.layerSize)
-        shadowBlurDrawRectShadowWithTemplate(shadow, layerImage, plan, radii, color, destination, redrawNeeded)
+        shadowBlurDrawRectShadowWithTemplate(shadow, layerImage, plan, radii, color, &destination, redrawNeeded)
         return true
     }
     if drewWithScratchBuffer != nil {
@@ -361,19 +398,19 @@ private func shadowBlurDrawRectShadowWithTiling(
 
     let layerImageBuffer = shadowBlurCreateImageBuffer(plan.templateSize)
     if let layerImage = layerImageBuffer.get() {
-        shadowBlurDrawRectShadowWithTemplate(shadow, layerImage, plan, radii, color, destination, true)
+        shadowBlurDrawRectShadowWithTemplate(shadow, layerImage, plan, radii, color, &destination, true)
     }
 }
 
 // ShadowBlur::drawRectShadowWithTilingWithLayerImageBuffer().
 @inline(never)
-private func shadowBlurDrawRectShadowWithTemplate(
+private func shadowBlurDrawRectShadowWithTemplate<Destination: ShadowDrawing & ~Escapable>(
     _ shadow: borrowing WebCore.ShadowBlurState,
     _ layerImage: WebCore.ImageBuffer,
     _ plan: ShadowBlurRectShadowPlan,
     _ radii: WebCore.ShadowBlurCornerRadii,
     _ color: borrowing WebCore.Color,
-    _ destination: borrowing WebCore.ShadowBlurDestination,
+    _ destination: inout Destination,
     _ redrawNeeded: Bool
 ) {
     if redrawNeeded {
@@ -398,23 +435,22 @@ private func shadowBlurDrawRectShadowWithTemplate(
 
     // Fill center
     if plan.tiles.fillsCenter {
-        shadowBlurFillRect(destination, plan.tiles.center.floatRect, color)
+        destination.fillShadowRect(plan.tiles.center.floatRect, color)
     }
 
-    shadowBlurDrawLayerPieces(layerImage, plan.tiles, destination)
+    destination.drawShadowLayerPieces(layerImage, plan.tiles)
 }
 
-private func shadowBlurDrawInsetShadowWithTiling(
+private func shadowBlurDrawInsetShadowWithTiling<Destination: ShadowDrawing & ~Escapable>(
     _ shadow: borrowing WebCore.ShadowBlurState,
     _ plan: ShadowBlurInsetShadowPlan,
     _ holeRadii: WebCore.ShadowBlurCornerRadii,
     _ color: borrowing WebCore.Color,
-    _ destination: borrowing WebCore.ShadowBlurDestination
+    _ destination: inout Destination
 ) {
     #if USE_CG
     let shadow = copy shadow
     let color = copy color
-    let destination = copy destination
     let drewWithScratchBuffer: Bool? = shadowBlurScratchBuffer.withLockIfAvailable { scratchBuffer in
         guard let layerImage = scratchBuffer.imageBuffer(plan.templateSize) else {
             return true
@@ -426,7 +462,7 @@ private func shadowBlurDrawInsetShadowWithTiling(
             plan.templateHole,
             holeRadii
         )
-        shadowBlurDrawInsetShadowWithTemplate(shadow, layerImage, plan, holeRadii, color, destination, redrawNeeded)
+        shadowBlurDrawInsetShadowWithTemplate(shadow, layerImage, plan, holeRadii, color, &destination, redrawNeeded)
         return true
     }
     if drewWithScratchBuffer != nil {
@@ -436,19 +472,19 @@ private func shadowBlurDrawInsetShadowWithTiling(
 
     let layerImageBuffer = shadowBlurCreateImageBuffer(plan.templateSize)
     if let layerImage = layerImageBuffer.get() {
-        shadowBlurDrawInsetShadowWithTemplate(shadow, layerImage, plan, holeRadii, color, destination, true)
+        shadowBlurDrawInsetShadowWithTemplate(shadow, layerImage, plan, holeRadii, color, &destination, true)
     }
 }
 
 // ShadowBlur::drawInsetShadowWithTilingWithLayerImageBuffer().
 @inline(never)
-private func shadowBlurDrawInsetShadowWithTemplate(
+private func shadowBlurDrawInsetShadowWithTemplate<Destination: ShadowDrawing & ~Escapable>(
     _ shadow: borrowing WebCore.ShadowBlurState,
     _ layerImage: WebCore.ImageBuffer,
     _ plan: ShadowBlurInsetShadowPlan,
     _ holeRadii: WebCore.ShadowBlurCornerRadii,
     _ color: borrowing WebCore.Color,
-    _ destination: borrowing WebCore.ShadowBlurDestination,
+    _ destination: inout Destination,
     _ redrawNeeded: Bool
 ) {
     if redrawNeeded {
@@ -475,9 +511,9 @@ private func shadowBlurDrawInsetShadowWithTemplate(
     }
 
     // Fill the external part of the shadow (which may be visible because of offset).
-    shadowBlurFillRectWithHole(destination, plan.boundingRect.floatRect, plan.holeBounds.floatRect, color)
+    destination.fillShadowRectWithHole(plan.boundingRect.floatRect, plan.holeBounds.floatRect, color)
 
-    shadowBlurDrawLayerPieces(layerImage, plan.tiles, destination)
+    destination.drawShadowLayerPieces(layerImage, plan.tiles)
 }
 
 @inline(never)
