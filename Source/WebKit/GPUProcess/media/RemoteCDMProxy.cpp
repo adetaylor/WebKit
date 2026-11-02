@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Apple Inc. All rights reserved.
+ * Copyright (C) 2020-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,98 +28,62 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
 
-#include "RemoteCDMConfiguration.h"
 #include "RemoteCDMInstanceConfiguration.h"
-#include "RemoteCDMInstanceProxy.h"
+#include "RemoteCDMRegistry.h"
+#include "SharedPreferencesForWebProcess.h"
+#include <WebCore/CDMInstance.h>
 #include <WebCore/CDMKeySystemConfiguration.h>
-#include <WebCore/CDMPrivate.h>
-#include <WebCore/SharedBuffer.h>
 
 namespace WebKit {
 
 using namespace WebCore;
 
-Ref<RemoteCDMProxy> RemoteCDMProxy::create(RemoteCDMFactoryProxy& factory, UniqueRef<WebCore::CDMPrivate>&& priv)
+Ref<RemoteCDMProxy> RemoteCDMProxy::create(RemoteCDMRegistry& registry, Ref<RemoteCDMPrivateHandle>&& cdm)
 {
-    UniqueRef configuration = makeUniqueRefWithoutFastMallocCheck<RemoteCDMConfiguration, RemoteCDMConfiguration&&>({
-        priv->supportedInitDataTypes(),
-        priv->supportedRobustnesses(),
-        priv->supportsServerCertificates(),
-        priv->supportsSessions()
-    });
-
-    return adoptRef(*new RemoteCDMProxy(factory, WTF::move(priv), WTF::move(configuration)));
+    return adoptRef(*new RemoteCDMProxy(registry, WTF::move(cdm)));
 }
 
-RemoteCDMProxy::RemoteCDMProxy(RemoteCDMFactoryProxy& factory, UniqueRef<CDMPrivate>&& priv, UniqueRef<RemoteCDMConfiguration>&& configuration)
-    : m_factory(factory)
-    , m_private(WTF::move(priv))
-    , m_configuration(WTF::move(configuration))
-#if !RELEASE_LOG_DISABLED
-    , m_logger(factory.logger())
-#endif
+RemoteCDMProxy::RemoteCDMProxy(RemoteCDMRegistry& registry, Ref<RemoteCDMPrivateHandle>&& cdm)
+    : m_registry(registry)
+    , m_cdm(WTF::move(cdm))
 {
 }
 
 RemoteCDMProxy::~RemoteCDMProxy() = default;
 
-bool RemoteCDMProxy::supportsInitData(const String& type, const SharedBuffer& data)
+void RemoteCDMProxy::getSupportedConfiguration(CDMKeySystemConfiguration&& configuration, CDMPrivate::LocalStorageAccess access, CompletionHandler<void(std::optional<CDMKeySystemConfiguration>)>&& callback)
 {
-    return m_private->supportsInitData(type, data);
-}
-
-RefPtr<SharedBuffer> RemoteCDMProxy::sanitizeResponse(const SharedBuffer& response)
-{
-    return m_private->sanitizeResponse(response);
-}
-
-std::optional<String> RemoteCDMProxy::sanitizeSessionId(const String& sessionId)
-{
-    return m_private->sanitizeSessionId(sessionId);
-}
-
-void RemoteCDMProxy::getSupportedConfiguration(WebCore::CDMKeySystemConfiguration&& configuration, WebCore::CDMPrivate::LocalStorageAccess access, CompletionHandler<void(std::optional<WebCore::CDMKeySystemConfiguration>)>&& callback)
-{
-    m_private->getSupportedConfiguration(WTF::move(configuration), access, WTF::move(callback));
+    m_cdm->getSupportedConfiguration(WTF::move(configuration), access, WTF::move(callback));
 }
 
 void RemoteCDMProxy::createInstance(CompletionHandler<void(std::optional<RemoteCDMInstanceIdentifier>, RemoteCDMInstanceConfiguration&&)>&& completion)
 {
-    auto privateInstance = m_private->createInstance();
-    if (!privateInstance || !m_factory) {
+    RefPtr privateInstance = m_cdm->createInstance();
+    RefPtr registry = m_registry;
+    if (!privateInstance || !registry) {
         completion(std::nullopt, { });
         return;
     }
-    auto identifier = RemoteCDMInstanceIdentifier::generate();
-    auto instance = RemoteCDMInstanceProxy::create(*this, privateInstance.releaseNonNull(), identifier);
-    RemoteCDMInstanceConfiguration configuration = instance->configuration();
-    protect(factory())->addInstance(identifier, WTF::move(instance));
+    RemoteCDMInstanceConfiguration configuration;
+    auto identifier = registry->createInstance(m_cdm, privateInstance.releaseNonNull(), configuration);
     completion(identifier, WTF::move(configuration));
 }
 
 void RemoteCDMProxy::loadAndInitialize()
 {
-    m_private->loadAndInitialize();
+    m_cdm->loadAndInitialize();
 }
 
 void RemoteCDMProxy::setLogIdentifier(uint64_t logIdentifier)
 {
-#if !RELEASE_LOG_DISABLED
-    m_logIdentifier = logIdentifier;
-    if (m_factory)
-        m_private->setLogIdentifier(m_logIdentifier);
-#else
-    UNUSED_PARAM(logIdentifier);
-#endif
+    m_cdm->setLogIdentifier(logIdentifier);
 }
 
 std::optional<SharedPreferencesForWebProcess> RemoteCDMProxy::sharedPreferencesForWebProcess() const
 {
-    RefPtr factory { m_factory };
-    if (!factory)
-        return std::nullopt;
-
-    return factory->sharedPreferencesForWebProcess();
+    if (RefPtr registry = m_registry)
+        return registry->sharedPreferencesForWebProcess();
+    return std::nullopt;
 }
 
 }
