@@ -184,6 +184,140 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         }
         return true
     }
+
+    @used
+    func dispatchSendStringAsync(
+        connection: sending IPC.StreamServerConnection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        assert(connection.isCurrentWorkQueue())
+        let url: String?
+        do {
+            url = try IPCCoding.WTFString.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        guard let target else {
+            return true
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendStringAsync(
+                    connection: connection,
+                    url: url,
+                    reply: TestWithStreamSwiftTypesSendStringAsyncReply(replyEncoder: replyEncoder)
+                )
+            )
+        } catch {
+            markMessageInvalid(error, on: connection)
+        }
+        return true
+    }
+
+    @used
+    func dispatchSendValuesAsync(
+        connection: sending IPC.StreamServerConnection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        assert(connection.isCurrentWorkQueue())
+        let value: UInt32
+        do {
+            value = try UInt32.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        guard let target else {
+            return true
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendValuesAsync(
+                    connection: connection,
+                    value: value,
+                    reply: TestWithStreamSwiftTypesSendValuesAsyncReply(replyEncoder: replyEncoder)
+                )
+            )
+        } catch {
+            markMessageInvalid(error, on: connection)
+        }
+        return true
+    }
+
+    @used
+    func dispatchSendEmptyAsync(
+        connection: sending IPC.StreamServerConnection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        assert(connection.isCurrentWorkQueue())
+        guard let target else {
+            return true
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendEmptyAsync(
+                    connection: connection,
+                    reply: TestWithStreamSwiftTypesSendEmptyAsyncReply(replyEncoder: replyEncoder)
+                )
+            )
+        } catch {
+            markMessageInvalid(error, on: connection)
+        }
+        return true
+    }
+}
+
+struct TestWithStreamSwiftTypesSendStringAsyncReply: ~Copyable {
+    private let replyEncoder: IPC.SwiftReplyEncoder
+
+    fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {
+        self.replyEncoder = replyEncoder
+    }
+
+    consuming func send(_ reply: String?) {
+        IPCCoding.WTFString.encode(reply, to: replyEncoder)
+        replyEncoder.send()
+    }
+
+    deinit {
+        replyEncoder.cancel()
+    }
+}
+
+struct TestWithStreamSwiftTypesSendValuesAsyncReply: ~Copyable {
+    private let replyEncoder: IPC.SwiftReplyEncoder
+
+    fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {
+        self.replyEncoder = replyEncoder
+    }
+
+    consuming func send(_ reply: (first: UInt32, second: UInt64?)) {
+        UInt32.encode(reply.0, to: replyEncoder)
+        IPCCoding.StdOptional<UInt64>.encode(reply.1, to: replyEncoder)
+        replyEncoder.send()
+    }
+
+    deinit {
+        replyEncoder.cancel()
+    }
+}
+
+struct TestWithStreamSwiftTypesSendEmptyAsyncReply: ~Copyable {
+    private let replyEncoder: IPC.SwiftReplyEncoder
+
+    fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {
+        self.replyEncoder = replyEncoder
+    }
+
+    consuming func send() {
+        replyEncoder.send()
+    }
+
+    deinit {
+        replyEncoder.cancel()
+    }
 }
 
 extension WebKit.TestWithStreamSwiftTypesMessageForwarder {
