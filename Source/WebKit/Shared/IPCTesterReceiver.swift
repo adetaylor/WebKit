@@ -197,6 +197,21 @@ final class IPCTesterReceiver {
     }
 
     @MainActor
+    func halveEvenNumberSyncHandlerSwift(connection: IPC.Connection, value: UInt32) throws(InvalidMessage) -> UInt32 {
+        try halveEvenNumberSwift(connection: connection, value: value)
+    }
+
+    @MainActor
+    func transformPayloadSyncHandlerSwift(connection: IPC.Connection, payload: IPCTypes.IPCTesterPayload) -> IPCTypes.IPCTesterPayload {
+        Self.transformed(payload)
+    }
+
+    @MainActor
+    func recordSyncHandlerSwift(connection: IPC.Connection, text: String?) {
+        recordSwift(connection: connection, text: text)
+    }
+
+    @MainActor
     func swapPairsSwift(connection: IPC.Connection, pairs: [(String?, UInt32)]) -> [(UInt32, String?)] {
         pairs.map { ($0.1, $0.0) }
     }

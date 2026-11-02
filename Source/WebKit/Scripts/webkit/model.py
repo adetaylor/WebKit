@@ -38,6 +38,7 @@ SYNCHRONOUS_ATTRIBUTE = 'Synchronous'
 STREAM_ATTRIBUTE = "Stream"
 SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
 CXX_TYPES_ATTRIBUTE = 'CxxTypes'
+SWIFT_SYNC_HANDLER_ATTRIBUTE = 'SwiftSyncHandler'
 NOT_USING_IPC_CONNECTION_ATTRIBUTE = 'NotUsingIPCConnection'
 WANTS_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsDispatchMessage'
 WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsAsyncDispatchMessage'
@@ -97,6 +98,8 @@ class MessageReceiver(object):
 
     def _enforce_swift_types_constraints_for_message(self, message):
         description = '%s.%s' % (self.name, message.name)
+        if message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) and not self.is_swift_receiver():
+            raise Exception("ERROR: Message %s has '%s', which is for messages a Swift receiver handles" % (description, SWIFT_SYNC_HANDLER_ATTRIBUTE))
         if message.has_attribute(SWIFT_TYPES_ATTRIBUTE) and message.has_attribute(CXX_TYPES_ATTRIBUTE):
             raise Exception("ERROR: Message %s cannot have both 'SwiftTypes' and 'CxxTypes'" % description)
         if message.has_attribute(SWIFT_TYPES_ATTRIBUTE) and not self.is_swift_receiver():
@@ -230,7 +233,7 @@ def check_global_model_inputs(receivers):
     # A message might be defined multiple times using ifdef conditions.
     # Certain attributes must match in this case. E.g. USE(COCOA) cannot have a sync message that
     # would be non-sync in USE(GTK).
-    matching_attributes = [SYNCHRONOUS_ATTRIBUTE, SWIFT_TYPES_ATTRIBUTE, CXX_TYPES_ATTRIBUTE]
+    matching_attributes = [SYNCHRONOUS_ATTRIBUTE, SWIFT_TYPES_ATTRIBUTE, CXX_TYPES_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE]
     for receiver in receivers:
         receiver_messages = defaultdict(list)
         for message in receiver.messages:
