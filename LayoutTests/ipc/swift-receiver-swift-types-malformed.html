@@ -114,6 +114,16 @@ promise_test(async t => {
         result = await send(IPC.messages.IPCTesterReceiver_HalveEvenNumberSwift.name, [{ type: 'uint32_t', value: 7 }]);
         assert_equals(result.arguments[0].value, 0);
         assert_not_equals(takeInvalidMessageString(), '');
+
+        // A SwiftSyncHandler handler is called directly, and replies the same way.
+        result = await send(IPC.messages.IPCTesterReceiver_HalveEvenNumberSyncHandlerSwift.name, [{ type: 'uint32_t', value: 8 }]);
+        assert_equals(result.arguments[0].value, 4);
+        assert_equals(takeInvalidMessageString(), '');
+        result = await send(IPC.messages.IPCTesterReceiver_HalveEvenNumberSyncHandlerSwift.name, [{ type: 'uint32_t', value: 7 }]);
+        assert_equals(result.arguments[0].value, 0);
+        assert_not_equals(takeInvalidMessageString(), '');
+        assert_throws_js(TypeError, () => IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTesterReceiver_TransformPayloadSyncHandlerSwift.name, 1000, [{ type: 'uint8_t', value: 1 }]));
+        takeInvalidMessageString();
     } finally {
         IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_RemoveReceiverForSwiftTypesTesting.name, 1000, []);
     }
