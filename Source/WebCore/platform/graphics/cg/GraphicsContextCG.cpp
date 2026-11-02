@@ -436,8 +436,6 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
     if (rendererDraws) {
         FloatSize imageSize = nativeImage.size();
         auto result = swiftRenderer().drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), nativeImage.headroom(), options.headroom());
-        if (result == 1)
-            m_hasDrawn = true;
         if (result)
             return;
     }
@@ -726,7 +724,6 @@ void GraphicsContextCG::drawPattern(const NativeImage& nativeImage, const FloatR
     if (!image)
         return;
     auto imageSize = nativeImage.size();
-    m_hasDrawn = true;
     swiftRenderer().drawPattern(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), tileRect.x(), tileRect.y(), tileRect.width(), tileRect.height(), patternTransform.a(), patternTransform.d(), phase.x(), phase.y(), spacing.width(), spacing.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality());
 }
 
@@ -736,7 +733,6 @@ void GraphicsContextCG::drawRect(const FloatRect& rect, float borderThickness)
     CAPTURE(drawRect(rect, borderThickness));
     // FIXME: this function does not handle patterns and gradients like drawPath does, it probably should.
     ASSERT(!rect.isEmpty());
-    m_hasDrawn = true;
     swiftRenderer().drawRect(rect, borderThickness, fillColor() != strokeColor());
 }
 
@@ -744,8 +740,7 @@ void GraphicsContextCG::drawRect(const FloatRect& rect, float borderThickness)
 void GraphicsContextCG::drawLine(const FloatPoint& point1, const FloatPoint& point2)
 {
     CAPTURE(drawLine(point1, point2));
-    if (swiftRenderer().drawLine(point1.x(), point1.y(), point2.x(), point2.y()))
-        m_hasDrawn = true;
+    swiftRenderer().drawLine(point1.x(), point1.y(), point2.x(), point2.y());
 }
 
 void GraphicsContextCG::drawGlyphsImmediate(const FontBase& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode smoothingMode)
@@ -762,7 +757,6 @@ void GraphicsContextCG::drawGlyphsImmediate(const FontBase& font, std::span<cons
         }
         if (!font.allowsAntialiasing())
             smoothingMode = FontSmoothingMode::None;
-        m_hasDrawn = true;
 
         Vector<CGSize, 256> translations;
         float ascentDelta = 0;
@@ -886,7 +880,6 @@ void GraphicsContextCG::fillPath(const Path& path)
     if (path.isEmpty())
         return;
 
-    m_hasDrawn = true;
     if (swiftRenderer().fillsWithoutGradient()) {
         swiftRenderer().fillPath(protect(path.platformPath()).get());
         return;
@@ -911,7 +904,6 @@ void GraphicsContextCG::strokePath(const Path& path)
     if (path.isEmpty())
         return;
 
-    const RetainPtr<CGContextRef>& context = contextForDraw();
     if (swiftRenderer().strokesWithoutGradient()) {
         if (auto line = path.singleDataLine())
             swiftRenderer().strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y());
@@ -920,6 +912,7 @@ void GraphicsContextCG::strokePath(const Path& path)
         return;
     }
 
+    const RetainPtr<CGContextRef>& context = contextForDraw();
     RefPtr strokeGradient = this->strokeGradient();
     paintGradientInClip(*strokeGradient, strokeGradientSpaceTransform(), [&] {
         return strokedPathBoundingBox(context.get(), [&] {
@@ -936,7 +929,6 @@ void GraphicsContextCG::strokePath(const Path& path)
 void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requiresClipToRect)
 {
     CAPTURE(fillRect(rect, requiresClipToRect));
-    const RetainPtr<CGContextRef>& context = contextForDraw();
     auto& renderer = swiftRenderer();
     if (renderer.fillRect(rect))
         return;
@@ -955,6 +947,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
     }
 
     // Where the renderer doesn't draw images (the iOS family), ShadowBlur draws through this context.
+    const RetainPtr<CGContextRef>& context = contextForDraw();
     if (fillPattern())
         applyFillPattern();
     CGContextStateSaver stateSaver(context);
@@ -978,7 +971,6 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, Gradient& gradient, cons
 void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
 {
     CAPTURE(fillRect(rect, color));
-    const RetainPtr<CGContextRef>& context = contextForDraw();
     auto& renderer = swiftRenderer();
     bool changesFillColor = fillColor() != color;
     auto packedColor = color.tryGetAsPackedInline();
@@ -998,6 +990,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
 
     // ShadowBlur draws through this context: where the renderer doesn't draw images (the iOS family), or for a color that
     // isn't sRGBA8.
+    const RetainPtr<CGContextRef>& context = contextForDraw();
     Color oldFillColor = fillColor();
     if (changesFillColor)
         setCGFillColor(context, color, colorSpace());
@@ -1096,21 +1089,18 @@ void GraphicsContextCG::fillRectWithRoundedHole(const FloatRect& rect, const Flo
 void GraphicsContextCG::resetClip()
 {
     CAPTURE(resetClip());
-    m_hasDrawn = true;
     swiftRenderer().resetClip();
 }
 
 void GraphicsContextCG::clip(const FloatRect& rect)
 {
     CAPTURE(clip(rect));
-    m_hasDrawn = true;
     swiftRenderer().clip(rect);
 }
 
 void GraphicsContextCG::clipOut(const FloatRect& rect)
 {
     CAPTURE(clipOut(rect));
-    m_hasDrawn = true;
     swiftRenderer().clipOut(rect);
 }
 
@@ -1182,7 +1172,6 @@ void GraphicsContextCG::beginTransparencyLayer(float opacity)
     CAPTURE(beginTransparencyLayer(opacity));
     GraphicsContext::beginTransparencyLayer(opacity);
     GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
-    m_hasDrawn = true;
     swiftRenderer().beginTransparencyLayer(opacity);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
@@ -1195,7 +1184,6 @@ void GraphicsContextCG::beginTransparencyLayer(CompositeOperator compositeOperat
     // The layer keeps the current global alpha.
     GraphicsContext::beginTransparencyLayer(state().alpha());
     GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
-    m_hasDrawn = true;
     swiftRenderer().beginTransparencyLayerWithCurrentAlpha();
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
@@ -1206,7 +1194,6 @@ void GraphicsContextCG::endTransparencyLayer()
     if (!stackSize() || m_state.purpose() != GraphicsContextState::Purpose::TransparencyLayer)
         return;
     GraphicsContext::endTransparencyLayer();
-    m_hasDrawn = true;
     swiftRenderer().endTransparencyLayer();
     GraphicsContext::restore(GraphicsContextState::Purpose::TransparencyLayer);
     m_userToDeviceTransformKnownToBeIdentity = false;
@@ -1296,7 +1283,6 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
             changes.add(GraphicsContextState::Change::Style);
     }
 
-    m_hasDrawn = true;
     auto& renderer = swiftRenderer();
 
     // The shadow and style below are converted with the new value, as C++'s state already has it.
@@ -1425,18 +1411,17 @@ void GraphicsContextCG::setMiterLimit(float limit)
 void GraphicsContextCG::clearRect(const FloatRect& r)
 {
     CAPTURE(clearRect(r));
-    m_hasDrawn = true;
     swiftRenderer().clearRect(r);
 }
 
 void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
 {
     CAPTURE(strokeRect(rect, lineWidth));
-    const RetainPtr<CGContextRef>& context = contextForDraw();
     if (swiftRenderer().strokeRect(rect, lineWidth))
         return;
 
     // The renderer declines only gradients.
+    const RetainPtr<CGContextRef>& context = contextForDraw();
     RefPtr strokeGradient = this->strokeGradient();
     paintGradientInClip(*strokeGradient, strokeGradientSpaceTransform(), [&] {
         return strokedPathBoundingBox(context.get(), [&] {
@@ -1471,7 +1456,6 @@ void GraphicsContextCG::strokeLine(const PathDataLine& line)
 {
     CAPTURE(strokeLine(line));
     if (swiftRenderer().strokesWithoutGradient()) {
-        m_hasDrawn = true;
         swiftRenderer().strokeLineSegment(line.start().x(), line.start().y(), line.end().x(), line.end().y());
         return;
     }
@@ -1531,7 +1515,6 @@ void GraphicsContextCG::setLineJoin(LineJoin join)
 void GraphicsContextCG::scale(const FloatSize& size)
 {
     CAPTURE(scale(size));
-    m_hasDrawn = true;
     swiftRenderer().scale(size.width(), size.height());
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
@@ -1539,7 +1522,6 @@ void GraphicsContextCG::scale(const FloatSize& size)
 void GraphicsContextCG::rotate(float angle)
 {
     CAPTURE(rotate(angle));
-    m_hasDrawn = true;
     swiftRenderer().rotate(angle);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
@@ -1547,7 +1529,6 @@ void GraphicsContextCG::rotate(float angle)
 void GraphicsContextCG::translate(float x, float y)
 {
     CAPTURE(translate(x, y));
-    m_hasDrawn = true;
     swiftRenderer().translate(x, y);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
@@ -1555,7 +1536,6 @@ void GraphicsContextCG::translate(float x, float y)
 void GraphicsContextCG::concatCTM(const AffineTransform& transform)
 {
     CAPTURE(concatCTM(transform));
-    m_hasDrawn = true;
     swiftRenderer().concatCTM(transform);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
@@ -1563,7 +1543,6 @@ void GraphicsContextCG::concatCTM(const AffineTransform& transform)
 void GraphicsContextCG::setCTM(const AffineTransform& transform)
 {
     CAPTURE(setCTM(transform));
-    m_hasDrawn = true;
     swiftRenderer().setCTM(transform);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
@@ -1594,7 +1573,6 @@ void GraphicsContextCG::drawLinesForText(const FloatPoint& origin, float thickne
     if (rects.isEmpty())
         return;
     bool changeFillColor = fillColor() != color;
-    m_hasDrawn = true;
     CGRendererRects rectsView { rects.span() };
     if (auto packedColor = color.tryGetAsPackedInline())
         swiftRenderer().fillRectsInPackedColor(rectsView, packedColor->value, changeFillColor);
@@ -1609,7 +1587,6 @@ void GraphicsContextCG::setURLForRect(const URL& link, const FloatRect& destRect
     if (!urlRef)
         return;
 
-    m_hasDrawn = true;
     swiftRenderer().setURLForRect(urlRef.get(), destRect);
 }
 
@@ -1641,17 +1618,14 @@ void GraphicsContextCG::applyDeviceScaleFactor(float deviceScaleFactor)
     // CoreGraphics expects the base CTM of a HiDPI context to have the scale factor applied to it. Failing to change the
     // base level CTM will cause certain CG features, such as focus rings, to draw with a scale factor of 1 rather than the
     // actual scale factor.
-    m_hasDrawn = true;
     swiftRenderer().applyDeviceScaleFactorToBaseCTM(deviceScaleFactor);
 }
 
 void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 {
     CAPTURE(fillEllipse(ellipse));
-    if (swiftRenderer().fillEllipse(ellipse)) {
-        m_hasDrawn = true;
+    if (swiftRenderer().fillEllipse(ellipse))
         return;
-    }
     // CGContextFillEllipseInRect only supports solid colors.
     fillEllipseAsPath(ellipse);
 }
@@ -1659,10 +1633,8 @@ void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 void GraphicsContextCG::strokeEllipse(const FloatRect& ellipse)
 {
     CAPTURE(strokeEllipse(ellipse));
-    if (swiftRenderer().strokeEllipse(ellipse)) {
-        m_hasDrawn = true;
+    if (swiftRenderer().strokeEllipse(ellipse))
         return;
-    }
     // CGContextStrokeEllipseInRect only supports solid colors.
     strokeEllipseAsPath(ellipse);
 }
@@ -1686,7 +1658,6 @@ void GraphicsContextCG::beginPage(const FloatRect& pageRect)
 void GraphicsContextCG::endPage()
 {
     CAPTURE(unsupported("endPage"_s));
-    m_hasDrawn = true;
     if (!swiftRenderer().endPDFPage())
         ASSERT_NOT_REACHED();
 }
@@ -1699,14 +1670,12 @@ bool GraphicsContextCG::supportsInternalLinks() const
 void GraphicsContextCG::setDestinationForRect(const String& name, const FloatRect& destRect)
 {
     CAPTURE(unsupported("setDestinationForRect"_s));
-    m_hasDrawn = true;
     swiftRenderer().setDestinationForRect(name.createCFString().get(), destRect);
 }
 
 void GraphicsContextCG::addDestinationAtPoint(const String& name, const FloatPoint& position)
 {
     CAPTURE(unsupported("addDestinationAtPoint"_s));
-    m_hasDrawn = true;
     swiftRenderer().addDestinationAtPoint(name.createCFString().get(), position.x(), position.y());
 }
 
@@ -1717,7 +1686,7 @@ bool GraphicsContextCG::canUseShadowBlur() const
 
 bool GraphicsContextCG::consumeHasDrawn()
 {
-    bool hasDrawn = m_hasDrawn;
+    bool hasDrawn = swiftRenderer().consumeHasDrawn() || m_hasDrawn;
     m_hasDrawn = false;
     return hasDrawn;
 }

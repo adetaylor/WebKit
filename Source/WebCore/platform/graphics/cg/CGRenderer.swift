@@ -666,6 +666,9 @@ struct CGRenderer {
     private var shadowBlurDrawing: CGRendererShadowBlurDrawing? = nil
     // GraphicsContextCG::setMaxEDRHeadroom(): a context's, not a state's.
     private var maxEDRHeadroom: Float? = nil
+    // Whether anything since consumeHasDrawn() could have changed the CGContext's contents or state, as
+    // GraphicsContextCG::contextForDraw() records it.
+    private var hasDrawn = false
 
     // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
     // uses it (rdar://179098545).
@@ -788,6 +791,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setFillPackedColor(_ packed: UInt32, _ brushKind: UInt8) {
+        hasDrawn = true
         state.fill = CGRendererBrush(packedColor: packed, kind: brushKind, isColorVisible: packed & 0xFF != 0)
         if !state.fill.hasPatternOrGradient {
             context.setFillColor(colorCache.color(packed))
@@ -796,6 +800,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setFillPlatformColor(_ color: borrowing CGColor, _ brushKind: UInt8, _ isColorVisible: Bool) {
+        hasDrawn = true
         let slot = platformColorSlot(copy color)
         state.fill = CGRendererBrush(platformColorSlot: slot, kind: brushKind, isColorVisible: isColorVisible)
         if !state.fill.hasPatternOrGradient {
@@ -805,6 +810,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setStrokePackedColor(_ packed: UInt32, _ brushKind: UInt8) {
+        hasDrawn = true
         state.stroke = CGRendererBrush(packedColor: packed, kind: brushKind, isColorVisible: packed & 0xFF != 0)
         if !state.stroke.hasPatternOrGradient {
             context.setStrokeColor(colorCache.color(packed))
@@ -813,6 +819,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setStrokePlatformColor(_ color: borrowing CGColor, _ brushKind: UInt8, _ isColorVisible: Bool) {
+        hasDrawn = true
         let slot = platformColorSlot(copy color)
         state.stroke = CGRendererBrush(platformColorSlot: slot, kind: brushKind, isColorVisible: isColorVisible)
         if !state.stroke.hasPatternOrGradient {
@@ -833,22 +840,26 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setFillRule(_ fillRule: UInt8) {
+        hasDrawn = true
         state.fillRule = fillRule
     }
 
     @_expose(Cxx)
     mutating func setStrokeThickness(_ thickness: Float) {
+        hasDrawn = true
         state.strokeThickness = thickness
         context.setLineWidth(CGFloat(cxxMax(thickness, 0)))
     }
 
     @_expose(Cxx)
     mutating func setStrokeStyle(_ strokeStyle: UInt8) {
+        hasDrawn = true
         state.strokeStyle = strokeStyle
     }
 
     @_expose(Cxx)
     mutating func setCompositeMode(_ compositeOperator: WebCore.CompositeOperator, _ blendMode: WebCore.BlendMode) {
+        hasDrawn = true
         state.compositeOperator = compositeOperator
         state.blendMode = blendMode
         context.setBlendMode(cgBlendMode(compositeOperator, blendMode))
@@ -856,12 +867,14 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func clearDropShadow() {
+        hasDrawn = true
         state.dropShadow = nil
         CGContextSetStyle(context, nil)
     }
 
     @_expose(Cxx)
     mutating func setDropShadow(_ values: CGRendererShadowValues) {
+        hasDrawn = true
         let shadow = makeShadow(values, platformColorSlot: 0)
         state.dropShadow = shadow
         applyShadow(shadow)
@@ -869,6 +882,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setDropShadow(_ values: CGRendererShadowValues, _ color: borrowing CGColor) {
+        hasDrawn = true
         let shadow = makeShadow(values, platformColorSlot: platformColorSlot(copy color))
         state.dropShadow = shadow
         applyShadow(shadow)
@@ -876,12 +890,14 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setNoStyle() {
+        hasDrawn = true
         state.style = .none
         CGContextSetStyle(context, nil)
     }
 
     @_expose(Cxx)
     mutating func setDropShadowStyle(_ values: CGRendererShadowValues) {
+        hasDrawn = true
         let shadow = makeShadow(values, platformColorSlot: 0)
         state.style = .dropShadow(shadow)
         applyShadow(shadow)
@@ -889,6 +905,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setDropShadowStyle(_ values: CGRendererShadowValues, _ color: borrowing CGColor) {
+        hasDrawn = true
         let shadow = makeShadow(values, platformColorSlot: platformColorSlot(copy color))
         state.style = .dropShadow(shadow)
         applyShadow(shadow)
@@ -897,6 +914,7 @@ struct CGRenderer {
     #if HAVE_CGSTYLE_COLORMATRIX_BLUR
     @_expose(Cxx)
     mutating func setGaussianBlurStyle(_ radius: Float) {
+        hasDrawn = true
         state.style = .gaussianBlur(radius: radius)
         let blurRadius = scaledBlurRadius(CGFloat(radius), userToBaseCTM)
         CGContextSetStyle(context, CGRendererCreateGaussianBlurStyle(blurRadius))
@@ -904,6 +922,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setColorMatrixStyle(_ matrix: CGRendererColorMatrix) {
+        hasDrawn = true
         state.style = .colorMatrix
         CGContextSetStyle(context, CGRendererCreateColorMatrixStyle(matrix))
     }
@@ -977,42 +996,56 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func setAlpha(_ alpha: Float) {
+        hasDrawn = true
         state.alpha = alpha
         context.setAlpha(CGFloat(alpha))
     }
 
     @_expose(Cxx)
     mutating func setTextDrawingMode(_ mode: UInt8) {
+        hasDrawn = true
         state.textDrawingMode = mode
         context.setTextDrawingMode(cgTextDrawingMode(mode))
     }
 
     @_expose(Cxx)
     mutating func setImageInterpolationQuality(_ quality: WebCore.InterpolationQuality) {
+        hasDrawn = true
         state.imageInterpolationQuality = quality
         context.interpolationQuality = cgInterpolationQuality(quality)
     }
 
     @_expose(Cxx)
     mutating func setShouldAntialias(_ shouldAntialias: Bool) {
+        hasDrawn = true
         state.shouldAntialias = shouldAntialias
         context.setShouldAntialias(shouldAntialias)
     }
 
     @_expose(Cxx)
     mutating func setShouldSmoothFonts(_ shouldSmoothFonts: Bool) {
+        hasDrawn = true
         state.shouldSmoothFonts = shouldSmoothFonts
         context.setShouldSmoothFonts(shouldSmoothFonts)
     }
 
     @_expose(Cxx)
     mutating func setShouldSubpixelQuantizeFonts(_ shouldSubpixelQuantizeFonts: Bool) {
+        hasDrawn = true
         state.shouldSubpixelQuantizeFonts = shouldSubpixelQuantizeFonts
     }
 
     @_expose(Cxx)
     mutating func setShadowsIgnoreTransforms(_ shadowsIgnoreTransforms: Bool) {
+        hasDrawn = true
         state.shadowsIgnoreTransforms = shadowsIgnoreTransforms
+    }
+
+    @_expose(Cxx)
+    mutating func consumeHasDrawn() -> Bool {
+        let result = hasDrawn
+        hasDrawn = false
+        return result
     }
 
     // BeginPage: the state goes back to its initial value; the stack is left alone.
@@ -1069,6 +1102,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func beginTransparencyLayer(_ opacity: Float) {
+        hasDrawn = true
         save(true)
         context.setAlpha(CGFloat(opacity))
         context.beginTransparencyLayer(auxiliaryInfo: nil)
@@ -1082,6 +1116,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func endTransparencyLayer() {
+        hasDrawn = true
         guard depth > 0, stack[depth - 1].purpose == .transparencyLayer else {
             return
         }
@@ -1092,27 +1127,32 @@ struct CGRenderer {
     // MARK: Transforms
 
     @_expose(Cxx)
-    func translate(_ x: Float, _ y: Float) {
+    mutating func translate(_ x: Float, _ y: Float) {
+        hasDrawn = true
         context.translateBy(x: CGFloat(x), y: CGFloat(y))
     }
 
     @_expose(Cxx)
-    func scale(_ x: Float, _ y: Float) {
+    mutating func scale(_ x: Float, _ y: Float) {
+        hasDrawn = true
         context.scaleBy(x: CGFloat(x), y: CGFloat(y))
     }
 
     @_expose(Cxx)
-    func rotate(_ angle: Float) {
+    mutating func rotate(_ angle: Float) {
+        hasDrawn = true
         context.rotate(by: CGFloat(angle))
     }
 
     @_expose(Cxx)
-    func concatCTM(_ transform: CGAffineTransform) {
+    mutating func concatCTM(_ transform: CGAffineTransform) {
+        hasDrawn = true
         context.concatenate(transform)
     }
 
     @_expose(Cxx)
-    func setCTM(_ transform: CGAffineTransform) {
+    mutating func setCTM(_ transform: CGAffineTransform) {
+        hasDrawn = true
         CGContextSetCTM(context, transform)
     }
 
@@ -1124,12 +1164,14 @@ struct CGRenderer {
     // MARK: Clips
 
     @_expose(Cxx)
-    func clip(_ rect: CGRect) {
+    mutating func clip(_ rect: CGRect) {
+        hasDrawn = true
         context.clip(to: rect)
     }
 
     @_expose(Cxx)
     mutating func clipOut(_ rect: CGRect) {
+        hasDrawn = true
         // CGRectInfinite is much faster than the clip bounding box, but can't be used with an accelerated context whose
         // transform isn't just a translation or a scale (rdar://12584492), or with a printing context (rdar://14634453).
         let ctm = context.ctm
@@ -1143,7 +1185,8 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func resetClip() {
+    mutating func resetClip() {
+        hasDrawn = true
         context.resetClip()
     }
 
@@ -1155,12 +1198,14 @@ struct CGRenderer {
     // MARK: Drawing
 
     @_expose(Cxx)
-    func clearRect(_ rect: CGRect) {
+    mutating func clearRect(_ rect: CGRect) {
+        hasDrawn = true
         context.clear(rect)
     }
 
     @_expose(Cxx)
     mutating func fillRect(_ rect: CGRect) -> Bool {
+        hasDrawn = true
         if state.fill.hasGradient || canUseShadowBlur {
             return false
         }
@@ -1185,6 +1230,7 @@ struct CGRenderer {
     // The caller compares the colors: C++ Color equality includes flags this state doesn't have.
     @_expose(Cxx)
     mutating func fillRect(_ rect: CGRect, packedColor: UInt32, _ changesFillColor: Bool) -> Bool {
+        hasDrawn = true
         if canUseShadowBlur {
             return false
         }
@@ -1210,6 +1256,7 @@ struct CGRenderer {
         _ shadowColorChangesFill: Bool
     ) {
         assert(!state.fill.hasGradient && canUseShadowBlur)
+        hasDrawn = true
         applyPattern(fill: true)
         context.saveGState()
         CGContextSetStyle(context, nil)
@@ -1228,6 +1275,7 @@ struct CGRenderer {
         _ shadowColorChangesFill: Bool
     ) {
         assert(canUseShadowBlur)
+        hasDrawn = true
         if changesFillColor {
             context.setFillColor(colorCache.color(packedColor))
         }
@@ -1281,6 +1329,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func fillRect(_ rect: CGRect, platformColor color: borrowing CGColor, _ changesFillColor: Bool) -> Bool {
+        hasDrawn = true
         if canUseShadowBlur {
             return false
         }
@@ -1295,7 +1344,8 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func strokeRect(_ rect: CGRect, _ lineWidth: Float) -> Bool {
+    mutating func strokeRect(_ rect: CGRect, _ lineWidth: Float) -> Bool {
+        hasDrawn = true
         if state.stroke.hasGradient {
             return false
         }
@@ -1312,6 +1362,7 @@ struct CGRenderer {
     // A filled rect with a border of four filled rects in the stroke color.
     @_expose(Cxx)
     mutating func drawRect(_ rect: CGRect, _ borderThickness: Float, _ changesFillColor: Bool) {
+        hasDrawn = true
         context.fill(rect)
         if state.strokeStyle == CGRendererStrokeStyle.noStroke {
             return
@@ -1340,16 +1391,17 @@ struct CGRenderer {
     // A border line, from point 1 to point 2 one stroke thickness to its right (vertical) or straight across. Returns whether
     // it touched the context.
     @_expose(Cxx)
-    mutating func drawLine(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float) -> Bool {
+    mutating func drawLine(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float) {
         if state.strokeStyle == CGRendererStrokeStyle.noStroke {
-            return false
+            return
         }
         let thickness = state.strokeThickness
         let isVerticalLine = x1 + thickness == x2
         var strokeWidth = isVerticalLine ? y2 - y1 : x2 - x1
         if thickness == 0 || strokeWidth == 0 {
-            return false
+            return
         }
+        hasDrawn = true
 
         let drawsDashedLine =
             state.strokeStyle == CGRendererStrokeStyle.dottedStroke || state.strokeStyle == CGRendererStrokeStyle.dashedStroke
@@ -1371,7 +1423,7 @@ struct CGRenderer {
             // The corners cover the line.
             if strokeWidth <= patternWidth + 1 {
                 context.restoreGState()
-                return true
+                return
             }
             let patternOffset = dashedLinePatternOffset(patternWidth, strokeWidth)
             dashLengths.removeAll(keepingCapacity: true)
@@ -1411,7 +1463,6 @@ struct CGRenderer {
         if drawsDashedLine {
             context.restoreGState()
         }
-        return true
     }
 
     // GraphicsContext::dashedLineCornerWidthForStrokeWidth().
@@ -1448,19 +1499,21 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func fillEllipse(_ rect: CGRect) -> Bool {
+    mutating func fillEllipse(_ rect: CGRect) -> Bool {
         if state.fill.hasPatternOrGradient {
             return false
         }
+        hasDrawn = true
         context.fillEllipse(in: rect)
         return true
     }
 
     @_expose(Cxx)
-    func strokeEllipse(_ rect: CGRect) -> Bool {
+    mutating func strokeEllipse(_ rect: CGRect) -> Bool {
         if state.stroke.hasPatternOrGradient {
             return false
         }
+        hasDrawn = true
         context.strokeEllipse(in: rect)
         return true
     }
@@ -1468,6 +1521,7 @@ struct CGRenderer {
     // The rects of drawLinesForText(), in the color GraphicsContext computed for them.
     @_expose(Cxx)
     mutating func fillRectsInPackedColor(_ rects: CGRendererRects, _ packedColor: UInt32, _ changesFillColor: Bool) {
+        hasDrawn = true
         if changesFillColor {
             context.setFillColor(colorCache.color(packedColor))
         }
@@ -1479,6 +1533,7 @@ struct CGRenderer {
 
     @_expose(Cxx)
     mutating func fillRectsInPlatformColor(_ rects: CGRendererRects, _ color: borrowing CGColor, _ changesFillColor: Bool) {
+        hasDrawn = true
         if changesFillColor {
             context.setFillColor(color)
         }
@@ -1511,14 +1566,16 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func fillPath(_ path: borrowing CGPath) {
+    mutating func fillPath(_ path: borrowing CGPath) {
+        hasDrawn = true
         assert(fillsWithoutGradient())
         applyPattern(fill: true)
         CGRendererDrawPath(context, state.fillRule == 1 ? .eoFill : .fill, copy path)
     }
 
     @_expose(Cxx)
-    func strokePath(_ path: borrowing CGPath) {
+    mutating func strokePath(_ path: borrowing CGPath) {
+        hasDrawn = true
         assert(strokesWithoutGradient())
         applyPattern(fill: false)
         CGRendererDrawPath(context, .stroke, copy path)
@@ -1527,6 +1584,7 @@ struct CGRenderer {
     // A single-line path or a PathDataLine.
     @_expose(Cxx)
     mutating func strokeLineSegment(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float) {
+        hasDrawn = true
         assert(strokesWithoutGradient())
         applyPattern(fill: false)
         lineSegment.removeAll(keepingCapacity: true)
@@ -1542,7 +1600,8 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func drawPath(_ path: borrowing CGPath) {
+    mutating func drawPath(_ path: borrowing CGPath) {
+        hasDrawn = true
         assert(fillsWithoutGradient() && strokesWithoutGradient() && drawsPath())
         applyPattern(fill: true)
         applyPattern(fill: false)
@@ -1570,6 +1629,7 @@ struct CGRenderer {
         _ x: Float,
         _ y: Float
     ) {
+        hasDrawn = true
         let font = copy font
         var positions = positions
         let ctm = context.ctm
@@ -1702,7 +1762,8 @@ struct CGRenderer {
     // GraphicsContextCG::applyDeviceScaleFactor() after GraphicsContext's scale: the base CTM too, so that CG features that
     // draw in base space (focus rings) use the scale factor.
     @_expose(Cxx)
-    func applyDeviceScaleFactorToBaseCTM(_ deviceScaleFactor: Float) {
+    mutating func applyDeviceScaleFactorToBaseCTM(_ deviceScaleFactor: Float) {
+        hasDrawn = true
         CGContextSetBaseCTM(context, CGContextGetBaseCTM(context).scaledBy(x: CGFloat(deviceScaleFactor), y: CGFloat(deviceScaleFactor)))
     }
 
@@ -1720,17 +1781,20 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func setURLForRect(_ url: borrowing CFURL, _ rect: CGRect) {
+    mutating func setURLForRect(_ url: borrowing CFURL, _ rect: CGRect) {
+        hasDrawn = true
         context.setURL(copy url, for: pdfDestinationRect(rect))
     }
 
     @_expose(Cxx)
-    func setDestinationForRect(_ name: borrowing CFString, _ rect: CGRect) {
+    mutating func setDestinationForRect(_ name: borrowing CFString, _ rect: CGRect) {
+        hasDrawn = true
         context.setDestination(copy name, for: pdfDestinationRect(rect))
     }
 
     @_expose(Cxx)
-    func addDestinationAtPoint(_ name: borrowing CFString, _ x: Float, _ y: Float) {
+    mutating func addDestinationAtPoint(_ name: borrowing CFString, _ x: Float, _ y: Float) {
+        hasDrawn = true
         // CGPointApplyAffineTransform() is inline: its arithmetic in Swift's, without contraction.
         let t = context.ctm
         let px = CGFloat(x)
@@ -1740,7 +1804,8 @@ struct CGRenderer {
 
     // Whether this is a PDF context: beginPage() and endPage() only work in one.
     @_expose(Cxx)
-    func beginPDFPage(_ pageRect: CGRect) -> Bool {
+    mutating func beginPDFPage(_ pageRect: CGRect) -> Bool {
+        hasDrawn = true
         guard isPDFContext else {
             return false
         }
@@ -1749,7 +1814,8 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    func endPDFPage() -> Bool {
+    mutating func endPDFPage() -> Bool {
+        hasDrawn = true
         guard isPDFContext else {
             return false
         }
@@ -1761,7 +1827,7 @@ struct CGRenderer {
     // the options' (0, Headroom::FromImage, for the image's). Returns 0 if it didn't draw, 1 if it drew, 2 if there was nothing
     // to draw.
     @_expose(Cxx)
-    func drawNativeImage(
+    mutating func drawNativeImage(
         _ image: borrowing CGImage,
         _ imageWidth: Float,
         _ imageHeight: Float,
@@ -1833,6 +1899,7 @@ struct CGRenderer {
         // CGImageCreateWithImageInRect() found no image there: the C++ draws a null image, which CG ignores, and puts the
         // state back.
         guard let subimage else {
+            hasDrawn = true
             return 1
         }
 
@@ -1881,6 +1948,7 @@ struct CGRenderer {
             }
             _ = context.setEDRTargetHeadroom(oldHeadroom)
         }
+        hasDrawn = true
         return 1
     }
 
@@ -1909,6 +1977,7 @@ struct CGRenderer {
         _ blendMode: WebCore.BlendMode,
         _ optionsInterpolationQuality: WebCore.InterpolationQuality
     ) {
+        hasDrawn = true
         context.saveGState()
         defer {
             context.restoreGState()
