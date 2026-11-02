@@ -24,10 +24,10 @@
 
 import WebKit_Internal
 
-// Safety: target is only written in init, dispatch asserts the stream connection's work queue, and weak loads are atomic in the Swift runtime
+// Safety: target is immutable, and dispatch asserts the stream connection's work queue
 @_expose(Cxx)
 final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
-    private weak var target: TestWithStreamSwiftTypes?
+    private let target: TestWithStreamSwiftTypes
     init(target: TestWithStreamSwiftTypes) {
         self.target = target
     }
@@ -43,9 +43,6 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
             url = try IPCCoding.WTFString.decode(from: &decoder)
         } catch {
             return false
-        }
-        guard let target else {
-            return true
         }
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
@@ -76,9 +73,6 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         } catch {
             return false
         }
-        guard let target else {
-            return true
-        }
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendValues(
@@ -100,9 +94,6 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         url: sending WTF.String
     ) {
         assert(connection.isCurrentWorkQueue())
-        guard let target else {
-            return
-        }
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendCxxString(
@@ -127,10 +118,6 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
             url = try IPCCoding.WTFString.decode(from: &decoder)
         } catch {
             return false
-        }
-        guard let target else {
-            replyEncoder.cancel()
-            return true
         }
         do throws(InvalidMessage) {
             let reply = try mayThrowInvalidMessage(
@@ -160,10 +147,6 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
         assert(connection.get().isCurrentWorkQueue())
-        guard let target else {
-            replyEncoder.cancel()
-            return true
-        }
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendEmptySync(
@@ -193,9 +176,6 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         } catch {
             return false
         }
-        guard let target else {
-            return true
-        }
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendStringAsync(
@@ -223,9 +203,6 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         } catch {
             return false
         }
-        guard let target else {
-            return true
-        }
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendValuesAsync(
@@ -247,9 +224,6 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
         assert(connection.get().isCurrentWorkQueue())
-        guard let target else {
-            return true
-        }
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendEmptyAsync(
