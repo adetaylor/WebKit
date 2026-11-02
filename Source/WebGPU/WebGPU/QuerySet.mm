@@ -42,7 +42,7 @@
 
 namespace WebGPU::Metal {
 
-static_assert(sizeof(WebGPU::QuerySetImpl) == sizeof(void*) && alignof(WebGPU::QuerySetImpl) == alignof(void*));
+static_assert(sizeof(WebGPUSwift::QuerySetImpl) == sizeof(void*) && alignof(WebGPUSwift::QuerySetImpl) == alignof(void*));
 
 RefPtr<WebGPU::QuerySet> Device::createQuerySet(const WebGPU::QuerySetDescriptor& descriptor)
 {
@@ -71,7 +71,7 @@ template<typename MakeImpl>
 QuerySet::QuerySet(MakeImpl&& makeImpl)
 {
     // Initialized from the prvalue directly: no copy, so no extra retain and release.
-    new (m_impl) WebGPU::QuerySetImpl(makeImpl());
+    new (m_impl) WebGPUSwift::QuerySetImpl(makeImpl());
 }
 
 // The Swift object returns its counter sample range to the pool in its deinit.
@@ -80,9 +80,9 @@ QuerySet::~QuerySet()
     std::destroy_at(&swiftImpl());
 }
 
-WebGPU::QuerySetImpl& QuerySet::swiftImpl() const
+WebGPUSwift::QuerySetImpl& QuerySet::swiftImpl() const
 {
-    return *std::launder(reinterpret_cast<WebGPU::QuerySetImpl*>(const_cast<std::byte*>(m_impl)));
+    return *std::launder(reinterpret_cast<WebGPUSwift::QuerySetImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
 bool QuerySet::isValid() const

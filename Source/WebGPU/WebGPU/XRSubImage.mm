@@ -46,13 +46,13 @@ namespace WebGPU::Metal {
 
 struct XRSubImageImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(XRSubImageImplBox);
-    WebGPU::XRSubImageImpl impl;
+    WebGPUSwift::XRSubImageImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(XRSubImageImplBox);
 
 Ref<XRSubImage> XRSubImage::create(Device& device)
 {
-    auto box = makeUnique<XRSubImageImplBox>(XRSubImageImplBox { .impl = makeXRSubImageImpl() });
+    auto box = makeUnique<XRSubImageImplBox>(XRSubImageImplBox { .impl = WebGPUSwift::makeXRSubImageImpl() });
     return adoptRef(*new XRSubImage(WTF::move(box), device));
 }
 

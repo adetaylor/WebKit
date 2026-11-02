@@ -38,7 +38,7 @@
 WTF_DECLARE_CF_TYPE_TRAIT(CVPixelBuffer);
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class ExternalTextureImpl;
 }
 #endif
@@ -60,7 +60,7 @@ public:
     ~ExternalTexture();
 
 #if !defined(__swift__)
-    WebGPU::ExternalTextureImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::ExternalTextureImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
     void destroy() final;

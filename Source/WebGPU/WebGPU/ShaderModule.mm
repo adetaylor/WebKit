@@ -72,14 +72,14 @@ namespace WebGPU::Metal {
 
 struct ShaderModuleImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(ShaderModuleImplBox);
-    WebGPU::ShaderModuleImpl impl;
+    WebGPUSwift::ShaderModuleImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(ShaderModuleImplBox);
 
 // The compiler built without optimization needs a larger stack than the WebGPU thread's; it then runs on its own thread.
 void runOnWGSLCompileThread(NOESCAPE void (^work)(void))
 {
-    auto stackSize = WebGPU::wgslRecommendedCompileStackSize();
+    auto stackSize = WebGPUSwift::wgslRecommendedCompileStackSize();
     if (!stackSize) {
         work();
         return;
@@ -104,7 +104,7 @@ void sortInWTFHashTableOrder(std::span<uint32_t> keys NOESCAPE)
 }
 
 // Built with StringPrintStream, whose round trip through UTF-8 replaces unpaired surrogates and cuts a message at a NUL.
-static String compilationErrorMessage(WebGPU::ShaderModuleImpl& impl)
+static String compilationErrorMessage(WebGPUSwift::ShaderModuleImpl& impl)
 {
     auto errorCount = impl.compilationErrorCount();
     StringPrintStream message;
@@ -122,7 +122,7 @@ RefPtr<WebGPU::ShaderModule> Device::createShaderModule(const WebGPU::ShaderModu
     // FIXME: re-enable early compilation of descriptor.hints later on once deferred compilation is fully implemented
     // https://bugs.webkit.org/show_bug.cgi?id=254258
     auto impl = makeUnique<ShaderModuleImplBox>(ShaderModuleImplBox {
-        .impl = WebGPU::createShaderModuleImpl(this, swiftImpl(), descriptor)
+        .impl = WebGPUSwift::createShaderModuleImpl(this, swiftImpl(), descriptor)
     });
     if (!impl->impl.isValid())
         generateAValidationError(compilationErrorMessage(impl->impl));
@@ -140,7 +140,7 @@ Ref<ShaderModule> ShaderModule::create(std::unique_ptr<ShaderModuleImplBox>&& im
 Ref<ShaderModule> ShaderModule::createInvalid(Device& device)
 {
     auto impl = makeUnique<ShaderModuleImplBox>(ShaderModuleImplBox {
-        .impl = WebGPU::makeInvalidShaderModuleImpl(&device, device.swiftImpl())
+        .impl = WebGPUSwift::makeInvalidShaderModuleImpl(&device, device.swiftImpl())
     });
     return adoptRef(*new ShaderModule(WTF::move(impl)));
 }
@@ -157,7 +157,7 @@ bool ShaderModule::isValid() const
     return m_impl->impl.isValid();
 }
 
-WebGPU::ShaderModuleImpl& ShaderModule::swiftImpl() const
+WebGPUSwift::ShaderModuleImpl& ShaderModule::swiftImpl() const
 {
     return m_impl->impl;
 }

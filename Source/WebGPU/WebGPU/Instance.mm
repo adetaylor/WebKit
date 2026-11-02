@@ -52,10 +52,10 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(Instance);
 // CommandBuffers and Devices, and the work items still waiting for processEvents() last.
 struct InstanceImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(InstanceImplBox);
-    WebGPU::InstanceEventQueue events;
-    WebGPU::InstanceImpl impl;
-    WebGPU::InstanceScheduler scheduler;
-    WebGPU::InstanceSchedulerHandle schedulerHandle;
+    WebGPUSwift::InstanceEventQueue events;
+    WebGPUSwift::InstanceImpl impl;
+    WebGPUSwift::InstanceScheduler scheduler;
+    WebGPUSwift::InstanceSchedulerHandle schedulerHandle;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(InstanceImplBox);
 
@@ -73,9 +73,9 @@ static NSArray<id<MTLDevice>>* getDevices()
 
 Ref<Instance> Instance::create(WebGPU::InstanceDescriptor&& descriptor)
 {
-    auto events = makeInstanceEventQueue();
+    auto events = WebGPUSwift::makeInstanceEventQueue();
     auto scheduler = descriptor.scheduleWork ? makeInstanceScheduler(descriptor.scheduleWork, events) : makeInstanceSchedulerWithoutEmbedder(events);
-    auto box = makeUnique<InstanceImplBox>(InstanceImplBox { .events = events, .impl = makeInstanceImpl(descriptor.webProcessResourceOwner), .scheduler = scheduler, .schedulerHandle = makeInstanceSchedulerHandle(scheduler) });
+    auto box = makeUnique<InstanceImplBox>(InstanceImplBox { .events = events, .impl = WebGPUSwift::makeInstanceImpl(descriptor.webProcessResourceOwner), .scheduler = scheduler, .schedulerHandle = makeInstanceSchedulerHandle(scheduler) });
     return adoptRef(*new Instance(WTF::move(box)));
 }
 
@@ -106,7 +106,7 @@ void Instance::scheduleWork(WorkItem&& workItem)
     m_impl->scheduler.scheduleWork(workItem);
 }
 
-WebGPU::InstanceSchedulerHandle Instance::schedulerHandle() const
+WebGPUSwift::InstanceSchedulerHandle Instance::schedulerHandle() const
 {
     return m_impl->schedulerHandle;
 }

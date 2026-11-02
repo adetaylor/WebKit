@@ -56,7 +56,7 @@ IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class DeviceImpl;
 }
 #endif
@@ -168,7 +168,7 @@ public:
     bool LEGACY_NODELETE isValid() const final;
     bool isLost() const;
 #if !defined(__swift__)
-    WebGPU::DeviceImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::DeviceImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
     Limits LEGACY_NODELETE limits() const final;
     id<MTLCounterSet> timestampCounterSet() const;

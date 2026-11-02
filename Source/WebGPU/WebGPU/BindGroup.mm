@@ -48,7 +48,7 @@
 
 namespace WebGPU::Metal {
 
-static_assert(sizeof(WebGPU::BindGroupImpl) == sizeof(void*) && alignof(WebGPU::BindGroupImpl) == alignof(void*));
+static_assert(sizeof(WebGPUSwift::BindGroupImpl) == sizeof(void*) && alignof(WebGPUSwift::BindGroupImpl) == alignof(void*));
 
 void writeExternalTextureConstants(id<MTLArgumentEncoder> argumentEncoder, NSUInteger firstIndex, const ExternalTextureConstants& constants)
 {
@@ -147,7 +147,7 @@ template<typename MakeImpl>
 BindGroup::BindGroup(MakeImpl&& makeImpl)
 {
     // Initialized from the prvalue directly: no copy, so no extra retain and release.
-    new (m_impl) WebGPU::BindGroupImpl(makeImpl());
+    new (m_impl) WebGPUSwift::BindGroupImpl(makeImpl());
 }
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(BindGroup);
@@ -162,9 +162,9 @@ bool BindGroup::isValid() const
     return swiftImpl().isValid();
 }
 
-WebGPU::BindGroupImpl& BindGroup::swiftImpl() const
+WebGPUSwift::BindGroupImpl& BindGroup::swiftImpl() const
 {
-    return *std::launder(reinterpret_cast<WebGPU::BindGroupImpl*>(const_cast<std::byte*>(m_impl)));
+    return *std::launder(reinterpret_cast<WebGPUSwift::BindGroupImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
 Device& BindGroup::device() const

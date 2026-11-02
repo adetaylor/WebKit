@@ -166,13 +166,13 @@ set(WebGPU_DEPENDENCIES
     WebGPU_CopyModules
 )
 
-set(_webgpu_swiftmodule_dir "${_webgpu_modules_dir}/WebGPU.swiftmodule")
+set(_webgpu_swiftmodule_dir "${_webgpu_modules_dir}/WebGPUSwift.swiftmodule")
 set(WebGPU_POST_BUILD_COMMAND
     ${CMAKE_COMMAND} -E make_directory "${_webgpu_swiftmodule_dir}")
 foreach (_ext IN ITEMS swiftmodule swiftdoc abi.json)
     list(APPEND WebGPU_POST_BUILD_COMMAND
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_BINARY_DIR}/WebGPU.${_ext}"
+            "${CMAKE_CURRENT_BINARY_DIR}/WebGPUSwift.${_ext}"
             "${_webgpu_swiftmodule_dir}/${WEBKIT_SWIFT_MODULE_TRIPLE}.${_ext}")
 endforeach ()
 
@@ -246,7 +246,10 @@ WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebGPU)
 # references already dirty, rather than dirtying a page of __DATA_CONST in every process that maps WebGPU.
 target_link_options(WebGPU PRIVATE "LINKER:-rename_section,__DATA_CONST,__objc_protorefs,__DATA,__objc_protorefs")
 
-WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebGPU WebGPU
+# The Swift module has its own name, since WebGPU names the C++ namespace that Swift sees, so it has no underlying
+# clang module of the same name.
+set(WebGPU_SWIFT_NO_UNDERLYING_MODULE TRUE)
+WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebGPU WebGPUSwift
     "${WebGPU_HEADERS_DIR}"
     "WebGPUSwift-Generated.h")
 

@@ -38,7 +38,7 @@
 #import <wtf/WeakPtr.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class TextureViewImpl;
 }
 #endif
@@ -55,7 +55,7 @@ class TextureView final : public WebGPU::TextureView {
 public:
 #if !defined(__swift__)
     // Texture::createView makes the TextureViewImpl.
-    static Ref<TextureView> create(const WebGPU::TextureViewImpl&);
+    static Ref<TextureView> create(const WebGPUSwift::TextureViewImpl&);
 #endif
     static Ref<TextureView> createInvalid(Texture&, Device&);
 
@@ -66,12 +66,12 @@ public:
     NODELETE bool isValid() const final;
 
 #if !defined(__swift__)
-    WebGPU::TextureViewImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::TextureViewImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
 private:
 #if !defined(__swift__)
-    explicit TextureView(const WebGPU::TextureViewImpl&);
+    explicit TextureView(const WebGPUSwift::TextureViewImpl&);
 #endif
 
     // The Swift object: one generated WebGPU::TextureViewImpl, a single strong reference. TextureView.mm, where the

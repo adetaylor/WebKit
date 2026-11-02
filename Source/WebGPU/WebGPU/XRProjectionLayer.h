@@ -36,7 +36,7 @@
 #import <wtf/WeakPtr.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class XRProjectionLayerImpl;
 }
 #endif
@@ -85,7 +85,7 @@ public:
     void destroy() final;
 
 #if !defined(__swift__)
-    WebGPU::XRProjectionLayerImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::XRProjectionLayerImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
 private:

@@ -39,7 +39,7 @@
 #import <wtf/text/WTFString.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class ShaderModuleImpl;
 }
 #endif
@@ -71,7 +71,7 @@ public:
 #if !defined(__swift__)
     // Borrowed from the Impl, which holds the reference.
     Device& device() const;
-    WebGPU::ShaderModuleImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::ShaderModuleImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
 private:

@@ -51,7 +51,7 @@
 IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class BufferImpl;
 }
 #endif
@@ -100,7 +100,7 @@ public:
 
     static Ref<Buffer> createInvalid(Device&);
 #if !defined(__swift__)
-    static Ref<Buffer> create(const WebGPU::BufferImpl&);
+    static Ref<Buffer> create(const WebGPUSwift::BufferImpl&);
 #endif
 
     ~Buffer();
@@ -122,7 +122,7 @@ public:
 
     bool isValid() const final;
 #if !defined(__swift__)
-    WebGPU::BufferImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::BufferImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
     // https://gpuweb.github.io/gpuweb/#buffer-state
@@ -161,7 +161,7 @@ private:
     explicit Buffer(std::unique_ptr<BufferImplBox>&&);
 
     const std::unique_ptr<BufferImplBox> m_impl;
-} SWIFT_SHARED_REFERENCE(refBuffer, derefBuffer) SWIFT_PRIVATE_FILEID("WebGPU/Buffer.swift") SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+} SWIFT_SHARED_REFERENCE(refBuffer, derefBuffer) SWIFT_PRIVATE_FILEID("WebGPUSwift/Buffer.swift") SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 } // namespace WebGPU::Metal
 

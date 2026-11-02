@@ -46,7 +46,7 @@
 #import <wtf/WeakPtr.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class TextureImpl;
 }
 #endif
@@ -118,7 +118,7 @@ public:
     bool LEGACY_NODELETE isValid() const final;
 
 #if !defined(__swift__)
-    WebGPU::TextureImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::TextureImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
     // The format rules C++ uses; Swift calls the functions in TextureFormats.swift directly.

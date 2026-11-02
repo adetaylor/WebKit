@@ -50,7 +50,7 @@ namespace WebGPU::Metal {
 // The Swift object, wrapped so CommandEncoder.h can forward-declare it without the generated header.
 struct CommandEncoderImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(CommandEncoderImplBox);
-    WebGPU::CommandEncoderImpl impl;
+    WebGPUSwift::CommandEncoderImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(CommandEncoderImplBox);
 
@@ -82,7 +82,7 @@ bool CommandEncoder::isValid() const
     return m_impl->impl.isValid();
 }
 
-WebGPU::CommandEncoderImpl& CommandEncoder::swiftImpl() const
+WebGPUSwift::CommandEncoderImpl& CommandEncoder::swiftImpl() const
 {
     return m_impl->impl;
 }

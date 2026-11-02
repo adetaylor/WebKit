@@ -36,7 +36,7 @@
 #import <wtf/Vector.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class RenderBundleEncoderImpl;
 }
 #endif
@@ -94,7 +94,7 @@ public:
 private:
 #if !defined(__swift__)
     template<typename MakeImpl> explicit RenderBundleEncoder(MakeImpl&&);
-    WebGPU::RenderBundleEncoderImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::RenderBundleEncoderImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
     // The Swift object: one generated WebGPU::RenderBundleEncoderImpl, a single strong reference.

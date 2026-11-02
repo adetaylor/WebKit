@@ -36,7 +36,7 @@
 #import <wtf/TZoneMalloc.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class ComputePipelineImpl;
 }
 #endif
@@ -75,7 +75,7 @@ public:
 
     bool isValid() const final;
 #if !defined(__swift__)
-    WebGPU::ComputePipelineImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::ComputePipelineImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
     PipelineLayout& pipelineLayout() const;

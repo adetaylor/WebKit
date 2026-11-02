@@ -44,7 +44,7 @@
 IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class CommandEncoderImpl;
 }
 #endif
@@ -161,7 +161,7 @@ public:
 
     bool isValid() const final;
 #if !defined(__swift__)
-    WebGPU::CommandEncoderImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::CommandEncoderImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
 private:

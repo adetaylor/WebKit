@@ -43,7 +43,7 @@ namespace WebGPU::Metal {
 // The Swift object, wrapped so BindGroupLayout.h can forward-declare it without the generated header.
 struct BindGroupLayoutImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(BindGroupLayoutImplBox);
-    WebGPU::BindGroupLayoutImpl impl;
+    WebGPUSwift::BindGroupLayoutImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(BindGroupLayoutImplBox);
 
@@ -91,7 +91,7 @@ bool BindGroupLayout::isValid() const
     return m_impl->impl.isValid();
 }
 
-WebGPU::BindGroupLayoutImpl& BindGroupLayout::swiftImpl() const
+WebGPUSwift::BindGroupLayoutImpl& BindGroupLayout::swiftImpl() const
 {
     return m_impl->impl;
 }

@@ -35,7 +35,7 @@
 #import <wtf/TZoneMalloc.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class RenderBundleImpl;
 }
 #endif
@@ -49,7 +49,7 @@ class RenderBundle final : public WebGPU::RenderBundle {
     WTF_MAKE_TZONE_ALLOCATED(RenderBundle);
 public:
 #if !defined(__swift__)
-    static Ref<RenderBundle> create(const WebGPU::RenderBundleImpl&);
+    static Ref<RenderBundle> create(const WebGPUSwift::RenderBundleImpl&);
 #endif
 
     ~RenderBundle();
@@ -59,12 +59,12 @@ public:
     NODELETE bool isValid() const final;
 
 #if !defined(__swift__)
-    WebGPU::RenderBundleImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::RenderBundleImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
 private:
 #if !defined(__swift__)
-    explicit RenderBundle(const WebGPU::RenderBundleImpl&);
+    explicit RenderBundle(const WebGPUSwift::RenderBundleImpl&);
 #endif
 
     // The Swift object: one generated WebGPU::RenderBundleImpl, a single strong reference. RenderBundle.mm, where the

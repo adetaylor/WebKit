@@ -43,7 +43,7 @@
 #import <wtf/WeakPtr.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class AdapterImpl;
 }
 #endif
@@ -78,7 +78,7 @@ public:
     id<MTLDevice> device() const;
 #if !defined(__swift__)
     void makeInvalid();
-    WebGPU::AdapterImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::AdapterImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
     bool isXRCompatible() const final;
 

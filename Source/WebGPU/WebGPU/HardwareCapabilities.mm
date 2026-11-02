@@ -75,7 +75,7 @@ bool isPhysicalHardware()
 std::optional<HardwareCapabilities> hardwareCapabilities(id<MTLDevice> device)
 {
     HardwareCapabilities result;
-    if (!computeHardwareCapabilities(device, result))
+    if (!WebGPUSwift::computeHardwareCapabilities(device, result))
         return std::nullopt;
     return result;
 }

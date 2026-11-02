@@ -40,7 +40,7 @@
 #import <wtf/WeakPtr.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class BindGroupImpl;
 }
 #endif
@@ -98,7 +98,7 @@ public:
     bool updateExternalTextures(WebGPU::ExternalTexture&) final;
 
 #if !defined(__swift__)
-    WebGPU::BindGroupImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::BindGroupImpl& swiftImpl() const LIFETIME_BOUND;
     // Borrowed from the Impl, which holds the reference.
     Device& device() const;
 #endif

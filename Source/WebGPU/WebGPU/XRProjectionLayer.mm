@@ -88,7 +88,7 @@ namespace WebGPU::Metal {
 
 struct XRProjectionLayerImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(XRProjectionLayerImplBox);
-    WebGPU::XRProjectionLayerImpl impl;
+    WebGPUSwift::XRProjectionLayerImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(XRProjectionLayerImplBox);
 
@@ -173,7 +173,7 @@ XRProjectionLayer::XRProjectionLayer(std::unique_ptr<XRProjectionLayerImplBox>&&
 
 XRProjectionLayer::~XRProjectionLayer() = default;
 
-WebGPU::XRProjectionLayerImpl& XRProjectionLayer::swiftImpl() const
+WebGPUSwift::XRProjectionLayerImpl& XRProjectionLayer::swiftImpl() const
 {
     return m_impl->impl;
 }

@@ -61,7 +61,7 @@ namespace WebGPU::Metal {
 
 struct DeviceImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(DeviceImplBox);
-    WebGPU::DeviceImpl impl;
+    WebGPUSwift::DeviceImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(DeviceImplBox);
 
@@ -108,12 +108,12 @@ void logTimestampsWhenCompleted(id<MTLCommandBuffer> commandBuffer, NSMutableArr
 
 bool Device::enableEncoderTimestamps() const
 {
-    return WebGPU::enableEncoderTimestamps();
+    return WebGPUSwift::enableEncoderTimestamps();
 }
 
 bool Device::shouldStopCaptureAfterSubmit()
 {
-    return WebGPU::shouldStopCaptureAfterSubmit();
+    return WebGPUSwift::shouldStopCaptureAfterSubmit();
 }
 
 bool Device::isDestroyed() const
@@ -126,7 +126,7 @@ bool Device::isValid() const
     return m_impl->impl.isValid();
 }
 
-WebGPU::DeviceImpl& Device::swiftImpl() const
+WebGPUSwift::DeviceImpl& Device::swiftImpl() const
 {
     return m_impl->impl;
 }
@@ -163,7 +163,7 @@ uint32_t Device::appleGPUFamily() const
 
 Ref<Device> Device::create(id<MTLDevice> device, String&& deviceLabel, HardwareCapabilities&& capabilities, Adapter& adapter)
 {
-    id<MTLCommandQueue> commandQueue = makeDefaultCommandQueue(device, deviceLabel);
+    id<MTLCommandQueue> commandQueue = WebGPUSwift::makeDefaultCommandQueue(device, deviceLabel);
     if (!commandQueue)
         return Device::createInvalid(adapter);
 
@@ -195,7 +195,7 @@ Device::Device(id<MTLDevice> device, id<MTLCommandQueue> defaultQueue, const Har
     ALLOW_DEPRECATED_DECLARATIONS_BEGIN
     // Runs on an observer thread: it uses only the scheduler handle captured here, and hands its reference to the device
     // over to the work item, which releases it on the API thread.
-    std::optional<WebGPU::InstanceSchedulerHandle> scheduler;
+    std::optional<WebGPUSwift::InstanceSchedulerHandle> scheduler;
     if (RefPtr instance = adapter.instance())
         scheduler = instance->schedulerHandle();
     auto devices = MTLCopyAllDevicesWithObserver(&deviceObserver, [weakThis = ThreadSafeWeakPtr { *this }, scheduler = WTF::move(scheduler)](id<MTLDevice> device, MTLDeviceNotificationName) mutable {
@@ -226,7 +226,7 @@ Device::Device(id<MTLDevice> device, id<MTLCommandQueue> defaultQueue, const Har
 #endif
 #endif
 
-    WebGPU::registerForFrameCapture(device);
+    WebGPUSwift::registerForFrameCapture(device);
 }
 
 Device::Device(Adapter& adapter)

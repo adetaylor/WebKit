@@ -45,7 +45,7 @@
 IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class QueueImpl;
 }
 #endif
@@ -137,7 +137,7 @@ public:
 
     bool isValid() const final;
 #if !defined(__swift__)
-    WebGPU::QueueImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::QueueImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
     void makeInvalid();
 
@@ -177,7 +177,7 @@ private:
     ThreadSafeWeakPtr<Device> m_device; // The only kind of queues that exist right now are default queues, which are owned by Devices.
     // Read on the API thread only; Metal threads schedule work through the box's scheduler handle.
     const ThreadSafeWeakPtr<Instance> m_instance;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refQueue, derefQueue) SWIFT_PRIVATE_FILEID("WebGPU/Queue.swift");
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refQueue, derefQueue) SWIFT_PRIVATE_FILEID("WebGPUSwift/Queue.swift");
 
 // Byte-moving primitives for Queue.swift. Free functions with NOESCAPE spans, so that Swift gets overloads taking
 // Span<UInt8>; static members of Queue, a foreign reference type, would not get them (rdar://161274084).

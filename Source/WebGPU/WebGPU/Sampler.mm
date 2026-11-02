@@ -40,7 +40,7 @@
 
 namespace WebGPU::Metal {
 
-static_assert(sizeof(WebGPU::SamplerImpl) == sizeof(void*) && alignof(WebGPU::SamplerImpl) == alignof(void*));
+static_assert(sizeof(WebGPUSwift::SamplerImpl) == sizeof(void*) && alignof(WebGPUSwift::SamplerImpl) == alignof(void*));
 
 RefPtr<WebGPU::Sampler> Device::createSampler(const WebGPU::SamplerDescriptor& descriptor)
 {
@@ -67,7 +67,7 @@ template<typename MakeImpl>
 Sampler::Sampler(MakeImpl&& makeImpl)
 {
     // Initialized from the prvalue directly: no copy, so no extra retain and release.
-    new (m_impl) WebGPU::SamplerImpl(makeImpl());
+    new (m_impl) WebGPUSwift::SamplerImpl(makeImpl());
 }
 
 Sampler::~Sampler()
@@ -75,9 +75,9 @@ Sampler::~Sampler()
     std::destroy_at(&swiftImpl());
 }
 
-WebGPU::SamplerImpl& Sampler::swiftImpl() const
+WebGPUSwift::SamplerImpl& Sampler::swiftImpl() const
 {
-    return *std::launder(reinterpret_cast<WebGPU::SamplerImpl*>(const_cast<std::byte*>(m_impl)));
+    return *std::launder(reinterpret_cast<WebGPUSwift::SamplerImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
 Device& Sampler::device() const

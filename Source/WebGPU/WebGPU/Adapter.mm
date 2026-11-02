@@ -43,7 +43,7 @@ namespace WebGPU::Metal {
 
 struct AdapterImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(AdapterImplBox);
-    WebGPU::AdapterImpl impl;
+    WebGPUSwift::AdapterImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(AdapterImplBox);
 
@@ -51,7 +51,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(Adapter);
 
 Ref<Adapter> Adapter::create(id<MTLDevice> device, Instance& instance, bool xrCompatible, HardwareCapabilities&& capabilities)
 {
-    auto box = makeUnique<AdapterImplBox>(AdapterImplBox { .impl = makeAdapterImpl(device, xrCompatible, capabilities) });
+    auto box = makeUnique<AdapterImplBox>(AdapterImplBox { .impl = WebGPUSwift::makeAdapterImpl(device, xrCompatible, capabilities) });
     return adoptRef(*new Adapter(WTF::move(box), instance));
 }
 
@@ -144,7 +144,7 @@ void Adapter::makeInvalid()
     m_impl->impl.makeInvalid();
 }
 
-WebGPU::AdapterImpl& Adapter::swiftImpl() const
+WebGPUSwift::AdapterImpl& Adapter::swiftImpl() const
 {
     return m_impl->impl;
 }

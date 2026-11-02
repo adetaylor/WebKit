@@ -47,7 +47,7 @@ namespace WebGPU::Metal {
 // The Swift object, wrapped so ComputePassEncoder.h can forward-declare it without the generated header.
 struct ComputePassEncoderImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(ComputePassEncoderImplBox);
-    WebGPU::ComputePassEncoderImpl impl;
+    WebGPUSwift::ComputePassEncoderImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(ComputePassEncoderImplBox);
 

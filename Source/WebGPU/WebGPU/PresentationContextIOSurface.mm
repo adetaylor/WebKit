@@ -45,7 +45,7 @@ namespace WebGPU::Metal {
 
 struct PresentationContextIOSurfaceImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(PresentationContextIOSurfaceImplBox);
-    WebGPU::PresentationContextIOSurfaceImpl impl;
+    WebGPUSwift::PresentationContextIOSurfaceImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(PresentationContextIOSurfaceImplBox);
 
@@ -56,11 +56,11 @@ static std::unique_ptr<PresentationContextIOSurfaceImplBox> makeImplBox(const In
 {
 #if HAVE(IOSURFACE_SET_OWNERSHIP_IDENTITY) && HAVE(TASK_IDENTITY_TOKEN)
     if (const auto& webProcessID = instance.webProcessID())
-        return makeUnique<PresentationContextIOSurfaceImplBox>(PresentationContextIOSurfaceImplBox { .impl = makePresentationContextIOSurfaceImpl(webProcessID->sendRight()) });
+        return makeUnique<PresentationContextIOSurfaceImplBox>(PresentationContextIOSurfaceImplBox { .impl = WebGPUSwift::makePresentationContextIOSurfaceImpl(webProcessID->sendRight()) });
 #else
     UNUSED_PARAM(instance);
 #endif
-    return makeUnique<PresentationContextIOSurfaceImplBox>(PresentationContextIOSurfaceImplBox { .impl = makePresentationContextIOSurfaceImpl(MACH_PORT_NULL) });
+    return makeUnique<PresentationContextIOSurfaceImplBox>(PresentationContextIOSurfaceImplBox { .impl = WebGPUSwift::makePresentationContextIOSurfaceImpl(MACH_PORT_NULL) });
 }
 
 Ref<PresentationContextIOSurface> PresentationContextIOSurface::create(const WebGPU::PresentationContextDescriptor& descriptor, const Instance& instance)

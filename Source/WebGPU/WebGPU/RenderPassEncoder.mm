@@ -52,7 +52,7 @@ namespace WebGPU::Metal {
 // The Swift object, wrapped so RenderPassEncoder.h can forward-declare it without the generated header.
 struct RenderPassEncoderImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(RenderPassEncoderImplBox);
-    WebGPU::RenderPassEncoderImpl impl;
+    WebGPUSwift::RenderPassEncoderImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(RenderPassEncoderImplBox);
 
@@ -126,7 +126,7 @@ RenderPassEncoder::~RenderPassEncoder()
     m_impl->impl.passWillBeDestroyed();
 }
 
-WebGPU::RenderPassEncoderImpl& RenderPassEncoder::swiftImpl() const
+WebGPUSwift::RenderPassEncoderImpl& RenderPassEncoder::swiftImpl() const
 {
     return m_impl->impl;
 }

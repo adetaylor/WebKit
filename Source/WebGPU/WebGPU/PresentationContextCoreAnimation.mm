@@ -42,7 +42,7 @@ namespace WebGPU::Metal {
 
 struct PresentationContextCoreAnimationImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(PresentationContextCoreAnimationImplBox);
-    WebGPU::PresentationContextCoreAnimationImpl impl;
+    WebGPUSwift::PresentationContextCoreAnimationImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(PresentationContextCoreAnimationImplBox);
 
@@ -50,7 +50,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(PresentationContextCoreAnimation);
 
 Ref<PresentationContextCoreAnimation> PresentationContextCoreAnimation::create(CAMetalLayer *layer)
 {
-    return adoptRef(*new PresentationContextCoreAnimation(makeUnique<PresentationContextCoreAnimationImplBox>(PresentationContextCoreAnimationImplBox { .impl = makePresentationContextCoreAnimationImpl(layer) })));
+    return adoptRef(*new PresentationContextCoreAnimation(makeUnique<PresentationContextCoreAnimationImplBox>(PresentationContextCoreAnimationImplBox { .impl = WebGPUSwift::makePresentationContextCoreAnimationImpl(layer) })));
 }
 
 PresentationContextCoreAnimation::PresentationContextCoreAnimation(std::unique_ptr<PresentationContextCoreAnimationImplBox>&& impl)

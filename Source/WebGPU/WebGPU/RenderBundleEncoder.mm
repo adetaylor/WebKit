@@ -46,7 +46,7 @@
 
 namespace WebGPU::Metal {
 
-static_assert(sizeof(WebGPU::RenderBundleEncoderImpl) == sizeof(void*) && alignof(WebGPU::RenderBundleEncoderImpl) == alignof(void*));
+static_assert(sizeof(WebGPUSwift::RenderBundleEncoderImpl) == sizeof(void*) && alignof(WebGPUSwift::RenderBundleEncoderImpl) == alignof(void*));
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RenderBundleEncoder);
 
@@ -73,12 +73,12 @@ template<typename MakeImpl>
 RenderBundleEncoder::RenderBundleEncoder(MakeImpl&& makeImpl)
 {
     // Initialized from the prvalue directly: no copy, so no extra retain and release.
-    new (m_impl) WebGPU::RenderBundleEncoderImpl(makeImpl());
+    new (m_impl) WebGPUSwift::RenderBundleEncoderImpl(makeImpl());
 }
 
-WebGPU::RenderBundleEncoderImpl& RenderBundleEncoder::swiftImpl() const
+WebGPUSwift::RenderBundleEncoderImpl& RenderBundleEncoder::swiftImpl() const
 {
-    return *std::launder(reinterpret_cast<WebGPU::RenderBundleEncoderImpl*>(const_cast<std::byte*>(m_impl)));
+    return *std::launder(reinterpret_cast<WebGPUSwift::RenderBundleEncoderImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
 void RenderBundleEncoder::makeInvalid(NSString* errorString)

@@ -46,7 +46,7 @@
 
 namespace WebGPU::Metal {
 
-static_assert(sizeof(WebGPU::TextureImpl) == sizeof(void*) && alignof(WebGPU::TextureImpl) == alignof(void*));
+static_assert(sizeof(WebGPUSwift::TextureImpl) == sizeof(void*) && alignof(WebGPUSwift::TextureImpl) == alignof(void*));
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(Texture);
 
@@ -87,19 +87,19 @@ static TextureViewDescriptorParameters textureViewDescriptorParameters(const Web
 
 bool Texture::isDepthOrStencilFormat(WebGPU::TextureFormat format)
 {
-    return WebGPU::isDepthOrStencilFormat(format);
+    return WebGPUSwift::isDepthOrStencilFormat(format);
 }
 
 NSString *Device::errorValidatingTextureCreation(const WebGPU::TextureDescriptor& descriptor)
 {
-    return WebGPU::errorValidatingTextureCreationRaw(this, swiftImpl(), textureParameters(descriptor), TextureFormatsView { descriptor.viewFormats });
+    return WebGPUSwift::errorValidatingTextureCreationRaw(this, swiftImpl(), textureParameters(descriptor), TextureFormatsView { descriptor.viewFormats });
 }
 
 // Swift records the valid textures in DeviceImpl, for destroy().
 RefPtr<WebGPU::Texture> Device::createTexture(const WebGPU::TextureDescriptor& descriptor)
 {
     return Texture::create([&] {
-        return WebGPU::createTextureImpl(this, swiftImpl(), textureParameters(descriptor), TextureFormatsView { descriptor.viewFormats }, descriptor.label, hasUnifiedMemory(), supportsNonPrivateDepthStencilTextures(), supportsMemorylessTextures());
+        return WebGPUSwift::createTextureImpl(this, swiftImpl(), textureParameters(descriptor), TextureFormatsView { descriptor.viewFormats }, descriptor.label, hasUnifiedMemory(), supportsNonPrivateDepthStencilTextures(), supportsMemorylessTextures());
     });
 }
 
@@ -129,7 +129,7 @@ template<typename MakeImpl>
 Texture::Texture(MakeImpl&& makeImpl)
 {
     // Initialized from the prvalue directly: no copy, so no extra retain and release.
-    new (m_impl) WebGPU::TextureImpl(makeImpl());
+    new (m_impl) WebGPUSwift::TextureImpl(makeImpl());
 }
 
 Texture::~Texture()
@@ -137,9 +137,9 @@ Texture::~Texture()
     std::destroy_at(&swiftImpl());
 }
 
-WebGPU::TextureImpl& Texture::swiftImpl() const
+WebGPUSwift::TextureImpl& Texture::swiftImpl() const
 {
-    return *std::launder(reinterpret_cast<WebGPU::TextureImpl*>(const_cast<std::byte*>(m_impl)));
+    return *std::launder(reinterpret_cast<WebGPUSwift::TextureImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
 Device& Texture::device() const

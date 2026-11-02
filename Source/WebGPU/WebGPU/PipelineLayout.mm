@@ -40,7 +40,7 @@
 
 namespace WebGPU::Metal {
 
-static_assert(sizeof(WebGPU::PipelineLayoutImpl) == sizeof(void*) && alignof(WebGPU::PipelineLayoutImpl) == alignof(void*));
+static_assert(sizeof(WebGPUSwift::PipelineLayoutImpl) == sizeof(void*) && alignof(WebGPUSwift::PipelineLayoutImpl) == alignof(void*));
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(PipelineLayout);
 
@@ -86,7 +86,7 @@ Ref<PipelineLayout> PipelineLayout::create(MakeImpl&& makeImpl)
 Ref<PipelineLayout> PipelineLayout::createInvalid(Device& device)
 {
     return create([&] {
-        return makeInvalidPipelineLayoutImpl(&device);
+        return WebGPUSwift::makeInvalidPipelineLayoutImpl(&device);
     });
 }
 
@@ -101,7 +101,7 @@ template<typename MakeImpl>
 PipelineLayout::PipelineLayout(MakeImpl&& makeImpl)
 {
     // Initialized from the prvalue directly: no copy, so no extra retain and release.
-    new (m_impl) WebGPU::PipelineLayoutImpl(makeImpl());
+    new (m_impl) WebGPUSwift::PipelineLayoutImpl(makeImpl());
 }
 
 PipelineLayout::~PipelineLayout()
@@ -119,9 +119,9 @@ bool PipelineLayout::isValid() const
     return swiftImpl().isValid();
 }
 
-WebGPU::PipelineLayoutImpl& PipelineLayout::swiftImpl() const
+WebGPUSwift::PipelineLayoutImpl& PipelineLayout::swiftImpl() const
 {
-    return *std::launder(reinterpret_cast<WebGPU::PipelineLayoutImpl*>(const_cast<std::byte*>(m_impl)));
+    return *std::launder(reinterpret_cast<WebGPUSwift::PipelineLayoutImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
 void PipelineLayout::makeInvalid()

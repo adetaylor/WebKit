@@ -39,7 +39,7 @@
 #import <wtf/WeakPtr.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class BindGroupLayoutImpl;
 }
 #endif
@@ -72,7 +72,7 @@ public:
 
     bool isValid() const final;
 #if !defined(__swift__)
-    WebGPU::BindGroupLayoutImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::BindGroupLayoutImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
 #if !defined(__swift__)

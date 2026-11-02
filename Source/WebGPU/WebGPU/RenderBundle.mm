@@ -39,18 +39,18 @@
 
 namespace WebGPU::Metal {
 
-static_assert(sizeof(WebGPU::RenderBundleImpl) == sizeof(void*) && alignof(WebGPU::RenderBundleImpl) == alignof(void*));
+static_assert(sizeof(WebGPUSwift::RenderBundleImpl) == sizeof(void*) && alignof(WebGPUSwift::RenderBundleImpl) == alignof(void*));
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RenderBundle);
 
-Ref<RenderBundle> RenderBundle::create(const WebGPU::RenderBundleImpl& impl)
+Ref<RenderBundle> RenderBundle::create(const WebGPUSwift::RenderBundleImpl& impl)
 {
     return adoptRef(*new RenderBundle(impl));
 }
 
-RenderBundle::RenderBundle(const WebGPU::RenderBundleImpl& impl)
+RenderBundle::RenderBundle(const WebGPUSwift::RenderBundleImpl& impl)
 {
-    new (m_impl) WebGPU::RenderBundleImpl(impl);
+    new (m_impl) WebGPUSwift::RenderBundleImpl(impl);
 }
 
 RenderBundle::~RenderBundle()
@@ -63,9 +63,9 @@ bool RenderBundle::isValid() const
     return swiftImpl().isValid();
 }
 
-WebGPU::RenderBundleImpl& RenderBundle::swiftImpl() const
+WebGPUSwift::RenderBundleImpl& RenderBundle::swiftImpl() const
 {
-    return *std::launder(reinterpret_cast<WebGPU::RenderBundleImpl*>(const_cast<std::byte*>(m_impl)));
+    return *std::launder(reinterpret_cast<WebGPUSwift::RenderBundleImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
 void RenderBundle::setLabel(String&& label)

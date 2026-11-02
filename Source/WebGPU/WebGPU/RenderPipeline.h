@@ -41,7 +41,7 @@
 #import <wtf/WeakPtr.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class RenderPipelineImpl;
 }
 #endif
@@ -144,7 +144,7 @@ public:
 
     bool isValid() const final;
 #if !defined(__swift__)
-    WebGPU::RenderPipelineImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::RenderPipelineImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
     PipelineLayout& pipelineLayout() const;

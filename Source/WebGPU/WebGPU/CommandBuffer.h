@@ -38,7 +38,7 @@
 #import <wtf/WeakPtr.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class CommandBufferImpl;
 }
 #endif
@@ -65,7 +65,7 @@ public:
 
     bool isValid() const final;
 #if !defined(__swift__)
-    WebGPU::CommandBufferImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::CommandBufferImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
     id<MTLCommandBuffer> commandBuffer() const;

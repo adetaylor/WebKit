@@ -40,7 +40,7 @@
 #import <wtf/WeakPtr.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class QuerySetImpl;
 }
 #endif
@@ -72,7 +72,7 @@ public:
     uint32_t count() const;
     // std::nullopt only for invalid query sets.
     std::optional<WebGPU::QueryType> type() const;
-    WebGPU::QuerySetImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::QuerySetImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
 private:

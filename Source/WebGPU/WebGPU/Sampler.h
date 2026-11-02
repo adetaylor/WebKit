@@ -33,7 +33,7 @@
 #import <wtf/TZoneMalloc.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class SamplerImpl;
 }
 #endif
@@ -56,7 +56,7 @@ public:
     bool isValid() const final;
 
 #if !defined(__swift__)
-    WebGPU::SamplerImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::SamplerImpl& swiftImpl() const LIFETIME_BOUND;
     // Borrowed from the Impl, which holds the reference.
     Device& device() const;
 #endif

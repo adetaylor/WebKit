@@ -50,7 +50,7 @@ namespace WebGPU::Metal {
 
 struct BufferImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(BufferImplBox);
-    WebGPU::BufferImpl impl;
+    WebGPUSwift::BufferImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(BufferImplBox);
 
@@ -79,7 +79,7 @@ RefPtr<WebGPU::Buffer> Device::createBuffer(const WebGPU::BufferDescriptor& desc
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(Buffer);
 
-Ref<Buffer> Buffer::create(const WebGPU::BufferImpl& impl)
+Ref<Buffer> Buffer::create(const WebGPUSwift::BufferImpl& impl)
 {
     auto box = makeUnique<BufferImplBox>(BufferImplBox { .impl = impl });
     Ref result = adoptRef(*new Buffer(WTF::move(box)));
@@ -99,7 +99,7 @@ Buffer::Buffer(std::unique_ptr<BufferImplBox>&& impl)
 
 Buffer::~Buffer() = default;
 
-WebGPU::BufferImpl& Buffer::swiftImpl() const
+WebGPUSwift::BufferImpl& Buffer::swiftImpl() const
 {
     return m_impl->impl;
 }

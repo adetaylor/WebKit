@@ -41,11 +41,11 @@
 
 namespace WebGPU::Metal {
 
-static_assert(sizeof(WebGPU::TextureViewImpl) == sizeof(void*) && alignof(WebGPU::TextureViewImpl) == alignof(void*));
+static_assert(sizeof(WebGPUSwift::TextureViewImpl) == sizeof(void*) && alignof(WebGPUSwift::TextureViewImpl) == alignof(void*));
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(TextureView);
 
-Ref<TextureView> TextureView::create(const WebGPU::TextureViewImpl& impl)
+Ref<TextureView> TextureView::create(const WebGPUSwift::TextureViewImpl& impl)
 {
     return adoptRef(*new TextureView(impl));
 }
@@ -55,9 +55,9 @@ Ref<TextureView> TextureView::createInvalid(Texture& texture, Device& device)
     return create(makeInvalidTextureViewImpl(&texture, texture.swiftImpl(), &device));
 }
 
-TextureView::TextureView(const WebGPU::TextureViewImpl& impl)
+TextureView::TextureView(const WebGPUSwift::TextureViewImpl& impl)
 {
-    new (m_impl) WebGPU::TextureViewImpl(impl);
+    new (m_impl) WebGPUSwift::TextureViewImpl(impl);
 }
 
 TextureView::~TextureView()
@@ -65,9 +65,9 @@ TextureView::~TextureView()
     std::destroy_at(&swiftImpl());
 }
 
-WebGPU::TextureViewImpl& TextureView::swiftImpl() const
+WebGPUSwift::TextureViewImpl& TextureView::swiftImpl() const
 {
-    return *std::launder(reinterpret_cast<WebGPU::TextureViewImpl*>(const_cast<std::byte*>(m_impl)));
+    return *std::launder(reinterpret_cast<WebGPUSwift::TextureViewImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
 void TextureView::setLabel(String&& label)

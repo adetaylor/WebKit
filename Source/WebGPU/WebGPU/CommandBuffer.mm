@@ -44,13 +44,13 @@ namespace WebGPU::Metal {
 
 struct CommandBufferImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(CommandBufferImplBox);
-    WebGPU::CommandBufferImpl impl;
+    WebGPUSwift::CommandBufferImpl impl;
     // The impl's completion, taken once, so that registering the Metal handler needs no call into Swift.
-    WebGPU::CommandBufferCompletion completion;
+    WebGPUSwift::CommandBufferCompletion completion;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(CommandBufferImplBox);
 
-static std::unique_ptr<CommandBufferImplBox> makeCommandBufferImplBox(WebGPU::CommandBufferImpl impl)
+static std::unique_ptr<CommandBufferImplBox> makeCommandBufferImplBox(WebGPUSwift::CommandBufferImpl impl)
 {
     return makeUnique<CommandBufferImplBox>(CommandBufferImplBox { .impl = impl, .completion = impl.completion() });
 }
@@ -84,7 +84,7 @@ bool CommandBuffer::isValid() const
     return m_impl->impl.isValid();
 }
 
-WebGPU::CommandBufferImpl& CommandBuffer::swiftImpl() const
+WebGPUSwift::CommandBufferImpl& CommandBuffer::swiftImpl() const
 {
     return m_impl->impl;
 }

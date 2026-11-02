@@ -53,17 +53,17 @@ namespace WebGPU::Metal {
 
 struct QueueImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(QueueImplBox);
-    WebGPU::QueueImpl impl;
+    WebGPUSwift::QueueImpl impl;
     // The impl's completion, taken once, so that registering the Metal handlers needs no call into Swift.
-    WebGPU::QueueCompletion completion;
+    WebGPUSwift::QueueCompletion completion;
     // How scheduleWork() reaches the Instance's scheduler from any thread, without referencing the Instance.
-    std::optional<WebGPU::InstanceSchedulerHandle> scheduler;
+    std::optional<WebGPUSwift::InstanceSchedulerHandle> scheduler;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(QueueImplBox);
 
-static std::unique_ptr<QueueImplBox> makeQueueImplBox(WebGPU::QueueImpl impl, Adapter& adapter)
+static std::unique_ptr<QueueImplBox> makeQueueImplBox(WebGPUSwift::QueueImpl impl, Adapter& adapter)
 {
-    std::optional<WebGPU::InstanceSchedulerHandle> scheduler;
+    std::optional<WebGPUSwift::InstanceSchedulerHandle> scheduler;
     if (RefPtr instance = adapter.instance())
         scheduler = instance->schedulerHandle();
     return makeUnique<QueueImplBox>(QueueImplBox { .impl = impl, .completion = impl.completion(), .scheduler = WTF::move(scheduler) });
@@ -73,12 +73,12 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(Queue);
 
 Ref<Queue> Queue::create(id<MTLCommandQueue> commandQueue, Adapter& adapter, Device& device)
 {
-    return adoptRef(*new Queue(makeQueueImplBox(makeQueueImpl(commandQueue), adapter), adapter, device));
+    return adoptRef(*new Queue(makeQueueImplBox(WebGPUSwift::makeQueueImpl(commandQueue), adapter), adapter, device));
 }
 
 Ref<Queue> Queue::createInvalid(Adapter& adapter, Device& device)
 {
-    return adoptRef(*new Queue(makeQueueImplBox(makeInvalidQueueImpl(), adapter), adapter, device));
+    return adoptRef(*new Queue(makeQueueImplBox(WebGPUSwift::makeInvalidQueueImpl(), adapter), adapter, device));
 }
 
 Queue::Queue(std::unique_ptr<QueueImplBox>&& impl, Adapter& adapter, Device& device)
@@ -103,7 +103,7 @@ bool Queue::isValid() const
     return m_impl->impl.isValid();
 }
 
-WebGPU::QueueImpl& Queue::swiftImpl() const
+WebGPUSwift::QueueImpl& Queue::swiftImpl() const
 {
     return m_impl->impl;
 }

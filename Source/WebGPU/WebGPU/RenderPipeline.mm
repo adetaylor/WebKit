@@ -50,7 +50,7 @@ namespace WebGPU::Metal {
 
 struct RenderPipelineImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(RenderPipelineImplBox);
-    WebGPU::RenderPipelineImpl impl;
+    WebGPUSwift::RenderPipelineImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(RenderPipelineImplBox);
 
@@ -61,7 +61,7 @@ void setRenderPipelineSampleMask(MTLRenderPipelineDescriptor *descriptor, uint32
 
 // The creation is RenderPipelineBuilder (RenderPipeline.swift). This resolves what Swift cannot downcast: the shader
 // modules and the layout (the replaced pipeline's or the descriptor's).
-static WebGPU::RenderPipelineBuilder renderPipelineBuilder(Device& device, const WebGPU::RenderPipelineDescriptor& descriptor, const RenderPipeline* pipelineToReplace)
+static WebGPUSwift::RenderPipelineBuilder renderPipelineBuilder(Device& device, const WebGPU::RenderPipelineDescriptor& descriptor, const RenderPipeline* pipelineToReplace)
 {
     Ref vertexModule = metal(descriptor.vertex.stage.module.get());
     auto builder = makeRenderPipelineBuilder(&device, device.swiftImpl(), vertexModule.ptr(), vertexModule->swiftImpl());
@@ -133,7 +133,7 @@ bool RenderPipeline::isValid() const
     return m_impl->impl.isValid();
 }
 
-WebGPU::RenderPipelineImpl& RenderPipeline::swiftImpl() const
+WebGPUSwift::RenderPipelineImpl& RenderPipeline::swiftImpl() const
 {
     return m_impl->impl;
 }

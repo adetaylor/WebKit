@@ -43,11 +43,11 @@
 
 namespace WebGPU::Metal {
 
-static_assert(sizeof(WebGPU::ComputePipelineImpl) == sizeof(void*) && alignof(WebGPU::ComputePipelineImpl) == alignof(void*));
+static_assert(sizeof(WebGPUSwift::ComputePipelineImpl) == sizeof(void*) && alignof(WebGPUSwift::ComputePipelineImpl) == alignof(void*));
 
 // The creation is ComputePipelineBuilder (ComputePipeline.swift). This resolves what Swift cannot downcast: the shader
 // module and the layout (the replaced pipeline's or the descriptor's).
-static WebGPU::ComputePipelineBuilder computePipelineBuilder(Device& device, const WebGPU::ComputePipelineDescriptor& descriptor, const ComputePipeline* pipelineToReplace)
+static WebGPUSwift::ComputePipelineBuilder computePipelineBuilder(Device& device, const WebGPU::ComputePipelineDescriptor& descriptor, const ComputePipeline* pipelineToReplace)
 {
     Ref shaderModule = metal(descriptor.compute.module.get());
     auto builder = makeComputePipelineBuilder(&device, device.swiftImpl(), shaderModule->swiftImpl());
@@ -113,7 +113,7 @@ template<typename MakeImpl>
 ComputePipeline::ComputePipeline(MakeImpl&& makeImpl)
 {
     // Initialized from the prvalue directly: no copy, so no extra retain and release.
-    new (m_impl) WebGPU::ComputePipelineImpl(makeImpl());
+    new (m_impl) WebGPUSwift::ComputePipelineImpl(makeImpl());
 }
 
 ComputePipeline::~ComputePipeline()
@@ -126,9 +126,9 @@ bool ComputePipeline::isValid() const
     return swiftImpl().isValid();
 }
 
-WebGPU::ComputePipelineImpl& ComputePipeline::swiftImpl() const
+WebGPUSwift::ComputePipelineImpl& ComputePipeline::swiftImpl() const
 {
-    return *std::launder(reinterpret_cast<WebGPU::ComputePipelineImpl*>(const_cast<std::byte*>(m_impl)));
+    return *std::launder(reinterpret_cast<WebGPUSwift::ComputePipelineImpl*>(const_cast<std::byte*>(m_impl)));
 }
 
 PipelineLayout& ComputePipeline::pipelineLayout() const

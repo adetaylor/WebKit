@@ -46,7 +46,7 @@ namespace WebGPU::Metal {
 
 struct ExternalTextureImplBox {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(ExternalTextureImplBox);
-    WebGPU::ExternalTextureImpl impl;
+    WebGPUSwift::ExternalTextureImpl impl;
 };
 WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(ExternalTextureImplBox);
 
@@ -88,7 +88,7 @@ ExternalTexture::ExternalTexture(std::unique_ptr<ExternalTextureImplBox>&& impl)
 
 ExternalTexture::~ExternalTexture() = default;
 
-WebGPU::ExternalTextureImpl& ExternalTexture::swiftImpl() const
+WebGPUSwift::ExternalTextureImpl& ExternalTexture::swiftImpl() const
 {
     return m_impl->impl;
 }

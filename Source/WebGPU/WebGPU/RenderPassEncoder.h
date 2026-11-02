@@ -35,7 +35,7 @@
 #import <wtf/TZoneMalloc.h>
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class RenderPassEncoderImpl;
 }
 #endif
@@ -125,7 +125,7 @@ public:
 
     bool isValid() const final;
 #if !defined(__swift__)
-    WebGPU::RenderPassEncoderImpl& swiftImpl() const LIFETIME_BOUND;
+    WebGPUSwift::RenderPassEncoderImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
     void makeInvalid(NSString* = nil);
 

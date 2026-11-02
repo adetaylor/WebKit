@@ -46,7 +46,7 @@ class MachSendRight;
 }
 
 #if !defined(__swift__)
-namespace WebGPU {
+namespace WebGPUSwift {
 class InstanceSchedulerHandle;
 }
 #endif
@@ -88,7 +88,7 @@ public:
     // For the handlers that run on Metal and observer threads, which must not reference the Instance. The handle
     // drops the work once the Instance is gone; a reference to the scheduler keeps delivering it to the embedder's
     // scheduleWork (or to the event queue, which nothing then drains).
-    WebGPU::InstanceSchedulerHandle schedulerHandle() const;
+    WebGPUSwift::InstanceSchedulerHandle schedulerHandle() const;
 #endif
     std::optional<MachSendRight> webProcessID() const;
 
