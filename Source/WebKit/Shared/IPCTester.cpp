@@ -833,6 +833,7 @@ void IPCTester::benchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t mess
     streamConnection->open(client);
 
     String text = "0123456789abcdef"_s;
+    String text16 = String::fromUTF8("0123456789abcde\xe2\x98\xba");
     Vector<uint32_t> values;
     values.fill(7, 16);
     bool succeeded = true;
@@ -859,6 +860,9 @@ void IPCTester::benchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t mess
                 auto result = streamConnection->sendSync(Messages::IPCStreamTester::BenchSync(index), identifier);
                 succeeded &= result.succeeded() && std::get<0>(result.reply()) == index;
             }
+            break;
+        case 7:
+            error = swift ? streamConnection->send(Messages::IPCSwiftStreamTester::BenchStringSwift(text16), identifier) : streamConnection->send(Messages::IPCStreamTester::BenchString(text16), identifier);
             break;
         case 6:
             error = swift ? streamConnection->send(Messages::IPCSwiftStreamTester::BenchEnabledFourValuesSwift(index, 1, 2, 3), identifier) : streamConnection->send(Messages::IPCStreamTester::BenchEnabledFourValues(index, 1, 2, 3), identifier);
