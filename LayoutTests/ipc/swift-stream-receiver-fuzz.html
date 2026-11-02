@@ -1,0 +1,27 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift stream receiver accepts or rejects messages with arbitrary arguments.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<body>
+<script>
+// With more iterations and other seeds, this is a fuzzer for the generated Swift decoding.
+const seed = 1;
+const iterations = 30;
+
+setup({ single_test: true });
+// The receiver only exists where WebKit's IPC testing code is built with Swift.
+if (window.IPC && IPC.messages.IPCTester_FuzzSwiftStreamReceiver) {
+    for (const processTarget of IPC.processTargets) {
+        const reply = IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_FuzzSwiftStreamReceiver.name, 120000, [
+            { type: 'uint64_t', value: seed }, { type: 'uint32_t', value: iterations },
+        ]);
+        const [accepted, rejected, failures] = reply.arguments.map(argument => argument.value);
+        assert_equals(failures, '', `iterations neither accepted nor rejected in ${processTarget}`);
+        assert_equals(accepted + rejected, iterations, `iterations in ${processTarget}`);
+        assert_greater_than(accepted, 0, `accepted in ${processTarget}`);
+        assert_greater_than(rejected, 0, `rejected in ${processTarget}`);
+    }
+}
+done();
+</script>
+</body>

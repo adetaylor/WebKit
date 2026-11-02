@@ -68,7 +68,10 @@ final class IPCSwiftStreamTester {
         a &+ b
     }
 
-    func repeatTextSwift(connection: IPC.StreamServerConnection, text: String?, count: UInt32) -> String? {
+    func repeatTextSwift(connection: IPC.StreamServerConnection, text: String?, count: UInt32) throws(InvalidMessage) -> String? {
+        try messageCheck("RepeatTextSwift repeats at most 4096 times") {
+            count <= 4096
+        }
         guard let text else {
             return nil
         }
