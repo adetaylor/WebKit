@@ -354,9 +354,9 @@ private func areEssentiallyEqual(_ u: Double, _ v: Double) -> Bool {
 // A plain value, so that saving the state is a copy. As in SourceBrush, the color is kept under a gradient or pattern.
 private struct CGRendererBrush {
     var packedColor: UInt32 = 0x0000_00FF
-    // 0 for packedColor, otherwise 1 + the index of a color that isn't sRGBA8 in CGRenderer.platformColors.
+    // 0 for packedColor, otherwise 1 + the index of a color that isn't sRGBA8 in CGRendererCore.platformColors.
     var platformColorSlot: UInt32 = 0
-    // For a gradient or a pattern, 1 + the index of its CGRendererBrushSource in CGRenderer.sources.
+    // For a gradient or a pattern, 1 + the index of its CGRendererBrushSource in CGRendererCore.sources.
     var sourceSlot: UInt32 = 0
     // 0 for a color, 1 for a gradient, 2 for a pattern.
     var kind: UInt8 = 0
@@ -400,7 +400,7 @@ private struct CGRendererShadowBlurDrawing {
 // ShadowBlur's pieces, drawn as GraphicsContext would draw them through a GraphicsContextView of the GraphicsContextCG: each in
 // a save, with the shadow cleared and the shadow's color as the fill. The color ShadowBlur passes is the shadow's, which
 // fillRectWithShadowBlur() turned into a fill already. Swift calls these, so they stay out of the C++ header.
-extension CGRenderer: ShadowDrawing {
+extension CGRendererCore: ShadowDrawing {
     @_expose(!Cxx)
     mutating func drawShadowBuffer(
         _ layerImage: WebCore.ImageBuffer,
@@ -551,7 +551,7 @@ private enum CGRendererStyle {
     case none
     case dropShadow(CGRendererShadow)
     case gaussianBlur(width: Float, height: Float)
-    // 1 + the index of the matrix in CGRenderer.sources.
+    // 1 + the index of the matrix in CGRendererCore.sources.
     case colorMatrix(slot: UInt32)
 }
 
@@ -665,7 +665,7 @@ private struct CGRendererColorCache {
 // in place and forwards each state change, save, restore and draw. A draw returns false when this renderer doesn't do that
 // case yet; GraphicsContextCG then draws it in C++, with the same state.
 @_expose(Cxx)
-struct CGRenderer {
+struct CGRendererCore {
     private let context: CGContext
     private let isUnaccelerated: Bool
     private let isPDFContext: Bool
@@ -691,7 +691,7 @@ struct CGRenderer {
     // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
     // uses it (rdar://179098545).
     @used
-    private static let cxxTypeMetadata: Any.Type = CGRenderer.self
+    private static let cxxTypeMetadata: Any.Type = CGRendererCore.self
 
     // The context is borrowed.
     @_expose(Cxx)

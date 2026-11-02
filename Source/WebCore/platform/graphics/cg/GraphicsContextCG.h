@@ -33,7 +33,7 @@
 
 namespace WebCore {
 
-class CGRenderer;
+class CGRendererCore;
 class GraphicsContextCGCapture;
 
 class WEBCORE_EXPORT GraphicsContextCG : public GraphicsContext {
@@ -168,9 +168,9 @@ public:
     void updateStateFromSwiftRenderer();
 
 private:
-    CGRenderer& swiftRenderer() const;
+    template<typename Function> decltype(auto) withSwiftRenderer(Function&&) const;
     void didUpdateStateForSwiftRenderer(GraphicsContextState&);
-    void setSwiftRendererShadow(CGRenderer&, const GraphicsDropShadow&, bool isStyle);
+    void setSwiftRendererShadow(const GraphicsDropShadow&, bool isStyle);
     bool swiftDrawsShadowBlur() const;
     bool shadowColorChangesFill(const Color&) const;
     void clearCGDropShadow();
@@ -188,7 +188,7 @@ private:
 #if ASSERT_ENABLED
     std::unique_ptr<GraphicsContextCGCapture> m_capture;
 #endif
-    // The CGRenderer (CGRenderer.swift) this context draws with, built in place. GraphicsContextCG.cpp checks the size.
+    // The CGRendererCore (CGRenderer.swift) this context draws with, built in place. GraphicsContextCG.cpp checks the size.
     static constexpr size_t swiftRendererSize = 272;
     alignas(8) mutable std::byte m_swiftRendererStorage[swiftRendererSize];
     mutable std::optional<ColorSpace> m_colorSpace;

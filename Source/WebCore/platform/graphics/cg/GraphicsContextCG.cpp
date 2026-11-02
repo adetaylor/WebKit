@@ -64,6 +64,9 @@
 
 #include <pal/cg/CoreGraphicsSoftLink.h>
 
+// A call to the renderer this context draws with (GraphicsContextCG::withSwiftRenderer()).
+#define SWIFT_RENDERER(call) withSwiftRenderer([&](auto& renderer) { return renderer.call; })
+
 #if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/IOSurfaceAdditionsBefore.mm>)
 #include <WebKitAdditions/IOSurfaceAdditionsBefore.mm>
 #endif
@@ -263,7 +266,7 @@ void GraphicsContextCG::paintGradientInCGLayer(Gradient& gradient, const AffineT
     clip(layerContext.get());
     CGContextConcatCTM(layerContext.get(), gradientSpaceTransform);
     if (RetainPtr platformGradient = gradient.platformGradient())
-        CGRenderer::paintGradient(layerContext.get(), platformGradient.get(), gradientGeometry(gradient));
+        CGRendererCore::paintGradient(layerContext.get(), platformGradient.get(), gradientGeometry(gradient));
     CGContextDrawLayerInRect(context.get(), layerBounds, layer.get());
 }
 #endif
@@ -298,7 +301,7 @@ void GraphicsContextCG::paintGradientInClip(Gradient& gradient, const AffineTran
         clip(context.get());
         CGContextConcatCTM(context.get(), gradientSpaceTransform);
         if (RetainPtr platformGradient = gradient.platformGradient(Gradient::paintColorSpace(*this)))
-            CGRenderer::paintGradient(context.get(), platformGradient.get(), gradientGeometry(gradient));
+            CGRendererCore::paintGradient(context.get(), platformGradient.get(), gradientGeometry(gradient));
     }
     if (hasDropShadow) {
         CGContextEndTransparencyLayer(context.get());
@@ -331,6 +334,12 @@ static GraphicsContext::IsDeferred isDeferredForCGContext(CGContextRef cgContext
     return GraphicsContext::IsDeferred::Yes;
 }
 
+// The one place that reaches the renderer.
+template<typename Function> decltype(auto) GraphicsContextCG::withSwiftRenderer(Function&& function) const
+{
+    return function(*std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage)));
+}
+
 GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource source, std::optional<RenderingMode> knownRenderingMode)
     : GraphicsContext(isDeferredForCGContext(cgContext), GraphicsContextState::basicChangeFlags, coreInterpolationQuality(cgContext))
     , m_cgContext(cgContext)
@@ -339,18 +348,21 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
 {
     // Exact where pointers are 8 bytes, so that the storage doesn't outgrow the struct; with 4-byte pointers the struct is smaller.
 #if CPU(ADDRESS64)
-    static_assert(sizeof(CGRenderer) == swiftRendererSize);
+    static_assert(sizeof(CGRendererCore) == swiftRendererSize);
 #else
-    static_assert(sizeof(CGRenderer) <= swiftRendererSize);
+    static_assert(sizeof(CGRendererCore) <= swiftRendererSize);
 #endif
-    static_assert(alignof(CGRenderer) <= 8);
+    static_assert(alignof(CGRendererCore) <= 8);
+    auto makeRenderer = [&](CGContextRef context, bool isUnaccelerated, bool isPDFContext) {
+        new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
+    };
     if (!cgContext) {
         // An invalid context draws nothing: its renderer draws into a stand-in.
         RetainPtr standIn = adoptCF(CGBitmapContextCreate(nullptr, 1, 1, 8, 4, sRGBColorSpaceSingleton(), static_cast<uint32_t>(kCGImageAlphaPremultipliedFirst) | static_cast<uint32_t>(kCGBitmapByteOrder32Little)));
-        new (m_swiftRendererStorage) CGRenderer(CGRenderer::init(standIn.get(), true, false, imageInterpolationQuality()));
+        makeRenderer(standIn.get(), true, false);
         return;
     }
-    new (m_swiftRendererStorage) CGRenderer(CGRenderer::init(cgContext, m_renderingMode == RenderingMode::Unaccelerated, CGContextGetType(cgContext) == kCGContextTypePDF, imageInterpolationQuality()));
+    makeRenderer(cgContext, m_renderingMode == RenderingMode::Unaccelerated, CGContextGetType(cgContext) == kCGContextTypePDF);
     // Make sure the context starts in sync with our state.
     didUpdateState(m_state);
 #if ASSERT_ENABLED
@@ -360,12 +372,9 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
 
 GraphicsContextCG::~GraphicsContextCG()
 {
-    std::destroy_at(&swiftRenderer());
-}
-
-CGRenderer& GraphicsContextCG::swiftRenderer() const
-{
-    return *std::launder(reinterpret_cast<CGRenderer*>(m_swiftRendererStorage));
+    withSwiftRenderer([](auto& renderer) {
+        std::destroy_at(&renderer);
+    });
 }
 
 bool GraphicsContextCG::hasPlatformContext() const
@@ -405,7 +414,7 @@ void GraphicsContextCG::save(GraphicsContextState::Purpose purpose)
 {
     CAPTURE(save(purpose));
     GraphicsContext::save(purpose);
-    swiftRenderer().save(purpose == GraphicsContextState::Purpose::TransparencyLayer);
+    SWIFT_RENDERER(save(purpose == GraphicsContextState::Purpose::TransparencyLayer));
 }
 
 void GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
@@ -415,7 +424,7 @@ void GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
         return;
 
     GraphicsContext::restore(purpose);
-    swiftRenderer().restore();
+    SWIFT_RENDERER(restore());
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
@@ -435,7 +444,7 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
 #endif
     if (rendererDraws) {
         FloatSize imageSize = nativeImage.size();
-        auto result = swiftRenderer().drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), nativeImage.headroom(), options.headroom());
+        auto result = SWIFT_RENDERER(drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), nativeImage.headroom(), options.headroom()));
         if (result)
             return;
     }
@@ -737,7 +746,7 @@ void GraphicsContextCG::drawPattern(const NativeImage& nativeImage, const FloatR
     if (!image)
         return;
     auto imageSize = nativeImage.size();
-    swiftRenderer().drawPattern(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), tileRect.x(), tileRect.y(), tileRect.width(), tileRect.height(), patternTransform.a(), patternTransform.d(), phase.x(), phase.y(), spacing.width(), spacing.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality());
+    SWIFT_RENDERER(drawPattern(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), tileRect.x(), tileRect.y(), tileRect.width(), tileRect.height(), patternTransform.a(), patternTransform.d(), phase.x(), phase.y(), spacing.width(), spacing.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality()));
 }
 
 // Draws a filled rectangle with a stroked border.
@@ -746,14 +755,14 @@ void GraphicsContextCG::drawRect(const FloatRect& rect, float borderThickness)
     CAPTURE(drawRect(rect, borderThickness));
     // FIXME: this function does not handle patterns and gradients like drawPath does, it probably should.
     ASSERT(!rect.isEmpty());
-    swiftRenderer().drawRect(rect, borderThickness, fillColor() != strokeColor());
+    SWIFT_RENDERER(drawRect(rect, borderThickness, fillColor() != strokeColor()));
 }
 
 // This is only used to draw borders.
 void GraphicsContextCG::drawLine(const FloatPoint& point1, const FloatPoint& point2)
 {
     CAPTURE(drawLine(point1, point2));
-    swiftRenderer().drawLine(point1.x(), point1.y(), point2.x(), point2.y());
+    SWIFT_RENDERER(drawLine(point1.x(), point1.y(), point2.x(), point2.y()));
 }
 
 void GraphicsContextCG::drawGlyphsImmediate(const FontBase& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode smoothingMode)
@@ -791,7 +800,7 @@ void GraphicsContextCG::drawGlyphsImmediate(const FontBase& font, std::span<cons
             static_cast<uint8_t>(smoothingMode), platformData.isColorBitmapFont(), isInTransparencyLayer()
         };
         Vector<CGPoint, 256> positions(glyphs.size());
-        swiftRenderer().drawGlyphs(ctFont.get(), CGRendererGlyphRun { glyphs, advances, translations.span() }, CGRendererGlyphPositions { positions.mutableSpan() }, facts, shadowFillColor.get(), point.x(), point.y());
+        SWIFT_RENDERER(drawGlyphs(ctFont.get(), CGRendererGlyphRun { glyphs, advances, translations.span() }, CGRendererGlyphPositions { positions.mutableSpan() }, facts, shadowFillColor.get(), point.x(), point.y()));
     }
 }
 
@@ -829,13 +838,13 @@ static uint8_t swiftBrushKind(const SourceBrush& brush)
 void GraphicsContextCG::applyStrokePattern()
 {
     CAPTURE(unsupported("applyStrokePattern"_s));
-    swiftRenderer().applyStrokePattern();
+    SWIFT_RENDERER(applyStrokePattern());
 }
 
 void GraphicsContextCG::applyFillPattern()
 {
     CAPTURE(unsupported("applyFillPattern"_s));
-    swiftRenderer().applyFillPattern();
+    SWIFT_RENDERER(applyFillPattern());
 }
 
 void GraphicsContextCG::drawPath(const Path& path)
@@ -845,10 +854,9 @@ void GraphicsContextCG::drawPath(const Path& path)
         return;
 
     m_hasDrawn = true;
-    auto& renderer = swiftRenderer();
-    if (renderer.fillsWithoutGradient() && renderer.strokesWithoutGradient()) {
-        if (renderer.drawsPath())
-            renderer.drawPath(protect(path.platformPath()).get());
+    if (SWIFT_RENDERER(fillsWithoutGradient()) && SWIFT_RENDERER(strokesWithoutGradient())) {
+        if (SWIFT_RENDERER(drawsPath()))
+            SWIFT_RENDERER(drawPath(protect(path.platformPath()).get()));
         return;
     }
 
@@ -863,8 +871,8 @@ void GraphicsContextCG::fillPath(const Path& path)
     if (path.isEmpty())
         return;
 
-    if (swiftRenderer().fillsWithoutGradient()) {
-        swiftRenderer().fillPath(protect(path.platformPath()).get());
+    if (SWIFT_RENDERER(fillsWithoutGradient())) {
+        SWIFT_RENDERER(fillPath(protect(path.platformPath()).get()));
         return;
     }
 
@@ -887,11 +895,11 @@ void GraphicsContextCG::strokePath(const Path& path)
     if (path.isEmpty())
         return;
 
-    if (swiftRenderer().strokesWithoutGradient()) {
+    if (SWIFT_RENDERER(strokesWithoutGradient())) {
         if (auto line = path.singleDataLine())
-            swiftRenderer().strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y());
+            SWIFT_RENDERER(strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y()));
         else
-            swiftRenderer().strokePath(protect(path.platformPath()).get());
+            SWIFT_RENDERER(strokePath(protect(path.platformPath()).get()));
         return;
     }
 
@@ -912,8 +920,7 @@ void GraphicsContextCG::strokePath(const Path& path)
 void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requiresClipToRect)
 {
     CAPTURE(fillRect(rect, requiresClipToRect));
-    auto& renderer = swiftRenderer();
-    if (renderer.fillRect(rect))
+    if (SWIFT_RENDERER(fillRect(rect)))
         return;
 
     if (RefPtr fillGradient = this->fillGradient()) {
@@ -925,7 +932,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
     ASSERT(canUseShadowBlur());
     auto shadow = dropShadow();
     if (swiftDrawsShadowBlur()) {
-        renderer.fillRectWithShadowBlur(rect, shadow->color, shadowColorChangesFill(shadow->color));
+        SWIFT_RENDERER(fillRectWithShadowBlur(rect, shadow->color, shadowColorChangesFill(shadow->color)));
         return;
     }
 
@@ -954,20 +961,19 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, Gradient& gradient, cons
 void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
 {
     CAPTURE(fillRect(rect, color));
-    auto& renderer = swiftRenderer();
     bool changesFillColor = fillColor() != color;
     auto packedColor = color.tryGetAsPackedInline();
     if (packedColor) {
-        if (renderer.fillRect(rect, packedColor->value, changesFillColor))
+        if (SWIFT_RENDERER(fillRect(rect, packedColor->value, changesFillColor)))
             return;
-    } else if (renderer.fillRect(rect, cachedCGColorInDestinationStandardRange(color, colorSpace()).get(), changesFillColor))
+    } else if (SWIFT_RENDERER(fillRect(rect, cachedCGColorInDestinationStandardRange(color, colorSpace()).get(), changesFillColor)))
         return;
 
     // The renderer declines only blurred shadows.
     ASSERT(canUseShadowBlur());
     auto shadow = dropShadow();
     if (packedColor && swiftDrawsShadowBlur()) {
-        renderer.fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadowColorChangesFill(shadow->color));
+        SWIFT_RENDERER(fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadowColorChangesFill(shadow->color)));
         return;
     }
 
@@ -1072,19 +1078,19 @@ void GraphicsContextCG::fillRectWithRoundedHole(const FloatRect& rect, const Flo
 void GraphicsContextCG::resetClip()
 {
     CAPTURE(resetClip());
-    swiftRenderer().resetClip();
+    SWIFT_RENDERER(resetClip());
 }
 
 void GraphicsContextCG::clip(const FloatRect& rect)
 {
     CAPTURE(clip(rect));
-    swiftRenderer().clip(rect);
+    SWIFT_RENDERER(clip(rect));
 }
 
 void GraphicsContextCG::clipOut(const FloatRect& rect)
 {
     CAPTURE(clipOut(rect));
-    swiftRenderer().clipOut(rect);
+    SWIFT_RENDERER(clipOut(rect));
 }
 
 void GraphicsContextCG::clipOut(const Path& path)
@@ -1147,7 +1153,7 @@ void GraphicsContextCG::clipToNativeImage(const NativeImage& nativeImage, const 
 IntRect GraphicsContextCG::clipBounds() const
 {
     m_hasDrawn = true;
-    return enclosingIntRect(swiftRenderer().clipBoundingBox());
+    return enclosingIntRect(SWIFT_RENDERER(clipBoundingBox()));
 }
 
 void GraphicsContextCG::beginTransparencyLayer(float opacity)
@@ -1155,7 +1161,7 @@ void GraphicsContextCG::beginTransparencyLayer(float opacity)
     CAPTURE(beginTransparencyLayer(opacity));
     GraphicsContext::beginTransparencyLayer(opacity);
     GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
-    swiftRenderer().beginTransparencyLayer(opacity);
+    SWIFT_RENDERER(beginTransparencyLayer(opacity));
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
@@ -1167,7 +1173,7 @@ void GraphicsContextCG::beginTransparencyLayer(CompositeOperator compositeOperat
     // The layer keeps the current global alpha.
     GraphicsContext::beginTransparencyLayer(state().alpha());
     GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
-    swiftRenderer().beginTransparencyLayerWithCurrentAlpha();
+    SWIFT_RENDERER(beginTransparencyLayerWithCurrentAlpha());
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
@@ -1177,7 +1183,7 @@ void GraphicsContextCG::endTransparencyLayer()
     if (!stackSize() || m_state.purpose() != GraphicsContextState::Purpose::TransparencyLayer)
         return;
     GraphicsContext::endTransparencyLayer();
-    swiftRenderer().endTransparencyLayer();
+    SWIFT_RENDERER(endTransparencyLayer());
     GraphicsContext::restore(GraphicsContextState::Purpose::TransparencyLayer);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
@@ -1266,7 +1272,7 @@ void GraphicsContextCG::clearCGDropShadow()
     CGContextSetStyle(contextForDraw(), nullptr);
 }
 
-void GraphicsContextCG::setSwiftRendererShadow(CGRenderer& renderer, const GraphicsDropShadow& shadow, bool isStyle)
+void GraphicsContextCG::setSwiftRendererShadow(const GraphicsDropShadow& shadow, bool isStyle)
 {
     auto packedColor = shadow.color.tryGetAsPackedInline();
     CGRendererShadowValues values {
@@ -1275,16 +1281,16 @@ void GraphicsContextCG::setSwiftRendererShadow(CGRenderer& renderer, const Graph
     };
     if (packedColor || !values.isValid) {
         if (isStyle)
-            renderer.setDropShadowStyle(values);
+            SWIFT_RENDERER(setDropShadowStyle(values));
         else
-            renderer.setDropShadow(values);
+            SWIFT_RENDERER(setDropShadow(values));
         return;
     }
     RetainPtr color = cachedCGColorInDestinationStandardRange(shadow.color, colorSpace());
     if (isStyle)
-        renderer.setDropShadowStyle(values, color.get(), colorData(shadow.color));
+        SWIFT_RENDERER(setDropShadowStyle(values, color.get(), colorData(shadow.color)));
     else
-        renderer.setDropShadow(values, color.get(), colorData(shadow.color));
+        SWIFT_RENDERER(setDropShadow(values, color.get(), colorData(shadow.color)));
 }
 
 void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& state)
@@ -1300,69 +1306,68 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
             changes.add(GraphicsContextState::Change::Style);
     }
 
-    auto& renderer = swiftRenderer();
 
     // The shadow and style below are converted with the new value, as C++'s state already has it.
     if (changes.contains(GraphicsContextState::Change::ShadowsIgnoreTransforms))
-        renderer.setShadowsIgnoreTransforms(state.shadowsIgnoreTransforms());
+        SWIFT_RENDERER(setShadowsIgnoreTransforms(state.shadowsIgnoreTransforms()));
 
     for (auto change : changes) {
         switch (change) {
         case GraphicsContextState::Change::FillBrush: {
             auto& brush = state.fillBrush();
             if (auto packedColor = brush.color().tryGetAsPackedInline())
-                renderer.setFillPackedColor(packedColor->value, swiftBrushKind(brush));
+                SWIFT_RENDERER(setFillPackedColor(packedColor->value, swiftBrushKind(brush)));
             else
-                renderer.setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), colorData(brush.color()), swiftBrushKind(brush), brush.color().isVisible());
+                SWIFT_RENDERER(setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), colorData(brush.color()), swiftBrushKind(brush), brush.color().isVisible()));
             if (brush.hasPatternOrGradient())
-                renderer.setFillSource(CGRendererBrushSource { brush }, swiftBrushKind(brush));
+                SWIFT_RENDERER(setFillSource(CGRendererBrushSource { brush }, swiftBrushKind(brush)));
             break;
         }
 
         case GraphicsContextState::Change::FillRule:
-            renderer.setFillRule(static_cast<uint8_t>(state.fillRule()));
+            SWIFT_RENDERER(setFillRule(static_cast<uint8_t>(state.fillRule())));
             break;
 
         case GraphicsContextState::Change::StrokeBrush: {
             auto& brush = state.strokeBrush();
             if (auto packedColor = brush.color().tryGetAsPackedInline())
-                renderer.setStrokePackedColor(packedColor->value, swiftBrushKind(brush));
+                SWIFT_RENDERER(setStrokePackedColor(packedColor->value, swiftBrushKind(brush)));
             else
-                renderer.setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), colorData(brush.color()), swiftBrushKind(brush), brush.color().isVisible());
+                SWIFT_RENDERER(setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), colorData(brush.color()), swiftBrushKind(brush), brush.color().isVisible()));
             if (brush.hasPatternOrGradient())
-                renderer.setStrokeSource(CGRendererBrushSource { brush }, swiftBrushKind(brush));
+                SWIFT_RENDERER(setStrokeSource(CGRendererBrushSource { brush }, swiftBrushKind(brush)));
             break;
         }
 
         case GraphicsContextState::Change::StrokeThickness:
-            renderer.setStrokeThickness(state.strokeThickness());
+            SWIFT_RENDERER(setStrokeThickness(state.strokeThickness()));
             break;
 
         case GraphicsContextState::Change::StrokeStyle:
-            renderer.setStrokeStyle(static_cast<uint8_t>(state.strokeStyle()));
+            SWIFT_RENDERER(setStrokeStyle(static_cast<uint8_t>(state.strokeStyle())));
             break;
 
         case GraphicsContextState::Change::CompositeMode:
-            renderer.setCompositeMode(state.compositeMode().operation, state.compositeMode().blendMode);
+            SWIFT_RENDERER(setCompositeMode(state.compositeMode().operation, state.compositeMode().blendMode));
             break;
 
         case GraphicsContextState::Change::DropShadow:
             if (auto& shadow = state.dropShadow())
-                setSwiftRendererShadow(renderer, *shadow, false);
+                setSwiftRendererShadow(*shadow, false);
             else
-                renderer.clearDropShadow();
+                SWIFT_RENDERER(clearDropShadow());
             break;
 
         case GraphicsContextState::Change::Style:
             if (auto& style = state.style()) {
                 WTF::switchOn(*style,
                     [&](const GraphicsDropShadow& shadow) {
-                        setSwiftRendererShadow(renderer, shadow, true);
+                        setSwiftRendererShadow(shadow, true);
                     },
                     [&](const GraphicsGaussianBlur& gaussianBlur) {
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
                         ASSERT(gaussianBlur.radius.width() == gaussianBlur.radius.height());
-                        renderer.setGaussianBlurStyle(gaussianBlur.radius.width(), gaussianBlur.radius.height());
+                        SWIFT_RENDERER(setGaussianBlurStyle(gaussianBlur.radius.width(), gaussianBlur.radius.height()));
 #else
                         UNUSED_PARAM(gaussianBlur);
 #endif
@@ -1372,37 +1377,37 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
                         CGRendererColorMatrix values;
                         for (auto [destination, source] : zippedRange(values.values, colorMatrix.values))
                             destination = source;
-                        renderer.setColorMatrixStyle(values);
+                        SWIFT_RENDERER(setColorMatrixStyle(values));
 #else
                         UNUSED_PARAM(colorMatrix);
 #endif
                     });
             } else
-                renderer.setNoStyle();
+                SWIFT_RENDERER(setNoStyle());
             break;
 
         case GraphicsContextState::Change::Alpha:
-            renderer.setAlpha(state.alpha());
+            SWIFT_RENDERER(setAlpha(state.alpha()));
             break;
 
         case GraphicsContextState::Change::ImageInterpolationQuality:
-            renderer.setImageInterpolationQuality(state.imageInterpolationQuality());
+            SWIFT_RENDERER(setImageInterpolationQuality(state.imageInterpolationQuality()));
             break;
 
         case GraphicsContextState::Change::TextDrawingMode:
-            renderer.setTextDrawingMode(state.textDrawingMode().toRaw());
+            SWIFT_RENDERER(setTextDrawingMode(state.textDrawingMode().toRaw()));
             break;
 
         case GraphicsContextState::Change::ShouldAntialias:
-            renderer.setShouldAntialias(state.shouldAntialias());
+            SWIFT_RENDERER(setShouldAntialias(state.shouldAntialias()));
             break;
 
         case GraphicsContextState::Change::ShouldSmoothFonts:
-            renderer.setShouldSmoothFonts(state.shouldSmoothFonts());
+            SWIFT_RENDERER(setShouldSmoothFonts(state.shouldSmoothFonts()));
             break;
 
         case GraphicsContextState::Change::ShouldSubpixelQuantizeFonts:
-            renderer.setShouldSubpixelQuantizeFonts(state.shouldSubpixelQuantizeFonts());
+            SWIFT_RENDERER(setShouldSubpixelQuantizeFonts(state.shouldSubpixelQuantizeFonts()));
             break;
 
         case GraphicsContextState::Change::ShadowsIgnoreTransforms:
@@ -1415,22 +1420,21 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
 
 void GraphicsContextCG::updateStateFromSwiftRenderer()
 {
-    auto& renderer = swiftRenderer();
     CGRendererStateSnapshot snapshot { };
-    renderer.snapshotState(snapshot);
+    SWIFT_RENDERER(snapshotState(snapshot));
 
     auto color = [&](uint32_t packedColor, uint32_t platformColorSlot) {
         if (!platformColorSlot)
             return Color { asSRGBA(PackedColor::RGBA { packedColor }) };
         CGRendererColorData platformColor { };
-        renderer.copyPlatformColor(platformColorSlot, platformColor);
+        SWIFT_RENDERER(copyPlatformColor(platformColorSlot, platformColor));
         return colorFromData(platformColor);
     };
     auto brush = [&](const CGRendererBrushSnapshot& values) {
         SourceBrush sourceBrush { color(values.packedColor, values.platformColorSlot) };
         if (values.sourceSlot) {
             CGRendererBrushSource source;
-            renderer.copyBrushSource(values.sourceSlot, source);
+            SWIFT_RENDERER(copyBrushSource(values.sourceSlot, source));
             source.applyTo(sourceBrush);
         }
         return sourceBrush;
@@ -1454,7 +1458,7 @@ void GraphicsContextCG::updateStateFromSwiftRenderer()
         break;
     case 3: {
         CGRendererColorMatrix matrix { };
-        renderer.copyColorMatrix(snapshot.colorMatrixSlot, matrix);
+        SWIFT_RENDERER(copyColorMatrix(snapshot.colorMatrixSlot, matrix));
         GraphicsColorMatrix colorMatrix;
         for (auto [destination, source] : zippedRange(colorMatrix.values, matrix.values))
             destination = source;
@@ -1498,19 +1502,19 @@ void GraphicsContextCG::didUpdateState(GraphicsContextState& state)
 void GraphicsContextCG::setMiterLimit(float limit)
 {
     CAPTURE(setMiterLimit(limit));
-    swiftRenderer().setMiterLimit(limit);
+    SWIFT_RENDERER(setMiterLimit(limit));
 }
 
 void GraphicsContextCG::clearRect(const FloatRect& r)
 {
     CAPTURE(clearRect(r));
-    swiftRenderer().clearRect(r);
+    SWIFT_RENDERER(clearRect(r));
 }
 
 void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
 {
     CAPTURE(strokeRect(rect, lineWidth));
-    if (swiftRenderer().strokeRect(rect, lineWidth))
+    if (SWIFT_RENDERER(strokeRect(rect, lineWidth)))
         return;
 
     // The renderer declines only gradients.
@@ -1548,8 +1552,8 @@ void GraphicsContextCG::strokeArc(const PathArc& arc)
 void GraphicsContextCG::strokeLine(const PathDataLine& line)
 {
     CAPTURE(strokeLine(line));
-    if (swiftRenderer().strokesWithoutGradient()) {
-        swiftRenderer().strokeLineSegment(line.start().x(), line.start().y(), line.end().x(), line.end().y());
+    if (SWIFT_RENDERER(strokesWithoutGradient())) {
+        SWIFT_RENDERER(strokeLineSegment(line.start().x(), line.start().y(), line.end().x(), line.end().y()));
         return;
     }
     // Gradient stroking requires building a stroked path and clipping to it: strokePath() via the base class.
@@ -1559,64 +1563,63 @@ void GraphicsContextCG::strokeLine(const PathDataLine& line)
 void GraphicsContextCG::setLineCap(LineCap cap)
 {
     CAPTURE(setLineCap(cap));
-    swiftRenderer().setLineCap(cap);
+    SWIFT_RENDERER(setLineCap(cap));
 }
 
 void GraphicsContextCG::setLineDash(const DashArray& dashes, float dashOffset)
 {
     CAPTURE(setLineDash(dashes, dashOffset));
-    auto& renderer = swiftRenderer();
-    renderer.clearLineDash();
+    SWIFT_RENDERER(clearLineDash());
     for (auto dash : dashes)
-        renderer.appendLineDash(dash);
-    renderer.applyLineDash(dashOffset);
+        SWIFT_RENDERER(appendLineDash(dash));
+    SWIFT_RENDERER(applyLineDash(dashOffset));
 }
 
 void GraphicsContextCG::setLineJoin(LineJoin join)
 {
     CAPTURE(setLineJoin(join));
-    swiftRenderer().setLineJoin(join);
+    SWIFT_RENDERER(setLineJoin(join));
 }
 
 void GraphicsContextCG::scale(const FloatSize& size)
 {
     CAPTURE(scale(size));
-    swiftRenderer().scale(size.width(), size.height());
+    SWIFT_RENDERER(scale(size.width(), size.height()));
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::rotate(float angle)
 {
     CAPTURE(rotate(angle));
-    swiftRenderer().rotate(angle);
+    SWIFT_RENDERER(rotate(angle));
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::translate(float x, float y)
 {
     CAPTURE(translate(x, y));
-    swiftRenderer().translate(x, y);
+    SWIFT_RENDERER(translate(x, y));
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::concatCTM(const AffineTransform& transform)
 {
     CAPTURE(concatCTM(transform));
-    swiftRenderer().concatCTM(transform);
+    SWIFT_RENDERER(concatCTM(transform));
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::setCTM(const AffineTransform& transform)
 {
     CAPTURE(setCTM(transform));
-    swiftRenderer().setCTM(transform);
+    SWIFT_RENDERER(setCTM(transform));
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 AffineTransform GraphicsContextCG::getCTM(IncludeDeviceScale includeScale) const
 {
     m_hasDrawn = true;
-    return swiftRenderer().ctm(includeScale == DefinitelyIncludeDeviceScale);
+    return SWIFT_RENDERER(ctm(includeScale == DefinitelyIncludeDeviceScale));
 }
 
 FloatRect GraphicsContextCG::roundToDevicePixels(const FloatRect& rect) const
@@ -1641,9 +1644,9 @@ void GraphicsContextCG::drawLinesForText(const FloatPoint& origin, float thickne
     bool changeFillColor = fillColor() != color;
     CGRendererRects rectsView { rects.span() };
     if (auto packedColor = color.tryGetAsPackedInline())
-        swiftRenderer().fillRectsInPackedColor(rectsView, packedColor->value, changeFillColor);
+        SWIFT_RENDERER(fillRectsInPackedColor(rectsView, packedColor->value, changeFillColor));
     else
-        swiftRenderer().fillRectsInPlatformColor(rectsView, cachedCGColorInDestinationStandardRange(color, colorSpace()).get(), changeFillColor);
+        SWIFT_RENDERER(fillRectsInPlatformColor(rectsView, cachedCGColorInDestinationStandardRange(color, colorSpace()).get(), changeFillColor));
 }
 
 void GraphicsContextCG::setURLForRect(const URL& link, const FloatRect& destRect)
@@ -1653,7 +1656,7 @@ void GraphicsContextCG::setURLForRect(const URL& link, const FloatRect& destRect
     if (!urlRef)
         return;
 
-    swiftRenderer().setURLForRect(urlRef.get(), destRect);
+    SWIFT_RENDERER(setURLForRect(urlRef.get(), destRect));
 }
 
 bool GraphicsContextCG::isCALayerContext() const
@@ -1684,13 +1687,13 @@ void GraphicsContextCG::applyDeviceScaleFactor(float deviceScaleFactor)
     // CoreGraphics expects the base CTM of a HiDPI context to have the scale factor applied to it. Failing to change the
     // base level CTM will cause certain CG features, such as focus rings, to draw with a scale factor of 1 rather than the
     // actual scale factor.
-    swiftRenderer().applyDeviceScaleFactorToBaseCTM(deviceScaleFactor);
+    SWIFT_RENDERER(applyDeviceScaleFactorToBaseCTM(deviceScaleFactor));
 }
 
 void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 {
     CAPTURE(fillEllipse(ellipse));
-    if (swiftRenderer().fillEllipse(ellipse))
+    if (SWIFT_RENDERER(fillEllipse(ellipse)))
         return;
     // CGContextFillEllipseInRect only supports solid colors.
     fillEllipseAsPath(ellipse);
@@ -1699,7 +1702,7 @@ void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 void GraphicsContextCG::strokeEllipse(const FloatRect& ellipse)
 {
     CAPTURE(strokeEllipse(ellipse));
-    if (swiftRenderer().strokeEllipse(ellipse))
+    if (SWIFT_RENDERER(strokeEllipse(ellipse)))
         return;
     // CGContextStrokeEllipseInRect only supports solid colors.
     strokeEllipseAsPath(ellipse);
@@ -1709,14 +1712,14 @@ void GraphicsContextCG::beginPage(const FloatRect& pageRect)
 {
     CAPTURE(unsupported("beginPage"_s));
     const RetainPtr<CGContextRef>& context = contextForDraw();
-    if (!swiftRenderer().beginPDFPage(pageRect)) {
+    if (!SWIFT_RENDERER(beginPDFPage(pageRect))) {
         ASSERT_NOT_REACHED();
         return;
     }
 
     ASSERT(!stackSize());
     m_state = GraphicsContextState { GraphicsContextState::basicChangeFlags, coreInterpolationQuality(context.get()) };
-    swiftRenderer().resetState(m_state.imageInterpolationQuality());
+    SWIFT_RENDERER(resetState(m_state.imageInterpolationQuality()));
     didUpdateState(m_state);
     m_userToDeviceTransformKnownToBeIdentity = false;
 }
@@ -1724,7 +1727,7 @@ void GraphicsContextCG::beginPage(const FloatRect& pageRect)
 void GraphicsContextCG::endPage()
 {
     CAPTURE(unsupported("endPage"_s));
-    if (!swiftRenderer().endPDFPage())
+    if (!SWIFT_RENDERER(endPDFPage()))
         ASSERT_NOT_REACHED();
 }
 
@@ -1736,13 +1739,13 @@ bool GraphicsContextCG::supportsInternalLinks() const
 void GraphicsContextCG::setDestinationForRect(const String& name, const FloatRect& destRect)
 {
     CAPTURE(unsupported("setDestinationForRect"_s));
-    swiftRenderer().setDestinationForRect(name.createCFString().get(), destRect);
+    SWIFT_RENDERER(setDestinationForRect(name.createCFString().get(), destRect));
 }
 
 void GraphicsContextCG::addDestinationAtPoint(const String& name, const FloatPoint& position)
 {
     CAPTURE(unsupported("addDestinationAtPoint"_s));
-    swiftRenderer().addDestinationAtPoint(name.createCFString().get(), position.x(), position.y());
+    SWIFT_RENDERER(addDestinationAtPoint(name.createCFString().get(), position.x(), position.y()));
 }
 
 bool GraphicsContextCG::canUseShadowBlur() const
@@ -1752,7 +1755,7 @@ bool GraphicsContextCG::canUseShadowBlur() const
 
 bool GraphicsContextCG::consumeHasDrawn()
 {
-    bool hasDrawn = swiftRenderer().consumeHasDrawn() || m_hasDrawn;
+    bool hasDrawn = SWIFT_RENDERER(consumeHasDrawn()) || m_hasDrawn;
     m_hasDrawn = false;
     return hasDrawn;
 }
@@ -1762,12 +1765,14 @@ void GraphicsContextCG::setMaxEDRHeadroom(std::optional<float> headroom)
 {
     CAPTURE(setMaxEDRHeadroom(headroom));
     m_maxEDRHeadroom = headroom;
-    swiftRenderer().setMaxEDRHeadroom(headroom.value_or(0), !!headroom);
+    SWIFT_RENDERER(setMaxEDRHeadroom(headroom.value_or(0), !!headroom));
 }
 #endif
 
 
 }
+
+#undef SWIFT_RENDERER
 
 #if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/IOSurfaceAdditionsAfter.mm>)
 #include <WebKitAdditions/IOSurfaceAdditionsAfter.mm>
