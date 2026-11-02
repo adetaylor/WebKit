@@ -170,6 +170,10 @@ enum class MessageName : uint16_t {
     TestWithSwiftTypesOptIn_CxxTypedMessageReply,
     TestWithSwiftTypesOptIn_SwiftTypedMessageReply,
     TestWithSwiftTypesOptIn_SwiftTypedMessageWithoutReply,
+#if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
+    TestWithSwiftTypes_ConditionalMessageReply,
+#endif
+    TestWithSwiftTypes_MessageWithBuffersAndPairsReply,
     TestWithSwiftTypes_MessageWithCxxTypesReply,
     TestWithSwiftTypes_MessageWithEmptyReplyReply,
     TestWithSwiftTypes_MessageWithMultipleRepliesReply,
@@ -270,6 +274,10 @@ enum class MessageName : uint16_t {
     TestWithSwiftConditionally_TestAsyncMessage,
     TestWithSwiftTypesOptIn_CxxTypedMessage,
     TestWithSwiftTypesOptIn_SwiftTypedMessage,
+#if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
+    TestWithSwiftTypes_ConditionalMessage,
+#endif
+    TestWithSwiftTypes_MessageWithBuffersAndPairs,
     TestWithSwiftTypes_MessageWithCxxTypes,
     TestWithSwiftTypes_MessageWithEmptyReply,
     TestWithSwiftTypes_MessageWithMultipleReplies,

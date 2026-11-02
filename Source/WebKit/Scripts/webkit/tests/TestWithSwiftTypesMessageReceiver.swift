@@ -33,8 +33,16 @@ final class TestWithSwiftTypesWeakRef: @unchecked Sendable {
     }
 
     @used
-    func getMessageTarget() -> TestWithSwiftTypes? {
-        target
+    func hasMessageTarget() -> Bool {
+        target != nil
+    }
+
+    @used
+    func messageTarget() -> TestWithSwiftTypes {
+        guard let target else {
+            fatalError("messageTarget() called without a message target")
+        }
+        return target
     }
 
     @used
@@ -632,6 +640,145 @@ final class TestWithSwiftTypesWeakRef: @unchecked Sendable {
             }
         }
     }
+
+    @used
+    func dispatchMessageWithBuffersAndPairs(
+        connection: sending IPC.Connection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        let buffer: WebCore.SharedBuffer?
+        let pairs: [(String?, UInt32)]
+        do {
+            buffer = try IPCCoding.StdOptional<IPCCoding.CxxDecoded.SharedBuffer>.decode(from: &decoder)
+            pairs = try IPCCoding.Vector<IPCCoding.Pair<IPCCoding.WTFString, UInt32>>.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            Task.immediateOnMainActor {
+                await MessageWithBuffersAndPairsInvocation(
+                    target: target,
+                    connection: connection,
+                    buffer: buffer,
+                    pairs: pairs,
+                    replyEncoder: replyEncoder
+                )
+                .run()
+            }
+        }
+        return true
+    }
+
+    private final class MessageWithBuffersAndPairsInvocation {
+        private let target: TestWithSwiftTypes
+        private let connection: IPC.Connection
+        private let buffer: WebCore.SharedBuffer?
+        private let pairs: [(String?, UInt32)]
+        private let replyEncoder: IPC.SwiftReplyEncoder
+
+        init(
+            target: TestWithSwiftTypes,
+            connection: IPC.Connection,
+            buffer: WebCore.SharedBuffer?,
+            pairs: [(String?, UInt32)],
+            replyEncoder: IPC.SwiftReplyEncoder
+        ) {
+            self.target = target
+            self.connection = connection
+            self.buffer = buffer
+            self.pairs = pairs
+            self.replyEncoder = replyEncoder
+        }
+
+        @MainActor
+        func run() async {
+            do {
+                let reply = try await mayThrowInvalidMessage(
+                    target.messageWithBuffersAndPairs(
+                        connection: connection,
+                        buffer: buffer,
+                        pairs: pairs
+                    )
+                )
+                IPCCoding.StdOptional<IPCCoding.Pair<UInt8, IPCCoding.CxxDecoded.SharedBuffer>>.encode(reply, to: replyEncoder)
+                replyEncoder.send()
+            } catch {
+                markMessageInvalid(error, on: connection)
+                replyEncoder.cancel()
+            }
+        }
+    }
+
+    #if WTF_PLATFORM_COCOA && ENABLE_SWIFT_TEST_FEATURE
+    @used
+    func dispatchConditionalMessage(
+        connection: sending IPC.Connection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        let name: String?
+        do {
+            name = try IPCCoding.WTFString.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            Task.immediateOnMainActor {
+                await ConditionalMessageInvocation(
+                    target: target,
+                    connection: connection,
+                    name: name,
+                    replyEncoder: replyEncoder
+                )
+                .run()
+            }
+        }
+        return true
+    }
+
+    private final class ConditionalMessageInvocation {
+        private let target: TestWithSwiftTypes
+        private let connection: IPC.Connection
+        private let name: String?
+        private let replyEncoder: IPC.SwiftReplyEncoder
+
+        init(
+            target: TestWithSwiftTypes,
+            connection: IPC.Connection,
+            name: String?,
+            replyEncoder: IPC.SwiftReplyEncoder
+        ) {
+            self.target = target
+            self.connection = connection
+            self.name = name
+            self.replyEncoder = replyEncoder
+        }
+
+        @MainActor
+        func run() async {
+            do {
+                let reply = try await mayThrowInvalidMessage(
+                    target.conditionalMessage(
+                        connection: connection,
+                        name: name
+                    )
+                )
+                UInt32.encode(reply, to: replyEncoder)
+                replyEncoder.send()
+            } catch {
+                markMessageInvalid(error, on: connection)
+                replyEncoder.cancel()
+            }
+        }
+    }
+    #endif
 }
 
 extension WebKit.TestWithSwiftTypesMessageForwarder {

@@ -27,6 +27,7 @@
 #include "ArgumentCoders.h"
 #include "Connection.h"
 #include "MessageNames.h"
+#include "SharedPreferencesForWebProcess.h"
 #include <wtf/Forward.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -60,9 +61,11 @@ public:
     void deref() const final { RefCounted::deref(); }
 private:
     TestWithSwiftTypesOptInMessageForwarder(WebKit::TestWithSwiftTypesOptInWeakRef* WTF_NONNULL);
-    std::unique_ptr<WebKit::TestWithSwiftTypesOptIn> getMessageTarget();
+    std::optional<WebKit::TestWithSwiftTypesOptIn> getMessageTarget();
     std::unique_ptr<WebKit::TestWithSwiftTypesOptInWeakRef> m_handler;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;
 
 }
 

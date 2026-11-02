@@ -37,4 +37,8 @@ messages -> TestWithSwiftTypes {
     SynchronousMessage(enum:uint8_t WebKit::TestSwiftEnum kind, OptionSet<WebKit::TestSwiftOptionSet> options) -> (uint8_t reply) Synchronous
     SynchronousMessageWithoutParameters() -> (RefPtr<WebKit::TestSwiftRefCountedClass> object, String name) Synchronous
     MessageWithCxxTypes(Ref<WebKit::FrameState> frameState, uint32_t param) -> (uint8_t reply) CxxTypes
+    MessageWithBuffersAndPairs(RefPtr<WebCore::SharedBuffer> buffer, Vector<std::pair<String, uint32_t>> pairs) -> (std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>> reply)
+#if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
+    ConditionalMessage(AtomString name) -> (uint32_t reply)
+#endif
 }
