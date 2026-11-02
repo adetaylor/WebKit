@@ -46,6 +46,9 @@ class WebGPUIntegration;
 }
 
 namespace WebKit {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT) && !defined(__swift__)
+class WebGPUImplTable;
+#endif
 class RemoteAdapter;
 class RemoteBindGroup;
 class RemoteBindGroupLayout;
@@ -224,6 +227,12 @@ public:
         bool valid { false };
     };
     ExistsAndValid objectExistsAndValid(const WebCore::WebGPUIntegration&, WebGPUIdentifier) const;
+
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT) && !defined(__swift__)
+    // The Swift receivers' table of the Impls of objects in this heap, which the heap empties of each object it removes.
+    WebGPUImplTable& swiftImplTable();
+#endif
+
 private:
     ObjectHeap();
 
@@ -259,6 +268,9 @@ private:
     >;
 
     HashMap<WebGPUIdentifier, Object> m_objects;
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT) && !defined(__swift__)
+    std::unique_ptr<WebGPUImplTable> m_swiftImplTable;
+#endif
     // Every device added that is still alive: work in flight can keep a device alive after its object is removed.
     ThreadSafeWeakHashSet<::WebGPU::Device> m_devices;
 };

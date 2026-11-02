@@ -78,7 +78,23 @@ ObjectHeap::ObjectHeap()
     weakPtrFactory().prepareForUseOnlyOnNonMainThread();
 }
 
-ObjectHeap::~ObjectHeap() = default;
+ObjectHeap::~ObjectHeap()
+{
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // A Swift receiver can outlive the heap, and keep the table.
+    if (m_swiftImplTable)
+        m_swiftImplTable->removeAll();
+#endif
+}
+
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+WebGPUImplTable& ObjectHeap::swiftImplTable()
+{
+    if (!m_swiftImplTable)
+        m_swiftImplTable = makeUniqueWithoutFastMallocCheck<WebGPUImplTable>(WebGPUImplTable::init());
+    return *m_swiftImplTable;
+}
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteAdapter& adapter)
 {
@@ -335,11 +351,19 @@ void ObjectHeap::removeObject(WebGPUIdentifier identifier)
 {
     auto result = m_objects.remove(identifier);
     ASSERT_UNUSED(result, result);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    if (m_swiftImplTable)
+        m_swiftImplTable->remove(identifier.toUInt64());
+#endif
 }
 
 void ObjectHeap::clear()
 {
     m_objects.clear();
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    if (m_swiftImplTable)
+        m_swiftImplTable->removeAll();
+#endif
 }
 
 Vector<Ref<::WebGPU::Device>> ObjectHeap::devices() const

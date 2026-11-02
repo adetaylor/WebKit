@@ -32,4 +32,46 @@ extension IPCTypes.CxxName {
     typealias WebKit_WebGPU_Color = IPCTypes.Color
 }
 
+// The Impls of the objects in a RemoteGPU's object heap that its Swift receivers have looked up by identifier, each with
+// its shell where an encoder keeps that too, so that a message naming an object finds it without leaving Swift after
+// the first time. Used only on the RemoteGPU's work queue, as the heap is.
+//
+// The object heap stays the authority on which objects exist and for how long: it removes an identifier here whenever
+// it removes its own entry, and empties the table when it's cleared or destroyed, so the table never keeps an Impl alive
+// longer than the heap keeps the object. It's a second registry for the transition, which goes, or becomes the only
+// one, when the object heap moves to Swift.
+@_expose(Cxx)
+final class WebGPUImplTable {
+    private var entries: [UInt64: AnyObject] = [:]
+
+    // @used ensures these are retained even under -O -wmo: rdar://179098545
+    @used
+    init() {
+    }
+
+    @used
+    func remove(_ identifier: UInt64) {
+        entries[identifier] = nil
+    }
+
+    @used
+    func removeAll() {
+        entries.removeAll()
+    }
+
+    // The entry for that identifier, which lookUp() finds in the object heap the first time. nil if the heap has no
+    // such object, or an object of another kind.
+    @_expose(!Cxx)
+    func entry<Entry: AnyObject>(_ identifier: UInt64, _ lookUp: () -> Entry?) -> Entry? {
+        if let entry = entries[identifier] {
+            return entry as? Entry
+        }
+        guard let entry = lookUp() else {
+            return nil
+        }
+        entries[identifier] = entry
+        return entry
+    }
+}
+
 #endif // ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
