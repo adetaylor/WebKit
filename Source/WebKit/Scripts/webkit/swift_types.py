@@ -123,8 +123,11 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
             return swift_type_and_coder(arguments[0], cxx_name_coders)
         raise UnmappableSwiftType("'%s' has no Swift form: %s<> is not supported in messages that take Swift types." % (cpp_type, template))
 
-    match = re.match(r'^(?:[A-Za-z_][A-Za-z_0-9]*::)+([A-Za-z_][A-Za-z_0-9]*)$', cpp_type)
-    if match and not cpp_type.startswith('WTF::') and not cpp_type.startswith('std::'):
+    # A leading :: qualifies a name from the global namespace, as .messages.in and .serialization.in files write the
+    # types of namespaces that WebKit also has, like ::WebGPU.
+    qualified_type = cpp_type.removeprefix('::')
+    match = re.match(r'^(?:[A-Za-z_][A-Za-z_0-9]*::)+([A-Za-z_][A-Za-z_0-9]*)$', qualified_type)
+    if match and not qualified_type.startswith('WTF::') and not qualified_type.startswith('std::'):
         swift_type = '%s.%s' % (SWIFT_TYPES_NAMESPACE, match.group(1))
         if not cxx_name_coders:
             return (swift_type, swift_type)
