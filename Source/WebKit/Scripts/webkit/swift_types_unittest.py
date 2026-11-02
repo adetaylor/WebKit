@@ -37,6 +37,8 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('WebKit::IPCTesterInner', ('IPCTypes.IPCTesterInner', 'IPCTypes.CxxName.WebKit_IPCTesterInner')),
             ('struct WebKit::IPCTesterInner', ('IPCTypes.IPCTesterInner', 'IPCTypes.CxxName.WebKit_IPCTesterInner')),
             ('WebCore::PlatformEvent::Kind', ('IPCTypes.Kind', 'IPCTypes.CxxName.WebCore_PlatformEvent_Kind')),
+            ('::WebGPU::IndexFormat', ('IPCTypes.IndexFormat', 'IPCTypes.CxxName.WebGPU_IndexFormat')),
+            ('std::optional<::WebGPU::LoadOp>', ('IPCTypes.LoadOp?', 'IPCCoding.StdOptional<IPCTypes.CxxName.WebGPU_LoadOp>')),
             ('Vector<WebKit::IPCTesterInner>', ('[IPCTypes.IPCTesterInner]', 'IPCCoding.Vector<IPCTypes.CxxName.WebKit_IPCTesterInner>')),
             ('Vector<Ref<WebKit::Node>>', ('[IPCTypes.Node]', 'IPCCoding.Vector<IPCTypes.CxxName.WebKit_Node>')),
             ('RefPtr<WebKit::Node>', ('IPCTypes.Node?', 'IPCCoding.StdOptional<IPCTypes.CxxName.WebKit_Node>')),
@@ -51,7 +53,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
         self.assertEqual(swift_types.swift_type_and_coder('WebCore::FrameIdentifier', cxx_name_coders=False), ('IPCTypes.FrameIdentifier', 'IPCTypes.FrameIdentifier'))
 
     def test_unmappable_types(self):
-        for cpp_type in ['int', 'URL', 'WTF::URL', 'std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, uint8_t>']:
+        for cpp_type in ['int', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, uint8_t>']:
             with self.assertRaises(swift_types.UnmappableSwiftType):
                 swift_types.swift_type_and_coder(cpp_type)
 
