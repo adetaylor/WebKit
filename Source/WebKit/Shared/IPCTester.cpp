@@ -698,6 +698,9 @@ void IPCTester::benchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t mess
                 succeeded &= result.succeeded() && std::get<0>(result.reply()) == index;
             }
             break;
+        case 6:
+            error = swift ? streamConnection->send(Messages::IPCSwiftStreamTester::BenchEnabledFourValuesSwift(index, 1, 2, 3), identifier) : streamConnection->send(Messages::IPCStreamTester::BenchEnabledFourValues(index, 1, 2, 3), identifier);
+            break;
         case 5:
             // Swift taking C++ types.
             error = swift ? streamConnection->send(Messages::IPCSwiftStreamTester::BenchFourValues(index, 1, 2, 3), identifier) : streamConnection->send(Messages::IPCStreamTester::BenchFourValues(index, 1, 2, 3), identifier);
