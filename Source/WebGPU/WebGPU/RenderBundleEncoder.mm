@@ -193,6 +193,13 @@ void copyDynamicOffsetsToBuffer(id<MTLBuffer> buffer, std::span<const uint32_t> 
     memcpySpan(makeSpanFromBuffer<uint32_t>(buffer), contents);
 }
 
+RenderBundleEncoder& deliverImpl(WebGPU::RenderBundleEncoder& renderBundleEncoder)
+{
+    auto& shell = downcast<RenderBundleEncoder>(renderBundleEncoder);
+    WebGPUSwift::receiveImpl(shell.swiftImpl());
+    return shell;
+}
+
 } // namespace WebGPU::Metal
 
 #pragma mark WGPU Stubs

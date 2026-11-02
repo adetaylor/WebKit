@@ -282,7 +282,7 @@ func copyDynamicOffsets(_ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsV
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
-final class RenderBundleEncoderImpl {
+final class RenderBundleEncoderImpl: DeliverableImpl {
     let deviceImpl: DeviceImpl
     private var limits: EncoderLimits {
         deviceImpl.limits
@@ -1790,7 +1790,7 @@ final class RenderBundleEncoderImpl {
     }
 
     // A nil list counts as an empty one.
-    private func setBindGroup(
+    fileprivate func setBindGroup(
         _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ groupIndex: UInt32,
         _ group: borrowing WebGPU.Metal.BindGroup,
@@ -1875,7 +1875,7 @@ final class RenderBundleEncoderImpl {
         clearBindGroup(shell, groupIndex, offsets: hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
     }
 
-    private func clearBindGroup(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ groupIndex: UInt32, offsets: [UInt32]?) {
+    fileprivate func clearBindGroup(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ groupIndex: UInt32, offsets: [UInt32]?) {
         if !validToEncodeCommand() {
             generateAValidationError(
                 "void WebGPU::Metal::RenderBundleEncoder::setBindGroupWithOwnedDynamicOffsets(uint32_t, const BindGroup *, std::optional<Vector<uint32_t>> &&): failed as encoding has finished"
@@ -2594,4 +2594,76 @@ func makeInvalidRenderBundleEncoderImpl(
         parameters: WebGPU.Metal.RenderBundleEncoderParameters(),
         lastErrorString: errorString as String?
     )
+}
+
+// A RenderBundleEncoderImpl with the shell of the same object, which each of its methods takes, for the GPU process's
+// Swift receiver, which can't name the shell.
+@_spi(WebKitGPU)
+public final class RenderBundleEncoderReference {
+    let impl: RenderBundleEncoderImpl
+    let shell: WebGPU.Metal.RenderBundleEncoder
+
+    init(_ impl: RenderBundleEncoderImpl, _ shell: WebGPU.Metal.RenderBundleEncoder) {
+        self.impl = impl
+        self.shell = shell
+    }
+
+    public func draw(_ vertexCount: UInt32, _ instanceCount: UInt32, _ firstVertex: UInt32, _ firstInstance: UInt32) {
+        impl.draw(shell, vertexCount, instanceCount, firstVertex, firstInstance)
+    }
+
+    public func drawIndexed(_ indexCount: UInt32, _ instanceCount: UInt32, _ firstIndex: UInt32, _ baseVertex: Int32, _ firstInstance: UInt32) {
+        impl.drawIndexed(shell, indexCount, instanceCount, firstIndex, baseVertex, firstInstance)
+    }
+
+    public func drawIndirect(_ indirectBuffer: BufferReference, _ indirectOffset: UInt64) {
+        impl.drawIndirect(shell, indirectBuffer.shell, indirectBuffer.impl, indirectOffset)
+    }
+
+    public func drawIndexedIndirect(_ indirectBuffer: BufferReference, _ indirectOffset: UInt64) {
+        impl.drawIndexedIndirect(shell, indirectBuffer.shell, indirectBuffer.impl, indirectOffset)
+    }
+
+    // A bundle records no debug markers or groups, so the labels go nowhere, as in the C++ shell.
+    public func insertDebugMarker() {
+        impl.insertDebugMarker()
+    }
+
+    public func popDebugGroup() {
+        impl.popDebugGroup()
+    }
+
+    public func pushDebugGroup() {
+        impl.pushDebugGroup()
+    }
+
+    public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {
+        guard let group else {
+            impl.clearBindGroup(shell, groupIndex, offsets: dynamicOffsets)
+            return
+        }
+        impl.setBindGroup(shell, groupIndex, group.shell, group.impl, offsets: dynamicOffsets)
+    }
+
+    public func setIndexBuffer(_ buffer: BufferReference, _ format: WebGPU.IndexFormat, _ offset: UInt64, _ size: UInt64?) {
+        impl.setIndexBuffer(shell, buffer.shell, buffer.impl, format, offset, size != nil, size ?? 0)
+    }
+
+    public func setPipeline(_ pipeline: RenderPipelineReference) {
+        impl.setPipeline(shell, pipeline.shell, pipeline.impl)
+    }
+
+    // Clears the slot without a buffer.
+    public func setVertexBuffer(_ slot: UInt32, _ buffer: BufferReference?, _ offset: UInt64, _ size: UInt64?) {
+        guard let buffer else {
+            impl.clearVertexBuffer(shell, slot, offset, size != nil, size ?? 0)
+            return
+        }
+        impl.setVertexBuffer(shell, slot, buffer.shell, buffer.impl, offset, size != nil, size ?? 0)
+    }
+
+    // As WTF::String::createNSString() makes the C++ shell's label, a null one is empty.
+    public func setLabel(_ label: Swift.String?) {
+        impl.setLabel(NSString(string: label ?? ""))
+    }
 }

@@ -33,6 +33,7 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
 @_implementationOnly import WebGPU_Internal.RenderBundle
+@_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.Sampler
 @_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
@@ -196,6 +197,16 @@ public func reference(of renderPipeline: WebGPU.RenderPipeline) -> RenderPipelin
         preconditionFailure("C++ delivered no shell")
     }
     return RenderPipelineReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
+public func reference(of renderBundleEncoder: WebGPU.RenderBundleEncoder) -> RenderBundleEncoderReference {
+    var shell: WebGPU.Metal.RenderBundleEncoder?
+    let impl = ImplLookup.lookUp(RenderBundleEncoderImpl.self) { shell = WebGPU.Metal.deliverImpl(renderBundleEncoder) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return RenderBundleEncoderReference(impl, shell)
 }
 
 // The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().
