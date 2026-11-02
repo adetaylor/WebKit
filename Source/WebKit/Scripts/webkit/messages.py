@@ -2593,7 +2593,7 @@ def generate_swift_message_handler(receiver):
             result.append('        guard let target else {\n')
             for statement in cancel_statements:
                 result.append('            %s\n' % statement)
-            result.append('            return\n')
+            result.append('            return%s\n' % (' true' if takes_swift_types else ''))
             result.append('        }\n')
             append_handler_call('        ', '', True)
         elif sync_handler:

@@ -32,6 +32,7 @@ messages -> IPCSwiftStreamTester Stream {
     Record(uint32_t value)
     TakeRecordedDigest() -> (uint32_t digest) Synchronous
     Add(uint32_t a, uint32_t b) -> (uint32_t sum)
+    RecordTextSwift(String text) SwiftTypes
 }
 
 #endif
