@@ -60,8 +60,8 @@ public:
 
     bool hasStorage() const;
     size_t storageSize() const;
-    // Replaces the storage and sends the reader a handle to it. Non-const, so that Swift can't keep a storageBytes() view
-    // across it.
+    // Replaces the storage and sends the reader a handle to it. The writer keeps the storage it replaces until the call
+    // into Swift returns, so storageBytes() views of it stay valid.
     bool allocateStorage(size_t);
     std::span<uint8_t> storageBytes() LIFETIME_BOUND;
 

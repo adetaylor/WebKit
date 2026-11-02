@@ -40,6 +40,7 @@
 #include <wtf/RetainPtr.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/UniqueRef.h>
+#include <wtf/Vector.h>
 
 typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
 
@@ -111,6 +112,8 @@ private:
 
     UniqueRef<IPC::Semaphore> m_semaphore;
     RefPtr<WebCore::SharedMemory> m_storage;
+    // The storage that allocateStorage() replaced during a call into SharedVideoFrameWriterImpl, kept until the call returns.
+    Vector<Ref<WebCore::SharedMemory>> m_retiredStorage;
     std::unique_ptr<WebCore::PixelBufferConformerCV> m_compressedPixelBufferConformer;
     // Storage for the Swift SharedVideoFrameWriterImpl (one strong reference), built in place in SharedVideoFrame.cpp, where
     // the generated header is visible.
