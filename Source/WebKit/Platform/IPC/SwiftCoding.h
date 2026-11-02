@@ -38,6 +38,7 @@
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/text/StringBuilder.h>
+#include <wtf/unicode/CharacterNames.h>
 
 namespace IPC {
 
@@ -56,6 +57,40 @@ inline size_t writeUTF8ForLatin1Characters(std::span<const Latin1Character> char
             utf8[length++] = character;
         else {
             utf8[length++] = 0xC0 | (character >> 6);
+            utf8[length++] = 0x80 | (character & 0x3F);
+        }
+    }
+    return length;
+}
+
+// Writes the UTF-8 form of UTF-16 code units to utf8, which must have room for three times as many bytes, so that
+// Swift can make a String of them without transcoding one code unit at a time. An unpaired surrogate becomes
+// U+FFFD, as a Swift String can't hold one. Returns the length written.
+inline size_t writeUTF8ForUTF16Characters(std::span<const char16_t> characters, std::span<uint8_t> utf8)
+{
+    RELEASE_ASSERT(utf8.size() / 3 >= characters.size());
+    auto isLeadSurrogate = [](char32_t character) { return (character & 0xFFFFFC00) == 0xD800; };
+    auto isTrailSurrogate = [](char32_t character) { return (character & 0xFFFFFC00) == 0xDC00; };
+    size_t length = 0;
+    for (size_t index = 0; index < characters.size(); ++index) {
+        char32_t character = characters[index];
+        if (isLeadSurrogate(character) && index + 1 < characters.size() && isTrailSurrogate(characters[index + 1]))
+            character = 0x10000 + ((character - 0xD800) << 10) + (characters[++index] - 0xDC00);
+        else if (isLeadSurrogate(character) || isTrailSurrogate(character))
+            character = replacementCharacter;
+        if (character < 0x80)
+            utf8[length++] = character;
+        else if (character < 0x800) {
+            utf8[length++] = 0xC0 | (character >> 6);
+            utf8[length++] = 0x80 | (character & 0x3F);
+        } else if (character < 0x10000) {
+            utf8[length++] = 0xE0 | (character >> 12);
+            utf8[length++] = 0x80 | ((character >> 6) & 0x3F);
+            utf8[length++] = 0x80 | (character & 0x3F);
+        } else {
+            utf8[length++] = 0xF0 | (character >> 18);
+            utf8[length++] = 0x80 | ((character >> 12) & 0x3F);
+            utf8[length++] = 0x80 | ((character >> 6) & 0x3F);
             utf8[length++] = 0x80 | (character & 0x3F);
         }
     }
@@ -141,6 +176,20 @@ public:
             return false;
         }
         utf8Length = writeUTF8ForLatin1Characters(characters, utf8);
+        return true;
+    }
+
+    // Decodes characterCount UTF-16 code units as String's decoder decodes a 16-bit string's, writing their UTF-8
+    // form to utf8, which must have room for three times as many bytes, and its length to utf8Length.
+    [[nodiscard]] bool decodeUTF16Characters(size_t characterCount, WTF::MutableSpanUInt8 utf8 NOESCAPE, size_t& utf8Length)
+    {
+        auto& decoder = borrowed();
+        auto characters = decoder.decodeSpan<char16_t>(characterCount);
+        if (!characters.data() || utf8.size() / 3 < characters.size()) [[unlikely]] {
+            decoder.markInvalid();
+            return false;
+        }
+        utf8Length = writeUTF8ForUTF16Characters(characters, utf8);
         return true;
     }
 
