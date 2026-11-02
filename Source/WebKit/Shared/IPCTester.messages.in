@@ -58,6 +58,9 @@ messages -> IPCTester {
     SendSwiftTypesMessagesToReceiver() -> (String failures)
     AddReceiverForSwiftTypesTesting() -> (bool swiftUsed) Synchronous
     RemoveReceiverForSwiftTypesTesting() -> () Synchronous
+#if ENABLE(IPC_TESTING_SWIFT)
+    SendSwiftStreamMessagesInProcess() -> (String failures) Synchronous
+#endif
 }
 
 #endif

@@ -35,8 +35,12 @@
 #include "IPCTesterPayload.h"
 #include "IPCTesterReceiver.h"
 #include "IPCTesterReceiverMessages.h"
+#if ENABLE(IPC_TESTING_SWIFT)
+#include "IPCSwiftStreamTesterMessages.h"
+#endif
 #include "IPCUtilities.h"
 #include "Logging.h"
+#include "StreamClientConnection.h"
 #include "TestParameter.h"
 #include "WebKit-Swift.h"
 #include <WebCore/ExceptionData.h>
@@ -534,6 +538,92 @@ void IPCTester::removeReceiverForSwiftTypesTesting(IPC::Connection& connection, 
     connection.removeMessageReceiver(Messages::IPCTesterReceiver::messageReceiverName());
     completionHandler();
 }
+
+#if ENABLE(IPC_TESTING_SWIFT)
+
+namespace {
+
+// The client end of a stream connection whose server end is in this process. It is only sent replies.
+class InProcessStreamConnectionClient final : public IPC::Connection::Client, public RefCounted<InProcessStreamConnectionClient> {
+    WTF_MAKE_TZONE_ALLOCATED_INLINE(InProcessStreamConnectionClient);
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(InProcessStreamConnectionClient);
+public:
+    static Ref<InProcessStreamConnectionClient> create() { return adoptRef(*new InProcessStreamConnectionClient); }
+
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
+
+private:
+    void didClose(IPC::Connection&) final { }
+    void didReceiveInvalidMessage(IPC::Connection&, IPC::MessageName, const Vector<uint32_t>&) final { }
+};
+
+// RecordTextSwift whose is8Bit flag is not a bool, whichever bytes follow it in the stream buffer.
+struct MalformedRecordTextSwift {
+    static constexpr bool isSync = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = false;
+    static constexpr IPC::MessageName name() { return IPC::MessageName::IPCSwiftStreamTester_RecordTextSwift; }
+
+    template<typename Encoder> void encode(Encoder& encoder)
+    {
+        encoder << static_cast<uint32_t>(1) << static_cast<uint8_t>(2);
+    }
+};
+
+}
+
+// Sends IPCSwiftStreamTester messages through the stream buffer, which the IPC testing API can't, since it sends
+// stream messages out of stream. Replies with the names of the checks that failed.
+void IPCTester::sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&)>&& completionHandler)
+{
+    Vector<String> failures;
+    auto check = [&failures](bool passed, ASCIILiteral description) {
+        if (!passed)
+            failures.append(description);
+    };
+
+    constexpr unsigned bufferSizeLog2 = 9;
+    auto connectionPair = IPC::StreamClientConnection::create(bufferSizeLog2, 2_s);
+    if (!connectionPair) {
+        completionHandler("StreamClientConnection::create"_s);
+        return;
+    }
+    Ref streamConnection = WTF::move(connectionPair->streamConnection);
+    auto identifier = IPCStreamTesterIdentifier::generate();
+    RefPtr tester = IPCStreamTester::create(identifier, WTF::move(connectionPair->connectionHandle), false);
+    Ref client = InProcessStreamConnectionClient::create();
+    streamConnection->open(client);
+
+    // Enough messages to wrap around the stream buffer.
+    uint32_t expectedDigest = 0;
+    for (uint32_t value = 1; value <= 100; ++value) {
+        check(streamConnection->send(Messages::IPCSwiftStreamTester::Record(value), identifier) == IPC::Error::NoError, "Record"_s);
+        expectedDigest = expectedDigest * 31 + value;
+    }
+    for (const auto& text : { String("ascii"_s), String::fromLatin1("caf\xe9"), String::fromUTF8("\xe6\x97\xa5\xe6\x9c\xac \xe2\x98\xba") }) {
+        check(streamConnection->send(Messages::IPCSwiftStreamTester::RecordTextSwift(text), identifier) == IPC::Error::NoError, "RecordTextSwift"_s);
+        auto utf8 = text.utf8();
+        for (auto byte : utf8.span())
+            expectedDigest = expectedDigest * 31 + static_cast<uint8_t>(byte);
+        expectedDigest *= 31;
+    }
+    auto digest = streamConnection->sendSync(Messages::IPCSwiftStreamTester::TakeRecordedDigest(), identifier);
+    check(digest.succeeded() && std::get<0>(digest.reply()) == expectedDigest, "TakeRecordedDigest"_s);
+
+    // A malformed message invalidates the stream connection, so nothing more is answered.
+    check(streamConnection->send(MalformedRecordTextSwift { }, identifier) == IPC::Error::NoError, "MalformedRecordTextSwift"_s);
+    auto afterMalformed = streamConnection->sendSync(Messages::IPCSwiftStreamTester::TakeRecordedDigest(), identifier);
+    check(!afterMalformed.succeeded(), "TakeRecordedDigest after MalformedRecordTextSwift"_s);
+
+    streamConnection->invalidate();
+    Ref protectedTester = tester.releaseNonNull();
+    protectedTester->stopListeningForIPC(protectedTester.copyRef());
+    check(protectedTester->invalidMessageCount() == 1, "invalid message count"_s);
+    completionHandler(makeStringByJoining(failures.span(), ", "_s));
+}
+
+#endif
 
 } // namespace WebKit
 

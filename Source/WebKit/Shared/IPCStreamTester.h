@@ -54,6 +54,8 @@ class IPCStreamTester final : public IPC::StreamServerConnection::Client {
 public:
     static RefPtr<IPCStreamTester> create(IPCStreamTesterIdentifier, IPC::StreamServerConnection::Handle&&, bool ignoreInvalidMessageForTesting);
     void stopListeningForIPC(Ref<IPCStreamTester>&& refFromConnection);
+    // Only valid after stopListeningForIPC(), once the work queue has stopped.
+    uint32_t invalidMessageCount() const { return m_invalidMessages; }
 
     // IPC::StreamMessageReceiver overrides.
     void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;

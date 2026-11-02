@@ -62,6 +62,14 @@ final class IPCSwiftStreamTester {
     func add(connection: IPC.StreamServerConnection, a: UInt32, b: UInt32) -> UInt32 {
         a &+ b
     }
+
+    // Records the UTF-8 form of the text, then a terminating 0, so a null string records only the 0.
+    func recordTextSwift(connection: IPC.StreamServerConnection, text: String?) {
+        for byte in text?.utf8 ?? "".utf8 {
+            recordedDigest = recordedDigest &* 31 &+ UInt32(byte)
+        }
+        recordedDigest = recordedDigest &* 31
+    }
 }
 
 #endif

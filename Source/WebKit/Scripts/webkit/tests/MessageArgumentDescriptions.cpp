@@ -299,6 +299,12 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwift_SendStringSync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftEnabledBy_SendString:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftEnabledBy_SendString>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendString:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendString>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendValues:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendValues>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendCxxString:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendCxxString>(globalObject, decoder);
     case MessageName::TestWithSuperclass_LoadURL:
         return jsValueForDecodedMessage<MessageName::TestWithSuperclass_LoadURL>(globalObject, decoder);
 #if ENABLE(TEST_FEATURE)
@@ -1232,6 +1238,20 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "url"_s, "String"_s },
         };
     case MessageName::TestWithStreamSwiftEnabledBy_SendString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftTypes_SendString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftTypes_SendValues:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+            { "optionalValue"_s, "std::optional<uint64_t>"_s },
+            { "bytes"_s, "Vector<uint8_t>"_s },
+        };
+    case MessageName::TestWithStreamSwiftTypes_SendCxxString:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
         };

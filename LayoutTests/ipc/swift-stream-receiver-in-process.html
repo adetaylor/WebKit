@@ -1,0 +1,17 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift stream receiver handles messages sent through the stream buffer.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<body>
+<script>
+setup({ single_test: true });
+// The receiver only exists where WebKit's IPC testing code is built with Swift.
+if (window.IPC && IPC.messages.IPCTester_SendSwiftStreamMessagesInProcess) {
+    for (const processTarget of IPC.processTargets) {
+        const reply = IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_SendSwiftStreamMessagesInProcess.name, 20000, []);
+        assert_equals(reply.arguments[0].value, '', `failed checks in ${processTarget}`);
+    }
+}
+done();
+</script>
+</body>
