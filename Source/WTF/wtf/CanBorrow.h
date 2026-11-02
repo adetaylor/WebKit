@@ -31,6 +31,7 @@
 namespace WTF {
 
 template<typename T> class Borrow;
+template<typename> class NonEscapableBorrowOwningLender;
 
 /**
  * @brief CanBorrow is a base class that provides support for Borrow<T>.
@@ -70,6 +71,7 @@ public:
 
 private:
     template<typename T> friend class Borrow;
+    template<typename> friend class NonEscapableBorrowOwningLender;
 
     bool setIsBorrowed(bool isBorrowed) const
     {
