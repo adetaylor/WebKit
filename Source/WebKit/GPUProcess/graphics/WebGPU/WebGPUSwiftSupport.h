@@ -54,14 +54,30 @@ public:
     void removeFromObjectHeap() const;
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
+    // The external texture with that identifier in the object heap, if there is one.
+    ::WebGPU::ExternalTexture* WTF_NULLABLE externalTexture(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
+
 private:
     WeakPtr<WebGPU::ObjectHeap> m_objectHeap;
     WeakPtr<RemoteGPU> m_gpu;
     WebGPUIdentifier m_identifier;
 } SWIFT_SELF_CONTAINED;
 
-// The backing a WebGPU receiver written in Swift is created with. Swift can't take the ::WebGPU type itself: the C++
-// header it generates names it WebGPU::QuerySet, which inside namespace WebKit means WebKit::WebGPU::QuerySet.
+// The backings WebGPU receivers written in Swift are created with. Swift can't take the ::WebGPU types themselves: the
+// C++ header it generates names them WebGPU::..., which inside namespace WebKit means WebKit::WebGPU::....
+class RemoteBindGroupBacking {
+public:
+    explicit RemoteBindGroupBacking(::WebGPU::BindGroup& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::BindGroup& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::BindGroup> m_backing;
+} SWIFT_SELF_CONTAINED;
+
 class RemoteQuerySetBacking {
 public:
     explicit RemoteQuerySetBacking(::WebGPU::QuerySet& backing)

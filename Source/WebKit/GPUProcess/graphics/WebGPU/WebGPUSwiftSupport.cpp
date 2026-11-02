@@ -53,6 +53,15 @@ std::optional<SharedPreferencesForWebProcess> WebGPUSwiftReceiverContext::shared
     return std::nullopt;
 }
 
+::WebGPU::ExternalTexture* WebGPUSwiftReceiverContext::externalTexture(uint64_t identifier) const
+{
+    RefPtr objectHeap = m_objectHeap.get();
+    if (!objectHeap)
+        return nullptr;
+    RefPtr externalTexture = objectHeap->convertExternalTextureFromBacking(WebGPUIdentifier { identifier }).get();
+    return externalTexture.leakRef();
+}
+
 } // namespace WebKit
 
 #endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
