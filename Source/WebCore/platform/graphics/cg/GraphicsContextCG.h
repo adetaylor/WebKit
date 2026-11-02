@@ -164,6 +164,9 @@ public:
     void setMaxEDRHeadroom(std::optional<float>) final;
 #endif
 
+    // Makes GraphicsContext's state the renderer's, for C++ that reads it after the renderer was used without this context.
+    void updateStateFromSwiftRenderer();
+
 private:
     CGRenderer& swiftRenderer() const;
     void didUpdateStateForSwiftRenderer(GraphicsContextState&);

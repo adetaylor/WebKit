@@ -42,6 +42,7 @@ struct CGRendererShadowValues {
     uint32_t packedColor;
     bool isValid;
     bool isVisible;
+    bool legacyRadius; // ShadowRadiusMode::Legacy.
 };
 
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
@@ -122,6 +123,7 @@ private:
 
 namespace WebCore {
 class Gradient;
+class GraphicsContextCG;
 class ImageBuffer;
 class Pattern;
 class SourceBrush;
@@ -137,6 +139,7 @@ CGPatternRef _Nullable CGRendererCreateBrushPattern(const CGRendererBrushSource&
 // CGPattern.
 class SWIFT_ESCAPABLE CGRendererBrushSource {
 public:
+    CGRendererBrushSource();
     explicit CGRendererBrushSource(const WebCore::SourceBrush&);
     CGRendererBrushSource(const CGRendererBrushSource&);
     CGRendererBrushSource& operator=(const CGRendererBrushSource&);
@@ -144,10 +147,67 @@ public:
 
 private:
     friend CGPatternRef _Nullable CGRendererCreateBrushPattern(const CGRendererBrushSource&, CGContextRef _Nonnull);
+    friend class WebCore::GraphicsContextCG;
+
+    void applyTo(WebCore::SourceBrush&) const;
 
     RefPtr<WebCore::Gradient> m_gradient;
     CGAffineTransform m_gradientSpaceTransform;
     RefPtr<WebCore::Pattern> m_pattern;
+};
+
+// A Color as plain values: Color::data(), its IPC form.
+struct CGRendererColorData {
+    float c1;
+    float c2;
+    float c3;
+    float alpha;
+    uint32_t packedColor;
+    uint8_t colorSpace; // ColorSpaceName, for the components.
+    uint8_t form; // 0 invalid, 1 packedColor, 2 the components.
+    bool isSemantic;
+    bool usesFunctionSerialization;
+};
+
+// CGRenderer's state as plain values, for GraphicsContextCG to rebuild GraphicsContext's from. Colors that aren't sRGBA8,
+// gradients, patterns and color matrices are by slot, which CGRenderer's copyPlatformColor(), copyBrushSource() and
+// copyColorMatrix() look up.
+struct CGRendererBrushSnapshot {
+    uint32_t packedColor;
+    uint32_t platformColorSlot;
+    uint32_t sourceSlot;
+    uint8_t kind; // 0 color, 1 gradient, 2 pattern.
+};
+
+struct CGRendererShadowSnapshot {
+    CGRendererShadowValues values;
+    uint32_t platformColorSlot;
+};
+
+struct CGRendererStateSnapshot {
+    CGRendererBrushSnapshot fill;
+    CGRendererBrushSnapshot stroke;
+    CGRendererShadowSnapshot dropShadow;
+    CGRendererShadowSnapshot styleDropShadow;
+    float strokeThickness;
+    float alpha;
+    float gaussianBlurWidth;
+    float gaussianBlurHeight;
+    float maxEDRHeadroom;
+    uint32_t colorMatrixSlot;
+    uint8_t style; // 0 none, 1 drop shadow, 2 Gaussian blur, 3 color matrix.
+    uint8_t fillRule; // WindRule.
+    uint8_t strokeStyle;
+    uint8_t compositeOperator;
+    uint8_t blendMode;
+    uint8_t textDrawingMode; // TextDrawingModeFlags.
+    uint8_t imageInterpolationQuality;
+    bool hasDropShadow;
+    bool hasMaxEDRHeadroom;
+    bool shouldAntialias;
+    bool shouldSmoothFonts;
+    bool shouldSubpixelQuantizeFonts;
+    bool shadowsIgnoreTransforms;
 };
 
 // The image of an ImageBuffer ShadowBlur drew a shadow into, as GraphicsContext::drawImageBuffer() and

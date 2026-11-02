@@ -356,7 +356,7 @@ private struct CGRendererBrush {
     var packedColor: UInt32 = 0x0000_00FF
     // 0 for packedColor, otherwise 1 + the index of a color that isn't sRGBA8 in CGRenderer.platformColors.
     var platformColorSlot: UInt32 = 0
-    // For a gradient or a pattern, 1 + the index of its CGRendererBrushSource in CGRenderer.brushSources.
+    // For a gradient or a pattern, 1 + the index of its CGRendererBrushSource in CGRenderer.sources.
     var sourceSlot: UInt32 = 0
     // 0 for a color, 1 for a gradient, 2 for a pattern.
     var kind: UInt8 = 0
@@ -539,6 +539,7 @@ private struct CGRendererShadow {
     var platformColorSlot: UInt32
     var isValid: Bool
     var isVisible: Bool
+    var isLegacyRadius: Bool
 
     var isBlurred: Bool { isVisible && radius != 0 }
 
@@ -549,8 +550,9 @@ private struct CGRendererShadow {
 private enum CGRendererStyle {
     case none
     case dropShadow(CGRendererShadow)
-    case gaussianBlur(radius: Float)
-    case colorMatrix
+    case gaussianBlur(width: Float, height: Float)
+    // 1 + the index of the matrix in CGRenderer.sources.
+    case colorMatrix(slot: UInt32)
 }
 
 private struct CGRendererState {
@@ -595,14 +597,29 @@ private struct CGRendererSavedState {
     var purpose: CGRendererPurpose
     // The side tables' sizes at the save: the restore drops what was added after it.
     var platformColorCount: UInt32 = 0
-    var brushSourceCount: UInt32 = 0
+    var sourceCount: UInt32 = 0
+}
+
+// A color that isn't sRGBA8, as CG draws it and as the C++ state has it.
+private struct CGRendererPlatformColor {
+    var cgColor: CGColor
+    var data: CGRendererColorData
+}
+
+// What a state refers to by slot because it isn't a plain value: a gradient or pattern brush's C++ objects, or a color matrix
+// style's matrix.
+private enum CGRendererSource {
+    case brush(CGRendererBrushSource)
+    #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+    case colorMatrix(CGRendererColorMatrix)
+    #endif
 }
 
 // How many entries a side table can gain since the last save before those the state no longer refers to go. A restore drops
 // the entries added since its save.
 private enum CGRendererSideTable {
     static let platformColorLimit = 8
-    static let brushSourceLimit = 4
+    static let sourceLimit = 4
 }
 
 // The CGColors of the last few packed colors this renderer set. A context is used by one thread at a time.
@@ -655,8 +672,8 @@ struct CGRenderer {
     private var state: CGRendererState
     private var stack: [CGRendererSavedState]
     private var depth = 0
-    private var platformColors: [CGColor] = []
-    private var brushSources: [CGRendererBrushSource] = []
+    private var platformColors: [CGRendererPlatformColor] = []
+    private var sources: [CGRendererSource] = []
     private var colorCache = CGRendererColorCache()
     private var clipOutRects = [CGRect.zero, CGRect.zero]
     // Reused, so that only a context's first use of them allocates.
@@ -696,19 +713,19 @@ struct CGRenderer {
     }
 
     private mutating func platformColor(packed: UInt32, slot: UInt32) -> CGColor {
-        slot == 0 ? colorCache.color(packed) : platformColors[Int(slot) - 1]
+        slot == 0 ? colorCache.color(packed) : platformColors[Int(slot) - 1].cgColor
     }
 
     private mutating func platformColor(_ brush: CGRendererBrush) -> CGColor {
         platformColor(packed: brush.packedColor, slot: brush.platformColorSlot)
     }
 
-    private mutating func platformColorSlot(_ color: CGColor) -> UInt32 {
+    private mutating func platformColorSlot(_ cgColor: CGColor, _ color: CGRendererColorData) -> UInt32 {
         let base = depth == 0 ? 0 : Int(stack[depth - 1].platformColorCount)
         if platformColors.count - base >= CGRendererSideTable.platformColorLimit {
             compactPlatformColors(from: base)
         }
-        platformColors.append(color)
+        platformColors.append(CGRendererPlatformColor(cgColor: cgColor, data: color))
         return UInt32(platformColors.count)
     }
 
@@ -748,18 +765,18 @@ struct CGRenderer {
         platformColors.removeLast(platformColors.count - kept)
     }
 
-    private mutating func brushSourceSlot(_ source: borrowing CGRendererBrushSource) -> UInt32 {
-        let base = depth == 0 ? 0 : Int(stack[depth - 1].brushSourceCount)
-        if brushSources.count - base >= CGRendererSideTable.brushSourceLimit {
-            compactBrushSources(from: base)
+    private mutating func sourceSlot(_ source: CGRendererSource) -> UInt32 {
+        let base = depth == 0 ? 0 : Int(stack[depth - 1].sourceCount)
+        if sources.count - base >= CGRendererSideTable.sourceLimit {
+            compactSources(from: base)
         }
-        brushSources.append(copy source)
-        return UInt32(brushSources.count)
+        sources.append(source)
+        return UInt32(sources.count)
     }
 
-    private mutating func compactBrushSources(from base: Int) {
+    private mutating func compactSources(from base: Int) {
         var kept = base
-        for index in base..<brushSources.count {
+        for index in base..<sources.count {
             let slot = UInt32(index + 1)
             let newSlot = UInt32(kept + 1)
             var isReferenced = false
@@ -771,21 +788,25 @@ struct CGRenderer {
             }
             move(&state.fill.sourceSlot)
             move(&state.stroke.sourceSlot)
+            if case .colorMatrix(var matrixSlot) = state.style {
+                move(&matrixSlot)
+                state.style = .colorMatrix(slot: matrixSlot)
+            }
             if isReferenced {
-                brushSources.swapAt(index, kept)
+                sources.swapAt(index, kept)
                 kept += 1
             }
         }
-        brushSources.removeLast(brushSources.count - kept)
+        sources.removeLast(sources.count - kept)
     }
 
     // A pattern brush's CGPattern, made for each draw from the C++ Pattern: nil for any other brush, or when the pattern has
     // no image.
     private func brushPattern(_ brush: CGRendererBrush) -> CGPattern? {
-        guard brush.hasPattern, brush.sourceSlot != 0 else {
+        guard brush.hasPattern, brush.sourceSlot != 0, case .brush(let source) = sources[Int(brush.sourceSlot) - 1] else {
             return nil
         }
-        return CGRendererCreateBrushPattern(brushSources[Int(brush.sourceSlot) - 1], context)
+        return CGRendererCreateBrushPattern(source, context)
     }
 
     // MARK: State
@@ -800,12 +821,17 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    mutating func setFillPlatformColor(_ color: borrowing CGColor, _ brushKind: UInt8, _ isColorVisible: Bool) {
+    mutating func setFillPlatformColor(
+        _ cgColor: borrowing CGColor,
+        _ color: CGRendererColorData,
+        _ brushKind: UInt8,
+        _ isColorVisible: Bool
+    ) {
         hasDrawn = true
-        let slot = platformColorSlot(copy color)
+        let slot = platformColorSlot(copy cgColor, color)
         state.fill = CGRendererBrush(platformColorSlot: slot, kind: brushKind, isColorVisible: isColorVisible)
         if !state.fill.hasPatternOrGradient {
-            context.setFillColor(color)
+            context.setFillColor(cgColor)
         }
     }
 
@@ -819,24 +845,33 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    mutating func setStrokePlatformColor(_ color: borrowing CGColor, _ brushKind: UInt8, _ isColorVisible: Bool) {
+    mutating func setStrokePlatformColor(
+        _ cgColor: borrowing CGColor,
+        _ color: CGRendererColorData,
+        _ brushKind: UInt8,
+        _ isColorVisible: Bool
+    ) {
         hasDrawn = true
-        let slot = platformColorSlot(copy color)
+        let slot = platformColorSlot(copy cgColor, color)
         state.stroke = CGRendererBrush(platformColorSlot: slot, kind: brushKind, isColorVisible: isColorVisible)
         if !state.stroke.hasPatternOrGradient {
-            context.setStrokeColor(color)
+            context.setStrokeColor(cgColor)
         }
     }
 
-    // After the color, for a gradient or a pattern.
+    // A gradient (kind 1) or a pattern (kind 2), over the brush's color, as SourceBrush::setGradient() and setPattern() keep it.
     @_expose(Cxx)
-    mutating func setFillSource(_ source: borrowing CGRendererBrushSource) {
-        state.fill.sourceSlot = brushSourceSlot(source)
+    mutating func setFillSource(_ source: borrowing CGRendererBrushSource, _ brushKind: UInt8) {
+        hasDrawn = true
+        state.fill.kind = brushKind
+        state.fill.sourceSlot = sourceSlot(.brush(copy source))
     }
 
     @_expose(Cxx)
-    mutating func setStrokeSource(_ source: borrowing CGRendererBrushSource) {
-        state.stroke.sourceSlot = brushSourceSlot(source)
+    mutating func setStrokeSource(_ source: borrowing CGRendererBrushSource, _ brushKind: UInt8) {
+        hasDrawn = true
+        state.stroke.kind = brushKind
+        state.stroke.sourceSlot = sourceSlot(.brush(copy source))
     }
 
     @_expose(Cxx)
@@ -882,9 +917,9 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    mutating func setDropShadow(_ values: CGRendererShadowValues, _ color: borrowing CGColor) {
+    mutating func setDropShadow(_ values: CGRendererShadowValues, _ cgColor: borrowing CGColor, _ color: CGRendererColorData) {
         hasDrawn = true
-        let shadow = makeShadow(values, platformColorSlot: platformColorSlot(copy color))
+        let shadow = makeShadow(values, platformColorSlot: platformColorSlot(copy cgColor, color))
         state.dropShadow = shadow
         applyShadow(shadow)
     }
@@ -905,26 +940,31 @@ struct CGRenderer {
     }
 
     @_expose(Cxx)
-    mutating func setDropShadowStyle(_ values: CGRendererShadowValues, _ color: borrowing CGColor) {
+    mutating func setDropShadowStyle(
+        _ values: CGRendererShadowValues,
+        _ cgColor: borrowing CGColor,
+        _ color: CGRendererColorData
+    ) {
         hasDrawn = true
-        let shadow = makeShadow(values, platformColorSlot: platformColorSlot(copy color))
+        let shadow = makeShadow(values, platformColorSlot: platformColorSlot(copy cgColor, color))
         state.style = .dropShadow(shadow)
         applyShadow(shadow)
     }
 
     #if HAVE_CGSTYLE_COLORMATRIX_BLUR
     @_expose(Cxx)
-    mutating func setGaussianBlurStyle(_ radius: Float) {
+    // CG blurs by the width only; GraphicsGaussianBlur's two are the same.
+    mutating func setGaussianBlurStyle(_ width: Float, _ height: Float) {
         hasDrawn = true
-        state.style = .gaussianBlur(radius: radius)
-        let blurRadius = scaledBlurRadius(CGFloat(radius), userToBaseCTM)
+        state.style = .gaussianBlur(width: width, height: height)
+        let blurRadius = scaledBlurRadius(CGFloat(width), userToBaseCTM)
         CGContextSetStyle(context, CGRendererCreateGaussianBlurStyle(blurRadius))
     }
 
     @_expose(Cxx)
     mutating func setColorMatrixStyle(_ matrix: CGRendererColorMatrix) {
         hasDrawn = true
-        state.style = .colorMatrix
+        state.style = .colorMatrix(slot: sourceSlot(.colorMatrix(matrix)))
         CGContextSetStyle(context, CGRendererCreateColorMatrixStyle(matrix))
     }
     #endif
@@ -938,7 +978,8 @@ struct CGRenderer {
             packedColor: values.packedColor,
             platformColorSlot: platformColorSlot,
             isValid: values.isValid,
-            isVisible: values.isVisible
+            isVisible: values.isVisible,
+            isLegacyRadius: values.legacyRadius
         )
     }
 
@@ -1049,6 +1090,94 @@ struct CGRenderer {
         return result
     }
 
+    // MARK: Snapshot
+
+    // The state as plain values, for GraphicsContextCG to rebuild GraphicsContext's from after this renderer was used without
+    // it. Colors that aren't sRGBA8, gradients, patterns and color matrices are by slot, for the functions below.
+    @_expose(Cxx)
+    func snapshotState(_ snapshot: inout CGRendererStateSnapshot) {
+        snapshot.fill = brushSnapshot(state.fill)
+        snapshot.stroke = brushSnapshot(state.stroke)
+        snapshot.hasDropShadow = state.dropShadow != nil
+        if let shadow = state.dropShadow {
+            snapshot.dropShadow = shadowSnapshot(shadow)
+        }
+        switch state.style {
+        case .none:
+            snapshot.style = 0
+        case .dropShadow(let shadow):
+            snapshot.style = 1
+            snapshot.styleDropShadow = shadowSnapshot(shadow)
+        case .gaussianBlur(let width, let height):
+            snapshot.style = 2
+            snapshot.gaussianBlurWidth = width
+            snapshot.gaussianBlurHeight = height
+        case .colorMatrix(let slot):
+            snapshot.style = 3
+            snapshot.colorMatrixSlot = slot
+        }
+        snapshot.fillRule = state.fillRule
+        snapshot.strokeThickness = state.strokeThickness
+        snapshot.strokeStyle = state.strokeStyle
+        snapshot.compositeOperator = state.compositeOperator.rawValue
+        snapshot.blendMode = state.blendMode.rawValue
+        snapshot.alpha = state.alpha
+        snapshot.textDrawingMode = state.textDrawingMode
+        snapshot.imageInterpolationQuality = state.imageInterpolationQuality.rawValue
+        snapshot.shouldAntialias = state.shouldAntialias
+        snapshot.shouldSmoothFonts = state.shouldSmoothFonts
+        snapshot.shouldSubpixelQuantizeFonts = state.shouldSubpixelQuantizeFonts
+        snapshot.shadowsIgnoreTransforms = state.shadowsIgnoreTransforms
+        snapshot.hasMaxEDRHeadroom = maxEDRHeadroom != nil
+        snapshot.maxEDRHeadroom = maxEDRHeadroom ?? 0
+    }
+
+    private func brushSnapshot(_ brush: CGRendererBrush) -> CGRendererBrushSnapshot {
+        CGRendererBrushSnapshot(
+            packedColor: brush.packedColor,
+            platformColorSlot: brush.platformColorSlot,
+            sourceSlot: brush.sourceSlot,
+            kind: brush.kind
+        )
+    }
+
+    private func shadowSnapshot(_ shadow: CGRendererShadow) -> CGRendererShadowSnapshot {
+        CGRendererShadowSnapshot(
+            values: CGRendererShadowValues(
+                width: shadow.width,
+                height: shadow.height,
+                radius: shadow.radius,
+                opacity: shadow.opacity,
+                packedColor: shadow.packedColor,
+                isValid: shadow.isValid,
+                isVisible: shadow.isVisible,
+                legacyRadius: shadow.isLegacyRadius
+            ),
+            platformColorSlot: shadow.platformColorSlot
+        )
+    }
+
+    @_expose(Cxx)
+    func copyPlatformColor(_ slot: UInt32, _ color: inout CGRendererColorData) {
+        color = platformColors[Int(slot) - 1].data
+    }
+
+    @_expose(Cxx)
+    func copyBrushSource(_ slot: UInt32, _ source: inout CGRendererBrushSource) {
+        if case .brush(let brushSource) = sources[Int(slot) - 1] {
+            source = brushSource
+        }
+    }
+
+    #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+    @_expose(Cxx)
+    func copyColorMatrix(_ slot: UInt32, _ matrix: inout CGRendererColorMatrix) {
+        if case .colorMatrix(let colorMatrix) = sources[Int(slot) - 1] {
+            matrix = colorMatrix
+        }
+    }
+    #endif
+
     // BeginPage: the state goes back to its initial value; the stack is left alone.
     @_expose(Cxx)
     mutating func resetState(_ imageInterpolationQuality: WebCore.InterpolationQuality) {
@@ -1132,7 +1261,7 @@ struct CGRenderer {
             state: state,
             purpose: isTransparencyLayer ? .transparencyLayer : .saveRestore,
             platformColorCount: UInt32(platformColors.count),
-            brushSourceCount: UInt32(brushSources.count)
+            sourceCount: UInt32(sources.count)
         )
         if depth == stack.count {
             stack.append(saved)
@@ -1163,9 +1292,9 @@ struct CGRenderer {
         if platformColors.count > platformColorCount {
             platformColors.removeLast(platformColors.count - platformColorCount)
         }
-        let brushSourceCount = Int(stack[depth].brushSourceCount)
-        if brushSources.count > brushSourceCount {
-            brushSources.removeLast(brushSources.count - brushSourceCount)
+        let sourceCount = Int(stack[depth].sourceCount)
+        if sources.count > sourceCount {
+            sources.removeLast(sources.count - sourceCount)
         }
         context.restoreGState()
     }
@@ -1333,13 +1462,11 @@ struct CGRenderer {
 
     // GraphicsContextCG::fillRect() with a blurred drop shadow on an unaccelerated context (canUseShadowBlur): ShadowBlur draws
     // the shadow through this renderer, then the rect is filled without one. The caller passes the shadow's Color, which
-    // ShadowBlur takes, whether its radius is the legacy one, and whether setting the shadow's color as the fill changes the
-    // C++ state.
+    // ShadowBlur takes, and whether setting the shadow's color as the fill changes the C++ state.
     @_expose(Cxx)
     mutating func fillRectWithShadowBlur(
         _ rect: CGRect,
         _ shadowColor: borrowing WebCore.Color,
-        _ legacyRadius: Bool,
         _ shadowColorChangesFill: Bool
     ) {
         assert(!state.fill.hasGradient && canUseShadowBlur)
@@ -1347,7 +1474,7 @@ struct CGRenderer {
         applyPattern(fill: true)
         context.saveGState()
         CGContextSetStyle(context, nil)
-        drawRectShadowBlur(rect, shadowColor, legacyRadius, shadowColorChangesFill)
+        drawRectShadowBlur(rect, shadowColor, shadowColorChangesFill)
         context.fill(rect)
         context.restoreGState()
     }
@@ -1358,7 +1485,6 @@ struct CGRenderer {
         packedColor: UInt32,
         _ changesFillColor: Bool,
         _ shadowColor: borrowing WebCore.Color,
-        _ legacyRadius: Bool,
         _ shadowColorChangesFill: Bool
     ) {
         assert(canUseShadowBlur)
@@ -1368,7 +1494,7 @@ struct CGRenderer {
         }
         context.saveGState()
         CGContextSetStyle(context, nil)
-        drawRectShadowBlur(rect, shadowColor, legacyRadius, shadowColorChangesFill)
+        drawRectShadowBlur(rect, shadowColor, shadowColorChangesFill)
         context.fill(rect)
         context.restoreGState()
         if changesFillColor {
@@ -1380,7 +1506,6 @@ struct CGRenderer {
     private mutating func drawRectShadowBlur(
         _ rect: CGRect,
         _ shadowColor: borrowing WebCore.Color,
-        _ legacyRadius: Bool,
         _ shadowColorChangesFill: Bool
     ) {
         guard let shadow = state.dropShadow else {
@@ -1391,7 +1516,7 @@ struct CGRenderer {
             WebCore.ShadowBlurSize(width: shadow.width, height: shadow.height),
             shadow.isVisible,
             state.shadowsIgnoreTransforms,
-            legacyRadius
+            shadow.isLegacyRadius
         )
         let ctm = context.ctm
         let transform = WebCore.AffineTransform(ctm.a, ctm.b, ctm.c, ctm.d, ctm.tx, ctm.ty)

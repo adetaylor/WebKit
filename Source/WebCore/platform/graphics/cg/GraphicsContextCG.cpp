@@ -641,6 +641,11 @@ CGImageRef CGRendererCopyImageBufferImage(WebCore::ImageBuffer& imageBuffer, flo
     return RetainPtr { nativeImage->platformImage() }.leakRef();
 }
 
+CGRendererBrushSource::CGRendererBrushSource()
+    : m_gradientSpaceTransform(CGAffineTransformIdentity)
+{
+}
+
 CGRendererBrushSource::CGRendererBrushSource(const WebCore::SourceBrush& brush)
     : m_gradient(brush.gradient())
     , m_gradientSpaceTransform(brush.gradientSpaceTransform())
@@ -651,6 +656,14 @@ CGRendererBrushSource::CGRendererBrushSource(const WebCore::SourceBrush& brush)
 CGRendererBrushSource::CGRendererBrushSource(const CGRendererBrushSource&) = default;
 CGRendererBrushSource& CGRendererBrushSource::operator=(const CGRendererBrushSource&) = default;
 CGRendererBrushSource::~CGRendererBrushSource() = default;
+
+void CGRendererBrushSource::applyTo(WebCore::SourceBrush& brush) const
+{
+    if (RefPtr gradient = m_gradient)
+        brush.setGradient(gradient.releaseNonNull(), WebCore::AffineTransform(m_gradientSpaceTransform));
+    else if (RefPtr pattern = m_pattern)
+        brush.setPattern(pattern.releaseNonNull());
+}
 
 CGPatternRef CGRendererCreateBrushPattern(const CGRendererBrushSource& source, CGContextRef context)
 {
@@ -912,7 +925,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
     ASSERT(canUseShadowBlur());
     auto shadow = dropShadow();
     if (swiftDrawsShadowBlur()) {
-        renderer.fillRectWithShadowBlur(rect, shadow->color, shadow->radiusMode == ShadowRadiusMode::Legacy, shadowColorChangesFill(shadow->color));
+        renderer.fillRectWithShadowBlur(rect, shadow->color, shadowColorChangesFill(shadow->color));
         return;
     }
 
@@ -954,7 +967,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
     ASSERT(canUseShadowBlur());
     auto shadow = dropShadow();
     if (packedColor && swiftDrawsShadowBlur()) {
-        renderer.fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadow->radiusMode == ShadowRadiusMode::Legacy, shadowColorChangesFill(shadow->color));
+        renderer.fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadowColorChangesFill(shadow->color));
         return;
     }
 
@@ -1214,6 +1227,40 @@ FloatRect GraphicsContextCG::boundsIncludingDropShadow(const FloatRect& bounds)
     return baseToUserCTM->mapRect(unionRect(baseSpaceBounds, shadowBounds));
 }
 
+static CGRendererColorData colorData(const Color& color)
+{
+    CGRendererColorData values { };
+    auto data = color.data();
+    if (!data)
+        return values;
+    values.isSemantic = data->isSemantic;
+    values.usesFunctionSerialization = data->usesFunctionSerialization;
+    WTF::switchOn(data->data,
+        [&](PackedColor::RGBA packedColor) {
+            values.form = 1;
+            values.packedColor = packedColor.value;
+        },
+        [&](const OutOfLineColorDataForIPC& components) {
+            values.form = 2;
+            values.colorSpace = static_cast<uint8_t>(components.colorSpace);
+            values.c1 = components.c1;
+            values.c2 = components.c2;
+            values.c3 = components.c3;
+            values.alpha = components.alpha;
+        });
+    return values;
+}
+
+static Color colorFromData(const CGRendererColorData& values)
+{
+    if (!values.form)
+        return { };
+    Variant<PackedColor::RGBA, OutOfLineColorDataForIPC> data = PackedColor::RGBA { values.packedColor };
+    if (values.form == 2)
+        data = OutOfLineColorDataForIPC { static_cast<ColorSpaceName>(values.colorSpace), values.c1, values.c2, values.c3, values.alpha };
+    return Color { std::optional { ColorDataForIPC { values.isSemantic, values.usesFunctionSerialization, WTF::move(data) } } };
+}
+
 void GraphicsContextCG::clearCGDropShadow()
 {
     CGContextSetStyle(contextForDraw(), nullptr);
@@ -1224,7 +1271,7 @@ void GraphicsContextCG::setSwiftRendererShadow(CGRenderer& renderer, const Graph
     auto packedColor = shadow.color.tryGetAsPackedInline();
     CGRendererShadowValues values {
         shadow.offset.width(), shadow.offset.height(), shadow.radius, shadow.opacity,
-        packedColor ? packedColor->value : 0, shadow.color.isValid(), shadow.color.isVisible()
+        packedColor ? packedColor->value : 0, shadow.color.isValid(), shadow.color.isVisible(), shadow.radiusMode == ShadowRadiusMode::Legacy
     };
     if (packedColor || !values.isValid) {
         if (isStyle)
@@ -1235,9 +1282,9 @@ void GraphicsContextCG::setSwiftRendererShadow(CGRenderer& renderer, const Graph
     }
     RetainPtr color = cachedCGColorInDestinationStandardRange(shadow.color, colorSpace());
     if (isStyle)
-        renderer.setDropShadowStyle(values, color.get());
+        renderer.setDropShadowStyle(values, color.get(), colorData(shadow.color));
     else
-        renderer.setDropShadow(values, color.get());
+        renderer.setDropShadow(values, color.get(), colorData(shadow.color));
 }
 
 void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& state)
@@ -1266,9 +1313,9 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
             if (auto packedColor = brush.color().tryGetAsPackedInline())
                 renderer.setFillPackedColor(packedColor->value, swiftBrushKind(brush));
             else
-                renderer.setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), swiftBrushKind(brush), brush.color().isVisible());
+                renderer.setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), colorData(brush.color()), swiftBrushKind(brush), brush.color().isVisible());
             if (brush.hasPatternOrGradient())
-                renderer.setFillSource(CGRendererBrushSource { brush });
+                renderer.setFillSource(CGRendererBrushSource { brush }, swiftBrushKind(brush));
             break;
         }
 
@@ -1281,9 +1328,9 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
             if (auto packedColor = brush.color().tryGetAsPackedInline())
                 renderer.setStrokePackedColor(packedColor->value, swiftBrushKind(brush));
             else
-                renderer.setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), swiftBrushKind(brush), brush.color().isVisible());
+                renderer.setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), colorData(brush.color()), swiftBrushKind(brush), brush.color().isVisible());
             if (brush.hasPatternOrGradient())
-                renderer.setStrokeSource(CGRendererBrushSource { brush });
+                renderer.setStrokeSource(CGRendererBrushSource { brush }, swiftBrushKind(brush));
             break;
         }
 
@@ -1315,7 +1362,7 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
                     [&](const GraphicsGaussianBlur& gaussianBlur) {
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
                         ASSERT(gaussianBlur.radius.width() == gaussianBlur.radius.height());
-                        renderer.setGaussianBlurStyle(gaussianBlur.radius.width());
+                        renderer.setGaussianBlurStyle(gaussianBlur.radius.width(), gaussianBlur.radius.height());
 #else
                         UNUSED_PARAM(gaussianBlur);
 #endif
@@ -1364,6 +1411,82 @@ void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& sta
     }
 
     state.didApplyChanges();
+}
+
+void GraphicsContextCG::updateStateFromSwiftRenderer()
+{
+    auto& renderer = swiftRenderer();
+    CGRendererStateSnapshot snapshot { };
+    renderer.snapshotState(snapshot);
+
+    auto color = [&](uint32_t packedColor, uint32_t platformColorSlot) {
+        if (!platformColorSlot)
+            return Color { asSRGBA(PackedColor::RGBA { packedColor }) };
+        CGRendererColorData platformColor { };
+        renderer.copyPlatformColor(platformColorSlot, platformColor);
+        return colorFromData(platformColor);
+    };
+    auto brush = [&](const CGRendererBrushSnapshot& values) {
+        SourceBrush sourceBrush { color(values.packedColor, values.platformColorSlot) };
+        if (values.sourceSlot) {
+            CGRendererBrushSource source;
+            renderer.copyBrushSource(values.sourceSlot, source);
+            source.applyTo(sourceBrush);
+        }
+        return sourceBrush;
+    };
+    auto dropShadow = [&](const CGRendererShadowSnapshot& shadow) {
+        auto& values = shadow.values;
+        return GraphicsDropShadow {
+            { values.width, values.height }, values.radius, values.isValid ? color(values.packedColor, shadow.platformColorSlot) : Color { },
+            values.legacyRadius ? ShadowRadiusMode::Legacy : ShadowRadiusMode::Default, values.opacity
+        };
+    };
+
+    std::optional<GraphicsStyle> style;
+    switch (snapshot.style) {
+    case 1:
+        style = dropShadow(snapshot.styleDropShadow);
+        break;
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+    case 2:
+        style = GraphicsGaussianBlur { { snapshot.gaussianBlurWidth, snapshot.gaussianBlurHeight } };
+        break;
+    case 3: {
+        CGRendererColorMatrix matrix { };
+        renderer.copyColorMatrix(snapshot.colorMatrixSlot, matrix);
+        GraphicsColorMatrix colorMatrix;
+        for (auto [destination, source] : zippedRange(colorMatrix.values, matrix.values))
+            destination = source;
+        style = colorMatrix;
+        break;
+    }
+#endif
+    default:
+        break;
+    }
+
+    m_state.setFillBrush(brush(snapshot.fill));
+    m_state.setFillRule(snapshot.fillRule ? WindRule::EvenOdd : WindRule::NonZero);
+    m_state.setStrokeBrush(brush(snapshot.stroke));
+    m_state.setStrokeThickness(snapshot.strokeThickness);
+    m_state.setStrokeStyle(static_cast<StrokeStyle>(snapshot.strokeStyle));
+    m_state.setCompositeMode({ static_cast<CompositeOperator>(snapshot.compositeOperator), static_cast<BlendMode>(snapshot.blendMode) });
+    m_state.setDropShadow(snapshot.hasDropShadow ? std::optional { dropShadow(snapshot.dropShadow) } : std::nullopt);
+    m_state.setStyle(style);
+    m_state.setAlpha(snapshot.alpha);
+    m_state.setTextDrawingMode(TextDrawingModeFlags::fromRaw(snapshot.textDrawingMode));
+    m_state.setImageInterpolationQuality(static_cast<InterpolationQuality>(snapshot.imageInterpolationQuality));
+    m_state.setShouldAntialias(snapshot.shouldAntialias);
+    m_state.setShouldSmoothFonts(snapshot.shouldSmoothFonts);
+    m_state.setShouldSubpixelQuantizeFonts(snapshot.shouldSubpixelQuantizeFonts);
+    m_state.setShadowsIgnoreTransforms(snapshot.shadowsIgnoreTransforms);
+    // The renderer and the CGContext have these already.
+    m_state.didApplyChanges();
+#if HAVE(SUPPORT_HDR_DISPLAY)
+    m_maxEDRHeadroom = snapshot.hasMaxEDRHeadroom ? std::optional { snapshot.maxEDRHeadroom } : std::nullopt;
+#endif
+    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::didUpdateState(GraphicsContextState& state)
