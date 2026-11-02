@@ -111,6 +111,41 @@ void IPCTesterReceiver::clearRecordedSwift(CompletionHandler<void()>&& completio
     completionHandler();
 }
 
+void IPCTesterReceiver::reverseAtomsSwift(const Vector<AtomString>& atoms, CompletionHandler<void(Vector<AtomString>&&)>&& completionHandler)
+{
+    auto reversed = atoms;
+    reversed.reverse();
+    completionHandler(WTF::move(reversed));
+}
+
+void IPCTesterReceiver::roundTripStringThroughCxxSwift(const String& text, CompletionHandler<void(String&&, uint32_t, bool, bool)>&& completionHandler)
+{
+    completionHandler(String { text }, text.length(), text.isNull(), text.is8Bit());
+}
+
+void IPCTesterReceiver::roundTripBufferSwift(RefPtr<WebCore::SharedBuffer>&& buffer, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&, uint64_t)>&& completionHandler)
+{
+    uint64_t size = buffer ? buffer->size() : 0;
+    completionHandler(WTF::move(buffer), size);
+}
+
+void IPCTesterReceiver::swapPairsSwift(const Vector<std::pair<String, uint32_t>>& pairs, CompletionHandler<void(Vector<std::pair<uint32_t, String>>&&)>&& completionHandler)
+{
+    completionHandler(pairs.map([](auto& pair) {
+        return std::pair { pair.second, pair.first };
+    }));
+}
+
+void IPCTesterReceiver::enabledMessageSwift(uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
+{
+    completionHandler(value * 2);
+}
+
+void IPCTesterReceiver::disabledMessageSwift(uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
+{
+    completionHandler(value * 2);
+}
+
 }
 
 #endif

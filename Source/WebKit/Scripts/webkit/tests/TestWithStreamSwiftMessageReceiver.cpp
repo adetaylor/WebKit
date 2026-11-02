@@ -66,12 +66,12 @@ TestWithStreamSwiftMessageForwarder::TestWithStreamSwiftMessageForwarder(TestWit
 {
 }
 
-std::unique_ptr<TestWithStreamSwift> TestWithStreamSwiftMessageForwarder::getMessageTarget()
+std::optional<TestWithStreamSwift> TestWithStreamSwiftMessageForwarder::getMessageTarget()
 {
     auto target = m_handler->getMessageTarget();
     if (target)
-        return WTF::makeUniqueWithoutFastMallocCheck<TestWithStreamSwift>(target.get());
-    return nullptr;
+        return target.get();
+    return std::nullopt;
 }
 
 TestWithStreamSwiftMessageForwarder::~TestWithStreamSwiftMessageForwarder()

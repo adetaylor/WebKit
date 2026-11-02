@@ -100,12 +100,11 @@ TestWithSwiftMessageForwarder::TestWithSwiftMessageForwarder(TestWithSwiftWeakRe
 {
 }
 
-std::unique_ptr<TestWithSwift> TestWithSwiftMessageForwarder::getMessageTarget()
+std::optional<TestWithSwift> TestWithSwiftMessageForwarder::getMessageTarget()
 {
-    auto target = m_handler->getMessageTarget();
-    if (target)
-        return WTF::makeUniqueWithoutFastMallocCheck<TestWithSwift>(target.get());
-    return nullptr;
+    if (!m_handler->hasMessageTarget())
+        return std::nullopt;
+    return m_handler->messageTarget();
 }
 
 TestWithSwiftMessageForwarder::~TestWithSwiftMessageForwarder()
