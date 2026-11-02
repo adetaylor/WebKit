@@ -203,6 +203,21 @@ private struct CGRendererRect: Equatable {
     }
 
     var cgRect: CGRect { CGRect(x: CGFloat(x), y: CGFloat(y), width: CGFloat(width), height: CGFloat(height)) }
+
+    // FloatRect::intersect(): an empty intersection is the zero rect.
+    func intersection(_ other: CGRendererRect) -> CGRendererRect {
+        var l = cxxMax(x, other.x)
+        var t = cxxMax(y, other.y)
+        var r = cxxMin(maxX, other.maxX)
+        var b = cxxMin(maxY, other.maxY)
+        if l >= r || t >= b {
+            l = 0
+            t = 0
+            r = 0
+            b = 0
+        }
+        return CGRendererRect(x: l, y: t, width: r - l, height: b - t)
+    }
 }
 
 // IntRect, for enclosingIntRect().
@@ -374,11 +389,9 @@ private func isIntegral(_ value: Float) -> Bool {
 }
 
 // What a ShadowBlur shadow the renderer draws for itself needs besides the state: the fill to set for the shadow's color (nil
-// when the C++ state's fill is that color already, so GraphicsContextState::setFillColor() wouldn't touch CG), and
-// GraphicsContextCG's EDR headroom limit (0 for none).
+// when the C++ state's fill is that color already, so GraphicsContextState::setFillColor() wouldn't touch CG).
 private struct CGRendererShadowBlurDrawing {
     var fill: CGRendererBrush?
-    var maxEDRHeadroom: Float
 }
 
 // ShadowBlur's pieces, drawn as GraphicsContext would draw them through a GraphicsContextView of the GraphicsContextCG: each in
@@ -478,7 +491,6 @@ extension CGRenderer: ShadowDrawing {
         let source = tile.source.floatRect
         save(false)
         clearDropShadow()
-        let maxEDRHeadroom = shadowBlurDrawing?.maxEDRHeadroom ?? 0
         _ = drawNativeImage(
             image,
             Float(image.width),
@@ -496,7 +508,7 @@ extension CGRenderer: ShadowDrawing {
             .Default,
             CGRendererOrientation.none,
             imageHeadroom,
-            maxEDRHeadroom > 0 ? cxxMin(imageHeadroom, maxEDRHeadroom) : imageHeadroom
+            0
         )
         restore()
     }
@@ -638,6 +650,8 @@ struct CGRenderer {
     private var dashLengths: [CGFloat] = []
     private var lineSegment: [CGPoint] = []
     private var shadowBlurDrawing: CGRendererShadowBlurDrawing? = nil
+    // GraphicsContextCG::setMaxEDRHeadroom(): a context's, not a state's.
+    private var maxEDRHeadroom: Float? = nil
 
     // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
     // uses it (rdar://179098545).
@@ -1082,22 +1096,21 @@ struct CGRenderer {
 
     // GraphicsContextCG::fillRect() with a blurred drop shadow on an unaccelerated context (canUseShadowBlur): ShadowBlur draws
     // the shadow through this renderer, then the rect is filled without one. The caller passes the shadow's Color, which
-    // ShadowBlur takes, whether its radius is the legacy one, whether setting the shadow's color as the fill changes the C++
-    // state, and GraphicsContextCG's EDR headroom limit (0 for none).
+    // ShadowBlur takes, whether its radius is the legacy one, and whether setting the shadow's color as the fill changes the
+    // C++ state.
     @_expose(Cxx)
     mutating func fillRectWithShadowBlur(
         _ rect: CGRect,
         _ fillPattern: CGPattern?,
         _ shadowColor: borrowing WebCore.Color,
         _ legacyRadius: Bool,
-        _ shadowColorChangesFill: Bool,
-        _ maxEDRHeadroom: Float
+        _ shadowColorChangesFill: Bool
     ) {
         assert(!state.fill.hasGradient && canUseShadowBlur)
         applyPattern(fillPattern, fill: true)
         context.saveGState()
         CGContextSetStyle(context, nil)
-        drawRectShadowBlur(rect, shadowColor, legacyRadius, shadowColorChangesFill, maxEDRHeadroom)
+        drawRectShadowBlur(rect, shadowColor, legacyRadius, shadowColorChangesFill)
         context.fill(rect)
         context.restoreGState()
     }
@@ -1109,8 +1122,7 @@ struct CGRenderer {
         _ changesFillColor: Bool,
         _ shadowColor: borrowing WebCore.Color,
         _ legacyRadius: Bool,
-        _ shadowColorChangesFill: Bool,
-        _ maxEDRHeadroom: Float
+        _ shadowColorChangesFill: Bool
     ) {
         assert(canUseShadowBlur)
         if changesFillColor {
@@ -1118,7 +1130,7 @@ struct CGRenderer {
         }
         context.saveGState()
         CGContextSetStyle(context, nil)
-        drawRectShadowBlur(rect, shadowColor, legacyRadius, shadowColorChangesFill, maxEDRHeadroom)
+        drawRectShadowBlur(rect, shadowColor, legacyRadius, shadowColorChangesFill)
         context.fill(rect)
         context.restoreGState()
         if changesFillColor {
@@ -1131,8 +1143,7 @@ struct CGRenderer {
         _ rect: CGRect,
         _ shadowColor: borrowing WebCore.Color,
         _ legacyRadius: Bool,
-        _ shadowColorChangesFill: Bool,
-        _ maxEDRHeadroom: Float
+        _ shadowColorChangesFill: Bool
     ) {
         guard let shadow = state.dropShadow else {
             return
@@ -1152,7 +1163,7 @@ struct CGRenderer {
         )
         let shadowedRect = WebCore.ShadowBlurRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.size.width), height: Float(rect.size.height))
         let fill = CGRendererBrush(packedColor: shadow.packedColor, platformColorSlot: shadow.platformColorSlot, kind: 0, isColorVisible: shadow.isVisible)
-        shadowBlurDrawing = CGRendererShadowBlurDrawing(fill: shadowColorChangesFill ? fill : nil, maxEDRHeadroom: maxEDRHeadroom)
+        shadowBlurDrawing = CGRendererShadowBlurDrawing(fill: shadowColorChangesFill ? fill : nil)
         shadowBlurDrawRectShadow(
             &shadowState,
             transform,
@@ -1568,8 +1579,69 @@ struct CGRenderer {
         CGRendererDrawGlyphs(font, run, positions, context)
     }
 
-    // GraphicsContextCG::drawNativeImage() but for a dynamic range limit, which the C++ draws. The caller resolved the options'
-    // headroom and the image's. Returns 0 if it didn't draw, 1 if it drew, 2 if there was nothing to draw.
+    // MARK: Device scale, headroom and PDF
+
+    // GraphicsContextCG::applyDeviceScaleFactor() after GraphicsContext's scale: the base CTM too, so that CG features that
+    // draw in base space (focus rings) use the scale factor.
+    @_expose(Cxx)
+    func applyDeviceScaleFactorToBaseCTM(_ deviceScaleFactor: Float) {
+        CGContextSetBaseCTM(context, CGContextGetBaseCTM(context).scaledBy(x: CGFloat(deviceScaleFactor), y: CGFloat(deviceScaleFactor)))
+    }
+
+    @_expose(Cxx)
+    mutating func setMaxEDRHeadroom(_ headroom: Float, _ hasHeadroom: Bool) {
+        maxEDRHeadroom = hasHeadroom ? headroom : nil
+    }
+
+    // FloatRect(rect) intersected with the clip's bounding box, then mapped to device space, for PDF links and destinations.
+    private func pdfDestinationRect(_ rect: CGRect) -> CGRect {
+        let clip = context.boundingBoxOfClipPath
+        let a = CGRendererRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.size.width), height: Float(rect.size.height))
+        let b = CGRendererRect(x: Float(clip.origin.x), y: Float(clip.origin.y), width: Float(clip.size.width), height: Float(clip.size.height))
+        return a.intersection(b).cgRect.applying(context.ctm)
+    }
+
+    @_expose(Cxx)
+    func setURLForRect(_ url: borrowing CFURL, _ rect: CGRect) {
+        context.setURL(copy url, for: pdfDestinationRect(rect))
+    }
+
+    @_expose(Cxx)
+    func setDestinationForRect(_ name: borrowing CFString, _ rect: CGRect) {
+        context.setDestination(copy name, for: pdfDestinationRect(rect))
+    }
+
+    @_expose(Cxx)
+    func addDestinationAtPoint(_ name: borrowing CFString, _ x: Float, _ y: Float) {
+        // CGPointApplyAffineTransform() is inline: its arithmetic in Swift's, without contraction.
+        let t = context.ctm
+        let px = CGFloat(x)
+        let py = CGFloat(y)
+        context.addDestination(copy name, at: CGPoint(x: t.a * px + t.c * py + t.tx, y: t.b * px + t.d * py + t.ty))
+    }
+
+    // Whether this is a PDF context: beginPage() and endPage() only work in one.
+    @_expose(Cxx)
+    func beginPDFPage(_ pageRect: CGRect) -> Bool {
+        guard isPDFContext else {
+            return false
+        }
+        CGRendererBeginPDFPage(context, pageRect)
+        return true
+    }
+
+    @_expose(Cxx)
+    func endPDFPage() -> Bool {
+        guard isPDFContext else {
+            return false
+        }
+        context.endPDFPage()
+        return true
+    }
+
+    // GraphicsContextCG::drawNativeImage() but for a dynamic range limit, which the C++ draws. The headrooms are the image's and
+    // the options' (0, Headroom::FromImage, for the image's). Returns 0 if it didn't draw, 1 if it drew, 2 if there was nothing
+    // to draw.
     @_expose(Cxx)
     func drawNativeImage(
         _ image: borrowing CGImage,
@@ -1588,8 +1660,12 @@ struct CGRenderer {
         _ optionsInterpolationQuality: WebCore.InterpolationQuality,
         _ orientation: UInt8,
         _ imageHeadroom: Float,
-        _ headroom: Float
+        _ optionsHeadroom: Float
     ) -> UInt8 {
+        var headroom = optionsHeadroom == 0 ? imageHeadroom : optionsHeadroom
+        if let maxEDRHeadroom {
+            headroom = cxxMin(headroom, maxEDRHeadroom)
+        }
         let usesWidthAsHeight = CGRendererOrientation.usesWidthAsHeight(orientation)
         let logicalWidth = usesWidthAsHeight ? imageHeight : imageWidth
         let logicalHeight = usesWidthAsHeight ? imageWidth : imageHeight

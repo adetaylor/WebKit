@@ -86,10 +86,11 @@ enum class GraphicsContextCGCaptureOp : uint16_t {
     FillRectWithGradient,
     DefineFont,
     DrawGlyphs,
+    SetMaxEDRHeadroom,
 };
 
-// 2: brushes start with their kind (0 color, 1 gradient, 2 pattern). 3: fonts and glyphs.
-constexpr uint32_t graphicsContextCGCaptureVersion = 3;
+// 2: brushes start with their kind (0 color, 1 gradient, 2 pattern). 3: fonts and glyphs. 4: setMaxEDRHeadroom().
+constexpr uint32_t graphicsContextCGCaptureVersion = 4;
 
 #if ASSERT_ENABLED
 
@@ -160,6 +161,7 @@ public:
     void drawLinesForText(const FloatPoint&, float thickness, std::span<const FloatSegment>, bool isPrinting, bool doubleLines, StrokeStyle);
     void drawDotsForDocumentMarker(const FloatRect&, DocumentMarkerLineStyle);
     void drawGlyphs(const FontBase&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode);
+    void setMaxEDRHeadroom(std::optional<float>);
     void unsupported(ASCIILiteral);
 
 private:

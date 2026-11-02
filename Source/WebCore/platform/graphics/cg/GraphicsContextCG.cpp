@@ -536,13 +536,8 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
         && options.invertContent() == InvertContent::No
 #endif
         && !(options.dynamicRangeLimit() == PlatformDynamicRangeLimit::standard() && options.drawsHDRContent() == DrawsHDRContent::Yes)) {
-        auto headroom = options.headroom();
-        if (headroom == Headroom::FromImage)
-            headroom = nativeImage.headroom();
-        if (m_maxEDRHeadroom)
-            headroom = Headroom(std::min<float>(headroom, *m_maxEDRHeadroom));
         FloatSize imageSize = nativeImage.size();
-        auto result = swiftRenderer().drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), nativeImage.headroom(), headroom);
+        auto result = swiftRenderer().drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), nativeImage.headroom(), options.headroom());
         if (result == 1)
             m_hasDrawn = true;
         if (result)
@@ -1097,15 +1092,6 @@ bool GraphicsContextCG::shadowColorChangesFill(const Color& shadowColor) const
     return !(fillBrush() == SourceBrush { shadowColor }) || m_state.indeterminateProperties().contains(GraphicsContextState::Change::FillBrush);
 }
 
-float GraphicsContextCG::swiftMaxEDRHeadroom() const
-{
-#if HAVE(SUPPORT_HDR_DISPLAY)
-    return m_maxEDRHeadroom.value_or(0);
-#else
-    return 0;
-#endif
-}
-
 static uint8_t swiftBrushKind(const SourceBrush& brush)
 {
     if (brush.gradient())
@@ -1317,7 +1303,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
             return;
         if (swiftDrawsShadowBlur() && !fillGradient()) {
             auto shadow = dropShadow();
-            renderer.fillRectWithShadowBlur(rect, pattern.get(), shadow->color, shadow->radiusMode == ShadowRadiusMode::Legacy, shadowColorChangesFill(shadow->color), swiftMaxEDRHeadroom());
+            renderer.fillRectWithShadowBlur(rect, pattern.get(), shadow->color, shadow->radiusMode == ShadowRadiusMode::Legacy, shadowColorChangesFill(shadow->color));
             return;
         }
     }
@@ -1370,7 +1356,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
                 return;
             if (swiftDrawsShadowBlur()) {
                 auto shadow = dropShadow();
-                renderer.fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadow->radiusMode == ShadowRadiusMode::Legacy, shadowColorChangesFill(shadow->color), swiftMaxEDRHeadroom());
+                renderer.fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadow->radiusMode == ShadowRadiusMode::Legacy, shadowColorChangesFill(shadow->color));
                 return;
             }
         }
@@ -2291,6 +2277,12 @@ void GraphicsContextCG::setURLForRect(const URL& link, const FloatRect& destRect
         return;
 
     const RetainPtr<CGContextRef>& context = contextForDraw();
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        swiftRenderer().setURLForRect(urlRef.get(), destRect);
+        return;
+    }
+#endif
 
     FloatRect rect = destRect;
     // Get the bounding box to handle clipping.
@@ -2324,6 +2316,12 @@ void GraphicsContextCG::applyDeviceScaleFactor(float deviceScaleFactor)
 {
     CAPTURE(applyDeviceScaleFactor(deviceScaleFactor));
     GraphicsContext::applyDeviceScaleFactor(deviceScaleFactor);
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        swiftRenderer().applyDeviceScaleFactorToBaseCTM(deviceScaleFactor);
+        return;
+    }
+#endif
 
     // CoreGraphics expects the base CTM of a HiDPI context to have the scale factor applied to it.
     // Failing to change the base level CTM will cause certain CG features, such as focus rings,
@@ -2374,6 +2372,21 @@ void GraphicsContextCG::beginPage(const FloatRect& pageRect)
     CAPTURE(unsupported("beginPage"_s));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        if (!swiftRenderer().beginPDFPage(pageRect)) {
+            ASSERT_NOT_REACHED();
+            return;
+        }
+        ASSERT(!stackSize());
+        m_state = GraphicsContextState { GraphicsContextState::basicChangeFlags, coreInterpolationQuality(context.get()) };
+        swiftRenderer().resetState(m_state.imageInterpolationQuality());
+        didUpdateState(m_state);
+        m_userToDeviceTransformKnownToBeIdentity = false;
+        return;
+    }
+#endif
+
     if (CGContextGetType(context) != kCGContextTypePDF) {
         ASSERT_NOT_REACHED();
         return;
@@ -2402,6 +2415,13 @@ void GraphicsContextCG::endPage()
 {
     CAPTURE(unsupported("endPage"_s));
     const RetainPtr<CGContextRef>& context = contextForDraw();
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        if (!swiftRenderer().endPDFPage())
+            ASSERT_NOT_REACHED();
+        return;
+    }
+#endif
 
     if (CGContextGetType(context) != kCGContextTypePDF) {
         ASSERT_NOT_REACHED();
@@ -2420,6 +2440,12 @@ void GraphicsContextCG::setDestinationForRect(const String& name, const FloatRec
 {
     CAPTURE(unsupported("setDestinationForRect"_s));
     const RetainPtr<CGContextRef>& context = contextForDraw();
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        swiftRenderer().setDestinationForRect(name.createCFString().get(), destRect);
+        return;
+    }
+#endif
 
     FloatRect rect = destRect;
     rect.intersect(CGContextGetClipBoundingBox(context));
@@ -2432,6 +2458,12 @@ void GraphicsContextCG::addDestinationAtPoint(const String& name, const FloatPoi
 {
     CAPTURE(unsupported("addDestinationAtPoint"_s));
     const RetainPtr<CGContextRef>& context = contextForDraw();
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer) {
+        swiftRenderer().addDestinationAtPoint(name.createCFString().get(), position.x(), position.y());
+        return;
+    }
+#endif
     CGPoint transformedPoint = CGPointApplyAffineTransform(position, CGContextGetCTM(context));
     CGPDFContextAddDestinationAtPoint(context, name.createCFString().get(), transformedPoint);
 }
@@ -2451,8 +2483,12 @@ bool GraphicsContextCG::consumeHasDrawn()
 #if HAVE(SUPPORT_HDR_DISPLAY)
 void GraphicsContextCG::setMaxEDRHeadroom(std::optional<float> headroom)
 {
-    CAPTURE(unsupported("setMaxEDRHeadroom"_s));
+    CAPTURE(setMaxEDRHeadroom(headroom));
     m_maxEDRHeadroom = headroom;
+#if ENABLE(WEBCORE_SWIFT)
+    if (m_usesSwiftRenderer)
+        swiftRenderer().setMaxEDRHeadroom(headroom.value_or(0), !!headroom);
+#endif
 }
 #endif
 

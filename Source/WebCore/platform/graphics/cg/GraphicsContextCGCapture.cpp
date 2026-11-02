@@ -930,6 +930,14 @@ void GraphicsContextCGCapture::drawGlyphs(const FontBase& font, std::span<const 
     end();
 }
 
+void GraphicsContextCGCapture::setMaxEDRHeadroom(std::optional<float> headroom)
+{
+    begin(Op::SetMaxEDRHeadroom);
+    writeValue(static_cast<uint8_t>(!!headroom));
+    writeValue(headroom.value_or(0));
+    end();
+}
+
 void GraphicsContextCGCapture::drawDotsForDocumentMarker(const FloatRect& rect, DocumentMarkerLineStyle style)
 {
     ++m_draws;

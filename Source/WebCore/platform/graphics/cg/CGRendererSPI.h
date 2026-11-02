@@ -137,6 +137,18 @@ inline void CGRendererDrawGlyphs(CTFontRef font, const CGRendererGlyphRun& run, 
     CTFontDrawGlyphs(font, glyphs.data(), points.data(), std::min(glyphs.size(), points.size()), context);
 }
 
+// CGPDFContextBeginPage() with a media box, whose dictionary holds the rect's bytes.
+inline void CGRendererBeginPDFPage(CGContextRef context, CGRect mediaBox)
+{
+    CFDataRef mediaBoxData = CFDataCreate(nullptr, reinterpret_cast<const UInt8*>(&mediaBox), sizeof(CGRect));
+    const void* key = kCGPDFContextMediaBox;
+    const void* value = mediaBoxData;
+    CFDictionaryRef pageInfo = CFDictionaryCreate(kCFAllocatorDefault, &key, &value, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    CGPDFContextBeginPage(context, pageInfo);
+    CFRelease(pageInfo);
+    CFRelease(mediaBoxData);
+}
+
 // CGContextDrawTiledImage(), which Swift's overlay doesn't let draw a null image; the C++ does when the tile is outside the
 // image, and that changes how CG draws next.
 inline void CGRendererDrawTiledImage(CGContextRef context, CGRect rect, CGImageRef _Nullable image)
