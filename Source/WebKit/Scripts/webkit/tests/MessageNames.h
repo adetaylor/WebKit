@@ -306,6 +306,8 @@ enum class MessageName : uint16_t {
     LastAsynchronous = FirstSynchronous - 1,
     TestWithLegacyReceiver_GetPluginProcessConnection,
     TestWithLegacyReceiver_TestMultipleAttributes,
+    TestWithStreamSwiftTypes_SendEmptySync,
+    TestWithStreamSwiftTypes_SendStringSync,
     TestWithStreamSwift_SendStringSync,
 #if PLATFORM(COCOA)
     TestWithStream_ReceiveMachSendRight,
