@@ -58,6 +58,7 @@ struct RemoteCDMRegistry::SwiftReceivers {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(SwiftReceivers);
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
     std::unique_ptr<RemoteCDMFactoryProxy> factory;
+    HashMap<RemoteCDMIdentifier, std::unique_ptr<RemoteCDMProxy>> cdms;
 #endif
 };
 
@@ -94,6 +95,9 @@ RemoteCDMRegistry::~RemoteCDMRegistry()
 void RemoteCDMRegistry::clear()
 {
     m_cdms.clear();
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+    m_swiftReceivers->cdms.clear();
+#endif
 }
 
 void RemoteCDMRegistry::didReceiveFactoryMessage(IPC::Connection& connection, IPC::Decoder& decoder)
@@ -194,7 +198,13 @@ std::optional<RemoteCDMIdentifier> RemoteCDMRegistry::createCDM(const String& ke
     configuration = handle->configuration();
     auto identifier = RemoteCDMIdentifier::generate();
     ASSERT(!m_cdms.contains(identifier));
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+    auto cdm = makeUniqueWithoutFastMallocCheck<RemoteCDMProxy>(RemoteCDMProxy::init(this, handle.ptr()));
+    m_cdms.set(identifier, cdm->getMessageReceiver());
+    m_swiftReceivers->cdms.set(identifier, WTF::move(cdm));
+#else
     m_cdms.set(identifier, RemoteCDMProxy::create(*this, WTF::move(handle)));
+#endif
     return identifier;
 }
 
