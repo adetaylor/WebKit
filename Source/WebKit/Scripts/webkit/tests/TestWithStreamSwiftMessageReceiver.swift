@@ -33,13 +33,8 @@ final class TestWithStreamSwiftWeakRef: @unchecked Sendable {
     }
 
     @used
-    func getMessageTarget() -> TestWithStreamSwift? {
-        target
-    }
-
-    @used
     func dispatchSendString(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         url: sending WTF.String
     ) {
         assert(connection.isCurrentWorkQueue())
@@ -60,7 +55,7 @@ final class TestWithStreamSwiftWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendStringSync(
-        connection: sending IPC.StreamServerConnection,
+        connection: IPC.StreamServerConnection,
         url: sending WTF.String,
         completionHandler: sending CompletionHandlers.TestWithStreamSwift.SendStringSyncCompletionHandler
     ) {

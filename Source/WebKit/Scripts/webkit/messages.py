@@ -1032,7 +1032,8 @@ def generate_messages_header(receiver):
             result.append('    void deref() const final { RefCounted::deref(); }\n')
         result.append('private:\n')
         result.append('    ' + forwarder_class + '(' + handler_namespace + '::' + weak_ref_class + '* WTF_NONNULL);\n')
-        result.append('    std::optional<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
+        if not is_stream:
+            result.append('    std::optional<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
         result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
         result.append('} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);\n\n')
         if receiver_needs_shared_preferences(receiver):
@@ -2137,27 +2138,26 @@ def generate_target_and_enabled_by_statements(receiver, messages):
     connection_argument = 'connection' if receiver.shared_preferences_needs_connection else ''
 
     def append_swift_statements(result):
-        result.append('    auto target = getMessageTarget();\n')
         if receiver.has_attribute(STREAM_ATTRIBUTE):
-            # Stream receivers hold the target weakly and dispatch off the main thread, so a null
-            # target is a benign teardown race that must not crash the process. Mark the message
-            # invalid, which tears the stream connection down cleanly.
-            result.append('    if (!target) {\n')
-            result.append('        decoder.markInvalid();\n')
-            result.append('        return;\n')
-            result.append('    }\n')
-        else:
-            # If target is a nullptr, this means the Swift message receiver has been destroyed.
-            # This makes no sense, since that Swift message receiver owns this class, the C++
-            # message forwarder, so we should also have been destroyed. If this happens,
-            # something somewhere is keeping an unexpected reference alive.
-            # In debug builds, crash. In release builds, attempt to survive by behaving as if
-            # corrupted data was received from the sender.
-            result.append('    if (!target) {\n')
-            result.append('        FATAL("Something is keeping a reference to the message forwarder");\n')
-            result.append('        decoder.markInvalid();\n')
-            result.append('        return;\n')
-            result.append('    }\n')
+            # A stream receiver's target is held weakly and checked by its Swift dispatch, which decodes the message
+            # first, so a target gone in a benign teardown race leaves the stream buffer in step. Asking Swift for the
+            # target here as well costs more than the dispatch itself. A gone target has no shared preferences, so a
+            # receiver with EnabledBy marks the message invalid then.
+            if needs_shared_preferences:
+                result.append('    auto sharedPreferences = m_handler->sharedPreferencesForWebProcess();\n')
+            return
+        result.append('    auto target = getMessageTarget();\n')
+        # If target is a nullptr, this means the Swift message receiver has been destroyed.
+        # This makes no sense, since that Swift message receiver owns this class, the C++
+        # message forwarder, so we should also have been destroyed. If this happens,
+        # something somewhere is keeping an unexpected reference alive.
+        # In debug builds, crash. In release builds, attempt to survive by behaving as if
+        # corrupted data was received from the sender.
+        result.append('    if (!target) {\n')
+        result.append('        FATAL("Something is keeping a reference to the message forwarder");\n')
+        result.append('        decoder.markInvalid();\n')
+        result.append('        return;\n')
+        result.append('    }\n')
         if needs_shared_preferences:
             result.append('    auto sharedPreferences = target->sharedPreferencesForWebProcess(%s);\n' % connection_argument)
 
@@ -2314,19 +2314,14 @@ def generate_message_handler(receiver):
         result.append('}\n')
         result.append('\n')
 
-        result.append('std::optional<%s> %s::getMessageTarget()\n' % (class_name, forwarder_class))
-        result.append('{\n')
-        if receiver.has_attribute(STREAM_ATTRIBUTE):
-            result.append('    auto target = m_handler->getMessageTarget();\n')
-            result.append('    if (target)\n')
-            result.append('        return target.get();\n')
-            result.append('    return std::nullopt;\n')
-        else:
+        if not receiver.has_attribute(STREAM_ATTRIBUTE):
+            result.append('std::optional<%s> %s::getMessageTarget()\n' % (class_name, forwarder_class))
+            result.append('{\n')
             result.append('    if (!m_handler->hasMessageTarget())\n')
             result.append('        return std::nullopt;\n')
             result.append('    return m_handler->messageTarget();\n')
-        result.append('}\n')
-        result.append('\n')
+            result.append('}\n')
+            result.append('\n')
 
         result.append('%s::~%s()\n' % (forwarder_class, forwarder_class))
         result.append('{\n')
@@ -2462,16 +2457,21 @@ def generate_swift_message_handler(receiver):
     result.append('    init(target: %s) {\n' % (class_name))
     result.append('        self.target = target\n')
     result.append('    }\n')
-    result.append('\n')
     # @used ensures these are retained even with -O -wmo: rdar://179098545
     if receiver.has_attribute(STREAM_ATTRIBUTE):
-        result.append('    @used\n')
-        result.append('    func getMessageTarget() -> %s? {\n' % (class_name))
-        result.append('        target\n')
-        result.append('    }\n')
+        if receiver_needs_shared_preferences(receiver):
+            result.append('\n')
+            result.append('    @used\n')
+            result.append('    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {\n')
+            result.append('        guard let target else {\n')
+            result.append('            return WebKit.OptionalSharedPreferencesForWebProcess()\n')
+            result.append('        }\n')
+            result.append('        return target.sharedPreferencesForWebProcess()\n')
+            result.append('    }\n')
     else:
         # Two calls rather than one returning an Optional, which C++ handles through Swift's generic
         # value witnesses. Both are on the main thread, so the target can't go away between them.
+        result.append('\n')
         result.append('    @used\n')
         result.append('    func hasMessageTarget() -> Bool {\n')
         result.append('        target != nil\n')
@@ -2503,7 +2503,7 @@ def generate_swift_message_handler(receiver):
         has_reply = message.reply_parameters is not None
         # `sending` rather than marking these types Sendable: C++ hands each value to dispatch and
         # does not use it again, which is a far narrower claim than the type being safe to share.
-        parameters = ['connection: sending %s' % connection_type]
+        parameters = ['connection: %s%s' % ('' if receiver.has_attribute(STREAM_ATTRIBUTE) else 'sending ', connection_type)]
         arguments = ['connection: connection']
         decoded_parameters = []
         for parameter in message.parameters:

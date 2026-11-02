@@ -28,6 +28,7 @@
 #if ENABLE(IPC_TESTING_API)
 
 #include "IPCStreamTesterIdentifier.h"
+#include "IPCTesterPayload.h"
 #include "ScopedActiveMessageReceiveQueue.h"
 #include "StreamMessageReceiver.h"
 #include "StreamServerConnection.h"
@@ -54,6 +55,7 @@ class IPCStreamTester final : public IPC::StreamServerConnection::Client {
 public:
     static RefPtr<IPCStreamTester> create(IPCStreamTesterIdentifier, IPC::StreamServerConnection::Handle&&, bool ignoreInvalidMessageForTesting);
     void stopListeningForIPC(Ref<IPCStreamTester>&& refFromConnection);
+    std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const { return ipcTesterSharedPreferences(); }
     // Only valid after stopListeningForIPC(), once the work queue has stopped.
     uint32_t invalidMessageCount() const { return m_invalidMessages; }
 
@@ -84,6 +86,7 @@ private:
     void benchString(String&& text) { m_benchSink += text.length(); }
     void benchVector(Vector<uint32_t>&& values) { m_benchSink += values.size(); }
     void benchSync(uint64_t value, CompletionHandler<void(uint64_t)>&& completionHandler) { completionHandler(value); }
+    void benchEnabledFourValues(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { m_benchSink += a + b + c + d; }
 
     const Ref<IPC::StreamConnectionWorkQueue> m_workQueue;
     const Ref<IPC::StreamServerConnection> m_streamConnection;
