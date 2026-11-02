@@ -95,12 +95,13 @@ namespace WebGPU {
 
 // The object heap's entry for a receiver written in Swift. It owns the receiver, keeps the backing that other
 // receivers look up by identifier, and keeps the receiver's messages coming for as long as it exists, as
-// IPC::ScopedActiveMessageReceiveQueue does for a receiver written in C++.
+// IPC::ScopedActiveMessageReceiveQueue does for a receiver written in C++. It also gives the receiver's message
+// forwarder the shared preferences from C++, so that dispatching a message doesn't ask Swift for them.
 template<typename Backing, typename SwiftReceiver>
 class SwiftReceiverObject {
     WTF_MAKE_NONCOPYABLE(SwiftReceiverObject);
 public:
-    SwiftReceiverObject(Backing& backing, SwiftReceiver&& receiver, IPC::StreamServerConnection& streamConnection, IPC::ReceiverName receiverName, WebGPUIdentifier identifier)
+    SwiftReceiverObject(Backing& backing, SwiftReceiver&& receiver, const WebGPUSwiftReceiverContext& context, IPC::StreamServerConnection& streamConnection, IPC::ReceiverName receiverName, WebGPUIdentifier identifier)
         : m_backing(backing)
         , m_receiver(WTF::makeUniqueWithoutFastMallocCheck<SwiftReceiver>(WTF::move(receiver)))
         , m_streamConnection(&streamConnection)
@@ -108,6 +109,9 @@ public:
         , m_identifier(identifier)
     {
         Ref messageReceiver = m_receiver->getMessageReceiver();
+        messageReceiver->setSharedPreferencesProvider([context] {
+            return context.sharedPreferencesForWebProcess();
+        });
         streamConnection.startReceivingMessages(messageReceiver, receiverName, identifier.toUInt64());
     }
 
