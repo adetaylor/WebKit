@@ -63,6 +63,11 @@
 #include <WebCore/WebGPUShaderModuleDescriptor.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "RemoteQuerySetMessages.h"
+#include "WebKit-Swift.h"
+#endif
+
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_streamConnection)
 #define MESSAGE_CHECK_COMPLETION(assertion, completion) MESSAGE_CHECK_COMPLETION_BASE(assertion, m_streamConnection, completion)
 
@@ -413,8 +418,13 @@ void RemoteDevice::createQuerySet(const WebGPU::QuerySetDescriptor& descriptor, 
     Ref objectHeap = m_objectHeap.get();
     auto querySet = m_backing->createQuerySet(descriptor);
     MESSAGE_CHECK(querySet);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    auto remoteQuerySet = RemoteQuerySet::init(RemoteQuerySetBacking { *querySet }, WebGPUSwiftReceiverContext { objectHeap, protect(m_gpu), identifier });
+    objectHeap->addObject(identifier, WebGPU::QuerySetObject { *querySet, WTF::move(remoteQuerySet), protect(m_streamConnection), Messages::RemoteQuerySet::messageReceiverName(), identifier });
+#else
     auto remoteQuerySet = RemoteQuerySet::create(*querySet, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteQuerySet);
+#endif
 }
 
 void RemoteDevice::pushErrorScope(::WebGPU::ErrorFilter errorFilter)

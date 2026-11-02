@@ -36,3 +36,8 @@
 #include "RemoteCDMProxyMessages.h"
 #include "RemoteCDMSwiftSupport.h"
 #endif
+
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "RemoteQuerySetMessages.h"
+#include "WebGPUSwiftSupport.h"
+#endif

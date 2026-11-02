@@ -43,6 +43,9 @@
 #include "RemotePipelineLayout.h"
 #include "RemotePresentationContext.h"
 #include "RemoteQuerySet.h"
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "WebKit-Swift.h"
+#endif
 #include "RemoteQueue.h"
 #include "RemoteRenderBundle.h"
 #include "RemoteRenderBundleEncoder.h"
@@ -156,11 +159,19 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemotePresentationContex
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteQuerySet& querySet)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addObject(WebGPUIdentifier identifier, QuerySetObject&& querySet)
 {
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet> { protect(querySet) } });
+    auto result = m_objects.add(identifier, Object { WTF::move(querySet) });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#else
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteQuerySet& querySet)
+{
+    auto result = m_objects.add(identifier, Object { QuerySetObject { protect(querySet) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteQueue& queue)
 {
@@ -363,9 +374,9 @@ RefPtr<::WebGPU::PresentationContext> ObjectHeap::convertPresentationContextFrom
 RefPtr<::WebGPU::QuerySet> ObjectHeap::convertQuerySetFromBacking(WebGPUIdentifier identifier)
 {
     auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>>(iterator->value))
+    if (iterator == m_objects.end() || !std::holds_alternative<QuerySetObject>(iterator->value))
         return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>>(iterator->value)->backing();
+    return &std::get<QuerySetObject>(iterator->value)->backing();
 }
 
 RefPtr<::WebGPU::Queue> ObjectHeap::convertQueueFromBacking(WebGPUIdentifier identifier)

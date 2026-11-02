@@ -70,6 +70,11 @@
 #include "RemoteCDMSwiftSupport.h"
 #endif
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "RemoteQuerySetMessages.h"
+#include "WebGPUSwiftSupport.h"
+#endif
+
 #if ENABLE(PHONE_NUMBER_POSSESSION)
 #include "PhoneNumberPossessionTypes.h"
 #endif
