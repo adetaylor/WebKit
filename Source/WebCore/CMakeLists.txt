@@ -3548,6 +3548,10 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         webkit_target_add_swift_options(WebCore "-D USE_SWIFT_CSS_PROPERTY_CONSUMERS" "-Xcc -DUSE_SWIFT_CSS_PROPERTY_CONSUMERS=1")
         list(APPEND _webcore_swift_core_submodules css/parser/CSSPropertyConsumerSwiftTypes.h)
     endif ()
+    if (WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS_2)
+        webkit_target_add_swift_options(WebCore "-D USE_SWIFT_CSS_PROPERTY_CONSUMERS_2" "-Xcc -DUSE_SWIFT_CSS_PROPERTY_CONSUMERS_2=1")
+        list(APPEND _webcore_swift_core_submodules css/parser/CSSParserIdioms.h)
+    endif ()
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
 
     # WK_USE_SWIFT_IMAGE_DECODERS has no WebCore.xcconfig counterpart: these decoders build only in the CMake ports
