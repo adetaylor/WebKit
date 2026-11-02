@@ -33,6 +33,7 @@
 #include "RemoteCDMRegistry.h"
 #include "SwiftCoding.h"
 #include <WebCore/CDMInstance.h>
+#include <WebCore/CDMInstanceSession.h>
 #include <WebCore/CDMKeySystemConfiguration.h>
 #include <WebCore/CDMMediaCapability.h>
 #include <wtf/CompletionHandler.h>
@@ -157,6 +158,41 @@ using RemoteCDMInstanceSuccessCompletionHandler = CompletionHandler<void(WebCore
 void initializeRemoteCDMInstance(WebCore::CDMInstance&, RemoteCDMKeySystemConfigurationBuilder&, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&&);
 void setRemoteCDMInstanceServerCertificate(WebCore::CDMInstance&, WebCore::SharedBuffer&, RemoteCDMInstanceSuccessCompletionHandler&&);
 void setRemoteCDMInstanceStorageDirectory(WebCore::CDMInstance&, const String&);
+
+// A CDMInstanceSession's result, encoded as the reply of the session's message encodes it, so that Swift decodes
+// it with the coders of its messages.
+class RemoteCDMEncodedReply {
+    WTF_MAKE_NONCOPYABLE(RemoteCDMEncodedReply);
+public:
+    explicit RemoteCDMEncodedReply(IPC::Encoder&);
+    RemoteCDMEncodedReply(RemoteCDMEncodedReply&&);
+    ~RemoteCDMEncodedReply();
+
+    IPC::SwiftDecoder swiftDecoder() const LIFETIME_BOUND { return m_decoder.swiftDecoder(); }
+
+private:
+    IPC::SwiftOwnedDecoder m_decoder;
+} SWIFT_SELF_CONTAINED;
+
+inline IPC::SwiftDecoder swiftDecoder(const RemoteCDMEncodedReply& reply LIFETIME_BOUND)
+{
+    return reply.swiftDecoder();
+}
+
+using RemoteCDMEncodedReplyCompletionHandler = CompletionHandler<void(RemoteCDMEncodedReply&&)>;
+
+// The CDMPrivate checks of the session's messages.
+bool remoteCDMSupportsInitData(const RemoteCDMPrivateHandleWeakReference&, const String& initDataType, const WebCore::SharedBuffer& initData);
+WebCore::SharedBuffer* WTF_NULLABLE sanitizeRemoteCDMResponse(const RemoteCDMPrivateHandleWeakReference&, const WebCore::SharedBuffer& response) SWIFT_RETURNS_RETAINED;
+bool sanitizeRemoteCDMSessionId(const RemoteCDMPrivateHandleWeakReference&, const String& sessionId, String& sanitizedSessionId);
+
+void setRemoteCDMInstanceSessionLogIdentifier(WebCore::CDMInstanceSession&, uint64_t logIdentifier);
+void requestRemoteCDMLicense(WebCore::CDMInstanceSession&, uint8_t type, bool keyGroupingStrategy, const String& initDataType, WebCore::SharedBuffer& initData, RemoteCDMEncodedReplyCompletionHandler&&);
+void updateRemoteCDMLicense(WebCore::CDMInstanceSession&, const String& sessionId, uint8_t type, WebCore::SharedBuffer& response, RemoteCDMEncodedReplyCompletionHandler&&);
+void loadRemoteCDMSession(WebCore::CDMInstanceSession&, uint8_t type, const String& sessionId, const String& origin, RemoteCDMEncodedReplyCompletionHandler&&);
+void closeRemoteCDMSession(WebCore::CDMInstanceSession&, const String& sessionId, WTF::VoidCompletionHandler&&);
+void removeRemoteCDMSessionData(WebCore::CDMInstanceSession&, const String& sessionId, uint8_t type, RemoteCDMEncodedReplyCompletionHandler&&);
+void storeRemoteCDMRecordOfKeyUsage(WebCore::CDMInstanceSession&, const String& sessionId);
 
 } // namespace WebKit
 
