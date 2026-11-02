@@ -1100,9 +1100,18 @@ header: <WebCore/CDMPrivate.h>
     NotAllowed,
     Allowed,
 };
-enum class WebCore::CDMInstanceAllowPersistentState : bool
-enum class WebCore::CDMInstanceSuccessValue : bool
-enum class WebCore::CDMInstanceAllowDistinctiveIdentifiers : bool
+[Swift] enum class WebCore::CDMInstanceAllowPersistentState : bool {
+    No,
+    Yes,
+};
+[Swift] enum class WebCore::CDMInstanceSuccessValue : bool {
+    Failed,
+    Succeeded,
+};
+[Swift] enum class WebCore::CDMInstanceAllowDistinctiveIdentifiers : bool {
+    No,
+    Yes,
+};
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(LEGACY_ENCRYPTED_MEDIA)

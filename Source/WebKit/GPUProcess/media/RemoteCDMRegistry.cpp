@@ -44,6 +44,7 @@
 #include <wtf/TZoneMallocInlines.h>
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
+#include "RemoteCDMInstanceMessages.h"
 #include "WebKit-Swift.h"
 #endif
 
@@ -54,11 +55,83 @@ using namespace WebCore;
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMRegistry);
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMPrivateHandle);
 
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+
+// The CDMInstanceClient of a CDM instance whose RemoteCDMInstanceProxy is in Swift.
+class RemoteCDMInstanceClient final : public CDMInstanceClient, public RefCounted<RemoteCDMInstanceClient> {
+    WTF_MAKE_TZONE_ALLOCATED(RemoteCDMInstanceClient);
+public:
+    USING_CAN_MAKE_WEAKPTR(CDMInstanceClient);
+
+    static Ref<RemoteCDMInstanceClient> create(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, CDMInstance& instance, RemoteCDMInstanceIdentifier identifier)
+    {
+        return adoptRef(*new RemoteCDMInstanceClient(registry, cdm, instance, identifier));
+    }
+
+    ~RemoteCDMInstanceClient()
+    {
+        m_instance->clearClient();
+    }
+
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
+
+private:
+    RemoteCDMInstanceClient(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, CDMInstance& instance, RemoteCDMInstanceIdentifier identifier)
+        : m_registry(registry)
+        , m_cdm(cdm)
+        , m_instance(instance)
+        , m_identifier(identifier)
+#if !RELEASE_LOG_DISABLED
+        , m_logger(cdm.logger())
+        , m_logIdentifier(cdm.logIdentifier())
+#endif
+    {
+        m_instance->setClient(*this);
+    }
+
+    void unrequestedInitializationDataReceived(const String& type, Ref<SharedBuffer>&& initData) final
+    {
+        if (!m_cdm)
+            return;
+
+        RefPtr registry = m_registry;
+        if (!registry)
+            return;
+
+        RefPtr gpuConnectionToWebProcess = registry->gpuConnectionToWebProcess();
+        if (!gpuConnectionToWebProcess)
+            return;
+
+        gpuConnectionToWebProcess->connection().send(Messages::RemoteCDMInstance::UnrequestedInitializationDataReceived(type, WTF::move(initData)), m_identifier);
+    }
+
+#if !RELEASE_LOG_DISABLED
+    const Logger& logger() const final { return m_logger; }
+    uint64_t logIdentifier() const final { return m_logIdentifier; }
+#endif
+
+    WeakPtr<RemoteCDMRegistry> m_registry;
+    WeakPtr<RemoteCDMPrivateHandle> m_cdm;
+    const Ref<CDMInstance> m_instance;
+    RemoteCDMInstanceIdentifier m_identifier;
+#if !RELEASE_LOG_DISABLED
+    const Ref<const Logger> m_logger;
+    const uint64_t m_logIdentifier;
+#endif
+};
+
+WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMInstanceClient);
+
+#endif // ENABLE(GPU_PROCESS_CDM_SWIFT)
+
 struct RemoteCDMRegistry::SwiftReceivers {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(SwiftReceivers);
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
     std::unique_ptr<RemoteCDMFactoryProxy> factory;
     HashMap<RemoteCDMIdentifier, std::unique_ptr<RemoteCDMProxy>> cdms;
+    HashMap<RemoteCDMInstanceIdentifier, std::unique_ptr<RemoteCDMInstanceProxy>> instances;
+    HashMap<RemoteCDMInstanceIdentifier, Ref<RemoteCDMInstanceClient>> instanceClients;
 #endif
 };
 
@@ -213,8 +286,20 @@ std::optional<RemoteCDMInstanceIdentifier> RemoteCDMRegistry::createInstance(Rem
     configuration = { instance->keySystem() };
     auto identifier = RemoteCDMInstanceIdentifier::generate();
     ASSERT(!m_instances.contains(identifier));
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+#if !RELEASE_LOG_DISABLED
+    auto logIdentifier = cdm.logIdentifier();
+#else
+    uint64_t logIdentifier = 0;
+#endif
+    auto instanceProxy = makeUniqueWithoutFastMallocCheck<RemoteCDMInstanceProxy>(RemoteCDMInstanceProxy::init(this, &cdm, instance.ptr(), logIdentifier));
+    m_instances.set(identifier, instanceProxy->getMessageReceiver());
+    m_swiftReceivers->instances.set(identifier, WTF::move(instanceProxy));
+    m_swiftReceivers->instanceClients.set(identifier, RemoteCDMInstanceClient::create(*this, cdm, instance, identifier));
+#else
     Ref instanceProxy = RemoteCDMInstanceProxy::create(*this, cdm, instance.copyRef(), identifier);
     m_instances.set(identifier, Ref<IPC::MessageReceiver> { instanceProxy.get() });
+#endif
     m_cdmInstances.set(identifier, WTF::move(instance));
     return identifier;
 }
@@ -232,6 +317,10 @@ void RemoteCDMRegistry::removeInstance(const RemoteCDMInstanceIdentifier& identi
 {
     ASSERT(m_instances.contains(identifier));
     m_instances.remove(identifier);
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+    m_swiftReceivers->instanceClients.remove(identifier);
+    m_swiftReceivers->instances.remove(identifier);
+#endif
     m_cdmInstances.remove(identifier);
     RefPtr connection = m_gpuConnectionToWebProcess.get();
     if (connection && allowsExitUnderMemoryPressure())
