@@ -663,6 +663,14 @@ void handleSwiftMessage(Connection& connection, Decoder& decoder, T* object, MF 
 }
 
 template<typename MessageType, typename T, typename U, typename MF>
+void handleSwiftMessage(StreamServerConnection& connection, Decoder& decoder, T* object, MF U::* function)
+{
+    NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
+    SUPPRESS_UNCOUNTED_ARG if (!(object->*function)(&connection, swiftDecoderLender.view()))
+        markSwiftArgumentsInvalid(decoder);
+}
+
+template<typename MessageType, typename T, typename U, typename MF>
 void handleSwiftMessageAsync(Connection& connection, Decoder& decoder, T* object, MF U::* function)
 {
     Ref replyEncoder = SwiftReplyEncoder::create(connection, makeUniqueRef<Encoder>(MessageType::asyncMessageReplyName(), decoder.asyncReplyID().toUInt64()), encodeDefaultSwiftReply<MessageType>);

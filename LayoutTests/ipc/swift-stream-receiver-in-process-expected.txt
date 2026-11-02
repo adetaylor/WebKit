@@ -1,0 +1,3 @@
+
+PASS Test that a Swift stream receiver handles messages sent through the stream buffer.
+

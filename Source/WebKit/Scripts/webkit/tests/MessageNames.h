@@ -61,22 +61,23 @@ enum class ReceiverName : uint8_t {
     , TestWithStreamServerConnectionHandle = 17
     , TestWithStreamSwift = 18
     , TestWithStreamSwiftEnabledBy = 19
-    , TestWithSuperclass = 20
-    , TestWithSuperclassAndWantsAsyncDispatch = 21
-    , TestWithSuperclassAndWantsDispatch = 22
-    , TestWithSwift = 23
-    , TestWithSwiftConditionally = 24
-    , TestWithSwiftConditionallyAndEnabledBy = 25
-    , TestWithSwiftTypes = 26
-    , TestWithSwiftTypesOptIn = 27
-    , TestWithValidator = 28
-    , TestWithWantsAsyncDispatch = 29
-    , TestWithWantsDispatch = 30
-    , TestWithWantsDispatchNoSyncMessages = 31
-    , TestWithoutAttributes = 32
-    , TestWithoutUsingIPCConnection = 33
-    , IPC = 34
-    , Invalid = 35
+    , TestWithStreamSwiftTypes = 20
+    , TestWithSuperclass = 21
+    , TestWithSuperclassAndWantsAsyncDispatch = 22
+    , TestWithSuperclassAndWantsDispatch = 23
+    , TestWithSwift = 24
+    , TestWithSwiftConditionally = 25
+    , TestWithSwiftConditionallyAndEnabledBy = 26
+    , TestWithSwiftTypes = 27
+    , TestWithSwiftTypesOptIn = 28
+    , TestWithValidator = 29
+    , TestWithWantsAsyncDispatch = 30
+    , TestWithWantsDispatch = 31
+    , TestWithWantsDispatchNoSyncMessages = 32
+    , TestWithoutAttributes = 33
+    , TestWithoutUsingIPCConnection = 34
+    , IPC = 35
+    , Invalid = 36
 };
 
 enum class MessageName : uint16_t {
@@ -147,6 +148,9 @@ enum class MessageName : uint16_t {
     TestWithStreamBuffer_SendStreamBuffer,
     TestWithStreamServerConnectionHandle_SendStreamServerConnection,
     TestWithStreamSwiftEnabledBy_SendString,
+    TestWithStreamSwiftTypes_SendCxxString,
+    TestWithStreamSwiftTypes_SendString,
+    TestWithStreamSwiftTypes_SendValues,
     TestWithStreamSwift_SendString,
     TestWithStream_CallWithIdentifierReply,
 #if PLATFORM(COCOA)

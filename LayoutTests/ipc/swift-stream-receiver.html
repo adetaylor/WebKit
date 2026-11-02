@@ -23,6 +23,12 @@ async function runTest() {
                 streamConnection.sendMessage(streamTesterID, IPC.messages.IPCSwiftStreamTester_Record.name, [{ type: 'uint32_t', value }]);
                 expectedDigest = (Math.imul(expectedDigest, 31) + value) >>> 0;
             }
+            for (const text of ['ascii', 'caf\u00e9', '\u65e5\u672c\u8a9e \u263a']) {
+                streamConnection.sendMessage(streamTesterID, IPC.messages.IPCSwiftStreamTester_RecordTextSwift.name, [{ type: 'String', value: text }]);
+                for (const byte of new TextEncoder().encode(text))
+                    expectedDigest = (Math.imul(expectedDigest, 31) + byte) >>> 0;
+                expectedDigest = Math.imul(expectedDigest, 31) >>> 0;
+            }
             const digestReply = streamConnection.sendSyncMessage(streamTesterID, IPC.messages.IPCSwiftStreamTester_TakeRecordedDigest.name, []);
             assert_equals(digestReply.arguments[0].value, expectedDigest, `TakeRecordedDigest for ${processTarget}`);
 
