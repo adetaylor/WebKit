@@ -191,7 +191,7 @@ struct WebCore::MediaConstraints {
 #endif
 
 #if ENABLE(ENCRYPTED_MEDIA)
-struct WebCore::CDMKeySystemConfiguration {
+[Swift] struct WebCore::CDMKeySystemConfiguration {
     String label;
     Vector<AtomString> initDataTypes;
     Vector<WebCore::CDMMediaCapability> audioCapabilities;
@@ -204,17 +204,20 @@ struct WebCore::CDMKeySystemConfiguration {
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
-enum class WebCore::CDMEncryptionScheme : bool;
+[Swift] enum class WebCore::CDMEncryptionScheme : bool {
+    cenc,
+    cbcs,
+};
 
 enum class WebCore::CDMKeyGroupingStrategy : bool;
 
-struct WebCore::CDMMediaCapability {
+[Swift] struct WebCore::CDMMediaCapability {
     String contentType;
     String robustness;
     std::optional<WebCore::CDMEncryptionScheme> encryptionScheme;
 };
 
-enum class WebCore::CDMSessionType : uint8_t {
+[Swift] enum class WebCore::CDMSessionType : uint8_t {
     Temporary,
     PersistentUsageRecord,
     PersistentLicense
@@ -342,7 +345,7 @@ enum class WebCore::CDMMessageType : uint8_t {
     IndividualizationRequest
 };
 
-enum class WebCore::CDMRequirement : uint8_t {
+[Swift] enum class WebCore::CDMRequirement : uint8_t {
     Required,
     Optional,
     NotAllowed
@@ -1093,7 +1096,10 @@ enum class WebCore::PlatformMediaError : uint8_t {
 
 #if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
 header: <WebCore/CDMPrivate.h>
-enum class WebCore::CDMPrivateLocalStorageAccess : bool
+[Swift] enum class WebCore::CDMPrivateLocalStorageAccess : bool {
+    NotAllowed,
+    Allowed,
+};
 enum class WebCore::CDMInstanceAllowPersistentState : bool
 enum class WebCore::CDMInstanceSuccessValue : bool
 enum class WebCore::CDMInstanceAllowDistinctiveIdentifiers : bool

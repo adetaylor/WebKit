@@ -1022,6 +1022,7 @@ if (SWIFT_REQUIRED)
     if (APPLE)
         list(APPEND WebKit_SWIFT_INTEROP_SOURCES
             ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp
+            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp
 
             GPUProcess/media/RemoteCDMRegistry.cpp
 
@@ -1629,10 +1630,13 @@ endif ()
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMFactoryProxyMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMProxyMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/media/RemoteCDMFactoryProxy.swift
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteCDMProxy.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMFactoryProxyMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMProxyMessageReceiver.swift
     )
 endif ()
 

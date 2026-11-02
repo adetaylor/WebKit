@@ -22,7 +22,7 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
 
-struct WebKit::RemoteCDMInstanceConfiguration {
+[Swift] struct WebKit::RemoteCDMInstanceConfiguration {
     String keySystem;
 };
 
