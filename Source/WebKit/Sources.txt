@@ -962,6 +962,7 @@ WebProcess/XR/PlatformXRSystemProxy.cpp
 AudioVideoRendererRemoteMessageReceiverMessageReceiver.cpp
 IPCConnectionTesterMessageReceiver.cpp
 IPCStreamTesterMessageReceiver.cpp
+IPCSwiftStreamTesterMessageReceiver.cpp
 IPCTesterMessageReceiver.cpp
 IPCTesterReceiverMessageReceiver.cpp
 ModelProcessModelPlayerManagerProxyMessageReceiver.cpp

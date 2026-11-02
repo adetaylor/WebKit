@@ -104,6 +104,7 @@ public:
     void stopReceivingMessages(ReceiverName, uint64_t destinationID);
 
     Connection& connection() { return m_connection; }
+    bool isCurrentWorkQueue() const;
 
     enum DispatchResult : bool {
         HasNoMessages,

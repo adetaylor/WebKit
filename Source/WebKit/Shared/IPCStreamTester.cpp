@@ -35,6 +35,11 @@
 #include "StreamServerConnection.h"
 #include <wtf/WTFProcess.h>
 
+#if ENABLE(IPC_TESTING_SWIFT)
+#include "IPCSwiftStreamTesterMessages.h"
+#include "WebKit-Swift.h"
+#endif
+
 #if USE(FOUNDATION)
 #include <CoreFoundation/CoreFoundation.h>
 #endif
@@ -64,6 +69,11 @@ void IPCStreamTester::initialize()
     protect(workQueue())->dispatch([this] {
         m_streamConnection->open(*this, protect(workQueue()));
         m_streamConnection->startReceivingMessages(*this, Messages::IPCStreamTester::messageReceiverName(), m_identifier.toUInt64());
+#if ENABLE(IPC_TESTING_SWIFT)
+        m_swiftTester = WTF::makeUniqueWithoutFastMallocCheck<IPCSwiftStreamTester>(IPCSwiftStreamTester::init());
+        Ref swiftReceiver = m_swiftTester->getMessageReceiver();
+        m_streamConnection->startReceivingMessages(swiftReceiver, Messages::IPCSwiftStreamTester::messageReceiverName(), m_identifier.toUInt64());
+#endif
     });
 }
 
@@ -72,6 +82,10 @@ void IPCStreamTester::stopListeningForIPC(Ref<IPCStreamTester>&& refFromConnecti
     Ref workQueue = m_workQueue;
     workQueue->dispatch([this] {
         m_streamConnection->stopReceivingMessages(Messages::IPCStreamTester::messageReceiverName(), m_identifier.toUInt64());
+#if ENABLE(IPC_TESTING_SWIFT)
+        m_streamConnection->stopReceivingMessages(Messages::IPCSwiftStreamTester::messageReceiverName(), m_identifier.toUInt64());
+        m_swiftTester = nullptr;
+#endif
         m_streamConnection->invalidate();
     });
     workQueue->stopAndWaitForCompletion();
