@@ -1840,7 +1840,7 @@ final class ScrollPhysicsController {
             if retargetAnimatedScrollBy(&c, delta.floatSize) {
                 return true
             }
-            c.scrollToPositionWithAnimation(newPosition.floatPoint, delta.floatSize)
+            scrollableAreaScrollToPositionWithAnimation(&c, newPosition.floatPoint, options: .createProgrammaticWithOptions(.Clamped, .No, .Closest, .init(delta.floatSize)))
             return true
         }
 
@@ -1926,7 +1926,7 @@ final class ScrollPhysicsController {
         if notify {
             c.notifyContentAreaScrolled(delta.floatSize)
             let roundedPosition = roundedIntPoint(ScrollPoint(c.currentPosition()))
-            c.setScrollPositionFromAnimation(WebCore.IntPoint(roundedPosition.x, roundedPosition.y))
+            scrollableAreaSetScrollPositionFromAnimation(&c, WebCore.IntPoint(roundedPosition.x, roundedPosition.y))
             scrollPositionChanged(&c)
         } else {
             c.clearScrollAnchor()
@@ -2054,7 +2054,7 @@ final class ScrollPhysicsController {
 
         if c.isUserScrollInProgress() {
             c.setKeyboardScrollTriggeringKeyIsPressed(false)
-            c.endKeyboardScroll(true)
+            scrollableAreaEndKeyboardScroll(&c, true)
             return true
         }
 
@@ -2090,7 +2090,7 @@ final class ScrollPhysicsController {
 
         c.setKeyboardScrollTriggeringKeyIsPressed(true)
 
-        c.beginKeyboardScroll(scroll)
+        scrollableAreaBeginKeyboardScroll(&c, scroll)
 
         return true
     }
@@ -2103,13 +2103,13 @@ final class ScrollPhysicsController {
 
         c.setKeyboardScrollTriggeringKeyIsPressed(false)
 
-        c.endKeyboardScroll(false)
+        scrollableAreaEndKeyboardScroll(&c, false)
     }
 
     @_expose(Cxx)
     func keyboardScrollingAnimatorStopScrollingImmediately(_ c: inout MainThreadScrollPhysicsClient) {
         c.setKeyboardScrollTriggeringKeyIsPressed(false)
-        c.endKeyboardScroll(true)
+        scrollableAreaEndKeyboardScroll(&c, true)
     }
 }
 
