@@ -43,6 +43,8 @@
 
 namespace WebCore {
 
+using WTF::clampedMoveCursorWithinSpan;
+
 namespace {
 
 constexpr float MaxInt8Value = INT8_MAX;
