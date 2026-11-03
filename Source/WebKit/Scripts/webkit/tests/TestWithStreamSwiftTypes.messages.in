@@ -36,4 +36,5 @@ messages -> TestWithStreamSwiftTypes Stream {
     void SendStringAsync(String url) -> (String reply)
     void SendValuesAsync(uint32_t value) -> (uint32_t first, std::optional<uint64_t> second)
     void SendEmptyAsync() -> ()
+    void SendCxxDecoded(uint32_t value, [CxxDecoded] std::optional<WebCore::SharedMemory::Handle> handle) -> (bool success) NotStreamEncodable
 }
