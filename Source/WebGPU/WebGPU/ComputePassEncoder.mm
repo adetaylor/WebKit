@@ -147,13 +147,6 @@ Ref<ComputePassEncoder> ComputePassEncoder::createInvalidWithEncoderStateNotOpen
     return computePassEncoder;
 }
 
-ComputePassEncoder& deliverImpl(WebGPU::ComputePassEncoder& computePassEncoder)
-{
-    auto& shell = downcast<ComputePassEncoder>(computePassEncoder);
-    WebGPUSwift::receiveImpl(shell.swiftImpl());
-    return shell;
-}
-
 } // namespace WebGPU::Metal
 
 #pragma mark WGPU Stubs

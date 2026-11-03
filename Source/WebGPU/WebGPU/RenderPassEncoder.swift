@@ -465,7 +465,7 @@ private struct IndirectEncodeWork {
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class RenderPassEncoderImpl: DeliverableImpl {
+public final class RenderPassEncoderImpl {
     // nil while the pass is deferred, and once it is invalid, has ended or no longer holds its command
     // encoder's current encoder.
     private var backingRenderCommandEncoder: (any MTLRenderCommandEncoder)?

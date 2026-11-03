@@ -67,7 +67,7 @@ private struct DispatchStateCache {
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class ComputePassEncoderImpl: DeliverableImpl {
+public final class ComputePassEncoderImpl {
     // nil once the pass is invalid, has ended or no longer holds its command encoder's current encoder.
     private var backingComputeCommandEncoder: (any MTLComputeCommandEncoder)?
     private let parentEncoder: WebGPU.Metal.CommandEncoder

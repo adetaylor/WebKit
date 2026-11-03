@@ -81,9 +81,6 @@ private:
     alignas(void*) std::byte m_impl[sizeof(void*)];
 } SWIFT_SHARED_REFERENCE(refTextureView, derefTextureView) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
-// The shell as the C++ API object it is, for Swift, which can't convert a shared reference to its base class.
-inline WebGPU::TextureView& apiObject(TextureView& shell) SWIFT_RETURNS_UNRETAINED { return shell; }
-
 } // namespace WebGPU::Metal
 
 inline void refTextureView(WebGPU::Metal::TextureView* obj)

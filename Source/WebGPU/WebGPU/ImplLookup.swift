@@ -194,16 +194,6 @@ public final class ComputePassEncoderReference {
     }
 }
 
-@_spi(WebKitGPU)
-public func reference(of computePassEncoder: WebGPU.ComputePassEncoder) -> ComputePassEncoderReference {
-    var shell: WebGPU.Metal.ComputePassEncoder?
-    let impl = ImplLookup.lookUp(ComputePassEncoderImpl.self) { shell = WebGPU.Metal.deliverImpl(computePassEncoder) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return ComputePassEncoderReference(impl, shell)
-}
-
 // A render pass encoder with its shell, which the pass's Impl needs alive, as Swift holds one.
 @_spi(WebKitGPU)
 public final class RenderPassEncoderReference {
@@ -214,16 +204,6 @@ public final class RenderPassEncoderReference {
         self.impl = impl
         self.shell = shell
     }
-}
-
-@_spi(WebKitGPU)
-public func reference(of renderPassEncoder: WebGPU.RenderPassEncoder) -> RenderPassEncoderReference {
-    var shell: WebGPU.Metal.RenderPassEncoder?
-    let impl = ImplLookup.lookUp(RenderPassEncoderImpl.self) { shell = WebGPU.Metal.deliverImpl(renderPassEncoder) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return RenderPassEncoderReference(impl, shell)
 }
 
 @_spi(WebKitGPU)
@@ -361,11 +341,6 @@ extension BufferReference {
 }
 
 @_spi(WebKitGPU)
-extension CommandEncoderReference {
-    public var apiObject: WebGPU.CommandEncoder { WebGPU.Metal.apiObject(shell) }
-}
-
-@_spi(WebKitGPU)
 extension DeviceReference {
     public var apiObject: WebGPU.Device { WebGPU.Metal.apiObject(shell) }
 }
@@ -376,11 +351,6 @@ extension ExternalTextureReference {
 }
 
 @_spi(WebKitGPU)
-extension QuerySetReference {
-    public var apiObject: WebGPU.QuerySet { WebGPU.Metal.apiObject(shell) }
-}
-
-@_spi(WebKitGPU)
 extension QueueReference {
     public var apiObject: WebGPU.Queue { WebGPU.Metal.apiObject(shell) }
 }
@@ -388,11 +358,6 @@ extension QueueReference {
 @_spi(WebKitGPU)
 extension TextureReference {
     public var apiObject: WebGPU.Texture { WebGPU.Metal.apiObject(shell) }
-}
-
-@_spi(WebKitGPU)
-extension TextureViewReference {
-    public var apiObject: WebGPU.TextureView { WebGPU.Metal.apiObject(shell) }
 }
 
 // The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().

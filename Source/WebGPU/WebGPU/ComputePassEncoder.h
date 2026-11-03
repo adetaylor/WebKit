@@ -108,9 +108,6 @@ private:
 
 void setComputeDynamicOffsets(id<MTLComputeCommandEncoder>, std::span<const uint32_t> dynamicOffsets NOESCAPE, NSUInteger bufferIndex);
 
-// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the ComputePassEncoderImpl of a WebGPU::ComputePassEncoder.
-ComputePassEncoder& deliverImpl(WebGPU::ComputePassEncoder&) SWIFT_RETURNS_UNRETAINED;
-
 } // namespace WebGPU::Metal
 
 #if !ENABLE(SWIFT_BASE_CLASS_ANNOTATIONS)
