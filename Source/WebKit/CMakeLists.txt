@@ -1043,6 +1043,7 @@ if (SWIFT_REQUIRED)
     # One batch per core repeats that work for each core and competes with the
     # C++ compiles for memory, so use fewer, larger batches.
     webkit_target_add_swift_options(WebKit "-driver-batch-count 4")
+    webkit_target_add_swift_options(WebKit "-Werror SendableClosureCaptures")
 endif ()
 
 if (WebKit_PUBLIC_FRAMEWORK_HEADERS)
