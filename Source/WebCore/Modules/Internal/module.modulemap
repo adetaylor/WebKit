@@ -401,7 +401,7 @@ module WebCore_Internal [system] {
 
     explicit module ImageDrawingOptions {
         requires cplusplus20
-        header "../../platform/graphics/ImageDrawingOptions.h"
+        header "../../loader/images/ImageDrawingOptions.h"
         export *
     }
 
