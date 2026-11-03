@@ -202,7 +202,6 @@ private:
     const RenderingMode m_renderingMode : 2; // NOLINT
     const bool m_isLayerCGContext : 1;
     const bool m_hasSwiftRendererBox : 1;
-    mutable bool m_userToDeviceTransformKnownToBeIdentity : 1 { false };
     // Flag for pending draws. Start with true because we do not know what commands have been scheduled to the context.
     mutable bool m_hasDrawn : 1 { true };
 };

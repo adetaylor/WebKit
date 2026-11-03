@@ -684,6 +684,9 @@ struct CGRendererCore {
     // Whether anything since consumeHasDrawn() could have changed the CGContext's contents or state, as
     // GraphicsContextCG::contextForDraw() records it.
     private var hasDrawn = false
+    // GraphicsContextCG::roundToDevicePixels()'s cache: true once it has seen an identity user-to-device transform, until
+    // something here could change it.
+    private var userToDeviceTransformKnownToBeIdentity = false
 
     // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
     // uses it (rdar://179098545).
@@ -1179,6 +1182,7 @@ struct CGRendererCore {
     @_expose(Cxx)
     mutating func resetState(_ imageInterpolationQuality: WebCore.InterpolationQuality) {
         state = CGRendererState(imageInterpolationQuality: imageInterpolationQuality)
+        userToDeviceTransformKnownToBeIdentity = false
     }
 
     // MARK: Lines
@@ -1294,6 +1298,7 @@ struct CGRendererCore {
             sources.removeLast(sources.count - sourceCount)
         }
         context.restoreGState()
+        userToDeviceTransformKnownToBeIdentity = false
     }
 
     @_expose(Cxx)
@@ -1302,6 +1307,7 @@ struct CGRendererCore {
         save(true)
         context.setAlpha(CGFloat(opacity))
         context.beginTransparencyLayer(auxiliaryInfo: nil)
+        userToDeviceTransformKnownToBeIdentity = false
     }
 
     // BeginTransparencyLayerWithCompositeMode: CG keeps the current alpha and ignores the composite mode.
@@ -1326,35 +1332,50 @@ struct CGRendererCore {
     mutating func translate(_ x: Float, _ y: Float) {
         hasDrawn = true
         context.translateBy(x: CGFloat(x), y: CGFloat(y))
+        userToDeviceTransformKnownToBeIdentity = false
     }
 
     @_expose(Cxx)
     mutating func scale(_ x: Float, _ y: Float) {
         hasDrawn = true
         context.scaleBy(x: CGFloat(x), y: CGFloat(y))
+        userToDeviceTransformKnownToBeIdentity = false
     }
 
     @_expose(Cxx)
     mutating func rotate(_ angle: Float) {
         hasDrawn = true
         context.rotate(by: CGFloat(angle))
+        userToDeviceTransformKnownToBeIdentity = false
     }
 
     @_expose(Cxx)
     mutating func concatCTM(_ transform: CGAffineTransform) {
         hasDrawn = true
         context.concatenate(transform)
+        userToDeviceTransformKnownToBeIdentity = false
     }
 
     @_expose(Cxx)
     mutating func setCTM(_ transform: CGAffineTransform) {
         hasDrawn = true
         CGContextSetCTM(context, transform)
+        userToDeviceTransformKnownToBeIdentity = false
     }
 
     @_expose(Cxx)
     func ctm(_ includeDeviceScale: Bool) -> CGAffineTransform {
         includeDeviceScale ? context.userSpaceToDeviceSpaceTransform : context.ctm
+    }
+
+    @_expose(Cxx)
+    func isUserToDeviceTransformKnownToBeIdentity() -> Bool {
+        userToDeviceTransformKnownToBeIdentity
+    }
+
+    @_expose(Cxx)
+    mutating func setUserToDeviceTransformKnownToBeIdentity() {
+        userToDeviceTransformKnownToBeIdentity = true
     }
 
     // MARK: Clips
@@ -2722,6 +2743,16 @@ final class CGRendererBox {
     @_expose(Cxx)
     func ctm(_ includeDeviceScale: Bool) -> CGAffineTransform {
         core.ctm(includeDeviceScale)
+    }
+
+    @_expose(Cxx)
+    func isUserToDeviceTransformKnownToBeIdentity() -> Bool {
+        core.isUserToDeviceTransformKnownToBeIdentity()
+    }
+
+    @_expose(Cxx)
+    func setUserToDeviceTransformKnownToBeIdentity() {
+        core.setUserToDeviceTransformKnownToBeIdentity()
     }
 
     @_expose(Cxx)

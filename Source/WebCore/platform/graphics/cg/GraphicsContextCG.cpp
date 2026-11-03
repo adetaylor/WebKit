@@ -433,7 +433,6 @@ void GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
 
     GraphicsContext::restore(purpose);
     SWIFT_RENDERER(restore());
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions options)
@@ -1175,7 +1174,6 @@ void GraphicsContextCG::beginTransparencyLayer(float opacity)
     GraphicsContext::beginTransparencyLayer(opacity);
     GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
     SWIFT_RENDERER(beginTransparencyLayer(opacity));
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::beginTransparencyLayer(CompositeOperator compositeOperator, BlendMode blendMode)
@@ -1187,7 +1185,6 @@ void GraphicsContextCG::beginTransparencyLayer(CompositeOperator compositeOperat
     GraphicsContext::beginTransparencyLayer(state().alpha());
     GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
     SWIFT_RENDERER(beginTransparencyLayerWithCurrentAlpha());
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::endTransparencyLayer()
@@ -1198,7 +1195,6 @@ void GraphicsContextCG::endTransparencyLayer()
     GraphicsContext::endTransparencyLayer();
     SWIFT_RENDERER(endTransparencyLayer());
     GraphicsContext::restore(GraphicsContextState::Purpose::TransparencyLayer);
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 static CGFloat scaledBlurRadius(CGFloat blurRadius, const CGAffineTransform& userToBaseCTM, bool shadowsIgnoreTransforms)
@@ -1503,7 +1499,6 @@ void GraphicsContextCG::updateStateFromSwiftRenderer()
 #if HAVE(SUPPORT_HDR_DISPLAY)
     m_maxEDRHeadroom = snapshot.hasMaxEDRHeadroom ? std::optional { snapshot.maxEDRHeadroom } : std::nullopt;
 #endif
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::didUpdateState(GraphicsContextState& state)
@@ -1598,35 +1593,30 @@ void GraphicsContextCG::scale(const FloatSize& size)
 {
     CAPTURE(scale(size));
     SWIFT_RENDERER(scale(size.width(), size.height()));
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::rotate(float angle)
 {
     CAPTURE(rotate(angle));
     SWIFT_RENDERER(rotate(angle));
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::translate(float x, float y)
 {
     CAPTURE(translate(x, y));
     SWIFT_RENDERER(translate(x, y));
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::concatCTM(const AffineTransform& transform)
 {
     CAPTURE(concatCTM(transform));
     SWIFT_RENDERER(concatCTM(transform));
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::setCTM(const AffineTransform& transform)
 {
     CAPTURE(setCTM(transform));
     SWIFT_RENDERER(setCTM(transform));
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 AffineTransform GraphicsContextCG::getCTM(IncludeDeviceScale includeScale) const
@@ -1637,14 +1627,13 @@ AffineTransform GraphicsContextCG::getCTM(IncludeDeviceScale includeScale) const
 
 FloatRect GraphicsContextCG::roundToDevicePixels(const FloatRect& rect) const
 {
-    CGAffineTransform deviceMatrix;
-    if (!m_userToDeviceTransformKnownToBeIdentity) {
-        deviceMatrix = CGContextGetUserSpaceToDeviceSpaceTransform(contextForState());
-        if (CGAffineTransformIsIdentity(deviceMatrix))
-            m_userToDeviceTransformKnownToBeIdentity = true;
-    }
-    if (m_userToDeviceTransformKnownToBeIdentity)
+    if (SWIFT_RENDERER(isUserToDeviceTransformKnownToBeIdentity()))
         return roundedIntRect(rect);
+    auto deviceMatrix = CGContextGetUserSpaceToDeviceSpaceTransform(contextForState());
+    if (CGAffineTransformIsIdentity(deviceMatrix)) {
+        SWIFT_RENDERER(setUserToDeviceTransformKnownToBeIdentity());
+        return roundedIntRect(rect);
+    }
     return cgRoundToDevicePixelsNonIdentity(deviceMatrix, rect);
 }
 
@@ -1734,7 +1723,6 @@ void GraphicsContextCG::beginPage(const FloatRect& pageRect)
     m_state = GraphicsContextState { GraphicsContextState::basicChangeFlags, coreInterpolationQuality(context.get()) };
     SWIFT_RENDERER(resetState(m_state.imageInterpolationQuality()));
     didUpdateState(m_state);
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::endPage()
