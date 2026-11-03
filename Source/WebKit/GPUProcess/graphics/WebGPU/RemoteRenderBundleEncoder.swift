@@ -28,19 +28,27 @@
 import WebKit_Internal
 
 // Receives the messages of a WebGPU render bundle encoder, on its stream connection's work queue, and calls its
-// RenderBundleEncoderImpl, with the Impls of the objects they name, from the object heap through objects.
+// RenderBundleEncoderImpl, with the references of the objects they name, from the registry.
 @_expose(Cxx)
 final class RemoteRenderBundleEncoder {
     private let encoder: RenderBundleEncoderReference
-    private let context: WebKit.WebGPUSwiftReceiverContext
-    private let objects: WebGPUImplTable
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteRenderBundleEncoderBacking, context: WebKit.WebGPUSwiftReceiverContext, objects: WebGPUImplTable) {
-        self.encoder = WebGPUSwift.reference(of: backing.get())
-        self.context = context
-        self.objects = objects
+    @_expose(!Cxx)
+    private init(_ encoder: RenderBundleEncoderReference, _ link: WebGPURegistryLink) {
+        self.encoder = encoder
+        self.link = link
+    }
+
+    // Adds the render bundle encoder, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ encoder: RenderBundleEncoderReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteRenderBundleEncoder(encoder, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteRenderBundleEncoder, link.identifier)
+        objects.add(link.identifier, encoder, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -51,24 +59,19 @@ final class RemoteRenderBundleEncoder {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
+        link.sharedPreferencesForWebProcess()
     }
 
     private func buffer(_ identifier: IPCTypes.WebGPUIdentifier) -> BufferReference? {
-        objects.entry(identifier.rawValue) {
-            context.buffer(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
+        link.objects?.object(identifier, as: BufferReference.self)
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
     }
 
     func setPipeline(identifier: IPCTypes.WebGPUIdentifier) {
-        let pipeline = objects.entry(identifier.rawValue) {
-            context.renderPipeline(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
-        guard let pipeline else {
+        guard let pipeline = link.objects?.object(identifier, as: RenderPipelineReference.self) else {
             return
         }
         encoder.setPipeline(pipeline)
@@ -139,10 +142,7 @@ final class RemoteRenderBundleEncoder {
             encoder.setBindGroup(index, nil, dynamicOffsets: dynamicOffsets)
             return
         }
-        let group = objects.entry(identifier.rawValue) {
-            context.bindGroup(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
-        guard let group else {
+        guard let group = link.objects?.object(identifier, as: BindGroupReference.self) else {
             return
         }
         encoder.setBindGroup(index, group, dynamicOffsets: dynamicOffsets)
@@ -160,15 +160,14 @@ final class RemoteRenderBundleEncoder {
         encoder.insertDebugMarker()
     }
 
-    // Making the bundle's shell, and its receiver, takes C++: WebGPUSwiftReceiverContext.makeChild() finishes this
-    // encoder there, as the C++ receiver did.
     func finish(
         descriptor: IPCTypes.RenderBundleDescriptor,
         identifier: IPCTypes.WebGPUIdentifier
-    ) throws(InvalidMessage) {
-        try messageCheck {
-            context.makeChild(.RenderBundleEncoderRenderBundle, IPCCoding.WTFString.cxxString(descriptor.label), identifier.rawValue)
+    ) {
+        guard let bundleLink = link.child(identifier) else {
+            return
         }
+        RemoteRenderBundle.add(encoder.finish(label: descriptor.label), bundleLink)
     }
 
     func setLabel(label: String?) {

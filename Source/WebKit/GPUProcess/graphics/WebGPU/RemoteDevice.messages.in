@@ -26,7 +26,9 @@
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=WebGPUEnabled
+    EnabledBy=WebGPUEnabled,
+    SwiftReceiverBuildEnabledBy=GPU_PROCESS_WEBGPU_SWIFT,
+    SwiftTypes
 ]
 messages -> RemoteDevice Stream {
     void Destroy()
@@ -55,9 +57,9 @@ messages -> RemoteDevice Stream {
     void SetLabel(String label)
     void PauseAllErrorReporting(bool pauseErrorReporting)
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
-    void SetSharedVideoFrameSemaphore(IPC::Semaphore semaphore) NotStreamEncodable
-    void SetSharedVideoFrameMemory(WebCore::SharedMemory::Handle storageHandle) NotStreamEncodable
-    void ImportExternalTextureFromVideoFrame(WebKit::WebGPU::ExternalTextureDescriptor descriptor, WebKit::WebGPUIdentifier identifier) NotStreamEncodable
+    void SetSharedVideoFrameSemaphore([CxxDecoded] IPC::Semaphore semaphore) NotStreamEncodable
+    void SetSharedVideoFrameMemory([CxxDecoded] WebCore::SharedMemory::Handle storageHandle) NotStreamEncodable
+    void ImportExternalTextureFromVideoFrame([CxxDecoded] WebKit::WebGPU::ExternalTextureDescriptor descriptor, WebKit::WebGPUIdentifier identifier) NotStreamEncodable
     void UpdateExternalTexture(WebKit::WebGPUIdentifier externalTextureIdentifier, WebCore::MediaPlayerIdentifier mediaIdentifier)
 #endif
 }

@@ -29,14 +29,24 @@ import WebKit_Internal
 // Receives the messages of a WebGPU query set, on its stream connection's work queue, and calls its QuerySetImpl.
 @_expose(Cxx)
 final class RemoteQuerySet {
-    private let impl: QuerySetImpl
-    private let context: WebKit.WebGPUSwiftReceiverContext
+    private let querySet: QuerySetReference
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteQuerySetBacking, context: WebKit.WebGPUSwiftReceiverContext) {
-        self.impl = WebGPUSwift.impl(of: backing.get())
-        self.context = context
+    @_expose(!Cxx)
+    private init(_ querySet: QuerySetReference, _ link: WebGPURegistryLink) {
+        self.querySet = querySet
+        self.link = link
+    }
+
+    // Adds the query set, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ querySet: QuerySetReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteQuerySet(querySet, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteQuerySet, link.identifier)
+        objects.add(link.identifier, querySet, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -47,19 +57,19 @@ final class RemoteQuerySet {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
-    }
-
-    func destroy() {
-        impl.destroy()
+        link.sharedPreferencesForWebProcess()
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
+    }
+
+    func destroy() {
+        querySet.impl.destroy()
     }
 
     func setLabel(label: String?) {
-        impl.setLabel(label)
+        querySet.impl.setLabel(label)
     }
 }
 

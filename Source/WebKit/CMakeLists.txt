@@ -1039,6 +1039,7 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteCommandBufferMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteComputePassEncoderMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteComputePipelineMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteDeviceMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteExternalTextureMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemotePipelineLayoutMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySetMessageReceiver.cpp
@@ -1048,8 +1049,8 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteRenderPipelineMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteSamplerMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureViewMessageReceiver.cpp
+        GPUProcess/graphics/WebGPU/RemoteAdapter.cpp
         GPUProcess/graphics/WebGPU/RemoteCommandEncoder.cpp
-        GPUProcess/graphics/WebGPU/RemoteDevice.cpp
         GPUProcess/graphics/WebGPU/RemoteTexture.cpp
         GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
         GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.cpp
@@ -1715,6 +1716,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCommandBufferMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteComputePassEncoderMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteComputePipelineMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteDeviceMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteExternalTextureMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemotePipelineLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteQuerySetMessageReceiver.swift
@@ -1732,6 +1734,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteCommandBuffer.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteComputePassEncoder.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteComputePipeline.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteDevice.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteExternalTexture.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemotePipelineLayout.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySet.swift
@@ -1747,6 +1750,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCommandBufferMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteComputePassEncoderMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteComputePipelineMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteDeviceMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteExternalTextureMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemotePipelineLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteQuerySetMessageReceiver.swift

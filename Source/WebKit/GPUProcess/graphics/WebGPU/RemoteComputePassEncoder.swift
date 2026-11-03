@@ -28,7 +28,7 @@
 import WebKit_Internal
 
 // Receives the messages of a WebGPU compute pass encoder, on its stream connection's work queue, and calls its
-// ComputePassEncoderImpl, with the Impls of the objects they name, from the object heap through objects.
+// ComputePassEncoderImpl, with the references of the objects they name, from the registry.
 @_expose(Cxx)
 final class RemoteComputePassEncoder {
     private let impl: ComputePassEncoderImpl
@@ -59,9 +59,7 @@ final class RemoteComputePassEncoder {
     }
 
     func setPipeline(identifier: IPCTypes.WebGPUIdentifier) {
-        let pipeline = objects.entry(identifier.rawValue) {
-            context.computePipeline(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
+        let pipeline = objects.object(identifier, as: ComputePipelineReference.self)
         guard let pipeline else {
             return
         }
@@ -73,9 +71,7 @@ final class RemoteComputePassEncoder {
     }
 
     func dispatchIndirect(indirectBuffer: IPCTypes.WebGPUIdentifier, indirectOffset: UInt64) {
-        let buffer = objects.entry(indirectBuffer.rawValue) {
-            context.buffer(indirectBuffer.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
+        let buffer = objects.object(indirectBuffer, as: BufferReference.self)
         guard let buffer else {
             return
         }
@@ -95,9 +91,7 @@ final class RemoteComputePassEncoder {
             impl.setBindGroup(index, nil, dynamicOffsets: dynamicOffsets)
             return
         }
-        let group = objects.entry(identifier.rawValue) {
-            context.bindGroup(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
+        let group = objects.object(identifier, as: BindGroupReference.self)
         guard let group else {
             return
         }

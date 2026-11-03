@@ -27,32 +27,31 @@
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
+#include "IPCSemaphore.h"
 #include "MessageReceiver.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "StreamServerConnection.h"
 #include "SwiftCoding.h"
+#include "WebGPUExternalTextureDescriptor.h"
 #include "WebGPUIdentifier.h"
 #include <WebCore/SharedMemory.h>
 #include <WebCore/WebGPUCppAPI.h>
+#include <concepts>
 #include <memory>
+#include <type_traits>
 #include <wtf/Noncopyable.h>
+#include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 
 namespace WebKit {
 
 class RemoteGPU;
+class SharedVideoFrameReader;
 
 namespace WebGPU {
 class ObjectHeap;
 }
-
-// A child object that a message to a receiver written in Swift makes, from the receiver's own object.
-enum class WebGPUSwiftChildKind : uint8_t {
-    ComputePipelineBindGroupLayout,
-    RenderPipelineBindGroupLayout,
-    RenderBundleEncoderRenderBundle,
-};
 
 // What a WebGPU receiver written in Swift uses of the C++ around it, which Swift can't hold directly: the object
 // heap that owns the receiver and the RemoteGPU it serves, both weakly, and its identifier.
@@ -63,43 +62,97 @@ public:
     void removeFromObjectHeap() const;
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
-    // Makes the receiver of a child of this receiver's object, and adds it to the object heap under that identifier. Returns
-    // false if the message that makes it is invalid.
-    bool makeChild(WebGPUSwiftChildKind, uint32_t index, uint64_t identifier) const;
-    // The same, for a child made with a label.
-    bool makeChild(WebGPUSwiftChildKind, const String& label, uint64_t identifier) const;
-
-    // The objects with those identifiers in the object heap, if there are such objects, for WebGPUImplTable.
-    ::WebGPU::BindGroup* WTF_NULLABLE bindGroup(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
-    ::WebGPU::Buffer* WTF_NULLABLE buffer(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
-    ::WebGPU::ComputePipeline* WTF_NULLABLE computePipeline(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
-    ::WebGPU::RenderBundle* WTF_NULLABLE renderBundle(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
-    ::WebGPU::RenderPipeline* WTF_NULLABLE renderPipeline(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
-
-    // The external texture with that identifier in the object heap, if there is one.
-    ::WebGPU::ExternalTexture* WTF_NULLABLE externalTexture(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
-
 private:
     WeakPtr<WebGPU::ObjectHeap> m_objectHeap;
     WeakPtr<RemoteGPU> m_gpu;
     WebGPUIdentifier m_identifier;
 } SWIFT_SELF_CONTAINED;
 
-// The backings WebGPU receivers written in Swift are created with. Swift can't take the ::WebGPU types themselves: the
-// C++ header it generates names them WebGPU::..., which inside namespace WebKit means WebKit::WebGPU::....
-class RemoteBindGroupBacking {
-public:
-    explicit RemoteBindGroupBacking(::WebGPU::BindGroup& backing)
-        : m_backing(backing)
-    {
-    }
+// Whether the Swift registry of WebGPU objects has an object, and whether it's valid, for RemoteGPU::isValid().
+enum class WebGPUSwiftObjectState : uint8_t {
+    Absent,
+    Invalid,
+    Valid,
+};
 
-    ::WebGPU::BindGroup& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+// What the Swift registry of WebGPU objects uses of the C++ around it: the object heap, which owns the receivers still
+// written in C++, and the RemoteGPU, for its stream connection and shared preferences, both weakly.
+class WebGPUSwiftRegistryHost {
+public:
+    WebGPUSwiftRegistryHost(WebGPU::ObjectHeap&, RemoteGPU&);
+
+    std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
+    RefPtr<IPC::StreamServerConnection> streamConnection() const;
+
+    // Make the C++ receivers of objects that Swift made, which the object heap owns.
+    void addTexture(::WebGPU::Texture&, uint64_t identifier) const;
+    void addShaderModule(::WebGPU::ShaderModule&, uint64_t identifier) const;
+    void addCommandEncoder(::WebGPU::CommandEncoder&, uint64_t identifier) const;
+    // Makes the device's XR binding, and its receiver. False if the device makes none.
+    bool addXRBinding(::WebGPU::Device&, uint64_t identifier) const;
+    // Adds a device to those that RemoteGPU destroys when its work queue stops.
+    void trackDevice(::WebGPU::Device&) const;
+
+    // The objects with those identifiers that C++ receivers made, if there are such objects.
+    ::WebGPU::Texture* WTF_NULLABLE texture(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
+    ::WebGPU::TextureView* WTF_NULLABLE textureView(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
 
 private:
-    Ref<::WebGPU::BindGroup> m_backing;
+    friend class WebGPUSwiftVideoFrames;
+
+    WeakPtr<WebGPU::ObjectHeap> m_objectHeap;
+    WeakPtr<RemoteGPU> m_gpu;
 } SWIFT_SELF_CONTAINED;
 
+// Keeps the messages for a WebGPU receiver written in Swift coming from the stream connection, as
+// IPC::ScopedActiveMessageReceiveQueue does for a C++ receiver, until it goes.
+class WebGPUSwiftReceiverRegistration final : public RefCounted<WebGPUSwiftReceiverRegistration> {
+public:
+    static Ref<WebGPUSwiftReceiverRegistration> create(IPC::StreamServerConnection& streamConnection, IPC::StreamMessageReceiver& receiver, IPC::ReceiverName receiverName, uint64_t identifier)
+    {
+        return adoptRef(*new WebGPUSwiftReceiverRegistration(streamConnection, receiver, receiverName, identifier));
+    }
+
+    ~WebGPUSwiftReceiverRegistration();
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the
+    // type hierarchy.
+    void ref() const { RefCounted<WebGPUSwiftReceiverRegistration>::ref(); }
+    void deref() const { RefCounted<WebGPUSwiftReceiverRegistration>::deref(); }
+#endif
+
+private:
+    WebGPUSwiftReceiverRegistration(IPC::StreamServerConnection&, IPC::StreamMessageReceiver&, IPC::ReceiverName, uint64_t identifier);
+
+    const Ref<IPC::StreamServerConnection> m_streamConnection;
+    const IPC::ReceiverName m_receiverName;
+    const uint64_t m_identifier;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+template<typename> struct IsRefOfStreamMessageReceiver : std::false_type { };
+template<typename T> struct IsRefOfStreamMessageReceiver<Ref<T>> : std::bool_constant<std::derived_from<T, IPC::StreamMessageReceiver>> { };
+
+// Registers a Swift receiver's message forwarder for those messages, with the RemoteGPU's shared preferences. Null if
+// the RemoteGPU or its stream connection has gone. A template so that Swift, which can't pass a forwarder as the
+// StreamMessageReceiver it is, can pass the Ref to it that it holds. The static_assert is used because the constraint
+// isn't enforced for Swift callers.
+template<typename ForwarderRef>
+WebGPUSwiftReceiverRegistration* WTF_NULLABLE registerWebGPUSwiftReceiver(const WebGPUSwiftRegistryHost& host, const ForwarderRef& forwarder, IPC::ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED
+{
+    static_assert(IsRefOfStreamMessageReceiver<ForwarderRef>::value);
+    RefPtr streamConnection = host.streamConnection();
+    if (!streamConnection)
+        return nullptr;
+    forwarder->setSharedPreferencesProvider([host] {
+        return host.sharedPreferencesForWebProcess();
+    });
+    return &WebGPUSwiftReceiverRegistration::create(*streamConnection, forwarder.get(), receiverName, identifier).leakRef();
+}
+
+// The C++ API objects that Swift receivers and the registry pass to C++, and that C++ passes to them. Swift can't
+// name the ::WebGPU types in the C++ it generates: it names them WebGPU::..., which inside namespace WebKit means
+// WebKit::WebGPU::....
 class RemoteBufferBacking {
 public:
     explicit RemoteBufferBacking(::WebGPU::Buffer& backing)
@@ -113,61 +166,41 @@ private:
     Ref<::WebGPU::Buffer> m_backing;
 } SWIFT_SELF_CONTAINED;
 
+using OptionalRemoteBufferBacking = std::optional<RemoteBufferBacking>;
+
 // Copies the shared memory that a buffer's Copy message gives into the buffer at that offset, as the C++ receiver does.
 // Returns false if there's none, or no more than the message could have carried in the stream.
 bool copySharedMemoryToBuffer(::WebGPU::Buffer&, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>&, uint64_t offset);
 
-class RemoteSamplerBacking {
+class RemoteDeviceBacking {
 public:
-    explicit RemoteSamplerBacking(::WebGPU::Sampler& backing)
+    explicit RemoteDeviceBacking(::WebGPU::Device& backing)
         : m_backing(backing)
     {
     }
 
-    ::WebGPU::Sampler& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+    ::WebGPU::Device& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
 
 private:
-    Ref<::WebGPU::Sampler> m_backing;
+    Ref<::WebGPU::Device> m_backing;
 } SWIFT_SELF_CONTAINED;
 
-class RemoteTextureViewBacking {
+using OptionalRemoteDeviceBacking = std::optional<RemoteDeviceBacking>;
+
+class RemoteQuerySetBacking {
 public:
-    explicit RemoteTextureViewBacking(::WebGPU::TextureView& backing)
+    explicit RemoteQuerySetBacking(::WebGPU::QuerySet& backing)
         : m_backing(backing)
     {
     }
 
-    ::WebGPU::TextureView& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+    ::WebGPU::QuerySet& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
 
 private:
-    Ref<::WebGPU::TextureView> m_backing;
+    Ref<::WebGPU::QuerySet> m_backing;
 } SWIFT_SELF_CONTAINED;
 
-class RemoteBindGroupLayoutBacking {
-public:
-    explicit RemoteBindGroupLayoutBacking(::WebGPU::BindGroupLayout& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::BindGroupLayout& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::BindGroupLayout> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-class RemoteRenderBundleBacking {
-public:
-    explicit RemoteRenderBundleBacking(::WebGPU::RenderBundle& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::RenderBundle& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::RenderBundle> m_backing;
-} SWIFT_SELF_CONTAINED;
+using OptionalRemoteQuerySetBacking = std::optional<RemoteQuerySetBacking>;
 
 class RemoteExternalTextureBacking {
 public:
@@ -180,6 +213,56 @@ public:
 
 private:
     Ref<::WebGPU::ExternalTexture> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+using OptionalRemoteExternalTextureBacking = std::optional<RemoteExternalTextureBacking>;
+
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+// A device receiver's reader of the video frames that the web process shares with it, and its imports of video frames
+// as external textures, which take WebCore's media types.
+class WebGPUSwiftVideoFrames final : public RefCounted<WebGPUSwiftVideoFrames> {
+public:
+    // Null if the RemoteGPU or its connection to the web process has gone.
+    static WebGPUSwiftVideoFrames* WTF_NULLABLE create(const WebGPUSwiftRegistryHost&) SWIFT_RETURNS_RETAINED;
+
+    ~WebGPUSwiftVideoFrames();
+
+    void setSemaphore(IPC::CxxDecodedArgument<IPC::Semaphore>&);
+    void setSharedMemory(IPC::CxxDecodedArgument<WebCore::SharedMemory::Handle>&);
+
+    // Imports the video frame that the descriptor names for the device, as RemoteDevice does. std::nullopt with isInvalid
+    // set if the message is invalid, and std::nullopt alone if WebGPU has gone.
+    OptionalRemoteExternalTextureBacking importExternalTexture(::WebGPU::Device&, IPC::CxxDecodedArgument<WebGPU::ExternalTextureDescriptor>&, bool& isInvalid);
+    // Gives the external texture the frame that the media player is showing, as RemoteDevice does.
+    void updateExternalTexture(::WebGPU::ExternalTexture&, uint64_t mediaPlayerIdentifier);
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the
+    // type hierarchy.
+    void ref() const { RefCounted<WebGPUSwiftVideoFrames>::ref(); }
+    void deref() const { RefCounted<WebGPUSwiftVideoFrames>::deref(); }
+#endif
+
+private:
+    WebGPUSwiftVideoFrames(const WebGPUSwiftRegistryHost&, std::unique_ptr<SharedVideoFrameReader>&&);
+
+    const WebGPUSwiftRegistryHost m_host;
+    const std::unique_ptr<SharedVideoFrameReader> m_sharedVideoFrameReader;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+#endif
+
+// The backings of the WebGPU receivers written in Swift that C++ still makes.
+class RemoteTextureViewBacking {
+public:
+    explicit RemoteTextureViewBacking(::WebGPU::TextureView& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::TextureView& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::TextureView> m_backing;
 } SWIFT_SELF_CONTAINED;
 
 class RemoteCommandBufferBacking {
@@ -219,32 +302,6 @@ public:
 
 private:
     Ref<::WebGPU::RenderPassEncoder> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-class RemoteRenderBundleEncoderBacking {
-public:
-    explicit RemoteRenderBundleEncoderBacking(::WebGPU::RenderBundleEncoder& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::RenderBundleEncoder& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::RenderBundleEncoder> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-class RemoteQuerySetBacking {
-public:
-    explicit RemoteQuerySetBacking(::WebGPU::QuerySet& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::QuerySet& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::QuerySet> m_backing;
 } SWIFT_SELF_CONTAINED;
 
 namespace WebGPU {

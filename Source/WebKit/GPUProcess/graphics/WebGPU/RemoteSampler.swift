@@ -30,14 +30,24 @@ import WebKit_Internal
 // Receives the messages of a WebGPU sampler, on its stream connection's work queue, and calls its SamplerImpl.
 @_expose(Cxx)
 final class RemoteSampler {
-    private let impl: SamplerImpl
-    private let context: WebKit.WebGPUSwiftReceiverContext
+    private let sampler: SamplerReference
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteSamplerBacking, context: WebKit.WebGPUSwiftReceiverContext) {
-        self.impl = WebGPUSwift.impl(of: backing.get())
-        self.context = context
+    @_expose(!Cxx)
+    private init(_ sampler: SamplerReference, _ link: WebGPURegistryLink) {
+        self.sampler = sampler
+        self.link = link
+    }
+
+    // Adds the sampler, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ sampler: SamplerReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteSampler(sampler, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteSampler, link.identifier)
+        objects.add(link.identifier, sampler, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -48,15 +58,15 @@ final class RemoteSampler {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
+        link.sharedPreferencesForWebProcess()
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
     }
 
     func setLabel(label: String?) {
-        impl.setLabel(label)
+        sampler.impl.setLabel(label)
     }
 }
 

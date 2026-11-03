@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteDevice.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "Logging.h"
 #include "RemoteBindGroup.h"
@@ -62,20 +62,6 @@
 #include <WebCore/WebGPURenderPipelineDescriptor.h>
 #include <WebCore/WebGPUShaderModuleDescriptor.h>
 #include <wtf/TZoneMallocInlines.h>
-
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-#include "RemoteBindGroupLayoutMessages.h"
-#include "RemoteBindGroupMessages.h"
-#include "RemoteBufferMessages.h"
-#include "RemoteComputePipelineMessages.h"
-#include "RemoteExternalTextureMessages.h"
-#include "RemotePipelineLayoutMessages.h"
-#include "RemoteQuerySetMessages.h"
-#include "RemoteRenderBundleEncoderMessages.h"
-#include "RemoteRenderPipelineMessages.h"
-#include "RemoteSamplerMessages.h"
-#include "WebKit-Swift.h"
-#endif
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_streamConnection)
 #define MESSAGE_CHECK_COMPLETION(assertion, completion) MESSAGE_CHECK_COMPLETION_BASE(assertion, m_streamConnection, completion)
@@ -138,14 +124,8 @@ void RemoteDevice::createBuffer(const WebGPU::BufferDescriptor& descriptor, WebG
     Ref objectHeap = m_objectHeap.get();
     auto buffer = m_backing->createBuffer(descriptor);
     MESSAGE_CHECK(buffer);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteBuffer = RemoteBuffer::init(RemoteBufferBacking { *buffer }, context, descriptor.mappedAtCreation);
-    objectHeap->addObject(identifier, WebGPU::BufferObject { *buffer, WTF::move(remoteBuffer), context, protect(m_streamConnection), Messages::RemoteBuffer::messageReceiverName(), identifier });
-#else
     auto remoteBuffer = RemoteBuffer::create(*buffer, objectHeap, protect(m_streamConnection), protect(m_gpu), descriptor.mappedAtCreation, identifier);
     objectHeap->addObject(identifier, remoteBuffer);
-#endif
 }
 
 void RemoteDevice::createTexture(const WebGPU::TextureDescriptor& descriptor, WebGPUIdentifier identifier)
@@ -165,14 +145,8 @@ void RemoteDevice::createSampler(const WebGPU::SamplerDescriptor& descriptor, We
     Ref objectHeap = m_objectHeap.get();
     auto sampler = m_backing->createSampler(descriptor);
     MESSAGE_CHECK(sampler);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteSampler = RemoteSampler::init(RemoteSamplerBacking { *sampler }, context);
-    objectHeap->addObject(identifier, WebGPU::SamplerObject { *sampler, WTF::move(remoteSampler), context, protect(m_streamConnection), Messages::RemoteSampler::messageReceiverName(), identifier });
-#else
     auto remoteSampler = RemoteSampler::create(*sampler, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteSampler);
-#endif
 }
 
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
@@ -218,14 +192,8 @@ void RemoteDevice::importExternalTextureFromVideoFrame(const WebGPU::ExternalTex
         return;
     auto externalTexture = gpu->importExternalTexture(m_backing, *convertedDescriptor);
     MESSAGE_CHECK(externalTexture);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteExternalTexture = RemoteExternalTexture::init(RemoteExternalTextureBacking { *externalTexture }, context);
-    objectHeap->addObject(identifier, WebGPU::ExternalTextureObject { *externalTexture, WTF::move(remoteExternalTexture), context, protect(m_streamConnection), Messages::RemoteExternalTexture::messageReceiverName(), identifier });
-#else
     auto remoteExternalTexture = RemoteExternalTexture::create(*externalTexture, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteExternalTexture);
-#endif
 }
 
 void RemoteDevice::updateExternalTexture(WebKit::WebGPUIdentifier externalTextureIdentifier, const WebCore::MediaPlayerIdentifier& mediaPlayerIdentifier)
@@ -259,14 +227,8 @@ void RemoteDevice::createBindGroupLayout(const WebGPU::BindGroupLayoutDescriptor
 
     auto bindGroupLayout = m_backing->createBindGroupLayout(*convertedDescriptor);
     MESSAGE_CHECK(bindGroupLayout);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteBindGroupLayout = RemoteBindGroupLayout::init(RemoteBindGroupLayoutBacking { *bindGroupLayout }, context);
-    objectHeap->addObject(identifier, WebGPU::BindGroupLayoutObject { *bindGroupLayout, WTF::move(remoteBindGroupLayout), context, protect(m_streamConnection), Messages::RemoteBindGroupLayout::messageReceiverName(), identifier });
-#else
     auto remoteBindGroupLayout = RemoteBindGroupLayout::create(*bindGroupLayout, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteBindGroupLayout);
-#endif
 }
 
 void RemoteDevice::createPipelineLayout(const WebGPU::PipelineLayoutDescriptor& descriptor, WebGPUIdentifier identifier)
@@ -278,14 +240,8 @@ void RemoteDevice::createPipelineLayout(const WebGPU::PipelineLayoutDescriptor& 
 
     auto pipelineLayout = m_backing->createPipelineLayout(*convertedDescriptor);
     MESSAGE_CHECK(pipelineLayout);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remotePipelineLayout = RemotePipelineLayout::init(context);
-    objectHeap->addObject(identifier, WebGPU::PipelineLayoutObject { *pipelineLayout, WTF::move(remotePipelineLayout), context, protect(m_streamConnection), Messages::RemotePipelineLayout::messageReceiverName(), identifier });
-#else
     auto remotePipelineLayout = RemotePipelineLayout::create(*pipelineLayout,  objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remotePipelineLayout);
-#endif
 }
 
 void RemoteDevice::createBindGroup(const WebGPU::BindGroupDescriptor& descriptor, WebGPUIdentifier identifier)
@@ -297,14 +253,8 @@ void RemoteDevice::createBindGroup(const WebGPU::BindGroupDescriptor& descriptor
 
     auto bindGroup = m_backing->createBindGroup(*convertedDescriptor);
     MESSAGE_CHECK(bindGroup);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteBindGroup = RemoteBindGroup::init(RemoteBindGroupBacking { *bindGroup }, context);
-    objectHeap->addObject(identifier, WebGPU::BindGroupObject { *bindGroup, WTF::move(remoteBindGroup), context, protect(m_streamConnection), Messages::RemoteBindGroup::messageReceiverName(), identifier });
-#else
     auto remoteBindGroup = RemoteBindGroup::create(*bindGroup, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteBindGroup);
-#endif
 }
 
 void RemoteDevice::createShaderModule(const WebGPU::ShaderModuleDescriptor& descriptor, WebGPUIdentifier identifier)
@@ -330,14 +280,8 @@ void RemoteDevice::createComputePipeline(const WebGPU::ComputePipelineDescriptor
 
     auto computePipeline = m_backing->createComputePipeline(*convertedDescriptor);
     MESSAGE_CHECK(computePipeline);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteComputePipeline = RemoteComputePipeline::init(context);
-    objectHeap->addObject(identifier, WebGPU::ComputePipelineObject { *computePipeline, WTF::move(remoteComputePipeline), context, protect(m_streamConnection), Messages::RemoteComputePipeline::messageReceiverName(), identifier });
-#else
     auto remoteComputePipeline = RemoteComputePipeline::create(*computePipeline, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteComputePipeline);
-#endif
 }
 
 void RemoteDevice::createComputePipelineWithPipelineLayoutFromPipeline(const WebGPU::ComputePipelineDescriptor& descriptor, WebGPUIdentifier identifier, WebGPUIdentifier pipelineToReplaceIdentifier, CompletionHandler<void(bool)>&& completionHandler)
@@ -356,14 +300,8 @@ void RemoteDevice::createComputePipelineWithPipelineLayoutFromPipeline(const Web
             return;
         }
 
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        WebGPUSwiftReceiverContext context { objectHeap, gpu, identifier };
-        auto remoteComputePipeline = RemoteComputePipeline::init(context);
-        objectHeap->addObject(identifier, WebGPU::ComputePipelineObject { *computePipeline, WTF::move(remoteComputePipeline), context, streamConnection, Messages::RemoteComputePipeline::messageReceiverName(), identifier });
-#else
         auto remoteComputePipeline = RemoteComputePipeline::create(WTF::move(*computePipeline), objectHeap, WTF::move(streamConnection), gpu, identifier);
         objectHeap->addObject(identifier, remoteComputePipeline);
-#endif
         completionHandler(true);
     });
 }
@@ -377,14 +315,8 @@ void RemoteDevice::createRenderPipeline(const WebGPU::RenderPipelineDescriptor& 
 
     auto renderPipeline = m_backing->createRenderPipeline(*convertedDescriptor);
     MESSAGE_CHECK(renderPipeline);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteRenderPipeline = RemoteRenderPipeline::init(context);
-    objectHeap->addObject(identifier, WebGPU::RenderPipelineObject { *renderPipeline, WTF::move(remoteRenderPipeline), context, protect(m_streamConnection), Messages::RemoteRenderPipeline::messageReceiverName(), identifier });
-#else
     auto remoteRenderPipeline = RemoteRenderPipeline::create(*renderPipeline, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteRenderPipeline);
-#endif
 }
 
 void RemoteDevice::createRenderPipelineWithPipelineLayoutFromPipeline(const WebGPU::RenderPipelineDescriptor& descriptor, WebGPUIdentifier identifier, WebGPUIdentifier pipelineToReplaceIdentifier, CompletionHandler<void(bool)>&& completionHandler)
@@ -403,14 +335,8 @@ void RemoteDevice::createRenderPipelineWithPipelineLayoutFromPipeline(const WebG
             return;
         }
 
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        WebGPUSwiftReceiverContext context { objectHeap, gpu, identifier };
-        auto remoteRenderPipeline = RemoteRenderPipeline::init(context);
-        objectHeap->addObject(identifier, WebGPU::RenderPipelineObject { *renderPipeline, WTF::move(remoteRenderPipeline), context, streamConnection, Messages::RemoteRenderPipeline::messageReceiverName(), identifier });
-#else
         auto remoteRenderPipeline = RemoteRenderPipeline::create(WTF::move(*renderPipeline), objectHeap, WTF::move(streamConnection), gpu, identifier);
         objectHeap->addObject(identifier, remoteRenderPipeline);
-#endif
         completionHandler(true);
     });
 }
@@ -432,14 +358,8 @@ void RemoteDevice::createComputePipelineAsync(const WebGPU::ComputePipelineDescr
             return;
         }
 
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        WebGPUSwiftReceiverContext context { objectHeap, gpu, identifier };
-        auto remoteComputePipeline = RemoteComputePipeline::init(context);
-        objectHeap->addObject(identifier, WebGPU::ComputePipelineObject { *computePipeline, WTF::move(remoteComputePipeline), context, streamConnection, Messages::RemoteComputePipeline::messageReceiverName(), identifier });
-#else
         auto remoteComputePipeline = RemoteComputePipeline::create(WTF::move(*computePipeline), objectHeap, WTF::move(streamConnection), gpu, identifier);
         objectHeap->addObject(identifier, remoteComputePipeline);
-#endif
         callback(true, { });
     });
 }
@@ -461,14 +381,8 @@ void RemoteDevice::createRenderPipelineAsync(const WebGPU::RenderPipelineDescrip
             return;
         }
 
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        WebGPUSwiftReceiverContext context { objectHeap, gpu, identifier };
-        auto remoteRenderPipeline = RemoteRenderPipeline::init(context);
-        objectHeap->addObject(identifier, WebGPU::RenderPipelineObject { *renderPipeline, WTF::move(remoteRenderPipeline), context, streamConnection, Messages::RemoteRenderPipeline::messageReceiverName(), identifier });
-#else
         auto remoteRenderPipeline = RemoteRenderPipeline::create(WTF::move(*renderPipeline), objectHeap, WTF::move(streamConnection), gpu, identifier);
         objectHeap->addObject(identifier, remoteRenderPipeline);
-#endif
         callback(true, { });
     });
 }
@@ -490,14 +404,8 @@ void RemoteDevice::createRenderBundleEncoder(const WebGPU::RenderBundleEncoderDe
 
     auto renderBundleEncoder = m_backing->createRenderBundleEncoder(*convertedDescriptor);
     MESSAGE_CHECK(renderBundleEncoder);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteRenderBundleEncoder = RemoteRenderBundleEncoder::init(RemoteRenderBundleEncoderBacking { *renderBundleEncoder }, context, objectHeap->swiftImplTable());
-    objectHeap->addObject(identifier, WebGPU::RenderBundleEncoderObject { *renderBundleEncoder, WTF::move(remoteRenderBundleEncoder), context, protect(m_streamConnection), Messages::RemoteRenderBundleEncoder::messageReceiverName(), identifier });
-#else
     auto remoteRenderBundleEncoder = RemoteRenderBundleEncoder::create(*m_gpuConnectionToWebProcess.get(), protect(m_gpu), *renderBundleEncoder, objectHeap, protect(m_streamConnection), identifier);
     objectHeap->addObject(identifier, remoteRenderBundleEncoder);
-#endif
 }
 
 void RemoteDevice::createQuerySet(const WebGPU::QuerySetDescriptor& descriptor, WebGPUIdentifier identifier)
@@ -505,14 +413,8 @@ void RemoteDevice::createQuerySet(const WebGPU::QuerySetDescriptor& descriptor, 
     Ref objectHeap = m_objectHeap.get();
     auto querySet = m_backing->createQuerySet(descriptor);
     MESSAGE_CHECK(querySet);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteQuerySet = RemoteQuerySet::init(RemoteQuerySetBacking { *querySet }, context);
-    objectHeap->addObject(identifier, WebGPU::QuerySetObject { *querySet, WTF::move(remoteQuerySet), context, protect(m_streamConnection), Messages::RemoteQuerySet::messageReceiverName(), identifier });
-#else
     auto remoteQuerySet = RemoteQuerySet::create(*querySet, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteQuerySet);
-#endif
 }
 
 void RemoteDevice::pushErrorScope(::WebGPU::ErrorFilter errorFilter)
@@ -551,4 +453,4 @@ void RemoteDevice::setLabel(String&& label)
 #undef MESSAGE_CHECK
 #undef MESSAGE_CHECK_COMPLETION
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

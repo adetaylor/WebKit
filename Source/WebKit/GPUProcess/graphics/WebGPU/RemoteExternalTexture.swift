@@ -27,17 +27,28 @@
 @_spi(WebKitGPU) import WebGPUSwift
 import WebKit_Internal
 
-// Receives the messages of a WebGPU external texture, on its stream connection's work queue, and calls its ExternalTextureImpl.
+// Receives the messages of a WebGPU external texture, on its stream connection's work queue, and calls its
+// ExternalTextureImpl.
 @_expose(Cxx)
 final class RemoteExternalTexture {
-    private let impl: ExternalTextureImpl
-    private let context: WebKit.WebGPUSwiftReceiverContext
+    private let externalTexture: ExternalTextureReference
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteExternalTextureBacking, context: WebKit.WebGPUSwiftReceiverContext) {
-        self.impl = WebGPUSwift.impl(of: backing.get())
-        self.context = context
+    @_expose(!Cxx)
+    private init(_ externalTexture: ExternalTextureReference, _ link: WebGPURegistryLink) {
+        self.externalTexture = externalTexture
+        self.link = link
+    }
+
+    // Adds the external texture, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ externalTexture: ExternalTextureReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteExternalTexture(externalTexture, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteExternalTexture, link.identifier)
+        objects.add(link.identifier, externalTexture, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -48,19 +59,19 @@ final class RemoteExternalTexture {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
-    }
-
-    func destroy() {
-        impl.destroy()
-    }
-
-    func undestroy() {
-        impl.undestroy()
+        link.sharedPreferencesForWebProcess()
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
+    }
+
+    func destroy() {
+        externalTexture.impl.destroy()
+    }
+
+    func undestroy() {
+        externalTexture.impl.undestroy()
     }
 
     // WebGPU doesn't keep an external texture's label.

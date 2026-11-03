@@ -30,14 +30,24 @@ import WebKit_Internal
 // Receives the messages of a WebGPU render bundle, on its stream connection's work queue, and calls its RenderBundleImpl.
 @_expose(Cxx)
 final class RemoteRenderBundle {
-    private let impl: RenderBundleImpl
-    private let context: WebKit.WebGPUSwiftReceiverContext
+    private let renderBundle: RenderBundleReference
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteRenderBundleBacking, context: WebKit.WebGPUSwiftReceiverContext) {
-        self.impl = WebGPUSwift.impl(of: backing.get())
-        self.context = context
+    @_expose(!Cxx)
+    private init(_ renderBundle: RenderBundleReference, _ link: WebGPURegistryLink) {
+        self.renderBundle = renderBundle
+        self.link = link
+    }
+
+    // Adds the render bundle, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ renderBundle: RenderBundleReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteRenderBundle(renderBundle, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteRenderBundle, link.identifier)
+        objects.add(link.identifier, renderBundle, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -48,15 +58,15 @@ final class RemoteRenderBundle {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
+        link.sharedPreferencesForWebProcess()
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
     }
 
     func setLabel(label: String?) {
-        impl.setLabel(label)
+        renderBundle.impl.setLabel(label)
     }
 }
 

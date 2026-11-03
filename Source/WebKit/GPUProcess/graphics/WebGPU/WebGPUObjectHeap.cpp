@@ -88,11 +88,21 @@ ObjectHeap::~ObjectHeap()
 }
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::createSwiftImplTable(RemoteGPU& gpu)
+{
+    ASSERT(!m_swiftImplTable);
+    m_swiftImplTable = makeUniqueWithoutFastMallocCheck<WebGPUImplTable>(WebGPUImplTable::init(WebGPUSwiftRegistryHost { *this, gpu }));
+}
+
 WebGPUImplTable& ObjectHeap::swiftImplTable()
 {
-    if (!m_swiftImplTable)
-        m_swiftImplTable = makeUniqueWithoutFastMallocCheck<WebGPUImplTable>(WebGPUImplTable::init());
+    RELEASE_ASSERT(m_swiftImplTable);
     return *m_swiftImplTable;
+}
+
+void ObjectHeap::trackDevice(::WebGPU::Device& device)
+{
+    m_devices.add(device);
 }
 #endif
 
@@ -198,12 +208,14 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteComputePipeline& c
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteDevice& device)
 {
     auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteDevice> { protect(device) } });
     ASSERT_UNUSED(result, result.isNewEntry);
     m_devices.add(device.backing());
 }
+#endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, ExternalTextureObject&& externalTexture)
@@ -429,10 +441,18 @@ RefPtr<::WebGPU::BindGroupLayout> ObjectHeap::convertBindGroupLayoutFromBacking(
 
 RefPtr<::WebGPU::Buffer> ObjectHeap::convertBufferFromBacking(WebGPUIdentifier identifier)
 {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Swift owns buffers.
+    if (!m_swiftImplTable)
+        return nullptr;
+    auto buffer = m_swiftImplTable->buffer(identifier.toUInt64());
+    return buffer ? &buffer->get() : nullptr;
+#else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<BufferObject>(iterator->value))
         return nullptr;
     return &std::get<BufferObject>(iterator->value)->backing();
+#endif
 }
 
 RefPtr<::WebGPU::CommandBuffer> ObjectHeap::convertCommandBufferFromBacking(WebGPUIdentifier identifier)
@@ -477,10 +497,18 @@ RefPtr<::WebGPU::ComputePipeline> ObjectHeap::convertComputePipelineFromBacking(
 
 RefPtr<::WebGPU::Device> ObjectHeap::convertDeviceFromBacking(WebGPUIdentifier identifier)
 {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Swift owns devices.
+    if (!m_swiftImplTable)
+        return nullptr;
+    auto device = m_swiftImplTable->device(identifier.toUInt64());
+    return device ? &device->get() : nullptr;
+#else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteDevice>>(iterator->value))
         return nullptr;
     return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteDevice>>(iterator->value)->backing();
+#endif
 }
 
 ThreadSafeWeakPtr<::WebGPU::ExternalTexture> ObjectHeap::convertExternalTextureFromBacking(WebGPUIdentifier identifier)
@@ -509,10 +537,18 @@ RefPtr<::WebGPU::PresentationContext> ObjectHeap::convertPresentationContextFrom
 
 RefPtr<::WebGPU::QuerySet> ObjectHeap::convertQuerySetFromBacking(WebGPUIdentifier identifier)
 {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Swift owns query sets.
+    if (!m_swiftImplTable)
+        return nullptr;
+    auto querySet = m_swiftImplTable->querySet(identifier.toUInt64());
+    return querySet ? &querySet->get() : nullptr;
+#else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<QuerySetObject>(iterator->value))
         return nullptr;
     return &std::get<QuerySetObject>(iterator->value)->backing();
+#endif
 }
 
 RefPtr<::WebGPU::Queue> ObjectHeap::convertQueueFromBacking(WebGPUIdentifier identifier)
@@ -624,8 +660,14 @@ ObjectHeap::ExistsAndValid ObjectHeap::objectExistsAndValid(const WebCore::WebGP
     ExistsAndValid result;
 #if HAVE(WEBGPU_IMPLEMENTATION)
     auto it = m_objects.find(identifier);
-    if (it == m_objects.end())
+    if (it == m_objects.end()) {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+        auto state = m_swiftImplTable ? m_swiftImplTable->objectState(identifier.toUInt64()) : WebGPUSwiftObjectState::Absent;
+        result.exists = state != WebGPUSwiftObjectState::Absent;
+        result.valid = state == WebGPUSwiftObjectState::Valid;
+#endif
         return result;
+    }
 
     result.exists = true;
     result.valid = WTF::switchOn(it->value, [&](std::monostate) -> bool {

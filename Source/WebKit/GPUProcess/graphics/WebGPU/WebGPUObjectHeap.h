@@ -50,6 +50,7 @@ namespace WebKit {
 class WebGPUImplTable;
 #endif
 class RemoteAdapter;
+class RemoteGPU;
 class RemoteBindGroup;
 class RemoteBindGroupLayout;
 class RemoteBuffer;
@@ -157,7 +158,9 @@ public:
 #else
     void addObject(WebGPUIdentifier, RemoteComputePipeline&);
 #endif
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, RemoteDevice&);
+#endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, ExternalTextureObject&&);
 #else
@@ -253,8 +256,14 @@ public:
     ExistsAndValid objectExistsAndValid(const WebCore::WebGPUIntegration&, WebGPUIdentifier) const;
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT) && !defined(__swift__)
-    // The Swift receivers' table of the Impls of objects in this heap, which the heap empties of each object it removes.
+    // The Swift registry of the WebGPU objects that Swift owns, which also keeps the references of objects in this heap
+    // that Swift made or looked up. The heap removes those as it removes its own entries.
+    void createSwiftImplTable(RemoteGPU&);
     WebGPUImplTable& swiftImplTable();
+#endif
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Adds a device that Swift owns to those that devices() gives.
+    void trackDevice(::WebGPU::Device&);
 #endif
 
 private:
@@ -271,7 +280,9 @@ private:
         IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>,
         ComputePassEncoderObject,
         ComputePipelineObject,
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
         IPC::ScopedActiveMessageReceiveQueue<RemoteDevice>,
+#endif
         ExternalTextureObject,
         PipelineLayoutObject,
         IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>,

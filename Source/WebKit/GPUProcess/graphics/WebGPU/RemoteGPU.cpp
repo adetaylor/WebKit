@@ -148,6 +148,9 @@ void RemoteGPU::workQueueInitialize()
     RefPtr streamConnection = m_streamConnection;
     streamConnection->open(*this, workQueue);
     streamConnection->startReceivingMessages(*this, Messages::RemoteGPU::messageReceiverName(), m_identifier.toUInt64());
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    m_objectHeap->createSwiftImplTable(*this);
+#endif
 
 #if HAVE(WEBGPU_IMPLEMENTATION)
     // BEWARE: This is a retain cycle.

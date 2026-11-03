@@ -28,14 +28,25 @@
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
-#include "RemoteBindGroupLayoutMessages.h"
+#include "GPUConnectionToWebProcess.h"
 #include "RemoteBufferProxy.h"
-#include "RemoteRenderBundleMessages.h"
+#include "RemoteCommandEncoder.h"
 #include "RemoteGPU.h"
+#include "RemoteShaderModule.h"
+#include "RemoteTexture.h"
+#include "RemoteXRBinding.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
 #include "WebKit-Swift.h"
 #include <wtf/CheckedArithmetic.h>
+
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+#include "RemoteVideoFrameObjectHeap.h"
+#include "SharedVideoFrame.h"
+#include <WebCore/MediaPlayer.h>
+#include <WebCore/VideoFrame.h>
+#include <WebCore/WebGPU.h>
+#endif
 
 namespace WebKit {
 
@@ -59,76 +70,109 @@ std::optional<SharedPreferencesForWebProcess> WebGPUSwiftReceiverContext::shared
     return std::nullopt;
 }
 
-static void addBindGroupLayout(WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu, IPC::StreamServerConnection& streamConnection, ::WebGPU::BindGroupLayout& bindGroupLayout, WebGPUIdentifier identifier)
+WebGPUSwiftRegistryHost::WebGPUSwiftRegistryHost(WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu)
+    : m_objectHeap(objectHeap)
+    , m_gpu(gpu)
 {
-    WebGPUSwiftReceiverContext context { objectHeap, gpu, identifier };
-    auto remoteBindGroupLayout = RemoteBindGroupLayout::init(RemoteBindGroupLayoutBacking { bindGroupLayout }, context);
-    objectHeap.addObject(identifier, WebGPU::BindGroupLayoutObject { bindGroupLayout, WTF::move(remoteBindGroupLayout), context, streamConnection, Messages::RemoteBindGroupLayout::messageReceiverName(), identifier });
 }
 
-bool WebGPUSwiftReceiverContext::makeChild(WebGPUSwiftChildKind kind, uint32_t index, uint64_t identifier) const
+std::optional<SharedPreferencesForWebProcess> WebGPUSwiftRegistryHost::sharedPreferencesForWebProcess() const
+{
+    if (RefPtr gpu = m_gpu.get())
+        return gpu->sharedPreferencesForWebProcess();
+    return std::nullopt;
+}
+
+RefPtr<IPC::StreamServerConnection> WebGPUSwiftRegistryHost::streamConnection() const
+{
+    RefPtr gpu = m_gpu.get();
+    return gpu ? gpu->m_streamConnection : nullptr;
+}
+
+void WebGPUSwiftRegistryHost::addTexture(::WebGPU::Texture& texture, uint64_t identifier) const
 {
     RefPtr objectHeap = m_objectHeap.get();
     RefPtr gpu = m_gpu.get();
-    if (!objectHeap || !gpu)
-        return true;
-    RefPtr streamConnection = gpu->m_streamConnection;
-    if (!streamConnection)
-        return true;
-
-    WebGPUIdentifier childIdentifier { identifier };
-    switch (kind) {
-    case WebGPUSwiftChildKind::ComputePipelineBindGroupLayout: {
-        RefPtr computePipeline = objectHeap->convertComputePipelineFromBacking(m_identifier);
-        if (!computePipeline)
-            return false;
-        Ref bindGroupLayout = computePipeline->getBindGroupLayout(index);
-        addBindGroupLayout(*objectHeap, *gpu, *streamConnection, bindGroupLayout, childIdentifier);
-        return true;
-    }
-    case WebGPUSwiftChildKind::RenderPipelineBindGroupLayout: {
-        RefPtr renderPipeline = objectHeap->convertRenderPipelineFromBacking(m_identifier);
-        if (!renderPipeline)
-            return false;
-        Ref bindGroupLayout = renderPipeline->getBindGroupLayout(index);
-        addBindGroupLayout(*objectHeap, *gpu, *streamConnection, bindGroupLayout, childIdentifier);
-        return true;
-    }
-    case WebGPUSwiftChildKind::RenderBundleEncoderRenderBundle:
-        break;
-    }
-    RELEASE_ASSERT_NOT_REACHED();
+    RefPtr streamConnection = this->streamConnection();
+    RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
+    if (!objectHeap || !streamConnection || !connection)
+        return;
+    WebGPUIdentifier textureIdentifier { identifier };
+    auto remoteTexture = RemoteTexture::create(*connection, *gpu, texture, *objectHeap, streamConnection.releaseNonNull(), textureIdentifier);
+    objectHeap->addObject(textureIdentifier, remoteTexture);
 }
 
-bool WebGPUSwiftReceiverContext::makeChild(WebGPUSwiftChildKind kind, const String& label, uint64_t identifier) const
+void WebGPUSwiftRegistryHost::addShaderModule(::WebGPU::ShaderModule& shaderModule, uint64_t identifier) const
 {
     RefPtr objectHeap = m_objectHeap.get();
     RefPtr gpu = m_gpu.get();
-    if (!objectHeap || !gpu)
-        return true;
-    RefPtr streamConnection = gpu->m_streamConnection;
-    if (!streamConnection)
-        return true;
+    RefPtr streamConnection = this->streamConnection();
+    if (!objectHeap || !streamConnection)
+        return;
+    WebGPUIdentifier shaderModuleIdentifier { identifier };
+    auto remoteShaderModule = RemoteShaderModule::create(shaderModule, *objectHeap, streamConnection.releaseNonNull(), *gpu, shaderModuleIdentifier);
+    objectHeap->addObject(shaderModuleIdentifier, remoteShaderModule);
+}
 
-    WebGPUIdentifier childIdentifier { identifier };
-    switch (kind) {
-    case WebGPUSwiftChildKind::RenderBundleEncoderRenderBundle: {
-        RefPtr renderBundleEncoder = objectHeap->convertRenderBundleEncoderFromBacking(m_identifier);
-        if (!renderBundleEncoder)
-            return false;
-        RefPtr renderBundle = renderBundleEncoder->finish(::WebGPU::RenderBundleDescriptor { label });
-        if (!renderBundle)
-            return false;
-        WebGPUSwiftReceiverContext context { *objectHeap, *gpu, childIdentifier };
-        auto remoteRenderBundle = RemoteRenderBundle::init(RemoteRenderBundleBacking { *renderBundle }, context);
-        objectHeap->addObject(childIdentifier, WebGPU::RenderBundleObject { *renderBundle, WTF::move(remoteRenderBundle), context, *streamConnection, Messages::RemoteRenderBundle::messageReceiverName(), childIdentifier });
+void WebGPUSwiftRegistryHost::addCommandEncoder(::WebGPU::CommandEncoder& commandEncoder, uint64_t identifier) const
+{
+    RefPtr objectHeap = m_objectHeap.get();
+    RefPtr gpu = m_gpu.get();
+    RefPtr streamConnection = this->streamConnection();
+    RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
+    if (!objectHeap || !streamConnection || !connection)
+        return;
+    WebGPUIdentifier commandEncoderIdentifier { identifier };
+    auto remoteCommandEncoder = RemoteCommandEncoder::create(*connection, *gpu, commandEncoder, *objectHeap, streamConnection.releaseNonNull(), commandEncoderIdentifier);
+    objectHeap->addObject(commandEncoderIdentifier, remoteCommandEncoder);
+}
+
+bool WebGPUSwiftRegistryHost::addXRBinding(::WebGPU::Device& device, uint64_t identifier) const
+{
+    RefPtr binding = device.createXRBinding();
+    if (!binding)
+        return false;
+    RefPtr objectHeap = m_objectHeap.get();
+    RefPtr gpu = m_gpu.get();
+    RefPtr streamConnection = this->streamConnection();
+    RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
+    if (!objectHeap || !streamConnection || !connection)
         return true;
-    }
-    case WebGPUSwiftChildKind::ComputePipelineBindGroupLayout:
-    case WebGPUSwiftChildKind::RenderPipelineBindGroupLayout:
-        break;
-    }
-    RELEASE_ASSERT_NOT_REACHED();
+    WebGPUIdentifier bindingIdentifier { identifier };
+    auto remoteBinding = RemoteXRBinding::create(*connection, *binding, *objectHeap, *gpu, streamConnection.releaseNonNull(), bindingIdentifier);
+    objectHeap->addObject(bindingIdentifier, remoteBinding);
+    return true;
+}
+
+void WebGPUSwiftRegistryHost::trackDevice(::WebGPU::Device& device) const
+{
+    if (RefPtr objectHeap = m_objectHeap.get())
+        objectHeap->trackDevice(device);
+}
+
+::WebGPU::Texture* WebGPUSwiftRegistryHost::texture(uint64_t identifier) const
+{
+    RefPtr objectHeap = m_objectHeap.get();
+    return objectHeap ? objectHeap->convertTextureFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
+}
+
+::WebGPU::TextureView* WebGPUSwiftRegistryHost::textureView(uint64_t identifier) const
+{
+    RefPtr objectHeap = m_objectHeap.get();
+    return objectHeap ? objectHeap->convertTextureViewFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
+}
+
+WebGPUSwiftReceiverRegistration::WebGPUSwiftReceiverRegistration(IPC::StreamServerConnection& streamConnection, IPC::StreamMessageReceiver& receiver, IPC::ReceiverName receiverName, uint64_t identifier)
+    : m_streamConnection(streamConnection)
+    , m_receiverName(receiverName)
+    , m_identifier(identifier)
+{
+    streamConnection.startReceivingMessages(receiver, receiverName, identifier);
+}
+
+WebGPUSwiftReceiverRegistration::~WebGPUSwiftReceiverRegistration()
+{
+    m_streamConnection->stopReceivingMessages(m_receiverName, m_identifier);
 }
 
 bool copySharedMemoryToBuffer(::WebGPU::Buffer& buffer, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>& argument, uint64_t offset)
@@ -157,44 +201,99 @@ bool copySharedMemoryToBuffer(::WebGPU::Buffer& buffer, IPC::CxxDecodedArgument<
     return true;
 }
 
-::WebGPU::BindGroup* WebGPUSwiftReceiverContext::bindGroup(uint64_t identifier) const
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+WebGPUSwiftVideoFrames* WebGPUSwiftVideoFrames::create(const WebGPUSwiftRegistryHost& host)
 {
-    RefPtr objectHeap = m_objectHeap.get();
-    return objectHeap ? objectHeap->convertBindGroupFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
-}
-
-::WebGPU::Buffer* WebGPUSwiftReceiverContext::buffer(uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    return objectHeap ? objectHeap->convertBufferFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
-}
-
-::WebGPU::ComputePipeline* WebGPUSwiftReceiverContext::computePipeline(uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    return objectHeap ? objectHeap->convertComputePipelineFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
-}
-
-::WebGPU::RenderBundle* WebGPUSwiftReceiverContext::renderBundle(uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    return objectHeap ? objectHeap->convertRenderBundleFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
-}
-
-::WebGPU::RenderPipeline* WebGPUSwiftReceiverContext::renderPipeline(uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    return objectHeap ? objectHeap->convertRenderPipelineFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
-}
-
-::WebGPU::ExternalTexture* WebGPUSwiftReceiverContext::externalTexture(uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    if (!objectHeap)
+    RefPtr gpu = host.m_gpu.get();
+    RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
+    if (!connection)
         return nullptr;
-    RefPtr externalTexture = objectHeap->convertExternalTextureFromBacking(WebGPUIdentifier { identifier }).get();
-    return externalTexture.leakRef();
+    // As for RemoteDevice: a frame shared across is usually a reference into the video frame object heap, and the web
+    // process's identity attributes any buffer read out of shared memory.
+    auto reader = makeUnique<SharedVideoFrameReader>(RefPtr<RemoteVideoFrameObjectHeap> { &connection->videoFrameObjectHeap() }, connection->webProcessIdentity());
+    return &adoptRef(*new WebGPUSwiftVideoFrames(host, WTF::move(reader))).leakRef();
 }
+
+WebGPUSwiftVideoFrames::WebGPUSwiftVideoFrames(const WebGPUSwiftRegistryHost& host, std::unique_ptr<SharedVideoFrameReader>&& sharedVideoFrameReader)
+    : m_host(host)
+    , m_sharedVideoFrameReader(WTF::move(sharedVideoFrameReader))
+{
+}
+
+WebGPUSwiftVideoFrames::~WebGPUSwiftVideoFrames() = default;
+
+void WebGPUSwiftVideoFrames::setSemaphore(IPC::CxxDecodedArgument<IPC::Semaphore>& argument)
+{
+    if (auto semaphore = argument.take())
+        m_sharedVideoFrameReader->setSemaphore(WTF::move(*semaphore));
+}
+
+void WebGPUSwiftVideoFrames::setSharedMemory(IPC::CxxDecodedArgument<WebCore::SharedMemory::Handle>& argument)
+{
+    if (auto handle = argument.take())
+        m_sharedVideoFrameReader->setSharedMemory(WTF::move(*handle));
+}
+
+OptionalRemoteExternalTextureBacking WebGPUSwiftVideoFrames::importExternalTexture(::WebGPU::Device& device, IPC::CxxDecodedArgument<WebGPU::ExternalTextureDescriptor>& argument, bool& isInvalid)
+{
+    isInvalid = false;
+    auto descriptor = argument.take();
+    if (!descriptor) {
+        isInvalid = true;
+        return std::nullopt;
+    }
+
+    RefPtr gpu = m_host.m_gpu.get();
+    RefPtr objectHeap = m_host.m_objectHeap.get();
+    if (!gpu || !objectHeap)
+        return std::nullopt;
+
+    std::optional<WebKit::SharedVideoFrame> sharedVideoFrame = WTF::move(descriptor->sharedFrame);
+    RetainPtr<CVPixelBufferRef> pixelBuffer { nullptr };
+    if (sharedVideoFrame) {
+        if (auto videoFrame = m_sharedVideoFrameReader->read(WTF::move(*sharedVideoFrame)))
+            pixelBuffer = videoFrame->pixelBuffer();
+    } else if (descriptor->mediaIdentifier) {
+        if (RefPtr connection = gpu->gpuConnectionToWebProcess()) {
+            connection->performWithMediaPlayerOnMainThread(*descriptor->mediaIdentifier, [&] (auto& player) mutable {
+                auto videoFrame = player.videoFrameForCurrentTime();
+                pixelBuffer = videoFrame ? videoFrame->pixelBuffer() : nullptr;
+            });
+        }
+    }
+
+    auto convertedDescriptor = objectHeap->convertFromBacking(*descriptor, pixelBuffer);
+    if (!convertedDescriptor) {
+        isInvalid = true;
+        return std::nullopt;
+    }
+
+    RefPtr integration = gpu->backing();
+    if (!integration)
+        return std::nullopt;
+    auto externalTexture = integration->importExternalTexture(device, *convertedDescriptor);
+    if (!externalTexture) {
+        isInvalid = true;
+        return std::nullopt;
+    }
+    return RemoteExternalTextureBacking { *externalTexture };
+}
+
+void WebGPUSwiftVideoFrames::updateExternalTexture(::WebGPU::ExternalTexture& externalTexture, uint64_t mediaPlayerIdentifier)
+{
+    externalTexture.destroy();
+    RefPtr gpu = m_host.m_gpu.get();
+    RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
+    if (!connection)
+        return;
+    RetainPtr<CVPixelBufferRef> pixelBuffer { nullptr };
+    connection->performWithMediaPlayerOnMainThread(WebCore::MediaPlayerIdentifier { mediaPlayerIdentifier }, [&pixelBuffer] (auto& player) mutable {
+        auto videoFrame = player.videoFrameForCurrentTime();
+        pixelBuffer = videoFrame ? videoFrame->pixelBuffer() : nullptr;
+    });
+    externalTexture.updateExternalTexture(pixelBuffer.get());
+}
+#endif // PLATFORM(COCOA) && ENABLE(VIDEO)
 
 } // namespace WebKit
 

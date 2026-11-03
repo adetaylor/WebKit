@@ -24,6 +24,7 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
 
+@_spi(WebKitGPU) import WebGPUSwift
 import WebKit_Internal
 
 extension IPCTypes.CxxName {
@@ -54,21 +55,47 @@ extension WebGPU.IndexFormat {
     }
 }
 
-// The Impls of the objects in a RemoteGPU's object heap that its Swift receivers have looked up by identifier, each with
-// its shell where an encoder keeps that too, so that a message naming an object finds it without leaving Swift after
-// the first time. Used only on the RemoteGPU's work queue, as the heap is.
+// The C++ enum or option set with the same numbering as an IPC one: the [Swift] marking that gives the IPC type its Swift
+// form numbers both in declaration order, as their coders do.
+func sameNumbering<Target: RawRepresentable, Source: RawRepresentable>(_ value: Source) -> Target
+where Target.RawValue: FixedWidthInteger, Source.RawValue: FixedWidthInteger {
+    guard let target = Target(rawValue: Target.RawValue(value.rawValue)) else {
+        preconditionFailure("an IPC value with no C++ counterpart")
+    }
+    return target
+}
+
+// The registry of the WebGPU objects of a RemoteGPU that Swift owns, by identifier, with their receivers, and of the
+// references to objects of the RemoteGPU's object heap that Swift receivers made or looked up. Used only on the
+// RemoteGPU's work queue, as the heap is.
 //
-// The object heap stays the authority on which objects exist and for how long: it removes an identifier here whenever
-// it removes its own entry, and empties the table when it's cleared or destroyed, so the table never keeps an Impl alive
-// longer than the heap keeps the object. It's a second registry for the transition, which goes, or becomes the only
-// one, when the object heap moves to Swift.
+// The registry owns the objects that Swift makes and receives the messages of: their references, receivers and
+// registrations, which a receiver removes when the web process destructs its object. The object heap stays the
+// authority on the objects that C++ receivers own: it removes an identifier here whenever it removes its own entry,
+// and empties the registry when it's cleared or destroyed, so the registry never keeps a reference to one of those
+// longer than the heap keeps the object.
 @_expose(Cxx)
 final class WebGPUImplTable {
-    private var entries: [UInt64: AnyObject] = [:]
+    private final class Entry {
+        let object: AnyObject
+        let receiver: AnyObject?
+        let registration: WebKit.WebGPUSwiftReceiverRegistration?
+
+        init(_ object: AnyObject, receiver: AnyObject?, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+            self.object = object
+            self.receiver = receiver
+            self.registration = registration
+        }
+    }
+
+    @_expose(!Cxx)
+    let host: WebKit.WebGPUSwiftRegistryHost
+    private var entries: [UInt64: Entry] = [:]
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
-    init() {
+    init(host: WebKit.WebGPUSwiftRegistryHost) {
+        self.host = host
     }
 
     @used
@@ -81,19 +108,119 @@ final class WebGPUImplTable {
         entries.removeAll()
     }
 
-    // The entry for that identifier, which lookUp() finds in the object heap the first time. nil if the heap has no
-    // such object, or an object of another kind. Each kind of object is kept as one type, whichever receiver looks it up
-    // first: a BufferReference, BindGroupReference, RenderBundleReference or pipeline reference.
-    @_expose(!Cxx)
-    func entry<Entry: AnyObject>(_ identifier: UInt64, _ lookUp: () -> Entry?) -> Entry? {
-        if let entry = entries[identifier] {
-            return entry as? Entry
+    // Makes the receiver of a device that the adapter made.
+    @used
+    func addDevice(_ backing: WebKit.RemoteDeviceBacking, _ identifier: UInt64) {
+        let device = WebGPUSwift.reference(of: backing.get())
+        host.trackDevice(backing.get())
+        let receiver = RemoteDevice(device, link: WebGPURegistryLink(self, identifier))
+        add(identifier, device, receiver: receiver, registration: WebKit.registerWebGPUSwiftReceiver(host, receiver.getMessageReceiver(), .RemoteDevice, identifier))
+    }
+
+    // The objects that Swift owns, for the C++ receivers that name them.
+    @used
+    func buffer(_ identifier: UInt64) -> WebKit.OptionalRemoteBufferBacking {
+        guard let buffer = entries[identifier]?.object as? BufferReference else {
+            return .init()
         }
-        guard let entry = lookUp() else {
+        return .init(WebKit.RemoteBufferBacking(buffer.apiObject))
+    }
+
+    @used
+    func device(_ identifier: UInt64) -> WebKit.OptionalRemoteDeviceBacking {
+        guard let device = entries[identifier]?.object as? DeviceReference else {
+            return .init()
+        }
+        return .init(WebKit.RemoteDeviceBacking(device.apiObject))
+    }
+
+    @used
+    func querySet(_ identifier: UInt64) -> WebKit.OptionalRemoteQuerySetBacking {
+        guard let querySet = entries[identifier]?.object as? QuerySetReference else {
+            return .init()
+        }
+        return .init(WebKit.RemoteQuerySetBacking(querySet.apiObject))
+    }
+
+    // Whether an object that Swift owns is valid, as WebGPUIntegration::isValid() says for its shell.
+    @used
+    func objectState(_ identifier: UInt64) -> WebKit.WebGPUSwiftObjectState {
+        guard let object = entries[identifier]?.object as? any GPUObjectReference else {
+            return .Absent
+        }
+        return object.isValid ? .Valid : .Invalid
+    }
+
+    // Adds an object that Swift owns, with its receiver and the registration that keeps the receiver's messages coming.
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: AnyObject, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        entries[identifier] = Entry(object, receiver: receiver, registration: registration)
+    }
+
+    // Keeps the reference to an object of the object heap that Swift made, until the heap removes it.
+    @_expose(!Cxx)
+    func addReference(_ identifier: UInt64, _ object: AnyObject) {
+        entries[identifier] = Entry(object, receiver: nil, registration: nil)
+    }
+
+    // The object with that identifier, if there is one of that type.
+    @_expose(!Cxx)
+    func object<Object: AnyObject>(_ identifier: IPCTypes.WebGPUIdentifier, as: Object.Type) -> Object? {
+        entries[identifier.rawValue]?.object as? Object
+    }
+
+    // The object with that identifier, which lookUp() finds in the object heap the first time. nil if there's no such
+    // object, or an object of another kind.
+    @_expose(!Cxx)
+    func object<Object: AnyObject>(_ identifier: IPCTypes.WebGPUIdentifier, _ lookUp: () -> Object?) -> Object? {
+        if let entry = entries[identifier.rawValue] {
+            return entry.object as? Object
+        }
+        guard let object = lookUp() else {
             return nil
         }
-        entries[identifier] = entry
-        return entry
+        addReference(identifier.rawValue, object)
+        return object
+    }
+
+    // The objects that C++ receivers still make, which Swift receivers name.
+    @_expose(!Cxx)
+    func texture(_ identifier: IPCTypes.WebGPUIdentifier) -> TextureReference? {
+        object(identifier) {
+            host.texture(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
+        }
+    }
+
+    @_expose(!Cxx)
+    func textureView(_ identifier: IPCTypes.WebGPUIdentifier) -> TextureViewReference? {
+        object(identifier) {
+            host.textureView(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
+        }
+    }
+}
+
+// A Swift receiver's link to the registry that owns it: its entry, which it removes when the web process destructs its
+// object, and the objects its messages name. Weak, so that work still in flight when the registry has gone finds nothing.
+struct WebGPURegistryLink {
+    private(set) weak var objects: WebGPUImplTable?
+    let identifier: UInt64
+
+    init(_ objects: WebGPUImplTable, _ identifier: UInt64) {
+        self.objects = objects
+        self.identifier = identifier
+    }
+
+    // A link for a child of the receiver's object, in the same registry.
+    func child(_ identifier: IPCTypes.WebGPUIdentifier) -> WebGPURegistryLink? {
+        objects.map { WebGPURegistryLink($0, identifier.rawValue) }
+    }
+
+    func remove() {
+        objects?.remove(identifier)
+    }
+
+    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
+        objects?.host.sharedPreferencesForWebProcess() ?? .init()
     }
 }
 

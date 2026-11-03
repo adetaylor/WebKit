@@ -29,14 +29,24 @@ import WebKit_Internal
 // Receives the messages of a WebGPU bind group, on its stream connection's work queue, and calls its BindGroupImpl.
 @_expose(Cxx)
 final class RemoteBindGroup {
-    private let impl: BindGroupImpl
-    private let context: WebKit.WebGPUSwiftReceiverContext
+    private let bindGroup: BindGroupReference
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteBindGroupBacking, context: WebKit.WebGPUSwiftReceiverContext) {
-        self.impl = WebGPUSwift.impl(of: backing.get())
-        self.context = context
+    @_expose(!Cxx)
+    private init(_ bindGroup: BindGroupReference, _ link: WebGPURegistryLink) {
+        self.bindGroup = bindGroup
+        self.link = link
+    }
+
+    // Adds the bind group, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ bindGroup: BindGroupReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteBindGroup(bindGroup, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteBindGroup, link.identifier)
+        objects.add(link.identifier, bindGroup, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -47,24 +57,24 @@ final class RemoteBindGroup {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
+        link.sharedPreferencesForWebProcess()
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
     }
 
     func setLabel(label: String?) {
-        impl.setLabel(label)
+        bindGroup.impl.setLabel(label)
     }
 
     func updateExternalTextures(
         externalTextureIdentifier: IPCTypes.WebGPUIdentifier
     ) -> Bool {
-        guard let externalTexture = context.externalTexture(externalTextureIdentifier.rawValue) else {
+        guard let externalTexture = link.objects?.object(externalTextureIdentifier, as: ExternalTextureReference.self) else {
             return false
         }
-        return impl.updateExternalTextures(WebGPUSwift.impl(of: externalTexture))
+        return bindGroup.impl.updateExternalTextures(externalTexture.impl)
     }
 }
 

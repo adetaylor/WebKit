@@ -27,17 +27,28 @@
 @_spi(WebKitGPU) import WebGPUSwift
 import WebKit_Internal
 
-// Receives the messages of a WebGPU bind group layout, on its stream connection's work queue, and calls its BindGroupLayoutImpl.
+// Receives the messages of a WebGPU bind group layout, on its stream connection's work queue, and calls its
+// BindGroupLayoutImpl.
 @_expose(Cxx)
 final class RemoteBindGroupLayout {
-    private let impl: BindGroupLayoutImpl
-    private let context: WebKit.WebGPUSwiftReceiverContext
+    private let bindGroupLayout: BindGroupLayoutReference
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteBindGroupLayoutBacking, context: WebKit.WebGPUSwiftReceiverContext) {
-        self.impl = WebGPUSwift.impl(of: backing.get())
-        self.context = context
+    @_expose(!Cxx)
+    private init(_ bindGroupLayout: BindGroupLayoutReference, _ link: WebGPURegistryLink) {
+        self.bindGroupLayout = bindGroupLayout
+        self.link = link
+    }
+
+    // Adds the bind group layout, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ bindGroupLayout: BindGroupLayoutReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteBindGroupLayout(bindGroupLayout, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteBindGroupLayout, link.identifier)
+        objects.add(link.identifier, bindGroupLayout, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -48,15 +59,15 @@ final class RemoteBindGroupLayout {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
+        link.sharedPreferencesForWebProcess()
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
     }
 
     func setLabel(label: String?) {
-        impl.setLabel(label)
+        bindGroupLayout.impl.setLabel(label)
     }
 }
 

@@ -28,7 +28,7 @@
 import WebKit_Internal
 
 // Receives the messages of a WebGPU render pass encoder, on its stream connection's work queue, and calls its
-// RenderPassEncoderImpl, with the Impls of the objects they name, from the object heap through objects.
+// RenderPassEncoderImpl, with the references of the objects they name, from the registry.
 @_expose(Cxx)
 final class RemoteRenderPassEncoder {
     private let impl: RenderPassEncoderImpl
@@ -55,9 +55,7 @@ final class RemoteRenderPassEncoder {
     }
 
     private func buffer(_ identifier: IPCTypes.WebGPUIdentifier) -> BufferReference? {
-        objects.entry(identifier.rawValue) {
-            context.buffer(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
+        objects.object(identifier, as: BufferReference.self)
     }
 
     func destruct() {
@@ -65,9 +63,7 @@ final class RemoteRenderPassEncoder {
     }
 
     func setPipeline(identifier: IPCTypes.WebGPUIdentifier) {
-        let pipeline = objects.entry(identifier.rawValue) {
-            context.renderPipeline(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
+        let pipeline = objects.object(identifier, as: RenderPipelineReference.self)
         guard let pipeline else {
             return
         }
@@ -139,9 +135,7 @@ final class RemoteRenderPassEncoder {
             impl.setBindGroup(index, nil, dynamicOffsets: dynamicOffsets)
             return
         }
-        let group = objects.entry(identifier.rawValue) {
-            context.bindGroup(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
+        let group = objects.object(identifier, as: BindGroupReference.self)
         guard let group else {
             return
         }
@@ -189,9 +183,7 @@ final class RemoteRenderPassEncoder {
         var references: [RenderBundleReference] = []
         references.reserveCapacity(bundles.count)
         for identifier in bundles {
-            let bundle = objects.entry(identifier.rawValue) {
-                context.renderBundle(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-            }
+            let bundle = objects.object(identifier, as: RenderBundleReference.self)
             guard let bundle else {
                 return
             }

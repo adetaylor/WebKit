@@ -33,21 +33,28 @@ import WebKit_Internal
 @_expose(Cxx)
 final class RemoteBuffer {
     private let buffer: BufferReference
-    // For the C++ that copies shared memory into the buffer.
-    private let backing: WebKit.RemoteBufferBacking
-    private let context: WebKit.WebGPUSwiftReceiverContext
+    private let link: WebGPURegistryLink
     private var isMapped: Bool
     private var pendingMap = false
     private var mapModeFlags: IPCTypes.MapMode
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteBufferBacking, context: WebKit.WebGPUSwiftReceiverContext, mappedAtCreation: Bool) {
-        self.buffer = WebGPUSwift.reference(of: backing.get())
-        self.backing = backing
-        self.context = context
+    @_expose(!Cxx)
+    private init(_ buffer: BufferReference, mappedAtCreation: Bool, _ link: WebGPURegistryLink) {
+        self.buffer = buffer
+        self.link = link
         self.isMapped = mappedAtCreation
         self.mapModeFlags = mappedAtCreation ? .write : []
+    }
+
+    // Adds the buffer, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ buffer: BufferReference, mappedAtCreation: Bool, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteBuffer(buffer, mappedAtCreation: mappedAtCreation, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteBuffer, link.identifier)
+        objects.add(link.identifier, buffer, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -58,7 +65,7 @@ final class RemoteBuffer {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
+        link.sharedPreferencesForWebProcess()
     }
 
     func getMappedRange(offset: UInt64, size: UInt64?) throws(InvalidMessage) -> [UInt8]? {
@@ -107,7 +114,7 @@ final class RemoteBuffer {
             reply.send(false)
             return
         }
-        reply.send(WebKit.copySharedMemoryToBuffer(backing.get(), data, offset))
+        reply.send(WebKit.copySharedMemoryToBuffer(buffer.apiObject, data, offset))
     }
 
     func copyWithCopy(data: [UInt8], offset: UInt64) {
@@ -136,7 +143,7 @@ final class RemoteBuffer {
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
     }
 
     func setLabel(label: String?) {

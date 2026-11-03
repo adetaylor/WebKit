@@ -61,6 +61,7 @@
 #include "RemoteCommandBufferMessages.h"
 #include "RemoteComputePassEncoderMessages.h"
 #include "RemoteComputePipelineMessages.h"
+#include "RemoteDeviceMessages.h"
 #include "RemoteExternalTextureMessages.h"
 #include "RemotePipelineLayoutMessages.h"
 #include "RemoteQuerySetMessages.h"

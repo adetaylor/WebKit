@@ -147,6 +147,8 @@
 		95350091F683CDE5D234B818 /* RemoteRenderPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B928C92BD891DC41474AC618 /* RemoteRenderPipeline.swift */; };
 		FAD325277E58617AFAF44F92 /* RemoteComputePipelineMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F7CCB489DCB7E24BC18DC1B /* RemoteComputePipelineMessageReceiver.swift */; };
 		BE22598C2BC56871FAC5DD15 /* RemoteComputePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEEF99B3E6E1849A526ED461 /* RemoteComputePipeline.swift */; };
+		DAA55F58ABA980BD43A21E7E /* RemoteDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D69B16094AB482D07835395 /* RemoteDevice.swift */; };
+		08F0A5958B3F528889BEB721 /* RemoteDeviceMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FDD8CDB9DD7E8A94519F706 /* RemoteDeviceMessageReceiver.swift */; };
 		4EB298F5BC108D2C96205FEF /* RemoteExternalTextureMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B170337BA9358A65AFA44546 /* RemoteExternalTextureMessageReceiver.swift */; };
 		47440A2759D15B9B514B54C0 /* RemoteExternalTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF42BE5D396B93D9326EA895 /* RemoteExternalTexture.swift */; };
 		C51A6A54FF93206D16C06AC9 /* RemoteRenderBundleMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A18DA1BCB46EBE474E0D40EB /* RemoteRenderBundleMessageReceiver.swift */; };
@@ -4463,6 +4465,7 @@
 		1C55A586275457C700EB7E95 /* RemoteComputePipelineMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteComputePipelineMessages.h; sourceTree = "<group>"; };
 		1C55A587275457C700EB7E95 /* RemoteShaderModuleMessageReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteShaderModuleMessageReceiver.cpp; sourceTree = "<group>"; };
 		1C55A588275457C700EB7E95 /* RemoteDeviceMessageReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteDeviceMessageReceiver.cpp; sourceTree = "<group>"; };
+		8FDD8CDB9DD7E8A94519F706 /* RemoteDeviceMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDeviceMessageReceiver.swift; sourceTree = "<group>"; };
 		1C55A58C275457C800EB7E95 /* RemoteQuerySetMessageReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteQuerySetMessageReceiver.cpp; sourceTree = "<group>"; };
 		1C55A58D275457C800EB7E95 /* RemoteQuerySetMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteQuerySetMessages.h; sourceTree = "<group>"; };
 		1C55A58F275457C800EB7E95 /* RemoteGPUMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteGPUMessages.h; sourceTree = "<group>"; };
@@ -4625,6 +4628,7 @@
 		1C98C02D27446A07002CCB78 /* RemotePipelineLayout.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemotePipelineLayout.h; sourceTree = "<group>"; };
 		1C98C02E27446A08002CCB78 /* RemoteTextureView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteTextureView.h; sourceTree = "<group>"; };
 		1C98C02F27446A08002CCB78 /* RemoteDevice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteDevice.cpp; sourceTree = "<group>"; };
+		6D69B16094AB482D07835395 /* RemoteDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDevice.swift; sourceTree = "<group>"; };
 		1C98C03027446A08002CCB78 /* RemoteQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteQueue.h; sourceTree = "<group>"; };
 		1C98C03127446A08002CCB78 /* RemotePipelineLayout.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemotePipelineLayout.cpp; sourceTree = "<group>"; };
 		A450C45306C79F7CBF16BE0F /* RemotePipelineLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePipelineLayout.swift; sourceTree = "<group>"; };
@@ -11663,6 +11667,7 @@
 				1C98C02F27446A08002CCB78 /* RemoteDevice.cpp */,
 				1C98C03727446A09002CCB78 /* RemoteDevice.h */,
 				1C98C08F2744BD9A002CCB78 /* RemoteDevice.messages.in */,
+				6D69B16094AB482D07835395 /* RemoteDevice.swift */,
 				1C98C02A27446A07002CCB78 /* RemoteExternalTexture.cpp */,
 				1C98C03227446A08002CCB78 /* RemoteExternalTexture.h */,
 				1C98C0822744BD98002CCB78 /* RemoteExternalTexture.messages.in */,
@@ -14055,6 +14060,7 @@
 				3F7CCB489DCB7E24BC18DC1B /* RemoteComputePipelineMessageReceiver.swift */,
 				1C55A586275457C700EB7E95 /* RemoteComputePipelineMessages.h */,
 				1C55A588275457C700EB7E95 /* RemoteDeviceMessageReceiver.cpp */,
+				8FDD8CDB9DD7E8A94519F706 /* RemoteDeviceMessageReceiver.swift */,
 				1C55A57C275457C500EB7E95 /* RemoteDeviceMessages.h */,
 				1C55A57E275457C500EB7E95 /* RemoteExternalTextureMessageReceiver.cpp */,
 				B170337BA9358A65AFA44546 /* RemoteExternalTextureMessageReceiver.swift */,
@@ -22689,6 +22695,8 @@
 				DC9FEDA4A25AD12B0AF24DC2 /* RemoteComputePassEncoderMessageReceiver.swift in Sources */,
 				BE22598C2BC56871FAC5DD15 /* RemoteComputePipeline.swift in Sources */,
 				FAD325277E58617AFAF44F92 /* RemoteComputePipelineMessageReceiver.swift in Sources */,
+				DAA55F58ABA980BD43A21E7E /* RemoteDevice.swift in Sources */,
+				08F0A5958B3F528889BEB721 /* RemoteDeviceMessageReceiver.swift in Sources */,
 				47440A2759D15B9B514B54C0 /* RemoteExternalTexture.swift in Sources */,
 				4EB298F5BC108D2C96205FEF /* RemoteExternalTextureMessageReceiver.swift in Sources */,
 				2D72A1FA212BF46E00517A20 /* RemoteLayerTreeDrawingArea.mm in Sources */,
