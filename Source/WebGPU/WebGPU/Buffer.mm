@@ -276,6 +276,23 @@ std::span<uint8_t> cpuVisibleContents(id<MTLBuffer> buffer)
     return unsafeMakeSpan(static_cast<uint8_t*>(contents), length);
 }
 
+void readBufferContents(id<MTLBuffer> buffer, uint64_t offset, std::span<uint8_t> destination NOESCAPE)
+{
+    memcpySpan(destination, cpuVisibleContents(buffer).subspan(offset, destination.size()));
+}
+
+bool writeBufferContentsIfInBounds(id<MTLBuffer> buffer, uint64_t offset, std::span<const uint8_t> data NOESCAPE)
+{
+    auto contents = cpuVisibleContents(buffer);
+    if (contents.empty())
+        return false;
+    auto endOffset = checkedSum<size_t>(offset, data.size());
+    if (endOffset.hasOverflowed() || endOffset.value() > contents.size())
+        return false;
+    memcpySpan(contents.subspan(offset), data);
+    return true;
+}
+
 bool verifyIndexBufferForSlowPath(Buffer& buffer, uint32_t firstIndex, uint32_t indexCount, bool isUInt16, uint32_t primitiveOffset, uint32_t vertexCount)
 {
     WTFLogAlways("WARNING: Severe performance penalty due to encoding drawIndexed calls out of order with submission"); // NOLINT

@@ -146,6 +146,29 @@ extension BufferReference {
         impl.mapAsync(shell, mode, rangeFits, rangeFits ? offset : 0, rangeFits ? rangeSize : 0, completion)
     }
 
+    // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange, as Buffer::getMappedRange() reserves the range, but
+    // giving a copy of its bytes. No bytes if the range can't be given.
+    public func getMappedRange(_ offset: UInt64, _ size: UInt64?) -> [UInt8] {
+        let rangeSize = size ?? (impl.initialSize() > offset ? impl.initialSize() - offset : 0)
+        guard UInt(exactly: offset) != nil, UInt(exactly: rangeSize) != nil, impl.reserveMappedRange(offset, rangeSize) else {
+            return []
+        }
+        // The reserved range lies within the mapping, so within the contents.
+        guard let byteCount = Int(exactly: rangeSize), byteCount > 0 else {
+            return []
+        }
+        var bytes = [UInt8](repeating: 0, count: byteCount)
+        var destination = bytes.mutableSpan
+        WebGPU.Metal.readBufferContents(impl.buffer(), offset, &destination)
+        return bytes
+    }
+
+    // Writes data into the buffer's contents at that offset, as a mapped range of them is written. Returns false,
+    // writing nothing, if the contents don't hold it there.
+    public func writeContents(_ data: Span<UInt8>, at offset: UInt64) -> Bool {
+        WebGPU.Metal.writeBufferContentsIfInBounds(impl.buffer(), offset, data)
+    }
+
     public func unmap() {
         impl.unmap()
     }

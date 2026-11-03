@@ -79,6 +79,12 @@ bool verifyBundleIndirectDrawIndexBufferForSlowPath(Buffer&, id<MTLBuffer> _Null
 // completed (restoreIndexBufferContents).
 NSMutableData* clearIndexBufferContents(Buffer&);
 void restoreIndexBufferContents(Buffer&, NSMutableData*);
+// For Swift, which can't reach a buffer's contents: copies the bytes at that offset into destination, which must lie
+// within the contents, as a mapped range Swift has reserved does.
+void readBufferContents(id<MTLBuffer> _Nullable, uint64_t offset, std::span<uint8_t> destination NOESCAPE);
+// Copies data into the contents at that offset. Returns false, copying nothing, if the contents are empty or don't hold
+// it there.
+bool writeBufferContentsIfInBounds(id<MTLBuffer> _Nullable, uint64_t offset, std::span<const uint8_t> data NOESCAPE);
 
 #if !defined(__swift__)
 // The bytes of a buffer the CPU writes into: the staging and temporary buffers the queue copies through, and a render
