@@ -53,7 +53,7 @@ WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(ComputePassEncoderImplBox);
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(ComputePassEncoder);
 
-ComputePassEncoder::ComputePassEncoder(id<MTLComputeCommandEncoder> computeCommandEncoder, const WebGPU::ComputePassDescriptor&, CommandEncoder& parentEncoder, Device& device)
+ComputePassEncoder::ComputePassEncoder(id<MTLComputeCommandEncoder> computeCommandEncoder, CommandEncoder& parentEncoder, Device& device)
     : m_impl(makeUnique<ComputePassEncoderImplBox>(ComputePassEncoderImplBox { .impl = makeComputePassEncoderImpl(computeCommandEncoder, &parentEncoder, parentEncoder.swiftImpl(), &device) }))
 {
 }

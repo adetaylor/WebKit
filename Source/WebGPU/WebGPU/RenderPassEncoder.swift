@@ -708,25 +708,38 @@ public final class RenderPassEncoderImpl: DeliverableImpl {
         makeInvalid(errorString as String?)
     }
 
-    // MARK: Attachments, handed in by the shell's constructor in descriptor order
+    // MARK: Attachments
 
-    @_expose(Cxx)
-    func appendEmptyColorAttachment() {
-        attachments.colorViewIndices.append(-1)
-    }
+    // Handed in by the command encoder that began the pass, once its shell is made: each color attachment, its resolve
+    // target, then the depth-stencil attachment.
+    @_expose(!Cxx)
+    func appendAttachments(_ descriptor: GPURenderPassDescriptor) {
+        for (slot, attachment) in descriptor.colorAttachments.enumerated() {
+            guard let attachment else {
+                attachments.colorViewIndices.append(-1)
+                continue
+            }
+            attachments.colorViewIndices.append(Int32(attachments.views.count))
+            attachments.appendView(attachment.view.attachmentView)
+            beginColorAttachment(attachment.view.impl)
+            if let resolveTarget = attachment.resolveTarget {
+                resolveColorAttachment(resolveTarget.impl)
+            }
+            endColorAttachment(
+                UInt32(slot),
+                attachment.loadOp,
+                attachment.storeOp,
+                attachment.depthSlice != nil,
+                attachment.depthSlice ?? 0
+            )
+        }
 
-    @_expose(Cxx)
-    func appendColorAttachmentTexture(_ texture: borrowing WebGPU.Metal.Texture, _ impl: TextureImpl) {
-        attachments.colorViewIndices.append(Int32(attachments.views.count))
-        attachments.appendView(.texture(copy texture, impl))
-        beginColorAttachment(.texture(impl))
-    }
-
-    @_expose(Cxx)
-    func appendColorAttachmentView(_ view: borrowing WebGPU.Metal.TextureView, _ impl: TextureViewImpl) {
-        attachments.colorViewIndices.append(Int32(attachments.views.count))
-        attachments.appendView(.textureView(copy view, impl))
-        beginColorAttachment(.textureView(impl))
+        if let attachment = descriptor.depthStencilAttachment {
+            attachments.hasDepthStencil = true
+            attachments.depthStencilViewIndex = Int32(attachments.views.count)
+            attachments.appendView(attachment.view.attachmentView)
+            setDepthStencilAttachment(attachment)
+        }
     }
 
     private func beginColorAttachment(_ view: AttachmentImpl) {
@@ -736,16 +749,6 @@ public final class RenderPassEncoderImpl: DeliverableImpl {
         addAttachmentUsage(view, .attachment)
         rasterSampleCount = view.sampleCount
         pendingColorAttachment = view
-    }
-
-    @_expose(Cxx)
-    func resolveColorAttachmentTexture(_ impl: TextureImpl) {
-        resolveColorAttachment(.texture(impl))
-    }
-
-    @_expose(Cxx)
-    func resolveColorAttachmentView(_ impl: TextureViewImpl) {
-        resolveColorAttachment(.textureView(impl))
     }
 
     private func resolveColorAttachment(_ resolveTarget: AttachmentImpl) {
@@ -767,9 +770,13 @@ public final class RenderPassEncoderImpl: DeliverableImpl {
         }
     }
 
-    @_expose(Cxx)
-    func endColorAttachment(_ slot: UInt32, _ loadOp: WebGPU.LoadOp, _ storeOp: WebGPU.StoreOp, _ hasDepthSlice: Bool, _ depthSlice: UInt32)
-    {
+    private func endColorAttachment(
+        _ slot: UInt32,
+        _ loadOp: WebGPU.LoadOp,
+        _ storeOp: WebGPU.StoreOp,
+        _ hasDepthSlice: Bool,
+        _ depthSlice: UInt32
+    ) {
         guard let view = pendingColorAttachment else {
             return
         }
@@ -793,31 +800,10 @@ public final class RenderPassEncoderImpl: DeliverableImpl {
         }
     }
 
-    @_expose(Cxx)
-    func setDepthStencilAttachmentTexture(
-        _ texture: borrowing WebGPU.Metal.Texture,
-        _ impl: TextureImpl,
-        _ parameters: WebGPU.Metal.RenderPassDepthStencilParameters
-    ) {
-        attachments.hasDepthStencil = true
-        attachments.depthStencilViewIndex = Int32(attachments.views.count)
-        attachments.appendView(.texture(copy texture, impl))
-        setDepthStencilAttachment(.texture(impl), parameters)
-    }
-
-    @_expose(Cxx)
-    func setDepthStencilAttachmentView(
-        _ view: borrowing WebGPU.Metal.TextureView,
-        _ impl: TextureViewImpl,
-        _ parameters: WebGPU.Metal.RenderPassDepthStencilParameters
-    ) {
-        attachments.hasDepthStencil = true
-        attachments.depthStencilViewIndex = Int32(attachments.views.count)
-        attachments.appendView(.textureView(copy view, impl))
-        setDepthStencilAttachment(.textureView(impl), parameters)
-    }
-
-    private func setDepthStencilAttachment(_ view: AttachmentImpl, _ parameters: WebGPU.Metal.RenderPassDepthStencilParameters) {
+    private func setDepthStencilAttachment(_ attachment: GPURenderPassDepthStencilAttachment) {
+        let view = attachment.view.impl
+        let depthStoreOpIsDiscard = attachment.depthStoreOp == WebGPU.StoreOp.Discard
+        let stencilStoreOpIsDiscard = attachment.stencilStoreOp == WebGPU.StoreOp.Discard
         view.setCommandEncoder(parentImpl)
         let depthTexture = view.isDestroyed ? nil : view.texture
         if view.width != 0 && renderTargetWidth == 0 {
@@ -826,34 +812,34 @@ public final class RenderPassEncoderImpl: DeliverableImpl {
             rasterSampleCount = view.sampleCount
         }
 
-        depthClearValue = parameters.depthStoreOpIsDiscard ? 0 : Float(quantizedDepthValue(Double(parameters.depthClearValue), view.format))
+        depthClearValue = depthStoreOpIsDiscard ? 0 : Float(quantizedDepthValue(Double(attachment.depthClearValue), view.format))
         if !isStencilOnlyFormat(depthTexture?.pixelFormat ?? .invalid) {
             let plan = attachmentInitPlan(
-                load: parameters.depthLoadOpIsLoad ? .Load : .Clear,
-                store: parameters.depthStoreOpIsDiscard ? .Discard : .Store,
-                readOnly: parameters.depthReadOnly,
+                load: attachment.depthLoadOp == WebGPU.LoadOp.Load ? .Load : .Clear,
+                store: depthStoreOpIsDiscard ? .Discard : .Store,
+                readOnly: attachment.depthReadOnly,
                 isVolume: false,
                 isTransient: view.isTransient
             )
             noteAttachment(view, aspect: .DepthOnly, plan)
             clearDepthAttachment = depthTexture != nil && plan.after == .zeroedAfterPass
             depthStencilAttachmentToClear = depthTexture
-            addAttachmentUsage(view, parameters.depthReadOnly ? .attachmentRead : .attachment, aspect: .DepthOnly)
+            addAttachmentUsage(view, attachment.depthReadOnly ? .attachmentRead : .attachment, aspect: .DepthOnly)
         }
 
-        stencilClearValue = parameters.stencilStoreOpIsDiscard ? 0 : parameters.stencilClearValue
+        stencilClearValue = stencilStoreOpIsDiscard ? 0 : attachment.stencilClearValue
         if stencilOnlyAspectMetalFormat(view.format) != nil {
             let plan = attachmentInitPlan(
-                load: parameters.stencilLoadOpIsLoad ? .Load : .Clear,
-                store: parameters.stencilStoreOpIsDiscard ? .Discard : .Store,
-                readOnly: parameters.stencilReadOnly,
+                load: attachment.stencilLoadOp == WebGPU.LoadOp.Load ? .Load : .Clear,
+                store: stencilStoreOpIsDiscard ? .Discard : .Store,
+                readOnly: attachment.stencilReadOnly,
                 isVolume: false,
                 isTransient: view.isTransient
             )
             noteAttachment(view, aspect: .StencilOnly, plan)
             clearStencilAttachment = depthTexture != nil && plan.after == .zeroedAfterPass
             depthStencilAttachmentToClear = depthTexture
-            addAttachmentUsage(view, parameters.stencilReadOnly ? .attachmentRead : .attachment, aspect: .StencilOnly)
+            addAttachmentUsage(view, attachment.stencilReadOnly ? .attachmentRead : .attachment, aspect: .StencilOnly)
         }
     }
 
@@ -3726,6 +3712,7 @@ func makeRenderPassEncoderImpl(
         lastErrorString: nil
     )
     parentImpl.lock(true)
+    parentImpl.lastMadeRenderPassEncoderImpl = impl
     return impl
 }
 
@@ -3749,5 +3736,6 @@ func makeInvalidRenderPassEncoderImpl(
     )
     parentImpl.lock(true)
     parentImpl.setLastError(errorString as String?)
+    parentImpl.lastMadeRenderPassEncoderImpl = impl
     return impl
 }

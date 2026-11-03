@@ -66,6 +66,96 @@ func deviceCreateCommandEncoder(_ device: WebGPU.Metal.Device, _ deviceImpl: Dev
     return WebGPU.Metal.CommandEncoder.create(commandBuffer, device, deviceImpl.takeCommandEncoderId()).ptr()
 }
 
+// What a render pass attachment's view member names: a texture, as its default view, or a texture view.
+@_spi(WebKitGPU)
+public enum GPURenderPassAttachmentView {
+    case texture(TextureReference)
+    case textureView(TextureViewReference)
+
+    var impl: AttachmentImpl {
+        switch self {
+        case .texture(let texture): .texture(texture.impl)
+        case .textureView(let view): .textureView(view.impl)
+        }
+    }
+
+    var attachmentView: AttachmentView {
+        switch self {
+        case .texture(let texture): .texture(texture.shell, texture.impl)
+        case .textureView(let view): .textureView(view.shell, view.impl)
+        }
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpurenderpasscolorattachment
+@_spi(WebKitGPU)
+public struct GPURenderPassColorAttachment {
+    public var view: GPURenderPassAttachmentView
+    public var depthSlice: UInt32?
+    public var resolveTarget: GPURenderPassAttachmentView?
+    public var clearValue = WebGPU.Color(r: 0, g: 0, b: 0, a: 0)
+    public var loadOp = WebGPU.LoadOp.Load
+    public var storeOp = WebGPU.StoreOp.Store
+
+    public init(view: GPURenderPassAttachmentView) {
+        self.view = view
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpurenderpassdepthstencilattachment
+@_spi(WebKitGPU)
+public struct GPURenderPassDepthStencilAttachment {
+    public var view: GPURenderPassAttachmentView
+    public var depthClearValue: Float = 0
+    public var depthLoadOp: WebGPU.LoadOp?
+    public var depthStoreOp: WebGPU.StoreOp?
+    public var depthReadOnly = false
+    public var stencilClearValue: UInt32 = 0
+    public var stencilLoadOp: WebGPU.LoadOp?
+    public var stencilStoreOp: WebGPU.StoreOp?
+    public var stencilReadOnly = false
+
+    public init(view: GPURenderPassAttachmentView) {
+        self.view = view
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpurenderpasstimestampwrites, and GPUComputePassTimestampWrites, which has
+// the same members.
+@_spi(WebKitGPU)
+public struct GPUPassTimestampWrites {
+    public var querySet: QuerySetReference
+    public var beginningOfPassWriteIndex: UInt32?
+    public var endOfPassWriteIndex: UInt32?
+
+    public init(querySet: QuerySetReference) {
+        self.querySet = querySet
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpurenderpassdescriptor, without its label.
+@_spi(WebKitGPU)
+public struct GPURenderPassDescriptor {
+    // nil for an empty slot.
+    public var colorAttachments: [GPURenderPassColorAttachment?] = []
+    public var depthStencilAttachment: GPURenderPassDepthStencilAttachment?
+    public var occlusionQuerySet: QuerySetReference?
+    public var timestampWrites: GPUPassTimestampWrites?
+    public var maxDrawCount: UInt64?
+
+    public init() {
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpucomputepassdescriptor, without its label.
+@_spi(WebKitGPU)
+public struct GPUComputePassDescriptor {
+    public var timestampWrites: GPUPassTimestampWrites?
+
+    public init() {
+    }
+}
+
 // A command encoder with its shell, as Swift holds one, with the operations of CommandEncoder's shell that create
 // nothing.
 @_spi(WebKitGPU)
@@ -178,6 +268,27 @@ public final class CommandEncoderReference {
         impl.setLabel((label ?? "") as NSString)
     }
 
+    // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-beginrenderpass. A render pass has no use for its
+    // descriptor's label.
+    public func beginRenderPass(_ descriptor: GPURenderPassDescriptor) -> RenderPassEncoderReference {
+        let renderPassEncoder = impl.beginRenderPass(shell: shell, descriptor: descriptor)
+        guard let renderPassEncoderImpl = impl.lastMadeRenderPassEncoderImpl else {
+            preconditionFailure("RenderPassEncoder's shell made no Impl")
+        }
+        impl.lastMadeRenderPassEncoderImpl = nil
+        return RenderPassEncoderReference(renderPassEncoderImpl, renderPassEncoder.ptr())
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-begincomputepass
+    public func beginComputePass(_ descriptor: GPUComputePassDescriptor, label: Swift.String?) -> ComputePassEncoderReference {
+        let computePassEncoder = impl.beginComputePass(shell: shell, descriptor: descriptor, label: label)
+        guard let computePassEncoderImpl = impl.lastMadeComputePassEncoderImpl else {
+            preconditionFailure("ComputePassEncoder's shell made no Impl")
+        }
+        impl.lastMadeComputePassEncoderImpl = nil
+        return ComputePassEncoderReference(computePassEncoderImpl, computePassEncoder.ptr())
+    }
+
     // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
     public func finish(label: Swift.String?) -> CommandBufferReference {
         let deviceImpl = impl.deviceImpl
@@ -269,16 +380,17 @@ struct TextureAndClearColor {
     }
 }
 
-/// The Impls of a pass descriptor's attachments and query sets, which CommandEncoder.mm stages from the descriptor.
-struct PassStagedImpls {
+/// The attachments and query sets of a C++ caller's pass descriptor, with their shells, which CommandEncoder.mm stages
+/// from the descriptor.
+struct StagedPassObjects {
     /// One per color attachment slot; nil for an empty slot.
-    var colorAttachments: [(view: AttachmentImpl, resolveTarget: AttachmentImpl?)?] = []
-    var depthStencilAttachment: AttachmentImpl?
-    var occlusion: QuerySetImpl?
-    var timestampWrites: QuerySetImpl?
+    var colorAttachments: [(view: GPURenderPassAttachmentView, resolveTarget: GPURenderPassAttachmentView?)?] = []
+    var depthStencilAttachment: GPURenderPassAttachmentView?
+    var occlusion: QuerySetReference?
+    var timestampWrites: QuerySetReference?
 
     /// Only for a non-empty slot.
-    func colorAttachment(_ index: Int) -> (view: AttachmentImpl, resolveTarget: AttachmentImpl?) {
+    func colorAttachment(_ index: Int) -> (view: GPURenderPassAttachmentView, resolveTarget: GPURenderPassAttachmentView?) {
         guard index < colorAttachments.count, let attachment = colorAttachments[index] else {
             preconditionFailure("the color attachment was not staged")
         }
@@ -286,7 +398,7 @@ struct PassStagedImpls {
     }
 
     /// Only for a descriptor with a depth stencil attachment.
-    func depthStencilView() -> AttachmentImpl {
+    func depthStencilView() -> GPURenderPassAttachmentView {
         guard let depthStencilAttachment else {
             preconditionFailure("the depth stencil attachment was not staged")
         }
@@ -294,11 +406,67 @@ struct PassStagedImpls {
     }
 
     /// Only for a descriptor with timestampWrites.
-    func timestampWritesQuerySet() -> QuerySetImpl {
+    func timestampWritesQuerySet() -> QuerySetReference {
         guard let timestampWrites else {
             preconditionFailure("the timestamp writes' query set was not staged")
         }
         return timestampWrites
+    }
+}
+
+extension GPUPassTimestampWrites {
+    init(_ timestampWrites: WebGPU.PassTimestampWrites, _ querySet: QuerySetReference) {
+        self.init(querySet: querySet)
+        beginningOfPassWriteIndex = Optional(fromCxx: timestampWrites.beginningOfPassWriteIndex)
+        endOfPassWriteIndex = Optional(fromCxx: timestampWrites.endOfPassWriteIndex)
+    }
+}
+
+extension GPURenderPassDescriptor {
+    // A C++ caller's descriptor, with the objects it staged.
+    init(_ descriptor: borrowing WebGPU.RenderPassDescriptor, _ staged: StagedPassObjects) {
+        self.init()
+        for i in 0..<descriptor.colorAttachmentCount() {
+            guard let resolved = Optional(fromCxx: WebGPU.Metal.resolvedColorAttachment(descriptor, i)) else {
+                colorAttachments.append(nil)
+                continue
+            }
+            let views = staged.colorAttachment(i)
+            var colorAttachment = GPURenderPassColorAttachment(view: views.view)
+            colorAttachment.depthSlice = Optional(fromCxx: resolved.depthSlice)
+            colorAttachment.resolveTarget = views.resolveTarget
+            colorAttachment.clearValue = resolved.clearValue
+            colorAttachment.loadOp = resolved.loadOp
+            colorAttachment.storeOp = resolved.storeOp
+            colorAttachments.append(colorAttachment)
+        }
+        if let resolved = Optional(fromCxx: WebGPU.Metal.resolvedDepthStencilAttachment(descriptor)) {
+            var depthStencilAttachment = GPURenderPassDepthStencilAttachment(view: staged.depthStencilView())
+            depthStencilAttachment.depthClearValue = resolved.depthClearValue
+            depthStencilAttachment.depthLoadOp = Optional(fromCxx: resolved.depthLoadOp)
+            depthStencilAttachment.depthStoreOp = Optional(fromCxx: resolved.depthStoreOp)
+            depthStencilAttachment.depthReadOnly = resolved.depthReadOnly
+            depthStencilAttachment.stencilClearValue = resolved.stencilClearValue
+            depthStencilAttachment.stencilLoadOp = Optional(fromCxx: resolved.stencilLoadOp)
+            depthStencilAttachment.stencilStoreOp = Optional(fromCxx: resolved.stencilStoreOp)
+            depthStencilAttachment.stencilReadOnly = resolved.stencilReadOnly
+            self.depthStencilAttachment = depthStencilAttachment
+        }
+        occlusionQuerySet = staged.occlusion
+        if let timestampWrites = Optional(fromCxx: descriptor.timestampWrites) {
+            self.timestampWrites = GPUPassTimestampWrites(timestampWrites, staged.timestampWritesQuerySet())
+        }
+        maxDrawCount = Optional(fromCxx: descriptor.maxDrawCount)
+    }
+}
+
+extension GPUComputePassDescriptor {
+    // A C++ caller's descriptor, without its label, with the objects it staged.
+    init(_ descriptor: WebGPU.ComputePassDescriptor, _ staged: StagedPassObjects) {
+        self.init()
+        if let timestampWrites = Optional(fromCxx: descriptor.timestampWrites) {
+            self.timestampWrites = GPUPassTimestampWrites(timestampWrites, staged.timestampWritesQuerySet())
+        }
     }
 }
 
@@ -955,11 +1123,8 @@ extension CommandEncoderImpl {
         return nil
     }
 
-    private func errorValidatingRenderPassDescriptor(
-        descriptor: borrowing WebGPU.RenderPassDescriptor,
-        _ staged: PassStagedImpls
-    ) -> String? {
-        if let occlusionQuery = staged.occlusion {
+    private func errorValidatingRenderPassDescriptor(descriptor: GPURenderPassDescriptor) -> String? {
+        if let occlusionQuery = descriptor.occlusionQuerySet?.impl {
             if !isValidToUseWith(occlusionQuery) {
                 return "occlusion query does not match the device"
             }
@@ -967,19 +1132,20 @@ extension CommandEncoderImpl {
                 return "occlusion query type is not occlusion"
             }
         }
-        if let timestampWrites = Optional(fromCxx: descriptor.timestampWrites) {
-            return errorValidatingTimestampWrites(timestampWrites: timestampWrites, staged.timestampWritesQuerySet())
+        if let timestampWrites = descriptor.timestampWrites {
+            return errorValidatingTimestampWrites(timestampWrites: timestampWrites)
         }
         return nil
     }
 
-    // WGPU_QUERY_SET_INDEX_UNDEFINED for std::nullopt.
-    private func writeIndex(_ timestampWrites: WebGPU.PassTimestampWrites, beginning: Bool) -> UInt32 {
+    // WGPU_QUERY_SET_INDEX_UNDEFINED for nil.
+    private func writeIndex(_ timestampWrites: GPUPassTimestampWrites, beginning: Bool) -> UInt32 {
         let index = beginning ? timestampWrites.beginningOfPassWriteIndex : timestampWrites.endOfPassWriteIndex
-        return Optional(fromCxx: index) ?? UInt32(WGPU_QUERY_SET_INDEX_UNDEFINED)
+        return index ?? UInt32(WGPU_QUERY_SET_INDEX_UNDEFINED)
     }
 
-    private func errorValidatingTimestampWrites(timestampWrites: WebGPU.PassTimestampWrites, _ querySet: QuerySetImpl) -> String? {
+    private func errorValidatingTimestampWrites(timestampWrites: GPUPassTimestampWrites) -> String? {
+        let querySet = timestampWrites.querySet.impl
         if !deviceImpl.hasFeature(WebGPU.FeatureName.TimestampQuery) {
             return "device does not have timestamp query feature"
         }
@@ -1008,9 +1174,9 @@ extension CommandEncoderImpl {
         return nil
     }
 
-    private func errorValidatingComputePassDescriptor(descriptor: WebGPU.ComputePassDescriptor, _ staged: PassStagedImpls) -> String? {
-        if let timestampWrites = Optional(fromCxx: descriptor.timestampWrites) {
-            return errorValidatingTimestampWrites(timestampWrites: timestampWrites, staged.timestampWritesQuerySet())
+    private func errorValidatingComputePassDescriptor(descriptor: GPUComputePassDescriptor) -> String? {
+        if let timestampWrites = descriptor.timestampWrites {
+            return errorValidatingTimestampWrites(timestampWrites: timestampWrites)
         }
         return nil
     }
@@ -1052,10 +1218,9 @@ extension CommandEncoderImpl {
     // `shell` is this encoder's, which the pass holds.
     fileprivate func beginRenderPass(
         shell: WebGPU.Metal.CommandEncoder,
-        descriptor: borrowing WebGPU.RenderPassDescriptor,
-        _ staged: PassStagedImpls
+        descriptor: GPURenderPassDescriptor
     ) -> CxxBridging.RefRenderPassEncoder {
-        let maxDrawCount = Optional(fromCxx: descriptor.maxDrawCount) ?? UInt64.max
+        let maxDrawCount = descriptor.maxDrawCount ?? UInt64.max
 
         guard prepareTheEncoderState() else {
             self.generateInvalidEncoderStateError()
@@ -1065,7 +1230,7 @@ extension CommandEncoderImpl {
             return WebGPU.Metal.RenderPassEncoder.createInvalidWithEncoderStateNotOpen(shell, device, "encoder state is not valid")
         }
 
-        if let error = errorValidatingRenderPassDescriptor(descriptor: descriptor, staged) {
+        if let error = errorValidatingRenderPassDescriptor(descriptor: descriptor) {
             return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, error)
         }
 
@@ -1079,9 +1244,9 @@ extension CommandEncoderImpl {
 
         let mtlDescriptor = MTLRenderPassDescriptor()
         var counterSampleBuffer: (buffer: (any MTLCounterSampleBuffer)?, offset: UInt32) = (nil, 0)
-        let optionalTimestampWrites = Optional(fromCxx: descriptor.timestampWrites)
-        if optionalTimestampWrites != nil {
-            let timestampsWrites = staged.timestampWritesQuerySet()
+        let optionalTimestampWrites = descriptor.timestampWrites
+        if let timestampWrites = optionalTimestampWrites {
+            let timestampsWrites = timestampWrites.querySet.impl
             counterSampleBuffer = (timestampsWrites.counterSampleBuffer(), timestampsWrites.counterSampleBufferOffset())
             timestampsWrites.setCommandEncoder(self)
         }
@@ -1117,7 +1282,7 @@ extension CommandEncoderImpl {
             }
         }
 
-        guard descriptor.colorAttachmentCount() <= 8 else {
+        guard descriptor.colorAttachments.count <= 8 else {
             return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "color attachment count is > 8")
         }
 
@@ -1133,14 +1298,13 @@ extension CommandEncoderImpl {
         var depthSlices: [UInt64: Set<UInt64>] = [:]
         // FIXME: it shouldn't be necessary to pass colorAttachmentCount here
         var compositorTextureSlice: UInt32 = 0
-        if descriptor.colorAttachmentCount() != 0 {
-            for i in 0..<descriptor.colorAttachmentCount() {
+        if !descriptor.colorAttachments.isEmpty {
+            for i in 0..<descriptor.colorAttachments.count {
                 // An empty slot has no attachment.
-                guard let attachment = Optional(fromCxx: WebGPU.Metal.resolvedColorAttachment(descriptor, i)) else {
+                guard let attachment = descriptor.colorAttachments[i] else {
                     continue
                 }
-                let views = staged.colorAttachment(i)
-                let optionalResolveTarget = views.resolveTarget
+                let optionalResolveTarget = attachment.resolveTarget?.impl
 
                 // MTLRenderPassColorAttachmentDescriptorArray is bounds-checked internally, so this is guaranteed to be non-nil.
                 // swift-format-ignore: NeverForceUnwrap
@@ -1153,7 +1317,7 @@ extension CommandEncoderImpl {
                     alpha: attachment.clearValue.a
                 )
 
-                let texture = views.view
+                let texture = attachment.view.impl
                 if !isValidToUseWith(texture) {
                     return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "device mismatch")
                 }
@@ -1203,7 +1367,7 @@ extension CommandEncoderImpl {
                 mtlAttachment.slice = 0
                 var depthSliceOrArrayLayer: UInt64 = 0
                 #if compiler(>=6.4)
-                if let depthSlice = Optional(fromCxx: attachment.depthSlice) {
+                if let depthSlice = attachment.depthSlice {
                     if !texture.is3DTexture {
                         return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depthSlice specified on 2D texture")
                     }
@@ -1227,7 +1391,7 @@ extension CommandEncoderImpl {
                 }
                 #else
                 // FIXME: (rdar://170907318) Remove this branch once the minimum supported compiler is Swift 6.4.
-                if var depthSlice = Optional(fromCxx: attachment.depthSlice) {
+                if var depthSlice = attachment.depthSlice {
                     if !texture.is3DTexture {
                         return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depthSlice specified on 2D texture")
                     }
@@ -1330,9 +1494,9 @@ extension CommandEncoderImpl {
         var stencilReadOnly = false
         var hasStencilComponent = false
         var hasDepthComponent = false
-        let optionalDepthStencilAttachment = Optional(fromCxx: WebGPU.Metal.resolvedDepthStencilAttachment(descriptor))
+        let optionalDepthStencilAttachment = descriptor.depthStencilAttachment
         if let attachment = optionalDepthStencilAttachment {
-            let textureView = staged.depthStencilView()
+            let textureView = attachment.view.impl
             if !isValidToUseWith(textureView) {
                 return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depth stencil texture device mismatch")
             }
@@ -1361,11 +1525,11 @@ extension CommandEncoderImpl {
                 textureView,
                 isDestroyed,
                 hasDepthComponent,
-                Optional(fromCxx: attachment.depthLoadOp),
-                Optional(fromCxx: attachment.depthStoreOp),
+                attachment.depthLoadOp,
+                attachment.depthStoreOp,
                 hasStencilComponent,
-                Optional(fromCxx: attachment.stencilLoadOp),
-                Optional(fromCxx: attachment.stencilStoreOp)
+                attachment.stencilLoadOp,
+                attachment.stencilStoreOp
             ) {
                 return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depth stencil texture is not renderable")
             }
@@ -1379,16 +1543,16 @@ extension CommandEncoderImpl {
                 let clearDepth = quantizedDepthValue(Double(attachment.depthClearValue), textureView.format)
                     .clamped(to: 0...1)
 
-                mtlAttachment.clearDepth = Optional(fromCxx: attachment.depthLoadOp) == WebGPU.LoadOp.Clear ? clearDepth : 1.0
+                mtlAttachment.clearDepth = attachment.depthLoadOp == WebGPU.LoadOp.Clear ? clearDepth : 1.0
                 mtlAttachment.texture = metalDepthStencilTexture
                 mtlAttachment.level = 0
-                mtlAttachment.loadAction = loadAction(loadOp: Optional(fromCxx: attachment.depthLoadOp), readOnly: attachment.depthReadOnly)
-                mtlAttachment.storeAction = storeAction(storeOp: Optional(fromCxx: attachment.depthStoreOp))
+                mtlAttachment.loadAction = loadAction(loadOp: attachment.depthLoadOp, readOnly: attachment.depthReadOnly)
+                mtlAttachment.storeAction = storeAction(storeOp: attachment.depthStoreOp)
 
                 if mtlDescriptor.rasterizationRateMap != nil && metalDepthStencilTexture?.sampleCount ?? 1 > 1 {
                     if let depthTexture = device.getXRViewSubImageDepthTexture() {
                         mtlAttachment.resolveTexture = depthTexture
-                        mtlAttachment.storeAction = storeAction(storeOp: Optional(fromCxx: attachment.depthStoreOp), hasResolveTarget: true)
+                        mtlAttachment.storeAction = storeAction(storeOp: attachment.depthStoreOp, hasResolveTarget: true)
                         mtlAttachment.resolveSlice = Int(compositorTextureSlice)
                     }
                 }
@@ -1396,19 +1560,19 @@ extension CommandEncoderImpl {
 
             if !isDestroyed {
                 if hasDepthComponent && !depthReadOnly {
-                    if Optional(fromCxx: attachment.depthLoadOp) == nil || Optional(fromCxx: attachment.depthStoreOp) == nil {
+                    if attachment.depthLoadOp == nil || attachment.depthStoreOp == nil {
                         return WebGPU.Metal.RenderPassEncoder.createInvalid(
                             shell,
                             device,
                             "depth load and store op were not specified"
                         )
                     }
-                } else if Optional(fromCxx: attachment.depthLoadOp) != nil || Optional(fromCxx: attachment.depthStoreOp) != nil {
+                } else if attachment.depthLoadOp != nil || attachment.depthStoreOp != nil {
                     return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depth load and store op were specified")
                 }
             }
 
-            if Optional(fromCxx: attachment.depthLoadOp) == WebGPU.LoadOp.Clear
+            if attachment.depthLoadOp == WebGPU.LoadOp.Clear
                 && (attachment.depthClearValue < 0 || attachment.depthClearValue > 1)
             {
                 return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depth clear value is invalid")
@@ -1452,24 +1616,24 @@ extension CommandEncoderImpl {
             // swift-format-ignore: NeverForceUnwrap
             let mtlAttachment = mtlDescriptor.stencilAttachment!
             stencilReadOnly = attachment.stencilReadOnly
-            let textureView = staged.depthStencilView()
+            let textureView = attachment.view.impl
             if hasStencilComponent {
                 mtlAttachment.texture = textureView.texture
             }
             mtlAttachment.clearStencil = attachment.stencilClearValue
-            mtlAttachment.loadAction = loadAction(loadOp: Optional(fromCxx: attachment.stencilLoadOp), readOnly: attachment.stencilReadOnly)
-            mtlAttachment.storeAction = storeAction(storeOp: Optional(fromCxx: attachment.stencilStoreOp))
+            mtlAttachment.loadAction = loadAction(loadOp: attachment.stencilLoadOp, readOnly: attachment.stencilReadOnly)
+            mtlAttachment.storeAction = storeAction(storeOp: attachment.stencilStoreOp)
             let isDestroyed = textureView.isDestroyed
             if !isDestroyed {
                 if hasStencilComponent && !stencilReadOnly {
-                    if Optional(fromCxx: attachment.stencilLoadOp) == nil || Optional(fromCxx: attachment.stencilStoreOp) == nil {
+                    if attachment.stencilLoadOp == nil || attachment.stencilStoreOp == nil {
                         return WebGPU.Metal.RenderPassEncoder.createInvalid(
                             shell,
                             device,
                             "stencil load and store op were not specified"
                         )
                     }
-                } else if Optional(fromCxx: attachment.stencilLoadOp) != nil || Optional(fromCxx: attachment.stencilStoreOp) != nil {
+                } else if attachment.stencilLoadOp != nil || attachment.stencilStoreOp != nil {
                     return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "stencil load and store op were specified")
                 }
             }
@@ -1483,7 +1647,7 @@ extension CommandEncoderImpl {
 
         var visibilityResultBufferSize: UInt = 0
         var visibilityResultBuffer: (any MTLBuffer)? = nil
-        if let occlusionQuery = staged.occlusion {
+        if let occlusionQuery = descriptor.occlusionQuerySet?.impl {
             occlusionQuery.setCommandEncoder(self)
             if occlusionQuery.queryType != WebGPU.QueryType.Occlusion {
                 return WebGPU.Metal.RenderPassEncoder.createInvalid(
@@ -1557,7 +1721,7 @@ extension CommandEncoderImpl {
     // Creates the MTLRenderCommandEncoder, or defers it if the pass cannot change anything without encoding a command.
     private func createRenderPassEncoder(
         _ shell: WebGPU.Metal.CommandEncoder,
-        _ descriptor: borrowing WebGPU.RenderPassDescriptor,
+        _ descriptor: GPURenderPassDescriptor,
         _ visibilityResultBufferSize: UInt,
         _ depthReadOnly: Bool,
         _ stencilReadOnly: Bool,
@@ -1565,9 +1729,22 @@ extension CommandEncoderImpl {
         _ maxDrawCount: UInt64,
         _ mtlDescriptor: MTLRenderPassDescriptor
     ) -> CxxBridging.RefRenderPassEncoder {
+        let renderPassEncoder: CxxBridging.RefRenderPassEncoder
         if canDeferRenderCommandEncoder(mtlDescriptor) {
-            return WebGPU.Metal.RenderPassEncoder.createWithDeferredRenderCommandEncoder(
-                descriptor,
+            renderPassEncoder = WebGPU.Metal.RenderPassEncoder.createWithDeferredRenderCommandEncoder(
+                visibilityResultBufferSize,
+                depthReadOnly,
+                stencilReadOnly,
+                shell,
+                visibilityResultBuffer,
+                maxDrawCount,
+                device,
+                mtlDescriptor
+            )
+        } else {
+            let mtlRenderCommandEncoder = makeRenderCommandEncoder(mtlDescriptor)
+            renderPassEncoder = WebGPU.Metal.RenderPassEncoder.create(
+                mtlRenderCommandEncoder,
                 visibilityResultBufferSize,
                 depthReadOnly,
                 stencilReadOnly,
@@ -1578,20 +1755,11 @@ extension CommandEncoderImpl {
                 mtlDescriptor
             )
         }
-
-        let mtlRenderCommandEncoder = makeRenderCommandEncoder(mtlDescriptor)
-        return WebGPU.Metal.RenderPassEncoder.create(
-            mtlRenderCommandEncoder,
-            descriptor,
-            visibilityResultBufferSize,
-            depthReadOnly,
-            stencilReadOnly,
-            shell,
-            visibilityResultBuffer,
-            maxDrawCount,
-            device,
-            mtlDescriptor
-        )
+        guard let renderPassEncoderImpl = lastMadeRenderPassEncoderImpl else {
+            preconditionFailure("RenderPassEncoder's shell made no Impl")
+        }
+        renderPassEncoderImpl.appendAttachments(descriptor)
+        return renderPassEncoder
     }
 
     static func hasValidDimensions(dimension: WebGPU.TextureDimension, width: UInt, height: UInt, depth: UInt) -> Bool {
@@ -2674,10 +2842,10 @@ extension CommandEncoderImpl {
     // `shell` is this encoder's, which the pass holds.
     fileprivate func beginComputePass(
         shell: WebGPU.Metal.CommandEncoder,
-        descriptor: WebGPU.ComputePassDescriptor,
-        _ staged: PassStagedImpls
+        descriptor: GPUComputePassDescriptor,
+        label: String?
     ) -> CxxBridging.RefComputePassEncoder {
-        let optionalTimestampWrites = Optional(fromCxx: descriptor.timestampWrites)
+        let optionalTimestampWrites = descriptor.timestampWrites
 
         guard prepareTheEncoderState() else {
             self.generateInvalidEncoderStateError()
@@ -2687,7 +2855,7 @@ extension CommandEncoderImpl {
             return WebGPU.Metal.ComputePassEncoder.createInvalidWithEncoderStateNotOpen(shell, device, "encoder state is invalid")
         }
 
-        if let error = self.errorValidatingComputePassDescriptor(descriptor: descriptor, staged) {
+        if let error = self.errorValidatingComputePassDescriptor(descriptor: descriptor) {
             return WebGPU.Metal.ComputePassEncoder.createInvalid(shell, device, String(error))
         }
 
@@ -2707,8 +2875,8 @@ extension CommandEncoderImpl {
         let computePassDescriptor = MTLComputePassDescriptor()
         computePassDescriptor.dispatchType = .serial
         var counterSampleBuffer: (buffer: (any MTLCounterSampleBuffer)?, offset: UInt32) = (nil, 0)
-        if optionalTimestampWrites != nil {
-            let timestampsWrites = staged.timestampWritesQuerySet()
+        if let timestampWrites = optionalTimestampWrites {
+            let timestampsWrites = timestampWrites.querySet.impl
             counterSampleBuffer = (timestampsWrites.counterSampleBuffer(), timestampsWrites.counterSampleBufferOffset())
             timestampsWrites.setCommandEncoder(self)
         }
@@ -2741,11 +2909,9 @@ extension CommandEncoderImpl {
         }
 
         self.setExistingEncoder(computeCommandEncoder)
-        // FIXME: Figure out a way so that WTFString does not override String in the global
-        //        namespace. At the moment it is and that's why we need this.
-        computeCommandEncoder.label = stringNilIfEmpty(descriptor.label)
+        computeCommandEncoder.label = label?.isEmpty == false ? label : nil
 
-        return WebGPU.Metal.ComputePassEncoder.create(computeCommandEncoder, descriptor, shell, device)
+        return WebGPU.Metal.ComputePassEncoder.create(computeCommandEncoder, shell, device)
     }
 }
 
@@ -2967,8 +3133,15 @@ final class CommandEncoderImpl {
     // What this encoder did to lazily initialized texture regions. Moved into the CommandBuffer finish() makes, and
     // dropped with the encoder's work when that is discarded or made invalid.
     private var initializationLedger: InitializationLedger? = InitializationLedger()
-    // The Impls of the next pass descriptor's attachments and query sets, which Swift cannot reach from the descriptor.
-    private var staged = PassStagedImpls()
+    // The attachments and query sets of a C++ caller's next pass descriptor, which Swift cannot reach from the
+    // descriptor.
+    private var staged = StagedPassObjects()
+    // The Impls that the last render and compute pass shells this encoder began made, for the Swift caller that began
+    // the pass. Weak, so that they live only as long as their shells.
+    @_expose(!Cxx)
+    weak var lastMadeRenderPassEncoderImpl: RenderPassEncoderImpl?
+    @_expose(!Cxx)
+    weak var lastMadeComputePassEncoderImpl: ComputePassEncoderImpl?
     // Declared last, so that the device outlives the rest of the encoder.
     let device: WebGPU.Metal.Device
     @_expose(Cxx)
@@ -3565,27 +3738,27 @@ final class CommandEncoderImpl {
     }
 
     @_expose(Cxx)
-    func stageColorAttachmentTexture(_ texture: TextureImpl) {
-        staged.colorAttachments.append((.texture(texture), nil))
+    func stageColorAttachmentTexture(_ shell: borrowing WebGPU.Metal.Texture, _ impl: TextureImpl) {
+        staged.colorAttachments.append((.texture(TextureReference(impl, copy shell)), nil))
     }
 
     @_expose(Cxx)
-    func stageColorAttachmentView(_ view: TextureViewImpl) {
-        staged.colorAttachments.append((.textureView(view), nil))
+    func stageColorAttachmentView(_ shell: borrowing WebGPU.Metal.TextureView, _ impl: TextureViewImpl) {
+        staged.colorAttachments.append((.textureView(TextureViewReference(impl, copy shell)), nil))
     }
 
     // The resolve target of the last staged color attachment.
     @_expose(Cxx)
-    func stageResolveTargetTexture(_ texture: TextureImpl) {
-        stageResolveTarget(.texture(texture))
+    func stageResolveTargetTexture(_ shell: borrowing WebGPU.Metal.Texture, _ impl: TextureImpl) {
+        stageResolveTarget(.texture(TextureReference(impl, copy shell)))
     }
 
     @_expose(Cxx)
-    func stageResolveTargetView(_ view: TextureViewImpl) {
-        stageResolveTarget(.textureView(view))
+    func stageResolveTargetView(_ shell: borrowing WebGPU.Metal.TextureView, _ impl: TextureViewImpl) {
+        stageResolveTarget(.textureView(TextureViewReference(impl, copy shell)))
     }
 
-    private func stageResolveTarget(_ resolveTarget: AttachmentImpl) {
+    private func stageResolveTarget(_ resolveTarget: GPURenderPassAttachmentView) {
         guard let last = staged.colorAttachments.indices.last, staged.colorAttachments[last] != nil else {
             preconditionFailure("a resolve target needs a color attachment")
         }
@@ -3593,23 +3766,23 @@ final class CommandEncoderImpl {
     }
 
     @_expose(Cxx)
-    func stageDepthStencilAttachmentTexture(_ texture: TextureImpl) {
-        staged.depthStencilAttachment = .texture(texture)
+    func stageDepthStencilAttachmentTexture(_ shell: borrowing WebGPU.Metal.Texture, _ impl: TextureImpl) {
+        staged.depthStencilAttachment = .texture(TextureReference(impl, copy shell))
     }
 
     @_expose(Cxx)
-    func stageDepthStencilAttachmentView(_ view: TextureViewImpl) {
-        staged.depthStencilAttachment = .textureView(view)
+    func stageDepthStencilAttachmentView(_ shell: borrowing WebGPU.Metal.TextureView, _ impl: TextureViewImpl) {
+        staged.depthStencilAttachment = .textureView(TextureViewReference(impl, copy shell))
     }
 
     @_expose(Cxx)
-    func stageOcclusionQuerySet(_ querySet: QuerySetImpl) {
-        staged.occlusion = querySet
+    func stageOcclusionQuerySet(_ shell: borrowing WebGPU.Metal.QuerySet, _ impl: QuerySetImpl) {
+        staged.occlusion = QuerySetReference(impl, copy shell)
     }
 
     @_expose(Cxx)
-    func stageTimestampWritesQuerySet(_ querySet: QuerySetImpl) {
-        staged.timestampWrites = querySet
+    func stageTimestampWritesQuerySet(_ shell: borrowing WebGPU.Metal.QuerySet, _ impl: QuerySetImpl) {
+        staged.timestampWrites = QuerySetReference(impl, copy shell)
     }
 
     @_expose(Cxx)
@@ -3618,8 +3791,8 @@ final class CommandEncoderImpl {
         _ descriptor: borrowing WebGPU.RenderPassDescriptor
     ) -> CxxBridging.RefRenderPassEncoder {
         let staged = self.staged
-        self.staged = PassStagedImpls()
-        return beginRenderPass(shell: shell, descriptor: descriptor, staged)
+        self.staged = StagedPassObjects()
+        return beginRenderPass(shell: shell, descriptor: GPURenderPassDescriptor(descriptor, staged))
     }
 
     @_expose(Cxx)
@@ -3628,8 +3801,12 @@ final class CommandEncoderImpl {
         _ descriptor: WebGPU.ComputePassDescriptor
     ) -> CxxBridging.RefComputePassEncoder {
         let staged = self.staged
-        self.staged = PassStagedImpls()
-        return beginComputePass(shell: shell, descriptor: descriptor, staged)
+        self.staged = StagedPassObjects()
+        return beginComputePass(
+            shell: shell,
+            descriptor: GPUComputePassDescriptor(descriptor, staged),
+            label: stringNilIfEmpty(descriptor.label)
+        )
     }
 
     @_expose(Cxx)

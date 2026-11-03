@@ -89,8 +89,10 @@ WebGPUSwift::CommandEncoderImpl& CommandEncoder::swiftImpl() const
 
 RefPtr<WebGPU::ComputePassEncoder> CommandEncoder::beginComputePass(const std::optional<WebGPU::ComputePassDescriptor>& descriptor)
 {
-    if (descriptor && descriptor->timestampWrites)
-        m_impl->impl.stageTimestampWritesQuerySet(metal(descriptor->timestampWrites->querySet).swiftImpl());
+    if (descriptor && descriptor->timestampWrites) {
+        Ref querySet = metal(descriptor->timestampWrites->querySet);
+        m_impl->impl.stageTimestampWritesQuerySet(querySet.ptr(), querySet->swiftImpl());
+    }
     return m_impl->impl.beginComputePass(this, descriptor ? *descriptor : WebGPU::ComputePassDescriptor { });
 }
 
@@ -103,29 +105,37 @@ RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::
             continue;
         }
         std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
-            impl.stageColorAttachmentView(downcast<TextureView>(view.get()).swiftImpl());
+            Ref metalView = downcast<TextureView>(view.get());
+            impl.stageColorAttachmentView(metalView.ptr(), metalView->swiftImpl());
         }, [&](const Ref<WebGPU::Texture>& texture) {
-            impl.stageColorAttachmentTexture(downcast<Texture>(texture.get()).swiftImpl());
+            Ref metalTexture = downcast<Texture>(texture.get());
+            impl.stageColorAttachmentTexture(metalTexture.ptr(), metalTexture->swiftImpl());
         }), attachment->view);
         if (attachment->resolveTarget) {
             std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
-                impl.stageResolveTargetView(downcast<TextureView>(view.get()).swiftImpl());
+                Ref metalView = downcast<TextureView>(view.get());
+                impl.stageResolveTargetView(metalView.ptr(), metalView->swiftImpl());
             }, [&](const Ref<WebGPU::Texture>& texture) {
-                impl.stageResolveTargetTexture(downcast<Texture>(texture.get()).swiftImpl());
+                Ref metalTexture = downcast<Texture>(texture.get());
+                impl.stageResolveTargetTexture(metalTexture.ptr(), metalTexture->swiftImpl());
             }), *attachment->resolveTarget);
         }
     }
     if (auto& attachment = descriptor.depthStencilAttachment) {
         std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
-            impl.stageDepthStencilAttachmentView(downcast<TextureView>(view.get()).swiftImpl());
+            Ref metalView = downcast<TextureView>(view.get());
+            impl.stageDepthStencilAttachmentView(metalView.ptr(), metalView->swiftImpl());
         }, [&](const Ref<WebGPU::Texture>& texture) {
-            impl.stageDepthStencilAttachmentTexture(downcast<Texture>(texture.get()).swiftImpl());
+            Ref metalTexture = downcast<Texture>(texture.get());
+            impl.stageDepthStencilAttachmentTexture(metalTexture.ptr(), metalTexture->swiftImpl());
         }), attachment->view);
     }
     if (RefPtr occlusionQuerySet = metalOrNull(descriptor.occlusionQuerySet))
-        impl.stageOcclusionQuerySet(occlusionQuerySet->swiftImpl());
-    if (descriptor.timestampWrites)
-        impl.stageTimestampWritesQuerySet(metal(descriptor.timestampWrites->querySet).swiftImpl());
+        impl.stageOcclusionQuerySet(occlusionQuerySet.get(), occlusionQuerySet->swiftImpl());
+    if (descriptor.timestampWrites) {
+        Ref querySet = metal(descriptor.timestampWrites->querySet);
+        impl.stageTimestampWritesQuerySet(querySet.ptr(), querySet->swiftImpl());
+    }
     return impl.beginRenderPass(this, descriptor);
 }
 

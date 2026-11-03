@@ -55,31 +55,20 @@ struct RenderPassEncoderParameters {
     bool stencilReadOnly { false };
 };
 
-// The parts of a WebGPU::RenderPassDepthStencilAttachment the pass reads, for RenderPassEncoderImpl.
-struct RenderPassDepthStencilParameters {
-    float depthClearValue { 0 };
-    uint32_t stencilClearValue { 0 };
-    bool depthLoadOpIsLoad { false };
-    bool depthStoreOpIsDiscard { false };
-    bool depthReadOnly { false };
-    bool stencilLoadOpIsLoad { false };
-    bool stencilStoreOpIsDiscard { false };
-    bool stencilReadOnly { false };
-};
-
 // Defined in RenderPassEncoder.mm, where the generated Swift header declaring WebGPU::RenderPassEncoderImpl
 // is includable.
 struct RenderPassEncoderImplBox;
 
 // https://gpuweb.github.io/gpuweb/#gpurenderpassencoder
 // Shell over the Swift-owned RenderPassEncoderImpl, which owns all of the pass's state (including the Device), runs its
-// logic and reports its errors. The shell hands the descriptor's attachments and executeBundles' bundles to the Impl.
+// logic and reports its errors. The shell hands executeBundles' bundles to the Impl.
 class RenderPassEncoder final : public WebGPU::RenderPassEncoder {
     WTF_MAKE_TZONE_ALLOCATED(RenderPassEncoder);
 public:
-    static Ref<RenderPassEncoder> create(id<MTLRenderCommandEncoder> renderCommandEncoder, const WebGPU::RenderPassDescriptor& descriptor, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device& device, MTLRenderPassDescriptor* mtlDescriptor)
+    // The pass's attachments are handed to its Impl by the command encoder's Swift, which calls this.
+    static Ref<RenderPassEncoder> create(id<MTLRenderCommandEncoder> renderCommandEncoder, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device& device, MTLRenderPassDescriptor* mtlDescriptor)
     {
-        return adoptRef(*new RenderPassEncoder(renderCommandEncoder, descriptor, visibilityResultBufferSize, depthReadOnly, stencilReadOnly, parentEncoder, visibilityResultBuffer, maxDrawCount, device, mtlDescriptor));
+        return adoptRef(*new RenderPassEncoder(renderCommandEncoder, visibilityResultBufferSize, depthReadOnly, stencilReadOnly, parentEncoder, visibilityResultBuffer, maxDrawCount, device, mtlDescriptor));
     }
     static Ref<RenderPassEncoder> createInvalid(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
     {
@@ -93,7 +82,7 @@ public:
     // instead of creating the MTLRenderCommandEncoder up front. The encoder is created the first time
     // this pass actually needs one; if nothing ever does, the pass costs nothing. See
     // canDeferRenderCommandEncoder in CommandEncoder.swift.
-    static Ref<RenderPassEncoder> createWithDeferredRenderCommandEncoder(const WebGPU::RenderPassDescriptor&, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device&, MTLRenderPassDescriptor*);
+    static Ref<RenderPassEncoder> createWithDeferredRenderCommandEncoder(NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device&, MTLRenderPassDescriptor*);
 
     ~RenderPassEncoder();
 
@@ -130,7 +119,7 @@ public:
     void makeInvalid(NSString* = nil);
 
 private:
-    RenderPassEncoder(id<MTLRenderCommandEncoder>, const WebGPU::RenderPassDescriptor&, NSUInteger, bool depthReadOnly, bool stencilReadOnly, CommandEncoder&, id<MTLBuffer>, uint64_t maxDrawCount, Device&, MTLRenderPassDescriptor*);
+    RenderPassEncoder(id<MTLRenderCommandEncoder>, NSUInteger, bool depthReadOnly, bool stencilReadOnly, CommandEncoder&, id<MTLBuffer>, uint64_t maxDrawCount, Device&, MTLRenderPassDescriptor*);
     RenderPassEncoder(CommandEncoder&, Device&, NSString*);
 
     const std::unique_ptr<RenderPassEncoderImplBox> m_impl;

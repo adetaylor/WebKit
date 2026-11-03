@@ -996,6 +996,7 @@ func makeComputePassEncoderImpl(
         lastErrorString: nil
     )
     parentImpl.lock(true)
+    parentImpl.lastMadeComputePassEncoderImpl = impl
     return impl
 }
 
@@ -1015,5 +1016,6 @@ func makeInvalidComputePassEncoderImpl(
     )
     parentImpl.lock(true)
     parentImpl.setLastError(errorString as String?)
+    parentImpl.lastMadeComputePassEncoderImpl = impl
     return impl
 }

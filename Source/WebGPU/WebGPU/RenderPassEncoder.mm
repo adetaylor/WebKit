@@ -58,62 +58,12 @@ WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(RenderPassEncoderImplBox);
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RenderPassEncoder);
 
-template<typename OnTexture, typename OnView>
-static void switchOnAttachmentView(const WebGPU::RenderPassAttachmentView& view, const OnTexture& onTexture, const OnView& onView)
-{
-    std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& textureView) {
-        onView(downcast<TextureView>(textureView));
-    }, [&](const Ref<WebGPU::Texture>& texture) {
-        onTexture(downcast<Texture>(texture));
-    }), view);
-}
-
-RenderPassEncoder::RenderPassEncoder(id<MTLRenderCommandEncoder> renderCommandEncoder, const WebGPU::RenderPassDescriptor& descriptor, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device& device, MTLRenderPassDescriptor* metalDescriptor)
+RenderPassEncoder::RenderPassEncoder(id<MTLRenderCommandEncoder> renderCommandEncoder, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device& device, MTLRenderPassDescriptor* metalDescriptor)
     : m_impl(makeUnique<RenderPassEncoderImplBox>(RenderPassEncoderImplBox { .impl = makeRenderPassEncoderImpl(renderCommandEncoder,
         device.memoryBarrierLimit() > maxDrawCount ? nil : metalDescriptor, metalDescriptor.rasterizationRateMap, visibilityResultBuffer,
         RenderPassEncoderParameters { .visibilityResultBufferSize = visibilityResultBufferSize, .maxDrawCount = maxDrawCount, .depthReadOnly = depthReadOnly, .stencilReadOnly = stencilReadOnly },
         &parentEncoder, parentEncoder.swiftImpl(), &device) }))
 {
-    // In descriptor order: each color attachment, its resolve target, then the depth-stencil attachment.
-    auto& impl = m_impl->impl;
-    for (size_t i = 0; i < descriptor.colorAttachments.size(); ++i) {
-        auto& attachment = descriptor.colorAttachments[i];
-        if (!attachment) {
-            impl.appendEmptyColorAttachment();
-            continue;
-        }
-        switchOnAttachmentView(attachment->view, [&](Texture& texture) {
-            impl.appendColorAttachmentTexture(&texture, texture.swiftImpl());
-        }, [&](TextureView& view) {
-            impl.appendColorAttachmentView(&view, view.swiftImpl());
-        });
-        if (attachment->resolveTarget) {
-            switchOnAttachmentView(*attachment->resolveTarget, [&](Texture& texture) {
-                impl.resolveColorAttachmentTexture(texture.swiftImpl());
-            }, [&](TextureView& view) {
-                impl.resolveColorAttachmentView(view.swiftImpl());
-            });
-        }
-        impl.endColorAttachment(static_cast<uint32_t>(i), attachment->loadOp, attachment->storeOp, attachment->depthSlice.has_value(), attachment->depthSlice.value_or(0));
-    }
-
-    if (auto& attachment = descriptor.depthStencilAttachment) {
-        RenderPassDepthStencilParameters parameters {
-            .depthClearValue = attachment->depthClearValue,
-            .stencilClearValue = attachment->stencilClearValue,
-            .depthLoadOpIsLoad = attachment->depthLoadOp == WebGPU::LoadOp::Load,
-            .depthStoreOpIsDiscard = attachment->depthStoreOp == WebGPU::StoreOp::Discard,
-            .depthReadOnly = attachment->depthReadOnly,
-            .stencilLoadOpIsLoad = attachment->stencilLoadOp == WebGPU::LoadOp::Load,
-            .stencilStoreOpIsDiscard = attachment->stencilStoreOp == WebGPU::StoreOp::Discard,
-            .stencilReadOnly = attachment->stencilReadOnly,
-        };
-        switchOnAttachmentView(attachment->view, [&](Texture& texture) {
-            impl.setDepthStencilAttachmentTexture(&texture, texture.swiftImpl(), parameters);
-        }, [&](TextureView& view) {
-            impl.setDepthStencilAttachmentView(&view, view.swiftImpl(), parameters);
-        });
-    }
 }
 
 RenderPassEncoder::RenderPassEncoder(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
@@ -271,9 +221,9 @@ Ref<RenderPassEncoder> RenderPassEncoder::createInvalidWithEncoderStateNotOpen(C
     return renderPassEncoder;
 }
 
-Ref<RenderPassEncoder> RenderPassEncoder::createWithDeferredRenderCommandEncoder(const WebGPU::RenderPassDescriptor& descriptor, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device& device, MTLRenderPassDescriptor* mtlDescriptor)
+Ref<RenderPassEncoder> RenderPassEncoder::createWithDeferredRenderCommandEncoder(NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device& device, MTLRenderPassDescriptor* mtlDescriptor)
 {
-    Ref renderPassEncoder = create(nil, descriptor, visibilityResultBufferSize, depthReadOnly, stencilReadOnly, parentEncoder, visibilityResultBuffer, maxDrawCount, device, mtlDescriptor);
+    Ref renderPassEncoder = create(nil, visibilityResultBufferSize, depthReadOnly, stencilReadOnly, parentEncoder, visibilityResultBuffer, maxDrawCount, device, mtlDescriptor);
     renderPassEncoder->m_impl->impl.deferRenderCommandEncoder(mtlDescriptor);
     return renderPassEncoder;
 }

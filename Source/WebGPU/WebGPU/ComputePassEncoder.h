@@ -63,9 +63,9 @@ struct ComputePassEncoderImplBox;
 class ComputePassEncoder final : public WebGPU::ComputePassEncoder {
     WTF_MAKE_TZONE_ALLOCATED(ComputePassEncoder);
 public:
-    static Ref<ComputePassEncoder> create(id<MTLComputeCommandEncoder> computeCommandEncoder, const WebGPU::ComputePassDescriptor& descriptor, CommandEncoder& parentEncoder, Device& device)
+    static Ref<ComputePassEncoder> create(id<MTLComputeCommandEncoder> computeCommandEncoder, CommandEncoder& parentEncoder, Device& device)
     {
-        return adoptRef(*new ComputePassEncoder(computeCommandEncoder, descriptor, parentEncoder, device));
+        return adoptRef(*new ComputePassEncoder(computeCommandEncoder, parentEncoder, device));
     }
     static Ref<ComputePassEncoder> createInvalid(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
     {
@@ -98,7 +98,7 @@ public:
 #endif
 
 private:
-    ComputePassEncoder(id<MTLComputeCommandEncoder>, const WebGPU::ComputePassDescriptor&, CommandEncoder&, Device&);
+    ComputePassEncoder(id<MTLComputeCommandEncoder>, CommandEncoder&, Device&);
     ComputePassEncoder(CommandEncoder&, Device&, NSString*);
 
     const std::unique_ptr<ComputePassEncoderImplBox> m_impl;
