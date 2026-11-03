@@ -3469,6 +3469,7 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         ${WEBCORE_DIR}/css/parser/CSSParserFastPathsSwift.swift
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwift.swift
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftProperties.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftValues.swift
         ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
         ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
@@ -3520,6 +3521,7 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
 
     list(APPEND _webcore_swift_core_submodules css/parser/CSSPropertyConsumerSwiftTypes.h)
     list(APPEND _webcore_swift_core_submodules css/parser/CSSParserIdioms.h)
+    list(APPEND _webcore_swift_core_submodules css/parser/CSSPropertyConsumerSwiftBuilders.h)
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
 
     webkit_target_add_swift_options(WebCore

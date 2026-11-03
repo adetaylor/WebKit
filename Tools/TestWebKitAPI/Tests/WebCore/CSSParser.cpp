@@ -492,4 +492,104 @@ TEST(CSSPropertyParser, TransformTokenCounts)
     }
 }
 
+TEST(CSSPropertyParser, GradientStopCounts)
+{
+    // Gradients of 15 to 17 stops, of keyword and rgb() colors: linear with a hint, conic, and -webkit-gradient().
+    auto color = [](unsigned i) { return i % 2 ? "rgb(1, 2, 3)"_s : "red"_s; };
+    auto stops = [&](unsigned count, ASCIILiteral unit, bool hint) {
+        StringBuilder builder;
+        for (unsigned i = 0; i < count; ++i)
+            builder.append(i ? ", "_s : ""_s, hint && i == 1 ? "1%, "_s : ""_s, color(i), ' ', 2 * i, unit);
+        return builder.toString();
+    };
+    auto colorStops = [&](unsigned count) {
+        StringBuilder builder;
+        for (unsigned i = 0; i < count; ++i)
+            builder.append(i ? ", "_s : ""_s, "color-stop("_s, (i + 1) / 100.0, ", "_s, color(i), ')');
+        return builder.toString();
+    };
+
+    for (unsigned count : { 15u, 16u, 17u }) {
+        String values[] = {
+            makeString("linear-gradient("_s, stops(count, "%"_s, true), ')'),
+            makeString("conic-gradient("_s, stops(count, "deg"_s, false), ')'),
+            makeString("-webkit-gradient(linear, 0% 0%, 100% 100%, "_s, colorStops(count), ')'),
+        };
+        for (auto& value : values) {
+            auto properties = MutableStyleProperties::create();
+            ASSERT_TRUE(CSSParser::parseDeclarationList(properties, makeString("background-image: "_s, value, ';'), strictCSSParserContext()));
+            EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BackgroundImage), value);
+        }
+    }
+}
+
+TEST(CSSPropertyParser, BorderRadiusConsumers)
+{
+    // The border-radius consumers stop where the tokens stop looking like radii rather than
+    // requiring the range to end, so that shorthands which continue past the radii (such as
+    // `corner`) can use them; their callers reject anything left over. Verify existing callers
+    // are unaffected and round-trips work for the common forms.
+
+    struct TestCase {
+        ASCIILiteral input;
+        ASCIILiteral output;
+    };
+
+    // border-radius: single-value, symmetric slash, partial and full asymmetric forms.
+    TestCase borderRadiusCases[] = {
+        { "10px"_s, "10px"_s },
+        { "10px 20px"_s, "10px 20px"_s },
+        { "10px 20px 30px 40px"_s, "10px 20px 30px 40px"_s },
+        { "10px / 5px"_s, "10px / 5px"_s },
+        { "10px 20px / 5px"_s, "10px 20px / 5px"_s },
+        { "10px 20px 30px 40px / 5px 10px 15px 20px"_s, "10px 20px 30px 40px / 5px 10px 15px 20px"_s },
+    };
+    for (auto& [input, output] : borderRadiusCases) {
+        auto properties = MutableStyleProperties::create();
+        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, makeString("border-radius: "_s, input, ';'), strictCSSParserContext()));
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BorderRadius), String { output });
+    }
+
+    // A missing first value or a slash with no vertical radii must fail.
+    ASCIILiteral invalidInputs[] = {
+        "/"_s,
+        "/ 10px"_s,
+        "10px /"_s,
+    };
+    for (auto input : invalidInputs) {
+        auto properties = MutableStyleProperties::create();
+        CSSParser::parseDeclarationList(properties, makeString("border-radius: "_s, input, ';'), strictCSSParserContext());
+        EXPECT_TRUE(properties->getPropertyValue(CSSPropertyID::BorderRadius).isEmpty());
+    }
+}
+
+TEST(CSSPropertyParser, BackgroundImageURLIntegrity)
+{
+    // integrity() is accepted as a URL modifier in background-image when the feature is enabled.
+    struct {
+        ASCIILiteral input;
+        ASCIILiteral output; // empty means parse should fail
+    } testCases[] = {
+        { "url(\"https://example.com/foo.png\" integrity(\"sha384-abc\"))"_s, "url(\"https://example.com/foo.png\" integrity(\"sha384-abc\"))"_s },
+        { "url(\"https://example.com/foo.png\" cross-origin(anonymous) integrity(\"sha384-abc\"))"_s, "url(\"https://example.com/foo.png\" cross-origin(anonymous) integrity(\"sha384-abc\"))"_s },
+        { "url(\"https://example.com/foo.png\" integrity(\"sha384-abc\") referrer-policy(no-referrer))"_s, "url(\"https://example.com/foo.png\" integrity(\"sha384-abc\") referrer-policy(no-referrer))"_s },
+    };
+
+    auto context = strictCSSParserContext();
+    context.cssURLModifiersEnabled = true;
+    context.cssURLIntegrityModifierEnabled = true;
+    for (auto& testCase : testCases) {
+        auto properties = MutableStyleProperties::create();
+        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, makeString("background-image: "_s, testCase.input, ';'), context));
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BackgroundImage), String { testCase.output });
+    }
+
+    // With URL modifiers but without integrity() enabled, integrity() is not accepted.
+    auto withoutIntegrity = strictCSSParserContext();
+    withoutIntegrity.cssURLModifiersEnabled = true;
+    auto properties = MutableStyleProperties::create();
+    EXPECT_FALSE(CSSParser::parseDeclarationList(properties, "background-image: url(\"https://example.com/foo.png\" integrity(\"sha384-abc\"));"_s, withoutIntegrity));
+    EXPECT_TRUE(properties->getPropertyValue(CSSPropertyID::BackgroundImage).isEmpty());
+}
+
 } // namespace TestWebKitAPI
