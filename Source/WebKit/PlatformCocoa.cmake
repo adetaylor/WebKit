@@ -335,6 +335,8 @@ set(WebKit_SWIFT_INCLUDE_DIRECTORIES
     "${WEBKIT_DIR}/Platform/spi/Cocoa"
     "${WEBKIT_DIR}/Platform/spi/Cocoa/Modules"
     "${WEBKIT_DIR}/Platform/spi/ios"
+    # WebCore's Swift module, for the GPU process's Swift receiver of image buffer drawing.
+    "${CMAKE_BINARY_DIR}/Source/WebCore"
 )
 
 set(WebKit_FORWARDING_HEADERS_FILES
