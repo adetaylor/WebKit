@@ -30,7 +30,9 @@
 #include "MessageReceiver.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "StreamServerConnection.h"
+#include "SwiftCoding.h"
 #include "WebGPUIdentifier.h"
+#include <WebCore/SharedMemory.h>
 #include <WebCore/WebGPUCppAPI.h>
 #include <memory>
 #include <wtf/Noncopyable.h>
@@ -97,6 +99,23 @@ public:
 private:
     Ref<::WebGPU::BindGroup> m_backing;
 } SWIFT_SELF_CONTAINED;
+
+class RemoteBufferBacking {
+public:
+    explicit RemoteBufferBacking(::WebGPU::Buffer& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::Buffer& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::Buffer> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+// Copies the shared memory that a buffer's Copy message gives into the buffer at that offset, as the C++ receiver does.
+// Returns false if there's none, or no more than the message could have carried in the stream.
+bool copySharedMemoryToBuffer(::WebGPU::Buffer&, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>&, uint64_t offset);
 
 class RemoteSamplerBacking {
 public:

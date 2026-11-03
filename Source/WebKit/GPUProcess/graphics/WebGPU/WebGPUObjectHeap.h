@@ -83,6 +83,7 @@ namespace WebKit::WebGPU {
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 using BindGroupLayoutObject = SwiftReceiverObject<::WebGPU::BindGroupLayout, RemoteBindGroupLayout>;
 using BindGroupObject = SwiftReceiverObject<::WebGPU::BindGroup, RemoteBindGroup>;
+using BufferObject = SwiftReceiverObject<::WebGPU::Buffer, RemoteBuffer>;
 using CommandBufferObject = SwiftReceiverObject<::WebGPU::CommandBuffer, RemoteCommandBuffer>;
 using ComputePassEncoderObject = SwiftReceiverObject<::WebGPU::ComputePassEncoder, RemoteComputePassEncoder>;
 using ComputePipelineObject = SwiftReceiverObject<::WebGPU::ComputePipeline, RemoteComputePipeline>;
@@ -98,6 +99,7 @@ using TextureViewObject = SwiftReceiverObject<::WebGPU::TextureView, RemoteTextu
 #else
 using BindGroupLayoutObject = IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroupLayout>;
 using BindGroupObject = IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup>;
+using BufferObject = IPC::ScopedActiveMessageReceiveQueue<RemoteBuffer>;
 using CommandBufferObject = IPC::ScopedActiveMessageReceiveQueue<RemoteCommandBuffer>;
 using ComputePassEncoderObject = IPC::ScopedActiveMessageReceiveQueue<RemoteComputePassEncoder>;
 using ComputePipelineObject = IPC::ScopedActiveMessageReceiveQueue<RemoteComputePipeline>;
@@ -133,7 +135,11 @@ public:
 #else
     void addObject(WebGPUIdentifier, RemoteBindGroupLayout&);
 #endif
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    void addObject(WebGPUIdentifier, BufferObject&&);
+#else
     void addObject(WebGPUIdentifier, RemoteBuffer&);
+#endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, CommandBufferObject&&);
 #else
@@ -259,7 +265,7 @@ private:
         IPC::ScopedActiveMessageReceiveQueue<RemoteAdapter>,
         BindGroupObject,
         BindGroupLayoutObject,
-        IPC::ScopedActiveMessageReceiveQueue<RemoteBuffer>,
+        BufferObject,
         CommandBufferObject,
         IPC::ScopedActiveMessageReceiveQueue<RemoteCommandEncoder>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>,

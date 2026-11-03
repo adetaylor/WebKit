@@ -29,11 +29,13 @@
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteBindGroupLayoutMessages.h"
+#include "RemoteBufferProxy.h"
 #include "RemoteRenderBundleMessages.h"
 #include "RemoteGPU.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
 #include "WebKit-Swift.h"
+#include <wtf/CheckedArithmetic.h>
 
 namespace WebKit {
 
@@ -127,6 +129,32 @@ bool WebGPUSwiftReceiverContext::makeChild(WebGPUSwiftChildKind kind, const Stri
         break;
     }
     RELEASE_ASSERT_NOT_REACHED();
+}
+
+bool copySharedMemoryToBuffer(::WebGPU::Buffer& buffer, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>& argument, uint64_t offset)
+{
+    auto dataHandle = argument.take();
+    if (!dataHandle)
+        return false;
+    auto sharedData = *dataHandle ? WebCore::SharedMemory::map(WTF::move(**dataHandle), WebCore::SharedMemory::Protection::ReadOnly) : nullptr;
+    auto data = sharedData ? sharedData->span() : std::span<const uint8_t> { };
+    if (data.size() <= WebGPU::maxCrossProcessResourceCopySize)
+        return false;
+
+#if !ENABLE(WEBGPU_SWIFT)
+    auto contents = buffer.getBufferContents();
+    if (contents.empty())
+        return false;
+
+    auto endOffset = checkedSum<size_t>(offset, data.size());
+    if (endOffset.hasOverflowed() || endOffset.value() > contents.size())
+        return false;
+
+    memcpySpan(contents.subspan(offset), data);
+#else
+    buffer.copyFrom(data, offset);
+#endif
+    return true;
 }
 
 ::WebGPU::BindGroup* WebGPUSwiftReceiverContext::bindGroup(uint64_t identifier) const

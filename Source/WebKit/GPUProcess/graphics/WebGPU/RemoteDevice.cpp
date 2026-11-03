@@ -66,6 +66,7 @@
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 #include "RemoteBindGroupLayoutMessages.h"
 #include "RemoteBindGroupMessages.h"
+#include "RemoteBufferMessages.h"
 #include "RemoteComputePipelineMessages.h"
 #include "RemoteExternalTextureMessages.h"
 #include "RemotePipelineLayoutMessages.h"
@@ -137,8 +138,14 @@ void RemoteDevice::createBuffer(const WebGPU::BufferDescriptor& descriptor, WebG
     Ref objectHeap = m_objectHeap.get();
     auto buffer = m_backing->createBuffer(descriptor);
     MESSAGE_CHECK(buffer);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
+    auto remoteBuffer = RemoteBuffer::init(RemoteBufferBacking { *buffer }, context, descriptor.mappedAtCreation);
+    objectHeap->addObject(identifier, WebGPU::BufferObject { *buffer, WTF::move(remoteBuffer), context, protect(m_streamConnection), Messages::RemoteBuffer::messageReceiverName(), identifier });
+#else
     auto remoteBuffer = RemoteBuffer::create(*buffer, objectHeap, protect(m_streamConnection), protect(m_gpu), descriptor.mappedAtCreation, identifier);
     objectHeap->addObject(identifier, remoteBuffer);
+#endif
 }
 
 void RemoteDevice::createTexture(const WebGPU::TextureDescriptor& descriptor, WebGPUIdentifier identifier)
