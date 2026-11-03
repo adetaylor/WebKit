@@ -973,6 +973,11 @@ struct ImageCopyExternalImage {
     bool premultipliedAlpha { true };
     PredefinedColorSpace colorSpace { PredefinedColorSpace::SRGB };
 };
+
+// The CF objects of these, for Swift.
+inline CVPixelBufferRef framePixelBuffer(const ExternalTextureDescriptor& descriptor) CF_RETURNS_NOT_RETAINED { return descriptor.pixelBuffer.get(); }
+inline IOSurfaceRef sourceSurface(const ImageCopyExternalImage& source) CF_RETURNS_NOT_RETAINED { return source.source.get(); }
+inline CVPixelBufferRef sourcePixelBuffer(const ImageCopyExternalImage& source) CF_RETURNS_NOT_RETAINED { return source.pixelBuffer.get(); }
 #endif
 
 // https://immersive-web.github.io/WebXR-WebGPU-Binding/#dictdef-xrgpuprojectionlayerinit
@@ -1420,6 +1425,22 @@ template<typename T> Ref<ByteOwner> ByteOwner::create(Ref<T>&& owner)
     static_assert(std::is_base_of_v<WTF::ThreadSafeRefCountedBase, T>, "The last reference to a ByteOwner may be dropped on any thread");
     return adoptRef(*new ByteOwnerOf<T>(WTF::move(owner)));
 }
+
+// A ByteOwner's bytes, with a reference to it, for Swift, which can't read a span from a shared reference
+// (rdar://161274084). The span lasts as long as this does, and this keeps the bytes.
+class OwnedBytes {
+public:
+    explicit OwnedBytes(Ref<ByteOwner>&& owner)
+        : m_owner(WTF::move(owner))
+    {
+    }
+
+    std::span<const uint8_t> span() const LIFETIME_BOUND { return m_owner->span(); }
+    ByteOwner& owner() const SWIFT_RETURNS_UNRETAINED { return m_owner; }
+
+private:
+    Ref<ByteOwner> m_owner;
+} SWIFT_SELF_CONTAINED;
 
 class CommandBuffer : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<CommandBuffer> {
 public:

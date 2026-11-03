@@ -275,7 +275,7 @@ func writeWillCompletelyClear(
 }
 
 // The texel copy destination of a tagged destination.
-private func untaggedDestination(_ destination: WebGPU.ImageCopyTextureTagged) -> TextureCopyLocation {
+private func untaggedDestination(_ destination: GPUCopyExternalImageDestination) -> TextureCopyLocation {
     var location = TextureCopyLocation()
     location.mipLevel = destination.mipLevel
     location.origin = destination.origin
@@ -1448,7 +1448,7 @@ final class QueueImpl {
         stageBufferWrite(queue, device, deviceImpl, buffer, bufferOffset, bytes: data, nil)
     }
 
-    private func stageBufferWrite(
+    fileprivate func stageBufferWrite(
         _ queue: WebGPU.Metal.Queue,
         _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
@@ -2633,7 +2633,7 @@ final class QueueImpl {
     // MARK: copyExternalImageToTexture
 
     private func errorValidatingCopyExternalImageToTexture(
-        _ destination: WebGPU.ImageCopyTextureTagged,
+        _ destination: GPUCopyExternalImageDestination,
         _ copySize: WebGPU.Extent3D,
         _ textureImpl: TextureImpl,
         _ device: WebGPU.Metal.Device,
@@ -2700,6 +2700,30 @@ final class QueueImpl {
         _ ioSurface: IOSurfaceRef?,
         _ pixelBuffer: CVPixelBuffer?,
         _ destination: WebGPU.ImageCopyTextureTagged,
+        _ copySize: WebGPU.Extent3D
+    ) {
+        copyExternalImageToTexture(
+            queue,
+            device,
+            deviceImpl,
+            textureImpl,
+            source,
+            ioSurface,
+            pixelBuffer,
+            GPUCopyExternalImageDestination(destination),
+            copySize
+        )
+    }
+
+    fileprivate func copyExternalImageToTexture(
+        _ queue: WebGPU.Metal.Queue,
+        _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
+        _ textureImpl: TextureImpl,
+        _ source: WebGPU.Metal.CopyExternalImageSource,
+        _ ioSurface: IOSurfaceRef?,
+        _ pixelBuffer: CVPixelBuffer?,
+        _ destination: GPUCopyExternalImageDestination,
         _ copySize: WebGPU.Extent3D
     ) {
         // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture
@@ -3003,10 +3027,109 @@ public final class QueueReference {
         _ = impl.writeTexture(shell, device.shell, device.impl, texture.impl, destination, bytes: data, nil, dataLayout, size, false, .decide)
     }
 
+    // writeBuffer() of the bytes, which it may read after returning (see largeBufferSize), keeping them until it has.
+    public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: WebGPU.OwnedBytes) {
+        guard let device else {
+            return
+        }
+        let bytes: Span<UInt8> = data.span()
+        if impl.writeBufferWithoutStaging(device.impl, buffer.impl, bufferOffset, bytes: bytes) {
+            return
+        }
+        impl.stageBufferWrite(shell, device.shell, device.impl, buffer.impl.buffer(), bufferOffset, bytes: bytes, AliasableBytes(data.owner()))
+    }
+
+    // writeTexture() of the bytes, as writeBuffer() of them.
+    public func writeTexture(
+        _ texture: TextureReference,
+        _ destination: TextureCopyLocation,
+        _ data: WebGPU.OwnedBytes,
+        _ dataLayout: WebGPU.TexelCopyBufferLayout,
+        _ size: WebGPU.Extent3D
+    ) {
+        guard let device else {
+            return
+        }
+        let bytes: Span<UInt8> = data.span()
+        _ = impl.writeTexture(
+            shell,
+            device.shell,
+            device.impl,
+            texture.impl,
+            destination,
+            bytes: bytes,
+            AliasableBytes(data.owner()),
+            dataLayout,
+            size,
+            false,
+            .decide
+        )
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture
+    public func copyExternalImageToTexture(
+        _ source: WebGPU.ImageCopyExternalImage,
+        _ texture: TextureReference,
+        _ destination: GPUCopyExternalImageDestination,
+        _ copySize: WebGPU.Extent3D
+    ) {
+        guard let device else {
+            return
+        }
+        impl.copyExternalImageToTexture(
+            shell,
+            device.shell,
+            device.impl,
+            texture.impl,
+            copyExternalImageSourceParameters(source),
+            WebGPU.sourceSurface(source),
+            WebGPU.sourcePixelBuffer(source),
+            destination,
+            copySize
+        )
+    }
+
     // As WTF::String::createNSString() makes the label for the C++ caller: a null one is empty.
     public func setLabel(_ label: Swift.String?) {
         impl.setLabel((label ?? "") as NSString)
     }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpucopyexternalimagedestinfo, without its texture.
+@_spi(WebKitGPU)
+public struct GPUCopyExternalImageDestination {
+    public var mipLevel: UInt32 = 0
+    public var origin = WebGPU.Origin3D()
+    public var aspect = WebGPU.TextureAspect.All
+    public var colorSpace = WebGPU.PredefinedColorSpace.SRGB
+    public var premultipliedAlpha = false
+
+    public init() {
+    }
+
+    init(_ destination: WebGPU.ImageCopyTextureTagged) {
+        mipLevel = destination.mipLevel
+        origin = destination.origin
+        aspect = destination.aspect
+        colorSpace = destination.colorSpace
+        premultipliedAlpha = destination.premultipliedAlpha
+    }
+}
+
+// The parts of an external image source that QueueImpl reads besides its IOSurface or pixel buffer, as Queue's shell
+// gives them.
+private func copyExternalImageSourceParameters(_ source: WebGPU.ImageCopyExternalImage) -> WebGPU.Metal.CopyExternalImageSource {
+    var parameters = WebGPU.Metal.CopyExternalImageSource()
+    parameters.sourceFormat = source.sourceFormat
+    parameters.sourceSize = source.sourceSize
+    parameters.pixelBufferRotation = source.pixelBufferRotation
+    parameters.pixelBufferIsMirrored = source.pixelBufferIsMirrored
+    parameters.origin = source.origin
+    parameters.flipY = source.flipY
+    parameters.hasAlpha = source.hasAlpha
+    parameters.premultipliedAlpha = source.premultipliedAlpha
+    parameters.colorSpace = source.colorSpace
+    return parameters
 }
 
 @_expose(Cxx)

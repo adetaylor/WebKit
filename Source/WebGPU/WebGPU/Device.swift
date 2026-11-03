@@ -122,12 +122,14 @@ final class DeviceImpl: DeliverableImpl {
     var stagedTextureViewImpl: TextureViewImpl?
     @_expose(!Cxx)
     var stagedRenderBundleImpl: RenderBundleImpl?
-    // The Impls that the last command encoder and command buffer shells made: their shells make them, from what Swift
-    // passes their factories. Weak, so that they live only as long as their shells.
+    // The Impls that the last command encoder, command buffer and external texture shells made: their shells make them,
+    // from what Swift passes their factories. Weak, so that they live only as long as their shells.
     @_expose(!Cxx)
     weak var lastMadeCommandEncoderImpl: CommandEncoderImpl?
     @_expose(!Cxx)
     weak var lastMadeCommandBufferImpl: CommandBufferImpl?
+    @_expose(!Cxx)
+    weak var lastMadeExternalTextureImpl: ExternalTextureImpl?
     // The scheduler of the Instance of the device's adapter, if it had one when the device was made: the asynchronous
     // pipeline compiles hop back through it.
     private var instanceSchedulerHandle: InstanceSchedulerHandle?

@@ -23,7 +23,9 @@
 
 import CoreVideo
 import Metal
+@_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.ExternalTexture
 import WebGPU_Private.WebGPUCpp
 
 // The state of a GPUExternalTexture. Used only on its Instance's API thread, so not Sendable.
@@ -36,6 +38,34 @@ public final class ExternalTextureReference {
     init(_ impl: ExternalTextureImpl, _ shell: WebGPU.Metal.ExternalTexture) {
         self.impl = impl
         self.shell = shell
+    }
+
+    // The descriptor's video frame, which the texture shows from now on, as the shell's update() takes it: none if it
+    // has no pixel buffer. Only the pixel buffer is read.
+    public func update(_ descriptor: WebGPU.ExternalTextureDescriptor) {
+        if let pixelBuffer = WebGPU.framePixelBuffer(descriptor) {
+            impl.update(pixelBuffer)
+        } else {
+            impl.updateWithoutPixelBuffer()
+        }
+    }
+}
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-importexternaltexture, as the shell's importExternalTexture() does.
+    public func importExternalTexture(_ descriptor: WebGPU.ExternalTextureDescriptor) -> ExternalTextureReference {
+        let externalTexture: CxxBridging.RefExternalTexture
+        if impl.isValid() {
+            externalTexture = WebGPU.Metal.ExternalTexture.create(WebGPU.framePixelBuffer(descriptor), descriptor.colorSpace, descriptor.visibleSize, shell)
+        } else {
+            externalTexture = WebGPU.Metal.ExternalTexture.createInvalid(shell)
+        }
+        guard let externalTextureImpl = impl.lastMadeExternalTextureImpl else {
+            preconditionFailure("ExternalTexture's shell made no Impl")
+        }
+        impl.lastMadeExternalTextureImpl = nil
+        return ExternalTextureReference(externalTextureImpl, externalTexture.ptr())
     }
 }
 
@@ -190,22 +220,26 @@ func makeExternalTextureImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> ExternalTextureImpl {
-    ExternalTextureImpl(
+    let impl = ExternalTextureImpl(
         colorSpace: colorSpace,
         visibleWidth: visibleWidth,
         visibleHeight: visibleHeight,
         device: device,
         deviceImpl: deviceImpl
     )
+    deviceImpl.lastMadeExternalTextureImpl = impl
+    return impl
 }
 
 @_expose(Cxx)
 func makeInvalidExternalTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ExternalTextureImpl {
-    ExternalTextureImpl(
+    let impl = ExternalTextureImpl(
         colorSpace: WebGPU.PredefinedColorSpace.SRGB,
         visibleWidth: 0,
         visibleHeight: 0,
         device: device,
         deviceImpl: deviceImpl
     )
+    deviceImpl.lastMadeExternalTextureImpl = impl
+    return impl
 }
