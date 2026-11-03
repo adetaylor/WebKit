@@ -998,9 +998,9 @@ public final class DeviceReference {
     public func setLabel(_ label: Swift.String?) {
     }
 
-    // Queue's shell's isUsable().
-    var isUsable: Bool {
-        impl.isValid() && !impl.isLost()
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-queue
+    public var queue: QueueReference {
+        QueueReference(impl.defaultQueueImpl, impl.defaultQueue())
     }
 }
 

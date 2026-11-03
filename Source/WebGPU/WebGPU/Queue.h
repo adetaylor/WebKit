@@ -145,6 +145,8 @@ public:
     // For the C API. The device must be alive.
     Ref<Device> device() const;
 #endif
+    // The device, +1, or nullptr once it is gone, for Swift.
+    Device* WTF_NULLABLE retainedDevice() const SWIFT_RETURNS_RETAINED;
     void generateAValidationError(String&&);
 
     id<MTLBlitCommandEncoder> ensureBlitCommandEncoder();
@@ -178,6 +180,9 @@ private:
     // Read on the API thread only; Metal threads schedule work through the box's scheduler handle.
     const ThreadSafeWeakPtr<Instance> m_instance;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refQueue, derefQueue) SWIFT_PRIVATE_FILEID("WebGPUSwift/Queue.swift");
+
+// The shell as the C++ API object it is, for Swift, which can't convert a shared reference to its base class.
+inline WebGPU::Queue& apiObject(Queue& shell) SWIFT_RETURNS_UNRETAINED { return shell; }
 
 // Byte-moving primitives for Queue.swift. Free functions with NOESCAPE spans, so that Swift gets overloads taking
 // Span<UInt8>; static members of Queue, a foreign reference type, would not get them (rdar://161274084).

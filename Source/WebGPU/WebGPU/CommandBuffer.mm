@@ -158,9 +158,11 @@ bool CommandBuffer::waitForCompletion()
     return m_impl->impl.waitForCompletion();
 }
 
-void deliverImpl(WebGPU::CommandBuffer& commandBuffer)
+CommandBuffer& deliverImpl(WebGPU::CommandBuffer& commandBuffer)
 {
-    WebGPUSwift::receiveImpl(downcast<CommandBuffer>(commandBuffer).swiftImpl());
+    auto& shell = downcast<CommandBuffer>(commandBuffer);
+    WebGPUSwift::receiveImpl(shell.swiftImpl());
+    return shell;
 }
 
 } // namespace WebGPU::Metal

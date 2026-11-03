@@ -2944,8 +2944,8 @@ final class QueueImpl {
     }
 }
 
-// A queue with its shell, as Swift holds one, with the operations of Queue's shell that create nothing. Each takes the
-// queue's device, which the shell holds weakly: nil once it is gone, as for the shell.
+// A queue with its shell, as Swift holds one, with the operations of Queue's shell that create nothing. Each uses the
+// queue's device, which the shell holds weakly, and does nothing without it once it's gone, as the shell's do.
 @_spi(WebKitGPU)
 public final class QueueReference {
     let impl: QueueImpl
@@ -2956,7 +2956,15 @@ public final class QueueReference {
         self.shell = shell
     }
 
-    public func submit(_ commandBuffers: [CommandBufferReference], device: DeviceReference?) {
+    // The device's shell, while it lives, and its Impl, which the device gives its queue.
+    private var device: (shell: WebGPU.Metal.Device, impl: DeviceImpl)? {
+        guard let deviceShell = shell.retainedDevice(), let deviceImpl = impl.encoderTimestampsDevice else {
+            return nil
+        }
+        return (deviceShell, deviceImpl)
+    }
+
+    public func submit(_ commandBuffers: [CommandBufferReference]) {
         guard let device else {
             return
         }
@@ -2967,11 +2975,12 @@ public final class QueueReference {
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone: false when the device is lost.
-    public func onSubmittedWorkDone(device: DeviceReference?, _ completion: @escaping (Bool) -> Void) {
-        impl.onSubmittedWorkDone(shell, deviceIsUsable: device?.isUsable ?? false, completion)
+    public func onSubmittedWorkDone(_ completion: @escaping (Bool) -> Void) {
+        let deviceIsUsable = device.map { $0.impl.isValid() && !$0.impl.isLost() } ?? false
+        impl.onSubmittedWorkDone(shell, deviceIsUsable: deviceIsUsable, completion)
     }
 
-    public func writeBuffer(device: DeviceReference?, _ buffer: BufferReference, _ bufferOffset: UInt64, _ data: Span<UInt8>) {
+    public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: Span<UInt8>) {
         guard let device else {
             return
         }
@@ -2982,7 +2991,6 @@ public final class QueueReference {
     }
 
     public func writeTexture(
-        device: DeviceReference?,
         _ texture: TextureReference,
         _ destination: TextureCopyLocation,
         _ data: Span<UInt8>,

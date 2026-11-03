@@ -374,6 +374,12 @@ Ref<Device> Queue::device() const
     return device.releaseNonNull();
 }
 
+Device* Queue::retainedDevice() const
+{
+    RefPtr device = m_device;
+    return device.leakRef();
+}
+
 void Queue::generateAValidationError(String&& message)
 {
     if (RefPtr device = m_device.get())

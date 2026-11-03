@@ -95,7 +95,7 @@ private:
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refCommandBuffer, derefCommandBuffer);
 
 // For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the CommandBufferImpl of a WebGPU::CommandBuffer.
-void deliverImpl(WebGPU::CommandBuffer&);
+CommandBuffer& deliverImpl(WebGPU::CommandBuffer&) SWIFT_RETURNS_UNRETAINED;
 
 } // namespace WebGPU::Metal
 

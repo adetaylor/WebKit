@@ -32,6 +32,7 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.ExternalTexture
 @_implementationOnly import WebGPU_Internal.QuerySet
+@_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
 @_implementationOnly import WebGPU_Internal.RenderBundle
@@ -82,7 +83,7 @@ public func impl(of renderBundle: WebGPU.RenderBundle) -> RenderBundleImpl {
 
 @_spi(WebKitGPU)
 public func impl(of commandBuffer: WebGPU.CommandBuffer) -> CommandBufferImpl {
-    ImplLookup.lookUp(CommandBufferImpl.self) { WebGPU.Metal.deliverImpl(commandBuffer) }
+    ImplLookup.lookUp(CommandBufferImpl.self) { _ = WebGPU.Metal.deliverImpl(commandBuffer) }
 }
 
 @_spi(WebKitGPU)
@@ -291,6 +292,16 @@ public func reference(of device: WebGPU.Device) -> DeviceReference {
 }
 
 @_spi(WebKitGPU)
+public func reference(of commandBuffer: WebGPU.CommandBuffer) -> CommandBufferReference {
+    var shell: WebGPU.Metal.CommandBuffer?
+    let impl = ImplLookup.lookUp(CommandBufferImpl.self) { shell = WebGPU.Metal.deliverImpl(commandBuffer) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return CommandBufferReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
 public func reference(of texture: WebGPU.Texture) -> TextureReference {
     var shell: WebGPU.Metal.Texture?
     let impl = ImplLookup.lookUp(TextureImpl.self) { shell = WebGPU.Metal.deliverImpl(texture) }
@@ -363,12 +374,22 @@ extension ExternalTextureReference: GPUObjectReference {
 }
 
 @_spi(WebKitGPU)
+extension CommandBufferReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
 extension PipelineLayoutReference: GPUObjectReference {
     public var isValid: Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension QuerySetReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension QueueReference: GPUObjectReference {
     public var isValid: Bool { shell.isValid() }
 }
 
@@ -432,6 +453,11 @@ extension ExternalTextureReference {
 @_spi(WebKitGPU)
 extension QuerySetReference {
     public var apiObject: WebGPU.QuerySet { WebGPU.Metal.apiObject(shell) }
+}
+
+@_spi(WebKitGPU)
+extension QueueReference {
+    public var apiObject: WebGPU.Queue { WebGPU.Metal.apiObject(shell) }
 }
 
 @_spi(WebKitGPU)
