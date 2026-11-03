@@ -66,6 +66,149 @@ func deviceCreateCommandEncoder(_ device: WebGPU.Metal.Device, _ deviceImpl: Dev
     return WebGPU.Metal.CommandEncoder.create(commandBuffer, device, deviceImpl.takeCommandEncoderId()).ptr()
 }
 
+// A command encoder with its shell, as Swift holds one, with the operations of CommandEncoder's shell that create
+// nothing.
+@_spi(WebKitGPU)
+public final class CommandEncoderReference {
+    let impl: CommandEncoderImpl
+    let shell: WebGPU.Metal.CommandEncoder
+
+    init(_ impl: CommandEncoderImpl, _ shell: WebGPU.Metal.CommandEncoder) {
+        self.impl = impl
+        self.shell = shell
+    }
+
+    public func copyBufferToBuffer(
+        _ source: BufferReference,
+        _ sourceOffset: UInt64,
+        _ destination: BufferReference,
+        _ destinationOffset: UInt64,
+        _ size: UInt64
+    ) {
+        impl.copyBufferToBuffer(
+            source: source.impl,
+            sourceOffset: sourceOffset,
+            destination: destination.impl,
+            destinationOffset: destinationOffset,
+            size: size
+        )
+    }
+
+    public func copyBufferToTexture(
+        _ source: BufferReference,
+        _ sourceLocation: BufferCopyLocation,
+        _ destination: TextureReference,
+        _ destinationLocation: TextureCopyLocation,
+        _ copySize: WebGPU.Extent3D
+    ) {
+        impl.copyBufferToTexture(
+            source: sourceLocation,
+            sourceBuffer: source.impl,
+            destination: destinationLocation,
+            destinationTexture: destination.impl,
+            copySize: copySize
+        )
+    }
+
+    public func copyTextureToBuffer(
+        _ source: TextureReference,
+        _ sourceLocation: TextureCopyLocation,
+        _ destination: BufferReference,
+        _ destinationLocation: BufferCopyLocation,
+        _ copySize: WebGPU.Extent3D
+    ) {
+        impl.copyTextureToBuffer(
+            source: sourceLocation,
+            sourceTexture: source.impl,
+            destination: destinationLocation,
+            destinationBuffer: destination.impl,
+            copySize: copySize
+        )
+    }
+
+    public func copyTextureToTexture(
+        _ source: TextureReference,
+        _ sourceLocation: TextureCopyLocation,
+        _ destination: TextureReference,
+        _ destinationLocation: TextureCopyLocation,
+        _ copySize: WebGPU.Extent3D
+    ) {
+        impl.copyTextureToTexture(
+            source: sourceLocation,
+            sourceTexture: source.impl,
+            destination: destinationLocation,
+            destinationTexture: destination.impl,
+            copySize: copySize
+        )
+    }
+
+    // nil size: the rest of the buffer after the offset.
+    public func clearBuffer(_ buffer: BufferReference, _ offset: UInt64, _ size: UInt64?) {
+        impl.clearBuffer(buffer.impl, offset, size ?? UInt64.max)
+    }
+
+    public func writeTimestamp(_ querySet: QuerySetReference, _ queryIndex: UInt32) {
+        impl.writeTimestamp(querySet.impl, queryIndex)
+    }
+
+    public func resolveQuerySet(
+        _ querySet: QuerySetReference,
+        _ firstQuery: UInt32,
+        _ queryCount: UInt32,
+        _ destination: BufferReference,
+        _ destinationOffset: UInt64
+    ) {
+        impl.resolveQuerySet(querySet.impl, firstQuery: firstQuery, queryCount: queryCount, destination: destination.impl, destinationOffset: destinationOffset)
+    }
+
+    // The labels are as WTF::String::createNSString() makes them for the C++ caller: a null one is empty.
+    public func pushDebugGroup(_ groupLabel: Swift.String?) {
+        impl.pushDebugGroup((groupLabel ?? "") as NSString)
+    }
+
+    public func popDebugGroup() {
+        impl.popDebugGroup()
+    }
+
+    public func insertDebugMarker(_ markerLabel: Swift.String?) {
+        impl.insertDebugMarker((markerLabel ?? "") as NSString)
+    }
+
+    public func setLabel(_ label: Swift.String?) {
+        impl.setLabel((label ?? "") as NSString)
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gputexelcopybufferinfo without its buffer, which a copy takes as its Impl.
+@_spi(WebKitGPU)
+public struct BufferCopyLocation {
+    public var layout = WebGPU.TexelCopyBufferLayout()
+
+    public init() {
+    }
+
+    init(_ info: WebGPU.TexelCopyBufferInfo) {
+        layout = info.layout
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gputexelcopytextureinfo without its texture, which a copy takes as its Impl.
+@_spi(WebKitGPU)
+public struct TextureCopyLocation {
+    public var mipLevel: UInt32 = 0
+    public var origin = WebGPU.Origin3D()
+    public var aspect = WebGPU.TextureAspect.All
+
+    public init() {
+    }
+
+    init(_ info: WebGPU.TexelCopyTextureInfo) {
+        mipLevel = info.mipLevel
+        origin = info.origin
+        aspect = info.aspect
+    }
+}
+
 // How a copy uses a texture subresource, for lazy zero-initialization (CommandEncoderImpl.noteTextureInit).
 enum TextureInitUse {
     case read
@@ -509,9 +652,9 @@ extension CommandEncoderImpl {
     }
 
     private func errorValidatingCopyTextureToTexture(
-        source: WebGPU.TexelCopyTextureInfo,
+        source: TextureCopyLocation,
         sourceTexture: TextureImpl,
-        destination: WebGPU.TexelCopyTextureInfo,
+        destination: TextureCopyLocation,
         destinationTexture: TextureImpl,
         copySize: WebGPU.Extent3D
     ) -> String? {
@@ -617,9 +760,9 @@ extension CommandEncoderImpl {
     }
 
     private func errorValidatingCopyTextureToBuffer(
-        source: WebGPU.TexelCopyTextureInfo,
+        source: TextureCopyLocation,
         sourceTexture: TextureImpl,
-        destination: WebGPU.TexelCopyBufferInfo,
+        destination: BufferCopyLocation,
         destinationBuffer: BufferImpl,
         copySize: WebGPU.Extent3D
     ) -> String? {
@@ -695,7 +838,7 @@ extension CommandEncoderImpl {
         return nil
     }
 
-    private func errorValidatingImageCopyBuffer(imageCopyBuffer: WebGPU.TexelCopyBufferInfo, buffer: BufferImpl) -> String? {
+    private func errorValidatingImageCopyBuffer(imageCopyBuffer: BufferCopyLocation, buffer: BufferImpl) -> String? {
         // https://gpuweb.github.io/gpuweb/#abstract-opdef-validating-gpuimagecopybuffer
         if !isValidToUseWith(buffer) {
             return "buffer is not valid"
@@ -709,9 +852,9 @@ extension CommandEncoderImpl {
     }
 
     private func errorValidatingCopyBufferToTexture(
-        source: WebGPU.TexelCopyBufferInfo,
+        source: BufferCopyLocation,
         sourceBuffer: BufferImpl,
-        destination: WebGPU.TexelCopyTextureInfo,
+        destination: TextureCopyLocation,
         destinationTexture: TextureImpl,
         copySize: WebGPU.Extent3D
     ) -> String? {
@@ -1486,9 +1629,9 @@ extension CommandEncoderImpl {
     }
 
     fileprivate func copyTextureToBuffer(
-        source: WebGPU.TexelCopyTextureInfo,
+        source: TextureCopyLocation,
         sourceTexture: TextureImpl,
-        destination: WebGPU.TexelCopyBufferInfo,
+        destination: BufferCopyLocation,
         destinationBuffer apiDestinationBuffer: BufferImpl,
         copySize: WebGPU.Extent3D
     ) {
@@ -1797,9 +1940,9 @@ extension CommandEncoderImpl {
     }
 
     fileprivate func copyBufferToTexture(
-        source: WebGPU.TexelCopyBufferInfo,
+        source: BufferCopyLocation,
         sourceBuffer: BufferImpl,
-        destination: WebGPU.TexelCopyTextureInfo,
+        destination: TextureCopyLocation,
         destinationTexture: TextureImpl,
         copySize: WebGPU.Extent3D
     ) {
@@ -1815,9 +1958,9 @@ extension CommandEncoderImpl {
 
     // False when not every write of the copy was encoded, so that its full writes are not recorded.
     private func copyBufferToTexture(
-        source: WebGPU.TexelCopyBufferInfo,
+        source: BufferCopyLocation,
         apiBuffer: BufferImpl,
-        destination: WebGPU.TexelCopyTextureInfo,
+        destination: TextureCopyLocation,
         destinationTexture: TextureImpl,
         copySize: WebGPU.Extent3D,
         initialization: CopyInitialization
@@ -2296,9 +2439,9 @@ extension CommandEncoderImpl {
     }
 
     fileprivate func copyTextureToTexture(
-        source: WebGPU.TexelCopyTextureInfo,
+        source: TextureCopyLocation,
         sourceTexture: TextureImpl,
-        destination: WebGPU.TexelCopyTextureInfo,
+        destination: TextureCopyLocation,
         destinationTexture: TextureImpl,
         copySize: WebGPU.Extent3D
     ) {
@@ -2497,7 +2640,7 @@ extension CommandEncoderImpl {
     }
 
     // Records the full writes of a copy into `texture`, once all of the copy has been encoded.
-    private func noteFullWrites(_ texture: TextureImpl, _ destination: WebGPU.TexelCopyTextureInfo, _ sliceCount: UInt32) {
+    private func noteFullWrites(_ texture: TextureImpl, _ destination: TextureCopyLocation, _ sliceCount: UInt32) {
         let isVolume = texture.backingDimension == WebGPU.TextureDimension._3d
         for layer in 0..<sliceCount {
             noteTextureInit(texture, destination.mipLevel, isVolume ? 0 : destination.origin.z &+ layer, destination.aspect, .fullWrite)
@@ -3491,9 +3634,9 @@ final class CommandEncoderImpl {
         _ copySize: WebGPU.Extent3D
     ) {
         copyBufferToTexture(
-            source: source,
+            source: BufferCopyLocation(source),
             sourceBuffer: sourceBuffer,
-            destination: destination,
+            destination: TextureCopyLocation(destination),
             destinationTexture: destinationTexture,
             copySize: copySize
         )
@@ -3508,9 +3651,9 @@ final class CommandEncoderImpl {
         _ copySize: WebGPU.Extent3D
     ) {
         copyTextureToBuffer(
-            source: source,
+            source: TextureCopyLocation(source),
             sourceTexture: sourceTexture,
-            destination: destination,
+            destination: BufferCopyLocation(destination),
             destinationBuffer: destinationBuffer,
             copySize: copySize
         )
@@ -3525,9 +3668,9 @@ final class CommandEncoderImpl {
         _ copySize: WebGPU.Extent3D
     ) {
         copyTextureToTexture(
-            source: source,
+            source: TextureCopyLocation(source),
             sourceTexture: sourceTexture,
-            destination: destination,
+            destination: TextureCopyLocation(destination),
             destinationTexture: destinationTexture,
             copySize: copySize
         )

@@ -81,6 +81,18 @@ private struct FinishedEncoder {
 //
 // Used only on its Instance's API thread, so deliberately not Sendable; the Metal thread only ever gets
 // `completion()`.
+// A command buffer with its shell, as Swift holds one.
+@_spi(WebKitGPU)
+public final class CommandBufferReference {
+    public let impl: CommandBufferImpl
+    let shell: WebGPU.Metal.CommandBuffer
+
+    init(_ impl: CommandBufferImpl, _ shell: WebGPU.Metal.CommandBuffer) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
 @_expose(Cxx)
 @_spi(WebKitGPU)
 public final class CommandBufferImpl: DeliverableImpl {

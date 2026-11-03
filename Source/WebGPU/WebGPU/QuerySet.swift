@@ -179,6 +179,18 @@ public final class QuerySetImpl: DeliverableImpl {
 
 private let maxQueryCount: UInt32 = 4096
 
+// A query set with its shell, as Swift holds one.
+@_spi(WebKitGPU)
+public final class QuerySetReference {
+    public let impl: QuerySetImpl
+    let shell: WebGPU.Metal.QuerySet
+
+    init(_ impl: QuerySetImpl, _ shell: WebGPU.Metal.QuerySet) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
 // https://gpuweb.github.io/gpuweb/#dictdef-gpuquerysetdescriptor, without its label.
 @_spi(WebKitGPU)
 public struct GPUQuerySetDescriptor {

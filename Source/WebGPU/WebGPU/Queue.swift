@@ -275,13 +275,12 @@ func writeWillCompletelyClear(
 }
 
 // The texel copy destination of a tagged destination.
-private func untaggedDestination(_ destination: WebGPU.ImageCopyTextureTagged) -> WebGPU.TexelCopyTextureInfo {
-    WebGPU.TexelCopyTextureInfo(
-        texture: destination.texture,
-        mipLevel: destination.mipLevel,
-        origin: destination.origin,
-        aspect: destination.aspect
-    )
+private func untaggedDestination(_ destination: WebGPU.ImageCopyTextureTagged) -> TextureCopyLocation {
+    var location = TextureCopyLocation()
+    location.mipLevel = destination.mipLevel
+    location.origin = destination.origin
+    location.aspect = destination.aspect
+    return location
 }
 
 // As WTFLogAlways("%@") prints an NSError, or nil.
@@ -1858,7 +1857,7 @@ final class QueueImpl {
     // MARK: writeTexture
 
     private func errorValidatingWriteTexture(
-        _ destination: WebGPU.TexelCopyTextureInfo,
+        _ destination: TextureCopyLocation,
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
         _ size: WebGPU.Extent3D,
         _ dataByteSize: Int,
@@ -1926,7 +1925,19 @@ final class QueueImpl {
         _ skipValidation: Bool
     ) {
         let bytes: Span<UInt8> = data.span()
-        _ = writeTexture(queue, device, deviceImpl, textureImpl, destination, bytes: bytes, nil, dataLayout, size, skipValidation, .decide)
+        _ = writeTexture(
+            queue,
+            device,
+            deviceImpl,
+            textureImpl,
+            TextureCopyLocation(destination),
+            bytes: bytes,
+            nil,
+            dataLayout,
+            size,
+            skipValidation,
+            .decide
+        )
     }
 
     // writeTexture() of all of `owner`'s bytes, `data`.
@@ -1948,7 +1959,7 @@ final class QueueImpl {
             device,
             deviceImpl,
             textureImpl,
-            destination,
+            TextureCopyLocation(destination),
             bytes: bytes,
             AliasableBytes(owner),
             dataLayout,
@@ -1971,7 +1982,7 @@ final class QueueImpl {
         _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
         _ textureImpl: TextureImpl,
-        _ destination: WebGPU.TexelCopyTextureInfo,
+        _ destination: TextureCopyLocation,
         bytes data: Span<UInt8>,
         _ aliasable: AliasableBytes?,
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
