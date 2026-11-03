@@ -797,6 +797,26 @@ public final class BufferImpl: DeliverableImpl {
     }
 }
 
+// https://gpuweb.github.io/gpuweb/#dictdef-gpubufferdescriptor, without its label.
+@_spi(WebKitGPU)
+public struct GPUBufferDescriptor {
+    // The bits of OptionSet<WebGPU::BufferUsage>.
+    public var usage: UInt16 = 0
+    public var size: UInt64 = 0
+    public var mappedAtCreation = false
+
+    public init() {
+    }
+}
+
+func createBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ descriptor: GPUBufferDescriptor, label: WTF.String) -> BufferImpl {
+    var parameters = WebGPU.Metal.BufferParameters()
+    parameters.size = descriptor.size
+    parameters.usage = descriptor.usage
+    parameters.mappedAtCreation = descriptor.mappedAtCreation
+    return createBufferImpl(device, deviceImpl, parameters, label)
+}
+
 // Device::createBuffer. https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
 @_expose(Cxx)
 func createBufferImpl(

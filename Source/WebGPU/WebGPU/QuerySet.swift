@@ -179,11 +179,36 @@ public final class QuerySetImpl: DeliverableImpl {
 
 private let maxQueryCount: UInt32 = 4096
 
+// https://gpuweb.github.io/gpuweb/#dictdef-gpuquerysetdescriptor, without its label.
+@_spi(WebKitGPU)
+public struct GPUQuerySetDescriptor {
+    public var type = WebGPU.QueryType.Occlusion
+    public var count: UInt32 = 0
+
+    public init() {
+    }
+
+    init(_ descriptor: WebGPU.QuerySetDescriptor) {
+        type = descriptor.type
+        count = descriptor.count
+    }
+}
+
 @_expose(Cxx)
 func createQuerySetImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: WebGPU.QuerySetDescriptor,
+    _ timestampCounterSet: (any MTLCounterSet)?
+) -> QuerySetImpl {
+    createQuerySetImpl(device, deviceImpl, GPUQuerySetDescriptor(descriptor), label: descriptor.label, timestampCounterSet)
+}
+
+func createQuerySetImpl(
+    _ device: WebGPU.Metal.Device,
+    _ deviceImpl: DeviceImpl,
+    _ descriptor: GPUQuerySetDescriptor,
+    label: WTF.String,
     _ timestampCounterSet: (any MTLCounterSet)?
 ) -> QuerySetImpl {
     let count = descriptor.count
@@ -209,7 +234,7 @@ func createQuerySetImpl(
         )
     case WebGPU.QueryType.Occlusion:
         let buffer = deviceImpl.safeCreateBuffer(UInt(MemoryLayout<UInt64>.size) * UInt(count), .private)
-        buffer?.label = stringNilIfEmpty(descriptor.label)
+        buffer?.label = stringNilIfEmpty(label)
         return QuerySetImpl(
             visibilityBuffer: buffer,
             counterSampleBuffer: nil,

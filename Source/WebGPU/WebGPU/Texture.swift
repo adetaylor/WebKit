@@ -30,6 +30,43 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPUCpp
 
+// https://gpuweb.github.io/gpuweb/#dictdef-gputextureviewdescriptor, without its label. The nil members take their
+// values from the texture.
+@_spi(WebKitGPU)
+public struct GPUTextureViewDescriptor {
+    public var format: WebGPU.TextureFormat?
+    public var dimension: WebGPU.TextureViewDimension?
+    public var baseMipLevel: UInt32 = 0
+    public var mipLevelCount: UInt32?
+    public var baseArrayLayer: UInt32 = 0
+    public var arrayLayerCount: UInt32?
+    public var aspect = WebGPU.TextureAspect.All
+    // The bits of OptionSet<WebGPU::TextureUsage>; none for the usage of the texture.
+    public var usage: UInt8 = 0
+    public var swizzle = WebGPU.TextureComponentSwizzle()
+
+    public init() {
+    }
+
+    var parameters: WebGPU.Metal.TextureViewDescriptorParameters {
+        var parameters = WebGPU.Metal.TextureViewDescriptorParameters()
+        parameters.format = format ?? .Rgba8unorm
+        parameters.hasFormat = format != nil
+        parameters.dimension = dimension ?? ._2d
+        parameters.hasDimension = dimension != nil
+        parameters.baseMipLevel = baseMipLevel
+        parameters.mipLevelCount = mipLevelCount ?? 0
+        parameters.hasMipLevelCount = mipLevelCount != nil
+        parameters.baseArrayLayer = baseArrayLayer
+        parameters.arrayLayerCount = arrayLayerCount ?? 0
+        parameters.hasArrayLayerCount = arrayLayerCount != nil
+        parameters.aspect = aspect
+        parameters.usage = usage
+        parameters.swizzle = swizzle
+        return parameters
+    }
+}
+
 // A WebGPU::TextureViewDescriptor after
 // https://gpuweb.github.io/gpuweb/#abstract-opdef-resolving-gputextureviewdescriptor-defaults.
 struct ResolvedTextureViewDescriptor {
@@ -674,6 +711,12 @@ final class TextureImpl {
             return nil
         }
         return slice != 0 ? state.rightRasterizationMap : state.leftRasterizationMap
+    }
+
+    // createView, for a Swift caller.
+    @_expose(!Cxx)
+    func createView(_ texture: WebGPU.Metal.Texture, _ descriptor: GPUTextureViewDescriptor, label: WTF.String) -> TextureViewImpl {
+        createView(texture, descriptor.parameters, label)
     }
 
     // `texture` is this texture's shell, which every view holds. Returns an invalid view (no descriptor) on failure;
@@ -1353,6 +1396,48 @@ func errorValidatingTextureCreationRaw(
     textureCreationError(device, deviceImpl, descriptor, copyViewFormats(viewFormats)).map { $0 as NSString }
 }
 
+// https://gpuweb.github.io/gpuweb/#dictdef-gputexturedescriptor, without its label.
+@_spi(WebKitGPU)
+public struct GPUTextureDescriptor {
+    // The bits of OptionSet<WebGPU::TextureUsage>.
+    public var usage: UInt8 = 0
+    public var dimension = WebGPU.TextureDimension._2d
+    public var size = WebGPU.Extent3D()
+    public var format = WebGPU.TextureFormat.R8unorm
+    public var mipLevelCount: UInt32 = 1
+    public var sampleCount: UInt32 = 1
+    public var viewFormats: [WebGPU.TextureFormat] = []
+
+    public init() {
+    }
+
+    var parameters: WebGPU.Metal.TextureParameters {
+        var parameters = WebGPU.Metal.TextureParameters()
+        parameters.width = size.width
+        parameters.height = size.height
+        parameters.depthOrArrayLayers = size.depthOrArrayLayers
+        parameters.mipLevelCount = mipLevelCount
+        parameters.sampleCount = sampleCount
+        parameters.dimension = dimension
+        parameters.format = format
+        parameters.usage = usage
+        return parameters
+    }
+}
+
+func createTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ descriptor: GPUTextureDescriptor, label: WTF.String) -> TextureImpl {
+    createTextureImpl(
+        device,
+        deviceImpl,
+        descriptor.parameters,
+        viewFormats: descriptor.viewFormats,
+        label,
+        hasUnifiedMemory(deviceImpl),
+        deviceImpl.supportsNonPrivateDepthStencilTextures(),
+        deviceImpl.supportsMemorylessTextures()
+    )
+}
+
 // Device::createTexture. Returns an invalid texture on failure; setShell records the valid ones in DeviceImpl.
 @_expose(Cxx)
 func createTextureImpl(
@@ -1365,13 +1450,34 @@ func createTextureImpl(
     _ supportsNonPrivateDepthStencilTextures: Bool,
     _ supportsMemorylessTextures: Bool
 ) -> TextureImpl {
+    createTextureImpl(
+        device,
+        deviceImpl,
+        descriptor,
+        viewFormats: copyViewFormats(viewFormatsView),
+        label,
+        hasUnifiedMemory,
+        supportsNonPrivateDepthStencilTextures,
+        supportsMemorylessTextures
+    )
+}
+
+private func createTextureImpl(
+    _ device: WebGPU.Metal.Device,
+    _ deviceImpl: DeviceImpl,
+    _ descriptor: WebGPU.Metal.TextureParameters,
+    viewFormats: [WebGPU.TextureFormat],
+    _ label: WTF.String,
+    _ hasUnifiedMemory: Bool,
+    _ supportsNonPrivateDepthStencilTextures: Bool,
+    _ supportsMemorylessTextures: Bool
+) -> TextureImpl {
     if !deviceImpl.isValid() {
         return makeInvalidTextureImpl(device, deviceImpl)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture
 
-    let viewFormats = copyViewFormats(viewFormatsView)
     if let error = textureCreationError(device, deviceImpl, descriptor, viewFormats) {
         deviceImpl.generateAValidationError(error)
         return makeInvalidTextureImpl(device, deviceImpl)

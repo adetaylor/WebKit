@@ -57,7 +57,7 @@ public final class SamplerImpl: DeliverableImpl {
         _ = tryCacheSamplerState()
     }
 
-    fileprivate convenience init(device: WebGPU.Metal.Device, deviceImpl: DeviceImpl, descriptor: WebGPU.SamplerDescriptor) {
+    fileprivate convenience init(device: WebGPU.Metal.Device, deviceImpl: DeviceImpl, descriptor: GPUSamplerDescriptor, label: WTF.String) {
         let metal = MetalSamplerConfiguration(descriptor)
         assert(
             SamplerCacheKey(metal) == SamplerCacheKey(metal.makeDescriptor()),
@@ -65,12 +65,12 @@ public final class SamplerImpl: DeliverableImpl {
         )
         let configuration = Configuration(
             metal: metal,
-            comparison: Optional(fromCxx: descriptor.compare) != nil,
+            comparison: descriptor.compare != nil,
             filtering: descriptor.minFilter == WebGPU.FilterMode.Linear
                 || descriptor.magFilter == WebGPU.FilterMode.Linear
                 || descriptor.mipmapFilter == WebGPU.MipmapFilterMode.Linear
         )
-        self.init(device: device, deviceImpl: deviceImpl, configuration: configuration, label: descriptor.label)
+        self.init(device: device, deviceImpl: deviceImpl, configuration: configuration, label: label)
     }
 
     deinit {
@@ -121,9 +121,45 @@ public final class SamplerImpl: DeliverableImpl {
     }
 }
 
+// https://gpuweb.github.io/gpuweb/#dictdef-gpusamplerdescriptor, without its label.
+@_spi(WebKitGPU)
+public struct GPUSamplerDescriptor {
+    public var addressModeU = WebGPU.AddressMode.ClampToEdge
+    public var addressModeV = WebGPU.AddressMode.ClampToEdge
+    public var addressModeW = WebGPU.AddressMode.ClampToEdge
+    public var magFilter = WebGPU.FilterMode.Nearest
+    public var minFilter = WebGPU.FilterMode.Nearest
+    public var mipmapFilter = WebGPU.MipmapFilterMode.Nearest
+    public var lodMinClamp: Float = 0
+    public var lodMaxClamp: Float = 32
+    // nil: not a comparison sampler.
+    public var compare: WebGPU.CompareFunction?
+    public var maxAnisotropy: UInt16 = 1
+
+    public init() {
+    }
+
+    init(_ descriptor: WebGPU.SamplerDescriptor) {
+        addressModeU = descriptor.addressModeU
+        addressModeV = descriptor.addressModeV
+        addressModeW = descriptor.addressModeW
+        magFilter = descriptor.magFilter
+        minFilter = descriptor.minFilter
+        mipmapFilter = descriptor.mipmapFilter
+        lodMinClamp = descriptor.lodMinClamp
+        lodMaxClamp = descriptor.lodMaxClamp
+        compare = Optional(fromCxx: descriptor.compare)
+        maxAnisotropy = descriptor.maxAnisotropy
+    }
+}
+
 // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
 @_expose(Cxx)
 func createSamplerImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ descriptor: WebGPU.SamplerDescriptor) -> SamplerImpl {
+    createSamplerImpl(device, deviceImpl, GPUSamplerDescriptor(descriptor), label: descriptor.label)
+}
+
+func createSamplerImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ descriptor: GPUSamplerDescriptor, label: WTF.String) -> SamplerImpl {
     guard deviceImpl.isValid() else {
         return makeInvalidSamplerImpl(device, deviceImpl)
     }
@@ -131,7 +167,7 @@ func createSamplerImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, 
         deviceImpl.generateAValidationError("Validation failure.")
         return makeInvalidSamplerImpl(device, deviceImpl)
     }
-    return SamplerImpl(device: device, deviceImpl: deviceImpl, descriptor: descriptor)
+    return SamplerImpl(device: device, deviceImpl: deviceImpl, descriptor: descriptor, label: label)
 }
 
 @_expose(Cxx)
@@ -140,7 +176,7 @@ func makeInvalidSamplerImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceI
 }
 
 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validating-gpusamplerdescriptor
-private func validateCreateSampler(_ descriptor: WebGPU.SamplerDescriptor) -> Bool {
+private func validateCreateSampler(_ descriptor: GPUSamplerDescriptor) -> Bool {
     if descriptor.lodMinClamp.isNaN || descriptor.lodMinClamp < 0 {
         return false
     }
@@ -192,7 +228,7 @@ private struct MetalSamplerConfiguration: Sendable {
     var compareFunction: MTLCompareFunction { metalEnum(compareFunctionRawValue) }
     var maxAnisotropy: Int { Int(maxAnisotropyValue) }
 
-    init(_ descriptor: WebGPU.SamplerDescriptor) {
+    init(_ descriptor: GPUSamplerDescriptor) {
         sAddressModeRawValue = UInt8(metalAddressMode(descriptor.addressModeU).rawValue)
         tAddressModeRawValue = UInt8(metalAddressMode(descriptor.addressModeV).rawValue)
         rAddressModeRawValue = UInt8(metalAddressMode(descriptor.addressModeW).rawValue)
@@ -202,7 +238,7 @@ private struct MetalSamplerConfiguration: Sendable {
             | UInt8(metalMipFilter(descriptor.mipmapFilter).rawValue) << 2
         lodMinClamp = descriptor.lodMinClamp
         lodMaxClamp = descriptor.lodMaxClamp
-        compareFunctionRawValue = UInt8(metalCompareFunction(Optional(fromCxx: descriptor.compare)).rawValue)
+        compareFunctionRawValue = UInt8(metalCompareFunction(descriptor.compare).rawValue)
         // https://developer.apple.com/documentation/metal/mtlsamplerdescriptor/1516164-maxanisotropy
         // "Values must be between 1 and 16, inclusive."
         maxAnisotropyValue = UInt8(min(descriptor.maxAnisotropy, 16))
