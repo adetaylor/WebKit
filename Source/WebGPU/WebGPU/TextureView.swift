@@ -31,6 +31,18 @@ import WebGPU_Private.WebGPUCpp
 // The state of a GPUTextureView, owned by the C++ shell WebGPU::Metal::TextureView. It reads the parent's state
 // (destroyed, initialized, canvas backing, rate maps, descriptor) from the parent's TextureImpl. Used only on its
 // Instance's API thread.
+// A texture view with its shell, as Swift holds one.
+@_spi(WebKitGPU)
+public final class TextureViewReference {
+    public let impl: TextureViewImpl
+    let shell: WebGPU.Metal.TextureView
+
+    init(_ impl: TextureViewImpl, _ shell: WebGPU.Metal.TextureView) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
 @_expose(Cxx)
 @_spi(WebKitGPU)
 public final class TextureViewImpl: DeliverableImpl {

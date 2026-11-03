@@ -121,6 +121,18 @@ public final class SamplerImpl: DeliverableImpl {
     }
 }
 
+// A sampler with its shell, as Swift holds one.
+@_spi(WebKitGPU)
+public final class SamplerReference {
+    public let impl: SamplerImpl
+    let shell: WebGPU.Metal.Sampler
+
+    init(_ impl: SamplerImpl, _ shell: WebGPU.Metal.Sampler) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
 // https://gpuweb.github.io/gpuweb/#dictdef-gpusamplerdescriptor, without its label.
 @_spi(WebKitGPU)
 public struct GPUSamplerDescriptor {

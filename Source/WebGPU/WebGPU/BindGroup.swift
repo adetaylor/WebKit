@@ -568,6 +568,63 @@ private func makeBindGroupImpl(
     )
 }
 
+// https://gpuweb.github.io/gpuweb/#typedefdef-gpubindingresource
+@_spi(WebKitGPU)
+public enum GPUBindingResource {
+    case sampler(SamplerReference)
+    case texture(TextureReference)
+    case textureView(TextureViewReference)
+    // nil size: the rest of the buffer after the offset.
+    case buffer(BufferReference, offset: UInt64, size: UInt64?)
+    case externalTexture(ExternalTextureReference)
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpubindgroupentry
+@_spi(WebKitGPU)
+public struct GPUBindGroupEntry {
+    public var binding: UInt32
+    public var resource: GPUBindingResource
+
+    public init(binding: UInt32, resource: GPUBindingResource) {
+        self.binding = binding
+        self.resource = resource
+    }
+}
+
+/// Device::createBindGroup, for a Swift caller.
+func createBindGroupImpl(
+    _ device: WebGPU.Metal.Device,
+    _ deviceImpl: DeviceImpl,
+    layout: BindGroupLayoutReference,
+    entries descriptorEntries: [GPUBindGroupEntry]
+) -> BindGroupImpl {
+    var entries: [DescriptorEntry] = []
+    entries.reserveCapacity(descriptorEntries.count)
+    for entry in descriptorEntries {
+        let resource: DescriptorResource =
+            switch entry.resource {
+            case .sampler(let sampler):
+                .sampler(ShellReference(shell: sampler.shell), sampler.impl, sameDevice: sampler.impl.deviceImpl === deviceImpl)
+            case .texture(let texture):
+                .texture(texture.shell, texture.impl, sameDevice: texture.impl.deviceImpl === deviceImpl)
+            case .textureView(let view):
+                .textureView(view.shell, view.impl, sameDevice: view.impl.deviceImpl === deviceImpl)
+            case .buffer(let buffer, let offset, let size):
+                .buffer(
+                    ShellReference(shell: buffer.shell),
+                    buffer.impl,
+                    sameDevice: buffer.impl.deviceImpl === deviceImpl,
+                    offset: offset,
+                    size: size
+                )
+            case .externalTexture(let texture):
+                .externalTexture(texture.shell, texture.impl)
+            }
+        entries.append(DescriptorEntry(binding: entry.binding, resource: resource))
+    }
+    return makeBindGroupImpl(DeviceShell(shell: device), deviceImpl, ShellReference(shell: layout.shell), layout.impl, &entries)
+}
+
 /// Device::createBindGroup calls beginBindGroup, then an append function for each descriptor entry in order, then
 /// finishBindGroup.
 ///

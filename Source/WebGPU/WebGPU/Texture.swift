@@ -1396,6 +1396,18 @@ func errorValidatingTextureCreationRaw(
     textureCreationError(device, deviceImpl, descriptor, copyViewFormats(viewFormats)).map { $0 as NSString }
 }
 
+// A texture with its shell, as Swift holds one.
+@_spi(WebKitGPU)
+public final class TextureReference {
+    let impl: TextureImpl
+    let shell: WebGPU.Metal.Texture
+
+    init(_ impl: TextureImpl, _ shell: WebGPU.Metal.Texture) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
 // https://gpuweb.github.io/gpuweb/#dictdef-gputexturedescriptor, without its label.
 @_spi(WebKitGPU)
 public struct GPUTextureDescriptor {

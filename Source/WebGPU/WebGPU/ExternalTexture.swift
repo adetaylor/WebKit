@@ -27,6 +27,18 @@ import Metal
 import WebGPU_Private.WebGPUCpp
 
 // The state of a GPUExternalTexture. Used only on its Instance's API thread, so not Sendable.
+// An external texture with its shell, as Swift holds one.
+@_spi(WebKitGPU)
+public final class ExternalTextureReference {
+    public let impl: ExternalTextureImpl
+    let shell: WebGPU.Metal.ExternalTexture
+
+    init(_ impl: ExternalTextureImpl, _ shell: WebGPU.Metal.ExternalTexture) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
 @_expose(Cxx)
 @_spi(WebKitGPU)
 public final class ExternalTextureImpl: DeliverableImpl {
