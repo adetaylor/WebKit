@@ -198,27 +198,6 @@ final class WebGPUImplTable {
         entries[identifier.rawValue]?.object as? Object
     }
 
-    // The object with that identifier, which lookUp() finds in the object heap the first time. nil if there's no such
-    // object, or an object of another kind.
-    @_expose(!Cxx)
-    func object<Object: AnyObject>(_ identifier: IPCTypes.WebGPUIdentifier, _ lookUp: () -> Object?) -> Object? {
-        if let entry = entries[identifier.rawValue] {
-            return entry.object as? Object
-        }
-        guard let object = lookUp() else {
-            return nil
-        }
-        addReference(identifier.rawValue, object)
-        return object
-    }
-
-    // The objects that C++ receivers still make, which Swift receivers name.
-    @_expose(!Cxx)
-    func commandBuffer(_ identifier: IPCTypes.WebGPUIdentifier) -> CommandBufferReference? {
-        object(identifier) {
-            host.commandBuffer(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
-    }
 
 }
 

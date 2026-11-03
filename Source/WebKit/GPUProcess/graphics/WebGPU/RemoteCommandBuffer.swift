@@ -30,14 +30,26 @@ import WebKit_Internal
 // Receives the messages of a WebGPU command buffer, on its stream connection's work queue, and calls its CommandBufferImpl.
 @_expose(Cxx)
 final class RemoteCommandBuffer {
+    private let commandBuffer: CommandBufferReference
     private let impl: CommandBufferImpl
-    private let context: WebKit.WebGPUSwiftReceiverContext
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteCommandBufferBacking, context: WebKit.WebGPUSwiftReceiverContext) {
-        self.impl = WebGPUSwift.impl(of: backing.get())
-        self.context = context
+    @_expose(!Cxx)
+    private init(_ commandBuffer: CommandBufferReference, _ link: WebGPURegistryLink) {
+        self.commandBuffer = commandBuffer
+        self.impl = commandBuffer.impl
+        self.link = link
+    }
+
+    // Adds the command buffer, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ commandBuffer: CommandBufferReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteCommandBuffer(commandBuffer, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteCommandBuffer, link.identifier)
+        objects.add(link.identifier, commandBuffer, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -48,11 +60,11 @@ final class RemoteCommandBuffer {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
+        link.sharedPreferencesForWebProcess()
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
     }
 
     func setLabel(label: String?) {

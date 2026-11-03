@@ -168,11 +168,13 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCommandBuffer& com
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCommandEncoder& commandEncoder)
 {
     auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteCommandEncoder> { protect(commandEncoder) } });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCompositorIntegration& querySet)
 {
@@ -476,10 +478,16 @@ RefPtr<::WebGPU::CommandBuffer> ObjectHeap::convertCommandBufferFromBacking(WebG
 
 RefPtr<::WebGPU::CommandEncoder> ObjectHeap::convertCommandEncoderFromBacking(WebGPUIdentifier identifier)
 {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Swift owns command encoders, and no C++ receiver names one.
+    UNUSED_PARAM(identifier);
+    return nullptr;
+#else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteCommandEncoder>>(iterator->value))
         return nullptr;
     return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteCommandEncoder>>(iterator->value)->backing();
+#endif
 }
 
 WeakPtr<WebCore::WebGPUCompositorIntegration> ObjectHeap::convertCompositorIntegrationFromBacking(WebGPUIdentifier identifier)

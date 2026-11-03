@@ -146,7 +146,9 @@ public:
 #else
     void addObject(WebGPUIdentifier, RemoteCommandBuffer&);
 #endif
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, RemoteCommandEncoder&);
+#endif
     void addObject(WebGPUIdentifier, RemoteCompositorIntegration&);
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, ComputePassEncoderObject&&);
@@ -285,7 +287,9 @@ private:
         BindGroupLayoutObject,
         BufferObject,
         CommandBufferObject,
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
         IPC::ScopedActiveMessageReceiveQueue<RemoteCommandEncoder>,
+#endif
         IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>,
         ComputePassEncoderObject,
         ComputePipelineObject,

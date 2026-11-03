@@ -31,16 +31,26 @@ import WebKit_Internal
 // ComputePassEncoderImpl, with the references of the objects they name, from the registry.
 @_expose(Cxx)
 final class RemoteComputePassEncoder {
+    private let computePassEncoder: ComputePassEncoderReference
     private let impl: ComputePassEncoderImpl
-    private let context: WebKit.WebGPUSwiftReceiverContext
-    private let objects: WebGPUImplTable
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteComputePassEncoderBacking, context: WebKit.WebGPUSwiftReceiverContext, objects: WebGPUImplTable) {
-        self.impl = WebGPUSwift.impl(of: backing.get())
-        self.context = context
-        self.objects = objects
+    @_expose(!Cxx)
+    private init(_ computePassEncoder: ComputePassEncoderReference, _ link: WebGPURegistryLink) {
+        self.computePassEncoder = computePassEncoder
+        self.impl = computePassEncoder.impl
+        self.link = link
+    }
+
+    // Adds the compute pass encoder, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ computePassEncoder: ComputePassEncoderReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteComputePassEncoder(computePassEncoder, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteComputePassEncoder, link.identifier)
+        objects.add(link.identifier, computePassEncoder, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -51,15 +61,19 @@ final class RemoteComputePassEncoder {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
+        link.sharedPreferencesForWebProcess()
+    }
+
+    private var objects: WebGPUImplTable? {
+        link.objects
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
     }
 
     func setPipeline(identifier: IPCTypes.WebGPUIdentifier) {
-        let pipeline = objects.object(identifier, as: ComputePipelineReference.self)
+        let pipeline = objects?.object(identifier, as: ComputePipelineReference.self)
         guard let pipeline else {
             return
         }
@@ -71,7 +85,7 @@ final class RemoteComputePassEncoder {
     }
 
     func dispatchIndirect(indirectBuffer: IPCTypes.WebGPUIdentifier, indirectOffset: UInt64) {
-        let buffer = objects.object(indirectBuffer, as: BufferReference.self)
+        let buffer = objects?.object(indirectBuffer, as: BufferReference.self)
         guard let buffer else {
             return
         }
@@ -91,7 +105,7 @@ final class RemoteComputePassEncoder {
             impl.setBindGroup(index, nil, dynamicOffsets: dynamicOffsets)
             return
         }
-        let group = objects.object(identifier, as: BindGroupReference.self)
+        let group = objects?.object(identifier, as: BindGroupReference.self)
         guard let group else {
             return
         }

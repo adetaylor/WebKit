@@ -32,6 +32,7 @@
 #include "SharedPreferencesForWebProcess.h"
 #include "StreamServerConnection.h"
 #include "SwiftCoding.h"
+#include "WebGPUComputePassDescriptor.h"
 #include "WebGPUExtent3D.h"
 #include "WebGPUExternalTextureDescriptor.h"
 #include "WebGPUIdentifier.h"
@@ -39,6 +40,7 @@
 #include "WebGPUImageCopyTexture.h"
 #include "WebGPUImageCopyTextureTagged.h"
 #include "WebGPUImageDataLayout.h"
+#include "WebGPURenderPassDescriptor.h"
 #include <WebCore/SharedMemory.h>
 #include <WebCore/WebGPUCppAPI.h>
 #include <concepts>
@@ -73,6 +75,33 @@ private:
     WebGPUIdentifier m_identifier;
 } SWIFT_SELF_CONTAINED;
 
+// The passes that C++ begins for the Swift command encoder receiver.
+class RemoteComputePassEncoderBacking {
+public:
+    explicit RemoteComputePassEncoderBacking(::WebGPU::ComputePassEncoder& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::ComputePassEncoder& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::ComputePassEncoder> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+class RemoteRenderPassEncoderBacking {
+public:
+    explicit RemoteRenderPassEncoderBacking(::WebGPU::RenderPassEncoder& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::RenderPassEncoder& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::RenderPassEncoder> m_backing;
+} SWIFT_SELF_CONTAINED;
+
 // Whether the Swift registry of WebGPU objects has an object, and whether it's valid, for RemoteGPU::isValid().
 enum class WebGPUSwiftObjectState : uint8_t {
     Absent,
@@ -89,15 +118,15 @@ public:
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
     RefPtr<IPC::StreamServerConnection> streamConnection() const;
 
-    // Makes the C++ receiver of a command encoder that Swift made, which the object heap owns.
-    void addCommandEncoder(::WebGPU::CommandEncoder&, uint64_t identifier) const;
     // Makes the device's XR binding, and its receiver. False if the device makes none.
     bool addXRBinding(::WebGPU::Device&, uint64_t identifier) const;
     // Adds a device to those that RemoteGPU destroys when its work queue stops.
     void trackDevice(::WebGPU::Device&) const;
 
-    // The command buffer with that identifier that a C++ receiver made, if there is one.
-    ::WebGPU::CommandBuffer* WTF_NULLABLE commandBuffer(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
+    // Begin a pass of the command encoder, as RemoteCommandEncoder does, converting the descriptor. std::nullopt with
+    // isInvalid set if the message is invalid.
+    std::optional<RemoteRenderPassEncoderBacking> beginRenderPass(::WebGPU::CommandEncoder&, IPC::CxxDecodedArgument<WebGPU::RenderPassDescriptor>&, bool& isInvalid) const;
+    std::optional<RemoteComputePassEncoderBacking> beginComputePass(::WebGPU::CommandEncoder&, IPC::CxxDecodedArgument<std::optional<WebGPU::ComputePassDescriptor>>&, bool& isInvalid) const;
 
     // A queue's WriteTexture message, as RemoteQueue handles it. Returns false if there's no shared memory, or no more
     // than the message could have carried in the stream.
@@ -295,45 +324,8 @@ private:
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 #endif
 
-// The backings of the WebGPU receivers written in Swift that C++ still makes.
-class RemoteCommandBufferBacking {
-public:
-    explicit RemoteCommandBufferBacking(::WebGPU::CommandBuffer& backing)
-        : m_backing(backing)
-    {
-    }
 
-    ::WebGPU::CommandBuffer& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
 
-private:
-    Ref<::WebGPU::CommandBuffer> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-class RemoteComputePassEncoderBacking {
-public:
-    explicit RemoteComputePassEncoderBacking(::WebGPU::ComputePassEncoder& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::ComputePassEncoder& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::ComputePassEncoder> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-class RemoteRenderPassEncoderBacking {
-public:
-    explicit RemoteRenderPassEncoderBacking(::WebGPU::RenderPassEncoder& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::RenderPassEncoder& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::RenderPassEncoder> m_backing;
-} SWIFT_SELF_CONTAINED;
 
 namespace WebGPU {
 

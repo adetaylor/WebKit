@@ -30,7 +30,6 @@
 
 #include "GPUConnectionToWebProcess.h"
 #include "RemoteBufferProxy.h"
-#include "RemoteCommandEncoder.h"
 #include "RemoteGPU.h"
 #include "RemoteXRBinding.h"
 #include "StreamServerConnection.h"
@@ -90,19 +89,6 @@ RefPtr<IPC::StreamServerConnection> WebGPUSwiftRegistryHost::streamConnection() 
     return gpu ? gpu->m_streamConnection : nullptr;
 }
 
-void WebGPUSwiftRegistryHost::addCommandEncoder(::WebGPU::CommandEncoder& commandEncoder, uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    RefPtr gpu = m_gpu.get();
-    RefPtr streamConnection = this->streamConnection();
-    RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
-    if (!objectHeap || !streamConnection || !connection)
-        return;
-    WebGPUIdentifier commandEncoderIdentifier { identifier };
-    auto remoteCommandEncoder = RemoteCommandEncoder::create(*connection, *gpu, commandEncoder, *objectHeap, streamConnection.releaseNonNull(), commandEncoderIdentifier);
-    objectHeap->addObject(commandEncoderIdentifier, remoteCommandEncoder);
-}
-
 bool WebGPUSwiftRegistryHost::addXRBinding(::WebGPU::Device& device, uint64_t identifier) const
 {
     RefPtr binding = device.createXRBinding();
@@ -124,12 +110,6 @@ void WebGPUSwiftRegistryHost::trackDevice(::WebGPU::Device& device) const
 {
     if (RefPtr objectHeap = m_objectHeap.get())
         objectHeap->trackDevice(device);
-}
-
-::WebGPU::CommandBuffer* WebGPUSwiftRegistryHost::commandBuffer(uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    return objectHeap ? objectHeap->convertCommandBufferFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
 }
 
 bool WebGPUSwiftRegistryHost::writeSharedMemoryToTexture(::WebGPU::Queue& queue, IPC::CxxDecodedArgument<WebGPU::ImageCopyTexture>& destinationArgument, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>& dataArgument, IPC::CxxDecodedArgument<WebGPU::ImageDataLayout>& dataLayoutArgument, IPC::CxxDecodedArgument<WebGPU::Extent3D>& sizeArgument) const
@@ -180,6 +160,59 @@ void WebGPUSwiftRegistryHost::copyExternalImageToTexture(::WebGPU::Queue& queue,
 
     if (RefPtr integration = gpu->backing())
         integration->copyExternalImageToTexture(queue, *convertedSource, *convertedDestination, *copySize);
+}
+
+std::optional<RemoteRenderPassEncoderBacking> WebGPUSwiftRegistryHost::beginRenderPass(::WebGPU::CommandEncoder& commandEncoder, IPC::CxxDecodedArgument<WebGPU::RenderPassDescriptor>& descriptorArgument, bool& isInvalid) const
+{
+    isInvalid = false;
+    auto descriptor = descriptorArgument.take();
+    RefPtr objectHeap = m_objectHeap.get();
+    if (!descriptor || !objectHeap) {
+        isInvalid = !descriptor;
+        return std::nullopt;
+    }
+
+    Vector<std::optional<::WebGPU::RenderPassColorAttachment>> colorAttachments;
+    auto convertedDescriptor = objectHeap->convertFromBacking(*descriptor, colorAttachments);
+    if (!convertedDescriptor) {
+        isInvalid = true;
+        return std::nullopt;
+    }
+
+    RefPtr renderPassEncoder = commandEncoder.beginRenderPass(*convertedDescriptor);
+    if (!renderPassEncoder) {
+        isInvalid = true;
+        return std::nullopt;
+    }
+    return RemoteRenderPassEncoderBacking { *renderPassEncoder };
+}
+
+std::optional<RemoteComputePassEncoderBacking> WebGPUSwiftRegistryHost::beginComputePass(::WebGPU::CommandEncoder& commandEncoder, IPC::CxxDecodedArgument<std::optional<WebGPU::ComputePassDescriptor>>& descriptorArgument, bool& isInvalid) const
+{
+    isInvalid = false;
+    auto descriptor = descriptorArgument.take();
+    RefPtr objectHeap = m_objectHeap.get();
+    if (!descriptor || !objectHeap) {
+        isInvalid = !descriptor;
+        return std::nullopt;
+    }
+
+    std::optional<::WebGPU::ComputePassDescriptor> convertedDescriptor;
+    if (*descriptor) {
+        auto resultDescriptor = objectHeap->convertFromBacking(**descriptor);
+        if (!resultDescriptor) {
+            isInvalid = true;
+            return std::nullopt;
+        }
+        convertedDescriptor = WTF::move(resultDescriptor);
+    }
+
+    RefPtr computePassEncoder = commandEncoder.beginComputePass(convertedDescriptor);
+    if (!computePassEncoder) {
+        isInvalid = true;
+        return std::nullopt;
+    }
+    return RemoteComputePassEncoderBacking { *computePassEncoder };
 }
 
 WebGPUSwiftReceiverRegistration::WebGPUSwiftReceiverRegistration(IPC::StreamServerConnection& streamConnection, IPC::StreamMessageReceiver& receiver, IPC::ReceiverName receiverName, uint64_t identifier)

@@ -80,7 +80,7 @@ final class RemoteQueue {
         var references: [CommandBufferReference] = []
         references.reserveCapacity(commandBuffers.count)
         for identifier in commandBuffers {
-            let commandBuffer = objects.commandBuffer(identifier)
+            let commandBuffer = objects.object(identifier, as: CommandBufferReference.self)
             assert(commandBuffer != nil)
             guard let commandBuffer else {
                 return

@@ -31,16 +31,26 @@ import WebKit_Internal
 // RenderPassEncoderImpl, with the references of the objects they name, from the registry.
 @_expose(Cxx)
 final class RemoteRenderPassEncoder {
+    private let renderPassEncoder: RenderPassEncoderReference
     private let impl: RenderPassEncoderImpl
-    private let context: WebKit.WebGPUSwiftReceiverContext
-    private let objects: WebGPUImplTable
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteRenderPassEncoderBacking, context: WebKit.WebGPUSwiftReceiverContext, objects: WebGPUImplTable) {
-        self.impl = WebGPUSwift.impl(of: backing.get())
-        self.context = context
-        self.objects = objects
+    @_expose(!Cxx)
+    private init(_ renderPassEncoder: RenderPassEncoderReference, _ link: WebGPURegistryLink) {
+        self.renderPassEncoder = renderPassEncoder
+        self.impl = renderPassEncoder.impl
+        self.link = link
+    }
+
+    // Adds the render pass encoder, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ renderPassEncoder: RenderPassEncoderReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteRenderPassEncoder(renderPassEncoder, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteRenderPassEncoder, link.identifier)
+        objects.add(link.identifier, renderPassEncoder, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -51,19 +61,23 @@ final class RemoteRenderPassEncoder {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
+        link.sharedPreferencesForWebProcess()
+    }
+
+    private var objects: WebGPUImplTable? {
+        link.objects
     }
 
     private func buffer(_ identifier: IPCTypes.WebGPUIdentifier) -> BufferReference? {
-        objects.object(identifier, as: BufferReference.self)
+        objects?.object(identifier, as: BufferReference.self)
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
     }
 
     func setPipeline(identifier: IPCTypes.WebGPUIdentifier) {
-        let pipeline = objects.object(identifier, as: RenderPipelineReference.self)
+        let pipeline = objects?.object(identifier, as: RenderPipelineReference.self)
         guard let pipeline else {
             return
         }
@@ -135,7 +149,7 @@ final class RemoteRenderPassEncoder {
             impl.setBindGroup(index, nil, dynamicOffsets: dynamicOffsets)
             return
         }
-        let group = objects.object(identifier, as: BindGroupReference.self)
+        let group = objects?.object(identifier, as: BindGroupReference.self)
         guard let group else {
             return
         }
@@ -183,7 +197,7 @@ final class RemoteRenderPassEncoder {
         var references: [RenderBundleReference] = []
         references.reserveCapacity(bundles.count)
         for identifier in bundles {
-            let bundle = objects.object(identifier, as: RenderBundleReference.self)
+            let bundle = objects?.object(identifier, as: RenderBundleReference.self)
             guard let bundle else {
                 return
             }

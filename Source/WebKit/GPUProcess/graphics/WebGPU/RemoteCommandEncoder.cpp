@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteCommandEncoder.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
 #include "Logging.h"
@@ -40,12 +40,6 @@
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/TZoneMallocInlines.h>
 
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-#include "RemoteCommandBufferMessages.h"
-#include "RemoteComputePassEncoderMessages.h"
-#include "RemoteRenderPassEncoderMessages.h"
-#include "WebKit-Swift.h"
-#endif
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_streamConnection)
 
@@ -85,14 +79,8 @@ void RemoteCommandEncoder::beginRenderPass(const WebGPU::RenderPassDescriptor& d
 
     auto renderPassEncoder = protect(m_backing)->beginRenderPass(*convertedDescriptor);
     MESSAGE_CHECK(renderPassEncoder);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteRenderPassEncoder = RemoteRenderPassEncoder::init(RemoteRenderPassEncoderBacking { *renderPassEncoder }, context, objectHeap->swiftImplTable());
-    objectHeap->addObject(identifier, WebGPU::RenderPassEncoderObject { *renderPassEncoder, WTF::move(remoteRenderPassEncoder), context, protect(m_streamConnection), Messages::RemoteRenderPassEncoder::messageReceiverName(), identifier });
-#else
     auto remoteRenderPassEncoder = RemoteRenderPassEncoder::create(*renderPassEncoder, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteRenderPassEncoder);
-#endif
 }
 
 void RemoteCommandEncoder::beginComputePass(const std::optional<WebGPU::ComputePassDescriptor>& descriptor, WebGPUIdentifier identifier)
@@ -107,14 +95,8 @@ void RemoteCommandEncoder::beginComputePass(const std::optional<WebGPU::ComputeP
 
     auto computePassEncoder = protect(m_backing)->beginComputePass(convertedDescriptor);
     MESSAGE_CHECK(computePassEncoder);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteComputePassEncoder = RemoteComputePassEncoder::init(RemoteComputePassEncoderBacking { *computePassEncoder }, context, objectHeap->swiftImplTable());
-    objectHeap->addObject(identifier, WebGPU::ComputePassEncoderObject { *computePassEncoder, WTF::move(remoteComputePassEncoder), context, protect(m_streamConnection), Messages::RemoteComputePassEncoder::messageReceiverName(), identifier });
-#else
     auto computeRenderPassEncoder = RemoteComputePassEncoder::create(*computePassEncoder, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, computeRenderPassEncoder);
-#endif
 }
 
 void RemoteCommandEncoder::copyBufferToBuffer(
@@ -241,14 +223,8 @@ void RemoteCommandEncoder::finish(const WebGPU::CommandBufferDescriptor& descrip
     Ref objectHeap = m_objectHeap.get();
     auto commandBuffer = protect(m_backing)->finish(descriptor);
     MESSAGE_CHECK(commandBuffer);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    WebGPUSwiftReceiverContext context { objectHeap, protect(m_gpu), identifier };
-    auto remoteCommandBuffer = RemoteCommandBuffer::init(RemoteCommandBufferBacking { *commandBuffer }, context);
-    objectHeap->addObject(identifier, WebGPU::CommandBufferObject { *commandBuffer, WTF::move(remoteCommandBuffer), context, protect(m_streamConnection), Messages::RemoteCommandBuffer::messageReceiverName(), identifier });
-#else
     auto remoteCommandBuffer = RemoteCommandBuffer::create(*commandBuffer, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteCommandBuffer);
-#endif
 }
 
 void RemoteCommandEncoder::setLabel(String&& label)
@@ -260,4 +236,4 @@ void RemoteCommandEncoder::setLabel(String&& label)
 
 #undef MESSAGE_CHECK
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

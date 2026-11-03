@@ -28,8 +28,8 @@
 import WebKit_Internal
 
 // Receives the messages of a WebGPU device, on its stream connection's work queue, and calls its DeviceImpl. The
-// objects it makes go in the registry, with their receivers, except for the command encoders and XR bindings, whose
-// receivers are still C++ and go in the object heap.
+// objects it makes go in the registry, with their receivers, except for the XR bindings, whose receivers are C++ and
+// go in the object heap.
 @_expose(Cxx)
 final class RemoteDevice {
     private let device: DeviceReference
@@ -336,10 +336,10 @@ final class RemoteDevice {
         descriptor: IPCTypes.CommandEncoderDescriptor?,
         identifier: IPCTypes.WebGPUIdentifier
     ) {
-        guard let objects = link.objects else {
+        guard let encoderLink = link.child(identifier) else {
             return
         }
-        objects.host.addCommandEncoder(device.createCommandEncoder(label: descriptor?.label).apiObject, identifier.rawValue)
+        RemoteCommandEncoder.add(device.createCommandEncoder(label: descriptor?.label), encoderLink)
     }
 
     func createRenderBundleEncoder(
