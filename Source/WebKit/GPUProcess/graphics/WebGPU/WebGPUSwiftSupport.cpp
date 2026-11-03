@@ -38,6 +38,10 @@
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
 #include "WebKit-Swift.h"
+#include <WebCore/ImageBuffer.h>
+#include <WebCore/WebGPU.h>
+#include <WebCore/WebGPUImageCopyExternalImage.h>
+#include <WebCore/WebGPUImageCopyTextureTagged.h>
 #include <wtf/CheckedArithmetic.h>
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
@@ -45,7 +49,6 @@
 #include "SharedVideoFrame.h"
 #include <WebCore/MediaPlayer.h>
 #include <WebCore/VideoFrame.h>
-#include <WebCore/WebGPU.h>
 #endif
 
 namespace WebKit {
@@ -150,6 +153,12 @@ void WebGPUSwiftRegistryHost::trackDevice(::WebGPU::Device& device) const
         objectHeap->trackDevice(device);
 }
 
+::WebGPU::CommandBuffer* WebGPUSwiftRegistryHost::commandBuffer(uint64_t identifier) const
+{
+    RefPtr objectHeap = m_objectHeap.get();
+    return objectHeap ? objectHeap->convertCommandBufferFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
+}
+
 ::WebGPU::Texture* WebGPUSwiftRegistryHost::texture(uint64_t identifier) const
 {
     RefPtr objectHeap = m_objectHeap.get();
@@ -160,6 +169,56 @@ void WebGPUSwiftRegistryHost::trackDevice(::WebGPU::Device& device) const
 {
     RefPtr objectHeap = m_objectHeap.get();
     return objectHeap ? objectHeap->convertTextureViewFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
+}
+
+bool WebGPUSwiftRegistryHost::writeSharedMemoryToTexture(::WebGPU::Queue& queue, IPC::CxxDecodedArgument<WebGPU::ImageCopyTexture>& destinationArgument, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>& dataArgument, IPC::CxxDecodedArgument<WebGPU::ImageDataLayout>& dataLayoutArgument, IPC::CxxDecodedArgument<WebGPU::Extent3D>& sizeArgument) const
+{
+    auto destination = destinationArgument.take();
+    auto dataHandle = dataArgument.take();
+    auto dataLayout = dataLayoutArgument.take();
+    auto size = sizeArgument.take();
+    RefPtr objectHeap = m_objectHeap.get();
+    if (!destination || !dataHandle || !dataLayout || !size || !objectHeap)
+        return false;
+
+    auto data = *dataHandle ? WebCore::SharedMemory::map(WTF::move(**dataHandle), WebCore::SharedMemory::Protection::ReadOnly) : nullptr;
+    auto convertedDestination = objectHeap->convertFromBacking(*destination);
+    ASSERT(convertedDestination);
+    if (!convertedDestination || !data || data->size() <= WebGPU::maxCrossProcessResourceCopySize)
+        return false;
+
+    queue.writeTexture(*convertedDestination, ::WebGPU::ByteOwner::create(data.releaseNonNull()), *dataLayout, *size);
+    return true;
+}
+
+void WebGPUSwiftRegistryHost::copyExternalImageToTexture(::WebGPU::Queue& queue, IPC::CxxDecodedArgument<WebGPU::ImageCopyExternalImage>& sourceArgument, IPC::CxxDecodedArgument<WebGPU::ImageCopyTextureTagged>& destinationArgument, IPC::CxxDecodedArgument<WebGPU::Extent3D>& copySizeArgument) const
+{
+    auto source = sourceArgument.take();
+    auto destination = destinationArgument.take();
+    auto copySize = copySizeArgument.take();
+    RefPtr objectHeap = m_objectHeap.get();
+    RefPtr gpu = m_gpu.get();
+    if (!source || !destination || !copySize || !objectHeap || !gpu)
+        return;
+
+    auto convertedSource = objectHeap->convertFromBacking(*source);
+    ASSERT(convertedSource);
+    auto convertedDestination = objectHeap->convertFromBacking(*destination);
+    ASSERT(convertedDestination);
+    if (!convertedSource || !convertedDestination)
+        return;
+
+    // ConvertFromBackingContext cannot resolve the source, because only RemoteGPU can reach the
+    // RemoteRenderingBackend which owns the ImageBuffer.
+    if (source->imageBufferIdentifier) {
+        RefPtr sourceImageBuffer = gpu->imageBuffer(*source->imageBufferIdentifier);
+        if (!sourceImageBuffer)
+            return;
+        convertedSource->imageBuffer = WTF::move(sourceImageBuffer);
+    }
+
+    if (RefPtr integration = gpu->backing())
+        integration->copyExternalImageToTexture(queue, *convertedSource, *convertedDestination, *copySize);
 }
 
 WebGPUSwiftReceiverRegistration::WebGPUSwiftReceiverRegistration(IPC::StreamServerConnection& streamConnection, IPC::StreamMessageReceiver& receiver, IPC::ReceiverName receiverName, uint64_t identifier)
@@ -198,6 +257,18 @@ bool copySharedMemoryToBuffer(::WebGPU::Buffer& buffer, IPC::CxxDecodedArgument<
 #else
     buffer.copyFrom(data, offset);
 #endif
+    return true;
+}
+
+bool writeSharedMemoryToBuffer(::WebGPU::Queue& queue, ::WebGPU::Buffer& buffer, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>& argument, uint64_t bufferOffset)
+{
+    auto dataHandle = argument.take();
+    auto data = dataHandle && *dataHandle ? WebCore::SharedMemory::map(WTF::move(**dataHandle), WebCore::SharedMemory::Protection::ReadOnly) : nullptr;
+    if (!data || data->size() <= WebGPU::maxCrossProcessResourceCopySize)
+        return false;
+
+    // A large write reads the mapping in place, and keeps it alive until the GPU has.
+    queue.writeBuffer(buffer, bufferOffset, ::WebGPU::ByteOwner::create(data.releaseNonNull()));
     return true;
 }
 
@@ -292,6 +363,58 @@ void WebGPUSwiftVideoFrames::updateExternalTexture(::WebGPU::ExternalTexture& ex
         pixelBuffer = videoFrame ? videoFrame->pixelBuffer() : nullptr;
     });
     externalTexture.updateExternalTexture(pixelBuffer.get());
+}
+
+void WebGPUSwiftVideoFrames::copyExternalImageFromVideoFrameToTexture(::WebGPU::Queue& queue, IPC::CxxDecodedArgument<WebGPU::ImageCopyExternalImageVideoSource>& sourceArgument, IPC::CxxDecodedArgument<WebGPU::ImageCopyTextureTagged>& destinationArgument, IPC::CxxDecodedArgument<WebGPU::Extent3D>& copySizeArgument)
+{
+    auto source = sourceArgument.take();
+    auto destination = destinationArgument.take();
+    auto copySize = copySizeArgument.take();
+    RefPtr objectHeap = m_host.m_objectHeap.get();
+    RefPtr gpu = m_host.m_gpu.get();
+    if (!source || !destination || !copySize || !objectHeap || !gpu)
+        return;
+
+    // Resolved the same way RemoteDevice resolves an external texture's frame: a shared frame is read
+    // out of the shared video frame memory, and a media player identifier is asked for the frame it is
+    // showing right now.
+    RetainPtr<CVPixelBufferRef> pixelBuffer;
+    // A frame's pixels are stored as decoded, so the transform that presents them travels separately.
+    // A media player has already applied its asset's transform to the buffer it hands over, but a
+    // WebCodecs frame carries one of its own.
+    auto rotation = WebCore::VideoFrameRotation::None;
+    bool isMirrored = false;
+    auto takeFrame = [&](WebCore::VideoFrame& videoFrame) {
+        pixelBuffer = videoFrame.pixelBuffer();
+        rotation = videoFrame.rotation();
+        isMirrored = videoFrame.isMirrored();
+    };
+    if (source->sharedFrame) {
+        if (auto videoFrame = m_sharedVideoFrameReader->read(WTF::move(*source->sharedFrame)))
+            takeFrame(*videoFrame);
+    } else if (source->mediaIdentifier) {
+        if (RefPtr connection = gpu->gpuConnectionToWebProcess()) {
+            connection->performWithMediaPlayerOnMainThread(*source->mediaIdentifier, [&](auto& player) mutable {
+                if (auto videoFrame = player.videoFrameForCurrentTime())
+                    takeFrame(*videoFrame);
+            });
+        }
+    }
+
+    // A frame which could not be resolved leaves the destination texture alone, exactly as a video
+    // with nothing decoded yet did on the readback path.
+    if (!pixelBuffer)
+        return;
+
+    auto convertedSource = objectHeap->convertFromBacking(*source, WTF::move(pixelBuffer), rotation, isMirrored);
+    ASSERT(convertedSource);
+    auto convertedDestination = objectHeap->convertFromBacking(*destination);
+    ASSERT(convertedDestination);
+    if (!convertedSource || !convertedDestination)
+        return;
+
+    if (RefPtr integration = gpu->backing())
+        integration->copyExternalImageToTexture(queue, *convertedSource, *convertedDestination, *copySize);
 }
 #endif // PLATFORM(COCOA) && ENABLE(VIDEO)
 

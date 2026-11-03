@@ -177,7 +177,9 @@ public:
 #else
     void addObject(WebGPUIdentifier, RemoteQuerySet&);
 #endif
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, RemoteQueue&);
+#endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, RenderBundleEncoderObject&&);
 #else
@@ -287,7 +289,9 @@ private:
         PipelineLayoutObject,
         IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>,
         QuerySetObject,
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
         IPC::ScopedActiveMessageReceiveQueue<RemoteQueue>,
+#endif
         RenderBundleEncoderObject,
         RenderBundleObject,
         RenderPassEncoderObject,

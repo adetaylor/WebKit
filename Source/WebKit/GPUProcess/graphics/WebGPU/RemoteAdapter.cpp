@@ -89,9 +89,7 @@ void RemoteAdapter::requestDevice(const WebGPU::DeviceDescriptor& descriptor, We
 
         auto device = devicePtr.releaseNonNull();
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        objectHeap->swiftImplTable().addDevice(RemoteDeviceBacking { device }, identifier.toUInt64());
-        auto remoteQueue = RemoteQueue::create(*gpuConnectionToWebProcess, device->queue(), objectHeap, WTF::move(streamConnection), gpu, queueIdentifier);
-        objectHeap->addObject(queueIdentifier, remoteQueue);
+        objectHeap->swiftImplTable().addDevice(RemoteDeviceBacking { device }, identifier.toUInt64(), queueIdentifier.toUInt64());
 #else
         auto remoteDevice = RemoteDevice::create(*gpuConnectionToWebProcess, gpu, device, objectHeap, WTF::move(streamConnection), identifier, queueIdentifier);
         objectHeap->addObject(identifier, remoteDevice);

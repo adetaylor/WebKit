@@ -546,15 +546,6 @@ extension IPCTypes.Error {
     }
 }
 
-extension WebGPU.Extent3D {
-    fileprivate init(_ extent: IPCTypes.Extent3D) {
-        self.init()
-        width = extent.width
-        height = extent.height
-        depthOrArrayLayers = extent.depthOrArrayLayers
-    }
-}
-
 extension WebGPU.BufferBindingLayout {
     fileprivate init(_ layout: IPCTypes.BufferBindingLayout) {
         self.init()

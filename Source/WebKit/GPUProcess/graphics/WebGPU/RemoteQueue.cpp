@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteQueue.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "Logging.h"
 #include "RemoteBufferProxy.h"
@@ -273,4 +273,4 @@ void RemoteQueue::setLabel(String&& label)
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

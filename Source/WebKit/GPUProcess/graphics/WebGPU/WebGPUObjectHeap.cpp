@@ -265,11 +265,13 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteQuerySet& querySet
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteQueue& queue)
 {
     auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteQueue> { protect(queue) } });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RenderBundleEncoderObject&& renderBundleEncoder)
@@ -553,10 +555,16 @@ RefPtr<::WebGPU::QuerySet> ObjectHeap::convertQuerySetFromBacking(WebGPUIdentifi
 
 RefPtr<::WebGPU::Queue> ObjectHeap::convertQueueFromBacking(WebGPUIdentifier identifier)
 {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Swift owns queues, and no C++ receiver names one.
+    UNUSED_PARAM(identifier);
+    return nullptr;
+#else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteQueue>>(iterator->value))
         return nullptr;
     return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteQueue>>(iterator->value)->backing();
+#endif
 }
 
 RefPtr<::WebGPU::RenderBundleEncoder> ObjectHeap::convertRenderBundleEncoderFromBacking(WebGPUIdentifier identifier)

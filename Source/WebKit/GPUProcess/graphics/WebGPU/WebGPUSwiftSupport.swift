@@ -44,6 +44,11 @@ extension IPCTypes.CxxName {
     typealias WebKit_WebGPU_TextureViewDescriptor = IPCTypes.TextureViewDescriptor
 }
 
+extension IPCTypes {
+    // The name a queue's messages give the type, as WebKit::WebGPU::ImageDataLayout.
+    typealias ImageDataLayout = IPCTypes.TexelCopyBufferLayout
+}
+
 extension WebGPU.IndexFormat {
     init(_ format: IPCTypes.IndexFormat) {
         switch format {
@@ -108,13 +113,14 @@ final class WebGPUImplTable {
         entries.removeAll()
     }
 
-    // Makes the receiver of a device that the adapter made.
+    // Makes the receivers of a device that the adapter made, and of its queue.
     @used
-    func addDevice(_ backing: WebKit.RemoteDeviceBacking, _ identifier: UInt64) {
+    func addDevice(_ backing: WebKit.RemoteDeviceBacking, _ identifier: UInt64, _ queueIdentifier: UInt64) {
         let device = WebGPUSwift.reference(of: backing.get())
         host.trackDevice(backing.get())
         let receiver = RemoteDevice(device, link: WebGPURegistryLink(self, identifier))
         add(identifier, device, receiver: receiver, registration: WebKit.registerWebGPUSwiftReceiver(host, receiver.getMessageReceiver(), .RemoteDevice, identifier))
+        RemoteQueue.add(device.queue, WebGPURegistryLink(self, queueIdentifier))
     }
 
     // The objects that Swift owns, for the C++ receivers that name them.
@@ -185,6 +191,13 @@ final class WebGPUImplTable {
 
     // The objects that C++ receivers still make, which Swift receivers name.
     @_expose(!Cxx)
+    func commandBuffer(_ identifier: IPCTypes.WebGPUIdentifier) -> CommandBufferReference? {
+        object(identifier) {
+            host.commandBuffer(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
+        }
+    }
+
+    @_expose(!Cxx)
     func texture(_ identifier: IPCTypes.WebGPUIdentifier) -> TextureReference? {
         object(identifier) {
             host.texture(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
@@ -196,6 +209,47 @@ final class WebGPUImplTable {
         object(identifier) {
             host.textureView(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
         }
+    }
+}
+
+extension WebGPU.Extent3D {
+    init(_ extent: IPCTypes.Extent3D) {
+        self.init()
+        width = extent.width
+        height = extent.height
+        depthOrArrayLayers = extent.depthOrArrayLayers
+    }
+}
+
+extension WebGPU.Origin3D {
+    init(_ origin: IPCTypes.Origin3D) {
+        self.init()
+        x = origin.x
+        y = origin.y
+        z = origin.z
+    }
+}
+
+extension WebGPU.TexelCopyBufferLayout {
+    init(_ layout: IPCTypes.TexelCopyBufferLayout) {
+        self.init()
+        offset = layout.offset
+        if let bytesPerRow = layout.bytesPerRow {
+            self.bytesPerRow = .init(bytesPerRow)
+        }
+        if let rowsPerImage = layout.rowsPerImage {
+            self.rowsPerImage = .init(rowsPerImage)
+        }
+    }
+}
+
+extension TextureCopyLocation {
+    // ConvertFromBackingContext's conversion of the location, apart from the texture.
+    init(_ location: IPCTypes.ImageCopyTexture) {
+        self.init()
+        mipLevel = location.mipLevel
+        origin = location.origin.map { WebGPU.Origin3D($0) } ?? WebGPU.Origin3D()
+        aspect = sameNumbering(location.aspect)
     }
 }
 
