@@ -28,6 +28,7 @@
 #include "Decoder.h" // NOLINT
 #include "HandleMessage.h" // NOLINT
 #include "TestWithStreamSwiftTypesMessages.h" // NOLINT
+#include <WebCore/SharedMemory.h> // NOLINT
 #include <optional> // NOLINT
 #include <wtf/Vector.h> // NOLINT
 #include <wtf/text/WTFString.h> // NOLINT
@@ -62,6 +63,10 @@ void TestWithStreamSwiftTypesMessageForwarder::didReceiveStreamMessage(IPC::Stre
     }
     if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendEmptyAsync::name()) {
         IPC::handleSwiftMessageAsync<Messages::TestWithStreamSwiftTypes::SendEmptyAsync>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendEmptyAsync);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendCxxDecoded::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithStreamSwiftTypes::SendCxxDecoded>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendCxxDecoded);
         return;
     }
     if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendStringSync::name()) {
@@ -150,6 +155,14 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendEmptyAsync::ReplyArguments>(globalObject, decoder);
 }
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendCxxDecoded>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendCxxDecoded::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendCxxDecoded>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendCxxDecoded::ReplyArguments>(globalObject, decoder);
+}
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendStringAsyncReply::Arguments>(globalObject, decoder);
@@ -161,6 +174,10 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendEmptyAsyncReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendEmptyAsyncReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendCxxDecodedReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendCxxDecodedReply::Arguments>(globalObject, decoder);
 }
 
 }

@@ -38,6 +38,9 @@ SYNCHRONOUS_ATTRIBUTE = 'Synchronous'
 STREAM_ATTRIBUTE = "Stream"
 SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
 CXX_TYPES_ATTRIBUTE = 'CxxTypes'
+# On a parameter of a message that takes Swift types, for a type that has no Swift form yet: its C++ ArgumentCoder decodes
+# it into an IPC::CxxDecodedArgument, which the Swift handler passes on to C++.
+CXX_DECODED_ATTRIBUTE = 'CxxDecoded'
 SWIFT_SYNC_HANDLER_ATTRIBUTE = 'SwiftSyncHandler'
 NOT_USING_IPC_CONNECTION_ATTRIBUTE = 'NotUsingIPCConnection'
 WANTS_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsDispatchMessage'
@@ -46,6 +49,8 @@ WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsAsyncDispatchMessage'
 # Names the generated Swift dispatch of a message that takes Swift types gives its own locals and
 # stored properties, so a parameter cannot have them.
 _SWIFT_TYPES_RESERVED_PARAMETER_NAMES = frozenset(['connection', 'decoder', 'replyEncoder', 'reply', 'target'])
+# Types that refer to storage they don't own, which a 'CxxDecoded' holder can't take.
+_NON_OWNING_TYPE_PATTERN = re.compile(r'\b(?:span|ArrayReferenceTuple)\s*<|\b(?:StringView|string_view|CStringView)\b')
 
 class MessageReceiver(object):
     def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False):
@@ -105,6 +110,9 @@ class MessageReceiver(object):
         if message.has_attribute(CXX_TYPES_ATTRIBUTE) and not self.swift_types:
             raise Exception("ERROR: Message %s has 'CxxTypes' but receiver %s does not have 'SwiftTypes'" % (description, self.name))
         if not self.takes_swift_types(message):
+            for parameter in message.parameters:
+                if parameter.has_attribute(CXX_DECODED_ATTRIBUTE):
+                    raise Exception("ERROR: Message %s has '%s' on parameter '%s', which is only for messages that take Swift types" % (description, CXX_DECODED_ATTRIBUTE, parameter.name))
             return
 
         def unsupported(what):
@@ -125,6 +133,10 @@ class MessageReceiver(object):
                 raise Exception("ERROR: Message %s takes Swift types, so cannot have a parameter named '%s', which the generated Swift uses itself" % (description, parameter.name))
         parameters = [('parameter', parameter) for parameter in message.parameters] + [('reply parameter', parameter) for parameter in message.reply_parameters or []]
         for kind, parameter in parameters:
+            if kind == 'parameter' and parameter.attributes == {CXX_DECODED_ATTRIBUTE}:
+                if _NON_OWNING_TYPE_PATTERN.search(parameter.type):
+                    raise Exception("ERROR: Message %s has '%s' on parameter '%s', which is only for types that own their storage, not '%s'" % (description, CXX_DECODED_ATTRIBUTE, parameter.name, parameter.type))
+                continue
             if parameter.attributes:
                 raise unsupported("with attributes on %s '%s': %s" % (kind, parameter.name, ', '.join(sorted(parameter.attributes))))
             if unwrap_untrusted(parameter.type):
