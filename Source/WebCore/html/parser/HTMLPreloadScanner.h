@@ -140,21 +140,15 @@ private:
 
     CSSPreloadScanner m_cssScanner;
     const URL m_documentURL;
-#if !USE_SWIFT_HTML_PRELOAD_SCANNER
     const float m_deviceScaleFactor { 1 };
-#endif
 
     URL m_predictedBaseElementURL;
-#if !USE_SWIFT_HTML_PRELOAD_SCANNER
     bool m_inStyle { false };
-#endif
     
     Vector<PreloadScannerPictureState> m_pictureSourceState;
 
-#if !USE_SWIFT_HTML_PRELOAD_SCANNER
     unsigned m_templateCount { 0 };
     unsigned m_foreignContentCount { 0 };
-#endif
 };
 
 #if USE_SWIFT_HTML_PRELOAD_SCANNER

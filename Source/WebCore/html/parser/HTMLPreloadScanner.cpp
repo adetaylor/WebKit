@@ -494,13 +494,8 @@ private:
 
 TokenPreloadScanner::TokenPreloadScanner(const URL& documentURL, float deviceScaleFactor)
     : m_documentURL(documentURL)
-#if !USE_SWIFT_HTML_PRELOAD_SCANNER
     , m_deviceScaleFactor(deviceScaleFactor)
-#endif
 {
-#if USE_SWIFT_HTML_PRELOAD_SCANNER
-    UNUSED_PARAM(deviceScaleFactor);
-#endif
 }
 
 #if USE_SWIFT_HTML_PRELOAD_SCANNER
