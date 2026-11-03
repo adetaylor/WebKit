@@ -38,6 +38,9 @@ SYNCHRONOUS_ATTRIBUTE = 'Synchronous'
 STREAM_ATTRIBUTE = "Stream"
 SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
 CXX_TYPES_ATTRIBUTE = 'CxxTypes'
+# On a parameter of a message that takes Swift types, for a type that has no Swift form yet: its C++ ArgumentCoder decodes
+# it into an IPC::CxxDecodedArgument, which the Swift handler passes on to C++.
+CXX_DECODED_ATTRIBUTE = 'CxxDecoded'
 SWIFT_SYNC_HANDLER_ATTRIBUTE = 'SwiftSyncHandler'
 NOT_USING_IPC_CONNECTION_ATTRIBUTE = 'NotUsingIPCConnection'
 WANTS_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsDispatchMessage'
@@ -105,6 +108,9 @@ class MessageReceiver(object):
         if message.has_attribute(CXX_TYPES_ATTRIBUTE) and not self.swift_types:
             raise Exception("ERROR: Message %s has 'CxxTypes' but receiver %s does not have 'SwiftTypes'" % (description, self.name))
         if not self.takes_swift_types(message):
+            for parameter in message.parameters:
+                if parameter.has_attribute(CXX_DECODED_ATTRIBUTE):
+                    raise Exception("ERROR: Message %s has '%s' on parameter '%s', which is only for messages that take Swift types" % (description, CXX_DECODED_ATTRIBUTE, parameter.name))
             return
 
         def unsupported(what):
@@ -125,6 +131,8 @@ class MessageReceiver(object):
                 raise Exception("ERROR: Message %s takes Swift types, so cannot have a parameter named '%s', which the generated Swift uses itself" % (description, parameter.name))
         parameters = [('parameter', parameter) for parameter in message.parameters] + [('reply parameter', parameter) for parameter in message.reply_parameters or []]
         for kind, parameter in parameters:
+            if kind == 'parameter' and parameter.attributes == {CXX_DECODED_ATTRIBUTE}:
+                continue
             if parameter.attributes:
                 raise unsupported("with attributes on %s '%s': %s" % (kind, parameter.name, ', '.join(sorted(parameter.attributes))))
             if unwrap_untrusted(parameter.type):

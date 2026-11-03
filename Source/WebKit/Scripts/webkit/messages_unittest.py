@@ -233,6 +233,20 @@ messages -> TestReceiver Stream {
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftSyncHandler', which is for messages a Swift receiver handles"):
             parse_swift_receiver(['ExceptionForEnabledBy'], '    Message(uint32_t value) SwiftSyncHandler')
 
+    def test_cxx_decoded_arguments(self):
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
+    Message(uint32_t value, [CxxDecoded] WebKit::NoSwiftForm argument)
+""")
+        self.assertIn('using MessageArgument = IPC::CxxDecodedArgument<WebKit::NoSwiftForm>;', messages.generate_messages_header(receiver))
+        self.assertIn('guard let decodedArgument = CxxDecodedArguments.TestReceiver.MessageArgument.decode(&decoder) else {', messages.generate_swift_message_handler(receiver))
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported with attributes on reply parameter 'reply': CxxDecoded"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message(uint32_t value) -> ([CxxDecoded] WebKit::NoSwiftForm reply)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'CxxDecoded' on parameter 'argument', which is only for messages that take Swift types"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message([CxxDecoded] WebKit::NoSwiftForm argument) CxxTypes')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'CxxDecoded' on parameter 'argument', which is only for messages that take Swift types"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    Message([CxxDecoded] WebKit::NoSwiftForm argument)')
+
     def test_cxx_typed_replies(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
     PrimitiveReply(Ref<WebKit::FrameState> frameState) -> (uint8_t reply) CxxTypes
