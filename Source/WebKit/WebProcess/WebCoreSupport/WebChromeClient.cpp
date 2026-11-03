@@ -141,10 +141,6 @@
 #include <wtf/NativePromise.h>
 #include <wtf/TZoneMallocInlines.h>
 
-#if HAVE(WEBGPU_IMPLEMENTATION)
-#import <WebCore/WebGPUCreateImpl.h>
-#endif
-
 #if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
 #import <WebCore/BarcodeDetectorImplementation.h>
 #import <WebCore/FaceDetectorImplementation.h>
@@ -1329,19 +1325,13 @@ RefPtr<GraphicsContextGL> WebChromeClient::createGraphicsContextGL(const Graphic
 }
 #endif
 
-#if HAVE(WEBGPU_IMPLEMENTATION)
+#if HAVE(WEBGPU_IMPLEMENTATION) && ENABLE(GPU_PROCESS)
 RefPtr<WebCore::WebGPUIntegration> WebChromeClient::createGPUForWebGPU() const
 {
-#if ENABLE(GPU_PROCESS)
     RefPtr page = m_page.get();
     if (!page)
         return nullptr;
     return RemoteGPUProxy::create(WebGPU::DowncastConvertToBackingContext::create(), ModelDowncastConvertToBackingContext::create(), page.releaseNonNull());
-#else
-    return WebCore::createWebGPUIntegration([](Function<void()>&& workItem) {
-        callOnMainRunLoop(WTF::move(workItem));
-    }, nullptr);
-#endif
 }
 #endif
 
