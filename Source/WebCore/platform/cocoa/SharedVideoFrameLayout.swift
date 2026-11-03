@@ -33,8 +33,10 @@ import WebCore_Internal.SharedVideoFrameSwiftBridge
 // The encoded layout: its eight fields as native-endian 32-bit integers, in declaration order.
 private let encodedLayoutByteCount = 32
 
+// The functions C++ calls take and return CoreVideo's CVBuffer: WebCore's own CVPixelBufferRef declarations make
+// CVPixelBuffer resolve differently in the generated header than in the compiled Swift.
 @_expose(Cxx)
-func sharedVideoFrameLayout(_ pixelBuffer: CVPixelBuffer?) -> WebCore.SharedVideoFrameLayout {
+func sharedVideoFrameLayout(_ pixelBuffer: CVBuffer?) -> WebCore.SharedVideoFrameLayout {
     var layout = WebCore.SharedVideoFrameLayout()
     guard let pixelBuffer else {
         return layout
@@ -374,7 +376,7 @@ func sharedVideoFrameCreatePixelBuffer(
     _ layout: WebCore.SharedVideoFrameLayout,
     _ source: borrowing WebCore.PixelBytes,
     _ pool: CVPixelBufferPool?
-) -> CVPixelBuffer? {
+) -> CVBuffer? {
     let bytes: Span<UInt8> = source.span()
     guard encodedPlanesFillFrame(layout, byteCount: bytes.count) else {
         return nil
@@ -438,7 +440,7 @@ private func appendPlane(
 @_expose(Cxx)
 func sharedVideoFrameWritePixelBuffer(
     _ layout: WebCore.SharedVideoFrameLayout,
-    _ pixelBuffer: CVPixelBuffer?,
+    _ pixelBuffer: CVBuffer?,
     headerSize: UInt,
     _ destination: inout WebCore.MutablePixelBytes
 ) -> WebCore.SharedVideoFrameWriteResult {
