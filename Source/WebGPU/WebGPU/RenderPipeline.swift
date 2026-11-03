@@ -180,6 +180,11 @@ public final class RenderPipelineImpl: DeliverableImpl {
     // RenderPipeline::getBindGroupLayout. The shell adopts the +1 result.
     @_expose(Cxx)
     func getBindGroupLayout(_ groupIndex: UInt32) -> WebGPU.Metal.BindGroupLayout {
+        bindGroupLayout(groupIndex).shell
+    }
+
+    @_expose(!Cxx)
+    func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutReference {
         pipelineBindGroupLayout(
             device,
             deviceImpl,
@@ -410,6 +415,207 @@ func makeInvalidRenderPipelineImpl(
     )
 }
 
+// https://gpuweb.github.io/gpuweb/#dictdef-gpuvertexbufferlayout
+@_spi(WebKitGPU)
+public struct GPUVertexBufferLayout {
+    public var arrayStride: UInt64 = 0
+    public var stepMode = WebGPU.VertexStepMode.Vertex
+    public var attributes: [WebGPU.VertexAttribute] = []
+
+    public init() {
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpuvertexstate
+@_spi(WebKitGPU)
+public struct GPUVertexState {
+    public var stage: GPUProgrammableStage
+    // nil: no vertex buffer in that slot.
+    public var buffers: [GPUVertexBufferLayout?]
+
+    public init(stage: GPUProgrammableStage, buffers: [GPUVertexBufferLayout?]) {
+        self.stage = stage
+        self.buffers = buffers
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpuprimitivestate
+@_spi(WebKitGPU)
+public struct GPUPrimitiveState {
+    public var topology = WebGPU.PrimitiveTopology.TriangleList
+    public var stripIndexFormat: WebGPU.IndexFormat?
+    public var frontFace = WebGPU.FrontFace.CCW
+    public var cullMode = WebGPU.CullMode.None
+    public var unclippedDepth = false
+
+    public init() {
+    }
+
+    init(_ state: WebGPU.PrimitiveState) {
+        topology = state.topology
+        stripIndexFormat = Optional(fromCxx: state.stripIndexFormat)
+        frontFace = state.frontFace
+        cullMode = state.cullMode
+        unclippedDepth = state.unclippedDepth
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpudepthstencilstate
+@_spi(WebKitGPU)
+public struct GPUDepthStencilState {
+    public var format = WebGPU.TextureFormat.Depth24plus
+    public var depthWriteEnabled: Bool?
+    public var depthCompare: WebGPU.CompareFunction?
+    public var stencilFront = WebGPU.StencilFaceState()
+    public var stencilBack = WebGPU.StencilFaceState()
+    public var stencilReadMask: UInt32 = 0xFFFF_FFFF
+    public var stencilWriteMask: UInt32 = 0xFFFF_FFFF
+    public var depthBias: Int32 = 0
+    public var depthBiasSlopeScale: Float = 0
+    public var depthBiasClamp: Float = 0
+
+    public init() {
+    }
+
+    init(_ state: WebGPU.DepthStencilState) {
+        format = state.format
+        depthWriteEnabled = Optional(fromCxx: state.depthWriteEnabled)
+        depthCompare = Optional(fromCxx: state.depthCompare)
+        stencilFront = state.stencilFront
+        stencilBack = state.stencilBack
+        stencilReadMask = state.stencilReadMask
+        stencilWriteMask = state.stencilWriteMask
+        depthBias = state.depthBias
+        depthBiasSlopeScale = state.depthBiasSlopeScale
+        depthBiasClamp = state.depthBiasClamp
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpucolortargetstate
+@_spi(WebKitGPU)
+public struct GPUColorTargetState {
+    public var format = WebGPU.TextureFormat.R8unorm
+    public var blend: WebGPU.BlendState?
+    // The bits of OptionSet<WebGPU::ColorWrite>.
+    public var writeMask: UInt8 = 0xF
+
+    public init() {
+    }
+
+    init(_ state: WebGPU.ColorTargetState) {
+        format = state.format
+        blend = Optional(fromCxx: state.blend)
+        writeMask = state.writeMask.toRaw()
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpufragmentstate
+@_spi(WebKitGPU)
+public struct GPUFragmentState {
+    public var stage: GPUProgrammableStage
+    // nil: no color target in that slot.
+    public var targets: [GPUColorTargetState?]
+
+    public init(stage: GPUProgrammableStage, targets: [GPUColorTargetState?]) {
+        self.stage = stage
+        self.targets = targets
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpurenderpipelinedescriptor, without its label.
+@_spi(WebKitGPU)
+public struct GPURenderPipelineDescriptor {
+    // nil: a layout that the pipeline generates from its shaders.
+    public var layout: PipelineLayoutReference?
+    public var vertex: GPUVertexState
+    public var primitive = GPUPrimitiveState()
+    public var depthStencil: GPUDepthStencilState?
+    public var multisample = WebGPU.MultisampleState()
+    public var fragment: GPUFragmentState?
+
+    public init(layout: PipelineLayoutReference?, vertex: GPUVertexState) {
+        self.layout = layout
+        self.vertex = vertex
+    }
+}
+
+// What render pipeline creation reads of its descriptor, apart from the modules and the layout, which the builder has.
+@_implementationOnly
+struct RenderPipelineInput {
+    @_implementationOnly
+    struct Fragment {
+        let entryPoint: Name?
+        let constants: [PipelineConstant]
+        let targets: [GPUColorTargetState?]
+    }
+
+    // createNSString() semantics: an empty or null label is @"", not nil.
+    let label: NSString
+    let vertexEntryPoint: Name?
+    let vertexConstants: [PipelineConstant]
+    let vertexBuffers: [GPUVertexBufferLayout?]
+    let primitive: GPUPrimitiveState
+    let depthStencil: GPUDepthStencilState?
+    let multisample: WebGPU.MultisampleState
+    let fragment: Fragment?
+
+    init(_ descriptor: borrowing WebGPU.RenderPipelineDescriptor) {
+        label = (stringNilIfEmpty(descriptor.label) ?? "") as NSString
+        vertexEntryPoint = wgslName(descriptor.vertex.stage.entryPoint)
+        vertexConstants = pipelineConstants(descriptor.vertex.stage)
+        var vertexBuffers: [GPUVertexBufferLayout?] = []
+        let vertexBufferCount = WebGPU.Metal.renderPipelineVertexBufferCount(descriptor)
+        vertexBuffers.reserveCapacity(vertexBufferCount)
+        for index in 0..<vertexBufferCount {
+            guard let fields = Optional(fromCxx: WebGPU.Metal.renderPipelineVertexBuffer(descriptor, index)) else {
+                vertexBuffers.append(nil)
+                continue
+            }
+            var buffer = GPUVertexBufferLayout()
+            buffer.arrayStride = fields.arrayStride
+            buffer.stepMode = fields.stepMode
+            let attributes: Span<WebGPU.VertexAttribute> = WebGPU.Metal.renderPipelineVertexAttributes(descriptor, index)
+            buffer.attributes.reserveCapacity(attributes.count)
+            for attributeIndex in attributes.indices {
+                buffer.attributes.append(attributes[attributeIndex])
+            }
+            vertexBuffers.append(buffer)
+        }
+        self.vertexBuffers = vertexBuffers
+        primitive = GPUPrimitiveState(descriptor.primitive)
+        depthStencil = Optional(fromCxx: descriptor.depthStencil).map { GPUDepthStencilState($0) }
+        multisample = descriptor.multisample
+        guard WebGPU.Metal.renderPipelineHasFragment(descriptor) else {
+            fragment = nil
+            return
+        }
+        let colorTargets: Span<WebGPU.Metal.OptionalColorTargetState> = WebGPU.Metal.renderPipelineColorTargets(descriptor)
+        var targets: [GPUColorTargetState?] = []
+        targets.reserveCapacity(colorTargets.count)
+        for index in colorTargets.indices {
+            targets.append(Optional(fromCxx: colorTargets[index]).map { GPUColorTargetState($0) })
+        }
+        fragment = Fragment(
+            entryPoint: wgslName(WebGPU.Metal.renderPipelineFragmentEntryPoint(descriptor)),
+            constants: fragmentPipelineConstants(descriptor),
+            targets: targets
+        )
+    }
+
+    init(_ descriptor: GPURenderPipelineDescriptor, label: Swift.String) {
+        self.label = label as NSString
+        vertexEntryPoint = descriptor.vertex.stage.entryPointName
+        vertexConstants = descriptor.vertex.stage.pipelineConstants
+        vertexBuffers = descriptor.vertex.buffers
+        primitive = descriptor.primitive
+        depthStencil = descriptor.depthStencil
+        multisample = descriptor.multisample
+        fragment = descriptor.fragment.map {
+            Fragment(entryPoint: $0.stage.entryPointName, constants: $0.stage.pipelineConstants, targets: $0.targets)
+        }
+    }
+}
+
 // Device::createRenderPipeline and its asynchronous forms. C++ resolves the descriptor's shader modules and layout
 // (from pipelineToReplace or the descriptor), which Swift cannot downcast, and sets them with their Impls.
 @_expose(Cxx)
@@ -454,7 +660,7 @@ final class RenderPipelineBuilder {
     @_expose(Cxx)
     func create(_ descriptor: borrowing WebGPU.RenderPipelineDescriptor) -> WebGPU.Metal.RenderPipeline {
         var result: [WebGPU.Metal.RenderPipeline] = []
-        create(descriptor, isAsync: false, .synchronous) { pipeline, _ in
+        create(RenderPipelineInput(descriptor), isAsync: false, .synchronous) { pipeline, _ in
             result = [pipeline]
         }
         // A synchronous creation never defers its completion.
@@ -476,7 +682,7 @@ final class RenderPipelineBuilder {
             exchange(&callback, with: WebGPU.Metal.CreateRenderPipelineAsyncCallback())
         )
         let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
-        create(descriptor, isAsync: true, asynchronousIfPossible()) { pipeline, message in
+        create(RenderPipelineInput(descriptor), isAsync: true, asynchronousIfPossible()) { pipeline, message in
             completion.complete(pipeline, message)
         }
         if let wasErrorReportingPaused {
@@ -490,7 +696,7 @@ final class RenderPipelineBuilder {
     // state is precompiled (asynchronously) or compiled on demand once Metal is done with the MSL. Everything that reads
     // `descriptor` happens in prepare(), before that.
     private func create(
-        _ descriptor: borrowing WebGPU.RenderPipelineDescriptor,
+        _ descriptor: RenderPipelineInput,
         isAsync: Bool,
         _ compilation: LibraryCompilation,
         _ report: @escaping (WebGPU.Metal.RenderPipeline, String?) -> Void
@@ -570,12 +776,12 @@ final class RenderPipelineBuilder {
 
     // `renderPipelineDescriptor` is new and empty apart from the shader validation set on it.
     private func prepare(
-        _ descriptor: borrowing WebGPU.RenderPipelineDescriptor,
+        _ descriptor: RenderPipelineInput,
         _ renderPipelineDescriptor: MTLRenderPipelineDescriptor
     ) -> PendingRenderPipeline {
         let limits = deviceImpl.capabilities.limits
-        let hasFragment = WebGPU.Metal.renderPipelineHasFragment(descriptor)
-        let colorTargets: Span<WebGPU.Metal.OptionalColorTargetState> = WebGPU.Metal.renderPipelineColorTargets(descriptor)
+        let hasFragment = descriptor.fragment != nil
+        let colorTargets = descriptor.fragment?.targets ?? []
         let colorTargetCount = colorTargets.count
 
         // FIXME: Implement this according to the description in
@@ -584,12 +790,11 @@ final class RenderPipelineBuilder {
             return PendingRenderPipeline(errorMessage: "device or descriptor is not valid")
         }
 
-        // createNSString() semantics: an empty or null label is @"", not nil.
-        let label = (stringNilIfEmpty(descriptor.label) ?? "") as NSString
+        let label = descriptor.label
 
         // The pipeline stores and validates with the C API enums.
         let primitiveTopology = descriptor.primitive.topology
-        let stripIndexFormat = Optional(fromCxx: descriptor.primitive.stripIndexFormat)
+        let stripIndexFormat = descriptor.primitive.stripIndexFormat
 
         var explicitLayout: [WebGPU.Metal.PipelineLayout] = []
         var explicitLayoutImpl: PipelineLayoutImpl?
@@ -612,7 +817,7 @@ final class RenderPipelineBuilder {
             return PendingRenderPipeline(errorMessage: "Vertex module was created with a different device")
         }
 
-        let vertexEntryPoint = wgslName(descriptor.vertex.stage.entryPoint) ?? vertexModuleImpl.defaultVertexEntryPoint
+        let vertexEntryPoint = descriptor.vertexEntryPoint ?? vertexModuleImpl.defaultVertexEntryPoint
         let vertexReflection = vertexModuleImpl.reflection(forEntryPoint: vertexEntryPoint)
         let vertexStageIn = vertexReflection?.stageIn
         if let error = errorValidatingVertexStageIn(vertexStageIn, limits) {
@@ -627,7 +832,7 @@ final class RenderPipelineBuilder {
             layout: explicitLayoutImpl,
             entryPoint: vertexEntryPoint,
             label: label,
-            constants: pipelineConstants(descriptor.vertex.stage),
+            constants: descriptor.vertexConstants,
             deviceImpl: deviceImpl,
             minimumBufferSizes: &minimumBufferSizes
         ) {
@@ -666,8 +871,7 @@ final class RenderPipelineBuilder {
                 return PendingRenderPipeline(errorMessage: "Fragment module was created with a different device")
             }
 
-            fragmentEntryPoint =
-                wgslName(WebGPU.Metal.renderPipelineFragmentEntryPoint(descriptor)) ?? fragmentModuleImpl.defaultFragmentEntryPoint
+            fragmentEntryPoint = descriptor.fragment?.entryPoint ?? fragmentModuleImpl.defaultFragmentEntryPoint
             fragmentReflection = fragmentModuleImpl.reflection(forEntryPoint: fragmentEntryPoint)
             usesFragDepth = fragmentReflection?.usesFragDepth ?? false
             usesSampleMask = fragmentReflection?.usesSampleMaskInOutput ?? false
@@ -690,7 +894,7 @@ final class RenderPipelineBuilder {
         if hasFragment, let fragmentModuleImpl {
             var bytesPerSample: UInt32 = 0
             for i in 0..<colorTargetCount {
-                guard let target = Optional(fromCxx: colorTargets[i]) else {
+                guard let target = colorTargets[i] else {
                     continue
                 }
                 hasAtLeastOneColorTarget = true
@@ -712,7 +916,7 @@ final class RenderPipelineBuilder {
                 layout: explicitLayoutImpl,
                 entryPoint: fragmentEntryPoint,
                 label: label,
-                constants: fragmentPipelineConstants(descriptor),
+                constants: descriptor.fragment?.constants ?? [],
                 deviceImpl: deviceImpl,
                 minimumBufferSizes: &minimumBufferSizes
             ) {
@@ -737,7 +941,7 @@ final class RenderPipelineBuilder {
         var depthBias: Float = 0
         var depthBiasSlopeScale: Float = 0
         var depthBiasClamp: Float = 0
-        let depthStencil = Optional(fromCxx: descriptor.depthStencil)
+        let depthStencil = descriptor.depthStencil
         if let depthStencil {
             if let error = errorValidatingDepthStencilState(depthStencil) {
                 return PendingRenderPipeline(errorMessage: error)
@@ -751,9 +955,8 @@ final class RenderPipelineBuilder {
             }
 
             let newDepthStencilDescriptor = MTLDepthStencilDescriptor()
-            newDepthStencilDescriptor.depthCompareFunction =
-                Optional(fromCxx: depthStencil.depthCompare).map { mtlCompareFunction($0) } ?? MTLCompareFunction.always
-            newDepthStencilDescriptor.isDepthWriteEnabled = Optional(fromCxx: depthStencil.depthWriteEnabled) ?? false
+            newDepthStencilDescriptor.depthCompareFunction = depthStencil.depthCompare.map { mtlCompareFunction($0) } ?? MTLCompareFunction.always
+            newDepthStencilDescriptor.isDepthWriteEnabled = depthStencil.depthWriteEnabled ?? false
             populateStencilOperation(
                 newDepthStencilDescriptor.frontFaceStencil,
                 depthStencil.stencilFront,
@@ -805,7 +1008,7 @@ final class RenderPipelineBuilder {
             if !hasFragment {
                 return PendingRenderPipeline(errorMessage: "Using alphaToCoverage requires a fragment state")
             }
-            let firstTarget = colorTargetCount == 0 ? nil : Optional(fromCxx: colorTargets[0])
+            let firstTarget = colorTargetCount == 0 ? nil : colorTargets[0]
             guard let firstTarget, hasAlphaChannel(firstTarget.format), supportsBlending(firstTarget.format, deviceImpl) else {
                 return PendingRenderPipeline(errorMessage: "Using alphaToCoverage requires a fragment state")
             }
@@ -824,11 +1027,10 @@ final class RenderPipelineBuilder {
 
         var requiredVertexBuffers: [RequiredVertexBuffer] = []
         var shaderLocations: [UInt32] = []
-        let vertexBufferCount = WebGPU.Metal.renderPipelineVertexBufferCount(descriptor)
+        let vertexBufferCount = descriptor.vertexBuffers.count
         if vertexBufferCount != 0 {
             guard let vertexStageIn else {
-                let attributes: Span<WebGPU.VertexAttribute> = WebGPU.Metal.renderPipelineVertexAttributes(descriptor, 0)
-                let attributeCount = attributes.count
+                let attributeCount = descriptor.vertexBuffers[0]?.attributes.count ?? 0
                 return PendingRenderPipeline(
                     errorMessage:
                         "Vertex shader has no stageIn parameters but buffer count was \(vertexBufferCount) and attribute count was \(attributeCount)"
@@ -836,7 +1038,7 @@ final class RenderPipelineBuilder {
             }
             let vertexDescriptor = MTLVertexDescriptor()
             if let error = errorCreatingVertexDescriptor(
-                descriptor,
+                descriptor.vertexBuffers,
                 vertexDescriptor,
                 vertexBufferCount,
                 limits,
@@ -897,7 +1099,7 @@ final class RenderPipelineBuilder {
 
         var colorTargetFormats: [WebGPU.TextureFormat?] = []
         for i in 0..<colorTargetCount {
-            colorTargetFormats.append(Optional(fromCxx: colorTargets[i])?.format)
+            colorTargetFormats.append(colorTargets[i]?.format)
         }
 
         var parameters = WebGPU.Metal.RenderPipelineParameters()
@@ -945,14 +1147,14 @@ final class RenderPipelineBuilder {
 
     // One color target of the fragment state; `index` is its slot.
     private func errorConfiguringColorTarget(
-        _ target: WebGPU.ColorTargetState,
+        _ target: GPUColorTargetState,
         _ index: Int,
         _ renderPipelineDescriptor: MTLRenderPipelineDescriptor,
         _ fragment: EntryPointReflection?,
         _ bytesPerSample: inout UInt32
     ) -> String? {
         let targetFormat = target.format
-        let writeMask = target.writeMask.toRaw()
+        let writeMask = target.writeMask
         let fragmentFunctionReturnType = fragment?.fragmentOutputType(at: UInt32(truncatingIfNeeded: index)) ?? MTLDataType.none
         // swift-format-ignore: NeverForceUnwrap
         let mtlColorAttachment = renderPipelineDescriptor.colorAttachments[index]!
@@ -979,7 +1181,7 @@ final class RenderPipelineBuilder {
         mtlColorAttachment.writeMask = mtlColorWriteMask(rawWriteMask: UInt32(writeMask))
 
         var readsAlpha = false
-        if let blend = Optional(fromCxx: target.blend) {
+        if let blend = target.blend {
             if !supportsBlending(targetFormat, deviceImpl) {
                 return "Color target attempted to use blending on non-blendable format"
             }
@@ -1029,6 +1231,27 @@ func makeRenderPipelineBuilder(
     _ vertexModuleImpl: ShaderModuleImpl
 ) -> RenderPipelineBuilder {
     RenderPipelineBuilder(device: device, deviceImpl: deviceImpl, vertexModule: vertexModule, vertexModuleImpl: vertexModuleImpl)
+}
+
+// The builder of a Swift caller's descriptor, with the modules and layout that C++ sets on a C++ caller's: the layout of
+// `pipelineToReplace` for createRenderPipelineWithPipelineLayoutFromPipelineAsync.
+func makeRenderPipelineBuilder(
+    _ device: WebGPU.Metal.Device,
+    _ deviceImpl: DeviceImpl,
+    _ descriptor: GPURenderPipelineDescriptor,
+    replacingLayoutOf pipelineToReplace: RenderPipelineReference? = nil
+) -> RenderPipelineBuilder {
+    let vertexModule = descriptor.vertex.stage.module
+    let builder = RenderPipelineBuilder(device: device, deviceImpl: deviceImpl, vertexModule: vertexModule.shell, vertexModuleImpl: vertexModule.impl)
+    if let fragmentModule = descriptor.fragment?.stage.module {
+        builder.setFragmentModule(fragmentModule.shell, fragmentModule.impl)
+    }
+    if let pipelineToReplace {
+        builder.setPipelineLayout(pipelineToReplace.impl.pipelineLayout(), pipelineToReplace.impl.pipelineLayoutImpl, true)
+    } else if let layout = descriptor.layout {
+        builder.setPipelineLayout(layout.shell, layout.impl, false)
+    }
+    return builder
 }
 
 // RenderPipelineBuilder.prepare's result.
@@ -1287,7 +1510,7 @@ private func errorValidatingInterstageShaderInterfaces(
     return nil
 }
 
-private func errorValidatingDepthStencilState(_ depthStencil: WebGPU.DepthStencilState) -> String? {
+private func errorValidatingDepthStencilState(_ depthStencil: GPUDepthStencilState) -> String? {
     func error(_ message: String) -> String {
         "Invalid DepthStencilState: \(message)"
     }
@@ -1298,8 +1521,8 @@ private func errorValidatingDepthStencilState(_ depthStencil: WebGPU.DepthStenci
     }
 
     let hasDepthFormat = depthOnlyAspectMetalFormat(format) != nil
-    let depthWriteEnabled = Optional(fromCxx: depthStencil.depthWriteEnabled)
-    let depthCompare = Optional(fromCxx: depthStencil.depthCompare)
+    let depthWriteEnabled = depthStencil.depthWriteEnabled
+    let depthCompare = depthStencil.depthCompare
     if (depthWriteEnabled ?? false) || (depthCompare != nil && depthCompare != WebGPU.CompareFunction.Always) {
         if !hasDepthFormat {
             return error("depth-stencil state missing format")
@@ -1348,7 +1571,7 @@ private func populateStencilOperation(
     mtlStencil.readMask = stencilReadMask
 }
 
-private func writesStencil(_ depthStencil: WebGPU.DepthStencilState?, _ cullMode: WebGPU.CullMode) -> Bool {
+private func writesStencil(_ depthStencil: GPUDepthStencilState?, _ cullMode: WebGPU.CullMode) -> Bool {
     guard let depthStencil, depthStencil.stencilWriteMask != 0 else {
         return false
     }
@@ -1367,7 +1590,7 @@ private func writesStencil(_ depthStencil: WebGPU.DepthStencilState?, _ cullMode
 // Fills `vertexDescriptor`, the required vertex buffers (ascending buffer index) and the attribute locations in
 // descriptor order. Returns the error message, or nil.
 private func errorCreatingVertexDescriptor(
-    _ descriptor: borrowing WebGPU.RenderPipelineDescriptor,
+    _ vertexBuffers: [GPUVertexBufferLayout?],
     _ vertexDescriptor: MTLVertexDescriptor,
     _ bufferCount: Int,
     _ limits: WebGPU.Limits,
@@ -1382,7 +1605,7 @@ private func errorCreatingVertexDescriptor(
     var totalAttributeCount: UInt32 = 0
     var formatForShaderLocation: [UInt32: WebGPU.VertexFormat] = [:]
     for bufferIndex in 0..<bufferCount {
-        guard let buffer = Optional(fromCxx: WebGPU.Metal.renderPipelineVertexBuffer(descriptor, bufferIndex)) else {
+        guard let buffer = vertexBuffers[bufferIndex] else {
             continue
         }
 
@@ -1392,7 +1615,7 @@ private func errorCreatingVertexDescriptor(
                 "buffer.arrayStride(\(arrayStride)) > limits.maxVertexBufferArrayStride(\(limits.maxVertexBufferArrayStride)) || (buffer.arrayStride \(arrayStride))"
         }
 
-        let attributes: Span<WebGPU.VertexAttribute> = WebGPU.Metal.renderPipelineVertexAttributes(descriptor, bufferIndex)
+        let attributes = buffer.attributes
         let attributeCount = attributes.count
         if attributeCount == 0 {
             continue

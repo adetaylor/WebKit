@@ -31,6 +31,30 @@ import WebGPU_Private.WebGPUCpp
 
 // Shared by the compute and render pipeline creation code.
 
+// https://gpuweb.github.io/gpuweb/#dictdef-gpuprogrammablestage
+@_spi(WebKitGPU)
+public struct GPUProgrammableStage {
+    public var module: ShaderModuleReference
+    // nil: the only entry point of the module for the stage.
+    public var entryPoint: Swift.String?
+    // The override keys and https://gpuweb.github.io/gpuweb/#typedefdef-gpupipelineconstantvalue values.
+    public var constants: [(key: Swift.String, value: Double)]
+
+    public init(module: ShaderModuleReference, entryPoint: Swift.String?, constants: [(key: Swift.String, value: Double)]) {
+        self.module = module
+        self.entryPoint = entryPoint
+        self.constants = constants
+    }
+
+    var entryPointName: Name? {
+        entryPoint.map { Name($0) }
+    }
+
+    var pipelineConstants: [PipelineConstant] {
+        constants.map { PipelineConstant(key: Name($0.key), value: $0.value) }
+    }
+}
+
 /// One compiled entry point, waiting for Metal to compile its MSL.
 final class PreparedLibrary {
     let entryPoint: EntryPointInformation

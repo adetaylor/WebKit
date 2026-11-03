@@ -137,6 +137,22 @@ public func reference(of computePipeline: WebGPU.ComputePipeline) -> ComputePipe
 }
 
 @_spi(WebKitGPU)
+extension ComputePipelineReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
+    public func getBindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutReference {
+        impl.bindGroupLayout(groupIndex)
+    }
+}
+
+@_spi(WebKitGPU)
+extension RenderPipelineReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
+    public func getBindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutReference {
+        impl.bindGroupLayout(groupIndex)
+    }
+}
+
+@_spi(WebKitGPU)
 public final class BufferReference {
     public let impl: BufferImpl
     let shell: WebGPU.Metal.Buffer

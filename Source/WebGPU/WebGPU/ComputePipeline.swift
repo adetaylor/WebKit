@@ -93,6 +93,11 @@ public final class ComputePipelineImpl: DeliverableImpl {
     // ComputePipeline::getBindGroupLayout. The shell adopts the +1 result.
     @_expose(Cxx)
     func getBindGroupLayout(_ groupIndex: UInt32) -> WebGPU.Metal.BindGroupLayout {
+        bindGroupLayout(groupIndex).shell
+    }
+
+    @_expose(!Cxx)
+    func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutReference {
         pipelineBindGroupLayout(
             device,
             deviceImpl,
@@ -115,11 +120,16 @@ func pipelineBindGroupLayout(
     invalidPipelineMessage: String,
     _ layoutImpl: PipelineLayoutImpl,
     _ groupIndex: UInt32
-) -> WebGPU.Metal.BindGroupLayout {
+) -> BindGroupLayoutReference {
+    func invalidBindGroupLayout() -> BindGroupLayoutReference {
+        let impl = makeInvalidBindGroupLayoutImpl(device, deviceImpl)
+        return BindGroupLayoutReference(impl, makeBindGroupLayoutShell(impl, device: device, deviceImpl: deviceImpl))
+    }
+
     if !pipelineIsValid {
         deviceImpl.generateAValidationError(invalidPipelineMessage)
         layoutImpl.makeInvalid()
-        return WebGPU.Metal.BindGroupLayout.createInvalid(device).ptr()
+        return invalidBindGroupLayout()
     }
 
     if groupIndex >= layoutImpl.numberOfBindGroupLayouts() {
@@ -127,10 +137,13 @@ func pipelineBindGroupLayout(
             deviceImpl.generateAValidationError("getBindGroupLayout: groupIndex is out of range")
             layoutImpl.makeInvalid()
         }
-        return WebGPU.Metal.BindGroupLayout.createInvalid(device).ptr()
+        return invalidBindGroupLayout()
     }
 
-    return layoutImpl.bindGroupLayout(Int(groupIndex))
+    guard let impl = layoutImpl.bindGroupLayout(at: Int(groupIndex)) else {
+        preconditionFailure("a valid pipeline layout has the Impl of each of its bind group layouts")
+    }
+    return BindGroupLayoutReference(impl, layoutImpl.bindGroupLayout(Int(groupIndex)))
 }
 
 @_expose(Cxx)
@@ -152,6 +165,40 @@ func makeInvalidComputePipelineImpl(
 }
 
 // MARK: - Creation (Device::createComputePipeline)
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpucomputepipelinedescriptor, without its label.
+@_spi(WebKitGPU)
+public struct GPUComputePipelineDescriptor {
+    // nil: a layout that the pipeline generates from its shader.
+    public var layout: PipelineLayoutReference?
+    public var compute: GPUProgrammableStage
+
+    public init(layout: PipelineLayoutReference?, compute: GPUProgrammableStage) {
+        self.layout = layout
+        self.compute = compute
+    }
+}
+
+// What compute pipeline creation reads of its descriptor, apart from the module and the layout, which the builder has.
+@_implementationOnly
+struct ComputePipelineInput {
+    // createNSString() semantics: an empty or null label is @"", not nil.
+    let label: Swift.String
+    let entryPoint: Name?
+    let constants: [PipelineConstant]
+
+    init(_ descriptor: borrowing WebGPU.ComputePipelineDescriptor) {
+        label = stringNilIfEmpty(descriptor.label) ?? ""
+        entryPoint = wgslName(descriptor.compute.entryPoint)
+        constants = pipelineConstants(descriptor.compute)
+    }
+
+    init(_ descriptor: GPUComputePipelineDescriptor, label: Swift.String) {
+        self.label = label
+        entryPoint = descriptor.compute.entryPointName
+        constants = descriptor.compute.pipelineConstants
+    }
+}
 
 /// Device::createComputePipeline and its asynchronous forms.
 ///
@@ -184,7 +231,7 @@ final class ComputePipelineBuilder {
     @_expose(Cxx)
     func create(_ descriptor: borrowing WebGPU.ComputePipelineDescriptor) -> WebGPU.Metal.ComputePipeline {
         var result: [WebGPU.Metal.ComputePipeline] = []
-        create(descriptor, isAsync: false, .synchronous) { pipeline, _ in
+        create(ComputePipelineInput(descriptor), isAsync: false, .synchronous) { pipeline, _ in
             result = [pipeline]
         }
         // A synchronous creation never defers its completion.
@@ -206,7 +253,7 @@ final class ComputePipelineBuilder {
             exchange(&callback, with: WebGPU.Metal.CreateComputePipelineAsyncCallback())
         )
         let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
-        create(descriptor, isAsync: true, asynchronousIfPossible()) { pipeline, message in
+        create(ComputePipelineInput(descriptor), isAsync: true, asynchronousIfPossible()) { pipeline, message in
             completion.complete(pipeline, message)
         }
         if let wasErrorReportingPaused {
@@ -217,7 +264,7 @@ final class ComputePipelineBuilder {
     // `report` gets the pipeline (an invalid one on failure, with the message the asynchronous forms resolve with) on
     // the API thread: before this returns when every compile is synchronous.
     private func create(
-        _ descriptor: borrowing WebGPU.ComputePipelineDescriptor,
+        _ descriptor: ComputePipelineInput,
         isAsync: Bool,
         _ compilation: LibraryCompilation,
         _ report: @escaping (WebGPU.Metal.ComputePipeline, String?) -> Void
@@ -283,6 +330,23 @@ func makeComputePipelineBuilder(
     ComputePipelineBuilder(device: device, deviceImpl: deviceImpl, shaderModuleImpl: shaderModuleImpl)
 }
 
+// The builder of a Swift caller's descriptor, with the module and layout that C++ sets on a C++ caller's: the layout of
+// `pipelineToReplace` for createComputePipelineWithPipelineLayoutFromPipelineAsync.
+func makeComputePipelineBuilder(
+    _ device: WebGPU.Metal.Device,
+    _ deviceImpl: DeviceImpl,
+    _ descriptor: GPUComputePipelineDescriptor,
+    replacingLayoutOf pipelineToReplace: ComputePipelineReference? = nil
+) -> ComputePipelineBuilder {
+    let builder = ComputePipelineBuilder(device: device, deviceImpl: deviceImpl, shaderModuleImpl: descriptor.compute.module.impl)
+    if let pipelineToReplace {
+        builder.setPipelineLayout(pipelineToReplace.impl.pipelineLayout(), pipelineToReplace.impl.pipelineLayoutImpl, true)
+    } else if let layout = descriptor.layout {
+        builder.setPipelineLayout(layout.shell, layout.impl, false)
+    }
+    return builder
+}
+
 /// Resolves the embedder's callback on a later turn of the API thread, never re-entrantly from the creation (at once
 /// when the device has no Instance).
 private final class ComputePipelineAsyncCompletion {
@@ -319,16 +383,15 @@ private final class ComputePipelineAsyncCompletion {
 private func prepareComputePipeline(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
-    _ descriptor: borrowing WebGPU.ComputePipelineDescriptor,
+    _ descriptor: ComputePipelineInput,
     _ shaderModuleImpl: ShaderModuleImpl,
     _ layout: WebGPU.Metal.PipelineLayout,
     _ layoutImpl: PipelineLayoutImpl,
     _ isReplacingPipeline: Bool
 ) -> PendingComputePipeline {
     let limits = deviceImpl.capabilities.limits
-    // createNSString() semantics: an empty or null label is @"", not nil.
-    let label: String = stringNilIfEmpty(descriptor.label) ?? ""
-    let entryPoint = wgslName(descriptor.compute.entryPoint) ?? shaderModuleImpl.defaultComputeEntryPoint
+    let label = descriptor.label
+    let entryPoint = descriptor.entryPoint ?? shaderModuleImpl.defaultComputeEntryPoint
     var minimumBufferSizes = MinimumBufferSizes()
     let library: PreparedLibrary
     switch prepareLibrary(
@@ -336,7 +399,7 @@ private func prepareComputePipeline(
         layout: layoutImpl,
         entryPoint: entryPoint,
         label: label as NSString,
-        constants: pipelineConstants(descriptor.compute),
+        constants: descriptor.constants,
         deviceImpl: deviceImpl,
         minimumBufferSizes: &minimumBufferSizes
     ) {
