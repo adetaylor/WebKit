@@ -470,6 +470,11 @@ extension TextureReference {
     public var apiObject: WebGPU.Texture { WebGPU.Metal.apiObject(shell) }
 }
 
+@_spi(WebKitGPU)
+extension TextureViewReference {
+    public var apiObject: WebGPU.TextureView { WebGPU.Metal.apiObject(shell) }
+}
+
 // The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().
 @_expose(Cxx)
 @_spi(WebKitGPU)
