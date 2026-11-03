@@ -655,6 +655,12 @@ macro(WEBKIT_OPTION_END)
     # <pal/text/TextCodecUTF8.h> tests USE_SWIFT_TEXT_CODEC_UTF8, so every C++ target that includes it needs
     # PAL's value, which PAL.xcconfig and WebCore.xcconfig define as 0 or 1 together.
     add_compile_definitions("$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_TEXT_CODEC_UTF8=$<BOOL:${WK_USE_SWIFT_TEXT_CODEC_UTF8}>>")
+
+    # The islands' scrolling settings exist only in the Xcode build, and CMake builds compile none of that Swift.
+    # Their C++ tests them with #if, under -Wundef.
+    foreach (_setting IN ITEMS SCROLL_PHYSICS SCROLLING_TREE_DELEGATE MAC_SCROLLERS SCROLLERS_IN_DELEGATE SCROLL_ANIMATOR_PHYSICS SCROLL_ANIMATOR SCROLLABLE_AREA SCROLL_VIEW)
+        add_compile_definitions("$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_${_setting}=0>")
+    endforeach ()
 endmacro()
 
 macro(PRINT_WEBKIT_OPTIONS)
