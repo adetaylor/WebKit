@@ -148,6 +148,33 @@ final class ShaderModuleImpl {
         messages[index].length
     }
 
+    // What ShaderModule::compilationInfo gives, for a Swift caller.
+    @_expose(!Cxx)
+    func compilationInfo() -> [GPUShaderCompilationMessage] {
+        messages.indices.map { index in
+            let message = messages[index]
+            return GPUShaderCompilationMessage(
+                message: stringNilIfEmpty(message.text) ?? "",
+                isError: index < errorCount,
+                lineNumber: UInt64(message.lineNumber),
+                linePosition: UInt64(message.lineOffset) + 1,
+                offset: UInt64(message.offset),
+                length: UInt64(message.length)
+            )
+        }
+    }
+
+    // The validation error message of a module that failed to compile. It is what C++ built with StringPrintStream, whose
+    // round trip through UTF-8 replaces unpaired surrogates and cuts each message at a NUL.
+    fileprivate func compilationErrorMessage() -> Swift.String {
+        var result = "\(errorCount) error\(errorCount != 1 ? "s" : "") generated while compiling the shader:"
+        for message in messages.prefix(errorCount) {
+            let text = stringNilIfEmpty(message.text) ?? ""
+            result += "\n\(message.lineNumber):\(message.lineOffset): \(text.prefix { $0 != "\0" })"
+        }
+        return result
+    }
+
     // A nil, unknown or empty name finds nothing. Each IO list is nil unless the entry point is of the stage that has it.
     func reflection(forEntryPoint name: Name?) -> EntryPointReflection? {
         guard let name else {
@@ -370,6 +397,35 @@ private func vertexFormat(_ scalar: IOScalar, vectorSize: UInt8) -> WebGPU.Verte
     }
 }
 
+// https://gpuweb.github.io/gpuweb/#dictdef-gpucompilationmessage
+@_spi(WebKitGPU)
+public struct GPUShaderCompilationMessage {
+    public let message: Swift.String
+    // An error, or else a warning.
+    public let isError: Bool
+    public let lineNumber: UInt64
+    public let linePosition: UInt64
+    public let offset: UInt64
+    public let length: UInt64
+}
+
+// A shader module with its shell, as Swift holds one.
+@_spi(WebKitGPU)
+public final class ShaderModuleReference {
+    let impl: ShaderModuleImpl
+    let shell: WebGPU.Metal.ShaderModule
+
+    init(_ impl: ShaderModuleImpl, _ shell: WebGPU.Metal.ShaderModule) {
+        self.impl = impl
+        self.shell = shell
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo: errors first, then warnings.
+    public func compilationInfo() -> [GPUShaderCompilationMessage] {
+        impl.compilationInfo()
+    }
+}
+
 // MARK: - Creation
 
 // For Device::createShaderModule, after its device check.
@@ -379,6 +435,19 @@ func createShaderModuleImpl(
     _ deviceImpl: DeviceImpl,
     _ descriptor: borrowing WebGPU.ShaderModuleDescriptor
 ) -> ShaderModuleImpl {
+    createShaderModuleImpl(device, deviceImpl, source: wgslSourceText(descriptor.code))
+}
+
+// Device::createShaderModule, for a Swift caller. The descriptor's compilation hints aren't used yet, by either.
+func createShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, code: Swift.String) -> ShaderModuleImpl {
+    guard deviceImpl.isValid() else {
+        return makeInvalidShaderModuleImpl(device, deviceImpl)
+    }
+    return createShaderModuleImpl(device, deviceImpl, source: SourceText(code))
+}
+
+// Reports the validation error of a module that fails to compile.
+private func createShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, source: SourceText) -> ShaderModuleImpl {
     var supportedFeatures: Features = []
     if deviceImpl.hasFeature(WebGPU.FeatureName.ClipDistances) {
         supportedFeatures.insert(.clipDistances)
@@ -400,8 +469,6 @@ func createShaderModuleImpl(
         supportedFeatures: supportedFeatures,
         identifierCharacterClasses: icuIdentifierCharacterClasses
     )
-    let source = wgslSourceText(descriptor.code)
-
     var checkedModule: CheckedModuleBox?
     var errors: [CompilationMessage] = []
     var warnings: [CompilationMessage] = []
@@ -415,7 +482,11 @@ func createShaderModuleImpl(
             checkedModule = CheckedModuleBox(module)
         }
     }
-    return ShaderModuleImpl(checkedModule: checkedModule, errors: errors, warnings: warnings, device: device, deviceImpl: deviceImpl)
+    let impl = ShaderModuleImpl(checkedModule: checkedModule, errors: errors, warnings: warnings, device: device, deviceImpl: deviceImpl)
+    if !impl.isValid() {
+        deviceImpl.generateAValidationError(impl.compilationErrorMessage())
+    }
+    return impl
 }
 
 @_expose(Cxx)

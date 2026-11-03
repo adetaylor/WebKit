@@ -34,7 +34,6 @@
 #import <unicode/uset.h>
 #import <wtf/DataLog.h>
 #import <wtf/HashSet.h>
-#import <wtf/StringPrintStream.h>
 #import <wtf/TZoneMallocInlines.h>
 #import <wtf/Threading.h>
 
@@ -103,17 +102,6 @@ void sortInWTFHashTableOrder(std::span<uint32_t> keys NOESCAPE)
         keys[index++] = key;
 }
 
-// Built with StringPrintStream, whose round trip through UTF-8 replaces unpaired surrogates and cuts a message at a NUL.
-static String compilationErrorMessage(WebGPUSwift::ShaderModuleImpl& impl)
-{
-    auto errorCount = impl.compilationErrorCount();
-    StringPrintStream message;
-    message.print(String::number(static_cast<size_t>(errorCount)), " error", errorCount != 1 ? "s" : "", " generated while compiling the shader:"_s);
-    for (decltype(errorCount) i = 0; i < errorCount; ++i)
-        message.print("\n"_s, impl.compilationMessageLineNumber(i), ":", impl.compilationMessageLineOffset(i), ": ", impl.compilationMessageText(i));
-    return message.toString();
-}
-
 RefPtr<WebGPU::ShaderModule> Device::createShaderModule(const WebGPU::ShaderModuleDescriptor& descriptor)
 {
     if (!isValid())
@@ -124,9 +112,6 @@ RefPtr<WebGPU::ShaderModule> Device::createShaderModule(const WebGPU::ShaderModu
     auto impl = makeUnique<ShaderModuleImplBox>(ShaderModuleImplBox {
         .impl = WebGPUSwift::createShaderModuleImpl(this, swiftImpl(), descriptor)
     });
-    if (!impl->impl.isValid())
-        generateAValidationError(compilationErrorMessage(impl->impl));
-
     return ShaderModule::create(WTF::move(impl));
 }
 
