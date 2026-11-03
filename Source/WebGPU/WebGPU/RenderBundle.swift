@@ -285,3 +285,10 @@ enum BundleReplay {
         return false
     }
 }
+
+// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedRenderBundleImpl.
+func makeRenderBundleShell(_ impl: RenderBundleImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.RenderBundle {
+    precondition(deviceImpl.stagedRenderBundleImpl == nil)
+    deviceImpl.stagedRenderBundleImpl = impl
+    return WebGPU.Metal.RenderBundle.createWithStagedImpl(device).ptr()
+}

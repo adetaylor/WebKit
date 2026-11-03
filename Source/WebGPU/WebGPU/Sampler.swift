@@ -511,3 +511,10 @@ private func samplerCacheRelease(_ key: SamplerCacheKey, _ samplerState: any MTL
         }
     }
 }
+
+// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedSamplerImpl.
+func makeSamplerShell(_ impl: SamplerImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.Sampler {
+    precondition(deviceImpl.stagedSamplerImpl == nil)
+    deviceImpl.stagedSamplerImpl = impl
+    return WebGPU.Metal.Sampler.createWithStagedImpl(device).ptr()
+}

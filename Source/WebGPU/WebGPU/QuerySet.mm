@@ -60,6 +60,13 @@ Ref<QuerySet> QuerySet::create(const WebGPU::QuerySetDescriptor& descriptor, Dev
     }));
 }
 
+Ref<QuerySet> QuerySet::createWithStagedImpl(Device& device)
+{
+    return adoptRef(*new QuerySet([&] {
+        return device.swiftImpl().takeStagedQuerySetImpl();
+    }));
+}
+
 Ref<QuerySet> QuerySet::createInvalid(Device& device)
 {
     return adoptRef(*new QuerySet([&] {

@@ -122,6 +122,11 @@ Ref<ShaderModule> ShaderModule::create(std::unique_ptr<ShaderModuleImplBox>&& im
     return adoptRef(*new ShaderModule(WTF::move(impl)));
 }
 
+Ref<ShaderModule> ShaderModule::createWithStagedImpl(Device& device)
+{
+    return create(makeUnique<ShaderModuleImplBox>(ShaderModuleImplBox { .impl = device.swiftImpl().takeStagedShaderModuleImpl() }));
+}
+
 Ref<ShaderModule> ShaderModule::createInvalid(Device& device)
 {
     auto impl = makeUnique<ShaderModuleImplBox>(ShaderModuleImplBox {

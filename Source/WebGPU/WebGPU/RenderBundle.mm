@@ -48,6 +48,11 @@ Ref<RenderBundle> RenderBundle::create(const WebGPUSwift::RenderBundleImpl& impl
     return adoptRef(*new RenderBundle(impl));
 }
 
+Ref<RenderBundle> RenderBundle::createWithStagedImpl(Device& device)
+{
+    return create(device.swiftImpl().takeStagedRenderBundleImpl());
+}
+
 RenderBundle::RenderBundle(const WebGPUSwift::RenderBundleImpl& impl)
 {
     new (m_impl) WebGPUSwift::RenderBundleImpl(impl);

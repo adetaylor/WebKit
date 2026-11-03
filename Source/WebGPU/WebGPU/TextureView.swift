@@ -410,3 +410,10 @@ func isRenderableDepthStencilTextureView(
         stencilStoreOp
     )
 }
+
+// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedTextureViewImpl.
+func makeTextureViewShell(_ impl: TextureViewImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.TextureView {
+    precondition(deviceImpl.stagedTextureViewImpl == nil)
+    deviceImpl.stagedTextureViewImpl = impl
+    return WebGPU.Metal.TextureView.createWithStagedImpl(device).ptr()
+}

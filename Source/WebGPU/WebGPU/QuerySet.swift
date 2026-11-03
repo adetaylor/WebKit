@@ -389,3 +389,10 @@ private func insertFreeRange(_ range: Range<UInt32>, into ranges: inout [Range<U
     }
     ranges = result
 }
+
+// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedQuerySetImpl.
+func makeQuerySetShell(_ impl: QuerySetImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.QuerySet {
+    precondition(deviceImpl.stagedQuerySetImpl == nil)
+    deviceImpl.stagedQuerySetImpl = impl
+    return WebGPU.Metal.QuerySet.createWithStagedImpl(device).ptr()
+}

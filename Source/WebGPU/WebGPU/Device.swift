@@ -105,6 +105,29 @@ final class DeviceImpl {
     var stagedRenderPipelineImpl: RenderPipelineImpl?
     var stagedComputePipelineImpl: ComputePipelineImpl?
     var stagedTextureImpl: TextureImpl?
+    // The other kinds made in Swift for a Swift caller, staged in the same way.
+    @_expose(!Cxx)
+    var stagedBufferImpl: BufferImpl?
+    @_expose(!Cxx)
+    var stagedSamplerImpl: SamplerImpl?
+    @_expose(!Cxx)
+    var stagedBindGroupImpl: BindGroupImpl?
+    @_expose(!Cxx)
+    var stagedShaderModuleImpl: ShaderModuleImpl?
+    @_expose(!Cxx)
+    var stagedQuerySetImpl: QuerySetImpl?
+    @_expose(!Cxx)
+    var stagedRenderBundleEncoderImpl: RenderBundleEncoderImpl?
+    @_expose(!Cxx)
+    var stagedTextureViewImpl: TextureViewImpl?
+    @_expose(!Cxx)
+    var stagedRenderBundleImpl: RenderBundleImpl?
+    // The Impls that the last command encoder and command buffer shells made: their shells make them, from what Swift
+    // passes their factories. Weak, so that they live only as long as their shells.
+    @_expose(!Cxx)
+    weak var lastMadeCommandEncoderImpl: CommandEncoderImpl?
+    @_expose(!Cxx)
+    weak var lastMadeCommandBufferImpl: CommandBufferImpl?
     // The scheduler of the Instance of the device's adapter, if it had one when the device was made: the asynchronous
     // pipeline compiles hop back through it.
     private var instanceSchedulerHandle: InstanceSchedulerHandle?
@@ -719,6 +742,78 @@ final class DeviceImpl {
     }
 
     // MARK: Staged Impls (see stagedBindGroupLayoutImpl)
+
+    @_expose(Cxx)
+    func takeStagedBufferImpl() -> BufferImpl {
+        guard let impl = stagedBufferImpl else {
+            preconditionFailure("No staged BufferImpl")
+        }
+        stagedBufferImpl = nil
+        return impl
+    }
+
+    @_expose(Cxx)
+    func takeStagedSamplerImpl() -> SamplerImpl {
+        guard let impl = stagedSamplerImpl else {
+            preconditionFailure("No staged SamplerImpl")
+        }
+        stagedSamplerImpl = nil
+        return impl
+    }
+
+    @_expose(Cxx)
+    func takeStagedBindGroupImpl() -> BindGroupImpl {
+        guard let impl = stagedBindGroupImpl else {
+            preconditionFailure("No staged BindGroupImpl")
+        }
+        stagedBindGroupImpl = nil
+        return impl
+    }
+
+    @_expose(Cxx)
+    func takeStagedShaderModuleImpl() -> ShaderModuleImpl {
+        guard let impl = stagedShaderModuleImpl else {
+            preconditionFailure("No staged ShaderModuleImpl")
+        }
+        stagedShaderModuleImpl = nil
+        return impl
+    }
+
+    @_expose(Cxx)
+    func takeStagedQuerySetImpl() -> QuerySetImpl {
+        guard let impl = stagedQuerySetImpl else {
+            preconditionFailure("No staged QuerySetImpl")
+        }
+        stagedQuerySetImpl = nil
+        return impl
+    }
+
+    @_expose(Cxx)
+    func takeStagedRenderBundleEncoderImpl() -> RenderBundleEncoderImpl {
+        guard let impl = stagedRenderBundleEncoderImpl else {
+            preconditionFailure("No staged RenderBundleEncoderImpl")
+        }
+        stagedRenderBundleEncoderImpl = nil
+        return impl
+    }
+
+    @_expose(Cxx)
+    func takeStagedTextureViewImpl() -> TextureViewImpl {
+        guard let impl = stagedTextureViewImpl else {
+            preconditionFailure("No staged TextureViewImpl")
+        }
+        stagedTextureViewImpl = nil
+        return impl
+    }
+
+    @_expose(Cxx)
+    func takeStagedRenderBundleImpl() -> RenderBundleImpl {
+        guard let impl = stagedRenderBundleImpl else {
+            preconditionFailure("No staged RenderBundleImpl")
+        }
+        stagedRenderBundleImpl = nil
+        return impl
+    }
 
     @_expose(Cxx)
     func takeStagedTextureImpl() -> TextureImpl {

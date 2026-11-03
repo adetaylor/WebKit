@@ -152,3 +152,10 @@ func createRenderBundleEncoderImpl(
     }
     return impl
 }
+
+// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedRenderBundleEncoderImpl.
+func makeRenderBundleEncoderShell(_ impl: RenderBundleEncoderImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.RenderBundleEncoder {
+    precondition(deviceImpl.stagedRenderBundleEncoderImpl == nil)
+    deviceImpl.stagedRenderBundleEncoderImpl = impl
+    return WebGPU.Metal.RenderBundleEncoder.createWithStagedImpl(device).ptr()
+}

@@ -1912,3 +1912,10 @@ private func wtfHashReplicaMatchesWTFHashSet() -> Bool {
     }
     return true
 }
+
+// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedBindGroupImpl.
+func makeBindGroupShell(_ impl: BindGroupImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.BindGroup {
+    precondition(deviceImpl.stagedBindGroupImpl == nil)
+    deviceImpl.stagedBindGroupImpl = impl
+    return WebGPU.Metal.BindGroup.createWithStagedImpl(device).ptr()
+}

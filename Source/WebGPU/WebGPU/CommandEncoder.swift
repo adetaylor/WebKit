@@ -3956,16 +3956,20 @@ func makeCommandEncoderImpl(
     _ shaderValidationEnabled: Bool,
     _ uniqueId: UInt64
 ) -> CommandEncoderImpl {
-    CommandEncoderImpl(
+    let impl = CommandEncoderImpl(
         commandBuffer: commandBuffer,
         device: device,
         deviceImpl: deviceImpl,
         shaderValidationEnabled: shaderValidationEnabled,
         uniqueId: uniqueId
     )
+    deviceImpl.lastMadeCommandEncoderImpl = impl
+    return impl
 }
 
 @_expose(Cxx)
 func makeInvalidCommandEncoderImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> CommandEncoderImpl {
-    CommandEncoderImpl(device: device, deviceImpl: deviceImpl)
+    let impl = CommandEncoderImpl(device: device, deviceImpl: deviceImpl)
+    deviceImpl.lastMadeCommandEncoderImpl = impl
+    return impl
 }

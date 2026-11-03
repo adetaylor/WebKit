@@ -493,3 +493,10 @@ private func createShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl:
 func makeInvalidShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ShaderModuleImpl {
     ShaderModuleImpl(checkedModule: nil, errors: [], warnings: [], device: device, deviceImpl: deviceImpl)
 }
+
+// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedShaderModuleImpl.
+func makeShaderModuleShell(_ impl: ShaderModuleImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.ShaderModule {
+    precondition(deviceImpl.stagedShaderModuleImpl == nil)
+    deviceImpl.stagedShaderModuleImpl = impl
+    return WebGPU.Metal.ShaderModule.createWithStagedImpl(device).ptr()
+}

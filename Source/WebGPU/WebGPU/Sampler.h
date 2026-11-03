@@ -49,6 +49,8 @@ public:
     // Validates the descriptor, generating the validation error, and returns an invalid sampler if it fails.
     static Ref<Sampler> create(const WebGPU::SamplerDescriptor&, Device&);
     static Ref<Sampler> createInvalid(Device&);
+    // Wraps the Impl that Swift staged in DeviceImpl, for a creation made in Swift.
+    static Ref<Sampler> createWithStagedImpl(Device&);
 
     ~Sampler();
 

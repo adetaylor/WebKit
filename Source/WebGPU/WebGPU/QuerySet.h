@@ -60,6 +60,8 @@ public:
     // Validates the descriptor, generating the validation error, and returns an invalid query set if it fails.
     static Ref<QuerySet> create(const WebGPU::QuerySetDescriptor&, Device&);
     static Ref<QuerySet> createInvalid(Device&);
+    // Wraps the Impl that Swift staged in DeviceImpl, for a creation made in Swift.
+    static Ref<QuerySet> createWithStagedImpl(Device&);
 
     ~QuerySet();
 

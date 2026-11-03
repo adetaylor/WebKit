@@ -941,3 +941,10 @@ private func bufferDidModifyRange(_ buffer: any MTLBuffer, _ offset: UInt64, _ l
     buffer.didModifyRange(Int(truncatingIfNeeded: offset)..<Int(truncatingIfNeeded: offset &+ length))
     #endif
 }
+
+// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedBufferImpl.
+func makeBufferShell(_ impl: BufferImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.Buffer {
+    precondition(deviceImpl.stagedBufferImpl == nil)
+    deviceImpl.stagedBufferImpl = impl
+    return WebGPU.Metal.Buffer.createWithStagedImpl(device).ptr()
+}

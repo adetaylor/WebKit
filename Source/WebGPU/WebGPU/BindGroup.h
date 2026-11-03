@@ -89,6 +89,8 @@ public:
     template<typename MakeImpl> static Ref<BindGroup> create(MakeImpl&&);
 #endif
     static Ref<BindGroup> createInvalid(Device&);
+    // Wraps the Impl that Swift staged in DeviceImpl, for a creation made in Swift.
+    static Ref<BindGroup> createWithStagedImpl(Device&);
 
     ~BindGroup();
 

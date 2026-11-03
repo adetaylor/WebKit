@@ -87,6 +87,11 @@ Ref<Buffer> Buffer::create(const WebGPUSwift::BufferImpl& impl)
     return result;
 }
 
+Ref<Buffer> Buffer::createWithStagedImpl(Device& device)
+{
+    return create(device.swiftImpl().takeStagedBufferImpl());
+}
+
 Ref<Buffer> Buffer::createInvalid(Device& device)
 {
     return create(makeInvalidBufferImpl(&device, device.swiftImpl()));

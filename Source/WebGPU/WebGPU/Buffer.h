@@ -99,6 +99,8 @@ public:
     enum class State : uint8_t;
 
     static Ref<Buffer> createInvalid(Device&);
+    // Wraps the Impl that Swift staged in DeviceImpl, for a creation made in Swift.
+    static Ref<Buffer> createWithStagedImpl(Device&);
 #if !defined(__swift__)
     static Ref<Buffer> create(const WebGPUSwift::BufferImpl&);
 #endif

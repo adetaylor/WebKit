@@ -42,6 +42,8 @@ class RenderBundleImpl;
 
 namespace WebGPU::Metal {
 
+class Device;
+
 // https://gpuweb.github.io/gpuweb/#gpurenderbundle
 // Forwards to the Swift RenderBundleImpl, which RenderBundleEncoderImpl.finish() builds and which owns the bundle's
 // state.
@@ -51,6 +53,8 @@ public:
 #if !defined(__swift__)
     static Ref<RenderBundle> create(const WebGPUSwift::RenderBundleImpl&);
 #endif
+    // Wraps the Impl that Swift staged in DeviceImpl, for a creation made in Swift.
+    static Ref<RenderBundle> createWithStagedImpl(Device&);
 
     ~RenderBundle();
 

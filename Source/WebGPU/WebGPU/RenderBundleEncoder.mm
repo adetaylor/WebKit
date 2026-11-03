@@ -62,6 +62,13 @@ Ref<RenderBundleEncoder> RenderBundleEncoder::create(const WebGPU::RenderBundleE
     }));
 }
 
+Ref<RenderBundleEncoder> RenderBundleEncoder::createWithStagedImpl(Device& device)
+{
+    return adoptRef(*new RenderBundleEncoder([&] {
+        return device.swiftImpl().takeStagedRenderBundleEncoderImpl();
+    }));
+}
+
 Ref<RenderBundleEncoder> RenderBundleEncoder::createInvalid(Device& device, NSString* errorString)
 {
     return adoptRef(*new RenderBundleEncoder([&] {

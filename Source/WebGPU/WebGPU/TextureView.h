@@ -58,6 +58,8 @@ public:
     static Ref<TextureView> create(const WebGPUSwift::TextureViewImpl&);
 #endif
     static Ref<TextureView> createInvalid(Texture&, Device&);
+    // Wraps the Impl that Swift staged in DeviceImpl, for a creation made in Swift.
+    static Ref<TextureView> createWithStagedImpl(Device&);
 
     ~TextureView();
 

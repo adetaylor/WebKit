@@ -381,7 +381,7 @@ func makeCommandBufferImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> CommandBufferImpl {
-    CommandBufferImpl(
+    let impl = CommandBufferImpl(
         commandBuffer: commandBuffer,
         sharedEvent: sharedEvent,
         sharedEventSignalValue: sharedEventSignalValue,
@@ -389,11 +389,13 @@ func makeCommandBufferImpl(
         device: device,
         deviceImpl: deviceImpl
     )
+    deviceImpl.lastMadeCommandBufferImpl = impl
+    return impl
 }
 
 @_expose(Cxx)
 func makeInvalidCommandBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> CommandBufferImpl {
-    CommandBufferImpl(
+    let impl = CommandBufferImpl(
         commandBuffer: nil,
         sharedEvent: nil,
         sharedEventSignalValue: 0,
@@ -401,4 +403,6 @@ func makeInvalidCommandBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: D
         device: device,
         deviceImpl: deviceImpl
     )
+    deviceImpl.lastMadeCommandBufferImpl = impl
+    return impl
 }
