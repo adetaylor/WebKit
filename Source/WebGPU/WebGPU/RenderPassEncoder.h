@@ -156,7 +156,7 @@ void registerICBIndexValidationCompletion(CommandEncoder&, Device&, Buffer& inde
 void registerIndirectDeviceLostChecks(CommandEncoder&, Device&, bool (^takeLostOrOOBRead)(void));
 
 // For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the RenderPassEncoderImpl of a WebGPU::RenderPassEncoder.
-void deliverImpl(WebGPU::RenderPassEncoder&);
+RenderPassEncoder& deliverImpl(WebGPU::RenderPassEncoder&) SWIFT_RETURNS_UNRETAINED;
 
 } // namespace WebGPU::Metal
 

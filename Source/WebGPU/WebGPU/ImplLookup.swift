@@ -88,12 +88,12 @@ public func impl(of commandBuffer: WebGPU.CommandBuffer) -> CommandBufferImpl {
 
 @_spi(WebKitGPU)
 public func impl(of computePassEncoder: WebGPU.ComputePassEncoder) -> ComputePassEncoderImpl {
-    ImplLookup.lookUp(ComputePassEncoderImpl.self) { WebGPU.Metal.deliverImpl(computePassEncoder) }
+    ImplLookup.lookUp(ComputePassEncoderImpl.self) { _ = WebGPU.Metal.deliverImpl(computePassEncoder) }
 }
 
 @_spi(WebKitGPU)
 public func impl(of renderPassEncoder: WebGPU.RenderPassEncoder) -> RenderPassEncoderImpl {
-    ImplLookup.lookUp(RenderPassEncoderImpl.self) { WebGPU.Metal.deliverImpl(renderPassEncoder) }
+    ImplLookup.lookUp(RenderPassEncoderImpl.self) { _ = WebGPU.Metal.deliverImpl(renderPassEncoder) }
 }
 
 // An Impl with the shell of the same object, for the encoders that keep the shells of the objects they're given, which
@@ -301,6 +301,50 @@ public func reference(of commandBuffer: WebGPU.CommandBuffer) -> CommandBufferRe
     return CommandBufferReference(impl, shell)
 }
 
+// A compute pass encoder with its shell, which the pass's Impl needs alive, as Swift holds one.
+@_spi(WebKitGPU)
+public final class ComputePassEncoderReference {
+    public let impl: ComputePassEncoderImpl
+    let shell: WebGPU.Metal.ComputePassEncoder
+
+    init(_ impl: ComputePassEncoderImpl, _ shell: WebGPU.Metal.ComputePassEncoder) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
+@_spi(WebKitGPU)
+public func reference(of computePassEncoder: WebGPU.ComputePassEncoder) -> ComputePassEncoderReference {
+    var shell: WebGPU.Metal.ComputePassEncoder?
+    let impl = ImplLookup.lookUp(ComputePassEncoderImpl.self) { shell = WebGPU.Metal.deliverImpl(computePassEncoder) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return ComputePassEncoderReference(impl, shell)
+}
+
+// A render pass encoder with its shell, which the pass's Impl needs alive, as Swift holds one.
+@_spi(WebKitGPU)
+public final class RenderPassEncoderReference {
+    public let impl: RenderPassEncoderImpl
+    let shell: WebGPU.Metal.RenderPassEncoder
+
+    init(_ impl: RenderPassEncoderImpl, _ shell: WebGPU.Metal.RenderPassEncoder) {
+        self.impl = impl
+        self.shell = shell
+    }
+}
+
+@_spi(WebKitGPU)
+public func reference(of renderPassEncoder: WebGPU.RenderPassEncoder) -> RenderPassEncoderReference {
+    var shell: WebGPU.Metal.RenderPassEncoder?
+    let impl = ImplLookup.lookUp(RenderPassEncoderImpl.self) { shell = WebGPU.Metal.deliverImpl(renderPassEncoder) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return RenderPassEncoderReference(impl, shell)
+}
+
 @_spi(WebKitGPU)
 public func reference(of texture: WebGPU.Texture) -> TextureReference {
     var shell: WebGPU.Metal.Texture?
@@ -359,6 +403,11 @@ extension CommandEncoderReference: GPUObjectReference {
 }
 
 @_spi(WebKitGPU)
+extension ComputePassEncoderReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
 extension ComputePipelineReference: GPUObjectReference {
     public var isValid: Bool { shell.isValid() }
 }
@@ -400,6 +449,11 @@ extension RenderBundleEncoderReference: GPUObjectReference {
 
 @_spi(WebKitGPU)
 extension RenderBundleReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension RenderPassEncoderReference: GPUObjectReference {
     public var isValid: Bool { shell.isValid() }
 }
 

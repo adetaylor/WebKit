@@ -147,9 +147,11 @@ Ref<ComputePassEncoder> ComputePassEncoder::createInvalidWithEncoderStateNotOpen
     return computePassEncoder;
 }
 
-void deliverImpl(WebGPU::ComputePassEncoder& computePassEncoder)
+ComputePassEncoder& deliverImpl(WebGPU::ComputePassEncoder& computePassEncoder)
 {
-    WebGPUSwift::receiveImpl(downcast<ComputePassEncoder>(computePassEncoder).swiftImpl());
+    auto& shell = downcast<ComputePassEncoder>(computePassEncoder);
+    WebGPUSwift::receiveImpl(shell.swiftImpl());
+    return shell;
 }
 
 } // namespace WebGPU::Metal

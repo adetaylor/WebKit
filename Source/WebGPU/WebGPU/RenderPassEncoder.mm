@@ -442,9 +442,11 @@ void registerIndirectDeviceLostChecks(CommandEncoder& parentEncoder, Device& par
     }];
 }
 
-void deliverImpl(WebGPU::RenderPassEncoder& renderPassEncoder)
+RenderPassEncoder& deliverImpl(WebGPU::RenderPassEncoder& renderPassEncoder)
 {
-    WebGPUSwift::receiveImpl(downcast<RenderPassEncoder>(renderPassEncoder).swiftImpl());
+    auto& shell = downcast<RenderPassEncoder>(renderPassEncoder);
+    WebGPUSwift::receiveImpl(shell.swiftImpl());
+    return shell;
 }
 
 } // namespace WebGPU::Metal
