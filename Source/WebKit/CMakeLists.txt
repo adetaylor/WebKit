@@ -1033,6 +1033,7 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteCGRendererMessageReceiver.cpp
         GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
 
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteAdapterMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupLayoutMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBufferMessageReceiver.cpp
@@ -1053,7 +1054,6 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteShaderModuleMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureViewMessageReceiver.cpp
-        GPUProcess/graphics/WebGPU/RemoteAdapter.cpp
         GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
         GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.cpp
 
@@ -1712,6 +1712,7 @@ endif ()
 # Each compiles to nothing unless ENABLE_GPU_PROCESS_WEBGPU_SWIFT is set.
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteAdapterMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBufferMessageReceiver.swift
@@ -1734,6 +1735,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureViewMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteAdapter.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroup.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupLayout.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteBuffer.swift
@@ -1754,6 +1756,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteShaderModule.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteTexture.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureView.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteAdapterMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBufferMessageReceiver.swift

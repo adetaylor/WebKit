@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteAdapter.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
 #include "RemoteAdapterMessages.h"
@@ -39,11 +39,6 @@
 #include <WebCore/WebGPUCppAPI.h>
 #include <WebCore/WebGPUDevice.h>
 #include <wtf/TZoneMallocInlines.h>
-
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-#include "WebGPUSwiftSupport.h"
-#include "WebKit-Swift.h"
-#endif
 
 namespace WebKit {
 
@@ -88,17 +83,13 @@ void RemoteAdapter::requestDevice(const WebGPU::DeviceDescriptor& descriptor, We
         }
 
         auto device = devicePtr.releaseNonNull();
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        objectHeap->swiftImplTable().addDevice(RemoteDeviceBacking { device }, identifier.toUInt64(), queueIdentifier.toUInt64());
-#else
         auto remoteDevice = RemoteDevice::create(*gpuConnectionToWebProcess, gpu, device, objectHeap, WTF::move(streamConnection), identifier, queueIdentifier);
         objectHeap->addObject(identifier, remoteDevice);
         objectHeap->addObject(queueIdentifier, remoteDevice->queue());
-#endif
         callback(device->features(), ::WebGPU::Limits { device->limits() });
     });
 }
 
 } // namespace WebKit
 
-#endif // HAVE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

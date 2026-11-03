@@ -165,6 +165,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RTCDataChannelRemoteManagerMessa
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RTCDataChannelRemoteManagerProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RTCDataChannelRemoteManagerProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteAdapterMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteAdapterMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteAdapterMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteAudioDestinationManagerMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteAudioDestinationManagerMessages.h

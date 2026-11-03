@@ -92,7 +92,6 @@ public:
 
     ~ObjectHeap();
 
-    void addObject(WebGPUIdentifier, RemoteAdapter&);
     void addObject(WebGPUIdentifier, RemoteCompositorIntegration&);
     void addObject(WebGPUIdentifier, RemotePresentationContext&);
     void addObject(WebGPUIdentifier, RemoteXRBinding&);
@@ -100,10 +99,12 @@ public:
     void addObject(WebGPUIdentifier, RemoteXRProjectionLayer&);
     void addObject(WebGPUIdentifier, RemoteXRView&);
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    // Makes the Swift receiver of a texture that a C++ receiver made, in the Swift registry, which owns the objects of
-    // the other kinds.
+    // Make the Swift receivers of an adapter that RemoteGPU requested and of a texture that a C++ receiver made, in the
+    // Swift registry, which owns the objects of the other kinds.
+    void addAdapter(WebGPUIdentifier, ::WebGPU::Adapter&);
     void addTexture(WebGPUIdentifier, ::WebGPU::Texture&);
 #else
+    void addObject(WebGPUIdentifier, RemoteAdapter&);
     void addObject(WebGPUIdentifier, RemoteBindGroup&);
     void addObject(WebGPUIdentifier, RemoteBindGroupLayout&);
     void addObject(WebGPUIdentifier, RemoteBuffer&);
@@ -181,7 +182,6 @@ private:
 
     using Object = Variant<
         std::monostate,
-        IPC::ScopedActiveMessageReceiveQueue<RemoteAdapter>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>,
         IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRBinding>,
@@ -189,6 +189,7 @@ private:
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRProjectionLayer>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRView>
 #if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteAdapter>
         , IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup>
         , IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroupLayout>
         , IPC::ScopedActiveMessageReceiveQueue<RemoteBuffer>

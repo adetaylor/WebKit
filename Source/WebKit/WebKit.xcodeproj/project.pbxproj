@@ -130,6 +130,8 @@
 		4CE9100D75E4D8BA2750538C /* RemoteCDMProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD63B7D416097CBEA80CB2A4 /* RemoteCDMProxy.swift */; };
 		19707119721D983DD12B50CD /* RemoteQuerySet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF60F74AC568B0A2E43AE916 /* RemoteQuerySet.swift */; };
 		1D81557F1BA06B31D988096A /* RemoteBindGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75FFEAD1E819D990CC620000 /* RemoteBindGroup.swift */; };
+		6DAE1F965DD7CAE4D530D40E /* RemoteAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B27DC42561EDE5B3A16FAC8C /* RemoteAdapter.swift */; };
+		F22096AAC6CB39F166D57453 /* RemoteAdapterMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 593A9E6110336761C1F18D9E /* RemoteAdapterMessageReceiver.swift */; };
 		EE565FE77B9B43E660B85F5B /* RemoteCommandEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F73EDA391A690F2183C483 /* RemoteCommandEncoder.swift */; };
 		81FBAB03ACCC134B5E82841C /* RemoteCommandEncoderMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 401BD2E4C3C57B8BA55CB864 /* RemoteCommandEncoderMessageReceiver.swift */; };
 		B33B524D3B64E1BB70B85BB2 /* RemoteTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D0ECA46E7AB1C2656AA7F9E /* RemoteTexture.swift */; };
@@ -4483,6 +4485,7 @@
 		1C55A591275457C800EB7E95 /* RemoteBindGroupLayoutMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteBindGroupLayoutMessages.h; sourceTree = "<group>"; };
 		1C55A592275457C900EB7E95 /* RemoteCommandEncoderMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCommandEncoderMessages.h; sourceTree = "<group>"; };
 		1C55A593275457C900EB7E95 /* RemoteAdapterMessageReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteAdapterMessageReceiver.cpp; sourceTree = "<group>"; };
+		593A9E6110336761C1F18D9E /* RemoteAdapterMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAdapterMessageReceiver.swift; sourceTree = "<group>"; };
 		1C55A595275457C900EB7E95 /* RemotePipelineLayoutMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemotePipelineLayoutMessages.h; sourceTree = "<group>"; };
 		1C55A596275457C900EB7E95 /* RemoteRenderPassEncoderMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteRenderPassEncoderMessages.h; sourceTree = "<group>"; };
 		1C55A597275457C900EB7E95 /* RemoteSamplerMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteSamplerMessages.h; sourceTree = "<group>"; };
@@ -4695,6 +4698,7 @@
 		4FB7746AEDA3A7DDAB261E4D /* RemoteComputePassEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteComputePassEncoder.swift; sourceTree = "<group>"; };
 		B59BA0F4425535431C41C6F3 /* RemoteComputePassEncoderMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteComputePassEncoderMessageReceiver.swift; sourceTree = "<group>"; };
 		1C98C05927446CBA002CCB78 /* RemoteAdapter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteAdapter.cpp; sourceTree = "<group>"; };
+		B27DC42561EDE5B3A16FAC8C /* RemoteAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAdapter.swift; sourceTree = "<group>"; };
 		1C98C05A27446CBA002CCB78 /* RemoteComputePassEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RemoteComputePassEncoder.h; sourceTree = "<group>"; };
 		1C98C07A2744A205002CCB78 /* WebGPUSupportedLimits.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUSupportedLimits.h; sourceTree = "<group>"; };
 		1C98C07B2744B416002CCB78 /* WebGPUCompilationMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUCompilationMessage.h; sourceTree = "<group>"; };
@@ -11650,6 +11654,7 @@
 				1C98C05927446CBA002CCB78 /* RemoteAdapter.cpp */,
 				1C98C04F27446CB8002CCB78 /* RemoteAdapter.h */,
 				1C98C0912744BD9A002CCB78 /* RemoteAdapter.messages.in */,
+				B27DC42561EDE5B3A16FAC8C /* RemoteAdapter.swift */,
 				1C98C05227446CB8002CCB78 /* RemoteBindGroup.cpp */,
 				1C98C05427446CB9002CCB78 /* RemoteBindGroup.h */,
 				1C98C0922744BD9B002CCB78 /* RemoteBindGroup.messages.in */,
@@ -14030,6 +14035,7 @@
 				CC0302A10001000100010004 /* ProxyingPageAgentMessages.h */,
 				51EE7B5A2A95B5820016FF78 /* PushClientConnectionMessages.h */,
 				1C55A593275457C900EB7E95 /* RemoteAdapterMessageReceiver.cpp */,
+				593A9E6110336761C1F18D9E /* RemoteAdapterMessageReceiver.swift */,
 				1C55A5B1275457CD00EB7E95 /* RemoteAdapterMessages.h */,
 				CDFE82BA2F7DE9C300547599 /* RemoteAudioDestinationManagerMessageReceiver.cpp */,
 				CD20CE7725CD2B9D0069B542 /* RemoteAudioHardwareListenerMessageReceiver.cpp */,
@@ -22697,6 +22703,8 @@
 				EB36B16927A7B4500050E00D /* PushService.mm in Sources */,
 				EBA8D3B727A5E33F00CB7900 /* PushServiceConnection.mm in Sources */,
 				DD5697CE2DC06F7700050321 /* rdar150228472.swift in Sources */,
+				6DAE1F965DD7CAE4D530D40E /* RemoteAdapter.swift in Sources */,
+				F22096AAC6CB39F166D57453 /* RemoteAdapterMessageReceiver.swift in Sources */,
 				9B1229CE23FF25F2008CA751 /* RemoteAudioDestinationManager.cpp in Sources */,
 				1D81557F1BA06B31D988096A /* RemoteBindGroup.swift in Sources */,
 				65BEDE451252218AE2900A92 /* RemoteBindGroupLayout.swift in Sources */,

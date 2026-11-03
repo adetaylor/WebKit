@@ -141,6 +141,19 @@ WebGPUSwiftReceiverRegistration* WTF_NULLABLE registerWebGPUSwiftReceiver(const 
 // The C++ API objects that Swift receivers and the registry pass to C++, and that C++ passes to them. Swift can't
 // name the ::WebGPU types in the C++ it generates: it names them WebGPU::..., which inside namespace WebKit means
 // WebKit::WebGPU::....
+class RemoteAdapterBacking {
+public:
+    explicit RemoteAdapterBacking(::WebGPU::Adapter& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::Adapter& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::Adapter> m_backing;
+} SWIFT_SELF_CONTAINED;
+
 class RemoteBufferBacking {
 public:
     explicit RemoteBufferBacking(::WebGPU::Buffer& backing)

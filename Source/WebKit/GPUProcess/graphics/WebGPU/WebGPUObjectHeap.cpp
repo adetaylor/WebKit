@@ -106,12 +106,6 @@ void ObjectHeap::trackDevice(::WebGPU::Device& device)
 }
 #endif
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteAdapter& adapter)
-{
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteAdapter> { protect(adapter) } });
-    ASSERT_UNUSED(result, result.isNewEntry);
-}
-
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCompositorIntegration& querySet)
 {
     auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration> { protect(querySet) } });
@@ -149,11 +143,22 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteXRView& view)
 }
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addAdapter(WebGPUIdentifier identifier, ::WebGPU::Adapter& adapter)
+{
+    swiftImplTable().addAdapter(RemoteAdapterBacking { adapter }, identifier.toUInt64());
+}
+
 void ObjectHeap::addTexture(WebGPUIdentifier identifier, ::WebGPU::Texture& texture)
 {
     swiftImplTable().addTexture(RemoteTextureBacking { texture }, identifier.toUInt64());
 }
 #else
+
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteAdapter& adapter)
+{
+    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteAdapter> { protect(adapter) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteBindGroup& bindGroup)
 {
@@ -300,10 +305,16 @@ Vector<Ref<::WebGPU::Device>> ObjectHeap::devices() const
 
 RefPtr<::WebGPU::Adapter> ObjectHeap::convertAdapterFromBacking(WebGPUIdentifier identifier)
 {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Swift owns adapters, and no C++ receiver names one.
+    UNUSED_PARAM(identifier);
+    return nullptr;
+#else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteAdapter>>(iterator->value))
         return nullptr;
     return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteAdapter>>(iterator->value)->backing();
+#endif
 }
 
 RefPtr<::WebGPU::BindGroup> ObjectHeap::convertBindGroupFromBacking(WebGPUIdentifier identifier)

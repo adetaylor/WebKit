@@ -55,6 +55,7 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "RemoteAdapterMessages.h"
 #include "RemoteBindGroupLayoutMessages.h"
 #include "RemoteBindGroupMessages.h"
 #include "RemoteBufferMessages.h"

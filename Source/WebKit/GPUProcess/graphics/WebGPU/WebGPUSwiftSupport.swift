@@ -108,11 +108,16 @@ final class WebGPUImplTable {
         entries.removeAll()
     }
 
-    // Makes the receivers of a device that the adapter made, and of its queue.
+    // Makes the receiver of an adapter that RemoteGPU requested.
     @used
-    func addDevice(_ backing: WebKit.RemoteDeviceBacking, _ identifier: UInt64, _ queueIdentifier: UInt64) {
-        let device = WebGPUSwift.reference(of: backing.get())
-        host.trackDevice(backing.get())
+    func addAdapter(_ backing: WebKit.RemoteAdapterBacking, _ identifier: UInt64) {
+        RemoteAdapter.add(WebGPUSwift.reference(of: backing.get()), WebGPURegistryLink(self, identifier))
+    }
+
+    // Makes the receivers of a device that an adapter made, and of its queue.
+    @_expose(!Cxx)
+    func addDevice(_ device: DeviceReference, _ identifier: UInt64, _ queueIdentifier: UInt64) {
+        host.trackDevice(device.apiObject)
         let receiver = RemoteDevice(device, link: WebGPURegistryLink(self, identifier))
         add(identifier, device, receiver: receiver, registration: WebKit.registerWebGPUSwiftReceiver(host, receiver.getMessageReceiver(), .RemoteDevice, identifier))
         RemoteQueue.add(device.queue, WebGPURegistryLink(self, queueIdentifier))

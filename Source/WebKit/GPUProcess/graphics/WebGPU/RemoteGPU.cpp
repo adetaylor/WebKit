@@ -214,8 +214,12 @@ void RemoteGPU::requestAdapter(const WebGPU::RequestAdapterOptions& options, Web
             return;
         }
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+        objectHeap->addAdapter(identifier, *adapter);
+#else
         auto remoteAdapter = RemoteAdapter::create(*gpuConnectionToWebProcess, gpu, *adapter, objectHeap, WTF::move(streamConnection), identifier);
         objectHeap->addObject(identifier, remoteAdapter);
+#endif
 
         auto info = adapter->info();
         callback({ { WTF::move(info.name), adapter->features(), adapter->limits(), info.isFallbackAdapter, info.subgroupMinSize, info.subgroupMaxSize } });
