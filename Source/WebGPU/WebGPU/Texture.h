@@ -154,8 +154,6 @@ private:
 
 // Gives Swift the texture's Impl, through receiveImpl(), and returns its shell.
 Texture& deliverImpl(WebGPU::Texture&) SWIFT_RETURNS_UNRETAINED;
-// The shell as the C++ API object it is, for Swift, which can't convert a shared reference to its base class.
-inline WebGPU::Texture& apiObject(Texture& shell) SWIFT_RETURNS_UNRETAINED { return shell; }
 
 } // namespace WebGPU::Metal
 

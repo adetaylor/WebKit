@@ -181,9 +181,6 @@ private:
     const ThreadSafeWeakPtr<Instance> m_instance;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refQueue, derefQueue) SWIFT_PRIVATE_FILEID("WebGPUSwift/Queue.swift");
 
-// The shell as the C++ API object it is, for Swift, which can't convert a shared reference to its base class.
-inline WebGPU::Queue& apiObject(Queue& shell) SWIFT_RETURNS_UNRETAINED { return shell; }
-
 // Byte-moving primitives for Queue.swift. Free functions with NOESCAPE spans, so that Swift gets overloads taking
 // Span<UInt8>; static members of Queue, a foreign reference type, would not get them (rdar://161274084).
 

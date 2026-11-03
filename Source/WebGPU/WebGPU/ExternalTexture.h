@@ -77,9 +77,5 @@ private:
     const std::unique_ptr<ExternalTextureImplBox> m_impl;
 };
 
-// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the ExternalTextureImpl of a WebGPU::ExternalTexture.
-ExternalTexture& deliverImpl(WebGPU::ExternalTexture&) SWIFT_RETURNS_UNRETAINED;
-// The shell as the C++ API object it is, for Swift, which can't convert a shared reference to its base class.
-inline WebGPU::ExternalTexture& apiObject(ExternalTexture& shell) SWIFT_RETURNS_UNRETAINED { return shell; }
 
 } // namespace WebGPU::Metal

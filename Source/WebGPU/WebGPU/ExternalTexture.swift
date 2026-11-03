@@ -71,7 +71,7 @@ extension DeviceReference {
 
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class ExternalTextureImpl: DeliverableImpl {
+public final class ExternalTextureImpl {
     // nil: no frame.
     private var backingPixelBuffer: CVPixelBuffer?
     private var destroyed = false

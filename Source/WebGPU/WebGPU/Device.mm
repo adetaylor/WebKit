@@ -410,12 +410,6 @@ Ref<Device> createDevice(id<MTLDevice> device, const String& label, const Hardwa
     return Device::create(device, String { label }, HardwareCapabilities { capabilities }, adapter);
 }
 
-Device& deliverImpl(WebGPU::Device& device)
-{
-    auto& shell = downcast<Device>(device);
-    WebGPUSwift::receiveImpl(shell.swiftImpl());
-    return shell;
-}
 
 } // namespace WebGPU::Metal
 

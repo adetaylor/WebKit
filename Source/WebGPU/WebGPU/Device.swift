@@ -49,7 +49,7 @@ typealias DeviceShell = ShellReference<WebGPU.Metal.Device>
 // handlers hop back through Instance::scheduleWork, and hand their references to the shells over to the work items,
 // so that the last of them is released on the API thread.
 @_expose(Cxx)
-final class DeviceImpl: DeliverableImpl {
+final class DeviceImpl {
     private struct ErrorScope {
         let filter: WebGPU.ErrorFilter
         // The first error the scope caught; later ones are dropped.
@@ -187,7 +187,6 @@ final class DeviceImpl: DeliverableImpl {
             backingPlaceholderBuffer = nil
             backingPlaceholderTexture = nil
             backingPlaceholderDepthStencilTexture = nil
-            super.init()
             defaultQueueImpl.encoderTimestampsDevice = self
             return
         }
@@ -199,7 +198,6 @@ final class DeviceImpl: DeliverableImpl {
         DeviceImpl.setOwnerWithIdentity(placeholderBuffer, adapter)
         backingPlaceholderBuffer = placeholderBuffer
         (backingPlaceholderTexture, backingPlaceholderDepthStencilTexture) = makePlaceholderTextures(metalDevice)
-        super.init()
         defaultQueueImpl.encoderTimestampsDevice = self
     }
 
