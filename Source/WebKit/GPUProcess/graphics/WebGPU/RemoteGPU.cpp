@@ -238,8 +238,12 @@ void RemoteGPU::createPresentationContext(const WebGPU::PresentationContextDescr
 
     auto presentationContext = backing->createPresentationContext(*convertedDescriptor);
     MESSAGE_CHECK(presentationContext);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    objectHeap->addPresentationContext(identifier, *presentationContext);
+#else
     auto remotePresentationContext = RemotePresentationContext::create(*m_gpuConnectionToWebProcess.get(), *this, *presentationContext, objectHeap, *m_streamConnection, identifier);
     objectHeap->addObject(identifier, remotePresentationContext);
+#endif
 }
 
 RefPtr<GPUConnectionToWebProcess> RemoteGPU::gpuConnectionToWebProcess() const

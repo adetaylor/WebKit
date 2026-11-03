@@ -93,18 +93,19 @@ public:
     ~ObjectHeap();
 
     void addObject(WebGPUIdentifier, RemoteCompositorIntegration&);
-    void addObject(WebGPUIdentifier, RemotePresentationContext&);
     void addObject(WebGPUIdentifier, RemoteXRBinding&);
     void addObject(WebGPUIdentifier, RemoteXRSubImage&);
     void addObject(WebGPUIdentifier, RemoteXRProjectionLayer&);
     void addObject(WebGPUIdentifier, RemoteXRView&);
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    // Make the Swift receivers of an adapter that RemoteGPU requested and of a texture that a C++ receiver made, in the
-    // Swift registry, which owns the objects of the other kinds.
+    // Make the Swift receivers of an adapter and a canvas context that RemoteGPU made and of a texture that a C++ receiver
+    // made, in the Swift registry, which owns the objects of the other kinds.
     void addAdapter(WebGPUIdentifier, ::WebGPU::Adapter&);
+    void addPresentationContext(WebGPUIdentifier, ::WebGPU::PresentationContext&);
     void addTexture(WebGPUIdentifier, ::WebGPU::Texture&);
 #else
     void addObject(WebGPUIdentifier, RemoteAdapter&);
+    void addObject(WebGPUIdentifier, RemotePresentationContext&);
     void addObject(WebGPUIdentifier, RemoteBindGroup&);
     void addObject(WebGPUIdentifier, RemoteBindGroupLayout&);
     void addObject(WebGPUIdentifier, RemoteBuffer&);
@@ -183,7 +184,6 @@ private:
     using Object = Variant<
         std::monostate,
         IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>,
-        IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRBinding>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRSubImage>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRProjectionLayer>,
@@ -200,6 +200,7 @@ private:
         , IPC::ScopedActiveMessageReceiveQueue<RemoteDevice>
         , IPC::ScopedActiveMessageReceiveQueue<RemoteExternalTexture>
         , IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout>
+        , IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>
         , IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>
         , IPC::ScopedActiveMessageReceiveQueue<RemoteQueue>
         , IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder>

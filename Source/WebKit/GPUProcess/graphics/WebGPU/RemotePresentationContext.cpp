@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemotePresentationContext.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
 #include "RemotePresentationContextMessages.h"
@@ -96,14 +96,10 @@ void RemotePresentationContext::getCurrentTexture(WebGPUIdentifier identifier, u
     // The Web Process should already be caching these current textures internally, so it's unlikely that we'll
     // actually run into a problem here.
     Ref objectHeap = m_objectHeap.get();
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    objectHeap->addTexture(identifier, *texture);
-#else
     auto remoteTexture = RemoteTexture::create(*connection, protect(m_gpu), *texture, objectHeap, protect(m_streamConnection), identifier);
     objectHeap->addObject(identifier, remoteTexture);
-#endif
 }
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

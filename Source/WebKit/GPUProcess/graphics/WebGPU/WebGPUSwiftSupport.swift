@@ -123,8 +123,13 @@ final class WebGPUImplTable {
         RemoteQueue.add(device.queue, WebGPURegistryLink(self, queueIdentifier))
     }
 
-    // Makes the receiver of a texture that a C++ receiver made: a presentation context's current texture, or an XR
-    // subimage's.
+    // Makes the receiver of a canvas context that RemoteGPU made.
+    @used
+    func addPresentationContext(_ backing: WebKit.RemotePresentationContextBacking, _ identifier: UInt64) {
+        RemotePresentationContext.add(WebGPUSwift.reference(of: backing.get()), WebGPURegistryLink(self, identifier))
+    }
+
+    // Makes the receiver of a texture that a C++ receiver made: an XR subimage's.
     @used
     func addTexture(_ backing: WebKit.RemoteTextureBacking, _ identifier: UInt64) {
         RemoteTexture.add(WebGPUSwift.reference(of: backing.get()), WebGPURegistryLink(self, identifier))

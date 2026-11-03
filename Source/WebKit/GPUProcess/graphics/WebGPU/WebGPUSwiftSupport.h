@@ -191,6 +191,19 @@ private:
 
 using OptionalRemoteDeviceBacking = std::optional<RemoteDeviceBacking>;
 
+class RemotePresentationContextBacking {
+public:
+    explicit RemotePresentationContextBacking(::WebGPU::PresentationContext& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::PresentationContext& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::PresentationContext> m_backing;
+} SWIFT_SELF_CONTAINED;
+
 class RemoteTextureBacking {
 public:
     explicit RemoteTextureBacking(::WebGPU::Texture& backing)

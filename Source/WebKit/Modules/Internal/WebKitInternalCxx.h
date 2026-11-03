@@ -66,6 +66,7 @@
 #include "RemoteDeviceMessages.h"
 #include "RemoteExternalTextureMessages.h"
 #include "RemotePipelineLayoutMessages.h"
+#include "RemotePresentationContextMessages.h"
 #include "RemoteQuerySetMessages.h"
 #include "RemoteQueueMessages.h"
 #include "RemoteRenderBundleEncoderMessages.h"

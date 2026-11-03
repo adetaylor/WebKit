@@ -112,12 +112,6 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCompositorIntegrat
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemotePresentationContext& presentationContext)
-{
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext> { protect(presentationContext) } });
-    ASSERT_UNUSED(result, result.isNewEntry);
-}
-
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteXRBinding& xrBinding)
 {
     auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteXRBinding> { protect(xrBinding) } });
@@ -148,11 +142,22 @@ void ObjectHeap::addAdapter(WebGPUIdentifier identifier, ::WebGPU::Adapter& adap
     swiftImplTable().addAdapter(RemoteAdapterBacking { adapter }, identifier.toUInt64());
 }
 
+void ObjectHeap::addPresentationContext(WebGPUIdentifier identifier, ::WebGPU::PresentationContext& presentationContext)
+{
+    swiftImplTable().addPresentationContext(RemotePresentationContextBacking { presentationContext }, identifier.toUInt64());
+}
+
 void ObjectHeap::addTexture(WebGPUIdentifier identifier, ::WebGPU::Texture& texture)
 {
     swiftImplTable().addTexture(RemoteTextureBacking { texture }, identifier.toUInt64());
 }
 #else
+
+void ObjectHeap::addObject(WebGPUIdentifier identifier, RemotePresentationContext& presentationContext)
+{
+    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext> { protect(presentationContext) } });
+    ASSERT_UNUSED(result, result.isNewEntry);
+}
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteAdapter& adapter)
 {
@@ -471,10 +476,16 @@ RefPtr<::WebGPU::PipelineLayout> ObjectHeap::convertPipelineLayoutFromBacking(We
 
 RefPtr<::WebGPU::PresentationContext> ObjectHeap::convertPresentationContextFromBacking(WebGPUIdentifier identifier)
 {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Swift owns canvas contexts, and no C++ receiver names one.
+    UNUSED_PARAM(identifier);
+    return nullptr;
+#else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>>(iterator->value))
         return nullptr;
     return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>>(iterator->value)->backing();
+#endif
 }
 
 RefPtr<::WebGPU::QuerySet> ObjectHeap::convertQuerySetFromBacking(WebGPUIdentifier identifier)

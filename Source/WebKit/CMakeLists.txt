@@ -1044,6 +1044,7 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteDeviceMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteExternalTextureMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemotePipelineLayoutMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemotePresentationContextMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySetMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteQueueMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteRenderBundleEncoderMessageReceiver.cpp
@@ -1723,6 +1724,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteDeviceMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteExternalTextureMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemotePipelineLayoutMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemotePresentationContextMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteQuerySetMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteQueueMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderBundleEncoderMessageReceiver.swift
@@ -1746,6 +1748,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteDevice.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteExternalTexture.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemotePipelineLayout.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemotePresentationContext.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySet.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteQueue.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteRenderBundle.swift
@@ -1767,6 +1770,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteDeviceMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteExternalTextureMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemotePipelineLayoutMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemotePresentationContextMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteQuerySetMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteQueueMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderBundleEncoderMessageReceiver.swift
