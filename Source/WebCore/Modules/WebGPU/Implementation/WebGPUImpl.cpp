@@ -29,6 +29,7 @@
 #if HAVE(WEBGPU_IMPLEMENTATION)
 
 #include "WebGPUCompositorIntegrationImpl.h"
+#include "WebGPUCreateImpl.h"
 #include "WebGPUExternalTextureDescriptor.h"
 #include "WebGPUImageCopyExternalImage.h"
 #include "WebGPUImageCopyTextureTagged.h"
@@ -147,7 +148,7 @@ NODELETE static std::optional<SourceTextureFormat> sourceTextureFormat(PixelForm
     return std::nullopt;
 }
 
-void WebGPUIntegrationImpl::copyExternalImageToTexture(WebGPU::Queue& queue, const WebGPUExternalImageSource& source, const WebGPUImageCopyTextureTagged& destination, const WebGPU::Extent3D& copySize)
+std::optional<::WebGPU::ImageCopyExternalImage> backingImageCopyExternalImage(const WebGPUExternalImageSource& source)
 {
     ::WebGPU::ImageCopyExternalImage backingSource;
     backingSource.origin = source.origin.value_or(WebGPU::Origin2D { });
@@ -165,7 +166,7 @@ void WebGPUIntegrationImpl::copyExternalImageToTexture(WebGPU::Queue& queue, con
         // texture's is.
         auto* pixelBuffer = std::get_if<RetainPtr<CVPixelBufferRef>>(&*source.videoSource);
         if (!pixelBuffer || !*pixelBuffer)
-            return;
+            return std::nullopt;
 
         backingSource.pixelBuffer = *pixelBuffer;
         // The display transform is the one thing about the frame its pixel buffer does not carry.
@@ -177,21 +178,21 @@ void WebGPUIntegrationImpl::copyExternalImageToTexture(WebGPU::Queue& queue, con
     {
         RefPtr sourceImageBuffer = source.imageBuffer;
         if (!sourceImageBuffer)
-            return;
+            return std::nullopt;
 
         // Only accelerated ImageBuffers have an IOSurface to wrap in an MTLTexture. GPUQueue rejects
         // unaccelerated sources before we get here, but the backing may have been dropped since.
         auto* surface = sourceImageBuffer->surface();
         if (!surface)
-            return;
+            return std::nullopt;
 
         auto sourceSize = sourceImageBuffer->truncatedLogicalSize();
         if (!sourceSize.width() || !sourceSize.height())
-            return;
+            return std::nullopt;
 
         auto sourceFormat = sourceTextureFormat(sourceImageBuffer->pixelFormat());
         if (!sourceFormat)
-            return;
+            return std::nullopt;
 
         backingSource.source = surface->surface();
         backingSource.sourceFormat = sourceFormat->format;
@@ -200,7 +201,16 @@ void WebGPUIntegrationImpl::copyExternalImageToTexture(WebGPU::Queue& queue, con
         backingSource.colorSpace = sourceImageBuffer->colorSpace() == ColorSpace::DisplayP3() ? ::WebGPU::PredefinedColorSpace::DisplayP3 : ::WebGPU::PredefinedColorSpace::SRGB;
     }
 
-    queue.copyExternalImageToTexture(backingSource, {
+    return backingSource;
+}
+
+void WebGPUIntegrationImpl::copyExternalImageToTexture(WebGPU::Queue& queue, const WebGPUExternalImageSource& source, const WebGPUImageCopyTextureTagged& destination, const WebGPU::Extent3D& copySize)
+{
+    auto backingSource = backingImageCopyExternalImage(source);
+    if (!backingSource)
+        return;
+
+    queue.copyExternalImageToTexture(*backingSource, {
         .texture = destination.texture,
         .mipLevel = destination.mipLevel,
         .origin = destination.origin,
@@ -216,10 +226,10 @@ RefPtr<WebCore::NativeImage> WebGPUIntegrationImpl::nativeImage(WebGPU::Queue&, 
     RELEASE_ASSERT_NOT_REACHED();
 }
 
-RefPtr<WebGPU::ExternalTexture> WebGPUIntegrationImpl::importExternalTexture(WebGPU::Device& device, const WebGPUExternalTextureDescriptor& descriptor)
+::WebGPU::ExternalTextureDescriptor backingExternalTextureDescriptor(const WebGPUExternalTextureDescriptor& descriptor)
 {
     auto* pixelBuffer = std::get_if<RetainPtr<CVPixelBufferRef>>(&descriptor.videoBacking);
-    return device.importExternalTexture({
+    return {
         .label = descriptor.label,
         .pixelBuffer = pixelBuffer ? *pixelBuffer : nullptr,
         .colorSpace = convertToWebGPU(descriptor.colorSpace),
@@ -227,7 +237,12 @@ RefPtr<WebGPU::ExternalTexture> WebGPUIntegrationImpl::importExternalTexture(Web
             .width = static_cast<uint32_t>(std::max(0, descriptor.visibleSize.width())),
             .height = static_cast<uint32_t>(std::max(0, descriptor.visibleSize.height())),
         },
-    });
+    };
+}
+
+RefPtr<WebGPU::ExternalTexture> WebGPUIntegrationImpl::importExternalTexture(WebGPU::Device& device, const WebGPUExternalTextureDescriptor& descriptor)
+{
+    return device.importExternalTexture(backingExternalTextureDescriptor(descriptor));
 }
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)

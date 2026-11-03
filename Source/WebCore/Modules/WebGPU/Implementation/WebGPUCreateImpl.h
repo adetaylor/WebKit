@@ -28,6 +28,7 @@
 #if HAVE(WEBGPU_IMPLEMENTATION)
 
 #include <WebCore/WebGPU.h>
+#include <optional>
 #include <wtf/CompletionHandler.h>
 #include <wtf/Function.h>
 #include <wtf/RefPtr.h>
@@ -35,10 +36,17 @@
 namespace WebCore {
 
 class ProcessIdentity;
+struct WebGPUExternalImageSource;
+struct WebGPUExternalTextureDescriptor;
 
 // Runs a work item on the thread that the WebGPU objects call back on.
 using WebGPUScheduleWorkFunction = Function<void(Function<void()>&&)>;
 WEBCORE_EXPORT RefPtr<WebGPUIntegration> createWebGPUIntegration(WebGPUScheduleWorkFunction&&, const ProcessIdentity*);
+
+// The WebGPU implementation's forms of a source and a descriptor that name WebCore objects, as the integration that
+// createWebGPUIntegration() makes passes them on. std::nullopt if the source has nothing to copy.
+WEBCORE_EXPORT std::optional<::WebGPU::ImageCopyExternalImage> backingImageCopyExternalImage(const WebGPUExternalImageSource&);
+WEBCORE_EXPORT ::WebGPU::ExternalTextureDescriptor backingExternalTextureDescriptor(const WebGPUExternalTextureDescriptor&);
 
 } // namespace WebCore
 
