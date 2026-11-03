@@ -51,12 +51,12 @@ final class RemoteSampler {
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
-    @used
+    @_expose(!Cxx)
     func getMessageReceiver() -> RefRemoteSamplerMessageForwarder {
         WebKit.RemoteSamplerMessageForwarder.create(target: self)
     }
 
-    @used
+    @_expose(!Cxx)
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
         link.sharedPreferencesForWebProcess()
     }

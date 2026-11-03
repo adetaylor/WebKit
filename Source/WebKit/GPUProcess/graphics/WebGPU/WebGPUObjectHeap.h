@@ -81,39 +81,6 @@ class RemoteXRView;
 
 namespace WebKit::WebGPU {
 
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-using BindGroupLayoutObject = SwiftReceiverObject<::WebGPU::BindGroupLayout, RemoteBindGroupLayout>;
-using BindGroupObject = SwiftReceiverObject<::WebGPU::BindGroup, RemoteBindGroup>;
-using BufferObject = SwiftReceiverObject<::WebGPU::Buffer, RemoteBuffer>;
-using CommandBufferObject = SwiftReceiverObject<::WebGPU::CommandBuffer, RemoteCommandBuffer>;
-using ComputePassEncoderObject = SwiftReceiverObject<::WebGPU::ComputePassEncoder, RemoteComputePassEncoder>;
-using ComputePipelineObject = SwiftReceiverObject<::WebGPU::ComputePipeline, RemoteComputePipeline>;
-using ExternalTextureObject = SwiftReceiverObject<::WebGPU::ExternalTexture, RemoteExternalTexture>;
-using PipelineLayoutObject = SwiftReceiverObject<::WebGPU::PipelineLayout, RemotePipelineLayout>;
-using QuerySetObject = SwiftReceiverObject<::WebGPU::QuerySet, RemoteQuerySet>;
-using RenderBundleEncoderObject = SwiftReceiverObject<::WebGPU::RenderBundleEncoder, RemoteRenderBundleEncoder>;
-using RenderBundleObject = SwiftReceiverObject<::WebGPU::RenderBundle, RemoteRenderBundle>;
-using RenderPassEncoderObject = SwiftReceiverObject<::WebGPU::RenderPassEncoder, RemoteRenderPassEncoder>;
-using RenderPipelineObject = SwiftReceiverObject<::WebGPU::RenderPipeline, RemoteRenderPipeline>;
-using SamplerObject = SwiftReceiverObject<::WebGPU::Sampler, RemoteSampler>;
-using TextureViewObject = SwiftReceiverObject<::WebGPU::TextureView, RemoteTextureView>;
-#else
-using BindGroupLayoutObject = IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroupLayout>;
-using BindGroupObject = IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup>;
-using BufferObject = IPC::ScopedActiveMessageReceiveQueue<RemoteBuffer>;
-using CommandBufferObject = IPC::ScopedActiveMessageReceiveQueue<RemoteCommandBuffer>;
-using ComputePassEncoderObject = IPC::ScopedActiveMessageReceiveQueue<RemoteComputePassEncoder>;
-using ComputePipelineObject = IPC::ScopedActiveMessageReceiveQueue<RemoteComputePipeline>;
-using ExternalTextureObject = IPC::ScopedActiveMessageReceiveQueue<RemoteExternalTexture>;
-using PipelineLayoutObject = IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout>;
-using QuerySetObject = IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>;
-using RenderBundleEncoderObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder>;
-using RenderBundleObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundle>;
-using RenderPassEncoderObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPassEncoder>;
-using RenderPipelineObject = IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPipeline>;
-using SamplerObject = IPC::ScopedActiveMessageReceiveQueue<RemoteSampler>;
-using TextureViewObject = IPC::ScopedActiveMessageReceiveQueue<RemoteTextureView>;
-#endif
 
 class ObjectHeap final : public RefCountedAndCanMakeWeakPtr<ObjectHeap>, public WebGPU::ConvertFromBackingContext {
     WTF_MAKE_TZONE_ALLOCATED(ObjectHeap);
@@ -126,105 +93,38 @@ public:
     ~ObjectHeap();
 
     void addObject(WebGPUIdentifier, RemoteAdapter&);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, BindGroupObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteBindGroup&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, BindGroupLayoutObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteBindGroupLayout&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, BufferObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteBuffer&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, CommandBufferObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteCommandBuffer&);
-#endif
-#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, RemoteCommandEncoder&);
-#endif
     void addObject(WebGPUIdentifier, RemoteCompositorIntegration&);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, ComputePassEncoderObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteComputePassEncoder&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, ComputePipelineObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteComputePipeline&);
-#endif
-#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, RemoteDevice&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, ExternalTextureObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteExternalTexture&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, PipelineLayoutObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemotePipelineLayout&);
-#endif
     void addObject(WebGPUIdentifier, RemotePresentationContext&);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, QuerySetObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteQuerySet&);
-#endif
-#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, RemoteQueue&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, RenderBundleEncoderObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteRenderBundleEncoder&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, RenderBundleObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteRenderBundle&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, RenderPassEncoderObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteRenderPassEncoder&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, RenderPipelineObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteRenderPipeline&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, SamplerObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteSampler&);
-#endif
-#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, RemoteShaderModule&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    // Makes the Swift receiver of a texture that a C++ receiver made, in the Swift registry.
-    void addTexture(WebGPUIdentifier, ::WebGPU::Texture&);
-#else
-    void addObject(WebGPUIdentifier, RemoteTexture&);
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    void addObject(WebGPUIdentifier, TextureViewObject&&);
-#else
-    void addObject(WebGPUIdentifier, RemoteTextureView&);
-#endif
     void addObject(WebGPUIdentifier, RemoteXRBinding&);
     void addObject(WebGPUIdentifier, RemoteXRSubImage&);
     void addObject(WebGPUIdentifier, RemoteXRProjectionLayer&);
     void addObject(WebGPUIdentifier, RemoteXRView&);
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Makes the Swift receiver of a texture that a C++ receiver made, in the Swift registry, which owns the objects of
+    // the other kinds.
+    void addTexture(WebGPUIdentifier, ::WebGPU::Texture&);
+#else
+    void addObject(WebGPUIdentifier, RemoteBindGroup&);
+    void addObject(WebGPUIdentifier, RemoteBindGroupLayout&);
+    void addObject(WebGPUIdentifier, RemoteBuffer&);
+    void addObject(WebGPUIdentifier, RemoteCommandBuffer&);
+    void addObject(WebGPUIdentifier, RemoteCommandEncoder&);
+    void addObject(WebGPUIdentifier, RemoteComputePassEncoder&);
+    void addObject(WebGPUIdentifier, RemoteComputePipeline&);
+    void addObject(WebGPUIdentifier, RemoteDevice&);
+    void addObject(WebGPUIdentifier, RemoteExternalTexture&);
+    void addObject(WebGPUIdentifier, RemotePipelineLayout&);
+    void addObject(WebGPUIdentifier, RemoteQuerySet&);
+    void addObject(WebGPUIdentifier, RemoteQueue&);
+    void addObject(WebGPUIdentifier, RemoteRenderBundleEncoder&);
+    void addObject(WebGPUIdentifier, RemoteRenderBundle&);
+    void addObject(WebGPUIdentifier, RemoteRenderPassEncoder&);
+    void addObject(WebGPUIdentifier, RemoteRenderPipeline&);
+    void addObject(WebGPUIdentifier, RemoteSampler&);
+    void addObject(WebGPUIdentifier, RemoteShaderModule&);
+    void addObject(WebGPUIdentifier, RemoteTexture&);
+    void addObject(WebGPUIdentifier, RemoteTextureView&);
+#endif
 
     void removeObject(WebGPUIdentifier);
 
@@ -267,8 +167,7 @@ public:
     ExistsAndValid objectExistsAndValid(const WebCore::WebGPUIntegration&, WebGPUIdentifier) const;
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT) && !defined(__swift__)
-    // The Swift registry of the WebGPU objects that Swift owns, which also keeps the references of objects in this heap
-    // that Swift made or looked up. The heap removes those as it removes its own entries.
+    // The Swift registry of the WebGPU objects whose messages Swift receives, which the heap empties when it's cleared.
     void createSwiftImplTable(RemoteGPU&);
     WebGPUImplTable& swiftImplTable();
 #endif
@@ -283,42 +182,34 @@ private:
     using Object = Variant<
         std::monostate,
         IPC::ScopedActiveMessageReceiveQueue<RemoteAdapter>,
-        BindGroupObject,
-        BindGroupLayoutObject,
-        BufferObject,
-        CommandBufferObject,
-#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        IPC::ScopedActiveMessageReceiveQueue<RemoteCommandEncoder>,
-#endif
         IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>,
-        ComputePassEncoderObject,
-        ComputePipelineObject,
-#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        IPC::ScopedActiveMessageReceiveQueue<RemoteDevice>,
-#endif
-        ExternalTextureObject,
-        PipelineLayoutObject,
         IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>,
-        QuerySetObject,
-#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        IPC::ScopedActiveMessageReceiveQueue<RemoteQueue>,
-#endif
-        RenderBundleEncoderObject,
-        RenderBundleObject,
-        RenderPassEncoderObject,
-        RenderPipelineObject,
-        SamplerObject,
-#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        IPC::ScopedActiveMessageReceiveQueue<RemoteShaderModule>,
-#endif
-#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        IPC::ScopedActiveMessageReceiveQueue<RemoteTexture>,
-#endif
-        TextureViewObject,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRBinding>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRSubImage>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRProjectionLayer>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRView>
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroupLayout>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteBuffer>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteCommandBuffer>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteCommandEncoder>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteComputePassEncoder>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteComputePipeline>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteDevice>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteExternalTexture>
+        , IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteQueue>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundle>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPassEncoder>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPipeline>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteSampler>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteShaderModule>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteTexture>
+        , IPC::ScopedActiveMessageReceiveQueue<RemoteTextureView>
+#endif
     >;
 
     HashMap<WebGPUIdentifier, Object> m_objects;

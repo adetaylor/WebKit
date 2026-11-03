@@ -70,15 +70,10 @@ where Target.RawValue: FixedWidthInteger, Source.RawValue: FixedWidthInteger {
     return target
 }
 
-// The registry of the WebGPU objects of a RemoteGPU that Swift owns, by identifier, with their receivers, and of the
-// references to objects of the RemoteGPU's object heap that Swift receivers made or looked up. Used only on the
-// RemoteGPU's work queue, as the heap is.
-//
-// The registry owns the objects that Swift makes and receives the messages of: their references, receivers and
-// registrations, which a receiver removes when the web process destructs its object. The object heap stays the
-// authority on the objects that C++ receivers own: it removes an identifier here whenever it removes its own entry,
-// and empties the registry when it's cleared or destroyed, so the registry never keeps a reference to one of those
-// longer than the heap keeps the object.
+// The registry of the WebGPU objects of a RemoteGPU whose messages Swift receives, by identifier: each object's
+// reference, its receiver, and the registration that keeps its messages coming, which the receiver removes when the
+// web process destructs the object. Used only on the RemoteGPU's work queue. The RemoteGPU's object heap, which owns
+// the receivers still written in C++, owns the registry, and empties it when it's cleared or destroyed.
 @_expose(Cxx)
 final class WebGPUImplTable {
     private final class Entry {
@@ -103,7 +98,7 @@ final class WebGPUImplTable {
         self.host = host
     }
 
-    @used
+    @_expose(!Cxx)
     func remove(_ identifier: UInt64) {
         entries[identifier] = nil
     }
@@ -184,12 +179,6 @@ final class WebGPUImplTable {
     @_expose(!Cxx)
     func add(_ identifier: UInt64, _ object: AnyObject, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
         entries[identifier] = Entry(object, receiver: receiver, registration: registration)
-    }
-
-    // Keeps the reference to an object of the object heap that Swift made, until the heap removes it.
-    @_expose(!Cxx)
-    func addReference(_ identifier: UInt64, _ object: AnyObject) {
-        entries[identifier] = Entry(object, receiver: nil, registration: nil)
     }
 
     // The object with that identifier, if there is one of that type.

@@ -50,26 +50,6 @@
 
 namespace WebKit {
 
-WebGPUSwiftReceiverContext::WebGPUSwiftReceiverContext(WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu, WebGPUIdentifier identifier)
-    : m_objectHeap(objectHeap)
-    , m_gpu(gpu)
-    , m_identifier(identifier)
-{
-}
-
-void WebGPUSwiftReceiverContext::removeFromObjectHeap() const
-{
-    if (RefPtr objectHeap = m_objectHeap.get())
-        objectHeap->removeObject(m_identifier);
-}
-
-std::optional<SharedPreferencesForWebProcess> WebGPUSwiftReceiverContext::sharedPreferencesForWebProcess() const
-{
-    if (RefPtr gpu = m_gpu.get())
-        return gpu->sharedPreferencesForWebProcess();
-    return std::nullopt;
-}
-
 WebGPUSwiftRegistryHost::WebGPUSwiftRegistryHost(WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu)
     : m_objectHeap(objectHeap)
     , m_gpu(gpu)

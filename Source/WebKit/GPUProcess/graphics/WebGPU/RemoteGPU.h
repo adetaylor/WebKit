@@ -108,7 +108,6 @@ public:
 
 private:
     friend class WebGPU::ObjectHeap;
-    friend class WebGPUSwiftReceiverContext;
     friend class WebGPUSwiftRegistryHost;
 
     RemoteGPU(WebGPUIdentifier, GPUConnectionToWebProcess&, RemoteRenderingBackend&, Ref<IPC::StreamServerConnection>&&);

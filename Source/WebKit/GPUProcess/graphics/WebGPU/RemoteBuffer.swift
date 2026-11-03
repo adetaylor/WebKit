@@ -58,12 +58,12 @@ final class RemoteBuffer {
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
-    @used
+    @_expose(!Cxx)
     func getMessageReceiver() -> RefRemoteBufferMessageForwarder {
         WebKit.RemoteBufferMessageForwarder.create(target: self)
     }
 
-    @used
+    @_expose(!Cxx)
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
         link.sharedPreferencesForWebProcess()
     }
