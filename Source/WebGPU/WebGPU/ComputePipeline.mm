@@ -146,13 +146,6 @@ void ComputePipeline::setLabel(String&&)
     // MTLComputePipelineState's labels are read-only.
 }
 
-ComputePipeline& deliverImpl(WebGPU::ComputePipeline& computePipeline)
-{
-    auto& shell = downcast<ComputePipeline>(computePipeline);
-    WebGPUSwift::receiveImpl(shell.swiftImpl());
-    return shell;
-}
-
 } // namespace WebGPU::Metal
 
 #pragma mark WGPU Stubs

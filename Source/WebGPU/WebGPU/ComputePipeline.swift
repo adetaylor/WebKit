@@ -33,7 +33,7 @@ import WebGPU_Private.WebGPUCpp
 // One per GPUComputePipeline, owned by the C++ ComputePipeline. The compute pass reads it directly.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class ComputePipelineImpl: DeliverableImpl {
+public final class ComputePipelineImpl {
     // nil == invalid pipeline.
     private let backingComputePipelineState: (any MTLComputePipelineState)?
     // Never null: an invalid pipeline carries an invalid-state layout.

@@ -101,11 +101,6 @@ const Device& BindGroupLayout::device() const
     return borrowSwiftRetained(m_impl->impl.shellDevice());
 }
 
-void deliverImpl(WebGPU::BindGroupLayout& bindGroupLayout)
-{
-    WebGPUSwift::receiveImpl(downcast<BindGroupLayout>(bindGroupLayout).swiftImpl());
-}
-
 } // namespace WebGPU::Metal
 
 #pragma mark WGPU Stubs

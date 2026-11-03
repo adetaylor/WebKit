@@ -31,7 +31,7 @@ import WebGPU_Private.WebGPUCpp
 // is the Mutex-protected `samplerStates` below.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class SamplerImpl: DeliverableImpl {
+public final class SamplerImpl {
     fileprivate struct Configuration {
         let metal: MetalSamplerConfiguration
         let comparison: Bool
@@ -53,7 +53,6 @@ public final class SamplerImpl: DeliverableImpl {
         self.label = label
         self.deviceImpl = deviceImpl
         self.device = device
-        super.init()
         _ = tryCacheSamplerState()
     }
 

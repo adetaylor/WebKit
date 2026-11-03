@@ -282,7 +282,7 @@ func copyDynamicOffsets(_ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsV
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
-final class RenderBundleEncoderImpl: DeliverableImpl {
+final class RenderBundleEncoderImpl {
     let deviceImpl: DeviceImpl
     private var limits: EncoderLimits {
         deviceImpl.limits

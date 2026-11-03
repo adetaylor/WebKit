@@ -159,8 +159,4 @@ private:
 using CreateRenderPipelineAsyncCallback = CompletionHandler<void(std::expected<Ref<WebGPU::RenderPipeline>, WebGPU::PipelineError>&&)>;
 void callCreateRenderPipelineAsyncCallback(CreateRenderPipelineAsyncCallback&, RenderPipeline&, bool succeeded, NSString *errorMessage);
 
-// For reference(of:) in ImplLookup.swift, which gives WebKit's Swift the RenderPipelineImpl of a WebGPU::RenderPipeline, and its
-// shell.
-RenderPipeline& deliverImpl(WebGPU::RenderPipeline&) SWIFT_RETURNS_UNRETAINED;
-
 } // namespace WebGPU::Metal

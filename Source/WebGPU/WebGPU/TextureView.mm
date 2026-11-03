@@ -85,13 +85,6 @@ bool TextureView::isValid() const
     return swiftImpl().isValid();
 }
 
-TextureView& deliverImpl(WebGPU::TextureView& textureView)
-{
-    auto& shell = downcast<TextureView>(textureView);
-    WebGPUSwift::receiveImpl(shell.swiftImpl());
-    return shell;
-}
-
 } // namespace WebGPU::Metal
 
 #pragma mark WGPU Stubs

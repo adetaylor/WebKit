@@ -95,7 +95,7 @@ public final class CommandBufferReference {
 
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class CommandBufferImpl: DeliverableImpl {
+public final class CommandBufferImpl {
     private var backingCommandBuffer: (any MTLCommandBuffer)?
     // The committed command buffer, until the completion handler's work item runs.
     private var cachedCommandBuffer: (any MTLCommandBuffer)?

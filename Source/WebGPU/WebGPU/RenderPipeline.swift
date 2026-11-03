@@ -46,7 +46,7 @@ private enum PipelineStateCompilation {
 // the render encoders read it directly.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class RenderPipelineImpl: DeliverableImpl {
+public final class RenderPipelineImpl {
     // nil == invalid pipeline.
     private let backingRenderPipelineDescriptor: MTLRenderPipelineDescriptor?
     // What render passes draw with: compiled lazily or installed by the async precompile, and replaced by the indirect

@@ -85,7 +85,4 @@ private:
     const std::unique_ptr<BindGroupLayoutImplBox> m_impl;
 };
 
-// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the BindGroupLayoutImpl of a WebGPU::BindGroupLayout.
-void deliverImpl(WebGPU::BindGroupLayout&);
-
 } // namespace WebGPU::Metal

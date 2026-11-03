@@ -43,58 +43,9 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
-// The Impls behind the ::WebGPU C++ API objects that the GPU process's Swift receivers are given, until they create
-// their objects in Swift.
-
-@_spi(WebKitGPU)
-public func impl(of querySet: WebGPU.QuerySet) -> QuerySetImpl {
-    ImplLookup.lookUp(QuerySetImpl.self) { WebGPU.Metal.deliverImpl(querySet) }
-}
-
-@_spi(WebKitGPU)
-public func impl(of bindGroup: WebGPU.BindGroup) -> BindGroupImpl {
-    ImplLookup.lookUp(BindGroupImpl.self) { _ = WebGPU.Metal.deliverImpl(bindGroup) }
-}
-
-@_spi(WebKitGPU)
-public func impl(of externalTexture: WebGPU.ExternalTexture) -> ExternalTextureImpl {
-    ImplLookup.lookUp(ExternalTextureImpl.self) { _ = WebGPU.Metal.deliverImpl(externalTexture) }
-}
-
-@_spi(WebKitGPU)
-public func impl(of sampler: WebGPU.Sampler) -> SamplerImpl {
-    ImplLookup.lookUp(SamplerImpl.self) { WebGPU.Metal.deliverImpl(sampler) }
-}
-
-@_spi(WebKitGPU)
-public func impl(of textureView: WebGPU.TextureView) -> TextureViewImpl {
-    ImplLookup.lookUp(TextureViewImpl.self) { _ = WebGPU.Metal.deliverImpl(textureView) }
-}
-
-@_spi(WebKitGPU)
-public func impl(of bindGroupLayout: WebGPU.BindGroupLayout) -> BindGroupLayoutImpl {
-    ImplLookup.lookUp(BindGroupLayoutImpl.self) { WebGPU.Metal.deliverImpl(bindGroupLayout) }
-}
-
-@_spi(WebKitGPU)
-public func impl(of renderBundle: WebGPU.RenderBundle) -> RenderBundleImpl {
-    ImplLookup.lookUp(RenderBundleImpl.self) { _ = WebGPU.Metal.deliverImpl(renderBundle) }
-}
-
-@_spi(WebKitGPU)
-public func impl(of commandBuffer: WebGPU.CommandBuffer) -> CommandBufferImpl {
-    ImplLookup.lookUp(CommandBufferImpl.self) { _ = WebGPU.Metal.deliverImpl(commandBuffer) }
-}
-
-@_spi(WebKitGPU)
-public func impl(of computePassEncoder: WebGPU.ComputePassEncoder) -> ComputePassEncoderImpl {
-    ImplLookup.lookUp(ComputePassEncoderImpl.self) { _ = WebGPU.Metal.deliverImpl(computePassEncoder) }
-}
-
-@_spi(WebKitGPU)
-public func impl(of renderPassEncoder: WebGPU.RenderPassEncoder) -> RenderPassEncoderImpl {
-    ImplLookup.lookUp(RenderPassEncoderImpl.self) { _ = WebGPU.Metal.deliverImpl(renderPassEncoder) }
-}
+// The Impls behind the ::WebGPU C++ API objects that C++ still makes for the GPU process's Swift receivers: the
+// adapter's devices, the textures of presentation contexts and XR, WebCore's external textures, and the passes, whose
+// descriptors C++ converts.
 
 // An Impl with the shell of the same object, for the encoders that keep the shells of the objects they're given, which
 // WebKit can't name.
@@ -111,16 +62,6 @@ public final class BindGroupReference {
 }
 
 @_spi(WebKitGPU)
-public func reference(of bindGroup: WebGPU.BindGroup) -> BindGroupReference {
-    var shell: WebGPU.Metal.BindGroup?
-    let impl = ImplLookup.lookUp(BindGroupImpl.self) { shell = WebGPU.Metal.deliverImpl(bindGroup) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return BindGroupReference(impl, shell)
-}
-
-@_spi(WebKitGPU)
 public final class ComputePipelineReference {
     public let impl: ComputePipelineImpl
     let shell: WebGPU.Metal.ComputePipeline
@@ -129,16 +70,6 @@ public final class ComputePipelineReference {
         self.impl = impl
         self.shell = shell
     }
-}
-
-@_spi(WebKitGPU)
-public func reference(of computePipeline: WebGPU.ComputePipeline) -> ComputePipelineReference {
-    var shell: WebGPU.Metal.ComputePipeline?
-    let impl = ImplLookup.lookUp(ComputePipelineImpl.self) { shell = WebGPU.Metal.deliverImpl(computePipeline) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return ComputePipelineReference(impl, shell)
 }
 
 @_spi(WebKitGPU)
@@ -220,16 +151,6 @@ public final class BufferReference {
 }
 
 @_spi(WebKitGPU)
-public func reference(of buffer: WebGPU.Buffer) -> BufferReference {
-    var shell: WebGPU.Metal.Buffer?
-    let impl = ImplLookup.lookUp(BufferImpl.self) { shell = WebGPU.Metal.deliverImpl(buffer) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return BufferReference(impl, shell)
-}
-
-@_spi(WebKitGPU)
 public final class RenderBundleReference {
     public let impl: RenderBundleImpl
     let shell: WebGPU.Metal.RenderBundle
@@ -238,16 +159,6 @@ public final class RenderBundleReference {
         self.impl = impl
         self.shell = shell
     }
-}
-
-@_spi(WebKitGPU)
-public func reference(of renderBundle: WebGPU.RenderBundle) -> RenderBundleReference {
-    var shell: WebGPU.Metal.RenderBundle?
-    let impl = ImplLookup.lookUp(RenderBundleImpl.self) { shell = WebGPU.Metal.deliverImpl(renderBundle) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return RenderBundleReference(impl, shell)
 }
 
 @_spi(WebKitGPU)
@@ -262,26 +173,6 @@ public final class RenderPipelineReference {
 }
 
 @_spi(WebKitGPU)
-public func reference(of renderPipeline: WebGPU.RenderPipeline) -> RenderPipelineReference {
-    var shell: WebGPU.Metal.RenderPipeline?
-    let impl = ImplLookup.lookUp(RenderPipelineImpl.self) { shell = WebGPU.Metal.deliverImpl(renderPipeline) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return RenderPipelineReference(impl, shell)
-}
-
-@_spi(WebKitGPU)
-public func reference(of renderBundleEncoder: WebGPU.RenderBundleEncoder) -> RenderBundleEncoderReference {
-    var shell: WebGPU.Metal.RenderBundleEncoder?
-    let impl = ImplLookup.lookUp(RenderBundleEncoderImpl.self) { shell = WebGPU.Metal.deliverImpl(renderBundleEncoder) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return RenderBundleEncoderReference(impl, shell)
-}
-
-@_spi(WebKitGPU)
 public func reference(of device: WebGPU.Device) -> DeviceReference {
     var shell: WebGPU.Metal.Device?
     let impl = ImplLookup.lookUp(DeviceImpl.self) { shell = WebGPU.Metal.deliverImpl(device) }
@@ -289,16 +180,6 @@ public func reference(of device: WebGPU.Device) -> DeviceReference {
         preconditionFailure("C++ delivered no shell")
     }
     return DeviceReference(impl, shell)
-}
-
-@_spi(WebKitGPU)
-public func reference(of commandBuffer: WebGPU.CommandBuffer) -> CommandBufferReference {
-    var shell: WebGPU.Metal.CommandBuffer?
-    let impl = ImplLookup.lookUp(CommandBufferImpl.self) { shell = WebGPU.Metal.deliverImpl(commandBuffer) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return CommandBufferReference(impl, shell)
 }
 
 // A compute pass encoder with its shell, which the pass's Impl needs alive, as Swift holds one.
@@ -353,16 +234,6 @@ public func reference(of texture: WebGPU.Texture) -> TextureReference {
         preconditionFailure("C++ delivered no shell")
     }
     return TextureReference(impl, shell)
-}
-
-@_spi(WebKitGPU)
-public func reference(of textureView: WebGPU.TextureView) -> TextureViewReference {
-    var shell: WebGPU.Metal.TextureView?
-    let impl = ImplLookup.lookUp(TextureViewImpl.self) { shell = WebGPU.Metal.deliverImpl(textureView) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return TextureViewReference(impl, shell)
 }
 
 @_spi(WebKitGPU)
@@ -512,11 +383,6 @@ extension QuerySetReference {
 @_spi(WebKitGPU)
 extension QueueReference {
     public var apiObject: WebGPU.Queue { WebGPU.Metal.apiObject(shell) }
-}
-
-@_spi(WebKitGPU)
-extension ShaderModuleReference {
-    public var apiObject: WebGPU.ShaderModule { WebGPU.Metal.apiObject(shell) }
 }
 
 @_spi(WebKitGPU)

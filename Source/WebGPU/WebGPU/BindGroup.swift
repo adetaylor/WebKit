@@ -68,7 +68,7 @@ private enum BindGroupLayoutShell {
 // thread, so not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class BindGroupImpl: DeliverableImpl {
+public final class BindGroupImpl {
     /// Paired with layoutImpl: `.none` exactly when the group is invalid.
     private let layoutShell: BindGroupLayoutShell
     let layoutImpl: BindGroupLayoutImpl?
@@ -125,7 +125,6 @@ public final class BindGroupImpl: DeliverableImpl {
         self.uniqueId = uniqueId
         self.deviceImpl = deviceImpl
         self.device = device.shell
-        super.init()
         // Each resource keeps a weak reference to the group.
         self.resources.registerBindGroupHolder(self)
     }

@@ -191,13 +191,6 @@ bool BindGroup::updateExternalTextures(WebGPU::ExternalTexture& apiExternalTextu
     return swiftImpl().updateExternalTextures(externalTexture.swiftImpl());
 }
 
-BindGroup& deliverImpl(WebGPU::BindGroup& bindGroup)
-{
-    auto& shell = downcast<BindGroup>(bindGroup);
-    WebGPUSwift::receiveImpl(shell.swiftImpl());
-    return shell;
-}
-
 } // namespace WebGPU::Metal
 
 #pragma mark WGPU Stubs

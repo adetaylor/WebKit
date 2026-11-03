@@ -123,7 +123,7 @@ enum BufferMapState {
 // not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class BufferImpl: DeliverableImpl {
+public final class BufferImpl {
     private var backingBuffer: (any MTLBuffer)?
     private let initialByteSize: UInt64
     private let usageBits: UInt16

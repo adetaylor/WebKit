@@ -73,7 +73,4 @@ private:
     alignas(void*) std::byte m_impl[sizeof(void*)];
 };
 
-// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the SamplerImpl of a WebGPU::Sampler.
-void deliverImpl(WebGPU::Sampler&);
-
 } // namespace WebGPU::Metal

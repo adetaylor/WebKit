@@ -97,7 +97,6 @@ private:
 #if !defined(__swift__)
     template<typename MakeImpl> explicit RenderBundleEncoder(MakeImpl&&);
     WebGPUSwift::RenderBundleEncoderImpl& swiftImpl() const LIFETIME_BOUND;
-    friend RenderBundleEncoder& deliverImpl(WebGPU::RenderBundleEncoder&);
 #endif
 
     // The Swift object: one generated WebGPU::RenderBundleEncoderImpl, a single strong reference.
@@ -105,8 +104,5 @@ private:
     // destroys it in the destructor.
     alignas(void*) std::byte m_impl[sizeof(void*)];
 };
-
-// For reference(of:) in ImplLookup.swift, which gives WebKit's Swift a RenderBundleEncoderReference.
-RenderBundleEncoder& deliverImpl(WebGPU::RenderBundleEncoder&) SWIFT_RETURNS_UNRETAINED;
 
 } // namespace WebGPU::Metal

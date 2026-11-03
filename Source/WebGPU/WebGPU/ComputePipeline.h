@@ -94,7 +94,4 @@ private:
 using CreateComputePipelineAsyncCallback = CompletionHandler<void(std::expected<Ref<WebGPU::ComputePipeline>, WebGPU::PipelineError>&&)>;
 void callCreateComputePipelineAsyncCallback(CreateComputePipelineAsyncCallback&, ComputePipeline&, bool succeeded, NSString *errorMessage);
 
-// For reference(of:) in ImplLookup.swift, which gives WebKit's Swift the ComputePipelineImpl of a WebGPU::ComputePipeline, and its shell.
-ComputePipeline& deliverImpl(WebGPU::ComputePipeline&) SWIFT_RETURNS_UNRETAINED;
-
 } // namespace WebGPU::Metal

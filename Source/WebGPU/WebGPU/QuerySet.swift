@@ -31,7 +31,7 @@ import WebGPU_Private.WebGPUCpp
 // process-wide counter sample buffer pool below and returns it on destroy() or deinit.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class QuerySetImpl: DeliverableImpl {
+public final class QuerySetImpl {
     // Occlusion query sets own a private MTLBuffer; timestamp query sets lease
     // [counterSampleOffset, counterSampleOffset + queryCount) samples of a pooled counter buffer.
     private var backing: QuerySetBacking

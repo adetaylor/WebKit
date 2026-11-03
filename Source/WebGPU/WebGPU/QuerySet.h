@@ -87,8 +87,6 @@ private:
     alignas(void*) std::byte m_impl[sizeof(void*)];
 } SWIFT_SHARED_REFERENCE(refQuerySet, derefQuerySet) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
-// For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the QuerySetImpl of a WebGPU::QuerySet.
-void deliverImpl(WebGPU::QuerySet&);
 // The shell as the C++ API object it is, for Swift, which can't convert a shared reference to its base class.
 inline WebGPU::QuerySet& apiObject(QuerySet& shell) SWIFT_RETURNS_UNRETAINED { return shell; }
 
