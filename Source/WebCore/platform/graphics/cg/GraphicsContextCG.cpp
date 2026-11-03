@@ -682,6 +682,11 @@ CGPatternRef CGRendererCreateBrushPattern(const CGRendererBrushSource& source, C
     return pattern->createPlatformPattern(WebCore::AffineTransform(WebCore::getUserToBaseCTM(context))).leakRef();
 }
 
+CGColorRef CGRendererCopyCachedColor(uint32_t packedColor)
+{
+    return WebCore::cachedCGColor(WebCore::Color { WebCore::asSRGBA(WebCore::PackedColor::RGBA { packedColor }) }).leakRef();
+}
+
 CGImageRef CGRendererCopySubimage(CGImageRef image, CGRect rect)
 {
 #if CACHE_SUBIMAGES

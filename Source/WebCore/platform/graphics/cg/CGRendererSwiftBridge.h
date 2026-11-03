@@ -210,6 +210,9 @@ struct CGRendererStateSnapshot {
     bool shadowsIgnoreTransforms;
 };
 
+// WebCore's process-wide CGColor for an sRGBA8 color (cachedCGColor()).
+CGColorRef _Nonnull CGRendererCopyCachedColor(uint32_t packedColor) CF_RETURNS_RETAINED;
+
 // The image of an ImageBuffer ShadowBlur drew a shadow into, as GraphicsContext::drawImageBuffer() and
 // GraphicsContextCG::clipToImageBuffer() take it, and the image's headroom.
 CGImageRef _Nullable CGRendererCopyImageBufferImage(WebCore::ImageBuffer&, float& headroom) CF_RETURNS_RETAINED;

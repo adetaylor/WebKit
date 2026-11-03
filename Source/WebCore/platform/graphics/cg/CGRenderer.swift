@@ -106,13 +106,9 @@ private func cxxIntConversion(_ value: Float) -> Int32 {
     return Int32(value)
 }
 
+// WebCore's own CGColor for the color, as the C++ used: CG strokes ellipses more slowly with one CGColorCreateSRGB() makes.
 private func cgColor(packed: UInt32) -> CGColor {
-    CGColor(
-        srgbRed: CGFloat(Float(UInt8(truncatingIfNeeded: packed >> 24)) / 255),
-        green: CGFloat(Float(UInt8(truncatingIfNeeded: packed >> 16)) / 255),
-        blue: CGFloat(Float(UInt8(truncatingIfNeeded: packed >> 8)) / 255),
-        alpha: CGFloat(Float(UInt8(truncatingIfNeeded: packed)) / 255)
-    )
+    CGRendererCopyCachedColor(packed)
 }
 
 private func cgBlendMode(_ compositeOperator: WebCore.CompositeOperator, _ blendMode: WebCore.BlendMode) -> CGBlendMode {
