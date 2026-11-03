@@ -131,6 +131,7 @@ if (PAL_SWIFT_SOURCES)
         "-Xcc -I${bmalloc_FRAMEWORK_HEADERS_DIR}"
         "-Xcc -I${CMAKE_BINARY_DIR}"
         "-Xcc -I${PAL_DERIVED_SOURCES_DIR}"
+        "-Werror SendableClosureCaptures"
     )
     if (NOT APPLE)
         # On Apple platforms the interop macro already adds this; elsewhere PAL's
