@@ -22,7 +22,7 @@
 
 #if ENABLE(GPU_PROCESS)
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::FeatureName : uint8_t {
+[Swift] enum class ::WebGPU::FeatureName : uint8_t {
     DepthClipControl,
     Depth32floatStencil8,
     TextureCompressionBc,

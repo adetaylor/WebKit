@@ -21,7 +21,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::CanvasConfiguration {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::CanvasConfiguration {
     WebKit::WebGPUIdentifier device
     ::WebGPU::TextureFormat format
     OptionSet<::WebGPU::TextureUsage> usage

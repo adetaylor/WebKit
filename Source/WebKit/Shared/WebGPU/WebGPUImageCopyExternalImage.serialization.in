@@ -21,8 +21,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::ImageCopyExternalImage {
-    std::optional<WebKit::WebGPU::Origin2D> origin;
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::ImageCopyExternalImage {
+    std::optional<::WebGPU::Origin2D> origin;
     bool flipY;
     std::optional<WebCore::RenderingResourceIdentifier> imageBufferIdentifier;
     bool premultipliedAlpha;
@@ -32,7 +32,7 @@
 # CustomHeader because this lives beside ImageCopyExternalImage in WebGPUImageCopyExternalImage.h, which
 # the struct above has already pulled in, rather than in a header of its own.
 [CustomHeader, RValue] struct WebKit::WebGPU::ImageCopyExternalImageVideoSource {
-    std::optional<WebKit::WebGPU::Origin2D> origin;
+    std::optional<::WebGPU::Origin2D> origin;
     bool flipY;
     std::optional<WebCore::MediaPlayerIdentifier> mediaIdentifier;
     std::optional<WebKit::SharedVideoFrame> sharedFrame;

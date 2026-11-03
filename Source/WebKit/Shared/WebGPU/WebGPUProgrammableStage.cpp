@@ -39,7 +39,7 @@ std::optional<ProgrammableStage> ConvertToBackingContext::convertToBacking(const
 {
     auto module = convertToBacking(protect(programmableStage.module).get());
     auto constants = WTF::map(programmableStage.constants, [](auto& constant) {
-        return makeKeyValuePair(constant.key, constant.value);
+        return PipelineConstant { constant.key, constant.value };
     });
     return { { module, programmableStage.entryPoint, WTF::move(constants) } };
 }

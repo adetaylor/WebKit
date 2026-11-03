@@ -34,10 +34,16 @@
 
 namespace WebKit::WebGPU {
 
+// Encoded as the KeyValuePair it replaces was: the entry point, then the hint.
+struct ShaderModuleCompilationHintEntry {
+    String entryPoint;
+    ShaderModuleCompilationHint hint;
+};
+
 struct ShaderModuleDescriptor : public ObjectDescriptorBase {
     String code;
     // FIXME: Hook up the sourceMap.
-    Vector<KeyValuePair<String, ShaderModuleCompilationHint>> hints;
+    Vector<ShaderModuleCompilationHintEntry> hints;
 };
 
 } // namespace WebKit::WebGPU

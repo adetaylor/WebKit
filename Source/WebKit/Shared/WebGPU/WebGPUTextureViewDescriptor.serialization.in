@@ -22,7 +22,7 @@
 
 #if ENABLE(GPU_PROCESS)
 header: <WebGPU/WebGPUCpp.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct ::WebGPU::TextureComponentSwizzle {
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] struct ::WebGPU::TextureComponentSwizzle {
     ::WebGPU::ComponentSwizzle r;
     ::WebGPU::ComponentSwizzle g;
     ::WebGPU::ComponentSwizzle b;
@@ -30,7 +30,7 @@ header: <WebGPU/WebGPUCpp.h>
 };
 
 header: <WebGPU/WebGPUCpp.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct ::WebGPU::TextureViewDescriptor {
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] struct ::WebGPU::TextureViewDescriptor {
     String label;
     std::optional<::WebGPU::TextureFormat> format;
     std::optional<::WebGPU::TextureViewDimension> dimension;

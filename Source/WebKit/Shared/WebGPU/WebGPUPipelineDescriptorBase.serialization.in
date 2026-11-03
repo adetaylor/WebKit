@@ -21,7 +21,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::PipelineDescriptorBase : WebKit::WebGPU::ObjectDescriptorBase {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::PipelineDescriptorBase : WebKit::WebGPU::ObjectDescriptorBase {
     Markable<WebKit::WebGPUIdentifier> layout;
 };
 #endif

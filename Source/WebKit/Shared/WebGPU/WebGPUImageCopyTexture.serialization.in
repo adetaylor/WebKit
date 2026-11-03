@@ -21,10 +21,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::ImageCopyTexture {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::ImageCopyTexture {
     WebKit::WebGPUIdentifier texture;
     uint32_t mipLevel;
-    std::optional<WebKit::WebGPU::Origin3D> origin;
+    std::optional<::WebGPU::Origin3D> origin;
     ::WebGPU::TextureAspect aspect;
 };
 #endif

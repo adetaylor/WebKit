@@ -5346,7 +5346,7 @@ header: <WebCore/WritingToolsTypes.h>
 #endif
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::TextureFormat : uint8_t {
+[Swift] enum class ::WebGPU::TextureFormat : uint8_t {
     R8unorm,
     R8snorm,
     R8uint,
@@ -5451,7 +5451,7 @@ enum class ::WebGPU::TextureFormat : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::TextureAspect : uint8_t {
+[Swift] enum class ::WebGPU::TextureAspect : uint8_t {
     All,
     StencilOnly,
     DepthOnly,
@@ -6483,7 +6483,7 @@ header: <WebCore/TextAttachmentForSerialization.h>
 };
 
 header: <WebCore/PredefinedColorSpace.h>
-enum class WebCore::PredefinedColorSpace : uint8_t {
+[Swift] enum class WebCore::PredefinedColorSpace : uint8_t {
       SRGB
     , SRGBLinear
 #if ENABLE(PREDEFINED_COLOR_SPACE_DISPLAY_P3)

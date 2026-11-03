@@ -38,7 +38,7 @@ namespace WebKit::WebGPU {
 std::optional<ShaderModuleDescriptor> ConvertToBackingContext::convertToBacking(const ::WebGPU::ShaderModuleDescriptor& shaderModuleDescriptor)
 {
     auto hints = WTF::map(shaderModuleDescriptor.hints, [&](auto& hint) {
-        return makeKeyValuePair(hint.entryPoint, ShaderModuleCompilationHint { convertToBacking(hint.layout.get()) });
+        return ShaderModuleCompilationHintEntry { hint.entryPoint, ShaderModuleCompilationHint { convertToBacking(hint.layout.get()) } };
     });
     return { { { shaderModuleDescriptor.label }, shaderModuleDescriptor.code, WTF::move(hints) } };
 }
@@ -47,10 +47,10 @@ std::optional<::WebGPU::ShaderModuleDescriptor> ConvertFromBackingContext::conve
 {
     hintsStorage.reserveInitialCapacity(shaderModuleDescriptor.hints.size());
     for (const auto& hint : borrow(shaderModuleDescriptor.hints)) {
-        RefPtr pipelineLayout = convertPipelineLayoutFromBacking(hint.value.pipelineLayout);
+        RefPtr pipelineLayout = convertPipelineLayoutFromBacking(hint.hint.pipelineLayout);
         if (!pipelineLayout)
             return std::nullopt;
-        hintsStorage.append({ .entryPoint = hint.key, .layout = pipelineLayout.releaseNonNull() });
+        hintsStorage.append({ .entryPoint = hint.entryPoint, .layout = pipelineLayout.releaseNonNull() });
     }
 
     return { { shaderModuleDescriptor.label, shaderModuleDescriptor.code, hintsStorage.span() } };

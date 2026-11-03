@@ -21,7 +21,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::VertexState : WebKit::WebGPU::ProgrammableStage {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::VertexState : WebKit::WebGPU::ProgrammableStage {
     Vector<std::optional<WebKit::WebGPU::VertexBufferLayout>> buffers;
 };
 #endif

@@ -21,7 +21,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::BufferBinding {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::BufferBinding {
     WebKit::WebGPUIdentifier buffer
     uint64_t offset
     std::optional<uint64_t> size

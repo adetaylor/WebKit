@@ -21,7 +21,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::ErrorFilter : uint8_t {
+[Swift] enum class ::WebGPU::ErrorFilter : uint8_t {
     OutOfMemory,
     Validation,
     Internal
@@ -34,7 +34,7 @@ header: <WebGPU/WebGPUCpp.h>
 };
 
 header: <WebGPU/WebGPUCpp.h>
-[OptionSet] enum class ::WebGPU::MapMode : uint8_t {
+[OptionSet, Swift] enum class ::WebGPU::MapMode : uint8_t {
     Read,
     Write,
 };
@@ -46,7 +46,7 @@ header: <WebGPU/WebGPUCpp.h>
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::BlendFactor : uint8_t {
+[Swift] enum class ::WebGPU::BlendFactor : uint8_t {
     Zero,
     One,
     Src,
@@ -67,7 +67,7 @@ enum class ::WebGPU::BlendFactor : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::TextureSampleType : uint8_t {
+[Swift] enum class ::WebGPU::TextureSampleType : uint8_t {
     Float,
     UnfilterableFloat,
     Depth,
@@ -76,7 +76,7 @@ enum class ::WebGPU::TextureSampleType : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::BlendOperation : uint8_t {
+[Swift] enum class ::WebGPU::BlendOperation : uint8_t {
     Add,
     Subtract,
     ReverseSubtract,
@@ -85,25 +85,25 @@ enum class ::WebGPU::BlendOperation : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::CanvasToneMappingMode : uint8_t {
+[Swift] enum class ::WebGPU::CanvasToneMappingMode : uint8_t {
     Standard,
     Extended,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::CanvasAlphaMode : uint8_t {
+[Swift] enum class ::WebGPU::CanvasAlphaMode : uint8_t {
     Opaque,
     Premultiplied,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::QueryType : uint8_t {
+[Swift] enum class ::WebGPU::QueryType : uint8_t {
     Occlusion,
     Timestamp,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::CompareFunction : uint8_t {
+[Swift] enum class ::WebGPU::CompareFunction : uint8_t {
     Never,
     Less,
     Equal,
@@ -115,26 +115,26 @@ enum class ::WebGPU::CompareFunction : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::FilterMode : uint8_t {
+[Swift] enum class ::WebGPU::FilterMode : uint8_t {
     Nearest,
     Linear,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::MipmapFilterMode : uint8_t {
+[Swift] enum class ::WebGPU::MipmapFilterMode : uint8_t {
     Nearest,
     Linear,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::TextureDimension : uint8_t {
+[Swift] enum class ::WebGPU::TextureDimension : uint8_t {
     _1d,
     _2d,
     _3d,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::VertexFormat : uint8_t {
+[Swift] enum class ::WebGPU::VertexFormat : uint8_t {
     Uint8,
     Uint8x2,
     Uint8x4,
@@ -180,21 +180,21 @@ enum class ::WebGPU::VertexFormat : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-[OptionSet] enum class ::WebGPU::ShaderStage : uint8_t {
+[OptionSet, Swift] enum class ::WebGPU::ShaderStage : uint8_t {
     Vertex,
     Fragment,
     Compute,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::CompilationMessageType : uint8_t {
+[Swift] enum class ::WebGPU::CompilationMessageType : uint8_t {
     Error,
     Warning,
     Info,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::StencilOperation : uint8_t {
+[Swift] enum class ::WebGPU::StencilOperation : uint8_t {
     Keep,
     Zero,
     Replace,
@@ -206,65 +206,65 @@ enum class ::WebGPU::StencilOperation : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::DeviceLostReason : uint8_t {
+[Swift] enum class ::WebGPU::DeviceLostReason : uint8_t {
     Destroyed,
     Unknown,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::AddressMode : uint8_t {
+[Swift] enum class ::WebGPU::AddressMode : uint8_t {
     ClampToEdge,
     Repeat,
     MirrorRepeat,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::BufferBindingType : uint8_t {
+[Swift] enum class ::WebGPU::BufferBindingType : uint8_t {
     Uniform,
     Storage,
     ReadOnlyStorage,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::StorageTextureAccess : uint8_t {
+[Swift] enum class ::WebGPU::StorageTextureAccess : uint8_t {
     WriteOnly,
     ReadOnly,
     ReadWrite,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::FrontFace : uint8_t {
+[Swift] enum class ::WebGPU::FrontFace : uint8_t {
     CCW,
     CW,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::StoreOp : uint8_t {
+[Swift] enum class ::WebGPU::StoreOp : uint8_t {
     Store,
     Discard,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::LoadOp : uint8_t {
+[Swift] enum class ::WebGPU::LoadOp : uint8_t {
     Load,
     Clear,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::ErrorType : uint8_t {
+[Swift] enum class ::WebGPU::ErrorType : uint8_t {
     Validation,
     OutOfMemory,
     Internal,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-[CustomHeader] struct ::WebGPU::Error {
+[CustomHeader, Swift] struct ::WebGPU::Error {
     ::WebGPU::ErrorType type;
     String message;
 };
 
 header: <WebGPU/WebGPUCpp.h>
-[OptionSet] enum class ::WebGPU::ColorWrite : uint8_t {
+[OptionSet, Swift] enum class ::WebGPU::ColorWrite : uint8_t {
     Red,
     Green,
     Blue,
@@ -273,14 +273,14 @@ header: <WebGPU/WebGPUCpp.h>
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::SamplerBindingType : uint8_t {
+[Swift] enum class ::WebGPU::SamplerBindingType : uint8_t {
     Filtering,
     NonFiltering,
     Comparison,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::PrimitiveTopology : uint8_t {
+[Swift] enum class ::WebGPU::PrimitiveTopology : uint8_t {
     PointList,
     LineList,
     LineStrip,
@@ -289,7 +289,7 @@ enum class ::WebGPU::PrimitiveTopology : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::ComponentSwizzle : uint8_t {
+[Swift] enum class ::WebGPU::ComponentSwizzle : uint8_t {
     Zero,
     One,
     R,
@@ -299,14 +299,14 @@ enum class ::WebGPU::ComponentSwizzle : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::CullMode : uint8_t {
+[Swift] enum class ::WebGPU::CullMode : uint8_t {
     None,
     Front,
     Back,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::TextureViewDimension : uint8_t {
+[Swift] enum class ::WebGPU::TextureViewDimension : uint8_t {
     _1d,
     _2d,
     _2dArray,
@@ -316,13 +316,13 @@ enum class ::WebGPU::TextureViewDimension : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::VertexStepMode : uint8_t {
+[Swift] enum class ::WebGPU::VertexStepMode : uint8_t {
     Vertex,
     Instance,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-[OptionSet] enum class ::WebGPU::BufferUsage : uint16_t {
+[OptionSet, Swift] enum class ::WebGPU::BufferUsage : uint16_t {
     MapRead,
     MapWrite,
     CopySource,
@@ -337,7 +337,7 @@ header: <WebGPU/WebGPUCpp.h>
 };
 
 header: <WebGPU/WebGPUCpp.h>
-[OptionSet] enum class ::WebGPU::TextureUsage : uint8_t {
+[OptionSet, Swift] enum class ::WebGPU::TextureUsage : uint8_t {
     CopySource,
     CopyDestination,
     TextureBinding,
