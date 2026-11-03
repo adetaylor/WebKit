@@ -396,3 +396,12 @@ func makeQuerySetShell(_ impl: QuerySetImpl, device: WebGPU.Metal.Device, device
     deviceImpl.stagedQuerySetImpl = impl
     return WebGPU.Metal.QuerySet.createWithStagedImpl(device).ptr()
 }
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createqueryset
+    public func createQuerySet(_ descriptor: GPUQuerySetDescriptor, label: Swift.String?) -> QuerySetReference {
+        let querySet = createQuerySetImpl(shell, impl, descriptor, label: WTF.String(label ?? ""), impl.timestampCounterSet())
+        return QuerySetReference(querySet, makeQuerySetShell(querySet, device: shell, deviceImpl: impl))
+    }
+}

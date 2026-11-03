@@ -500,3 +500,13 @@ func makeShaderModuleShell(_ impl: ShaderModuleImpl, device: WebGPU.Metal.Device
     deviceImpl.stagedShaderModuleImpl = impl
     return WebGPU.Metal.ShaderModule.createWithStagedImpl(device).ptr()
 }
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule, from WGSL. The label isn't kept, as for the
+    // C++ caller.
+    public func createShaderModule(code: Swift.String, label: Swift.String?) -> ShaderModuleReference {
+        let module = createShaderModuleImpl(shell, impl, code: code)
+        return ShaderModuleReference(module, makeShaderModuleShell(module, device: shell, deviceImpl: impl))
+    }
+}

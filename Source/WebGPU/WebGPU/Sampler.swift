@@ -518,3 +518,12 @@ func makeSamplerShell(_ impl: SamplerImpl, device: WebGPU.Metal.Device, deviceIm
     deviceImpl.stagedSamplerImpl = impl
     return WebGPU.Metal.Sampler.createWithStagedImpl(device).ptr()
 }
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
+    public func createSampler(_ descriptor: GPUSamplerDescriptor, label: Swift.String?) -> SamplerReference {
+        let sampler = createSamplerImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
+        return SamplerReference(sampler, makeSamplerShell(sampler, device: shell, deviceImpl: impl))
+    }
+}

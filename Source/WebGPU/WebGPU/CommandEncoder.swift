@@ -177,6 +177,31 @@ public final class CommandEncoderReference {
     public func setLabel(_ label: Swift.String?) {
         impl.setLabel((label ?? "") as NSString)
     }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
+    public func finish(label: Swift.String?) -> CommandBufferReference {
+        let deviceImpl = impl.deviceImpl
+        let commandBuffer = impl.finish(shell: shell, label: WTF.String(label ?? ""))
+        guard let commandBufferImpl = deviceImpl.lastMadeCommandBufferImpl else {
+            preconditionFailure("CommandBuffer's shell made no Impl")
+        }
+        deviceImpl.lastMadeCommandBufferImpl = nil
+        return CommandBufferReference(commandBufferImpl, commandBuffer.ptr())
+    }
+}
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder. As WTF::String::createNSString() makes the
+    // label for the C++ caller, a null one is empty.
+    public func createCommandEncoder(label: Swift.String?) -> CommandEncoderReference {
+        let encoder = deviceCreateCommandEncoder(shell, impl, (label ?? "") as NSString)
+        guard let encoderImpl = impl.lastMadeCommandEncoderImpl else {
+            preconditionFailure("CommandEncoder's shell made no Impl")
+        }
+        impl.lastMadeCommandEncoderImpl = nil
+        return CommandEncoderReference(encoderImpl, encoder)
+    }
 }
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gputexelcopybufferinfo without its buffer, which a copy takes as its Impl.
@@ -340,8 +365,7 @@ extension CommandEncoderImpl {
     }
 
     // `shell` is this encoder's, which the CommandBuffer holds.
-    fileprivate func finish(shell: WebGPU.Metal.CommandEncoder, descriptor: WebGPU.CommandBufferDescriptor) -> CxxBridging.RefCommandBuffer
-    {
+    fileprivate func finish(shell: WebGPU.Metal.CommandEncoder, label: WTF.String) -> CxxBridging.RefCommandBuffer {
         if !isValid() || (existingCommandEncoder != nil && existingCommandEncoder !== backingBlitCommandEncoder) {
             setEncoderStateEnded()
             discardCommandBuffer()
@@ -363,7 +387,7 @@ extension CommandEncoderImpl {
 
         let commandBuffer = takeCommandBufferForFinish()
 
-        commandBuffer?.label = stringNilIfEmpty(descriptor.label)
+        commandBuffer?.label = stringNilIfEmpty(label)
 
         #if arch(x86_64) && (WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST)
         if (backingManagedBuffers?.count ?? 0) != 0 || (backingManagedTextures?.count ?? 0) != 0 {
@@ -3530,7 +3554,7 @@ final class CommandEncoderImpl {
     // buffer and the passes they make hold it.
     @_expose(Cxx)
     func finish(_ shell: WebGPU.Metal.CommandEncoder, _ descriptor: WebGPU.CommandBufferDescriptor) -> CxxBridging.RefCommandBuffer {
-        finish(shell: shell, descriptor: descriptor)
+        finish(shell: shell, label: descriptor.label)
     }
 
     // CommandEncoder::beginRenderPass() and beginComputePass() call these just before them, for the descriptor's

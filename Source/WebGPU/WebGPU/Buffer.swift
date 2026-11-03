@@ -948,3 +948,12 @@ func makeBufferShell(_ impl: BufferImpl, device: WebGPU.Metal.Device, deviceImpl
     deviceImpl.stagedBufferImpl = impl
     return WebGPU.Metal.Buffer.createWithStagedImpl(device).ptr()
 }
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer: an invalid buffer on failure, as for the C++ caller.
+    public func createBuffer(_ descriptor: GPUBufferDescriptor, label: Swift.String?) -> BufferReference {
+        let buffer = createBufferImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
+        return BufferReference(buffer, makeBufferShell(buffer, device: shell, deviceImpl: impl))
+    }
+}

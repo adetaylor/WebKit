@@ -661,7 +661,7 @@ final class RenderPipelineBuilder {
     func create(_ descriptor: borrowing WebGPU.RenderPipelineDescriptor) -> WebGPU.Metal.RenderPipeline {
         var result: [WebGPU.Metal.RenderPipeline] = []
         create(RenderPipelineInput(descriptor), isAsync: false, .synchronous) { pipeline, _ in
-            result = [pipeline]
+            result = [pipeline.shell]
         }
         // A synchronous creation never defers its completion.
         precondition(result.count == 1)
@@ -683,7 +683,40 @@ final class RenderPipelineBuilder {
         )
         let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
         create(RenderPipelineInput(descriptor), isAsync: true, asynchronousIfPossible()) { pipeline, message in
-            completion.complete(pipeline, message)
+            completion.complete(pipeline.shell, message)
+        }
+        if let wasErrorReportingPaused {
+            _ = deviceImpl.pauseErrorReporting(wasErrorReportingPaused)
+        }
+    }
+
+    // The synchronous createRenderPipeline, for a Swift caller.
+    @_expose(!Cxx)
+    func create(_ descriptor: RenderPipelineInput) -> RenderPipelineReference {
+        var result: [RenderPipelineReference] = []
+        create(descriptor, isAsync: false, .synchronous) { pipeline, _ in
+            result = [pipeline]
+        }
+        precondition(result.count == 1)
+        return result[0]
+    }
+
+    // createRenderPipelineAsync and its replacing form, for a Swift caller. `completion` gets the pipeline, whether it
+    // succeeded, and the message it failed with, on a later turn of the API thread, as the C++ caller's callback does.
+    @_expose(!Cxx)
+    func createAsync(_ descriptor: RenderPipelineInput, _ completion: @escaping (RenderPipelineReference, Bool, String?) -> Void) {
+        let device = self.device
+        let deviceImpl = self.deviceImpl
+        let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
+        create(descriptor, isAsync: true, asynchronousIfPossible()) { pipeline, message in
+            let resolve = {
+                // A lost device makes invalid objects without errors.
+                completion(pipeline, deviceImpl.isDestroyed() || pipeline.impl.isValid(), message)
+            }
+            guard let instance = CxxBridging.protectedInstance(device) else {
+                return resolve()
+            }
+            instance.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { resolve() })
         }
         if let wasErrorReportingPaused {
             _ = deviceImpl.pauseErrorReporting(wasErrorReportingPaused)
@@ -699,7 +732,7 @@ final class RenderPipelineBuilder {
         _ descriptor: RenderPipelineInput,
         isAsync: Bool,
         _ compilation: LibraryCompilation,
-        _ report: @escaping (WebGPU.Metal.RenderPipeline, String?) -> Void
+        _ report: @escaping (RenderPipelineReference, String?) -> Void
     ) {
         let device = self.device
         let deviceImpl = self.deviceImpl
@@ -708,7 +741,7 @@ final class RenderPipelineBuilder {
             if !isAsync {
                 deviceImpl.generateAValidationError(message)
             }
-            report(WebGPU.Metal.RenderPipeline.createInvalid(device).ptr(), message)
+            report(makeInvalidRenderPipeline(device, deviceImpl), message)
         }
 
         let renderPipelineDescriptor = MTLRenderPipelineDescriptor()
@@ -748,7 +781,7 @@ final class RenderPipelineBuilder {
                 }
 
                 guard let scheduler = asynchronousCompileScheduler(compilation, device, deviceImpl) else {
-                    return report(pipeline, nil)
+                    return report(RenderPipelineReference(impl, pipeline), nil)
                 }
                 // Compile the pipeline state now rather than leaving it to the first draw. This is only an
                 // optimization: nothing here can invalidate the pipeline, and if the compile fails the lazy
@@ -757,7 +790,7 @@ final class RenderPipelineBuilder {
                     if let renderPipelineState {
                         impl.setPrecompiledRenderPipelineState(renderPipelineState)
                     }
-                    report(pipeline, nil)
+                    report(RenderPipelineReference(impl, pipeline), nil)
                 }
             }
         }
@@ -1728,4 +1761,35 @@ private func inWTFHashTableOrder(_ buffers: [RequiredVertexBuffer]) -> [Required
         result.append(buffers[position])
     }
     return result
+}
+
+// RenderPipeline::createInvalid, made in Swift so that its Impl is known. An invalid pipeline still holds an invalid
+// pipeline layout, so that it always has one.
+func makeInvalidRenderPipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> RenderPipelineReference {
+    let layout = makeLayoutPair(makeInvalidPipelineLayoutImpl(device), device: device, deviceImpl: deviceImpl)
+    let impl = makeInvalidRenderPipelineImpl(device, deviceImpl, layout.shell, layout.impl)
+    precondition(deviceImpl.stagedRenderPipelineImpl == nil)
+    deviceImpl.stagedRenderPipelineImpl = impl
+    return RenderPipelineReference(impl, WebGPU.Metal.RenderPipeline.createWithStagedImpl(device).ptr())
+}
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline: an invalid pipeline on failure.
+    public func createRenderPipeline(_ descriptor: GPURenderPipelineDescriptor, label: Swift.String?) -> RenderPipelineReference {
+        makeRenderPipelineBuilder(shell, impl, descriptor).create(RenderPipelineInput(descriptor, label: label ?? ""))
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync, and, with `pipelineToReplace`, the
+    // creation that takes that pipeline's layout. `completion` gets the pipeline, whether it succeeded, and the message
+    // it failed with.
+    public func createRenderPipelineAsync(
+        _ descriptor: GPURenderPipelineDescriptor,
+        label: Swift.String?,
+        replacingLayoutOf pipelineToReplace: RenderPipelineReference? = nil,
+        _ completion: @escaping (RenderPipelineReference, Bool, Swift.String?) -> Void
+    ) {
+        makeRenderPipelineBuilder(shell, impl, descriptor, replacingLayoutOf: pipelineToReplace)
+            .createAsync(RenderPipelineInput(descriptor, label: label ?? ""), completion)
+    }
 }

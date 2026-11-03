@@ -1919,3 +1919,12 @@ func makeBindGroupShell(_ impl: BindGroupImpl, device: WebGPU.Metal.Device, devi
     deviceImpl.stagedBindGroupImpl = impl
     return WebGPU.Metal.BindGroup.createWithStagedImpl(device).ptr()
 }
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup. The label isn't kept, as for the C++ caller.
+    public func createBindGroup(_ layout: BindGroupLayoutReference, _ entries: [GPUBindGroupEntry], label: Swift.String?) -> BindGroupReference {
+        let group = createBindGroupImpl(shell, impl, layout: layout, entries: entries)
+        return BindGroupReference(group, makeBindGroupShell(group, device: shell, deviceImpl: impl))
+    }
+}

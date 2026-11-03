@@ -799,3 +799,12 @@ func makeBindGroupLayoutShell(
     deviceImpl.stagedBindGroupLayoutImpl = impl
     return WebGPU.Metal.BindGroupLayout.createWithStagedImpl(device).ptr()
 }
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgrouplayout
+    public func createBindGroupLayout(_ entries: [GPUBindGroupLayoutEntry], label: Swift.String?) -> BindGroupLayoutReference {
+        let layout = createBindGroupLayoutImpl(shell, impl, entries, label: WTF.String(label ?? ""))
+        return BindGroupLayoutReference(layout, makeBindGroupLayoutShell(layout, device: shell, deviceImpl: impl))
+    }
+}

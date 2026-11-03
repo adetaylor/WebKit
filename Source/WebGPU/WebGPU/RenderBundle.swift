@@ -292,3 +292,13 @@ func makeRenderBundleShell(_ impl: RenderBundleImpl, device: WebGPU.Metal.Device
     deviceImpl.stagedRenderBundleImpl = impl
     return WebGPU.Metal.RenderBundle.createWithStagedImpl(device).ptr()
 }
+
+@_spi(WebKitGPU)
+extension RenderBundleEncoderReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish. As WTF::String::createNSString() makes the
+    // label for the C++ caller, a null one is empty.
+    public func finish(label: Swift.String?) -> RenderBundleReference {
+        let bundle = impl.finish(shell, (label ?? "") as NSString)
+        return RenderBundleReference(bundle, makeRenderBundleShell(bundle, device: bundle.device, deviceImpl: bundle.deviceImpl))
+    }
+}

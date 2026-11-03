@@ -1724,3 +1724,21 @@ func errorValidatingTextureCopyRange(
     return nil
 }
 
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture: an invalid texture on failure, as for the C++ caller.
+    public func createTexture(_ descriptor: GPUTextureDescriptor, label: Swift.String?) -> TextureReference {
+        let texture = createTextureImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
+        precondition(impl.stagedTextureImpl == nil)
+        impl.stagedTextureImpl = texture
+        return TextureReference(texture, WebGPU.Metal.Texture.createWithStagedImpl(shell).ptr())
+    }
+}
+
+extension TextureReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gputexture-createview. A view's device is its texture's.
+    public func createView(_ descriptor: GPUTextureViewDescriptor?, label: Swift.String?) -> TextureViewReference {
+        let view = impl.createView(shell, descriptor ?? GPUTextureViewDescriptor(), label: WTF.String(label ?? ""))
+        return TextureViewReference(view, makeTextureViewShell(view, device: impl.device, deviceImpl: impl.deviceImpl))
+    }
+}

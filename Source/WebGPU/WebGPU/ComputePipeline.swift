@@ -232,7 +232,7 @@ final class ComputePipelineBuilder {
     func create(_ descriptor: borrowing WebGPU.ComputePipelineDescriptor) -> WebGPU.Metal.ComputePipeline {
         var result: [WebGPU.Metal.ComputePipeline] = []
         create(ComputePipelineInput(descriptor), isAsync: false, .synchronous) { pipeline, _ in
-            result = [pipeline]
+            result = [pipeline.shell]
         }
         // A synchronous creation never defers its completion.
         precondition(result.count == 1)
@@ -254,7 +254,40 @@ final class ComputePipelineBuilder {
         )
         let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
         create(ComputePipelineInput(descriptor), isAsync: true, asynchronousIfPossible()) { pipeline, message in
-            completion.complete(pipeline, message)
+            completion.complete(pipeline.shell, message)
+        }
+        if let wasErrorReportingPaused {
+            _ = deviceImpl.pauseErrorReporting(wasErrorReportingPaused)
+        }
+    }
+
+    // The synchronous createComputePipeline, for a Swift caller.
+    @_expose(!Cxx)
+    func create(_ descriptor: ComputePipelineInput) -> ComputePipelineReference {
+        var result: [ComputePipelineReference] = []
+        create(descriptor, isAsync: false, .synchronous) { pipeline, _ in
+            result = [pipeline]
+        }
+        precondition(result.count == 1)
+        return result[0]
+    }
+
+    // createComputePipelineAsync and its replacing form, for a Swift caller. `completion` gets the pipeline, whether it
+    // succeeded, and the message it failed with, on a later turn of the API thread, as the C++ caller's callback does.
+    @_expose(!Cxx)
+    func createAsync(_ descriptor: ComputePipelineInput, _ completion: @escaping (ComputePipelineReference, Bool, String?) -> Void) {
+        let device = self.device
+        let deviceImpl = self.deviceImpl
+        let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
+        create(descriptor, isAsync: true, asynchronousIfPossible()) { pipeline, message in
+            let resolve = {
+                // A lost device makes invalid objects without errors.
+                completion(pipeline, pipeline.impl.isValid() || deviceImpl.isDestroyed(), message)
+            }
+            guard let instance = CxxBridging.protectedInstance(device) else {
+                return resolve()
+            }
+            instance.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { resolve() })
         }
         if let wasErrorReportingPaused {
             _ = deviceImpl.pauseErrorReporting(wasErrorReportingPaused)
@@ -267,7 +300,7 @@ final class ComputePipelineBuilder {
         _ descriptor: ComputePipelineInput,
         isAsync: Bool,
         _ compilation: LibraryCompilation,
-        _ report: @escaping (WebGPU.Metal.ComputePipeline, String?) -> Void
+        _ report: @escaping (ComputePipelineReference, String?) -> Void
     ) {
         let device = self.device
         let deviceImpl = self.deviceImpl
@@ -276,7 +309,7 @@ final class ComputePipelineBuilder {
             if !isAsync {
                 deviceImpl.generateAValidationError(message ?? "createComputePipeline failed")
             }
-            report(WebGPU.Metal.ComputePipeline.createInvalid(device).ptr(), message)
+            report(makeInvalidComputePipeline(device, deviceImpl), message)
         }
 
         guard shaderModuleImpl.isValid(), shaderModuleImpl.deviceImpl === deviceImpl, let layoutImpl, !layout.isEmpty else {
@@ -312,8 +345,9 @@ final class ComputePipelineBuilder {
                             )
                             return fail("GPUCompuePipeline could not compile")
                         }
-                        deviceImpl.stagedComputePipelineImpl = prepared.makeImpl(computePipelineState, device)
-                        report(WebGPU.Metal.ComputePipeline.createWithStagedImpl(device).ptr(), nil)
+                        let impl = prepared.makeImpl(computePipelineState, device)
+                        deviceImpl.stagedComputePipelineImpl = impl
+                        report(ComputePipelineReference(impl, WebGPU.Metal.ComputePipeline.createWithStagedImpl(device).ptr()), nil)
                     }
                 }
             }
@@ -552,5 +586,36 @@ private final class PreparedComputePipeline {
             parameters: parameters,
             minimumBufferSizes: minimumBufferSizes
         )
+    }
+}
+
+// ComputePipeline::createInvalid, made in Swift so that its Impl is known. An invalid pipeline still holds an invalid
+// pipeline layout, so that it always has one.
+func makeInvalidComputePipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ComputePipelineReference {
+    let layout = makeLayoutPair(makeInvalidPipelineLayoutImpl(device), device: device, deviceImpl: deviceImpl)
+    let impl = makeInvalidComputePipelineImpl(device, deviceImpl, layout.shell, layout.impl)
+    precondition(deviceImpl.stagedComputePipelineImpl == nil)
+    deviceImpl.stagedComputePipelineImpl = impl
+    return ComputePipelineReference(impl, WebGPU.Metal.ComputePipeline.createWithStagedImpl(device).ptr())
+}
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline: an invalid pipeline on failure.
+    public func createComputePipeline(_ descriptor: GPUComputePipelineDescriptor, label: Swift.String?) -> ComputePipelineReference {
+        makeComputePipelineBuilder(shell, impl, descriptor).create(ComputePipelineInput(descriptor, label: label ?? ""))
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipelineasync, and, with `pipelineToReplace`, the
+    // creation that takes that pipeline's layout. `completion` gets the pipeline, whether it succeeded, and the message
+    // it failed with.
+    public func createComputePipelineAsync(
+        _ descriptor: GPUComputePipelineDescriptor,
+        label: Swift.String?,
+        replacingLayoutOf pipelineToReplace: ComputePipelineReference? = nil,
+        _ completion: @escaping (ComputePipelineReference, Bool, Swift.String?) -> Void
+    ) {
+        makeComputePipelineBuilder(shell, impl, descriptor, replacingLayoutOf: pipelineToReplace)
+            .createAsync(ComputePipelineInput(descriptor, label: label ?? ""), completion)
     }
 }
