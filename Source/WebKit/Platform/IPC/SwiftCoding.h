@@ -34,6 +34,7 @@
 #include <wtf/EscapableByteSpan.h>
 #include <wtf/NonEscapableBorrow.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/UniqueRef.h>
@@ -211,6 +212,7 @@ public:
 private:
     friend class NonEscapableBorrowLender<SwiftDecoder>;
     friend class NonEscapableBorrowOwningLender<SwiftDecoder>;
+    template<typename> friend class CxxDecodedArgument;
 
     explicit SwiftDecoder(NonEscapableBorrowLease<Decoder>& lease LIFETIME_BOUND)
         : NonEscapableBorrow(lease)
@@ -236,6 +238,40 @@ private:
         return true;
     }
 } SWIFT_NONESCAPABLE;
+
+// An argument of a message whose Swift receiver takes Swift types, which has no Swift form yet, so its own ArgumentCoder
+// decodes it into this holder. Generated Swift passes the holder to the receiver, which passes it on to the C++ that
+// takes the value, once.
+template<typename T>
+class CxxDecodedArgument final : public RefCounted<CxxDecodedArgument<T>> {
+public:
+    // Null if the argument is malformed.
+    static CxxDecodedArgument* WTF_NULLABLE decode(SwiftDecoder& decoder) SWIFT_RETURNS_RETAINED
+    {
+        auto value = decoder.borrowed().template decode<T>();
+        if (!value)
+            return nullptr;
+        return &adoptRef(*new CxxDecodedArgument(WTF::move(*value))).leakRef();
+    }
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the
+    // type hierarchy.
+    void ref() const { RefCounted<CxxDecodedArgument<T>>::ref(); }
+    void deref() const { RefCounted<CxxDecodedArgument<T>>::deref(); }
+#endif
+
+    // The value, the first time.
+    std::optional<T> take() { return std::exchange(m_value, std::nullopt); }
+
+private:
+    explicit CxxDecodedArgument(T&& value)
+        : m_value(WTF::move(value))
+    {
+    }
+
+    std::optional<T> m_value;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // A Decoder that generated Swift decodes from outside the dispatch of a message, such as a value or a reply that
 // C++ encodes as IPC would, for Swift to decode with its messages' coders. It owns the Decoder and lends it as

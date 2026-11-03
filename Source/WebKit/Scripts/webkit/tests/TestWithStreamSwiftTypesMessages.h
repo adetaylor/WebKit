@@ -28,6 +28,8 @@
 #include "Connection.h"
 #include "MessageNames.h"
 #include "StreamMessageReceiver.h"
+#include "SwiftCoding.h"
+#include <WebCore/SharedMemory.h>
 #include <wtf/Forward.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -311,6 +313,42 @@ public:
 private:
 };
 
+class SendCxxDecoded {
+public:
+    using Arguments = std::tuple<uint32_t, std::optional<WebCore::SharedMemory::Handle>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftTypes_SendCxxDecoded; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = false;
+    static constexpr bool isReplyStreamEncodable = true;
+    static constexpr bool isStreamBatched = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithStreamSwiftTypes_SendCxxDecodedReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<bool>;
+    using Reply = CompletionHandler<void(bool)>;
+    using Promise = WTF::NativePromise<bool, IPC::Error>;
+    SendCxxDecoded(uint32_t value, std::optional<WebCore::SharedMemory::Handle>&& handle)
+        : m_value(value)
+        , m_handle(WTF::move(handle))
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_value;
+        encoder << WTF::move(m_handle);
+    }
+
+private:
+    uint32_t m_value;
+    std::optional<WebCore::SharedMemory::Handle>&& m_handle;
+};
+
 class SendStringAsyncReply {
 public:
     using Arguments = std::tuple<String>;
@@ -392,6 +430,33 @@ public:
 private:
 };
 
+class SendCxxDecodedReply {
+public:
+    using Arguments = std::tuple<bool>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftTypes_SendCxxDecodedReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = false;
+
+    explicit SendCxxDecodedReply(bool success)
+        : m_success(success)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_success;
+    }
+
+private:
+    bool m_success;
+};
+
 } // namespace TestWithStreamSwiftTypes
 } // namespace Messages
 
@@ -400,4 +465,12 @@ namespace TestWithStreamSwiftTypes {
 
 } // namespace TestWithStreamSwiftTypes
 } // namespace CompletionHandlers
+
+namespace CxxDecodedArguments {
+namespace TestWithStreamSwiftTypes {
+
+using SendCxxDecodedHandle = IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>;
+
+} // namespace TestWithStreamSwiftTypes
+} // namespace CxxDecodedArguments
 

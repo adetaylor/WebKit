@@ -315,12 +315,16 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendValuesAsync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendEmptyAsync:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendEmptyAsync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendCxxDecoded:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendCxxDecoded>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendValuesAsyncReply:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendValuesAsyncReply>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendEmptyAsyncReply:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendEmptyAsyncReply>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendCxxDecodedReply:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendCxxDecodedReply>(globalObject, decoder);
     case MessageName::TestWithSuperclass_LoadURL:
         return jsValueForDecodedMessage<MessageName::TestWithSuperclass_LoadURL>(globalObject, decoder);
 #if ENABLE(TEST_FEATURE)
@@ -560,6 +564,8 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendValuesAsync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendEmptyAsync:
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendEmptyAsync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendCxxDecoded:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendCxxDecoded>(globalObject, decoder);
 #if ENABLE(TEST_FEATURE)
     case MessageName::TestWithSuperclass_TestAsyncMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSuperclass_TestAsyncMessage>(globalObject, decoder);
@@ -1297,6 +1303,11 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         };
     case MessageName::TestWithStreamSwiftTypes_SendEmptyAsync:
         return Vector<ArgumentDescription> { };
+    case MessageName::TestWithStreamSwiftTypes_SendCxxDecoded:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+            { "handle"_s, "std::optional<WebCore::SharedMemory::Handle>"_s },
+        };
     case MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply:
         return Vector<ArgumentDescription> {
             { "reply"_s, "String"_s },
@@ -1308,6 +1319,10 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         };
     case MessageName::TestWithStreamSwiftTypes_SendEmptyAsyncReply:
         return Vector<ArgumentDescription> { };
+    case MessageName::TestWithStreamSwiftTypes_SendCxxDecodedReply:
+        return Vector<ArgumentDescription> {
+            { "success"_s, "bool"_s },
+        };
     case MessageName::TestWithSuperclass_LoadURL:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
@@ -1742,6 +1757,10 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
         };
     case MessageName::TestWithStreamSwiftTypes_SendEmptyAsync:
         return Vector<ArgumentDescription> { };
+    case MessageName::TestWithStreamSwiftTypes_SendCxxDecoded:
+        return Vector<ArgumentDescription> {
+            { "success"_s, "bool"_s },
+        };
 #if ENABLE(TEST_FEATURE)
     case MessageName::TestWithSuperclass_TestAsyncMessage:
         return Vector<ArgumentDescription> {

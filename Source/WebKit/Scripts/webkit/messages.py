@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_DECODED_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
 
 _license_header = """/*
  * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
@@ -138,6 +138,16 @@ def surround_in_condition(string, condition):
     if not condition:
         return string
     return '#if %s\n%s#endif\n' % (condition, string)
+
+
+# The C++-decoded arguments of a receiver's messages that take Swift types: (message, parameter) pairs.
+def cxx_decoded_parameters(receiver):
+    return [(message, parameter) for message in receiver.messages if receiver.takes_swift_types(message) for parameter in message.parameters if parameter.has_attribute(CXX_DECODED_ATTRIBUTE)]
+
+
+# The name of the IPC::CxxDecodedArgument that a C++-decoded argument arrives in, in namespace CxxDecodedArguments::Receiver.
+def cxx_decoded_argument_name(message, parameter):
+    return '%s%s%s' % (message.name, parameter.name[0].upper(), parameter.name[1:])
 
 
 def if_swift_enabled(receiver, result, swift_steps, cpp_steps):
@@ -854,6 +864,10 @@ def forward_declarations_and_headers(receiver):
         if receiver.has_attribute(STREAM_ATTRIBUTE):
             headers.add('<wtf/Function.h>')
 
+    # For IPC::CxxDecodedArgument.
+    if cxx_decoded_parameters(receiver):
+        headers.add('"SwiftCoding.h"')
+
     non_template_wtf_types = frozenset([
         'MachSendRight',
         'MediaType',
@@ -1107,6 +1121,18 @@ def generate_messages_header(receiver):
         result.append('} // namespace %s\n} // namespace CompletionHandlers\n' % receiver.name)
         result.append('\n')
     if_swift_enabled(receiver, result, append_completion_handler_types_for_swift, None)
+
+    def append_cxx_decoded_arguments_for_swift(result):
+        result.append('namespace CxxDecodedArguments {\nnamespace %s {\n' % receiver.name)
+        result.append('\n')
+        for message, parameter in cxx_decoded_parameters(receiver):
+            declaration = 'using %s = IPC::CxxDecodedArgument<%s>;\n' % (cxx_decoded_argument_name(message, parameter), parameter.type)
+            result.append(surround_in_condition(declaration, message.condition))
+        result.append('\n')
+        result.append('} // namespace %s\n} // namespace CxxDecodedArguments\n' % receiver.name)
+        result.append('\n')
+    if cxx_decoded_parameters(receiver):
+        if_swift_enabled(receiver, result, append_cxx_decoded_arguments_for_swift, None)
 
     if receiver.condition:
         result.append('\n#endif // %s\n' % receiver.condition)
@@ -2542,7 +2568,9 @@ def generate_swift_message_handler(receiver):
         arguments = ['connection: connection']
         decoded_parameters = []
         for parameter in message.parameters:
-            if takes_swift_types:
+            if takes_swift_types and parameter.has_attribute(CXX_DECODED_ATTRIBUTE):
+                decoded_parameters.append((parameter.name, 'CxxDecodedArguments.%s.%s' % (receiver.name, cxx_decoded_argument_name(message, parameter)), None))
+            elif takes_swift_types:
                 decoded_parameters.append((parameter.name,) + swift_types.swift_type_and_coder(parameter.type))
             else:
                 parameters.append('%s: sending %s' % (parameter.name, swift_type_name(parameter.type)))
@@ -2593,8 +2621,16 @@ def generate_swift_message_handler(receiver):
             for name, swift_type, _ in decoded_parameters:
                 result.append('        let %s: %s\n' % (name, swift_type))
             result.append('        do {\n')
-            for name, _, coder in decoded_parameters:
-                result.append('            %s = try %s.decode(from: &decoder)\n' % (name, coder))
+            for name, swift_type, coder in decoded_parameters:
+                if coder:
+                    result.append('            %s = try %s.decode(from: &decoder)\n' % (name, coder))
+                    continue
+                # A C++-decoded argument: its holder, or nil if it is malformed.
+                decoded_name = 'decoded%s%s' % (name[0].upper(), name[1:])
+                result.append('            guard let %s = %s.decode(&decoder) else {\n' % (decoded_name, swift_type))
+                result.append('                return false\n')
+                result.append('            }\n')
+                result.append('            %s = %s\n' % (name, decoded_name))
             result.append('        } catch {\n')
             result.append('            return false\n')
             result.append('        }\n')
