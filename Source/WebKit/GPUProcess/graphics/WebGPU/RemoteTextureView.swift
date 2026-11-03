@@ -30,14 +30,24 @@ import WebKit_Internal
 // Receives the messages of a WebGPU texture view, on its stream connection's work queue, and calls its TextureViewImpl.
 @_expose(Cxx)
 final class RemoteTextureView {
-    private let impl: TextureViewImpl
-    private let context: WebKit.WebGPUSwiftReceiverContext
+    private let textureView: TextureViewReference
+    private let link: WebGPURegistryLink
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(backing: WebKit.RemoteTextureViewBacking, context: WebKit.WebGPUSwiftReceiverContext) {
-        self.impl = WebGPUSwift.impl(of: backing.get())
-        self.context = context
+    @_expose(!Cxx)
+    private init(_ textureView: TextureViewReference, _ link: WebGPURegistryLink) {
+        self.textureView = textureView
+        self.link = link
+    }
+
+    // Adds the texture view, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
+    static func add(_ textureView: TextureViewReference, _ link: WebGPURegistryLink) {
+        guard let objects = link.objects else {
+            return
+        }
+        let receiver = RemoteTextureView(textureView, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteTextureView, link.identifier)
+        objects.add(link.identifier, textureView, receiver: receiver, registration: registration)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -48,15 +58,15 @@ final class RemoteTextureView {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        context.sharedPreferencesForWebProcess()
+        link.sharedPreferencesForWebProcess()
     }
 
     func destruct() {
-        context.removeFromObjectHeap()
+        link.remove()
     }
 
     func setLabel(label: String?) {
-        impl.setLabel(label)
+        textureView.impl.setLabel(label)
     }
 }
 

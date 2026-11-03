@@ -32,7 +32,6 @@
 #include "RemoteBufferProxy.h"
 #include "RemoteCommandEncoder.h"
 #include "RemoteGPU.h"
-#include "RemoteTexture.h"
 #include "RemoteXRBinding.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
@@ -91,19 +90,6 @@ RefPtr<IPC::StreamServerConnection> WebGPUSwiftRegistryHost::streamConnection() 
     return gpu ? gpu->m_streamConnection : nullptr;
 }
 
-void WebGPUSwiftRegistryHost::addTexture(::WebGPU::Texture& texture, uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    RefPtr gpu = m_gpu.get();
-    RefPtr streamConnection = this->streamConnection();
-    RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
-    if (!objectHeap || !streamConnection || !connection)
-        return;
-    WebGPUIdentifier textureIdentifier { identifier };
-    auto remoteTexture = RemoteTexture::create(*connection, *gpu, texture, *objectHeap, streamConnection.releaseNonNull(), textureIdentifier);
-    objectHeap->addObject(textureIdentifier, remoteTexture);
-}
-
 void WebGPUSwiftRegistryHost::addCommandEncoder(::WebGPU::CommandEncoder& commandEncoder, uint64_t identifier) const
 {
     RefPtr objectHeap = m_objectHeap.get();
@@ -144,18 +130,6 @@ void WebGPUSwiftRegistryHost::trackDevice(::WebGPU::Device& device) const
 {
     RefPtr objectHeap = m_objectHeap.get();
     return objectHeap ? objectHeap->convertCommandBufferFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
-}
-
-::WebGPU::Texture* WebGPUSwiftRegistryHost::texture(uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    return objectHeap ? objectHeap->convertTextureFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
-}
-
-::WebGPU::TextureView* WebGPUSwiftRegistryHost::textureView(uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    return objectHeap ? objectHeap->convertTextureViewFromBacking(WebGPUIdentifier { identifier }).leakRef() : nullptr;
 }
 
 bool WebGPUSwiftRegistryHost::writeSharedMemoryToTexture(::WebGPU::Queue& queue, IPC::CxxDecodedArgument<WebGPU::ImageCopyTexture>& destinationArgument, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>& dataArgument, IPC::CxxDecodedArgument<WebGPU::ImageDataLayout>& dataLayoutArgument, IPC::CxxDecodedArgument<WebGPU::Extent3D>& sizeArgument) const

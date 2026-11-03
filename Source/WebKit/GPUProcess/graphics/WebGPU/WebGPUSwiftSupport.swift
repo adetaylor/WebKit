@@ -123,6 +123,13 @@ final class WebGPUImplTable {
         RemoteQueue.add(device.queue, WebGPURegistryLink(self, queueIdentifier))
     }
 
+    // Makes the receiver of a texture that a C++ receiver made: a presentation context's current texture, or an XR
+    // subimage's.
+    @used
+    func addTexture(_ backing: WebKit.RemoteTextureBacking, _ identifier: UInt64) {
+        RemoteTexture.add(WebGPUSwift.reference(of: backing.get()), WebGPURegistryLink(self, identifier))
+    }
+
     // The objects that Swift owns, for the C++ receivers that name them.
     @used
     func buffer(_ identifier: UInt64) -> WebKit.OptionalRemoteBufferBacking {
@@ -138,6 +145,22 @@ final class WebGPUImplTable {
             return .init()
         }
         return .init(WebKit.RemoteDeviceBacking(device.apiObject))
+    }
+
+    @used
+    func texture(_ identifier: UInt64) -> WebKit.OptionalRemoteTextureBacking {
+        guard let texture = entries[identifier]?.object as? TextureReference else {
+            return .init()
+        }
+        return .init(WebKit.RemoteTextureBacking(texture.apiObject))
+    }
+
+    @used
+    func textureView(_ identifier: UInt64) -> WebKit.OptionalRemoteTextureViewBacking {
+        guard let textureView = entries[identifier]?.object as? TextureViewReference else {
+            return .init()
+        }
+        return .init(WebKit.RemoteTextureViewBacking(textureView.apiObject))
     }
 
     @used
@@ -197,19 +220,6 @@ final class WebGPUImplTable {
         }
     }
 
-    @_expose(!Cxx)
-    func texture(_ identifier: IPCTypes.WebGPUIdentifier) -> TextureReference? {
-        object(identifier) {
-            host.texture(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
-    }
-
-    @_expose(!Cxx)
-    func textureView(_ identifier: IPCTypes.WebGPUIdentifier) -> TextureViewReference? {
-        object(identifier) {
-            host.textureView(identifier.rawValue).map { WebGPUSwift.reference(of: $0) }
-        }
-    }
 }
 
 extension WebGPU.Extent3D {

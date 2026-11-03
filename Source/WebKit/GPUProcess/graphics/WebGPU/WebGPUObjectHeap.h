@@ -208,7 +208,12 @@ public:
 #if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, RemoteShaderModule&);
 #endif
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Makes the Swift receiver of a texture that a C++ receiver made, in the Swift registry.
+    void addTexture(WebGPUIdentifier, ::WebGPU::Texture&);
+#else
     void addObject(WebGPUIdentifier, RemoteTexture&);
+#endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, TextureViewObject&&);
 #else
@@ -302,7 +307,9 @@ private:
 #if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
         IPC::ScopedActiveMessageReceiveQueue<RemoteShaderModule>,
 #endif
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
         IPC::ScopedActiveMessageReceiveQueue<RemoteTexture>,
+#endif
         TextureViewObject,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRBinding>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRSubImage>,

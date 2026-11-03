@@ -70,8 +70,12 @@ void RemoteXRSubImage::getColorTexture(WebGPUIdentifier identifier)
         return;
 
     Ref objectHeap = m_objectHeap.get();
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    objectHeap->addTexture(identifier, *texture);
+#else
     auto remoteTexture = RemoteTexture::create(*connection, protect(m_gpu), *texture, objectHeap, protect(m_streamConnection), identifier);
     objectHeap->addObject(identifier, remoteTexture);
+#endif
 }
 
 void RemoteXRSubImage::getDepthTexture(WebGPUIdentifier identifier)
@@ -83,8 +87,12 @@ void RemoteXRSubImage::getDepthTexture(WebGPUIdentifier identifier)
         return;
 
     Ref objectHeap = m_objectHeap.get();
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    objectHeap->addTexture(identifier, *texture);
+#else
     auto remoteTexture = RemoteTexture::create(*connection, protect(m_gpu), *texture, objectHeap, protect(m_streamConnection), identifier);
     objectHeap->addObject(identifier, remoteTexture);
+#endif
 }
 
 void RemoteXRSubImage::stopListeningForIPC()

@@ -351,11 +351,18 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteShaderModule& shad
 }
 #endif
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+void ObjectHeap::addTexture(WebGPUIdentifier identifier, ::WebGPU::Texture& texture)
+{
+    swiftImplTable().addTexture(RemoteTextureBacking { texture }, identifier.toUInt64());
+}
+#else
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteTexture& texture)
 {
     auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteTexture> { protect(texture) } });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, TextureViewObject&& textureView)
@@ -625,18 +632,34 @@ RefPtr<::WebGPU::ShaderModule> ObjectHeap::convertShaderModuleFromBacking(WebGPU
 
 RefPtr<::WebGPU::Texture> ObjectHeap::convertTextureFromBacking(WebGPUIdentifier identifier)
 {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Swift owns textures.
+    if (!m_swiftImplTable)
+        return nullptr;
+    auto texture = m_swiftImplTable->texture(identifier.toUInt64());
+    return texture ? &texture->get() : nullptr;
+#else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteTexture>>(iterator->value))
         return nullptr;
     return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteTexture>>(iterator->value)->backing();
+#endif
 }
 
 RefPtr<::WebGPU::TextureView> ObjectHeap::convertTextureViewFromBacking(WebGPUIdentifier identifier)
 {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Swift owns texture views.
+    if (!m_swiftImplTable)
+        return nullptr;
+    auto textureView = m_swiftImplTable->textureView(identifier.toUInt64());
+    return textureView ? &textureView->get() : nullptr;
+#else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<TextureViewObject>(iterator->value))
         return nullptr;
     return &std::get<TextureViewObject>(iterator->value)->backing();
+#endif
 }
 
 RefPtr<::WebGPU::XRBinding> ObjectHeap::convertXRBindingFromBacking(WebGPUIdentifier identifier)

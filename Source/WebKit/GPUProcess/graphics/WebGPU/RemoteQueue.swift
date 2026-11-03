@@ -143,7 +143,7 @@ final class RemoteQueue {
         imageDataLayout: IPCTypes.ImageDataLayout,
         size: IPCTypes.Extent3D
     ) {
-        let texture = link.objects?.texture(destination.texture)
+        let texture = link.objects?.object(destination.texture, as: TextureReference.self)
         assert(texture != nil)
         guard let texture else {
             return

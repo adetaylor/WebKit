@@ -28,8 +28,8 @@
 import WebKit_Internal
 
 // Receives the messages of a WebGPU device, on its stream connection's work queue, and calls its DeviceImpl. The
-// objects it makes go in the registry, with their receivers; those whose receivers are still C++ go in the object heap
-// too.
+// objects it makes go in the registry, with their receivers, except for the command encoders and XR bindings, whose
+// receivers are still C++ and go in the object heap.
 @_expose(Cxx)
 final class RemoteDevice {
     private let device: DeviceReference
@@ -92,7 +92,7 @@ final class RemoteDevice {
     }
 
     func createTexture(descriptor: IPCTypes.TextureDescriptor, identifier: IPCTypes.WebGPUIdentifier) {
-        guard let objects = link.objects else {
+        guard let textureLink = link.child(identifier) else {
             return
         }
         var textureDescriptor = GPUTextureDescriptor()
@@ -103,9 +103,7 @@ final class RemoteDevice {
         textureDescriptor.mipLevelCount = descriptor.mipLevelCount
         textureDescriptor.sampleCount = descriptor.sampleCount
         textureDescriptor.viewFormats = descriptor.viewFormats.map { sameNumbering($0) }
-        let texture = device.createTexture(textureDescriptor, label: descriptor.label)
-        objects.addReference(identifier.rawValue, texture)
-        objects.host.addTexture(texture.apiObject, identifier.rawValue)
+        RemoteTexture.add(device.createTexture(textureDescriptor, label: descriptor.label), textureLink)
     }
 
     func createSampler(descriptor: IPCTypes.SamplerDescriptor, identifier: IPCTypes.WebGPUIdentifier) {
@@ -187,9 +185,9 @@ final class RemoteDevice {
         case .sampler:
             objects.object(entry.identifier, as: SamplerReference.self).map { .sampler($0) }
         case .texture:
-            objects.texture(entry.identifier).map { .texture($0) }
+            objects.object(entry.identifier, as: TextureReference.self).map { .texture($0) }
         case .textureView:
-            objects.textureView(entry.identifier).map { .textureView($0) }
+            objects.object(entry.identifier, as: TextureViewReference.self).map { .textureView($0) }
         case .bufferBinding:
             objects.object(entry.bufferBinding.buffer, as: BufferReference.self).map {
                 .buffer($0, offset: entry.bufferBinding.offset, size: entry.bufferBinding.size)

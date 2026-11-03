@@ -89,18 +89,15 @@ public:
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
     RefPtr<IPC::StreamServerConnection> streamConnection() const;
 
-    // Make the C++ receivers of objects that Swift made, which the object heap owns.
-    void addTexture(::WebGPU::Texture&, uint64_t identifier) const;
+    // Makes the C++ receiver of a command encoder that Swift made, which the object heap owns.
     void addCommandEncoder(::WebGPU::CommandEncoder&, uint64_t identifier) const;
     // Makes the device's XR binding, and its receiver. False if the device makes none.
     bool addXRBinding(::WebGPU::Device&, uint64_t identifier) const;
     // Adds a device to those that RemoteGPU destroys when its work queue stops.
     void trackDevice(::WebGPU::Device&) const;
 
-    // The objects with those identifiers that C++ receivers made, if there are such objects.
+    // The command buffer with that identifier that a C++ receiver made, if there is one.
     ::WebGPU::CommandBuffer* WTF_NULLABLE commandBuffer(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
-    ::WebGPU::Texture* WTF_NULLABLE texture(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
-    ::WebGPU::TextureView* WTF_NULLABLE textureView(uint64_t identifier) const SWIFT_RETURNS_RETAINED;
 
     // A queue's WriteTexture message, as RemoteQueue handles it. Returns false if there's no shared memory, or no more
     // than the message could have carried in the stream.
@@ -217,6 +214,36 @@ private:
 
 using OptionalRemoteQuerySetBacking = std::optional<RemoteQuerySetBacking>;
 
+class RemoteTextureBacking {
+public:
+    explicit RemoteTextureBacking(::WebGPU::Texture& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::Texture& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::Texture> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+using OptionalRemoteTextureBacking = std::optional<RemoteTextureBacking>;
+
+class RemoteTextureViewBacking {
+public:
+    explicit RemoteTextureViewBacking(::WebGPU::TextureView& backing)
+        : m_backing(backing)
+    {
+    }
+
+    ::WebGPU::TextureView& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+
+private:
+    Ref<::WebGPU::TextureView> m_backing;
+} SWIFT_SELF_CONTAINED;
+
+using OptionalRemoteTextureViewBacking = std::optional<RemoteTextureViewBacking>;
+
 class RemoteExternalTextureBacking {
 public:
     explicit RemoteExternalTextureBacking(::WebGPU::ExternalTexture& backing)
@@ -269,19 +296,6 @@ private:
 #endif
 
 // The backings of the WebGPU receivers written in Swift that C++ still makes.
-class RemoteTextureViewBacking {
-public:
-    explicit RemoteTextureViewBacking(::WebGPU::TextureView& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::TextureView& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::TextureView> m_backing;
-} SWIFT_SELF_CONTAINED;
-
 class RemoteCommandBufferBacking {
 public:
     explicit RemoteCommandBufferBacking(::WebGPU::CommandBuffer& backing)

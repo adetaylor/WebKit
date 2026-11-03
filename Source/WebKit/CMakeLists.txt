@@ -1050,10 +1050,10 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteRenderPipelineMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteSamplerMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteShaderModuleMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureViewMessageReceiver.cpp
         GPUProcess/graphics/WebGPU/RemoteAdapter.cpp
         GPUProcess/graphics/WebGPU/RemoteCommandEncoder.cpp
-        GPUProcess/graphics/WebGPU/RemoteTexture.cpp
         GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
         GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.cpp
 
@@ -1729,6 +1729,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderPipelineMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteSamplerMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteShaderModuleMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureViewMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
@@ -1749,6 +1750,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteRenderPipeline.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteSampler.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteShaderModule.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteTexture.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureView.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupMessageReceiver.swift
@@ -1767,6 +1769,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderPipelineMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteSamplerMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteShaderModuleMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureViewMessageReceiver.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.swift
     )
