@@ -191,9 +191,11 @@ func feTurbulenceApplySoftware(
 
     let filterRegion = result.absoluteImageRect
     let resultSize = filterRegion.size()
-    // The area must fit in 32 bits, as IntSize::area() requires.
+    // The area must fit in 32 bits, as IntSize::area<RecordOverflow>() checks.
     let area = resultSize.unclampedArea()
-    precondition(area <= UInt64(UInt32.max))
+    guard area <= UInt64(UInt32.max) else {
+        return false
+    }
 
     if resultSize.isEmpty() {
         destination.zeroFill()
