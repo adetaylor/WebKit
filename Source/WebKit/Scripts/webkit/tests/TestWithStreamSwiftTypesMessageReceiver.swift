@@ -236,6 +236,39 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         }
         return true
     }
+
+    @used
+    func dispatchSendCxxDecoded(
+        connection: IPC.SwiftStreamConnection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        assert(connection.get().isCurrentWorkQueue())
+        let value: UInt32
+        let handle: CxxDecodedArguments.TestWithStreamSwiftTypes.SendCxxDecodedHandle
+        do {
+            value = try UInt32.decode(from: &decoder)
+            guard let decodedHandle = CxxDecodedArguments.TestWithStreamSwiftTypes.SendCxxDecodedHandle.decode(&decoder) else {
+                return false
+            }
+            handle = decodedHandle
+        } catch {
+            return false
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendCxxDecoded(
+                    connection: connection,
+                    value: value,
+                    handle: handle,
+                    reply: TestWithStreamSwiftTypesSendCxxDecodedReply(replyEncoder: replyEncoder)
+                )
+            )
+        } catch {
+            markMessageInvalid(error, on: connection.get())
+        }
+        return true
+    }
 }
 
 struct TestWithStreamSwiftTypesSendStringAsyncReply: ~Copyable {
@@ -281,6 +314,23 @@ struct TestWithStreamSwiftTypesSendEmptyAsyncReply: ~Copyable {
     }
 
     consuming func send() {
+        replyEncoder.send()
+    }
+
+    deinit {
+        replyEncoder.cancel()
+    }
+}
+
+struct TestWithStreamSwiftTypesSendCxxDecodedReply: ~Copyable {
+    private let replyEncoder: IPC.SwiftReplyEncoder
+
+    fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {
+        self.replyEncoder = replyEncoder
+    }
+
+    consuming func send(_ reply: Bool) {
+        Bool.encode(reply, to: replyEncoder)
         replyEncoder.send()
     }
 
