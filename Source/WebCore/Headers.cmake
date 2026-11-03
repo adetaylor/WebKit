@@ -1055,6 +1055,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/parser/CSSParserMode.h
     css/parser/CSSParserToken.h
     css/parser/CSSParserTokenRange.h
+    css/parser/CSSPropertyConsumerSwiftBuilders.h
     css/parser/CSSPropertyConsumerSwiftTypes.h
     css/parser/CSSPropertyParser.h
     css/parser/CSSPropertyParserConsumer+Color.h

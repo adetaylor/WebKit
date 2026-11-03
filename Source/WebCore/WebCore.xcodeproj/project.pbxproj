@@ -328,6 +328,8 @@
 		C55C0000000000000000000E /* CSSCalcSimplification.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55C0000000000000000000D /* CSSCalcSimplification.swift */; };
 		C55C00000000000000000010 /* StyleCalculationSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55C0000000000000000000F /* StyleCalculationSwift.swift */; };
 		C55D00000000000000000002 /* CSSPropertyConsumerSwiftTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = C55D00000000000000000001 /* CSSPropertyConsumerSwiftTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		C55D0000000000000000000A /* CSSPropertyConsumerSwiftBuilders.h in Headers */ = {isa = PBXBuildFile; fileRef = C55D00000000000000000009 /* CSSPropertyConsumerSwiftBuilders.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		C55D0000000000000000000C /* CSSPropertyConsumerSwiftValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55D0000000000000000000B /* CSSPropertyConsumerSwiftValues.swift */; };
 		C55D00000000000000000004 /* CSSPropertyConsumerSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55D00000000000000000003 /* CSSPropertyConsumerSwift.swift */; };
 		C55D00000000000000000006 /* CSSPropertyConsumerSwiftProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55D00000000000000000005 /* CSSPropertyConsumerSwiftProperties.swift */; };
 		C55D00000000000000000008 /* CSSPropertyParsingSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55D00000000000000000007 /* CSSPropertyParsingSwift.swift */; };
@@ -20078,6 +20080,8 @@
 		C55D00000000000000000001 /* CSSPropertyConsumerSwiftTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSPropertyConsumerSwiftTypes.h; sourceTree = "<group>"; };
 		C55D00000000000000000003 /* CSSPropertyConsumerSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSPropertyConsumerSwift.swift; sourceTree = "<group>"; };
 		C55D00000000000000000005 /* CSSPropertyConsumerSwiftProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSPropertyConsumerSwiftProperties.swift; sourceTree = "<group>"; };
+		C55D00000000000000000009 /* CSSPropertyConsumerSwiftBuilders.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSPropertyConsumerSwiftBuilders.h; sourceTree = "<group>"; };
+		C55D0000000000000000000B /* CSSPropertyConsumerSwiftValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSPropertyConsumerSwiftValues.swift; sourceTree = "<group>"; };
 		C55D00000000000000000007 /* CSSPropertyParsingSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSPropertyParsingSwift.swift; sourceTree = "<group>"; };
 		C55C00000000000000000001 /* CSSCalcSwiftTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSCalcSwiftTypes.h; sourceTree = "<group>"; };
 		C55A00000000000000000003 /* CSSTokenizerSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSTokenizerSwift.swift; sourceTree = "<group>"; };
@@ -33843,8 +33847,10 @@
 				BC7C5E5E2BE2A8FB00AE645C /* CSSParserTokenRange.h */,
 				BC2650602D931D8B0027337D /* CSSParserTokenRangeGuard.h */,
 				C55D00000000000000000003 /* CSSPropertyConsumerSwift.swift */,
+				C55D00000000000000000009 /* CSSPropertyConsumerSwiftBuilders.h */,
 				C55D00000000000000000005 /* CSSPropertyConsumerSwiftProperties.swift */,
 				C55D00000000000000000001 /* CSSPropertyConsumerSwiftTypes.h */,
+				C55D0000000000000000000B /* CSSPropertyConsumerSwiftValues.swift */,
 				BC7C5E5F2BE2A8FB00AE645C /* CSSPropertyParser.cpp */,
 				BC7C5E602BE2A8FB00AE645C /* CSSPropertyParser.h */,
 				BC6DA0F52C8CA935000ECE0F /* CSSPropertyParserConsumer+Align.cpp */,
@@ -45403,6 +45409,7 @@
 				BCD67C082D1C66420079EB9C /* CSSPrimitiveNumericUnits.h in Headers */,
 				A80E6CE60A1989CA007FB8C5 /* CSSPrimitiveValue.h in Headers */,
 				A80E6CFF0A1989CA007FB8C5 /* CSSProperty.h in Headers */,
+				C55D0000000000000000000A /* CSSPropertyConsumerSwiftBuilders.h in Headers */,
 				C55D00000000000000000002 /* CSSPropertyConsumerSwiftTypes.h in Headers */,
 				BC3BEDBC2DD56E38004E87D7 /* CSSPropertyInitialValues.h in Headers */,
 				656580F409D12B20000E61D7 /* CSSPropertyNames.h in Headers */,
@@ -51339,6 +51346,7 @@
 				C55B00000000000000000004 /* CSSParserFastPathsSwift.swift in Sources */,
 				C55D00000000000000000004 /* CSSPropertyConsumerSwift.swift in Sources */,
 				C55D00000000000000000006 /* CSSPropertyConsumerSwiftProperties.swift in Sources */,
+				C55D0000000000000000000C /* CSSPropertyConsumerSwiftValues.swift in Sources */,
 				1ABA76CA11D20E50004C201C /* CSSPropertyNames.cpp in Sources */,
 				C55D00000000000000000008 /* CSSPropertyParsingSwift.swift in Sources */,
 				C55A00000000000000000004 /* CSSTokenizerSwift.swift in Sources */,
