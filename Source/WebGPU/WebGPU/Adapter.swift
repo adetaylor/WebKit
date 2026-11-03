@@ -22,12 +22,55 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Metal
+@_implementationOnly import WebGPU_Internal.Adapter
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.HardwareCapabilities
 import WebGPU_Private.WebGPUCpp
 
+// An adapter with its shell, as Swift holds one.
+@_spi(WebKitGPU)
+public final class AdapterReference {
+    let impl: AdapterImpl
+    let shell: WebGPU.Metal.Adapter
+
+    init(_ impl: AdapterImpl, _ shell: WebGPU.Metal.Adapter) {
+        self.impl = impl
+        self.shell = shell
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice, as the shell's requestDevice() does: nil if the
+    // request fails, which invalidates the adapter if it has already made a device. As WTF::String::createNSString()
+    // makes the label for the C++ caller, a null one is empty.
+    public func requestDevice(
+        requiredFeatures: [WebGPU.FeatureName],
+        requiredLimits: WebGPU.Limits?,
+        label: Swift.String?
+    ) -> DeviceReference? {
+        var capabilities = WebGPU.Metal.HardwareCapabilities()
+        for feature in requiredFeatures {
+            capabilities.features.append(consuming: feature)
+        }
+        var invalidatesAdapter = false
+        if impl.errorRequestingDevice(requiredLimits != nil, requiredLimits ?? WebGPU.Limits(), &capabilities, &invalidatesAdapter) != nil {
+            if invalidatesAdapter {
+                impl.makeInvalid()
+            }
+            return nil
+        }
+
+        let device = WebGPU.Metal.createDevice(impl.device(), WTF.String(label ?? ""), capabilities, shell)
+        guard let deviceImpl = impl.lastMadeDeviceImpl else {
+            preconditionFailure("Device's shell made no Impl")
+        }
+        impl.lastMadeDeviceImpl = nil
+        return DeviceReference(deviceImpl, device.ptr())
+    }
+}
+
 // Owned by the C++ shell WebGPU::Metal::Adapter, which keeps the Instance back-reference.
 @_expose(Cxx)
-final class AdapterImpl {
+final class AdapterImpl: DeliverableImpl {
     // nil: the adapter is invalid. API thread only (device loss reaches makeInvalid() through Instance::scheduleWork).
     private var metalDevice: (any MTLDevice)?
     private let xrCompatible: Bool
@@ -37,6 +80,10 @@ final class AdapterImpl {
     private let adapterLimits: WebGPU.Limits
     // Given to the device this adapter creates.
     private let baseCapabilities: GPUBaseCapabilities
+    // The Impl that the last device shell this adapter made made, for the Swift caller that requested the device. Weak,
+    // so that it lives only as long as its shell.
+    @_expose(!Cxx)
+    weak var lastMadeDeviceImpl: DeviceImpl?
 
     fileprivate init(
         metalDevice: (any MTLDevice)?,

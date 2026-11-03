@@ -405,6 +405,11 @@ id<MTLSharedEvent> Device::resolveTimestampsSharedEvent()
     return m_impl->impl.resolveTimestampsSharedEvent();
 }
 
+Ref<Device> createDevice(id<MTLDevice> device, const String& label, const HardwareCapabilities& capabilities, Adapter& adapter)
+{
+    return Device::create(device, String { label }, HardwareCapabilities { capabilities }, adapter);
+}
+
 Device& deliverImpl(WebGPU::Device& device)
 {
     auto& shell = downcast<Device>(device);

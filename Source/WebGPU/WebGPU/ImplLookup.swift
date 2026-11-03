@@ -22,6 +22,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Synchronization
+@_implementationOnly import WebGPU_Internal.Adapter
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.BindGroupLayout
 @_implementationOnly import WebGPU_Internal.Buffer
@@ -173,6 +174,16 @@ public final class RenderPipelineReference {
 }
 
 @_spi(WebKitGPU)
+public func reference(of adapter: WebGPU.Adapter) -> AdapterReference {
+    var shell: WebGPU.Metal.Adapter?
+    let impl = ImplLookup.lookUp(AdapterImpl.self) { shell = WebGPU.Metal.deliverImpl(adapter) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return AdapterReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
 public func reference(of device: WebGPU.Device) -> DeviceReference {
     var shell: WebGPU.Metal.Device?
     let impl = ImplLookup.lookUp(DeviceImpl.self) { shell = WebGPU.Metal.deliverImpl(device) }
@@ -235,6 +246,11 @@ public protocol GPUObjectReference: AnyObject {
 
 @_spi(WebKitGPU)
 extension BindGroupLayoutReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension AdapterReference: GPUObjectReference {
     public var isValid: Bool { shell.isValid() }
 }
 

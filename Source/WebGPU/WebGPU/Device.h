@@ -226,6 +226,8 @@ private:
 
 // Gives Swift the device's Impl, through receiveImpl(), and returns its shell.
 Device& deliverImpl(WebGPU::Device&) SWIFT_RETURNS_UNRETAINED;
+// Device::create(), for Swift, which can't pass rvalue references.
+Ref<Device> createDevice(id<MTLDevice>, const String& label, const HardwareCapabilities&, Adapter&);
 // The shell as the C++ API object it is, for Swift, which can't convert a shared reference to its base class.
 inline WebGPU::Device& apiObject(Device& shell) SWIFT_RETURNS_UNRETAINED { return shell; }
 

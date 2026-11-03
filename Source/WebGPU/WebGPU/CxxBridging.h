@@ -29,6 +29,7 @@
 #include "Buffer.h"
 #include "CommandBuffer.h"
 #include "ComputePassEncoder.h"
+#include "Device.h"
 #include "Instance.h"
 #include "RenderPassEncoder.h"
 #include "Texture.h"
@@ -53,6 +54,7 @@ namespace CxxBridging {
 using RefComputePassEncoder = Ref<WebGPU::Metal::ComputePassEncoder>;
 using RefRenderPassEncoder = Ref<WebGPU::Metal::RenderPassEncoder>;
 using RefCommandBuffer = Ref<WebGPU::Metal::CommandBuffer>;
+using RefDevice = Ref<WebGPU::Metal::Device>;
 
 // The types of the Instance's scheduler and web process ID (Instance.swift).
 using InstanceWorkItem = Function<void()>;

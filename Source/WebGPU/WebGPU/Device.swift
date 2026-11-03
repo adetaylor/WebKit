@@ -419,6 +419,11 @@ final class DeviceImpl: DeliverableImpl {
         }
     }
 
+    @_expose(!Cxx)
+    var featureList: [WebGPU.FeatureName] {
+        capabilities.features
+    }
+
     @_expose(Cxx)
     func timestampCounterSet() -> (any MTLCounterSet)? {
         capabilities.base.timestampCounterSet
@@ -959,6 +964,14 @@ public final class DeviceReference {
         impl.destroy()
     }
 
+    public var features: [WebGPU.FeatureName] {
+        impl.featureList
+    }
+
+    public var limits: WebGPU.Limits {
+        impl.deviceLimits()
+    }
+
     public func pushErrorScope(_ filter: WebGPU.ErrorFilter) {
         impl.pushErrorScope(filter)
     }
@@ -1103,7 +1116,7 @@ func makeDeviceImpl(
     _ defaultQueue: WebGPU.Metal.Queue,
     _ defaultQueueImpl: QueueImpl
 ) -> DeviceImpl {
-    DeviceImpl(
+    let impl = DeviceImpl(
         metalDevice: metalDevice,
         capabilities: capabilities,
         adapter: adapter,
@@ -1111,4 +1124,6 @@ func makeDeviceImpl(
         defaultQueue: defaultQueue,
         defaultQueueImpl: defaultQueueImpl
     )
+    adapterImpl.lastMadeDeviceImpl = impl
+    return impl
 }
