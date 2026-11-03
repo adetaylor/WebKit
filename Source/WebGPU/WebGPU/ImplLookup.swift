@@ -137,6 +137,34 @@ public func reference(of computePipeline: WebGPU.ComputePipeline) -> ComputePipe
 }
 
 @_spi(WebKitGPU)
+extension BufferReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync, as Buffer's shell calls it. `mode` is the bits of
+    // OptionSet<WebGPU::MapMode>; nil size: the rest of the buffer after the offset.
+    public func mapAsync(_ mode: UInt8, _ offset: UInt64, _ size: UInt64?, _ completion: @escaping (Bool) -> Void) {
+        let rangeSize = size ?? (impl.initialSize() > offset ? impl.initialSize() - offset : 0)
+        let rangeFits = UInt(exactly: offset) != nil && UInt(exactly: rangeSize) != nil
+        impl.mapAsync(shell, mode, rangeFits, rangeFits ? offset : 0, rangeFits ? rangeSize : 0, completion)
+    }
+
+    public func unmap() {
+        impl.unmap()
+    }
+
+    public func destroy() {
+        impl.destroy()
+    }
+
+    public func setLabel(_ label: Swift.String?) {
+        impl.setLabel(WTF.String(label ?? ""))
+    }
+
+    // Buffer::generateAValidationError.
+    public func generateAValidationError() {
+        impl.deviceImpl.generateAValidationError("Buffer state was not unmapped")
+    }
+}
+
+@_spi(WebKitGPU)
 extension ComputePipelineReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
     public func getBindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutReference {

@@ -25,6 +25,7 @@ import Foundation
 import IOSurface
 import Metal
 @_implementationOnly import WebGPU_Internal.Adapter
+@_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Instance
 @_implementationOnly import WebGPU_Internal.Queue
@@ -64,8 +65,8 @@ final class DeviceImpl {
     private var errorReportingPaused = false
 
     // Handed over by the shell. Always taken out before being called: a callback can re-enter and register the next one.
-    private var uncapturedErrorCallback: WebGPU.Metal.UncapturedErrorCallback?
-    private var deviceLostCallback: WebGPU.Metal.DeviceLostCallback?
+    private var uncapturedErrorCallback: ((Bool, CaughtError?) -> Void)?
+    private var deviceLostCallback: ((WebGPU.DeviceLostReason, WTF.String) -> Void)?
 
     @_expose(!Cxx)
     let capabilities: DeviceCapabilities
@@ -208,8 +209,8 @@ final class DeviceImpl {
     func loseTheDevice(_ reason: WebGPU.DeviceLostReason) {
         metalDevice = nil
         adapterImpl.makeInvalid()
-        if var callback = deviceLostCallback.take() {
-            callback(reason, consuming: WebGPU.Metal.deviceLostMessage())
+        if let callback = deviceLostCallback.take() {
+            callback(reason, WebGPU.Metal.deviceLostMessage())
         }
         defaultQueueImpl.makeInvalid(backingDefaultQueue)
         lost = true
@@ -227,11 +228,24 @@ final class DeviceImpl {
 
     @_expose(Cxx)
     func resolveDeviceLostPromise(_ callback: inout WebGPU.Metal.DeviceLostCallback, _ hasCallback: Bool) {
-        let incoming = exchange(&callback, with: WebGPU.Metal.DeviceLostCallback())
-        if var previous = deviceLostCallback.take() {
-            previous(.Destroyed, consuming: WebGPU.Metal.deviceDestroyedMessage())
+        let box = PendingCallback(exchange(&callback, with: WebGPU.Metal.DeviceLostCallback()))
+        resolveDeviceLostPromise(
+            hasCallback
+                ? { reason, message in
+                    if var handler = box.handler.take() {
+                        handler(reason, consuming: message)
+                    }
+                } : nil
+        )
+    }
+
+    // resolveDeviceLostPromise, for a Swift caller; nil registers nothing.
+    @_expose(!Cxx)
+    func resolveDeviceLostPromise(_ callback: ((WebGPU.DeviceLostReason, WTF.String) -> Void)?) {
+        if let previous = deviceLostCallback.take() {
+            previous(.Destroyed, WebGPU.Metal.deviceDestroyedMessage())
         }
-        deviceLostCallback = hasCallback ? consume incoming : nil
+        deviceLostCallback = callback
         if lost {
             loseTheDevice(.Destroyed)
         } else if !adapterImpl.isValid() {
@@ -241,21 +255,27 @@ final class DeviceImpl {
 
     @_expose(Cxx)
     func resolveUncapturedErrorEvent(_ callback: inout WebGPU.Metal.UncapturedErrorCallback, _ hasCallback: Bool) {
-        let incoming = exchange(&callback, with: WebGPU.Metal.UncapturedErrorCallback())
-        if var previous = uncapturedErrorCallback.take() {
-            previous(false, consuming: WebGPU.Metal.OptionalError())
+        let box = PendingCallback(exchange(&callback, with: WebGPU.Metal.UncapturedErrorCallback()))
+        resolveUncapturedErrorEvent(hasCallback ? { success, error in callUncapturedErrorCallback(box, success, error) } : nil)
+    }
+
+    // resolveUncapturedErrorEvent, for a Swift caller; nil registers nothing.
+    @_expose(!Cxx)
+    func resolveUncapturedErrorEvent(_ callback: ((Bool, CaughtError?) -> Void)?) {
+        if let previous = uncapturedErrorCallback.take() {
+            previous(false, nil)
         }
-        uncapturedErrorCallback = hasCallback ? consume incoming : nil
+        uncapturedErrorCallback = callback
     }
 
     // Called from ~Device.
     @_expose(Cxx)
     func completeCallbacksForDestruction() {
-        if var callback = deviceLostCallback.take() {
-            callback(.Destroyed, consuming: WebGPU.Metal.deviceDestroyedMessage())
+        if let callback = deviceLostCallback.take() {
+            callback(.Destroyed, WebGPU.Metal.deviceDestroyedMessage())
         }
-        if var callback = uncapturedErrorCallback.take() {
-            callback(false, consuming: WebGPU.Metal.OptionalError())
+        if let callback = uncapturedErrorCallback.take() {
+            callback(false, nil)
         }
     }
 
@@ -280,8 +300,8 @@ final class DeviceImpl {
             }
             return
         }
-        if var callback = uncapturedErrorCallback.take() {
-            callback(true, consuming: WebGPU.Metal.OptionalError(WebGPU.Error(type: type, message: message)))
+        if let callback = uncapturedErrorCallback.take() {
+            callback(true, (type: type, message: message))
         }
     }
 
@@ -307,30 +327,35 @@ final class DeviceImpl {
     // scope's error is dropped and the callback runs now.
     @_expose(Cxx)
     func popErrorScope(_ callback: inout WebGPU.Metal.UncapturedErrorCallback, _ instance: WebGPU.Metal.Instance?) {
-        var handler = exchange(&callback, with: WebGPU.Metal.UncapturedErrorCallback())
+        let box = PendingCallback(exchange(&callback, with: WebGPU.Metal.UncapturedErrorCallback()))
+        popErrorScope(instance) { success, error in
+            callUncapturedErrorCallback(box, success, error)
+        }
+    }
+
+    // popErrorScope, for a Swift caller. `callback` gets whether the scope was popped (or the device is lost) and the
+    // error the scope caught.
+    @_expose(!Cxx)
+    func popErrorScope(_ instance: WebGPU.Metal.Instance?, _ callback: @escaping (Bool, CaughtError?) -> Void) {
         if lost {
-            handler(true, consuming: WebGPU.Metal.OptionalError())
+            callback(true, nil)
             return
         }
         guard let scope = errorScopes.popLast() else {
-            handler(false, consuming: WebGPU.Metal.OptionalError())
+            callback(false, nil)
             return
         }
         guard let instance else {
-            handler(true, consuming: WebGPU.Metal.OptionalError())
+            callback(true, nil)
             return
         }
-        let box = PendingCallback(consume handler)
         let caught = scope.error
         instance.scheduleWork(
             consuming: WebGPU.Metal.Instance.WorkItem {
-                guard var handler = box.handler.take() else {
-                    return
-                }
                 if let caught {
-                    handler(false, consuming: WebGPU.Metal.OptionalError(WebGPU.Error(type: caught.type, message: caught.message)))
+                    callback(false, caught)
                 } else {
-                    handler(true, consuming: WebGPU.Metal.OptionalError())
+                    callback(true, nil)
                 }
             }
         )
@@ -792,12 +817,86 @@ final class DeviceImpl {
     }
 }
 
-// A C++ CompletionHandler waiting in a work item; whoever runs first takes it.
+// An error that an error scope caught, or an uncaptured one.
+typealias CaughtError = (type: WebGPU.ErrorType, message: WTF.String)
+
+// A C++ CompletionHandler that a Swift closure calls at most once.
 private final class PendingCallback<Handler: ~Copyable> {
     var handler: Handler?
 
     init(_ handler: consuming Handler) {
         self.handler = consume handler
+    }
+}
+
+private func callUncapturedErrorCallback(_ box: PendingCallback<WebGPU.Metal.UncapturedErrorCallback>, _ success: Bool, _ error: CaughtError?) {
+    guard var handler = box.handler.take() else {
+        return
+    }
+    if let error {
+        handler(success, consuming: WebGPU.Metal.OptionalError(WebGPU.Error(type: error.type, message: error.message)))
+    } else {
+        handler(success, consuming: WebGPU.Metal.OptionalError())
+    }
+}
+
+// https://gpuweb.github.io/gpuweb/#gpuerror
+@_spi(WebKitGPU)
+public struct GPUError {
+    public let type: WebGPU.ErrorType
+    public let message: Swift.String
+}
+
+// A device with its shell, as Swift holds one, with the operations of Device's shell that create nothing.
+@_spi(WebKitGPU)
+public final class DeviceReference {
+    let impl: DeviceImpl
+    let shell: WebGPU.Metal.Device
+
+    init(_ impl: DeviceImpl, _ shell: WebGPU.Metal.Device) {
+        self.impl = impl
+        self.shell = shell
+    }
+
+    public func destroy() {
+        impl.destroy()
+    }
+
+    public func pushErrorScope(_ filter: WebGPU.ErrorFilter) {
+        impl.pushErrorScope(filter)
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope: whether the scope was popped, and its error.
+    public func popErrorScope(_ completion: @escaping (Bool, GPUError?) -> Void) {
+        impl.popErrorScope(CxxBridging.protectedInstance(shell)) { success, error in
+            completion(success, error.map { GPUError(type: $0.type, message: stringNilIfEmpty($0.message) ?? "") })
+        }
+    }
+
+    // The next uncaptured error, or false without one when another callback replaces this one or the device goes.
+    public func resolveUncapturedErrorEvent(_ completion: @escaping (Bool, GPUError?) -> Void) {
+        impl.resolveUncapturedErrorEvent { success, error in
+            completion(success, error.map { GPUError(type: $0.type, message: stringNilIfEmpty($0.message) ?? "") })
+        }
+    }
+
+    public func resolveDeviceLostPromise(_ completion: @escaping (WebGPU.DeviceLostReason) -> Void) {
+        impl.resolveDeviceLostPromise { reason, _ in
+            completion(reason)
+        }
+    }
+
+    public func pauseAllErrorReporting(_ pause: Bool) {
+        _ = impl.pauseErrorReporting(pause)
+    }
+
+    // Device::setLabel: MTLDevices are process-global, so two contexts' labels would fight each other.
+    public func setLabel(_ label: Swift.String?) {
+    }
+
+    // Queue's shell's isUsable().
+    var isUsable: Bool {
+        impl.isValid() && !impl.isLost()
     }
 }
 

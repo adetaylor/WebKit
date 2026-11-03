@@ -1286,7 +1286,7 @@ final class QueueImpl {
         return writeBufferWithoutStaging(deviceImpl, bufferImpl, bufferOffset, bytes: bytes)
     }
 
-    private func writeBufferWithoutStaging(
+    fileprivate func writeBufferWithoutStaging(
         _ deviceImpl: DeviceImpl,
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
@@ -1970,14 +1970,14 @@ final class QueueImpl {
     }
 
     // Whether a write decides how it initializes its destination, or is one row of a write that already did.
-    private enum WriteInitialization {
+    fileprivate enum WriteInitialization {
         case decide
         case handledByCaller
     }
 
     // False when not every byte of the write was encoded or performed, so that its full writes are not recorded.
     // `aliasable` owns exactly `data`.
-    private func writeTexture(
+    fileprivate func writeTexture(
         _ queue: WebGPU.Metal.Queue,
         _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
@@ -2941,6 +2941,63 @@ final class QueueImpl {
         // ensureBlitCommandEncoder() would otherwise mint a fresh staging buffer over this one, because it
         // keys off the blit and staged-copy encoders, both of which are nil now. Commit while it can.
         finalizeBlitCommandEncoder(queue)
+    }
+}
+
+// A queue with its shell, as Swift holds one, with the operations of Queue's shell that create nothing. Each takes the
+// queue's device, which the shell holds weakly: nil once it is gone, as for the shell.
+@_spi(WebKitGPU)
+public final class QueueReference {
+    let impl: QueueImpl
+    let shell: WebGPU.Metal.Queue
+
+    init(_ impl: QueueImpl, _ shell: WebGPU.Metal.Queue) {
+        self.impl = impl
+        self.shell = shell
+    }
+
+    public func submit(_ commandBuffers: [CommandBufferReference], device: DeviceReference?) {
+        guard let device else {
+            return
+        }
+        for commandBuffer in commandBuffers {
+            impl.appendCommandToSubmit(commandBuffer.shell, commandBuffer.impl)
+        }
+        impl.submit(shell, device.shell, device.impl)
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone: false when the device is lost.
+    public func onSubmittedWorkDone(device: DeviceReference?, _ completion: @escaping (Bool) -> Void) {
+        impl.onSubmittedWorkDone(shell, deviceIsUsable: device?.isUsable ?? false, completion)
+    }
+
+    public func writeBuffer(device: DeviceReference?, _ buffer: BufferReference, _ bufferOffset: UInt64, _ data: Span<UInt8>) {
+        guard let device else {
+            return
+        }
+        if impl.writeBufferWithoutStaging(device.impl, buffer.impl, bufferOffset, bytes: data) {
+            return
+        }
+        impl.stageBufferWrite(shell, device.shell, device.impl, buffer.impl.buffer(), bufferOffset, bytes: data)
+    }
+
+    public func writeTexture(
+        device: DeviceReference?,
+        _ texture: TextureReference,
+        _ destination: TextureCopyLocation,
+        _ data: Span<UInt8>,
+        _ dataLayout: WebGPU.TexelCopyBufferLayout,
+        _ size: WebGPU.Extent3D
+    ) {
+        guard let device else {
+            return
+        }
+        _ = impl.writeTexture(shell, device.shell, device.impl, texture.impl, destination, bytes: data, nil, dataLayout, size, false, .decide)
+    }
+
+    // As WTF::String::createNSString() makes the label for the C++ caller: a null one is empty.
+    public func setLabel(_ label: Swift.String?) {
+        impl.setLabel((label ?? "") as NSString)
     }
 }
 

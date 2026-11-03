@@ -1406,6 +1406,19 @@ public final class TextureReference {
         self.impl = impl
         self.shell = shell
     }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy
+    public func destroy() {
+        impl.destroyAndReleaseHolders()
+    }
+
+    public func undestroy() {
+        impl.recreateIfNeeded()
+    }
+
+    public func setLabel(_ label: Swift.String?) {
+        impl.setLabel(WTF.String(label ?? ""))
+    }
 }
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gputexturedescriptor, without its label.

@@ -327,9 +327,24 @@ public final class BufferImpl: DeliverableImpl {
         _ callback: inout WTF.BoolCompletionHandler
     ) {
         let handler = BoolCompletionHandlerBox(exchange(&callback, with: WTF.BoolCompletionHandler()))
+        mapAsync(shell, modeBits, rangeFits, offset, rangeSize) { success in
+            handler.call(success)
+        }
+    }
+
+    // mapAsync, for a Swift caller.
+    @_expose(!Cxx)
+    func mapAsync(
+        _ shell: WebGPU.Metal.Buffer,
+        _ modeBits: UInt8,
+        _ rangeFits: Bool,
+        _ offset: UInt64,
+        _ rangeSize: UInt64,
+        _ handler: @escaping (Bool) -> Void
+    ) {
         if let error = rangeFits ? errorValidatingMapAsync(modeBits, offset, rangeSize) : mapAsyncError("offset and rangeSize overflowed") {
             deviceImpl.generateAValidationError(error)
-            handler.call(false)
+            handler(false)
             return
         }
 
@@ -339,7 +354,7 @@ public final class BufferImpl: DeliverableImpl {
         deviceImpl.defaultQueueImpl.onSubmittedWorkDone(queue, deviceIsUsable: deviceImpl.isValid() && !deviceImpl.isLost()) { success in
             withExtendedLifetime(shell) {
                 self.completeMapping(mapRequest, success)
-                handler.call(success)
+                handler(success)
             }
         }
     }
