@@ -179,7 +179,7 @@ static void addTree(Checksum& checksum, const ContainerNode& parent)
         } else if (auto* text = dynamicDowncast<Text>(*child)) {
             checksum.add(text->data());
             checksum.add(text->data().is8Bit());
-        } else if (auto* comment = dynamicDowncast<Comment>(*child)) {
+        } else if (auto* comment = dynamicDowncast<WebCore::Comment>(*child)) {
             checksum.add(comment->data());
             checksum.add(comment->data().is8Bit());
         } else if (auto* doctype = dynamicDowncast<DocumentType>(*child)) {
