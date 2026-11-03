@@ -110,11 +110,12 @@ final class RemoteBuffer {
         offset: UInt64,
         reply: consuming RemoteBufferCopyReply
     ) {
-        guard canWrite else {
+        guard canWrite, let bytes = WebKit.mapSharedMemory(data).value else {
             reply.send(false)
             return
         }
-        reply.send(WebKit.copySharedMemoryToBuffer(buffer.apiObject, data, offset))
+        let span: Span<UInt8> = bytes.span()
+        reply.send(buffer.writeContents(span, at: offset))
     }
 
     func copyWithCopy(data: [UInt8], offset: UInt64) {

@@ -428,14 +428,14 @@ final class RemoteDevice {
             return
         }
         var isInvalid = false
-        let imported = videoFrames.importExternalTexture(device.apiObject, descriptor, &isInvalid)
+        let externalTextureDescriptor = videoFrames.externalTextureDescriptor(descriptor, &isInvalid)
         try messageCheck {
             !isInvalid
         }
-        guard let backing = imported.value else {
+        guard let externalTextureDescriptor = externalTextureDescriptor.value else {
             return
         }
-        RemoteExternalTexture.add(WebGPUSwift.reference(of: backing.get()), externalTextureLink)
+        RemoteExternalTexture.add(device.importExternalTexture(externalTextureDescriptor), externalTextureLink)
     }
 
     func updateExternalTexture(
@@ -445,7 +445,11 @@ final class RemoteDevice {
         guard let videoFrames, let externalTexture = link.objects?.object(externalTextureIdentifier, as: ExternalTextureReference.self) else {
             return
         }
-        videoFrames.updateExternalTexture(externalTexture.apiObject, mediaIdentifier.rawValue)
+        externalTexture.impl.destroy()
+        guard let frame = videoFrames.mediaPlayerFrame(mediaIdentifier.rawValue).value else {
+            return
+        }
+        externalTexture.update(frame)
     }
     #endif
 

@@ -120,21 +120,31 @@ final class RemoteQueue {
             reply.send(false)
             return
         }
-        reply.send(WebKit.writeSharedMemoryToBuffer(queue.apiObject, buffer.apiObject, data, bufferOffset))
-    }
-
-    func writeTexture(
-        destination: CxxDecodedArguments.RemoteQueue.WriteTextureDestination,
-        dataHandle: CxxDecodedArguments.RemoteQueue.WriteTextureDataHandle,
-        imageDataLayout: CxxDecodedArguments.RemoteQueue.WriteTextureImageDataLayout,
-        size: CxxDecodedArguments.RemoteQueue.WriteTextureSize,
-        reply: consuming RemoteQueueWriteTextureReply
-    ) {
-        guard let objects = link.objects else {
+        // A large write reads the mapping in place, and keeps it alive until the GPU has.
+        guard let bytes = WebKit.mapSharedMemory(data).value else {
             reply.send(false)
             return
         }
-        reply.send(objects.host.writeSharedMemoryToTexture(queue.apiObject, destination, dataHandle, imageDataLayout, size))
+        queue.writeBuffer(buffer, bufferOffset, bytes)
+        reply.send(true)
+    }
+
+    func writeTexture(
+        destination: IPCTypes.ImageCopyTexture,
+        dataHandle: CxxDecodedArguments.RemoteQueue.WriteTextureDataHandle,
+        imageDataLayout: IPCTypes.ImageDataLayout,
+        size: IPCTypes.Extent3D,
+        reply: consuming RemoteQueueWriteTextureReply
+    ) {
+        let bytes = WebKit.mapSharedMemory(dataHandle).value
+        let texture = link.objects?.object(destination.texture, as: TextureReference.self)
+        assert(texture != nil)
+        guard let texture, let bytes else {
+            reply.send(false)
+            return
+        }
+        queue.writeTexture(texture, TextureCopyLocation(destination), bytes, WebGPU.TexelCopyBufferLayout(imageDataLayout), WebGPU.Extent3D(size))
+        reply.send(true)
     }
 
     func writeTextureWithCopy(
@@ -154,11 +164,20 @@ final class RemoteQueue {
     // Synchronous, so that the source image buffer can't be released before C++ resolves it, and so that drawing
     // recorded against the source after this call can't be applied before the copy is encoded.
     func copyExternalImageToTexture(
-        source: CxxDecodedArguments.RemoteQueue.CopyExternalImageToTextureSource,
-        destination: CxxDecodedArguments.RemoteQueue.CopyExternalImageToTextureDestination,
-        copySize: CxxDecodedArguments.RemoteQueue.CopyExternalImageToTextureCopySize
+        source: IPCTypes.ImageCopyExternalImage,
+        destination: IPCTypes.ImageCopyTextureTagged,
+        copySize: IPCTypes.Extent3D
     ) {
-        link.objects?.host.copyExternalImageToTexture(queue.apiObject, source, destination, copySize)
+        let texture = link.objects?.object(destination.texture, as: TextureReference.self)
+        assert(texture != nil)
+        guard let objects = link.objects, let texture, let imageBufferIdentifier = source.imageBufferIdentifier else {
+            return
+        }
+        let origin = source.origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D()
+        guard let image = objects.host.externalImage(imageBufferIdentifier.rawValue, origin, source.flipY, source.premultipliedAlpha).value else {
+            return
+        }
+        queue.copyExternalImageToTexture(image, texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))
     }
 
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
@@ -176,15 +195,40 @@ final class RemoteQueue {
 
     func copyExternalImageFromVideoFrameToTexture(
         source: CxxDecodedArguments.RemoteQueue.CopyExternalImageFromVideoFrameToTextureSource,
-        destination: CxxDecodedArguments.RemoteQueue.CopyExternalImageFromVideoFrameToTextureDestination,
-        copySize: CxxDecodedArguments.RemoteQueue.CopyExternalImageFromVideoFrameToTextureCopySize
+        destination: IPCTypes.ImageCopyTextureTagged,
+        copySize: IPCTypes.Extent3D
     ) {
-        videoFrames?.copyExternalImageFromVideoFrameToTexture(queue.apiObject, source, destination, copySize)
+        let texture = link.objects?.object(destination.texture, as: TextureReference.self)
+        assert(texture != nil)
+        guard let texture, let image = videoFrames?.externalImage(source).value else {
+            return
+        }
+        queue.copyExternalImageToTexture(image, texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))
     }
     #endif
 
     func setLabel(label: String?) {
         queue.setLabel(label)
+    }
+}
+
+extension GPUCopyExternalImageDestination {
+    // ConvertFromBackingContext's conversion of the destination, apart from the texture.
+    fileprivate init(_ destination: IPCTypes.ImageCopyTextureTagged) {
+        self.init()
+        mipLevel = destination.mipLevel
+        origin = destination.origin.map { WebGPU.Origin3D($0) } ?? WebGPU.Origin3D()
+        aspect = sameNumbering(destination.aspect)
+        colorSpace = sameNumbering(destination.colorSpace)
+        premultipliedAlpha = destination.premultipliedAlpha
+    }
+}
+
+extension WebGPU.Origin2D {
+    fileprivate init(_ origin: IPCTypes.Origin2D) {
+        self.init()
+        x = origin.x
+        y = origin.y
     }
 }
 

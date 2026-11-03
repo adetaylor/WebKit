@@ -78,12 +78,12 @@ public:
     // Adds a device to those that RemoteGPU destroys when its work queue stops.
     void trackDevice(::WebGPU::Device&) const;
 
-    // A queue's WriteTexture message, as RemoteQueue handles it. Returns false if there's no shared memory, or no more
-    // than the message could have carried in the stream.
-    bool writeSharedMemoryToTexture(::WebGPU::Queue&, IPC::CxxDecodedArgument<WebGPU::ImageCopyTexture>&, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>&, IPC::CxxDecodedArgument<WebGPU::ImageDataLayout>&, IPC::CxxDecodedArgument<WebGPU::Extent3D>&) const;
-    // A queue's CopyExternalImageToTexture message, as RemoteQueue handles it: the source is an image buffer of the
-    // RemoteGPU's rendering backend, which WebCore's WebGPU integration copies from.
-    void copyExternalImageToTexture(::WebGPU::Queue&, IPC::CxxDecodedArgument<WebGPU::ImageCopyExternalImage>&, IPC::CxxDecodedArgument<WebGPU::ImageCopyTextureTagged>&, IPC::CxxDecodedArgument<WebGPU::Extent3D>&) const;
+#if PLATFORM(COCOA)
+    // The source of a queue's CopyExternalImageToTexture message, as WebCore's WebGPU integration copies from it: the
+    // IOSurface of the RemoteGPU's rendering backend's image buffer with that identifier, read from the origin.
+    // std::nullopt if there's nothing to copy.
+    std::optional<::WebGPU::ImageCopyExternalImage> externalImage(uint64_t imageBufferIdentifier, ::WebGPU::Origin2D, bool flipY, bool premultipliedAlpha) const;
+#endif
 
 private:
     friend class WebGPUSwiftVideoFrames;
@@ -169,12 +169,11 @@ private:
 
 using OptionalRemoteBufferBacking = std::optional<RemoteBufferBacking>;
 
-// Copies the shared memory that a buffer's Copy message gives into the buffer at that offset, as the C++ receiver does.
-// Returns false if there's none, or no more than the message could have carried in the stream.
-bool copySharedMemoryToBuffer(::WebGPU::Buffer&, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>&, uint64_t offset);
-// A queue's WriteBuffer message, as RemoteQueue handles it: the queue reads the shared memory in place, and keeps it
-// until the GPU has. Returns false if there's none, or no more than the message could have carried in the stream.
-bool writeSharedMemoryToBuffer(::WebGPU::Queue&, ::WebGPU::Buffer&, IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>&, uint64_t bufferOffset);
+using OptionalOwnedBytes = std::optional<::WebGPU::OwnedBytes>;
+
+// The bytes of the shared memory that a message's handle names, mapped read-only, for a write that may read them after
+// it returns. std::nullopt if there's none, or no more than the message could have carried in the stream.
+OptionalOwnedBytes mapSharedMemory(IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>&);
 
 class RemoteDeviceBacking {
 public:
@@ -219,21 +218,6 @@ private:
 
 using OptionalRemoteTextureBacking = std::optional<RemoteTextureBacking>;
 
-class RemoteExternalTextureBacking {
-public:
-    explicit RemoteExternalTextureBacking(::WebGPU::ExternalTexture& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::ExternalTexture& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::ExternalTexture> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-using OptionalRemoteExternalTextureBacking = std::optional<RemoteExternalTextureBacking>;
-
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 // A device receiver's reader of the video frames that the web process shares with it, and its imports of video frames
 // as external textures, which take WebCore's media types.
@@ -247,13 +231,16 @@ public:
     void setSemaphore(IPC::CxxDecodedArgument<IPC::Semaphore>&);
     void setSharedMemory(IPC::CxxDecodedArgument<WebCore::SharedMemory::Handle>&);
 
-    // Imports the video frame that the descriptor names for the device, as RemoteDevice does. std::nullopt with isInvalid
-    // set if the message is invalid, and std::nullopt alone if WebGPU has gone.
-    OptionalRemoteExternalTextureBacking importExternalTexture(::WebGPU::Device&, IPC::CxxDecodedArgument<WebGPU::ExternalTextureDescriptor>&, bool& isInvalid);
-    // Gives the external texture the frame that the media player is showing, as RemoteDevice does.
-    void updateExternalTexture(::WebGPU::ExternalTexture&, uint64_t mediaPlayerIdentifier);
-    // A queue's CopyExternalImageFromVideoFrameToTexture message, as RemoteQueue handles it.
-    void copyExternalImageFromVideoFrameToTexture(::WebGPU::Queue&, IPC::CxxDecodedArgument<WebGPU::ImageCopyExternalImageVideoSource>&, IPC::CxxDecodedArgument<WebGPU::ImageCopyTextureTagged>&, IPC::CxxDecodedArgument<WebGPU::Extent3D>&);
+    // The descriptor of a device's ImportExternalTextureFromVideoFrame message, with the pixel buffer of the video frame
+    // it names, as WebCore's WebGPU integration imports it. std::nullopt with isInvalid set if the message is invalid, and
+    // std::nullopt alone if WebGPU has gone.
+    std::optional<::WebGPU::ExternalTextureDescriptor> externalTextureDescriptor(IPC::CxxDecodedArgument<WebGPU::ExternalTextureDescriptor>&, bool& isInvalid);
+    // The frame that the media player is showing, as a descriptor whose pixel buffer an external texture's update reads.
+    // std::nullopt if the connection to the web process has gone.
+    std::optional<::WebGPU::ExternalTextureDescriptor> mediaPlayerFrame(uint64_t mediaPlayerIdentifier);
+    // The source of a queue's CopyExternalImageFromVideoFrameToTexture message, with the pixel buffer of the video frame it
+    // names, as WebCore's WebGPU integration copies from it. std::nullopt if there's nothing to copy.
+    std::optional<::WebGPU::ImageCopyExternalImage> externalImage(IPC::CxxDecodedArgument<WebGPU::ImageCopyExternalImageVideoSource>&);
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the
