@@ -142,59 +142,6 @@ void WebGPUSwiftRegistryHost::copyExternalImageToTexture(::WebGPU::Queue& queue,
         integration->copyExternalImageToTexture(queue, *convertedSource, *convertedDestination, *copySize);
 }
 
-std::optional<RemoteRenderPassEncoderBacking> WebGPUSwiftRegistryHost::beginRenderPass(::WebGPU::CommandEncoder& commandEncoder, IPC::CxxDecodedArgument<WebGPU::RenderPassDescriptor>& descriptorArgument, bool& isInvalid) const
-{
-    isInvalid = false;
-    auto descriptor = descriptorArgument.take();
-    RefPtr objectHeap = m_objectHeap.get();
-    if (!descriptor || !objectHeap) {
-        isInvalid = !descriptor;
-        return std::nullopt;
-    }
-
-    Vector<std::optional<::WebGPU::RenderPassColorAttachment>> colorAttachments;
-    auto convertedDescriptor = objectHeap->convertFromBacking(*descriptor, colorAttachments);
-    if (!convertedDescriptor) {
-        isInvalid = true;
-        return std::nullopt;
-    }
-
-    RefPtr renderPassEncoder = commandEncoder.beginRenderPass(*convertedDescriptor);
-    if (!renderPassEncoder) {
-        isInvalid = true;
-        return std::nullopt;
-    }
-    return RemoteRenderPassEncoderBacking { *renderPassEncoder };
-}
-
-std::optional<RemoteComputePassEncoderBacking> WebGPUSwiftRegistryHost::beginComputePass(::WebGPU::CommandEncoder& commandEncoder, IPC::CxxDecodedArgument<std::optional<WebGPU::ComputePassDescriptor>>& descriptorArgument, bool& isInvalid) const
-{
-    isInvalid = false;
-    auto descriptor = descriptorArgument.take();
-    RefPtr objectHeap = m_objectHeap.get();
-    if (!descriptor || !objectHeap) {
-        isInvalid = !descriptor;
-        return std::nullopt;
-    }
-
-    std::optional<::WebGPU::ComputePassDescriptor> convertedDescriptor;
-    if (*descriptor) {
-        auto resultDescriptor = objectHeap->convertFromBacking(**descriptor);
-        if (!resultDescriptor) {
-            isInvalid = true;
-            return std::nullopt;
-        }
-        convertedDescriptor = WTF::move(resultDescriptor);
-    }
-
-    RefPtr computePassEncoder = commandEncoder.beginComputePass(convertedDescriptor);
-    if (!computePassEncoder) {
-        isInvalid = true;
-        return std::nullopt;
-    }
-    return RemoteComputePassEncoderBacking { *computePassEncoder };
-}
-
 WebGPUSwiftReceiverRegistration::WebGPUSwiftReceiverRegistration(IPC::StreamServerConnection& streamConnection, IPC::StreamMessageReceiver& receiver, IPC::ReceiverName receiverName, uint64_t identifier)
     : m_streamConnection(streamConnection)
     , m_receiverName(receiverName)

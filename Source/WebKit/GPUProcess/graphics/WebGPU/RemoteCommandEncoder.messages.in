@@ -31,8 +31,8 @@
     SwiftTypes
 ]
 messages -> RemoteCommandEncoder Stream {
-    void BeginRenderPass([CxxDecoded] WebKit::WebGPU::RenderPassDescriptor descriptor, WebKit::WebGPUIdentifier identifier)
-    void BeginComputePass([CxxDecoded] std::optional<WebKit::WebGPU::ComputePassDescriptor> descriptor, WebKit::WebGPUIdentifier identifier)
+    void BeginRenderPass(WebKit::WebGPU::RenderPassDescriptor descriptor, WebKit::WebGPUIdentifier identifier)
+    void BeginComputePass(std::optional<WebKit::WebGPU::ComputePassDescriptor> descriptor, WebKit::WebGPUIdentifier identifier)
     void CopyBufferToBuffer(WebKit::WebGPUIdentifier source, uint64_t sourceOffset, WebKit::WebGPUIdentifier destination, uint64_t destinationOffset, uint64_t size)
     void CopyBufferToTexture(WebKit::WebGPU::ImageCopyBuffer source, WebKit::WebGPU::ImageCopyTexture destination, WebKit::WebGPU::Extent3D copySize)
     void CopyTextureToBuffer(WebKit::WebGPU::ImageCopyTexture source, WebKit::WebGPU::ImageCopyBuffer destination, WebKit::WebGPU::Extent3D copySize)

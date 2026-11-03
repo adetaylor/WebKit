@@ -520,22 +520,6 @@ final class RemoteDevice {
     }
 }
 
-// The object a message names, which it must: a message naming one that doesn't exist is invalid.
-private func messageChecked<Object>(
-    _ object: Object?,
-    function: StaticString = #function,
-    file: StaticString = #fileID,
-    line: UInt = #line
-) throws(InvalidMessage) -> Object {
-    try messageCheck(function: function, file: file, line: line) {
-        object != nil
-    }
-    guard let object else {
-        preconditionFailure("messageCheck() didn't throw")
-    }
-    return object
-}
-
 extension IPCTypes.Error {
     fileprivate init(_ error: GPUError) {
         self.init(type: sameNumbering(error.type), message: error.message)

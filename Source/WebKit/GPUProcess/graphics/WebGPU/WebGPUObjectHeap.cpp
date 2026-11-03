@@ -469,11 +469,9 @@ RefPtr<::WebGPU::PresentationContext> ObjectHeap::convertPresentationContextFrom
 RefPtr<::WebGPU::QuerySet> ObjectHeap::convertQuerySetFromBacking(WebGPUIdentifier identifier)
 {
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    // Swift owns query sets.
-    if (!m_swiftImplTable)
-        return nullptr;
-    auto querySet = m_swiftImplTable->querySet(identifier.toUInt64());
-    return querySet ? &querySet->get() : nullptr;
+    // Swift owns query sets, and no C++ receiver names one.
+    UNUSED_PARAM(identifier);
+    return nullptr;
 #else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>>(iterator->value))
@@ -599,11 +597,9 @@ RefPtr<::WebGPU::Texture> ObjectHeap::convertTextureFromBacking(WebGPUIdentifier
 RefPtr<::WebGPU::TextureView> ObjectHeap::convertTextureViewFromBacking(WebGPUIdentifier identifier)
 {
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    // Swift owns texture views.
-    if (!m_swiftImplTable)
-        return nullptr;
-    auto textureView = m_swiftImplTable->textureView(identifier.toUInt64());
-    return textureView ? &textureView->get() : nullptr;
+    // Swift owns texture views, and no C++ receiver names one.
+    UNUSED_PARAM(identifier);
+    return nullptr;
 #else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteTextureView>>(iterator->value))

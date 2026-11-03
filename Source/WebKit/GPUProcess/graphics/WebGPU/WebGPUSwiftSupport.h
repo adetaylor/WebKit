@@ -32,7 +32,6 @@
 #include "SharedPreferencesForWebProcess.h"
 #include "StreamServerConnection.h"
 #include "SwiftCoding.h"
-#include "WebGPUComputePassDescriptor.h"
 #include "WebGPUExtent3D.h"
 #include "WebGPUExternalTextureDescriptor.h"
 #include "WebGPUIdentifier.h"
@@ -40,7 +39,6 @@
 #include "WebGPUImageCopyTexture.h"
 #include "WebGPUImageCopyTextureTagged.h"
 #include "WebGPUImageDataLayout.h"
-#include "WebGPURenderPassDescriptor.h"
 #include <WebCore/SharedMemory.h>
 #include <WebCore/WebGPUCppAPI.h>
 #include <concepts>
@@ -58,33 +56,6 @@ class SharedVideoFrameReader;
 namespace WebGPU {
 class ObjectHeap;
 }
-
-// The passes that C++ begins for the Swift command encoder receiver.
-class RemoteComputePassEncoderBacking {
-public:
-    explicit RemoteComputePassEncoderBacking(::WebGPU::ComputePassEncoder& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::ComputePassEncoder& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::ComputePassEncoder> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-class RemoteRenderPassEncoderBacking {
-public:
-    explicit RemoteRenderPassEncoderBacking(::WebGPU::RenderPassEncoder& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::RenderPassEncoder& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::RenderPassEncoder> m_backing;
-} SWIFT_SELF_CONTAINED;
 
 // Whether the Swift registry of WebGPU objects has an object, and whether it's valid, for RemoteGPU::isValid().
 enum class WebGPUSwiftObjectState : uint8_t {
@@ -106,11 +77,6 @@ public:
     bool addXRBinding(::WebGPU::Device&, uint64_t identifier) const;
     // Adds a device to those that RemoteGPU destroys when its work queue stops.
     void trackDevice(::WebGPU::Device&) const;
-
-    // Begin a pass of the command encoder, as RemoteCommandEncoder does, converting the descriptor. std::nullopt with
-    // isInvalid set if the message is invalid.
-    std::optional<RemoteRenderPassEncoderBacking> beginRenderPass(::WebGPU::CommandEncoder&, IPC::CxxDecodedArgument<WebGPU::RenderPassDescriptor>&, bool& isInvalid) const;
-    std::optional<RemoteComputePassEncoderBacking> beginComputePass(::WebGPU::CommandEncoder&, IPC::CxxDecodedArgument<std::optional<WebGPU::ComputePassDescriptor>>&, bool& isInvalid) const;
 
     // A queue's WriteTexture message, as RemoteQueue handles it. Returns false if there's no shared memory, or no more
     // than the message could have carried in the stream.
@@ -212,21 +178,6 @@ private:
 
 using OptionalRemoteDeviceBacking = std::optional<RemoteDeviceBacking>;
 
-class RemoteQuerySetBacking {
-public:
-    explicit RemoteQuerySetBacking(::WebGPU::QuerySet& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::QuerySet& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::QuerySet> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-using OptionalRemoteQuerySetBacking = std::optional<RemoteQuerySetBacking>;
-
 class RemoteTextureBacking {
 public:
     explicit RemoteTextureBacking(::WebGPU::Texture& backing)
@@ -241,21 +192,6 @@ private:
 } SWIFT_SELF_CONTAINED;
 
 using OptionalRemoteTextureBacking = std::optional<RemoteTextureBacking>;
-
-class RemoteTextureViewBacking {
-public:
-    explicit RemoteTextureViewBacking(::WebGPU::TextureView& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::TextureView& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::TextureView> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-using OptionalRemoteTextureViewBacking = std::optional<RemoteTextureViewBacking>;
 
 class RemoteExternalTextureBacking {
 public:

@@ -29,8 +29,7 @@ import WebKit_Internal
 
 // Receives the messages of a WebGPU command encoder, on its stream connection's work queue, and calls its
 // CommandEncoderImpl, with the references of the objects they name, from the registry. The passes and command
-// buffers it makes go in the registry, with their receivers; the passes are begun in C++, which converts their
-// descriptors.
+// buffers it makes go in the registry, with their receivers.
 @_expose(Cxx)
 final class RemoteCommandEncoder {
     private let encoder: CommandEncoderReference
@@ -68,40 +67,20 @@ final class RemoteCommandEncoder {
         link.objects
     }
 
-    func beginRenderPass(
-        descriptor: CxxDecodedArguments.RemoteCommandEncoder.BeginRenderPassDescriptor,
-        identifier: IPCTypes.WebGPUIdentifier
-    ) throws(InvalidMessage) {
+    func beginRenderPass(descriptor: IPCTypes.RenderPassDescriptor, identifier: IPCTypes.WebGPUIdentifier) throws(InvalidMessage) {
         guard let objects, let passLink = link.child(identifier) else {
             return
         }
-        var isInvalid = false
-        let pass = objects.host.beginRenderPass(encoder.apiObject, descriptor, &isInvalid)
-        try messageCheck {
-            !isInvalid
-        }
-        guard let backing = pass.value else {
-            return
-        }
-        RemoteRenderPassEncoder.add(WebGPUSwift.reference(of: backing.get()), passLink)
+        RemoteRenderPassEncoder.add(encoder.beginRenderPass(try GPURenderPassDescriptor(descriptor, objects)), passLink)
     }
 
-    func beginComputePass(
-        descriptor: CxxDecodedArguments.RemoteCommandEncoder.BeginComputePassDescriptor,
-        identifier: IPCTypes.WebGPUIdentifier
-    ) throws(InvalidMessage) {
+    func beginComputePass(descriptor: IPCTypes.ComputePassDescriptor?, identifier: IPCTypes.WebGPUIdentifier) {
         guard let objects, let passLink = link.child(identifier) else {
             return
         }
-        var isInvalid = false
-        let pass = objects.host.beginComputePass(encoder.apiObject, descriptor, &isInvalid)
-        try messageCheck {
-            !isInvalid
-        }
-        guard let backing = pass.value else {
-            return
-        }
-        RemoteComputePassEncoder.add(WebGPUSwift.reference(of: backing.get()), passLink)
+        var computePassDescriptor = GPUComputePassDescriptor()
+        computePassDescriptor.timestampWrites = descriptor?.timestampWrites.flatMap { GPUPassTimestampWrites($0, objects) }
+        RemoteComputePassEncoder.add(encoder.beginComputePass(computePassDescriptor, label: descriptor?.label), passLink)
     }
 
     func copyBufferToBuffer(
@@ -226,6 +205,80 @@ final class RemoteCommandEncoder {
 
     func setLabel(label: String?) {
         encoder.setLabel(label)
+    }
+}
+
+extension GPURenderPassAttachmentView {
+    // The texture view with that identifier, or else the texture, as ConvertFromBackingContext looked them up.
+    fileprivate init?(_ identifier: IPCTypes.WebGPUIdentifier, _ objects: WebGPUImplTable) {
+        if let view = objects.object(identifier, as: TextureViewReference.self) {
+            self = .textureView(view)
+        } else if let texture = objects.object(identifier, as: TextureReference.self) {
+            self = .texture(texture)
+        } else {
+            return nil
+        }
+    }
+}
+
+extension GPUPassTimestampWrites {
+    // nil if the query set doesn't exist, which leaves the pass without timestamp writes, as ConvertFromBackingContext
+    // did.
+    fileprivate init?(_ timestampWrites: IPCTypes.RenderPassTimestampWrites, _ objects: WebGPUImplTable) {
+        guard let querySet = objects.object(timestampWrites.querySet, as: QuerySetReference.self) else {
+            return nil
+        }
+        self.init(querySet: querySet)
+        beginningOfPassWriteIndex = timestampWrites.beginningOfPassWriteIndex
+        endOfPassWriteIndex = timestampWrites.endOfPassWriteIndex
+    }
+}
+
+extension GPURenderPassDescriptor {
+    // A message naming an attachment or an occlusion query set that doesn't exist is invalid.
+    fileprivate init(_ descriptor: IPCTypes.RenderPassDescriptor, _ objects: WebGPUImplTable) throws(InvalidMessage) {
+        self.init()
+        colorAttachments.reserveCapacity(descriptor.colorAttachments.count)
+        for colorAttachment in descriptor.colorAttachments {
+            guard let colorAttachment else {
+                colorAttachments.append(nil)
+                continue
+            }
+            var attachment = GPURenderPassColorAttachment(
+                view: try messageChecked(GPURenderPassAttachmentView(colorAttachment.view, objects))
+            )
+            attachment.depthSlice = colorAttachment.depthSlice
+            if let resolveTarget = colorAttachment.resolveTarget {
+                attachment.resolveTarget = try messageChecked(GPURenderPassAttachmentView(resolveTarget, objects))
+            }
+            if let clearValue = colorAttachment.clearValue {
+                attachment.clearValue = WebGPU.Color(r: clearValue.r, g: clearValue.g, b: clearValue.b, a: clearValue.a)
+            }
+            attachment.loadOp = sameNumbering(colorAttachment.loadOp)
+            attachment.storeOp = sameNumbering(colorAttachment.storeOp)
+            colorAttachments.append(attachment)
+        }
+
+        if let depthStencil = descriptor.depthStencilAttachment {
+            var attachment = GPURenderPassDepthStencilAttachment(
+                view: try messageChecked(GPURenderPassAttachmentView(depthStencil.view, objects))
+            )
+            attachment.depthClearValue = depthStencil.depthClearValue
+            attachment.depthLoadOp = depthStencil.depthLoadOp.map { sameNumbering($0) }
+            attachment.depthStoreOp = depthStencil.depthStoreOp.map { sameNumbering($0) }
+            attachment.depthReadOnly = depthStencil.depthReadOnly
+            attachment.stencilClearValue = depthStencil.stencilClearValue
+            attachment.stencilLoadOp = depthStencil.stencilLoadOp.map { sameNumbering($0) }
+            attachment.stencilStoreOp = depthStencil.stencilStoreOp.map { sameNumbering($0) }
+            attachment.stencilReadOnly = depthStencil.stencilReadOnly
+            depthStencilAttachment = attachment
+        }
+
+        if let occlusionQuerySet = descriptor.occlusionQuerySet {
+            self.occlusionQuerySet = try messageChecked(objects.object(occlusionQuerySet, as: QuerySetReference.self))
+        }
+        timestampWrites = descriptor.timestampWrites.flatMap { GPUPassTimestampWrites($0, objects) }
+        maxDrawCount = descriptor.maxDrawCount
     }
 }
 

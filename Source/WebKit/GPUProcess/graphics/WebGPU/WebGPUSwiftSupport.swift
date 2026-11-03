@@ -150,22 +150,6 @@ final class WebGPUImplTable {
         return .init(WebKit.RemoteTextureBacking(texture.apiObject))
     }
 
-    @used
-    func textureView(_ identifier: UInt64) -> WebKit.OptionalRemoteTextureViewBacking {
-        guard let textureView = entries[identifier]?.object as? TextureViewReference else {
-            return .init()
-        }
-        return .init(WebKit.RemoteTextureViewBacking(textureView.apiObject))
-    }
-
-    @used
-    func querySet(_ identifier: UInt64) -> WebKit.OptionalRemoteQuerySetBacking {
-        guard let querySet = entries[identifier]?.object as? QuerySetReference else {
-            return .init()
-        }
-        return .init(WebKit.RemoteQuerySetBacking(querySet.apiObject))
-    }
-
     // Whether an object that Swift owns is valid, as WebGPUIntegration::isValid() says for its shell.
     @used
     func objectState(_ identifier: UInt64) -> WebKit.WebGPUSwiftObjectState {
@@ -188,6 +172,22 @@ final class WebGPUImplTable {
     }
 
 
+}
+
+// The object a message names, which it must: a message naming one that doesn't exist is invalid.
+func messageChecked<Object>(
+    _ object: Object?,
+    function: StaticString = #function,
+    file: StaticString = #fileID,
+    line: UInt = #line
+) throws(InvalidMessage) -> Object {
+    try messageCheck(function: function, file: file, line: line) {
+        object != nil
+    }
+    guard let object else {
+        preconditionFailure("messageCheck() didn't throw")
+    }
+    return object
 }
 
 extension WebGPU.Extent3D {
