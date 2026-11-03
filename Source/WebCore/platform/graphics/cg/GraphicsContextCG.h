@@ -33,6 +33,7 @@
 
 namespace WebCore {
 
+class CGRendererBox;
 class CGRendererCore;
 class GraphicsContextCGCapture;
 
@@ -43,7 +44,9 @@ public:
         Unknown,
         CGContextFromCALayer
     };
-    GraphicsContextCG(CGContextRef, CGContextSource = CGContextSource::Unknown, std::optional<RenderingMode> knownRenderingMode = std::nullopt);
+    // Box: the renderer's core in a CGRendererBox that Swift can hold too, at the cost of an access check per call.
+    enum class SwiftRendererStorage : bool { InPlace, Box };
+    GraphicsContextCG(CGContextRef, CGContextSource = CGContextSource::Unknown, std::optional<RenderingMode> knownRenderingMode = std::nullopt, SwiftRendererStorage = SwiftRendererStorage::InPlace);
 
     ~GraphicsContextCG();
 
@@ -188,7 +191,8 @@ private:
 #if ASSERT_ENABLED
     std::unique_ptr<GraphicsContextCGCapture> m_capture;
 #endif
-    // The CGRendererCore (CGRenderer.swift) this context draws with, built in place. GraphicsContextCG.cpp checks the size.
+    // The CGRendererCore (CGRenderer.swift) this context draws with, built in place, or a reference to the CGRendererBox that
+    // holds it. GraphicsContextCG.cpp checks the size.
     static constexpr size_t swiftRendererSize = 272;
     alignas(8) mutable std::byte m_swiftRendererStorage[swiftRendererSize];
     mutable std::optional<ColorSpace> m_colorSpace;
@@ -197,6 +201,7 @@ private:
 #endif
     const RenderingMode m_renderingMode : 2; // NOLINT
     const bool m_isLayerCGContext : 1;
+    const bool m_hasSwiftRendererBox : 1;
     mutable bool m_userToDeviceTransformKnownToBeIdentity : 1 { false };
     // Flag for pending draws. Start with true because we do not know what commands have been scheduled to the context.
     mutable bool m_hasDrawn : 1 { true };

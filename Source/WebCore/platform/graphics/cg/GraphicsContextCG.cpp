@@ -64,7 +64,7 @@
 
 #include <pal/cg/CoreGraphicsSoftLink.h>
 
-// A call to the renderer this context draws with (GraphicsContextCG::withSwiftRenderer()).
+// A call to the renderer this context draws with, whichever way it's stored (GraphicsContextCG::withSwiftRenderer()).
 #define SWIFT_RENDERER(call) withSwiftRenderer([&](auto& renderer) { return renderer.call; })
 
 #if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/IOSurfaceAdditionsBefore.mm>)
@@ -334,17 +334,21 @@ static GraphicsContext::IsDeferred isDeferredForCGContext(CGContextRef cgContext
     return GraphicsContext::IsDeferred::Yes;
 }
 
-// The one place that reaches the renderer.
+// The one place that picks the renderer: the core stored in place, or, for a context made with SwiftRendererStorage::Box,
+// the box that holds it.
 template<typename Function> decltype(auto) GraphicsContextCG::withSwiftRenderer(Function&& function) const
 {
+    if (m_hasSwiftRendererBox) [[unlikely]]
+        return function(*std::launder(reinterpret_cast<CGRendererBox*>(m_swiftRendererStorage)));
     return function(*std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage)));
 }
 
-GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource source, std::optional<RenderingMode> knownRenderingMode)
+GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource source, std::optional<RenderingMode> knownRenderingMode, SwiftRendererStorage rendererStorage)
     : GraphicsContext(isDeferredForCGContext(cgContext), GraphicsContextState::basicChangeFlags, coreInterpolationQuality(cgContext))
     , m_cgContext(cgContext)
     , m_renderingMode(knownRenderingMode.value_or(renderingModeForCGContext(cgContext, source)))
     , m_isLayerCGContext(source == GraphicsContextCG::CGContextFromCALayer)
+    , m_hasSwiftRendererBox(rendererStorage == SwiftRendererStorage::Box)
 {
     // Exact where pointers are 8 bytes, so that the storage doesn't outgrow the struct; with 4-byte pointers the struct is smaller.
 #if CPU(ADDRESS64)
@@ -353,8 +357,12 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
     static_assert(sizeof(CGRendererCore) <= swiftRendererSize);
 #endif
     static_assert(alignof(CGRendererCore) <= 8);
+    static_assert(sizeof(CGRendererBox) <= swiftRendererSize && alignof(CGRendererBox) <= 8);
     auto makeRenderer = [&](CGContextRef context, bool isUnaccelerated, bool isPDFContext) {
-        new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
+        if (m_hasSwiftRendererBox)
+            new (m_swiftRendererStorage) CGRendererBox(CGRendererBox::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
+        else
+            new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
     };
     if (!cgContext) {
         // An invalid context draws nothing: its renderer draws into a stand-in.
