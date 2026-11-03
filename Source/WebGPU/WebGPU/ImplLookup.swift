@@ -26,8 +26,10 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.BindGroupLayout
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandBuffer
+@_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.ComputePassEncoder
 @_implementationOnly import WebGPU_Internal.ComputePipeline
+@_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.ExternalTexture
 @_implementationOnly import WebGPU_Internal.QuerySet
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
@@ -35,6 +37,8 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.RenderBundle
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.Sampler
+@_implementationOnly import WebGPU_Internal.ShaderModule
+@_implementationOnly import WebGPU_Internal.Texture
 @_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
@@ -53,7 +57,7 @@ public func impl(of bindGroup: WebGPU.BindGroup) -> BindGroupImpl {
 
 @_spi(WebKitGPU)
 public func impl(of externalTexture: WebGPU.ExternalTexture) -> ExternalTextureImpl {
-    ImplLookup.lookUp(ExternalTextureImpl.self) { WebGPU.Metal.deliverImpl(externalTexture) }
+    ImplLookup.lookUp(ExternalTextureImpl.self) { _ = WebGPU.Metal.deliverImpl(externalTexture) }
 }
 
 @_spi(WebKitGPU)
@@ -63,7 +67,7 @@ public func impl(of sampler: WebGPU.Sampler) -> SamplerImpl {
 
 @_spi(WebKitGPU)
 public func impl(of textureView: WebGPU.TextureView) -> TextureViewImpl {
-    ImplLookup.lookUp(TextureViewImpl.self) { WebGPU.Metal.deliverImpl(textureView) }
+    ImplLookup.lookUp(TextureViewImpl.self) { _ = WebGPU.Metal.deliverImpl(textureView) }
 }
 
 @_spi(WebKitGPU)
@@ -274,6 +278,170 @@ public func reference(of renderBundleEncoder: WebGPU.RenderBundleEncoder) -> Ren
         preconditionFailure("C++ delivered no shell")
     }
     return RenderBundleEncoderReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
+public func reference(of device: WebGPU.Device) -> DeviceReference {
+    var shell: WebGPU.Metal.Device?
+    let impl = ImplLookup.lookUp(DeviceImpl.self) { shell = WebGPU.Metal.deliverImpl(device) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return DeviceReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
+public func reference(of texture: WebGPU.Texture) -> TextureReference {
+    var shell: WebGPU.Metal.Texture?
+    let impl = ImplLookup.lookUp(TextureImpl.self) { shell = WebGPU.Metal.deliverImpl(texture) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return TextureReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
+public func reference(of textureView: WebGPU.TextureView) -> TextureViewReference {
+    var shell: WebGPU.Metal.TextureView?
+    let impl = ImplLookup.lookUp(TextureViewImpl.self) { shell = WebGPU.Metal.deliverImpl(textureView) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return TextureViewReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
+public func reference(of externalTexture: WebGPU.ExternalTexture) -> ExternalTextureReference {
+    var shell: WebGPU.Metal.ExternalTexture?
+    let impl = ImplLookup.lookUp(ExternalTextureImpl.self) { shell = WebGPU.Metal.deliverImpl(externalTexture) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return ExternalTextureReference(impl, shell)
+}
+
+// A WebGPU object that Swift holds, as the GPU process's registry of them keeps it: whether it's valid, as its shell's
+// isValid() says.
+@_spi(WebKitGPU)
+public protocol GPUObjectReference: AnyObject {
+    var isValid: Bool { get }
+}
+
+@_spi(WebKitGPU)
+extension BindGroupLayoutReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension BindGroupReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension BufferReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension CommandEncoderReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension ComputePipelineReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension DeviceReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension ExternalTextureReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension PipelineLayoutReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension QuerySetReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension RenderBundleEncoderReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension RenderBundleReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension RenderPipelineReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension SamplerReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension ShaderModuleReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension TextureReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension TextureViewReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+// The objects as the ::WebGPU C++ API objects they are, for the GPU process's C++.
+
+@_spi(WebKitGPU)
+extension BufferReference {
+    public var apiObject: WebGPU.Buffer { WebGPU.Metal.apiObject(shell) }
+}
+
+@_spi(WebKitGPU)
+extension CommandEncoderReference {
+    public var apiObject: WebGPU.CommandEncoder { WebGPU.Metal.apiObject(shell) }
+}
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    public var apiObject: WebGPU.Device { WebGPU.Metal.apiObject(shell) }
+}
+
+@_spi(WebKitGPU)
+extension ExternalTextureReference {
+    public var apiObject: WebGPU.ExternalTexture { WebGPU.Metal.apiObject(shell) }
+}
+
+@_spi(WebKitGPU)
+extension QuerySetReference {
+    public var apiObject: WebGPU.QuerySet { WebGPU.Metal.apiObject(shell) }
+}
+
+@_spi(WebKitGPU)
+extension ShaderModuleReference {
+    public var apiObject: WebGPU.ShaderModule { WebGPU.Metal.apiObject(shell) }
+}
+
+@_spi(WebKitGPU)
+extension TextureReference {
+    public var apiObject: WebGPU.Texture { WebGPU.Metal.apiObject(shell) }
 }
 
 // The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().

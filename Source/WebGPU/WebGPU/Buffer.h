@@ -173,6 +173,8 @@ private:
 
 // For reference(of:) in ImplLookup.swift, which gives WebKit's Swift the BufferImpl of a WebGPU::Buffer, and its shell.
 Buffer& deliverImpl(WebGPU::Buffer&) SWIFT_RETURNS_UNRETAINED;
+// The shell as the C++ API object it is, for Swift, which can't convert a shared reference to its base class.
+inline WebGPU::Buffer& apiObject(Buffer& shell) SWIFT_RETURNS_UNRETAINED { return shell; }
 
 } // namespace WebGPU::Metal
 

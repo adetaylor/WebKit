@@ -171,6 +171,9 @@ private:
     const std::unique_ptr<CommandEncoderImplBox> m_impl;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refCommandEncoder, derefCommandEncoder);
 
+// The shell as the C++ API object it is, for Swift, which can't convert a shared reference to its base class.
+inline WebGPU::CommandEncoder& apiObject(CommandEncoder& shell) SWIFT_RETURNS_UNRETAINED { return shell; }
+
 } // namespace WebGPU::Metal
 
 #if !ENABLE(SWIFT_BASE_CLASS_ANNOTATIONS)

@@ -206,7 +206,7 @@ private struct TextureInitState {
 // The state of a GPUTexture, owned by the C++ shell WebGPU::Metal::Texture. Also runs view creation and its validation.
 // Used only on its Instance's API thread.
 @_expose(Cxx)
-final class TextureImpl {
+final class TextureImpl: DeliverableImpl {
     // nil only for an invalid texture. destroy() swaps in the device placeholder unless canvas-backed.
     private var backingTexture: (any MTLTexture)?
     private var destroyed = false

@@ -82,7 +82,7 @@ private:
 } SWIFT_SHARED_REFERENCE(refTextureView, derefTextureView) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 // For impl(of:) in ImplLookup.swift, which gives WebKit's Swift the TextureViewImpl of a WebGPU::TextureView.
-void deliverImpl(WebGPU::TextureView&);
+TextureView& deliverImpl(WebGPU::TextureView&) SWIFT_RETURNS_UNRETAINED;
 
 } // namespace WebGPU::Metal
 

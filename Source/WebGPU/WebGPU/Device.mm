@@ -405,6 +405,13 @@ id<MTLSharedEvent> Device::resolveTimestampsSharedEvent()
     return m_impl->impl.resolveTimestampsSharedEvent();
 }
 
+Device& deliverImpl(WebGPU::Device& device)
+{
+    auto& shell = downcast<Device>(device);
+    WebGPUSwift::receiveImpl(shell.swiftImpl());
+    return shell;
+}
+
 } // namespace WebGPU::Metal
 
 #pragma mark WGPU Stubs

@@ -91,4 +91,7 @@ void runOnWGSLCompileThread(NOESCAPE void (^work)(void));
 // filled with them in their current order iterates them, for walks whose first failure picks an error message.
 void sortInWTFHashTableOrder(std::span<uint32_t> keys NOESCAPE);
 
+// The shell as the C++ API object it is, for Swift, which can't convert a shared reference to its base class.
+inline WebGPU::ShaderModule& apiObject(ShaderModule& shell) SWIFT_RETURNS_UNRETAINED { return shell; }
+
 } // namespace WebGPU::Metal
