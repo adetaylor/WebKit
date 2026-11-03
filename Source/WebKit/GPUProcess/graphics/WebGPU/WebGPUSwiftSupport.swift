@@ -29,8 +29,18 @@ import WebKit_Internal
 extension IPCTypes.CxxName {
     // The generator names the Swift forms of the C++ types it describes, not of their aliases, which the WebGPU
     // receivers' messages use.
+    typealias WebKit_WebGPU_BufferDescriptor = IPCTypes.BufferDescriptor
     typealias WebKit_WebGPU_Color = IPCTypes.Color
+    typealias WebKit_WebGPU_CommandBufferDescriptor = IPCTypes.CommandBufferDescriptor
+    typealias WebKit_WebGPU_CommandEncoderDescriptor = IPCTypes.CommandEncoderDescriptor
+    typealias WebKit_WebGPU_CompilationMessage = IPCTypes.CompilationMessage
+    typealias WebKit_WebGPU_Extent3D = IPCTypes.Extent3D
+    typealias WebKit_WebGPU_ImageDataLayout = IPCTypes.TexelCopyBufferLayout
+    typealias WebKit_WebGPU_QuerySetDescriptor = IPCTypes.QuerySetDescriptor
     typealias WebKit_WebGPU_RenderBundleDescriptor = IPCTypes.RenderBundleDescriptor
+    typealias WebKit_WebGPU_SamplerDescriptor = IPCTypes.SamplerDescriptor
+    typealias WebKit_WebGPU_SupportedLimits = IPCTypes.Limits
+    typealias WebKit_WebGPU_TextureViewDescriptor = IPCTypes.TextureViewDescriptor
 }
 
 extension WebGPU.IndexFormat {
