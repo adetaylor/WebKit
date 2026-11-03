@@ -404,11 +404,11 @@ func sharedVideoFrameCreatePixelBuffer(
         assert(UInt(bitPattern: CVPixelBufferGetHeightOfPlane(pixelBuffer, 0)) == UInt(layout.height))
         assert(CVPixelBufferGetPixelFormatType(pixelBuffer) == layout.bufferType)
     }
-    guard CVPixelBufferLockBaseAddress(pixelBuffer, []) == kCVReturnSuccess else {
+    guard CVPixelBufferLockBaseAddress(pixelBuffer, 0) == kCVReturnSuccess else {
         return nil
     }
     defer {
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, 0)
     }
     return copyPlanes(layout, from: bytes, to: pixelBuffer) ? pixelBuffer : nil
 }
@@ -444,11 +444,11 @@ func sharedVideoFrameWritePixelBuffer(
     headerSize: UInt,
     _ destination: inout WebCore.MutablePixelBytes
 ) -> WebCore.SharedVideoFrameWriteResult {
-    guard let pixelBuffer, CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly) == kCVReturnSuccess else {
+    guard let pixelBuffer, CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.readOnly.rawValue) == kCVReturnSuccess else {
         return .LockFailed
     }
     defer {
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.readOnly.rawValue)
     }
     guard unsafe CVPixelBufferGetBaseAddress(pixelBuffer) != nil else {
         return .NotReadable
