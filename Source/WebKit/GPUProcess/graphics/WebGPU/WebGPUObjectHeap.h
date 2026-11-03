@@ -205,7 +205,9 @@ public:
 #else
     void addObject(WebGPUIdentifier, RemoteSampler&);
 #endif
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, RemoteShaderModule&);
+#endif
     void addObject(WebGPUIdentifier, RemoteTexture&);
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void addObject(WebGPUIdentifier, TextureViewObject&&);
@@ -297,7 +299,9 @@ private:
         RenderPassEncoderObject,
         RenderPipelineObject,
         SamplerObject,
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
         IPC::ScopedActiveMessageReceiveQueue<RemoteShaderModule>,
+#endif
         IPC::ScopedActiveMessageReceiveQueue<RemoteTexture>,
         TextureViewObject,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRBinding>,

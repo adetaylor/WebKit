@@ -32,7 +32,6 @@
 #include "RemoteBufferProxy.h"
 #include "RemoteCommandEncoder.h"
 #include "RemoteGPU.h"
-#include "RemoteShaderModule.h"
 #include "RemoteTexture.h"
 #include "RemoteXRBinding.h"
 #include "StreamServerConnection.h"
@@ -103,18 +102,6 @@ void WebGPUSwiftRegistryHost::addTexture(::WebGPU::Texture& texture, uint64_t id
     WebGPUIdentifier textureIdentifier { identifier };
     auto remoteTexture = RemoteTexture::create(*connection, *gpu, texture, *objectHeap, streamConnection.releaseNonNull(), textureIdentifier);
     objectHeap->addObject(textureIdentifier, remoteTexture);
-}
-
-void WebGPUSwiftRegistryHost::addShaderModule(::WebGPU::ShaderModule& shaderModule, uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    RefPtr gpu = m_gpu.get();
-    RefPtr streamConnection = this->streamConnection();
-    if (!objectHeap || !streamConnection)
-        return;
-    WebGPUIdentifier shaderModuleIdentifier { identifier };
-    auto remoteShaderModule = RemoteShaderModule::create(shaderModule, *objectHeap, streamConnection.releaseNonNull(), *gpu, shaderModuleIdentifier);
-    objectHeap->addObject(shaderModuleIdentifier, remoteShaderModule);
 }
 
 void WebGPUSwiftRegistryHost::addCommandEncoder(::WebGPU::CommandEncoder& commandEncoder, uint64_t identifier) const

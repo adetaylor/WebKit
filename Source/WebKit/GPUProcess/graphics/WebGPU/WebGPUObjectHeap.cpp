@@ -343,11 +343,13 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteSampler& sampler)
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteShaderModule& shaderModule)
 {
     auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteShaderModule> { protect(shaderModule) } });
     ASSERT_UNUSED(result, result.isNewEntry);
 }
+#endif
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteTexture& texture)
 {
@@ -609,10 +611,16 @@ RefPtr<::WebGPU::Sampler> ObjectHeap::convertSamplerFromBacking(WebGPUIdentifier
 
 RefPtr<::WebGPU::ShaderModule> ObjectHeap::convertShaderModuleFromBacking(WebGPUIdentifier identifier)
 {
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    // Swift owns shader modules, and no C++ receiver names one.
+    UNUSED_PARAM(identifier);
+    return nullptr;
+#else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteShaderModule>>(iterator->value))
         return nullptr;
     return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteShaderModule>>(iterator->value)->backing();
+#endif
 }
 
 RefPtr<::WebGPU::Texture> ObjectHeap::convertTextureFromBacking(WebGPUIdentifier identifier)

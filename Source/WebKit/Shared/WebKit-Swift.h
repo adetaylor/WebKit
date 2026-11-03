@@ -102,6 +102,7 @@
 #include "RemoteRenderPassEncoderMessages.h"
 #include "RemoteRenderPipelineMessages.h"
 #include "RemoteSamplerMessages.h"
+#include "RemoteShaderModuleMessages.h"
 #include "RemoteTextureViewMessages.h"
 #include "WebGPUSwiftSupport.h"
 #endif

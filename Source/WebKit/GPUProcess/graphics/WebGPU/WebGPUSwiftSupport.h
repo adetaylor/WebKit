@@ -91,7 +91,6 @@ public:
 
     // Make the C++ receivers of objects that Swift made, which the object heap owns.
     void addTexture(::WebGPU::Texture&, uint64_t identifier) const;
-    void addShaderModule(::WebGPU::ShaderModule&, uint64_t identifier) const;
     void addCommandEncoder(::WebGPU::CommandEncoder&, uint64_t identifier) const;
     // Makes the device's XR binding, and its receiver. False if the device makes none.
     bool addXRBinding(::WebGPU::Device&, uint64_t identifier) const;

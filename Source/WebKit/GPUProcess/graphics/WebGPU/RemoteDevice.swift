@@ -203,7 +203,7 @@ final class RemoteDevice {
         descriptor: IPCTypes.ShaderModuleDescriptor,
         identifier: IPCTypes.WebGPUIdentifier
     ) throws(InvalidMessage) {
-        guard let objects = link.objects else {
+        guard let objects = link.objects, let shaderModuleLink = link.child(identifier) else {
             return
         }
         // WebGPU doesn't use the compilation hints yet, but one naming a layout that doesn't exist makes the message
@@ -211,9 +211,7 @@ final class RemoteDevice {
         for hint in descriptor.hints {
             _ = try messageChecked(objects.object(hint.hint.pipelineLayout, as: PipelineLayoutReference.self))
         }
-        let shaderModule = device.createShaderModule(code: descriptor.code ?? "", label: descriptor.label)
-        objects.addReference(identifier.rawValue, shaderModule)
-        objects.host.addShaderModule(shaderModule.apiObject, identifier.rawValue)
+        RemoteShaderModule.add(device.createShaderModule(code: descriptor.code ?? "", label: descriptor.label), shaderModuleLink)
     }
 
     func createComputePipeline(
