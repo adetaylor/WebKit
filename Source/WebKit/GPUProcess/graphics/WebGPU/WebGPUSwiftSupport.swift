@@ -135,29 +135,13 @@ final class WebGPUImplTable {
         RemoteTexture.add(WebGPUSwift.reference(of: backing.get()), WebGPURegistryLink(self, identifier))
     }
 
-    // The objects that Swift owns, for the C++ receivers that name them.
-    @used
-    func buffer(_ identifier: UInt64) -> WebKit.OptionalRemoteBufferBacking {
-        guard let buffer = entries[identifier]?.object as? BufferReference else {
-            return .init()
-        }
-        return .init(WebKit.RemoteBufferBacking(buffer.apiObject))
-    }
-
+    // The devices that Swift owns, for the C++ receivers that name them.
     @used
     func device(_ identifier: UInt64) -> WebKit.OptionalRemoteDeviceBacking {
         guard let device = entries[identifier]?.object as? DeviceReference else {
             return .init()
         }
         return .init(WebKit.RemoteDeviceBacking(device.apiObject))
-    }
-
-    @used
-    func texture(_ identifier: UInt64) -> WebKit.OptionalRemoteTextureBacking {
-        guard let texture = entries[identifier]?.object as? TextureReference else {
-            return .init()
-        }
-        return .init(WebKit.RemoteTextureBacking(texture.apiObject))
     }
 
     // Whether an object that Swift owns is valid, as WebGPUIntegration::isValid() says for its shell.

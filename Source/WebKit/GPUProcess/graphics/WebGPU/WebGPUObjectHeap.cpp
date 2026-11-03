@@ -353,11 +353,9 @@ RefPtr<::WebGPU::BindGroupLayout> ObjectHeap::convertBindGroupLayoutFromBacking(
 RefPtr<::WebGPU::Buffer> ObjectHeap::convertBufferFromBacking(WebGPUIdentifier identifier)
 {
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    // Swift owns buffers.
-    if (!m_swiftImplTable)
-        return nullptr;
-    auto buffer = m_swiftImplTable->buffer(identifier.toUInt64());
-    return buffer ? &buffer->get() : nullptr;
+    // Swift owns buffers, and no C++ receiver names one.
+    UNUSED_PARAM(identifier);
+    return nullptr;
 #else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteBuffer>>(iterator->value))
@@ -603,11 +601,9 @@ RefPtr<::WebGPU::ShaderModule> ObjectHeap::convertShaderModuleFromBacking(WebGPU
 RefPtr<::WebGPU::Texture> ObjectHeap::convertTextureFromBacking(WebGPUIdentifier identifier)
 {
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    // Swift owns textures.
-    if (!m_swiftImplTable)
-        return nullptr;
-    auto texture = m_swiftImplTable->texture(identifier.toUInt64());
-    return texture ? &texture->get() : nullptr;
+    // Swift owns textures, and no C++ receiver names one.
+    UNUSED_PARAM(identifier);
+    return nullptr;
 #else
     auto iterator = m_objects.find(identifier);
     if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteTexture>>(iterator->value))

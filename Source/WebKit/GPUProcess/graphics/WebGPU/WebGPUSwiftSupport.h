@@ -154,21 +154,6 @@ private:
     Ref<::WebGPU::Adapter> m_backing;
 } SWIFT_SELF_CONTAINED;
 
-class RemoteBufferBacking {
-public:
-    explicit RemoteBufferBacking(::WebGPU::Buffer& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::Buffer& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::Buffer> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-using OptionalRemoteBufferBacking = std::optional<RemoteBufferBacking>;
-
 using OptionalOwnedBytes = std::optional<::WebGPU::OwnedBytes>;
 
 // The bytes of the shared memory that a message's handle names, mapped read-only, for a write that may read them after
@@ -215,8 +200,6 @@ public:
 private:
     Ref<::WebGPU::Texture> m_backing;
 } SWIFT_SELF_CONTAINED;
-
-using OptionalRemoteTextureBacking = std::optional<RemoteTextureBacking>;
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 // A device receiver's reader of the video frames that the web process shares with it, and its imports of video frames
