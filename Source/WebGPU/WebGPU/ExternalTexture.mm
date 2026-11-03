@@ -118,24 +118,3 @@ void ExternalTexture::update(CVPixelBufferRef pixelBuffer)
 
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs
-
-NODELETE void wgpuExternalTextureAddRef(WGPUExternalTexture externalTexture)
-{
-    WebGPU::Metal::fromAPI(externalTexture).ref();
-}
-
-void wgpuExternalTextureRelease(WGPUExternalTexture externalTexture)
-{
-    @autoreleasepool {
-        WebGPU::Metal::fromAPI(externalTexture).deref();
-    }
-}
-
-void wgpuExternalTextureDestroy(WGPUExternalTexture externalTexture)
-{
-    @autoreleasepool {
-        protect(WebGPU::Metal::fromAPI(externalTexture))->destroy();
-    }
-}

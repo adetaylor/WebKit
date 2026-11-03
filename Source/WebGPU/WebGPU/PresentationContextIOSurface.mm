@@ -179,5 +179,3 @@ CGImageRef createImageWithTextureBytes(id<MTLTexture> texture, size_t width, siz
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs

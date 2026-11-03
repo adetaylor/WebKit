@@ -58,5 +58,3 @@ void XRView::setLabel(String&&)
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs

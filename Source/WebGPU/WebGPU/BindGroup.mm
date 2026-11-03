@@ -192,24 +192,3 @@ bool BindGroup::updateExternalTextures(WebGPU::ExternalTexture& apiExternalTextu
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs
-
-void LEGACY_NODELETE wgpuBindGroupAddRef(WGPUBindGroup bindGroup)
-{
-    WebGPU::Metal::fromAPI(bindGroup).ref();
-}
-
-void wgpuBindGroupRelease(WGPUBindGroup bindGroup)
-{
-    @autoreleasepool {
-        WebGPU::Metal::fromAPI(bindGroup).deref();
-    }
-}
-
-void wgpuBindGroupSetLabel(WGPUBindGroup bindGroup, WGPUStringView label)
-{
-    @autoreleasepool {
-        protect(WebGPU::Metal::fromAPI(bindGroup))->setLabel(WebGPU::Metal::fromAPI(label));
-    }
-}

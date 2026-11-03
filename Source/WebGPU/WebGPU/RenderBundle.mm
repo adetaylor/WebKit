@@ -79,24 +79,3 @@ void RenderBundle::setLabel(String&& label)
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs
-
-void LEGACY_NODELETE wgpuRenderBundleAddRef(WGPURenderBundle renderBundle)
-{
-    WebGPU::Metal::fromAPI(renderBundle).ref();
-}
-
-void wgpuRenderBundleRelease(WGPURenderBundle renderBundle)
-{
-    @autoreleasepool {
-        WebGPU::Metal::fromAPI(renderBundle).deref();
-    }
-}
-
-void wgpuRenderBundleSetLabel(WGPURenderBundle renderBundle, WGPUStringView label)
-{
-    @autoreleasepool {
-        protect(WebGPU::Metal::fromAPI(renderBundle))->setLabel(WebGPU::Metal::fromAPI(label));
-    }
-}

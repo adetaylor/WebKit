@@ -130,24 +130,3 @@ void PipelineLayout::makeInvalid()
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs
-
-void LEGACY_NODELETE wgpuPipelineLayoutAddRef(WGPUPipelineLayout pipelineLayout)
-{
-    WebGPU::Metal::fromAPI(pipelineLayout).ref();
-}
-
-void wgpuPipelineLayoutRelease(WGPUPipelineLayout pipelineLayout)
-{
-    @autoreleasepool {
-        WebGPU::Metal::fromAPI(pipelineLayout).deref();
-    }
-}
-
-void wgpuPipelineLayoutSetLabel(WGPUPipelineLayout pipelineLayout, WGPUStringView label)
-{
-    @autoreleasepool {
-        WebGPU::Metal::fromAPI(pipelineLayout).setLabel(WebGPU::Metal::fromAPI(label));
-    }
-}

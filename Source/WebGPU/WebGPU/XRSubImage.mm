@@ -120,5 +120,3 @@ RefPtr<WebGPU::XRSubImage> XRBinding::getViewSubImage(WebGPU::XRProjectionLayer&
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs

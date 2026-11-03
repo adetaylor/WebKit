@@ -86,24 +86,3 @@ bool TextureView::isValid() const
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs
-
-void LEGACY_NODELETE wgpuTextureViewAddRef(WGPUTextureView textureView)
-{
-    WebGPU::Metal::fromAPI(textureView).ref();
-}
-
-void wgpuTextureViewRelease(WGPUTextureView textureView)
-{
-    @autoreleasepool {
-        WebGPU::Metal::fromAPI(textureView).deref();
-    }
-}
-
-void wgpuTextureViewSetLabel(WGPUTextureView textureView, WGPUStringView label)
-{
-    @autoreleasepool {
-        protect(WebGPU::Metal::fromAPI(textureView))->setLabel(WebGPU::Metal::fromAPI(label));
-    }
-}

@@ -81,5 +81,3 @@ std::optional<HardwareCapabilities> hardwareCapabilities(id<MTLDevice> device)
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs

@@ -102,24 +102,3 @@ const Device& BindGroupLayout::device() const
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs
-
-void LEGACY_NODELETE wgpuBindGroupLayoutAddRef(WGPUBindGroupLayout bindGroupLayout)
-{
-    WebGPU::Metal::fromAPI(bindGroupLayout).ref();
-}
-
-void wgpuBindGroupLayoutRelease(WGPUBindGroupLayout bindGroupLayout)
-{
-    @autoreleasepool {
-        WebGPU::Metal::fromAPI(bindGroupLayout).deref();
-    }
-}
-
-void wgpuBindGroupLayoutSetLabel(WGPUBindGroupLayout bindGroupLayout, WGPUStringView label)
-{
-    @autoreleasepool {
-        protect(WebGPU::Metal::fromAPI(bindGroupLayout))->setLabel(WebGPU::Metal::fromAPI(label));
-    }
-}

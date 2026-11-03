@@ -27,9 +27,8 @@
 
 #include "WebGPU.h"
 
-// The handles of webgpu.h point to the objects of the C++ API (see WebGPUCppBridge.h), never to
-// these structs. Defining them keeps the structs of webgpu.h, and the code that passes the
-// handles, from using forward declared types.
+// webgpu.h's handles point to no object, now that its functions are gone, but its structs still
+// name them. Defining these keeps the structs from using forward declared types.
 struct WGPUAdapterImpl { };
 struct WGPUBindGroupImpl { };
 struct WGPUBindGroupLayoutImpl { };

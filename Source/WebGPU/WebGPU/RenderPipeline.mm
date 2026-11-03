@@ -154,33 +154,3 @@ void RenderPipeline::setLabel(String&&)
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs
-
-void LEGACY_NODELETE wgpuRenderPipelineAddRef(WGPURenderPipeline renderPipeline)
-{
-    WebGPU::Metal::fromAPI(renderPipeline).ref();
-}
-
-void wgpuRenderPipelineRelease(WGPURenderPipeline renderPipeline)
-{
-    @autoreleasepool {
-        WebGPU::Metal::fromAPI(renderPipeline).deref();
-    }
-}
-
-WGPUBindGroupLayout wgpuRenderPipelineGetBindGroupLayout(WGPURenderPipeline renderPipeline, uint32_t groupIndex)
-{
-    @autoreleasepool {
-        // Every WebGPU::BindGroupLayout that a WebGPU::Metal::RenderPipeline returns is a WebGPU::Metal::BindGroupLayout.
-        Ref bindGroupLayout = downcast<WebGPU::Metal::BindGroupLayout>(protect(WebGPU::Metal::fromAPI(renderPipeline))->getBindGroupLayout(groupIndex).get());
-        return WebGPU::Metal::releaseToAPI(WTF::move(bindGroupLayout));
-    }
-}
-
-void wgpuRenderPipelineSetLabel(WGPURenderPipeline renderPipeline, WGPUStringView label)
-{
-    @autoreleasepool {
-        WebGPU::Metal::fromAPI(renderPipeline).setLabel(WebGPU::Metal::fromAPI(label));
-    }
-}

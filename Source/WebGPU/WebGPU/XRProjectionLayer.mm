@@ -227,5 +227,3 @@ RefPtr<WebGPU::XRProjectionLayer> XRBinding::createProjectionLayer(const WebGPU:
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs

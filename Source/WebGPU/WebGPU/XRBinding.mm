@@ -63,6 +63,3 @@ bool XRBinding::isValid() const
 }
 
 } // namespace WebGPU::Metal
-
-#pragma mark WGPU Stubs
-
