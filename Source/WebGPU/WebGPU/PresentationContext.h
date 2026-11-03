@@ -65,9 +65,14 @@ public:
 
     void setLabel(String&&) override { }
     bool isValid() const override { return false; }
+    // Gives Swift the context's Impl, through receiveImpl(), if it has one.
+    virtual void deliverSwiftImpl() { }
 protected:
     explicit PresentationContext();
 };
+
+// Gives Swift the Impl of a presentation context that presents through IOSurfaces, and returns its shell.
+PresentationContext& deliverImpl(WebGPU::PresentationContext&) SWIFT_RETURNS_UNRETAINED;
 
 // For PresentationContextIOSurface.swift, which cannot copy raw bytes, set the deprecated fastMathEnabled or call the
 // variadic WTFLogAlways. Declared here because PresentationContextIOSurface.h is not a Swift module header; defined in

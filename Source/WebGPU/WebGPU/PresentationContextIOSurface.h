@@ -52,6 +52,7 @@ public:
     Seconds lastFramePresentStall() const override;
 
     bool isValid() const final { return true; }
+    void deliverSwiftImpl() final;
 private:
     explicit PresentationContextIOSurface(std::unique_ptr<PresentationContextIOSurfaceImplBox>&&);
 

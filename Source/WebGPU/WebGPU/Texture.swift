@@ -1606,6 +1606,14 @@ func makeTexture(
     return TextureShellAndImpl(shell: WebGPU.Metal.Texture.createWithStagedImpl(device).ptr(), impl: impl)
 }
 
+/// An invalid texture, as Texture::createInvalid() makes one.
+func makeInvalidTexture(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> TextureShellAndImpl {
+    let impl = makeInvalidTextureImpl(device, deviceImpl)
+    precondition(deviceImpl.stagedTextureImpl == nil)
+    deviceImpl.stagedTextureImpl = impl
+    return TextureShellAndImpl(shell: WebGPU.Metal.Texture.createWithStagedImpl(device).ptr(), impl: impl)
+}
+
 /// The parameters of a 2D texture of one mip level.
 func twoDimensionalTextureParameters(
     _ format: WebGPU.TextureFormat,

@@ -126,6 +126,11 @@ void PresentationContextIOSurface::present(uint32_t currentIndex)
     m_impl->impl.present(currentIndex);
 }
 
+void PresentationContextIOSurface::deliverSwiftImpl()
+{
+    WebGPUSwift::receiveImpl(m_impl->impl);
+}
+
 Texture* PresentationContextIOSurface::currentTexture(uint32_t currentIndex)
 {
     if (!m_impl->impl.validateCurrentTextureIndex(currentIndex))

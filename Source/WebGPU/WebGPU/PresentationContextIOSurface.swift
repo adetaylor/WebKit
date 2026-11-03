@@ -31,10 +31,82 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPUCpp
 
+// https://gpuweb.github.io/gpuweb/#dictdef-gpucanvasconfiguration, with the canvas's size.
+@_spi(WebKitGPU)
+public struct GPUCanvasConfiguration {
+    public var device: DeviceReference
+    public var format = WebGPU.TextureFormat.Bgra8unorm
+    // The bits of OptionSet<WebGPU::TextureUsage>.
+    public var usage = WebGPU.TextureUsage.RenderAttachment.rawValue
+    public var viewFormats: [WebGPU.TextureFormat] = []
+    public var colorSpace = WebGPU.PredefinedColorSpace.SRGB
+    public var toneMappingMode = WebGPU.CanvasToneMappingMode.Standard
+    public var compositingAlphaMode = WebGPU.CanvasAlphaMode.Opaque
+    public var reportValidationErrors = true
+    public var width: UInt32 = 0
+    public var height: UInt32 = 0
+
+    public init(device: DeviceReference) {
+        self.device = device
+    }
+}
+
+extension GPUCanvasConfiguration {
+    // A C++ caller's configuration, whose device is `device`.
+    init(_ configuration: borrowing WebGPU.CanvasConfiguration, _ device: DeviceReference) {
+        self.init(device: device)
+        format = configuration.format
+        usage = configuration.usage.toRaw()
+        let viewFormatsSpan: Span<WebGPU.TextureFormat> = configuration.viewFormatsSpan()
+        viewFormats.reserveCapacity(viewFormatsSpan.count)
+        for index in viewFormatsSpan.indices {
+            viewFormats.append(viewFormatsSpan[index])
+        }
+        colorSpace = configuration.colorSpace
+        toneMappingMode = configuration.toneMappingMode
+        compositingAlphaMode = configuration.compositingAlphaMode
+        reportValidationErrors = configuration.reportValidationErrors
+        width = configuration.width
+        height = configuration.height
+    }
+}
+
+// A canvas context that presents through the compositor's IOSurfaces, with its shell, as Swift holds one.
+@_spi(WebKitGPU)
+public final class PresentationContextReference {
+    let impl: PresentationContextIOSurfaceImpl
+    let shell: WebGPU.Metal.PresentationContext
+
+    init(_ impl: PresentationContextIOSurfaceImpl, _ shell: WebGPU.Metal.PresentationContext) {
+        self.impl = impl
+        self.shell = shell
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure
+    public func configure(_ configuration: GPUCanvasConfiguration) {
+        impl.configure(configuration)
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure
+    public func unconfigure() {
+        impl.unconfigure()
+    }
+
+    public func present(_ frameIndex: UInt32) {
+        impl.present(frameIndex)
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture: the texture the canvas draws into for the
+    // frame, or an invalid texture if the frame isn't one of the configuration's. nil before the first configure().
+    public func getCurrentTexture(_ frameIndex: UInt32) -> TextureReference? {
+        impl.currentTexture(frameIndex).map { TextureReference($0.impl, $0.shell) }
+    }
+}
+
 // The state of a canvas context that presents through the compositor's IOSurfaces. Used only on its Instance's API
 // thread: the compositor calls back on the work queue.
 @_expose(Cxx)
-final class PresentationContextIOSurfaceImpl {
+final class PresentationContextIOSurfaceImpl: DeliverableImpl {
     private struct RenderBuffer {
         let texture: TextureShellAndImpl
         // The rgba16float texture the canvas draws into under standard tone mapping; `texture` then holds the
@@ -59,7 +131,7 @@ final class PresentationContextIOSurfaceImpl {
     // The buffers of the surfaces the compositor just replaced, copied into the new ones by the next configure.
     private var existingRenderBuffers: [RenderBuffer] = []
     // Empty until the first configure, then one element.
-    private var invalidTextures: [WebGPU.Metal.Texture] = []
+    private var invalidTextures: [TextureShellAndImpl] = []
     private var luminanceClampFunction: (any MTLFunction)?
     private var luminanceClampPipeline: (any MTLComputePipelineState)?
     private var resizePipeline: (any MTLComputePipelineState)?
@@ -108,8 +180,15 @@ final class PresentationContextIOSurfaceImpl {
         _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl
     ) {
+        configure(GPUCanvasConfiguration(configuration, DeviceReference(deviceImpl, device)))
+    }
+
+    @_expose(!Cxx)
+    func configure(_ configuration: GPUCanvasConfiguration) {
+        let device = configuration.device.shell
+        let deviceImpl = configuration.device.impl
         let storageMode = canvasStorageMode(deviceImpl)
-        let invalidTexture = WebGPU.Metal.Texture.createInvalid(device).ptr()
+        let invalidTexture = makeInvalidTexture(device, deviceImpl)
         renderBuffers = []
         inFlightFrames = []
         maximumInFlightFrames = 0
@@ -140,7 +219,7 @@ final class PresentationContextIOSurfaceImpl {
             height: Int(height),
             mipmapped: false
         )
-        textureDescriptor.usage = metalTextureUsage(configuration.usage.toRaw(), effectiveFormat)
+        textureDescriptor.usage = metalTextureUsage(configuration.usage, effectiveFormat)
         textureDescriptor.storageMode = storageMode
 
         if let mismatched = ioSurfaces.first(where: { IOSurfaceGetWidth($0) != Int(width) || IOSurfaceGetHeight($0) != Int(height) }) {
@@ -169,7 +248,7 @@ final class PresentationContextIOSurfaceImpl {
             return
         }
 
-        let viewFormats: Span<WebGPU.TextureFormat> = configuration.viewFormatsSpan()
+        let viewFormats = configuration.viewFormats
         for index in viewFormats.indices {
             let viewFormat = viewFormats[index]
             if !Self.isAllowedFormat(removeSRGBSuffix(viewFormat)) {
@@ -185,7 +264,7 @@ final class PresentationContextIOSurfaceImpl {
         for index in viewFormats.indices {
             configuredViewFormats.append(viewFormats[index])
         }
-        let usage = configuration.usage.toRaw()
+        let usage = configuration.usage
         if let error = errorValidatingTextureCreation(
             device,
             deviceImpl,
@@ -198,7 +277,7 @@ final class PresentationContextIOSurfaceImpl {
 
         var requestsStorage = false
         if format == WebGPU.TextureFormat.Bgra8unorm {
-            requestsStorage = textureUsageContains(configuration.usage.toRaw(), .StorageBinding)
+            requestsStorage = textureUsageContains(configuration.usage, .StorageBinding)
         }
         if requestsStorage && !deviceImpl.hasFeature(WebGPU.FeatureName.Bgra8unormStorage) {
             generateAValidationError("Requested storage format but BGRA8UnormStorage is not enabled")
@@ -448,7 +527,7 @@ final class PresentationContextIOSurfaceImpl {
     // +1 (SWIFT_RETURNS_RETAINED); the shell borrows it. Only after hasInvalidTexture().
     @_expose(Cxx)
     func invalidTexture() -> WebGPU.Metal.Texture {
-        invalidTextures[0]
+        invalidTextures[0].shell
     }
 
     // The texture the canvas draws into for this frame, which starts a new frame on it. +1; the shell
@@ -458,6 +537,18 @@ final class PresentationContextIOSurfaceImpl {
         let texture = renderBuffers[Int(index)].presentedTexture
         texture.impl.recreateIfNeeded()
         return texture.shell
+    }
+
+    // currentFrameTexture(), or the invalid texture if the frame isn't a configured one, as the shell's
+    // currentTexture() gives them.
+    @_expose(!Cxx)
+    func currentTexture(_ index: UInt32) -> TextureShellAndImpl? {
+        guard validateCurrentTextureIndex(index) else {
+            return invalidTextures.first
+        }
+        let texture = renderBuffers[Int(index)].presentedTexture
+        texture.impl.recreateIfNeeded()
+        return texture
     }
 
     // CF_RETURNS_RETAINED; the shell adopts it. Null, with isIOSurfaceSupportedFormat set, when the compositor

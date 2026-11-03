@@ -32,6 +32,7 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.ExternalTexture
+@_implementationOnly import WebGPU_Internal.PresentationContext
 @_implementationOnly import WebGPU_Internal.QuerySet
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
@@ -218,6 +219,16 @@ public final class RenderPassEncoderReference {
 }
 
 @_spi(WebKitGPU)
+public func reference(of presentationContext: WebGPU.PresentationContext) -> PresentationContextReference {
+    var shell: WebGPU.Metal.PresentationContext?
+    let impl = ImplLookup.lookUp(PresentationContextIOSurfaceImpl.self) { shell = WebGPU.Metal.deliverImpl(presentationContext) }
+    guard let shell else {
+        preconditionFailure("C++ delivered no shell")
+    }
+    return PresentationContextReference(impl, shell)
+}
+
+@_spi(WebKitGPU)
 public func reference(of texture: WebGPU.Texture) -> TextureReference {
     var shell: WebGPU.Metal.Texture?
     let impl = ImplLookup.lookUp(TextureImpl.self) { shell = WebGPU.Metal.deliverImpl(texture) }
@@ -301,6 +312,11 @@ extension PipelineLayoutReference: GPUObjectReference {
 
 @_spi(WebKitGPU)
 extension QuerySetReference: GPUObjectReference {
+    public var isValid: Bool { shell.isValid() }
+}
+
+@_spi(WebKitGPU)
+extension PresentationContextReference: GPUObjectReference {
     public var isValid: Bool { shell.isValid() }
 }
 

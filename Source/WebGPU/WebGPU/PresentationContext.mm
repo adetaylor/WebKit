@@ -61,6 +61,13 @@ Texture* PresentationContext::currentTexture(uint32_t)
     return nullptr;
 }
 
+PresentationContext& deliverImpl(WebGPU::PresentationContext& presentationContext)
+{
+    auto& shell = downcast<PresentationContext>(presentationContext);
+    shell.deliverSwiftImpl();
+    return shell;
+}
+
 RefPtr<WebGPU::Texture> PresentationContext::getCurrentTexture(uint32_t frameIndex)
 {
     return currentTexture(frameIndex);
