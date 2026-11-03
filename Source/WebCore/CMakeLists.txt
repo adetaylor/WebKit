@@ -3313,6 +3313,10 @@ if (WK_USE_SWIFT_HTML_TOKENIZER)
         "(^|/)WebVTTTokenizer\\.cpp( |$)"
         "(^|/)XMLDocumentParserLibxml2\\.cpp( |$)")
 endif ()
+# Set by WK_USE_SWIFT_HTML_PRELOAD_SCANNER: HTMLPreloadScanner.cpp includes WebCore-Swift.h too.
+if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER)
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
+endif ()
 # Set by WK_USE_SWIFT_CSS_TOKENIZER. CSSTokenizer.cpp then includes WebCore-Swift.h, so it compiles in
 # WebCore_SwiftInterop, after WebCore's Swift module.
 if (WK_USE_SWIFT_CSS_TOKENIZER)
@@ -3343,9 +3347,6 @@ if (WK_USE_SWIFT_CSS_CALC)
         list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_name}( |$)")
     endforeach ()
 endif ()
-# Set by WK_USE_SWIFT_HTML_PRELOAD_SCANNER: HTMLPreloadScanner.cpp includes WebCore-Swift.h too.
-if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER)
-    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
 
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
@@ -3517,6 +3518,45 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         webkit_target_add_swift_options(WebCore "-D USE_SWIFT_HTML_PER_TOKEN" "-Xcc -DUSE_SWIFT_HTML_PER_TOKEN=1")
     endif ()
 
+    # WK_USE_SWIFT_IMAGE_DECODERS has no WebCore.xcconfig counterpart: these decoders build only in the CMake ports
+    # (ImageDecoders.cmake), which list them in WebCore_SOURCES rather than the unified sources. The decoders'
+    # .cpp files then include WebCore-Swift.h.
+    if (WK_USE_SWIFT_IMAGE_DECODERS)
+        target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/platform/image-decoders/ImageFrameBuffer.swift
+            ${WEBCORE_DIR}/platform/image-decoders/bmp/BMPImageDecoder.swift
+            ${WEBCORE_DIR}/platform/image-decoders/bmp/BMPImageReader.swift
+            ${WEBCORE_DIR}/platform/image-decoders/gif/GIFImageDecoder.swift
+            ${WEBCORE_DIR}/platform/image-decoders/gif/GIFImageReader.swift
+            ${WEBCORE_DIR}/platform/image-decoders/ico/ICODirectory.swift
+            ${WEBCORE_DIR}/platform/image-decoders/ico/ICOImageDecoder.swift
+        )
+        set(_webcore_swift_image_decoder_sources
+            platform/image-decoders/bmp/BMPImageDecoder.cpp
+            platform/image-decoders/gif/GIFImageDecoder.cpp
+            platform/image-decoders/ico/ICOImageDecoder.cpp)
+        list(REMOVE_ITEM WebCore_SOURCES ${_webcore_swift_image_decoder_sources})
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_image_decoder_sources})
+        target_compile_definitions(WebCore PRIVATE "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_IMAGE_DECODERS=1>")
+        webkit_target_add_swift_options(WebCore "-D USE_SWIFT_IMAGE_DECODERS" "-Xcc -DUSE_SWIFT_IMAGE_DECODERS=1")
+        string(APPEND _webcore_swift_modules
+            "    explicit module ImageDecoderSwiftTypes {\n"
+            "        header \"${WEBCORE_DIR}/platform/image-decoders/ImageDecoderSwiftTypes.h\"\n"
+            "        requires cplusplus\n"
+            "        export *\n"
+            "    }\n")
+    endif ()
+
+    # As WebCore.xcconfig's WK_USE_SWIFT_HTML_PRELOAD_SCANNER.
+    if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLPreloadScanner.cpp)
+        target_compile_definitions(WebCore PRIVATE "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_HTML_PRELOAD_SCANNER=1>")
+        webkit_target_add_swift_options(WebCore "-D USE_SWIFT_HTML_PRELOAD_SCANNER" "-Xcc -DUSE_SWIFT_HTML_PRELOAD_SCANNER=1")
+        list(APPEND _webcore_swift_core_submodules
+            html/parser/HTMLResourcePreloader.h html/parser/CSSPreloadScanner.h html/parser/HTMLPreloadScanner.h
+            html/HTMLImageElement.h loader/LinkLoader.h)
+    endif ()
+
     # As WebCore.xcconfig's WK_USE_SWIFT_CSS_TOKENIZER: the C++ and Swift conditions.
     if (WK_USE_SWIFT_CSS_TOKENIZER)
         list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSTokenizer.cpp)
@@ -3554,41 +3594,6 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
     endif ()
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
 
-    # WK_USE_SWIFT_IMAGE_DECODERS has no WebCore.xcconfig counterpart: these decoders build only in the CMake ports
-    # (ImageDecoders.cmake), which list them in WebCore_SOURCES rather than the unified sources. The decoders'
-    # .cpp files then include WebCore-Swift.h.
-    if (WK_USE_SWIFT_IMAGE_DECODERS)
-        target_sources(WebCore PRIVATE
-            ${WEBCORE_DIR}/platform/image-decoders/ImageFrameBuffer.swift
-            ${WEBCORE_DIR}/platform/image-decoders/bmp/BMPImageDecoder.swift
-            ${WEBCORE_DIR}/platform/image-decoders/bmp/BMPImageReader.swift
-            ${WEBCORE_DIR}/platform/image-decoders/gif/GIFImageDecoder.swift
-            ${WEBCORE_DIR}/platform/image-decoders/gif/GIFImageReader.swift
-            ${WEBCORE_DIR}/platform/image-decoders/ico/ICODirectory.swift
-            ${WEBCORE_DIR}/platform/image-decoders/ico/ICOImageDecoder.swift
-        )
-        set(_webcore_swift_image_decoder_sources
-            platform/image-decoders/bmp/BMPImageDecoder.cpp
-            platform/image-decoders/gif/GIFImageDecoder.cpp
-            platform/image-decoders/ico/ICOImageDecoder.cpp)
-        list(REMOVE_ITEM WebCore_SOURCES ${_webcore_swift_image_decoder_sources})
-        list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_image_decoder_sources})
-        target_compile_definitions(WebCore PRIVATE "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_IMAGE_DECODERS=1>")
-        webkit_target_add_swift_options(WebCore "-D USE_SWIFT_IMAGE_DECODERS" "-Xcc -DUSE_SWIFT_IMAGE_DECODERS=1")
-        string(APPEND _webcore_swift_modules
-            "    explicit module ImageDecoderSwiftTypes {\n"
-            "        header \"${WEBCORE_DIR}/platform/image-decoders/ImageDecoderSwiftTypes.h\"\n"
-            "        requires cplusplus\n"
-            "        export *\n"
-            "    }\n")
-    # As WebCore.xcconfig's WK_USE_SWIFT_HTML_PRELOAD_SCANNER.
-    if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER)
-        list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLPreloadScanner.cpp)
-        target_compile_definitions(WebCore PRIVATE "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_HTML_PRELOAD_SCANNER=1>")
-        webkit_target_add_swift_options(WebCore "-D USE_SWIFT_HTML_PRELOAD_SCANNER" "-Xcc -DUSE_SWIFT_HTML_PRELOAD_SCANNER=1")
-        list(APPEND _webcore_swift_core_submodules
-            html/parser/HTMLResourcePreloader.h html/parser/CSSPreloadScanner.h html/parser/HTMLPreloadScanner.h
-            html/HTMLImageElement.h loader/LinkLoader.h)
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
         # For the vendored SIMD operations in SIMD*.swift, until the standard library has them.

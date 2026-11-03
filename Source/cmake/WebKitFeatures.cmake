@@ -616,18 +616,21 @@ macro(WEBKIT_OPTION_END)
     # Cocoa ports decode with ImageIO and build none of these decoders.
     option(WK_USE_SWIFT_IMAGE_DECODERS "Decode GIF, BMP and ICO images with WebCore's Swift decoders" OFF)
     if (WK_USE_SWIFT_IMAGE_DECODERS)
+        set(WK_BUILD_WEBCORE_SWIFT ON)
+    endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: the HTML preload scanner is
     # HTMLPreloadScanner.swift.
     option(WK_USE_SWIFT_HTML_PRELOAD_SCANNER "Scan HTML for resources to preload with WebCore's HTMLPreloadScanner.swift" OFF)
     if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER AND NOT WK_USE_SWIFT_HTML_PER_TOKEN)
         message(FATAL_ERROR "WK_USE_SWIFT_HTML_PRELOAD_SCANNER needs WK_USE_SWIFT_HTML_PER_TOKEN, whose HTMLToken accessors it reads attributes with")
+    endif ()
 
     option(WK_USE_SWIFT_TEXT_CODEC_UTF8 "Replace the C++ UTF-8 decoder with PAL's TextCodecUTF8.swift" OFF)
+
     # A Swift feature still on with a too-old toolchain was requested explicitly
     # (the default declines to auto-enable it), so fail loudly rather than drop it
     # silently. Apple is gated elsewhere; non-Clang is already rejected above.
-    if (NOT APPLE AND COMPILER_IS_CLANG AND (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT OR WK_BUILD_WEBCORE_SWIFT))
-    if (NOT APPLE AND COMPILER_IS_CLANG AND (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT OR WK_USE_SWIFT_TEXT_CODEC_UTF8))
+    if (NOT APPLE AND COMPILER_IS_CLANG AND (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT OR WK_BUILD_WEBCORE_SWIFT OR WK_USE_SWIFT_TEXT_CODEC_UTF8))
         _WEBKIT_DETECT_SWIFT_CXX_INTEROP_SUPPORT(_swift_interop_ok)
         if (NOT _swift_interop_ok)
             message(FATAL_ERROR
@@ -641,10 +644,9 @@ macro(WEBKIT_OPTION_END)
         endif ()
     endif ()
 
-    if (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT OR WK_BUILD_WEBCORE_SWIFT)
     # WK_USE_SWIFT_TEXT_CODEC_UTF8 is the CMake counterpart of the PAL.xcconfig setting of the same
     # name: it replaces the C++ UTF-8 decoder with PAL's TextCodecUTF8.swift.
-    if (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT OR WK_USE_SWIFT_TEXT_CODEC_UTF8)
+    if (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT OR WK_BUILD_WEBCORE_SWIFT OR WK_USE_SWIFT_TEXT_CODEC_UTF8)
         set(SWIFT_REQUIRED ON)
     else ()
         set(SWIFT_REQUIRED OFF)
