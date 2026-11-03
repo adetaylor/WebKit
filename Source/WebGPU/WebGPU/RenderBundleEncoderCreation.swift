@@ -77,6 +77,32 @@ private func errorValidatingRenderBundleEncoderCreation(
     return nil
 }
 
+// https://gpuweb.github.io/gpuweb/#dictdef-gpurenderbundleencoderdescriptor, without its label.
+@_spi(WebKitGPU)
+public struct GPURenderBundleEncoderDescriptor {
+    // nil: no color attachment in that slot.
+    public var colorFormats: [WebGPU.TextureFormat?] = []
+    public var depthStencilFormat: WebGPU.TextureFormat?
+    public var sampleCount: UInt32 = 1
+    public var depthReadOnly = false
+    public var stencilReadOnly = false
+
+    public init() {
+    }
+
+    init(_ descriptor: borrowing WebGPU.RenderBundleEncoderDescriptor) {
+        let descriptorColorFormats: Span<WebGPU.OptionalTextureFormat> = descriptor.colorFormatsSpan()
+        colorFormats.reserveCapacity(descriptorColorFormats.count)
+        for index in descriptorColorFormats.indices {
+            colorFormats.append(Optional(fromCxx: descriptorColorFormats[index]))
+        }
+        depthStencilFormat = Optional(fromCxx: descriptor.depthStencilFormat)
+        sampleCount = descriptor.sampleCount
+        depthReadOnly = descriptor.depthReadOnly
+        stencilReadOnly = descriptor.stencilReadOnly
+    }
+}
+
 // A descriptor that fails validation reports the error and gives an invalid encoder that keeps the message for
 // finish(); an invalid device gives one without reporting anything.
 @_expose(Cxx)
@@ -85,16 +111,20 @@ func createRenderBundleEncoderImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> RenderBundleEncoderImpl {
+    createRenderBundleEncoderImpl(GPURenderBundleEncoderDescriptor(descriptor), device, deviceImpl)
+}
+
+func createRenderBundleEncoderImpl(
+    _ descriptor: GPURenderBundleEncoderDescriptor,
+    _ device: WebGPU.Metal.Device,
+    _ deviceImpl: DeviceImpl
+) -> RenderBundleEncoderImpl {
     if !deviceImpl.isValid() {
         return makeInvalidRenderBundleEncoderImpl(device, deviceImpl, "createRenderBundleEncoder: invalid device")
     }
 
-    let descriptorColorFormats: Span<WebGPU.OptionalTextureFormat> = descriptor.colorFormatsSpan()
-    var colorFormats: [WebGPU.TextureFormat?] = []
-    for index in descriptorColorFormats.indices {
-        colorFormats.append(Optional(fromCxx: descriptorColorFormats[index]))
-    }
-    let depthStencilFormat = Optional(fromCxx: descriptor.depthStencilFormat)
+    let colorFormats = descriptor.colorFormats
+    let depthStencilFormat = descriptor.depthStencilFormat
 
     if let error = errorValidatingRenderBundleEncoderCreation(colorFormats, depthStencilFormat, deviceImpl) {
         deviceImpl.generateAValidationError(error)
