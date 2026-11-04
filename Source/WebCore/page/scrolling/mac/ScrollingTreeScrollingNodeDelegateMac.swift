@@ -30,6 +30,9 @@
 //
 // The delegate is used on one thread at a time, under the scrolling tree's lock.
 
+// ENABLE(SCROLLING_THREAD) and PLATFORM(MAC), as the C++ this replaces; the scrolling thread is the Mac's only.
+#if os(macOS)
+
 internal import WebCore_Private.Core.KeyboardScroll
 internal import WebCore_Private.Core.PlatformWheelEvent
 internal import WebCore_Private.Core.RubberbandingState
@@ -95,16 +98,15 @@ final class ScrollingTreeScrollPhysicsDelegate {
         let node = c.node()
         node.setScrollSnapInProgress(controller.isScrollSnapInProgress(c.isDiscreteSnapTimerActive()))
 
-        if controller.activeScrollSnapIndexDidChange() {
+        if controller.activeScrollSnapIndexDidChange(), let tree = node.scrollingTree().get() {
             // ScrollPhysicsController gives a snap index as -1 for none, and otherwise as the unsigned it was given.
             let horizontalIndex = controller.activeScrollSnapIndexForAxis(.Horizontal)
             let verticalIndex = controller.activeScrollSnapIndexForAxis(.Vertical)
-            c.scrollingTree().get()
-                .setActiveScrollSnapIndices(
-                    node.scrollingNodeID(),
-                    horizontalIndex < 0 ? .init() : .init(CUnsignedInt(truncatingIfNeeded: horizontalIndex)),
-                    verticalIndex < 0 ? .init() : .init(CUnsignedInt(truncatingIfNeeded: verticalIndex))
-                )
+            tree.setActiveScrollSnapIndices(
+                node.scrollingNodeID(),
+                horizontalIndex < 0 ? .init() : .init(CUnsignedInt(truncatingIfNeeded: horizontalIndex)),
+                verticalIndex < 0 ? .init() : .init(CUnsignedInt(truncatingIfNeeded: verticalIndex))
+            )
         }
     }
 
@@ -455,7 +457,8 @@ extension WebCore.ScrollingTreeScrollPhysicsClient: ScrollPhysicsClientProtocol 
     }
 
     mutating func immediateScrollBy(_ delta: WebCore.FloatSize, _ clamping: WebCore.ScrollClamping) {
-        node().scrollBy(delta, clamping)
+        // The node's scrolling thread calls this with the scrolling tree's lock held.
+        unsafe node().scrollBy(delta, clamping)
     }
 
     mutating func immediateScrollBy(_ delta: WebCore.FloatSize, _ clamping: WebCore.ScrollClamping, _ controller: ScrollPhysicsController) {
@@ -629,16 +632,14 @@ extension WebCore.ScrollingTreeScrollPhysicsClient: ScrollPhysicsClientProtocol 
 
     // The scrolling node ID is the identifier: the deferral comes from this node's controller.
     mutating func deferWheelEventTestCompletion(_ reason: WebCore.WheelEventTestMonitorDeferReason) {
-        let tree = scrollingTree().get()
-        if !tree.isMonitoringWheelEvents() {
+        guard let tree = node().scrollingTree().get(), tree.isMonitoringWheelEvents() else {
             return
         }
         tree.deferWheelEventTestCompletionForReason(node().scrollingNodeID(), reason)
     }
 
     mutating func removeWheelEventTestCompletionDeferral(_ reason: WebCore.WheelEventTestMonitorDeferReason) {
-        let tree = scrollingTree().get()
-        if !tree.isMonitoringWheelEvents() {
+        guard let tree = node().scrollingTree().get(), tree.isMonitoringWheelEvents() else {
             return
         }
         tree.removeWheelEventTestCompletionDeferralForReason(node().scrollingNodeID(), reason)
@@ -713,3 +714,5 @@ private func intSizeComponent(_ value: Float) -> Int32 {
     }
     return Int32(value)
 }
+
+#endif // os(macOS)

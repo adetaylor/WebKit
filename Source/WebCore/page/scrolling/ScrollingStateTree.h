@@ -48,8 +48,8 @@ class ScrollingStateTree final : public CanMakeCheckedPtr<ScrollingStateTree> {
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(ScrollingStateTree);
     friend class ScrollingStateNode;
 public:
-    static UniqueRef<ScrollingStateTree> create(AsyncScrollingCoordinator* scrollingCoordinator = nullptr) { return UniqueRef { *new ScrollingStateTree(scrollingCoordinator) }; }
-    WEBCORE_EXPORT static std::optional<UniqueRef<ScrollingStateTree>> createAfterReconstruction(bool, bool, RefPtr<ScrollingStateFrameScrollingNode>&&);
+    SWIFT_UNSAFE static UniqueRef<ScrollingStateTree> create(AsyncScrollingCoordinator* scrollingCoordinator = nullptr) { return UniqueRef { *new ScrollingStateTree(scrollingCoordinator) }; }
+    SWIFT_UNSAFE WEBCORE_EXPORT static std::optional<UniqueRef<ScrollingStateTree>> createAfterReconstruction(bool, bool, RefPtr<ScrollingStateFrameScrollingNode>&&);
     WEBCORE_EXPORT ~ScrollingStateTree();
 
     NODELETE WEBCORE_EXPORT RefPtr<ScrollingStateFrameScrollingNode> rootStateNode() const;
