@@ -120,8 +120,7 @@ void RenderPassEncoder::executeBundles(std::span<const Ref<WebGPU::RenderBundle>
 {
     auto& impl = m_impl->impl;
     for (auto& apiBundle : apiBundles) {
-        auto& bundle = metal(apiBundle.get());
-        impl.appendPendingBundle(&bundle, bundle.swiftImpl());
+        impl.appendPendingBundle(metal(apiBundle.get()).swiftImpl());
     }
     impl.executeBundles();
 }

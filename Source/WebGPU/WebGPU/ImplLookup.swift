@@ -164,13 +164,14 @@ public final class BufferReference {
 }
 
 @_spi(WebKitGPU)
-public final class RenderBundleReference {
-    public let impl: RenderBundleImpl
-    let shell: WebGPU.Metal.RenderBundle
+public typealias RenderBundleReference = RenderBundleImpl
 
-    init(_ impl: RenderBundleImpl, _ shell: WebGPU.Metal.RenderBundle) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension RenderBundleImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: RenderBundleImpl {
+        self
     }
 }
 
@@ -314,11 +315,6 @@ extension QueueReference: GPUObjectReference {
 
 @_spi(WebKitGPU)
 extension RenderBundleEncoderReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
-extension RenderBundleReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }
 

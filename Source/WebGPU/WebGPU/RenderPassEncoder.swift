@@ -564,7 +564,7 @@ public final class RenderPassEncoderImpl {
     private var memoryBarrierCount: UInt32 = 0
     private var indirectDeviceLostChecks: IndirectDeviceLostChecks?
     // The bundles of the executeBundles call in progress, appended by the shell just before it.
-    private var pendingBundles: [(shell: WebGPU.Metal.RenderBundle, impl: RenderBundleImpl)] = []
+    private var pendingBundles: [RenderBundleImpl] = []
     // The parent encoder's device. Declared last, so that it outlives the rest of the pass.
     let device: WebGPU.Metal.Device
 
@@ -2116,7 +2116,7 @@ public final class RenderPassEncoderImpl {
     // MARK: Bundles
 
     // The validation and ICB-encoding half of executeBundles. Returns false where it returned early.
-    private func encodeBundles(_ bundles: [(shell: WebGPU.Metal.RenderBundle, impl: RenderBundleImpl)]) -> Bool {
+    private func encodeBundles(_ bundles: [RenderBundleImpl]) -> Bool {
         var commandEncoder = renderCommandEncoder()
         let minDepth = viewportMinDepth
         let maxDepth = viewportMaxDepth
@@ -2129,8 +2129,7 @@ public final class RenderPassEncoderImpl {
         // (all dispatch-1s → barrier → all dispatch-2s → barrier → all ICB encodes). Each draw uses its own
         // scratch, so draws never conflict and need no per-draw barrier.
         var indirectWork: [IndirectEncodeWork] = []
-        for bundle in bundles {
-            let bundleImpl = bundle.impl
+        for bundleImpl in bundles {
             if !isValidToUse(bundleImpl.isValid(), bundleImpl.deviceImpl, with: deviceImpl) {
                 let reason = bundleImpl.lastError().map { "\($0)" } ?? "(null)"
                 makeInvalid("executeBundles: render bundle is not valid, reason = \(reason)")
@@ -2150,7 +2149,7 @@ public final class RenderPassEncoderImpl {
             }
 
             commandEncoder = renderCommandEncoder()
-            parentImpl.addCommitAction(.rebindBundleSamplers(bundle.shell, bundleImpl))
+            parentImpl.addCommitAction(.rebindBundleSamplers(bundleImpl))
             if bundleImpl.requiresCommandReplay() {
                 continue
             }
@@ -2446,10 +2445,10 @@ public final class RenderPassEncoderImpl {
     }
 
     // The per-bundle replay half of executeBundles.
-    private func replayBundle(_ bundle: (shell: WebGPU.Metal.RenderBundle, impl: RenderBundleImpl)) {
-        useAndTrack(bundle.impl.resources) { bundle.impl.mtlResources[$0] }
+    private func replayBundle(_ bundle: RenderBundleImpl) {
+        useAndTrack(bundle.resources) { bundle.mtlResources[$0] }
 
-        for icb in bundle.impl.icbs {
+        for icb in bundle.icbs {
             let commandEncoder = renderCommandEncoder()
 
             if let depthStencilState = icb.depthStencilState {
@@ -2465,7 +2464,7 @@ public final class RenderPassEncoderImpl {
         }
 
         ignoreBufferCache = true
-        bundle.impl.replayCommands(into: self)
+        bundle.replayCommands(into: self)
         ignoreBufferCache = false
         // The bundle's commands set states of their own.
         drawState = DrawStateCache()
@@ -2497,8 +2496,8 @@ public final class RenderPassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func appendPendingBundle(_ bundle: borrowing WebGPU.Metal.RenderBundle, _ bundleImpl: RenderBundleImpl) {
-        pendingBundles.append((shell: copy bundle, impl: bundleImpl))
+    func appendPendingBundle(_ bundleImpl: RenderBundleImpl) {
+        pendingBundles.append(bundleImpl)
     }
 
     @_expose(Cxx)
@@ -2519,7 +2518,7 @@ public final class RenderPassEncoderImpl {
         // inside it, so a bundle that issues one makes the explicit zero fill in endPass unnecessary.
         // Bundles that issue no draw call have to keep it: without the fill the query would resolve to
         // whatever an earlier pass wrote to that slot rather than to zero.
-        if bundles.contains(where: { $0.impl.drawCount() != 0 || !$0.impl.icbs.isEmpty }) {
+        if bundles.contains(where: { $0.drawCount() != 0 || !$0.icbs.isEmpty }) {
             visibilityResultWillBeWritten()
         }
         applyCachedRenderPassState(renderCommandEncoder())
@@ -2530,7 +2529,7 @@ public final class RenderPassEncoderImpl {
 
         for bundle in bundles {
             // Truncates the bundle's 64-bit draw count.
-            incrementDrawCount(UInt32(truncatingIfNeeded: bundle.impl.drawCount()))
+            incrementDrawCount(UInt32(truncatingIfNeeded: bundle.drawCount()))
             replayBundle(bundle)
         }
 
@@ -3583,13 +3582,11 @@ public final class RenderPassEncoderImpl {
         setVertexBuffer(slot, buffer, offset, size != nil, size ?? 0)
     }
 
-    // executeBundles, for a Swift caller that has the bundles' shells too.
+    // executeBundles, for a Swift caller.
     @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func executeBundles(_ bundles: [RenderBundleReference]) {
-        for bundle in bundles {
-            appendPendingBundle(bundle.shell, bundle.impl)
-        }
+        pendingBundles.append(contentsOf: bundles)
         executeBundles()
     }
 

@@ -3030,7 +3030,7 @@ struct WeakBufferAndEncoder {
 /// A commit action other than the constructor's, which runCommitActions runs first.
 enum CommitAction {
     case indirectBufferInvalidated(WeakBufferAndEncoder)
-    case rebindBundleSamplers(WebGPU.Metal.RenderBundle, RenderBundleImpl)
+    case rebindBundleSamplers(RenderBundleImpl)
 }
 
 /// The skipped draw-indexed validations of one buffer.
@@ -4097,7 +4097,7 @@ final class CommandEncoderImpl {
                 if let buffer = pair.buffer, let encoder = pair.encoder {
                     buffer.indirectBufferInvalidated(encoder)
                 }
-            case .rebindBundleSamplers(_, let bundleImpl):
+            case .rebindBundleSamplers(let bundleImpl):
                 result = bundleImpl.rebindSamplersIfNeeded() && result
             }
         }

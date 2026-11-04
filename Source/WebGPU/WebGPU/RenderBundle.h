@@ -53,8 +53,6 @@ public:
 #if !defined(__swift__)
     static Ref<RenderBundle> create(const WebGPUSwift::RenderBundleImpl&);
 #endif
-    // Wraps the Impl that Swift staged in DeviceImpl, for a creation made in Swift.
-    static Ref<RenderBundle> createWithStagedImpl(Device&);
 
     ~RenderBundle();
 

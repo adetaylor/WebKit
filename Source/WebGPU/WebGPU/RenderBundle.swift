@@ -37,7 +37,7 @@ import WebGPU_Private.WebGPUCpp
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class RenderBundleImpl {
+public final class RenderBundleImpl: GPUObjectReference {
     let deviceImpl: DeviceImpl
     /// Paired with the mutable `mtlResources`.
     let resources: ResourceSet
@@ -115,7 +115,7 @@ public final class RenderBundleImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         replay.isEncoder || isICBBundle
     }
 
@@ -286,19 +286,11 @@ enum BundleReplay {
     }
 }
 
-// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedRenderBundleImpl.
-func makeRenderBundleShell(_ impl: RenderBundleImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.RenderBundle {
-    precondition(deviceImpl.stagedRenderBundleImpl == nil)
-    deviceImpl.stagedRenderBundleImpl = impl
-    return WebGPU.Metal.RenderBundle.createWithStagedImpl(device).ptr()
-}
-
 @_spi(WebKitGPU)
 extension RenderBundleEncoderReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish. As WTF::String::createNSString() makes the
     // label for the C++ caller, a null one is empty.
     public func finish(label: Swift.String?) -> RenderBundleReference {
-        let bundle = impl.finish(shell, (label ?? "") as NSString)
-        return RenderBundleReference(bundle, makeRenderBundleShell(bundle, device: bundle.device, deviceImpl: bundle.deviceImpl))
+        impl.finish(shell, (label ?? "") as NSString)
     }
 }
