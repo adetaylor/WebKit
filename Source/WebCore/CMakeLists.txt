@@ -3694,6 +3694,16 @@ if (APPLE)
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"
         "WebCoreSwift-Generated.h")
+
+    # The encrypted media Swift module, in WebCore.framework, which WebCore's Swift and WebKit's Swift import. Without
+    # -force_load the linker drops archive members that hold only types and conformances.
+    add_subdirectory(platform/encryptedmedia/swift)
+    target_link_libraries(WebCore PRIVATE WebCoreEME)
+    target_link_options(WebCore PRIVATE "LINKER:-force_load,$<TARGET_FILE:WebCoreEME>")
+    webkit_target_add_swift_options(WebCore
+        "-I${WebCoreEME_SWIFT_MODULE_DIR}"
+        "-Xcc -I${WebCoreEME_INTEROP_MODULE_DIR}")
+    add_dependencies(WebCore_SwiftGeneratedDeps WebCoreEME)
 else ()
     # The Swift sources the WebCore Xcode project compiles, with WebCore.xcconfig's Swift settings.
     # SwiftStub.swift is left out: it imports Foundation, and these Swift sources already emit symbols.

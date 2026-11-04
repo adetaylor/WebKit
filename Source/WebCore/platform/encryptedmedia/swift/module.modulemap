@@ -1,0 +1,5 @@
+// The underlying clang module of WebCoreEME, which has no C or C++ API.
+module WebCoreEME {
+    header "WebCoreEME.h"
+    export *
+}

@@ -31,6 +31,7 @@ import WebCore_Private.Core.CDMSessionType
 import WebCore_Private.Core.EMEParseResults
 import WebCore_Private.Core.ISOParseResults
 import WebCore_Private.Core.MediaParsersCxxBridging
+import WebCoreEME
 
 // The names this file compares with, packed for MediaParserName comparisons.
 private enum FairPlayNames {
