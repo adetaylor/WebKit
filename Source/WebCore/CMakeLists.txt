@@ -3594,6 +3594,14 @@ if (APPLE)
     )
     # Apple CMake's JavaScriptCore.framework/Headers has headers that JavaScriptCore.h doesn't include.
     webkit_target_add_swift_options(WebCore "-Xcc -Wno-incomplete-umbrella")
+    # The JavaScriptCore_Private submodules that the islands' Swift imports when its islands are on, for all of
+    # WebCore's Swift.
+    set(_webcore_jsc_imports "")
+    foreach (_submodule IN ITEMS Snippet DOMJITCallDOMGetterSnippet WasmInstanceAnchor WasmCalleeGroup WasmModule WasmModuleDebugInfo)
+        string(APPEND _webcore_jsc_imports "internal import JavaScriptCore_Private.Cxx.${_submodule}\n")
+    endforeach ()
+    file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/WebCoreJavaScriptCoreImports.swift" CONTENT "${_webcore_jsc_imports}" @ONLY)
+    target_sources(WebCore PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/WebCoreJavaScriptCoreImports.swift")
 
     # Whole-module optimization outside Debug, as for WebGPU.
     WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebCore)
