@@ -4,6 +4,7 @@
 add_library(WebCoreEME STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/ClearKey.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/EMEJSON.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/FairPlayJSON.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/WTFBase64.swift
 )
 set_target_properties(WebCoreEME PROPERTIES Swift_MODULE_NAME WebCoreEME)

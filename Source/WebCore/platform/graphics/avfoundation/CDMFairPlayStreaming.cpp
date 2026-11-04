@@ -39,7 +39,6 @@
 #include "SharedBuffer.h"
 #include "WebCore-Swift.h"
 #include <algorithm>
-#include <wtf/JSONValues.h>
 #include <wtf/LoggerHelper.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -57,7 +56,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(CDMPrivateFairPlayStreaming);
 NODELETE static WTFLogChannel& logChannel() { return LogEME; }
 #endif
 
-// The parsing and the decisions are in CDMFairPlayStreamingParsing.swift. The JSON stays here.
+// The parsing and the decisions are in CDMFairPlayStreamingParsing.swift.
 
 // The key IDs of 'sinf' init data are the default key IDs of 'tenc' boxes.
 static constexpr size_t sinfKeyIDSize = 16;
@@ -82,35 +81,9 @@ static FairPlayInitDataType initDataTypeFromName(const String& name)
 // The key IDs whose scheme is valid, back to back, or nullopt when no entry has both a scheme and a key ID.
 static std::optional<Vector<uint8_t>> sinfKeyIDs(const SharedBuffer& buffer)
 {
-    // JSON of the format: "{ sinf: [ <base64-encoded-string> ] }"
-    if (buffer.size() > std::numeric_limits<unsigned>::max())
-        return std::nullopt;
-
-    auto value = JSON::Value::parseJSON(byteCast<Latin1Character>(buffer.makeContiguous()->span()));
-    if (!value)
-        return std::nullopt;
-
-    auto object = value->asObject();
-    if (!object)
-        return std::nullopt;
-
-    auto sinfArray = object->getArray(CDMPrivateFairPlayStreaming::sinfName());
-    if (!sinfArray)
-        return std::nullopt;
-
     Vector<uint8_t> keyIDs;
-    bool hasSchemeAndKeyID = false;
-    for (auto& entry : *sinfArray) {
-        auto sinf = entry->asString();
-        if (!sinf)
-            continue;
-
-        if (sinf.is8Bit() ? fairPlaySinfKeyIDLatin1Impl({ sinf.span8() }, keyIDs) : fairPlaySinfKeyIDUTF16Impl({ sinf.span16() }, keyIDs))
-            hasSchemeAndKeyID = true;
-    }
-    if (!hasSchemeAndKeyID)
+    if (!fairPlayInitDataKeyIDsImpl(FairPlayInitDataType::Sinf, { buffer.makeContiguous()->span() }, keyIDs))
         return std::nullopt;
-
     return keyIDs;
 }
 
@@ -157,28 +130,8 @@ const String& CDMPrivateFairPlayStreaming::mptsName()
 
 std::optional<Vector<Ref<SharedBuffer>>> CDMPrivateFairPlayStreaming::extractKeyIDsMpts(const SharedBuffer& buffer)
 {
-    // JSON of the format: "{ "codc" : [integer],  "mtyp" : [integer],  "cont" : "mpts"} }"
-    if (buffer.size() > std::numeric_limits<unsigned>::max())
-        return { };
-
-    auto value = JSON::Value::parseJSON(byteCast<Latin1Character>(buffer.makeContiguous()->span()));
-    if (!value)
-        return { };
-
-    auto object = value->asObject();
-    if (!object)
-        return { };
-
-    auto contValue = object->getString("cont"_s);
-    if (contValue != "mpts"_s)
-        return { };
-
-    auto codcValue = object->getInteger("codc"_s);
-    if (!codcValue)
-        return { };
-
-    auto mtypValue = object->getInteger("mtyp"_s);
-    if (!mtypValue)
+    MediaParserByteVector unused;
+    if (!fairPlayInitDataKeyIDsImpl(FairPlayInitDataType::Mpts, { buffer.makeContiguous()->span() }, unused))
         return { };
 
     return mptsKeyIDs();
@@ -199,6 +152,48 @@ const Vector<Ref<SharedBuffer>>& CDMPrivateFairPlayStreaming::mptsKeyIDs()
     return mptsKeyID;
 }
 #endif
+
+auto CDMPrivateFairPlayStreaming::parseCencResponse(const SharedBuffer& response) -> std::optional<Vector<CencResponseEntry>>
+{
+    MediaParserUInt32Vector fields;
+    MediaParserByteVector bytes;
+    if (!fairPlayCencResponseImpl({ response.makeContiguous()->span() }, fields, bytes))
+        return std::nullopt;
+
+    Vector<CencResponseEntry> entries;
+    auto data = bytes.span();
+    for (auto entryFields = fields.span(); entryFields.size() >= 4; entryFields = entryFields.subspan(4)) {
+        auto stage = static_cast<FairPlayCencResponseEntryStage>(entryFields[0]);
+        CencResponseEntry entry;
+        if (stage != FairPlayCencResponseEntryStage::NoKeyID) {
+            entry.keyID = Vector<uint8_t> { data.first(entryFields[1]) };
+            data = data.subspan(entryFields[1]);
+        }
+        if (stage == FairPlayCencResponseEntryStage::Payload) {
+            entry.payload = Vector<uint8_t> { data.first(entryFields[2]) };
+            data = data.subspan(entryFields[2]);
+        }
+        entry.isValid = stage == FairPlayCencResponseEntryStage::Payload || stage == FairPlayCencResponseEntryStage::Error;
+        entry.errorCode = static_cast<int>(entryFields[3]);
+        entries.append(WTF::move(entry));
+    }
+    return entries;
+}
+
+Ref<SharedBuffer> CDMPrivateFairPlayStreaming::cencRequestMessage(const Vector<std::pair<std::span<const uint8_t>, std::span<const uint8_t>>>& requests)
+{
+    MediaParserByteVector bytes;
+    MediaParserUInt32Vector sizes;
+    for (auto& [keyID, payload] : requests) {
+        bytes.append(keyID);
+        bytes.append(payload);
+        sizes.append(static_cast<uint32_t>(keyID.size()));
+        sizes.append(static_cast<uint32_t>(payload.size()));
+    }
+    MediaParserByteVector message;
+    fairPlayCencRequestImpl({ bytes.span() }, sizes, message);
+    return SharedBuffer::create(WTF::move(message));
+}
 
 void CDMFactory::platformRegisterFactories(Vector<WeakRef<CDMFactory>>& factories)
 {

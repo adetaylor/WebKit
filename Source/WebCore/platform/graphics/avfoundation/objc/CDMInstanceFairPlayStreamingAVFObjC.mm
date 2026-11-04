@@ -49,7 +49,6 @@
 #import <pal/graphics/cocoa/WebAVContentKeyReportGroupExtras.h>
 #import <pal/spi/cocoa/AVFoundationSPI.h>
 #import <wtf/FileSystem.h>
-#import <wtf/JSONValues.h>
 #import <wtf/LoggerHelper.h>
 #import <wtf/TZoneMallocInlines.h>
 #import <wtf/cocoa/TypeCastsCocoa.h>
@@ -331,16 +330,6 @@ private:
     UpdateCallback m_callback;
     ResponseMap m_responses;
 };
-
-static RefPtr<JSON::Value> parseJSONValue(const SharedBuffer& buffer)
-{
-    // Fail on large buffers whose size doesn't fit into a 32-bit unsigned integer.
-    if (buffer.size() > std::numeric_limits<unsigned>::max())
-        return nullptr;
-
-    // Parse the buffer contents as JSON, returning the root object (if any).
-    return JSON::Value::parseJSON(byteCast<Latin1Character>(buffer.makeContiguous()->span()));
-}
 
 bool CDMInstanceFairPlayStreamingAVFObjC::supportsPersistableState()
 {
@@ -929,32 +918,17 @@ void CDMInstanceSessionFairPlayStreamingAVFObjC::updateLicense(const String&, Li
             protectedThis->nextRequest();
         });
 
-        auto root = parseJSONValue(responseData);
-        if (!root) {
+        auto entries = CDMPrivateFairPlayStreaming::parseCencResponse(responseData);
+        if (!entries) {
             callback(false, std::nullopt, std::nullopt, std::nullopt, Failed);
             return;
         }
 
-        auto array = root->asArray();
-        if (!array) {
-            callback(false, std::nullopt, std::nullopt, std::nullopt, Failed);
-            return;
-        }
-
-        auto parseResponse = [&](Ref<JSON::Value>&& value) -> bool {
-            auto object = value->asObject();
-            if (!object)
+        auto processEntry = [&](const CDMPrivateFairPlayStreaming::CencResponseEntry& entry) -> bool {
+            if (!entry.keyID)
                 return false;
 
-            auto keyIDString = object->getString("keyID"_s);
-            if (!keyIDString)
-                return false;
-
-            auto keyIDVector = base64Decode(keyIDString);
-            if (!keyIDVector)
-                return false;
-
-            auto keyID = SharedBuffer::create(WTF::move(*keyIDVector));
+            auto keyID = SharedBuffer::create(entry.keyID->span());
             auto foundIndex = m_currentRequest.value().requests.findIf([&] (const RetainPtr<AVContentKeyRequest>& request) {
                 auto keyIDs = CDMPrivateFairPlayStreaming::keyIDsForRequest(request.get());
                 return keyIDs.findIf([&](const Ref<SharedBuffer>& id) {
@@ -966,35 +940,20 @@ void CDMInstanceSessionFairPlayStreamingAVFObjC::updateLicense(const String&, Li
 
             auto& request = m_currentRequest.value().requests[foundIndex];
 
-            auto payloadFindResults = object->find("payload"_s);
-            auto errorFindResults = object->find("error"_s);
-            bool hasPayload = payloadFindResults != object->end();
-            bool hasError = errorFindResults != object->end();
-
-            // Either "payload" or "error" are present, but not both
-            if (hasPayload == hasError)
+            if (!entry.isValid)
                 return false;
 
-            if (hasError) {
-                auto errorCode = protect(errorFindResults->value)->asInteger();
-                if (!errorCode)
-                    return false;
-                auto error = adoptNS([[NSError alloc] initWithDomain:@"org.webkit.eme" code:*errorCode userInfo:nil]);
+            if (!entry.payload) {
+                auto error = adoptNS([[NSError alloc] initWithDomain:@"org.webkit.eme" code:entry.errorCode userInfo:nil]);
                 [request processContentKeyResponseError:error.get()];
-            } else if (hasPayload) {
-                auto payloadString = protect(payloadFindResults->value)->asString();
-                if (!payloadString)
-                    return false;
-                auto payloadVector = base64Decode(payloadString);
-                if (!payloadVector)
-                    return false;
-                auto payloadData = SharedBuffer::create(WTF::move(*payloadVector));
+            } else {
+                auto payloadData = SharedBuffer::create(entry.payload->span());
                 [request processContentKeyResponse:checked_objc_cast<AVContentKeyResponse>([PAL::getAVContentKeyResponseClassSingleton() contentKeyResponseWithFairPlayStreamingKeyResponseData:payloadData->makeContiguous()->createNSData().get()])];
             }
             return true;
         };
-        for (auto value : *array) {
-            if (!parseResponse(WTF::move(value))) {
+        for (auto& entry : *entries) {
+            if (!processEntry(entry)) {
                 ERROR_LOG(LOGIDENTIFIER, "'cenc' initData, Failed, could not parse response");
                 callback(false, std::nullopt, std::nullopt, std::nullopt, Failed);
                 return;
@@ -1304,21 +1263,11 @@ void CDMInstanceSessionFairPlayStreamingAVFObjC::didProvideRequests(Vector<Retai
             return;
         }
 
-        auto requestJSON = JSON::Array::create();
-        for (auto& requestData : requestsData) {
-            auto entry = JSON::Object::create();
-            auto& keyID = requestData.first;
-            auto& payload = requestData.second;
-            entry->setString("keyID"_s, base64EncodeToString(keyID->makeContiguous()->span()));
-            entry->setString("payload"_s, base64EncodeToString(span(payload.get())));
-            requestJSON->pushObject(WTF::move(entry));
-        }
-        auto requestBuffer = utf8Buffer(requestJSON->toJSONString());
-        if (!requestBuffer) {
-            protectedThis->m_requestLicenseCallback(SharedBuffer::create(), protectedThis->m_sessionId, false, Failed);
-            return;
-        }
-        protectedThis->m_requestLicenseCallback(requestBuffer.releaseNonNull(), protectedThis->m_sessionId, false, Succeeded);
+        Vector<std::pair<std::span<const uint8_t>, std::span<const uint8_t>>> requests;
+        for (auto& requestData : requestsData)
+            requests.append({ requestData.first->span(), span(requestData.second.get()) });
+        auto requestBuffer = CDMPrivateFairPlayStreaming::cencRequestMessage(requests);
+        protectedThis->m_requestLicenseCallback(WTF::move(requestBuffer), protectedThis->m_sessionId, false, Succeeded);
     });
 
     @try {

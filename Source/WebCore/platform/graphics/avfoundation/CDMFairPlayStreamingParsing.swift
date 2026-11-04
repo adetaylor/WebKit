@@ -32,6 +32,7 @@ import WebCore_Private.Core.EMEParseResults
 import WebCore_Private.Core.ISOParseResults
 import WebCore_Private.Core.MediaParsersCxxBridging
 import WebCoreEME
+import wtf
 
 // The names this file compares with, packed for MediaParserName comparisons.
 private enum FairPlayNames {
@@ -70,16 +71,6 @@ enum FairPlayStreamingParsing {
         }
         #endif
         return .Other
-    }
-
-    // An entry of the "sinf" array of 'sinf' init data is the payload of a 'sinf' box in base64, which may contain
-    // whitespace, and whose padding is optional but checked when present.
-    static func decodeSinf(_ base64: Span<UInt8>) -> ContiguousArray<UInt8>? {
-        WTFBase64.decode(base64, options: [.validatePadding, .ignoreWhitespace])
-    }
-
-    static func decodeSinf(_ base64: Span<UInt16>) -> ContiguousArray<UInt8>? {
-        WTFBase64.decode(base64, options: [.validatePadding, .ignoreWhitespace])
     }
 
     // The scheme of the last 'schm' box and the default key ID of the last 'schi' box with a 'tenc' box, among the
@@ -187,18 +178,97 @@ enum FairPlayStreamingParsing {
     }
 }
 
-// One base64 entry of the "sinf" array of 'sinf' init data. True when its boxes have a scheme and a key ID; the 16
-// bytes of the key ID are then appended to keyIDs if the scheme is valid.
+// The key IDs of 'sinf' and 'mpts' init data. For 'sinf' init data, true when some entry has a scheme and a key ID; the
+// 16 bytes of each such key ID with a valid scheme are appended to keyIDs. For 'mpts' init data, whether it is valid; its
+// key ID is the C++ mptsKeyIDs(). False for other types.
 @_expose(Cxx)
-func fairPlaySinfKeyIDLatin1Impl(_ base64Sinf: borrowing WebCore.MediaParserLatin1, _ keyIDs: inout WebCore.MediaParserByteVector) -> Bool {
-    let characters: Span<UInt8> = base64Sinf.span()
-    return FairPlayStreamingParsing.appendKeyID(sinfPayload: FairPlayStreamingParsing.decodeSinf(characters), to: &keyIDs)
+func fairPlayInitDataKeyIDsImpl(
+    _ type: WebCore.FairPlayInitDataType,
+    _ initData: borrowing WebCore.MediaParserBytes,
+    _ keyIDs: inout WebCore.MediaParserByteVector
+) -> Bool {
+    let bytes: Span<UInt8> = initData.span()
+    switch type {
+    case .Sinf:
+        guard let payloads = FairPlayJSON.sinfPayloads(bytes) else {
+            return false
+        }
+        var hasSchemeAndKeyID = false
+        for payload in payloads where FairPlayStreamingParsing.appendKeyID(sinfPayload: payload, to: &keyIDs) {
+            hasSchemeAndKeyID = true
+        }
+        return hasSchemeAndKeyID
+    case .Mpts:
+        return FairPlayJSON.isMptsInitData(bytes)
+    default:
+        return false
+    }
 }
 
+// False unless the 'cenc' license response is a JSON array. Each element appends its FairPlayCencResponseEntryStage, key
+// ID size, payload size and error code to fields, and its key ID and payload to bytes.
 @_expose(Cxx)
-func fairPlaySinfKeyIDUTF16Impl(_ base64Sinf: borrowing WebCore.MediaParserUTF16, _ keyIDs: inout WebCore.MediaParserByteVector) -> Bool {
-    let characters: Span<UInt16> = base64Sinf.span()
-    return FairPlayStreamingParsing.appendKeyID(sinfPayload: FairPlayStreamingParsing.decodeSinf(characters), to: &keyIDs)
+func fairPlayCencResponseImpl(
+    _ response: borrowing WebCore.MediaParserBytes,
+    _ fields: inout WebCore.MediaParserUInt32Vector,
+    _ bytes: inout WebCore.MediaParserByteVector
+) -> Bool {
+    let responseBytes: Span<UInt8> = response.span()
+    guard let entries = FairPlayJSON.cencResponse(responseBytes) else {
+        return false
+    }
+    for entry in entries {
+        let (stage, keyID, payload, code): (WebCore.FairPlayCencResponseEntryStage, ContiguousArray<UInt8>, ContiguousArray<UInt8>, Int32) =
+            switch entry {
+            case .noKeyID:
+                (.NoKeyID, [], [], 0)
+            case .keyIDOnly(let keyID):
+                (.KeyIDOnly, keyID, [], 0)
+            case .payload(let keyID, let payload):
+                (.Payload, keyID, payload, 0)
+            case .error(let keyID, let code):
+                (.Error, keyID, [], code)
+            }
+        fields.append(consuming: stage.rawValue)
+        fields.append(consuming: UInt32(truncatingIfNeeded: keyID.count))
+        fields.append(consuming: UInt32(truncatingIfNeeded: payload.count))
+        fields.append(consuming: UInt32(bitPattern: code))
+        for part in [keyID, payload] where !part.isEmpty {
+            WebCore.appendBytes(&bytes, part.span)
+        }
+    }
+    return true
+}
+
+// The 'cenc' license request for key IDs and their requests' data, appended to message: requests holds each key ID and
+// then its data, back to back, and sizes their sizes in the same order.
+@_expose(Cxx)
+func fairPlayCencRequestImpl(
+    _ requests: borrowing WebCore.MediaParserBytes,
+    _ sizes: borrowing WebCore.MediaParserUInt32Vector,
+    _ message: inout WebCore.MediaParserByteVector
+) {
+    let bytes: Span<UInt8> = requests.span()
+    let partSizes: Span<UInt32> = sizes.span()
+    var request = ContiguousArray<UInt8>()
+    var offset = 0
+    var count = 0
+    var index = 0
+    while index + 1 < partSizes.count {
+        let keyIDEnd = offset + Int(partSizes[index])
+        let payloadEnd = keyIDEnd + Int(partSizes[index + 1])
+        FairPlayJSON.appendCencRequest(
+            keyID: bytes.extracting(offset..<keyIDEnd),
+            payload: bytes.extracting(keyIDEnd..<payloadEnd),
+            isFirst: count == 0,
+            to: &request
+        )
+        offset = payloadEnd
+        count += 1
+        index += 2
+    }
+    FairPlayJSON.endCencRequest(count: count, to: &request)
+    WebCore.appendBytes(&message, request.span)
 }
 
 @_expose(Cxx)
