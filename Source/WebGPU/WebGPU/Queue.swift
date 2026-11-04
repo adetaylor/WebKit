@@ -49,8 +49,8 @@ private final class AliasableBytes {
     }
 
     // A buffer over `length` of the owner's bytes from `offset`, which keeps the owner alive for as long as it exists.
-    func newBuffer(_ device: WebGPU.Metal.Device, from offset: UInt64, length: UInt64) -> (any MTLBuffer)? {
-        WebGPU.Metal.newBufferAliasingOwner(device, owner, offset, length)
+    func newBuffer(_ metalDevice: (any MTLDevice)?, from offset: UInt64, length: UInt64) -> (any MTLBuffer)? {
+        WebGPU.Metal.newBufferAliasingOwner(metalDevice, owner, offset, length)
     }
 }
 
@@ -148,21 +148,6 @@ private final class OneShotCallback {
     func call(_ success: Bool) {
         if let callback = callback.take() {
             callback(success)
-        }
-    }
-}
-
-// A C++ caller's Function<void()>, called at most once.
-private final class ScheduledCallbackBox {
-    private var callback: WebGPU.Metal.Instance.WorkItem?
-
-    init(_ callback: consuming WebGPU.Metal.Instance.WorkItem) {
-        self.callback = consume callback
-    }
-
-    func call() {
-        if let callback = callback.take() {
-            callback()
         }
     }
 }
@@ -298,8 +283,7 @@ private func copyExternalImageSourceStorageMode(_ deviceImpl: DeviceImpl) -> MTL
     #endif
 }
 
-// The part of a queue that the shell's Metal completed handler touches on a Metal thread.
-@_expose(Cxx)
+// The part of a queue that the Metal completed handler touches on a Metal thread.
 final class QueueCompletion: Sendable {
     // Entered just before each commit and left by that command buffer's completed handler, so it is empty
     // exactly when every committed command buffer has completed.
@@ -312,7 +296,6 @@ final class QueueCompletion: Sendable {
     }
 
     // Runs on a Metal completion thread.
-    @_expose(Cxx)
     func didComplete() {
         committedNotCompleted.leave()
     }
@@ -649,17 +632,18 @@ private func isValidToUse(_ objectIsValid: Bool, _ objectDeviceImpl: DeviceImpl,
     objectIsValid && objectDeviceImpl === deviceImpl && deviceImpl.isValid()
 }
 
-// One per GPUQueue, owned by the C++ shell WebGPU::Metal::Queue. The shell's entry points pass the Device in, having
-// checked that it is still alive.
+// https://gpuweb.github.io/gpuweb/#gpuqueue
+// One per GPUDevice: its default queue. Its operations do nothing once its device is gone.
 //
-// Used only on its Instance's API thread, so deliberately not Sendable; the Metal threads only ever get
-// `completion()`. The counters are bumped by work items the handlers schedule back onto the API thread.
-@_expose(Cxx)
-final class QueueImpl {
+// Used only on its Instance's API thread, so deliberately not Sendable; the Metal threads only ever get the
+// QueueCompletion and the work items that the commit handlers schedule back onto the API thread.
+@_spi(WebKitGPU)
+public final class QueueImpl: GPUObjectReference {
     private var backingCommandQueue: (any MTLCommandQueue)?
-    // The device whose encoder timestamps this queue resolves. Weak: the device holds the queue.
-    @_expose(!Cxx)
-    weak var encoderTimestampsDevice: DeviceImpl?
+    // Weak: the device holds the queue.
+    weak var deviceImpl: DeviceImpl?
+    // Where the Metal handlers and the deferred callbacks schedule their API-thread work.
+    private var schedulerHandle: InstanceSchedulerHandle?
     private let backingCompletion = QueueCompletion()
 
     private var backingStagingCommandBuffer: (any MTLCommandBuffer)?
@@ -693,7 +677,7 @@ final class QueueImpl {
     private var copyExternalImagePipelineStates: [UInt: any MTLRenderPipelineState] = [:]
     private var copyExternalImagePipelineCreationFailed = false
 
-    // Filled by the shell's submit() just before it calls submit(_:_:_:).
+    // Filled by submit(_:) just before it calls submit(_:).
     private var commandsToSubmit: [SubmittedCommand] = []
 
     fileprivate init(commandQueue: (any MTLCommandQueue)?, allocatesBookkeeping: Bool) {
@@ -706,21 +690,29 @@ final class QueueImpl {
         retainedCounterSampleBuffers = [:]
     }
 
-    @_expose(Cxx)
-    func isValid() -> Bool {
+    deinit {
+        // Pending staged copies are dropped rather than committed: committing them would hand this queue to their
+        // completed handler. Nothing can observe them once the queue is gone.
+        endStagingEncoderOfDyingQueue()
+    }
+
+    public func isValid() -> Bool {
         backingCommandQueue != nil
+    }
+
+    func setSchedulerHandle(_ handle: InstanceSchedulerHandle?) {
+        schedulerHandle = handle
+    }
+
+    // Runs `work` in a later work item on the API thread.
+    private func scheduleWork(_ work: @escaping () -> Void) {
+        APIThreadWork<Void> { _ in work() }.schedule((), on: schedulerHandle)
     }
 
     func setLabel(_ label: NSString?) {
         backingCommandQueue?.label = label as String?
     }
 
-    @_expose(Cxx)
-    func completion() -> QueueCompletion {
-        backingCompletion
-    }
-
-    @_expose(Cxx)
     func waitForAllCommittedWorkToComplete() {
         backingCompletion.waitForAllCommittedWorkToComplete()
     }
@@ -729,8 +721,7 @@ final class QueueImpl {
 
     // Calls every scheduled callback, then every done callback with false, each in WTF iteration order. Both maps are
     // emptied before the first call.
-    @_expose(Cxx)
-    func makeInvalid(_ queue: WebGPU.Metal.Queue) {
+    func makeInvalid() {
         backingCommandQueue = nil
         let scheduled = scheduledCallbacks
         let done = doneCallbacks
@@ -746,12 +737,12 @@ final class QueueImpl {
                 callback.call(false)
             }
         }
-        removeCommandBuffersAndDropState(queue)
+        removeCommandBuffersAndDropState()
     }
 
-    private func removeCommandBuffersAndDropState(_ queue: WebGPU.Metal.Queue) {
+    private func removeCommandBuffersAndDropState() {
         while let commandBuffer = createdNotCommittedBuffers?.firstObject as? any MTLCommandBuffer {
-            removeMTLCommandBuffer(queue, commandBuffer)
+            removeMTLCommandBuffer(commandBuffer)
         }
 
         createdNotCommittedBuffers = nil
@@ -778,19 +769,19 @@ final class QueueImpl {
         createdNotCommittedBuffers?.remove(commandBuffer)
     }
 
-    func commandBufferWithDescriptor(_ queue: WebGPU.Metal.Queue, _ descriptor: MTLCommandBufferDescriptor?) -> (any MTLCommandBuffer)? {
+    func commandBufferWithDescriptor(_ descriptor: MTLCommandBufferDescriptor?) -> (any MTLCommandBuffer)? {
         if !isValid() {
             return nil
         }
 
         let maxCommandBufferCount = 1000
         if (createdNotCommittedBuffers?.count ?? 0) >= maxCommandBufferCount {
-            queue.loseTheDevice(WebGPU.DeviceLostReason.Destroyed)
+            deviceImpl?.loseTheDevice(WebGPU.DeviceLostReason.Destroyed)
             return nil
         }
 
         let commandBuffer = makeCommandBuffer(descriptor)
-        queue.retainDeviceUntilCompleted(commandBuffer)
+        deviceImpl?.retainUntilCompleted(commandBuffer)
         return commandBuffer
     }
 
@@ -816,9 +807,7 @@ final class QueueImpl {
 
     // Ends the encoder if it is the one open on the command buffer, then resolves the device's encoder timestamps of the
     // command buffer.
-    @_expose(!Cxx)
     func endEncoding(
-        _ queue: WebGPU.Metal.Queue,
         _ commandEncoder: (any MTLCommandEncoder)?,
         _ commandBuffer: (any MTLCommandBuffer)?
     ) {
@@ -827,38 +816,34 @@ final class QueueImpl {
         }
     }
 
-    // ~Queue, which must not pass the dying shell in.
-    @_expose(Cxx)
-    func endStagingEncoderOfDyingQueue() {
+    private func endStagingEncoderOfDyingQueue() {
         if let encoder = stagingEncoder(), endEncodingIfCurrent(encoder, backingStagingCommandBuffer) {
             resolveDeviceTimestamps(backingStagingCommandBuffer)
         }
     }
 
     private func resolveDeviceTimestamps(_ commandBuffer: (any MTLCommandBuffer)?) {
-        if enableEncoderTimestamps(), let device = encoderTimestampsDevice {
+        if enableEncoderTimestamps(), let device = deviceImpl {
             device.resolveTimestampsForBuffer(commandBuffer)
         }
     }
 
     // Workaround for rdar://143905417: keeps the counter sample buffers until the API thread's next work item has run.
-    @_expose(!Cxx)
-    func retainTimestampsForOneUpdate(_ queue: WebGPU.Metal.Queue, _ timestamps: NSMutableSet?) {
+    func retainTimestampsForOneUpdate(_ timestamps: NSMutableSet?) {
         guard let timestamps else {
             return
         }
-        queue.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { withExtendedLifetime((queue, timestamps)) {} })
+        scheduleWork { withExtendedLifetime((self, timestamps)) {} }
     }
 
     func setEncoderForBuffer(
-        _ queue: WebGPU.Metal.Queue,
         _ commandBuffer: (any MTLCommandBuffer)?,
         _ commandEncoder: (any MTLCommandEncoder)?
     ) {
         guard let commandBuffer else {
             return
         }
-        endEncoding(queue, encoderForBuffer(commandBuffer), commandBuffer)
+        endEncoding(encoderForBuffer(commandBuffer), commandBuffer)
         if let commandEncoder {
             openCommandEncoders?.setObject(commandEncoder, forKey: commandBuffer)
         } else {
@@ -866,33 +851,33 @@ final class QueueImpl {
         }
     }
 
-    func removeMTLCommandBuffer(_ queue: WebGPU.Metal.Queue, _ commandBuffer: (any MTLCommandBuffer)?) {
+    func removeMTLCommandBuffer(_ commandBuffer: (any MTLCommandBuffer)?) {
         guard let commandBuffer else {
             return
         }
 
-        endEncoding(queue, encoderForBuffer(commandBuffer), commandBuffer)
+        endEncoding(encoderForBuffer(commandBuffer), commandBuffer)
         forgetCommandBuffer(commandBuffer)
     }
 
     // Staged work goes first: the zero fills already marked as done, and the queue writes. This is also how the command
     // buffers PresentationContextIOSurface and ExternalTextureImport commit come after them.
-    func commitMTLCommandBuffer(_ queue: WebGPU.Metal.Queue, _ commandBuffer: (any MTLCommandBuffer)?) {
-        _ = commit(queue, commandBuffer, commitsStagedWorkFirst: true)
+    func commitMTLCommandBuffer(_ commandBuffer: (any MTLCommandBuffer)?) {
+        _ = commit(commandBuffer, commitsStagedWorkFirst: true)
     }
 
     // True only when `commandBuffer` was committed. submit() commits the staged work itself, before its command buffers.
-    private func commit(_ queue: WebGPU.Metal.Queue, _ commandBuffer: (any MTLCommandBuffer)?, commitsStagedWorkFirst: Bool) -> Bool {
+    private func commit(_ commandBuffer: (any MTLCommandBuffer)?, commitsStagedWorkFirst: Bool) -> Bool {
         guard let commandBuffer, commandBuffer.status.rawValue < MTLCommandBufferStatus.committed.rawValue, isValid() else {
-            removeMTLCommandBuffer(queue, commandBuffer)
+            removeMTLCommandBuffer(commandBuffer)
             return false
         }
         if commitsStagedWorkFirst, let staging = backingStagingCommandBuffer, staging !== commandBuffer {
-            finalizeBlitCommandEncoder(queue)
+            finalizeBlitCommandEncoder()
         }
 
         assert(commandBuffer.commandQueue === backingCommandQueue)
-        queue.addCommitHandlers(commandBuffer)
+        addCommitHandlers(commandBuffer)
 
         // Before the commit, so the completed handler can never run first.
         backingCompletion.willCommit()
@@ -902,12 +887,34 @@ final class QueueImpl {
         return true
     }
 
-    // MARK: The staging command buffer
-
-    @_expose(Cxx)
-    func stagingCommandBuffer() -> (any MTLCommandBuffer)? {
-        backingStagingCommandBuffer
+    // Both handlers run on Metal threads, and touch only the Sendable completion and the scheduler handle. Each hands its
+    // reference to the queue over to its work item, so that the queue is released on the API thread, where the work
+    // items run.
+    private func addCommitHandlers(_ commandBuffer: any MTLCommandBuffer) {
+        let scheduler = schedulerHandle
+        let completion = backingCompletion
+        let didSchedule = APIThreadWork<Void> { _ in
+            self.didScheduleCommandBuffer()
+        }
+        let didComplete = APIThreadWork<Bool> { loseTheDevice in
+            self.didCompleteCommandBuffer()
+            if loseTheDevice {
+                self.deviceImpl?.loseTheDevice(.Unknown)
+            }
+        }
+        WebGPU.Metal.addCommitHandlers(
+            commandBuffer,
+            {
+                didSchedule.schedule((), on: scheduler)
+            },
+            { loseTheDevice in
+                completion.didComplete()
+                didComplete.schedule(loseTheDevice, on: scheduler)
+            }
+        )
     }
+
+    // MARK: The staging command buffer
 
     func stagingEncoder() -> (any MTLCommandEncoder)? {
         if let blitCommandEncoder {
@@ -923,107 +930,127 @@ final class QueueImpl {
         return encoder === openEncoder
     }
 
-    @_expose(Cxx)
-    func ensureBlitCommandEncoder(_ queue: WebGPU.Metal.Queue) -> (any MTLBlitCommandEncoder)? {
+    func ensureBlitCommandEncoder() -> (any MTLBlitCommandEncoder)? {
         if isOpenOnStagingCommandBuffer(blitCommandEncoder) {
             return blitCommandEncoder
         }
 
         if isOpenOnStagingCommandBuffer(stagedCopyEncoder) {
             // Switch encoder types on the open staging command buffer rather than minting a second one.
-            endEncoding(queue, stagedCopyEncoder, backingStagingCommandBuffer)
+            endEncoding(stagedCopyEncoder, backingStagingCommandBuffer)
             stagedCopyEncoder = nil
             blitCommandEncoder = backingStagingCommandBuffer?.makeBlitCommandEncoder()
             guard let encoder = blitCommandEncoder else {
                 // See ensureStagedCopyEncoder(): committing beats orphaning the work already encoded.
-                commitMTLCommandBuffer(queue, backingStagingCommandBuffer)
+                commitMTLCommandBuffer(backingStagingCommandBuffer)
                 backingStagingCommandBuffer = nil
                 return nil
             }
-            setEncoderForBuffer(queue, backingStagingCommandBuffer, encoder)
+            setEncoderForBuffer(backingStagingCommandBuffer, encoder)
             return encoder
         }
 
-        backingStagingCommandBuffer = commandBufferWithDescriptor(queue, MTLCommandBufferDescriptor())
+        backingStagingCommandBuffer = commandBufferWithDescriptor(MTLCommandBufferDescriptor())
         stagedCopyEncoder = nil
         blitCommandEncoder = backingStagingCommandBuffer?.makeBlitCommandEncoder()
-        setEncoderForBuffer(queue, backingStagingCommandBuffer, blitCommandEncoder)
+        setEncoderForBuffer(backingStagingCommandBuffer, blitCommandEncoder)
         return blitCommandEncoder
     }
 
-    private func ensureStagedCopyEncoder(_ queue: WebGPU.Metal.Queue) -> (any MTLComputeCommandEncoder)? {
+    private func ensureStagedCopyEncoder() -> (any MTLComputeCommandEncoder)? {
         if isOpenOnStagingCommandBuffer(stagedCopyEncoder) {
             return stagedCopyEncoder
         }
 
         if isOpenOnStagingCommandBuffer(blitCommandEncoder) {
             // Switch encoder types on the open staging command buffer rather than minting a second one.
-            endEncoding(queue, blitCommandEncoder, backingStagingCommandBuffer)
+            endEncoding(blitCommandEncoder, backingStagingCommandBuffer)
             blitCommandEncoder = nil
             stagedCopyEncoder = backingStagingCommandBuffer?.makeComputeCommandEncoder()
             guard let encoder = stagedCopyEncoder else {
                 // Encoder creation failed after the previous encoder was ended, so the staging command
                 // buffer now holds real work with nothing open on it. finalizeBlitCommandEncoder() keys
                 // off the encoders, so leaving it here would orphan it and drop that work; commit it.
-                commitMTLCommandBuffer(queue, backingStagingCommandBuffer)
+                commitMTLCommandBuffer(backingStagingCommandBuffer)
                 backingStagingCommandBuffer = nil
                 return nil
             }
-            setEncoderForBuffer(queue, backingStagingCommandBuffer, encoder)
+            setEncoderForBuffer(backingStagingCommandBuffer, encoder)
             return encoder
         }
 
-        backingStagingCommandBuffer = commandBufferWithDescriptor(queue, MTLCommandBufferDescriptor())
+        backingStagingCommandBuffer = commandBufferWithDescriptor(MTLCommandBufferDescriptor())
         blitCommandEncoder = nil
         stagedCopyEncoder = backingStagingCommandBuffer?.makeComputeCommandEncoder()
-        setEncoderForBuffer(queue, backingStagingCommandBuffer, stagedCopyEncoder)
+        setEncoderForBuffer(backingStagingCommandBuffer, stagedCopyEncoder)
         return stagedCopyEncoder
     }
 
     // Finalizes the staging command buffer, whichever encoder type is currently open on it.
-    @_expose(Cxx)
-    func finalizeBlitCommandEncoder(_ queue: WebGPU.Metal.Queue) {
+    func finalizeBlitCommandEncoder() {
         if let stagingEncoder = stagingEncoder() {
-            endEncoding(queue, stagingEncoder, backingStagingCommandBuffer)
-            commitMTLCommandBuffer(queue, backingStagingCommandBuffer)
+            endEncoding(stagingEncoder, backingStagingCommandBuffer)
+            commitMTLCommandBuffer(backingStagingCommandBuffer)
             blitCommandEncoder = nil
             stagedCopyEncoder = nil
             backingStagingCommandBuffer = nil
         } else if let commandBuffer = backingStagingCommandBuffer {
             // A staging command buffer with no encoder open: reachable if encoder creation failed. Its
             // already-encoded work must still reach the GPU in order, so commit rather than drop.
-            commitMTLCommandBuffer(queue, commandBuffer)
+            commitMTLCommandBuffer(commandBuffer)
             backingStagingCommandBuffer = nil
         }
     }
 
+    // Makes the GPU's writes to the buffers visible to the CPU, once the work committed so far has completed.
+    func makeGPUWritesVisible(_ buffers: (any MTLBuffer)?...) {
+        waitForAllCommittedWorkToComplete()
+        for buffer in buffers {
+            synchronizeResourceAndWait(buffer)
+        }
+    }
+
+    // A managed buffer's GPU writes reach its CPU copy through a blit, which this waits for.
+    #if hasAttribute(diagnose)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Managed buffers on Macs with discrete memory still need it")
+    #endif
+    private func synchronizeResourceAndWait(_ buffer: (any MTLBuffer)?) {
+        #if WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST
+        guard let buffer, buffer.storageMode == deprecatedManagedStorageMode else {
+            return
+        }
+        ensureBlitCommandEncoder()?.synchronize(resource: buffer)
+        let commandBuffer = backingStagingCommandBuffer
+        finalizeBlitCommandEncoder()
+        commandBuffer?.waitUntilCompleted()
+        #endif
+    }
+
     // Closes both staging encoders but keeps the staging command buffer open, so that other work can follow
     // the staged work on it.
-    private func endStagingEncoders(_ queue: WebGPU.Metal.Queue) {
+    private func endStagingEncoders() {
         if let encoder = blitCommandEncoder {
-            endEncoding(queue, encoder, backingStagingCommandBuffer)
+            endEncoding(encoder, backingStagingCommandBuffer)
             blitCommandEncoder = nil
         }
         if let encoder = stagedCopyEncoder {
-            endEncoding(queue, encoder, backingStagingCommandBuffer)
+            endEncoding(encoder, backingStagingCommandBuffer)
             stagedCopyEncoder = nil
         }
     }
 
     // MARK: Counters and callbacks. The counters wrap.
 
-    // Runs in the work item the shell's scheduled handler posts to the API thread.
-    @_expose(Cxx)
-    func didScheduleCommandBuffer() {
+    // Runs in the work item the scheduled handler posts to the API thread.
+    private func didScheduleCommandBuffer() {
         backingScheduledCommandBufferCount &+= 1
         for callback in takeCallbacks(&scheduledCallbacks, backingScheduledCommandBufferCount) {
             callback()
         }
     }
 
-    // Runs in the work item the shell's completed handler posts to the API thread.
-    @_expose(Cxx)
-    func didCompleteCommandBuffer() {
+    // Runs in the work item the completed handler posts to the API thread.
+    private func didCompleteCommandBuffer() {
         backingCompletedCommandBufferCount &+= 1
         for callback in takeCallbacks(&doneCallbacks, backingCompletedCommandBufferCount) {
             callback.call(true)
@@ -1040,8 +1067,7 @@ final class QueueImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone
     // The callback gets false when the device is lost.
-    @_expose(!Cxx)
-    func onSubmittedWorkDone(_ queue: WebGPU.Metal.Queue, deviceIsUsable: Bool, _ callback: @escaping (Bool) -> Void) {
+    func onSubmittedWorkDone(deviceIsUsable: Bool, _ callback: @escaping (Bool) -> Void) {
         guard deviceIsUsable else {
             callback(false)
             return
@@ -1049,47 +1075,29 @@ final class QueueImpl {
 
         assert(backingSubmittedCommandBufferCount >= backingCompletedCommandBufferCount)
 
-        finalizeBlitCommandEncoder(queue)
+        finalizeBlitCommandEncoder()
 
         let oneShot = OneShotCallback(callback)
         if isIdle() {
-            queue.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { oneShot.call(true) })
+            scheduleWork { oneShot.call(true) }
             return
         }
 
         appendCallback(&doneCallbacks, backingSubmittedCommandBufferCount, oneShot)
     }
 
-    // Queue::onSubmittedWorkDone(CompletionHandler<void(bool)>&&): the handler is moved out of `callback`.
-    func onSubmittedWorkDone(_ queue: WebGPU.Metal.Queue, _ deviceIsUsable: Bool, _ callback: inout WTF.BoolCompletionHandler) {
-        let handler = BoolCompletionHandlerBox(exchange(&callback, with: WTF.BoolCompletionHandler()))
-        onSubmittedWorkDone(queue, deviceIsUsable: deviceIsUsable) { success in
-            handler.call(success)
-        }
-    }
-
-    // Queue::onSubmittedWorkScheduled: the Function is moved out of `callback`.
-    @_expose(Cxx)
-    func onSubmittedWorkScheduled(_ queue: WebGPU.Metal.Queue, _ deviceIsUsable: Bool, _ callback: inout WebGPU.Metal.Instance.WorkItem) {
-        let handler = ScheduledCallbackBox(exchange(&callback, with: WebGPU.Metal.Instance.WorkItem()))
-        onSubmittedWorkScheduled(queue, deviceIsUsable: deviceIsUsable) {
-            handler.call()
-        }
-    }
-
     // The callback runs once the work submitted so far has been scheduled, at once if the device is lost.
-    @_expose(!Cxx)
-    func onSubmittedWorkScheduled(_ queue: WebGPU.Metal.Queue, deviceIsUsable: Bool, _ callback: @escaping () -> Void) {
+    func onSubmittedWorkScheduled(deviceIsUsable: Bool, _ callback: @escaping () -> Void) {
         assert(backingSubmittedCommandBufferCount >= backingScheduledCommandBufferCount)
         guard deviceIsUsable else {
             callback()
             return
         }
 
-        finalizeBlitCommandEncoder(queue)
+        finalizeBlitCommandEncoder()
 
         if isSchedulingIdle() {
-            queue.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { callback() })
+            scheduleWork(callback)
             return
         }
 
@@ -1098,20 +1106,19 @@ final class QueueImpl {
 
     // Keeps a frame's texture cache planes alive until the queue's submitted work is done: the cache's textures stay
     // valid only while their CVMetalTextures live.
-    func retainUntilSubmittedWorkDone(_ queue: WebGPU.Metal.Queue, _ deviceIsUsable: Bool, _ plane0: CVBuffer, _ plane1: CVBuffer?) {
-        onSubmittedWorkDone(queue, deviceIsUsable: deviceIsUsable) { _ in
+    func retainUntilSubmittedWorkDone(_ deviceIsUsable: Bool, _ plane0: CVBuffer, _ plane1: CVBuffer?) {
+        onSubmittedWorkDone(deviceIsUsable: deviceIsUsable) { _ in
             withExtendedLifetime((plane0, plane1)) {}
         }
     }
 
     // Queue::trimICB: copies the first `newSize` commands of `source` into `destination` on the staging blit encoder.
     func trimICB(
-        _ queue: WebGPU.Metal.Queue,
         _ destination: (any MTLIndirectCommandBuffer)?,
         _ source: (any MTLIndirectCommandBuffer)?,
         _ newSize: UInt
     ) -> (any MTLIndirectCommandBuffer)? {
-        let blitCommandEncoder = ensureBlitCommandEncoder(queue)
+        let blitCommandEncoder = ensureBlitCommandEncoder()
         if let destination, let source {
             blitCommandEncoder?
                 .copyIndirectCommandBuffer(source, sourceRange: 0..<Int(newSize), destination: destination, destinationIndex: 0)
@@ -1119,7 +1126,7 @@ final class QueueImpl {
         return destination
     }
 
-    // MARK: Counter sample buffers, kept alive per command encoder until the shell's work item releases them.
+    // MARK: Counter sample buffers, kept alive per command encoder until its completion releases them.
 
     func retainCounterSampleBuffers(_ encoderImpl: CommandEncoderImpl) -> UInt64 {
         let encoderHandle = encoderImpl.uniqueId
@@ -1137,7 +1144,7 @@ final class QueueImpl {
         commandsToSubmit.append(SubmittedCommand(impl: commandImpl))
     }
 
-    private func errorValidatingSubmit(_ commands: [SubmittedCommand], _ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> NSString?
+    private func errorValidatingSubmit(_ commands: [SubmittedCommand], _ deviceImpl: DeviceImpl) -> NSString?
     {
         for command in commands {
             let status = command.impl.commandBuffer()?.status.rawValue ?? MTLCommandBufferStatus.notEnqueued.rawValue
@@ -1156,13 +1163,13 @@ final class QueueImpl {
         return nil
     }
 
-    // The command buffers are the ones the shell just appended.
-    func submit(_ queue: WebGPU.Metal.Queue, _ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) {
+    // The command buffers are the ones submit(_:) just appended.
+    func submit(_ deviceImpl: DeviceImpl) {
         let commands = commandsToSubmit
         commandsToSubmit = []
 
         // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit
-        if let error = errorValidatingSubmit(commands, device, deviceImpl) {
+        if let error = errorValidatingSubmit(commands, deviceImpl) {
             deviceImpl.generateAValidationError(error as String)
             for command in commands {
                 command.impl.makeInvalid(command.impl.lastError() ?? error)
@@ -1185,8 +1192,8 @@ final class QueueImpl {
 
         // Lazy zero-initialization, decided now that the commit order is known: before willCommit, so that a failure can
         // still reject the whole submit, and before the staging command buffer is committed, which may now hold zero fills.
-        let initializationFailed = validationError == nil && !stageInitializationFixUps(queue, deviceImpl, submissions)
-        finalizeBlitCommandEncoder(queue)
+        let initializationFailed = validationError == nil && !stageInitializationFixUps(deviceImpl, submissions)
+        finalizeBlitCommandEncoder()
 
         for command in commands {
             if let validationError {
@@ -1212,9 +1219,9 @@ final class QueueImpl {
             // filled buffers here. They hold the commands encoded before this one, so they have to be
             // committed first; sequential commits on the same MTLCommandQueue execute in order.
             for priorCommandBuffer in submission.command.impl.takePriorCommandBuffers() {
-                _ = commit(queue, priorCommandBuffer, commitsStagedWorkFirst: false)
+                _ = commit(priorCommandBuffer, commitsStagedWorkFirst: false)
             }
-            if commit(queue, submission.commandBuffer, commitsStagedWorkFirst: false) {
+            if commit(submission.commandBuffer, commitsStagedWorkFirst: false) {
                 let token = CommitToken()
                 submission.command.impl.applyInitializationEffects(token)
             } else {
@@ -1265,34 +1272,31 @@ final class QueueImpl {
 
     // writeBuffer() of bytes that nothing lends: the slow index validation path's write-back.
     func writeBuffer(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
         bytes data: Span<UInt8>
     ) {
-        if writeBufferWithoutStaging(deviceImpl, bufferImpl, bufferOffset, bytes: data) {
-            return
-        }
-        stageBufferWrite(queue, device, deviceImpl, bufferImpl.buffer(), bufferOffset, bytes: data, nil)
+        writeBuffer(deviceImpl, bufferImpl, bufferOffset, bytes: data, nil)
     }
 
-    // writeBuffer() up to staging: the validation, the index bookkeeping and the write of an idle CPU-visible buffer. False
-    // when the write still has to be staged (stageBufferWrite, stageBufferWriteFromOwner). It takes no shells: Swift
-    // retains the imported reference types it is passed, which the CPU path does not need.
-    @_expose(Cxx)
-    func writeBufferWithoutStaging(
+    // `aliasable` owns exactly `data`.
+    fileprivate func writeBuffer(
         _ deviceImpl: DeviceImpl,
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
-        _ data: WebGPU.Metal.QueueBytes
-    ) -> Bool {
-        let bytes: Span<UInt8> = data.span()
-        return writeBufferWithoutStaging(deviceImpl, bufferImpl, bufferOffset, bytes: bytes)
+        bytes data: Span<UInt8>,
+        _ aliasable: AliasableBytes?
+    ) {
+        if writeBufferWithoutStaging(deviceImpl, bufferImpl, bufferOffset, bytes: data) {
+            return
+        }
+        stageBufferWrite(deviceImpl, bufferImpl.buffer(), bufferOffset, bytes: data, aliasable)
     }
 
-    fileprivate func writeBufferWithoutStaging(
+    // writeBuffer() up to staging: the validation, the index bookkeeping and the write of an idle CPU-visible buffer. False
+    // when the write still has to be staged (stageBufferWrite).
+    private func writeBufferWithoutStaging(
         _ deviceImpl: DeviceImpl,
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
@@ -1355,22 +1359,16 @@ final class QueueImpl {
         return temporaryBufferOffset &+ dataSize > UInt64(backingTemporaryBuffer.length)
     }
 
-    // The offset of the bytes in the returned buffer is stored into `offset`.
-    @_expose(Cxx)
-    func newTemporaryBufferWithBytes(
-        _ device: WebGPU.Metal.Device,
-        _ deviceImpl: DeviceImpl,
-        _ data: WebGPU.Metal.QueueBytes,
-        _ noCopy: Bool,
-        _ offset: inout UInt64
-    ) -> (any MTLBuffer)? {
-        let bytes: Span<UInt8> = data.span()
-        return newTemporaryBuffer(device, deviceImpl, bytes: bytes, aliasing: nil, from: 0, noCopy, &offset)
+    // `size` zeroed bytes in the temporary buffer, whose offset is stored into `offset`.
+    func newZeroedTemporaryBytes(_ deviceImpl: DeviceImpl, _ size: Int, _ offset: inout UInt64) -> (any MTLBuffer)? {
+        let priorOffset = reserveTemporaryBufferRange(deviceImpl, UInt64(size))
+        WebGPU.Metal.zeroBufferContents(backingTemporaryBuffer, priorOffset, UInt64(size))
+        offset = priorOffset
+        return backingTemporaryBuffer
     }
 
     // `data` starts `ownerOffset` bytes into the bytes `aliasable` owns.
     private func newTemporaryBuffer(
-        _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
         bytes data: Span<UInt8>,
         aliasing aliasable: AliasableBytes?,
@@ -1381,7 +1379,7 @@ final class QueueImpl {
         if noCopy {
             offset = 0
             if let aliasable {
-                return aliasable.newBuffer(device, from: ownerOffset, length: UInt64(data.count))
+                return aliasable.newBuffer(deviceImpl.device(), from: ownerOffset, length: UInt64(data.count))
             }
             // Without an owner, nothing keeps `data` alive until the GPU has read it. So it is copied, into a buffer
             // of its own that the command buffer which reads it releases: the temporary buffer does not grow to its size.
@@ -1414,49 +1412,16 @@ final class QueueImpl {
         return priorOffset
     }
 
-    @_expose(Cxx)
     func stageBufferWrite(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
-        _ deviceImpl: DeviceImpl,
-        _ buffer: (any MTLBuffer)?,
-        _ bufferOffset: UInt64,
-        _ data: WebGPU.Metal.QueueBytes
-    ) {
-        let bytes: Span<UInt8> = data.span()
-        stageBufferWrite(queue, device, deviceImpl, buffer, bufferOffset, bytes: bytes, nil)
-    }
-
-    // stageBufferWrite() of all of `owner`'s bytes, `data`, which a large write reads in place.
-    @_expose(Cxx)
-    func stageBufferWriteFromOwner(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
-        _ deviceImpl: DeviceImpl,
-        _ buffer: (any MTLBuffer)?,
-        _ bufferOffset: UInt64,
-        _ data: WebGPU.Metal.QueueBytes,
-        _ owner: WebGPU.ByteOwner
-    ) {
-        let bytes: Span<UInt8> = data.span()
-        stageBufferWrite(queue, device, deviceImpl, buffer, bufferOffset, bytes: bytes, AliasableBytes(owner))
-    }
-
-    @_expose(!Cxx)
-    func stageBufferWrite(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
         _ buffer: (any MTLBuffer)?,
         _ bufferOffset: UInt64,
         bytes data: Span<UInt8>
     ) {
-        stageBufferWrite(queue, device, deviceImpl, buffer, bufferOffset, bytes: data, nil)
+        stageBufferWrite(deviceImpl, buffer, bufferOffset, bytes: data, nil)
     }
 
-    fileprivate func stageBufferWrite(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
+    private func stageBufferWrite(
         _ deviceImpl: DeviceImpl,
         _ buffer: (any MTLBuffer)?,
         _ bufferOffset: UInt64,
@@ -1469,13 +1434,13 @@ final class QueueImpl {
 
         let noCopy = UInt64(data.count) >= largeBufferSize
         var temporaryBufferOffset: UInt64 = 0
-        guard let temporaryBuffer = newTemporaryBuffer(device, deviceImpl, bytes: data, aliasing: aliasable, from: 0, noCopy, &temporaryBufferOffset)
+        guard let temporaryBuffer = newTemporaryBuffer(deviceImpl, bytes: data, aliasing: aliasable, from: 0, noCopy, &temporaryBufferOffset)
         else {
             assertionFailure()
             return
         }
 
-        encodeStagedCopy(queue, deviceImpl, temporaryBuffer, temporaryBufferOffset, buffer, bufferOffset, UInt64(data.count), noCopy)
+        encodeStagedCopy(deviceImpl, temporaryBuffer, temporaryBufferOffset, buffer, bufferOffset, UInt64(data.count), noCopy)
     }
 
     // Encodes an already-staged copy, choosing the channel it rides.
@@ -1490,7 +1455,6 @@ final class QueueImpl {
     // 64-byte aligned, so the word-copy kernel covers every spec-reachable write; the blit encoder
     // remains as the fallback (and for writeTexture, clearBuffer, and internal copies).
     private func encodeStagedCopy(
-        _ queue: WebGPU.Metal.Queue,
         _ deviceImpl: DeviceImpl,
         _ temporaryBuffer: any MTLBuffer,
         _ temporaryBufferOffset: UInt64,
@@ -1518,13 +1482,13 @@ final class QueueImpl {
         let pipelineState = wordAligned ? stagedCopyPipelineState(deviceImpl) : nil
         // A null encoder here means creation failed, not that compute is unavailable; fall through to
         // the blit encoder rather than dropping the copy, which would leave the destination stale.
-        let stagedCopyEncoder = pipelineState != nil ? ensureStagedCopyEncoder(queue) : nil
+        let stagedCopyEncoder = pipelineState != nil ? ensureStagedCopyEncoder() : nil
         if let stagedCopyEncoder, let pipelineState {
             let wordCount = size / 4
             stagedCopyEncoder.setComputePipelineState(pipelineState)
             stagedCopyEncoder.setBuffer(temporaryBuffer, offset: 0, index: 0)
             stagedCopyEncoder.setBuffer(buffer, offset: 0, index: 1)
-            WebGPU.Metal.Queue.setStagedCopyArguments(stagedCopyEncoder, temporaryBufferOffset / 4, bufferOffset / 4, wordCount)
+            WebGPU.Metal.setStagedCopyArguments(stagedCopyEncoder, temporaryBufferOffset / 4, bufferOffset / 4, wordCount)
             let threadsPerThreadgroup = min(UInt64(256), UInt64(pipelineState.maxTotalThreadsPerThreadgroup))
             let threadgroups = min((wordCount &+ threadsPerThreadgroup &- 1) / threadsPerThreadgroup, 2048)
             stagedCopyEncoder.dispatchThreadgroups(
@@ -1533,12 +1497,12 @@ final class QueueImpl {
             )
 
             if finalizeAfterCopy {
-                finalizeBlitCommandEncoder(queue)
+                finalizeBlitCommandEncoder()
             }
             return
         }
 
-        guard let blitCommandEncoder = ensureBlitCommandEncoder(queue) else {
+        guard let blitCommandEncoder = ensureBlitCommandEncoder() else {
             return
         }
 
@@ -1551,18 +1515,17 @@ final class QueueImpl {
         )
 
         if finalizeAfterCopy {
-            finalizeBlitCommandEncoder(queue)
+            finalizeBlitCommandEncoder()
         }
     }
 
-    @_expose(Cxx)
-    func clearBuffer(_ queue: WebGPU.Metal.Queue, _ buffer: (any MTLBuffer)?, _ offset: UInt, _ size: UInt) {
+    func clearBuffer(_ buffer: (any MTLBuffer)?, _ offset: UInt, _ size: UInt) {
         let length = UInt(buffer?.length ?? 0)
         if offset > length {
             return
         }
 
-        let blitCommandEncoder = ensureBlitCommandEncoder(queue)
+        let blitCommandEncoder = ensureBlitCommandEncoder()
         guard let buffer else {
             return
         }
@@ -1661,7 +1624,6 @@ final class QueueImpl {
     /// It loads and stores the other aspect of a combined format, and needs no zeroed buffer. False when nothing was
     /// encoded.
     private func encodeRenderZeroFill(
-        _ queue: WebGPU.Metal.Queue,
         _ texture: TextureImpl,
         _ region: InitRegion,
         _ commandBuffer: any MTLCommandBuffer
@@ -1704,8 +1666,8 @@ final class QueueImpl {
         guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             return false
         }
-        setEncoderForBuffer(queue, commandBuffer, encoder)
-        endEncoding(queue, encoder, commandBuffer)
+        setEncoderForBuffer(commandBuffer, encoder)
+        endEncoding(encoder, commandBuffer)
         return true
     }
 
@@ -1714,7 +1676,6 @@ final class QueueImpl {
     /// commit() commits the staging command buffer before any later command buffer. False when no zero fill could be
     /// encoded: the region stays uninitialized.
     private func stageZeroFill(
-        _ queue: WebGPU.Metal.Queue,
         _ deviceImpl: DeviceImpl,
         _ texture: TextureImpl,
         _ region: InitRegion
@@ -1724,20 +1685,20 @@ final class QueueImpl {
         }
         let encoded: Bool
         if texture.prefersRenderZeroFill {
-            guard ensureBlitCommandEncoder(queue) != nil, let commandBuffer = backingStagingCommandBuffer else {
+            guard ensureBlitCommandEncoder() != nil, let commandBuffer = backingStagingCommandBuffer else {
                 return false
             }
-            endStagingEncoders(queue)
-            encoded = encodeRenderZeroFill(queue, texture, region, commandBuffer)
+            endStagingEncoders()
+            encoded = encodeRenderZeroFill(texture, region, commandBuffer)
             // ensureBlitCommandEncoder() only reuses a staging command buffer that has an open encoder.
             blitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
             if let encoder = blitCommandEncoder {
-                setEncoderForBuffer(queue, commandBuffer, encoder)
+                setEncoderForBuffer(commandBuffer, encoder)
             } else {
-                finalizeBlitCommandEncoder(queue)
+                finalizeBlitCommandEncoder()
             }
         } else {
-            guard let blit = ensureBlitCommandEncoder(queue) else {
+            guard let blit = ensureBlitCommandEncoder() else {
                 return false
             }
             encoded = encodeBlitZeroFill(texture, region, blit, zeroBuffer: { stagingZeroBuffer(deviceImpl, length: $0) })
@@ -1752,20 +1713,19 @@ final class QueueImpl {
 
     /// Zero-fills `fixUp` at the end of `commandBuffer`, a finished command buffer of the submit in progress.
     private func encodeZeroFill(
-        _ queue: WebGPU.Metal.Queue,
         _ deviceImpl: DeviceImpl,
         _ fixUp: InitFixUp,
         into commandBuffer: any MTLCommandBuffer
     ) -> Bool {
         if fixUp.texture.prefersRenderZeroFill {
-            return encodeRenderZeroFill(queue, fixUp.texture, fixUp.region, commandBuffer)
+            return encodeRenderZeroFill(fixUp.texture, fixUp.region, commandBuffer)
         }
         guard let blit = commandBuffer.makeBlitCommandEncoder() else {
             return false
         }
-        setEncoderForBuffer(queue, commandBuffer, blit)
+        setEncoderForBuffer(commandBuffer, blit)
         let encoded = encodeBlitZeroFill(fixUp.texture, fixUp.region, blit, zeroBuffer: { stagingZeroBuffer(deviceImpl, length: $0) })
-        endEncoding(queue, blit, commandBuffer)
+        endEncoding(blit, commandBuffer)
         return encoded
     }
 
@@ -1784,7 +1744,6 @@ final class QueueImpl {
     /// (before the batch, it would wipe what the command buffers in between read); every other one on the staging command
     /// buffer, which is committed first. False when a zero fill could not be encoded.
     private func stageInitializationFixUps(
-        _ queue: WebGPU.Metal.Queue,
         _ deviceImpl: DeviceImpl,
         _ submissions: [(commandBuffer: any MTLCommandBuffer, command: SubmittedCommand)]
     ) -> Bool {
@@ -1814,12 +1773,12 @@ final class QueueImpl {
             }
         }
         for fixUp in beforeAll {
-            guard stageZeroFill(queue, deviceImpl, fixUp.texture, fixUp.region) else {
+            guard stageZeroFill(deviceImpl, fixUp.texture, fixUp.region) else {
                 return false
             }
         }
         for (index, fixUp) in afterDiscarder {
-            guard encodeZeroFill(queue, deviceImpl, fixUp, into: submissions[index].commandBuffer) else {
+            guard encodeZeroFill(deviceImpl, fixUp, into: submissions[index].commandBuffer) else {
                 return false
             }
             submissions[index].command.impl.noteAppendedZeroFill(fixUp)
@@ -1830,7 +1789,6 @@ final class QueueImpl {
     // Queue::clearTextureViewIfNeeded, for bind groups: zero-fills, on the staging command buffer committed at once, every
     // uninitialized region the view covers. False when one could not be zero-filled.
     func clearTextureIfNeeded(
-        _ queue: WebGPU.Metal.Queue,
         _ deviceImpl: DeviceImpl,
         _ parentImpl: TextureImpl,
         _ aspect: WebGPU.TextureAspect,
@@ -1849,13 +1807,13 @@ final class QueueImpl {
                         return false
                     }
                     for region in parentImpl.initRegions(mipLevel: parentMipLevel, layer: parentSlice, aspect: aspect)
-                    where !stageZeroFill(queue, deviceImpl, parentImpl, region) {
+                    where !stageZeroFill(deviceImpl, parentImpl, region) {
                         initialized = false
                     }
                 }
             }
         }
-        finalizeBlitCommandEncoder(queue)
+        finalizeBlitCommandEncoder()
         return initialized
     }
 
@@ -1867,7 +1825,6 @@ final class QueueImpl {
         _ size: WebGPU.Extent3D,
         _ dataByteSize: Int,
         _ textureImpl: TextureImpl,
-        _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl
     ) -> String? {
         func errorString(_ error: String) -> String {
@@ -1917,61 +1874,6 @@ final class QueueImpl {
         return nil
     }
 
-    func writeTexture(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
-        _ deviceImpl: DeviceImpl,
-        _ textureImpl: TextureImpl,
-        _ destination: WebGPU.TexelCopyTextureInfo,
-        _ data: WebGPU.Metal.QueueBytes,
-        _ dataLayout: WebGPU.TexelCopyBufferLayout,
-        _ size: WebGPU.Extent3D,
-        _ skipValidation: Bool
-    ) {
-        let bytes: Span<UInt8> = data.span()
-        _ = writeTexture(
-            queue,
-            device,
-            deviceImpl,
-            textureImpl,
-            TextureCopyLocation(destination),
-            bytes: bytes,
-            nil,
-            dataLayout,
-            size,
-            skipValidation,
-            .decide
-        )
-    }
-
-    // writeTexture() of all of `owner`'s bytes, `data`.
-    func writeTextureFromOwner(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
-        _ deviceImpl: DeviceImpl,
-        _ textureImpl: TextureImpl,
-        _ destination: WebGPU.TexelCopyTextureInfo,
-        _ data: WebGPU.Metal.QueueBytes,
-        _ owner: WebGPU.ByteOwner,
-        _ dataLayout: WebGPU.TexelCopyBufferLayout,
-        _ size: WebGPU.Extent3D
-    ) {
-        let bytes: Span<UInt8> = data.span()
-        _ = writeTexture(
-            queue,
-            device,
-            deviceImpl,
-            textureImpl,
-            TextureCopyLocation(destination),
-            bytes: bytes,
-            AliasableBytes(owner),
-            dataLayout,
-            size,
-            false,
-            .decide
-        )
-    }
-
     // Whether a write decides how it initializes its destination, or is one row of a write that already did.
     fileprivate enum WriteInitialization {
         case decide
@@ -1981,8 +1883,6 @@ final class QueueImpl {
     // False when not every byte of the write was encoded or performed, so that its full writes are not recorded.
     // `aliasable` owns exactly `data`.
     fileprivate func writeTexture(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
         _ textureImpl: TextureImpl,
         _ destination: TextureCopyLocation,
@@ -2017,7 +1917,6 @@ final class QueueImpl {
                 size,
                 dataByteSize,
                 textureImpl,
-                device,
                 deviceImpl
             ) {
                 deviceImpl.generateAValidationError(error)
@@ -2107,7 +2006,7 @@ final class QueueImpl {
                         regionsWrittenInFull.append(region)
                     } else {
                         clearWasNeeded = true
-                        guard stageZeroFill(queue, deviceImpl, textureImpl, region) else {
+                        guard stageZeroFill(deviceImpl, textureImpl, region) else {
                             return false
                         }
                     }
@@ -2202,8 +2101,6 @@ final class QueueImpl {
 
                             guard
                                 writeTexture(
-                                    queue,
-                                    device,
                                     deviceImpl,
                                     textureImpl,
                                     newDestination,
@@ -2485,7 +2382,7 @@ final class QueueImpl {
             }
         }
 
-        let blitCommandEncoder = ensureBlitCommandEncoder(queue)
+        let blitCommandEncoder = ensureBlitCommandEncoder()
         // FIXME(PERFORMANCE): Suballocate, so the common case doesn't need to hit the kernel.
         // FIXME(PERFORMANCE): Should this temporary buffer really be shared?
         let newBufferSize = UInt(dataByteSize) &- UInt(dataLayoutOffset)
@@ -2494,10 +2391,9 @@ final class QueueImpl {
         let stagedBuffer: (any MTLBuffer)?
         if isRepacked {
             // The repacked bytes are copied, even into a buffer of their own: nothing else would keep them alive.
-            stagedBuffer = newTemporaryBuffer(device, deviceImpl, bytes: source, aliasing: nil, from: 0, noCopy, &temporaryBufferOffset)
+            stagedBuffer = newTemporaryBuffer(deviceImpl, bytes: source, aliasing: nil, from: 0, noCopy, &temporaryBufferOffset)
         } else {
             stagedBuffer = newTemporaryBuffer(
-                device,
                 deviceImpl,
                 bytes: data.extracting(Int(dataLayoutOffset)..<data.count),
                 aliasing: aliasable,
@@ -2628,7 +2524,7 @@ final class QueueImpl {
         }
 
         if noCopy {
-            finalizeBlitCommandEncoder(queue)
+            finalizeBlitCommandEncoder()
         }
         return !skippedLayer
     }
@@ -2639,7 +2535,6 @@ final class QueueImpl {
         _ destination: GPUCopyExternalImageDestination,
         _ copySize: WebGPU.Extent3D,
         _ textureImpl: TextureImpl,
-        _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl
     ) -> String? {
         // https://gpuweb.github.io/gpuweb/#abstract-opdef-validating-gpuimagecopytexturetagged
@@ -2693,34 +2588,7 @@ final class QueueImpl {
         return nil
     }
 
-    @_expose(Cxx)
-    func copyExternalImageToTexture(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
-        _ deviceImpl: DeviceImpl,
-        _ textureImpl: TextureImpl,
-        _ source: WebGPU.Metal.CopyExternalImageSource,
-        _ ioSurface: IOSurfaceRef?,
-        _ pixelBuffer: CVPixelBuffer?,
-        _ destination: WebGPU.ImageCopyTextureTagged,
-        _ copySize: WebGPU.Extent3D
-    ) {
-        copyExternalImageToTexture(
-            queue,
-            device,
-            deviceImpl,
-            textureImpl,
-            source,
-            ioSurface,
-            pixelBuffer,
-            GPUCopyExternalImageDestination(destination),
-            copySize
-        )
-    }
-
     fileprivate func copyExternalImageToTexture(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
         _ deviceImpl: DeviceImpl,
         _ textureImpl: TextureImpl,
         _ source: WebGPU.Metal.CopyExternalImageSource,
@@ -2735,7 +2603,7 @@ final class QueueImpl {
             return
         }
 
-        if let error = errorValidatingCopyExternalImageToTexture(destination, copySize, textureImpl, device, deviceImpl) {
+        if let error = errorValidatingCopyExternalImageToTexture(destination, copySize, textureImpl, deviceImpl) {
             deviceImpl.generateAValidationError(error)
             return
         }
@@ -2901,7 +2769,7 @@ final class QueueImpl {
             if writesAll {
                 regionsWrittenInFull.append(region)
             } else {
-                guard stageZeroFill(queue, deviceImpl, textureImpl, region) else {
+                guard stageZeroFill(deviceImpl, textureImpl, region) else {
                     return
                 }
             }
@@ -2909,11 +2777,11 @@ final class QueueImpl {
 
         // The clear above, if there was one, is encoded on the queue's staging command buffer. The render
         // pass has to follow it on that same buffer, which means closing whichever encoder is open on it.
-        _ = ensureBlitCommandEncoder(queue)
+        _ = ensureBlitCommandEncoder()
         guard let commandBuffer = backingStagingCommandBuffer else {
             return
         }
-        endStagingEncoders(queue)
+        endStagingEncoders()
 
         let renderPassDescriptor = MTLRenderPassDescriptor()
         renderPassDescriptor.colorAttachments[0].texture = textureImpl.texture()
@@ -2926,10 +2794,10 @@ final class QueueImpl {
         guard let renderCommandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             // The clear is real work already encoded on this command buffer, and finalizeBlitCommandEncoder()
             // keys off the encoders, so leaving it here would orphan it. Commit instead.
-            finalizeBlitCommandEncoder(queue)
+            finalizeBlitCommandEncoder()
             return
         }
-        setEncoderForBuffer(queue, commandBuffer, renderCommandEncoder)
+        setEncoderForBuffer(commandBuffer, renderCommandEncoder)
 
         var arguments = WebGPU.Metal.CopyExternalImageArguments()
         arguments.sourceOriginX = source.origin.x
@@ -2960,61 +2828,44 @@ final class QueueImpl {
         renderCommandEncoder.setViewport(viewport)
         renderCommandEncoder.setFragmentTexture(sourceTexture, index: 0)
         renderCommandEncoder.setFragmentTexture(sourceSecondPlaneTexture, index: 1)
-        WebGPU.Metal.Queue.setCopyExternalImageArguments(renderCommandEncoder, arguments)
+        WebGPU.Metal.setCopyExternalImageArguments(renderCommandEncoder, arguments)
         renderCommandEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
 
-        endEncoding(queue, renderCommandEncoder, commandBuffer)
+        endEncoding(renderCommandEncoder, commandBuffer)
         markWritten(textureImpl, regionsWrittenInFull)
         // ensureBlitCommandEncoder() would otherwise mint a fresh staging buffer over this one, because it
         // keys off the blit and staged-copy encoders, both of which are nil now. Commit while it can.
-        finalizeBlitCommandEncoder(queue)
+        finalizeBlitCommandEncoder()
     }
 }
 
-// A queue with its shell, as Swift holds one, with the operations of Queue's shell that create nothing. Each uses the
-// queue's device, which the shell holds weakly, and does nothing without it once it's gone, as the shell's do.
 @_spi(WebKitGPU)
-public final class QueueReference {
-    let impl: QueueImpl
-    let shell: WebGPU.Metal.Queue
+public typealias QueueReference = QueueImpl
 
-    init(_ impl: QueueImpl, _ shell: WebGPU.Metal.Queue) {
-        self.impl = impl
-        self.shell = shell
-    }
-
-    // The device's shell, while it lives, and its Impl, which the device gives its queue.
-    private var device: (shell: WebGPU.Metal.Device, impl: DeviceImpl)? {
-        guard let deviceShell = shell.retainedDevice(), let deviceImpl = impl.encoderTimestampsDevice else {
-            return nil
-        }
-        return (deviceShell, deviceImpl)
-    }
-
+// The operations of a queue for Swift callers. Each uses the queue's device, and does nothing once it's gone.
+@_spi(WebKitGPU)
+extension QueueImpl {
     public func submit(_ commandBuffers: [CommandBufferReference]) {
-        guard let device else {
+        guard let deviceImpl else {
             return
         }
         for commandBuffer in commandBuffers {
-            impl.appendCommandToSubmit(commandBuffer)
+            appendCommandToSubmit(commandBuffer)
         }
-        impl.submit(shell, device.shell, device.impl)
+        submit(deviceImpl)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone: false when the device is lost.
     public func onSubmittedWorkDone(_ completion: @escaping (Bool) -> Void) {
-        let deviceIsUsable = device.map { $0.impl.isValid() && !$0.impl.isLost() } ?? false
-        impl.onSubmittedWorkDone(shell, deviceIsUsable: deviceIsUsable, completion)
+        let deviceIsUsable = deviceImpl.map { $0.isValid() && !$0.isLost() } ?? false
+        onSubmittedWorkDone(deviceIsUsable: deviceIsUsable, completion)
     }
 
     public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: Span<UInt8>) {
-        guard let device else {
+        guard let deviceImpl else {
             return
         }
-        if impl.writeBufferWithoutStaging(device.impl, buffer.impl, bufferOffset, bytes: data) {
-            return
-        }
-        impl.stageBufferWrite(shell, device.shell, device.impl, buffer.impl.buffer(), bufferOffset, bytes: data)
+        writeBuffer(deviceImpl, buffer, bufferOffset, bytes: data, nil)
     }
 
     public func writeTexture(
@@ -3024,22 +2875,19 @@ public final class QueueReference {
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
         _ size: WebGPU.Extent3D
     ) {
-        guard let device else {
+        guard let deviceImpl else {
             return
         }
-        _ = impl.writeTexture(shell, device.shell, device.impl, texture.impl, destination, bytes: data, nil, dataLayout, size, false, .decide)
+        _ = writeTexture(deviceImpl, texture, destination, bytes: data, nil, dataLayout, size, false, .decide)
     }
 
     // writeBuffer() of the bytes, which it may read after returning (see largeBufferSize), keeping them until it has.
     public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: WebGPU.OwnedBytes) {
-        guard let device else {
+        guard let deviceImpl else {
             return
         }
         let bytes: Span<UInt8> = data.span()
-        if impl.writeBufferWithoutStaging(device.impl, buffer.impl, bufferOffset, bytes: bytes) {
-            return
-        }
-        impl.stageBufferWrite(shell, device.shell, device.impl, buffer.impl.buffer(), bufferOffset, bytes: bytes, AliasableBytes(data.owner()))
+        writeBuffer(deviceImpl, buffer, bufferOffset, bytes: bytes, AliasableBytes(data.owner()))
     }
 
     // writeTexture() of the bytes, as writeBuffer() of them.
@@ -3050,23 +2898,11 @@ public final class QueueReference {
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
         _ size: WebGPU.Extent3D
     ) {
-        guard let device else {
+        guard let deviceImpl else {
             return
         }
         let bytes: Span<UInt8> = data.span()
-        _ = impl.writeTexture(
-            shell,
-            device.shell,
-            device.impl,
-            texture.impl,
-            destination,
-            bytes: bytes,
-            AliasableBytes(data.owner()),
-            dataLayout,
-            size,
-            false,
-            .decide
-        )
+        _ = writeTexture(deviceImpl, texture, destination, bytes: bytes, AliasableBytes(data.owner()), dataLayout, size, false, .decide)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture
@@ -3076,14 +2912,12 @@ public final class QueueReference {
         _ destination: GPUCopyExternalImageDestination,
         _ copySize: WebGPU.Extent3D
     ) {
-        guard let device else {
+        guard let deviceImpl else {
             return
         }
-        impl.copyExternalImageToTexture(
-            shell,
-            device.shell,
-            device.impl,
-            texture.impl,
+        copyExternalImageToTexture(
+            deviceImpl,
+            texture,
             copyExternalImageSourceParameters(source),
             WebGPU.sourceSurface(source),
             WebGPU.sourcePixelBuffer(source),
@@ -3094,7 +2928,7 @@ public final class QueueReference {
 
     // As WTF::String::createNSString() makes the label for the C++ caller: a null one is empty.
     public func setLabel(_ label: Swift.String?) {
-        impl.setLabel((label ?? "") as NSString)
+        setLabel((label ?? "") as NSString)
     }
 }
 
@@ -3110,17 +2944,9 @@ public struct GPUCopyExternalImageDestination {
     public init() {
     }
 
-    init(_ destination: WebGPU.ImageCopyTextureTagged) {
-        mipLevel = destination.mipLevel
-        origin = destination.origin
-        aspect = destination.aspect
-        colorSpace = destination.colorSpace
-        premultipliedAlpha = destination.premultipliedAlpha
-    }
 }
 
-// The parts of an external image source that QueueImpl reads besides its IOSurface or pixel buffer, as Queue's shell
-// gives them.
+// The parts of an external image source that QueueImpl reads besides its IOSurface or pixel buffer.
 private func copyExternalImageSourceParameters(_ source: WebGPU.ImageCopyExternalImage) -> WebGPU.Metal.CopyExternalImageSource {
     var parameters = WebGPU.Metal.CopyExternalImageSource()
     parameters.sourceFormat = source.sourceFormat
@@ -3135,12 +2961,10 @@ private func copyExternalImageSourceParameters(_ source: WebGPU.ImageCopyExterna
     return parameters
 }
 
-@_expose(Cxx)
 func makeQueueImpl(_ commandQueue: (any MTLCommandQueue)?) -> QueueImpl {
     QueueImpl(commandQueue: commandQueue, allocatesBookkeeping: true)
 }
 
-@_expose(Cxx)
 func makeInvalidQueueImpl() -> QueueImpl {
     QueueImpl(commandQueue: nil, allocatesBookkeeping: false)
 }

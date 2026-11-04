@@ -35,6 +35,15 @@ import WebGPU_Private.WebGPUCpp
 
 // MARK: Indirect draws: the only arguments Metal's indirect draws take are clamped ones
 
+private let drawIndirectScratchSize = MemoryLayout<WebGPU.Metal.WebKitMTLDrawPrimitivesIndirectArguments>.size
+private let drawIndexedIndirectScratchSize = MemoryLayout<WebGPU.Metal.WebKitMTLDrawIndexedPrimitivesIndirectArguments>.size
+
+// A range of the device's temporary buffer for a clamp's arguments, zeroed because the clamp shaders store lostOrOOBRead
+// only on failure. Its offset is stored into `offset`.
+private func newZeroedScratch(_ deviceImpl: DeviceImpl, _ size: Int, _ offset: inout UInt64) -> (any MTLBuffer)? {
+    deviceImpl.defaultQueueImpl.newZeroedTemporaryBytes(deviceImpl, size, &offset)
+}
+
 /// The app's indirect arguments, the only form in which the clamp encoders take them.
 ///
 /// `argumentsSize` bytes inside the MTLBuffer the GPU reads, of a buffer that is not destroyed, at an offset the 32-bit
@@ -1845,14 +1854,15 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
 
         let renderCommandEncoder = self.renderCommandEncoder()
         var indexedIndirectBufferOffset: UInt64 = 0
-        let indexedIndirectBuffer = WebGPU.Metal.newDrawIndexedIndirectArgumentsBuffer(
-            device,
+        let indexedIndirectBuffer = newZeroedScratch(deviceImpl, drawIndexedIndirectScratchSize, &indexedIndirectBufferOffset)
+        WebGPU.Metal.writeDrawIndexedIndirectArguments(
+            indexedIndirectBuffer,
+            indexedIndirectBufferOffset,
             failedCondition ? 0 : indexCount,
             failedCondition ? 0 : instanceCount,
             firstIndex,
             baseVertex,
-            firstInstance,
-            &indexedIndirectBufferOffset
+            firstInstance
         )
         if !setClampPipeline(renderCommandEncoder, device, deviceImpl.indexBufferClampPipeline(indexType, UInt(rasterSampleCount))) {
             return .skip
@@ -1916,8 +1926,8 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         // Per-draw for the reason in clampIndirectBufferToValidValues; both records are fetched as arguments.
         var finalScratchOffset: UInt64 = 0
         var intermediateScratchOffset: UInt64 = 0
-        let finalScratch = WebGPU.Metal.newZeroedDrawIndexedIndirectScratch(device, &finalScratchOffset)
-        let intermediateScratch = WebGPU.Metal.newZeroedDrawIndirectScratch(device, &intermediateScratchOffset)
+        let finalScratch = newZeroedScratch(deviceImpl, drawIndexedIndirectScratchSize, &finalScratchOffset)
+        let intermediateScratch = newZeroedScratch(deviceImpl, drawIndirectScratchSize, &intermediateScratchOffset)
         guard let finalScratch, let intermediateScratch else {
             return nil
         }
@@ -1978,7 +1988,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         // below orders the clamp against its own draw, but MTLRenderStages cannot name an indirect argument fetch,
         // so nothing can order draw N's fetch against draw N+1's clamp store into the same slot.
         var scratchOffset: UInt64 = 0
-        guard let scratch = WebGPU.Metal.newZeroedDrawIndirectScratch(device, &scratchOffset) else {
+        guard let scratch = newZeroedScratch(deviceImpl, drawIndirectScratchSize, &scratchOffset) else {
             return nil
         }
 
@@ -2283,8 +2293,8 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
             if work.isIndexed {
                 var finalScratchOffset: UInt64 = 0
                 var intermediateScratchOffset: UInt64 = 0
-                let finalScratch = WebGPU.Metal.newZeroedDrawIndexedIndirectScratch(device, &finalScratchOffset)
-                let intermediateScratch = WebGPU.Metal.newZeroedDrawIndirectScratch(device, &intermediateScratchOffset)
+                let finalScratch = newZeroedScratch(deviceImpl, drawIndexedIndirectScratchSize, &finalScratchOffset)
+                let intermediateScratch = newZeroedScratch(deviceImpl, drawIndirectScratchSize, &intermediateScratchOffset)
                 guard let finalScratch, let intermediateScratch else {
                     continue
                 }
@@ -2307,7 +2317,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
                 parentImpl.addBuffer(intermediateScratch)
             } else {
                 var finalScratchOffset: UInt64 = 0
-                guard let finalScratch = WebGPU.Metal.newZeroedDrawIndirectScratch(device, &finalScratchOffset) else {
+                guard let finalScratch = newZeroedScratch(deviceImpl, drawIndirectScratchSize, &finalScratchOffset) else {
                     continue
                 }
                 if !clampIndirectBufferDispatchBatched(device, work, finalScratch, finalScratchOffset) {

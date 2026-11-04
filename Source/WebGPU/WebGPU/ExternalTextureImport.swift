@@ -244,7 +244,6 @@ final class ExternalTextureImporter {
 
         // The cache's textures stay valid only while their CVMetalTextures live: until the queue's submitted work is done.
         deviceImpl.defaultQueueImpl.retainUntilSubmittedWorkDone(
-            deviceImpl.defaultQueue(),
             deviceImpl.isValid() && !deviceImpl.isLost(),
             plane0,
             plane1
@@ -327,15 +326,14 @@ final class ExternalTextureImporter {
 
         // The pass goes on the default queue, so the commands the page submits afterwards see the result
         // without any further synchronization.
-        let queue = deviceImpl.defaultQueue()
-        guard let commandBuffer = deviceImpl.defaultQueueImpl.commandBufferWithDescriptor(queue, MTLCommandBufferDescriptor()) else {
+        guard let commandBuffer = deviceImpl.defaultQueueImpl.commandBufferWithDescriptor(MTLCommandBufferDescriptor()) else {
             return nil
         }
 
         let passDescriptor = MTLComputePassDescriptor()
         passDescriptor.dispatchType = .serial
         let computeEncoder = commandBuffer.makeComputeCommandEncoder(descriptor: passDescriptor)
-        deviceImpl.defaultQueueImpl.setEncoderForBuffer(queue, commandBuffer, computeEncoder)
+        deviceImpl.defaultQueueImpl.setEncoderForBuffer(commandBuffer, computeEncoder)
         computeEncoder?.setComputePipelineState(pipeline)
         computeEncoder?.setTexture(input, index: 0)
         computeEncoder?.setTexture(destination, index: 1)
@@ -348,8 +346,8 @@ final class ExternalTextureImporter {
             depth: 1
         )
         computeEncoder?.dispatchThreadgroups(threadgroupCount, threadsPerThreadgroup: threadgroupSize)
-        deviceImpl.defaultQueueImpl.endEncoding(queue, computeEncoder, commandBuffer)
-        deviceImpl.defaultQueueImpl.commitMTLCommandBuffer(queue, commandBuffer)
+        deviceImpl.defaultQueueImpl.endEncoding(computeEncoder, commandBuffer)
+        deviceImpl.defaultQueueImpl.commitMTLCommandBuffer(commandBuffer)
 
         return destination
     }

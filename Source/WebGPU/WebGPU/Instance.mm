@@ -193,11 +193,6 @@ RefPtr<Adapter> Instance::adapter(const WebGPU::RequestAdapterOptions& options)
     return Adapter::create(sortedDevices[0], *this, options.xrCompatible, WTF::move(*deviceCapabilities));
 }
 
-void Instance::retainDevice(Device& device, id<MTLCommandBuffer> commandBuffer)
-{
-    m_impl->impl.retainDevice(&device, reinterpret_cast<uintptr_t>(&device), commandBuffer);
-}
-
 Instance* createInstance(WebGPU::InstanceDescriptor& descriptor)
 {
     return &Instance::create(WTF::move(descriptor)).leakRef();

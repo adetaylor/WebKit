@@ -295,7 +295,7 @@ private struct WeakCommandBuffer {
 }
 
 private struct RetainedDevice {
-    let device: WebGPU.Metal.Device
+    let device: DeviceImpl
     var commandBuffers: [WeakCommandBuffer] = []
 }
 
@@ -313,9 +313,9 @@ final class InstanceImpl {
     // Declared in release order: the web process ID, then the CommandBuffers, then the Devices.
     private let backingWebProcessID: CxxBridging.OptionalMachSendRight
     private var retainedCommandBuffers: [RetainedCommandBuffer] = []
-    // Keyed by the address of the Device, which the entry keeps alive, so the key cannot be reused
-    // while the entry exists.
-    private var retainedDevices: [UInt: RetainedDevice] = [:]
+    // Keyed by the identity of the device, which the entry keeps alive, so the key cannot be reused while the entry
+    // exists.
+    private var retainedDevices: [ObjectIdentifier: RetainedDevice] = [:]
 
     fileprivate init(webProcessID: CxxBridging.OptionalMachSendRight) {
         self.backingWebProcessID = webProcessID
@@ -327,9 +327,8 @@ final class InstanceImpl {
         backingWebProcessID
     }
 
-    @_expose(Cxx)
-    func retainDevice(_ device: WebGPU.Metal.Device, _ deviceKey: UInt, _ commandBuffer: (any MTLCommandBuffer)?) {
-        retainedDevices[deviceKey, default: RetainedDevice(device: device)].commandBuffers
+    func retainDevice(_ device: DeviceImpl, _ commandBuffer: (any MTLCommandBuffer)?) {
+        retainedDevices[ObjectIdentifier(device), default: RetainedDevice(device: device)].commandBuffers
             .append(WeakCommandBuffer(commandBuffer: commandBuffer))
         releaseCompletedCommandBuffers()
     }
@@ -348,7 +347,7 @@ final class InstanceImpl {
         retainedCommandBuffers = previousCommandBuffers.filter { !$0.mtlCommandBuffer.isGone }
 
         let previousDevices = retainedDevices
-        var survivingDevices: [UInt: RetainedDevice] = [:]
+        var survivingDevices: [ObjectIdentifier: RetainedDevice] = [:]
         for (key, var entry) in previousDevices {
             entry.commandBuffers.removeAll { $0.isGone }
             if !entry.commandBuffers.isEmpty {
@@ -364,7 +363,7 @@ final class InstanceImpl {
         let devices = retainedDevices
         retainedCommandBuffers = []
         retainedDevices = [:]
-        // Keep the shells alive until both waits are done.
+        // Keep the command buffers and devices alive until both waits are done.
         withExtendedLifetime((commandBuffers, devices)) {
             for entry in commandBuffers {
                 entry.mtlCommandBuffer.waitIfCommitted()

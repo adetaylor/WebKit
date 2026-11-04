@@ -318,8 +318,7 @@ public final class BufferImpl: GPUObjectReference {
 
         let mapRequest = beginMapping(modeBits, offset, rangeSize)
 
-        let queue = deviceImpl.defaultQueue()
-        deviceImpl.defaultQueueImpl.onSubmittedWorkDone(queue, deviceIsUsable: deviceImpl.isValid() && !deviceImpl.isLost()) { success in
+        deviceImpl.defaultQueueImpl.onSubmittedWorkDone(deviceIsUsable: deviceImpl.isValid() && !deviceImpl.isLost()) { success in
             self.completeMapping(mapRequest, success)
             handler(success)
         }
@@ -602,8 +601,8 @@ public final class BufferImpl: GPUObjectReference {
     @_expose(!Cxx)
     func takeSlowIndexValidationPath(_ commandBuffer: CommandBufferImpl, _ key: DrawIndexKey, vertexCount: UInt32) {
         let isUInt16 = key.indexTypeRawValue == MTLIndexType.uint16.rawValue
+        deviceImpl.defaultQueueImpl.makeGPUWritesVisible(backingBuffer)
         let verified = WebGPU.Metal.verifyIndexBufferForSlowPath(
-            deviceImpl.defaultQueue(),
             backingBuffer,
             key.firstIndex,
             key.indexCount,
@@ -633,8 +632,8 @@ public final class BufferImpl: GPUObjectReference {
             !indirectBuffer.isDestroyed() && indirectBuffer.contentsGeneration() == draw.indirectGeneration
             ? indirectBuffer.buffer() : nil
         let primitiveOffset: UInt32 = draw.primitiveType == .lineStrip || draw.primitiveType == .triangleStrip ? 1 : 0
+        deviceImpl.defaultQueueImpl.makeGPUWritesVisible(backingBuffer, indirectArguments)
         let verified = WebGPU.Metal.verifyBundleIndirectDrawIndexBufferForSlowPath(
-            deviceImpl.defaultQueue(),
             backingBuffer,
             indirectArguments,
             draw.indirectOffset,
@@ -656,7 +655,16 @@ public final class BufferImpl: GPUObjectReference {
             return
         }
         clearedForCommandBuffer = commandBufferIdentity
-        if let priorContents = WebGPU.Metal.clearIndexBufferContents(deviceImpl.defaultQueue(), backingBuffer) {
+        let priorContents = WebGPU.Metal.copyBufferContents(backingBuffer)
+        let queueImpl = deviceImpl.defaultQueueImpl
+        queueImpl.clearBuffer(backingBuffer, 0, UInt.max)
+        queueImpl.finalizeBlitCommandEncoder()
+        #if WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST
+        if let backingBuffer, backingBuffer.storageMode == deprecatedManagedStorageMode {
+            bufferDidModifyRange(backingBuffer, 0, UInt64(backingBuffer.length))
+        }
+        #endif
+        if let priorContents {
             commandBuffer.addPostCommitAction(.restoreIndexBufferContents(self, priorContents))
         }
     }
@@ -664,7 +672,7 @@ public final class BufferImpl: GPUObjectReference {
     /// Writes back the contents clearIndexBuffer cleared, once the command buffer completed.
     func restoreIndexBufferContents(_ priorContents: NSMutableData) {
         let bytes = [UInt8](priorContents as Data)
-        deviceImpl.defaultQueueImpl.writeBuffer(deviceImpl.defaultQueue(), device, deviceImpl, self, 0, bytes: bytes.span)
+        deviceImpl.defaultQueueImpl.writeBuffer(deviceImpl, self, 0, bytes: bytes.span)
     }
 
     /// The restore of the contents clearIndexBuffer cleared is next, once the command buffer completed.

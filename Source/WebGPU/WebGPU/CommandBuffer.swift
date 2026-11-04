@@ -206,15 +206,15 @@ public final class CommandBufferImpl: GPUObjectReference {
     }
 
     // Workaround for rdar://143905417
-    private func retainTimestampsForOneUpdate(_ queue: WebGPU.Metal.Queue) {
+    private func retainTimestampsForOneUpdate() {
         if let encoder = commandEncoder.first {
-            deviceImpl.defaultQueueImpl.retainTimestampsForOneUpdate(queue, encoder.impl.timestampBuffers())
+            deviceImpl.defaultQueueImpl.retainTimestampsForOneUpdate(encoder.impl.timestampBuffers())
         }
     }
 
-    private func releasePriorCommandBuffers(_ queue: WebGPU.Metal.Queue, _ queueImpl: QueueImpl) {
+    private func releasePriorCommandBuffers(_ queueImpl: QueueImpl) {
         for commandBuffer in takePriorCommandBuffers() {
-            queueImpl.removeMTLCommandBuffer(queue, commandBuffer)
+            queueImpl.removeMTLCommandBuffer(commandBuffer)
         }
     }
 
@@ -229,11 +229,10 @@ public final class CommandBufferImpl: GPUObjectReference {
     }
 
     deinit {
-        let queue = deviceImpl.defaultQueue()
         let queueImpl = deviceImpl.defaultQueueImpl
-        retainTimestampsForOneUpdate(queue)
-        releasePriorCommandBuffers(queue, queueImpl)
-        queueImpl.removeMTLCommandBuffer(queue, backingCommandBuffer)
+        retainTimestampsForOneUpdate()
+        releasePriorCommandBuffers(queueImpl)
+        queueImpl.removeMTLCommandBuffer(backingCommandBuffer)
         backingCommandBuffer = nil
         cachedCommandBuffer = nil
         initializationLedger = nil
@@ -248,12 +247,11 @@ public final class CommandBufferImpl: GPUObjectReference {
             return
         }
 
-        let queue = deviceImpl.defaultQueue()
         let queueImpl = deviceImpl.defaultQueueImpl
         backingLastError = lastError
-        queueImpl.removeMTLCommandBuffer(queue, commandBuffer)
-        retainTimestampsForOneUpdate(queue)
-        releasePriorCommandBuffers(queue, queueImpl)
+        queueImpl.removeMTLCommandBuffer(commandBuffer)
+        retainTimestampsForOneUpdate()
+        releasePriorCommandBuffers(queueImpl)
         backingCommandBuffer = nil
         cachedCommandBuffer = nil
         initializationLedger = nil

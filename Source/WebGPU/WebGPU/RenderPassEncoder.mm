@@ -78,33 +78,7 @@ void setVertexIndexData(id<MTLRenderCommandEncoder> commandEncoder, const IndexD
     [commandEncoder setVertexBytes:bytes.data() length:bytes.size() atIndex:bufferIndex];
 }
 
-template <typename T>
-static T* LEGACY_NODELETE typedCast(auto& s)
-{
-    return static_cast<T*>(static_cast<void*>(&s));
-}
-
-// Vector does not initialize POD, hence zeroSpan; the inline capacity fits either argument struct.
-static id<MTLBuffer> newZeroedIndirectScratch(Device& device, size_t size, uint64_t& offset)
-{
-    Vector<uint8_t, 32> zero(size);
-    zeroSpan(zero.mutableSpan());
-    auto [buffer, bufferOffset] = device.getQueue()->newTemporaryBufferWithBytes(zero.mutableSpan(), false);
-    offset = bufferOffset;
-    return buffer;
-}
-
-id<MTLBuffer> newZeroedDrawIndirectScratch(Device& device, uint64_t& offset)
-{
-    return newZeroedIndirectScratch(device, sizeof(WebKitMTLDrawPrimitivesIndirectArguments), offset);
-}
-
-id<MTLBuffer> newZeroedDrawIndexedIndirectScratch(Device& device, uint64_t& offset)
-{
-    return newZeroedIndirectScratch(device, sizeof(WebKitMTLDrawIndexedPrimitivesIndirectArguments), offset);
-}
-
-id<MTLBuffer> newDrawIndexedIndirectArgumentsBuffer(Device& device, uint32_t indexCount, uint32_t instanceCount, uint32_t indexStart, int32_t baseVertex, uint32_t baseInstance, uint64_t& offset)
+void writeDrawIndexedIndirectArguments(id<MTLBuffer> buffer, uint64_t offset, uint32_t indexCount, uint32_t instanceCount, uint32_t indexStart, int32_t baseVertex, uint32_t baseInstance)
 {
     WebKitMTLDrawIndexedPrimitivesIndirectArguments indirectArguments {
         .args = MTLDrawIndexedPrimitivesIndirectArguments {
@@ -116,9 +90,7 @@ id<MTLBuffer> newDrawIndexedIndirectArgumentsBuffer(Device& device, uint32_t ind
         },
         .lostOrOOBRead = 0u
     };
-    auto [buffer, bufferOffset] = device.getQueue()->newTemporaryBufferWithBytes(unsafeMakeSpan(typedCast<uint8_t>(indirectArguments), sizeof(indirectArguments)), false);
-    offset = bufferOffset;
-    return buffer;
+    memcpySpan(cpuVisibleContents(buffer).subspan(offset, sizeof(indirectArguments)), asByteSpan(indirectArguments));
 }
 
 bool drawIndirectArgumentsLostOrOOBRead(id<MTLBuffer> buffer, uint64_t offset)

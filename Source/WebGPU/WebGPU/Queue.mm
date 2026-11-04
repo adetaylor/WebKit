@@ -47,73 +47,6 @@
 
 namespace WebGPU::Metal {
 
-struct QueueImplBox {
-    WTF_MAKE_STRUCT_TZONE_ALLOCATED(QueueImplBox);
-    WebGPUSwift::QueueImpl impl;
-    // The impl's completion, taken once, so that registering the Metal handlers needs no call into Swift.
-    WebGPUSwift::QueueCompletion completion;
-    // How scheduleWork() reaches the Instance's scheduler from any thread, without referencing the Instance.
-    std::optional<WebGPUSwift::InstanceSchedulerHandle> scheduler;
-};
-WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(QueueImplBox);
-
-static std::unique_ptr<QueueImplBox> makeQueueImplBox(WebGPUSwift::QueueImpl impl, Adapter& adapter)
-{
-    std::optional<WebGPUSwift::InstanceSchedulerHandle> scheduler;
-    if (RefPtr instance = adapter.instance())
-        scheduler = instance->schedulerHandle();
-    return makeUnique<QueueImplBox>(QueueImplBox { .impl = impl, .completion = impl.completion(), .scheduler = WTF::move(scheduler) });
-}
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(Queue);
-
-Ref<Queue> Queue::create(id<MTLCommandQueue> commandQueue, Adapter& adapter, Device& device)
-{
-    return adoptRef(*new Queue(makeQueueImplBox(WebGPUSwift::makeQueueImpl(commandQueue), adapter), adapter, device));
-}
-
-Ref<Queue> Queue::createInvalid(Adapter& adapter, Device& device)
-{
-    return adoptRef(*new Queue(makeQueueImplBox(WebGPUSwift::makeInvalidQueueImpl(), adapter), adapter, device));
-}
-
-Queue::Queue(std::unique_ptr<QueueImplBox>&& impl, Adapter& adapter, Device& device)
-    : m_impl(WTF::move(impl))
-    , m_device(device)
-    , m_instance(adapter.weakInstance())
-{
-}
-
-Queue::~Queue()
-{
-    // We can't actually call finalizeBlitCommandEncoder() here because, if there are pending copies,
-    // that would cause them to be committed, which ends up retaining this in the completed handler.
-    // It's actually fine, though, because we can just drop any pending copies on the floor.
-    // If the queue is being destroyed, this is unobservable.
-    // This must not pass the dying shell into Swift.
-    m_impl->impl.endStagingEncoderOfDyingQueue();
-}
-
-bool Queue::isValid() const
-{
-    return m_impl->impl.isValid();
-}
-
-WebGPUSwift::QueueImpl& Queue::swiftImpl() const
-{
-    return m_impl->impl;
-}
-
-id<MTLBlitCommandEncoder> Queue::ensureBlitCommandEncoder()
-{
-    return m_impl->impl.ensureBlitCommandEncoder(this);
-}
-
-void Queue::finalizeBlitCommandEncoder()
-{
-    m_impl->impl.finalizeBlitCommandEncoder(this);
-}
-
 // Host mirror of the MSL `WebKitStagedCopyArgs` declared in the kernel source in Queue.swift. It is a hand-maintained
 // ABI, and getting the field widths wrong produces silently wrong offsets rather than a compile error. MSL `ulong` is
 // 64-bit, so the static_asserts below pin size and every offset.
@@ -127,70 +60,34 @@ static_assert(!offsetof(StagedCopyArguments, sourceWordOffset), "sourceWordOffse
 static_assert(offsetof(StagedCopyArguments, destinationWordOffset) == 8, "destinationWordOffset must be at offset 8");
 static_assert(offsetof(StagedCopyArguments, wordCount) == 16, "wordCount must be at offset 16");
 
-void Queue::setStagedCopyArguments(id<MTLComputeCommandEncoder> encoder, uint64_t sourceWordOffset, uint64_t destinationWordOffset, uint64_t wordCount)
+void setStagedCopyArguments(id<MTLComputeCommandEncoder> encoder, uint64_t sourceWordOffset, uint64_t destinationWordOffset, uint64_t wordCount)
 {
     StagedCopyArguments arguments { sourceWordOffset, destinationWordOffset, wordCount };
     [encoder setBytes:&arguments length:sizeof(arguments) atIndex:2];
 }
 
-void Queue::loseTheDevice(WebGPU::DeviceLostReason reason)
-{
-    if (RefPtr device = m_device)
-        device->loseTheDevice(reason);
-}
-
-void Queue::retainDeviceUntilCompleted(id<MTLCommandBuffer> commandBuffer)
-{
-    if (auto instance = m_instance.get()) {
-        if (auto device = m_device.get())
-            instance->retainDevice(*device, commandBuffer);
-    }
-}
-
-void Queue::makeInvalid()
-{
-    m_impl->impl.makeInvalid(this);
-}
-
-void Queue::waitForAllCommitedWorkToComplete()
-{
-    m_impl->impl.waitForAllCommittedWorkToComplete();
-}
-
 template<unsigned errorCode>
-[[noreturn]] void crashGPUProcess(const RefPtr<Device>& device, NSError* error, NSError* underlyingError)
+[[noreturn]] void crashGPUProcess(NSError* error, NSError* underlyingError)
 {
     WTFLogAlways("Encountered fatal command buffer error %@, underlying error %@", error, underlyingError); // NOLINT
-    if (device)
-        device->loseTheDevice(WebGPU::DeviceLostReason::Unknown);
     RELEASE_ASSERT_NOT_REACHED();
 }
 
-[[noreturn]] static void crashGPUProcess(const RefPtr<Device>& device, NSString *error)
+[[noreturn]] static void crashGPUProcess(NSString *error)
 {
     WTFLogAlways("Encountered fatal GPU error %@", error); // NOLINT
-    if (device)
-        device->loseTheDevice(WebGPU::DeviceLostReason::Unknown);
     RELEASE_ASSERT_NOT_REACHED();
 }
 
-// Called by QueueImpl just before each commit. The handlers are in C++ because they capture the Queue and hop to the
-// API thread through the Instance, and because crashGPUProcess<N>() gives every fatal error code a crash signature of
-// its own.
-void Queue::addCommitHandlers(id<MTLCommandBuffer> commandBuffer)
+// In C++ because crashGPUProcess<N>() gives every fatal error code a crash signature of its own.
+void addCommitHandlers(id<MTLCommandBuffer> commandBuffer, void (^didSchedule)(void), void (^didComplete)(bool loseTheDevice))
 {
-    // Both handlers run on Metal threads and touch only the Sendable completion, the box's scheduler handle, the
-    // refcount and the timeout's flag. Each hands its reference to the queue over to its work item, so that the
-    // queue is released on the API thread, where the work items run.
-    [commandBuffer addScheduledHandler:[protectedThis = protect(*this)](id<MTLCommandBuffer>) mutable {
-        Queue& queue = protectedThis.get();
-        queue.scheduleWork([protectedThis = WTF::move(protectedThis)] {
-            protectedThis->m_impl->impl.didScheduleCommandBuffer();
-        });
+    [commandBuffer addScheduledHandler:[didSchedule = makeBlockPtr(didSchedule)](id<MTLCommandBuffer>) {
+        didSchedule();
     }];
-    auto didComplete = Box<std::atomic<bool>>::create(false);
-    [commandBuffer addCompletedHandler:[protectedThis = protect(*this), completion = m_impl->completion, didComplete](id<MTLCommandBuffer> mtlCommandBuffer) mutable {
-        didComplete->store(true, std::memory_order_relaxed);
+    auto completed = Box<std::atomic<bool>>::create(false);
+    [commandBuffer addCompletedHandler:[didComplete = makeBlockPtr(didComplete), completed](id<MTLCommandBuffer> mtlCommandBuffer) {
+        completed->store(true, std::memory_order_relaxed);
         MTLCommandBufferStatus status = mtlCommandBuffer.status;
         bool loseTheDevice = false;
         if (NSError *error = mtlCommandBuffer.error; status != MTLCommandBufferStatusCompleted) {
@@ -200,8 +97,7 @@ void Queue::addCommitHandlers(id<MTLCommandBuffer> commandBuffer)
                 if (underlyingError.code == 0x10a || underlyingError.code == 0x5)
                     loseTheDevice = false;
                 else {
-                    RefPtr device = protectedThis->m_device.get();
-#define makeCase(N) case N: crashGPUProcess<N>(device, error, underlyingError);
+#define makeCase(N) case N: crashGPUProcess<N>(error, underlyingError);
                     switch (underlyingError.code) {
                         makeCase(9); // kIOGPUCommandBufferCallbackErrorInvalidResource = 9,
                         makeCase(10); // kIOGPUCommandBufferCallbackErrorInvalidInput = 10,
@@ -218,43 +114,15 @@ void Queue::addCommitHandlers(id<MTLCommandBuffer> commandBuffer)
             }
         }
 
-        completion.didComplete();
-
-        Queue& queue = protectedThis.get();
-        queue.scheduleWork([loseTheDevice, protectedThis = WTF::move(protectedThis)] {
-            protectedThis->m_impl->impl.didCompleteCommandBuffer();
-            if (loseTheDevice) {
-                auto device = protectedThis->m_device.get();
-                if (device)
-                    device->loseTheDevice(WebGPU::DeviceLostReason::Unknown);
-            }
-        });
+        didComplete(loseTheDevice);
     }];
 
     // QueueImpl commits the command buffer as soon as this returns.
     NSString *label = commandBuffer.label;
-    ThreadSafeWeakPtr weakDevice = m_device;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), globalDispatchQueueSingleton(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        if (!didComplete->load(std::memory_order_relaxed))
-            crashGPUProcess(weakDevice.get(), [NSString stringWithFormat:@"WebGPU: command buffer %@ did not complete within 3s timeout", label]);
+        if (!completed->load(std::memory_order_relaxed))
+            crashGPUProcess([NSString stringWithFormat:@"WebGPU: command buffer %@ did not complete within 3s timeout", label]);
     });
-}
-
-void Queue::synchronizeResourceAndWait(id<MTLBuffer> buffer)
-{
-#if PLATFORM(MAC) || PLATFORM(MACCATALYST)
-    ALLOW_DEPRECATED_DECLARATIONS_BEGIN
-    if (buffer.storageMode != MTLStorageModeManaged)
-        return;
-
-    [ensureBlitCommandEncoder() synchronizeResource:buffer];
-    ALLOW_DEPRECATED_DECLARATIONS_END
-    id<MTLCommandBuffer> commandBuffer = m_impl->impl.stagingCommandBuffer();
-    finalizeBlitCommandEncoder();
-    [commandBuffer waitUntilCompleted];
-#else
-    UNUSED_PARAM(buffer);
-#endif
 }
 
 // isManaged: the caller has read the buffer's storage mode, MTLStorageModeManaged.
@@ -271,7 +139,7 @@ void writeBufferContents(id<MTLBuffer> buffer, uint64_t bufferOffset, std::span<
 #endif
 }
 
-id<MTLBuffer> newBufferAliasingOwner(const Device& device, const WebGPU::ByteOwner& owner, uint64_t offset, uint64_t length)
+id<MTLBuffer> newBufferAliasingOwner(id<MTLDevice> device, const WebGPU::ByteOwner& owner, uint64_t offset, uint64_t length)
 {
     auto bytes = owner.span();
     if (offset > bytes.size() || length > bytes.size() - offset)
@@ -280,7 +148,7 @@ id<MTLBuffer> newBufferAliasingOwner(const Device& device, const WebGPU::ByteOwn
     // Metal reads the bytes in place until it destroys the buffer, and only then releases the deallocator, which holds
     // their owner. The buffer is only ever a copy source, so nothing writes to them.
     auto keepOwnerAlive = makeBlockPtr([protectedOwner = Ref { owner }](void*, NSUInteger) { });
-    return [device.device() newBufferWithBytesNoCopy:spanConstCast<uint8_t>(bytes).data() length:bytes.size() options:MTLResourceStorageModeShared deallocator:keepOwnerAlive.get()];
+    return [device newBufferWithBytesNoCopy:spanConstCast<uint8_t>(bytes).data() length:bytes.size() options:MTLResourceStorageModeShared deallocator:keepOwnerAlive.get()];
 }
 
 void copyBytesToBuffer(id<MTLBuffer> buffer, uint64_t offset, std::span<const uint8_t> data NOESCAPE)
@@ -288,41 +156,9 @@ void copyBytesToBuffer(id<MTLBuffer> buffer, uint64_t offset, std::span<const ui
     memcpySpan(cpuVisibleContents(buffer).subspan(offset), data);
 }
 
-std::pair<id<MTLBuffer>, uint64_t> Queue::newTemporaryBufferWithBytes(std::span<uint8_t> data, bool noCopy)
+void zeroBufferContents(id<MTLBuffer> buffer, uint64_t offset, uint64_t size)
 {
-    RefPtr device = m_device;
-    if (!device)
-        return std::make_pair(nil, 0ull);
-
-    uint64_t offset = 0;
-    id<MTLBuffer> buffer = m_impl->impl.newTemporaryBufferWithBytes(device.get(), device->swiftImpl(), QueueBytes { data }, noCopy, offset);
-    return std::make_pair(buffer, offset);
-}
-
-void Queue::writeBuffer(id<MTLBuffer> buffer, uint64_t bufferOffset, std::span<uint8_t> data)
-{
-    RefPtr device = m_device;
-    if (!device)
-        return;
-
-    m_impl->impl.stageBufferWrite(this, device.get(), device->swiftImpl(), buffer, bufferOffset, QueueBytes { data });
-}
-
-void Queue::clearBuffer(id<MTLBuffer> buffer, NSUInteger offset, NSUInteger size)
-{
-    m_impl->impl.clearBuffer(this, buffer, offset, size);
-}
-
-Device* Queue::retainedDevice() const
-{
-    RefPtr device = m_device;
-    return device.leakRef();
-}
-
-void Queue::generateAValidationError(String&& message)
-{
-    if (RefPtr device = m_device.get())
-        device->generateAValidationError(WTF::move(message));
+    zeroSpan(cpuVisibleContents(buffer).subspan(offset, size));
 }
 
 // The bytes replaceRegion:mipmapLevel:slice:withBytes:bytesPerRow:bytesPerImage: reads: each of the region's images,
@@ -368,7 +204,7 @@ static_assert(offsetof(CopyExternalImageArguments, colorMatrix) == 36, "colorMat
 static_assert(offsetof(CopyExternalImageArguments, uvRemapMatrix) == 72, "uvRemapMatrix must be at offset 72");
 static_assert(offsetof(CopyExternalImageArguments, ycbcrMatrix) == 96, "ycbcrMatrix must be at offset 96");
 
-void Queue::setCopyExternalImageArguments(id<MTLRenderCommandEncoder> encoder, const CopyExternalImageArguments& arguments)
+void setCopyExternalImageArguments(id<MTLRenderCommandEncoder> encoder, const CopyExternalImageArguments& arguments)
 {
     [encoder setFragmentBytes:&arguments length:sizeof(arguments) atIndex:0];
 }
@@ -435,13 +271,5 @@ CleanTexCoords cleanTexCoords(CVMetalTextureRef texture)
     return { .lowerLeftX = lowerLeft[0], .lowerRightY = lowerRight[1], .upperRightX = upperRight[0], .upperLeftY = upperLeft[1] };
 }
 #endif
-
-void Queue::scheduleWork(Instance::WorkItem&& workItem)
-{
-    // A copy of the handle: the work item can hold the last reference to this queue, and run on the API thread
-    // before the call returns.
-    if (auto scheduler = m_impl->scheduler)
-        scheduler->scheduleWork(workItem);
-}
 
 } // namespace WebGPU::Metal

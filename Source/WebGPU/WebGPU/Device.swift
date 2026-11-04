@@ -114,8 +114,6 @@ final class DeviceImpl {
     @_expose(!Cxx)
     var textures = WeakImplList<TextureImpl>()
 
-    // The default queue, with its Impl; C++ callers get the shell.
-    private let backingDefaultQueue: WebGPU.Metal.Queue
     @_expose(!Cxx)
     let defaultQueueImpl: QueueImpl
     // The adapter also provides the Instance. A valid device has one XR sub-image, which its constructor installs. The
@@ -138,15 +136,13 @@ final class DeviceImpl {
         capabilities: borrowing WebGPU.Metal.HardwareCapabilities,
         adapter: WebGPU.Metal.Adapter,
         adapterImpl: AdapterImpl,
-        defaultQueue: WebGPU.Metal.Queue,
-        defaultQueueImpl: QueueImpl
+        defaultQueue: (any MTLCommandQueue)?
     ) {
         self.metalDevice = metalDevice
         backingAdapter = adapter
         self.adapterImpl = adapterImpl
         attributesResources = DeviceImpl.instanceHasWebProcess(adapter)
-        backingDefaultQueue = defaultQueue
-        self.defaultQueueImpl = defaultQueueImpl
+        defaultQueueImpl = defaultQueue.map { makeQueueImpl($0) } ?? makeInvalidQueueImpl()
         externalTextureImporter = ExternalTextureImporter(metalDevice: metalDevice)
         let deviceCapabilities = DeviceCapabilities(capabilities)
         self.capabilities = deviceCapabilities
@@ -158,7 +154,7 @@ final class DeviceImpl {
             backingPlaceholderBuffer = nil
             backingPlaceholderTexture = nil
             backingPlaceholderDepthStencilTexture = nil
-            defaultQueueImpl.encoderTimestampsDevice = self
+            defaultQueueImpl.deviceImpl = self
             return
         }
         backingAppleGPUFamily = computeAppleGPUFamily(metalDevice)
@@ -169,7 +165,7 @@ final class DeviceImpl {
         DeviceImpl.setOwnerWithIdentity(placeholderBuffer, adapter)
         backingPlaceholderBuffer = placeholderBuffer
         (backingPlaceholderTexture, backingPlaceholderDepthStencilTexture) = makePlaceholderTextures(metalDevice)
-        defaultQueueImpl.encoderTimestampsDevice = self
+        defaultQueueImpl.deviceImpl = self
     }
 
     // MARK: Validity and loss
@@ -197,7 +193,7 @@ final class DeviceImpl {
     @_expose(Cxx)
     func makeInvalid() {
         metalDevice = nil
-        defaultQueueImpl.makeInvalid(backingDefaultQueue)
+        defaultQueueImpl.makeInvalid()
     }
 
     // The callback runs between the adapter's invalidation and the queue's.
@@ -208,7 +204,7 @@ final class DeviceImpl {
         if let callback = deviceLostCallback.take() {
             callback(reason, WebGPU.Metal.deviceLostMessage())
         }
-        defaultQueueImpl.makeInvalid(backingDefaultQueue)
+        defaultQueueImpl.makeInvalid()
         lost = true
     }
 
@@ -611,8 +607,14 @@ final class DeviceImpl {
                 resolvedBuffers = NSMutableArray(object: counterDataBuffer)
                 resolvedSampleCounterBuffers.setObject(resolvedBuffers, forKey: commandBuffer)
             }
-            WebGPU.Metal.logTimestampsWhenCompleted(commandBuffer, resolvedBuffers, backingDefaultQueue) { [weak self] completedCommandBuffer in
-                self?.resolvedSampleCounterBuffers.removeObject(forKey: completedCommandBuffer)
+            let forget = APIThreadWork<Void> { [weak self, weak commandBuffer] _ in
+                if let commandBuffer {
+                    self?.resolvedSampleCounterBuffers.removeObject(forKey: commandBuffer)
+                }
+            }
+            let scheduler = instanceSchedulerHandle
+            WebGPU.Metal.logTimestampsWhenCompleted(commandBuffer, resolvedBuffers) {
+                forget.schedule((), on: scheduler)
             }
         }
     }
@@ -713,11 +715,18 @@ final class DeviceImpl {
     @_expose(Cxx)
     func setInstanceSchedulerHandle(_ handle: InstanceSchedulerHandle) {
         instanceSchedulerHandle = handle
+        defaultQueueImpl.setSchedulerHandle(handle)
     }
 
     @_expose(Cxx)
     func setInstanceImpl(_ instance: InstanceImpl) {
         instanceImpl = instance
+    }
+
+    // Keeps the device alive in its Instance until the command buffer is gone.
+    @_expose(!Cxx)
+    func retainUntilCompleted(_ commandBuffer: (any MTLCommandBuffer)?) {
+        instanceImpl?.retainDevice(self, commandBuffer)
     }
 
     // What the Metal handlers schedule their API-thread work through.
@@ -733,11 +742,6 @@ final class DeviceImpl {
     }
 
     // MARK: Default queue, adapter, XR sub-image, device observer (the helper pipelines are in DeviceHelpers.swift)
-
-    @_expose(Cxx)
-    func defaultQueue() -> WebGPU.Metal.Queue {
-        backingDefaultQueue
-    }
 
     @_expose(Cxx)
     func adapter() -> WebGPU.Metal.Adapter {
@@ -879,7 +883,7 @@ public final class DeviceReference {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-queue
     public var queue: QueueReference {
-        QueueReference(impl.defaultQueueImpl, impl.defaultQueue())
+        impl.defaultQueueImpl
     }
 }
 
@@ -972,23 +976,21 @@ private func computeAppleGPUFamily(_ metalDevice: any MTLDevice) -> UInt32 {
     return 0xFF
 }
 
-// An invalid device is made with a nil MTLDevice and `HardwareCapabilities { }`.
+// An invalid device is made with a nil MTLDevice and command queue, and `HardwareCapabilities { }`.
 @_expose(Cxx)
 func makeDeviceImpl(
     _ metalDevice: (any MTLDevice)?,
     _ capabilities: borrowing WebGPU.Metal.HardwareCapabilities,
     _ adapter: WebGPU.Metal.Adapter,
     _ adapterImpl: AdapterImpl,
-    _ defaultQueue: WebGPU.Metal.Queue,
-    _ defaultQueueImpl: QueueImpl
+    _ defaultQueue: (any MTLCommandQueue)?
 ) -> DeviceImpl {
     let impl = DeviceImpl(
         metalDevice: metalDevice,
         capabilities: capabilities,
         adapter: adapter,
         adapterImpl: adapterImpl,
-        defaultQueue: defaultQueue,
-        defaultQueueImpl: defaultQueueImpl
+        defaultQueue: defaultQueue
     )
     adapterImpl.lastMadeDeviceImpl = impl
     return impl

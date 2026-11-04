@@ -137,10 +137,9 @@ final class XRProjectionLayerImpl {
             return
         }
 
-        let queue = deviceImpl.defaultQueue()
         let queueImpl = deviceImpl.defaultQueueImpl
-        queueImpl.finalizeBlitCommandEncoder(queue)
-        guard let commandBuffer = queueImpl.commandBufferWithDescriptor(queue, MTLCommandBufferDescriptor()) else {
+        queueImpl.finalizeBlitCommandEncoder()
+        guard let commandBuffer = queueImpl.commandBufferWithDescriptor(MTLCommandBufferDescriptor()) else {
             return
         }
 
@@ -167,12 +166,12 @@ final class XRProjectionLayerImpl {
             descriptor.defaultRasterSampleCount = depthTexture.sampleCount
 
             if let clearEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) {
-                queueImpl.setEncoderForBuffer(queue, commandBuffer, clearEncoder)
-                queueImpl.endEncoding(queue, clearEncoder, commandBuffer)
+                queueImpl.setEncoderForBuffer(commandBuffer, clearEncoder)
+                queueImpl.endEncoding(clearEncoder, commandBuffer)
             }
         }
 
-        queueImpl.commitMTLCommandBuffer(queue, commandBuffer)
+        queueImpl.commitMTLCommandBuffer(commandBuffer)
     }
 }
 

@@ -1059,7 +1059,6 @@ private struct BindGroupCreation {
         case .texture(let impl, let sameDevice):
             if sameDevice
                 && !deviceImpl.defaultQueueImpl.clearTextureIfNeeded(
-                    deviceImpl.defaultQueue(),
                     deviceImpl,
                     impl,
                     .All,
@@ -1100,7 +1099,6 @@ private struct BindGroupCreation {
             let aspect = WebGPU.TextureAspect(rawValue: impl.aspect()) ?? .All
             if sameDevice
                 && !deviceImpl.defaultQueueImpl.clearTextureIfNeeded(
-                    deviceImpl.defaultQueue(),
                     deviceImpl,
                     impl.parentTextureImpl,
                     aspect,

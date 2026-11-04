@@ -72,7 +72,6 @@ public:
     RefPtr<Adapter> adapter(const WebGPU::RequestAdapterOptions&);
 
     bool isValid() const;
-    void retainDevice(Device&, id<MTLCommandBuffer>);
     void waitForCommandBufferCompletions();
 
     // This can be called on a background thread.

@@ -79,10 +79,9 @@ uint64_t notifyState(int token)
     return state;
 }
 
-void logTimestampsWhenCompleted(id<MTLCommandBuffer> commandBuffer, NSMutableArray *resolvedBuffers, Queue& queue, void (^forget)(id<MTLCommandBuffer>))
+void logTimestampsWhenCompleted(id<MTLCommandBuffer> commandBuffer, NSMutableArray *resolvedBuffers, void (^didLog)(void))
 {
-    // The handler, on a Metal thread, only logs the buffers it captured; it hands `forget` to a work item.
-    [commandBuffer addCompletedHandler:[protectedQueue = Ref { queue }, resolvedBuffers = RetainPtr { resolvedBuffers }, forget = makeBlockPtr(forget)](id<MTLCommandBuffer> completedCommandBuffer) mutable {
+    [commandBuffer addCompletedHandler:[resolvedBuffers = RetainPtr { resolvedBuffers }, didLog = makeBlockPtr(didLog)](id<MTLCommandBuffer>) {
         for (id<MTLBuffer> buffer in resolvedBuffers.get()) {
             if (!buffer.contents)
                 continue;
@@ -93,10 +92,7 @@ void logTimestampsWhenCompleted(id<MTLCommandBuffer> commandBuffer, NSMutableArr
                 WTFLogAlways("\tencoder time %f", timeDifference / 100000.0f); // NOLINT
             }
         }
-        Queue& hop = protectedQueue.get();
-        hop.scheduleWork([queue = WTF::move(protectedQueue), forget = WTF::move(forget), completedCommandBuffer = RetainPtr { completedCommandBuffer }] {
-            forget(completedCommandBuffer.get());
-        });
+        didLog();
     }];
 }
 
@@ -169,10 +165,9 @@ Ref<Device> Device::createInvalid(Adapter& adapter)
     return adoptRef(*new Device(adapter));
 }
 
-// The default queue keeps a weak pointer to the device under construction.
-static std::unique_ptr<DeviceImplBox> makeDeviceImplBox(id<MTLDevice> device, Ref<Queue>&& defaultQueue, const HardwareCapabilities& capabilities, Adapter& adapter)
+static std::unique_ptr<DeviceImplBox> makeDeviceImplBox(id<MTLDevice> device, id<MTLCommandQueue> defaultQueue, const HardwareCapabilities& capabilities, Adapter& adapter)
 {
-    auto box = makeUnique<DeviceImplBox>(DeviceImplBox { .impl = makeDeviceImpl(device, capabilities, &adapter, adapter.swiftImpl(), defaultQueue.ptr(), defaultQueue->swiftImpl()) });
+    auto box = makeUnique<DeviceImplBox>(DeviceImplBox { .impl = makeDeviceImpl(device, capabilities, &adapter, adapter.swiftImpl(), defaultQueue) });
     if (RefPtr instance = adapter.instance()) {
         box->impl.setInstanceSchedulerHandle(instance->schedulerHandle());
         box->impl.setInstanceImpl(instance->swiftImpl());
@@ -181,7 +176,7 @@ static std::unique_ptr<DeviceImplBox> makeDeviceImplBox(id<MTLDevice> device, Re
 }
 
 Device::Device(id<MTLDevice> device, id<MTLCommandQueue> defaultQueue, const HardwareCapabilities& capabilities, Adapter& adapter)
-    : m_impl(makeDeviceImplBox(device, Queue::create(defaultQueue, adapter, *this), capabilities, adapter))
+    : m_impl(makeDeviceImplBox(device, defaultQueue, capabilities, adapter))
 {
     m_impl->impl.installXRSubImage(WebGPUSwift::makeXRSubImageImpl());
 
@@ -225,7 +220,7 @@ Device::Device(id<MTLDevice> device, id<MTLCommandQueue> defaultQueue, const Har
 }
 
 Device::Device(Adapter& adapter)
-    : m_impl(makeDeviceImplBox(nil, Queue::createInvalid(adapter, *this), HardwareCapabilities { }, adapter))
+    : m_impl(makeDeviceImplBox(nil, nil, HardwareCapabilities { }, adapter))
 {
     if (!adapter.isValid())
         m_impl->impl.makeInvalid();
@@ -249,11 +244,6 @@ Adapter& Device::adapter() const
 RefPtr<Instance> Device::instance() const
 {
     return adapter().instance();
-}
-
-Ref<Queue> Device::getQueue() const
-{
-    return adoptRef(*m_impl->impl.defaultQueue());
 }
 
 void Device::loseTheDevice(WebGPU::DeviceLostReason reason)

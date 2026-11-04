@@ -2142,7 +2142,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
             if currentCommandIndex != 0 {
                 let newICB = makeICB(currentCommandIndex)
                 indirectCommandBuffer = deviceImpl.defaultQueueImpl.trimICB(
-                    deviceImpl.defaultQueue(),
                     newICB,
                     indirectCommandBuffer,
                     UInt(currentCommandIndex)

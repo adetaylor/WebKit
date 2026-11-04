@@ -253,11 +253,6 @@ extension DeviceReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }
 
-@_spi(WebKitGPU)
-extension QueueReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
 // The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().
 @_expose(Cxx)
 @_spi(WebKitGPU)

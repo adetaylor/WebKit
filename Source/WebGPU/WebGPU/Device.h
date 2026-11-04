@@ -79,8 +79,8 @@ inline String deviceDestroyedMessage() { return ""_s; }
 void logAlways(NSString *message);
 
 // The debug encoder timestamps: logs `resolvedBuffers`, which hold MTLCounterResultTimestamps, when `commandBuffer`
-// completes, then hands the command buffer to `forget` on the API thread.
-void logTimestampsWhenCompleted(id<MTLCommandBuffer>, NSMutableArray *resolvedBuffers, Queue&, void (^forget)(id<MTLCommandBuffer>));
+// completes, then calls didLog on the Metal thread.
+void logTimestampsWhenCompleted(id<MTLCommandBuffer>, NSMutableArray *resolvedBuffers, void (^ NS_SWIFT_SENDABLE didLog)(void));
 
 // notify(3) for DebugToggles.swift, with no pointer crossing into Swift: the registration's token and the state are
 // out-parameters, which Swift can only pass as unsafe pointers. The handler stays registered, and runs on the main queue.
@@ -112,7 +112,6 @@ public:
     ~Device();
 
     void destroy();
-    Ref<Queue> getQueue() const;
 #if !defined(__swift__)
     bool hasFeature(WebGPU::FeatureName) const;
 #endif

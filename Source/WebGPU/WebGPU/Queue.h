@@ -44,18 +44,7 @@
 
 IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class QueueImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
-
-class Device;
-
-// Opaque box holding the Swift QueueImpl; defined in Queue.mm.
-struct QueueImplBox;
 
 // Host mirror of the MSL `WebKitCopyExternalImageArgs` in Queue.swift. It is a hand-maintained ABI: Queue.mm pins the
 // size and every offset with static_asserts. Every field is a scalar or an array of scalars: MSL lays those out exactly
@@ -92,69 +81,15 @@ struct CopyExternalImageSource {
     WebGPU::PredefinedColorSpace colorSpace { WebGPU::PredefinedColorSpace::SRGB };
 };
 
-// Bytes an entry point lends to QueueImpl for the duration of the call. Imported as ~Escapable, so Swift reads them as
-// a lifetime-checked Span<UInt8>, with no `unsafe`.
-struct SWIFT_VIEW QueueBytes {
-    std::span<const uint8_t> bytes;
-    std::span<const uint8_t> span() const LIFETIME_BOUND { return bytes; }
-};
-
-// https://gpuweb.github.io/gpuweb/#gpuqueue
-// A device owns its default queue, not the other way around.
-// The state is in QueueImpl, except the Device and Instance weak pointers and the Metal handlers, whose work items call
-// QueueImpl's drains.
-class Queue final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Queue> {
-    WTF_MAKE_TZONE_ALLOCATED(Queue);
-public:
-    static Ref<Queue> create(id<MTLCommandQueue>, Adapter&, Device&);
-    static Ref<Queue> createInvalid(Adapter&, Device&);
-
-    ~Queue();
-
-    void writeBuffer(id<MTLBuffer>, uint64_t bufferOffset, std::span<uint8_t> data);
-    void clearBuffer(id<MTLBuffer>, NSUInteger offset = 0, NSUInteger size = NSUIntegerMax);
-
-    bool isValid() const;
-#if !defined(__swift__)
-    WebGPUSwift::QueueImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-    void makeInvalid();
-
-    // The device, +1, or nullptr once it is gone, for Swift.
-    Device* WTF_NULLABLE retainedDevice() const SWIFT_RETURNS_RETAINED;
-    void generateAValidationError(String&&);
-
-    id<MTLBlitCommandEncoder> ensureBlitCommandEncoder();
-    void finalizeBlitCommandEncoder();
-
-    // This can be called on a background thread. It never references the Instance.
-    void scheduleWork(Instance::WorkItem&&);
-    void waitForAllCommitedWorkToComplete();
-    void synchronizeResourceAndWait(id<MTLBuffer>);
-    std::pair<id<MTLBuffer>, uint64_t> newTemporaryBufferWithBytes(std::span<uint8_t> data, bool noCopy);
-
-    // Primitives Queue.swift calls. Public because SWIFT_PRIVATE_FILEID only opens non-public members to extensions
-    // of this class, not to QueueImpl. Each reads the weak Device or Instance pointer, registers Metal handlers, or
-    // hands Metal the bytes of a C struct; none calls back into QueueImpl. The ones that move bytes are free
-    // functions, below the class.
-    void loseTheDevice(WebGPU::DeviceLostReason);
-    void retainDeviceUntilCompleted(id<MTLCommandBuffer> _Nullable);
-    void addCommitHandlers(id<MTLCommandBuffer>);
-    static void setStagedCopyArguments(id<MTLComputeCommandEncoder>, uint64_t sourceWordOffset, uint64_t destinationWordOffset, uint64_t wordCount);
-    static void setCopyExternalImageArguments(id<MTLRenderCommandEncoder>, const CopyExternalImageArguments&);
-
-private:
-    Queue(std::unique_ptr<QueueImplBox>&&, Adapter&, Device&);
-
-    // API-thread only. The Metal handlers capture the box's QueueCompletion, which is Sendable, instead.
-    const std::unique_ptr<QueueImplBox> m_impl;
-    ThreadSafeWeakPtr<Device> m_device; // The only kind of queues that exist right now are default queues, which are owned by Devices.
-    // Read on the API thread only; Metal threads schedule work through the box's scheduler handle.
-    const ThreadSafeWeakPtr<Instance> m_instance;
-} SWIFT_SHARED_REFERENCE(refQueue, derefQueue) SWIFT_PRIVATE_FILEID("WebGPUSwift/Queue.swift");
+// The handlers QueueImpl gives each command buffer just before committing it. Both blocks run on Metal threads:
+// didSchedule once the command buffer is scheduled, didComplete once it completed, with whether to lose the device.
+// A fatal command buffer error, or no completion within 3 s, crashes the GPU process.
+void addCommitHandlers(id<MTLCommandBuffer>, void (^ NS_SWIFT_SENDABLE didSchedule)(void), void (^ NS_SWIFT_SENDABLE didComplete)(bool loseTheDevice));
+void setStagedCopyArguments(id<MTLComputeCommandEncoder>, uint64_t sourceWordOffset, uint64_t destinationWordOffset, uint64_t wordCount);
+void setCopyExternalImageArguments(id<MTLRenderCommandEncoder>, const CopyExternalImageArguments&);
 
 // Byte-moving primitives for Queue.swift. Free functions with NOESCAPE spans, so that Swift gets overloads taking
-// Span<UInt8>; static members of Queue, a foreign reference type, would not get them (rdar://161274084).
+// Span<UInt8> (rdar://161274084).
 
 // The texel block of the format a texture write copies, from which replaceRegion() computes the bytes Metal reads.
 struct TexelBlockLayout {
@@ -165,11 +100,12 @@ struct TexelBlockLayout {
 
 void writeBufferContents(id<MTLBuffer>, uint64_t bufferOffset, std::span<const uint8_t> data NOESCAPE, bool isManaged);
 void copyBytesToBuffer(id<MTLBuffer> _Nullable, uint64_t offset, std::span<const uint8_t> data NOESCAPE);
+void zeroBufferContents(id<MTLBuffer> _Nullable, uint64_t offset, uint64_t size);
 // RELEASE_ASSERTs that every byte Metal reads, from sourceOffset on, is inside `data`.
 void replaceRegion(id<MTLTexture> _Nullable, MTLRegion, uint32_t mipLevel, uint64_t slice, std::span<const uint8_t> data NOESCAPE, uint64_t sourceOffset, uint64_t bytesPerRow, uint64_t bytesPerImage, TexelBlockLayout);
 // A buffer over `length` bytes of the ByteOwner from `offset`, which keeps the ByteOwner alive for as long as it exists.
 // Null when the ByteOwner has fewer bytes.
-id<MTLBuffer> _Nullable newBufferAliasingOwner(const Device&, const WebGPU::ByteOwner&, uint64_t offset, uint64_t length);
+id<MTLBuffer> _Nullable newBufferAliasingOwner(id<MTLDevice> _Nullable, const WebGPU::ByteOwner&, uint64_t offset, uint64_t length);
 
 // For ExternalTextureImport.swift: a plane's bytes, through a raw pointer, into as much of the texture as both have, when
 // the plane's rows hold `bytesPerPixel` bytes (those of the texture's format; 0 if unknown) for every pixel copied. The
@@ -195,15 +131,5 @@ CleanTexCoords cleanTexCoords(CVMetalTextureRef);
 #endif
 
 } // namespace WebGPU::Metal
-
-inline void refQueue(WebGPU::Metal::Queue* obj)
-{
-    obj->ref();
-}
-
-inline void derefQueue(WebGPU::Metal::Queue* obj)
-{
-    obj->deref();
-}
 
 IGNORE_CLANG_WARNINGS_END

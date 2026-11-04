@@ -171,8 +171,6 @@ public final class RenderBundleImpl: GPUObjectReference {
         }
         for icb in icbs {
             deviceImpl.defaultQueueImpl.stageBufferWrite(
-                deviceImpl.defaultQueue(),
-                device,
                 deviceImpl,
                 icb.fragmentDynamicOffsetsBuffer,
                 0,

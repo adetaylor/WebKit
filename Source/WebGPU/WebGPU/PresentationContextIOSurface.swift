@@ -288,7 +288,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         let needsLuminanceClampFunction =
             textureDescriptor.pixelFormat == .rgba16Float && toneMappingMode == WebGPU.CanvasToneMappingMode.Standard
         let existingUsage = textureDescriptor.usage
-        let deviceQueue = deviceImpl.defaultQueue()
         let metalDevice = deviceImpl.device()
         var apiFormat = effectiveFormat
         var resizeCommandBuffer: (any MTLCommandBuffer)?
@@ -326,7 +325,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
             renderBuffers.append(RenderBuffer(texture: parentTexture, luminanceClampTexture: luminanceClampTexture))
             if existingRenderBuffers.count >= renderBuffers.count {
                 if resizeCommandBuffer == nil {
-                    resizeCommandBuffer = deviceImpl.defaultQueueImpl.commandBufferWithDescriptor(deviceQueue, MTLCommandBufferDescriptor())
+                    resizeCommandBuffer = deviceImpl.defaultQueueImpl.commandBufferWithDescriptor(MTLCommandBufferDescriptor())
                 }
 
                 let existing = existingRenderBuffers[renderBuffers.count - 1]
@@ -356,7 +355,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         }
 
         if let resizeCommandBuffer {
-            deviceImpl.defaultQueueImpl.commitMTLCommandBuffer(deviceQueue, resizeCommandBuffer)
+            deviceImpl.defaultQueueImpl.commitMTLCommandBuffer(resizeCommandBuffer)
         }
         assert(ioSurfaces.count == renderBuffers.count)
         maximumInFlightFrames = renderBuffers.count > 1 ? renderBuffers.count - 1 : 1
@@ -413,7 +412,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         _ metalDevice: (any MTLDevice)?,
         _ deviceImpl: DeviceImpl
     ) {
-        let deviceQueue = deviceImpl.defaultQueue()
         guard let source, let destination, let pipelineState = resizePipelineState(metalDevice) else {
             return
         }
@@ -422,7 +420,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         computeDescriptor.dispatchType = .serial
 
         let computeEncoder = commandBuffer?.makeComputeCommandEncoder(descriptor: computeDescriptor)
-        deviceImpl.defaultQueueImpl.setEncoderForBuffer(deviceQueue, commandBuffer, computeEncoder)
+        deviceImpl.defaultQueueImpl.setEncoderForBuffer(commandBuffer, computeEncoder)
         computeEncoder?.setComputePipelineState(pipelineState)
 
         computeEncoder?.setTexture(source, index: 0)
@@ -434,7 +432,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
             depth: 1
         )
         computeEncoder?.dispatchThreadgroups(threadgroupCount, threadsPerThreadgroup: threadgroupSize)
-        deviceImpl.defaultQueueImpl.endEncoding(deviceQueue, computeEncoder, commandBuffer)
+        deviceImpl.defaultQueueImpl.endEncoding(computeEncoder, commandBuffer)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure
@@ -483,16 +481,15 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
 
         waitForInFlightFrameSlot()
 
-        let deviceQueue = configured.impl.defaultQueue()
         let queueImpl = configured.impl.defaultQueueImpl
         let renderBuffer = renderBuffers[Int(currentIndex)]
         if let computePipelineState = luminanceClampPipeline, let luminanceClampTexture = renderBuffer.luminanceClampTexture.first {
-            let commandBuffer = queueImpl.commandBufferWithDescriptor(deviceQueue, MTLCommandBufferDescriptor())
+            let commandBuffer = queueImpl.commandBufferWithDescriptor(MTLCommandBufferDescriptor())
             let computeDescriptor = MTLComputePassDescriptor()
             computeDescriptor.dispatchType = .serial
 
             let computeEncoder = commandBuffer?.makeComputeCommandEncoder(descriptor: computeDescriptor)
-            queueImpl.setEncoderForBuffer(deviceQueue, commandBuffer, computeEncoder)
+            queueImpl.setEncoderForBuffer(commandBuffer, computeEncoder)
             computeEncoder?.setComputePipelineState(computePipelineState)
             let inputTexture = luminanceClampTexture.impl.texture()
             computeEncoder?.setTexture(inputTexture, index: 0)
@@ -504,8 +501,8 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
                 depth: 1
             )
             computeEncoder?.dispatchThreadgroups(threadgroupCount, threadsPerThreadgroup: threadgroupSize)
-            queueImpl.endEncoding(deviceQueue, computeEncoder, commandBuffer)
-            queueImpl.commitMTLCommandBuffer(deviceQueue, commandBuffer)
+            queueImpl.endEncoding(computeEncoder, commandBuffer)
+            queueImpl.commitMTLCommandBuffer(commandBuffer)
         }
 
         inFlightFrames.append(renderBuffer.presentedTexture)
@@ -604,7 +601,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
             return
         }
         let deviceImpl = device.impl
-        deviceImpl.defaultQueueImpl.onSubmittedWorkScheduled(deviceImpl.defaultQueue(), deviceIsUsable: deviceImpl.isValid() && !deviceImpl.isLost(), completion)
+        deviceImpl.defaultQueueImpl.onSubmittedWorkScheduled(deviceIsUsable: deviceImpl.isValid() && !deviceImpl.isLost(), completion)
     }
 
     func lastDrainedFrameGPUCostSeconds() -> Double {

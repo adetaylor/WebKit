@@ -53,10 +53,8 @@ void setFragmentUInt32s(id<MTLRenderCommandEncoder>, std::span<const uint32_t> d
 void setVertexUInt32Pair(id<MTLRenderCommandEncoder>, uint32_t, uint32_t, uint32_t bufferIndex);
 void setVertexUInt32Triple(id<MTLRenderCommandEncoder>, uint32_t, uint32_t, uint32_t, uint32_t bufferIndex);
 void setVertexIndexData(id<MTLRenderCommandEncoder>, const IndexData&, uint32_t bufferIndex);
-// Temporary buffers from the device's queue; the clamp shaders store lostOrOOBRead only on failure, so scratch is zeroed.
-id<MTLBuffer> newZeroedDrawIndirectScratch(Device&, uint64_t& offset);
-id<MTLBuffer> newZeroedDrawIndexedIndirectScratch(Device&, uint64_t& offset);
-id<MTLBuffer> newDrawIndexedIndirectArgumentsBuffer(Device&, uint32_t indexCount, uint32_t instanceCount, uint32_t indexStart, int32_t baseVertex, uint32_t baseInstance, uint64_t& offset);
+// Writes the arguments, with lostOrOOBRead clear, into the buffer's contents at that offset, which must hold them.
+void writeDrawIndexedIndirectArguments(id<MTLBuffer> _Nullable, uint64_t offset, uint32_t indexCount, uint32_t instanceCount, uint32_t indexStart, int32_t baseVertex, uint32_t baseInstance);
 bool drawIndirectArgumentsLostOrOOBRead(id<MTLBuffer> scratch, uint64_t offset);
 void logRenderPassSplit();
 // The out-of-bounds flag a completed index clamp wrote: into the indexed indirect arguments, or into an ICB's flag.
