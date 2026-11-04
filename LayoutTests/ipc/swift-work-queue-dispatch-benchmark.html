@@ -1,0 +1,40 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that the C++ and Swift WorkQueue receiver dispatch benchmark runs.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<body>
+<script>
+// Times each message shape on the C++ and the Swift receivers in the GPU process. With a large messageCount and
+// repetitions, and the results printed, it is the dispatch benchmark; here it only checks that every case runs.
+const messageCount = 100;
+const repetitions = 1;
+const printResults = false;
+const shapes = ['empty', 'four uint32_t', '16-character String', 'async uint64_t reply', 'empty, Swift types', 'four uint32_t, Swift types', '16-character String, Swift types', '16-element Vector<uint32_t>, Swift types', 'async uint64_t reply, Swift types'];
+
+setup({ single_test: true });
+if (window.IPC && IPC.messages.IPCTester_BenchmarkWorkQueueDispatch) {
+    const target = IPC.processTargets.includes('GPU') ? 'GPU' : IPC.processTargets[0];
+    const results = [];
+    for (let kind = 0; kind < shapes.length; ++kind) {
+        const times = { cxx: [], swift: [] };
+        for (let repetition = 0; repetition < repetitions; ++repetition) {
+            for (const swift of [false, true]) {
+                const reply = IPC.sendSyncMessage(target, 0, IPC.messages.IPCTester_BenchmarkWorkQueueDispatch.name, 600000, [
+                    { type: 'uint32_t', value: kind }, { type: 'bool', value: swift ? 1 : 0 }, { type: 'uint32_t', value: messageCount },
+                ]);
+                const nanoseconds = reply.arguments[0].value;
+                assert_greater_than(nanoseconds, 0, `${shapes[kind]} ${swift ? 'Swift' : 'C++'}`);
+                times[swift ? 'swift' : 'cxx'].push(nanoseconds / messageCount);
+            }
+        }
+        const median = values => values.sort((a, b) => a - b)[Math.floor(values.length / 2)];
+        results.push(`${shapes[kind]}: C++ ${median(times.cxx).toFixed(1)} ns, Swift ${median(times.swift).toFixed(1)} ns, difference ${(median(times.swift) - median(times.cxx)).toFixed(1)} ns`);
+    }
+    if (printResults) {
+        for (const line of results)
+            console.log(line);
+    }
+}
+done();
+</script>
+</body>
