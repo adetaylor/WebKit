@@ -66,6 +66,28 @@ public final class AdapterReference {
         impl.lastMadeDeviceImpl = nil
         return DeviceReference(deviceImpl, device.ptr())
     }
+
+    // https://gpuweb.github.io/gpuweb/#gpuadapterinfo, as the shell's info() gives it: a Metal device is never a fallback
+    // adapter.
+    public var name: Swift.String {
+        impl.device()?.name ?? ""
+    }
+
+    public var subgroupSizes: (min: UInt32, max: UInt32) {
+        var minSize: UInt32 = 0
+        var maxSize: UInt32 = 0
+        impl.subgroupSizes(&minSize, &maxSize)
+        return (minSize, maxSize)
+    }
+
+    // Sorted by raw value.
+    public var features: [WebGPU.FeatureName] {
+        impl.features
+    }
+
+    public var limits: WebGPU.Limits {
+        impl.limits()
+    }
 }
 
 // Owned by the C++ shell WebGPU::Metal::Adapter, which keeps the Instance back-reference.
@@ -76,7 +98,8 @@ final class AdapterImpl: DeliverableImpl {
     private let xrCompatible: Bool
     private var deviceRequested = false
     // Sorted by raw value.
-    private let features: [WebGPU.FeatureName]
+    @_expose(!Cxx)
+    let features: [WebGPU.FeatureName]
     private let adapterLimits: WebGPU.Limits
     // Given to the device this adapter creates.
     private let baseCapabilities: GPUBaseCapabilities

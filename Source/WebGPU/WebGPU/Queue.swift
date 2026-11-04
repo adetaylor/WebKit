@@ -1082,23 +1082,29 @@ final class QueueImpl {
     // Queue::onSubmittedWorkScheduled: the Function is moved out of `callback`.
     @_expose(Cxx)
     func onSubmittedWorkScheduled(_ queue: WebGPU.Metal.Queue, _ deviceIsUsable: Bool, _ callback: inout WebGPU.Metal.Instance.WorkItem) {
-        assert(backingSubmittedCommandBufferCount >= backingScheduledCommandBufferCount)
         let handler = ScheduledCallbackBox(exchange(&callback, with: WebGPU.Metal.Instance.WorkItem()))
-        guard deviceIsUsable else {
+        onSubmittedWorkScheduled(queue, deviceIsUsable: deviceIsUsable) {
             handler.call()
+        }
+    }
+
+    // The callback runs once the work submitted so far has been scheduled, at once if the device is lost.
+    @_expose(!Cxx)
+    func onSubmittedWorkScheduled(_ queue: WebGPU.Metal.Queue, deviceIsUsable: Bool, _ callback: @escaping () -> Void) {
+        assert(backingSubmittedCommandBufferCount >= backingScheduledCommandBufferCount)
+        guard deviceIsUsable else {
+            callback()
             return
         }
 
         finalizeBlitCommandEncoder(queue)
 
         if isSchedulingIdle() {
-            queue.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { handler.call() })
+            queue.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { callback() })
             return
         }
 
-        appendCallback(&scheduledCallbacks, backingSubmittedCommandBufferCount) {
-            handler.call()
-        }
+        appendCallback(&scheduledCallbacks, backingSubmittedCommandBufferCount, callback)
     }
 
     // Keeps a frame's texture cache planes alive until the queue's submitted work is done: the cache's textures stay

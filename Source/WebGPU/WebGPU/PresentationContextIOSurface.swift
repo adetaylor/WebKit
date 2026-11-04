@@ -22,7 +22,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import CoreGraphics
-import IOSurface
+public import IOSurface
 import Metal
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
@@ -100,6 +100,31 @@ public final class PresentationContextReference {
     // frame, or an invalid texture if the frame isn't one of the configuration's. nil before the first configure().
     public func getCurrentTexture(_ frameIndex: UInt32) -> TextureReference? {
         impl.currentTexture(frameIndex).map { TextureReference($0.impl, $0.shell) }
+    }
+
+    // The compositor has recreated its render buffers, which it then adds: the canvas draws into them from the next
+    // configure().
+    public func renderBuffersWereRecreated() {
+        impl.renderBuffersWereRecreated()
+    }
+
+    // An IOSurface object rather than an IOSurfaceRef, which CoreGraphics declares as well as IOSurface.
+    public func addRenderBuffer(_ surface: IOSurface) {
+        impl.appendIOSurface(surface as IOSurfaceRef)
+    }
+
+    // The completion runs once the configured device's queue has scheduled the work submitted so far: at once without a
+    // device, or once it is lost.
+    public func onSubmittedWorkScheduled(_ completion: @escaping () -> Void) {
+        impl.onSubmittedWorkScheduled(completion)
+    }
+
+    public var lastFrameGPUCost: Double {
+        impl.lastDrainedFrameGPUCostSeconds()
+    }
+
+    public var lastFramePresentStall: Double {
+        impl.lastFramePresentStallSeconds()
     }
 }
 
@@ -622,6 +647,16 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
     @_expose(Cxx)
     func device() -> WebGPU.Metal.Device {
         configuredDevice[0].device
+    }
+
+    @_expose(!Cxx)
+    func onSubmittedWorkScheduled(_ completion: @escaping () -> Void) {
+        guard let device = configuredDevice.first else {
+            completion()
+            return
+        }
+        let deviceImpl = device.impl
+        deviceImpl.defaultQueueImpl.onSubmittedWorkScheduled(deviceImpl.defaultQueue(), deviceIsUsable: deviceImpl.isValid() && !deviceImpl.isLost(), completion)
     }
 
     @_expose(Cxx)

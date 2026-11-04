@@ -72,6 +72,8 @@ public:
 
     void processEvents();
     void requestAdapter(const WebGPU::RequestAdapterOptions&, CompletionHandler<void(RefPtr<WebGPU::Adapter>&&)>&&) final;
+    // The adapter that requestAdapter() completes with.
+    RefPtr<Adapter> adapter(const WebGPU::RequestAdapterOptions&);
     RefPtr<WebGPU::PresentationContext> createPresentationContext(const WebGPU::PresentationContextDescriptor&) final;
 
     void setLabel(String&&) final { }
@@ -107,5 +109,12 @@ private:
     // containers, which only the API thread uses.
     const std::unique_ptr<InstanceImplBox> m_impl;
 };
+
+// For Swift, which can't pass an rvalue reference: an instance that takes the descriptor's scheduleWork and resource owner.
+Instance* WTF_NONNULL createInstance(WebGPU::InstanceDescriptor&) SWIFT_RETURNS_RETAINED;
+// For Swift: the adapter that requestAdapter() completes with, or null.
+Adapter* WTF_NULLABLE requestAdapter(Instance&, const WebGPU::RequestAdapterOptions&) SWIFT_RETURNS_RETAINED;
+// For Swift: a canvas context with no compositor registered, which its Swift caller gives the compositor's IOSurfaces.
+PresentationContext* WTF_NONNULL createPresentationContext(const Instance&) SWIFT_RETURNS_RETAINED;
 
 } // namespace WebGPU::Metal

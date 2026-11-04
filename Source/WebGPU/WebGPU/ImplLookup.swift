@@ -21,6 +21,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
+public import CoreGraphics
 import Synchronization
 @_implementationOnly import WebGPU_Internal.Adapter
 @_implementationOnly import WebGPU_Internal.BindGroup
@@ -32,6 +33,7 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.ExternalTexture
+@_implementationOnly import WebGPU_Internal.Instance
 @_implementationOnly import WebGPU_Internal.PresentationContext
 @_implementationOnly import WebGPU_Internal.QuerySet
 @_implementationOnly import WebGPU_Internal.Queue
@@ -71,6 +73,15 @@ public final class ComputePipelineReference {
     init(_ impl: ComputePipelineImpl, _ shell: WebGPU.Metal.ComputePipeline) {
         self.impl = impl
         self.shell = shell
+    }
+}
+
+@_spi(WebKitGPU)
+extension PresentationContextReference {
+    // The render buffer's contents as an image, for formats the compositor can't read from the IOSurface. nil, with
+    // isIOSurfaceSupportedFormat set, when it can.
+    public func textureAsNativeImage(_ bufferIndex: UInt32, _ isIOSurfaceSupportedFormat: inout Bool) -> CGImage? {
+        impl.textureAsNativeImage(bufferIndex, &isIOSurfaceSupportedFormat)
     }
 }
 
@@ -171,6 +182,36 @@ public final class RenderPipelineReference {
     init(_ impl: RenderPipelineImpl, _ shell: WebGPU.Metal.RenderPipeline) {
         self.impl = impl
         self.shell = shell
+    }
+}
+
+// An instance, as Swift holds one: its shell, which owns its scheduler and keeps devices and command buffers alive while
+// their work is in flight.
+@_spi(WebKitGPU)
+public final class InstanceReference {
+    let shell: WebGPU.Metal.Instance
+
+    // Takes the descriptor's scheduleWork and resource owner.
+    public init(_ descriptor: inout WebGPU.InstanceDescriptor) {
+        shell = WebGPU.Metal.createInstance(&descriptor)
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: nil when no device supports WebGPU, and for a fallback
+    // adapter, which there isn't.
+    public func requestAdapter(_ options: WebGPU.RequestAdapterOptions) -> AdapterReference? {
+        guard let adapter = WebGPU.Metal.requestAdapter(shell, options) else {
+            return nil
+        }
+        let impl = ImplLookup.lookUp(AdapterImpl.self) { WebGPU.Metal.deliverAdapterImpl(adapter) }
+        return AdapterReference(impl, adapter)
+    }
+
+    // A canvas context for a compositor's render buffers, which the compositor gives it through
+    // renderBuffersWereRecreated() and addRenderBuffer(_:).
+    public func createPresentationContext() -> PresentationContextReference {
+        let presentationContext = WebGPU.Metal.createPresentationContext(shell)
+        let impl = ImplLookup.lookUp(PresentationContextIOSurfaceImpl.self) { presentationContext.deliverSwiftImpl() }
+        return PresentationContextReference(impl, presentationContext)
     }
 }
 

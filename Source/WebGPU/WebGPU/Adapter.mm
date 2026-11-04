@@ -157,8 +157,13 @@ bool Adapter::isXRCompatible() const
 Adapter& deliverImpl(WebGPU::Adapter& adapter)
 {
     auto& shell = downcast<Adapter>(adapter);
-    WebGPUSwift::receiveImpl(shell.swiftImpl());
+    deliverAdapterImpl(shell);
     return shell;
+}
+
+void deliverAdapterImpl(Adapter& shell)
+{
+    WebGPUSwift::receiveImpl(shell.swiftImpl());
 }
 
 } // namespace WebGPU::Metal

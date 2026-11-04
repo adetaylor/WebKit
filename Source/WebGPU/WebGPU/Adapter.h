@@ -97,5 +97,7 @@ private:
 
 // Gives Swift the adapter's Impl, through receiveImpl(), and returns its shell.
 Adapter& deliverImpl(WebGPU::Adapter&) SWIFT_RETURNS_UNRETAINED;
+// Gives Swift the Impl of an adapter that Swift requested.
+void deliverAdapterImpl(Adapter&);
 
 } // namespace WebGPU::Metal

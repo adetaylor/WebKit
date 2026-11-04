@@ -173,7 +173,7 @@ static NSArray<id<MTLDevice>> *sortedDevices(NSArray<id<MTLDevice>> *devices, st
     }
 }
 
-void Instance::requestAdapter(const WebGPU::RequestAdapterOptions& options, CompletionHandler<void(RefPtr<WebGPU::Adapter>&&)>&& callback)
+RefPtr<Adapter> Instance::adapter(const WebGPU::RequestAdapterOptions& options)
 {
     auto devices = getDevices();
 
@@ -182,22 +182,23 @@ void Instance::requestAdapter(const WebGPU::RequestAdapterOptions& options, Comp
     auto sortedDevices = WebGPU::Metal::sortedDevices(devices, options.powerPreference);
 
     // There is no fallback adapter.
-    if (options.forceFallbackAdapter || !sortedDevices || !sortedDevices.count || !sortedDevices[0]) {
-        callback(nullptr);
-        return;
-    }
+    if (options.forceFallbackAdapter || !sortedDevices || !sortedDevices.count || !sortedDevices[0])
+        return nullptr;
 
     auto device = sortedDevices[0];
 
     // The device does not support WebGPU.
     auto deviceCapabilities = hardwareCapabilities(device);
-    if (!deviceCapabilities) {
-        callback(nullptr);
-        return;
-    }
+    if (!deviceCapabilities)
+        return nullptr;
 
+    return Adapter::create(sortedDevices[0], *this, options.xrCompatible, WTF::move(*deviceCapabilities));
+}
+
+void Instance::requestAdapter(const WebGPU::RequestAdapterOptions& options, CompletionHandler<void(RefPtr<WebGPU::Adapter>&&)>&& callback)
+{
     // FIXME: this should be asynchronous
-    callback(Adapter::create(sortedDevices[0], *this, options.xrCompatible, WTF::move(*deviceCapabilities)));
+    callback(adapter(options));
 }
 
 void Instance::retainDevice(Device& device, id<MTLCommandBuffer> commandBuffer)
@@ -213,6 +214,21 @@ void Instance::retainCommandBuffer(CommandBuffer& commandBuffer, id<MTLCommandBu
 void Instance::releaseCompletedCommandBuffers()
 {
     m_impl->impl.releaseCompletedCommandBuffers();
+}
+
+Instance* createInstance(WebGPU::InstanceDescriptor& descriptor)
+{
+    return &Instance::create(WTF::move(descriptor)).leakRef();
+}
+
+Adapter* requestAdapter(Instance& instance, const WebGPU::RequestAdapterOptions& options)
+{
+    return instance.adapter(options).leakRef();
+}
+
+PresentationContext* createPresentationContext(const Instance& instance)
+{
+    return &PresentationContext::create({ }, instance).leakRef();
 }
 
 } // namespace WebGPU::Metal
