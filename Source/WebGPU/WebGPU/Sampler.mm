@@ -56,13 +56,6 @@ Ref<Sampler> Sampler::create(const WebGPU::SamplerDescriptor& descriptor, Device
     }));
 }
 
-Ref<Sampler> Sampler::createWithStagedImpl(Device& device)
-{
-    return adoptRef(*new Sampler([&] {
-        return device.swiftImpl().takeStagedSamplerImpl();
-    }));
-}
-
 Ref<Sampler> Sampler::createInvalid(Device& device)
 {
     return adoptRef(*new Sampler([&] {

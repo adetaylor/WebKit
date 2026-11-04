@@ -3165,7 +3165,7 @@ public final class RenderPassEncoderImpl {
         useAndTrack(groupImpl.resources) { groupImpl.mtlResources[$0] }
 
         for binding in groupImpl.samplerBindings {
-            parentImpl.addSampler(binding.shell, binding.impl)
+            parentImpl.addSampler(binding.impl)
         }
 
         let identity = identityKey(ObjectIdentifier(groupImpl))

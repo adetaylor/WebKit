@@ -27,11 +27,11 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
 
-// Owned by the C++ shell WebGPU::Metal::Sampler. API thread only; the process-wide MTLSamplerState pool it leases from
-// is the Mutex-protected `samplerStates` below.
+// https://gpuweb.github.io/gpuweb/#gpusampler, which Swift callers hold. API thread only; the process-wide
+// MTLSamplerState pool it leases from is the Mutex-protected `samplerStates` below.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class SamplerImpl {
+public final class SamplerImpl: GPUObjectReference {
     fileprivate struct Configuration {
         let metal: MetalSamplerConfiguration
         let comparison: Bool
@@ -80,7 +80,7 @@ public final class SamplerImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         configuration != nil
     }
 
@@ -120,15 +120,15 @@ public final class SamplerImpl {
     }
 }
 
-// A sampler with its shell, as Swift holds one.
 @_spi(WebKitGPU)
-public final class SamplerReference {
-    public let impl: SamplerImpl
-    let shell: WebGPU.Metal.Sampler
+public typealias SamplerReference = SamplerImpl
 
-    init(_ impl: SamplerImpl, _ shell: WebGPU.Metal.Sampler) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension SamplerImpl {
+    // What the sampler's callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: SamplerImpl {
+        self
     }
 }
 
@@ -511,18 +511,10 @@ private func samplerCacheRelease(_ key: SamplerCacheKey, _ samplerState: any MTL
     }
 }
 
-// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedSamplerImpl.
-func makeSamplerShell(_ impl: SamplerImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.Sampler {
-    precondition(deviceImpl.stagedSamplerImpl == nil)
-    deviceImpl.stagedSamplerImpl = impl
-    return WebGPU.Metal.Sampler.createWithStagedImpl(device).ptr()
-}
-
 @_spi(WebKitGPU)
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
-    public func createSampler(_ descriptor: GPUSamplerDescriptor, label: Swift.String?) -> SamplerReference {
-        let sampler = createSamplerImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
-        return SamplerReference(sampler, makeSamplerShell(sampler, device: shell, deviceImpl: impl))
+    public func createSampler(_ descriptor: GPUSamplerDescriptor, label: Swift.String?) -> SamplerImpl {
+        createSamplerImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
     }
 }

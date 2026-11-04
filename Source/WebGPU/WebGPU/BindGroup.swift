@@ -45,10 +45,9 @@ struct DynamicBufferRecord {
     let bindingIndex: UInt32
 }
 
-/// A sampler a bind group holds: one strong reference per distinct sampler, with its Impl (pair invariant) and the
-/// argument-buffer slot it has in each stage.
+/// A sampler a bind group holds: one strong reference per distinct sampler, with the argument-buffer slot it has in each
+/// stage.
 struct SamplerBinding {
-    let shell: WebGPU.Metal.Sampler
     let impl: SamplerImpl
     var slots: PerStage<UInt32?>
 }
@@ -443,7 +442,7 @@ private func importBoundExternalTexture(
 /// their calls.
 private enum DescriptorResource {
     case buffer(ShellReference<WebGPU.Metal.Buffer>, BufferImpl, sameDevice: Bool, offset: UInt64, size: UInt64?)
-    case sampler(ShellReference<WebGPU.Metal.Sampler>, SamplerImpl, sameDevice: Bool)
+    case sampler(SamplerImpl, sameDevice: Bool)
     case texture(WebGPU.Metal.Texture, TextureImpl, sameDevice: Bool)
     case textureView(WebGPU.Metal.TextureView, TextureViewImpl, sameDevice: Bool)
     case externalTexture(WebGPU.Metal.ExternalTexture, ExternalTextureImpl)
@@ -603,7 +602,7 @@ func createBindGroupImpl(
         let resource: DescriptorResource =
             switch entry.resource {
             case .sampler(let sampler):
-                .sampler(ShellReference(shell: sampler.shell), sampler.impl, sameDevice: sampler.impl.deviceImpl === deviceImpl)
+                .sampler(sampler, sameDevice: sampler.deviceImpl === deviceImpl)
             case .texture(let texture):
                 .texture(texture.shell, texture.impl, sameDevice: texture.impl.deviceImpl === deviceImpl)
             case .textureView(let view):
@@ -659,12 +658,9 @@ func appendBindGroupBuffer(
 }
 
 @_expose(Cxx)
-func appendBindGroupSampler(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ sampler: WebGPU.Metal.Sampler, _ impl: SamplerImpl) {
+func appendBindGroupSampler(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ impl: SamplerImpl) {
     deviceImpl.bindGroupBuilder.append(
-        DescriptorEntry(
-            binding: binding,
-            resource: .sampler(ShellReference(shell: sampler), impl, sameDevice: impl.deviceImpl === deviceImpl)
-        )
+        DescriptorEntry(binding: binding, resource: .sampler(impl, sameDevice: impl.deviceImpl === deviceImpl))
     )
 }
 
@@ -949,8 +945,8 @@ private struct BindGroupCreation {
                     usageIndex: usageIndex,
                     appendedToDynamicBuffers: &appendedBufferToDynamicBuffers
                 )
-            case .sampler(let shell, let impl, let sameDevice):
-                succeeded = addSampler(shell, impl, sameDevice: sameDevice, layoutEntry: layoutEntry, stage: stage, index: index)
+            case .sampler(let impl, let sameDevice):
+                succeeded = addSampler(impl, sameDevice: sameDevice, layoutEntry: layoutEntry, stage: stage, index: index)
             case .texture(let shell, let impl, let sameDevice):
                 succeeded = addTexture(
                     entry.binding,
@@ -1121,7 +1117,6 @@ private struct BindGroupCreation {
     }
 
     mutating func addSampler(
-        _ shell: borrowing ShellReference<WebGPU.Metal.Sampler>,
         _ sampler: SamplerImpl,
         sameDevice: Bool,
         layoutEntry: LayoutEntry,
@@ -1153,7 +1148,7 @@ private struct BindGroupCreation {
             samplerIndex = existing
         } else {
             samplerIndex = samplerBindings.count
-            samplerBindings.append(SamplerBinding(shell: shell.shell, impl: sampler, slots: PerStage(repeating: nil)))
+            samplerBindings.append(SamplerBinding(impl: sampler, slots: PerStage(repeating: nil)))
         }
         samplerBindings[samplerIndex].slots[stage] = index
         return true

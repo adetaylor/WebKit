@@ -3117,7 +3117,7 @@ final class CommandEncoderImpl {
     private var trackedExternalTextures = WeakImplList<ExternalTextureImpl>()
     private var retainedExternalTexturePlanes: [any MTLTexture] = []
     // One strong reference per distinct sampler, keyed by its Impl.
-    private var retainedSamplers = WTFHashMap<UInt64, WebGPU.Metal.Sampler>()
+    private var retainedSamplers = WTFHashMap<UInt64, SamplerImpl>()
     // Appended on every draw and dispatch with a sampler-bearing group, never deduplicated.
     private var bindGroupsToRebind: [(WebGPU.Metal.BindGroup, BindGroupImpl)] = []
     // The skipped draw-indexed validations, keyed by the BufferImpl's identity.
@@ -4027,8 +4027,8 @@ final class CommandEncoderImpl {
     }
 
     @_expose(!Cxx)
-    func addSampler(_ sampler: WebGPU.Metal.Sampler, _ impl: SamplerImpl) {
-        retainedSamplers.add(identityKey(ObjectIdentifier(impl))) { sampler }
+    func addSampler(_ sampler: SamplerImpl) {
+        retainedSamplers.add(identityKey(ObjectIdentifier(sampler))) { sampler }
     }
 
     @_expose(!Cxx)

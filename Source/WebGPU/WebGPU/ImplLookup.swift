@@ -249,121 +249,122 @@ public func reference(of texture: WebGPU.Texture) -> TextureReference {
     return TextureReference(impl, shell)
 }
 
-// A WebGPU object that Swift holds, as the GPU process's registry of them keeps it: whether it's valid, as its shell's
-// isValid() says.
+// A WebGPU object that Swift holds, as the GPU process's registry of them keeps it: whether it's valid.
 @_spi(WebKitGPU)
 public protocol GPUObjectReference: AnyObject {
-    var isValid: Bool { get }
+    func isValid() -> Bool
+}
+
+@_spi(WebKitGPU)
+extension GPUObjectReference {
+    public var isValid: Bool {
+        isValid()
+    }
 }
 
 @_spi(WebKitGPU)
 extension BindGroupLayoutReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension AdapterReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension BindGroupReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension BufferReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension CommandEncoderReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension ComputePassEncoderReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension ComputePipelineReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension DeviceReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension ExternalTextureReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension CommandBufferReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension PipelineLayoutReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension QuerySetReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension PresentationContextReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension QueueReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension RenderBundleEncoderReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension RenderBundleReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension RenderPassEncoderReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension RenderPipelineReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
-extension SamplerReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension ShaderModuleReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension TextureReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 @_spi(WebKitGPU)
 extension TextureViewReference: GPUObjectReference {
-    public var isValid: Bool { shell.isValid() }
+    public func isValid() -> Bool { shell.isValid() }
 }
 
 // The objects as the ::WebGPU C++ API objects they are, for the GPU process's C++.

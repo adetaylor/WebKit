@@ -109,8 +109,6 @@ final class DeviceImpl {
     @_expose(!Cxx)
     var stagedBufferImpl: BufferImpl?
     @_expose(!Cxx)
-    var stagedSamplerImpl: SamplerImpl?
-    @_expose(!Cxx)
     var stagedBindGroupImpl: BindGroupImpl?
     @_expose(!Cxx)
     var stagedShaderModuleImpl: ShaderModuleImpl?
@@ -758,15 +756,6 @@ final class DeviceImpl {
             preconditionFailure("No staged BufferImpl")
         }
         stagedBufferImpl = nil
-        return impl
-    }
-
-    @_expose(Cxx)
-    func takeStagedSamplerImpl() -> SamplerImpl {
-        guard let impl = stagedSamplerImpl else {
-            preconditionFailure("No staged SamplerImpl")
-        }
-        stagedSamplerImpl = nil
         return impl
     }
 
