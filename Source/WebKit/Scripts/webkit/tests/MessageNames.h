@@ -70,14 +70,15 @@ enum class ReceiverName : uint8_t {
     , TestWithSwiftConditionallyAndEnabledBy = 26
     , TestWithSwiftTypes = 27
     , TestWithSwiftTypesOptIn = 28
-    , TestWithValidator = 29
-    , TestWithWantsAsyncDispatch = 30
-    , TestWithWantsDispatch = 31
-    , TestWithWantsDispatchNoSyncMessages = 32
-    , TestWithoutAttributes = 33
-    , TestWithoutUsingIPCConnection = 34
-    , IPC = 35
-    , Invalid = 36
+    , TestWithSwiftWorkQueue = 29
+    , TestWithValidator = 30
+    , TestWithWantsAsyncDispatch = 31
+    , TestWithWantsDispatch = 32
+    , TestWithWantsDispatchNoSyncMessages = 33
+    , TestWithoutAttributes = 34
+    , TestWithoutUsingIPCConnection = 35
+    , IPC = 36
+    , Invalid = 37
 };
 
 enum class MessageName : uint16_t {
@@ -192,6 +193,12 @@ enum class MessageName : uint16_t {
     TestWithSwiftTypes_SyncHandlerMessageReply,
     TestWithSwiftTypes_SyncHandlerMessageWithCxxTypesReply,
     TestWithSwiftTypes_SyncHandlerMessageWithoutReply,
+    TestWithSwiftWorkQueue_SendCxxDecodedReply,
+    TestWithSwiftWorkQueue_SendCxxString,
+    TestWithSwiftWorkQueue_SendCxxStringAsyncReply,
+    TestWithSwiftWorkQueue_SendEmptyAsyncReply,
+    TestWithSwiftWorkQueue_SendString,
+    TestWithSwiftWorkQueue_SendStringAsyncReply,
     TestWithSwift_TestAsyncMessageReply,
     TestWithSwift_TestMessageWithAliasedParameter,
     TestWithSwift_TestMessageWithEmptyReplyReply,
@@ -300,6 +307,10 @@ enum class MessageName : uint16_t {
     TestWithSwiftTypes_MessageWithReply,
     TestWithSwiftTypes_SyncHandlerMessage,
     TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes,
+    TestWithSwiftWorkQueue_SendCxxDecoded,
+    TestWithSwiftWorkQueue_SendCxxStringAsync,
+    TestWithSwiftWorkQueue_SendEmptyAsync,
+    TestWithSwiftWorkQueue_SendStringAsync,
     TestWithSwift_TestAsyncMessage,
     TestWithSwift_TestMessageWithEmptyReply,
     TestWithValidator_MessageWithReply,
@@ -333,6 +344,8 @@ enum class MessageName : uint16_t {
     TestWithSwiftTypes_SynchronousMessage,
     TestWithSwiftTypes_SynchronousMessageWithoutParameters,
     TestWithSwiftTypes_SynchronousSyncHandlerMessage,
+    TestWithSwiftWorkQueue_SendCxxStringSync,
+    TestWithSwiftWorkQueue_SendStringSync,
     TestWithSwift_TestSyncMessage,
     TestWithSwift_TestThrowingMessageWithReply,
     TestWithWantsAsyncDispatch_TestSyncMessage,

@@ -168,6 +168,7 @@ MESSAGE_RECEIVERS = \
 	Shared/IPCConnectionTester \
 	Shared/IPCStreamTester \
 	Shared/IPCSwiftStreamTester \
+	Shared/IPCSwiftWorkQueueTester \
 	Shared/IPCTester \
 	Shared/IPCTesterReceiver \
 	UIProcess/WebFullScreenManagerProxy \
