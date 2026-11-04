@@ -21,13 +21,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=WebGPUEnabled,
-    SwiftReceiverBuildEnabledBy=GPU_PROCESS_WEBGPU_SWIFT,
+    SwiftReceiver,
     SwiftTypes
 ]
 messages -> RemoteComputePipeline Stream {

@@ -445,8 +445,10 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
     protect(videoFrameObjectHeap())->close();
     protect(remoteMediaPlayerManagerProxy())->connectionToWebProcessClosed();
 #endif
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     // RemoteGPU objects maintains ref to RemoteRenderingBackend objects so drop them first.
     m_remoteGPUMap.clear();
+#endif
     // RemoteRenderingBackend objects ref their GPUConnectionToWebProcess so we need to make sure
     // to break the reference cycle by destroying them.
     m_remoteRenderingBackendMap.clear();
@@ -798,6 +800,7 @@ VideoReceiverEndpointManager& GPUConnectionToWebProcess::videoReceiverEndpointMa
 }
 #endif
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
 {
     MESSAGE_CHECK(m_sharedPreferencesForWebProcess.webGPUEnabled);
@@ -830,6 +833,7 @@ void GPUConnectionToWebProcess::releaseGPU(WebGPUIdentifier identifier)
         });
     }
 }
+#endif
 
 void GPUConnectionToWebProcess::clearNowPlayingInfoForPage(std::optional<WebCore::PageIdentifier> pageIdentifier)
 {

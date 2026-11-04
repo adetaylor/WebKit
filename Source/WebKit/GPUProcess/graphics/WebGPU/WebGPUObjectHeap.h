@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "ScopedActiveMessageReceiveQueue.h"
 #include "WebGPUConvertFromBackingContext.h"
@@ -46,33 +46,11 @@ class WebGPUIntegration;
 }
 
 namespace WebKit {
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT) && !defined(__swift__)
+#if !defined(__swift__)
 class WebGPUImplTable;
 #endif
-class RemoteAdapter;
 class RemoteGPU;
-class RemoteBindGroup;
-class RemoteBindGroupLayout;
-class RemoteBuffer;
-class RemoteCommandBuffer;
-class RemoteCommandEncoder;
 class RemoteCompositorIntegration;
-class RemoteComputePassEncoder;
-class RemoteComputePipeline;
-class RemoteDevice;
-class RemoteExternalTexture;
-class RemotePipelineLayout;
-class RemotePresentationContext;
-class RemoteQuerySet;
-class RemoteQueue;
-class RemoteRenderBundleEncoder;
-class RemoteRenderBundle;
-class RemoteRenderPassEncoder;
-class RemoteRenderPipeline;
-class RemoteSampler;
-class RemoteShaderModule;
-class RemoteTexture;
-class RemoteTextureView;
 class RemoteXRBinding;
 class RemoteXRProjectionLayer;
 class RemoteXRSubImage;
@@ -97,36 +75,11 @@ public:
     void addObject(WebGPUIdentifier, RemoteXRSubImage&);
     void addObject(WebGPUIdentifier, RemoteXRProjectionLayer&);
     void addObject(WebGPUIdentifier, RemoteXRView&);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     // Make the Swift receivers of an adapter and a canvas context that RemoteGPU made and of a texture that a C++ receiver
     // made, in the Swift registry, which owns the objects of the other kinds.
     void addAdapter(WebGPUIdentifier, ::WebGPU::Adapter&);
     void addPresentationContext(WebGPUIdentifier, ::WebGPU::PresentationContext&);
     void addTexture(WebGPUIdentifier, ::WebGPU::Texture&);
-#else
-    void addObject(WebGPUIdentifier, RemoteAdapter&);
-    void addObject(WebGPUIdentifier, RemotePresentationContext&);
-    void addObject(WebGPUIdentifier, RemoteBindGroup&);
-    void addObject(WebGPUIdentifier, RemoteBindGroupLayout&);
-    void addObject(WebGPUIdentifier, RemoteBuffer&);
-    void addObject(WebGPUIdentifier, RemoteCommandBuffer&);
-    void addObject(WebGPUIdentifier, RemoteCommandEncoder&);
-    void addObject(WebGPUIdentifier, RemoteComputePassEncoder&);
-    void addObject(WebGPUIdentifier, RemoteComputePipeline&);
-    void addObject(WebGPUIdentifier, RemoteDevice&);
-    void addObject(WebGPUIdentifier, RemoteExternalTexture&);
-    void addObject(WebGPUIdentifier, RemotePipelineLayout&);
-    void addObject(WebGPUIdentifier, RemoteQuerySet&);
-    void addObject(WebGPUIdentifier, RemoteQueue&);
-    void addObject(WebGPUIdentifier, RemoteRenderBundleEncoder&);
-    void addObject(WebGPUIdentifier, RemoteRenderBundle&);
-    void addObject(WebGPUIdentifier, RemoteRenderPassEncoder&);
-    void addObject(WebGPUIdentifier, RemoteRenderPipeline&);
-    void addObject(WebGPUIdentifier, RemoteSampler&);
-    void addObject(WebGPUIdentifier, RemoteShaderModule&);
-    void addObject(WebGPUIdentifier, RemoteTexture&);
-    void addObject(WebGPUIdentifier, RemoteTextureView&);
-#endif
 
     void removeObject(WebGPUIdentifier);
 
@@ -168,15 +121,13 @@ public:
     };
     ExistsAndValid objectExistsAndValid(const WebCore::WebGPUIntegration&, WebGPUIdentifier) const;
 
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT) && !defined(__swift__)
+#if !defined(__swift__)
     // The Swift registry of the WebGPU objects whose messages Swift receives, which the heap empties when it's cleared.
     void createSwiftImplTable(RemoteGPU&);
     WebGPUImplTable& swiftImplTable();
 #endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     // Adds a device that Swift owns to those that devices() gives.
     void trackDevice(::WebGPU::Device&);
-#endif
 
 private:
     ObjectHeap();
@@ -188,34 +139,10 @@ private:
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRSubImage>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRProjectionLayer>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRView>
-#if !ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteAdapter>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroup>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteBindGroupLayout>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteBuffer>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteCommandBuffer>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteCommandEncoder>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteComputePassEncoder>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteComputePipeline>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteDevice>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteExternalTexture>
-        , IPC::ScopedActiveMessageReceiveQueue<RemotePipelineLayout>
-        , IPC::ScopedActiveMessageReceiveQueue<RemotePresentationContext>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteQuerySet>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteQueue>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundleEncoder>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteRenderBundle>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPassEncoder>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteRenderPipeline>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteSampler>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteShaderModule>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteTexture>
-        , IPC::ScopedActiveMessageReceiveQueue<RemoteTextureView>
-#endif
     >;
 
     HashMap<WebGPUIdentifier, Object> m_objects;
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT) && !defined(__swift__)
+#if !defined(__swift__)
     std::unique_ptr<WebGPUImplTable> m_swiftImplTable;
 #endif
     // Every device added that is still alive: work in flight can keep a device alive after its object is removed.
@@ -224,4 +151,4 @@ private:
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

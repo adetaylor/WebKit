@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteMeshProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "ModelConvertToBackingContext.h"
 #include "RemoteMeshMessages.h"
@@ -665,4 +665,4 @@ void RemoteMeshProxy::setRotation(float yaw, float pitch, float roll)
 
 }
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

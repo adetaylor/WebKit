@@ -26,7 +26,7 @@
 #include "config.h"
 #include "WebGPUDowncastConvertToBackingContext.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteAdapterProxy.h"
 #include "RemoteBindGroupLayoutProxy.h"
@@ -209,4 +209,4 @@ WebGPUIdentifier DowncastConvertToBackingContext::convertToBacking(const ::WebGP
 
 } // namespace WebKit::WebGPU
 
-#endif // HAVE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

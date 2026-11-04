@@ -48,30 +48,8 @@ GPUProcess/graphics/ShareablePixelBuffer.cpp
 GPUProcess/graphics/SharedFont.cpp
 GPUProcess/graphics/Model/ModelObjectHeap.cpp
 GPUProcess/graphics/Model/RemoteMesh.cpp
-GPUProcess/graphics/WebGPU/RemoteAdapter.cpp
-GPUProcess/graphics/WebGPU/RemoteBindGroup.cpp
-GPUProcess/graphics/WebGPU/RemoteBindGroupLayout.cpp
-GPUProcess/graphics/WebGPU/RemoteBuffer.cpp
-GPUProcess/graphics/WebGPU/RemoteCommandBuffer.cpp
-GPUProcess/graphics/WebGPU/RemoteCommandEncoder.cpp
 GPUProcess/graphics/WebGPU/RemoteCompositorIntegration.cpp
-GPUProcess/graphics/WebGPU/RemoteComputePassEncoder.cpp
-GPUProcess/graphics/WebGPU/RemoteComputePipeline.cpp
-GPUProcess/graphics/WebGPU/RemoteDevice.cpp @cost:3
-GPUProcess/graphics/WebGPU/RemoteExternalTexture.cpp
 GPUProcess/graphics/WebGPU/RemoteGPU.cpp @cost:3
-GPUProcess/graphics/WebGPU/RemotePipelineLayout.cpp
-GPUProcess/graphics/WebGPU/RemotePresentationContext.cpp
-GPUProcess/graphics/WebGPU/RemoteQuerySet.cpp
-GPUProcess/graphics/WebGPU/RemoteQueue.cpp
-GPUProcess/graphics/WebGPU/RemoteRenderBundle.cpp
-GPUProcess/graphics/WebGPU/RemoteRenderBundleEncoder.cpp
-GPUProcess/graphics/WebGPU/RemoteRenderPassEncoder.cpp
-GPUProcess/graphics/WebGPU/RemoteRenderPipeline.cpp
-GPUProcess/graphics/WebGPU/RemoteSampler.cpp
-GPUProcess/graphics/WebGPU/RemoteShaderModule.cpp
-GPUProcess/graphics/WebGPU/RemoteTexture.cpp
-GPUProcess/graphics/WebGPU/RemoteTextureView.cpp
 GPUProcess/graphics/WebGPU/RemoteXRBinding.cpp
 GPUProcess/graphics/WebGPU/RemoteXRProjectionLayer.cpp
 GPUProcess/graphics/WebGPU/RemoteXRSubImage.cpp

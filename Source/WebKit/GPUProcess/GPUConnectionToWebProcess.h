@@ -318,8 +318,10 @@ private:
     void releaseGraphicsContextGL(RemoteGraphicsContextGLIdentifier);
 #endif
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void createGPU(WebGPUIdentifier, RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&);
     void releaseGPU(WebGPUIdentifier);
+#endif
 
     void setNowPlayingInfoForPage(WebCore::NowPlayingInfo&&, std::optional<WebCore::PageIdentifier>);
     void abandonSnapshotFrame(RemoteSnapshotIdentifier, WebCore::FrameIdentifier);
@@ -435,8 +437,10 @@ private:
     using RemoteGraphicsContextGLMap = HashMap<RemoteGraphicsContextGLIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGraphicsContextGL>>;
     RemoteGraphicsContextGLMap m_remoteGraphicsContextGLMap;
 #endif
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     using RemoteGPUMap = HashMap<WebGPUIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGPU>>;
     RemoteGPUMap m_remoteGPUMap;
+#endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
     const RefPtr<RemoteCDMRegistry> m_cdmRegistry;
 #endif

@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteCompositorIntegrationProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteCompositorIntegrationMessages.h"
 #include "RemoteDeviceProxy.h"
@@ -97,4 +97,4 @@ void RemoteCompositorIntegrationProxy::updateContentsHeadroom(float headroom)
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

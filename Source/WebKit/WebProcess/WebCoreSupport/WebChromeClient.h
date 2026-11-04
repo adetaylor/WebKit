@@ -306,7 +306,7 @@ private:
 #if ENABLE(WEBGL)
     RefPtr<WebCore::GraphicsContextGL> createGraphicsContextGL(const WebCore::GraphicsContextGLAttributes&) const final;
 #endif
-#if HAVE(WEBGPU_IMPLEMENTATION) && ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     RefPtr<WebCore::WebGPUIntegration> createGPUForWebGPU() const final;
 #endif
     RefPtr<WebCore::ShapeDetection::BarcodeDetector> createBarcodeDetector(const WebCore::ShapeDetection::BarcodeDetectorOptions&) const final;

@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemotePipelineLayoutProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemotePipelineLayoutMessages.h"
 #include "WebGPUConvertToBackingContext.h"
@@ -63,4 +63,4 @@ bool RemotePipelineLayoutProxy::isValid() const
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

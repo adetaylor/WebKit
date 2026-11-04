@@ -26,7 +26,7 @@
 #include "config.h"
 #include "ModelObjectHeap.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteMesh.h"
 #include <wtf/TZoneMallocInlines.h>
@@ -81,4 +81,4 @@ WeakPtr<WebKit::Mesh> ModelObjectHeap::convertMeshFromBacking(WebModelIdentifier
 
 }
 
-#endif // HAVE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

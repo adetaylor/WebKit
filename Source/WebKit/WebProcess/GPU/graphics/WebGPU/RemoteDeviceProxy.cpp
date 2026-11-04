@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteDeviceProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteBindGroupLayoutProxy.h"
 #include "RemoteBindGroupProxy.h"
@@ -462,4 +462,4 @@ void RemoteDeviceProxy::pauseAllErrorReporting(bool pause)
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

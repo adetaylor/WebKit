@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteRenderPipelineProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteBindGroupLayoutProxy.h"
 #include "RemoteRenderPipelineMessages.h"
@@ -74,4 +74,4 @@ bool RemoteRenderPipelineProxy::isValid() const
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

@@ -26,18 +26,16 @@
 #include "config.h"
 #include "RemoteGPU.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
 #include "Logging.h"
 #include "MeshImpl.h"
 #include "ModelObjectHeap.h"
-#include "RemoteAdapter.h"
 #include "RemoteCompositorIntegration.h"
 #include "RemoteGPUMessages.h"
 #include "RemoteGPUProxyMessages.h"
 #include "RemoteMesh.h"
-#include "RemotePresentationContext.h"
 #include "RemoteRenderingBackend.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
@@ -148,9 +146,7 @@ void RemoteGPU::workQueueInitialize()
     RefPtr streamConnection = m_streamConnection;
     streamConnection->open(*this, workQueue);
     streamConnection->startReceivingMessages(*this, Messages::RemoteGPU::messageReceiverName(), m_identifier.toUInt64());
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     m_objectHeap->createSwiftImplTable(*this);
-#endif
 
 #if HAVE(WEBGPU_IMPLEMENTATION)
     // BEWARE: This is a retain cycle.
@@ -208,18 +204,13 @@ void RemoteGPU::requestAdapter(const WebGPU::RequestAdapterOptions& options, Web
     ASSERT(backing);
 
     Ref objectHeap = m_objectHeap;
-    backing->requestAdapter(options, [callback = WTF::move(callback), objectHeap, streamConnection = protect(*m_streamConnection), identifier, gpuConnectionToWebProcess = m_gpuConnectionToWebProcess.get(), gpu = protect(*this)](RefPtr<::WebGPU::Adapter>&& adapter) mutable {
+    backing->requestAdapter(options, [callback = WTF::move(callback), objectHeap, identifier](RefPtr<::WebGPU::Adapter>&& adapter) mutable {
         if (!adapter) {
             callback(std::nullopt);
             return;
         }
 
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
         objectHeap->addAdapter(identifier, *adapter);
-#else
-        auto remoteAdapter = RemoteAdapter::create(*gpuConnectionToWebProcess, gpu, *adapter, objectHeap, WTF::move(streamConnection), identifier);
-        objectHeap->addObject(identifier, remoteAdapter);
-#endif
 
         auto info = adapter->info();
         callback({ { WTF::move(info.name), adapter->features(), adapter->limits(), info.isFallbackAdapter, info.subgroupMinSize, info.subgroupMaxSize } });
@@ -238,12 +229,7 @@ void RemoteGPU::createPresentationContext(const WebGPU::PresentationContextDescr
 
     auto presentationContext = backing->createPresentationContext(*convertedDescriptor);
     MESSAGE_CHECK(presentationContext);
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     objectHeap->addPresentationContext(identifier, *presentationContext);
-#else
-    auto remotePresentationContext = RemotePresentationContext::create(*m_gpuConnectionToWebProcess.get(), *this, *presentationContext, objectHeap, *m_streamConnection, identifier);
-    objectHeap->addObject(identifier, remotePresentationContext);
-#endif
 }
 
 RefPtr<GPUConnectionToWebProcess> RemoteGPU::gpuConnectionToWebProcess() const
@@ -420,4 +406,4 @@ void RemoteGPU::isValid(WebGPUIdentifier identifier, CompletionHandler<void(bool
 
 #undef MESSAGE_CHECK
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

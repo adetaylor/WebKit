@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteGPUProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcessMessages.h"
 #include "GPUProcessConnection.h"
@@ -385,4 +385,4 @@ bool RemoteGPUProxy::isValid(const ::WebGPU::XRView&) const
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

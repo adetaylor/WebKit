@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteMesh.h"
 
-#if ENABLE(GPU_PROCESS_MODEL)
+#if ENABLE(GPU_PROCESS_MODEL) && ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
 #include "Logging.h"

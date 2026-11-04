@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteQueueProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteBufferProxy.h"
 #include "RemoteQueueMessages.h"
@@ -226,4 +226,4 @@ RefPtr<WebCore::NativeImage> RemoteQueueProxy::getNativeImage(WebCore::VideoFram
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

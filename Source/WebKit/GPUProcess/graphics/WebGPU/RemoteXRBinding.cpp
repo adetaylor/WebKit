@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteXRBinding.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
 #include "RemoteGPU.h"
@@ -107,4 +107,4 @@ void RemoteXRBinding::stopListeningForIPC()
 
 #undef MESSAGE_CHECK
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

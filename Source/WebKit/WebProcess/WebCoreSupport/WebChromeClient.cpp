@@ -1325,7 +1325,7 @@ RefPtr<GraphicsContextGL> WebChromeClient::createGraphicsContextGL(const Graphic
 }
 #endif
 
-#if HAVE(WEBGPU_IMPLEMENTATION) && ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 RefPtr<WebCore::WebGPUIntegration> WebChromeClient::createGPUForWebGPU() const
 {
     RefPtr page = m_page.get();

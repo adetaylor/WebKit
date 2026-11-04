@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteCompositorIntegration.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
 #include "Logging.h"
@@ -102,4 +102,4 @@ void RemoteCompositorIntegration::updateContentsHeadroom(float headroom)
 
 #undef MESSAGE_CHECK_COMPLETION
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

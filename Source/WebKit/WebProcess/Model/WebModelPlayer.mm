@@ -27,7 +27,7 @@
 #import "config.h"
 #import "WebModelPlayer.h"
 
-#if ENABLE(GPU_PROCESS_MODEL)
+#if ENABLE(GPU_PROCESS_MODEL) && ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #import "Logging.h"
 #import "Mesh.h"

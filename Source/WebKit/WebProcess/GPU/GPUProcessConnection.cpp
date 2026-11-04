@@ -482,6 +482,7 @@ void GPUProcessConnection::releaseGraphicsContextGL(RemoteGraphicsContextGLIdent
 }
 #endif
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void GPUProcessConnection::createGPU(WebGPUIdentifier identifier, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& serverHandle)
 {
     m_connection->send(Messages::GPUConnectionToWebProcess::CreateGPU(identifier, renderingBackendIdentifier, WTF::move(serverHandle)), 0, IPC::SendOption::DispatchMessageEvenWhenWaitingForSyncReply);
@@ -491,6 +492,7 @@ void GPUProcessConnection::releaseGPU(WebGPUIdentifier identifier)
 {
     m_connection->send(Messages::GPUConnectionToWebProcess::ReleaseGPU(identifier), 0, IPC::SendOption::DispatchMessageEvenWhenWaitingForSyncReply);
 }
+#endif
 
 } // namespace WebKit
 

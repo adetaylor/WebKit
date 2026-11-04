@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteTextureProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteTextureMessages.h"
 #include "RemoteTextureViewProxy.h"
@@ -118,4 +118,4 @@ bool RemoteTextureProxy::isValid() const
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

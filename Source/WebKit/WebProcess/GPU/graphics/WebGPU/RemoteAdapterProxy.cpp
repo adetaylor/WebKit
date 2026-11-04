@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteAdapterProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteAdapterMessages.h"
 #include "RemoteDeviceProxy.h"
