@@ -37,10 +37,6 @@
 #include "WebKit-Swift.h"
 #include <wtf/TZoneMallocInlines.h>
 
-#if HAVE(WEBGPU_IMPLEMENTATION)
-#include <WebCore/WebGPU.h>
-#endif
-
 #include <WebCore/WebGPUCompositorIntegration.h>
 #include <WebCore/WebGPUCppAPI.h>
 #include <WebCore/WebGPUDevice.h>
@@ -61,10 +57,11 @@ ObjectHeap::~ObjectHeap()
         m_swiftImplTable->removeAll();
 }
 
-void ObjectHeap::createSwiftImplTable(RemoteGPU& gpu)
+void ObjectHeap::createSwiftImplTable(RemoteGPU& gpu, ::WebGPU::InstanceDescriptor&& instanceDescriptor)
 {
     ASSERT(!m_swiftImplTable);
-    m_swiftImplTable = makeUniqueWithoutFastMallocCheck<WebGPUImplTable>(WebGPUImplTable::init(WebGPUSwiftRegistryHost { *this, gpu }));
+    Ref descriptor = WebGPUSwiftInstanceDescriptor::create(WTF::move(instanceDescriptor));
+    m_swiftImplTable = makeUniqueWithoutFastMallocCheck<WebGPUImplTable>(WebGPUImplTable::init(WebGPUSwiftRegistryHost { *this, gpu }, descriptor.ptr()));
 }
 
 WebGPUImplTable& ObjectHeap::swiftImplTable()
@@ -108,14 +105,30 @@ void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteXRView& view)
     ASSERT_UNUSED(result, result.isNewEntry);
 }
 
-void ObjectHeap::addAdapter(WebGPUIdentifier identifier, ::WebGPU::Adapter& adapter)
+std::optional<RemoteGPURequestAdapterResponse> ObjectHeap::requestAdapter(const ::WebGPU::RequestAdapterOptions& options, WebGPUIdentifier identifier)
 {
-    swiftImplTable().addAdapter(RemoteAdapterBacking { adapter }, identifier.toUInt64());
+    RemoteGPURequestAdapterResponse response { };
+    if (!swiftImplTable().requestAdapter(options, identifier.toUInt64(), response))
+        return std::nullopt;
+    return response;
 }
 
-void ObjectHeap::addPresentationContext(WebGPUIdentifier identifier, ::WebGPU::PresentationContext& presentationContext)
+void ObjectHeap::addPresentationContext(WebGPUIdentifier identifier, RemoteCompositorIntegration& compositorIntegration)
 {
-    swiftImplTable().addPresentationContext(RemotePresentationContextBacking { presentationContext }, identifier.toUInt64());
+    compositorIntegration.setCanvas(swiftImplTable().addPresentationContext(identifier.toUInt64()));
+}
+
+RefPtr<RemoteCompositorIntegration> ObjectHeap::compositorIntegration(WebGPUIdentifier identifier)
+{
+    auto iterator = m_objects.find(identifier);
+    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>>(iterator->value))
+        return nullptr;
+    return std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>>(iterator->value).get();
+}
+
+bool ObjectHeap::hasDevice(WebGPUIdentifier identifier)
+{
+    return m_swiftImplTable && m_swiftImplTable->hasDevice(identifier.toUInt64());
 }
 
 void ObjectHeap::addTexture(WebGPUIdentifier identifier, ::WebGPU::Texture& texture)
@@ -185,10 +198,9 @@ RefPtr<::WebGPU::CommandEncoder> ObjectHeap::convertCommandEncoderFromBacking(We
 
 WeakPtr<WebCore::WebGPUCompositorIntegration> ObjectHeap::convertCompositorIntegrationFromBacking(WebGPUIdentifier identifier)
 {
-    auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>>(iterator->value))
-        return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>>(iterator->value)->backing();
+    // A compositor integration has no WebCore backing: RemoteGPU links it to its canvas context.
+    UNUSED_PARAM(identifier);
+    return nullptr;
 }
 
 RefPtr<::WebGPU::ComputePassEncoder> ObjectHeap::convertComputePassEncoderFromBacking(WebGPUIdentifier identifier)
@@ -337,10 +349,9 @@ RefPtr<::WebGPU::XRView> ObjectHeap::createXRViewFromBacking(WebGPUIdentifier id
     return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteXRView>>(iterator->value)->backing();
 }
 
-ObjectHeap::ExistsAndValid ObjectHeap::objectExistsAndValid(const WebCore::WebGPUIntegration& gpu, WebGPUIdentifier identifier) const
+ObjectHeap::ExistsAndValid ObjectHeap::objectExistsAndValid(WebGPUIdentifier identifier) const
 {
     ExistsAndValid result;
-#if HAVE(WEBGPU_IMPLEMENTATION)
     auto it = m_objects.find(identifier);
     if (it == m_objects.end()) {
         auto state = m_swiftImplTable ? m_swiftImplTable->objectState(identifier.toUInt64()) : WebGPUSwiftObjectState::Absent;
@@ -350,16 +361,13 @@ ObjectHeap::ExistsAndValid ObjectHeap::objectExistsAndValid(const WebCore::WebGP
     }
 
     result.exists = true;
-    result.valid = WTF::switchOn(it->value, [&](std::monostate) -> bool {
+    result.valid = WTF::switchOn(it->value, [](std::monostate) -> bool {
         return false;
-    },
-    [&](auto& object) -> bool {
-        return gpu.isValid(protect(object->backing()));
+    }, [](const IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>&) -> bool {
+        return true;
+    }, [](auto& object) -> bool {
+        return protect(object->backing())->isValid();
     });
-#else
-    UNUSED_PARAM(gpu);
-    UNUSED_PARAM(identifier);
-#endif
     return result;
 }
 

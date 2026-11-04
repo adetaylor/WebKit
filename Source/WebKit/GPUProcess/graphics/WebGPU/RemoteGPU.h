@@ -67,10 +67,6 @@ namespace WebModel {
 struct ImageAsset;
 }
 
-namespace WebCore {
-class WebGPUIntegration;
-}
-
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
@@ -99,8 +95,6 @@ public:
 
     void paintNativeImageToImageBuffer(WebCore::NativeImage&, WebCore::RenderingResourceIdentifier);
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier);
-    // The root, which has the commands that take WebCore sources.
-    RefPtr<WebCore::WebGPUIntegration> backing();
     RefPtr<GPUConnectionToWebProcess> gpuConnectionToWebProcess() const;
 
     static Vector<UniqueRef<WebCore::IOSurface>> createRenderBuffers(unsigned width, unsigned height, const WebCore::ProcessIdentity&, bool standardDynamicRange = false);
@@ -149,7 +143,6 @@ private:
     SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
     const Ref<IPC::StreamConnectionWorkQueue> m_workQueue;
     RefPtr<IPC::StreamServerConnection> m_streamConnection;
-    RefPtr<WebCore::WebGPUIntegration> m_backing WTF_GUARDED_BY_CAPABILITY(workQueue());
     const Ref<WebGPU::ObjectHeap> m_objectHeap WTF_GUARDED_BY_CAPABILITY(workQueue());
     const Ref<ModelObjectHeap> m_modelObjectHeap WTF_GUARDED_BY_CAPABILITY(workQueue());
     const WebGPUIdentifier m_identifier;

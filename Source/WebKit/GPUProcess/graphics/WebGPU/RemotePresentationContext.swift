@@ -23,6 +23,8 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
 
+import CoreGraphics
+import IOSurface
 @_spi(WebKitGPU) import WebGPUSwift
 import WebKit_Internal
 
@@ -94,6 +96,55 @@ final class RemotePresentationContext {
 
     func present(frameIndex: UInt32) {
         presentationContext.present(frameIndex)
+    }
+}
+
+// A canvas context as the compositor integration that shows it holds it, to give it the render buffers and to present
+// and read back its frames. Used on the RemoteGPU's work queue.
+@_expose(Cxx)
+final class WebGPUCompositorCanvas {
+    private let presentationContext: PresentationContextReference
+
+    @_expose(!Cxx)
+    init(_ presentationContext: PresentationContextReference) {
+        self.presentationContext = presentationContext
+    }
+
+    func unconfigure() {
+        presentationContext.unconfigure()
+    }
+
+    func renderBuffersWereRecreated() {
+        presentationContext.renderBuffersWereRecreated()
+    }
+
+    func addRenderBuffer(_ surface: IOSurfaceRef) {
+        presentationContext.addRenderBuffer(surface as IOSurface)
+    }
+
+    func present(_ frameIndex: UInt32) {
+        presentationContext.present(frameIndex)
+    }
+
+    // Calls the completion once the configured device's queue has scheduled the work submitted so far.
+    func onSubmittedWorkScheduled(_ completion: WebKit.WebGPUSwiftCompletion) {
+        presentationContext.onSubmittedWorkScheduled {
+            completion.call()
+        }
+    }
+
+    func lastFrameGPUCost() -> Double {
+        presentationContext.lastFrameGPUCost
+    }
+
+    func lastFramePresentStall() -> Double {
+        presentationContext.lastFramePresentStall
+    }
+
+    // CF_RETURNS_RETAINED; the compositor integration adopts it. nil, with isIOSurfaceSupportedFormat set, when the
+    // compositor can read the render buffer's IOSurface instead.
+    func textureAsNativeImage(_ bufferIndex: UInt32, _ isIOSurfaceSupportedFormat: inout Bool) -> CGImage? {
+        presentationContext.textureAsNativeImage(bufferIndex, &isIOSurfaceSupportedFormat)
     }
 }
 

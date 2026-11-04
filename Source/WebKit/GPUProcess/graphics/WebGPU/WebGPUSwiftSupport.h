@@ -29,6 +29,7 @@
 
 #include "IPCSemaphore.h"
 #include "MessageReceiver.h"
+#include "RemoteGPURequestAdapterResponse.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "StreamServerConnection.h"
 #include "SwiftCoding.h"
@@ -39,11 +40,13 @@
 #include "WebGPUImageCopyTexture.h"
 #include "WebGPUImageCopyTextureTagged.h"
 #include "WebGPUImageDataLayout.h"
+#include "WebGPURequestAdapterOptions.h"
 #include <WebCore/SharedMemory.h>
 #include <WebCore/WebGPUCppAPI.h>
 #include <concepts>
 #include <memory>
 #include <type_traits>
+#include <wtf/CompletionHandler.h>
 #include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
@@ -138,22 +141,73 @@ WebGPUSwiftReceiverRegistration* WTF_NULLABLE registerWebGPUSwiftReceiver(const 
     return &WebGPUSwiftReceiverRegistration::create(*streamConnection, forwarder.get(), receiverName, identifier).leakRef();
 }
 
-// The C++ API objects that Swift receivers and the registry pass to C++, and that C++ passes to them. Swift can't
-// name the ::WebGPU types in the C++ it generates: it names them WebGPU::..., which inside namespace WebKit means
-// WebKit::WebGPU::....
-class RemoteAdapterBacking {
+// The descriptor of the instance that the registry makes, which C++ makes for it: Swift can't take the descriptor, which
+// can't be copied, as a parameter.
+class WebGPUSwiftInstanceDescriptor final : public RefCounted<WebGPUSwiftInstanceDescriptor> {
 public:
-    explicit RemoteAdapterBacking(::WebGPU::Adapter& backing)
-        : m_backing(backing)
+    static Ref<WebGPUSwiftInstanceDescriptor> create(::WebGPU::InstanceDescriptor&& descriptor)
+    {
+        return adoptRef(*new WebGPUSwiftInstanceDescriptor(WTF::move(descriptor)));
+    }
+
+    // Once.
+    ::WebGPU::InstanceDescriptor take() { return std::exchange(m_descriptor, { }); }
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the
+    // type hierarchy.
+    void ref() const { RefCounted<WebGPUSwiftInstanceDescriptor>::ref(); }
+    void deref() const { RefCounted<WebGPUSwiftInstanceDescriptor>::deref(); }
+#endif
+
+private:
+    explicit WebGPUSwiftInstanceDescriptor(::WebGPU::InstanceDescriptor&& descriptor)
+        : m_descriptor(WTF::move(descriptor))
     {
     }
 
-    ::WebGPU::Adapter& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
+    ::WebGPU::InstanceDescriptor m_descriptor;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// A completion handler that a Swift closure calls, which Swift can't take as a parameter. Called at most once, when the
+// closure calls it or else when the last reference goes, on the RemoteGPU's work queue.
+class WebGPUSwiftCompletion final : public RefCounted<WebGPUSwiftCompletion> {
+public:
+    static Ref<WebGPUSwiftCompletion> create(CompletionHandler<void()>&& completionHandler)
+    {
+        return adoptRef(*new WebGPUSwiftCompletion(WTF::move(completionHandler)));
+    }
+
+    ~WebGPUSwiftCompletion()
+    {
+        call();
+    }
+
+    void call()
+    {
+        if (m_completionHandler)
+            m_completionHandler();
+    }
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the
+    // type hierarchy.
+    void ref() const { RefCounted<WebGPUSwiftCompletion>::ref(); }
+    void deref() const { RefCounted<WebGPUSwiftCompletion>::deref(); }
+#endif
 
 private:
-    Ref<::WebGPU::Adapter> m_backing;
-} SWIFT_SELF_CONTAINED;
+    explicit WebGPUSwiftCompletion(CompletionHandler<void()>&& completionHandler)
+        : m_completionHandler(WTF::move(completionHandler))
+    {
+    }
 
+    CompletionHandler<void()> m_completionHandler;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// The C++ API objects that Swift receivers and the registry pass to C++, and that C++ passes to them. Swift can't
+// name the ::WebGPU types in the C++ it generates: it names them WebGPU::..., which inside namespace WebKit means
+// WebKit::WebGPU::....
 using OptionalOwnedBytes = std::optional<::WebGPU::OwnedBytes>;
 
 // The bytes of the shared memory that a message's handle names, mapped read-only, for a write that may read them after
@@ -174,19 +228,6 @@ private:
 } SWIFT_SELF_CONTAINED;
 
 using OptionalRemoteDeviceBacking = std::optional<RemoteDeviceBacking>;
-
-class RemotePresentationContextBacking {
-public:
-    explicit RemotePresentationContextBacking(::WebGPU::PresentationContext& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::PresentationContext& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::PresentationContext> m_backing;
-} SWIFT_SELF_CONTAINED;
 
 class RemoteTextureBacking {
 public:

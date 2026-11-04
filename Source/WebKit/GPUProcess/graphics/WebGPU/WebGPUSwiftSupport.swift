@@ -72,8 +72,9 @@ where Target.RawValue: FixedWidthInteger, Source.RawValue: FixedWidthInteger {
 
 // The registry of the WebGPU objects of a RemoteGPU whose messages Swift receives, by identifier: each object's
 // reference, its receiver, and the registration that keeps its messages coming, which the receiver removes when the
-// web process destructs the object. Used only on the RemoteGPU's work queue. The RemoteGPU's object heap, which owns
-// the receivers still written in C++, owns the registry, and empties it when it's cleared or destroyed.
+// web process destructs the object. It has the RemoteGPU's instance, which makes the adapters and canvas contexts. Used
+// only on the RemoteGPU's work queue. The RemoteGPU's object heap, which owns the receivers still written in C++, owns
+// the registry, and empties it when it's cleared or destroyed.
 @_expose(Cxx)
 final class WebGPUImplTable {
     private final class Entry {
@@ -90,12 +91,15 @@ final class WebGPUImplTable {
 
     @_expose(!Cxx)
     let host: WebKit.WebGPUSwiftRegistryHost
+    private let instance: InstanceReference
     private var entries: [UInt64: Entry] = [:]
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
-    init(host: WebKit.WebGPUSwiftRegistryHost) {
+    init(host: WebKit.WebGPUSwiftRegistryHost, instanceDescriptor: WebKit.WebGPUSwiftInstanceDescriptor) {
         self.host = host
+        var descriptor = instanceDescriptor.take()
+        instance = InstanceReference(&descriptor)
     }
 
     @_expose(!Cxx)
@@ -108,10 +112,25 @@ final class WebGPUImplTable {
         entries.removeAll()
     }
 
-    // Makes the receiver of an adapter that RemoteGPU requested.
+    // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: makes the adapter and its receiver, and fills in the
+    // reply that describes it. False, with no reply, if there's no adapter.
     @used
-    func addAdapter(_ backing: WebKit.RemoteAdapterBacking, _ identifier: UInt64) {
-        RemoteAdapter.add(WebGPUSwift.reference(of: backing.get()), WebGPURegistryLink(self, identifier))
+    func requestAdapter(_ options: WebGPU.RequestAdapterOptions, _ identifier: UInt64, _ response: inout WebKit.RemoteGPURequestAdapterResponse) -> Bool {
+        guard let adapter = instance.requestAdapter(options) else {
+            return false
+        }
+        RemoteAdapter.add(adapter, WebGPURegistryLink(self, identifier))
+
+        response.name = WTF.String(adapter.name)
+        for feature in adapter.features {
+            response.features.append(consuming: feature)
+        }
+        response.limits = adapter.limits
+        response.isFallbackAdapter = false
+        let subgroupSizes = adapter.subgroupSizes
+        response.subgroupMinSize = subgroupSizes.min
+        response.subgroupMaxSize = subgroupSizes.max
+        return true
     }
 
     // Makes the receivers of a device that an adapter made, and of its queue.
@@ -123,16 +142,24 @@ final class WebGPUImplTable {
         RemoteQueue.add(device.queue, WebGPURegistryLink(self, queueIdentifier))
     }
 
-    // Makes the receiver of a canvas context that RemoteGPU made.
+    // Makes a canvas context, and its receiver, for the compositor integration that shows it, which holds what this
+    // returns.
     @used
-    func addPresentationContext(_ backing: WebKit.RemotePresentationContextBacking, _ identifier: UInt64) {
-        RemotePresentationContext.add(WebGPUSwift.reference(of: backing.get()), WebGPURegistryLink(self, identifier))
+    func addPresentationContext(_ identifier: UInt64) -> WebGPUCompositorCanvas {
+        let presentationContext = instance.createPresentationContext()
+        RemotePresentationContext.add(presentationContext, WebGPURegistryLink(self, identifier))
+        return WebGPUCompositorCanvas(presentationContext)
     }
 
     // Makes the receiver of a texture that a C++ receiver made: an XR subimage's.
     @used
     func addTexture(_ backing: WebKit.RemoteTextureBacking, _ identifier: UInt64) {
         RemoteTexture.add(WebGPUSwift.reference(of: backing.get()), WebGPURegistryLink(self, identifier))
+    }
+
+    @used
+    func hasDevice(_ identifier: UInt64) -> Bool {
+        entries[identifier]?.object is DeviceReference
     }
 
     // The devices that Swift owns, for the C++ receivers that name them.

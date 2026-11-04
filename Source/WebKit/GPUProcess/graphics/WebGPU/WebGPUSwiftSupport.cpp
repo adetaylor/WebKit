@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,11 +35,13 @@
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
 #include "WebKit-Swift.h"
+#include <WebCore/ColorSpace.h>
+#include <WebCore/IOSurface.h>
 #include <WebCore/ImageBuffer.h>
-#include <WebCore/WebGPU.h>
-#include <WebCore/WebGPUCreateImpl.h>
+#include <WebCore/WebGPUExternalTextureDescriptor.h>
 #include <WebCore/WebGPUImageCopyExternalImage.h>
 #include <WebCore/WebGPUImageCopyTextureTagged.h>
+#include <WebCore/WebGPUPredefinedColorSpace.h>
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 #include "RemoteVideoFrameObjectHeapHandle.h"
@@ -49,6 +51,144 @@
 #endif
 
 namespace WebKit {
+
+// The WebGPU implementation's forms of a source and a descriptor that name WebCore objects. std::nullopt if the source
+// has nothing to copy.
+#if ENABLE(VIDEO)
+static ::WebGPU::VideoFrameRotation LEGACY_NODELETE convertToAPI(WebCore::VideoFrameRotation rotation)
+{
+    switch (rotation) {
+    case WebCore::VideoFrameRotation::None:
+        return ::WebGPU::VideoFrameRotation::None;
+    case WebCore::VideoFrameRotation::Right:
+        return ::WebGPU::VideoFrameRotation::Right;
+    case WebCore::VideoFrameRotation::UpsideDown:
+        return ::WebGPU::VideoFrameRotation::UpsideDown;
+    case WebCore::VideoFrameRotation::Left:
+        return ::WebGPU::VideoFrameRotation::Left;
+    }
+
+    ASSERT_NOT_REACHED();
+    return ::WebGPU::VideoFrameRotation::None;
+}
+#endif
+
+// The IOSurface format an accelerated ImageBuffer of this pixel format is backed by, expressed as the
+// equivalent texture format, plus whether its alpha channel holds meaningful data. std::nullopt for
+// the formats GPUQueue::copyExternalImageToTexture keeps on the CPU readback path.
+struct SourceTextureFormat {
+    ::WebGPU::TextureFormat format;
+    bool hasAlpha;
+};
+
+static std::optional<SourceTextureFormat> LEGACY_NODELETE sourceTextureFormat(WebCore::PixelFormat pixelFormat)
+{
+    switch (pixelFormat) {
+    case WebCore::PixelFormat::RGBA8:
+        return SourceTextureFormat { ::WebGPU::TextureFormat::Rgba8unorm, true };
+    case WebCore::PixelFormat::BGRA8:
+        return SourceTextureFormat { ::WebGPU::TextureFormat::Bgra8unorm, true };
+    case WebCore::PixelFormat::BGRX8:
+        // IOSurface::Format::BGRX uses the same IOSurface pixel format as BGRA, but CoreGraphics
+        // renders into it with kCGImageAlphaNoneSkipFirst, so the alpha byte is undefined.
+        return SourceTextureFormat { ::WebGPU::TextureFormat::Bgra8unorm, false };
+    case WebCore::PixelFormat::RGBX8:
+        return SourceTextureFormat { ::WebGPU::TextureFormat::Rgba8unorm, false };
+#if ENABLE(PIXEL_FORMAT_RGBA16F)
+    case WebCore::PixelFormat::RGBA16F:
+        return SourceTextureFormat { ::WebGPU::TextureFormat::Rgba16float, true };
+#endif
+#if ENABLE(PIXEL_FORMAT_RGBA16)
+    case WebCore::PixelFormat::RGBA16:
+        return SourceTextureFormat { ::WebGPU::TextureFormat::Rgba16unorm, true };
+#endif
+#if ENABLE(PIXEL_FORMAT_RGB10)
+    case WebCore::PixelFormat::RGB10:
+#endif
+#if ENABLE(PIXEL_FORMAT_RGB10A8)
+    case WebCore::PixelFormat::RGB10A8:
+#endif
+#if ENABLE(PIXEL_FORMAT_RGB10) || ENABLE(PIXEL_FORMAT_RGB10A8)
+        // Packed 10-bit surfaces have no single-plane MTLPixelFormat equivalent.
+        return std::nullopt;
+#endif
+    }
+
+    ASSERT_NOT_REACHED();
+    return std::nullopt;
+}
+
+static std::optional<::WebGPU::ImageCopyExternalImage> backingImageCopyExternalImage(const WebCore::WebGPUExternalImageSource& source)
+{
+    ::WebGPU::ImageCopyExternalImage backingSource;
+    backingSource.origin = source.origin.value_or(::WebGPU::Origin2D { });
+    backingSource.flipY = source.flipY;
+    backingSource.hasAlpha = false;
+    // An ImageBitmap created with premultiplyAlpha: "none" was put into its buffer straight, so
+    // the caller has to say; a buffer a 2D context composited is premultiplied.
+    backingSource.premultipliedAlpha = source.premultipliedAlpha;
+
+#if ENABLE(VIDEO)
+    if (source.videoSource) {
+        // The decoded frame the GPU process resolved for us. Its extent, its crop and its primaries
+        // all travel with the frame, so the backing queue reads them off it rather than being told
+        // here; and a decoded frame is opaque, so its alpha is replaced with 1 the way an external
+        // texture's is.
+        auto* pixelBuffer = std::get_if<RetainPtr<CVPixelBufferRef>>(&*source.videoSource);
+        if (!pixelBuffer || !*pixelBuffer)
+            return std::nullopt;
+
+        backingSource.pixelBuffer = *pixelBuffer;
+        // The display transform is the one thing about the frame its pixel buffer does not carry.
+        backingSource.pixelBufferRotation = convertToAPI(source.videoSourceRotation);
+        backingSource.pixelBufferIsMirrored = source.videoSourceIsMirrored;
+        backingSource.premultipliedAlpha = true;
+    } else
+#endif
+    {
+        RefPtr sourceImageBuffer = source.imageBuffer;
+        if (!sourceImageBuffer)
+            return std::nullopt;
+
+        // Only accelerated ImageBuffers have an IOSurface to wrap in an MTLTexture. GPUQueue rejects
+        // unaccelerated sources before we get here, but the backing may have been dropped since.
+        auto* surface = sourceImageBuffer->surface();
+        if (!surface)
+            return std::nullopt;
+
+        auto sourceSize = sourceImageBuffer->truncatedLogicalSize();
+        if (!sourceSize.width() || !sourceSize.height())
+            return std::nullopt;
+
+        auto sourceFormat = sourceTextureFormat(sourceImageBuffer->pixelFormat());
+        if (!sourceFormat)
+            return std::nullopt;
+
+        backingSource.source = surface->surface();
+        backingSource.sourceFormat = sourceFormat->format;
+        backingSource.sourceSize = { static_cast<uint32_t>(sourceSize.width()), static_cast<uint32_t>(sourceSize.height()) };
+        backingSource.hasAlpha = sourceFormat->hasAlpha;
+        backingSource.colorSpace = sourceImageBuffer->colorSpace() == WebCore::ColorSpace::DisplayP3() ? ::WebGPU::PredefinedColorSpace::DisplayP3 : ::WebGPU::PredefinedColorSpace::SRGB;
+    }
+
+    return backingSource;
+}
+
+#if ENABLE(VIDEO)
+static ::WebGPU::ExternalTextureDescriptor backingExternalTextureDescriptor(const WebCore::WebGPUExternalTextureDescriptor& descriptor)
+{
+    auto* pixelBuffer = std::get_if<RetainPtr<CVPixelBufferRef>>(&descriptor.videoBacking);
+    return {
+        .label = descriptor.label,
+        .pixelBuffer = pixelBuffer ? *pixelBuffer : nullptr,
+        .colorSpace = WebCore::convertToWebGPU(descriptor.colorSpace),
+        .visibleSize = {
+            .width = static_cast<uint32_t>(std::max(0, descriptor.visibleSize.width())),
+            .height = static_cast<uint32_t>(std::max(0, descriptor.visibleSize.height())),
+        },
+    };
+}
+#endif
 
 WebGPUSwiftRegistryHost::WebGPUSwiftRegistryHost(WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu)
     : m_objectHeap(objectHeap)
@@ -105,7 +245,7 @@ std::optional<::WebGPU::ImageCopyExternalImage> WebGPUSwiftRegistryHost::externa
     if (!imageBuffer)
         return std::nullopt;
 
-    return WebCore::backingImageCopyExternalImage({
+    return backingImageCopyExternalImage({
         .origin = origin,
         .flipY = flipY,
         .imageBuffer = WTF::move(imageBuffer),
@@ -202,7 +342,7 @@ std::optional<::WebGPU::ExternalTextureDescriptor> WebGPUSwiftVideoFrames::exter
         isInvalid = true;
         return std::nullopt;
     }
-    return WebCore::backingExternalTextureDescriptor(*convertedDescriptor);
+    return backingExternalTextureDescriptor(*convertedDescriptor);
 }
 
 std::optional<::WebGPU::ExternalTextureDescriptor> WebGPUSwiftVideoFrames::mediaPlayerFrame(uint64_t mediaPlayerIdentifier)
@@ -262,7 +402,7 @@ std::optional<::WebGPU::ImageCopyExternalImage> WebGPUSwiftVideoFrames::external
     ASSERT(convertedSource);
     if (!convertedSource)
         return std::nullopt;
-    return WebCore::backingImageCopyExternalImage(*convertedSource);
+    return backingImageCopyExternalImage(*convertedSource);
 }
 #endif // PLATFORM(COCOA) && ENABLE(VIDEO)
 

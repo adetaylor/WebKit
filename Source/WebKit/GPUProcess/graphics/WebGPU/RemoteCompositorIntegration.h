@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,9 +33,11 @@
 #include <WebCore/AlphaPremultiplication.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <WebCore/WebGPUCppAPI.h>
+#include <memory>
 #include <wtf/Ref.h>
 #include <wtf/Seconds.h>
 #include <wtf/TZoneMalloc.h>
+#include <wtf/UniqueRef.h>
 #include <wtf/WeakRef.h>
 #include <wtf/text/WTFString.h>
 
@@ -46,8 +48,9 @@
 
 namespace WebCore {
 class ColorSpace;
+class IOSurface;
 class ImageBuffer;
-class WebGPUCompositorIntegration;
+class NativeImage;
 }
 
 namespace IPC {
@@ -58,17 +61,19 @@ class StreamServerConnection;
 namespace WebKit {
 
 class RemoteGPU;
+class WebGPUCompositorCanvas;
 
 namespace WebGPU {
 class ObjectHeap;
 }
 
+// The render buffers that the compositor shows a WebGPU canvas from, and the canvas context that draws into them.
 class RemoteCompositorIntegration final : public IPC::StreamMessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(RemoteCompositorIntegration);
 public:
-    static Ref<RemoteCompositorIntegration> create(WebCore::WebGPUCompositorIntegration& compositorIntegration, WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
+    static Ref<RemoteCompositorIntegration> create(WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
     {
-        return adoptRef(*new RemoteCompositorIntegration(compositorIntegration, objectHeap, WTF::move(streamConnection), gpu, identifier));
+        return adoptRef(*new RemoteCompositorIntegration(objectHeap, WTF::move(streamConnection), gpu, identifier));
     }
 
     virtual ~RemoteCompositorIntegration();
@@ -77,17 +82,18 @@ public:
 
     void stopListeningForIPC();
 
+    // The canvas context that draws into the render buffers, which RemoteGPU makes for them once.
+    void setCanvas(WebGPUCompositorCanvas&&);
+
 private:
     friend class WebGPU::ObjectHeap;
 
-    RemoteCompositorIntegration(WebCore::WebGPUCompositorIntegration&, WebGPU::ObjectHeap&, Ref<IPC::StreamServerConnection>&&, RemoteGPU&, WebGPUIdentifier);
+    RemoteCompositorIntegration(WebGPU::ObjectHeap&, Ref<IPC::StreamServerConnection>&&, RemoteGPU&, WebGPUIdentifier);
 
     RemoteCompositorIntegration(const RemoteCompositorIntegration&) = delete;
     RemoteCompositorIntegration(RemoteCompositorIntegration&&) = delete;
     RemoteCompositorIntegration& operator=(const RemoteCompositorIntegration&) = delete;
     RemoteCompositorIntegration& operator=(RemoteCompositorIntegration&&) = delete;
-
-    WebCore::WebGPUCompositorIntegration& backing() { return m_backing; }
 
     void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
     void destruct();
@@ -99,8 +105,15 @@ private:
 
     void prepareForDisplay(uint32_t frameIndex, CompletionHandler<void(Seconds, Seconds)>&&);
     void updateContentsHeadroom(float);
+    void withDisplayBufferAsNativeImage(uint32_t bufferIndex, NOESCAPE const Function<void(WebCore::NativeImage*)>&);
 
-    const Ref<WebCore::WebGPUCompositorIntegration> m_backing;
+#if PLATFORM(COCOA)
+    Vector<UniqueRef<WebCore::IOSurface>> m_renderBuffers;
+#endif
+    WebCore::AlphaPremultiplication m_alphaMode { WebCore::AlphaPremultiplication::Premultiplied };
+    // Whether the render buffers have been made for a device.
+    bool m_hasDevice { false };
+    std::unique_ptr<WebGPUCompositorCanvas> m_canvas;
     WeakRef<WebGPU::ObjectHeap> m_objectHeap;
     const Ref<IPC::StreamServerConnection> m_streamConnection;
     WeakRef<RemoteGPU> m_gpu;

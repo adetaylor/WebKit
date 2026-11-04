@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,8 +34,11 @@
 #include "RemoteGPU.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
-#include <WebCore/WebGPUCompositorIntegration.h>
-#include <WebCore/WebGPUDevice.h>
+#include "WebKit-Swift.h"
+#include <WebCore/ColorSpace.h>
+#include <WebCore/IOSurface.h>
+#include <WebCore/NativeImage.h>
+#include <pal/spi/cg/CoreGraphicsSPI.h>
 #include <wtf/TZoneMallocInlines.h>
 
 #define MESSAGE_CHECK_COMPLETION(assertion, completion) MESSAGE_CHECK_COMPLETION_BASE(assertion, m_streamConnection, completion)
@@ -44,9 +47,8 @@ namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCompositorIntegration);
 
-RemoteCompositorIntegration::RemoteCompositorIntegration(WebCore::WebGPUCompositorIntegration& compositorIntegration, WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
-    : m_backing(compositorIntegration)
-    , m_objectHeap(objectHeap)
+RemoteCompositorIntegration::RemoteCompositorIntegration(WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
+    : m_objectHeap(objectHeap)
     , m_streamConnection(WTF::move(streamConnection))
     , m_gpu(gpu)
     , m_identifier(identifier)
@@ -56,19 +58,53 @@ RemoteCompositorIntegration::RemoteCompositorIntegration(WebCore::WebGPUComposit
 
 RemoteCompositorIntegration::~RemoteCompositorIntegration() = default;
 
+void RemoteCompositorIntegration::setCanvas(WebGPUCompositorCanvas&& canvas)
+{
+    ASSERT(!m_canvas);
+    m_canvas = makeUniqueWithoutFastMallocCheck<WebGPUCompositorCanvas>(WTF::move(canvas));
+}
+
 void RemoteCompositorIntegration::destruct()
 {
     protect(m_objectHeap)->removeObject(m_identifier);
 }
 
+void RemoteCompositorIntegration::withDisplayBufferAsNativeImage(uint32_t bufferIndex, NOESCAPE const Function<void(WebCore::NativeImage*)>& completion)
+{
+    if (!m_renderBuffers.size() || bufferIndex >= m_renderBuffers.size() || !m_hasDevice)
+        return completion(nullptr);
+
+    RefPtr<WebCore::NativeImage> displayImage;
+    bool isIOSurfaceSupportedFormat = false;
+    if (m_canvas)
+        displayImage = WebCore::NativeImage::create(adoptCF(m_canvas->textureAsNativeImage(bufferIndex, isIOSurfaceSupportedFormat)));
+
+    if (displayImage) {
+        CGImageSetCachingFlags(displayImage->platformImage().get(), kCGImageCachingTransient);
+        return completion(displayImage.get());
+    }
+
+    if (!isIOSurfaceSupportedFormat)
+        return completion(nullptr);
+
+    // A premultiplied canvas must keep its alpha channel so transparent pixels
+    // composite over the page; an opaque canvas forces the alpha to be ignored.
+    // This matters for RGBA16F, whose IOSurface format cannot itself encode opacity.
+    auto shouldForceOpaque = m_alphaMode == WebCore::AlphaPremultiplication::Premultiplied ? WebCore::IOSurface::ShouldForceOpaque::No : WebCore::IOSurface::ShouldForceOpaque::Yes;
+    m_renderBuffers[bufferIndex]->withNativeImage(shouldForceOpaque, [&](WebCore::NativeImage* image) {
+        if (image)
+            CGImageSetCachingFlags(image->platformImage().get(), kCGImageCachingTransient);
+        completion(image);
+    });
+}
+
 void RemoteCompositorIntegration::paintCompositedResultsToCanvas(WebCore::RenderingResourceIdentifier imageBufferIdentifier, uint32_t bufferIndex, CompletionHandler<void()>&& completionHandler)
 {
-    UNUSED_PARAM(imageBufferIdentifier);
-    protect(m_backing)->withDisplayBufferAsNativeImage(bufferIndex, [gpu = m_gpu, imageBufferIdentifier, completionHandler = WTF::move(completionHandler)] (WebCore::NativeImage* image) mutable {
-        if (image && gpu.ptr())
+    withDisplayBufferAsNativeImage(bufferIndex, [&](WebCore::NativeImage* image) {
+        if (RefPtr gpu = m_gpu.ptr(); image && gpu)
             gpu->paintNativeImageToImageBuffer(*image, imageBufferIdentifier);
-        completionHandler();
     });
+    completionHandler();
 }
 
 void RemoteCompositorIntegration::stopListeningForIPC()
@@ -79,23 +115,72 @@ void RemoteCompositorIntegration::stopListeningForIPC()
 #if PLATFORM(COCOA)
 void RemoteCompositorIntegration::recreateRenderBuffers(int width, int height, WebCore::ColorSpace&& destinationColorSpace, WebCore::AlphaPremultiplication alphaMode, ::WebGPU::TextureFormat textureFormat, unsigned bufferCount, WebKit::WebGPUIdentifier deviceIdentifier, CompletionHandler<void(Vector<MachSendRight>&&)>&& callback)
 {
-    auto convertedDevice = protect(m_objectHeap)->convertDeviceFromBacking(deviceIdentifier);
-    MESSAGE_CHECK_COMPLETION(convertedDevice, callback({ }));
+    MESSAGE_CHECK_COMPLETION(protect(m_objectHeap)->hasDevice(deviceIdentifier), callback({ }));
 
-    callback(protect(m_backing)->recreateRenderBuffers(width, height, WTF::move(destinationColorSpace), alphaMode, textureFormat, bufferCount, protect(*convertedDevice)));
+    m_renderBuffers.clear();
+    m_hasDevice = true;
+    m_alphaMode = alphaMode;
+
+    if (m_canvas)
+        m_canvas->unconfigure();
+
+    constexpr int max2DTextureSize = 16384;
+    width = std::max(1, std::min(max2DTextureSize, width));
+    height = std::max(1, std::min(max2DTextureSize, height));
+    WebCore::IOSurface::Format colorFormat;
+    switch (textureFormat) {
+    case ::WebGPU::TextureFormat::Rgba8unorm:
+    case ::WebGPU::TextureFormat::Rgba8unormSRGB:
+        colorFormat = alphaMode == WebCore::AlphaPremultiplication::Unpremultiplied ? WebCore::IOSurface::Format::RGBX : WebCore::IOSurface::Format::RGBA;
+        break;
+#if ENABLE(PIXEL_FORMAT_RGBA16F)
+    case ::WebGPU::TextureFormat::Rgba16float:
+        colorFormat = WebCore::IOSurface::Format::RGBA16F;
+        break;
+#endif
+    default:
+        colorFormat = alphaMode == WebCore::AlphaPremultiplication::Unpremultiplied ? WebCore::IOSurface::Format::BGRX : WebCore::IOSurface::Format::BGRA;
+        break;
+    }
+
+    for (unsigned bufferIndex = 0; bufferIndex < std::min<unsigned>(3u, bufferCount); ++bufferIndex) {
+        if (auto buffer = WebCore::IOSurface::create(nullptr, WebCore::IntSize(width, height), destinationColorSpace, WebCore::IOSurface::Name::WebGPU, colorFormat))
+            m_renderBuffers.append(makeUniqueRefFromNonNullUniquePtr(WTF::move(buffer)));
+    }
+
+    if (m_canvas) {
+        m_canvas->renderBuffersWereRecreated();
+        for (auto& renderBuffer : m_renderBuffers)
+            m_canvas->addRenderBuffer(renderBuffer->surface());
+    }
+
+    callback(m_renderBuffers.map([](const auto& renderBuffer) {
+        return renderBuffer->createSendRight();
+    }));
 }
 #endif
 
 void RemoteCompositorIntegration::prepareForDisplay(uint32_t frameIndex, CompletionHandler<void(Seconds, Seconds)>&& completionHandler)
 {
-    protect(m_backing)->prepareForDisplay(frameIndex, [completionHandler = WTF::move(completionHandler), backing = protect(m_backing)]() mutable {
-        completionHandler(backing->lastFrameGPUCost(), backing->lastFramePresentStall());
+    if (!m_canvas) {
+        completionHandler(0_s, 0_s);
+        return;
+    }
+    m_canvas->present(frameIndex);
+    Ref completion = WebGPUSwiftCompletion::create([completionHandler = WTF::move(completionHandler), protectedThis = Ref { *this }]() mutable {
+        completionHandler(Seconds { protectedThis->m_canvas->lastFrameGPUCost() }, Seconds { protectedThis->m_canvas->lastFramePresentStall() });
     });
+    m_canvas->onSubmittedWorkScheduled(completion.ptr());
 }
 
 void RemoteCompositorIntegration::updateContentsHeadroom(float headroom)
 {
-    protect(m_backing)->updateContentsHeadroom(headroom);
+#if HAVE(SUPPORT_HDR_DISPLAY)
+    for (auto& ioSurface : m_renderBuffers)
+        ioSurface->setContentEDRHeadroom(headroom);
+#else
+    UNUSED_PARAM(headroom);
+#endif
 }
 
 } // namespace WebKit

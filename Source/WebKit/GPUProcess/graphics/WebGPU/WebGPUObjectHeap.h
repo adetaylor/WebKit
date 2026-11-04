@@ -27,6 +27,7 @@
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
+#include "RemoteGPURequestAdapterResponse.h"
 #include "ScopedActiveMessageReceiveQueue.h"
 #include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUIdentifier.h"
@@ -42,7 +43,6 @@
 
 namespace WebCore {
 class WebGPUCompositorIntegration;
-class WebGPUIntegration;
 }
 
 namespace WebKit {
@@ -75,11 +75,14 @@ public:
     void addObject(WebGPUIdentifier, RemoteXRSubImage&);
     void addObject(WebGPUIdentifier, RemoteXRProjectionLayer&);
     void addObject(WebGPUIdentifier, RemoteXRView&);
-    // Make the Swift receivers of an adapter and a canvas context that RemoteGPU made and of a texture that a C++ receiver
-    // made, in the Swift registry, which owns the objects of the other kinds.
-    void addAdapter(WebGPUIdentifier, ::WebGPU::Adapter&);
-    void addPresentationContext(WebGPUIdentifier, ::WebGPU::PresentationContext&);
+    // The Swift registry, which owns the objects of the other kinds, makes adapters and canvas contexts for RemoteGPU, and
+    // the receivers of the textures that C++ receivers make.
+    std::optional<RemoteGPURequestAdapterResponse> requestAdapter(const ::WebGPU::RequestAdapterOptions&, WebGPUIdentifier);
+    void addPresentationContext(WebGPUIdentifier, RemoteCompositorIntegration&);
     void addTexture(WebGPUIdentifier, ::WebGPU::Texture&);
+
+    RefPtr<RemoteCompositorIntegration> compositorIntegration(WebGPUIdentifier);
+    bool hasDevice(WebGPUIdentifier);
 
     void removeObject(WebGPUIdentifier);
 
@@ -119,11 +122,12 @@ public:
         bool exists { false };
         bool valid { false };
     };
-    ExistsAndValid objectExistsAndValid(const WebCore::WebGPUIntegration&, WebGPUIdentifier) const;
+    ExistsAndValid objectExistsAndValid(WebGPUIdentifier) const;
 
 #if !defined(__swift__)
-    // The Swift registry of the WebGPU objects whose messages Swift receives, which the heap empties when it's cleared.
-    void createSwiftImplTable(RemoteGPU&);
+    // The Swift registry of the WebGPU objects whose messages Swift receives, which the heap empties when it's cleared,
+    // with the instance that the descriptor describes.
+    void createSwiftImplTable(RemoteGPU&, ::WebGPU::InstanceDescriptor&&);
     WebGPUImplTable& swiftImplTable();
 #endif
     // Adds a device that Swift owns to those that devices() gives.
