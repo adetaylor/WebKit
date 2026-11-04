@@ -299,6 +299,12 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwift_SendStringSync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftEnabledBy_SendString:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftEnabledBy_SendString>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftLentState_Reset:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_Reset>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftLentState_SetValues:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_SetValues>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftLentState_Draw:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_Draw>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendString:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendString>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendValues:
@@ -1308,6 +1314,18 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
     case MessageName::TestWithStreamSwiftEnabledBy_SendString:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftLentState_Reset:
+        return Vector<ArgumentDescription> { };
+    case MessageName::TestWithStreamSwiftLentState_SetValues:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+            { "scale"_s, "float"_s },
+        };
+    case MessageName::TestWithStreamSwiftLentState_Draw:
+        return Vector<ArgumentDescription> {
+            { "rect"_s, "WebCore::FloatRect"_s },
+            { "clip"_s, "bool"_s },
         };
     case MessageName::TestWithStreamSwiftTypes_SendString:
         return Vector<ArgumentDescription> {

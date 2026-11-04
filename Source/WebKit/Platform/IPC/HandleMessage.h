@@ -733,4 +733,65 @@ void handleSwiftMessageSynchronous(Connection& connection, Decoder& decoder, Uni
     }
 }
 
+// Dispatch to the Swift handlers of a stream receiver whose state C++ lends them, so that Swift reaches the state through
+// an inout parameter, with no dynamic exclusivity check. Always inlined, so that each message calls its Swift handler
+// directly rather than through the member function pointer. lender->lendSwiftReceiverState() lends the state for one
+// message: its lend is false if there is nothing to lend, in which case the message is decoded and dropped, as a
+// message to a C++ receiver whose target has gone is. Otherwise state() is the state, which the lend keeps valid and
+// lent to nothing else until it is destroyed.
+
+template<typename MessageType, typename L, typename T, typename U, typename MF>
+ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function)
+{
+    ASSERT(connection.isCurrentWorkQueue());
+    auto arguments = decoder.decode<typename MessageType::Arguments>();
+    if (!arguments) [[unlikely]]
+        return;
+    logMessage(connection, MessageType::name(), object, *arguments);
+    ASSERT(lender);
+    if (!lender) [[unlikely]]
+        return;
+    auto lend = lender->lendSwiftReceiverState();
+    if (!lend) [[unlikely]]
+        return;
+    auto result = std::apply([&](auto&&... args) {
+        return (object->*function)(lend.state(), std::forward<decltype(args)>(args)...);
+    }, WTF::move(*arguments));
+    ASSERT(result != SwiftLentStateDispatch::Declined);
+    if (result == SwiftLentStateDispatch::Invalid) [[unlikely]]
+        decoder.markInvalid();
+}
+
+// For a SwiftMayDecline message: if the Swift handler declines it, the lender handles it with fallback, after the lend
+// ends, so that the C++ may use the state itself.
+template<typename MessageType, typename L, typename T, typename U, typename MF, typename LF>
+ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function, LF fallback)
+{
+    ASSERT(connection.isCurrentWorkQueue());
+    auto arguments = decoder.decode<typename MessageType::Arguments>();
+    if (!arguments) [[unlikely]]
+        return;
+    logMessage(connection, MessageType::name(), object, *arguments);
+    ASSERT(lender);
+    if (!lender) [[unlikely]]
+        return;
+    SwiftLentStateDispatch result;
+    {
+        auto lend = lender->lendSwiftReceiverState();
+        if (!lend) [[unlikely]]
+            return;
+        result = std::apply([&](auto&... args) {
+            return (object->*function)(lend.state(), args...);
+        }, *arguments);
+    }
+    if (result == SwiftLentStateDispatch::Declined) [[unlikely]] {
+        std::apply([&](auto&&... args) {
+            (lender.get()->*fallback)(std::forward<decltype(args)>(args)...);
+        }, WTF::move(*arguments));
+        return;
+    }
+    if (result == SwiftLentStateDispatch::Invalid) [[unlikely]]
+        decoder.markInvalid();
+}
+
 } // namespace IPC
