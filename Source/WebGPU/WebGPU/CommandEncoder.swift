@@ -2648,6 +2648,10 @@ struct EncoderTracking {
         entries.removeAll { $0.serial == serial }
     }
 
+    var isEmpty: Bool {
+        entries.isEmpty
+    }
+
     /// Drops the encoders that died, then counts.
     mutating func liveCount() -> Int {
         entries.removeAll { $0.encoder == nil }
