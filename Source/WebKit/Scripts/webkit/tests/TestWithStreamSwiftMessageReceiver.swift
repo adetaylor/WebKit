@@ -24,9 +24,8 @@
 
 import WebKit_Internal
 
-// Safety: target is immutable, and dispatch asserts the stream connection's work queue
 @_expose(Cxx)
-final class TestWithStreamSwiftWeakRef: @unchecked Sendable {
+final class TestWithStreamSwiftWeakRef {
     private let target: TestWithStreamSwift
     init(target: TestWithStreamSwift) {
         self.target = target

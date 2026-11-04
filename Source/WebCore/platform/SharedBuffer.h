@@ -254,7 +254,8 @@ private:
 };
 
 // A SharedBuffer is a FragmentedSharedBuffer that allows to directly access its content via the data() and related methods.
-class SharedBuffer : public FragmentedSharedBuffer {
+// @unchecked Sendable: its contents don't change while it is shared, and its reference count is thread-safe.
+class SWIFT_UNCHECKED_SENDABLE SharedBuffer : public FragmentedSharedBuffer {
 public:
     static Ref<SharedBuffer> create() { return adoptRef(*new SharedBuffer()); }
     static Ref<SharedBuffer> create(Vector<uint8_t>&& vector) { return adoptRef(*new SharedBuffer(WTF::move(vector))); }
