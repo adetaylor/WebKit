@@ -7306,6 +7306,8 @@
 		7BF128BD2B7E0757001D1B14 /* RemoteSharedResourceCacheProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteSharedResourceCacheProxy.h; sourceTree = "<group>"; };
 		7BF128BE2B7E0757001D1B14 /* RemoteSharedResourceCacheProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSharedResourceCacheProxy.cpp; sourceTree = "<group>"; };
 		7BF19B5F290FC5B400EF322A /* IPCTesterReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IPCTesterReceiver.h; sourceTree = "<group>"; };
+		22F44BA8FB3C77138477BC3A /* IPCWorkQueueTester.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IPCWorkQueueTester.h; sourceTree = "<group>"; };
+		B10637BA880595B8BA222F83 /* IPCWorkQueueTester.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = IPCWorkQueueTester.messages.in; sourceTree = "<group>"; };
 		7BF19B60290FC5B400EF322A /* IPCTesterReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IPCTesterReceiver.cpp; sourceTree = "<group>"; };
 		7BFE47312E8A96FB00F60A1C /* RemoteNativeImageProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteNativeImageProxy.h; sourceTree = "<group>"; };
 		7BFE47322E8A96FB00F60A1C /* RemoteNativeImageProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteNativeImageProxy.cpp; sourceTree = "<group>"; };
@@ -10653,6 +10655,8 @@
 				7BF19B60290FC5B400EF322A /* IPCTesterReceiver.cpp */,
 				7BF19B5F290FC5B400EF322A /* IPCTesterReceiver.h */,
 				5CF250AE2EE06491006A7172 /* IPCTesterReceiver.swift */,
+				22F44BA8FB3C77138477BC3A /* IPCWorkQueueTester.h */,
+				B10637BA880595B8BA222F83 /* IPCWorkQueueTester.messages.in */,
 				077F49BB3036E23900861A64 /* JavaScriptEvaluationArrayDecoder.swift */,
 				07EB34D83037F60700B217DD /* JavaScriptEvaluationCodableValue.swift */,
 				07EB34D63037F52600B217DD /* JavaScriptEvaluationDecodingGraph.swift */,

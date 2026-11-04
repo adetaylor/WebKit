@@ -100,6 +100,7 @@ private:
     void addSwiftWorkQueueTester(IPC::Connection&, uint64_t identifier, CompletionHandler<void()>&&);
     void removeSwiftWorkQueueTester(IPC::Connection&, uint64_t identifier, CompletionHandler<void()>&&);
     void swiftWorkQueueTesterCount(CompletionHandler<void(uint32_t)>&&);
+    void benchmarkWorkQueueDispatch(uint32_t kind, bool swift, uint32_t messageCount, CompletionHandler<void(uint64_t)>&&);
 #endif
     void stopIfNeeded();
 

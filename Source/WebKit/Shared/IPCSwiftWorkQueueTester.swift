@@ -33,6 +33,8 @@ final class IPCSwiftWorkQueueTester {
     private var recordedTexts: [String?] = []
     private var alwaysDispatchedOnItsQueue = true
 
+    private var benchSink: UInt64 = 0
+
     private var deferredSum: UInt32 = 0
     private var deferredReply: IPCSwiftWorkQueueTesterDeferAddSwiftReply?
 
@@ -123,6 +125,42 @@ final class IPCSwiftWorkQueueTester {
             value.isMultiple(of: 2)
         }
         reply.send(value / 2)
+    }
+
+    // The handlers of IPCTester::benchmarkWorkQueueDispatch(), which IPCWorkQueueTester's C++ ones match.
+
+    func benchEmpty(connection: IPC.Connection) {
+    }
+
+    func benchFourValues(connection: IPC.Connection, a: UInt32, b: UInt32, c: UInt32, d: UInt32) {
+        benchSink &+= UInt64(a &+ b &+ c &+ d)
+    }
+
+    func benchString(connection: IPC.Connection, text: WTF.String) {
+        benchSink &+= UInt64(text.length())
+    }
+
+    func benchReply(connection: IPC.Connection, value: UInt64) -> UInt64 {
+        value
+    }
+
+    func benchEmptySwift(connection: IPC.Connection) {
+    }
+
+    func benchFourValuesSwift(connection: IPC.Connection, a: UInt32, b: UInt32, c: UInt32, d: UInt32) {
+        benchSink &+= UInt64(a &+ b &+ c &+ d)
+    }
+
+    func benchStringSwift(connection: IPC.Connection, text: String?) {
+        benchSink &+= UInt64(text?.utf8.count ?? 0)
+    }
+
+    func benchVectorSwift(connection: IPC.Connection, values: [UInt32]) {
+        benchSink &+= UInt64(values.count)
+    }
+
+    func benchReplySwift(connection: IPC.Connection, value: UInt64, reply: consuming IPCSwiftWorkQueueTesterBenchReplySwiftReply) {
+        reply.send(value)
     }
 }
 
