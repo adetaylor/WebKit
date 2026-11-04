@@ -31,7 +31,7 @@ import WebGPU_Private.WebGPUCpp
 // process-wide counter sample buffer pool below and returns it on destroy() or deinit.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class QuerySetImpl {
+public final class QuerySetImpl: GPUObjectReference {
     // Occlusion query sets own a private MTLBuffer; timestamp query sets lease
     // [counterSampleOffset, counterSampleOffset + queryCount) samples of a pooled counter buffer.
     private var backing: QuerySetBacking
@@ -90,7 +90,7 @@ public final class QuerySetImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         if case .none = backing {
             return destroyed
         }
@@ -179,15 +179,15 @@ public final class QuerySetImpl {
 
 private let maxQueryCount: UInt32 = 4096
 
-// A query set with its shell, as Swift holds one.
 @_spi(WebKitGPU)
-public final class QuerySetReference {
-    public let impl: QuerySetImpl
-    let shell: WebGPU.Metal.QuerySet
+public typealias QuerySetReference = QuerySetImpl
 
-    init(_ impl: QuerySetImpl, _ shell: WebGPU.Metal.QuerySet) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension QuerySetImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: QuerySetImpl {
+        self
     }
 }
 
@@ -390,18 +390,10 @@ private func insertFreeRange(_ range: Range<UInt32>, into ranges: inout [Range<U
     ranges = result
 }
 
-// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedQuerySetImpl.
-func makeQuerySetShell(_ impl: QuerySetImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.QuerySet {
-    precondition(deviceImpl.stagedQuerySetImpl == nil)
-    deviceImpl.stagedQuerySetImpl = impl
-    return WebGPU.Metal.QuerySet.createWithStagedImpl(device).ptr()
-}
-
 @_spi(WebKitGPU)
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createqueryset
-    public func createQuerySet(_ descriptor: GPUQuerySetDescriptor, label: Swift.String?) -> QuerySetReference {
-        let querySet = createQuerySetImpl(shell, impl, descriptor, label: WTF.String(label ?? ""), impl.timestampCounterSet())
-        return QuerySetReference(querySet, makeQuerySetShell(querySet, device: shell, deviceImpl: impl))
+    public func createQuerySet(_ descriptor: GPUQuerySetDescriptor, label: Swift.String?) -> QuerySetImpl {
+        createQuerySetImpl(shell, impl, descriptor, label: WTF.String(label ?? ""), impl.timestampCounterSet())
     }
 }

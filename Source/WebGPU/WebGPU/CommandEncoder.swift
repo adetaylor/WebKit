@@ -1124,7 +1124,7 @@ extension CommandEncoderImpl {
     }
 
     private func errorValidatingRenderPassDescriptor(descriptor: GPURenderPassDescriptor) -> String? {
-        if let occlusionQuery = descriptor.occlusionQuerySet?.impl {
+        if let occlusionQuery = descriptor.occlusionQuerySet {
             if !isValidToUseWith(occlusionQuery) {
                 return "occlusion query does not match the device"
             }
@@ -1145,7 +1145,7 @@ extension CommandEncoderImpl {
     }
 
     private func errorValidatingTimestampWrites(timestampWrites: GPUPassTimestampWrites) -> String? {
-        let querySet = timestampWrites.querySet.impl
+        let querySet = timestampWrites.querySet
         if !deviceImpl.hasFeature(WebGPU.FeatureName.TimestampQuery) {
             return "device does not have timestamp query feature"
         }
@@ -1246,7 +1246,7 @@ extension CommandEncoderImpl {
         var counterSampleBuffer: (buffer: (any MTLCounterSampleBuffer)?, offset: UInt32) = (nil, 0)
         let optionalTimestampWrites = descriptor.timestampWrites
         if let timestampWrites = optionalTimestampWrites {
-            let timestampsWrites = timestampWrites.querySet.impl
+            let timestampsWrites = timestampWrites.querySet
             counterSampleBuffer = (timestampsWrites.counterSampleBuffer(), timestampsWrites.counterSampleBufferOffset())
             timestampsWrites.setCommandEncoder(self)
         }
@@ -1647,7 +1647,7 @@ extension CommandEncoderImpl {
 
         var visibilityResultBufferSize: UInt = 0
         var visibilityResultBuffer: (any MTLBuffer)? = nil
-        if let occlusionQuery = descriptor.occlusionQuerySet?.impl {
+        if let occlusionQuery = descriptor.occlusionQuerySet {
             occlusionQuery.setCommandEncoder(self)
             if occlusionQuery.queryType != WebGPU.QueryType.Occlusion {
                 return WebGPU.Metal.RenderPassEncoder.createInvalid(
@@ -2876,7 +2876,7 @@ extension CommandEncoderImpl {
         computePassDescriptor.dispatchType = .serial
         var counterSampleBuffer: (buffer: (any MTLCounterSampleBuffer)?, offset: UInt32) = (nil, 0)
         if let timestampWrites = optionalTimestampWrites {
-            let timestampsWrites = timestampWrites.querySet.impl
+            let timestampsWrites = timestampWrites.querySet
             counterSampleBuffer = (timestampsWrites.counterSampleBuffer(), timestampsWrites.counterSampleBufferOffset())
             timestampsWrites.setCommandEncoder(self)
         }
@@ -3776,13 +3776,13 @@ final class CommandEncoderImpl {
     }
 
     @_expose(Cxx)
-    func stageOcclusionQuerySet(_ shell: borrowing WebGPU.Metal.QuerySet, _ impl: QuerySetImpl) {
-        staged.occlusion = QuerySetReference(impl, copy shell)
+    func stageOcclusionQuerySet(_ impl: QuerySetImpl) {
+        staged.occlusion = impl
     }
 
     @_expose(Cxx)
-    func stageTimestampWritesQuerySet(_ shell: borrowing WebGPU.Metal.QuerySet, _ impl: QuerySetImpl) {
-        staged.timestampWrites = QuerySetReference(impl, copy shell)
+    func stageTimestampWritesQuerySet(_ impl: QuerySetImpl) {
+        staged.timestampWrites = impl
     }
 
     @_expose(Cxx)

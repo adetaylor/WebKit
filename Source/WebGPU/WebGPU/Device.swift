@@ -113,8 +113,6 @@ final class DeviceImpl {
     @_expose(!Cxx)
     var stagedShaderModuleImpl: ShaderModuleImpl?
     @_expose(!Cxx)
-    var stagedQuerySetImpl: QuerySetImpl?
-    @_expose(!Cxx)
     var stagedRenderBundleEncoderImpl: RenderBundleEncoderImpl?
     @_expose(!Cxx)
     var stagedTextureViewImpl: TextureViewImpl?
@@ -774,15 +772,6 @@ final class DeviceImpl {
             preconditionFailure("No staged ShaderModuleImpl")
         }
         stagedShaderModuleImpl = nil
-        return impl
-    }
-
-    @_expose(Cxx)
-    func takeStagedQuerySetImpl() -> QuerySetImpl {
-        guard let impl = stagedQuerySetImpl else {
-            preconditionFailure("No staged QuerySetImpl")
-        }
-        stagedQuerySetImpl = nil
         return impl
     }
 

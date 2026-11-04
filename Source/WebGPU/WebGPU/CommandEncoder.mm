@@ -91,7 +91,7 @@ RefPtr<WebGPU::ComputePassEncoder> CommandEncoder::beginComputePass(const std::o
 {
     if (descriptor && descriptor->timestampWrites) {
         Ref querySet = metal(descriptor->timestampWrites->querySet);
-        m_impl->impl.stageTimestampWritesQuerySet(querySet.ptr(), querySet->swiftImpl());
+        m_impl->impl.stageTimestampWritesQuerySet(querySet->swiftImpl());
     }
     return m_impl->impl.beginComputePass(this, descriptor ? *descriptor : WebGPU::ComputePassDescriptor { });
 }
@@ -131,10 +131,10 @@ RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::
         }), attachment->view);
     }
     if (RefPtr occlusionQuerySet = metalOrNull(descriptor.occlusionQuerySet))
-        impl.stageOcclusionQuerySet(occlusionQuerySet.get(), occlusionQuerySet->swiftImpl());
+        impl.stageOcclusionQuerySet(occlusionQuerySet->swiftImpl());
     if (descriptor.timestampWrites) {
         Ref querySet = metal(descriptor.timestampWrites->querySet);
-        impl.stageTimestampWritesQuerySet(querySet.ptr(), querySet->swiftImpl());
+        impl.stageTimestampWritesQuerySet(querySet->swiftImpl());
     }
     return impl.beginRenderPass(this, descriptor);
 }
