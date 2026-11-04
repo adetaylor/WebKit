@@ -77,10 +77,8 @@ public final class BindGroupImpl: GPUObjectReference {
     private var otherValidations: [UInt64: UInt32] = [:]
     // Declared last, so that the device outlives the rest of the group.
     let deviceImpl: DeviceImpl
-    let device: WebGPU.Metal.Device
 
     fileprivate init(
-        device: consuming DeviceShell,
         deviceImpl: DeviceImpl,
         layoutImpl: BindGroupLayoutImpl,
         argumentBuffers: consuming PerStage<(any MTLBuffer)?>,
@@ -105,12 +103,11 @@ public final class BindGroupImpl: GPUObjectReference {
         self.externalTextureIndices = externalTextureIndices
         self.uniqueId = uniqueId
         self.deviceImpl = deviceImpl
-        self.device = device.shell
         // Each resource keeps a weak reference to the group.
         self.resources.registerBindGroupHolder(self)
     }
 
-    private init(invalidFor device: consuming DeviceShell, _ deviceImpl: DeviceImpl) {
+    private init(invalidFor deviceImpl: DeviceImpl) {
         layoutImpl = nil
         argumentBuffers = PerStage(repeating: nil)
         argumentBufferAddresses = PerStage(repeating: 0)
@@ -121,11 +118,10 @@ public final class BindGroupImpl: GPUObjectReference {
         externalTextureIndices = noExternalTextureIndices
         uniqueId = 0
         self.deviceImpl = deviceImpl
-        self.device = device.shell
     }
 
-    fileprivate static func invalid(_ device: consuming DeviceShell, _ deviceImpl: DeviceImpl) -> BindGroupImpl {
-        BindGroupImpl(invalidFor: device, deviceImpl)
+    fileprivate static func invalid(_ deviceImpl: DeviceImpl) -> BindGroupImpl {
+        BindGroupImpl(invalidFor: deviceImpl)
     }
 
     var hasSamplers: Bool {
@@ -215,8 +211,8 @@ public final class BindGroupImpl: GPUObjectReference {
                 "dynamicOffsetCount(\(dynamicOffsets.count)) in setBindGroupCall does not equal the dynamicBufferCount(\(bufferCount)) in bind group layout"
         }
 
-        let uniformAlignment = deviceImpl.limits.uniformAlignment
-        let storageAlignment = deviceImpl.limits.storageAlignment
+        let uniformAlignment = deviceImpl.encoderLimits.uniformAlignment
+        let storageAlignment = deviceImpl.encoderLimits.storageAlignment
         for (index, dynamicOffset) in dynamicOffsets.enumerated() {
             maxOffset = max(maxOffset, dynamicOffset)
             guard index < dynamicBuffers.count else {
@@ -232,7 +228,7 @@ public final class BindGroupImpl: GPUObjectReference {
             let isUniform = buffer.type == .uniform
             if !(isUniform ? uniformAlignment : storageAlignment).isMultiple(dynamicOffset) {
                 let alignment =
-                    isUniform ? deviceImpl.limits.minUniformBufferOffsetAlignment : deviceImpl.limits.minStorageBufferOffsetAlignment
+                    isUniform ? deviceImpl.encoderLimits.minUniformBufferOffsetAlignment : deviceImpl.encoderLimits.minStorageBufferOffsetAlignment
                 return
                     "dynamicBuffer(\(index)): dynamicOffset(\(dynamicOffset)) is not divisible by the \(isUniform ? "uniform" : "storage") buffer alignment(\(alignment))"
             }
@@ -344,7 +340,7 @@ public final class BindGroupImpl: GPUObjectReference {
             return false
         }
 
-        let imported = importBoundExternalTexture(device, deviceImpl, externalTexture)
+        let imported = importBoundExternalTexture(deviceImpl, externalTexture)
         let placeholder = deviceImpl.placeholderTexture(false)
         let texture0 = imported.texture0 ?? placeholder
         let texture1 = imported.texture1 ?? placeholder
@@ -399,7 +395,6 @@ extension BindGroupLayoutImpl {
 
 /// Imports the external texture's pixel buffer as premultiplied; a destroyed external texture imports nothing.
 private func importBoundExternalTexture(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ externalTexture: ExternalTextureImpl
 ) -> (texture0: (any MTLTexture)?, texture1: (any MTLTexture)?, constants: WebGPU.Metal.ExternalTextureConstants) {
@@ -453,13 +448,12 @@ final class BindGroupBuilder {
     }
 
     fileprivate func finish(
-        _ device: consuming DeviceShell,
         _ deviceImpl: DeviceImpl,
         _ layoutImpl: BindGroupLayoutImpl
     ) -> BindGroupImpl {
         var entries: [DescriptorEntry] = []
         swap(&entries, &self.entries)
-        let impl = makeBindGroupImpl(device, deviceImpl, layoutImpl, &entries)
+        let impl = makeBindGroupImpl(deviceImpl, layoutImpl, &entries)
         entries.removeAll(keepingCapacity: true)
         if self.entries.capacity == 0 {
             swap(&entries, &self.entries)
@@ -472,25 +466,24 @@ final class BindGroupBuilder {
 ///
 /// Takes the entries out of `entries`, in order, leaving its buffer for the builder to reuse.
 private func makeBindGroupImpl(
-    _ device: consuming DeviceShell,
     _ deviceImpl: DeviceImpl,
     _ layoutImpl: BindGroupLayoutImpl,
     _ entries: inout [DescriptorEntry]
 ) -> BindGroupImpl {
     guard deviceImpl.isValid() else {
-        return .invalid(device, deviceImpl)
+        return .invalid(deviceImpl)
     }
 
     let isAutoGenerated = layoutImpl.counts.isAutoGenerated
     if !layoutImpl.isValid() || (!isAutoGenerated && entries.count != layoutImpl.entries.count) || layoutImpl.deviceImpl !== deviceImpl {
         reportBindGroupError(deviceImpl, "invalid BindGroupLayout createBindGroup")
-        return .invalid(device, deviceImpl)
+        return .invalid(deviceImpl)
     }
 
     var creation = BindGroupCreation(deviceImpl: deviceImpl, layoutImpl: layoutImpl)
     if creation.argumentBufferAllocationFailed {
         deviceImpl.generateAnOutOfMemoryError("GPUDevice.createBindGroup: the argument buffer could not be allocated")
-        return .invalid(device, deviceImpl)
+        return .invalid(deviceImpl)
     }
     var usedBindingSlots = SmallIndexSet()
     // Popped from the reversed list rather than read in place, which would copy each entry's references.
@@ -498,18 +491,18 @@ private func makeBindGroupImpl(
     while let entry = entries.popLast() {
         if !usedBindingSlots.insert(entry.binding) {
             reportBindGroupError(deviceImpl, "Binding \(entry.binding) is duplicated in the bind group descriptor")
-            return .invalid(device, deviceImpl)
+            return .invalid(deviceImpl)
         }
-        if !creation.add(entry, device: device) {
+        if !creation.add(entry) {
             if let message = creation.error {
                 reportBindGroupError(deviceImpl, message)
             }
-            return .invalid(device, deviceImpl)
+            return .invalid(deviceImpl)
         }
     }
 
     for stage in Stage.allCases where !creation.argumentIndices[stage].isEmpty {
-        return .invalid(device, deviceImpl)
+        return .invalid(deviceImpl)
     }
 
     // Sorted before the resources are built; nothing between reads it.
@@ -525,11 +518,10 @@ private func makeBindGroupImpl(
 
     if deviceImpl.bindGroupIdsExhausted() {
         deviceImpl.loseTheDevice(WebGPU.DeviceLostReason.Unknown)
-        return .invalid(device, deviceImpl)
+        return .invalid(deviceImpl)
     }
 
     return creation.makeImpl(
-        device: device,
         resources: consume resources,
         mtlResources: consume mtlResources,
         uniqueId: deviceImpl.takeBindGroupId()
@@ -561,7 +553,6 @@ public struct GPUBindGroupEntry {
 
 /// Device::createBindGroup, for a Swift caller.
 func createBindGroupImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     layout: BindGroupLayoutReference,
     entries descriptorEntries: [GPUBindGroupEntry]
@@ -589,7 +580,7 @@ func createBindGroupImpl(
             }
         entries.append(DescriptorEntry(binding: entry.binding, resource: resource))
     }
-    return makeBindGroupImpl(DeviceShell(shell: device), deviceImpl, layout, &entries)
+    return makeBindGroupImpl(deviceImpl, layout, &entries)
 }
 
 /// A Set<UInt32> that keeps values below 64 in a bit mask, so that the usual binding and argument indices allocate
@@ -732,8 +723,8 @@ private struct BindGroupCreation {
     init(deviceImpl: DeviceImpl, layoutImpl: BindGroupLayoutImpl) {
         self.deviceImpl = deviceImpl
         self.layoutImpl = layoutImpl
-        uniformAlignment = deviceImpl.limits.uniformAlignment
-        storageAlignment = deviceImpl.limits.storageAlignment
+        uniformAlignment = deviceImpl.encoderLimits.uniformAlignment
+        storageAlignment = deviceImpl.encoderLimits.storageAlignment
         minStorageBufferOffsetAlignment = deviceImpl.capabilities.limits.minStorageBufferOffsetAlignment
         maxUniformBufferBindingSize = deviceImpl.capabilities.limits.maxUniformBufferBindingSize
         maxStorageBufferBindingSize = deviceImpl.capabilities.limits.maxStorageBufferBindingSize
@@ -807,7 +798,7 @@ private struct BindGroupCreation {
 
     /// Adds one descriptor entry in every stage slot; false when the group is invalid.
     @inline(__always)
-    mutating func add(_ entry: borrowing DescriptorEntry, device: borrowing DeviceShell) -> Bool {
+    mutating func add(_ entry: borrowing DescriptorEntry) -> Bool {
         let layoutEntry = layoutImpl.entry(binding: entry.binding)
         var bindingContainedInStage = false
         var appendedBufferToDynamicBuffers = false
@@ -864,7 +855,6 @@ private struct BindGroupCreation {
                 succeeded = addExternalTexture(
                     entry.binding,
                     impl,
-                    device: device,
                     layoutEntry: layoutEntry,
                     stage: stage,
                     slot: slot,
@@ -1319,7 +1309,6 @@ private struct BindGroupCreation {
     mutating func addExternalTexture(
         _ binding: UInt32,
         _ externalTexture: ExternalTextureImpl,
-        device: borrowing DeviceShell,
         layoutEntry: LayoutEntry,
         stage: Stage?,
         slot: Int,
@@ -1331,7 +1320,7 @@ private struct BindGroupCreation {
             return false
         }
 
-        let imported = importBoundExternalTexture(device.shell, deviceImpl, externalTexture)
+        let imported = importBoundExternalTexture(deviceImpl, externalTexture)
         let placeholder = deviceImpl.placeholderTexture(false)
         let texture0 = imported.texture0 ?? placeholder
         if let stage {
@@ -1489,7 +1478,6 @@ private struct BindGroupCreation {
     /// Moves the group's state out of creation into the Impl.
     @inline(__always)
     mutating func makeImpl(
-        device: consuming DeviceShell,
         resources: consuming ResourceSet,
         mtlResources: consuming ResourceLists,
         uniqueId: UInt32
@@ -1501,7 +1489,6 @@ private struct BindGroupCreation {
         swap(&builtSamplerBindings, &samplerBindings)
         swap(&builtDynamicBuffers, &dynamicBuffers)
         return BindGroupImpl(
-            device: device,
             deviceImpl: deviceImpl,
             layoutImpl: layoutImpl,
             argumentBuffers: builtArgumentBuffers,
@@ -1797,6 +1784,6 @@ private func wtfHashReplicaMatchesWTFHashSet() -> Bool {
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup. The label isn't kept, as for the C++ caller.
     public func createBindGroup(_ layout: BindGroupLayoutReference, _ entries: [GPUBindGroupEntry], label: Swift.String?) -> BindGroupReference {
-        createBindGroupImpl(shell, impl, layout: layout, entries: entries)
+        createBindGroupImpl(impl, layout: layout, entries: entries)
     }
 }

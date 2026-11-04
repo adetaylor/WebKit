@@ -37,8 +37,6 @@
 
 namespace WebGPU::Metal {
 
-class Device;
-
 struct RenderBundleEncoderParameters {
     uint32_t sampleCount { 0 };
     WebGPU::TextureFormat depthStencilFormat { WebGPU::TextureFormat::R8unorm };

@@ -44,17 +44,15 @@ public final class SamplerImpl: GPUObjectReference {
     private weak var cachedState: (any MTLSamplerState)?
     // Declared last, so that the device outlives the rest of the sampler.
     let deviceImpl: DeviceImpl
-    let device: WebGPU.Metal.Device
 
-    fileprivate init(device: WebGPU.Metal.Device, deviceImpl: DeviceImpl, configuration: Configuration?, label: WTF.String) {
+    fileprivate init(deviceImpl: DeviceImpl, configuration: Configuration?, label: WTF.String) {
         self.configuration = configuration
         self.label = label
         self.deviceImpl = deviceImpl
-        self.device = device
         _ = tryCacheSamplerState()
     }
 
-    fileprivate convenience init(device: WebGPU.Metal.Device, deviceImpl: DeviceImpl, descriptor: GPUSamplerDescriptor, label: WTF.String) {
+    fileprivate convenience init(deviceImpl: DeviceImpl, descriptor: GPUSamplerDescriptor, label: WTF.String) {
         let metal = MetalSamplerConfiguration(descriptor)
         assert(
             SamplerCacheKey(metal) == SamplerCacheKey(metal.makeDescriptor()),
@@ -67,7 +65,7 @@ public final class SamplerImpl: GPUObjectReference {
                 || descriptor.magFilter == WebGPU.FilterMode.Linear
                 || descriptor.mipmapFilter == WebGPU.MipmapFilterMode.Linear
         )
-        self.init(device: device, deviceImpl: deviceImpl, configuration: configuration, label: label)
+        self.init(deviceImpl: deviceImpl, configuration: configuration, label: label)
     }
 
     deinit {
@@ -162,23 +160,23 @@ public struct GPUSamplerDescriptor {
 }
 
 // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
-func createSamplerImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ descriptor: WebGPU.SamplerDescriptor) -> SamplerImpl {
-    createSamplerImpl(device, deviceImpl, GPUSamplerDescriptor(descriptor), label: descriptor.label)
+func createSamplerImpl(_ deviceImpl: DeviceImpl, _ descriptor: WebGPU.SamplerDescriptor) -> SamplerImpl {
+    createSamplerImpl(deviceImpl, GPUSamplerDescriptor(descriptor), label: descriptor.label)
 }
 
-func createSamplerImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ descriptor: GPUSamplerDescriptor, label: WTF.String) -> SamplerImpl {
+func createSamplerImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUSamplerDescriptor, label: WTF.String) -> SamplerImpl {
     guard deviceImpl.isValid() else {
-        return makeInvalidSamplerImpl(device, deviceImpl)
+        return makeInvalidSamplerImpl(deviceImpl)
     }
     guard validateCreateSampler(descriptor) else {
         deviceImpl.generateAValidationError("Validation failure.")
-        return makeInvalidSamplerImpl(device, deviceImpl)
+        return makeInvalidSamplerImpl(deviceImpl)
     }
-    return SamplerImpl(device: device, deviceImpl: deviceImpl, descriptor: descriptor, label: label)
+    return SamplerImpl(deviceImpl: deviceImpl, descriptor: descriptor, label: label)
 }
 
-func makeInvalidSamplerImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> SamplerImpl {
-    SamplerImpl(device: device, deviceImpl: deviceImpl, configuration: nil, label: WTF.String())
+func makeInvalidSamplerImpl(_ deviceImpl: DeviceImpl) -> SamplerImpl {
+    SamplerImpl(deviceImpl: deviceImpl, configuration: nil, label: WTF.String())
 }
 
 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validating-gpusamplerdescriptor
@@ -510,6 +508,6 @@ private func samplerCacheRelease(_ key: SamplerCacheKey, _ samplerState: any MTL
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
     public func createSampler(_ descriptor: GPUSamplerDescriptor, label: Swift.String?) -> SamplerImpl {
-        createSamplerImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
+        createSamplerImpl(impl, descriptor, label: WTF.String(label ?? ""))
     }
 }

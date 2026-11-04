@@ -32,23 +32,14 @@ import Metal
 @_implementationOnly import WebGPU_Internal.ShaderModule
 import WebGPU_Private.WebGPUCpp
 
-/// A strong reference to a C++ shell that follows the usual Swift parameter conventions.
-///
-/// Imported C++ reference types are passed unowned, so a function taking one retains it around the calls it makes.
-/// Creation paths pass this instead, `consuming`, so that the one reference an Impl keeps is the only one made.
-struct ShellReference<Shell> {
-    let shell: Shell
-}
-
-typealias DeviceShell = ShellReference<WebGPU.Metal.Device>
-
-// One per GPUDevice, owned by the C++ shell WebGPU::Metal::Device.
+// https://gpuweb.github.io/gpuweb/#gpudevice
 //
 // Used only on its Instance's API thread, so deliberately not Sendable: the device observer and the Metal completed
-// handlers hop back through Instance::scheduleWork, and hand their references to the shells over to the work items,
+// handlers hop back through the Instance's scheduler, and hand their references to the device over to the work items,
 // so that the last of them is released on the API thread.
 @_expose(Cxx)
-final class DeviceImpl {
+@_spi(WebKitGPU)
+public final class DeviceImpl: GPUObjectReference {
     private struct ErrorScope {
         let filter: WebGPU.ErrorFilter
         // The first error the scope caught; later ones are dropped.
@@ -63,15 +54,14 @@ final class DeviceImpl {
     private var errorScopes: [ErrorScope] = []
     private var errorReportingPaused = false
 
-    // Handed over by the shell. Always taken out before being called: a callback can re-enter and register the next one.
+    // Always taken out before being called: a callback can re-enter and register the next one.
     private var uncapturedErrorCallback: ((Bool, CaughtError?) -> Void)?
     private var deviceLostCallback: ((WebGPU.DeviceLostReason, WTF.String) -> Void)?
 
     @_expose(!Cxx)
     let capabilities: DeviceCapabilities
     /// The limits the encoders read, and the Metal buffer slots that follow from them.
-    @_expose(!Cxx)
-    let limits: EncoderLimits
+    let encoderLimits: EncoderLimits
 
     private let backingAppleGPUFamily: UInt32
     private let backingMaxVerticesPerDrawCall: UInt32
@@ -99,7 +89,7 @@ final class DeviceImpl {
     private var bindGroupCompatibilityCache = WTFHashSet<UInt64>()
     // The scheduler of the Instance of the device's adapter, if it had one when the device was made: the asynchronous
     // pipeline compiles hop back through it.
-    private var instanceSchedulerHandle: InstanceSchedulerHandle?
+    private let instanceSchedulerHandle: InstanceSchedulerHandle?
     // The Instance of the device's adapter, if it had one when the device was made.
     @_expose(!Cxx)
     private(set) weak var instanceImpl: InstanceImpl?
@@ -116,8 +106,8 @@ final class DeviceImpl {
 
     @_expose(!Cxx)
     let defaultQueueImpl: QueueImpl
-    // The adapter also provides the Instance. A valid device has one XR sub-image, which its constructor installs. The
-    // device observer is the token of the shell's macOS device-removal observer, which ~Device unregisters.
+    // The adapter also provides the Instance. A valid device has one XR sub-image. The device observer is the token of
+    // the macOS device-removal observer, which deinit unregisters.
     private let backingAdapter: WebGPU.Metal.Adapter
     private let adapterImpl: AdapterImpl
     // Whether the Instance had a web process to attribute resources to when the device was made. The Instance's web
@@ -141,6 +131,8 @@ final class DeviceImpl {
         self.metalDevice = metalDevice
         backingAdapter = adapter
         self.adapterImpl = adapterImpl
+        instanceImpl = adapterImpl.instanceImpl
+        instanceSchedulerHandle = adapterImpl.instanceImpl != nil ? adapterImpl.instanceSchedulerHandle : nil
         attributesResources = DeviceImpl.instanceHasWebProcess(adapter)
         defaultQueueImpl = defaultQueue.map { makeQueueImpl($0) } ?? makeInvalidQueueImpl()
         externalTextureImporter = ExternalTextureImporter(metalDevice: metalDevice)
@@ -150,22 +142,32 @@ final class DeviceImpl {
             backingAppleGPUFamily = 0
             backingMaxVerticesPerDrawCall = 0
             shaderValidationEnabled = true
-            limits = .invalidDevice
+            encoderLimits = .invalidDevice
             backingPlaceholderBuffer = nil
             backingPlaceholderTexture = nil
             backingPlaceholderDepthStencilTexture = nil
             defaultQueueImpl.deviceImpl = self
+            defaultQueueImpl.setSchedulerHandle(instanceSchedulerHandle)
             return
         }
         backingAppleGPUFamily = computeAppleGPUFamily(metalDevice)
         backingMaxVerticesPerDrawCall = computeMaxCountForDevice(metalDevice)
         shaderValidationEnabled = WebGPU.Metal.isShaderValidationEnabled(metalDevice)
-        limits = deviceCapabilities.validDeviceEncoderLimits
+        encoderLimits = deviceCapabilities.validDeviceEncoderLimits
         let placeholderBuffer = makeBuffer(metalDevice, 1, .shared, .defaultCache, .default)
         DeviceImpl.setOwnerWithIdentity(placeholderBuffer, adapter)
         backingPlaceholderBuffer = placeholderBuffer
         (backingPlaceholderTexture, backingPlaceholderDepthStencilTexture) = makePlaceholderTextures(metalDevice)
         defaultQueueImpl.deviceImpl = self
+        defaultQueueImpl.setSchedulerHandle(instanceSchedulerHandle)
+        xrSubImageImpl = makeXRSubImageImpl()
+    }
+
+    deinit {
+        if let backingDeviceObserver {
+            WebGPU.Metal.removeDeviceObserver(backingDeviceObserver)
+        }
+        completeCallbacksForDestruction()
     }
 
     // MARK: Validity and loss
@@ -175,8 +177,7 @@ final class DeviceImpl {
         metalDevice
     }
 
-    @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         metalDevice != nil
     }
 
@@ -208,31 +209,17 @@ final class DeviceImpl {
         lost = true
     }
 
-    @_expose(Cxx)
-    func destroy() {
+    public func destroy() {
         destroyed = true
         destroyAllTextures()
         loseTheDevice(.Destroyed)
     }
 
-    // MARK: Callbacks. The shell hands a C++ CompletionHandler over by moving it out of `callback`, and passes
-    // whether it was set (an empty handler registers nothing).
+    // MARK: Callbacks
 
-    func resolveDeviceLostPromise(_ callback: inout WebGPU.Metal.DeviceLostCallback, _ hasCallback: Bool) {
-        let box = PendingCallback(exchange(&callback, with: WebGPU.Metal.DeviceLostCallback()))
-        resolveDeviceLostPromise(
-            hasCallback
-                ? { reason, message in
-                    if var handler = box.handler.take() {
-                        handler(reason, consuming: message)
-                    }
-                } : nil
-        )
-    }
-
-    // resolveDeviceLostPromise, for a Swift caller; nil registers nothing.
+    // resolveDeviceLostPromise's callback; nil registers nothing.
     @_expose(!Cxx)
-    func resolveDeviceLostPromise(_ callback: ((WebGPU.DeviceLostReason, WTF.String) -> Void)?) {
+    func setDeviceLostCallback(_ callback: ((WebGPU.DeviceLostReason, WTF.String) -> Void)?) {
         if let previous = deviceLostCallback.take() {
             previous(.Destroyed, WebGPU.Metal.deviceDestroyedMessage())
         }
@@ -244,23 +231,16 @@ final class DeviceImpl {
         }
     }
 
-    func resolveUncapturedErrorEvent(_ callback: inout WebGPU.Metal.UncapturedErrorCallback, _ hasCallback: Bool) {
-        let box = PendingCallback(exchange(&callback, with: WebGPU.Metal.UncapturedErrorCallback()))
-        resolveUncapturedErrorEvent(hasCallback ? { success, error in callUncapturedErrorCallback(box, success, error) } : nil)
-    }
-
-    // resolveUncapturedErrorEvent, for a Swift caller; nil registers nothing.
+    // resolveUncapturedErrorEvent's callback; nil registers nothing.
     @_expose(!Cxx)
-    func resolveUncapturedErrorEvent(_ callback: ((Bool, CaughtError?) -> Void)?) {
+    func setUncapturedErrorCallback(_ callback: ((Bool, CaughtError?) -> Void)?) {
         if let previous = uncapturedErrorCallback.take() {
             previous(false, nil)
         }
         uncapturedErrorCallback = callback
     }
 
-    // Called from ~Device.
-    @_expose(Cxx)
-    func completeCallbacksForDestruction() {
+    private func completeCallbacksForDestruction() {
         if let callback = deviceLostCallback.take() {
             callback(.Destroyed, WebGPU.Metal.deviceDestroyedMessage())
         }
@@ -271,7 +251,7 @@ final class DeviceImpl {
 
     // MARK: Error scopes
 
-    func pushErrorScope(_ filter: WebGPU.ErrorFilter) {
+    public func pushErrorScope(_ filter: WebGPU.ErrorFilter) {
         errorScopes.append(ErrorScope(filter: filter, error: nil))
     }
 
@@ -312,19 +292,11 @@ final class DeviceImpl {
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope
-    // A lost device completes as a scope without errors; an empty stack fails. Without an Instance to call back on, the
-    // scope's error is dropped and the callback runs now.
-    func popErrorScope(_ callback: inout WebGPU.Metal.UncapturedErrorCallback, _ instance: WebGPU.Metal.Instance?) {
-        let box = PendingCallback(exchange(&callback, with: WebGPU.Metal.UncapturedErrorCallback()))
-        popErrorScope(instance) { success, error in
-            callUncapturedErrorCallback(box, success, error)
-        }
-    }
-
-    // popErrorScope, for a Swift caller. `callback` gets whether the scope was popped (or the device is lost) and the
-    // error the scope caught.
+    // `callback` gets whether the scope was popped (or the device is lost) and the error the scope caught. A lost device
+    // completes as a scope without errors; an empty stack fails. Without an Instance to call back on, the scope's error
+    // is dropped and the callback runs now.
     @_expose(!Cxx)
-    func popErrorScope(_ instance: WebGPU.Metal.Instance?, _ callback: @escaping (Bool, CaughtError?) -> Void) {
+    func popErrorScopeCaughtError(_ callback: @escaping (Bool, CaughtError?) -> Void) {
         if lost {
             callback(true, nil)
             return
@@ -333,20 +305,27 @@ final class DeviceImpl {
             callback(false, nil)
             return
         }
-        guard let instance else {
+        guard instanceImpl != nil else {
             callback(true, nil)
             return
         }
         let caught = scope.error
-        instance.scheduleWork(
-            consuming: WebGPU.Metal.Instance.WorkItem {
-                if let caught {
-                    callback(false, caught)
-                } else {
-                    callback(true, nil)
-                }
+        scheduleWork {
+            if let caught {
+                callback(false, caught)
+            } else {
+                callback(true, nil)
             }
-        )
+        }
+    }
+
+    // Runs `work` in a later work item on the API thread, or now, without the Instance to schedule it.
+    @_expose(!Cxx)
+    func scheduleWork(_ work: @escaping () -> Void) {
+        guard instanceImpl != nil, let instanceSchedulerHandle else {
+            return work()
+        }
+        APIThreadWork<Void> { _ in work() }.schedule((), on: instanceSchedulerHandle)
     }
 
     // Returns the previous value.
@@ -408,15 +387,15 @@ final class DeviceImpl {
     // The slots the shader compiler puts the dynamic offsets in: the ones the encoders send them to. Only for a valid
     // device (Device::createShaderModule checks first).
     func maxBuffersPlusVertexBuffersForVertexStage() -> UInt32 {
-        limits.slots.vertexDynamicOffsets.rawValue
+        encoderLimits.slots.vertexDynamicOffsets.rawValue
     }
 
     func maxBuffersForFragmentStage() -> UInt32 {
-        limits.slots.fragmentDynamicOffsets.rawValue
+        encoderLimits.slots.fragmentDynamicOffsets.rawValue
     }
 
     func maxBuffersForComputeStage() -> UInt32 {
-        limits.slots.computeDynamicOffsets.rawValue
+        encoderLimits.slots.computeDynamicOffsets.rawValue
     }
 
     // MARK: Device-derived scalars
@@ -712,17 +691,6 @@ final class DeviceImpl {
 
     // MARK: The Instance's scheduler
 
-    @_expose(Cxx)
-    func setInstanceSchedulerHandle(_ handle: InstanceSchedulerHandle) {
-        instanceSchedulerHandle = handle
-        defaultQueueImpl.setSchedulerHandle(handle)
-    }
-
-    @_expose(Cxx)
-    func setInstanceImpl(_ instance: InstanceImpl) {
-        instanceImpl = instance
-    }
-
     // Keeps the device alive in its Instance until the command buffer is gone.
     @_expose(!Cxx)
     func retainUntilCompleted(_ commandBuffer: (any MTLCommandBuffer)?) {
@@ -748,44 +716,28 @@ final class DeviceImpl {
         backingAdapter
     }
 
-    @_expose(Cxx)
-    func installXRSubImage(_ subImageImpl: XRSubImageImpl) {
-        xrSubImageImpl = subImageImpl
-    }
-
-    @_expose(Cxx)
-    func setDeviceObserver(_ observer: (any NSObjectProtocol)?) {
-        backingDeviceObserver = observer
-    }
-
-    @_expose(Cxx)
-    func deviceObserver() -> (any NSObjectProtocol)? {
-        backingDeviceObserver
+    // The macOS device-removal observer: any notification about the device loses it.
+    fileprivate func observeDeviceRemoval() {
+        #if WTF_PLATFORM_MAC
+        guard let metalDevice else {
+            return
+        }
+        let scheduler = instanceSchedulerHandle
+        let lose = APIThreadWork<Void> { [weak self] _ in
+            guard let self, self.metalDevice != nil else {
+                return
+            }
+            self.loseTheDevice(.Unknown)
+        }
+        backingDeviceObserver = WebGPU.Metal.addDeviceObserver(metalDevice) {
+            lose.schedule((), on: scheduler)
+        }
+        #endif
     }
 }
 
 // An error that an error scope caught, or an uncaptured one.
 typealias CaughtError = (type: WebGPU.ErrorType, message: WTF.String)
-
-// A C++ CompletionHandler that a Swift closure calls at most once.
-private final class PendingCallback<Handler: ~Copyable> {
-    var handler: Handler?
-
-    init(_ handler: consuming Handler) {
-        self.handler = consume handler
-    }
-}
-
-private func callUncapturedErrorCallback(_ box: PendingCallback<WebGPU.Metal.UncapturedErrorCallback>, _ success: Bool, _ error: CaughtError?) {
-    guard var handler = box.handler.take() else {
-        return
-    }
-    if let error {
-        handler(success, consuming: WebGPU.Metal.OptionalError(WebGPU.Error(type: error.type, message: error.message)))
-    } else {
-        handler(success, consuming: WebGPU.Metal.OptionalError())
-    }
-}
 
 // https://gpuweb.github.io/gpuweb/#gpuerror
 @_spi(WebKitGPU)
@@ -794,7 +746,6 @@ public struct GPUError {
     public let message: Swift.String
 }
 
-// A device with its shell, as Swift holds one, with the operations of Device's shell that create nothing.
 // A device that isn't kept alive.
 @_spi(WebKitGPU)
 public final class DeviceWeakReference {
@@ -811,17 +762,14 @@ public final class DeviceWeakReference {
 }
 
 @_spi(WebKitGPU)
-public final class DeviceReference {
-    let impl: DeviceImpl
-    let shell: WebGPU.Metal.Device
+public typealias DeviceReference = DeviceImpl
 
-    init(_ impl: DeviceImpl, _ shell: WebGPU.Metal.Device) {
-        self.impl = impl
-        self.shell = shell
-    }
-
-    public func destroy() {
-        impl.destroy()
+// The operations of a device for Swift callers that create nothing.
+@_spi(WebKitGPU)
+extension DeviceImpl {
+    // What the callers used when it had a shell too.
+    var impl: DeviceImpl {
+        self
     }
 
     // https://immersive-web.github.io/WebXR-WebGPU-Binding/#gpuxrbinding
@@ -842,35 +790,30 @@ public final class DeviceReference {
         impl.deviceLimits()
     }
 
-    public func pushErrorScope(_ filter: WebGPU.ErrorFilter) {
-        impl.pushErrorScope(filter)
-    }
-
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope: whether the scope was popped, and its error.
     public func popErrorScope(_ completion: @escaping (Bool, GPUError?) -> Void) {
-        impl.popErrorScope(CxxBridging.protectedInstance(shell)) { success, error in
+        popErrorScopeCaughtError { success, error in
             completion(success, error.map { GPUError(type: $0.type, message: stringNilIfEmpty($0.message) ?? "") })
         }
     }
 
     // The next uncaptured error, or false without one when another callback replaces this one or the device goes.
     public func resolveUncapturedErrorEvent(_ completion: @escaping (Bool, GPUError?) -> Void) {
-        impl.resolveUncapturedErrorEvent { success, error in
+        setUncapturedErrorCallback { success, error in
             completion(success, error.map { GPUError(type: $0.type, message: stringNilIfEmpty($0.message) ?? "") })
         }
     }
 
     public func resolveDeviceLostPromise(_ completion: @escaping (WebGPU.DeviceLostReason) -> Void) {
-        impl.resolveDeviceLostPromise { reason, _ in
+        setDeviceLostCallback { reason, _ in
             completion(reason)
         }
     }
 
-    // Completes the callbacks that resolveDeviceLostPromise() and resolveUncapturedErrorEvent() hold, and holds none, as
-    // the shell's do when given null callbacks.
+    // Completes the callbacks that resolveDeviceLostPromise() and resolveUncapturedErrorEvent() hold, and holds none.
     public func completeHeldCallbacks() {
-        impl.resolveDeviceLostPromise(nil)
-        impl.resolveUncapturedErrorEvent(nil)
+        setDeviceLostCallback(nil)
+        setUncapturedErrorCallback(nil)
     }
 
     public func pauseAllErrorReporting(_ pause: Bool) {
@@ -976,22 +919,40 @@ private func computeAppleGPUFamily(_ metalDevice: any MTLDevice) -> UInt32 {
     return 0xFF
 }
 
-// An invalid device is made with a nil MTLDevice and command queue, and `HardwareCapabilities { }`.
-@_expose(Cxx)
-func makeDeviceImpl(
+// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice, once the adapter has accepted the request: an invalid
+// device when Metal gives it no queue.
+func makeDevice(
     _ metalDevice: (any MTLDevice)?,
+    _ label: WTF.String,
     _ capabilities: borrowing WebGPU.Metal.HardwareCapabilities,
     _ adapter: WebGPU.Metal.Adapter,
-    _ adapterImpl: AdapterImpl,
-    _ defaultQueue: (any MTLCommandQueue)?
+    _ adapterImpl: AdapterImpl
 ) -> DeviceImpl {
-    let impl = DeviceImpl(
+    guard let commandQueue = makeDefaultCommandQueue(metalDevice, label) else {
+        return makeInvalidDevice(adapter, adapterImpl)
+    }
+    let device = DeviceImpl(
         metalDevice: metalDevice,
         capabilities: capabilities,
         adapter: adapter,
         adapterImpl: adapterImpl,
-        defaultQueue: defaultQueue
+        defaultQueue: commandQueue
     )
-    adapterImpl.lastMadeDeviceImpl = impl
-    return impl
+    device.observeDeviceRemoval()
+    registerForFrameCapture(metalDevice)
+    return device
+}
+
+private func makeInvalidDevice(_ adapter: WebGPU.Metal.Adapter, _ adapterImpl: AdapterImpl) -> DeviceImpl {
+    let device = DeviceImpl(
+        metalDevice: nil,
+        capabilities: WebGPU.Metal.HardwareCapabilities(),
+        adapter: adapter,
+        adapterImpl: adapterImpl,
+        defaultQueue: nil
+    )
+    if !adapterImpl.isValid() {
+        device.makeInvalid()
+    }
+    return device
 }

@@ -43,12 +43,10 @@ public final class ComputePipelineImpl: GPUObjectReference {
     let minimumBufferSizes: MinimumBufferSizes
     // Declared last, so that the device outlives the rest of the pipeline.
     let deviceImpl: DeviceImpl
-    let device: WebGPU.Metal.Device
 
     init(
         computePipelineState: (any MTLComputePipelineState)?,
         pipelineLayoutImpl: PipelineLayoutImpl,
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl,
         parameters: WebGPU.Metal.ComputePipelineParameters,
         minimumBufferSizes: MinimumBufferSizes
@@ -58,7 +56,6 @@ public final class ComputePipelineImpl: GPUObjectReference {
         self.parameters = parameters
         self.minimumBufferSizes = minimumBufferSizes
         self.deviceImpl = deviceImpl
-        self.device = device
     }
 
     func computePipelineState() -> (any MTLComputePipelineState)? {
@@ -89,7 +86,6 @@ public final class ComputePipelineImpl: GPUObjectReference {
     // ComputePipeline::getBindGroupLayout, which wraps it in a shell.
     func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutImpl {
         pipelineBindGroupLayout(
-            device,
             deviceImpl,
             pipelineIsValid: isValid(),
             invalidPipelineMessage: "getBindGroupLayout: ComputePipeline is invalid",
@@ -104,7 +100,6 @@ public final class ComputePipelineImpl: GPUObjectReference {
 /// An invalid pipeline, or a group index of maxBindGroups or more, reports a validation error and invalidates the
 /// pipeline's layout. Every group the layout does not have gets a new invalid bind group layout.
 func pipelineBindGroupLayout(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     pipelineIsValid: Bool,
     invalidPipelineMessage: String,
@@ -112,7 +107,7 @@ func pipelineBindGroupLayout(
     _ groupIndex: UInt32
 ) -> BindGroupLayoutImpl {
     func invalidBindGroupLayout() -> BindGroupLayoutImpl {
-        makeInvalidBindGroupLayoutImpl(device, deviceImpl)
+        makeInvalidBindGroupLayoutImpl(deviceImpl)
     }
 
     if !pipelineIsValid {
@@ -122,7 +117,7 @@ func pipelineBindGroupLayout(
     }
 
     if groupIndex >= layoutImpl.numberOfBindGroupLayouts() {
-        if groupIndex >= deviceImpl.limits.maxBindGroups {
+        if groupIndex >= deviceImpl.encoderLimits.maxBindGroups {
             deviceImpl.generateAValidationError("getBindGroupLayout: groupIndex is out of range")
             layoutImpl.makeInvalid()
         }
@@ -136,14 +131,12 @@ func pipelineBindGroupLayout(
 }
 
 func makeInvalidComputePipelineImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ pipelineLayoutImpl: PipelineLayoutImpl
 ) -> ComputePipelineImpl {
     ComputePipelineImpl(
         computePipelineState: nil,
         pipelineLayoutImpl: pipelineLayoutImpl,
-        device: device,
         deviceImpl: deviceImpl,
         parameters: WebGPU.Metal.ComputePipelineParameters(),
         minimumBufferSizes: MinimumBufferSizes()
@@ -186,14 +179,12 @@ struct ComputePipelineInput {
 /// downcast, and sets them with their Impls.
 @_expose(Cxx)
 final class ComputePipelineBuilder {
-    private let device: WebGPU.Metal.Device
     private let deviceImpl: DeviceImpl
     private let shaderModuleImpl: ShaderModuleImpl
     private var layoutImpl: PipelineLayoutImpl?
     private var isReplacingPipeline = false
 
-    fileprivate init(device: WebGPU.Metal.Device, deviceImpl: DeviceImpl, shaderModuleImpl: ShaderModuleImpl) {
-        self.device = device
+    fileprivate init(deviceImpl: DeviceImpl, shaderModuleImpl: ShaderModuleImpl) {
         self.deviceImpl = deviceImpl
         self.shaderModuleImpl = shaderModuleImpl
     }
@@ -218,7 +209,6 @@ final class ComputePipelineBuilder {
     // succeeded, and the message it failed with, on a later turn of the API thread, as the C++ caller's callback does.
     @_expose(!Cxx)
     func createAsync(_ descriptor: ComputePipelineInput, _ completion: @escaping (ComputePipelineReference, Bool, String?) -> Void) {
-        let device = self.device
         let deviceImpl = self.deviceImpl
         let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
         create(descriptor, isAsync: true, asynchronousIfPossible()) { pipeline, message in
@@ -226,10 +216,7 @@ final class ComputePipelineBuilder {
                 // A lost device makes invalid objects without errors.
                 completion(pipeline, pipeline.isValid() || deviceImpl.isDestroyed(), message)
             }
-            guard let instance = CxxBridging.protectedInstance(device) else {
-                return resolve()
-            }
-            instance.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { resolve() })
+            deviceImpl.scheduleWork(resolve)
         }
         if let wasErrorReportingPaused {
             _ = deviceImpl.pauseErrorReporting(wasErrorReportingPaused)
@@ -244,31 +231,30 @@ final class ComputePipelineBuilder {
         _ compilation: LibraryCompilation,
         _ report: @escaping (ComputePipelineImpl, String?) -> Void
     ) {
-        let device = self.device
         let deviceImpl = self.deviceImpl
         // The synchronous form reports the error itself.
         let fail = { (message: String?) in
             if !isAsync {
                 deviceImpl.generateAValidationError(message ?? "createComputePipeline failed")
             }
-            report(makeInvalidComputePipeline(device, deviceImpl), message)
+            report(makeInvalidComputePipeline(deviceImpl), message)
         }
 
         guard shaderModuleImpl.isValid(), shaderModuleImpl.deviceImpl === deviceImpl, let layoutImpl else {
             return fail(nil)
         }
         // isValidToUseWithDevice(layout, device). With the same device, the layout's device validity is deviceImpl.isValid().
-        if !layoutImpl.isValid() || !CxxBridging.areDevicesEqual(layoutImpl.device, device) || !deviceImpl.isValid() {
+        if !layoutImpl.isValid() || layoutImpl.deviceImpl !== deviceImpl || !deviceImpl.isValid() {
             return fail("GPUDevice.createComputePipeline: Pipeline layout is invalid")
         }
 
-        let pending = prepareComputePipeline(device, deviceImpl, descriptor, shaderModuleImpl, layoutImpl, isReplacingPipeline)
+        let pending = prepareComputePipeline(deviceImpl, descriptor, shaderModuleImpl, layoutImpl, isReplacingPipeline)
         guard let prepared = pending.prepared else {
             return fail(pending.failureMessage)
         }
 
         let suppressErrors = deviceImpl.isErrorReportingPaused()
-        compileLibrary(prepared.library, device, deviceImpl, compilation) { library, libraryError in
+        compileLibrary(prepared.library, deviceImpl, compilation) { library, libraryError in
             withErrorReporting(deviceImpl, suppressingErrors: suppressErrors) {
                 guard let library else {
                     return fail(libraryError?.localizedDescription ?? "Compute library failed creation")
@@ -278,7 +264,7 @@ final class ComputePipelineBuilder {
                 }
                 // The pipeline state is the second half of the compile, and it is what a dispatch actually needs,
                 // so the pipeline isn't handed back until Metal is done with it.
-                createComputePipelineState(computePipelineDescriptor, prepared.library.metalSource, device, deviceImpl, compilation) {
+                createComputePipelineState(computePipelineDescriptor, prepared.library.metalSource, deviceImpl, compilation) {
                     computePipelineState in
                     withErrorReporting(deviceImpl, suppressingErrors: suppressErrors) {
                         guard let computePipelineState else {
@@ -287,7 +273,7 @@ final class ComputePipelineBuilder {
                             )
                             return fail("GPUCompuePipeline could not compile")
                         }
-                        report(prepared.makeImpl(computePipelineState, device), nil)
+                        report(prepared.makeImpl(computePipelineState), nil)
                     }
                 }
             }
@@ -298,12 +284,11 @@ final class ComputePipelineBuilder {
 // The builder of a Swift caller's descriptor, with the module and layout that C++ sets on a C++ caller's: the layout of
 // `pipelineToReplace` for createComputePipelineWithPipelineLayoutFromPipelineAsync.
 func makeComputePipelineBuilder(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: GPUComputePipelineDescriptor,
     replacingLayoutOf pipelineToReplace: ComputePipelineReference? = nil
 ) -> ComputePipelineBuilder {
-    let builder = ComputePipelineBuilder(device: device, deviceImpl: deviceImpl, shaderModuleImpl: descriptor.compute.module.impl)
+    let builder = ComputePipelineBuilder(deviceImpl: deviceImpl, shaderModuleImpl: descriptor.compute.module.impl)
     if let pipelineToReplace {
         builder.setPipelineLayout(pipelineToReplace.impl.pipelineLayoutImpl, true)
     } else if let layout = descriptor.layout {
@@ -315,7 +300,6 @@ func makeComputePipelineBuilder(
 /// Everything of Device::createComputePipeline up to the MSL compile, after ComputePipelineBuilder.create has
 /// rejected an invalid module, a module or layout of another device, and a missing layout.
 private func prepareComputePipeline(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: ComputePipelineInput,
     _ shaderModuleImpl: ShaderModuleImpl,
@@ -382,7 +366,7 @@ private func prepareComputePipeline(
         if let layoutError = appendDefaultLayout(&bindGroupEntries, from: defaultLayout, limits: limits) {
             return PendingComputePipeline(failure: layoutError)
         }
-        let generated = makeGeneratedPipelineLayout(device: device, deviceImpl: deviceImpl, entries: bindGroupEntries)
+        let generated = makeGeneratedPipelineLayout(deviceImpl: deviceImpl, entries: bindGroupEntries)
         if !generated.isValid() {
             return PendingComputePipeline(failure: nil)
         }
@@ -469,11 +453,10 @@ private final class PreparedComputePipeline {
 
     // `device` is the one creation started on, which the creation holds: the prepared pipeline holds no Device
     // reference of its own.
-    func makeImpl(_ state: any MTLComputePipelineState, _ device: WebGPU.Metal.Device) -> ComputePipelineImpl {
+    func makeImpl(_ state: any MTLComputePipelineState) -> ComputePipelineImpl {
         ComputePipelineImpl(
             computePipelineState: state,
             pipelineLayoutImpl: layoutImpl,
-            device: device,
             deviceImpl: deviceImpl,
             parameters: parameters,
             minimumBufferSizes: minimumBufferSizes
@@ -482,15 +465,15 @@ private final class PreparedComputePipeline {
 }
 
 // An invalid pipeline still holds an invalid pipeline layout, so that it always has one.
-func makeInvalidComputePipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ComputePipelineImpl {
-    makeInvalidComputePipelineImpl(device, deviceImpl, makeInvalidPipelineLayoutImpl(device))
+func makeInvalidComputePipeline(_ deviceImpl: DeviceImpl) -> ComputePipelineImpl {
+    makeInvalidComputePipelineImpl(deviceImpl, makeInvalidPipelineLayoutImpl(deviceImpl))
 }
 
 @_spi(WebKitGPU)
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline: an invalid pipeline on failure.
     public func createComputePipeline(_ descriptor: GPUComputePipelineDescriptor, label: Swift.String?) -> ComputePipelineReference {
-        makeComputePipelineBuilder(shell, impl, descriptor).create(ComputePipelineInput(descriptor, label: label ?? ""))
+        makeComputePipelineBuilder(impl, descriptor).create(ComputePipelineInput(descriptor, label: label ?? ""))
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipelineasync, and, with `pipelineToReplace`, the
@@ -502,7 +485,7 @@ extension DeviceReference {
         replacingLayoutOf pipelineToReplace: ComputePipelineReference? = nil,
         _ completion: @escaping (ComputePipelineReference, Bool, Swift.String?) -> Void
     ) {
-        makeComputePipelineBuilder(shell, impl, descriptor, replacingLayoutOf: pipelineToReplace)
+        makeComputePipelineBuilder(impl, descriptor, replacingLayoutOf: pipelineToReplace)
             .createAsync(ComputePipelineInput(descriptor, label: label ?? ""), completion)
     }
 }

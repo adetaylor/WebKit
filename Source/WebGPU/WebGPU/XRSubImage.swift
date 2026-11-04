@@ -43,7 +43,7 @@ final class XRSubImageImpl {
     }
 
     @_expose(Cxx)
-    func update(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ projectionLayer: XRProjectionLayerImpl) {
+    func update(_ deviceImpl: DeviceImpl, _ projectionLayer: XRProjectionLayerImpl) {
         var colorTexture = projectionLayer.colorTexture
         var depthTexture = projectionLayer.depthTexture
         let textureIndex = projectionLayer.reusableTextureIndex
@@ -62,7 +62,7 @@ final class XRSubImageImpl {
             if colorFormat != targetColorFormat {
                 colorTexture = colorTexture?.makeTextureView(pixelFormat: texturePixelFormat(colorFormat))
             }
-            let newTexture = makeXRTexture(colorTexture, targetColorFormat, colorFormat, device, deviceImpl)
+            let newTexture = makeXRTexture(colorTexture, targetColorFormat, colorFormat, deviceImpl)
             newTexture.impl.updateCompletionEvent(completionEvent, completionEventSignalValue)
             newTexture.impl.setRasterizationRateMaps(projectionLayer.leftRasterizationMap, projectionLayer.rightRasterizationMap)
             colorTextures[textureIndex] = newTexture
@@ -80,7 +80,7 @@ final class XRSubImageImpl {
         if textureFormat(depthTexture?.pixelFormat ?? .invalid) != targetDepthStencilFormat {
             depthTexture = depthTexture?.makeTextureView(pixelFormat: texturePixelFormat(targetDepthStencilFormat))
         }
-        depthTextures[textureIndex] = makeXRTexture(depthTexture, targetDepthStencilFormat, targetDepthStencilFormat, device, deviceImpl)
+        depthTextures[textureIndex] = makeXRTexture(depthTexture, targetDepthStencilFormat, targetDepthStencilFormat, deviceImpl)
     }
 
     @_expose(!Cxx)
@@ -124,7 +124,7 @@ public final class XRBindingReference {
         parameters.depthStencilFormat = depthStencilFormat ?? .Bgra8unorm
         parameters.textureUsage = textureUsage
         parameters.scaleFactor = scaleFactor
-        return XRProjectionLayerReference(makeXRProjectionLayerImpl(parameters, device.shell, device.impl))
+        return XRProjectionLayerReference(makeXRProjectionLayerImpl(parameters, device.impl))
     }
 
     // https://immersive-web.github.io/WebXR-WebGPU-Binding/#dom-xrgpubinding-getviewsubimage: the device's sub-image,
@@ -133,7 +133,7 @@ public final class XRBindingReference {
         guard let subImage = device.impl.xrSubImageImpl else {
             return nil
         }
-        subImage.update(device.shell, device.impl, projectionLayer.impl)
+        subImage.update(device.impl, projectionLayer.impl)
         return XRSubImageReference(subImage)
     }
 }
@@ -161,7 +161,6 @@ private func makeXRTexture(
     _ texture: (any MTLTexture)?,
     _ format: WebGPU.TextureFormat,
     _ viewFormat: WebGPU.TextureFormat,
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> TextureImpl {
     let parameters = twoDimensionalTextureParameters(
@@ -172,5 +171,5 @@ private func makeXRTexture(
         depthOrArrayLayers: UInt32(truncatingIfNeeded: texture?.arrayLength ?? 0),
         sampleCount: UInt32(truncatingIfNeeded: texture?.sampleCount ?? 0)
     )
-    return makeTexture(texture, parameters, viewFormats: [viewFormat], device, deviceImpl)
+    return makeTexture(texture, parameters, viewFormats: [viewFormat], deviceImpl)
 }

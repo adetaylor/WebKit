@@ -40,8 +40,6 @@
 
 namespace WebGPU::Metal {
 
-class Device;
-
 // For the Swift pipeline-creation code.
 
 // `work` runs on a thread with the stack WGSL compilation needs (the calling thread unless the compiler was built

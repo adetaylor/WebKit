@@ -37,8 +37,6 @@
 
 namespace WebGPU::Metal {
 
-class Device;
-
 // The pipeline's unique id and workgroup size.
 struct ComputePipelineParameters {
     uint64_t uniqueId { 0 };

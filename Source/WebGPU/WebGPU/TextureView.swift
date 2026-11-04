@@ -62,29 +62,23 @@ public final class TextureViewImpl: GPUObjectReference {
     @_expose(!Cxx)
     var tracking = EncoderTracking()
     // The parent's device, with a reference of the view's own. Declared last, so that it outlives the rest of the view.
-    let device: WebGPU.Metal.Device
+    let deviceImpl: DeviceImpl
 
     init(
         texture: (any MTLTexture)?,
         sampledTexture: (any MTLTexture)?,
         parentImpl: TextureImpl,
-        descriptor: ResolvedTextureViewDescriptor?,
-        device: WebGPU.Metal.Device
+        descriptor: ResolvedTextureViewDescriptor?
     ) {
         self.backingTexture = texture
         self.backingSampledTexture = sampledTexture
         self.parentImpl = parentImpl
         self.descriptor = descriptor
-        self.device = device
+        deviceImpl = parentImpl.deviceImpl
     }
 
     var parentTextureImpl: TextureImpl {
         parentImpl
-    }
-
-    /// The view's device is its parent's.
-    var deviceImpl: DeviceImpl {
-        parentImpl.deviceImpl
     }
 
     @_expose(!Cxx)
@@ -278,13 +272,12 @@ public final class TextureViewImpl: GPUObjectReference {
     }
 }
 
-func makeInvalidTextureViewImpl(_ parentImpl: TextureImpl, _ device: WebGPU.Metal.Device) -> TextureViewImpl {
+func makeInvalidTextureViewImpl(_ parentImpl: TextureImpl) -> TextureViewImpl {
     TextureViewImpl(
         texture: nil,
         sampledTexture: nil,
         parentImpl: parentImpl,
-        descriptor: nil,
-        device: device
+        descriptor: nil
     )
 }
 

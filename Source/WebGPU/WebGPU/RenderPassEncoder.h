@@ -36,8 +36,6 @@
 
 namespace WebGPU::Metal {
 
-class Device;
-
 struct RenderPassEncoderParameters {
     NSUInteger visibilityResultBufferSize { 0 };
     uint64_t maxDrawCount { 0 };

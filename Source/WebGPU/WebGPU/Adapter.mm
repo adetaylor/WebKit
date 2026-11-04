@@ -51,6 +51,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(Adapter);
 Ref<Adapter> Adapter::create(id<MTLDevice> device, Instance& instance, bool xrCompatible, HardwareCapabilities&& capabilities)
 {
     auto box = makeUnique<AdapterImplBox>(AdapterImplBox { .impl = WebGPUSwift::makeAdapterImpl(device, xrCompatible, capabilities) });
+    box->impl.setInstance(instance.swiftImpl(), instance.schedulerHandle());
     return adoptRef(*new Adapter(WTF::move(box), instance));
 }
 

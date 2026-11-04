@@ -60,8 +60,6 @@ inline uint32_t roundUpToMultipleOfNonPowerOfTwoUInt32UInt32(uint32_t a, uint32_
 
 namespace CxxBridging {
 
-using RefDevice = Ref<WebGPU::Metal::Device>;
-
 // The types of the Instance's scheduler and web process ID (Instance.swift).
 using InstanceWorkItem = Function<void()>;
 using InstanceScheduleWork = Function<void(Function<void()>&&)>;
@@ -75,17 +73,6 @@ struct FutureIDsView {
 
     std::span<const uint64_t> span() const LIFETIME_BOUND { return futureIDs; }
 } SWIFT_VIEW;
-
-// FIXME: rdar://130765784 (=== does not accept foreign reference types)
-inline bool areDevicesEqual(const WebGPU::Metal::Device& a, const WebGPU::Metal::Device& b)
-{
-    return &a == &b;
-}
-
-// The device's Instance, +1, or nullptr once it is gone.
-inline WebGPU::Metal::Instance* protectedInstance(const WebGPU::Metal::Device& device) SWIFT_RETURNS_RETAINED {
-    return device.instance().leakRef();
-}
 
 }
 

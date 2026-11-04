@@ -71,7 +71,7 @@ final class CommandBufferCompletion: Sendable {
 enum PostCommitAction {
     /// Waits for the command buffer, then writes back the index data the slow path cleared.
     case restoreIndexBufferContents(BufferImpl, NSMutableData)
-    case clearMustTakeSlowIndexValidationPath(WebGPU.Metal.Device, WeakBufferAndEncoder)
+    case clearMustTakeSlowIndexValidationPath(DeviceImpl, WeakBufferAndEncoder)
 }
 
 // The CommandEncoder that finished into a command buffer, read for its state, which holds the pre-commit actions.
@@ -118,14 +118,12 @@ public final class CommandBufferImpl: GPUObjectReference {
     private var initializationLedger: InitializationLedger?
     // Declared last, so that the device outlives the rest of the command buffer.
     let deviceImpl: DeviceImpl
-    let device: WebGPU.Metal.Device
 
     fileprivate init(
         commandBuffer: (any MTLCommandBuffer)?,
         sharedEvent: (any MTLSharedEvent)?,
         sharedEventSignalValue: UInt64,
         commandEncoder: [FinishedEncoder],
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl
     ) {
         self.backingCommandBuffer = commandBuffer
@@ -133,7 +131,6 @@ public final class CommandBufferImpl: GPUObjectReference {
         self.sharedEventSignalValue = sharedEventSignalValue
         self.commandEncoder = commandEncoder
         self.deviceImpl = deviceImpl
-        self.device = device
         // Rolled over by the encoder, in the order they have to be committed in, immediately before commandBuffer().
         self.priorCommandBuffers = commandEncoder.first?.impl.takePriorCommandBuffers() ?? []
         self.initializationLedger = commandEncoder.first?.impl.takeInitializationLedger()
@@ -392,7 +389,6 @@ func makeCommandBufferImpl(
     _ sharedEvent: (any MTLSharedEvent)?,
     _ sharedEventSignalValue: UInt64,
     _ commandEncoderImpl: CommandEncoderImpl,
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> CommandBufferImpl {
     CommandBufferImpl(
@@ -400,18 +396,16 @@ func makeCommandBufferImpl(
         sharedEvent: sharedEvent,
         sharedEventSignalValue: sharedEventSignalValue,
         commandEncoder: [FinishedEncoder(impl: commandEncoderImpl)],
-        device: device,
         deviceImpl: deviceImpl
     )
 }
 
-func makeInvalidCommandBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> CommandBufferImpl {
+func makeInvalidCommandBufferImpl(_ deviceImpl: DeviceImpl) -> CommandBufferImpl {
     CommandBufferImpl(
         commandBuffer: nil,
         sharedEvent: nil,
         sharedEventSignalValue: 0,
         commandEncoder: [],
-        device: device,
         deviceImpl: deviceImpl
     )
 }

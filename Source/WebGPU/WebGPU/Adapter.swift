@@ -59,12 +59,7 @@ public final class AdapterReference {
             return nil
         }
 
-        let device = WebGPU.Metal.createDevice(impl.device(), WTF.String(label ?? ""), capabilities, shell)
-        guard let deviceImpl = impl.lastMadeDeviceImpl else {
-            preconditionFailure("Device's shell made no Impl")
-        }
-        impl.lastMadeDeviceImpl = nil
-        return DeviceReference(deviceImpl, device.ptr())
+        return makeDevice(impl.device(), WTF.String(label ?? ""), capabilities, shell, impl)
     }
 
     // https://gpuweb.github.io/gpuweb/#gpuadapterinfo, as the shell's info() gives it: a Metal device is never a fallback
@@ -103,10 +98,9 @@ final class AdapterImpl: DeliverableImpl {
     private let adapterLimits: WebGPU.Limits
     // Given to the device this adapter creates.
     private let baseCapabilities: GPUBaseCapabilities
-    // The Impl that the last device shell this adapter made made, for the Swift caller that requested the device. Weak,
-    // so that it lives only as long as its shell.
-    @_expose(!Cxx)
-    weak var lastMadeDeviceImpl: DeviceImpl?
+    // The adapter's Instance, and its scheduler, for the device this adapter creates.
+    private(set) weak var instanceImpl: InstanceImpl?
+    private(set) var instanceSchedulerHandle: InstanceSchedulerHandle?
 
     fileprivate init(
         metalDevice: (any MTLDevice)?,
@@ -120,6 +114,12 @@ final class AdapterImpl: DeliverableImpl {
         self.features = features
         adapterLimits = limits
         self.baseCapabilities = baseCapabilities
+    }
+
+    @_expose(Cxx)
+    func setInstance(_ instanceImpl: InstanceImpl, _ schedulerHandle: InstanceSchedulerHandle) {
+        self.instanceImpl = instanceImpl
+        instanceSchedulerHandle = schedulerHandle
     }
 
     @_expose(Cxx)

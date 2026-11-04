@@ -53,12 +53,11 @@ public final class QuerySetImpl: GPUObjectReference {
     @_expose(!Cxx)
     let queryType: WebGPU.QueryType?
     private var destroyed = false
-    let deviceImpl: DeviceImpl
     /// The encoders that used this query set: emptied only by destroy(), never by the encoders.
     @_expose(!Cxx)
     var tracking = EncoderTracking()
     // Declared last, so that the device outlives the rest of the query set.
-    let device: WebGPU.Metal.Device
+    let deviceImpl: DeviceImpl
 
     fileprivate init(
         visibilityBuffer: (any MTLBuffer)?,
@@ -66,7 +65,6 @@ public final class QuerySetImpl: GPUObjectReference {
         counterSampleOffset: UInt32,
         queryCount: UInt32,
         queryType: WebGPU.QueryType?,
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl
     ) {
         if let visibilityBuffer {
@@ -80,7 +78,6 @@ public final class QuerySetImpl: GPUObjectReference {
         self.queryCount = queryCount
         self.queryType = queryType
         self.deviceImpl = deviceImpl
-        self.device = device
     }
 
     deinit {
@@ -198,16 +195,14 @@ public struct GPUQuerySetDescriptor {
 }
 
 func createQuerySetImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: WebGPU.QuerySetDescriptor,
     _ timestampCounterSet: (any MTLCounterSet)?
 ) -> QuerySetImpl {
-    createQuerySetImpl(device, deviceImpl, GPUQuerySetDescriptor(descriptor), label: descriptor.label, timestampCounterSet)
+    createQuerySetImpl(deviceImpl, GPUQuerySetDescriptor(descriptor), label: descriptor.label, timestampCounterSet)
 }
 
 func createQuerySetImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: GPUQuerySetDescriptor,
     label: WTF.String,
@@ -216,14 +211,14 @@ func createQuerySetImpl(
     let count = descriptor.count
     if count > maxQueryCount || !deviceImpl.isValid() {
         deviceImpl.generateAValidationError("GPUQuerySetDescriptor.count must be <= 4096")
-        return makeInvalidQuerySetImpl(device, deviceImpl)
+        return makeInvalidQuerySetImpl(deviceImpl)
     }
 
     switch descriptor.type {
     case WebGPU.QueryType.Timestamp:
         guard let metalDevice = deviceImpl.device(), let lease = counterSampleBufferPoolAcquire(count, metalDevice, timestampCounterSet)
         else {
-            return makeInvalidQuerySetImpl(device, deviceImpl)
+            return makeInvalidQuerySetImpl(deviceImpl)
         }
         return QuerySetImpl(
             visibilityBuffer: nil,
@@ -231,7 +226,6 @@ func createQuerySetImpl(
             counterSampleOffset: lease.offset,
             queryCount: count,
             queryType: WebGPU.QueryType.Timestamp,
-            device: device,
             deviceImpl: deviceImpl
         )
     case WebGPU.QueryType.Occlusion:
@@ -243,7 +237,6 @@ func createQuerySetImpl(
             counterSampleOffset: 0,
             queryCount: count,
             queryType: WebGPU.QueryType.Occlusion,
-            device: device,
             deviceImpl: deviceImpl
         )
     default:
@@ -259,14 +252,13 @@ private enum QuerySetBacking {
     case none
 }
 
-func makeInvalidQuerySetImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> QuerySetImpl {
+func makeInvalidQuerySetImpl(_ deviceImpl: DeviceImpl) -> QuerySetImpl {
     QuerySetImpl(
         visibilityBuffer: nil,
         counterSampleBuffer: nil,
         counterSampleOffset: 0,
         queryCount: 0,
         queryType: nil,
-        device: device,
         deviceImpl: deviceImpl
     )
 }
@@ -383,6 +375,6 @@ private func insertFreeRange(_ range: Range<UInt32>, into ranges: inout [Range<U
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createqueryset
     public func createQuerySet(_ descriptor: GPUQuerySetDescriptor, label: Swift.String?) -> QuerySetImpl {
-        createQuerySetImpl(shell, impl, descriptor, label: WTF.String(label ?? ""), impl.timestampCounterSet())
+        createQuerySetImpl(impl, descriptor, label: WTF.String(label ?? ""), impl.timestampCounterSet())
     }
 }

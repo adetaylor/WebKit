@@ -71,17 +71,14 @@ public final class ShaderModuleImpl: GPUObjectReference {
     let defaultComputeEntryPoint: Name?
     // Declared last, so that the device outlives the rest of the module.
     let deviceImpl: DeviceImpl
-    let device: WebGPU.Metal.Device
 
     init(
         checkedModule: CheckedModuleBox?,
         errors: [CompilationMessage],
         warnings: [CompilationMessage],
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl
     ) {
         self.deviceImpl = deviceImpl
-        self.device = device
         self.checkedModule = checkedModule
         messages = (errors + warnings).map(Message.init)
         errorCount = errors.count
@@ -390,23 +387,22 @@ extension ShaderModuleImpl {
 
 // For Device::createShaderModule, after its device check.
 func createShaderModuleImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: borrowing WebGPU.ShaderModuleDescriptor
 ) -> ShaderModuleImpl {
-    createShaderModuleImpl(device, deviceImpl, source: wgslSourceText(descriptor.code))
+    createShaderModuleImpl(deviceImpl, source: wgslSourceText(descriptor.code))
 }
 
 // Device::createShaderModule, for a Swift caller. The descriptor's compilation hints aren't used yet, by either.
-func createShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, code: Swift.String) -> ShaderModuleImpl {
+func createShaderModuleImpl(_ deviceImpl: DeviceImpl, code: Swift.String) -> ShaderModuleImpl {
     guard deviceImpl.isValid() else {
-        return makeInvalidShaderModuleImpl(device, deviceImpl)
+        return makeInvalidShaderModuleImpl(deviceImpl)
     }
-    return createShaderModuleImpl(device, deviceImpl, source: SourceText(code))
+    return createShaderModuleImpl(deviceImpl, source: SourceText(code))
 }
 
 // Reports the validation error of a module that fails to compile.
-private func createShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, source: SourceText) -> ShaderModuleImpl {
+private func createShaderModuleImpl(_ deviceImpl: DeviceImpl, source: SourceText) -> ShaderModuleImpl {
     var supportedFeatures: Features = []
     if deviceImpl.hasFeature(WebGPU.FeatureName.ClipDistances) {
         supportedFeatures.insert(.clipDistances)
@@ -441,15 +437,15 @@ private func createShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl:
             checkedModule = CheckedModuleBox(module)
         }
     }
-    let impl = ShaderModuleImpl(checkedModule: checkedModule, errors: errors, warnings: warnings, device: device, deviceImpl: deviceImpl)
+    let impl = ShaderModuleImpl(checkedModule: checkedModule, errors: errors, warnings: warnings, deviceImpl: deviceImpl)
     if !impl.isValid() {
         deviceImpl.generateAValidationError(impl.compilationErrorMessage())
     }
     return impl
 }
 
-func makeInvalidShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ShaderModuleImpl {
-    ShaderModuleImpl(checkedModule: nil, errors: [], warnings: [], device: device, deviceImpl: deviceImpl)
+func makeInvalidShaderModuleImpl(_ deviceImpl: DeviceImpl) -> ShaderModuleImpl {
+    ShaderModuleImpl(checkedModule: nil, errors: [], warnings: [], deviceImpl: deviceImpl)
 }
 
 @_spi(WebKitGPU)
@@ -457,6 +453,6 @@ extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule, from WGSL. The label isn't kept, as for the
     // C++ caller.
     public func createShaderModule(code: Swift.String, label: Swift.String?) -> ShaderModuleReference {
-        createShaderModuleImpl(shell, impl, code: code)
+        createShaderModuleImpl(impl, code: code)
     }
 }

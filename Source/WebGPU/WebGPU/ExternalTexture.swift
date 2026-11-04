@@ -55,10 +55,10 @@ extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-importexternaltexture, as the shell's importExternalTexture() does.
     public func importExternalTexture(_ descriptor: WebGPU.ExternalTextureDescriptor) -> ExternalTextureReference {
         guard impl.isValid() else {
-            return makeInvalidExternalTextureImpl(shell, impl)
+            return makeInvalidExternalTextureImpl(impl)
         }
         let size = descriptor.visibleSize
-        let texture = makeExternalTextureImpl(descriptor.colorSpace, size.width, size.height, shell, impl)
+        let texture = makeExternalTextureImpl(descriptor.colorSpace, size.width, size.height, impl)
         texture.update(descriptor)
         return texture
     }
@@ -83,7 +83,6 @@ public final class ExternalTextureImpl: GPUObjectReference {
     private let backingVisibleWidth: UInt32
     private let backingVisibleHeight: UInt32
 
-    let deviceImpl: DeviceImpl
     /// The encoders that used the current frame: cleared by a new frame and by undestroy, never by the encoders.
     @_expose(!Cxx)
     var tracking = EncoderTracking()
@@ -91,20 +90,18 @@ public final class ExternalTextureImpl: GPUObjectReference {
     @_expose(!Cxx)
     var pendingUsers = EncoderTracking()
     // Declared last, so that the device outlives the rest of the texture.
-    let device: WebGPU.Metal.Device
+    let deviceImpl: DeviceImpl
 
     fileprivate init(
         colorSpace: WebGPU.PredefinedColorSpace,
         visibleWidth: UInt32,
         visibleHeight: UInt32,
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl
     ) {
         self.colorSpace = colorSpace
         self.backingVisibleWidth = visibleWidth
         self.backingVisibleHeight = visibleHeight
         self.deviceImpl = deviceImpl
-        self.device = device
     }
 
     @_expose(Cxx)
@@ -212,24 +209,21 @@ func makeExternalTextureImpl(
     _ colorSpace: WebGPU.PredefinedColorSpace,
     _ visibleWidth: UInt32,
     _ visibleHeight: UInt32,
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> ExternalTextureImpl {
     ExternalTextureImpl(
         colorSpace: colorSpace,
         visibleWidth: visibleWidth,
         visibleHeight: visibleHeight,
-        device: device,
         deviceImpl: deviceImpl
     )
 }
 
-func makeInvalidExternalTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ExternalTextureImpl {
+func makeInvalidExternalTextureImpl(_ deviceImpl: DeviceImpl) -> ExternalTextureImpl {
     ExternalTextureImpl(
         colorSpace: WebGPU.PredefinedColorSpace.SRGB,
         visibleWidth: 0,
         visibleHeight: 0,
-        device: device,
         deviceImpl: deviceImpl
     )
 }

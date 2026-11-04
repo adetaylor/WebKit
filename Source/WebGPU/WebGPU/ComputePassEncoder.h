@@ -42,8 +42,6 @@
 
 namespace WebGPU::Metal {
 
-class Device;
-
 // For ComputePassEncoder.swift. Free functions, so that the span gets a safe Span overload (rdar://161274084).
 
 void setComputeDynamicOffsets(id<MTLComputeCommandEncoder>, std::span<const uint32_t> dynamicOffsets NOESCAPE, NSUInteger bufferIndex);

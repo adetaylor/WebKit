@@ -50,7 +50,6 @@ class AdapterImpl;
 
 namespace WebGPU::Metal {
 
-class Device;
 class Instance;
 
 // Opaque box holding the Swift AdapterImpl; defined in Adapter.mm.

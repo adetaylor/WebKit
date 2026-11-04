@@ -479,7 +479,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     private var deferredDescriptor: MTLRenderPassDescriptor?
     @_expose(!Cxx)
     let parentImpl: CommandEncoderImpl
-    private let deviceImpl: DeviceImpl
     private let limits: EncoderLimits
     private let maxVerticesPerDrawCall: UInt32
     // What splitRenderPass makes the replacement encoder from. nil when the device's memory barrier limit
@@ -566,7 +565,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     // The bundles of the executeBundles call in progress, appended by the shell just before it.
     private var pendingBundles: [RenderBundleImpl] = []
     // The parent encoder's device. Declared last, so that it outlives the rest of the pass.
-    let device: WebGPU.Metal.Device
+    private let deviceImpl: DeviceImpl
 
     fileprivate init(
         renderCommandEncoder: (any MTLRenderCommandEncoder)?,
@@ -575,10 +574,8 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         visibilityResultBuffer: (any MTLBuffer)?,
         parameters: WebGPU.Metal.RenderPassEncoderParameters,
         parentImpl: CommandEncoderImpl,
-        device: WebGPU.Metal.Device,
         lastErrorString: String?
     ) {
-        self.device = device
         self.backingRenderCommandEncoder = renderCommandEncoder
         self.metalDescriptor = metalDescriptor
         self.rasterizationRateMap = rasterizationRateMap
@@ -588,7 +585,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         self.parentImpl = parentImpl
         self.lastErrorString = lastErrorString
         let deviceImpl = parentImpl.deviceImpl
-        let limits = deviceImpl.limits
+        let limits = deviceImpl.encoderLimits
         precondition(maxBindGroupIndexCount >= Int(limits.maxBindGroups))
         self.deviceImpl = deviceImpl
         self.limits = limits
@@ -1745,7 +1742,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     // A missing clamp pipeline loses the device.
     private func setClampPipeline(
         _ commandEncoder: (any MTLRenderCommandEncoder)?,
-        _ device: borrowing WebGPU.Metal.Device,
         _ pipelineState: (any MTLRenderPipelineState)?
     ) -> Bool {
         guard let pipelineState else {
@@ -1864,7 +1860,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
             baseVertex,
             firstInstance
         )
-        if !setClampPipeline(renderCommandEncoder, device, deviceImpl.indexBufferClampPipeline(indexType, UInt(rasterSampleCount))) {
+        if !setClampPipeline(renderCommandEncoder, deviceImpl.indexBufferClampPipeline(indexType, UInt(rasterSampleCount))) {
             return .skip
         }
         setVertexBuffer(renderCommandEncoder, mtlIndexBuffer, UInt64(indexBufferOffsetInBytes), .zero)
@@ -1933,7 +1929,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         }
 
         var renderCommandEncoder = self.renderCommandEncoder()
-        if !setClampPipeline(renderCommandEncoder, device, deviceImpl.indexedIndirectBufferClampPipeline(UInt(rasterSampleCount))) {
+        if !setClampPipeline(renderCommandEncoder, deviceImpl.indexedIndirectBufferClampPipeline(UInt(rasterSampleCount))) {
             return nil
         }
         let indexBufferCount = UInt32(truncatingIfNeeded: (UInt(mtlIndexBuffer.length) &- indexBufferOffsetInBytes) / UInt(indexSize))
@@ -1948,7 +1944,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
             if splitRenderPass() {
                 renderCommandEncoder = self.renderCommandEncoder()
             }
-            if !setClampPipeline(renderCommandEncoder, device, deviceImpl.indexBufferClampPipeline(indexType, UInt(rasterSampleCount))) {
+            if !setClampPipeline(renderCommandEncoder, deviceImpl.indexBufferClampPipeline(indexType, UInt(rasterSampleCount))) {
                 return nil
             }
             setVertexBuffer(renderCommandEncoder, mtlIndexBuffer, UInt64(indexBufferOffsetInBytes), .zero)
@@ -1993,7 +1989,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         }
 
         let renderCommandEncoder = self.renderCommandEncoder()
-        if !setClampPipeline(renderCommandEncoder, device, deviceImpl.indirectBufferClampPipeline(UInt(rasterSampleCount))) {
+        if !setClampPipeline(renderCommandEncoder, deviceImpl.indirectBufferClampPipeline(UInt(rasterSampleCount))) {
             return nil
         }
         setVertexBuffer(renderCommandEncoder, arguments.buffer, UInt64(arguments.metalOffset), .zero)
@@ -2013,7 +2009,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
 
     // One dispatch; writes the clamped MTLDrawPrimitivesIndirectArguments (+lostOrOOBRead) into the final scratch.
     private func clampIndirectBufferDispatchBatched(
-        _ device: borrowing WebGPU.Metal.Device,
         _ work: IndirectEncodeWork,
         _ finalScratch: any MTLBuffer,
         _ finalScratchOffset: UInt64
@@ -2043,7 +2038,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     // Indexed dispatch 1: clamps the arguments into the final scratch and writes a thread-count record into the
     // intermediate scratch, which dispatch 2 consumes. Returns the index buffer's element count, or nil.
     private func clampIndirectIndexBufferDispatch1Batched(
-        _ device: borrowing WebGPU.Metal.Device,
         _ work: IndirectEncodeWork,
         _ finalScratch: any MTLBuffer,
         _ finalScratchOffset: UInt64,
@@ -2086,7 +2080,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     }
 
     // Indexed dispatch 2: read-clamps the final scratch against the index buffer's contents.
-    private func clampIndirectIndexBufferDispatch2Batched(_ device: borrowing WebGPU.Metal.Device, _ work: IndirectEncodeWork) {
+    private func clampIndirectIndexBufferDispatch2Batched(_ work: IndirectEncodeWork) {
         guard let mtlIndexBuffer = work.indexBuffer?.buffer(), let clamped = work.clamped, let intermediate = work.intermediate else {
             return
         }
@@ -2136,7 +2130,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
                 return false
             }
 
-            bundleImpl.updateMinMaxDepths(device, minDepth, maxDepth)
+            bundleImpl.updateMinMaxDepths(minDepth, maxDepth)
 
             if !bundleImpl.validateRenderPass(attachments) {
                 makeInvalid("executeBundles: validation failed")
@@ -2180,7 +2174,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
                     let indirectCommandBufferContainer = icb.indirectCommandBufferContainer
                     if !setClampPipeline(
                         commandEncoder,
-                        device,
                         deviceImpl.icbCommandClampPipeline(data.indexType, UInt(rasterSampleCount))
                     ) {
                         lostTheDevice = true
@@ -2300,7 +2293,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
                 }
                 guard
                     let indexBufferCount = clampIndirectIndexBufferDispatch1Batched(
-                        device,
                         work,
                         finalScratch,
                         finalScratchOffset,
@@ -2320,7 +2312,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
                 guard let finalScratch = newZeroedScratch(deviceImpl, drawIndirectScratchSize, &finalScratchOffset) else {
                     continue
                 }
-                if !clampIndirectBufferDispatchBatched(device, work, finalScratch, finalScratchOffset) {
+                if !clampIndirectBufferDispatchBatched(work, finalScratch, finalScratchOffset) {
                     continue
                 }
                 indirectWork[index].clamped = ClampedIndirectArguments(finalScratch, finalScratchOffset)
@@ -2344,7 +2336,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
             if commandEncoder == nil {
                 break
             }
-            clampIndirectIndexBufferDispatch2Batched(device, work)
+            clampIndirectIndexBufferDispatch2Batched(work)
         }
 
         // Barrier between the clamp dispatches and the ICB encode kernels that read their clamped output.
@@ -2370,7 +2362,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
 
             if !setClampPipeline(
                 commandEncoder,
-                device,
                 deviceImpl.icbIndirectEncodePipeline(work.isIndexed, work.indexType, UInt(rasterSampleCount))
             ) {
                 return false
@@ -3632,8 +3623,7 @@ func makeRenderPassEncoderImpl(
     _ rasterizationRateMap: (any MTLRasterizationRateMap)?,
     _ visibilityResultBuffer: (any MTLBuffer)?,
     _ parameters: WebGPU.Metal.RenderPassEncoderParameters,
-    _ parentImpl: CommandEncoderImpl,
-    _ device: WebGPU.Metal.Device
+    _ parentImpl: CommandEncoderImpl
 ) -> RenderPassEncoderImpl {
     let impl = RenderPassEncoderImpl(
         renderCommandEncoder: renderCommandEncoder,
@@ -3642,7 +3632,6 @@ func makeRenderPassEncoderImpl(
         visibilityResultBuffer: visibilityResultBuffer,
         parameters: parameters,
         parentImpl: parentImpl,
-        device: device,
         lastErrorString: nil
     )
     parentImpl.lock(true)
@@ -3651,7 +3640,6 @@ func makeRenderPassEncoderImpl(
 
 func makeInvalidRenderPassEncoderImpl(
     _ parentImpl: CommandEncoderImpl,
-    _ device: WebGPU.Metal.Device,
     _ errorString: NSString?
 ) -> RenderPassEncoderImpl {
     let impl = RenderPassEncoderImpl(
@@ -3661,7 +3649,6 @@ func makeInvalidRenderPassEncoderImpl(
         visibilityResultBuffer: nil,
         parameters: WebGPU.Metal.RenderPassEncoderParameters(),
         parentImpl: parentImpl,
-        device: device,
         lastErrorString: errorString as String?
     )
     parentImpl.lock(true)

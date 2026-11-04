@@ -54,7 +54,6 @@ class InstanceSchedulerHandle;
 namespace WebGPU::Metal {
 
 class Adapter;
-class Device;
 
 // Box holding the Swift objects; defined in Instance.mm.
 struct InstanceImplBox;

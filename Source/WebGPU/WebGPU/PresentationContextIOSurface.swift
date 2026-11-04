@@ -124,7 +124,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
     }
 
     private struct ConfiguredDevice {
-        let device: WebGPU.Metal.Device
         let impl: DeviceImpl
     }
 
@@ -185,10 +184,9 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
     @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func configure(_ configuration: GPUCanvasConfiguration) {
-        let device = configuration.device.shell
         let deviceImpl = configuration.device.impl
         let storageMode = canvasStorageMode(deviceImpl)
-        let invalidTexture = makeInvalidTextureImpl(device, deviceImpl)
+        let invalidTexture = makeInvalidTextureImpl(deviceImpl)
         renderBuffers = []
         inFlightFrames = []
         maximumInFlightFrames = 0
@@ -197,7 +195,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         invalidTextures = [invalidTexture]
 
         let reportValidationErrors = configuration.reportValidationErrors
-        configuredDevice = [ConfiguredDevice(device: device, impl: deviceImpl)]
+        configuredDevice = [ConfiguredDevice(impl: deviceImpl)]
         func generateAValidationError(_ message: Swift.String) {
             if reportValidationErrors {
                 deviceImpl.generateAValidationError(message)
@@ -266,7 +264,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         }
         let usage = configuration.usage
         if let error = errorValidatingTextureCreation(
-            device,
             deviceImpl,
             twoDimensionalTextureParameters(effectiveFormat, usage: usage, width: width, height: height),
             viewFormats: configuredViewFormats.isEmpty ? [effectiveFormat] : configuredViewFormats
@@ -304,7 +301,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
                     deviceImpl.newTextureWithDescriptor(textureDescriptor, nil, 0),
                     twoDimensionalTextureParameters(apiFormat, usage: usage, width: width, height: height),
                     viewFormats: configuredViewFormats,
-                    device,
                     deviceImpl
                 )
                 texture.impl.makeCanvasBacking()
@@ -318,7 +314,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
                 deviceImpl.newTextureWithDescriptor(textureDescriptor, ioSurface, 0),
                 twoDimensionalTextureParameters(apiFormat, usage: usage, width: width, height: height),
                 viewFormats: configuredViewFormats,
-                device,
                 deviceImpl
             )
             parentTexture.impl.makeCanvasBacking()

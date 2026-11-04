@@ -59,11 +59,9 @@ final class XRProjectionLayerImpl {
     private(set) var rightRasterizationMap: (any MTLRasterizationRateMap)?
     // Declared last, so that the device outlives the rest of the layer.
     private let deviceImpl: DeviceImpl
-    private let device: WebGPU.Metal.Device
 
-    fileprivate init(parameters: WebGPU.Metal.XRProjectionLayerParameters, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) {
+    fileprivate init(parameters: WebGPU.Metal.XRProjectionLayerParameters, deviceImpl: DeviceImpl) {
         self.deviceImpl = deviceImpl
-        self.device = device
         colorFormat = parameters.colorFormat
         depthStencilFormat = parameters.hasDepthStencilFormat ? parameters.depthStencilFormat : nil
         textureUsage = parameters.textureUsage
@@ -215,8 +213,7 @@ public final class XRProjectionLayerReference {
 
 func makeXRProjectionLayerImpl(
     _ parameters: WebGPU.Metal.XRProjectionLayerParameters,
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> XRProjectionLayerImpl {
-    XRProjectionLayerImpl(parameters: parameters, device: device, deviceImpl: deviceImpl)
+    XRProjectionLayerImpl(parameters: parameters, deviceImpl: deviceImpl)
 }

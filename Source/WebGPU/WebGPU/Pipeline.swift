@@ -162,10 +162,9 @@ func asynchronousIfPossible() -> LibraryCompilation {
 /// The compile holds the scheduler and not the Instance, so that no Metal thread releases the Instance.
 func asynchronousCompileScheduler(
     _ compilation: LibraryCompilation,
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> InstanceScheduler? {
-    guard compilation == .asynchronous, CxxBridging.protectedInstance(device) != nil else {
+    guard compilation == .asynchronous, deviceImpl.instanceImpl != nil else {
         return nil
     }
     return deviceImpl.instanceScheduler()
@@ -269,7 +268,6 @@ private func libraryCompilationError(_ source: Swift.String, _ compilationError:
 /// `completion` runs on the API thread: at once when the compile is synchronous, after the hop when it is not.
 func compileLibrary(
     _ library: PreparedLibrary,
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ compilation: LibraryCompilation,
     _ completion: @escaping ((any MTLLibrary)?, NSError?) -> Void
@@ -278,7 +276,7 @@ func compileLibrary(
     let source = stringNilIfEmpty(library.metalSource) ?? ""
     let label = (library.label ?? "") as Swift.String
 
-    if let scheduler = asynchronousCompileScheduler(compilation, device, deviceImpl) {
+    if let scheduler = asynchronousCompileScheduler(compilation, deviceImpl) {
         // A nil device is lost or destroyed, which reports no error, and would never call back.
         guard let metalDevice else {
             completion(nil, nil)
@@ -319,12 +317,11 @@ private func reportPipelineStateError(_ error: NSError?) {
 func createComputePipelineState(
     _ descriptor: MTLComputePipelineDescriptor,
     _ shaderSource: WTF.String,
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ compilation: LibraryCompilation,
     _ completion: @escaping ((any MTLComputePipelineState)?) -> Void
 ) {
-    if let scheduler = asynchronousCompileScheduler(compilation, device, deviceImpl) {
+    if let scheduler = asynchronousCompileScheduler(compilation, deviceImpl) {
         // As in compileLibrary: a lost device is nil and would never call back.
         guard let metalDevice = deviceImpl.device() else {
             completion(nil)

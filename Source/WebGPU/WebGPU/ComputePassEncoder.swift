@@ -101,19 +101,18 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
     private var resourceUsages = DispatchUsageMap()
     private var subresourceUsages = DispatchUsageMap()
     // The parent encoder's device. Declared last, so that it outlives the rest of the pass.
-    let device: WebGPU.Metal.Device
+    private let deviceImpl: DeviceImpl
 
     fileprivate init(
         computeCommandEncoder: (any MTLComputeCommandEncoder)?,
         parentImpl: CommandEncoderImpl,
-        device: WebGPU.Metal.Device,
         lastErrorString: String?
     ) {
         self.backingComputeCommandEncoder = computeCommandEncoder
         self.parentImpl = parentImpl
-        self.device = device
-        self.limits = parentImpl.deviceImpl.limits
+        self.limits = parentImpl.deviceImpl.encoderLimits
         self.lastErrorString = lastErrorString
+        deviceImpl = parentImpl.deviceImpl
         precondition(Int(limits.maxBindGroups) <= maxBindGroupIndexCount)
     }
 
@@ -942,13 +941,11 @@ private struct DispatchUsageMap {
 
 func makeComputePassEncoderImpl(
     _ computeCommandEncoder: (any MTLComputeCommandEncoder)?,
-    _ parentImpl: CommandEncoderImpl,
-    _ device: WebGPU.Metal.Device
+    _ parentImpl: CommandEncoderImpl
 ) -> ComputePassEncoderImpl {
     let impl = ComputePassEncoderImpl(
         computeCommandEncoder: computeCommandEncoder,
         parentImpl: parentImpl,
-        device: device,
         lastErrorString: nil
     )
     parentImpl.lock(true)
@@ -957,13 +954,11 @@ func makeComputePassEncoderImpl(
 
 func makeInvalidComputePassEncoderImpl(
     _ parentImpl: CommandEncoderImpl,
-    _ device: WebGPU.Metal.Device,
     _ errorString: NSString?
 ) -> ComputePassEncoderImpl {
     let impl = ComputePassEncoderImpl(
         computeCommandEncoder: nil,
         parentImpl: parentImpl,
-        device: device,
         lastErrorString: errorString as String?
     )
     parentImpl.lock(true)

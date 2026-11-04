@@ -40,8 +40,6 @@
 
 namespace WebGPU::Metal {
 
-class Device;
-
 struct ExternalTextureIndices {
     NSUInteger containerIndex { NSNotFound };
     NSUInteger resourceIndex { NSNotFound };

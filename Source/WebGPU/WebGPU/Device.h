@@ -54,22 +54,7 @@
 
 IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class DeviceImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
-
-class Instance;
-
-// Opaque box holding the Swift DeviceImpl; defined in Device.mm.
-struct DeviceImplBox;
-
-using UncapturedErrorCallback = CompletionHandler<void(bool, std::optional<WebGPU::Error>&&)>;
-using DeviceLostCallback = CompletionHandler<void(WebGPU::DeviceLostReason, String&&)>;
-using OptionalError = std::optional<WebGPU::Error>;
 
 // The messages DeviceImpl gives the device-lost callback (Swift cannot spell an ASCIILiteral).
 inline String deviceLostMessage() { return "Device lost."_s; }
@@ -101,87 +86,13 @@ struct WebKitMTLDrawPrimitivesIndirectArguments { \
 };
 WEBKIT_DRAW_INDIRECT_STRUCT_TYPE
 
-// https://gpuweb.github.io/gpuweb/#gpudevice
-// The state is in DeviceImpl, except the device-observer registration, which observer threads use.
-class Device final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Device> {
-    WTF_MAKE_TZONE_ALLOCATED(Device);
-public:
-    static Ref<Device> create(id<MTLDevice>, String&& deviceLabel, HardwareCapabilities&&, Adapter&);
-    static Ref<Device> createInvalid(Adapter&);
-
-    ~Device();
-
-    void destroy();
-#if !defined(__swift__)
-    bool hasFeature(WebGPU::FeatureName) const;
+#if PLATFORM(MAC)
+// The macOS device observer, for DeviceImpl: deviceWasNotified runs on an observer thread for each notification about
+// the device. Returns the observer's token, which removeDeviceObserver() takes.
+id<NSObject> _Nullable addDeviceObserver(id<MTLDevice>, void (^ NS_SWIFT_SENDABLE deviceWasNotified)(void));
+void removeDeviceObserver(id<NSObject>);
 #endif
-
-    bool LEGACY_NODELETE isValid() const;
-    bool isLost() const;
-#if !defined(__swift__)
-    WebGPUSwift::DeviceImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-    id<MTLCounterSet> timestampCounterSet() const;
-    uint32_t memoryBarrierLimit() const;
-    bool supportsNonPrivateDepthStencilTextures() const;
-    bool supportsMemorylessTextures() const;
-
-#if !defined(__swift__)
-    id<MTLDevice> _Nullable device() const;
-    void generateAValidationError(NSString * message);
-    void generateAValidationError(String&& message);
-#endif
-
-    RefPtr<Instance> instance() const;
-    Adapter& adapter() const;
-#if !defined(__swift__)
-#if CPU(X86_64)
-    bool hasUnifiedMemory() const { return false; }
-#else
-    bool hasUnifiedMemory() const { return device().hasUnifiedMemory; }
-#endif
-    bool isShaderValidationEnabled() const;
-#endif
-
-    bool LEGACY_NODELETE shouldStopCaptureAfterSubmit();
-    id<MTLBuffer> placeholderBuffer() const;
-
-    bool LEGACY_NODELETE isDestroyed() const;
-#if !defined(__swift__)
-    id<MTLBuffer> safeCreateBuffer(NSUInteger length, MTLStorageMode, bool skipMemoryAttribution = false, MTLCPUCacheMode = MTLCPUCacheModeDefaultCache, MTLHazardTrackingMode = MTLHazardTrackingModeDefault) const;
-    id<MTLBuffer> safeCreateBuffer(NSUInteger, bool skipMemoryAttribution = false) const;
-    void loseTheDevice(WebGPU::DeviceLostReason);
-#endif
-    bool LEGACY_NODELETE pauseErrorReporting(bool pauseReporting);
-    bool enableEncoderTimestamps() const;
-    // Nil once the device is lost.
-    id<MTLSharedEvent> _Nullable resolveTimestampsSharedEvent();
-    uint32_t maxVerticesPerDrawCall() const;
-
-    static constexpr uint64_t maxBindGroups = (1ull << 5);
-    uint32_t appleGPUFamily() const;
-
-private:
-    Device(id<MTLDevice>, id<MTLCommandQueue> defaultQueue, const HardwareCapabilities&, Adapter&);
-    explicit Device(Adapter&);
-
-    // First, so it is built before and destroyed after everything the constructor/destructor hand `*this` to.
-    const std::unique_ptr<DeviceImplBox> m_impl;
-} SWIFT_SHARED_REFERENCE(refDevice, derefDevice);
-
-// Device::create(), for Swift, which can't pass rvalue references.
-Ref<Device> createDevice(id<MTLDevice>, const String& label, const HardwareCapabilities&, Adapter&);
 
 } // namespace WebGPU::Metal
-
-inline void refDevice(WebGPU::Metal::Device* obj)
-{
-    obj->ref();
-}
-
-inline void derefDevice(WebGPU::Metal::Device* obj)
-{
-    obj->deref();
-}
 
 IGNORE_CLANG_WARNINGS_END

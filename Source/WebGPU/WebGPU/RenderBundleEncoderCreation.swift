@@ -107,19 +107,17 @@ public struct GPURenderBundleEncoderDescriptor {
 // finish(); an invalid device gives one without reporting anything.
 func createRenderBundleEncoderImpl(
     _ descriptor: borrowing WebGPU.RenderBundleEncoderDescriptor,
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> RenderBundleEncoderImpl {
-    createRenderBundleEncoderImpl(GPURenderBundleEncoderDescriptor(descriptor), device, deviceImpl)
+    createRenderBundleEncoderImpl(GPURenderBundleEncoderDescriptor(descriptor), deviceImpl)
 }
 
 func createRenderBundleEncoderImpl(
     _ descriptor: GPURenderBundleEncoderDescriptor,
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> RenderBundleEncoderImpl {
     if !deviceImpl.isValid() {
-        return makeInvalidRenderBundleEncoderImpl(device, deviceImpl, "createRenderBundleEncoder: invalid device")
+        return makeInvalidRenderBundleEncoderImpl(deviceImpl, "createRenderBundleEncoder: invalid device")
     }
 
     let colorFormats = descriptor.colorFormats
@@ -127,7 +125,7 @@ func createRenderBundleEncoderImpl(
 
     if let error = errorValidatingRenderBundleEncoderCreation(colorFormats, depthStencilFormat, deviceImpl) {
         deviceImpl.generateAValidationError(error)
-        return makeInvalidRenderBundleEncoderImpl(device, deviceImpl, error as NSString)
+        return makeInvalidRenderBundleEncoderImpl(deviceImpl, error as NSString)
     }
 
     let icbDescriptor = MTLIndirectCommandBufferDescriptor()
@@ -144,8 +142,8 @@ func createRenderBundleEncoderImpl(
 
     // The ICB path stores the ICB in an argument buffer and writes its render_command slots from a shader, both of
     // which need argument buffers tier 2. Tier 1 devices replay the commands into the render pass instead.
-    let requiresCommandReplay = !deviceImpl.limits.supportsIndirectCommandBuffersInArgumentBuffers || alwaysUseICBReplay
-    let impl = makeRenderBundleEncoderImpl(device, deviceImpl, icbDescriptor, requiresCommandReplay, parameters)
+    let requiresCommandReplay = !deviceImpl.encoderLimits.supportsIndirectCommandBuffersInArgumentBuffers || alwaysUseICBReplay
+    let impl = makeRenderBundleEncoderImpl(deviceImpl, icbDescriptor, requiresCommandReplay, parameters)
     for colorFormat in colorFormats {
         impl.appendColorFormat(colorFormat != nil, colorFormat ?? .R8unorm)
     }
@@ -157,6 +155,6 @@ extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder. The label isn't kept, as for the C++
     // caller.
     public func createRenderBundleEncoder(_ descriptor: GPURenderBundleEncoderDescriptor, label: Swift.String?) -> RenderBundleEncoderReference {
-        createRenderBundleEncoderImpl(descriptor, shell, impl)
+        createRenderBundleEncoderImpl(descriptor, impl)
     }
 }

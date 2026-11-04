@@ -41,19 +41,19 @@ typealias String = Swift.String
 
 // Device::createCommandEncoder.
 // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder
-func deviceCreateCommandEncoder(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ label: NSString) -> CommandEncoderImpl {
+func deviceCreateCommandEncoder(_ deviceImpl: DeviceImpl, _ label: NSString) -> CommandEncoderImpl {
     if !deviceImpl.isValid() {
-        return makeInvalidCommandEncoderImpl(device, deviceImpl)
+        return makeInvalidCommandEncoderImpl(deviceImpl)
     }
 
     captureSingleFrameIfNeeded(deviceImpl.device())
     guard let commandBuffer = deviceImpl.defaultQueueImpl.commandBufferWithDescriptor(MTLCommandBufferDescriptor()) else {
-        return makeInvalidCommandEncoderImpl(device, deviceImpl)
+        return makeInvalidCommandEncoderImpl(deviceImpl)
     }
 
     commandBuffer.label = label as String
 
-    return makeCommandEncoderImpl(commandBuffer, device, deviceImpl, deviceImpl.isShaderValidationEnabled(), deviceImpl.takeCommandEncoderId())
+    return makeCommandEncoderImpl(commandBuffer, deviceImpl, deviceImpl.isShaderValidationEnabled(), deviceImpl.takeCommandEncoderId())
 }
 
 // What a render pass attachment's view member names: a texture, as its default view, or a texture view.
@@ -256,7 +256,7 @@ extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder. As WTF::String::createNSString() makes the
     // label for the C++ caller, a null one is empty.
     public func createCommandEncoder(label: Swift.String?) -> CommandEncoderReference {
-        deviceCreateCommandEncoder(shell, impl, (label ?? "") as NSString)
+        deviceCreateCommandEncoder(impl, (label ?? "") as NSString)
     }
 }
 
@@ -482,7 +482,7 @@ extension CommandEncoderImpl {
             setEncoderStateEnded()
             discardCommandBuffer()
             deviceImpl.generateAValidationError(lastErrorString.map { $0 as String } ?? "Invalid CommandEncoder")
-            return makeInvalidCommandBufferImpl(device, deviceImpl)
+            return makeInvalidCommandBufferImpl(deviceImpl)
         }
 
         // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
@@ -492,7 +492,7 @@ extension CommandEncoderImpl {
         if let validationFailedError {
             discardCommandBuffer()
             deviceImpl.generateAValidationError(lastErrorString.map { $0 as String } ?? validationFailedError)
-            return makeInvalidCommandBufferImpl(device, deviceImpl)
+            return makeInvalidCommandBufferImpl(deviceImpl)
         }
 
         finalizeBlitCommandEncoder()
@@ -527,7 +527,7 @@ extension CommandEncoderImpl {
         }
         #endif // arch(x86_64) && (WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST)
 
-        let result = makeCommandBufferImpl(commandBuffer, backingSharedEvent, backingSharedEventSignalValue, self, device, deviceImpl)
+        let result = makeCommandBufferImpl(commandBuffer, backingSharedEvent, backingSharedEventSignalValue, self, deviceImpl)
         cachedCommandBuffer = result
         clearSharedEvent()
         result.setBufferMapCount(backingBufferMapCount)
@@ -1623,8 +1623,7 @@ extension CommandEncoderImpl {
             mtlDescriptor.rasterizationRateMap,
             visibilityResultBuffer,
             parameters,
-            self,
-            device
+            self
         )
         if deferred {
             renderPassEncoderImpl.deferRenderCommandEncoder(mtlDescriptor)
@@ -1635,7 +1634,7 @@ extension CommandEncoderImpl {
 
     // An invalid pass, which still locks this encoder.
     private func makeInvalidRenderPass(_ errorString: String) -> RenderPassEncoderImpl {
-        makeInvalidRenderPassEncoderImpl(self, device, errorString as NSString)
+        makeInvalidRenderPassEncoderImpl(self, errorString as NSString)
     }
 
     // A pass begun while this encoder was not open never took the encoder over, so it can never be ended.
@@ -1648,7 +1647,7 @@ extension CommandEncoderImpl {
 
     // An invalid pass, which still locks this encoder.
     private func makeInvalidComputePass(_ errorString: String) -> ComputePassEncoderImpl {
-        makeInvalidComputePassEncoderImpl(self, device, errorString as NSString)
+        makeInvalidComputePassEncoderImpl(self, errorString as NSString)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-end
@@ -2801,7 +2800,7 @@ extension CommandEncoderImpl {
         self.setExistingEncoder(computeCommandEncoder)
         computeCommandEncoder.label = label?.isEmpty == false ? label : nil
 
-        return makeComputePassEncoderImpl(computeCommandEncoder, self, device)
+        return makeComputePassEncoderImpl(computeCommandEncoder, self)
     }
 }
 
@@ -2986,7 +2985,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     private var submitIsInvalid = false
     private var backingSharedEvent: (any MTLSharedEvent)?
     private var backingSharedEventSignalValue: UInt64 = 0
-    let deviceImpl: DeviceImpl
     /// Unique per device; invalid encoders take one from the same counter as valid ones, so that they never alias a live
     /// encoder.
     let uniqueId: UInt64
@@ -3026,12 +3024,11 @@ public final class CommandEncoderImpl: GPUObjectReference {
     // descriptor.
     private var staged = StagedPassObjects()
     // Declared last, so that the device outlives the rest of the encoder.
-    let device: WebGPU.Metal.Device
+    let deviceImpl: DeviceImpl
 
     // An invalid encoder: no command buffer and no sets.
-    fileprivate init(device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) {
+    fileprivate init(deviceImpl: DeviceImpl) {
         self.deviceImpl = deviceImpl
-        self.device = device
         self.uniqueId = deviceImpl.takeCommandEncoderId()
         self.constructorCommitActionPending = false
         self.backingManagedTextures = nil
@@ -3045,14 +3042,12 @@ public final class CommandEncoderImpl: GPUObjectReference {
 
     fileprivate init(
         commandBuffer: (any MTLCommandBuffer)?,
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl,
         shaderValidationEnabled: Bool,
         uniqueId: UInt64
     ) {
         self.backingCommandBuffer = commandBuffer
         self.deviceImpl = deviceImpl
-        self.device = device
         self.uniqueId = uniqueId
         // An invalid encoder has no commit action.
         self.constructorCommitActionPending = commandBuffer != nil
@@ -3964,7 +3959,7 @@ public final class CommandEncoderImpl: GPUObjectReference {
             for (key, vertexCount) in skipped.keys {
                 buffer.takeSlowIndexValidationPath(commandBufferImpl, key, vertexCount: vertexCount)
                 commandBufferImpl.addPostCommitAction(
-                    .clearMustTakeSlowIndexValidationPath(commandBufferImpl.device, WeakBufferAndEncoder(buffer: buffer, encoder: nil))
+                    .clearMustTakeSlowIndexValidationPath(commandBufferImpl.deviceImpl, WeakBufferAndEncoder(buffer: buffer, encoder: nil))
                 )
             }
         }
@@ -3987,20 +3982,18 @@ public final class CommandEncoderImpl: GPUObjectReference {
 
 func makeCommandEncoderImpl(
     _ commandBuffer: (any MTLCommandBuffer)?,
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ shaderValidationEnabled: Bool,
     _ uniqueId: UInt64
 ) -> CommandEncoderImpl {
     CommandEncoderImpl(
         commandBuffer: commandBuffer,
-        device: device,
         deviceImpl: deviceImpl,
         shaderValidationEnabled: shaderValidationEnabled,
         uniqueId: uniqueId
     )
 }
 
-func makeInvalidCommandEncoderImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> CommandEncoderImpl {
-    CommandEncoderImpl(device: device, deviceImpl: deviceImpl)
+func makeInvalidCommandEncoderImpl(_ deviceImpl: DeviceImpl) -> CommandEncoderImpl {
+    CommandEncoderImpl(deviceImpl: deviceImpl)
 }

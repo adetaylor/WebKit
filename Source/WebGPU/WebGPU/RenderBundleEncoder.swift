@@ -274,9 +274,8 @@ func copyDynamicOffsets(_ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsV
 @_expose(Cxx)
 @_spi(WebKitGPU)
 public final class RenderBundleEncoderImpl: GPUObjectReference {
-    let deviceImpl: DeviceImpl
     private var limits: EncoderLimits {
-        deviceImpl.limits
+        deviceImpl.encoderLimits
     }
     // nil once the encoder is invalid.
     private var icbDescriptor: MTLIndirectCommandBufferDescriptor?
@@ -343,10 +342,9 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
     // Set and cleared within replayCommands, whose caller holds the pass.
     private var replayPassImpl: RenderPassEncoderImpl?
     // Declared last, so that the device outlives the rest of the encoder.
-    let device: WebGPU.Metal.Device
+    let deviceImpl: DeviceImpl
 
     fileprivate init(
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl,
         icbDescriptor: MTLIndirectCommandBufferDescriptor?,
         requiresCommandReplay: Bool,
@@ -354,7 +352,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         lastErrorString: String?
     ) {
         self.deviceImpl = deviceImpl
-        self.device = device
         self.icbDescriptor = icbDescriptor
         self.requiresCommandReplay = requiresCommandReplay
         self.lastErrorString = lastErrorString
@@ -363,8 +360,8 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         depthReadOnly = parameters.depthReadOnly
         stencilReadOnly = parameters.stencilReadOnly
         let isValid = icbDescriptor != nil
-        vertexBuffers = Array(repeating: BundleBufferBinding(), count: isValid ? deviceImpl.limits.slots.vertexBindCount : 0)
-        fragmentBuffers = Array(repeating: BundleBufferBinding(), count: isValid ? deviceImpl.limits.slots.fragmentBindCount : 0)
+        vertexBuffers = Array(repeating: BundleBufferBinding(), count: isValid ? deviceImpl.encoderLimits.slots.vertexBindCount : 0)
+        fragmentBuffers = Array(repeating: BundleBufferBinding(), count: isValid ? deviceImpl.encoderLimits.slots.fragmentBindCount : 0)
     }
 
     func appendColorFormat(_ hasFormat: Bool, _ format: WebGPU.TextureFormat) {
@@ -1659,13 +1656,13 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         let bundle: RenderBundleImpl
         switch finishResult() {
         case .invalidBeforeEncoding:
-            return RenderBundleImpl(invalid: device, deviceImpl, lastError: lastErrorString)
+            return RenderBundleImpl(invalid: deviceImpl, lastError: lastErrorString)
         case .commandReplay:
             bundle = makeBundle(icbs: [], isICBBundle: false, replay: .encoder(self))
         case .indirectCommandBuffers:
             bundle = makeBundle(icbs: icbs, isICBBundle: true, replay: .none(lastError: nil))
         case .invalidAfterEncoding:
-            bundle = RenderBundleImpl(invalid: device, deviceImpl, lastError: lastErrorString)
+            bundle = RenderBundleImpl(invalid: deviceImpl, lastError: lastErrorString)
         }
         finished = true
         bundle.registerAsResourceHolder()
@@ -1677,7 +1674,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         let bindGroups = allBindGroups.map { $0 }
         let bundleResources = makeBundleResourceSet()
         return RenderBundleImpl(
-            device: device,
             deviceImpl: deviceImpl,
             resources: bundleResources.resources,
             mtlResources: bundleResources.mtlResources,
@@ -2493,14 +2489,12 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
 }
 
 func makeRenderBundleEncoderImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ icbDescriptor: MTLIndirectCommandBufferDescriptor?,
     _ requiresCommandReplay: Bool,
     _ parameters: WebGPU.Metal.RenderBundleEncoderParameters
 ) -> RenderBundleEncoderImpl {
     RenderBundleEncoderImpl(
-        device: device,
         deviceImpl: deviceImpl,
         icbDescriptor: icbDescriptor,
         requiresCommandReplay: requiresCommandReplay,
@@ -2510,12 +2504,10 @@ func makeRenderBundleEncoderImpl(
 }
 
 func makeInvalidRenderBundleEncoderImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ errorString: NSString?
 ) -> RenderBundleEncoderImpl {
     RenderBundleEncoderImpl(
-        device: device,
         deviceImpl: deviceImpl,
         icbDescriptor: nil,
         requiresCommandReplay: false,

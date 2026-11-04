@@ -47,8 +47,6 @@
 
 namespace WebGPU::Metal {
 
-class Device;
-
 // A WebGPU::TextureDescriptor without its label and view formats, as Texture.swift reads it. The usage OptionSet
 // travels as its raw bits.
 struct TextureParameters {

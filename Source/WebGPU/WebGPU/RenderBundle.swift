@@ -37,7 +37,6 @@ import WebGPU_Private.WebGPUCpp
 @_expose(Cxx)
 @_spi(WebKitGPU)
 public final class RenderBundleImpl: GPUObjectReference {
-    let deviceImpl: DeviceImpl
     /// Paired with the mutable `mtlResources`.
     let resources: ResourceSet
     @_expose(!Cxx)
@@ -57,11 +56,10 @@ public final class RenderBundleImpl: GPUObjectReference {
     private let stencilReadOnly: Bool
     private var submitInvalid: Bool
     // Declared last, so that the device outlives the rest of the bundle.
-    let device: WebGPU.Metal.Device
+    let deviceImpl: DeviceImpl
 
     @_expose(!Cxx)
     init(
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl,
         resources: ResourceSet,
         mtlResources: ResourceLists,
@@ -78,7 +76,6 @@ public final class RenderBundleImpl: GPUObjectReference {
         submitInvalid: Bool
     ) {
         self.deviceImpl = deviceImpl
-        self.device = device
         self.resources = resources
         self.mtlResources = mtlResources
         self.icbs = icbs
@@ -95,9 +92,8 @@ public final class RenderBundleImpl: GPUObjectReference {
     }
 
     @_expose(!Cxx)
-    init(invalid device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, lastError: String?) {
+    init(invalid deviceImpl: DeviceImpl, lastError: String?) {
         self.deviceImpl = deviceImpl
-        self.device = device
         resources = .empty
         mtlResources = []
         icbs = []
@@ -159,7 +155,7 @@ public final class RenderBundleImpl: GPUObjectReference {
 
     // Writes the depth range into each ICB's fragment dynamic-offset buffer when it changed.
     @_expose(!Cxx)
-    func updateMinMaxDepths(_ device: WebGPU.Metal.Device, _ newMinDepth: Float, _ newMaxDepth: Float) {
+    func updateMinMaxDepths(_ newMinDepth: Float, _ newMaxDepth: Float) {
         if minDepth == newMinDepth && maxDepth == newMaxDepth {
             return
         }

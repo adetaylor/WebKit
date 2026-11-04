@@ -235,7 +235,6 @@ public final class TextureImpl: GPUObjectReference {
     // The formats its views may have besides its own.
     private let viewFormats: [WebGPU.TextureFormat]
 
-    let deviceImpl: DeviceImpl
     /// The encoders that used the texture.
     @_expose(!Cxx)
     var tracking = EncoderTracking()
@@ -244,17 +243,15 @@ public final class TextureImpl: GPUObjectReference {
     private var bindGroupHolders = WeakImplList<BindGroupImpl>()
     private var renderBundleHolders = WeakImplList<RenderBundleImpl>()
     // Declared last, so that the device outlives the rest of the texture.
-    let device: WebGPU.Metal.Device
+    let deviceImpl: DeviceImpl
 
     fileprivate init(
         texture: (any MTLTexture)?,
         parameters: WebGPU.Metal.TextureParameters?,
         viewFormats: [WebGPU.TextureFormat],
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl
     ) {
         self.deviceImpl = deviceImpl
-        self.device = device
         self.backingTexture = texture
         self.backingWidth = parameters?.width ?? 0
         self.backingHeight = parameters?.height ?? 0
@@ -792,15 +789,14 @@ public final class TextureImpl: GPUObjectReference {
             texture: view,
             sampledTexture: sampledTexture,
             parentImpl: self,
-            descriptor: resolved,
-            device: device
+            descriptor: resolved
         )
         addView(viewImpl)
         return viewImpl
     }
 
     private func invalidView() -> TextureViewImpl {
-        TextureViewImpl(texture: nil, sampledTexture: nil, parentImpl: self, descriptor: nil, device: device)
+        TextureViewImpl(texture: nil, sampledTexture: nil, parentImpl: self, descriptor: nil)
     }
 
     private func resolveTextureViewDescriptorDefaults(
@@ -1149,7 +1145,6 @@ private let managedTextureStorageMode = MTLStorageMode.managed
 #endif
 
 private func textureCreationError(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: WebGPU.Metal.TextureParameters,
     _ viewFormats: [WebGPU.TextureFormat]
@@ -1345,12 +1340,11 @@ private func copyViewFormats(_ viewFormats: borrowing WebGPU.Metal.TextureFormat
 }
 
 func errorValidatingTextureCreationRaw(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: WebGPU.Metal.TextureParameters,
     _ viewFormats: borrowing WebGPU.Metal.TextureFormatsView
 ) -> NSString? {
-    textureCreationError(device, deviceImpl, descriptor, copyViewFormats(viewFormats)).map { $0 as NSString }
+    textureCreationError(deviceImpl, descriptor, copyViewFormats(viewFormats)).map { $0 as NSString }
 }
 
 @_spi(WebKitGPU)
@@ -1410,9 +1404,8 @@ public struct GPUTextureDescriptor {
     }
 }
 
-func createTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ descriptor: GPUTextureDescriptor, label: WTF.String) -> TextureImpl {
+func createTextureImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUTextureDescriptor, label: WTF.String) -> TextureImpl {
     createTextureImpl(
-        device,
         deviceImpl,
         descriptor.parameters,
         viewFormats: descriptor.viewFormats,
@@ -1425,7 +1418,6 @@ func createTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, 
 
 // Device::createTexture. Returns an invalid texture on failure; the valid ones are recorded in DeviceImpl.
 func createTextureImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: WebGPU.Metal.TextureParameters,
     _ viewFormatsView: borrowing WebGPU.Metal.TextureFormatsView,
@@ -1435,7 +1427,6 @@ func createTextureImpl(
     _ supportsMemorylessTextures: Bool
 ) -> TextureImpl {
     createTextureImpl(
-        device,
         deviceImpl,
         descriptor,
         viewFormats: copyViewFormats(viewFormatsView),
@@ -1447,7 +1438,6 @@ func createTextureImpl(
 }
 
 private func createTextureImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: WebGPU.Metal.TextureParameters,
     viewFormats: [WebGPU.TextureFormat],
@@ -1457,14 +1447,14 @@ private func createTextureImpl(
     _ supportsMemorylessTextures: Bool
 ) -> TextureImpl {
     if !deviceImpl.isValid() {
-        return makeInvalidTextureImpl(device, deviceImpl)
+        return makeInvalidTextureImpl(deviceImpl)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture
 
-    if let error = textureCreationError(device, deviceImpl, descriptor, viewFormats) {
+    if let error = textureCreationError(deviceImpl, descriptor, viewFormats) {
         deviceImpl.generateAValidationError(error)
-        return makeInvalidTextureImpl(device, deviceImpl)
+        return makeInvalidTextureImpl(deviceImpl)
     }
 
     let textureDescriptor = MTLTextureDescriptor()
@@ -1488,7 +1478,7 @@ private func createTextureImpl(
             textureDescriptor.arrayLength = Int(descriptor.depthOrArrayLayers)
             if descriptor.sampleCount > 1 {
                 #if WTF_PLATFORM_WATCHOS || WTF_PLATFORM_APPLETV
-                return makeInvalidTextureImpl(device, deviceImpl)
+                return makeInvalidTextureImpl(deviceImpl)
                 #else
                 textureDescriptor.textureType = .type2DMultisampleArray
                 #endif
@@ -1514,7 +1504,7 @@ private func createTextureImpl(
     textureDescriptor.pixelFormat = texturePixelFormat(format)
     if textureDescriptor.pixelFormat == .invalid {
         deviceImpl.generateAValidationError("GPUDevice.createTexture: invalid texture format")
-        return makeInvalidTextureImpl(device, deviceImpl)
+        return makeInvalidTextureImpl(deviceImpl)
     }
 
     textureDescriptor.mipmapLevelCount = Int(descriptor.mipLevelCount)
@@ -1533,13 +1523,13 @@ private func createTextureImpl(
 
     guard let texture = deviceImpl.device()?.makeTexture(descriptor: textureDescriptor) else {
         deviceImpl.generateAnOutOfMemoryError("out of memory")
-        return makeInvalidTextureImpl(device, deviceImpl)
+        return makeInvalidTextureImpl(deviceImpl)
     }
 
     deviceImpl.setOwnerWithIdentity(texture)
     texture.label = stringNilIfEmpty(label) ?? ""
 
-    let impl = TextureImpl(texture: texture, parameters: descriptor, viewFormats: viewFormats, device: device, deviceImpl: deviceImpl)
+    let impl = TextureImpl(texture: texture, parameters: descriptor, viewFormats: viewFormats, deviceImpl: deviceImpl)
     deviceImpl.textures.add(impl)
     return impl
 }
@@ -1549,10 +1539,9 @@ func makeTexture(
     _ texture: (any MTLTexture)?,
     _ parameters: WebGPU.Metal.TextureParameters,
     viewFormats: [WebGPU.TextureFormat],
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> TextureImpl {
-    TextureImpl(texture: texture, parameters: parameters, viewFormats: viewFormats, device: device, deviceImpl: deviceImpl)
+    TextureImpl(texture: texture, parameters: parameters, viewFormats: viewFormats, deviceImpl: deviceImpl)
 }
 
 /// The parameters of a 2D texture of one mip level.
@@ -1578,16 +1567,15 @@ func twoDimensionalTextureParameters(
 
 /// Device::errorValidatingTextureCreation() for Swift callers.
 func errorValidatingTextureCreation(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ parameters: WebGPU.Metal.TextureParameters,
     viewFormats: [WebGPU.TextureFormat]
 ) -> String? {
-    textureCreationError(device, deviceImpl, parameters, viewFormats)
+    textureCreationError(deviceImpl, parameters, viewFormats)
 }
 
-func makeInvalidTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> TextureImpl {
-    TextureImpl(texture: nil, parameters: nil, viewFormats: [], device: device, deviceImpl: deviceImpl)
+func makeInvalidTextureImpl(_ deviceImpl: DeviceImpl) -> TextureImpl {
+    TextureImpl(texture: nil, parameters: nil, viewFormats: [], deviceImpl: deviceImpl)
 }
 
 func errorValidatingImageCopyTexture(
@@ -1676,7 +1664,7 @@ func errorValidatingTextureCopyRange(
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture: an invalid texture on failure, as for the C++ caller.
     public func createTexture(_ descriptor: GPUTextureDescriptor, label: Swift.String?) -> TextureReference {
-        createTextureImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
+        createTextureImpl(impl, descriptor, label: WTF.String(label ?? ""))
     }
 }
 

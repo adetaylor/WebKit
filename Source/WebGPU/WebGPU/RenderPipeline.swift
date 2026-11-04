@@ -58,7 +58,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
     private let backingDepthStencilState: (any MTLDepthStencilState)?
     // An invalid pipeline carries an invalid-state layout.
     let pipelineLayoutImpl: PipelineLayoutImpl
-    let deviceImpl: DeviceImpl
     let parameters: WebGPU.Metal.RenderPipelineParameters
 
     // The MTLIndexType of the strip index format.
@@ -76,14 +75,13 @@ public final class RenderPipelineImpl: GPUObjectReference {
     // Kept alive by this pipeline.
     private var lastStrideAsStrideImpl: RenderPipelineImpl?
     // Declared last, so that the device outlives the rest of the pipeline.
-    let device: WebGPU.Metal.Device
+    let deviceImpl: DeviceImpl
 
     fileprivate init(
         renderPipelineDescriptor: MTLRenderPipelineDescriptor?,
         depthStencilDescriptor: MTLDepthStencilDescriptor?,
         metalDevice: (any MTLDevice)?,
         pipelineLayoutImpl: PipelineLayoutImpl,
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl,
         parameters: WebGPU.Metal.RenderPipelineParameters,
         indexType: MTLIndexType?,
@@ -108,7 +106,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
         self.colorTargetFormats = colorTargetFormats
         self.depthStencilFormat = depthStencilFormat
         self.minimumBufferSizes = minimumBufferSizes
-        self.device = device
     }
 
     @_expose(Cxx)
@@ -176,7 +173,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
     // RenderPipeline::getBindGroupLayout, which wraps it in a shell.
     func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutImpl {
         pipelineBindGroupLayout(
-            device,
             deviceImpl,
             pipelineIsValid: isValid(),
             invalidPipelineMessage: "getBindGroupLayout: RenderPipeline is invalid",
@@ -240,7 +236,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
             depthStencilDescriptor: backingDepthStencilDescriptor,
             metalDevice: metalDevice,
             pipelineLayoutImpl: pipelineLayoutImpl,
-            device: device,
             deviceImpl: deviceImpl,
             parameters: parameters,
             indexType: indexType,
@@ -370,7 +365,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
 }
 
 func makeInvalidRenderPipelineImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ pipelineLayoutImpl: PipelineLayoutImpl
 ) -> RenderPipelineImpl {
@@ -381,7 +375,6 @@ func makeInvalidRenderPipelineImpl(
         depthStencilDescriptor: nil,
         metalDevice: nil,
         pipelineLayoutImpl: pipelineLayoutImpl,
-        device: device,
         deviceImpl: deviceImpl,
         parameters: parameters,
         indexType: nil,
@@ -556,7 +549,6 @@ struct RenderPipelineInput {
 // (from pipelineToReplace or the descriptor), which Swift cannot downcast, and sets them with their Impls.
 @_expose(Cxx)
 final class RenderPipelineBuilder {
-    private let device: WebGPU.Metal.Device
     private let deviceImpl: DeviceImpl
     private let vertexModuleImpl: ShaderModuleImpl
     private var fragmentModuleImpl: ShaderModuleImpl?
@@ -564,11 +556,9 @@ final class RenderPipelineBuilder {
     private var isReplacingPipeline = false
 
     fileprivate init(
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl,
         vertexModuleImpl: ShaderModuleImpl
     ) {
-        self.device = device
         self.deviceImpl = deviceImpl
         self.vertexModuleImpl = vertexModuleImpl
     }
@@ -597,7 +587,6 @@ final class RenderPipelineBuilder {
     // succeeded, and the message it failed with, on a later turn of the API thread, as the C++ caller's callback does.
     @_expose(!Cxx)
     func createAsync(_ descriptor: RenderPipelineInput, _ completion: @escaping (RenderPipelineReference, Bool, String?) -> Void) {
-        let device = self.device
         let deviceImpl = self.deviceImpl
         let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
         create(descriptor, isAsync: true, asynchronousIfPossible()) { pipeline, message in
@@ -605,10 +594,7 @@ final class RenderPipelineBuilder {
                 // A lost device makes invalid objects without errors.
                 completion(pipeline, deviceImpl.isDestroyed() || pipeline.isValid(), message)
             }
-            guard let instance = CxxBridging.protectedInstance(device) else {
-                return resolve()
-            }
-            instance.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { resolve() })
+            deviceImpl.scheduleWork(resolve)
         }
         if let wasErrorReportingPaused {
             _ = deviceImpl.pauseErrorReporting(wasErrorReportingPaused)
@@ -626,14 +612,13 @@ final class RenderPipelineBuilder {
         _ compilation: LibraryCompilation,
         _ report: @escaping (RenderPipelineImpl, String?) -> Void
     ) {
-        let device = self.device
         let deviceImpl = self.deviceImpl
         // The synchronous form reports the error itself.
         let fail = { (message: String) in
             if !isAsync {
                 deviceImpl.generateAValidationError(message)
             }
-            report(makeInvalidRenderPipeline(device, deviceImpl), message)
+            report(makeInvalidRenderPipeline(deviceImpl), message)
         }
 
         let renderPipelineDescriptor = MTLRenderPipelineDescriptor()
@@ -670,7 +655,7 @@ final class RenderPipelineBuilder {
                     }
                 }
 
-                guard let scheduler = asynchronousCompileScheduler(compilation, device, deviceImpl) else {
+                guard let scheduler = asynchronousCompileScheduler(compilation, deviceImpl) else {
                     return report(impl, nil)
                 }
                 // Compile the pipeline state now rather than leaving it to the first draw. This is only an
@@ -687,11 +672,11 @@ final class RenderPipelineBuilder {
 
         // Compile the fragment MSL once the vertex MSL is done. The two stages of one pipeline are serialized, but
         // independent pipelines still compile concurrently, which is the point.
-        compileLibrary(vertexLibrary, device, deviceImpl, compilation) { vertex, vertexError in
+        compileLibrary(vertexLibrary, deviceImpl, compilation) { vertex, vertexError in
             guard let vertex, let fragmentLibrary else {
                 return finishCreation(vertex, nil, vertexError)
             }
-            compileLibrary(fragmentLibrary, device, deviceImpl, compilation) { fragment, fragmentError in
+            compileLibrary(fragmentLibrary, deviceImpl, compilation) { fragment, fragmentError in
                 finishCreation(vertex, fragment, fragmentError)
             }
         }
@@ -723,7 +708,7 @@ final class RenderPipelineBuilder {
         if let layoutImpl {
             // isValidToUseWithDevice(layout, device) of IsValidToUseWith.h.
             // With the same device, the layout's device validity is deviceImpl.isValid().
-            if !layoutImpl.isValid() || !CxxBridging.areDevicesEqual(layoutImpl.device, device) || !deviceImpl.isValid() {
+            if !layoutImpl.isValid() || layoutImpl.deviceImpl !== deviceImpl || !deviceImpl.isValid() {
                 return PendingRenderPipeline(errorMessage: "Pipeline layout is not valid or created from different device")
             }
             if isReplacingPipeline || !layoutImpl.isAutoLayout() {
@@ -1008,7 +993,7 @@ final class RenderPipelineBuilder {
         if let explicitLayoutImpl {
             finalLayoutImpl = explicitLayoutImpl
         } else {
-            let generated = makeGeneratedPipelineLayout(device: device, deviceImpl: deviceImpl, entries: bindGroupEntries)
+            let generated = makeGeneratedPipelineLayout(deviceImpl: deviceImpl, entries: bindGroupEntries)
             if !generated.isValid() {
                 return PendingRenderPipeline(errorMessage: "Generated pipeline layout is not valid")
             }
@@ -1041,7 +1026,6 @@ final class RenderPipelineBuilder {
             depthStencilDescriptor: depthStencilDescriptor,
             metalDevice: deviceImpl.device(),
             pipelineLayoutImpl: finalLayoutImpl,
-            device: device,
             deviceImpl: deviceImpl,
             parameters: parameters,
             indexType: stripIndexFormat.flatMap { mtlIndexType($0) },
@@ -1143,12 +1127,11 @@ final class RenderPipelineBuilder {
 // The builder of a Swift caller's descriptor, with the modules and layout that C++ sets on a C++ caller's: the layout of
 // `pipelineToReplace` for createRenderPipelineWithPipelineLayoutFromPipelineAsync.
 func makeRenderPipelineBuilder(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ descriptor: GPURenderPipelineDescriptor,
     replacingLayoutOf pipelineToReplace: RenderPipelineReference? = nil
 ) -> RenderPipelineBuilder {
-    let builder = RenderPipelineBuilder(device: device, deviceImpl: deviceImpl, vertexModuleImpl: descriptor.vertex.stage.module)
+    let builder = RenderPipelineBuilder(deviceImpl: deviceImpl, vertexModuleImpl: descriptor.vertex.stage.module)
     if let fragmentModule = descriptor.fragment?.stage.module {
         builder.setFragmentModule(fragmentModule)
     }
@@ -1606,15 +1589,15 @@ private func inWTFHashTableOrder(_ buffers: [RequiredVertexBuffer]) -> [Required
 }
 
 // An invalid pipeline still holds an invalid pipeline layout, so that it always has one.
-func makeInvalidRenderPipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> RenderPipelineImpl {
-    makeInvalidRenderPipelineImpl(device, deviceImpl, makeInvalidPipelineLayoutImpl(device))
+func makeInvalidRenderPipeline(_ deviceImpl: DeviceImpl) -> RenderPipelineImpl {
+    makeInvalidRenderPipelineImpl(deviceImpl, makeInvalidPipelineLayoutImpl(deviceImpl))
 }
 
 @_spi(WebKitGPU)
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline: an invalid pipeline on failure.
     public func createRenderPipeline(_ descriptor: GPURenderPipelineDescriptor, label: Swift.String?) -> RenderPipelineReference {
-        makeRenderPipelineBuilder(shell, impl, descriptor).create(RenderPipelineInput(descriptor, label: label ?? ""))
+        makeRenderPipelineBuilder(impl, descriptor).create(RenderPipelineInput(descriptor, label: label ?? ""))
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync, and, with `pipelineToReplace`, the
@@ -1626,7 +1609,7 @@ extension DeviceReference {
         replacingLayoutOf pipelineToReplace: RenderPipelineReference? = nil,
         _ completion: @escaping (RenderPipelineReference, Bool, Swift.String?) -> Void
     ) {
-        makeRenderPipelineBuilder(shell, impl, descriptor, replacingLayoutOf: pipelineToReplace)
+        makeRenderPipelineBuilder(impl, descriptor, replacingLayoutOf: pipelineToReplace)
             .createAsync(RenderPipelineInput(descriptor, label: label ?? ""), completion)
     }
 }

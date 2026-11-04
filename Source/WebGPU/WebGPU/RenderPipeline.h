@@ -41,8 +41,6 @@
 
 namespace WebGPU::Metal {
 
-class Device;
-
 // The scalar pipeline state, which the render encoders read as one value.
 struct RenderPipelineParameters {
     MTLPrimitiveType primitiveType { MTLPrimitiveTypePoint };

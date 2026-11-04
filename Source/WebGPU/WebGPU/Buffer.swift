@@ -127,7 +127,6 @@ public final class BufferImpl: GPUObjectReference {
     // Keyed by the gpuResourceID of the indirect command buffer; 0 for draws outside one.
     private var didReadOOBByCommandBuffer: [UInt64: Bool] = [:]
 
-    let deviceImpl: DeviceImpl
     /// The encoders that used the buffer.
     @_expose(!Cxx)
     var tracking = EncoderTracking()
@@ -145,14 +144,13 @@ public final class BufferImpl: GPUObjectReference {
     // buffer do not each capture a "prior" copy and queue a restore of it.
     private var clearedForCommandBuffer: ObjectIdentifier?
     // Declared last, so that the device outlives the rest of the buffer.
-    let device: WebGPU.Metal.Device
+    let deviceImpl: DeviceImpl
 
     fileprivate init(
         buffer: (any MTLBuffer)?,
         size: UInt64,
         usageBits: UInt16,
         mappedAtCreation: Bool,
-        device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl
     ) {
         self.backingBuffer = buffer
@@ -161,7 +159,6 @@ public final class BufferImpl: GPUObjectReference {
         self.mapState = mappedAtCreation ? .mappedAtCreation(0..<size) : .unmapped
         self.mappedAtCreation = mappedAtCreation
         self.deviceImpl = deviceImpl
-        self.device = device
     }
 
     @_expose(Cxx)
@@ -757,28 +754,27 @@ public struct GPUBufferDescriptor {
     }
 }
 
-func createBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ descriptor: GPUBufferDescriptor, label: WTF.String) -> BufferImpl {
+func createBufferImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUBufferDescriptor, label: WTF.String) -> BufferImpl {
     var parameters = WebGPU.Metal.BufferParameters()
     parameters.size = descriptor.size
     parameters.usage = descriptor.usage
     parameters.mappedAtCreation = descriptor.mappedAtCreation
-    return createBufferImpl(device, deviceImpl, parameters, label)
+    return createBufferImpl(deviceImpl, parameters, label)
 }
 
 // Device::createBuffer. https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
 func createBufferImpl(
-    _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
     _ parameters: WebGPU.Metal.BufferParameters,
     _ label: WTF.String
 ) -> BufferImpl {
     if !deviceImpl.isValid() {
-        return makeInvalidBufferImpl(device, deviceImpl)
+        return makeInvalidBufferImpl(deviceImpl)
     }
 
     if !isValidBufferDescriptor(parameters, deviceImpl, deviceImpl.capabilities.limits.maxBufferSize) {
         deviceImpl.generateAValidationError("Validation failure.")
-        return makeInvalidBufferImpl(device, deviceImpl)
+        return makeInvalidBufferImpl(deviceImpl)
     }
 
     // FIXME(PERFORMANCE): Consider write-combining CPU cache mode.
@@ -786,7 +782,7 @@ func createBufferImpl(
     let storageMode = bufferStorageMode(hasUnifiedMemory(deviceImpl), parameters.usage, parameters.mappedAtCreation)
     guard let buffer = deviceImpl.safeCreateBuffer(UInt(parameters.size), storageMode) else {
         deviceImpl.generateAnOutOfMemoryError("Allocation failure.")
-        return makeInvalidBufferImpl(device, deviceImpl)
+        return makeInvalidBufferImpl(deviceImpl)
     }
 
     buffer.label = stringNilIfEmpty(label) ?? ""
@@ -795,13 +791,12 @@ func createBufferImpl(
         size: parameters.size,
         usageBits: parameters.usage,
         mappedAtCreation: parameters.mappedAtCreation,
-        device: device,
         deviceImpl: deviceImpl
     )
 }
 
-func makeInvalidBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> BufferImpl {
-    BufferImpl(buffer: nil, size: 0, usageBits: 0, mappedAtCreation: false, device: device, deviceImpl: deviceImpl)
+func makeInvalidBufferImpl(_ deviceImpl: DeviceImpl) -> BufferImpl {
+    BufferImpl(buffer: nil, size: 0, usageBits: 0, mappedAtCreation: false, deviceImpl: deviceImpl)
 }
 
 private func hasBufferUsage(_ usageBits: UInt16, _ usage: WebGPU.BufferUsage) -> Bool {
@@ -877,6 +872,6 @@ private func bufferDidModifyRange(_ buffer: any MTLBuffer, _ offset: UInt64, _ l
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer: an invalid buffer on failure, as for the C++ caller.
     public func createBuffer(_ descriptor: GPUBufferDescriptor, label: Swift.String?) -> BufferReference {
-        createBufferImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
+        createBufferImpl(impl, descriptor, label: WTF.String(label ?? ""))
     }
 }
