@@ -54,6 +54,7 @@ def parse(file):
     shared_preferences_needs_connection = False
     swift_receiver = False
     swift_receiver_build_enabled_by = None
+    swift_receiver_state_lender = None
     swift_types = False
     destination = None
     messages = []
@@ -80,6 +81,9 @@ def parse(file):
                     continue
                 if match.group('name') == 'SwiftReceiverBuildEnabledBy':
                     swift_receiver_build_enabled_by = match.group('value')
+                    continue
+                if match.group('name') == 'SwiftReceiverStateLender':
+                    swift_receiver_state_lender = match.group('value')
                     continue
                 if match.group('name') == 'ReceiverName':
                     receiver_name = match.group('value')
@@ -206,7 +210,7 @@ def parse(file):
     if receiver_dispatched_to and receiver_dispatched_to_exception:
         raise Exception("ERROR: 'ExceptionForDispatchedTo' cannot be used together with 'DispatchedTo=%s'" % receiver_dispatched_to)
 
-    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types)
+    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender)
     receiver.enforce_swift_types_constraints()
     return receiver
 

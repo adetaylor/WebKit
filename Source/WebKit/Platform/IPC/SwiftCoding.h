@@ -98,6 +98,10 @@ inline size_t writeUTF8ForUTF16Characters(std::span<const char16_t> characters, 
     return length;
 }
 
+// What the generated Swift dispatch of a message to a stream receiver whose state C++ lends did with the message: handled
+// it, declined it, for the lender to handle once the state is no longer lent, or found it invalid.
+enum class SwiftLentStateDispatch : uint8_t { Handled, Declined, Invalid };
+
 // The element spans of the arrays generated Swift decodes in one call, named so that Swift sees them as MutableSpan.
 using MutableSpanUInt16 = std::span<uint16_t>;
 using MutableSpanUInt32 = std::span<uint32_t>;

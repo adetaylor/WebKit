@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import CXX_DECODED_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_DECODED_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
 
 _license_header = """/*
  * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
@@ -871,6 +871,11 @@ def forward_declarations_and_headers(receiver):
     if cxx_decoded_parameters(receiver):
         headers.add('"SwiftCoding.h"')
 
+    # For IPC::SwiftLentStateDispatch, and the forwarder's reference to its state lender.
+    if receiver.swift_receiver_state_lender:
+        headers.add('"SwiftCoding.h"')
+        headers.add('<wtf/RefPtr.h>')
+
     non_template_wtf_types = frozenset([
         'MachSendRight',
         'MediaType',
@@ -1034,6 +1039,10 @@ def generate_messages_header(receiver):
             if message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
                 sync_messages.append(message)
 
+        lender = receiver.swift_receiver_state_lender
+        if lender:
+            lender_namespace, lender_name = swift_state_lender_namespace_and_name(receiver)
+            result.append('namespace %s {\nclass %s;\n}\n\n' % (lender_namespace, lender_name))
         result.append('namespace ' + handler_namespace + ' {\n\n')
         is_stream = receiver.has_attribute(STREAM_ATTRIBUTE)
         is_work_queue = receiver.has_attribute(WORK_QUEUE_ATTRIBUTE)
@@ -1066,6 +1075,10 @@ def generate_messages_header(receiver):
             if receiver_needs_shared_preferences(receiver):
                 result.append('    // Lets the C++ that registers the receiver supply its shared preferences, which dispatch otherwise asks Swift for.\n')
                 result.append('    void setSharedPreferencesProvider(Function<std::optional<SharedPreferencesForWebProcess>()>&& provider) { m_sharedPreferencesProvider = WTF::move(provider); }\n')
+            if lender:
+                result.append('    // Lets the C++ that registers the receiver lend its handlers the state they take inout, through the lender\'s\n')
+                result.append('    // lendSwiftReceiverState(), for one message at a time. The forwarder keeps the lender, so the lender must not keep it.\n')
+                result.append('    void setStateLender(%s&);\n' % lender)
         elif is_work_queue:
             result.append('    void ref() const final { ' + work_queue_receiver + '::ref(); }\n')
             result.append('    void deref() const final { ' + work_queue_receiver + '::deref(); }\n')
@@ -1085,6 +1098,8 @@ def generate_messages_header(receiver):
         result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
         if swift_receiver_runs_on_work_queue(receiver) and receiver_needs_shared_preferences(receiver):
             result.append('    Function<std::optional<SharedPreferencesForWebProcess>()> m_sharedPreferencesProvider;\n')
+        if lender:
+            result.append('    RefPtr<%s> m_stateLender;\n' % lender)
         if is_work_queue:
             result.append('    RefPtr<WorkQueue> m_workQueue;\n')
         result.append('} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);\n\n')
@@ -1254,6 +1269,16 @@ def swift_type_aliases(receiver):
 # The generated trampoline that catches a failed message check on behalf of a throwing Swift handler.
 # It lives on <Receiver>WeakRef because Swift does not export extension members to C++ and a
 # generator cannot add members to the hand-written receiver class.
+# The namespace and name of the C++ class that lends a Swift stream receiver's handlers their state.
+def swift_state_lender_namespace_and_name(receiver):
+    namespace, _, name = receiver.swift_receiver_state_lender.rpartition('::')
+    return (namespace, name)
+
+
+def swift_state_lender_header(receiver):
+    return '"%s.h"' % swift_state_lender_namespace_and_name(receiver)[1]
+
+
 def swift_trampoline_function(receiver, message):
     return '%sWeakRef::dispatch%s' % (receiver.name, message.name)
 
@@ -1340,7 +1365,17 @@ def async_message_statement(receiver, message):
             dispatch_function_args = ['decoder', target_name, '&%s' % dispatched_function]
         result.append(pattern % (', '.join(dispatch_function_args)))
 
+    def append_lent_state_dispatch(result):
+        # The lender lends the state for the message, and handles it itself if the Swift handler declines it.
+        arguments = ['connection', 'decoder', 'm_stateLender', 'm_handler.get()', '&%s' % swift_trampoline_function(receiver, message)]
+        if message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE):
+            arguments.append('&%s::%s' % (receiver.swift_receiver_state_lender, handler_function_name(message)))
+        result.append('        IPC::handleSwiftMessageWithLentState<Messages::%s::%s>(%s);\n' % (receiver.name, message.name, ', '.join(arguments)))
+
     def append_with_dispatch_function_args(receiver, result):
+        if receiver.swift_receiver_state_lender:
+            if_swift_enabled(receiver, result, append_lent_state_dispatch, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, '        IPC::handleMessage<Messages::%s::%s>(connection, %%s);\n' % (receiver.name, message.name), 'this', handler_function(receiver, message)))
+            return
         pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (dispatch_function, receiver.name, message.name, connection)
         swift_pattern = pattern
         if receiver.takes_swift_types(message):
@@ -2269,6 +2304,8 @@ def generate_message_handler(receiver):
     }
 
     collect_header_conditions_for_receiver(receiver, header_conditions)
+    if receiver.swift_receiver_state_lender:
+        header_conditions[swift_state_lender_header(receiver)] = [None]
 
     result = []
 
@@ -2418,6 +2455,12 @@ def generate_message_handler(receiver):
         result.append('{\n')
         result.append('}\n')
         result.append('\n')
+        if receiver.swift_receiver_state_lender:
+            result.append('void %s::setStateLender(%s& lender)\n' % (forwarder_class, receiver.swift_receiver_state_lender))
+            result.append('{\n')
+            result.append('    m_stateLender = &lender;\n')
+            result.append('}\n')
+            result.append('\n')
 
     if_swift_enabled(receiver, result, append_swift_message_forwarder_methods, None)
 
@@ -2513,6 +2556,40 @@ def check_swift_types_are_dispatched_on_main_thread(receiver):
                                 'take Swift types off the main thread.' % (receiver.name, message.name, attribute))
 
 
+# The Swift dispatch of a message to a stream receiver whose state C++ lends: the handler takes the state inout, and
+# C++ calls this only while it lends it, on the stream connection's work queue. Rather than marking the message invalid
+# itself, which would need the connection, this tells C++ what became of it. A SwiftMayDecline handler returns false to
+# decline the message, which the lender then handles.
+def swift_lent_state_dispatch_function(receiver, message):
+    may_decline = message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE)
+    parameters = ['state: inout %s.State' % receiver.name]
+    arguments = ['state: &state']
+    for parameter in message.parameters:
+        parameters.append('%s: sending %s' % (parameter.name, swift_type_name(parameter.type)))
+        arguments.append('%s: %s' % (parameter.name, parameter.name))
+    result = []
+    result.append('\n')
+    result.append('    @used\n')
+    result.append('    func dispatch%s(\n' % message.name)
+    result.append(',\n'.join(['        %s' % parameter for parameter in parameters]))
+    result.append('\n    ) -> IPC.SwiftLentStateDispatch {\n')
+    result.append('        do throws(InvalidMessage) {\n')
+    result.append('            %stry mayThrowInvalidMessage(\n' % ('let handled = ' if may_decline else ''))
+    result.append('                target.%s(\n' % handler_function_name(message))
+    result.append(',\n'.join(['                    %s' % argument for argument in arguments]))
+    result.append('\n                )\n')
+    result.append('            )\n')
+    if may_decline:
+        result.append('            return handled ? .Handled : .Declined\n')
+    result.append('        } catch {\n')
+    result.append('            return .Invalid\n')
+    result.append('        }\n')
+    if not may_decline:
+        result.append('        return .Handled\n')
+    result.append('    }\n')
+    return result
+
+
 def generate_swift_message_handler(receiver):
     assert (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by)
     check_swift_types_are_dispatched_on_main_thread(receiver)
@@ -2593,6 +2670,17 @@ def generate_swift_message_handler(receiver):
             continue
 
         message_start = len(result)
+        if receiver.swift_receiver_state_lender:
+            result += swift_lent_state_dispatch_function(receiver, message)
+            if message.condition:
+                try:
+                    condition = swift_types.swift_condition(message.condition)
+                except swift_types.UnmappableSwiftCondition as error:
+                    raise Exception('ERROR: Message %s.%s is under a condition Swift cannot evaluate: %s' % (receiver.name, message.name, error))
+                result.insert(message_start, '\n    #if %s' % condition)
+                result.append('    #endif\n')
+            continue
+
         connection_type = 'IPC.StreamServerConnection' if receiver.has_attribute(STREAM_ATTRIBUTE) else 'IPC.Connection'
         # A message that takes Swift types is decoded here, from a decoder C++ lends for the duration of
         # this call, and its reply is encoded by the Invocation. Returning false tells C++ that the

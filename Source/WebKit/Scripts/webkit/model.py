@@ -47,6 +47,9 @@ CXX_DECODED_ATTRIBUTE = 'CxxDecoded'
 SWIFT_SYNC_HANDLER_ATTRIBUTE = 'SwiftSyncHandler'
 NOT_USING_IPC_CONNECTION_ATTRIBUTE = 'NotUsingIPCConnection'
 WANTS_CONNECTION_ATTRIBUTE = 'WantsConnection'
+# On a message to a receiver whose state C++ lends: its Swift handler returns false to decline the message, which the
+# lender then handles in C++, once the state is no longer lent, with the same arguments.
+SWIFT_MAY_DECLINE_ATTRIBUTE = 'SwiftMayDecline'
 WANTS_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsDispatchMessage'
 WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsAsyncDispatchMessage'
 
@@ -55,7 +58,7 @@ WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsAsyncDispatchMessage'
 _SWIFT_TYPES_RESERVED_PARAMETER_NAMES = frozenset(['connection', 'decoder', 'replyEncoder', 'reply', 'target'])
 
 class MessageReceiver(object):
-    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False):
+    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False, swift_receiver_state_lender=None):
         self.name = name
         self.superclass = superclass
         self.attributes = frozenset(attributes or [])
@@ -74,6 +77,8 @@ class MessageReceiver(object):
         self.swift_receiver_build_enabled_by = swift_receiver_build_enabled_by
         self.receiver_name = receiver_name
         self.swift_types = swift_types
+        # The C++ class that lends the handlers of a Swift stream receiver the state they take inout.
+        self.swift_receiver_state_lender = swift_receiver_state_lender
 
     def iterparameters(self):
         return itertools.chain((parameter for message in self.messages for parameter in message.parameters),
@@ -104,6 +109,25 @@ class MessageReceiver(object):
             raise Exception("ERROR: Receiver %s cannot have both '%s' and '%s'" % (self.name, WORK_QUEUE_ATTRIBUTE, STREAM_ATTRIBUTE))
         for message in self.messages:
             self._enforce_swift_types_constraints_for_message(message)
+        self._enforce_lent_state_constraints()
+
+    def _enforce_lent_state_constraints(self):
+        if not self.swift_receiver_state_lender:
+            for message in self.messages:
+                if message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE):
+                    raise Exception("ERROR: Message %s.%s has '%s', which is for receivers with 'SwiftReceiverStateLender='" % (self.name, message.name, SWIFT_MAY_DECLINE_ATTRIBUTE))
+            return
+        if not self.is_swift_receiver() or not self.has_attribute(STREAM_ATTRIBUTE):
+            raise Exception("ERROR: Receiver %s has 'SwiftReceiverStateLender=%s', which is for Swift stream receivers" % (self.name, self.swift_receiver_state_lender))
+        for message in self.messages:
+            description = '%s.%s' % (self.name, message.name)
+            if self.takes_swift_types(message):
+                raise Exception("ERROR: Message %s takes Swift types, which is not supported on a receiver with 'SwiftReceiverStateLender='" % description)
+            if message.reply_parameters is not None:
+                raise Exception("ERROR: Message %s has a reply, which is not supported on a receiver with 'SwiftReceiverStateLender='" % description)
+            for parameter in message.parameters:
+                if parameter.name in ('state', 'target'):
+                    raise Exception("ERROR: Message %s has a parameter named '%s', which the generated dispatch of a receiver with 'SwiftReceiverStateLender=' uses itself" % (description, parameter.name))
 
     def _enforce_swift_types_constraints_for_message(self, message):
         description = '%s.%s' % (self.name, message.name)

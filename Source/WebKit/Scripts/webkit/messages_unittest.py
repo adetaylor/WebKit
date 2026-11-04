@@ -63,6 +63,7 @@ _test_receiver_names = [
     'TestWithStreamServerConnectionHandle',
     'TestWithStreamSwift',
     'TestWithStreamSwiftEnabledBy',
+    'TestWithStreamSwiftLentState',
     'TestWithStreamSwiftTypes',
     'TestWithSuperclass',
     'TestWithSuperclassAndWantsAsyncDispatch',
@@ -320,6 +321,33 @@ messages -> TestReceiver %s {
         self.assertIn('CompletionHandlers.TestReceiver.complete(completionHandler, reply)', swift)
         self.assertRegex(swift, r'EnumReplyInvocation \{(.|\n)*?\n                completionHandler\.pointee\(reply\)\n')
         self.assertRegex(swift, r'StructReplyInvocation \{(.|\n)*?\n                completionHandler\.pointee\(consuming: reply\)\n')
+
+    def test_lent_state_constraints(self):
+        stream_receiver = """
+[
+    ExceptionForEnabledBy,
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    %s
+]
+messages -> TestReceiver Stream {
+%s
+}
+"""
+
+        def parse(attributes, messages_text):
+            return parser.parse(io.StringIO(stream_receiver % (',\n    '.join(attributes), messages_text)))
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftMayDecline', which is for receivers with 'SwiftReceiverStateLender='"):
+            parse(['SwiftReceiver'], '    Message(uint32_t value) SwiftMayDecline')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftReceiverStateLender=WebKit::Lender', which is for Swift stream receivers"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported on a receiver with 'SwiftReceiverStateLender='"):
+            parse(['SwiftReceiver', 'SwiftTypes', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has a reply, which is not supported on a receiver with 'SwiftReceiverStateLender='"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value) -> (uint32_t reply)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has a parameter named 'state'"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t state)')
 
 
 def parse_sys_argv():
