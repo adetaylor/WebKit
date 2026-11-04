@@ -259,6 +259,7 @@ static_assert(isCSSCalcSwiftFacade<CSSPropertyConsumerSwiftValue>);
 
 // lengthUnit's masks in CSSPropertyConsumerSwift.swift are CSS::toLengthUnit's units, and one that does not map back to
 // itself sets every bit, matching no mask.
+WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 static_assert([] {
     std::array<uint64_t, 2> length { }, absolute { };
     for (unsigned unit = 0; unit < 128; ++unit) {
@@ -269,6 +270,7 @@ static_assert([] {
     }
     return length[0] == 0xfdc1'ffff'fff8'0ff0 && length[1] == 0x23 && absolute[0] == 0x40'0000'0000'0fc0 && !absolute[1];
 }());
+WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 // cssConsumeNumericSwift names each LengthUnit.
 static_assert(CSS::UnitTraits<CSS::LengthUnit>::count == 50);
 
