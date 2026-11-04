@@ -27,8 +27,10 @@
 
 #if USE(CG)
 
+#include <WebCore/CGRendererSwiftBridge.h>
 #include <WebCore/ColorSpaceCG.h>
 #include <WebCore/GraphicsContext.h>
+#include <wtf/ForbidHeapAllocation.h>
 #include <wtf/TZoneMalloc.h>
 
 namespace WebCore {
@@ -170,7 +172,21 @@ public:
     // Makes GraphicsContext's state the renderer's, for C++ that reads it after the renderer was used without this context.
     void updateStateFromSwiftRenderer();
 
+    CGRendererShellState* swiftReceiverState() final;
+
+    class SwiftRendererLend;
+    // Lends the renderer of the context whose C++ side shellState is, if it is stored in place, to a Swift receiver for one
+    // message: state() is the renderer, which the receiver's handler takes inout. Until the lend ends, any other use of the
+    // renderer crashes, as does the context's destruction, so that nothing else reaches the renderer while Swift has it.
+    // C++ only: Swift takes the state from the lend's C++ owner.
+    static SwiftRendererLend lendSwiftRenderer(const CGRendererShellState&) __attribute__((availability(swift, unavailable)));
+
 private:
+    friend class ::CGRendererShellState;
+
+    // How this context keeps its renderer: in place, in place and lent to a Swift receiver (SwiftRendererLend), or boxed.
+    enum class SwiftRendererState : uint8_t { InPlace, InPlaceLent, Box };
+
     template<typename Function> decltype(auto) withSwiftRenderer(Function&&) const;
     void didUpdateStateForSwiftRenderer(GraphicsContextState&);
     void setSwiftRendererShadow(const GraphicsDropShadow&, bool isStyle);
@@ -196,15 +212,55 @@ private:
     static constexpr size_t swiftRendererSize = 272;
     alignas(8) mutable std::byte m_swiftRendererStorage[swiftRendererSize];
     mutable std::optional<ColorSpace> m_colorSpace;
+    RefPtr<CGRendererShellState> m_swiftReceiverState;
 #if HAVE(SUPPORT_HDR_DISPLAY)
     std::optional<float> m_maxEDRHeadroom;
 #endif
     const RenderingMode m_renderingMode : 2; // NOLINT
     const bool m_isLayerCGContext : 1;
-    const bool m_hasSwiftRendererBox : 1;
+    // A byte of its own rather than a bitfield, so that lending and returning the renderer are single stores.
+    mutable SwiftRendererState m_swiftRendererState;
     // Flag for pending draws. Start with true because we do not know what commands have been scheduled to the context.
     mutable bool m_hasDrawn : 1 { true };
 };
+
+class GraphicsContextCG::SwiftRendererLend {
+    WTF_MAKE_NONCOPYABLE(SwiftRendererLend);
+    WTF_FORBID_HEAP_ALLOCATION;
+public:
+    ~SwiftRendererLend()
+    {
+        if (m_context)
+            m_context->m_swiftRendererState = SwiftRendererState::InPlace;
+    }
+
+    explicit operator bool() const { return m_context; }
+    CGRendererCore& state() const { return *m_core; }
+
+private:
+    friend class GraphicsContextCG;
+
+    SwiftRendererLend(GraphicsContextCG* context, CGRendererCore* core)
+        : m_context(context)
+        , m_core(core)
+    {
+    }
+
+    GraphicsContextCG* const m_context;
+    CGRendererCore* const m_core;
+};
+
+inline GraphicsContextCG::SwiftRendererLend GraphicsContextCG::lendSwiftRenderer(const CGRendererShellState& shellState)
+{
+    auto* context = shellState.m_context;
+    if (!context || context->m_swiftRendererState != SwiftRendererState::InPlace) [[unlikely]] {
+        // Lent already means that something reached the renderer while a Swift receiver has it.
+        RELEASE_ASSERT(!context || context->m_swiftRendererState != SwiftRendererState::InPlaceLent);
+        return SwiftRendererLend { nullptr, nullptr };
+    }
+    context->m_swiftRendererState = SwiftRendererState::InPlaceLent;
+    return SwiftRendererLend { context, shellState.m_core };
+}
 
 CGAffineTransform getUserToBaseCTM(CGContextRef);
 

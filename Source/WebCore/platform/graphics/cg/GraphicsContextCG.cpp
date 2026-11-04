@@ -338,8 +338,11 @@ static GraphicsContext::IsDeferred isDeferredForCGContext(CGContextRef cgContext
 // the box that holds it.
 template<typename Function> decltype(auto) GraphicsContextCG::withSwiftRenderer(Function&& function) const
 {
-    if (m_hasSwiftRendererBox) [[unlikely]]
+    if (m_swiftRendererState != SwiftRendererState::InPlace) [[unlikely]] {
+        // Lent, it is a Swift receiver's until the lend ends (SwiftRendererLend).
+        RELEASE_ASSERT(m_swiftRendererState == SwiftRendererState::Box);
         return function(*std::launder(reinterpret_cast<CGRendererBox*>(m_swiftRendererStorage)));
+    }
     return function(*std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage)));
 }
 
@@ -348,7 +351,7 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
     , m_cgContext(cgContext)
     , m_renderingMode(knownRenderingMode.value_or(renderingModeForCGContext(cgContext, source)))
     , m_isLayerCGContext(source == GraphicsContextCG::CGContextFromCALayer)
-    , m_hasSwiftRendererBox(rendererStorage == SwiftRendererStorage::Box)
+    , m_swiftRendererState(rendererStorage == SwiftRendererStorage::Box ? SwiftRendererState::Box : SwiftRendererState::InPlace)
 {
     // Exact where pointers are 8 bytes, so that the storage doesn't outgrow the struct; with 4-byte pointers the struct is smaller.
 #if CPU(ADDRESS64)
@@ -359,7 +362,7 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
     static_assert(alignof(CGRendererCore) <= 8);
     static_assert(sizeof(CGRendererBox) <= swiftRendererSize && alignof(CGRendererBox) <= 8);
     auto makeRenderer = [&](CGContextRef context, bool isUnaccelerated, bool isPDFContext) {
-        if (m_hasSwiftRendererBox)
+        if (m_swiftRendererState == SwiftRendererState::Box)
             new (m_swiftRendererStorage) CGRendererBox(CGRendererBox::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
         else
             new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
@@ -380,9 +383,28 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
 
 GraphicsContextCG::~GraphicsContextCG()
 {
+    if (RefPtr swiftReceiverState = m_swiftReceiverState) {
+        swiftReceiverState->m_context = nullptr;
+        swiftReceiverState->m_core = nullptr;
+    }
     withSwiftRenderer([](auto& renderer) {
         std::destroy_at(&renderer);
     });
+}
+
+CGRendererShellState* GraphicsContextCG::swiftReceiverState()
+{
+    if (m_swiftRendererState == SwiftRendererState::Box)
+        return nullptr;
+    if (!m_swiftReceiverState) {
+        auto* core = std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage));
+        // WebKit's generated header passes the renderer to Swift with a stand-in for this helper
+        // (WebKit/Shared/WebCoreSwiftForWebKit.h), which takes its storage to be the object itself.
+        RELEASE_ASSERT(_impl::_impl_CGRendererCore::getOpaquePointer(*core) == reinterpret_cast<char*>(core));
+        m_swiftReceiverState = CGRendererShellState::create(*this);
+        m_swiftReceiverState->m_core = core;
+    }
+    return m_swiftReceiverState.get();
 }
 
 bool GraphicsContextCG::hasPlatformContext() const
@@ -692,6 +714,122 @@ CGPatternRef CGRendererCreateBrushPattern(const CGRendererBrushSource& source, C
 CGColorRef CGRendererCopyCachedColor(uint32_t packedColor)
 {
     return WebCore::cachedCGColor(WebCore::Color { WebCore::asSRGBA(WebCore::PackedColor::RGBA { packedColor }) }).leakRef();
+}
+
+Ref<CGRendererShellState> CGRendererShellState::create(WebCore::GraphicsContextCG& context)
+{
+    return adoptRef(*new CGRendererShellState(context));
+}
+
+CGRendererShellState::CGRendererShellState(WebCore::GraphicsContextCG& context)
+    : m_context(&context)
+{
+}
+
+CGRendererShellState::~CGRendererShellState() = default;
+
+// The renderer has the change already; GraphicsContextCG::didUpdateState() would apply it there again.
+template<typename Change>
+void CGRendererShellState::setState(const Change& change)
+{
+    auto* context = m_context;
+    if (!context)
+        return;
+    auto& state = context->m_state;
+    change(state);
+    state.didApplyChanges();
+}
+
+void CGRendererShellState::setFillPackedColor(uint32_t packedColor)
+{
+    setState([&](auto& state) {
+        state.setFillColor(WebCore::asSRGBA(WebCore::PackedColor::RGBA { packedColor }));
+    });
+}
+
+void CGRendererShellState::setStrokePackedColor(uint32_t packedColor)
+{
+    setState([&](auto& state) {
+        state.setStrokeColor(WebCore::asSRGBA(WebCore::PackedColor::RGBA { packedColor }));
+    });
+}
+
+void CGRendererShellState::setFillRule(uint8_t fillRule)
+{
+    setState([&](auto& state) {
+        state.setFillRule(static_cast<WebCore::WindRule>(fillRule));
+    });
+}
+
+void CGRendererShellState::setStrokeThickness(float thickness)
+{
+    setState([&](auto& state) {
+        state.setStrokeThickness(thickness);
+    });
+}
+
+void CGRendererShellState::setStrokeStyle(uint8_t strokeStyle)
+{
+    setState([&](auto& state) {
+        state.setStrokeStyle(static_cast<WebCore::StrokeStyle>(strokeStyle));
+    });
+}
+
+void CGRendererShellState::setCompositeMode(uint8_t compositeOperator, uint8_t blendMode)
+{
+    setState([&](auto& state) {
+        state.setCompositeMode({ static_cast<WebCore::CompositeOperator>(compositeOperator), static_cast<WebCore::BlendMode>(blendMode) });
+    });
+}
+
+void CGRendererShellState::setAlpha(float alpha)
+{
+    setState([&](auto& state) {
+        state.setAlpha(alpha);
+    });
+}
+
+void CGRendererShellState::setImageInterpolationQuality(uint8_t quality)
+{
+    setState([&](auto& state) {
+        state.setImageInterpolationQuality(static_cast<WebCore::InterpolationQuality>(quality));
+    });
+}
+
+void CGRendererShellState::setShouldAntialias(bool shouldAntialias)
+{
+    setState([&](auto& state) {
+        state.setShouldAntialias(shouldAntialias);
+    });
+}
+
+void CGRendererShellState::setShouldSmoothFonts(bool shouldSmoothFonts)
+{
+    setState([&](auto& state) {
+        state.setShouldSmoothFonts(shouldSmoothFonts);
+    });
+}
+
+void CGRendererShellState::setShouldSubpixelQuantizeFonts(bool shouldSubpixelQuantizeFonts)
+{
+    setState([&](auto& state) {
+        state.setShouldSubpixelQuantizeFonts(shouldSubpixelQuantizeFonts);
+    });
+}
+
+void CGRendererShellState::save()
+{
+    if (auto* context = m_context)
+        context->GraphicsContext::save(WebCore::GraphicsContextState::Purpose::SaveRestore);
+}
+
+bool CGRendererShellState::restore()
+{
+    auto* context = m_context;
+    if (!context || !context->stackSize() || context->m_state.purpose() != WebCore::GraphicsContextState::Purpose::SaveRestore)
+        return false;
+    context->GraphicsContext::restore(WebCore::GraphicsContextState::Purpose::SaveRestore);
+    return true;
 }
 
 CGImageRef CGRendererCopySubimage(CGImageRef image, CGRect rect)

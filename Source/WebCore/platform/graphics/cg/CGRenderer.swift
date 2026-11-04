@@ -50,20 +50,22 @@
 // The safe MutableSpan overload Swift synthesizes for CGRendererGlyphPositions's span accessor comes from Cxx. Xcode builds
 // don't find it unless this file imports Cxx.
 private import Cxx
-import CoreGraphics
+// CGRendererCore's members for a Swift receiver use these.
+public import CoreGraphics
 import CoreText
 import WebCore_Private.Core.AffineTransform
 import WebCore_Private.Core.CGRendererSPI
-import WebCore_Private.Core.CGRendererSwiftBridge
+public import WebCore_Private.Core.CGRendererSwiftBridge
 import WebCore_Private.Core.Color
 import WebCore_Private.Core.FloatPoint
 import WebCore_Private.Core.FloatRect
 import WebCore_Private.Core.FloatSize
-import WebCore_Private.Core.GraphicsTypes
+public import WebCore_Private.Core.GraphicsTypes
 import WebCore_Private.Core.ImageBuffer
 import WebCore_Private.Core.IntRect
 import WebCore_Private.Core.IntSize
 import WebCore_Private.Core.ShadowBlurSwiftBridge
+public import WebCore_Private.Core.WindRule
 
 // std::max's choice: the first argument unless it is less than the second, so -0 and NaN stay.
 private func cxxMax(_ a: Float, _ b: Float) -> Float {
@@ -662,7 +664,7 @@ private struct CGRendererColorCache {
 // draw. A draw returns false when this renderer doesn't do that case yet; GraphicsContextCG then draws it in C++, with the
 // same state.
 @_expose(Cxx)
-struct CGRendererCore {
+@_spi(WebKitGPU) public struct CGRendererCore {
     private let context: CGContext
     private let isUnaccelerated: Bool
     private let isPDFContext: Bool
@@ -2455,6 +2457,190 @@ struct CGRendererCore {
         let xScale = Double(destinationRect.width) * hypot(Double(transform.a), Double(transform.b)) / Double(sourceRect.width)
         let yScale = Double(destinationRect.height) * hypot(Double(transform.c), Double(transform.d)) / Double(sourceRect.height)
         return !areEssentiallyEqual(xScale, yScale) || xScale > 1
+    }
+}
+
+// MARK: A Swift receiver's messages
+// For a receiver whose context lends it the renderer in place for each message (GraphicsContextCG::lendSwiftRenderer()).
+// Each copies any change to GraphicsContext's state into the context's C++ state through shellState, so that C++ reading
+// the state stays correct, then makes the change in the renderer: in that order, Swift needn't retain shellState across
+// the renderer's calls into CG. A draw returns false where the renderer declines it, for the receiver to hand it back to
+// the context, which draws it once the renderer is no longer lent.
+extension CGRendererCore {
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSave(_ shellState: CGRendererShellState) {
+        shellState.save()
+        save(false)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveRestore(_ shellState: CGRendererShellState) {
+        if shellState.restore() {
+            restore()
+        }
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveTranslate(_ x: Float, _ y: Float) {
+        translate(x, y)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveRotate(_ angle: Float) {
+        rotate(angle)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveScale(_ x: Float, _ y: Float) {
+        scale(x, y)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetCTM(_ transform: CGAffineTransform) {
+        setCTM(transform)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveConcatCTM(_ transform: CGAffineTransform) {
+        concatCTM(transform)
+    }
+
+    // A color brush replaces a gradient or a pattern.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetFillPackedColor(_ packed: UInt32, _ shellState: CGRendererShellState) {
+        shellState.setFillPackedColor(packed)
+        setFillPackedColor(packed, 0)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetStrokePackedColor(_ packed: UInt32, _ shellState: CGRendererShellState) {
+        shellState.setStrokePackedColor(packed)
+        setStrokePackedColor(packed, 0)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetFillRule(_ fillRule: WebCore.WindRule, _ shellState: CGRendererShellState) {
+        let rule: UInt8 = fillRule == .EvenOdd ? 1 : 0
+        shellState.setFillRule(rule)
+        setFillRule(rule)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetStrokeThickness(_ thickness: Float, _ shellState: CGRendererShellState) {
+        shellState.setStrokeThickness(thickness)
+        setStrokeThickness(thickness)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetStrokeStyle(_ strokeStyle: WebCore.StrokeStyle, _ shellState: CGRendererShellState) {
+        shellState.setStrokeStyle(strokeStyle.rawValue)
+        setStrokeStyle(strokeStyle.rawValue)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetCompositeMode(_ compositeOperator: WebCore.CompositeOperator, _ blendMode: WebCore.BlendMode, _ shellState: CGRendererShellState) {
+        shellState.setCompositeMode(compositeOperator.rawValue, blendMode.rawValue)
+        setCompositeMode(compositeOperator, blendMode)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetAlpha(_ alpha: Float, _ shellState: CGRendererShellState) {
+        shellState.setAlpha(alpha)
+        setAlpha(alpha)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetImageInterpolationQuality(_ quality: WebCore.InterpolationQuality, _ shellState: CGRendererShellState) {
+        shellState.setImageInterpolationQuality(quality.rawValue)
+        setImageInterpolationQuality(quality)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetShouldAntialias(_ shouldAntialias: Bool, _ shellState: CGRendererShellState) {
+        shellState.setShouldAntialias(shouldAntialias)
+        setShouldAntialias(shouldAntialias)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetShouldSmoothFonts(_ shouldSmoothFonts: Bool, _ shellState: CGRendererShellState) {
+        shellState.setShouldSmoothFonts(shouldSmoothFonts)
+        setShouldSmoothFonts(shouldSmoothFonts)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetShouldSubpixelQuantizeFonts(_ shouldSubpixelQuantizeFonts: Bool, _ shellState: CGRendererShellState) {
+        shellState.setShouldSubpixelQuantizeFonts(shouldSubpixelQuantizeFonts)
+        setShouldSubpixelQuantizeFonts(shouldSubpixelQuantizeFonts)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetLineCap(_ cap: WebCore.LineCap) {
+        setLineCap(cap)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetLineJoin(_ join: WebCore.LineJoin) {
+        setLineJoin(join)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetMiterLimit(_ limit: Float) {
+        setMiterLimit(limit)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClip(_ rect: CGRect) {
+        clip(rect)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClipOut(_ rect: CGRect) {
+        clipOut(rect)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveResetClip() {
+        resetClip()
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect) -> Bool {
+        fillRect(rect)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveStrokeRect(_ rect: CGRect, _ lineWidth: Float) -> Bool {
+        strokeRect(rect, lineWidth)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClearRect(_ rect: CGRect) {
+        clearRect(rect)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawLine(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float) {
+        drawLine(x1, y1, x2, y2)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillEllipse(_ rect: CGRect) -> Bool {
+        fillEllipse(rect)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveStrokeEllipse(_ rect: CGRect) -> Bool {
+        strokeEllipse(rect)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveApplyFillPattern() {
+        applyFillPattern()
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveApplyStrokePattern() {
+        applyStrokePattern()
     }
 }
 

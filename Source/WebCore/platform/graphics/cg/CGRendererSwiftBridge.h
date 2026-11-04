@@ -28,8 +28,10 @@
 // The values GraphicsContextCG passes to CGRenderer.swift.
 
 #include <CoreGraphics/CoreGraphics.h>
+#include <WebCore/PlatformExportMacros.h>
 #include <span>
 #include <stdint.h>
+#include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
 #include <wtf/SwiftBridging.h>
 
@@ -122,6 +124,7 @@ private:
 };
 
 namespace WebCore {
+class CGRendererCore;
 class Gradient;
 class GraphicsContextCG;
 class ImageBuffer;
@@ -231,3 +234,42 @@ public:
 private:
     std::span<const CGRect> m_rects;
 };
+
+// The C++ side of a GraphicsContextCG for a Swift receiver that draws with the context's renderer itself, while the context
+// lends it (GraphicsContextCG::lendSwiftRenderer()). The setters copy into the context's C++ state a change the receiver
+// has made in the renderer, so that C++ reading the state sees it; save() and restore() keep GraphicsContext's own state
+// stack as GraphicsContextCG's do. None of them uses the renderer. Each does nothing once the context is gone. Used on the
+// context's thread.
+class CGRendererShellState : public RefCounted<CGRendererShellState> {
+public:
+    static Ref<CGRendererShellState> create(WebCore::GraphicsContextCG&);
+    WEBCORE_EXPORT ~CGRendererShellState();
+
+    void setFillPackedColor(uint32_t);
+    void setStrokePackedColor(uint32_t);
+    void setFillRule(uint8_t);
+    void setStrokeThickness(float);
+    void setStrokeStyle(uint8_t);
+    void setCompositeMode(uint8_t compositeOperator, uint8_t blendMode);
+    void setAlpha(float);
+    void setImageInterpolationQuality(uint8_t);
+    void setShouldAntialias(bool);
+    void setShouldSmoothFonts(bool);
+    void setShouldSubpixelQuantizeFonts(bool);
+
+    // GraphicsContext's own save and restore of its state, as GraphicsContextCG::save() and restore() do before the
+    // renderer's; restore() is false if the context's wouldn't restore.
+    void save();
+    bool restore();
+
+private:
+    friend class WebCore::GraphicsContextCG;
+
+    explicit CGRendererShellState(WebCore::GraphicsContextCG&);
+    template<typename Change> void setState(const Change&);
+
+    // Cleared by the context's destructor.
+    WebCore::GraphicsContextCG* m_context;
+    // The context's renderer, stored in place, which it lends a Swift receiver (GraphicsContextCG::lendSwiftRenderer()).
+    WebCore::CGRendererCore* m_core { nullptr };
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
