@@ -91,6 +91,7 @@ void StreamServerConnection::invalidate()
     {
         Locker locker { m_receiversLock };
         m_didInvalidateReceivers = true;
+        m_receiversGeneration.fetch_add(1, std::memory_order_relaxed);
         receivers = std::exchange(m_receivers, { });
     }
     receivers.clear();
@@ -129,6 +130,7 @@ void StreamServerConnection::stopReceivingMessages(ReceiverName receiverName, ui
 {
     auto key = std::make_pair(static_cast<uint8_t>(receiverName), destinationID);
     Locker locker { m_receiversLock };
+    m_receiversGeneration.fetch_add(1, std::memory_order_relaxed);
     bool didRemove = m_receivers.remove(key);
     // Receivers can be unregistered after invalidate(), which has already let go of them.
     ASSERT_UNUSED(didRemove, didRemove || m_didInvalidateReceivers);
@@ -172,6 +174,13 @@ StreamServerConnection::DispatchResult StreamServerConnection::dispatchStreamMes
     bool didDispatchMessage = false;
     // FIXME: Implement WTF::isValid(ReceiverName).
     uint8_t currentReceiverName = static_cast<uint8_t>(ReceiverName::Invalid);
+    unsigned currentReceiverGeneration = 0;
+    // The receiver of the same destination that dispatch last switched away from, so that a stream that alternates
+    // between two receivers of one destination doesn't look either up again. It is used only if no receiver has stopped
+    // receiving messages since it was looked up.
+    RefPtr<StreamMessageReceiver> previousReceiver;
+    uint8_t previousReceiverName = static_cast<uint8_t>(ReceiverName::Invalid);
+    unsigned previousReceiverGeneration = 0;
 
     for (size_t i = 0; i < messageLimit; ++i) {
         auto span = m_buffer.tryAcquire();
@@ -186,8 +195,11 @@ StreamServerConnection::DispatchResult StreamServerConnection::dispatchStreamMes
             return DispatchResult::HasNoMessages;
         }
         if (decoder.messageName() == MessageName::SetStreamDestinationID) {
+            auto destinationID = m_currentDestinationID;
             if (!processSetStreamDestinationID(decoder, currentReceiver))
                 return DispatchResult::HasNoMessages;
+            if (m_currentDestinationID != destinationID)
+                previousReceiver = nullptr;
             continue;
         }
         if (decoder.messageName() == MessageName::ProcessOutOfStreamMessage) {
@@ -204,13 +216,21 @@ StreamServerConnection::DispatchResult StreamServerConnection::dispatchStreamMes
             continue;
         }
         if (currentReceiverName != static_cast<uint8_t>(decoder.messageReceiverName())) {
-            currentReceiverName = static_cast<uint8_t>(decoder.messageReceiverName());
-            currentReceiver = nullptr;
+            auto receiverName = static_cast<uint8_t>(decoder.messageReceiverName());
+            if (previousReceiver && previousReceiverName == receiverName && previousReceiverGeneration == m_receiversGeneration.load(std::memory_order_relaxed)) {
+                std::swap(currentReceiver, previousReceiver);
+                std::swap(currentReceiverGeneration, previousReceiverGeneration);
+            } else {
+                previousReceiver = std::exchange(currentReceiver, nullptr);
+                previousReceiverGeneration = currentReceiverGeneration;
+            }
+            previousReceiverName = std::exchange(currentReceiverName, receiverName);
         }
         if (!currentReceiver) {
             auto key = std::make_pair(static_cast<uint8_t>(currentReceiverName), m_currentDestinationID);
             Locker locker { m_receiversLock };
             currentReceiver = m_receivers.get(key);
+            currentReceiverGeneration = m_receiversGeneration.load(std::memory_order_relaxed);
         }
         if (!currentReceiver) {
             // Valid scenario is when receiver has been removed, but there are messages for it in the buffer.
