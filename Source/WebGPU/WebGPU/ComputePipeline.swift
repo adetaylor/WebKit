@@ -30,10 +30,11 @@ import Metal
 @_implementationOnly import WebGPU_Internal.PipelineLayout
 import WebGPU_Private.WebGPUCpp
 
-// One per GPUComputePipeline, owned by the C++ ComputePipeline. The compute pass reads it directly.
+// One per GPUComputePipeline, held by its Swift callers, the passes that set it and the C++ API's shell
+// WebGPU::Metal::ComputePipeline. The compute pass reads it directly.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class ComputePipelineImpl {
+public final class ComputePipelineImpl: GPUObjectReference {
     // nil == invalid pipeline.
     private let backingComputePipelineState: (any MTLComputePipelineState)?
     // An invalid pipeline carries an invalid-state layout.
@@ -66,7 +67,7 @@ public final class ComputePipelineImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         backingComputePipelineState != nil && pipelineLayoutImpl.isValid()
     }
 
@@ -218,7 +219,7 @@ final class ComputePipelineBuilder {
     func create(_ descriptor: borrowing WebGPU.ComputePipelineDescriptor) -> WebGPU.Metal.ComputePipeline {
         var result: [WebGPU.Metal.ComputePipeline] = []
         create(ComputePipelineInput(descriptor), isAsync: false, .synchronous) { pipeline, _ in
-            result = [pipeline.shell]
+            result = [makeComputePipelineShell(pipeline)]
         }
         // A synchronous creation never defers its completion.
         precondition(result.count == 1)
@@ -240,7 +241,7 @@ final class ComputePipelineBuilder {
         )
         let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
         create(ComputePipelineInput(descriptor), isAsync: true, asynchronousIfPossible()) { pipeline, message in
-            completion.complete(pipeline.shell, message)
+            completion.complete(makeComputePipelineShell(pipeline), message)
         }
         if let wasErrorReportingPaused {
             _ = deviceImpl.pauseErrorReporting(wasErrorReportingPaused)
@@ -268,7 +269,7 @@ final class ComputePipelineBuilder {
         create(descriptor, isAsync: true, asynchronousIfPossible()) { pipeline, message in
             let resolve = {
                 // A lost device makes invalid objects without errors.
-                completion(pipeline, pipeline.impl.isValid() || deviceImpl.isDestroyed(), message)
+                completion(pipeline, pipeline.isValid() || deviceImpl.isDestroyed(), message)
             }
             guard let instance = CxxBridging.protectedInstance(device) else {
                 return resolve()
@@ -286,7 +287,7 @@ final class ComputePipelineBuilder {
         _ descriptor: ComputePipelineInput,
         isAsync: Bool,
         _ compilation: LibraryCompilation,
-        _ report: @escaping (ComputePipelineReference, String?) -> Void
+        _ report: @escaping (ComputePipelineImpl, String?) -> Void
     ) {
         let device = self.device
         let deviceImpl = self.deviceImpl
@@ -331,9 +332,7 @@ final class ComputePipelineBuilder {
                             )
                             return fail("GPUCompuePipeline could not compile")
                         }
-                        let impl = prepared.makeImpl(computePipelineState, device)
-                        deviceImpl.stagedComputePipelineImpl = impl
-                        report(ComputePipelineReference(impl, WebGPU.Metal.ComputePipeline.createWithStagedImpl(device).ptr()), nil)
+                        report(prepared.makeImpl(computePipelineState, device), nil)
                     }
                 }
             }
@@ -567,13 +566,16 @@ private final class PreparedComputePipeline {
     }
 }
 
-// ComputePipeline::createInvalid, made in Swift so that its Impl is known. An invalid pipeline still holds an invalid
-// pipeline layout, so that it always has one.
-func makeInvalidComputePipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ComputePipelineReference {
-    let impl = makeInvalidComputePipelineImpl(device, deviceImpl, makeInvalidPipelineLayoutImpl(device))
-    precondition(deviceImpl.stagedComputePipelineImpl == nil)
-    deviceImpl.stagedComputePipelineImpl = impl
-    return ComputePipelineReference(impl, WebGPU.Metal.ComputePipeline.createWithStagedImpl(device).ptr())
+// An invalid pipeline still holds an invalid pipeline layout, so that it always has one.
+func makeInvalidComputePipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ComputePipelineImpl {
+    makeInvalidComputePipelineImpl(device, deviceImpl, makeInvalidPipelineLayoutImpl(device))
+}
+
+// Wraps a pipeline for the C++ API in a new shell, through DeviceImpl.stagedComputePipelineImpl.
+private func makeComputePipelineShell(_ impl: ComputePipelineImpl) -> WebGPU.Metal.ComputePipeline {
+    precondition(impl.deviceImpl.stagedComputePipelineImpl == nil)
+    impl.deviceImpl.stagedComputePipelineImpl = impl
+    return WebGPU.Metal.ComputePipeline.createWithStagedImpl(impl.device).ptr()
 }
 
 @_spi(WebKitGPU)

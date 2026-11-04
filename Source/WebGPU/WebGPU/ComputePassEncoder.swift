@@ -74,9 +74,6 @@ public final class ComputePassEncoderImpl {
     private let parentImpl: CommandEncoderImpl
     // The device's, copied at creation: immutable.
     private let limits: EncoderLimits
-    // Zero or one element; an Array rather than an Optional FRT, to avoid the null-retain hazard. Hot paths read
-    // currentPipelineImpl, which is non-nil exactly when this is not empty.
-    private var currentPipeline: [WebGPU.Metal.ComputePipeline] = []
     private var currentPipelineImpl: ComputePipelineImpl?
     private var threadsPerThreadgroup = MTLSize(width: 0, height: 0, depth: 0)
     private var dispatchState = DispatchStateCache()
@@ -789,51 +786,30 @@ public final class ComputePassEncoderImpl {
         boundGroupIdentities[Int(groupIndex)] = identity
     }
 
-    // Returns whether it stored a new pipeline Impl, whose shell the shell then hands to storePipelineShell.
     @_expose(Cxx)
-    func setPipeline(_ pipelineImpl: ComputePipelineImpl) -> Bool {
+    @_spi(WebKitGPU)
+    public func setPipeline(_ pipelineImpl: ComputePipelineImpl) {
         if encodingHasFinished() {
             generateAValidationError(
                 "void WebGPU::Metal::ComputePassEncoder::setPipeline(const ComputePipeline &): failed as encoding has finished"
             )
-            return false
+            return
         }
         guard holdsCurrentEncoder() else {
-            return false
+            return
         }
         if !isValidToUse(pipelineImpl.isValid(), pipelineImpl.deviceImpl, with: parentImpl.deviceImpl) {
             makeInvalid("GPUComputePipeline is invalid to use with this GPUComputePassEncoder")
-            return false
+            return
         }
 
-        let isNewPipeline = currentPipelineImpl !== pipelineImpl
-        if isNewPipeline {
+        if currentPipelineImpl !== pipelineImpl {
             currentPipelineImpl = pipelineImpl
         }
         resetDynamicOffsets(pipelineImpl)
 
         assert(pipelineImpl.computePipelineState() != nil)
         threadsPerThreadgroup = pipelineImpl.threadsPerThreadgroup
-        return isNewPipeline
-    }
-
-    // setPipeline, for a Swift caller that has the pipeline's shell too.
-    @_expose(!Cxx)
-    @_spi(WebKitGPU)
-    public func setPipeline(_ pipeline: ComputePipelineReference) {
-        if setPipeline(pipeline.impl) {
-            storePipelineShell(pipeline.shell)
-        }
-    }
-
-    // The second step of a setPipeline that returned true: `pipeline` is currentPipelineImpl's shell.
-    @_expose(Cxx)
-    func storePipelineShell(_ pipeline: WebGPU.Metal.ComputePipeline) {
-        if currentPipeline.isEmpty {
-            currentPipeline.append(pipeline)
-        } else {
-            currentPipeline[0] = pipeline
-        }
     }
 
     // Zeroes the packed offsets, resized to the layout's total, and every group's maximum offset. The prior offsets

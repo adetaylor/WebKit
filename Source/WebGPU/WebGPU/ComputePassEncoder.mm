@@ -121,11 +121,7 @@ void ComputePassEncoder::setBindGroup(uint32_t groupIndex, const WebGPU::BindGro
 
 void ComputePassEncoder::setPipeline(const WebGPU::ComputePipeline& apiPipeline)
 {
-    auto& pipeline = downcast<ComputePipeline>(apiPipeline);
-    auto& impl = m_impl->impl;
-    // FIXME: rdar://138047285 const_cast is needed as a workaround.
-    if (impl.setPipeline(pipeline.swiftImpl()))
-        impl.storePipelineShell(&const_cast<ComputePipeline&>(pipeline));
+    m_impl->impl.setPipeline(downcast<ComputePipeline>(apiPipeline).swiftImpl());
 }
 
 void ComputePassEncoder::setLabel(String&& label)

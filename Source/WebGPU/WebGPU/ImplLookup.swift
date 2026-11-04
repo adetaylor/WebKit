@@ -67,13 +67,14 @@ extension BindGroupImpl {
 }
 
 @_spi(WebKitGPU)
-public final class ComputePipelineReference {
-    public let impl: ComputePipelineImpl
-    let shell: WebGPU.Metal.ComputePipeline
+public typealias ComputePipelineReference = ComputePipelineImpl
 
-    init(_ impl: ComputePipelineImpl, _ shell: WebGPU.Metal.ComputePipeline) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension ComputePipelineImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: ComputePipelineImpl {
+        self
     }
 }
 
@@ -281,11 +282,6 @@ extension CommandEncoderReference: GPUObjectReference {
 
 @_spi(WebKitGPU)
 extension ComputePassEncoderReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
-extension ComputePipelineReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }
 
