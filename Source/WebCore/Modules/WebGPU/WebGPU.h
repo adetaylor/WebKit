@@ -101,7 +101,6 @@ public:
     virtual bool isValid(const ::WebGPU::XRView&) const = 0;
 
     virtual bool isRemoteGPUProxy() const { return false; }
-    virtual bool isWebGPUIntegrationImpl() const { return false; }
 
 protected:
     WebGPUIntegration() = default;

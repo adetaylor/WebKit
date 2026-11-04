@@ -928,7 +928,6 @@
 		1CC54AFE270F96AE005BF8BE /* ProcessQualified.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CC54AFB270F92DA005BF8BE /* ProcessQualified.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1CCD81502231F83E0065FC2B /* WebCoreResourceHandleAsOperationQueueDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = E152551416FD234F003D7ADB /* WebCoreResourceHandleAsOperationQueueDelegate.mm */; };
 		1CCDF5BE1990332400BCEBAD /* SVGToOTFFontConversion.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CCDF5BC1990332400BCEBAD /* SVGToOTFFontConversion.h */; };
-		1CFAE31F2A4D86CD0004AE37 /* WebGPUCreateImpl.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CFAE2F82A4D7A240004AE37 /* WebGPUCreateImpl.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1CFAE3230A6D6A3F0032593D /* libobjc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CFAE3220A6D6A3F0032593D /* libobjc.dylib */; };
 		1CFAE3A62A4D8A130004AE37 /* WebGPUVertexState.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CFAE2972A4D79BE0004AE37 /* WebGPUVertexState.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1CFAE3A82A4D8A130004AE37 /* WebGPUSupportedFeatures.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CFAE24C2A4D79A40004AE37 /* WebGPUSupportedFeatures.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -10197,12 +10196,6 @@
 		1CFAE2B92A4D79CB0004AE37 /* WebGPUShaderModuleCompilationHint.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUShaderModuleCompilationHint.h; sourceTree = "<group>"; };
 		1CFAE2C62A4D79D00004AE37 /* WebGPUColorTargetState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUColorTargetState.h; sourceTree = "<group>"; };
 		1CFAE2C92A4D79D10004AE37 /* WebGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPU.h; sourceTree = "<group>"; };
-		1CFAE2D52A4D7A190004AE37 /* WebGPUCompositorIntegrationImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUCompositorIntegrationImpl.h; sourceTree = "<group>"; };
-		1CFAE2DB2A4D7A1B0004AE37 /* WebGPUImpl.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebGPUImpl.cpp; sourceTree = "<group>"; };
-		1CFAE2DD2A4D7A1C0004AE37 /* WebGPUCompositorIntegrationImpl.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebGPUCompositorIntegrationImpl.cpp; sourceTree = "<group>"; };
-		1CFAE2EC2A4D7A200004AE37 /* WebGPUImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUImpl.h; sourceTree = "<group>"; };
-		1CFAE2F82A4D7A240004AE37 /* WebGPUCreateImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUCreateImpl.h; sourceTree = "<group>"; };
-		1CFAE2FA2A4D7A240004AE37 /* WebGPUCreateImpl.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebGPUCreateImpl.cpp; sourceTree = "<group>"; };
 		1CFAE3220A6D6A3F0032593D /* libobjc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libobjc.dylib; path = /usr/lib/libobjc.dylib; sourceTree = "<absolute>"; };
 		1D0026A22374D62300CA6CDF /* JSPictureInPictureWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSPictureInPictureWindow.h; sourceTree = "<group>"; };
 		1D0026A32374D62400CA6CDF /* JSPictureInPictureWindow.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSPictureInPictureWindow.cpp; sourceTree = "<group>"; };
@@ -26272,7 +26265,6 @@
 		1C28955D272E643900B3E2B4 /* WebGPU */ = {
 			isa = PBXGroup;
 			children = (
-				1CFAE10A2A4D78BC0004AE37 /* Implementation */,
 				1C66A72B2A4F78250086DB6F /* GPU.cpp */,
 				1C66A7842A4F78440086DB6F /* GPU.h */,
 				1C66A78D2A4F78470086DB6F /* GPU.idl */,
@@ -26950,19 +26942,6 @@
 				1CDDA49D29E123C100DC5FB1 /* TextDetector.idl */,
 			);
 			path = ShapeDetection;
-			sourceTree = "<group>";
-		};
-		1CFAE10A2A4D78BC0004AE37 /* Implementation */ = {
-			isa = PBXGroup;
-			children = (
-				1CFAE2DD2A4D7A1C0004AE37 /* WebGPUCompositorIntegrationImpl.cpp */,
-				1CFAE2D52A4D7A190004AE37 /* WebGPUCompositorIntegrationImpl.h */,
-				1CFAE2FA2A4D7A240004AE37 /* WebGPUCreateImpl.cpp */,
-				1CFAE2F82A4D7A240004AE37 /* WebGPUCreateImpl.h */,
-				1CFAE2DB2A4D7A1B0004AE37 /* WebGPUImpl.cpp */,
-				1CFAE2EC2A4D7A200004AE37 /* WebGPUImpl.h */,
-			);
-			path = Implementation;
 			sourceTree = "<group>";
 		};
 		1D00269A2374B9F800CA6CDF /* PictureInPicture */ = {
@@ -50943,7 +50922,6 @@
 				1CFAE3D42A4D8A140004AE37 /* WebGPUCompositorIntegration.h in Headers */,
 				1CFAE3E52A4D8A140004AE37 /* WebGPUComputePipelineDescriptor.h in Headers */,
 				D06CAE9DF46877FAB7C3BEFD /* WebGPUCppAPI.h in Headers */,
-				1CFAE31F2A4D86CD0004AE37 /* WebGPUCreateImpl.h in Headers */,
 				1CFAE3AD2A4D8A130004AE37 /* WebGPUDepthStencilState.h in Headers */,
 				1CFAE3F12A4D8A140004AE37 /* WebGPUDevice.h in Headers */,
 				1CFAE3FA2A4D8A140004AE37 /* WebGPUDeviceDescriptor.h in Headers */,
