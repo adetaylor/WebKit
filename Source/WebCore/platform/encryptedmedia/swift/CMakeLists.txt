@@ -2,6 +2,7 @@
 # WebCore.framework. It is pure Swift, with no C++ in its API. It is in a directory of its own so that its .swiftmodule
 # doesn't sit beside WebCore's, and WebKit's Swift can import it without seeing WebCore's own Swift module.
 add_library(WebCoreEME STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/EMEJSON.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/WTFBase64.swift
 )
 set_target_properties(WebCoreEME PROPERTIES Swift_MODULE_NAME WebCoreEME)

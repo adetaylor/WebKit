@@ -130,49 +130,72 @@ public enum WTFBase64 {
 
     /// WTF::base64Encode(), in ASCII.
     public static func encode(_ input: Span<UInt8>, options: EncodeOptions = []) -> ContiguousArray<UInt8> {
+        var output: ContiguousArray<UInt8> = []
+        encode(input, options: options, appendingTo: &output)
+        return output
+    }
+
+    /// WTF::base64Encode(), in ASCII, appended to output.
+    public static func encode(_ input: Span<UInt8>, options: EncodeOptions = [], appendingTo output: inout ContiguousArray<UInt8>) {
         guard UInt(input.count) <= UInt(maximumEncoderInputSize) else {
-            return []
+            return
         }
 
         let url = options.contains(.url)
         let padding = !options.contains(.omitPadding)
-        var output: ContiguousArray<UInt8> = []
         let (capacity, capacityOverflow) = (input.count / 3 + 1).multipliedReportingOverflow(by: 4)
-        if !capacityOverflow {
-            output.reserveCapacity(capacity)
+        // Grows as appending would, so that appending to a message several times stays linear.
+        if !capacityOverflow && output.capacity - output.count < capacity {
+            output.reserveCapacity(Swift.max(output.count + capacity, 2 * output.capacity))
         }
+        let alphabet = url ? urlAlphabet : standardAlphabet
 
-        var index = 0
-        while input.count - index >= 3 {
-            let group = UInt32(input[index]) << 16 | UInt32(input[index + 1]) << 8 | UInt32(input[index + 2])
-            output.append(character(group >> 18, url: url))
-            output.append(character(group >> 12, url: url))
-            output.append(character(group >> 6, url: url))
-            output.append(character(group, url: url))
-            index += 3
+        let groupCount = input.count / 3
+        if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+            // Whole groups are written in place, which is cheaper than appending each character.
+            var position = output.count
+            output.append(contentsOf: repeatElement(0, count: groupCount * 4))
+            var characters = output.mutableSpan
+            let table = alphabet.span
+            for index in stride(from: 0, to: groupCount * 3, by: 3) {
+                let group = UInt32(input[index]) << 16 | UInt32(input[index + 1]) << 8 | UInt32(input[index + 2])
+                characters[position] = table[Int(group >> 18 & 0x3F)]
+                characters[position + 1] = table[Int(group >> 12 & 0x3F)]
+                characters[position + 2] = table[Int(group >> 6 & 0x3F)]
+                characters[position + 3] = table[Int(group & 0x3F)]
+                position += 4
+            }
+        } else {
+            for index in stride(from: 0, to: groupCount * 3, by: 3) {
+                let group = UInt32(input[index]) << 16 | UInt32(input[index + 1]) << 8 | UInt32(input[index + 2])
+                output.append(alphabet[Int(group >> 18 & 0x3F)])
+                output.append(alphabet[Int(group >> 12 & 0x3F)])
+                output.append(alphabet[Int(group >> 6 & 0x3F)])
+                output.append(alphabet[Int(group & 0x3F)])
+            }
         }
+        let index = groupCount * 3
 
         switch input.count - index {
         case 1:
             let group = UInt32(input[index]) << 16
-            output.append(character(group >> 18, url: url))
-            output.append(character(group >> 12, url: url))
+            output.append(alphabet[Int(group >> 18 & 0x3F)])
+            output.append(alphabet[Int(group >> 12 & 0x3F)])
             if padding {
                 output.append(equalsSign)
                 output.append(equalsSign)
             }
         case 2:
             let group = UInt32(input[index]) << 16 | UInt32(input[index + 1]) << 8
-            output.append(character(group >> 18, url: url))
-            output.append(character(group >> 12, url: url))
-            output.append(character(group >> 6, url: url))
+            output.append(alphabet[Int(group >> 18 & 0x3F)])
+            output.append(alphabet[Int(group >> 12 & 0x3F)])
+            output.append(alphabet[Int(group >> 6 & 0x3F)])
             if padding {
                 output.append(equalsSign)
             }
         default:
             break
         }
-        return output
     }
 
     /// WTF::base64URLEncode(), which omits the padding.
@@ -195,7 +218,7 @@ public enum WTFBase64 {
             return nil
         }
 
-        let url = options.contains(.url)
+        let sextets = options.contains(.url) ? urlSextets : standardSextets
         let validatePadding = options.contains(.validatePadding)
         let ignoreWhitespace = options.contains(.ignoreWhitespace)
 
@@ -213,7 +236,8 @@ public enum WTFBase64 {
                 }
                 continue
             }
-            guard let value = sextet(codeUnit, url: url) else {
+            let value = codeUnit < 0x80 ? UInt32(sextets[Int(codeUnit)]) : invalidSextet
+            guard value != invalidSextet else {
                 if !ignoreWhitespace || !isASCIIWhitespace(codeUnit) {
                     return nil
                 }
@@ -252,41 +276,20 @@ public enum WTFBase64 {
         return output
     }
 
-    private static func sextet(_ codeUnit: UInt32, url: Bool) -> UInt32? {
-        switch codeUnit {
-        case 0x41...0x5A:
-            codeUnit - 0x41
-        case 0x61...0x7A:
-            codeUnit - 0x61 + 26
-        case 0x30...0x39:
-            codeUnit - 0x30 + 52
-        case 0x2B:
-            url ? nil : 62
-        case 0x2F:
-            url ? nil : 63
-        case 0x2D:
-            url ? 62 : nil
-        case 0x5F:
-            url ? 63 : nil
-        default:
-            nil
-        }
-    }
+    private static let standardAlphabet = ContiguousArray("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".utf8)
+    private static let urlAlphabet = ContiguousArray("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".utf8)
 
-    private static func character(_ group: UInt32, url: Bool) -> UInt8 {
-        let value = UInt8(truncatingIfNeeded: group & 0x3F)
-        return switch value {
-        case 0..<26:
-            value + 0x41
-        case 26..<52:
-            value - 26 + 0x61
-        case 52..<62:
-            value - 52 + 0x30
-        case 62:
-            url ? 0x2D : 0x2B
-        default:
-            url ? 0x5F : 0x2F
+    // Each ASCII character's sextet in an alphabet, or invalidSextet.
+    private static let invalidSextet: UInt32 = 0xFF
+    private static let standardSextets = sextets(of: standardAlphabet)
+    private static let urlSextets = sextets(of: urlAlphabet)
+
+    private static func sextets(of alphabet: ContiguousArray<UInt8>) -> ContiguousArray<UInt8> {
+        var sextets = ContiguousArray<UInt8>(repeating: UInt8(invalidSextet), count: 0x80)
+        for (sextet, character) in alphabet.enumerated() {
+            sextets[Int(character)] = UInt8(sextet)
         }
+        return sextets
     }
 
     // WTF::isASCIIWhitespace: no '\v'.
