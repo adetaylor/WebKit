@@ -319,6 +319,7 @@ set(WebKit_MESSAGES_IN_FILES
     Shared/IPCSwiftWorkQueueTester
     Shared/IPCTester
     Shared/IPCTesterReceiver
+    Shared/IPCWorkQueueTester
 
     Shared/Notifications/NotificationManagerMessageHandler
 

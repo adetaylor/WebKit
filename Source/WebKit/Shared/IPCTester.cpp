@@ -43,6 +43,8 @@
 #include "IPCSwiftWorkQueueTesterSupport.h"
 #endif
 #include "IPCUtilities.h"
+#include "IPCWorkQueueTester.h"
+#include "IPCWorkQueueTesterMessages.h"
 #include "Logging.h"
 #include "StreamClientConnection.h"
 #include "TestParameter.h"
@@ -951,6 +953,109 @@ void IPCTester::swiftWorkQueueTesterCount(CompletionHandler<void(uint32_t)>&& co
 {
     swiftWorkQueueTesterQueue().dispatchSync([] { });
     completionHandler(liveSwiftWorkQueueTesters.load());
+}
+
+// Times what a connection's receive queue does on the work queue for each of messageCount messages of one shape, decoding
+// the message, dispatching it and running the handler, for IPCWorkQueueTester's C++ handlers or IPCSwiftWorkQueueTester's
+// Swift ones. The messages are encoded once, and their decoders made, beforehand. The connection is invalidated before
+// dispatch, so the C++ and Swift replies are both dropped where they would be sent. Kinds 0-3 are an empty message, four
+// uint32_t, a 16-character String and an async uint64_t reply, which Swift takes as C++ types; kinds 4-8 are an empty
+// message, four uint32_t, a 16-character String, a 16-element Vector<uint32_t> and an async uint64_t reply, which Swift
+// takes as Swift types. Replies with 0 on failure.
+void IPCTester::benchmarkWorkQueueDispatch(uint32_t kind, bool swift, uint32_t messageCount, CompletionHandler<void(uint64_t)>&& completionHandler)
+{
+    auto connectionIdentifiers = IPC::Connection::createConnectionIdentifierPair();
+    if (!connectionIdentifiers || kind > 8) {
+        completionHandler(0);
+        return;
+    }
+    Ref connection = IPC::Connection::createServerConnection(WTF::move(connectionIdentifiers->server));
+    connection->invalidate();
+
+    RefPtr<IPC::WorkQueueMessageReceiverBase> receiver;
+    if (swift)
+        receiver = IPCSwiftWorkQueueTester::init().getMessageReceiver().ptr();
+    else
+        receiver = IPCWorkQueueTester::create().ptr();
+
+    constexpr uint64_t destinationID = 1;
+    auto replyID = IPC::Connection::AsyncReplyID::generate();
+    auto encoder = makeUniqueRef<IPC::Encoder>(IPC::MessageName::IPCWorkQueueTester_BenchEmpty, destinationID);
+    auto encode = [&]<typename Message>(Message&& message) {
+        encoder = makeUniqueRef<IPC::Encoder>(Message::name(), destinationID);
+        if constexpr (IPC::messageIsAsyncWithReply(Message::name()))
+            encoder.get() << replyID;
+        message.encode(encoder.get());
+    };
+    String text = "0123456789abcdef"_s;
+    Vector<uint32_t> values;
+    values.fill(7, 16);
+    enum class Shape : uint8_t { Empty, FourValues, String, Vector, Reply };
+    static constexpr std::array<Shape, 9> shapes { Shape::Empty, Shape::FourValues, Shape::String, Shape::Reply, Shape::Empty, Shape::FourValues, Shape::String, Shape::Vector, Shape::Reply };
+    bool swiftTypes = kind >= 4;
+    switch (shapes[kind]) {
+    case Shape::Empty:
+        if (!swift)
+            encode(Messages::IPCWorkQueueTester::BenchEmpty());
+        else if (swiftTypes)
+            encode(Messages::IPCSwiftWorkQueueTester::BenchEmptySwift());
+        else
+            encode(Messages::IPCSwiftWorkQueueTester::BenchEmpty());
+        break;
+    case Shape::FourValues:
+        if (!swift)
+            encode(Messages::IPCWorkQueueTester::BenchFourValues(0, 1, 2, 3));
+        else if (swiftTypes)
+            encode(Messages::IPCSwiftWorkQueueTester::BenchFourValuesSwift(0, 1, 2, 3));
+        else
+            encode(Messages::IPCSwiftWorkQueueTester::BenchFourValues(0, 1, 2, 3));
+        break;
+    case Shape::String:
+        if (!swift)
+            encode(Messages::IPCWorkQueueTester::BenchString(text));
+        else if (swiftTypes)
+            encode(Messages::IPCSwiftWorkQueueTester::BenchStringSwift(text));
+        else
+            encode(Messages::IPCSwiftWorkQueueTester::BenchString(text));
+        break;
+    case Shape::Vector:
+        if (!swift)
+            encode(Messages::IPCWorkQueueTester::BenchVector(values));
+        else
+            encode(Messages::IPCSwiftWorkQueueTester::BenchVectorSwift(values));
+        break;
+    case Shape::Reply:
+        if (!swift)
+            encode(Messages::IPCWorkQueueTester::BenchReply(7));
+        else if (swiftTypes)
+            encode(Messages::IPCSwiftWorkQueueTester::BenchReplySwift(7));
+        else
+            encode(Messages::IPCSwiftWorkQueueTester::BenchReply(7));
+        break;
+    }
+
+    constexpr uint32_t warmUpCount = 1000;
+    Vector<UniqueRef<IPC::Decoder>> decoders;
+    decoders.reserveInitialCapacity(warmUpCount + messageCount);
+    for (uint32_t index = 0; index < warmUpCount + messageCount; ++index) {
+        auto decoder = IPC::Decoder::create(encoder->span(), [](auto) { }, { });
+        if (!decoder) {
+            completionHandler(0);
+            return;
+        }
+        decoders.append(makeUniqueRefFromNonNullUniquePtr(WTF::move(decoder)));
+    }
+
+    uint64_t nanoseconds = 0;
+    swiftWorkQueueTesterQueue().dispatchSync([&] {
+        for (uint32_t index = 0; index < warmUpCount; ++index)
+            connection->dispatchMessageReceiverMessage(*receiver, WTF::move(decoders[index]));
+        auto start = MonotonicTime::now();
+        for (uint32_t index = warmUpCount; index < warmUpCount + messageCount; ++index)
+            connection->dispatchMessageReceiverMessage(*receiver, WTF::move(decoders[index]));
+        nanoseconds = static_cast<uint64_t>((MonotonicTime::now() - start).nanoseconds());
+    });
+    completionHandler(nanoseconds);
 }
 
 #endif
