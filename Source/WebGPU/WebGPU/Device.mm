@@ -188,7 +188,7 @@ Device::Device(id<MTLDevice> device, id<MTLCommandQueue> defaultQueue, const Har
     : m_impl(makeDeviceImplBox(device, Queue::create(defaultQueue, adapter, *this), capabilities, adapter))
 {
     Ref xrSubImage = XRSubImage::create(*this);
-    m_impl->impl.installXRSubImage(xrSubImage.ptr());
+    m_impl->impl.installXRSubImage(xrSubImage.ptr(), xrSubImage->swiftImpl());
 
 #if PLATFORM(MAC)
     id<NSObject> deviceObserver = nil;

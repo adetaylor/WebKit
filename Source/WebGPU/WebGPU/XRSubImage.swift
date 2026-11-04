@@ -25,6 +25,7 @@ private import CxxStdlib
 import Metal
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Texture
+@_implementationOnly import WebGPU_Internal.XRProjectionLayer
 @_implementationOnly import WebGPU_Internal.XRSubImage
 import WebGPU_Private.WebGPUCpp
 
@@ -83,6 +84,16 @@ final class XRSubImageImpl {
         depthTextures[textureIndex] = makeXRTexture(depthTexture, targetDepthStencilFormat, targetDepthStencilFormat, device, deviceImpl)
     }
 
+    @_expose(!Cxx)
+    var currentColorTextureReference: TextureReference? {
+        colorTextures[currentTextureIndex].map { TextureReference($0.impl, $0.shell) }
+    }
+
+    @_expose(!Cxx)
+    var currentDepthTextureReference: TextureReference? {
+        depthTextures[currentTextureIndex].map { TextureReference($0.impl, $0.shell) }
+    }
+
     @_expose(Cxx)
     func hasCurrentColorTexture() -> Bool {
         colorTextures[currentTextureIndex] != nil
@@ -113,6 +124,62 @@ final class XRSubImageImpl {
 @_expose(Cxx)
 func makeXRSubImageImpl() -> XRSubImageImpl {
     XRSubImageImpl()
+}
+
+// https://immersive-web.github.io/WebXR-WebGPU-Binding/#gpuxrbinding: a device's binding, which makes its projection
+// layers and gives its view's sub-image. It has no state of its own.
+@_spi(WebKitGPU)
+public final class XRBindingReference {
+    private let device: DeviceReference
+
+    init(_ device: DeviceReference) {
+        self.device = device
+    }
+
+    // https://immersive-web.github.io/WebXR-WebGPU-Binding/#dom-xrgpubinding-createprojectionlayer. `textureUsage` is the
+    // bits of OptionSet<WebGPU::TextureUsage>.
+    public func createProjectionLayer(
+        colorFormat: WebGPU.TextureFormat,
+        depthStencilFormat: WebGPU.TextureFormat?,
+        textureUsage: UInt8,
+        scaleFactor: Double
+    ) -> XRProjectionLayerReference {
+        var parameters = WebGPU.Metal.XRProjectionLayerParameters()
+        parameters.colorFormat = colorFormat
+        parameters.hasDepthStencilFormat = depthStencilFormat != nil
+        parameters.depthStencilFormat = depthStencilFormat ?? .Bgra8unorm
+        parameters.textureUsage = textureUsage
+        parameters.scaleFactor = scaleFactor
+        return XRProjectionLayerReference(makeXRProjectionLayerImpl(parameters, device.shell, device.impl))
+    }
+
+    // https://immersive-web.github.io/WebXR-WebGPU-Binding/#dom-xrgpubinding-getviewsubimage: the device's sub-image,
+    // brought up to the layer's frame. nil for a device that has none, which is an invalid one.
+    public func getViewSubImage(_ projectionLayer: XRProjectionLayerReference) -> XRSubImageReference? {
+        guard let subImage = device.impl.xrSubImageImpl else {
+            return nil
+        }
+        subImage.update(device.shell, device.impl, projectionLayer.impl)
+        return XRSubImageReference(subImage)
+    }
+}
+
+// https://immersive-web.github.io/WebXR-WebGPU-Binding/#gpuxrsubimage
+@_spi(WebKitGPU)
+public final class XRSubImageReference {
+    private let impl: XRSubImageImpl
+
+    init(_ impl: XRSubImageImpl) {
+        self.impl = impl
+    }
+
+    public var colorTexture: TextureReference? {
+        impl.currentColorTextureReference
+    }
+
+    public var depthStencilTexture: TextureReference? {
+        impl.currentDepthTextureReference
+    }
 }
 
 // An XR layer texture as a render attachment texture that allows views in `viewFormat`.

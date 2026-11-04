@@ -64,6 +64,11 @@ XRSubImage::XRSubImage(std::unique_ptr<XRSubImageImplBox>&& impl, Device& device
 
 XRSubImage::~XRSubImage() = default;
 
+WebGPUSwift::XRSubImageImpl& XRSubImage::swiftImpl() const
+{
+    return m_impl->impl;
+}
+
 void XRSubImage::setLabel(String&&)
 {
 }

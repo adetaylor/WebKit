@@ -37,6 +37,12 @@
 #import <wtf/WeakPtr.h>
 
 
+#if !defined(__swift__)
+namespace WebGPUSwift {
+class XRSubImageImpl;
+}
+#endif
+
 namespace WebGPU::Metal {
 
 class CommandEncoder;
@@ -61,6 +67,9 @@ public:
     Texture* depthTexture();
     RefPtr<WebGPU::Texture> colorTexture() final;
     RefPtr<WebGPU::Texture> depthStencilTexture() final;
+#if !defined(__swift__)
+    WebGPUSwift::XRSubImageImpl& swiftImpl() const LIFETIME_BOUND;
+#endif
 
 private:
     XRSubImage(std::unique_ptr<XRSubImageImplBox>&&, Device&);

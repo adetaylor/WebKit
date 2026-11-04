@@ -58,17 +58,11 @@ struct XRProjectionLayerParameters {
     double scaleFactor { 1 };
 };
 
-// A frame's rasterization samples, borrowed for the duration of startFrame: a nonescapable view, which Swift hands back
-// to makeXRRasterizationRateMaps without reading it, where a std::span would be unsafe to pass.
-struct XRRasterizationSamples {
-    std::span<const float> samples;
-} SWIFT_VIEW;
-
 // The SPI and soft-linked CompositorServices calls XRProjectionLayerImpl::startFrame makes. They return nil
 // outside visionOS device builds with the internal SDK, where XRProjectionLayer::startFrame never reaches Swift.
 id<MTLTexture> makeXRSharedTexture(id<MTLDevice>, mach_port_t);
 id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice>, mach_port_t);
-NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned screenWidth, unsigned screenHeight, const XRRasterizationSamples& horizontalSamplesLeft, const XRRasterizationSamples& horizontalSamplesRight, const XRRasterizationSamples& verticalSamples);
+NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned screenWidth, unsigned screenHeight, const WebGPU::XRRasterizationSamples& horizontalSamplesLeft, const WebGPU::XRRasterizationSamples& horizontalSamplesRight, const WebGPU::XRRasterizationSamples& verticalSamples);
 
 class XRProjectionLayer final : public WebGPU::XRProjectionLayer {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(XRProjectionLayer);

@@ -81,9 +81,9 @@ final class XRProjectionLayerImpl {
         _ reusableTextureIndex: UInt64,
         _ screenWidth: UInt32,
         _ screenHeight: UInt32,
-        _ horizontalSamplesLeft: borrowing WebGPU.Metal.XRRasterizationSamples,
-        _ horizontalSamplesRight: borrowing WebGPU.Metal.XRRasterizationSamples,
-        _ verticalSamples: borrowing WebGPU.Metal.XRRasterizationSamples
+        _ horizontalSamplesLeft: borrowing WebGPU.XRRasterizationSamples,
+        _ horizontalSamplesRight: borrowing WebGPU.XRRasterizationSamples,
+        _ verticalSamples: borrowing WebGPU.XRRasterizationSamples
     ) {
         let device = deviceImpl.device()
         self.reusableTextureIndex = reusableTextureIndex
@@ -173,6 +173,44 @@ final class XRProjectionLayerImpl {
         }
 
         queueImpl.commitMTLCommandBuffer(queue, commandBuffer)
+    }
+}
+
+// https://immersive-web.github.io/WebXR-WebGPU-Binding/#xrprojectionlayer
+@_spi(WebKitGPU)
+public final class XRProjectionLayerReference {
+    let impl: XRProjectionLayerImpl
+
+    init(_ impl: XRProjectionLayerImpl) {
+        self.impl = impl
+    }
+
+    // The frame's compositor buffers, as send rights, MACH_PORT_NULL for one the compositor didn't send. Only visionOS
+    // device builds with the internal SDK have compositor textures.
+    public func startFrame(
+        _ frameIndex: UInt64,
+        colorBuffer: UInt32,
+        depthBuffer: UInt32,
+        completionSyncEvent: UInt32,
+        reusableTextureIndex: UInt64,
+        screenWidth: UInt32,
+        screenHeight: UInt32,
+        horizontalSamplesLeft: borrowing WebGPU.XRRasterizationSamples,
+        horizontalSamplesRight: borrowing WebGPU.XRRasterizationSamples,
+        verticalSamples: borrowing WebGPU.XRRasterizationSamples
+    ) {
+        impl.startFrame(
+            frameIndex,
+            colorBuffer,
+            depthBuffer,
+            completionSyncEvent,
+            reusableTextureIndex,
+            screenWidth,
+            screenHeight,
+            horizontalSamplesLeft,
+            horizontalSamplesRight,
+            verticalSamples
+        )
     }
 }
 

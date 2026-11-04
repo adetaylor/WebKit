@@ -105,7 +105,7 @@ id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice> device, mach_port_t machPort)
     return [(id<MTLDeviceSPI>)device newSharedEventWithMachPort:machPort];
 }
 
-NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice> device, unsigned screenWidth, unsigned screenHeight, const XRRasterizationSamples& horizontalSamplesLeftView, const XRRasterizationSamples& horizontalSamplesRightView, const XRRasterizationSamples& verticalSamplesView)
+NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice> device, unsigned screenWidth, unsigned screenHeight, const WebGPU::XRRasterizationSamples& horizontalSamplesLeftView, const WebGPU::XRRasterizationSamples& horizontalSamplesRightView, const WebGPU::XRRasterizationSamples& verticalSamplesView)
 {
     auto horizontalSamplesLeft = horizontalSamplesLeftView.samples;
     auto horizontalSamplesRight = horizontalSamplesRightView.samples;
@@ -146,7 +146,7 @@ id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice>, mach_port_t)
     return nil;
 }
 
-NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned, unsigned, const XRRasterizationSamples&, const XRRasterizationSamples&, const XRRasterizationSamples&)
+NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned, unsigned, const WebGPU::XRRasterizationSamples&, const WebGPU::XRRasterizationSamples&, const WebGPU::XRRasterizationSamples&)
 {
     return nil;
 }
@@ -206,7 +206,7 @@ bool XRProjectionLayer::isValid() const
 void XRProjectionLayer::startFrame(size_t frameIndex, WTF::MachSendRight&& colorBuffer, WTF::MachSendRight&& depthBuffer, WTF::MachSendRight&& completionSyncEvent, size_t reusableTextureIndex, unsigned screenWidth, unsigned screenHeight, Vector<float>&& horizontalSamplesLeft, Vector<float>&& horizontalSamplesRight, Vector<float>&& verticalSamples)
 {
 #if USE(APPLE_INTERNAL_SDK) && PLATFORM(VISION) && !PLATFORM(IOS_FAMILY_SIMULATOR)
-    m_impl->impl.startFrame(static_cast<uint64_t>(frameIndex), colorBuffer.sendRight(), depthBuffer.sendRight(), completionSyncEvent.sendRight(), static_cast<uint64_t>(reusableTextureIndex), screenWidth, screenHeight, XRRasterizationSamples { horizontalSamplesLeft.span() }, XRRasterizationSamples { horizontalSamplesRight.span() }, XRRasterizationSamples { verticalSamples.span() });
+    m_impl->impl.startFrame(static_cast<uint64_t>(frameIndex), colorBuffer.sendRight(), depthBuffer.sendRight(), completionSyncEvent.sendRight(), static_cast<uint64_t>(reusableTextureIndex), screenWidth, screenHeight, WebGPU::XRRasterizationSamples { horizontalSamplesLeft.span() }, WebGPU::XRRasterizationSamples { horizontalSamplesRight.span() }, WebGPU::XRRasterizationSamples { verticalSamples.span() });
 #else
     UNUSED_PARAM(frameIndex);
     UNUSED_PARAM(colorBuffer);

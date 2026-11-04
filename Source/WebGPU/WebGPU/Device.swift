@@ -156,6 +156,8 @@ final class DeviceImpl {
     // process never changes and a gone Instance never comes back, so without one nothing is ever attributed.
     private let attributesResources: Bool
     private var xrSubImages: [WebGPU.Metal.XRSubImage] = []
+    @_expose(!Cxx)
+    private(set) var xrSubImageImpl: XRSubImageImpl?
     // The debug encoder timestamps: each command buffer's counter sample buffers until its last encoder ends, then the
     // buffers they were resolved into until it completes. The command buffers are weak keys.
     private let sampleCounterBuffers = NSMapTable<AnyObject, NSMutableArray>.weakToStrongObjects()
@@ -893,8 +895,9 @@ final class DeviceImpl {
     }
 
     @_expose(Cxx)
-    func installXRSubImage(_ subImage: WebGPU.Metal.XRSubImage) {
+    func installXRSubImage(_ subImage: WebGPU.Metal.XRSubImage, _ subImageImpl: XRSubImageImpl) {
         xrSubImages = [subImage]
+        xrSubImageImpl = subImageImpl
     }
 
     @_expose(Cxx)
@@ -950,6 +953,21 @@ public struct GPUError {
 }
 
 // A device with its shell, as Swift holds one, with the operations of Device's shell that create nothing.
+// A device that isn't kept alive.
+@_spi(WebKitGPU)
+public final class DeviceWeakReference {
+    private weak var impl: DeviceImpl?
+
+    init(_ impl: DeviceImpl) {
+        self.impl = impl
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-destroy, if the device is still alive.
+    public func destroy() {
+        impl?.destroy()
+    }
+}
+
 @_spi(WebKitGPU)
 public final class DeviceReference {
     let impl: DeviceImpl
@@ -962,6 +980,16 @@ public final class DeviceReference {
 
     public func destroy() {
         impl.destroy()
+    }
+
+    // https://immersive-web.github.io/WebXR-WebGPU-Binding/#gpuxrbinding
+    public func createXRBinding() -> XRBindingReference {
+        XRBindingReference(self)
+    }
+
+    // The device, without keeping it alive: work in flight can keep it alive after Swift lets go of it.
+    public var weakReference: DeviceWeakReference {
+        DeviceWeakReference(impl)
     }
 
     public var features: [WebGPU.FeatureName] {
