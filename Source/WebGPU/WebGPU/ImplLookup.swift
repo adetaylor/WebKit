@@ -287,11 +287,6 @@ extension QueueReference: GPUObjectReference {
 }
 
 @_spi(WebKitGPU)
-extension RenderBundleEncoderReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
 extension RenderPassEncoderReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }

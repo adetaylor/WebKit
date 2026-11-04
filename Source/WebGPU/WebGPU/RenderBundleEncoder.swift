@@ -43,48 +43,43 @@ private let invalidBindingIndex = UInt32(Int32.max)
 
 /// One recorded command, replayed through the entry point that recorded it.
 ///
-/// Each holds `owner`, a strong reference to the encoder that recorded it, and the objects' shells with their Impls.
+/// Each holds the Impls of the objects it names.
 enum RecordedCommand {
     case draw(
-        owner: WebGPU.Metal.RenderBundleEncoder,
         vertexCount: UInt32,
         instanceCount: UInt32,
         firstVertex: UInt32,
         firstInstance: UInt32
     )
     case drawIndexed(
-        owner: WebGPU.Metal.RenderBundleEncoder,
         indexCount: UInt32,
         instanceCount: UInt32,
         firstIndex: UInt32,
         baseVertex: Int32,
         firstInstance: UInt32
     )
-    case drawIndirect(owner: WebGPU.Metal.RenderBundleEncoder, bufferImpl: BufferImpl, offset: UInt64)
-    case drawIndexedIndirect(owner: WebGPU.Metal.RenderBundleEncoder, bufferImpl: BufferImpl, offset: UInt64)
-    case setPipeline(owner: WebGPU.Metal.RenderBundleEncoder, pipelineImpl: RenderPipelineImpl)
+    case drawIndirect(bufferImpl: BufferImpl, offset: UInt64)
+    case drawIndexedIndirect(bufferImpl: BufferImpl, offset: UInt64)
+    case setPipeline(pipelineImpl: RenderPipelineImpl)
     case setIndexBuffer(
-        owner: WebGPU.Metal.RenderBundleEncoder,
         bufferImpl: BufferImpl,
         format: WebGPU.IndexFormat,
         offset: UInt64,
         size: UInt64?
     )
     case setVertexBuffer(
-        owner: WebGPU.Metal.RenderBundleEncoder,
         slot: UInt32,
         bufferImpl: BufferImpl,
         offset: UInt64,
         size: UInt64?
     )
-    case clearVertexBuffer(owner: WebGPU.Metal.RenderBundleEncoder, slot: UInt32, offset: UInt64, size: UInt64?)
+    case clearVertexBuffer(slot: UInt32, offset: UInt64, size: UInt64?)
     case setBindGroup(
-        owner: WebGPU.Metal.RenderBundleEncoder,
         group: UInt32,
         bindGroupImpl: BindGroupImpl,
         dynamicOffsets: [UInt32]?
     )
-    case clearBindGroup(owner: WebGPU.Metal.RenderBundleEncoder, group: UInt32, dynamicOffsets: [UInt32]?)
+    case clearBindGroup(group: UInt32, dynamicOffsets: [UInt32]?)
 }
 
 /// One resource the bundle uses, keyed by the MTLResource.
@@ -279,7 +274,8 @@ func copyDynamicOffsets(_ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsV
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
-final class RenderBundleEncoderImpl {
+@_spi(WebKitGPU)
+public final class RenderBundleEncoderImpl: GPUObjectReference {
     let deviceImpl: DeviceImpl
     private var limits: EncoderLimits {
         deviceImpl.limits
@@ -378,7 +374,7 @@ final class RenderBundleEncoderImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         icbDescriptor != nil
     }
 
@@ -442,7 +438,6 @@ final class RenderBundleEncoderImpl {
 
     // Reports a failed compile as an out-of-memory error.
     private func icbRenderPipelineState(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ pipelineImpl: RenderPipelineImpl
     ) -> (any MTLRenderPipelineState)? {
         let state = pipelineImpl.icbRenderPipelineState(deviceImpl.device())
@@ -461,7 +456,6 @@ final class RenderBundleEncoderImpl {
     }
 
     private func executePreDrawCommands(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         needsValidationLayerWorkaround: Bool,
         passWasSplit: Bool,
         firstInstance: UInt32 = 0,
@@ -510,7 +504,7 @@ final class RenderBundleEncoderImpl {
         // The recomputed pipeline shares this one's layout and minimum buffer sizes, so the checks below read this one.
         if needsValidationLayerWorkaround {
             let lastStrideAsStride = pipelineImpl.lastStrideAsStride()
-            currentPipelineState = icbRenderPipelineState(shell, lastStrideAsStride)
+            currentPipelineState = icbRenderPipelineState(lastStrideAsStride)
         }
 
         if currentPipelineState == nil {
@@ -942,18 +936,18 @@ final class RenderBundleEncoderImpl {
         return storeIndexDataForValidation(indexCount, instanceCount, firstIndex, baseVertex, firstInstance, indexBufferOffsetInBytes)
     }
 
-    private func finalizeRenderCommand(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ commandTypes: MTLIndirectCommandType) {
+    private func finalizeRenderCommand(_ commandTypes: MTLIndirectCommandType) {
         icbDescriptor?.commandTypes.formUnion(commandTypes)
         currentCommandIndex &+= 1
 
-        finalizeRenderCommand(shell)
+        finalizeRenderCommand()
     }
 
-    private func finalizeRenderCommand(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder) {
+    private func finalizeRenderCommand() {
         currentCommand = nil
 
         if isValid() && currentCommandIndex >= maxCommandCount && !requiresCommandReplay && indirectCommandBuffer != nil {
-            splitICB(shell, needsPipelineReset: true)
+            splitICB(needsPipelineReset: true)
         }
     }
 
@@ -968,43 +962,42 @@ final class RenderBundleEncoderImpl {
 
     // When this returns true, after finalizing the command slot, the render command entry point reports its error and
     // returns.
-    private func encodingHasFinished(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, finalizing: Bool) -> Bool {
+    private func encodingHasFinished(finalizing: Bool) -> Bool {
         if validToEncodeCommand() {
             return false
         }
         if finalizing {
-            finalizeRenderCommand(shell)
+            finalizeRenderCommand()
         }
         return true
     }
 
     @_expose(Cxx)
-    func draw(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
+    @_spi(WebKitGPU)
+    public func draw(
         _ vertexCount: UInt32,
         _ instanceCount: UInt32,
         _ firstVertex: UInt32,
         _ firstInstance: UInt32
     ) {
-        if encodingHasFinished(shell, finalizing: true) {
+        if encodingHasFinished(finalizing: true) {
             generateAValidationError(
                 "RenderBundleEncoder::FinalizeRenderCommand WebGPU::Metal::RenderBundleEncoder::encodeDraw(uint32_t, uint32_t, uint32_t, uint32_t): failed as encoding has finished"
             )
             return
         }
         guard icbDescriptor != nil else {
-            finalizeRenderCommand(shell)
+            finalizeRenderCommand()
             return
         }
         let needsValidationLayerWorkaround = currentMinimumVertexInstanceCount().needsValidationLayerWorkaround
         if !executePreDrawCommands(
-            shell,
             needsValidationLayerWorkaround: needsValidationLayerWorkaround,
             passWasSplit: false,
             firstInstance: firstInstance,
             instanceCount: instanceCount
         ) {
-            finalizeRenderCommand(shell)
+            finalizeRenderCommand()
             return
         }
         if let drawTarget = currentRenderCommand() {
@@ -1019,7 +1012,7 @@ final class RenderBundleEncoderImpl {
             }
         } else {
             if !runVertexBufferValidation(vertexCount, instanceCount, firstVertex, firstInstance) {
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
@@ -1027,7 +1020,6 @@ final class RenderBundleEncoderImpl {
             // any other draw and skip only the encoded command when it is replayed.
             recordCommand(
                 .draw(
-                    owner: copy shell,
                     vertexCount: vertexCount,
                     instanceCount: instanceCount,
                     firstVertex: firstVertex,
@@ -1036,33 +1028,33 @@ final class RenderBundleEncoderImpl {
             )
         }
 
-        finalizeRenderCommand(shell, .draw)
+        finalizeRenderCommand(.draw)
     }
 
     @_expose(Cxx)
-    func drawIndexed(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
+    @_spi(WebKitGPU)
+    public func drawIndexed(
         _ indexCount: UInt32,
         _ instanceCount: UInt32,
         _ firstIndex: UInt32,
         _ baseVertex: Int32,
         _ firstInstance: UInt32
     ) {
-        if encodingHasFinished(shell, finalizing: true) {
+        if encodingHasFinished(finalizing: true) {
             generateAValidationError(
                 "RenderBundleEncoder::FinalizeRenderCommand WebGPU::Metal::RenderBundleEncoder::encodeDrawIndexed(uint32_t, uint32_t, uint32_t, int32_t, uint32_t): failed as encoding has finished"
             )
             return
         }
         guard icbDescriptor != nil else {
-            finalizeRenderCommand(shell)
+            finalizeRenderCommand()
             return
         }
 
         // Checked here rather than only in errorValidatingDrawIndexed() below, which the ICB path skips.
         if let error = errorValidatingStripIndexFormat() {
             invalidate(error)
-            finalizeRenderCommand(shell)
+            finalizeRenderCommand()
             return
         }
 
@@ -1072,7 +1064,7 @@ final class RenderBundleEncoderImpl {
         let (indexBufferOffsetInBytes, indexBufferOffsetOverflowed) = UInt64(indexBufferOffset)
             .addingReportingOverflow(firstIndexOffsetInBytes)
         if indexBufferOffsetOverflowed || firstIndexOffsetOverflowed {
-            finalizeRenderCommand(shell)
+            finalizeRenderCommand()
             return
         }
 
@@ -1101,13 +1093,12 @@ final class RenderBundleEncoderImpl {
         }
 
         if !executePreDrawCommands(
-            shell,
             needsValidationLayerWorkaround: needsValidationLayerWorkaround,
             passWasSplit: passWasSplit,
             firstInstance: firstInstance,
             instanceCount: instanceCount
         ) {
-            finalizeRenderCommand(shell)
+            finalizeRenderCommand()
             return
         }
 
@@ -1122,7 +1113,7 @@ final class RenderBundleEncoderImpl {
                 firstInstance,
                 UInt(truncatingIfNeeded: indexBufferOffsetInBytes)
             ) {
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
@@ -1158,7 +1149,7 @@ final class RenderBundleEncoderImpl {
         } else {
             if let error = errorValidatingDrawIndexed() {
                 invalidate(error)
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
@@ -1167,17 +1158,17 @@ final class RenderBundleEncoderImpl {
                 || UInt64(indexBufferSize) < indexSizeInBytes
             {
                 invalidate("firstIndexOffsetInBytes + indexCount * indexSizeInBytes > m_indexBufferSize")
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
             if !runIndexBufferValidation(firstInstance, instanceCount) {
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
             if mtlIndexBuffer == nil || indexBufferImpl?.isDestroyed() == true {
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
@@ -1185,7 +1176,6 @@ final class RenderBundleEncoderImpl {
             // any other draw and skip only the encoded command when it is replayed.
             recordCommand(
                 .drawIndexed(
-                    owner: copy shell,
                     indexCount: indexCount,
                     instanceCount: instanceCount,
                     firstIndex: firstIndex,
@@ -1195,29 +1185,29 @@ final class RenderBundleEncoderImpl {
             )
         }
 
-        finalizeRenderCommand(shell, .drawIndexed)
+        finalizeRenderCommand(.drawIndexed)
     }
 
     @_expose(Cxx)
-    func drawIndexedIndirect(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
+    @_spi(WebKitGPU)
+    public func drawIndexedIndirect(
         _ indirectBufferImpl: BufferImpl,
         _ indirectOffset: UInt64
     ) {
-        if encodingHasFinished(shell, finalizing: true) {
+        if encodingHasFinished(finalizing: true) {
             generateAValidationError(
                 "RenderBundleEncoder::FinalizeRenderCommand WebGPU::Metal::RenderBundleEncoder::encodeDrawIndexedIndirect(Buffer &, uint64_t): failed as encoding has finished"
             )
             return
         }
         guard icbDescriptor != nil else {
-            finalizeRenderCommand(shell)
+            finalizeRenderCommand()
             return
         }
 
         if let error = errorValidatingStripIndexFormat() {
             invalidate(error)
-            finalizeRenderCommand(shell)
+            finalizeRenderCommand()
             return
         }
 
@@ -1246,8 +1236,8 @@ final class RenderBundleEncoderImpl {
             }
         }
 
-        if !executePreDrawCommands(shell, needsValidationLayerWorkaround: needsValidationLayerWorkaround, passWasSplit: splitPass) {
-            finalizeRenderCommand(shell)
+        if !executePreDrawCommands(needsValidationLayerWorkaround: needsValidationLayerWorkaround, passWasSplit: splitPass) {
+            finalizeRenderCommand()
             return
         }
         let mtlIndexBuffer = indexBufferImpl?.buffer()
@@ -1255,7 +1245,7 @@ final class RenderBundleEncoderImpl {
         if currentRenderCommand() != nil {
             if let pass = replayPassImpl {
                 if !pass.trackUse(.buffer(indirectBufferImpl)) {
-                    finalizeRenderCommand(shell)
+                    finalizeRenderCommand()
                     return
                 }
                 if !indirectBufferImpl.isDestroyed() && indexBufferLength != 0 && !submitInvalid, let mtlIndexBuffer, let clamped {
@@ -1274,19 +1264,19 @@ final class RenderBundleEncoderImpl {
             }
         } else {
             if indexBufferLength == 0 {
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
             if !isValidToUse(indirectBufferImpl.isValid(), indirectBufferImpl.deviceImpl, with: deviceImpl) {
                 invalidate("drawIndexedIndirect: buffer was invalid")
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
             if !hasUsage(indirectBufferImpl, .Indirect) || indirectOffset % 4 != 0 {
                 invalidate("drawIndexedIndirect: validation failed")
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
@@ -1295,32 +1285,32 @@ final class RenderBundleEncoderImpl {
             )
             if indirectOffsetOverflowed || indirectBufferImpl.initialSize() < indirectOffsetSum {
                 invalidate("drawIndexedIndirect: validation failed")
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
             recordCommand(
-                .drawIndexedIndirect(owner: copy shell, bufferImpl: indirectBufferImpl, offset: indirectOffset)
+                .drawIndexedIndirect(bufferImpl: indirectBufferImpl, offset: indirectOffset)
             )
         }
 
-        finalizeRenderCommand(shell, .drawIndexed)
+        finalizeRenderCommand(.drawIndexed)
     }
 
     @_expose(Cxx)
-    func drawIndirect(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
+    @_spi(WebKitGPU)
+    public func drawIndirect(
         _ indirectBufferImpl: BufferImpl,
         _ apiIndirectOffset: UInt64
     ) {
-        if encodingHasFinished(shell, finalizing: true) {
+        if encodingHasFinished(finalizing: true) {
             generateAValidationError(
                 "RenderBundleEncoder::FinalizeRenderCommand WebGPU::Metal::RenderBundleEncoder::encodeDrawIndirect(Buffer &, uint64_t): failed as encoding has finished"
             )
             return
         }
         guard icbDescriptor != nil else {
-            finalizeRenderCommand(shell)
+            finalizeRenderCommand()
             return
         }
 
@@ -1345,14 +1335,14 @@ final class RenderBundleEncoderImpl {
             }
         }
 
-        if !executePreDrawCommands(shell, needsValidationLayerWorkaround: needsValidationLayerWorkaround, passWasSplit: splitPass) {
-            finalizeRenderCommand(shell)
+        if !executePreDrawCommands(needsValidationLayerWorkaround: needsValidationLayerWorkaround, passWasSplit: splitPass) {
+            finalizeRenderCommand()
             return
         }
         if currentRenderCommand() != nil {
             if let pass = replayPassImpl {
                 if !pass.trackUse(.buffer(indirectBufferImpl)) {
-                    finalizeRenderCommand(shell)
+                    finalizeRenderCommand()
                     return
                 }
                 if !indirectBufferImpl.isDestroyed() && !submitInvalid, let clamped {
@@ -1365,13 +1355,13 @@ final class RenderBundleEncoderImpl {
         } else {
             if !isValidToUse(indirectBufferImpl.isValid(), indirectBufferImpl.deviceImpl, with: deviceImpl) {
                 invalidate("drawIndirect: buffer was invalid")
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
             if !hasUsage(indirectBufferImpl, .Indirect) || indirectOffset % 4 != 0 {
                 invalidate("drawIndirect: validation failed")
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
@@ -1380,16 +1370,16 @@ final class RenderBundleEncoderImpl {
             )
             if indirectOffsetOverflowed || indirectBufferImpl.initialSize() < indirectOffsetSum {
                 invalidate("drawIndirect: validation failed")
-                finalizeRenderCommand(shell)
+                finalizeRenderCommand()
                 return
             }
 
             recordCommand(
-                .drawIndirect(owner: copy shell, bufferImpl: indirectBufferImpl, offset: indirectOffset)
+                .drawIndirect(bufferImpl: indirectBufferImpl, offset: indirectOffset)
             )
         }
 
-        finalizeRenderCommand(shell, .draw)
+        finalizeRenderCommand(.draw)
     }
 
     private func splitReplayPass() -> Bool {
@@ -1422,7 +1412,6 @@ final class RenderBundleEncoderImpl {
     }
 
     private func makeICB(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ requestedCommandCount: UInt64
     ) -> (any MTLIndirectCommandBuffer)? {
         guard let descriptor = icbDescriptor, !descriptor.commandTypes.isEmpty else {
@@ -1443,7 +1432,7 @@ final class RenderBundleEncoderImpl {
         return icb
     }
 
-    private func cleanup(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, resetPipeline: Bool) {
+    private func cleanup(resetPipeline: Bool) {
         currentCommand = nil
         currentPipelineState = nil
         minVertexCountForDrawCommand.removeAll()
@@ -1457,12 +1446,12 @@ final class RenderBundleEncoderImpl {
         depthBiasClamp = 0
 
         if resetPipeline, let pipelineImpl = currentPipelineImpl, validToEncodeCommand() {
-            applyPipeline(shell, pipelineImpl)
+            applyPipeline(pipelineImpl)
         }
     }
 
     // Also the body of replayCommands(), between setting and clearing the render pass.
-    private func endCurrentICB(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder) {
+    private func endCurrentICB() {
         let commandCount = currentCommandIndex
         previousCommandCount = currentCommandIndex
         currentCommandIndex = 0
@@ -1471,30 +1460,30 @@ final class RenderBundleEncoderImpl {
         requiresCommandReplay = requiresCommandReplay || (commandCount == 0 && icbs.isEmpty)
         if (icbDescriptor?.commandTypes.isEmpty ?? true) && !requiresCommandReplay {
             recordedCommands = []
-            cleanup(shell, resetPipeline: false)
+            cleanup(resetPipeline: false)
             return
         }
 
         icbDescriptor?.maxVertexBufferBindCount = limits.slots.vertexBindCount
         icbDescriptor?.maxFragmentBufferBindCount = limits.slots.fragmentBindCount
-        if vertexDynamicOffset != 0 && !ensureVertexDynamicOffsetsBuffer(shell, vertexDynamicOffset) {
+        if vertexDynamicOffset != 0 && !ensureVertexDynamicOffsetsBuffer(vertexDynamicOffset) {
             return
         }
         vertexDynamicOffset = 0
 
-        if !ensureFragmentDynamicOffsetsBuffer(shell, fragmentDynamicOffset, sampleMask) {
+        if !ensureFragmentDynamicOffsetsBuffer(fragmentDynamicOffset, sampleMask) {
             return
         }
         fragmentDynamicOffset = 0
 
         if replayPassImpl == nil && !requiresCommandReplay {
-            indirectCommandBuffer = makeICB(shell, commandCount)
+            indirectCommandBuffer = makeICB(commandCount)
         }
 
         replayRecordedCommands()
 
         currentPipelineImpl = nil
-        splitICB(shell, needsPipelineReset: true)
+        splitICB(needsPipelineReset: true)
         currentCommandIndex = 0
 
         indirectCommandBuffer = nil
@@ -1507,39 +1496,39 @@ final class RenderBundleEncoderImpl {
         let commands = recordedCommands
         for command in commands {
             switch command {
-            case .draw(let owner, let vertexCount, let instanceCount, let firstVertex, let firstInstance):
-                draw(owner, vertexCount, instanceCount, firstVertex, firstInstance)
-            case .drawIndexed(let owner, let indexCount, let instanceCount, let firstIndex, let baseVertex, let firstInstance):
-                drawIndexed(owner, indexCount, instanceCount, firstIndex, baseVertex, firstInstance)
-            case .drawIndirect(let owner, let bufferImpl, let offset):
-                drawIndirect(owner, bufferImpl, offset)
-            case .drawIndexedIndirect(let owner, let bufferImpl, let offset):
-                drawIndexedIndirect(owner, bufferImpl, offset)
-            case .setPipeline(let owner, let pipelineImpl):
-                setPipeline(owner, pipelineImpl)
-            case .setIndexBuffer(let owner, let bufferImpl, let format, let offset, let size):
-                setIndexBuffer(owner, bufferImpl, format, offset, size != nil, size ?? 0)
-            case .setVertexBuffer(let owner, let slot, let bufferImpl, let offset, let size):
-                setVertexBuffer(owner, slot, bufferImpl, offset, size != nil, size ?? 0)
-            case .clearVertexBuffer(let owner, let slot, let offset, let size):
-                clearVertexBuffer(owner, slot, offset, size != nil, size ?? 0)
-            case .setBindGroup(let owner, let group, let bindGroupImpl, let dynamicOffsets):
-                setBindGroup(owner, group, bindGroupImpl, offsets: dynamicOffsets)
-            case .clearBindGroup(let owner, let group, let dynamicOffsets):
-                clearBindGroup(owner, group, offsets: dynamicOffsets)
+            case .draw(let vertexCount, let instanceCount, let firstVertex, let firstInstance):
+                draw(vertexCount, instanceCount, firstVertex, firstInstance)
+            case .drawIndexed(let indexCount, let instanceCount, let firstIndex, let baseVertex, let firstInstance):
+                drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance)
+            case .drawIndirect(let bufferImpl, let offset):
+                drawIndirect(bufferImpl, offset)
+            case .drawIndexedIndirect(let bufferImpl, let offset):
+                drawIndexedIndirect(bufferImpl, offset)
+            case .setPipeline(let pipelineImpl):
+                setPipeline(pipelineImpl)
+            case .setIndexBuffer(let bufferImpl, let format, let offset, let size):
+                setIndexBuffer(bufferImpl, format, offset, size != nil, size ?? 0)
+            case .setVertexBuffer(let slot, let bufferImpl, let offset, let size):
+                setVertexBuffer(slot, bufferImpl, offset, size != nil, size ?? 0)
+            case .clearVertexBuffer(let slot, let offset, let size):
+                clearVertexBuffer(slot, offset, size != nil, size ?? 0)
+            case .setBindGroup(let group, let bindGroupImpl, let dynamicOffsets):
+                setBindGroup(group, bindGroupImpl, offsets: dynamicOffsets)
+            case .clearBindGroup(let group, let dynamicOffsets):
+                clearBindGroup(group, offsets: dynamicOffsets)
             }
         }
     }
 
-    // The caller (RenderBundleImpl) holds this encoder's shell, and the pass's caller holds the pass.
+    // The caller (RenderBundleImpl) holds this encoder, and the pass's caller holds the pass.
     @_expose(!Cxx)
-    func replayCommands(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, into passImpl: RenderPassEncoderImpl) {
+    func replayCommands(into passImpl: RenderPassEncoderImpl) {
         if passImpl.renderCommandEncoder() == nil || !isValid() || !deviceImpl.isValid() {
             return
         }
 
         replayPassImpl = passImpl
-        endCurrentICB(shell)
+        endCurrentICB()
         replayPassImpl = nil
         didReplayCommands()
     }
@@ -1558,7 +1547,7 @@ final class RenderBundleEncoderImpl {
         indexBufferSize = 0
     }
 
-    private func finishResult(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder) -> FinishResult {
+    private func finishResult() -> FinishResult {
         if icbDescriptor == nil || debugGroupStackSize != 0 || !deviceImpl.isValid() || finished {
             return .invalidBeforeEncoding
         }
@@ -1572,7 +1561,7 @@ final class RenderBundleEncoderImpl {
         }
 
         let commandCount = currentCommandIndex
-        endCurrentICB(shell)
+        endCurrentICB()
         if requiresCommandReplay {
             backingBundleCommandCount = currentCommandIndex
             return .commandReplay
@@ -1659,8 +1648,8 @@ final class RenderBundleEncoderImpl {
 
     // Returns the bundle, valid or not, labelled, for the shell to box. An invalid one reports the encoder's last error.
     @_expose(Cxx)
-    func finish(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ label: NSString) -> RenderBundleImpl {
-        let bundle = finishedBundle(shell)
+    func finish(_ label: NSString) -> RenderBundleImpl {
+        let bundle = finishedBundle()
         if !bundle.isValid() {
             // Without a last error the message is a null string.
             deviceImpl.generateAnError(.Validation, .Validation, lastErrorString.map { WTF.String($0) } ?? WTF.String())
@@ -1669,13 +1658,13 @@ final class RenderBundleEncoderImpl {
         return bundle
     }
 
-    private func finishedBundle(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder) -> RenderBundleImpl {
+    private func finishedBundle() -> RenderBundleImpl {
         let bundle: RenderBundleImpl
-        switch finishResult(shell) {
+        switch finishResult() {
         case .invalidBeforeEncoding:
             return RenderBundleImpl(invalid: device, deviceImpl, lastError: lastErrorString)
         case .commandReplay:
-            bundle = makeBundle(icbs: [], isICBBundle: false, replay: .encoder(copy shell, self))
+            bundle = makeBundle(icbs: [], isICBBundle: false, replay: .encoder(self))
         case .indirectCommandBuffers:
             bundle = makeBundle(icbs: icbs, isICBBundle: true, replay: .none(lastError: nil))
         case .invalidAfterEncoding:
@@ -1711,7 +1700,8 @@ final class RenderBundleEncoderImpl {
 
     // A bundle encoder's state is always open.
     @_expose(Cxx)
-    func insertDebugMarker() {
+    @_spi(WebKitGPU)
+    public func insertDebugMarker() {
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker
         // MTLIndirectCommandBuffers don't support debug commands.
         if !validToEncodeCommand() {
@@ -1722,7 +1712,8 @@ final class RenderBundleEncoderImpl {
     }
 
     @_expose(Cxx)
-    func popDebugGroup() {
+    @_spi(WebKitGPU)
+    public func popDebugGroup() {
         if !validToEncodeCommand() {
             generateAValidationError("virtual void WebGPU::Metal::RenderBundleEncoder::popDebugGroup(): failed as encoding has finished")
             return
@@ -1742,7 +1733,8 @@ final class RenderBundleEncoderImpl {
     }
 
     @_expose(Cxx)
-    func pushDebugGroup() {
+    @_spi(WebKitGPU)
+    public func pushDebugGroup() {
         if !validToEncodeCommand() {
             generateAValidationError(
                 "virtual void WebGPU::Metal::RenderBundleEncoder::pushDebugGroup(String &&): failed as encoding has finished"
@@ -1760,18 +1752,16 @@ final class RenderBundleEncoderImpl {
 
     @_expose(Cxx)
     func setBindGroup(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ groupIndex: UInt32,
         _ groupImpl: BindGroupImpl,
         _ hasDynamicOffsets: Bool,
         _ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsView
     ) {
-        setBindGroup(shell, groupIndex, groupImpl, offsets: hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
+        setBindGroup(groupIndex, groupImpl, offsets: hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
     }
 
     // A nil list counts as an empty one.
     fileprivate func setBindGroup(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ groupIndex: UInt32,
         _ groupImpl: BindGroupImpl,
         offsets: [UInt32]?
@@ -1818,7 +1808,6 @@ final class RenderBundleEncoderImpl {
 
             recordCommand(
                 .setBindGroup(
-                    owner: copy shell,
                     group: groupIndex,
                     bindGroupImpl: groupImpl,
                     dynamicOffsets: offsets
@@ -1845,15 +1834,14 @@ final class RenderBundleEncoderImpl {
     // setBindGroup with a null bind group.
     @_expose(Cxx)
     func clearBindGroup(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ groupIndex: UInt32,
         _ hasDynamicOffsets: Bool,
         _ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsView
     ) {
-        clearBindGroup(shell, groupIndex, offsets: hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
+        clearBindGroup(groupIndex, offsets: hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
     }
 
-    fileprivate func clearBindGroup(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ groupIndex: UInt32, offsets: [UInt32]?) {
+    fileprivate func clearBindGroup(_ groupIndex: UInt32, offsets: [UInt32]?) {
         if !validToEncodeCommand() {
             generateAValidationError(
                 "void WebGPU::Metal::RenderBundleEncoder::setBindGroupWithOwnedDynamicOffsets(uint32_t, const BindGroup *, std::optional<Vector<uint32_t>> &&): failed as encoding has finished"
@@ -1871,7 +1859,7 @@ final class RenderBundleEncoderImpl {
                 return
             }
 
-            recordCommand(.clearBindGroup(owner: copy shell, group: groupIndex, dynamicOffsets: offsets))
+            recordCommand(.clearBindGroup(group: groupIndex, dynamicOffsets: offsets))
             return
         }
 
@@ -2047,7 +2035,6 @@ final class RenderBundleEncoderImpl {
 
     @_expose(Cxx)
     func setIndexBuffer(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ bufferImpl: BufferImpl,
         _ format: WebGPU.IndexFormat,
         _ offset: UInt64,
@@ -2097,7 +2084,6 @@ final class RenderBundleEncoderImpl {
 
             recordCommand(
                 .setIndexBuffer(
-                    owner: copy shell,
                     bufferImpl: bufferImpl,
                     format: format,
                     offset: offset,
@@ -2156,10 +2142,10 @@ final class RenderBundleEncoderImpl {
         return false
     }
 
-    private func splitICB(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, needsPipelineReset: Bool) {
+    private func splitICB(needsPipelineReset: Bool) {
         if UInt64(indirectCommandBuffer?.size ?? 0) > currentCommandIndex {
             if currentCommandIndex != 0 {
-                let newICB = makeICB(shell, currentCommandIndex)
+                let newICB = makeICB(currentCommandIndex)
                 indirectCommandBuffer = deviceImpl.defaultQueueImpl.trimICB(
                     deviceImpl.defaultQueue(),
                     newICB,
@@ -2174,17 +2160,17 @@ final class RenderBundleEncoderImpl {
         currentCommandIndex = 0
 
         if let icb = indirectCommandBuffer, icb.size != 0 {
-            appendICB(shell, icb)
+            appendICB(icb)
         }
 
         if previousCommandCount != 0 {
-            indirectCommandBuffer = makeICB(shell, previousCommandCount)
+            indirectCommandBuffer = makeICB(previousCommandCount)
         }
-        cleanup(shell, resetPipeline: needsPipelineReset)
+        cleanup(resetPipeline: needsPipelineReset)
     }
 
     // The draw-validation maps move into the ICB.
-    private func appendICB(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ icb: any MTLIndirectCommandBuffer) {
+    private func appendICB(_ icb: any MTLIndirectCommandBuffer) {
         let clampFunction: (any MTLFunction)? = deviceImpl.icbCommandClampFunction(.uint32)
         let argumentEncoder = clampFunction?.makeArgumentEncoder(bufferIndex: Int(deviceImpl.bufferIndexForICBContainer()))
         let container: (any MTLBuffer)? = deviceImpl.safeCreateBuffer(UInt(argumentEncoder?.encodedLength ?? 0))
@@ -2218,7 +2204,7 @@ final class RenderBundleEncoderImpl {
         }
     }
 
-    private func ensureVertexDynamicOffsetsBuffer(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ size: UInt64) -> Bool {
+    private func ensureVertexDynamicOffsetsBuffer(_ size: UInt64) -> Bool {
         if dynamicOffsetsVertexBuffer != nil {
             return true
         }
@@ -2231,7 +2217,6 @@ final class RenderBundleEncoderImpl {
     }
 
     private func ensureFragmentDynamicOffsetsBuffer(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ size: UInt64,
         _ sampleMask: UInt32
     ) -> Bool {
@@ -2273,17 +2258,18 @@ final class RenderBundleEncoderImpl {
     }
 
     @_expose(Cxx)
-    func setPipeline(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ pipelineImpl: RenderPipelineImpl) {
+    @_spi(WebKitGPU)
+    public func setPipeline(_ pipelineImpl: RenderPipelineImpl) {
         if !validToEncodeCommand() {
             generateAValidationError(
                 "void WebGPU::Metal::RenderBundleEncoder::setPipeline(const RenderPipeline &): failed as encoding has finished"
             )
             return
         }
-        applyPipeline(shell, pipelineImpl)
+        applyPipeline(pipelineImpl)
     }
 
-    private func applyPipeline(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ pipelineImpl: RenderPipelineImpl) {
+    private func applyPipeline(_ pipelineImpl: RenderPipelineImpl) {
         guard icbDescriptor != nil else {
             return
         }
@@ -2294,15 +2280,15 @@ final class RenderBundleEncoderImpl {
         }
 
         let previousRenderPipelineState = currentPipelineState
-        currentPipelineState = icbRenderPipelineState(shell, pipelineImpl)
+        currentPipelineState = icbRenderPipelineState(pipelineImpl)
 
         if replayingCommands() {
             if let previousPipelineImpl = currentPipelineImpl, currentCommandIndex != 0,
                 icbNeedsToBeSplit(previousPipelineImpl, pipelineImpl)
             {
                 currentPipelineState = previousRenderPipelineState
-                splitICB(shell, needsPipelineReset: false)
-                currentPipelineState = icbRenderPipelineState(shell, pipelineImpl)
+                splitICB(needsPipelineReset: false)
+                currentPipelineState = icbRenderPipelineState(pipelineImpl)
             }
 
             let previousDepthStencilState = depthStencilState
@@ -2355,7 +2341,7 @@ final class RenderBundleEncoderImpl {
                 }
             }
         } else {
-            if icbRenderPipelineState(shell, pipelineImpl) == nil {
+            if icbRenderPipelineState(pipelineImpl) == nil {
                 return
             }
 
@@ -2375,7 +2361,7 @@ final class RenderBundleEncoderImpl {
                 requiresCommandReplay = true
             }
 
-            recordCommand(.setPipeline(owner: copy shell, pipelineImpl: pipelineImpl))
+            recordCommand(.setPipeline(pipelineImpl: pipelineImpl))
         }
 
         currentPipelineImpl = pipelineImpl
@@ -2383,7 +2369,6 @@ final class RenderBundleEncoderImpl {
 
     @_expose(Cxx)
     func setVertexBuffer(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ slot: UInt32,
         _ bufferImpl: BufferImpl,
         _ offset: UInt64,
@@ -2424,7 +2409,6 @@ final class RenderBundleEncoderImpl {
 
             recordCommand(
                 .setVertexBuffer(
-                    owner: copy shell,
                     slot: slot,
                     bufferImpl: bufferImpl,
                     offset: offset,
@@ -2460,7 +2444,6 @@ final class RenderBundleEncoderImpl {
     // setVertexBuffer with a null buffer.
     @_expose(Cxx)
     func clearVertexBuffer(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ slot: UInt32,
         _ offset: UInt64,
         _ hasSize: Bool,
@@ -2478,7 +2461,7 @@ final class RenderBundleEncoderImpl {
         maxVertexBufferSlot = max(maxVertexBufferSlot, slot)
 
         if !replayingCommands() {
-            recordCommand(.clearVertexBuffer(owner: copy shell, slot: slot, offset: offset, size: hasSize ? size : nil))
+            recordCommand(.clearVertexBuffer(slot: slot, offset: offset, size: hasSize ? size : nil))
         }
 
         if slot < limits.maxVertexBuffers {
@@ -2551,74 +2534,44 @@ func makeInvalidRenderBundleEncoderImpl(
     )
 }
 
-// A RenderBundleEncoderImpl with the shell of the same object, which each of its methods takes, for the GPU process's
-// Swift receiver, which can't name the shell.
 @_spi(WebKitGPU)
-public final class RenderBundleEncoderReference {
-    let impl: RenderBundleEncoderImpl
-    let shell: WebGPU.Metal.RenderBundleEncoder
+public typealias RenderBundleEncoderReference = RenderBundleEncoderImpl
 
-    init(_ impl: RenderBundleEncoderImpl, _ shell: WebGPU.Metal.RenderBundleEncoder) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension RenderBundleEncoderImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: RenderBundleEncoderImpl {
+        self
     }
 
-    public func draw(_ vertexCount: UInt32, _ instanceCount: UInt32, _ firstVertex: UInt32, _ firstInstance: UInt32) {
-        impl.draw(shell, vertexCount, instanceCount, firstVertex, firstInstance)
-    }
-
-    public func drawIndexed(_ indexCount: UInt32, _ instanceCount: UInt32, _ firstIndex: UInt32, _ baseVertex: Int32, _ firstInstance: UInt32) {
-        impl.drawIndexed(shell, indexCount, instanceCount, firstIndex, baseVertex, firstInstance)
-    }
-
-    public func drawIndirect(_ indirectBuffer: BufferReference, _ indirectOffset: UInt64) {
-        impl.drawIndirect(shell, indirectBuffer, indirectOffset)
-    }
-
-    public func drawIndexedIndirect(_ indirectBuffer: BufferReference, _ indirectOffset: UInt64) {
-        impl.drawIndexedIndirect(shell, indirectBuffer, indirectOffset)
-    }
-
-    // A bundle records no debug markers or groups, so the labels go nowhere, as in the C++ shell.
-    public func insertDebugMarker() {
-        impl.insertDebugMarker()
-    }
-
-    public func popDebugGroup() {
-        impl.popDebugGroup()
-    }
-
-    public func pushDebugGroup() {
-        impl.pushDebugGroup()
-    }
-
+    @_expose(!Cxx)
     public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {
         guard let group else {
-            impl.clearBindGroup(shell, groupIndex, offsets: dynamicOffsets)
+            clearBindGroup(groupIndex, offsets: dynamicOffsets)
             return
         }
-        impl.setBindGroup(shell, groupIndex, group, offsets: dynamicOffsets)
+        setBindGroup(groupIndex, group, offsets: dynamicOffsets)
     }
 
+    @_expose(!Cxx)
     public func setIndexBuffer(_ buffer: BufferReference, _ format: WebGPU.IndexFormat, _ offset: UInt64, _ size: UInt64?) {
-        impl.setIndexBuffer(shell, buffer, format, offset, size != nil, size ?? 0)
-    }
-
-    public func setPipeline(_ pipeline: RenderPipelineReference) {
-        impl.setPipeline(shell, pipeline)
+        setIndexBuffer(buffer, format, offset, size != nil, size ?? 0)
     }
 
     // Clears the slot without a buffer.
+    @_expose(!Cxx)
     public func setVertexBuffer(_ slot: UInt32, _ buffer: BufferReference?, _ offset: UInt64, _ size: UInt64?) {
         guard let buffer else {
-            impl.clearVertexBuffer(shell, slot, offset, size != nil, size ?? 0)
+            clearVertexBuffer(slot, offset, size != nil, size ?? 0)
             return
         }
-        impl.setVertexBuffer(shell, slot, buffer, offset, size != nil, size ?? 0)
+        setVertexBuffer(slot, buffer, offset, size != nil, size ?? 0)
     }
 
     // As WTF::String::createNSString() makes the C++ shell's label, a null one is empty.
+    @_expose(!Cxx)
     public func setLabel(_ label: Swift.String?) {
-        impl.setLabel(NSString(string: label ?? ""))
+        setLabel(NSString(string: label ?? ""))
     }
 }

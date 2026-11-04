@@ -62,13 +62,6 @@ Ref<RenderBundleEncoder> RenderBundleEncoder::create(const WebGPU::RenderBundleE
     }));
 }
 
-Ref<RenderBundleEncoder> RenderBundleEncoder::createWithStagedImpl(Device& device)
-{
-    return adoptRef(*new RenderBundleEncoder([&] {
-        return device.swiftImpl().takeStagedRenderBundleEncoderImpl();
-    }));
-}
-
 Ref<RenderBundleEncoder> RenderBundleEncoder::createInvalid(Device& device, NSString* errorString)
 {
     return adoptRef(*new RenderBundleEncoder([&] {
@@ -100,29 +93,29 @@ RenderBundleEncoder::~RenderBundleEncoder()
 
 void RenderBundleEncoder::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
-    swiftImpl().draw(this, vertexCount, instanceCount, firstVertex, firstInstance);
+    swiftImpl().draw(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
 void RenderBundleEncoder::drawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
 {
-    swiftImpl().drawIndexed(this, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    swiftImpl().drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
 }
 
 void RenderBundleEncoder::drawIndirect(WebGPU::Buffer& apiIndirectBuffer, uint64_t indirectOffset)
 {
     auto& indirectBuffer = downcast<Buffer>(apiIndirectBuffer);
-    swiftImpl().drawIndirect(this, indirectBuffer.swiftImpl(), indirectOffset);
+    swiftImpl().drawIndirect(indirectBuffer.swiftImpl(), indirectOffset);
 }
 
 void RenderBundleEncoder::drawIndexedIndirect(WebGPU::Buffer& apiIndirectBuffer, uint64_t indirectOffset)
 {
     auto& indirectBuffer = downcast<Buffer>(apiIndirectBuffer);
-    swiftImpl().drawIndexedIndirect(this, indirectBuffer.swiftImpl(), indirectOffset);
+    swiftImpl().drawIndexedIndirect(indirectBuffer.swiftImpl(), indirectOffset);
 }
 
 RefPtr<WebGPU::RenderBundle> RenderBundleEncoder::finish(const WebGPU::RenderBundleDescriptor& descriptor)
 {
-    return RenderBundle::create(swiftImpl().finish(this, descriptor.label.createNSString().get()));
+    return RenderBundle::create(swiftImpl().finish(descriptor.label.createNSString().get()));
 }
 
 bool RenderBundleEncoder::isValid() const
@@ -150,31 +143,31 @@ void RenderBundleEncoder::setBindGroup(uint32_t groupIndex, const WebGPU::BindGr
     auto* group = downcast<BindGroup>(apiGroup);
     DynamicOffsetsView offsets { dynamicOffsets.value_or(std::span<const uint32_t> { }) };
     if (!group) {
-        swiftImpl().clearBindGroup(this, groupIndex, dynamicOffsets.has_value(), offsets);
+        swiftImpl().clearBindGroup(groupIndex, dynamicOffsets.has_value(), offsets);
         return;
     }
-    swiftImpl().setBindGroup(this, groupIndex, group->swiftImpl(), dynamicOffsets.has_value(), offsets);
+    swiftImpl().setBindGroup(groupIndex, group->swiftImpl(), dynamicOffsets.has_value(), offsets);
 }
 
 void RenderBundleEncoder::setIndexBuffer(WebGPU::Buffer& apiBuffer, WebGPU::IndexFormat format, uint64_t offset, std::optional<uint64_t> size)
 {
     auto& buffer = downcast<Buffer>(apiBuffer);
-    swiftImpl().setIndexBuffer(this, buffer.swiftImpl(), format, offset, size.has_value(), size.value_or(0));
+    swiftImpl().setIndexBuffer(buffer.swiftImpl(), format, offset, size.has_value(), size.value_or(0));
 }
 
 void RenderBundleEncoder::setPipeline(const WebGPU::RenderPipeline& apiPipeline)
 {
-    swiftImpl().setPipeline(this, downcast<RenderPipeline>(apiPipeline).swiftImpl());
+    swiftImpl().setPipeline(downcast<RenderPipeline>(apiPipeline).swiftImpl());
 }
 
 void RenderBundleEncoder::setVertexBuffer(uint32_t slot, WebGPU::Buffer* apiBuffer, uint64_t offset, std::optional<uint64_t> size)
 {
     auto* buffer = downcast<Buffer>(apiBuffer);
     if (!buffer) {
-        swiftImpl().clearVertexBuffer(this, slot, offset, size.has_value(), size.value_or(0));
+        swiftImpl().clearVertexBuffer(slot, offset, size.has_value(), size.value_or(0));
         return;
     }
-    swiftImpl().setVertexBuffer(this, slot, buffer->swiftImpl(), offset, size.has_value(), size.value_or(0));
+    swiftImpl().setVertexBuffer(slot, buffer->swiftImpl(), offset, size.has_value(), size.value_or(0));
 }
 
 void RenderBundleEncoder::setLabel(String&& label)

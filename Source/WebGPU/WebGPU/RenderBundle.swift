@@ -237,10 +237,10 @@ public final class RenderBundleImpl: GPUObjectReference {
 
     @_expose(!Cxx)
     func replayCommands(into passImpl: RenderPassEncoderImpl) {
-        guard case .encoder(let encoderShell, let encoderImpl) = replay else {
+        guard case .encoder(let encoderImpl) = replay else {
             return
         }
-        encoderImpl.replayCommands(encoderShell, into: passImpl)
+        encoderImpl.replayCommands(into: passImpl)
     }
 
     // Every group is visited even after a failure.
@@ -265,7 +265,7 @@ public final class RenderBundleImpl: GPUObjectReference {
         }
 
         submitInvalid = true
-        if case .encoder(_, let encoderImpl) = replay {
+        if case .encoder(let encoderImpl) = replay {
             encoderImpl.releaseDestroyedResources()
         }
     }
@@ -275,7 +275,7 @@ public final class RenderBundleImpl: GPUObjectReference {
 ///
 /// Every case has a payload, so the FRT never sits next to an empty case.
 enum BundleReplay {
-    case encoder(WebGPU.Metal.RenderBundleEncoder, RenderBundleEncoderImpl)
+    case encoder(RenderBundleEncoderImpl)
     case none(lastError: String?)
 
     var isEncoder: Bool {
@@ -290,7 +290,8 @@ enum BundleReplay {
 extension RenderBundleEncoderReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish. As WTF::String::createNSString() makes the
     // label for the C++ caller, a null one is empty.
+    @_expose(!Cxx)
     public func finish(label: Swift.String?) -> RenderBundleReference {
-        impl.finish(shell, (label ?? "") as NSString)
+        finish((label ?? "") as NSString)
     }
 }

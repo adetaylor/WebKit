@@ -153,19 +153,11 @@ func createRenderBundleEncoderImpl(
     return impl
 }
 
-// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedRenderBundleEncoderImpl.
-func makeRenderBundleEncoderShell(_ impl: RenderBundleEncoderImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.RenderBundleEncoder {
-    precondition(deviceImpl.stagedRenderBundleEncoderImpl == nil)
-    deviceImpl.stagedRenderBundleEncoderImpl = impl
-    return WebGPU.Metal.RenderBundleEncoder.createWithStagedImpl(device).ptr()
-}
-
 @_spi(WebKitGPU)
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder. The label isn't kept, as for the C++
     // caller.
     public func createRenderBundleEncoder(_ descriptor: GPURenderBundleEncoderDescriptor, label: Swift.String?) -> RenderBundleEncoderReference {
-        let encoder = createRenderBundleEncoderImpl(descriptor, shell, impl)
-        return RenderBundleEncoderReference(encoder, makeRenderBundleEncoderShell(encoder, device: shell, deviceImpl: impl))
+        createRenderBundleEncoderImpl(descriptor, shell, impl)
     }
 }

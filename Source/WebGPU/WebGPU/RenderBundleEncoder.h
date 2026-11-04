@@ -66,8 +66,6 @@ public:
     // An invalid descriptor reports the error and gives an invalid encoder.
     static Ref<RenderBundleEncoder> create(const WebGPU::RenderBundleEncoderDescriptor&, Device&);
     static Ref<RenderBundleEncoder> createInvalid(Device&, NSString* errorString);
-    // Wraps the Impl that Swift staged in DeviceImpl, for a creation made in Swift.
-    static Ref<RenderBundleEncoder> createWithStagedImpl(Device&);
 
     ~RenderBundleEncoder();
 
