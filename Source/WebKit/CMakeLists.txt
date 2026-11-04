@@ -1056,6 +1056,9 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureViewMessageReceiver.cpp
         GPUProcess/graphics/WebGPU/RemoteCompositorIntegration.cpp
+        GPUProcess/graphics/WebGPU/RemoteXRBinding.cpp
+        GPUProcess/graphics/WebGPU/RemoteXRProjectionLayer.cpp
+        GPUProcess/graphics/WebGPU/RemoteXRSubImage.cpp
         GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
         GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.cpp
 

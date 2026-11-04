@@ -209,27 +209,17 @@ RefPtr<IPC::StreamServerConnection> WebGPUSwiftRegistryHost::streamConnection() 
     return gpu ? gpu->m_streamConnection : nullptr;
 }
 
-bool WebGPUSwiftRegistryHost::addXRBinding(::WebGPU::Device& device, uint64_t identifier) const
+void WebGPUSwiftRegistryHost::addXRBinding(uint64_t deviceIdentifier, uint64_t identifier) const
 {
-    RefPtr binding = device.createXRBinding();
-    if (!binding)
-        return false;
     RefPtr objectHeap = m_objectHeap.get();
     RefPtr gpu = m_gpu.get();
     RefPtr streamConnection = this->streamConnection();
     RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
     if (!objectHeap || !streamConnection || !connection)
-        return true;
+        return;
     WebGPUIdentifier bindingIdentifier { identifier };
-    auto remoteBinding = RemoteXRBinding::create(*connection, *binding, *objectHeap, *gpu, streamConnection.releaseNonNull(), bindingIdentifier);
+    auto remoteBinding = RemoteXRBinding::create(*connection, objectHeap->swiftImplTable().createXRBinding(deviceIdentifier), *objectHeap, *gpu, streamConnection.releaseNonNull(), bindingIdentifier);
     objectHeap->addObject(bindingIdentifier, remoteBinding);
-    return true;
-}
-
-void WebGPUSwiftRegistryHost::trackDevice(::WebGPU::Device& device) const
-{
-    if (RefPtr objectHeap = m_objectHeap.get())
-        objectHeap->trackDevice(device);
 }
 
 #if PLATFORM(COCOA)

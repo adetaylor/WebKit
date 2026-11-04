@@ -33,6 +33,7 @@
 #include <WebCore/AlphaPremultiplication.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <WebCore/WebGPUCppAPI.h>
+#include <memory>
 #include <wtf/Ref.h>
 #include <wtf/WeakRef.h>
 #include <wtf/text/WTFString.h>
@@ -44,6 +45,7 @@ class StreamServerConnection;
 namespace WebKit {
 
 class RemoteGPU;
+class WebGPUXRBinding;
 
 namespace WebGPU {
 class ObjectHeap;
@@ -52,10 +54,7 @@ class ObjectHeap;
 class RemoteXRBinding final : public IPC::StreamMessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(RemoteXRBinding);
 public:
-    static Ref<RemoteXRBinding> create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, ::WebGPU::XRBinding& xrBinding, WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu, Ref<IPC::StreamServerConnection>&& streamConnection, WebGPUIdentifier identifier)
-    {
-        return adoptRef(*new RemoteXRBinding(gpuConnectionToWebProcess, xrBinding, objectHeap, gpu, WTF::move(streamConnection), identifier));
-    }
+    static Ref<RemoteXRBinding> create(GPUConnectionToWebProcess&, WebGPUXRBinding&&, WebGPU::ObjectHeap&, RemoteGPU&, Ref<IPC::StreamServerConnection>&&, WebGPUIdentifier);
 
     virtual ~RemoteXRBinding();
 
@@ -65,21 +64,19 @@ public:
 private:
     friend class WebGPU::ObjectHeap;
 
-    RemoteXRBinding(GPUConnectionToWebProcess&, ::WebGPU::XRBinding&, WebGPU::ObjectHeap&, RemoteGPU&, Ref<IPC::StreamServerConnection>&&, WebGPUIdentifier);
+    RemoteXRBinding(GPUConnectionToWebProcess&, WebGPUXRBinding&&, WebGPU::ObjectHeap&, RemoteGPU&, Ref<IPC::StreamServerConnection>&&, WebGPUIdentifier);
 
     RemoteXRBinding(const RemoteXRBinding&) = delete;
     RemoteXRBinding(RemoteXRBinding&&) = delete;
     RemoteXRBinding& operator=(const RemoteXRBinding&) = delete;
     RemoteXRBinding& operator=(RemoteXRBinding&&) = delete;
 
-    ::WebGPU::XRBinding& backing() { return m_backing; }
-
     void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
     void destruct();
     void createProjectionLayer(::WebGPU::TextureFormat, std::optional<::WebGPU::TextureFormat>, OptionSet<::WebGPU::TextureUsage>, double, WebGPUIdentifier);
     void getViewSubImage(WebGPUIdentifier projectionLayerIdentifier, WebGPUIdentifier);
 
-    const Ref<::WebGPU::XRBinding> m_backing;
+    const std::unique_ptr<WebGPUXRBinding> m_binding;
     WeakRef<WebGPU::ObjectHeap> m_objectHeap;
     const Ref<IPC::StreamServerConnection> m_streamConnection;
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;

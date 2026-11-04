@@ -93,6 +93,8 @@ final class WebGPUImplTable {
     let host: WebKit.WebGPUSwiftRegistryHost
     private let instance: InstanceReference
     private var entries: [UInt64: Entry] = [:]
+    // Every device made: work in flight can keep a device alive after its entry is removed.
+    private var devices: [DeviceWeakReference] = []
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
@@ -136,7 +138,7 @@ final class WebGPUImplTable {
     // Makes the receivers of a device that an adapter made, and of its queue.
     @_expose(!Cxx)
     func addDevice(_ device: DeviceReference, _ identifier: UInt64, _ queueIdentifier: UInt64) {
-        host.trackDevice(device.apiObject)
+        devices.append(device.weakReference)
         let receiver = RemoteDevice(device, link: WebGPURegistryLink(self, identifier))
         add(identifier, device, receiver: receiver, registration: WebKit.registerWebGPUSwiftReceiver(host, receiver.getMessageReceiver(), .RemoteDevice, identifier))
         RemoteQueue.add(device.queue, WebGPURegistryLink(self, queueIdentifier))
@@ -151,10 +153,23 @@ final class WebGPUImplTable {
         return WebGPUCompositorCanvas(presentationContext)
     }
 
-    // Makes the receiver of a texture that a C++ receiver made: an XR subimage's.
+    // Makes the receiver of an XR sub-image's current color or depth texture. False if it has none.
     @used
-    func addTexture(_ backing: WebKit.RemoteTextureBacking, _ identifier: UInt64) {
-        RemoteTexture.add(WebGPUSwift.reference(of: backing.get()), WebGPURegistryLink(self, identifier))
+    func addXRSubImageTexture(_ subImage: WebGPUXRSubImage, _ depth: Bool, _ identifier: UInt64) -> Bool {
+        guard let texture = subImage.texture(depth: depth) else {
+            return false
+        }
+        RemoteTexture.add(texture, WebGPURegistryLink(self, identifier))
+        return true
+    }
+
+    // The XR binding of a device whose receiver is making one.
+    @used
+    func createXRBinding(_ deviceIdentifier: UInt64) -> WebGPUXRBinding {
+        guard let device = entries[deviceIdentifier]?.object as? DeviceReference else {
+            preconditionFailure("Only for a device in the registry")
+        }
+        return WebGPUXRBinding(device.createXRBinding())
     }
 
     @used
@@ -162,13 +177,13 @@ final class WebGPUImplTable {
         entries[identifier]?.object is DeviceReference
     }
 
-    // The devices that Swift owns, for the C++ receivers that name them.
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-destroy for every device still alive.
     @used
-    func device(_ identifier: UInt64) -> WebKit.OptionalRemoteDeviceBacking {
-        guard let device = entries[identifier]?.object as? DeviceReference else {
-            return .init()
+    func destroyDevices() {
+        for device in devices {
+            device.destroy()
         }
-        return .init(WebKit.RemoteDeviceBacking(device.apiObject))
+        devices = []
     }
 
     // Whether an object that Swift owns is valid, as WebGPUIntegration::isValid() says for its shell.
@@ -193,6 +208,104 @@ final class WebGPUImplTable {
     }
 
 
+}
+
+// The WebXR objects of a device, as the C++ receivers of their messages hold them. Used on the RemoteGPU's work queue.
+@_expose(Cxx)
+final class WebGPUXRBinding {
+    private let binding: XRBindingReference
+
+    @_expose(!Cxx)
+    init(_ binding: XRBindingReference) {
+        self.binding = binding
+    }
+
+    // The formats are the raw values of ::WebGPU::TextureFormat, and the usage the bits of OptionSet<::WebGPU::TextureUsage>.
+    func createProjectionLayer(
+        _ colorFormat: UInt8,
+        _ hasDepthStencilFormat: Bool,
+        _ depthStencilFormat: UInt8,
+        _ textureUsage: UInt8,
+        _ scaleFactor: Double
+    ) -> WebGPUXRProjectionLayer {
+        WebGPUXRProjectionLayer(
+            binding.createProjectionLayer(
+                colorFormat: textureFormat(colorFormat),
+                depthStencilFormat: hasDepthStencilFormat ? textureFormat(depthStencilFormat) : nil,
+                textureUsage: textureUsage,
+                scaleFactor: scaleFactor
+            )
+        )
+    }
+
+    func getViewSubImage(_ projectionLayer: WebGPUXRProjectionLayer) -> WebGPUXRSubImage {
+        WebGPUXRSubImage(binding.getViewSubImage(projectionLayer.layer))
+    }
+
+    private func textureFormat(_ rawValue: UInt8) -> WebGPU.TextureFormat {
+        guard let format = WebGPU.TextureFormat(rawValue: rawValue) else {
+            preconditionFailure("A texture format that the message decoder accepted")
+        }
+        return format
+    }
+}
+
+@_expose(Cxx)
+final class WebGPUXRProjectionLayer {
+    @_expose(!Cxx)
+    let layer: XRProjectionLayerReference
+
+    @_expose(!Cxx)
+    init(_ layer: XRProjectionLayerReference) {
+        self.layer = layer
+    }
+
+    // The mach ports are the frame's send rights, MACH_PORT_NULL for a buffer that the compositor didn't send.
+    func startFrame(
+        _ frameIndex: UInt64,
+        _ colorBuffer: UInt32,
+        _ depthBuffer: UInt32,
+        _ completionSyncEvent: UInt32,
+        _ reusableTextureIndex: UInt64,
+        _ screenWidth: UInt32,
+        _ screenHeight: UInt32,
+        _ horizontalSamplesLeft: WebGPU.XRRasterizationSamples,
+        _ horizontalSamplesRight: WebGPU.XRRasterizationSamples,
+        _ verticalSamples: WebGPU.XRRasterizationSamples
+    ) {
+        layer.startFrame(
+            frameIndex,
+            colorBuffer: colorBuffer,
+            depthBuffer: depthBuffer,
+            completionSyncEvent: completionSyncEvent,
+            reusableTextureIndex: reusableTextureIndex,
+            screenWidth: screenWidth,
+            screenHeight: screenHeight,
+            horizontalSamplesLeft: horizontalSamplesLeft,
+            horizontalSamplesRight: horizontalSamplesRight,
+            verticalSamples: verticalSamples
+        )
+    }
+}
+
+@_expose(Cxx)
+final class WebGPUXRSubImage {
+    private let subImage: XRSubImageReference?
+
+    @_expose(!Cxx)
+    init(_ subImage: XRSubImageReference?) {
+        self.subImage = subImage
+    }
+
+    // False for the sub-image of a device that has none.
+    func isValid() -> Bool {
+        subImage != nil
+    }
+
+    @_expose(!Cxx)
+    func texture(depth: Bool) -> TextureReference? {
+        depth ? subImage?.depthStencilTexture : subImage?.colorTexture
+    }
 }
 
 // The object a message names, which it must: a message naming one that doesn't exist is invalid.

@@ -34,6 +34,7 @@
 #include <WebCore/PlatformXR.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <WebCore/WebGPUCppAPI.h>
+#include <memory>
 #include <wtf/Ref.h>
 #include <wtf/WeakRef.h>
 #include <wtf/text/WTFString.h>
@@ -61,6 +62,7 @@ class StreamServerConnection;
 namespace WebKit {
 
 class RemoteGPU;
+class WebGPUXRProjectionLayer;
 
 namespace WebGPU {
 class ObjectHeap;
@@ -69,22 +71,19 @@ class ObjectHeap;
 class RemoteXRProjectionLayer final : public IPC::StreamMessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(RemoteXRProjectionLayer);
 public:
-    static Ref<RemoteXRProjectionLayer> create(::WebGPU::XRProjectionLayer& xrProjectionLayer, WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
-    {
-        return adoptRef(*new RemoteXRProjectionLayer(xrProjectionLayer, objectHeap, WTF::move(streamConnection), gpu, identifier));
-    }
+    static Ref<RemoteXRProjectionLayer> create(WebGPUXRProjectionLayer&&, WebGPU::ObjectHeap&, Ref<IPC::StreamServerConnection>&&, RemoteGPU&, WebGPUIdentifier);
 
     virtual ~RemoteXRProjectionLayer();
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const { return m_gpu->sharedPreferencesForWebProcess(); }
     void stopListeningForIPC();
 
-    ::WebGPU::XRProjectionLayer& backing() { return m_backing; }
+    WebGPUXRProjectionLayer& layer() const { return *m_layer; }
 
 private:
     friend class WebGPU::ObjectHeap;
 
-    RemoteXRProjectionLayer(::WebGPU::XRProjectionLayer&, WebGPU::ObjectHeap&, Ref<IPC::StreamServerConnection>&&, RemoteGPU&, WebGPUIdentifier);
+    RemoteXRProjectionLayer(WebGPUXRProjectionLayer&&, WebGPU::ObjectHeap&, Ref<IPC::StreamServerConnection>&&, RemoteGPU&, WebGPUIdentifier);
 
     RemoteXRProjectionLayer(const RemoteXRProjectionLayer&) = delete;
     RemoteXRProjectionLayer(RemoteXRProjectionLayer&&) = delete;
@@ -99,7 +98,7 @@ private:
     NODELETE void endFrame();
     void destroy();
 
-    const Ref<::WebGPU::XRProjectionLayer> m_backing;
+    const std::unique_ptr<WebGPUXRProjectionLayer> m_layer;
     WeakRef<WebGPU::ObjectHeap> m_objectHeap;
     const Ref<IPC::StreamServerConnection> m_streamConnection;
     WebGPUIdentifier m_identifier;

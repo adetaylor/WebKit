@@ -71,13 +71,8 @@ final class RemoteDevice {
         link.remove()
     }
 
-    func createXRBinding(identifier: IPCTypes.WebGPUIdentifier) throws(InvalidMessage) {
-        guard let objects = link.objects else {
-            return
-        }
-        try messageCheck {
-            objects.host.addXRBinding(device.apiObject, identifier.rawValue)
-        }
+    func createXRBinding(identifier: IPCTypes.WebGPUIdentifier) {
+        link.objects?.host.addXRBinding(link.identifier, identifier.rawValue)
     }
 
     func createBuffer(descriptor: IPCTypes.BufferDescriptor, identifier: IPCTypes.WebGPUIdentifier) {

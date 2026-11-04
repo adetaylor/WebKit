@@ -39,7 +39,6 @@
 #include <wtf/Ref.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
 #include <wtf/TZoneMalloc.h>
-#include <wtf/ThreadSafeWeakHashSet.h>
 
 namespace WebCore {
 class WebGPUCompositorIntegration;
@@ -55,6 +54,7 @@ class RemoteXRBinding;
 class RemoteXRProjectionLayer;
 class RemoteXRSubImage;
 class RemoteXRView;
+class WebGPUXRSubImage;
 }
 
 namespace WebKit::WebGPU {
@@ -76,19 +76,20 @@ public:
     void addObject(WebGPUIdentifier, RemoteXRProjectionLayer&);
     void addObject(WebGPUIdentifier, RemoteXRView&);
     // The Swift registry, which owns the objects of the other kinds, makes adapters and canvas contexts for RemoteGPU, and
-    // the receivers of the textures that C++ receivers make.
+    // the receivers of an XR sub-image's textures. False if the sub-image has no such texture.
     std::optional<RemoteGPURequestAdapterResponse> requestAdapter(const ::WebGPU::RequestAdapterOptions&, WebGPUIdentifier);
     void addPresentationContext(WebGPUIdentifier, RemoteCompositorIntegration&);
-    void addTexture(WebGPUIdentifier, ::WebGPU::Texture&);
+    bool addXRSubImageTexture(WebGPUXRSubImage&, bool depth, WebGPUIdentifier);
 
     RefPtr<RemoteCompositorIntegration> compositorIntegration(WebGPUIdentifier);
+    RefPtr<RemoteXRProjectionLayer> xrProjectionLayer(WebGPUIdentifier);
     bool hasDevice(WebGPUIdentifier);
+    // Destroys the devices that are still alive, so that their pending callbacks are called.
+    void destroyDevices();
 
     void removeObject(WebGPUIdentifier);
 
     void clear();
-
-    Vector<Ref<::WebGPU::Device>> devices() const;
 
     RefPtr<::WebGPU::Adapter> convertAdapterFromBacking(WebGPUIdentifier) final;
     RefPtr<::WebGPU::BindGroup> convertBindGroupFromBacking(WebGPUIdentifier) final;
@@ -130,9 +131,6 @@ public:
     void createSwiftImplTable(RemoteGPU&, ::WebGPU::InstanceDescriptor&&);
     WebGPUImplTable& swiftImplTable();
 #endif
-    // Adds a device that Swift owns to those that devices() gives.
-    void trackDevice(::WebGPU::Device&);
-
 private:
     ObjectHeap();
 
@@ -149,8 +147,6 @@ private:
 #if !defined(__swift__)
     std::unique_ptr<WebGPUImplTable> m_swiftImplTable;
 #endif
-    // Every device added that is still alive: work in flight can keep a device alive after its object is removed.
-    ThreadSafeWeakHashSet<::WebGPU::Device> m_devices;
 };
 
 } // namespace WebKit::WebGPU

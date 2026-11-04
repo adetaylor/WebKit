@@ -70,10 +70,6 @@ WebGPUImplTable& ObjectHeap::swiftImplTable()
     return *m_swiftImplTable;
 }
 
-void ObjectHeap::trackDevice(::WebGPU::Device& device)
-{
-    m_devices.add(device);
-}
 
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCompositorIntegration& querySet)
 {
@@ -131,9 +127,23 @@ bool ObjectHeap::hasDevice(WebGPUIdentifier identifier)
     return m_swiftImplTable && m_swiftImplTable->hasDevice(identifier.toUInt64());
 }
 
-void ObjectHeap::addTexture(WebGPUIdentifier identifier, ::WebGPU::Texture& texture)
+bool ObjectHeap::addXRSubImageTexture(WebGPUXRSubImage& subImage, bool depth, WebGPUIdentifier identifier)
 {
-    swiftImplTable().addTexture(RemoteTextureBacking { texture }, identifier.toUInt64());
+    return swiftImplTable().addXRSubImageTexture(subImage, depth, identifier.toUInt64());
+}
+
+RefPtr<RemoteXRProjectionLayer> ObjectHeap::xrProjectionLayer(WebGPUIdentifier identifier)
+{
+    auto iterator = m_objects.find(identifier);
+    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteXRProjectionLayer>>(iterator->value))
+        return nullptr;
+    return std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteXRProjectionLayer>>(iterator->value).get();
+}
+
+void ObjectHeap::destroyDevices()
+{
+    if (m_swiftImplTable)
+        m_swiftImplTable->destroyDevices();
 }
 
 void ObjectHeap::removeObject(WebGPUIdentifier identifier)
@@ -147,11 +157,6 @@ void ObjectHeap::clear()
     m_objects.clear();
     if (m_swiftImplTable)
         m_swiftImplTable->removeAll();
-}
-
-Vector<Ref<::WebGPU::Device>> ObjectHeap::devices() const
-{
-    return m_devices.values();
 }
 
 RefPtr<::WebGPU::Adapter> ObjectHeap::convertAdapterFromBacking(WebGPUIdentifier identifier)
@@ -219,11 +224,9 @@ RefPtr<::WebGPU::ComputePipeline> ObjectHeap::convertComputePipelineFromBacking(
 
 RefPtr<::WebGPU::Device> ObjectHeap::convertDeviceFromBacking(WebGPUIdentifier identifier)
 {
-    // Swift owns devices.
-    if (!m_swiftImplTable)
-        return nullptr;
-    auto device = m_swiftImplTable->device(identifier.toUInt64());
-    return device ? &device->get() : nullptr;
+    // Swift owns devices, and no C++ receiver names one.
+    UNUSED_PARAM(identifier);
+    return nullptr;
 }
 
 ThreadSafeWeakPtr<::WebGPU::ExternalTexture> ObjectHeap::convertExternalTextureFromBacking(WebGPUIdentifier identifier)
@@ -319,34 +322,30 @@ RefPtr<::WebGPU::TextureView> ObjectHeap::convertTextureViewFromBacking(WebGPUId
 
 RefPtr<::WebGPU::XRBinding> ObjectHeap::convertXRBindingFromBacking(WebGPUIdentifier identifier)
 {
-    auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteXRBinding>>(iterator->value))
-        return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteXRBinding>>(iterator->value)->backing();
+    // The WebXR receivers hold Swift objects, which no C++ API object backs.
+    UNUSED_PARAM(identifier);
+    return nullptr;
 }
 
 RefPtr<::WebGPU::XRSubImage> ObjectHeap::convertXRSubImageFromBacking(WebGPUIdentifier identifier)
 {
-    auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteXRSubImage>>(iterator->value))
-        return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteXRSubImage>>(iterator->value)->backing();
+    // The WebXR receivers hold Swift objects, which no C++ API object backs.
+    UNUSED_PARAM(identifier);
+    return nullptr;
 }
 
 RefPtr<::WebGPU::XRProjectionLayer> ObjectHeap::convertXRProjectionLayerFromBacking(WebGPUIdentifier identifier)
 {
-    auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteXRProjectionLayer>>(iterator->value))
-        return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteXRProjectionLayer>>(iterator->value)->backing();
+    // The WebXR receivers hold Swift objects, which no C++ API object backs.
+    UNUSED_PARAM(identifier);
+    return nullptr;
 }
 
 RefPtr<::WebGPU::XRView> ObjectHeap::createXRViewFromBacking(WebGPUIdentifier identifier)
 {
-    auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteXRView>>(iterator->value))
-        return nullptr;
-    return &std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteXRView>>(iterator->value)->backing();
+    // The WebXR receivers hold Swift objects, which no C++ API object backs.
+    UNUSED_PARAM(identifier);
+    return nullptr;
 }
 
 ObjectHeap::ExistsAndValid ObjectHeap::objectExistsAndValid(WebGPUIdentifier identifier) const
@@ -360,14 +359,9 @@ ObjectHeap::ExistsAndValid ObjectHeap::objectExistsAndValid(WebGPUIdentifier ide
         return result;
     }
 
+    // The objects of the C++ receivers are never invalid.
     result.exists = true;
-    result.valid = WTF::switchOn(it->value, [](std::monostate) -> bool {
-        return false;
-    }, [](const IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>&) -> bool {
-        return true;
-    }, [](auto& object) -> bool {
-        return protect(object->backing())->isValid();
-    });
+    result.valid = !std::holds_alternative<std::monostate>(it->value);
     return result;
 }
 

@@ -35,6 +35,7 @@
 #include "RemoteXRSubImage.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
+#include "WebKit-Swift.h"
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/TZoneMalloc.h>
 
@@ -42,8 +43,13 @@ namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteXRBinding);
 
-RemoteXRBinding::RemoteXRBinding(GPUConnectionToWebProcess& gpuConnectionToWebProcess, ::WebGPU::XRBinding& xrBinding, WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu, Ref<IPC::StreamServerConnection>&& streamConnection, WebGPUIdentifier identifier)
-    : m_backing(xrBinding)
+Ref<RemoteXRBinding> RemoteXRBinding::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, WebGPUXRBinding&& binding, WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu, Ref<IPC::StreamServerConnection>&& streamConnection, WebGPUIdentifier identifier)
+{
+    return adoptRef(*new RemoteXRBinding(gpuConnectionToWebProcess, WTF::move(binding), objectHeap, gpu, WTF::move(streamConnection), identifier));
+}
+
+RemoteXRBinding::RemoteXRBinding(GPUConnectionToWebProcess& gpuConnectionToWebProcess, WebGPUXRBinding&& binding, WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu, Ref<IPC::StreamServerConnection>&& streamConnection, WebGPUIdentifier identifier)
+    : m_binding(makeUniqueWithoutFastMallocCheck<WebGPUXRBinding>(WTF::move(binding)))
     , m_objectHeap(objectHeap)
     , m_streamConnection(WTF::move(streamConnection))
     , m_gpuConnectionToWebProcess(gpuConnectionToWebProcess)
@@ -62,39 +68,27 @@ void RemoteXRBinding::destruct()
 
 void RemoteXRBinding::createProjectionLayer(::WebGPU::TextureFormat colorFormat, std::optional<::WebGPU::TextureFormat> depthStencilFormat, OptionSet<::WebGPU::TextureUsage> textureUsage, double scaleFactor, WebGPUIdentifier identifier)
 {
-    ::WebGPU::XRProjectionLayerDescriptor init {
-        .colorFormat = colorFormat,
-        .depthStencilFormat = WTF::move(depthStencilFormat),
-        .textureUsage = textureUsage,
-        .scaleFactor = scaleFactor
-    };
-    RefPtr projectionLayer = protect(m_backing)->createProjectionLayer(WTF::move(init));
-    if (!projectionLayer) {
-        // FIXME: Add MESSAGE_CHECK call
-        return;
-    }
-
     Ref objectHeap = m_objectHeap.get();
-    Ref remoteProjectionLayer = RemoteXRProjectionLayer::create(*projectionLayer, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
+    Ref remoteProjectionLayer = RemoteXRProjectionLayer::create(m_binding->createProjectionLayer(std::to_underlying(colorFormat), depthStencilFormat.has_value(), std::to_underlying(depthStencilFormat.value_or(colorFormat)), textureUsage.toRaw(), scaleFactor), objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteProjectionLayer);
 }
 
 void RemoteXRBinding::getViewSubImage(WebGPUIdentifier projectionLayerIdentifier, WebGPUIdentifier identifier)
 {
     Ref objectHeap = m_objectHeap.get();
-    RefPtr projectionLayer = objectHeap->convertXRProjectionLayerFromBacking(projectionLayerIdentifier);
+    RefPtr projectionLayer = objectHeap->xrProjectionLayer(projectionLayerIdentifier);
     if (!projectionLayer) {
         // FIXME: Add MESSAGE_CHECK call
         return;
     }
 
-    RefPtr subImage = protect(m_backing)->getViewSubImage(*projectionLayer);
-    if (!subImage) {
+    auto subImage = m_binding->getViewSubImage(projectionLayer->layer());
+    if (!subImage.isValid()) {
         // FIXME: Add MESSAGE_CHECK call
         return;
     }
 
-    Ref remoteSubImage = RemoteXRSubImage::create(*m_gpuConnectionToWebProcess.get(), *subImage, objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
+    Ref remoteSubImage = RemoteXRSubImage::create(*m_gpuConnectionToWebProcess.get(), WTF::move(subImage), objectHeap, protect(m_streamConnection), protect(m_gpu), identifier);
     objectHeap->addObject(identifier, remoteSubImage);
 }
 

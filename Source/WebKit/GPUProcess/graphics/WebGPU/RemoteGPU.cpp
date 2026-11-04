@@ -173,8 +173,7 @@ void RemoteGPU::workQueueUninitialize()
     performWorkScheduledWhileStopping(WorkQueueState::Stopping);
     // Once the work queue stops, nothing can run the work that would call the callbacks pending on the
     // devices' queues, so destroying the devices calls them now.
-    for (Ref device : m_objectHeap->devices())
-        device->destroy();
+    m_objectHeap->destroyDevices();
     m_objectHeap->clear();
     m_modelObjectHeap->clear();
 }

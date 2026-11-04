@@ -33,6 +33,7 @@
 #include "RemoteXRSubImageMessages.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
+#include "WebKit-Swift.h"
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/TZoneMalloc.h>
 
@@ -42,8 +43,13 @@ namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteXRSubImage);
 
-RemoteXRSubImage::RemoteXRSubImage(GPUConnectionToWebProcess& gpuConnectionToWebProcess, ::WebGPU::XRSubImage& xrSubImage, WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
-    : m_backing(xrSubImage)
+Ref<RemoteXRSubImage> RemoteXRSubImage::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, WebGPUXRSubImage&& subImage, WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
+{
+    return adoptRef(*new RemoteXRSubImage(gpuConnectionToWebProcess, WTF::move(subImage), objectHeap, WTF::move(streamConnection), gpu, identifier));
+}
+
+RemoteXRSubImage::RemoteXRSubImage(GPUConnectionToWebProcess& gpuConnectionToWebProcess, WebGPUXRSubImage&& subImage, WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
+    : m_subImage(makeUniqueWithoutFastMallocCheck<WebGPUXRSubImage>(WTF::move(subImage)))
     , m_objectHeap(objectHeap)
     , m_streamConnection(WTF::move(streamConnection))
     , m_gpuConnectionToWebProcess(gpuConnectionToWebProcess)
@@ -62,26 +68,18 @@ void RemoteXRSubImage::destruct()
 
 void RemoteXRSubImage::getColorTexture(WebGPUIdentifier identifier)
 {
-    auto texture = protect(m_backing)->colorTexture();
-    ASSERT(texture);
-    auto connection = m_gpuConnectionToWebProcess.get();
-    if (!texture || !connection)
+    if (!m_gpuConnectionToWebProcess.get())
         return;
-
-    Ref objectHeap = m_objectHeap.get();
-    objectHeap->addTexture(identifier, *texture);
+    bool hasTexture = protect(m_objectHeap)->addXRSubImageTexture(*m_subImage, false, identifier);
+    ASSERT_UNUSED(hasTexture, hasTexture);
 }
 
 void RemoteXRSubImage::getDepthTexture(WebGPUIdentifier identifier)
 {
-    auto texture = protect(m_backing)->depthStencilTexture();
-    ASSERT(texture);
-    auto connection = m_gpuConnectionToWebProcess.get();
-    if (!texture || !connection)
+    if (!m_gpuConnectionToWebProcess.get())
         return;
-
-    Ref objectHeap = m_objectHeap.get();
-    objectHeap->addTexture(identifier, *texture);
+    bool hasTexture = protect(m_objectHeap)->addXRSubImageTexture(*m_subImage, true, identifier);
+    ASSERT_UNUSED(hasTexture, hasTexture);
 }
 
 void RemoteXRSubImage::stopListeningForIPC()

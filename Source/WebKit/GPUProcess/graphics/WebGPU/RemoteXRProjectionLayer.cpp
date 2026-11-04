@@ -33,6 +33,7 @@
 #include "RemoteXRProjectionLayerMessages.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
+#include "WebKit-Swift.h"
 #include <WebCore/PlatformXR.h>
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/MachSendRight.h>
@@ -44,8 +45,13 @@ namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteXRProjectionLayer);
 
-RemoteXRProjectionLayer::RemoteXRProjectionLayer(::WebGPU::XRProjectionLayer& xrProjectionLayer, WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
-    : m_backing(xrProjectionLayer)
+Ref<RemoteXRProjectionLayer> RemoteXRProjectionLayer::create(WebGPUXRProjectionLayer&& layer, WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
+{
+    return adoptRef(*new RemoteXRProjectionLayer(WTF::move(layer), objectHeap, WTF::move(streamConnection), gpu, identifier));
+}
+
+RemoteXRProjectionLayer::RemoteXRProjectionLayer(WebGPUXRProjectionLayer&& layer, WebGPU::ObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, RemoteGPU& gpu, WebGPUIdentifier identifier)
+    : m_layer(makeUniqueWithoutFastMallocCheck<WebGPUXRProjectionLayer>(WTF::move(layer)))
     , m_objectHeap(objectHeap)
     , m_streamConnection(WTF::move(streamConnection))
     , m_identifier(identifier)
@@ -65,7 +71,7 @@ void RemoteXRProjectionLayer::destruct()
 void RemoteXRProjectionLayer::startFrame(uint64_t frameIndex, MachSendRight&& colorBuffer, MachSendRight&& depthBuffer, MachSendRight&& completionSyncEvent, uint64_t reusableTextureIndex, PlatformXR::RateMapDescription&& rateMapDescription)
 {
 #if ENABLE(WEBXR)
-    protect(m_backing)->startFrame(frameIndex, WTF::move(colorBuffer), WTF::move(depthBuffer), WTF::move(completionSyncEvent), reusableTextureIndex, rateMapDescription.screenSize.width(), rateMapDescription.screenSize.height(), WTF::move(rateMapDescription.horizontalSamplesLeft), WTF::move(rateMapDescription.horizontalSamplesRight), WTF::move(rateMapDescription.verticalSamples));
+    m_layer->startFrame(frameIndex, colorBuffer.sendRight(), depthBuffer.sendRight(), completionSyncEvent.sendRight(), reusableTextureIndex, rateMapDescription.screenSize.width(), rateMapDescription.screenSize.height(), { rateMapDescription.horizontalSamplesLeft.span() }, { rateMapDescription.horizontalSamplesRight.span() }, { rateMapDescription.verticalSamples.span() });
 #else
     UNUSED_PARAM(frameIndex);
     UNUSED_PARAM(colorBuffer);

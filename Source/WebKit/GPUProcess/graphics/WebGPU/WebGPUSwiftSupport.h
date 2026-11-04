@@ -76,10 +76,8 @@ public:
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
     RefPtr<IPC::StreamServerConnection> streamConnection() const;
 
-    // Makes the device's XR binding, and its receiver. False if the device makes none.
-    bool addXRBinding(::WebGPU::Device&, uint64_t identifier) const;
-    // Adds a device to those that RemoteGPU destroys when its work queue stops.
-    void trackDevice(::WebGPU::Device&) const;
+    // Makes the receiver of the XR binding of the device with that identifier.
+    void addXRBinding(uint64_t deviceIdentifier, uint64_t identifier) const;
 
 #if PLATFORM(COCOA)
     // The source of a queue's CopyExternalImageToTexture message, as WebCore's WebGPU integration copies from it: the
@@ -205,42 +203,19 @@ private:
     CompletionHandler<void()> m_completionHandler;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
-// The C++ API objects that Swift receivers and the registry pass to C++, and that C++ passes to them. Swift can't
-// name the ::WebGPU types in the C++ it generates: it names them WebGPU::..., which inside namespace WebKit means
-// WebKit::WebGPU::....
+// Swift can't name the ::WebGPU types in the C++ it generates: it names them WebGPU::..., which inside namespace WebKit
+// means WebKit::WebGPU::.... So the ones that the Swift that C++ calls takes have aliases there.
+namespace WebGPU {
+using XRRasterizationSamples = ::WebGPU::XRRasterizationSamples;
+}
+
 using OptionalOwnedBytes = std::optional<::WebGPU::OwnedBytes>;
 
 // The bytes of the shared memory that a message's handle names, mapped read-only, for a write that may read them after
 // it returns. std::nullopt if there's none, or no more than the message could have carried in the stream.
 OptionalOwnedBytes mapSharedMemory(IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>&);
 
-class RemoteDeviceBacking {
-public:
-    explicit RemoteDeviceBacking(::WebGPU::Device& backing)
-        : m_backing(backing)
-    {
-    }
 
-    ::WebGPU::Device& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::Device> m_backing;
-} SWIFT_SELF_CONTAINED;
-
-using OptionalRemoteDeviceBacking = std::optional<RemoteDeviceBacking>;
-
-class RemoteTextureBacking {
-public:
-    explicit RemoteTextureBacking(::WebGPU::Texture& backing)
-        : m_backing(backing)
-    {
-    }
-
-    ::WebGPU::Texture& get() const SWIFT_RETURNS_UNRETAINED { return m_backing; }
-
-private:
-    Ref<::WebGPU::Texture> m_backing;
-} SWIFT_SELF_CONTAINED;
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 // A device receiver's reader of the video frames that the web process shares with it, and its imports of video frames
