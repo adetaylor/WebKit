@@ -35,8 +35,15 @@ private let encodedLayoutByteCount = 32
 
 // The functions C++ calls take and return CoreVideo's CVBuffer: WebCore's own CVPixelBufferRef declarations make
 // CVPixelBuffer resolve differently in the generated header than in the compiled Swift.
+#if BUILDING_WITH_CMAKE
+// Apple CMake builds import CVPixelBuffer as a class of its own, which the CoreVideo functions below take.
+typealias SharedVideoFramePixelBuffer = CVPixelBuffer
+#else
+typealias SharedVideoFramePixelBuffer = CVBuffer
+#endif
+
 @_expose(Cxx)
-func sharedVideoFrameLayout(_ pixelBuffer: CVBuffer?) -> WebCore.SharedVideoFrameLayout {
+func sharedVideoFrameLayout(_ pixelBuffer: SharedVideoFramePixelBuffer?) -> WebCore.SharedVideoFrameLayout {
     var layout = WebCore.SharedVideoFrameLayout()
     guard let pixelBuffer else {
         return layout
@@ -376,7 +383,7 @@ func sharedVideoFrameCreatePixelBuffer(
     _ layout: WebCore.SharedVideoFrameLayout,
     _ source: borrowing WebCore.PixelBytes,
     _ pool: CVPixelBufferPool?
-) -> CVBuffer? {
+) -> SharedVideoFramePixelBuffer? {
     let bytes: Span<UInt8> = source.span()
     guard encodedPlanesFillFrame(layout, byteCount: bytes.count) else {
         return nil
@@ -440,7 +447,7 @@ private func appendPlane(
 @_expose(Cxx)
 func sharedVideoFrameWritePixelBuffer(
     _ layout: WebCore.SharedVideoFrameLayout,
-    _ pixelBuffer: CVBuffer?,
+    _ pixelBuffer: SharedVideoFramePixelBuffer?,
     headerSize: UInt,
     _ destination: inout WebCore.MutablePixelBytes
 ) -> WebCore.SharedVideoFrameWriteResult {
