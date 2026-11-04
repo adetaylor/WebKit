@@ -150,6 +150,10 @@ final class BufferImpl {
     @_expose(!Cxx)
     var tracking = EncoderTracking()
     private var drawIndexedCache = WTFHashMap<DrawIndexKey, DrawIndexValidationEntry>()
+    // Whether drawIndexedCache and skippedValidationEncoders may be non-empty. Every index write reads them, and unlike the
+    // containers these plain flags are read without a dynamic exclusivity check.
+    private var drawIndexedCacheHasEntries = false
+    private var hasSkippedValidationEncoders = false
     // The bind groups and render bundles that hold the buffer.
     private var bindGroupHolders = WeakImplList<BindGroupImpl>()
     private var renderBundleHolders = WeakImplList<RenderBundleImpl>()
@@ -459,7 +463,7 @@ final class BufferImpl {
     func needsIndexValidation(_ maxUInt32Index: UInt32, _ maxUInt16Index: UInt16) -> Bool {
         // Nothing has been validated since the last invalidation, so there is no cached verdict whose
         // assumptions a write could break.
-        if drawIndexedCache.isEmpty {
+        if !drawIndexedCacheHasEntries {
             return true
         }
 
@@ -547,12 +551,16 @@ final class BufferImpl {
         }
 
         drawIndexedCache.set(key, DrawIndexValidationEntry(vertexCount: vertexCount, indexContentsGeneration: validationGeneration))
+        drawIndexedCacheHasEntries = true
 
         minValidatedVertexCount = min(minValidatedVertexCount, vertexCount)
     }
 
     private func clearDrawIndexedCache() {
-        drawIndexedCache.removeAll()
+        if drawIndexedCacheHasEntries {
+            drawIndexedCache.removeAll()
+            drawIndexedCacheHasEntries = false
+        }
         minValidatedVertexCount = .max
     }
 
@@ -585,6 +593,7 @@ final class BufferImpl {
     @_expose(!Cxx)
     func skippedDrawIndexedValidation(_ encoder: CommandEncoderImpl, _ key: DrawIndexKey, vertexCount: UInt32) {
         _ = skippedValidationEncoders.add(encoder)
+        hasSkippedValidationEncoders = true
         let cachedVertexCount = drawIndexedCache.value(forKey: key)?.vertexCount ?? vertexCount
         encoder.recordSkippedDrawIndexedValidation(self, key, vertexCount: cachedVertexCount)
     }
@@ -614,11 +623,14 @@ final class BufferImpl {
             return
         }
 
-        let currentSize = skippedValidationEncoders.liveCount()
-        if currentSize != 0 {
-            let validationNotNeeded = currentSize == 1 && encoder != nil && skippedValidationEncoders.firstLive === encoder
-            if !validationNotNeeded {
-                backingMustTakeSlowIndexValidationPath = true
+        if hasSkippedValidationEncoders {
+            let currentSize = skippedValidationEncoders.liveCount()
+            hasSkippedValidationEncoders = currentSize != 0
+            if currentSize != 0 {
+                let validationNotNeeded = currentSize == 1 && encoder != nil && skippedValidationEncoders.firstLive === encoder
+                if !validationNotNeeded {
+                    backingMustTakeSlowIndexValidationPath = true
+                }
             }
         }
 
@@ -629,11 +641,14 @@ final class BufferImpl {
     @_expose(!Cxx)
     func removeSkippedValidationCommandEncoder(_ encoder: CommandEncoderImpl) {
         skippedValidationEncoders.remove(encoder)
+        hasSkippedValidationEncoders = !skippedValidationEncoders.isEmpty
     }
 
     @_expose(!Cxx)
     func clearMustTakeSlowIndexValidationPath() {
-        if skippedValidationEncoders.liveCount() != 0 {
+        let liveCount = skippedValidationEncoders.liveCount()
+        hasSkippedValidationEncoders = liveCount != 0
+        if liveCount != 0 {
             return
         }
         backingMustTakeSlowIndexValidationPath = false

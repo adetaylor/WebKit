@@ -195,9 +195,20 @@ private enum WriteStorage {
     case unsupported
 }
 
-private func writeStorage(_ resource: (any MTLResource)?) -> WriteStorage {
-    // A nil resource counts as shared.
-    let storageMode = resource?.storageMode ?? .shared
+// A nil resource counts as shared.
+private func storageMode(_ resource: (any MTLResource)?) -> MTLStorageMode {
+    resource?.storageMode ?? .shared
+}
+
+private func isManaged(_ storageMode: MTLStorageMode) -> Bool {
+    #if WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST
+    storageMode == deprecatedManagedStorageMode
+    #else
+    false
+    #endif
+}
+
+private func writeStorage(_ storageMode: MTLStorageMode) -> WriteStorage {
     #if WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST
     if storageMode == deprecatedManagedStorageMode {
         return .cpu
@@ -1262,44 +1273,26 @@ final class QueueImpl {
         return true
     }
 
+    // writeBuffer() up to staging: the validation, the index bookkeeping and the write of an idle CPU-visible buffer. False
+    // when the write still has to be staged (stageBufferWrite, stageBufferWriteFromOwner). It takes no shells: Swift
+    // retains the imported reference types it is passed, which the CPU path does not need.
     @_expose(Cxx)
-    func writeBuffer(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
+    func writeBufferWithoutStaging(
         _ deviceImpl: DeviceImpl,
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
         _ data: WebGPU.Metal.QueueBytes
-    ) {
+    ) -> Bool {
         let bytes: Span<UInt8> = data.span()
-        writeBuffer(queue, device, deviceImpl, bufferImpl, bufferOffset, bytes: bytes, nil)
+        return writeBufferWithoutStaging(deviceImpl, bufferImpl, bufferOffset, bytes: bytes)
     }
 
-    // writeBuffer() of all of `owner`'s bytes, `data`.
-    @_expose(Cxx)
-    func writeBufferFromOwner(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
+    private func writeBufferWithoutStaging(
         _ deviceImpl: DeviceImpl,
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
-        _ data: WebGPU.Metal.QueueBytes,
-        _ owner: WebGPU.ByteOwner
-    ) {
-        let bytes: Span<UInt8> = data.span()
-        writeBuffer(queue, device, deviceImpl, bufferImpl, bufferOffset, bytes: bytes, AliasableBytes(owner))
-    }
-
-    // `aliasable` owns exactly `data`.
-    private func writeBuffer(
-        _ queue: WebGPU.Metal.Queue,
-        _ device: WebGPU.Metal.Device,
-        _ deviceImpl: DeviceImpl,
-        _ bufferImpl: BufferImpl,
-        _ bufferOffset: UInt64,
-        bytes data: Span<UInt8>,
-        _ aliasable: AliasableBytes?
-    ) {
+        bytes data: Span<UInt8>
+    ) -> Bool {
         // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer
 
         let dataSize = data.count
@@ -1307,16 +1300,16 @@ final class QueueImpl {
             || !isValidToUse(bufferImpl.isValid(), bufferImpl.deviceImpl, deviceImpl)
         {
             deviceImpl.generateAValidationError("Validation failure.")
-            return
+            return true
         }
 
         if data.isEmpty {
-            return
+            return true
         }
 
         if bufferImpl.isDestroyed() {
             deviceImpl.generateAValidationError("GPUQueue.writeBuffer: destination buffer is destroyed")
-            return
+            return true
         }
 
         // FIXME(PERFORMANCE): Instead of checking whether or not the whole queue is idle,
@@ -1335,18 +1328,19 @@ final class QueueImpl {
             bufferImpl.indirectBufferInvalidatedWithoutEncoder()
         }
         if isIdle() {
-            switch writeStorage(bufferImpl.buffer()) {
+            let bufferStorageMode = storageMode(bufferImpl.buffer())
+            switch writeStorage(bufferStorageMode) {
             case .cpu:
-                WebGPU.Metal.writeBufferContents(bufferImpl.buffer(), bufferOffset, data)
-                return
+                WebGPU.Metal.writeBufferContents(bufferImpl.buffer(), bufferOffset, data, isManaged(bufferStorageMode))
+                return true
             case .gpu:
                 break
             case .unsupported:
                 assertionFailure()
-                return
+                return true
             }
         }
-        stageBufferWrite(queue, device, deviceImpl, bufferImpl.buffer(), bufferOffset, bytes: data, aliasable)
+        return false
     }
 
     private func temporaryBufferNeedsReplacement(_ dataSize: UInt64) -> Bool {
@@ -1426,6 +1420,21 @@ final class QueueImpl {
     ) {
         let bytes: Span<UInt8> = data.span()
         stageBufferWrite(queue, device, deviceImpl, buffer, bufferOffset, bytes: bytes, nil)
+    }
+
+    // stageBufferWrite() of all of `owner`'s bytes, `data`, which a large write reads in place.
+    @_expose(Cxx)
+    func stageBufferWriteFromOwner(
+        _ queue: WebGPU.Metal.Queue,
+        _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
+        _ buffer: (any MTLBuffer)?,
+        _ bufferOffset: UInt64,
+        _ data: WebGPU.Metal.QueueBytes,
+        _ owner: WebGPU.ByteOwner
+    ) {
+        let bytes: Span<UInt8> = data.span()
+        stageBufferWrite(queue, device, deviceImpl, buffer, bufferOffset, bytes: bytes, AliasableBytes(owner))
     }
 
     @_expose(!Cxx)
@@ -2345,7 +2354,7 @@ final class QueueImpl {
         // FIXME(PERFORMANCE): Instead of checking whether or not the whole queue is idle,
         // we could detect whether this specific resource is idle, if we tracked every resource.
         if isIdle() && options.isEmpty && !clearWasNeeded {
-            switch writeStorage(mtlTexture) {
+            switch writeStorage(storageMode(mtlTexture)) {
             case .cpu:
                 switch textureDimension {
                 case WebGPU.TextureDimension._1d:
