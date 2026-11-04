@@ -80,6 +80,11 @@
 #include "RemoteCDMSwiftSupport.h"
 #endif
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererMessages.h"
+#include <WebCore/CGRendererSwiftBridge.h>
+#endif
+
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 #include "RemoteBindGroupMessages.h"
 #include "RemoteQuerySetMessages.h"

@@ -31,6 +31,12 @@
 #include "Logging.h"
 #include "RemoteGraphicsContextMessages.h"
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "HandleMessage.h"
+#include "RemoteCGRendererMessages.h"
+#include "WebKit-Swift.h"
+#endif
+
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_renderingBackend->streamConnection());
 
 namespace WebKit {
@@ -54,13 +60,102 @@ RemoteImageBufferGraphicsContext::~RemoteImageBufferGraphicsContext() = default;
 
 void RemoteImageBufferGraphicsContext::startListeningForIPC()
 {
-    m_renderingBackend->streamConnection().startReceivingMessages(*this, Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
+    auto& streamConnection = m_renderingBackend->streamConnection();
+    streamConnection.startReceivingMessages(*this, Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    if (RefPtr shellState = context().swiftReceiverState()) {
+        m_cgRendererShellState = shellState;
+        m_cgRenderer = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRenderer>(RemoteCGRenderer::init(shellState.get()));
+        Ref forwarder = m_cgRenderer->getMessageReceiver();
+        forwarder->setStateLender(*this);
+        streamConnection.startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+    } else
+        streamConnection.startReceivingMessages(*this, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+#endif
 }
 
 void RemoteImageBufferGraphicsContext::stopListeningForIPC()
 {
-    m_renderingBackend->streamConnection().stopReceivingMessages(Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
+    auto& streamConnection = m_renderingBackend->streamConnection();
+    streamConnection.stopReceivingMessages(Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    streamConnection.stopReceivingMessages(Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+    m_cgRenderer = nullptr;
+#endif
 }
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
+void RemoteImageBufferGraphicsContext::didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder)
+{
+    if (decoder.messageReceiverName() == Messages::RemoteCGRenderer::messageReceiverName()) {
+        didReceiveCGRendererMessage(connection, decoder);
+        return;
+    }
+    RemoteGraphicsContext::didReceiveStreamMessage(connection, decoder);
+}
+
+void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder)
+{
+#define HANDLE_CG_RENDERER_MESSAGE(message, function) \
+    if (decoder.messageName() == Messages::RemoteCGRenderer::message::name()) { \
+        IPC::handleMessage<Messages::RemoteCGRenderer::message>(connection, decoder, this, function); \
+        return; \
+    }
+    HANDLE_CG_RENDERER_MESSAGE(Save, &RemoteGraphicsContext::save)
+    HANDLE_CG_RENDERER_MESSAGE(Restore, &RemoteGraphicsContext::restore)
+    HANDLE_CG_RENDERER_MESSAGE(Translate, &RemoteGraphicsContext::translate)
+    HANDLE_CG_RENDERER_MESSAGE(Rotate, &RemoteGraphicsContext::rotate)
+    HANDLE_CG_RENDERER_MESSAGE(Scale, &RemoteGraphicsContext::scale)
+    HANDLE_CG_RENDERER_MESSAGE(SetCTM, &RemoteGraphicsContext::setCTM)
+    HANDLE_CG_RENDERER_MESSAGE(ConcatCTM, &RemoteGraphicsContext::concatCTM)
+    HANDLE_CG_RENDERER_MESSAGE(SetFillPackedColor, &RemoteImageBufferGraphicsContext::setFillPackedColorValue)
+    HANDLE_CG_RENDERER_MESSAGE(SetStrokePackedColor, &RemoteImageBufferGraphicsContext::setStrokePackedColorValue)
+    HANDLE_CG_RENDERER_MESSAGE(SetStrokePackedColorAndThickness, &RemoteImageBufferGraphicsContext::setStrokePackedColorValueAndThickness)
+    HANDLE_CG_RENDERER_MESSAGE(SetFillRule, &RemoteGraphicsContext::setFillRule)
+    HANDLE_CG_RENDERER_MESSAGE(SetStrokeThickness, &RemoteGraphicsContext::setStrokeThickness)
+    HANDLE_CG_RENDERER_MESSAGE(SetStrokeStyle, &RemoteGraphicsContext::setStrokeStyle)
+    HANDLE_CG_RENDERER_MESSAGE(SetCompositeMode, &RemoteGraphicsContext::setCompositeMode)
+    HANDLE_CG_RENDERER_MESSAGE(SetAlpha, &RemoteGraphicsContext::setAlpha)
+    HANDLE_CG_RENDERER_MESSAGE(SetImageInterpolationQuality, &RemoteGraphicsContext::setImageInterpolationQuality)
+    HANDLE_CG_RENDERER_MESSAGE(SetShouldAntialias, &RemoteGraphicsContext::setShouldAntialias)
+    HANDLE_CG_RENDERER_MESSAGE(SetShouldSmoothFonts, &RemoteGraphicsContext::setShouldSmoothFonts)
+    HANDLE_CG_RENDERER_MESSAGE(SetShouldSubpixelQuantizeFonts, &RemoteGraphicsContext::setShouldSubpixelQuantizeFonts)
+    HANDLE_CG_RENDERER_MESSAGE(SetLineCap, &RemoteGraphicsContext::setLineCap)
+    HANDLE_CG_RENDERER_MESSAGE(SetLineJoin, &RemoteGraphicsContext::setLineJoin)
+    HANDLE_CG_RENDERER_MESSAGE(SetMiterLimit, &RemoteGraphicsContext::setMiterLimit)
+    HANDLE_CG_RENDERER_MESSAGE(Clip, &RemoteGraphicsContext::clip)
+    HANDLE_CG_RENDERER_MESSAGE(ClipOut, &RemoteGraphicsContext::clipOut)
+    HANDLE_CG_RENDERER_MESSAGE(ResetClip, &RemoteGraphicsContext::resetClip)
+    HANDLE_CG_RENDERER_MESSAGE(DrawLine, &RemoteGraphicsContext::drawLine)
+    HANDLE_CG_RENDERER_MESSAGE(FillRect, &RemoteGraphicsContext::fillRect)
+    HANDLE_CG_RENDERER_MESSAGE(FillEllipse, &RemoteGraphicsContext::fillEllipse)
+    HANDLE_CG_RENDERER_MESSAGE(StrokeRect, &RemoteGraphicsContext::strokeRect)
+    HANDLE_CG_RENDERER_MESSAGE(StrokeEllipse, &RemoteGraphicsContext::strokeEllipse)
+    HANDLE_CG_RENDERER_MESSAGE(ClearRect, &RemoteGraphicsContext::clearRect)
+    HANDLE_CG_RENDERER_MESSAGE(ApplyStrokePattern, &RemoteGraphicsContext::applyStrokePattern)
+    HANDLE_CG_RENDERER_MESSAGE(ApplyFillPattern, &RemoteGraphicsContext::applyFillPattern)
+#undef HANDLE_CG_RENDERER_MESSAGE
+    RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
+    decoder.markInvalid();
+}
+
+void RemoteImageBufferGraphicsContext::setFillPackedColorValue(uint32_t color)
+{
+    setFillPackedColor(WebCore::PackedColor::RGBA { color });
+}
+
+void RemoteImageBufferGraphicsContext::setStrokePackedColorValue(uint32_t color)
+{
+    setStrokePackedColor(WebCore::PackedColor::RGBA { color });
+}
+
+void RemoteImageBufferGraphicsContext::setStrokePackedColorValueAndThickness(uint32_t color, float thickness)
+{
+    setStrokePackedColorAndThickness(WebCore::PackedColor::RGBA { color }, thickness);
+}
+
+#endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 void RemoteImageBufferGraphicsContext::drawImageBuffer(RenderingResourceIdentifier imageBufferIdentifier, const FloatRect& destinationRect, const FloatRect& srcRect, RasterDrawingOptions options)
 {

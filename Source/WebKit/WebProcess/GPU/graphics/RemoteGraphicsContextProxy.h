@@ -212,6 +212,10 @@ private:
     RefPtr<IPC::StreamClientConnection> m_connection;
     WeakPtr<RemoteRenderingBackendProxy> m_renderingBackend;
     std::optional<WebCore::ContentsFormat> m_contentsFormat;
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // An image buffer's: the GPU process takes RemoteCGRenderer's messages for it.
+    bool m_drawsWithCGRendererReceiver { false };
+#endif
     ThreadSafeWeakPtr<RemoteImageBufferProxy> m_client;
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     Lock m_sharedVideoFrameWriterLock;

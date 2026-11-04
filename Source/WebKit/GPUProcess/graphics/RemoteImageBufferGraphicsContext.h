@@ -29,7 +29,15 @@
 
 #include "RemoteGraphicsContext.h"
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include <WebCore/GraphicsContextCG.h>
+#endif
+
 namespace WebKit {
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+class RemoteCGRenderer;
+#endif
 
 // RemoteGraphicsContext playing back the IPC GraphicsContext drawing commands to a GraphicsContext of an ImageBuffer.
 // Used to create renderings to the ImageBuffer.
@@ -42,12 +50,34 @@ public:
     void drawImageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier, const WebCore::FloatRect& destinationRect, const WebCore::FloatRect& srcRect, WebCore::RasterDrawingOptions) final;
     bool drawsInto(const WebCore::ImageBuffer& imageBuffer) const final { return &imageBuffer == m_imageBuffer.ptr(); }
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // RemoteCGRenderer's handlers' state, the context's renderer, which the context lends for one message.
+    WebCore::GraphicsContextCG::SwiftRendererLend lendSwiftReceiverState() const { return WebCore::GraphicsContextCG::lendSwiftRenderer(*m_cgRendererShellState); }
+#endif
+
+
 private:
     RemoteImageBufferGraphicsContext(WebCore::ImageBuffer&, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&);
     void startListeningForIPC();
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
+    // RemoteCGRenderer's messages, for a context without a Swift renderer: drawn through the context, as
+    // RemoteGraphicsContext's.
+    void didReceiveCGRendererMessage(IPC::StreamServerConnection&, IPC::Decoder&);
+    void setFillPackedColorValue(uint32_t);
+    void setStrokePackedColorValue(uint32_t);
+    void setStrokePackedColorValueAndThickness(uint32_t, float);
+#endif
+
     const Ref<WebCore::ImageBuffer> m_imageBuffer;
     const RemoteGraphicsContextIdentifier m_identifier;
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // Takes RemoteCGRenderer's messages when the context draws with a Swift renderer, which it lends their handlers. Used
+    // only on the work queue.
+    std::unique_ptr<RemoteCGRenderer> m_cgRenderer;
+    RefPtr<CGRendererShellState> m_cgRendererShellState;
+#endif
 };
 
 } // namespace WebKit

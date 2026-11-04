@@ -213,6 +213,9 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCDMInstanceSessionProxyMes
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCDMProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCDMProxyMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCDMProxyMessages.h
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCGRendererMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCGRendererMessageReceiver.swift
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCGRendererMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCaptureSampleManagerMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCaptureSampleManagerMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteCommandBufferMessageReceiver.cpp

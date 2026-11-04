@@ -1,0 +1,72 @@
+# Copyright (C) 2021-2024 Apple Inc. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1.  Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+# 2.  Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#if ENABLE(GPU_PROCESS) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
+# The RemoteGraphicsContext messages that an image buffer's context takes in Swift, drawing with its Swift CG renderer
+# directly (RemoteCGRenderer.swift), which RemoteImageBufferGraphicsContext lends each handler. They share the stream and
+# the destination with the image buffer's RemoteGraphicsContext, which takes the rest, so they stay in order with them.
+# The renderer declines some draws, which go back to RemoteImageBufferGraphicsContext.
+[
+    ExceptionForEnabledBy,
+    DispatchedFrom=WebContent,
+    DispatchedTo=GPU,
+    SwiftReceiver,
+    SwiftReceiverStateLender=WebKit::RemoteImageBufferGraphicsContext
+]
+messages -> RemoteCGRenderer Stream {
+    Save() StreamBatched
+    Restore() StreamBatched
+    Translate(float x, float y) StreamBatched
+    Rotate(float angle) StreamBatched
+    Scale(WebCore::FloatSize scale) StreamBatched
+    SetCTM(WebCore::AffineTransform ctm) StreamBatched
+    ConcatCTM(WebCore::AffineTransform ctm) StreamBatched
+    SetFillPackedColor(uint32_t color) StreamBatched
+    SetStrokePackedColor(uint32_t color) StreamBatched
+    SetStrokePackedColorAndThickness(uint32_t color, float thickness) StreamBatched
+    SetFillRule(enum:bool WebCore::WindRule rule) StreamBatched
+    SetStrokeThickness(float thickness) StreamBatched
+    SetStrokeStyle(enum:uint8_t WebCore::StrokeStyle style) StreamBatched
+    SetCompositeMode(struct WebCore::CompositeMode mode) StreamBatched
+    SetAlpha(float alpha) StreamBatched
+    SetImageInterpolationQuality(enum:uint8_t WebCore::InterpolationQuality quality) StreamBatched
+    SetShouldAntialias(bool shouldAntialias) StreamBatched
+    SetShouldSmoothFonts(bool shouldSmooth) StreamBatched
+    SetShouldSubpixelQuantizeFonts(bool shouldQuantize) StreamBatched
+    SetLineCap(enum:uint8_t WebCore::LineCap lineCap) StreamBatched
+    SetLineJoin(enum:uint8_t WebCore::LineJoin lineJoin) StreamBatched
+    SetMiterLimit(float limit) StreamBatched
+    Clip(WebCore::FloatRect rect) StreamBatched
+    ClipOut(WebCore::FloatRect rect) StreamBatched
+    ResetClip() StreamBatched
+    DrawLine(WebCore::FloatPoint point1, WebCore::FloatPoint point2) StreamBatched
+    FillRect(WebCore::FloatRect rect, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched SwiftMayDecline
+    FillEllipse(WebCore::FloatRect rect) StreamBatched SwiftMayDecline
+    StrokeRect(WebCore::FloatRect rect, float lineWidth) StreamBatched SwiftMayDecline
+    StrokeEllipse(WebCore::FloatRect rect) StreamBatched SwiftMayDecline
+    ClearRect(WebCore::FloatRect rect) StreamBatched
+    ApplyStrokePattern() StreamBatched
+    ApplyFillPattern() StreamBatched
+}
+
+#endif

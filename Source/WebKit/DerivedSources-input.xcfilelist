@@ -60,6 +60,7 @@ $(PROJECT_DIR)/GPUProcess/ShapeDetection/RemoteFaceDetector.messages.in
 $(PROJECT_DIR)/GPUProcess/ShapeDetection/RemoteTextDetector.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/Model/RemoteMesh.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/PathSegment.serialization.in
+$(PROJECT_DIR)/GPUProcess/graphics/RemoteCGRenderer.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/RemoteGraphicsContext.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/RemoteGraphicsContextGL.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/RemoteGraphicsContextGLInitializationState.serialization.in

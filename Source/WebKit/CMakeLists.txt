@@ -213,6 +213,7 @@ set(WebKit_MESSAGES_IN_FILES
     GPUProcess/ShapeDetection/RemoteTextDetector
 
     GPUProcess/graphics/RemoteSnapshotRecorder
+    GPUProcess/graphics/RemoteCGRenderer
     GPUProcess/graphics/RemoteGraphicsContext
     GPUProcess/graphics/RemoteGraphicsContextGL
     GPUProcess/graphics/RemoteImageBuffer
@@ -1029,6 +1030,9 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/LibWebRTCCodecsProxyMessageReceiver.cpp
         GPUProcess/webrtc/LibWebRTCCodecsProxyHandle.cpp
 
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteCGRendererMessageReceiver.cpp
+        GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
+
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySetMessageReceiver.cpp
         GPUProcess/graphics/WebGPU/RemoteDevice.cpp
@@ -1672,6 +1676,17 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMInstanceProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMInstanceSessionProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMProxyMessageReceiver.swift
+    )
+endif ()
+
+# Each compiles to nothing unless ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT is set.
+if (SWIFT_REQUIRED AND APPLE)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteCGRendererMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRenderer.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteCGRendererMessageReceiver.swift
     )
 endif ()
 

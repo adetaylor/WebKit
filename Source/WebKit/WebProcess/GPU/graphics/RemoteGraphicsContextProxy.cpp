@@ -30,6 +30,9 @@
 
 #include "Logging.h"
 #include "RemoteGraphicsContextMessages.h"
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererMessages.h"
+#endif
 #include "RemoteImageBufferProxy.h"
 #include "RemoteRenderingBackendProxy.h"
 #include "RemoteSnapshotRecorderMessages.h"
@@ -62,11 +65,17 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteGraphicsContextProxy);
 RemoteGraphicsContextProxy::RemoteGraphicsContextProxy(const FloatRect& initialClip, const AffineTransform& initialCTM, const ColorSpace& colorSpace, RenderingMode renderingMode, RemoteRenderingBackendProxy& renderingBackend)
     : RemoteGraphicsContextProxy({ }, initialClip, initialCTM, colorSpace, DrawGlyphsMode::Deconstruct, std::nullopt, renderingMode, RemoteGraphicsContextIdentifier::generate(), renderingBackend)
 {
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    m_drawsWithCGRendererReceiver = true;
+#endif
 }
 
 RemoteGraphicsContextProxy::RemoteGraphicsContextProxy(const FloatRect& initialClip, const AffineTransform& initialCTM, const ColorSpace& colorSpace, WebCore::ContentsFormat contentsFormat, RenderingMode renderingMode, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackendProxy& renderingBackend)
     : RemoteGraphicsContextProxy({ }, initialClip, initialCTM, colorSpace, DrawGlyphsMode::Deconstruct, contentsFormat, renderingMode, identifier, renderingBackend)
 {
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    m_drawsWithCGRendererReceiver = true;
+#endif
 }
 
 RemoteGraphicsContextProxy::RemoteGraphicsContextProxy(const GraphicsContextState& state, const FloatRect& initialClip, const AffineTransform& initialCTM, const ColorSpace& colorSpace, DrawGlyphsMode drawGlyphsMode, std::optional<ContentsFormat> contentsFormat, RenderingMode renderingMode, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackendProxy& renderingBackend)
@@ -79,6 +88,20 @@ RemoteGraphicsContextProxy::RemoteGraphicsContextProxy(const GraphicsContextStat
 }
 
 RemoteGraphicsContextProxy::~RemoteGraphicsContextProxy() = default;
+
+// A message that an image buffer's context takes in RemoteCGRenderer (the GPU process's Swift receiver, drawing with the Swift
+// CG renderer), and any other context in RemoteGraphicsContext.
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#define SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(name, arguments, swiftArguments) do { \
+        if (m_drawsWithCGRendererReceiver) \
+            send(Messages::RemoteCGRenderer::name swiftArguments); \
+        else \
+            send(Messages::RemoteGraphicsContext::name arguments); \
+    } while (0)
+#else
+#define SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(name, arguments, swiftArguments) send(Messages::RemoteGraphicsContext::name arguments)
+#endif
+#define SEND_RENDERER_MESSAGE(name, ...) SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(name, (__VA_ARGS__), (__VA_ARGS__))
 
 template<typename T>
 ALWAYS_INLINE void RemoteGraphicsContextProxy::send(T&& message)
@@ -136,7 +159,7 @@ void RemoteGraphicsContextProxy::save(GraphicsContextState::Purpose purpose)
 {
     sendPendingDrawsIfNecessary();
     updateStateForSave(purpose);
-    send(Messages::RemoteGraphicsContext::Save());
+    SEND_RENDERER_MESSAGE(Save);
 }
 
 void RemoteGraphicsContextProxy::restore(GraphicsContextState::Purpose purpose)
@@ -144,7 +167,7 @@ void RemoteGraphicsContextProxy::restore(GraphicsContextState::Purpose purpose)
     sendPendingDrawsIfNecessary();
     if (!updateStateForRestore(purpose))
         return;
-    send(Messages::RemoteGraphicsContext::Restore());
+    SEND_RENDERER_MESSAGE(Restore);
 }
 
 void RemoteGraphicsContextProxy::translate(float x, float y)
@@ -152,7 +175,7 @@ void RemoteGraphicsContextProxy::translate(float x, float y)
     sendPendingDrawsIfNecessary();
     if (!updateStateForTranslate(x, y))
         return;
-    send(Messages::RemoteGraphicsContext::Translate(x, y));
+    SEND_RENDERER_MESSAGE(Translate, x, y);
 }
 
 void RemoteGraphicsContextProxy::rotate(float angle)
@@ -160,7 +183,7 @@ void RemoteGraphicsContextProxy::rotate(float angle)
     sendPendingDrawsIfNecessary();
     if (!updateStateForRotate(angle))
         return;
-    send(Messages::RemoteGraphicsContext::Rotate(angle));
+    SEND_RENDERER_MESSAGE(Rotate, angle);
 }
 
 void RemoteGraphicsContextProxy::scale(const FloatSize& scale)
@@ -168,14 +191,14 @@ void RemoteGraphicsContextProxy::scale(const FloatSize& scale)
     sendPendingDrawsIfNecessary();
     if (!updateStateForScale(scale))
         return;
-    send(Messages::RemoteGraphicsContext::Scale(scale));
+    SEND_RENDERER_MESSAGE(Scale, scale);
 }
 
 void RemoteGraphicsContextProxy::setCTM(const AffineTransform& transform)
 {
     sendPendingDrawsIfNecessary();
     updateStateForSetCTM(transform);
-    send(Messages::RemoteGraphicsContext::SetCTM(transform));
+    SEND_RENDERER_MESSAGE(SetCTM, transform);
 }
 
 void RemoteGraphicsContextProxy::concatCTM(const AffineTransform& transform)
@@ -183,13 +206,13 @@ void RemoteGraphicsContextProxy::concatCTM(const AffineTransform& transform)
     sendPendingDrawsIfNecessary();
     if (!updateStateForConcatCTM(transform))
         return;
-    send(Messages::RemoteGraphicsContext::ConcatCTM(transform));
+    SEND_RENDERER_MESSAGE(ConcatCTM, transform);
 }
 
 void RemoteGraphicsContextProxy::setLineCap(LineCap lineCap)
 {
     sendPendingDrawsIfNecessary();
-    send(Messages::RemoteGraphicsContext::SetLineCap(lineCap));
+    SEND_RENDERER_MESSAGE(SetLineCap, lineCap);
 }
 
 void RemoteGraphicsContextProxy::setLineDash(const DashArray& array, float dashOffset)
@@ -201,20 +224,20 @@ void RemoteGraphicsContextProxy::setLineDash(const DashArray& array, float dashO
 void RemoteGraphicsContextProxy::setLineJoin(LineJoin lineJoin)
 {
     sendPendingDrawsIfNecessary();
-    send(Messages::RemoteGraphicsContext::SetLineJoin(lineJoin));
+    SEND_RENDERER_MESSAGE(SetLineJoin, lineJoin);
 }
 
 void RemoteGraphicsContextProxy::setMiterLimit(float limit)
 {
     sendPendingDrawsIfNecessary();
-    send(Messages::RemoteGraphicsContext::SetMiterLimit(limit));
+    SEND_RENDERER_MESSAGE(SetMiterLimit, limit);
 }
 
 void RemoteGraphicsContextProxy::clip(const FloatRect& rect)
 {
     sendPendingDrawsIfNecessary();
     updateStateForClip(rect);
-    send(Messages::RemoteGraphicsContext::Clip(rect));
+    SEND_RENDERER_MESSAGE(Clip, rect);
 }
 
 void RemoteGraphicsContextProxy::clipRoundedRect(const FloatRoundedRect& rect)
@@ -228,7 +251,7 @@ void RemoteGraphicsContextProxy::clipOut(const FloatRect& rect)
 {
     sendPendingDrawsIfNecessary();
     updateStateForClipOut(rect);
-    send(Messages::RemoteGraphicsContext::ClipOut(rect));
+    SEND_RENDERER_MESSAGE(ClipOut, rect);
 }
 
 void RemoteGraphicsContextProxy::clipOutRoundedRect(const FloatRoundedRect& rect)
@@ -286,7 +309,7 @@ void RemoteGraphicsContextProxy::resetClip()
 {
     sendPendingDrawsIfNecessary();
     updateStateForResetClip();
-    send(Messages::RemoteGraphicsContext::ResetClip());
+    SEND_RENDERER_MESSAGE(ResetClip);
     clip(initialClip());
 }
 
@@ -457,7 +480,7 @@ void RemoteGraphicsContextProxy::drawLine(const FloatPoint& point1, const FloatP
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::DrawLine(point1, point2));
+    SEND_RENDERER_MESSAGE(DrawLine, point1, point2);
 }
 
 void RemoteGraphicsContextProxy::drawLinesForText(const FloatPoint& point, float thickness, std::span<const FloatSegment> lineSegments, bool printing, bool doubleLines, StrokeStyle style)
@@ -555,7 +578,7 @@ void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, RequiresClipToR
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::FillRect(rect, requiresClipToRect));
+    SEND_RENDERER_MESSAGE(FillRect, rect, requiresClipToRect);
 }
 
 void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, const Color& color)
@@ -604,7 +627,7 @@ void RemoteGraphicsContextProxy::fillEllipse(const FloatRect& rect)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::FillEllipse(rect));
+    SEND_RENDERER_MESSAGE(FillEllipse, rect);
 }
 
 #if ENABLE(VIDEO)
@@ -681,14 +704,14 @@ void RemoteGraphicsContextProxy::strokeRect(const FloatRect& rect, float width)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::StrokeRect(rect, width));
+    SEND_RENDERER_MESSAGE(StrokeRect, rect, width);
 }
 
 void RemoteGraphicsContextProxy::strokeEllipse(const FloatRect& rect)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::StrokeEllipse(rect));
+    SEND_RENDERER_MESSAGE(StrokeEllipse, rect);
 }
 
 void RemoteGraphicsContextProxy::bufferLine(const PathDataLine& line, const InlineStrokeData& strokeData)
@@ -716,7 +739,7 @@ void RemoteGraphicsContextProxy::clearRect(const FloatRect& rect)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::ClearRect(rect));
+    SEND_RENDERER_MESSAGE(ClearRect, rect);
 }
 
 void RemoteGraphicsContextProxy::drawControlPart(ControlPart& part, const FloatRoundedRect& borderRect, float deviceScaleFactor, const ControlStyle& style)
@@ -732,14 +755,14 @@ void RemoteGraphicsContextProxy::applyStrokePattern()
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::ApplyStrokePattern());
+    SEND_RENDERER_MESSAGE(ApplyStrokePattern);
 }
 
 void RemoteGraphicsContextProxy::applyFillPattern()
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::ApplyFillPattern());
+    SEND_RENDERER_MESSAGE(ApplyFillPattern);
 }
 
 #endif // USE(CG)
@@ -937,7 +960,7 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
     if (changes.contains(GraphicsContextState::Change::FillBrush)) {
         const auto& fillBrush = state.fillBrush();
         if (auto packedColor = fillBrush.packedColor())
-            send(Messages::RemoteGraphicsContext::SetFillPackedColor(*packedColor));
+            SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetFillPackedColor, (*packedColor), (packedColor->value));
         else if (RefPtr pattern = fillBrush.pattern()) {
             if (RefPtr image = pattern->tileNativeImage()) {
                 if (recordResourceUse(*image))
@@ -958,10 +981,10 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
         const auto& strokeBrush = state.strokeBrush();
         if (auto packedColor = strokeBrush.packedColor()) {
             if (changes.contains(GraphicsContextState::Change::StrokeThickness)) {
-                send(Messages::RemoteGraphicsContext::SetStrokePackedColorAndThickness(*packedColor, state.strokeThickness()));
+                SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetStrokePackedColorAndThickness, (*packedColor, state.strokeThickness()), (packedColor->value, state.strokeThickness()));
                 changes.remove(GraphicsContextState::Change::StrokeThickness);
             } else
-                send(Messages::RemoteGraphicsContext::SetStrokePackedColor(*packedColor));
+                SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetStrokePackedColor, (*packedColor), (packedColor->value));
         } else if (RefPtr pattern = strokeBrush.pattern()) {
             if (RefPtr image = pattern->tileNativeImage()) {
                 if (recordResourceUse(*image))
@@ -979,13 +1002,13 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
             send(Messages::RemoteGraphicsContext::SetStrokeColor(strokeBrush.color()));
     }
     if (changes.contains(GraphicsContextState::Change::FillRule))
-        send(Messages::RemoteGraphicsContext::SetFillRule(state.fillRule()));
+        SEND_RENDERER_MESSAGE(SetFillRule, state.fillRule());
     if (changes.contains(GraphicsContextState::Change::StrokeThickness))
-        send(Messages::RemoteGraphicsContext::SetStrokeThickness(state.strokeThickness()));
+        SEND_RENDERER_MESSAGE(SetStrokeThickness, state.strokeThickness());
     if (changes.contains(GraphicsContextState::Change::StrokeStyle))
-        send(Messages::RemoteGraphicsContext::SetStrokeStyle(state.strokeStyle()));
+        SEND_RENDERER_MESSAGE(SetStrokeStyle, state.strokeStyle());
     if (changes.contains(GraphicsContextState::Change::CompositeMode))
-        send(Messages::RemoteGraphicsContext::SetCompositeMode(state.compositeMode()));
+        SEND_RENDERER_MESSAGE(SetCompositeMode, state.compositeMode());
     // Note: due to bugs in GraphicsContext interface and GraphicsContextCG, we have to send ShadowsIgnoreTransforms
     // before the DropShadow and Style.
     if (changes.contains(GraphicsContextState::Change::ShadowsIgnoreTransforms))
@@ -995,17 +1018,17 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
     if (changes.contains(GraphicsContextState::Change::Style))
         send(Messages::RemoteGraphicsContext::SetStyle(state.style()));
     if (changes.contains(GraphicsContextState::Change::Alpha))
-        send(Messages::RemoteGraphicsContext::SetAlpha(state.alpha()));
+        SEND_RENDERER_MESSAGE(SetAlpha, state.alpha());
     if (changes.contains(GraphicsContextState::Change::TextDrawingMode))
         send(Messages::RemoteGraphicsContext::SetTextDrawingMode(state.textDrawingMode()));
     if (changes.contains(GraphicsContextState::Change::ImageInterpolationQuality))
-        send(Messages::RemoteGraphicsContext::SetImageInterpolationQuality(state.imageInterpolationQuality()));
+        SEND_RENDERER_MESSAGE(SetImageInterpolationQuality, state.imageInterpolationQuality());
     if (changes.contains(GraphicsContextState::Change::ShouldAntialias))
-        send(Messages::RemoteGraphicsContext::SetShouldAntialias(state.shouldAntialias()));
+        SEND_RENDERER_MESSAGE(SetShouldAntialias, state.shouldAntialias());
     if (changes.contains(GraphicsContextState::Change::ShouldSmoothFonts))
-        send(Messages::RemoteGraphicsContext::SetShouldSmoothFonts(state.shouldSmoothFonts()));
+        SEND_RENDERER_MESSAGE(SetShouldSmoothFonts, state.shouldSmoothFonts());
     if (changes.contains(GraphicsContextState::Change::ShouldSubpixelQuantizeFonts))
-        send(Messages::RemoteGraphicsContext::SetShouldSubpixelQuantizeFonts(state.shouldSubpixelQuantizeFonts()));
+        SEND_RENDERER_MESSAGE(SetShouldSubpixelQuantizeFonts, state.shouldSubpixelQuantizeFonts());
 
     commitStateChanges(pendingChanges);
 }
@@ -1055,5 +1078,8 @@ void RemoteGraphicsContextProxy::abandon()
 template void RemoteGraphicsContextProxy::send<Messages::RemoteSnapshotRecorder::DrawSnapshotFrame>(Messages::RemoteSnapshotRecorder::DrawSnapshotFrame&&);
 
 }
+
+#undef SEND_RENDERER_MESSAGE
+#undef SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS
 
 #endif

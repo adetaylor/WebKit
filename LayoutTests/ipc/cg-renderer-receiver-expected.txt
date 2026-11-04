@@ -1,0 +1,5 @@
+This test passes if an image buffer draws the same through the GPU process's Swift CG renderer receiver (RemoteCGRenderer) as through RemoteGraphicsContext alone.
+
+PASS: unaccelerated same pixels
+PASS: accelerated same pixels
+
