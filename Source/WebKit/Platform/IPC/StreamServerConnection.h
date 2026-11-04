@@ -179,6 +179,9 @@ private:
     ReceiversMap m_receivers WTF_GUARDED_BY_LOCK(m_receiversLock);
     // Set by invalidate(), which lets go of the receivers.
     bool m_didInvalidateReceivers WTF_GUARDED_BY_LOCK(m_receiversLock) { false };
+    // Changed, under m_receiversLock, whenever a receiver stops receiving messages, so that dispatch can tell whether a
+    // receiver it looked up earlier may have stopped.
+    std::atomic<unsigned> m_receiversGeneration { 0 };
     uint64_t m_currentDestinationID { 0 };
     // Signalled to release the client from ring buffer backpressure.
     Signal m_clientWaitSignal;
