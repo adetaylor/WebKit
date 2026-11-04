@@ -95,9 +95,7 @@ private:
     const ThreadSafeWeakPtr<Instance> m_instance;
 };
 
-// Gives Swift the adapter's Impl, through receiveImpl(), and returns its shell.
-Adapter& deliverImpl(WebGPU::Adapter&) SWIFT_RETURNS_UNRETAINED;
-// Gives Swift the Impl of an adapter that Swift requested.
+// Gives Swift the Impl of an adapter that Swift requested, through receiveImpl().
 void deliverAdapterImpl(Adapter&);
 
 } // namespace WebGPU::Metal

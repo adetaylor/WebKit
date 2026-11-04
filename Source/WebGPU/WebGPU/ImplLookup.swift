@@ -215,16 +215,6 @@ public final class InstanceReference {
     }
 }
 
-@_spi(WebKitGPU)
-public func reference(of adapter: WebGPU.Adapter) -> AdapterReference {
-    var shell: WebGPU.Metal.Adapter?
-    let impl = ImplLookup.lookUp(AdapterImpl.self) { shell = WebGPU.Metal.deliverImpl(adapter) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return AdapterReference(impl, shell)
-}
-
 // A compute pass encoder with its shell, which the pass's Impl needs alive, as Swift holds one.
 @_spi(WebKitGPU)
 public final class ComputePassEncoderReference {
@@ -247,16 +237,6 @@ public final class RenderPassEncoderReference {
         self.impl = impl
         self.shell = shell
     }
-}
-
-@_spi(WebKitGPU)
-public func reference(of presentationContext: WebGPU.PresentationContext) -> PresentationContextReference {
-    var shell: WebGPU.Metal.PresentationContext?
-    let impl = ImplLookup.lookUp(PresentationContextIOSurfaceImpl.self) { shell = WebGPU.Metal.deliverImpl(presentationContext) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return PresentationContextReference(impl, shell)
 }
 
 @_spi(WebKitGPU)

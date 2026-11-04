@@ -154,13 +154,6 @@ bool Adapter::isXRCompatible() const
     return m_impl->impl.isXRCompatible();
 }
 
-Adapter& deliverImpl(WebGPU::Adapter& adapter)
-{
-    auto& shell = downcast<Adapter>(adapter);
-    deliverAdapterImpl(shell);
-    return shell;
-}
-
 void deliverAdapterImpl(Adapter& shell)
 {
     WebGPUSwift::receiveImpl(shell.swiftImpl());

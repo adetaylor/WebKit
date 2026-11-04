@@ -71,9 +71,6 @@ protected:
     explicit PresentationContext();
 };
 
-// Gives Swift the Impl of a presentation context that presents through IOSurfaces, and returns its shell.
-PresentationContext& deliverImpl(WebGPU::PresentationContext&) SWIFT_RETURNS_UNRETAINED;
-
 // For PresentationContextIOSurface.swift, which cannot copy raw bytes, set the deprecated fastMathEnabled or call the
 // variadic WTFLogAlways. Declared here because PresentationContextIOSurface.h is not a Swift module header; defined in
 // PresentationContextIOSurface.mm.
