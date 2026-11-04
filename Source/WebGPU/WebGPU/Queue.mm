@@ -300,14 +300,17 @@ void Queue::synchronizeResourceAndWait(id<MTLBuffer> buffer)
 #endif
 }
 
-void writeBufferContents(id<MTLBuffer> buffer, uint64_t bufferOffset, std::span<const uint8_t> data NOESCAPE)
+// isManaged: the caller has read the buffer's storage mode, MTLStorageModeManaged.
+void writeBufferContents(id<MTLBuffer> buffer, uint64_t bufferOffset, std::span<const uint8_t> data NOESCAPE, bool isManaged)
 {
     memcpySpan(cpuVisibleContents(buffer).subspan(bufferOffset, data.size()), data);
 #if PLATFORM(MAC) || PLATFORM(MACCATALYST)
     ALLOW_DEPRECATED_DECLARATIONS_BEGIN
-    if (buffer.storageMode == MTLStorageModeManaged)
+    if (isManaged)
         [buffer didModifyRange:NSMakeRange(bufferOffset, data.size())];
     ALLOW_DEPRECATED_DECLARATIONS_END
+#else
+    UNUSED_PARAM(isManaged);
 #endif
 }
 
@@ -317,7 +320,9 @@ void Queue::writeBuffer(Buffer& buffer, uint64_t bufferOffset, std::span<uint8_t
     if (!device)
         return;
 
-    m_impl->impl.writeBuffer(this, device.get(), device->swiftImpl(), buffer.swiftImpl(), bufferOffset, QueueBytes { data });
+    if (m_impl->impl.writeBufferWithoutStaging(device->swiftImpl(), buffer.swiftImpl(), bufferOffset, QueueBytes { data }))
+        return;
+    m_impl->impl.stageBufferWrite(this, device.get(), device->swiftImpl(), buffer.buffer(), bufferOffset, QueueBytes { data });
 }
 
 id<MTLBuffer> newBufferAliasingOwner(const Device& device, const WebGPU::ByteOwner& owner, uint64_t offset, uint64_t length)
@@ -554,7 +559,10 @@ void Queue::writeBuffer(WebGPU::Buffer& buffer, uint64_t bufferOffset, Ref<WebGP
     if (!device)
         return;
 
-    m_impl->impl.writeBufferFromOwner(this, device.get(), device->swiftImpl(), downcast<Buffer>(buffer).swiftImpl(), bufferOffset, QueueBytes { data->span() }, data.ptr());
+    auto& metalBuffer = downcast<Buffer>(buffer);
+    if (m_impl->impl.writeBufferWithoutStaging(device->swiftImpl(), metalBuffer.swiftImpl(), bufferOffset, QueueBytes { data->span() }))
+        return;
+    m_impl->impl.stageBufferWriteFromOwner(this, device.get(), device->swiftImpl(), metalBuffer.buffer(), bufferOffset, QueueBytes { data->span() }, data.ptr());
 }
 
 void Queue::writeTexture(const WebGPU::TexelCopyTextureInfo& destination, Ref<WebGPU::ByteOwner>&& data, const WebGPU::TexelCopyBufferLayout& dataLayout, const WebGPU::Extent3D& writeSize)

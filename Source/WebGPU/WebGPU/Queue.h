@@ -189,7 +189,7 @@ struct TexelBlockLayout {
     uint32_t size { 0 };
 };
 
-void writeBufferContents(id<MTLBuffer>, uint64_t bufferOffset, std::span<const uint8_t> data NOESCAPE);
+void writeBufferContents(id<MTLBuffer>, uint64_t bufferOffset, std::span<const uint8_t> data NOESCAPE, bool isManaged);
 void copyBytesToBuffer(id<MTLBuffer> _Nullable, uint64_t offset, std::span<const uint8_t> data NOESCAPE);
 // RELEASE_ASSERTs that every byte Metal reads, from sourceOffset on, is inside `data`.
 void replaceRegion(id<MTLTexture> _Nullable, MTLRegion, uint32_t mipLevel, uint64_t slice, std::span<const uint8_t> data NOESCAPE, uint64_t sourceOffset, uint64_t bytesPerRow, uint64_t bytesPerImage, TexelBlockLayout);
