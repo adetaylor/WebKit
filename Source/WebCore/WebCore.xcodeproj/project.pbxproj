@@ -7739,7 +7739,7 @@
 		77D8E7F6A75292D03DD77910 /* ISOFairPlayStreamingPssh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20C22CC099A47C37E539A0BD /* ISOFairPlayStreamingPssh.swift */; };
 		71837F278D1F314AED51ADEF /* ISOVTTCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E81478238DCCACF9250A3EA /* ISOVTTCue.swift */; };
 		164E2985AC07D03F56C95977 /* InitDataRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB7E52CFF3ABC2D95E849EC /* InitDataRegistry.swift */; };
-		9145528A7E6202985AAE1C4B /* CDMClearKeyParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2B821A9C3F4145C1069A19 /* CDMClearKeyParsing.swift */; };
+		9145528A7E6202985AAE1C4B /* CDMClearKeyBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2B821A9C3F4145C1069A19 /* CDMClearKeyBridge.swift */; };
 		003DCD8B025B13FA41385C7F /* CDMFairPlayStreamingParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */; };
 		B240ABE6B3772366E0BDCA3C /* CMUtilitiesParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */; };
 		182D187F1A4EF0CCD58D4057 /* FormatDescriptionCodecString.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70750DFDF816DC5FB591ADD /* FormatDescriptionCodecString.swift */; };
@@ -7752,6 +7752,9 @@
 		875E7E864FEDECD171D6059A /* ISOParseResults.h in Headers */ = {isa = PBXBuildFile; fileRef = CBFA8EF2B4A8EA7E0D835D20 /* ISOParseResults.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		C7E3DF2D22DAF71E5E025979 /* CMParsingTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 151B943875D447C254665961 /* CMParsingTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		49C1635FCC3E3B7CC587E3D0 /* MediaParsersShellSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = AAAB94B92BC9B2EB0915B92B /* MediaParsersShellSupport.h */; };
+		775E7BAFBD32A53BA638B389 /* ClearKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F018E46D469610AC3EB99C13 /* ClearKey.swift */; };
+		2850C0A1CFA003BA772EB328 /* EMEJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AA0CA104B921C41005D089 /* EMEJSON.swift */; };
+		2864471973C91B99A8CA75F2 /* FairPlayJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4889F0AD39348BEE46025B8 /* FairPlayJSON.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -7821,6 +7824,20 @@
 			proxyType = 1;
 			remoteGlobalIDString = 1C09D03C1E31C32800725F18;
 			remoteInfo = PAL;
+		};
+		240DBF635B0467359A6E6744 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DD041FBE09D9DDBE0010AF2A;
+			remoteInfo = "Derived Sources";
+		};
+		E1C65FC675AE97C8DBB9CED4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6BFD483C9DA6BD1DAA1A0702;
+			remoteInfo = WebCoreEME;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -24434,7 +24451,7 @@
 		20C22CC099A47C37E539A0BD /* ISOFairPlayStreamingPssh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISOFairPlayStreamingPssh.swift; sourceTree = "<group>"; };
 		0E81478238DCCACF9250A3EA /* ISOVTTCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISOVTTCue.swift; sourceTree = "<group>"; };
 		4CB7E52CFF3ABC2D95E849EC /* InitDataRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitDataRegistry.swift; sourceTree = "<group>"; };
-		5E2B821A9C3F4145C1069A19 /* CDMClearKeyParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMClearKeyParsing.swift; sourceTree = "<group>"; };
+		5E2B821A9C3F4145C1069A19 /* CDMClearKeyBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMClearKeyBridge.swift; sourceTree = "<group>"; };
 		8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMFairPlayStreamingParsing.swift; sourceTree = "<group>"; };
 		ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMUtilitiesParsing.swift; sourceTree = "<group>"; };
 		E70750DFDF816DC5FB591ADD /* FormatDescriptionCodecString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatDescriptionCodecString.swift; sourceTree = "<group>"; };
@@ -24449,6 +24466,11 @@
 		AAAB94B92BC9B2EB0915B92B /* MediaParsersShellSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaParsersShellSupport.h; sourceTree = "<group>"; };
 		C1A6538B3A431B6167D4AD0D /* HEVCBitstreamParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = HEVCBitstreamParser.cpp; sourceTree = "<group>"; };
 		F796FB33E6A1B5857103996B /* MediaParsersShellSupport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MediaParsersShellSupport.cpp; sourceTree = "<group>"; };
+		F018E46D469610AC3EB99C13 /* ClearKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearKey.swift; sourceTree = "<group>"; };
+		F0AA0CA104B921C41005D089 /* EMEJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EMEJSON.swift; sourceTree = "<group>"; };
+		C4889F0AD39348BEE46025B8 /* FairPlayJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairPlayJSON.swift; sourceTree = "<group>"; };
+		4F4A48944E9FAF0D83AF02E5 /* libWebCoreEME.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreEME.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		36C6603487B474AAF23D6DD1 /* WebCoreEME.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreEME.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -24487,6 +24509,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9AE6342BCE6F8B4DC59ACDF1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -24506,6 +24535,7 @@
 			isa = PBXGroup;
 			children = (
 				417DA6D013734E02007C57FB /* libWebCoreTestSupport.dylib */,
+				4F4A48944E9FAF0D83AF02E5 /* libWebCoreEME.a */,
 				93F19B1A08245E5A001E9ABC /* WebCore.framework */,
 			);
 			name = Products;
@@ -26858,6 +26888,7 @@
 				449098B10F8F82520076A327 /* FeatureDefines.xcconfig */,
 				5355E8DD1F9680420031E08C /* GenerateUnifiedSources.xcconfig */,
 				1CDD45E50BA9C84600F90147 /* WebCore.xcconfig */,
+				36C6603487B474AAF23D6DD1 /* WebCoreEME.xcconfig */,
 				4181707D1386EDF20057AAA4 /* WebCoreTestSupport.xcconfig */,
 			);
 			path = Configurations;
@@ -40691,6 +40722,7 @@
 			isa = PBXGroup;
 			children = (
 				CD94A5D91F71CB9F00F525C5 /* clearkey */,
+				882B18213B3E36BEA8C5BCB5 /* swift */,
 				CDF7569B215C23A400EFCB50 /* CDMEncryptionScheme.h */,
 				CD94A5D11F71CB6B00F525C5 /* CDMFactory.cpp */,
 				CD94A5D21F71CB6B00F525C5 /* CDMFactory.h */,
@@ -40724,7 +40756,7 @@
 			children = (
 				CD94A5DB1F71CBB000F525C5 /* CDMClearKey.cpp */,
 				CD94A5DA1F71CBB000F525C5 /* CDMClearKey.h */,
-				5E2B821A9C3F4145C1069A19 /* CDMClearKeyParsing.swift */,
+				5E2B821A9C3F4145C1069A19 /* CDMClearKeyBridge.swift */,
 			);
 			path = clearkey;
 			sourceTree = "<group>";
@@ -44600,10 +44632,20 @@
 				F8BFAC2687CDD8B79EDE6757 /* BitReader.swift */,
 				EB472CEAD5B9F4191B9AAA45 /* ByteCursor.swift */,
 				88A39DC1AACC936612FDA624 /* MutableSpanCopy.swift */,
-				012AF69D6E5D314D5CA99F41 /* WTFBase64.swift */,
 				DE738D2A6BEF14456A1FBD03 /* WTFCompatParsing.swift */,
 			);
 			path = "media-parsers";
+			sourceTree = "<group>";
+		};
+		882B18213B3E36BEA8C5BCB5 /* swift */ = {
+			isa = PBXGroup;
+			children = (
+				F018E46D469610AC3EB99C13 /* ClearKey.swift */,
+				F0AA0CA104B921C41005D089 /* EMEJSON.swift */,
+				C4889F0AD39348BEE46025B8 /* FairPlayJSON.swift */,
+				012AF69D6E5D314D5CA99F41 /* WTFBase64.swift */,
+			);
+			path = swift;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -51199,6 +51241,7 @@
 				DDE748752F7B28D6008013AB /* PBXBuildRule */,
 			);
 			dependencies = (
+				E44ACA1E9D6583760E8C5A30 /* PBXTargetDependency */,
 				DD041FF109D9E3250010AF2A /* PBXTargetDependency */,
 				5355E8DB1F967ED30031E08C /* PBXTargetDependency */,
 				DD453DA32EC47E9B00C1D6A8 /* PBXTargetDependency */,
@@ -51208,6 +51251,23 @@
 			productName = WebKit;
 			productReference = 93F19B1A08245E5A001E9ABC /* WebCore.framework */;
 			productType = "com.apple.product-type.framework";
+		};
+		6BFD483C9DA6BD1DAA1A0702 /* WebCoreEME */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B8B71924424A719DE75810D6 /* Build configuration list for PBXNativeTarget "WebCoreEME" */;
+			buildPhases = (
+				77FCCBA6045B509A72142E97 /* Sources */,
+				9AE6342BCE6F8B4DC59ACDF1 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EED96AAC0F43BF47B12933F6 /* PBXTargetDependency */,
+			);
+			name = WebCoreEME;
+			productName = WebCoreEME;
+			productReference = 4F4A48944E9FAF0D83AF02E5 /* libWebCoreEME.a */;
+			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
 
@@ -51255,6 +51315,7 @@
 				41816F7913859C550057AAA4 /* All */,
 				93F198A508245E59001E9ABC /* WebCore */,
 				5355E8D11F967E9D0031E08C /* Generate Unified Sources */,
+				6BFD483C9DA6BD1DAA1A0702 /* WebCoreEME */,
 				DD041FBE09D9DDBE0010AF2A /* Derived Sources */,
 				417DA6CF13734E02007C57FB /* WebCoreTestSupport */,
 				5325BDC621DFF33700A0DEE1 /* Apply Configuration to XCFileLists */,
@@ -51697,7 +51758,7 @@
 				08473BF78C412A3FCB42B366 /* BitReader.swift in Sources */,
 				CA38D08B34C7904DF472CD2E /* ByteCursor.swift in Sources */,
 				CDF4B7151E00B7E500E235A2 /* CDM.cpp in Sources */,
-				9145528A7E6202985AAE1C4B /* CDMClearKeyParsing.swift in Sources */,
+				9145528A7E6202985AAE1C4B /* CDMClearKeyBridge.swift in Sources */,
 				CDB7045B1F7465A1003923DF /* CDMFairPlayStreaming.cpp in Sources */,
 				003DCD8B025B13FA41385C7F /* CDMFairPlayStreamingParsing.swift in Sources */,
 				CDC224281F756966005F077B /* CDMInstanceFairPlayStreamingAVFObjC.mm in Sources */,
@@ -52643,11 +52704,21 @@
 				1CAF34820A6C405200ABE06E /* WebScriptObject.mm in Sources */,
 				CECDC93C21F2972900976BD1 /* WebVideoFullscreenControllerAVKit.mm in Sources */,
 				A14832C2187F65C700DA63A6 /* WKUtilities.cpp in Sources */,
-				58F08132C7971973C8F2FA25 /* WTFBase64.swift in Sources */,
 				3403349175235111656FB814 /* WTFCompatParsing.swift in Sources */,
 				A833C7CC0A2CF07400D57664 /* XLinkNames.cpp in Sources */,
 				A833C80C0A2CF25600D57664 /* XMLNames.cpp in Sources */,
 				E15A36D91104572700B7B639 /* XMLNSNames.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		77FCCBA6045B509A72142E97 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				775E7BAFBD32A53BA638B389 /* ClearKey.swift in Sources */,
+				2850C0A1CFA003BA772EB328 /* EMEJSON.swift in Sources */,
+				2864471973C91B99A8CA75F2 /* FairPlayJSON.swift in Sources */,
+				58F08132C7971973C8F2FA25 /* WTFBase64.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -52683,6 +52754,16 @@
 			isa = PBXTargetDependency;
 			name = PAL;
 			targetProxy = DD453DA22EC47E9B00C1D6A8 /* PBXContainerItemProxy */;
+		};
+		EED96AAC0F43BF47B12933F6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DD041FBE09D9DDBE0010AF2A /* Derived Sources */;
+			targetProxy = 240DBF635B0467359A6E6744 /* PBXContainerItemProxy */;
+		};
+		E44ACA1E9D6583760E8C5A30 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6BFD483C9DA6BD1DAA1A0702 /* WebCoreEME */;
+			targetProxy = E1C65FC675AE97C8DBB9CED4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -52875,6 +52956,27 @@
 			};
 			name = Production;
 		};
+		4702E37D130D9EBCDFD013AD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 36C6603487B474AAF23D6DD1 /* WebCoreEME.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		D87E59AB09F71D4F2F98120A /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 36C6603487B474AAF23D6DD1 /* WebCoreEME.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		15EE10CB6EB43ED8E80010E5 /* Production */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 36C6603487B474AAF23D6DD1 /* WebCoreEME.xcconfig */;
+			buildSettings = {
+			};
+			name = Production;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -52944,6 +53046,16 @@
 				DD041FC209D9DDDC0010AF2A /* Debug */,
 				DD041FC309D9DDDC0010AF2A /* Release */,
 				DD041FC409D9DDDC0010AF2A /* Production */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Production;
+		};
+		B8B71924424A719DE75810D6 /* Build configuration list for PBXNativeTarget "WebCoreEME" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4702E37D130D9EBCDFD013AD /* Debug */,
+				D87E59AB09F71D4F2F98120A /* Release */,
+				15EE10CB6EB43ED8E80010E5 /* Production */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Production;
