@@ -65,24 +65,10 @@ struct RenderPassEncoderImplBox;
 class RenderPassEncoder final : public WebGPU::RenderPassEncoder {
     WTF_MAKE_TZONE_ALLOCATED(RenderPassEncoder);
 public:
-    // The pass's attachments are handed to its Impl by the command encoder's Swift, which calls this.
-    static Ref<RenderPassEncoder> create(id<MTLRenderCommandEncoder> renderCommandEncoder, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device& device, MTLRenderPassDescriptor* mtlDescriptor)
-    {
-        return adoptRef(*new RenderPassEncoder(renderCommandEncoder, visibilityResultBufferSize, depthReadOnly, stencilReadOnly, parentEncoder, visibilityResultBuffer, maxDrawCount, device, mtlDescriptor));
-    }
-    static Ref<RenderPassEncoder> createInvalid(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
-    {
-        return adoptRef(*new RenderPassEncoder(parentEncoder, device, errorString));
-    }
-    // A pass begun while its command encoder was not open never took the encoder over, so it can
-    // never be ended. https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end
-    static Ref<RenderPassEncoder> createInvalidWithEncoderStateNotOpen(CommandEncoder& parentEncoder, Device&, NSString* errorString);
-    // A render pass whose attachments all load and store and which has no occlusion query cannot
-    // change anything unless it encodes a command, so CommandEncoder hands the descriptor over here
-    // instead of creating the MTLRenderCommandEncoder up front. The encoder is created the first time
-    // this pass actually needs one; if nothing ever does, the pass costs nothing. See
-    // canDeferRenderCommandEncoder in CommandEncoder.swift.
-    static Ref<RenderPassEncoder> createWithDeferredRenderCommandEncoder(NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device&, MTLRenderPassDescriptor*);
+#if !defined(__swift__)
+    // CommandEncoder.swift makes the RenderPassEncoderImpl, with its attachments.
+    static Ref<RenderPassEncoder> create(const WebGPUSwift::RenderPassEncoderImpl&);
+#endif
 
     ~RenderPassEncoder();
 
@@ -119,8 +105,9 @@ public:
     void makeInvalid(NSString* = nil);
 
 private:
-    RenderPassEncoder(id<MTLRenderCommandEncoder>, NSUInteger, bool depthReadOnly, bool stencilReadOnly, CommandEncoder&, id<MTLBuffer>, uint64_t maxDrawCount, Device&, MTLRenderPassDescriptor*);
-    RenderPassEncoder(CommandEncoder&, Device&, NSString*);
+#if !defined(__swift__)
+    explicit RenderPassEncoder(const WebGPUSwift::RenderPassEncoderImpl&);
+#endif
 
     const std::unique_ptr<RenderPassEncoderImplBox> m_impl;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refRenderPassEncoder, derefRenderPassEncoder);

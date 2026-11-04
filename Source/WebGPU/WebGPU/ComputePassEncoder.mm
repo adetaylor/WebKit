@@ -53,20 +53,17 @@ WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(ComputePassEncoderImplBox);
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(ComputePassEncoder);
 
-ComputePassEncoder::ComputePassEncoder(id<MTLComputeCommandEncoder> computeCommandEncoder, CommandEncoder& parentEncoder, Device& device)
-    : m_impl(makeUnique<ComputePassEncoderImplBox>(ComputePassEncoderImplBox { .impl = makeComputePassEncoderImpl(computeCommandEncoder, &parentEncoder, parentEncoder.swiftImpl(), &device) }))
+Ref<ComputePassEncoder> ComputePassEncoder::create(const WebGPUSwift::ComputePassEncoderImpl& impl)
+{
+    return adoptRef(*new ComputePassEncoder(impl));
+}
+
+ComputePassEncoder::ComputePassEncoder(const WebGPUSwift::ComputePassEncoderImpl& impl)
+    : m_impl(makeUnique<ComputePassEncoderImplBox>(ComputePassEncoderImplBox { .impl = impl }))
 {
 }
 
-ComputePassEncoder::ComputePassEncoder(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
-    : m_impl(makeUnique<ComputePassEncoderImplBox>(ComputePassEncoderImplBox { .impl = makeInvalidComputePassEncoderImpl(&parentEncoder, parentEncoder.swiftImpl(), &device, errorString) }))
-{
-}
-
-ComputePassEncoder::~ComputePassEncoder()
-{
-    m_impl->impl.passWillBeDestroyed();
-}
+ComputePassEncoder::~ComputePassEncoder() = default;
 
 WebGPUSwift::ComputePassEncoderImpl& ComputePassEncoder::swiftImpl() const
 {
@@ -132,13 +129,6 @@ void ComputePassEncoder::setLabel(String&& label)
 bool ComputePassEncoder::isValid() const
 {
     return m_impl->impl.isValid();
-}
-
-Ref<ComputePassEncoder> ComputePassEncoder::createInvalidWithEncoderStateNotOpen(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
-{
-    Ref computePassEncoder = createInvalid(parentEncoder, device, errorString);
-    computePassEncoder->m_impl->impl.markEncoderStateWasNotOpen();
-    return computePassEncoder;
 }
 
 } // namespace WebGPU::Metal

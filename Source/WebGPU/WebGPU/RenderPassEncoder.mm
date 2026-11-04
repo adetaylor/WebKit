@@ -58,23 +58,17 @@ WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(RenderPassEncoderImplBox);
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RenderPassEncoder);
 
-RenderPassEncoder::RenderPassEncoder(id<MTLRenderCommandEncoder> renderCommandEncoder, NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device& device, MTLRenderPassDescriptor* metalDescriptor)
-    : m_impl(makeUnique<RenderPassEncoderImplBox>(RenderPassEncoderImplBox { .impl = makeRenderPassEncoderImpl(renderCommandEncoder,
-        device.memoryBarrierLimit() > maxDrawCount ? nil : metalDescriptor, metalDescriptor.rasterizationRateMap, visibilityResultBuffer,
-        RenderPassEncoderParameters { .visibilityResultBufferSize = visibilityResultBufferSize, .maxDrawCount = maxDrawCount, .depthReadOnly = depthReadOnly, .stencilReadOnly = stencilReadOnly },
-        &parentEncoder, parentEncoder.swiftImpl(), &device) }))
+Ref<RenderPassEncoder> RenderPassEncoder::create(const WebGPUSwift::RenderPassEncoderImpl& impl)
+{
+    return adoptRef(*new RenderPassEncoder(impl));
+}
+
+RenderPassEncoder::RenderPassEncoder(const WebGPUSwift::RenderPassEncoderImpl& impl)
+    : m_impl(makeUnique<RenderPassEncoderImplBox>(RenderPassEncoderImplBox { .impl = impl }))
 {
 }
 
-RenderPassEncoder::RenderPassEncoder(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
-    : m_impl(makeUnique<RenderPassEncoderImplBox>(RenderPassEncoderImplBox { .impl = makeInvalidRenderPassEncoderImpl(&parentEncoder, parentEncoder.swiftImpl(), &device, errorString) }))
-{
-}
-
-RenderPassEncoder::~RenderPassEncoder()
-{
-    m_impl->impl.passWillBeDestroyed();
-}
+RenderPassEncoder::~RenderPassEncoder() = default;
 
 WebGPUSwift::RenderPassEncoderImpl& RenderPassEncoder::swiftImpl() const
 {
@@ -205,20 +199,6 @@ void RenderPassEncoder::setLabel(String&& label)
 bool RenderPassEncoder::isValid() const
 {
     return m_impl->impl.isValid();
-}
-
-Ref<RenderPassEncoder> RenderPassEncoder::createInvalidWithEncoderStateNotOpen(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
-{
-    Ref renderPassEncoder = createInvalid(parentEncoder, device, errorString);
-    renderPassEncoder->m_impl->impl.markEncoderStateWasNotOpen();
-    return renderPassEncoder;
-}
-
-Ref<RenderPassEncoder> RenderPassEncoder::createWithDeferredRenderCommandEncoder(NSUInteger visibilityResultBufferSize, bool depthReadOnly, bool stencilReadOnly, CommandEncoder& parentEncoder, id<MTLBuffer> visibilityResultBuffer, uint64_t maxDrawCount, Device& device, MTLRenderPassDescriptor* mtlDescriptor)
-{
-    Ref renderPassEncoder = create(nil, visibilityResultBufferSize, depthReadOnly, stencilReadOnly, parentEncoder, visibilityResultBuffer, maxDrawCount, device, mtlDescriptor);
-    renderPassEncoder->m_impl->impl.deferRenderCommandEncoder(mtlDescriptor);
-    return renderPassEncoder;
 }
 
 #pragma mark Primitives for RenderPassEncoder.swift

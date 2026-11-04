@@ -271,22 +271,12 @@ public final class CommandEncoderReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-beginrenderpass. A render pass has no use for its
     // descriptor's label.
     public func beginRenderPass(_ descriptor: GPURenderPassDescriptor) -> RenderPassEncoderReference {
-        let renderPassEncoder = impl.beginRenderPass(shell: shell, descriptor: descriptor)
-        guard let renderPassEncoderImpl = impl.lastMadeRenderPassEncoderImpl else {
-            preconditionFailure("RenderPassEncoder's shell made no Impl")
-        }
-        impl.lastMadeRenderPassEncoderImpl = nil
-        return RenderPassEncoderReference(renderPassEncoderImpl, renderPassEncoder.ptr())
+        impl.beginRenderPass(shell: shell, descriptor: descriptor)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-begincomputepass
     public func beginComputePass(_ descriptor: GPUComputePassDescriptor, label: Swift.String?) -> ComputePassEncoderReference {
-        let computePassEncoder = impl.beginComputePass(shell: shell, descriptor: descriptor, label: label)
-        guard let computePassEncoderImpl = impl.lastMadeComputePassEncoderImpl else {
-            preconditionFailure("ComputePassEncoder's shell made no Impl")
-        }
-        impl.lastMadeComputePassEncoderImpl = nil
-        return ComputePassEncoderReference(computePassEncoderImpl, computePassEncoder.ptr())
+        impl.beginComputePass(shell: shell, descriptor: descriptor, label: label)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
@@ -1219,7 +1209,7 @@ extension CommandEncoderImpl {
     fileprivate func beginRenderPass(
         shell: WebGPU.Metal.CommandEncoder,
         descriptor: GPURenderPassDescriptor
-    ) -> CxxBridging.RefRenderPassEncoder {
+    ) -> RenderPassEncoderImpl {
         let maxDrawCount = descriptor.maxDrawCount ?? UInt64.max
 
         guard prepareTheEncoderState() else {
@@ -1227,15 +1217,15 @@ extension CommandEncoderImpl {
             // https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end
             // A pass begun while the command encoder was already locked by another pass never took
             // the encoder over. Ending it is a validation error the page can catch, not a no-op.
-            return WebGPU.Metal.RenderPassEncoder.createInvalidWithEncoderStateNotOpen(shell, device, "encoder state is not valid")
+            return makeInvalidRenderPassWithEncoderStateNotOpen(shell, "encoder state is not valid")
         }
 
         if let error = errorValidatingRenderPassDescriptor(descriptor: descriptor) {
-            return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, error)
+            return makeInvalidRenderPass(shell, error)
         }
 
         if let commandBuffer = self.commandBuffer(), commandBuffer.status.rawValue >= MTLCommandBufferStatus.enqueued.rawValue {
-            return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "command buffer has already been committed")
+            return makeInvalidRenderPass(shell, "command buffer has already been committed")
         }
 
         // Before anything in this pass is attached to the command buffer, including the timestamps buffer
@@ -1283,7 +1273,7 @@ extension CommandEncoderImpl {
         }
 
         guard descriptor.colorAttachments.count <= 8 else {
-            return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "color attachment count is > 8")
+            return makeInvalidRenderPass(shell, "color attachment count is > 8")
         }
 
         finalizeBlitCommandEncoder()
@@ -1319,13 +1309,13 @@ extension CommandEncoderImpl {
 
                 let texture = attachment.view.impl
                 if !isValidToUseWith(texture) {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "device mismatch")
+                    return makeInvalidRenderPass(shell, "device mismatch")
                 }
 
                 if textureWidth != 0
                     && (texture.width != textureWidth || texture.height != textureHeight || sampleCount != texture.sampleCount)
                 {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "texture size does not match")
+                    return makeInvalidRenderPass(shell, "texture size does not match")
                 }
 
                 textureWidth = texture.width
@@ -1338,7 +1328,7 @@ extension CommandEncoderImpl {
                 )
                 bytesPerSample += renderTargetPixelByteCost(textureFormat)
                 if bytesPerSample > maxColorAttachmentBytesPerSample {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "total bytes per sample exceeds limit")
+                    return makeInvalidRenderPass(shell, "total bytes per sample exceeds limit")
                 }
 
                 let textureIsDestroyed = texture.isDestroyed
@@ -1346,11 +1336,11 @@ extension CommandEncoderImpl {
                     if !texture.usageContains(.RenderAttachment)
                         || !isColorRenderableFormat(textureFormat, deviceImpl)
                     {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "color attachment is not renderable")
+                        return makeInvalidRenderPass(shell, "color attachment is not renderable")
                     }
 
                     if !isRenderableTextureView(texture, attachment.loadOp, attachment.storeOp) {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "texture view is not renderable")
+                        return makeInvalidRenderPass(shell, "texture view is not renderable")
                     }
                 }
                 texture.setCommandEncoder(self)
@@ -1359,7 +1349,7 @@ extension CommandEncoderImpl {
                 mtlAttachment.texture = mtlTexture
                 if mtlAttachment.texture == nil {
                     if !textureIsDestroyed {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "color attachment's texture is nil")
+                        return makeInvalidRenderPass(shell, "color attachment's texture is nil")
                     }
                     continue
                 }
@@ -1369,23 +1359,15 @@ extension CommandEncoderImpl {
                 #if compiler(>=6.4)
                 if let depthSlice = attachment.depthSlice {
                     if !texture.is3DTexture {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depthSlice specified on 2D texture")
+                        return makeInvalidRenderPass(shell, "depthSlice specified on 2D texture")
                     }
                     depthSliceOrArrayLayer = textureIsDestroyed ? 0 : UInt64(depthSlice)
                     if depthSliceOrArrayLayer >= texture.depthOrArrayLayers {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                            shell,
-                            device,
-                            "depthSlice is greater than texture's depth or array layers"
-                        )
+                        return makeInvalidRenderPass(shell, "depthSlice is greater than texture's depth or array layers")
                     }
                 } else {
                     if texture.is3DTexture {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                            shell,
-                            device,
-                            "textureDimension is 3D and no depth slice is specified"
-                        )
+                        return makeInvalidRenderPass(shell, "textureDimension is 3D and no depth slice is specified")
                     }
                     depthSliceOrArrayLayer = UInt64(textureIsDestroyed ? 0 : texture.baseArrayLayer)
                 }
@@ -1393,23 +1375,15 @@ extension CommandEncoderImpl {
                 // FIXME: (rdar://170907318) Remove this branch once the minimum supported compiler is Swift 6.4.
                 if var depthSlice = attachment.depthSlice {
                     if !texture.is3DTexture {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depthSlice specified on 2D texture")
+                        return makeInvalidRenderPass(shell, "depthSlice specified on 2D texture")
                     }
                     depthSliceOrArrayLayer = textureIsDestroyed ? 0 : UInt64(depthSlice)
                     if depthSliceOrArrayLayer >= texture.depthOrArrayLayers {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                            shell,
-                            device,
-                            "depthSlice is greater than texture's depth or array layers"
-                        )
+                        return makeInvalidRenderPass(shell, "depthSlice is greater than texture's depth or array layers")
                     }
                 } else {
                     if texture.is3DTexture {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                            shell,
-                            device,
-                            "textureDimension is 3D and no depth slice is specified"
-                        )
+                        return makeInvalidRenderPass(shell, "textureDimension is 3D and no depth slice is specified")
                     }
                     depthSliceOrArrayLayer = UInt64(textureIsDestroyed ? 0 : texture.baseArrayLayer)
                 }
@@ -1422,11 +1396,7 @@ extension CommandEncoderImpl {
                 let depthAndMipLevel: UInt64 = depthSliceOrArrayLayer | (UInt64(baseMipLevel) << 32)
 
                 guard depthSlices[bridgedTexture, default: []].insert(depthAndMipLevel).inserted else {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                        shell,
-                        device,
-                        "attempting to render to overlapping color attachment"
-                    )
+                    return makeInvalidRenderPass(shell, "attempting to render to overlapping color attachment")
                 }
 
                 mtlAttachment.depthPlane = texture.is3DTexture ? Int(depthSliceOrArrayLayer) : 0
@@ -1444,22 +1414,18 @@ extension CommandEncoderImpl {
                     compositorTexture = resolveTarget
 
                     if !isValidToUseWith(resolveTarget) {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                            shell,
-                            device,
-                            "resolve target created from different device"
-                        )
+                        return makeInvalidRenderPass(shell, "resolve target created from different device")
                     }
                     resolveTarget.setCommandEncoder(self)
                     let resolveTexture = resolveTarget.texture
                     #if compiler(>=6.4)
                     guard let resolveTexture, let mtlTexture else {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "resolveTexture/mtlTexture is nil")
+                        return makeInvalidRenderPass(shell, "resolveTexture/mtlTexture is nil")
                     }
                     #else
                     // FIXME: (rdar://170907318) Remove this branch once the minimum supported compiler is Swift 6.4.
                     guard var resolveTexture, var mtlTexture else {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "resolveTexture/mtlTexture is nil")
+                        return makeInvalidRenderPass(shell, "resolveTexture/mtlTexture is nil")
                     }
                     #endif
 
@@ -1471,7 +1437,7 @@ extension CommandEncoderImpl {
                         || mtlTexture.pixelFormat != resolveTexture.pixelFormat
                         || !supportsResolve(resolveTarget.format, deviceImpl)
                     {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "resolve target is invalid")
+                        return makeInvalidRenderPass(shell, "resolve target is invalid")
                     }
 
                     mtlAttachment.resolveTexture = resolveTexture
@@ -1479,7 +1445,7 @@ extension CommandEncoderImpl {
                     mtlAttachment.resolveSlice = 0
                     mtlAttachment.resolveDepthPlane = 0
                     if resolveTarget.width != texture.width || resolveTarget.height != texture.height {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "resolve target dimensions are invalid")
+                        return makeInvalidRenderPass(shell, "resolve target dimensions are invalid")
                     }
                 }
 
@@ -1498,7 +1464,7 @@ extension CommandEncoderImpl {
         if let attachment = optionalDepthStencilAttachment {
             let textureView = attachment.view.impl
             if !isValidToUseWith(textureView) {
-                return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depth stencil texture device mismatch")
+                return makeInvalidRenderPass(shell, "depth stencil texture device mismatch")
             }
             let metalDepthStencilTexture = textureView.texture
             let textureFormat = textureView.format
@@ -1510,14 +1476,10 @@ extension CommandEncoderImpl {
                     && (textureView.width != textureWidth || textureView.height != textureHeight
                         || sampleCount != textureView.sampleCount)
                 {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depth stencil texture dimensions mismatch")
+                    return makeInvalidRenderPass(shell, "depth stencil texture dimensions mismatch")
                 }
                 if textureView.arrayLayerCount > 1 || textureView.mipLevelCount > 1 {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                        shell,
-                        device,
-                        "depth stencil texture has more than one array layer or mip level"
-                    )
+                    return makeInvalidRenderPass(shell, "depth stencil texture has more than one array layer or mip level")
                 }
             }
 
@@ -1531,7 +1493,7 @@ extension CommandEncoderImpl {
                 attachment.stencilLoadOp,
                 attachment.stencilStoreOp
             ) {
-                return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depth stencil texture is not renderable")
+                return makeInvalidRenderPass(shell, "depth stencil texture is not renderable")
             }
 
             depthReadOnly = attachment.depthReadOnly
@@ -1561,47 +1523,31 @@ extension CommandEncoderImpl {
             if !isDestroyed {
                 if hasDepthComponent && !depthReadOnly {
                     if attachment.depthLoadOp == nil || attachment.depthStoreOp == nil {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                            shell,
-                            device,
-                            "depth load and store op were not specified"
-                        )
+                        return makeInvalidRenderPass(shell, "depth load and store op were not specified")
                     }
                 } else if attachment.depthLoadOp != nil || attachment.depthStoreOp != nil {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depth load and store op were specified")
+                    return makeInvalidRenderPass(shell, "depth load and store op were specified")
                 }
             }
 
             if attachment.depthLoadOp == WebGPU.LoadOp.Clear
                 && (attachment.depthClearValue < 0 || attachment.depthClearValue > 1)
             {
-                return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "depth clear value is invalid")
+                return makeInvalidRenderPass(shell, "depth clear value is invalid")
             }
 
             if zeroColorTargets {
                 if isDestroyed {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                        shell,
-                        device,
-                        "no color targets and depth-stencil texture is destroyed"
-                    )
+                    return makeInvalidRenderPass(shell, "no color targets and depth-stencil texture is destroyed")
                 }
                 #if compiler(>=6.4)
                 guard let metalDepthStencilTexture, metalDepthStencilTexture.sampleCount > 0 else {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                        shell,
-                        device,
-                        "no color targets and depth-stencil texture is nil"
-                    )
+                    return makeInvalidRenderPass(shell, "no color targets and depth-stencil texture is nil")
                 }
                 #else
                 // FIXME: (rdar://170907318) Remove this branch once the minimum supported compiler is Swift 6.4.
                 guard var metalDepthStencilTexture, metalDepthStencilTexture.sampleCount > 0 else {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                        shell,
-                        device,
-                        "no color targets and depth-stencil texture is nil"
-                    )
+                    return makeInvalidRenderPass(shell, "no color targets and depth-stencil texture is nil")
                 }
                 #endif
 
@@ -1627,14 +1573,10 @@ extension CommandEncoderImpl {
             if !isDestroyed {
                 if hasStencilComponent && !stencilReadOnly {
                     if attachment.stencilLoadOp == nil || attachment.stencilStoreOp == nil {
-                        return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                            shell,
-                            device,
-                            "stencil load and store op were not specified"
-                        )
+                        return makeInvalidRenderPass(shell, "stencil load and store op were not specified")
                     }
                 } else if attachment.stencilLoadOp != nil || attachment.stencilStoreOp != nil {
-                    return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "stencil load and store op were specified")
+                    return makeInvalidRenderPass(shell, "stencil load and store op were specified")
                 }
             }
 
@@ -1642,7 +1584,7 @@ extension CommandEncoderImpl {
         }
 
         if zeroColorTargets && mtlDescriptor.renderTargetWidth == 0 {
-            return WebGPU.Metal.RenderPassEncoder.createInvalid(shell, device, "zero color and depth targets")
+            return makeInvalidRenderPass(shell, "zero color and depth targets")
         }
 
         var visibilityResultBufferSize: UInt = 0
@@ -1650,11 +1592,7 @@ extension CommandEncoderImpl {
         if let occlusionQuery = descriptor.occlusionQuerySet {
             occlusionQuery.setCommandEncoder(self)
             if occlusionQuery.queryType != WebGPU.QueryType.Occlusion {
-                return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                    shell,
-                    device,
-                    "querySet for occlusion query was not of type occlusion"
-                )
+                return makeInvalidRenderPass(shell, "querySet for occlusion query was not of type occlusion")
             }
             mtlDescriptor.visibilityResultBuffer = occlusionQuery.visibilityBuffer()
             visibilityResultBuffer = mtlDescriptor.visibilityResultBuffer
@@ -1662,11 +1600,7 @@ extension CommandEncoderImpl {
         }
 
         if !deviceImpl.isValid() {
-            return WebGPU.Metal.RenderPassEncoder.createInvalid(
-                shell,
-                device,
-                "GPUDevice was invalid, this will be an error submitting the command buffer"
-            )
+            return makeInvalidRenderPass(shell, "GPUDevice was invalid, this will be an error submitting the command buffer")
         }
 
         return createRenderPassEncoder(
@@ -1728,38 +1662,53 @@ extension CommandEncoderImpl {
         _ visibilityResultBuffer: (any MTLBuffer)?,
         _ maxDrawCount: UInt64,
         _ mtlDescriptor: MTLRenderPassDescriptor
-    ) -> CxxBridging.RefRenderPassEncoder {
-        let renderPassEncoder: CxxBridging.RefRenderPassEncoder
-        if canDeferRenderCommandEncoder(mtlDescriptor) {
-            renderPassEncoder = WebGPU.Metal.RenderPassEncoder.createWithDeferredRenderCommandEncoder(
-                visibilityResultBufferSize,
-                depthReadOnly,
-                stencilReadOnly,
-                shell,
-                visibilityResultBuffer,
-                maxDrawCount,
-                device,
-                mtlDescriptor
-            )
-        } else {
-            let mtlRenderCommandEncoder = makeRenderCommandEncoder(mtlDescriptor)
-            renderPassEncoder = WebGPU.Metal.RenderPassEncoder.create(
-                mtlRenderCommandEncoder,
-                visibilityResultBufferSize,
-                depthReadOnly,
-                stencilReadOnly,
-                shell,
-                visibilityResultBuffer,
-                maxDrawCount,
-                device,
-                mtlDescriptor
-            )
-        }
-        guard let renderPassEncoderImpl = lastMadeRenderPassEncoderImpl else {
-            preconditionFailure("RenderPassEncoder's shell made no Impl")
+    ) -> RenderPassEncoderImpl {
+        var parameters = WebGPU.Metal.RenderPassEncoderParameters()
+        parameters.visibilityResultBufferSize = visibilityResultBufferSize
+        parameters.maxDrawCount = maxDrawCount
+        parameters.depthReadOnly = depthReadOnly
+        parameters.stencilReadOnly = stencilReadOnly
+        let deferred = canDeferRenderCommandEncoder(mtlDescriptor)
+        let renderPassEncoderImpl = makeRenderPassEncoderImpl(
+            deferred ? nil : makeRenderCommandEncoder(mtlDescriptor),
+            UInt64(deviceImpl.memoryBarrierLimit()) > maxDrawCount ? nil : mtlDescriptor,
+            mtlDescriptor.rasterizationRateMap,
+            visibilityResultBuffer,
+            parameters,
+            shell,
+            self,
+            device
+        )
+        if deferred {
+            renderPassEncoderImpl.deferRenderCommandEncoder(mtlDescriptor)
         }
         renderPassEncoderImpl.appendAttachments(descriptor)
-        return renderPassEncoder
+        return renderPassEncoderImpl
+    }
+
+    // An invalid pass, which still locks this encoder.
+    private func makeInvalidRenderPass(_ shell: WebGPU.Metal.CommandEncoder, _ errorString: String) -> RenderPassEncoderImpl {
+        makeInvalidRenderPassEncoderImpl(shell, self, device, errorString as NSString)
+    }
+
+    // A pass begun while this encoder was not open never took the encoder over, so it can never be ended.
+    // https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end
+    private func makeInvalidRenderPassWithEncoderStateNotOpen(_ shell: WebGPU.Metal.CommandEncoder, _ errorString: String) -> RenderPassEncoderImpl {
+        let pass = makeInvalidRenderPass(shell, errorString)
+        pass.markEncoderStateWasNotOpen()
+        return pass
+    }
+
+    // An invalid pass, which still locks this encoder.
+    private func makeInvalidComputePass(_ shell: WebGPU.Metal.CommandEncoder, _ errorString: String) -> ComputePassEncoderImpl {
+        makeInvalidComputePassEncoderImpl(shell, self, device, errorString as NSString)
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-end
+    private func makeInvalidComputePassWithEncoderStateNotOpen(_ shell: WebGPU.Metal.CommandEncoder, _ errorString: String) -> ComputePassEncoderImpl {
+        let pass = makeInvalidComputePass(shell, errorString)
+        pass.markEncoderStateWasNotOpen()
+        return pass
     }
 
     static func hasValidDimensions(dimension: WebGPU.TextureDimension, width: UInt, height: UInt, depth: UInt) -> Bool {
@@ -2844,7 +2793,7 @@ extension CommandEncoderImpl {
         shell: WebGPU.Metal.CommandEncoder,
         descriptor: GPUComputePassDescriptor,
         label: String?
-    ) -> CxxBridging.RefComputePassEncoder {
+    ) -> ComputePassEncoderImpl {
         let optionalTimestampWrites = descriptor.timestampWrites
 
         guard prepareTheEncoderState() else {
@@ -2852,25 +2801,21 @@ extension CommandEncoderImpl {
             // https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-end
             // A pass begun while the command encoder was already locked by another pass never took
             // the encoder over. Ending it is a validation error the page can catch, not a no-op.
-            return WebGPU.Metal.ComputePassEncoder.createInvalidWithEncoderStateNotOpen(shell, device, "encoder state is invalid")
+            return makeInvalidComputePassWithEncoderStateNotOpen(shell, "encoder state is invalid")
         }
 
         if let error = self.errorValidatingComputePassDescriptor(descriptor: descriptor) {
-            return WebGPU.Metal.ComputePassEncoder.createInvalid(shell, device, String(error))
+            return makeInvalidComputePass(shell, String(error))
         }
 
         if let commandBuffer = self.commandBuffer(), commandBuffer.status.rawValue >= MTLCommandBufferStatus.enqueued.rawValue {
-            return WebGPU.Metal.ComputePassEncoder.createInvalid(shell, device, "command buffer has already been committed")
+            return makeInvalidComputePass(shell, "command buffer has already been committed")
         }
 
         self.finalizeBlitCommandEncoder()
 
         guard deviceImpl.isValid() else {
-            return WebGPU.Metal.ComputePassEncoder.createInvalid(
-                shell,
-                device,
-                "GPUDevice was invalid, this will be an error submitting the command buffer"
-            )
+            return makeInvalidComputePass(shell, "GPUDevice was invalid, this will be an error submitting the command buffer")
         }
         let computePassDescriptor = MTLComputePassDescriptor()
         computePassDescriptor.dispatchType = .serial
@@ -2905,13 +2850,13 @@ extension CommandEncoderImpl {
             }
         }
         guard let computeCommandEncoder = commandBuffer()?.makeComputeCommandEncoder(descriptor: computePassDescriptor) else {
-            return WebGPU.Metal.ComputePassEncoder.createInvalid(shell, device, "computeCommandEncoder is null")
+            return makeInvalidComputePass(shell, "computeCommandEncoder is null")
         }
 
         self.setExistingEncoder(computeCommandEncoder)
         computeCommandEncoder.label = label?.isEmpty == false ? label : nil
 
-        return WebGPU.Metal.ComputePassEncoder.create(computeCommandEncoder, shell, device)
+        return makeComputePassEncoderImpl(computeCommandEncoder, shell, self, device)
     }
 }
 
@@ -3135,12 +3080,6 @@ final class CommandEncoderImpl {
     // The attachments and query sets of a C++ caller's next pass descriptor, which Swift cannot reach from the
     // descriptor.
     private var staged = StagedPassObjects()
-    // The Impls that the last render and compute pass shells this encoder began made, for the Swift caller that began
-    // the pass. Weak, so that they live only as long as their shells.
-    @_expose(!Cxx)
-    weak var lastMadeRenderPassEncoderImpl: RenderPassEncoderImpl?
-    @_expose(!Cxx)
-    weak var lastMadeComputePassEncoderImpl: ComputePassEncoderImpl?
     // Declared last, so that the device outlives the rest of the encoder.
     let device: WebGPU.Metal.Device
     @_expose(Cxx)
@@ -3788,7 +3727,7 @@ final class CommandEncoderImpl {
     func beginRenderPass(
         _ shell: WebGPU.Metal.CommandEncoder,
         _ descriptor: borrowing WebGPU.RenderPassDescriptor
-    ) -> CxxBridging.RefRenderPassEncoder {
+    ) -> RenderPassEncoderImpl {
         let staged = self.staged
         self.staged = StagedPassObjects()
         return beginRenderPass(shell: shell, descriptor: GPURenderPassDescriptor(descriptor, staged))
@@ -3798,7 +3737,7 @@ final class CommandEncoderImpl {
     func beginComputePass(
         _ shell: WebGPU.Metal.CommandEncoder,
         _ descriptor: WebGPU.ComputePassDescriptor
-    ) -> CxxBridging.RefComputePassEncoder {
+    ) -> ComputePassEncoderImpl {
         let staged = self.staged
         self.staged = StagedPassObjects()
         return beginComputePass(

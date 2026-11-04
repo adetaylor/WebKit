@@ -93,7 +93,7 @@ RefPtr<WebGPU::ComputePassEncoder> CommandEncoder::beginComputePass(const std::o
         Ref querySet = metal(descriptor->timestampWrites->querySet);
         m_impl->impl.stageTimestampWritesQuerySet(querySet->swiftImpl());
     }
-    return m_impl->impl.beginComputePass(this, descriptor ? *descriptor : WebGPU::ComputePassDescriptor { });
+    return ComputePassEncoder::create(m_impl->impl.beginComputePass(this, descriptor ? *descriptor : WebGPU::ComputePassDescriptor { }));
 }
 
 RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::RenderPassDescriptor& descriptor)
@@ -130,7 +130,7 @@ RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::
         Ref querySet = metal(descriptor.timestampWrites->querySet);
         impl.stageTimestampWritesQuerySet(querySet->swiftImpl());
     }
-    return impl.beginRenderPass(this, descriptor);
+    return RenderPassEncoder::create(impl.beginRenderPass(this, descriptor));
 }
 
 void CommandEncoder::copyBufferToBuffer(const WebGPU::Buffer& source, uint64_t sourceOffset, WebGPU::Buffer& destination, uint64_t destinationOffset, uint64_t size)

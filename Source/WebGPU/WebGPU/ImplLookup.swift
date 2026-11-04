@@ -214,27 +214,27 @@ public final class InstanceReference {
     }
 }
 
-// A compute pass encoder with its shell, which the pass's Impl needs alive, as Swift holds one.
 @_spi(WebKitGPU)
-public final class ComputePassEncoderReference {
-    public let impl: ComputePassEncoderImpl
-    let shell: WebGPU.Metal.ComputePassEncoder
+public typealias ComputePassEncoderReference = ComputePassEncoderImpl
 
-    init(_ impl: ComputePassEncoderImpl, _ shell: WebGPU.Metal.ComputePassEncoder) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension ComputePassEncoderImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: ComputePassEncoderImpl {
+        self
     }
 }
 
-// A render pass encoder with its shell, which the pass's Impl needs alive, as Swift holds one.
 @_spi(WebKitGPU)
-public final class RenderPassEncoderReference {
-    public let impl: RenderPassEncoderImpl
-    let shell: WebGPU.Metal.RenderPassEncoder
+public typealias RenderPassEncoderReference = RenderPassEncoderImpl
 
-    init(_ impl: RenderPassEncoderImpl, _ shell: WebGPU.Metal.RenderPassEncoder) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension RenderPassEncoderImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: RenderPassEncoderImpl {
+        self
     }
 }
 
@@ -262,11 +262,6 @@ extension CommandEncoderReference: GPUObjectReference {
 }
 
 @_spi(WebKitGPU)
-extension ComputePassEncoderReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
 extension DeviceReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }
@@ -283,11 +278,6 @@ extension PresentationContextReference: GPUObjectReference {
 
 @_spi(WebKitGPU)
 extension QueueReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
-extension RenderPassEncoderReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }
 

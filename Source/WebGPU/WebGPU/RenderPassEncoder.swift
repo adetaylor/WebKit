@@ -465,7 +465,7 @@ private struct IndirectEncodeWork {
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class RenderPassEncoderImpl {
+public final class RenderPassEncoderImpl: GPUObjectReference {
     // nil while the pass is deferred, and once it is invalid, has ended or no longer holds its command
     // encoder's current encoder.
     private var backingRenderCommandEncoder: (any MTLRenderCommandEncoder)?
@@ -599,7 +599,7 @@ public final class RenderPassEncoderImpl {
     // MARK: State machine
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         backingRenderCommandEncoder != nil || deferredDescriptor != nil
     }
 
@@ -637,9 +637,12 @@ public final class RenderPassEncoderImpl {
         return materializeRenderCommandEncoder()
     }
 
-    // Called from ~RenderPassEncoder, which must not pass the dying shell into Swift.
-    @_expose(Cxx)
-    func passWillBeDestroyed() {
+    // A pass that goes before it ended invalidates its command encoder.
+    deinit {
+        passWillBeDestroyed()
+    }
+
+    private func passWillBeDestroyed() {
         if isValid() {
             parentImpl.makeInvalid("GPURenderPassEncoder.finish was never called")
         }
@@ -3641,7 +3644,6 @@ func makeRenderPassEncoderImpl(
         lastErrorString: nil
     )
     parentImpl.lock(true)
-    parentImpl.lastMadeRenderPassEncoderImpl = impl
     return impl
 }
 
@@ -3665,6 +3667,5 @@ func makeInvalidRenderPassEncoderImpl(
     )
     parentImpl.lock(true)
     parentImpl.setLastError(errorString as String?)
-    parentImpl.lastMadeRenderPassEncoderImpl = impl
     return impl
 }

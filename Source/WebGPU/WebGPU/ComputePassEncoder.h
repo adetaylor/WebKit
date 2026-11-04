@@ -63,17 +63,10 @@ struct ComputePassEncoderImplBox;
 class ComputePassEncoder final : public WebGPU::ComputePassEncoder {
     WTF_MAKE_TZONE_ALLOCATED(ComputePassEncoder);
 public:
-    static Ref<ComputePassEncoder> create(id<MTLComputeCommandEncoder> computeCommandEncoder, CommandEncoder& parentEncoder, Device& device)
-    {
-        return adoptRef(*new ComputePassEncoder(computeCommandEncoder, parentEncoder, device));
-    }
-    static Ref<ComputePassEncoder> createInvalid(CommandEncoder& parentEncoder, Device& device, NSString* errorString)
-    {
-        return adoptRef(*new ComputePassEncoder(parentEncoder, device, errorString));
-    }
-    // A pass begun while its command encoder was not open never took the encoder over, so it can
-    // never be ended. https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-end
-    static Ref<ComputePassEncoder> createInvalidWithEncoderStateNotOpen(CommandEncoder& parentEncoder, Device&, NSString* errorString);
+#if !defined(__swift__)
+    // CommandEncoder.swift makes the ComputePassEncoderImpl.
+    static Ref<ComputePassEncoder> create(const WebGPUSwift::ComputePassEncoderImpl&);
+#endif
 
     ~ComputePassEncoder();
 
@@ -98,8 +91,9 @@ public:
 #endif
 
 private:
-    ComputePassEncoder(id<MTLComputeCommandEncoder>, CommandEncoder&, Device&);
-    ComputePassEncoder(CommandEncoder&, Device&, NSString*);
+#if !defined(__swift__)
+    explicit ComputePassEncoder(const WebGPUSwift::ComputePassEncoderImpl&);
+#endif
 
     const std::unique_ptr<ComputePassEncoderImplBox> m_impl;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refComputePassEncoder, derefComputePassEncoder);

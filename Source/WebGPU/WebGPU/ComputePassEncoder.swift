@@ -67,7 +67,7 @@ private struct DispatchStateCache {
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class ComputePassEncoderImpl {
+public final class ComputePassEncoderImpl: GPUObjectReference {
     // nil once the pass is invalid, has ended or no longer holds its command encoder's current encoder.
     private var backingComputeCommandEncoder: (any MTLComputeCommandEncoder)?
     private let parentEncoder: WebGPU.Metal.CommandEncoder
@@ -122,7 +122,7 @@ public final class ComputePassEncoderImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         backingComputeCommandEncoder != nil
     }
 
@@ -146,9 +146,12 @@ public final class ComputePassEncoderImpl {
         encoderStateWasNotOpen = true
     }
 
-    // Called from ~ComputePassEncoder, which must not pass the dying shell into Swift.
-    @_expose(Cxx)
-    func passWillBeDestroyed() {
+    // A pass that goes before it ended invalidates its command encoder.
+    deinit {
+        passWillBeDestroyed()
+    }
+
+    private func passWillBeDestroyed() {
         if backingComputeCommandEncoder != nil {
             parentImpl.makeInvalid("GPUComputePassEncoder.finish was never called")
         }
@@ -961,7 +964,6 @@ func makeComputePassEncoderImpl(
         lastErrorString: nil
     )
     parentImpl.lock(true)
-    parentImpl.lastMadeComputePassEncoderImpl = impl
     return impl
 }
 
@@ -981,6 +983,5 @@ func makeInvalidComputePassEncoderImpl(
     )
     parentImpl.lock(true)
     parentImpl.setLastError(errorString as String?)
-    parentImpl.lastMadeComputePassEncoderImpl = impl
     return impl
 }

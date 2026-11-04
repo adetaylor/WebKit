@@ -52,8 +52,6 @@ inline uint32_t roundUpToMultipleOfNonPowerOfTwoUInt32UInt32(uint32_t a, uint32_
 
 namespace CxxBridging {
 
-using RefComputePassEncoder = Ref<WebGPU::Metal::ComputePassEncoder>;
-using RefRenderPassEncoder = Ref<WebGPU::Metal::RenderPassEncoder>;
 using RefCommandBuffer = Ref<WebGPU::Metal::CommandBuffer>;
 using RefDevice = Ref<WebGPU::Metal::Device>;
 
