@@ -147,7 +147,6 @@ public:
     WebGPUSwift::RenderPipelineImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
-    PipelineLayout& pipelineLayout() const;
 
 private:
     explicit RenderPipeline(std::unique_ptr<RenderPipelineImplBox>&&);

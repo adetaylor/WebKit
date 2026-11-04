@@ -56,8 +56,7 @@ public final class RenderPipelineImpl {
     private var icbState = PipelineStateCompilation.notCompiled
     private let backingDepthStencilDescriptor: MTLDepthStencilDescriptor?
     private let backingDepthStencilState: (any MTLDepthStencilState)?
-    // Never null: an invalid pipeline carries an invalid-state layout.
-    private let backingPipelineLayout: WebGPU.Metal.PipelineLayout
+    // An invalid pipeline carries an invalid-state layout.
     let pipelineLayoutImpl: PipelineLayoutImpl
     let deviceImpl: DeviceImpl
     let parameters: WebGPU.Metal.RenderPipelineParameters
@@ -84,7 +83,6 @@ public final class RenderPipelineImpl {
         renderPipelineDescriptor: MTLRenderPipelineDescriptor?,
         depthStencilDescriptor: MTLDepthStencilDescriptor?,
         metalDevice: (any MTLDevice)?,
-        pipelineLayout: WebGPU.Metal.PipelineLayout,
         pipelineLayoutImpl: PipelineLayoutImpl,
         device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl,
@@ -100,7 +98,6 @@ public final class RenderPipelineImpl {
         self.backingRenderPipelineDescriptor = renderPipelineDescriptor
         self.backingDepthStencilDescriptor = depthStencilDescriptor
         self.backingDepthStencilState = depthStencilDescriptor.flatMap { metalDevice?.makeDepthStencilState(descriptor: $0) }
-        self.backingPipelineLayout = pipelineLayout
         self.pipelineLayoutImpl = pipelineLayoutImpl
         self.deviceImpl = deviceImpl
         self.parameters = parameters
@@ -222,8 +219,8 @@ public final class RenderPipelineImpl {
     }
 
     @_expose(Cxx)
-    func pipelineLayout() -> WebGPU.Metal.PipelineLayout {
-        backingPipelineLayout
+    func pipelineLayout() -> PipelineLayoutImpl {
+        pipelineLayoutImpl
     }
 
     func sampleMask() -> UInt32 {
@@ -245,7 +242,6 @@ public final class RenderPipelineImpl {
             renderPipelineDescriptor: clonedRenderPipelineDescriptor,
             depthStencilDescriptor: backingDepthStencilDescriptor,
             metalDevice: metalDevice,
-            pipelineLayout: backingPipelineLayout,
             pipelineLayoutImpl: pipelineLayoutImpl,
             device: device,
             deviceImpl: deviceImpl,
@@ -386,7 +382,6 @@ public final class RenderPipelineImpl {
 func makeInvalidRenderPipelineImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
-    _ pipelineLayout: WebGPU.Metal.PipelineLayout,
     _ pipelineLayoutImpl: PipelineLayoutImpl
 ) -> RenderPipelineImpl {
     var parameters = WebGPU.Metal.RenderPipelineParameters()
@@ -395,7 +390,6 @@ func makeInvalidRenderPipelineImpl(
         renderPipelineDescriptor: nil,
         depthStencilDescriptor: nil,
         metalDevice: nil,
-        pipelineLayout: pipelineLayout,
         pipelineLayoutImpl: pipelineLayoutImpl,
         device: device,
         deviceImpl: deviceImpl,
@@ -622,7 +616,6 @@ final class RenderPipelineBuilder {
     // Zero-or-one FRTs as arrays, never Optional<FRT>.
     private var fragmentModule: [WebGPU.Metal.ShaderModule] = []
     private var fragmentModuleImpl: ShaderModuleImpl?
-    private var layout: [WebGPU.Metal.PipelineLayout] = []
     private var layoutImpl: PipelineLayoutImpl?
     private var isReplacingPipeline = false
 
@@ -645,8 +638,7 @@ final class RenderPipelineBuilder {
     }
 
     @_expose(Cxx)
-    func setPipelineLayout(_ layout: WebGPU.Metal.PipelineLayout, _ impl: PipelineLayoutImpl, _ isReplacingPipeline: Bool) {
-        self.layout = [layout]
+    func setPipelineLayout(_ impl: PipelineLayoutImpl, _ isReplacingPipeline: Bool) {
         self.layoutImpl = impl
         self.isReplacingPipeline = isReplacingPipeline
     }
@@ -824,16 +816,14 @@ final class RenderPipelineBuilder {
         let primitiveTopology = descriptor.primitive.topology
         let stripIndexFormat = descriptor.primitive.stripIndexFormat
 
-        var explicitLayout: [WebGPU.Metal.PipelineLayout] = []
         var explicitLayoutImpl: PipelineLayoutImpl?
-        if let layoutImpl, !layout.isEmpty {
+        if let layoutImpl {
             // isValidToUseWithDevice(layout, device) of IsValidToUseWith.h.
             // With the same device, the layout's device validity is deviceImpl.isValid().
             if !layoutImpl.isValid() || !CxxBridging.areDevicesEqual(layoutImpl.device, device) || !deviceImpl.isValid() {
                 return PendingRenderPipeline(errorMessage: "Pipeline layout is not valid or created from different device")
             }
             if isReplacingPipeline || !layoutImpl.isAutoLayout() {
-                explicitLayout = layout
                 explicitLayoutImpl = layoutImpl
             }
         }
@@ -1111,18 +1101,15 @@ final class RenderPipelineBuilder {
             return PendingRenderPipeline(errorMessage: "too many render pipelines")
         }
 
-        let finalLayout: WebGPU.Metal.PipelineLayout
         let finalLayoutImpl: PipelineLayoutImpl
-        if let explicitLayoutImpl, !explicitLayout.isEmpty {
-            finalLayout = explicitLayout[0]
+        if let explicitLayoutImpl {
             finalLayoutImpl = explicitLayoutImpl
         } else {
             let generated = makeGeneratedPipelineLayout(device: device, deviceImpl: deviceImpl, entries: bindGroupEntries)
-            if !generated.impl.isValid() {
+            if !generated.isValid() {
                 return PendingRenderPipeline(errorMessage: "Generated pipeline layout is not valid")
             }
-            finalLayout = generated.shell
-            finalLayoutImpl = generated.impl
+            finalLayoutImpl = generated
         }
 
         var colorTargetFormats: [WebGPU.TextureFormat?] = []
@@ -1150,7 +1137,6 @@ final class RenderPipelineBuilder {
             renderPipelineDescriptor: renderPipelineDescriptor,
             depthStencilDescriptor: depthStencilDescriptor,
             metalDevice: deviceImpl.device(),
-            pipelineLayout: finalLayout,
             pipelineLayoutImpl: finalLayoutImpl,
             device: device,
             deviceImpl: deviceImpl,
@@ -1275,9 +1261,9 @@ func makeRenderPipelineBuilder(
         builder.setFragmentModule(fragmentModule.shell, fragmentModule.impl)
     }
     if let pipelineToReplace {
-        builder.setPipelineLayout(pipelineToReplace.impl.pipelineLayout(), pipelineToReplace.impl.pipelineLayoutImpl, true)
+        builder.setPipelineLayout(pipelineToReplace.impl.pipelineLayoutImpl, true)
     } else if let layout = descriptor.layout {
-        builder.setPipelineLayout(layout.shell, layout.impl, false)
+        builder.setPipelineLayout(layout, false)
     }
     return builder
 }
@@ -1761,8 +1747,7 @@ private func inWTFHashTableOrder(_ buffers: [RequiredVertexBuffer]) -> [Required
 // RenderPipeline::createInvalid, made in Swift so that its Impl is known. An invalid pipeline still holds an invalid
 // pipeline layout, so that it always has one.
 func makeInvalidRenderPipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> RenderPipelineReference {
-    let layout = makeLayoutPair(makeInvalidPipelineLayoutImpl(device), device: device, deviceImpl: deviceImpl)
-    let impl = makeInvalidRenderPipelineImpl(device, deviceImpl, layout.shell, layout.impl)
+    let impl = makeInvalidRenderPipelineImpl(device, deviceImpl, makeInvalidPipelineLayoutImpl(device))
     precondition(deviceImpl.stagedRenderPipelineImpl == nil)
     deviceImpl.stagedRenderPipelineImpl = impl
     return RenderPipelineReference(impl, WebGPU.Metal.RenderPipeline.createWithStagedImpl(device).ptr())

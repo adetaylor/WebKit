@@ -61,8 +61,6 @@ public:
     template<typename MakeImpl> static Ref<PipelineLayout> create(MakeImpl&&);
 #endif
     static Ref<PipelineLayout> createInvalid(Device&);
-    // For PipelineLayout.swift: wraps the Impl staged in DeviceImpl.stagedPipelineLayoutImpl.
-    static Ref<PipelineLayout> createWithStagedImpl(Device&);
 
     ~PipelineLayout();
 

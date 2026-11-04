@@ -98,9 +98,8 @@ final class DeviceImpl {
     private var lastBindGroupId: UInt32 = 0
     // Pairs of bind group layout ids (low and high 32 bits) known to be compatible. Lookups only: its order never shows.
     private var bindGroupCompatibilityCache = WTFHashSet<UInt64>()
-    // The staged-Impl handoff of BindGroupLayout.swift and PipelineLayout.swift: Swift stages an Impl it made, then the
-    // shell's createWithStagedImpl takes it back and wraps it. Synchronous, on the API thread, never nested.
-    var stagedPipelineLayoutImpl: PipelineLayoutImpl?
+    // The staged-Impl handoff of the pipelines and textures: Swift stages an Impl it made, then the shell's
+    // createWithStagedImpl takes it back and wraps it. Synchronous, on the API thread, never nested.
     var stagedRenderPipelineImpl: RenderPipelineImpl?
     var stagedComputePipelineImpl: ComputePipelineImpl?
     var stagedTextureImpl: TextureImpl?
@@ -807,15 +806,6 @@ final class DeviceImpl {
             preconditionFailure("No staged TextureImpl")
         }
         stagedTextureImpl = nil
-        return impl
-    }
-
-    @_expose(Cxx)
-    func takeStagedPipelineLayoutImpl() -> PipelineLayoutImpl {
-        guard let impl = stagedPipelineLayoutImpl else {
-            preconditionFailure("No staged PipelineLayoutImpl")
-        }
-        stagedPipelineLayoutImpl = nil
         return impl
     }
 

@@ -51,13 +51,10 @@ static WebGPUSwift::ComputePipelineBuilder computePipelineBuilder(Device& device
 {
     Ref shaderModule = metal(descriptor.compute.module.get());
     auto builder = makeComputePipelineBuilder(&device, device.swiftImpl(), shaderModule->swiftImpl());
-    if (pipelineToReplace) {
-        Ref pipelineLayout = pipelineToReplace->pipelineLayout();
-        builder.setPipelineLayout(pipelineLayout.ptr(), pipelineLayout->swiftImpl(), true);
-    } else if (descriptor.layout) {
-        Ref pipelineLayout = metal(*descriptor.layout);
-        builder.setPipelineLayout(pipelineLayout.ptr(), pipelineLayout->swiftImpl(), false);
-    }
+    if (pipelineToReplace)
+        builder.setPipelineLayout(pipelineToReplace->swiftImpl().pipelineLayout(), true);
+    else if (descriptor.layout)
+        builder.setPipelineLayout(Ref { metal(*descriptor.layout) }->swiftImpl(), false);
     return builder;
 }
 
@@ -102,10 +99,9 @@ Ref<ComputePipeline> ComputePipeline::createWithStagedImpl(Device& device)
 
 Ref<ComputePipeline> ComputePipeline::createInvalid(Device& device)
 {
-    // An invalid pipeline still holds an invalid PipelineLayout, so pipelineLayout() never returns null.
-    Ref invalidPipelineLayout = PipelineLayout::createInvalid(device);
+    // An invalid pipeline still holds an invalid pipeline layout.
     return create([&] {
-        return makeInvalidComputePipelineImpl(&device, device.swiftImpl(), invalidPipelineLayout.ptr(), invalidPipelineLayout->swiftImpl());
+        return makeInvalidComputePipelineImpl(&device, device.swiftImpl(), WebGPUSwift::makeInvalidPipelineLayoutImpl(&device));
     });
 }
 
@@ -129,11 +125,6 @@ bool ComputePipeline::isValid() const
 WebGPUSwift::ComputePipelineImpl& ComputePipeline::swiftImpl() const
 {
     return *std::launder(reinterpret_cast<WebGPUSwift::ComputePipelineImpl*>(const_cast<std::byte*>(m_impl)));
-}
-
-PipelineLayout& ComputePipeline::pipelineLayout() const
-{
-    return borrowSwiftRetained(swiftImpl().pipelineLayout());
 }
 
 Ref<WebGPU::BindGroupLayout> ComputePipeline::getBindGroupLayout(uint32_t groupIndex)

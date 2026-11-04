@@ -45,7 +45,6 @@ namespace WebGPU::Metal {
 
 class BindGroupLayout;
 class Device;
-class PipelineLayout;
 
 // The pipeline's unique id and workgroup size.
 struct ComputePipelineParameters {
@@ -78,7 +77,6 @@ public:
     WebGPUSwift::ComputePipelineImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
 
-    PipelineLayout& pipelineLayout() const;
 private:
 #if !defined(__swift__)
     template<typename MakeImpl> explicit ComputePipeline(MakeImpl&&);

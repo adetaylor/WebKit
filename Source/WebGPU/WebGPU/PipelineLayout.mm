@@ -90,13 +90,6 @@ Ref<PipelineLayout> PipelineLayout::createInvalid(Device& device)
     });
 }
 
-Ref<PipelineLayout> PipelineLayout::createWithStagedImpl(Device& device)
-{
-    return create([&] {
-        return device.swiftImpl().takeStagedPipelineLayoutImpl();
-    });
-}
-
 template<typename MakeImpl>
 PipelineLayout::PipelineLayout(MakeImpl&& makeImpl)
 {

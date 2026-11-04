@@ -69,13 +69,10 @@ static WebGPUSwift::RenderPipelineBuilder renderPipelineBuilder(Device& device, 
         Ref fragmentModule = metal(descriptor.fragment->stage.module.get());
         builder.setFragmentModule(fragmentModule.ptr(), fragmentModule->swiftImpl());
     }
-    if (pipelineToReplace) {
-        Ref pipelineLayout = pipelineToReplace->pipelineLayout();
-        builder.setPipelineLayout(pipelineLayout.ptr(), pipelineLayout->swiftImpl(), true);
-    } else if (descriptor.layout) {
-        Ref pipelineLayout = metal(*descriptor.layout);
-        builder.setPipelineLayout(pipelineLayout.ptr(), pipelineLayout->swiftImpl(), false);
-    }
+    if (pipelineToReplace)
+        builder.setPipelineLayout(pipelineToReplace->swiftImpl().pipelineLayout(), true);
+    else if (descriptor.layout)
+        builder.setPipelineLayout(Ref { metal(*descriptor.layout) }->swiftImpl(), false);
     return builder;
 }
 
@@ -110,9 +107,8 @@ Ref<RenderPipeline> RenderPipeline::create(std::unique_ptr<RenderPipelineImplBox
 
 Ref<RenderPipeline> RenderPipeline::createInvalid(Device& device)
 {
-    Ref invalidPipelineLayout = PipelineLayout::createInvalid(device);
     return create(makeUnique<RenderPipelineImplBox>(RenderPipelineImplBox {
-        .impl = makeInvalidRenderPipelineImpl(&device, device.swiftImpl(), invalidPipelineLayout.ptr(), invalidPipelineLayout->swiftImpl())
+        .impl = makeInvalidRenderPipelineImpl(&device, device.swiftImpl(), WebGPUSwift::makeInvalidPipelineLayoutImpl(&device))
     }));
 }
 
@@ -136,11 +132,6 @@ bool RenderPipeline::isValid() const
 WebGPUSwift::RenderPipelineImpl& RenderPipeline::swiftImpl() const
 {
     return m_impl->impl;
-}
-
-PipelineLayout& RenderPipeline::pipelineLayout() const
-{
-    return borrowSwiftRetained(m_impl->impl.pipelineLayout());
 }
 
 Ref<WebGPU::BindGroupLayout> RenderPipeline::getBindGroupLayout(uint32_t groupIndex)

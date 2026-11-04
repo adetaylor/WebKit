@@ -36,8 +36,7 @@ import WebGPU_Private.WebGPUCpp
 public final class ComputePipelineImpl {
     // nil == invalid pipeline.
     private let backingComputePipelineState: (any MTLComputePipelineState)?
-    // Never null: an invalid pipeline carries an invalid-state layout.
-    private let backingPipelineLayout: WebGPU.Metal.PipelineLayout
+    // An invalid pipeline carries an invalid-state layout.
     let pipelineLayoutImpl: PipelineLayoutImpl
     // All zero for an invalid pipeline.
     let parameters: WebGPU.Metal.ComputePipelineParameters
@@ -48,7 +47,6 @@ public final class ComputePipelineImpl {
 
     init(
         computePipelineState: (any MTLComputePipelineState)?,
-        pipelineLayout: WebGPU.Metal.PipelineLayout,
         pipelineLayoutImpl: PipelineLayoutImpl,
         device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl,
@@ -56,7 +54,6 @@ public final class ComputePipelineImpl {
         minimumBufferSizes: MinimumBufferSizes
     ) {
         self.backingComputePipelineState = computePipelineState
-        self.backingPipelineLayout = pipelineLayout
         self.pipelineLayoutImpl = pipelineLayoutImpl
         self.parameters = parameters
         self.minimumBufferSizes = minimumBufferSizes
@@ -82,8 +79,8 @@ public final class ComputePipelineImpl {
     }
 
     @_expose(Cxx)
-    func pipelineLayout() -> WebGPU.Metal.PipelineLayout {
-        backingPipelineLayout
+    func pipelineLayout() -> PipelineLayoutImpl {
+        pipelineLayoutImpl
     }
 
     func uniqueId() -> UInt64 {
@@ -144,12 +141,10 @@ func pipelineBindGroupLayout(
 func makeInvalidComputePipelineImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
-    _ pipelineLayout: WebGPU.Metal.PipelineLayout,
     _ pipelineLayoutImpl: PipelineLayoutImpl
 ) -> ComputePipelineImpl {
     ComputePipelineImpl(
         computePipelineState: nil,
-        pipelineLayout: pipelineLayout,
         pipelineLayoutImpl: pipelineLayoutImpl,
         device: device,
         deviceImpl: deviceImpl,
@@ -203,8 +198,6 @@ final class ComputePipelineBuilder {
     private let device: WebGPU.Metal.Device
     private let deviceImpl: DeviceImpl
     private let shaderModuleImpl: ShaderModuleImpl
-    // Zero-or-one FRTs as arrays, never Optional<FRT>.
-    private var layout: [WebGPU.Metal.PipelineLayout] = []
     private var layoutImpl: PipelineLayoutImpl?
     private var isReplacingPipeline = false
 
@@ -215,8 +208,7 @@ final class ComputePipelineBuilder {
     }
 
     @_expose(Cxx)
-    func setPipelineLayout(_ layout: WebGPU.Metal.PipelineLayout, _ impl: PipelineLayoutImpl, _ isReplacingPipeline: Bool) {
-        self.layout = [layout]
+    func setPipelineLayout(_ impl: PipelineLayoutImpl, _ isReplacingPipeline: Bool) {
         self.layoutImpl = impl
         self.isReplacingPipeline = isReplacingPipeline
     }
@@ -306,7 +298,7 @@ final class ComputePipelineBuilder {
             report(makeInvalidComputePipeline(device, deviceImpl), message)
         }
 
-        guard shaderModuleImpl.isValid(), shaderModuleImpl.deviceImpl === deviceImpl, let layoutImpl, !layout.isEmpty else {
+        guard shaderModuleImpl.isValid(), shaderModuleImpl.deviceImpl === deviceImpl, let layoutImpl else {
             return fail(nil)
         }
         // isValidToUseWithDevice(layout, device). With the same device, the layout's device validity is deviceImpl.isValid().
@@ -314,7 +306,7 @@ final class ComputePipelineBuilder {
             return fail("GPUDevice.createComputePipeline: Pipeline layout is invalid")
         }
 
-        let pending = prepareComputePipeline(device, deviceImpl, descriptor, shaderModuleImpl, layout[0], layoutImpl, isReplacingPipeline)
+        let pending = prepareComputePipeline(device, deviceImpl, descriptor, shaderModuleImpl, layoutImpl, isReplacingPipeline)
         guard let prepared = pending.prepared else {
             return fail(pending.failureMessage)
         }
@@ -368,9 +360,9 @@ func makeComputePipelineBuilder(
 ) -> ComputePipelineBuilder {
     let builder = ComputePipelineBuilder(device: device, deviceImpl: deviceImpl, shaderModuleImpl: descriptor.compute.module.impl)
     if let pipelineToReplace {
-        builder.setPipelineLayout(pipelineToReplace.impl.pipelineLayout(), pipelineToReplace.impl.pipelineLayoutImpl, true)
+        builder.setPipelineLayout(pipelineToReplace.impl.pipelineLayoutImpl, true)
     } else if let layout = descriptor.layout {
-        builder.setPipelineLayout(layout.shell, layout.impl, false)
+        builder.setPipelineLayout(layout, false)
     }
     return builder
 }
@@ -413,7 +405,6 @@ private func prepareComputePipeline(
     _ deviceImpl: DeviceImpl,
     _ descriptor: ComputePipelineInput,
     _ shaderModuleImpl: ShaderModuleImpl,
-    _ layout: WebGPU.Metal.PipelineLayout,
     _ layoutImpl: PipelineLayoutImpl,
     _ isReplacingPipeline: Bool
 ) -> PendingComputePipeline {
@@ -471,7 +462,6 @@ private func prepareComputePipeline(
         return PendingComputePipeline(failure: "too many compute pipelines")
     }
 
-    var finalLayout = layout
     var finalLayoutImpl = layoutImpl
     if !isReplacingPipeline && layoutImpl.isAutoLayout(), let defaultLayout = information.defaultLayout {
         var bindGroupEntries: [[ResolvedLayoutEntry]] = []
@@ -479,11 +469,10 @@ private func prepareComputePipeline(
             return PendingComputePipeline(failure: layoutError)
         }
         let generated = makeGeneratedPipelineLayout(device: device, deviceImpl: deviceImpl, entries: bindGroupEntries)
-        if !generated.impl.isValid() {
+        if !generated.isValid() {
             return PendingComputePipeline(failure: nil)
         }
-        finalLayout = generated.shell
-        finalLayoutImpl = generated.impl
+        finalLayoutImpl = generated
     }
 
     // Claimed up front, so that pipelines compiling concurrently cannot be handed the same one.
@@ -497,7 +486,6 @@ private func prepareComputePipeline(
         PreparedComputePipeline(
             library: library,
             label: label,
-            layout: finalLayout,
             layoutImpl: finalLayoutImpl,
             deviceImpl: deviceImpl,
             minimumBufferSizes: minimumBufferSizes,
@@ -526,8 +514,7 @@ private struct PendingComputePipeline {
 private final class PreparedComputePipeline {
     let library: PreparedLibrary
     let label: String
-    // The layout the pipeline gets (the descriptor's, the replaced pipeline's, or the generated one), with its Impl.
-    let layout: WebGPU.Metal.PipelineLayout
+    // The layout the pipeline gets: the descriptor's, the replaced pipeline's, or the generated one.
     let layoutImpl: PipelineLayoutImpl
     let deviceImpl: DeviceImpl
     let minimumBufferSizes: MinimumBufferSizes
@@ -536,7 +523,6 @@ private final class PreparedComputePipeline {
     init(
         library: PreparedLibrary,
         label: String,
-        layout: WebGPU.Metal.PipelineLayout,
         layoutImpl: PipelineLayoutImpl,
         deviceImpl: DeviceImpl,
         minimumBufferSizes: MinimumBufferSizes,
@@ -544,7 +530,6 @@ private final class PreparedComputePipeline {
     ) {
         self.library = library
         self.label = label
-        self.layout = layout
         self.layoutImpl = layoutImpl
         self.deviceImpl = deviceImpl
         self.minimumBufferSizes = minimumBufferSizes
@@ -573,7 +558,6 @@ private final class PreparedComputePipeline {
     func makeImpl(_ state: any MTLComputePipelineState, _ device: WebGPU.Metal.Device) -> ComputePipelineImpl {
         ComputePipelineImpl(
             computePipelineState: state,
-            pipelineLayout: layout,
             pipelineLayoutImpl: layoutImpl,
             device: device,
             deviceImpl: deviceImpl,
@@ -586,8 +570,7 @@ private final class PreparedComputePipeline {
 // ComputePipeline::createInvalid, made in Swift so that its Impl is known. An invalid pipeline still holds an invalid
 // pipeline layout, so that it always has one.
 func makeInvalidComputePipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ComputePipelineReference {
-    let layout = makeLayoutPair(makeInvalidPipelineLayoutImpl(device), device: device, deviceImpl: deviceImpl)
-    let impl = makeInvalidComputePipelineImpl(device, deviceImpl, layout.shell, layout.impl)
+    let impl = makeInvalidComputePipelineImpl(device, deviceImpl, makeInvalidPipelineLayoutImpl(device))
     precondition(deviceImpl.stagedComputePipelineImpl == nil)
     deviceImpl.stagedComputePipelineImpl = impl
     return ComputePipelineReference(impl, WebGPU.Metal.ComputePipeline.createWithStagedImpl(device).ptr())
