@@ -39,6 +39,8 @@
 #if ENABLE(IPC_TESTING_SWIFT)
 #include "IPCSwiftStreamTesterCount.h"
 #include "IPCSwiftStreamTesterMessages.h"
+#include "IPCSwiftWorkQueueTesterMessages.h"
+#include "IPCSwiftWorkQueueTesterSupport.h"
 #endif
 #include "IPCUtilities.h"
 #include "Logging.h"
@@ -55,6 +57,8 @@
 #include <wtf/Box.h>
 #include <wtf/CallbackAggregator.h>
 #include <wtf/CryptographicallyRandomNumber.h>
+#include <wtf/MainThread.h>
+#include <wtf/NeverDestroyed.h>
 #include <wtf/threads/BinarySemaphore.h>
 
 // The tester API.
@@ -899,6 +903,54 @@ void IPCTester::benchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t mess
 void IPCTester::swiftStreamTesterCount(CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     completionHandler(WebKit::swiftStreamTesterCount());
+}
+
+static WorkQueue& swiftWorkQueueTesterQueue()
+{
+    static NeverDestroyed<Ref<WorkQueue>> queue = WorkQueue::create("org.webkit.IPCSwiftWorkQueueTester"_s);
+    return queue.get();
+}
+
+static std::atomic<unsigned> liveSwiftWorkQueueTesters;
+
+bool isOnSwiftWorkQueueTesterQueue()
+{
+    return !isMainThread() && swiftWorkQueueTesterQueue().isCurrent();
+}
+
+void didCreateSwiftWorkQueueTester()
+{
+    ++liveSwiftWorkQueueTesters;
+}
+
+void didDestroySwiftWorkQueueTester()
+{
+    --liveSwiftWorkQueueTesters;
+}
+
+// Registers a new IPCSwiftWorkQueueTester for the messages to identifier on this connection. The connection keeps its
+// forwarder, which keeps it, until removeSwiftWorkQueueTester().
+void IPCTester::addSwiftWorkQueueTester(IPC::Connection& connection, uint64_t identifier, CompletionHandler<void()>&& completionHandler)
+{
+    // Destination 0 would match the messages to every destination.
+    if (identifier) {
+        Ref forwarder = IPCSwiftWorkQueueTester::init().getMessageReceiver();
+        connection.addWorkQueueMessageReceiver(Messages::IPCSwiftWorkQueueTester::messageReceiverName(), swiftWorkQueueTesterQueue(), forwarder, identifier);
+    }
+    completionHandler();
+}
+
+void IPCTester::removeSwiftWorkQueueTester(IPC::Connection& connection, uint64_t identifier, CompletionHandler<void()>&& completionHandler)
+{
+    connection.removeWorkQueueMessageReceiver(Messages::IPCSwiftWorkQueueTester::messageReceiverName(), identifier);
+    completionHandler();
+}
+
+// The number of IPCSwiftWorkQueueTesters alive once the messages already on their queue have been handled.
+void IPCTester::swiftWorkQueueTesterCount(CompletionHandler<void(uint32_t)>&& completionHandler)
+{
+    swiftWorkQueueTesterQueue().dispatchSync([] { });
+    completionHandler(liveSwiftWorkQueueTesters.load());
 }
 
 #endif

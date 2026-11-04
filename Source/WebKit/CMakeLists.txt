@@ -308,6 +308,7 @@ set(WebKit_MESSAGES_IN_FILES
     Shared/IPCConnectionTester
     Shared/IPCStreamTester
     Shared/IPCSwiftStreamTester
+    Shared/IPCSwiftWorkQueueTester
     Shared/IPCTester
     Shared/IPCTesterReceiver
 
@@ -1007,6 +1008,7 @@ set(WebKit_SWIFT_INTEROP_SOURCES
     WebProcess/WebPage/IPCTestingAPI.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebBackForwardListMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftStreamTesterMessageReceiver.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftWorkQueueTesterMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
 )
 if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
@@ -1616,17 +1618,20 @@ endif ()
 
 set_source_files_properties(
     ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftWorkQueueTesterMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
     PROPERTIES GENERATED TRUE)
 list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/Shared/Concurrency+Extras.swift
     ${WEBKIT_DIR}/Shared/Foundation+Extras.swift
     ${WEBKIT_DIR}/Shared/IPCSwiftStreamTester.swift
+    ${WEBKIT_DIR}/Shared/IPCSwiftWorkQueueTester.swift
     ${WEBKIT_DIR}/Shared/IPCTesterReceiver.swift
     ${WEBKIT_DIR}/Shared/RunJavaScriptResult.swift
     ${WEBKIT_DIR}/Shared/WTFCompletionHandler+Extras.swift
     ${WEBKIT_DIR}/Shared/WTFExpected+Extras.swift
     ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftWorkQueueTesterMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
 )
 

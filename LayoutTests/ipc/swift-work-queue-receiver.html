@@ -1,0 +1,99 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift WorkQueue receiver handles messages on its work queue.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<script src="../resources/ipc.js"></script>
+<body>
+<script>
+const defaultTimeout = 1000;
+
+function addTester(processTarget, identifier)
+{
+    IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_AddSwiftWorkQueueTester.name, defaultTimeout, [{ type: 'uint64_t', value: identifier }]);
+}
+
+function removeTester(processTarget, identifier)
+{
+    IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_RemoveSwiftWorkQueueTester.name, defaultTimeout, [{ type: 'uint64_t', value: identifier }]);
+}
+
+function takeInvalidMessageString()
+{
+    const reply = IPC.sendSyncMessage('UI', 0, IPC.messages.WebProcessProxy_TakeInvalidMessageStringForTesting.name, defaultTimeout, []);
+    return reply?.arguments?.[0]?.value ?? '';
+}
+
+const u32 = value => ({ type: 'uint32_t', value });
+
+promise_test(async t => {
+    // The receiver only exists where WebKit's IPC testing code is built with Swift.
+    if (!window.IPC || !IPC.messages.IPCSwiftWorkQueueTester_Record)
+        return;
+
+    let identifier = 4470;
+    for (const processTarget of IPC.processTargets) {
+        ++identifier;
+        const message = name => IPC.messages[`IPCSwiftWorkQueueTester_${name}`].name;
+        addTester(processTarget, identifier);
+        try {
+            let expectedDigest = 0;
+            for (let value = 1; value <= 20; ++value) {
+                IPC.sendMessage(processTarget, identifier, message('Record'), [u32(value)]);
+                expectedDigest = (Math.imul(expectedDigest, 31) + value) >>> 0;
+            }
+            const digest = IPC.sendSyncMessage(processTarget, identifier, message('TakeRecordedDigest'), defaultTimeout, []);
+            assert_equals(digest.arguments[0].value, expectedDigest, `TakeRecordedDigest in ${processTarget}`);
+
+            let reply = await IPC.sendWithPromisedReply(processTarget, identifier, message('Add'), [u32(40), u32(2)]);
+            assert_equals(reply.arguments[0].value, 42, `Add in ${processTarget}`);
+
+            IPC.sendMessage(processTarget, identifier, message('RecordTextSwift'), [{ type: 'String', value: 'abc' }]);
+            IPC.sendMessage(processTarget, identifier, message('RecordTextSwift'), [{ type: 'String', value: '\u263A' }]);
+            const texts = IPC.sendSyncMessage(processTarget, identifier, message('TakeRecordedTextsSwift'), defaultTimeout, []);
+            assert_equals(texts.arguments[0].value, 2, `TakeRecordedTextsSwift count in ${processTarget}`);
+            assert_equals(texts.arguments[1].value, 6, `TakeRecordedTextsSwift UTF-8 length in ${processTarget}`);
+
+            reply = await IPC.sendWithPromisedReply(processTarget, identifier, message('AddSwift'), [u32(40), u32(2)]);
+            assert_equals(reply.arguments[0].value, 42, `AddSwift in ${processTarget}`);
+
+            const deferred = IPC.sendWithPromisedReply(processTarget, identifier, message('DeferAddSwift'), [u32(40), u32(2)]);
+            IPC.sendMessage(processTarget, identifier, message('CompleteDeferredAddSwift'), [{ type: 'bool', value: 1 }]);
+            assert_equals((await deferred).arguments[0].value, 42, `A deferred reply sent later in ${processTarget}`);
+            const dropped = IPC.sendWithPromisedReply(processTarget, identifier, message('DeferAddSwift'), [u32(1), u32(2)]);
+            IPC.sendMessage(processTarget, identifier, message('CompleteDeferredAddSwift'), [{ type: 'bool', value: 0 }]);
+            assert_equals((await dropped).arguments[0].value, 0, `A deferred reply dropped in ${processTarget} is the default reply`);
+
+            reply = await IPC.sendWithPromisedReply(processTarget, identifier, message('HalveEvenNumberSwift'), [u32(8)]);
+            assert_equals(reply.arguments[0].value, 4, `HalveEvenNumberSwift in ${processTarget}`);
+
+            const onItsQueue = IPC.sendSyncMessage(processTarget, identifier, message('WasAlwaysDispatchedOnItsQueue'), defaultTimeout, []);
+            assert_true(!!onItsQueue.arguments[0].value, `Every message was handled on the work queue in ${processTarget}`);
+        } finally {
+            removeTester(processTarget, identifier);
+        }
+        const count = IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_SwiftWorkQueueTesterCount.name, defaultTimeout, []);
+        assert_equals(count.arguments[0].value, 0, `Removing the tester in ${processTarget} destroys it`);
+    }
+
+    // The UI process, unlike the others, survives invalid messages when the IPC testing API is enabled.
+    ++identifier;
+    const message = name => IPC.messages[`IPCSwiftWorkQueueTester_${name}`].name;
+    addTester('UI', identifier);
+    takeInvalidMessageString();
+    try {
+        const reply = await IPC.sendWithPromisedReply('UI', identifier, message('HalveEvenNumberSwift'), [u32(7)]);
+        assert_equals(reply.arguments[0].value, 0, 'A failed message check sends the default reply');
+        assert_not_equals(takeInvalidMessageString(), '', 'A failed message check marks the message invalid');
+
+        IPC.sendMessage('UI', identifier, message('RecordTextSwift'), [{ type: 'uint32_t', value: 3 }, { type: 'uint8_t', value: 2 }]);
+        IPC.sendSyncMessage('UI', identifier, message('TakeRecordedDigest'), defaultTimeout, []);
+        assert_not_equals(takeInvalidMessageString(), '', 'A message that cannot be decoded is marked invalid');
+        const texts = IPC.sendSyncMessage('UI', identifier, message('TakeRecordedTextsSwift'), defaultTimeout, []);
+        assert_equals(texts.arguments[0].value, 0, 'A message that cannot be decoded is not handled');
+    } finally {
+        removeTester('UI', identifier);
+    }
+    done();
+}, "A Swift WorkQueue receiver handles messages on its work queue, in every process.");
+</script>
+</body>

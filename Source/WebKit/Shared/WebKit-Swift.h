@@ -49,6 +49,7 @@
 // relevant headers must be included here. rdar://165068038
 #include "APIArray.h"
 #include "IPCSwiftStreamTesterMessages.h"
+#include "IPCSwiftWorkQueueTesterMessages.h"
 #include "IPCTesterReceiverMessages.h"
 #include "StreamServerConnection.h"
 #include "SwiftCoding.h"

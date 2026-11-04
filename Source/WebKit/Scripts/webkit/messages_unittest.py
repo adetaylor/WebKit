@@ -72,6 +72,7 @@ _test_receiver_names = [
     'TestWithSwiftConditionallyAndEnabledBy',
     'TestWithSwiftTypes',
     'TestWithSwiftTypesOptIn',
+    'TestWithSwiftWorkQueue',
     'TestWithValidator',
     'TestWithWantsAsyncDispatch',
     'TestWithWantsDispatch',
@@ -218,6 +219,37 @@ messages -> TestReceiver Stream {
 }
 """))
         self.assertIn('func dispatchMessage(', messages.generate_swift_message_handler(stream_receiver))
+
+    def test_work_queue_receiver(self):
+        def parse_work_queue_receiver(attributes, receiver_attributes, messages_text):
+            return parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy%s]
+messages -> TestReceiver %s {
+%s
+}
+""" % (''.join(', ' + attribute for attribute in attributes), receiver_attributes, messages_text)))
+
+        receiver = parse_work_queue_receiver(['SwiftReceiver', 'SwiftTypes'], 'WorkQueue', """
+    Message(uint32_t value) -> (uint32_t reply) AnyThread
+    CxxMessage(uint32_t value) -> (uint32_t reply) CxxTypes
+""")
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertNotIn('MainActor', swift)
+        self.assertNotIn('Task', swift)
+        self.assertNotIn('Invocation', swift)
+        self.assertNotIn('Sendable', swift)
+        self.assertIn('    private let target: TestReceiver\n', swift)
+        self.assertIn('reply: TestReceiverMessageReply(replyEncoder: replyEncoder)', swift)
+        self.assertIn('CompletionHandlers.TestReceiver.complete(completionHandler, reply)', swift)
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('class TestReceiverMessageForwarder final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any> {', header)
+        self.assertNotIn('getMessageTarget', header)
+        self.assertNotIn('getMessageTarget', messages.generate_message_handler(receiver))
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'WorkQueue', which is for Swift receivers"):
+            parse_work_queue_receiver([], 'WorkQueue', '    Message(uint32_t value)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver cannot have both 'WorkQueue' and 'Stream'"):
+            parse_work_queue_receiver(['SwiftReceiver'], 'Stream WorkQueue', '    Message(uint32_t value)')
 
     def test_sync_handler(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """

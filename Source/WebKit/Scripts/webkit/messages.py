@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import CXX_DECODED_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_DECODED_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
 
 _license_header = """/*
  * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
@@ -857,11 +857,13 @@ def forward_declarations_and_headers(receiver):
 
     if (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by) and receiver.has_attribute(STREAM_ATTRIBUTE):
         headers.add('"StreamMessageReceiver.h"')
+    if receiver.is_swift_receiver() and receiver.has_attribute(WORK_QUEUE_ATTRIBUTE):
+        headers.add('"WorkQueueMessageReceiver.h"')
 
     # For OptionalSharedPreferencesForWebProcess, which a Swift receiver's sharedPreferencesForWebProcess() returns.
     if receiver.is_swift_receiver() and receiver_needs_shared_preferences(receiver):
         headers.add('"SharedPreferencesForWebProcess.h"')
-        if receiver.has_attribute(STREAM_ATTRIBUTE):
+        if swift_receiver_runs_on_work_queue(receiver):
             headers.add('<wtf/Function.h>')
 
     # For IPC::CxxDecodedArgument.
@@ -1033,8 +1035,14 @@ def generate_messages_header(receiver):
 
         result.append('namespace ' + handler_namespace + ' {\n\n')
         is_stream = receiver.has_attribute(STREAM_ATTRIBUTE)
+        is_work_queue = receiver.has_attribute(WORK_QUEUE_ATTRIBUTE)
+        work_queue_receiver = 'IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>'
         if is_stream:
             result.append('class ' + forwarder_class + ' final : public IPC::StreamMessageReceiver {\n')
+        elif is_work_queue:
+            result.append('// Registered with addWorkQueueMessageReceiver() on one serial queue, which the handlers are confined to.\n')
+            result.append('// It keeps its target alive, so the target must not keep it.\n')
+            result.append('class ' + forwarder_class + ' final : public ' + work_queue_receiver + ' {\n')
         else:
             result.append('class ' + forwarder_class + ': public RefCounted<' + forwarder_class + '>, public IPC::MessageReceiver {\n')
         result.append('public:\n')
@@ -1045,13 +1053,21 @@ def generate_messages_header(receiver):
         result.append('    ~' + forwarder_class + '();\n')
         if is_stream:
             result.append('    void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;\n')
+        elif is_work_queue:
+            result.append('    void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;\n')
         else:
             result.append('    void didReceiveMessage(IPC::Connection&, IPC::Decoder&);\n')
         if not is_stream and (sync_messages or receiver.has_attribute(WANTS_DISPATCH_MESSAGE_ATTRIBUTE)):
-            result.append('    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);\n')
+            result.append('    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&)%s;\n' % (' final' if is_work_queue else ''))
         if is_stream:
             result.append('    void ref() const { StreamMessageReceiver::ref(); }\n')
             result.append('    void deref() const { StreamMessageReceiver::deref(); }\n')
+            if receiver_needs_shared_preferences(receiver):
+                result.append('    // Lets the C++ that registers the receiver supply its shared preferences, which dispatch otherwise asks Swift for.\n')
+                result.append('    void setSharedPreferencesProvider(Function<std::optional<SharedPreferencesForWebProcess>()>&& provider) { m_sharedPreferencesProvider = WTF::move(provider); }\n')
+        elif is_work_queue:
+            result.append('    void ref() const final { ' + work_queue_receiver + '::ref(); }\n')
+            result.append('    void deref() const final { ' + work_queue_receiver + '::deref(); }\n')
             if receiver_needs_shared_preferences(receiver):
                 result.append('    // Lets the C++ that registers the receiver supply its shared preferences, which dispatch otherwise asks Swift for.\n')
                 result.append('    void setSharedPreferencesProvider(Function<std::optional<SharedPreferencesForWebProcess>()>&& provider) { m_sharedPreferencesProvider = WTF::move(provider); }\n')
@@ -1060,10 +1076,10 @@ def generate_messages_header(receiver):
             result.append('    void deref() const final { RefCounted::deref(); }\n')
         result.append('private:\n')
         result.append('    ' + forwarder_class + '(' + handler_namespace + '::' + weak_ref_class + '* WTF_NONNULL);\n')
-        if not is_stream:
+        if not swift_receiver_runs_on_work_queue(receiver):
             result.append('    std::optional<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
         result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
-        if is_stream and receiver_needs_shared_preferences(receiver):
+        if swift_receiver_runs_on_work_queue(receiver) and receiver_needs_shared_preferences(receiver):
             result.append('    Function<std::optional<SharedPreferencesForWebProcess>()> m_sharedPreferencesProvider;\n')
         result.append('} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);\n\n')
         if receiver_needs_shared_preferences(receiver):
@@ -2180,6 +2196,12 @@ def receiver_needs_shared_preferences(receiver):
     return bool(receiver.receiver_enabled_by) or any(message.enabled_by for message in receiver.messages)
 
 
+# A Swift receiver dispatched on a work queue rather than on the main thread: a stream receiver, or a WorkQueue one. Its
+# handlers are called synchronously on that queue, and its forwarder keeps its target alive.
+def swift_receiver_runs_on_work_queue(receiver):
+    return receiver.has_attribute(STREAM_ATTRIBUTE) or receiver.has_attribute(WORK_QUEUE_ATTRIBUTE)
+
+
 def generate_target_and_enabled_by_statements(receiver, messages):
     enabled_by = receiver.receiver_enabled_by
     enabled_by_conjunction = receiver.receiver_enabled_by_conjunction
@@ -2187,7 +2209,8 @@ def generate_target_and_enabled_by_statements(receiver, messages):
     connection_argument = 'connection' if receiver.shared_preferences_needs_connection else ''
 
     def append_swift_statements(result):
-        if receiver.has_attribute(STREAM_ATTRIBUTE):
+        # A WorkQueue receiver's forwarder keeps its target alive, so there is no target to fetch either.
+        if swift_receiver_runs_on_work_queue(receiver):
             # A stream receiver's target is held weakly and checked by its Swift dispatch, which decodes the message
             # first, so a target gone in a benign teardown race leaves the stream buffer in step. Asking Swift for the
             # target here as well costs more than the dispatch itself. A gone target has no shared preferences, so a
@@ -2364,7 +2387,7 @@ def generate_message_handler(receiver):
         result.append('}\n')
         result.append('\n')
 
-        if not receiver.has_attribute(STREAM_ATTRIBUTE):
+        if not swift_receiver_runs_on_work_queue(receiver):
             result.append('std::optional<%s> %s::getMessageTarget()\n' % (class_name, forwarder_class))
             result.append('{\n')
             result.append('    if (!m_handler->hasMessageTarget())\n')
@@ -2454,10 +2477,10 @@ def convert_enable_macros_to_swift_syntax(condition):
 
 
 # Generated Swift dispatches a message that takes Swift types on the main actor, through MainActor.assumeIsolated,
-# except on a stream receiver, which has its own dispatch. A message whose reply is AnyThread or MainThreadCallback
-# belongs to a receiver dispatched on a work queue, so it can't take Swift types.
+# except on a stream or WorkQueue receiver, which is dispatched on its work queue. A message whose reply is AnyThread
+# or MainThreadCallback belongs to a receiver dispatched on a work queue, so it can't take Swift types otherwise.
 def check_swift_types_are_dispatched_on_main_thread(receiver):
-    if receiver.has_attribute(STREAM_ATTRIBUTE):
+    if swift_receiver_runs_on_work_queue(receiver):
         return
     for message in receiver.messages:
         if not receiver.takes_swift_types(message):
@@ -2465,8 +2488,8 @@ def check_swift_types_are_dispatched_on_main_thread(receiver):
         for attribute in (ANYTHREADCALLBACK_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE):
             if message.has_attribute(attribute):
                 raise Exception('ERROR: Message %s.%s takes Swift types, which are dispatched on the main thread, but is %s, '
-                                'which is for a receiver dispatched on a work queue. Only a stream receiver can take Swift '
-                                'types off the main thread.' % (receiver.name, message.name, attribute))
+                                'which is for a receiver dispatched on a work queue. Only a stream or WorkQueue receiver can '
+                                'take Swift types off the main thread.' % (receiver.name, message.name, attribute))
 
 
 def generate_swift_message_handler(receiver):
@@ -2497,14 +2520,15 @@ def generate_swift_message_handler(receiver):
     if receiver.swift_receiver_build_enabled_by:
         result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
 
-    if not receiver.has_attribute(STREAM_ATTRIBUTE):
+    if not swift_receiver_runs_on_work_queue(receiver):
         result.append('// Safety: target is only written in init, assumeIsolated asserts the main thread, and weak loads are atomic in the Swift runtime\n')
     result.append('@_expose(Cxx)\n')
-    if receiver.has_attribute(STREAM_ATTRIBUTE):
+    if swift_receiver_runs_on_work_queue(receiver):
         # A stream receiver's forwarder keeps its target alive, as the stream connection keeps a C++ receiver alive
         # while it is registered and while it dispatches a batch of messages to it. A weak reference, loaded for
         # each message, costs more than anything else in dispatch, and makes the target's reference counting go
-        # through a side table. The target must not keep its forwarder.
+        # through a side table. The target must not keep its forwarder. A WorkQueue receiver's does the same, as
+        # the connection keeps a C++ WorkQueue receiver alive while it is registered and for each message it dispatches.
         result.append('final class %s {\n' % (weak_ref_class))
         result.append('    private let target: %s\n' % (class_name))
     else:
@@ -2514,7 +2538,7 @@ def generate_swift_message_handler(receiver):
     result.append('        self.target = target\n')
     result.append('    }\n')
     # @used ensures these are retained even with -O -wmo: rdar://179098545
-    if receiver.has_attribute(STREAM_ATTRIBUTE):
+    if swift_receiver_runs_on_work_queue(receiver):
         if receiver_needs_shared_preferences(receiver):
             result.append('\n')
             result.append('    @used\n')
@@ -2562,7 +2586,7 @@ def generate_swift_message_handler(receiver):
         decodes_on_stream = takes_swift_types and receiver.has_attribute(STREAM_ATTRIBUTE)
         passes_connection = not decodes_on_stream or message.has_attribute(WANTS_CONNECTION_ATTRIBUTE)
         invalid_message_target = '&decoder' if decodes_on_stream else 'connection'
-        parameters = ['connection: %s%s' % ('' if receiver.has_attribute(STREAM_ATTRIBUTE) else 'sending ', connection_type)] if passes_connection else []
+        parameters = ['connection: %s%s' % ('' if swift_receiver_runs_on_work_queue(receiver) else 'sending ', connection_type)] if passes_connection else []
         arguments = ['connection: connection'] if passes_connection else []
         decoded_parameters = []
         for parameter in message.parameters:
@@ -2593,9 +2617,11 @@ def generate_swift_message_handler(receiver):
         # async handler there does not compile.
         # A stream receiver's handler is always called directly, on the stream connection's work queue
         # rather than the main actor. The receiver is confined to that queue, so dispatch asserts it is
-        # there instead of entering an actor.
+        # there instead of entering an actor. A WorkQueue receiver's handler is called directly too, on
+        # the queue its forwarder is registered with, which only that registration determines.
         is_stream = receiver.has_attribute(STREAM_ATTRIBUTE)
-        sync_handler = message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) or is_stream
+        runs_on_work_queue = swift_receiver_runs_on_work_queue(receiver)
+        sync_handler = message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) or runs_on_work_queue
         # FIXME(rdar://189495426): store arguments in an Invocation class to work around Windows tail
         # call problem.
         invocation_class = '%sInvocation' % message.name
@@ -2642,9 +2668,9 @@ def generate_swift_message_handler(receiver):
             if is_stream and message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
                 # A Synchronous reply that doesn't fit in the stream buffer is encoded a second time, out of stream.
                 reply_statements = encoding_statements + ['if !replyEncoder.send() {'] + ['    %s' % statement for statement in encoding_statements] + ['    replyEncoder.send()', '}']
-            elif is_stream:
-                # A stream receiver's handler is synchronous, so it is given its asynchronous reply as a value to send
-                # when it has the reply, or drop to send the default reply.
+            elif runs_on_work_queue and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
+                # A stream or WorkQueue receiver's handler is synchronous, so it is given its asynchronous reply as a
+                # value to send when it has the reply, or drop to send the default reply.
                 reply_value_type = '%s%sReply' % (receiver.name, message.name)
                 arguments.append('reply: %s(replyEncoder: replyEncoder)' % reply_value_type)
                 reply_statements = []
@@ -2676,7 +2702,7 @@ def generate_swift_message_handler(receiver):
                 result.append('%s    %s\n' % (base, statement))
             result.append('%s}\n' % base)
 
-        if is_stream:
+        if runs_on_work_queue:
             append_handler_call('        ', '', True)
         elif sync_handler:
             result.append('        MainActor.assumeIsolated {\n')

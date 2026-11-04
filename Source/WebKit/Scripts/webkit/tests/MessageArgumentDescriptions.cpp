@@ -459,6 +459,30 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypesOptIn_CxxTypedMessageReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypesOptIn_SwiftTypedMessageReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypesOptIn_SwiftTypedMessageReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendString:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendString>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendStringSync:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendStringAsync:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendStringAsync>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendEmptyAsync:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendEmptyAsync>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendCxxDecoded:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxDecoded>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendCxxString:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxString>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendCxxStringSync:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxStringSync>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendCxxStringAsync:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxStringAsync>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendStringAsyncReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendStringAsyncReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendEmptyAsyncReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendEmptyAsyncReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendCxxDecodedReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxDecodedReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendCxxStringAsyncReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxStringAsyncReply>(globalObject, decoder);
     case MessageName::TestWithValidator_AlwaysEnabled:
         return jsValueForDecodedMessage<MessageName::TestWithValidator_AlwaysEnabled>(globalObject, decoder);
     case MessageName::TestWithValidator_EnabledIfPassValidation:
@@ -636,6 +660,18 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypesOptIn_SwiftTypedSynchronousMessage>(globalObject, decoder);
     case MessageName::TestWithSwiftTypesOptIn_CxxTypedSynchronousMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypesOptIn_CxxTypedSynchronousMessage>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendStringSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendStringAsync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendStringAsync>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendEmptyAsync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendEmptyAsync>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendCxxDecoded:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendCxxDecoded>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendCxxStringSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendCxxStringSync>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendCxxStringAsync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendCxxStringAsync>(globalObject, decoder);
     case MessageName::TestWithValidator_MessageWithReply:
         return jsValueForDecodedMessageReply<MessageName::TestWithValidator_MessageWithReply>(globalObject, decoder);
     case MessageName::TestWithWantsAsyncDispatch_TestSyncMessage:
@@ -1583,6 +1619,51 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
         };
+    case MessageName::TestWithSwiftWorkQueue_SendString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendEmptyAsync:
+        return Vector<ArgumentDescription> { };
+    case MessageName::TestWithSwiftWorkQueue_SendCxxDecoded:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+            { "handle"_s, "std::optional<WebCore::SharedMemory::Handle>"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendCxxString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendCxxStringSync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendCxxStringAsync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendStringAsyncReply:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendEmptyAsyncReply:
+        return Vector<ArgumentDescription> { };
+    case MessageName::TestWithSwiftWorkQueue_SendCxxDecodedReply:
+        return Vector<ArgumentDescription> {
+            { "success"_s, "bool"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendCxxStringAsyncReply:
+        return Vector<ArgumentDescription> {
+            { "length"_s, "uint64_t"_s },
+        };
     case MessageName::TestWithValidator_AlwaysEnabled:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
@@ -1894,6 +1975,29 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
     case MessageName::TestWithSwiftTypesOptIn_CxxTypedSynchronousMessage:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+            { "length"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendEmptyAsync:
+        return Vector<ArgumentDescription> { };
+    case MessageName::TestWithSwiftWorkQueue_SendCxxDecoded:
+        return Vector<ArgumentDescription> {
+            { "success"_s, "bool"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendCxxStringSync:
+        return Vector<ArgumentDescription> {
+            { "length"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendCxxStringAsync:
+        return Vector<ArgumentDescription> {
+            { "length"_s, "uint64_t"_s },
         };
     case MessageName::TestWithValidator_MessageWithReply:
         return Vector<ArgumentDescription> {

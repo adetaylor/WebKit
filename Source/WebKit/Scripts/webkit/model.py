@@ -36,6 +36,9 @@ ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE = "AllowedWhenWaitingForSyncReply"
 ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE = "AllowedWhenWaitingForSyncReplyDuringUnboundedIPC"
 SYNCHRONOUS_ATTRIBUTE = 'Synchronous'
 STREAM_ATTRIBUTE = "Stream"
+# On a Swift receiver whose host registers it with addWorkQueueMessageReceiver(): its generated forwarder is a
+# WorkQueueMessageReceiver, and its handlers are called synchronously on that work queue.
+WORK_QUEUE_ATTRIBUTE = "WorkQueue"
 SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
 CXX_TYPES_ATTRIBUTE = 'CxxTypes'
 # On a parameter of a message that takes Swift types, for a type that has no Swift form yet: its C++ ArgumentCoder decodes
@@ -95,6 +98,10 @@ class MessageReceiver(object):
     def enforce_swift_types_constraints(self):
         if self.swift_types and not self.is_swift_receiver():
             raise Exception("ERROR: Receiver %s has 'SwiftTypes' but is not a Swift receiver: it also needs 'SwiftReceiver' or 'SwiftReceiverBuildEnabledBy='" % self.name)
+        if self.has_attribute(WORK_QUEUE_ATTRIBUTE) and not self.is_swift_receiver():
+            raise Exception("ERROR: Receiver %s has '%s', which is for Swift receivers: a C++ receiver chooses its own base class" % (self.name, WORK_QUEUE_ATTRIBUTE))
+        if self.has_attribute(WORK_QUEUE_ATTRIBUTE) and self.has_attribute(STREAM_ATTRIBUTE):
+            raise Exception("ERROR: Receiver %s cannot have both '%s' and '%s'" % (self.name, WORK_QUEUE_ATTRIBUTE, STREAM_ATTRIBUTE))
         for message in self.messages:
             self._enforce_swift_types_constraints_for_message(message)
 
