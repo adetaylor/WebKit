@@ -486,8 +486,6 @@ public final class RenderPassEncoderImpl {
     // UInt.max when the occlusion query set had been destroyed.
     private let visibilityResultBufferSize: UInt
     private let maxDrawCount: UInt64
-    // Zero or one element, the shell of currentPipelineImpl; an Array rather than an Optional FRT.
-    private var currentPipeline: [WebGPU.Metal.RenderPipeline] = []
     private var currentPipelineImpl: RenderPipelineImpl?
     // Kept for the lifetime of the pass rather than cleared once applied: every draw reads the depth range back
     // out to tell the fragment shader what to clamp frag_depth to, and splitting the pass reapplies it.
@@ -1224,18 +1222,18 @@ public final class RenderPassEncoderImpl {
     // The pipeline with each vertex stride replaced by its last stride: shares the pipeline's layout, unique identifier
     // and minimum buffer sizes; only its Metal pipeline state differs.
     private func lastStrideAsStrideImpl(_ pipelineImpl: RenderPipelineImpl) -> RenderPipelineImpl {
-        pipelineImpl.lastStrideAsStride().impl
+        pipelineImpl.lastStrideAsStride()
     }
 
     // A state that is not compiled yet: a failed compile is reported on the pipeline's device. Out of line: only the first
     // draw with a pipeline, and draws after a failed compile, get here.
     @inline(never)
     private func compileRenderPipelineState(lastStrideAsStride: Bool) -> (any MTLRenderPipelineState)? {
-        guard let pipelineImpl = currentPipelineImpl, !currentPipeline.isEmpty else {
+        guard let pipelineImpl = currentPipelineImpl else {
             return nil
         }
         if lastStrideAsStride {
-            return pipelineImpl.lastStrideAsStride().impl.compiledRenderPipelineState()
+            return pipelineImpl.lastStrideAsStride().compiledRenderPipelineState()
         }
         return pipelineImpl.compiledRenderPipelineState()
     }
@@ -2472,7 +2470,6 @@ public final class RenderPassEncoderImpl {
 
     // The closing reset of executeBundles.
     private func resetBindingsAfterBundles() {
-        currentPipeline.removeAll()
         currentPipelineImpl = nil
         maxVertexBufferSlot = 0
         for index in vertexBuffers.indices {
@@ -3247,41 +3244,30 @@ public final class RenderPassEncoderImpl {
         fragmentDynamicOffsets[2] = pipelineImpl.sampleMask()
     }
 
-    // Returns whether it stored a new pipeline Impl, whose shell the shell then hands to storePipelineShell.
     @_expose(Cxx)
-    func setPipeline(_ pipelineImpl: RenderPipelineImpl) -> Bool {
+    @_spi(WebKitGPU)
+    public func setPipeline(_ pipelineImpl: RenderPipelineImpl) {
         if encodingHasFinished() {
             generateAValidationError(
                 "void WebGPU::Metal::RenderPassEncoder::setPipeline(const RenderPipeline &): failed as encoding has finished"
             )
-            return false
+            return
         }
         guard holdsCurrentEncoder() else {
-            return false
+            return
         }
 
         if let error = errorValidatingPipeline(pipelineImpl) {
             makeInvalid(error)
-            return false
+            return
         }
 
         if currentPipelineImpl === pipelineImpl {
-            return false
+            return
         }
 
         currentPipelineImpl = pipelineImpl
         resetDynamicOffsets(pipelineImpl)
-        return true
-    }
-
-    // The second step of a setPipeline that returned true: `pipeline` is currentPipelineImpl's shell.
-    @_expose(Cxx)
-    func storePipelineShell(_ pipeline: WebGPU.Metal.RenderPipeline) {
-        if currentPipeline.isEmpty {
-            currentPipeline.append(pipeline)
-        } else {
-            currentPipeline[0] = pipeline
-        }
     }
 
     @_expose(Cxx)
@@ -3534,15 +3520,6 @@ public final class RenderPassEncoderImpl {
         backingRenderCommandEncoder?.label = label ?? ""
     }
 
-    // setPipeline, for a Swift caller that has the pipeline's shell too.
-    @_expose(!Cxx)
-    @_spi(WebKitGPU)
-    public func setPipeline(_ pipeline: RenderPipelineReference) {
-        if setPipeline(pipeline.impl) {
-            storePipelineShell(pipeline.shell)
-        }
-    }
-
     // setBindGroup, for a Swift caller.
     @_expose(!Cxx)
     @_spi(WebKitGPU)
@@ -3619,13 +3596,9 @@ public final class RenderPassEncoderImpl {
         if let scissorRect {
             backingRenderCommandEncoder?.setScissorRect(scissorRect)
         }
-        if !currentPipeline.isEmpty, let pipelineImpl = currentPipelineImpl {
-            let pipeline = currentPipeline[0]
-            currentPipeline.removeAll()
+        if let pipelineImpl = currentPipelineImpl {
             currentPipelineImpl = nil
-            if setPipeline(pipelineImpl) {
-                storePipelineShell(pipeline)
-            }
+            setPipeline(pipelineImpl)
         }
 
         existingVertexBuffers.removeAll()

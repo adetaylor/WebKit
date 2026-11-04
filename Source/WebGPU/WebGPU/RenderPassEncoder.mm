@@ -169,11 +169,7 @@ void RenderPassEncoder::setIndexBuffer(WebGPU::Buffer& apiBuffer, WebGPU::IndexF
 
 void RenderPassEncoder::setPipeline(const WebGPU::RenderPipeline& apiPipeline)
 {
-    auto& pipeline = downcast<RenderPipeline>(apiPipeline);
-    auto& impl = m_impl->impl;
-    // FIXME: rdar://138047285 const_cast is needed as a workaround.
-    if (impl.setPipeline(pipeline.swiftImpl()))
-        impl.storePipelineShell(&const_cast<RenderPipeline&>(pipeline));
+    m_impl->impl.setPipeline(downcast<RenderPipeline>(apiPipeline).swiftImpl());
 }
 
 void RenderPassEncoder::setScissorRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height)

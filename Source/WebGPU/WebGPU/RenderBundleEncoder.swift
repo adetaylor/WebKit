@@ -62,7 +62,7 @@ enum RecordedCommand {
     )
     case drawIndirect(owner: WebGPU.Metal.RenderBundleEncoder, buffer: WebGPU.Metal.Buffer, bufferImpl: BufferImpl, offset: UInt64)
     case drawIndexedIndirect(owner: WebGPU.Metal.RenderBundleEncoder, buffer: WebGPU.Metal.Buffer, bufferImpl: BufferImpl, offset: UInt64)
-    case setPipeline(owner: WebGPU.Metal.RenderBundleEncoder, pipeline: WebGPU.Metal.RenderPipeline, pipelineImpl: RenderPipelineImpl)
+    case setPipeline(owner: WebGPU.Metal.RenderBundleEncoder, pipelineImpl: RenderPipelineImpl)
     case setIndexBuffer(
         owner: WebGPU.Metal.RenderBundleEncoder,
         buffer: WebGPU.Metal.Buffer,
@@ -290,8 +290,6 @@ final class RenderBundleEncoderImpl {
     private var icbDescriptor: MTLIndirectCommandBufferDescriptor?
     private var indirectCommandBuffer: (any MTLIndirectCommandBuffer)?
     private var currentCommand: (any MTLIndirectRenderCommand)?
-    // Zero or one element, paired with currentPipelineImpl.
-    private var currentPipeline: [WebGPU.Metal.RenderPipeline] = []
     private var currentPipelineImpl: RenderPipelineImpl?
     private var currentPipelineState: (any MTLRenderPipelineState)?
     private var depthStencilState: (any MTLDepthStencilState)?
@@ -483,7 +481,7 @@ final class RenderBundleEncoderImpl {
 
         let drawVertexDynamicOffset = vertexDynamicOffset
         let drawFragmentDynamicOffset = fragmentDynamicOffset
-        guard !currentPipeline.isEmpty, let pipelineImpl = currentPipelineImpl else {
+        guard let pipelineImpl = currentPipelineImpl else {
             invalidate("Pipeline was not set prior to draw command")
             return false
         }
@@ -516,7 +514,7 @@ final class RenderBundleEncoderImpl {
         // The recomputed pipeline shares this one's layout and minimum buffer sizes, so the checks below read this one.
         if needsValidationLayerWorkaround {
             let lastStrideAsStride = pipelineImpl.lastStrideAsStride()
-            currentPipelineState = icbRenderPipelineState(shell, lastStrideAsStride.impl)
+            currentPipelineState = icbRenderPipelineState(shell, lastStrideAsStride)
         }
 
         if currentPipelineState == nil {
@@ -1471,9 +1469,8 @@ final class RenderBundleEncoderImpl {
         depthBias = 0
         depthBiasClamp = 0
 
-        if resetPipeline, !currentPipeline.isEmpty, let pipelineImpl = currentPipelineImpl, validToEncodeCommand() {
-            let pipeline = currentPipeline[0]
-            applyPipeline(shell, pipeline, pipelineImpl)
+        if resetPipeline, let pipelineImpl = currentPipelineImpl, validToEncodeCommand() {
+            applyPipeline(shell, pipelineImpl)
         }
     }
 
@@ -1509,7 +1506,6 @@ final class RenderBundleEncoderImpl {
 
         replayRecordedCommands()
 
-        currentPipeline.removeAll()
         currentPipelineImpl = nil
         splitICB(shell, needsPipelineReset: true)
         currentCommandIndex = 0
@@ -1532,8 +1528,8 @@ final class RenderBundleEncoderImpl {
                 drawIndirect(owner, buffer, bufferImpl, offset)
             case .drawIndexedIndirect(let owner, let buffer, let bufferImpl, let offset):
                 drawIndexedIndirect(owner, buffer, bufferImpl, offset)
-            case .setPipeline(let owner, let pipeline, let pipelineImpl):
-                setPipeline(owner, pipeline, pipelineImpl)
+            case .setPipeline(let owner, let pipelineImpl):
+                setPipeline(owner, pipelineImpl)
             case .setIndexBuffer(let owner, let buffer, let bufferImpl, let format, let offset, let size):
                 setIndexBuffer(owner, buffer, bufferImpl, format, offset, size != nil, size ?? 0)
             case .setVertexBuffer(let owner, let slot, let buffer, let bufferImpl, let offset, let size):
@@ -2298,25 +2294,17 @@ final class RenderBundleEncoderImpl {
     }
 
     @_expose(Cxx)
-    func setPipeline(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
-        _ pipeline: borrowing WebGPU.Metal.RenderPipeline,
-        _ pipelineImpl: RenderPipelineImpl
-    ) {
+    func setPipeline(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ pipelineImpl: RenderPipelineImpl) {
         if !validToEncodeCommand() {
             generateAValidationError(
                 "void WebGPU::Metal::RenderBundleEncoder::setPipeline(const RenderPipeline &): failed as encoding has finished"
             )
             return
         }
-        applyPipeline(shell, pipeline, pipelineImpl)
+        applyPipeline(shell, pipelineImpl)
     }
 
-    private func applyPipeline(
-        _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
-        _ pipeline: borrowing WebGPU.Metal.RenderPipeline,
-        _ pipelineImpl: RenderPipelineImpl
-    ) {
+    private func applyPipeline(_ shell: borrowing WebGPU.Metal.RenderBundleEncoder, _ pipelineImpl: RenderPipelineImpl) {
         guard icbDescriptor != nil else {
             return
         }
@@ -2408,14 +2396,9 @@ final class RenderBundleEncoderImpl {
                 requiresCommandReplay = true
             }
 
-            recordCommand(.setPipeline(owner: copy shell, pipeline: copy pipeline, pipelineImpl: pipelineImpl))
+            recordCommand(.setPipeline(owner: copy shell, pipelineImpl: pipelineImpl))
         }
 
-        if currentPipeline.isEmpty {
-            currentPipeline.append(copy pipeline)
-        } else {
-            currentPipeline[0] = copy pipeline
-        }
         currentPipelineImpl = pipelineImpl
     }
 
@@ -2646,7 +2629,7 @@ public final class RenderBundleEncoderReference {
     }
 
     public func setPipeline(_ pipeline: RenderPipelineReference) {
-        impl.setPipeline(shell, pipeline.shell, pipeline.impl)
+        impl.setPipeline(shell, pipeline)
     }
 
     // Clears the slot without a buffer.

@@ -178,13 +178,14 @@ extension RenderBundleImpl {
 }
 
 @_spi(WebKitGPU)
-public final class RenderPipelineReference {
-    public let impl: RenderPipelineImpl
-    let shell: WebGPU.Metal.RenderPipeline
+public typealias RenderPipelineReference = RenderPipelineImpl
 
-    init(_ impl: RenderPipelineImpl, _ shell: WebGPU.Metal.RenderPipeline) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension RenderPipelineImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: RenderPipelineImpl {
+        self
     }
 }
 
@@ -312,11 +313,6 @@ extension RenderBundleEncoderReference: GPUObjectReference {
 
 @_spi(WebKitGPU)
 extension RenderPassEncoderReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
-extension RenderPipelineReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }
 

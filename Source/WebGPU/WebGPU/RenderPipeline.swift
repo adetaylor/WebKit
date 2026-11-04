@@ -42,11 +42,12 @@ private enum PipelineStateCompilation {
     case failed
 }
 
-// One per GPURenderPipeline, owned by the C++ RenderPipeline. Owns all of the pipeline's state, including the Device;
-// the render encoders read it directly.
+// One per GPURenderPipeline, held by its Swift callers, the encoders that set it and the C++ API's shell
+// WebGPU::Metal::RenderPipeline. Owns all of the pipeline's state, including the Device; the render encoders read it
+// directly.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class RenderPipelineImpl {
+public final class RenderPipelineImpl: GPUObjectReference {
     // nil == invalid pipeline.
     private let backingRenderPipelineDescriptor: MTLRenderPipelineDescriptor?
     // What render passes draw with: compiled lazily or installed by the async precompile, and replaced by the indirect
@@ -73,8 +74,7 @@ public final class RenderPipelineImpl {
     let colorTargetFormats: [WebGPU.TextureFormat?]
     let depthStencilFormat: WebGPU.TextureFormat?
     let minimumBufferSizes: MinimumBufferSizes
-    // Zero or one pipeline, kept alive by this one.
-    private var lastStrideAsStridePipelines: [WebGPU.Metal.RenderPipeline] = []
+    // Kept alive by this pipeline.
     private var lastStrideAsStrideImpl: RenderPipelineImpl?
     // Declared last, so that the device outlives the rest of the pipeline.
     let device: WebGPU.Metal.Device
@@ -113,7 +113,7 @@ public final class RenderPipelineImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         backingRenderPipelineDescriptor != nil && pipelineLayoutImpl.isValid()
     }
 
@@ -257,20 +257,14 @@ public final class RenderPipelineImpl {
     }
 
     /// The last-stride-as-stride pipeline, made on first use and kept alive by this pipeline.
-    ///
-    /// The new shell is made through DeviceImpl.stagedRenderPipelineImpl.
     @_expose(!Cxx)
-    func lastStrideAsStride() -> (pipeline: WebGPU.Metal.RenderPipeline, impl: RenderPipelineImpl) {
-        if let impl = lastStrideAsStrideImpl, !lastStrideAsStridePipelines.isEmpty {
-            return (lastStrideAsStridePipelines[0], impl)
+    func lastStrideAsStride() -> RenderPipelineImpl {
+        if let impl = lastStrideAsStrideImpl {
+            return impl
         }
         let impl = makeLastStrideAsStrideImpl(deviceImpl.device())
-        precondition(deviceImpl.stagedRenderPipelineImpl == nil)
-        deviceImpl.stagedRenderPipelineImpl = impl
-        let pipeline = WebGPU.Metal.RenderPipeline.createWithStagedImpl(device).ptr()
-        lastStrideAsStridePipelines = [pipeline]
         lastStrideAsStrideImpl = impl
-        return (pipeline, impl)
+        return impl
     }
 
     @_expose(!Cxx)
@@ -642,7 +636,7 @@ final class RenderPipelineBuilder {
     func create(_ descriptor: borrowing WebGPU.RenderPipelineDescriptor) -> WebGPU.Metal.RenderPipeline {
         var result: [WebGPU.Metal.RenderPipeline] = []
         create(RenderPipelineInput(descriptor), isAsync: false, .synchronous) { pipeline, _ in
-            result = [pipeline.shell]
+            result = [makeRenderPipelineShell(pipeline)]
         }
         // A synchronous creation never defers its completion.
         precondition(result.count == 1)
@@ -664,7 +658,7 @@ final class RenderPipelineBuilder {
         )
         let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
         create(RenderPipelineInput(descriptor), isAsync: true, asynchronousIfPossible()) { pipeline, message in
-            completion.complete(pipeline.shell, message)
+            completion.complete(makeRenderPipelineShell(pipeline), message)
         }
         if let wasErrorReportingPaused {
             _ = deviceImpl.pauseErrorReporting(wasErrorReportingPaused)
@@ -692,7 +686,7 @@ final class RenderPipelineBuilder {
         create(descriptor, isAsync: true, asynchronousIfPossible()) { pipeline, message in
             let resolve = {
                 // A lost device makes invalid objects without errors.
-                completion(pipeline, deviceImpl.isDestroyed() || pipeline.impl.isValid(), message)
+                completion(pipeline, deviceImpl.isDestroyed() || pipeline.isValid(), message)
             }
             guard let instance = CxxBridging.protectedInstance(device) else {
                 return resolve()
@@ -713,7 +707,7 @@ final class RenderPipelineBuilder {
         _ descriptor: RenderPipelineInput,
         isAsync: Bool,
         _ compilation: LibraryCompilation,
-        _ report: @escaping (RenderPipelineReference, String?) -> Void
+        _ report: @escaping (RenderPipelineImpl, String?) -> Void
     ) {
         let device = self.device
         let deviceImpl = self.deviceImpl
@@ -734,8 +728,6 @@ final class RenderPipelineBuilder {
             return fail(error)
         }
         let impl = pending.takeImpl()
-        deviceImpl.stagedRenderPipelineImpl = impl
-        let pipeline = WebGPU.Metal.RenderPipeline.createWithStagedImpl(device).ptr()
         let vertexLibrary = pending.vertexLibrary()
         let fragmentLibrary = pending.fragment
 
@@ -762,7 +754,7 @@ final class RenderPipelineBuilder {
                 }
 
                 guard let scheduler = asynchronousCompileScheduler(compilation, device, deviceImpl) else {
-                    return report(RenderPipelineReference(impl, pipeline), nil)
+                    return report(impl, nil)
                 }
                 // Compile the pipeline state now rather than leaving it to the first draw. This is only an
                 // optimization: nothing here can invalidate the pipeline, and if the compile fails the lazy
@@ -771,7 +763,7 @@ final class RenderPipelineBuilder {
                     if let renderPipelineState {
                         impl.setPrecompiledRenderPipelineState(renderPipelineState)
                     }
-                    report(RenderPipelineReference(impl, pipeline), nil)
+                    report(impl, nil)
                 }
             }
         }
@@ -1736,13 +1728,16 @@ private func inWTFHashTableOrder(_ buffers: [RequiredVertexBuffer]) -> [Required
     return result
 }
 
-// RenderPipeline::createInvalid, made in Swift so that its Impl is known. An invalid pipeline still holds an invalid
-// pipeline layout, so that it always has one.
-func makeInvalidRenderPipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> RenderPipelineReference {
-    let impl = makeInvalidRenderPipelineImpl(device, deviceImpl, makeInvalidPipelineLayoutImpl(device))
-    precondition(deviceImpl.stagedRenderPipelineImpl == nil)
-    deviceImpl.stagedRenderPipelineImpl = impl
-    return RenderPipelineReference(impl, WebGPU.Metal.RenderPipeline.createWithStagedImpl(device).ptr())
+// An invalid pipeline still holds an invalid pipeline layout, so that it always has one.
+func makeInvalidRenderPipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> RenderPipelineImpl {
+    makeInvalidRenderPipelineImpl(device, deviceImpl, makeInvalidPipelineLayoutImpl(device))
+}
+
+// Wraps a pipeline for the C++ API in a new shell, through DeviceImpl.stagedRenderPipelineImpl.
+private func makeRenderPipelineShell(_ impl: RenderPipelineImpl) -> WebGPU.Metal.RenderPipeline {
+    precondition(impl.deviceImpl.stagedRenderPipelineImpl == nil)
+    impl.deviceImpl.stagedRenderPipelineImpl = impl
+    return WebGPU.Metal.RenderPipeline.createWithStagedImpl(impl.device).ptr()
 }
 
 @_spi(WebKitGPU)

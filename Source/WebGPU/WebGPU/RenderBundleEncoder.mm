@@ -164,9 +164,7 @@ void RenderBundleEncoder::setIndexBuffer(WebGPU::Buffer& apiBuffer, WebGPU::Inde
 
 void RenderBundleEncoder::setPipeline(const WebGPU::RenderPipeline& apiPipeline)
 {
-    auto& pipeline = downcast<RenderPipeline>(apiPipeline);
-    // FIXME: rdar://138047285 const_cast is needed as a workaround.
-    swiftImpl().setPipeline(this, &const_cast<RenderPipeline&>(pipeline), pipeline.swiftImpl());
+    swiftImpl().setPipeline(this, downcast<RenderPipeline>(apiPipeline).swiftImpl());
 }
 
 void RenderBundleEncoder::setVertexBuffer(uint32_t slot, WebGPU::Buffer* apiBuffer, uint64_t offset, std::optional<uint64_t> size)
