@@ -3592,6 +3592,8 @@ if (APPLE)
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
     )
+    # Apple CMake's JavaScriptCore.framework/Headers has headers that JavaScriptCore.h doesn't include.
+    webkit_target_add_swift_options(WebCore "-Xcc -Wno-incomplete-umbrella")
 
     # Whole-module optimization outside Debug, as for WebGPU.
     WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebCore)
