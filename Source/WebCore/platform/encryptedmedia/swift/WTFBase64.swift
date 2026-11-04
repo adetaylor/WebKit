@@ -108,19 +108,9 @@ public enum WTFBase64 {
     /// WTF::maximumBase64EncoderInputBufferSize, beyond which inputs encode to nothing.
     public static let maximumEncoderInputSize: UInt32 = UInt32.max / 77 * 76 / 4 * 3 - 2
 
-    /// WTF::base64Decode() of Latin-1 characters, into a ContiguousArray because Array.span needs macOS 26.
-    public static func decode(_ input: Span<UInt8>, options: DecodeOptions = []) -> ContiguousArray<UInt8>? {
-        decodeCodeUnits(input, options)
-    }
-
-    /// WTF::base64Decode() of UTF-16 code units.
+    /// WTF::base64Decode() of UTF-16 code units, into a ContiguousArray because Array.span needs macOS 26.
     public static func decode(_ input: Span<UInt16>, options: DecodeOptions = []) -> ContiguousArray<UInt8>? {
         decodeCodeUnits(input, options)
-    }
-
-    /// WTF::base64URLDecode() of Latin-1 characters.
-    public static func urlDecode(_ input: Span<UInt8>) -> ContiguousArray<UInt8>? {
-        decodeCodeUnits(input, .url)
     }
 
     /// WTF::base64URLDecode() of UTF-16 code units.

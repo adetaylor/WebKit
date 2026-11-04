@@ -436,6 +436,61 @@ TEST(CDMClearKey, UpdateLicense)
         EXPECT_FALSE(updateLicense(*session, sessionId, empty.copyRef()).succeeded);
 }
 
+// A session's keys, and so its key statuses and its release message, are in key ID order, as MediaKeyStatusMap's.
+TEST(CDMClearKey, KeysSortedByKeyID)
+{
+    auto [cdm, instance, session] = createClearKeySession();
+    ASSERT_TRUE(session);
+    auto sessionId = requestLicense(*session, "keyids"_s, buffer("{}"_s)).sessionId;
+
+    auto update = updateLicense(*session, sessionId, buffer("{\"keys\":[{\"kty\":\"oct\",\"kid\":\"Aw\",\"k\":\"AQ\"},{\"kty\":\"oct\",\"kid\":\"AQI\",\"k\":\"AQ\"},{\"kty\":\"oct\",\"kid\":\"AQ\",\"k\":\"AQ\"}]}"_s));
+    EXPECT_TRUE(update.succeeded);
+    ASSERT_TRUE(update.changedKeys);
+    EXPECT_EQ(*update.changedKeys, (Vector<String> { "01"_s, "0102"_s, "03"_s }));
+
+    update = updateLicense(*session, sessionId, buffer("{\"keys\":[{\"kty\":\"oct\",\"kid\":\"AQI\",\"k\":\"Ag\"},{\"kty\":\"oct\",\"kid\":\"AA\",\"k\":\"AQ\"}]}"_s));
+    EXPECT_TRUE(update.succeeded);
+    ASSERT_TRUE(update.changedKeys);
+    EXPECT_EQ(*update.changedKeys, (Vector<String> { "00"_s, "01"_s, "0102"_s, "03"_s }));
+    EXPECT_EQ(releaseMessage(*session, sessionId), "{\"kids\":[\"AA\",\"AQ\",\"AQI\",\"Aw\"]}"_s);
+}
+
+TEST(CDMClearKey, LoadSession)
+{
+    auto [cdm, instance, session] = createClearKeySession();
+    ASSERT_TRUE(session);
+    auto sessionId = requestLicense(*session, "keyids"_s, buffer("{}"_s)).sessionId;
+    EXPECT_TRUE(updateLicense(*session, sessionId, buffer("{\"keys\":[{\"kty\":\"oct\",\"kid\":\"Aw\",\"k\":\"AQ\"},{\"kty\":\"oct\",\"kid\":\"AQ\",\"k\":\"AQ\"}]}"_s)).succeeded);
+
+    Vector<String> keys;
+    bool done = false;
+    session->loadSession(CDMSessionType::PersistentLicense, sessionId, emptyString(), [&](std::optional<CDMInstanceSession::KeyStatusVector>&& keyStatuses, std::optional<double>&&, std::optional<CDMInstanceSession::Message>&&, CDMInstanceSession::SuccessValue succeeded, CDMInstanceSession::SessionLoadFailure failure) {
+        EXPECT_EQ(succeeded, CDMInstanceSession::Succeeded);
+        EXPECT_EQ(failure, CDMInstanceSession::SessionLoadFailure::None);
+        ASSERT_TRUE(keyStatuses);
+        for (auto& [keyID, status] : *keyStatuses) {
+            EXPECT_EQ(status, CDMKeyStatus::Usable);
+            keys.append(hexString(keyID));
+        }
+        done = true;
+    });
+    Util::run(&done);
+    EXPECT_EQ(keys, (Vector<String> { "01"_s, "03"_s }));
+}
+
+// A session whose instance is gone has an empty session ID, and can't take licenses.
+TEST(CDMClearKey, SessionWithoutInstance)
+{
+    auto [cdm, instance, session] = createClearKeySession();
+    ASSERT_TRUE(session);
+    instance = nullptr;
+    auto request = requestLicense(*session, "keyids"_s, buffer("{}"_s));
+    EXPECT_TRUE(request.sessionId.isEmpty());
+    auto update = updateLicense(*session, request.sessionId, buffer("{\"keys\":[{\"kty\":\"oct\",\"kid\":\"AQ\",\"k\":\"AQ\"}]}"_s));
+    EXPECT_FALSE(update.succeeded);
+    EXPECT_FALSE(update.changedKeys);
+}
+
 } // namespace TestWebKitAPI
 
 #endif // ENABLE(ENCRYPTED_MEDIA)

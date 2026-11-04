@@ -3576,7 +3576,7 @@ if (APPLE)
         ${WEBCORE_DIR}/svg/graphics/filters/SVGFilterRenderer.swift
 
         ${WEBCORE_DIR}/Modules/encryptedmedia/InitDataRegistry.swift
-        ${WEBCORE_DIR}/platform/encryptedmedia/clearkey/CDMClearKeyParsing.swift
+        ${WEBCORE_DIR}/platform/encryptedmedia/clearkey/CDMClearKeyBridge.swift
         ${WEBCORE_DIR}/platform/graphics/AV1Utilities.swift
         ${WEBCORE_DIR}/platform/graphics/H264Utilities.swift
         ${WEBCORE_DIR}/platform/graphics/HEVCBitstreamParser.swift
@@ -3592,7 +3592,6 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/media-parsers/BitReader.swift
         ${WEBCORE_DIR}/platform/media-parsers/ByteCursor.swift
         ${WEBCORE_DIR}/platform/media-parsers/MutableSpanCopy.swift
-        ${WEBCORE_DIR}/platform/media-parsers/WTFBase64.swift
         ${WEBCORE_DIR}/platform/media-parsers/WTFCompatParsing.swift
     )
 
