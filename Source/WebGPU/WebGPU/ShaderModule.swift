@@ -52,10 +52,11 @@ final class CheckedModuleBox {
     }
 }
 
-// One per GPUShaderModule, owned by the C++ shell WebGPU::Metal::ShaderModule through an opaque box, and holding the
-// Device. Pipeline creation reads the reflection and compiles through it directly.
+// One per GPUShaderModule, held by its Swift callers and by the C++ API's shell WebGPU::Metal::ShaderModule through an
+// opaque box, and holding the Device. Pipeline creation reads the reflection and compiles through it directly.
 @_expose(Cxx)
-final class ShaderModuleImpl {
+@_spi(WebKitGPU)
+public final class ShaderModuleImpl: GPUObjectReference {
     // nil == invalid shader module.
     private let checkedModule: CheckedModuleBox?
     // Errors first, then warnings; getCompilationInfo reports them in that order.
@@ -109,7 +110,7 @@ final class ShaderModuleImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         checkedModule != nil
     }
 
@@ -148,9 +149,10 @@ final class ShaderModuleImpl {
         messages[index].length
     }
 
-    // What ShaderModule::compilationInfo gives, for a Swift caller.
+    // https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo: errors first, then warnings. What
+    // ShaderModule::compilationInfo gives, for a Swift caller.
     @_expose(!Cxx)
-    func compilationInfo() -> [GPUShaderCompilationMessage] {
+    public func compilationInfo() -> [GPUShaderCompilationMessage] {
         messages.indices.map { index in
             let message = messages[index]
             return GPUShaderCompilationMessage(
@@ -409,20 +411,15 @@ public struct GPUShaderCompilationMessage {
     public let length: UInt64
 }
 
-// A shader module with its shell, as Swift holds one.
 @_spi(WebKitGPU)
-public final class ShaderModuleReference {
-    let impl: ShaderModuleImpl
-    let shell: WebGPU.Metal.ShaderModule
+public typealias ShaderModuleReference = ShaderModuleImpl
 
-    init(_ impl: ShaderModuleImpl, _ shell: WebGPU.Metal.ShaderModule) {
-        self.impl = impl
-        self.shell = shell
-    }
-
-    // https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo: errors first, then warnings.
-    public func compilationInfo() -> [GPUShaderCompilationMessage] {
-        impl.compilationInfo()
+@_spi(WebKitGPU)
+extension ShaderModuleImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: ShaderModuleImpl {
+        self
     }
 }
 
@@ -494,19 +491,11 @@ func makeInvalidShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: De
     ShaderModuleImpl(checkedModule: nil, errors: [], warnings: [], device: device, deviceImpl: deviceImpl)
 }
 
-// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedShaderModuleImpl.
-func makeShaderModuleShell(_ impl: ShaderModuleImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.ShaderModule {
-    precondition(deviceImpl.stagedShaderModuleImpl == nil)
-    deviceImpl.stagedShaderModuleImpl = impl
-    return WebGPU.Metal.ShaderModule.createWithStagedImpl(device).ptr()
-}
-
 @_spi(WebKitGPU)
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule, from WGSL. The label isn't kept, as for the
     // C++ caller.
     public func createShaderModule(code: Swift.String, label: Swift.String?) -> ShaderModuleReference {
-        let module = createShaderModuleImpl(shell, impl, code: code)
-        return ShaderModuleReference(module, makeShaderModuleShell(module, device: shell, deviceImpl: impl))
+        createShaderModuleImpl(shell, impl, code: code)
     }
 }

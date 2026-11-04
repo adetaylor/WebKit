@@ -338,11 +338,6 @@ extension RenderPipelineReference: GPUObjectReference {
 }
 
 @_spi(WebKitGPU)
-extension ShaderModuleReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
 extension TextureReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }

@@ -60,8 +60,6 @@ class ShaderModule final : public WebGPU::ShaderModule {
 public:
     static Ref<ShaderModule> create(std::unique_ptr<ShaderModuleImplBox>&&);
     static Ref<ShaderModule> createInvalid(Device&);
-    // Wraps the Impl that Swift staged in DeviceImpl, for a creation made in Swift.
-    static Ref<ShaderModule> createWithStagedImpl(Device&);
 
     ~ShaderModule();
 

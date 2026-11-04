@@ -611,10 +611,7 @@ struct RenderPipelineInput {
 final class RenderPipelineBuilder {
     private let device: WebGPU.Metal.Device
     private let deviceImpl: DeviceImpl
-    private let vertexModule: WebGPU.Metal.ShaderModule
     private let vertexModuleImpl: ShaderModuleImpl
-    // Zero-or-one FRTs as arrays, never Optional<FRT>.
-    private var fragmentModule: [WebGPU.Metal.ShaderModule] = []
     private var fragmentModuleImpl: ShaderModuleImpl?
     private var layoutImpl: PipelineLayoutImpl?
     private var isReplacingPipeline = false
@@ -622,18 +619,15 @@ final class RenderPipelineBuilder {
     fileprivate init(
         device: WebGPU.Metal.Device,
         deviceImpl: DeviceImpl,
-        vertexModule: WebGPU.Metal.ShaderModule,
         vertexModuleImpl: ShaderModuleImpl
     ) {
         self.device = device
         self.deviceImpl = deviceImpl
-        self.vertexModule = vertexModule
         self.vertexModuleImpl = vertexModuleImpl
     }
 
     @_expose(Cxx)
-    func setFragmentModule(_ module: WebGPU.Metal.ShaderModule, _ impl: ShaderModuleImpl) {
-        fragmentModule = [module]
+    func setFragmentModule(_ impl: ShaderModuleImpl) {
         fragmentModuleImpl = impl
     }
 
@@ -879,7 +873,7 @@ final class RenderPipelineBuilder {
         var fragmentEntryPoint: Name?
         var fragmentReflection: EntryPointReflection?
         if hasFragment {
-            guard let fragmentModuleImpl, !fragmentModule.isEmpty else {
+            guard let fragmentModuleImpl else {
                 preconditionFailure("C++ sets the fragment module of a descriptor with a fragment state")
             }
             if !fragmentModuleImpl.isValid() {
@@ -1241,10 +1235,9 @@ final class RenderPipelineBuilder {
 func makeRenderPipelineBuilder(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
-    _ vertexModule: WebGPU.Metal.ShaderModule,
     _ vertexModuleImpl: ShaderModuleImpl
 ) -> RenderPipelineBuilder {
-    RenderPipelineBuilder(device: device, deviceImpl: deviceImpl, vertexModule: vertexModule, vertexModuleImpl: vertexModuleImpl)
+    RenderPipelineBuilder(device: device, deviceImpl: deviceImpl, vertexModuleImpl: vertexModuleImpl)
 }
 
 // The builder of a Swift caller's descriptor, with the modules and layout that C++ sets on a C++ caller's: the layout of
@@ -1255,10 +1248,9 @@ func makeRenderPipelineBuilder(
     _ descriptor: GPURenderPipelineDescriptor,
     replacingLayoutOf pipelineToReplace: RenderPipelineReference? = nil
 ) -> RenderPipelineBuilder {
-    let vertexModule = descriptor.vertex.stage.module
-    let builder = RenderPipelineBuilder(device: device, deviceImpl: deviceImpl, vertexModule: vertexModule.shell, vertexModuleImpl: vertexModule.impl)
+    let builder = RenderPipelineBuilder(device: device, deviceImpl: deviceImpl, vertexModuleImpl: descriptor.vertex.stage.module)
     if let fragmentModule = descriptor.fragment?.stage.module {
-        builder.setFragmentModule(fragmentModule.shell, fragmentModule.impl)
+        builder.setFragmentModule(fragmentModule)
     }
     if let pipelineToReplace {
         builder.setPipelineLayout(pipelineToReplace.impl.pipelineLayoutImpl, true)

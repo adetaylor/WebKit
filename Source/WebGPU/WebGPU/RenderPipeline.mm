@@ -63,12 +63,9 @@ void setRenderPipelineSampleMask(MTLRenderPipelineDescriptor *descriptor, uint32
 // modules and the layout (the replaced pipeline's or the descriptor's).
 static WebGPUSwift::RenderPipelineBuilder renderPipelineBuilder(Device& device, const WebGPU::RenderPipelineDescriptor& descriptor, const RenderPipeline* pipelineToReplace)
 {
-    Ref vertexModule = metal(descriptor.vertex.stage.module.get());
-    auto builder = makeRenderPipelineBuilder(&device, device.swiftImpl(), vertexModule.ptr(), vertexModule->swiftImpl());
-    if (descriptor.fragment) {
-        Ref fragmentModule = metal(descriptor.fragment->stage.module.get());
-        builder.setFragmentModule(fragmentModule.ptr(), fragmentModule->swiftImpl());
-    }
+    auto builder = makeRenderPipelineBuilder(&device, device.swiftImpl(), Ref { metal(descriptor.vertex.stage.module.get()) }->swiftImpl());
+    if (descriptor.fragment)
+        builder.setFragmentModule(Ref { metal(descriptor.fragment->stage.module.get()) }->swiftImpl());
     if (pipelineToReplace)
         builder.setPipelineLayout(pipelineToReplace->swiftImpl().pipelineLayout(), true);
     else if (descriptor.layout)

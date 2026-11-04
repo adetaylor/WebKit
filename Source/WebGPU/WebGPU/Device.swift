@@ -109,8 +109,6 @@ final class DeviceImpl {
     @_expose(!Cxx)
     var stagedBindGroupImpl: BindGroupImpl?
     @_expose(!Cxx)
-    var stagedShaderModuleImpl: ShaderModuleImpl?
-    @_expose(!Cxx)
     var stagedRenderBundleEncoderImpl: RenderBundleEncoderImpl?
     @_expose(!Cxx)
     var stagedTextureViewImpl: TextureViewImpl?
@@ -761,15 +759,6 @@ final class DeviceImpl {
             preconditionFailure("No staged BindGroupImpl")
         }
         stagedBindGroupImpl = nil
-        return impl
-    }
-
-    @_expose(Cxx)
-    func takeStagedShaderModuleImpl() -> ShaderModuleImpl {
-        guard let impl = stagedShaderModuleImpl else {
-            preconditionFailure("No staged ShaderModuleImpl")
-        }
-        stagedShaderModuleImpl = nil
         return impl
     }
 
