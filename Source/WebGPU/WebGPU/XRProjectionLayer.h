@@ -35,19 +35,9 @@
 #import <wtf/Ref.h>
 #import <wtf/WeakPtr.h>
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class XRProjectionLayerImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
 
-class CommandEncoder;
 class Device;
-
-// Defined in XRProjectionLayer.mm, where the generated Swift header declaring WebGPU::XRProjectionLayerImpl is includable.
-struct XRProjectionLayerImplBox;
 
 // The descriptor values, handed to Swift in one value: std::optional and OptionSet stay on this side.
 struct XRProjectionLayerParameters {
@@ -63,31 +53,5 @@ struct XRProjectionLayerParameters {
 id<MTLTexture> makeXRSharedTexture(id<MTLDevice>, mach_port_t);
 id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice>, mach_port_t);
 NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned screenWidth, unsigned screenHeight, const WebGPU::XRRasterizationSamples& horizontalSamplesLeft, const WebGPU::XRRasterizationSamples& horizontalSamplesRight, const WebGPU::XRRasterizationSamples& verticalSamples);
-
-class XRProjectionLayer final : public WebGPU::XRProjectionLayer {
-    WTF_DEPRECATED_MAKE_FAST_ALLOCATED(XRProjectionLayer);
-public:
-    static Ref<XRProjectionLayer> create(const WebGPU::XRProjectionLayerDescriptor&, Device&);
-
-    ~XRProjectionLayer();
-
-    NODELETE void setLabel(String&&) final;
-
-    NODELETE bool isValid() const final;
-    NODELETE void startFrame(size_t frameIndex, MachSendRight&& colorBuffer, MachSendRight&& depthBuffer, MachSendRight&& completionSyncEvent, size_t reusableTextureIndex, unsigned screenWidth, unsigned screenHeight, Vector<float>&& horizontalSamplesLeft, Vector<float>&& horizontalSamplesRight, Vector<float>&& verticalSamples) final;
-    void endFrame() final { }
-    void destroy() final;
-
-#if !defined(__swift__)
-    WebGPUSwift::XRProjectionLayerImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-
-private:
-    explicit XRProjectionLayer(std::unique_ptr<XRProjectionLayerImplBox>&&);
-
-    // Owns the descriptor values, the per-frame textures (and their per-index caches), the completion event,
-    // the current reusable texture index, the rasterization rate maps and the Device.
-    const std::unique_ptr<XRProjectionLayerImplBox> m_impl;
-};
 
 } // namespace WebGPU::Metal

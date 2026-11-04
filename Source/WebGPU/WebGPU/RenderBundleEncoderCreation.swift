@@ -105,7 +105,6 @@ public struct GPURenderBundleEncoderDescriptor {
 
 // A descriptor that fails validation reports the error and gives an invalid encoder that keeps the message for
 // finish(); an invalid device gives one without reporting anything.
-@_expose(Cxx)
 func createRenderBundleEncoderImpl(
     _ descriptor: borrowing WebGPU.RenderBundleEncoderDescriptor,
     _ device: WebGPU.Metal.Device,

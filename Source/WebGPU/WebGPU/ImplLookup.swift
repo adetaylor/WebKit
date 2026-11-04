@@ -25,26 +25,19 @@ public import CoreGraphics
 import Synchronization
 @_implementationOnly import WebGPU_Internal.Adapter
 @_implementationOnly import WebGPU_Internal.BindGroup
-@_implementationOnly import WebGPU_Internal.BindGroupLayout
 @_implementationOnly import WebGPU_Internal.Buffer
-@_implementationOnly import WebGPU_Internal.CommandBuffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.ComputePassEncoder
 @_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.ExternalTexture
 @_implementationOnly import WebGPU_Internal.Instance
 @_implementationOnly import WebGPU_Internal.PresentationContext
-@_implementationOnly import WebGPU_Internal.QuerySet
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
-@_implementationOnly import WebGPU_Internal.RenderBundle
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
-@_implementationOnly import WebGPU_Internal.Sampler
 @_implementationOnly import WebGPU_Internal.ShaderModule
 @_implementationOnly import WebGPU_Internal.Texture
-@_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
 // The Impls behind the ::WebGPU C++ API objects that C++ still makes for the GPU process's Swift receivers: the
@@ -82,8 +75,9 @@ extension ComputePipelineImpl {
 extension PresentationContextReference {
     // The render buffer's contents as an image, for formats the compositor can't read from the IOSurface. nil, with
     // isIOSurfaceSupportedFormat set, when it can.
+    @_expose(!Cxx)
     public func textureAsNativeImage(_ bufferIndex: UInt32, _ isIOSurfaceSupportedFormat: inout Bool) -> CGImage? {
-        impl.textureAsNativeImage(bufferIndex, &isIOSurfaceSupportedFormat)
+        renderBufferAsNativeImage(bufferIndex, &isIOSurfaceSupportedFormat)
     }
 }
 
@@ -208,9 +202,7 @@ public final class InstanceReference {
     // A canvas context for a compositor's render buffers, which the compositor gives it through
     // renderBuffersWereRecreated() and addRenderBuffer(_:).
     public func createPresentationContext() -> PresentationContextReference {
-        let presentationContext = WebGPU.Metal.createPresentationContext(shell)
-        let impl = ImplLookup.lookUp(PresentationContextIOSurfaceImpl.self) { presentationContext.deliverSwiftImpl() }
-        return PresentationContextReference(impl, presentationContext)
+        makePresentationContextIOSurfaceImpl(WebGPU.Metal.webProcessIdentityPort(shell))
     }
 }
 
@@ -262,20 +254,8 @@ extension DeviceReference: GPUObjectReference {
 }
 
 @_spi(WebKitGPU)
-extension PresentationContextReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
 extension QueueReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
-}
-
-// The objects as the ::WebGPU C++ API objects they are, for the GPU process's C++.
-
-@_spi(WebKitGPU)
-extension DeviceReference {
-    public var apiObject: WebGPU.Device { WebGPU.Metal.apiObject(shell) }
 }
 
 // The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().

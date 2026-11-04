@@ -26,7 +26,6 @@
 #import "config.h"
 #import "Adapter.h"
 
-#import "APIConversions.h"
 #import "Device.h"
 #import "Instance.h"
 #import <wtf/StdLibExtras.h>
@@ -63,11 +62,6 @@ Adapter::Adapter(std::unique_ptr<AdapterImplBox>&& impl, Instance& instance)
 
 Adapter::~Adapter() = default;
 
-WebGPU::Limits Adapter::limits() const
-{
-    return m_impl->impl.limits();
-}
-
 MachSendRight Adapter::webProcessIdentity() const
 {
     RefPtr instance = m_instance;
@@ -77,56 +71,6 @@ MachSendRight Adapter::webProcessIdentity() const
     if (!webProcessID)
         return { };
     return MachSendRight { WTF::move(*webProcessID) };
-}
-
-Vector<WebGPU::FeatureName> Adapter::features() const
-{
-    Vector<WebGPU::FeatureName> features;
-    m_impl->impl.copyFeatures(features);
-    return features;
-}
-
-WebGPU::AdapterInfo Adapter::info()
-{
-    WebGPU::AdapterInfo info {
-        .name = device().name,
-        // A Metal device is never a fallback (software) adapter.
-        .isFallbackAdapter = false,
-    };
-    m_impl->impl.subgroupSizes(info.subgroupMinSize, info.subgroupMaxSize);
-    return info;
-}
-
-bool Adapter::hasFeature(WebGPU::FeatureName feature)
-{
-    return m_impl->impl.hasFeature(feature);
-}
-
-void Adapter::requestDevice(const WebGPU::DeviceDescriptor& descriptor, CompletionHandler<void(RefPtr<WebGPU::Device>&&)>&& callback)
-{
-    requestDeviceOrError(descriptor, [callback = WTF::move(callback)](std::expected<Ref<Device>, String>&& device) mutable {
-        callback(device ? RefPtr<WebGPU::Device> { WTF::move(*device) } : nullptr);
-    });
-}
-
-void Adapter::requestDeviceOrError(const WebGPU::DeviceDescriptor& descriptor, CompletionHandler<void(std::expected<Ref<Device>, String>&&)>&& callback)
-{
-    HardwareCapabilities capabilities { .features = { descriptor.requiredFeatures } };
-    bool invalidatesAdapter = false;
-    if (NSString* error = m_impl->impl.errorRequestingDevice(descriptor.requiredLimits.has_value(), descriptor.requiredLimits.value_or(Limits { }), capabilities, invalidatesAdapter)) {
-        callback(makeUnexpected(String(error)));
-        if (invalidatesAdapter)
-            makeInvalid();
-        return;
-    }
-
-    auto label = descriptor.label;
-    // FIXME: this should be asynchronous - https://bugs.webkit.org/show_bug.cgi?id=233621
-    callback(Device::create(device(), WTF::move(label), WTF::move(capabilities), *this));
-}
-
-void Adapter::setLabel(String&&)
-{
 }
 
 bool Adapter::isValid() const
@@ -147,11 +91,6 @@ void Adapter::makeInvalid()
 WebGPUSwift::AdapterImpl& Adapter::swiftImpl() const
 {
     return m_impl->impl;
-}
-
-bool Adapter::isXRCompatible() const
-{
-    return m_impl->impl.isXRCompatible();
 }
 
 void deliverAdapterImpl(Adapter& shell)

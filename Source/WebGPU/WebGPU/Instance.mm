@@ -26,9 +26,7 @@
 #import "config.h"
 #import "Instance.h"
 
-#import "APIConversions.h"
 #import "Adapter.h"
-#import "CommandBuffer.h"
 #import "Device.h"
 #import "HardwareCapabilities.h"
 #import "PresentationContext.h"
@@ -93,11 +91,6 @@ bool Instance::isValid() const
 void Instance::waitForCommandBufferCompletions()
 {
     m_impl->impl.waitForCommandBufferCompletions();
-}
-
-RefPtr<WebGPU::PresentationContext> Instance::createPresentationContext(const WebGPU::PresentationContextDescriptor& descriptor)
-{
-    return PresentationContext::create(descriptor, *this);
 }
 
 void Instance::scheduleWork(WorkItem&& workItem)
@@ -200,17 +193,10 @@ RefPtr<Adapter> Instance::adapter(const WebGPU::RequestAdapterOptions& options)
     return Adapter::create(sortedDevices[0], *this, options.xrCompatible, WTF::move(*deviceCapabilities));
 }
 
-void Instance::requestAdapter(const WebGPU::RequestAdapterOptions& options, CompletionHandler<void(RefPtr<WebGPU::Adapter>&&)>&& callback)
-{
-    // FIXME: this should be asynchronous
-    callback(adapter(options));
-}
-
 void Instance::retainDevice(Device& device, id<MTLCommandBuffer> commandBuffer)
 {
     m_impl->impl.retainDevice(&device, reinterpret_cast<uintptr_t>(&device), commandBuffer);
 }
-
 
 Instance* createInstance(WebGPU::InstanceDescriptor& descriptor)
 {
@@ -222,27 +208,24 @@ Adapter* requestAdapter(Instance& instance, const WebGPU::RequestAdapterOptions&
     return instance.adapter(options).leakRef();
 }
 
-PresentationContext* createPresentationContext(const Instance& instance)
+mach_port_t webProcessIdentityPort(const Instance& instance)
 {
-    return &PresentationContext::create({ }, instance).leakRef();
+#if HAVE(IOSURFACE_SET_OWNERSHIP_IDENTITY) && HAVE(TASK_IDENTITY_TOKEN)
+    if (const auto& webProcessID = instance.webProcessID())
+        return webProcessID->sendRight();
+#else
+    UNUSED_PARAM(instance);
+#endif
+    return MACH_PORT_NULL;
 }
 
 } // namespace WebGPU::Metal
-
-namespace WebGPU {
-
-RefPtr<Instance> createInstance(InstanceDescriptor&& descriptor)
-{
-    return Metal::Instance::create(WTF::move(descriptor));
-}
-
-} // namespace WebGPU
 
 #else
 
 namespace WebGPU {
 
-// Without Swift there is no WebGPU implementation. WebCore links against this, and a null instance means no WebGPU.
+// Without Swift there is no WebGPU implementation: a null instance means no WebGPU.
 RefPtr<Instance> createInstance(InstanceDescriptor&&)
 {
     return nullptr;

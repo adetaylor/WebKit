@@ -52,12 +52,7 @@ class QueueImpl;
 
 namespace WebGPU::Metal {
 
-class Buffer;
-class CommandBuffer;
-class CommandEncoder;
 class Device;
-class Texture;
-class TextureView;
 
 // Opaque box holding the Swift QueueImpl; defined in Queue.mm.
 struct QueueImplBox;
@@ -108,7 +103,7 @@ struct SWIFT_VIEW QueueBytes {
 // A device owns its default queue, not the other way around.
 // The state is in QueueImpl, except the Device and Instance weak pointers and the Metal handlers, whose work items call
 // QueueImpl's drains.
-class Queue final : public WebGPU::Queue {
+class Queue final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Queue> {
     WTF_MAKE_TZONE_ALLOCATED(Queue);
 public:
     static Ref<Queue> create(id<MTLCommandQueue>, Adapter&, Device&);
@@ -116,35 +111,15 @@ public:
 
     ~Queue();
 
-    // The callback is called with false when the device is lost.
-    void onSubmittedWorkDone(CompletionHandler<void(bool)>&& callback);
-    void submit(Vector<Ref<WebGPU::Metal::CommandBuffer>>&& commands);
-    void writeBuffer(Buffer&, uint64_t bufferOffset, std::span<uint8_t> data);
     void writeBuffer(id<MTLBuffer>, uint64_t bufferOffset, std::span<uint8_t> data);
     void clearBuffer(id<MTLBuffer>, NSUInteger offset = 0, NSUInteger size = NSUIntegerMax);
-    void writeTexture(const WebGPU::TexelCopyTextureInfo& destination, std::span<uint8_t> data, const WebGPU::TexelCopyBufferLayout&, const WebGPU::Extent3D& writeSize, bool skipValidation = false);
-    void copyExternalImageToTexture(const WebGPU::ImageCopyExternalImage& source, const WebGPU::ImageCopyTextureTagged& destination, const WebGPU::Extent3D& copySize) final;
-    void setLabel(String&&) final;
 
-    void submit(Vector<Ref<WebGPU::CommandBuffer>>&&) final;
-    void onSubmittedWorkDone(CompletionHandler<void()>&&) final;
-    void writeBuffer(WebGPU::Buffer&, uint64_t bufferOffset, std::span<const uint8_t> data) final;
-    void writeTexture(const WebGPU::TexelCopyTextureInfo& destination, std::span<const uint8_t> data, const WebGPU::TexelCopyBufferLayout&, const WebGPU::Extent3D& writeSize) final;
-    void writeBuffer(WebGPU::Buffer&, uint64_t bufferOffset, Ref<WebGPU::ByteOwner>&& data) final;
-    void writeTexture(const WebGPU::TexelCopyTextureInfo& destination, Ref<WebGPU::ByteOwner>&& data, const WebGPU::TexelCopyBufferLayout&, const WebGPU::Extent3D& writeSize) final;
-
-    void onSubmittedWorkScheduled(Function<void()>&&);
-
-    bool isValid() const final;
+    bool isValid() const;
 #if !defined(__swift__)
     WebGPUSwift::QueueImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
     void makeInvalid();
 
-#if !defined(__swift__)
-    // For the C API. The device must be alive.
-    Ref<Device> device() const;
-#endif
     // The device, +1, or nullptr once it is gone, for Swift.
     Device* WTF_NULLABLE retainedDevice() const SWIFT_RETURNS_RETAINED;
     void generateAValidationError(String&&);
@@ -154,9 +129,6 @@ public:
 
     // This can be called on a background thread. It never references the Instance.
     void scheduleWork(Instance::WorkItem&&);
-    [[nodiscard]] uint64_t retainCounterSampleBuffer(CommandEncoder&);
-    // API thread only.
-    void releaseCounterSampleBuffer(uint64_t);
     void waitForAllCommitedWorkToComplete();
     void synchronizeResourceAndWait(id<MTLBuffer>);
     std::pair<id<MTLBuffer>, uint64_t> newTemporaryBufferWithBytes(std::span<uint8_t> data, bool noCopy);
@@ -179,7 +151,7 @@ private:
     ThreadSafeWeakPtr<Device> m_device; // The only kind of queues that exist right now are default queues, which are owned by Devices.
     // Read on the API thread only; Metal threads schedule work through the box's scheduler handle.
     const ThreadSafeWeakPtr<Instance> m_instance;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refQueue, derefQueue) SWIFT_PRIVATE_FILEID("WebGPUSwift/Queue.swift");
+} SWIFT_SHARED_REFERENCE(refQueue, derefQueue) SWIFT_PRIVATE_FILEID("WebGPUSwift/Queue.swift");
 
 // Byte-moving primitives for Queue.swift. Free functions with NOESCAPE spans, so that Swift gets overloads taking
 // Span<UInt8>; static members of Queue, a foreign reference type, would not get them (rdar://161274084).
@@ -224,7 +196,6 @@ CleanTexCoords cleanTexCoords(CVMetalTextureRef);
 
 } // namespace WebGPU::Metal
 
-#if !ENABLE(SWIFT_BASE_CLASS_ANNOTATIONS)
 inline void refQueue(WebGPU::Metal::Queue* obj)
 {
     obj->ref();
@@ -234,6 +205,5 @@ inline void derefQueue(WebGPU::Metal::Queue* obj)
 {
     obj->deref();
 }
-#endif
 
 IGNORE_CLANG_WARNINGS_END

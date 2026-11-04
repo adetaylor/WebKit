@@ -142,7 +142,6 @@ final class AdapterImpl: DeliverableImpl {
         metalDevice = nil
     }
 
-    @_expose(Cxx)
     func isXRCompatible() -> Bool {
         xrCompatible
     }
@@ -152,7 +151,6 @@ final class AdapterImpl: DeliverableImpl {
         features.contains(feature)
     }
 
-    @_expose(Cxx)
     func copyFeatures(_ destination: inout WebGPU.Metal.FeatureNames) {
         for feature in features {
             destination.append(consuming: feature)
@@ -163,7 +161,6 @@ final class AdapterImpl: DeliverableImpl {
     // nil accepts the request and turns `capabilities`, which arrives holding the required features, into the
     // device's. Otherwise the request fails with the returned message, and the shell invalidates the adapter after
     // reporting it if `invalidatesAdapter` is set.
-    @_expose(Cxx)
     func errorRequestingDevice(
         _ hasRequiredLimits: Bool,
         _ requiredLimits: WebGPU.Limits,
@@ -195,7 +192,6 @@ final class AdapterImpl: DeliverableImpl {
         return nil
     }
 
-    @_expose(Cxx)
     func subgroupSizes(_ minSize: inout UInt32, _ maxSize: inout UInt32) {
         guard hasFeature(.Subgroups) else {
             // Spec defaults when the feature is unsupported: https://github.com/gpuweb/gpuweb/pull/4963

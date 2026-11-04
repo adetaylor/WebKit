@@ -50,17 +50,9 @@
 
 IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class BufferImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
 
-class Buffer;
-class CommandEncoder;
-class Device;
+class Queue;
 
 // Create-time values handed to Swift by value.
 struct BufferParameters {
@@ -92,91 +84,6 @@ bool writeBufferContentsIfInBounds(id<MTLBuffer> _Nullable, uint64_t offset, std
 std::span<uint8_t> cpuVisibleContents(id<MTLBuffer>);
 #endif
 
-// Opaque box holding the Swift BufferImpl; defined in Buffer.mm.
-struct BufferImplBox;
-
-// https://gpuweb.github.io/gpuweb/#gpubuffer
-// Swift's BufferImpl owns the state and the Device back-reference, and runs creation and mapping; the shell forms the
-// spans over the contents.
-class Buffer final : public WebGPU::Buffer, public CanBorrow {
-    WTF_MAKE_TZONE_ALLOCATED(Buffer);
-public:
-    enum class State : uint8_t;
-
-    static Ref<Buffer> createInvalid(Device&);
-#if !defined(__swift__)
-    static Ref<Buffer> create(const WebGPUSwift::BufferImpl&);
-#endif
-
-    ~Buffer();
-
-    void destroy() final;
-    void mapAsync(OptionSet<WebGPU::MapMode>, uint64_t offset, std::optional<uint64_t> size, CompletionHandler<void(bool)>&&) final;
-    void getMappedRange(uint64_t offset, std::optional<uint64_t> size, NOESCAPE const Function<void(std::span<uint8_t>)>&) final;
-    void copyFrom(std::span<const uint8_t>, size_t offset) final;
-    // The mapped range as a span, for the C API. The C++ API has getMappedRange() instead,
-    // because a proxy cannot return a pointer into the mapping.
-    std::span<uint8_t> getMappedRangeSpan(uint64_t offset, std::optional<uint64_t> size);
-    // The mapped range for the C API, which, unlike the JavaScript API, lets the ranges that it hands
-    // out overlap: they are pointers into the mapping, not ArrayBuffers that are detached on unmap.
-    std::span<uint8_t> mappedRangeForCAPI(uint64_t offset, std::optional<uint64_t> size);
-    void unmap() final;
-    void setLabel(String&&) final;
-    void generateAValidationError() final;
-    void generateAValidationError(String&&);
-
-    bool isValid() const final;
-#if !defined(__swift__)
-    WebGPUSwift::BufferImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-
-    // https://gpuweb.github.io/gpuweb/#buffer-state
-    enum class State : uint8_t {
-        Mapped,
-        MappedAtCreation,
-        MappingPending,
-        Unmapped,
-        Destroyed,
-    };
-
-#if !defined(__swift__)
-    id<MTLBuffer> buffer() const;
-    OptionSet<WebGPU::BufferUsage> usage() const;
-    State state() const;
-#endif
-
-    uint64_t initialSize() const;
-
-    // Borrowed from the Impl, which holds the reference.
-    Device& device() const;
-
-    std::span<uint8_t> getBufferContents() final;
-
-    // For the drawIndexed completion handlers' work items (RenderPassEncoder.mm).
-    bool didReadOOB(id<MTLIndirectCommandBuffer> = nil) const;
-
-    // Bumped whenever the contents change in a way that invalidates a previously GPU-encoded indirect draw.
-    uint64_t contentsGeneration() const;
-    uint64_t indexContentsGeneration() const;
-    bool allIndexValuesBelow(MTLIndexType, uint32_t vertexCount) const;
-
-private:
-    explicit Buffer(std::unique_ptr<BufferImplBox>&&);
-
-    const std::unique_ptr<BufferImplBox> m_impl;
-} SWIFT_SHARED_REFERENCE(refBuffer, derefBuffer) SWIFT_PRIVATE_FILEID("WebGPUSwift/Buffer.swift") SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
-
-
 } // namespace WebGPU::Metal
-
-inline void refBuffer(WebGPU::Metal::Buffer* obj)
-{
-    obj->ref();
-}
-
-inline void derefBuffer(WebGPU::Metal::Buffer* obj)
-{
-    obj->deref();
-}
 
 IGNORE_CLANG_WARNINGS_END

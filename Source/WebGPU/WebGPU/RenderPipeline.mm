@@ -26,8 +26,6 @@
 #import "config.h"
 #import "RenderPipeline.h"
 
-#import "APIConversions.h"
-#import "BindGroupLayout.h"
 #import "Device.h"
 #import "Pipeline.h"
 #import "ShaderModule.h"
@@ -48,97 +46,9 @@
 
 namespace WebGPU::Metal {
 
-struct RenderPipelineImplBox {
-    WTF_MAKE_STRUCT_TZONE_ALLOCATED(RenderPipelineImplBox);
-    WebGPUSwift::RenderPipelineImpl impl;
-};
-WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(RenderPipelineImplBox);
-
 void setRenderPipelineSampleMask(MTLRenderPipelineDescriptor *descriptor, uint32_t mask)
 {
     [descriptor setSampleMask:mask];
-}
-
-// The creation is RenderPipelineBuilder (RenderPipeline.swift). This resolves what Swift cannot downcast: the shader
-// modules and the layout (the replaced pipeline's or the descriptor's).
-static WebGPUSwift::RenderPipelineBuilder renderPipelineBuilder(Device& device, const WebGPU::RenderPipelineDescriptor& descriptor, const RenderPipeline* pipelineToReplace)
-{
-    auto builder = makeRenderPipelineBuilder(&device, device.swiftImpl(), Ref { metal(descriptor.vertex.stage.module.get()) }->swiftImpl());
-    if (descriptor.fragment)
-        builder.setFragmentModule(Ref { metal(descriptor.fragment->stage.module.get()) }->swiftImpl());
-    if (pipelineToReplace)
-        builder.setPipelineLayout(pipelineToReplace->swiftImpl().pipelineLayout(), true);
-    else if (descriptor.layout)
-        builder.setPipelineLayout(Ref { metal(*descriptor.layout) }->swiftImpl(), false);
-    return builder;
-}
-
-RefPtr<WebGPU::RenderPipeline> Device::createRenderPipeline(const WebGPU::RenderPipelineDescriptor& descriptor)
-{
-    return adoptRef(*renderPipelineBuilder(*this, descriptor, nullptr).create(descriptor));
-}
-
-void Device::createRenderPipelineAsync(const WebGPU::RenderPipelineDescriptor& descriptor, CompletionHandler<void(std::expected<Ref<WebGPU::RenderPipeline>, WebGPU::PipelineError>&&)>&& callback)
-{
-    renderPipelineBuilder(*this, descriptor, nullptr).createAsync(descriptor, callback);
-}
-
-void Device::createRenderPipelineWithPipelineLayoutFromPipelineAsync(const WebGPU::RenderPipelineDescriptor& descriptor, const WebGPU::RenderPipeline& pipelineToReplace, CompletionHandler<void(std::expected<Ref<WebGPU::RenderPipeline>, WebGPU::PipelineError>&&)>&& callback)
-{
-    renderPipelineBuilder(*this, descriptor, &downcast<RenderPipeline>(pipelineToReplace)).createAsync(descriptor, callback);
-}
-
-void callCreateRenderPipelineAsyncCallback(CreateRenderPipelineAsyncCallback& callback, RenderPipeline& pipeline, bool succeeded, NSString *errorMessage)
-{
-    if (succeeded)
-        return callback(Ref<WebGPU::RenderPipeline> { pipeline });
-    callback(makeUnexpected(WebGPU::PipelineError { .reason = WebGPU::PipelineErrorReason::Validation, .message = String { errorMessage } }));
-}
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(RenderPipeline);
-
-Ref<RenderPipeline> RenderPipeline::create(std::unique_ptr<RenderPipelineImplBox>&& impl)
-{
-    return adoptRef(*new RenderPipeline(WTF::move(impl)));
-}
-
-Ref<RenderPipeline> RenderPipeline::createInvalid(Device& device)
-{
-    return create(makeUnique<RenderPipelineImplBox>(RenderPipelineImplBox {
-        .impl = makeInvalidRenderPipelineImpl(&device, device.swiftImpl(), WebGPUSwift::makeInvalidPipelineLayoutImpl(&device))
-    }));
-}
-
-Ref<RenderPipeline> RenderPipeline::createWithStagedImpl(Device& device)
-{
-    return create(makeUnique<RenderPipelineImplBox>(RenderPipelineImplBox { .impl = device.swiftImpl().takeStagedRenderPipelineImpl() }));
-}
-
-RenderPipeline::RenderPipeline(std::unique_ptr<RenderPipelineImplBox>&& impl)
-    : m_impl(WTF::move(impl))
-{
-}
-
-RenderPipeline::~RenderPipeline() = default;
-
-bool RenderPipeline::isValid() const
-{
-    return m_impl->impl.isValid();
-}
-
-WebGPUSwift::RenderPipelineImpl& RenderPipeline::swiftImpl() const
-{
-    return m_impl->impl;
-}
-
-Ref<WebGPU::BindGroupLayout> RenderPipeline::getBindGroupLayout(uint32_t groupIndex)
-{
-    return BindGroupLayout::create(m_impl->impl.bindGroupLayout(groupIndex));
-}
-
-void RenderPipeline::setLabel(String&&)
-{
-    // MTLRenderPipelineState's labels are read-only.
 }
 
 } // namespace WebGPU::Metal

@@ -425,7 +425,6 @@ func containsStencilAspect(_ textureFormat: WebGPU.TextureFormat) -> Bool {
     stencilSpecificFormat(textureFormat) != nil
 }
 
-@_expose(Cxx)
 func isDepthOrStencilFormat(_ format: WebGPU.TextureFormat) -> Bool {
     // https://gpuweb.github.io/gpuweb/#depth-formats
     containsDepthAspect(format) || containsStencilAspect(format)

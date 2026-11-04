@@ -35,15 +35,8 @@
 #import <wtf/Ref.h>
 #import <wtf/TZoneMalloc.h>
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class ComputePipelineImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
 
-class BindGroupLayout;
 class Device;
 
 // The pipeline's unique id and workgroup size.
@@ -54,42 +47,7 @@ struct ComputePipelineParameters {
     NSUInteger threadsPerThreadgroupDepth { 0 };
 };
 
-// https://gpuweb.github.io/gpuweb/#gpucomputepipeline
-// Forwards to the Swift ComputePipelineImpl, which the compute pass reads directly.
-class ComputePipeline final : public WebGPU::ComputePipeline {
-    WTF_MAKE_TZONE_ALLOCATED(ComputePipeline);
-public:
-#if !defined(__swift__)
-    // `makeImpl` returns the WebGPU::ComputePipelineImpl. Defined in ComputePipeline.mm.
-    template<typename MakeImpl> static Ref<ComputePipeline> create(MakeImpl&&);
-#endif
-    static Ref<ComputePipeline> createInvalid(Device&);
-    // For ComputePipeline.swift: wraps the Impl staged in DeviceImpl.stagedComputePipelineImpl.
-    static Ref<ComputePipeline> createWithStagedImpl(Device&);
-
-    ~ComputePipeline();
-
-    Ref<WebGPU::BindGroupLayout> getBindGroupLayout(uint32_t groupIndex) final;
-    NODELETE void setLabel(String&&) final;
-
-    bool isValid() const final;
-#if !defined(__swift__)
-    WebGPUSwift::ComputePipelineImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-
-private:
-#if !defined(__swift__)
-    template<typename MakeImpl> explicit ComputePipeline(MakeImpl&&);
-#endif
-
-    // The Swift object: one generated WebGPU::ComputePipelineImpl, a single strong reference. ComputePipeline.mm, where
-    // the generated header is includable, builds it in place in the constructor and destroys it in the destructor.
-    alignas(void*) std::byte m_impl[sizeof(void*)];
-};
-
 // The embedder's callback of the asynchronous creations, which Swift calls through this: it cannot build the
 // std::expected argument.
-using CreateComputePipelineAsyncCallback = CompletionHandler<void(std::expected<Ref<WebGPU::ComputePipeline>, WebGPU::PipelineError>&&)>;
-void callCreateComputePipelineAsyncCallback(CreateComputePipelineAsyncCallback&, ComputePipeline&, bool succeeded, NSString *errorMessage);
 
 } // namespace WebGPU::Metal

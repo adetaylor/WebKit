@@ -25,7 +25,6 @@ import CoreVideo
 import Metal
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.ExternalTexture
 import WebGPU_Private.WebGPUCpp
 
 @_spi(WebKitGPU)
@@ -123,7 +122,7 @@ public final class ExternalTextureImpl: GPUObjectReference {
         }
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func undestroy() {
         guard destroyed else {
@@ -148,7 +147,6 @@ public final class ExternalTextureImpl: GPUObjectReference {
         tracking.removeAll()
     }
 
-    @_expose(Cxx)
     func updateWithoutPixelBuffer() {
         backingPixelBuffer = nil
         destroyed = false
@@ -210,7 +208,6 @@ public final class ExternalTextureImpl: GPUObjectReference {
     }
 }
 
-@_expose(Cxx)
 func makeExternalTextureImpl(
     _ colorSpace: WebGPU.PredefinedColorSpace,
     _ visibleWidth: UInt32,
@@ -227,7 +224,6 @@ func makeExternalTextureImpl(
     )
 }
 
-@_expose(Cxx)
 func makeInvalidExternalTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ExternalTextureImpl {
     ExternalTextureImpl(
         colorSpace: WebGPU.PredefinedColorSpace.SRGB,

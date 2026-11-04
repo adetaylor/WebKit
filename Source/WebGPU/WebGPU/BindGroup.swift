@@ -24,16 +24,12 @@
 import Foundation
 import Metal
 @_implementationOnly import WebGPU_Internal.BindGroup
-@_implementationOnly import WebGPU_Internal.BindGroupLayout
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.ExternalTexture
 @_implementationOnly import WebGPU_Internal.PresentationContext
 @_implementationOnly import WebGPU_Internal.Queue
-@_implementationOnly import WebGPU_Internal.Sampler
 @_implementationOnly import WebGPU_Internal.Texture
-@_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPU
 import WebGPU_Private.WebGPUCpp
 
@@ -82,8 +78,6 @@ public final class BindGroupImpl: GPUObjectReference {
     // Declared last, so that the device outlives the rest of the group.
     let deviceImpl: DeviceImpl
     let device: WebGPU.Metal.Device
-    @_expose(Cxx)
-    func shellDevice() -> WebGPU.Metal.Device { device }
 
     fileprivate init(
         device: consuming DeviceShell,
@@ -148,7 +142,6 @@ public final class BindGroupImpl: GPUObjectReference {
         layoutImpl != nil
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
         setLabel(stringNilIfEmpty(label))
     }
@@ -329,7 +322,7 @@ public final class BindGroupImpl: GPUObjectReference {
         swap(&lists, &mtlResources)
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func updateExternalTextures(_ externalTexture: ExternalTextureImpl) -> Bool {
         guard let layoutImpl, !externalTexture.hasPendingUsers() else {
@@ -392,11 +385,6 @@ public final class BindGroupImpl: GPUObjectReference {
         }
         return true
     }
-}
-
-@_expose(Cxx)
-func makeInvalidBindGroupImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> BindGroupImpl {
-    .invalid(DeviceShell(shell: device), deviceImpl)
 }
 
 extension BindGroupLayoutImpl {
@@ -602,73 +590,6 @@ func createBindGroupImpl(
         entries.append(DescriptorEntry(binding: entry.binding, resource: resource))
     }
     return makeBindGroupImpl(DeviceShell(shell: device), deviceImpl, layout, &entries)
-}
-
-/// Device::createBindGroup calls beginBindGroup, then an append function for each descriptor entry in order, then
-/// finishBindGroup.
-///
-/// The builder is DeviceImpl's, reached through it so that C++ holds no reference to it.
-@_expose(Cxx)
-func beginBindGroup(_ deviceImpl: DeviceImpl) {
-    assert(wtfHashReplicaMatchesWTF, "EncoderModel.swift's WTFHashMap no longer iterates in WTF::HashTable order")
-    deviceImpl.bindGroupBuilder.begin()
-}
-
-@_expose(Cxx)
-func appendBindGroupBuffer(
-    _ deviceImpl: DeviceImpl,
-    _ binding: UInt32,
-    _ impl: BufferImpl,
-    _ offset: UInt64,
-    _ hasSize: Bool,
-    _ size: UInt64
-) {
-    deviceImpl.bindGroupBuilder.append(
-        DescriptorEntry(
-            binding: binding,
-            resource: .buffer(
-                impl,
-                sameDevice: impl.deviceImpl === deviceImpl,
-                offset: offset,
-                size: hasSize ? size : nil
-            )
-        )
-    )
-}
-
-@_expose(Cxx)
-func appendBindGroupSampler(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ impl: SamplerImpl) {
-    deviceImpl.bindGroupBuilder.append(
-        DescriptorEntry(binding: binding, resource: .sampler(impl, sameDevice: impl.deviceImpl === deviceImpl))
-    )
-}
-
-@_expose(Cxx)
-func appendBindGroupTexture(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ impl: TextureImpl) {
-    deviceImpl.bindGroupBuilder.append(
-        DescriptorEntry(binding: binding, resource: .texture(impl, sameDevice: impl.deviceImpl === deviceImpl))
-    )
-}
-
-@_expose(Cxx)
-func appendBindGroupTextureView(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ impl: TextureViewImpl) {
-    deviceImpl.bindGroupBuilder.append(
-        DescriptorEntry(binding: binding, resource: .textureView(impl, sameDevice: impl.deviceImpl === deviceImpl))
-    )
-}
-
-@_expose(Cxx)
-func appendBindGroupExternalTexture(
-    _ deviceImpl: DeviceImpl,
-    _ binding: UInt32,
-    _ impl: ExternalTextureImpl
-) {
-    deviceImpl.bindGroupBuilder.append(DescriptorEntry(binding: binding, resource: .externalTexture(impl)))
-}
-
-@_expose(Cxx)
-func finishBindGroup(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ layoutImpl: BindGroupLayoutImpl) -> BindGroupImpl {
-    deviceImpl.bindGroupBuilder.finish(DeviceShell(shell: device), deviceImpl, layoutImpl)
 }
 
 /// A Set<UInt32> that keeps values below 64 in a bit mask, so that the usual binding and argument indices allocate

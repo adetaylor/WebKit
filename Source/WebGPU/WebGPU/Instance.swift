@@ -24,7 +24,6 @@
 import Dispatch
 import Metal
 import Synchronization
-@_implementationOnly import WebGPU_Internal.CommandBuffer
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
@@ -344,7 +343,6 @@ final class InstanceImpl {
 
     // The removed entries die when `previous*` go out of scope, outside any access to the stored
     // properties, so a destructor that re-enters this object cannot trip exclusivity enforcement.
-    @_expose(Cxx)
     func releaseCompletedCommandBuffers() {
         let previousCommandBuffers = retainedCommandBuffers
         retainedCommandBuffers = previousCommandBuffers.filter { !$0.mtlCommandBuffer.isGone }

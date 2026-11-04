@@ -26,22 +26,16 @@
 #import "config.h"
 #import "Device.h"
 
-#import "APIConversions.h"
 #import "BindGroup.h"
-#import "BindGroupLayout.h"
 #import "Buffer.h"
 #import "CommandEncoder.h"
 #import "ComputePipeline.h"
-#import "PipelineLayout.h"
 #import "PresentationContext.h"
-#import "QuerySet.h"
 #import "Queue.h"
 #import "RenderBundleEncoder.h"
 #import "RenderPipeline.h"
-#import "Sampler.h"
 #import "ShaderModule.h"
 #import "Texture.h"
-#import "XRSubImage.h"
 #import <algorithm>
 #import <notify.h>
 #import <wtf/BlockPtr.h>
@@ -189,8 +183,7 @@ static std::unique_ptr<DeviceImplBox> makeDeviceImplBox(id<MTLDevice> device, Re
 Device::Device(id<MTLDevice> device, id<MTLCommandQueue> defaultQueue, const HardwareCapabilities& capabilities, Adapter& adapter)
     : m_impl(makeDeviceImplBox(device, Queue::create(defaultQueue, adapter, *this), capabilities, adapter))
 {
-    Ref xrSubImage = XRSubImage::create(*this);
-    m_impl->impl.installXRSubImage(xrSubImage.ptr(), xrSubImage->swiftImpl());
+    m_impl->impl.installXRSubImage(WebGPUSwift::makeXRSubImageImpl());
 
 #if PLATFORM(MAC)
     id<NSObject> deviceObserver = nil;
@@ -248,20 +241,6 @@ Device::~Device()
     m_impl->impl.completeCallbacksForDestruction();
 }
 
-RefPtr<XRSubImage> Device::getXRViewSubImage(XRProjectionLayer& projectionLayer)
-{
-    RefPtr subImage = getXRViewSubImage();
-    subImage->update(projectionLayer);
-    return subImage;
-}
-
-RefPtr<XRSubImage> Device::getXRViewSubImage() const
-{
-    if (!m_impl->impl.hasXRSubImage())
-        return nullptr;
-    return adoptRef(m_impl->impl.xrSubImage());
-}
-
 Adapter& Device::adapter() const
 {
     return borrowSwiftRetained(m_impl->impl.adapter());
@@ -277,16 +256,6 @@ Ref<Queue> Device::getQueue() const
     return adoptRef(*m_impl->impl.defaultQueue());
 }
 
-id<MTLTexture> Device::getXRViewSubImageDepthTexture() const
-{
-    if (auto subImage = getXRViewSubImage()) {
-        if (RefPtr depthTexture = subImage->depthTexture())
-            return depthTexture->texture();
-    }
-
-    return nil;
-}
-
 void Device::loseTheDevice(WebGPU::DeviceLostReason reason)
 {
     m_impl->impl.loseTheDevice(reason);
@@ -295,18 +264,6 @@ void Device::loseTheDevice(WebGPU::DeviceLostReason reason)
 void Device::destroy()
 {
     m_impl->impl.destroy();
-}
-
-Vector<WebGPU::FeatureName> Device::features() const
-{
-    Vector<WebGPU::FeatureName> features;
-    m_impl->impl.copyFeatures(features);
-    return features;
-}
-
-SUPPRESS_NODELETE Limits Device::limits() const
-{
-    return m_impl->impl.deviceLimits();
 }
 
 id<MTLCounterSet> Device::timestampCounterSet() const
@@ -327,11 +284,6 @@ bool Device::supportsNonPrivateDepthStencilTextures() const
 bool Device::supportsMemorylessTextures() const
 {
     return m_impl->impl.supportsMemorylessTextures();
-}
-
-id<MTLTexture> Device::placeholderTexture(WebGPU::TextureFormat format) const
-{
-    return m_impl->impl.placeholderTexture(Texture::isDepthOrStencilFormat(format));
 }
 
 bool Device::hasFeature(WebGPU::FeatureName feature) const
@@ -360,43 +312,6 @@ id<MTLBuffer> Device::safeCreateBuffer(NSUInteger length, bool skipAttribution) 
     return safeCreateBuffer(length, MTLStorageModeShared, skipAttribution);
 }
 
-Ref<WebGPU::Queue> Device::queue()
-{
-    return getQueue();
-}
-
-void Device::pauseAllErrorReporting(bool pause)
-{
-    pauseErrorReporting(pause);
-}
-
-void Device::popErrorScope(CompletionHandler<void(bool, std::optional<WebGPU::Error>&&)>&& callback)
-{
-    m_impl->impl.popErrorScope(callback, instance().get());
-}
-
-void Device::pushErrorScope(WebGPU::ErrorFilter filter)
-{
-    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope
-
-    m_impl->impl.pushErrorScope(filter);
-}
-
-void Device::resolveDeviceLostPromise(CompletionHandler<void(WebGPU::DeviceLostReason, String&&)>&& callback)
-{
-    m_impl->impl.resolveDeviceLostPromise(callback, !!callback);
-}
-
-void Device::resolveUncapturedErrorEvent(CompletionHandler<void(bool, std::optional<WebGPU::Error>&&)>&& callback)
-{
-    m_impl->impl.resolveUncapturedErrorEvent(callback, !!callback);
-}
-
-void Device::setLabel(String&&)
-{
-    // Because MTLDevices are process-global, we can't set the label on it, because 2 contexts' labels would fight each other.
-}
-
 bool Device::pauseErrorReporting(bool pauseReporting)
 {
     return m_impl->impl.pauseErrorReporting(pauseReporting);
@@ -411,6 +326,5 @@ Ref<Device> createDevice(id<MTLDevice> device, const String& label, const Hardwa
 {
     return Device::create(device, String { label }, HardwareCapabilities { capabilities }, adapter);
 }
-
 
 } // namespace WebGPU::Metal

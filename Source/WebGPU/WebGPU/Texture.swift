@@ -245,8 +245,6 @@ public final class TextureImpl: GPUObjectReference {
     private var renderBundleHolders = WeakImplList<RenderBundleImpl>()
     // Declared last, so that the device outlives the rest of the texture.
     let device: WebGPU.Metal.Device
-    @_expose(Cxx)
-    func shellDevice() -> WebGPU.Metal.Device { device }
 
     fileprivate init(
         texture: (any MTLTexture)?,
@@ -343,17 +341,14 @@ public final class TextureImpl: GPUObjectReference {
         }
     }
 
-    @_expose(Cxx)
     func is2DTexture() -> Bool {
         backingDimension == ._2d
     }
 
-    @_expose(Cxx)
     func is2DArrayTexture() -> Bool {
         is2DTexture() && arrayLayerCount() > 1
     }
 
-    @_expose(Cxx)
     func is3DTexture() -> Bool {
         backingDimension == ._3d
     }
@@ -392,32 +387,26 @@ public final class TextureImpl: GPUObjectReference {
     }
 
     // A value POD cannot cross out of Swift by value, so the shell asks for the extents one component at a time.
-    @_expose(Cxx)
     func logicalMiplevelSpecificTextureWidth(_ mipLevel: UInt32) -> UInt32 {
         logicalMiplevelSpecificTextureExtent(mipLevel).width
     }
 
-    @_expose(Cxx)
     func logicalMiplevelSpecificTextureHeight(_ mipLevel: UInt32) -> UInt32 {
         logicalMiplevelSpecificTextureExtent(mipLevel).height
     }
 
-    @_expose(Cxx)
     func logicalMiplevelSpecificTextureDepthOrArrayLayers(_ mipLevel: UInt32) -> UInt32 {
         logicalMiplevelSpecificTextureExtent(mipLevel).depthOrArrayLayers
     }
 
-    @_expose(Cxx)
     func physicalMiplevelSpecificTextureWidth(_ mipLevel: UInt32) -> UInt32 {
         physicalMiplevelSpecificTextureExtent(mipLevel).width
     }
 
-    @_expose(Cxx)
     func physicalMiplevelSpecificTextureHeight(_ mipLevel: UInt32) -> UInt32 {
         physicalMiplevelSpecificTextureExtent(mipLevel).height
     }
 
-    @_expose(Cxx)
     func physicalMiplevelSpecificTextureDepthOrArrayLayers(_ mipLevel: UInt32) -> UInt32 {
         physicalMiplevelSpecificTextureExtent(mipLevel).depthOrArrayLayers
     }
@@ -437,24 +426,20 @@ public final class TextureImpl: GPUObjectReference {
         destroyed
     }
 
-    @_expose(Cxx)
     func isCanvasBacking() -> Bool {
         canvasBacking
     }
 
-    @_expose(Cxx)
     func makeCanvasBacking() {
         canvasBacking = true
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
         backingTexture?.label = stringNilIfEmpty(label)
     }
 
     // Texture::destroy, and Device::destroy for each texture it made. A canvas backing keeps its Metal texture, so its
     // views, bind groups, render bundles and encoders are left as they are.
-    @_expose(Cxx)
     func destroyAndReleaseHolders() {
         // https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy
         if !canvasBacking {
@@ -489,7 +474,6 @@ public final class TextureImpl: GPUObjectReference {
     // MARK: Encoder tracking
 
     // Texture::setCommandEncoder. Each encoder holds the texture once, from the first use until its clearTracking().
-    @_expose(Cxx)
     func setCommandEncoder(_ encoder: CommandEncoderImpl) {
         if !tracking.contains(encoder) && tracking.add(encoder) {
             encoder.trackTexture(self)
@@ -525,7 +509,6 @@ public final class TextureImpl: GPUObjectReference {
         views.add(view)
     }
 
-    @_expose(Cxx)
     func waitForCommandBufferCompletion() -> Bool {
         var result = true
         let encoders = tracking
@@ -539,7 +522,6 @@ public final class TextureImpl: GPUObjectReference {
     // undestroy the Web process sends in place of the round trip it elides once the render buffers wrap
     // around. A frame starts as transparent black, so forget having cleared it, and the cost recorded
     // against the frame that is over does not belong to the one starting now.
-    @_expose(Cxx)
     func recreateIfNeeded() {
         guard canvasBacking else {
             return
@@ -649,7 +631,6 @@ public final class TextureImpl: GPUObjectReference {
         change(&canvasState[0])
     }
 
-    @_expose(Cxx)
     func recordGPUExecutionWindow(_ startTime: Double, _ endTime: Double) {
         let duration = endTime - startTime
         if duration <= 0 {
@@ -658,17 +639,14 @@ public final class TextureImpl: GPUObjectReference {
         modifyCanvasState(unlessDefault: false) { $0.gpuFrameCost = max($0.gpuFrameCost, duration) }
     }
 
-    @_expose(Cxx)
     func gpuFrameCostSeconds() -> Double {
         canvasState.first?.gpuFrameCost ?? 0
     }
 
-    @_expose(Cxx)
     func resetGPUFrameCost() {
         modifyCanvasState(unlessDefault: true) { $0.gpuFrameCost = 0 }
     }
 
-    @_expose(Cxx)
     func updateCompletionEvent(_ event: (any MTLSharedEvent)?, _ signalValue: UInt64) {
         modifyCanvasState(unlessDefault: event == nil && signalValue == 0) {
             $0.sharedEvent = event
@@ -681,12 +659,10 @@ public final class TextureImpl: GPUObjectReference {
         canvasState.first?.sharedEvent
     }
 
-    @_expose(Cxx)
     func sharedEventSignalValue() -> UInt64 {
         canvasState.first?.sharedEventSignalValue ?? 0
     }
 
-    @_expose(Cxx)
     func setRasterizationRateMaps(_ left: (any MTLRasterizationRateMap)?, _ right: (any MTLRasterizationRateMap)?) {
         modifyCanvasState(unlessDefault: left == nil && right == nil) {
             $0.leftRasterizationMap = left
@@ -694,7 +670,6 @@ public final class TextureImpl: GPUObjectReference {
         }
     }
 
-    @_expose(Cxx)
     func rasterizationMapForSlice(_ slice: UInt32) -> (any MTLRasterizationRateMap)? {
         guard let state = canvasState.first else {
             return nil
@@ -710,7 +685,6 @@ public final class TextureImpl: GPUObjectReference {
 
     // Every view holds this texture. Returns an invalid view (no descriptor) on failure; the texture records only the
     // views that have one. A view's device is its texture's.
-    @_expose(Cxx)
     func createView(_ descriptor: WebGPU.Metal.TextureViewDescriptorParameters, _ label: WTF.String) -> TextureViewImpl {
         if destroyed {
             return invalidView()
@@ -1370,7 +1344,6 @@ private func copyViewFormats(_ viewFormats: borrowing WebGPU.Metal.TextureFormat
     return result
 }
 
-@_expose(Cxx)
 func errorValidatingTextureCreationRaw(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
@@ -1451,7 +1424,6 @@ func createTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, 
 }
 
 // Device::createTexture. Returns an invalid texture on failure; the valid ones are recorded in DeviceImpl.
-@_expose(Cxx)
 func createTextureImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
@@ -1572,33 +1544,15 @@ private func createTextureImpl(
     return impl
 }
 
-/// A canvas or XR texture, with the shell that the C++ API's canvas contexts and XR sub-images give.
-struct TextureShellAndImpl {
-    let shell: WebGPU.Metal.Texture
-    let impl: TextureImpl
-}
-
-/// A texture made elsewhere (the canvas render buffers, XR), which allows views in `viewFormats`: Swift makes the Impl
-/// and Texture::createWithStagedImpl wraps it in a shell.
+/// A texture made elsewhere (the canvas render buffers, XR), which allows views in `viewFormats`.
 func makeTexture(
     _ texture: (any MTLTexture)?,
     _ parameters: WebGPU.Metal.TextureParameters,
     viewFormats: [WebGPU.TextureFormat],
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
-) -> TextureShellAndImpl {
-    let impl = TextureImpl(texture: texture, parameters: parameters, viewFormats: viewFormats, device: device, deviceImpl: deviceImpl)
-    precondition(deviceImpl.stagedTextureImpl == nil)
-    deviceImpl.stagedTextureImpl = impl
-    return TextureShellAndImpl(shell: WebGPU.Metal.Texture.createWithStagedImpl(device).ptr(), impl: impl)
-}
-
-/// An invalid texture, as Texture::createInvalid() makes one.
-func makeInvalidTexture(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> TextureShellAndImpl {
-    let impl = makeInvalidTextureImpl(device, deviceImpl)
-    precondition(deviceImpl.stagedTextureImpl == nil)
-    deviceImpl.stagedTextureImpl = impl
-    return TextureShellAndImpl(shell: WebGPU.Metal.Texture.createWithStagedImpl(device).ptr(), impl: impl)
+) -> TextureImpl {
+    TextureImpl(texture: texture, parameters: parameters, viewFormats: viewFormats, device: device, deviceImpl: deviceImpl)
 }
 
 /// The parameters of a 2D texture of one mip level.
@@ -1632,7 +1586,6 @@ func errorValidatingTextureCreation(
     textureCreationError(device, deviceImpl, parameters, viewFormats)
 }
 
-@_expose(Cxx)
 func makeInvalidTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> TextureImpl {
     TextureImpl(texture: nil, parameters: nil, viewFormats: [], device: device, deviceImpl: deviceImpl)
 }

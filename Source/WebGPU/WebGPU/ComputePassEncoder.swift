@@ -29,7 +29,6 @@ import Metal
 @_implementationOnly import WebGPU_Internal.ComputePassEncoder
 @_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.PipelineLayout
 import WebGPU_Private.WebGPUCpp
 
 // The render stages of a bind group's compute resources.
@@ -138,7 +137,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         #endif
     }
 
-    @_expose(Cxx)
     func markEncoderStateWasNotOpen() {
         encoderStateWasNotOpen = true
     }
@@ -454,7 +452,7 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
             .dispatchThreadgroups(MTLSize(width: Int(x), height: Int(y), depth: Int(z)), threadsPerThreadgroup: threadsPerThreadgroup)
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func dispatchIndirect(_ indirectBufferImpl: BufferImpl, _ indirectOffset: UInt64) {
         if encodingHasFinished() {
@@ -523,7 +521,7 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         return dispatchCallBuffer
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func endPass() {
         if passEnded {
@@ -579,7 +577,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
     }
 
     // No encoder-state check: a pass's own encoder state is always open.
-    @_expose(Cxx)
     func insertDebugMarker(_ markerLabel: NSString) {
         insertDebugMarker(markerLabel as String)
     }
@@ -607,7 +604,7 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         parentImpl.isLocked() && debugGroupStackSize != 0
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func popDebugGroup() {
         if encodingHasFinished() {
@@ -628,7 +625,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         backingComputeCommandEncoder?.popDebugGroup()
     }
 
-    @_expose(Cxx)
     func pushDebugGroup(_ groupLabel: NSString) {
         pushDebugGroup(groupLabel as String)
     }
@@ -666,7 +662,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
     }
 
     // setBindGroup with a null bind group.
-    @_expose(Cxx)
     func clearBindGroup(_ groupIndex: UInt32, _ hasDynamicOffsets: Bool, _ dynamicOffsetCount: UInt) {
         if encodingHasFinished() {
             generateAValidationError(
@@ -786,7 +781,7 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         boundGroupIdentities[Int(groupIndex)] = identity
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setPipeline(_ pipelineImpl: ComputePipelineImpl) {
         if encodingHasFinished() {
@@ -826,7 +821,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         maxDynamicOffsetAtIndex = SIMD32()
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: NSString) {
         setLabel(label as String)
     }
@@ -946,7 +940,6 @@ private struct DispatchUsageMap {
     }
 }
 
-@_expose(Cxx)
 func makeComputePassEncoderImpl(
     _ computeCommandEncoder: (any MTLComputeCommandEncoder)?,
     _ parentImpl: CommandEncoderImpl,
@@ -962,7 +955,6 @@ func makeComputePassEncoderImpl(
     return impl
 }
 
-@_expose(Cxx)
 func makeInvalidComputePassEncoderImpl(
     _ parentImpl: CommandEncoderImpl,
     _ device: WebGPU.Metal.Device,

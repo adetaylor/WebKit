@@ -40,63 +40,9 @@
 #import <wtf/Vector.h>
 #import <wtf/WeakPtr.h>
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class ComputePassEncoderImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
 
-class BindGroup;
-class Buffer;
-class ComputePipeline;
 class Device;
-
-// Defined in ComputePassEncoder.mm, where the generated Swift header declaring WebGPU::ComputePassEncoderImpl
-// is includable.
-struct ComputePassEncoderImplBox;
-
-// https://gpuweb.github.io/gpuweb/#gpucomputepassencoder
-// Shell over the Swift-owned ComputePassEncoderImpl, which owns the pass's state, runs every method's logic and reports
-// its errors.
-class ComputePassEncoder final : public WebGPU::ComputePassEncoder {
-    WTF_MAKE_TZONE_ALLOCATED(ComputePassEncoder);
-public:
-#if !defined(__swift__)
-    // CommandEncoder.swift makes the ComputePassEncoderImpl.
-    static Ref<ComputePassEncoder> create(const WebGPUSwift::ComputePassEncoderImpl&);
-#endif
-
-    ~ComputePassEncoder();
-
-    void dispatch(uint32_t x, uint32_t y, uint32_t z) final;
-    void insertDebugMarker(String&& markerLabel) final;
-    void popDebugGroup() final;
-    void pushDebugGroup(String&& groupLabel) final;
-
-    // The WebGPU::ComputePassEncoder methods. Every object they take was created by this
-    // implementation, so they cast it to its WebGPU::Metal type.
-    void setPipeline(const WebGPU::ComputePipeline&) final;
-    void dispatchIndirect(const WebGPU::Buffer& indirectBuffer, uint64_t indirectOffset) final;
-    void end() final;
-    // std::nullopt dynamic offsets are not validated against the bind group layout.
-    void setBindGroup(uint32_t groupIndex, const WebGPU::BindGroup*, std::optional<std::span<const uint32_t>> dynamicOffsets) final;
-    void setLabel(String&&) final;
-
-    bool isValid() const final;
-
-#if !defined(__swift__)
-    WebGPUSwift::ComputePassEncoderImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-
-private:
-#if !defined(__swift__)
-    explicit ComputePassEncoder(const WebGPUSwift::ComputePassEncoderImpl&);
-#endif
-
-    const std::unique_ptr<ComputePassEncoderImplBox> m_impl;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refComputePassEncoder, derefComputePassEncoder);
 
 // For ComputePassEncoder.swift. Free functions, so that the span gets a safe Span overload (rdar://161274084).
 
@@ -104,14 +50,3 @@ void setComputeDynamicOffsets(id<MTLComputeCommandEncoder>, std::span<const uint
 
 } // namespace WebGPU::Metal
 
-#if !ENABLE(SWIFT_BASE_CLASS_ANNOTATIONS)
-inline void refComputePassEncoder(WebGPU::Metal::ComputePassEncoder* obj)
-{
-    obj->ref();
-}
-
-inline void derefComputePassEncoder(WebGPU::Metal::ComputePassEncoder* obj)
-{
-    obj->deref();
-}
-#endif

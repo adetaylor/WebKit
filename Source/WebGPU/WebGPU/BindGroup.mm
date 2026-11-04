@@ -26,14 +26,9 @@
 #import "config.h"
 #import "BindGroup.h"
 
-#import "APIConversions.h"
-#import "BindGroupLayout.h"
 #import "Buffer.h"
 #import "Device.h"
-#import "ExternalTexture.h"
-#import "Sampler.h"
 #import "Texture.h"
-#import "TextureView.h"
 #import <limits>
 #import <simd/simd.h>
 #import <wtf/HashSet.h>
@@ -47,8 +42,6 @@
 #endif
 
 namespace WebGPU::Metal {
-
-static_assert(sizeof(WebGPUSwift::BindGroupImpl) == sizeof(void*) && alignof(WebGPUSwift::BindGroupImpl) == alignof(void*));
 
 void writeExternalTextureConstants(id<MTLArgumentEncoder> argumentEncoder, NSUInteger firstIndex, const ExternalTextureConstants& constants)
 {
@@ -98,86 +91,6 @@ size_t wtfHashSetOrderForOperations(std::span<const int64_t> operations NOESCAPE
         ++index;
     }
     return index;
-}
-
-RefPtr<WebGPU::BindGroup> Device::createBindGroup(const WebGPU::BindGroupDescriptor& descriptor)
-{
-    Ref bindGroupLayout = metal(descriptor.layout.get());
-    auto& deviceImpl = swiftImpl();
-    beginBindGroup(deviceImpl);
-    for (auto& entry : descriptor.entries) {
-        if (auto* bufferBinding = std::get_if<WebGPU::BufferBinding>(&entry.resource)) {
-            appendBindGroupBuffer(deviceImpl, entry.binding, Ref { metal(bufferBinding->buffer.get()) }->swiftImpl(), bufferBinding->offset, bufferBinding->size.has_value(), bufferBinding->size.value_or(0));
-        } else if (auto* samplerResource = std::get_if<Ref<WebGPU::Sampler>>(&entry.resource)) {
-            Ref sampler = metal(samplerResource->get());
-            appendBindGroupSampler(deviceImpl, entry.binding, sampler->swiftImpl());
-        } else if (auto* textureResource = std::get_if<Ref<WebGPU::Texture>>(&entry.resource)) {
-            appendBindGroupTexture(deviceImpl, entry.binding, Ref { metal(textureResource->get()) }->swiftImpl());
-        } else if (auto* textureViewResource = std::get_if<Ref<WebGPU::TextureView>>(&entry.resource)) {
-            appendBindGroupTextureView(deviceImpl, entry.binding, Ref { metal(textureViewResource->get()) }->swiftImpl());
-        } else if (auto* externalTextureResource = std::get_if<Ref<WebGPU::ExternalTexture>>(&entry.resource)) {
-            appendBindGroupExternalTexture(deviceImpl, entry.binding, Ref { metal(externalTextureResource->get()) }->swiftImpl());
-        }
-    }
-    return BindGroup::create([&] {
-        return finishBindGroup(this, deviceImpl, bindGroupLayout->swiftImpl());
-    });
-}
-
-#pragma mark Shell
-
-template<typename MakeImpl>
-Ref<BindGroup> BindGroup::create(MakeImpl&& makeImpl)
-{
-    return adoptRef(*new BindGroup(std::forward<MakeImpl>(makeImpl)));
-}
-
-Ref<BindGroup> BindGroup::createInvalid(Device& device)
-{
-    return create([&] {
-        return makeInvalidBindGroupImpl(&device, device.swiftImpl());
-    });
-}
-
-template<typename MakeImpl>
-BindGroup::BindGroup(MakeImpl&& makeImpl)
-{
-    // Initialized from the prvalue directly: no copy, so no extra retain and release.
-    new (m_impl) WebGPUSwift::BindGroupImpl(makeImpl());
-}
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(BindGroup);
-
-BindGroup::~BindGroup()
-{
-    std::destroy_at(&swiftImpl());
-}
-
-bool BindGroup::isValid() const
-{
-    return swiftImpl().isValid();
-}
-
-WebGPUSwift::BindGroupImpl& BindGroup::swiftImpl() const
-{
-    return *std::launder(reinterpret_cast<WebGPUSwift::BindGroupImpl*>(const_cast<std::byte*>(m_impl)));
-}
-
-Device& BindGroup::device() const
-{
-    return borrowSwiftRetained(swiftImpl().shellDevice());
-}
-
-void BindGroup::setLabel(String&& label)
-{
-    swiftImpl().setLabel(WTF::move(label));
-}
-
-bool BindGroup::updateExternalTextures(WebGPU::ExternalTexture& apiExternalTexture)
-{
-    // Every WebGPU::ExternalTexture that reaches a WebGPU::Metal::BindGroup is a WebGPU::Metal::ExternalTexture.
-    auto& externalTexture = downcast<ExternalTexture>(apiExternalTexture);
-    return swiftImpl().updateExternalTextures(externalTexture.swiftImpl());
 }
 
 } // namespace WebGPU::Metal

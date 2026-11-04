@@ -25,7 +25,6 @@ import Metal
 @_implementationOnly import WGSL
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.PipelineLayout
 @_implementationOnly import WebGPU_Internal.PresentationContext
 @_implementationOnly import WebGPU_Internal.RenderPipeline
 @_implementationOnly import WebGPU_Internal.ShaderModule
@@ -175,7 +174,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
     }
 
     // RenderPipeline::getBindGroupLayout, which wraps it in a shell.
-    @_expose(Cxx)
     func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutImpl {
         pipelineBindGroupLayout(
             device,
@@ -218,7 +216,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
         backingDepthStencilDescriptor?.isDepthWriteEnabled ?? false
     }
 
-    @_expose(Cxx)
     func pipelineLayout() -> PipelineLayoutImpl {
         pipelineLayoutImpl
     }
@@ -372,7 +369,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
     }
 }
 
-@_expose(Cxx)
 func makeInvalidRenderPipelineImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
@@ -542,49 +538,6 @@ struct RenderPipelineInput {
     let multisample: WebGPU.MultisampleState
     let fragment: Fragment?
 
-    init(_ descriptor: borrowing WebGPU.RenderPipelineDescriptor) {
-        label = (stringNilIfEmpty(descriptor.label) ?? "") as NSString
-        vertexEntryPoint = wgslName(descriptor.vertex.stage.entryPoint)
-        vertexConstants = pipelineConstants(descriptor.vertex.stage)
-        var vertexBuffers: [GPUVertexBufferLayout?] = []
-        let vertexBufferCount = WebGPU.Metal.renderPipelineVertexBufferCount(descriptor)
-        vertexBuffers.reserveCapacity(vertexBufferCount)
-        for index in 0..<vertexBufferCount {
-            guard let fields = Optional(fromCxx: WebGPU.Metal.renderPipelineVertexBuffer(descriptor, index)) else {
-                vertexBuffers.append(nil)
-                continue
-            }
-            var buffer = GPUVertexBufferLayout()
-            buffer.arrayStride = fields.arrayStride
-            buffer.stepMode = fields.stepMode
-            let attributes: Span<WebGPU.VertexAttribute> = WebGPU.Metal.renderPipelineVertexAttributes(descriptor, index)
-            buffer.attributes.reserveCapacity(attributes.count)
-            for attributeIndex in attributes.indices {
-                buffer.attributes.append(attributes[attributeIndex])
-            }
-            vertexBuffers.append(buffer)
-        }
-        self.vertexBuffers = vertexBuffers
-        primitive = GPUPrimitiveState(descriptor.primitive)
-        depthStencil = Optional(fromCxx: descriptor.depthStencil).map { GPUDepthStencilState($0) }
-        multisample = descriptor.multisample
-        guard WebGPU.Metal.renderPipelineHasFragment(descriptor) else {
-            fragment = nil
-            return
-        }
-        let colorTargets: Span<WebGPU.Metal.OptionalColorTargetState> = WebGPU.Metal.renderPipelineColorTargets(descriptor)
-        var targets: [GPUColorTargetState?] = []
-        targets.reserveCapacity(colorTargets.count)
-        for index in colorTargets.indices {
-            targets.append(Optional(fromCxx: colorTargets[index]).map { GPUColorTargetState($0) })
-        }
-        fragment = Fragment(
-            entryPoint: wgslName(WebGPU.Metal.renderPipelineFragmentEntryPoint(descriptor)),
-            constants: fragmentPipelineConstants(descriptor),
-            targets: targets
-        )
-    }
-
     init(_ descriptor: GPURenderPipelineDescriptor, label: Swift.String) {
         self.label = label as NSString
         vertexEntryPoint = descriptor.vertex.stage.entryPointName
@@ -620,49 +573,13 @@ final class RenderPipelineBuilder {
         self.vertexModuleImpl = vertexModuleImpl
     }
 
-    @_expose(Cxx)
     func setFragmentModule(_ impl: ShaderModuleImpl) {
         fragmentModuleImpl = impl
     }
 
-    @_expose(Cxx)
     func setPipelineLayout(_ impl: PipelineLayoutImpl, _ isReplacingPipeline: Bool) {
         self.layoutImpl = impl
         self.isReplacingPipeline = isReplacingPipeline
-    }
-
-    /// The synchronous createRenderPipeline: the pipeline, +1.
-    @_expose(Cxx)
-    func create(_ descriptor: borrowing WebGPU.RenderPipelineDescriptor) -> WebGPU.Metal.RenderPipeline {
-        var result: [WebGPU.Metal.RenderPipeline] = []
-        create(RenderPipelineInput(descriptor), isAsync: false, .synchronous) { pipeline, _ in
-            result = [makeRenderPipelineShell(pipeline)]
-        }
-        // A synchronous creation never defers its completion.
-        precondition(result.count == 1)
-        return result[0]
-    }
-
-    /// createRenderPipelineAsync, and createRenderPipelineWithPipelineLayoutFromPipelineAsync (a replacing builder).
-    ///
-    /// A replacing builder pauses error reporting while it runs. Takes the callback, leaving `callback` empty.
-    @_expose(Cxx)
-    func createAsync(
-        _ descriptor: borrowing WebGPU.RenderPipelineDescriptor,
-        _ callback: inout WebGPU.Metal.CreateRenderPipelineAsyncCallback
-    ) {
-        let completion = RenderPipelineAsyncCompletion(
-            device,
-            deviceImpl,
-            exchange(&callback, with: WebGPU.Metal.CreateRenderPipelineAsyncCallback())
-        )
-        let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
-        create(RenderPipelineInput(descriptor), isAsync: true, asynchronousIfPossible()) { pipeline, message in
-            completion.complete(makeRenderPipelineShell(pipeline), message)
-        }
-        if let wasErrorReportingPaused {
-            _ = deviceImpl.pauseErrorReporting(wasErrorReportingPaused)
-        }
     }
 
     // The synchronous createRenderPipeline, for a Swift caller.
@@ -1223,15 +1140,6 @@ final class RenderPipelineBuilder {
     }
 }
 
-@_expose(Cxx)
-func makeRenderPipelineBuilder(
-    _ device: WebGPU.Metal.Device,
-    _ deviceImpl: DeviceImpl,
-    _ vertexModuleImpl: ShaderModuleImpl
-) -> RenderPipelineBuilder {
-    RenderPipelineBuilder(device: device, deviceImpl: deviceImpl, vertexModuleImpl: vertexModuleImpl)
-}
-
 // The builder of a Swift caller's descriptor, with the modules and layout that C++ sets on a C++ caller's: the layout of
 // `pipelineToReplace` for createRenderPipelineWithPipelineLayoutFromPipelineAsync.
 func makeRenderPipelineBuilder(
@@ -1339,37 +1247,6 @@ private final class PendingRenderPipeline {
             descriptor.fragmentFunction = fragmentFunction
         }
         return nil
-    }
-}
-
-/// Resolves the embedder's callback on a later turn of the API thread, never re-entrantly from the creation (at once
-/// when the device has no Instance).
-private final class RenderPipelineAsyncCompletion {
-    private let device: WebGPU.Metal.Device
-    private let deviceImpl: DeviceImpl
-    private var callback: WebGPU.Metal.CreateRenderPipelineAsyncCallback
-
-    init(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ callback: consuming WebGPU.Metal.CreateRenderPipelineAsyncCallback) {
-        self.device = device
-        self.deviceImpl = deviceImpl
-        self.callback = callback
-    }
-
-    func complete(_ pipeline: WebGPU.Metal.RenderPipeline, _ message: String?) {
-        guard let instance = CxxBridging.protectedInstance(device) else {
-            return resolve(pipeline, message)
-        }
-        instance.scheduleWork(
-            consuming: WebGPU.Metal.Instance.WorkItem {
-                self.resolve(pipeline, message)
-            }
-        )
-    }
-
-    private func resolve(_ pipeline: WebGPU.Metal.RenderPipeline, _ message: String?) {
-        var callback = exchange(&self.callback, with: WebGPU.Metal.CreateRenderPipelineAsyncCallback())
-        // A lost device makes invalid objects without errors.
-        WebGPU.Metal.callCreateRenderPipelineAsyncCallback(&callback, pipeline, deviceImpl.isDestroyed() || pipeline.isValid(), message)
     }
 }
 
@@ -1731,13 +1608,6 @@ private func inWTFHashTableOrder(_ buffers: [RequiredVertexBuffer]) -> [Required
 // An invalid pipeline still holds an invalid pipeline layout, so that it always has one.
 func makeInvalidRenderPipeline(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> RenderPipelineImpl {
     makeInvalidRenderPipelineImpl(device, deviceImpl, makeInvalidPipelineLayoutImpl(device))
-}
-
-// Wraps a pipeline for the C++ API in a new shell, through DeviceImpl.stagedRenderPipelineImpl.
-private func makeRenderPipelineShell(_ impl: RenderPipelineImpl) -> WebGPU.Metal.RenderPipeline {
-    precondition(impl.deviceImpl.stagedRenderPipelineImpl == nil)
-    impl.deviceImpl.stagedRenderPipelineImpl = impl
-    return WebGPU.Metal.RenderPipeline.createWithStagedImpl(impl.device).ptr()
 }
 
 @_spi(WebKitGPU)

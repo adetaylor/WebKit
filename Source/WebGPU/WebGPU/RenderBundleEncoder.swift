@@ -28,9 +28,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.PipelineLayout
 @_implementationOnly import WebGPU_Internal.Queue
-@_implementationOnly import WebGPU_Internal.RenderBundle
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
@@ -1188,7 +1186,7 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         finalizeRenderCommand(.drawIndexed)
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func drawIndexedIndirect(
         _ indirectBufferImpl: BufferImpl,
@@ -1297,7 +1295,7 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         finalizeRenderCommand(.drawIndexed)
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func drawIndirect(
         _ indirectBufferImpl: BufferImpl,
@@ -1647,7 +1645,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
     }
 
     // Returns the bundle, valid or not, labelled, for the shell to box. An invalid one reports the encoder's last error.
-    @_expose(Cxx)
     func finish(_ label: NSString) -> RenderBundleImpl {
         let bundle = finishedBundle()
         if !bundle.isValid() {
@@ -1699,7 +1696,7 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
     }
 
     // A bundle encoder's state is always open.
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func insertDebugMarker() {
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker
@@ -1711,7 +1708,7 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         }
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func popDebugGroup() {
         if !validToEncodeCommand() {
@@ -1732,7 +1729,7 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         // MTLIndirectCommandBuffers don't support debug commands.
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func pushDebugGroup() {
         if !validToEncodeCommand() {
@@ -1832,7 +1829,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
     }
 
     // setBindGroup with a null bind group.
-    @_expose(Cxx)
     func clearBindGroup(
         _ groupIndex: UInt32,
         _ hasDynamicOffsets: Bool,
@@ -2033,7 +2029,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         }
     }
 
-    @_expose(Cxx)
     func setIndexBuffer(
         _ bufferImpl: BufferImpl,
         _ format: WebGPU.IndexFormat,
@@ -2257,7 +2252,7 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         dynamicOffsetsFragmentContents = []
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setPipeline(_ pipelineImpl: RenderPipelineImpl) {
         if !validToEncodeCommand() {
@@ -2367,7 +2362,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         currentPipelineImpl = pipelineImpl
     }
 
-    @_expose(Cxx)
     func setVertexBuffer(
         _ slot: UInt32,
         _ bufferImpl: BufferImpl,
@@ -2442,7 +2436,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
     }
 
     // setVertexBuffer with a null buffer.
-    @_expose(Cxx)
     func clearVertexBuffer(
         _ slot: UInt32,
         _ offset: UInt64,
@@ -2472,7 +2465,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         }
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: NSString) {
         indirectCommandBuffer?.label = label as String
     }
@@ -2518,7 +2510,6 @@ func makeRenderBundleEncoderImpl(
     )
 }
 
-@_expose(Cxx)
 func makeInvalidRenderBundleEncoderImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,

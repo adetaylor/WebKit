@@ -88,31 +88,19 @@ set_target_properties(WebGPU PROPERTIES
 set(WebGPU_SWIFT_INTEROP_SOURCES
     Adapter.mm
     BindGroup.mm
-    BindGroupLayout.mm
     Buffer.mm
-    CommandBuffer.mm
-    CommandEncoder.mm
     ComputePassEncoder.mm
-    ComputePipeline.mm
     Device.mm
-    ExternalTexture.mm
     HardwareCapabilities.mm
     Instance.mm
     Pipeline.mm
-    PipelineLayout.mm
     PresentationContextIOSurface.mm
-    QuerySet.mm
     Queue.mm
-    RenderBundle.mm
     RenderBundleEncoder.mm
     RenderPassEncoder.mm
     RenderPipeline.mm
-    Sampler.mm
     ShaderModule.mm
-    Texture.mm
-    TextureView.mm
     XRProjectionLayer.mm
-    XRSubImage.mm
 )
 foreach (_f IN LISTS WebGPU_SWIFT_INTEROP_SOURCES)
     list(APPEND WebGPU_UNIFIED_SOURCE_EXCLUDES "(^|/)${_f}( |$)")

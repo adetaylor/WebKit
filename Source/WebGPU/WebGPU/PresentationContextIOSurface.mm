@@ -24,11 +24,8 @@
  */
 
 #import "config.h"
-#import "PresentationContextIOSurface.h"
 
-#import "APIConversions.h"
 #import "Texture.h"
-#import "TextureView.h"
 #import <wtf/FastMalloc.h>
 #import <wtf/TZoneMallocInlines.h>
 #import <wtf/cocoa/TypeCastsCocoa.h>
@@ -42,112 +39,6 @@
 #endif
 
 namespace WebGPU::Metal {
-
-struct PresentationContextIOSurfaceImplBox {
-    WTF_MAKE_STRUCT_TZONE_ALLOCATED(PresentationContextIOSurfaceImplBox);
-    WebGPUSwift::PresentationContextIOSurfaceImpl impl;
-};
-WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(PresentationContextIOSurfaceImplBox);
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(PresentationContextIOSurface);
-
-// The Impl copies the web process identity's send right while the Instance's is alive.
-static std::unique_ptr<PresentationContextIOSurfaceImplBox> makeImplBox(const Instance& instance)
-{
-#if HAVE(IOSURFACE_SET_OWNERSHIP_IDENTITY) && HAVE(TASK_IDENTITY_TOKEN)
-    if (const auto& webProcessID = instance.webProcessID())
-        return makeUnique<PresentationContextIOSurfaceImplBox>(PresentationContextIOSurfaceImplBox { .impl = WebGPUSwift::makePresentationContextIOSurfaceImpl(webProcessID->sendRight()) });
-#else
-    UNUSED_PARAM(instance);
-#endif
-    return makeUnique<PresentationContextIOSurfaceImplBox>(PresentationContextIOSurfaceImplBox { .impl = WebGPUSwift::makePresentationContextIOSurfaceImpl(MACH_PORT_NULL) });
-}
-
-Ref<PresentationContextIOSurface> PresentationContextIOSurface::create(const WebGPU::PresentationContextDescriptor& descriptor, const Instance& instance)
-{
-    Ref presentationContextIOSurface = adoptRef(*new PresentationContextIOSurface(makeImplBox(instance)));
-    if (!descriptor.registerCompositorIntegration)
-        return presentationContextIOSurface;
-
-    descriptor.registerCompositorIntegration([presentationContext = presentationContextIOSurface.copyRef()](std::span<const IOSurfaceRef> ioSurfaces) {
-        presentationContext->renderBuffersWereRecreated(ioSurfaces);
-    }, [presentationContext = presentationContextIOSurface.copyRef()](CompletionHandler<void()>&& completionHandler) {
-        presentationContext->onSubmittedWorkScheduled([completionHandler = WTF::move(completionHandler)] mutable {
-            completionHandler();
-        });
-    });
-
-    return presentationContextIOSurface;
-}
-
-PresentationContextIOSurface::PresentationContextIOSurface(std::unique_ptr<PresentationContextIOSurfaceImplBox>&& impl)
-    : m_impl(WTF::move(impl))
-{
-}
-
-PresentationContextIOSurface::~PresentationContextIOSurface() = default;
-
-void PresentationContextIOSurface::renderBuffersWereRecreated(std::span<const IOSurfaceRef> ioSurfaces)
-{
-    m_impl->impl.renderBuffersWereRecreated();
-    for (IOSurfaceRef surface : ioSurfaces) {
-        // appendIOSurface takes a non-optional IOSurfaceRef: a null one (failed allocation) must not reach Swift.
-        if (surface)
-            m_impl->impl.appendIOSurface(surface);
-    }
-}
-
-void PresentationContextIOSurface::onSubmittedWorkScheduled(Function<void()>&& completionHandler)
-{
-    if (m_impl->impl.hasDevice())
-        borrowSwiftRetained(m_impl->impl.device()).getQueue()->onSubmittedWorkScheduled(WTF::move(completionHandler));
-    else
-        completionHandler();
-}
-
-RetainPtr<CGImageRef> PresentationContextIOSurface::getTextureAsNativeImage(uint32_t bufferIndex, bool& isIOSurfaceSupportedFormat)
-{
-    return adoptCF(m_impl->impl.textureAsNativeImage(bufferIndex, isIOSurfaceSupportedFormat));
-}
-
-void PresentationContextIOSurface::configure(const WebGPU::CanvasConfiguration& configuration)
-{
-    Ref device = metal(configuration.device.get());
-    m_impl->impl.configure(configuration, device.ptr(), device->swiftImpl());
-}
-
-void PresentationContextIOSurface::unconfigure()
-{
-    m_impl->impl.unconfigure();
-}
-
-void PresentationContextIOSurface::present(uint32_t currentIndex)
-{
-    m_impl->impl.present(currentIndex);
-}
-
-void PresentationContextIOSurface::deliverSwiftImpl()
-{
-    WebGPUSwift::receiveImpl(m_impl->impl);
-}
-
-Texture* PresentationContextIOSurface::currentTexture(uint32_t currentIndex)
-{
-    if (!m_impl->impl.validateCurrentTextureIndex(currentIndex))
-        return m_impl->impl.hasInvalidTexture() ? &borrowSwiftRetained(m_impl->impl.invalidTexture()) : nullptr;
-
-    return &borrowSwiftRetained(m_impl->impl.currentFrameTexture(currentIndex));
-}
-
-Seconds PresentationContextIOSurface::lastFrameGPUCost() const
-{
-    return Seconds { m_impl->impl.lastDrainedFrameGPUCostSeconds() };
-}
-
-Seconds PresentationContextIOSurface::lastFramePresentStall() const
-{
-    return Seconds { m_impl->impl.lastFramePresentStallSeconds() };
-}
 
 id<MTLLibrary> compileLibraryWithFastMath(id<MTLDevice> device, NSString *source)
 {

@@ -26,31 +26,21 @@ import Metal
 import Synchronization
 @_implementationOnly import WebGPU_Internal.Adapter
 @_implementationOnly import WebGPU_Internal.BindGroup
-@_implementationOnly import WebGPU_Internal.BindGroupLayout
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.ExternalTexture
-@_implementationOnly import WebGPU_Internal.PipelineLayout
 @_implementationOnly import WebGPU_Internal.PresentationContext
-@_implementationOnly import WebGPU_Internal.QuerySet
-@_implementationOnly import WebGPU_Internal.RenderBundle
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
-@_implementationOnly import WebGPU_Internal.Sampler
 @_implementationOnly import WebGPU_Internal.ShaderModule
-@_implementationOnly import WebGPU_Internal.XRBinding
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
-@_implementationOnly import WebGPU_Internal.XRSubImage
-@_implementationOnly import WebGPU_Internal.XRView
 import WebGPU_Private.WebGPU
 
 typealias String = Swift.String
 
 // Device::createCommandEncoder.
 // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder
-@_expose(Cxx)
 func deviceCreateCommandEncoder(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ label: NSString) -> CommandEncoderImpl {
     if !deviceImpl.isValid() {
         return makeInvalidCommandEncoderImpl(device, deviceImpl)
@@ -750,8 +740,7 @@ extension CommandEncoderImpl {
             return errorString("destination usage does not have COPY_DST")
         }
 
-        let mappingPending = WebGPU.Metal.Buffer.State.MappingPending.rawValue
-        if destination.stateRawValue() == mappingPending || source.stateRawValue() == mappingPending {
+        if destination.isMappingPending || source.isMappingPending {
             return errorString("destination state is not unmapped or source state is not unmapped")
         }
 
@@ -1474,7 +1463,7 @@ extension CommandEncoderImpl {
                 mtlAttachment.storeAction = storeAction(storeOp: attachment.depthStoreOp)
 
                 if mtlDescriptor.rasterizationRateMap != nil && metalDepthStencilTexture?.sampleCount ?? 1 > 1 {
-                    if let depthTexture = device.getXRViewSubImageDepthTexture() {
+                    if let depthTexture = deviceImpl.xrSubImageImpl?.currentDepthTextureReference?.texture() {
                         mtlAttachment.resolveTexture = depthTexture
                         mtlAttachment.storeAction = storeAction(storeOp: attachment.depthStoreOp, hasResolveTarget: true)
                         mtlAttachment.resolveSlice = Int(compositorTextureSlice)
@@ -3038,8 +3027,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     private var staged = StagedPassObjects()
     // Declared last, so that the device outlives the rest of the encoder.
     let device: WebGPU.Metal.Device
-    @_expose(Cxx)
-    func shellDevice() -> WebGPU.Metal.Device { device }
 
     // An invalid encoder: no command buffer and no sets.
     fileprivate init(device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) {
@@ -3483,7 +3470,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         )
     }
 
-    @_expose(Cxx)
     func pushDebugGroup(_ groupLabel: NSString) {
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup
         guard prepareTheEncoderState() else {
@@ -3499,7 +3485,7 @@ public final class CommandEncoderImpl: GPUObjectReference {
         backingCommandBuffer?.pushDebugGroup(groupLabel as String)
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func popDebugGroup() {
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup
@@ -3521,7 +3507,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         backingCommandBuffer?.popDebugGroup()
     }
 
-    @_expose(Cxx)
     func insertDebugMarker(_ markerLabel: NSString) {
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker
         guard prepareTheEncoderState() else {
@@ -3538,7 +3523,7 @@ public final class CommandEncoderImpl: GPUObjectReference {
         backingCommandBuffer?.popDebugGroup()
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func writeTimestamp(_ querySet: QuerySetImpl, _ queryIndex: UInt32) {
         guard prepareTheEncoderState() else {
@@ -3620,37 +3605,8 @@ public final class CommandEncoderImpl: GPUObjectReference {
     }
 
     // The WebGPU::CommandEncoder methods whose logic is in the extension above.
-    @_expose(Cxx)
     func finish(_ descriptor: WebGPU.CommandBufferDescriptor) -> CommandBufferImpl {
         finish(label: descriptor.label)
-    }
-
-    // CommandEncoder::beginRenderPass() and beginComputePass() call these just before them, for the descriptor's
-    // attachments and query sets.
-    @_expose(Cxx)
-    func stageEmptyColorAttachment() {
-        staged.colorAttachments.append(nil)
-    }
-
-    @_expose(Cxx)
-    func stageColorAttachmentTexture(_ impl: TextureImpl) {
-        staged.colorAttachments.append((.texture(impl), nil))
-    }
-
-    @_expose(Cxx)
-    func stageColorAttachmentView(_ impl: TextureViewImpl) {
-        staged.colorAttachments.append((.textureView(impl), nil))
-    }
-
-    // The resolve target of the last staged color attachment.
-    @_expose(Cxx)
-    func stageResolveTargetTexture(_ impl: TextureImpl) {
-        stageResolveTarget(.texture(impl))
-    }
-
-    @_expose(Cxx)
-    func stageResolveTargetView(_ impl: TextureViewImpl) {
-        stageResolveTarget(.textureView(impl))
     }
 
     private func stageResolveTarget(_ resolveTarget: GPURenderPassAttachmentView) {
@@ -3658,26 +3614,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
             preconditionFailure("a resolve target needs a color attachment")
         }
         staged.colorAttachments[last]?.resolveTarget = resolveTarget
-    }
-
-    @_expose(Cxx)
-    func stageDepthStencilAttachmentTexture(_ impl: TextureImpl) {
-        staged.depthStencilAttachment = .texture(impl)
-    }
-
-    @_expose(Cxx)
-    func stageDepthStencilAttachmentView(_ impl: TextureViewImpl) {
-        staged.depthStencilAttachment = .textureView(impl)
-    }
-
-    @_expose(Cxx)
-    func stageOcclusionQuerySet(_ impl: QuerySetImpl) {
-        staged.occlusion = impl
-    }
-
-    @_expose(Cxx)
-    func stageTimestampWritesQuerySet(_ impl: QuerySetImpl) {
-        staged.timestampWrites = impl
     }
 
     @_expose(Cxx)
@@ -3689,7 +3625,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         return beginRenderPass(descriptor: GPURenderPassDescriptor(descriptor, staged))
     }
 
-    @_expose(Cxx)
     func beginComputePass(
         _ descriptor: WebGPU.ComputePassDescriptor
     ) -> ComputePassEncoderImpl {
@@ -3700,7 +3635,7 @@ public final class CommandEncoderImpl: GPUObjectReference {
         )
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func copyBufferToBuffer(
         _ source: BufferImpl,
@@ -3718,7 +3653,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         )
     }
 
-    @_expose(Cxx)
     func copyBufferToTexture(
         _ source: WebGPU.TexelCopyBufferInfo,
         _ sourceBuffer: BufferImpl,
@@ -3735,7 +3669,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         )
     }
 
-    @_expose(Cxx)
     func copyTextureToBuffer(
         _ source: WebGPU.TexelCopyTextureInfo,
         _ sourceTexture: TextureImpl,
@@ -3752,7 +3685,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         )
     }
 
-    @_expose(Cxx)
     func copyTextureToTexture(
         _ source: WebGPU.TexelCopyTextureInfo,
         _ sourceTexture: TextureImpl,
@@ -3769,7 +3701,7 @@ public final class CommandEncoderImpl: GPUObjectReference {
         )
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func resolveQuerySet(
         _ querySet: QuerySetImpl,
@@ -3787,7 +3719,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         )
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: NSString) {
         backingCommandBuffer?.label = label as String
     }

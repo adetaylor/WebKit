@@ -45,16 +45,9 @@
 #import <wtf/WeakHashSet.h>
 #import <wtf/WeakPtr.h>
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class TextureImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
 
 class Device;
-class TextureView;
 
 // A WebGPU::TextureDescriptor without its label and view formats, as Texture.swift reads it. The usage OptionSet
 // travels as its raw bits.
@@ -93,78 +86,5 @@ struct TextureFormatsView {
     std::span<const WebGPU::TextureFormat> span() const LIFETIME_BOUND { return formats; }
 } SWIFT_VIEW;
 
-// https://gpuweb.github.io/gpuweb/#gputexture
-// Swift owns the descriptor, the Metal texture, its state, the encoders that used it, its views, bind groups and
-// render bundles, and the Device back-reference.
-class Texture final : public WebGPU::Texture {
-    WTF_MAKE_TZONE_ALLOCATED(Texture);
-public:
-    static Ref<Texture> createInvalid(Device&);
-    // For the canvas render buffers and XR, whose TextureImpls Swift makes and stages on the DeviceImpl.
-    static Ref<Texture> createWithStagedImpl(Device&);
-#if !defined(__swift__)
-    // `makeImpl` returns the WebGPU::TextureImpl. Defined in Texture.mm.
-    template<typename MakeImpl> static Ref<Texture> create(MakeImpl&&);
-#endif
-
-    ~Texture();
-
-    // std::nullopt is a descriptor with all members at their defaults.
-    RefPtr<WebGPU::TextureView> createView(const std::optional<WebGPU::TextureViewDescriptor>&) final;
-    void destroy() final;
-    void undestroy() final;
-    void setLabel(String&&) final;
-
-    bool LEGACY_NODELETE isValid() const final;
-
-#if !defined(__swift__)
-    WebGPUSwift::TextureImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-
-    // The format rules C++ uses; Swift calls the functions in TextureFormats.swift directly.
-    static bool LEGACY_NODELETE isDepthOrStencilFormat(WebGPU::TextureFormat);
-
-#if !defined(__swift__)
-    id<MTLTexture> texture() const;
-    uint32_t LEGACY_NODELETE width() const;
-    uint32_t LEGACY_NODELETE height() const;
-    uint32_t LEGACY_NODELETE depthOrArrayLayers() const;
-    uint32_t LEGACY_NODELETE mipLevelCount() const;
-    uint32_t LEGACY_NODELETE sampleCount() const;
-    WebGPU::TextureDimension LEGACY_NODELETE dimension() const;
-    // Invalid textures may have no format. format() then reports an arbitrary one, which only the
-    // validation that rejects the texture sees.
-    WebGPU::TextureFormat LEGACY_NODELETE format() const;
-    std::optional<WebGPU::TextureFormat> optionalFormat() const;
-    OptionSet<WebGPU::TextureUsage> LEGACY_NODELETE usage() const;
-
-    // Borrowed from the Impl, which holds the reference.
-    Device& device() const;
-#endif
-
-private:
-#if !defined(__swift__)
-    template<typename MakeImpl> explicit Texture(MakeImpl&&);
-#endif
-
-    // The Swift object: one generated WebGPU::TextureImpl, a single strong reference. Texture.mm, where the generated
-    // header is includable, builds it in place in the constructor and destroys it in the destructor.
-    alignas(void*) std::byte m_impl[sizeof(void*)];
-} SWIFT_SHARED_REFERENCE(refTexture, derefTexture) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
-
 } // namespace WebGPU::Metal
 
-inline void refTexture(WebGPU::Metal::Texture* obj)
-{
-    obj->ref();
-}
-
-inline void derefTexture(WebGPU::Metal::Texture* obj)
-{
-    obj->deref();
-}
-
-SPECIALIZE_TYPE_TRAITS_BEGIN(WebGPU::Metal::Texture)
-    static bool isType(const WGPUTextureImpl&) { return true; }
-    static bool isType(const WebGPU::Texture&) { return true; }
-SPECIALIZE_TYPE_TRAITS_END()

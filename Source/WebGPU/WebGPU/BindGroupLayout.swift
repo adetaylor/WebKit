@@ -24,7 +24,6 @@
 private import CxxStdlib
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.BindGroupLayout
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
@@ -60,8 +59,6 @@ public final class BindGroupLayoutImpl: GPUObjectReference {
     // for device identity.
     let deviceImpl: DeviceImpl
     let device: WebGPU.Metal.Device
-    @_expose(Cxx)
-    func shellDevice() -> WebGPU.Metal.Device { device }
 
     init(
         encoders: PerStage<(any MTLArgumentEncoder)?>,
@@ -171,7 +168,6 @@ public final class BindGroupLayoutImpl: GPUObjectReference {
         backingIsValid
     }
 
-    @_expose(Cxx)
     func setLabel(_ newLabel: WTF.String) {
         label = newLabel
         applyLabelToEncoders()
@@ -264,7 +260,6 @@ extension BindGroupLayoutImpl {
 }
 
 /// Reports its validation errors, and returns an invalid Impl on failure.
-@_expose(Cxx)
 func createBindGroupLayoutImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
@@ -320,7 +315,6 @@ func createBindGroupLayoutImpl(
     )
 }
 
-@_expose(Cxx)
 func makeInvalidBindGroupLayoutImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> BindGroupLayoutImpl {
     .invalid(device, deviceImpl)
 }

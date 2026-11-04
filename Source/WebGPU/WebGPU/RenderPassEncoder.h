@@ -34,19 +34,9 @@
 #import <wtf/SwiftBridging.h>
 #import <wtf/TZoneMalloc.h>
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class RenderPassEncoderImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
 
-class BindGroup;
-class Buffer;
-class CommandEncoder;
 class Device;
-class RenderPipeline;
 
 struct RenderPassEncoderParameters {
     NSUInteger visibilityResultBufferSize { 0 };
@@ -54,63 +44,6 @@ struct RenderPassEncoderParameters {
     bool depthReadOnly { false };
     bool stencilReadOnly { false };
 };
-
-// Defined in RenderPassEncoder.mm, where the generated Swift header declaring WebGPU::RenderPassEncoderImpl
-// is includable.
-struct RenderPassEncoderImplBox;
-
-// https://gpuweb.github.io/gpuweb/#gpurenderpassencoder
-// Shell over the Swift-owned RenderPassEncoderImpl, which owns all of the pass's state (including the Device), runs its
-// logic and reports its errors. The shell hands executeBundles' bundles to the Impl.
-class RenderPassEncoder final : public WebGPU::RenderPassEncoder {
-    WTF_MAKE_TZONE_ALLOCATED(RenderPassEncoder);
-public:
-#if !defined(__swift__)
-    // CommandEncoder.swift makes the RenderPassEncoderImpl, with its attachments.
-    static Ref<RenderPassEncoder> create(const WebGPUSwift::RenderPassEncoderImpl&);
-#endif
-
-    ~RenderPassEncoder();
-
-    void beginOcclusionQuery(uint32_t queryIndex) final;
-    void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) final;
-    void drawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) final;
-    void endOcclusionQuery() final;
-    void executeBundles(std::span<const Ref<WebGPU::RenderBundle>>) final;
-    void insertDebugMarker(String&& markerLabel) final;
-    void popDebugGroup() final;
-    void pushDebugGroup(String&& groupLabel) final;
-    void setBlendConstant(const WebGPU::Color&) final;
-    void setScissorRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height) final;
-    void setStencilReference(uint32_t) final;
-    void setViewport(float x, float y, float width, float height, float minDepth, float maxDepth) final;
-
-    // The WebGPU::RenderPassEncoder methods that take objects. Every object they take was
-    // created by this implementation, so they cast it to its WebGPU::Metal type.
-    void setPipeline(const WebGPU::RenderPipeline&) final;
-    // A std::nullopt size is the rest of the buffer after the offset.
-    void setIndexBuffer(WebGPU::Buffer&, WebGPU::IndexFormat, uint64_t offset, std::optional<uint64_t> size) final;
-    void setVertexBuffer(uint32_t slot, WebGPU::Buffer*, uint64_t offset, std::optional<uint64_t> size) final;
-    void drawIndirect(WebGPU::Buffer& indirectBuffer, uint64_t indirectOffset) final;
-    void drawIndexedIndirect(WebGPU::Buffer& indirectBuffer, uint64_t indirectOffset) final;
-    // std::nullopt dynamic offsets are not validated against the bind group layout.
-    void setBindGroup(uint32_t groupIndex, const WebGPU::BindGroup*, std::optional<std::span<const uint32_t>> dynamicOffsets) final;
-    void end() final;
-    void setLabel(String&&) final;
-
-    bool isValid() const final;
-#if !defined(__swift__)
-    WebGPUSwift::RenderPassEncoderImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-    void makeInvalid(NSString* = nil);
-
-private:
-#if !defined(__swift__)
-    explicit RenderPassEncoder(const WebGPUSwift::RenderPassEncoderImpl&);
-#endif
-
-    const std::unique_ptr<RenderPassEncoderImplBox> m_impl;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refRenderPassEncoder, derefRenderPassEncoder);
 
 // Primitives for RenderPassEncoder.swift: byte uploads and MTLBuffer contents reads, as free functions with NOESCAPE
 // spans so that Swift gets safe Span overloads (rdar://161274084), and the Metal completion handlers of the clamps,
@@ -133,14 +66,3 @@ bool readOutOfBoundsReadFlag(id<MTLBuffer> _Nullable outOfBoundsReadFlag, uint32
 
 } // namespace WebGPU::Metal
 
-#if !ENABLE(SWIFT_BASE_CLASS_ANNOTATIONS)
-inline void refRenderPassEncoder(WebGPU::Metal::RenderPassEncoder* obj)
-{
-    obj->ref();
-}
-
-inline void derefRenderPassEncoder(WebGPU::Metal::RenderPassEncoder* obj)
-{
-    obj->deref();
-}
-#endif

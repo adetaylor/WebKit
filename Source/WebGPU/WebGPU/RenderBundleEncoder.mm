@@ -26,13 +26,10 @@
 #import "config.h"
 #import "RenderBundleEncoder.h"
 
-#import "APIConversions.h"
 #import "BindGroup.h"
 #import "Buffer.h"
 #import "CommandEncoder.h"
 #import "Device.h"
-#import "PipelineLayout.h"
-#import "RenderBundle.h"
 #import "RenderPipeline.h"
 #import <wtf/StdLibExtras.h>
 #import <wtf/TZoneMallocInlines.h>
@@ -45,135 +42,6 @@
 #endif
 
 namespace WebGPU::Metal {
-
-static_assert(sizeof(WebGPUSwift::RenderBundleEncoderImpl) == sizeof(void*) && alignof(WebGPUSwift::RenderBundleEncoderImpl) == alignof(void*));
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(RenderBundleEncoder);
-
-RefPtr<WebGPU::RenderBundleEncoder> Device::createRenderBundleEncoder(const WebGPU::RenderBundleEncoderDescriptor& descriptor)
-{
-    return RenderBundleEncoder::create(descriptor, *this);
-}
-
-Ref<RenderBundleEncoder> RenderBundleEncoder::create(const WebGPU::RenderBundleEncoderDescriptor& descriptor, Device& device)
-{
-    return adoptRef(*new RenderBundleEncoder([&] {
-        return createRenderBundleEncoderImpl(descriptor, &device, device.swiftImpl());
-    }));
-}
-
-Ref<RenderBundleEncoder> RenderBundleEncoder::createInvalid(Device& device, NSString* errorString)
-{
-    return adoptRef(*new RenderBundleEncoder([&] {
-        return makeInvalidRenderBundleEncoderImpl(&device, device.swiftImpl(), errorString);
-    }));
-}
-
-template<typename MakeImpl>
-RenderBundleEncoder::RenderBundleEncoder(MakeImpl&& makeImpl)
-{
-    // Initialized from the prvalue directly: no copy, so no extra retain and release.
-    new (m_impl) WebGPUSwift::RenderBundleEncoderImpl(makeImpl());
-}
-
-WebGPUSwift::RenderBundleEncoderImpl& RenderBundleEncoder::swiftImpl() const
-{
-    return *std::launder(reinterpret_cast<WebGPUSwift::RenderBundleEncoderImpl*>(const_cast<std::byte*>(m_impl)));
-}
-
-void RenderBundleEncoder::makeInvalid(NSString* errorString)
-{
-    swiftImpl().makeInvalid(errorString);
-}
-
-RenderBundleEncoder::~RenderBundleEncoder()
-{
-    std::destroy_at(&swiftImpl());
-}
-
-void RenderBundleEncoder::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
-{
-    swiftImpl().draw(vertexCount, instanceCount, firstVertex, firstInstance);
-}
-
-void RenderBundleEncoder::drawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
-{
-    swiftImpl().drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
-}
-
-void RenderBundleEncoder::drawIndirect(WebGPU::Buffer& apiIndirectBuffer, uint64_t indirectOffset)
-{
-    auto& indirectBuffer = downcast<Buffer>(apiIndirectBuffer);
-    swiftImpl().drawIndirect(indirectBuffer.swiftImpl(), indirectOffset);
-}
-
-void RenderBundleEncoder::drawIndexedIndirect(WebGPU::Buffer& apiIndirectBuffer, uint64_t indirectOffset)
-{
-    auto& indirectBuffer = downcast<Buffer>(apiIndirectBuffer);
-    swiftImpl().drawIndexedIndirect(indirectBuffer.swiftImpl(), indirectOffset);
-}
-
-RefPtr<WebGPU::RenderBundle> RenderBundleEncoder::finish(const WebGPU::RenderBundleDescriptor& descriptor)
-{
-    return RenderBundle::create(swiftImpl().finish(descriptor.label.createNSString().get()));
-}
-
-bool RenderBundleEncoder::isValid() const
-{
-    return swiftImpl().isValid();
-}
-
-void RenderBundleEncoder::insertDebugMarker(String&&)
-{
-    swiftImpl().insertDebugMarker();
-}
-
-void RenderBundleEncoder::popDebugGroup()
-{
-    swiftImpl().popDebugGroup();
-}
-
-void RenderBundleEncoder::pushDebugGroup(String&&)
-{
-    swiftImpl().pushDebugGroup();
-}
-
-void RenderBundleEncoder::setBindGroup(uint32_t groupIndex, const WebGPU::BindGroup* apiGroup, std::optional<std::span<const uint32_t>> dynamicOffsets)
-{
-    auto* group = downcast<BindGroup>(apiGroup);
-    DynamicOffsetsView offsets { dynamicOffsets.value_or(std::span<const uint32_t> { }) };
-    if (!group) {
-        swiftImpl().clearBindGroup(groupIndex, dynamicOffsets.has_value(), offsets);
-        return;
-    }
-    swiftImpl().setBindGroup(groupIndex, group->swiftImpl(), dynamicOffsets.has_value(), offsets);
-}
-
-void RenderBundleEncoder::setIndexBuffer(WebGPU::Buffer& apiBuffer, WebGPU::IndexFormat format, uint64_t offset, std::optional<uint64_t> size)
-{
-    auto& buffer = downcast<Buffer>(apiBuffer);
-    swiftImpl().setIndexBuffer(buffer.swiftImpl(), format, offset, size.has_value(), size.value_or(0));
-}
-
-void RenderBundleEncoder::setPipeline(const WebGPU::RenderPipeline& apiPipeline)
-{
-    swiftImpl().setPipeline(downcast<RenderPipeline>(apiPipeline).swiftImpl());
-}
-
-void RenderBundleEncoder::setVertexBuffer(uint32_t slot, WebGPU::Buffer* apiBuffer, uint64_t offset, std::optional<uint64_t> size)
-{
-    auto* buffer = downcast<Buffer>(apiBuffer);
-    if (!buffer) {
-        swiftImpl().clearVertexBuffer(slot, offset, size.has_value(), size.value_or(0));
-        return;
-    }
-    swiftImpl().setVertexBuffer(slot, buffer->swiftImpl(), offset, size.has_value(), size.value_or(0));
-}
-
-void RenderBundleEncoder::setLabel(String&& label)
-{
-    swiftImpl().setLabel(label.createNSString().get());
-}
 
 template<typename T>
 static std::span<T> makeSpanFromBuffer(id<MTLBuffer> buffer)

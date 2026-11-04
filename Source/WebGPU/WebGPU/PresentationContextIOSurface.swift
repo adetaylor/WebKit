@@ -71,74 +71,54 @@ extension GPUCanvasConfiguration {
     }
 }
 
-// A canvas context that presents through the compositor's IOSurfaces, with its shell, as Swift holds one.
 @_spi(WebKitGPU)
-public final class PresentationContextReference {
-    let impl: PresentationContextIOSurfaceImpl
-    let shell: WebGPU.Metal.PresentationContext
+public typealias PresentationContextReference = PresentationContextIOSurfaceImpl
 
-    init(_ impl: PresentationContextIOSurfaceImpl, _ shell: WebGPU.Metal.PresentationContext) {
-        self.impl = impl
-        self.shell = shell
-    }
-
-    // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure
-    public func configure(_ configuration: GPUCanvasConfiguration) {
-        impl.configure(configuration)
-    }
-
-    // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure
-    public func unconfigure() {
-        impl.unconfigure()
-    }
-
-    public func present(_ frameIndex: UInt32) {
-        impl.present(frameIndex)
+// A canvas context that presents through the compositor's IOSurfaces, for a Swift caller.
+@_spi(WebKitGPU)
+extension PresentationContextIOSurfaceImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: PresentationContextIOSurfaceImpl {
+        self
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture: the texture the canvas draws into for the
     // frame, or an invalid texture if the frame isn't one of the configuration's. nil before the first configure().
+    @_expose(!Cxx)
     public func getCurrentTexture(_ frameIndex: UInt32) -> TextureReference? {
-        impl.currentTexture(frameIndex).map(\.impl)
-    }
-
-    // The compositor has recreated its render buffers, which it then adds: the canvas draws into them from the next
-    // configure().
-    public func renderBuffersWereRecreated() {
-        impl.renderBuffersWereRecreated()
+        currentTexture(frameIndex)
     }
 
     // An IOSurface object rather than an IOSurfaceRef, which CoreGraphics declares as well as IOSurface.
+    @_expose(!Cxx)
     public func addRenderBuffer(_ surface: IOSurface) {
-        impl.appendIOSurface(surface as IOSurfaceRef)
+        appendIOSurface(surface as IOSurfaceRef)
     }
 
-    // The completion runs once the configured device's queue has scheduled the work submitted so far: at once without a
-    // device, or once it is lost.
-    public func onSubmittedWorkScheduled(_ completion: @escaping () -> Void) {
-        impl.onSubmittedWorkScheduled(completion)
-    }
-
+    @_expose(!Cxx)
     public var lastFrameGPUCost: Double {
-        impl.lastDrainedFrameGPUCostSeconds()
+        lastDrainedFrameGPUCostSeconds()
     }
 
+    @_expose(!Cxx)
     public var lastFramePresentStall: Double {
-        impl.lastFramePresentStallSeconds()
+        lastFramePresentStallSeconds()
     }
 }
 
-// The state of a canvas context that presents through the compositor's IOSurfaces. Used only on its Instance's API
-// thread: the compositor calls back on the work queue.
+// The state of a canvas context that presents through the compositor's IOSurfaces, held by its Swift callers. Used only
+// on its Instance's API thread: the compositor calls back on the work queue.
 @_expose(Cxx)
-final class PresentationContextIOSurfaceImpl: DeliverableImpl {
+@_spi(WebKitGPU)
+public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
     private struct RenderBuffer {
-        let texture: TextureShellAndImpl
+        let texture: TextureImpl
         // The rgba16float texture the canvas draws into under standard tone mapping; `texture` then holds the
         // clamped copy. Empty or one element: an Optional of a foreign reference is avoided.
-        let luminanceClampTexture: [TextureShellAndImpl]
+        let luminanceClampTexture: [TextureImpl]
 
-        var presentedTexture: TextureShellAndImpl {
+        var presentedTexture: TextureImpl {
             luminanceClampTexture.first ?? texture
         }
     }
@@ -156,15 +136,15 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
     // The buffers of the surfaces the compositor just replaced, copied into the new ones by the next configure.
     private var existingRenderBuffers: [RenderBuffer] = []
     // Empty until the first configure, then one element.
-    private var invalidTextures: [TextureShellAndImpl] = []
+    private var invalidTextures: [TextureImpl] = []
     private var luminanceClampFunction: (any MTLFunction)?
     private var luminanceClampPipeline: (any MTLComputePipelineState)?
     private var resizePipeline: (any MTLComputePipelineState)?
     // Oldest first.
-    private var inFlightFrames: [TextureShellAndImpl] = []
+    private var inFlightFrames: [TextureImpl] = []
     private var maximumInFlightFrames = 0
     private var lastDrainedFrameGPUCost: Double = 0
-    private var lastFramePresentStall: Double = 0
+    private var backingLastFramePresentStall: Double = 0
     // Premultiplied alpha until configured, unlike CanvasConfiguration's default.
     private var colorSpace = WebGPU.PredefinedColorSpace.SRGB
     private var toneMappingMode = WebGPU.CanvasToneMappingMode.Standard
@@ -176,14 +156,16 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
         webProcessID = WTF.MachSendRight.create(webProcessIDPort)
     }
 
-    @_expose(Cxx)
-    func renderBuffersWereRecreated() {
+    // The compositor has recreated its render buffers, which it then adds: the canvas draws into them from the next
+    // configure().
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func renderBuffersWereRecreated() {
         existingRenderBuffers = renderBuffers
         renderBuffers = []
         ioSurfaces = []
     }
 
-    @_expose(Cxx)
     func appendIOSurface(_ surface: IOSurfaceRef) {
         ioSurfaces.append(surface)
         #if HAVE_IOSURFACE_SET_OWNERSHIP_IDENTITY && HAVE_TASK_IDENTITY_TOKEN
@@ -199,26 +181,19 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
             || format == WebGPU.TextureFormat.Rgba16float
     }
 
-    @_expose(Cxx)
-    func configure(
-        _ configuration: borrowing WebGPU.CanvasConfiguration,
-        _ device: WebGPU.Metal.Device,
-        _ deviceImpl: DeviceImpl
-    ) {
-        configure(GPUCanvasConfiguration(configuration, DeviceReference(deviceImpl, device)))
-    }
-
+    // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure
     @_expose(!Cxx)
-    func configure(_ configuration: GPUCanvasConfiguration) {
+    @_spi(WebKitGPU)
+    public func configure(_ configuration: GPUCanvasConfiguration) {
         let device = configuration.device.shell
         let deviceImpl = configuration.device.impl
         let storageMode = canvasStorageMode(deviceImpl)
-        let invalidTexture = makeInvalidTexture(device, deviceImpl)
+        let invalidTexture = makeInvalidTextureImpl(device, deviceImpl)
         renderBuffers = []
         inFlightFrames = []
         maximumInFlightFrames = 0
         lastDrainedFrameGPUCost = 0
-        lastFramePresentStall = 0
+        backingLastFramePresentStall = 0
         invalidTextures = [invalidTexture]
 
         let reportValidationErrors = configuration.reportValidationErrors
@@ -318,7 +293,7 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
         var apiFormat = effectiveFormat
         var resizeCommandBuffer: (any MTLCommandBuffer)?
         for ioSurface in ioSurfaces {
-            var luminanceClampTexture: [TextureShellAndImpl] = []
+            var luminanceClampTexture: [TextureImpl] = []
             var luminanceClampDescriptor: MTLTextureDescriptor?
             if needsLuminanceClampFunction {
                 textureDescriptor.pixelFormat = .rgba16Float
@@ -462,14 +437,16 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
         deviceImpl.defaultQueueImpl.endEncoding(deviceQueue, computeEncoder, commandBuffer)
     }
 
-    @_expose(Cxx)
-    func unconfigure() {
+    // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func unconfigure() {
         ioSurfaces = []
         renderBuffers = []
         inFlightFrames = []
         maximumInFlightFrames = 0
         lastDrainedFrameGPUCost = 0
-        lastFramePresentStall = 0
+        backingLastFramePresentStall = 0
         configuredDevice = []
     }
 
@@ -494,11 +471,12 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
             lastDrainedFrameGPUCost = completed && gpuFrameCost > 0 ? gpuFrameCost : 0
         }
         let (seconds, attoseconds) = stall.components
-        lastFramePresentStall = Double(seconds) + Double(attoseconds) * 1e-18
+        backingLastFramePresentStall = Double(seconds) + Double(attoseconds) * 1e-18
     }
 
-    @_expose(Cxx)
-    func present(_ currentIndex: UInt32) {
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func present(_ currentIndex: UInt32) {
         guard isValidFrameIndex(currentIndex), let configured = configuredDevice.first else {
             return
         }
@@ -535,7 +513,6 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
     }
 
     // Generates the configured device's validation error when the index is not a configured frame.
-    @_expose(Cxx)
     func validateCurrentTextureIndex(_ index: UInt32) -> Bool {
         if isValidFrameIndex(index) {
             return true
@@ -544,30 +521,10 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
         return false
     }
 
-    @_expose(Cxx)
-    func hasInvalidTexture() -> Bool {
-        !invalidTextures.isEmpty
-    }
-
-    // +1 (SWIFT_RETURNS_RETAINED); the shell borrows it. Only after hasInvalidTexture().
-    @_expose(Cxx)
-    func invalidTexture() -> WebGPU.Metal.Texture {
-        invalidTextures[0].shell
-    }
-
-    // The texture the canvas draws into for this frame, which starts a new frame on it. +1; the shell
-    // borrows it. Only after validateCurrentTextureIndex() returned true.
-    @_expose(Cxx)
-    func currentFrameTexture(_ index: UInt32) -> WebGPU.Metal.Texture {
-        let texture = renderBuffers[Int(index)].presentedTexture
-        texture.impl.recreateIfNeeded()
-        return texture.shell
-    }
-
     // currentFrameTexture(), or the invalid texture if the frame isn't a configured one, as the shell's
     // currentTexture() gives them.
     @_expose(!Cxx)
-    func currentTexture(_ index: UInt32) -> TextureShellAndImpl? {
+    func currentTexture(_ index: UInt32) -> TextureImpl? {
         guard validateCurrentTextureIndex(index) else {
             return invalidTextures.first
         }
@@ -578,8 +535,7 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
 
     // CF_RETURNS_RETAINED; the shell adopts it. Null, with isIOSurfaceSupportedFormat set, when the compositor
     // can read the IOSurface directly.
-    @_expose(Cxx)
-    func textureAsNativeImage(_ bufferIndex: UInt32, _ isIOSurfaceSupportedFormat: inout Bool) -> CGImage? {
+    func renderBufferAsNativeImage(_ bufferIndex: UInt32, _ isIOSurfaceSupportedFormat: inout Bool) -> CGImage? {
         isIOSurfaceSupportedFormat = false
         guard !configuredDevice.isEmpty, bufferIndex < renderBuffers.count else {
             return nil
@@ -638,19 +594,11 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
         )
     }
 
-    @_expose(Cxx)
-    func hasDevice() -> Bool {
-        !configuredDevice.isEmpty
-    }
-
-    // +1 (SWIFT_RETURNS_RETAINED); the shell borrows it. Only after hasDevice().
-    @_expose(Cxx)
-    func device() -> WebGPU.Metal.Device {
-        configuredDevice[0].device
-    }
-
+    // The completion runs once the configured device's queue has scheduled the work submitted so far: at once without a
+    // device, or once it is lost.
     @_expose(!Cxx)
-    func onSubmittedWorkScheduled(_ completion: @escaping () -> Void) {
+    @_spi(WebKitGPU)
+    public func onSubmittedWorkScheduled(_ completion: @escaping () -> Void) {
         guard let device = configuredDevice.first else {
             completion()
             return
@@ -659,19 +607,22 @@ final class PresentationContextIOSurfaceImpl: DeliverableImpl {
         deviceImpl.defaultQueueImpl.onSubmittedWorkScheduled(deviceImpl.defaultQueue(), deviceIsUsable: deviceImpl.isValid() && !deviceImpl.isLost(), completion)
     }
 
-    @_expose(Cxx)
     func lastDrainedFrameGPUCostSeconds() -> Double {
         lastDrainedFrameGPUCost
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
+    @_spi(WebKitGPU)
+    public func isValid() -> Bool {
+        true
+    }
+
     func lastFramePresentStallSeconds() -> Double {
-        lastFramePresentStall
+        backingLastFramePresentStall
     }
 }
 
 // `webProcessIDPort` is MACH_PORT_NULL without a web process identity; the Impl keeps its own send right.
-@_expose(Cxx)
 func makePresentationContextIOSurfaceImpl(_ webProcessIDPort: mach_port_t) -> PresentationContextIOSurfaceImpl {
     PresentationContextIOSurfaceImpl(webProcessIDPort: webProcessIDPort)
 }

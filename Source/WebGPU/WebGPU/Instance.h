@@ -40,7 +40,6 @@
 #import <wtf/WeakObjCPtr.h>
 #import <wtf/WeakPtr.h>
 
-
 namespace WTF {
 class MachSendRight;
 }
@@ -55,30 +54,24 @@ class InstanceSchedulerHandle;
 namespace WebGPU::Metal {
 
 class Adapter;
-class CommandBuffer;
 class Device;
-class PresentationContext;
-class Texture;
 
 // Box holding the Swift objects; defined in Instance.mm.
 struct InstanceImplBox;
 
 // https://gpuweb.github.io/gpuweb/#gpu
-class Instance final : public WebGPU::Instance {
+class Instance final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Instance> {
     WTF_MAKE_TZONE_ALLOCATED(Instance);
 public:
     static Ref<Instance> create(WebGPU::InstanceDescriptor&&);
 
-    virtual ~Instance();
+    ~Instance();
 
     void processEvents();
-    void requestAdapter(const WebGPU::RequestAdapterOptions&, CompletionHandler<void(RefPtr<WebGPU::Adapter>&&)>&&) final;
     // The adapter that requestAdapter() completes with.
     RefPtr<Adapter> adapter(const WebGPU::RequestAdapterOptions&);
-    RefPtr<WebGPU::PresentationContext> createPresentationContext(const WebGPU::PresentationContextDescriptor&) final;
 
-    void setLabel(String&&) final { }
-    bool isValid() const final;
+    bool isValid() const;
     void retainDevice(Device&, id<MTLCommandBuffer>);
     void waitForCommandBufferCompletions();
 
@@ -108,13 +101,24 @@ private:
     // The scheduler, which any thread may use, and the web process ID and the retained Device / CommandBuffer
     // containers, which only the API thread uses.
     const std::unique_ptr<InstanceImplBox> m_impl;
-};
+} SWIFT_SHARED_REFERENCE(refInstance, derefInstance);
 
 // For Swift, which can't pass an rvalue reference: an instance that takes the descriptor's scheduleWork and resource owner.
 Instance* WTF_NONNULL createInstance(WebGPU::InstanceDescriptor&) SWIFT_RETURNS_RETAINED;
 // For Swift: the adapter that requestAdapter() completes with, or null.
 Adapter* WTF_NULLABLE requestAdapter(Instance&, const WebGPU::RequestAdapterOptions&) SWIFT_RETURNS_RETAINED;
-// For Swift: a canvas context with no compositor registered, which its Swift caller gives the compositor's IOSurfaces.
-PresentationContext* WTF_NONNULL createPresentationContext(const Instance&) SWIFT_RETURNS_RETAINED;
+// The port of the Instance's web process identity, or MACH_PORT_NULL without one, for a canvas context's Swift, which
+// copies the right while the Instance holds it.
+mach_port_t webProcessIdentityPort(const Instance&);
 
 } // namespace WebGPU::Metal
+
+inline void refInstance(WebGPU::Metal::Instance* obj)
+{
+    obj->ref();
+}
+
+inline void derefInstance(WebGPU::Metal::Instance* obj)
+{
+    obj->deref();
+}

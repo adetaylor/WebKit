@@ -28,9 +28,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.BindableResource
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.ExternalTexture
 @_implementationOnly import WebGPU_Internal.Texture
-@_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
 // MARK: WTF::HashTable replica

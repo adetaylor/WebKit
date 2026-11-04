@@ -26,10 +26,8 @@ import Dispatch
 import Foundation
 import IOSurface
 import Metal
-@_implementationOnly import WebGPU_Internal.APIConversions
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.Buffer
-@_implementationOnly import WebGPU_Internal.CommandBuffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
@@ -713,7 +711,6 @@ final class QueueImpl {
         backingCommandQueue != nil
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: NSString?) {
         backingCommandQueue?.label = label as String?
     }
@@ -781,7 +778,6 @@ final class QueueImpl {
         createdNotCommittedBuffers?.remove(commandBuffer)
     }
 
-    @_expose(Cxx)
     func commandBufferWithDescriptor(_ queue: WebGPU.Metal.Queue, _ descriptor: MTLCommandBufferDescriptor?) -> (any MTLCommandBuffer)? {
         if !isValid() {
             return nil
@@ -798,7 +794,6 @@ final class QueueImpl {
         return commandBuffer
     }
 
-    @_expose(Cxx)
     func encoderForBuffer(_ commandBuffer: (any MTLCommandBuffer)?) -> (any MTLCommandEncoder)? {
         guard let commandBuffer else {
             return nil
@@ -855,7 +850,6 @@ final class QueueImpl {
         queue.scheduleWork(consuming: WebGPU.Metal.Instance.WorkItem { withExtendedLifetime((queue, timestamps)) {} })
     }
 
-    @_expose(Cxx)
     func setEncoderForBuffer(
         _ queue: WebGPU.Metal.Queue,
         _ commandBuffer: (any MTLCommandBuffer)?,
@@ -872,7 +866,6 @@ final class QueueImpl {
         }
     }
 
-    @_expose(Cxx)
     func removeMTLCommandBuffer(_ queue: WebGPU.Metal.Queue, _ commandBuffer: (any MTLCommandBuffer)?) {
         guard let commandBuffer else {
             return
@@ -884,7 +877,6 @@ final class QueueImpl {
 
     // Staged work goes first: the zero fills already marked as done, and the queue writes. This is also how the command
     // buffers PresentationContextIOSurface and ExternalTextureImport commit come after them.
-    @_expose(Cxx)
     func commitMTLCommandBuffer(_ queue: WebGPU.Metal.Queue, _ commandBuffer: (any MTLCommandBuffer)?) {
         _ = commit(queue, commandBuffer, commitsStagedWorkFirst: true)
     }
@@ -917,7 +909,6 @@ final class QueueImpl {
         backingStagingCommandBuffer
     }
 
-    @_expose(Cxx)
     func stagingEncoder() -> (any MTLCommandEncoder)? {
         if let blitCommandEncoder {
             return blitCommandEncoder
@@ -1070,7 +1061,6 @@ final class QueueImpl {
     }
 
     // Queue::onSubmittedWorkDone(CompletionHandler<void(bool)>&&): the handler is moved out of `callback`.
-    @_expose(Cxx)
     func onSubmittedWorkDone(_ queue: WebGPU.Metal.Queue, _ deviceIsUsable: Bool, _ callback: inout WTF.BoolCompletionHandler) {
         let handler = BoolCompletionHandlerBox(exchange(&callback, with: WTF.BoolCompletionHandler()))
         onSubmittedWorkDone(queue, deviceIsUsable: deviceIsUsable) { success in
@@ -1131,21 +1121,18 @@ final class QueueImpl {
 
     // MARK: Counter sample buffers, kept alive per command encoder until the shell's work item releases them.
 
-    @_expose(Cxx)
     func retainCounterSampleBuffers(_ encoderImpl: CommandEncoderImpl) -> UInt64 {
         let encoderHandle = encoderImpl.uniqueId
         retainedCounterSampleBuffers?[encoderHandle] = encoderImpl.timestampBuffers()
         return encoderHandle
     }
 
-    @_expose(Cxx)
     func releaseCounterSampleBuffers(_ encoderHandle: UInt64) {
         retainedCounterSampleBuffers?[encoderHandle] = nil
     }
 
     // MARK: submit
 
-    @_expose(Cxx)
     func appendCommandToSubmit(_ commandImpl: CommandBufferImpl) {
         commandsToSubmit.append(SubmittedCommand(impl: commandImpl))
     }
@@ -1170,7 +1157,6 @@ final class QueueImpl {
     }
 
     // The command buffers are the ones the shell just appended.
-    @_expose(Cxx)
     func submit(_ queue: WebGPU.Metal.Queue, _ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) {
         let commands = commandsToSubmit
         commandsToSubmit = []
@@ -1843,7 +1829,6 @@ final class QueueImpl {
 
     // Queue::clearTextureViewIfNeeded, for bind groups: zero-fills, on the staging command buffer committed at once, every
     // uninitialized region the view covers. False when one could not be zero-filled.
-    @_expose(Cxx)
     func clearTextureIfNeeded(
         _ queue: WebGPU.Metal.Queue,
         _ deviceImpl: DeviceImpl,
@@ -1932,7 +1917,6 @@ final class QueueImpl {
         return nil
     }
 
-    @_expose(Cxx)
     func writeTexture(
         _ queue: WebGPU.Metal.Queue,
         _ device: WebGPU.Metal.Device,
@@ -1961,7 +1945,6 @@ final class QueueImpl {
     }
 
     // writeTexture() of all of `owner`'s bytes, `data`.
-    @_expose(Cxx)
     func writeTextureFromOwner(
         _ queue: WebGPU.Metal.Queue,
         _ device: WebGPU.Metal.Device,

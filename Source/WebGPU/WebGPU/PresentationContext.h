@@ -27,53 +27,11 @@
 
 #import <CoreGraphics/CoreGraphics.h>
 #import <Metal/Metal.h>
-#import <WebGPU/WebGPUCpp.h>
-#import <wtf/FastMalloc.h>
-#import <wtf/Ref.h>
-#import <wtf/RetainPtr.h>
-#import <wtf/Seconds.h>
-#import <wtf/TZoneMalloc.h>
-#import <wtf/TypeCasts.h>
-
-
 
 namespace WebGPU::Metal {
 
-class Device;
-class Instance;
-class Texture;
-
-class PresentationContext : public WebGPU::PresentationContext {
-    WTF_MAKE_TZONE_ALLOCATED(PresentationContext);
-public:
-    static Ref<PresentationContext> create(const WebGPU::PresentationContextDescriptor&, const Instance&);
-
-    virtual ~PresentationContext();
-
-    void configure(const WebGPU::CanvasConfiguration&) override;
-    void unconfigure() override;
-
-    void present(uint32_t) override;
-    // The texture is owned by the presentation context.
-    virtual Texture* currentTexture(uint32_t);
-    RefPtr<WebGPU::Texture> getCurrentTexture(uint32_t) final;
-
-    Seconds lastFrameGPUCost() const override { return 0_s; }
-    Seconds lastFramePresentStall() const override { return 0_s; }
-
-    RetainPtr<CGImageRef> getTextureAsNativeImage(uint32_t, bool&) override { return nullptr; }
-
-    void setLabel(String&&) override { }
-    bool isValid() const override { return false; }
-    // Gives Swift the context's Impl, through receiveImpl(), if it has one.
-    virtual void deliverSwiftImpl() { }
-protected:
-    explicit PresentationContext();
-};
-
 // For PresentationContextIOSurface.swift, which cannot copy raw bytes, set the deprecated fastMathEnabled or call the
-// variadic WTFLogAlways. Declared here because PresentationContextIOSurface.h is not a Swift module header; defined in
-// PresentationContextIOSurface.mm.
+// variadic WTFLogAlways. Defined in PresentationContextIOSurface.mm.
 // nil, logged, when Metal reports any error, including warnings alongside a library.
 id<MTLLibrary> compileLibraryWithFastMath(id<MTLDevice>, NSString *source);
 // nullptr when the bytes cannot be allocated.

@@ -25,7 +25,6 @@
 
 #pragma once
 
-#import "BindGroupLayout.h"
 #import "BindableResource.h"
 #import <WebGPU/WebGPUCpp.h>
 #import <cstddef>
@@ -39,18 +38,9 @@
 #import <wtf/Vector.h>
 #import <wtf/WeakPtr.h>
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class BindGroupImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
 
-class BindGroupLayout;
 class Device;
-class ExternalTexture;
-class Sampler;
 
 struct ExternalTextureIndices {
     NSUInteger containerIndex { NSNotFound };
@@ -77,40 +67,5 @@ void copyArgumentEncoderLabel(id<MTLArgumentEncoder>, id<MTLBuffer>);
 // removes -operation - 1, and INT64_MIN clears; `keys` receives the keys in iteration order, and the result is the set's
 // size.
 size_t wtfHashSetOrderForOperations(std::span<const int64_t> operations NOESCAPE, std::span<uint32_t> keys NOESCAPE);
-
-// https://gpuweb.github.io/gpuweb/#gpubindgroup
-// BindGroup.swift owns the resources, argument buffers, samplers, dynamic buffers, validation cache and the Device, and
-// runs creation and every check.
-class BindGroup final : public WebGPU::BindGroup {
-    WTF_MAKE_TZONE_ALLOCATED(BindGroup);
-public:
-#if !defined(__swift__)
-    // `makeImpl` returns the WebGPU::BindGroupImpl. Defined in BindGroup.mm.
-    template<typename MakeImpl> static Ref<BindGroup> create(MakeImpl&&);
-#endif
-    static Ref<BindGroup> createInvalid(Device&);
-
-    ~BindGroup();
-
-    void setLabel(String&&) final;
-
-    bool LEGACY_NODELETE isValid() const final;
-    bool updateExternalTextures(WebGPU::ExternalTexture&) final;
-
-#if !defined(__swift__)
-    WebGPUSwift::BindGroupImpl& swiftImpl() const LIFETIME_BOUND;
-    // Borrowed from the Impl, which holds the reference.
-    Device& device() const;
-#endif
-
-private:
-#if !defined(__swift__)
-    template<typename MakeImpl> explicit BindGroup(MakeImpl&&);
-#endif
-
-    // The Swift object: one generated WebGPU::BindGroupImpl, a single strong reference. BindGroup.mm, where the generated
-    // header is includable, builds it in place in the constructor and destroys it in the destructor.
-    alignas(void*) std::byte m_impl[sizeof(void*)];
-};
 
 } // namespace WebGPU::Metal

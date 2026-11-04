@@ -26,14 +26,10 @@
 #import "config.h"
 #import "Queue.h"
 
-#import "APIConversions.h"
 #import "Buffer.h"
-#import "CommandBuffer.h"
 #import "CommandEncoder.h"
 #import "Device.h"
-#import "IsValidToUseWith.h"
 #import "Texture.h"
-#import "TextureView.h"
 #import <wtf/BlockPtr.h>
 #import <wtf/Borrow.h>
 #import <wtf/Box.h>
@@ -156,24 +152,6 @@ void Queue::makeInvalid()
     m_impl->impl.makeInvalid(this);
 }
 
-static bool isUsable(const RefPtr<Device>& device)
-{
-    return device && device->isValid() && !device->isLost();
-}
-
-// The device stays referenced for the call.
-void Queue::onSubmittedWorkDone(CompletionHandler<void(bool)>&& callback)
-{
-    RefPtr device = m_device;
-    m_impl->impl.onSubmittedWorkDone(this, isUsable(device), callback);
-}
-
-void Queue::onSubmittedWorkScheduled(Function<void()>&& completionHandler)
-{
-    RefPtr device = m_device;
-    m_impl->impl.onSubmittedWorkScheduled(this, isUsable(device), completionHandler);
-}
-
 void Queue::waitForAllCommitedWorkToComplete()
 {
     m_impl->impl.waitForAllCommittedWorkToComplete();
@@ -262,27 +240,6 @@ void Queue::addCommitHandlers(id<MTLCommandBuffer> commandBuffer)
     });
 }
 
-void Queue::submit(Vector<Ref<WebGPU::Metal::CommandBuffer>>&& commands)
-{
-    RefPtr device = m_device;
-    if (!device)
-        return;
-
-    for (Ref command : commands)
-        m_impl->impl.appendCommandToSubmit(command->swiftImpl());
-    m_impl->impl.submit(this, device.get(), device->swiftImpl());
-}
-
-uint64_t Queue::retainCounterSampleBuffer(CommandEncoder& encoder)
-{
-    return m_impl->impl.retainCounterSampleBuffers(encoder.swiftImpl());
-}
-
-void Queue::releaseCounterSampleBuffer(uint64_t encoderHandle)
-{
-    m_impl->impl.releaseCounterSampleBuffers(encoderHandle);
-}
-
 void Queue::synchronizeResourceAndWait(id<MTLBuffer> buffer)
 {
 #if PLATFORM(MAC) || PLATFORM(MACCATALYST)
@@ -312,17 +269,6 @@ void writeBufferContents(id<MTLBuffer> buffer, uint64_t bufferOffset, std::span<
 #else
     UNUSED_PARAM(isManaged);
 #endif
-}
-
-void Queue::writeBuffer(Buffer& buffer, uint64_t bufferOffset, std::span<uint8_t> data)
-{
-    RefPtr device = m_device;
-    if (!device)
-        return;
-
-    if (m_impl->impl.writeBufferWithoutStaging(device->swiftImpl(), buffer.swiftImpl(), bufferOffset, QueueBytes { data }))
-        return;
-    m_impl->impl.stageBufferWrite(this, device.get(), device->swiftImpl(), buffer.buffer(), bufferOffset, QueueBytes { data });
 }
 
 id<MTLBuffer> newBufferAliasingOwner(const Device& device, const WebGPU::ByteOwner& owner, uint64_t offset, uint64_t length)
@@ -367,13 +313,6 @@ void Queue::clearBuffer(id<MTLBuffer> buffer, NSUInteger offset, NSUInteger size
     m_impl->impl.clearBuffer(this, buffer, offset, size);
 }
 
-Ref<Device> Queue::device() const
-{
-    RefPtr device = m_device;
-    RELEASE_ASSERT(device);
-    return device.releaseNonNull();
-}
-
 Device* Queue::retainedDevice() const
 {
     RefPtr device = m_device;
@@ -384,16 +323,6 @@ void Queue::generateAValidationError(String&& message)
 {
     if (RefPtr device = m_device.get())
         device->generateAValidationError(WTF::move(message));
-}
-
-void Queue::writeTexture(const WebGPU::TexelCopyTextureInfo& destination, std::span<uint8_t> data, const WebGPU::TexelCopyBufferLayout& dataLayout, const WebGPU::Extent3D& size, bool skipValidation)
-{
-    RefPtr device = m_device;
-    if (!device)
-        return;
-
-    Ref texture = metal(destination.texture);
-    m_impl->impl.writeTexture(this, device.get(), device->swiftImpl(), texture->swiftImpl(), destination, QueueBytes { data }, dataLayout, size, skipValidation);
 }
 
 // The bytes replaceRegion:mipmapLevel:slice:withBytes:bytesPerRow:bytesPerImage: reads: each of the region's images,
@@ -506,80 +435,6 @@ CleanTexCoords cleanTexCoords(CVMetalTextureRef texture)
     return { .lowerLeftX = lowerLeft[0], .lowerRightY = lowerRight[1], .upperRightX = upperRight[0], .upperLeftY = upperLeft[1] };
 }
 #endif
-
-void Queue::copyExternalImageToTexture(const WebGPU::ImageCopyExternalImage& source, const WebGPU::ImageCopyTextureTagged& destination, const WebGPU::Extent3D& copySize)
-{
-    // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture
-    RefPtr device = m_device;
-    if (!device)
-        return;
-
-    CopyExternalImageSource parameters {
-        .sourceFormat = source.sourceFormat,
-        .sourceSize = source.sourceSize,
-        .pixelBufferRotation = source.pixelBufferRotation,
-        .pixelBufferIsMirrored = source.pixelBufferIsMirrored,
-        .origin = source.origin,
-        .flipY = source.flipY,
-        .hasAlpha = source.hasAlpha,
-        .premultipliedAlpha = source.premultipliedAlpha,
-        .colorSpace = source.colorSpace,
-    };
-    Ref texture = metal(destination.texture);
-    m_impl->impl.copyExternalImageToTexture(this, device.get(), device->swiftImpl(), texture->swiftImpl(), parameters, source.source.get(), source.pixelBuffer.get(), destination, copySize);
-}
-
-void Queue::setLabel(String&& label)
-{
-    m_impl->impl.setLabel(label.createNSString().get());
-}
-
-void Queue::submit(Vector<Ref<WebGPU::CommandBuffer>>&& commands)
-{
-    submit(WTF::map(commands, [](auto& command) {
-        return Ref { downcast<CommandBuffer>(command) };
-    }));
-}
-
-void Queue::onSubmittedWorkDone(CompletionHandler<void()>&& callback)
-{
-    onSubmittedWorkDone(CompletionHandler<void(bool)> { [callback = WTF::move(callback)](bool) mutable {
-        callback();
-    } });
-}
-
-// The WebGPU::Metal writes only read `data`, and are done with it when they return.
-void Queue::writeBuffer(WebGPU::Buffer& buffer, uint64_t bufferOffset, std::span<const uint8_t> data)
-{
-    writeBuffer(downcast<Buffer>(buffer), bufferOffset, spanConstCast<uint8_t>(data));
-}
-
-void Queue::writeTexture(const WebGPU::TexelCopyTextureInfo& destination, std::span<const uint8_t> data, const WebGPU::TexelCopyBufferLayout& dataLayout, const WebGPU::Extent3D& writeSize)
-{
-    writeTexture(destination, spanConstCast<uint8_t>(data), dataLayout, writeSize, false);
-}
-
-void Queue::writeBuffer(WebGPU::Buffer& buffer, uint64_t bufferOffset, Ref<WebGPU::ByteOwner>&& data)
-{
-    RefPtr device = m_device;
-    if (!device)
-        return;
-
-    auto& metalBuffer = downcast<Buffer>(buffer);
-    if (m_impl->impl.writeBufferWithoutStaging(device->swiftImpl(), metalBuffer.swiftImpl(), bufferOffset, QueueBytes { data->span() }))
-        return;
-    m_impl->impl.stageBufferWriteFromOwner(this, device.get(), device->swiftImpl(), metalBuffer.buffer(), bufferOffset, QueueBytes { data->span() }, data.ptr());
-}
-
-void Queue::writeTexture(const WebGPU::TexelCopyTextureInfo& destination, Ref<WebGPU::ByteOwner>&& data, const WebGPU::TexelCopyBufferLayout& dataLayout, const WebGPU::Extent3D& writeSize)
-{
-    RefPtr device = m_device;
-    if (!device)
-        return;
-
-    Ref texture = metal(destination.texture);
-    m_impl->impl.writeTextureFromOwner(this, device.get(), device->swiftImpl(), texture->swiftImpl(), destination, QueueBytes { data->span() }, data.ptr(), dataLayout, writeSize);
-}
 
 void Queue::scheduleWork(Instance::WorkItem&& workItem)
 {

@@ -30,7 +30,6 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Instance
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.ShaderModule
-@_implementationOnly import WebGPU_Internal.XRSubImage
 import WebGPU_Private.WebGPUCpp
 
 /// A strong reference to a C++ shell that follows the usual Swift parameter conventions.
@@ -98,11 +97,6 @@ final class DeviceImpl {
     private var lastBindGroupId: UInt32 = 0
     // Pairs of bind group layout ids (low and high 32 bits) known to be compatible. Lookups only: its order never shows.
     private var bindGroupCompatibilityCache = WTFHashSet<UInt64>()
-    // The staged-Impl handoff of the pipelines and textures: Swift stages an Impl it made, then the shell's
-    // createWithStagedImpl takes it back and wraps it. Synchronous, on the API thread, never nested.
-    var stagedRenderPipelineImpl: RenderPipelineImpl?
-    var stagedComputePipelineImpl: ComputePipelineImpl?
-    var stagedTextureImpl: TextureImpl?
     // The scheduler of the Instance of the device's adapter, if it had one when the device was made: the asynchronous
     // pipeline compiles hop back through it.
     private var instanceSchedulerHandle: InstanceSchedulerHandle?
@@ -131,7 +125,6 @@ final class DeviceImpl {
     // Whether the Instance had a web process to attribute resources to when the device was made. The Instance's web
     // process never changes and a gone Instance never comes back, so without one nothing is ever attributed.
     private let attributesResources: Bool
-    private var xrSubImages: [WebGPU.Metal.XRSubImage] = []
     @_expose(!Cxx)
     private(set) var xrSubImageImpl: XRSubImageImpl?
     // The debug encoder timestamps: each command buffer's counter sample buffers until its last encoder ends, then the
@@ -229,7 +222,6 @@ final class DeviceImpl {
     // MARK: Callbacks. The shell hands a C++ CompletionHandler over by moving it out of `callback`, and passes
     // whether it was set (an empty handler registers nothing).
 
-    @_expose(Cxx)
     func resolveDeviceLostPromise(_ callback: inout WebGPU.Metal.DeviceLostCallback, _ hasCallback: Bool) {
         let box = PendingCallback(exchange(&callback, with: WebGPU.Metal.DeviceLostCallback()))
         resolveDeviceLostPromise(
@@ -256,7 +248,6 @@ final class DeviceImpl {
         }
     }
 
-    @_expose(Cxx)
     func resolveUncapturedErrorEvent(_ callback: inout WebGPU.Metal.UncapturedErrorCallback, _ hasCallback: Bool) {
         let box = PendingCallback(exchange(&callback, with: WebGPU.Metal.UncapturedErrorCallback()))
         resolveUncapturedErrorEvent(hasCallback ? { success, error in callUncapturedErrorCallback(box, success, error) } : nil)
@@ -284,7 +275,6 @@ final class DeviceImpl {
 
     // MARK: Error scopes
 
-    @_expose(Cxx)
     func pushErrorScope(_ filter: WebGPU.ErrorFilter) {
         errorScopes.append(ErrorScope(filter: filter, error: nil))
     }
@@ -328,7 +318,6 @@ final class DeviceImpl {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope
     // A lost device completes as a scope without errors; an empty stack fails. Without an Instance to call back on, the
     // scope's error is dropped and the callback runs now.
-    @_expose(Cxx)
     func popErrorScope(_ callback: inout WebGPU.Metal.UncapturedErrorCallback, _ instance: WebGPU.Metal.Instance?) {
         let box = PendingCallback(exchange(&callback, with: WebGPU.Metal.UncapturedErrorCallback()))
         popErrorScope(instance) { success, error in
@@ -380,7 +369,6 @@ final class DeviceImpl {
     // MARK: Capabilities
 
     // WebGPU::Device::limits(), by value.
-    @_expose(Cxx)
     func deviceLimits() -> WebGPU.Limits {
         capabilities.limits
     }
@@ -390,7 +378,6 @@ final class DeviceImpl {
         capabilities.hasFeature(feature)
     }
 
-    @_expose(Cxx)
     func copyFeatures(_ destination: inout WebGPU.Metal.FeatureNames) {
         for feature in capabilities.features {
             destination.append(consuming: feature)
@@ -424,17 +411,14 @@ final class DeviceImpl {
 
     // The slots the shader compiler puts the dynamic offsets in: the ones the encoders send them to. Only for a valid
     // device (Device::createShaderModule checks first).
-    @_expose(Cxx)
     func maxBuffersPlusVertexBuffersForVertexStage() -> UInt32 {
         limits.slots.vertexDynamicOffsets.rawValue
     }
 
-    @_expose(Cxx)
     func maxBuffersForFragmentStage() -> UInt32 {
         limits.slots.fragmentDynamicOffsets.rawValue
     }
 
-    @_expose(Cxx)
     func maxBuffersForComputeStage() -> UInt32 {
         limits.slots.computeDynamicOffsets.rawValue
     }
@@ -504,7 +488,6 @@ final class DeviceImpl {
         safeCreateBuffer(length, .shared, skipAttribution)
     }
 
-    @_expose(Cxx)
     func newTextureWithDescriptor(_ descriptor: MTLTextureDescriptor, _ ioSurface: IOSurfaceRef?, _ plane: UInt) -> (any MTLTexture)? {
         let texture =
             if let ioSurface {
@@ -523,7 +506,6 @@ final class DeviceImpl {
         backingPlaceholderBuffer
     }
 
-    @_expose(Cxx)
     func placeholderTexture(_ depthOrStencil: Bool) -> (any MTLTexture)? {
         depthOrStencil ? backingPlaceholderDepthStencilTexture : backingPlaceholderTexture
     }
@@ -726,35 +708,6 @@ final class DeviceImpl {
         }
     }
 
-    // MARK: Staged Impls (see stagedBindGroupLayoutImpl)
-
-    @_expose(Cxx)
-    func takeStagedTextureImpl() -> TextureImpl {
-        guard let impl = stagedTextureImpl else {
-            preconditionFailure("No staged TextureImpl")
-        }
-        stagedTextureImpl = nil
-        return impl
-    }
-
-    @_expose(Cxx)
-    func takeStagedRenderPipelineImpl() -> RenderPipelineImpl {
-        guard let impl = stagedRenderPipelineImpl else {
-            preconditionFailure("No staged RenderPipelineImpl")
-        }
-        stagedRenderPipelineImpl = nil
-        return impl
-    }
-
-    @_expose(Cxx)
-    func takeStagedComputePipelineImpl() -> ComputePipelineImpl {
-        guard let impl = stagedComputePipelineImpl else {
-            preconditionFailure("No staged ComputePipelineImpl")
-        }
-        stagedComputePipelineImpl = nil
-        return impl
-    }
-
     // MARK: The Instance's scheduler
 
     @_expose(Cxx)
@@ -792,20 +745,8 @@ final class DeviceImpl {
     }
 
     @_expose(Cxx)
-    func installXRSubImage(_ subImage: WebGPU.Metal.XRSubImage, _ subImageImpl: XRSubImageImpl) {
-        xrSubImages = [subImage]
+    func installXRSubImage(_ subImageImpl: XRSubImageImpl) {
         xrSubImageImpl = subImageImpl
-    }
-
-    @_expose(Cxx)
-    func hasXRSubImage() -> Bool {
-        !xrSubImages.isEmpty
-    }
-
-    // Only when hasXRSubImage().
-    @_expose(Cxx)
-    func xrSubImage() -> WebGPU.Metal.XRSubImage {
-        xrSubImages[0]
     }
 
     @_expose(Cxx)

@@ -25,7 +25,6 @@ import Foundation
 import Metal
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.RenderBundle
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
 import WebGPU_Private.WebGPUCpp
@@ -119,7 +118,6 @@ public final class RenderBundleImpl: GPUObjectReference {
         replay.isEncoder || isICBBundle
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: NSString) {
         setLabel(label as String)
     }

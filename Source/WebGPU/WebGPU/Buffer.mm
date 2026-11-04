@@ -26,12 +26,9 @@
 #import "config.h"
 #import "Buffer.h"
 
-#import "APIConversions.h"
 #import "BindGroup.h"
-#import "CommandBuffer.h"
 #import "CommandEncoder.h"
 #import "Device.h"
-#import "RenderBundle.h"
 
 #import <wtf/Borrow.h>
 #import <wtf/CheckedArithmetic.h>
@@ -48,12 +45,6 @@
 
 namespace WebGPU::Metal {
 
-struct BufferImplBox {
-    WTF_MAKE_STRUCT_TZONE_ALLOCATED(BufferImplBox);
-    WebGPUSwift::BufferImpl impl;
-};
-WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(BufferImplBox);
-
 // The whole Ts of the buffer's contents from byteOffset on, through cpuVisibleContents(), which RELEASE_ASSERTs that a
 // non-empty buffer has a CPU-visible base address.
 template <typename T>
@@ -64,175 +55,6 @@ static inline std::span<T> span(id<MTLBuffer> buffer, uint64_t byteOffset = 0)
         return { };
     bytes = bytes.subspan(byteOffset);
     return spanReinterpretCast<T>(bytes.first(bytes.size() - bytes.size() % sizeof(T)));
-}
-
-// Swift validates the descriptor, reports the errors and creates the MTLBuffer.
-RefPtr<WebGPU::Buffer> Device::createBuffer(const WebGPU::BufferDescriptor& descriptor)
-{
-    BufferParameters parameters {
-        .size = descriptor.size,
-        .usage = descriptor.usage.toRaw(),
-        .mappedAtCreation = descriptor.mappedAtCreation,
-    };
-    return Buffer::create(createBufferImpl(this, swiftImpl(), parameters, descriptor.label));
-}
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(Buffer);
-
-Ref<Buffer> Buffer::create(const WebGPUSwift::BufferImpl& impl)
-{
-    auto box = makeUnique<BufferImplBox>(BufferImplBox { .impl = impl });
-    return adoptRef(*new Buffer(WTF::move(box)));
-}
-
-Ref<Buffer> Buffer::createInvalid(Device& device)
-{
-    return create(makeInvalidBufferImpl(&device, device.swiftImpl()));
-}
-
-Buffer::Buffer(std::unique_ptr<BufferImplBox>&& impl)
-    : m_impl(WTF::move(impl))
-{
-}
-
-Buffer::~Buffer() = default;
-
-WebGPUSwift::BufferImpl& Buffer::swiftImpl() const
-{
-    return m_impl->impl;
-}
-
-Device& Buffer::device() const
-{
-    return borrowSwiftRetained(m_impl->impl.shellDevice());
-}
-
-void Buffer::destroy()
-{
-    crashIfBorrowed();
-
-    m_impl->impl.destroy();
-}
-
-static uint64_t LEGACY_NODELETE computeRangeSize(uint64_t size, uint64_t offset)
-{
-    auto result = checkedDifference<uint64_t>(size, offset);
-    if (result.hasOverflowed())
-        return 0;
-    return result.value();
-}
-
-// The offset and size of a mapped range as size_t. std::nullopt when either does not fit in size_t
-// (32-bit platforms): no buffer is that large, so such a range is out of bounds.
-static std::optional<std::pair<size_t, size_t>> LEGACY_NODELETE mappedRangeOffsetAndSize(uint64_t bufferSize, uint64_t offset, std::optional<uint64_t> size)
-{
-    uint64_t rangeSize = size ? *size : computeRangeSize(bufferSize, offset);
-    if (!isInBounds<size_t>(offset) || !isInBounds<size_t>(rangeSize))
-        return std::nullopt;
-    return std::pair { static_cast<size_t>(offset), static_cast<size_t>(rangeSize) };
-}
-
-void Buffer::getMappedRange(uint64_t offset, std::optional<uint64_t> size, NOESCAPE const Function<void(std::span<uint8_t>)>& callback)
-{
-    callback(getMappedRangeSpan(offset, size));
-}
-
-std::span<uint8_t> Buffer::getMappedRangeSpan(uint64_t apiOffset, std::optional<uint64_t> size)
-{
-    // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange
-    auto offsetAndSize = mappedRangeOffsetAndSize(initialSize(), apiOffset, size);
-    if (!offsetAndSize)
-        return { };
-    auto [offset, rangeSize] = *offsetAndSize;
-
-    // Swift validated the range against [[mapping]], which lies within the MTLBuffer it keeps alive.
-    if (!m_impl->impl.reserveMappedRange(offset, rangeSize))
-        return { };
-    return getBufferContents().subspan(offset, rangeSize);
-}
-
-std::span<uint8_t> Buffer::mappedRangeForCAPI(uint64_t apiOffset, std::optional<uint64_t> size)
-{
-    auto offsetAndSize = mappedRangeOffsetAndSize(initialSize(), apiOffset, size);
-    if (!offsetAndSize)
-        return { };
-    auto [offset, rangeSize] = *offsetAndSize;
-
-    if (!m_impl->impl.validateMappedRangeForCAPI(offset, rangeSize))
-        return { };
-    return getBufferContents().subspan(offset, rangeSize);
-}
-
-std::span<uint8_t> Buffer::getBufferContents()
-{
-    return span<uint8_t>(buffer());
-}
-
-void Buffer::copyFrom(std::span<const uint8_t> data, size_t offset)
-{
-    if (data.empty())
-        return;
-    auto contents = getBufferContents();
-    RELEASE_ASSERT(offset <= contents.size());
-    memcpySpan(contents.subspan(offset), data);
-}
-
-// Swift validates, reports the errors and registers the mapping with the queue's submitted work.
-void Buffer::mapAsync(OptionSet<WebGPU::MapMode> mode, uint64_t apiOffset, std::optional<uint64_t> size, CompletionHandler<void(bool)>&& callback)
-{
-    auto offsetAndSize = mappedRangeOffsetAndSize(initialSize(), apiOffset, size);
-    auto [offset, rangeSize] = offsetAndSize.value_or(std::pair<size_t, size_t> { });
-    m_impl->impl.mapAsync(mode.toRaw(), !!offsetAndSize, offset, rangeSize, callback);
-}
-
-void Buffer::unmap()
-{
-    m_impl->impl.unmap();
-}
-
-void Buffer::setLabel(String&& label)
-{
-    m_impl->impl.setLabel(WTF::move(label));
-}
-
-void Buffer::generateAValidationError()
-{
-    generateAValidationError("Buffer state was not unmapped"_s);
-}
-
-void Buffer::generateAValidationError(String&& message)
-{
-    device().generateAValidationError(WTF::move(message));
-}
-
-id<MTLBuffer> Buffer::buffer() const
-{
-    return m_impl->impl.buffer();
-}
-
-uint64_t Buffer::initialSize() const
-{
-    return m_impl->impl.initialSize();
-}
-
-OptionSet<WebGPU::BufferUsage> Buffer::usage() const
-{
-    return OptionSet<WebGPU::BufferUsage>::fromRaw(m_impl->impl.usageRawValue());
-}
-
-Buffer::State Buffer::state() const
-{
-    return static_cast<State>(m_impl->impl.stateRawValue());
-}
-
-bool Buffer::isValid() const
-{
-    return m_impl->impl.isValid();
-}
-
-static uint64_t indirectCommandBufferKey(id<MTLIndirectCommandBuffer> icb)
-{
-    return icb.gpuResourceID._impl;
 }
 
 template <typename T>
@@ -349,26 +171,6 @@ NSMutableData* clearIndexBufferContents(Queue& queue, id<MTLBuffer> mtlBuffer)
     ALLOW_DEPRECATED_DECLARATIONS_END
 #endif
     return priorData;
-}
-
-bool Buffer::didReadOOB(id<MTLIndirectCommandBuffer> icb) const
-{
-    return m_impl->impl.didReadOOB(indirectCommandBufferKey(icb));
-}
-
-bool Buffer::allIndexValuesBelow(MTLIndexType indexType, uint32_t vertexCount) const
-{
-    return m_impl->impl.allIndexValuesBelow(indexType == MTLIndexTypeUInt16, vertexCount);
-}
-
-uint64_t Buffer::contentsGeneration() const
-{
-    return m_impl->impl.contentsGeneration();
-}
-
-uint64_t Buffer::indexContentsGeneration() const
-{
-    return m_impl->impl.indexContentsGeneration();
 }
 
 } // namespace WebGPU::Metal

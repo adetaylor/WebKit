@@ -42,13 +42,6 @@
 
 namespace WebGPU::Metal {
 
-class BindGroup;
-class Buffer;
-class ExternalTexture;
-class RenderBundle;
-class Texture;
-class TextureView;
-
 // The layout the indirect-command-buffer clamp shader declares for its index data.
 struct IndexData {
     uint64_t renderCommand { 0 };

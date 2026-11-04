@@ -72,8 +72,6 @@ public final class ShaderModuleImpl: GPUObjectReference {
     // Declared last, so that the device outlives the rest of the module.
     let deviceImpl: DeviceImpl
     let device: WebGPU.Metal.Device
-    @_expose(Cxx)
-    func shellDevice() -> WebGPU.Metal.Device { device }
 
     init(
         checkedModule: CheckedModuleBox?,
@@ -112,41 +110,6 @@ public final class ShaderModuleImpl: GPUObjectReference {
     @_expose(Cxx)
     public func isValid() -> Bool {
         checkedModule != nil
-    }
-
-    @_expose(Cxx)
-    func compilationMessageCount() -> Int {
-        messages.count
-    }
-
-    @_expose(Cxx)
-    func compilationErrorCount() -> Int {
-        errorCount
-    }
-
-    @_expose(Cxx)
-    func compilationMessageText(_ index: Int) -> WTF.String {
-        messages[index].text
-    }
-
-    @_expose(Cxx)
-    func compilationMessageLineNumber(_ index: Int) -> UInt32 {
-        messages[index].lineNumber
-    }
-
-    @_expose(Cxx)
-    func compilationMessageLineOffset(_ index: Int) -> UInt32 {
-        messages[index].lineOffset
-    }
-
-    @_expose(Cxx)
-    func compilationMessageOffset(_ index: Int) -> UInt32 {
-        messages[index].offset
-    }
-
-    @_expose(Cxx)
-    func compilationMessageLength(_ index: Int) -> UInt32 {
-        messages[index].length
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo: errors first, then warnings. What
@@ -426,7 +389,6 @@ extension ShaderModuleImpl {
 // MARK: - Creation
 
 // For Device::createShaderModule, after its device check.
-@_expose(Cxx)
 func createShaderModuleImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
@@ -486,7 +448,6 @@ private func createShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl:
     return impl
 }
 
-@_expose(Cxx)
 func makeInvalidShaderModuleImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ShaderModuleImpl {
     ShaderModuleImpl(checkedModule: nil, errors: [], warnings: [], device: device, deviceImpl: deviceImpl)
 }

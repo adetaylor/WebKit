@@ -26,7 +26,6 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Texture
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
-@_implementationOnly import WebGPU_Internal.XRSubImage
 import WebGPU_Private.WebGPUCpp
 
 // The color and depth textures of a device's XR sub-image, per reusable texture index, kept in step with the
@@ -36,8 +35,8 @@ import WebGPU_Private.WebGPUCpp
 // non-optional getter.
 @_expose(Cxx)
 final class XRSubImageImpl {
-    private var colorTextures: [UInt64: TextureShellAndImpl] = [:]
-    private var depthTextures: [UInt64: TextureShellAndImpl] = [:]
+    private var colorTextures: [UInt64: TextureImpl] = [:]
+    private var depthTextures: [UInt64: TextureImpl] = [:]
     private var currentTextureIndex: UInt64 = 0
 
     fileprivate init() {
@@ -86,39 +85,14 @@ final class XRSubImageImpl {
 
     @_expose(!Cxx)
     var currentColorTextureReference: TextureReference? {
-        colorTextures[currentTextureIndex].map(\.impl)
+        colorTextures[currentTextureIndex]
     }
 
     @_expose(!Cxx)
     var currentDepthTextureReference: TextureReference? {
-        depthTextures[currentTextureIndex].map(\.impl)
+        depthTextures[currentTextureIndex]
     }
 
-    @_expose(Cxx)
-    func hasCurrentColorTexture() -> Bool {
-        colorTextures[currentTextureIndex] != nil
-    }
-
-    @_expose(Cxx)
-    func currentColorTexture() -> WebGPU.Metal.Texture {
-        guard let texture = colorTextures[currentTextureIndex] else {
-            preconditionFailure("Only after hasCurrentColorTexture()")
-        }
-        return texture.shell
-    }
-
-    @_expose(Cxx)
-    func hasCurrentDepthTexture() -> Bool {
-        depthTextures[currentTextureIndex] != nil
-    }
-
-    @_expose(Cxx)
-    func currentDepthTexture() -> WebGPU.Metal.Texture {
-        guard let texture = depthTextures[currentTextureIndex] else {
-            preconditionFailure("Only after hasCurrentDepthTexture()")
-        }
-        return texture.shell
-    }
 }
 
 @_expose(Cxx)
@@ -189,7 +163,7 @@ private func makeXRTexture(
     _ viewFormat: WebGPU.TextureFormat,
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
-) -> TextureShellAndImpl {
+) -> TextureImpl {
     let parameters = twoDimensionalTextureParameters(
         format,
         usage: WebGPU.TextureUsage.RenderAttachment.rawValue,

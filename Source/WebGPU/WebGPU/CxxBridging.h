@@ -25,15 +25,23 @@
 
 #pragma once
 
+#include "Adapter.h"
 #include "BindGroup.h"
 #include "Buffer.h"
-#include "CommandBuffer.h"
+#include "CommandEncoder.h"
 #include "ComputePassEncoder.h"
+#include "ComputePipeline.h"
 #include "Device.h"
-#include "ExternalTexture.h"
 #include "Instance.h"
+#include "Pipeline.h"
+#include "PresentationContext.h"
+#include "Queue.h"
+#include "RenderBundleEncoder.h"
 #include "RenderPassEncoder.h"
+#include "RenderPipeline.h"
+#include "ShaderModule.h"
 #include "Texture.h"
+#include "XRProjectionLayer.h"
 #include <QuartzCore/CAMetalLayer.h>
 #include <optional>
 #include <span>

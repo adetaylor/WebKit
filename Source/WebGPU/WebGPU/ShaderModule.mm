@@ -26,7 +26,6 @@
 #import "config.h"
 #import "ShaderModule.h"
 
-#import "APIConversions.h"
 #import "Device.h"
 #import "RenderBundleEncoder.h"
 
@@ -69,12 +68,6 @@ IdentifierRanges icuIdentifierRanges(bool xidContinue)
 
 namespace WebGPU::Metal {
 
-struct ShaderModuleImplBox {
-    WTF_MAKE_STRUCT_TZONE_ALLOCATED(ShaderModuleImplBox);
-    WebGPUSwift::ShaderModuleImpl impl;
-};
-WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(ShaderModuleImplBox);
-
 // The compiler built without optimization needs a larger stack than the WebGPU thread's; it then runs on its own thread.
 void runOnWGSLCompileThread(NOESCAPE void (^work)(void))
 {
@@ -100,81 +93,6 @@ void sortInWTFHashTableOrder(std::span<uint32_t> keys NOESCAPE)
     size_t index = 0;
     for (auto key : table)
         keys[index++] = key;
-}
-
-RefPtr<WebGPU::ShaderModule> Device::createShaderModule(const WebGPU::ShaderModuleDescriptor& descriptor)
-{
-    if (!isValid())
-        return ShaderModule::createInvalid(*this);
-
-    // FIXME: re-enable early compilation of descriptor.hints later on once deferred compilation is fully implemented
-    // https://bugs.webkit.org/show_bug.cgi?id=254258
-    auto impl = makeUnique<ShaderModuleImplBox>(ShaderModuleImplBox {
-        .impl = WebGPUSwift::createShaderModuleImpl(this, swiftImpl(), descriptor)
-    });
-    return ShaderModule::create(WTF::move(impl));
-}
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(ShaderModule);
-
-Ref<ShaderModule> ShaderModule::create(std::unique_ptr<ShaderModuleImplBox>&& impl)
-{
-    return adoptRef(*new ShaderModule(WTF::move(impl)));
-}
-
-Ref<ShaderModule> ShaderModule::createInvalid(Device& device)
-{
-    auto impl = makeUnique<ShaderModuleImplBox>(ShaderModuleImplBox {
-        .impl = WebGPUSwift::makeInvalidShaderModuleImpl(&device, device.swiftImpl())
-    });
-    return adoptRef(*new ShaderModule(WTF::move(impl)));
-}
-
-ShaderModule::ShaderModule(std::unique_ptr<ShaderModuleImplBox>&& impl)
-    : m_impl(WTF::move(impl))
-{
-}
-
-ShaderModule::~ShaderModule() = default;
-
-bool ShaderModule::isValid() const
-{
-    return m_impl->impl.isValid();
-}
-
-WebGPUSwift::ShaderModuleImpl& ShaderModule::swiftImpl() const
-{
-    return m_impl->impl;
-}
-
-Device& ShaderModule::device() const
-{
-    return borrowSwiftRetained(m_impl->impl.shellDevice());
-}
-
-void ShaderModule::compilationInfo(CompletionHandler<void(WebGPU::CompilationInfo&&)>&& callback)
-{
-    auto& impl = m_impl->impl;
-    auto count = impl.compilationMessageCount();
-    auto errorCount = impl.compilationErrorCount();
-    WebGPU::CompilationInfo compilationInfo;
-    compilationInfo.messages.reserveInitialCapacity(static_cast<size_t>(count));
-    for (decltype(count) i = 0; i < count; ++i) {
-        compilationInfo.messages.append({
-            .message = impl.compilationMessageText(i),
-            .type = i < errorCount ? WebGPU::CompilationMessageType::Error : WebGPU::CompilationMessageType::Warning,
-            .lineNum = impl.compilationMessageLineNumber(i),
-            .linePos = impl.compilationMessageLineOffset(i) + 1,
-            .offset = impl.compilationMessageOffset(i),
-            .length = impl.compilationMessageLength(i),
-        });
-    }
-    callback(WTF::move(compilationInfo));
-}
-
-void ShaderModule::setLabel(String&&)
-{
-    // Nothing to label: the module has no Metal object of its own.
 }
 
 } // namespace WebGPU::Metal

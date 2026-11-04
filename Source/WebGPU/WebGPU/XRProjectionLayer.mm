@@ -26,7 +26,6 @@
 #import "config.h"
 #import "XRProjectionLayer.h"
 
-#import "APIConversions.h"
 #import "Device.h"
 #import "MetalSPI.h"
 #import <wtf/CheckedArithmetic.h>
@@ -85,12 +84,6 @@ SOFT_LINK_FUNCTION_FOR_SOURCE(WebCore, CompositorServices, cp_rasterization_rate
 
 
 namespace WebGPU::Metal {
-
-struct XRProjectionLayerImplBox {
-    WTF_MAKE_STRUCT_TZONE_ALLOCATED(XRProjectionLayerImplBox);
-    WebGPUSwift::XRProjectionLayerImpl impl;
-};
-WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(XRProjectionLayerImplBox);
 
 #if USE(APPLE_INTERNAL_SDK) && PLATFORM(VISION) && !PLATFORM(IOS_FAMILY_SIMULATOR)
 
@@ -152,78 +145,5 @@ NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>,
 }
 
 #endif
-
-Ref<XRProjectionLayer> XRProjectionLayer::create(const WebGPU::XRProjectionLayerDescriptor& descriptor, Device& device)
-{
-    XRProjectionLayerParameters parameters {
-        .colorFormat = descriptor.colorFormat,
-        .hasDepthStencilFormat = descriptor.depthStencilFormat.has_value(),
-        .depthStencilFormat = descriptor.depthStencilFormat.value_or(WebGPU::TextureFormat::Bgra8unorm),
-        .textureUsage = descriptor.textureUsage.toRaw(),
-        .scaleFactor = descriptor.scaleFactor,
-    };
-    auto box = makeUnique<XRProjectionLayerImplBox>(XRProjectionLayerImplBox { .impl = makeXRProjectionLayerImpl(parameters, &device, device.swiftImpl()) });
-    return adoptRef(*new XRProjectionLayer(WTF::move(box)));
-}
-
-XRProjectionLayer::XRProjectionLayer(std::unique_ptr<XRProjectionLayerImplBox>&& impl)
-    : m_impl(WTF::move(impl))
-{
-}
-
-XRProjectionLayer::~XRProjectionLayer() = default;
-
-WebGPUSwift::XRProjectionLayerImpl& XRProjectionLayer::swiftImpl() const
-{
-    return m_impl->impl;
-}
-
-void XRProjectionLayer::destroy()
-{
-    [m_colorTextures removeAllObjects];
-    [m_depthTextures removeAllObjects];
-    m_colorTexture = nil;
-    m_depthTexture = nil;
-    m_sharedEvent = std::make_pair(nil, 0);
-    m_rasterizationMapLeft = nil;
-    m_rasterizationMapRight = nil;
-
-    // The device keeps one XR subimage, which wraps the textures of the last layer it was updated
-    // from. Those wrappers retain the same compositor textures; update() rewraps them on demand.
-    if (RefPtr subImage = m_device->getXRViewSubImage())
-        subImage->releaseTextures();
-}
-
-void XRProjectionLayer::setLabel(String&&)
-{
-}
-
-bool XRProjectionLayer::isValid() const
-{
-    return true;
-}
-
-void XRProjectionLayer::startFrame(size_t frameIndex, WTF::MachSendRight&& colorBuffer, WTF::MachSendRight&& depthBuffer, WTF::MachSendRight&& completionSyncEvent, size_t reusableTextureIndex, unsigned screenWidth, unsigned screenHeight, Vector<float>&& horizontalSamplesLeft, Vector<float>&& horizontalSamplesRight, Vector<float>&& verticalSamples)
-{
-#if USE(APPLE_INTERNAL_SDK) && PLATFORM(VISION) && !PLATFORM(IOS_FAMILY_SIMULATOR)
-    m_impl->impl.startFrame(static_cast<uint64_t>(frameIndex), colorBuffer.sendRight(), depthBuffer.sendRight(), completionSyncEvent.sendRight(), static_cast<uint64_t>(reusableTextureIndex), screenWidth, screenHeight, WebGPU::XRRasterizationSamples { horizontalSamplesLeft.span() }, WebGPU::XRRasterizationSamples { horizontalSamplesRight.span() }, WebGPU::XRRasterizationSamples { verticalSamples.span() });
-#else
-    UNUSED_PARAM(frameIndex);
-    UNUSED_PARAM(colorBuffer);
-    UNUSED_PARAM(depthBuffer);
-    UNUSED_PARAM(completionSyncEvent);
-    UNUSED_PARAM(reusableTextureIndex);
-    UNUSED_PARAM(screenWidth);
-    UNUSED_PARAM(screenHeight);
-    UNUSED_PARAM(horizontalSamplesLeft);
-    UNUSED_PARAM(horizontalSamplesRight);
-    UNUSED_PARAM(verticalSamples);
-#endif
-}
-
-RefPtr<WebGPU::XRProjectionLayer> XRBinding::createProjectionLayer(const WebGPU::XRProjectionLayerDescriptor& descriptor)
-{
-    return XRProjectionLayer::create(descriptor, m_device);
-}
 
 } // namespace WebGPU::Metal

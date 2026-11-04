@@ -25,24 +25,16 @@ private import CxxStdlib
 import Metal
 @_implementationOnly import WebGPU_Internal.Adapter
 @_implementationOnly import WebGPU_Internal.BindGroup
-@_implementationOnly import WebGPU_Internal.BindGroupLayout
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.ExternalTexture
-@_implementationOnly import WebGPU_Internal.PipelineLayout
 @_implementationOnly import WebGPU_Internal.PresentationContext
 @_implementationOnly import WebGPU_Internal.Queue
-@_implementationOnly import WebGPU_Internal.RenderBundle
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
-@_implementationOnly import WebGPU_Internal.Sampler
 @_implementationOnly import WebGPU_Internal.ShaderModule
-@_implementationOnly import WebGPU_Internal.XRBinding
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
-@_implementationOnly import WebGPU_Internal.XRSubImage
-@_implementationOnly import WebGPU_Internal.XRView
 import WebGPU_Private.CxxBridgingPublic
 import WebGPU_Private.WebGPUCpp
 
@@ -79,17 +71,6 @@ enum BufferMapState {
     case mapped(BufferMapRequest)
     case mappedAtCreation(Range<UInt64>)
     case destroyed
-
-    /// WebGPU::Metal::Buffer::State, for C++.
-    var cxxState: WebGPU.Metal.Buffer.State {
-        switch self {
-        case .unmapped: .Unmapped
-        case .pending: .MappingPending
-        case .mapped: .Mapped
-        case .mappedAtCreation: .MappedAtCreation
-        case .destroyed: .Destroyed
-        }
-    }
 
     /// What unmap() undoes: a pending map or a mapping.
     var hasMapping: Bool {
@@ -165,8 +146,6 @@ public final class BufferImpl: GPUObjectReference {
     private var clearedForCommandBuffer: ObjectIdentifier?
     // Declared last, so that the device outlives the rest of the buffer.
     let device: WebGPU.Metal.Device
-    @_expose(Cxx)
-    func shellDevice() -> WebGPU.Metal.Device { device }
 
     fileprivate init(
         buffer: (any MTLBuffer)?,
@@ -190,26 +169,26 @@ public final class BufferImpl: GPUObjectReference {
         backingBuffer
     }
 
-    @_expose(Cxx)
     func initialSize() -> UInt64 {
         initialByteSize
     }
 
-    @_expose(Cxx)
     func currentSize() -> UInt64 {
         UInt64(backingBuffer?.length ?? 0)
     }
 
     // Raw value of OptionSet<WebGPU::BufferUsage>.
-    @_expose(Cxx)
     func usageRawValue() -> UInt16 {
         usageBits
     }
 
-    // Raw value of WebGPU::Metal::Buffer::State.
-    @_expose(Cxx)
-    func stateRawValue() -> UInt8 {
-        mapState.cxxState.rawValue
+    // Whether a mapAsync() is pending.
+    @_expose(!Cxx)
+    var isMappingPending: Bool {
+        if case .pending = mapState {
+            return true
+        }
+        return false
     }
 
     @_expose(Cxx)
@@ -233,7 +212,6 @@ public final class BufferImpl: GPUObjectReference {
         return false
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
         backingBuffer?.label = stringNilIfEmpty(label)
     }
@@ -310,7 +288,6 @@ public final class BufferImpl: GPUObjectReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync
     // `rangeFits` is false when the range does not fit in size_t, which only 32-bit platforms reach. The handler is
     // moved out of `callback`. Until the queue runs it, the completion holds the buffer.
-    @_expose(Cxx)
     func mapAsync(
         _ modeBits: UInt8,
         _ rangeFits: Bool,
@@ -419,7 +396,6 @@ public final class BufferImpl: GPUObjectReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange
     // Validates and records [offset, offset + rangeSize). Returns whether the shell may return that
     // part of the contents; the shell forms the span, so no pointer is made here.
-    @_expose(Cxx)
     func reserveMappedRange(_ offset: UInt64, _ rangeSize: UInt64) -> Bool {
         guard isValid(), let range = validatedMappedRange(offset, rangeSize) else {
             return false
@@ -431,18 +407,8 @@ public final class BufferImpl: GPUObjectReference {
         return buffer.storageMode != .private && buffer.storageMode != .memoryless && buffer.length != 0
     }
 
-    // reserveMappedRange() for the C API, whose ranges may overlap: they are pointers into the mapping, not
-    // ArrayBuffers that unmap detaches, so they are validated but not recorded.
-    @_expose(Cxx)
-    func validateMappedRangeForCAPI(_ offset: UInt64, _ rangeSize: UInt64) -> Bool {
-        guard isValid(), validatedMappedRangeBounds(offset, rangeSize) != nil, let buffer = backingBuffer else {
-            return false
-        }
-        return buffer.storageMode != .private && buffer.storageMode != .memoryless && buffer.length != 0
-    }
-
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
-    @_expose(Cxx)
+    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func unmap() {
         guard mapState.hasMapping else {
@@ -465,7 +431,6 @@ public final class BufferImpl: GPUObjectReference {
         mappedRanges = []
     }
 
-    @_expose(Cxx)
     func needsIndexValidation(_ maxUInt32Index: UInt32, _ maxUInt16Index: UInt16) -> Bool {
         // Nothing has been validated since the last invalidation, so there is no cached verdict whose
         // assumptions a write could break.
@@ -482,14 +447,12 @@ public final class BufferImpl: GPUObjectReference {
         return maxUInt32Index >= minValidatedVertexCount || UInt32(maxUInt16Index) >= minValidatedVertexCount
     }
 
-    @_expose(Cxx)
     func indexBufferContentsModified(_ maxUInt32Value: UInt32, _ maxUInt16Value: UInt16) {
         backingIndexContentsGeneration += 1
         indexValueUpperBoundUInt32 = max(indexValueUpperBoundUInt32, maxUInt32Value)
         indexValueUpperBoundUInt16 = max(indexValueUpperBoundUInt16, maxUInt16Value)
     }
 
-    @_expose(Cxx)
     func allIndexValuesBelow(_ isUInt16: Bool, _ vertexCount: UInt32) -> Bool {
         (isUInt16 ? UInt32(indexValueUpperBoundUInt16) : indexValueUpperBoundUInt32) < vertexCount
     }
@@ -502,12 +465,10 @@ public final class BufferImpl: GPUObjectReference {
         indexValueUpperBoundUInt16 = .max
     }
 
-    @_expose(Cxx)
     func contentsGeneration() -> UInt64 {
         backingContentsGeneration
     }
 
-    @_expose(Cxx)
     func indexContentsGeneration() -> UInt64 {
         backingIndexContentsGeneration
     }
@@ -594,7 +555,6 @@ public final class BufferImpl: GPUObjectReference {
         encoder.addCommitAction(.indirectBufferInvalidated(WeakBufferAndEncoder(buffer: self, encoder: encoder)))
     }
 
-    @_expose(Cxx)
     func indirectBufferInvalidatedWithoutEncoder() {
         indirectBufferInvalidated(nil)
     }
@@ -715,13 +675,11 @@ public final class BufferImpl: GPUObjectReference {
 
     // MARK: Out-of-bounds reads
 
-    @_expose(Cxx)
     func didReadOOB(_ commandBufferKey: UInt64) -> Bool {
         didReadOOBByCommandBuffer[commandBufferKey] ?? false
     }
 
     // Sticky: once a draw read out of bounds, it stays recorded.
-    @_expose(Cxx)
     func recordReadOOB(_ commandBufferKey: UInt64, _ didRead: Bool) {
         didReadOOBByCommandBuffer[commandBufferKey] = didRead || didReadOOB(commandBufferKey)
     }
@@ -800,7 +758,6 @@ func createBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _
 }
 
 // Device::createBuffer. https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
-@_expose(Cxx)
 func createBufferImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
@@ -835,7 +792,6 @@ func createBufferImpl(
     )
 }
 
-@_expose(Cxx)
 func makeInvalidBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> BufferImpl {
     BufferImpl(buffer: nil, size: 0, usageBits: 0, mappedAtCreation: false, device: device, deviceImpl: deviceImpl)
 }

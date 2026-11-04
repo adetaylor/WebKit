@@ -25,7 +25,6 @@ import Metal
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Texture
-@_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
 @_spi(WebKitGPU)
@@ -64,8 +63,6 @@ public final class TextureViewImpl: GPUObjectReference {
     var tracking = EncoderTracking()
     // The parent's device, with a reference of the view's own. Declared last, so that it outlives the rest of the view.
     let device: WebGPU.Metal.Device
-    @_expose(Cxx)
-    func shellDevice() -> WebGPU.Metal.Device { device }
 
     init(
         texture: (any MTLTexture)?,
@@ -95,7 +92,6 @@ public final class TextureViewImpl: GPUObjectReference {
         descriptor?.format ?? .Rgba8unorm
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
         setLabel(stringNilIfEmpty(label))
     }
@@ -122,7 +118,6 @@ public final class TextureViewImpl: GPUObjectReference {
         parentImpl.isDestroyed() ? parentImpl.texture() : backingTexture
     }
 
-    @_expose(Cxx)
     func sampledTexture() -> (any MTLTexture)? {
         if parentImpl.isDestroyed() {
             return parentImpl.texture()
@@ -130,7 +125,6 @@ public final class TextureViewImpl: GPUObjectReference {
         return backingSampledTexture ?? backingTexture
     }
 
-    @_expose(Cxx)
     func parentTexture() -> (any MTLTexture)? {
         parentImpl.texture()
     }
@@ -154,7 +148,6 @@ public final class TextureViewImpl: GPUObjectReference {
     }
 
     // TextureView::setCommandEncoder: the encoder holds the parent texture, not the view.
-    @_expose(Cxx)
     func setCommandEncoder(_ encoder: CommandEncoderImpl) {
         if !tracking.contains(encoder) {
             _ = tracking.add(encoder)
@@ -166,12 +159,10 @@ public final class TextureViewImpl: GPUObjectReference {
     }
 
     // 0 for an invalid view.
-    @_expose(Cxx)
     func parentRelativeMipLevel() -> UInt32 {
         UInt32(truncatingIfNeeded: backingTexture?.parentRelativeLevel ?? 0)
     }
 
-    @_expose(Cxx)
     func parentRelativeSlice() -> UInt32 {
         UInt32(truncatingIfNeeded: backingTexture?.parentRelativeSlice ?? 0)
     }
@@ -184,12 +175,10 @@ public final class TextureViewImpl: GPUObjectReference {
         return parentImpl.initRegions(mipLevel: baseMipLevel(), layer: baseArrayLayer(), aspect: requested == .All ? viewAspect : requested)
     }
 
-    @_expose(Cxx)
     func rasterizationMapForSlice(_ slice: UInt32) -> (any MTLRasterizationRateMap)? {
         parentImpl.rasterizationMapForSlice(slice)
     }
 
-    @_expose(Cxx)
     func hasDescriptor() -> Bool {
         descriptor != nil
     }
@@ -214,14 +203,12 @@ public final class TextureViewImpl: GPUObjectReference {
         parentImpl.backingSampleCount
     }
 
-    @_expose(Cxx)
     func parentMipLevelCount() -> UInt32 {
         parentImpl.backingMipLevelCount
     }
 
     // The WebGPU enums and the usage OptionSet cross back as raw values; the shell casts them. An invalid
     // view reports an arbitrary format and dimension, which only the validation that rejects it sees.
-    @_expose(Cxx)
     func parentFormat() -> UInt8 {
         parentImpl.formatOrDefault.rawValue
     }
@@ -270,7 +257,6 @@ public final class TextureViewImpl: GPUObjectReference {
 
     // True when the descriptor asked for a swizzle other than "rgba"; the base swizzle the format
     // imposes on top of that one does not count.
-    @_expose(Cxx)
     func hasSwizzle() -> Bool {
         guard let descriptor else {
             return false
@@ -279,23 +265,19 @@ public final class TextureViewImpl: GPUObjectReference {
     }
 
     // An invalid view has no dimension, so it is none of these (unlike dimension(), which defaults).
-    @_expose(Cxx)
     func is2DTexture() -> Bool {
         descriptor?.dimension == WebGPU.TextureViewDimension._2d
     }
 
-    @_expose(Cxx)
     func is2DArrayTexture() -> Bool {
         descriptor?.dimension == WebGPU.TextureViewDimension._2dArray
     }
 
-    @_expose(Cxx)
     func is3DTexture() -> Bool {
         descriptor?.dimension == WebGPU.TextureViewDimension._3d
     }
 }
 
-@_expose(Cxx)
 func makeInvalidTextureViewImpl(_ parentImpl: TextureImpl, _ device: WebGPU.Metal.Device) -> TextureViewImpl {
     TextureViewImpl(
         texture: nil,

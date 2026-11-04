@@ -26,7 +26,6 @@
 #import "config.h"
 #import "HardwareCapabilities.h"
 
-#import "APIConversions.h"
 #import <sys/sysctl.h>
 
 #if ENABLE(WEBGPU_SWIFT)

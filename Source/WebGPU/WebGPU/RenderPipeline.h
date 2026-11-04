@@ -26,7 +26,6 @@
 #pragma once
 
 #import "Pipeline.h"
-#import "PipelineLayout.h"
 
 #import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
@@ -40,17 +39,9 @@
 #import <wtf/TZoneMalloc.h>
 #import <wtf/WeakPtr.h>
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class RenderPipelineImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
 
-class BindGroupLayout;
 class Device;
-class TextureView;
 
 // The scalar pipeline state, which the render encoders read as one value.
 struct RenderPipelineParameters {
@@ -125,37 +116,6 @@ inline std::span<const OptionalColorTargetState> renderPipelineColorTargets(cons
 // For RenderPipeline.swift: what Swift cannot do itself (call a private selector). Defined in RenderPipeline.mm.
 void setRenderPipelineSampleMask(MTLRenderPipelineDescriptor *, uint32_t);
 
-struct RenderPipelineImplBox;
-
-// https://gpuweb.github.io/gpuweb/#gpurenderpipeline
-// Forwards to the Swift RenderPipelineImpl, which the render encoders read directly.
-class RenderPipeline final : public WebGPU::RenderPipeline {
-    WTF_MAKE_TZONE_ALLOCATED(RenderPipeline);
-public:
-    static Ref<RenderPipeline> create(std::unique_ptr<RenderPipelineImplBox>&&);
-    static Ref<RenderPipeline> createInvalid(Device&);
-    // For RenderPipeline.swift: wraps the Impl staged in DeviceImpl.stagedRenderPipelineImpl.
-    static Ref<RenderPipeline> createWithStagedImpl(Device&);
-
-    ~RenderPipeline();
-
-    Ref<WebGPU::BindGroupLayout> getBindGroupLayout(uint32_t groupIndex) final;
-    NODELETE void setLabel(String&&) final;
-
-    bool isValid() const final;
-#if !defined(__swift__)
-    WebGPUSwift::RenderPipelineImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-
-
-private:
-    explicit RenderPipeline(std::unique_ptr<RenderPipelineImplBox>&&);
-
-    const std::unique_ptr<RenderPipelineImplBox> m_impl;
-};
-
 // As callCreateComputePipelineAsyncCallback.
-using CreateRenderPipelineAsyncCallback = CompletionHandler<void(std::expected<Ref<WebGPU::RenderPipeline>, WebGPU::PipelineError>&&)>;
-void callCreateRenderPipelineAsyncCallback(CreateRenderPipelineAsyncCallback&, RenderPipeline&, bool succeeded, NSString *errorMessage);
 
 } // namespace WebGPU::Metal

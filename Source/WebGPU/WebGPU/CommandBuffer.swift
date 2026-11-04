@@ -26,7 +26,6 @@ import Foundation
 import Metal
 import Synchronization
 @_implementationOnly import WebGPU_Internal.Buffer
-@_implementationOnly import WebGPU_Internal.CommandBuffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Queue
@@ -120,8 +119,6 @@ public final class CommandBufferImpl: GPUObjectReference {
     // Declared last, so that the device outlives the rest of the command buffer.
     let deviceImpl: DeviceImpl
     let device: WebGPU.Metal.Device
-    @_expose(Cxx)
-    func shellDevice() -> WebGPU.Metal.Device { device }
 
     fileprivate init(
         commandBuffer: (any MTLCommandBuffer)?,
@@ -157,7 +154,6 @@ public final class CommandBufferImpl: GPUObjectReference {
         backingCommandBuffer
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: NSString?) {
         backingCommandBuffer?.label = label as String?
     }
@@ -176,22 +172,18 @@ public final class CommandBufferImpl: GPUObjectReference {
         return commandBuffers
     }
 
-    @_expose(Cxx)
     func gpuExecutionDurationSeconds() -> Double {
         backingCompletion.gpuExecutionDurationSeconds()
     }
 
-    @_expose(Cxx)
     func lastError() -> NSString? {
         backingLastError
     }
 
-    @_expose(Cxx)
     func bufferMapCount() -> Int32 {
         backingBufferMapCount
     }
 
-    @_expose(Cxx)
     func setBufferMapCount(_ count: Int32) {
         backingBufferMapCount = count
     }

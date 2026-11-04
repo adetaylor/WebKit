@@ -84,7 +84,6 @@ func registerForFrameCapture(_ captureObject: (any MTLDevice)?) {
     }
 }
 
-@_expose(Cxx)
 func captureSingleFrameIfNeeded(_ captureObject: (any MTLDevice)?) {
     let requested = frameCapture.withLock {
         let enabled = $0.enabled
@@ -166,7 +165,6 @@ func setComputeShaderValidation(_ descriptor: MTLComputePipelineDescriptor) {
     #endif
 }
 
-@_expose(Cxx)
 func setRenderShaderValidation(_ descriptor: MTLRenderPipelineDescriptor) {
     #if ENABLE_WEBGPU_BY_DEFAULT
     descriptor.shaderValidation = shaderValidationState()

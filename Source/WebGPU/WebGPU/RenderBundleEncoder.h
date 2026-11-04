@@ -35,18 +35,9 @@
 #import <wtf/TZoneMalloc.h>
 #import <wtf/Vector.h>
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class RenderBundleEncoderImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
 
-class BindGroup;
-class Buffer;
 class Device;
-class RenderPipeline;
 
 struct RenderBundleEncoderParameters {
     uint32_t sampleCount { 0 };
@@ -57,50 +48,5 @@ struct RenderBundleEncoderParameters {
 };
 
 void copyDynamicOffsetsToBuffer(id<MTLBuffer>, std::span<const uint32_t> contents NOESCAPE);
-
-// https://gpuweb.github.io/gpuweb/#gpurenderbundleencoder
-// Forwards to the Swift RenderBundleEncoderImpl, which owns the encoder's state and logic.
-class RenderBundleEncoder final : public WebGPU::RenderBundleEncoder {
-    WTF_MAKE_TZONE_ALLOCATED(RenderBundleEncoder);
-public:
-    // An invalid descriptor reports the error and gives an invalid encoder.
-    static Ref<RenderBundleEncoder> create(const WebGPU::RenderBundleEncoderDescriptor&, Device&);
-    static Ref<RenderBundleEncoder> createInvalid(Device&, NSString* errorString);
-
-    ~RenderBundleEncoder();
-
-    RefPtr<WebGPU::RenderBundle> finish(const WebGPU::RenderBundleDescriptor&) final;
-    void insertDebugMarker(String&& markerLabel) final;
-    void popDebugGroup() final;
-    void pushDebugGroup(String&& groupLabel) final;
-
-    // The WebGPU::RenderBundleEncoder methods. The ones that take objects cast them to their
-    // WebGPU::Metal type, which every object that this implementation receives has.
-    void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) final;
-    void drawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) final;
-    void drawIndirect(WebGPU::Buffer& indirectBuffer, uint64_t indirectOffset) final;
-    void drawIndexedIndirect(WebGPU::Buffer& indirectBuffer, uint64_t indirectOffset) final;
-    void setPipeline(const WebGPU::RenderPipeline&) final;
-    // A std::nullopt size is the rest of the buffer after the offset.
-    void setIndexBuffer(WebGPU::Buffer&, WebGPU::IndexFormat, uint64_t offset, std::optional<uint64_t> size) final;
-    void setVertexBuffer(uint32_t slot, WebGPU::Buffer*, uint64_t offset, std::optional<uint64_t> size) final;
-    // std::nullopt dynamic offsets are not validated against the bind group layout.
-    void setBindGroup(uint32_t groupIndex, const WebGPU::BindGroup*, std::optional<std::span<const uint32_t>> dynamicOffsets) final;
-    void makeInvalid(NSString* = nil);
-    void setLabel(String&&) final;
-
-    bool isValid() const final;
-
-private:
-#if !defined(__swift__)
-    template<typename MakeImpl> explicit RenderBundleEncoder(MakeImpl&&);
-    WebGPUSwift::RenderBundleEncoderImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-
-    // The Swift object: one generated WebGPU::RenderBundleEncoderImpl, a single strong reference.
-    // RenderBundleEncoder.mm, where the generated header is includable, builds it in place in the constructor and
-    // destroys it in the destructor.
-    alignas(void*) std::byte m_impl[sizeof(void*)];
-};
 
 } // namespace WebGPU::Metal

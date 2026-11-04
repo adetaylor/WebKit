@@ -214,7 +214,6 @@ public final class XRProjectionLayerReference {
     }
 }
 
-@_expose(Cxx)
 func makeXRProjectionLayerImpl(
     _ parameters: WebGPU.Metal.XRProjectionLayerParameters,
     _ device: WebGPU.Metal.Device,

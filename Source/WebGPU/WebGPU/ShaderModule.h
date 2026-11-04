@@ -38,47 +38,9 @@
 #import <wtf/text/StringHash.h>
 #import <wtf/text/WTFString.h>
 
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class ShaderModuleImpl;
-}
-#endif
-
 namespace WebGPU::Metal {
 
 class Device;
-class PipelineLayout;
-
-// Holds the Swift ShaderModuleImpl. Defined in ShaderModule.mm, where the generated Swift interop header is includable.
-struct ShaderModuleImplBox;
-
-// https://gpuweb.github.io/gpuweb/#gpushadermodule
-// The Swift ShaderModuleImpl owns the checked WGSL module, the compilation messages, the per-entry-point IO
-// reflection and the default entry points; pipeline creation reads them from it directly.
-class ShaderModule final : public WebGPU::ShaderModule {
-    WTF_MAKE_TZONE_ALLOCATED(ShaderModule);
-public:
-    static Ref<ShaderModule> create(std::unique_ptr<ShaderModuleImplBox>&&);
-    static Ref<ShaderModule> createInvalid(Device&);
-
-    ~ShaderModule();
-
-    void compilationInfo(CompletionHandler<void(WebGPU::CompilationInfo&&)>&&) final;
-    void setLabel(String&&) final;
-
-    bool isValid() const final;
-
-#if !defined(__swift__)
-    // Borrowed from the Impl, which holds the reference.
-    Device& device() const;
-    WebGPUSwift::ShaderModuleImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-
-private:
-    explicit ShaderModule(std::unique_ptr<ShaderModuleImplBox>&&);
-
-    const std::unique_ptr<ShaderModuleImplBox> m_impl;
-};
 
 // For the Swift pipeline-creation code.
 

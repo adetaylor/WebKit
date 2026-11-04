@@ -45,8 +45,6 @@ public final class SamplerImpl: GPUObjectReference {
     // Declared last, so that the device outlives the rest of the sampler.
     let deviceImpl: DeviceImpl
     let device: WebGPU.Metal.Device
-    @_expose(Cxx)
-    func shellDevice() -> WebGPU.Metal.Device { device }
 
     fileprivate init(device: WebGPU.Metal.Device, deviceImpl: DeviceImpl, configuration: Configuration?, label: WTF.String) {
         self.configuration = configuration
@@ -84,7 +82,6 @@ public final class SamplerImpl: GPUObjectReference {
         configuration != nil
     }
 
-    @_expose(Cxx)
     func setLabel(_ newLabel: WTF.String) {
         label = newLabel
     }
@@ -165,7 +162,6 @@ public struct GPUSamplerDescriptor {
 }
 
 // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
-@_expose(Cxx)
 func createSamplerImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ descriptor: WebGPU.SamplerDescriptor) -> SamplerImpl {
     createSamplerImpl(device, deviceImpl, GPUSamplerDescriptor(descriptor), label: descriptor.label)
 }
@@ -181,7 +177,6 @@ func createSamplerImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, 
     return SamplerImpl(device: device, deviceImpl: deviceImpl, descriptor: descriptor, label: label)
 }
 
-@_expose(Cxx)
 func makeInvalidSamplerImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> SamplerImpl {
     SamplerImpl(device: device, deviceImpl: deviceImpl, configuration: nil, label: WTF.String())
 }

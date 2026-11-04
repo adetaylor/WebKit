@@ -57,30 +57,19 @@ class Instance;
 struct AdapterImplBox;
 
 // https://gpuweb.github.io/gpuweb/#gpuadapter
-class Adapter final : public WebGPU::Adapter {
+class Adapter final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Adapter> {
     WTF_MAKE_TZONE_ALLOCATED(Adapter);
 public:
     static Ref<Adapter> create(id<MTLDevice>, Instance&, bool xrCompatible, HardwareCapabilities&&);
 
     ~Adapter();
 
-    Vector<WebGPU::FeatureName> features() const final;
-    WebGPU::Limits limits() const final;
-    WebGPU::AdapterInfo info() final;
-    // The C API adapter info, which has members that WebGPU::AdapterInfo does not have.
-    bool hasFeature(WebGPU::FeatureName);
-    void requestDevice(const WebGPU::DeviceDescriptor&, CompletionHandler<void(RefPtr<WebGPU::Device>&&)>&&) final;
-    // requestDevice() with the reason a device could not be created, for the C API.
-    void requestDeviceOrError(const WebGPU::DeviceDescriptor&, CompletionHandler<void(std::expected<Ref<Device>, String>&&)>&&);
-
-    void setLabel(String&&) final;
-    bool isValid() const final;
+    bool isValid() const;
     id<MTLDevice> device() const;
 #if !defined(__swift__)
     void makeInvalid();
     WebGPUSwift::AdapterImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
-    bool isXRCompatible() const final;
 
     RefPtr<Instance> instance() const { return m_instance.get(); }
     ThreadSafeWeakPtr<Instance> weakInstance() const { return m_instance; }
@@ -93,9 +82,19 @@ private:
 
     const std::unique_ptr<AdapterImplBox> m_impl;
     const ThreadSafeWeakPtr<Instance> m_instance;
-};
+} SWIFT_SHARED_REFERENCE(refAdapter, derefAdapter);
 
 // Gives Swift the Impl of an adapter that Swift requested, through receiveImpl().
 void deliverAdapterImpl(Adapter&);
 
 } // namespace WebGPU::Metal
+
+inline void refAdapter(WebGPU::Metal::Adapter* obj)
+{
+    obj->ref();
+}
+
+inline void derefAdapter(WebGPU::Metal::Adapter* obj)
+{
+    obj->deref();
+}

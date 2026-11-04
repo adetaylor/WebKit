@@ -59,8 +59,6 @@ public final class QuerySetImpl: GPUObjectReference {
     var tracking = EncoderTracking()
     // Declared last, so that the device outlives the rest of the query set.
     let device: WebGPU.Metal.Device
-    @_expose(Cxx)
-    func shellDevice() -> WebGPU.Metal.Device { device }
 
     fileprivate init(
         visibilityBuffer: (any MTLBuffer)?,
@@ -115,7 +113,6 @@ public final class QuerySetImpl: GPUObjectReference {
     }
 
     // The encoder retains the Metal buffers, not the query set.
-    @_expose(Cxx)
     func setCommandEncoder(_ encoder: CommandEncoderImpl) {
         if !tracking.contains(encoder) {
             _ = tracking.add(encoder)
@@ -127,7 +124,6 @@ public final class QuerySetImpl: GPUObjectReference {
         }
     }
 
-    @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
         setLabel(stringNilIfEmpty(label))
     }
@@ -144,28 +140,23 @@ public final class QuerySetImpl: GPUObjectReference {
         queryCount
     }
 
-    @_expose(Cxx)
     func hasType() -> Bool {
         queryType != nil
     }
 
     // Raw value of WebGPU::QueryType; only meaningful when hasType().
-    @_expose(Cxx)
     func typeRawValue() -> UInt8 {
         queryType?.rawValue ?? 0
     }
 
-    @_expose(Cxx)
     func visibilityBuffer() -> (any MTLBuffer)? {
         backingVisibilityBuffer
     }
 
-    @_expose(Cxx)
     func counterSampleBuffer() -> (any MTLCounterSampleBuffer)? {
         backingCounterSampleBuffer
     }
 
-    @_expose(Cxx)
     func counterSampleBufferOffset() -> UInt32 {
         counterSampleOffset
     }
@@ -206,7 +197,6 @@ public struct GPUQuerySetDescriptor {
     }
 }
 
-@_expose(Cxx)
 func createQuerySetImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl,
@@ -269,7 +259,6 @@ private enum QuerySetBacking {
     case none
 }
 
-@_expose(Cxx)
 func makeInvalidQuerySetImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> QuerySetImpl {
     QuerySetImpl(
         visibilityBuffer: nil,
