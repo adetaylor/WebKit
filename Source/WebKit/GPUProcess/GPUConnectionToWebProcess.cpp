@@ -86,7 +86,7 @@
 #include "RemoteGraphicsContextGLMessages.h"
 #endif
 
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 #include "RemoteCDMFactoryProxyMessages.h"
 #include "RemoteCDMInstanceProxyMessages.h"
 #include "RemoteCDMInstanceSessionProxyMessages.h"
@@ -466,7 +466,7 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
     m_libWebRTCCodecsProxy = nullptr;
 #endif
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (m_cdmRegistry)
         m_cdmRegistry->clear();
 #endif
@@ -566,7 +566,7 @@ bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
     if (m_imageDecoderAVFProxy && !m_imageDecoderAVFProxy->allowsExitUnderMemoryPressure())
         return false;
 #endif
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (auto* cdmRegistry = m_cdmRegistry.get(); cdmRegistry && !cdmRegistry->allowsExitUnderMemoryPressure())
         return false;
 #endif
@@ -660,7 +660,7 @@ void GPUConnectionToWebProcess::canDecodeExtendedType(PlatformMediaDecodingType 
 }
 #endif
 
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 RemoteCDMRegistry& GPUConnectionToWebProcess::cdmRegistry()
 {
     if (!m_cdmRegistry)
@@ -1099,7 +1099,7 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
         return true;
     }
 #endif
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (decoder.messageReceiverName() == Messages::RemoteCDMFactoryProxy::messageReceiverName()) {
         protect(cdmRegistry())->didReceiveFactoryMessage(connection, decoder);
         return true;
@@ -1207,7 +1207,7 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
         return true;
     }
 #endif
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (decoder.messageReceiverName() == Messages::RemoteCDMFactoryProxy::messageReceiverName()) {
         protect(cdmRegistry())->didReceiveSyncFactoryMessage(connection, decoder, replyEncoder);
         return true;

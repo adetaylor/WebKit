@@ -43,7 +43,6 @@
 #include "RemoteAudioSourceProviderManager.h"
 #include "RemoteAudioSourceProviderManagerMessages.h"
 #include "RemoteCDMFactory.h"
-#include "RemoteCDMProxy.h"
 #include "RemoteMediaEngineConfigurationFactory.h"
 #include "RemoteMediaPlayerManager.h"
 #include "RemoteRemoteCommandListenerMessages.h"
@@ -59,7 +58,7 @@
 #include <WebCore/RenderingMode.h>
 #include <WebCore/SharedBuffer.h>
 
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 #include "RemoteCDMInstanceSessionMessages.h"
 #endif
 
@@ -263,7 +262,7 @@ bool GPUProcessConnection::dispatchMessage(IPC::Connection& connection, IPC::Dec
     }
 #endif // PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
 
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (decoder.messageReceiverName() == Messages::RemoteCDMInstanceSession::messageReceiverName()) {
         protect(WebProcess::singleton().cdmFactory())->didReceiveSessionMessage(connection, decoder);
         return true;

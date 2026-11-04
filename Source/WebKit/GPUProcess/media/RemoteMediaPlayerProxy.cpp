@@ -60,7 +60,7 @@
 #include <wtf/MemoryFootprint.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/UniqueRef.h>
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 #include "RemoteCDMRegistry.h"
 #endif
 
@@ -1073,6 +1073,7 @@ void RemoteMediaPlayerProxy::keyAdded()
 #if ENABLE(ENCRYPTED_MEDIA)
 void RemoteMediaPlayerProxy::cdmInstanceAttached(RemoteCDMInstanceIdentifier&& instanceId)
 {
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     RefPtr manager = m_manager.get();
     ASSERT(manager && manager->gpuConnectionToWebProcess());
     if (!manager || !manager->gpuConnectionToWebProcess())
@@ -1080,10 +1081,14 @@ void RemoteMediaPlayerProxy::cdmInstanceAttached(RemoteCDMInstanceIdentifier&& i
 
     if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmRegistry())->cdmInstance(instanceId))
         m_player->cdmInstanceAttached(*instance);
+#else
+    UNUSED_PARAM(instanceId);
+#endif
 }
 
 void RemoteMediaPlayerProxy::cdmInstanceDetached(RemoteCDMInstanceIdentifier&& instanceId)
 {
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     RefPtr manager = m_manager.get();
     ASSERT(manager && manager->gpuConnectionToWebProcess());
     if (!manager || !manager->gpuConnectionToWebProcess())
@@ -1091,10 +1096,14 @@ void RemoteMediaPlayerProxy::cdmInstanceDetached(RemoteCDMInstanceIdentifier&& i
 
     if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmRegistry())->cdmInstance(instanceId))
         m_player->cdmInstanceDetached(*instance);
+#else
+    UNUSED_PARAM(instanceId);
+#endif
 }
 
 void RemoteMediaPlayerProxy::attemptToDecryptWithInstance(RemoteCDMInstanceIdentifier&& instanceId)
 {
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     RefPtr manager = m_manager.get();
     ASSERT(manager && manager->gpuConnectionToWebProcess());
     if (!manager || !manager->gpuConnectionToWebProcess())
@@ -1102,6 +1111,9 @@ void RemoteMediaPlayerProxy::attemptToDecryptWithInstance(RemoteCDMInstanceIdent
 
     if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmRegistry())->cdmInstance(instanceId))
         m_player->attemptToDecryptWithInstance(*instance);
+#else
+    UNUSED_PARAM(instanceId);
+#endif
 }
 #endif
 

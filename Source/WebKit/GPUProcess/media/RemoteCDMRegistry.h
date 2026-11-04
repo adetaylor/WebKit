@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #include "RemoteCDMIdentifier.h"
 #include "RemoteCDMInstanceIdentifier.h"
@@ -154,4 +154,4 @@ private:
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#endif // ENABLE(GPU_PROCESS_CDM_SWIFT)

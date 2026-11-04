@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #include "Decoder.h"
 #include "RemoteCDMConfiguration.h"
@@ -196,4 +196,4 @@ void storeRemoteCDMRecordOfKeyUsage(WebCore::CDMInstanceSession&, const String& 
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#endif // ENABLE(GPU_PROCESS_CDM_SWIFT)

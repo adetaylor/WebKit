@@ -225,7 +225,7 @@ public:
 #endif
 
     const WebCore::ProcessIdentity& webProcessIdentity() const LIFETIME_BOUND { return m_webProcessIdentity; }
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     RemoteCDMRegistry& cdmRegistry();
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
@@ -437,7 +437,7 @@ private:
 #endif
     using RemoteGPUMap = HashMap<WebGPUIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGPU>>;
     RemoteGPUMap m_remoteGPUMap;
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     const RefPtr<RemoteCDMRegistry> m_cdmRegistry;
 #endif
 #if USE(AUDIO_SESSION)

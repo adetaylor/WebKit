@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteCDMSwiftSupport.h"
 
-#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #include "GeneratedSerializers.h"
 #include "RemoteCDMInstanceConfiguration.h"
@@ -195,4 +195,4 @@ void getSupportedRemoteCDMConfiguration(RemoteCDMPrivateHandle& cdm, RemoteCDMKe
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#endif // ENABLE(GPU_PROCESS_CDM_SWIFT)

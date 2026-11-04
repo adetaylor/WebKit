@@ -23,13 +23,13 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=EncryptedMediaAPIEnabled,
-    SwiftReceiverBuildEnabledBy=GPU_PROCESS_CDM_SWIFT,
+    SwiftReceiver,
     SwiftTypes
 ]
 messages -> RemoteCDMFactoryProxy {

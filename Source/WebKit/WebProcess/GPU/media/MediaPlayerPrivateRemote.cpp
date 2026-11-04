@@ -1391,20 +1391,32 @@ void MediaPlayerPrivateRemote::mediaPlayerKeyNeeded(std::span<const uint8_t> mes
 #if ENABLE(ENCRYPTED_MEDIA)
 void MediaPlayerPrivateRemote::cdmInstanceAttached(CDMInstance& instance)
 {
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (auto* remoteInstance = dynamicDowncast<RemoteCDMInstance>(instance))
         protect(connection())->send(Messages::RemoteMediaPlayerProxy::CdmInstanceAttached(remoteInstance->identifier()), m_id);
+#else
+    UNUSED_PARAM(instance);
+#endif
 }
 
 void MediaPlayerPrivateRemote::cdmInstanceDetached(CDMInstance& instance)
 {
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (auto* remoteInstance = dynamicDowncast<RemoteCDMInstance>(instance))
         protect(connection())->send(Messages::RemoteMediaPlayerProxy::CdmInstanceDetached(remoteInstance->identifier()), m_id);
+#else
+    UNUSED_PARAM(instance);
+#endif
 }
 
 void MediaPlayerPrivateRemote::attemptToDecryptWithInstance(CDMInstance& instance)
 {
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (auto* remoteInstance = dynamicDowncast<RemoteCDMInstance>(instance))
         protect(connection())->send(Messages::RemoteMediaPlayerProxy::AttemptToDecryptWithInstance(remoteInstance->identifier()), m_id);
+#else
+    UNUSED_PARAM(instance);
+#endif
 }
 
 void MediaPlayerPrivateRemote::waitingForKeyChanged(bool waitingForKey)

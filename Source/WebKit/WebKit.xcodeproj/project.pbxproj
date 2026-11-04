@@ -2440,7 +2440,6 @@
 		CDA29A2B1CBEB67A00901CCF /* PlaybackSessionManagerProxyMessages.h in Headers */ = {isa = PBXBuildFile; fileRef = CDA29A271CBEB67A00901CCF /* PlaybackSessionManagerProxyMessages.h */; };
 		CDA93DB022F8BCF400490A69 /* FullscreenTouchSecheuristicParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = CDA93DAE22F8BCF300490A69 /* FullscreenTouchSecheuristicParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDA93DB122F8BCF400490A69 /* FullscreenTouchSecheuristicParameters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDA93DAF22F8BCF400490A69 /* FullscreenTouchSecheuristicParameters.cpp */; };
-		CDAC20B423FB58F20021DEE3 /* RemoteCDMInstanceProxy.h in Headers */ = {isa = PBXBuildFile; fileRef = CDAC20B223FB58F20021DEE3 /* RemoteCDMInstanceProxy.h */; };
 		CDAC20C323FC2F750021DEE3 /* RemoteCDMInstanceIdentifier.h in Headers */ = {isa = PBXBuildFile; fileRef = CDAC20B623FC2F730021DEE3 /* RemoteCDMInstanceIdentifier.h */; };
 		CDAC20C423FC2F750021DEE3 /* RemoteCDMInstance.h in Headers */ = {isa = PBXBuildFile; fileRef = CDAC20B723FC2F730021DEE3 /* RemoteCDMInstance.h */; };
 		CDAC20C523FC2F750021DEE3 /* RemoteCDMConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = CDAC20B823FC2F730021DEE3 /* RemoteCDMConfiguration.h */; };
@@ -8663,20 +8662,12 @@
 		CDA959452412C4F500910EEF /* RemoteMediaSessionHelperProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteMediaSessionHelperProxy.h; sourceTree = "<group>"; };
 		CDA959462412C4F500910EEF /* RemoteMediaSessionHelperProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteMediaSessionHelperProxy.cpp; sourceTree = "<group>"; };
 		CDA959472412C91900910EEF /* RemoteMediaSessionHelperProxy.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteMediaSessionHelperProxy.messages.in; sourceTree = "<group>"; };
-		CDAC207823FB1E210021DEE3 /* RemoteCDMFactoryProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCDMFactoryProxy.h; sourceTree = "<group>"; };
-		CDAC207923FB1E210021DEE3 /* RemoteCDMFactoryProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCDMFactoryProxy.cpp; sourceTree = "<group>"; };
 		2EF0FC2A1434E1FC16A0C1C6 /* RemoteCDMRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCDMRegistry.cpp; sourceTree = "<group>"; };
 		7C59D7C31CCAF1810CF2168E /* RemoteCDMRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCDMRegistry.h; sourceTree = "<group>"; };
 		CDAC207C23FB1EF90021DEE3 /* RemoteCDMFactoryProxy.messages.in */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCDMFactoryProxy.messages.in; sourceTree = "<group>"; };
-		CDAC208223FB21340021DEE3 /* RemoteCDMProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCDMProxy.h; sourceTree = "<group>"; };
-		CDAC208323FB21340021DEE3 /* RemoteCDMProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCDMProxy.cpp; sourceTree = "<group>"; };
 		CDAC208623FB21580021DEE3 /* RemoteCDMProxy.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteCDMProxy.messages.in; sourceTree = "<group>"; };
 		CDAC20AD23FB582B0021DEE3 /* RemoteCDMInstanceSessionProxy.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteCDMInstanceSessionProxy.messages.in; sourceTree = "<group>"; };
-		CDAC20AE23FB582B0021DEE3 /* RemoteCDMInstanceSessionProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCDMInstanceSessionProxy.h; sourceTree = "<group>"; };
-		CDAC20AF23FB582B0021DEE3 /* RemoteCDMInstanceSessionProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCDMInstanceSessionProxy.cpp; sourceTree = "<group>"; };
 		CDAC20B123FB58E20021DEE3 /* RemoteCDMInstanceProxy.messages.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = RemoteCDMInstanceProxy.messages.in; sourceTree = "<group>"; };
-		CDAC20B223FB58F20021DEE3 /* RemoteCDMInstanceProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCDMInstanceProxy.h; sourceTree = "<group>"; };
-		CDAC20B323FB58F20021DEE3 /* RemoteCDMInstanceProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCDMInstanceProxy.cpp; sourceTree = "<group>"; };
 		CDAC20B623FC2F730021DEE3 /* RemoteCDMInstanceIdentifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RemoteCDMInstanceIdentifier.h; sourceTree = "<group>"; };
 		CDAC20B723FC2F730021DEE3 /* RemoteCDMInstance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RemoteCDMInstance.h; sourceTree = "<group>"; };
 		CDAC20B823FC2F730021DEE3 /* RemoteCDMConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RemoteCDMConfiguration.h; sourceTree = "<group>"; };
@@ -10014,20 +10005,12 @@
 				51A1AF682E743C7300F12E38 /* RemoteAudioVideoRendererProxyManager.cpp */,
 				51A1AF672E743C7300F12E38 /* RemoteAudioVideoRendererProxyManager.h */,
 				51867B652E74623700F956CB /* RemoteAudioVideoRendererProxyManager.messages.in */,
-				CDAC207923FB1E210021DEE3 /* RemoteCDMFactoryProxy.cpp */,
-				CDAC207823FB1E210021DEE3 /* RemoteCDMFactoryProxy.h */,
 				CDAC207C23FB1EF90021DEE3 /* RemoteCDMFactoryProxy.messages.in */,
 				E9538C0D21E85A5BE9B865B9 /* RemoteCDMFactoryProxy.swift */,
-				CDAC20B323FB58F20021DEE3 /* RemoteCDMInstanceProxy.cpp */,
-				CDAC20B223FB58F20021DEE3 /* RemoteCDMInstanceProxy.h */,
 				CDAC20B123FB58E20021DEE3 /* RemoteCDMInstanceProxy.messages.in */,
 				0671F99062299038E0C08EF2 /* RemoteCDMInstanceProxy.swift */,
-				CDAC20AF23FB582B0021DEE3 /* RemoteCDMInstanceSessionProxy.cpp */,
-				CDAC20AE23FB582B0021DEE3 /* RemoteCDMInstanceSessionProxy.h */,
 				CDAC20AD23FB582B0021DEE3 /* RemoteCDMInstanceSessionProxy.messages.in */,
 				7865354959E4AC16E9D51955 /* RemoteCDMInstanceSessionProxy.swift */,
-				CDAC208323FB21340021DEE3 /* RemoteCDMProxy.cpp */,
-				CDAC208223FB21340021DEE3 /* RemoteCDMProxy.h */,
 				CDAC208623FB21580021DEE3 /* RemoteCDMProxy.messages.in */,
 				AD63B7D416097CBEA80CB2A4 /* RemoteCDMProxy.swift */,
 				2EF0FC2A1434E1FC16A0C1C6 /* RemoteCDMRegistry.cpp */,
@@ -19121,7 +19104,6 @@
 				CDAC20C423FC2F750021DEE3 /* RemoteCDMInstance.h in Headers */,
 				CDAC20CE23FC2F750021DEE3 /* RemoteCDMInstanceConfiguration.h in Headers */,
 				CDAC20C323FC2F750021DEE3 /* RemoteCDMInstanceIdentifier.h in Headers */,
-				CDAC20B423FB58F20021DEE3 /* RemoteCDMInstanceProxy.h in Headers */,
 				CDAC20CA23FC2F750021DEE3 /* RemoteCDMInstanceSession.h in Headers */,
 				CDAC20C923FC2F750021DEE3 /* RemoteCDMInstanceSessionIdentifier.h in Headers */,
 				07E065142F19E01000ECDA2E /* RemoteGPU.h in Headers */,

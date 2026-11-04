@@ -828,10 +828,13 @@ void RemoteAudioVideoRendererProxyManager::setCDMInstance(RemoteAudioVideoRender
         renderer->setCDMInstance(nullptr);
         return;
     }
-    if (RefPtr instance = protect(m_gpuConnectionToWebProcess.get()->cdmRegistry())->cdmInstance(*instanceId))
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+    if (RefPtr instance = protect(m_gpuConnectionToWebProcess.get()->cdmRegistry())->cdmInstance(*instanceId)) {
         renderer->setCDMInstance(instance.get());
-    else
-        ALWAYS_LOG(LOGIDENTIFIER, "Unable to find CDMInstance: ", instanceId->loggingString());
+        return;
+    }
+#endif
+    ALWAYS_LOG(LOGIDENTIFIER, "Unable to find CDMInstance: ", instanceId->loggingString());
 }
 
 void RemoteAudioVideoRendererProxyManager::setInitData(RemoteAudioVideoRendererIdentifier identifier, Ref<WebCore::SharedBuffer> initData, CompletionHandler<void(std::expected<void, WebCore::PlatformMediaError>)>&& completionHandler)
