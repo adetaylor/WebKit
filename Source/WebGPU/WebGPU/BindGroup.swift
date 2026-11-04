@@ -432,7 +432,7 @@ private enum DescriptorResource {
     case sampler(SamplerImpl, sameDevice: Bool)
     case texture(WebGPU.Metal.Texture, TextureImpl, sameDevice: Bool)
     case textureView(TextureViewImpl, sameDevice: Bool)
-    case externalTexture(WebGPU.Metal.ExternalTexture, ExternalTextureImpl)
+    case externalTexture(ExternalTextureImpl)
 }
 
 private struct DescriptorEntry {
@@ -600,7 +600,7 @@ func createBindGroupImpl(
                     size: size
                 )
             case .externalTexture(let texture):
-                .externalTexture(texture.shell, texture.impl)
+                .externalTexture(texture)
             }
         entries.append(DescriptorEntry(binding: entry.binding, resource: resource))
     }
@@ -666,10 +666,9 @@ func appendBindGroupTextureView(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ i
 func appendBindGroupExternalTexture(
     _ deviceImpl: DeviceImpl,
     _ binding: UInt32,
-    _ texture: WebGPU.Metal.ExternalTexture,
     _ impl: ExternalTextureImpl
 ) {
-    deviceImpl.bindGroupBuilder.append(DescriptorEntry(binding: binding, resource: .externalTexture(texture, impl)))
+    deviceImpl.bindGroupBuilder.append(DescriptorEntry(binding: binding, resource: .externalTexture(impl)))
 }
 
 @_expose(Cxx)
@@ -946,10 +945,9 @@ private struct BindGroupCreation {
                     index: index,
                     usageIndex: usageIndex
                 )
-            case .externalTexture(let shell, let impl):
+            case .externalTexture(let impl):
                 succeeded = addExternalTexture(
                     entry.binding,
-                    shell,
                     impl,
                     device: device,
                     layoutEntry: layoutEntry,
@@ -1408,7 +1406,6 @@ private struct BindGroupCreation {
 
     mutating func addExternalTexture(
         _ binding: UInt32,
-        _ shell: WebGPU.Metal.ExternalTexture,
         _ externalTexture: ExternalTextureImpl,
         device: borrowing DeviceShell,
         layoutEntry: LayoutEntry,
@@ -1446,7 +1443,7 @@ private struct BindGroupCreation {
                 binding: binding,
                 entryOffset: 0,
                 entrySize: 0,
-                owner: .externalTexture(shell, externalTexture),
+                owner: .externalTexture(externalTexture),
                 tracking: tracking
             )
         }
@@ -1459,7 +1456,7 @@ private struct BindGroupCreation {
                 binding: binding,
                 entryOffset: 0,
                 entrySize: 0,
-                owner: .externalTexture(shell, externalTexture),
+                owner: .externalTexture(externalTexture),
                 tracking: tracking
             )
         }

@@ -298,11 +298,6 @@ extension DeviceReference: GPUObjectReference {
 }
 
 @_spi(WebKitGPU)
-extension ExternalTextureReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
 extension CommandBufferReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }

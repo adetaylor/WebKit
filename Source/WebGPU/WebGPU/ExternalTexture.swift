@@ -28,25 +28,25 @@ import Metal
 @_implementationOnly import WebGPU_Internal.ExternalTexture
 import WebGPU_Private.WebGPUCpp
 
-// The state of a GPUExternalTexture. Used only on its Instance's API thread, so not Sendable.
-// An external texture with its shell, as Swift holds one.
 @_spi(WebKitGPU)
-public final class ExternalTextureReference {
-    public let impl: ExternalTextureImpl
-    let shell: WebGPU.Metal.ExternalTexture
+public typealias ExternalTextureReference = ExternalTextureImpl
 
-    init(_ impl: ExternalTextureImpl, _ shell: WebGPU.Metal.ExternalTexture) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension ExternalTextureImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: ExternalTextureImpl {
+        self
     }
 
     // The descriptor's video frame, which the texture shows from now on, as the shell's update() takes it: none if it
     // has no pixel buffer. Only the pixel buffer is read.
+    @_expose(!Cxx)
     public func update(_ descriptor: WebGPU.ExternalTextureDescriptor) {
         if let pixelBuffer = WebGPU.framePixelBuffer(descriptor) {
-            impl.update(pixelBuffer)
+            update(pixelBuffer)
         } else {
-            impl.updateWithoutPixelBuffer()
+            updateWithoutPixelBuffer()
         }
     }
 }
@@ -55,23 +55,21 @@ public final class ExternalTextureReference {
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-importexternaltexture, as the shell's importExternalTexture() does.
     public func importExternalTexture(_ descriptor: WebGPU.ExternalTextureDescriptor) -> ExternalTextureReference {
-        let externalTexture: CxxBridging.RefExternalTexture
-        if impl.isValid() {
-            externalTexture = WebGPU.Metal.ExternalTexture.create(WebGPU.framePixelBuffer(descriptor), descriptor.colorSpace, descriptor.visibleSize, shell)
-        } else {
-            externalTexture = WebGPU.Metal.ExternalTexture.createInvalid(shell)
+        guard impl.isValid() else {
+            return makeInvalidExternalTextureImpl(shell, impl)
         }
-        guard let externalTextureImpl = impl.lastMadeExternalTextureImpl else {
-            preconditionFailure("ExternalTexture's shell made no Impl")
-        }
-        impl.lastMadeExternalTextureImpl = nil
-        return ExternalTextureReference(externalTextureImpl, externalTexture.ptr())
+        let size = descriptor.visibleSize
+        let texture = makeExternalTextureImpl(descriptor.colorSpace, size.width, size.height, shell, impl)
+        texture.update(descriptor)
+        return texture
     }
 }
 
+// The state of a GPUExternalTexture, held by its Swift callers and by the C++ API's shell WebGPU::Metal::ExternalTexture.
+// Used only on its Instance's API thread, so not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class ExternalTextureImpl {
+public final class ExternalTextureImpl: GPUObjectReference {
     // nil: no frame.
     private var backingPixelBuffer: CVPixelBuffer?
     private var destroyed = false
@@ -111,7 +109,7 @@ public final class ExternalTextureImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         backingPixelBuffer != nil || destroyed
     }
 
@@ -220,26 +218,22 @@ func makeExternalTextureImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> ExternalTextureImpl {
-    let impl = ExternalTextureImpl(
+    ExternalTextureImpl(
         colorSpace: colorSpace,
         visibleWidth: visibleWidth,
         visibleHeight: visibleHeight,
         device: device,
         deviceImpl: deviceImpl
     )
-    deviceImpl.lastMadeExternalTextureImpl = impl
-    return impl
 }
 
 @_expose(Cxx)
 func makeInvalidExternalTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> ExternalTextureImpl {
-    let impl = ExternalTextureImpl(
+    ExternalTextureImpl(
         colorSpace: WebGPU.PredefinedColorSpace.SRGB,
         visibleWidth: 0,
         visibleHeight: 0,
         device: device,
         deviceImpl: deviceImpl
     )
-    deviceImpl.lastMadeExternalTextureImpl = impl
-    return impl
 }

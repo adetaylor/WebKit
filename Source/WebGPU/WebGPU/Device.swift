@@ -118,8 +118,6 @@ final class DeviceImpl {
     weak var lastMadeCommandEncoderImpl: CommandEncoderImpl?
     @_expose(!Cxx)
     weak var lastMadeCommandBufferImpl: CommandBufferImpl?
-    @_expose(!Cxx)
-    weak var lastMadeExternalTextureImpl: ExternalTextureImpl?
     // The scheduler of the Instance of the device's adapter, if it had one when the device was made: the asynchronous
     // pipeline compiles hop back through it.
     private var instanceSchedulerHandle: InstanceSchedulerHandle?

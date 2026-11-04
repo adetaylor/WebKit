@@ -718,14 +718,14 @@ enum BoundResource {
     case buffer(WebGPU.Metal.Buffer, BufferImpl)
     case texture(WebGPU.Metal.Texture, TextureImpl)
     case textureView(TextureViewImpl)
-    case externalTexture(WebGPU.Metal.ExternalTexture, ExternalTextureImpl)
+    case externalTexture(ExternalTextureImpl)
 
     var trackedImpl: TrackedImpl {
         switch self {
         case .buffer(_, let impl): .buffer(impl)
         case .texture(_, let impl): .texture(impl)
         case .textureView(let impl): .textureView(impl)
-        case .externalTexture(_, let impl): .externalTexture(impl)
+        case .externalTexture(let impl): .externalTexture(impl)
         }
     }
 }

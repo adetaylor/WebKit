@@ -56,7 +56,6 @@ using RefComputePassEncoder = Ref<WebGPU::Metal::ComputePassEncoder>;
 using RefRenderPassEncoder = Ref<WebGPU::Metal::RenderPassEncoder>;
 using RefCommandBuffer = Ref<WebGPU::Metal::CommandBuffer>;
 using RefDevice = Ref<WebGPU::Metal::Device>;
-using RefExternalTexture = Ref<WebGPU::Metal::ExternalTexture>;
 
 // The types of the Instance's scheduler and web process ID (Instance.swift).
 using InstanceWorkItem = Function<void()>;
