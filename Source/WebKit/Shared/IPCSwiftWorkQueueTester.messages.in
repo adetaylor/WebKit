@@ -39,6 +39,16 @@ messages -> IPCSwiftWorkQueueTester WorkQueue {
     DeferAddSwift(uint32_t a, uint32_t b) -> (uint32_t sum) SwiftTypes
     CompleteDeferredAddSwift(bool send) SwiftTypes
     HalveEvenNumberSwift(uint32_t value) -> (uint32_t half) SwiftTypes
+
+    BenchEmpty()
+    BenchFourValues(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+    BenchString(String text)
+    BenchReply(uint64_t value) -> (uint64_t sameValue)
+    BenchEmptySwift() SwiftTypes
+    BenchFourValuesSwift(uint32_t a, uint32_t b, uint32_t c, uint32_t d) SwiftTypes
+    BenchStringSwift(String text) SwiftTypes
+    BenchVectorSwift(Vector<uint32_t> values) SwiftTypes
+    BenchReplySwift(uint64_t value) -> (uint64_t sameValue) SwiftTypes
 }
 
 #endif
