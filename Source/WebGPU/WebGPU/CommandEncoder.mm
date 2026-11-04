@@ -107,15 +107,13 @@ RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::
         std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
             impl.stageColorAttachmentView(Ref { downcast<TextureView>(view.get()) }->swiftImpl());
         }, [&](const Ref<WebGPU::Texture>& texture) {
-            Ref metalTexture = downcast<Texture>(texture.get());
-            impl.stageColorAttachmentTexture(metalTexture.ptr(), metalTexture->swiftImpl());
+            impl.stageColorAttachmentTexture(Ref { downcast<Texture>(texture.get()) }->swiftImpl());
         }), attachment->view);
         if (attachment->resolveTarget) {
             std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
                 impl.stageResolveTargetView(Ref { downcast<TextureView>(view.get()) }->swiftImpl());
             }, [&](const Ref<WebGPU::Texture>& texture) {
-                Ref metalTexture = downcast<Texture>(texture.get());
-                impl.stageResolveTargetTexture(metalTexture.ptr(), metalTexture->swiftImpl());
+                impl.stageResolveTargetTexture(Ref { downcast<Texture>(texture.get()) }->swiftImpl());
             }), *attachment->resolveTarget);
         }
     }
@@ -123,8 +121,7 @@ RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::
         std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
             impl.stageDepthStencilAttachmentView(Ref { downcast<TextureView>(view.get()) }->swiftImpl());
         }, [&](const Ref<WebGPU::Texture>& texture) {
-            Ref metalTexture = downcast<Texture>(texture.get());
-            impl.stageDepthStencilAttachmentTexture(metalTexture.ptr(), metalTexture->swiftImpl());
+            impl.stageDepthStencilAttachmentTexture(Ref { downcast<Texture>(texture.get()) }->swiftImpl());
         }), attachment->view);
     }
     if (RefPtr occlusionQuerySet = metalOrNull(descriptor.occlusionQuerySet))

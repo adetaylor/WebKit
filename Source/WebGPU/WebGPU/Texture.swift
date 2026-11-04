@@ -203,16 +203,16 @@ private struct TextureInitState {
     }
 }
 
-// The state of a GPUTexture, owned by the C++ shell WebGPU::Metal::Texture. Also runs view creation and its validation.
-// Used only on its Instance's API thread.
+// The state of a GPUTexture, held by its Swift callers, the views, bind groups, attachments and encoders that use it,
+// and the C++ API's shell WebGPU::Metal::Texture. Also runs view creation and its validation. Used only on its
+// Instance's API thread.
 @_expose(Cxx)
-final class TextureImpl: DeliverableImpl {
+@_spi(WebKitGPU)
+public final class TextureImpl: GPUObjectReference {
     // nil only for an invalid texture. destroy() swaps in the device placeholder unless canvas-backed.
     private var backingTexture: (any MTLTexture)?
     private var destroyed = false
     private var canvasBacking = false
-    /// Made by Device::createTexture: setShell adds the texture to DeviceImpl.textures.
-    fileprivate var registersWithDevice = false
     // Discards recorded by encoders whose command buffers were neither committed nor dropped yet: while one is pending, an
     // initialized region can become uninitialized before a reader runs, so readers record a requirement.
     @_expose(!Cxx)
@@ -243,8 +243,6 @@ final class TextureImpl: DeliverableImpl {
     private var views = WeakImplList<TextureViewImpl>()
     private var bindGroupHolders = WeakImplList<BindGroupImpl>()
     private var renderBundleHolders = WeakImplList<RenderBundleImpl>()
-    // The shell that owns this Impl, for the strong references encoders hold.
-    private var ownerShell = CxxBridging.TextureWeakPtr()
     // Declared last, so that the device outlives the rest of the texture.
     let device: WebGPU.Metal.Device
     @_expose(Cxx)
@@ -430,7 +428,7 @@ final class TextureImpl: DeliverableImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         destroyed || backingTexture != nil
     }
 
@@ -452,15 +450,6 @@ final class TextureImpl: DeliverableImpl {
     @_expose(Cxx)
     func setLabel(_ label: WTF.String) {
         backingTexture?.label = stringNilIfEmpty(label)
-    }
-
-    // Texture::create, once the shell exists.
-    @_expose(Cxx)
-    func setShell(_ shell: WebGPU.Metal.Texture) {
-        ownerShell = CxxBridging.textureThreadSafeWeakPtr(shell)
-        if registersWithDevice {
-            deviceImpl.textures.add(self)
-        }
     }
 
     // Texture::destroy, and Device::destroy for each texture it made. A canvas backing keeps its Metal texture, so its
@@ -502,8 +491,8 @@ final class TextureImpl: DeliverableImpl {
     // Texture::setCommandEncoder. Each encoder holds the texture once, from the first use until its clearTracking().
     @_expose(Cxx)
     func setCommandEncoder(_ encoder: CommandEncoderImpl) {
-        if !tracking.contains(encoder) && tracking.add(encoder), let shell = CxxBridging.protectedTexture(ownerShell) {
-            encoder.trackTexture(shell, self)
+        if !tracking.contains(encoder) && tracking.add(encoder) {
+            encoder.trackTexture(self)
         }
         encoder.addTexture(backingTexture)
         if let state = canvasState.first, let event = state.sharedEvent {
@@ -715,50 +704,46 @@ final class TextureImpl: DeliverableImpl {
 
     // createView, for a Swift caller.
     @_expose(!Cxx)
-    func createView(_ texture: WebGPU.Metal.Texture, _ descriptor: GPUTextureViewDescriptor, label: WTF.String) -> TextureViewImpl {
-        createView(texture, descriptor.parameters, label)
+    func createView(_ descriptor: GPUTextureViewDescriptor, label: WTF.String) -> TextureViewImpl {
+        createView(descriptor.parameters, label)
     }
 
-    // `texture` is this texture's shell, which every view holds. Returns an invalid view (no descriptor) on failure;
-    // the shell records only the views that have one. A view's device is its texture's.
+    // Every view holds this texture. Returns an invalid view (no descriptor) on failure; the texture records only the
+    // views that have one. A view's device is its texture's.
     @_expose(Cxx)
-    func createView(
-        _ texture: WebGPU.Metal.Texture,
-        _ descriptor: WebGPU.Metal.TextureViewDescriptorParameters,
-        _ label: WTF.String
-    ) -> TextureViewImpl {
+    func createView(_ descriptor: WebGPU.Metal.TextureViewDescriptorParameters, _ label: WTF.String) -> TextureViewImpl {
         if destroyed {
-            return invalidView(texture)
+            return invalidView()
         }
 
         // https://gpuweb.github.io/gpuweb/#dom-gputexture-createview
 
         guard let mtlTexture = backingTexture else {
             deviceImpl.generateAValidationError("GPUTexture.createView: texture is not valid")
-            return invalidView(texture)
+            return invalidView()
         }
 
         guard let resolved = resolveTextureViewDescriptorDefaults(descriptor, mtlTexture) else {
             deviceImpl.generateAValidationError("Validation failure in GPUTexture.createView: descriptor could not be resolved")
-            return invalidView(texture)
+            return invalidView()
         }
 
         if let error = errorValidatingTextureViewCreation(resolved) {
             deviceImpl.generateAValidationError(error)
-            return invalidView(texture)
+            return invalidView()
         }
 
         let pixelFormat = texturePixelFormat(resolved.format)
         if pixelFormat == .invalid {
             deviceImpl.generateAValidationError("GPUTexture.createView: invalid texture format")
-            return invalidView(texture)
+            return invalidView()
         }
 
         if descriptor.usage != 0 && !textureUsageContainsAll(backingUsage, descriptor.usage) {
             deviceImpl.generateAValidationError(
                 "GPUTexture.createView: when the view's usage(\(apiTextureUsage(descriptor.usage))) is specified it must be a subset of the Texture's usage(\(apiTextureUsage(backingUsage)))"
             )
-            return invalidView(texture)
+            return invalidView()
         }
 
         let textureType: MTLTextureType
@@ -770,7 +755,7 @@ final class TextureImpl: DeliverableImpl {
         case ._2dArray:
             if backingSampleCount > 1 {
                 #if WTF_PLATFORM_WATCHOS || WTF_PLATFORM_APPLETV
-                return invalidView(texture)
+                return invalidView()
                 #else
                 textureType = .type2DMultisampleArray
                 #endif
@@ -797,7 +782,7 @@ final class TextureImpl: DeliverableImpl {
                 ? mtlTexture
                 : mtlTexture.makeTextureView(pixelFormat: viewPixelFormat, textureType: textureType, levels: levels, slices: slices)
         else {
-            return invalidView(texture)
+            return invalidView()
         }
 
         view.label = stringNilIfEmpty(label) ?? ""
@@ -821,7 +806,7 @@ final class TextureImpl: DeliverableImpl {
                         swizzle: swizzle
                     )
                 else {
-                    return invalidView(texture)
+                    return invalidView()
                 }
 
                 swizzled.label = view.label
@@ -832,7 +817,6 @@ final class TextureImpl: DeliverableImpl {
         let viewImpl = TextureViewImpl(
             texture: view,
             sampledTexture: sampledTexture,
-            parentTexture: texture,
             parentImpl: self,
             descriptor: resolved,
             device: device
@@ -841,8 +825,8 @@ final class TextureImpl: DeliverableImpl {
         return viewImpl
     }
 
-    private func invalidView(_ texture: WebGPU.Metal.Texture) -> TextureViewImpl {
-        TextureViewImpl(texture: nil, sampledTexture: nil, parentTexture: texture, parentImpl: self, descriptor: nil, device: device)
+    private func invalidView() -> TextureViewImpl {
+        TextureViewImpl(texture: nil, sampledTexture: nil, parentImpl: self, descriptor: nil, device: device)
     }
 
     private func resolveTextureViewDescriptorDefaults(
@@ -1396,28 +1380,31 @@ func errorValidatingTextureCreationRaw(
     textureCreationError(device, deviceImpl, descriptor, copyViewFormats(viewFormats)).map { $0 as NSString }
 }
 
-// A texture with its shell, as Swift holds one.
 @_spi(WebKitGPU)
-public final class TextureReference {
-    let impl: TextureImpl
-    let shell: WebGPU.Metal.Texture
+public typealias TextureReference = TextureImpl
 
-    init(_ impl: TextureImpl, _ shell: WebGPU.Metal.Texture) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension TextureImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: TextureImpl {
+        self
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy
+    @_expose(!Cxx)
     public func destroy() {
-        impl.destroyAndReleaseHolders()
+        destroyAndReleaseHolders()
     }
 
+    @_expose(!Cxx)
     public func undestroy() {
-        impl.recreateIfNeeded()
+        recreateIfNeeded()
     }
 
+    @_expose(!Cxx)
     public func setLabel(_ label: Swift.String?) {
-        impl.setLabel(WTF.String(label ?? ""))
+        setLabel(WTF.String(label ?? ""))
     }
 }
 
@@ -1463,7 +1450,7 @@ func createTextureImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, 
     )
 }
 
-// Device::createTexture. Returns an invalid texture on failure; setShell records the valid ones in DeviceImpl.
+// Device::createTexture. Returns an invalid texture on failure; the valid ones are recorded in DeviceImpl.
 @_expose(Cxx)
 func createTextureImpl(
     _ device: WebGPU.Metal.Device,
@@ -1581,11 +1568,11 @@ private func createTextureImpl(
     texture.label = stringNilIfEmpty(label) ?? ""
 
     let impl = TextureImpl(texture: texture, parameters: descriptor, viewFormats: viewFormats, device: device, deviceImpl: deviceImpl)
-    impl.registersWithDevice = true
+    deviceImpl.textures.add(impl)
     return impl
 }
 
-/// A texture that Swift holds as its shell and its Impl.
+/// A canvas or XR texture, with the shell that the C++ API's canvas contexts and XR sub-images give.
 struct TextureShellAndImpl {
     let shell: WebGPU.Metal.Texture
     let impl: TextureImpl
@@ -1736,16 +1723,14 @@ func errorValidatingTextureCopyRange(
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture: an invalid texture on failure, as for the C++ caller.
     public func createTexture(_ descriptor: GPUTextureDescriptor, label: Swift.String?) -> TextureReference {
-        let texture = createTextureImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
-        precondition(impl.stagedTextureImpl == nil)
-        impl.stagedTextureImpl = texture
-        return TextureReference(texture, WebGPU.Metal.Texture.createWithStagedImpl(shell).ptr())
+        createTextureImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
     }
 }
 
-extension TextureReference {
+@_spi(WebKitGPU)
+extension TextureImpl {
     // https://gpuweb.github.io/gpuweb/#dom-gputexture-createview. A view's device is its texture's.
     public func createView(_ descriptor: GPUTextureViewDescriptor?, label: Swift.String?) -> TextureViewReference {
-        impl.createView(shell, descriptor ?? GPUTextureViewDescriptor(), label: WTF.String(label ?? ""))
+        createView(descriptor ?? GPUTextureViewDescriptor(), label: WTF.String(label ?? ""))
     }
 }

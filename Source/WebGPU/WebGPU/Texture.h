@@ -152,9 +152,6 @@ private:
     alignas(void*) std::byte m_impl[sizeof(void*)];
 } SWIFT_SHARED_REFERENCE(refTexture, derefTexture) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
-// Gives Swift the texture's Impl, through receiveImpl(), and returns its shell.
-Texture& deliverImpl(WebGPU::Texture&) SWIFT_RETURNS_UNRETAINED;
-
 } // namespace WebGPU::Metal
 
 inline void refTexture(WebGPU::Metal::Texture* obj)

@@ -99,7 +99,7 @@ public final class PresentationContextReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture: the texture the canvas draws into for the
     // frame, or an invalid texture if the frame isn't one of the configuration's. nil before the first configure().
     public func getCurrentTexture(_ frameIndex: UInt32) -> TextureReference? {
-        impl.currentTexture(frameIndex).map { TextureReference($0.impl, $0.shell) }
+        impl.currentTexture(frameIndex).map(\.impl)
     }
 
     // The compositor has recreated its render buffers, which it then adds: the canvas draws into them from the next

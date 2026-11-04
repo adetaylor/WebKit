@@ -50,9 +50,7 @@ public final class TextureViewImpl: GPUObjectReference {
     private var backingTexture: (any MTLTexture)?
     // The swizzled view a shader reads; nil when the swizzle is the identity.
     private var backingSampledTexture: (any MTLTexture)?
-    // Never null, even for an invalid view: every view keeps its parent alive.
-    private let backingParentTexture: WebGPU.Metal.Texture
-    // backingParentTexture's state; held alongside it, so it lives exactly as long as the parent's shell.
+    // Every view, even an invalid one, keeps its parent alive.
     private let parentImpl: TextureImpl
     // nil for an invalid view, which has no format or dimension.
     private let descriptor: ResolvedTextureViewDescriptor?
@@ -72,14 +70,12 @@ public final class TextureViewImpl: GPUObjectReference {
     init(
         texture: (any MTLTexture)?,
         sampledTexture: (any MTLTexture)?,
-        parentTexture: WebGPU.Metal.Texture,
         parentImpl: TextureImpl,
         descriptor: ResolvedTextureViewDescriptor?,
         device: WebGPU.Metal.Device
     ) {
         self.backingTexture = texture
         self.backingSampledTexture = sampledTexture
-        self.backingParentTexture = parentTexture
         self.parentImpl = parentImpl
         self.descriptor = descriptor
         self.device = device
@@ -137,12 +133,6 @@ public final class TextureViewImpl: GPUObjectReference {
     @_expose(Cxx)
     func parentTexture() -> (any MTLTexture)? {
         parentImpl.texture()
-    }
-
-    // +1 (SWIFT_RETURNS_RETAINED); the shell borrows it with borrowSwiftRetained.
-    @_expose(Cxx)
-    func apiParentTexture() -> WebGPU.Metal.Texture {
-        backingParentTexture
     }
 
     @_expose(!Cxx)
@@ -306,15 +296,10 @@ public final class TextureViewImpl: GPUObjectReference {
 }
 
 @_expose(Cxx)
-func makeInvalidTextureViewImpl(
-    _ parentTexture: WebGPU.Metal.Texture,
-    _ parentImpl: TextureImpl,
-    _ device: WebGPU.Metal.Device
-) -> TextureViewImpl {
+func makeInvalidTextureViewImpl(_ parentImpl: TextureImpl, _ device: WebGPU.Metal.Device) -> TextureViewImpl {
     TextureViewImpl(
         texture: nil,
         sampledTexture: nil,
-        parentTexture: parentTexture,
         parentImpl: parentImpl,
         descriptor: nil,
         device: device

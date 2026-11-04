@@ -430,7 +430,7 @@ private func importBoundExternalTexture(
 private enum DescriptorResource {
     case buffer(ShellReference<WebGPU.Metal.Buffer>, BufferImpl, sameDevice: Bool, offset: UInt64, size: UInt64?)
     case sampler(SamplerImpl, sameDevice: Bool)
-    case texture(WebGPU.Metal.Texture, TextureImpl, sameDevice: Bool)
+    case texture(TextureImpl, sameDevice: Bool)
     case textureView(TextureViewImpl, sameDevice: Bool)
     case externalTexture(ExternalTextureImpl)
 }
@@ -588,7 +588,7 @@ func createBindGroupImpl(
             case .sampler(let sampler):
                 .sampler(sampler, sameDevice: sampler.deviceImpl === deviceImpl)
             case .texture(let texture):
-                .texture(texture.shell, texture.impl, sameDevice: texture.impl.deviceImpl === deviceImpl)
+                .texture(texture, sameDevice: texture.deviceImpl === deviceImpl)
             case .textureView(let view):
                 .textureView(view, sameDevice: view.deviceImpl === deviceImpl)
             case .buffer(let buffer, let offset, let size):
@@ -649,9 +649,9 @@ func appendBindGroupSampler(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ impl:
 }
 
 @_expose(Cxx)
-func appendBindGroupTexture(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ texture: WebGPU.Metal.Texture, _ impl: TextureImpl) {
+func appendBindGroupTexture(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ impl: TextureImpl) {
     deviceImpl.bindGroupBuilder.append(
-        DescriptorEntry(binding: binding, resource: .texture(texture, impl, sameDevice: impl.deviceImpl === deviceImpl))
+        DescriptorEntry(binding: binding, resource: .texture(impl, sameDevice: impl.deviceImpl === deviceImpl))
     )
 }
 
@@ -925,10 +925,10 @@ private struct BindGroupCreation {
                 )
             case .sampler(let impl, let sameDevice):
                 succeeded = addSampler(impl, sameDevice: sameDevice, layoutEntry: layoutEntry, stage: stage, index: index)
-            case .texture(let shell, let impl, let sameDevice):
+            case .texture(let impl, let sameDevice):
                 succeeded = addTexture(
                     entry.binding,
-                    .texture(shell, impl, sameDevice: sameDevice),
+                    .texture(impl, sameDevice: sameDevice),
                     layoutEntry: layoutEntry,
                     stage: stage,
                     slot: slot,
@@ -1132,7 +1132,7 @@ private struct BindGroupCreation {
     }
 
     enum TextureResource {
-        case texture(WebGPU.Metal.Texture, TextureImpl, sameDevice: Bool)
+        case texture(TextureImpl, sameDevice: Bool)
         case textureView(TextureViewImpl, sameDevice: Bool)
     }
 
@@ -1142,7 +1142,7 @@ private struct BindGroupCreation {
     /// rejected later, so it is not touched.
     func clearAndRead(_ resource: TextureResource) -> BoundTexture? {
         switch resource {
-        case .texture(let shell, let impl, let sameDevice):
+        case .texture(let impl, let sameDevice):
             if sameDevice
                 && !deviceImpl.defaultQueueImpl.clearTextureIfNeeded(
                     deviceImpl.defaultQueue(),
@@ -1159,7 +1159,7 @@ private struct BindGroupCreation {
             }
             let texture = impl.texture()
             return BoundTexture(
-                owner: .texture(shell, impl),
+                owner: .texture(impl),
                 tracking: TrackingInfo(
                     kind: .texture,
                     identity: identityKey(ObjectIdentifier(impl)),

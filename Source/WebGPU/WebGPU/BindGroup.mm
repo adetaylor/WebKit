@@ -113,8 +113,7 @@ RefPtr<WebGPU::BindGroup> Device::createBindGroup(const WebGPU::BindGroupDescrip
             Ref sampler = metal(samplerResource->get());
             appendBindGroupSampler(deviceImpl, entry.binding, sampler->swiftImpl());
         } else if (auto* textureResource = std::get_if<Ref<WebGPU::Texture>>(&entry.resource)) {
-            Ref texture = metal(textureResource->get());
-            appendBindGroupTexture(deviceImpl, entry.binding, texture.ptr(), texture->swiftImpl());
+            appendBindGroupTexture(deviceImpl, entry.binding, Ref { metal(textureResource->get()) }->swiftImpl());
         } else if (auto* textureViewResource = std::get_if<Ref<WebGPU::TextureView>>(&entry.resource)) {
             appendBindGroupTextureView(deviceImpl, entry.binding, Ref { metal(textureViewResource->get()) }->swiftImpl());
         } else if (auto* externalTextureResource = std::get_if<Ref<WebGPU::ExternalTexture>>(&entry.resource)) {

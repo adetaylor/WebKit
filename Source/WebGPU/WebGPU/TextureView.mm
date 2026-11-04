@@ -52,7 +52,7 @@ Ref<TextureView> TextureView::create(const WebGPUSwift::TextureViewImpl& impl)
 
 Ref<TextureView> TextureView::createInvalid(Texture& texture, Device& device)
 {
-    return create(makeInvalidTextureViewImpl(&texture, texture.swiftImpl(), &device));
+    return create(makeInvalidTextureViewImpl(texture.swiftImpl(), &device));
 }
 
 TextureView::TextureView(const WebGPUSwift::TextureViewImpl& impl)

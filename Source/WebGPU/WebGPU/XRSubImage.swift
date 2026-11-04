@@ -86,12 +86,12 @@ final class XRSubImageImpl {
 
     @_expose(!Cxx)
     var currentColorTextureReference: TextureReference? {
-        colorTextures[currentTextureIndex].map { TextureReference($0.impl, $0.shell) }
+        colorTextures[currentTextureIndex].map(\.impl)
     }
 
     @_expose(!Cxx)
     var currentDepthTextureReference: TextureReference? {
-        depthTextures[currentTextureIndex].map { TextureReference($0.impl, $0.shell) }
+        depthTextures[currentTextureIndex].map(\.impl)
     }
 
     @_expose(Cxx)

@@ -74,14 +74,14 @@ public enum GPURenderPassAttachmentView {
 
     var impl: AttachmentImpl {
         switch self {
-        case .texture(let texture): .texture(texture.impl)
+        case .texture(let texture): .texture(texture)
         case .textureView(let view): .textureView(view)
         }
     }
 
     var attachmentView: AttachmentView {
         switch self {
-        case .texture(let texture): .texture(texture.shell, texture.impl)
+        case .texture(let texture): .texture(texture)
         case .textureView(let view): .textureView(view)
         }
     }
@@ -3111,7 +3111,7 @@ final class CommandEncoderImpl {
     // The buffers and textures this encoder used, held until clearTracking(). Views, external textures and query sets
     // only record the encoder.
     private var trackedBuffers: [(WebGPU.Metal.Buffer, BufferImpl)] = []
-    private var trackedTextures: [(WebGPU.Metal.Texture, TextureImpl)] = []
+    private var trackedTextures: [TextureImpl] = []
     // The external textures that recorded this encoder in pendingUsers, and the planes it used, until clearTracking().
     // Weak, so that an external texture's Impl, which holds its Device, dies with its shell.
     private var trackedExternalTextures = WeakImplList<ExternalTextureImpl>()
@@ -3738,8 +3738,8 @@ final class CommandEncoderImpl {
     }
 
     @_expose(Cxx)
-    func stageColorAttachmentTexture(_ shell: borrowing WebGPU.Metal.Texture, _ impl: TextureImpl) {
-        staged.colorAttachments.append((.texture(TextureReference(impl, copy shell)), nil))
+    func stageColorAttachmentTexture(_ impl: TextureImpl) {
+        staged.colorAttachments.append((.texture(impl), nil))
     }
 
     @_expose(Cxx)
@@ -3749,8 +3749,8 @@ final class CommandEncoderImpl {
 
     // The resolve target of the last staged color attachment.
     @_expose(Cxx)
-    func stageResolveTargetTexture(_ shell: borrowing WebGPU.Metal.Texture, _ impl: TextureImpl) {
-        stageResolveTarget(.texture(TextureReference(impl, copy shell)))
+    func stageResolveTargetTexture(_ impl: TextureImpl) {
+        stageResolveTarget(.texture(impl))
     }
 
     @_expose(Cxx)
@@ -3766,8 +3766,8 @@ final class CommandEncoderImpl {
     }
 
     @_expose(Cxx)
-    func stageDepthStencilAttachmentTexture(_ shell: borrowing WebGPU.Metal.Texture, _ impl: TextureImpl) {
-        staged.depthStencilAttachment = .texture(TextureReference(impl, copy shell))
+    func stageDepthStencilAttachmentTexture(_ impl: TextureImpl) {
+        staged.depthStencilAttachment = .texture(impl)
     }
 
     @_expose(Cxx)
@@ -3967,7 +3967,7 @@ final class CommandEncoderImpl {
     @_expose(!Cxx)
     func recordGPUExecutionWindowOnCanvasTextures(_ startTime: Double, _ endTime: Double) {
         let textures = trackedTextures
-        for (_, texture) in textures where texture.isCanvasBacking() {
+        for texture in textures where texture.isCanvasBacking() {
             texture.recordGPUExecutionWindow(startTime, endTime)
         }
     }
@@ -3981,8 +3981,8 @@ final class CommandEncoderImpl {
     }
 
     @_expose(!Cxx)
-    func trackTexture(_ texture: WebGPU.Metal.Texture, _ impl: TextureImpl) {
-        trackedTextures.append((texture, impl))
+    func trackTexture(_ impl: TextureImpl) {
+        trackedTextures.append(impl)
     }
 
     @_expose(!Cxx)
@@ -4017,7 +4017,7 @@ final class CommandEncoderImpl {
         for (_, impl) in buffers {
             impl.tracking.remove(self)
         }
-        for (_, impl) in textures {
+        for impl in textures {
             impl.tracking.remove(self)
         }
         for impl in externalTextures {

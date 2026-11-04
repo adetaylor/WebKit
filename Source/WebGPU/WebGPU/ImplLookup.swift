@@ -243,16 +243,6 @@ public final class RenderPassEncoderReference {
     }
 }
 
-@_spi(WebKitGPU)
-public func reference(of texture: WebGPU.Texture) -> TextureReference {
-    var shell: WebGPU.Metal.Texture?
-    let impl = ImplLookup.lookUp(TextureImpl.self) { shell = WebGPU.Metal.deliverImpl(texture) }
-    guard let shell else {
-        preconditionFailure("C++ delivered no shell")
-    }
-    return TextureReference(impl, shell)
-}
-
 // A WebGPU object that Swift holds, as the GPU process's registry of them keeps it: whether it's valid.
 @_spi(WebKitGPU)
 public protocol GPUObjectReference: AnyObject {
@@ -313,11 +303,6 @@ extension RenderBundleEncoderReference: GPUObjectReference {
 
 @_spi(WebKitGPU)
 extension RenderPassEncoderReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
-extension TextureReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }
 

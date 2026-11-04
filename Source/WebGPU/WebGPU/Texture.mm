@@ -106,9 +106,7 @@ RefPtr<WebGPU::Texture> Device::createTexture(const WebGPU::TextureDescriptor& d
 template<typename MakeImpl>
 Ref<Texture> Texture::create(MakeImpl&& makeImpl)
 {
-    Ref result = adoptRef(*new Texture(std::forward<MakeImpl>(makeImpl)));
-    result->swiftImpl().setShell(result.ptr());
-    return result;
+    return adoptRef(*new Texture(std::forward<MakeImpl>(makeImpl)));
 }
 
 Ref<Texture> Texture::createWithStagedImpl(Device& device)
@@ -198,7 +196,7 @@ RefPtr<WebGPU::TextureView> Texture::createView(const std::optional<WebGPU::Text
 {
     const WebGPU::TextureViewDescriptor defaultDescriptor;
     const auto& descriptor = optionalDescriptor ? *optionalDescriptor : defaultDescriptor;
-    auto impl = swiftImpl().createView(this, textureViewDescriptorParameters(descriptor), descriptor.label);
+    auto impl = swiftImpl().createView(textureViewDescriptorParameters(descriptor), descriptor.label);
     return TextureView::create(impl);
 }
 
@@ -225,13 +223,6 @@ void Texture::setLabel(String&& label)
 bool Texture::isValid() const
 {
     return swiftImpl().isValid();
-}
-
-Texture& deliverImpl(WebGPU::Texture& texture)
-{
-    auto& shell = downcast<Texture>(texture);
-    WebGPUSwift::receiveImpl(shell.swiftImpl());
-    return shell;
 }
 
 } // namespace WebGPU::Metal
