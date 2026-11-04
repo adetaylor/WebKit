@@ -103,11 +103,6 @@ final class DeviceImpl {
     var stagedRenderPipelineImpl: RenderPipelineImpl?
     var stagedComputePipelineImpl: ComputePipelineImpl?
     var stagedTextureImpl: TextureImpl?
-    // The other kinds made in Swift for a Swift caller, staged in the same way.
-    // The Impls that the last command encoder, command buffer and external texture shells made: their shells make them,
-    // from what Swift passes their factories. Weak, so that they live only as long as their shells.
-    @_expose(!Cxx)
-    weak var lastMadeCommandEncoderImpl: CommandEncoderImpl?
     // The scheduler of the Instance of the device's adapter, if it had one when the device was made: the asynchronous
     // pipeline compiles hop back through it.
     private var instanceSchedulerHandle: InstanceSchedulerHandle?

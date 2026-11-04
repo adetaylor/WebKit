@@ -415,8 +415,7 @@ enum AttachmentImpl {
 
 /// The scratch records of the clamping indirect draws, whose lostOrOOBRead flag one completion handler per pass checks.
 ///
-/// registerIndirectDeviceLostChecks captures this object in a block that only runs, and is released, on the API thread
-/// (the Metal thread only retains it), so it is deliberately not Sendable.
+/// Only the API thread reaches it, through the encoder's completion work, so it is deliberately not Sendable.
 private final class IndirectDeviceLostChecks {
     var entries: [(scratch: any MTLBuffer, offset: UInt64, alsoRetain: (any MTLBuffer)?)] = []
 
@@ -472,7 +471,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     // Non-nil only while the pass is deferred: cleared when the encoder is materialized, when the pass ends
     // and when the pass is invalidated.
     private var deferredDescriptor: MTLRenderPassDescriptor?
-    private let parentEncoder: WebGPU.Metal.CommandEncoder
     @_expose(!Cxx)
     let parentImpl: CommandEncoderImpl
     private let deviceImpl: DeviceImpl
@@ -570,7 +568,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         rasterizationRateMap: (any MTLRasterizationRateMap)?,
         visibilityResultBuffer: (any MTLBuffer)?,
         parameters: WebGPU.Metal.RenderPassEncoderParameters,
-        parentEncoder: WebGPU.Metal.CommandEncoder,
         parentImpl: CommandEncoderImpl,
         device: WebGPU.Metal.Device,
         lastErrorString: String?
@@ -582,7 +579,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         self.visibilityResultBuffer = visibilityResultBuffer
         self.visibilityResultBufferSize = parameters.visibilityResultBufferSize
         self.maxDrawCount = parameters.maxDrawCount
-        self.parentEncoder = parentEncoder
         self.parentImpl = parentImpl
         self.lastErrorString = lastErrorString
         let deviceImpl = parentImpl.deviceImpl
@@ -1766,8 +1762,11 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         } else {
             checks = IndirectDeviceLostChecks()
             indirectDeviceLostChecks = checks
-            WebGPU.Metal.registerIndirectDeviceLostChecks(parentEncoder, device) {
-                checks.takeLostOrOOBRead()
+            let deviceImpl = self.deviceImpl
+            parentImpl.onCommandBufferCompletion { completed in
+                if completed && checks.takeLostOrOOBRead() {
+                    deviceImpl.loseTheDevice(.Unknown)
+                }
             }
         }
         // alsoRetain has no flag of its own; it is held so a companion scratch outlives the GPU work.
@@ -1878,8 +1877,12 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         emitMemoryBarrier(renderCommandEncoder)
 
         let validationGeneration = indexBuffer.indexContentsGeneration()
-        WebGPU.Metal.registerIndexValidationCompletion(parentEncoder, device, indexedIndirectBuffer, indexedIndirectBufferOffset) {
-            lostOrOOBRead in
+        parentImpl.onCommandBufferCompletion { completed in
+            var lostOrOOBRead: UInt32 = 0
+            guard completed, WebGPU.Metal.readIndexedIndirectArgumentsLostOrOOBRead(indexedIndirectBuffer, indexedIndirectBufferOffset, &lostOrOOBRead)
+            else {
+                return
+            }
             indexBuffer.recordReadOOB(0, lostOrOOBRead != 0)
             indexBuffer.drawIndexedValidated(key, vertexCount: effectiveMinVertexCount, validationGeneration: validationGeneration)
         }
@@ -2196,7 +2199,14 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
                     commandEncoder?.drawPrimitives(type: .point, vertexStart: 0, vertexCount: Int(indexData.indexCount))
 
                     let validationGeneration = indexBuffer.indexContentsGeneration()
-                    WebGPU.Metal.registerICBIndexValidationCompletion(parentEncoder, device, icb.outOfBoundsReadFlag) { outOfBoundsRead in
+                    let outOfBoundsReadFlag = icb.outOfBoundsReadFlag
+                    parentImpl.onCommandBufferCompletion { completed in
+                        // Without the flag (its allocation failed), whether the clamp saw an out-of-bounds read is unknown:
+                        // the draw is not recorded as validated.
+                        var outOfBoundsRead: UInt32 = 0
+                        guard completed, WebGPU.Metal.readOutOfBoundsReadFlag(outOfBoundsReadFlag, &outOfBoundsRead) else {
+                            return
+                        }
                         indexBuffer.recordReadOOB(icbIdentifier, outOfBoundsRead != 0)
                         indexBuffer.drawIndexedValidated(key, vertexCount: effectiveMinVertexCount, validationGeneration: validationGeneration)
                     }
@@ -3628,7 +3638,6 @@ func makeRenderPassEncoderImpl(
     _ rasterizationRateMap: (any MTLRasterizationRateMap)?,
     _ visibilityResultBuffer: (any MTLBuffer)?,
     _ parameters: WebGPU.Metal.RenderPassEncoderParameters,
-    _ parentEncoder: WebGPU.Metal.CommandEncoder,
     _ parentImpl: CommandEncoderImpl,
     _ device: WebGPU.Metal.Device
 ) -> RenderPassEncoderImpl {
@@ -3638,7 +3647,6 @@ func makeRenderPassEncoderImpl(
         rasterizationRateMap: rasterizationRateMap,
         visibilityResultBuffer: visibilityResultBuffer,
         parameters: parameters,
-        parentEncoder: parentEncoder,
         parentImpl: parentImpl,
         device: device,
         lastErrorString: nil
@@ -3649,7 +3657,6 @@ func makeRenderPassEncoderImpl(
 
 @_expose(Cxx)
 func makeInvalidRenderPassEncoderImpl(
-    _ parentEncoder: WebGPU.Metal.CommandEncoder,
     _ parentImpl: CommandEncoderImpl,
     _ device: WebGPU.Metal.Device,
     _ errorString: NSString?
@@ -3660,7 +3667,6 @@ func makeInvalidRenderPassEncoderImpl(
         rasterizationRateMap: nil,
         visibilityResultBuffer: nil,
         parameters: WebGPU.Metal.RenderPassEncoderParameters(),
-        parentEncoder: parentEncoder,
         parentImpl: parentImpl,
         device: device,
         lastErrorString: errorString as String?

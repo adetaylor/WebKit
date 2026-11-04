@@ -62,11 +62,6 @@ Ref<CommandBuffer> CommandBuffer::create(const WebGPUSwift::CommandBufferImpl& i
     return adoptRef(*new CommandBuffer(makeCommandBufferImplBox(impl)));
 }
 
-Ref<CommandBuffer> CommandBuffer::createInvalid(Device& device)
-{
-    return adoptRef(*new CommandBuffer(makeCommandBufferImplBox(makeInvalidCommandBufferImpl(&device, device.swiftImpl()))));
-}
-
 CommandBuffer::CommandBuffer(std::unique_ptr<CommandBufferImplBox>&& impl)
     : m_impl(WTF::move(impl))
 {

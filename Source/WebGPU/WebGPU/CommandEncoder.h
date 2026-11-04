@@ -132,14 +132,10 @@ struct CommandEncoderImplBox;
 class CommandEncoder final : public WebGPU::CommandEncoder {
     WTF_MAKE_TZONE_ALLOCATED(CommandEncoder);
 public:
-    static Ref<CommandEncoder> create(id<MTLCommandBuffer> commandBuffer, Device& device, uint64_t uniqueId)
-    {
-        return adoptRef(*new CommandEncoder(commandBuffer, device, uniqueId));
-    }
-    static Ref<CommandEncoder> createInvalid(Device& device)
-    {
-        return adoptRef(*new CommandEncoder(device));
-    }
+#if !defined(__swift__)
+    // deviceCreateCommandEncoder (CommandEncoder.swift) makes the CommandEncoderImpl.
+    static Ref<CommandEncoder> create(const WebGPUSwift::CommandEncoderImpl&);
+#endif
 
     ~CommandEncoder();
 
@@ -165,8 +161,9 @@ public:
 #endif
 
 private:
-    CommandEncoder(id<MTLCommandBuffer>, Device&, uint64_t uniqueId);
-    CommandEncoder(Device&);
+#if !defined(__swift__)
+    explicit CommandEncoder(const WebGPUSwift::CommandEncoderImpl&);
+#endif
 
     const std::unique_ptr<CommandEncoderImplBox> m_impl;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refCommandEncoder, derefCommandEncoder);

@@ -126,12 +126,10 @@ id<MTLBuffer> newZeroedDrawIndexedIndirectScratch(Device&, uint64_t& offset);
 id<MTLBuffer> newDrawIndexedIndirectArgumentsBuffer(Device&, uint32_t indexCount, uint32_t instanceCount, uint32_t indexStart, int32_t baseVertex, uint32_t baseInstance, uint64_t& offset);
 bool drawIndirectArgumentsLostOrOOBRead(id<MTLBuffer> scratch, uint64_t offset);
 void logRenderPassSplit();
-// Each block runs on the API thread once the command buffer completed, with the out-of-bounds flag the clamp wrote: in
-// the indexed indirect arguments, or in the ICB's flag. Not called if the flag can't be read.
-void registerIndexValidationCompletion(CommandEncoder&, Device&, id<MTLBuffer> indexedIndirectBuffer, uint64_t indexedIndirectBufferOffset, void (^validated)(uint32_t lostOrOOBRead));
-void registerICBIndexValidationCompletion(CommandEncoder&, Device&, id<MTLBuffer> outOfBoundsReadFlag, void (^validated)(uint32_t outOfBoundsRead));
-// The block runs on the API thread once the command buffer completed, and returns whether to lose the device.
-void registerIndirectDeviceLostChecks(CommandEncoder&, Device&, bool (^takeLostOrOOBRead)(void));
+// The out-of-bounds flag a completed index clamp wrote: into the indexed indirect arguments, or into an ICB's flag.
+// False, leaving the flag, if it can't be read.
+bool readIndexedIndirectArgumentsLostOrOOBRead(id<MTLBuffer> _Nullable indexedIndirectBuffer, uint64_t indexedIndirectBufferOffset, uint32_t& lostOrOOBRead);
+bool readOutOfBoundsReadFlag(id<MTLBuffer> _Nullable outOfBoundsReadFlag, uint32_t& outOfBoundsRead);
 
 } // namespace WebGPU::Metal
 

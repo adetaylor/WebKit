@@ -60,7 +60,6 @@ public:
     // CommandEncoder.swift's finish() makes the CommandBufferImpl.
     static Ref<CommandBuffer> create(const WebGPUSwift::CommandBufferImpl&);
 #endif
-    static Ref<CommandBuffer> createInvalid(Device&);
 
     ~CommandBuffer();
 

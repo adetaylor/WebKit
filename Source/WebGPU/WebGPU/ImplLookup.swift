@@ -257,11 +257,6 @@ extension AdapterReference: GPUObjectReference {
 }
 
 @_spi(WebKitGPU)
-extension CommandEncoderReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
 extension DeviceReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }

@@ -70,7 +70,6 @@ private struct DispatchStateCache {
 public final class ComputePassEncoderImpl: GPUObjectReference {
     // nil once the pass is invalid, has ended or no longer holds its command encoder's current encoder.
     private var backingComputeCommandEncoder: (any MTLComputeCommandEncoder)?
-    private let parentEncoder: WebGPU.Metal.CommandEncoder
     private let parentImpl: CommandEncoderImpl
     // The device's, copied at creation: immutable.
     private let limits: EncoderLimits
@@ -107,13 +106,11 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
 
     fileprivate init(
         computeCommandEncoder: (any MTLComputeCommandEncoder)?,
-        parentEncoder: WebGPU.Metal.CommandEncoder,
         parentImpl: CommandEncoderImpl,
         device: WebGPU.Metal.Device,
         lastErrorString: String?
     ) {
         self.backingComputeCommandEncoder = computeCommandEncoder
-        self.parentEncoder = parentEncoder
         self.parentImpl = parentImpl
         self.device = device
         self.limits = parentImpl.deviceImpl.limits
@@ -952,13 +949,11 @@ private struct DispatchUsageMap {
 @_expose(Cxx)
 func makeComputePassEncoderImpl(
     _ computeCommandEncoder: (any MTLComputeCommandEncoder)?,
-    _ parentEncoder: WebGPU.Metal.CommandEncoder,
     _ parentImpl: CommandEncoderImpl,
     _ device: WebGPU.Metal.Device
 ) -> ComputePassEncoderImpl {
     let impl = ComputePassEncoderImpl(
         computeCommandEncoder: computeCommandEncoder,
-        parentEncoder: parentEncoder,
         parentImpl: parentImpl,
         device: device,
         lastErrorString: nil
@@ -969,14 +964,12 @@ func makeComputePassEncoderImpl(
 
 @_expose(Cxx)
 func makeInvalidComputePassEncoderImpl(
-    _ parentEncoder: WebGPU.Metal.CommandEncoder,
     _ parentImpl: CommandEncoderImpl,
     _ device: WebGPU.Metal.Device,
     _ errorString: NSString?
 ) -> ComputePassEncoderImpl {
     let impl = ComputePassEncoderImpl(
         computeCommandEncoder: nil,
-        parentEncoder: parentEncoder,
         parentImpl: parentImpl,
         device: device,
         lastErrorString: errorString as String?

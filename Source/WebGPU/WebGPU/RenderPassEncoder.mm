@@ -295,72 +295,24 @@ void logRenderPassSplit()
 #endif
 }
 
-// The Metal thread only reads the command buffer's status and hops to the API thread. Each of these handlers hands
-// every reference it holds over to its work item, on every path, so that they are released on the API thread.
-void registerIndexValidationCompletion(CommandEncoder& parentEncoder, Device& parentDevice, id<MTLBuffer> indexedIndirectBuffer, uint64_t indexedIndirectBufferOffset, void (^validated)(uint32_t))
+bool readIndexedIndirectArgumentsLostOrOOBRead(id<MTLBuffer> indexedIndirectBuffer, uint64_t indexedIndirectBufferOffset, uint32_t& lostOrOOBRead)
 {
-    Ref device = parentDevice;
-    Ref queue = device->getQueue();
-    auto encoderHandle = queue->retainCounterSampleBuffer(parentEncoder);
-    [parentEncoder.swiftImpl().commandBuffer() addCompletedHandler:[encoderHandle, protectedDevice = WTF::move(device), queue = WTF::move(queue), indexedIndirectBuffer, indexedIndirectBufferOffset, validated](id<MTLCommandBuffer> completedCommandBuffer) mutable {
-        bool completed = completedCommandBuffer.status == MTLCommandBufferStatusCompleted;
-        Queue& hop = queue.get();
-        hop.scheduleWork([completed, encoderHandle, protectedDevice = WTF::move(protectedDevice), queue = WTF::move(queue), indexedIndirectBuffer, indexedIndirectBufferOffset, validated = WTF::move(validated)] mutable {
-            queue->releaseCounterSampleBuffer(encoderHandle);
-            if (!completed)
-                return;
-            auto checkedEnd = checkedSum<uint64_t>(indexedIndirectBufferOffset, sizeof(WebKitMTLDrawIndexedPrimitivesIndirectArguments));
-            if (!indexedIndirectBuffer.contents || checkedEnd.hasOverflowed() || checkedEnd.value() > indexedIndirectBuffer.length)
-                return;
+    auto checkedEnd = checkedSum<uint64_t>(indexedIndirectBufferOffset, sizeof(WebKitMTLDrawIndexedPrimitivesIndirectArguments));
+    if (!indexedIndirectBuffer.contents || checkedEnd.hasOverflowed() || checkedEnd.value() > indexedIndirectBuffer.length)
+        return false;
 
-            auto contents = unsafeMakeSpan(static_cast<const uint8_t*>(indexedIndirectBuffer.contents), indexedIndirectBuffer.length).subspan(indexedIndirectBufferOffset);
-            auto& args = reinterpretCastSpanStartTo<const WebKitMTLDrawIndexedPrimitivesIndirectArguments>(contents);
-            validated(args.lostOrOOBRead);
-        });
-    }];
+    auto contents = unsafeMakeSpan(static_cast<const uint8_t*>(indexedIndirectBuffer.contents), indexedIndirectBuffer.length).subspan(indexedIndirectBufferOffset);
+    lostOrOOBRead = reinterpretCastSpanStartTo<const WebKitMTLDrawIndexedPrimitivesIndirectArguments>(contents).lostOrOOBRead;
+    return true;
 }
 
-// As registerIndexValidationCompletion, for the index validation of a render bundle's ICB.
-void registerICBIndexValidationCompletion(CommandEncoder& parentEncoder, Device& parentDevice, id<MTLBuffer> outOfBoundsReadFlag, void (^validated)(uint32_t))
+bool readOutOfBoundsReadFlag(id<MTLBuffer> outOfBoundsReadFlag, uint32_t& outOfBoundsRead)
 {
-    Ref device = parentDevice;
-    Ref queue = device->getQueue();
-    auto encoderHandle = queue->retainCounterSampleBuffer(parentEncoder);
-    [parentEncoder.swiftImpl().commandBuffer() addCompletedHandler:[encoderHandle, protectedDevice = WTF::move(device), queue = WTF::move(queue), outOfBoundsReadFlag, validated](id<MTLCommandBuffer> completedCommandBuffer) mutable {
-        bool completed = completedCommandBuffer.status == MTLCommandBufferStatusCompleted;
-        Queue& hop = queue.get();
-        hop.scheduleWork([completed, encoderHandle, protectedDevice = WTF::move(protectedDevice), queue = WTF::move(queue), outOfBoundsReadFlag, validated = WTF::move(validated)] mutable {
-            queue->releaseCounterSampleBuffer(encoderHandle);
-            if (!completed)
-                return;
-            // Without the flag (its allocation failed), whether the clamp saw an out-of-bounds read is unknown: the draw
-            // is not recorded as validated.
-            if (!outOfBoundsReadFlag.contents || outOfBoundsReadFlag.length < sizeof(uint32_t))
-                return;
-            auto flag = unsafeMakeSpan(static_cast<const uint8_t*>(outOfBoundsReadFlag.contents), outOfBoundsReadFlag.length);
-            validated(reinterpretCastSpanStartTo<const uint32_t>(flag));
-        });
-    }];
-}
-
-// One handler per pass checks the lostOrOOBRead flags of every clamping indirect draw. The block, which holds the
-// Swift IndirectDeviceLostChecks, is retained on the Metal thread and runs, and is released, on the API thread.
-void registerIndirectDeviceLostChecks(CommandEncoder& parentEncoder, Device& parentDevice, bool (^takeLostOrOOBRead)(void))
-{
-    Ref device = parentDevice;
-    Ref queue = device->getQueue();
-    auto encoderHandle = queue->retainCounterSampleBuffer(parentEncoder);
-    [parentEncoder.swiftImpl().commandBuffer() addCompletedHandler:[encoderHandle, protectedDevice = WTF::move(device), queue = WTF::move(queue), takeLostOrOOBRead](id<MTLCommandBuffer> completedCommandBuffer) mutable {
-        bool completed = completedCommandBuffer.status == MTLCommandBufferStatusCompleted;
-        Queue& hop = queue.get();
-        hop.scheduleWork([completed, encoderHandle, protectedDevice = WTF::move(protectedDevice), queue = WTF::move(queue), takeLostOrOOBRead = WTF::move(takeLostOrOOBRead)] mutable {
-            queue->releaseCounterSampleBuffer(encoderHandle);
-            if (!completed)
-                return;
-            if (takeLostOrOOBRead())
-                protectedDevice->loseTheDevice(WebGPU::DeviceLostReason::Unknown);
-        });
-    }];
+    if (!outOfBoundsReadFlag.contents || outOfBoundsReadFlag.length < sizeof(uint32_t))
+        return false;
+    auto flag = unsafeMakeSpan(static_cast<const uint8_t*>(outOfBoundsReadFlag.contents), outOfBoundsReadFlag.length);
+    outOfBoundsRead = reinterpretCastSpanStartTo<const uint32_t>(flag);
+    return true;
 }
 
 } // namespace WebGPU::Metal

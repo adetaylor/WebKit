@@ -75,10 +75,8 @@ enum PostCommitAction {
     case clearMustTakeSlowIndexValidationPath(WebGPU.Metal.Device, WeakBufferAndEncoder)
 }
 
-// The CommandEncoder that finished into a command buffer. The Impl is read for its state and holds the pre-commit
-// actions; the shell keeps it alive.
+// The CommandEncoder that finished into a command buffer, read for its state, which holds the pre-commit actions.
 private struct FinishedEncoder {
-    let shell: WebGPU.Metal.CommandEncoder
     let impl: CommandEncoderImpl
 }
 
@@ -403,7 +401,6 @@ func makeCommandBufferImpl(
     _ commandBuffer: (any MTLCommandBuffer)?,
     _ sharedEvent: (any MTLSharedEvent)?,
     _ sharedEventSignalValue: UInt64,
-    _ commandEncoder: WebGPU.Metal.CommandEncoder,
     _ commandEncoderImpl: CommandEncoderImpl,
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
@@ -412,13 +409,12 @@ func makeCommandBufferImpl(
         commandBuffer: commandBuffer,
         sharedEvent: sharedEvent,
         sharedEventSignalValue: sharedEventSignalValue,
-        commandEncoder: [FinishedEncoder(shell: commandEncoder, impl: commandEncoderImpl)],
+        commandEncoder: [FinishedEncoder(impl: commandEncoderImpl)],
         device: device,
         deviceImpl: deviceImpl
     )
 }
 
-@_expose(Cxx)
 func makeInvalidCommandBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> CommandBufferImpl {
     CommandBufferImpl(
         commandBuffer: nil,

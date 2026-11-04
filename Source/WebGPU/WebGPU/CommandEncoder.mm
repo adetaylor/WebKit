@@ -56,26 +56,22 @@ WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(CommandEncoderImplBox);
 
 RefPtr<WebGPU::CommandEncoder> Device::createCommandEncoder(const WebGPU::CommandEncoderDescriptor& descriptor)
 {
-    return adoptRef(*deviceCreateCommandEncoder(this, swiftImpl(), descriptor.label.createNSString().get()));
+    return CommandEncoder::create(deviceCreateCommandEncoder(this, swiftImpl(), descriptor.label.createNSString().get()));
 }
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(CommandEncoder);
 
-CommandEncoder::CommandEncoder(id<MTLCommandBuffer> commandBuffer, Device& device, uint64_t uniqueId)
-    : m_impl(makeUnique<CommandEncoderImplBox>(CommandEncoderImplBox { .impl = makeCommandEncoderImpl(commandBuffer, &device, device.swiftImpl(), device.isShaderValidationEnabled(), uniqueId) }))
+Ref<CommandEncoder> CommandEncoder::create(const WebGPUSwift::CommandEncoderImpl& impl)
+{
+    return adoptRef(*new CommandEncoder(impl));
+}
+
+CommandEncoder::CommandEncoder(const WebGPUSwift::CommandEncoderImpl& impl)
+    : m_impl(makeUnique<CommandEncoderImplBox>(CommandEncoderImplBox { .impl = impl }))
 {
 }
 
-CommandEncoder::CommandEncoder(Device& device)
-    : m_impl(makeUnique<CommandEncoderImplBox>(CommandEncoderImplBox { .impl = makeInvalidCommandEncoderImpl(&device, device.swiftImpl()) }))
-{
-}
-
-CommandEncoder::~CommandEncoder()
-{
-    // Never passes the dying shell into Swift.
-    m_impl->impl.encoderWillBeDestroyed();
-}
+CommandEncoder::~CommandEncoder() = default;
 
 bool CommandEncoder::isValid() const
 {
@@ -93,7 +89,7 @@ RefPtr<WebGPU::ComputePassEncoder> CommandEncoder::beginComputePass(const std::o
         Ref querySet = metal(descriptor->timestampWrites->querySet);
         m_impl->impl.stageTimestampWritesQuerySet(querySet->swiftImpl());
     }
-    return ComputePassEncoder::create(m_impl->impl.beginComputePass(this, descriptor ? *descriptor : WebGPU::ComputePassDescriptor { }));
+    return ComputePassEncoder::create(m_impl->impl.beginComputePass(descriptor ? *descriptor : WebGPU::ComputePassDescriptor { }));
 }
 
 RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::RenderPassDescriptor& descriptor)
@@ -130,7 +126,7 @@ RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::
         Ref querySet = metal(descriptor.timestampWrites->querySet);
         impl.stageTimestampWritesQuerySet(querySet->swiftImpl());
     }
-    return RenderPassEncoder::create(impl.beginRenderPass(this, descriptor));
+    return RenderPassEncoder::create(impl.beginRenderPass(descriptor));
 }
 
 void CommandEncoder::copyBufferToBuffer(const WebGPU::Buffer& source, uint64_t sourceOffset, WebGPU::Buffer& destination, uint64_t destinationOffset, uint64_t size)
@@ -162,7 +158,7 @@ void CommandEncoder::clearBuffer(WebGPU::Buffer& buffer, uint64_t offset, std::o
 
 RefPtr<WebGPU::CommandBuffer> CommandEncoder::finish(const WebGPU::CommandBufferDescriptor& descriptor)
 {
-    return CommandBuffer::create(m_impl->impl.finish(this, descriptor));
+    return CommandBuffer::create(m_impl->impl.finish(descriptor));
 }
 
 void CommandEncoder::insertDebugMarker(String&& markerLabel)
