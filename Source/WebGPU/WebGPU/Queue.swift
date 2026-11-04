@@ -324,9 +324,8 @@ final class QueueCompletion: Sendable {
     }
 }
 
-// A command buffer of a submit, with its Impl (the CommandBuffer shell keeps the Impl alive).
+// A command buffer of a submit.
 private struct SubmittedCommand {
-    let shell: WebGPU.Metal.CommandBuffer
     let impl: CommandBufferImpl
 }
 
@@ -1147,8 +1146,8 @@ final class QueueImpl {
     // MARK: submit
 
     @_expose(Cxx)
-    func appendCommandToSubmit(_ command: WebGPU.Metal.CommandBuffer, _ commandImpl: CommandBufferImpl) {
-        commandsToSubmit.append(SubmittedCommand(shell: command, impl: commandImpl))
+    func appendCommandToSubmit(_ commandImpl: CommandBufferImpl) {
+        commandsToSubmit.append(SubmittedCommand(impl: commandImpl))
     }
 
     private func errorValidatingSubmit(_ commands: [SubmittedCommand], _ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> NSString?
@@ -1180,7 +1179,7 @@ final class QueueImpl {
         if let error = errorValidatingSubmit(commands, device, deviceImpl) {
             deviceImpl.generateAValidationError(error as String)
             for command in commands {
-                command.impl.makeInvalid(command.shell, command.impl.lastError() ?? error)
+                command.impl.makeInvalid(command.impl.lastError() ?? error)
             }
             return
         }
@@ -1205,11 +1204,11 @@ final class QueueImpl {
 
         for command in commands {
             if let validationError {
-                command.impl.makeInvalid(command.shell, command.impl.lastError() ?? validationError)
+                command.impl.makeInvalid(command.impl.lastError() ?? validationError)
             } else if initializationFailed {
-                command.impl.makeInvalid(command.shell, "GPUQueue.submit: lazy zero-initialization failed")
+                command.impl.makeInvalid("GPUQueue.submit: lazy zero-initialization failed")
             } else {
-                command.shell.registerCompletedHandler(command.impl.willCommit("command buffer was submitted"))
+                command.impl.registerCompletedHandler(command.impl.willCommit("command buffer was submitted"))
             }
         }
         if validationError != nil {
@@ -1222,7 +1221,7 @@ final class QueueImpl {
         }
 
         for submission in submissions {
-            _ = submission.command.impl.preCommitHandler(submission.command.shell)
+            _ = submission.command.impl.preCommitHandler()
             // A command encoder that overflowed one MTLCommandBuffer's render encoder budget spilled the
             // filled buffers here. They hold the commands encoded before this one, so they have to be
             // committed first; sequential commits on the same MTLCommandQueue execute in order.
@@ -1235,7 +1234,7 @@ final class QueueImpl {
             } else {
                 submission.command.impl.dropInitializationLedger()
             }
-            submission.command.impl.postCommitHandler(submission.command.shell)
+            submission.command.impl.postCommitHandler()
         }
 
         if MTLCaptureManager.shared().isCapturing && shouldStopCaptureAfterSubmit() {
@@ -3014,7 +3013,7 @@ public final class QueueReference {
             return
         }
         for commandBuffer in commandBuffers {
-            impl.appendCommandToSubmit(commandBuffer.shell, commandBuffer.impl)
+            impl.appendCommandToSubmit(commandBuffer)
         }
         impl.submit(shell, device.shell, device.impl)
     }

@@ -269,7 +269,7 @@ void Queue::submit(Vector<Ref<WebGPU::Metal::CommandBuffer>>&& commands)
         return;
 
     for (Ref command : commands)
-        m_impl->impl.appendCommandToSubmit(command.ptr(), command->swiftImpl());
+        m_impl->impl.appendCommandToSubmit(command->swiftImpl());
     m_impl->impl.submit(this, device.get(), device->swiftImpl());
 }
 

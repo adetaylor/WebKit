@@ -52,7 +52,6 @@ inline uint32_t roundUpToMultipleOfNonPowerOfTwoUInt32UInt32(uint32_t a, uint32_
 
 namespace CxxBridging {
 
-using RefCommandBuffer = Ref<WebGPU::Metal::CommandBuffer>;
 using RefDevice = Ref<WebGPU::Metal::Device>;
 
 // The types of the Instance's scheduler and web process ID (Instance.swift).
@@ -78,39 +77,6 @@ inline bool areDevicesEqual(const WebGPU::Metal::Device& a, const WebGPU::Metal:
 // The device's Instance, +1, or nullptr once it is gone.
 inline WebGPU::Metal::Instance* protectedInstance(const WebGPU::Metal::Device& device) SWIFT_RETURNS_RETAINED {
     return device.instance().leakRef();
-}
-
-using CommandBufferWeakPtr = ThreadSafeWeakPtr<WebGPU::Metal::CommandBuffer>;
-
-inline CommandBufferWeakPtr commandBufferThreadSafeWeakPtr(const WebGPU::Metal::CommandBuffer* input)
-{
-    return ThreadSafeWeakPtr(input);
-}
-
-// CommandEncoderImpl's cached command buffer, which can die on a Metal thread (so it is not a Swift weak reference).
-// Each does nothing once the command buffer is gone.
-inline void makeCommandBufferInvalid(const CommandBufferWeakPtr& commandBuffer, NSString* errorString)
-{
-    if (RefPtr protectedCommandBuffer = commandBuffer)
-        protectedCommandBuffer->makeInvalid(errorString);
-}
-
-inline void setCommandBufferMapCount(const CommandBufferWeakPtr& commandBuffer, int bufferMapCount)
-{
-    if (RefPtr protectedCommandBuffer = commandBuffer)
-        protectedCommandBuffer->setBufferMapCount(bufferMapCount);
-}
-
-// Returns false when the wait timed out. The GPU duration is 0 without a command buffer.
-inline bool waitForCommandBufferCompletion(const CommandBufferWeakPtr& commandBuffer, double& gpuExecutionDurationSeconds)
-{
-    gpuExecutionDurationSeconds = 0;
-    RefPtr protectedCommandBuffer = commandBuffer;
-    if (!protectedCommandBuffer)
-        return true;
-    bool completed = protectedCommandBuffer->waitForCompletion();
-    gpuExecutionDurationSeconds = protectedCommandBuffer->gpuExecutionDurationSeconds();
-    return completed;
 }
 
 }

@@ -108,11 +108,12 @@ final class DeviceImpl {
     // from what Swift passes their factories. Weak, so that they live only as long as their shells.
     @_expose(!Cxx)
     weak var lastMadeCommandEncoderImpl: CommandEncoderImpl?
-    @_expose(!Cxx)
-    weak var lastMadeCommandBufferImpl: CommandBufferImpl?
     // The scheduler of the Instance of the device's adapter, if it had one when the device was made: the asynchronous
     // pipeline compiles hop back through it.
     private var instanceSchedulerHandle: InstanceSchedulerHandle?
+    // The Instance of the device's adapter, if it had one when the device was made.
+    @_expose(!Cxx)
+    private(set) weak var instanceImpl: InstanceImpl?
     @_expose(!Cxx)
     let externalTextureImporter: ExternalTextureImporter
     /// The builders Device::createPipelineLayout and Device::createBindGroup reuse.
@@ -764,6 +765,17 @@ final class DeviceImpl {
     @_expose(Cxx)
     func setInstanceSchedulerHandle(_ handle: InstanceSchedulerHandle) {
         instanceSchedulerHandle = handle
+    }
+
+    @_expose(Cxx)
+    func setInstanceImpl(_ instance: InstanceImpl) {
+        instanceImpl = instance
+    }
+
+    // What the Metal handlers schedule their API-thread work through.
+    @_expose(!Cxx)
+    func schedulerHandle() -> InstanceSchedulerHandle? {
+        instanceSchedulerHandle
     }
 
     /// Alive whenever the Instance is.

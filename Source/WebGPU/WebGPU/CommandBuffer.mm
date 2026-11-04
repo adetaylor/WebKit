@@ -57,10 +57,9 @@ static std::unique_ptr<CommandBufferImplBox> makeCommandBufferImplBox(WebGPUSwif
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(CommandBuffer);
 
-Ref<CommandBuffer> CommandBuffer::create(id<MTLCommandBuffer> commandBuffer, Device& device, id<MTLSharedEvent> sharedEvent, uint64_t sharedEventSignalValue, CommandEncoder& commandEncoder)
+Ref<CommandBuffer> CommandBuffer::create(const WebGPUSwift::CommandBufferImpl& impl)
 {
-    auto box = makeCommandBufferImplBox(makeCommandBufferImpl(commandBuffer, sharedEvent, sharedEventSignalValue, &commandEncoder, commandEncoder.swiftImpl(), &device, device.swiftImpl()));
-    return adoptRef(*new CommandBuffer(WTF::move(box)));
+    return adoptRef(*new CommandBuffer(makeCommandBufferImplBox(impl)));
 }
 
 Ref<CommandBuffer> CommandBuffer::createInvalid(Device& device)
@@ -73,11 +72,7 @@ CommandBuffer::CommandBuffer(std::unique_ptr<CommandBufferImplBox>&& impl)
 {
 }
 
-CommandBuffer::~CommandBuffer()
-{
-    // Never passes the dying shell into Swift.
-    m_impl->impl.commandBufferWillBeDestroyed();
-}
+CommandBuffer::~CommandBuffer() = default;
 
 bool CommandBuffer::isValid() const
 {
@@ -121,31 +116,7 @@ double CommandBuffer::gpuExecutionDurationSeconds() const
 
 void CommandBuffer::makeInvalid(NSString* lastError)
 {
-    m_impl->impl.makeInvalid(this, lastError);
-}
-
-// Called with the command buffer CommandBufferImpl::willCommit() returned, just before the queue commits it. The Device
-// is read here, on the API thread: the handler, which runs on a Metal thread, only uses what it captures, and hands
-// its references to the command buffer and the queue over to the work item, so that they are released on the API
-// thread.
-void CommandBuffer::registerCompletedHandler(id<MTLCommandBuffer> commandBuffer)
-{
-    Ref device = this->device();
-    if (RefPtr instance = device->instance())
-        instance->retainCommandBuffer(*this, commandBuffer);
-    [commandBuffer addCompletedHandler:[protectedThis = protect(*this), queue = device->getQueue(), completion = m_impl->completion](id<MTLCommandBuffer> completedCommandBuffer) mutable {
-        // GPUStartTime/GPUEndTime bracket execution on the GPU; kernelStartTime/kernelEndTime only bracket the driver scheduling it.
-        double gpuStartTime = completedCommandBuffer.GPUStartTime;
-        double gpuEndTime = completedCommandBuffer.GPUEndTime;
-        completion.didComplete(gpuStartTime, gpuEndTime);
-        Queue& hop = queue.get();
-        hop.scheduleWork([protectedThis = WTF::move(protectedThis), queue = WTF::move(queue), gpuStartTime, gpuEndTime] {
-            protectedThis->m_impl->impl.commandBufferDidComplete(gpuStartTime, gpuEndTime);
-
-            if (RefPtr instance = protectedThis->device().instance())
-                instance->releaseCompletedCommandBuffers();
-        });
-    }];
+    m_impl->impl.makeInvalid(lastError);
 }
 
 NSString* CommandBuffer::lastError() const

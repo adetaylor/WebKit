@@ -179,8 +179,10 @@ Ref<Device> Device::createInvalid(Adapter& adapter)
 static std::unique_ptr<DeviceImplBox> makeDeviceImplBox(id<MTLDevice> device, Ref<Queue>&& defaultQueue, const HardwareCapabilities& capabilities, Adapter& adapter)
 {
     auto box = makeUnique<DeviceImplBox>(DeviceImplBox { .impl = makeDeviceImpl(device, capabilities, &adapter, adapter.swiftImpl(), defaultQueue.ptr(), defaultQueue->swiftImpl()) });
-    if (RefPtr instance = adapter.instance())
+    if (RefPtr instance = adapter.instance()) {
         box->impl.setInstanceSchedulerHandle(instance->schedulerHandle());
+        box->impl.setInstanceImpl(instance->swiftImpl());
+    }
     return box;
 }
 

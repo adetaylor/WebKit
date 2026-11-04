@@ -33,7 +33,13 @@ import Synchronization
 
 private let commandBufferSubmissionTimeoutSeconds = 0.5
 
-// The part of a command buffer that the shell's Metal completion handler touches on a Metal thread, while
+// When a command buffer ran on the GPU.
+private struct GPUExecutionTimes: Sendable {
+    let start: Double
+    let end: Double
+}
+
+// The part of a command buffer that its Metal completion handler touches on a Metal thread, while
 // the API thread reads the duration and waits for the signal. Sendable, so the compiler proves it safe to share.
 @_expose(Cxx)
 final class CommandBufferCompletion: Sendable {
@@ -76,26 +82,28 @@ private struct FinishedEncoder {
     let impl: CommandEncoderImpl
 }
 
-// One per GPUCommandBuffer, owned by the C++ shell WebGPU::Metal::CommandBuffer. Holds the CommandEncoder until the
-// command buffer completes or is made invalid; the encoder's Impl holds the pre-commit actions.
-//
-// Used only on its Instance's API thread, so deliberately not Sendable; the Metal thread only ever gets
-// `completion()`.
-// A command buffer with its shell, as Swift holds one.
 @_spi(WebKitGPU)
-public final class CommandBufferReference {
-    public let impl: CommandBufferImpl
-    let shell: WebGPU.Metal.CommandBuffer
+public typealias CommandBufferReference = CommandBufferImpl
 
-    init(_ impl: CommandBufferImpl, _ shell: WebGPU.Metal.CommandBuffer) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension CommandBufferImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: CommandBufferImpl {
+        self
     }
 }
 
+// One per GPUCommandBuffer, held by its Swift callers, the queue and Instance while its work is in flight, and the C++
+// API's shell WebGPU::Metal::CommandBuffer. Holds the CommandEncoder until the command buffer completes or is made
+// invalid; the encoder's Impl holds the pre-commit actions.
+//
+// Used only on its Instance's API thread, so deliberately not Sendable; the Metal thread only ever gets
+// `completion()`. The last reference goes on the API thread: the completion handler's hands its reference to the work
+// it schedules there.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class CommandBufferImpl {
+public final class CommandBufferImpl: GPUObjectReference {
     private var backingCommandBuffer: (any MTLCommandBuffer)?
     // The committed command buffer, until the completion handler's work item runs.
     private var cachedCommandBuffer: (any MTLCommandBuffer)?
@@ -142,7 +150,7 @@ public final class CommandBufferImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         backingCommandBuffer != nil
     }
 
@@ -230,9 +238,7 @@ public final class CommandBufferImpl {
         withExtendedLifetime(actions) {}
     }
 
-    // Called from ~CommandBuffer, which must not pass the dying shell into Swift.
-    @_expose(Cxx)
-    func commandBufferWillBeDestroyed() {
+    deinit {
         let queue = deviceImpl.defaultQueue()
         let queueImpl = deviceImpl.defaultQueueImpl
         retainTimestampsForOneUpdate(queue)
@@ -247,7 +253,7 @@ public final class CommandBufferImpl {
     }
 
     @_expose(Cxx)
-    func makeInvalid(_ shell: WebGPU.Metal.CommandBuffer, _ lastError: NSString?) {
+    func makeInvalid(_ lastError: NSString?) {
         guard let commandBuffer = backingCommandBuffer, commandBuffer.status.rawValue < MTLCommandBufferStatus.committed.rawValue else {
             return
         }
@@ -313,8 +319,8 @@ public final class CommandBufferImpl {
         initializationLedger = nil
     }
 
-    // Moves the command buffer to `cachedCommandBuffer` and returns it, for the shell's
-    // registerCompletedHandler() and then the queue's commit.
+    // Moves the command buffer to `cachedCommandBuffer` and returns it, for registerCompletedHandler() and then the
+    // queue's commit.
     func willCommit(_ lastError: NSString?) -> (any MTLCommandBuffer)? {
         let commandBuffer = backingCommandBuffer
         if let sharedEvent, let commandBuffer {
@@ -326,9 +332,31 @@ public final class CommandBufferImpl {
         return commandBuffer
     }
 
+    // Just before the queue commits the command buffer willCommit() returned. The Instance keeps this command buffer
+    // until the MTLCommandBuffer goes. On the Metal thread, the handler only gives the GPU times to the Sendable
+    // completion, then hands the rest to the API thread through the Instance's scheduler.
+    func registerCompletedHandler(_ commandBuffer: (any MTLCommandBuffer)?) {
+        deviceImpl.instanceImpl?.retainCommandBuffer(self, commandBuffer)
+        guard let commandBuffer else {
+            return
+        }
+        let completion = backingCompletion
+        let scheduler = deviceImpl.schedulerHandle()
+        let didComplete = APIThreadWork<GPUExecutionTimes> { [self] times in
+            commandBufferDidComplete(times.start, times.end)
+            deviceImpl.instanceImpl?.releaseCompletedCommandBuffers()
+        }
+        commandBuffer.addCompletedHandler { completedCommandBuffer in
+            // GPUStartTime/GPUEndTime bracket execution on the GPU; kernelStartTime/kernelEndTime only bracket the driver
+            // scheduling it.
+            let times = GPUExecutionTimes(start: completedCommandBuffer.gpuStartTime, end: completedCommandBuffer.gpuEndTime)
+            completion.didComplete(gpuStartTime: times.start, gpuEndTime: times.end)
+            didComplete.schedule(times, on: scheduler)
+        }
+    }
+
     // The completion handler's work item, on the API thread.
-    @_expose(Cxx)
-    func commandBufferDidComplete(_ gpuStartTime: Double, _ gpuEndTime: Double) {
+    private func commandBufferDidComplete(_ gpuStartTime: Double, _ gpuEndTime: Double) {
         cachedCommandBuffer = nil
         if let encoder = commandEncoder.first {
             encoder.impl.recordGPUExecutionWindowOnCanvasTextures(gpuStartTime, gpuEndTime)
@@ -345,14 +373,14 @@ public final class CommandBufferImpl {
     }
 
     // Runs the encoder's commit actions, which then are gone.
-    func preCommitHandler(_ shell: WebGPU.Metal.CommandBuffer) -> Bool {
+    func preCommitHandler() -> Bool {
         guard let encoder = commandEncoder.first else {
             return true
         }
-        return encoder.impl.runCommitActions(shell, self)
+        return encoder.impl.runCommitActions(self)
     }
 
-    func postCommitHandler(_ shell: WebGPU.Metal.CommandBuffer) {
+    func postCommitHandler() {
         let actions = postCommitActions
         postCommitActions = []
         for action in actions {
@@ -371,7 +399,6 @@ public final class CommandBufferImpl {
     }
 }
 
-@_expose(Cxx)
 func makeCommandBufferImpl(
     _ commandBuffer: (any MTLCommandBuffer)?,
     _ sharedEvent: (any MTLSharedEvent)?,
@@ -381,7 +408,7 @@ func makeCommandBufferImpl(
     _ device: WebGPU.Metal.Device,
     _ deviceImpl: DeviceImpl
 ) -> CommandBufferImpl {
-    let impl = CommandBufferImpl(
+    CommandBufferImpl(
         commandBuffer: commandBuffer,
         sharedEvent: sharedEvent,
         sharedEventSignalValue: sharedEventSignalValue,
@@ -389,13 +416,11 @@ func makeCommandBufferImpl(
         device: device,
         deviceImpl: deviceImpl
     )
-    deviceImpl.lastMadeCommandBufferImpl = impl
-    return impl
 }
 
 @_expose(Cxx)
 func makeInvalidCommandBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl) -> CommandBufferImpl {
-    let impl = CommandBufferImpl(
+    CommandBufferImpl(
         commandBuffer: nil,
         sharedEvent: nil,
         sharedEventSignalValue: 0,
@@ -403,6 +428,4 @@ func makeInvalidCommandBufferImpl(_ device: WebGPU.Metal.Device, _ deviceImpl: D
         device: device,
         deviceImpl: deviceImpl
     )
-    deviceImpl.lastMadeCommandBufferImpl = impl
-    return impl
 }

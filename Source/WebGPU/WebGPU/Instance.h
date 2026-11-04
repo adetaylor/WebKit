@@ -47,6 +47,7 @@ class MachSendRight;
 
 #if !defined(__swift__)
 namespace WebGPUSwift {
+class InstanceImpl;
 class InstanceSchedulerHandle;
 }
 #endif
@@ -79,8 +80,6 @@ public:
     void setLabel(String&&) final { }
     bool isValid() const final;
     void retainDevice(Device&, id<MTLCommandBuffer>);
-    void retainCommandBuffer(CommandBuffer&, id<MTLCommandBuffer>);
-    void releaseCompletedCommandBuffers();
     void waitForCommandBufferCompletions();
 
     // This can be called on a background thread.
@@ -91,6 +90,7 @@ public:
     // drops the work once the Instance is gone; a reference to the scheduler keeps delivering it to the embedder's
     // scheduleWork (or to the event queue, which nothing then drains).
     WebGPUSwift::InstanceSchedulerHandle schedulerHandle() const;
+    WebGPUSwift::InstanceImpl& swiftImpl() const LIFETIME_BOUND;
 #endif
     std::optional<MachSendRight> webProcessID() const;
 

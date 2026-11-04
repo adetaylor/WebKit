@@ -56,7 +56,10 @@ struct CommandBufferImplBox;
 class CommandBuffer final : public WebGPU::CommandBuffer {
     WTF_MAKE_TZONE_ALLOCATED(CommandBuffer);
 public:
-    static Ref<CommandBuffer> create(id<MTLCommandBuffer>, Device&, id<MTLSharedEvent>, uint64_t sharedEventSignalValue, CommandEncoder&);
+#if !defined(__swift__)
+    // CommandEncoder.swift's finish() makes the CommandBufferImpl.
+    static Ref<CommandBuffer> create(const WebGPUSwift::CommandBufferImpl&);
+#endif
     static Ref<CommandBuffer> createInvalid(Device&);
 
     ~CommandBuffer();
@@ -82,9 +85,6 @@ public:
     bool waitForCompletion();
 
     double gpuExecutionDurationSeconds() const;
-
-    // For Queue.swift, just before the queue commits the command buffer CommandBufferImpl::willCommit() returned.
-    void registerCompletedHandler(id<MTLCommandBuffer>);
 
 private:
     explicit CommandBuffer(std::unique_ptr<CommandBufferImplBox>&&);

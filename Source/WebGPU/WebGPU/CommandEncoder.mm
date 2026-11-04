@@ -162,7 +162,7 @@ void CommandEncoder::clearBuffer(WebGPU::Buffer& buffer, uint64_t offset, std::o
 
 RefPtr<WebGPU::CommandBuffer> CommandEncoder::finish(const WebGPU::CommandBufferDescriptor& descriptor)
 {
-    return m_impl->impl.finish(this, descriptor);
+    return CommandBuffer::create(m_impl->impl.finish(this, descriptor));
 }
 
 void CommandEncoder::insertDebugMarker(String&& markerLabel)

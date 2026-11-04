@@ -281,13 +281,7 @@ public final class CommandEncoderReference {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
     public func finish(label: Swift.String?) -> CommandBufferReference {
-        let deviceImpl = impl.deviceImpl
-        let commandBuffer = impl.finish(shell: shell, label: WTF.String(label ?? ""))
-        guard let commandBufferImpl = deviceImpl.lastMadeCommandBufferImpl else {
-            preconditionFailure("CommandBuffer's shell made no Impl")
-        }
-        deviceImpl.lastMadeCommandBufferImpl = nil
-        return CommandBufferReference(commandBufferImpl, commandBuffer.ptr())
+        impl.finish(shell: shell, label: WTF.String(label ?? ""))
     }
 }
 
@@ -523,12 +517,12 @@ extension CommandEncoderImpl {
     }
 
     // `shell` is this encoder's, which the CommandBuffer holds.
-    fileprivate func finish(shell: WebGPU.Metal.CommandEncoder, label: WTF.String) -> CxxBridging.RefCommandBuffer {
+    fileprivate func finish(shell: WebGPU.Metal.CommandEncoder, label: WTF.String) -> CommandBufferImpl {
         if !isValid() || (existingCommandEncoder != nil && existingCommandEncoder !== backingBlitCommandEncoder) {
             setEncoderStateEnded()
             discardCommandBuffer()
             deviceImpl.generateAValidationError(lastErrorString.map { $0 as String } ?? "Invalid CommandEncoder")
-            return WebGPU.Metal.CommandBuffer.createInvalid(device)
+            return makeInvalidCommandBufferImpl(device, deviceImpl)
         }
 
         // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
@@ -538,7 +532,7 @@ extension CommandEncoderImpl {
         if let validationFailedError {
             discardCommandBuffer()
             deviceImpl.generateAValidationError(lastErrorString.map { $0 as String } ?? validationFailedError)
-            return WebGPU.Metal.CommandBuffer.createInvalid(device)
+            return makeInvalidCommandBufferImpl(device, deviceImpl)
         }
 
         finalizeBlitCommandEncoder()
@@ -573,12 +567,12 @@ extension CommandEncoderImpl {
         }
         #endif // arch(x86_64) && (WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST)
 
-        let result = WebGPU.Metal.CommandBuffer.create(commandBuffer, device, backingSharedEvent, backingSharedEventSignalValue, shell)
-        setCachedCommandBuffer(result.ptr())
+        let result = makeCommandBufferImpl(commandBuffer, backingSharedEvent, backingSharedEventSignalValue, shell, self, device, deviceImpl)
+        cachedCommandBuffer = result
         clearSharedEvent()
-        result.ptr().setBufferMapCount(backingBufferMapCount)
+        result.setBufferMapCount(backingBufferMapCount)
         if submitIsInvalid {
-            result.ptr().makeInvalid(lastErrorString.map { $0 as String } ?? "Invalid CommandEncoder")
+            result.makeInvalid(lastErrorString ?? "Invalid CommandEncoder")
         }
 
         return result
@@ -3073,7 +3067,8 @@ final class CommandEncoderImpl {
     // The other commit actions. After finish() they are the CommandBuffer's.
     private var commitActions: [CommitAction] = []
     // Set by finish(). A ThreadSafeWeakPtr: the CommandBuffer can die on a Metal thread.
-    private var cachedCommandBuffer = CxxBridging.CommandBufferWeakPtr()
+    // Weak: the command buffer's last reference goes on the API thread.
+    private weak var cachedCommandBuffer: CommandBufferImpl?
     // What this encoder did to lazily initialized texture regions. Moved into the CommandBuffer finish() makes, and
     // dropped with the encoder's work when that is discarded or made invalid.
     private var initializationLedger: InitializationLedger? = InitializationLedger()
@@ -3165,7 +3160,7 @@ final class CommandEncoderImpl {
     @_expose(!Cxx)
     func makeSubmitInvalidWithError(_ errorString: NSString?) {
         submitIsInvalid = true
-        CxxBridging.makeCommandBufferInvalid(cachedCommandBuffer, (errorString ?? lastErrorString) as String?)
+        cachedCommandBuffer?.makeInvalid(errorString ?? lastErrorString)
     }
 
     @_expose(!Cxx)
@@ -3176,7 +3171,7 @@ final class CommandEncoderImpl {
     @_expose(!Cxx)
     func incrementBufferMapCount() {
         backingBufferMapCount &+= 1
-        CxxBridging.setCommandBufferMapCount(cachedCommandBuffer, backingBufferMapCount)
+        cachedCommandBuffer?.setBufferMapCount(backingBufferMapCount)
     }
 
     // Does nothing when the count is already zero.
@@ -3186,7 +3181,7 @@ final class CommandEncoderImpl {
             return
         }
         backingBufferMapCount -= 1
-        CxxBridging.setCommandBufferMapCount(cachedCommandBuffer, backingBufferMapCount)
+        cachedCommandBuffer?.setBufferMapCount(backingBufferMapCount)
     }
 
     @_expose(!Cxx)
@@ -3459,7 +3454,7 @@ final class CommandEncoderImpl {
         backingCommandBuffer = nil
         dropInitializationLedger()
         lastErrorString = errorString
-        CxxBridging.makeCommandBufferInvalid(cachedCommandBuffer, errorString as String?)
+        cachedCommandBuffer?.makeInvalid(errorString)
         return true
     }
 
@@ -3664,7 +3659,7 @@ final class CommandEncoderImpl {
     // The WebGPU::CommandEncoder methods whose logic is in the extension above. `shell` is this encoder's: the command
     // buffer and the passes they make hold it.
     @_expose(Cxx)
-    func finish(_ shell: WebGPU.Metal.CommandEncoder, _ descriptor: WebGPU.CommandBufferDescriptor) -> CxxBridging.RefCommandBuffer {
+    func finish(_ shell: WebGPU.Metal.CommandEncoder, _ descriptor: WebGPU.CommandBufferDescriptor) -> CommandBufferImpl {
         finish(shell: shell, label: descriptor.label)
     }
 
@@ -3886,16 +3881,14 @@ final class CommandEncoderImpl {
 
     // MARK: The command buffer finish() made
 
-    @_expose(!Cxx)
-    func setCachedCommandBuffer(_ commandBuffer: WebGPU.Metal.CommandBuffer) {
-        cachedCommandBuffer = CxxBridging.commandBufferThreadSafeWeakPtr(commandBuffer)
-    }
-
     // Texture::waitForCommandBufferCompletion's per-encoder part.
     @_expose(!Cxx)
     func waitForCommandBufferCompletion() -> Bool {
-        var gpuExecutionDurationSeconds = 0.0
-        let completed = CxxBridging.waitForCommandBufferCompletion(cachedCommandBuffer, &gpuExecutionDurationSeconds)
+        guard let commandBuffer = cachedCommandBuffer else {
+            return true
+        }
+        let completed = commandBuffer.waitForCompletion()
+        let gpuExecutionDurationSeconds = commandBuffer.gpuExecutionDurationSeconds()
         if gpuExecutionDurationSeconds != 0 {
             recordGPUExecutionWindowOnCanvasTextures(0, gpuExecutionDurationSeconds)
         }
@@ -4015,11 +4008,11 @@ final class CommandEncoderImpl {
     // Runs the constructor's action (the skipped index validations, then the sampler rebinds), then the other actions in
     // order, and clears them. Every action runs even after a false.
     @_expose(!Cxx)
-    func runCommitActions(_ commandBuffer: WebGPU.Metal.CommandBuffer, _ commandBufferImpl: CommandBufferImpl) -> Bool {
+    func runCommitActions(_ commandBufferImpl: CommandBufferImpl) -> Bool {
         var result = true
         if constructorCommitActionPending {
             constructorCommitActionPending = false
-            runSkippedDrawIndexedValidations(commandBuffer, commandBufferImpl)
+            runSkippedDrawIndexedValidations(commandBufferImpl)
             runReusedIndirectIndexedDrawValidations(commandBufferImpl)
             let groups = bindGroupsToRebind
             for group in groups {
@@ -4053,7 +4046,7 @@ final class CommandEncoderImpl {
     }
 
     // The constructor's action's first walk, in WTF::HashMap order. A buffer destroyed since is skipped.
-    private func runSkippedDrawIndexedValidations(_ commandBuffer: WebGPU.Metal.CommandBuffer, _ commandBufferImpl: CommandBufferImpl) {
+    private func runSkippedDrawIndexedValidations(_ commandBufferImpl: CommandBufferImpl) {
         let skippedValidations = skippedDrawIndexedValidations
         skippedValidations.forEachInWTFOrder { _, skipped in
             guard let buffer = skipped.buffer, !buffer.isDestroyed() else {

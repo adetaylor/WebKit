@@ -110,6 +110,11 @@ WebGPUSwift::InstanceSchedulerHandle Instance::schedulerHandle() const
     return m_impl->schedulerHandle;
 }
 
+WebGPUSwift::InstanceImpl& Instance::swiftImpl() const
+{
+    return m_impl->impl;
+}
+
 std::optional<MachSendRight> Instance::webProcessID() const
 {
     return m_impl->impl.webProcessID();
@@ -206,15 +211,6 @@ void Instance::retainDevice(Device& device, id<MTLCommandBuffer> commandBuffer)
     m_impl->impl.retainDevice(&device, reinterpret_cast<uintptr_t>(&device), commandBuffer);
 }
 
-void Instance::retainCommandBuffer(CommandBuffer& commandBuffer, id<MTLCommandBuffer> mtlCommandBuffer)
-{
-    m_impl->impl.retainCommandBuffer(&commandBuffer, mtlCommandBuffer);
-}
-
-void Instance::releaseCompletedCommandBuffers()
-{
-    m_impl->impl.releaseCompletedCommandBuffers();
-}
 
 Instance* createInstance(WebGPU::InstanceDescriptor& descriptor)
 {

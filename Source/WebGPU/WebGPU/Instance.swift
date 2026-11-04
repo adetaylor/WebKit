@@ -230,6 +230,33 @@ final class InstanceSchedulerHandle: Sendable {
     }
 }
 
+/// The part of a Metal handler that runs on the Instance's API thread, carried there from the Metal thread.
+///
+/// Unchecked Sendable: the body and what it captures belong to the API thread. The Metal thread only hands the box to a
+/// work item, and the scheduler's hop orders that before the API thread runs the body, which goes as it runs. So the
+/// body's references are released on the API thread, unless the Instance is gone and the work item is dropped.
+final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
+    private var body: ((Argument) -> Void)?
+
+    init(_ body: @escaping (Argument) -> Void) {
+        self.body = body
+    }
+
+    // On the Metal thread.
+    func schedule(_ argument: Argument, on scheduler: InstanceSchedulerHandle?) {
+        var workItem = CxxBridging.InstanceWorkItem {
+            self.run(argument)
+        }
+        scheduler?.scheduleWork(&workItem)
+    }
+
+    private func run(_ argument: Argument) {
+        if let body = body.take() {
+            body(argument)
+        }
+    }
+}
+
 @_expose(Cxx)
 func makeInstanceEventQueue() -> InstanceEventQueue {
     InstanceEventQueue()
@@ -274,7 +301,7 @@ private struct RetainedDevice {
 }
 
 private struct RetainedCommandBuffer {
-    let commandBuffer: WebGPU.Metal.CommandBuffer
+    let commandBuffer: CommandBufferImpl
     let mtlCommandBuffer: WeakCommandBuffer
 }
 
@@ -308,8 +335,7 @@ final class InstanceImpl {
         releaseCompletedCommandBuffers()
     }
 
-    @_expose(Cxx)
-    func retainCommandBuffer(_ commandBuffer: WebGPU.Metal.CommandBuffer, _ mtlCommandBuffer: (any MTLCommandBuffer)?) {
+    func retainCommandBuffer(_ commandBuffer: CommandBufferImpl, _ mtlCommandBuffer: (any MTLCommandBuffer)?) {
         releaseCompletedCommandBuffers()
         retainedCommandBuffers.append(
             RetainedCommandBuffer(commandBuffer: commandBuffer, mtlCommandBuffer: WeakCommandBuffer(commandBuffer: mtlCommandBuffer))
