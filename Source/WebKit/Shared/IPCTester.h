@@ -97,6 +97,9 @@ private:
     void benchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t messageCount, CompletionHandler<void(uint64_t)>&&);
     void fuzzSwiftStreamReceiver(uint64_t seed, uint32_t iterations, CompletionHandler<void(uint32_t, uint32_t, String&&)>&&);
     void swiftStreamTesterCount(CompletionHandler<void(uint32_t)>&&);
+    void addSwiftWorkQueueTester(IPC::Connection&, uint64_t identifier, CompletionHandler<void()>&&);
+    void removeSwiftWorkQueueTester(IPC::Connection&, uint64_t identifier, CompletionHandler<void()>&&);
+    void swiftWorkQueueTesterCount(CompletionHandler<void(uint32_t)>&&);
 #endif
     void stopIfNeeded();
 

@@ -27,5 +27,7 @@
 
 #include "IPCSwiftStreamTesterCount.h"
 #include "IPCSwiftStreamTesterMessages.h"
+#include "IPCSwiftWorkQueueTesterMessages.h"
+#include "IPCSwiftWorkQueueTesterSupport.h"
 #include "IPCTesterReceiverMessages.h"
 #include "SecurityFlags.h"
