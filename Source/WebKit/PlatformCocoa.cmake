@@ -339,6 +339,11 @@ set(WebKit_SWIFT_INCLUDE_DIRECTORIES
     "${CMAKE_BINARY_DIR}/Source/WebCore"
 )
 
+# WebKit's Swift can expose to C++ declarations that name WebCore's Swift CGRendererCore, as the GPU process's Swift receiver
+# of image buffer drawing does with the CG renderer that its context lends it. WebKit's generated header then includes
+# Shared/WebCoreSwiftForWebKit.h, which has what it needs of WebCore's.
+webkit_target_add_swift_options(WebKit "-Xfrontend -clang-header-expose-module -Xfrontend WebCore=WebCoreSwiftForWebKit.h")
+
 set(WebKit_FORWARDING_HEADERS_FILES
     Platform/cocoa/WKCrashReporter.h
 
