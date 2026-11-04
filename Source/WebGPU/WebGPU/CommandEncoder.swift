@@ -75,14 +75,14 @@ public enum GPURenderPassAttachmentView {
     var impl: AttachmentImpl {
         switch self {
         case .texture(let texture): .texture(texture.impl)
-        case .textureView(let view): .textureView(view.impl)
+        case .textureView(let view): .textureView(view)
         }
     }
 
     var attachmentView: AttachmentView {
         switch self {
         case .texture(let texture): .texture(texture.shell, texture.impl)
-        case .textureView(let view): .textureView(view.shell, view.impl)
+        case .textureView(let view): .textureView(view)
         }
     }
 }
@@ -3743,8 +3743,8 @@ final class CommandEncoderImpl {
     }
 
     @_expose(Cxx)
-    func stageColorAttachmentView(_ shell: borrowing WebGPU.Metal.TextureView, _ impl: TextureViewImpl) {
-        staged.colorAttachments.append((.textureView(TextureViewReference(impl, copy shell)), nil))
+    func stageColorAttachmentView(_ impl: TextureViewImpl) {
+        staged.colorAttachments.append((.textureView(impl), nil))
     }
 
     // The resolve target of the last staged color attachment.
@@ -3754,8 +3754,8 @@ final class CommandEncoderImpl {
     }
 
     @_expose(Cxx)
-    func stageResolveTargetView(_ shell: borrowing WebGPU.Metal.TextureView, _ impl: TextureViewImpl) {
-        stageResolveTarget(.textureView(TextureViewReference(impl, copy shell)))
+    func stageResolveTargetView(_ impl: TextureViewImpl) {
+        stageResolveTarget(.textureView(impl))
     }
 
     private func stageResolveTarget(_ resolveTarget: GPURenderPassAttachmentView) {
@@ -3771,8 +3771,8 @@ final class CommandEncoderImpl {
     }
 
     @_expose(Cxx)
-    func stageDepthStencilAttachmentView(_ shell: borrowing WebGPU.Metal.TextureView, _ impl: TextureViewImpl) {
-        staged.depthStencilAttachment = .textureView(TextureViewReference(impl, copy shell))
+    func stageDepthStencilAttachmentView(_ impl: TextureViewImpl) {
+        staged.depthStencilAttachment = .textureView(impl)
     }
 
     @_expose(Cxx)

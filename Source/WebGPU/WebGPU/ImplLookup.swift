@@ -342,11 +342,6 @@ extension TextureReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }
 
-@_spi(WebKitGPU)
-extension TextureViewReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
 // The objects as the ::WebGPU C++ API objects they are, for the GPU process's C++.
 
 @_spi(WebKitGPU)

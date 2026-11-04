@@ -431,7 +431,7 @@ private enum DescriptorResource {
     case buffer(ShellReference<WebGPU.Metal.Buffer>, BufferImpl, sameDevice: Bool, offset: UInt64, size: UInt64?)
     case sampler(SamplerImpl, sameDevice: Bool)
     case texture(WebGPU.Metal.Texture, TextureImpl, sameDevice: Bool)
-    case textureView(WebGPU.Metal.TextureView, TextureViewImpl, sameDevice: Bool)
+    case textureView(TextureViewImpl, sameDevice: Bool)
     case externalTexture(WebGPU.Metal.ExternalTexture, ExternalTextureImpl)
 }
 
@@ -590,7 +590,7 @@ func createBindGroupImpl(
             case .texture(let texture):
                 .texture(texture.shell, texture.impl, sameDevice: texture.impl.deviceImpl === deviceImpl)
             case .textureView(let view):
-                .textureView(view.shell, view.impl, sameDevice: view.impl.deviceImpl === deviceImpl)
+                .textureView(view, sameDevice: view.deviceImpl === deviceImpl)
             case .buffer(let buffer, let offset, let size):
                 .buffer(
                     ShellReference(shell: buffer.shell),
@@ -656,9 +656,9 @@ func appendBindGroupTexture(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ textu
 }
 
 @_expose(Cxx)
-func appendBindGroupTextureView(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ view: WebGPU.Metal.TextureView, _ impl: TextureViewImpl) {
+func appendBindGroupTextureView(_ deviceImpl: DeviceImpl, _ binding: UInt32, _ impl: TextureViewImpl) {
     deviceImpl.bindGroupBuilder.append(
-        DescriptorEntry(binding: binding, resource: .textureView(view, impl, sameDevice: impl.deviceImpl === deviceImpl))
+        DescriptorEntry(binding: binding, resource: .textureView(impl, sameDevice: impl.deviceImpl === deviceImpl))
     )
 }
 
@@ -936,10 +936,10 @@ private struct BindGroupCreation {
                     index: index,
                     usageIndex: usageIndex
                 )
-            case .textureView(let shell, let impl, let sameDevice):
+            case .textureView(let impl, let sameDevice):
                 succeeded = addTexture(
                     entry.binding,
-                    .textureView(shell, impl, sameDevice: sameDevice),
+                    .textureView(impl, sameDevice: sameDevice),
                     layoutEntry: layoutEntry,
                     stage: stage,
                     slot: slot,
@@ -1135,7 +1135,7 @@ private struct BindGroupCreation {
 
     enum TextureResource {
         case texture(WebGPU.Metal.Texture, TextureImpl, sameDevice: Bool)
-        case textureView(WebGPU.Metal.TextureView, TextureViewImpl, sameDevice: Bool)
+        case textureView(TextureViewImpl, sameDevice: Bool)
     }
 
     /// Clears the texture if it needs it, then reads the state the checks use.
@@ -1184,7 +1184,7 @@ private struct BindGroupCreation {
                 is2DTexture: impl.is2DTexture(),
                 mipLevelCount: impl.mipLevelCount()
             )
-        case .textureView(let shell, let impl, let sameDevice):
+        case .textureView(let impl, let sameDevice):
             let aspect = WebGPU.TextureAspect(rawValue: impl.aspect()) ?? .All
             if sameDevice
                 && !deviceImpl.defaultQueueImpl.clearTextureIfNeeded(
@@ -1201,7 +1201,7 @@ private struct BindGroupCreation {
                 return nil
             }
             return BoundTexture(
-                owner: .textureView(shell, impl),
+                owner: .textureView(impl),
                 tracking: TrackingInfo(
                     kind: .textureView,
                     identity: identityKey(ObjectIdentifier(impl.parentTextureImpl)),

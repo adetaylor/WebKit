@@ -111,8 +111,6 @@ final class DeviceImpl {
     @_expose(!Cxx)
     var stagedRenderBundleEncoderImpl: RenderBundleEncoderImpl?
     @_expose(!Cxx)
-    var stagedTextureViewImpl: TextureViewImpl?
-    @_expose(!Cxx)
     var stagedRenderBundleImpl: RenderBundleImpl?
     // The Impls that the last command encoder, command buffer and external texture shells made: their shells make them,
     // from what Swift passes their factories. Weak, so that they live only as long as their shells.
@@ -768,15 +766,6 @@ final class DeviceImpl {
             preconditionFailure("No staged RenderBundleEncoderImpl")
         }
         stagedRenderBundleEncoderImpl = nil
-        return impl
-    }
-
-    @_expose(Cxx)
-    func takeStagedTextureViewImpl() -> TextureViewImpl {
-        guard let impl = stagedTextureViewImpl else {
-            preconditionFailure("No staged TextureViewImpl")
-        }
-        stagedTextureViewImpl = nil
         return impl
     }
 

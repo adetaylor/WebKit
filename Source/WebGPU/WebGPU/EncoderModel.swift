@@ -717,14 +717,14 @@ struct EntryUsage: OptionSet, Hashable {
 enum BoundResource {
     case buffer(WebGPU.Metal.Buffer, BufferImpl)
     case texture(WebGPU.Metal.Texture, TextureImpl)
-    case textureView(WebGPU.Metal.TextureView, TextureViewImpl)
+    case textureView(TextureViewImpl)
     case externalTexture(WebGPU.Metal.ExternalTexture, ExternalTextureImpl)
 
     var trackedImpl: TrackedImpl {
         switch self {
         case .buffer(_, let impl): .buffer(impl)
         case .texture(_, let impl): .texture(impl)
-        case .textureView(_, let impl): .textureView(impl)
+        case .textureView(let impl): .textureView(impl)
         case .externalTexture(_, let impl): .externalTexture(impl)
         }
     }
@@ -1139,29 +1139,29 @@ struct WeakImplList<T: AnyObject> {
 
 // MARK: Render pass attachments
 
-/// A render pass attachment: a texture or a texture view, with its shell.
+/// A render pass attachment: a texture, with its shell, or a texture view.
 enum AttachmentView {
     case texture(WebGPU.Metal.Texture, TextureImpl)
-    case textureView(WebGPU.Metal.TextureView, TextureViewImpl)
+    case textureView(TextureViewImpl)
 
     var format: WebGPU.TextureFormat {
         switch self {
         case .texture(_, let impl): impl.formatOrDefault
-        case .textureView(_, let impl): impl.formatOrDefault
+        case .textureView(let impl): impl.formatOrDefault
         }
     }
 
     var sampleCount: UInt32 {
         switch self {
         case .texture(_, let impl): impl.sampleCount()
-        case .textureView(_, let impl): impl.sampleCount()
+        case .textureView(let impl): impl.sampleCount()
         }
     }
 
     var metalTexture: (any MTLTexture)? {
         switch self {
         case .texture(_, let impl): impl.texture()
-        case .textureView(_, let impl): impl.texture()
+        case .textureView(let impl): impl.texture()
         }
     }
 }

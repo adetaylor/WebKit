@@ -1746,7 +1746,6 @@ extension DeviceReference {
 extension TextureReference {
     // https://gpuweb.github.io/gpuweb/#dom-gputexture-createview. A view's device is its texture's.
     public func createView(_ descriptor: GPUTextureViewDescriptor?, label: Swift.String?) -> TextureViewReference {
-        let view = impl.createView(shell, descriptor ?? GPUTextureViewDescriptor(), label: WTF.String(label ?? ""))
-        return TextureViewReference(view, makeTextureViewShell(view, device: impl.device, deviceImpl: impl.deviceImpl))
+        impl.createView(shell, descriptor ?? GPUTextureViewDescriptor(), label: WTF.String(label ?? ""))
     }
 }

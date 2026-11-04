@@ -105,16 +105,14 @@ RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::
             continue;
         }
         std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
-            Ref metalView = downcast<TextureView>(view.get());
-            impl.stageColorAttachmentView(metalView.ptr(), metalView->swiftImpl());
+            impl.stageColorAttachmentView(Ref { downcast<TextureView>(view.get()) }->swiftImpl());
         }, [&](const Ref<WebGPU::Texture>& texture) {
             Ref metalTexture = downcast<Texture>(texture.get());
             impl.stageColorAttachmentTexture(metalTexture.ptr(), metalTexture->swiftImpl());
         }), attachment->view);
         if (attachment->resolveTarget) {
             std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
-                Ref metalView = downcast<TextureView>(view.get());
-                impl.stageResolveTargetView(metalView.ptr(), metalView->swiftImpl());
+                impl.stageResolveTargetView(Ref { downcast<TextureView>(view.get()) }->swiftImpl());
             }, [&](const Ref<WebGPU::Texture>& texture) {
                 Ref metalTexture = downcast<Texture>(texture.get());
                 impl.stageResolveTargetTexture(metalTexture.ptr(), metalTexture->swiftImpl());
@@ -123,8 +121,7 @@ RefPtr<WebGPU::RenderPassEncoder> CommandEncoder::beginRenderPass(const WebGPU::
     }
     if (auto& attachment = descriptor.depthStencilAttachment) {
         std::visit(WTF::makeVisitor([&](const Ref<WebGPU::TextureView>& view) {
-            Ref metalView = downcast<TextureView>(view.get());
-            impl.stageDepthStencilAttachmentView(metalView.ptr(), metalView->swiftImpl());
+            impl.stageDepthStencilAttachmentView(Ref { downcast<TextureView>(view.get()) }->swiftImpl());
         }, [&](const Ref<WebGPU::Texture>& texture) {
             Ref metalTexture = downcast<Texture>(texture.get());
             impl.stageDepthStencilAttachmentTexture(metalTexture.ptr(), metalTexture->swiftImpl());

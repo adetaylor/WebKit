@@ -50,11 +50,6 @@ Ref<TextureView> TextureView::create(const WebGPUSwift::TextureViewImpl& impl)
     return adoptRef(*new TextureView(impl));
 }
 
-Ref<TextureView> TextureView::createWithStagedImpl(Device& device)
-{
-    return create(device.swiftImpl().takeStagedTextureViewImpl());
-}
-
 Ref<TextureView> TextureView::createInvalid(Texture& texture, Device& device)
 {
     return create(makeInvalidTextureViewImpl(&texture, texture.swiftImpl(), &device));

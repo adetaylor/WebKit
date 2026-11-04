@@ -28,24 +28,24 @@ import Metal
 @_implementationOnly import WebGPU_Internal.TextureView
 import WebGPU_Private.WebGPUCpp
 
-// The state of a GPUTextureView, owned by the C++ shell WebGPU::Metal::TextureView. It reads the parent's state
-// (destroyed, initialized, canvas backing, rate maps, descriptor) from the parent's TextureImpl. Used only on its
-// Instance's API thread.
-// A texture view with its shell, as Swift holds one.
 @_spi(WebKitGPU)
-public final class TextureViewReference {
-    public let impl: TextureViewImpl
-    let shell: WebGPU.Metal.TextureView
+public typealias TextureViewReference = TextureViewImpl
 
-    init(_ impl: TextureViewImpl, _ shell: WebGPU.Metal.TextureView) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension TextureViewImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: TextureViewImpl {
+        self
     }
 }
 
+// The state of a GPUTextureView, held by its Swift callers and by the C++ API's shell WebGPU::Metal::TextureView. It
+// reads the parent's state (destroyed, initialized, canvas backing, rate maps, descriptor) from the parent's
+// TextureImpl. Used only on its Instance's API thread.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class TextureViewImpl {
+public final class TextureViewImpl: GPUObjectReference {
     // nil only for an invalid view. Replaced by the device placeholder when the parent is destroyed.
     private var backingTexture: (any MTLTexture)?
     // The swizzled view a shader reads; nil when the swizzle is the identity.
@@ -117,7 +117,7 @@ public final class TextureViewImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         backingTexture != nil || parentImpl.isDestroyed()
     }
 
@@ -409,11 +409,4 @@ func isRenderableDepthStencilTextureView(
         stencilLoadOp,
         stencilStoreOp
     )
-}
-
-// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedTextureViewImpl.
-func makeTextureViewShell(_ impl: TextureViewImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.TextureView {
-    precondition(deviceImpl.stagedTextureViewImpl == nil)
-    deviceImpl.stagedTextureViewImpl = impl
-    return WebGPU.Metal.TextureView.createWithStagedImpl(device).ptr()
 }
