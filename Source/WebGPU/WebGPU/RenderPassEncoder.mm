@@ -164,7 +164,7 @@ void RenderPassEncoder::setBlendConstant(const WebGPU::Color& color)
 void RenderPassEncoder::setIndexBuffer(WebGPU::Buffer& apiBuffer, WebGPU::IndexFormat format, uint64_t offset, std::optional<uint64_t> size)
 {
     auto& buffer = downcast<Buffer>(apiBuffer);
-    m_impl->impl.setIndexBuffer(&buffer, buffer.swiftImpl(), format, offset, size.has_value(), size.value_or(0));
+    m_impl->impl.setIndexBuffer(buffer.swiftImpl(), format, offset, size.has_value(), size.value_or(0));
 }
 
 void RenderPassEncoder::setPipeline(const WebGPU::RenderPipeline& apiPipeline)
@@ -317,15 +317,15 @@ void logRenderPassSplit()
 
 // The Metal thread only reads the command buffer's status and hops to the API thread. Each of these handlers hands
 // every reference it holds over to its work item, on every path, so that they are released on the API thread.
-void registerIndexValidationCompletion(CommandEncoder& parentEncoder, Device& parentDevice, Buffer& indexBuffer, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, int32_t baseVertex, MTLIndexType indexType, uint32_t primitiveOffset, uint64_t validationGeneration, id<MTLBuffer> indexedIndirectBuffer, uint64_t indexedIndirectBufferOffset)
+void registerIndexValidationCompletion(CommandEncoder& parentEncoder, Device& parentDevice, id<MTLBuffer> indexedIndirectBuffer, uint64_t indexedIndirectBufferOffset, void (^validated)(uint32_t))
 {
     Ref device = parentDevice;
     Ref queue = device->getQueue();
     auto encoderHandle = queue->retainCounterSampleBuffer(parentEncoder);
-    [parentEncoder.swiftImpl().commandBuffer() addCompletedHandler:[encoderHandle, protectedDevice = WTF::move(device), queue = WTF::move(queue), firstIndex, indexCount, vertexCount, baseVertex, indexType, primitiveOffset, validationGeneration, refIndexBuffer = protect(indexBuffer), indexedIndirectBuffer, indexedIndirectBufferOffset](id<MTLCommandBuffer> completedCommandBuffer) mutable {
+    [parentEncoder.swiftImpl().commandBuffer() addCompletedHandler:[encoderHandle, protectedDevice = WTF::move(device), queue = WTF::move(queue), indexedIndirectBuffer, indexedIndirectBufferOffset, validated](id<MTLCommandBuffer> completedCommandBuffer) mutable {
         bool completed = completedCommandBuffer.status == MTLCommandBufferStatusCompleted;
         Queue& hop = queue.get();
-        hop.scheduleWork([completed, encoderHandle, protectedDevice = WTF::move(protectedDevice), queue = WTF::move(queue), firstIndex, indexCount, vertexCount, baseVertex, indexType, primitiveOffset, validationGeneration, refIndexBuffer = WTF::move(refIndexBuffer), indexedIndirectBuffer, indexedIndirectBufferOffset] mutable {
+        hop.scheduleWork([completed, encoderHandle, protectedDevice = WTF::move(protectedDevice), queue = WTF::move(queue), indexedIndirectBuffer, indexedIndirectBufferOffset, validated = WTF::move(validated)] mutable {
             queue->releaseCounterSampleBuffer(encoderHandle);
             if (!completed)
                 return;
@@ -335,22 +335,21 @@ void registerIndexValidationCompletion(CommandEncoder& parentEncoder, Device& pa
 
             auto contents = unsafeMakeSpan(static_cast<const uint8_t*>(indexedIndirectBuffer.contents), indexedIndirectBuffer.length).subspan(indexedIndirectBufferOffset);
             auto& args = reinterpretCastSpanStartTo<const WebKitMTLDrawIndexedPrimitivesIndirectArguments>(contents);
-            refIndexBuffer->didReadOOB(args.lostOrOOBRead);
-            refIndexBuffer->drawIndexedValidated(firstIndex, indexCount, vertexCount, baseVertex, indexType, primitiveOffset, validationGeneration);
+            validated(args.lostOrOOBRead);
         });
     }];
 }
 
 // As registerIndexValidationCompletion, for the index validation of a render bundle's ICB.
-void registerICBIndexValidationCompletion(CommandEncoder& parentEncoder, Device& parentDevice, Buffer& indexBuffer, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, int32_t baseVertex, MTLIndexType indexType, uint32_t primitiveOffset, uint64_t validationGeneration, id<MTLIndirectCommandBuffer> indirectCommandBuffer, id<MTLBuffer> outOfBoundsReadFlag)
+void registerICBIndexValidationCompletion(CommandEncoder& parentEncoder, Device& parentDevice, id<MTLBuffer> outOfBoundsReadFlag, void (^validated)(uint32_t))
 {
     Ref device = parentDevice;
     Ref queue = device->getQueue();
     auto encoderHandle = queue->retainCounterSampleBuffer(parentEncoder);
-    [parentEncoder.swiftImpl().commandBuffer() addCompletedHandler:[encoderHandle, protectedDevice = WTF::move(device), queue = WTF::move(queue), firstIndex, indexCount, vertexCount, baseVertex, indexType, primitiveOffset, validationGeneration, refIndexBuffer = protect(indexBuffer), indirectCommandBuffer, outOfBoundsReadFlag](id<MTLCommandBuffer> completedCommandBuffer) mutable {
+    [parentEncoder.swiftImpl().commandBuffer() addCompletedHandler:[encoderHandle, protectedDevice = WTF::move(device), queue = WTF::move(queue), outOfBoundsReadFlag, validated](id<MTLCommandBuffer> completedCommandBuffer) mutable {
         bool completed = completedCommandBuffer.status == MTLCommandBufferStatusCompleted;
         Queue& hop = queue.get();
-        hop.scheduleWork([completed, encoderHandle, protectedDevice = WTF::move(protectedDevice), queue = WTF::move(queue), indirectCommandBuffer, outOfBoundsReadFlag, firstIndex, indexCount, vertexCount, baseVertex, indexType, primitiveOffset, validationGeneration, refIndexBuffer = WTF::move(refIndexBuffer)] mutable {
+        hop.scheduleWork([completed, encoderHandle, protectedDevice = WTF::move(protectedDevice), queue = WTF::move(queue), outOfBoundsReadFlag, validated = WTF::move(validated)] mutable {
             queue->releaseCounterSampleBuffer(encoderHandle);
             if (!completed)
                 return;
@@ -359,8 +358,7 @@ void registerICBIndexValidationCompletion(CommandEncoder& parentEncoder, Device&
             if (!outOfBoundsReadFlag.contents || outOfBoundsReadFlag.length < sizeof(uint32_t))
                 return;
             auto flag = unsafeMakeSpan(static_cast<const uint8_t*>(outOfBoundsReadFlag.contents), outOfBoundsReadFlag.length);
-            refIndexBuffer->didReadOOB(reinterpretCastSpanStartTo<const uint32_t>(flag), indirectCommandBuffer);
-            refIndexBuffer->drawIndexedValidated(firstIndex, indexCount, vertexCount, baseVertex, indexType, primitiveOffset, validationGeneration, indirectCommandBuffer);
+            validated(reinterpretCastSpanStartTo<const uint32_t>(flag));
         });
     }];
 }

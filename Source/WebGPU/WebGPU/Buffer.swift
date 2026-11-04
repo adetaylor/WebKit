@@ -119,11 +119,11 @@ enum BufferMapState {
 }
 
 // https://gpuweb.github.io/gpuweb/#buffer-interface
-// The state of a GPUBuffer, owned by the C++ shell WebGPU::Metal::Buffer. Used only on the instance's API thread, so
-// not Sendable.
+// The state of a GPUBuffer, held by its Swift callers, the bind groups, bundles and encoders that use it, and the C++
+// API's shell WebGPU::Metal::Buffer. Used only on the instance's API thread, so not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class BufferImpl {
+public final class BufferImpl: GPUObjectReference {
     private var backingBuffer: (any MTLBuffer)?
     private let initialByteSize: UInt64
     private let usageBits: UInt16
@@ -160,8 +160,6 @@ public final class BufferImpl {
     private var renderBundleHolders = WeakImplList<RenderBundleImpl>()
     // The encoders that skipped validating a draw with this index buffer.
     private var skippedValidationEncoders = EncoderTracking()
-    // The shell that owns this Impl, for the strong references encoders and post-commit actions hold.
-    private var ownerShell = CxxBridging.BufferWeakPtr()
     // The command buffer this buffer was last cleared for, so that several failed validations sharing one command
     // buffer do not each capture a "prior" copy and queue a restore of it.
     private var clearedForCommandBuffer: ObjectIdentifier?
@@ -185,12 +183,6 @@ public final class BufferImpl {
         self.mappedAtCreation = mappedAtCreation
         self.deviceImpl = deviceImpl
         self.device = device
-    }
-
-    // Buffer::create, once the shell exists.
-    @_expose(Cxx)
-    func setShell(_ shell: WebGPU.Metal.Buffer) {
-        ownerShell = CxxBridging.bufferThreadSafeWeakPtr(shell)
     }
 
     @_expose(Cxx)
@@ -229,7 +221,7 @@ public final class BufferImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         isDestroyed() || backingBuffer != nil
     }
 
@@ -248,7 +240,8 @@ public final class BufferImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
     @_expose(Cxx)
-    func destroy() {
+    @_spi(WebKitGPU)
+    public func destroy() {
         if mapState.hasMapping {
             // FIXME: ASSERT() that this call doesn't fail.
             unmap()
@@ -278,8 +271,8 @@ public final class BufferImpl {
     @_expose(!Cxx)
     func setCommandEncoder(_ encoder: CommandEncoderImpl, mayModifyBuffer: Bool) {
         let isNewEntry = !tracking.contains(encoder) && tracking.add(encoder)
-        if isNewEntry, let shell = CxxBridging.protectedBuffer(ownerShell) {
-            encoder.trackBuffer(shell, self)
+        if isNewEntry {
+            encoder.trackBuffer(self)
         }
         #if arch(x86_64)
         encoder.addBuffer(backingBuffer)
@@ -316,10 +309,9 @@ public final class BufferImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync
     // `rangeFits` is false when the range does not fit in size_t, which only 32-bit platforms reach. The handler is
-    // moved out of `callback`. Until the queue runs it, the completion holds the shell.
+    // moved out of `callback`. Until the queue runs it, the completion holds the buffer.
     @_expose(Cxx)
     func mapAsync(
-        _ shell: WebGPU.Metal.Buffer,
         _ modeBits: UInt8,
         _ rangeFits: Bool,
         _ offset: UInt64,
@@ -327,7 +319,7 @@ public final class BufferImpl {
         _ callback: inout WTF.BoolCompletionHandler
     ) {
         let handler = BoolCompletionHandlerBox(exchange(&callback, with: WTF.BoolCompletionHandler()))
-        mapAsync(shell, modeBits, rangeFits, offset, rangeSize) { success in
+        mapAsync(modeBits, rangeFits, offset, rangeSize) { success in
             handler.call(success)
         }
     }
@@ -335,7 +327,6 @@ public final class BufferImpl {
     // mapAsync, for a Swift caller.
     @_expose(!Cxx)
     func mapAsync(
-        _ shell: WebGPU.Metal.Buffer,
         _ modeBits: UInt8,
         _ rangeFits: Bool,
         _ offset: UInt64,
@@ -352,10 +343,8 @@ public final class BufferImpl {
 
         let queue = deviceImpl.defaultQueue()
         deviceImpl.defaultQueueImpl.onSubmittedWorkDone(queue, deviceIsUsable: deviceImpl.isValid() && !deviceImpl.isLost()) { success in
-            withExtendedLifetime(shell) {
-                self.completeMapping(mapRequest, success)
-                handler(success)
-            }
+            self.completeMapping(mapRequest, success)
+            handler(success)
         }
     }
 
@@ -454,7 +443,8 @@ public final class BufferImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
     @_expose(Cxx)
-    func unmap() {
+    @_spi(WebKitGPU)
+    public func unmap() {
         guard mapState.hasMapping else {
             return
         }
@@ -580,29 +570,6 @@ public final class BufferImpl {
         minValidatedVertexCount = .max
     }
 
-    // Buffer::drawIndexedValidated, for the completion handlers' work items. `indexTypeRawValue` is an MTLIndexType.
-    @_expose(Cxx)
-    func drawIndexedValidatedForShell(
-        _ firstIndex: UInt32,
-        _ indexCount: UInt32,
-        _ vertexCount: UInt32,
-        _ baseVertex: Int32,
-        _ indexTypeRawValue: UInt32,
-        _ primitiveOffset: UInt32,
-        _ validationGeneration: UInt64,
-        _ icbResourceID: UInt64
-    ) {
-        let key = DrawIndexKey(
-            firstIndex: firstIndex,
-            indexCount: indexCount,
-            primitiveOffsetWithIndexType: primitiveOffset | (indexTypeRawValue &<< 1),
-            icbLow: UInt32(truncatingIfNeeded: icbResourceID),
-            icbHigh: UInt32(truncatingIfNeeded: icbResourceID &>> 32),
-            baseVertex: baseVertex
-        )
-        drawIndexedValidated(key, vertexCount: vertexCount, validationGeneration: validationGeneration)
-    }
-
     /// Right after canSkipDrawIndexedValidation found `key`.
     ///
     /// The encoder records the cached entry's vertex count.
@@ -674,12 +641,10 @@ public final class BufferImpl {
     /// writes the old ones back.
     @_expose(!Cxx)
     func takeSlowIndexValidationPath(_ commandBuffer: CommandBufferImpl, _ key: DrawIndexKey, vertexCount: UInt32) {
-        guard let shell = CxxBridging.protectedBuffer(ownerShell) else {
-            return
-        }
         let isUInt16 = key.indexTypeRawValue == MTLIndexType.uint16.rawValue
         let verified = WebGPU.Metal.verifyIndexBufferForSlowPath(
-            shell,
+            deviceImpl.defaultQueue(),
+            backingBuffer,
             key.firstIndex,
             key.indexCount,
             isUInt16,
@@ -687,7 +652,7 @@ public final class BufferImpl {
             vertexCount
         )
         if !verified {
-            clearIndexBuffer(shell, for: commandBuffer)
+            clearIndexBuffer(for: commandBuffer)
         }
     }
 
@@ -701,9 +666,6 @@ public final class BufferImpl {
     /// with the checks of the clamp shader.
     @_expose(!Cxx)
     func takeSlowBundleIndirectDrawValidationPath(_ commandBuffer: CommandBufferImpl, _ draw: ReusedIndirectIndexedDraw) {
-        guard let shell = CxxBridging.protectedBuffer(ownerShell) else {
-            return
-        }
         // The baked slot holds the baseVertex the clamp shader saw, so the arguments are only a usable stand-in for it
         // while nothing has rewritten them since. Anything else falls back to clearing unconditionally.
         let indirectBuffer = draw.indirectBufferImpl
@@ -711,33 +673,38 @@ public final class BufferImpl {
             !indirectBuffer.isDestroyed() && indirectBuffer.contentsGeneration() == draw.indirectGeneration
             ? indirectBuffer.buffer() : nil
         let primitiveOffset: UInt32 = draw.primitiveType == .lineStrip || draw.primitiveType == .triangleStrip ? 1 : 0
-        let verified = withExtendedLifetime(draw.indirectBuffer) {
-            WebGPU.Metal.verifyBundleIndirectDrawIndexBufferForSlowPath(
-                shell,
-                indirectArguments,
-                draw.indirectOffset,
-                draw.indexBufferOffset,
-                draw.indexType == .uint16,
-                draw.minVertexCount.indexClampVertexCount(primitiveOffset: primitiveOffset),
-                primitiveOffset
-            )
-        }
+        let verified = WebGPU.Metal.verifyBundleIndirectDrawIndexBufferForSlowPath(
+            deviceImpl.defaultQueue(),
+            backingBuffer,
+            indirectArguments,
+            draw.indirectOffset,
+            draw.indexBufferOffset,
+            draw.indexType == .uint16,
+            draw.minVertexCount.indexClampVertexCount(primitiveOffset: primitiveOffset),
+            primitiveOffset
+        )
         if !verified {
-            clearIndexBuffer(shell, for: commandBuffer)
+            clearIndexBuffer(for: commandBuffer)
         }
     }
 
     /// Clears the buffer for the GPU work in `commandBuffer`, at most once per command buffer, and queues the write of
     /// its old contents once that work completed.
-    private func clearIndexBuffer(_ shell: WebGPU.Metal.Buffer, for commandBuffer: CommandBufferImpl) {
+    private func clearIndexBuffer(for commandBuffer: CommandBufferImpl) {
         let commandBufferIdentity = commandBuffer.commandBuffer().map { ObjectIdentifier($0) }
         if let commandBufferIdentity, clearedForCommandBuffer == commandBufferIdentity {
             return
         }
         clearedForCommandBuffer = commandBufferIdentity
-        if let priorContents = WebGPU.Metal.clearIndexBufferContents(shell) {
-            commandBuffer.addPostCommitAction(.restoreIndexBufferContents(shell, self, priorContents))
+        if let priorContents = WebGPU.Metal.clearIndexBufferContents(deviceImpl.defaultQueue(), backingBuffer) {
+            commandBuffer.addPostCommitAction(.restoreIndexBufferContents(self, priorContents))
         }
+    }
+
+    /// Writes back the contents clearIndexBuffer cleared, once the command buffer completed.
+    func restoreIndexBufferContents(_ priorContents: NSMutableData) {
+        let bytes = [UInt8](priorContents as Data)
+        deviceImpl.defaultQueueImpl.writeBuffer(deviceImpl.defaultQueue(), device, deviceImpl, self, 0, bytes: bytes.span)
     }
 
     /// The restore of the contents clearIndexBuffer cleared is next, once the command buffer completed.
@@ -942,18 +909,10 @@ private func bufferDidModifyRange(_ buffer: any MTLBuffer, _ offset: UInt64, _ l
     #endif
 }
 
-// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedBufferImpl.
-func makeBufferShell(_ impl: BufferImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.Buffer {
-    precondition(deviceImpl.stagedBufferImpl == nil)
-    deviceImpl.stagedBufferImpl = impl
-    return WebGPU.Metal.Buffer.createWithStagedImpl(device).ptr()
-}
-
 @_spi(WebKitGPU)
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer: an invalid buffer on failure, as for the C++ caller.
     public func createBuffer(_ descriptor: GPUBufferDescriptor, label: Swift.String?) -> BufferReference {
-        let buffer = createBufferImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
-        return BufferReference(buffer, makeBufferShell(buffer, device: shell, deviceImpl: impl))
+        createBufferImpl(shell, impl, descriptor, label: WTF.String(label ?? ""))
     }
 }

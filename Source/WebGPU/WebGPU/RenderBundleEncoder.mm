@@ -111,13 +111,13 @@ void RenderBundleEncoder::drawIndexed(uint32_t indexCount, uint32_t instanceCoun
 void RenderBundleEncoder::drawIndirect(WebGPU::Buffer& apiIndirectBuffer, uint64_t indirectOffset)
 {
     auto& indirectBuffer = downcast<Buffer>(apiIndirectBuffer);
-    swiftImpl().drawIndirect(this, &indirectBuffer, indirectBuffer.swiftImpl(), indirectOffset);
+    swiftImpl().drawIndirect(this, indirectBuffer.swiftImpl(), indirectOffset);
 }
 
 void RenderBundleEncoder::drawIndexedIndirect(WebGPU::Buffer& apiIndirectBuffer, uint64_t indirectOffset)
 {
     auto& indirectBuffer = downcast<Buffer>(apiIndirectBuffer);
-    swiftImpl().drawIndexedIndirect(this, &indirectBuffer, indirectBuffer.swiftImpl(), indirectOffset);
+    swiftImpl().drawIndexedIndirect(this, indirectBuffer.swiftImpl(), indirectOffset);
 }
 
 RefPtr<WebGPU::RenderBundle> RenderBundleEncoder::finish(const WebGPU::RenderBundleDescriptor& descriptor)
@@ -159,7 +159,7 @@ void RenderBundleEncoder::setBindGroup(uint32_t groupIndex, const WebGPU::BindGr
 void RenderBundleEncoder::setIndexBuffer(WebGPU::Buffer& apiBuffer, WebGPU::IndexFormat format, uint64_t offset, std::optional<uint64_t> size)
 {
     auto& buffer = downcast<Buffer>(apiBuffer);
-    swiftImpl().setIndexBuffer(this, &buffer, buffer.swiftImpl(), format, offset, size.has_value(), size.value_or(0));
+    swiftImpl().setIndexBuffer(this, buffer.swiftImpl(), format, offset, size.has_value(), size.value_or(0));
 }
 
 void RenderBundleEncoder::setPipeline(const WebGPU::RenderPipeline& apiPipeline)
@@ -174,7 +174,7 @@ void RenderBundleEncoder::setVertexBuffer(uint32_t slot, WebGPU::Buffer* apiBuff
         swiftImpl().clearVertexBuffer(this, slot, offset, size.has_value(), size.value_or(0));
         return;
     }
-    swiftImpl().setVertexBuffer(this, slot, buffer, buffer->swiftImpl(), offset, size.has_value(), size.value_or(0));
+    swiftImpl().setVertexBuffer(this, slot, buffer->swiftImpl(), offset, size.has_value(), size.value_or(0));
 }
 
 void RenderBundleEncoder::setLabel(String&& label)

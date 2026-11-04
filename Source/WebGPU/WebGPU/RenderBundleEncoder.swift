@@ -60,12 +60,11 @@ enum RecordedCommand {
         baseVertex: Int32,
         firstInstance: UInt32
     )
-    case drawIndirect(owner: WebGPU.Metal.RenderBundleEncoder, buffer: WebGPU.Metal.Buffer, bufferImpl: BufferImpl, offset: UInt64)
-    case drawIndexedIndirect(owner: WebGPU.Metal.RenderBundleEncoder, buffer: WebGPU.Metal.Buffer, bufferImpl: BufferImpl, offset: UInt64)
+    case drawIndirect(owner: WebGPU.Metal.RenderBundleEncoder, bufferImpl: BufferImpl, offset: UInt64)
+    case drawIndexedIndirect(owner: WebGPU.Metal.RenderBundleEncoder, bufferImpl: BufferImpl, offset: UInt64)
     case setPipeline(owner: WebGPU.Metal.RenderBundleEncoder, pipelineImpl: RenderPipelineImpl)
     case setIndexBuffer(
         owner: WebGPU.Metal.RenderBundleEncoder,
-        buffer: WebGPU.Metal.Buffer,
         bufferImpl: BufferImpl,
         format: WebGPU.IndexFormat,
         offset: UInt64,
@@ -74,7 +73,6 @@ enum RecordedCommand {
     case setVertexBuffer(
         owner: WebGPU.Metal.RenderBundleEncoder,
         slot: UInt32,
-        buffer: WebGPU.Metal.Buffer,
         bufferImpl: BufferImpl,
         offset: UInt64,
         size: UInt64?
@@ -301,8 +299,6 @@ final class RenderBundleEncoderImpl {
     private var depthBiasClamp: Float = 0
     private var sampleMask = defaultSampleMask
     private var primitiveType: MTLPrimitiveType = .triangle
-    // Zero or one element, paired with indexBufferImpl.
-    private var indexBuffer: [WebGPU.Metal.Buffer] = []
     private var indexBufferImpl: BufferImpl?
     private var indexType: MTLIndexType = .uint16
     private var indexBufferOffset: UInt = 0
@@ -894,8 +890,7 @@ final class RenderBundleEncoderImpl {
         _ firstInstance: UInt32,
         _ indexBufferOffsetInBytes: UInt
     ) -> Bool {
-        guard let indexBufferImpl, let mtlIndexBuffer = indexBufferImpl.buffer(), !indexBufferImpl.isDestroyed(), !indexBuffer.isEmpty
-        else {
+        guard let indexBufferImpl, let mtlIndexBuffer = indexBufferImpl.buffer(), !indexBufferImpl.isDestroyed() else {
             return false
         }
 
@@ -918,7 +913,6 @@ final class RenderBundleEncoderImpl {
         indexData.firstInstance = firstInstance
         indexData.primitiveType = UInt32(truncatingIfNeeded: primitiveType.rawValue)
         let validation = BundleIndexValidation(
-            indexBuffer: indexBuffer[0],
             indexBufferImpl: indexBufferImpl,
             indexType: indexType,
             indexBufferOffsetInBytes: indexBufferOffsetInBytes,
@@ -1096,7 +1090,6 @@ final class RenderBundleEncoderImpl {
                 firstInstance,
                 indexType,
                 UInt(truncatingIfNeeded: indexBufferOffsetInBytes),
-                indexBuffer,
                 indexBufferImpl,
                 counts,
                 sampleCount,
@@ -1208,7 +1201,6 @@ final class RenderBundleEncoderImpl {
     @_expose(Cxx)
     func drawIndexedIndirect(
         _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
-        _ indirectBuffer: borrowing WebGPU.Metal.Buffer,
         _ indirectBufferImpl: BufferImpl,
         _ indirectOffset: UInt64
     ) {
@@ -1278,7 +1270,7 @@ final class RenderBundleEncoderImpl {
                 }
             } else if indexBufferLength != 0 {
                 // Record the command; its draw is encoded into this ICB slot on the GPU at executeBundles() time.
-                recordIndirectDrawForSlot(indirectBuffer, indirectBufferImpl, indirectOffset, isIndexed: true)
+                recordIndirectDrawForSlot(indirectBufferImpl, indirectOffset, isIndexed: true)
             }
         } else {
             if indexBufferLength == 0 {
@@ -1308,7 +1300,7 @@ final class RenderBundleEncoderImpl {
             }
 
             recordCommand(
-                .drawIndexedIndirect(owner: copy shell, buffer: copy indirectBuffer, bufferImpl: indirectBufferImpl, offset: indirectOffset)
+                .drawIndexedIndirect(owner: copy shell, bufferImpl: indirectBufferImpl, offset: indirectOffset)
             )
         }
 
@@ -1318,7 +1310,6 @@ final class RenderBundleEncoderImpl {
     @_expose(Cxx)
     func drawIndirect(
         _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
-        _ indirectBuffer: borrowing WebGPU.Metal.Buffer,
         _ indirectBufferImpl: BufferImpl,
         _ apiIndirectOffset: UInt64
     ) {
@@ -1369,7 +1360,7 @@ final class RenderBundleEncoderImpl {
                 }
             } else {
                 // Record the command; its draw is encoded into this ICB slot on the GPU at executeBundles() time.
-                recordIndirectDrawForSlot(indirectBuffer, indirectBufferImpl, indirectOffset, isIndexed: false)
+                recordIndirectDrawForSlot(indirectBufferImpl, indirectOffset, isIndexed: false)
             }
         } else {
             if !isValidToUse(indirectBufferImpl.isValid(), indirectBufferImpl.deviceImpl, with: deviceImpl) {
@@ -1394,7 +1385,7 @@ final class RenderBundleEncoderImpl {
             }
 
             recordCommand(
-                .drawIndirect(owner: copy shell, buffer: copy indirectBuffer, bufferImpl: indirectBufferImpl, offset: indirectOffset)
+                .drawIndirect(owner: copy shell, bufferImpl: indirectBufferImpl, offset: indirectOffset)
             )
         }
 
@@ -1406,7 +1397,6 @@ final class RenderBundleEncoderImpl {
     }
 
     private func recordIndirectDrawForSlot(
-        _ indirectBuffer: borrowing WebGPU.Metal.Buffer,
         _ indirectBufferImpl: BufferImpl,
         _ indirectOffset: UInt64,
         isIndexed: Bool
@@ -1415,11 +1405,9 @@ final class RenderBundleEncoderImpl {
         let commandIndex = currentCommandIndex
         let draw = BundleIndirectDraw(
             renderCommand: commandIndex,
-            indirectBuffer: copy indirectBuffer,
             indirectBufferImpl: indirectBufferImpl,
             indirectOffset: indirectOffset,
             bounds: bounds,
-            indexBuffer: isIndexed ? indexBuffer : [],
             indexBufferImpl: isIndexed ? indexBufferImpl : nil,
             indexType: isIndexed ? indexType : .uint16,
             indexBufferOffset: isIndexed ? indexBufferOffset : 0,
@@ -1427,10 +1415,9 @@ final class RenderBundleEncoderImpl {
             isIndexed: isIndexed
         )
         indirectDrawsForSlot.set(commandIndex, draw)
-        _ = addInputBuffer(indirectBuffer, indirectBufferImpl, stage: .vertex)
-        if isIndexed, let indexBufferImpl, !indexBuffer.isEmpty {
-            let indexBufferShell = indexBuffer[0]
-            _ = addInputBuffer(indexBufferShell, indexBufferImpl, stage: .vertex)
+        _ = addInputBuffer(indirectBufferImpl, stage: .vertex)
+        if isIndexed, let indexBufferImpl {
+            _ = addInputBuffer(indexBufferImpl, stage: .vertex)
         }
     }
 
@@ -1524,16 +1511,16 @@ final class RenderBundleEncoderImpl {
                 draw(owner, vertexCount, instanceCount, firstVertex, firstInstance)
             case .drawIndexed(let owner, let indexCount, let instanceCount, let firstIndex, let baseVertex, let firstInstance):
                 drawIndexed(owner, indexCount, instanceCount, firstIndex, baseVertex, firstInstance)
-            case .drawIndirect(let owner, let buffer, let bufferImpl, let offset):
-                drawIndirect(owner, buffer, bufferImpl, offset)
-            case .drawIndexedIndirect(let owner, let buffer, let bufferImpl, let offset):
-                drawIndexedIndirect(owner, buffer, bufferImpl, offset)
+            case .drawIndirect(let owner, let bufferImpl, let offset):
+                drawIndirect(owner, bufferImpl, offset)
+            case .drawIndexedIndirect(let owner, let bufferImpl, let offset):
+                drawIndexedIndirect(owner, bufferImpl, offset)
             case .setPipeline(let owner, let pipelineImpl):
                 setPipeline(owner, pipelineImpl)
-            case .setIndexBuffer(let owner, let buffer, let bufferImpl, let format, let offset, let size):
-                setIndexBuffer(owner, buffer, bufferImpl, format, offset, size != nil, size ?? 0)
-            case .setVertexBuffer(let owner, let slot, let buffer, let bufferImpl, let offset, let size):
-                setVertexBuffer(owner, slot, buffer, bufferImpl, offset, size != nil, size ?? 0)
+            case .setIndexBuffer(let owner, let bufferImpl, let format, let offset, let size):
+                setIndexBuffer(owner, bufferImpl, format, offset, size != nil, size ?? 0)
+            case .setVertexBuffer(let owner, let slot, let bufferImpl, let offset, let size):
+                setVertexBuffer(owner, slot, bufferImpl, offset, size != nil, size ?? 0)
             case .clearVertexBuffer(let owner, let slot, let offset, let size):
                 clearVertexBuffer(owner, slot, offset, size != nil, size ?? 0)
             case .setBindGroup(let owner, let group, let bindGroupImpl, let dynamicOffsets):
@@ -1565,7 +1552,6 @@ final class RenderBundleEncoderImpl {
     }
 
     private func resetIndexBuffer() {
-        indexBuffer = []
         indexBufferImpl = nil
         indexType = .uint16
         indexBufferOffset = 0
@@ -1935,7 +1921,7 @@ final class RenderBundleEncoderImpl {
         )
     }
 
-    private func addInputBuffer(_ buffer: borrowing WebGPU.Metal.Buffer, _ bufferImpl: BufferImpl, stage: MTLRenderStages) -> Bool {
+    private func addInputBuffer(_ bufferImpl: BufferImpl, stage: MTLRenderStages) -> Bool {
         let mtlBuffer = bufferImpl.buffer()
         if let pass = replayPassImpl {
             if let mtlBuffer {
@@ -1953,7 +1939,7 @@ final class RenderBundleEncoderImpl {
             stages: stage,
             entryUsage: .input,
             binding: invalidBindingIndex,
-            resource: [.buffer(copy buffer, bufferImpl)],
+            resource: [.buffer(bufferImpl)],
             tracking: bufferTracking(bufferImpl)
         )
         return true
@@ -2062,7 +2048,6 @@ final class RenderBundleEncoderImpl {
     @_expose(Cxx)
     func setIndexBuffer(
         _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
-        _ buffer: borrowing WebGPU.Metal.Buffer,
         _ bufferImpl: BufferImpl,
         _ format: WebGPU.IndexFormat,
         _ offset: UInt64,
@@ -2080,11 +2065,6 @@ final class RenderBundleEncoderImpl {
         }
         let optionalSize: UInt64? = hasSize ? size : nil
         let rangeSize = bufferRangeSize(bufferImpl, offset, optionalSize)
-        if indexBuffer.isEmpty {
-            indexBuffer.append(copy buffer)
-        } else {
-            indexBuffer[0] = copy buffer
-        }
         indexBufferImpl = bufferImpl
         indexType = format == WebGPU.IndexFormat.Uint32 ? .uint32 : .uint16
         indexBufferOffset = UInt(truncatingIfNeeded: offset)
@@ -2118,7 +2098,6 @@ final class RenderBundleEncoderImpl {
             recordCommand(
                 .setIndexBuffer(
                     owner: copy shell,
-                    buffer: copy buffer,
                     bufferImpl: bufferImpl,
                     format: format,
                     offset: offset,
@@ -2128,7 +2107,7 @@ final class RenderBundleEncoderImpl {
             return
         }
 
-        _ = addInputBuffer(buffer, bufferImpl, stage: .vertex)
+        _ = addInputBuffer(bufferImpl, stage: .vertex)
     }
 
     private func icbNeedsToBeSplit(_ a: RenderPipelineImpl, _ b: RenderPipelineImpl) -> Bool {
@@ -2406,7 +2385,6 @@ final class RenderBundleEncoderImpl {
     func setVertexBuffer(
         _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ slot: UInt32,
-        _ buffer: borrowing WebGPU.Metal.Buffer,
         _ bufferImpl: BufferImpl,
         _ offset: UInt64,
         _ hasSize: Bool,
@@ -2448,7 +2426,6 @@ final class RenderBundleEncoderImpl {
                 .setVertexBuffer(
                     owner: copy shell,
                     slot: slot,
-                    buffer: copy buffer,
                     bufferImpl: bufferImpl,
                     offset: offset,
                     size: optionalSize
@@ -2460,18 +2437,17 @@ final class RenderBundleEncoderImpl {
         guard let rangeSize else {
             preconditionFailure()
         }
-        bindVertexBuffer(slot, buffer, bufferImpl, offset, rangeSize)
+        bindVertexBuffer(slot, bufferImpl, offset, rangeSize)
     }
 
     private func bindVertexBuffer(
         _ slot: UInt32,
-        _ buffer: borrowing WebGPU.Metal.Buffer,
         _ bufferImpl: BufferImpl,
         _ offset: UInt64,
         _ size: UInt64
     ) {
         utilizedBufferIndices.add(slot) { size }
-        if !addInputBuffer(buffer, bufferImpl, stage: .vertex) {
+        if !addInputBuffer(bufferImpl, stage: .vertex) {
             return
         }
 
@@ -2596,11 +2572,11 @@ public final class RenderBundleEncoderReference {
     }
 
     public func drawIndirect(_ indirectBuffer: BufferReference, _ indirectOffset: UInt64) {
-        impl.drawIndirect(shell, indirectBuffer.shell, indirectBuffer.impl, indirectOffset)
+        impl.drawIndirect(shell, indirectBuffer, indirectOffset)
     }
 
     public func drawIndexedIndirect(_ indirectBuffer: BufferReference, _ indirectOffset: UInt64) {
-        impl.drawIndexedIndirect(shell, indirectBuffer.shell, indirectBuffer.impl, indirectOffset)
+        impl.drawIndexedIndirect(shell, indirectBuffer, indirectOffset)
     }
 
     // A bundle records no debug markers or groups, so the labels go nowhere, as in the C++ shell.
@@ -2625,7 +2601,7 @@ public final class RenderBundleEncoderReference {
     }
 
     public func setIndexBuffer(_ buffer: BufferReference, _ format: WebGPU.IndexFormat, _ offset: UInt64, _ size: UInt64?) {
-        impl.setIndexBuffer(shell, buffer.shell, buffer.impl, format, offset, size != nil, size ?? 0)
+        impl.setIndexBuffer(shell, buffer, format, offset, size != nil, size ?? 0)
     }
 
     public func setPipeline(_ pipeline: RenderPipelineReference) {
@@ -2638,7 +2614,7 @@ public final class RenderBundleEncoderReference {
             impl.clearVertexBuffer(shell, slot, offset, size != nil, size ?? 0)
             return
         }
-        impl.setVertexBuffer(shell, slot, buffer.shell, buffer.impl, offset, size != nil, size ?? 0)
+        impl.setVertexBuffer(shell, slot, buffer, offset, size != nil, size ?? 0)
     }
 
     // As WTF::String::createNSString() makes the C++ shell's label, a null one is empty.

@@ -139,8 +139,10 @@ id<MTLBuffer> newZeroedDrawIndexedIndirectScratch(Device&, uint64_t& offset);
 id<MTLBuffer> newDrawIndexedIndirectArgumentsBuffer(Device&, uint32_t indexCount, uint32_t instanceCount, uint32_t indexStart, int32_t baseVertex, uint32_t baseInstance, uint64_t& offset);
 bool drawIndirectArgumentsLostOrOOBRead(id<MTLBuffer> scratch, uint64_t offset);
 void logRenderPassSplit();
-void registerIndexValidationCompletion(CommandEncoder&, Device&, Buffer& indexBuffer, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, int32_t baseVertex, MTLIndexType, uint32_t primitiveOffset, uint64_t validationGeneration, id<MTLBuffer> indexedIndirectBuffer, uint64_t indexedIndirectBufferOffset);
-void registerICBIndexValidationCompletion(CommandEncoder&, Device&, Buffer& indexBuffer, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, int32_t baseVertex, MTLIndexType, uint32_t primitiveOffset, uint64_t validationGeneration, id<MTLIndirectCommandBuffer>, id<MTLBuffer> outOfBoundsReadFlag);
+// Each block runs on the API thread once the command buffer completed, with the out-of-bounds flag the clamp wrote: in
+// the indexed indirect arguments, or in the ICB's flag. Not called if the flag can't be read.
+void registerIndexValidationCompletion(CommandEncoder&, Device&, id<MTLBuffer> indexedIndirectBuffer, uint64_t indexedIndirectBufferOffset, void (^validated)(uint32_t lostOrOOBRead));
+void registerICBIndexValidationCompletion(CommandEncoder&, Device&, id<MTLBuffer> outOfBoundsReadFlag, void (^validated)(uint32_t outOfBoundsRead));
 // The block runs on the API thread once the command buffer completed, and returns whether to lose the device.
 void registerIndirectDeviceLostChecks(CommandEncoder&, Device&, bool (^takeLostOrOOBRead)(void));
 

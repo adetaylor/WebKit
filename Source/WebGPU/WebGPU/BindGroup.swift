@@ -425,10 +425,8 @@ private func importBoundExternalTexture(
 
 // MARK: - Creation (Device::createBindGroup)
 
-/// Buffer and sampler shells as ShellReferences, so that the add functions borrow them instead of retaining them around
-/// their calls.
 private enum DescriptorResource {
-    case buffer(ShellReference<WebGPU.Metal.Buffer>, BufferImpl, sameDevice: Bool, offset: UInt64, size: UInt64?)
+    case buffer(BufferImpl, sameDevice: Bool, offset: UInt64, size: UInt64?)
     case sampler(SamplerImpl, sameDevice: Bool)
     case texture(TextureImpl, sameDevice: Bool)
     case textureView(TextureViewImpl, sameDevice: Bool)
@@ -593,9 +591,8 @@ func createBindGroupImpl(
                 .textureView(view, sameDevice: view.deviceImpl === deviceImpl)
             case .buffer(let buffer, let offset, let size):
                 .buffer(
-                    ShellReference(shell: buffer.shell),
-                    buffer.impl,
-                    sameDevice: buffer.impl.deviceImpl === deviceImpl,
+                    buffer,
+                    sameDevice: buffer.deviceImpl === deviceImpl,
                     offset: offset,
                     size: size
                 )
@@ -621,7 +618,6 @@ func beginBindGroup(_ deviceImpl: DeviceImpl) {
 func appendBindGroupBuffer(
     _ deviceImpl: DeviceImpl,
     _ binding: UInt32,
-    _ buffer: WebGPU.Metal.Buffer,
     _ impl: BufferImpl,
     _ offset: UInt64,
     _ hasSize: Bool,
@@ -631,7 +627,6 @@ func appendBindGroupBuffer(
         DescriptorEntry(
             binding: binding,
             resource: .buffer(
-                ShellReference(shell: buffer),
                 impl,
                 sameDevice: impl.deviceImpl === deviceImpl,
                 offset: offset,
@@ -908,10 +903,9 @@ private struct BindGroupCreation {
 
             let succeeded: Bool
             switch entry.resource {
-            case .buffer(let shell, let impl, let sameDevice, let offset, let size):
+            case .buffer(let impl, let sameDevice, let offset, let size):
                 succeeded = addBuffer(
                     entry.binding,
-                    shell,
                     impl,
                     sameDevice: sameDevice,
                     offset: offset,
@@ -972,7 +966,6 @@ private struct BindGroupCreation {
     @inline(__always)
     mutating func addBuffer(
         _ binding: UInt32,
-        _ shell: borrowing ShellReference<WebGPU.Metal.Buffer>,
         _ buffer: BufferImpl,
         sameDevice: Bool,
         offset: UInt64,
@@ -1086,7 +1079,7 @@ private struct BindGroupCreation {
                 binding: binding,
                 entryOffset: entryOffset,
                 entrySize: entrySize,
-                owner: .buffer(shell.shell, buffer),
+                owner: .buffer(buffer),
                 tracking: tracking
             )
         }

@@ -3042,7 +3042,6 @@ struct SkippedDrawIndexedValidation {
 /// An indexed indirect draw whose baked ICB slot was reused rather than re-encoded, retained until commit so its index
 /// buffer can be revalidated if those indices changed after the slot was baked.
 struct ReusedIndirectIndexedDraw: Equatable {
-    let indirectBuffer: WebGPU.Metal.Buffer
     let indirectBufferImpl: BufferImpl
     let indirectOffset: UInt64
     let indexBufferOffset: UInt64
@@ -3110,7 +3109,7 @@ final class CommandEncoderImpl {
 
     // The buffers and textures this encoder used, held until clearTracking(). Views, external textures and query sets
     // only record the encoder.
-    private var trackedBuffers: [(WebGPU.Metal.Buffer, BufferImpl)] = []
+    private var trackedBuffers: [BufferImpl] = []
     private var trackedTextures: [TextureImpl] = []
     // The external textures that recorded this encoder in pendingUsers, and the planes it used, until clearTracking().
     // Weak, so that an external texture's Impl, which holds its Device, dies with its shell.
@@ -3976,8 +3975,8 @@ final class CommandEncoderImpl {
 
     // For a buffer that newly recorded this encoder.
     @_expose(!Cxx)
-    func trackBuffer(_ buffer: WebGPU.Metal.Buffer, _ impl: BufferImpl) {
-        trackedBuffers.append((buffer, impl))
+    func trackBuffer(_ impl: BufferImpl) {
+        trackedBuffers.append(impl)
     }
 
     @_expose(!Cxx)
@@ -4014,7 +4013,7 @@ final class CommandEncoderImpl {
         trackedTextures = []
         trackedExternalTextures.removeAll()
         retainedExternalTexturePlanes = []
-        for (_, impl) in buffers {
+        for impl in buffers {
             impl.tracking.remove(self)
         }
         for impl in textures {

@@ -65,7 +65,7 @@ final class CommandBufferCompletion: Sendable {
 /// The encoder's commit actions for the slow index validation path add them.
 enum PostCommitAction {
     /// Waits for the command buffer, then writes back the index data the slow path cleared.
-    case restoreIndexBufferContents(WebGPU.Metal.Buffer, BufferImpl, NSMutableData)
+    case restoreIndexBufferContents(BufferImpl, NSMutableData)
     case clearMustTakeSlowIndexValidationPath(WebGPU.Metal.Device, WeakBufferAndEncoder)
 }
 
@@ -357,10 +357,10 @@ public final class CommandBufferImpl {
         postCommitActions = []
         for action in actions {
             switch action {
-            case .restoreIndexBufferContents(let buffer, let bufferImpl, let priorContents):
+            case .restoreIndexBufferContents(let bufferImpl, let priorContents):
                 cachedCommandBuffer?.waitUntilCompleted()
                 bufferImpl.indexBufferContentsWillBeRestored()
-                WebGPU.Metal.restoreIndexBufferContents(buffer, priorContents)
+                bufferImpl.restoreIndexBufferContents(priorContents)
             case .clearMustTakeSlowIndexValidationPath(_, let pair):
                 if let buffer = pair.buffer, !buffer.isDestroyed() {
                     buffer.clearMustTakeSlowIndexValidationPath()

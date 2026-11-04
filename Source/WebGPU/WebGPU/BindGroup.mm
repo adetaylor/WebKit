@@ -107,8 +107,7 @@ RefPtr<WebGPU::BindGroup> Device::createBindGroup(const WebGPU::BindGroupDescrip
     beginBindGroup(deviceImpl);
     for (auto& entry : descriptor.entries) {
         if (auto* bufferBinding = std::get_if<WebGPU::BufferBinding>(&entry.resource)) {
-            Ref buffer = metal(bufferBinding->buffer.get());
-            appendBindGroupBuffer(deviceImpl, entry.binding, buffer.ptr(), buffer->swiftImpl(), bufferBinding->offset, bufferBinding->size.has_value(), bufferBinding->size.value_or(0));
+            appendBindGroupBuffer(deviceImpl, entry.binding, Ref { metal(bufferBinding->buffer.get()) }->swiftImpl(), bufferBinding->offset, bufferBinding->size.has_value(), bufferBinding->size.value_or(0));
         } else if (auto* samplerResource = std::get_if<Ref<WebGPU::Sampler>>(&entry.resource)) {
             Ref sampler = metal(samplerResource->get());
             appendBindGroupSampler(deviceImpl, entry.binding, sampler->swiftImpl());

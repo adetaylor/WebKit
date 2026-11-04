@@ -83,23 +83,10 @@ inline WebGPU::Metal::Instance* protectedInstance(const WebGPU::Metal::Device& d
 }
 
 using CommandBufferWeakPtr = ThreadSafeWeakPtr<WebGPU::Metal::CommandBuffer>;
-using BufferWeakPtr = ThreadSafeWeakPtr<WebGPU::Metal::Buffer>;
 
 inline CommandBufferWeakPtr commandBufferThreadSafeWeakPtr(const WebGPU::Metal::CommandBuffer* input)
 {
     return ThreadSafeWeakPtr(input);
-}
-
-// The reference BufferImpl keeps to the shell that owns it, to hand an encoder a strong reference.
-// Weak, because a shell can be destroyed on a Metal thread while the API thread still reaches its Impl.
-inline BufferWeakPtr bufferThreadSafeWeakPtr(const WebGPU::Metal::Buffer* input)
-{
-    return ThreadSafeWeakPtr(input);
-}
-
-// nullptr once the shell's last reference is gone.
-inline WebGPU::Metal::Buffer* protectedBuffer(const BufferWeakPtr& shell) SWIFT_RETURNS_RETAINED {
-    return shell.get().leakRef();
 }
 
 // CommandEncoderImpl's cached command buffer, which can die on a Metal thread (so it is not a Swift weak reference).

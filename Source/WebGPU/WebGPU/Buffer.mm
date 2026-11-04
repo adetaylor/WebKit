@@ -82,14 +82,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(Buffer);
 Ref<Buffer> Buffer::create(const WebGPUSwift::BufferImpl& impl)
 {
     auto box = makeUnique<BufferImplBox>(BufferImplBox { .impl = impl });
-    Ref result = adoptRef(*new Buffer(WTF::move(box)));
-    result->m_impl->impl.setShell(result.ptr());
-    return result;
-}
-
-Ref<Buffer> Buffer::createWithStagedImpl(Device& device)
-{
-    return create(device.swiftImpl().takeStagedBufferImpl());
+    return adoptRef(*new Buffer(WTF::move(box)));
 }
 
 Ref<Buffer> Buffer::createInvalid(Device& device)
@@ -189,7 +182,7 @@ void Buffer::mapAsync(OptionSet<WebGPU::MapMode> mode, uint64_t apiOffset, std::
 {
     auto offsetAndSize = mappedRangeOffsetAndSize(initialSize(), apiOffset, size);
     auto [offset, rangeSize] = offsetAndSize.value_or(std::pair<size_t, size_t> { });
-    m_impl->impl.mapAsync(this, mode.toRaw(), !!offsetAndSize, offset, rangeSize, callback);
+    m_impl->impl.mapAsync(mode.toRaw(), !!offsetAndSize, offset, rangeSize, callback);
 }
 
 void Buffer::unmap()
@@ -242,11 +235,6 @@ static uint64_t indirectCommandBufferKey(id<MTLIndirectCommandBuffer> icb)
     return icb.gpuResourceID._impl;
 }
 
-void Buffer::drawIndexedValidated(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, int32_t baseVertex, MTLIndexType indexType, uint32_t primitiveOffset, uint64_t validationGeneration, id<MTLIndirectCommandBuffer> icb)
-{
-    m_impl->impl.drawIndexedValidatedForShell(firstIndex, indexCount, vertexCount, baseVertex, static_cast<uint32_t>(indexType), primitiveOffset, validationGeneration, indirectCommandBufferKey(icb));
-}
-
 template <typename T>
 static bool verifyIndexBufferData(id<MTLBuffer> buffer, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, uint32_t primitiveRestart, uint32_t indexBufferOffsetInBytes = 0)
 {
@@ -293,13 +281,11 @@ bool writeBufferContentsIfInBounds(id<MTLBuffer> buffer, uint64_t offset, std::s
     return true;
 }
 
-bool verifyIndexBufferForSlowPath(Buffer& buffer, uint32_t firstIndex, uint32_t indexCount, bool isUInt16, uint32_t primitiveOffset, uint32_t vertexCount)
+bool verifyIndexBufferForSlowPath(Queue& queue, id<MTLBuffer> mtlBuffer, uint32_t firstIndex, uint32_t indexCount, bool isUInt16, uint32_t primitiveOffset, uint32_t vertexCount)
 {
     WTFLogAlways("WARNING: Severe performance penalty due to encoding drawIndexed calls out of order with submission"); // NOLINT
-    Ref queue = buffer.device().getQueue();
-    id<MTLBuffer> mtlBuffer = buffer.buffer();
-    queue->waitForAllCommitedWorkToComplete();
-    queue->synchronizeResourceAndWait(mtlBuffer);
+    queue.waitForAllCommitedWorkToComplete();
+    queue.synchronizeResourceAndWait(mtlBuffer);
     if (isUInt16)
         return verifyIndexBufferData<uint16_t>(mtlBuffer, firstIndex, indexCount, vertexCount, primitiveOffset);
     return verifyIndexBufferData<uint32_t>(mtlBuffer, firstIndex, indexCount, vertexCount, primitiveOffset);
@@ -329,16 +315,14 @@ static bool verifyClampedIndirectIndexBufferData(id<MTLBuffer> buffer, uint64_t 
     return true;
 }
 
-bool verifyBundleIndirectDrawIndexBufferForSlowPath(Buffer& buffer, id<MTLBuffer> indirectBuffer, uint64_t indirectOffset, uint64_t indexBufferOffset, bool isUInt16, uint32_t vertexCount, uint32_t primitiveOffset)
+bool verifyBundleIndirectDrawIndexBufferForSlowPath(Queue& queue, id<MTLBuffer> mtlBuffer, id<MTLBuffer> indirectBuffer, uint64_t indirectOffset, uint64_t indexBufferOffset, bool isUInt16, uint32_t vertexCount, uint32_t primitiveOffset)
 {
     WTFLogAlways("WARNING: Severe performance penalty due to writing an index buffer used by a render bundle's indirect draw out of order with submission"); // NOLINT
-    Ref queue = buffer.device().getQueue();
-    id<MTLBuffer> mtlBuffer = buffer.buffer();
-    queue->waitForAllCommitedWorkToComplete();
-    queue->synchronizeResourceAndWait(mtlBuffer);
+    queue.waitForAllCommitedWorkToComplete();
+    queue.synchronizeResourceAndWait(mtlBuffer);
     if (!indirectBuffer)
         return false;
-    queue->synchronizeResourceAndWait(indirectBuffer);
+    queue.synchronizeResourceAndWait(indirectBuffer);
 
     auto argumentsEnd = checkedSum<uint64_t>(indirectOffset, sizeof(MTLDrawIndexedPrimitivesIndirectArguments));
     if (argumentsEnd.hasOverflowed() || indirectBuffer.length < argumentsEnd.value())
@@ -352,14 +336,12 @@ bool verifyBundleIndirectDrawIndexBufferForSlowPath(Buffer& buffer, id<MTLBuffer
     return verifyClampedIndirectIndexBufferData<uint32_t>(mtlBuffer, indexBufferOffset, vertexCount, primitiveOffset, baseVertex);
 }
 
-NSMutableData* clearIndexBufferContents(Buffer& buffer)
+NSMutableData* clearIndexBufferContents(Queue& queue, id<MTLBuffer> mtlBuffer)
 {
-    Ref queue = buffer.device().getQueue();
-    id<MTLBuffer> mtlBuffer = buffer.buffer();
-    SUPPRESS_UNCOUNTED_ARG NSMutableData* priorData = copyContents(borrow(buffer)->getBufferContents());
+    NSMutableData* priorData = copyContents(span<uint8_t>(mtlBuffer));
 
-    queue->clearBuffer(mtlBuffer);
-    queue->finalizeBlitCommandEncoder();
+    queue.clearBuffer(mtlBuffer);
+    queue.finalizeBlitCommandEncoder();
 #if PLATFORM(MAC) || PLATFORM(MACCATALYST)
     ALLOW_DEPRECATED_DECLARATIONS_BEGIN
     if (mtlBuffer.storageMode == MTLStorageModeManaged)
@@ -369,20 +351,9 @@ NSMutableData* clearIndexBufferContents(Buffer& buffer)
     return priorData;
 }
 
-void restoreIndexBufferContents(Buffer& buffer, NSMutableData* priorData)
-{
-    Ref queue = buffer.device().getQueue();
-    queue->writeBuffer(static_cast<WebGPU::Buffer&>(buffer), 0, WTF::span(priorData));
-}
-
 bool Buffer::didReadOOB(id<MTLIndirectCommandBuffer> icb) const
 {
     return m_impl->impl.didReadOOB(indirectCommandBufferKey(icb));
-}
-
-void Buffer::didReadOOB(uint32_t v, id<MTLIndirectCommandBuffer> icb)
-{
-    m_impl->impl.recordReadOOB(indirectCommandBufferKey(icb), !!v);
 }
 
 bool Buffer::allIndexValuesBelow(MTLIndexType indexType, uint32_t vertexCount) const

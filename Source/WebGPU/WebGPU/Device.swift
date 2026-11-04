@@ -105,8 +105,6 @@ final class DeviceImpl {
     var stagedTextureImpl: TextureImpl?
     // The other kinds made in Swift for a Swift caller, staged in the same way.
     @_expose(!Cxx)
-    var stagedBufferImpl: BufferImpl?
-    @_expose(!Cxx)
     var stagedRenderBundleEncoderImpl: RenderBundleEncoderImpl?
     // The Impls that the last command encoder, command buffer and external texture shells made: their shells make them,
     // from what Swift passes their factories. Weak, so that they live only as long as their shells.
@@ -735,15 +733,6 @@ final class DeviceImpl {
     }
 
     // MARK: Staged Impls (see stagedBindGroupLayoutImpl)
-
-    @_expose(Cxx)
-    func takeStagedBufferImpl() -> BufferImpl {
-        guard let impl = stagedBufferImpl else {
-            preconditionFailure("No staged BufferImpl")
-        }
-        stagedBufferImpl = nil
-        return impl
-    }
 
     @_expose(Cxx)
     func takeStagedRenderBundleEncoderImpl() -> RenderBundleEncoderImpl {

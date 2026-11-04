@@ -553,8 +553,6 @@ public final class RenderPassEncoderImpl {
         nil, nil
     )
     private var ignoreBufferCache = false
-    // Zero or one element, with its Impl.
-    private var indexBuffer: [WebGPU.Metal.Buffer] = []
     private var indexBufferImpl: BufferImpl?
     // The usages of buffers and external textures (keyed by Impl identity), and of texture subresources.
     private var usagesForBuffer = WTFHashMap<UInt64, EntryUsage>()
@@ -1777,8 +1775,6 @@ public final class RenderPassEncoderImpl {
         primitiveType == .lineStrip || primitiveType == .triangleStrip ? 1 : 0
     }
 
-    // `indexBufferShell` holds the shell of `indexBuffer`, which the completion handler of the GPU validation keeps
-    // alive.
     @_expose(!Cxx)
     func clampIndexBufferToValidValues(
         _ indexCount: UInt32,
@@ -1787,7 +1783,6 @@ public final class RenderPassEncoderImpl {
         _ firstInstance: UInt32,
         _ indexType: MTLIndexType,
         _ indexBufferOffsetInBytes: UInt,
-        _ indexBufferShell: borrowing [WebGPU.Metal.Buffer],
         _ indexBuffer: BufferImpl?,
         _ bounds: VertexInstanceBounds,
         _ rasterSampleCount: UInt32,
@@ -1879,20 +1874,12 @@ public final class RenderPassEncoderImpl {
 
         emitMemoryBarrier(renderCommandEncoder)
 
-        WebGPU.Metal.registerIndexValidationCompletion(
-            parentEncoder,
-            device,
-            indexBufferShell[0],
-            firstIndex,
-            indexCount,
-            effectiveMinVertexCount,
-            baseVertex,
-            indexType,
-            primitiveOffset,
-            indexBuffer.indexContentsGeneration(),
-            indexedIndirectBuffer,
-            indexedIndirectBufferOffset
-        )
+        let validationGeneration = indexBuffer.indexContentsGeneration()
+        WebGPU.Metal.registerIndexValidationCompletion(parentEncoder, device, indexedIndirectBuffer, indexedIndirectBufferOffset) {
+            lostOrOOBRead in
+            indexBuffer.recordReadOOB(0, lostOrOOBRead != 0)
+            indexBuffer.drawIndexedValidated(key, vertexCount: effectiveMinVertexCount, validationGeneration: validationGeneration)
+        }
 
         return .indirectDraw(indexedIndirectBuffer.map { ClampedIndirectArguments($0, indexedIndirectBufferOffset) })
     }
@@ -2205,20 +2192,11 @@ public final class RenderPassEncoderImpl {
                     }
                     commandEncoder?.drawPrimitives(type: .point, vertexStart: 0, vertexCount: Int(indexData.indexCount))
 
-                    WebGPU.Metal.registerICBIndexValidationCompletion(
-                        parentEncoder,
-                        device,
-                        data.indexBuffer,
-                        indexData.firstIndex,
-                        indexData.indexCount,
-                        effectiveMinVertexCount,
-                        indexData.baseVertex,
-                        data.indexType,
-                        primitiveOffset,
-                        indexBuffer.indexContentsGeneration(),
-                        icb.indirectCommandBuffer,
-                        icb.outOfBoundsReadFlag
-                    )
+                    let validationGeneration = indexBuffer.indexContentsGeneration()
+                    WebGPU.Metal.registerICBIndexValidationCompletion(parentEncoder, device, icb.outOfBoundsReadFlag) { outOfBoundsRead in
+                        indexBuffer.recordReadOOB(icbIdentifier, outOfBoundsRead != 0)
+                        indexBuffer.drawIndexedValidated(key, vertexCount: effectiveMinVertexCount, validationGeneration: validationGeneration)
+                    }
                     needsBarrierBeforeExecute = true
                 }
                 if lostTheDevice {
@@ -2251,7 +2229,6 @@ public final class RenderPassEncoderImpl {
                             indexBuffer.skippedBundleIndirectDrawValidation(
                                 parentImpl,
                                 ReusedIndirectIndexedDraw(
-                                    indirectBuffer: data.indirectBuffer,
                                     indirectBufferImpl: indirectBuffer,
                                     indirectOffset: data.indirectOffset,
                                     indexBufferOffset: UInt64(data.indexBufferOffset),
@@ -2484,7 +2461,6 @@ public final class RenderPassEncoderImpl {
         priorVertexDynamicOffsets.removeAll(keepingCapacity: true)
         fragmentDynamicOffsets.removeAll(keepingCapacity: true)
         priorFragmentDynamicOffsets.removeAll(keepingCapacity: true)
-        indexBuffer.removeAll()
         indexBufferImpl = nil
         maxBindGroupSlot = 0
         existingVertexBuffers.removeAll()
@@ -2636,7 +2612,6 @@ public final class RenderPassEncoderImpl {
             firstInstance,
             indexType,
             indexBufferOffsetInBytes,
-            indexBuffer,
             indexBufferImpl,
             counts,
             rasterSampleCount,
@@ -3396,7 +3371,6 @@ public final class RenderPassEncoderImpl {
 
     @_expose(Cxx)
     func setIndexBuffer(
-        _ buffer: borrowing WebGPU.Metal.Buffer,
         _ bufferImpl: BufferImpl,
         _ format: WebGPU.IndexFormat,
         _ offset: UInt64,
@@ -3433,11 +3407,6 @@ public final class RenderPassEncoderImpl {
             return
         }
 
-        if indexBuffer.isEmpty {
-            indexBuffer.append(copy buffer)
-        } else {
-            indexBuffer[0] = copy buffer
-        }
         indexBufferImpl = bufferImpl
         indexBufferSize = UInt(truncatingIfNeeded: rangeSize)
         indexType = format == .Uint32 ? .uint32 : .uint16
@@ -3535,7 +3504,7 @@ public final class RenderPassEncoderImpl {
     @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setIndexBuffer(_ buffer: BufferReference, _ format: WebGPU.IndexFormat, _ offset: UInt64, _ size: UInt64?) {
-        setIndexBuffer(buffer.shell, buffer.impl, format, offset, size != nil, size ?? 0)
+        setIndexBuffer(buffer, format, offset, size != nil, size ?? 0)
     }
 
     // setVertexBuffer, for a Swift caller, which clears the slot without a buffer.

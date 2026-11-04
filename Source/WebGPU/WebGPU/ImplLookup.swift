@@ -88,20 +88,28 @@ extension PresentationContextReference {
 }
 
 @_spi(WebKitGPU)
-extension BufferReference {
+extension BufferImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: BufferImpl {
+        self
+    }
+
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync, as Buffer's shell calls it. `mode` is the bits of
     // OptionSet<WebGPU::MapMode>; nil size: the rest of the buffer after the offset.
+    @_expose(!Cxx)
     public func mapAsync(_ mode: UInt8, _ offset: UInt64, _ size: UInt64?, _ completion: @escaping (Bool) -> Void) {
-        let rangeSize = size ?? (impl.initialSize() > offset ? impl.initialSize() - offset : 0)
+        let rangeSize = size ?? (initialSize() > offset ? initialSize() - offset : 0)
         let rangeFits = UInt(exactly: offset) != nil && UInt(exactly: rangeSize) != nil
-        impl.mapAsync(shell, mode, rangeFits, rangeFits ? offset : 0, rangeFits ? rangeSize : 0, completion)
+        mapAsync(mode, rangeFits, rangeFits ? offset : 0, rangeFits ? rangeSize : 0, completion)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange, as Buffer::getMappedRange() reserves the range, but
     // giving a copy of its bytes. No bytes if the range can't be given.
+    @_expose(!Cxx)
     public func getMappedRange(_ offset: UInt64, _ size: UInt64?) -> [UInt8] {
-        let rangeSize = size ?? (impl.initialSize() > offset ? impl.initialSize() - offset : 0)
-        guard UInt(exactly: offset) != nil, UInt(exactly: rangeSize) != nil, impl.reserveMappedRange(offset, rangeSize) else {
+        let rangeSize = size ?? (initialSize() > offset ? initialSize() - offset : 0)
+        guard UInt(exactly: offset) != nil, UInt(exactly: rangeSize) != nil, reserveMappedRange(offset, rangeSize) else {
             return []
         }
         // The reserved range lies within the mapping, so within the contents.
@@ -110,31 +118,26 @@ extension BufferReference {
         }
         var bytes = [UInt8](repeating: 0, count: byteCount)
         var destination = bytes.mutableSpan
-        WebGPU.Metal.readBufferContents(impl.buffer(), offset, &destination)
+        WebGPU.Metal.readBufferContents(buffer(), offset, &destination)
         return bytes
     }
 
     // Writes data into the buffer's contents at that offset, as a mapped range of them is written. Returns false,
     // writing nothing, if the contents don't hold it there.
+    @_expose(!Cxx)
     public func writeContents(_ data: Span<UInt8>, at offset: UInt64) -> Bool {
-        WebGPU.Metal.writeBufferContentsIfInBounds(impl.buffer(), offset, data)
+        WebGPU.Metal.writeBufferContentsIfInBounds(buffer(), offset, data)
     }
 
-    public func unmap() {
-        impl.unmap()
-    }
-
-    public func destroy() {
-        impl.destroy()
-    }
-
+    @_expose(!Cxx)
     public func setLabel(_ label: Swift.String?) {
-        impl.setLabel(WTF.String(label ?? ""))
+        setLabel(WTF.String(label ?? ""))
     }
 
     // Buffer::generateAValidationError.
+    @_expose(!Cxx)
     public func generateAValidationError() {
-        impl.deviceImpl.generateAValidationError("Buffer state was not unmapped")
+        deviceImpl.generateAValidationError("Buffer state was not unmapped")
     }
 }
 
@@ -155,15 +158,7 @@ extension RenderPipelineReference {
 }
 
 @_spi(WebKitGPU)
-public final class BufferReference {
-    public let impl: BufferImpl
-    let shell: WebGPU.Metal.Buffer
-
-    init(_ impl: BufferImpl, _ shell: WebGPU.Metal.Buffer) {
-        self.impl = impl
-        self.shell = shell
-    }
-}
+public typealias BufferReference = BufferImpl
 
 @_spi(WebKitGPU)
 public typealias RenderBundleReference = RenderBundleImpl
@@ -258,11 +253,6 @@ extension GPUObjectReference {
 
 @_spi(WebKitGPU)
 extension AdapterReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
-extension BufferReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }
 

@@ -677,14 +677,14 @@ struct EntryUsage: OptionSet, Hashable {
 
 /// A bound resource with its Impl (pair invariant), for ownership only: hot paths read TrackedImpl.
 enum BoundResource {
-    case buffer(WebGPU.Metal.Buffer, BufferImpl)
+    case buffer(BufferImpl)
     case texture(TextureImpl)
     case textureView(TextureViewImpl)
     case externalTexture(ExternalTextureImpl)
 
     var trackedImpl: TrackedImpl {
         switch self {
-        case .buffer(_, let impl): .buffer(impl)
+        case .buffer(let impl): .buffer(impl)
         case .texture(let impl): .texture(impl)
         case .textureView(let impl): .textureView(impl)
         case .externalTexture(let impl): .externalTexture(impl)
@@ -1172,7 +1172,6 @@ struct PassAttachments {
 
 /// The index validation of one indexed draw of a bundle's ICB; storeIndexDataForValidation never stores a null buffer.
 struct BundleIndexValidation {
-    let indexBuffer: WebGPU.Metal.Buffer
     let indexBufferImpl: BufferImpl
     let indexType: MTLIndexType
     let indexBufferOffsetInBytes: UInt
@@ -1184,12 +1183,10 @@ struct BundleIndexValidation {
 /// One indirect draw of a bundle's ICB, with the contents generations it was last encoded with.
 struct BundleIndirectDraw {
     let renderCommand: UInt64
-    let indirectBuffer: WebGPU.Metal.Buffer
     let indirectBufferImpl: BufferImpl
     let indirectOffset: UInt64
     let bounds: VertexInstanceBounds
-    /// Zero or one element: empty for a non-indexed draw.
-    let indexBuffer: [WebGPU.Metal.Buffer]
+    /// nil for a non-indexed draw.
     let indexBufferImpl: BufferImpl?
     let indexType: MTLIndexType
     let indexBufferOffset: UInt

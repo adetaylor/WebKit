@@ -1278,6 +1278,21 @@ final class QueueImpl {
         return true
     }
 
+    // writeBuffer() of bytes that nothing lends: the slow index validation path's write-back.
+    func writeBuffer(
+        _ queue: WebGPU.Metal.Queue,
+        _ device: WebGPU.Metal.Device,
+        _ deviceImpl: DeviceImpl,
+        _ bufferImpl: BufferImpl,
+        _ bufferOffset: UInt64,
+        bytes data: Span<UInt8>
+    ) {
+        if writeBufferWithoutStaging(deviceImpl, bufferImpl, bufferOffset, bytes: data) {
+            return
+        }
+        stageBufferWrite(queue, device, deviceImpl, bufferImpl.buffer(), bufferOffset, bytes: data, nil)
+    }
+
     // writeBuffer() up to staging: the validation, the index bookkeeping and the write of an idle CPU-visible buffer. False
     // when the write still has to be staged (stageBufferWrite, stageBufferWriteFromOwner). It takes no shells: Swift
     // retains the imported reference types it is passed, which the CPU path does not need.
