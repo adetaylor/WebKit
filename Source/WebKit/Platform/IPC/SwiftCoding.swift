@@ -161,10 +161,6 @@ extension Double: IPCBlockPrimitive {
 /// Swift types generated from .serialization.in types marked [Swift].
 enum IPCTypes {}
 
-// Safety: a SharedBuffer's contents never change, and its reference count is thread-safe.
-@available(macOS 13.3, iOS 16.4, tvOS 16.4, watchOS 9.4, visionOS 1, *)
-extension WebCore.SharedBuffer: @retroactive @unchecked Sendable {}
-
 extension Bool: IPCCoder {
     static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Bool {
         var value = false
