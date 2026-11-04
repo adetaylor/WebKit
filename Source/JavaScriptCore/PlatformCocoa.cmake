@@ -359,3 +359,109 @@ add_custom_target(JavaScriptCore_CopyModules ALL DEPENDS
     "${_jsc_modules_dir}/module.modulemap"
     "${_jsc_modules_dir}/module.private.modulemap")
 add_dependencies(JavaScriptCore JavaScriptCore_CopyModules)
+
+# WK_USE_SWIFT_BIGINT_DIGITS and WK_USE_SWIFT_JSON_PARSER are BaseTarget.xcconfig's settings of the same names, off by
+# default as there. As in PlatformWin.cmake, each island's Swift imports only a header that includes only the standard
+# library, so one command compiles it whole-module into an object JavaScriptCore links and writes the header its C++
+# includes, with the Swift settings of libJavaScriptCore.xcconfig and JavaScriptCore.xcconfig.
+option(WK_USE_SWIFT_BIGINT_DIGITS "Compile JSBigInt's digit arithmetic from Swift" OFF)
+option(WK_USE_SWIFT_JSON_PARSER "Parse JSON with LiteralParser's Swift implementation" OFF)
+if (WK_USE_SWIFT_BIGINT_DIGITS OR WK_USE_SWIFT_JSON_PARSER)
+    set(_jsc_swift_flags)
+    foreach (_flag IN LISTS WEBKIT_SWIFT_LANGUAGE_FLAGS WEBKIT_SWIFT_UPCOMING_FEATURE_FLAGS WEBKIT_SWIFT_CONCURRENCY_FLAGS
+            WEBKIT_SWIFT_FATAL_DIAGNOSTIC_FLAGS WEBKIT_SWIFT_CLANG_IMPORTER_FLAGS WEBKIT_SWIFT_MACRO_FLAGS WEBKIT_SWIFT_DEBUG_INFO_FLAGS
+            WEBKIT_SWIFT_EXPERIMENTAL_FEATURE_FLAGS WEBKIT_SWIFT_MEMORY_SAFETY_FLAGS WEBKIT_SWIFT_CXX_INTEROP_FLAGS)
+        separate_arguments(_args UNIX_COMMAND "${_flag}")
+        list(APPEND _jsc_swift_flags ${_args})
+    endforeach ()
+    list(APPEND _jsc_swift_flags
+        -sdk "${CMAKE_OSX_SYSROOT}" -wmo "$<IF:$<CONFIG:Debug>,-Onone,-O>" -g
+        -module-cache-path "${CMAKE_BINARY_DIR}/SwiftModuleCache"
+        -Xcc -fexperimental-bounds-safety-attributes -Xcc -fexperimental-late-parse-attributes
+        -Xcc -fno-exceptions -Xcc -fignore-exceptions -Xcc -O2 -Xllvm -enable-dfa-jump-thread
+        -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib
+        -Xfrontend -emit-clang-header-min-access -Xfrontend internal)
+    if (CMAKE_Swift_COMPILER_TARGET)
+        list(APPEND _jsc_swift_flags -target "${CMAKE_Swift_COMPILER_TARGET}")
+    endif ()
+    if (LTO_MODE)
+        list(APPEND _jsc_swift_flags -Xfrontend -lto=llvm-${LTO_MODE} -Xfrontend -emit-bc)
+    endif ()
+
+    # <swiftToCxx/_SwiftCxxInteroperability.h>, which the generated headers include, and the Swift runtime libraries
+    # the objects auto-link.
+    string(JSON _jsc_swift_paths GET "${WEBKIT_SWIFT_TARGET_INFO}" "paths")
+    string(JSON _jsc_swift_resource_path GET "${_jsc_swift_paths}" "runtimeResourcePath")
+    string(JSON _jsc_swift_library_path GET "${_jsc_swift_paths}" "runtimeLibraryPaths" 0)
+    target_include_directories(JavaScriptCore SYSTEM AFTER PRIVATE "${_jsc_swift_resource_path}")
+    target_link_directories(JavaScriptCore PRIVATE "${_jsc_swift_library_path}")
+endif ()
+
+if (WK_USE_SWIFT_BIGINT_DIGITS)
+    set(_jsc_swift_sources
+        runtime/JSBigIntDigits.swift
+        runtime/JSBigIntDigitsAddSub.swift
+        runtime/JSBigIntDigitsDivide.swift
+        runtime/JSBigIntDigitsFFT.swift
+        runtime/JSBigIntDigitsMultiply.swift
+        runtime/JSBigIntDigitsPrimitives.swift
+    )
+    list(TRANSFORM _jsc_swift_sources PREPEND "${JAVASCRIPTCORE_DIR}/")
+    set(_jsc_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift")
+    set(_jsc_swift_obj "${_jsc_swift_dir}/JSCSwift.o")
+    set(_jsc_swift_hdr "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift-Swift.h")
+    file(MAKE_DIRECTORY "${_jsc_swift_dir}")
+
+    add_custom_command(
+        OUTPUT "${_jsc_swift_obj}" "${_jsc_swift_hdr}"
+        COMMAND "${ORIGINAL_Swift_COMPILER}" -module-name JSCSwift ${_jsc_swift_flags} -D USE_SWIFT_BIGINT_DIGITS
+            -Xcc "-fmodule-map-file=${JAVASCRIPTCORE_DIR}/JSCSwiftBoundary.modulemap"
+            -emit-clang-header-path "${_jsc_swift_hdr}"
+            -c ${_jsc_swift_sources} -o "${_jsc_swift_obj}"
+        DEPENDS ${_jsc_swift_sources} "${JAVASCRIPTCORE_DIR}/JSCSwiftBoundary.modulemap"
+            "${JAVASCRIPTCORE_DIR}/runtime/JSBigIntSwiftDigits.h"
+        COMMENT "Compiling JSCSwift"
+        COMMAND_EXPAND_LISTS
+        VERBATIM)
+    add_custom_target(JSCSwift DEPENDS "${_jsc_swift_obj}" "${_jsc_swift_hdr}")
+
+    list(APPEND JavaScriptCore_SOURCES "${_jsc_swift_obj}")
+    set_source_files_properties("${_jsc_swift_obj}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+    # JSBigInt.cpp, in a unified source, includes the generated header.
+    list(APPEND JavaScriptCore_DEPENDENCIES JSCSwift)
+    # JSBigInt.h declares its digit helpers only when this is 0, so every JavaScriptCore translation unit gets it.
+    add_compile_definitions(USE_SWIFT_BIGINT_DIGITS=1)
+endif ()
+
+if (WK_USE_SWIFT_JSON_PARSER)
+    set(_jsc_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/LiteralParserSwift")
+    set(_jsc_swift_obj "${_jsc_swift_dir}/LiteralParserSwift.o")
+    set(_jsc_swift_hdr "${JavaScriptCore_DERIVED_SOURCES_DIR}/JavaScriptCore-Swift.h")
+    file(MAKE_DIRECTORY "${_jsc_swift_dir}")
+    # JavaScriptCore_Private.modulemap's LiteralParserSwiftTypes, the one submodule the Swift imports.
+    file(WRITE "${_jsc_swift_dir}/module.modulemap"
+        "module JavaScriptCore_Private {\n"
+        "    explicit module LiteralParserSwiftTypes {\n"
+        "        header \"${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwiftTypes.h\"\n"
+        "        requires cplusplus\n"
+        "        export *\n"
+        "    }\n"
+        "}\n")
+
+    add_custom_command(
+        OUTPUT "${_jsc_swift_obj}" "${_jsc_swift_hdr}"
+        COMMAND "${ORIGINAL_Swift_COMPILER}" -module-name JavaScriptCore -parse-as-library ${_jsc_swift_flags}
+            -D USE_SWIFT_JSON_PARSER -Werror SendableClosureCaptures -Xcc "-I${_jsc_swift_dir}"
+            -emit-clang-header-path "${_jsc_swift_hdr}"
+            -c "${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwift.swift" -o "${_jsc_swift_obj}"
+        DEPENDS "${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwift.swift" "${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwiftTypes.h"
+        COMMENT "Compiling LiteralParserSwift.swift"
+        COMMAND_EXPAND_LISTS
+        VERBATIM)
+
+    list(APPEND JavaScriptCore_SOURCES runtime/LiteralParserSwiftFacade.cpp "${_jsc_swift_obj}")
+    set_source_files_properties("${_jsc_swift_obj}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+    set_source_files_properties(runtime/LiteralParserSwiftFacade.cpp PROPERTIES OBJECT_DEPENDS "${_jsc_swift_hdr}")
+    # Every C++ translation unit that includes LiteralParser.h must agree on the class it declares.
+    add_compile_definitions(USE_SWIFT_JSON_PARSER=1)
+endif ()

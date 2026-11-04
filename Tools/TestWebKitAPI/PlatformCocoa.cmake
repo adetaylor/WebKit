@@ -200,10 +200,16 @@ list(APPEND TestWebCore_SOURCES
     Tests/WebCore/ISOBox.cpp
     Tests/WebCore/ISOVTTCueTests.cpp
     Tests/WebCore/Logging.cpp
+    Tests/WebCore/MacScrollersBench.mm
     Tests/WebCore/MarkedText.cpp
     Tests/WebCore/PlatformCAAnimationKeyPath.cpp
+    Tests/WebCore/ScrollPhysics.cpp
+    Tests/WebCore/ScrollPhysicsBench.cpp
+    Tests/WebCore/ScrollViewBench.cpp
+    Tests/WebCore/ScrollingTreeDelegateBench.cpp
     Tests/WebCore/StringUtilities.mm
     Tests/WebCore/TextBoundaries.cpp
+    Tests/WebCore/TransformationMatrixBench.cpp
     Tests/WebCore/UserAgentStringParser.cpp
     Tests/WebCore/YouTubePluginReplacement.cpp
 
@@ -223,6 +229,7 @@ list(APPEND TestWebCore_SOURCES
     Tests/WebCore/cocoa/HEVCUtilitiesCocoaTests.mm
     Tests/WebCore/cocoa/IOSurfacePoolTests.cpp
     Tests/WebCore/cocoa/IOSurfaceTests.mm
+    Tests/WebCore/cocoa/ImageDecoderCGBench.mm
     Tests/WebCore/cocoa/ImageRotationSessionVT.cpp
     Tests/WebCore/cocoa/MediaPlayerPrivateAVFoundationObjCTests.mm
     Tests/WebCore/cocoa/MediaRecorderPrivateWriterTests.cpp

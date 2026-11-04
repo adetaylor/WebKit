@@ -3411,6 +3411,68 @@ if (APPLE)
         platform/graphics/iso/ISOTrackEncryptionBox.cpp
         platform/graphics/iso/ISOVTTCue.cpp
     )
+    # The islands' C++ that includes WebCore-Swift.h when their WK_USE_SWIFT_* settings are on.
+    if (WK_USE_SWIFT_HTML_FAST_PATH)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLDocumentParserFastPath.cpp)
+    endif ()
+    if (WK_USE_SWIFT_HTML_TOKENIZER)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES
+            html/parser/HTMLTokenizer.cpp
+            html/track/WebVTTTokenizer.cpp
+            xml/parser/XMLDocumentParserLibxml2.cpp)
+    endif ()
+    if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLPreloadScanner.cpp)
+    endif ()
+    if (WK_USE_SWIFT_HTML_TREE_BUILDER)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLDocumentParser.cpp)
+    endif ()
+    if (WK_USE_SWIFT_CSS_TOKENIZER)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSTokenizer.cpp)
+    endif ()
+    if (WK_USE_SWIFT_CSS_FAST_PATHS)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSParserFastPaths.cpp)
+    endif ()
+    if (WK_USE_SWIFT_CSS_CALC)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_css_calc_swift_interop_sources})
+    endif ()
+    if (WK_USE_SWIFT_TRANSFORMATION_MATRIX)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES platform/graphics/transforms/TransformationMatrix.cpp)
+    endif ()
+    if (WK_USE_SWIFT_IMAGE_DECODER_CG)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES platform/graphics/cg/ImageDecoderCG.cpp)
+    endif ()
+    if (WK_USE_SWIFT_SCROLL_PHYSICS)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES
+            platform/ScrollAnimationSmooth.cpp
+            platform/ScrollingEffectsController.cpp
+            platform/mac/ScrollingEffectsController.mm)
+    endif ()
+    if (WK_USE_SWIFT_SCROLLING_TREE_DELEGATE)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES
+            page/scrolling/ThreadedScrollingTreeScrollingNodeDelegate.cpp
+            page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.mm)
+    endif ()
+    if (WK_USE_SWIFT_MAC_SCROLLERS)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES
+            page/scrolling/mac/ScrollerPairMac.mm
+            page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.mm)
+    endif ()
+    if (WK_USE_SWIFT_SCROLL_ANIMATOR_PHYSICS)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES
+            platform/ScrollAnimator.cpp
+            platform/mac/ScrollAnimatorMac.mm)
+    endif ()
+    if (WK_USE_SWIFT_SCROLL_ANIMATOR)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES platform/KeyboardScrollingAnimator.cpp)
+    endif ()
+    if (WK_USE_SWIFT_SCROLLABLE_AREA)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES platform/ScrollableArea.cpp)
+    endif ()
+    if (WK_USE_SWIFT_SCROLL_VIEW)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES platform/ScrollView.cpp)
+    endif ()
+    list(REMOVE_DUPLICATES WebCore_SWIFT_INTEROP_SOURCES)
     foreach (_f IN LISTS WebCore_SWIFT_INTEROP_SOURCES)
         list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_f}( |$)")
     endforeach ()
@@ -3581,7 +3643,7 @@ if (APPLE)
     webkit_target_compile_definitions(WebCore PRIVATE ENABLE_WEBCORE_SWIFT=1)
 
     # The Swift port of ImageDecoderCG, as in WebCore.xcodeproj. Each file is empty unless
-    # ENABLE(IMAGE_DECODER_CG_SWIFT) (wtf/PlatformEnableCocoa.h, off by default).
+    # ENABLE(IMAGE_DECODER_CG_SWIFT), which WK_USE_SWIFT_IMAGE_DECODER_CG sets (off by default).
     target_sources(WebCore PRIVATE
         ${WEBCORE_DIR}/platform/cf/SafeCFNumber.swift
         ${WEBCORE_DIR}/platform/graphics/ImageDecoding.swift
@@ -3589,8 +3651,86 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/cg/ImageDecodingCG.swift
     )
 
+    # The Swift islands, as in WebCore.xcodeproj. Each file is empty unless its WK_USE_SWIFT_* setting is on.
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/SIMDHelpers.swift
+        ${WEBCORE_DIR}/SIMDHighBitMask.swift
+        ${WEBCORE_DIR}/SIMDSaturatingSubtract.swift
+        ${WEBCORE_DIR}/SIMDTableLookup.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcEvaluation.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcNode.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcParser.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcSerialization.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcSimplification.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcSwift.swift
+        ${WEBCORE_DIR}/css/calc/StyleCalculationSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserFastPathsSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftProperties.swift
+        ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
+        ${WEBCORE_DIR}/html/parser/HTMLConstructionSite.swift
+        ${WEBCORE_DIR}/html/parser/HTMLElementStack.swift
+        ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
+        ${WEBCORE_DIR}/html/parser/HTMLTokenizer.swift
+        ${WEBCORE_DIR}/html/parser/HTMLTreeBuilder.swift
+        ${WEBCORE_DIR}/page/scrolling/mac/MacScrollerImpState.swift
+        ${WEBCORE_DIR}/page/scrolling/mac/ScrollerPairMac.swift
+        ${WEBCORE_DIR}/page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.swift
+        ${WEBCORE_DIR}/platform/KeyboardScrollingAnimator.swift
+        ${WEBCORE_DIR}/platform/ScrollAnimator.swift
+        ${WEBCORE_DIR}/platform/ScrollAnimatorScrollPhysicsClient.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsAnimations.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsClientProtocol.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsController.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsGeometry.swift
+        ${WEBCORE_DIR}/platform/ScrollSnapAnimationState.swift
+        ${WEBCORE_DIR}/platform/ScrollView.swift
+        ${WEBCORE_DIR}/platform/ScrollableArea.swift
+        ${WEBCORE_DIR}/platform/graphics/transforms/TransformationMatrix.swift
+        ${WebCore_DERIVED_SOURCES_DIR}/CSSPropertyParsingSwift.swift
+    )
+
+    # As WebCore.xcconfig's settings that only WebCore declares: 0 or 1 for the C++ and for the headers the Swift
+    # imports, and a Swift condition when on. The scrolling settings that other targets need too are global
+    # (WebKitFeatures.cmake), and calc()'s are in cmakeconfig.h.
+    foreach (_island IN ITEMS HTML_FAST_PATH HTML_TOKENIZER HTML_PER_TOKEN HTML_PRELOAD_SCANNER HTML_TREE_BUILDER CSS_TOKENIZER CSS_FAST_PATHS TRANSFORMATION_MATRIX IMAGE_DECODER_CG SCROLL_SNAP DEAD_CODE_SWEEP)
+        set(_macro USE_SWIFT_${_island})
+        if (_island STREQUAL "IMAGE_DECODER_CG")
+            set(_macro ENABLE_IMAGE_DECODER_CG_SWIFT)
+        endif ()
+        set(_c_only FALSE)
+        if (_island MATCHES "^(SCROLL_SNAP|DEAD_CODE_SWEEP)$")
+            set(_c_only TRUE)
+        endif ()
+        set(_value 0)
+        if (WK_USE_SWIFT_${_island} AND (WEBKIT_SDK_IS_MACOS OR NOT _c_only))
+            set(_value 1)
+        endif ()
+        target_compile_definitions(WebCore PRIVATE "$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:${_macro}=${_value}>")
+        webkit_target_add_swift_options(WebCore "-Xcc -D${_macro}=${_value}")
+        if (_value AND NOT _c_only)
+            webkit_target_add_swift_options(WebCore "-D ${_macro}")
+        endif ()
+    endforeach ()
+    if (WTF_CPU_X86_64)
+        webkit_target_add_swift_options(WebCore "-D HAVE_SSSE3")
+    endif ()
+
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
+        # WebCore.xcconfig's OTHER_SWIFT_FLAGS and SWIFT_TREAT_WARNINGS_AS_ERRORS, with its -O2 for the imported C++
+        # outside Debug only.
+        "-Xcc -fno-exceptions"
+        "-Xcc -fignore-exceptions"
+        "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<NOT:$<CONFIG:Debug>>>:SHELL:-Xcc -O2>"
+        "-Xllvm -enable-dfa-jump-thread"
+        "-enable-experimental-feature BuiltinModule"
+        "-enable-experimental-feature AddressableParameters"
+        "-Werror DeprecatedDeclaration"
+        "-Werror SendableClosureCaptures"
+        -warnings-as-errors
     )
     # Apple CMake's JavaScriptCore.framework/Headers has headers that JavaScriptCore.h doesn't include.
     webkit_target_add_swift_options(WebCore "-Xcc -Wno-incomplete-umbrella")

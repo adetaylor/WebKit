@@ -554,39 +554,45 @@ macro(WEBKIT_OPTION_END)
     endif ()
 
     option(WK_BUILD_WEBCORE_SWIFT "Build WebCore's Swift sources, as the Xcode project does" OFF)
+    # The islands' settings that WebCore.xcconfig and CommonBase.xcconfig turn on for every Apple SDK are on by default
+    # for the Apple ports too.
+    set(_wk_use_swift_islands_default OFF)
+    if (APPLE)
+        set(_wk_use_swift_islands_default ON)
+    endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: the HTML fragment fast path
     # parses and builds its DOM in HTMLFastPathParser.swift.
-    option(WK_USE_SWIFT_HTML_FAST_PATH "Parse HTML fragments on the fast path with WebCore's HTMLFastPathParser.swift" OFF)
+    option(WK_USE_SWIFT_HTML_FAST_PATH "Parse HTML fragments on the fast path with WebCore's HTMLFastPathParser.swift" ${_wk_use_swift_islands_default})
     if (WK_USE_SWIFT_HTML_FAST_PATH)
         set(WK_BUILD_WEBCORE_SWIFT ON)
     endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: HTMLTokenizer::processToken and the
     # HTML entity decoder are HTMLTokenizer.swift and HTMLEntityParser.swift.
-    option(WK_USE_SWIFT_HTML_TOKENIZER "Tokenize HTML and decode character references with WebCore's HTMLTokenizer.swift and HTMLEntityParser.swift" OFF)
+    option(WK_USE_SWIFT_HTML_TOKENIZER "Tokenize HTML and decode character references with WebCore's HTMLTokenizer.swift and HTMLEntityParser.swift" ${_wk_use_swift_islands_default})
     if (WK_USE_SWIFT_HTML_TOKENIZER AND NOT WK_USE_SWIFT_HTML_FAST_PATH)
         message(FATAL_ERROR "WK_USE_SWIFT_HTML_TOKENIZER needs WK_USE_SWIFT_HTML_FAST_PATH: the C++ fast path calls the C++ entity decoder")
     endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: HTMLTokenizer.swift makes the tree
     # builder's tag names and attributes as it scans.
-    option(WK_USE_SWIFT_HTML_PER_TOKEN "Make the HTML tree builder's tag names and attributes in WebCore's HTMLTokenizer.swift" OFF)
+    option(WK_USE_SWIFT_HTML_PER_TOKEN "Make the HTML tree builder's tag names and attributes in WebCore's HTMLTokenizer.swift" ${_wk_use_swift_islands_default})
     if (WK_USE_SWIFT_HTML_PER_TOKEN AND NOT WK_USE_SWIFT_HTML_TOKENIZER)
         message(FATAL_ERROR "WK_USE_SWIFT_HTML_PER_TOKEN needs WK_USE_SWIFT_HTML_TOKENIZER, whose HTMLTokenizer.swift makes them")
     endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: CSSTokenizer's scanner is
     # CSSTokenizerSwift.swift.
-    option(WK_USE_SWIFT_CSS_TOKENIZER "Tokenize CSS with WebCore's CSSTokenizerSwift.swift" OFF)
+    option(WK_USE_SWIFT_CSS_TOKENIZER "Tokenize CSS with WebCore's CSSTokenizerSwift.swift" ${_wk_use_swift_islands_default})
     if (WK_USE_SWIFT_CSS_TOKENIZER)
         set(WK_BUILD_WEBCORE_SWIFT ON)
     endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: CSSParserFastPaths' color, length, opacity
     # and transform scans are CSSParserFastPathsSwift.swift.
-    option(WK_USE_SWIFT_CSS_FAST_PATHS "Parse simple CSS property values with WebCore's CSSParserFastPathsSwift.swift" OFF)
+    option(WK_USE_SWIFT_CSS_FAST_PATHS "Parse simple CSS property values with WebCore's CSSParserFastPathsSwift.swift" ${_wk_use_swift_islands_default})
     if (WK_USE_SWIFT_CSS_FAST_PATHS)
         set(WK_BUILD_WEBCORE_SWIFT ON)
     endif ()
     # The counterpart of CommonBase.xcconfig's WK_USE_SWIFT_CSS_CALC: calc()'s parser, simplifier, evaluators and
     # serializer, and the operations on Style::Calculation trees, are the calc() Swift in css/calc.
-    option(WK_USE_SWIFT_CSS_CALC "Parse, simplify, evaluate and serialize CSS calc() with the calc() Swift in WebCore's css/calc" OFF)
+    option(WK_USE_SWIFT_CSS_CALC "Parse, simplify, evaluate and serialize CSS calc() with the calc() Swift in WebCore's css/calc" ${_wk_use_swift_islands_default})
     if (WK_USE_SWIFT_CSS_CALC)
         set(WK_BUILD_WEBCORE_SWIFT ON)
     endif ()
@@ -596,14 +602,14 @@ macro(WEBKIT_OPTION_END)
     # The counterpart of CommonBase.xcconfig's WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS: the numeric validators and the
     # background-size, stroke-dasharray, animation-range, translate/rotate/scale and generated transform consumers are
     # CSSPropertyConsumerSwift.swift and the generated CSSPropertyParsingSwift.swift.
-    option(WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS "Consume CSS property values with WebCore's CSSPropertyConsumerSwift.swift" OFF)
+    option(WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS "Consume CSS property values with WebCore's CSSPropertyConsumerSwift.swift" ${_wk_use_swift_islands_default})
     if (WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS AND NOT WK_USE_SWIFT_CSS_CALC)
         message(FATAL_ERROR "WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS needs WK_USE_SWIFT_CSS_CALC: the consumers call calc()'s Swift parser")
     endif ()
     SET_AND_EXPOSE_TO_BUILD(USE_SWIFT_CSS_PROPERTY_CONSUMERS ${WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS})
     # The counterpart of CommonBase.xcconfig's WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS_2: the <integer> and <time>
     # validators and the consumers of process-css-properties.py's SWIFT_GENERATED_CONSUMERS_2 are Swift.
-    option(WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS_2 "Consume the CSS properties of SWIFT_GENERATED_CONSUMERS_2 with WebCore's generated Swift" OFF)
+    option(WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS_2 "Consume the CSS properties of SWIFT_GENERATED_CONSUMERS_2 with WebCore's generated Swift" ${_wk_use_swift_islands_default})
     if (WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS_2 AND NOT WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS)
         message(FATAL_ERROR "WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS_2 needs WK_USE_SWIFT_CSS_PROPERTY_CONSUMERS: its consumers are PropertyParser methods")
     endif ()
@@ -616,9 +622,55 @@ macro(WEBKIT_OPTION_END)
     endif ()
     # The counterpart of the WebCore.xcconfig setting of the same name: the HTML preload scanner is
     # HTMLPreloadScanner.swift.
-    option(WK_USE_SWIFT_HTML_PRELOAD_SCANNER "Scan HTML for resources to preload with WebCore's HTMLPreloadScanner.swift" OFF)
+    option(WK_USE_SWIFT_HTML_PRELOAD_SCANNER "Scan HTML for resources to preload with WebCore's HTMLPreloadScanner.swift" ${_wk_use_swift_islands_default})
     if (WK_USE_SWIFT_HTML_PRELOAD_SCANNER AND NOT WK_USE_SWIFT_HTML_PER_TOKEN)
         message(FATAL_ERROR "WK_USE_SWIFT_HTML_PRELOAD_SCANNER needs WK_USE_SWIFT_HTML_PER_TOKEN, whose HTMLToken accessors it reads attributes with")
+    endif ()
+
+    # The islands that only the Apple ports build, the counterparts of the WebCore.xcconfig settings of the same names,
+    # with their defaults. The settings from WK_USE_SWIFT_SCROLL_ANIMATOR_PHYSICS on have an effect on macOS only, as
+    # there.
+    if (APPLE)
+        option(WK_USE_SWIFT_HTML_TREE_BUILDER "Build the HTML tree with WebCore's HTMLTreeBuilder.swift" OFF)
+        if (WK_USE_SWIFT_HTML_TREE_BUILDER AND NOT WK_USE_SWIFT_HTML_PER_TOKEN)
+            message(FATAL_ERROR "WK_USE_SWIFT_HTML_TREE_BUILDER needs WK_USE_SWIFT_HTML_PER_TOKEN, whose tokens it builds the tree from")
+        endif ()
+        option(WK_USE_SWIFT_TRANSFORMATION_MATRIX "Compute TransformationMatrix's products, inverses and decompositions with WebCore's TransformationMatrix.swift" OFF)
+        option(WK_USE_SWIFT_IMAGE_DECODER_CG "Decode images with WebCore's ImageDecoderCG.swift, for measurement only" OFF)
+        option(WK_USE_SWIFT_SCROLL_PHYSICS "Run WebCore's scroll physics in Swift" ON)
+        option(WK_USE_SWIFT_SCROLLING_TREE_DELEGATE "Delegate the scrolling tree's scrolling with WebCore's ScrollingTreeScrollingNodeDelegateMac.swift" ON)
+        if (WK_USE_SWIFT_SCROLLING_TREE_DELEGATE AND NOT WK_USE_SWIFT_SCROLL_PHYSICS)
+            message(FATAL_ERROR "WK_USE_SWIFT_SCROLLING_TREE_DELEGATE needs WK_USE_SWIFT_SCROLL_PHYSICS, whose physics the delegates run")
+        endif ()
+        option(WK_USE_SWIFT_MAC_SCROLLERS "Run the scrolling tree's Mac scrollbars in WebCore's ScrollerPairMac.swift" ON)
+        option(WK_USE_SWIFT_SCROLLERS_IN_DELEGATE "Let WebCore's Swift scroll delegate call its Swift Mac scrollbars directly" ON)
+        if (WK_USE_SWIFT_SCROLLERS_IN_DELEGATE AND NOT (WK_USE_SWIFT_SCROLLING_TREE_DELEGATE AND WK_USE_SWIFT_MAC_SCROLLERS))
+            message(FATAL_ERROR "WK_USE_SWIFT_SCROLLERS_IN_DELEGATE needs WK_USE_SWIFT_SCROLLING_TREE_DELEGATE and WK_USE_SWIFT_MAC_SCROLLERS, the delegate and scrollbars it joins")
+        endif ()
+        option(WK_USE_SWIFT_SCROLL_ANIMATOR_PHYSICS "Let ScrollAnimator call WebCore's Swift scroll physics directly" ON)
+        if (WK_USE_SWIFT_SCROLL_ANIMATOR_PHYSICS AND NOT (WK_USE_SWIFT_SCROLL_PHYSICS AND WK_USE_SWIFT_SCROLLING_TREE_DELEGATE))
+            message(FATAL_ERROR "WK_USE_SWIFT_SCROLL_ANIMATOR_PHYSICS needs WK_USE_SWIFT_SCROLL_PHYSICS and WK_USE_SWIFT_SCROLLING_TREE_DELEGATE")
+        endif ()
+        option(WK_USE_SWIFT_SCROLL_ANIMATOR "Animate scrolls with WebCore's ScrollAnimator.swift" ON)
+        if (WK_USE_SWIFT_SCROLL_ANIMATOR AND NOT WK_USE_SWIFT_SCROLL_ANIMATOR_PHYSICS)
+            message(FATAL_ERROR "WK_USE_SWIFT_SCROLL_ANIMATOR needs WK_USE_SWIFT_SCROLL_ANIMATOR_PHYSICS, whose physics it calls")
+        endif ()
+        option(WK_USE_SWIFT_SCROLL_SNAP "Choose scroll snap points in WebCore's Swift scroll physics only" OFF)
+        if (WK_USE_SWIFT_SCROLL_SNAP AND NOT WK_USE_SWIFT_SCROLL_ANIMATOR_PHYSICS)
+            message(FATAL_ERROR "WK_USE_SWIFT_SCROLL_SNAP needs WK_USE_SWIFT_SCROLL_ANIMATOR_PHYSICS, whose physics then chooses snap points for ScrollAnimator")
+        endif ()
+        option(WK_USE_SWIFT_SCROLLABLE_AREA "Scroll ScrollableAreas with WebCore's ScrollableArea.swift" ON)
+        if (WK_USE_SWIFT_SCROLLABLE_AREA AND NOT WK_USE_SWIFT_SCROLL_ANIMATOR)
+            message(FATAL_ERROR "WK_USE_SWIFT_SCROLLABLE_AREA needs WK_USE_SWIFT_SCROLL_ANIMATOR")
+        endif ()
+        option(WK_USE_SWIFT_SCROLL_VIEW "Lay out and scroll ScrollViews with WebCore's ScrollView.swift" ON)
+        if (WK_USE_SWIFT_SCROLL_VIEW AND NOT WK_USE_SWIFT_SCROLLABLE_AREA)
+            message(FATAL_ERROR "WK_USE_SWIFT_SCROLL_VIEW needs WK_USE_SWIFT_SCROLLABLE_AREA")
+        endif ()
+        option(WK_USE_SWIFT_DEAD_CODE_SWEEP "Leave out the C++ functions whose only callers the scrolling and HTML tokenizer islands replace" OFF)
+        if (WK_USE_SWIFT_DEAD_CODE_SWEEP AND NOT (WK_USE_SWIFT_SCROLL_PHYSICS AND WK_USE_SWIFT_SCROLL_ANIMATOR AND WK_USE_SWIFT_HTML_TOKENIZER))
+            message(FATAL_ERROR "WK_USE_SWIFT_DEAD_CODE_SWEEP needs WK_USE_SWIFT_SCROLL_PHYSICS, WK_USE_SWIFT_SCROLL_ANIMATOR and WK_USE_SWIFT_HTML_TOKENIZER")
+        endif ()
     endif ()
 
     option(WK_USE_SWIFT_TEXT_CODEC_UTF8 "Replace the C++ UTF-8 decoder with PAL's TextCodecUTF8.swift" OFF)
@@ -652,10 +704,16 @@ macro(WEBKIT_OPTION_END)
     # PAL's value, which PAL.xcconfig and WebCore.xcconfig define as 0 or 1 together.
     add_compile_definitions("$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_TEXT_CODEC_UTF8=$<BOOL:${WK_USE_SWIFT_TEXT_CODEC_UTF8}>>")
 
-    # The islands' scrolling settings exist only in the Xcode build, and CMake builds compile none of that Swift.
-    # Their C++ tests them with #if, under -Wundef.
+    # The islands' scrolling settings change the layout of WebCore classes that WebKit, WebKitLegacy and TestWebKitAPI
+    # include, so every target gets WebCore's value, as WebKit's BaseTarget.xcconfig and TestWebKitAPI's Base.xcconfig
+    # declare the same settings. Their C++ tests them with #if, under -Wundef, so they are 0 where they are off and on
+    # the ports without Mac scrolling. The Swift sees them through the platform arguments.
     foreach (_setting IN ITEMS SCROLL_PHYSICS SCROLLING_TREE_DELEGATE MAC_SCROLLERS SCROLLERS_IN_DELEGATE SCROLL_ANIMATOR_PHYSICS SCROLL_ANIMATOR SCROLLABLE_AREA SCROLL_VIEW)
-        add_compile_definitions("$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_${_setting}=0>")
+        set(_wk_use_swift_value 0)
+        if (WK_USE_SWIFT_${_setting} AND (WEBKIT_SDK_IS_MACOS OR _setting MATCHES "^(SCROLL_PHYSICS|SCROLLING_TREE_DELEGATE|MAC_SCROLLERS|SCROLLERS_IN_DELEGATE)$"))
+            set(_wk_use_swift_value 1)
+        endif ()
+        add_compile_definitions("$<$<NOT:$<COMPILE_LANGUAGE:Swift>>:USE_SWIFT_${_setting}=${_wk_use_swift_value}>")
     endforeach ()
 endmacro()
 

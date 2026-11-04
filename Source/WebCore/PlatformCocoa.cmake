@@ -1190,8 +1190,10 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/PlatformContentFilter.h
     platform/ScrollAlignment.h
     platform/ScrollAnimation.h
+    platform/ScrollExtents.h
     platform/ScrollSnapAnimatorState.h
     platform/ScrollingEffectsController.h
+    platform/ScrollingMomentumCalculator.h
     platform/SharedTimer.h
     platform/SystemSoundManager.h
     platform/TextRecognitionResult.h
@@ -1589,6 +1591,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mac/PasteboardWriter.h
     platform/mac/PlatformEventFactoryMac.h
     platform/mac/PlaybackSessionInterfaceMac.h
+    platform/mac/ScrollTypesMac.h
     platform/mac/ScrollbarThemeMac.h
     platform/mac/VideoPresentationInterfaceMac.h
     platform/mac/WebCoreFullScreenWindow.h
