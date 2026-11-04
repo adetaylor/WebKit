@@ -61,10 +61,10 @@ class BindGroupLayout final : public WebGPU::BindGroupLayout {
 public:
 #if !defined(__swift__)
     static Ref<BindGroupLayout> create(std::unique_ptr<BindGroupLayoutImplBox>&&);
+    // A shell over an Impl that Swift holds, for a C++ API caller.
+    static Ref<BindGroupLayout> create(const WebGPUSwift::BindGroupLayoutImpl&);
 #endif
     static Ref<BindGroupLayout> createInvalid(Device&);
-    // For BindGroupLayout.swift and PipelineLayout.swift: wraps the Impl staged in DeviceImpl.stagedBindGroupLayoutImpl.
-    static Ref<BindGroupLayout> createWithStagedImpl(Device&);
 
     ~BindGroupLayout();
 

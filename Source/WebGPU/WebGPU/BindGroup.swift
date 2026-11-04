@@ -52,15 +52,6 @@ struct SamplerBinding {
     var slots: PerStage<UInt32?>
 }
 
-/// A bind group's layout shell, held for ownership only.
-///
-/// Every case has a payload, so the FRT never sits next to an empty case: an invalid group holds its device's Impl
-/// instead.
-private enum BindGroupLayoutShell {
-    case layout(WebGPU.Metal.BindGroupLayout)
-    case none(DeviceImpl)
-}
-
 // One per GPUBindGroup, owned by the C++ shell WebGPU::Metal::BindGroup. Owns the bound
 // resources, the argument buffers, the layout, the samplers and their argument-buffer slots, the dynamic buffers and
 // the per-pipeline validation cache, and runs every check the encoders make on a group. Used only on its Instance's API
@@ -68,8 +59,7 @@ private enum BindGroupLayoutShell {
 @_expose(Cxx)
 @_spi(WebKitGPU)
 public final class BindGroupImpl {
-    /// Paired with layoutImpl: `.none` exactly when the group is invalid.
-    private let layoutShell: BindGroupLayoutShell
+    /// nil exactly when the group is invalid.
     let layoutImpl: BindGroupLayoutImpl?
     /// nil when the stage has no arguments, or when a resource bound in it was destroyed before creation.
     let argumentBuffers: PerStage<(any MTLBuffer)?>
@@ -98,7 +88,6 @@ public final class BindGroupImpl {
     fileprivate init(
         device: consuming DeviceShell,
         deviceImpl: DeviceImpl,
-        layout: consuming ShellReference<WebGPU.Metal.BindGroupLayout>,
         layoutImpl: BindGroupLayoutImpl,
         argumentBuffers: consuming PerStage<(any MTLBuffer)?>,
         resources: consuming ResourceSet,
@@ -108,7 +97,6 @@ public final class BindGroupImpl {
         externalTextureIndices: PerStage<WebGPU.Metal.ExternalTextureIndices>,
         uniqueId: UInt32
     ) {
-        layoutShell = .layout(layout.shell)
         self.layoutImpl = layoutImpl
         self.argumentBuffers = argumentBuffers
         argumentBufferAddresses = PerStage(
@@ -129,7 +117,6 @@ public final class BindGroupImpl {
     }
 
     private init(invalidFor device: consuming DeviceShell, _ deviceImpl: DeviceImpl) {
-        layoutShell = .none(deviceImpl)
         layoutImpl = nil
         argumentBuffers = PerStage(repeating: nil)
         argumentBufferAddresses = PerStage(repeating: 0)
@@ -482,12 +469,11 @@ final class BindGroupBuilder {
     fileprivate func finish(
         _ device: consuming DeviceShell,
         _ deviceImpl: DeviceImpl,
-        _ layout: consuming ShellReference<WebGPU.Metal.BindGroupLayout>,
         _ layoutImpl: BindGroupLayoutImpl
     ) -> BindGroupImpl {
         var entries: [DescriptorEntry] = []
         swap(&entries, &self.entries)
-        let impl = makeBindGroupImpl(device, deviceImpl, layout, layoutImpl, &entries)
+        let impl = makeBindGroupImpl(device, deviceImpl, layoutImpl, &entries)
         entries.removeAll(keepingCapacity: true)
         if self.entries.capacity == 0 {
             swap(&entries, &self.entries)
@@ -496,13 +482,12 @@ final class BindGroupBuilder {
     }
 }
 
-/// Takes the device and layout references the group keeps; an invalid group drops the layout's.
+/// Takes the device reference the group keeps.
 ///
 /// Takes the entries out of `entries`, in order, leaving its buffer for the builder to reuse.
 private func makeBindGroupImpl(
     _ device: consuming DeviceShell,
     _ deviceImpl: DeviceImpl,
-    _ layout: consuming ShellReference<WebGPU.Metal.BindGroupLayout>,
     _ layoutImpl: BindGroupLayoutImpl,
     _ entries: inout [DescriptorEntry]
 ) -> BindGroupImpl {
@@ -559,7 +544,6 @@ private func makeBindGroupImpl(
 
     return creation.makeImpl(
         device: device,
-        layout: layout,
         resources: consume resources,
         mtlResources: consume mtlResources,
         uniqueId: deviceImpl.takeBindGroupId()
@@ -620,7 +604,7 @@ func createBindGroupImpl(
             }
         entries.append(DescriptorEntry(binding: entry.binding, resource: resource))
     }
-    return makeBindGroupImpl(DeviceShell(shell: device), deviceImpl, ShellReference(shell: layout.shell), layout.impl, &entries)
+    return makeBindGroupImpl(DeviceShell(shell: device), deviceImpl, layout, &entries)
 }
 
 /// Device::createBindGroup calls beginBindGroup, then an append function for each descriptor entry in order, then
@@ -689,13 +673,8 @@ func appendBindGroupExternalTexture(
 }
 
 @_expose(Cxx)
-func finishBindGroup(
-    _ device: WebGPU.Metal.Device,
-    _ deviceImpl: DeviceImpl,
-    _ layout: WebGPU.Metal.BindGroupLayout,
-    _ layoutImpl: BindGroupLayoutImpl
-) -> BindGroupImpl {
-    deviceImpl.bindGroupBuilder.finish(DeviceShell(shell: device), deviceImpl, ShellReference(shell: layout), layoutImpl)
+func finishBindGroup(_ device: WebGPU.Metal.Device, _ deviceImpl: DeviceImpl, _ layoutImpl: BindGroupLayoutImpl) -> BindGroupImpl {
+    deviceImpl.bindGroupBuilder.finish(DeviceShell(shell: device), deviceImpl, layoutImpl)
 }
 
 /// A Set<UInt32> that keeps values below 64 in a bit mask, so that the usual binding and argument indices allocate
@@ -1602,7 +1581,6 @@ private struct BindGroupCreation {
     @inline(__always)
     mutating func makeImpl(
         device: consuming DeviceShell,
-        layout: consuming ShellReference<WebGPU.Metal.BindGroupLayout>,
         resources: consuming ResourceSet,
         mtlResources: consuming ResourceLists,
         uniqueId: UInt32
@@ -1616,7 +1594,6 @@ private struct BindGroupCreation {
         return BindGroupImpl(
             device: device,
             deviceImpl: deviceImpl,
-            layout: layout,
             layoutImpl: layoutImpl,
             argumentBuffers: builtArgumentBuffers,
             resources: resources,

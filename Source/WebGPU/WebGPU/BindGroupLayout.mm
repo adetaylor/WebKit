@@ -61,14 +61,14 @@ Ref<BindGroupLayout> BindGroupLayout::create(std::unique_ptr<BindGroupLayoutImpl
     return adoptRef(*new BindGroupLayout(WTF::move(impl)));
 }
 
+Ref<BindGroupLayout> BindGroupLayout::create(const WebGPUSwift::BindGroupLayoutImpl& impl)
+{
+    return create(makeUnique<BindGroupLayoutImplBox>(BindGroupLayoutImplBox { .impl = impl }));
+}
+
 Ref<BindGroupLayout> BindGroupLayout::createInvalid(Device& device)
 {
     return create(makeUnique<BindGroupLayoutImplBox>(BindGroupLayoutImplBox { .impl = makeInvalidBindGroupLayoutImpl(&device, device.swiftImpl()) }));
-}
-
-Ref<BindGroupLayout> BindGroupLayout::createWithStagedImpl(Device& device)
-{
-    return create(makeUnique<BindGroupLayoutImplBox>(BindGroupLayoutImplBox { .impl = device.swiftImpl().takeStagedBindGroupLayoutImpl() }));
 }
 
 BindGroupLayout::BindGroupLayout(std::unique_ptr<BindGroupLayoutImplBox>&& impl)
@@ -76,10 +76,7 @@ BindGroupLayout::BindGroupLayout(std::unique_ptr<BindGroupLayoutImplBox>&& impl)
 {
 }
 
-BindGroupLayout::~BindGroupLayout()
-{
-    m_impl->impl.removeFromDeviceCache();
-}
+BindGroupLayout::~BindGroupLayout() = default;
 
 void BindGroupLayout::setLabel(String&& label)
 {

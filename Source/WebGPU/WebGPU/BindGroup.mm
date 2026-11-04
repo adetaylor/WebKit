@@ -124,7 +124,7 @@ RefPtr<WebGPU::BindGroup> Device::createBindGroup(const WebGPU::BindGroupDescrip
         }
     }
     return BindGroup::create([&] {
-        return finishBindGroup(this, deviceImpl, bindGroupLayout.ptr(), bindGroupLayout->swiftImpl());
+        return finishBindGroup(this, deviceImpl, bindGroupLayout->swiftImpl());
     });
 }
 

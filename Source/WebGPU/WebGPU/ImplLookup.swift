@@ -263,11 +263,6 @@ extension GPUObjectReference {
 }
 
 @_spi(WebKitGPU)
-extension BindGroupLayoutReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
 extension AdapterReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }

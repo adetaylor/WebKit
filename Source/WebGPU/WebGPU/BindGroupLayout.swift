@@ -29,13 +29,13 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
 
-// One per GPUBindGroupLayout, owned by the C++ shell WebGPU::Metal::BindGroupLayout through an opaque box. Owns the
+// One per GPUBindGroupLayout, which Swift callers and the C++ API's shells hold. Owns the
 // entries, the per-stage argument encoders and argument indices, the counts and the label, and creates layouts
 // (Device::createBindGroupLayout). BindGroupImpl and the encoders read it directly. It also holds the Device.
 // Used only on its Instance's API thread, so not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class BindGroupLayoutImpl {
+public final class BindGroupLayoutImpl: GPUObjectReference {
     // nil when the stage has no arguments, or for an invalid layout.
     private let vertexEncoder: (any MTLArgumentEncoder)?
     private let fragmentEncoder: (any MTLArgumentEncoder)?
@@ -167,7 +167,7 @@ public final class BindGroupLayoutImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         backingIsValid
     }
 
@@ -217,9 +217,7 @@ public final class BindGroupLayoutImpl {
         counts.identifier
     }
 
-    // Called from ~BindGroupLayout.
-    @_expose(Cxx)
-    func removeFromDeviceCache() {
+    deinit {
         deviceImpl.removeCachedBindGroupLayout(uniqueId())
     }
 }
@@ -253,15 +251,15 @@ public struct GPUBindGroupLayoutEntry {
     }
 }
 
-// A bind group layout with its shell, as Swift holds one.
 @_spi(WebKitGPU)
-public final class BindGroupLayoutReference {
-    public let impl: BindGroupLayoutImpl
-    let shell: WebGPU.Metal.BindGroupLayout
+public typealias BindGroupLayoutReference = BindGroupLayoutImpl
 
-    init(_ impl: BindGroupLayoutImpl, _ shell: WebGPU.Metal.BindGroupLayout) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension BindGroupLayoutImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: BindGroupLayoutImpl {
+        self
     }
 }
 
@@ -788,22 +786,10 @@ func makeBindGroupLayoutImpl(
     )
 }
 
-/// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedBindGroupLayoutImpl.
-func makeBindGroupLayoutShell(
-    _ impl: BindGroupLayoutImpl,
-    device: WebGPU.Metal.Device,
-    deviceImpl: DeviceImpl
-) -> WebGPU.Metal.BindGroupLayout {
-    precondition(deviceImpl.stagedBindGroupLayoutImpl == nil)
-    deviceImpl.stagedBindGroupLayoutImpl = impl
-    return WebGPU.Metal.BindGroupLayout.createWithStagedImpl(device).ptr()
-}
-
 @_spi(WebKitGPU)
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgrouplayout
-    public func createBindGroupLayout(_ entries: [GPUBindGroupLayoutEntry], label: Swift.String?) -> BindGroupLayoutReference {
-        let layout = createBindGroupLayoutImpl(shell, impl, entries, label: WTF.String(label ?? ""))
-        return BindGroupLayoutReference(layout, makeBindGroupLayoutShell(layout, device: shell, deviceImpl: impl))
+    public func createBindGroupLayout(_ entries: [GPUBindGroupLayoutEntry], label: Swift.String?) -> BindGroupLayoutImpl {
+        createBindGroupLayoutImpl(shell, impl, entries, label: WTF.String(label ?? ""))
     }
 }

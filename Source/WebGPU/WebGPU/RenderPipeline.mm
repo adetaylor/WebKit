@@ -145,7 +145,7 @@ PipelineLayout& RenderPipeline::pipelineLayout() const
 
 Ref<WebGPU::BindGroupLayout> RenderPipeline::getBindGroupLayout(uint32_t groupIndex)
 {
-    return adoptRef(*m_impl->impl.getBindGroupLayout(groupIndex));
+    return BindGroupLayout::create(m_impl->impl.bindGroupLayout(groupIndex));
 }
 
 void RenderPipeline::setLabel(String&&)

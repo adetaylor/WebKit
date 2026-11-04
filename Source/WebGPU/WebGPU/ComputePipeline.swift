@@ -90,14 +90,9 @@ public final class ComputePipelineImpl {
         parameters.uniqueId
     }
 
-    // ComputePipeline::getBindGroupLayout. The shell adopts the +1 result.
+    // ComputePipeline::getBindGroupLayout, which wraps it in a shell.
     @_expose(Cxx)
-    func getBindGroupLayout(_ groupIndex: UInt32) -> WebGPU.Metal.BindGroupLayout {
-        bindGroupLayout(groupIndex).shell
-    }
-
-    @_expose(!Cxx)
-    func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutReference {
+    func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutImpl {
         pipelineBindGroupLayout(
             device,
             deviceImpl,
@@ -120,10 +115,9 @@ func pipelineBindGroupLayout(
     invalidPipelineMessage: String,
     _ layoutImpl: PipelineLayoutImpl,
     _ groupIndex: UInt32
-) -> BindGroupLayoutReference {
-    func invalidBindGroupLayout() -> BindGroupLayoutReference {
-        let impl = makeInvalidBindGroupLayoutImpl(device, deviceImpl)
-        return BindGroupLayoutReference(impl, makeBindGroupLayoutShell(impl, device: device, deviceImpl: deviceImpl))
+) -> BindGroupLayoutImpl {
+    func invalidBindGroupLayout() -> BindGroupLayoutImpl {
+        makeInvalidBindGroupLayoutImpl(device, deviceImpl)
     }
 
     if !pipelineIsValid {
@@ -143,7 +137,7 @@ func pipelineBindGroupLayout(
     guard let impl = layoutImpl.bindGroupLayout(at: Int(groupIndex)) else {
         preconditionFailure("a valid pipeline layout has the Impl of each of its bind group layouts")
     }
-    return BindGroupLayoutReference(impl, layoutImpl.bindGroupLayout(Int(groupIndex)))
+    return impl
 }
 
 @_expose(Cxx)

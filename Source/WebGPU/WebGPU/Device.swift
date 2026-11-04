@@ -100,7 +100,6 @@ final class DeviceImpl {
     private var bindGroupCompatibilityCache = WTFHashSet<UInt64>()
     // The staged-Impl handoff of BindGroupLayout.swift and PipelineLayout.swift: Swift stages an Impl it made, then the
     // shell's createWithStagedImpl takes it back and wraps it. Synchronous, on the API thread, never nested.
-    var stagedBindGroupLayoutImpl: BindGroupLayoutImpl?
     var stagedPipelineLayoutImpl: PipelineLayoutImpl?
     var stagedRenderPipelineImpl: RenderPipelineImpl?
     var stagedComputePipelineImpl: ComputePipelineImpl?
@@ -808,15 +807,6 @@ final class DeviceImpl {
             preconditionFailure("No staged TextureImpl")
         }
         stagedTextureImpl = nil
-        return impl
-    }
-
-    @_expose(Cxx)
-    func takeStagedBindGroupLayoutImpl() -> BindGroupLayoutImpl {
-        guard let impl = stagedBindGroupLayoutImpl else {
-            preconditionFailure("No staged BindGroupLayoutImpl")
-        }
-        stagedBindGroupLayoutImpl = nil
         return impl
     }
 

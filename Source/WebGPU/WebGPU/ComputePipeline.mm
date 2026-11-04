@@ -138,7 +138,7 @@ PipelineLayout& ComputePipeline::pipelineLayout() const
 
 Ref<WebGPU::BindGroupLayout> ComputePipeline::getBindGroupLayout(uint32_t groupIndex)
 {
-    return adoptRef(*swiftImpl().getBindGroupLayout(groupIndex));
+    return BindGroupLayout::create(swiftImpl().bindGroupLayout(groupIndex));
 }
 
 void ComputePipeline::setLabel(String&&)

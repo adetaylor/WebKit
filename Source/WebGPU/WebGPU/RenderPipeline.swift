@@ -177,14 +177,9 @@ public final class RenderPipelineImpl {
         return nil
     }
 
-    // RenderPipeline::getBindGroupLayout. The shell adopts the +1 result.
+    // RenderPipeline::getBindGroupLayout, which wraps it in a shell.
     @_expose(Cxx)
-    func getBindGroupLayout(_ groupIndex: UInt32) -> WebGPU.Metal.BindGroupLayout {
-        bindGroupLayout(groupIndex).shell
-    }
-
-    @_expose(!Cxx)
-    func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutReference {
+    func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutImpl {
         pipelineBindGroupLayout(
             device,
             deviceImpl,
