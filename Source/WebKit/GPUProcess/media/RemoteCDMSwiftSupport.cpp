@@ -29,7 +29,6 @@
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #include "GeneratedSerializers.h"
-#include "RemoteCDMInstanceConfiguration.h"
 #include "RemoteCDMInstanceSessionProxyMessages.h"
 #include "RemoteCDMProxyMessages.h"
 #include <WebCore/CDMInstance.h>
@@ -40,32 +39,33 @@ namespace WebKit {
 
 using namespace WebCore;
 
-uint64_t createRemoteCDMInstance(const RemoteCDMRegistryWeakReference& registryReference, RemoteCDMPrivateHandle& cdm, RemoteCDMInstanceConfiguration& configuration)
+SharedBuffer* makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOESCAPE)
 {
-    RefPtr instance = cdm.createInstance();
-    RefPtr registry = adoptRef(registryReference.get());
-    if (!instance || !registry)
-        return 0;
-    auto identifier = registry->createInstance(cdm, instance.releaseNonNull(), configuration);
-    return identifier ? identifier->toUInt64() : 0;
+    return &SharedBuffer::create(bytes).leakRef();
 }
 
-uint64_t createRemoteCDMInstanceSession(const RemoteCDMRegistryWeakReference& registryReference, const RemoteCDMPrivateHandleWeakReference& cdmReference, CDMInstance& instance, uint64_t logIdentifier)
+CDMInstance* createRemoteCDMInstance(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, uint64_t identifier, String& keySystem)
+{
+    RefPtr instance = cdm.createInstance();
+    if (!instance)
+        return nullptr;
+    keySystem = instance->keySystem();
+    registry.registerCxxInstance(identifier, cdm, *instance);
+    return instance.leakRef();
+}
+
+CDMInstanceSession* createRemoteCDMInstanceSession(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, CDMInstance& instance, uint64_t identifier, uint64_t logIdentifier)
 {
     RefPtr session = instance.createSession();
-    RefPtr cdm = adoptRef(cdmReference.get());
-    RefPtr registry = adoptRef(registryReference.get());
-    if (!session || !cdm || !registry)
-        return 0;
-
+    if (!session)
+        return nullptr;
 #if !RELEASE_LOG_DISABLED
     session->setLogIdentifier(logIdentifier);
 #else
     UNUSED_PARAM(logIdentifier);
 #endif
-
-    auto identifier = registry->createSession(*cdm, session.releaseNonNull());
-    return identifier ? identifier->toUInt64() : 0;
+    registry.registerCxxSession(identifier, cdm, *session);
+    return session.leakRef();
 }
 
 void initializeRemoteCDMInstance(CDMInstance& instance, RemoteCDMKeySystemConfigurationBuilder& builder, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&& completionHandler)
@@ -94,19 +94,19 @@ RemoteCDMEncodedReply::RemoteCDMEncodedReply(RemoteCDMEncodedReply&&) = default;
 
 RemoteCDMEncodedReply::~RemoteCDMEncodedReply() = default;
 
-bool remoteCDMSupportsInitData(const RemoteCDMPrivateHandleWeakReference& cdm, const String& initDataType, const SharedBuffer& initData)
+bool remoteCDMSupportsInitData(RemoteCDMPrivateHandle& cdm, const String& initDataType, const SharedBuffer& initData)
 {
-    return adoptRef(cdm.get())->supportsInitData(initDataType, initData);
+    return cdm.supportsInitData(initDataType, initData);
 }
 
-SharedBuffer* sanitizeRemoteCDMResponse(const RemoteCDMPrivateHandleWeakReference& cdm, const SharedBuffer& response)
+SharedBuffer* sanitizeRemoteCDMResponse(RemoteCDMPrivateHandle& cdm, const SharedBuffer& response)
 {
-    return adoptRef(cdm.get())->sanitizeResponse(response).leakRef();
+    return cdm.sanitizeResponse(response).leakRef();
 }
 
-bool sanitizeRemoteCDMSessionId(const RemoteCDMPrivateHandleWeakReference& cdm, const String& sessionId, String& sanitizedSessionId)
+bool sanitizeRemoteCDMSessionId(RemoteCDMPrivateHandle& cdm, const String& sessionId, String& sanitizedSessionId)
 {
-    auto sanitized = adoptRef(cdm.get())->sanitizeSessionId(sessionId);
+    auto sanitized = cdm.sanitizeSessionId(sessionId);
     if (!sanitized)
         return false;
     sanitizedSessionId = WTF::move(*sanitized);

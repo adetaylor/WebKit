@@ -23,21 +23,25 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
 
+import WebCoreEME
 import WebKit_Internal
 import wtf
 
-// Receives the messages of the web process's RemoteCDMFactory, creating and removing the GPU process's
-// CDMs, CDM instances and sessions in its RemoteCDMRegistry.
+// Receives the messages of the web process's RemoteCDMFactory, and owns the GPU process's CDMs, CDM instances and
+// sessions, whose messages RemoteCDMRegistry routes.
 @_expose(Cxx)
 final class RemoteCDMFactoryProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
     private var messageForwarder: RefRemoteCDMFactoryProxyMessageForwarder?
-    private let registry: WebKit.RemoteCDMRegistryWeakReference
+    private let registryReference: WebKit.RemoteCDMRegistryWeakReference
+    private var cdms: [UInt64: RemoteCDMProxy] = [:]
+    private var instances: [UInt64: RemoteCDMInstanceProxy] = [:]
+    private var sessions: [UInt64: RemoteCDMInstanceSessionProxy] = [:]
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
     init(registry: WebKit.RemoteCDMRegistry) {
-        self.registry = WebKit.RemoteCDMRegistryWeakReference(registry)
+        self.registryReference = WebKit.RemoteCDMRegistryWeakReference(registry)
         self.messageForwarder = WebKit.RemoteCDMFactoryProxyMessageForwarder.create(target: self)
     }
 
@@ -51,10 +55,21 @@ final class RemoteCDMFactoryProxy {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        guard let registry = registry.get() else {
+        guard let registry = registry() else {
             return WebKit.OptionalSharedPreferencesForWebProcess()
         }
         return registry.sharedPreferencesForWebProcess()
+    }
+
+    // When the web process's connection closes, or as the registry is destroyed, so it doesn't reach the registry.
+    @used
+    func removeCDMs() {
+        cdms.removeAll()
+    }
+
+    @_expose(!Cxx)
+    func registry() -> WebKit.RemoteCDMRegistry? {
+        registryReference.get()
     }
 
     @MainActor
@@ -63,59 +78,67 @@ final class RemoteCDMFactoryProxy {
         keySystem: String?,
         mediaKeysHashSalt: String?
     ) -> (identifier: IPCTypes.RemoteCDMIdentifier?, configuration: IPCTypes.RemoteCDMConfiguration) {
-        var configuration = WebKit.RemoteCDMConfiguration()
-        var identifier: IPCTypes.RemoteCDMIdentifier?
-        if let registry = registry.get() {
-            identifier = IPCTypes.RemoteCDMIdentifier(
-                rawValue: WebKit.createRemoteCDM(
-                    registry,
-                    IPCCoding.WTFString.cxxString(keySystem),
-                    IPCCoding.WTFString.cxxString(mediaKeysHashSalt),
-                    &configuration
-                )
+        let noCDM = IPCTypes.RemoteCDMConfiguration(
+            supportedInitDataTypes: [],
+            supportedRobustnesses: [],
+            supportsServerCertificates: false,
+            supportsSessions: false,
+            logIdentifier: 0
+        )
+        var cxxConfiguration = WebKit.RemoteCDMConfiguration()
+        guard let registry = registry(),
+            let handle = registry.createCDM(
+                IPCCoding.WTFString.cxxString(keySystem),
+                IPCCoding.WTFString.cxxString(mediaKeysHashSalt),
+                &cxxConfiguration
             )
+        else {
+            return (nil, noCDM)
         }
-        return (identifier, Self.swiftConfiguration(configuration))
+        let cdm = RemoteCDMProxy(factory: self, cdm: handle, isClearKey: ClearKey.supportsKeySystem(keySystem))
+        let configuration = cdm.configuration(cxxConfiguration)
+        let identifier = registry.generateCDMIdentifier()
+        registry.addCDMRoute(identifier, cdm.getMessageReceiver().ptr())
+        cdms[identifier] = cdm
+        return (IPCTypes.RemoteCDMIdentifier(rawValue: identifier), configuration)
     }
 
     @MainActor
     func supportsKeySystem(connection: IPC.Connection, keySystem: String?) -> Bool {
-        guard let registry = registry.get() else {
+        guard let registry = registry() else {
             return false
         }
-        return registry.supportsKeySystem(IPCCoding.WTFString.cxxString(keySystem))
+        return ClearKey.supportsKeySystem(keySystem) || registry.supportsKeySystem(IPCCoding.WTFString.cxxString(keySystem))
     }
 
     @MainActor
     func removeInstance(connection: IPC.Connection, identifier: IPCTypes.RemoteCDMInstanceIdentifier) {
-        if let registry = registry.get() {
-            WebKit.removeRemoteCDMInstance(registry, identifier.rawValue)
+        guard let registry = registry() else {
+            return
         }
+        registry.removeInstance(identifier.rawValue)
+        instances.removeValue(forKey: identifier.rawValue)
     }
 
     @MainActor
     func removeSession(connection: IPC.Connection, identifier: IPCTypes.RemoteCDMInstanceSessionIdentifier) {
-        if let registry = registry.get() {
-            WebKit.removeRemoteCDMInstanceSession(registry, identifier.rawValue)
+        guard let registry = registry() else {
+            return
         }
+        registry.removeSession(identifier.rawValue)
+        sessions.removeValue(forKey: identifier.rawValue)
     }
 
-    private static func swiftConfiguration(_ configuration: borrowing WebKit.RemoteCDMConfiguration) -> IPCTypes.RemoteCDMConfiguration {
-        IPCTypes.RemoteCDMConfiguration(
-            supportedInitDataTypes: swiftStrings(configuration.supportedInitDataTypes),
-            supportedRobustnesses: swiftStrings(configuration.supportedRobustnesses),
-            supportsServerCertificates: configuration.supportsServerCertificates,
-            supportsSessions: configuration.supportsSessions,
-            logIdentifier: configuration.logIdentifier
-        )
+    @_expose(!Cxx)
+    func add(instance: RemoteCDMInstanceProxy, identifier: UInt64, registry: WebKit.RemoteCDMRegistry) {
+        registry.addInstanceRoute(identifier, instance.getMessageReceiver().ptr())
+        instances[identifier] = instance
     }
 
-    private static func swiftStrings(_ strings: borrowing WebKit.RemoteCDMStrings) -> [String?] {
-        var result: [String?] = []
-        for index in 0..<WebKit.remoteCDMStringCount(strings) {
-            result.append(IPCCoding.WTFString.swiftString(WebKit.remoteCDMString(strings, index)))
-        }
-        return result
+    @_expose(!Cxx)
+    func add(session: RemoteCDMInstanceSessionProxy, identifier: UInt64, registry: WebKit.RemoteCDMRegistry) {
+        registry.addSessionRoute(identifier, session.getMessageReceiver().ptr())
+        sessions[identifier] = session
     }
 }
 

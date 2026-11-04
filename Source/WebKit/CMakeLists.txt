@@ -1054,6 +1054,14 @@ WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebKit WebKit
     "${WebKit_SWIFT_INTEROP_MODULE_PATH}"
     "${WebKit_DERIVED_SOURCES_DIR}/WebKit-Swift-Generated.h")
 
+# The GPU process's EME receivers import WebCore.framework's encrypted media Swift module.
+if (TARGET WebCoreEME)
+    webkit_target_add_swift_options(WebKit
+        "-I${WebCoreEME_SWIFT_MODULE_DIR}"
+        "-Xcc -I${WebCoreEME_INTEROP_MODULE_DIR}")
+    add_dependencies(WebKit_SwiftGeneratedDeps WebCoreEME)
+endif ()
+
 # should match the rest of WebKit and use -Onone, but it negatively impacts build time
 webkit_target_add_swift_options(WebKit
     "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-O>")
@@ -1631,6 +1639,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMProxyMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteCDMBackends.swift
         ${WEBKIT_DIR}/GPUProcess/media/RemoteCDMFactoryProxy.swift
         ${WEBKIT_DIR}/GPUProcess/media/RemoteCDMInstanceProxy.swift
         ${WEBKIT_DIR}/GPUProcess/media/RemoteCDMInstanceSessionProxy.swift

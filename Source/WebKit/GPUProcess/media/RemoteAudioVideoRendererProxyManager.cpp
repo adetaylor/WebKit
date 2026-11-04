@@ -829,8 +829,14 @@ void RemoteAudioVideoRendererProxyManager::setCDMInstance(RemoteAudioVideoRender
         return;
     }
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    if (RefPtr instance = protect(m_gpuConnectionToWebProcess.get()->cdmRegistry())->cdmInstance(*instanceId)) {
+    Ref registry = m_gpuConnectionToWebProcess.get()->cdmRegistry();
+    if (RefPtr instance = registry->cdmInstance(*instanceId)) {
         renderer->setCDMInstance(instance.get());
+        return;
+    }
+    // A ClearKey instance, which has no C++ instance: the renderers only decrypt with FairPlay Streaming's.
+    if (registry->hasInstance(*instanceId)) {
+        renderer->setCDMInstance(nullptr);
         return;
     }
 #endif

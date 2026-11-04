@@ -23,6 +23,7 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
 
+import WebCoreEME
 import WebKit_Internal
 import wtf
 
@@ -30,23 +31,26 @@ extension WebKit.RemoteCDMSupportedConfigurationCompletionHandler: @unsafe CxxCo
     typealias Argument = WebKit.RemoteCDMEncodedConfiguration
 }
 
-// Receives the messages of one of the web process's RemoteCDMs, for the CDMPrivate it was created with.
+// Receives the messages of one of the web process's RemoteCDMs. ClearKey's instances are WebCoreEME's; its C++
+// CDMPrivate answers only the configuration algorithm's questions. Other CDMs are C++.
 @_expose(Cxx)
 final class RemoteCDMProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
     private var messageForwarder: RefRemoteCDMProxyMessageForwarder?
-    private let registry: WebKit.RemoteCDMRegistryWeakReference
-    private let cdm: WebKit.RemoteCDMPrivateHandle
+    private weak var factory: RemoteCDMFactoryProxy?
+    private let isClearKey: Bool
+    @_expose(!Cxx)
+    let cdm: WebKit.RemoteCDMPrivateHandle
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(registry: WebKit.RemoteCDMRegistry, cdm: WebKit.RemoteCDMPrivateHandle) {
-        self.registry = WebKit.RemoteCDMRegistryWeakReference(registry)
+    @_expose(!Cxx)
+    init(factory: RemoteCDMFactoryProxy, cdm: WebKit.RemoteCDMPrivateHandle, isClearKey: Bool) {
+        self.factory = factory
         self.cdm = cdm
+        self.isClearKey = isClearKey
         self.messageForwarder = WebKit.RemoteCDMProxyMessageForwarder.create(target: self)
     }
 
-    @used
+    @_expose(!Cxx)
     func getMessageReceiver() -> RefRemoteCDMProxyMessageForwarder {
         guard let messageForwarder = self.messageForwarder else {
             fatalError("Unreachable - guaranteed to exist")
@@ -56,10 +60,31 @@ final class RemoteCDMProxy {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        guard let registry = registry.get() else {
+        guard let registry = factory?.registry() else {
             return WebKit.OptionalSharedPreferencesForWebProcess()
         }
         return registry.sharedPreferencesForWebProcess()
+    }
+
+    // The configuration the web process's RemoteCDM reports: ClearKey's, or the C++ CDM's.
+    @_expose(!Cxx)
+    func configuration(_ cxxConfiguration: borrowing WebKit.RemoteCDMConfiguration) -> IPCTypes.RemoteCDMConfiguration {
+        if isClearKey {
+            return IPCTypes.RemoteCDMConfiguration(
+                supportedInitDataTypes: ClearKey.supportedInitDataTypes,
+                supportedRobustnesses: ClearKey.supportedRobustnesses,
+                supportsServerCertificates: ClearKey.supportsServerCertificates,
+                supportsSessions: ClearKey.supportsSessions,
+                logIdentifier: 0
+            )
+        }
+        return IPCTypes.RemoteCDMConfiguration(
+            supportedInitDataTypes: Self.swiftStrings(cxxConfiguration.supportedInitDataTypes),
+            supportedRobustnesses: Self.swiftStrings(cxxConfiguration.supportedRobustnesses),
+            supportsServerCertificates: cxxConfiguration.supportsServerCertificates,
+            supportsSessions: cxxConfiguration.supportsSessions,
+            logIdentifier: cxxConfiguration.logIdentifier
+        )
     }
 
     @MainActor
@@ -88,23 +113,57 @@ final class RemoteCDMProxy {
     func createInstance(
         connection: IPC.Connection
     ) -> (identifier: IPCTypes.RemoteCDMInstanceIdentifier?, configuration: IPCTypes.RemoteCDMInstanceConfiguration) {
-        var configuration = WebKit.RemoteCDMInstanceConfiguration()
-        let identifier = IPCTypes.RemoteCDMInstanceIdentifier(rawValue: WebKit.createRemoteCDMInstance(registry, cdm, &configuration))
-        return (identifier, IPCTypes.RemoteCDMInstanceConfiguration(keySystem: IPCCoding.WTFString.swiftString(configuration.keySystem)))
+        let noInstance = (IPCTypes.RemoteCDMInstanceIdentifier?.none, IPCTypes.RemoteCDMInstanceConfiguration(keySystem: nil))
+        guard let factory, let registry = factory.registry() else {
+            return noInstance
+        }
+        let identifier = registry.generateInstanceIdentifier()
+        let backend: any RemoteCDMInstanceBackend
+        let keySystem: String?
+        if isClearKey {
+            backend = ClearKeyInstanceBackend()
+            keySystem = ClearKey.keySystem
+        } else {
+            var cxxKeySystem = WTF.String()
+            guard let instance = WebKit.createRemoteCDMInstance(registry, cdm, identifier, &cxxKeySystem) else {
+                return noInstance
+            }
+            backend = CxxCDMInstanceBackend(instance)
+            keySystem = IPCCoding.WTFString.swiftString(cxxKeySystem)
+        }
+        let logIdentifier = isClearKey ? 0 : cdm.logIdentifier()
+        factory.add(
+            instance: RemoteCDMInstanceProxy(factory: factory, cdm: self, backend: backend, logIdentifier: logIdentifier),
+            identifier: identifier,
+            registry: registry
+        )
+        return (IPCTypes.RemoteCDMInstanceIdentifier(rawValue: identifier), IPCTypes.RemoteCDMInstanceConfiguration(keySystem: keySystem))
     }
 
     @MainActor
     func loadAndInitialize(connection: IPC.Connection) {
-        cdm.loadAndInitialize()
+        if !isClearKey {
+            cdm.loadAndInitialize()
+        }
     }
 
     @MainActor
     func setLogIdentifier(connection: IPC.Connection, logIdentifier: UInt64) {
-        cdm.setLogIdentifier(logIdentifier)
+        if !isClearKey {
+            cdm.setLogIdentifier(logIdentifier)
+        }
+    }
+
+    private static func swiftStrings(_ strings: borrowing WebKit.RemoteCDMStrings) -> [String?] {
+        var result: [String?] = []
+        for index in 0..<WebKit.remoteCDMStringCount(strings) {
+            result.append(IPCCoding.WTFString.swiftString(WebKit.remoteCDMString(strings, index)))
+        }
+        return result
     }
 }
 
-// The C++ form of a configuration that a Swift receiver hands to a CDM.
+// The C++ form of a configuration that a Swift receiver hands to a C++ CDM.
 func remoteCDMKeySystemConfigurationBuilder(
     _ configuration: IPCTypes.CDMKeySystemConfiguration
 ) -> WebKit.RemoteCDMKeySystemConfigurationBuilder {

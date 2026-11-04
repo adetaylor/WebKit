@@ -25,6 +25,8 @@
 
 #pragma once
 
+#pragma once
+
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #include "RemoteCDMIdentifier.h"
@@ -56,13 +58,17 @@ struct CDMKeySystemConfiguration;
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
+class RemoteCDMInstanceClient;
+class RemoteCDMInstanceSessionClient;
 class RemoteCDMPrivateHandle;
+class RemoteCDMInstanceProxyMessageForwarder;
+class RemoteCDMInstanceSessionProxyMessageForwarder;
+class RemoteCDMProxyMessageForwarder;
 struct RemoteCDMConfiguration;
-struct RemoteCDMInstanceConfiguration;
 struct SharedPreferencesForWebProcess;
 
-// Owns the EME message receivers of one web process's connection to the GPU process (the CDM factory,
-// and the CDMs, instances and sessions it creates), routes their messages, and provides what they share.
+// Routes the EME messages of one web process's connection to the GPU process to their Swift receivers, which the
+// Swift RemoteCDMFactoryProxy owns, and gives the media players the C++ CDM instances among them.
 class RemoteCDMRegistry final : public RefCounted<RemoteCDMRegistry>, public CanMakeWeakPtr<RemoteCDMRegistry>, private WebCore::CDMPrivateClient {
     WTF_MAKE_TZONE_ALLOCATED(RemoteCDMRegistry);
 public:
@@ -80,15 +86,29 @@ public:
     void didReceiveCDMInstanceSessionMessage(IPC::Connection&, IPC::Decoder&);
     void didReceiveSyncCDMInstanceSessionMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
 
+    // The C++ CDM instance of an identifier, and whether the identifier is an instance's at all: the Swift ClearKey
+    // instances have no C++ instance.
     RefPtr<WebCore::CDMInstance> cdmInstance(const RemoteCDMInstanceIdentifier&) const;
+    bool hasInstance(const RemoteCDMInstanceIdentifier&) const;
     bool allowsExitUnderMemoryPressure() const;
 
+    // For the Swift receivers. Identifiers are 0 when the registry is gone.
+    uint64_t generateCDMIdentifier();
+    uint64_t generateInstanceIdentifier();
+    uint64_t generateSessionIdentifier();
+    void addCDMRoute(uint64_t identifier, RemoteCDMProxyMessageForwarder&);
+    void addInstanceRoute(uint64_t identifier, RemoteCDMInstanceProxyMessageForwarder&);
+    void addSessionRoute(uint64_t identifier, RemoteCDMInstanceSessionProxyMessageForwarder&);
+    void removeInstance(uint64_t identifier);
+    void removeSession(uint64_t identifier);
+
+    // Whether a C++ CDM factory supports a key system, and a C++ CDM for it, with its configuration.
     bool supportsKeySystem(const String&) const;
-    std::optional<RemoteCDMIdentifier> createCDM(const String& keySystem, const String& mediaKeysHashSalt, RemoteCDMConfiguration&);
-    std::optional<RemoteCDMInstanceIdentifier> createInstance(RemoteCDMPrivateHandle&, Ref<WebCore::CDMInstance>&&, RemoteCDMInstanceConfiguration&);
-    std::optional<RemoteCDMInstanceSessionIdentifier> createSession(RemoteCDMPrivateHandle&, Ref<WebCore::CDMInstanceSession>&&);
-    void removeInstance(const RemoteCDMInstanceIdentifier&);
-    void removeSession(const RemoteCDMInstanceSessionIdentifier&);
+    RemoteCDMPrivateHandle* WTF_NULLABLE createCDM(const String& keySystem, const String& mediaKeysHashSalt, RemoteCDMConfiguration&) SWIFT_RETURNS_RETAINED;
+    // A C++ CDM's instance and session (RemoteCDMSwiftSupport.h): the players can find the instance, and both send their
+    // notifications.
+    void registerCxxInstance(uint64_t identifier, RemoteCDMPrivateHandle&, WebCore::CDMInstance&);
+    void registerCxxSession(uint64_t identifier, RemoteCDMPrivateHandle&, WebCore::CDMInstanceSession&);
 
     RefPtr<GPUConnectionToWebProcess> gpuConnectionToWebProcess() const;
     String mediaKeysStorageDirectory() const;
@@ -104,28 +124,28 @@ private:
     void createFactory();
 
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
-    // The receivers that are in Swift, which C++ holds through the generated header.
-    struct SwiftReceivers;
-    std::unique_ptr<SwiftReceivers> m_swiftReceivers;
+    // The Swift factory receiver, which C++ holds through the generated header. Destroyed after the routes.
+    struct SwiftFactory;
+    std::unique_ptr<SwiftFactory> m_swiftFactory;
     RefPtr<IPC::MessageReceiver> m_factory;
     HashMap<RemoteCDMIdentifier, Ref<IPC::MessageReceiver>> m_cdms;
     HashMap<RemoteCDMInstanceIdentifier, Ref<IPC::MessageReceiver>> m_instances;
     HashMap<RemoteCDMInstanceIdentifier, Ref<WebCore::CDMInstance>> m_cdmInstances;
+    HashMap<RemoteCDMInstanceIdentifier, Ref<RemoteCDMInstanceClient>> m_instanceClients;
     HashMap<RemoteCDMInstanceSessionIdentifier, Ref<IPC::MessageReceiver>> m_sessions;
+    HashMap<RemoteCDMInstanceSessionIdentifier, Ref<RemoteCDMInstanceSessionClient>> m_sessionClients;
 
 #if !RELEASE_LOG_DISABLED
     mutable RefPtr<Logger> m_logger;
 #endif
 };
 
-// The CDMPrivate of a CDM, which its instances and sessions also use.
+// A C++ CDM, which its instances and sessions also use.
 class RemoteCDMPrivateHandle final : public RefCounted<RemoteCDMPrivateHandle>, public CanMakeWeakPtr<RemoteCDMPrivateHandle> {
     WTF_MAKE_TZONE_ALLOCATED(RemoteCDMPrivateHandle);
 public:
     static Ref<RemoteCDMPrivateHandle> create(RemoteCDMRegistry&, UniqueRef<WebCore::CDMPrivate>&&);
     ~RemoteCDMPrivateHandle();
-
-    RemoteCDMRegistry* registry() const { return m_registry.get(); }
 
     RemoteCDMConfiguration configuration() const;
     void getSupportedConfiguration(WebCore::CDMKeySystemConfiguration&&, WebCore::CDMPrivate::LocalStorageAccess, CompletionHandler<void(std::optional<WebCore::CDMKeySystemConfiguration>)>&&);
@@ -139,6 +159,8 @@ public:
 #if !RELEASE_LOG_DISABLED
     const Logger& logger() const { return m_logger; }
     uint64_t logIdentifier() const { return m_logIdentifier; }
+#else
+    uint64_t logIdentifier() const { return 0; }
 #endif
 
 private:

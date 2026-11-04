@@ -29,22 +29,24 @@
 
 #include "Decoder.h"
 #include "RemoteCDMConfiguration.h"
-#include "RemoteCDMInstanceConfiguration.h"
 #include "RemoteCDMRegistry.h"
 #include "SwiftCoding.h"
 #include <WebCore/CDMInstance.h>
 #include <WebCore/CDMInstanceSession.h>
 #include <WebCore/CDMKeySystemConfiguration.h>
 #include <WebCore/CDMMediaCapability.h>
+#include <WebCore/SharedBuffer.h>
 #include <wtf/CompletionHandler.h>
+#include <wtf/EscapableByteSpan.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 #include <wtf/text/AtomString.h>
 
 namespace WebKit {
 
-// What the Swift EME message receivers use of RemoteCDMRegistry that Swift cannot reach directly: Swift
-// cannot hold a WeakPtr, or construct an ObjectIdentifier.
+// What the Swift EME message receivers use of RemoteCDMRegistry and of the C++ CDMs that Swift cannot reach
+// directly: Swift cannot hold a WeakPtr, call a C++ virtual function's overriders' callbacks, or construct an
+// ObjectIdentifier.
 
 class RemoteCDMRegistryWeakReference {
 public:
@@ -60,23 +62,6 @@ private:
     WeakPtr<RemoteCDMRegistry> m_registry;
 } SWIFT_SELF_CONTAINED;
 
-// Returns 0 if no CDM was created.
-inline uint64_t createRemoteCDM(RemoteCDMRegistry& registry, const String& keySystem, const String& mediaKeysHashSalt, RemoteCDMConfiguration& configuration)
-{
-    auto identifier = registry.createCDM(keySystem, mediaKeysHashSalt, configuration);
-    return identifier ? identifier->toUInt64() : 0;
-}
-
-inline void removeRemoteCDMInstance(RemoteCDMRegistry& registry, uint64_t identifier)
-{
-    registry.removeInstance(RemoteCDMInstanceIdentifier(identifier));
-}
-
-inline void removeRemoteCDMInstanceSession(RemoteCDMRegistry& registry, uint64_t identifier)
-{
-    registry.removeSession(RemoteCDMInstanceSessionIdentifier(identifier));
-}
-
 using RemoteCDMStrings = Vector<String>;
 
 inline size_t remoteCDMStringCount(const RemoteCDMStrings& strings)
@@ -89,8 +74,20 @@ inline String remoteCDMString(const RemoteCDMStrings& strings, size_t index)
     return index < strings.size() ? strings[index] : String();
 }
 
-// Returns 0 if no instance was created.
-uint64_t createRemoteCDMInstance(const RemoteCDMRegistryWeakReference&, RemoteCDMPrivateHandle&, RemoteCDMInstanceConfiguration&);
+// The bytes of a buffer from IPC, and a buffer for a reply.
+using RemoteCDMBytes = Vector<uint8_t>;
+
+inline RemoteCDMBytes remoteCDMBufferBytes(const WebCore::SharedBuffer& buffer)
+{
+    return RemoteCDMBytes { buffer.span() };
+}
+
+WebCore::SharedBuffer* WTF_NONNULL makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOESCAPE) SWIFT_RETURNS_RETAINED;
+
+// A C++ CDM's instance, registered with the registry under identifier, with its key system; and an instance's session,
+// registered likewise. Null if the CDM makes none.
+WebCore::CDMInstance* WTF_NULLABLE createRemoteCDMInstance(RemoteCDMRegistry&, RemoteCDMPrivateHandle&, uint64_t identifier, String& keySystem) SWIFT_RETURNS_RETAINED;
+WebCore::CDMInstanceSession* WTF_NULLABLE createRemoteCDMInstanceSession(RemoteCDMRegistry&, RemoteCDMPrivateHandle&, WebCore::CDMInstance&, uint64_t identifier, uint64_t logIdentifier) SWIFT_RETURNS_RETAINED;
 
 // Builds the CDMKeySystemConfiguration that a Swift receiver hands to C++.
 class RemoteCDMKeySystemConfigurationBuilder {
@@ -136,23 +133,6 @@ using RemoteCDMSupportedConfigurationCompletionHandler = CompletionHandler<void(
 
 void getSupportedRemoteCDMConfiguration(RemoteCDMPrivateHandle&, RemoteCDMKeySystemConfigurationBuilder&, bool localStorageAccessAllowed, RemoteCDMSupportedConfigurationCompletionHandler&&);
 
-class RemoteCDMPrivateHandleWeakReference {
-public:
-    explicit RemoteCDMPrivateHandleWeakReference(RemoteCDMPrivateHandle& cdm)
-        : m_cdm(cdm)
-    {
-    }
-
-    // A new reference, so that Swift keeps the handle alive for as long as it uses it.
-    RemoteCDMPrivateHandle* WTF_NULLABLE get() const SWIFT_RETURNS_RETAINED { return RefPtr { m_cdm.get() }.leakRef(); }
-
-private:
-    WeakPtr<RemoteCDMPrivateHandle> m_cdm;
-} SWIFT_SELF_CONTAINED;
-
-// Returns 0 if no session was created.
-uint64_t createRemoteCDMInstanceSession(const RemoteCDMRegistryWeakReference&, const RemoteCDMPrivateHandleWeakReference&, WebCore::CDMInstance&, uint64_t logIdentifier);
-
 using RemoteCDMInstanceSuccessCompletionHandler = CompletionHandler<void(WebCore::CDMInstanceSuccessValue)>;
 
 void initializeRemoteCDMInstance(WebCore::CDMInstance&, RemoteCDMKeySystemConfigurationBuilder&, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&&);
@@ -182,9 +162,9 @@ inline IPC::SwiftDecoder swiftDecoder(const RemoteCDMEncodedReply& reply LIFETIM
 using RemoteCDMEncodedReplyCompletionHandler = CompletionHandler<void(RemoteCDMEncodedReply&&)>;
 
 // The CDMPrivate checks of the session's messages.
-bool remoteCDMSupportsInitData(const RemoteCDMPrivateHandleWeakReference&, const String& initDataType, const WebCore::SharedBuffer& initData);
-WebCore::SharedBuffer* WTF_NULLABLE sanitizeRemoteCDMResponse(const RemoteCDMPrivateHandleWeakReference&, const WebCore::SharedBuffer& response) SWIFT_RETURNS_RETAINED;
-bool sanitizeRemoteCDMSessionId(const RemoteCDMPrivateHandleWeakReference&, const String& sessionId, String& sanitizedSessionId);
+bool remoteCDMSupportsInitData(RemoteCDMPrivateHandle&, const String& initDataType, const WebCore::SharedBuffer& initData);
+WebCore::SharedBuffer* WTF_NULLABLE sanitizeRemoteCDMResponse(RemoteCDMPrivateHandle&, const WebCore::SharedBuffer& response) SWIFT_RETURNS_RETAINED;
+bool sanitizeRemoteCDMSessionId(RemoteCDMPrivateHandle&, const String& sessionId, String& sanitizedSessionId);
 
 void setRemoteCDMInstanceSessionLogIdentifier(WebCore::CDMInstanceSession&, uint64_t logIdentifier);
 void requestRemoteCDMLicense(WebCore::CDMInstanceSession&, uint8_t type, bool keyGroupingStrategy, const String& initDataType, WebCore::SharedBuffer& initData, RemoteCDMEncodedReplyCompletionHandler&&);

@@ -26,32 +26,26 @@
 import WebKit_Internal
 import wtf
 
-extension WebKit.RemoteCDMInstanceSuccessCompletionHandler: @unsafe CxxCompletionHandler {
-    typealias Argument = WebCore.CDMInstanceSuccessValue
-}
-
-// Receives the messages of one of the web process's RemoteCDMInstances, for the CDMInstance it was created
-// with. The instance's client is RemoteCDMRegistry's RemoteCDMInstanceClient.
+// Receives the messages of one of the web process's RemoteCDMInstances, for its CDM instance.
 @_expose(Cxx)
 final class RemoteCDMInstanceProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
     private var messageForwarder: RefRemoteCDMInstanceProxyMessageForwarder?
-    private let registry: WebKit.RemoteCDMRegistryWeakReference
-    private let cdm: WebKit.RemoteCDMPrivateHandleWeakReference
-    private let instance: WebCore.CDMInstance
+    private weak var factory: RemoteCDMFactoryProxy?
+    private weak var cdm: RemoteCDMProxy?
+    private let backend: any RemoteCDMInstanceBackend
     private let logIdentifier: UInt64
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(registry: WebKit.RemoteCDMRegistry, cdm: WebKit.RemoteCDMPrivateHandle, instance: WebCore.CDMInstance, logIdentifier: UInt64) {
-        self.registry = WebKit.RemoteCDMRegistryWeakReference(registry)
-        self.cdm = WebKit.RemoteCDMPrivateHandleWeakReference(cdm)
-        self.instance = instance
+    @_expose(!Cxx)
+    init(factory: RemoteCDMFactoryProxy, cdm: RemoteCDMProxy, backend: any RemoteCDMInstanceBackend, logIdentifier: UInt64) {
+        self.factory = factory
+        self.cdm = cdm
+        self.backend = backend
         self.logIdentifier = logIdentifier
         self.messageForwarder = WebKit.RemoteCDMInstanceProxyMessageForwarder.create(target: self)
     }
 
-    @used
+    @_expose(!Cxx)
     func getMessageReceiver() -> RefRemoteCDMInstanceProxyMessageForwarder {
         guard let messageForwarder = self.messageForwarder else {
             fatalError("Unreachable - guaranteed to exist")
@@ -61,7 +55,7 @@ final class RemoteCDMInstanceProxy {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        guard cdm.get() != nil, let registry = registry.get() else {
+        guard cdm != nil, let registry = factory?.registry() else {
             return WebKit.OptionalSharedPreferencesForWebProcess()
         }
         return registry.sharedPreferencesForWebProcess()
@@ -69,9 +63,19 @@ final class RemoteCDMInstanceProxy {
 
     @MainActor
     func createSession(connection: IPC.Connection, logIdentifier: UInt64) -> IPCTypes.RemoteCDMInstanceSessionIdentifier? {
-        IPCTypes.RemoteCDMInstanceSessionIdentifier(
-            rawValue: WebKit.createRemoteCDMInstanceSession(registry, cdm, instance, self.logIdentifier)
+        guard let cdm, let factory, let registry = factory.registry() else {
+            return nil
+        }
+        let identifier = registry.generateSessionIdentifier()
+        guard let session = backend.makeSession(identifier: identifier, registry: registry, cdm: cdm.cdm, logIdentifier: self.logIdentifier) else {
+            return nil
+        }
+        factory.add(
+            session: RemoteCDMInstanceSessionProxy(factory: factory, cdm: cdm, backend: session),
+            identifier: identifier,
+            registry: registry
         )
+        return IPCTypes.RemoteCDMInstanceSessionIdentifier(rawValue: identifier)
     }
 
     @MainActor
@@ -81,30 +85,22 @@ final class RemoteCDMInstanceProxy {
         distinctiveIdentifiersAllowed: IPCTypes.CDMInstanceAllowDistinctiveIdentifiers,
         persistentStateAllowed: IPCTypes.CDMInstanceAllowPersistentState
     ) async -> IPCTypes.CDMInstanceSuccessValue {
-        var builder = remoteCDMKeySystemConfigurationBuilder(configuration)
-        let success = await withCheckedContinuation { continuation in
-            WebKit.initializeRemoteCDMInstance(
-                instance,
-                &builder,
-                distinctiveIdentifiersAllowed == .yes,
-                persistentStateAllowed == .yes,
-                consuming: .init(continuation)
-            )
-        }
-        return success == .Succeeded ? .succeeded : .failed
+        let succeeded = await backend.initialize(
+            configuration,
+            distinctiveIdentifiersAllowed: distinctiveIdentifiersAllowed == .yes,
+            persistentStateAllowed: persistentStateAllowed == .yes
+        )
+        return succeeded ? .succeeded : .failed
     }
 
     @MainActor
     func setServerCertificate(connection: IPC.Connection, certificate: WebCore.SharedBuffer) async -> IPCTypes.CDMInstanceSuccessValue {
-        let success = await withCheckedContinuation { continuation in
-            WebKit.setRemoteCDMInstanceServerCertificate(instance, certificate, consuming: .init(continuation))
-        }
-        return success == .Succeeded ? .succeeded : .failed
+        await backend.setServerCertificate(certificate) ? .succeeded : .failed
     }
 
     @MainActor
     func setStorageDirectory(connection: IPC.Connection, directory: String?) {
-        guard cdm.get() != nil, let registry = registry.get() else {
+        guard backend.usesStorageDirectory, cdm != nil, let registry = factory?.registry() else {
             return
         }
         let mediaKeysStorageDirectory = IPCCoding.WTFString.swiftString(registry.mediaKeysStorageDirectory()) ?? ""
@@ -113,7 +109,7 @@ final class RemoteCDMInstanceProxy {
         guard !mediaKeysStorageDirectory.isEmpty, let directory, directory.utf8.starts(with: mediaKeysStorageDirectory.utf8) else {
             return
         }
-        WebKit.setRemoteCDMInstanceStorageDirectory(instance, IPCCoding.WTFString.cxxString(directory))
+        backend.setStorageDirectory(directory)
     }
 }
 
