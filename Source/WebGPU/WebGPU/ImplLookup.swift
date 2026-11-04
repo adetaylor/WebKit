@@ -55,13 +55,14 @@ import WebGPU_Private.WebGPUCpp
 // WebKit can't name.
 
 @_spi(WebKitGPU)
-public final class BindGroupReference {
-    public let impl: BindGroupImpl
-    let shell: WebGPU.Metal.BindGroup
+public typealias BindGroupReference = BindGroupImpl
 
-    init(_ impl: BindGroupImpl, _ shell: WebGPU.Metal.BindGroup) {
-        self.impl = impl
-        self.shell = shell
+@_spi(WebKitGPU)
+extension BindGroupImpl {
+    // What the callers used when it had a shell too.
+    @_expose(!Cxx)
+    public var impl: BindGroupImpl {
+        self
     }
 }
 
@@ -265,11 +266,6 @@ extension GPUObjectReference {
 
 @_spi(WebKitGPU)
 extension AdapterReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-@_spi(WebKitGPU)
-extension BindGroupReference: GPUObjectReference {
     public func isValid() -> Bool { shell.isValid() }
 }
 

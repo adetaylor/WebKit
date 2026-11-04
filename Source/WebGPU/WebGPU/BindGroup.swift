@@ -52,13 +52,13 @@ struct SamplerBinding {
     var slots: PerStage<UInt32?>
 }
 
-// One per GPUBindGroup, owned by the C++ shell WebGPU::Metal::BindGroup. Owns the bound
-// resources, the argument buffers, the layout, the samplers and their argument-buffer slots, the dynamic buffers and
-// the per-pipeline validation cache, and runs every check the encoders make on a group. Used only on its Instance's API
-// thread, so not Sendable.
+// One per GPUBindGroup, held by its Swift callers, the encoders and bundles that bound it, and the C++ API's shell
+// WebGPU::Metal::BindGroup. Owns the bound resources, the argument buffers, the layout, the samplers and their
+// argument-buffer slots, the dynamic buffers and the per-pipeline validation cache, and runs every check the encoders
+// make on a group. Used only on its Instance's API thread, so not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
-public final class BindGroupImpl {
+public final class BindGroupImpl: GPUObjectReference {
     /// nil exactly when the group is invalid.
     let layoutImpl: BindGroupLayoutImpl?
     /// nil when the stage has no arguments, or when a resource bound in it was destroyed before creation.
@@ -144,7 +144,7 @@ public final class BindGroupImpl {
     }
 
     @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         layoutImpl != nil
     }
 
@@ -1881,18 +1881,10 @@ private func wtfHashReplicaMatchesWTFHashSet() -> Bool {
     return true
 }
 
-// Wraps an Impl made in Swift in a new shell, through DeviceImpl.stagedBindGroupImpl.
-func makeBindGroupShell(_ impl: BindGroupImpl, device: WebGPU.Metal.Device, deviceImpl: DeviceImpl) -> WebGPU.Metal.BindGroup {
-    precondition(deviceImpl.stagedBindGroupImpl == nil)
-    deviceImpl.stagedBindGroupImpl = impl
-    return WebGPU.Metal.BindGroup.createWithStagedImpl(device).ptr()
-}
-
 @_spi(WebKitGPU)
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup. The label isn't kept, as for the C++ caller.
     public func createBindGroup(_ layout: BindGroupLayoutReference, _ entries: [GPUBindGroupEntry], label: Swift.String?) -> BindGroupReference {
-        let group = createBindGroupImpl(shell, impl, layout: layout, entries: entries)
-        return BindGroupReference(group, makeBindGroupShell(group, device: shell, deviceImpl: impl))
+        createBindGroupImpl(shell, impl, layout: layout, entries: entries)
     }
 }

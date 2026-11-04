@@ -237,7 +237,7 @@ public final class ComputePassEncoderImpl {
                 continue
             }
             if group.hasSamplers {
-                parentImpl.rebindSamplersPreCommit(bindGroups.shell(bindGroupIndex), group)
+                parentImpl.rebindSamplersPreCommit(group)
             }
 
             let maxOffset = maxDynamicOffsetAtIndex[Int(bindGroupIndex)]
@@ -689,19 +689,18 @@ public final class ComputePassEncoderImpl {
         maxDynamicOffsetAtIndex[Int(groupIndex)] = 0
     }
 
-    // Returns whether it stored a new bind group Impl, whose shell the shell then hands to storeBindGroupShell.
     @_expose(Cxx)
     func setBindGroup(
         _ groupIndex: UInt32,
         _ groupImpl: BindGroupImpl,
         _ hasDynamicOffsets: Bool,
         _ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsView
-    ) -> Bool {
+    ) {
         // The encoder keeps its own copy. Without dynamic offsets the span is empty.
         setBindGroup(groupIndex, groupImpl, hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
     }
 
-    // setBindGroup, for a Swift caller that has the group's shell too.
+    // setBindGroup, for a Swift caller.
     @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {
@@ -709,17 +708,15 @@ public final class ComputePassEncoderImpl {
             clearBindGroup(groupIndex, dynamicOffsets != nil, UInt(dynamicOffsets?.count ?? 0))
             return
         }
-        if setBindGroup(groupIndex, group.impl, dynamicOffsets) {
-            storeBindGroupShell(groupIndex, group.shell)
-        }
+        setBindGroup(groupIndex, group, dynamicOffsets)
     }
 
-    private func setBindGroup(_ groupIndex: UInt32, _ groupImpl: BindGroupImpl, _ dynamicOffsets: [UInt32]?) -> Bool {
+    private func setBindGroup(_ groupIndex: UInt32, _ groupImpl: BindGroupImpl, _ dynamicOffsets: [UInt32]?) {
         if encodingHasFinished() {
             generateAValidationError(
                 "void WebGPU::Metal::ComputePassEncoder::setBindGroup(uint32_t, const BindGroup *, std::optional<std::span<const uint32_t>>): failed as encoding has finished"
             )
-            return false
+            return
         }
         let hasDynamicOffsets = dynamicOffsets != nil
         let offsets = dynamicOffsets ?? []
@@ -727,17 +724,17 @@ public final class ComputePassEncoderImpl {
         guard holdsCurrentEncoder(),
             validateGroupIndex(groupIndex, expectedDynamicOffsetCount: expectedDynamicOffsetCount, hasDynamicOffsets, UInt(offsets.count))
         else {
-            return false
+            return
         }
 
         if !isValidToUse(groupImpl.isValid(), groupImpl.deviceImpl, with: parentImpl.deviceImpl) {
             makeInvalid("GPUComputePassEncoder.setBindGroup: invalid bind group")
-            return false
+            return
         }
 
         if groupImpl.layoutImpl == nil {
             makeInvalid("GPUComputePassEncoder.setBindGroup: bind group is nil")
-            return false
+            return
         }
 
         // Without dynamic offsets and dynamic buffers there is nothing to check, and maxOffset stays as it is.
@@ -747,21 +744,14 @@ public final class ComputePassEncoderImpl {
             maxDynamicOffsetAtIndex[Int(groupIndex)] = maxOffset
             if let error {
                 makeInvalid("GPUComputePassEncoder.setBindGroup: \(error)")
-                return false
+                return
             }
         }
 
-        return commitBindGroup(groupIndex, groupImpl, offsets)
+        commitBindGroup(groupIndex, groupImpl, offsets)
     }
 
-    // The second step of a setBindGroup that returned true: `group` is the shell of the Impl it stored.
-    @_expose(Cxx)
-    func storeBindGroupShell(_ groupIndex: UInt32, _ group: WebGPU.Metal.BindGroup) {
-        bindGroups.storeShell(groupIndex, group)
-    }
-
-    // Returns whether the shell has to hand in the group's shell.
-    private func commitBindGroup(_ groupIndex: UInt32, _ groupImpl: BindGroupImpl, _ offsets: [UInt32]) -> Bool {
+    private func commitBindGroup(_ groupIndex: UInt32, _ groupImpl: BindGroupImpl, _ offsets: [UInt32]) {
         let groupBit = UInt32(1) << groupIndex
         if !offsets.isEmpty {
             bindGroupDynamicOffsets.set(groupIndex, offsets)
@@ -793,11 +783,10 @@ public final class ComputePassEncoderImpl {
         }
         let identity = identityKey(ObjectIdentifier(groupImpl))
         if boundGroupIdentities[Int(groupIndex)] == identity {
-            return false
+            return
         }
         bindGroups.setImpl(groupIndex, groupImpl)
         boundGroupIdentities[Int(groupIndex)] = identity
-        return true
     }
 
     // Returns whether it stored a new pipeline Impl, whose shell the shell then hands to storePipelineShell.

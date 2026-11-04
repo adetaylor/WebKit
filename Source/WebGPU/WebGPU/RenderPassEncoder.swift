@@ -1435,7 +1435,7 @@ public final class RenderPassEncoderImpl {
             }
 
             if group.hasSamplers {
-                parentImpl.rebindSamplersPreCommit(bindGroups.shell(groupIndex), group)
+                parentImpl.rebindSamplersPreCommit(group)
             }
 
             let index = Int(groupIndex)
@@ -3099,26 +3099,25 @@ public final class RenderPassEncoderImpl {
         maxDynamicOffsetAtIndex[Int(groupIndex)] = 0
     }
 
-    // Returns whether it stored a new bind group Impl, whose shell the shell then hands to storeBindGroupShell.
     @_expose(Cxx)
     func setBindGroup(
         _ groupIndex: UInt32,
         _ groupImpl: BindGroupImpl,
         _ hasDynamicOffsets: Bool,
         _ dynamicOffsetsView: borrowing WebGPU.Metal.DynamicOffsetsView
-    ) -> Bool {
+    ) {
         setBindGroup(groupIndex, groupImpl, hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsetsView) : nil)
     }
 
-    private func setBindGroup(_ groupIndex: UInt32, _ groupImpl: BindGroupImpl, _ dynamicOffsets: [UInt32]?) -> Bool {
+    private func setBindGroup(_ groupIndex: UInt32, _ groupImpl: BindGroupImpl, _ dynamicOffsets: [UInt32]?) {
         if encodingHasFinished() {
             generateAValidationError(
                 "void WebGPU::Metal::RenderPassEncoder::setBindGroup(uint32_t, const BindGroup *, std::optional<std::span<const uint32_t>>): failed as encoding has finished"
             )
-            return false
+            return
         }
         guard holdsCurrentEncoder() else {
-            return false
+            return
         }
 
         if !validateGroupIndex(
@@ -3126,17 +3125,17 @@ public final class RenderPassEncoderImpl {
             expectedDynamicOffsetCount: groupImpl.layoutImpl?.counts.dynamicBufferCount ?? 0,
             dynamicOffsets?.count
         ) {
-            return false
+            return
         }
 
         if !isValidToUse(groupImpl.isValid(), groupImpl.deviceImpl, with: deviceImpl) {
             makeInvalid("setBindGroup: invalid bind group")
-            return false
+            return
         }
 
         if groupImpl.layoutImpl == nil {
             makeInvalid("GPURenderPassEncoder.setBindGroup: bind group is nil")
-            return false
+            return
         }
         // Without dynamic offsets and dynamic buffers there is nothing to check, and maxOffset stays as it is.
         if dynamicOffsets != nil || groupImpl.dynamicBufferCount != 0 {
@@ -3145,7 +3144,7 @@ public final class RenderPassEncoderImpl {
             maxDynamicOffsetAtIndex[Int(groupIndex)] = maxOffset
             if let error {
                 makeInvalid("GPURenderPassEncoder.setBindGroup: \(error)")
-                return false
+                return
             }
         }
 
@@ -3169,17 +3168,10 @@ public final class RenderPassEncoderImpl {
 
         let identity = identityKey(ObjectIdentifier(groupImpl))
         if boundGroupIdentities[Int(groupIndex)] == identity {
-            return false
+            return
         }
         bindGroups.setImpl(groupIndex, groupImpl)
         boundGroupIdentities[Int(groupIndex)] = identity
-        return true
-    }
-
-    // The second step of a setBindGroup that returned true: `group` is the shell of the Impl it stored.
-    @_expose(Cxx)
-    func storeBindGroupShell(_ groupIndex: UInt32, _ group: WebGPU.Metal.BindGroup) {
-        bindGroups.storeShell(groupIndex, group)
     }
 
     // setBindGroup with a null bind group.
@@ -3551,7 +3543,7 @@ public final class RenderPassEncoderImpl {
         }
     }
 
-    // setBindGroup, for a Swift caller that has the group's shell too.
+    // setBindGroup, for a Swift caller.
     @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {
@@ -3559,9 +3551,7 @@ public final class RenderPassEncoderImpl {
             clearBindGroup(groupIndex, dynamicOffsets != nil, UInt(dynamicOffsets?.count ?? 0))
             return
         }
-        if setBindGroup(groupIndex, group.impl, dynamicOffsets) {
-            storeBindGroupShell(groupIndex, group.shell)
-        }
+        setBindGroup(groupIndex, group, dynamicOffsets)
     }
 
     // setIndexBuffer, for a Swift caller.

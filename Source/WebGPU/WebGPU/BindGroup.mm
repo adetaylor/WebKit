@@ -134,13 +134,6 @@ Ref<BindGroup> BindGroup::create(MakeImpl&& makeImpl)
     return adoptRef(*new BindGroup(std::forward<MakeImpl>(makeImpl)));
 }
 
-Ref<BindGroup> BindGroup::createWithStagedImpl(Device& device)
-{
-    return create([&] {
-        return device.swiftImpl().takeStagedBindGroupImpl();
-    });
-}
-
 Ref<BindGroup> BindGroup::createInvalid(Device& device)
 {
     return create([&] {

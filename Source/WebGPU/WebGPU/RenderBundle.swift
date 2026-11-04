@@ -45,7 +45,7 @@ public final class RenderBundleImpl: GPUObjectReference {
     private(set) var mtlResources: ResourceLists
     let icbs: [BundleICB]
     private let replay: BundleReplay
-    private let bindGroups: [(shell: WebGPU.Metal.BindGroup, impl: BindGroupImpl)]
+    private let bindGroups: [BindGroupImpl]
     private let colorFormats: [WebGPU.TextureFormat?]
     private let commandCount: UInt64
     private let sampleCount: UInt32
@@ -69,7 +69,7 @@ public final class RenderBundleImpl: GPUObjectReference {
         icbs: [BundleICB],
         isICBBundle: Bool,
         replay: consuming BundleReplay,
-        bindGroups: [(shell: WebGPU.Metal.BindGroup, impl: BindGroupImpl)],
+        bindGroups: [BindGroupImpl],
         colorFormats: [WebGPU.TextureFormat?],
         depthStencilFormat: WebGPU.TextureFormat?,
         sampleCount: UInt32,
@@ -248,7 +248,7 @@ public final class RenderBundleImpl: GPUObjectReference {
     func rebindSamplersIfNeeded() -> Bool {
         var result = true
         for group in bindGroups {
-            result = group.impl.rebindSamplersIfNeeded() && result
+            result = group.rebindSamplersIfNeeded() && result
         }
         return result
     }

@@ -116,9 +116,7 @@ void ComputePassEncoder::setBindGroup(uint32_t groupIndex, const WebGPU::BindGro
         impl.clearBindGroup(groupIndex, dynamicOffsets.has_value(), dynamicOffsets ? dynamicOffsets->size() : 0);
         return;
     }
-    // FIXME: rdar://138047285 const_cast is needed as a workaround.
-    if (impl.setBindGroup(groupIndex, group->swiftImpl(), dynamicOffsets.has_value(), DynamicOffsetsView { dynamicOffsets.value_or(std::span<const uint32_t> { }) }))
-        impl.storeBindGroupShell(groupIndex, const_cast<BindGroup*>(group));
+    impl.setBindGroup(groupIndex, group->swiftImpl(), dynamicOffsets.has_value(), DynamicOffsetsView { dynamicOffsets.value_or(std::span<const uint32_t> { }) });
 }
 
 void ComputePassEncoder::setPipeline(const WebGPU::ComputePipeline& apiPipeline)

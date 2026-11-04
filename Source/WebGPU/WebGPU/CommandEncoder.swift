@@ -3119,7 +3119,7 @@ final class CommandEncoderImpl {
     // One strong reference per distinct sampler, keyed by its Impl.
     private var retainedSamplers = WTFHashMap<UInt64, SamplerImpl>()
     // Appended on every draw and dispatch with a sampler-bearing group, never deduplicated.
-    private var bindGroupsToRebind: [(WebGPU.Metal.BindGroup, BindGroupImpl)] = []
+    private var bindGroupsToRebind: [BindGroupImpl] = []
     // The skipped draw-indexed validations, keyed by the BufferImpl's identity.
     private var skippedDrawIndexedValidations = WTFHashMap<UInt64, SkippedDrawIndexedValidation>()
     // The reused indirect indexed draws of executeBundles, keyed by the index buffer's BufferImpl identity.
@@ -4032,8 +4032,8 @@ final class CommandEncoderImpl {
     }
 
     @_expose(!Cxx)
-    func rebindSamplersPreCommit(_ group: WebGPU.Metal.BindGroup, _ impl: BindGroupImpl) {
-        bindGroupsToRebind.append((group, impl))
+    func rebindSamplersPreCommit(_ group: BindGroupImpl) {
+        bindGroupsToRebind.append(group)
     }
 
     // `vertexCount` is the cached entry's.
@@ -4084,7 +4084,7 @@ final class CommandEncoderImpl {
             runSkippedDrawIndexedValidations(commandBuffer, commandBufferImpl)
             runReusedIndirectIndexedDrawValidations(commandBufferImpl)
             let groups = bindGroupsToRebind
-            for (_, group) in groups {
+            for group in groups {
                 _ = group.rebindSamplersIfNeeded()
             }
         }

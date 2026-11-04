@@ -153,8 +153,7 @@ void RenderBundleEncoder::setBindGroup(uint32_t groupIndex, const WebGPU::BindGr
         swiftImpl().clearBindGroup(this, groupIndex, dynamicOffsets.has_value(), offsets);
         return;
     }
-    // FIXME: rdar://138047285 const_cast is needed as a workaround.
-    swiftImpl().setBindGroup(this, groupIndex, const_cast<BindGroup*>(group), group->swiftImpl(), dynamicOffsets.has_value(), offsets);
+    swiftImpl().setBindGroup(this, groupIndex, group->swiftImpl(), dynamicOffsets.has_value(), offsets);
 }
 
 void RenderBundleEncoder::setIndexBuffer(WebGPU::Buffer& apiBuffer, WebGPU::IndexFormat format, uint64_t offset, std::optional<uint64_t> size)

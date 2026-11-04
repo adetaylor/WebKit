@@ -83,7 +83,6 @@ enum RecordedCommand {
     case setBindGroup(
         owner: WebGPU.Metal.RenderBundleEncoder,
         group: UInt32,
-        bindGroup: WebGPU.Metal.BindGroup,
         bindGroupImpl: BindGroupImpl,
         dynamicOffsets: [UInt32]?
     )
@@ -341,7 +340,7 @@ final class RenderBundleEncoderImpl {
     private var bindGroups = BindGroupTable()
     private var bindGroupDynamicOffsets = GroupIndexedTable<[UInt32]>()
     // Insertion order, one strong reference per distinct group.
-    private var allBindGroups: [(shell: WebGPU.Metal.BindGroup, impl: BindGroupImpl)] = []
+    private var allBindGroups: [BindGroupImpl] = []
     private var allBindGroupIdentities = WTFHashSet<UInt64>()
     private var minVertexCountForDrawCommand = WTFHashMap<UInt64, BundleIndexValidation>()
     private var indirectDrawsForSlot = WTFHashMap<UInt64, BundleIndirectDraw>()
@@ -1541,8 +1540,8 @@ final class RenderBundleEncoderImpl {
                 setVertexBuffer(owner, slot, buffer, bufferImpl, offset, size != nil, size ?? 0)
             case .clearVertexBuffer(let owner, let slot, let offset, let size):
                 clearVertexBuffer(owner, slot, offset, size != nil, size ?? 0)
-            case .setBindGroup(let owner, let group, let bindGroup, let bindGroupImpl, let dynamicOffsets):
-                setBindGroup(owner, group, bindGroup, bindGroupImpl, offsets: dynamicOffsets)
+            case .setBindGroup(let owner, let group, let bindGroupImpl, let dynamicOffsets):
+                setBindGroup(owner, group, bindGroupImpl, offsets: dynamicOffsets)
             case .clearBindGroup(let owner, let group, let dynamicOffsets):
                 clearBindGroup(owner, group, offsets: dynamicOffsets)
             }
@@ -1781,19 +1780,17 @@ final class RenderBundleEncoderImpl {
     func setBindGroup(
         _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ groupIndex: UInt32,
-        _ group: borrowing WebGPU.Metal.BindGroup,
         _ groupImpl: BindGroupImpl,
         _ hasDynamicOffsets: Bool,
         _ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsView
     ) {
-        setBindGroup(shell, groupIndex, group, groupImpl, offsets: hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
+        setBindGroup(shell, groupIndex, groupImpl, offsets: hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
     }
 
     // A nil list counts as an empty one.
     fileprivate func setBindGroup(
         _ shell: borrowing WebGPU.Metal.RenderBundleEncoder,
         _ groupIndex: UInt32,
-        _ group: borrowing WebGPU.Metal.BindGroup,
         _ groupImpl: BindGroupImpl,
         offsets: [UInt32]?
     ) {
@@ -1814,7 +1811,7 @@ final class RenderBundleEncoderImpl {
 
         maxBindGroupSlot = max(groupIndex, maxBindGroupSlot)
         if !replayingCommands() {
-            addToAllBindGroups(group, groupImpl)
+            addToAllBindGroups(groupImpl)
 
             if groupIndex >= limits.maxBindGroups {
                 invalidate("setBindGroup: groupIndex >= limits.maxBindGroups")
@@ -1841,7 +1838,6 @@ final class RenderBundleEncoderImpl {
                 .setBindGroup(
                     owner: copy shell,
                     group: groupIndex,
-                    bindGroup: copy group,
                     bindGroupImpl: groupImpl,
                     dynamicOffsets: offsets
                 )
@@ -1857,7 +1853,7 @@ final class RenderBundleEncoderImpl {
             return
         }
 
-        bindGroups.set(groupIndex, copy group, groupImpl)
+        bindGroups.set(groupIndex, groupImpl)
         if !bindVertexArgumentBuffer(groupIndex, groupImpl) {
             return
         }
@@ -1900,9 +1896,9 @@ final class RenderBundleEncoderImpl {
         bindGroups.remove(groupIndex)
     }
 
-    private func addToAllBindGroups(_ group: borrowing WebGPU.Metal.BindGroup, _ groupImpl: BindGroupImpl) {
+    private func addToAllBindGroups(_ groupImpl: BindGroupImpl) {
         if allBindGroupIdentities.add(identityKey(ObjectIdentifier(groupImpl))) {
-            allBindGroups.append((shell: copy group, impl: groupImpl))
+            allBindGroups.append(groupImpl)
         }
     }
 
@@ -2642,7 +2638,7 @@ public final class RenderBundleEncoderReference {
             impl.clearBindGroup(shell, groupIndex, offsets: dynamicOffsets)
             return
         }
-        impl.setBindGroup(shell, groupIndex, group.shell, group.impl, offsets: dynamicOffsets)
+        impl.setBindGroup(shell, groupIndex, group, offsets: dynamicOffsets)
     }
 
     public func setIndexBuffer(_ buffer: BufferReference, _ format: WebGPU.IndexFormat, _ offset: UInt64, _ size: UInt64?) {

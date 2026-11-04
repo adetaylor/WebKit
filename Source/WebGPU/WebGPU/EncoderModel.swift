@@ -582,13 +582,9 @@ struct GroupIndexedTable<Value> {
 
 /// The bind groups of an encoder, by group index.
 ///
-/// Hot paths read the Impls only; `shells` holds one strong reference per present group and is never iterated. Walk it
-/// as `for group in table.order { table[group] }`: the order is a POD snapshot, so nothing is copied.
+/// Walk it as `for group in table.order { table[group] }`: the order is a POD snapshot, so nothing is copied.
 struct BindGroupTable {
     private var impls = GroupIndexedTable<BindGroupImpl>()
-    private var shells: [WebGPU.Metal.BindGroup] = []
-    private var shellIndexForGroup = SIMD32<Int8>(repeating: -1)
-    private var groupForShellIndex = SIMD32<UInt8>()
 
     var order: GroupIndexOrder {
         @inline(__always)
@@ -611,65 +607,31 @@ struct BindGroupTable {
         impls[group] === impl
     }
 
-    /// Setting a group's own bind group again changes nothing (a BindGroupImpl has exactly one shell), and the group
-    /// keeps its place in the order.
-    mutating func set(_ group: UInt32, _ shell: WebGPU.Metal.BindGroup, _ impl: BindGroupImpl) {
+    /// Setting a group's own bind group again changes nothing, and the group keeps its place in the order.
+    mutating func set(_ group: UInt32, _ impl: BindGroupImpl) {
         if holds(group, impl) {
             return
         }
         setImpl(group, impl)
-        storeShell(group, shell)
     }
 
-    /// set() in two steps, for an encoder whose shell hands in the bind group's shell only when asked: setImpl() when
-    /// holds() is false, then at once storeShell() with that Impl's shell.
+    /// set() without the holds() check, for an encoder that has made it.
     mutating func setImpl(_ group: UInt32, _ impl: BindGroupImpl) {
         impls.set(group, impl)
     }
 
-    mutating func storeShell(_ group: UInt32, _ shell: WebGPU.Metal.BindGroup) {
-        let index = Int(shellIndexForGroup[Int(group)])
-        if index >= 0 {
-            shells[index] = shell
-            return
-        }
-        shellIndexForGroup[Int(group)] = Int8(shells.count)
-        groupForShellIndex[shells.count] = UInt8(group)
-        shells.append(shell)
-    }
-
     @discardableResult
     mutating func remove(_ group: UInt32) -> Bool {
-        if !impls.order.contains(group) {
-            return false
-        }
-        let index = Int(shellIndexForGroup[Int(group)])
-        let lastIndex = shells.count - 1
-        if index != lastIndex {
-            shells.swapAt(index, lastIndex)
-            let movedGroup = groupForShellIndex[lastIndex]
-            groupForShellIndex[index] = movedGroup
-            shellIndexForGroup[Int(movedGroup)] = Int8(index)
-        }
-        shells.removeLast()
-        shellIndexForGroup[Int(group)] = -1
-        return impls.remove(group)
+        impls.remove(group)
     }
 
     mutating func removeAll() {
         impls.removeAll()
-        shells.removeAll(keepingCapacity: true)
-        shellIndexForGroup = SIMD32(repeating: -1)
     }
 
     /// The body must not mutate this table.
     func forEachInWTFOrder(_ body: (UInt32, BindGroupImpl) throws -> Void) rethrows {
         try impls.forEachInWTFOrder(body)
-    }
-
-    /// The shell of a present group, for CommandEncoderImpl.rebindSamplersPreCommit.
-    func shell(_ group: UInt32) -> WebGPU.Metal.BindGroup {
-        shells[Int(shellIndexForGroup[Int(group)])]
     }
 }
 
