@@ -24,9 +24,8 @@
 
 import WebKit_Internal
 
-// Safety: target is immutable, and dispatch asserts the stream connection's work queue
 @_expose(Cxx)
-final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
+final class TestWithStreamSwiftTypesWeakRef {
     private let target: TestWithStreamSwiftTypes
     init(target: TestWithStreamSwiftTypes) {
         self.target = target
@@ -34,10 +33,8 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendString(
-        connection: IPC.SwiftStreamConnection,
         decoder: inout IPC.SwiftDecoder
     ) -> Bool {
-        assert(connection.get().isCurrentWorkQueue())
         let url: String?
         do {
             url = try IPCCoding.WTFString.decode(from: &decoder)
@@ -47,22 +44,19 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendString(
-                    connection: connection,
                     url: url
                 )
             )
         } catch {
-            markMessageInvalid(error, on: connection.get())
+            markMessageInvalid(error, on: &decoder)
         }
         return true
     }
 
     @used
     func dispatchSendValues(
-        connection: IPC.SwiftStreamConnection,
         decoder: inout IPC.SwiftDecoder
     ) -> Bool {
-        assert(connection.get().isCurrentWorkQueue())
         let value: UInt32
         let optionalValue: UInt64?
         let bytes: [UInt8]
@@ -76,14 +70,13 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendValues(
-                    connection: connection,
                     value: value,
                     optionalValue: optionalValue,
                     bytes: bytes
                 )
             )
         } catch {
-            markMessageInvalid(error, on: connection.get())
+            markMessageInvalid(error, on: &decoder)
         }
         return true
     }
@@ -108,11 +101,9 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendStringSync(
-        connection: IPC.SwiftStreamConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
-        assert(connection.get().isCurrentWorkQueue())
         let url: String?
         do {
             url = try IPCCoding.WTFString.decode(from: &decoder)
@@ -122,7 +113,6 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         do throws(InvalidMessage) {
             let reply = try mayThrowInvalidMessage(
                 target.sendStringSync(
-                    connection: connection,
                     url: url
                 )
             )
@@ -134,7 +124,7 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
                 replyEncoder.send()
             }
         } catch {
-            markMessageInvalid(error, on: connection.get())
+            markMessageInvalid(error, on: &decoder)
             replyEncoder.cancel()
         }
         return true
@@ -142,11 +132,10 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendEmptySync(
-        connection: IPC.SwiftStreamConnection,
+        connection: IPC.StreamServerConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
-        assert(connection.get().isCurrentWorkQueue())
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendEmptySync(
@@ -157,7 +146,7 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
                 replyEncoder.send()
             }
         } catch {
-            markMessageInvalid(error, on: connection.get())
+            markMessageInvalid(error, on: &decoder)
             replyEncoder.cancel()
         }
         return true
@@ -165,11 +154,9 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
 
     @used
     func dispatchSendStringAsync(
-        connection: IPC.SwiftStreamConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
-        assert(connection.get().isCurrentWorkQueue())
         let url: String?
         do {
             url = try IPCCoding.WTFString.decode(from: &decoder)
@@ -179,24 +166,21 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendStringAsync(
-                    connection: connection,
                     url: url,
                     reply: TestWithStreamSwiftTypesSendStringAsyncReply(replyEncoder: replyEncoder)
                 )
             )
         } catch {
-            markMessageInvalid(error, on: connection.get())
+            markMessageInvalid(error, on: &decoder)
         }
         return true
     }
 
     @used
     func dispatchSendValuesAsync(
-        connection: IPC.SwiftStreamConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
-        assert(connection.get().isCurrentWorkQueue())
         let value: UInt32
         do {
             value = try UInt32.decode(from: &decoder)
@@ -206,44 +190,38 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendValuesAsync(
-                    connection: connection,
                     value: value,
                     reply: TestWithStreamSwiftTypesSendValuesAsyncReply(replyEncoder: replyEncoder)
                 )
             )
         } catch {
-            markMessageInvalid(error, on: connection.get())
+            markMessageInvalid(error, on: &decoder)
         }
         return true
     }
 
     @used
     func dispatchSendEmptyAsync(
-        connection: IPC.SwiftStreamConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
-        assert(connection.get().isCurrentWorkQueue())
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendEmptyAsync(
-                    connection: connection,
                     reply: TestWithStreamSwiftTypesSendEmptyAsyncReply(replyEncoder: replyEncoder)
                 )
             )
         } catch {
-            markMessageInvalid(error, on: connection.get())
+            markMessageInvalid(error, on: &decoder)
         }
         return true
     }
 
     @used
     func dispatchSendCxxDecoded(
-        connection: IPC.SwiftStreamConnection,
         decoder: inout IPC.SwiftDecoder,
         replyEncoder: sending IPC.SwiftReplyEncoder
     ) -> Bool {
-        assert(connection.get().isCurrentWorkQueue())
         let value: UInt32
         let handle: CxxDecodedArguments.TestWithStreamSwiftTypes.SendCxxDecodedHandle
         do {
@@ -258,14 +236,13 @@ final class TestWithStreamSwiftTypesWeakRef: @unchecked Sendable {
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.sendCxxDecoded(
-                    connection: connection,
                     value: value,
                     handle: handle,
                     reply: TestWithStreamSwiftTypesSendCxxDecodedReply(replyEncoder: replyEncoder)
                 )
             )
         } catch {
-            markMessageInvalid(error, on: connection.get())
+            markMessageInvalid(error, on: &decoder)
         }
         return true
     }

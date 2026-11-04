@@ -67,7 +67,7 @@ final class IPCSwiftStreamTester {
         a &+ b
     }
 
-    func repeatTextSwift(connection: IPC.SwiftStreamConnection, text: String?, count: UInt32) throws(InvalidMessage) -> String? {
+    func repeatTextSwift(text: String?, count: UInt32) throws(InvalidMessage) -> String? {
         try messageCheck("RepeatTextSwift repeats at most 4096 times") {
             count <= 4096
         }
@@ -77,17 +77,17 @@ final class IPCSwiftStreamTester {
         return String(repeating: text, count: Int(count))
     }
 
-    func addSwift(connection: IPC.SwiftStreamConnection, a: UInt32, b: UInt32, reply: consuming IPCSwiftStreamTesterAddSwiftReply) {
+    func addSwift(a: UInt32, b: UInt32, reply: consuming IPCSwiftStreamTesterAddSwiftReply) {
         reply.send(a &+ b)
     }
 
-    func deferAddSwift(connection: IPC.SwiftStreamConnection, a: UInt32, b: UInt32, reply: consuming IPCSwiftStreamTesterDeferAddSwiftReply) {
+    func deferAddSwift(a: UInt32, b: UInt32, reply: consuming IPCSwiftStreamTesterDeferAddSwiftReply) {
         deferredSum = a &+ b
         deferredReply = consume reply
     }
 
     // Sends the deferred reply, or drops it, which sends the default reply.
-    func completeDeferredAddSwift(connection: IPC.SwiftStreamConnection, send: Bool) {
+    func completeDeferredAddSwift(send: Bool) {
         guard let reply = deferredReply.take() else {
             return
         }
@@ -102,26 +102,26 @@ final class IPCSwiftStreamTester {
         benchSink &+= UInt64(a &+ b &+ c &+ d)
     }
 
-    func benchEmptySwift(connection: IPC.SwiftStreamConnection) {
+    func benchEmptySwift() {
     }
 
-    func benchFourValuesSwift(connection: IPC.SwiftStreamConnection, a: UInt32, b: UInt32, c: UInt32, d: UInt32) {
+    func benchFourValuesSwift(a: UInt32, b: UInt32, c: UInt32, d: UInt32) {
         benchSink &+= UInt64(a &+ b &+ c &+ d)
     }
 
-    func benchStringSwift(connection: IPC.SwiftStreamConnection, text: String?) {
+    func benchStringSwift(text: String?) {
         benchSink &+= UInt64(text?.utf8.count ?? 0)
     }
 
-    func benchVectorSwift(connection: IPC.SwiftStreamConnection, values: [UInt32]) {
+    func benchVectorSwift(values: [UInt32]) {
         benchSink &+= UInt64(values.count)
     }
 
-    func benchSyncSwift(connection: IPC.SwiftStreamConnection, value: UInt64) -> UInt64 {
+    func benchSyncSwift(value: UInt64) -> UInt64 {
         value
     }
 
-    func benchEnabledFourValuesSwift(connection: IPC.SwiftStreamConnection, a: UInt32, b: UInt32, c: UInt32, d: UInt32) {
+    func benchEnabledFourValuesSwift(a: UInt32, b: UInt32, c: UInt32, d: UInt32) {
         benchSink &+= UInt64(a &+ b &+ c &+ d)
     }
 
@@ -133,7 +133,6 @@ final class IPCSwiftStreamTester {
 
     // Must match the digest IPCTester::sendSwiftStreamMessagesInProcess() computes.
     func digestVectorsSwift(
-        connection: IPC.SwiftStreamConnection,
         shorts: [UInt16],
         words: [UInt32],
         longs: [Int64],
@@ -154,12 +153,12 @@ final class IPCSwiftStreamTester {
         return digest
     }
 
-    func takeRecordedDigestSwift(connection: IPC.SwiftStreamConnection) -> UInt32 {
-        takeRecordedDigest(connection: connection.get())
+    func takeRecordedDigestSwift(connection: IPC.StreamServerConnection) -> UInt32 {
+        takeRecordedDigest(connection: connection)
     }
 
     // Records the UTF-8 form of the text, then a terminating 0, so a null string records only the 0.
-    func recordTextSwift(connection: IPC.SwiftStreamConnection, text: String?) {
+    func recordTextSwift(text: String?) {
         for byte in text?.utf8 ?? "".utf8 {
             recordedDigest = recordedDigest &* 31 &+ UInt32(byte)
         }

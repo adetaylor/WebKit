@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import CXX_DECODED_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_DECODED_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
 
 _license_header = """/*
  * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
@@ -2497,19 +2497,18 @@ def generate_swift_message_handler(receiver):
     if receiver.swift_receiver_build_enabled_by:
         result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
 
+    if not receiver.has_attribute(STREAM_ATTRIBUTE):
+        result.append('// Safety: target is only written in init, assumeIsolated asserts the main thread, and weak loads are atomic in the Swift runtime\n')
+    result.append('@_expose(Cxx)\n')
     if receiver.has_attribute(STREAM_ATTRIBUTE):
         # A stream receiver's forwarder keeps its target alive, as the stream connection keeps a C++ receiver alive
         # while it is registered and while it dispatches a batch of messages to it. A weak reference, loaded for
         # each message, costs more than anything else in dispatch, and makes the target's reference counting go
         # through a side table. The target must not keep its forwarder.
-        result.append('// Safety: target is immutable, and dispatch asserts the stream connection\'s work queue\n')
-    else:
-        result.append('// Safety: target is only written in init, assumeIsolated asserts the main thread, and weak loads are atomic in the Swift runtime\n')
-    result.append('@_expose(Cxx)\n')
-    result.append('final class %s: @unchecked Sendable {\n' % (weak_ref_class))
-    if receiver.has_attribute(STREAM_ATTRIBUTE):
+        result.append('final class %s {\n' % (weak_ref_class))
         result.append('    private let target: %s\n' % (class_name))
     else:
+        result.append('final class %s: @unchecked Sendable {\n' % (weak_ref_class))
         result.append('    private weak var target: %s?\n' % (class_name))
     result.append('    init(target: %s) {\n' % (class_name))
     result.append('        self.target = target\n')
@@ -2557,15 +2556,14 @@ def generate_swift_message_handler(receiver):
         has_reply = message.reply_parameters is not None
         # `sending` rather than marking these types Sendable: C++ hands each value to dispatch and
         # does not use it again, which is a far narrower claim than the type being safe to share.
-        # A stream message that takes Swift types has its connection lent to dispatch and its handler, rather than
-        # passed: Swift would retain a connection argument that it uses after calling C++, as dispatch does to decode.
-        lends_connection = takes_swift_types and receiver.has_attribute(STREAM_ATTRIBUTE)
-        connection = 'connection.get()' if lends_connection else 'connection'
-        if lends_connection:
-            parameters = ['connection: IPC.SwiftStreamConnection']
-        else:
-            parameters = ['connection: %s%s' % ('' if receiver.has_attribute(STREAM_ATTRIBUTE) else 'sending ', connection_type)]
-        arguments = ['connection: connection']
+        # A stream message that takes Swift types passes its connection to dispatch and its handler only if it is
+        # WantsConnection: Swift retains a connection argument that it uses after calling C++, as dispatch does to
+        # decode. Without one, dispatch marks a message its handler finds invalid through its decoder.
+        decodes_on_stream = takes_swift_types and receiver.has_attribute(STREAM_ATTRIBUTE)
+        passes_connection = not decodes_on_stream or message.has_attribute(WANTS_CONNECTION_ATTRIBUTE)
+        invalid_message_target = '&decoder' if decodes_on_stream else 'connection'
+        parameters = ['connection: %s%s' % ('' if receiver.has_attribute(STREAM_ATTRIBUTE) else 'sending ', connection_type)] if passes_connection else []
+        arguments = ['connection: connection'] if passes_connection else []
         decoded_parameters = []
         for parameter in message.parameters:
             if takes_swift_types and parameter.has_attribute(CXX_DECODED_ATTRIBUTE):
@@ -2615,8 +2613,8 @@ def generate_swift_message_handler(receiver):
         result.append('    func dispatch%s(\n' % message.name)
         result.append(',\n'.join(['        %s' % parameter for parameter in parameters]))
         result.append('\n    ) -> Bool {\n' if takes_swift_types else '\n    ) {\n')
-        if is_stream:
-            result.append('        assert(%s.isCurrentWorkQueue())\n' % connection)
+        if is_stream and not decodes_on_stream:
+            result.append('        assert(connection.isCurrentWorkQueue())\n')
         if decoded_parameters:
             for name, swift_type, _ in decoded_parameters:
                 result.append('        let %s: %s\n' % (name, swift_type))
@@ -2660,9 +2658,12 @@ def generate_swift_message_handler(receiver):
             result.append('%sdo%s {\n' % (base, ' throws(InvalidMessage)' if typed_do else ''))
             assignment = 'let reply = ' if message.reply_parameters and not reply_value_type else ''
             call = ['%stry %smayThrowInvalidMessage(' % (assignment, await_keyword)]
-            call.append('    target.%s(' % handler_function_name(message))
-            call.append(',\n'.join(['        %s' % argument for argument in arguments]))
-            call.append('    )')
+            if arguments:
+                call.append('    target.%s(' % handler_function_name(message))
+                call.append(',\n'.join(['        %s' % argument for argument in arguments]))
+                call.append('    )')
+            else:
+                call.append('    target.%s()' % handler_function_name(message))
             call.append(')')
             for line in call:
                 result.append('\n'.join(['%s    %s' % (base, part) for part in line.split('\n')]))
@@ -2670,7 +2671,7 @@ def generate_swift_message_handler(receiver):
             for statement in reply_statements:
                 result.append('%s    %s\n' % (base, statement))
             result.append('%s} catch {\n' % base)
-            result.append('%s    markMessageInvalid(error, on: %s)\n' % (base, connection))
+            result.append('%s    markMessageInvalid(error, on: %s)\n' % (base, invalid_message_target))
             for statement in cancel_statements:
                 result.append('%s    %s\n' % (base, statement))
             result.append('%s}\n' % base)

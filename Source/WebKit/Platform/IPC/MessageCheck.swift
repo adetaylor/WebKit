@@ -98,6 +98,12 @@ func markMessageInvalid(_ error: InvalidMessage, on connection: IPC.StreamServer
     connection.markCurrentlyDispatchedMessageAsInvalid(WTF.String(error.reason.description))
 }
 
+// For a stream message, whose connection treats an invalid decoder as it treats a message marked invalid, and whose
+// dispatch has no connection unless the message is WantsConnection.
+func markMessageInvalid(_ error: InvalidMessage, on decoder: inout IPC.SwiftDecoder) {
+    decoder.markInvalid()
+}
+
 private func logFailedMessageCheck(
     _ reason: StaticString,
     function: StaticString,

@@ -50,16 +50,15 @@ final class RemoteBindGroup {
         context.sharedPreferencesForWebProcess()
     }
 
-    func destruct(connection: IPC.SwiftStreamConnection) {
+    func destruct() {
         context.removeFromObjectHeap()
     }
 
-    func setLabel(connection: IPC.SwiftStreamConnection, label: String?) {
+    func setLabel(label: String?) {
         backing.setLabel(consuming: IPCCoding.WTFString.cxxString(label))
     }
 
     func updateExternalTextures(
-        connection: IPC.SwiftStreamConnection,
         externalTextureIdentifier: IPCTypes.WebGPUIdentifier
     ) -> Bool {
         guard let externalTexture = context.externalTexture(externalTextureIdentifier.rawValue) else {

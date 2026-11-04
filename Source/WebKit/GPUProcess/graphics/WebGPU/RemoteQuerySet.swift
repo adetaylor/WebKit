@@ -50,15 +50,15 @@ final class RemoteQuerySet {
         context.sharedPreferencesForWebProcess()
     }
 
-    func destroy(connection: IPC.SwiftStreamConnection) {
+    func destroy() {
         backing.destroy()
     }
 
-    func destruct(connection: IPC.SwiftStreamConnection) {
+    func destruct() {
         context.removeFromObjectHeap()
     }
 
-    func setLabel(connection: IPC.SwiftStreamConnection, label: String?) {
+    func setLabel(label: String?) {
         backing.setLabel(consuming: IPCCoding.WTFString.cxxString(label))
     }
 }

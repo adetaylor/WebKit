@@ -43,6 +43,7 @@ CXX_TYPES_ATTRIBUTE = 'CxxTypes'
 CXX_DECODED_ATTRIBUTE = 'CxxDecoded'
 SWIFT_SYNC_HANDLER_ATTRIBUTE = 'SwiftSyncHandler'
 NOT_USING_IPC_CONNECTION_ATTRIBUTE = 'NotUsingIPCConnection'
+WANTS_CONNECTION_ATTRIBUTE = 'WantsConnection'
 WANTS_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsDispatchMessage'
 WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsAsyncDispatchMessage'
 
@@ -107,6 +108,8 @@ class MessageReceiver(object):
             raise Exception("ERROR: Message %s has 'SwiftTypes' but receiver %s is not a Swift receiver: it needs 'SwiftReceiver' or 'SwiftReceiverBuildEnabledBy='" % (description, self.name))
         if message.has_attribute(CXX_TYPES_ATTRIBUTE) and not self.swift_types:
             raise Exception("ERROR: Message %s has 'CxxTypes' but receiver %s does not have 'SwiftTypes'" % (description, self.name))
+        if message.has_attribute(WANTS_CONNECTION_ATTRIBUTE) and not (self.takes_swift_types(message) and self.has_attribute(STREAM_ATTRIBUTE)):
+            raise Exception("ERROR: Message %s has '%s', which is for messages that take Swift types on a stream" % (description, WANTS_CONNECTION_ATTRIBUTE))
         if not self.takes_swift_types(message):
             for parameter in message.parameters:
                 if parameter.has_attribute(CXX_DECODED_ATTRIBUTE):

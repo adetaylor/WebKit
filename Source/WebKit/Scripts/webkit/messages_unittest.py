@@ -194,6 +194,10 @@ class SwiftReceiverTest(unittest.TestCase):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    [EnabledBy=SomeFeature] Message(uint32_t value)')
         self.assertIn('using OptionalSharedPreferencesForWebProcess', messages.generate_messages_header(receiver))
 
+    def test_wants_connection_is_for_swift_types_on_a_stream(self):
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'WantsConnection', which is for messages that take Swift types on a stream"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message(uint32_t value) WantsConnection')
+
     def test_swift_types_off_the_main_thread(self):
         for attribute in ['AnyThread', 'MainThreadCallback']:
             receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
