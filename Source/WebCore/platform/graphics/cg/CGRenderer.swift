@@ -2679,6 +2679,10 @@ extension CGRendererCore {
 
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveSetStrokeThickness(_ thickness: Float) {
+        // As GraphicsContext's setter, which leaves 0 for -0.
+        guard state.strokeThickness != thickness else {
+            return
+        }
         cxxStaleProperties |= CxxStateChange.strokeThickness
         setStrokeThickness(thickness)
     }
@@ -2697,6 +2701,9 @@ extension CGRendererCore {
 
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveSetAlpha(_ alpha: Float) {
+        guard state.alpha != alpha else {
+            return
+        }
         cxxStaleProperties |= CxxStateChange.alpha
         setAlpha(alpha)
     }
