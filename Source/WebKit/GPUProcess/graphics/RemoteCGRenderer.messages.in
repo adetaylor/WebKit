@@ -26,47 +26,49 @@
 # directly (RemoteCGRenderer.swift), which RemoteImageBufferGraphicsContext lends each handler. They share the stream and
 # the destination with the image buffer's RemoteGraphicsContext, which takes the rest, so they stay in order with them.
 # The renderer declines some draws, which go back to RemoteImageBufferGraphicsContext.
+# They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t.
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     SwiftReceiver,
-    SwiftReceiverStateLender=WebKit::RemoteImageBufferGraphicsContext
+    SwiftReceiverStateLender=WebKit::RemoteImageBufferGraphicsContext,
+    MessagesFrom=RemoteGraphicsContext
 ]
 messages -> RemoteCGRenderer Stream {
-    Save() StreamBatched
-    Restore() StreamBatched
-    Translate(float x, float y) StreamBatched
-    Rotate(float angle) StreamBatched
-    Scale(WebCore::FloatSize scale) StreamBatched
-    SetCTM(WebCore::AffineTransform ctm) StreamBatched
-    ConcatCTM(WebCore::AffineTransform ctm) StreamBatched
+    Save
+    Restore
+    Translate
+    Rotate
+    Scale
+    SetCTM
+    ConcatCTM
     SetFillPackedColor(uint32_t color) StreamBatched
     SetStrokePackedColor(uint32_t color) StreamBatched
     SetStrokePackedColorAndThickness(uint32_t color, float thickness) StreamBatched
-    SetFillRule(enum:bool WebCore::WindRule rule) StreamBatched
-    SetStrokeThickness(float thickness) StreamBatched
-    SetStrokeStyle(enum:uint8_t WebCore::StrokeStyle style) StreamBatched
-    SetCompositeMode(struct WebCore::CompositeMode mode) StreamBatched
-    SetAlpha(float alpha) StreamBatched
-    SetImageInterpolationQuality(enum:uint8_t WebCore::InterpolationQuality quality) StreamBatched
-    SetShouldAntialias(bool shouldAntialias) StreamBatched
-    SetShouldSmoothFonts(bool shouldSmooth) StreamBatched
-    SetShouldSubpixelQuantizeFonts(bool shouldQuantize) StreamBatched
-    SetLineCap(enum:uint8_t WebCore::LineCap lineCap) StreamBatched
-    SetLineJoin(enum:uint8_t WebCore::LineJoin lineJoin) StreamBatched
-    SetMiterLimit(float limit) StreamBatched
-    Clip(WebCore::FloatRect rect) StreamBatched
-    ClipOut(WebCore::FloatRect rect) StreamBatched
-    ResetClip() StreamBatched
-    DrawLine(WebCore::FloatPoint point1, WebCore::FloatPoint point2) StreamBatched
-    FillRect(WebCore::FloatRect rect, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched SwiftMayDecline
-    FillEllipse(WebCore::FloatRect rect) StreamBatched SwiftMayDecline
-    StrokeRect(WebCore::FloatRect rect, float lineWidth) StreamBatched SwiftMayDecline
-    StrokeEllipse(WebCore::FloatRect rect) StreamBatched SwiftMayDecline
-    ClearRect(WebCore::FloatRect rect) StreamBatched
-    ApplyStrokePattern() StreamBatched
-    ApplyFillPattern() StreamBatched
+    SetFillRule
+    SetStrokeThickness
+    SetStrokeStyle
+    SetCompositeMode
+    SetAlpha
+    SetImageInterpolationQuality
+    SetShouldAntialias
+    SetShouldSmoothFonts
+    SetShouldSubpixelQuantizeFonts
+    SetLineCap
+    SetLineJoin
+    SetMiterLimit
+    Clip
+    ClipOut
+    ResetClip
+    DrawLine
+    FillRect SwiftMayDecline
+    FillEllipse SwiftMayDecline
+    StrokeRect SwiftMayDecline
+    StrokeEllipse SwiftMayDecline
+    ClearRect
+    ApplyStrokePattern
+    ApplyFillPattern
 }
 
 #endif
