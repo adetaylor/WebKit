@@ -390,6 +390,39 @@ void GraphicsContextCG::addSwiftRendererLender()
     ++m_swiftRendererLenders;
 }
 
+void GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverTestMessage& message)
+{
+    bool handled;
+    {
+        auto lend = lendSwiftRenderer(*this);
+        handled = lend.state().applyReceiverMessageForTesting(message);
+    }
+    if (handled)
+        return;
+    FloatRect rect { message.values[0], message.values[1], message.values[2], message.values[3] };
+    switch (static_cast<ReceiverMessageForTesting>(message.message)) {
+    case ReceiverMessageForTesting::FillRect:
+        fillRect(rect, message.integers[0] ? RequiresClipToRect::Yes : RequiresClipToRect::No);
+        break;
+    case ReceiverMessageForTesting::FillEllipse:
+        fillEllipse(rect);
+        break;
+    case ReceiverMessageForTesting::StrokeRect:
+        strokeRect(rect, message.values[4]);
+        break;
+    case ReceiverMessageForTesting::StrokeEllipse:
+        strokeEllipse(rect);
+        break;
+    default:
+        break;
+    }
+}
+
+unsigned GraphicsContextCG::rendererSavedLevelCountForTesting() const
+{
+    return SWIFT_RENDERER(savedLevelCount());
+}
+
 void GraphicsContextCG::removeSwiftRendererLender()
 {
     RELEASE_ASSERT(m_swiftRendererLenders);

@@ -217,6 +217,13 @@ struct CGRendererStateSnapshot {
     uint32_t pendingCxxRestores;
 };
 
+// Testing only: a message of RemoteCGRenderer's and its arguments (GraphicsContextCG::applyReceiverMessageForTesting()).
+struct CGRendererReceiverTestMessage {
+    uint8_t message; // GraphicsContextCG::ReceiverMessageForTesting.
+    float values[6]; // A rect is x, y, width, height; a transform a, b, c, d, tx, ty; a line x1, y1, x2, y2.
+    uint32_t integers[2]; // A packed colour, an enum's raw value, a Boolean.
+};
+
 // WebCore's process-wide CGColor for an sRGBA8 color (cachedCGColor()).
 CGColorRef _Nonnull CGRendererCopyCachedColor(uint32_t packedColor) CF_RETURNS_RETAINED;
 

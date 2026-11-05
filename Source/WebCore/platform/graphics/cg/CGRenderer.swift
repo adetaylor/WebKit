@@ -2794,6 +2794,55 @@ extension CGRendererCore {
     @_spi(WebKitGPU) public mutating func receiveApplyStrokePattern() {
         applyStrokePattern()
     }
+
+    // Testing only: what RemoteCGRenderer's handler does for the message (GraphicsContextCG::applyReceiverMessageForTesting());
+    // false where it declines it.
+    @_expose(Cxx)
+    mutating func applyReceiverMessageForTesting(_ message: CGRendererReceiverTestMessage) -> Bool {
+        let v = message.values
+        let i = message.integers
+        let rect = CGRect(x: CGFloat(v.0), y: CGFloat(v.1), width: CGFloat(v.2), height: CGFloat(v.3))
+        let transform = CGAffineTransform(a: CGFloat(v.0), b: CGFloat(v.1), c: CGFloat(v.2), d: CGFloat(v.3), tx: CGFloat(v.4), ty: CGFloat(v.5))
+        switch message.message {
+        case 0: receiveSave()
+        case 1: receiveRestore()
+        case 2: receiveTranslate(v.0, v.1)
+        case 3: receiveRotate(v.0)
+        case 4: receiveScale(v.0, v.1)
+        case 5: receiveSetCTM(transform)
+        case 6: receiveConcatCTM(transform)
+        case 7: receiveSetFillPackedColor(i.0)
+        case 8: receiveSetStrokePackedColor(i.0)
+        case 9:
+            receiveSetStrokePackedColor(i.0)
+            receiveSetStrokeThickness(v.0)
+        case 10: receiveSetFillRule(i.0 != 0 ? .EvenOdd : .NonZero)
+        case 11: receiveSetStrokeThickness(v.0)
+        case 12: receiveSetStrokeStyle(WebCore.StrokeStyle(rawValue: UInt8(i.0)) ?? .SolidStroke)
+        case 13: receiveSetCompositeMode(WebCore.CompositeOperator(rawValue: UInt8(i.0)) ?? .SourceOver, WebCore.BlendMode(rawValue: UInt8(i.1)) ?? .Normal)
+        case 14: receiveSetAlpha(v.0)
+        case 15: receiveSetImageInterpolationQuality(WebCore.InterpolationQuality(rawValue: UInt8(i.0)) ?? .Default)
+        case 16: receiveSetShouldAntialias(i.0 != 0)
+        case 17: receiveSetShouldSmoothFonts(i.0 != 0)
+        case 18: receiveSetShouldSubpixelQuantizeFonts(i.0 != 0)
+        case 19: receiveSetLineCap(WebCore.LineCap(rawValue: UInt8(i.0)) ?? .Butt)
+        case 20: receiveSetLineJoin(WebCore.LineJoin(rawValue: UInt8(i.0)) ?? .Miter)
+        case 21: receiveSetMiterLimit(v.0)
+        case 22: receiveClip(rect)
+        case 23: receiveClipOut(rect)
+        case 24: receiveResetClip()
+        case 25: receiveDrawLine(v.0, v.1, v.2, v.3)
+        case 26: return receiveFillRect(rect)
+        case 27: return receiveFillEllipse(rect)
+        case 28: return receiveStrokeRect(rect, v.4)
+        case 29: return receiveStrokeEllipse(rect)
+        case 30: receiveClearRect(rect)
+        case 31: receiveApplyStrokePattern()
+        case 32: receiveApplyFillPattern()
+        default: break
+        }
+        return true
+    }
 }
 
 #endif // ENABLE_WEBCORE_SWIFT && USE_CG

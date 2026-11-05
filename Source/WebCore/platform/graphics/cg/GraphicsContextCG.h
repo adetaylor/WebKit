@@ -179,6 +179,19 @@ public:
     // registers for as long as it can lend (addSwiftRendererLender()); the context must have no lenders when destroyed. C++
     // only: Swift takes the state from the lend's C++ owner.
     static SwiftRendererLend lendSwiftRenderer(GraphicsContextCG&) __attribute__((availability(swift, unavailable)));
+
+    // Testing only, for the differential harness: lends the renderer to what RemoteCGRenderer's handler for the message does,
+    // then draws a message the handler declines as RemoteGraphicsContext's handler would.
+    enum class ReceiverMessageForTesting : uint8_t {
+        Save, Restore, Translate, Rotate, Scale, SetCTM, ConcatCTM, SetFillPackedColor, SetStrokePackedColor,
+        SetStrokePackedColorAndThickness, SetFillRule, SetStrokeThickness, SetStrokeStyle, SetCompositeMode, SetAlpha,
+        SetImageInterpolationQuality, SetShouldAntialias, SetShouldSmoothFonts, SetShouldSubpixelQuantizeFonts, SetLineCap,
+        SetLineJoin, SetMiterLimit, Clip, ClipOut, ResetClip, DrawLine, FillRect, FillEllipse, StrokeRect, StrokeEllipse,
+        ClearRect, ApplyStrokePattern, ApplyFillPattern
+    };
+    WEBCORE_EXPORT void applyReceiverMessageForTesting(const CGRendererReceiverTestMessage&) __attribute__((availability(swift, unavailable)));
+    // Testing only: the renderer's saved levels, which include those only a Swift receiver saved.
+    WEBCORE_EXPORT unsigned rendererSavedLevelCountForTesting() const __attribute__((availability(swift, unavailable)));
     void addSwiftRendererLender() __attribute__((availability(swift, unavailable)));
     void removeSwiftRendererLender() __attribute__((availability(swift, unavailable)));
 
