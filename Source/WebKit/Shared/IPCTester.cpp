@@ -937,7 +937,7 @@ void IPCTester::addSwiftWorkQueueTester(IPC::Connection& connection, uint64_t id
     // Destination 0 would match the messages to every destination.
     if (identifier) {
         Ref forwarder = IPCSwiftWorkQueueTester::init().getMessageReceiver();
-        connection.addWorkQueueMessageReceiver(Messages::IPCSwiftWorkQueueTester::messageReceiverName(), swiftWorkQueueTesterQueue(), forwarder, identifier);
+        forwarder->startReceivingMessages(connection, swiftWorkQueueTesterQueue(), identifier);
     }
     completionHandler();
 }
@@ -972,13 +972,15 @@ void IPCTester::benchmarkWorkQueueDispatch(uint32_t kind, bool swift, uint32_t m
     Ref connection = IPC::Connection::createServerConnection(WTF::move(connectionIdentifiers->server));
     connection->invalidate();
 
+    constexpr uint64_t destinationID = 1;
     RefPtr<IPC::WorkQueueMessageReceiverBase> receiver;
-    if (swift)
-        receiver = IPCSwiftWorkQueueTester::init().getMessageReceiver().ptr();
-    else
+    if (swift) {
+        Ref forwarder = IPCSwiftWorkQueueTester::init().getMessageReceiver();
+        forwarder->startReceivingMessages(connection.get(), swiftWorkQueueTesterQueue(), destinationID);
+        receiver = forwarder.ptr();
+    } else
         receiver = IPCWorkQueueTester::create().ptr();
 
-    constexpr uint64_t destinationID = 1;
     auto replyID = IPC::Connection::AsyncReplyID::generate();
     auto encoder = makeUniqueRef<IPC::Encoder>(IPC::MessageName::IPCWorkQueueTester_BenchEmpty, destinationID);
     auto encode = [&]<typename Message>(Message&& message) {
