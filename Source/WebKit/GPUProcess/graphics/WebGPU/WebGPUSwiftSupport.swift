@@ -366,9 +366,12 @@ extension TextureCopyLocation {
 }
 
 // A Swift receiver's link to the registry that owns it: its entry, which it removes when the web process destructs its
-// object, and the objects its messages name. Weak, so that work still in flight when the registry has gone finds nothing.
+// object, and the objects its messages name, which most messages look up. Strong, because a weak reference costs as much
+// to load as the lookup itself. The cycle through the registry's entries ends when the object heap empties the registry,
+// as it does when it's cleared or destroyed; work still in flight after that finds nothing, and the registry's host, whose
+// pointers are weak, does nothing.
 struct WebGPURegistryLink {
-    private(set) weak var objects: WebGPUImplTable?
+    let objects: WebGPUImplTable?
     let identifier: UInt64
 
     init(_ objects: WebGPUImplTable, _ identifier: UInt64) {
