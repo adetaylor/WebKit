@@ -3433,7 +3433,9 @@ if (APPLE)
     if (ENABLE_WEBGL)
         # The C++ that calls the WebGL island's Swift, through its generated header, WebCoreWebGLSwift-Generated.h.
         list(APPEND WebCore_SWIFT_INTEROP_SOURCES
-            platform/graphics/angle/GLLentMemory.cpp)
+            platform/graphics/angle/GLLentMemory.cpp
+            platform/graphics/angle/GraphicsContextGLANGLE.cpp
+            platform/graphics/cocoa/GraphicsContextGLCocoa.mm)
     endif ()
     foreach (_f IN LISTS WebCore_SWIFT_INTEROP_SOURCES)
         list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_f}( |$)")

@@ -31,7 +31,6 @@
 #include <WebCore/ANGLEUtilities.h>
 #include <WebCore/GCGLSpan.h>
 #include <WebCore/GraphicsContextGL.h>
-#include <WebCore/GraphicsContextGLState.h>
 #include <memory>
 #include <wtf/Function.h>
 #include <wtf/TZoneMalloc.h>
@@ -46,7 +45,7 @@ public:
 
     GCGLDisplay platformDisplay() const;
     GCGLConfig platformConfig() const;
-    NODELETE std::optional<size_t> estimatedMemoryCost() final;
+    std::optional<size_t> LEGACY_NODELETE estimatedMemoryCost() final;
 
     enum class ReleaseThreadResourceBehavior {
         // Releases current context after GraphicsContextGLANGLE calls done in the thread.
@@ -362,15 +361,18 @@ public:
     // Returns columns, rows of executed read on success.
     std::optional<IntSize> readPixelsWithStatus(IntRect, GCGLenum format, GCGLenum type, GCGLboolean packReverseRowOrder, std::span<uint8_t> data);
 
-    NODELETE void addError(GCGLErrorCode);
+    void LEGACY_NODELETE addError(GCGLErrorCode);
 
-    NODELETE EnumSet<GCGLExtension> knownActiveExtensions() const;
-    NODELETE EnumSet<GCGLExtension> requestableExtensions() const;
+    EnumSet<GCGLExtension> LEGACY_NODELETE knownActiveExtensions() const;
+    EnumSet<GCGLExtension> LEGACY_NODELETE requestableExtensions() const;
+
+    // Makes the EGL context of another context, or none, current, for the C++ that switches contexts.
+#if PLATFORM(COCOA)
+    static bool makeCurrent(GCGLDisplay, GCGLContext);
+#endif
 
 protected:
     GraphicsContextGLANGLE(GraphicsContextGLAttributes);
-
-    bool updateErrors();
 
     // Called once by all the public entry points that eventually call OpenGL.
     [[nodiscard]] bool makeContextCurrent();
@@ -386,49 +388,42 @@ protected:
     // the shared state.
     virtual bool platformInitialize();
 
-    bool getBufferSubDataImpl(GCGLenum target, GCGLintptr offset, std::span<uint8_t> data);
-    std::optional<IntSize> readPixelsImpl(IntRect, GCGLenum format, GCGLenum type, std::span<uint8_t> data);
+    void forceContextLost() final;
 
     // Did the most recent drawing operation leave the GPU in an acceptable state?
     void checkGPUStatus();
+    // The platform's part of noticing a GPU reset, before the context is lost.
+    virtual void platformDidLoseDisplay();
 
     RefPtr<PixelBuffer> readRenderingResults();
     virtual RefPtr<PixelBuffer> readCompositedResults() = 0;
     RefPtr<PixelBuffer> readPixelsForPaintResults();
 
-    NODELETE void prepareTexture();
-#if PLATFORM(COCOA)
-    static bool makeCurrent(GCGLDisplay, GCGLContext);
-#endif
+    void LEGACY_NODELETE prepareTexture();
     virtual bool reshapeDrawingBuffer() = 0;
 
-    NODELETE static void platformReleaseThreadResources();
+    static void LEGACY_NODELETE platformReleaseThreadResources();
 
     virtual void invalidateKnownTextureContent(GCGLuint);
-    // Invalidates the known content of the texture bound to the binding point of `target` in the
-    // active texture unit. Must be called with the context current.
-    virtual void invalidateKnownTextureContentForTarget(GCGLenum target);
-    bool supportsExtensionImpl(ASCIILiteral) const;
     // Enables extensions only if all are supported, returns true if all the extensions are supported. No changes if false is returned.
     [[nodiscard]] bool enableExtensionsImpl(std::initializer_list<ASCIILiteral>);
-    bool isExtensionEnabledImpl(ASCIILiteral) const;
 
-    // Only for non-WebGL 2.0 contexts.
-    NODELETE GCGLenum adjustWebGL1TextureInternalFormat(GCGLenum internalformat, GCGLenum format, GCGLenum type);
-    void setPackParameters(GCGLint alignment, GCGLint rowLength, GCGLboolean reverseRowOrder);
-    NODELETE bool validateClearBufferv(GCGLenum buffer, size_t valuesSize);
+    // The GL state of the island the platform code needs.
+    GCGLuint drawingBufferTexture() const;
+    GCGLuint boundReadFramebuffer() const;
+    GCGLuint boundDrawFramebuffer() const;
+    void clampMaxInternalFramebufferSize(IntSize);
+    bool takeFailNextDrawingBufferAllocation();
+    bool failsNextDrawingBufferAllocation() const;
+#if ENABLE(WEBXR)
+    GCGLExternalImage addExternalImage(void* eglImage);
+    GCGLExternalSync addExternalSync(void* eglSync);
+#endif
 
-    HashSet<UTF8CString> m_allRequestableExtensions;
-    HashSet<UTF8CString> m_allEnabledRequestableExtensions;
-    HashSet<UTF8CString> m_extensions;
-    GCGLuint m_texture { 0 };
-    GCGLuint m_fbo { 0 };
-    GCGLErrorCodeSet m_errors;
+    // Destroys the island's own GL objects. The platform calls it with its EGL context still alive.
+    void destroyIsland();
+
     bool m_isForWebGL2 { false };
-    bool m_failNextStatusCheck { false };
-    bool m_failNextDrawingBufferAllocation { false };
-    bool m_failNextRenderbufferAllocation { false };
-    GraphicsContextGLState m_state;
 
     GCGLDisplay m_displayObj { nullptr };
 #if PLATFORM(COCOA)
@@ -441,14 +436,13 @@ protected:
 #if USE(TEXTURE_MAPPER) || USE(COORDINATED_GRAPHICS)
     GCEGLSurface m_surfaceObj { nullptr };
 #endif
-    GCGLint m_packAlignment { 4 };
-    GCGLint m_packRowLength { 0 };
-    GCGLboolean m_packReverseRowOrder { false };
-    uint32_t m_nextExternalImageName { 0 };
-    uint32_t m_nextExternalSyncName { 0 };
-    HashMap<uint32_t, void*, IntHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>> m_eglImages;
-    HashMap<uint32_t, void*, IntHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>> m_eglSyncs;
-    IntSize m_maxInternalFramebufferSize;
+
+private:
+    friend struct GLContextCallbacks;
+    struct Island;
+
+    const uint64_t m_contextID;
+    std::unique_ptr<Island> m_island;
 };
 
 

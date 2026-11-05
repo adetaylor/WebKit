@@ -128,6 +128,7 @@ protected:
     void invalidateKnownTextureContent(GCGLuint) final;
     void invalidateKnownTextureContentForTarget(GCGLenum) final;
     bool reshapeDrawingBuffer() final;
+    void platformDidLoseDisplay() final;
 
     NODELETE IOSurfacePbuffer& drawingBuffer();
     NODELETE IOSurfacePbuffer& displayBuffer();

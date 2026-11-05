@@ -2,7 +2,11 @@
 # its own so that its .swiftmodule and generated C++ header don't sit beside WebCore's, and WebKit's Swift can import it
 # without seeing WebCore's own Swift module.
 add_library(WebCoreWebGL STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/GLContext.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/GLExtensions.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLLog.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/GLScopes.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/GLState.swift
 )
 set_target_properties(WebCoreWebGL PROPERTIES Swift_MODULE_NAME WebCoreWebGL)
 

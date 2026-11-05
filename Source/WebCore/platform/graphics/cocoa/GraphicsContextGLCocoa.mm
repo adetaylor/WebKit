@@ -29,6 +29,7 @@
 #import "GraphicsContextGLCocoa.h"
 
 #import "ANGLEHeaders.h"
+#import "GraphicsContextGLANGLEIsland.h"
 #import "ANGLEUtilities.h"
 #import "ANGLEUtilitiesCocoa.h"
 #import "CVUtilities.h"
@@ -56,11 +57,9 @@
 #endif
 
 #if ENABLE(VIDEO)
+#import "GraphicsContextGLCVCocoa.h"
 #import "MediaPlayerPrivate.h"
-#import "PixelBufferConformerCV.h"
 #import "VideoFrameCV.h"
-#import <pal/spi/cf/CoreVideoSPI.h>
-#import <wtf/cf/TypeCastsCF.h>
 #endif
 
 #import "CoreVideoSoftLink.h"
@@ -73,10 +72,6 @@ namespace WebCore {
 using GL = GraphicsContextGL;
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextGLCocoa);
-
-// This variable is accessed in single-threaded manner.
-// For WK1, this variable is accessed from multiple threads but always sequentially.
-static GraphicsContextGLANGLE* currentContext;
 
 // ANGLE shares one EGLDisplay between all the contexts that are created with the same display attributes.
 // After a GPU reset, the display stays lost and contexts cannot be created on it. The reset increments the
@@ -369,35 +364,22 @@ bool GraphicsContextGLCocoa::platformInitializeExtensions()
 bool GraphicsContextGLCocoa::platformInitialize()
 {
     // Compute platform-specific max internal framebuffer size.
-    m_maxInternalFramebufferSize.clampToMaximumSize(IOSurface::maximumSize());
+    clampMaxInternalFramebufferSize(IOSurface::maximumSize());
     return true;
 }
 
 GraphicsContextGLANGLE::~GraphicsContextGLANGLE()
 {
-    if (makeContextCurrent()) {
-        // A context that is destroyed before it noticed a GPU reset must not leave the lost display to the new contexts.
-        if (GL_GetGraphicsResetStatusEXT() != GL_NO_ERROR)
-            didLoseDisplay(m_displayKey);
-        GL_Disable(DEBUG_OUTPUT);
-        if (m_texture)
-            GL_DeleteTextures(1, &m_texture);
-        if (m_fbo)
-            GL_DeleteFramebuffers(1, &m_fbo);
-    }
+    // A context that is destroyed before it noticed a GPU reset must not leave the lost display to the new contexts.
+    if (m_island && m_island->context.willDestroy())
+        didLoseDisplay(m_displayKey);
     if (m_contextObj) {
-        for (auto* image : m_eglImages.values()) {
-            bool result = EGL_DestroyImageKHR(m_displayObj, image);
-            ASSERT_UNUSED(result, !!result);
-        }
-        for (auto* sync : m_eglSyncs.values()) {
-            bool result = EGL_DestroySync(m_displayObj, sync);
-            ASSERT_UNUSED(result, !!result);
-        }
+        if (m_island)
+            m_island->context.destroyExternalImagesAndSyncs();
         makeCurrent(m_displayObj, EGL_NO_CONTEXT);
         EGL_DestroyContext(m_displayObj, m_contextObj);
     }
-    ASSERT(currentContext != this);
+    ASSERT(!m_island || !m_island->context.isCurrent());
     if (m_displayObj)
         releaseDisplay(m_displayObj, m_displayKey);
 }
@@ -407,28 +389,10 @@ bool GraphicsContextGLCocoa::isDisplayInitializedForTesting(GCGLDisplay display)
     return EGL_QueryString(display, EGL_VENDOR);
 }
 
-bool GraphicsContextGLANGLE::makeContextCurrent()
+void GraphicsContextGLCocoa::platformDidLoseDisplay()
 {
-    if (!m_contextObj)
-        return false;
-    if (currentContext == this)
-        return true;
-    if (!EGL_MakeCurrent(m_displayObj, EGL_NO_SURFACE, EGL_NO_SURFACE, m_contextObj))
-        return false;
-    currentContext = this;
-    return true;
-}
-
-void GraphicsContextGLANGLE::checkGPUStatus()
-{
-    if (isContextLost())
-        return;
-    if (GL_GetGraphicsResetStatusEXT() == GL_NO_ERROR)
-        return;
     RELEASE_LOG(WebGL, "GPU has reset (%p). Lose the context.", this);
     didLoseDisplay(m_displayKey);
-    forceContextLost();
-    makeCurrent(m_displayObj, EGL_NO_CONTEXT);
 }
 
 bool GraphicsContextGLCocoa::reshapeDrawingBuffer()
@@ -468,10 +432,10 @@ RetainPtr<IOSurfaceRef> GraphicsContextGLCocoa::copySurfaceBuffer(SurfaceBuffer 
     // framebuffer resets the binding to 0.
     auto framebufferBindingCleanup = makeScopeExit([&] {
         if (m_isForWebGL2) {
-            GL_BindFramebuffer(GL_DRAW_FRAMEBUFFER, m_state.boundDrawFBO);
-            GL_BindFramebuffer(GL_READ_FRAMEBUFFER, m_state.boundReadFBO);
+            GL_BindFramebuffer(GL_DRAW_FRAMEBUFFER, boundDrawFramebuffer());
+            GL_BindFramebuffer(GL_READ_FRAMEBUFFER, boundReadFramebuffer());
         } else
-            GL_BindFramebuffer(GL_FRAMEBUFFER, m_state.boundDrawFBO);
+            GL_BindFramebuffer(GL_FRAMEBUFFER, boundDrawFramebuffer());
     });
     ScopedFramebuffer flipFBO;
     GL_BindFramebuffer(GL_DRAW_FRAMEBUFFER_ANGLE, flipFBO);
@@ -485,7 +449,7 @@ RetainPtr<IOSurfaceRef> GraphicsContextGLCocoa::copySurfaceBuffer(SurfaceBuffer 
         if (sourceTexture)
             EGL_ReleaseTexImage(m_displayObj, source.pbuffer(), EGL_BACK_BUFFER);
     });
-    GCGLuint sourceTextureName = m_texture;
+    GCGLuint sourceTextureName = drawingBufferTexture();
     if (bufferType == SurfaceBuffer::DisplayBuffer) {
         sourceTexture.emplace();
         GL_BindTexture(TEXTURE_2D, *sourceTexture);
@@ -600,11 +564,11 @@ bool GraphicsContextGLCocoa::bindNextDrawingBuffer()
 
     if (buffer.isInUse())
         retireDrawingBuffer(buffer);
-    else if (buffer && m_failNextDrawingBufferAllocation) {
+    else if (buffer && failsNextDrawingBufferAllocation()) {
         EGL_DestroySurface(m_displayObj, buffer.pbuffer());
         buffer = { };
     }
-    if (std::exchange(m_failNextDrawingBufferAllocation, false))
+    if (takeFailNextDrawingBufferAllocation())
         return false;
     if (!buffer) {
         buffer = createDrawingBuffer();
@@ -613,7 +577,7 @@ bool GraphicsContextGLCocoa::bindNextDrawingBuffer()
     }
 
     ScopedRestoreTextureBinding restoreBinding(TEXTURE_BINDING_2D, TEXTURE_2D);
-    GL_BindTexture(TEXTURE_2D, m_texture);
+    GL_BindTexture(TEXTURE_2D, drawingBufferTexture());
     if (!EGL_BindTexImage(m_displayObj, buffer.pbuffer(), EGL_BACK_BUFFER)) {
         EGL_DestroySurface(m_displayObj, buffer.pbuffer());
         buffer = { };
@@ -686,12 +650,6 @@ void GraphicsContextGLCocoa::releaseIdleSpareDrawingBuffers()
     m_spareDrawingBuffers.removeAllMatching([](auto& spare) {
         return !spare.isAvailable;
     });
-}
-
-bool GraphicsContextGLANGLE::makeCurrent(GCGLDisplay display, GCGLContext context)
-{
-    currentContext = nullptr;
-    return EGL_MakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context);
 }
 
 void* GraphicsContextGLCocoa::createPbufferAndAttachIOSurface(GCGLenum target, PbufferAttachmentUsage usage, GCGLenum internalFormat, GCGLsizei width, GCGLsizei height, GCGLenum type, IOSurfaceRef surface, GCGLuint plane)
@@ -778,29 +736,12 @@ GCGLExternalImage GraphicsContextGLCocoa::createExternalImage(ExternalImageSourc
         addError(GCGLErrorCode::InvalidOperation);
         return { };
     }
-    auto newName = ++m_nextExternalImageName;
-    m_eglImages.add(newName, eglImage);
-    return newName;
+    return addExternalImage(eglImage);
 }
 
 void GraphicsContextGLCocoa::bindExternalImage(GCGLenum target, GCGLExternalImage image)
 {
-    if (!makeContextCurrent())
-        return;
-    EGLImage eglImage = EGL_NO_IMAGE_KHR;
-    if (image) {
-        eglImage = m_eglImages.get(image);
-        if (!eglImage) {
-            addError(GCGLErrorCode::InvalidOperation);
-            return;
-        }
-    }
-    if (target == RENDERBUFFER)
-        GL_EGLImageTargetRenderbufferStorageOES(RENDERBUFFER, eglImage);
-    else {
-        GL_EGLImageTargetTexture2DOES(target, eglImage);
-        invalidateKnownTextureContentForTarget(target);
-    }
+    m_island->context.bindExternalImage(target, image);
 }
 
 bool GraphicsContextGLCocoa::addFoveation(IntSize physicalSizeLeft, IntSize physicalSizeRight, IntSize screenSize, std::span<const GCGLfloat> horizontalSamplesLeft, std::span<const GCGLfloat> verticalSamplesLeft, std::span<const GCGLfloat> horizontalSamplesRight)
@@ -859,9 +800,7 @@ GCGLExternalSync GraphicsContextGLCocoa::createExternalSync(ExternalSyncSource&&
         addError(GCGLErrorCode::InvalidOperation);
         return { };
     }
-    auto newName = ++m_nextExternalSyncName;
-    m_eglSyncs.add(newName, eglSync);
-    return newName;
+    return addExternalSync(eglSync);
 
 }
 
@@ -948,6 +887,15 @@ void GraphicsContextGLCocoa::prepareForDisplayWithFinishedSignal(Function<void()
 }
 
 
+#if ENABLE(VIDEO)
+GraphicsContextGLCV* GraphicsContextGLCocoa::cvContext()
+{
+    if (!m_cv)
+        lazyInitialize(m_cv, GraphicsContextGLCVCocoa::create(*this));
+    return m_cv.get();
+}
+#endif
+
 RefPtr<PixelBuffer> GraphicsContextGLCocoa::readCompositedResults()
 {
     auto& buffer = displayBuffer();
@@ -965,7 +913,7 @@ RefPtr<PixelBuffer> GraphicsContextGLCocoa::readCompositedResults()
         return nullptr;
     GL_TexParameteri(TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     ScopedFramebuffer fbo;
-    ScopedRestoreReadFramebufferBinding fboBinding(m_isForWebGL2, m_state.boundReadFBO, fbo);
+    ScopedRestoreReadFramebufferBinding fboBinding(m_isForWebGL2, boundReadFramebuffer(), fbo);
     GL_FramebufferTexture2D(fboBinding.framebufferTarget(), GL_COLOR_ATTACHMENT0, TEXTURE_2D, texture, 0);
     ASSERT(GL_CheckFramebufferStatus(fboBinding.framebufferTarget()) == GL_FRAMEBUFFER_COMPLETE);
 
@@ -999,11 +947,6 @@ RefPtr<VideoFrame> GraphicsContextGLCocoa::surfaceBufferToVideoFrame(SurfaceBuff
 }
 #endif
 
-void GraphicsContextGLANGLE::platformReleaseThreadResources()
-{
-    currentContext = nullptr;
-}
-
 RefPtr<GraphicsLayerContentsDisplayDelegate> GraphicsContextGLCocoa::layerContentsDisplayDelegate()
 {
     return nullptr;
@@ -1011,53 +954,12 @@ RefPtr<GraphicsLayerContentsDisplayDelegate> GraphicsContextGLCocoa::layerConten
 
 void GraphicsContextGLCocoa::invalidateKnownTextureContent(GCGLuint texture)
 {
-#if ENABLE(VIDEO)
-    m_knownVideoTextureContent.remove(texture);
-#else
-    UNUSED_PARAM(texture);
-#endif
-}
-
-void GraphicsContextGLCocoa::invalidateKnownTextureContentForTarget(GCGLenum target)
-{
-#if ENABLE(VIDEO)
-    if (m_knownVideoTextureContent.isEmpty())
-        return;
-    GLenum binding = 0;
-    switch (target) {
-    case GL_TEXTURE_2D:
-        binding = GL_TEXTURE_BINDING_2D;
-        break;
-    case GL_TEXTURE_CUBE_MAP:
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-        binding = GL_TEXTURE_BINDING_CUBE_MAP;
-        break;
-    case GL_TEXTURE_3D:
-        binding = GL_TEXTURE_BINDING_3D;
-        break;
-    case GL_TEXTURE_2D_ARRAY:
-        binding = GL_TEXTURE_BINDING_2D_ARRAY;
-        break;
-    default:
-        // Unknown binding point, forget everything.
-        m_knownVideoTextureContent.clear();
-        return;
-    }
-    GLint texture = 0;
-    GL_GetIntegerv(binding, &texture);
-    m_knownVideoTextureContent.remove(static_cast<GCGLuint>(texture));
-#else
-    UNUSED_PARAM(target);
-#endif
+    if (m_cv)
+        m_cv->invalidateKnownTextureContent(texture);
 }
 
 // Says how the alpha of the contents of the surface buffers is to be interpreted.
-NODELETE static CGImageAlphaInfo alphaInfoForSurfaceBufferContents(const GraphicsContextGLAttributes& attributes)
+static CGImageAlphaInfo LEGACY_NODELETE alphaInfoForSurfaceBufferContents(const GraphicsContextGLAttributes& attributes)
 {
     if (!attributes.alpha)
         return kCGImageAlphaNoneSkipFirst;
@@ -1108,212 +1010,24 @@ void GraphicsContextGLCocoa::insertFinishedSignalOrInvoke(Function<void()> signa
 }
 
 #if ENABLE(VIDEO)
-static std::optional<EGLint> yuvSampleRangeHint(OSType pixelFormat)
+bool GraphicsContextGLCocoa::copyTextureFromVideoFrame(VideoFrame& videoFrame, PlatformGLObject texture, int32_t level, uint32_t internalFormat, uint32_t format, uint32_t type, bool premultiplyAlpha, bool flipY)
 {
-    switch (pixelFormat) {
-    case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
-#if HAVE(COREVIDEO_COMPRESSED_PIXEL_FORMAT_TYPES)
-    case kCVPixelFormatType_AGX_420YpCbCr8BiPlanarVideoRange:
-#endif
-        return EGL_YUV_NARROW_RANGE_EXT;
-    case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
-#if HAVE(COREVIDEO_COMPRESSED_PIXEL_FORMAT_TYPES)
-    case kCVPixelFormatType_AGX_420YpCbCr8BiPlanarFullRange:
-#endif
-        return EGL_YUV_FULL_RANGE_EXT;
-    default:
-        return std::nullopt;
+    UNUSED_VARIABLE(premultiplyAlpha);
+    auto* contextCV = cvContext();
+    if (!contextCV) {
+        ASSERT(contextCV);
+        recordVideoUploadForTesting(VideoUploadOutcome::Unsupported, 0);
+        return false;
     }
-}
-
-static EGLint yuvColorSpaceHint(CFStringRef matrix)
-{
-    if (matrix && CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_709_2))
-        return EGL_ITU_REC709_EXT;
-    if (matrix && CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_2020))
-        return EGL_ITU_REC2020_EXT;
-    if (matrix && CFEqual(matrix, kCVImageBufferYCbCrMatrix_SMPTE_240M_1995))
-        return EGL_SMPTE_240M_ANGLE;
-    // Assume unknown matrices are ITU R.601.
-    return EGL_ITU_REC601_EXT;
-}
-
-// Returns the EGL_IOSURFACE_ORIENTATION_ANGLE bits that undo the `orientation`, e.g. that move
-// the origin to top left.
-static EGLint iosurfaceOrientation(ImageOrientation::Orientation orientation)
-{
-    // The pbuffer texture image is the surface transformed by: invert y, invert x, swap x and y.
-    // `InvertX` switches between Left and Right. `InvertY` switches between Top and Bottom.
-    // `SwapXY` switches LeftTop to TopLeft. Even number of operations means a rotation, odd
-    // number of operations means a rotation and a flip.
-    constexpr EGLint invertX = EGL_IOSURFACE_ORIENTATION_INVERT_X_ANGLE;
-    constexpr EGLint invertY = EGL_IOSURFACE_ORIENTATION_INVERT_Y_ANGLE;
-    constexpr EGLint swapXY = EGL_IOSURFACE_ORIENTATION_SWAP_XY_ANGLE;
-    switch (orientation) {
-    case ImageOrientation::Orientation::FromImage:
-    case ImageOrientation::Orientation::OriginTopLeft:
-        return 0;
-    case ImageOrientation::Orientation::OriginTopRight:
-        return invertX;
-    case ImageOrientation::Orientation::OriginBottomRight:
-        // Rotated 180 degrees.
-        return invertY | invertX;
-    case ImageOrientation::Orientation::OriginBottomLeft:
-        // Mirrored along the x-axis.
-        return invertY;
-    case ImageOrientation::Orientation::OriginLeftTop:
-        // Mirrored along x-axis and rotated 270 degrees clock-wise.
-        return swapXY;
-    case ImageOrientation::Orientation::OriginRightTop:
-        // Rotated 90 degrees clock-wise.
-        return invertX | swapXY;
-    case ImageOrientation::Orientation::OriginRightBottom:
-        // Mirror along x-axis and rotated 90 degrees clockwise.
-        return invertY | invertX | swapXY;
-    case ImageOrientation::Orientation::OriginLeftBottom:
-        // Rotated 270 degrees clock-wise.
-        return invertY | swapXY;
-    }
-    ASSERT_NOT_REACHED();
-    return 0;
-}
-
-namespace {
-
-// A video frame prepared to be bound as a GL_G8_B8R8_2PLANE_420_UNORM_ANGLE pbuffer.
-struct YUVVideoFrameSource {
-    RetainPtr<IOSurfaceRef> surface;
-    EGLint orientation { 0 };
-    EGLint colorSpaceHint { EGL_ITU_REC601_EXT };
-    EGLint sampleRangeHint { EGL_YUV_NARROW_RANGE_EXT };
-    bool isConverted { false }; // The frame was converted to a pixel format the copy supports.
-};
-
-}
-
-static std::expected<YUVVideoFrameSource, GraphicsContextGLVideoUploadOutcome> yuvVideoFrameSource(VideoFrameCV& videoFrameCV)
-{
-    RetainPtr pixelBuffer = videoFrameCV.pixelBuffer();
-    bool isConverted = false;
-    auto sampleRangeHint = yuvSampleRangeHint(CVPixelBufferGetPixelFormatType(pixelBuffer.get()));
-    if (!sampleRangeHint) {
-        // FIXME: Support more pixel formats without conversion.
-        auto conformer = makeUnique<PixelBufferConformerCV>((__bridge CFDictionaryRef)@{ (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) });
-        pixelBuffer = conformer->convert(pixelBuffer.get());
-        if (!pixelBuffer)
-            return makeUnexpected(GraphicsContextGLVideoUploadOutcome::ConversionFailed);
-        ASSERT(CVPixelBufferGetPixelFormatType(pixelBuffer.get()) == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange);
-        sampleRangeHint = EGL_YUV_FULL_RANGE_EXT;
-        isConverted = true;
-    }
-    RetainPtr surface = CVPixelBufferGetIOSurface(pixelBuffer.get());
-    if (!surface)
-        return makeUnexpected(GraphicsContextGLVideoUploadOutcome::NoIOSurface);
-    return YUVVideoFrameSource {
-        WTF::move(surface),
-        iosurfaceOrientation(videoFrameCV.orientation().orientation()),
-        yuvColorSpaceHint(protect(dynamic_cf_cast<CFStringRef>(CVBufferGetAttachment(pixelBuffer.get(), kCVImageBufferYCbCrMatrixKey, nil))).get()),
-        *sampleRangeHint,
-        isConverted
-    };
-}
-
-// Binds `source` as an oriented YUV pbuffer to a temporary TEXTURE_2D texture and calls `copy` with the texture.
-// The GL errors of the copy are not WebGL errors, rather they cause the function to return CopyFailed. The caller
-// must have moved the pending errors aside.
-template<typename CopyFunction>
-static std::expected<void, GraphicsContextGLVideoUploadOutcome> copyFromYUVVideoFrameSource(EGLDisplay display, EGLConfig config, const YUVVideoFrameSource& source, CopyFunction&& copy)
-{
-    ScopedTexture sourceTexture;
-    ScopedRestoreTextureBinding restoreBinding(GL::TEXTURE_BINDING_2D, GL::TEXTURE_2D);
-    GL_BindTexture(GL::TEXTURE_2D, sourceTexture);
-
-    // The pbuffer has the size of the oriented image.
-    auto width = static_cast<EGLint>(IOSurfaceGetWidth(source.surface.get()));
-    auto height = static_cast<EGLint>(IOSurfaceGetHeight(source.surface.get()));
-    if (source.orientation & EGL_IOSURFACE_ORIENTATION_SWAP_XY_ANGLE)
-        std::swap(width, height);
-    const EGLint surfaceAttributes[] = {
-        EGL_WIDTH, width,
-        EGL_HEIGHT, height,
-        EGL_IOSURFACE_PLANE_ANGLE, 0,
-        EGL_TEXTURE_TARGET, EGL_TEXTURE_2D,
-        EGL_TEXTURE_INTERNAL_FORMAT_ANGLE, GL_G8_B8R8_2PLANE_420_UNORM_ANGLE,
-        EGL_TEXTURE_FORMAT, EGL_TEXTURE_RGBA,
-        EGL_TEXTURE_TYPE_ANGLE, GL_UNSIGNED_BYTE,
-        EGL_YUV_COLOR_SPACE_HINT_EXT, source.colorSpaceHint,
-        EGL_SAMPLE_RANGE_HINT_EXT, source.sampleRangeHint,
-        EGL_IOSURFACE_ORIENTATION_ANGLE, source.orientation,
-        // Only has an effect on the iOS Simulator.
-        EGL_IOSURFACE_USAGE_HINT_ANGLE, EGL_IOSURFACE_READ_HINT_ANGLE,
-        EGL_NONE, EGL_NONE
-    };
-    EGLSurface pbuffer = EGL_CreatePbufferFromClientBuffer(display, EGL_IOSURFACE_ANGLE, source.surface.get(), config, surfaceAttributes);
-    if (!pbuffer)
-        return makeUnexpected(GraphicsContextGLVideoUploadOutcome::PbufferFailed);
-    auto pbufferCleanup = makeScopeExit([display, pbuffer] {
-        EGL_DestroySurface(display, pbuffer);
-    });
-    if (!EGL_BindTexImage(display, pbuffer, EGL_BACK_BUFFER))
-        return makeUnexpected(GraphicsContextGLVideoUploadOutcome::PbufferFailed);
-
-    copy(static_cast<GCGLuint>(sourceTexture));
-
-    EGL_ReleaseTexImage(display, pbuffer, EGL_BACK_BUFFER);
-    if (GL_GetError() != GL_NO_ERROR) {
-        // Drain the rest of the errors, with an arbitrary limit in case of a driver bug.
-        for (unsigned i = 0; i < 100 && GL_GetError() != GL_NO_ERROR; ++i) { }
-        return makeUnexpected(GraphicsContextGLVideoUploadOutcome::CopyFailed);
-    }
-    return { };
-}
-
-bool GraphicsContextGLCocoa::copyTextureFromVideoFrame(VideoFrame& videoFrame, PlatformGLObject texture, GCGLenum target, GCGLint level, GCGLenum internalFormat, GCGLenum type, bool unpackFlipY, bool unpackPremultiplyAlpha)
-{
     RefPtr videoFrameCV = videoFrame.asVideoFrameCV();
     if (!videoFrameCV) {
         ASSERT_NOT_REACHED(); // Programming error.
         recordVideoUploadForTesting(VideoUploadOutcome::Unsupported, 0);
         return false;
     }
-    auto pixelFormat = videoFrameCV->pixelFormat();
-    auto source = yuvVideoFrameSource(*videoFrameCV);
-    if (!source) {
-        recordVideoUploadForTesting(source.error(), pixelFormat);
-        return false;
-    }
-
-    VideoTextureContent content { source->surface, IOSurfaceGetID(source->surface.get()), IOSurfaceGetSeed(source->surface.get()), target, level, internalFormat, type, source->orientation, unpackFlipY, unpackPremultiplyAlpha };
-    auto it = m_knownVideoTextureContent.find(texture);
-    if (it != m_knownVideoTextureContent.end() && it->value == content) {
-        // If the texture hasn't been modified since the last time we copied to it, and the
-        // image hasn't been modified since the last time it was copied, this is a no-op.
-        recordVideoUploadForTesting(VideoUploadOutcome::Cached, pixelFormat);
-        return true;
-    }
-    // A failed copy may have modified the texture.
-    m_knownVideoTextureContent.remove(texture);
-
-    if (!makeContextCurrent()) {
-        recordVideoUploadForTesting(VideoUploadOutcome::ContextLost, pixelFormat);
-        return false;
-    }
-    if (!isExtensionEnabledImpl("GL_CHROMIUM_copy_texture"_s)) {
-        recordVideoUploadForTesting(VideoUploadOutcome::Unsupported, pixelFormat);
-        return false;
-    }
-    // Move the pending errors aside so that the copy errors can be identified.
-    updateErrors();
-    auto result = copyFromYUVVideoFrameSource(platformDisplay(), platformConfig(), *source, [&](GCGLuint sourceTexture) {
-        GL_CopyTextureCHROMIUM(sourceTexture, 0, target, texture, level, internalFormat, type, unpackFlipY, unpackPremultiplyAlpha, GL_FALSE);
-    });
-    if (!result) {
-        recordVideoUploadForTesting(result.error(), pixelFormat);
-        return false;
-    }
-    m_knownVideoTextureContent.set(texture, WTF::move(content));
-    recordVideoUploadForTesting(source->isConverted ? VideoUploadOutcome::Converted : VideoUploadOutcome::Direct, pixelFormat);
-    return true;
+    auto outcome = contextCV->copyVideoSampleToTexture(*videoFrameCV, texture, level, internalFormat, format, type, WebCore::GraphicsContextGL::FlipY(flipY));
+    recordVideoUploadForTesting(outcome, videoFrameCV->pixelFormat());
+    return isSuccessfulVideoUpload(outcome);
 }
 #endif
 
