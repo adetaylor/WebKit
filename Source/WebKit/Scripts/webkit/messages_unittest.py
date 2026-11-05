@@ -350,6 +350,66 @@ messages -> TestReceiver Stream {
             parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t state)')
 
 
+class MessagesFromTest(unittest.TestCase):
+    source = """
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy]
+messages -> SourceReceiver Stream {
+    First(uint32_t value) StreamBatched
+#if USE(CG)
+    Second(WebCore::FloatRect rect) StreamBatched
+#endif
+    WithReply(uint32_t value) -> (uint32_t reply)
+}
+"""
+    taker = """
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftReceiverStateLender=WebKit::Lender%s]
+messages -> TestReceiver Stream {
+%s
+}
+"""
+
+    def parse(self, text):
+        return parser.parse(io.StringIO(text))
+
+    def test_named_messages_take_the_definitions(self):
+        source = self.parse(self.source)
+        taker = self.parse(self.taker % (', MessagesFrom=SourceReceiver', """
+    First
+#if PLATFORM(COCOA)
+    Second SwiftMayDecline
+#endif
+    Own(float value)
+"""))
+        written = self.parse(self.taker % ('', """
+    First(uint32_t value) StreamBatched
+#if PLATFORM(COCOA)
+#if USE(CG)
+    Second(WebCore::FloatRect rect) StreamBatched SwiftMayDecline
+#endif
+#endif
+    Own(float value)
+"""))
+        parser.resolve_message_references([taker, source])
+        self.assertEqual([message.name for message in taker.messages], ['First', 'Second', 'Own'])
+        for generate in (messages.generate_messages_header, messages.generate_message_handler, messages.generate_swift_message_handler):
+            self.assertEqual(generate(taker), generate(written))
+        self.assertEqual([message.name for message in source.messages], ['First', 'Second', 'WithReply'])
+        self.assertFalse(source.messages[1].has_attribute('SwiftMayDecline'))
+
+    def test_errors(self):
+        source = self.parse(self.source)
+        taker = self.parse(self.taker % (', MessagesFrom=SourceReceiver', '    Missing'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver takes message Missing from SourceReceiver, which has no such message"):
+            parser.resolve_message_references([taker, source])
+        taker = self.parse(self.taker % (', MessagesFrom=OtherReceiver', '    First'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'MessagesFrom=OtherReceiver', which is not one of the receivers generated with it"):
+            parser.resolve_message_references([taker, source])
+        # A message taken by name meets the constraints of the receiver that takes it.
+        taker = self.parse(self.taker % (', MessagesFrom=SourceReceiver', '    WithReply'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.WithReply has a reply, which is not supported on a receiver with 'SwiftReceiverStateLender='"):
+            parser.resolve_message_references([taker, source])
+
+
 def parse_sys_argv():
     global reset_results
     for index, arg in enumerate(sys.argv[1:]):

@@ -20,6 +20,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import copy
 import re
 
 from webkit import model
@@ -56,6 +57,7 @@ def parse(file):
     swift_receiver_build_enabled_by = None
     swift_receiver_state_lender = None
     swift_types = False
+    messages_from = None
     destination = None
     messages = []
     conditions = []
@@ -87,6 +89,9 @@ def parse(file):
                     continue
                 if match.group('name') == 'ReceiverName':
                     receiver_name = match.group('value')
+                    continue
+                if match.group('name') == 'MessagesFrom':
+                    messages_from = match.group('value')
                     continue
                 raise Exception("ERROR: Unknown extended attribute  '%s'" % attribute)
             elif attribute == 'SharedPreferencesNeedsConnection':
@@ -204,15 +209,61 @@ def parse(file):
                 raise Exception(f"ERROR: DeferSendingIfSuspended not supported for message {name} since it contains reply parameters")
 
             messages.append(model.Message(name, parameters, reply_parameters, attributes, combine_condition(conditions), validator, enabled_by, enabled_by_exception, enabled_by_conjunction, coalescing_key_indices))
+            continue
+        if messages_from:
+            match = re.fullmatch(r'([A-Za-z_0-9]+)((?:\s+[A-Za-z_0-9]+)*)', line)
+            if match:
+                messages.append(MessageReference(match.group(1), parse_attributes_string(match.group(2).strip()), combine_condition(conditions)))
 
     if receiver_dispatched_from and receiver_dispatched_from_exception:
         raise Exception("ERROR: 'ExceptionForDispatchedFrom' cannot be used together with 'DispatchedFrom=%s'" % receiver_dispatched_from)
     if receiver_dispatched_to and receiver_dispatched_to_exception:
         raise Exception("ERROR: 'ExceptionForDispatchedTo' cannot be used together with 'DispatchedTo=%s'" % receiver_dispatched_to)
 
-    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender)
-    receiver.enforce_swift_types_constraints()
+    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from)
+    if not messages_from:
+        receiver.enforce_swift_types_constraints()
     return receiver
+
+
+# A message that a receiver with 'MessagesFrom=' takes by name from that receiver, with attributes of its own.
+class MessageReference(object):
+    def __init__(self, name, attributes, condition):
+        self.name = name
+        self.attributes = frozenset(attributes or [])
+        self.condition = condition
+
+
+def resolve_message_references(receivers):
+    """Replaces each message that a receiver with 'MessagesFrom=' names with copies of that receiver's definitions of it."""
+    receivers_by_name = {receiver.name: receiver for receiver in receivers}
+    for receiver in receivers:
+        if not receiver.messages_from:
+            continue
+        source = receivers_by_name.get(receiver.messages_from)
+        if not source:
+            raise Exception("ERROR: Receiver %s has 'MessagesFrom=%s', which is not one of the receivers generated with it" % (receiver.name, receiver.messages_from))
+        if source.messages_from:
+            raise Exception("ERROR: Receiver %s has 'MessagesFrom=%s', which takes its own messages from %s" % (receiver.name, source.name, source.messages_from))
+        messages = []
+        for message in receiver.messages:
+            if not isinstance(message, MessageReference):
+                messages.append(message)
+                continue
+            definitions = [definition for definition in source.messages if definition.name == message.name]
+            if not definitions:
+                raise Exception("ERROR: Receiver %s takes message %s from %s, which has no such message" % (receiver.name, message.name, source.name))
+            for definition in definitions:
+                condition = combine_condition([condition for condition in (message.condition, definition.condition) if condition])
+                parameters = [copy.copy(parameter) for parameter in definition.parameters]
+                reply_parameters = [copy.copy(parameter) for parameter in definition.reply_parameters] if definition.reply_parameters is not None else None
+                for parameter in parameters + (reply_parameters or []):
+                    parameter.condition = condition
+                messages.append(model.Message(definition.name, parameters, reply_parameters, definition.attributes | message.attributes, condition,
+                    definition.validator, definition.enabled_by, definition.enabled_by_exception, definition.enabled_by_conjunction,
+                    definition.coalescing_key_indices))
+        receiver.messages = messages
+        receiver.enforce_swift_types_constraints()
 
 
 def parse_attributes_string(attributes_string):

@@ -58,7 +58,7 @@ WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsAsyncDispatchMessage'
 _SWIFT_TYPES_RESERVED_PARAMETER_NAMES = frozenset(['connection', 'decoder', 'replyEncoder', 'reply', 'target'])
 
 class MessageReceiver(object):
-    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False, swift_receiver_state_lender=None):
+    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False, swift_receiver_state_lender=None, messages_from=None):
         self.name = name
         self.superclass = superclass
         self.attributes = frozenset(attributes or [])
@@ -79,6 +79,8 @@ class MessageReceiver(object):
         self.swift_types = swift_types
         # The C++ class that lends the handlers of a Swift stream receiver the state they take inout.
         self.swift_receiver_state_lender = swift_receiver_state_lender
+        # The receiver whose definitions of the messages this one names it takes (parser.resolve_message_references()).
+        self.messages_from = messages_from
 
     def iterparameters(self):
         return itertools.chain((parameter for message in self.messages for parameter in message.parameters),
