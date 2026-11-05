@@ -67,6 +67,15 @@ struct CARingBufferStorageSize {
 };
 static_assert(sizeof(CARingBufferStorageSize) == 24);
 
+// The buffers of a WebAudioBufferList: bytesPerBuffer each, in one flat buffer of flatBufferSize bytes. Not valid if a
+// size overflows.
+struct WebAudioBufferListSizes {
+    uint64_t bytesPerBuffer { 0 };
+    uint64_t flatBufferSize { 0 };
+    bool isValid { false };
+};
+static_assert(sizeof(WebAudioBufferListSizes) == 24);
+
 // What a track renderer's render quantum did: whether it fetched, and how many chunks to ask the writer for.
 struct CARingBufferTrackRenderResult {
     uint64_t signalCount { 0 };

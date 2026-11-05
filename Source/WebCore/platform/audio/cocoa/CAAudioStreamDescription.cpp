@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,7 +25,12 @@
 
 #include "config.h"
 #include "CAAudioStreamDescription.h"
+
 #include <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 namespace WebCore {
 
@@ -35,109 +40,20 @@ CAAudioStreamDescription::~CAAudioStreamDescription() = default;
 
 CAAudioStreamDescription::CAAudioStreamDescription(const AudioStreamBasicDescription &desc)
     : m_streamDescription(desc)
+    , m_format(static_cast<PCMFormat>(caAudioStreamDescriptionFormat(m_streamDescription)))
 {
 }
 
 CAAudioStreamDescription::CAAudioStreamDescription(double sampleRate, uint32_t numChannels, PCMFormat format, IsInterleaved isInterleaved)
+    : m_streamDescription(caAudioStreamDescriptionMake(sampleRate, numChannels, format, isInterleaved == IsInterleaved::Yes))
+    , m_format(static_cast<PCMFormat>(caAudioStreamDescriptionFormat(m_streamDescription)))
 {
-    m_streamDescription.mFormatID = kAudioFormatLinearPCM;
-    m_streamDescription.mSampleRate = sampleRate;
-    m_streamDescription.mFramesPerPacket = 1;
-    m_streamDescription.mChannelsPerFrame = numChannels;
-    m_streamDescription.mBytesPerFrame = 0;
-    m_streamDescription.mBytesPerPacket = 0;
-    m_streamDescription.mFormatFlags = static_cast<AudioFormatFlags>(kAudioFormatFlagsNativeEndian) | static_cast<AudioFormatFlags>(kAudioFormatFlagIsPacked);
-    m_streamDescription.mReserved = 0;
-
-    int wordsize;
-    switch (format) {
-    case Uint8:
-        wordsize = 1;
-        break;
-    case Int16:
-        wordsize = 2;
-        m_streamDescription.mFormatFlags |= kAudioFormatFlagIsSignedInteger;
-        break;
-    case Int24:
-        wordsize = 3;
-        m_streamDescription.mFormatFlags |= kAudioFormatFlagIsSignedInteger;
-        break;
-    case Int32:
-        wordsize = 4;
-        m_streamDescription.mFormatFlags |= kAudioFormatFlagIsSignedInteger;
-        break;
-    case Float32:
-        wordsize = 4;
-        m_streamDescription.mFormatFlags |= kAudioFormatFlagIsFloat;
-        break;
-    case Float64:
-        wordsize = 8;
-        m_streamDescription.mFormatFlags |= kAudioFormatFlagIsFloat;
-        break;
-    case None:
-        ASSERT_NOT_REACHED();
-        wordsize = 0;
-        break;
-    }
-
-    m_streamDescription.mBitsPerChannel = wordsize * 8;
-    if (isInterleaved == IsInterleaved::Yes)
-        m_streamDescription.mBytesPerFrame = m_streamDescription.mBytesPerPacket = wordsize * numChannels;
-    else {
-        m_streamDescription.mFormatFlags |= kAudioFormatFlagIsNonInterleaved;
-        m_streamDescription.mBytesPerFrame = m_streamDescription.mBytesPerPacket = wordsize;
-    }
 }
 
 const PlatformDescription& CAAudioStreamDescription::platformDescription() const
 {
     m_platformDescription = { PlatformDescription::CAAudioStreamBasicType, &m_streamDescription };
     return m_platformDescription;
-}
-
-AudioStreamDescription::PCMFormat CAAudioStreamDescription::format() const
-{
-    if (m_format != None)
-        return m_format;
-    if (m_streamDescription.mFormatID != kAudioFormatLinearPCM)
-        return None;
-    if (m_streamDescription.mFramesPerPacket != 1)
-        return None;
-    if (m_streamDescription.mBytesPerFrame != m_streamDescription.mBytesPerPacket)
-        return None;
-    if (!m_streamDescription.mChannelsPerFrame)
-        return None;
-    if (!isNativeEndian())
-        return None;
-    if (m_streamDescription.mBitsPerChannel % 8)
-        return None;
-    uint32_t bytesPerSample = m_streamDescription.mBitsPerChannel / 8;
-    uint32_t numChannelsPerFrame = numberOfInterleavedChannels();
-    if (m_streamDescription.mBytesPerFrame % numChannelsPerFrame)
-        return None;
-    if (m_streamDescription.mBytesPerFrame / numChannelsPerFrame != bytesPerSample)
-        return None;
-    std::optional<PCMFormat> format;
-    auto asbdFormat = m_streamDescription.mFormatFlags & (kLinearPCMFormatFlagIsFloat | kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagsSampleFractionMask);
-    if (asbdFormat == kLinearPCMFormatFlagIsFloat) {
-        if (bytesPerSample == sizeof(float))
-            format = Float32;
-        else if (bytesPerSample == sizeof(double))
-            format = Float64;
-    } else if (asbdFormat == kLinearPCMFormatFlagIsSignedInteger) {
-        if (bytesPerSample == sizeof(int16_t))
-            format = Int16;
-        else if (bytesPerSample == sizeof(int32_t))
-            format = Int32;
-        else if (bytesPerSample == 3)
-            format = Int24;
-    } else if (bytesPerSample == sizeof(uint8_t))
-        format = Uint8;
-
-    if (!format)
-        return None;
-    m_format = *format;
-    return m_format;
 }
 
 bool operator==(const AudioStreamBasicDescription& a, const AudioStreamBasicDescription& b)
@@ -231,11 +147,6 @@ bool CAAudioStreamDescription::operator==(const AudioStreamDescription& other) c
 }
 
 const AudioStreamBasicDescription& CAAudioStreamDescription::streamDescription() const
-{
-    return m_streamDescription;
-}
-
-AudioStreamBasicDescription& CAAudioStreamDescription::streamDescription()
 {
     return m_streamDescription;
 }

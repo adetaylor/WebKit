@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,10 @@
 
 #include <pal/cf/CoreMediaSoftLink.h>
 
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
+
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(WebAudioBufferList);
@@ -61,24 +65,12 @@ WebAudioBufferList::WebAudioBufferList(const CAAudioStreamDescription& format, s
 
 WebAudioBufferList::~WebAudioBufferList() = default;
 
-NODELETE static inline std::optional<std::pair<size_t, size_t>> computeBufferSizes(uint32_t numberOfInterleavedChannels, uint32_t bytesPerFrame, uint32_t numberOfChannelStreams, size_t sampleCount)
+static std::optional<std::pair<size_t, size_t>> computeBufferSizes(uint32_t numberOfInterleavedChannels, uint32_t bytesPerFrame, uint32_t numberOfChannelStreams, size_t sampleCount)
 {
-    size_t totalSampleCount;
-    bool result = WTF::safeMultiply(sampleCount, numberOfInterleavedChannels, totalSampleCount);
-    if (!result)
+    auto sizes = webAudioBufferListSizes(numberOfInterleavedChannels, bytesPerFrame, numberOfChannelStreams, sampleCount);
+    if (!sizes.isValid)
         return { };
-
-    size_t bytesPerBuffer;
-    result = WTF::safeMultiply(bytesPerFrame, totalSampleCount, bytesPerBuffer);
-    if (!result)
-        return { };
-
-    size_t flatBufferSize;
-    result = WTF::safeMultiply(numberOfChannelStreams, bytesPerBuffer, flatBufferSize);
-    if (!result)
-        return { };
-
-    return std::make_pair(bytesPerBuffer, flatBufferSize);
+    return std::make_pair(static_cast<size_t>(sizes.bytesPerBuffer), static_cast<size_t>(sizes.flatBufferSize));
 }
 
 bool WebAudioBufferList::isSupportedDescription(const CAAudioStreamDescription& format, size_t sampleCount)
