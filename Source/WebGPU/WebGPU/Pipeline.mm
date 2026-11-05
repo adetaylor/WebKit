@@ -35,7 +35,6 @@
 #import "CxxBridging.h"
 #import <WebGPU/CxxBridgingPublic.h>
 #import <WebGPU/WebGPU.h>
-#import "WebGPUSwift-Generated.h"
 #endif
 
 #if !defined(NDEBUG) || (defined(ENABLE_LIBFUZZER) && ENABLE_LIBFUZZER && defined(ASAN_ENABLED) && ASAN_ENABLED)

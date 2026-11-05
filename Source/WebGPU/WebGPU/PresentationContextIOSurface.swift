@@ -52,23 +52,6 @@ public struct GPUCanvasConfiguration {
 }
 
 extension GPUCanvasConfiguration {
-    // A C++ caller's configuration, whose device is `device`.
-    init(_ configuration: borrowing WebGPU.CanvasConfiguration, _ device: DeviceReference) {
-        self.init(device: device)
-        format = configuration.format
-        usage = configuration.usage.toRaw()
-        let viewFormatsSpan: Span<WebGPU.TextureFormat> = configuration.viewFormatsSpan()
-        viewFormats.reserveCapacity(viewFormatsSpan.count)
-        for index in viewFormatsSpan.indices {
-            viewFormats.append(viewFormatsSpan[index])
-        }
-        colorSpace = configuration.colorSpace
-        toneMappingMode = configuration.toneMappingMode
-        compositingAlphaMode = configuration.compositingAlphaMode
-        reportValidationErrors = configuration.reportValidationErrors
-        width = configuration.width
-        height = configuration.height
-    }
 }
 
 @_spi(WebKitGPU)
@@ -80,23 +63,19 @@ extension PresentationContextIOSurfaceImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture: the texture the canvas draws into for the
     // frame, or an invalid texture if the frame isn't one of the configuration's. nil before the first configure().
-    @_expose(!Cxx)
     public func getCurrentTexture(_ frameIndex: UInt32) -> TextureReference? {
         currentTexture(frameIndex)
     }
 
     // An IOSurface object rather than an IOSurfaceRef, which CoreGraphics declares as well as IOSurface.
-    @_expose(!Cxx)
     public func addRenderBuffer(_ surface: IOSurface) {
         appendIOSurface(surface as IOSurfaceRef)
     }
 
-    @_expose(!Cxx)
     public var lastFrameGPUCost: Double {
         lastDrainedFrameGPUCostSeconds()
     }
 
-    @_expose(!Cxx)
     public var lastFramePresentStall: Double {
         lastFramePresentStallSeconds()
     }
@@ -104,7 +83,6 @@ extension PresentationContextIOSurfaceImpl {
 
 // The state of a canvas context that presents through the compositor's IOSurfaces, held by its Swift callers. Used only
 // on its Instance's API thread: the compositor calls back on the work queue.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
     private struct RenderBuffer {
@@ -152,7 +130,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
 
     // The compositor has recreated its render buffers, which it then adds: the canvas draws into them from the next
     // configure().
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func renderBuffersWereRecreated() {
         existingRenderBuffers = renderBuffers
@@ -176,7 +153,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func configure(_ configuration: GPUCanvasConfiguration) {
         let deviceImpl = configuration.device
@@ -426,7 +402,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func unconfigure() {
         ioSurfaces = []
@@ -462,7 +437,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         backingLastFramePresentStall = Double(seconds) + Double(attoseconds) * 1e-18
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func present(_ currentIndex: UInt32) {
         guard isValidFrameIndex(currentIndex), let configured = configuredDevice.first else {
@@ -509,7 +483,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
     }
 
     // currentFrameTexture(), or the invalid texture if the frame isn't a configured one.
-    @_expose(!Cxx)
     func currentTexture(_ index: UInt32) -> TextureImpl? {
         guard validateCurrentTextureIndex(index) else {
             return invalidTextures.first
@@ -581,7 +554,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
 
     // The completion runs once the configured device's queue has scheduled the work submitted so far: at once without a
     // device, or once it is lost.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func onSubmittedWorkScheduled(_ completion: @escaping () -> Void) {
         guard let device = configuredDevice.first else {
@@ -596,7 +568,6 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         lastDrainedFrameGPUCost
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func isValid() -> Bool {
         true

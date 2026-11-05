@@ -66,29 +66,6 @@ private func makeIdentifierRanges(xidContinue: Bool) -> [UInt32] {
 
 // MARK: - Strings
 
-// One memcpy from the WTF::String into Swift-owned storage, which the compiler then takes over.
-func wgslSourceText(_ string: borrowing WTF.String) -> SourceText {
-    let length = Int(string.length())
-    if string.is8Bit() {
-        var codeUnits = ContiguousArray<UInt8>(repeating: 0, count: length)
-        var destination = codeUnits.mutableSpan
-        WGSL.Interop.copyLatin1CodeUnits(string, &destination)
-        return SourceText(latin1: codeUnits)
-    }
-    var codeUnits = ContiguousArray<UInt16>(repeating: 0, count: length)
-    var destination = codeUnits.mutableSpan
-    WGSL.Interop.copyUTF16CodeUnits(string, &destination)
-    return SourceText(utf16: codeUnits)
-}
-
-// nil iff `string.isNull()`. An empty but non-null String is an empty Name.
-func wgslName(_ string: borrowing WTF.String) -> Name? {
-    if string.isNull() {
-        return nil
-    }
-    return makeName(string)
-}
-
 // A null String is an empty Name.
 func makeName(_ string: borrowing WTF.String) -> Name {
     let length = Int(string.length())

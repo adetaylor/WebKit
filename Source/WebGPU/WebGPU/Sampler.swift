@@ -29,7 +29,6 @@ import WebGPU_Private.WebGPUCpp
 
 // https://gpuweb.github.io/gpuweb/#gpusampler, which Swift callers hold. API thread only; the process-wide
 // MTLSamplerState pool it leases from is the Mutex-protected `samplerStates` below.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class SamplerImpl: GPUObjectReference {
     fileprivate struct Configuration {
@@ -75,7 +74,6 @@ public final class SamplerImpl: GPUObjectReference {
         }
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         configuration != nil
     }
@@ -84,7 +82,6 @@ public final class SamplerImpl: GPUObjectReference {
         label = newLabel
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setLabel(_ newLabel: Swift.String?) {
         label = WTF.String(newLabel ?? "")
@@ -118,10 +115,6 @@ public final class SamplerImpl: GPUObjectReference {
 @_spi(WebKitGPU)
 public typealias SamplerReference = SamplerImpl
 
-@_spi(WebKitGPU)
-extension SamplerImpl {
-}
-
 // https://gpuweb.github.io/gpuweb/#dictdef-gpusamplerdescriptor, without its label.
 @_spi(WebKitGPU)
 public struct GPUSamplerDescriptor {
@@ -139,24 +132,6 @@ public struct GPUSamplerDescriptor {
 
     public init() {
     }
-
-    init(_ descriptor: WebGPU.SamplerDescriptor) {
-        addressModeU = descriptor.addressModeU
-        addressModeV = descriptor.addressModeV
-        addressModeW = descriptor.addressModeW
-        magFilter = descriptor.magFilter
-        minFilter = descriptor.minFilter
-        mipmapFilter = descriptor.mipmapFilter
-        lodMinClamp = descriptor.lodMinClamp
-        lodMaxClamp = descriptor.lodMaxClamp
-        compare = Optional(fromCxx: descriptor.compare)
-        maxAnisotropy = descriptor.maxAnisotropy
-    }
-}
-
-// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
-func createSamplerImpl(_ deviceImpl: DeviceImpl, _ descriptor: WebGPU.SamplerDescriptor) -> SamplerImpl {
-    createSamplerImpl(deviceImpl, GPUSamplerDescriptor(descriptor), label: descriptor.label)
 }
 
 func createSamplerImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUSamplerDescriptor, label: WTF.String) -> SamplerImpl {

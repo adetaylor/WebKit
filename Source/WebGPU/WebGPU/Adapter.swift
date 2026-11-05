@@ -122,10 +122,6 @@ public final class AdapterImpl: GPUObjectReference {
         metalDevice = nil
     }
 
-    func isXRCompatible() -> Bool {
-        xrCompatible
-    }
-
     func hasFeature(_ feature: WebGPU.FeatureName) -> Bool {
         features.contains(feature)
     }

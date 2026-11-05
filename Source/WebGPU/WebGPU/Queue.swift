@@ -122,21 +122,6 @@ func hasUnifiedMemory(_ deviceImpl: DeviceImpl) -> Bool {
     #endif
 }
 
-// A C++ caller's CompletionHandler<void(bool)>, called at most once: Swift owns it from the hand-over on.
-final class BoolCompletionHandlerBox {
-    private var handler: WTF.BoolCompletionHandler?
-
-    init(_ handler: consuming WTF.BoolCompletionHandler) {
-        self.handler = consume handler
-    }
-
-    func call(_ value: Bool) {
-        if var handler = handler.take() {
-            handler(value)
-        }
-    }
-}
-
 // A Swift onSubmittedWorkDone callback, called at most once. The call releases the closure and what it captured.
 private final class OneShotCallback {
     private var callback: ((Bool) -> Void)?

@@ -30,14 +30,9 @@ import WebGPU_Private.WebGPUCpp
 @_spi(WebKitGPU)
 public typealias TextureViewReference = TextureViewImpl
 
-@_spi(WebKitGPU)
-extension TextureViewImpl {
-}
-
 // The state of a GPUTextureView, held by its Swift callers. It
 // reads the parent's state (destroyed, initialized, canvas backing, rate maps, descriptor) from the parent's
 // TextureImpl. Used only on its Instance's API thread.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class TextureViewImpl: GPUObjectReference {
     // nil only for an invalid view. Replaced by the device placeholder when the parent is destroyed.
@@ -54,7 +49,6 @@ public final class TextureViewImpl: GPUObjectReference {
         parentImpl.physicalMiplevelSpecificTextureExtent(descriptor?.baseMipLevel ?? 0)
     }
     /// The encoders that used the view, cleared only by destroy(); entries of encoders that died are pruned.
-    @_expose(!Cxx)
     var tracking = EncoderTracking()
     // The parent's device, with a reference of the view's own. Declared last, so that it outlives the rest of the view.
     let deviceImpl: DeviceImpl
@@ -76,7 +70,6 @@ public final class TextureViewImpl: GPUObjectReference {
         parentImpl
     }
 
-    @_expose(!Cxx)
     var formatOrDefault: WebGPU.TextureFormat {
         descriptor?.format ?? .Rgba8unorm
     }
@@ -85,24 +78,20 @@ public final class TextureViewImpl: GPUObjectReference {
         setLabel(stringNilIfEmpty(label))
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setLabel(_ label: Swift.String?) {
         backingTexture?.label = label?.isEmpty == false ? label : nil
         backingSampledTexture?.label = backingTexture?.label
     }
 
-    @_expose(Cxx)
     func isDestroyed() -> Bool {
         parentImpl.isDestroyed()
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         backingTexture != nil || parentImpl.isDestroyed()
     }
 
-    @_expose(Cxx)
     func texture() -> (any MTLTexture)? {
         parentImpl.isDestroyed() ? parentImpl.texture() : backingTexture
     }
@@ -118,13 +107,11 @@ public final class TextureViewImpl: GPUObjectReference {
         parentImpl.texture()
     }
 
-    @_expose(!Cxx)
     func parentIsCanvasBacking() -> Bool {
         parentImpl.isCanvasBacking()
     }
 
     // TextureView::destroy, from the parent's destroy.
-    @_expose(!Cxx)
     func destroy() {
         backingTexture = deviceImpl.placeholderTexture(isDepthOrStencilFormat(descriptor?.format ?? .Rgba8unorm))
         backingSampledTexture = nil
@@ -147,18 +134,12 @@ public final class TextureViewImpl: GPUObjectReference {
         }
     }
 
-    // 0 for an invalid view.
-    func parentRelativeMipLevel() -> UInt32 {
-        UInt32(truncatingIfNeeded: backingTexture?.parentRelativeLevel ?? 0)
-    }
-
     func parentRelativeSlice() -> UInt32 {
         UInt32(truncatingIfNeeded: backingTexture?.parentRelativeSlice ?? 0)
     }
 
     /// The regions an attachment view covers at its base mip level and base array layer: its own aspect, or `requested`
     /// when that names one (a depth-stencil attachment records each aspect separately).
-    @_expose(!Cxx)
     func initRegions(selecting requested: WebGPU.TextureAspect) -> InitRegions {
         let viewAspect = descriptor?.aspect ?? .All
         return parentImpl.initRegions(mipLevel: baseMipLevel(), layer: baseArrayLayer(), aspect: requested == .All ? viewAspect : requested)
@@ -168,78 +149,52 @@ public final class TextureViewImpl: GPUObjectReference {
         parentImpl.rasterizationMapForSlice(slice)
     }
 
-    func hasDescriptor() -> Bool {
-        descriptor != nil
-    }
-
-    @_expose(Cxx)
     func width() -> UInt32 {
         physicalExtent.width
     }
 
-    @_expose(Cxx)
     func height() -> UInt32 {
         physicalExtent.height
     }
 
-    @_expose(Cxx)
     func depthOrArrayLayers() -> UInt32 {
         physicalExtent.depthOrArrayLayers
     }
 
-    @_expose(Cxx)
     func sampleCount() -> UInt32 {
         parentImpl.backingSampleCount
     }
 
-    func parentMipLevelCount() -> UInt32 {
-        parentImpl.backingMipLevelCount
-    }
-
-    // The WebGPU enums and the usage OptionSet cross back as raw values; the shell casts them. An invalid
-    // view reports an arbitrary format and dimension, which only the validation that rejects it sees.
-    func parentFormat() -> UInt8 {
-        parentImpl.formatOrDefault.rawValue
-    }
-
-    @_expose(Cxx)
     func format() -> UInt8 {
         (descriptor?.format ?? WebGPU.TextureFormat.Rgba8unorm).rawValue
     }
 
-    @_expose(Cxx)
     func dimension() -> UInt8 {
         (descriptor?.dimension ?? WebGPU.TextureViewDimension._2d).rawValue
     }
 
-    @_expose(Cxx)
     func aspect() -> UInt8 {
         (descriptor?.aspect ?? WebGPU.TextureAspect.All).rawValue
     }
 
     // The descriptor's usage was resolved to the parent texture's usage when the view was created
     // if the view did not narrow it, so this is the set of usages the view itself allows.
-    @_expose(Cxx)
     func usage() -> UInt8 {
         descriptor?.usage ?? 0
     }
 
-    @_expose(Cxx)
     func baseMipLevel() -> UInt32 {
         descriptor?.baseMipLevel ?? 0
     }
 
-    @_expose(Cxx)
     func mipLevelCount() -> UInt32 {
         descriptor?.mipLevelCount ?? 0
     }
 
-    @_expose(Cxx)
     func baseArrayLayer() -> UInt32 {
         descriptor?.baseArrayLayer ?? 0
     }
 
-    @_expose(Cxx)
     func arrayLayerCount() -> UInt32 {
         descriptor?.arrayLayerCount ?? 0
     }
@@ -265,15 +220,6 @@ public final class TextureViewImpl: GPUObjectReference {
     func is3DTexture() -> Bool {
         descriptor?.dimension == WebGPU.TextureViewDimension._3d
     }
-}
-
-func makeInvalidTextureViewImpl(_ parentImpl: TextureImpl) -> TextureViewImpl {
-    TextureViewImpl(
-        texture: nil,
-        sampledTexture: nil,
-        parentImpl: parentImpl,
-        descriptor: nil
-    )
 }
 
 // MARK: - Render pass attachment checks

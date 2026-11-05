@@ -34,12 +34,10 @@ import WebGPU_Private.WebGPUCpp
 // it in executeBundles and updates the ICBs' indirect-draw encode caches.
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class RenderBundleImpl: GPUObjectReference {
     /// Paired with the mutable `mtlResources`.
     let resources: ResourceSet
-    @_expose(!Cxx)
     private(set) var mtlResources: ResourceLists
     let icbs: [BundleICB]
     private let replay: BundleReplay
@@ -58,7 +56,6 @@ public final class RenderBundleImpl: GPUObjectReference {
     // Declared last, so that the device outlives the rest of the bundle.
     let deviceImpl: DeviceImpl
 
-    @_expose(!Cxx)
     init(
         deviceImpl: DeviceImpl,
         resources: ResourceSet,
@@ -91,7 +88,6 @@ public final class RenderBundleImpl: GPUObjectReference {
         self.submitInvalid = submitInvalid
     }
 
-    @_expose(!Cxx)
     init(invalid deviceImpl: DeviceImpl, lastError: String?) {
         self.deviceImpl = deviceImpl
         resources = .empty
@@ -109,7 +105,6 @@ public final class RenderBundleImpl: GPUObjectReference {
         submitInvalid = false
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         replay.isEncoder || isICBBundle
     }
@@ -119,28 +114,23 @@ public final class RenderBundleImpl: GPUObjectReference {
     }
 
     // As WTF::String::createNSString() makes the label for setLabel(NSString), a null one is empty.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setLabel(_ label: Swift.String?) {
         icbs.first?.indirectCommandBuffer.label = label ?? ""
     }
 
-    @_expose(!Cxx)
     func registerAsResourceHolder() {
         resources.registerRenderBundleHolder(self)
     }
 
-    @_expose(!Cxx)
     func requiresCommandReplay() -> Bool {
         replay.isEncoder
     }
 
-    @_expose(!Cxx)
     func drawCount() -> UInt64 {
         commandCount
     }
 
-    @_expose(!Cxx)
     func lastError() -> String? {
         if case .none(let lastError) = replay {
             return lastError
@@ -148,13 +138,11 @@ public final class RenderBundleImpl: GPUObjectReference {
         return nil
     }
 
-    @_expose(!Cxx)
     func makeSubmitInvalid() -> Bool {
         submitInvalid
     }
 
     // Writes the depth range into each ICB's fragment dynamic-offset buffer when it changed.
-    @_expose(!Cxx)
     func updateMinMaxDepths(_ newMinDepth: Float, _ newMaxDepth: Float) {
         if minDepth == newMinDepth && maxDepth == newMaxDepth {
             return
@@ -175,7 +163,6 @@ public final class RenderBundleImpl: GPUObjectReference {
         }
     }
 
-    @_expose(!Cxx)
     func validateRenderPass(_ attachments: PassAttachments) -> Bool {
         if attachments.depthReadOnly && !depthReadOnly {
             return false
@@ -227,7 +214,6 @@ public final class RenderBundleImpl: GPUObjectReference {
         return sampleCount == defaultRasterSampleCount
     }
 
-    @_expose(!Cxx)
     func replayCommands(into passImpl: RenderPassEncoderImpl) {
         guard case .encoder(let encoderImpl) = replay else {
             return
@@ -236,7 +222,6 @@ public final class RenderBundleImpl: GPUObjectReference {
     }
 
     // Every group is visited even after a failure.
-    @_expose(!Cxx)
     func rebindSamplersIfNeeded() -> Bool {
         var result = true
         for group in bindGroups {
@@ -245,7 +230,6 @@ public final class RenderBundleImpl: GPUObjectReference {
         return result
     }
 
-    @_expose(!Cxx)
     func releaseDestroyedResources() {
         // Moved out and back, so that no release happens during an access to mtlResources (see BindGroupImpl).
         var lists: ResourceLists = []
@@ -281,7 +265,6 @@ enum BundleReplay {
 @_spi(WebKitGPU)
 extension RenderBundleEncoderReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish. A null label is empty.
-    @_expose(!Cxx)
     public func finish(label: Swift.String?) -> RenderBundleReference {
         finish((label ?? "") as NSString)
     }

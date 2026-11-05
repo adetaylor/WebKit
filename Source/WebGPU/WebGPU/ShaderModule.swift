@@ -53,7 +53,6 @@ final class CheckedModuleBox {
 }
 
 // One per GPUShaderModule, held by its Swift callers, and holding the Device. Pipeline creation reads the reflection and compiles through it directly.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class ShaderModuleImpl: GPUObjectReference {
     // nil == invalid shader module.
@@ -103,14 +102,12 @@ public final class ShaderModuleImpl: GPUObjectReference {
         defaultComputeEntryPoint = computeDefault.name
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         checkedModule != nil
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo: errors first, then warnings. What
     // ShaderModule::compilationInfo gives, for a Swift caller.
-    @_expose(!Cxx)
     public func compilationInfo() -> [GPUShaderCompilationMessage] {
         messages.indices.map { index in
             let message = messages[index]
@@ -373,19 +370,7 @@ public struct GPUShaderCompilationMessage {
 @_spi(WebKitGPU)
 public typealias ShaderModuleReference = ShaderModuleImpl
 
-@_spi(WebKitGPU)
-extension ShaderModuleImpl {
-}
-
 // MARK: - Creation
-
-// For Device::createShaderModule, after its device check.
-func createShaderModuleImpl(
-    _ deviceImpl: DeviceImpl,
-    _ descriptor: borrowing WebGPU.ShaderModuleDescriptor
-) -> ShaderModuleImpl {
-    createShaderModuleImpl(deviceImpl, source: wgslSourceText(descriptor.code))
-}
 
 // Device::createShaderModule, for a Swift caller. The descriptor's compilation hints aren't used yet, by either.
 func createShaderModuleImpl(_ deviceImpl: DeviceImpl, code: Swift.String) -> ShaderModuleImpl {

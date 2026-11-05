@@ -31,7 +31,6 @@ import WebGPU_Private.WebGPUCpp
 
 // One per GPUComputePipeline, held by its Swift callers and the passes that set it. The compute pass reads it
 // directly.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class ComputePipelineImpl: GPUObjectReference {
     // nil == invalid pipeline.
@@ -62,7 +61,6 @@ public final class ComputePipelineImpl: GPUObjectReference {
         backingComputePipelineState
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         backingComputePipelineState != nil && pipelineLayoutImpl.isValid()
     }
@@ -177,7 +175,6 @@ struct ComputePipelineInput {
 ///
 /// The C++ resolves the shader module and the layout (the replaced pipeline's or the descriptor's), which Swift cannot
 /// downcast, and sets them with their Impls.
-@_expose(Cxx)
 final class ComputePipelineBuilder {
     private let deviceImpl: DeviceImpl
     private let shaderModuleImpl: ShaderModuleImpl
@@ -195,7 +192,6 @@ final class ComputePipelineBuilder {
     }
 
     // The synchronous createComputePipeline, for a Swift caller.
-    @_expose(!Cxx)
     func create(_ descriptor: ComputePipelineInput) -> ComputePipelineReference {
         var result: [ComputePipelineReference] = []
         create(descriptor, isAsync: false, .synchronous) { pipeline, _ in
@@ -207,7 +203,6 @@ final class ComputePipelineBuilder {
 
     // createComputePipelineAsync and its replacing form. `completion` gets the pipeline, whether it succeeded, and the
     // message it failed with, on a later turn of the API thread.
-    @_expose(!Cxx)
     func createAsync(_ descriptor: ComputePipelineInput, _ completion: @escaping (ComputePipelineReference, Bool, String?) -> Void) {
         let deviceImpl = self.deviceImpl
         let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil

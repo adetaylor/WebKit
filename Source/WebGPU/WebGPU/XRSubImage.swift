@@ -30,10 +30,6 @@ import WebGPU_Private.WebGPUCpp
 
 // The color and depth textures of a device's XR sub-image, per reusable texture index, kept in step with the
 // projection layer. The Device owns the sub-image.
-//
-// No getter returns an Optional FRT: the shell asks hasCurrent*Texture() first and only then calls the
-// non-optional getter.
-@_expose(Cxx)
 final class XRSubImageImpl {
     private var colorTextures: [UInt64: TextureImpl] = [:]
     private var depthTextures: [UInt64: TextureImpl] = [:]
@@ -42,7 +38,6 @@ final class XRSubImageImpl {
     fileprivate init() {
     }
 
-    @_expose(Cxx)
     func update(_ deviceImpl: DeviceImpl, _ projectionLayer: XRProjectionLayerImpl) {
         var colorTexture = projectionLayer.colorTexture
         var depthTexture = projectionLayer.depthTexture
@@ -83,19 +78,16 @@ final class XRSubImageImpl {
         depthTextures[textureIndex] = makeXRTexture(depthTexture, targetDepthStencilFormat, targetDepthStencilFormat, deviceImpl)
     }
 
-    @_expose(!Cxx)
     var currentColorTextureReference: TextureReference? {
         colorTextures[currentTextureIndex]
     }
 
-    @_expose(!Cxx)
     var currentDepthTextureReference: TextureReference? {
         depthTextures[currentTextureIndex]
     }
 
 }
 
-@_expose(Cxx)
 func makeXRSubImageImpl() -> XRSubImageImpl {
     XRSubImageImpl()
 }

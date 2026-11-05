@@ -466,7 +466,6 @@ private struct IndirectEncodeWork {
 // from the device's uncaptured-error callback, so no method holds an access to a stored property across such a call.
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class RenderPassEncoderImpl: GPUObjectReference {
     // nil while the pass is deferred, and once it is invalid, has ended or no longer holds its command
@@ -475,7 +474,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     // Non-nil only while the pass is deferred: cleared when the encoder is materialized, when the pass ends
     // and when the pass is invalidated.
     private var deferredDescriptor: MTLRenderPassDescriptor?
-    @_expose(!Cxx)
     let parentImpl: CommandEncoderImpl
     private let limits: EncoderLimits
     private let maxVerticesPerDrawCall: UInt32
@@ -595,7 +593,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
 
     // MARK: State machine
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         backingRenderCommandEncoder != nil || deferredDescriptor != nil
     }
@@ -621,7 +618,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         return backingRenderCommandEncoder
     }
 
-    @_expose(!Cxx)
     func renderCommandEncoder() -> (any MTLRenderCommandEncoder)? {
         if parentImpl.submitWillBeInvalid() {
             return nil
@@ -691,21 +687,14 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     }
 
     // For RenderBundleEncoderImpl while it replays into this pass.
-    @_expose(!Cxx)
     func invalidate(_ errorString: String?) {
         makeInvalid(errorString)
-    }
-
-    // For the shell's makeInvalid().
-    func invalidateFromCxx(_ errorString: NSString?) {
-        makeInvalid(errorString as String?)
     }
 
     // MARK: Attachments
 
     // Handed in by the command encoder that began the pass: each color attachment, its resolve target, then the
     // depth-stencil attachment.
-    @_expose(!Cxx)
     func appendAttachments(_ descriptor: GPURenderPassDescriptor) {
         for (slot, attachment) in descriptor.colorAttachments.enumerated() {
             guard let attachment else {
@@ -964,7 +953,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     }
 
     // For bind-group and bundle records.
-    @_expose(!Cxx)
     func addResourceToActiveResources(_ tracking: TrackingInfo, _ usage: EntryUsage, _ impl: TrackedImpl) {
         switch impl {
         case .buffer(let buffer):
@@ -1016,7 +1004,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     }
 
     // Records the parent encoder on the resource; returns whether the pass has an encoder.
-    @_expose(!Cxx)
     func trackUse(_ impl: TrackedImpl) -> Bool {
         impl.setCommandEncoder(parentImpl)
         return renderCommandEncoder() != nil
@@ -1774,7 +1761,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         primitiveType == .lineStrip || primitiveType == .triangleStrip ? 1 : 0
     }
 
-    @_expose(!Cxx)
     func clampIndexBufferToValidValues(
         _ indexCount: UInt32,
         _ instanceCount: UInt32,
@@ -1889,7 +1875,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     }
 
     // nil when nothing may be drawn; otherwise the caller splits the pass and draws with the result.
-    @_expose(!Cxx)
     func clampIndirectIndexBufferToValidValues(
         _ indexBuffer: BufferImpl?,
         _ arguments: IndirectArgumentsRange?,
@@ -1968,7 +1953,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     }
 
     // nil when nothing may be drawn; otherwise the caller splits the pass and draws with the result.
-    @_expose(!Cxx)
     func clampIndirectBufferToValidValues(
         _ arguments: IndirectArgumentsRange?,
         _ bounds: VertexInstanceBounds,
@@ -2474,10 +2458,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         maxDynamicOffsetAtIndex = SIMD32()
     }
 
-    func appendPendingBundle(_ bundleImpl: RenderBundleImpl) {
-        pendingBundles.append(bundleImpl)
-    }
-
     func executeBundles() {
         let bundles = pendingBundles
         pendingBundles = []
@@ -2516,7 +2496,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     // MARK: WebGPU::RenderPassEncoder
     // Each "failed as encoding has finished" message names the entry point with its C++ __PRETTY_FUNCTION__ spelling.
 
-    @_expose(Cxx)
     @_spi(WebKitGPU)
     public func draw(_ vertexCount: UInt32, _ instanceCount: UInt32, _ firstVertex: UInt32, _ firstInstance: UInt32) {
         if encodingHasFinished() {
@@ -2559,7 +2538,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
             )
     }
 
-    @_expose(Cxx)
     @_spi(WebKitGPU)
     public func drawIndexed(_ indexCount: UInt32, _ instanceCount: UInt32, _ firstIndex: UInt32, _ baseVertex: Int32, _ firstInstance: UInt32) {
         if encodingHasFinished() {
@@ -2677,7 +2655,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         }
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func drawIndexedIndirect(_ indirectBuffer: BufferImpl, _ indirectOffset: UInt64) {
         if encodingHasFinished() {
@@ -2772,7 +2749,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
             )
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func drawIndirect(_ indirectBuffer: BufferImpl, _ indirectOffset: UInt64) {
         if encodingHasFinished() {
@@ -2837,7 +2813,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         visibilityResultBufferSize == UInt.max
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func beginOcclusionQuery(_ initialQueryIndex: UInt32) {
         if encodingHasFinished() {
@@ -2877,7 +2852,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         queryBufferUtilizedIndices.insert(UInt64(queryIndex))
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func endOcclusionQuery() {
         if encodingHasFinished() {
@@ -2899,7 +2873,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         renderCommandEncoder()?.setVisibilityResultMode(.disabled, offset: Int(visibilityResultBufferOffset))
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func endPass() {
         if passEnded {
@@ -2993,7 +2966,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     }
 
     // As WTF::String::createNSString() makes the label for the NSString overloads, a null one is empty.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func insertDebugMarker(_ markerLabel: Swift.String?) {
         let markerLabel = markerLabel ?? ""
@@ -3015,7 +2987,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         parentImpl.isLocked() && debugGroupStackSize != 0
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func popDebugGroup() {
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup
@@ -3040,7 +3011,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         pushDebugGroup(groupLabel as String)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func pushDebugGroup(_ groupLabel: Swift.String?) {
         let groupLabel = groupLabel ?? ""
@@ -3073,7 +3043,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         maxDynamicOffsetAtIndex[Int(groupIndex)] = 0
     }
 
-    @_expose(Cxx)
     func setBindGroup(
         _ groupIndex: UInt32,
         _ groupImpl: BindGroupImpl,
@@ -3171,7 +3140,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         markDynamicOffsetsChanged(groupIndex)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setBlendConstant(_ color: WebGPU.Color) {
         if encodingHasFinished() {
@@ -3187,7 +3155,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         blendColor = color
     }
 
-    @_expose(!Cxx)
     func errorValidatingPipeline(_ pipelineImpl: RenderPipelineImpl) -> String? {
         if !isValidToUse(pipelineImpl.isValid(), pipelineImpl.deviceImpl, with: deviceImpl) {
             return "setPipeline: invalid RenderPipeline"
@@ -3220,7 +3187,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         fragmentDynamicOffsets[2] = pipelineImpl.sampleMask()
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setPipeline(_ pipelineImpl: RenderPipelineImpl) {
         if encodingHasFinished() {
@@ -3246,7 +3212,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         resetDynamicOffsets(pipelineImpl)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setScissorRect(_ x: UInt32, _ y: UInt32, _ width: UInt32, _ height: UInt32) {
         if encodingHasFinished() {
@@ -3300,7 +3265,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         scissorRect = MTLScissorRect(x: Int(x), y: Int(y), width: Int(width), height: Int(height))
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setStencilReference(_ reference: UInt32) {
         if encodingHasFinished() {
@@ -3316,7 +3280,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         stencilReferenceValue = reference & 0xFF
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setViewport(_ x: Float, _ y: Float, _ width: Float, _ height: Float, _ minDepth: Float, _ maxDepth: Float) {
         if encodingHasFinished() {
@@ -3480,14 +3443,12 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         setLabel(label as String)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setLabel(_ label: Swift.String?) {
         backingRenderCommandEncoder?.label = label ?? ""
     }
 
     // setBindGroup, for a Swift caller.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {
         guard let group else {
@@ -3498,14 +3459,12 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     }
 
     // setIndexBuffer, for a Swift caller.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setIndexBuffer(_ buffer: BufferReference, _ format: WebGPU.IndexFormat, _ offset: UInt64, _ size: UInt64?) {
         setIndexBuffer(buffer, format, offset, size != nil, size ?? 0)
     }
 
     // setVertexBuffer, for a Swift caller, which clears the slot without a buffer.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setVertexBuffer(_ slot: UInt32, _ buffer: BufferImpl?, _ offset: UInt64, _ size: UInt64?) {
         guard let buffer else {
@@ -3516,7 +3475,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     }
 
     // executeBundles, for a Swift caller.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func executeBundles(_ bundles: [RenderBundleReference]) {
         pendingBundles.append(contentsOf: bundles)
@@ -3527,7 +3485,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
 
     // Ends the MTLRenderCommandEncoder and continues the pass in a new one once the memory barriers run out,
     // carrying the pass state over. Called by the clamping draws and by RenderBundleEncoderImpl.
-    @_expose(!Cxx)
     func splitRenderPass() -> Bool {
         guard memoryBarrierCount >= limits.memoryBarrierLimit, let encoder = backingRenderCommandEncoder else {
             return false

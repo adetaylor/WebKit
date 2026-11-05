@@ -76,7 +76,6 @@ private func captureFrame(_ captureObject: (any MTLDevice)?) {
     }
 }
 
-@_expose(Cxx)
 func registerForFrameCapture(_ captureObject: (any MTLDevice)?) {
     frameCaptureRegistration
     if frameCapture.withLock({ $0.captureFirstFrame }) {
@@ -95,7 +94,6 @@ func captureSingleFrameIfNeeded(_ captureObject: (any MTLDevice)?) {
     }
 }
 
-@_expose(Cxx)
 func shouldStopCaptureAfterSubmit() -> Bool {
     frameCapture.withLock {
         $0.submitCallsCaptured &+= 1
@@ -118,7 +116,6 @@ private let encoderTimestampsRegistration: Void = WebGPU.Metal.registerNotifyHan
     WebGPU.Metal.logAlways("Encoder timestamps are \(enabled ? "ENABLED" : "DISABLED")")
 }
 
-@_expose(Cxx)
 func enableEncoderTimestamps() -> Bool {
     encoderTimestampsRegistration
     return encoderTimestamps.load(ordering: .relaxed)

@@ -36,7 +36,6 @@
 #import "CxxBridging.h"
 #import <WebGPU/CxxBridgingPublic.h>
 #import <WebGPU/WebGPU.h>
-#import "WebGPUSwift-Generated.h"
 #endif
 
 // FIXME: remove after radar://104903411 or after we place the mask into the last buffer

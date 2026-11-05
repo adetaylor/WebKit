@@ -51,7 +51,6 @@ struct SamplerBinding {
 // One per GPUBindGroup, held by its Swift callers and the encoders and bundles that bound it. Owns the bound resources, the argument buffers, the layout, the samplers and their
 // argument-buffer slots, the dynamic buffers and the per-pipeline validation cache, and runs every check the encoders
 // make on a group. Used only on its Instance's API thread, so not Sendable.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class BindGroupImpl: GPUObjectReference {
     /// nil exactly when the group is invalid.
@@ -62,10 +61,8 @@ public final class BindGroupImpl: GPUObjectReference {
     let argumentBufferAddresses: PerStage<UInt64>
     /// The bound resources; `mtlResources` holds their MTLResources.
     let resources: ResourceSet
-    @_expose(!Cxx)
     private(set) var mtlResources: ResourceLists
     /// In first-use order.
-    @_expose(!Cxx)
     let samplerBindings: [SamplerBinding]
     let dynamicBuffers: [DynamicBufferRecord]
     private let externalTextureIndices: PerStage<WebGPU.Metal.ExternalTextureIndices>
@@ -132,7 +129,6 @@ public final class BindGroupImpl: GPUObjectReference {
         layoutImpl?.counts.dynamicBufferCount ?? 0
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         layoutImpl != nil
     }
@@ -141,7 +137,6 @@ public final class BindGroupImpl: GPUObjectReference {
         setLabel(stringNilIfEmpty(label))
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setLabel(_ label: Swift.String?) {
         let metalLabel = label?.isEmpty == false ? label : nil
@@ -301,7 +296,6 @@ public final class BindGroupImpl: GPUObjectReference {
         return true
     }
 
-    @_expose(!Cxx)
     func releaseDestroyedResources() {
         modifyMTLResources { lists in
             _ = resources.replaceDestroyedResourcesWithPlaceholders(&lists)
@@ -317,7 +311,6 @@ public final class BindGroupImpl: GPUObjectReference {
         swap(&lists, &mtlResources)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func updateExternalTextures(_ externalTexture: ExternalTextureImpl) -> Bool {
         guard let layoutImpl, !externalTexture.hasPendingUsers() else {
@@ -418,47 +411,6 @@ private enum DescriptorResource {
 private struct DescriptorEntry {
     let binding: UInt32
     let resource: DescriptorResource
-}
-
-/// Creates the bind groups of Device::createBindGroup.
-///
-/// createBindGroupImpl appends the descriptor's entries in order, then finish() validates them (the first failure is reported
-/// and gives an invalid Impl) and builds the Impl. One per device (DeviceImpl.bindGroupBuilder), reused: finish() takes
-/// its scratch arrays out before anything can re-enter, and puts them back emptied only if no nested createBindGroup
-/// took over.
-final class BindGroupBuilder {
-    private var entries: [DescriptorEntry] = []
-
-    init() {
-    }
-
-    /// Clears the entries of a creation that never finished.
-    ///
-    /// Checked with a read first, so the usual case makes no modify access.
-    fileprivate func begin() {
-        if !entries.isEmpty {
-            entries.removeAll(keepingCapacity: true)
-        }
-    }
-
-    /// Built by the caller from its own parameters, so that the entry's references are the only ones made.
-    fileprivate func append(_ entry: consuming DescriptorEntry) {
-        entries.append(entry)
-    }
-
-    fileprivate func finish(
-        _ deviceImpl: DeviceImpl,
-        _ layoutImpl: BindGroupLayoutImpl
-    ) -> BindGroupImpl {
-        var entries: [DescriptorEntry] = []
-        swap(&entries, &self.entries)
-        let impl = makeBindGroupImpl(deviceImpl, layoutImpl, &entries)
-        entries.removeAll(keepingCapacity: true)
-        if self.entries.capacity == 0 {
-            swap(&entries, &self.entries)
-        }
-        return impl
-    }
 }
 
 /// Takes the device reference the group keeps.

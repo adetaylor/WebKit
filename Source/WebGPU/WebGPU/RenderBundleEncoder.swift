@@ -271,7 +271,6 @@ func copyDynamicOffsets(_ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsV
 // device's uncaptured-error callback, so no method holds an access to a stored property across any of them.
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class RenderBundleEncoderImpl: GPUObjectReference {
     private var limits: EncoderLimits {
@@ -368,7 +367,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         colorFormats.append(hasFormat ? format : nil)
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         icbDescriptor != nil
     }
@@ -387,7 +385,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         return pass.renderCommandEncoder() != nil && !submitInvalid
     }
 
-    @_expose(Cxx)
     func makeInvalid(_ errorString: NSString?) {
         invalidate(errorString as String?)
     }
@@ -967,7 +964,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         return true
     }
 
-    @_expose(Cxx)
     @_spi(WebKitGPU)
     public func draw(
         _ vertexCount: UInt32,
@@ -1026,7 +1022,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         finalizeRenderCommand(.draw)
     }
 
-    @_expose(Cxx)
     @_spi(WebKitGPU)
     public func drawIndexed(
         _ indexCount: UInt32,
@@ -1183,7 +1178,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         finalizeRenderCommand(.drawIndexed)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func drawIndexedIndirect(
         _ indirectBufferImpl: BufferImpl,
@@ -1292,7 +1286,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         finalizeRenderCommand(.drawIndexed)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func drawIndirect(
         _ indirectBufferImpl: BufferImpl,
@@ -1516,7 +1509,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
     }
 
     // The caller (RenderBundleImpl) holds this encoder, and the pass's caller holds the pass.
-    @_expose(!Cxx)
     func replayCommands(into passImpl: RenderPassEncoderImpl) {
         if passImpl.renderCommandEncoder() == nil || !isValid() || !deviceImpl.isValid() {
             return
@@ -1692,7 +1684,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
     }
 
     // A bundle encoder's state is always open.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func insertDebugMarker() {
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker
@@ -1704,7 +1695,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         }
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func popDebugGroup() {
         if !validToEncodeCommand() {
@@ -1725,7 +1715,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         // MTLIndirectCommandBuffers don't support debug commands.
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func pushDebugGroup() {
         if !validToEncodeCommand() {
@@ -1743,7 +1732,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         // MTLIndirectCommandBuffers don't support debug commands.
     }
 
-    @_expose(Cxx)
     func setBindGroup(
         _ groupIndex: UInt32,
         _ groupImpl: BindGroupImpl,
@@ -2247,7 +2235,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         dynamicOffsetsFragmentContents = []
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setPipeline(_ pipelineImpl: RenderPipelineImpl) {
         if !validToEncodeCommand() {
@@ -2465,7 +2452,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
     }
 
     // In replay mode: drops the map entries of destroyed resources.
-    @_expose(!Cxx)
     func releaseDestroyedResources() {
         if resourcesDropped {
             return
@@ -2522,7 +2508,6 @@ public typealias RenderBundleEncoderReference = RenderBundleEncoderImpl
 @_spi(WebKitGPU)
 extension RenderBundleEncoderImpl {
 
-    @_expose(!Cxx)
     public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {
         guard let group else {
             clearBindGroup(groupIndex, offsets: dynamicOffsets)
@@ -2531,13 +2516,11 @@ extension RenderBundleEncoderImpl {
         setBindGroup(groupIndex, group, offsets: dynamicOffsets)
     }
 
-    @_expose(!Cxx)
     public func setIndexBuffer(_ buffer: BufferReference, _ format: WebGPU.IndexFormat, _ offset: UInt64, _ size: UInt64?) {
         setIndexBuffer(buffer, format, offset, size != nil, size ?? 0)
     }
 
     // Clears the slot without a buffer.
-    @_expose(!Cxx)
     public func setVertexBuffer(_ slot: UInt32, _ buffer: BufferReference?, _ offset: UInt64, _ size: UInt64?) {
         guard let buffer else {
             clearVertexBuffer(slot, offset, size != nil, size ?? 0)
@@ -2547,7 +2530,6 @@ extension RenderBundleEncoderImpl {
     }
 
     // A null label is empty.
-    @_expose(!Cxx)
     public func setLabel(_ label: Swift.String?) {
         setLabel(NSString(string: label ?? ""))
     }

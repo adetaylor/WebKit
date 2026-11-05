@@ -40,7 +40,6 @@ private struct GPUExecutionTimes: Sendable {
 
 // The part of a command buffer that its Metal completion handler touches on a Metal thread, while
 // the API thread reads the duration and waits for the signal. Sendable, so the compiler proves it safe to share.
-@_expose(Cxx)
 final class CommandBufferCompletion: Sendable {
     // A Double's bit pattern: Atomic has no Double.
     private let gpuExecutionDurationBits = Atomic<UInt64>(0)
@@ -50,7 +49,6 @@ final class CommandBufferCompletion: Sendable {
     fileprivate init() {}
 
     // Runs on a Metal completion thread. The semaphore orders the store before a waiter's load.
-    @_expose(Cxx)
     func didComplete(gpuStartTime: Double, gpuEndTime: Double) {
         gpuExecutionDurationBits.store((gpuEndTime - gpuStartTime).bitPattern, ordering: .relaxed)
         semaphore.signal()
@@ -82,10 +80,6 @@ private struct FinishedEncoder {
 @_spi(WebKitGPU)
 public typealias CommandBufferReference = CommandBufferImpl
 
-@_spi(WebKitGPU)
-extension CommandBufferImpl {
-}
-
 // One per GPUCommandBuffer, held by its Swift callers, and by the queue and Instance while its work is in flight. Holds
 // the CommandEncoder until the command buffer completes or is made invalid; the encoder's Impl holds the pre-commit
 // actions.
@@ -93,7 +87,6 @@ extension CommandBufferImpl {
 // Used only on its Instance's API thread, so deliberately not Sendable; the Metal thread only ever gets
 // `completion()`. The last reference goes on the API thread: the completion handler's hands its reference to the work
 // it schedules there.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class CommandBufferImpl: GPUObjectReference {
     private var backingCommandBuffer: (any MTLCommandBuffer)?
@@ -131,17 +124,14 @@ public final class CommandBufferImpl: GPUObjectReference {
         self.initializationLedger = commandEncoder.first?.impl.takeInitializationLedger()
     }
 
-    @_expose(Cxx)
     func completion() -> CommandBufferCompletion {
         backingCompletion
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         backingCommandBuffer != nil
     }
 
-    @_expose(Cxx)
     func commandBuffer() -> (any MTLCommandBuffer)? {
         backingCommandBuffer
     }
@@ -151,13 +141,11 @@ public final class CommandBufferImpl: GPUObjectReference {
     }
 
     // As WTF::String::createNSString() makes the label for setLabel(NSString?), a null one is empty.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setLabel(_ label: Swift.String?) {
         backingCommandBuffer?.label = label ?? ""
     }
 
-    @_expose(!Cxx)
     func takePriorCommandBuffers() -> [any MTLCommandBuffer] {
         let commandBuffers = priorCommandBuffers
         priorCommandBuffers = []
@@ -180,7 +168,6 @@ public final class CommandBufferImpl: GPUObjectReference {
         backingBufferMapCount = count
     }
 
-    @_expose(Cxx)
     func waitForCompletion() -> Bool {
         let status = cachedCommandBuffer?.status ?? .notEnqueued
         if status == .committed || status == .scheduled {
@@ -233,7 +220,6 @@ public final class CommandBufferImpl: GPUObjectReference {
         dropCommandEncoder()
     }
 
-    @_expose(Cxx)
     func makeInvalid(_ lastError: NSString?) {
         guard let commandBuffer = backingCommandBuffer, commandBuffer.status.rawValue < MTLCommandBufferStatus.committed.rawValue else {
             return
@@ -256,12 +242,10 @@ public final class CommandBufferImpl: GPUObjectReference {
 
     // MARK: Lazy zero-initialization, for QueueImpl.submit
 
-    @_expose(!Cxx)
     var hasInitializationRequirements: Bool {
         initializationLedger?.hasRequirements ?? false
     }
 
-    @_expose(!Cxx)
     func forEachInitializationRequirement(_ body: (TextureImpl, InitRegion) -> Void) {
         guard let requirements = initializationLedger?.requirements else {
             return
@@ -271,7 +255,6 @@ public final class CommandBufferImpl: GPUObjectReference {
         }
     }
 
-    @_expose(!Cxx)
     func forEachInitializationEffect(_ body: (TextureImpl, InitRegion, InitializationLedger.Effect) -> Void) {
         guard let effects = initializationLedger?.effects else {
             return
@@ -282,19 +265,16 @@ public final class CommandBufferImpl: GPUObjectReference {
     }
 
     /// The queue appended a zero fill of `fixUp` at the end of this command buffer, after everything it encoded.
-    @_expose(!Cxx)
     func noteAppendedZeroFill(_ fixUp: InitFixUp) {
         initializationLedger?.noteWritten(fixUp.texture, fixUp.region)
     }
 
     /// After the queue committed this command buffer.
-    @_expose(!Cxx)
     func applyInitializationEffects(_ token: borrowing CommitToken) {
         initializationLedger.take()?.apply(token)
     }
 
     /// When the queue could not commit it.
-    @_expose(!Cxx)
     func dropInitializationLedger() {
         initializationLedger = nil
     }
@@ -347,7 +327,6 @@ public final class CommandBufferImpl: GPUObjectReference {
     }
 
     // For the encoder's commit actions, while preCommitHandler runs them.
-    @_expose(!Cxx)
     func addPostCommitAction(_ action: PostCommitAction) {
         postCommitActions.append(action)
     }

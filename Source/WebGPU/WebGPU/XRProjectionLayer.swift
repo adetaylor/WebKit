@@ -29,12 +29,9 @@ import WebGPU_Private.WebGPUCpp
 // The descriptor values and per-frame state of an XRProjectionLayer: the compositor textures cached per reusable
 // texture index, the current color and depth textures, the completion event and the rasterization rate maps. Used only
 // on its Instance's API thread.
-@_expose(Cxx)
 final class XRProjectionLayerImpl {
     // Read by XRSubImageImpl; C++ enums are not returned to C++.
-    @_expose(!Cxx)
     let colorFormat: WebGPU.TextureFormat
-    @_expose(!Cxx)
     let depthStencilFormat: WebGPU.TextureFormat?
     // Raw OptionSet<WebGPU::TextureUsage> bits.
     private let textureUsage: UInt8
@@ -43,19 +40,12 @@ final class XRProjectionLayerImpl {
     private var colorTextures: [UInt64: any MTLTexture] = [:]
     private var depthTextures: [UInt64: any MTLTexture] = [:]
     // Read by XRSubImageImpl. Not exposed to C++, which never sets them.
-    @_expose(!Cxx)
     private(set) var colorTexture: (any MTLTexture)?
-    @_expose(!Cxx)
     private(set) var depthTexture: (any MTLTexture)?
-    @_expose(!Cxx)
     private(set) var reusableTextureIndex: UInt64 = 0
-    @_expose(!Cxx)
     private(set) var completionEvent: (any MTLSharedEvent)?
-    @_expose(!Cxx)
     private(set) var completionEventSignalValue: UInt64 = 0
-    @_expose(!Cxx)
     private(set) var leftRasterizationMap: (any MTLRasterizationRateMap)?
-    @_expose(!Cxx)
     private(set) var rightRasterizationMap: (any MTLRasterizationRateMap)?
     // Declared last, so that the device outlives the rest of the layer.
     private let deviceImpl: DeviceImpl
@@ -70,7 +60,6 @@ final class XRProjectionLayerImpl {
 
     // Only called on visionOS with the internal SDK. The mach ports are the frame's send rights, MACH_PORT_NULL
     // when the compositor did not send that buffer.
-    @_expose(Cxx)
     func startFrame(
         _ frameIndex: UInt64,
         _ colorBuffer: UInt32,

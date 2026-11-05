@@ -89,27 +89,6 @@ public struct GPURenderBundleEncoderDescriptor {
 
     public init() {
     }
-
-    init(_ descriptor: borrowing WebGPU.RenderBundleEncoderDescriptor) {
-        let descriptorColorFormats: Span<WebGPU.OptionalTextureFormat> = descriptor.colorFormatsSpan()
-        colorFormats.reserveCapacity(descriptorColorFormats.count)
-        for index in descriptorColorFormats.indices {
-            colorFormats.append(Optional(fromCxx: descriptorColorFormats[index]))
-        }
-        depthStencilFormat = Optional(fromCxx: descriptor.depthStencilFormat)
-        sampleCount = descriptor.sampleCount
-        depthReadOnly = descriptor.depthReadOnly
-        stencilReadOnly = descriptor.stencilReadOnly
-    }
-}
-
-// A descriptor that fails validation reports the error and gives an invalid encoder that keeps the message for
-// finish(); an invalid device gives one without reporting anything.
-func createRenderBundleEncoderImpl(
-    _ descriptor: borrowing WebGPU.RenderBundleEncoderDescriptor,
-    _ deviceImpl: DeviceImpl
-) -> RenderBundleEncoderImpl {
-    createRenderBundleEncoderImpl(GPURenderBundleEncoderDescriptor(descriptor), deviceImpl)
 }
 
 func createRenderBundleEncoderImpl(

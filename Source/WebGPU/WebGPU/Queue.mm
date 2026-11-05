@@ -42,7 +42,6 @@
 #import "CxxBridging.h"
 #import <WebGPU/CxxBridgingPublic.h>
 #import <WebGPU/WebGPU.h>
-#import "WebGPUSwift-Generated.h"
 #endif
 
 namespace WebGPU::Metal {

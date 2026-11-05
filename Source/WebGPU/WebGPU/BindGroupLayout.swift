@@ -32,7 +32,6 @@ import WebGPU_Private.WebGPUCpp
 // entries, the per-stage argument encoders and argument indices, the counts and the label, and creates layouts
 // (Device::createBindGroupLayout). BindGroupImpl and the encoders read it directly. It also holds the Device.
 // Used only on its Instance's API thread, so not Sendable.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class BindGroupLayoutImpl: GPUObjectReference {
     // nil when the stage has no arguments, or for an invalid layout.
@@ -158,7 +157,6 @@ public final class BindGroupLayoutImpl: GPUObjectReference {
         return nil
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         backingIsValid
     }
@@ -168,7 +166,6 @@ public final class BindGroupLayoutImpl: GPUObjectReference {
         applyLabelToEncoders()
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setLabel(_ newLabel: Swift.String?) {
         setLabel(WTF.String(newLabel ?? ""))
@@ -203,7 +200,6 @@ public final class BindGroupLayoutImpl: GPUObjectReference {
         computeEncoder
     }
 
-    @_expose(!Cxx)
     func uniqueId() -> UInt32 {
         counts.identifier
     }
@@ -244,27 +240,6 @@ public struct GPUBindGroupLayoutEntry {
 
 @_spi(WebKitGPU)
 public typealias BindGroupLayoutReference = BindGroupLayoutImpl
-
-@_spi(WebKitGPU)
-extension BindGroupLayoutImpl {
-}
-
-/// Reports its validation errors, and returns an invalid Impl on failure.
-func createBindGroupLayoutImpl(
-    _ deviceImpl: DeviceImpl,
-    _ descriptor: borrowing WebGPU.BindGroupLayoutDescriptor
-) -> BindGroupLayoutImpl {
-    guard deviceImpl.isValid() else {
-        return .invalid(deviceImpl)
-    }
-    let descriptorEntries: Span<WebGPU.BindGroupLayoutEntry> = descriptor.entriesSpan()
-    var entries: [GPUBindGroupLayoutEntry] = []
-    entries.reserveCapacity(descriptorEntries.count)
-    for index in descriptorEntries.indices {
-        entries.append(GPUBindGroupLayoutEntry(descriptorEntries[index]))
-    }
-    return createBindGroupLayoutImpl(deviceImpl, entries, label: descriptor.label)
-}
 
 func createBindGroupLayoutImpl(
     _ deviceImpl: DeviceImpl,

@@ -59,17 +59,8 @@ inline uint32_t roundUpToMultipleOfNonPowerOfTwoUInt32UInt32(uint32_t a, uint32_
 
 namespace CxxBridging {
 
-// The types of the Instance's scheduler and futures (Instance.swift).
+// The types of the Instance's scheduler (Instance.swift).
 using InstanceWorkItem = Function<void()>;
 using InstanceScheduleWork = Function<void(Function<void()>&&)>;
-using FutureCompletedHandler = Function<void(size_t)>;
-
-// waitForAnyFuture()'s futures, borrowed for the duration of the call: a nonescapable view whose span() Swift reads as a
-// lifetime-checked Span.
-struct FutureIDsView {
-    std::span<const uint64_t> futureIDs;
-
-    std::span<const uint64_t> span() const LIFETIME_BOUND { return futureIDs; }
-} SWIFT_VIEW;
 
 }

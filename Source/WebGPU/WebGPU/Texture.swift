@@ -206,7 +206,6 @@ private struct TextureInitState {
 // The state of a GPUTexture, held by its Swift callers and the views, bind groups, attachments and encoders that use it.
 // Also runs view creation and its validation. Used only on its
 // Instance's API thread.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class TextureImpl: GPUObjectReference {
     // nil only for an invalid texture. destroy() swaps in the device placeholder unless canvas-backed.
@@ -215,7 +214,6 @@ public final class TextureImpl: GPUObjectReference {
     private var canvasBacking = false
     // Discards recorded by encoders whose command buffers were neither committed nor dropped yet: while one is pending, an
     // initialized region can become uninitialized before a reader runs, so readers record a requirement.
-    @_expose(!Cxx)
     private(set) var pendingDiscards: Int32 = 0
     // The regions known to hold zeros or contents written on the queue timeline (TextureImpl.initRegions).
     private var initState: TextureInitState
@@ -236,7 +234,6 @@ public final class TextureImpl: GPUObjectReference {
     private let viewFormats: [WebGPU.TextureFormat]
 
     /// The encoders that used the texture.
-    @_expose(!Cxx)
     var tracking = EncoderTracking()
     // The views made with a descriptor, and the bind groups and render bundles that hold the texture.
     private var views = WeakImplList<TextureViewImpl>()
@@ -276,53 +273,43 @@ public final class TextureImpl: GPUObjectReference {
         backingFormat ?? .Rgba8unorm
     }
 
-    @_expose(Cxx)
     func width() -> UInt32 {
         backingWidth
     }
 
-    @_expose(Cxx)
     func height() -> UInt32 {
         backingHeight
     }
 
-    @_expose(Cxx)
     func depthOrArrayLayers() -> UInt32 {
         backingDepthOrArrayLayers
     }
 
-    @_expose(Cxx)
     func mipLevelCount() -> UInt32 {
         backingMipLevelCount
     }
 
-    @_expose(Cxx)
     func sampleCount() -> UInt32 {
         backingSampleCount
     }
 
-    // The WebGPU enums and the usage OptionSet cross back as raw values; the shell casts them.
-    @_expose(Cxx)
+    // The WebGPU enums and the usage OptionSet as raw values.
     func dimension() -> UInt8 {
         backingDimension.rawValue
     }
 
-    @_expose(Cxx)
     func format() -> UInt8 {
         formatOrDefault.rawValue
     }
 
-    @_expose(Cxx)
     func hasFormat() -> Bool {
         backingFormat != nil
     }
 
-    @_expose(Cxx)
     func usage() -> UInt8 {
         backingUsage
     }
 
-    @_expose(Cxx)
     func arrayLayerCount() -> UInt32 {
         // https://gpuweb.github.io/gpuweb/#abstract-opdef-array-layer-count
 
@@ -383,42 +370,14 @@ public final class TextureImpl: GPUObjectReference {
         physicalTextureExtent(backingDimension, formatOrDefault, logicalMiplevelSpecificTextureExtent(mipLevel))
     }
 
-    // A value POD cannot cross out of Swift by value, so the shell asks for the extents one component at a time.
-    func logicalMiplevelSpecificTextureWidth(_ mipLevel: UInt32) -> UInt32 {
-        logicalMiplevelSpecificTextureExtent(mipLevel).width
-    }
-
-    func logicalMiplevelSpecificTextureHeight(_ mipLevel: UInt32) -> UInt32 {
-        logicalMiplevelSpecificTextureExtent(mipLevel).height
-    }
-
-    func logicalMiplevelSpecificTextureDepthOrArrayLayers(_ mipLevel: UInt32) -> UInt32 {
-        logicalMiplevelSpecificTextureExtent(mipLevel).depthOrArrayLayers
-    }
-
-    func physicalMiplevelSpecificTextureWidth(_ mipLevel: UInt32) -> UInt32 {
-        physicalMiplevelSpecificTextureExtent(mipLevel).width
-    }
-
-    func physicalMiplevelSpecificTextureHeight(_ mipLevel: UInt32) -> UInt32 {
-        physicalMiplevelSpecificTextureExtent(mipLevel).height
-    }
-
-    func physicalMiplevelSpecificTextureDepthOrArrayLayers(_ mipLevel: UInt32) -> UInt32 {
-        physicalMiplevelSpecificTextureExtent(mipLevel).depthOrArrayLayers
-    }
-
-    @_expose(Cxx)
     func texture() -> (any MTLTexture)? {
         backingTexture
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         destroyed || backingTexture != nil
     }
 
-    @_expose(Cxx)
     func isDestroyed() -> Bool {
         destroyed
     }
@@ -485,7 +444,6 @@ public final class TextureImpl: GPUObjectReference {
     }
 
     /// A destroyed texture has nothing to release later, so it records no holder.
-    @_expose(!Cxx)
     func addBindGroupHolder(_ bindGroup: BindGroupImpl) {
         if destroyed {
             return
@@ -493,7 +451,6 @@ public final class TextureImpl: GPUObjectReference {
         bindGroupHolders.add(bindGroup)
     }
 
-    @_expose(!Cxx)
     func addRenderBundleHolder(_ renderBundle: RenderBundleImpl) {
         if destroyed {
             return
@@ -501,7 +458,6 @@ public final class TextureImpl: GPUObjectReference {
         renderBundleHolders.add(renderBundle)
     }
 
-    @_expose(!Cxx)
     func addView(_ view: TextureViewImpl) {
         views.add(view)
     }
@@ -530,12 +486,10 @@ public final class TextureImpl: GPUObjectReference {
 
     // MARK: Lazy zero-initialization
 
-    @_expose(!Cxx)
     var isFullyInitialized: Bool {
         destroyed || initState.isFull
     }
 
-    @_expose(!Cxx)
     func isInitialized(_ region: InitRegion) -> Bool {
         destroyed || initState.isFull || initState.contains(region.bit)
     }
@@ -544,23 +498,19 @@ public final class TextureImpl: GPUObjectReference {
     ///
     /// A CommitToken exists only inside QueueImpl, while it commits a command buffer or right after it encoded a zero
     /// fill or a write on its staging command buffer or performed a write.
-    @_expose(!Cxx)
     func markInitialized(_ region: InitRegion, _ token: borrowing CommitToken) {
         initState.insert(region.bit)
     }
 
     /// Needs no token: an uninitialized region only makes later readers zero-fill it.
-    @_expose(!Cxx)
     func markUninitialized(_ region: InitRegion) {
         initState.remove(region.bit)
     }
 
-    @_expose(!Cxx)
     func didRecordDiscard() {
         pendingDiscards += 1
     }
 
-    @_expose(!Cxx)
     func didSettleDiscard() {
         pendingDiscards -= 1
     }
@@ -568,7 +518,6 @@ public final class TextureImpl: GPUObjectReference {
     /// The regions of (mipLevel, layer) that `aspect` selects.
     ///
     /// A 3D texture has one region per mip level, whatever the layer; a combined depth-stencil format has one per aspect.
-    @_expose(!Cxx)
     func initRegions(mipLevel: UInt32, layer: UInt32, aspect: WebGPU.TextureAspect) -> InitRegions {
         let is2D = backingDimension == ._2d
         let layers = is2D ? Int(backingDepthOrArrayLayers) : 1
@@ -588,7 +537,6 @@ public final class TextureImpl: GPUObjectReference {
     }
 
     /// Which aspect `region` is, for its zero fill.
-    @_expose(!Cxx)
     func initAspect(_ region: InitRegion) -> InitAspect {
         guard let format = backingFormat, Self.initAspectCount(format) == 2 else {
             return .color
@@ -597,7 +545,6 @@ public final class TextureImpl: GPUObjectReference {
     }
 
     /// The (mip level, array layer) `region` is in; the layer is 0 for a 3D mip level.
-    @_expose(!Cxx)
     func initSubresource(_ region: InitRegion) -> (mipLevel: UInt32, layer: UInt32) {
         let perSubresource = region.bit / (backingFormat.map { Self.initAspectCount($0) } ?? 1)
         let layers = backingDimension == ._2d ? max(Int(backingDepthOrArrayLayers), 1) : 1
@@ -605,14 +552,12 @@ public final class TextureImpl: GPUObjectReference {
     }
 
     /// Memoryless: never stored, so never zero-filled.
-    @_expose(!Cxx)
     var isTransient: Bool {
         textureUsageContains(backingUsage, .Transient)
     }
 
     /// Zero-filled with an empty render pass, which needs no zeroed source buffer (big multisampled attachments); a 3D
     /// mip level, or a texture that cannot be a render target, is zero-filled with a blit instead.
-    @_expose(!Cxx)
     var prefersRenderZeroFill: Bool {
         textureUsageContains(backingUsage, .RenderAttachment) && backingDimension != ._3d
     }
@@ -651,7 +596,6 @@ public final class TextureImpl: GPUObjectReference {
         }
     }
 
-    @_expose(Cxx)
     func sharedEvent() -> (any MTLSharedEvent)? {
         canvasState.first?.sharedEvent
     }
@@ -675,7 +619,6 @@ public final class TextureImpl: GPUObjectReference {
     }
 
     // createView, for a Swift caller.
-    @_expose(!Cxx)
     func createView(_ descriptor: GPUTextureViewDescriptor, label: WTF.String) -> TextureViewImpl {
         createView(descriptor.parameters, label)
     }
@@ -1339,14 +1282,6 @@ private func copyViewFormats(_ viewFormats: borrowing WebGPU.Metal.TextureFormat
     return result
 }
 
-func errorValidatingTextureCreationRaw(
-    _ deviceImpl: DeviceImpl,
-    _ descriptor: WebGPU.Metal.TextureParameters,
-    _ viewFormats: borrowing WebGPU.Metal.TextureFormatsView
-) -> NSString? {
-    textureCreationError(deviceImpl, descriptor, copyViewFormats(viewFormats)).map { $0 as NSString }
-}
-
 @_spi(WebKitGPU)
 public typealias TextureReference = TextureImpl
 
@@ -1354,17 +1289,14 @@ public typealias TextureReference = TextureImpl
 extension TextureImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy
-    @_expose(!Cxx)
     public func destroy() {
         destroyAndReleaseHolders()
     }
 
-    @_expose(!Cxx)
     public func undestroy() {
         recreateIfNeeded()
     }
 
-    @_expose(!Cxx)
     public func setLabel(_ label: Swift.String?) {
         setLabel(WTF.String(label ?? ""))
     }

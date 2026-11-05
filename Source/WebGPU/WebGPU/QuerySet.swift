@@ -29,7 +29,6 @@ import WebGPU_Private.WebGPUCpp
 
 // https://gpuweb.github.io/gpuweb/#gpuqueryset, held by its Swift callers. API thread only. A timestamp query set owns a lease on a range of the
 // process-wide counter sample buffer pool below and returns it on destroy() or deinit.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class QuerySetImpl: GPUObjectReference {
     // Occlusion query sets own a private MTLBuffer; timestamp query sets lease
@@ -50,11 +49,9 @@ public final class QuerySetImpl: GPUObjectReference {
     private let counterSampleOffset: UInt32
     private let queryCount: UInt32
     // nil only for invalid query sets.
-    @_expose(!Cxx)
     let queryType: WebGPU.QueryType?
     private var destroyed = false
     /// The encoders that used this query set: emptied only by destroy(), never by the encoders.
-    @_expose(!Cxx)
     var tracking = EncoderTracking()
     // Declared last, so that the device outlives the rest of the query set.
     let deviceImpl: DeviceImpl
@@ -84,7 +81,6 @@ public final class QuerySetImpl: GPUObjectReference {
         releaseCounterSampleRange()
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         if case .none = backing {
             return destroyed
@@ -92,13 +88,11 @@ public final class QuerySetImpl: GPUObjectReference {
         return true
     }
 
-    @_expose(Cxx)
     func isDestroyed() -> Bool {
         destroyed
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-destroy
-    @_expose(Cxx)
     @_spi(WebKitGPU)
     public func destroy() {
         destroyed = true
@@ -125,14 +119,12 @@ public final class QuerySetImpl: GPUObjectReference {
         setLabel(stringNilIfEmpty(label))
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setLabel(_ label: Swift.String?) {
         // MTLCounterSampleBuffer's label property is read-only.
         backingVisibilityBuffer?.label = label?.isEmpty == false ? label : nil
     }
 
-    @_expose(Cxx)
     func count() -> UInt32 {
         queryCount
     }
@@ -170,10 +162,6 @@ private let maxQueryCount: UInt32 = 4096
 @_spi(WebKitGPU)
 public typealias QuerySetReference = QuerySetImpl
 
-@_spi(WebKitGPU)
-extension QuerySetImpl {
-}
-
 // https://gpuweb.github.io/gpuweb/#dictdef-gpuquerysetdescriptor, without its label.
 @_spi(WebKitGPU)
 public struct GPUQuerySetDescriptor {
@@ -182,19 +170,6 @@ public struct GPUQuerySetDescriptor {
 
     public init() {
     }
-
-    init(_ descriptor: WebGPU.QuerySetDescriptor) {
-        type = descriptor.type
-        count = descriptor.count
-    }
-}
-
-func createQuerySetImpl(
-    _ deviceImpl: DeviceImpl,
-    _ descriptor: WebGPU.QuerySetDescriptor,
-    _ timestampCounterSet: (any MTLCounterSet)?
-) -> QuerySetImpl {
-    createQuerySetImpl(deviceImpl, GPUQuerySetDescriptor(descriptor), label: descriptor.label, timestampCounterSet)
 }
 
 func createQuerySetImpl(

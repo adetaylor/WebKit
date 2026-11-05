@@ -36,7 +36,6 @@ import WebGPU_Private.WebGPUCpp
 // Used only on its Instance's API thread, so deliberately not Sendable: the device observer and the Metal completed
 // handlers hop back through the Instance's scheduler, and hand their references to the device over to the work items,
 // so that the last of them is released on the API thread.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class DeviceImpl: GPUObjectReference {
     private struct ErrorScope {
@@ -57,7 +56,6 @@ public final class DeviceImpl: GPUObjectReference {
     private var uncapturedErrorCallback: ((Bool, CaughtError?) -> Void)?
     private var deviceLostCallback: ((WebGPU.DeviceLostReason, WTF.String) -> Void)?
 
-    @_expose(!Cxx)
     let capabilities: DeviceCapabilities
     /// The limits the encoders read, and the Metal buffer slots that follow from them.
     let encoderLimits: EncoderLimits
@@ -90,20 +88,11 @@ public final class DeviceImpl: GPUObjectReference {
     // pipeline compiles hop back through it.
     private let instanceSchedulerHandle: InstanceSchedulerHandle?
     // The Instance of the device's adapter, if it had one when the device was made.
-    @_expose(!Cxx)
     private(set) weak var instanceImpl: InstanceImpl?
-    @_expose(!Cxx)
     let externalTextureImporter: ExternalTextureImporter
-    /// The builders Device::createPipelineLayout and Device::createBindGroup reuse.
-    @_expose(!Cxx)
-    let pipelineLayoutBuilder = PipelineLayoutBuilder()
-    @_expose(!Cxx)
-    let bindGroupBuilder = BindGroupBuilder()
     /// The valid textures createTexture made, which destroy() destroys.
-    @_expose(!Cxx)
     var textures = WeakImplList<TextureImpl>()
 
-    @_expose(!Cxx)
     let defaultQueueImpl: QueueImpl
     // The adapter also provides the Instance. A valid device has one XR sub-image. The device observer is the token of
     // the macOS device-removal observer, which deinit unregisters.
@@ -111,7 +100,6 @@ public final class DeviceImpl: GPUObjectReference {
     // Whether the Instance had a web process to attribute resources to when the device was made. The Instance's web
     // process never changes and a gone Instance never comes back, so without one nothing is ever attributed.
     private let attributesResources: Bool
-    @_expose(!Cxx)
     private(set) var xrSubImageImpl: XRSubImageImpl?
     // The debug encoder timestamps: each command buffer's counter sample buffers until its last encoder ends, then the
     // buffers they were resolved into until it completes. The command buffers are weak keys.
@@ -168,7 +156,6 @@ public final class DeviceImpl: GPUObjectReference {
 
     // MARK: Validity and loss
 
-    @_expose(Cxx)
     func device() -> (any MTLDevice)? {
         metalDevice
     }
@@ -177,24 +164,20 @@ public final class DeviceImpl: GPUObjectReference {
         metalDevice != nil
     }
 
-    @_expose(Cxx)
     func isLost() -> Bool {
         lost
     }
 
-    @_expose(Cxx)
     func isDestroyed() -> Bool {
         destroyed
     }
 
-    @_expose(Cxx)
     func makeInvalid() {
         metalDevice = nil
         defaultQueueImpl.makeInvalid()
     }
 
     // The callback runs between the adapter's invalidation and the queue's.
-    @_expose(Cxx)
     func loseTheDevice(_ reason: WebGPU.DeviceLostReason) {
         metalDevice = nil
         adapterImpl.makeInvalid()
@@ -214,7 +197,6 @@ public final class DeviceImpl: GPUObjectReference {
     // MARK: Callbacks
 
     // resolveDeviceLostPromise's callback; nil registers nothing.
-    @_expose(!Cxx)
     func setDeviceLostCallback(_ callback: ((WebGPU.DeviceLostReason, WTF.String) -> Void)?) {
         if let previous = deviceLostCallback.take() {
             previous(.Destroyed, WebGPU.Metal.deviceDestroyedMessage())
@@ -228,7 +210,6 @@ public final class DeviceImpl: GPUObjectReference {
     }
 
     // resolveUncapturedErrorEvent's callback; nil registers nothing.
-    @_expose(!Cxx)
     func setUncapturedErrorCallback(_ callback: ((Bool, CaughtError?) -> Void)?) {
         if let previous = uncapturedErrorCallback.take() {
             previous(false, nil)
@@ -254,7 +235,6 @@ public final class DeviceImpl: GPUObjectReference {
     // https://gpuweb.github.io/gpuweb/#abstract-opdef-generate-an-error
     // Reported to the current error scope (https://gpuweb.github.io/gpuweb/#abstract-opdef-current-error-scope), or
     // as uncaptured when reporting is not paused and no scope with a matching filter is open.
-    @_expose(Cxx)
     func generateAnError(_ filter: WebGPU.ErrorFilter, _ type: WebGPU.ErrorType, _ message: WTF.String) {
         if errorReportingPaused {
             return
@@ -271,18 +251,15 @@ public final class DeviceImpl: GPUObjectReference {
     }
 
     // https://gpuweb.github.io/gpuweb/#abstract-opdef-generate-a-validation-error
-    @_expose(!Cxx)
     func generateAValidationError(_ message: Swift.String) {
         generateAnError(.Validation, .Validation, WTF.String(message))
     }
 
-    @_expose(!Cxx)
     func generateAValidationError(_ message: NSString) {
         generateAValidationError(message as Swift.String)
     }
 
     // https://gpuweb.github.io/gpuweb/#abstract-opdef-generate-an-out-of-memory-error
-    @_expose(!Cxx)
     func generateAnOutOfMemoryError(_ message: Swift.String) {
         generateAnError(.OutOfMemory, .OutOfMemory, WTF.String(message))
     }
@@ -291,7 +268,6 @@ public final class DeviceImpl: GPUObjectReference {
     // `callback` gets whether the scope was popped (or the device is lost) and the error the scope caught. A lost device
     // completes as a scope without errors; an empty stack fails. Without an Instance to call back on, the scope's error
     // is dropped and the callback runs now.
-    @_expose(!Cxx)
     func popErrorScopeCaughtError(_ callback: @escaping (Bool, CaughtError?) -> Void) {
         if lost {
             callback(true, nil)
@@ -316,7 +292,6 @@ public final class DeviceImpl: GPUObjectReference {
     }
 
     // Runs `work` in a later work item on the API thread, or now, without the Instance to schedule it.
-    @_expose(!Cxx)
     func scheduleWork(_ work: @escaping () -> Void) {
         guard instanceImpl != nil, let instanceSchedulerHandle else {
             return work()
@@ -325,14 +300,12 @@ public final class DeviceImpl: GPUObjectReference {
     }
 
     // Returns the previous value.
-    @_expose(Cxx)
     func pauseErrorReporting(_ pause: Bool) -> Bool {
         let previous = errorReportingPaused
         errorReportingPaused = pause
         return previous
     }
 
-    @_expose(!Cxx)
     func isErrorReportingPaused() -> Bool {
         errorReportingPaused
     }
@@ -344,7 +317,6 @@ public final class DeviceImpl: GPUObjectReference {
         capabilities.limits
     }
 
-    @_expose(Cxx)
     func hasFeature(_ feature: WebGPU.FeatureName) -> Bool {
         capabilities.hasFeature(feature)
     }
@@ -355,27 +327,22 @@ public final class DeviceImpl: GPUObjectReference {
         }
     }
 
-    @_expose(!Cxx)
     var featureList: [WebGPU.FeatureName] {
         capabilities.features
     }
 
-    @_expose(Cxx)
     func timestampCounterSet() -> (any MTLCounterSet)? {
         capabilities.base.timestampCounterSet
     }
 
-    @_expose(Cxx)
     func memoryBarrierLimit() -> UInt32 {
         capabilities.base.memoryBarrierLimit
     }
 
-    @_expose(Cxx)
     func supportsNonPrivateDepthStencilTextures() -> Bool {
         capabilities.base.supportsNonPrivateDepthStencilTextures
     }
 
-    @_expose(Cxx)
     func supportsMemorylessTextures() -> Bool {
         capabilities.base.supportsMemorylessTextures
     }
@@ -396,17 +363,14 @@ public final class DeviceImpl: GPUObjectReference {
 
     // MARK: Device-derived scalars
 
-    @_expose(Cxx)
     func appleGPUFamily() -> UInt32 {
         backingAppleGPUFamily
     }
 
-    @_expose(Cxx)
     func maxVerticesPerDrawCall() -> UInt32 {
         backingMaxVerticesPerDrawCall
     }
 
-    @_expose(Cxx)
     func isShaderValidationEnabled() -> Bool {
         shaderValidationEnabled
     }
@@ -414,7 +378,6 @@ public final class DeviceImpl: GPUObjectReference {
     // MARK: Resources, attributed to the web process that owns the device's Instance
 
     // Looks the web process up on every call: nothing is attributed once the Instance is gone.
-    @_expose(Cxx)
     func setOwnerWithIdentity(_ resource: (any MTLResource)?) {
         if attributesResources {
             DeviceImpl.setOwnerWithIdentity(resource, adapterImpl)
@@ -439,7 +402,6 @@ public final class DeviceImpl: GPUObjectReference {
         }
     }
 
-    @_expose(Cxx)
     func safeCreateBuffer(
         _ length: UInt,
         _ storageMode: MTLStorageMode,
@@ -454,7 +416,6 @@ public final class DeviceImpl: GPUObjectReference {
         return buffer
     }
 
-    @_expose(!Cxx)
     func safeCreateBuffer(_ length: UInt, _ skipAttribution: Bool = false) -> (any MTLBuffer)? {
         safeCreateBuffer(length, .shared, skipAttribution)
     }
@@ -472,7 +433,6 @@ public final class DeviceImpl: GPUObjectReference {
 
     // MARK: Placeholder resources
 
-    @_expose(Cxx)
     func placeholderBuffer() -> (any MTLBuffer)? {
         backingPlaceholderBuffer
     }
@@ -508,7 +468,6 @@ public final class DeviceImpl: GPUObjectReference {
     }
 
     // The vertex function of CommandEncoder's clear passes, compiled once per device.
-    @_expose(!Cxx)
     func nopVertexFunction() -> (any MTLFunction)? {
         if let nopVertexFunctionCache {
             return nopVertexFunctionCache
@@ -521,7 +480,6 @@ public final class DeviceImpl: GPUObjectReference {
     // MARK: Debug encoder timestamps (DebugToggles.enableEncoderTimestamps())
 
     // A counter sample buffer of `timestampCount` samples for a pass of `commandBuffer`, tracked for it.
-    @_expose(!Cxx)
     func timestampsBuffer(_ commandBuffer: (any MTLCommandBuffer)?, _ timestampCount: Int) -> (any MTLCounterSampleBuffer)? {
         #if WTF_PLATFORM_WATCHOS
         return nil
@@ -546,7 +504,6 @@ public final class DeviceImpl: GPUObjectReference {
     }
 
     // Records a counter sample buffer of `commandBuffer`, to resolve when its last encoder ends.
-    @_expose(!Cxx)
     func trackTimestampsBuffer(_ commandBuffer: (any MTLCommandBuffer)?, _ counterSampleBuffer: any MTLCounterSampleBuffer) {
         guard let commandBuffer else {
             return
@@ -559,7 +516,6 @@ public final class DeviceImpl: GPUObjectReference {
     }
 
     // Resolves the counter sample buffers tracked for `commandBuffer` into buffers that are logged when it completes.
-    @_expose(!Cxx)
     func resolveTimestampsForBuffer(_ commandBuffer: (any MTLCommandBuffer)?) {
         guard enableEncoderTimestamps(), let commandBuffer, let sampleBuffers = sampleCounterBuffers.object(forKey: commandBuffer) else {
             return
@@ -595,7 +551,6 @@ public final class DeviceImpl: GPUObjectReference {
     }
 
     // Not created on a lost device; once created it outlives the loss.
-    @_expose(Cxx)
     func resolveTimestampsSharedEvent() -> (any MTLSharedEvent)? {
         if resolveTimestampsEvent == nil {
             resolveTimestampsEvent = metalDevice?.makeSharedEvent()
@@ -688,19 +643,16 @@ public final class DeviceImpl: GPUObjectReference {
     // MARK: The Instance's scheduler
 
     // Keeps the device alive in its Instance until the command buffer is gone.
-    @_expose(!Cxx)
     func retainUntilCompleted(_ commandBuffer: (any MTLCommandBuffer)?) {
         instanceImpl?.retainDevice(self, commandBuffer)
     }
 
     // What the Metal handlers schedule their API-thread work through.
-    @_expose(!Cxx)
     func schedulerHandle() -> InstanceSchedulerHandle? {
         instanceSchedulerHandle
     }
 
     /// Alive whenever the Instance is.
-    @_expose(!Cxx)
     func instanceScheduler() -> InstanceScheduler? {
         instanceSchedulerHandle?.liveScheduler()
     }

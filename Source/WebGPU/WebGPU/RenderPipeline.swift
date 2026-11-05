@@ -43,7 +43,6 @@ private enum PipelineStateCompilation {
 
 // One per GPURenderPipeline, held by its Swift callers and the encoders that set it. Owns all of the pipeline's state, including the Device; the render encoders read it
 // directly.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class RenderPipelineImpl: GPUObjectReference {
     // nil == invalid pipeline.
@@ -107,7 +106,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
         self.minimumBufferSizes = minimumBufferSizes
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         backingRenderPipelineDescriptor != nil && pipelineLayoutImpl.isValid()
     }
@@ -181,7 +179,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
     }
 
     // A failed precompile is not kept: the first draw compiles again.
-    @_expose(!Cxx)
     func setPrecompiledRenderPipelineState(_ state: (any MTLRenderPipelineState)?) {
         guard case .notCompiled = passState else {
             assertionFailure("the pipeline state was compiled before its precompile finished")
@@ -248,7 +245,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
     }
 
     /// The last-stride-as-stride pipeline, made on first use and kept alive by this pipeline.
-    @_expose(!Cxx)
     func lastStrideAsStride() -> RenderPipelineImpl {
         if let impl = lastStrideAsStrideImpl {
             return impl
@@ -258,7 +254,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
         return impl
     }
 
-    @_expose(!Cxx)
     func validateDepthStencilState(depthReadOnly: Bool, stencilReadOnly: Bool) -> Bool {
         if depthReadOnly && writesDepth() {
             return false
@@ -269,7 +264,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
         return true
     }
 
-    @_expose(!Cxx)
     func errorValidatingColorDepthStencilTargets(_ attachments: borrowing PassAttachments) -> String? {
         let sampleCount = parameters.sampleCount
         let colorAttachmentCount = attachments.colorViewIndices.count
@@ -331,7 +325,6 @@ public final class RenderPipelineImpl: GPUObjectReference {
         return nil
     }
 
-    @_expose(!Cxx)
     func validateRenderBundle(
         depthReadOnly: Bool,
         stencilReadOnly: Bool,
@@ -546,7 +539,6 @@ struct RenderPipelineInput {
 
 // Device::createRenderPipeline and its asynchronous forms. C++ resolves the descriptor's shader modules and layout
 // (from pipelineToReplace or the descriptor), which Swift cannot downcast, and sets them with their Impls.
-@_expose(Cxx)
 final class RenderPipelineBuilder {
     private let deviceImpl: DeviceImpl
     private let vertexModuleImpl: ShaderModuleImpl
@@ -572,7 +564,6 @@ final class RenderPipelineBuilder {
     }
 
     // The synchronous createRenderPipeline, for a Swift caller.
-    @_expose(!Cxx)
     func create(_ descriptor: RenderPipelineInput) -> RenderPipelineReference {
         var result: [RenderPipelineReference] = []
         create(descriptor, isAsync: false, .synchronous) { pipeline, _ in
@@ -584,7 +575,6 @@ final class RenderPipelineBuilder {
 
     // createRenderPipelineAsync and its replacing form. `completion` gets the pipeline, whether it succeeded, and the
     // message it failed with, on a later turn of the API thread.
-    @_expose(!Cxx)
     func createAsync(_ descriptor: RenderPipelineInput, _ completion: @escaping (RenderPipelineReference, Bool, String?) -> Void) {
         let deviceImpl = self.deviceImpl
         let wasErrorReportingPaused = isReplacingPipeline ? deviceImpl.pauseErrorReporting(true) : nil
@@ -1559,11 +1549,6 @@ private func errorCreatingVertexDescriptor(
         return "totalAttributeCount > limits.maxVertexAttributes"
     }
     return nil
-}
-
-private func fragmentPipelineConstants(_ descriptor: borrowing WebGPU.RenderPipelineDescriptor) -> [PipelineConstant] {
-    let constants: Span<WebGPU.ConstantEntry> = WebGPU.Metal.renderPipelineFragmentConstants(descriptor)
-    return pipelineConstants(constants)
 }
 
 private func formatName(_ format: WebGPU.TextureFormat) -> String {

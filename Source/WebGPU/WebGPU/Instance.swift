@@ -45,34 +45,10 @@ private final class PendingWork: Sendable {
 
 private struct EventQueueState {
     var pendingWork: [PendingWork] = []
-    var nextFuture: UInt64 = 1
-    var completedFutures: Set<UInt64> = []
-    // The condition variable: each blocked waitForAnyFuture() registers a semaphore, which notifyAll() signals once.
-    var waiters: [DispatchSemaphore] = []
-
-    mutating func notifyAll() {
-        for waiter in waiters {
-            waiter.signal()
-        }
-        waiters.removeAll()
-    }
-
-    func anyFutureCompleted(_ futures: Span<UInt64>) -> Bool {
-        for index in futures.indices where completedFutures.contains(futures[index]) {
-            return true
-        }
-        return false
-    }
 }
 
-private enum WaitStep {
-    case completed
-    case runPendingWork
-    case wait(DispatchSemaphore)
-}
-
-// The work items of an Instance without an embedder scheduleWork (the C API's), which wait for processEvents(), and
-// the futures of the C API. Sendable: Metal threads append work, and any thread may wait.
+// The work items of an Instance without an embedder scheduleWork, which wait for processEvents(). Sendable: Metal
+// threads append work.
 final class InstanceEventQueue: Sendable {
     private let state = Mutex(EventQueueState())
 
@@ -83,22 +59,6 @@ final class InstanceEventQueue: Sendable {
         let work = PendingWork(item)
         state.withLock { state in
             state.pendingWork.append(work)
-            state.notifyAll()
-        }
-    }
-
-    func createFuture() -> UInt64 {
-        state.withLock { state in
-            let future = state.nextFuture
-            state.nextFuture &+= 1
-            return future
-        }
-    }
-
-    func completeFuture(_ future: UInt64) {
-        state.withLock { state in
-            state.completedFutures.insert(future)
-            state.notifyAll()
         }
     }
 
@@ -116,50 +76,6 @@ final class InstanceEventQueue: Sendable {
             }
             for work in batch {
                 work.run()
-            }
-        }
-    }
-
-    // An infinite timeout never passes. When the timeout passes, the futures and the queue are checked once more.
-    func waitForAnyFuture(
-        _ futureIDs: borrowing CxxBridging.FutureIDsView,
-        _ timeoutSeconds: Double,
-        _ didComplete: borrowing CxxBridging.FutureCompletedHandler
-    ) -> Bool {
-        let futures: Span<UInt64> = futureIDs.span()
-        let deadline: DispatchTime = timeoutSeconds == .infinity ? .distantFuture : .now() + timeoutSeconds
-        while true {
-            processEvents()
-            let step = state.withLock { state -> WaitStep in
-                if state.anyFutureCompleted(futures) {
-                    for index in futures.indices where state.completedFutures.remove(futures[index]) != nil {
-                        didComplete(UInt(index))
-                    }
-                    return .completed
-                }
-                if !state.pendingWork.isEmpty {
-                    return .runPendingWork
-                }
-                let waiter = DispatchSemaphore(value: 0)
-                state.waiters.append(waiter)
-                return .wait(waiter)
-            }
-            switch step {
-            case .completed:
-                return true
-            case .runPendingWork:
-                continue
-            case .wait(let waiter):
-                if waiter.wait(timeout: deadline) == .success {
-                    continue
-                }
-                let satisfied = state.withLock { state in
-                    state.waiters.removeAll { $0 === waiter }
-                    return !state.pendingWork.isEmpty || state.anyFutureCompleted(futures)
-                }
-                if !satisfied {
-                    return false
-                }
             }
         }
     }
@@ -246,10 +162,6 @@ final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
     }
 }
 
-func makeInstanceEventQueue() -> InstanceEventQueue {
-    InstanceEventQueue()
-}
-
 // Takes the embedder's scheduleWork, leaving `scheduleWork` empty.
 func makeInstanceScheduler(_ scheduleWork: inout CxxBridging.InstanceScheduleWork, _ events: InstanceEventQueue) -> InstanceScheduler {
     let function = scheduleWork
@@ -270,13 +182,6 @@ private struct WeakCommandBuffer {
 
     var isGone: Bool {
         commandBuffer == nil
-    }
-
-    func waitIfCommitted() {
-        guard let commandBuffer, commandBuffer.status.rawValue >= MTLCommandBufferStatus.committed.rawValue else {
-            return
-        }
-        commandBuffer.waitUntilCompleted()
     }
 }
 
@@ -378,23 +283,5 @@ public final class InstanceImpl {
             }
         }
         retainedDevices = survivingDevices
-    }
-
-    func waitForCommandBufferCompletions() {
-        let commandBuffers = retainedCommandBuffers
-        let devices = retainedDevices
-        retainedCommandBuffers = []
-        retainedDevices = [:]
-        // Keep the command buffers and devices alive until both waits are done.
-        withExtendedLifetime((commandBuffers, devices)) {
-            for entry in commandBuffers {
-                entry.mtlCommandBuffer.waitIfCommitted()
-            }
-            for entry in devices.values {
-                for commandBuffer in entry.commandBuffers {
-                    commandBuffer.waitIfCommitted()
-                }
-            }
-        }
     }
 }

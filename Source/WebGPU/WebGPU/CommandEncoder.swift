@@ -151,8 +151,6 @@ public typealias CommandEncoderReference = CommandEncoderImpl
 // The operations of a command encoder that create nothing.
 @_spi(WebKitGPU)
 extension CommandEncoderImpl {
-
-    @_expose(!Cxx)
     public func copyBufferToTexture(
         _ source: BufferReference,
         _ sourceLocation: BufferCopyLocation,
@@ -169,7 +167,6 @@ extension CommandEncoderImpl {
         )
     }
 
-    @_expose(!Cxx)
     public func copyTextureToBuffer(
         _ source: TextureReference,
         _ sourceLocation: TextureCopyLocation,
@@ -186,7 +183,6 @@ extension CommandEncoderImpl {
         )
     }
 
-    @_expose(!Cxx)
     public func copyTextureToTexture(
         _ source: TextureReference,
         _ sourceLocation: TextureCopyLocation,
@@ -204,42 +200,35 @@ extension CommandEncoderImpl {
     }
 
     // nil size: the rest of the buffer after the offset.
-    @_expose(!Cxx)
     public func clearBuffer(_ buffer: BufferReference, _ offset: UInt64, _ size: UInt64?) {
         clearBuffer(buffer, offset, size ?? UInt64.max)
     }
 
     // A null label is empty.
-    @_expose(!Cxx)
     public func pushDebugGroup(_ groupLabel: Swift.String?) {
         pushDebugGroup((groupLabel ?? "") as NSString)
     }
 
-    @_expose(!Cxx)
     public func insertDebugMarker(_ markerLabel: Swift.String?) {
         insertDebugMarker((markerLabel ?? "") as NSString)
     }
 
-    @_expose(!Cxx)
     public func setLabel(_ label: Swift.String?) {
         setLabel((label ?? "") as NSString)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-beginrenderpass. A render pass has no use for its
     // descriptor's label.
-    @_expose(!Cxx)
     public func beginRenderPass(_ descriptor: GPURenderPassDescriptor) -> RenderPassEncoderReference {
         beginRenderPass(descriptor: descriptor)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-begincomputepass
-    @_expose(!Cxx)
     public func beginComputePass(_ descriptor: GPUComputePassDescriptor, label: Swift.String?) -> ComputePassEncoderReference {
         beginComputePass(descriptor: descriptor, label: label)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
-    @_expose(!Cxx)
     public func finish(label: Swift.String?) -> CommandBufferReference {
         finish(label: WTF.String(label ?? ""))
     }
@@ -260,10 +249,6 @@ public struct BufferCopyLocation {
 
     public init() {
     }
-
-    init(_ info: WebGPU.TexelCopyBufferInfo) {
-        layout = info.layout
-    }
 }
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gputexelcopytextureinfo without its texture, which a copy takes as its Impl.
@@ -274,12 +259,6 @@ public struct TextureCopyLocation {
     public var aspect = WebGPU.TextureAspect.All
 
     public init() {
-    }
-
-    init(_ info: WebGPU.TexelCopyTextureInfo) {
-        mipLevel = info.mipLevel
-        origin = info.origin
-        aspect = info.aspect
     }
 }
 
@@ -318,40 +297,6 @@ struct TextureAndClearColor {
     }
 }
 
-/// The attachments and query sets of a C++ caller's pass descriptor, with their shells, which CommandEncoder.mm stages
-/// from the descriptor.
-struct StagedPassObjects {
-    /// One per color attachment slot; nil for an empty slot.
-    var colorAttachments: [(view: GPURenderPassAttachmentView, resolveTarget: GPURenderPassAttachmentView?)?] = []
-    var depthStencilAttachment: GPURenderPassAttachmentView?
-    var occlusion: QuerySetReference?
-    var timestampWrites: QuerySetReference?
-
-    /// Only for a non-empty slot.
-    func colorAttachment(_ index: Int) -> (view: GPURenderPassAttachmentView, resolveTarget: GPURenderPassAttachmentView?) {
-        guard index < colorAttachments.count, let attachment = colorAttachments[index] else {
-            preconditionFailure("the color attachment was not staged")
-        }
-        return attachment
-    }
-
-    /// Only for a descriptor with a depth stencil attachment.
-    func depthStencilView() -> GPURenderPassAttachmentView {
-        guard let depthStencilAttachment else {
-            preconditionFailure("the depth stencil attachment was not staged")
-        }
-        return depthStencilAttachment
-    }
-
-    /// Only for a descriptor with timestampWrites.
-    func timestampWritesQuerySet() -> QuerySetReference {
-        guard let timestampWrites else {
-            preconditionFailure("the timestamp writes' query set was not staged")
-        }
-        return timestampWrites
-    }
-}
-
 extension GPUPassTimestampWrites {
     init(_ timestampWrites: WebGPU.PassTimestampWrites, _ querySet: QuerySetReference) {
         self.init(querySet: querySet)
@@ -361,51 +306,9 @@ extension GPUPassTimestampWrites {
 }
 
 extension GPURenderPassDescriptor {
-    // A C++ caller's descriptor, with the objects it staged.
-    init(_ descriptor: borrowing WebGPU.RenderPassDescriptor, _ staged: StagedPassObjects) {
-        self.init()
-        for i in 0..<descriptor.colorAttachmentCount() {
-            guard let resolved = Optional(fromCxx: WebGPU.Metal.resolvedColorAttachment(descriptor, i)) else {
-                colorAttachments.append(nil)
-                continue
-            }
-            let views = staged.colorAttachment(i)
-            var colorAttachment = GPURenderPassColorAttachment(view: views.view)
-            colorAttachment.depthSlice = Optional(fromCxx: resolved.depthSlice)
-            colorAttachment.resolveTarget = views.resolveTarget
-            colorAttachment.clearValue = resolved.clearValue
-            colorAttachment.loadOp = resolved.loadOp
-            colorAttachment.storeOp = resolved.storeOp
-            colorAttachments.append(colorAttachment)
-        }
-        if let resolved = Optional(fromCxx: WebGPU.Metal.resolvedDepthStencilAttachment(descriptor)) {
-            var depthStencilAttachment = GPURenderPassDepthStencilAttachment(view: staged.depthStencilView())
-            depthStencilAttachment.depthClearValue = resolved.depthClearValue
-            depthStencilAttachment.depthLoadOp = Optional(fromCxx: resolved.depthLoadOp)
-            depthStencilAttachment.depthStoreOp = Optional(fromCxx: resolved.depthStoreOp)
-            depthStencilAttachment.depthReadOnly = resolved.depthReadOnly
-            depthStencilAttachment.stencilClearValue = resolved.stencilClearValue
-            depthStencilAttachment.stencilLoadOp = Optional(fromCxx: resolved.stencilLoadOp)
-            depthStencilAttachment.stencilStoreOp = Optional(fromCxx: resolved.stencilStoreOp)
-            depthStencilAttachment.stencilReadOnly = resolved.stencilReadOnly
-            self.depthStencilAttachment = depthStencilAttachment
-        }
-        occlusionQuerySet = staged.occlusion
-        if let timestampWrites = Optional(fromCxx: descriptor.timestampWrites) {
-            self.timestampWrites = GPUPassTimestampWrites(timestampWrites, staged.timestampWritesQuerySet())
-        }
-        maxDrawCount = Optional(fromCxx: descriptor.maxDrawCount)
-    }
 }
 
 extension GPUComputePassDescriptor {
-    // A C++ caller's descriptor, without its label, with the objects it staged.
-    init(_ descriptor: WebGPU.ComputePassDescriptor, _ staged: StagedPassObjects) {
-        self.init()
-        if let timestampWrites = Optional(fromCxx: descriptor.timestampWrites) {
-            self.timestampWrites = GPUPassTimestampWrites(timestampWrites, staged.timestampWritesQuerySet())
-        }
-    }
 }
 
 extension CommandEncoderImpl {
@@ -2952,7 +2855,6 @@ struct ReusedIndirectIndexedDraws {
 // device's uncaptured-error callback.
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class CommandEncoderImpl: GPUObjectReference {
     private var backingCommandBuffer: (any MTLCommandBuffer)?
@@ -2981,9 +2883,7 @@ public final class CommandEncoderImpl: GPUObjectReference {
     /// encoder.
     let uniqueId: UInt64
     /// Unique per process and never reused, unlike uniqueId and the object's address (EncoderTracking).
-    @_expose(!Cxx)
     let serial = commandEncoderSerials.wrappingAdd(1, ordering: .relaxed).newValue
-    @_expose(!Cxx)
     private(set) var state: EncoderState = .open
 
     // The buffers and textures this encoder used, held until clearTracking(). Views, external textures and query sets
@@ -3012,9 +2912,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     // What this encoder did to lazily initialized texture regions. Moved into the CommandBuffer finish() makes, and
     // dropped with the encoder's work when that is discarded or made invalid.
     private var initializationLedger: InitializationLedger? = InitializationLedger()
-    // The attachments and query sets of a C++ caller's next pass descriptor, which Swift cannot reach from the
-    // descriptor.
-    private var staged = StagedPassObjects()
     // Declared last, so that the device outlives the rest of the encoder.
     let deviceImpl: DeviceImpl
 
@@ -3061,56 +2958,46 @@ public final class CommandEncoderImpl: GPUObjectReference {
         backingCommandBuffer?.status.rawValue ?? MTLCommandBufferStatus.notEnqueued.rawValue
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         backingCommandBuffer != nil
     }
 
-    @_expose(Cxx)
     func commandBuffer() -> (any MTLCommandBuffer)? {
         backingCommandBuffer
     }
 
-    @_expose(!Cxx)
     func blitCommandEncoder() -> (any MTLBlitCommandEncoder)? {
         backingBlitCommandEncoder
     }
 
-    @_expose(!Cxx)
     func setLastError(_ errorString: String?) {
         lastErrorString = errorString.map { $0 as NSString }
     }
 
-    @_expose(!Cxx)
     func timestampBuffers() -> NSMutableSet? {
         retainedTimestampBuffers
     }
 
-    @_expose(!Cxx)
     func submitWillBeInvalid() -> Bool {
         submitIsInvalid
     }
 
     // A nil error passes the last error to the command buffer.
-    @_expose(!Cxx)
     func makeSubmitInvalidWithError(_ errorString: NSString?) {
         submitIsInvalid = true
         cachedCommandBuffer?.makeInvalid(errorString ?? lastErrorString)
     }
 
-    @_expose(!Cxx)
     func makeSubmitInvalid(_ errorString: String?) {
         makeSubmitInvalidWithError(errorString.map { $0 as NSString })
     }
 
-    @_expose(!Cxx)
     func incrementBufferMapCount() {
         backingBufferMapCount &+= 1
         cachedCommandBuffer?.setBufferMapCount(backingBufferMapCount)
     }
 
     // Does nothing when the count is already zero.
-    @_expose(!Cxx)
     func decrementBufferMapCount() {
         if backingBufferMapCount <= 0 {
             return
@@ -3119,24 +3006,20 @@ public final class CommandEncoderImpl: GPUObjectReference {
         cachedCommandBuffer?.setBufferMapCount(backingBufferMapCount)
     }
 
-    @_expose(!Cxx)
     func setSharedEvent(_ event: (any MTLSharedEvent)?, _ signalValue: UInt64) {
         backingSharedEvent = event
         backingSharedEventSignalValue = signalValue
     }
 
-    @_expose(!Cxx)
     func clearSharedEvent() {
         backingSharedEvent = nil
     }
 
-    @_expose(!Cxx)
     func didCreateRenderCommandEncoder() {
         renderCommandEncoderCount &+= 1
     }
 
     // Unlike setExistingEncoder(nil), this does not tell the queue.
-    @_expose(!Cxx)
     func takeCommandBufferForFinish() -> (any MTLCommandBuffer)? {
         let commandBuffer = backingCommandBuffer
         backingCommandBuffer = nil
@@ -3145,7 +3028,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     }
 
     // For the CommandBuffer finish() creates.
-    @_expose(!Cxx)
     func takePriorCommandBuffers() -> [any MTLCommandBuffer] {
         let commandBuffers = priorCommandBuffers
         priorCommandBuffers = []
@@ -3154,7 +3036,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
 
     // MARK: Lazy zero-initialization
 
-    @_expose(!Cxx)
     func takeInitializationLedger() -> InitializationLedger? {
         initializationLedger.take()
     }
@@ -3164,7 +3045,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     }
 
     /// Records how a copy uses one subresource of `texture`, zero-filling it first where it has to.
-    @_expose(!Cxx)
     func noteTextureInit(
         _ texture: TextureImpl,
         _ mipLevel: UInt32,
@@ -3186,13 +3066,11 @@ public final class CommandEncoderImpl: GPUObjectReference {
     }
 
     /// RenderPassEncoderImpl, for one aspect of an attachment.
-    @_expose(!Cxx)
     func noteAttachment(_ texture: TextureImpl, _ region: InitRegion, _ plan: AttachmentInitPlan) {
         initializationLedger?.noteAttachment(texture, region, plan)
     }
 
     /// encoderIsCurrent(encoder) for a non-nil encoder, without passing (and so retaining) it.
-    @_expose(!Cxx)
     func isCurrentEncoder(_ encoder: ObjectIdentifier) -> Bool {
         guard deviceImpl.isValid(), let existing = existingCommandEncoder else {
             return false
@@ -3200,19 +3078,16 @@ public final class CommandEncoderImpl: GPUObjectReference {
         return ObjectIdentifier(existing) == encoder
     }
 
-    @_expose(!Cxx)
     func encoderIsCurrent(_ commandEncoder: (any MTLCommandEncoder)?) -> Bool {
         deviceImpl.isValid() && existingCommandEncoder === commandEncoder
     }
 
-    @_expose(!Cxx)
     func setExistingEncoder(_ encoder: (any MTLCommandEncoder)?) {
         assert(existingCommandEncoder == nil || encoder == nil)
         existingCommandEncoder = encoder
         deviceImpl.defaultQueueImpl.setEncoderForBuffer(backingCommandBuffer, encoder)
     }
 
-    @_expose(!Cxx)
     func ensureBlitCommandEncoder() -> (any MTLBlitCommandEncoder)? {
         if commandBufferStatus() >= MTLCommandBufferStatus.enqueued.rawValue {
             backingBlitCommandEncoder = nil
@@ -3239,7 +3114,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         return blitCommandEncoder
     }
 
-    @_expose(!Cxx)
     func finalizeBlitCommandEncoder() {
         let blitCommandEncoder = backingBlitCommandEncoder
         if !encoderIsCurrent(blitCommandEncoder) {
@@ -3251,7 +3125,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         setExistingEncoder(nil)
     }
 
-    @_expose(!Cxx)
     func endEncoding(_ encoder: (any MTLCommandEncoder)?) {
         let existingEncoder = deviceImpl.defaultQueueImpl.encoderForBuffer(backingCommandBuffer)
         if existingEncoder !== encoder {
@@ -3271,7 +3144,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         }
     }
 
-    @_expose(!Cxx)
     func discardCommandBuffer() {
         dropInitializationLedger()
         releasePriorCommandBuffers()
@@ -3302,7 +3174,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         deviceImpl.defaultQueueImpl.retainTimestampsForOneUpdate(retainedTimestampBuffers)
     }
 
-    @_expose(!Cxx)
     func rotateCommandBufferIfNeeded() {
         let maxRenderCommandEncodersPerCommandBuffer: UInt32 = 4096
         if renderCommandEncoderCount < maxRenderCommandEncodersPerCommandBuffer {
@@ -3332,7 +3203,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         renderCommandEncoderCount = 0
     }
 
-    @_expose(!Cxx)
     func makeRenderCommandEncoder(_ descriptor: MTLRenderPassDescriptor?) -> (any MTLRenderCommandEncoder)? {
         assert(existingCommandEncoder == nil)
         guard let descriptor, let renderCommandEncoder = backingCommandBuffer?.makeRenderCommandEncoder(descriptor: descriptor) else {
@@ -3344,7 +3214,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         return renderCommandEncoder
     }
 
-    @_expose(!Cxx)
     func encodeDeferredRenderPassTimestamps(_ descriptor: MTLRenderPassDescriptor?) {
         guard
             let descriptor,
@@ -3370,7 +3239,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     }
 
     // Returns false when the encoder was already invalid or its command buffer committed, and nothing changed.
-    @_expose(Cxx)
     @discardableResult
     func makeInvalid(_ errorString: NSString?) -> Bool {
         if backingCommandBuffer == nil || commandBufferStatus() >= MTLCommandBufferStatus.committed.rawValue {
@@ -3390,7 +3258,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         return true
     }
 
-    @_expose(!Cxx)
     func addICB(_ icb: (any MTLIndirectCommandBuffer)?) {
         guard let icb else {
             return
@@ -3398,7 +3265,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         retainedICBs?.add(icb)
     }
 
-    @_expose(!Cxx)
     func addCounterSampleBuffer(_ buffer: (any MTLCounterSampleBuffer)?) {
         guard let buffer else {
             return
@@ -3406,7 +3272,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         retainedTimestampBuffers?.add(buffer)
     }
 
-    @_expose(!Cxx)
     func addBuffer(_ buffer: (any MTLBuffer)?) {
         guard let buffer else {
             return
@@ -3421,7 +3286,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         retainedBuffers?.add(buffer)
     }
 
-    @_expose(!Cxx)
     func addTexture(_ texture: (any MTLTexture)?) {
         guard let texture else {
             return
@@ -3447,7 +3311,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     }
 
     // For the commands in the extension above.
-    @_expose(!Cxx)
     func generateInvalidEncoderStateError() {
         generateInvalidEncoderStateError(
             endedMessage: "void WebGPU::Metal::CommandEncoder::generateInvalidEncoderStateError(): encoder state is Ended"
@@ -3469,7 +3332,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         backingCommandBuffer?.pushDebugGroup(groupLabel as String)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func popDebugGroup() {
         // https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup
@@ -3507,7 +3369,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         backingCommandBuffer?.popDebugGroup()
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func writeTimestamp(_ querySet: QuerySetImpl, _ queryIndex: UInt32) {
         guard prepareTheEncoderState() else {
@@ -3550,7 +3411,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     }
 
     // `size` is UInt64.max for the rest of the buffer after the offset.
-    @_expose(Cxx)
     func clearBuffer(_ buffer: BufferImpl, _ offset: UInt64, _ requestedSize: UInt64) {
         // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-clearbuffer
         guard prepareTheEncoderState() else {
@@ -3588,38 +3448,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         blitCommandEncoder.fill(buffer: mtlBuffer, range: range, value: 0)
     }
 
-    // The WebGPU::CommandEncoder methods whose logic is in the extension above.
-    func finish(_ descriptor: WebGPU.CommandBufferDescriptor) -> CommandBufferImpl {
-        finish(label: descriptor.label)
-    }
-
-    private func stageResolveTarget(_ resolveTarget: GPURenderPassAttachmentView) {
-        guard let last = staged.colorAttachments.indices.last, staged.colorAttachments[last] != nil else {
-            preconditionFailure("a resolve target needs a color attachment")
-        }
-        staged.colorAttachments[last]?.resolveTarget = resolveTarget
-    }
-
-    @_expose(Cxx)
-    func beginRenderPass(
-        _ descriptor: borrowing WebGPU.RenderPassDescriptor
-    ) -> RenderPassEncoderImpl {
-        let staged = self.staged
-        self.staged = StagedPassObjects()
-        return beginRenderPass(descriptor: GPURenderPassDescriptor(descriptor, staged))
-    }
-
-    func beginComputePass(
-        _ descriptor: WebGPU.ComputePassDescriptor
-    ) -> ComputePassEncoderImpl {
-        let staged = self.staged
-        self.staged = StagedPassObjects()
-        return beginComputePass(descriptor: GPUComputePassDescriptor(descriptor, staged),
-            label: stringNilIfEmpty(descriptor.label)
-        )
-    }
-
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func copyBufferToBuffer(
         _ source: BufferImpl,
@@ -3637,55 +3465,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         )
     }
 
-    func copyBufferToTexture(
-        _ source: WebGPU.TexelCopyBufferInfo,
-        _ sourceBuffer: BufferImpl,
-        _ destination: WebGPU.TexelCopyTextureInfo,
-        _ destinationTexture: TextureImpl,
-        _ copySize: WebGPU.Extent3D
-    ) {
-        copyBufferToTexture(
-            source: BufferCopyLocation(source),
-            sourceBuffer: sourceBuffer,
-            destination: TextureCopyLocation(destination),
-            destinationTexture: destinationTexture,
-            copySize: copySize
-        )
-    }
-
-    func copyTextureToBuffer(
-        _ source: WebGPU.TexelCopyTextureInfo,
-        _ sourceTexture: TextureImpl,
-        _ destination: WebGPU.TexelCopyBufferInfo,
-        _ destinationBuffer: BufferImpl,
-        _ copySize: WebGPU.Extent3D
-    ) {
-        copyTextureToBuffer(
-            source: TextureCopyLocation(source),
-            sourceTexture: sourceTexture,
-            destination: BufferCopyLocation(destination),
-            destinationBuffer: destinationBuffer,
-            copySize: copySize
-        )
-    }
-
-    func copyTextureToTexture(
-        _ source: WebGPU.TexelCopyTextureInfo,
-        _ sourceTexture: TextureImpl,
-        _ destination: WebGPU.TexelCopyTextureInfo,
-        _ destinationTexture: TextureImpl,
-        _ copySize: WebGPU.Extent3D
-    ) {
-        copyTextureToTexture(
-            source: TextureCopyLocation(source),
-            sourceTexture: sourceTexture,
-            destination: TextureCopyLocation(destination),
-            destinationTexture: destinationTexture,
-            copySize: copySize
-        )
-    }
-
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func resolveQuerySet(
         _ querySet: QuerySetImpl,
@@ -3719,7 +3498,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
 
     // `body` runs on the API thread once this encoder's command buffer completed, with whether it completed without an
     // error. Until then, the queue keeps the encoder's counter sample buffers and the work keeps the device.
-    @_expose(!Cxx)
     func onCommandBufferCompletion(_ body: @escaping (Bool) -> Void) {
         let deviceImpl = self.deviceImpl
         let queueImpl = deviceImpl.defaultQueueImpl
@@ -3738,28 +3516,23 @@ public final class CommandEncoderImpl: GPUObjectReference {
 
     // MARK: Encoder state
 
-    @_expose(!Cxx)
     func isLocked() -> Bool {
         state == .locked
     }
 
-    @_expose(!Cxx)
     func isFinished() -> Bool {
         state == .ended
     }
 
     // https://gpuweb.github.io/gpuweb/#abstract-opdef-prepare-the-encoder-state
-    @_expose(!Cxx)
     func prepareTheEncoderState() -> Bool {
         state == .open
     }
 
-    @_expose(!Cxx)
     func setEncoderStateEnded() {
         state = .ended
     }
 
-    @_expose(!Cxx)
     func lock(_ shouldLock: Bool) {
         if state == .ended {
             return
@@ -3774,7 +3547,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     // MARK: The command buffer finish() made
 
     // Texture::waitForCommandBufferCompletion's per-encoder part.
-    @_expose(!Cxx)
     func waitForCommandBufferCompletion() -> Bool {
         guard let commandBuffer = cachedCommandBuffer else {
             return true
@@ -3787,7 +3559,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         return completed
     }
 
-    @_expose(!Cxx)
     func recordGPUExecutionWindowOnCanvasTextures(_ startTime: Double, _ endTime: Double) {
         let textures = trackedTextures
         for texture in textures where texture.isCanvasBacking() {
@@ -3798,22 +3569,18 @@ public final class CommandEncoderImpl: GPUObjectReference {
     // MARK: Resource tracking
 
     // For a buffer that newly recorded this encoder.
-    @_expose(!Cxx)
     func trackBuffer(_ impl: BufferImpl) {
         trackedBuffers.append(impl)
     }
 
-    @_expose(!Cxx)
     func trackTexture(_ impl: TextureImpl) {
         trackedTextures.append(impl)
     }
 
-    @_expose(!Cxx)
     func trackExternalTexture(_ impl: ExternalTextureImpl) {
         trackedExternalTextures.add(impl)
     }
 
-    @_expose(!Cxx)
     func retainExternalTexturePlanes(_ texture0: (any MTLTexture)?, _ texture1: (any MTLTexture)?) {
         retainExternalTexturePlane(texture0)
         retainExternalTexturePlane(texture1)
@@ -3827,7 +3594,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     }
 
     // Forgets this encoder in every resource it holds, then releases them.
-    @_expose(!Cxx)
     func clearTracking() {
         let buffers = trackedBuffers
         let textures = trackedTextures
@@ -3849,18 +3615,15 @@ public final class CommandEncoderImpl: GPUObjectReference {
         withExtendedLifetime((buffers, textures, externalTextures, planes)) {}
     }
 
-    @_expose(!Cxx)
     func addSampler(_ sampler: SamplerImpl) {
         retainedSamplers.add(identityKey(ObjectIdentifier(sampler))) { sampler }
     }
 
-    @_expose(!Cxx)
     func rebindSamplersPreCommit(_ group: BindGroupImpl) {
         bindGroupsToRebind.append(group)
     }
 
     // `vertexCount` is the cached entry's.
-    @_expose(!Cxx)
     func recordSkippedDrawIndexedValidation(_ buffer: BufferImpl, _ key: DrawIndexKey, vertexCount: UInt32) {
         let identity = identityKey(ObjectIdentifier(buffer))
         // Another BufferImpl at the address of one that died starts a new list.
@@ -3872,7 +3635,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
         }
     }
 
-    @_expose(!Cxx)
     func recordReusedIndirectIndexedDraw(_ buffer: BufferImpl, _ draw: ReusedIndirectIndexedDraw) {
         let identity = identityKey(ObjectIdentifier(buffer))
         // Another BufferImpl at the address of one that died starts a new list.
@@ -3889,7 +3651,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     // MARK: Commit actions
 
     // Dropped when the encoder is invalid, which it is from finish() on.
-    @_expose(!Cxx)
     func addCommitAction(_ action: consuming CommitAction) {
         if !isValid() {
             return
@@ -3899,7 +3660,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
 
     // Runs the constructor's action (the skipped index validations, then the sampler rebinds), then the other actions in
     // order, and clears them. Every action runs even after a false.
-    @_expose(!Cxx)
     func runCommitActions(_ commandBufferImpl: CommandBufferImpl) -> Bool {
         var result = true
         if constructorCommitActionPending {
@@ -3929,7 +3689,6 @@ public final class CommandEncoderImpl: GPUObjectReference {
     }
 
     // CommandBuffer::clearCommitHandlers and the CommandBuffer's destruction, for the handlers it had taken.
-    @_expose(!Cxx)
     func clearCommitActions() {
         constructorCommitActionPending = false
         let actions = commitActions

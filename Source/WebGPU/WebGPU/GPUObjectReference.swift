@@ -42,7 +42,6 @@ extension GPUObjectReference {
 extension PresentationContextIOSurfaceImpl {
     // The render buffer's contents as an image, for formats the compositor can't read from the IOSurface. nil, with
     // isIOSurfaceSupportedFormat set, when it can.
-    @_expose(!Cxx)
     public func textureAsNativeImage(_ bufferIndex: UInt32, _ isIOSurfaceSupportedFormat: inout Bool) -> CGImage? {
         renderBufferAsNativeImage(bufferIndex, &isIOSurfaceSupportedFormat)
     }

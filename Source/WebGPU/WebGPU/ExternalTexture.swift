@@ -34,7 +34,6 @@ public typealias ExternalTextureReference = ExternalTextureImpl
 extension ExternalTextureImpl {
 
     // The descriptor's video frame, which the texture shows from now on: none if it has no pixel buffer. Only the pixel buffer is read.
-    @_expose(!Cxx)
     public func update(_ descriptor: WebGPU.ExternalTextureDescriptor) {
         if let pixelBuffer = WebGPU.framePixelBuffer(descriptor) {
             update(pixelBuffer)
@@ -60,7 +59,6 @@ extension DeviceReference {
 
 // The state of a GPUExternalTexture, held by its Swift callers.
 // Used only on its Instance's API thread, so not Sendable.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class ExternalTextureImpl: GPUObjectReference {
     // nil: no frame.
@@ -78,10 +76,8 @@ public final class ExternalTextureImpl: GPUObjectReference {
     private let backingVisibleHeight: UInt32
 
     /// The encoders that used the current frame: cleared by a new frame and by undestroy, never by the encoders.
-    @_expose(!Cxx)
     var tracking = EncoderTracking()
     /// The encoders that used the texture in any frame, until their clearTracking() at completion or discard.
-    @_expose(!Cxx)
     var pendingUsers = EncoderTracking()
     // Declared last, so that the device outlives the rest of the texture.
     let deviceImpl: DeviceImpl
@@ -98,12 +94,10 @@ public final class ExternalTextureImpl: GPUObjectReference {
         self.deviceImpl = deviceImpl
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         backingPixelBuffer != nil || destroyed
     }
 
-    @_expose(Cxx)
     @_spi(WebKitGPU)
     public func destroy() {
         backingPixelBuffer = nil
@@ -113,7 +107,6 @@ public final class ExternalTextureImpl: GPUObjectReference {
         }
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func undestroy() {
         guard destroyed else {
@@ -126,7 +119,6 @@ public final class ExternalTextureImpl: GPUObjectReference {
     }
 
     // The frame's IOSurface is first attributed to the web process.
-    @_expose(Cxx)
     func update(_ pixelBuffer: CVPixelBuffer) {
         #if HAVE_IOSURFACE_SET_OWNERSHIP_IDENTITY && HAVE_TASK_IDENTITY_TOKEN
         if let surface = pixelBufferIOSurface(pixelBuffer) {
@@ -145,7 +137,6 @@ public final class ExternalTextureImpl: GPUObjectReference {
     }
 
     // The encoder retains the planes, not the texture.
-    @_expose(!Cxx)
     func setCommandEncoder(_ encoder: CommandEncoderImpl) {
         if !tracking.contains(encoder) {
             _ = tracking.add(encoder)
@@ -162,37 +153,30 @@ public final class ExternalTextureImpl: GPUObjectReference {
     }
 
     // The encoders that used the texture since its frame was last updated and are still alive.
-    @_expose(!Cxx)
     func openCommandEncoderCount() -> Int {
         tracking.liveCount()
     }
 
-    @_expose(!Cxx)
     func hasPendingUsers() -> Bool {
         pendingUsers.liveCount() != 0
     }
 
-    @_expose(!Cxx)
     func pixelBuffer() -> CVPixelBuffer? {
         backingPixelBuffer
     }
 
-    @_expose(!Cxx)
     func colorSpaceRawValue() -> UInt8 {
         colorSpace.rawValue
     }
 
-    @_expose(!Cxx)
     func visibleWidth() -> UInt32 {
         backingVisibleWidth
     }
 
-    @_expose(!Cxx)
     func visibleHeight() -> UInt32 {
         backingVisibleHeight
     }
 
-    @_expose(!Cxx)
     func updateExternalTextures(_ t0: (any MTLTexture)?, _ t1: (any MTLTexture)?) {
         backingTexture0 = t0
         backingTexture1 = t1

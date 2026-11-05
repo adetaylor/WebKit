@@ -101,7 +101,6 @@ enum BufferMapState {
 // https://gpuweb.github.io/gpuweb/#buffer-interface
 // The state of a GPUBuffer, held by its Swift callers and the bind groups, bundles and encoders that use it. Used only on
 // the instance's API thread, so not Sendable.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class BufferImpl: GPUObjectReference {
     private var backingBuffer: (any MTLBuffer)?
@@ -127,7 +126,6 @@ public final class BufferImpl: GPUObjectReference {
     private var didReadOOBByCommandBuffer: [UInt64: Bool] = [:]
 
     /// The encoders that used the buffer.
-    @_expose(!Cxx)
     var tracking = EncoderTracking()
     private var drawIndexedCache = WTFHashMap<DrawIndexKey, DrawIndexValidationEntry>()
     // Whether drawIndexedCache and skippedValidationEncoders may be non-empty. Every index write reads them, and unlike the
@@ -160,7 +158,6 @@ public final class BufferImpl: GPUObjectReference {
         self.deviceImpl = deviceImpl
     }
 
-    @_expose(Cxx)
     func buffer() -> (any MTLBuffer)? {
         backingBuffer
     }
@@ -179,7 +176,6 @@ public final class BufferImpl: GPUObjectReference {
     }
 
     // Whether a mapAsync() is pending.
-    @_expose(!Cxx)
     var isMappingPending: Bool {
         if case .pending = mapState {
             return true
@@ -187,7 +183,6 @@ public final class BufferImpl: GPUObjectReference {
         return false
     }
 
-    @_expose(Cxx)
     func isDestroyed() -> Bool {
         if case .destroyed = mapState {
             return true
@@ -195,12 +190,10 @@ public final class BufferImpl: GPUObjectReference {
         return false
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         isDestroyed() || backingBuffer != nil
     }
 
-    @_expose(!Cxx)
     var isUnmapped: Bool {
         if case .unmapped = mapState {
             return true
@@ -213,7 +206,6 @@ public final class BufferImpl: GPUObjectReference {
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
-    @_expose(Cxx)
     @_spi(WebKitGPU)
     public func destroy() {
         if mapState.hasMapping {
@@ -242,7 +234,6 @@ public final class BufferImpl: GPUObjectReference {
     // MARK: Encoder tracking
 
     // Each encoder holds the buffer once, from the first use until its clearTracking().
-    @_expose(!Cxx)
     func setCommandEncoder(_ encoder: CommandEncoderImpl, mayModifyBuffer: Bool) {
         let isNewEntry = !tracking.contains(encoder) && tracking.add(encoder)
         if isNewEntry {
@@ -265,7 +256,6 @@ public final class BufferImpl: GPUObjectReference {
     }
 
     /// A destroyed buffer has nothing to release later, so it records no holder.
-    @_expose(!Cxx)
     func addBindGroupHolder(_ bindGroup: BindGroupImpl) {
         if isDestroyed() {
             return
@@ -273,7 +263,6 @@ public final class BufferImpl: GPUObjectReference {
         bindGroupHolders.add(bindGroup)
     }
 
-    @_expose(!Cxx)
     func addRenderBundleHolder(_ renderBundle: RenderBundleImpl) {
         if isDestroyed() {
             return
@@ -281,24 +270,7 @@ public final class BufferImpl: GPUObjectReference {
         renderBundleHolders.add(renderBundle)
     }
 
-    // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync
-    // `rangeFits` is false when the range does not fit in size_t, which only 32-bit platforms reach. The handler is
-    // moved out of `callback`. Until the queue runs it, the completion holds the buffer.
-    func mapAsync(
-        _ modeBits: UInt8,
-        _ rangeFits: Bool,
-        _ offset: UInt64,
-        _ rangeSize: UInt64,
-        _ callback: inout WTF.BoolCompletionHandler
-    ) {
-        let handler = BoolCompletionHandlerBox(exchange(&callback, with: WTF.BoolCompletionHandler()))
-        mapAsync(modeBits, rangeFits, offset, rangeSize) { success in
-            handler.call(success)
-        }
-    }
-
     // mapAsync, for a Swift caller.
-    @_expose(!Cxx)
     func mapAsync(
         _ modeBits: UInt8,
         _ rangeFits: Bool,
@@ -403,7 +375,6 @@ public final class BufferImpl: GPUObjectReference {
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func unmap() {
         guard mapState.hasMapping else {
@@ -452,7 +423,6 @@ public final class BufferImpl: GPUObjectReference {
         (isUInt16 ? UInt32(indexValueUpperBoundUInt16) : indexValueUpperBoundUInt32) < vertexCount
     }
 
-    @_expose(!Cxx)
     func invalidateIndexContents() {
         backingContentsGeneration += 1
         backingIndexContentsGeneration += 1
@@ -468,7 +438,6 @@ public final class BufferImpl: GPUObjectReference {
         backingIndexContentsGeneration
     }
 
-    @_expose(!Cxx)
     func mustTakeSlowIndexValidationPath() -> Bool {
         backingMustTakeSlowIndexValidationPath
     }
@@ -476,7 +445,6 @@ public final class BufferImpl: GPUObjectReference {
     // MARK: Draw-indexed validation cache
 
     /// `icbResourceID` is the indirect command buffer's gpuResourceID._impl, 0 outside one.
-    @_expose(!Cxx)
     static func drawIndexKey(
         firstIndex: UInt32,
         indexCount: UInt32,
@@ -495,7 +463,6 @@ public final class BufferImpl: GPUObjectReference {
         )
     }
 
-    @_expose(!Cxx)
     func canSkipDrawIndexedValidation(_ key: DrawIndexKey, vertexCount: UInt32) -> DrawIndexValidationEntry? {
         guard let entry = drawIndexedCache.value(forKey: key), entry.indexContentsGeneration == backingIndexContentsGeneration,
             entry.vertexCount <= vertexCount
@@ -505,7 +472,6 @@ public final class BufferImpl: GPUObjectReference {
         return entry
     }
 
-    @_expose(!Cxx)
     func drawIndexedValidated(_ key: DrawIndexKey, vertexCount: UInt32, validationGeneration: UInt64) {
         let maxCacheSize = 1_000_000
         if drawIndexedCache.count > maxCacheSize {
@@ -529,7 +495,6 @@ public final class BufferImpl: GPUObjectReference {
     /// Right after canSkipDrawIndexedValidation found `key`.
     ///
     /// The encoder records the cached entry's vertex count.
-    @_expose(!Cxx)
     func skippedDrawIndexedValidation(_ encoder: CommandEncoderImpl, _ key: DrawIndexKey, vertexCount: UInt32) {
         _ = skippedValidationEncoders.add(encoder)
         hasSkippedValidationEncoders = true
@@ -541,7 +506,6 @@ public final class BufferImpl: GPUObjectReference {
     ///
     /// Both are no-ops for a buffer without Index or Indirect usage (the invalidation returns at once), so such a buffer
     /// queues nothing.
-    @_expose(!Cxx)
     func indirectBufferInvalidated(by encoder: CommandEncoderImpl) {
         if !hasUsage(.Indirect) && !hasUsage(.Index) {
             return
@@ -555,7 +519,6 @@ public final class BufferImpl: GPUObjectReference {
     }
 
     /// Validation can be skipped later only when the one encoder that skipped it is the one invalidating.
-    @_expose(!Cxx)
     func indirectBufferInvalidated(_ encoder: CommandEncoderImpl?) {
         if !hasUsage(.Indirect) && !hasUsage(.Index) {
             return
@@ -576,13 +539,11 @@ public final class BufferImpl: GPUObjectReference {
         invalidateIndexContents()
     }
 
-    @_expose(!Cxx)
     func removeSkippedValidationCommandEncoder(_ encoder: CommandEncoderImpl) {
         skippedValidationEncoders.remove(encoder)
         hasSkippedValidationEncoders = !skippedValidationEncoders.isEmpty
     }
 
-    @_expose(!Cxx)
     func clearMustTakeSlowIndexValidationPath() {
         let liveCount = skippedValidationEncoders.liveCount()
         hasSkippedValidationEncoders = liveCount != 0
@@ -594,7 +555,6 @@ public final class BufferImpl: GPUObjectReference {
 
     /// When the indices are invalid, the GPU work in `commandBuffer` reads cleared ones, and the post-commit action
     /// writes the old ones back.
-    @_expose(!Cxx)
     func takeSlowIndexValidationPath(_ commandBuffer: CommandBufferImpl, _ key: DrawIndexKey, vertexCount: UInt32) {
         let isUInt16 = key.indexTypeRawValue == MTLIndexType.uint16.rawValue
         deviceImpl.defaultQueueImpl.makeGPUWritesVisible(backingBuffer)
@@ -612,14 +572,12 @@ public final class BufferImpl: GPUObjectReference {
     }
 
     /// Right after executeBundles reused the baked ICB slot of an indexed indirect draw that indexes this buffer.
-    @_expose(!Cxx)
     func skippedBundleIndirectDrawValidation(_ encoder: CommandEncoderImpl, _ draw: ReusedIndirectIndexedDraw) {
         encoder.recordReusedIndirectIndexedDraw(self, draw)
     }
 
     /// At commit, for a reused draw whose indices changed after its slot was baked: as takeSlowIndexValidationPath(),
     /// with the checks of the clamp shader.
-    @_expose(!Cxx)
     func takeSlowBundleIndirectDrawValidationPath(_ commandBuffer: CommandBufferImpl, _ draw: ReusedIndirectIndexedDraw) {
         // The baked slot holds the baseVertex the clamp shader saw, so the arguments are only a usable stand-in for it
         // while nothing has rewritten them since. Anything else falls back to clearing unconditionally.
@@ -672,7 +630,6 @@ public final class BufferImpl: GPUObjectReference {
     }
 
     /// The restore of the contents clearIndexBuffer cleared is next, once the command buffer completed.
-    @_expose(!Cxx)
     func indexBufferContentsWillBeRestored() {
         clearedForCommandBuffer = nil
     }
@@ -688,7 +645,6 @@ public final class BufferImpl: GPUObjectReference {
         didReadOOBByCommandBuffer[commandBufferKey] = didRead || didReadOOB(commandBufferKey)
     }
 
-    @_expose(!Cxx)
     func hasUsage(_ usage: WebGPU.BufferUsage) -> Bool {
         usageBits & usage.rawValue != 0
     }
@@ -879,7 +835,6 @@ extension DeviceReference {
 extension BufferImpl {
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync. `mode` is the bits of
     // OptionSet<WebGPU::MapMode>; nil size: the rest of the buffer after the offset.
-    @_expose(!Cxx)
     public func mapAsync(_ mode: UInt8, _ offset: UInt64, _ size: UInt64?, _ completion: @escaping (Bool) -> Void) {
         let rangeSize = size ?? (initialSize() > offset ? initialSize() - offset : 0)
         let rangeFits = UInt(exactly: offset) != nil && UInt(exactly: rangeSize) != nil
@@ -888,7 +843,6 @@ extension BufferImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange, as Buffer::getMappedRange() reserves the range, but
     // giving a copy of its bytes. No bytes if the range can't be given.
-    @_expose(!Cxx)
     public func getMappedRange(_ offset: UInt64, _ size: UInt64?) -> [UInt8] {
         let rangeSize = size ?? (initialSize() > offset ? initialSize() - offset : 0)
         guard UInt(exactly: offset) != nil, UInt(exactly: rangeSize) != nil, reserveMappedRange(offset, rangeSize) else {
@@ -906,18 +860,15 @@ extension BufferImpl {
 
     // Writes data into the buffer's contents at that offset, as a mapped range of them is written. Returns false,
     // writing nothing, if the contents don't hold it there.
-    @_expose(!Cxx)
     public func writeContents(_ data: Span<UInt8>, at offset: UInt64) -> Bool {
         WebGPU.Metal.writeBufferContentsIfInBounds(buffer(), offset, data)
     }
 
-    @_expose(!Cxx)
     public func setLabel(_ label: Swift.String?) {
         setLabel(WTF.String(label ?? ""))
     }
 
     // Buffer::generateAValidationError.
-    @_expose(!Cxx)
     public func generateAValidationError() {
         deviceImpl.generateAValidationError("Buffer state was not unmapped")
     }

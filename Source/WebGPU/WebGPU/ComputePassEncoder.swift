@@ -63,7 +63,6 @@ private struct DispatchStateCache {
 // to a stored property across one.
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
-@_expose(Cxx)
 @_spi(WebKitGPU)
 public final class ComputePassEncoderImpl: GPUObjectReference {
     // nil once the pass is invalid, has ended or no longer holds its command encoder's current encoder.
@@ -115,7 +114,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         precondition(Int(limits.maxBindGroups) <= maxBindGroupIndexCount)
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         backingComputeCommandEncoder != nil
     }
@@ -420,7 +418,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         return initialUsage.union(existing.usage).isAllowed
     }
 
-    @_expose(Cxx)
     @_spi(WebKitGPU)
     public func dispatch(_ x: UInt32, _ y: UInt32, _ z: UInt32) {
         if encodingHasFinished() {
@@ -450,7 +447,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
             .dispatchThreadgroups(MTLSize(width: Int(x), height: Int(y), depth: Int(z)), threadsPerThreadgroup: threadsPerThreadgroup)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func dispatchIndirect(_ indirectBufferImpl: BufferImpl, _ indirectOffset: UInt64) {
         if encodingHasFinished() {
@@ -519,7 +515,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         return dispatchCallBuffer
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func endPass() {
         if passEnded {
@@ -580,7 +575,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
     }
 
     // As WTF::String::createNSString() makes the label for the NSString overloads, a null one is empty.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func insertDebugMarker(_ markerLabel: Swift.String?) {
         let markerLabel = markerLabel ?? ""
@@ -602,7 +596,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         parentImpl.isLocked() && debugGroupStackSize != 0
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func popDebugGroup() {
         if encodingHasFinished() {
@@ -627,7 +620,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         pushDebugGroup(groupLabel as String)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func pushDebugGroup(_ groupLabel: Swift.String?) {
         let groupLabel = groupLabel ?? ""
@@ -679,7 +671,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         maxDynamicOffsetAtIndex[Int(groupIndex)] = 0
     }
 
-    @_expose(Cxx)
     func setBindGroup(
         _ groupIndex: UInt32,
         _ groupImpl: BindGroupImpl,
@@ -691,7 +682,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
     }
 
     // setBindGroup, for a Swift caller.
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {
         guard let group else {
@@ -779,7 +769,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         boundGroupIdentities[Int(groupIndex)] = identity
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setPipeline(_ pipelineImpl: ComputePipelineImpl) {
         if encodingHasFinished() {
@@ -823,7 +812,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         setLabel(label as String)
     }
 
-    @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func setLabel(_ label: Swift.String?) {
         backingComputeCommandEncoder?.label = label ?? ""
