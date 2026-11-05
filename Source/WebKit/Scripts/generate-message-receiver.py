@@ -113,14 +113,16 @@ def main(argv):
         with open(source_path) as source_file:
             receiver = webkit.parser.parse(splice_additions(source_file, receiver_name, args.additions_dir))
 
-        receiver.enforce_attribute_constraints()
-        receiver.enforce_opaque_ipc_types_usage()
-        receiver.enforce_untrusted_origin_usage()
-
         receivers.append(receiver)
         if receiver_name != receiver.name:
             sys.stderr.write("Error: %s defined in file %s/%s.messages.in instead of %s.messages.in\n" % (receiver.name, base_dir, message_receiver, receiver.name))
             sys.exit(1)
+
+    webkit.parser.resolve_message_references(receivers)
+    for receiver in receivers:
+        receiver.enforce_attribute_constraints()
+        receiver.enforce_opaque_ipc_types_usage()
+        receiver.enforce_untrusted_origin_usage()
 
     errors = webkit.model.check_global_model_inputs(receivers)
     if errors:
