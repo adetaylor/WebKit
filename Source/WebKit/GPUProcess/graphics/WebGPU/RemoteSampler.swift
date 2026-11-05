@@ -66,7 +66,7 @@ final class RemoteSampler {
     }
 
     func setLabel(label: String?) {
-        sampler.impl.setLabel(label)
+        sampler.setLabel(label)
     }
 }
 

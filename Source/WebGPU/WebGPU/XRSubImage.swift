@@ -29,7 +29,7 @@ import Metal
 import WebGPU_Private.WebGPUCpp
 
 // The color and depth textures of a device's XR sub-image, per reusable texture index, kept in step with the
-// projection layer. The shell holds the Device weakly, because the Device owns the sub-image.
+// projection layer. The Device owns the sub-image.
 //
 // No getter returns an Optional FRT: the shell asks hasCurrent*Texture() first and only then calls the
 // non-optional getter.
@@ -53,8 +53,8 @@ final class XRSubImageImpl {
         let targetDepthStencilFormat = projectionLayer.depthStencilFormat
 
         currentTextureIndex = textureIndex
-        if let texture = colorTextures[textureIndex], texture.impl.texture() === colorTexture {
-            texture.impl.updateCompletionEvent(completionEvent, completionEventSignalValue)
+        if let texture = colorTextures[textureIndex], texture.texture() === colorTexture {
+            texture.updateCompletionEvent(completionEvent, completionEventSignalValue)
         } else {
             guard let colorFormat = textureFormat(colorTexture?.pixelFormat ?? .invalid) else {
                 return
@@ -63,8 +63,8 @@ final class XRSubImageImpl {
                 colorTexture = colorTexture?.makeTextureView(pixelFormat: texturePixelFormat(colorFormat))
             }
             let newTexture = makeXRTexture(colorTexture, targetColorFormat, colorFormat, deviceImpl)
-            newTexture.impl.updateCompletionEvent(completionEvent, completionEventSignalValue)
-            newTexture.impl.setRasterizationRateMaps(projectionLayer.leftRasterizationMap, projectionLayer.rightRasterizationMap)
+            newTexture.updateCompletionEvent(completionEvent, completionEventSignalValue)
+            newTexture.setRasterizationRateMaps(projectionLayer.leftRasterizationMap, projectionLayer.rightRasterizationMap)
             colorTextures[textureIndex] = newTexture
         }
 
@@ -74,7 +74,7 @@ final class XRSubImageImpl {
             return
         }
 
-        if let texture = depthTextures[textureIndex], texture.impl.texture() === depthTexture {
+        if let texture = depthTextures[textureIndex], texture.texture() === depthTexture {
             return
         }
         if textureFormat(depthTexture?.pixelFormat ?? .invalid) != targetDepthStencilFormat {
@@ -124,16 +124,16 @@ public final class XRBindingReference {
         parameters.depthStencilFormat = depthStencilFormat ?? .Bgra8unorm
         parameters.textureUsage = textureUsage
         parameters.scaleFactor = scaleFactor
-        return XRProjectionLayerReference(makeXRProjectionLayerImpl(parameters, device.impl))
+        return XRProjectionLayerReference(makeXRProjectionLayerImpl(parameters, device))
     }
 
     // https://immersive-web.github.io/WebXR-WebGPU-Binding/#dom-xrgpubinding-getviewsubimage: the device's sub-image,
     // brought up to the layer's frame. nil for a device that has none, which is an invalid one.
     public func getViewSubImage(_ projectionLayer: XRProjectionLayerReference) -> XRSubImageReference? {
-        guard let subImage = device.impl.xrSubImageImpl else {
+        guard let subImage = device.xrSubImageImpl else {
             return nil
         }
-        subImage.update(device.impl, projectionLayer.impl)
+        subImage.update(device, projectionLayer.impl)
         return XRSubImageReference(subImage)
     }
 }

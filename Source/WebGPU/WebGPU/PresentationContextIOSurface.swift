@@ -77,11 +77,6 @@ public typealias PresentationContextReference = PresentationContextIOSurfaceImpl
 // A canvas context that presents through the compositor's IOSurfaces, for a Swift caller.
 @_spi(WebKitGPU)
 extension PresentationContextIOSurfaceImpl {
-    // What the callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: PresentationContextIOSurfaceImpl {
-        self
-    }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture: the texture the canvas draws into for the
     // frame, or an invalid texture if the frame isn't one of the configuration's. nil before the first configure().
@@ -184,7 +179,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
     @_expose(!Cxx)
     @_spi(WebKitGPU)
     public func configure(_ configuration: GPUCanvasConfiguration) {
-        let deviceImpl = configuration.device.impl
+        let deviceImpl = configuration.device
         let storageMode = canvasStorageMode(deviceImpl)
         let invalidTexture = makeInvalidTextureImpl(deviceImpl)
         renderBuffers = []
@@ -303,7 +298,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
                     viewFormats: configuredViewFormats,
                     deviceImpl
                 )
-                texture.impl.makeCanvasBacking()
+                texture.makeCanvasBacking()
                 luminanceClampTexture = [texture]
                 textureDescriptor.pixelFormat = .bgra8Unorm
                 apiFormat = WebGPU.TextureFormat.Bgra8unorm
@@ -316,7 +311,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
                 viewFormats: configuredViewFormats,
                 deviceImpl
             )
-            parentTexture.impl.makeCanvasBacking()
+            parentTexture.makeCanvasBacking()
             renderBuffers.append(RenderBuffer(texture: parentTexture, luminanceClampTexture: luminanceClampTexture))
             if existingRenderBuffers.count >= renderBuffers.count {
                 if resizeCommandBuffer == nil {
@@ -326,8 +321,8 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
                 let existing = existingRenderBuffers[renderBuffers.count - 1]
                 textureDescriptor.usage.insert(.shaderWrite)
                 copyTextureToTexture(
-                    deviceImpl.newTextureWithDescriptor(textureDescriptor, parentTexture.impl.texture()?.iosurface, 0),
-                    existing.texture.impl.texture(),
+                    deviceImpl.newTextureWithDescriptor(textureDescriptor, parentTexture.texture()?.iosurface, 0),
+                    existing.texture.texture(),
                     resizeCommandBuffer,
                     metalDevice,
                     deviceImpl
@@ -339,8 +334,8 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
                     // texture rather than into luminanceClampParent.
                     luminanceClampDescriptor.usage.insert(.shaderWrite)
                     copyTextureToTexture(
-                        deviceImpl.newTextureWithDescriptor(luminanceClampDescriptor, luminanceClampParent.impl.texture()?.iosurface, 0),
-                        existing.luminanceClampTexture.first?.impl.texture(),
+                        deviceImpl.newTextureWithDescriptor(luminanceClampDescriptor, luminanceClampParent.texture()?.iosurface, 0),
+                        existing.luminanceClampTexture.first?.texture(),
                         resizeCommandBuffer,
                         metalDevice,
                         deviceImpl
@@ -458,9 +453,9 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
             let oldestFrame = inFlightFrames.removeFirst()
             // Blocking here is what tells the frame pacer the canvas is presenting faster than the GPU retires frames.
             let waitStartTime = clock.now
-            let completed = oldestFrame.impl.waitForCommandBufferCompletion()
+            let completed = oldestFrame.waitForCommandBufferCompletion()
             stall += waitStartTime.duration(to: clock.now)
-            let gpuFrameCost = oldestFrame.impl.gpuFrameCostSeconds()
+            let gpuFrameCost = oldestFrame.gpuFrameCostSeconds()
             lastDrainedFrameGPUCost = completed && gpuFrameCost > 0 ? gpuFrameCost : 0
         }
         let (seconds, attoseconds) = stall.components
@@ -486,9 +481,9 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
             let computeEncoder = commandBuffer?.makeComputeCommandEncoder(descriptor: computeDescriptor)
             queueImpl.setEncoderForBuffer(commandBuffer, computeEncoder)
             computeEncoder?.setComputePipelineState(computePipelineState)
-            let inputTexture = luminanceClampTexture.impl.texture()
+            let inputTexture = luminanceClampTexture.texture()
             computeEncoder?.setTexture(inputTexture, index: 0)
-            computeEncoder?.setTexture(renderBuffer.texture.impl.texture(), index: 1)
+            computeEncoder?.setTexture(renderBuffer.texture.texture(), index: 1)
             let threadgroupSize = MTLSize(width: 16, height: 16, depth: 1)
             let threadgroupCount = MTLSize(
                 width: ((inputTexture?.width ?? 0) + threadgroupSize.width - 1) / threadgroupSize.width,
@@ -513,27 +508,25 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         return false
     }
 
-    // currentFrameTexture(), or the invalid texture if the frame isn't a configured one, as the shell's
-    // currentTexture() gives them.
+    // currentFrameTexture(), or the invalid texture if the frame isn't a configured one.
     @_expose(!Cxx)
     func currentTexture(_ index: UInt32) -> TextureImpl? {
         guard validateCurrentTextureIndex(index) else {
             return invalidTextures.first
         }
         let texture = renderBuffers[Int(index)].presentedTexture
-        texture.impl.recreateIfNeeded()
+        texture.recreateIfNeeded()
         return texture
     }
 
-    // CF_RETURNS_RETAINED; the shell adopts it. Null, with isIOSurfaceSupportedFormat set, when the compositor
-    // can read the IOSurface directly.
+    // textureAsNativeImage(), in GPUObjectReference.swift.
     func renderBufferAsNativeImage(_ bufferIndex: UInt32, _ isIOSurfaceSupportedFormat: inout Bool) -> CGImage? {
         isIOSurfaceSupportedFormat = false
         guard !configuredDevice.isEmpty, bufferIndex < renderBuffers.count else {
             return nil
         }
 
-        let texture = renderBuffers[Int(bufferIndex)].presentedTexture.impl
+        let texture = renderBuffers[Int(bufferIndex)].presentedTexture
         guard texture.waitForCommandBufferCompletion() else {
             return nil
         }

@@ -67,7 +67,7 @@ final class RemoteBindGroupLayout {
     }
 
     func setLabel(label: String?) {
-        bindGroupLayout.impl.setLabel(label)
+        bindGroupLayout.setLabel(label)
     }
 }
 

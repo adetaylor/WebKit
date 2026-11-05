@@ -31,14 +31,12 @@ import WebKit_Internal
 // RenderPassEncoderImpl, with the references of the objects they name, from the registry.
 @_expose(Cxx)
 final class RemoteRenderPassEncoder {
-    private let renderPassEncoder: RenderPassEncoderReference
     private let impl: RenderPassEncoderImpl
     private let link: WebGPURegistryLink
 
     @_expose(!Cxx)
     private init(_ renderPassEncoder: RenderPassEncoderReference, _ link: WebGPURegistryLink) {
-        self.renderPassEncoder = renderPassEncoder
-        self.impl = renderPassEncoder.impl
+        impl = renderPassEncoder
         self.link = link
     }
 
@@ -105,7 +103,7 @@ final class RemoteRenderPassEncoder {
         guard let buffer = buffer(identifier) else {
             return
         }
-        impl.setVertexBuffer(slot, buffer.impl, offset, size)
+        impl.setVertexBuffer(slot, buffer, offset, size)
     }
 
     func unsetVertexBuffer(slot: UInt32, offset: UInt64, size: UInt64?) {
@@ -130,14 +128,14 @@ final class RemoteRenderPassEncoder {
         guard let buffer = buffer(indirectBuffer) else {
             return
         }
-        impl.drawIndirect(buffer.impl, indirectOffset)
+        impl.drawIndirect(buffer, indirectOffset)
     }
 
     func drawIndexedIndirect(indirectBuffer: IPCTypes.WebGPUIdentifier, indirectOffset: UInt64) {
         guard let buffer = buffer(indirectBuffer) else {
             return
         }
-        impl.drawIndexedIndirect(buffer.impl, indirectOffset)
+        impl.drawIndexedIndirect(buffer, indirectOffset)
     }
 
     func setBindGroup(

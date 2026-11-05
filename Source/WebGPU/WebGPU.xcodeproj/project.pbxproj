@@ -90,7 +90,7 @@
 		973F784829C8A78200166C66 /* Pipeline.mm in Sources */ = {isa = PBXBuildFile; fileRef = 973F784629C8A78200166C66 /* Pipeline.mm */; };
 		AD5A3100000000000000D702 /* Pipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5A3100000000000000D701 /* Pipeline.swift */; };
 		97FA1AA729C0DA890052D650 /* libwgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD7F22716B2CC00A5254D /* libwgsl.a */; };
-		AD5A3100000000000000F102 /* ImplLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5A3100000000000000F101 /* ImplLookup.swift */; };
+		AD5A3100000000000000F102 /* GPUObjectReference.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5A3100000000000000F101 /* GPUObjectReference.swift */; };
 		DD5697FE2DC1316A00050321 /* rdar150228472.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5697FC2DC1311D00050321 /* rdar150228472.swift */; };
 		DDE748802F7B4337008013AB /* WorkAround173516139.h in Headers */ = {isa = PBXBuildFile; fileRef = DDE7487F2F7B4331008013AB /* WorkAround173516139.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		596E957DAF12D022D09D9ED4 /* WebGPUCpp.h in Headers */ = {isa = PBXBuildFile; fileRef = B6D2ACF0E901738C24D0DDFE /* WebGPUCpp.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -334,7 +334,7 @@
 		1CA5B4FE2A6F2A5800E5F297 /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/System/iOSSupport/System/Library/Frameworks/JavaScriptCore.framework; sourceTree = DEVELOPER_DIR; };
 		1CBAB0912718CCA0006080BB /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = JavaScriptCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1CBD2E952977DAC900BBF52C /* PresentationContextIOSurface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PresentationContextIOSurface.mm; sourceTree = "<group>"; };
-		AD5A3100000000000000F101 /* ImplLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImplLookup.swift; sourceTree = "<group>"; };
+		AD5A3100000000000000F101 /* GPUObjectReference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUObjectReference.swift; sourceTree = "<group>"; };
 		AD5A3100000000000000C201 /* PresentationContextIOSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationContextIOSurface.swift; sourceTree = "<group>"; };
 		1CC0C8C9273A7D8900D0B481 /* WebGPU.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = WebGPU.modulemap; sourceTree = "<group>"; };
 		1CEBD7E32716AFBA00A5254D /* WebGPU.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = WebGPU.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -576,10 +576,10 @@
 				1CEBD80B2716C37900A5254D /* ExportMacros.h */,
 				AD5A3100000000000000B001 /* ExternalTexture.swift */,
 				AD5A3100000000000000DB01 /* ExternalTextureImport.swift */,
+				AD5A3100000000000000F101 /* GPUObjectReference.swift */,
 				1C0F41ED280940650005886D /* HardwareCapabilities.h */,
 				1C0F41EC280940650005886D /* HardwareCapabilities.mm */,
 				AD5A3100000000000000D301 /* HardwareCapabilities.swift */,
-				AD5A3100000000000000F101 /* ImplLookup.swift */,
 				1C5ACAA0273A426D0095F8D5 /* Instance.h */,
 				1C5ACA92273A41C20095F8D5 /* Instance.mm */,
 				AD5A3100000000000000C301 /* Instance.swift */,
@@ -1142,9 +1142,9 @@
 				AD5A3100000000000000D902 /* EncoderModel.swift in Sources */,
 				AD5A3100000000000000B002 /* ExternalTexture.swift in Sources */,
 				AD5A3100000000000000DB02 /* ExternalTextureImport.swift in Sources */,
+				AD5A3100000000000000F102 /* GPUObjectReference.swift in Sources */,
 				1C0F41EE280940650005886D /* HardwareCapabilities.mm in Sources */,
 				AD5A3100000000000000D302 /* HardwareCapabilities.swift in Sources */,
-				AD5A3100000000000000F102 /* ImplLookup.swift in Sources */,
 				1C5ACA94273A41C20095F8D5 /* Instance.mm in Sources */,
 				AD5A3100000000000000C302 /* Instance.swift in Sources */,
 				AD5A3100000000000000D602 /* LayoutConversion.swift in Sources */,

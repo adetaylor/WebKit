@@ -99,8 +99,8 @@ enum BufferMapState {
 }
 
 // https://gpuweb.github.io/gpuweb/#buffer-interface
-// The state of a GPUBuffer, held by its Swift callers, the bind groups, bundles and encoders that use it, and the C++
-// API's shell WebGPU::Metal::Buffer. Used only on the instance's API thread, so not Sendable.
+// The state of a GPUBuffer, held by its Swift callers and the bind groups, bundles and encoders that use it. Used only on
+// the instance's API thread, so not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)
 public final class BufferImpl: GPUObjectReference {
@@ -389,8 +389,8 @@ public final class BufferImpl: GPUObjectReference {
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange
-    // Validates and records [offset, offset + rangeSize). Returns whether the shell may return that
-    // part of the contents; the shell forms the span, so no pointer is made here.
+    // Validates and records [offset, offset + rangeSize). Returns whether getMappedRange() may copy that part of the
+    // contents.
     func reserveMappedRange(_ offset: UInt64, _ rangeSize: UInt64) -> Bool {
         guard isValid(), let range = validatedMappedRange(offset, rangeSize) else {
             return false
@@ -869,8 +869,59 @@ private func bufferDidModifyRange(_ buffer: any MTLBuffer, _ offset: UInt64, _ l
 
 @_spi(WebKitGPU)
 extension DeviceReference {
-    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer: an invalid buffer on failure, as for the C++ caller.
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer: an invalid buffer on failure.
     public func createBuffer(_ descriptor: GPUBufferDescriptor, label: Swift.String?) -> BufferReference {
-        createBufferImpl(impl, descriptor, label: WTF.String(label ?? ""))
+        createBufferImpl(self, descriptor, label: WTF.String(label ?? ""))
     }
 }
+
+@_spi(WebKitGPU)
+extension BufferImpl {
+    // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync. `mode` is the bits of
+    // OptionSet<WebGPU::MapMode>; nil size: the rest of the buffer after the offset.
+    @_expose(!Cxx)
+    public func mapAsync(_ mode: UInt8, _ offset: UInt64, _ size: UInt64?, _ completion: @escaping (Bool) -> Void) {
+        let rangeSize = size ?? (initialSize() > offset ? initialSize() - offset : 0)
+        let rangeFits = UInt(exactly: offset) != nil && UInt(exactly: rangeSize) != nil
+        mapAsync(mode, rangeFits, rangeFits ? offset : 0, rangeFits ? rangeSize : 0, completion)
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange, as Buffer::getMappedRange() reserves the range, but
+    // giving a copy of its bytes. No bytes if the range can't be given.
+    @_expose(!Cxx)
+    public func getMappedRange(_ offset: UInt64, _ size: UInt64?) -> [UInt8] {
+        let rangeSize = size ?? (initialSize() > offset ? initialSize() - offset : 0)
+        guard UInt(exactly: offset) != nil, UInt(exactly: rangeSize) != nil, reserveMappedRange(offset, rangeSize) else {
+            return []
+        }
+        // The reserved range lies within the mapping, so within the contents.
+        guard let byteCount = Int(exactly: rangeSize), byteCount > 0 else {
+            return []
+        }
+        var bytes = [UInt8](repeating: 0, count: byteCount)
+        var destination = bytes.mutableSpan
+        WebGPU.Metal.readBufferContents(buffer(), offset, &destination)
+        return bytes
+    }
+
+    // Writes data into the buffer's contents at that offset, as a mapped range of them is written. Returns false,
+    // writing nothing, if the contents don't hold it there.
+    @_expose(!Cxx)
+    public func writeContents(_ data: Span<UInt8>, at offset: UInt64) -> Bool {
+        WebGPU.Metal.writeBufferContentsIfInBounds(buffer(), offset, data)
+    }
+
+    @_expose(!Cxx)
+    public func setLabel(_ label: Swift.String?) {
+        setLabel(WTF.String(label ?? ""))
+    }
+
+    // Buffer::generateAValidationError.
+    @_expose(!Cxx)
+    public func generateAValidationError() {
+        deviceImpl.generateAValidationError("Buffer state was not unmapped")
+    }
+}
+
+@_spi(WebKitGPU)
+public typealias BufferReference = BufferImpl

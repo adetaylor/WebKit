@@ -440,7 +440,7 @@ final class RemoteDevice {
         guard let videoFrames, let externalTexture = link.objects?.object(externalTextureIdentifier, as: ExternalTextureReference.self) else {
             return
         }
-        externalTexture.impl.destroy()
+        externalTexture.destroy()
         guard let frame = videoFrames.mediaPlayerFrame(mediaIdentifier.rawValue).value else {
             return
         }

@@ -58,9 +58,8 @@ private struct DispatchStateCache {
     }
 }
 
-// One per GPUComputePassEncoder, owned by the C++ shell WebGPU::Metal::ComputePassEncoder through an opaque
-// box. Owns all of the pass's state, runs the logic of every WebGPU::ComputePassEncoder method and reports its
-// errors. A reported error can re-enter it from the device's uncaptured-error callback, so no method holds an access
+// One per GPUComputePassEncoder, held by its Swift callers. Owns all of the pass's state, runs the logic of every
+// method and reports its errors. A reported error can re-enter it from the device's uncaptured-error callback, so no method holds an access
 // to a stored property across one.
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
@@ -965,3 +964,6 @@ func makeInvalidComputePassEncoderImpl(
     parentImpl.setLastError(errorString as String?)
     return impl
 }
+
+@_spi(WebKitGPU)
+public typealias ComputePassEncoderReference = ComputePassEncoderImpl

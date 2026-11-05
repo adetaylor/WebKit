@@ -183,7 +183,7 @@ target_sources(WebGPU PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/ExternalTexture.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/ExternalTextureImport.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/HardwareCapabilities.swift
-    ${CMAKE_CURRENT_SOURCE_DIR}/ImplLookup.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/GPUObjectReference.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/Instance.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/LayoutConversion.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/Pipeline.swift

@@ -1641,7 +1641,7 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         return (ResourceSet(containers: containers, records: records, owners: owners), lists)
     }
 
-    // Returns the bundle, valid or not, labelled, for the shell to box. An invalid one reports the encoder's last error.
+    // Returns the bundle, valid or not, labelled. An invalid one reports the encoder's last error.
     func finish(_ label: NSString) -> RenderBundleImpl {
         let bundle = finishedBundle()
         if !bundle.isValid() {
@@ -2521,11 +2521,6 @@ public typealias RenderBundleEncoderReference = RenderBundleEncoderImpl
 
 @_spi(WebKitGPU)
 extension RenderBundleEncoderImpl {
-    // What the callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: RenderBundleEncoderImpl {
-        self
-    }
 
     @_expose(!Cxx)
     public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {
@@ -2551,7 +2546,7 @@ extension RenderBundleEncoderImpl {
         setVertexBuffer(slot, buffer, offset, size != nil, size ?? 0)
     }
 
-    // As WTF::String::createNSString() makes the C++ shell's label, a null one is empty.
+    // A null label is empty.
     @_expose(!Cxx)
     public func setLabel(_ label: Swift.String?) {
         setLabel(NSString(string: label ?? ""))

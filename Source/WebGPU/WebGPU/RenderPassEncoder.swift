@@ -459,10 +459,8 @@ private struct IndirectEncodeWork {
     var indexBufferCount: UInt32 = 0
 }
 
-// One per GPURenderPassEncoder, owned by the C++ shell WebGPU::Metal::RenderPassEncoder through an opaque box. Owns all
-// of the pass's state, runs the logic of every WebGPU::RenderPassEncoder method and reports its errors. The shell hands
-// in the attachments and the bundles of executeBundles, whose shells Swift cannot downcast.
-// The Metal completion handlers of the clamps are registered by C++ helpers in RenderPassEncoder.mm.
+// One per GPURenderPassEncoder, held by its Swift callers. Owns all of the pass's state, runs the logic of every method
+// and reports its errors. The command encoder that begins the pass hands in its attachments.
 //
 // Bundle replay re-enters this object, splitRenderPass re-enters setPipeline, and a reported error can re-enter it
 // from the device's uncaptured-error callback, so no method holds an access to a stored property across such a call.
@@ -562,7 +560,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
     private var usagesForTexture = WTFHashMap<TextureSubresourceKey, EntryUsage>()
     private var memoryBarrierCount: UInt32 = 0
     private var indirectDeviceLostChecks: IndirectDeviceLostChecks?
-    // The bundles of the executeBundles call in progress, appended by the shell just before it.
+    // The bundles of the executeBundles call in progress.
     private var pendingBundles: [RenderBundleImpl] = []
     // The parent encoder's device. Declared last, so that it outlives the rest of the pass.
     private let deviceImpl: DeviceImpl
@@ -705,8 +703,8 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
 
     // MARK: Attachments
 
-    // Handed in by the command encoder that began the pass, once its shell is made: each color attachment, its resolve
-    // target, then the depth-stencil attachment.
+    // Handed in by the command encoder that began the pass: each color attachment, its resolve target, then the
+    // depth-stencil attachment.
     @_expose(!Cxx)
     func appendAttachments(_ descriptor: GPURenderPassDescriptor) {
         for (slot, attachment) in descriptor.colorAttachments.enumerated() {
@@ -3655,3 +3653,6 @@ func makeInvalidRenderPassEncoderImpl(
     parentImpl.setLastError(errorString as String?)
     return impl
 }
+
+@_spi(WebKitGPU)
+public typealias RenderPassEncoderReference = RenderPassEncoderImpl

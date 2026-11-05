@@ -65,7 +65,7 @@ final class RemoteBindGroup {
     }
 
     func setLabel(label: String?) {
-        bindGroup.impl.setLabel(label)
+        bindGroup.setLabel(label)
     }
 
     func updateExternalTextures(
@@ -74,7 +74,7 @@ final class RemoteBindGroup {
         guard let externalTexture = link.objects?.object(externalTextureIdentifier, as: ExternalTextureReference.self) else {
             return false
         }
-        return bindGroup.impl.updateExternalTextures(externalTexture.impl)
+        return bindGroup.updateExternalTextures(externalTexture)
     }
 }
 

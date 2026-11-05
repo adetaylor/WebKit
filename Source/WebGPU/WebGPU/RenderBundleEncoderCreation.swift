@@ -155,6 +155,6 @@ extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder. The label isn't kept, as for the C++
     // caller.
     public func createRenderBundleEncoder(_ descriptor: GPURenderBundleEncoderDescriptor, label: Swift.String?) -> RenderBundleEncoderReference {
-        createRenderBundleEncoderImpl(descriptor, impl)
+        createRenderBundleEncoderImpl(descriptor, self)
     }
 }

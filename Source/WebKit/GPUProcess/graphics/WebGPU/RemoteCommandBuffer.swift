@@ -30,14 +30,12 @@ import WebKit_Internal
 // Receives the messages of a WebGPU command buffer, on its stream connection's work queue, and calls its CommandBufferImpl.
 @_expose(Cxx)
 final class RemoteCommandBuffer {
-    private let commandBuffer: CommandBufferReference
     private let impl: CommandBufferImpl
     private let link: WebGPURegistryLink
 
     @_expose(!Cxx)
     private init(_ commandBuffer: CommandBufferReference, _ link: WebGPURegistryLink) {
-        self.commandBuffer = commandBuffer
-        self.impl = commandBuffer.impl
+        impl = commandBuffer
         self.link = link
     }
 

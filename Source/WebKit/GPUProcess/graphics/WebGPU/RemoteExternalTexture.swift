@@ -67,11 +67,11 @@ final class RemoteExternalTexture {
     }
 
     func destroy() {
-        externalTexture.impl.destroy()
+        externalTexture.destroy()
     }
 
     func undestroy() {
-        externalTexture.impl.undestroy()
+        externalTexture.undestroy()
     }
 
     // WebGPU doesn't keep an external texture's label.

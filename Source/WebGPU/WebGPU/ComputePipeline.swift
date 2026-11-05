@@ -29,8 +29,8 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
 
-// One per GPUComputePipeline, held by its Swift callers, the passes that set it and the C++ API's shell
-// WebGPU::Metal::ComputePipeline. The compute pass reads it directly.
+// One per GPUComputePipeline, held by its Swift callers and the passes that set it. The compute pass reads it
+// directly.
 @_expose(Cxx)
 @_spi(WebKitGPU)
 public final class ComputePipelineImpl: GPUObjectReference {
@@ -83,7 +83,7 @@ public final class ComputePipelineImpl: GPUObjectReference {
         parameters.uniqueId
     }
 
-    // ComputePipeline::getBindGroupLayout, which wraps it in a shell.
+    // https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
     func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutImpl {
         pipelineBindGroupLayout(
             deviceImpl,
@@ -205,8 +205,8 @@ final class ComputePipelineBuilder {
         return result[0]
     }
 
-    // createComputePipelineAsync and its replacing form, for a Swift caller. `completion` gets the pipeline, whether it
-    // succeeded, and the message it failed with, on a later turn of the API thread, as the C++ caller's callback does.
+    // createComputePipelineAsync and its replacing form. `completion` gets the pipeline, whether it succeeded, and the
+    // message it failed with, on a later turn of the API thread.
     @_expose(!Cxx)
     func createAsync(_ descriptor: ComputePipelineInput, _ completion: @escaping (ComputePipelineReference, Bool, String?) -> Void) {
         let deviceImpl = self.deviceImpl
@@ -281,16 +281,16 @@ final class ComputePipelineBuilder {
     }
 }
 
-// The builder of a Swift caller's descriptor, with the module and layout that C++ sets on a C++ caller's: the layout of
-// `pipelineToReplace` for createComputePipelineWithPipelineLayoutFromPipelineAsync.
+// The builder of a descriptor, with the layout of `pipelineToReplace` for
+// createComputePipelineWithPipelineLayoutFromPipelineAsync.
 func makeComputePipelineBuilder(
     _ deviceImpl: DeviceImpl,
     _ descriptor: GPUComputePipelineDescriptor,
     replacingLayoutOf pipelineToReplace: ComputePipelineReference? = nil
 ) -> ComputePipelineBuilder {
-    let builder = ComputePipelineBuilder(deviceImpl: deviceImpl, shaderModuleImpl: descriptor.compute.module.impl)
+    let builder = ComputePipelineBuilder(deviceImpl: deviceImpl, shaderModuleImpl: descriptor.compute.module)
     if let pipelineToReplace {
-        builder.setPipelineLayout(pipelineToReplace.impl.pipelineLayoutImpl, true)
+        builder.setPipelineLayout(pipelineToReplace.pipelineLayoutImpl, true)
     } else if let layout = descriptor.layout {
         builder.setPipelineLayout(layout, false)
     }
@@ -473,7 +473,7 @@ func makeInvalidComputePipeline(_ deviceImpl: DeviceImpl) -> ComputePipelineImpl
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline: an invalid pipeline on failure.
     public func createComputePipeline(_ descriptor: GPUComputePipelineDescriptor, label: Swift.String?) -> ComputePipelineReference {
-        makeComputePipelineBuilder(impl, descriptor).create(ComputePipelineInput(descriptor, label: label ?? ""))
+        makeComputePipelineBuilder(self, descriptor).create(ComputePipelineInput(descriptor, label: label ?? ""))
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipelineasync, and, with `pipelineToReplace`, the
@@ -485,7 +485,18 @@ extension DeviceReference {
         replacingLayoutOf pipelineToReplace: ComputePipelineReference? = nil,
         _ completion: @escaping (ComputePipelineReference, Bool, Swift.String?) -> Void
     ) {
-        makeComputePipelineBuilder(impl, descriptor, replacingLayoutOf: pipelineToReplace)
+        makeComputePipelineBuilder(self, descriptor, replacingLayoutOf: pipelineToReplace)
             .createAsync(ComputePipelineInput(descriptor, label: label ?? ""), completion)
+    }
+}
+
+@_spi(WebKitGPU)
+public typealias ComputePipelineReference = ComputePipelineImpl
+
+@_spi(WebKitGPU)
+extension ComputePipelineReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
+    public func getBindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutReference {
+        bindGroupLayout(groupIndex)
     }
 }

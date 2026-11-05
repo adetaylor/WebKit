@@ -66,7 +66,7 @@ final class RemoteTextureView {
     }
 
     func setLabel(label: String?) {
-        textureView.impl.setLabel(label)
+        textureView.setLabel(label)
     }
 }
 

@@ -763,10 +763,6 @@ public typealias DeviceReference = DeviceImpl
 // The operations of a device for Swift callers that create nothing.
 @_spi(WebKitGPU)
 extension DeviceImpl {
-    // What the callers used when it had a shell too.
-    var impl: DeviceImpl {
-        self
-    }
 
     // https://immersive-web.github.io/WebXR-WebGPU-Binding/#gpuxrbinding
     public func createXRBinding() -> XRBindingReference {
@@ -775,15 +771,15 @@ extension DeviceImpl {
 
     // The device, without keeping it alive: work in flight can keep it alive after Swift lets go of it.
     public var weakReference: DeviceWeakReference {
-        DeviceWeakReference(impl)
+        DeviceWeakReference(self)
     }
 
     public var features: [WebGPU.FeatureName] {
-        impl.featureList
+        featureList
     }
 
     public var limits: WebGPU.Limits {
-        impl.deviceLimits()
+        deviceLimits()
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope: whether the scope was popped, and its error.
@@ -813,7 +809,7 @@ extension DeviceImpl {
     }
 
     public func pauseAllErrorReporting(_ pause: Bool) {
-        _ = impl.pauseErrorReporting(pause)
+        _ = pauseErrorReporting(pause)
     }
 
     // Device::setLabel: MTLDevices are process-global, so two contexts' labels would fight each other.
@@ -822,7 +818,7 @@ extension DeviceImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-queue
     public var queue: QueueReference {
-        impl.defaultQueueImpl
+        defaultQueueImpl
     }
 }
 

@@ -52,8 +52,7 @@ final class CheckedModuleBox {
     }
 }
 
-// One per GPUShaderModule, held by its Swift callers and by the C++ API's shell WebGPU::Metal::ShaderModule through an
-// opaque box, and holding the Device. Pipeline creation reads the reflection and compiles through it directly.
+// One per GPUShaderModule, held by its Swift callers, and holding the Device. Pipeline creation reads the reflection and compiles through it directly.
 @_expose(Cxx)
 @_spi(WebKitGPU)
 public final class ShaderModuleImpl: GPUObjectReference {
@@ -376,11 +375,6 @@ public typealias ShaderModuleReference = ShaderModuleImpl
 
 @_spi(WebKitGPU)
 extension ShaderModuleImpl {
-    // What the callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: ShaderModuleImpl {
-        self
-    }
 }
 
 // MARK: - Creation
@@ -450,9 +444,8 @@ func makeInvalidShaderModuleImpl(_ deviceImpl: DeviceImpl) -> ShaderModuleImpl {
 
 @_spi(WebKitGPU)
 extension DeviceReference {
-    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule, from WGSL. The label isn't kept, as for the
-    // C++ caller.
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule, from WGSL. The label isn't kept.
     public func createShaderModule(code: Swift.String, label: Swift.String?) -> ShaderModuleReference {
-        createShaderModuleImpl(impl, code: code)
+        createShaderModuleImpl(self, code: code)
     }
 }

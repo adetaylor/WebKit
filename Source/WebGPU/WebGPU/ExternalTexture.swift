@@ -32,14 +32,8 @@ public typealias ExternalTextureReference = ExternalTextureImpl
 
 @_spi(WebKitGPU)
 extension ExternalTextureImpl {
-    // What the callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: ExternalTextureImpl {
-        self
-    }
 
-    // The descriptor's video frame, which the texture shows from now on, as the shell's update() takes it: none if it
-    // has no pixel buffer. Only the pixel buffer is read.
+    // The descriptor's video frame, which the texture shows from now on: none if it has no pixel buffer. Only the pixel buffer is read.
     @_expose(!Cxx)
     public func update(_ descriptor: WebGPU.ExternalTextureDescriptor) {
         if let pixelBuffer = WebGPU.framePixelBuffer(descriptor) {
@@ -52,19 +46,19 @@ extension ExternalTextureImpl {
 
 @_spi(WebKitGPU)
 extension DeviceReference {
-    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-importexternaltexture, as the shell's importExternalTexture() does.
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-importexternaltexture
     public func importExternalTexture(_ descriptor: WebGPU.ExternalTextureDescriptor) -> ExternalTextureReference {
-        guard impl.isValid() else {
-            return makeInvalidExternalTextureImpl(impl)
+        guard isValid() else {
+            return makeInvalidExternalTextureImpl(self)
         }
         let size = descriptor.visibleSize
-        let texture = makeExternalTextureImpl(descriptor.colorSpace, size.width, size.height, impl)
+        let texture = makeExternalTextureImpl(descriptor.colorSpace, size.width, size.height, self)
         texture.update(descriptor)
         return texture
     }
 }
 
-// The state of a GPUExternalTexture, held by its Swift callers and by the C++ API's shell WebGPU::Metal::ExternalTexture.
+// The state of a GPUExternalTexture, held by its Swift callers.
 // Used only on its Instance's API thread, so not Sendable.
 @_expose(Cxx)
 @_spi(WebKitGPU)

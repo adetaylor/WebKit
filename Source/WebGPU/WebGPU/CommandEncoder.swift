@@ -148,14 +148,9 @@ public struct GPUComputePassDescriptor {
 @_spi(WebKitGPU)
 public typealias CommandEncoderReference = CommandEncoderImpl
 
-// The operations of CommandEncoder's shell that create nothing, for a Swift caller.
+// The operations of a command encoder that create nothing.
 @_spi(WebKitGPU)
 extension CommandEncoderImpl {
-    // What the callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: CommandEncoderImpl {
-        self
-    }
 
     @_expose(!Cxx)
     public func copyBufferToTexture(
@@ -214,7 +209,7 @@ extension CommandEncoderImpl {
         clearBuffer(buffer, offset, size ?? UInt64.max)
     }
 
-    // The labels are as WTF::String::createNSString() makes them for the C++ caller: a null one is empty.
+    // A null label is empty.
     @_expose(!Cxx)
     public func pushDebugGroup(_ groupLabel: Swift.String?) {
         pushDebugGroup((groupLabel ?? "") as NSString)
@@ -252,10 +247,9 @@ extension CommandEncoderImpl {
 
 @_spi(WebKitGPU)
 extension DeviceReference {
-    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder. As WTF::String::createNSString() makes the
-    // label for the C++ caller, a null one is empty.
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder. A null label is empty.
     public func createCommandEncoder(label: Swift.String?) -> CommandEncoderReference {
-        deviceCreateCommandEncoder(impl, (label ?? "") as NSString)
+        deviceCreateCommandEncoder(self, (label ?? "") as NSString)
     }
 }
 
@@ -2953,9 +2947,8 @@ struct ReusedIndirectIndexedDraws {
     var draws: [ReusedIndirectIndexedDraw]
 }
 
-// One per GPUCommandEncoder, held by its Swift callers, the passes and command buffer it makes, and the C++ API's shell
-// WebGPU::Metal::CommandEncoder. Runs every WebGPU method; the copies, the passes, finish() and resolveQuerySet are in
-// the extension above, behind the entry points the shell calls. A reported error can re-enter this object from the
+// One per GPUCommandEncoder, held by its Swift callers and the passes and command buffer it makes. Runs every WebGPU
+// method; the copies, the passes, finish() and resolveQuerySet are in the extension above. A reported error can re-enter this object from the
 // device's uncaptured-error callback.
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
@@ -2998,7 +2991,7 @@ public final class CommandEncoderImpl: GPUObjectReference {
     private var trackedBuffers: [BufferImpl] = []
     private var trackedTextures: [TextureImpl] = []
     // The external textures that recorded this encoder in pendingUsers, and the planes it used, until clearTracking().
-    // Weak, so that an external texture's Impl, which holds its Device, dies with its shell.
+    // Weak, so that an external texture's Impl, which holds its Device, dies when its callers let go of it.
     private var trackedExternalTextures = WeakImplList<ExternalTextureImpl>()
     private var retainedExternalTexturePlanes: [any MTLTexture] = []
     // One strong reference per distinct sampler, keyed by its Impl.

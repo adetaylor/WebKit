@@ -41,8 +41,7 @@ private enum PipelineStateCompilation {
     case failed
 }
 
-// One per GPURenderPipeline, held by its Swift callers, the encoders that set it and the C++ API's shell
-// WebGPU::Metal::RenderPipeline. Owns all of the pipeline's state, including the Device; the render encoders read it
+// One per GPURenderPipeline, held by its Swift callers and the encoders that set it. Owns all of the pipeline's state, including the Device; the render encoders read it
 // directly.
 @_expose(Cxx)
 @_spi(WebKitGPU)
@@ -170,7 +169,7 @@ public final class RenderPipelineImpl: GPUObjectReference {
         return nil
     }
 
-    // RenderPipeline::getBindGroupLayout, which wraps it in a shell.
+    // https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
     func bindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutImpl {
         pipelineBindGroupLayout(
             deviceImpl,
@@ -583,8 +582,8 @@ final class RenderPipelineBuilder {
         return result[0]
     }
 
-    // createRenderPipelineAsync and its replacing form, for a Swift caller. `completion` gets the pipeline, whether it
-    // succeeded, and the message it failed with, on a later turn of the API thread, as the C++ caller's callback does.
+    // createRenderPipelineAsync and its replacing form. `completion` gets the pipeline, whether it succeeded, and the
+    // message it failed with, on a later turn of the API thread.
     @_expose(!Cxx)
     func createAsync(_ descriptor: RenderPipelineInput, _ completion: @escaping (RenderPipelineReference, Bool, String?) -> Void) {
         let deviceImpl = self.deviceImpl
@@ -1124,8 +1123,8 @@ final class RenderPipelineBuilder {
     }
 }
 
-// The builder of a Swift caller's descriptor, with the modules and layout that C++ sets on a C++ caller's: the layout of
-// `pipelineToReplace` for createRenderPipelineWithPipelineLayoutFromPipelineAsync.
+// The builder of a descriptor, with the layout of `pipelineToReplace` for
+// createRenderPipelineWithPipelineLayoutFromPipelineAsync.
 func makeRenderPipelineBuilder(
     _ deviceImpl: DeviceImpl,
     _ descriptor: GPURenderPipelineDescriptor,
@@ -1136,7 +1135,7 @@ func makeRenderPipelineBuilder(
         builder.setFragmentModule(fragmentModule)
     }
     if let pipelineToReplace {
-        builder.setPipelineLayout(pipelineToReplace.impl.pipelineLayoutImpl, true)
+        builder.setPipelineLayout(pipelineToReplace.pipelineLayoutImpl, true)
     } else if let layout = descriptor.layout {
         builder.setPipelineLayout(layout, false)
     }
@@ -1597,7 +1596,7 @@ func makeInvalidRenderPipeline(_ deviceImpl: DeviceImpl) -> RenderPipelineImpl {
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline: an invalid pipeline on failure.
     public func createRenderPipeline(_ descriptor: GPURenderPipelineDescriptor, label: Swift.String?) -> RenderPipelineReference {
-        makeRenderPipelineBuilder(impl, descriptor).create(RenderPipelineInput(descriptor, label: label ?? ""))
+        makeRenderPipelineBuilder(self, descriptor).create(RenderPipelineInput(descriptor, label: label ?? ""))
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync, and, with `pipelineToReplace`, the
@@ -1609,7 +1608,18 @@ extension DeviceReference {
         replacingLayoutOf pipelineToReplace: RenderPipelineReference? = nil,
         _ completion: @escaping (RenderPipelineReference, Bool, Swift.String?) -> Void
     ) {
-        makeRenderPipelineBuilder(impl, descriptor, replacingLayoutOf: pipelineToReplace)
+        makeRenderPipelineBuilder(self, descriptor, replacingLayoutOf: pipelineToReplace)
             .createAsync(RenderPipelineInput(descriptor, label: label ?? ""), completion)
+    }
+}
+
+@_spi(WebKitGPU)
+public typealias RenderPipelineReference = RenderPipelineImpl
+
+@_spi(WebKitGPU)
+extension RenderPipelineReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
+    public func getBindGroupLayout(_ groupIndex: UInt32) -> BindGroupLayoutReference {
+        bindGroupLayout(groupIndex)
     }
 }

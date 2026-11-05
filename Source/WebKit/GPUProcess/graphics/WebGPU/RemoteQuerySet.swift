@@ -65,11 +65,11 @@ final class RemoteQuerySet {
     }
 
     func destroy() {
-        querySet.impl.destroy()
+        querySet.destroy()
     }
 
     func setLabel(label: String?) {
-        querySet.impl.setLabel(label)
+        querySet.setLabel(label)
     }
 }
 

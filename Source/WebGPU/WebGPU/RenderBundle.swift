@@ -280,10 +280,12 @@ enum BundleReplay {
 
 @_spi(WebKitGPU)
 extension RenderBundleEncoderReference {
-    // https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish. As WTF::String::createNSString() makes the
-    // label for the C++ caller, a null one is empty.
+    // https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish. A null label is empty.
     @_expose(!Cxx)
     public func finish(label: Swift.String?) -> RenderBundleReference {
         finish((label ?? "") as NSString)
     }
 }
+
+@_spi(WebKitGPU)
+public typealias RenderBundleReference = RenderBundleImpl

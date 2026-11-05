@@ -2926,7 +2926,7 @@ extension QueueImpl {
         )
     }
 
-    // As WTF::String::createNSString() makes the label for the C++ caller: a null one is empty.
+    // A null label is empty.
     public func setLabel(_ label: Swift.String?) {
         setLabel((label ?? "") as NSString)
     }

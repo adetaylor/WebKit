@@ -84,16 +84,11 @@ public typealias CommandBufferReference = CommandBufferImpl
 
 @_spi(WebKitGPU)
 extension CommandBufferImpl {
-    // What the callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: CommandBufferImpl {
-        self
-    }
 }
 
-// One per GPUCommandBuffer, held by its Swift callers, the queue and Instance while its work is in flight, and the C++
-// API's shell WebGPU::Metal::CommandBuffer. Holds the CommandEncoder until the command buffer completes or is made
-// invalid; the encoder's Impl holds the pre-commit actions.
+// One per GPUCommandBuffer, held by its Swift callers, and by the queue and Instance while its work is in flight. Holds
+// the CommandEncoder until the command buffer completes or is made invalid; the encoder's Impl holds the pre-commit
+// actions.
 //
 // Used only on its Instance's API thread, so deliberately not Sendable; the Metal thread only ever gets
 // `completion()`. The last reference goes on the API thread: the completion handler's hands its reference to the work

@@ -31,14 +31,12 @@ import WebKit_Internal
 // ComputePassEncoderImpl, with the references of the objects they name, from the registry.
 @_expose(Cxx)
 final class RemoteComputePassEncoder {
-    private let computePassEncoder: ComputePassEncoderReference
     private let impl: ComputePassEncoderImpl
     private let link: WebGPURegistryLink
 
     @_expose(!Cxx)
     private init(_ computePassEncoder: ComputePassEncoderReference, _ link: WebGPURegistryLink) {
-        self.computePassEncoder = computePassEncoder
-        self.impl = computePassEncoder.impl
+        impl = computePassEncoder
         self.link = link
     }
 
@@ -89,7 +87,7 @@ final class RemoteComputePassEncoder {
         guard let buffer else {
             return
         }
-        impl.dispatchIndirect(buffer.impl, indirectOffset)
+        impl.dispatchIndirect(buffer, indirectOffset)
     }
 
     func end() {

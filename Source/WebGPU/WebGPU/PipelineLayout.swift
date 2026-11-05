@@ -98,7 +98,7 @@ struct BindGroupLayoutImplList: RandomAccessCollection {
     }
 }
 
-// One per GPUPipelineLayout, held by its Swift callers and by the C++ API's shell WebGPU::Metal::PipelineLayout. Owns the
+// One per GPUPipelineLayout, held by its Swift callers. Owns the
 // bind group layouts, the per-stage dynamic-offset plans built from them, and creates layouts
 // (Device::createPipelineLayout and the layouts pipelines generate), and holds the Device. Used only on its Instance's API
 // thread, so not Sendable.
@@ -345,15 +345,9 @@ public typealias PipelineLayoutReference = PipelineLayoutImpl
 
 @_spi(WebKitGPU)
 extension PipelineLayoutImpl {
-    // What the callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: PipelineLayoutImpl {
-        self
-    }
 }
 
-/// Device::createPipelineLayout, for a Swift caller. No bind group layouts, or none at all, asks for the layout that
-/// pipelines generate, as for the C++ caller.
+/// Device::createPipelineLayout. No bind group layouts, or none at all, asks for the layout that pipelines generate.
 func createPipelineLayoutImpl(
     _ deviceImpl: DeviceImpl,
     bindGroupLayouts: [BindGroupLayoutReference]?
@@ -550,8 +544,8 @@ func makeGeneratedPipelineLayout(deviceImpl: DeviceImpl, entries: [[ResolvedLayo
 @_spi(WebKitGPU)
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout. No bind group layouts, or none at all, asks
-    // for the layout that pipelines generate. The label isn't kept, as for the C++ caller.
+    // for the layout that pipelines generate. The label isn't kept.
     public func createPipelineLayout(_ bindGroupLayouts: [BindGroupLayoutReference]?, label: Swift.String?) -> PipelineLayoutReference {
-        createPipelineLayoutImpl(impl, bindGroupLayouts: bindGroupLayouts)
+        createPipelineLayoutImpl(self, bindGroupLayouts: bindGroupLayouts)
     }
 }

@@ -120,11 +120,6 @@ public typealias SamplerReference = SamplerImpl
 
 @_spi(WebKitGPU)
 extension SamplerImpl {
-    // What the sampler's callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: SamplerImpl {
-        self
-    }
 }
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpusamplerdescriptor, without its label.
@@ -508,6 +503,6 @@ private func samplerCacheRelease(_ key: SamplerCacheKey, _ samplerState: any MTL
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
     public func createSampler(_ descriptor: GPUSamplerDescriptor, label: Swift.String?) -> SamplerImpl {
-        createSamplerImpl(impl, descriptor, label: WTF.String(label ?? ""))
+        createSamplerImpl(self, descriptor, label: WTF.String(label ?? ""))
     }
 }

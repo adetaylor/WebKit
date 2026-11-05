@@ -48,8 +48,7 @@ struct SamplerBinding {
     var slots: PerStage<UInt32?>
 }
 
-// One per GPUBindGroup, held by its Swift callers, the encoders and bundles that bound it, and the C++ API's shell
-// WebGPU::Metal::BindGroup. Owns the bound resources, the argument buffers, the layout, the samplers and their
+// One per GPUBindGroup, held by its Swift callers and the encoders and bundles that bound it. Owns the bound resources, the argument buffers, the layout, the samplers and their
 // argument-buffer slots, the dynamic buffers and the per-pipeline validation cache, and runs every check the encoders
 // make on a group. Used only on its Instance's API thread, so not Sendable.
 @_expose(Cxx)
@@ -423,7 +422,7 @@ private struct DescriptorEntry {
 
 /// Creates the bind groups of Device::createBindGroup.
 ///
-/// The C++ shell appends the descriptor's entries in order, then finish() validates them (the first failure is reported
+/// createBindGroupImpl appends the descriptor's entries in order, then finish() validates them (the first failure is reported
 /// and gives an invalid Impl) and builds the Impl. One per device (DeviceImpl.bindGroupBuilder), reused: finish() takes
 /// its scratch arrays out before anything can re-enter, and puts them back emptied only if no nested createBindGroup
 /// took over.
@@ -1782,8 +1781,11 @@ private func wtfHashReplicaMatchesWTFHashSet() -> Bool {
 
 @_spi(WebKitGPU)
 extension DeviceReference {
-    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup. The label isn't kept, as for the C++ caller.
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup. The label isn't kept.
     public func createBindGroup(_ layout: BindGroupLayoutReference, _ entries: [GPUBindGroupEntry], label: Swift.String?) -> BindGroupReference {
-        createBindGroupImpl(impl, layout: layout, entries: entries)
+        createBindGroupImpl(self, layout: layout, entries: entries)
     }
 }
+
+@_spi(WebKitGPU)
+public typealias BindGroupReference = BindGroupImpl

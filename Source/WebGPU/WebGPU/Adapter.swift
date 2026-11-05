@@ -33,9 +33,8 @@ public typealias AdapterReference = AdapterImpl
 // The operations of an adapter for Swift callers.
 @_spi(WebKitGPU)
 extension AdapterImpl {
-    // https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice, as the shell's requestDevice() does: nil if the
-    // request fails, which invalidates the adapter if it has already made a device. As WTF::String::createNSString()
-    // makes the label for the C++ caller, a null one is empty.
+    // https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice: nil if the request fails, which invalidates the
+    // adapter if it has already made a device. A null label is empty.
     public func requestDevice(
         requiredFeatures: [WebGPU.FeatureName],
         requiredLimits: WebGPU.Limits?,
@@ -56,8 +55,7 @@ extension AdapterImpl {
         return makeDevice(device(), WTF.String(label ?? ""), capabilities, self)
     }
 
-    // https://gpuweb.github.io/gpuweb/#gpuadapterinfo, as the shell's info() gives it: a Metal device is never a fallback
-    // adapter.
+    // https://gpuweb.github.io/gpuweb/#gpuadapterinfo: a Metal device is never a fallback adapter.
     public var name: Swift.String {
         device()?.name ?? ""
     }
@@ -140,8 +138,8 @@ public final class AdapterImpl: GPUObjectReference {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice
     // nil accepts the request and turns `capabilities`, which arrives holding the required features, into the
-    // device's. Otherwise the request fails with the returned message, and the shell invalidates the adapter after
-    // reporting it if `invalidatesAdapter` is set.
+    // device's. Otherwise the request fails with the returned message, and requestDevice() invalidates the adapter if
+    // `invalidatesAdapter` is set.
     func errorRequestingDevice(
         _ hasRequiredLimits: Bool,
         _ requiredLimits: WebGPU.Limits,

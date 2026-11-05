@@ -27,7 +27,7 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.Device
 import WebGPU_Private.WebGPUCpp
 
-// Owned by the C++ shell WebGPU::Metal::QuerySet. API thread only. A timestamp query set owns a lease on a range of the
+// https://gpuweb.github.io/gpuweb/#gpuqueryset, held by its Swift callers. API thread only. A timestamp query set owns a lease on a range of the
 // process-wide counter sample buffer pool below and returns it on destroy() or deinit.
 @_expose(Cxx)
 @_spi(WebKitGPU)
@@ -172,11 +172,6 @@ public typealias QuerySetReference = QuerySetImpl
 
 @_spi(WebKitGPU)
 extension QuerySetImpl {
-    // What the callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: QuerySetImpl {
-        self
-    }
 }
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpuquerysetdescriptor, without its label.
@@ -375,6 +370,6 @@ private func insertFreeRange(_ range: Range<UInt32>, into ranges: inout [Range<U
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createqueryset
     public func createQuerySet(_ descriptor: GPUQuerySetDescriptor, label: Swift.String?) -> QuerySetImpl {
-        createQuerySetImpl(impl, descriptor, label: WTF.String(label ?? ""), impl.timestampCounterSet())
+        createQuerySetImpl(self, descriptor, label: WTF.String(label ?? ""), timestampCounterSet())
     }
 }

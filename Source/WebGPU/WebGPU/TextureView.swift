@@ -32,14 +32,9 @@ public typealias TextureViewReference = TextureViewImpl
 
 @_spi(WebKitGPU)
 extension TextureViewImpl {
-    // What the callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: TextureViewImpl {
-        self
-    }
 }
 
-// The state of a GPUTextureView, held by its Swift callers and by the C++ API's shell WebGPU::Metal::TextureView. It
+// The state of a GPUTextureView, held by its Swift callers. It
 // reads the parent's state (destroyed, initialized, canvas backing, rate maps, descriptor) from the parent's
 // TextureImpl. Used only on its Instance's API thread.
 @_expose(Cxx)

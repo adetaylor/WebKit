@@ -203,8 +203,8 @@ private struct TextureInitState {
     }
 }
 
-// The state of a GPUTexture, held by its Swift callers, the views, bind groups, attachments and encoders that use it,
-// and the C++ API's shell WebGPU::Metal::Texture. Also runs view creation and its validation. Used only on its
+// The state of a GPUTexture, held by its Swift callers and the views, bind groups, attachments and encoders that use it.
+// Also runs view creation and its validation. Used only on its
 // Instance's API thread.
 @_expose(Cxx)
 @_spi(WebKitGPU)
@@ -1352,11 +1352,6 @@ public typealias TextureReference = TextureImpl
 
 @_spi(WebKitGPU)
 extension TextureImpl {
-    // What the callers used when it had a shell too.
-    @_expose(!Cxx)
-    public var impl: TextureImpl {
-        self
-    }
 
     // https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy
     @_expose(!Cxx)
@@ -1662,9 +1657,9 @@ func errorValidatingTextureCopyRange(
 
 @_spi(WebKitGPU)
 extension DeviceReference {
-    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture: an invalid texture on failure, as for the C++ caller.
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture: an invalid texture on failure.
     public func createTexture(_ descriptor: GPUTextureDescriptor, label: Swift.String?) -> TextureReference {
-        createTextureImpl(impl, descriptor, label: WTF.String(label ?? ""))
+        createTextureImpl(self, descriptor, label: WTF.String(label ?? ""))
     }
 }
 

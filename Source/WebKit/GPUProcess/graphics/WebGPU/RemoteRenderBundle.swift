@@ -66,7 +66,7 @@ final class RemoteRenderBundle {
     }
 
     func setLabel(label: String?) {
-        renderBundle.impl.setLabel(label)
+        renderBundle.setLabel(label)
     }
 }
 
