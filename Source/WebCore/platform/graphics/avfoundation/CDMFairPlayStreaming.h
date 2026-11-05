@@ -27,8 +27,8 @@
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
-#include "CDMFactory.h"
-#include "CDMPrivate.h"
+#include <WebCore/CDMFactory.h>
+#include <WebCore/CDMPrivate.h>
 #include <wtf/TZoneMalloc.h>
 
 OBJC_CLASS AVContentKeyRequest;
