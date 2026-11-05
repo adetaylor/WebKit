@@ -859,6 +859,7 @@ def forward_declarations_and_headers(receiver):
         headers.add('"StreamMessageReceiver.h"')
     if receiver.is_swift_receiver() and receiver.has_attribute(WORK_QUEUE_ATTRIBUTE):
         headers.add('"WorkQueueMessageReceiver.h"')
+        headers.add('<wtf/WorkQueue.h>')
 
     # For OptionalSharedPreferencesForWebProcess, which a Swift receiver's sharedPreferencesForWebProcess() returns.
     if receiver.is_swift_receiver() and receiver_needs_shared_preferences(receiver):
@@ -1040,7 +1041,7 @@ def generate_messages_header(receiver):
         if is_stream:
             result.append('class ' + forwarder_class + ' final : public IPC::StreamMessageReceiver {\n')
         elif is_work_queue:
-            result.append('// Registered with addWorkQueueMessageReceiver() on one serial queue, which the handlers are confined to.\n')
+            result.append('// Registered with startReceivingMessages() on one serial queue, which the handlers are confined to.\n')
             result.append('// It keeps its target alive, so the target must not keep it.\n')
             result.append('class ' + forwarder_class + ' final : public ' + work_queue_receiver + ' {\n')
         else:
@@ -1068,6 +1069,9 @@ def generate_messages_header(receiver):
         elif is_work_queue:
             result.append('    void ref() const final { ' + work_queue_receiver + '::ref(); }\n')
             result.append('    void deref() const final { ' + work_queue_receiver + '::deref(); }\n')
+            result.append('    // Registers this for the messages to destinationID on connection, dispatched on workQueue, which it records as\n')
+            result.append('    // the queue its handlers are confined to. Registering again, for another destination, must name the same queue.\n')
+            result.append('    void startReceivingMessages(IPC::Connection&, WorkQueue&, uint64_t destinationID = 0);\n')
             if receiver_needs_shared_preferences(receiver):
                 result.append('    // Lets the C++ that registers the receiver supply its shared preferences, which dispatch otherwise asks Swift for.\n')
                 result.append('    void setSharedPreferencesProvider(Function<std::optional<SharedPreferencesForWebProcess>()>&& provider) { m_sharedPreferencesProvider = WTF::move(provider); }\n')
@@ -1081,6 +1085,8 @@ def generate_messages_header(receiver):
         result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
         if swift_receiver_runs_on_work_queue(receiver) and receiver_needs_shared_preferences(receiver):
             result.append('    Function<std::optional<SharedPreferencesForWebProcess>()> m_sharedPreferencesProvider;\n')
+        if is_work_queue:
+            result.append('    RefPtr<WorkQueue> m_workQueue;\n')
         result.append('} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);\n\n')
         if receiver_needs_shared_preferences(receiver):
             result.append('using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;\n\n')
@@ -2209,6 +2215,8 @@ def generate_target_and_enabled_by_statements(receiver, messages):
     connection_argument = 'connection' if receiver.shared_preferences_needs_connection else ''
 
     def append_swift_statements(result):
+        if receiver.has_attribute(WORK_QUEUE_ATTRIBUTE):
+            result.append('    ASSERT(m_workQueue && m_workQueue->isCurrent());\n')
         # A WorkQueue receiver's forwarder keeps its target alive, so there is no target to fetch either.
         if swift_receiver_runs_on_work_queue(receiver):
             # A stream receiver's target is held weakly and checked by its Swift dispatch, which decodes the message
@@ -2386,6 +2394,16 @@ def generate_message_handler(receiver):
         result.append('{\n')
         result.append('}\n')
         result.append('\n')
+
+        if receiver.has_attribute(WORK_QUEUE_ATTRIBUTE):
+            result.append('void %s::startReceivingMessages(IPC::Connection& connection, WorkQueue& workQueue, uint64_t destinationID)\n' % forwarder_class)
+            result.append('{\n')
+            result.append('    if (!m_workQueue)\n')
+            result.append('        m_workQueue = &workQueue;\n')
+            result.append('    RELEASE_ASSERT(m_workQueue.get() == &workQueue);\n')
+            result.append('    connection.addWorkQueueMessageReceiver(Messages::%s::messageReceiverName(), workQueue, *this, destinationID);\n' % receiver.name)
+            result.append('}\n')
+            result.append('\n')
 
         if not swift_receiver_runs_on_work_queue(receiver):
             result.append('std::optional<%s> %s::getMessageTarget()\n' % (class_name, forwarder_class))

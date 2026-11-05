@@ -244,7 +244,11 @@ messages -> TestReceiver %s {
         header = messages.generate_messages_header(receiver)
         self.assertIn('class TestReceiverMessageForwarder final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any> {', header)
         self.assertNotIn('getMessageTarget', header)
-        self.assertNotIn('getMessageTarget', messages.generate_message_handler(receiver))
+        self.assertIn('    void startReceivingMessages(IPC::Connection&, WorkQueue&, uint64_t destinationID = 0);\n', header)
+        implementation = messages.generate_message_handler(receiver)
+        self.assertNotIn('getMessageTarget', implementation)
+        self.assertIn('    ASSERT(m_workQueue && m_workQueue->isCurrent());\n', implementation)
+        self.assertIn('    RELEASE_ASSERT(m_workQueue.get() == &workQueue);\n', implementation)
 
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'WorkQueue', which is for Swift receivers"):
             parse_work_queue_receiver([], 'WorkQueue', '    Message(uint32_t value)')

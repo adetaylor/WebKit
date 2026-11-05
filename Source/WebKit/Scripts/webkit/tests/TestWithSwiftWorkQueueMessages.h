@@ -35,6 +35,7 @@
 #include <wtf/Function.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
+#include <wtf/WorkQueue.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebKit {
@@ -45,7 +46,7 @@ class TestWithSwiftWorkQueueWeakRef;
 
 namespace WebKit {
 
-// Registered with addWorkQueueMessageReceiver() on one serial queue, which the handlers are confined to.
+// Registered with startReceivingMessages() on one serial queue, which the handlers are confined to.
 // It keeps its target alive, so the target must not keep it.
 class TestWithSwiftWorkQueueMessageForwarder final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any> {
 public:
@@ -58,12 +59,16 @@ public:
     void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&) final;
     void ref() const final { IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>::ref(); }
     void deref() const final { IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>::deref(); }
+    // Registers this for the messages to destinationID on connection, dispatched on workQueue, which it records as
+    // the queue its handlers are confined to. Registering again, for another destination, must name the same queue.
+    void startReceivingMessages(IPC::Connection&, WorkQueue&, uint64_t destinationID = 0);
     // Lets the C++ that registers the receiver supply its shared preferences, which dispatch otherwise asks Swift for.
     void setSharedPreferencesProvider(Function<std::optional<SharedPreferencesForWebProcess>()>&& provider) { m_sharedPreferencesProvider = WTF::move(provider); }
 private:
     TestWithSwiftWorkQueueMessageForwarder(WebKit::TestWithSwiftWorkQueueWeakRef* WTF_NONNULL);
     std::unique_ptr<WebKit::TestWithSwiftWorkQueueWeakRef> m_handler;
     Function<std::optional<SharedPreferencesForWebProcess>()> m_sharedPreferencesProvider;
+    RefPtr<WorkQueue> m_workQueue;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;

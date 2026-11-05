@@ -41,6 +41,7 @@ namespace WebKit {
 
 void TestWithSwiftWorkQueueMessageForwarder::didReceiveMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
+    ASSERT(m_workQueue && m_workQueue->isCurrent());
     auto sharedPreferences = m_sharedPreferencesProvider ? m_sharedPreferencesProvider() : m_handler->sharedPreferencesForWebProcess();
     UNUSED_VARIABLE(sharedPreferences);
     if (!sharedPreferences || !sharedPreferences->someFeature) {
@@ -79,6 +80,7 @@ void TestWithSwiftWorkQueueMessageForwarder::didReceiveMessage(IPC::Connection& 
 
 void TestWithSwiftWorkQueueMessageForwarder::didReceiveSyncMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& replyEncoder)
 {
+    ASSERT(m_workQueue && m_workQueue->isCurrent());
     auto sharedPreferences = m_sharedPreferencesProvider ? m_sharedPreferencesProvider() : m_handler->sharedPreferencesForWebProcess();
     UNUSED_VARIABLE(sharedPreferences);
     if (!sharedPreferences || !sharedPreferences->someFeature) {
@@ -109,6 +111,14 @@ static std::unique_ptr<TestWithSwiftWorkQueueWeakRef> makeTestWithSwiftWorkQueue
 TestWithSwiftWorkQueueMessageForwarder::TestWithSwiftWorkQueueMessageForwarder(TestWithSwiftWorkQueueWeakRef* WTF_NONNULL target)
     : m_handler(makeTestWithSwiftWorkQueueWeakRefUniquePtr(target))
 {
+}
+
+void TestWithSwiftWorkQueueMessageForwarder::startReceivingMessages(IPC::Connection& connection, WorkQueue& workQueue, uint64_t destinationID)
+{
+    if (!m_workQueue)
+        m_workQueue = &workQueue;
+    RELEASE_ASSERT(m_workQueue.get() == &workQueue);
+    connection.addWorkQueueMessageReceiver(Messages::TestWithSwiftWorkQueue::messageReceiverName(), workQueue, *this, destinationID);
 }
 
 TestWithSwiftWorkQueueMessageForwarder::~TestWithSwiftWorkQueueMessageForwarder()
