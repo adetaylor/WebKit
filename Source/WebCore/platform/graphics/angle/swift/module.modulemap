@@ -1,0 +1,6 @@
+// The underlying clang module of the WebGL island's Swift module, WebCoreWebGL.
+module WebCoreWebGL {
+    requires cplusplus
+    header "WebCoreWebGL.h"
+    export *
+}
