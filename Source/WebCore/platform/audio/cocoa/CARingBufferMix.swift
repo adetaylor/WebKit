@@ -46,10 +46,10 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-// The integer mixes of CARingBuffer's fetch: each adds the byteCount / sample size samples of source at sourceOffset to
-// those of destination at destinationOffset, wrapping. Each traps unless the bytes from each offset to the end of its
-// span are a whole number of samples, as the C++'s spanReinterpretCast() does, and unless both ranges are inside their
-// spans. (The floating-point mixes are C++, CARingBufferSwiftBridge.h.)
+// The integer mixes of CARingBuffer's fetch and of AudioSampleBufferList: each adds the sampleCount samples of source at
+// sourceOffset to those of destination at destinationOffset, wrapping. Each traps unless both ranges are inside their
+// spans; callers check their own rules about the rest of the spans. (The floating-point mixes are C++,
+// CARingBufferSwiftBridge.h.)
 //
 // Samples need not be aligned. Each loop moves 64-byte SIMD vectors, then single samples. The kernels stay out of line, which
 // keeps the copy path that calls them small.
@@ -60,17 +60,17 @@ private func checkMixRanges(
     _ sourceOffset: Int,
     _ destination: borrowing MutableRawSpan,
     _ destinationOffset: Int,
-    _ byteCount: Int,
+    _ sampleCount: Int,
     _ sampleSize: Int
-) {
-    // Every operand is non-negative before the subtractions, so they can't overflow.
+) -> Int {
+    // Every operand is non-negative before the subtractions and the division, so they can't overflow.
     precondition(
-        sourceOffset >= 0 && destinationOffset >= 0 && byteCount >= 0 && sourceOffset <= source.byteCount
+        sourceOffset >= 0 && destinationOffset >= 0 && sampleCount >= 0 && sourceOffset <= source.byteCount
             && destinationOffset <= destination.byteCount
-            && (source.byteCount &- sourceOffset) % sampleSize == 0
-            && (destination.byteCount &- destinationOffset) % sampleSize == 0
-            && byteCount <= source.byteCount &- sourceOffset && byteCount <= destination.byteCount &- destinationOffset
+            && sampleCount <= (source.byteCount &- sourceOffset) / sampleSize
+            && sampleCount <= (destination.byteCount &- destinationOffset) / sampleSize
     )
+    return sampleCount &* sampleSize
 }
 
 @inline(never)
@@ -79,12 +79,11 @@ func mixInt16Samples(
     _ sourceOffset: Int,
     _ destination: inout MutableSpan<UInt8>,
     _ destinationOffset: Int,
-    _ byteCount: Int
+    _ sampleCount: Int
 ) {
     let sourceBytes = source.bytes
     var destinationBytes = destination.mutableBytes
-    checkMixRanges(sourceBytes, sourceOffset, destinationBytes, destinationOffset, byteCount, 2)
-    let end = byteCount & ~1
+    let byteCount = checkMixRanges(sourceBytes, sourceOffset, destinationBytes, destinationOffset, sampleCount, 2)
     let vectorEnd = byteCount & ~63
     var i = 0
     while i < vectorEnd {
@@ -93,7 +92,7 @@ func mixInt16Samples(
         destinationBytes.storeBytes(of: d &+ s, toByteOffset: destinationOffset &+ i, as: SIMD32<Int16>.self)
         i &+= 64
     }
-    while i < end {
+    while i < byteCount {
         let s = sourceBytes.load(fromByteOffset: sourceOffset &+ i, as: Int16.self)
         let d = destinationBytes.load(fromByteOffset: destinationOffset &+ i, as: Int16.self)
         destinationBytes.storeBytes(of: d &+ s, toByteOffset: destinationOffset &+ i, as: Int16.self)
@@ -107,12 +106,11 @@ func mixInt32Samples(
     _ sourceOffset: Int,
     _ destination: inout MutableSpan<UInt8>,
     _ destinationOffset: Int,
-    _ byteCount: Int
+    _ sampleCount: Int
 ) {
     let sourceBytes = source.bytes
     var destinationBytes = destination.mutableBytes
-    checkMixRanges(sourceBytes, sourceOffset, destinationBytes, destinationOffset, byteCount, 4)
-    let end = byteCount & ~3
+    let byteCount = checkMixRanges(sourceBytes, sourceOffset, destinationBytes, destinationOffset, sampleCount, 4)
     let vectorEnd = byteCount & ~63
     var i = 0
     while i < vectorEnd {
@@ -121,7 +119,7 @@ func mixInt32Samples(
         destinationBytes.storeBytes(of: d &+ s, toByteOffset: destinationOffset &+ i, as: SIMD16<Int32>.self)
         i &+= 64
     }
-    while i < end {
+    while i < byteCount {
         let s = sourceBytes.load(fromByteOffset: sourceOffset &+ i, as: Int32.self)
         let d = destinationBytes.load(fromByteOffset: destinationOffset &+ i, as: Int32.self)
         destinationBytes.storeBytes(of: d &+ s, toByteOffset: destinationOffset &+ i, as: Int32.self)

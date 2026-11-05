@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,6 +48,8 @@ public:
 
     WEBCORE_EXPORT static void applyGain(AudioBufferList&, float, AudioStreamDescription::PCMFormat);
     void applyGain(float);
+
+    WEBCORE_EXPORT static void mixBuffers(AudioBufferList& destination, const AudioBufferList& source, AudioStreamDescription::PCMFormat, size_t frameCount);
 
     NODELETE OSStatus copyFrom(const AudioSampleBufferList&, size_t count = SIZE_MAX);
     OSStatus copyFrom(const AudioBufferList&, size_t frameCount, AudioConverterRef);

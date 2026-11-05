@@ -74,12 +74,11 @@ struct CARingBufferTrackRenderResult {
 };
 static_assert(sizeof(CARingBufferTrackRenderResult) == 16);
 
-// The floating-point mixes of a fetch, as CARingBuffer's C++ did them: through VectorMath::add(), so vDSP decides which
-// NaN a sum of two NaNs gives. The byteCount / sample size samples of source from sourceOffset are added to those of
-// destination from destinationOffset; this traps unless the bytes from each offset to the end of its span are a whole
-// number of samples, and unless both ranges are inside their spans.
-void mixFloat32Samples(std::span<uint8_t> destination NOESCAPE, size_t destinationOffset, std::span<const uint8_t> source NOESCAPE, size_t sourceOffset, size_t byteCount);
-void mixFloat64Samples(std::span<uint8_t> destination NOESCAPE, size_t destinationOffset, std::span<const uint8_t> source NOESCAPE, size_t sourceOffset, size_t byteCount);
+// The floating-point mixes of a fetch and of AudioSampleBufferList, as their C++ did them: through VectorMath::add(), so
+// vDSP decides which NaN a sum of two NaNs gives. The sampleCount float (or, if isDouble, double) samples of source from
+// sourceOffset are added to those of destination from destinationOffset; this traps unless both ranges are inside their
+// spans.
+void mixFloatingPointSamples(std::span<uint8_t> destination NOESCAPE, size_t destinationOffset, std::span<const uint8_t> source NOESCAPE, size_t sourceOffset, size_t sampleCount, bool isDouble);
 
 // A ring, for a fetch: its geometry, the bounds the C++ read from it and its channels.
 class SWIFT_NONCOPYABLE SWIFT_NONESCAPABLE SWIFT_SAFE CARingBufferReadView {

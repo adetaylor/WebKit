@@ -69,22 +69,19 @@ void CARingBuffer::initialize()
 }
 
 template<typename T>
-static void mixSamples(std::span<uint8_t> destination, size_t destinationOffset, std::span<const uint8_t> source, size_t sourceOffset, size_t byteCount)
+static void mixSamples(std::span<uint8_t> destination, size_t destinationOffset, std::span<const uint8_t> source, size_t sourceOffset, size_t sampleCount)
 {
-    size_t frameCount = byteCount / sizeof(T);
-    auto sourceSamples = spanReinterpretCast<const T>(source.subspan(sourceOffset)).first(frameCount);
-    auto destinationSamples = spanReinterpretCast<T>(destination.subspan(destinationOffset)).first(frameCount);
+    auto sourceSamples = spanReinterpretCast<const T>(source.subspan(sourceOffset, sampleCount * sizeof(T)));
+    auto destinationSamples = spanReinterpretCast<T>(destination.subspan(destinationOffset, sampleCount * sizeof(T)));
     VectorMath::add(destinationSamples, sourceSamples, destinationSamples);
 }
 
-void mixFloat32Samples(std::span<uint8_t> destination NOESCAPE, size_t destinationOffset, std::span<const uint8_t> source NOESCAPE, size_t sourceOffset, size_t byteCount)
+void mixFloatingPointSamples(std::span<uint8_t> destination NOESCAPE, size_t destinationOffset, std::span<const uint8_t> source NOESCAPE, size_t sourceOffset, size_t sampleCount, bool isDouble)
 {
-    mixSamples<float>(destination, destinationOffset, source, sourceOffset, byteCount);
-}
-
-void mixFloat64Samples(std::span<uint8_t> destination NOESCAPE, size_t destinationOffset, std::span<const uint8_t> source NOESCAPE, size_t sourceOffset, size_t byteCount)
-{
-    mixSamples<double>(destination, destinationOffset, source, sourceOffset, byteCount);
+    if (isDouble)
+        mixSamples<double>(destination, destinationOffset, source, sourceOffset, sampleCount);
+    else
+        mixSamples<float>(destination, destinationOffset, source, sourceOffset, sampleCount);
 }
 
 // The writer can be another process, so don't wait for it to finish a write.

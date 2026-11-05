@@ -423,6 +423,24 @@ private func fetchBuffers(
     }
 }
 
+// The samples in byteCount bytes, for a mix into destination at destinationOffset from source at sourceOffset. Traps unless
+// the bytes from each offset to the end of its span are a whole number of samples, as the C++'s spanReinterpretCast()
+// does.
+@inline(__always)
+private func mixSampleCount(
+    _ source: borrowing Span<UInt8>,
+    _ sourceOffset: Int,
+    _ destination: borrowing MutableSpan<UInt8>,
+    _ destinationOffset: Int,
+    _ byteCount: Int,
+    _ sampleSize: Int
+) -> Int {
+    precondition(
+        (source.count &- sourceOffset) % sampleSize == 0 && (destination.count &- destinationOffset) % sampleSize == 0
+    )
+    return byteCount / sampleSize
+}
+
 // The bytes it fetched into the buffer, or nil if the buffer ends before destinationOffset.
 @inline(__always)
 private func fetchBuffer(
@@ -450,13 +468,13 @@ private func fetchBuffer(
     case .copy:
         copyBytes(from: channel, at: from, to: &bytes, at: at, count: length)
     case .mixInt16:
-        mixInt16Samples(channel, from, &bytes, at, length)
+        mixInt16Samples(channel, from, &bytes, at, mixSampleCount(channel, from, bytes, at, length, 2))
     case .mixInt32:
-        mixInt32Samples(channel, from, &bytes, at, length)
+        mixInt32Samples(channel, from, &bytes, at, mixSampleCount(channel, from, bytes, at, length, 4))
     case .mixFloat32:
-        WebCore.mixFloat32Samples(&bytes, at, channel, from, length)
+        WebCore.mixFloatingPointSamples(&bytes, at, channel, from, mixSampleCount(channel, from, bytes, at, length, 4), false)
     case .mixFloat64:
-        WebCore.mixFloat64Samples(&bytes, at, channel, from, length)
+        WebCore.mixFloatingPointSamples(&bytes, at, channel, from, mixSampleCount(channel, from, bytes, at, length, 8), true)
     case nil:
         break
     }

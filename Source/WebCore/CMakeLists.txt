@@ -3371,6 +3371,7 @@ if (APPLE)
     # which is ordered after the Swift compile that generates WebCoreSwift-Generated.h, so keep them
     # out of the unified sources.
     set(WebCore_SWIFT_INTEROP_SOURCES
+        platform/audio/cocoa/AudioSampleBufferList.cpp
         platform/audio/cocoa/CARingBuffer.cpp
         platform/graphics/PixelBufferConversion.cpp
         platform/cocoa/SharedVideoFrameInfo.mm
@@ -3519,6 +3520,7 @@ endif ()
 
 if (APPLE)
     target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/platform/audio/cocoa/AudioSampleBufferList.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CARingBuffer.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CARingBufferMix.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CARingBufferPlayout.swift

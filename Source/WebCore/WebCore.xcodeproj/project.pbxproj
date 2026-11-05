@@ -6280,6 +6280,7 @@
 		3A759A057D9A7ED11EE5AF5F /* CARingBufferSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 23C11178A44EF240B0FC3F05 /* CARingBufferSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		589A09BBFD51CB6D4E3152F5 /* CARingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C4FF0344F6FE56159CDA13 /* CARingBuffer.swift */; };
 		0C61C10E24FB833C7279F056 /* CARingBufferMix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298A3F550CA51EF8DEEF4421 /* CARingBufferMix.swift */; };
+		62BDD25D295CD6E7A161E146 /* AudioSampleBufferList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12470AC8003684594A0702F7 /* AudioSampleBufferList.swift */; };
 		3F8D1F1FEDB47370162C9C14 /* CARingBufferPlayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443D5D95EA55098A1F2F5F5C /* CARingBufferPlayout.swift */; };
 		CDC7470424BE2FC700C1868B /* PowerSourceNotifier.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC7470024BE267900C1868B /* PowerSourceNotifier.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDC8B5A2180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm in Sources */ = {isa = PBXBuildFile; fileRef = CDC8B5A0180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm */; };
@@ -8277,6 +8278,7 @@
 		073B87581E40DCFD0071C0EC /* CAAudioStreamDescription.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CAAudioStreamDescription.h; sourceTree = "<group>"; };
 		073B87621E43859D0071C0EC /* AudioSampleBufferList.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioSampleBufferList.cpp; sourceTree = "<group>"; };
 		073B87631E43859D0071C0EC /* AudioSampleBufferList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioSampleBufferList.h; sourceTree = "<group>"; };
+		12470AC8003684594A0702F7 /* AudioSampleBufferList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSampleBufferList.swift; sourceTree = "<group>"; };
 		073B87641E43859D0071C0EC /* AudioSampleDataSource.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AudioSampleDataSource.mm; sourceTree = "<group>"; };
 		073B87651E43859D0071C0EC /* AudioSampleDataSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioSampleDataSource.h; sourceTree = "<group>"; };
 		073FF37A2AC3ADC90099275E /* FillLightMode.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = FillLightMode.idl; sourceTree = "<group>"; };
@@ -40662,6 +40664,7 @@
 				41E1F33D248A62B60022D5DE /* AudioSampleBufferConverter.mm */,
 				073B87621E43859D0071C0EC /* AudioSampleBufferList.cpp */,
 				073B87631E43859D0071C0EC /* AudioSampleBufferList.h */,
+				12470AC8003684594A0702F7 /* AudioSampleBufferList.swift */,
 				41FFD2C027563DFF00501BBF /* AudioSampleDataConverter.h */,
 				41FFD2C227563E0000501BBF /* AudioSampleDataConverter.mm */,
 				073B87651E43859D0071C0EC /* AudioSampleDataSource.h */,
@@ -51755,6 +51758,7 @@
 				4614665A8FB982FD5C9CFB4D /* AnnexB.swift in Sources */,
 				031A366633FC5C13DAF5FD89 /* Arm64Truncating.swift in Sources */,
 				CD0EEE0E14743F39003EAFA2 /* AudioOutputUnitAdaptorIOS.cpp in Sources */,
+				62BDD25D295CD6E7A161E146 /* AudioSampleBufferList.swift in Sources */,
 				CDE104F329E6220C00CBAE11 /* AudioSessionCocoa.mm in Sources */,
 				CDA79827170A279100D45C55 /* AudioSessionIOS.mm in Sources */,
 				CD8A7BBB197735FE00CBD643 /* AudioSourceProviderAVFObjC.mm in Sources */,

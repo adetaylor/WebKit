@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,8 +27,6 @@
 #include "AudioSampleBufferList.h"
 
 #include "Logging.h"
-#include "NotImplemented.h"
-#include "VectorMath.h"
 #include <Accelerate/Accelerate.h>
 #include <AudioToolbox/AudioConverter.h>
 #include <pal/cf/CoreAudioExtras.h>
@@ -37,6 +35,10 @@
 #include <wtf/ZippedRange.h>
 
 #include <pal/cf/AudioToolboxSoftLink.h>
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 namespace WebCore {
 
@@ -65,42 +67,24 @@ void AudioSampleBufferList::setSampleCount(size_t count)
 
 void AudioSampleBufferList::applyGain(AudioBufferList& bufferList, float gain, AudioStreamDescription::PCMFormat format)
 {
-    auto bufferSpan = span(bufferList);
-    for (auto& buffer : bufferSpan) {
-        switch (format) {
-        case AudioStreamDescription::Int16: {
-            auto data = mutableSpan<int16_t>(buffer);
-            for (auto& value : data)
-                value *= gain;
-            break;
-        }
-        case AudioStreamDescription::Int32: {
-            auto data = mutableSpan<int32_t>(buffer);
-            for (auto& value : data)
-                value *= gain;
-            break;
-        }
-        case AudioStreamDescription::Float32: {
+    // vDSP multiplies the floating-point formats, so that it still decides which NaN a product of two NaNs gives.
+    if (format == AudioStreamDescription::Float32) {
+        for (auto& buffer : span(bufferList)) {
             auto data = mutableSpan<float>(buffer);
             vDSP_vsmul(data.data(), 1, &gain, data.data(), 1, data.size());
-            break;
         }
-        case AudioStreamDescription::Float64: {
-            auto data = mutableSpan<double>(buffer);
-            double gainAsDouble = gain;
-            vDSP_vsmulD(data.data(), 1, &gainAsDouble, data.data(), 1, data.size());
-            break;
-        }
-        case AudioStreamDescription::Uint8:
-        case AudioStreamDescription::Int24:
-            notImplemented();
-            ASSERT_NOT_REACHED();
-            break;
-        case AudioStreamDescription::None:
-            ASSERT_NOT_REACHED();
-            break;
-        }
+        return;
     }
+    if (format == AudioStreamDescription::Float64) {
+        double gainAsDouble = gain;
+        for (auto& buffer : span(bufferList)) {
+            auto data = mutableSpan<double>(buffer);
+            vDSP_vsmulD(data.data(), 1, &gainAsDouble, data.data(), 1, data.size());
+        }
+        return;
+    }
+    AudioBufferListView buffers { &bufferList };
+    audioSampleBufferListApplyGain(buffers, gain, format);
 }
 
 void AudioSampleBufferList::applyGain(float gain)
@@ -108,59 +92,10 @@ void AudioSampleBufferList::applyGain(float gain)
     applyGain(m_bufferList.get(), gain, m_internalFormat.format());
 }
 
-static void mixBuffers(AudioBufferList& destinationBuffer, const AudioBufferList& sourceBuffer, AudioStreamDescription::PCMFormat format, size_t frameCount)
+void AudioSampleBufferList::mixBuffers(AudioBufferList& destinationBuffer, const AudioBufferList& sourceBuffer, AudioStreamDescription::PCMFormat format, size_t frameCount)
 {
-    auto sourceBufferSpan = span(sourceBuffer);
-    auto destinationBufferSpan = span(destinationBuffer);
-    for (auto [source, destination] : zippedRange(sourceBufferSpan, destinationBufferSpan)) {
-        switch (format) {
-        case AudioStreamDescription::Int16: {
-            ASSERT(frameCount <= destination.mDataByteSize / 2);
-            ASSERT(frameCount <= source.mDataByteSize / 2);
-
-            auto sourceData = span<int16_t>(source).first(frameCount);
-            auto destinationData = mutableSpan<int16_t>(destination).first(frameCount);
-            for (auto [s, d] : zippedRange(sourceData, destinationData))
-                d += s;
-            break;
-        }
-        case AudioStreamDescription::Int32: {
-            ASSERT(frameCount <= destination.mDataByteSize / sizeof(int32_t));
-            ASSERT(frameCount <= source.mDataByteSize / sizeof(int32_t));
-
-            auto sourceData = span<int32_t>(source).first(frameCount);
-            auto destinationData = mutableSpan<int32_t>(destination).first(frameCount);
-            VectorMath::add(destinationData, sourceData, destinationData);
-            break;
-        }
-        case AudioStreamDescription::Float32: {
-            ASSERT(frameCount <= destination.mDataByteSize / sizeof(float));
-            ASSERT(frameCount <= source.mDataByteSize / sizeof(float));
-
-            auto sourceData = span<float>(source).first(frameCount);
-            auto destinationData = mutableSpan<float>(destination).first(frameCount);
-            VectorMath::add(destinationData, sourceData, destinationData);
-            break;
-        }
-        case AudioStreamDescription::Float64: {
-            ASSERT(frameCount <= destination.mDataByteSize / sizeof(double));
-            ASSERT(frameCount <= source.mDataByteSize / sizeof(double));
-
-            auto sourceData = span<double>(source).first(frameCount);
-            auto destinationData = mutableSpan<double>(destination).first(frameCount);
-            VectorMath::add(destinationData, sourceData, destinationData);
-            break;
-        }
-        case AudioStreamDescription::Uint8:
-        case AudioStreamDescription::Int24:
-            notImplemented();
-            ASSERT_NOT_REACHED();
-            break;
-        case AudioStreamDescription::None:
-            ASSERT_NOT_REACHED();
-            break;
-        }
-    }
+    AudioBufferListView destination { &destinationBuffer };
+    audioSampleBufferListMixBuffers(destination, ConstAudioBufferListView { &sourceBuffer }, format, frameCount);
 }
 
 OSStatus AudioSampleBufferList::mixFrom(const AudioSampleBufferList& source, size_t frameCount)
@@ -262,9 +197,8 @@ void AudioSampleBufferList::zero()
 
 void AudioSampleBufferList::zeroABL(AudioBufferList& bufferList, size_t byteCount)
 {
-    auto bufferSpan = span(bufferList);
-    for (auto buffer : bufferSpan)
-        zeroSpan(mutableSpan<uint8_t>(buffer).first(byteCount));
+    AudioBufferListView buffers { &bufferList };
+    audioSampleBufferListZero(buffers, byteCount);
 }
 
 struct AudioConverterFromABLContext {
