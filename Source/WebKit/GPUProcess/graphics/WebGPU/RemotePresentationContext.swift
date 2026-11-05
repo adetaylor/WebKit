@@ -110,39 +110,48 @@ final class WebGPUCompositorCanvas {
         self.presentationContext = presentationContext
     }
 
+    // @used ensures these are retained even under -O -wmo: rdar://179098545
+    @used
     func unconfigure() {
         presentationContext.unconfigure()
     }
 
+    @used
     func renderBuffersWereRecreated() {
         presentationContext.renderBuffersWereRecreated()
     }
 
+    @used
     func addRenderBuffer(_ surface: IOSurfaceRef) {
         presentationContext.addRenderBuffer(surface as IOSurface)
     }
 
+    @used
     func present(_ frameIndex: UInt32) {
         presentationContext.present(frameIndex)
     }
 
     // Calls the completion once the configured device's queue has scheduled the work submitted so far.
+    @used
     func onSubmittedWorkScheduled(_ completion: WebKit.WebGPUSwiftCompletion) {
         presentationContext.onSubmittedWorkScheduled {
             completion.call()
         }
     }
 
+    @used
     func lastFrameGPUCost() -> Double {
         presentationContext.lastFrameGPUCost
     }
 
+    @used
     func lastFramePresentStall() -> Double {
         presentationContext.lastFramePresentStall
     }
 
     // CF_RETURNS_RETAINED; the compositor integration adopts it. nil, with isIOSurfaceSupportedFormat set, when the
     // compositor can read the render buffer's IOSurface instead.
+    @used
     func textureAsNativeImage(_ bufferIndex: UInt32, _ isIOSurfaceSupportedFormat: inout Bool) -> CGImage? {
         presentationContext.textureAsNativeImage(bufferIndex, &isIOSurfaceSupportedFormat)
     }

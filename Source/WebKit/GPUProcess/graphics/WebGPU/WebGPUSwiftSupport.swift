@@ -596,6 +596,8 @@ final class WebGPUXRBinding {
     }
 
     // The formats are the raw values of ::WebGPU::TextureFormat, and the usage the bits of OptionSet<::WebGPU::TextureUsage>.
+    // @used ensures these are retained even under -O -wmo: rdar://179098545
+    @used
     func createProjectionLayer(
         _ colorFormat: UInt8,
         _ hasDepthStencilFormat: Bool,
@@ -613,6 +615,7 @@ final class WebGPUXRBinding {
         )
     }
 
+    @used
     func getViewSubImage(_ projectionLayer: WebGPUXRProjectionLayer) -> WebGPUXRSubImage {
         WebGPUXRSubImage(binding.getViewSubImage(projectionLayer.layer))
     }
@@ -636,6 +639,8 @@ final class WebGPUXRProjectionLayer {
     }
 
     // The mach ports are the frame's send rights, MACH_PORT_NULL for a buffer that the compositor didn't send.
+    // @used ensures this is retained even under -O -wmo: rdar://179098545
+    @used
     func startFrame(
         _ frameIndex: UInt64,
         _ colorBuffer: UInt32,
@@ -673,6 +678,8 @@ final class WebGPUXRSubImage {
     }
 
     // False for the sub-image of a device that has none.
+    // @used ensures this is retained even under -O -wmo: rdar://179098545
+    @used
     func isValid() -> Bool {
         subImage != nil
     }
