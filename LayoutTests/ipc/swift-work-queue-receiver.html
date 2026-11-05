@@ -66,6 +66,14 @@ promise_test(async t => {
             reply = await IPC.sendWithPromisedReply(processTarget, identifier, message('HalveEvenNumberSwift'), [u32(8)]);
             assert_equals(reply.arguments[0].value, 4, `HalveEvenNumberSwift in ${processTarget}`);
 
+            // A std::span<const uint8_t> is its size, then its bytes, which Swift takes as [UInt8].
+            const bytes = Array.from({ length: 20 }, (_, index) => index + 1);
+            const digestBytes = IPC.sendSyncMessage(processTarget, identifier, message('DigestBytesSwift'), defaultTimeout, [{ type: 'uint64_t', value: bytes.length }, ...bytes.map(value => ({ type: 'uint8_t', value }))]);
+            assert_equals(digestBytes.arguments[0].value, bytes.length, `DigestBytesSwift count in ${processTarget}`);
+            assert_equals(digestBytes.arguments[1].value, bytes.reduce((digest, value) => (Math.imul(digest, 31) + value) >>> 0, 0), `DigestBytesSwift digest in ${processTarget}`);
+            const noBytes = IPC.sendSyncMessage(processTarget, identifier, message('DigestBytesSwift'), defaultTimeout, [{ type: 'uint64_t', value: 0 }]);
+            assert_equals(noBytes.arguments[0].value, 0, `DigestBytesSwift of no bytes in ${processTarget}`);
+
             const onItsQueue = IPC.sendSyncMessage(processTarget, identifier, message('WasAlwaysDispatchedOnItsQueue'), defaultTimeout, []);
             assert_true(!!onItsQueue.arguments[0].value, `Every message was handled on the work queue in ${processTarget}`);
         } finally {
@@ -90,6 +98,9 @@ promise_test(async t => {
         assert_not_equals(takeInvalidMessageString(), '', 'A message that cannot be decoded is marked invalid');
         const texts = IPC.sendSyncMessage('UI', identifier, message('TakeRecordedTextsSwift'), defaultTimeout, []);
         assert_equals(texts.arguments[0].value, 0, 'A message that cannot be decoded is not handled');
+
+        assert_throws_js(TypeError, () => IPC.sendSyncMessage('UI', identifier, message('DigestBytesSwift'), defaultTimeout, [{ type: 'uint64_t', value: 1000 }, { type: 'uint8_t', value: 1 }]), 'A span longer than its message is not handled');
+        assert_not_equals(takeInvalidMessageString(), '', 'A span longer than its message is marked invalid');
     } finally {
         removeTester('UI', identifier);
     }
