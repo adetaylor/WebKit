@@ -287,15 +287,21 @@ func caRingBufferFetchTimeBounds(_ geometry: WebCore.CARingBufferGeometry, _ sto
     fetchBounds(RingLayout(geometry), storedBounds)
 }
 
-// CARingBuffer::fetch(): the frames the ring doesn't hold are zeroed.
+// CARingBuffer::fetch() and fetchIfHasEnoughData(). Unless requireEnoughData, the frames the ring doesn't hold are zeroed
+// and the result is true; with it, the result is false, and nothing is fetched, unless the ring holds all the frames.
 @_expose(Cxx)
+@discardableResult
 func caRingBufferFetch(
     _ ring: borrowing WebCore.CARingBufferReadView,
     _ destination: inout WebCore.AudioBufferListView,
     _ frameCount: UInt64,
     _ startFrame: UInt64,
-    _ mode: UInt32
-) {
+    _ mode: UInt32,
+    _ requireEnoughData: Bool
+) -> Bool {
+    if requireEnoughData {
+        return fetchIfHasEnoughData(ring, &destination, frameCount, startFrame, CARingBufferFetchMode(rawValue: mode))
+    }
     let layout = RingLayout(ring.geometry())
     let channels: Span<UInt8> = ring.channels()
     fetchFrames(
@@ -307,18 +313,7 @@ func caRingBufferFetch(
         CARingBufferFetchMode(rawValue: mode),
         fetchBounds(layout, ring.storedBounds())
     )
-}
-
-// CARingBuffer::fetchIfHasEnoughData(): false, and nothing fetched, unless the ring holds all the frames.
-@_expose(Cxx)
-func caRingBufferFetchIfHasEnoughData(
-    _ ring: borrowing WebCore.CARingBufferReadView,
-    _ destination: inout WebCore.AudioBufferListView,
-    _ frameCount: UInt64,
-    _ startFrame: UInt64,
-    _ mode: UInt32
-) -> Bool {
-    fetchIfHasEnoughData(ring, &destination, frameCount, startFrame, CARingBufferFetchMode(rawValue: mode))
+    return true
 }
 
 @inline(__always)

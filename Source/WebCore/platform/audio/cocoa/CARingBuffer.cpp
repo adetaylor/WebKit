@@ -112,13 +112,13 @@ CARingBuffer::TimeBounds CARingBuffer::getFetchTimeBounds()
 bool CARingBuffer::fetchIfHasEnoughData(AudioBufferList* list, size_t frameCount, uint64_t startRead, FetchMode mode)
 {
     AudioBufferListView destination { list };
-    return caRingBufferFetchIfHasEnoughData(CARingBufferReadView { m_geometry, loadBounds(), m_channelData }, destination, frameCount, startRead, static_cast<uint32_t>(mode));
+    return caRingBufferFetch(CARingBufferReadView { m_geometry, loadBounds(), m_channelData }, destination, frameCount, startRead, static_cast<uint32_t>(mode), true);
 }
 
 void CARingBuffer::fetch(AudioBufferList* list, size_t frameCount, uint64_t startRead, FetchMode mode)
 {
     AudioBufferListView destination { list };
-    caRingBufferFetch(CARingBufferReadView { m_geometry, loadBounds(), m_channelData }, destination, frameCount, startRead, static_cast<uint32_t>(mode));
+    caRingBufferFetch(CARingBufferReadView { m_geometry, loadBounds(), m_channelData }, destination, frameCount, startRead, static_cast<uint32_t>(mode), false);
 }
 
 bool CARingBuffer::renderForAudioDestination(uint64_t& startFrame, AudioBufferList* output, std::span<float> lastRenderedSamples, uint32_t frameCount)
