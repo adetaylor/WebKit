@@ -26,3 +26,5 @@
 #pragma once
 
 // The C++ that the WebGL island's Swift module, WebCoreWebGL, sees as its underlying module.
+
+#include "WebCoreANGLE.h"

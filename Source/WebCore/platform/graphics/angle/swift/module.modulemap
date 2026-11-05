@@ -1,3 +1,10 @@
+// ANGLE's C API, for the WebGL island's Swift.
+module WebCoreANGLE {
+    requires cplusplus
+    header "WebCoreANGLE.h"
+    export *
+}
+
 // The underlying clang module of the WebGL island's Swift module, WebCoreWebGL.
 module WebCoreWebGL {
     requires cplusplus
