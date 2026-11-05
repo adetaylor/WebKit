@@ -45,7 +45,6 @@
 #include <wtf/TZoneMalloc.h>
 
 #if USE(CG)
-class CGRendererShellState;
 #endif
 
 namespace WebCore {
@@ -195,9 +194,9 @@ public:
     // FIXME: Can we make this a why instead of a what, and then have it exist cross-platform?
     virtual bool isCALayerContext() const = 0;
 
-    // The C++ side of a GraphicsContextCG whose Swift renderer is stored in place, for a Swift receiver that draws with the
-    // renderer, which the context lends it for one message at a time (GraphicsContextCG::lendSwiftRenderer()).
-    virtual CGRendererShellState* swiftReceiverState() { return nullptr; }
+    // Whether this is a GraphicsContextCG, which can lend its Swift renderer to a Swift receiver for one message at a time
+    // (GraphicsContextCG::lendSwiftRenderer()).
+    virtual bool canLendSwiftRenderer() const { return false; }
 #endif
 
     virtual bool knownToHaveFloatBasedBacking() const { return false; }

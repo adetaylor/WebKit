@@ -29,7 +29,7 @@
 // (-clang-header-expose-module in PlatformCocoa.cmake): WebKit's Swift exposes to C++ functions that take WebCore's Swift
 // CGRendererCore inout, and their thunks pass it on as a pointer to its storage. WebCore's generated header can't be
 // included alongside WebKit's, since each defines Swift's traits for the C++ types that both use, such as FloatRect and
-// String. The storage of a CGRendererCore is the object itself, which GraphicsContextCG::swiftReceiverState() checks
+// String. The storage of a CGRendererCore is the object itself, which GraphicsContextCG::addSwiftRendererLender() checks
 // against WebCore's generated header.
 
 namespace WebCore {

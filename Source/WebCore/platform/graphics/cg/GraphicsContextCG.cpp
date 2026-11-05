@@ -375,26 +375,25 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
 
 GraphicsContextCG::~GraphicsContextCG()
 {
-    if (RefPtr swiftReceiverState = m_swiftReceiverState) {
-        swiftReceiverState->m_context = nullptr;
-        swiftReceiverState->m_core = nullptr;
-    }
+    RELEASE_ASSERT(!m_swiftRendererLenders);
     withSwiftRenderer([](auto& renderer) {
         std::destroy_at(&renderer);
     });
 }
 
-CGRendererShellState* GraphicsContextCG::swiftReceiverState()
+void GraphicsContextCG::addSwiftRendererLender()
 {
-    if (!m_swiftReceiverState) {
-        auto* core = std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage));
-        // WebKit's generated header passes the renderer to Swift with a stand-in for this helper
-        // (WebKit/Shared/WebCoreSwiftForWebKit.h), which takes its storage to be the object itself.
-        RELEASE_ASSERT(_impl::_impl_CGRendererCore::getOpaquePointer(*core) == reinterpret_cast<char*>(core));
-        m_swiftReceiverState = CGRendererShellState::create(*this);
-        m_swiftReceiverState->m_core = core;
-    }
-    return m_swiftReceiverState.get();
+    // WebKit's generated header passes the renderer to Swift with a stand-in for this helper
+    // (WebKit/Shared/WebCoreSwiftForWebKit.h), which takes its storage to be the object itself.
+    auto* core = std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage));
+    RELEASE_ASSERT(_impl::_impl_CGRendererCore::getOpaquePointer(*core) == reinterpret_cast<char*>(core));
+    ++m_swiftRendererLenders;
+}
+
+void GraphicsContextCG::removeSwiftRendererLender()
+{
+    RELEASE_ASSERT(m_swiftRendererLenders);
+    --m_swiftRendererLenders;
 }
 
 bool GraphicsContextCG::hasPlatformContext() const
@@ -759,18 +758,6 @@ CGColorRef CGRendererCopyCachedColor(uint32_t packedColor)
 {
     return WebCore::cachedCGColor(WebCore::Color { WebCore::asSRGBA(WebCore::PackedColor::RGBA { packedColor }) }).leakRef();
 }
-
-Ref<CGRendererShellState> CGRendererShellState::create(WebCore::GraphicsContextCG& context)
-{
-    return adoptRef(*new CGRendererShellState(context));
-}
-
-CGRendererShellState::CGRendererShellState(WebCore::GraphicsContextCG& context)
-    : m_context(&context)
-{
-}
-
-CGRendererShellState::~CGRendererShellState() = default;
 
 CGImageRef CGRendererCopySubimage(CGImageRef image, CGRect rect)
 {

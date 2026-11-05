@@ -239,21 +239,3 @@ private:
     std::span<const CGRect> m_rects;
 };
 
-// The C++ side of a GraphicsContextCG for a Swift receiver that draws with the context's renderer itself, while the context
-// lends it (GraphicsContextCG::lendSwiftRenderer()): which context, and where its renderer is. The context clears both when
-// it goes. Used on the context's thread.
-class CGRendererShellState : public RefCounted<CGRendererShellState> {
-public:
-    static Ref<CGRendererShellState> create(WebCore::GraphicsContextCG&);
-    WEBCORE_EXPORT ~CGRendererShellState();
-
-private:
-    friend class WebCore::GraphicsContextCG;
-
-    explicit CGRendererShellState(WebCore::GraphicsContextCG&);
-
-    // Cleared by the context's destructor.
-    WebCore::GraphicsContextCG* m_context;
-    // The context's renderer, stored in place, which it lends a Swift receiver (GraphicsContextCG::lendSwiftRenderer()).
-    WebCore::CGRendererCore* m_core { nullptr };
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);

@@ -56,15 +56,24 @@ RemoteImageBufferGraphicsContext::RemoteImageBufferGraphicsContext(ImageBuffer& 
 {
 }
 
-RemoteImageBufferGraphicsContext::~RemoteImageBufferGraphicsContext() = default;
+RemoteImageBufferGraphicsContext::~RemoteImageBufferGraphicsContext()
+{
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    if (m_isSwiftRendererLender)
+        cgContext().removeSwiftRendererLender();
+#endif
+}
 
 void RemoteImageBufferGraphicsContext::startListeningForIPC()
 {
     auto& streamConnection = m_renderingBackend->streamConnection();
     streamConnection.startReceivingMessages(*this, Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    if (RefPtr shellState = context().swiftReceiverState()) {
-        m_cgRendererShellState = shellState;
+    if (context().canLendSwiftRenderer()) {
+        if (!m_isSwiftRendererLender) {
+            cgContext().addSwiftRendererLender();
+            m_isSwiftRendererLender = true;
+        }
         m_cgRenderer = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRenderer>(RemoteCGRenderer::init());
         Ref forwarder = m_cgRenderer->getMessageReceiver();
         forwarder->setStateLender(*this);

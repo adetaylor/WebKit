@@ -51,8 +51,9 @@ public:
     bool drawsInto(const WebCore::ImageBuffer& imageBuffer) const final { return &imageBuffer == m_imageBuffer.ptr(); }
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    // RemoteCGRenderer's handlers' state, the context's renderer, which the context lends for one message.
-    WebCore::GraphicsContextCG::SwiftRendererLend lendSwiftReceiverState() const { return WebCore::GraphicsContextCG::lendSwiftRenderer(*m_cgRendererShellState); }
+    // RemoteCGRenderer's handlers' state, the context's renderer, which the context lends for one message. The context is
+    // the one this receiver's C++ handlers draw into; this counts itself as its lender (addSwiftRendererLender()).
+    WebCore::GraphicsContextCG::SwiftRendererLend lendSwiftReceiverState() { return WebCore::GraphicsContextCG::lendSwiftRenderer(cgContext()); }
 #endif
 
 
@@ -76,7 +77,9 @@ private:
     // Takes RemoteCGRenderer's messages when the context draws with a Swift renderer, which it lends their handlers. Used
     // only on the work queue.
     std::unique_ptr<RemoteCGRenderer> m_cgRenderer;
-    RefPtr<CGRendererShellState> m_cgRendererShellState;
+    WebCore::GraphicsContextCG& cgContext() { return static_cast<WebCore::GraphicsContextCG&>(context()); }
+    // Whether this counts itself as a lender of its GraphicsContextCG's renderer, while it has a Swift receiver.
+    bool m_isSwiftRendererLender { false };
 #endif
 };
 
