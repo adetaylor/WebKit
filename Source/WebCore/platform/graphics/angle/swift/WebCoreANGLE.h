@@ -587,6 +587,72 @@ struct ANGLE final {
     static void imageTargetRenderbufferStorage(GLenum target, ANGLEImage image) { GL_EGLImageTargetRenderbufferStorageOES(target, image.get()); }
     static void imageTargetTexture2D(GLenum target, ANGLEImage image) { GL_EGLImageTargetTexture2DOES(target, image.get()); }
 
+    // Swift's own arrays, as Spans (OS 26 and later), for the entry points that can't be annotated.
+    static void multiDrawElementsANGLE(GLenum mode, std::span<const GLsizei> counts NOESCAPE, GLenum type, std::span<const GLint> offsets NOESCAPE)
+    {
+        auto drawCount = sameSize(counts, offsets);
+        auto offsetPointers = asOffsets(offsets);
+        GL_MultiDrawElementsANGLE(mode, counts.data(), type, offsetPointers.data(), drawCount);
+    }
+    static void multiDrawElementsInstancedANGLE(GLenum mode, std::span<const GLsizei> counts NOESCAPE, GLenum type, std::span<const GLint> offsets NOESCAPE, std::span<const GLsizei> instanceCounts NOESCAPE)
+    {
+        auto drawCount = sameSize(counts, offsets, instanceCounts);
+        auto offsetPointers = asOffsets(offsets);
+        GL_MultiDrawElementsInstancedANGLE(mode, counts.data(), type, offsetPointers.data(), instanceCounts.data(), drawCount);
+    }
+    static void multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(GLenum mode, std::span<const GLsizei> counts NOESCAPE, GLenum type, std::span<const GLint> offsets NOESCAPE, std::span<const GLsizei> instanceCounts NOESCAPE, std::span<const GLint> baseVertices NOESCAPE, std::span<const GLuint> baseInstances NOESCAPE)
+    {
+        auto drawCount = sameSize(counts, offsets, instanceCounts, baseVertices, baseInstances);
+        auto offsetPointers = asOffsets(offsets);
+        GL_MultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(mode, counts.data(), type, offsetPointers.data(), instanceCounts.data(), baseVertices.data(), baseInstances.data(), drawCount);
+    }
+
+    // Strings in from Swift's arrays: the bytes, without a terminator.
+    static void shaderSource(GLuint shader, std::span<const uint8_t> source NOESCAPE)
+    {
+        const char* data = source.empty() ? "" : reinterpret_cast<const char*>(source.data());
+        GLint length = sizeFor(source);
+        GL_ShaderSource(shader, 1, &data, &length);
+    }
+    static void bindAttribLocation(GLuint program, GLuint index, std::span<const uint8_t> name NOESCAPE) { GL_BindAttribLocation(program, index, std::string { name.begin(), name.end() }.c_str()); }
+    static GLint getFragDataLocation(GLuint program, std::span<const uint8_t> name NOESCAPE) { return GL_GetFragDataLocation(program, std::string { name.begin(), name.end() }.c_str()); }
+    static GLuint getUniformBlockIndex(GLuint program, std::span<const uint8_t> name NOESCAPE) { return GL_GetUniformBlockIndex(program, std::string { name.begin(), name.end() }.c_str()); }
+    // The names, each followed by a NUL. Bytes after the last NUL are not a name.
+    static void transformFeedbackVaryings(GLuint program, std::span<const uint8_t> names NOESCAPE, GLenum bufferMode)
+    {
+        std::vector<const char*> pointers;
+        for (auto rest = names; !rest.empty();) {
+            auto end = std::ranges::find(rest, 0);
+            if (end == rest.end())
+                break;
+            pointers.push_back(reinterpret_cast<const char*>(rest.data()));
+            rest = rest.subspan(static_cast<size_t>(end - rest.begin()) + 1);
+        }
+        GL_TransformFeedbackVaryings(program, static_cast<GLsizei>(pointers.size()), pointers.data(), bufferMode);
+    }
+
+    // Strings out into Swift's arrays. Each returns the length written, without the terminator.
+    static GLsizei getProgramInfoLog(GLuint program, std::span<uint8_t> log NOESCAPE) { GLsizei length = 0; GL_GetProgramInfoLog(program, sizeFor(log), &length, reinterpret_cast<GLchar*>(log.data())); return length; }
+    static GLsizei getShaderInfoLog(GLuint shader, std::span<uint8_t> log NOESCAPE) { GLsizei length = 0; GL_GetShaderInfoLog(shader, sizeFor(log), &length, reinterpret_cast<GLchar*>(log.data())); return length; }
+    static GLsizei getTranslatedShaderSource(GLuint shader, std::span<uint8_t> source NOESCAPE) { GLsizei length = 0; GL_GetTranslatedShaderSourceANGLE(shader, sizeFor(source), &length, reinterpret_cast<GLchar*>(source.data())); return length; }
+    static GLsizei getActiveUniformBlockName(GLuint program, GLuint uniformBlockIndex, std::span<uint8_t> name NOESCAPE) { GLsizei length = 0; GL_GetActiveUniformBlockName(program, uniformBlockIndex, sizeFor(name), &length, reinterpret_cast<GLchar*>(name.data())); return length; }
+    static bool getUniformLocations(GLuint program, const std::string& name, std::span<GLint> locations NOESCAPE) { return uniformLocations(program, name, locations); }
+
+    // Clear values by value, of the size the buffer implies.
+    static void clearBufferiv(GLenum buffer, GLint drawbuffer, ANGLEInt4 value) { GL_ClearBufferiv(buffer, drawbuffer, value.values); }
+    static void clearBufferuiv(GLenum buffer, GLint drawbuffer, ANGLEUnsignedInt4 value) { GL_ClearBufferuiv(buffer, drawbuffer, value.values); }
+    static void clearBufferfv(GLenum buffer, GLint drawbuffer, ANGLEFloat4 value) { GL_ClearBufferfv(buffer, drawbuffer, value.values); }
+
+    // Query outputs into Swift's arrays.
+    static void getBooleanv(GLenum pname, std::span<GLboolean> values NOESCAPE) { GL_GetBooleanvRobustANGLE(pname, sizeFor(values), nullptr, values.data()); }
+    static void getFloatv(GLenum pname, std::span<GLfloat> values NOESCAPE) { GL_GetFloatvRobustANGLE(pname, sizeFor(values), nullptr, values.data()); }
+    static void getIntegerv(GLenum pname, std::span<GLint> values NOESCAPE) { GL_GetIntegervRobustANGLE(pname, sizeFor(values), nullptr, values.data()); }
+    static void getInternalformativ(GLenum target, GLenum internalFormat, GLenum pname, std::span<GLint> values NOESCAPE) { GL_GetInternalformativRobustANGLE(target, internalFormat, pname, sizeFor(values), nullptr, values.data()); }
+    static void getActiveUniformBlockiv(GLuint program, GLuint uniformBlockIndex, GLenum pname, std::span<GLint> values NOESCAPE) { GL_GetActiveUniformBlockivRobustANGLE(program, uniformBlockIndex, pname, sizeFor(values), nullptr, values.data()); }
+    static void getUniformfv(GLuint program, GLint location, std::span<GLfloat> values NOESCAPE) { GL_GetUniformfvRobustANGLE(program, location, bytesFor(values), nullptr, values.data()); }
+    static void getUniformiv(GLuint program, GLint location, std::span<GLint> values NOESCAPE) { GL_GetUniformivRobustANGLE(program, location, bytesFor(values), nullptr, values.data()); }
+    static void getUniformuiv(GLuint program, GLint location, std::span<GLuint> values NOESCAPE) { GL_GetUniformuivRobustANGLE(program, location, bytesFor(values), nullptr, values.data()); }
+
 private:
     // Sizes past what a GLsizei holds wrap, as they always have: to a smaller size, or a negative one that ANGLE rejects.
     template<typename T> static GLsizei sizeFor(std::span<T> span) { return static_cast<GLsizei>(span.size()); }
@@ -641,6 +707,14 @@ private:
     };
 
     static OffsetPointers asOffsets(WebCore::GLLentInts offsets, GLsizei drawCount) { return OffsetPointers { elementSpan(offsets, drawCount, 1) }; }
+
+    // The size the spans share, which must be the same.
+    template<typename First, typename... Rest> static GLsizei sameSize(std::span<First> first, std::span<Rest>... rest)
+    {
+        RELEASE_ASSERT(((rest.size() == first.size()) && ...));
+        return sizeFor(first);
+    }
+    static OffsetPointers asOffsets(std::span<const GLint> offsets) { return OffsetPointers { offsets }; }
 
     static const GLchar* cString(WebCore::GLLentBytes string)
     {

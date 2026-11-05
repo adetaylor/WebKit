@@ -5,6 +5,12 @@ module WebCoreANGLE {
     header "GLLentMemory.h"
     export *
 
+    // The old path of the island's entry points that take Swift arrays, for systems before OS 26.
+    explicit module BeforeOS26 {
+        header "WebCoreANGLEBeforeOS26.h"
+        export *
+    }
+
     // ANGLE's EGL for the Cocoa platform.
     explicit module Cocoa {
         requires objc
