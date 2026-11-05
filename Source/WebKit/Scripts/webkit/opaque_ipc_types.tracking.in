@@ -142,6 +142,7 @@
 }
 
 [UnsafeWrapper] std::span<const uint8_t> {
+    [DebugOnly] MessageParam IPCSwiftWorkQueueTester.DigestBytesSwift bytes
     [Legacy] MessageParam LibWebRTCCodecs.CompletedEncoding data
     [Legacy] MessageParam LibWebRTCCodecs.SetEncodingConfiguration description
     [Legacy] MessageParam LibWebRTCCodecsProxy.DecodeFrame data
