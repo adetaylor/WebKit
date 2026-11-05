@@ -2490,8 +2490,11 @@ def block_to_line_comments(block_comment):
     return '\n'.join(result)
 
 
-def convert_enable_macros_to_swift_syntax(condition):
-    return re.sub(r'ENABLE\(([^)]+)\)', r'ENABLE_\1', condition)
+def swift_receiver_condition(receiver):
+    try:
+        return swift_types.swift_condition(receiver.condition)
+    except swift_types.UnmappableSwiftCondition as error:
+        raise Exception('ERROR: Receiver %s is under a condition Swift cannot evaluate: %s' % (receiver.name, error))
 
 
 # Generated Swift dispatches a message that takes Swift types on the main actor, through MainActor.assumeIsolated,
@@ -2518,7 +2521,7 @@ def generate_swift_message_handler(receiver):
     result.append('\n')
     result.append('\n')
     if receiver.condition:
-        result.append('#if %s\n' % convert_enable_macros_to_swift_syntax(receiver.condition))
+        result.append('#if %s\n' % swift_receiver_condition(receiver))
     if receiver.swift_receiver_build_enabled_by:
         result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
     result.append('import WebKit_Internal\n')
@@ -2534,7 +2537,7 @@ def generate_swift_message_handler(receiver):
     weak_ref_class = class_name + 'WeakRef'
 
     if receiver.condition:
-        result.append('#if %s\n' % convert_enable_macros_to_swift_syntax(receiver.condition))
+        result.append('#if %s\n' % swift_receiver_condition(receiver))
     if receiver.swift_receiver_build_enabled_by:
         result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
 

@@ -182,6 +182,29 @@ class SwiftReceiverTest(unittest.TestCase):
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message is under a condition Swift cannot evaluate"):
             messages.generate_swift_message_handler(receiver)
 
+    def test_receiver_condition(self):
+        receiver = parser.parse(io.StringIO("""
+#if USE(LIBRARY) && PLATFORM(COCOA) && ENABLE(FEATURE)
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver]
+messages -> TestReceiver {
+    Message(uint32_t value)
+}
+#endif
+"""))
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertEqual(swift.count('\n#if USE_LIBRARY && WTF_PLATFORM_COCOA && ENABLE_FEATURE\n'), 2)
+
+        receiver = parser.parse(io.StringIO("""
+#if defined(SOME_MACRO)
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver]
+messages -> TestReceiver {
+    Message(uint32_t value)
+}
+#endif
+"""))
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver is under a condition Swift cannot evaluate"):
+            messages.generate_swift_message_handler(receiver)
+
     def test_shared_preferences_alias(self):
         for attributes, has_alias in [
             (['EnabledBy=SomeFeature', 'SwiftReceiver'], True),
