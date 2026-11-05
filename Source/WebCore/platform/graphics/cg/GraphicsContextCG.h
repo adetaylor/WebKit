@@ -35,7 +35,6 @@
 
 namespace WebCore {
 
-class CGRendererBox;
 class CGRendererCore;
 class GraphicsContextCGCapture;
 
@@ -46,9 +45,7 @@ public:
         Unknown,
         CGContextFromCALayer
     };
-    // Box: the renderer's core in a CGRendererBox that Swift can hold too, at the cost of an access check per call.
-    enum class SwiftRendererStorage : bool { InPlace, Box };
-    GraphicsContextCG(CGContextRef, CGContextSource = CGContextSource::Unknown, std::optional<RenderingMode> knownRenderingMode = std::nullopt, SwiftRendererStorage = SwiftRendererStorage::InPlace);
+    GraphicsContextCG(CGContextRef, CGContextSource = CGContextSource::Unknown, std::optional<RenderingMode> knownRenderingMode = std::nullopt);
 
     ~GraphicsContextCG();
 
@@ -175,17 +172,17 @@ public:
     CGRendererShellState* swiftReceiverState() final;
 
     class SwiftRendererLend;
-    // Lends the renderer of the context whose C++ side shellState is, if it is stored in place, to a Swift receiver for one
-    // message: state() is the renderer, which the receiver's handler takes inout. Until the lend ends, any other use of the
-    // renderer crashes, as does the context's destruction, so that nothing else reaches the renderer while Swift has it.
-    // C++ only: Swift takes the state from the lend's C++ owner.
+    // Lends the renderer of the context whose C++ side shellState is to a Swift receiver for one message: state() is the
+    // renderer, which the receiver's handler takes inout. Until the lend ends, any other use of the renderer crashes, as does
+    // the context's destruction, so that nothing else reaches the renderer while Swift has it. C++ only: Swift takes the
+    // state from the lend's C++ owner.
     static SwiftRendererLend lendSwiftRenderer(const CGRendererShellState&) __attribute__((availability(swift, unavailable)));
 
 private:
     friend class ::CGRendererShellState;
 
-    // How this context keeps its renderer: in place, in place and lent to a Swift receiver (SwiftRendererLend), or boxed.
-    enum class SwiftRendererState : uint8_t { InPlace, InPlaceLent, Box };
+    // Whether the renderer, which this context keeps in place, is lent to a Swift receiver (SwiftRendererLend).
+    enum class SwiftRendererState : uint8_t { InPlace, InPlaceLent };
 
     template<typename Function> decltype(auto) withSwiftRenderer(Function&&) const;
     void didUpdateStateForSwiftRenderer(GraphicsContextState&);
@@ -207,8 +204,7 @@ private:
 #if ASSERT_ENABLED
     std::unique_ptr<GraphicsContextCGCapture> m_capture;
 #endif
-    // The CGRendererCore (CGRenderer.swift) this context draws with, built in place, or a reference to the CGRendererBox that
-    // holds it. GraphicsContextCG.cpp checks the size.
+    // The CGRendererCore (CGRenderer.swift) this context draws with, built in place. GraphicsContextCG.cpp checks the size.
     static constexpr size_t swiftRendererSize = 272;
     alignas(8) mutable std::byte m_swiftRendererStorage[swiftRendererSize];
     mutable std::optional<ColorSpace> m_colorSpace;

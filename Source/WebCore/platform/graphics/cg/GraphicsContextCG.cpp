@@ -334,24 +334,20 @@ static GraphicsContext::IsDeferred isDeferredForCGContext(CGContextRef cgContext
     return GraphicsContext::IsDeferred::Yes;
 }
 
-// The one place that picks the renderer: the core stored in place, or, for a context made with SwiftRendererStorage::Box,
-// the box that holds it.
+// The one place that reaches the renderer, which is stored in place. Lent, it is a Swift receiver's until the lend ends
+// (SwiftRendererLend).
 template<typename Function> decltype(auto) GraphicsContextCG::withSwiftRenderer(Function&& function) const
 {
-    if (m_swiftRendererState != SwiftRendererState::InPlace) [[unlikely]] {
-        // Lent, it is a Swift receiver's until the lend ends (SwiftRendererLend).
-        RELEASE_ASSERT(m_swiftRendererState == SwiftRendererState::Box);
-        return function(*std::launder(reinterpret_cast<CGRendererBox*>(m_swiftRendererStorage)));
-    }
+    RELEASE_ASSERT(m_swiftRendererState == SwiftRendererState::InPlace);
     return function(*std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage)));
 }
 
-GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource source, std::optional<RenderingMode> knownRenderingMode, SwiftRendererStorage rendererStorage)
+GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource source, std::optional<RenderingMode> knownRenderingMode)
     : GraphicsContext(isDeferredForCGContext(cgContext), GraphicsContextState::basicChangeFlags, coreInterpolationQuality(cgContext))
     , m_cgContext(cgContext)
     , m_renderingMode(knownRenderingMode.value_or(renderingModeForCGContext(cgContext, source)))
     , m_isLayerCGContext(source == GraphicsContextCG::CGContextFromCALayer)
-    , m_swiftRendererState(rendererStorage == SwiftRendererStorage::Box ? SwiftRendererState::Box : SwiftRendererState::InPlace)
+    , m_swiftRendererState(SwiftRendererState::InPlace)
 {
     // Exact where pointers are 8 bytes, so that the storage doesn't outgrow the struct; with 4-byte pointers the struct is smaller.
 #if CPU(ADDRESS64)
@@ -360,12 +356,8 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
     static_assert(sizeof(CGRendererCore) <= swiftRendererSize);
 #endif
     static_assert(alignof(CGRendererCore) <= 8);
-    static_assert(sizeof(CGRendererBox) <= swiftRendererSize && alignof(CGRendererBox) <= 8);
     auto makeRenderer = [&](CGContextRef context, bool isUnaccelerated, bool isPDFContext) {
-        if (m_swiftRendererState == SwiftRendererState::Box)
-            new (m_swiftRendererStorage) CGRendererBox(CGRendererBox::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
-        else
-            new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
+        new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
     };
     if (!cgContext) {
         // An invalid context draws nothing: its renderer draws into a stand-in.
@@ -394,8 +386,6 @@ GraphicsContextCG::~GraphicsContextCG()
 
 CGRendererShellState* GraphicsContextCG::swiftReceiverState()
 {
-    if (m_swiftRendererState == SwiftRendererState::Box)
-        return nullptr;
     if (!m_swiftReceiverState) {
         auto* core = std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage));
         // WebKit's generated header passes the renderer to Swift with a stand-in for this helper
