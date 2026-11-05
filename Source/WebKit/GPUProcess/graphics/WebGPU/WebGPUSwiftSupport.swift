@@ -79,13 +79,88 @@ where Target.RawValue: FixedWidthInteger, Source.RawValue: FixedWidthInteger {
 final class WebGPUImplTable {
     private final class Entry {
         let object: AnyObject
-        let receiver: AnyObject?
+        let receiver: AnyObject
         let registration: WebKit.WebGPUSwiftReceiverRegistration?
+        let kind: Kind?
 
-        init(_ object: AnyObject, receiver: AnyObject?, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        init(_ object: AnyObject, _ receiver: AnyObject, _ registration: WebKit.WebGPUSwiftReceiverRegistration?, _ kind: Kind?) {
             self.object = object
             self.receiver = receiver
             self.registration = registration
+            self.kind = kind
+        }
+    }
+
+    // The kinds of object that messages name, which the stores look up by identifier as their own types.
+    private enum Kind {
+        case bindGroup
+        case bindGroupLayout
+        case buffer
+        case commandBuffer
+        case computePipeline
+        case device
+        case externalTexture
+        case pipelineLayout
+        case querySet
+        case renderBundle
+        case renderPipeline
+        case sampler
+        case shaderModule
+        case texture
+        case textureView
+    }
+
+    private struct Stores {
+        var bindGroups = WebGPUObjectStore<BindGroupReference>()
+        var bindGroupLayouts = WebGPUObjectStore<BindGroupLayoutReference>()
+        var buffers = WebGPUObjectStore<BufferReference>()
+        var commandBuffers = WebGPUObjectStore<CommandBufferReference>()
+        var computePipelines = WebGPUObjectStore<ComputePipelineReference>()
+        var devices = WebGPUObjectStore<DeviceReference>()
+        var externalTextures = WebGPUObjectStore<ExternalTextureReference>()
+        var pipelineLayouts = WebGPUObjectStore<PipelineLayoutReference>()
+        var querySets = WebGPUObjectStore<QuerySetReference>()
+        var renderBundles = WebGPUObjectStore<RenderBundleReference>()
+        var renderPipelines = WebGPUObjectStore<RenderPipelineReference>()
+        var samplers = WebGPUObjectStore<SamplerReference>()
+        var shaderModules = WebGPUObjectStore<ShaderModuleReference>()
+        var textures = WebGPUObjectStore<TextureReference>()
+        var textureViews = WebGPUObjectStore<TextureViewReference>()
+
+        // The object removed, which the caller releases after the change.
+        mutating func remove(_ identifier: UInt64, _ kind: Kind) -> AnyObject? {
+            switch kind {
+            case .bindGroup:
+                return bindGroups.remove(identifier)
+            case .bindGroupLayout:
+                return bindGroupLayouts.remove(identifier)
+            case .buffer:
+                return buffers.remove(identifier)
+            case .commandBuffer:
+                return commandBuffers.remove(identifier)
+            case .computePipeline:
+                return computePipelines.remove(identifier)
+            case .device:
+                return devices.remove(identifier)
+            case .externalTexture:
+                return externalTextures.remove(identifier)
+            case .pipelineLayout:
+                return pipelineLayouts.remove(identifier)
+            case .querySet:
+                return querySets.remove(identifier)
+            case .renderBundle:
+                return renderBundles.remove(identifier)
+            case .renderPipeline:
+                return renderPipelines.remove(identifier)
+            case .sampler:
+                return samplers.remove(identifier)
+            case .shaderModule:
+                return shaderModules.remove(identifier)
+            case .texture:
+                return textures.remove(identifier)
+            case .textureView:
+                return textureViews.remove(identifier)
+            }
         }
     }
 
@@ -93,6 +168,7 @@ final class WebGPUImplTable {
     let host: WebKit.WebGPUSwiftRegistryHost
     private let instance: InstanceReference
     private var entries: [UInt64: Entry] = [:]
+    private var stores = Stores()
     // Every device made: work in flight can keep a device alive after its entry is removed.
     private var devices: [DeviceWeakReference] = []
 
@@ -106,12 +182,19 @@ final class WebGPUImplTable {
 
     @_expose(!Cxx)
     func remove(_ identifier: UInt64) {
-        entries[identifier] = nil
+        guard let entry = entries.removeValue(forKey: identifier), let kind = entry.kind else {
+            return
+        }
+        _ = stores.remove(identifier, kind)
     }
 
     @used
     func removeAll() {
-        entries.removeAll()
+        // What's removed is released after the registry is empty.
+        var removedEntries: [UInt64: Entry] = [:]
+        var removedStores = Stores()
+        swap(&entries, &removedEntries)
+        swap(&stores, &removedStores)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: makes the adapter and its receiver, and fills in the
@@ -166,7 +249,7 @@ final class WebGPUImplTable {
     // The XR binding of a device whose receiver is making one.
     @used
     func createXRBinding(_ deviceIdentifier: UInt64) -> WebGPUXRBinding {
-        guard let device = entries[deviceIdentifier]?.object as? DeviceReference else {
+        guard let device = stores.devices.object(deviceIdentifier) else {
             preconditionFailure("Only for a device in the registry")
         }
         return WebGPUXRBinding(device.createXRBinding())
@@ -174,7 +257,7 @@ final class WebGPUImplTable {
 
     @used
     func hasDevice(_ identifier: UInt64) -> Bool {
-        entries[identifier]?.object is DeviceReference
+        stores.devices.object(identifier) != nil
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-destroy for every device still alive.
@@ -195,19 +278,311 @@ final class WebGPUImplTable {
         return object.isValid ? .Valid : .Invalid
     }
 
-    // Adds an object that Swift owns, with its receiver and the registration that keeps the receiver's messages coming.
+    // Adds an object that Swift owns, in place of any with the same identifier, with its receiver and the registration
+    // that keeps the receiver's messages coming. A kind of object that messages name goes in its store too.
+    private func add(_ identifier: UInt64, _ entry: Entry) {
+        guard let replaced = entries.updateValue(entry, forKey: identifier), let kind = replaced.kind, kind != entry.kind else {
+            return
+        }
+        _ = stores.remove(identifier, kind)
+    }
+
     @_expose(!Cxx)
-    func add(_ identifier: UInt64, _ object: AnyObject, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
-        entries[identifier] = Entry(object, receiver: receiver, registration: registration)
+    func add(_ identifier: UInt64, _ object: AdapterReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, nil))
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: BindGroupReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .bindGroup))
+        stores.bindGroups.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: BindGroupLayoutReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .bindGroupLayout))
+        stores.bindGroupLayouts.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: BufferReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .buffer))
+        stores.buffers.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: CommandBufferReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .commandBuffer))
+        stores.commandBuffers.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: CommandEncoderReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, nil))
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: ComputePassEncoderReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, nil))
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: ComputePipelineReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .computePipeline))
+        stores.computePipelines.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: DeviceReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .device))
+        stores.devices.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: ExternalTextureReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .externalTexture))
+        stores.externalTextures.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: PipelineLayoutReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .pipelineLayout))
+        stores.pipelineLayouts.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: PresentationContextReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, nil))
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: QuerySetReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .querySet))
+        stores.querySets.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: QueueReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, nil))
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: RenderBundleReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .renderBundle))
+        stores.renderBundles.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: RenderBundleEncoderReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, nil))
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: RenderPassEncoderReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, nil))
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: RenderPipelineReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .renderPipeline))
+        stores.renderPipelines.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: SamplerReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .sampler))
+        stores.samplers.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: ShaderModuleReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .shaderModule))
+        stores.shaderModules.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: TextureReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .texture))
+        stores.textures.insert(object, identifier)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ object: TextureViewReference, receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(object, receiver, registration, .textureView))
+        stores.textureViews.insert(object, identifier)
     }
 
     // The object with that identifier, if there is one of that type.
     @_expose(!Cxx)
-    func object<Object: AnyObject>(_ identifier: IPCTypes.WebGPUIdentifier, as: Object.Type) -> Object? {
-        entries[identifier.rawValue]?.object as? Object
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: BindGroupReference.Type) -> BindGroupReference? {
+        stores.bindGroups.object(identifier.rawValue)
     }
 
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: BindGroupLayoutReference.Type) -> BindGroupLayoutReference? {
+        stores.bindGroupLayouts.object(identifier.rawValue)
+    }
 
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: BufferReference.Type) -> BufferReference? {
+        stores.buffers.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: CommandBufferReference.Type) -> CommandBufferReference? {
+        stores.commandBuffers.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: ComputePipelineReference.Type) -> ComputePipelineReference? {
+        stores.computePipelines.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: DeviceReference.Type) -> DeviceReference? {
+        stores.devices.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: ExternalTextureReference.Type) -> ExternalTextureReference? {
+        stores.externalTextures.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: PipelineLayoutReference.Type) -> PipelineLayoutReference? {
+        stores.pipelineLayouts.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: QuerySetReference.Type) -> QuerySetReference? {
+        stores.querySets.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: RenderBundleReference.Type) -> RenderBundleReference? {
+        stores.renderBundles.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: RenderPipelineReference.Type) -> RenderPipelineReference? {
+        stores.renderPipelines.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: SamplerReference.Type) -> SamplerReference? {
+        stores.samplers.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: ShaderModuleReference.Type) -> ShaderModuleReference? {
+        stores.shaderModules.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: TextureReference.Type) -> TextureReference? {
+        stores.textures.object(identifier.rawValue)
+    }
+
+    @_expose(!Cxx)
+    func object(_ identifier: IPCTypes.WebGPUIdentifier, as: TextureViewReference.Type) -> TextureViewReference? {
+        stores.textureViews.object(identifier.rawValue)
+    }
+}
+
+// The objects of one kind in a registry, by identifier: open addressing with linear probing, and a hash of one
+// multiplication, as WTF's integer hash tables have, which costs much less than Dictionary's SipHash.
+private struct WebGPUObjectStore<Object: AnyObject> {
+    private struct Slot {
+        var identifier: UInt64 = 0
+        var object: Object?
+    }
+
+    // Empty, or a power of two at least twice count, so that every probe reaches a slot with no object.
+    private var slots: [Slot] = []
+    private var count = 0
+
+    private static func home(_ identifier: UInt64, _ mask: Int) -> Int {
+        Int(truncatingIfNeeded: (identifier &* 0x9E37_79B9_7F4A_7C15) >> 32) & mask
+    }
+
+    func object(_ identifier: UInt64) -> Object? {
+        guard !slots.isEmpty else {
+            return nil
+        }
+        let mask = slots.count - 1
+        var index = Self.home(identifier, mask)
+        while let object = slots[index].object {
+            if slots[index].identifier == identifier {
+                return object
+            }
+            index = (index + 1) & mask
+        }
+        return nil
+    }
+
+    mutating func insert(_ object: Object, _ identifier: UInt64) {
+        if (count + 1) * 2 > slots.count {
+            grow()
+        }
+        let mask = slots.count - 1
+        var index = Self.home(identifier, mask)
+        while slots[index].object != nil {
+            if slots[index].identifier == identifier {
+                slots[index].object = object
+                return
+            }
+            index = (index + 1) & mask
+        }
+        slots[index] = Slot(identifier: identifier, object: object)
+        count += 1
+    }
+
+    // The object removed, which the caller releases after the change.
+    mutating func remove(_ identifier: UInt64) -> Object? {
+        guard !slots.isEmpty else {
+            return nil
+        }
+        let mask = slots.count - 1
+        var hole = Self.home(identifier, mask)
+        while true {
+            guard slots[hole].object != nil else {
+                return nil
+            }
+            if slots[hole].identifier == identifier {
+                break
+            }
+            hole = (hole + 1) & mask
+        }
+        let removed = slots[hole].object
+        // Moves back into the hole each later object of its run that a probe from its home would no longer reach.
+        var index = hole
+        while true {
+            index = (index + 1) & mask
+            guard slots[index].object != nil else {
+                break
+            }
+            if (index - Self.home(slots[index].identifier, mask)) & mask >= (index - hole) & mask {
+                slots.swapAt(hole, index)
+                hole = index
+            }
+        }
+        slots[hole] = Slot()
+        count -= 1
+        return removed
+    }
+
+    private mutating func grow() {
+        let previous = slots
+        slots = Array(repeating: Slot(), count: max(8, previous.count * 2))
+        let mask = slots.count - 1
+        for slot in previous where slot.object != nil {
+            var index = Self.home(slot.identifier, mask)
+            while slots[index].object != nil {
+                index = (index + 1) & mask
+            }
+            slots[index] = slot
+        }
+    }
 }
 
 // The WebXR objects of a device, as the C++ receivers of their messages hold them. Used on the RemoteGPU's work queue.
