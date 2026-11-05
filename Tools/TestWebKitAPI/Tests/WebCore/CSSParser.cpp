@@ -474,6 +474,29 @@ TEST(CSSPropertyParser, CalcLongArgumentLists)
     }
 }
 
+TEST(CSSPropertyParser, MeshGradientControlPoints)
+{
+    // Control points are stored as the 1 to 4 values specified, not completed by copying to 4.
+    auto context = strictCSSParserContext();
+    context.cssMeshGradientsEnabled = true;
+
+    std::pair<ASCIILiteral, ASCIILiteral> cases[] = {
+        { "mesh-gradient(red 0px 0px with 10px 0px, blue; green, yellow)"_s,
+          "mesh-gradient(red 0px 0px with 10px 0px, blue; green, yellow)"_s },
+        { "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px, blue; green, yellow)"_s,
+          "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px, blue; green, yellow)"_s },
+        { "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px / 30px 0px, blue; green, yellow)"_s,
+          "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px / 30px 0px, blue; green, yellow)"_s },
+        { "mesh-gradient(red, blue by 10% 0% with 1px 1px from origin; green, yellow)"_s,
+          "mesh-gradient(red, blue by 10% 0% with 1px 1px from origin; green, yellow)"_s },
+    };
+    for (auto& [input, output] : cases) {
+        auto properties = MutableStyleProperties::create();
+        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, makeString("background-image: "_s, input, ';'), context));
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BackgroundImage), String { output });
+    }
+}
+
 TEST(CSSPropertyParser, TransformTokenCounts)
 {
     // calc() arguments of 31 to 33 and 63 to 65 tokens.
@@ -590,6 +613,28 @@ TEST(CSSPropertyParser, BackgroundImageURLIntegrity)
     auto properties = MutableStyleProperties::create();
     EXPECT_FALSE(CSSParser::parseDeclarationList(properties, "background-image: url(\"https://example.com/foo.png\" integrity(\"sha384-abc\"));"_s, withoutIntegrity));
     EXPECT_TRUE(properties->getPropertyValue(CSSPropertyID::BackgroundImage).isEmpty());
+}
+
+TEST(CSSPropertyParser, AnimationNameKeyframesNameStrings)
+{
+    // A <keyframes-name> string whose text is a valid <custom-ident> is promoted to an identifier;
+    // a string whose text is excluded from <custom-ident> (CSS-wide keywords, 'default', 'none')
+    // is kept as a string and serializes with quotes.
+    struct { ASCIILiteral input; ASCIILiteral output; } testCases[] = {
+        // Valid custom-ident: strip the string delimiters.
+        { "animation-name: \"abcd\";"_s,    "abcd"_s    },
+        // CSS-wide keyword: keep as a quoted string.
+        { "animation-name: \"initial\";"_s, "\"initial\""_s },
+        // 'none' is excluded from <keyframes-name> custom-idents: keep as a quoted string.
+        { "animation-name: \"none\";"_s,    "\"none\""_s    },
+        // 'default' is excluded from all custom-idents: keep as a quoted string.
+        { "animation-name: \"default\";"_s, "\"default\""_s },
+    };
+    for (auto& [input, output] : testCases) {
+        auto properties = MutableStyleProperties::create();
+        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, input, strictCSSParserContext()));
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::AnimationName), output);
+    }
 }
 
 } // namespace TestWebKitAPI
