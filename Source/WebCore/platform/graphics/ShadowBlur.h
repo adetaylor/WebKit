@@ -28,11 +28,11 @@
 
 #pragma once
 
-#include "Color.h"
-#include "FloatRect.h"
-#include "FloatRoundedRect.h"
-#include "GraphicsStyle.h"
-#include "ShadowBlurSwiftBridge.h"
+#include <WebCore/Color.h>
+#include <WebCore/FloatRect.h>
+#include <WebCore/FloatRoundedRect.h>
+#include <WebCore/GraphicsStyle.h>
+#include <WebCore/ShadowBlurSwiftBridge.h>
 #include <wtf/Noncopyable.h>
 
 namespace WebCore {
