@@ -25,98 +25,32 @@
 
 #pragma once
 
+#import "HardwareCapabilities.h"
+#import <Metal/Metal.h>
 #import <WebGPU/WebGPU.h>
 #import <WebGPU/WebGPUCpp.h>
-#import <memory>
-#import <span>
-#import <wtf/CompletionHandler.h>
-#import <wtf/FastMalloc.h>
-#import <wtf/HashMap.h>
+#import <wtf/Function.h>
 #import <wtf/MachSendRight.h>
-#import <wtf/Ref.h>
-#import <wtf/Seconds.h>
-#import <wtf/TZoneMalloc.h>
-#import <wtf/ThreadSafeWeakPtr.h>
-#import <wtf/WeakObjCPtr.h>
-#import <wtf/WeakPtr.h>
 
-namespace WTF {
-class MachSendRight;
-}
-
-#if !defined(__swift__)
-namespace WebGPUSwift {
-class InstanceImpl;
-class InstanceSchedulerHandle;
-}
-#endif
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 namespace WebGPU::Metal {
 
-class Adapter;
+// For InstanceImpl, which takes the descriptor's scheduleWork and resource owner: Swift can neither test a Function nor
+// read the right out of the optional.
+bool hasScheduleWork(const WebGPU::InstanceDescriptor&);
+Function<void(Function<void()>&&)> takeScheduleWork(WebGPU::InstanceDescriptor&);
+// An empty right without one.
+MachSendRight takeWebProcessResourceOwner(WebGPU::InstanceDescriptor&);
 
-// Box holding the Swift objects; defined in Instance.mm.
-struct InstanceImplBox;
+// https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: the device of the adapter that requestAdapter() completes
+// with, with its capabilities, or nil.
+id<MTLDevice> _Nullable requestAdapterDevice(const WebGPU::RequestAdapterOptions&, HardwareCapabilities&);
 
-// https://gpuweb.github.io/gpuweb/#gpu
-class Instance final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Instance> {
-    WTF_MAKE_TZONE_ALLOCATED(Instance);
-public:
-    static Ref<Instance> create(WebGPU::InstanceDescriptor&&);
-
-    ~Instance();
-
-    void processEvents();
-    // The adapter that requestAdapter() completes with.
-    RefPtr<Adapter> adapter(const WebGPU::RequestAdapterOptions&);
-
-    bool isValid() const;
-    void waitForCommandBufferCompletions();
-
-    // This can be called on a background thread.
-    using WorkItem = Function<void()>;
-    void scheduleWork(WorkItem&&);
-#if !defined(__swift__)
-    // For the handlers that run on Metal and observer threads, which must not reference the Instance. The handle
-    // drops the work once the Instance is gone; a reference to the scheduler keeps delivering it to the embedder's
-    // scheduleWork (or to the event queue, which nothing then drains).
-    WebGPUSwift::InstanceSchedulerHandle schedulerHandle() const;
-    WebGPUSwift::InstanceImpl& swiftImpl() const LIFETIME_BOUND;
-#endif
-    std::optional<MachSendRight> webProcessID() const;
-
-    // The futures of the C API. A future completes when the callback it stands for has run.
-    uint64_t createFuture();
-    void completeFuture(uint64_t);
-    // Runs the pending work until one of the futures has completed, and calls didComplete with
-    // the index of each completed one, which is then forgotten. False when the timeout passes
-    // first. This can be called on a background thread.
-    bool waitForAnyFuture(std::span<const uint64_t> futures, Seconds timeout, NOESCAPE const Function<void(size_t)>& didComplete);
-
-private:
-    explicit Instance(std::unique_ptr<InstanceImplBox>&&);
-
-    // The scheduler, which any thread may use, and the web process ID and the retained Device / CommandBuffer
-    // containers, which only the API thread uses.
-    const std::unique_ptr<InstanceImplBox> m_impl;
-} SWIFT_SHARED_REFERENCE(refInstance, derefInstance);
-
-// For Swift, which can't pass an rvalue reference: an instance that takes the descriptor's scheduleWork and resource owner.
-Instance* WTF_NONNULL createInstance(WebGPU::InstanceDescriptor&) SWIFT_RETURNS_RETAINED;
-// For Swift: the adapter that requestAdapter() completes with, or null.
-Adapter* WTF_NULLABLE requestAdapter(Instance&, const WebGPU::RequestAdapterOptions&) SWIFT_RETURNS_RETAINED;
-// The port of the Instance's web process identity, or MACH_PORT_NULL without one, for a canvas context's Swift, which
-// copies the right while the Instance holds it.
-mach_port_t webProcessIdentityPort(const Instance&);
+// The port of the web process identity, or MACH_PORT_NULL where resources aren't attributed to it, for a canvas
+// context's Swift, which copies the right while the caller holds it.
+mach_port_t webProcessIdentityPort(const MachSendRight&);
 
 } // namespace WebGPU::Metal
 
-inline void refInstance(WebGPU::Metal::Instance* obj)
-{
-    obj->ref();
-}
-
-inline void derefInstance(WebGPU::Metal::Instance* obj)
-{
-    obj->deref();
-}
+IGNORE_CLANG_WARNINGS_END

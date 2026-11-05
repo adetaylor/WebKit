@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		07662ED72EEB9E6B006C3698 /* Adapter.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAB2273A426D0095F8D5 /* Adapter.h */; };
 		079861942EF13A1100659042 /* CxxBridgingPublic.h in Headers */ = {isa = PBXBuildFile; fileRef = 079861932EF13A1100659042 /* CxxBridgingPublic.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		07D2916D2EC9C4D200A32120 /* CxxBridging.h in Headers */ = {isa = PBXBuildFile; fileRef = 07D2916C2EC9C4D200A32120 /* CxxBridging.h */; };
 		07D2916E2EC9C7A400A32120 /* ComputePassEncoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAAA273A426D0095F8D5 /* ComputePassEncoder.h */; };
@@ -52,7 +51,6 @@
 		AD5A3100000000000000C602 /* RenderPassEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5A3100000000000000C601 /* RenderPassEncoder.swift */; };
 		1C5ACAC6273A426D0095F8D5 /* ComputePassEncoder.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAA8273A426D0095F8D5 /* ComputePassEncoder.mm */; };
 		AD5A3100000000000000C002 /* ComputePassEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5A3100000000000000C001 /* ComputePassEncoder.swift */; };
-		1C5ACAC7273A426D0095F8D5 /* Adapter.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAA9273A426D0095F8D5 /* Adapter.mm */; };
 		AD5A3100000000000000B902 /* Adapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5A3100000000000000B901 /* Adapter.swift */; };
 		1C5ACACB273A426E0095F8D5 /* Queue.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAAD273A426D0095F8D5 /* Queue.mm */; };
 		1C5ACACC273A426E0095F8D5 /* RenderBundleEncoder.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAAE273A426D0095F8D5 /* RenderBundleEncoder.mm */; };
@@ -309,7 +307,6 @@
 		1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComputePipeline.h; sourceTree = "<group>"; };
 		1C5ACAA8273A426D0095F8D5 /* ComputePassEncoder.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ComputePassEncoder.mm; sourceTree = "<group>"; };
 		AD5A3100000000000000C001 /* ComputePassEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputePassEncoder.swift; sourceTree = "<group>"; };
-		1C5ACAA9273A426D0095F8D5 /* Adapter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Adapter.mm; sourceTree = "<group>"; };
 		AD5A3100000000000000B901 /* Adapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Adapter.swift; sourceTree = "<group>"; };
 		1C5ACAAA273A426D0095F8D5 /* ComputePassEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComputePassEncoder.h; sourceTree = "<group>"; };
 		1C5ACAAD273A426D0095F8D5 /* Queue.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Queue.mm; sourceTree = "<group>"; };
@@ -322,7 +319,6 @@
 		AD5A3100000000000000D601 /* LayoutConversion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutConversion.swift; sourceTree = "<group>"; };
 		AD5A3100000000000000BE01 /* Texture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Texture.swift; sourceTree = "<group>"; };
 		AD5A3100000000000000D001 /* TextureFormats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureFormats.swift; sourceTree = "<group>"; };
-		1C5ACAB2273A426D0095F8D5 /* Adapter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Adapter.h; sourceTree = "<group>"; };
 		1C5ACAD5273A4D700095F8D5 /* BindGroup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BindGroup.h; sourceTree = "<group>"; };
 		1C5ACADE273A55AF0095F8D5 /* BindGroup.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = BindGroup.mm; sourceTree = "<group>"; };
 		AD5A3100000000000000B501 /* BindGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindGroup.swift; sourceTree = "<group>"; };
@@ -551,8 +547,6 @@
 			isa = PBXGroup;
 			children = (
 				DD8EE22E2CE6B490004DD6F8 /* Internal */,
-				1C5ACAB2273A426D0095F8D5 /* Adapter.h */,
-				1C5ACAA9273A426D0095F8D5 /* Adapter.mm */,
 				AD5A3100000000000000B901 /* Adapter.swift */,
 				0D4D2E80294A89CF0000A1AB /* BindableResource.h */,
 				1C5ACAD5273A4D700095F8D5 /* BindGroup.h */,
@@ -861,7 +855,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				1CEBD7E72716AFBA00A5254D /* WebGPU.h in Headers */,
-				07662ED72EEB9E6B006C3698 /* Adapter.h in Headers */,
 				07D291712EC9CEC800A32120 /* BindableResource.h in Headers */,
 				07D291722EC9CECC00A32120 /* BindGroup.h in Headers */,
 				94E02AFC2CF03B580052068F /* Buffer.h in Headers */,
@@ -1131,7 +1124,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1C5ACAC7273A426D0095F8D5 /* Adapter.mm in Sources */,
 				AD5A3100000000000000B902 /* Adapter.swift in Sources */,
 				1C5ACADF273A55AF0095F8D5 /* BindGroup.mm in Sources */,
 				AD5A3100000000000000B502 /* BindGroup.swift in Sources */,

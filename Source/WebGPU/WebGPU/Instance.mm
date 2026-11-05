@@ -26,35 +26,30 @@
 #import "config.h"
 #import "Instance.h"
 
-#import "Adapter.h"
-#import "Device.h"
-#import "HardwareCapabilities.h"
-#import "PresentationContext.h"
-#import <wtf/BlockPtr.h>
 #import <wtf/MachSendRight.h>
 #import <wtf/StdLibExtras.h>
-#import <wtf/TZoneMallocInlines.h>
 
 #if ENABLE(WEBGPU_SWIFT)
-#import "CxxBridging.h"
-#import <WebGPU/CxxBridgingPublic.h>
-#import <WebGPU/WebGPU.h>
-#import "WebGPUSwift-Generated.h"
 
 namespace WebGPU::Metal {
 
-WTF_MAKE_TZONE_ALLOCATED_IMPL(Instance);
+bool hasScheduleWork(const WebGPU::InstanceDescriptor& descriptor)
+{
+    return !!descriptor.scheduleWork;
+}
 
-// Destroyed in reverse order: the embedder's scheduleWork first, then the web process ID and the retained
-// CommandBuffers and Devices, and the work items still waiting for processEvents() last.
-struct InstanceImplBox {
-    WTF_MAKE_STRUCT_TZONE_ALLOCATED(InstanceImplBox);
-    WebGPUSwift::InstanceEventQueue events;
-    WebGPUSwift::InstanceImpl impl;
-    WebGPUSwift::InstanceScheduler scheduler;
-    WebGPUSwift::InstanceSchedulerHandle schedulerHandle;
-};
-WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(InstanceImplBox);
+Function<void(Function<void()>&&)> takeScheduleWork(WebGPU::InstanceDescriptor& descriptor)
+{
+    return std::exchange(descriptor.scheduleWork, nullptr);
+}
+
+MachSendRight takeWebProcessResourceOwner(WebGPU::InstanceDescriptor& descriptor)
+{
+    auto owner = std::exchange(descriptor.webProcessResourceOwner, std::nullopt);
+    if (!owner)
+        return { };
+    return WTF::move(*owner);
+}
 
 static NSArray<id<MTLDevice>>* getDevices()
 {
@@ -66,71 +61,6 @@ static NSArray<id<MTLDevice>>* getDevices()
         [devices addObject:device];
 #endif
     return devices;
-}
-
-Ref<Instance> Instance::create(WebGPU::InstanceDescriptor&& descriptor)
-{
-    auto events = WebGPUSwift::makeInstanceEventQueue();
-    auto scheduler = descriptor.scheduleWork ? makeInstanceScheduler(descriptor.scheduleWork, events) : makeInstanceSchedulerWithoutEmbedder(events);
-    auto box = makeUnique<InstanceImplBox>(InstanceImplBox { .events = events, .impl = WebGPUSwift::makeInstanceImpl(descriptor.webProcessResourceOwner), .scheduler = scheduler, .schedulerHandle = makeInstanceSchedulerHandle(scheduler) });
-    return adoptRef(*new Instance(WTF::move(box)));
-}
-
-Instance::Instance(std::unique_ptr<InstanceImplBox>&& impl)
-    : m_impl(WTF::move(impl))
-{
-}
-
-Instance::~Instance() = default;
-
-bool Instance::isValid() const
-{
-    return true;
-}
-
-void Instance::waitForCommandBufferCompletions()
-{
-    m_impl->impl.waitForCommandBufferCompletions();
-}
-
-void Instance::scheduleWork(WorkItem&& workItem)
-{
-    m_impl->scheduler.scheduleWork(workItem);
-}
-
-WebGPUSwift::InstanceSchedulerHandle Instance::schedulerHandle() const
-{
-    return m_impl->schedulerHandle;
-}
-
-WebGPUSwift::InstanceImpl& Instance::swiftImpl() const
-{
-    return m_impl->impl;
-}
-
-std::optional<MachSendRight> Instance::webProcessID() const
-{
-    return m_impl->impl.webProcessID();
-}
-
-uint64_t Instance::createFuture()
-{
-    return m_impl->events.createFuture();
-}
-
-void Instance::completeFuture(uint64_t future)
-{
-    m_impl->events.completeFuture(future);
-}
-
-bool Instance::waitForAnyFuture(std::span<const uint64_t> futures, Seconds timeout, NOESCAPE const Function<void(size_t)>& didComplete)
-{
-    return m_impl->events.waitForAnyFuture(CxxBridging::FutureIDsView { futures }, timeout.value(), didComplete);
-}
-
-void Instance::processEvents()
-{
-    m_impl->events.processEvents();
 }
 
 static NSArray<id<MTLDevice>> *sortedDevices(NSArray<id<MTLDevice>> *devices, std::optional<WebGPU::PowerPreference> powerPreference)
@@ -171,7 +101,7 @@ static NSArray<id<MTLDevice>> *sortedDevices(NSArray<id<MTLDevice>> *devices, st
     }
 }
 
-RefPtr<Adapter> Instance::adapter(const WebGPU::RequestAdapterOptions& options)
+id<MTLDevice> requestAdapterDevice(const WebGPU::RequestAdapterOptions& options, HardwareCapabilities& capabilities)
 {
     auto devices = getDevices();
 
@@ -181,37 +111,27 @@ RefPtr<Adapter> Instance::adapter(const WebGPU::RequestAdapterOptions& options)
 
     // There is no fallback adapter.
     if (options.forceFallbackAdapter || !sortedDevices || !sortedDevices.count || !sortedDevices[0])
-        return nullptr;
+        return nil;
 
-    auto device = sortedDevices[0];
+    id<MTLDevice> device = sortedDevices[0];
 
     // The device does not support WebGPU.
     auto deviceCapabilities = hardwareCapabilities(device);
     if (!deviceCapabilities)
-        return nullptr;
+        return nil;
 
-    return Adapter::create(sortedDevices[0], *this, options.xrCompatible, WTF::move(*deviceCapabilities));
+    capabilities = WTF::move(*deviceCapabilities);
+    return device;
 }
 
-Instance* createInstance(WebGPU::InstanceDescriptor& descriptor)
-{
-    return &Instance::create(WTF::move(descriptor)).leakRef();
-}
-
-Adapter* requestAdapter(Instance& instance, const WebGPU::RequestAdapterOptions& options)
-{
-    return instance.adapter(options).leakRef();
-}
-
-mach_port_t webProcessIdentityPort(const Instance& instance)
+mach_port_t webProcessIdentityPort(const MachSendRight& webProcessID)
 {
 #if HAVE(IOSURFACE_SET_OWNERSHIP_IDENTITY) && HAVE(TASK_IDENTITY_TOKEN)
-    if (const auto& webProcessID = instance.webProcessID())
-        return webProcessID->sendRight();
+    return webProcessID.sendRight();
 #else
-    UNUSED_PARAM(instance);
-#endif
+    UNUSED_PARAM(webProcessID);
     return MACH_PORT_NULL;
+#endif
 }
 
 } // namespace WebGPU::Metal

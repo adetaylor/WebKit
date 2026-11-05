@@ -22,23 +22,17 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import Metal
-@_implementationOnly import WebGPU_Internal.Adapter
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.HardwareCapabilities
 import WebGPU_Private.WebGPUCpp
 
-// An adapter with its shell, as Swift holds one.
 @_spi(WebKitGPU)
-public final class AdapterReference {
-    let impl: AdapterImpl
-    let shell: WebGPU.Metal.Adapter
+public typealias AdapterReference = AdapterImpl
 
-    init(_ impl: AdapterImpl, _ shell: WebGPU.Metal.Adapter) {
-        self.impl = impl
-        self.shell = shell
-    }
-
+// The operations of an adapter for Swift callers.
+@_spi(WebKitGPU)
+extension AdapterImpl {
     // https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice, as the shell's requestDevice() does: nil if the
     // request fails, which invalidates the adapter if it has already made a device. As WTF::String::createNSString()
     // makes the label for the C++ caller, a null one is empty.
@@ -52,55 +46,48 @@ public final class AdapterReference {
             capabilities.features.append(consuming: feature)
         }
         var invalidatesAdapter = false
-        if impl.errorRequestingDevice(requiredLimits != nil, requiredLimits ?? WebGPU.Limits(), &capabilities, &invalidatesAdapter) != nil {
+        if errorRequestingDevice(requiredLimits != nil, requiredLimits ?? WebGPU.Limits(), &capabilities, &invalidatesAdapter) != nil {
             if invalidatesAdapter {
-                impl.makeInvalid()
+                makeInvalid()
             }
             return nil
         }
 
-        return makeDevice(impl.device(), WTF.String(label ?? ""), capabilities, shell, impl)
+        return makeDevice(device(), WTF.String(label ?? ""), capabilities, self)
     }
 
     // https://gpuweb.github.io/gpuweb/#gpuadapterinfo, as the shell's info() gives it: a Metal device is never a fallback
     // adapter.
     public var name: Swift.String {
-        impl.device()?.name ?? ""
+        device()?.name ?? ""
     }
 
     public var subgroupSizes: (min: UInt32, max: UInt32) {
         var minSize: UInt32 = 0
         var maxSize: UInt32 = 0
-        impl.subgroupSizes(&minSize, &maxSize)
+        fillSubgroupSizes(&minSize, &maxSize)
         return (minSize, maxSize)
     }
 
-    // Sorted by raw value.
-    public var features: [WebGPU.FeatureName] {
-        impl.features
-    }
-
     public var limits: WebGPU.Limits {
-        impl.limits()
+        adapterLimits
     }
 }
 
-// Owned by the C++ shell WebGPU::Metal::Adapter, which keeps the Instance back-reference.
-@_expose(Cxx)
-final class AdapterImpl: DeliverableImpl {
-    // nil: the adapter is invalid. API thread only (device loss reaches makeInvalid() through Instance::scheduleWork).
+// https://gpuweb.github.io/gpuweb/#gpuadapter
+@_spi(WebKitGPU)
+public final class AdapterImpl: GPUObjectReference {
+    // nil: the adapter is invalid. API thread only (device loss reaches makeInvalid() through the Instance's scheduler).
     private var metalDevice: (any MTLDevice)?
     private let xrCompatible: Bool
     private var deviceRequested = false
     // Sorted by raw value.
-    @_expose(!Cxx)
-    let features: [WebGPU.FeatureName]
+    public let features: [WebGPU.FeatureName]
     private let adapterLimits: WebGPU.Limits
     // Given to the device this adapter creates.
     private let baseCapabilities: GPUBaseCapabilities
-    // The adapter's Instance, and its scheduler, for the device this adapter creates.
+    // The adapter's Instance, for the device this adapter creates and for its resources' attribution.
     private(set) weak var instanceImpl: InstanceImpl?
-    private(set) var instanceSchedulerHandle: InstanceSchedulerHandle?
 
     fileprivate init(
         metalDevice: (any MTLDevice)?,
@@ -116,28 +103,23 @@ final class AdapterImpl: DeliverableImpl {
         self.baseCapabilities = baseCapabilities
     }
 
-    @_expose(Cxx)
-    func setInstance(_ instanceImpl: InstanceImpl, _ schedulerHandle: InstanceSchedulerHandle) {
+    func setInstance(_ instanceImpl: InstanceImpl) {
         self.instanceImpl = instanceImpl
-        instanceSchedulerHandle = schedulerHandle
     }
 
-    @_expose(Cxx)
-    func limits() -> WebGPU.Limits {
-        adapterLimits
+    // The Instance's web process identity, or an empty right when the Instance has none or is gone.
+    func webProcessIdentity() -> WTF.MachSendRight {
+        instanceImpl?.webProcessIdentity() ?? WTF.MachSendRight()
     }
 
-    @_expose(Cxx)
-    func isValid() -> Bool {
+    public func isValid() -> Bool {
         metalDevice != nil
     }
 
-    @_expose(Cxx)
     func device() -> (any MTLDevice)? {
         metalDevice
     }
 
-    @_expose(Cxx)
     func makeInvalid() {
         metalDevice = nil
     }
@@ -146,7 +128,6 @@ final class AdapterImpl: DeliverableImpl {
         xrCompatible
     }
 
-    @_expose(Cxx)
     func hasFeature(_ feature: WebGPU.FeatureName) -> Bool {
         features.contains(feature)
     }
@@ -192,7 +173,7 @@ final class AdapterImpl: DeliverableImpl {
         return nil
     }
 
-    func subgroupSizes(_ minSize: inout UInt32, _ maxSize: inout UInt32) {
+    private func fillSubgroupSizes(_ minSize: inout UInt32, _ maxSize: inout UInt32) {
         guard hasFeature(.Subgroups) else {
             // Spec defaults when the feature is unsupported: https://github.com/gpuweb/gpuweb/pull/4963
             minSize = 4
@@ -226,7 +207,6 @@ final class AdapterImpl: DeliverableImpl {
 }
 
 // An invalid adapter is one made with no device and empty capabilities.
-@_expose(Cxx)
 func makeAdapterImpl(
     _ metalDevice: (any MTLDevice)?,
     _ xrCompatible: Bool,

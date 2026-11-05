@@ -25,7 +25,6 @@
 
 #pragma once
 
-#include "Adapter.h"
 #include "BindGroup.h"
 #include "Buffer.h"
 #include "CommandEncoder.h"
@@ -60,11 +59,10 @@ inline uint32_t roundUpToMultipleOfNonPowerOfTwoUInt32UInt32(uint32_t a, uint32_
 
 namespace CxxBridging {
 
-// The types of the Instance's scheduler and web process ID (Instance.swift).
+// The types of the Instance's scheduler and futures (Instance.swift).
 using InstanceWorkItem = Function<void()>;
 using InstanceScheduleWork = Function<void(Function<void()>&&)>;
 using FutureCompletedHandler = Function<void(size_t)>;
-using OptionalMachSendRight = std::optional<MachSendRight>;
 
 // waitForAnyFuture()'s futures, borrowed for the duration of the call: a nonescapable view whose span() Swift reads as a
 // lifetime-checked Span.
@@ -75,17 +73,3 @@ struct FutureIDsView {
 } SWIFT_VIEW;
 
 }
-
-#if !defined(__swift__)
-namespace WebGPU::Metal {
-
-// Swift returns foreign-reference objects to C++ retained (SWIFT_RETURNS_RETAINED). Borrows such a result
-// from a Swift object that keeps its own reference, so the object outlives the caller's use.
-template<typename T> T& borrowSwiftRetained(T* retained)
-{
-    retained->deref();
-    return *retained;
-}
-
-} // namespace WebGPU::Metal
-#endif

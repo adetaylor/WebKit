@@ -73,7 +73,6 @@ private enum WaitStep {
 
 // The work items of an Instance without an embedder scheduleWork (the C API's), which wait for processEvents(), and
 // the futures of the C API. Sendable: Metal threads append work, and any thread may wait.
-@_expose(Cxx)
 final class InstanceEventQueue: Sendable {
     private let state = Mutex(EventQueueState())
 
@@ -88,7 +87,6 @@ final class InstanceEventQueue: Sendable {
         }
     }
 
-    @_expose(Cxx)
     func createFuture() -> UInt64 {
         state.withLock { state in
             let future = state.nextFuture
@@ -97,7 +95,6 @@ final class InstanceEventQueue: Sendable {
         }
     }
 
-    @_expose(Cxx)
     func completeFuture(_ future: UInt64) {
         state.withLock { state in
             state.completedFutures.insert(future)
@@ -107,7 +104,6 @@ final class InstanceEventQueue: Sendable {
 
     // Runs the work items in the order they were scheduled, including those they schedule. Each batch taken from the
     // queue is destroyed, in order, after all of its items have run.
-    @_expose(Cxx)
     func processEvents() {
         while true {
             let batch = state.withLock { state in
@@ -125,7 +121,6 @@ final class InstanceEventQueue: Sendable {
     }
 
     // An infinite timeout never passes. When the timeout passes, the futures and the queue are checked once more.
-    @_expose(Cxx)
     func waitForAnyFuture(
         _ futureIDs: borrowing CxxBridging.FutureIDsView,
         _ timeoutSeconds: Double,
@@ -179,7 +174,6 @@ private struct EmbedderScheduleWork: ~Copyable, @unchecked Sendable {
 // Where Instance::scheduleWork() sends a work item: to the embedder's scheduleWork, without taking any lock, or
 // else to the event queue. Owned by the Instance and by the asynchronous pipeline compiles in flight. Sendable: Metal
 // threads schedule work.
-@_expose(Cxx)
 final class InstanceScheduler: Sendable {
     private let embedder: EmbedderScheduleWork?
     private let events: InstanceEventQueue
@@ -190,7 +184,6 @@ final class InstanceScheduler: Sendable {
     }
 
     // Takes the work item, leaving `workItem` empty.
-    @_expose(Cxx)
     func scheduleWork(_ workItem: inout sending CxxBridging.InstanceWorkItem) {
         let item = workItem
         workItem = CxxBridging.InstanceWorkItem()
@@ -205,7 +198,6 @@ final class InstanceScheduler: Sendable {
 
 // What Queue and the device observer schedule their work items through from Metal and observer threads, so that no
 // such thread holds, or releases, a reference to the Instance. Once the Instance is gone, work items are dropped.
-@_expose(Cxx)
 final class InstanceSchedulerHandle: Sendable {
     private weak let scheduler: InstanceScheduler?
 
@@ -214,7 +206,6 @@ final class InstanceSchedulerHandle: Sendable {
     }
 
     // Takes the work item, leaving `workItem` empty.
-    @_expose(Cxx)
     func scheduleWork(_ workItem: inout sending CxxBridging.InstanceWorkItem) {
         guard let scheduler else {
             workItem = CxxBridging.InstanceWorkItem()
@@ -223,7 +214,6 @@ final class InstanceSchedulerHandle: Sendable {
         scheduler.scheduleWork(&workItem)
     }
 
-    @_expose(!Cxx)
     func liveScheduler() -> InstanceScheduler? {
         scheduler
     }
@@ -256,25 +246,21 @@ final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
     }
 }
 
-@_expose(Cxx)
 func makeInstanceEventQueue() -> InstanceEventQueue {
     InstanceEventQueue()
 }
 
 // Takes the embedder's scheduleWork, leaving `scheduleWork` empty.
-@_expose(Cxx)
 func makeInstanceScheduler(_ scheduleWork: inout CxxBridging.InstanceScheduleWork, _ events: InstanceEventQueue) -> InstanceScheduler {
     let function = scheduleWork
     scheduleWork = CxxBridging.InstanceScheduleWork()
     return InstanceScheduler(embedder: EmbedderScheduleWork(function: function), events: events)
 }
 
-@_expose(Cxx)
 func makeInstanceSchedulerWithoutEmbedder(_ events: InstanceEventQueue) -> InstanceScheduler {
     InstanceScheduler(embedder: nil, events: events)
 }
 
-@_expose(Cxx)
 func makeInstanceSchedulerHandle(_ scheduler: InstanceScheduler) -> InstanceSchedulerHandle {
     InstanceSchedulerHandle(scheduler)
 }
@@ -304,29 +290,66 @@ private struct RetainedCommandBuffer {
     let mtlCommandBuffer: WeakCommandBuffer
 }
 
-// Owned by the C++ shell WebGPU::Metal::Instance: the web process ID, and the containers that keep Devices and
-// CommandBuffers alive until their MTLCommandBuffers are deallocated. API thread only. No Metal or observer thread
-// holds the Instance (they schedule work through InstanceSchedulerHandle), so deinit runs on the thread that releases
-// it.
-@_expose(Cxx)
-final class InstanceImpl {
-    // Declared in release order: the web process ID, then the CommandBuffers, then the Devices.
-    private let backingWebProcessID: CxxBridging.OptionalMachSendRight
+@_spi(WebKitGPU)
+public typealias InstanceReference = InstanceImpl
+
+// https://gpuweb.github.io/gpuweb/#gpu
+// The scheduler, which any thread may use through its handle, and the web process ID and the containers that keep
+// Devices and CommandBuffers alive until their MTLCommandBuffers are deallocated, which only the API thread uses. No
+// Metal or observer thread holds the Instance (they schedule work through InstanceSchedulerHandle), so deinit runs on
+// the thread that releases it.
+@_spi(WebKitGPU)
+public final class InstanceImpl {
+    // Declared in release order: the embedder's scheduleWork, then the web process ID, the CommandBuffers and the
+    // Devices, and the work items still waiting for processEvents() last.
+    private let scheduler: InstanceScheduler
+    let schedulerHandle: InstanceSchedulerHandle
+    private let backingWebProcessID: WTF.MachSendRight
     private var retainedCommandBuffers: [RetainedCommandBuffer] = []
     // Keyed by the identity of the device, which the entry keeps alive, so the key cannot be reused while the entry
     // exists.
     private var retainedDevices: [ObjectIdentifier: RetainedDevice] = [:]
+    private let events: InstanceEventQueue
 
-    fileprivate init(webProcessID: CxxBridging.OptionalMachSendRight) {
-        self.backingWebProcessID = webProcessID
+    // Takes the descriptor's scheduleWork and resource owner.
+    public init(_ descriptor: inout WebGPU.InstanceDescriptor) {
+        let events = InstanceEventQueue()
+        if WebGPU.Metal.hasScheduleWork(descriptor) {
+            var scheduleWork = WebGPU.Metal.takeScheduleWork(&descriptor)
+            scheduler = makeInstanceScheduler(&scheduleWork, events)
+        } else {
+            scheduler = makeInstanceSchedulerWithoutEmbedder(events)
+        }
+        schedulerHandle = makeInstanceSchedulerHandle(scheduler)
+        backingWebProcessID = WebGPU.Metal.takeWebProcessResourceOwner(&descriptor)
+        self.events = events
     }
 
-    // The task that owns the resources the Instance allocates, copied out.
-    @_expose(Cxx)
-    func webProcessID() -> CxxBridging.OptionalMachSendRight {
+    // The task that owns the resources the Instance allocates, copied out; an empty right without one.
+    func webProcessIdentity() -> WTF.MachSendRight {
         backingWebProcessID
     }
 
+    // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: nil when no device supports WebGPU, and for a fallback
+    // adapter, which there isn't.
+    public func requestAdapter(_ options: WebGPU.RequestAdapterOptions) -> AdapterReference? {
+        var capabilities = WebGPU.Metal.HardwareCapabilities()
+        guard let device = WebGPU.Metal.requestAdapterDevice(options, &capabilities) else {
+            return nil
+        }
+        let adapter = makeAdapterImpl(device, options.xrCompatible, capabilities)
+        adapter.setInstance(self)
+        return adapter
+    }
+
+    // A canvas context for a compositor's render buffers, which the compositor gives it through
+    // renderBuffersWereRecreated() and addRenderBuffer(_:).
+    public func createPresentationContext() -> PresentationContextReference {
+        let webProcessID = webProcessIdentity()
+        return withExtendedLifetime(webProcessID) {
+            makePresentationContextIOSurfaceImpl(WebGPU.Metal.webProcessIdentityPort(webProcessID))
+        }
+    }
     func retainDevice(_ device: DeviceImpl, _ commandBuffer: (any MTLCommandBuffer)?) {
         retainedDevices[ObjectIdentifier(device), default: RetainedDevice(device: device)].commandBuffers
             .append(WeakCommandBuffer(commandBuffer: commandBuffer))
@@ -357,7 +380,6 @@ final class InstanceImpl {
         retainedDevices = survivingDevices
     }
 
-    @_expose(Cxx)
     func waitForCommandBufferCompletions() {
         let commandBuffers = retainedCommandBuffers
         let devices = retainedDevices
@@ -375,9 +397,4 @@ final class InstanceImpl {
             }
         }
     }
-}
-
-@_expose(Cxx)
-func makeInstanceImpl(_ webProcessID: CxxBridging.OptionalMachSendRight) -> InstanceImpl {
-    InstanceImpl(webProcessID: webProcessID)
 }

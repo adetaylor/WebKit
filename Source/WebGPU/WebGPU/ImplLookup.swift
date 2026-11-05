@@ -22,8 +22,6 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 public import CoreGraphics
-import Synchronization
-@_implementationOnly import WebGPU_Internal.Adapter
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
@@ -40,12 +38,7 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPUCpp
 
-// The Impls behind the ::WebGPU C++ API objects that C++ still makes for the GPU process's Swift receivers: the
-// adapter's devices, the textures of presentation contexts and XR, WebCore's external textures, and the passes, whose
-// descriptors C++ converts.
-
-// An Impl with the shell of the same object, for the encoders that keep the shells of the objects they're given, which
-// WebKit can't name.
+// The names Swift callers have for the Impls, and the operations of theirs that the Impls' own files don't define.
 
 @_spi(WebKitGPU)
 public typealias BindGroupReference = BindGroupImpl
@@ -178,34 +171,6 @@ extension RenderPipelineImpl {
     }
 }
 
-// An instance, as Swift holds one: its shell, which owns its scheduler and keeps devices and command buffers alive while
-// their work is in flight.
-@_spi(WebKitGPU)
-public final class InstanceReference {
-    let shell: WebGPU.Metal.Instance
-
-    // Takes the descriptor's scheduleWork and resource owner.
-    public init(_ descriptor: inout WebGPU.InstanceDescriptor) {
-        shell = WebGPU.Metal.createInstance(&descriptor)
-    }
-
-    // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: nil when no device supports WebGPU, and for a fallback
-    // adapter, which there isn't.
-    public func requestAdapter(_ options: WebGPU.RequestAdapterOptions) -> AdapterReference? {
-        guard let adapter = WebGPU.Metal.requestAdapter(shell, options) else {
-            return nil
-        }
-        let impl = ImplLookup.lookUp(AdapterImpl.self) { WebGPU.Metal.deliverAdapterImpl(adapter) }
-        return AdapterReference(impl, adapter)
-    }
-
-    // A canvas context for a compositor's render buffers, which the compositor gives it through
-    // renderBuffersWereRecreated() and addRenderBuffer(_:).
-    public func createPresentationContext() -> PresentationContextReference {
-        makePresentationContextIOSurfaceImpl(WebGPU.Metal.webProcessIdentityPort(shell))
-    }
-}
-
 @_spi(WebKitGPU)
 public typealias ComputePassEncoderReference = ComputePassEncoderImpl
 
@@ -240,76 +205,5 @@ public protocol GPUObjectReference: AnyObject {
 extension GPUObjectReference {
     public var isValid: Bool {
         isValid()
-    }
-}
-
-@_spi(WebKitGPU)
-extension AdapterReference: GPUObjectReference {
-    public func isValid() -> Bool { shell.isValid() }
-}
-
-// The base class of every Impl that impl(of:) gives, so that C++ delivers all of them through receiveImpl().
-@_expose(Cxx)
-@_spi(WebKitGPU)
-public class DeliverableImpl {
-    init() {
-    }
-}
-
-// `sending` lets ImplLookup box the Impl in a Sendable Delivery. C++ doesn't really hand the Impl over, since its shell
-// keeps a reference, but an Impl is only used on its Instance's API thread, and the Delivery is only seen on that thread,
-// by the lookUp() whose synchronous call into C++ made this call.
-@_expose(Cxx)
-func receiveImpl(_ impl: sending DeliverableImpl) {
-    ImplLookup.receive(impl)
-}
-
-// A C++ shell can't return its Impl to Swift, since a C++ signature that names a Swift class doesn't import into
-// Swift, but it can pass it to a Swift function. So lookUp() calls C++ to deliver the Impl to receive(), which puts
-// it in a slot that only that call of lookUp() can see.
-private enum ImplLookup {
-    // Sendable, so that a task-local value can hold it.
-    final class Delivery: Sendable {
-        private let impl: Mutex<DeliverableImpl?>
-
-        init(_ impl: sending DeliverableImpl) {
-            self.impl = Mutex(impl)
-        }
-
-        func take() -> DeliverableImpl? {
-            impl.withLock { impl -> sending DeliverableImpl? in
-                let taken = impl
-                impl = nil
-                return taken
-            }
-        }
-    }
-
-    final class Slot: Sendable {
-        let delivery = Mutex<Delivery?>(nil)
-    }
-
-    @TaskLocal private static var slot: Slot?
-
-    static func lookUp<Impl: DeliverableImpl>(_: Impl.Type, _ deliver: () -> Void) -> Impl {
-        let slot = Slot()
-        $slot.withValue(slot) {
-            deliver()
-        }
-        guard let impl = slot.delivery.withLock({ $0 })?.take() as? Impl else {
-            preconditionFailure("C++ delivered no Impl of the expected type")
-        }
-        return impl
-    }
-
-    static func receive(_ impl: sending DeliverableImpl) {
-        guard let slot else {
-            preconditionFailure("C++ delivered an Impl outside ImplLookup.lookUp()")
-        }
-        let delivery = Delivery(impl)
-        slot.delivery.withLock { stored in
-            precondition(stored == nil, "C++ delivered more than one Impl")
-            stored = delivery
-        }
     }
 }

@@ -24,7 +24,6 @@
 import Foundation
 import IOSurface
 import Metal
-@_implementationOnly import WebGPU_Internal.Adapter
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Instance
@@ -108,7 +107,6 @@ public final class DeviceImpl: GPUObjectReference {
     let defaultQueueImpl: QueueImpl
     // The adapter also provides the Instance. A valid device has one XR sub-image. The device observer is the token of
     // the macOS device-removal observer, which deinit unregisters.
-    private let backingAdapter: WebGPU.Metal.Adapter
     private let adapterImpl: AdapterImpl
     // Whether the Instance had a web process to attribute resources to when the device was made. The Instance's web
     // process never changes and a gone Instance never comes back, so without one nothing is ever attributed.
@@ -124,16 +122,14 @@ public final class DeviceImpl: GPUObjectReference {
     fileprivate init(
         metalDevice: (any MTLDevice)?,
         capabilities: borrowing WebGPU.Metal.HardwareCapabilities,
-        adapter: WebGPU.Metal.Adapter,
         adapterImpl: AdapterImpl,
         defaultQueue: (any MTLCommandQueue)?
     ) {
         self.metalDevice = metalDevice
-        backingAdapter = adapter
         self.adapterImpl = adapterImpl
         instanceImpl = adapterImpl.instanceImpl
-        instanceSchedulerHandle = adapterImpl.instanceImpl != nil ? adapterImpl.instanceSchedulerHandle : nil
-        attributesResources = DeviceImpl.instanceHasWebProcess(adapter)
+        instanceSchedulerHandle = adapterImpl.instanceImpl?.schedulerHandle
+        attributesResources = DeviceImpl.instanceHasWebProcess(adapterImpl)
         defaultQueueImpl = defaultQueue.map { makeQueueImpl($0) } ?? makeInvalidQueueImpl()
         externalTextureImporter = ExternalTextureImporter(metalDevice: metalDevice)
         let deviceCapabilities = DeviceCapabilities(capabilities)
@@ -155,7 +151,7 @@ public final class DeviceImpl: GPUObjectReference {
         shaderValidationEnabled = WebGPU.Metal.isShaderValidationEnabled(metalDevice)
         encoderLimits = deviceCapabilities.validDeviceEncoderLimits
         let placeholderBuffer = makeBuffer(metalDevice, 1, .shared, .defaultCache, .default)
-        DeviceImpl.setOwnerWithIdentity(placeholderBuffer, adapter)
+        DeviceImpl.setOwnerWithIdentity(placeholderBuffer, adapterImpl)
         backingPlaceholderBuffer = placeholderBuffer
         (backingPlaceholderTexture, backingPlaceholderDepthStencilTexture) = makePlaceholderTextures(metalDevice)
         defaultQueueImpl.deviceImpl = self
@@ -421,18 +417,18 @@ public final class DeviceImpl: GPUObjectReference {
     @_expose(Cxx)
     func setOwnerWithIdentity(_ resource: (any MTLResource)?) {
         if attributesResources {
-            DeviceImpl.setOwnerWithIdentity(resource, backingAdapter)
+            DeviceImpl.setOwnerWithIdentity(resource, adapterImpl)
         }
     }
 
-    private static func instanceHasWebProcess(_ adapter: WebGPU.Metal.Adapter) -> Bool {
+    private static func instanceHasWebProcess(_ adapter: AdapterImpl) -> Bool {
         let webProcessID = adapter.webProcessIdentity()
         return withExtendedLifetime(webProcessID) {
             webProcessID.sendRight() != MACH_PORT_NULL
         }
     }
 
-    private static func setOwnerWithIdentity(_ resource: (any MTLResource)?, _ adapter: WebGPU.Metal.Adapter) {
+    private static func setOwnerWithIdentity(_ resource: (any MTLResource)?, _ adapter: AdapterImpl) {
         let webProcessID = adapter.webProcessIdentity()
         withExtendedLifetime(webProcessID) {
             let port = webProcessID.sendRight()
@@ -711,9 +707,9 @@ public final class DeviceImpl: GPUObjectReference {
 
     // MARK: Default queue, adapter, XR sub-image, device observer (the helper pipelines are in DeviceHelpers.swift)
 
-    @_expose(Cxx)
-    func adapter() -> WebGPU.Metal.Adapter {
-        backingAdapter
+    // The web process identity of the device's Instance, or an empty right when it has none or is gone.
+    func webProcessIdentity() -> WTF.MachSendRight {
+        adapterImpl.webProcessIdentity()
     }
 
     // The macOS device-removal observer: any notification about the device loses it.
@@ -925,16 +921,14 @@ func makeDevice(
     _ metalDevice: (any MTLDevice)?,
     _ label: WTF.String,
     _ capabilities: borrowing WebGPU.Metal.HardwareCapabilities,
-    _ adapter: WebGPU.Metal.Adapter,
     _ adapterImpl: AdapterImpl
 ) -> DeviceImpl {
     guard let commandQueue = makeDefaultCommandQueue(metalDevice, label) else {
-        return makeInvalidDevice(adapter, adapterImpl)
+        return makeInvalidDevice(adapterImpl)
     }
     let device = DeviceImpl(
         metalDevice: metalDevice,
         capabilities: capabilities,
-        adapter: adapter,
         adapterImpl: adapterImpl,
         defaultQueue: commandQueue
     )
@@ -943,11 +937,10 @@ func makeDevice(
     return device
 }
 
-private func makeInvalidDevice(_ adapter: WebGPU.Metal.Adapter, _ adapterImpl: AdapterImpl) -> DeviceImpl {
+private func makeInvalidDevice(_ adapterImpl: AdapterImpl) -> DeviceImpl {
     let device = DeviceImpl(
         metalDevice: nil,
         capabilities: WebGPU.Metal.HardwareCapabilities(),
-        adapter: adapter,
         adapterImpl: adapterImpl,
         defaultQueue: nil
     )

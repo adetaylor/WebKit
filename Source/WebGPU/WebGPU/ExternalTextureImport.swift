@@ -398,7 +398,7 @@ func pixelBufferIOSurface(_ pixelBuffer: CVPixelBuffer) -> IOSurfaceRef? {
 // Attributes the surface's memory to the web process, when the Instance has its identity. The right is kept alive
 // for as long as its port name is used.
 func setIOSurfaceOwnershipIdentity(_ surface: IOSurfaceRef, _ deviceImpl: DeviceImpl) {
-    let webProcessID = deviceImpl.adapter().webProcessIdentity()
+    let webProcessID = deviceImpl.webProcessIdentity()
     withExtendedLifetime(webProcessID) {
         let port = webProcessID.sendRight()
         if port != MACH_PORT_NULL {

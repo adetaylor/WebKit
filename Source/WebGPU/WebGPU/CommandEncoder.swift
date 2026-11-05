@@ -24,7 +24,6 @@
 private import CxxStdlib
 import Metal
 import Synchronization
-@_implementationOnly import WebGPU_Internal.Adapter
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
