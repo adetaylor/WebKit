@@ -3,6 +3,7 @@
 # without seeing WebCore's own Swift module.
 add_library(WebCoreWebGL STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/GLContext.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/GLContextArrays.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLContextPlatform.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLExtensions.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLLog.swift

@@ -1191,7 +1191,7 @@ public final class GLContext {
 
     // ClearBuffer*v are missing ANGLE Robust* entry points. Make the call act similar way as other calls that validate
     // buffer sizes by validating it here.
-    private func validateClearBufferv(_ buffer: GLenum, _ valuesSize: Int) -> Bool {
+    func validateClearBufferv(_ buffer: GLenum, _ valuesSize: Int) -> Bool {
         switch buffer {
         case GLenum(GL_COLOR):
             if valuesSize == 4 {
@@ -1536,7 +1536,7 @@ public final class GLContext {
     }
 
     // The name of the variable that getTransformFeedbackVarying() last returned.
-    private var lastVariableName = std.string()
+    private(set) var lastVariableName = std.string()
 
     @_expose(Cxx)
     public func copyLastVariableName(_ name: WebCore.GLLentMutableBytes) -> Int {
