@@ -36,6 +36,11 @@ public final class GLContext {
     private static let currentContextID = Atomic<UInt64>(0)
 
     let contextID: UInt64
+    private let platform: any GLContextPlatform
+#if WTF_PLATFORM_COCOA
+    // The platform again, for its Cocoa entry points.
+    private let cocoaPlatform: CocoaGLPlatform?
+#endif
     let display: ANGLEDisplay
     let eglContext: ANGLEContext
     let isForWebGL2: Bool
@@ -83,14 +88,33 @@ public final class GLContext {
     private(set) var texture: GLuint = 0
     private(set) var fbo: GLuint = 0
 
+    // A context whose platform is C++, which made its EGL context.
     @_expose(Cxx)
     public init(contextID: UInt64, display: ANGLEDisplay, context: ANGLEContext, isWebGL2: Bool, supportsWebGLDraftExtensions: Bool) {
         self.contextID = contextID
+        self.platform = CxxGLContextPlatform(contextID: contextID, display: display, eglContext: context)
+#if WTF_PLATFORM_COCOA
+        self.cocoaPlatform = nil
+#endif
         self.display = display
         self.eglContext = context
         self.isForWebGL2 = isWebGL2
         self.supportsWebGLDraftExtensions = supportsWebGLDraftExtensions
     }
+
+#if WTF_PLATFORM_COCOA
+    @_expose(Cxx)
+    public init(contextID: UInt64, cocoaPlatform: borrowing CocoaGLPlatform, supportsWebGLDraftExtensions: Bool) {
+        let platform = copy cocoaPlatform
+        self.contextID = contextID
+        self.platform = platform
+        self.cocoaPlatform = platform
+        self.display = platform.display
+        self.eglContext = platform.eglContext
+        self.isForWebGL2 = platform.attributes.isWebGL2
+        self.supportsWebGLDraftExtensions = supportsWebGLDraftExtensions
+    }
+#endif
 
     // Context state.
 
@@ -147,7 +171,7 @@ public final class GLContext {
             return false
         }
 
-        if !GLContextCallbacks.platformInitializeExtensions(contextID) {
+        if !platform.initializeExtensions(self) {
             return false
         }
 
@@ -181,7 +205,7 @@ public final class GLContext {
         maxInternalFramebufferSize.clampToMaximumSize(GLSize(width: maxRenderbufferSize, height: maxRenderbufferSize))
         self.maxInternalFramebufferSize = maxInternalFramebufferSize
 
-        if !GLContextCallbacks.platformInitialize(contextID) {
+        if !platform.initialize(self) {
             return false
         }
 
@@ -205,6 +229,64 @@ public final class GLContext {
         extensions.computeKnownActiveAndRequestable(supportsWebGLDraftExtensions: supportsWebGLDraftExtensions)
         return true
     }
+
+    // Frees what the platform made for the context, with the context current. Called before the platform's C++
+    // client is destroyed.
+    @_expose(Cxx)
+    public func willDestroyPlatform() {
+        if makeContextCurrent() {
+            platform.willDestroy(self)
+        }
+    }
+
+    // Destroys the context's GL objects, then its platform's EGL objects.
+    @_expose(Cxx)
+    public func destroy() {
+        let didReset = willDestroy()
+        platform.destroy(self, didReset: didReset)
+    }
+
+#if WTF_PLATFORM_COCOA
+    // The entry points of the Cocoa platform that need the context. Each does nothing for a context of a C++ platform.
+
+    // Whether the current frame can be displayed. If it can, the caller inserts the frame's finished fence, then
+    // calls didPrepareForDisplay().
+    @_expose(Cxx)
+    public func willPrepareForDisplay() -> Bool {
+        cocoaPlatform?.willPrepareForDisplay(self) ?? false
+    }
+
+    @_expose(Cxx)
+    public func didPrepareForDisplay() {
+        cocoaPlatform?.didPrepareForDisplay(self)
+    }
+
+    // A copy of the drawing (0) or display (1) buffer, flipped to image orientation, or nil. The copy is retained.
+    @_expose(Cxx)
+    public func copySurfaceBuffer(_ bufferType: UInt8) -> IOSurfaceRef? {
+        cocoaPlatform?.copySurfaceBuffer(self, bufferType)
+    }
+
+    @_expose(Cxx)
+    public func readCompositedResults(_ pixels: WebCore.GLLentMutableBytes, _ width: Int32, _ height: Int32) -> Bool {
+        cocoaPlatform?.readCompositedResults(self, pixels, width, height) ?? false
+    }
+
+    @_expose(Cxx)
+    public func drawingBufferColorSpaceDidChange() {
+        cocoaPlatform?.drawingBufferColorSpaceDidChange(self)
+    }
+
+#if ENABLE_WEBXR
+    @_expose(Cxx)
+    public func enableRequiredWebXRExtensions() -> Bool {
+        guard let cocoaPlatform, makeContextCurrent() else {
+            return false
+        }
+        return cocoaPlatform.enableRequiredWebXRExtensions(self)
+    }
+#endif
+#endif
 
     // Deletes the context's own GL objects before the platform destroys its EGL context, and reports whether the
     // context had noticed a GPU reset.
@@ -256,7 +338,13 @@ public final class GLContext {
     }
 
     func invalidateKnownTextureContent(_ texture: GLuint) {
-        GLContextCallbacks.invalidateKnownTextureContent(contextID, texture)
+#if WTF_PLATFORM_COCOA
+        if let cocoaPlatform {
+            cocoaPlatform.invalidateKnownTextureContent(texture)
+            return
+        }
+#endif
+        platform.invalidateKnownTextureContent(texture)
     }
 
     // Did the most recent drawing operation leave the GPU in an acceptable state?
@@ -267,7 +355,7 @@ public final class GLContext {
         if GL_GetGraphicsResetStatusEXT() == GLenum(GL_NO_ERROR) {
             return
         }
-        GLContextCallbacks.didLoseDisplay(contextID)
+        platform.didLoseDisplay()
         forceContextLost()
         _ = Self.releaseCurrentContext(display)
     }
@@ -341,6 +429,7 @@ public final class GLContext {
     }
 
     // Enables extensions only if all are supported. Returns true if all are supported; changes nothing otherwise.
+    @_expose(!Cxx)
     func enableExtensions(_ names: [Swift.String]) -> Bool {
         guard let requests = extensions.requestsToEnable(names) else {
             return false
@@ -443,7 +532,7 @@ public final class GLContext {
             GL_BindFramebuffer(GLenum(GL_FRAMEBUFFER), fbo)
         }
 
-        if takeFailNextDrawingBufferAllocation() || !GLContextCallbacks.reshapeDrawingBuffer(contextID) {
+        if takeFailNextDrawingBufferAllocation() || !platform.reshapeDrawingBuffer(self) {
             GLLog.webGL("Fatal: Unable to allocate backing store of size \(width) x \(height)")
             forceContextLost()
             return
@@ -486,6 +575,10 @@ public final class GLContext {
         withScratchReadFramebuffer(attaching: texture) {
             readPixelsForPaintResults(pixels, width, height)
         }
+    }
+
+    var internalFramebufferSize: GLSize {
+        GLSize(width: state.currentWidth, height: state.currentHeight)
     }
 
     @_expose(Cxx)

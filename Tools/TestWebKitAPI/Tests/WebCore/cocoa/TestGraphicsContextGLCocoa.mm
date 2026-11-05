@@ -33,6 +33,7 @@
 #import <WebCore/AlphaPremultiplication.h>
 #import <WebCore/Color.h>
 #import <WebCore/GraphicsContextGLCocoa.h>
+#import <WebCore/NativeImage.h>
 #import <WebCore/ProcessIdentity.h>
 #import <atomic>
 #import <limits>
@@ -75,18 +76,9 @@ public:
 
     using GraphicsContextGLCocoa::maxSpareDrawingBuffers;
 
-    size_t spareDrawingBufferCount() const { return m_spareDrawingBuffers.size(); }
+    size_t spareDrawingBufferCount() const { return spareDrawingBufferCountForTesting(); }
     // As the kernel has it, rather than as WebCore::IOSurface last set it.
-    size_t volatileSpareDrawingBufferCount() const
-    {
-        size_t count = 0;
-        for (auto& spare : m_spareDrawingBuffers) {
-            uint32_t state = 0;
-            IOSurfaceSetPurgeable(spare.surface->surface(), kIOSurfacePurgeableKeepCurrent, &state);
-            count += state == kIOSurfacePurgeableVolatile || state == kIOSurfacePurgeableEmpty;
-        }
-        return count;
-    }
+    size_t volatileSpareDrawingBufferCount() const { return volatileSpareDrawingBufferCountForTesting(); }
 private:
     TestedGraphicsContextGLCocoa(GraphicsContextGLAttributes attributes)
         : GraphicsContextGLCocoa(WTF::move(attributes), { })

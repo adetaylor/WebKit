@@ -398,6 +398,8 @@ protected:
     RefPtr<PixelBuffer> readRenderingResults();
     virtual RefPtr<PixelBuffer> readCompositedResults() = 0;
     RefPtr<PixelBuffer> readPixelsForPaintResults();
+    // A pixel buffer of the drawing buffer's size and format, for the paint results to be read into.
+    RefPtr<PixelBuffer> createPixelBufferForPaintResults();
 
     void LEGACY_NODELETE prepareTexture();
     virtual bool reshapeDrawingBuffer() = 0;
@@ -420,16 +422,16 @@ protected:
     GCGLExternalSync addExternalSync(void* eglSync);
 #endif
 
-    // Destroys the island's own GL objects. The platform calls it with its EGL context still alive.
-    void destroyIsland();
+    struct Island;
+    // Null until initialize() made it, after platformInitializeContext().
+    Island* island() const { return m_island.get(); }
+    // Called by initialize(). Makes the island for the EGL context of platformInitializeContext().
+    virtual std::unique_ptr<Island> createIsland();
+    uint64_t contextID() const { return m_contextID; }
 
     bool m_isForWebGL2 { false };
 
     GCGLDisplay m_displayObj { nullptr };
-#if PLATFORM(COCOA)
-    // The EGL_PLATFORM_ANGLE_DISPLAY_KEY_ANGLE of m_displayObj.
-    intptr_t m_displayKey { 0 };
-#endif
     GCGLContext m_contextObj { nullptr };
     GCGLContext m_angleSharingContextObj { nullptr };
     GCGLConfig m_configObj { nullptr };
@@ -439,7 +441,9 @@ protected:
 
 private:
     friend struct GLContextCallbacks;
-    struct Island;
+
+    // The context of an island callback, which comes only from the calls of the context's thread, so is alive.
+    static GraphicsContextGLANGLE* contextForCallback(uint64_t contextID);
 
     const uint64_t m_contextID;
     std::unique_ptr<Island> m_island;

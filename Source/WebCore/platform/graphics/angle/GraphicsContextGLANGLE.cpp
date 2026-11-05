@@ -93,8 +93,7 @@ struct CallbackContext {
 // The context the thread's last callback found, while no context has left contexts() since.
 static thread_local CallbackContext lastCallbackContext;
 
-// The island calls back only from the calls of its context's thread, so a context found here is alive.
-static GraphicsContextGLANGLE* contextForCallback(uint64_t contextID)
+GraphicsContextGLANGLE* GraphicsContextGLANGLE::contextForCallback(uint64_t contextID)
 {
     auto& last = lastCallbackContext;
     if (last.context && last.contextID == contextID && last.generation == contextsGeneration.load(std::memory_order_acquire))
@@ -180,19 +179,19 @@ static ANGLEContext wrapContext(GCGLContext context)
 
 void GLContextCallbacks::forceContextLost(uint64_t contextID)
 {
-    if (auto* context = contextForCallback(contextID))
+    if (auto* context = GraphicsContextGLANGLE::contextForCallback(contextID))
         context->GraphicsContextGL::forceContextLost();
 }
 
 void GLContextCallbacks::didChangeMemoryCost(uint64_t contextID)
 {
-    if (auto* context = contextForCallback(contextID))
+    if (auto* context = GraphicsContextGLANGLE::contextForCallback(contextID))
         context->didChangeMemoryCost();
 }
 
 void GLContextCallbacks::didChangeInternalFramebufferSize(uint64_t contextID, int32_t width, int32_t height)
 {
-    if (auto* context = contextForCallback(contextID)) {
+    if (auto* context = GraphicsContextGLANGLE::contextForCallback(contextID)) {
         context->m_currentWidth = width;
         context->m_currentHeight = height;
     }
@@ -200,37 +199,37 @@ void GLContextCallbacks::didChangeInternalFramebufferSize(uint64_t contextID, in
 
 bool GLContextCallbacks::platformInitializeExtensions(uint64_t contextID)
 {
-    auto* context = contextForCallback(contextID);
+    auto* context = GraphicsContextGLANGLE::contextForCallback(contextID);
     return context && context->platformInitializeExtensions();
 }
 
 bool GLContextCallbacks::platformInitialize(uint64_t contextID)
 {
-    auto* context = contextForCallback(contextID);
+    auto* context = GraphicsContextGLANGLE::contextForCallback(contextID);
     return context && context->platformInitialize();
 }
 
 bool GLContextCallbacks::reshapeDrawingBuffer(uint64_t contextID)
 {
-    auto* context = contextForCallback(contextID);
+    auto* context = GraphicsContextGLANGLE::contextForCallback(contextID);
     return context && context->reshapeDrawingBuffer();
 }
 
 void GLContextCallbacks::invalidateKnownTextureContent(uint64_t contextID, GLuint texture)
 {
-    if (auto* context = contextForCallback(contextID))
+    if (auto* context = GraphicsContextGLANGLE::contextForCallback(contextID))
         context->invalidateKnownTextureContent(texture);
 }
 
 void GLContextCallbacks::didLoseDisplay(uint64_t contextID)
 {
-    if (auto* context = contextForCallback(contextID))
+    if (auto* context = GraphicsContextGLANGLE::contextForCallback(contextID))
         context->platformDidLoseDisplay();
 }
 
 void GLContextCallbacks::addDebugMessage(uint64_t contextID, GCGLenum type, GCGLenum messageID, GCGLenum severity, std::span<const char8_t> message)
 {
-    auto* context = contextForCallback(contextID);
+    auto* context = GraphicsContextGLANGLE::contextForCallback(contextID);
     if (context && context->m_client)
         context->m_client->addDebugMessage(type, messageID, severity, message);
 }
@@ -256,7 +255,7 @@ bool GraphicsContextGLANGLE::initialize()
     if (!platformInitializeContext())
         return false;
 
-    m_island = makeUnique<Island>(*this, WebCoreWebGL::GLContext::init(m_contextID, wrapDisplay(m_displayObj), wrapContext(m_contextObj), m_isForWebGL2, contextAttributes().supportWebGLDraftExtensions));
+    m_island = createIsland();
     if (!m_island->context.initialize())
         return false;
 
@@ -272,6 +271,11 @@ bool GraphicsContextGLANGLE::initialize()
     m_knownActiveExtensions = EnumSet<GCGLExtension>::fromRaw(m_island->context.knownActiveExtensions());
     m_requestableExtensions = EnumSet<GCGLExtension>::fromRaw(m_island->context.requestableExtensions());
     return true;
+}
+
+std::unique_ptr<GraphicsContextGLANGLE::Island> GraphicsContextGLANGLE::createIsland()
+{
+    return makeUnique<Island>(*this, WebCoreWebGL::GLContext::init(m_contextID, wrapDisplay(m_displayObj), wrapContext(m_contextObj), m_isForWebGL2, contextAttributes().supportWebGLDraftExtensions));
 }
 
 bool GraphicsContextGLANGLE::platformInitializeExtensions()
@@ -352,12 +356,17 @@ void GraphicsContextGLANGLE::forceContextLost()
     GraphicsContextGL::forceContextLost();
 }
 
-RefPtr<PixelBuffer> GraphicsContextGLANGLE::readPixelsForPaintResults()
+RefPtr<PixelBuffer> GraphicsContextGLANGLE::createPixelBufferForPaintResults()
 {
     auto alphaFormat = contextAttributes().premultipliedAlpha ? AlphaPremultiplication::Premultiplied : AlphaPremultiplication::Unpremultiplied;
     auto pixelFormat = contextAttributes().alpha ? PixelFormat::RGBA8 : PixelFormat::RGBX8;
     PixelBufferFormat format { alphaFormat, pixelFormat, ColorSpace::SRGB() };
-    auto pixelBuffer = ByteArrayPixelBuffer::tryCreate(format, getInternalFramebufferSize());
+    return ByteArrayPixelBuffer::tryCreate(format, getInternalFramebufferSize());
+}
+
+RefPtr<PixelBuffer> GraphicsContextGLANGLE::readPixelsForPaintResults()
+{
+    auto pixelBuffer = createPixelBufferForPaintResults();
     if (!pixelBuffer)
         return nullptr;
     if (!m_island->context.readPixelsForPaintResults(lend(pixelBuffer->bytes()).view(), pixelBuffer->size().width(), pixelBuffer->size().height()))
@@ -367,10 +376,7 @@ RefPtr<PixelBuffer> GraphicsContextGLANGLE::readPixelsForPaintResults()
 
 RefPtr<PixelBuffer> GraphicsContextGLANGLE::readRenderingResults()
 {
-    auto alphaFormat = contextAttributes().premultipliedAlpha ? AlphaPremultiplication::Premultiplied : AlphaPremultiplication::Unpremultiplied;
-    auto pixelFormat = contextAttributes().alpha ? PixelFormat::RGBA8 : PixelFormat::RGBX8;
-    PixelBufferFormat format { alphaFormat, pixelFormat, ColorSpace::SRGB() };
-    auto pixelBuffer = ByteArrayPixelBuffer::tryCreate(format, getInternalFramebufferSize());
+    auto pixelBuffer = createPixelBufferForPaintResults();
     if (!pixelBuffer)
         return nullptr;
     if (!m_island->context.readRenderingResults(lend(pixelBuffer->bytes()).view(), pixelBuffer->size().width(), pixelBuffer->size().height()))

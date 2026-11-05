@@ -101,9 +101,12 @@ public:
     ANGLEHandle() = default;
     bool isNull() const { return !m_bits; }
     bool operator==(const ANGLEHandle&) const = default;
+    // Which handle it is, as a number that can't be turned back into the handle.
+    uintptr_t identity() const { return m_bits; }
 
 private:
     friend struct ANGLE;
+    friend struct ANGLECocoa;
     friend class ANGLEHandles;
 
     explicit ANGLEHandle(void* handle)
@@ -120,11 +123,13 @@ struct ANGLEConfigTag;
 struct ANGLEContextTag;
 struct ANGLEImageTag;
 struct ANGLESyncTag;
+struct ANGLESurfaceTag;
 using ANGLEDisplay = ANGLEHandle<ANGLEDisplayTag>;
 using ANGLEConfig = ANGLEHandle<ANGLEConfigTag>;
 using ANGLEContext = ANGLEHandle<ANGLEContextTag>;
 using ANGLEImage = ANGLEHandle<ANGLEImageTag>;
 using ANGLEEGLSync = ANGLEHandle<ANGLESyncTag>;
+using ANGLESurface = ANGLEHandle<ANGLESurfaceTag>;
 
 #if !defined(__swift__)
 // For the C++ that makes and uses the handles it gives the island.

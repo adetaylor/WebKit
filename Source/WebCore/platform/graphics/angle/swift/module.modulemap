@@ -4,6 +4,13 @@ module WebCoreANGLE {
     header "WebCoreANGLE.h"
     header "GLLentMemory.h"
     export *
+
+    // ANGLE's EGL for the Cocoa platform.
+    explicit module Cocoa {
+        requires objc
+        header "cocoa/WebCoreANGLECocoa.h"
+        export *
+    }
 }
 
 // The underlying clang module of the WebGL island's Swift module, WebCoreWebGL.

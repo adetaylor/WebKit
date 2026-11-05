@@ -3435,6 +3435,7 @@ if (APPLE)
         list(APPEND WebCore_SWIFT_INTEROP_SOURCES
             platform/graphics/angle/GLLentMemory.cpp
             platform/graphics/angle/GraphicsContextGLANGLE.cpp
+            platform/graphics/cocoa/ANGLECocoaShims.mm
             platform/graphics/cocoa/GraphicsContextGLCocoa.mm)
     endif ()
     foreach (_f IN LISTS WebCore_SWIFT_INTEROP_SOURCES)

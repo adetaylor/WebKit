@@ -3,11 +3,15 @@
 # without seeing WebCore's own Swift module.
 add_library(WebCoreWebGL STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/GLContext.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/GLContextPlatform.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLExtensions.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLLog.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLScopes.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLState.swift
 )
+if (APPLE)
+    target_sources(WebCoreWebGL PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/cocoa/CocoaGLPlatform.swift)
+endif ()
 set_target_properties(WebCoreWebGL PROPERTIES Swift_MODULE_NAME WebCoreWebGL)
 
 # WTF's staged headers, where its module map is, and not WTF's usage requirements: WTF is an OBJECT library on Cocoa, so

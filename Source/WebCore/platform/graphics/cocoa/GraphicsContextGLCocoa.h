@@ -28,13 +28,10 @@
 #if ENABLE(WEBGL)
 
 #include <WebCore/GraphicsContextGLANGLE.h>
-#include <WebCore/IOSurfaceDrawingBuffer.h>
+#include <WebCore/IOSurface.h>
 #include <WebCore/ProcessIdentity.h>
-#include <array>
 #include <memory>
 #include <wtf/CheckedPtr.h>
-#include <wtf/HashMap.h>
-#include <wtf/Vector.h>
 
 #if ENABLE(WEBXR)
 #include <WebCore/PlatformXR.h>
@@ -50,19 +47,9 @@ namespace WebCore {
 
 class GraphicsLayerContentsDisplayDelegate;
 
-// IOSurface backing store for an image of a texture.
-// When preserveDrawingBuffer == false, this is the drawing buffer backing store.
-// When preserveDrawingBuffer == true, this is blitted to during display prepare.
-class IOSurfacePbuffer : public IOSurfaceDrawingBuffer {
-public:
-    IOSurfacePbuffer() = default;
-    IOSurfacePbuffer(IOSurfacePbuffer&&);
-    explicit IOSurfacePbuffer(std::unique_ptr<IOSurface>&&, void* pbuffer);
-    void* pbuffer() const { return m_pbuffer; }
-    IOSurfacePbuffer& operator=(IOSurfacePbuffer&&);
-private:
-    void* m_pbuffer { nullptr };
-};
+#if ENABLE(VIDEO)
+class GraphicsContextGLCVCocoa;
+#endif
 
 class WEBCORE_EXPORT GraphicsContextGLCocoa : public GraphicsContextGLANGLE, public CanMakeCheckedPtr<GraphicsContextGLCocoa> {
     WTF_MAKE_TZONE_ALLOCATED(GraphicsContextGLCocoa);
@@ -72,7 +59,7 @@ public:
     // Returns false after the display was terminated.
     static bool isDisplayInitializedForTesting(GCGLDisplay);
     ~GraphicsContextGLCocoa();
-    NODELETE IOSurface* displayBufferSurface();
+    IOSurface* LEGACY_NODELETE displayBufferSurface();
 
     enum class PbufferAttachmentUsage { Read, Write, ReadWrite };
     // Returns a handle which, if non-null, must be released via the
@@ -101,7 +88,7 @@ public:
     // GraphicsContextGLANGLE overrides.
     RefPtr<GraphicsLayerContentsDisplayDelegate> layerContentsDisplayDelegate() override;
 #if ENABLE(VIDEO)
-    bool copyTextureFromVideoFrame(VideoFrame&, PlatformGLObject texture, GCGLenum target, GCGLint level, GCGLenum internalFormat, GCGLenum type, bool unpackFlipY, bool unpackPremultiplyAlpha) final;
+    bool copyTextureFromVideoFrame(VideoFrame&, PlatformGLObject texture, int32_t level, uint32_t internalFormat, uint32_t format, uint32_t type, bool premultiplyAlpha, bool flipY) final;
 #endif
 #if ENABLE(MEDIA_STREAM) || ENABLE(WEB_CODECS)
     RefPtr<VideoFrame> surfaceBufferToVideoFrame(SurfaceBuffer) final;
@@ -123,54 +110,27 @@ protected:
 
     // GraphicsContextGLANGLE overrides.
     bool platformInitializeContext() final;
-    bool platformInitializeExtensions() final;
-    bool platformInitialize() final;
+    std::unique_ptr<Island> createIsland() final;
     void invalidateKnownTextureContent(GCGLuint) final;
-    void invalidateKnownTextureContentForTarget(GCGLenum) final;
     bool reshapeDrawingBuffer() final;
-    void platformDidLoseDisplay() final;
 
-    NODELETE IOSurfacePbuffer& drawingBuffer();
-    NODELETE IOSurfacePbuffer& displayBuffer();
-    NODELETE IOSurfacePbuffer& copyBuffer();
-    NODELETE IOSurfacePbuffer& surfaceBuffer(SurfaceBuffer);
-    bool bindNextDrawingBuffer();
-    IOSurfacePbuffer createDrawingBuffer();
-    IOSurfacePbuffer createPbuffer(std::unique_ptr<IOSurface>&&);
-    void freeDrawingBuffers();
-    void retireDrawingBuffer(IOSurfacePbuffer&);
-    std::unique_ptr<IOSurface> takeSpareDrawingBuffer();
-    void updateSpareDrawingBuffers();
-
+#if ENABLE(VIDEO)
+    GraphicsContextGLCV* cvContext();
+#endif
     // Inserts new fence that will invoke `signal` from a background thread when completed.
     // If not possible, calls the `signal`.
     void insertFinishedSignalOrInvoke(Function<void()> signal);
-#if ENABLE(WEBXR)
-    bool enableRequiredWebXRExtensionsImpl();
-#endif
     void* createMetalSharedEventEGLSync(id, uint64_t);
     RetainPtr<IOSurfaceRef> copySurfaceBuffer(SurfaceBuffer);
+
+    size_t spareDrawingBufferCountForTesting() const;
+    // As the kernel has it, rather than as the context last set it.
+    size_t volatileSpareDrawingBufferCountForTesting() const;
 
     ProcessIdentity m_resourceOwner;
     ColorSpace m_drawingBufferColorSpace;
 #if ENABLE(VIDEO)
-    // The source of the latest copyTextureFromVideoFrame() per texture, so that repeated uploads of
-    // an unchanged frame can be skipped.
-    struct VideoTextureContent {
-        RetainPtr<IOSurfaceRef> surface;
-        uint32_t surfaceID { 0 };
-        uint32_t surfaceSeed { 0 };
-        GCGLenum target { 0 };
-        GCGLint level { 0 };
-        GCGLenum internalFormat { 0 };
-        GCGLenum type { 0 };
-        GCGLint orientation { 0 };
-        bool unpackFlipY { false };
-        bool unpackPremultiplyAlpha { false };
-
-        NODELETE friend bool operator==(const VideoTextureContent&, const VideoTextureContent&) = default;
-    };
-    HashMap<GCGLuint, VideoTextureContent, IntHash<GCGLuint>, WTF::UnsignedWithZeroKeyHashTraits<GCGLuint>> m_knownVideoTextureContent;
+    const std::unique_ptr<GraphicsContextGLCVCocoa> m_cv;
 #endif
     const RetainPtr<MTLSharedEventListener> m_finishedMetalSharedEventListener;
     const RetainPtr<id> m_finishedMetalSharedEvent; // FIXME: Remove all C++ includees and use id<MTLSharedEvent>.
@@ -179,37 +139,21 @@ protected:
     RasterizationRateMapArray m_rasterizationRateMap;
 #endif
 
+    // As the Cocoa platform's, in the island.
     static constexpr size_t maxReusedDrawingBuffers { 3 };
-    size_t m_currentDrawingBufferIndex { 0 };
-    std::array<IOSurfacePbuffer, maxReusedDrawingBuffers> m_drawingBuffers;
-
-    struct SpareDrawingBuffer {
-        std::unique_ptr<IOSurface> surface;
-        bool isAvailable { false };
-    };
-    Vector<SpareDrawingBuffer> m_spareDrawingBuffers;
-    // On iOS CoreAnimation keeps a displayed buffer for about 4 frames; one more for headroom.
     static constexpr size_t maxSpareDrawingBuffers { 5 };
+
+private:
+    friend struct GLContextCallbacks;
+    friend class GraphicsContextGLCVCocoa;
+
+    // A drawing buffer surface of the context's colour space and alpha, owned by the context's process, retained.
+    RetainPtr<IOSurfaceRef> createDrawingBufferSurface(IntSize);
+
+    // The Cocoa platform of the island, which has the display, the EGL context and the drawing buffers.
+    struct CocoaPlatform;
+    std::unique_ptr<CocoaPlatform> m_cocoaPlatform;
 };
-
-inline IOSurfacePbuffer::IOSurfacePbuffer(std::unique_ptr<IOSurface>&& surface, void* pbuffer)
-    : IOSurfaceDrawingBuffer(WTF::move(surface))
-    , m_pbuffer(pbuffer)
-{
-}
-
-inline IOSurfacePbuffer::IOSurfacePbuffer(IOSurfacePbuffer&& other)
-    : IOSurfaceDrawingBuffer(WTF::move(other))
-    , m_pbuffer(std::exchange(other.m_pbuffer, nullptr))
-{
-}
-
-inline IOSurfacePbuffer& IOSurfacePbuffer::operator=(IOSurfacePbuffer&& other)
-{
-    IOSurfaceDrawingBuffer::operator=(WTF::move(other));
-    m_pbuffer = std::exchange(other.m_pbuffer, nullptr);
-    return *this;
-}
 
 }
 

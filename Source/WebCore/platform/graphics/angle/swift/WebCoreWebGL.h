@@ -30,6 +30,11 @@
 
 #include "WebCoreANGLE.h"
 
+#if defined(__APPLE__)
+#include <CoreFoundation/CoreFoundation.h>
+#include <IOSurface/IOSurfaceRef.h>
+#endif
+
 // Structs that Swift returns to C++ have a size that is a multiple of 8 for Swift interop, rdar://191583570.
 struct alignas(8) ANGLEReadPixelsStatus {
     GLsizei width { 0 };
@@ -81,6 +86,11 @@ struct GLContextCallbacks final {
     static bool reshapeDrawingBuffer(uint64_t contextID);
     static void invalidateKnownTextureContent(uint64_t contextID, GLuint texture);
     static void didLoseDisplay(uint64_t contextID);
+
+#if defined(__APPLE__)
+    // A drawing buffer's IOSurface, of the context's colour space and owner.
+    static IOSurfaceRef createDrawingBufferSurface(uint64_t contextID, int32_t width, int32_t height) CF_RETURNS_RETAINED;
+#endif
 
 #if !defined(__swift__)
     static void addDebugMessage(uint64_t contextID, GLenum type, GLenum messageID, GLenum severity, std::span<const char8_t> message);

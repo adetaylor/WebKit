@@ -26,6 +26,37 @@ internal import WebCoreANGLE
 
 // GL state changed for the length of a closure, and restored after it.
 
+// Restores the texture bound to bindingPoint, as bindingPointQuery reports it, after body.
+func withRestoredTextureBinding<Result>(_ bindingPointQuery: GLenum, _ bindingPoint: GLenum, _ body: () -> Result) -> Result {
+    assert(bindingPoint != 0)
+    let binding = GLuint(bitPattern: ANGLE.getInteger(bindingPointQuery))
+    defer {
+        GL_BindTexture(bindingPoint, binding)
+    }
+    return body()
+}
+
+// Enables or disables capability while body runs, if it isn't already.
+func withCapability<Result>(_ capability: GLenum, enabled: Bool, _ body: () -> Result) -> Result {
+    let wasEnabled = GL_IsEnabled(capability) != 0
+    if wasEnabled == enabled {
+        return body()
+    }
+    if enabled {
+        GL_Enable(capability)
+    } else {
+        GL_Disable(capability)
+    }
+    defer {
+        if wasEnabled {
+            GL_Enable(capability)
+        } else {
+            GL_Disable(capability)
+        }
+    }
+    return body()
+}
+
 // Binds bindingValue to a pixel pack or unpack buffer binding point while body runs, if condition holds.
 func withBufferBinding<Result>(_ bindingPoint: GLenum, _ bindingValue: GLuint, condition: Bool = true, _ body: () -> Result) -> Result {
     guard condition else {
