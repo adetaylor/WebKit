@@ -137,6 +137,15 @@ final class IPCSwiftWorkQueueTester {
         return (UInt32(truncatingIfNeeded: bytes.count), digest)
     }
 
+    func describeLogLevelSwift(
+        connection: IPC.Connection,
+        level: IPCTypes.WTFLogLevel,
+        count: UInt32
+    ) -> (levelValue: UInt32, count: UInt32) {
+        noteDispatch()
+        return (UInt32(level.rawValue), count)
+    }
+
     // The handlers of IPCTester::benchmarkWorkQueueDispatch(), which IPCWorkQueueTester's C++ ones match.
 
     func benchEmpty(connection: IPC.Connection) {

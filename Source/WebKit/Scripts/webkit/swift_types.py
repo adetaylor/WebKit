@@ -42,6 +42,8 @@ _PRIMITIVE_TYPES = {
     'uint16_t': 'UInt16',
     'uint32_t': 'UInt32',
     'uint64_t': 'UInt64',
+    # unsigned is 32 bits on every platform WebKit supports, and is encoded as uint32_t.
+    'unsigned': 'UInt32',
     'int8_t': 'Int8',
     'int16_t': 'Int16',
     'int32_t': 'Int32',
@@ -66,6 +68,9 @@ _TRANSPARENT_TEMPLATES = ('Ref', 'OptionSet')
 _TWO_ARGUMENT_TEMPLATES = {
     'std::pair': ('(%s, %s)', 'IPCCoding.Pair<%s, %s>'),
 }
+
+# Types marked [Swift] in a .serialization.in file whose C++ name has no namespace.
+_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['WTFLogLevel'])
 
 # C++-decoded values: types whose Swift form is the C++ object itself. Their C++ ArgumentCoder decodes and encodes
 # them, through the helpers each coder in IPCCoding.CxxDecoded calls, so Swift accepts exactly what C++ does and
@@ -147,6 +152,12 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
             element = _PRIMITIVE_TYPES[arguments[0].removeprefix('const ').strip()]
             return ('[%s]' % element, 'IPCCoding.Vector<%s>' % element)
         raise UnmappableSwiftType("'%s' has no Swift form: %s<> is not supported in messages that take Swift types." % (cpp_type, template))
+
+    if cpp_type.removeprefix('::') in _GLOBAL_NAMESPACE_SWIFT_TYPES:
+        swift_type = '%s.%s' % (SWIFT_TYPES_NAMESPACE, cpp_type.removeprefix('::'))
+        if not cxx_name_coders:
+            return (swift_type, swift_type)
+        return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     # A leading :: qualifies a name from the global namespace, as .messages.in and .serialization.in files write the
     # types of namespaces that WebKit also has, like ::WebGPU.
