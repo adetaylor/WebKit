@@ -1,4 +1,4 @@
-// ANGLE's C API, for the WebGL island's Swift, and the memory C++ lends it.
+// ANGLE's C API, with the shims that let the WebGL island's Swift call it without unsafe, and the memory C++ lends it.
 module WebCoreANGLE {
     requires cplusplus
     header "WebCoreANGLE.h"
