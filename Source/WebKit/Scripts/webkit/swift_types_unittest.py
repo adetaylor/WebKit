@@ -49,6 +49,8 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('OptionSet<WebKit::Flag>', ('IPCTypes.Flag', 'IPCTypes.CxxName.WebKit_Flag')),
             ('std::optional<Vector<String>>', ('[String?]?', 'IPCCoding.StdOptional<IPCCoding.Vector<IPCCoding.WTFString>>')),
             ('std::pair<uint8_t, String>', ('(UInt8, String?)', 'IPCCoding.Pair<UInt8, IPCCoding.WTFString>')),
+            ('std::span<const uint8_t>', ('[UInt8]', 'IPCCoding.Vector<UInt8>')),
+            ('std::span<const float>', ('[Float]', 'IPCCoding.Vector<Float>')),
             ('Vector<std::pair<Ref<WebCore::SharedBuffer>, WebCore::CDMKeyStatus>>', ('[(WebCore.SharedBuffer, IPCTypes.CDMKeyStatus)]', 'IPCCoding.Vector<IPCCoding.Pair<IPCCoding.CxxDecoded.SharedBuffer, IPCTypes.CxxName.WebCore_CDMKeyStatus>>')),
             ('Ref<WebCore::SharedBuffer>', ('WebCore.SharedBuffer', 'IPCCoding.CxxDecoded.SharedBuffer')),
             ('RefPtr<WebCore::SharedBuffer>', ('WebCore.SharedBuffer?', 'IPCCoding.StdOptional<IPCCoding.CxxDecoded.SharedBuffer>')),
@@ -61,7 +63,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
         self.assertEqual(swift_types.swift_type_and_coder('WebCore::FrameIdentifier', cxx_name_coders=False), ('IPCTypes.FrameIdentifier', 'IPCTypes.FrameIdentifier'))
 
     def test_unmappable_types(self):
-        for cpp_type in ['int', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, int>', 'std::pair<uint8_t>']:
+        for cpp_type in ['int', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, int>', 'std::pair<uint8_t>', 'std::span<uint8_t>', 'std::span<const String>', 'std::span<const uint8_t, 4>']:
             with self.assertRaises(swift_types.UnmappableSwiftType):
                 swift_types.swift_type_and_coder(cpp_type)
 

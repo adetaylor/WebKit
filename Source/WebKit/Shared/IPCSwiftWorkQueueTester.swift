@@ -127,6 +127,12 @@ final class IPCSwiftWorkQueueTester {
         reply.send(value / 2)
     }
 
+    func digestBytesSwift(connection: IPC.Connection, bytes: [UInt8]) -> (count: UInt32, digest: UInt32) {
+        noteDispatch()
+        let digest = bytes.reduce(UInt32(0)) { $0 &* 31 &+ UInt32($1) }
+        return (UInt32(truncatingIfNeeded: bytes.count), digest)
+    }
+
     // The handlers of IPCTester::benchmarkWorkQueueDispatch(), which IPCWorkQueueTester's C++ ones match.
 
     func benchEmpty(connection: IPC.Connection) {

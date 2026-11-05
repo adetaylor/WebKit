@@ -66,6 +66,7 @@ protocol IPCBlockPrimitive: IPCCoder, AdditiveArithmetic, Sendable where Value =
 
 extension IPCBlockPrimitive {
     static func decodeArray(count: Int, from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> [Self] {
+        // FIXME: Delete the element-by-element path, which costs a call per element, once the deployment target is 26.
         guard #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) else {
             var result: [Self] = []
             result.reserveCapacity(min(count, decoder.remainingByteCount(), 1024 * 1024 / MemoryLayout<Self>.stride))

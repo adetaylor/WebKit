@@ -142,6 +142,10 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
             return (value_format % inner_type, coder_format % inner_coder)
         if template in _TRANSPARENT_TEMPLATES and len(arguments) == 1:
             return swift_type_and_coder(arguments[0], cxx_name_coders)
+        # A span of const primitives is encoded as a Vector of them is, so Swift takes a copy of its elements.
+        if template == 'std::span' and len(arguments) == 1 and arguments[0].startswith('const ') and arguments[0].removeprefix('const ').strip() in _PRIMITIVE_TYPES:
+            element = _PRIMITIVE_TYPES[arguments[0].removeprefix('const ').strip()]
+            return ('[%s]' % element, 'IPCCoding.Vector<%s>' % element)
         raise UnmappableSwiftType("'%s' has no Swift form: %s<> is not supported in messages that take Swift types." % (cpp_type, template))
 
     # A leading :: qualifies a name from the global namespace, as .messages.in and .serialization.in files write the
@@ -155,7 +159,7 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, String, AtomString, Vector, std::optional, std::pair, Markable, Ref, RefPtr, OptionSet, "
+                              "double, String, AtomString, Vector, std::span of const primitives, std::optional, std::pair, Markable, Ref, RefPtr, OptionSet, "
                               "types marked [Swift] in a .serialization.in file, and the C++-decoded types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES))))
 
 
