@@ -99,75 +99,75 @@ public:
 
     // Context State
 
-    const SourceBrush& fillBrush() const LIFETIME_BOUND { return m_state.fillBrush(); }
+    const SourceBrush& fillBrush() const LIFETIME_BOUND { ensureStateIsCurrent(); return m_state.fillBrush(); }
     const Color& fillColor() const { return fillBrush().color(); }
     Gradient* fillGradient() const { return fillBrush().gradient(); }
     const AffineTransform& fillGradientSpaceTransform() const { return fillBrush().gradientSpaceTransform(); }
     Pattern* fillPattern() const { return fillBrush().pattern(); }
-    void setFillBrush(const SourceBrush& brush) { m_state.setFillBrush(brush); didUpdateState(m_state); }
-    void setFillColor(const Color& color) { m_state.setFillColor(color); didUpdateState(m_state); }
-    void setFillGradient(Ref<Gradient>&& gradient, const AffineTransform& spaceTransform = { }) { m_state.setFillGradient(WTF::move(gradient), spaceTransform); didUpdateState(m_state); }
-    void setFillPattern(Ref<Pattern>&& pattern) { m_state.setFillPattern(WTF::move(pattern)); didUpdateState(m_state); }
+    void setFillBrush(const SourceBrush& brush) { m_state.setFillBrush(brush); didChangeProperty(GraphicsContextState::Change::FillBrush); }
+    void setFillColor(const Color& color) { m_state.setFillColor(color); didChangeProperty(GraphicsContextState::Change::FillBrush); }
+    void setFillGradient(Ref<Gradient>&& gradient, const AffineTransform& spaceTransform = { }) { ensureStateIsCurrent(); m_state.setFillGradient(WTF::move(gradient), spaceTransform); didChangeProperty(GraphicsContextState::Change::FillBrush); }
+    void setFillPattern(Ref<Pattern>&& pattern) { ensureStateIsCurrent(); m_state.setFillPattern(WTF::move(pattern)); didChangeProperty(GraphicsContextState::Change::FillBrush); }
 
-    WindRule fillRule() const { return m_state.fillRule(); }
-    void setFillRule(WindRule fillRule) { m_state.setFillRule(fillRule); didUpdateState(m_state); }
+    WindRule fillRule() const { ensureStateIsCurrent(); return m_state.fillRule(); }
+    void setFillRule(WindRule fillRule) { m_state.setFillRule(fillRule); didChangeProperty(GraphicsContextState::Change::FillRule); }
 
-    const SourceBrush& strokeBrush() const LIFETIME_BOUND { return m_state.strokeBrush(); }
+    const SourceBrush& strokeBrush() const LIFETIME_BOUND { ensureStateIsCurrent(); return m_state.strokeBrush(); }
     const Color& strokeColor() const { return strokeBrush().color(); }
     Gradient* strokeGradient() const { return strokeBrush().gradient(); }
     const AffineTransform& strokeGradientSpaceTransform() const { return strokeBrush().gradientSpaceTransform(); }
     Pattern* strokePattern() const { return strokeBrush().pattern(); }
-    void setStrokeBrush(const SourceBrush& brush) { m_state.setStrokeBrush(brush); didUpdateState(m_state); }
-    void setStrokeColor(const Color& color) { m_state.setStrokeColor(color); didUpdateState(m_state); }
-    void setStrokeGradient(Ref<Gradient>&& gradient, const AffineTransform& spaceTransform = { }) { m_state.setStrokeGradient(WTF::move(gradient), spaceTransform); didUpdateState(m_state); }
-    void setStrokePattern(Ref<Pattern>&& pattern) { m_state.setStrokePattern(WTF::move(pattern)); didUpdateState(m_state); }
+    void setStrokeBrush(const SourceBrush& brush) { m_state.setStrokeBrush(brush); didChangeProperty(GraphicsContextState::Change::StrokeBrush); }
+    void setStrokeColor(const Color& color) { m_state.setStrokeColor(color); didChangeProperty(GraphicsContextState::Change::StrokeBrush); }
+    void setStrokeGradient(Ref<Gradient>&& gradient, const AffineTransform& spaceTransform = { }) { ensureStateIsCurrent(); m_state.setStrokeGradient(WTF::move(gradient), spaceTransform); didChangeProperty(GraphicsContextState::Change::StrokeBrush); }
+    void setStrokePattern(Ref<Pattern>&& pattern) { ensureStateIsCurrent(); m_state.setStrokePattern(WTF::move(pattern)); didChangeProperty(GraphicsContextState::Change::StrokeBrush); }
 
-    float strokeThickness() const { return m_state.strokeThickness(); }
-    void setStrokeThickness(float thickness) { m_state.setStrokeThickness(thickness); didUpdateState(m_state); }
+    float strokeThickness() const { ensureStateIsCurrent(); return m_state.strokeThickness(); }
+    void setStrokeThickness(float thickness) { ensureStateIsCurrent(); m_state.setStrokeThickness(thickness); didChangeProperty(GraphicsContextState::Change::StrokeThickness); }
 
-    StrokeStyle strokeStyle() const { return m_state.strokeStyle(); }
-    void setStrokeStyle(StrokeStyle style) { m_state.setStrokeStyle(style); didUpdateState(m_state); }
+    StrokeStyle strokeStyle() const { ensureStateIsCurrent(); return m_state.strokeStyle(); }
+    void setStrokeStyle(StrokeStyle style) { m_state.setStrokeStyle(style); didChangeProperty(GraphicsContextState::Change::StrokeStyle); }
 
-    std::optional<GraphicsDropShadow> dropShadow() const { return m_state.dropShadow(); }
-    void setDropShadow(const GraphicsDropShadow& dropShadow) { m_state.setDropShadow(dropShadow); didUpdateState(m_state); }
-    void clearDropShadow() { m_state.setDropShadow(std::nullopt); didUpdateState(m_state); }
-    bool hasBlurredDropShadow() const { return m_state.dropShadow() && m_state.dropShadow()->isBlurred(); }
-    bool hasDropShadow() const { return m_state.dropShadow() && m_state.dropShadow()->hasOutsets(); }
+    std::optional<GraphicsDropShadow> dropShadow() const { ensureStateIsCurrent(); return m_state.dropShadow(); }
+    void setDropShadow(const GraphicsDropShadow& dropShadow) { ensureStateIsCurrent(); m_state.setDropShadow(dropShadow); didChangeProperty(GraphicsContextState::Change::DropShadow); }
+    void clearDropShadow() { ensureStateIsCurrent(); m_state.setDropShadow(std::nullopt); didChangeProperty(GraphicsContextState::Change::DropShadow); }
+    bool hasBlurredDropShadow() const { ensureStateIsCurrent(); return m_state.dropShadow() && m_state.dropShadow()->isBlurred(); }
+    bool hasDropShadow() const { ensureStateIsCurrent(); return m_state.dropShadow() && m_state.dropShadow()->hasOutsets(); }
 
-    std::optional<GraphicsStyle> style() const { return m_state.style(); }
-    void setStyle(const std::optional<GraphicsStyle>& style) { m_state.setStyle(style); didUpdateState(m_state); }
+    std::optional<GraphicsStyle> style() const { ensureStateIsCurrent(); return m_state.style(); }
+    void setStyle(const std::optional<GraphicsStyle>& style) { ensureStateIsCurrent(); m_state.setStyle(style); didChangeProperty(GraphicsContextState::Change::Style); }
 
-    CompositeMode compositeMode() const { return m_state.compositeMode(); }
+    CompositeMode compositeMode() const { ensureStateIsCurrent(); return m_state.compositeMode(); }
     CompositeOperator compositeOperation() const { return compositeMode().operation; }
     BlendMode blendMode() const { return compositeMode().blendMode; }
-    void setCompositeMode(CompositeMode compositeMode) { m_state.setCompositeMode(compositeMode); didUpdateState(m_state); }
+    void setCompositeMode(CompositeMode compositeMode) { m_state.setCompositeMode(compositeMode); didChangeProperty(GraphicsContextState::Change::CompositeMode); }
     void setCompositeOperation(CompositeOperator operation, BlendMode blendMode = BlendMode::Normal) { setCompositeMode({ operation, blendMode }); }
 
-    float alpha() const { return m_state.alpha(); }
-    void setAlpha(float alpha) { m_state.setAlpha(alpha); didUpdateState(m_state); }
+    float alpha() const { ensureStateIsCurrent(); return m_state.alpha(); }
+    void setAlpha(float alpha) { ensureStateIsCurrent(); m_state.setAlpha(alpha); didChangeProperty(GraphicsContextState::Change::Alpha); }
 
-    TextDrawingModeFlags textDrawingMode() const { return m_state.textDrawingMode(); }
-    void setTextDrawingMode(TextDrawingModeFlags textDrawingMode) { m_state.setTextDrawingMode(textDrawingMode); didUpdateState(m_state); }
+    TextDrawingModeFlags textDrawingMode() const { ensureStateIsCurrent(); return m_state.textDrawingMode(); }
+    void setTextDrawingMode(TextDrawingModeFlags textDrawingMode) { m_state.setTextDrawingMode(textDrawingMode); didChangeProperty(GraphicsContextState::Change::TextDrawingMode); }
 
-    InterpolationQuality imageInterpolationQuality() const { return m_state.imageInterpolationQuality(); }
-    void setImageInterpolationQuality(InterpolationQuality imageInterpolationQuality) { m_state.setImageInterpolationQuality(imageInterpolationQuality); didUpdateState(m_state); }
+    InterpolationQuality imageInterpolationQuality() const { ensureStateIsCurrent(); return m_state.imageInterpolationQuality(); }
+    void setImageInterpolationQuality(InterpolationQuality imageInterpolationQuality) { m_state.setImageInterpolationQuality(imageInterpolationQuality); didChangeProperty(GraphicsContextState::Change::ImageInterpolationQuality); }
 
-    bool shouldAntialias() const { return m_state.shouldAntialias(); }
-    void setShouldAntialias(bool shouldAntialias) { m_state.setShouldAntialias(shouldAntialias); didUpdateState(m_state); }
+    bool shouldAntialias() const { ensureStateIsCurrent(); return m_state.shouldAntialias(); }
+    void setShouldAntialias(bool shouldAntialias) { m_state.setShouldAntialias(shouldAntialias); didChangeProperty(GraphicsContextState::Change::ShouldAntialias); }
 
-    bool shouldSmoothFonts() const { return m_state.shouldSmoothFonts(); }
-    void setShouldSmoothFonts(bool shouldSmoothFonts) { m_state.setShouldSmoothFonts(shouldSmoothFonts); didUpdateState(m_state); }
+    bool shouldSmoothFonts() const { ensureStateIsCurrent(); return m_state.shouldSmoothFonts(); }
+    void setShouldSmoothFonts(bool shouldSmoothFonts) { m_state.setShouldSmoothFonts(shouldSmoothFonts); didChangeProperty(GraphicsContextState::Change::ShouldSmoothFonts); }
 
     // Normally CG enables subpixel-quantization because it improves the performance of aligning glyphs.
     // In some cases we have to disable to to ensure a high-quality output of the glyphs.
-    bool shouldSubpixelQuantizeFonts() const { return m_state.shouldSubpixelQuantizeFonts(); }
-    void setShouldSubpixelQuantizeFonts(bool shouldSubpixelQuantizeFonts) { m_state.setShouldSubpixelQuantizeFonts(shouldSubpixelQuantizeFonts); didUpdateState(m_state); }
+    bool shouldSubpixelQuantizeFonts() const { ensureStateIsCurrent(); return m_state.shouldSubpixelQuantizeFonts(); }
+    void setShouldSubpixelQuantizeFonts(bool shouldSubpixelQuantizeFonts) { m_state.setShouldSubpixelQuantizeFonts(shouldSubpixelQuantizeFonts); didChangeProperty(GraphicsContextState::Change::ShouldSubpixelQuantizeFonts); }
 
-    bool shadowsIgnoreTransforms() const { return m_state.shadowsIgnoreTransforms(); }
-    void setShadowsIgnoreTransforms(bool shadowsIgnoreTransforms) { m_state.setShadowsIgnoreTransforms(shadowsIgnoreTransforms); didUpdateState(m_state); }
+    bool shadowsIgnoreTransforms() const { ensureStateIsCurrent(); return m_state.shadowsIgnoreTransforms(); }
+    void setShadowsIgnoreTransforms(bool shadowsIgnoreTransforms) { ensureStateIsCurrent(); m_state.setShadowsIgnoreTransforms(shadowsIgnoreTransforms); didUpdateState(m_state); }
     NODELETE FloatSize platformShadowOffset(const FloatSize&) const;
 
-    const GraphicsContextState& state() const LIFETIME_BOUND { return m_state; }
+    const GraphicsContextState& state() const LIFETIME_BOUND { ensureStateIsCurrent(); return m_state; }
     void mergeLastChanges(const GraphicsContextState&);
     void mergeAllChanges(const GraphicsContextState&);
 
@@ -175,15 +175,15 @@ public:
     // to the platform context's state.
     virtual void didUpdateState(GraphicsContextState&) = 0;
 
-    void didInvalidatePlatformState(GraphicsContextState::ChangeFlags properties) { m_state.markChanged(properties); }
+    void didInvalidatePlatformState(GraphicsContextState::ChangeFlags properties) { ensureStateIsCurrent(); m_state.markChanged(properties); }
 
-    void updatePlatformContextState() { didUpdateState(m_state); }
+    void updatePlatformContextState() { ensureStateIsCurrent(); didUpdateState(m_state); }
 
     WEBCORE_EXPORT virtual void save(GraphicsContextState::Purpose = GraphicsContextState::Purpose::SaveRestore);
     WEBCORE_EXPORT virtual void restore(GraphicsContextState::Purpose = GraphicsContextState::Purpose::SaveRestore);
 
     void unwindStateStack(unsigned count);
-    WEBCORE_EXPORT void unwindStateStack();
+    WEBCORE_EXPORT virtual void unwindStateStack();
 
     unsigned stackSize() const { return m_stack.size(); }
 
@@ -421,7 +421,26 @@ protected:
     };
     WEBCORE_EXPORT RectsAndStrokeColor computeRectsAndStrokeColorForLinesForText(const FloatPoint& origin, float thickness, std::span<const FloatSegment>, bool isPrinting, bool doubleLines, StrokeStyle);
 
+    // A subclass whose own copy of the state can change without m_state (GraphicsContextCG, while a Swift receiver draws with
+    // its renderer) marks m_state stale; then the first read or change of it brings it up to date.
+    void ensureStateIsCurrent() const
+    {
+        if (m_stateIsStale) [[unlikely]]
+            const_cast<GraphicsContext&>(*this).updateStaleState();
+    }
+    virtual void updateStaleState() { m_stateIsStale = false; }
+    // After a setter has changed m_state: a stale m_state may have held the new value already, so the change is applied
+    // regardless. Setters whose change can't be applied again unchanged (a gradient or a pattern over the brush's color; a
+    // shadow or a style, which share CG's style; a float, as -0 equals 0) bring m_state up to date first instead.
+    void didChangeProperty(GraphicsContextState::Change change)
+    {
+        if (m_stateIsStale) [[unlikely]]
+            m_state.markChanged(change);
+        didUpdateState(m_state);
+    }
+
     GraphicsContextState m_state;
+    bool m_stateIsStale { false };
 private:
     Vector<GraphicsContextState, 1> m_stack;
 

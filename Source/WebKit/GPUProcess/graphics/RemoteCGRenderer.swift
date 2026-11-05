@@ -43,12 +43,9 @@ private func cgAffineTransform(_ transform: WebCore.AffineTransform) -> CGAffine
 final class RemoteCGRenderer {
     typealias State = CGRendererCore
 
-    private let shellState: CGRendererShellState
-
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
-    init(shellState: borrowing CGRendererShellState) {
-        self.shellState = copy shellState
+    init() {
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -58,11 +55,11 @@ final class RemoteCGRenderer {
     }
 
     func save(state: inout CGRendererCore) {
-        state.receiveSave(shellState)
+        state.receiveSave()
     }
 
     func restore(state: inout CGRendererCore) {
-        state.receiveRestore(shellState)
+        state.receiveRestore()
     }
 
     func translate(state: inout CGRendererCore, x: Float, y: Float) {
@@ -86,52 +83,52 @@ final class RemoteCGRenderer {
     }
 
     func setFillPackedColor(state: inout CGRendererCore, color: UInt32) {
-        state.receiveSetFillPackedColor(color, shellState)
+        state.receiveSetFillPackedColor(color)
     }
 
     func setStrokePackedColor(state: inout CGRendererCore, color: UInt32) {
-        state.receiveSetStrokePackedColor(color, shellState)
+        state.receiveSetStrokePackedColor(color)
     }
 
     func setStrokePackedColorAndThickness(state: inout CGRendererCore, color: UInt32, thickness: Float) {
-        state.receiveSetStrokePackedColor(color, shellState)
-        state.receiveSetStrokeThickness(thickness, shellState)
+        state.receiveSetStrokePackedColor(color)
+        state.receiveSetStrokeThickness(thickness)
     }
 
     func setFillRule(state: inout CGRendererCore, rule: WebCore.WindRule) {
-        state.receiveSetFillRule(rule, shellState)
+        state.receiveSetFillRule(rule)
     }
 
     func setStrokeThickness(state: inout CGRendererCore, thickness: Float) {
-        state.receiveSetStrokeThickness(thickness, shellState)
+        state.receiveSetStrokeThickness(thickness)
     }
 
     func setStrokeStyle(state: inout CGRendererCore, style: WebCore.StrokeStyle) {
-        state.receiveSetStrokeStyle(style, shellState)
+        state.receiveSetStrokeStyle(style)
     }
 
     func setCompositeMode(state: inout CGRendererCore, mode: WebCore.CompositeMode) {
-        state.receiveSetCompositeMode(mode.operation, mode.blendMode, shellState)
+        state.receiveSetCompositeMode(mode.operation, mode.blendMode)
     }
 
     func setAlpha(state: inout CGRendererCore, alpha: Float) {
-        state.receiveSetAlpha(alpha, shellState)
+        state.receiveSetAlpha(alpha)
     }
 
     func setImageInterpolationQuality(state: inout CGRendererCore, quality: WebCore.InterpolationQuality) {
-        state.receiveSetImageInterpolationQuality(quality, shellState)
+        state.receiveSetImageInterpolationQuality(quality)
     }
 
     func setShouldAntialias(state: inout CGRendererCore, shouldAntialias: Bool) {
-        state.receiveSetShouldAntialias(shouldAntialias, shellState)
+        state.receiveSetShouldAntialias(shouldAntialias)
     }
 
     func setShouldSmoothFonts(state: inout CGRendererCore, shouldSmooth: Bool) {
-        state.receiveSetShouldSmoothFonts(shouldSmooth, shellState)
+        state.receiveSetShouldSmoothFonts(shouldSmooth)
     }
 
     func setShouldSubpixelQuantizeFonts(state: inout CGRendererCore, shouldQuantize: Bool) {
-        state.receiveSetShouldSubpixelQuantizeFonts(shouldQuantize, shellState)
+        state.receiveSetShouldSubpixelQuantizeFonts(shouldQuantize)
     }
 
     func setLineCap(state: inout CGRendererCore, lineCap: WebCore.LineCap) {

@@ -135,6 +135,7 @@ public:
     void drawDotsForDocumentMarker(const FloatRect&, DocumentMarkerLineStyle) final;
 
     void beginPage(const FloatRect& pageRect) final;
+    void unwindStateStack() final;
     void endPage() final;
 
     void setURLForRect(const URL&, const FloatRect&) final;
@@ -168,6 +169,7 @@ public:
 
     // Makes GraphicsContext's state the renderer's, for C++ that reads it after the renderer was used without this context.
     void updateStateFromSwiftRenderer();
+    void updateStateFromSwiftRenderer(const CGRendererStateSnapshot&, GraphicsContextState::ChangeFlags);
 
     CGRendererShellState* swiftReceiverState() final;
 
@@ -185,6 +187,7 @@ private:
     enum class SwiftRendererState : uint8_t { InPlace, InPlaceLent };
 
     template<typename Function> decltype(auto) withSwiftRenderer(Function&&) const;
+    void updateStaleState() final;
     void didUpdateStateForSwiftRenderer(GraphicsContextState&);
     void setSwiftRendererShadow(const GraphicsDropShadow&, bool isStyle);
     bool swiftDrawsShadowBlur() const;
@@ -205,7 +208,7 @@ private:
     std::unique_ptr<GraphicsContextCGCapture> m_capture;
 #endif
     // The CGRendererCore (CGRenderer.swift) this context draws with, built in place. GraphicsContextCG.cpp checks the size.
-    static constexpr size_t swiftRendererSize = 272;
+    static constexpr size_t swiftRendererSize = 288;
     alignas(8) mutable std::byte m_swiftRendererStorage[swiftRendererSize];
     mutable std::optional<ColorSpace> m_colorSpace;
     RefPtr<CGRendererShellState> m_swiftReceiverState;
@@ -224,10 +227,13 @@ class GraphicsContextCG::SwiftRendererLend {
     WTF_MAKE_NONCOPYABLE(SwiftRendererLend);
     WTF_FORBID_HEAP_ALLOCATION;
 public:
+    // The receiver may have changed the renderer's state: GraphicsContext's copy is brought up to date when next used.
     ~SwiftRendererLend()
     {
-        if (m_context)
+        if (m_context) {
             m_context->m_swiftRendererState = SwiftRendererState::InPlace;
+            m_context->m_stateIsStale = true;
+        }
     }
 
     explicit operator bool() const { return m_context; }

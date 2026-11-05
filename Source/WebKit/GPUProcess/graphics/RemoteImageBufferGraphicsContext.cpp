@@ -65,7 +65,7 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     if (RefPtr shellState = context().swiftReceiverState()) {
         m_cgRendererShellState = shellState;
-        m_cgRenderer = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRenderer>(RemoteCGRenderer::init(shellState.get()));
+        m_cgRenderer = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRenderer>(RemoteCGRenderer::init());
         Ref forwarder = m_cgRenderer->getMessageReceiver();
         forwarder->setStateLender(*this);
         streamConnection.startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());

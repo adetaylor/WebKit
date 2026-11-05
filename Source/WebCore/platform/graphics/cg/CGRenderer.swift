@@ -366,6 +366,12 @@ private struct CGRendererBrush {
 
     // SourceBrush::isVisible().
     var isVisible: Bool { hasPatternOrGradient || isColorVisible }
+
+    // A slot names the same object in both, as a level only adds slots after those of the levels below.
+    func isSame(as other: CGRendererBrush) -> Bool {
+        packedColor == other.packedColor && platformColorSlot == other.platformColorSlot && sourceSlot == other.sourceSlot
+            && kind == other.kind && isColorVisible == other.isColorVisible
+    }
 }
 
 // FontSmoothingMode.
@@ -467,6 +473,7 @@ extension CGRendererCore: ShadowDrawing {
             return
         }
         state.fill = fill
+        levelChanges |= CxxStateChange.fillBrush
         context.setFillColor(platformColor(fill))
     }
 
@@ -575,6 +582,33 @@ private struct CGRendererState {
         self.imageInterpolationQuality = imageInterpolationQuality
     }
 
+    // Of candidates, the GraphicsContextState::Change properties whose values differ from other's. Floats compare by bit
+    // pattern, as -0 isn't 0 to CG; a shadow or a style counts as different unless neither state has one.
+    func cxxChanges(to other: CGRendererState, among candidates: UInt32) -> UInt32 {
+        func differs(_ property: UInt32, _ isDifferent: @autoclosure () -> Bool) -> UInt32 {
+            candidates & property != 0 && isDifferent() ? property : 0
+        }
+        var noStyle = false
+        if case .none = style, case .none = other.style {
+            noStyle = true
+        }
+        return differs(CxxStateChange.fillBrush, !fill.isSame(as: other.fill))
+            | differs(CxxStateChange.fillRule, fillRule != other.fillRule)
+            | differs(CxxStateChange.strokeBrush, !stroke.isSame(as: other.stroke))
+            | differs(CxxStateChange.strokeThickness, strokeThickness.bitPattern != other.strokeThickness.bitPattern)
+            | differs(CxxStateChange.strokeStyle, strokeStyle != other.strokeStyle)
+            | differs(CxxStateChange.compositeMode, compositeOperator != other.compositeOperator || blendMode != other.blendMode)
+            | differs(CxxStateChange.dropShadow, dropShadow != nil || other.dropShadow != nil)
+            | differs(CxxStateChange.style, !noStyle)
+            | differs(CxxStateChange.alpha, alpha.bitPattern != other.alpha.bitPattern)
+            | differs(CxxStateChange.textDrawingMode, textDrawingMode != other.textDrawingMode)
+            | differs(CxxStateChange.imageInterpolationQuality, imageInterpolationQuality != other.imageInterpolationQuality)
+            | differs(CxxStateChange.shouldAntialias, shouldAntialias != other.shouldAntialias)
+            | differs(CxxStateChange.shouldSmoothFonts, shouldSmoothFonts != other.shouldSmoothFonts)
+            | differs(CxxStateChange.shouldSubpixelQuantizeFonts, shouldSubpixelQuantizeFonts != other.shouldSubpixelQuantizeFonts)
+            | differs(CxxStateChange.shadowsIgnoreTransforms, shadowsIgnoreTransforms != other.shadowsIgnoreTransforms)
+    }
+
     // GraphicsContextState::repurpose(TransparencyLayer): CGContextBeginTransparencyLayer() resets these in CG.
     mutating func resetForTransparencyLayer() {
         alpha = 1
@@ -596,6 +630,11 @@ private struct CGRendererSavedState {
     // The side tables' sizes at the save: the restore drops what was added after it.
     var platformColorCount: UInt32 = 0
     var sourceCount: UInt32 = 0
+    // Whether GraphicsContext's own stack has this level too: C++ saved it. A level a Swift receiver saved is the renderer's
+    // alone.
+    var hasCxxLevel = true
+    // The level below's levelChanges.
+    var levelChanges: UInt32 = 0
 }
 
 // A color that isn't sRGBA8, as CG draws it and as the C++ state has it.
@@ -688,6 +727,14 @@ private struct CGRendererColorCache {
     // GraphicsContextCG::roundToDevicePixels()'s cache: true once it has seen an identity user-to-device transform, until
     // something here could change it.
     private var userToDeviceTransformKnownToBeIdentity = false
+    // What a Swift receiver has changed since GraphicsContext's own copy of the state last caught up (takeStaleStateForCxx()):
+    // the properties, as GraphicsContextState::Change's bits, and how many levels that GraphicsContext's stack has too it has
+    // restored.
+    private var cxxStaleProperties: UInt32 = 0
+    // The properties changed since the top level was saved: GraphicsContext's state may still have them when the renderer
+    // restores a level that only a receiver saved.
+    private var levelChanges: UInt32 = 0
+    private var pendingCxxRestores: UInt32 = 0
 
     // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
     // uses it (rdar://179098545).
@@ -816,6 +863,7 @@ private struct CGRendererColorCache {
     mutating func setFillPackedColor(_ packed: UInt32, _ brushKind: UInt8) {
         hasDrawn = true
         state.fill = CGRendererBrush(packedColor: packed, kind: brushKind, isColorVisible: packed & 0xFF != 0)
+        levelChanges |= CxxStateChange.fillBrush
         if !state.fill.hasPatternOrGradient {
             context.setFillColor(colorCache.color(packed))
         }
@@ -831,6 +879,7 @@ private struct CGRendererColorCache {
         hasDrawn = true
         let slot = platformColorSlot(copy cgColor, color)
         state.fill = CGRendererBrush(platformColorSlot: slot, kind: brushKind, isColorVisible: isColorVisible)
+        levelChanges |= CxxStateChange.fillBrush
         if !state.fill.hasPatternOrGradient {
             context.setFillColor(cgColor)
         }
@@ -840,6 +889,7 @@ private struct CGRendererColorCache {
     mutating func setStrokePackedColor(_ packed: UInt32, _ brushKind: UInt8) {
         hasDrawn = true
         state.stroke = CGRendererBrush(packedColor: packed, kind: brushKind, isColorVisible: packed & 0xFF != 0)
+        levelChanges |= CxxStateChange.strokeBrush
         if !state.stroke.hasPatternOrGradient {
             context.setStrokeColor(colorCache.color(packed))
         }
@@ -855,6 +905,7 @@ private struct CGRendererColorCache {
         hasDrawn = true
         let slot = platformColorSlot(copy cgColor, color)
         state.stroke = CGRendererBrush(platformColorSlot: slot, kind: brushKind, isColorVisible: isColorVisible)
+        levelChanges |= CxxStateChange.strokeBrush
         if !state.stroke.hasPatternOrGradient {
             context.setStrokeColor(cgColor)
         }
@@ -866,6 +917,7 @@ private struct CGRendererColorCache {
         hasDrawn = true
         state.fill.kind = brushKind
         state.fill.sourceSlot = sourceSlot(.brush(copy source))
+        levelChanges |= CxxStateChange.fillBrush
     }
 
     @_expose(Cxx)
@@ -873,18 +925,21 @@ private struct CGRendererColorCache {
         hasDrawn = true
         state.stroke.kind = brushKind
         state.stroke.sourceSlot = sourceSlot(.brush(copy source))
+        levelChanges |= CxxStateChange.strokeBrush
     }
 
     @_expose(Cxx)
     mutating func setFillRule(_ fillRule: UInt8) {
         hasDrawn = true
         state.fillRule = fillRule
+        levelChanges |= CxxStateChange.fillRule
     }
 
     @_expose(Cxx)
     mutating func setStrokeThickness(_ thickness: Float) {
         hasDrawn = true
         state.strokeThickness = thickness
+        levelChanges |= CxxStateChange.strokeThickness
         context.setLineWidth(CGFloat(cxxMax(thickness, 0)))
     }
 
@@ -892,6 +947,7 @@ private struct CGRendererColorCache {
     mutating func setStrokeStyle(_ strokeStyle: UInt8) {
         hasDrawn = true
         state.strokeStyle = strokeStyle
+        levelChanges |= CxxStateChange.strokeStyle
     }
 
     @_expose(Cxx)
@@ -899,6 +955,7 @@ private struct CGRendererColorCache {
         hasDrawn = true
         state.compositeOperator = compositeOperator
         state.blendMode = blendMode
+        levelChanges |= CxxStateChange.compositeMode
         context.setBlendMode(cgBlendMode(compositeOperator, blendMode))
     }
 
@@ -906,6 +963,7 @@ private struct CGRendererColorCache {
     mutating func clearDropShadow() {
         hasDrawn = true
         state.dropShadow = nil
+        levelChanges |= CxxStateChange.dropShadow
         CGContextSetStyle(context, nil)
     }
 
@@ -914,6 +972,7 @@ private struct CGRendererColorCache {
         hasDrawn = true
         let shadow = makeShadow(values, platformColorSlot: 0)
         state.dropShadow = shadow
+        levelChanges |= CxxStateChange.dropShadow
         applyShadow(shadow)
     }
 
@@ -922,6 +981,7 @@ private struct CGRendererColorCache {
         hasDrawn = true
         let shadow = makeShadow(values, platformColorSlot: platformColorSlot(copy cgColor, color))
         state.dropShadow = shadow
+        levelChanges |= CxxStateChange.dropShadow
         applyShadow(shadow)
     }
 
@@ -929,6 +989,7 @@ private struct CGRendererColorCache {
     mutating func setNoStyle() {
         hasDrawn = true
         state.style = .none
+        levelChanges |= CxxStateChange.style
         CGContextSetStyle(context, nil)
     }
 
@@ -937,6 +998,7 @@ private struct CGRendererColorCache {
         hasDrawn = true
         let shadow = makeShadow(values, platformColorSlot: 0)
         state.style = .dropShadow(shadow)
+        levelChanges |= CxxStateChange.style
         applyShadow(shadow)
     }
 
@@ -949,6 +1011,7 @@ private struct CGRendererColorCache {
         hasDrawn = true
         let shadow = makeShadow(values, platformColorSlot: platformColorSlot(copy cgColor, color))
         state.style = .dropShadow(shadow)
+        levelChanges |= CxxStateChange.style
         applyShadow(shadow)
     }
 
@@ -958,6 +1021,7 @@ private struct CGRendererColorCache {
     mutating func setGaussianBlurStyle(_ width: Float, _ height: Float) {
         hasDrawn = true
         state.style = .gaussianBlur(width: width, height: height)
+        levelChanges |= CxxStateChange.style
         let blurRadius = scaledBlurRadius(CGFloat(width), userToBaseCTM)
         CGContextSetStyle(context, CGRendererCreateGaussianBlurStyle(blurRadius))
     }
@@ -966,6 +1030,7 @@ private struct CGRendererColorCache {
     mutating func setColorMatrixStyle(_ matrix: CGRendererColorMatrix) {
         hasDrawn = true
         state.style = .colorMatrix(slot: sourceSlot(.colorMatrix(matrix)))
+        levelChanges |= CxxStateChange.style
         CGContextSetStyle(context, CGRendererCreateColorMatrixStyle(matrix))
     }
     #endif
@@ -1041,6 +1106,7 @@ private struct CGRendererColorCache {
     mutating func setAlpha(_ alpha: Float) {
         hasDrawn = true
         state.alpha = alpha
+        levelChanges |= CxxStateChange.alpha
         context.setAlpha(CGFloat(alpha))
     }
 
@@ -1048,6 +1114,7 @@ private struct CGRendererColorCache {
     mutating func setTextDrawingMode(_ mode: UInt8) {
         hasDrawn = true
         state.textDrawingMode = mode
+        levelChanges |= CxxStateChange.textDrawingMode
         context.setTextDrawingMode(cgTextDrawingMode(mode))
     }
 
@@ -1055,6 +1122,7 @@ private struct CGRendererColorCache {
     mutating func setImageInterpolationQuality(_ quality: WebCore.InterpolationQuality) {
         hasDrawn = true
         state.imageInterpolationQuality = quality
+        levelChanges |= CxxStateChange.imageInterpolationQuality
         context.interpolationQuality = cgInterpolationQuality(quality)
     }
 
@@ -1062,6 +1130,7 @@ private struct CGRendererColorCache {
     mutating func setShouldAntialias(_ shouldAntialias: Bool) {
         hasDrawn = true
         state.shouldAntialias = shouldAntialias
+        levelChanges |= CxxStateChange.shouldAntialias
         context.setShouldAntialias(shouldAntialias)
     }
 
@@ -1069,6 +1138,7 @@ private struct CGRendererColorCache {
     mutating func setShouldSmoothFonts(_ shouldSmoothFonts: Bool) {
         hasDrawn = true
         state.shouldSmoothFonts = shouldSmoothFonts
+        levelChanges |= CxxStateChange.shouldSmoothFonts
         context.setShouldSmoothFonts(shouldSmoothFonts)
     }
 
@@ -1076,12 +1146,14 @@ private struct CGRendererColorCache {
     mutating func setShouldSubpixelQuantizeFonts(_ shouldSubpixelQuantizeFonts: Bool) {
         hasDrawn = true
         state.shouldSubpixelQuantizeFonts = shouldSubpixelQuantizeFonts
+        levelChanges |= CxxStateChange.shouldSubpixelQuantizeFonts
     }
 
     @_expose(Cxx)
     mutating func setShadowsIgnoreTransforms(_ shadowsIgnoreTransforms: Bool) {
         hasDrawn = true
         state.shadowsIgnoreTransforms = shadowsIgnoreTransforms
+        levelChanges |= CxxStateChange.shadowsIgnoreTransforms
     }
 
     @_expose(Cxx)
@@ -1183,6 +1255,7 @@ private struct CGRendererColorCache {
     @_expose(Cxx)
     mutating func resetState(_ imageInterpolationQuality: WebCore.InterpolationQuality) {
         state = CGRendererState(imageInterpolationQuality: imageInterpolationQuality)
+        levelChanges = CxxStateChange.all
         userToDeviceTransformKnownToBeIdentity = false
     }
 
@@ -1259,11 +1332,17 @@ private struct CGRendererColorCache {
 
     @_expose(Cxx)
     mutating func save(_ isTransparencyLayer: Bool) {
+        save(isTransparencyLayer, hasCxxLevel: true)
+    }
+
+    private mutating func save(_ isTransparencyLayer: Bool, hasCxxLevel: Bool) {
         let saved = CGRendererSavedState(
             state: state,
             purpose: isTransparencyLayer ? .transparencyLayer : .saveRestore,
             platformColorCount: UInt32(platformColors.count),
-            sourceCount: UInt32(sources.count)
+            sourceCount: UInt32(sources.count),
+            hasCxxLevel: hasCxxLevel,
+            levelChanges: levelChanges
         )
         if depth == stack.count {
             stack.append(saved)
@@ -1271,8 +1350,10 @@ private struct CGRendererColorCache {
             stack[depth] = saved
         }
         depth += 1
+        levelChanges = 0
         if isTransparencyLayer {
             state.resetForTransparencyLayer()
+            levelChanges = CxxStateChange.alpha | CxxStateChange.style | CxxStateChange.dropShadow | CxxStateChange.compositeMode
         }
         context.saveGState()
     }
@@ -1289,6 +1370,12 @@ private struct CGRendererColorCache {
 
     private mutating func pop() {
         depth -= 1
+        // GraphicsContext's state has no level to restore for a level that only a Swift receiver saved, so it may still have
+        // what changed in it, unless it changed back.
+        if !stack[depth].hasCxxLevel && levelChanges != 0 {
+            cxxStaleProperties |= state.cxxChanges(to: stack[depth].state, among: levelChanges)
+        }
+        levelChanges = stack[depth].levelChanges
         state = stack[depth].state
         let platformColorCount = Int(stack[depth].platformColorCount)
         if platformColors.count > platformColorCount {
@@ -1300,6 +1387,46 @@ private struct CGRendererColorCache {
         }
         context.restoreGState()
         userToDeviceTransformKnownToBeIdentity = false
+    }
+
+    // The top saved level, for GraphicsContextCG, which may restore it: 0 none; 1 a save or 2 a transparency layer that
+    // GraphicsContext's stack has too; 3 a save or 4 a transparency layer that only a Swift receiver made.
+    @_expose(Cxx)
+    func savedLevelKind() -> UInt8 {
+        guard depth > 0 else {
+            return 0
+        }
+        let level = stack[depth - 1]
+        let kind: UInt8 = level.purpose == .transparencyLayer ? 2 : 1
+        return level.hasCxxLevel ? kind : kind + 2
+    }
+
+    @_expose(Cxx)
+    func savedLevelCount() -> UInt32 {
+        UInt32(depth)
+    }
+
+    // Whether GraphicsContext's copy of the state is out of date: whether a Swift receiver has changed a property, or restored
+    // a level C++ saved, since the last takeStaleStateForCxx().
+    @_expose(Cxx)
+    func hasStaleStateForCxx() -> Bool {
+        cxxStaleProperties != 0 || pendingCxxRestores != 0
+    }
+
+    // The state, with what a Swift receiver has changed since the last call, for GraphicsContextCG to bring GraphicsContext's
+    // copy up to date.
+    @_expose(Cxx)
+    mutating func takeStaleStateForCxx(_ snapshot: inout CGRendererStateSnapshot) {
+        guard cxxStaleProperties != 0 || pendingCxxRestores != 0 else {
+            snapshot.staleProperties = 0
+            snapshot.pendingCxxRestores = 0
+            return
+        }
+        snapshotState(&snapshot)
+        snapshot.staleProperties = cxxStaleProperties
+        snapshot.pendingCxxRestores = pendingCxxRestores
+        cxxStaleProperties = 0
+        pendingCxxRestores = 0
     }
 
     @_expose(Cxx)
@@ -2460,23 +2587,49 @@ private struct CGRendererColorCache {
 }
 
 // MARK: A Swift receiver's messages
+// GraphicsContextState::Change's bits, for the properties a Swift receiver changes in the renderer alone.
+private enum CxxStateChange {
+    static let fillBrush: UInt32 = 1 << 0
+    static let fillRule: UInt32 = 1 << 1
+    static let strokeBrush: UInt32 = 1 << 2
+    static let strokeThickness: UInt32 = 1 << 3
+    static let strokeStyle: UInt32 = 1 << 4
+    static let compositeMode: UInt32 = 1 << 5
+    static let dropShadow: UInt32 = 1 << 6
+    static let style: UInt32 = 1 << 7
+    static let alpha: UInt32 = 1 << 8
+    static let textDrawingMode: UInt32 = 1 << 9
+    static let imageInterpolationQuality: UInt32 = 1 << 10
+    static let shouldAntialias: UInt32 = 1 << 11
+    static let shouldSmoothFonts: UInt32 = 1 << 12
+    static let shouldSubpixelQuantizeFonts: UInt32 = 1 << 13
+    static let shadowsIgnoreTransforms: UInt32 = 1 << 14
+    static let all: UInt32 = (1 << 15) - 1
+}
+
 // For a receiver whose context lends it the renderer in place for each message (GraphicsContextCG::lendSwiftRenderer()).
-// Each copies any change to GraphicsContext's state into the context's C++ state through shellState, so that C++ reading
-// the state stays correct, then makes the change in the renderer: in that order, Swift needn't retain shellState across
-// the renderer's calls into CG. A draw returns false where the renderer declines it, for the receiver to hand it back to
-// the context, which draws it once the renderer is no longer lent.
+// They change the renderer's state only: the context brings GraphicsContext's own copy up to date when C++ next reads it.
+// A save is the renderer's alone; a restore of a level that C++ saved leaves the context to restore GraphicsContext's level
+// too. A draw returns false where the renderer declines it, for the receiver to hand it back to the context, which draws it
+// once the renderer is no longer lent.
 extension CGRendererCore {
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSave(_ shellState: CGRendererShellState) {
-        shellState.save()
-        save(false)
+    @_spi(WebKitGPU) public mutating func receiveSave() {
+        save(false, hasCxxLevel: false)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveRestore(_ shellState: CGRendererShellState) {
-        if shellState.restore() {
-            restore()
+    @_spi(WebKitGPU) public mutating func receiveRestore() {
+        guard depth > 0, stack[depth - 1].purpose == .saveRestore else {
+            return
         }
+        // GraphicsContext restores a level that C++ saved when it next brings its state up to date, after any C++ setter
+        // that comes first has changed that level's copy: so it then takes all of the state.
+        if stack[depth - 1].hasCxxLevel {
+            pendingCxxRestores += 1
+            cxxStaleProperties = CxxStateChange.all
+        }
+        pop()
     }
 
     @_expose(!Cxx)
@@ -2506,69 +2659,69 @@ extension CGRendererCore {
 
     // A color brush replaces a gradient or a pattern.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetFillPackedColor(_ packed: UInt32, _ shellState: CGRendererShellState) {
-        shellState.setFillPackedColor(packed)
+    @_spi(WebKitGPU) public mutating func receiveSetFillPackedColor(_ packed: UInt32) {
+        cxxStaleProperties |= CxxStateChange.fillBrush
         setFillPackedColor(packed, 0)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetStrokePackedColor(_ packed: UInt32, _ shellState: CGRendererShellState) {
-        shellState.setStrokePackedColor(packed)
+    @_spi(WebKitGPU) public mutating func receiveSetStrokePackedColor(_ packed: UInt32) {
+        cxxStaleProperties |= CxxStateChange.strokeBrush
         setStrokePackedColor(packed, 0)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetFillRule(_ fillRule: WebCore.WindRule, _ shellState: CGRendererShellState) {
+    @_spi(WebKitGPU) public mutating func receiveSetFillRule(_ fillRule: WebCore.WindRule) {
+        cxxStaleProperties |= CxxStateChange.fillRule
         let rule: UInt8 = fillRule == .EvenOdd ? 1 : 0
-        shellState.setFillRule(rule)
         setFillRule(rule)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetStrokeThickness(_ thickness: Float, _ shellState: CGRendererShellState) {
-        shellState.setStrokeThickness(thickness)
+    @_spi(WebKitGPU) public mutating func receiveSetStrokeThickness(_ thickness: Float) {
+        cxxStaleProperties |= CxxStateChange.strokeThickness
         setStrokeThickness(thickness)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetStrokeStyle(_ strokeStyle: WebCore.StrokeStyle, _ shellState: CGRendererShellState) {
-        shellState.setStrokeStyle(strokeStyle.rawValue)
+    @_spi(WebKitGPU) public mutating func receiveSetStrokeStyle(_ strokeStyle: WebCore.StrokeStyle) {
+        cxxStaleProperties |= CxxStateChange.strokeStyle
         setStrokeStyle(strokeStyle.rawValue)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetCompositeMode(_ compositeOperator: WebCore.CompositeOperator, _ blendMode: WebCore.BlendMode, _ shellState: CGRendererShellState) {
-        shellState.setCompositeMode(compositeOperator.rawValue, blendMode.rawValue)
+    @_spi(WebKitGPU) public mutating func receiveSetCompositeMode(_ compositeOperator: WebCore.CompositeOperator, _ blendMode: WebCore.BlendMode) {
+        cxxStaleProperties |= CxxStateChange.compositeMode
         setCompositeMode(compositeOperator, blendMode)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetAlpha(_ alpha: Float, _ shellState: CGRendererShellState) {
-        shellState.setAlpha(alpha)
+    @_spi(WebKitGPU) public mutating func receiveSetAlpha(_ alpha: Float) {
+        cxxStaleProperties |= CxxStateChange.alpha
         setAlpha(alpha)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetImageInterpolationQuality(_ quality: WebCore.InterpolationQuality, _ shellState: CGRendererShellState) {
-        shellState.setImageInterpolationQuality(quality.rawValue)
+    @_spi(WebKitGPU) public mutating func receiveSetImageInterpolationQuality(_ quality: WebCore.InterpolationQuality) {
+        cxxStaleProperties |= CxxStateChange.imageInterpolationQuality
         setImageInterpolationQuality(quality)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetShouldAntialias(_ shouldAntialias: Bool, _ shellState: CGRendererShellState) {
-        shellState.setShouldAntialias(shouldAntialias)
+    @_spi(WebKitGPU) public mutating func receiveSetShouldAntialias(_ shouldAntialias: Bool) {
+        cxxStaleProperties |= CxxStateChange.shouldAntialias
         setShouldAntialias(shouldAntialias)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetShouldSmoothFonts(_ shouldSmoothFonts: Bool, _ shellState: CGRendererShellState) {
-        shellState.setShouldSmoothFonts(shouldSmoothFonts)
+    @_spi(WebKitGPU) public mutating func receiveSetShouldSmoothFonts(_ shouldSmoothFonts: Bool) {
+        cxxStaleProperties |= CxxStateChange.shouldSmoothFonts
         setShouldSmoothFonts(shouldSmoothFonts)
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetShouldSubpixelQuantizeFonts(_ shouldSubpixelQuantizeFonts: Bool, _ shellState: CGRendererShellState) {
-        shellState.setShouldSubpixelQuantizeFonts(shouldSubpixelQuantizeFonts)
+    @_spi(WebKitGPU) public mutating func receiveSetShouldSubpixelQuantizeFonts(_ shouldSubpixelQuantizeFonts: Bool) {
+        cxxStaleProperties |= CxxStateChange.shouldSubpixelQuantizeFonts
         setShouldSubpixelQuantizeFonts(shouldSubpixelQuantizeFonts)
     }
 

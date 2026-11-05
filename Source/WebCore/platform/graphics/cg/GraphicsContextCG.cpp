@@ -430,9 +430,13 @@ const ColorSpace& GraphicsContextCG::colorSpace() const
     return *m_colorSpace;
 }
 
+// The renderer's top saved level (CGRendererCore::savedLevelKind()).
+enum class SwiftRendererSavedLevel : uint8_t { None, Save, TransparencyLayer, ReceiverSave, ReceiverTransparencyLayer };
+
 void GraphicsContextCG::save(GraphicsContextState::Purpose purpose)
 {
     CAPTURE(save(purpose));
+    ensureStateIsCurrent();
     GraphicsContext::save(purpose);
     SWIFT_RENDERER(save(purpose == GraphicsContextState::Purpose::TransparencyLayer));
 }
@@ -440,11 +444,61 @@ void GraphicsContextCG::save(GraphicsContextState::Purpose purpose)
 void GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
 {
     CAPTURE(restore(purpose));
+    ensureStateIsCurrent();
+    // A level that only a Swift receiver saved is the renderer's alone.
+    auto level = static_cast<SwiftRendererSavedLevel>(SWIFT_RENDERER(savedLevelKind()));
+    if (level == SwiftRendererSavedLevel::ReceiverSave || level == SwiftRendererSavedLevel::ReceiverTransparencyLayer) {
+        if (purpose != (level == SwiftRendererSavedLevel::ReceiverSave ? GraphicsContextState::Purpose::SaveRestore : GraphicsContextState::Purpose::TransparencyLayer))
+            return;
+        if (purpose == GraphicsContextState::Purpose::SaveRestore)
+            SWIFT_RENDERER(restore());
+        else
+            SWIFT_RENDERER(endTransparencyLayer());
+        m_stateIsStale = true;
+        return;
+    }
+
     if (!stackSize() || m_state.purpose() != purpose)
         return;
 
     GraphicsContext::restore(purpose);
     SWIFT_RENDERER(restore());
+}
+
+void GraphicsContextCG::unwindStateStack()
+{
+    ensureStateIsCurrent();
+    for (auto levels = SWIFT_RENDERER(savedLevelCount()); levels; --levels) {
+        switch (static_cast<SwiftRendererSavedLevel>(SWIFT_RENDERER(savedLevelKind()))) {
+        case SwiftRendererSavedLevel::None:
+            break;
+        case SwiftRendererSavedLevel::Save:
+        case SwiftRendererSavedLevel::ReceiverSave:
+            restore(GraphicsContextState::Purpose::SaveRestore);
+            continue;
+        case SwiftRendererSavedLevel::TransparencyLayer:
+        case SwiftRendererSavedLevel::ReceiverTransparencyLayer:
+            endTransparencyLayer();
+            continue;
+        }
+        break;
+    }
+    GraphicsContext::unwindStateStack();
+}
+
+void GraphicsContextCG::updateStaleState()
+{
+    m_stateIsStale = false;
+    if (!SWIFT_RENDERER(hasStaleStateForCxx()))
+        return;
+    CGRendererStateSnapshot snapshot { };
+    SWIFT_RENDERER(takeStaleStateForCxx(snapshot));
+    // Levels that C++ saved and a Swift receiver has restored in the renderer.
+    for (auto restores = snapshot.pendingCxxRestores; restores && stackSize(); --restores)
+        GraphicsContext::restore(m_state.purpose());
+    auto properties = GraphicsContextState::ChangeFlags::fromRaw(snapshot.staleProperties);
+    if (properties)
+        updateStateFromSwiftRenderer(snapshot, properties);
 }
 
 void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions options)
@@ -717,110 +771,6 @@ CGRendererShellState::CGRendererShellState(WebCore::GraphicsContextCG& context)
 }
 
 CGRendererShellState::~CGRendererShellState() = default;
-
-// The renderer has the change already; GraphicsContextCG::didUpdateState() would apply it there again.
-template<typename Change>
-void CGRendererShellState::setState(const Change& change)
-{
-    auto* context = m_context;
-    if (!context)
-        return;
-    auto& state = context->m_state;
-    change(state);
-    state.didApplyChanges();
-}
-
-void CGRendererShellState::setFillPackedColor(uint32_t packedColor)
-{
-    setState([&](auto& state) {
-        state.setFillColor(WebCore::asSRGBA(WebCore::PackedColor::RGBA { packedColor }));
-    });
-}
-
-void CGRendererShellState::setStrokePackedColor(uint32_t packedColor)
-{
-    setState([&](auto& state) {
-        state.setStrokeColor(WebCore::asSRGBA(WebCore::PackedColor::RGBA { packedColor }));
-    });
-}
-
-void CGRendererShellState::setFillRule(uint8_t fillRule)
-{
-    setState([&](auto& state) {
-        state.setFillRule(static_cast<WebCore::WindRule>(fillRule));
-    });
-}
-
-void CGRendererShellState::setStrokeThickness(float thickness)
-{
-    setState([&](auto& state) {
-        state.setStrokeThickness(thickness);
-    });
-}
-
-void CGRendererShellState::setStrokeStyle(uint8_t strokeStyle)
-{
-    setState([&](auto& state) {
-        state.setStrokeStyle(static_cast<WebCore::StrokeStyle>(strokeStyle));
-    });
-}
-
-void CGRendererShellState::setCompositeMode(uint8_t compositeOperator, uint8_t blendMode)
-{
-    setState([&](auto& state) {
-        state.setCompositeMode({ static_cast<WebCore::CompositeOperator>(compositeOperator), static_cast<WebCore::BlendMode>(blendMode) });
-    });
-}
-
-void CGRendererShellState::setAlpha(float alpha)
-{
-    setState([&](auto& state) {
-        state.setAlpha(alpha);
-    });
-}
-
-void CGRendererShellState::setImageInterpolationQuality(uint8_t quality)
-{
-    setState([&](auto& state) {
-        state.setImageInterpolationQuality(static_cast<WebCore::InterpolationQuality>(quality));
-    });
-}
-
-void CGRendererShellState::setShouldAntialias(bool shouldAntialias)
-{
-    setState([&](auto& state) {
-        state.setShouldAntialias(shouldAntialias);
-    });
-}
-
-void CGRendererShellState::setShouldSmoothFonts(bool shouldSmoothFonts)
-{
-    setState([&](auto& state) {
-        state.setShouldSmoothFonts(shouldSmoothFonts);
-    });
-}
-
-void CGRendererShellState::setShouldSubpixelQuantizeFonts(bool shouldSubpixelQuantizeFonts)
-{
-    setState([&](auto& state) {
-        state.setShouldSubpixelQuantizeFonts(shouldSubpixelQuantizeFonts);
-    });
-}
-
-void CGRendererShellState::save()
-{
-    if (auto* context = m_context)
-        context->GraphicsContext::save(WebCore::GraphicsContextState::Purpose::SaveRestore);
-}
-
-bool CGRendererShellState::restore()
-{
-    auto* context = m_context;
-    if (!context || !context->stackSize() || context->m_state.purpose() != WebCore::GraphicsContextState::Purpose::SaveRestore)
-        return false;
-    context->GraphicsContext::restore(WebCore::GraphicsContextState::Purpose::SaveRestore);
-    return true;
-}
 
 CGImageRef CGRendererCopySubimage(CGImageRef image, CGRect rect)
 {
@@ -1299,6 +1249,7 @@ IntRect GraphicsContextCG::clipBounds() const
 void GraphicsContextCG::beginTransparencyLayer(float opacity)
 {
     CAPTURE(beginTransparencyLayer(opacity));
+    ensureStateIsCurrent();
     GraphicsContext::beginTransparencyLayer(opacity);
     GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
     SWIFT_RENDERER(beginTransparencyLayer(opacity));
@@ -1309,6 +1260,7 @@ void GraphicsContextCG::beginTransparencyLayer(CompositeOperator compositeOperat
     CAPTURE(beginTransparencyLayer(compositeOperator, blendMode));
     UNUSED_PARAM(compositeOperator);
     UNUSED_PARAM(blendMode);
+    ensureStateIsCurrent();
     // The layer keeps the current global alpha.
     GraphicsContext::beginTransparencyLayer(state().alpha());
     GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
@@ -1318,6 +1270,15 @@ void GraphicsContextCG::beginTransparencyLayer(CompositeOperator compositeOperat
 void GraphicsContextCG::endTransparencyLayer()
 {
     CAPTURE(endTransparencyLayer());
+    ensureStateIsCurrent();
+    auto level = static_cast<SwiftRendererSavedLevel>(SWIFT_RENDERER(savedLevelKind()));
+    if (level == SwiftRendererSavedLevel::ReceiverTransparencyLayer) {
+        SWIFT_RENDERER(endTransparencyLayer());
+        m_stateIsStale = true;
+        return;
+    }
+    if (level == SwiftRendererSavedLevel::ReceiverSave)
+        return;
     if (!stackSize() || m_state.purpose() != GraphicsContextState::Purpose::TransparencyLayer)
         return;
     GraphicsContext::endTransparencyLayer();
@@ -1559,6 +1520,12 @@ void GraphicsContextCG::updateStateFromSwiftRenderer()
 {
     CGRendererStateSnapshot snapshot { };
     SWIFT_RENDERER(snapshotState(snapshot));
+    updateStateFromSwiftRenderer(snapshot, GraphicsContextState::ChangeFlags::all());
+}
+
+void GraphicsContextCG::updateStateFromSwiftRenderer(const CGRendererStateSnapshot& snapshot, GraphicsContextState::ChangeFlags properties)
+{
+    using Change = GraphicsContextState::Change;
 
     auto color = [&](uint32_t packedColor, uint32_t platformColorSlot) {
         if (!platformColorSlot)
@@ -1584,44 +1551,57 @@ void GraphicsContextCG::updateStateFromSwiftRenderer()
         };
     };
 
-    std::optional<GraphicsStyle> style;
-    switch (snapshot.style) {
-    case 1:
-        style = dropShadow(snapshot.styleDropShadow);
-        break;
+    auto style = [&]() -> std::optional<GraphicsStyle> {
+        switch (snapshot.style) {
+        case 1:
+            return dropShadow(snapshot.styleDropShadow);
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-    case 2:
-        style = GraphicsGaussianBlur { { snapshot.gaussianBlurWidth, snapshot.gaussianBlurHeight } };
-        break;
-    case 3: {
-        CGRendererColorMatrix matrix { };
-        SWIFT_RENDERER(copyColorMatrix(snapshot.colorMatrixSlot, matrix));
-        GraphicsColorMatrix colorMatrix;
-        for (auto [destination, source] : zippedRange(colorMatrix.values, matrix.values))
-            destination = source;
-        style = colorMatrix;
-        break;
-    }
+        case 2:
+            return GraphicsGaussianBlur { { snapshot.gaussianBlurWidth, snapshot.gaussianBlurHeight } };
+        case 3: {
+            CGRendererColorMatrix matrix { };
+            SWIFT_RENDERER(copyColorMatrix(snapshot.colorMatrixSlot, matrix));
+            GraphicsColorMatrix colorMatrix;
+            for (auto [destination, source] : zippedRange(colorMatrix.values, matrix.values))
+                destination = source;
+            return colorMatrix;
+        }
 #endif
-    default:
-        break;
-    }
+        default:
+            return std::nullopt;
+        }
+    };
 
-    m_state.setFillBrush(brush(snapshot.fill));
-    m_state.setFillRule(snapshot.fillRule ? WindRule::EvenOdd : WindRule::NonZero);
-    m_state.setStrokeBrush(brush(snapshot.stroke));
-    m_state.setStrokeThickness(snapshot.strokeThickness);
-    m_state.setStrokeStyle(static_cast<StrokeStyle>(snapshot.strokeStyle));
-    m_state.setCompositeMode({ static_cast<CompositeOperator>(snapshot.compositeOperator), static_cast<BlendMode>(snapshot.blendMode) });
-    m_state.setDropShadow(snapshot.hasDropShadow ? std::optional { dropShadow(snapshot.dropShadow) } : std::nullopt);
-    m_state.setStyle(style);
-    m_state.setAlpha(snapshot.alpha);
-    m_state.setTextDrawingMode(TextDrawingModeFlags::fromRaw(snapshot.textDrawingMode));
-    m_state.setImageInterpolationQuality(static_cast<InterpolationQuality>(snapshot.imageInterpolationQuality));
-    m_state.setShouldAntialias(snapshot.shouldAntialias);
-    m_state.setShouldSmoothFonts(snapshot.shouldSmoothFonts);
-    m_state.setShouldSubpixelQuantizeFonts(snapshot.shouldSubpixelQuantizeFonts);
-    m_state.setShadowsIgnoreTransforms(snapshot.shadowsIgnoreTransforms);
+    if (properties.contains(Change::FillBrush))
+        m_state.setFillBrush(brush(snapshot.fill));
+    if (properties.contains(Change::FillRule))
+        m_state.setFillRule(snapshot.fillRule ? WindRule::EvenOdd : WindRule::NonZero);
+    if (properties.contains(Change::StrokeBrush))
+        m_state.setStrokeBrush(brush(snapshot.stroke));
+    if (properties.contains(Change::StrokeThickness))
+        m_state.setStrokeThickness(snapshot.strokeThickness);
+    if (properties.contains(Change::StrokeStyle))
+        m_state.setStrokeStyle(static_cast<StrokeStyle>(snapshot.strokeStyle));
+    if (properties.contains(Change::CompositeMode))
+        m_state.setCompositeMode({ static_cast<CompositeOperator>(snapshot.compositeOperator), static_cast<BlendMode>(snapshot.blendMode) });
+    if (properties.contains(Change::DropShadow))
+        m_state.setDropShadow(snapshot.hasDropShadow ? std::optional { dropShadow(snapshot.dropShadow) } : std::nullopt);
+    if (properties.contains(Change::Style))
+        m_state.setStyle(style());
+    if (properties.contains(Change::Alpha))
+        m_state.setAlpha(snapshot.alpha);
+    if (properties.contains(Change::TextDrawingMode))
+        m_state.setTextDrawingMode(TextDrawingModeFlags::fromRaw(snapshot.textDrawingMode));
+    if (properties.contains(Change::ImageInterpolationQuality))
+        m_state.setImageInterpolationQuality(static_cast<InterpolationQuality>(snapshot.imageInterpolationQuality));
+    if (properties.contains(Change::ShouldAntialias))
+        m_state.setShouldAntialias(snapshot.shouldAntialias);
+    if (properties.contains(Change::ShouldSmoothFonts))
+        m_state.setShouldSmoothFonts(snapshot.shouldSmoothFonts);
+    if (properties.contains(Change::ShouldSubpixelQuantizeFonts))
+        m_state.setShouldSubpixelQuantizeFonts(snapshot.shouldSubpixelQuantizeFonts);
+    if (properties.contains(Change::ShadowsIgnoreTransforms))
+        m_state.setShadowsIgnoreTransforms(snapshot.shadowsIgnoreTransforms);
     // The renderer and the CGContext have these already.
     m_state.didApplyChanges();
 #if HAVE(SUPPORT_HDR_DISPLAY)
@@ -1841,6 +1821,7 @@ void GraphicsContextCG::strokeEllipse(const FloatRect& ellipse)
 void GraphicsContextCG::beginPage(const FloatRect& pageRect)
 {
     CAPTURE(unsupported("beginPage"_s));
+    ensureStateIsCurrent();
     const RetainPtr<CGContextRef>& context = contextForDraw();
     if (!SWIFT_RENDERER(beginPDFPage(pageRect))) {
         ASSERT_NOT_REACHED();
@@ -1879,7 +1860,7 @@ void GraphicsContextCG::addDestinationAtPoint(const String& name, const FloatPoi
 
 bool GraphicsContextCG::canUseShadowBlur() const
 {
-    return (renderingMode() == RenderingMode::Unaccelerated) && hasBlurredDropShadow() && !m_state.shadowsIgnoreTransforms();
+    return (renderingMode() == RenderingMode::Unaccelerated) && hasBlurredDropShadow() && !shadowsIgnoreTransforms();
 }
 
 bool GraphicsContextCG::consumeHasDrawn()

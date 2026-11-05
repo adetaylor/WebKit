@@ -126,12 +126,14 @@ FloatSize GraphicsContext::platformShadowOffset(const FloatSize& shadowOffset) c
 
 void GraphicsContext::mergeLastChanges(const GraphicsContextState& state)
 {
+    ensureStateIsCurrent();
     m_state.mergeLastChanges(state);
     didUpdateState(m_state);
 }
 
 void GraphicsContext::mergeAllChanges(const GraphicsContextState& state)
 {
+    ensureStateIsCurrent();
     m_state.mergeAllChanges(state);
     didUpdateState(m_state);
 }
