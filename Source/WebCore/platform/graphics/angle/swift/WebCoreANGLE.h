@@ -153,6 +153,14 @@ struct ANGLEInt4 {
     GLint values[4] { };
 };
 
+struct ANGLEFloat12 {
+    GLfloat values[12] { };
+};
+
+struct ANGLEFloat16 {
+    GLfloat values[16] { };
+};
+
 struct ANGLEUnsignedInt4 {
     GLuint values[4] { };
 };
@@ -290,6 +298,8 @@ struct ANGLE final {
     // Data from lent memory. The sizes ANGLE sees are the spans' sizes.
     static void bufferData(GLenum target, WebCore::GLLentBytes data, GLenum usage) { auto span = data.span(); GL_BufferData(target, static_cast<GLsizeiptr>(span.size()), span.data(), usage); }
     static void bufferDataUninitialized(GLenum target, GLsizeiptr size, GLenum usage) { GL_BufferData(target, size, nullptr, usage); }
+    static void bufferData(GLenum target, ANGLEFloat12 data, GLenum usage) { GL_BufferData(target, sizeof(data.values), data.values, usage); }
+    static void texImage2DUninitialized(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type) { GL_TexImage2D(target, level, internalFormat, width, height, border, format, type, nullptr); }
     static void bufferSubData(GLenum target, GLintptr offset, WebCore::GLLentBytes data) { auto span = data.span(); GL_BufferSubData(target, offset, static_cast<GLsizeiptr>(span.size()), span.data()); }
     static void texImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, WebCore::GLLentBytes pixels) { auto span = pixels.span(); GL_TexImage2DRobustANGLE(target, level, internalFormat, width, height, border, format, type, sizeFor(span), span.data()); }
     static void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, WebCore::GLLentBytes pixels) { auto span = pixels.span(); GL_TexSubImage2DRobustANGLE(target, level, xoffset, yoffset, width, height, format, type, sizeFor(span), span.data()); }
@@ -383,6 +393,7 @@ struct ANGLE final {
     static void uniformMatrix2fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix2fv(location, count, transpose, elements(v, count, 4)); }
     static void uniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix3fv(location, count, transpose, elements(v, count, 9)); }
     static void uniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix4fv(location, count, transpose, elements(v, count, 16)); }
+    static void uniformMatrix4fv(GLint location, GLboolean transpose, ANGLEFloat16 matrix) { GL_UniformMatrix4fv(location, 1, transpose, matrix.values); }
     static void uniformMatrix2x3fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix2x3fv(location, count, transpose, elements(v, count, 6)); }
     static void uniformMatrix3x2fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix3x2fv(location, count, transpose, elements(v, count, 6)); }
     static void uniformMatrix2x4fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix2x4fv(location, count, transpose, elements(v, count, 8)); }
@@ -464,6 +475,12 @@ struct ANGLE final {
     {
         auto span = varyings.span();
         GL_TransformFeedbackVaryings(program, sizeFor(span), span.data(), bufferMode);
+    }
+    static void shaderSource(GLuint shader, const std::string& source)
+    {
+        const char* string = source.c_str();
+        GLint length = static_cast<GLint>(source.size());
+        GL_ShaderSource(shader, 1, &string, &length);
     }
     static GLint getUniformLocation(GLuint program, const std::string& name) { return GL_GetUniformLocation(program, name.c_str()); }
     static GLint getAttribLocation(GLuint program, const std::string& name) { return GL_GetAttribLocation(program, name.c_str()); }

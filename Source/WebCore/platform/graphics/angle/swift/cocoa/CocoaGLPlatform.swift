@@ -24,6 +24,7 @@
 
 #if WTF_PLATFORM_COCOA
 
+internal import CoreVideo
 internal import IOSurface
 internal import Metal
 internal import Synchronization
@@ -87,6 +88,10 @@ public final class CocoaGLPlatform: GLContextPlatform {
     private(set) var config = ANGLEConfig()
     private(set) var eglContext = ANGLEContext()
     private var isInitialized = false
+
+#if ENABLE_VIDEO
+    private var videoUpload: GLVideoUpload?
+#endif
 
     private var currentDrawingBufferIndex = 0
     private var drawingBuffers = [CocoaGLPbuffer?](repeating: nil, count: CocoaGLPlatform.maxReusedDrawingBuffers)
@@ -286,7 +291,9 @@ public final class CocoaGLPlatform: GLContextPlatform {
     }
 
     func invalidateKnownTextureContent(_ texture: GLuint) {
-        GLContextCallbacks.invalidateKnownTextureContent(contextID, texture)
+#if ENABLE_VIDEO
+        videoUpload?.invalidateKnownTextureContent(texture)
+#endif
     }
 
     func didLoseDisplay() {
@@ -298,6 +305,10 @@ public final class CocoaGLPlatform: GLContextPlatform {
     @_expose(!Cxx)
     func willDestroy(_ context: GLContext) {
         freeDrawingBuffers()
+#if ENABLE_VIDEO
+        videoUpload?.destroy()
+        videoUpload = nil
+#endif
     }
 
     @_expose(!Cxx)
@@ -672,6 +683,34 @@ public final class CocoaGLPlatform: GLContextPlatform {
             }
         }
     }
+
+#if ENABLE_VIDEO
+    // Video uploads.
+
+    // Makes the video upload's context the first time. Returns false if it couldn't, and tries again next time.
+    @_expose(Cxx)
+    public func prepareVideoUpload() -> Bool {
+        if videoUpload != nil {
+            return true
+        }
+        let upload = GLVideoUpload(display: display, config: config, sharing: eglContext, isWebGL2: attributes.isWebGL2)
+        guard upload.isValid else {
+            return false
+        }
+        videoUpload = upload
+        return true
+    }
+
+    // Copies a frame, whose orientation is an ImageOrientation::Orientation, to a TEXTURE_2D texture of its size.
+    // Returns the GraphicsContextGLVideoUploadOutcome. prepareVideoUpload() made the video upload's context.
+    @_expose(Cxx)
+    public func copyVideoFrameToTexture(_ frame: CVPixelBuffer, _ orientation: UInt8, _ outputTexture: GLuint, _ level: GLint, _ internalFormat: GLenum, _ format: GLenum, _ type: GLenum, _ unpackFlipY: Bool, _ hardwareOnlyForTesting: Bool) -> UInt8 {
+        guard let videoUpload else {
+            return GLVideoUploadOutcome.unsupported.rawValue
+        }
+        return videoUpload.copyVideoSampleToTexture(frame, orientation: orientation, outputTexture: outputTexture, level: level, internalFormat: internalFormat, format: format, type: type, unpackFlipY: unpackFlipY, hardwareOnlyForTesting: hardwareOnlyForTesting).rawValue
+    }
+#endif
 
     // The colour space of the drawing buffers changed: reallocates them, or loses the context if it can't.
     @_expose(!Cxx)

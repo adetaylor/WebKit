@@ -47,10 +47,6 @@ namespace WebCore {
 
 class GraphicsLayerContentsDisplayDelegate;
 
-#if ENABLE(VIDEO)
-class GraphicsContextGLCVCocoa;
-#endif
-
 class WEBCORE_EXPORT GraphicsContextGLCocoa : public GraphicsContextGLANGLE, public CanMakeCheckedPtr<GraphicsContextGLCocoa> {
     WTF_MAKE_TZONE_ALLOCATED(GraphicsContextGLCocoa);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(GraphicsContextGLCocoa);
@@ -111,12 +107,8 @@ protected:
     // GraphicsContextGLANGLE overrides.
     bool platformInitializeContext() final;
     std::unique_ptr<Island> createIsland() final;
-    void invalidateKnownTextureContent(GCGLuint) final;
     bool reshapeDrawingBuffer() final;
 
-#if ENABLE(VIDEO)
-    GraphicsContextGLCV* cvContext();
-#endif
     // Inserts new fence that will invoke `signal` from a background thread when completed.
     // If not possible, calls the `signal`.
     void insertFinishedSignalOrInvoke(Function<void()> signal);
@@ -129,9 +121,6 @@ protected:
 
     ProcessIdentity m_resourceOwner;
     ColorSpace m_drawingBufferColorSpace;
-#if ENABLE(VIDEO)
-    const std::unique_ptr<GraphicsContextGLCVCocoa> m_cv;
-#endif
     const RetainPtr<MTLSharedEventListener> m_finishedMetalSharedEventListener;
     const RetainPtr<id> m_finishedMetalSharedEvent; // FIXME: Remove all C++ includees and use id<MTLSharedEvent>.
 #if ENABLE(WEBXR)
@@ -145,7 +134,6 @@ protected:
 
 private:
     friend struct GLContextCallbacks;
-    friend class GraphicsContextGLCVCocoa;
 
     // A drawing buffer surface of the context's colour space and alpha, owned by the context's process, retained.
     RetainPtr<IOSurfaceRef> createDrawingBufferSurface(IntSize);

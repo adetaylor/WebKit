@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2009-2021 Apple Inc. All rights reserved.
  * Copyright (C) 2021 Apple Inc. All rights reserved.
+ * Copyright (C) 2023 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,6 +31,7 @@
 #if ENABLE(WEBGL)
 
 #import "Logging.h"
+#import <pal/spi/cf/CoreVideoSPI.h>
 #import <wtf/StdLibExtras.h>
 #import <wtf/Vector.h>
 #import <wtf/darwin/WeakLinking.h>
@@ -152,6 +154,38 @@ ANGLEContext ANGLECocoa::createWebGLContext(ANGLEDisplay display, ANGLEConfig co
 
     attributes.append(EGL_NONE);
     return ANGLEContext { EGL_CreateContext(display.get(), config.get(), EGL_NO_CONTEXT, attributes.span().data()) };
+}
+
+#if HAVE(COREVIDEO_COMPRESSED_PIXEL_FORMAT_TYPES)
+OSType ANGLECocoa::agx420YpCbCr8BiPlanarVideoRange()
+{
+    return kCVPixelFormatType_AGX_420YpCbCr8BiPlanarVideoRange;
+}
+
+OSType ANGLECocoa::agx420YpCbCr8BiPlanarFullRange()
+{
+    return kCVPixelFormatType_AGX_420YpCbCr8BiPlanarFullRange;
+}
+#endif
+
+ANGLEContext ANGLECocoa::createSharedContext(ANGLEDisplay display, ANGLEConfig config, ANGLEContext shareContext, bool isWebGL2)
+{
+    // Create compatible context that shares state with owner, but one that does not
+    // have robustness or WebGL compatibility. The reset notification strategy must match the owner's.
+    const EGLint attributes[] = {
+        EGL_CONTEXT_CLIENT_VERSION,
+        isWebGL2 ? 3 : 2,
+        EGL_CONTEXT_OPENGL_BACKWARDS_COMPATIBLE_ANGLE,
+        EGL_FALSE,
+        EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT,
+        EGL_LOSE_CONTEXT_ON_RESET_EXT,
+        EGL_CONTEXT_CLIENT_ARRAYS_ENABLED_ANGLE,
+        EGL_FALSE,
+        EGL_CONTEXT_BIND_GENERATES_RESOURCE_CHROMIUM,
+        EGL_FALSE,
+        EGL_NONE
+    };
+    return ANGLEContext { EGL_CreateContext(display.get(), config.get(), shareContext.get(), attributes) };
 }
 
 #endif

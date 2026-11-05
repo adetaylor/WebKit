@@ -32,6 +32,7 @@
 
 #if defined(__APPLE__)
 #include <CoreFoundation/CoreFoundation.h>
+#include <CoreVideo/CoreVideo.h>
 #include <IOSurface/IOSurfaceRef.h>
 #endif
 
@@ -90,6 +91,8 @@ struct GLContextCallbacks final {
 #if defined(__APPLE__)
     // A drawing buffer's IOSurface, of the context's colour space and owner.
     static IOSurfaceRef createDrawingBufferSurface(uint64_t contextID, int32_t width, int32_t height) CF_RETURNS_RETAINED;
+    // A frame converted to '420f', for the video uploads, or null if it couldn't be.
+    static CVPixelBufferRef convertPixelBufferTo420f(CVPixelBufferRef) CF_RETURNS_RETAINED;
 #endif
 
 #if !defined(__swift__)

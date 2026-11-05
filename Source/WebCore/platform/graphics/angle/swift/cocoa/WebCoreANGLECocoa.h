@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2009-2021 Apple Inc. All rights reserved.
  * Copyright (C) 2021 Apple Inc. All rights reserved.
+ * Copyright (C) 2023 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,6 +31,7 @@
 // pbuffers. The attributes that make a context a WebGL context are fixed here.
 
 #include "../WebCoreANGLE.h"
+#include <CoreVideo/CoreVideo.h>
 #include <IOKit/IOReturn.h>
 #include <IOSurface/IOSurfaceRef.h>
 
@@ -81,6 +83,8 @@ struct ANGLECocoa final {
     // buffer, resources cleared at creation, and context loss on GPU reset. ownershipIdentity is a task identity token,
     // or 0 for none.
     static ANGLEContext createWebGLContext(ANGLEDisplay display, ANGLEConfig config, bool isWebGL2, uint32_t ownershipIdentity);
+    // A context sharing the objects of shareContext, without WebGL compatibility or robustness, for blits.
+    static ANGLEContext createSharedContext(ANGLEDisplay display, ANGLEConfig config, ANGLEContext shareContext, bool isWebGL2);
     static bool destroyContext(ANGLEDisplay display, ANGLEContext context) { return EGL_DestroyContext(display.get(), context.get()); }
 
     // A pbuffer for an IOSurface plane, which ANGLE renders to and samples from. textureTarget is GL_TEXTURE_2D or
@@ -120,4 +124,10 @@ struct ANGLECocoa final {
         uint32_t previousState = 0;
         return IOSurfaceSetPurgeable(surface, isVolatile ? kIOSurfacePurgeableVolatile : kIOSurfacePurgeableNonVolatile, &previousState) == kIOReturnSuccess;
     }
+
+    // The IOSurface of a pixel buffer, or null if it has none.
+    static IOSurfaceRef ioSurface(CVPixelBufferRef pixelBuffer) CF_RETURNS_NOT_RETAINED { return CVPixelBufferGetIOSurface(pixelBuffer); }
+    // The compressed '420v' and '420f' formats, where CoreVideo has them.
+    static OSType agx420YpCbCr8BiPlanarVideoRange();
+    static OSType agx420YpCbCr8BiPlanarFullRange();
 };

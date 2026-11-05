@@ -36,4 +36,12 @@ enum GLLog {
         channel.log("\(message, privacy: .public)")
 #endif
     }
+
+    // The WebGL log channel's debug messages, which are only in builds with assertions.
+    static func debug(_ message: @autoclosure () -> Swift.String) {
+#if canImport(os) && ASSERT_ENABLED
+        let text = message()
+        channel.debug("\(text, privacy: .public)")
+#endif
+    }
 }

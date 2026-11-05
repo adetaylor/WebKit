@@ -54,8 +54,8 @@
 #endif
 
 #if ENABLE(VIDEO)
-#import "GraphicsContextGLCVCocoa.h"
 #import "MediaPlayerPrivate.h"
+#import "PixelBufferConformerCV.h"
 #import "VideoFrameCV.h"
 #endif
 
@@ -87,6 +87,14 @@ public:
 };
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextGLCocoa::CocoaPlatform);
+
+#if ENABLE(VIDEO)
+CVPixelBufferRef GLContextCallbacks::convertPixelBufferTo420f(CVPixelBufferRef pixelBuffer)
+{
+    auto conformer = makeUnique<PixelBufferConformerCV>((__bridge CFDictionaryRef)@{ (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) });
+    return conformer->convert(pixelBuffer).leakRef();
+}
+#endif
 
 IOSurfaceRef GLContextCallbacks::createDrawingBufferSurface(uint64_t contextID, int32_t width, int32_t height)
 {
@@ -471,15 +479,6 @@ void GraphicsContextGLCocoa::insertFinishedSignalOrInvoke(Function<void()> signa
     ASSERT_UNUSED(result, result);
 }
 
-#if ENABLE(VIDEO)
-GraphicsContextGLCV* GraphicsContextGLCocoa::cvContext()
-{
-    if (!m_cv)
-        lazyInitialize(m_cv, GraphicsContextGLCVCocoa::create(*this));
-    return m_cv.get();
-}
-#endif
-
 RefPtr<PixelBuffer> GraphicsContextGLCocoa::readCompositedResults()
 {
     auto pixelBuffer = createPixelBufferForPaintResults();
@@ -518,12 +517,6 @@ RefPtr<GraphicsLayerContentsDisplayDelegate> GraphicsContextGLCocoa::layerConten
     return nullptr;
 }
 
-void GraphicsContextGLCocoa::invalidateKnownTextureContent(GCGLuint texture)
-{
-    if (m_cv)
-        m_cv->invalidateKnownTextureContent(texture);
-}
-
 // Says how the alpha of the contents of the surface buffers is to be interpreted.
 static CGImageAlphaInfo LEGACY_NODELETE alphaInfoForSurfaceBufferContents(const GraphicsContextGLAttributes& attributes)
 {
@@ -556,12 +549,15 @@ RefPtr<NativeImage> GraphicsContextGLCocoa::copyNativeImage(SurfaceBuffer buffer
 }
 
 #if ENABLE(VIDEO)
+static_assert(std::to_underlying(GraphicsContextGLVideoUploadOutcome::Direct) == 0 && std::to_underlying(GraphicsContextGLVideoUploadOutcome::PbufferFailed) == 10, "GLVideoUploadOutcome");
+static_assert(std::to_underlying(ImageOrientation::Orientation::OriginTopRight) == 2 && std::to_underlying(ImageOrientation::Orientation::OriginLeftBottom) == 8, "GLVideoUpload orientations");
+
 bool GraphicsContextGLCocoa::copyTextureFromVideoFrame(VideoFrame& videoFrame, PlatformGLObject texture, int32_t level, uint32_t internalFormat, uint32_t format, uint32_t type, bool premultiplyAlpha, bool flipY)
 {
     UNUSED_VARIABLE(premultiplyAlpha);
-    auto* contextCV = cvContext();
-    if (!contextCV) {
-        ASSERT(contextCV);
+    auto& platform = m_cocoaPlatform->platform;
+    if (!platform.prepareVideoUpload()) {
+        ASSERT_NOT_REACHED();
         recordVideoUploadForTesting(VideoUploadOutcome::Unsupported, 0);
         return false;
     }
@@ -571,7 +567,7 @@ bool GraphicsContextGLCocoa::copyTextureFromVideoFrame(VideoFrame& videoFrame, P
         recordVideoUploadForTesting(VideoUploadOutcome::Unsupported, 0);
         return false;
     }
-    auto outcome = contextCV->copyVideoSampleToTexture(*videoFrameCV, texture, level, internalFormat, format, type, WebCore::GraphicsContextGL::FlipY(flipY));
+    auto outcome = static_cast<VideoUploadOutcome>(platform.copyVideoFrameToTexture(videoFrameCV->pixelBuffer(), std::to_underlying(videoFrameCV->orientation().orientation()), texture, level, internalFormat, format, type, flipY, videoUploadHardwareOnlyForTesting()));
     recordVideoUploadForTesting(outcome, videoFrameCV->pixelFormat());
     return isSuccessfulVideoUpload(outcome);
 }

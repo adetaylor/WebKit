@@ -10,7 +10,10 @@ add_library(WebCoreWebGL STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/GLState.swift
 )
 if (APPLE)
-    target_sources(WebCoreWebGL PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/cocoa/CocoaGLPlatform.swift)
+    target_sources(WebCoreWebGL PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/cocoa/CocoaGLPlatform.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/cocoa/GLVideoUpload.swift
+    )
 endif ()
 set_target_properties(WebCoreWebGL PROPERTIES Swift_MODULE_NAME WebCoreWebGL)
 
