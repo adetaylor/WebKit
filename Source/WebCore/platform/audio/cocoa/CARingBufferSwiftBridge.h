@@ -191,17 +191,18 @@ class SWIFT_NONCOPYABLE SWIFT_NONESCAPABLE SWIFT_SAFE FloatSamplesView {
 public:
 #if !defined(__swift__)
     explicit FloatSamplesView(std::span<float> samples)
-        : m_samples(samples)
+        : m_bytes(asWritableBytes(samples))
     {
     }
 #endif
     FloatSamplesView(const FloatSamplesView&) = delete;
     FloatSamplesView(FloatSamplesView&&) = default;
 
-    ALWAYS_INLINE std::span<float> mutableSamples() LIFETIME_BOUND { return m_samples; }
+    // The samples' bytes: Swift's span of a byte span inlines, where a span of floats can stay an out-of-line call.
+    ALWAYS_INLINE std::span<uint8_t> mutableBytes() LIFETIME_BOUND { return m_bytes; }
 
 private:
-    std::span<float> m_samples;
+    std::span<uint8_t> m_bytes;
 };
 
 } // namespace WebCore

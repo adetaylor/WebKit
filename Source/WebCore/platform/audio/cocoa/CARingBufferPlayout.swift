@@ -54,7 +54,7 @@ func caRingBufferRenderForAudioDestination(
     _ lastRenderedSamples: inout WebCore.FloatSamplesView,
     _ frameCount: UInt32
 ) -> Bool {
-    var last: MutableSpan<Float> = lastRenderedSamples.mutableSamples()
+    var last: MutableSpan<UInt8> = lastRenderedSamples.mutableBytes()
     if fetchIfHasEnoughData(ring, &output, UInt64(frameCount), startFrame, .copy) {
         startFrame &+= UInt64(frameCount)
         rememberLastRenderedSamples(&output, Int(frameCount), &last)
@@ -65,28 +65,30 @@ func caRingBufferRenderForAudioDestination(
 }
 
 @inline(__always)
-private func rememberLastRenderedSamples(_ output: inout WebCore.AudioBufferListView, _ frameCount: Int, _ last: inout MutableSpan<Float>) {
+private func rememberLastRenderedSamples(_ output: inout WebCore.AudioBufferListView, _ frameCount: Int, _ last: inout MutableSpan<UInt8>) {
     if frameCount == 0 {
         return
     }
     let bufferCount = Int(output.bufferCount())
     var channel = 0
-    while channel < last.count && channel < bufferCount {
+    let lastCount = sampleCount(last)
+    while channel < lastCount && channel < bufferCount {
         var samples: MutableSpan<UInt8> = output.mutableBytes(UInt32(channel))
         let count = min(frameCount, sampleCount(samples))
-        last[channel] = count != 0 ? loadSample(&samples, count &- 1) : 0
+        storeSample(&last, channel, count != 0 ? loadSample(&samples, count &- 1) : 0)
         channel &+= 1
     }
 }
 
-private func fadeOutToSilence(_ output: inout WebCore.AudioBufferListView, _ frameCount: Int, _ last: inout MutableSpan<Float>) {
+private func fadeOutToSilence(_ output: inout WebCore.AudioBufferListView, _ frameCount: Int, _ last: inout MutableSpan<UInt8>) {
     let bufferCount = output.bufferCount()
+    let lastCount = sampleCount(last)
     var channel: UInt32 = 0
     while channel < bufferCount {
         var samples: MutableSpan<UInt8> = output.mutableBytes(channel)
         let total = sampleCount(samples)
         let count = min(frameCount, total)
-        let startSample: Float = Int(channel) < last.count ? last[Int(channel)] : 0
+        let startSample: Float = Int(channel) < lastCount ? loadSample(&last, Int(channel)) : 0
         var frame = 0
         if startSample != 0 && count != 0 {
             // A linear ramp from the last rendered sample down to zero, to declick.
@@ -102,7 +104,7 @@ private func fadeOutToSilence(_ output: inout WebCore.AudioBufferListView, _ fra
         channel &+= 1
     }
     // Silent now, so a following underrun outputs pure silence.
-    last.update(repeating: 0)
+    zeroAudioBytes(&last, at: 0, count: lastCount &* 4)
 }
 
 // RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::render(), up to its zeroing of the output on an underrun:
