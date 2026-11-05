@@ -274,7 +274,7 @@ header: <wtf/MemoryPressureHandler.h>
     Critical,
 }
 
-enum class WTFLogLevel : uint8_t {
+[Swift] enum class WTFLogLevel : uint8_t {
     Always,
     Error,
     Warning,
