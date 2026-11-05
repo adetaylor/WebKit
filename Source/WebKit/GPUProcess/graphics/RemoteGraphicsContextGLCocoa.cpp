@@ -40,7 +40,7 @@
 #include <wtf/TZoneMallocInlines.h>
 
 #if ENABLE(VIDEO)
-#include "RemoteVideoFrameObjectHeap.h"
+#include "RemoteVideoFrameObjectHeapHandle.h"
 #include <WebCore/MediaSampleAVFObjC.h>
 #include <WebCore/VideoFrameCV.h>
 #endif

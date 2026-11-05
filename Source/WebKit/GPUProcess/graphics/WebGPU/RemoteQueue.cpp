@@ -42,7 +42,7 @@
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 #include "GPUConnectionToWebProcess.h"
-#include "RemoteVideoFrameObjectHeap.h"
+#include "RemoteVideoFrameObjectHeapHandle.h"
 #include <WebCore/MediaPlayer.h>
 #include <WebCore/VideoFrame.h>
 #endif

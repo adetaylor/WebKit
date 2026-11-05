@@ -48,7 +48,7 @@
 #include <wtf/text/WTFString.h>
 
 #if ENABLE(VIDEO)
-#include "RemoteVideoFrameObjectHeap.h"
+#include "RemoteVideoFrameObjectHeapHandle.h"
 #endif
 
 typedef struct __CVBuffer* CVPixelBufferRef;
@@ -158,7 +158,7 @@ private:
     WebGPUIdentifier m_identifier;
     const Ref<RemoteQueue> m_queue;
 #if ENABLE(VIDEO)
-    const Ref<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
+    const Ref<RemoteVideoFrameObjectHeapHandle> m_videoFrameObjectHeap;
 #if PLATFORM(COCOA)
     SharedVideoFrameReader m_sharedVideoFrameReader;
 #endif

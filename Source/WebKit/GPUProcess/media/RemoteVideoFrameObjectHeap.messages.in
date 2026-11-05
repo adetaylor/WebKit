@@ -25,13 +25,14 @@
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
-    DispatchedTo=GPU
+    DispatchedTo=GPU,
+    SwiftReceiver
 ]
-messages -> RemoteVideoFrameObjectHeap {
+messages -> RemoteVideoFrameObjectHeap WorkQueue {
 #if PLATFORM(COCOA)
     GetVideoFrameBuffer(WebKit::RemoteVideoFrameReadReference read) AllowedWhenWaitingForSyncReply
-    SetSharedVideoFrameSemaphore(IPC::Semaphore semaphore)
-    SetSharedVideoFrameMemory(WebCore::SharedMemory::Handle storageHandle)
+    SetSharedVideoFrameSemaphore([CxxDecoded] IPC::Semaphore semaphore) SwiftTypes
+    SetSharedVideoFrameMemory([CxxDecoded] WebCore::SharedMemory::Handle storageHandle) SwiftTypes
     ConvertFrameBuffer(struct WebKit::SharedVideoFrame frame, bool shouldApplyRotation) -> (WebCore::ColorSpace space) Synchronous
 #endif
     ReleaseVideoFrame(WebKit::RemoteVideoFrameWriteReference write) AllowedWhenWaitingForSyncReply

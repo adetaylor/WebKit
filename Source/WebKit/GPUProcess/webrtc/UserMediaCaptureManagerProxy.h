@@ -29,7 +29,7 @@
 
 #include "Connection.h"
 #include "MessageReceiver.h"
-#include "RemoteVideoFrameObjectHeap.h"
+#include "RemoteVideoFrameObjectHeapHandle.h"
 #include "UserMediaCaptureManager.h"
 #include <WebCore/CaptureDevice.h>
 #include <WebCore/IntDegrees.h>
@@ -79,7 +79,7 @@ public:
         virtual void providePresentingApplicationPID(WebCore::PageIdentifier) const = 0;
 #endif
         virtual void startProducingData(WebCore::CaptureDevice::DeviceType, WebCore::PageIdentifier) { }
-        virtual RemoteVideoFrameObjectHeap* remoteVideoFrameObjectHeap() { return nullptr; }
+        virtual RemoteVideoFrameObjectHeapHandle* remoteVideoFrameObjectHeap() { return nullptr; }
 
         virtual void startMonitoringCaptureDeviceRotation(WebCore::PageIdentifier, const String&) { }
         virtual void stopMonitoringCaptureDeviceRotation(WebCore::PageIdentifier, const String&) { }

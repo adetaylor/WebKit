@@ -87,6 +87,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/LegacyCustomProtocolManagerProxy
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/LibWebRTCCodecsMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/LibWebRTCCodecsMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/LibWebRTCCodecsProxyMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/LibWebRTCCodecsProxyMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/LibWebRTCCodecsProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/LibWebRTCNetworkMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/LibWebRTCNetworkMessages.h
@@ -342,6 +343,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteTextureMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteTextureViewMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteTextureViewMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteVideoFrameObjectHeapMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteVideoFrameObjectHeapMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteVideoFrameObjectHeapMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteVideoFrameObjectHeapProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteVideoFrameObjectHeapProxyMessages.h

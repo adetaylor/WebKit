@@ -32,6 +32,16 @@
 #include "IPCTesterReceiverMessages.h"
 #include "SecurityFlags.h"
 
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
+#include "RemoteVideoFrameObjectHeapMessages.h"
+#include "RemoteVideoFrameObjectHeapPlatform.h"
+#endif
+
+#if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
+#include "LibWebRTCCodecsProxyMessages.h"
+#include "LibWebRTCCodecsProxyPlatform.h"
+#endif
+
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 #include "RemoteCDMFactoryProxyMessages.h"
 #include "RemoteCDMInstanceProxyMessages.h"

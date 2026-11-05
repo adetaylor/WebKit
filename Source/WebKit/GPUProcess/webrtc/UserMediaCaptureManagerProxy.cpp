@@ -31,7 +31,7 @@
 #include "Connection.h"
 #include "Logging.h"
 #include "RemoteCaptureSampleManagerMessages.h"
-#include "RemoteVideoFrameObjectHeap.h"
+#include "RemoteVideoFrameObjectHeapHandle.h"
 #include "SharedCARingBuffer.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "UserMediaCaptureManagerMessages.h"
@@ -67,7 +67,7 @@ class UserMediaCaptureManagerProxySourceProxy final
     WTF_MAKE_TZONE_ALLOCATED_INLINE(UserMediaCaptureManagerProxySourceProxy);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(UserMediaCaptureManagerProxySourceProxy);
 public:
-    static Ref<UserMediaCaptureManagerProxySourceProxy> create(RealtimeMediaSourceIdentifier id, Ref<IPC::Connection>&& connection, ProcessIdentity&& resourceOwner, Ref<RealtimeMediaSource>&& source, RefPtr<RemoteVideoFrameObjectHeap>&& videoFrameObjectHeap) { return adoptRef(*new UserMediaCaptureManagerProxySourceProxy(id, WTF::move(connection), WTF::move(resourceOwner), WTF::move(source), WTF::move(videoFrameObjectHeap))); }
+    static Ref<UserMediaCaptureManagerProxySourceProxy> create(RealtimeMediaSourceIdentifier id, Ref<IPC::Connection>&& connection, ProcessIdentity&& resourceOwner, Ref<RealtimeMediaSource>&& source, RefPtr<RemoteVideoFrameObjectHeapHandle>&& videoFrameObjectHeap) { return adoptRef(*new UserMediaCaptureManagerProxySourceProxy(id, WTF::move(connection), WTF::move(resourceOwner), WTF::move(source), WTF::move(videoFrameObjectHeap))); }
     ~UserMediaCaptureManagerProxySourceProxy()
     {
         unobserveMedia();
@@ -338,7 +338,7 @@ public:
 #endif
 
 private:
-    UserMediaCaptureManagerProxySourceProxy(RealtimeMediaSourceIdentifier id, Ref<IPC::Connection>&& connection, ProcessIdentity&& resourceOwner, Ref<RealtimeMediaSource>&& source, RefPtr<RemoteVideoFrameObjectHeap>&& videoFrameObjectHeap)
+    UserMediaCaptureManagerProxySourceProxy(RealtimeMediaSourceIdentifier id, Ref<IPC::Connection>&& connection, ProcessIdentity&& resourceOwner, Ref<RealtimeMediaSource>&& source, RefPtr<RemoteVideoFrameObjectHeapHandle>&& videoFrameObjectHeap)
         : m_id(id)
         , m_connection(WTF::move(connection))
         , m_resourceOwner(WTF::move(resourceOwner))
@@ -470,7 +470,7 @@ private:
     int64_t m_remainingFrameCount { 0 };
     size_t m_frameChunkSize { 0 };
     MediaTime m_startTime;
-    const RefPtr<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
+    const RefPtr<RemoteVideoFrameObjectHeapHandle> m_videoFrameObjectHeap;
 #if PLATFORM(IOS_FAMILY)
     Function<void()> m_providePresentingApplicationPIDFunction;
 #endif

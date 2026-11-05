@@ -63,7 +63,7 @@ class TextTrackRepresentation;
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
-class RemoteVideoFrameObjectHeap;
+class RemoteVideoFrameObjectHeapHandle;
 struct SharedPreferencesForWebProcess;
 
 // Destroyed on the main thread like the GPUConnectionToWebProcess that owns it, since it holds media
@@ -215,7 +215,7 @@ private:
 #endif
 
     HashMap<RemoteAudioVideoRendererIdentifier, RendererContext> m_renderers;
-    const Ref<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
+    const Ref<RemoteVideoFrameObjectHeapHandle> m_videoFrameObjectHeap;
 
     ThreadSafeWeakRef<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
 #if !RELEASE_LOG_DISABLED

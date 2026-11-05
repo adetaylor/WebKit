@@ -999,6 +999,7 @@ if (NOT APPLE)
 endif ()
 
 set(WebKit_SWIFT_INTEROP_SOURCES
+    GPUProcess/media/RemoteVideoFrameObjectHeapHandle.cpp
     Shared/IPCStreamTester.cpp
     Shared/IPCTester.cpp
     UIProcess/ProvisionalPageProxy.cpp
@@ -1008,6 +1009,7 @@ set(WebKit_SWIFT_INTEROP_SOURCES
     UIProcess/Automation/WebAutomationSession.cpp
     WebProcess/WebPage/IPCTestingAPI.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebBackForwardListMessageReceiver.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeapMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftStreamTesterMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftWorkQueueTesterMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
@@ -1023,6 +1025,9 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp
 
         GPUProcess/media/RemoteCDMRegistry.cpp
+
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/LibWebRTCCodecsProxyMessageReceiver.cpp
+        GPUProcess/webrtc/LibWebRTCCodecsProxyHandle.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySetMessageReceiver.cpp
@@ -1590,9 +1595,12 @@ list(APPEND WebKit_SOURCES
 )
 
 set_source_files_properties(
+    ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
     PROPERTIES GENERATED TRUE)
 list(APPEND WebKit_SOURCES
+    ${WEBKIT_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeap.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
     ${WEBKIT_DIR}/Platform/Logging.swift
     ${WEBKIT_DIR}/Shared/API/APIArray.swift
@@ -1635,6 +1643,16 @@ list(APPEND WebKit_SOURCES
     ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftWorkQueueTesterMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
 )
+
+if (SWIFT_REQUIRED AND APPLE)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/LibWebRTCCodecsProxyMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/webrtc/LibWebRTCCodecsProxy.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/LibWebRTCCodecsProxyMessageReceiver.swift
+    )
+endif ()
 
 # Each compiles to nothing unless ENABLE_GPU_PROCESS_CDM_SWIFT is set.
 if (SWIFT_REQUIRED AND APPLE)

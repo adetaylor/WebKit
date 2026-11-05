@@ -32,7 +32,7 @@
 #import "IPCUtilities.h"
 #import "Logging.h"
 #import "MessageSenderInlines.h"
-#import "RemoteVideoFrameObjectHeap.h"
+#import "RemoteVideoFrameObjectHeapHandle.h"
 #import "SampleBufferDisplayLayerMessages.h"
 #import "SharedPreferencesForWebProcess.h"
 #import <QuartzCore/CALayer.h>

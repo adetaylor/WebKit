@@ -43,7 +43,7 @@
 #include <wtf/NeverDestroyed.h>
 
 #if ENABLE(VIDEO)
-#include "RemoteVideoFrameObjectHeap.h"
+#include "RemoteVideoFrameObjectHeapHandle.h"
 #endif
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_connection);

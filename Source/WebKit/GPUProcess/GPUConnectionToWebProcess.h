@@ -97,7 +97,7 @@ namespace WebKit {
 
 class GPUProcess;
 class LayerHostingContext;
-class LibWebRTCCodecsProxy;
+class LibWebRTCCodecsProxyHandle;
 class LocalAudioSessionRoutingArbitrator;
 class RemoteAudioDestinationManager;
 class RemoteAudioHardwareListenerProxy;
@@ -126,7 +126,7 @@ class RemoteWCLayerTreeHost;
 #if ENABLE(VIDEO)
 class RemoteAudioVideoRendererProxyManager;
 class RemoteMediaPlayerManagerProxy;
-class RemoteVideoFrameObjectHeap;
+class RemoteVideoFrameObjectHeapHandle;
 #endif
 
 #if ENABLE(WEBGL)
@@ -216,7 +216,7 @@ public:
     bool allowsDisplayCapture() const { return m_allowsDisplayCapture; }
 #endif
 #if ENABLE(VIDEO)
-    NODELETE RemoteVideoFrameObjectHeap& videoFrameObjectHeap() const;
+    NODELETE RemoteVideoFrameObjectHeapHandle& videoFrameObjectHeap() const;
 #endif
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     void startCapturingAudio();
@@ -418,10 +418,10 @@ private:
     bool m_allowsDisplayCapture { false };
 #endif
 #if ENABLE(VIDEO)
-    IPC::ScopedActiveMessageReceiveQueue<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
+    IPC::ScopedActiveMessageReceiveQueue<RemoteVideoFrameObjectHeapHandle> m_videoFrameObjectHeap;
 #endif
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
-    IPC::ScopedActiveMessageReceiveQueue<LibWebRTCCodecsProxy> m_libWebRTCCodecsProxy;
+    IPC::ScopedActiveMessageReceiveQueue<LibWebRTCCodecsProxyHandle> m_libWebRTCCodecsProxy;
 #endif
 #if HAVE(AUDIT_TOKEN)
     HashMap<WebCore::PageIdentifier, CoreIPCAuditToken> m_presentingApplicationAuditTokens;
