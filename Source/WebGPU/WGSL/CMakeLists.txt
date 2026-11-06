@@ -162,6 +162,7 @@ set_target_properties(WGSL PROPERTIES
 WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WGSL)
 webkit_target_add_swift_options(WGSL
     "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-DWGSL_UNOPTIMIZED>"
+    "-Werror SendableClosureCaptures"
 )
 WEBKIT_RAISE_SWIFT_NINJA_PRIORITY(WGSL)
 
