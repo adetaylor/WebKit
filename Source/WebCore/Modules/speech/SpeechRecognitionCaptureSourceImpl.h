@@ -30,12 +30,7 @@
 
 #include <WebCore/RealtimeMediaSource.h>
 #include <WebCore/SpeechRecognitionConnectionClientIdentifier.h>
-#include <wtf/Lock.h>
 #include <wtf/TZoneMalloc.h>
-
-#if PLATFORM(COCOA)
-#include <WebCore/AudioSampleDataSource.h>
-#endif
 
 namespace WTF {
 class MediaTime;
@@ -72,10 +67,6 @@ private:
     // RealtimeMediaSource::AudioSampleObserver
     void audioSamplesAvailable(const WTF::MediaTime&, const PlatformAudioData&, const AudioStreamDescription&, size_t) final;
 
-#if PLATFORM(COCOA)
-    void pullSamplesAndCallDataCallback(AudioSampleDataSource*, const WTF::MediaTime&, const CAAudioStreamDescription&, size_t sampleCount);
-#endif
-
     // RealtimeMediaSourceObserver
     void sourceStarted() final;
     void sourceStopped() final;
@@ -85,11 +76,6 @@ private:
     DataCallback m_dataCallback;
     StateUpdateCallback m_stateUpdateCallback;
     const Ref<RealtimeMediaSource> m_source;
-
-#if PLATFORM(COCOA)
-    RefPtr<AudioSampleDataSource> m_dataSource WTF_GUARDED_BY_LOCK(m_dataSourceLock);
-    Lock m_dataSourceLock;
-#endif
 };
 
 } // namespace WebCore
