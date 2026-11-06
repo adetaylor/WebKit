@@ -339,7 +339,7 @@ inline LentBytes SwiftDecoder::lentBytes(const LentBytesPosition& position) cons
 
 // An argument of a message whose Swift receiver takes Swift types, which has no Swift form yet, so its own ArgumentCoder
 // decodes it into this holder. Generated Swift passes the holder to the receiver, which passes it on to the C++ that
-// takes the value, once.
+// takes the value, once. It has its own Swift annotation, not RefCounted's, so that Swift calls its deref().
 template<typename T>
 class CxxDecodedArgument final : public RefCounted<CxxDecodedArgument<T>> {
 public:
@@ -349,14 +349,25 @@ public:
         auto value = decoder.borrowed().template decode<T>();
         if (!value)
             return nullptr;
-        return &adoptRef(*new CxxDecodedArgument(WTF::move(*value))).leakRef();
+        // Swift emits decode() and deref(), and Xcode.app's Swift (6.5.0.12.6) doesn't emit the inline operator delete
+        // of RefCounted that a new-expression or a delete-expression would reference, so these allocate and free with
+        // fastMalloc() and fastFree(), as that operator delete does.
+        auto* argument = ::new (WTF::fastMalloc(sizeof(CxxDecodedArgument))) CxxDecodedArgument(WTF::move(*value));
+        return &adoptRef(*argument).leakRef();
     }
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the
     // type hierarchy.
     void ref() const { RefCounted<CxxDecodedArgument<T>>::ref(); }
-    void deref() const { RefCounted<CxxDecodedArgument<T>>::deref(); }
+    void deref() const
+    {
+        if (!this->derefBase())
+            return;
+        auto* argument = const_cast<CxxDecodedArgument*>(this);
+        argument->~CxxDecodedArgument();
+        WTF::fastFree(argument);
+    }
 #endif
 
     // The value, the first time.
@@ -369,7 +380,7 @@ private:
     }
 
     std::optional<T> m_value;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+} SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 // A Decoder that generated Swift decodes from outside the dispatch of a message, such as a value or a reply that
 // C++ encodes as IPC would, for Swift to decode with its messages' coders. It owns the Decoder and lends it as
