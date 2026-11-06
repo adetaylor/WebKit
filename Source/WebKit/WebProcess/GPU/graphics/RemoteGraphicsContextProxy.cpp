@@ -31,7 +31,9 @@
 #include "Logging.h"
 #include "RemoteGraphicsContextMessages.h"
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
+#include "RemoteCGRendererPathSegment.h"
 #endif
 #include "RemoteImageBufferProxy.h"
 #include "RemoteRenderingBackendProxy.h"
@@ -110,7 +112,11 @@ ALWAYS_INLINE void RemoteGraphicsContextProxy::send(T&& message)
     // responsible for calling sendPendingDrawsIfNecessary() before reaching
     // here (see its declaration). This catches a missed call site: the buffer
     // must be empty unless we are sending the batch message itself.
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    ASSERT(m_pendingLineStrokes.isEmpty() || (std::is_same_v<std::decay_t<T>, Messages::RemoteGraphicsContext::StrokeLinesWithColorAndThickness>) || (std::is_same_v<std::decay_t<T>, Messages::RemoteCGRenderer::StrokeLinesWithColorAndThickness>));
+#else
     ASSERT(m_pendingLineStrokes.isEmpty() || (std::is_same_v<std::decay_t<T>, Messages::RemoteGraphicsContext::StrokeLinesWithColorAndThickness>));
+#endif
     RefPtr connection = m_connection;
     if (!connection) [[unlikely]] {
         if (RefPtr backend = m_renderingBackend.get())
@@ -473,7 +479,7 @@ void RemoteGraphicsContextProxy::drawRect(const FloatRect& rect, float width)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::DrawRect(rect, width));
+    SEND_RENDERER_MESSAGE(DrawRect, rect, width);
 }
 
 void RemoteGraphicsContextProxy::drawLine(const FloatPoint& point1, const FloatPoint& point2)
@@ -512,7 +518,7 @@ void RemoteGraphicsContextProxy::drawEllipse(const FloatRect& rect)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::DrawEllipse(rect));
+    SEND_RENDERER_MESSAGE(DrawEllipse, rect);
 }
 
 void RemoteGraphicsContextProxy::drawPath(const Path& path)
@@ -544,22 +550,22 @@ void RemoteGraphicsContextProxy::fillPath(const Path& path)
     if (auto segment = path.singleSegment()) {
         WTF::switchOn(segment->data(),
         [&](const PathArc &arc) {
-            send(Messages::RemoteGraphicsContext::FillArc(arc));
+            SEND_RENDERER_MESSAGE(FillArc, arc);
         },
         [&](const PathClosedArc& closedArc) {
-            send(Messages::RemoteGraphicsContext::FillClosedArc(closedArc));
+            SEND_RENDERER_MESSAGE(FillClosedArc, closedArc);
         },
         [&](const PathDataLine& line) {
-            send(Messages::RemoteGraphicsContext::FillLine(line));
+            SEND_RENDERER_MESSAGE(FillLine, line);
         },
         [&](const PathDataQuadCurve& curve) {
-            send(Messages::RemoteGraphicsContext::FillQuadCurve(curve));
+            SEND_RENDERER_MESSAGE(FillQuadCurve, curve);
         },
         [&](const PathDataBezierCurve& curve) {
-            send(Messages::RemoteGraphicsContext::FillBezierCurve(curve));
+            SEND_RENDERER_MESSAGE(FillBezierCurve, curve);
         },
         [&](auto&&) {
-            send(Messages::RemoteGraphicsContext::FillPathSegment(*segment));
+            SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(FillPathSegment, (*segment), (RemoteCGRendererPathSegment { *segment }));
         });
         return;
     }
@@ -669,29 +675,29 @@ void RemoteGraphicsContextProxy::strokePath(const Path& path)
             // emit the batch so far and the new state, then draw the line alone.
             sendPendingDrawsIfNecessary();
             appendStateChangeItemIfNecessary();
-            send(Messages::RemoteGraphicsContext::StrokeLine(*line));
+            SEND_RENDERER_MESSAGE(StrokeLine, *line);
             return;
         }
         sendPendingDrawsIfNecessary();
         appendStateChangeItemIfNecessary();
         WTF::switchOn(segment->data(),
             [&](const PathArc &arc) {
-                send(Messages::RemoteGraphicsContext::StrokeArc(arc));
+                SEND_RENDERER_MESSAGE(StrokeArc, arc);
             },
             [&](const PathClosedArc& closedArc) {
-                send(Messages::RemoteGraphicsContext::StrokeClosedArc(closedArc));
+                SEND_RENDERER_MESSAGE(StrokeClosedArc, closedArc);
             },
             [&](const PathDataLine& line) {
-                send(Messages::RemoteGraphicsContext::StrokeLine(line));
+                SEND_RENDERER_MESSAGE(StrokeLine, line);
             },
             [&](const PathDataQuadCurve& curve) {
-                send(Messages::RemoteGraphicsContext::StrokeQuadCurve(curve));
+                SEND_RENDERER_MESSAGE(StrokeQuadCurve, curve);
             },
             [&](const PathDataBezierCurve& curve) {
-                send(Messages::RemoteGraphicsContext::StrokeBezierCurve(curve));
+                SEND_RENDERER_MESSAGE(StrokeBezierCurve, curve);
             },
             [&](auto&&) {
-                send(Messages::RemoteGraphicsContext::StrokePathSegment(*segment));
+                SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(StrokePathSegment, (*segment), (RemoteCGRendererPathSegment { *segment }));
             });
         return;
     }
@@ -730,6 +736,15 @@ void RemoteGraphicsContextProxy::sendPendingDraws()
     if (m_pendingLineStrokes.isEmpty())
         return;
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    if (m_drawsWithCGRendererReceiver) {
+        RemoteCGRendererLineStrokes lines { WTF::move(m_pendingLineStrokes) };
+        send(Messages::RemoteCGRenderer::StrokeLinesWithColorAndThickness(lines));
+        m_pendingLineStrokes = lines.takeLines();
+        m_pendingLineStrokes.shrink(0);
+        return;
+    }
+#endif
     send(Messages::RemoteGraphicsContext::StrokeLinesWithColorAndThickness(m_pendingLineStrokes.span()));
 
     m_pendingLineStrokes.shrink(0);
