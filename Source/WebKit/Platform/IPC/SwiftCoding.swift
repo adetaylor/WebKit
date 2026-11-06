@@ -605,8 +605,8 @@ enum IPCCoding {
                 return
             }
             if value.utf8.allSatisfy({ $0 < 0x80 }), #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
-                encoder.encodeUInt32(UInt32(value.utf8.count))
-                encoder.encodeBool(true)
+                encoder.encode(UInt32(value.utf8.count))
+                encoder.encode(true)
                 encoder.encodeASCIICharacters(value.utf8Span.span)
                 return
             }
