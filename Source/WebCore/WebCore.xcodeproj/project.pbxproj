@@ -7691,6 +7691,7 @@
 		5A8EA984E6E737343E65221A /* ImageContentSettings.h in Headers */ = {isa = PBXBuildFile; fileRef = 9696F89359DB2093C05E5988 /* ImageContentSettings.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DECA8791265D4C1DBC7BA7F1 /* PageAnimationAgent.h in Headers */ = {isa = PBXBuildFile; fileRef = 61D2ED4C387044AEAE6FA67C /* PageAnimationAgent.h */; };
 		9C554D2BF88D45A991C78CD1 /* FrameAnimationAgent.h in Headers */ = {isa = PBXBuildFile; fileRef = 3F7DAB2D8C5640B1A62996F7 /* FrameAnimationAgent.h */; };
+		56759EF7876846CA9E8DBF9A /* InlineCodeUnits.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -7760,6 +7761,20 @@
 			proxyType = 1;
 			remoteGlobalIDString = 1C09D03C1E31C32800725F18;
 			remoteInfo = PAL;
+		};
+		D14340713C7141E6A93C8F5D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D88C08B2320B4F72A5CB6C32;
+			remoteInfo = WebCoreSwiftSupport;
+		};
+		1036992B78C74D09B2F8D996 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D88C08B2320B4F72A5CB6C32;
+			remoteInfo = WebCoreSwiftSupport;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -24438,6 +24453,9 @@
 		559364CAA330B1AA490DE2CC /* PhoneNumberPossessionResponseType.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = PhoneNumberPossessionResponseType.idl; sourceTree = "<group>"; };
 		3F7DAB2D8C5640B1A62996F7 /* FrameAnimationAgent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FrameAnimationAgent.h; sourceTree = "<group>"; };
 		7F8B5F35BEE543E688673B33 /* FrameAnimationAgent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FrameAnimationAgent.cpp; sourceTree = "<group>"; };
+		D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineCodeUnits.swift; sourceTree = "<group>"; };
+		94CDFAEFBEDE4ED5A8F0C190 /* libWebCoreSwiftSupport.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreSwiftSupport.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreSwiftSupport.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -24476,6 +24494,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7BCDFF38326D45F89E489E6B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -24495,6 +24520,7 @@
 			isa = PBXGroup;
 			children = (
 				417DA6D013734E02007C57FB /* libWebCoreTestSupport.dylib */,
+				94CDFAEFBEDE4ED5A8F0C190 /* libWebCoreSwiftSupport.a */,
 				93F19B1A08245E5A001E9ABC /* WebCore.framework */,
 			);
 			name = Products;
@@ -26844,6 +26870,7 @@
 				449098B10F8F82520076A327 /* FeatureDefines.xcconfig */,
 				5355E8DD1F9680420031E08C /* GenerateUnifiedSources.xcconfig */,
 				1CDD45E50BA9C84600F90147 /* WebCore.xcconfig */,
+				125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */,
 				4181707D1386EDF20057AAA4 /* WebCoreTestSupport.xcconfig */,
 			);
 			path = Configurations;
@@ -40085,6 +40112,7 @@
 				59C77F101054591C00506104 /* mock */,
 				656B84D70AEA1CE900A095B4 /* network */,
 				1A2E6E560CC551E0004A2062 /* sql */,
+				C45FCA9C91C041FD978295A2 /* swift */,
 				B2C3D9EC0D006C1D00EF6F26 /* text */,
 				41763D0B2ACAFA3600283035 /* video-codecs */,
 				E1EE8B6B2412B2A700E794D6 /* xr */,
@@ -44651,6 +44679,22 @@
 				7AFD16D02C63F64200B51D1A /* ImageAdapterCocoa.mm */,
 			);
 			path = cocoa;
+			sourceTree = "<group>";
+		};
+		C45FCA9C91C041FD978295A2 /* swift */ = {
+			isa = PBXGroup;
+			children = (
+				F62C4AD56F5C4317AA92C6C9 /* support */,
+			);
+			path = swift;
+			sourceTree = "<group>";
+		};
+		F62C4AD56F5C4317AA92C6C9 /* support */ = {
+			isa = PBXGroup;
+			children = (
+				D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */,
+			);
+			path = support;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -51237,6 +51281,7 @@
 				DDE748752F7B28D6008013AB /* PBXBuildRule */,
 			);
 			dependencies = (
+				75CFDC86318F426C9E7BB2F6 /* PBXTargetDependency */,
 				DD041FF109D9E3250010AF2A /* PBXTargetDependency */,
 				5355E8DB1F967ED30031E08C /* PBXTargetDependency */,
 				DD453DA32EC47E9B00C1D6A8 /* PBXTargetDependency */,
@@ -51246,6 +51291,22 @@
 			productName = WebKit;
 			productReference = 93F19B1A08245E5A001E9ABC /* WebCore.framework */;
 			productType = "com.apple.product-type.framework";
+		};
+		D88C08B2320B4F72A5CB6C32 /* WebCoreSwiftSupport */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FB720E96E20445A6AD6207ED /* Build configuration list for PBXNativeTarget "WebCoreSwiftSupport" */;
+			buildPhases = (
+				CFD4752108B143D383EEA19D /* Sources */,
+				7BCDFF38326D45F89E489E6B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WebCoreSwiftSupport;
+			productName = WebCoreSwiftSupport;
+			productReference = 94CDFAEFBEDE4ED5A8F0C190 /* libWebCoreSwiftSupport.a */;
+			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
 
@@ -51293,6 +51354,7 @@
 				41816F7913859C550057AAA4 /* All */,
 				93F198A508245E59001E9ABC /* WebCore */,
 				5355E8D11F967E9D0031E08C /* Generate Unified Sources */,
+				D88C08B2320B4F72A5CB6C32 /* WebCoreSwiftSupport */,
 				DD041FBE09D9DDBE0010AF2A /* Derived Sources */,
 				417DA6CF13734E02007C57FB /* WebCoreTestSupport */,
 				5325BDC621DFF33700A0DEE1 /* Apply Configuration to XCFileLists */,
@@ -52637,6 +52699,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CFD4752108B143D383EEA19D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				56759EF7876846CA9E8DBF9A /* InlineCodeUnits.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -52669,6 +52739,16 @@
 			isa = PBXTargetDependency;
 			name = PAL;
 			targetProxy = DD453DA22EC47E9B00C1D6A8 /* PBXContainerItemProxy */;
+		};
+		2B3720ACEF724F2D81B99DC2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D88C08B2320B4F72A5CB6C32 /* WebCoreSwiftSupport */;
+			targetProxy = D14340713C7141E6A93C8F5D /* PBXContainerItemProxy */;
+		};
+		75CFDC86318F426C9E7BB2F6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D88C08B2320B4F72A5CB6C32 /* WebCoreSwiftSupport */;
+			targetProxy = 1036992B78C74D09B2F8D996 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -52861,6 +52941,27 @@
 			};
 			name = Production;
 		};
+		41A11A5CE2CB4D9CA8C4F2C9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		617314FE063A427B96B3AA06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		4DC21EC555CF4F7EAD84C311 /* Production */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */;
+			buildSettings = {
+			};
+			name = Production;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -52930,6 +53031,16 @@
 				DD041FC209D9DDDC0010AF2A /* Debug */,
 				DD041FC309D9DDDC0010AF2A /* Release */,
 				DD041FC409D9DDDC0010AF2A /* Production */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Production;
+		};
+		FB720E96E20445A6AD6207ED /* Build configuration list for PBXNativeTarget "WebCoreSwiftSupport" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				41A11A5CE2CB4D9CA8C4F2C9 /* Debug */,
+				617314FE063A427B96B3AA06 /* Release */,
+				4DC21EC555CF4F7EAD84C311 /* Production */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Production;
