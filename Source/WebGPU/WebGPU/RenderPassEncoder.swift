@@ -1021,11 +1021,17 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
             impl.setCommandEncoder(parentImpl)
         }
         let records = resources.records
+        let retainsResidentResources = parentImpl.retainsResidentResources
         for containerIndex in resources.containers.indices {
             let container = resources.containers[containerIndex]
             let list = list(containerIndex)
             if !container.renderStages.isDisjoint(with: [.vertex, .fragment]) && !list.isEmpty {
                 renderCommandEncoder()?.useResources(list, usage: container.usage, stages: container.renderStages)
+            }
+            if retainsResidentResources {
+                for resource in list {
+                    parentImpl.addResidentResource(resource)
+                }
             }
             for index in 0..<list.count {
                 let record = records[container.range.lowerBound + index]

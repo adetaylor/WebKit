@@ -71,6 +71,8 @@ public final class BindGroupImpl: GPUObjectReference {
     // handful of pipelines, so a short array beats hashing on every draw; the rest spill over.
     private var recentValidations: [(key: UInt64, maxOffset: UInt32)] = []
     private var otherValidations: [UInt64: UInt32] = [:]
+    // The live render bundles that hold the group; see updateExternalTextures().
+    var renderBundleConsumerCount = 0
     // Declared last, so that the device outlives the rest of the group.
     let deviceImpl: DeviceImpl
 
@@ -313,7 +315,7 @@ public final class BindGroupImpl: GPUObjectReference {
 
     @_spi(WebKitGPU)
     public func updateExternalTextures(_ externalTexture: ExternalTextureImpl) -> Bool {
-        guard let layoutImpl, !externalTexture.hasPendingUsers() else {
+        guard renderBundleConsumerCount == 0, let layoutImpl, !externalTexture.hasPendingUsers() else {
             return false
         }
 

@@ -3309,6 +3309,23 @@ public final class CommandEncoderImpl: GPUObjectReference {
         retainedBuffers?.add(buffer)
     }
 
+    /// Whether addResidentResource(_:) keeps anything, which it does only with shader validation.
+    var retainsResidentResources: Bool {
+        retainedTextures != nil || retainedBuffers != nil
+    }
+
+    /// Keeps a bind group's or bundle's resource alive with the command buffer.
+    func addResidentResource(_ resource: any MTLResource) {
+        if !retainsResidentResources {
+            return
+        }
+        if let texture = resource as? any MTLTexture {
+            addTexture(texture)
+        } else if let buffer = resource as? any MTLBuffer {
+            addBuffer(buffer)
+        }
+    }
+
     func addTexture(_ texture: (any MTLTexture)?) {
         guard let texture else {
             return

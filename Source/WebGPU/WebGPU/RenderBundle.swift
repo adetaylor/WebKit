@@ -86,6 +86,16 @@ public final class RenderBundleImpl: GPUObjectReference {
         self.stencilReadOnly = stencilReadOnly
         self.commandCount = commandCount
         self.submitInvalid = submitInvalid
+        // The bundle's commands use these groups' argument buffers as they are now.
+        for group in bindGroups {
+            group.renderBundleConsumerCount += 1
+        }
+    }
+
+    deinit {
+        for group in bindGroups {
+            group.renderBundleConsumerCount -= 1
+        }
     }
 
     init(invalid deviceImpl: DeviceImpl, lastError: String?) {

@@ -744,8 +744,14 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         }
 
         let resources = groupImpl.resources
+        let retainsResidentResources = parentImpl.retainsResidentResources
         for containerIndex in resources.containers.indices {
             let container = resources.containers[containerIndex]
+            if retainsResidentResources {
+                for resource in groupImpl.mtlResources[containerIndex] {
+                    parentImpl.addResidentResource(resource)
+                }
+            }
             guard container.renderStages == computeRenderStage else {
                 continue
             }
