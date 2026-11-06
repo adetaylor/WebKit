@@ -27,6 +27,7 @@
 
 #include "Helpers/Test.h"
 #include "TestPlatformStrategies.h"
+#include <JavaScriptCore/InitializeThreading.h>
 #include <WebCore/Comment.h>
 #include <WebCore/DocumentInlines.h>
 #include <WebCore/DocumentParser.h>
@@ -227,6 +228,7 @@ static void printResult(ASCIILiteral name, double seconds, double bytes, const C
 
 static void runBenchmark(ASCIILiteral name, const Input& input, unsigned iterations, uint64_t expectedChecksum)
 {
+    JSC::initialize();
     ensureTestPlatformStrategiesInstalled();
     ProcessWarming::initializeNames();
 
@@ -1016,6 +1018,7 @@ static Input templatesInput()
 // pass is never reused.
 static void runFragmentBenchmark(ASCIILiteral name, const Vector<String>& fragments, unsigned iterations, uint64_t expectedChecksum)
 {
+    JSC::initialize();
     ensureTestPlatformStrategiesInstalled();
     ProcessWarming::initializeNames();
 
