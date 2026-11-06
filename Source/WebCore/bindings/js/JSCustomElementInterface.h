@@ -26,12 +26,12 @@
 
 #pragma once
 
-#include "ActiveDOMCallback.h"
-#include "CustomElementFormValue.h"
-#include "QualifiedName.h"
 #include <JavaScriptCore/JSObject.h>
 #include <JavaScriptCore/Weak.h>
 #include <JavaScriptCore/WeakInlines.h>
+#include <WebCore/ActiveDOMCallback.h>
+#include <WebCore/CustomElementFormValue.h>
+#include <WebCore/QualifiedName.h>
 #include <wtf/Forward.h>
 #include <wtf/Function.h>
 #include <wtf/RefCounted.h>
