@@ -246,6 +246,65 @@ final class TestWithStreamSwiftTypesWeakRef {
         }
         return true
     }
+
+    @used
+    func dispatchSendLentBytes(
+        decoder: inout IPC.SwiftDecoder
+    ) -> Bool {
+        let value: UInt32
+        var bytesPosition = IPC.LentBytesPosition()
+        let tail: UInt64
+        do {
+            value = try UInt32.decode(from: &decoder)
+            guard decoder.decodeLentBytesPosition(&bytesPosition) else {
+                return false
+            }
+            tail = try UInt64.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        let bytes = decoder.lentBytes(bytesPosition)
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendLentBytes(
+                    value: value,
+                    bytes: bytes,
+                    tail: tail
+                )
+            )
+        } catch {
+            markMessageInvalid(error, on: &decoder)
+        }
+        return true
+    }
+
+    @used
+    func dispatchSendLentBytesSync(
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        var bytesPosition = IPC.LentBytesPosition()
+        guard decoder.decodeLentBytesPosition(&bytesPosition) else {
+            return false
+        }
+        let bytes = decoder.lentBytes(bytesPosition)
+        do throws(InvalidMessage) {
+            let reply = try mayThrowInvalidMessage(
+                target.sendLentBytesSync(
+                    bytes: bytes
+                )
+            )
+            UInt64.encode(reply, to: replyEncoder)
+            if !replyEncoder.send() {
+                UInt64.encode(reply, to: replyEncoder)
+                replyEncoder.send()
+            }
+        } catch {
+            markMessageInvalid(error, on: &decoder)
+            replyEncoder.cancel()
+        }
+        return true
+    }
 }
 
 struct TestWithStreamSwiftTypesSendStringAsyncReply: ~Copyable {

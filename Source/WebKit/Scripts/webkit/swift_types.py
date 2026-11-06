@@ -80,6 +80,13 @@ _CXX_DECODED_TYPES = {
 }
 
 
+# A [Lent] std::span<const uint8_t> message argument: its bytes are lent to the Swift handler during dispatch, as
+# IPC::LentBytes (SwiftCoding.h), rather than copied into a [UInt8]. Generated Swift decodes past them, then lends them
+# with the arguments after them decoded.
+LENT_BYTES_TYPES = ('std::span<const uint8_t>',)
+LENT_BYTES_SWIFT_TYPE = 'IPC.LentBytes'
+
+
 class UnmappableSwiftType(Exception):
     pass
 
@@ -90,6 +97,10 @@ class UnmappableSwiftCondition(Exception):
 
 def strip_cpp_type_decorations(cpp_type):
     return re.sub(r'^(?:const\s+|struct\s+|class\s+|enum\s+)+', '', cpp_type.strip()).rstrip('&').strip()
+
+
+def is_lent_bytes(cpp_type):
+    return strip_cpp_type_decorations(cpp_type) in LENT_BYTES_TYPES
 
 
 def split_template_arguments(arguments):
