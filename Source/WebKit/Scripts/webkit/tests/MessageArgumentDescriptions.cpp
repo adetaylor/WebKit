@@ -323,6 +323,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendEmptyAsync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendCxxDecoded:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendCxxDecoded>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendLentBytes:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendLentBytes>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendLentBytesSync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendLentBytesSync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendValuesAsyncReply:
@@ -596,6 +600,8 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendEmptyAsync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendCxxDecoded:
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendCxxDecoded>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendLentBytesSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendLentBytesSync>(globalObject, decoder);
 #if ENABLE(TEST_FEATURE)
     case MessageName::TestWithSuperclass_TestAsyncMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSuperclass_TestAsyncMessage>(globalObject, decoder);
@@ -1362,6 +1368,16 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "value"_s, "uint32_t"_s },
             { "handle"_s, "std::optional<WebCore::SharedMemory::Handle>"_s },
         };
+    case MessageName::TestWithStreamSwiftTypes_SendLentBytes:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+            { "bytes"_s, "std::span<const uint8_t>"_s },
+            { "tail"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftTypes_SendLentBytesSync:
+        return Vector<ArgumentDescription> {
+            { "bytes"_s, "std::span<const uint8_t>"_s },
+        };
     case MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply:
         return Vector<ArgumentDescription> {
             { "reply"_s, "String"_s },
@@ -1859,6 +1875,10 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
     case MessageName::TestWithStreamSwiftTypes_SendCxxDecoded:
         return Vector<ArgumentDescription> {
             { "success"_s, "bool"_s },
+        };
+    case MessageName::TestWithStreamSwiftTypes_SendLentBytesSync:
+        return Vector<ArgumentDescription> {
+            { "size"_s, "uint64_t"_s },
         };
 #if ENABLE(TEST_FEATURE)
     case MessageName::TestWithSuperclass_TestAsyncMessage:
