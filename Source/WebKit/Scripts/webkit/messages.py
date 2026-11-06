@@ -29,7 +29,10 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import CXX_DECODED_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_DECODED_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+
+# The coder generated Swift uses for a [Lent] argument, whose bytes are lent to its handler.
+LENT_BYTES_CODER = 'IPC.LentBytes'
 
 _license_header = """/*
  * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
@@ -2698,9 +2701,16 @@ def generate_swift_message_handler(receiver):
         parameters = ['connection: %s%s' % ('' if swift_receiver_runs_on_work_queue(receiver) else 'sending ', connection_type)] if passes_connection else []
         arguments = ['connection: connection'] if passes_connection else []
         decoded_parameters = []
+        # Arguments whose bytes are lent to the handler: generated Swift decodes past them, and lends them once the
+        # arguments after them are decoded, for the handler call, which must be during dispatch.
+        lent_parameters = []
         for parameter in message.parameters:
             if takes_swift_types and parameter.has_attribute(CXX_DECODED_ATTRIBUTE):
                 decoded_parameters.append((parameter.name, 'CxxDecodedArguments.%s.%s' % (receiver.name, cxx_decoded_argument_name(message, parameter)), None))
+            elif takes_swift_types and parameter.has_attribute(LENT_ATTRIBUTE):
+                # The model checked that the handler is called during dispatch.
+                lent_parameters.append(parameter.name)
+                decoded_parameters.append((parameter.name, swift_types.LENT_BYTES_SWIFT_TYPE, LENT_BYTES_CODER))
             elif takes_swift_types:
                 decoded_parameters.append((parameter.name,) + swift_types.swift_type_and_coder(parameter.type))
             else:
@@ -2751,22 +2761,36 @@ def generate_swift_message_handler(receiver):
         if is_stream and not decodes_on_stream:
             result.append('        assert(connection.isCurrentWorkQueue())\n')
         if decoded_parameters:
-            for name, swift_type, _ in decoded_parameters:
-                result.append('        let %s: %s\n' % (name, swift_type))
-            result.append('        do {\n')
             for name, swift_type, coder in decoded_parameters:
+                if coder == LENT_BYTES_CODER:
+                    result.append('        var %sPosition = IPC.LentBytesPosition()\n' % name)
+                    continue
+                result.append('        let %s: %s\n' % (name, swift_type))
+            # Lent bytes and C++-decoded arguments decode without throwing, so a message with lent bytes and no other
+            # Swift-decoded argument has no do block, whose catch would be unreachable.
+            needs_do = not lent_parameters or any(coder and coder != LENT_BYTES_CODER for _, _, coder in decoded_parameters)
+            indent = '            ' if needs_do else '        '
+            if needs_do:
+                result.append('        do {\n')
+            for name, swift_type, coder in decoded_parameters:
+                if coder == LENT_BYTES_CODER:
+                    result.append('%sguard decoder.decodeLentBytesPosition(&%sPosition) else {\n' % (indent, name))
+                    result.append('%s    return false\n' % indent)
+                    result.append('%s}\n' % indent)
+                    continue
                 if coder:
-                    result.append('            %s = try %s.decode(from: &decoder)\n' % (name, coder))
+                    result.append('%s%s = try %s.decode(from: &decoder)\n' % (indent, name, coder))
                     continue
                 # A C++-decoded argument: its holder, or nil if it is malformed.
                 decoded_name = 'decoded%s%s' % (name[0].upper(), name[1:])
-                result.append('            guard let %s = %s.decode(&decoder) else {\n' % (decoded_name, swift_type))
-                result.append('                return false\n')
-                result.append('            }\n')
-                result.append('            %s = %s\n' % (name, decoded_name))
-            result.append('        } catch {\n')
-            result.append('            return false\n')
-            result.append('        }\n')
+                result.append('%sguard let %s = %s.decode(&decoder) else {\n' % (indent, decoded_name, swift_type))
+                result.append('%s    return false\n' % indent)
+                result.append('%s}\n' % indent)
+                result.append('%s%s = %s\n' % (indent, name, decoded_name))
+            if needs_do:
+                result.append('        } catch {\n')
+                result.append('            return false\n')
+                result.append('        }\n')
         reply_statements = []
         cancel_statements = []
         reply_value_type = None
@@ -2790,6 +2814,8 @@ def generate_swift_message_handler(receiver):
             cancel_statements = ['CompletionHandlers.%s.completeWithDefaultReply(completionHandler)' % receiver.name]
 
         def append_handler_call(base, await_keyword, typed_do):
+            for name in lent_parameters:
+                result.append('%slet %s = decoder.lentBytes(%sPosition)\n' % (base, name, name))
             result.append('%sdo%s {\n' % (base, ' throws(InvalidMessage)' if typed_do else ''))
             assignment = 'let reply = ' if message.reply_parameters and not reply_value_type else ''
             call = ['%stry %smayThrowInvalidMessage(' % (assignment, await_keyword)]

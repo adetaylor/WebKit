@@ -101,6 +101,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithStreamSwiftTypes_SendCxxDecodedReply"_s, ReceiverName::TestWithStreamSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendCxxString"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendEmptyAsyncReply"_s, ReceiverName::TestWithStreamSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftTypes_SendLentBytes"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendString"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendStringAsyncReply"_s, ReceiverName::TestWithStreamSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendValues"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
@@ -271,6 +272,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithLegacyReceiver_GetPluginProcessConnection"_s, ReceiverName::TestWithLegacyReceiver, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithLegacyReceiver_TestMultipleAttributes"_s, ReceiverName::TestWithLegacyReceiver, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendEmptySync"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftTypes_SendLentBytesSync"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendStringSync"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwift_SendStringSync"_s, ReceiverName::TestWithStreamSwift, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
 #if PLATFORM(COCOA)

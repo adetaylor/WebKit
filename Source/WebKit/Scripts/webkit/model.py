@@ -25,7 +25,7 @@ import re
 
 from collections import Counter, defaultdict
 from .opaque_ipc_types import is_opaque_type, opaque_ipc_types
-from .swift_types import UnmappableSwiftType, strip_cpp_type_decorations, swift_type_and_coder
+from .swift_types import UnmappableSwiftType, is_lent_bytes, strip_cpp_type_decorations, swift_type_and_coder
 from .untrusted_origins import conveys_untrusted_value, is_privileged_receiver, unwrap_if_untrusted, unwrap_untrusted
 
 BUILTIN_ATTRIBUTE = "Builtin"
@@ -44,6 +44,7 @@ CXX_TYPES_ATTRIBUTE = 'CxxTypes'
 # On a parameter of a message that takes Swift types, for a type that has no Swift form yet: its C++ ArgumentCoder decodes
 # it into an IPC::CxxDecodedArgument, which the Swift handler passes on to C++.
 CXX_DECODED_ATTRIBUTE = 'CxxDecoded'
+LENT_ATTRIBUTE = 'Lent'
 SWIFT_SYNC_HANDLER_ATTRIBUTE = 'SwiftSyncHandler'
 NOT_USING_IPC_CONNECTION_ATTRIBUTE = 'NotUsingIPCConnection'
 WANTS_CONNECTION_ATTRIBUTE = 'WantsConnection'
@@ -145,8 +146,9 @@ class MessageReceiver(object):
             raise Exception("ERROR: Message %s has '%s', which is for messages that take Swift types on a stream" % (description, WANTS_CONNECTION_ATTRIBUTE))
         if not self.takes_swift_types(message):
             for parameter in message.parameters:
-                if parameter.has_attribute(CXX_DECODED_ATTRIBUTE):
-                    raise Exception("ERROR: Message %s has '%s' on parameter '%s', which is only for messages that take Swift types" % (description, CXX_DECODED_ATTRIBUTE, parameter.name))
+                for attribute in (CXX_DECODED_ATTRIBUTE, LENT_ATTRIBUTE):
+                    if parameter.has_attribute(attribute):
+                        raise Exception("ERROR: Message %s has '%s' on parameter '%s', which is only for messages that take Swift types" % (description, attribute, parameter.name))
             return
 
         def unsupported(what):
@@ -168,6 +170,13 @@ class MessageReceiver(object):
         parameters = [('parameter', parameter) for parameter in message.parameters] + [('reply parameter', parameter) for parameter in message.reply_parameters or []]
         for kind, parameter in parameters:
             if kind == 'parameter' and parameter.attributes == {CXX_DECODED_ATTRIBUTE}:
+                continue
+            if kind == 'parameter' and parameter.attributes == {LENT_ATTRIBUTE}:
+                # Its bytes are lent to the handler for the dispatch (swift_types.LENT_BYTES_TYPES).
+                if not is_lent_bytes(parameter.type):
+                    raise Exception("ERROR: Message %s has '%s' on parameter '%s', which is only for a std::span<const uint8_t>" % (description, LENT_ATTRIBUTE, parameter.name))
+                if self.swift_receiver_state_lender or not (self.has_attribute(STREAM_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE) or message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE)):
+                    raise Exception("ERROR: Message %s has '%s' on parameter '%s', whose bytes are lent to its Swift handler during dispatch, so the handler must be called then: on a stream or WorkQueue, or with '%s'" % (description, LENT_ATTRIBUTE, parameter.name, SWIFT_SYNC_HANDLER_ATTRIBUTE))
                 continue
             if parameter.attributes:
                 raise unsupported("with attributes on %s '%s': %s" % (kind, parameter.name, ', '.join(sorted(parameter.attributes))))

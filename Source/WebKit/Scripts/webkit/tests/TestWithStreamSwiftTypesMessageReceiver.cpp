@@ -30,6 +30,7 @@
 #include "TestWithStreamSwiftTypesMessages.h" // NOLINT
 #include <WebCore/SharedMemory.h> // NOLINT
 #include <optional> // NOLINT
+#include <span> // NOLINT
 #include <wtf/Vector.h> // NOLINT
 #include <wtf/text/WTFString.h> // NOLINT
 
@@ -69,12 +70,20 @@ void TestWithStreamSwiftTypesMessageForwarder::didReceiveStreamMessage(IPC::Stre
         IPC::handleSwiftMessageAsync<Messages::TestWithStreamSwiftTypes::SendCxxDecoded>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendCxxDecoded);
         return;
     }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendLentBytes::name()) {
+        IPC::handleSwiftMessage<Messages::TestWithStreamSwiftTypes::SendLentBytes>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendLentBytes);
+        return;
+    }
     if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendStringSync::name()) {
         IPC::handleSwiftMessageSynchronous<Messages::TestWithStreamSwiftTypes::SendStringSync>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendStringSync);
         return;
     }
     if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendEmptySync::name()) {
         IPC::handleSwiftMessageSynchronous<Messages::TestWithStreamSwiftTypes::SendEmptySync>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendEmptySync);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftTypes::SendLentBytesSync::name()) {
+        IPC::handleSwiftMessageSynchronous<Messages::TestWithStreamSwiftTypes::SendLentBytesSync>(connection, decoder, m_handler.get(), &TestWithStreamSwiftTypesWeakRef::dispatchSendLentBytesSync);
         return;
     }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
@@ -162,6 +171,18 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendCxxDecoded>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendCxxDecoded::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendLentBytes>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendLentBytes::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendLentBytesSync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendLentBytesSync::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendLentBytesSync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftTypes::SendLentBytesSync::ReplyArguments>(globalObject, decoder);
 }
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {

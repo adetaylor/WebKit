@@ -30,6 +30,7 @@
 #include "StreamMessageReceiver.h"
 #include "SwiftCoding.h"
 #include <WebCore/SharedMemory.h>
+#include <span>
 #include <wtf/Forward.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -347,6 +348,70 @@ public:
 private:
     uint32_t m_value;
     std::optional<WebCore::SharedMemory::Handle>&& m_handle;
+};
+
+class SendLentBytes {
+public:
+    using Arguments = std::tuple<uint32_t, std::span<const uint8_t>, uint64_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftTypes_SendLentBytes; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = false;
+
+    SendLentBytes(uint32_t value, const std::span<const uint8_t>& bytes, uint64_t tail)
+        : m_value(value)
+        , m_bytes(bytes)
+        , m_tail(tail)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_value;
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_bytes;
+        encoder << m_tail;
+    }
+
+private:
+    uint32_t m_value;
+    SUPPRESS_FORWARD_DECL_MEMBER const std::span<const uint8_t>& m_bytes;
+    uint64_t m_tail;
+};
+
+class SendLentBytesSync {
+public:
+    using Arguments = std::tuple<std::span<const uint8_t>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftTypes_SendLentBytesSync; }
+    static constexpr bool isSync = true;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isReplyStreamEncodable = true;
+    static constexpr bool isStreamBatched = false;
+
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<uint64_t>;
+    using Reply = CompletionHandler<void(uint64_t)>;
+    explicit SendLentBytesSync(const std::span<const uint8_t>& bytes)
+        : m_bytes(bytes)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_bytes;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const std::span<const uint8_t>& m_bytes;
 };
 
 class SendStringAsyncReply {

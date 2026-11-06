@@ -311,6 +311,40 @@ messages -> TestReceiver %s {
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'CxxDecoded' on parameter 'argument', which is only for messages that take Swift types"):
             parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    Message([CxxDecoded] WebKit::NoSwiftForm argument)')
 
+    def test_lent_bytes(self):
+        stream_receiver = parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftTypes]
+messages -> TestReceiver Stream {
+    Message(uint32_t value, [Lent] std::span<const uint8_t> bytes, uint64_t tail)
+    CopiedMessage(std::span<const uint8_t> bytes)
+}
+"""))
+        swift = messages.generate_swift_message_handler(stream_receiver)
+        dispatch = re.search(r'func dispatchMessage\((.|\n)*?\n    \}\n', swift).group(0)
+        self.assertIn('        var bytesPosition = IPC.LentBytesPosition()\n', dispatch)
+        self.assertRegex(dispatch, r'value = try UInt32.decode\(from: &decoder\)\n            guard decoder.decodeLentBytesPosition\(&bytesPosition\) else \{\n                return false\n            \}\n            tail = try UInt64.decode\(from: &decoder\)\n')
+        self.assertRegex(dispatch, r'\n        let bytes = decoder.lentBytes\(bytesPosition\)\n        do throws\(InvalidMessage\) \{\n')
+        self.assertIn('bytes: bytes,', dispatch)
+        # Without [Lent], a span of bytes is still a copy.
+        self.assertIn('bytes = try IPCCoding.Vector<UInt8>.decode(from: &decoder)', re.search(r'func dispatchCopiedMessage\((.|\n)*?\n    \}\n', swift).group(0))
+
+        # A SwiftSyncHandler handler is called inside assumeIsolated, so the bytes are lent there.
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
+    Message([Lent] std::span<const uint8_t> bytes) SwiftSyncHandler
+""")
+        dispatch = re.search(r'func dispatchMessage\((.|\n)*?\n    \}\n', messages.generate_swift_message_handler(receiver)).group(0)
+        self.assertNotIn('do {', dispatch.split('MainActor.assumeIsolated')[0])
+        self.assertRegex(dispatch, r'guard let target else \{\n                return\n            \}\n            let bytes = decoder.lentBytes\(bytesPosition\)\n')
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Lent' on parameter 'bytes', whose bytes are lent to its Swift handler during dispatch, so the handler must be called then: on a stream or WorkQueue, or with 'SwiftSyncHandler'"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message([Lent] std::span<const uint8_t> bytes)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Lent' on parameter 'values', which is only for a std::span<const uint8_t>"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message([Lent] std::span<const uint32_t> values) SwiftSyncHandler')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Lent' on parameter 'bytes', which is only for messages that take Swift types"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    Message([Lent] std::span<const uint8_t> bytes)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported with attributes on reply parameter 'reply': Lent"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message() -> ([Lent] std::span<const uint8_t> reply) SwiftSyncHandler')
+
     def test_cxx_typed_replies(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
     PrimitiveReply(Ref<WebKit::FrameState> frameState) -> (uint8_t reply) CxxTypes
