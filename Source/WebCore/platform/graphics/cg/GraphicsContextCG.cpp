@@ -487,6 +487,8 @@ void GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
         else
             SWIFT_RENDERER(endTransparencyLayer());
         m_stateIsStale = true;
+        // GraphicsContext's state may hold a gradient or pattern that the level had, which goes now, as with C++'s own levels.
+        ensureStateIsCurrent();
         return;
     }
 

@@ -633,8 +633,9 @@ private struct CGRendererSavedState {
     // Whether GraphicsContext's own stack has this level too: C++ saved it. A level a Swift receiver saved is the renderer's
     // alone.
     var hasCxxLevel = true
-    // The level below's levelChanges.
+    // The level below's levelChanges and levelHasCxxBrushSource.
     var levelChanges: UInt32 = 0
+    var levelHasCxxBrushSource = false
 }
 
 // A color that isn't sRGBA8, as CG draws it and as the C++ state has it.
@@ -735,6 +736,9 @@ private struct CGRendererColorCache {
     // restores a level that only a receiver saved.
     private var levelChanges: UInt32 = 0
     private var pendingCxxRestores: UInt32 = 0
+    // Whether C++ has given the top level, which only a Swift receiver saved, a gradient or pattern brush: GraphicsContext's
+    // state then holds it too, which the receiver's restore would leave there until C++ next reads the state.
+    private var levelHasCxxBrushSource = false
 
     // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
     // uses it (rdar://179098545).
@@ -918,6 +922,7 @@ private struct CGRendererColorCache {
         state.fill.kind = brushKind
         state.fill.sourceSlot = sourceSlot(.brush(copy source))
         levelChanges |= CxxStateChange.fillBrush
+        noteCxxBrushSource()
     }
 
     @_expose(Cxx)
@@ -926,6 +931,13 @@ private struct CGRendererColorCache {
         state.stroke.kind = brushKind
         state.stroke.sourceSlot = sourceSlot(.brush(copy source))
         levelChanges |= CxxStateChange.strokeBrush
+        noteCxxBrushSource()
+    }
+
+    private mutating func noteCxxBrushSource() {
+        if depth > 0 && !stack[depth - 1].hasCxxLevel {
+            levelHasCxxBrushSource = true
+        }
     }
 
     @_expose(Cxx)
@@ -1342,7 +1354,8 @@ private struct CGRendererColorCache {
             platformColorCount: UInt32(platformColors.count),
             sourceCount: UInt32(sources.count),
             hasCxxLevel: hasCxxLevel,
-            levelChanges: levelChanges
+            levelChanges: levelChanges,
+            levelHasCxxBrushSource: levelHasCxxBrushSource
         )
         if depth == stack.count {
             stack.append(saved)
@@ -1351,6 +1364,7 @@ private struct CGRendererColorCache {
         }
         depth += 1
         levelChanges = 0
+        levelHasCxxBrushSource = false
         if isTransparencyLayer {
             state.resetForTransparencyLayer()
             levelChanges = CxxStateChange.alpha | CxxStateChange.style | CxxStateChange.dropShadow | CxxStateChange.compositeMode
@@ -1376,6 +1390,7 @@ private struct CGRendererColorCache {
             cxxStaleProperties |= state.cxxChanges(to: stack[depth].state, among: levelChanges)
         }
         levelChanges = stack[depth].levelChanges
+        levelHasCxxBrushSource = stack[depth].levelHasCxxBrushSource
         state = stack[depth].state
         let platformColorCount = Int(stack[depth].platformColorCount)
         if platformColors.count > platformColorCount {
@@ -2618,10 +2633,15 @@ extension CGRendererCore {
         save(false, hasCxxLevel: false)
     }
 
+    // Declines the restore of a level in which C++ set a gradient or pattern brush, for GraphicsContextCG::restore(), which lets
+    // GraphicsContext's copy of the brush go at once.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveRestore() {
+    @_spi(WebKitGPU) public mutating func receiveRestore() -> Bool {
         guard depth > 0, stack[depth - 1].purpose == .saveRestore else {
-            return
+            return true
+        }
+        if levelHasCxxBrushSource {
+            return false
         }
         // GraphicsContext restores a level that C++ saved when it next brings its state up to date, after any C++ setter
         // that comes first has changed that level's copy: so it then takes all of the state.
@@ -2630,6 +2650,7 @@ extension CGRendererCore {
             cxxStaleProperties = CxxStateChange.all
         }
         pop()
+        return true
     }
 
     @_expose(!Cxx)
@@ -2812,7 +2833,7 @@ extension CGRendererCore {
         let transform = CGAffineTransform(a: CGFloat(v.0), b: CGFloat(v.1), c: CGFloat(v.2), d: CGFloat(v.3), tx: CGFloat(v.4), ty: CGFloat(v.5))
         switch message.message {
         case 0: receiveSave()
-        case 1: receiveRestore()
+        case 1: return receiveRestore()
         case 2: receiveTranslate(v.0, v.1)
         case 3: receiveRotate(v.0)
         case 4: receiveScale(v.0, v.1)

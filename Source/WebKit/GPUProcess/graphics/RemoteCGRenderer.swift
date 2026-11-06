@@ -58,7 +58,7 @@ final class RemoteCGRenderer {
         state.receiveSave()
     }
 
-    func restore(state: inout CGRendererCore) {
+    func restore(state: inout CGRendererCore) -> Bool {
         state.receiveRestore()
     }
 
