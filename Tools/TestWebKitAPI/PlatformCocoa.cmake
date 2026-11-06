@@ -7,10 +7,12 @@ execute_process(
 )
 
 # Mirror Xcode's "Embed Testing.framework" phase, which copies from the internal SDK's
-# AppleInternal directory when TEST_BUILD_STYLE is _APPLEINTERNAL (i.e. USE_INTERNAL_SDK).
+# AppleInternal directory when TEST_BUILD_STYLE is _APPLEINTERNAL (i.e. USE_INTERNAL_SDK),
+# if that copy is present with its binary: a copy that has only a .tbd leaves the tests no
+# Testing.framework to load.
 # ditto merges into whatever is already there; use a stamp to record a rewrite in case of
 # $_testing_source_id change.
-if (USE_APPLE_INTERNAL_SDK)
+if (USE_APPLE_INTERNAL_SDK AND EXISTS "${CMAKE_OSX_SYSROOT}/AppleInternal/Developer/Library/Frameworks/Testing.framework/Versions/A/Testing")
     set(_testing_developer_dir "${CMAKE_OSX_SYSROOT}/AppleInternal/Developer")
 else ()
     set(_testing_developer_dir "${_platform_dir}/Developer")
