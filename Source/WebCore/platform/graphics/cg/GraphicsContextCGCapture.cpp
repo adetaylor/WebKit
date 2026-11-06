@@ -837,7 +837,7 @@ void GraphicsContextCGCapture::setLineDash(const DashArray& dashes, float dashOf
     end();
 }
 
-void GraphicsContextCGCapture::drawNativeImage(const NativeImage& nativeImage, const FloatRect& destination, const FloatRect& source, ImageDrawingOptions options)
+void GraphicsContextCGCapture::drawNativeImage(const NativeImage& nativeImage, const FloatRect& destination, const FloatRect& source, RasterDrawingOptions options)
 {
     RetainPtr image = nativeImage.platformImage();
     if (!image)
@@ -862,7 +862,7 @@ void GraphicsContextCGCapture::drawNativeImage(const NativeImage& nativeImage, c
     end();
 }
 
-void GraphicsContextCGCapture::drawPattern(const NativeImage& nativeImage, const FloatRect& destination, const FloatRect& tile, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, ImageDrawingOptions options)
+void GraphicsContextCGCapture::drawPattern(const NativeImage& nativeImage, const FloatRect& destination, const FloatRect& tile, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, RasterDrawingOptions options)
 {
     RetainPtr image = nativeImage.platformImage();
     if (!image)

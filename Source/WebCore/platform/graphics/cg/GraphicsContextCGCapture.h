@@ -156,8 +156,8 @@ public:
     void setLineJoin(LineJoin);
     void setMiterLimit(float);
     void setLineDash(const DashArray&, float dashOffset);
-    void drawNativeImage(const NativeImage&, const FloatRect& destination, const FloatRect& source, ImageDrawingOptions);
-    void drawPattern(const NativeImage&, const FloatRect& destination, const FloatRect& tile, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, ImageDrawingOptions);
+    void drawNativeImage(const NativeImage&, const FloatRect& destination, const FloatRect& source, RasterDrawingOptions);
+    void drawPattern(const NativeImage&, const FloatRect& destination, const FloatRect& tile, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, RasterDrawingOptions);
     void drawLinesForText(const FloatPoint&, float thickness, std::span<const FloatSegment>, bool isPrinting, bool doubleLines, StrokeStyle);
     void drawDotsForDocumentMarker(const FloatRect&, DocumentMarkerLineStyle);
     void drawGlyphs(const FontBase&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode);
