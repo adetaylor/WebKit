@@ -59,7 +59,7 @@ private struct Graph: ~Copyable {
         nodeMap.reserveInitialCapacity(capacity)
     }
 
-    @inline(__always)
+    @inline(always)
     mutating func addNode(_ index: Int, _ astNode: Declaration, _ shaderModule: borrowing ShaderModule) -> Int? {
         let isConstAssert = if case .constAssert = astNode { true } else { false }
         if !isConstAssert && nodeMap.contains(shaderModule.symbol(of: shaderModule.name(of: astNode))) {

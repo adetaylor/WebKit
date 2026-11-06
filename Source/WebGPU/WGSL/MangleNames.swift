@@ -98,7 +98,7 @@ private struct MangledNameText: RandomAccessCollection {
 
     var startIndex: Int { 0 }
 
-    @inline(__always)
+    @inline(always)
     subscript(position: Int) -> UInt16 {
         if position < prefixCount {
             let word = position < 8 ? prefixLow : prefixHigh

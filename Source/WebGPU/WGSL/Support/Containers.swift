@@ -47,7 +47,7 @@ public struct LookupMap<Key: Hashable, Value> {
     @_spi(Testing)
     public var isEmpty: Bool { count == 0 }
 
-    @inline(__always)
+    @inline(always)
     private func smallIndex(_ key: Key) -> Int? {
         var index = 0
         while index < small.count {
@@ -308,12 +308,12 @@ struct KeyedHasher {
     private var v2: UInt64
     private var v3: UInt64
 
-    @inline(__always)
+    @inline(always)
     init() {
         self.init(key: keyedHasherKey)
     }
 
-    @inline(__always)
+    @inline(always)
     init(key: KeyedHasherKey) {
         v0 = key.k0 ^ 0x736f_6d65_7073_6575
         v1 = key.k1 ^ 0x646f_7261_6e64_6f6d
@@ -321,14 +321,14 @@ struct KeyedHasher {
         v3 = key.k1 ^ 0x7465_6462_7974_6573
     }
 
-    @inline(__always)
+    @inline(always)
     mutating func combine(_ word: UInt64) {
         v3 ^= word
         round()
         v0 ^= word
     }
 
-    @inline(__always)
+    @inline(always)
     private mutating func round() {
         v0 &+= v1
         v1 = v1 &<< 13 | v1 &>> 51
@@ -346,7 +346,7 @@ struct KeyedHasher {
         v2 = v2 &<< 32 | v2 &>> 32
     }
 
-    @inline(__always)
+    @inline(always)
     mutating func finalize() -> Int {
         v2 ^= 0xff
         round()
@@ -358,14 +358,14 @@ struct KeyedHasher {
     /// Text of `count` code units, combined four to a word: `tail` holds the last `count % 4`, and its high 16 bits, which
     /// they leave clear, take the count (modulo 2^16, which with the number of words determines it), as SipHash's last
     /// block takes the length.
-    @inline(__always)
+    @inline(always)
     mutating func finalize(tail: UInt64, count: Int) -> Int {
         combine(tail | UInt64(truncatingIfNeeded: count) &<< 48)
         return finalize()
     }
 
     /// The hash of one word.
-    @inline(__always)
+    @inline(always)
     static func hash(_ word: UInt64, key: KeyedHasherKey) -> Int {
         var hasher = KeyedHasher(key: key)
         hasher.combine(word)
@@ -550,7 +550,7 @@ public struct SmallKeyMap<Key: SmallKey, Value> {
     }
 
     // `hash` is the key's hash when the map has a table (ignored while it scans).
-    @inline(__always)
+    @inline(always)
     @discardableResult
     private mutating func add(_ key: Key, _ value: Value, _ hash: UInt32) -> Bool {
         let (position, slot) = probe(key, hash)
@@ -562,7 +562,7 @@ public struct SmallKeyMap<Key: SmallKey, Value> {
     }
 
     // The key's position, else the empty slot where its probe ended (unused while the map scans).
-    @inline(__always)
+    @inline(always)
     private func probe(_ key: Key, _ hash: UInt32) -> (position: Int?, slot: Int) {
         if table.isEmpty {
             var index = 0
@@ -632,7 +632,7 @@ public struct SmallKeyMap<Key: SmallKey, Value> {
         }
     }
 
-    @inline(__always)
+    @inline(always)
     private func hash(of key: Key) -> UInt32 {
         UInt32(truncatingIfNeeded: KeyedHasher.hash(key.smallKeyBits, key: hashKey))
     }

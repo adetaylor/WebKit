@@ -1792,7 +1792,7 @@ public struct ConstantTable: ~Copyable {
         storeValue(value, expression)
     }
 
-    @inline(__always)
+    @inline(always)
     private mutating func storeValue(_ value: consuming ConstantValue, _ expression: UInt32) {
         let current = slot(expression)
         if current == 0 && Int(expression) < slots.count && values.count < ConstantTable.stickyBit {

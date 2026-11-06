@@ -618,7 +618,7 @@ extension ShaderModule {
         shaderModule.writeType(type, into: &out)
     }
 
-    @inline(__always)
+    @inline(always)
     private func writeType(_ type: TypeID, into out: inout StringPrintStream) {
         // DEV-03: an explicit stack of what is left to print, where Types.cpp recurses into the element types.
         var pending: [TypeDumpStep] = [.type(type)]
@@ -882,7 +882,7 @@ extension ShaderModule {
         return shaderModule.maybeSizeBody(of: type)
     }
 
-    @inline(__always)
+    @inline(always)
     private func maybeSizeBody(of type: TypeID) -> ByteSize? {
         // DEV-03: a loop over the element types with an explicit stack of the enclosing types, where Types.cpp recurses.
         var enclosing = SizeStepStack()
@@ -1019,7 +1019,7 @@ extension ShaderModule {
         return shaderModule.alignmentBody(of: type)
     }
 
-    @inline(__always)
+    @inline(always)
     private func alignmentBody(of type: TypeID) -> UInt32 {
         // DEV-03: a loop over the element types with an explicit stack of the enclosing primitive structs, where Types.cpp
         // recurses. `factor` is the product of the vector and matrix factors since the innermost enclosing primitive struct.
@@ -1390,7 +1390,7 @@ extension ShaderModule {
     /// `hasCreationFixedFootprint(_:)` that takes the structure types in `knownStructures` to have one without visiting their
     /// members (the type checker's memo of the structures it checked: a structure's member types never change, and Types.cpp
     /// visits every nested member again for every enclosing structure).
-    @inline(__always)
+    @inline(always)
     func hasCreationFixedFootprint(_ type: TypeID, knownStructures: IDSet<TypeID>?) -> Bool {
         // DEV-03: a loop with an explicit stack of the structure members left to check, where Types.cpp recurses.
         var pending = PendingMembers()
@@ -1576,7 +1576,7 @@ extension ShaderModule {
     }
 
     /// C++ `member.type().inferredType()`, which the C++ dereferences.
-    @inline(__always)
+    @inline(always)
     fileprivate func memberType(_ member: StructureMemberID) -> TypeID {
         guard let type = inferredType(of: self[member].type) else {
             wgslFatal("structure member type without an inferred type", cppSite: "Types.cpp:522")
@@ -1585,7 +1585,7 @@ extension ShaderModule {
     }
 
     /// C++ `structure.members().last().type().inferredType()`.
-    @inline(__always)
+    @inline(always)
     fileprivate func lastMemberType(_ structure: Types.Struct, cppSite: StaticString) -> TypeID {
         let members = self[structure.structure].members
         let memberCount = count(members)
@@ -1596,7 +1596,7 @@ extension ShaderModule {
     }
 
     /// C++ `structure.structure.size()`, which is `*m_size`.
-    @inline(__always)
+    @inline(always)
     fileprivate func structureSize(_ structure: Types.Struct) -> UInt32 {
         guard let size = self[structure.structure].size else {
             wgslFatal("Structure::size() before it was computed", cppSite: "ASTStructure.h:77")
@@ -1631,7 +1631,7 @@ extension ShaderModule {
         return elementLayout(of: type, in: &shaderModule)
     }
 
-    @inline(__always)
+    @inline(always)
     private static func elementLayout(of type: TypeID, in shaderModule: inout ShaderModule) -> (size: ByteSize, alignment: UInt32)? {
         switch shaderModule.types[type] {
         case .primitive(let primitive):
@@ -1673,7 +1673,7 @@ extension ShaderModule {
     }
 
     // A sized scalar's size, which is its alignment.
-    @inline(__always)
+    @inline(always)
     private static func scalarLayout(_ primitive: Types.Primitive) -> UInt32? {
         switch primitive.kind {
         case .f16:
@@ -1788,13 +1788,13 @@ private func requireAlignment(_ element: SizeAndAlignment) -> UInt32 {
 private struct PendingMembers {
     private var structures: [(members: ListID<StructureMemberID>, next: Int)] = []
 
-    @inline(__always)
+    @inline(always)
     mutating func push(_ members: ListID<StructureMemberID>) {
         structures.append((members, 0))
     }
 
     /// The type of the next member in the C++ order, read only when the C++ reads it; nil when no member is left.
-    @inline(__always)
+    @inline(always)
     mutating func next(_ shaderModule: borrowing ShaderModule) -> TypeID? {
         while let last = structures.last {
             guard last.next < shaderModule.count(last.members) else {

@@ -994,7 +994,7 @@ extension TypeChecker {
     }
 
     /// C++ `argument.evaluation()`, which dereferences the optional.
-    @inline(__always)
+    @inline(always)
     mutating func evaluationOfInferred(_ argument: ExpressionID) -> Evaluation {
         guard let evaluation = shaderModule.evaluation(of: argument) else {
             notInferred("evaluation() of an expression that was not inferred", cppSite: "ASTExpression.h:74")
@@ -1003,7 +1003,7 @@ extension TypeChecker {
     }
 
     /// C++ `argument.inferredType()` where a type is required.
-    @inline(__always)
+    @inline(always)
     mutating func inferredTypeOfInferred(_ argument: ExpressionID) -> TypeID {
         guard let type = shaderModule.inferredType(of: argument) else {
             notInferred("inferredType() of an expression that was not inferred", cppSite: "ASTExpression.h:68")
@@ -1202,7 +1202,7 @@ private func notInferred(_ message: StaticString, cppSite: StaticString) -> Neve
 extension ShaderModule {
     /// C++ `CallExpression::isFloatToIntConversion(result)` (ASTCallExpression.h); a nil `result` stands for the call's own
     /// inferred type.
-    @inline(__always)
+    @inline(always)
     func isFloatToIntConversion(_ call: ExpressionID, _ result: TypeID? = nil) -> Bool {
         func getPrimitiveType(_ type: TypeID?, _ types: borrowing TypeStore) -> Types.Primitive? {
             var type = type
@@ -1248,7 +1248,7 @@ private let quadPrefix = ContiguousArray("quad".utf16)
 private let bitcastName = ContiguousArray("bitcast".utf16)
 
 /// WTF `String::startsWith` on a symbol's code units.
-@inline(__always)
+@inline(always)
 private func startsWith(_ symbols: borrowing SymbolTable, _ symbol: Symbol, _ prefix: ContiguousArray<UInt16>) -> Bool {
     guard symbols.length(of: symbol) >= prefix.count else {
         return false
@@ -1264,7 +1264,7 @@ private func startsWith(_ symbols: borrowing SymbolTable, _ symbol: Symbol, _ pr
 }
 
 /// WTF `String == ASCIILiteral` on a symbol's code units.
-@inline(__always)
+@inline(always)
 private func equal(_ symbols: borrowing SymbolTable, _ symbol: Symbol, _ text: ContiguousArray<UInt16>) -> Bool {
     symbols.length(of: symbol) == text.count && startsWith(symbols, symbol, text)
 }

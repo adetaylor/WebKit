@@ -809,7 +809,7 @@ public struct UniformityGraph: ~Copyable {
         return nil
     }
 
-    @inline(__always)
+    @inline(always)
     static func hasFunction(_ shaderModule: borrowing ShaderModule) -> Bool {
         var declarations = shaderModule.cursor(shaderModule.declarations)
         while let declaration = shaderModule.next(&declarations) {
@@ -820,7 +820,7 @@ public struct UniformityGraph: ~Copyable {
         return false
     }
 
-    @inline(__always)
+    @inline(always)
     private static func functionCount(_ shaderModule: borrowing ShaderModule) -> Int {
         var count = 0
         var declarations = shaderModule.cursor(shaderModule.declarations)

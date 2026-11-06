@@ -1205,7 +1205,7 @@ private struct KnownConversions {
 /// The object that holds the elements or the fields of `value`, an array or a struct, else nil.
 ///
 /// Values that share their storage have the same one, and while a value lives no other buffer has its identity.
-@inline(__always)
+@inline(always)
 private func storageIdentity(_ value: ConstantValue) -> ObjectIdentifier? {
     switch value {
     case .array(let array): storageIdentity(array.elements)
@@ -1214,7 +1214,7 @@ private func storageIdentity(_ value: ConstantValue) -> ObjectIdentifier? {
     }
 }
 
-@inline(__always)
+@inline(always)
 private func storageIdentity<Element>(_ elements: [Element]) -> ObjectIdentifier? {
     // The buffer object, which isTriviallyIdentical compares by its elements' address; @inlinable, so it back-deploys.
     guard let owner = elements._owner else {
@@ -1318,7 +1318,7 @@ private func convertElement(
 
 /// Whether `value` is an array of scalars whose scans and conversions to `type` read fewer than `memoizedReads` elements
 /// and meet no shared storage, so that the memo never holds it: it is neither looked up nor started.
-@inline(__always)
+@inline(always)
 private func isNeverRemembered(
     _ value: ConstantValue,
     _ type: TypeID,
@@ -1349,7 +1349,7 @@ private func takeKnownConversion(
 }
 
 /// Whether `lhs` and `rhs` are arrays, vectors, matrices or structs that share their storage, which makes them equal.
-@inline(__always)
+@inline(always)
 private func sharesStorage(_ lhs: ConstantValue, _ rhs: ConstantValue) -> Bool {
     switch (lhs, rhs) {
     case (.array(let a), .array(let b)): sharesStorage(a.elements, b.elements)
@@ -1362,7 +1362,7 @@ private func sharesStorage(_ lhs: ConstantValue, _ rhs: ConstantValue) -> Bool {
     }
 }
 
-@inline(__always)
+@inline(always)
 private func sharesStorage<Element>(_ lhs: [Element], _ rhs: [Element]) -> Bool {
     // lint-exempt-next-line(L-BD-1): Array.isTriviallyIdentical is @_alwaysEmitIntoClient, so it back-deploys.
     lhs.isTriviallyIdentical(to: rhs)
@@ -1709,7 +1709,7 @@ private func firstElementToConvert(
     scanElements(elements, from: start, type, types, &state)
 }
 
-@inline(__always)
+@inline(always)
 private func scanElements(
     _ elements: [ConstantValue],
     from start: Int,
@@ -1728,7 +1728,7 @@ private func scanElements(
 }
 
 /// Reads element `index` for a scan: whether it is to be checked, which it is not when it equals the element before it.
-@inline(__always)
+@inline(always)
 private func elementNeedsCheck(_ elements: [ConstantValue], _ index: Int, _ state: inout ConversionState) -> Bool {
     state.reads &+= 1
     if index > 0 && equalsCompositeBefore(elements, index) {
@@ -1775,7 +1775,7 @@ private func firstFieldToConvert(
 
 /// Reads field `index` for a scan: the type to check it against, or nil when it is not a field of the struct type or
 /// repeats the field before it.
-@inline(__always)
+@inline(always)
 private func fieldTypeToCheck(
     _ constantFields: [(key: Symbol, value: ConstantValue)],
     _ index: Int,

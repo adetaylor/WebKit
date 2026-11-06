@@ -182,7 +182,7 @@ private struct WidenedASCII: Sequence {
     struct Iterator: IteratorProtocol {
         var bytes: String.UTF8View.Iterator
 
-        @inline(__always)
+        @inline(always)
         mutating func next() -> UInt16? {
             guard let byte = bytes.next() else {
                 return nil

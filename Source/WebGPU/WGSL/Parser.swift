@@ -716,7 +716,7 @@ struct TokenCounts {
         return weights
     }()
 
-    @inline(__always)
+    @inline(always)
     mutating func add(_ type: TokenType, _ weights: [UInt64]) {
         packed &+= weights[Int(type.rawValue)]
     }

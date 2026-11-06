@@ -186,13 +186,13 @@ func asciiIdentifierRunEnd(_ code: borrowing ContiguousArray<UInt16>, _ start: I
     return index
 }
 
-@inline(__always)
+@inline(always)
 private func isASCIIIdentifierCharacter(_ codeUnit: UInt16) -> Bool {
     (codeUnit | 0x20) &- 0x61 < 26 || codeUnit &- 0x30 < 10 || codeUnit == 0x5F
 }
 
 // 1 for an ASCII letter, digit or "_", without branches.
-@inline(__always)
+@inline(always)
 private func asciiIdentifierBit(_ codeUnit: UInt8) -> UInt8 {
     let letter: UInt8 = (codeUnit | 0x20) &- 0x61 < 26 ? 1 : 0
     let digit: UInt8 = codeUnit &- 0x30 < 10 ? 1 : 0
@@ -200,7 +200,7 @@ private func asciiIdentifierBit(_ codeUnit: UInt8) -> UInt8 {
     return letter | digit | underscore
 }
 
-@inline(__always)
+@inline(always)
 private func asciiIdentifierBit(_ codeUnit: UInt16) -> UInt8 {
     let letter: UInt8 = (codeUnit | 0x20) &- 0x61 < 26 ? 1 : 0
     let digit: UInt8 = codeUnit &- 0x30 < 10 ? 1 : 0
