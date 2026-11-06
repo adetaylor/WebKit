@@ -734,14 +734,14 @@ void handleSwiftMessageSynchronous(Connection& connection, Decoder& decoder, Uni
 }
 
 // Dispatch to the Swift handlers of a stream receiver whose state C++ lends them, so that Swift reaches the state through
-// an inout parameter, with no dynamic exclusivity check. Always inlined, so that each message calls its Swift handler
-// directly rather than through the member function pointer. lender->lendSwiftReceiverState() lends the state for one
-// message: its lend is false if there is nothing to lend, in which case the message is decoded and dropped, as a
-// message to a C++ receiver whose target has gone is. Otherwise state() is the state, which the lend keeps valid and
-// lent to nothing else until it is destroyed.
+// an inout parameter, with no dynamic exclusivity check. Inlined, unless its arguments are large (below), so that each
+// message calls its Swift handler directly rather than through the member function pointer.
+// lender->lendSwiftReceiverState() lends the state for one message: its lend is false if there is nothing to lend, in
+// which case the message is decoded and dropped, as a message to a C++ receiver whose target has gone is. Otherwise
+// state() is the state, which the lend keeps valid and lent to nothing else until it is destroyed.
 
 template<typename MessageType, typename L, typename T, typename U, typename MF>
-ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function)
+ALWAYS_INLINE void handleSwiftMessageWithLentStateInline(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function)
 {
     ASSERT(connection.isCurrentWorkQueue());
     auto arguments = decoder.decode<typename MessageType::Arguments>();
@@ -765,7 +765,7 @@ ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& conne
 // For a SwiftMayDecline message: if the Swift handler declines it, the lender handles it with fallback, after the lend
 // ends, so that the C++ may use the state itself.
 template<typename MessageType, typename L, typename T, typename U, typename MF, typename LF>
-ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function, LF fallback)
+ALWAYS_INLINE void handleSwiftMessageWithLentStateInline(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function, LF fallback)
 {
     ASSERT(connection.isCurrentWorkQueue());
     auto arguments = decoder.decode<typename MessageType::Arguments>();
@@ -792,6 +792,26 @@ ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& conne
     }
     if (result == SwiftLentStateDispatch::Invalid) [[unlikely]]
         decoder.markInvalid();
+}
+
+// A message whose decoded arguments are larger than a few registers is dispatched by a function of its own, which calls its
+// Swift handler through the member function pointer: inlined, its arguments would grow the frame of the receiver's dispatch
+// function, and so the work every message of the receiver does at that function's entry and exit.
+template<typename MessageType> inline constexpr bool dispatchesSwiftMessageWithLentStateOutOfLine = sizeof(typename MessageType::Arguments) > 48;
+
+template<typename MessageType, typename L, typename T, typename U, typename MF, typename... Fallback>
+NEVER_INLINE void handleSwiftMessageWithLentStateOutOfLine(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function, Fallback... fallback)
+{
+    handleSwiftMessageWithLentStateInline<MessageType>(connection, decoder, lender, object, function, fallback...);
+}
+
+template<typename MessageType, typename L, typename T, typename U, typename MF, typename... Fallback>
+ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function, Fallback... fallback)
+{
+    if constexpr (dispatchesSwiftMessageWithLentStateOutOfLine<MessageType>)
+        handleSwiftMessageWithLentStateOutOfLine<MessageType>(connection, decoder, lender, object, function, fallback...);
+    else
+        handleSwiftMessageWithLentStateInline<MessageType>(connection, decoder, lender, object, function, fallback...);
 }
 
 } // namespace IPC
