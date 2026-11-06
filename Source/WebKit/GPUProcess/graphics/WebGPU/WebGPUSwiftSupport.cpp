@@ -266,6 +266,11 @@ OptionalOwnedBytes mapSharedMemory(IPC::CxxDecodedArgument<std::optional<WebCore
     return ::WebGPU::OwnedBytes { ::WebGPU::ByteOwner::create(data.releaseNonNull()) };
 }
 
+bool isValidWebGPUWriteWithCopySize(size_t size)
+{
+    return size <= WebGPU::maxCrossProcessResourceCopySize;
+}
+
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 WebGPUSwiftVideoFrames* WebGPUSwiftVideoFrames::create(const WebGPUSwiftRegistryHost& host)
 {

@@ -215,6 +215,9 @@ using OptionalOwnedBytes = std::optional<::WebGPU::OwnedBytes>;
 // it returns. std::nullopt if there's none, or no more than the message could have carried in the stream.
 OptionalOwnedBytes mapSharedMemory(IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>&);
 
+// Whether a write with copy is no larger than the web process sends in a message (WebGPU::maxCrossProcessResourceCopySize).
+bool isValidWebGPUWriteWithCopySize(size_t);
+
 
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)

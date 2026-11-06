@@ -117,11 +117,14 @@ final class RemoteQueue {
         body(copy.span)
     }
 
-    func writeBufferWithCopy(identifier: IPCTypes.WebGPUIdentifier, bufferOffset: UInt64, data: IPC.LentBytes) {
+    func writeBufferWithCopy(identifier: IPCTypes.WebGPUIdentifier, bufferOffset: UInt64, data: IPC.LentBytes) throws(InvalidMessage) {
         let buffer = link.objects?.object(identifier, as: BufferReference.self)
         assert(buffer != nil)
         guard let buffer else {
             return
+        }
+        try messageCheck {
+            WebKit.isValidWebGPUWriteWithCopySize(data.size())
         }
         withCopy(of: data) { bytes in
             queue.writeBuffer(buffer, bufferOffset, bytes)
@@ -172,11 +175,14 @@ final class RemoteQueue {
         data: IPC.LentBytes,
         imageDataLayout: IPCTypes.ImageDataLayout,
         size: IPCTypes.Extent3D
-    ) {
+    ) throws(InvalidMessage) {
         let texture = link.objects?.object(destination.texture, as: TextureReference.self)
         assert(texture != nil)
         guard let texture else {
             return
+        }
+        try messageCheck {
+            WebKit.isValidWebGPUWriteWithCopySize(data.size())
         }
         withCopy(of: data) { bytes in
             queue.writeTexture(texture, TextureCopyLocation(destination), bytes, WebGPU.TexelCopyBufferLayout(imageDataLayout), WebGPU.Extent3D(size))
