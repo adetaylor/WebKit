@@ -170,6 +170,14 @@ public final class RenderBundleImpl: GPUObjectReference {
                 0,
                 bytes: depthRange.span
             )
+            for headerOffset in icb.fragmentDynamicOffsetsHeaderOffsets {
+                deviceImpl.defaultQueueImpl.stageBufferWrite(
+                    deviceImpl,
+                    icb.fragmentDynamicOffsetsBuffer,
+                    headerOffset,
+                    bytes: depthRange.span
+                )
+            }
         }
     }
 

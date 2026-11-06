@@ -1228,6 +1228,8 @@ final class BundleICB {
     let depthBiasSlopeScale: Float
     let depthBiasClamp: Float
     let fragmentDynamicOffsetsBuffer: (any MTLBuffer)?
+    /// Byte offsets into fragmentDynamicOffsetsBuffer of the depth ranges other than the one at 0.
+    let fragmentDynamicOffsetsHeaderOffsets: [UInt64]
     /// By ICB command index, walked in WTF order.
     let indexValidations: WTFHashMap<UInt64, BundleIndexValidation>
     /// By ICB command index, walked in WTF order.
@@ -1246,6 +1248,7 @@ final class BundleICB {
         depthBiasSlopeScale: Float,
         depthBiasClamp: Float,
         fragmentDynamicOffsetsBuffer: (any MTLBuffer)?,
+        fragmentDynamicOffsetsHeaderOffsets: [UInt64],
         indexValidations: WTFHashMap<UInt64, BundleIndexValidation>,
         indirectDraws: WTFHashMap<UInt64, BundleIndirectDraw>
     ) {
@@ -1261,6 +1264,7 @@ final class BundleICB {
         self.depthBiasSlopeScale = depthBiasSlopeScale
         self.depthBiasClamp = depthBiasClamp
         self.fragmentDynamicOffsetsBuffer = fragmentDynamicOffsetsBuffer
+        self.fragmentDynamicOffsetsHeaderOffsets = fragmentDynamicOffsetsHeaderOffsets
         self.indexValidations = indexValidations
         self.indirectDraws = indirectDraws
     }

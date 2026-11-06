@@ -302,6 +302,8 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
     private var previousCommandCount: UInt64 = 0
     private var vertexDynamicOffset: UInt64 = 0
     private var fragmentDynamicOffset: UInt64 = 0
+    // The byte offsets of the headers of the draws after the first in the ICB being encoded, for updateMinMaxDepths().
+    private var fragmentDynamicOffsetsHeaderOffsets: [UInt64] = []
     private var backingBundleCommandCount: UInt64 = 0
     private var lastErrorString: String?
     private var requiresCommandReplay: Bool
@@ -462,7 +464,7 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         }
 
         let drawVertexDynamicOffset = vertexDynamicOffset
-        let drawFragmentDynamicOffset = fragmentDynamicOffset
+        var drawFragmentDynamicOffset = fragmentDynamicOffset
         guard let pipelineImpl = currentPipelineImpl else {
             invalidate("Pipeline was not set prior to draw command")
             return false
@@ -484,14 +486,20 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         }
         vertexDynamicOffset = vertexDynamicOffsetSum
 
-        let (fragmentDynamicOffsetSum, fragmentOverflowed) = fragmentDynamicOffset.addingReportingOverflow(
-            UInt64(MemoryLayout<UInt32>.size) &* layoutImpl.dynamicOffsetTotal(.fragment)
-        )
+        // A draw with fragment dynamic offsets has a header of its own ahead of them.
+        let fragmentDynamicOffsetCount = layoutImpl.dynamicOffsetTotal(.fragment)
+        let fragmentDynamicOffsetSize =
+            fragmentDynamicOffsetCount != 0
+            ? UInt64(MemoryLayout<UInt32>.size) &* (UInt64(startIndexForFragmentDynamicOffsets) &+ fragmentDynamicOffsetCount) : 0
+        let (fragmentDynamicOffsetSum, fragmentOverflowed) = fragmentDynamicOffset.addingReportingOverflow(fragmentDynamicOffsetSize)
         if fragmentOverflowed {
             invalidate("Invalid fragmentDynamicOffset")
             return false
         }
         fragmentDynamicOffset = fragmentDynamicOffsetSum
+        if fragmentDynamicOffsetCount == 0 {
+            drawFragmentDynamicOffset = 0
+        }
 
         // The recomputed pipeline shares this one's layout and minimum buffer sizes, so the checks below read this one.
         if needsValidationLayerWorkaround {
@@ -546,6 +554,13 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         if let error = encodeVertexAndFragmentBuffers(drawTarget) {
             invalidate(error)
             return false
+        }
+
+        if dynamicOffsetsFragmentBuffer != nil && fragmentDynamicOffsetCount != 0 {
+            writeFragmentDynamicOffsetsHeader(at: Int(drawFragmentDynamicOffset / UInt64(MemoryLayout<UInt32>.size)), sampleMask)
+            if drawFragmentDynamicOffset != 0 && replayPassImpl == nil {
+                fragmentDynamicOffsetsHeaderOffsets.append(drawFragmentDynamicOffset)
+            }
         }
 
         if let error = encodeDynamicOffsets(pipelineImpl, drawTarget, drawVertexDynamicOffset, drawFragmentDynamicOffset) {
@@ -2172,11 +2187,13 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
             depthBiasSlopeScale: depthBiasSlopeScale,
             depthBiasClamp: depthBiasClamp,
             fragmentDynamicOffsetsBuffer: dynamicOffsetsFragmentBuffer,
+            fragmentDynamicOffsetsHeaderOffsets: fragmentDynamicOffsetsHeaderOffsets,
             indexValidations: minVertexCountForDrawCommand,
             indirectDraws: indirectDrawsForSlot
         )
         minVertexCountForDrawCommand.removeAll()
         indirectDrawsForSlot.removeAll()
+        fragmentDynamicOffsetsHeaderOffsets.removeAll()
         if !icbsDropped {
             icbs.append(bundleICB)
         }
@@ -2203,16 +2220,20 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         }
 
         let buffer: (any MTLBuffer)? = deviceImpl.safeCreateBuffer(
-            UInt(size &+ UInt64(startIndexForFragmentDynamicOffsets * MemoryLayout<Float>.size))
+            UInt(max(size, UInt64(startIndexForFragmentDynamicOffsets * MemoryLayout<Float>.size)))
         )
         dynamicOffsetsFragmentBuffer = buffer
-        var contents = ContiguousArray<UInt32>(repeating: 0, count: uint32Count(buffer))
-        precondition(!contents.isEmpty)
-        contents[0] = Float(0).bitPattern
-        contents[1] = Float(1).bitPattern
-        contents[2] = sampleMask
-        dynamicOffsetsFragmentContents = contents
+        dynamicOffsetsFragmentContents = ContiguousArray<UInt32>(repeating: 0, count: uint32Count(buffer))
+        precondition(!dynamicOffsetsFragmentContents.isEmpty)
+        writeFragmentDynamicOffsetsHeader(at: 0, sampleMask)
         return addInputResource(buffer, stage: .fragment)
+    }
+
+    /// The depth range and the sample mask, at word `index` of the fragment dynamic-offsets buffer.
+    private func writeFragmentDynamicOffsetsHeader(at index: Int, _ sampleMask: UInt32) {
+        dynamicOffsetsFragmentContents[index] = Float(0).bitPattern
+        dynamicOffsetsFragmentContents[index + 1] = Float(1).bitPattern
+        dynamicOffsetsFragmentContents[index + 2] = sampleMask
     }
 
     private func writeSampleMaskToFragmentDynamicOffsets(_ sampleMask: UInt32) {
