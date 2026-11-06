@@ -108,6 +108,15 @@
 #endif
 #endif
 
+/* The additions define these where the SDK and deployment target have the GPU families; they are 0 elsewhere. */
+#if !defined(HAVE_METAL_FAMILY_8)
+#define HAVE_METAL_FAMILY_8 0
+#endif
+
+#if !defined(HAVE_METAL_FAMILY_9)
+#define HAVE_METAL_FAMILY_9 0
+#endif
+
 
 
 /* ==== Platform specific defaults ==== */

@@ -184,6 +184,12 @@ if (WEBKIT_SDK_IS_IOS_FAMILY)
     if ((WEBKIT_SDK_IS_TVOS OR WEBKIT_SDK_IS_WATCHOS) AND WEBKIT_SDK_VERSION VERSION_LESS 27)
         WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEBGPU_SWIFT PRIVATE OFF)
     endif ()
+    # iOS and visionOS don't build it with the 26.2 and 26.3 SDKs or the 26 simulator SDKs, also as there.
+    if ((WEBKIT_SDK_IS_IOS OR WEBKIT_SDK_IS_XROS) AND WEBKIT_SDK_VERSION VERSION_GREATER_EQUAL 26 AND WEBKIT_SDK_VERSION VERSION_LESS 27)
+        if (WEBKIT_SDK_IS_SIMULATOR OR WEBKIT_SDK_VERSION MATCHES "^26\\.[23](\\.|$)")
+            WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEBGPU_SWIFT PRIVATE OFF)
+        endif ()
+    endif ()
 endif ()
 
 # Mac Catalyst follows wtf/PlatformEnableCocoa.h and wtf/PlatformEnable.h for
