@@ -3703,6 +3703,14 @@ if (APPLE)
         "-I${WebCoreEME_SWIFT_MODULE_DIR}"
         "-Xcc -I${WebCoreEME_INTEROP_MODULE_DIR}")
     add_dependencies(WebCore_SwiftGeneratedDeps WebCoreEME)
+
+    if (ENABLE_WEBGL)
+        # The WebGL island's Swift module, in WebCore.framework. Without -force_load the linker drops archive members
+        # that hold only types and conformances.
+        add_subdirectory(platform/graphics/angle/swift)
+        target_link_libraries(WebCore PRIVATE WebCoreWebGL)
+        target_link_options(WebCore PRIVATE "LINKER:-force_load,$<TARGET_FILE:WebCoreWebGL>")
+    endif ()
 else ()
     # The Swift sources the WebCore Xcode project compiles, with WebCore.xcconfig's Swift settings.
     # SwiftStub.swift is left out: it imports Foundation, and these Swift sources already emit symbols.
