@@ -41,7 +41,7 @@
 #include <wtf/CheckedArithmetic.h>
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
-#include "RemoteVideoFrameObjectHeap.h"
+#include "RemoteVideoFrameObjectHeapHandle.h"
 #include "SharedVideoFrame.h"
 #include <WebCore/MediaPlayer.h>
 #include <WebCore/VideoFrame.h>
@@ -210,7 +210,7 @@ WebGPUSwiftVideoFrames* WebGPUSwiftVideoFrames::create(const WebGPUSwiftRegistry
         return nullptr;
     // As for RemoteDevice: a frame shared across is usually a reference into the video frame object heap, and the web
     // process's identity attributes any buffer read out of shared memory.
-    auto reader = makeUnique<SharedVideoFrameReader>(RefPtr<RemoteVideoFrameObjectHeap> { &connection->videoFrameObjectHeap() }, connection->webProcessIdentity());
+    auto reader = makeUnique<SharedVideoFrameReader>(RefPtr<RemoteVideoFrameObjectHeapHandle> { &connection->videoFrameObjectHeap() }, connection->webProcessIdentity());
     return &adoptRef(*new WebGPUSwiftVideoFrames(host, WTF::move(reader))).leakRef();
 }
 
