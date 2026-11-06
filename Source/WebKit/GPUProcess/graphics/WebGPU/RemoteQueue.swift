@@ -99,13 +99,33 @@ final class RemoteQueue {
         }
     }
 
-    func writeBufferWithCopy(identifier: IPCTypes.WebGPUIdentifier, bufferOffset: UInt64, data: [UInt8]) {
+    // The data of a write with copy is lent from the message, whose buffer the web process can still write to, so
+    // it is copied once, and WebGPU, which may read it more than once, sees only the copy. Writes of up to
+    // reusedCopySize bytes are copied into the same storage each time.
+    private static let reusedCopySize = 64 * 1024
+    private var copiedData: [UInt8] = []
+
+    private func withCopy(of data: IPC.LentBytes, _ body: (Span<UInt8>) -> Void) {
+        guard data.size() <= Self.reusedCopySize else {
+            let copy = data.copied()
+            body(copy.span)
+            return
+        }
+        data.copyBytes(into: &copiedData)
+        // A local reference, as a span of a stored property would last only for the access to it.
+        let copy = copiedData
+        body(copy.span)
+    }
+
+    func writeBufferWithCopy(identifier: IPCTypes.WebGPUIdentifier, bufferOffset: UInt64, data: IPC.LentBytes) {
         let buffer = link.objects?.object(identifier, as: BufferReference.self)
         assert(buffer != nil)
         guard let buffer else {
             return
         }
-        queue.writeBuffer(buffer, bufferOffset, data.span)
+        withCopy(of: data) { bytes in
+            queue.writeBuffer(buffer, bufferOffset, bytes)
+        }
     }
 
     func writeBuffer(
@@ -149,7 +169,7 @@ final class RemoteQueue {
 
     func writeTextureWithCopy(
         destination: IPCTypes.ImageCopyTexture,
-        data: [UInt8],
+        data: IPC.LentBytes,
         imageDataLayout: IPCTypes.ImageDataLayout,
         size: IPCTypes.Extent3D
     ) {
@@ -158,7 +178,9 @@ final class RemoteQueue {
         guard let texture else {
             return
         }
-        queue.writeTexture(texture, TextureCopyLocation(destination), data.span, WebGPU.TexelCopyBufferLayout(imageDataLayout), WebGPU.Extent3D(size))
+        withCopy(of: data) { bytes in
+            queue.writeTexture(texture, TextureCopyLocation(destination), bytes, WebGPU.TexelCopyBufferLayout(imageDataLayout), WebGPU.Extent3D(size))
+        }
     }
 
     // Synchronous, so that the source image buffer can't be released before C++ resolves it, and so that drawing

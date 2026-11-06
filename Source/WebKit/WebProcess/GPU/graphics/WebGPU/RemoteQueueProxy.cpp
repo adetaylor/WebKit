@@ -108,7 +108,7 @@ void RemoteQueueProxy::writeTexture(const ::WebGPU::TexelCopyTextureInfo& destin
         });
         UNUSED_VARIABLE(sendResult);
     } else {
-        auto sendResult = send(Messages::RemoteQueue::WriteTextureWithCopy(*convertedDestination, Vector(data), dataLayout, writeSize));
+        auto sendResult = send(Messages::RemoteQueue::WriteTextureWithCopy(*convertedDestination, data, dataLayout, writeSize));
         UNUSED_VARIABLE(sendResult);
     }
 }

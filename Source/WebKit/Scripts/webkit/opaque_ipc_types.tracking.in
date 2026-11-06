@@ -148,6 +148,9 @@
     [Legacy] MessageParam LibWebRTCCodecsProxy.DecodeFrame data
     [Legacy] MessageParam LibWebRTCCodecsProxy.SetDecoderFormatDescription description
 
+    [Legacy] MessageParam RemoteQueue.WriteBufferWithCopy data
+    [Legacy] MessageParam RemoteQueue.WriteTextureWithCopy data
+
     [DebugOnly] MessageParam IPCSwiftStreamTester.DigestLentBytesSwift bytes
 
     [Legacy] MessageParam NetworkRTCProvider.SendToSocket data
@@ -245,8 +248,6 @@
     [Legacy] MessageParam NetworkConnectionToWebProcess.NavigatorSubscribeToPushService applicationServerKey
     [Legacy] MessageParam PushClientConnection.SubscribeToPushService vapidPublicKey
     [Legacy] MessageParam RemoteBuffer.CopyWithCopy data
-    [Legacy] MessageParam RemoteQueue.WriteBufferWithCopy data
-    [Legacy] MessageParam RemoteQueue.WriteTextureWithCopy data
     [Legacy] MessageParam WebPageProxy.BindRemoteAccessibilityFrames dataToken
     [Legacy] MessageParam WebSWServerConnection.SubscribeToPushService applicationServerKey
     [Legacy] StructureParam WebKit::CoreIPCPKSecureElementPass.ipcData()
