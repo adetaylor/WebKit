@@ -32,7 +32,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 
 namespace WTF {
 
-double parseDouble(std::span<const Latin1Character> string, size_t& parsedLength)
+double parseDouble(std::span<const Latin1Character> string NOESCAPE, size_t& parsedLength)
 {
     double doubleValue = 0;
     auto stringData = byteCast<char>(string);
@@ -41,7 +41,7 @@ double parseDouble(std::span<const Latin1Character> string, size_t& parsedLength
     return doubleValue;
 }
 
-double parseDouble(std::span<const char16_t> string, size_t& parsedLength)
+double parseDouble(std::span<const char16_t> string NOESCAPE, size_t& parsedLength)
 {
     double doubleValue = 0;
     auto result = fast_float::from_chars(std::to_address(string.begin()), std::to_address(string.end()), doubleValue, fast_float::chars_format::general | fast_float::chars_format::no_infnan | fast_float::chars_format::allow_leading_plus);
