@@ -666,6 +666,13 @@ final class WebGPUXRProjectionLayer {
             verticalSamples: verticalSamples
         )
     }
+
+    // RemoteXRProjectionLayer::destroy.
+    // @used ensures this is retained even under -O -wmo: rdar://179098545
+    @used
+    func destroy() {
+        layer.destroy()
+    }
 }
 
 @_expose(Cxx)

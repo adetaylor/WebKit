@@ -38,6 +38,11 @@ final class XRSubImageImpl {
     fileprivate init() {
     }
 
+    func releaseTextures() {
+        colorTextures = [:]
+        depthTextures = [:]
+    }
+
     func update(_ deviceImpl: DeviceImpl, _ projectionLayer: XRProjectionLayerImpl) {
         var colorTexture = projectionLayer.colorTexture
         var depthTexture = projectionLayer.depthTexture

@@ -119,6 +119,22 @@ final class XRProjectionLayerImpl {
     }
 
     // Clears every slice of the current depth texture, which the compositor recycles across frames and always reads.
+    // The page destroyed the layer, which can be long before the last reference to it goes. The textures are released,
+    // not destroyed: every WebXR layer shares the compositor's drawable.
+    func destroy() {
+        colorTextures = [:]
+        depthTextures = [:]
+        colorTexture = nil
+        depthTexture = nil
+        completionEvent = nil
+        completionEventSignalValue = 0
+        leftRasterizationMap = nil
+        rightRasterizationMap = nil
+
+        // The device's one sub-image wraps the textures of the last layer it was updated from; update() wraps them again.
+        deviceImpl.xrSubImageImpl?.releaseTextures()
+    }
+
     private func clearDepthTexture() {
         guard let depthTexture else {
             return
@@ -197,6 +213,10 @@ public final class XRProjectionLayerReference {
             horizontalSamplesRight,
             verticalSamples
         )
+    }
+
+    public func destroy() {
+        impl.destroy()
     }
 }
 
