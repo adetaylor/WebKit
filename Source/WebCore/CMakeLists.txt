@@ -3425,6 +3425,14 @@ if (SWIFT_REQUIRED AND APPLE)
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"
         "WebCoreSwift-Generated.h")
+
+    # The pure Swift value types, in WebCore.framework, which WebCoreEME, WebCore's Swift and WebKit's Swift import.
+    # Without -force_load the linker drops archive members that hold only types and conformances.
+    add_subdirectory(platform/swift/support)
+    target_link_libraries(WebCore PRIVATE WebCoreSwiftSupport)
+    target_link_options(WebCore PRIVATE "LINKER:-force_load,$<TARGET_FILE:WebCoreSwiftSupport>")
+    webkit_target_add_swift_options(WebCore "-I${WebCoreSwiftSupport_SWIFT_MODULE_DIR}")
+    add_dependencies(WebCore_SwiftGeneratedDeps WebCoreSwiftSupport)
 endif ()
 
 WEBKIT_FRAMEWORK(WebCore)
