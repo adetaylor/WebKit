@@ -1051,6 +1051,10 @@ WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebKit WebKit
     "${WebKit_SWIFT_INTEROP_MODULE_PATH}"
     "${WebKit_DERIVED_SOURCES_DIR}/WebKit-Swift-Generated.h")
 
+if (TARGET WebCoreSwiftSupport)
+    webkit_target_add_swift_options(WebKit "-I${WebCoreSwiftSupport_SWIFT_MODULE_DIR}")
+    add_dependencies(WebKit_SwiftGeneratedDeps WebCoreSwiftSupport)
+endif ()
 if (SWIFT_REQUIRED)
     # should match the rest of WebKit and use -Onone, but it negatively impacts build time
     webkit_target_add_swift_options(WebKit
