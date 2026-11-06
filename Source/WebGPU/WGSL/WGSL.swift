@@ -142,8 +142,10 @@ public struct Features: OptionSet, Hashable, Sendable {
     public static let primitiveIndex = Features(rawValue: 1 << 2)
     /// The subgroups feature.
     public static let subgroups = Features(rawValue: 1 << 3)
+    /// The dual-source-blending feature.
+    public static let dualSourceBlending = Features(rawValue: 1 << 4)
 
-    /// The features among WebGPU feature names: the compiler consults only these four.
+    /// The features among WebGPU feature names: the compiler consults only these five.
     public init(names: some Sequence<String>) {
         var features: Features = []
         for name in names {
@@ -156,6 +158,8 @@ public struct Features: OptionSet, Hashable, Sendable {
                 features.insert(.primitiveIndex)
             } else if key == Name("subgroups") {
                 features.insert(.subgroups)
+            } else if key == Name("dual-source-blending") {
+                features.insert(.dualSourceBlending)
             }
         }
         self = features
@@ -651,6 +655,8 @@ public struct EntryPointIO: Hashable, Sendable {
     public var usesSampleMaskInOutput: Bool
     /// Whether @builtin(frag_depth) is an output.
     public var usesFragDepth: Bool
+    /// Whether an output has @blend_src.
+    public var usesDualSourceBlending: Bool
     /// Whether @builtin(primitive_index) is an input.
     public var usesPrimitiveIndexInInput: Bool
     /// Whether @builtin(subgroup_invocation_id) is an input.
@@ -673,6 +679,7 @@ public struct EntryPointIO: Hashable, Sendable {
         usesSampleMaskInInput = false
         usesSampleMaskInOutput = false
         usesFragDepth = false
+        usesDualSourceBlending = false
         usesPrimitiveIndexInInput = false
         usesSubgroupInvocationIdInInput = false
         usesSubgroupSizeInInput = false
@@ -1211,6 +1218,8 @@ private func wgslExtensionToWebGPUFeatureName(_ extension: Extension) -> StaticS
     switch `extension` {
     case .clipDistances:
         "clip-distances"
+    case .dualSourceBlending:
+        "dual-source-blending"
     case .f16:
         "shader-f16"
     case .primitiveIndex:
@@ -1225,6 +1234,8 @@ private func wgslExtensionToWebGPUFeature(_ extension: Extension) -> Features {
     switch `extension` {
     case .clipDistances:
         .clipDistances
+    case .dualSourceBlending:
+        .dualSourceBlending
     case .f16:
         .shaderF16
     case .primitiveIndex:

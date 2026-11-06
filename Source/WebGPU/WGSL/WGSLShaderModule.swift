@@ -1379,7 +1379,7 @@ extension ShaderModule {
     public func constantValueForArrayCount(_ expression: ExpressionID) -> ConstantValue? { constants.value(expression) }
 
     /// MetalFunctionWriter.cpp:1892, :1921 (expressions), :1066, :1540, :1551, :1562, :1572, :1575 (attributes), :2031, :2402
-    /// (builtin arguments); collectCallSiteInfo (call arguments).
+    /// (builtin arguments); collectCallSiteInfo (call arguments); visit(AST::BlendSrcAttribute&) (attribute).
     @_spi(Testing)
     @inline(__always)
     public func constantValueForWriter(_ expression: ExpressionID) -> ConstantValue? { constants.value(expression) }

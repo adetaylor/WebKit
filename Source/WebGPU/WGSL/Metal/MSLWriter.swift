@@ -89,6 +89,7 @@ public enum MSLAttribute: Sendable {
     case id(Int64)
     case userLocation(Int64)
     case color(Int64)
+    case index(Int64)
     case attribute(Int64)
     case flat
     case centerNoPerspective
@@ -245,6 +246,10 @@ public struct MSLWriter: ~Copyable {
         case .color(let location):
             sink.append("[[color(")
             sink.appendDecimal(location)
+            sink.append(")]]")
+        case .index(let index):
+            sink.append("[[index(")
+            sink.appendDecimal(index)
             sink.append(")]]")
         case .attribute(let location):
             sink.append("[[attribute(")

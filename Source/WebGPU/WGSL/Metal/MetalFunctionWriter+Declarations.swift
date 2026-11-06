@@ -902,6 +902,17 @@ extension FunctionDefinitionWriter {
         }
     }
 
+    mutating func visit(_ blendSrc: BlendSrcAttribute, _ id: AttributeID) {
+        // @blend_src is only valid on fragment outputs, where it selects the blending unit input
+        // for @location(0): [[color(0)]] [[index(0)]] or [[color(0)]] [[index(1)]].
+        if structRole == .fragmentOutput {
+            guard let value = shaderModule.constantValueForWriter(blendSrc.blendSrc) else {
+                wgslFatal("a @blend_src attribute without a constant value", cppSite: "MetalFunctionWriter.cpp:1784")
+            }
+            body.append(.index(value.integerValue()))
+        }
+    }
+
     mutating func visit(_ attribute: WorkgroupSizeAttribute, _ id: AttributeID) {
         // This attribute shouldn't generate any code. The workgroup size is passed
         // to the API through the EntryPointInformation.

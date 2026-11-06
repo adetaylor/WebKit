@@ -343,6 +343,7 @@ struct FragmentOutput {
     let usesSampleMaskInInput: Bool
     let usesSampleMaskInOutput: Bool
     let usesFragDepth: Bool
+    let usesDualSourceBlending: Bool
     let usesPrimitiveIndexInInput: Bool
     let usesSubgroupInvocationIdInInput: Bool
     let usesSubgroupSizeInInput: Bool

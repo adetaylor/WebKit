@@ -6026,11 +6026,11 @@ enable unknown;
 plan 15
 =copy prev 0 4
 
-expect 188
+expect 212
 WGSLDUMP 1
 input id="cts/shader-validation/db5bc4a7808e" bytes=15 units=15 is8bit=1
 =copy prev 2 2
-error 1:0:0:14 "Expected 'clip_distances', 'f16', 'primitive_index', or 'subgroups'"
+error 1:0:0:14 "Expected 'clip_distances', 'dual_source_blending', 'f16', 'primitive_index', or 'subgroups'"
 end
 
 endcase

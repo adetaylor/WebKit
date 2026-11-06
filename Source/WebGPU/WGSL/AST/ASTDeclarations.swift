@@ -414,6 +414,9 @@ public struct StructureMember: BitwiseCopyable, Equatable {
     public var location: UInt32?
 
     @_spi(Testing)
+    public var blendSrc: UInt32?
+
+    @_spi(Testing)
     public var interpolation: Interpolation?
 
     @_spi(Testing)

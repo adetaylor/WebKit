@@ -438,6 +438,14 @@ private struct AttributeValidator: ASTVisitor, ~Copyable {
 
     mutating func visit(_ structure: StructureID) {
         visitChildren(structure)
+        if hasError {
+            return
+        }
+
+        validateBlendSrc(structure)
+        if hasError {
+            return
+        }
 
         let structureHasSizeOrAlignmentAttributes = hasSizeOrAlignmentAttributes
         hasSizeOrAlignmentAttributes = false
@@ -530,6 +538,27 @@ private struct AttributeValidator: ASTVisitor, ~Copyable {
                     continue
                 }
 
+                if case .blendSrcAttribute(let blendSrcAttribute) = shaderModule[attribute].kind {
+                    if !shaderModule.enabledExtensions.contains(.dualSourceBlending) {
+                        error(shaderModule.span(of: attribute), "@blend_src requires the 'dual_source_blending' extension to be enabled")
+                        return
+                    }
+
+                    guard let constantValue = shaderModule.constantValue(of: blendSrcAttribute.blendSrc) else {
+                        error(shaderModule.span(of: attribute), "@blend_src constant value is missing")
+                        return
+                    }
+
+                    let blendSrcValue = constantValue.integerValue()
+                    if blendSrcValue < 0 || blendSrcValue > 1 {
+                        error(shaderModule.span(of: attribute), "@blend_src value must be either 0 or 1")
+                        return
+                    }
+
+                    update(shaderModule.span(of: attribute), &node.blendSrc, UInt32(truncatingIfNeeded: blendSrcValue))
+                    continue
+                }
+
                 if case .sizeAttribute(let sizeAttribute) = shaderModule[attribute].kind {
                     hasSizeOrAlignmentAttributes = true
 
@@ -616,6 +645,64 @@ private struct AttributeValidator: ASTVisitor, ~Copyable {
         }
 
         visitChildren(member)
+    }
+
+    /// If any member of a structure uses @blend_src, the structure must contain exactly two members with a @location attribute:
+    /// one with @location(0) @blend_src(0) and another with @location(0) @blend_src(1), and both must have the same type.
+    private mutating func validateBlendSrc(_ structure: StructureID) {
+        var blendSrc0: StructureMemberID?
+        var blendSrc1: StructureMemberID?
+        var locationCount = 0
+        var members = shaderModule.cursor(shaderModule[structure].members)
+        while !members.isAtEnd {
+            let member = shaderModule.advance(&members)
+            let node = shaderModule[member]
+            if node.location != nil {
+                locationCount &+= 1
+            }
+
+            guard let blendSrc = node.blendSrc else {
+                continue
+            }
+
+            if node.location != 0 {
+                error(node.span, "@blend_src can only be used on a structure member with @location(0)")
+                return
+            }
+
+            if blendSrc != 0 ? blendSrc1 != nil : blendSrc0 != nil {
+                let name = shaderModule.symbols.text(of: shaderModule[shaderModule[structure].name].symbol)
+                error(node.span, "@blend_src(\(blendSrc)) appears multiple times in structure '\(name)'")
+                return
+            }
+            if blendSrc != 0 {
+                blendSrc1 = member
+            } else {
+                blendSrc0 = member
+            }
+        }
+
+        if blendSrc0 == nil && blendSrc1 == nil {
+            return
+        }
+
+        guard let blendSrc0, let blendSrc1, locationCount == 2 else {
+            let name = shaderModule.symbols.text(of: shaderModule[shaderModule[structure].name].symbol)
+            error(
+                shaderModule[structure].span,
+                "structure '\(name)' uses @blend_src, so it must contain exactly two members with @location: @location(0) @blend_src(0) and @location(0) @blend_src(1)"
+            )
+            return
+        }
+
+        if shaderModule.inferredType(of: shaderModule[blendSrc0].type) != shaderModule.inferredType(of: shaderModule[blendSrc1].type) {
+            let name = shaderModule.symbols.text(of: shaderModule[shaderModule[structure].name].symbol)
+            error(
+                shaderModule[structure].span,
+                "the members with @blend_src(0) and @blend_src(1) in structure '\(name)' must have the same type"
+            )
+            return
+        }
     }
 
     mutating func visit(_ statement: CompoundStatement, _ id: StatementID) {

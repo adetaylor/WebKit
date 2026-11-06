@@ -373,7 +373,7 @@ extension Parser {
         repeat {
             let identifier = try consumeType(.identifier, startOfElementPosition)
             guard let enabledExtension = parseExtension(codeUnits(of: identifier)) else {
-                throw fail("Expected 'clip_distances', 'f16', 'primitive_index', or 'subgroups'", startOfElementPosition)
+                throw fail("Expected 'clip_distances', 'dual_source_blending', 'f16', 'primitive_index', or 'subgroups'", startOfElementPosition)
             }
             shaderModule.enableExtension(enabledExtension)
 

@@ -58,6 +58,7 @@ public protocol ASTVisitor: ~Copyable {
     mutating func visit(_ attribute: AttributeID)
     mutating func visit(_ attribute: AlignAttribute, _ id: AttributeID)
     mutating func visit(_ attribute: BindingAttribute, _ id: AttributeID)
+    mutating func visit(_ attribute: BlendSrcAttribute, _ id: AttributeID)
     mutating func visit(_ attribute: BuiltinAttribute, _ id: AttributeID)
     mutating func visit(_ attribute: ConstAttribute, _ id: AttributeID)
     mutating func visit(_ attribute: DiagnosticAttribute, _ id: AttributeID)
@@ -436,6 +437,8 @@ extension ASTVisitor where Self: ~Copyable {
             visit(node, attribute)
         case .bindingAttribute(let node):
             visit(node, attribute)
+        case .blendSrcAttribute(let node):
+            visit(node, attribute)
         case .builtinAttribute(let node):
             visit(node, attribute)
         case .constAttribute(let node):
@@ -495,6 +498,16 @@ extension ASTVisitor where Self: ~Copyable {
     @_spi(Testing)
     public mutating func visitChildren(_ attribute: DiagnosticAttribute, _ id: AttributeID) {
         visit(attribute.diagnostic)
+    }
+
+    @_spi(Testing)
+    public mutating func visit(_ attribute: BlendSrcAttribute, _ id: AttributeID) {
+        visitChildren(attribute, id)
+    }
+
+    @_spi(Testing)
+    public mutating func visitChildren(_ attribute: BlendSrcAttribute, _ id: AttributeID) {
+        visit(attribute.blendSrc)
     }
 
     @_spi(Testing)

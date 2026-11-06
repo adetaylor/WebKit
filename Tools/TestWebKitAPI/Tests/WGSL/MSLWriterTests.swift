@@ -222,6 +222,7 @@ struct WGSLMSLWriterTests {
             (.id(-1), "[[id(-1)]]"),
             (.userLocation(5), "[[user(loc5)]]"),
             (.color(1), "[[color(1)]]"),
+            (.index(1), "[[index(1)]]"),
             (.attribute(15), "[[attribute(15)]]"),
             (.flat, "[[flat]]"),
             (.centerNoPerspective, "[[center_no_perspective]]"),

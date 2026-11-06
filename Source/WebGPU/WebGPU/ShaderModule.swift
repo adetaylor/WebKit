@@ -305,6 +305,7 @@ private func makeReflection(_ entryPoint: EntryPointIO) -> EntryPointReflection 
         usesSampleMaskInInput: entryPoint.usesSampleMaskInInput,
         usesSampleMaskInOutput: entryPoint.usesSampleMaskInOutput,
         usesFragDepth: entryPoint.usesFragDepth,
+        usesDualSourceBlending: entryPoint.usesDualSourceBlending,
         usesPrimitiveIndexInInput: entryPoint.usesPrimitiveIndexInInput,
         usesSubgroupInvocationIdInInput: entryPoint.usesSubgroupInvocationIdInInput,
         usesSubgroupSizeInInput: entryPoint.usesSubgroupSizeInInput,
@@ -454,6 +455,9 @@ private func createShaderModuleImpl(_ deviceImpl: DeviceImpl, source: SourceText
     }
     if deviceImpl.hasFeature(WebGPU.FeatureName.Subgroups) {
         supportedFeatures.insert(.subgroups)
+    }
+    if deviceImpl.hasFeature(WebGPU.FeatureName.DualSourceBlending) {
+        supportedFeatures.insert(.dualSourceBlending)
     }
     let configuration = Configuration(
         maxBuffersPlusVertexBuffersForVertexStage: deviceImpl.maxBuffersPlusVertexBuffersForVertexStage(),

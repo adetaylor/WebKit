@@ -144,6 +144,12 @@ struct StringDumper {
         out.print(")")
     }
 
+    mutating func visit(_ shaderModule: borrowing ShaderModule, _ blendSrc: BlendSrcAttribute) {
+        out.print("@blend_src(")
+        visit(shaderModule, blendSrc.blendSrc)
+        out.print(")")
+    }
+
     mutating func visit(_ shaderModule: borrowing ShaderModule, _ builtin: BuiltinAttribute) {
         out.print("@builtin(")
         out.print(WGSL.toString(builtin.builtin))
@@ -603,6 +609,8 @@ extension StringDumper {
         case .alignAttribute(let node):
             visit(shaderModule, node.alignment)
         case .bindingAttribute(let node):
+            visit(shaderModule, node)
+        case .blendSrcAttribute(let node):
             visit(shaderModule, node)
         case .builtinAttribute(let node):
             visit(shaderModule, node)

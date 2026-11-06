@@ -144,6 +144,7 @@ private let extensionSpellings: [(Extension, String, UInt8)] = [
     (.f16, "f16", 2),
     (.primitiveIndex, "primitive_index", 4),
     (.subgroups, "subgroups", 8),
+    (.dualSourceBlending, "dual_source_blending", 16),
 ]
 
 private let languageFeatureSpellings: [(LanguageFeature, String, UInt8)] = [

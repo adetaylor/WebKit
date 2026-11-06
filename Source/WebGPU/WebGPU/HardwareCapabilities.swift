@@ -270,6 +270,7 @@ private func baseFeatures(_ device: any MTLDevice, _ baseCapabilities: GPUBaseCa
         .Float32Renderable,
         .Float32Blendable,
         .ClipDistances,
+        .DualSourceBlending,
         .DepthClipControl,
         .Depth32floatStencil8,
     ]

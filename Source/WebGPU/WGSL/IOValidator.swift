@@ -678,6 +678,23 @@ private struct IOValidator: ASTScopedVisitor, ~Copyable {
             }
 
             if let location = member.location {
+                if let blendSrc = member.blendSrc {
+                    if stage != .fragment || direction != .output {
+                        error(span, "@blend_src can only be used for fragment shader output")
+                        return
+                    }
+
+                    // The @blend_src(0) and @blend_src(1) members share @location(0), so only count the location once.
+                    if blendSrc != 0 {
+                        var blendSrcLocations = Locations()
+                        validateLocationIO(span, type, stage, location, &blendSrcLocations)
+                        guard !hasError else {
+                            return
+                        }
+                        continue
+                    }
+                }
+
                 validateLocationIO(span, type, stage, location, &locations)
                 guard !hasError else {
                     return

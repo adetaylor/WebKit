@@ -80,6 +80,19 @@ extension Parser {
             )
         }
 
+        if equal(ident, "blend_src") {
+            try consumeType(.parenLeft, startOfElementPosition)
+            let blendSrc = try parseExpression()
+            if current.type == .comma {
+                consume()
+            }
+            try consumeType(.parenRight, startOfElementPosition)
+            return shaderModule.construct(
+                span: SourceSpan(startOfElementPosition, currentPosition),
+                .blendSrcAttribute(BlendSrcAttribute(blendSrc: blendSrc))
+            )
+        }
+
         if equal(ident, "builtin") {
             try consumeType(.parenLeft, startOfElementPosition)
             let name = try parseIdentifier()

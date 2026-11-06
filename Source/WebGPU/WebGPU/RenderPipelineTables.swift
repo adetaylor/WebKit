@@ -59,6 +59,10 @@ func mtlBlendFactor(_ factor: WebGPU.BlendFactor) -> MTLBlendFactor {
     case .Zero: .zero
     case .SrcAlpha: .sourceAlpha
     case .SrcAlphaSaturated: .sourceAlphaSaturated
+    case .Src1: .source1Color
+    case .OneMinusSrc1: .oneMinusSource1Color
+    case .Src1Alpha: .source1Alpha
+    case .OneMinusSrc1Alpha: .oneMinusSource1Alpha
     @unknown default: preconditionFailure("unknown WebGPU::BlendFactor")
     }
 }

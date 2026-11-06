@@ -64,6 +64,17 @@ public struct BindingAttribute: BitwiseCopyable, Equatable {
 }
 
 @_spi(Testing)
+public struct BlendSrcAttribute: BitwiseCopyable, Equatable {
+    @_spi(Testing)
+    public let blendSrc: ExpressionID
+
+    @_spi(Testing)
+    public init(blendSrc: ExpressionID) {
+        self.blendSrc = blendSrc
+    }
+}
+
+@_spi(Testing)
 public struct BuiltinAttribute: BitwiseCopyable, Equatable {
     @_spi(Testing)
     public let builtin: Builtin
@@ -223,6 +234,7 @@ public struct WorkgroupSizeAttribute: BitwiseCopyable, Equatable {
 public enum AttributeKind: BitwiseCopyable, Equatable {
     case alignAttribute(AlignAttribute)
     case bindingAttribute(BindingAttribute)
+    case blendSrcAttribute(BlendSrcAttribute)
     case builtinAttribute(BuiltinAttribute)
     case constAttribute(ConstAttribute)
     case diagnosticAttribute(DiagnosticAttribute)
@@ -241,6 +253,7 @@ public enum AttributeKind: BitwiseCopyable, Equatable {
         switch self {
         case .alignAttribute: .alignAttribute
         case .bindingAttribute: .bindingAttribute
+        case .blendSrcAttribute: .blendSrcAttribute
         case .builtinAttribute: .builtinAttribute
         case .constAttribute: .constAttribute
         case .diagnosticAttribute: .diagnosticAttribute
@@ -262,6 +275,7 @@ public enum AttributeKind: BitwiseCopyable, Equatable {
 public enum AttributeKindTag: UInt8, BitwiseCopyable, CaseIterable, Hashable, Sendable {
     case alignAttribute
     case bindingAttribute
+    case blendSrcAttribute
     case builtinAttribute
     case constAttribute
     case diagnosticAttribute
@@ -280,6 +294,7 @@ public enum AttributeKindTag: UInt8, BitwiseCopyable, CaseIterable, Hashable, Se
         switch self {
         case .alignAttribute: .alignAttribute
         case .bindingAttribute: .bindingAttribute
+        case .blendSrcAttribute: .blendSrcAttribute
         case .builtinAttribute: .builtinAttribute
         case .constAttribute: .constAttribute
         case .diagnosticAttribute: .diagnosticAttribute
@@ -444,6 +459,23 @@ extension BindingAttribute: AttributePayload {
 
     @_spi(Testing)
     public var attributeKind: AttributeKind { .bindingAttribute(self) }
+}
+
+extension BlendSrcAttribute: AttributePayload {
+    @_spi(Testing)
+    public static var tag: AttributeKindTag { .blendSrcAttribute }
+
+    @_spi(Testing)
+    public static var conformance: AttributePayloadConformance<Self> { .init() }
+
+    @_spi(Testing)
+    public init?(_ kind: AttributeKind) {
+        guard case .blendSrcAttribute(let payload) = kind else { return nil }
+        self = payload
+    }
+
+    @_spi(Testing)
+    public var attributeKind: AttributeKind { .blendSrcAttribute(self) }
 }
 
 extension BuiltinAttribute: AttributePayload {

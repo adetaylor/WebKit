@@ -802,7 +802,14 @@ final class RenderPipelineBuilder {
                     continue
                 }
                 hasAtLeastOneColorTarget = true
-                if let error = errorConfiguringColorTarget(target, i, renderPipelineDescriptor, fragmentReflection, &bytesPerSample) {
+                if let error = errorConfiguringColorTarget(
+                    target,
+                    i,
+                    targetCount: colorTargetCount,
+                    renderPipelineDescriptor,
+                    fragmentReflection,
+                    &bytesPerSample
+                ) {
                     return PendingRenderPipeline(errorMessage: error)
                 }
             }
@@ -1044,10 +1051,11 @@ final class RenderPipelineBuilder {
         )
     }
 
-    // One color target of the fragment state; `index` is its slot.
+    // One color target of the fragment state; `index` is its slot, of `targetCount`.
     private func errorConfiguringColorTarget(
         _ target: GPUColorTargetState,
         _ index: Int,
+        targetCount: Int,
         _ renderPipelineDescriptor: MTLRenderPipelineDescriptor,
         _ fragment: EntryPointReflection?,
         _ bytesPerSample: inout UInt32
@@ -1097,6 +1105,17 @@ final class RenderPipelineBuilder {
             if !isValidBlend(alphaBlend) || !isValidBlend(colorBlend) {
                 return "Blend states are not valid"
             }
+            if usesSecondBlendSource(alphaBlend) || usesSecondBlendSource(colorBlend) {
+                if !deviceImpl.hasFeature(WebGPU.FeatureName.DualSourceBlending) {
+                    return "Blend factor uses the second blend source but the dual-source-blending feature is not enabled"
+                }
+                if targetCount != 1 {
+                    return "Blend factor uses the second blend source but there is more than one color target"
+                }
+                if !(fragment?.usesDualSourceBlending ?? false) {
+                    return "Blend factor uses the second blend source but the fragment shader does not use @blend_src"
+                }
+            }
             mtlColorAttachment.alphaBlendOperation = mtlBlendOperation(alphaBlend.operation)
             mtlColorAttachment.sourceAlphaBlendFactor = mtlBlendFactor(alphaBlend.srcFactor)
             mtlColorAttachment.destinationAlphaBlendFactor = mtlBlendFactor(alphaBlend.dstFactor)
@@ -1106,7 +1125,8 @@ final class RenderPipelineBuilder {
             mtlColorAttachment.destinationRGBBlendFactor = mtlBlendFactor(colorBlend.dstFactor)
             func readsAlphaFactor(_ factor: WebGPU.BlendFactor) -> Bool {
                 factor == WebGPU.BlendFactor.SrcAlpha || factor == WebGPU.BlendFactor.OneMinusSrcAlpha
-                    || factor == WebGPU.BlendFactor.SrcAlphaSaturated
+                    || factor == WebGPU.BlendFactor.SrcAlphaSaturated || factor == WebGPU.BlendFactor.Src1Alpha
+                    || factor == WebGPU.BlendFactor.OneMinusSrc1Alpha
             }
             readsAlpha = readsAlphaFactor(colorBlend.srcFactor) || readsAlphaFactor(colorBlend.dstFactor)
         } else {
@@ -1119,6 +1139,20 @@ final class RenderPipelineBuilder {
                 "pipeline creation - color target pixel format(\(index)) for location(\(mtlColorAttachment.pixelFormat.rawValue)) is incompatible with shader output data type of \(fragmentFunctionReturnType.rawValue)"
         }
         return nil
+    }
+}
+
+// Whether the blend reads the fragment shader's second output (@blend_src(1)).
+private func usesSecondBlendSource(_ component: WebGPU.BlendComponent) -> Bool {
+    usesSecondBlendSource(component.srcFactor) || usesSecondBlendSource(component.dstFactor)
+}
+
+private func usesSecondBlendSource(_ factor: WebGPU.BlendFactor) -> Bool {
+    switch factor {
+    case .Src1, .OneMinusSrc1, .Src1Alpha, .OneMinusSrc1Alpha:
+        true
+    default:
+        false
     }
 }
 

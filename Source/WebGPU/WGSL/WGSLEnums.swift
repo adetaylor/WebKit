@@ -165,13 +165,15 @@ public enum Builtin: UInt8, BitwiseCopyable, CaseIterable, Hashable, Sendable {
     case workgroupId
 }
 
-/// WGSL::Extension, in the C++ case order.
+/// WGSL::Extension, in ascending bit order, which is the order WTF::OptionSet iterates in (the C++ declares
+/// DualSourceBlending, 1 << 4, second).
 @_spi(Testing)
 public enum Extension: UInt8, BitwiseCopyable, CaseIterable, Hashable, Sendable {
     case clipDistances = 1
     case f16 = 2
     case primitiveIndex = 4
     case subgroups = 8
+    case dualSourceBlending = 16
 }
 
 /// WTF::OptionSet<Extension>: the extensions a module enables.
@@ -192,6 +194,9 @@ public struct Extensions: OptionSet, BitwiseCopyable, Hashable, Sendable {
     /// clip_distances.
     @_spi(Testing)
     public static let clipDistances = Extensions(.clipDistances)
+    /// dual_source_blending.
+    @_spi(Testing)
+    public static let dualSourceBlending = Extensions(.dualSourceBlending)
     /// f16.
     @_spi(Testing)
     public static let f16 = Extensions(.f16)
@@ -459,6 +464,7 @@ public func parseBuiltin(_ string: some Collection<UInt16>) -> Builtin? {
 public func toString(_ value: Extension) -> StaticString {
     switch value {
     case .clipDistances: "clip_distances"
+    case .dualSourceBlending: "dual_source_blending"
     case .f16: "f16"
     case .primitiveIndex: "primitive_index"
     case .subgroups: "subgroups"

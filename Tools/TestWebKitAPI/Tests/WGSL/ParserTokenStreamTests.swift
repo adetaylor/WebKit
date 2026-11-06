@@ -236,7 +236,7 @@ struct WGSLParserTokenStreamTests {
     func directiveErrors() {
         #expect(
             parseOutcome("enable foo;")
-                == "error 1:0:0:10 Expected 'clip_distances', 'f16', 'primitive_index', or 'subgroups';  ext=0 feat=0 decls=0 dirs=0"
+                == "error 1:0:0:10 Expected 'clip_distances', 'dual_source_blending', 'f16', 'primitive_index', or 'subgroups';  ext=0 feat=0 decls=0 dirs=0"
         )
         #expect(parseOutcome("enable;") == "error 1:0:0:6 Expected a Identifier, but got a ;;  ext=0 feat=0 decls=0 dirs=0")
         #expect(parseOutcome("enable f16 subgroups;") == "error 1:0:0:11 Expected a ;, but got a Identifier;  ext=2 feat=0 decls=0 dirs=0")

@@ -109,6 +109,10 @@ private func parseFragmentReturnType(
             continue
         }
 
+        if member.blendSrc != nil {
+            entryPointIO.usesDualSourceBlending = true
+        }
+
         fragmentOutputs.append(IOLocation(location: location, type: ioType(shaderModule, shaderModule.inferredType(of: member.type))))
     }
 

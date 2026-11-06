@@ -33,6 +33,7 @@ public enum NodeKind: UInt8, BitwiseCopyable, CaseIterable, Hashable, Sendable {
     // Attribute
     case alignAttribute
     case bindingAttribute
+    case blendSrcAttribute
     case builtinAttribute
     case constAttribute
     case diagnosticAttribute

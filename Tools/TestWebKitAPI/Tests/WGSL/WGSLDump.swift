@@ -1531,6 +1531,9 @@ func dumpReflection(_ w: inout WGSLDumpOutput, _ entryPoints: [EntryPointIO]) {
         w.b(entryPoint.usesSubgroupSizeInInput)
         w.raw(" clipdistances=")
         w.u(entryPoint.clipDistancesCount)
+        if entryPoint.usesDualSourceBlending {
+            w.raw(" dualsourceblending=1")
+        }
         w.nl()
     }
 }

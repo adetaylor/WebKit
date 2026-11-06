@@ -463,6 +463,8 @@ extension TypeChecker {
             try visit(node, attribute)
         case .bindingAttribute(let node):
             try visit(node, attribute)
+        case .blendSrcAttribute(let node):
+            try visit(node, attribute)
         case .groupAttribute(let node):
             try visit(node, attribute)
         case .idAttribute(let node):
@@ -490,6 +492,13 @@ extension TypeChecker {
         let type = try check(attribute.binding, .concreteInteger, .constant)
         guard type != nil else {
             throw CompilationMessage(text: "@binding must be an i32 or u32 value", span: shaderModule.span(of: id))
+        }
+    }
+
+    mutating func visit(_ attribute: BlendSrcAttribute, _ id: AttributeID) throws(CompilationMessage) {
+        let type = try check(attribute.blendSrc, .concreteInteger, .constant)
+        guard type != nil else {
+            throw CompilationMessage(text: "@blend_src must be an i32 or u32 value", span: shaderModule.span(of: id))
         }
     }
 
