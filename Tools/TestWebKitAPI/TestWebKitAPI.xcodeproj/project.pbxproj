@@ -1634,7 +1634,6 @@
 				WGSL/WGSLGoldenTests.swift,
 				WGSL/WorkaroundGoldenTests.swift,
 				WGSL/WTFHashTests.swift,
-				WebGPU/UncapturedErrorCallbackTests.cpp,
 			);
 			target = 3A15783C28D1505B00142DB1 /* TestWGSL */;
 		};

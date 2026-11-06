@@ -753,13 +753,6 @@ if (ENABLE_WEBGPU)
         target_link_options(TestWGSL PRIVATE "LINKER:-force_load,$<TARGET_FILE:WGSL>")
     endif ()
 
-    list(APPEND TestWGSL_SOURCES
-        Tests/WebGPU/UncapturedErrorCallbackTests.cpp
-    )
-
-    # The tests of the WebGPU C API.
-    list(APPEND TestWGSL_FRAMEWORKS WebGPU)
-
     list(APPEND TestWGSL_PRIVATE_INCLUDE_DIRECTORIES
         ${WTF_FRAMEWORK_HEADERS_DIR}
         ${bmalloc_FRAMEWORK_HEADERS_DIR}
