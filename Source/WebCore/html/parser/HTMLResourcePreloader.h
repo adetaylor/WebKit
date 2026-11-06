@@ -25,9 +25,9 @@
 
 #pragma once
 
-#include "CachedResource.h"
-#include "CachedResourceRequest.h"
-#include "ScriptType.h"
+#include <WebCore/CachedResource.h>
+#include <WebCore/CachedResourceRequest.h>
+#include <WebCore/ScriptType.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakRef.h>
