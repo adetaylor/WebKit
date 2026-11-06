@@ -2562,13 +2562,14 @@ def check_swift_types_are_dispatched_on_main_thread(receiver):
 # The Swift dispatch of a message to a stream receiver whose state C++ lends: the handler takes the state inout, and
 # C++ calls this only while it lends it, on the stream connection's work queue. Rather than marking the message invalid
 # itself, which would need the connection, this tells C++ what became of it. A SwiftMayDecline handler returns false to
-# decline the message, which the lender then handles.
+# decline the message, which the lender then handles. The handler is called during the dispatch, so it borrows its arguments:
+# the C++ that calls this would otherwise copy each one that isn't trivially copyable, for every message.
 def swift_lent_state_dispatch_function(receiver, message):
     may_decline = message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE)
     parameters = ['state: inout %s.State' % receiver.name]
     arguments = ['state: &state']
     for parameter in message.parameters:
-        parameters.append('%s: sending %s' % (parameter.name, swift_type_name(parameter.type)))
+        parameters.append('%s: %s' % (parameter.name, swift_type_name(parameter.type)))
         arguments.append('%s: %s' % (parameter.name, parameter.name))
     result = []
     result.append('\n')
