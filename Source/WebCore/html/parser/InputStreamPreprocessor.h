@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "SegmentedString.h"
+#include <WebCore/SegmentedString.h>
 #include <wtf/unicode/CharacterNames.h>
 
 namespace WebCore {
