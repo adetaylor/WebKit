@@ -36,6 +36,7 @@ messages -> IPCSwiftStreamTester Stream {
     RepeatTextSwift(String text, uint32_t count) -> (String repeated) Synchronous SwiftTypes
     TakeRecordedDigestSwift() -> (uint32_t digest) Synchronous SwiftTypes WantsConnection
     DigestVectorsSwift(Vector<uint16_t> shorts, Vector<uint32_t> words, Vector<int64_t> longs, Vector<double> doubles) -> (uint64_t digest) Synchronous SwiftTypes
+    DigestLentBytesSwift(uint32_t salt, [Lent] std::span<const uint8_t> bytes, uint32_t tail) -> (uint32_t digest) Synchronous SwiftTypes
     AddSwift(uint32_t a, uint32_t b) -> (uint32_t sum) SwiftTypes ReplyCanDispatchOutOfOrder
     DeferAddSwift(uint32_t a, uint32_t b) -> (uint32_t sum) SwiftTypes ReplyCanDispatchOutOfOrder
     CompleteDeferredAddSwift(bool send) SwiftTypes
