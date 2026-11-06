@@ -27,8 +27,8 @@
 
 #if PLATFORM(MAC)
 
-#import "ScrollTypes.h"
 #import <AppKit/AppKit.h>
+#import <WebCore/ScrollTypes.h>
 
 namespace WebCore {
 
