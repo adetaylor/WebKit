@@ -385,7 +385,7 @@ void RemoteGraphicsContextProxy::drawImageBuffer(ImageBuffer& imageBuffer, const
         return;
     }
 
-    send(Messages::RemoteGraphicsContext::DrawImageBuffer(imageBuffer.renderingResourceIdentifier(), destRect, srcRect, options));
+    SEND_RENDERER_MESSAGE(DrawImageBuffer, imageBuffer.renderingResourceIdentifier(), destRect, srcRect, options);
 }
 
 void RemoteGraphicsContextProxy::drawNativeImage(const NativeImage& image, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions options)
@@ -407,9 +407,9 @@ void RemoteGraphicsContextProxy::drawNativeImage(const NativeImage& image, const
     if (!recordResourceUse(const_cast<NativeImage&>(image)))
         return;
 #if HAVE(SUPPORT_HDR_DISPLAY_APIS)
-    send(Messages::RemoteGraphicsContext::DrawNativeImage(image.renderingResourceIdentifier(), destRect, srcRect, clampedOptions));
+    SEND_RENDERER_MESSAGE(DrawNativeImage, image.renderingResourceIdentifier(), destRect, srcRect, clampedOptions);
 #else
-    send(Messages::RemoteGraphicsContext::DrawNativeImage(image.renderingResourceIdentifier(), destRect, srcRect, options));
+    SEND_RENDERER_MESSAGE(DrawNativeImage, image.renderingResourceIdentifier(), destRect, srcRect, options);
 #endif
 }
 
@@ -440,7 +440,7 @@ void RemoteGraphicsContextProxy::drawPattern(const NativeImage& image, const Flo
     appendStateChangeItemIfNecessary();
     if (!recordResourceUse(const_cast<NativeImage&>(image)))
         return;
-    send(Messages::RemoteGraphicsContext::DrawPatternNativeImage(image.renderingResourceIdentifier(), destRect, tileRect, patternTransform, phase, spacing, options));
+    SEND_RENDERER_MESSAGE(DrawPatternNativeImage, image.renderingResourceIdentifier(), destRect, tileRect, patternTransform, phase, spacing, options);
 }
 
 void RemoteGraphicsContextProxy::drawPattern(ImageBuffer& imageBuffer, const FloatRect& destRect, const FloatRect& tileRect, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, RasterDrawingOptions options)
@@ -452,7 +452,7 @@ void RemoteGraphicsContextProxy::drawPattern(ImageBuffer& imageBuffer, const Flo
         return;
     }
 
-    send(Messages::RemoteGraphicsContext::DrawPatternImageBuffer(imageBuffer.renderingResourceIdentifier(), destRect, tileRect, patternTransform, phase, spacing, options));
+    SEND_RENDERER_MESSAGE(DrawPatternImageBuffer, imageBuffer.renderingResourceIdentifier(), destRect, tileRect, patternTransform, phase, spacing, options);
 }
 
 void RemoteGraphicsContextProxy::beginTransparencyLayer(float opacity)
