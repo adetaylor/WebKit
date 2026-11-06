@@ -87,6 +87,23 @@ class GeneratedSwiftTest(unittest.TestCase):
         self.assertIn('#if ENABLE_SWIFT_IPC_RECEIVERS\n\nimport WebKit_Internal\n\n#endif\n', swift)
         self.assertNotIn('extension', swift)
 
+    def test_same_type_under_exclusive_conditions(self):
+        swift = generate_swift('''
+#if ENABLE(A)
+[Swift] struct WebKit::S {
+    uint32_t value;
+}
+#else
+[Swift] struct WebKit::S {
+    uint64_t value;
+}
+#endif
+''')
+        self.assertIn('#if ENABLE_A\n', swift)
+        self.assertIn('#if !(ENABLE_A)\n', swift)
+        self.assertIn('        #if ENABLE_A\n        typealias WebKit_S = IPCTypes.S\n        #endif\n'
+                      '        #if !(ENABLE_A)\n        typealias WebKit_S = IPCTypes.S\n        #endif\n', swift)
+
     def test_cxx_names(self):
         swift = generate_swift(_identifiers + '''
 [Swift] struct WebKit::S {
@@ -109,16 +126,33 @@ class GeneratedSwiftTest(unittest.TestCase):
         self.assertIn('        var frameID: IPCTypes.FrameIdentifier\n', swift)
         self.assertIn('        IPCTypes.FrameIdentifier.encode(value.frameID, to: encoder)\n', swift)
 
+    def test_conditional_lines_are_indented(self):
+        swift = generate_swift('''
+[Swift, RefCounted] class WebKit::C {
+    uint32_t a;
+#if ENABLE(B)
+    uint32_t b;
+#endif
+}
+''')
+        self.assertIn('        var a: UInt32\n        #if ENABLE_B\n        var b: UInt32\n        #endif\n', swift)
+        self.assertIn('        self.a = try UInt32.decode(from: &decoder)\n        #if ENABLE_B\n', swift)
+        self.assertNotRegex(swift, r'\n#(?!if ENABLE_SWIFT_IPC_RECEIVERS\n|endif\n$)')
+
     def test_enum_value_assertions(self):
         self.assertEqual(enum_value_assertions('''
 [Swift] enum class WebKit::E : uint8_t {
     A,
+#if ENABLE(B)
     B,
+#endif
 }
 '''), [
             'static_assert(sizeof(std::underlying_type_t<WebKit::E>) == sizeof(uint8_t), "IPCTypes.E in GeneratedSerializers.swift has the size of the underlying type in .serialization.in");',
             'static_assert(!static_cast<uint8_t>(WebKit::E::A), "IPCTypes.E in GeneratedSerializers.swift numbers values in .serialization.in order");',
+            '#if ENABLE(B)',
             'static_assert(static_cast<uint8_t>(WebKit::E::B) == 1, "IPCTypes.E in GeneratedSerializers.swift numbers values in .serialization.in order");',
+            '#endif',
         ])
         self.assertEqual(enum_value_assertions('''
 [Swift, OptionSet] enum class WebKit::E : uint32_t {
@@ -391,75 +425,29 @@ class WebKit::Base {
 }
 #endif
 ''', r"\[Swift\] WebKit::S: 'OS\(WINDOWS\)' cannot be evaluated in Swift")
+        self.assertGenerationFails('''
+[Swift] struct WebKit::S {
+#if defined(SOMETHING)
+    uint32_t value;
+#endif
+}
+''', r'member value: .*cannot be evaluated in Swift')
         for condition, name in [('CGFLOAT_IS_DOUBLE', 'CGFLOAT_IS_DOUBLE'), ('!RELEASE_LOG_DISABLED', 'RELEASE_LOG_DISABLED'), ('ENABLE(FOO) && LOG_DISABLED', 'LOG_DISABLED')]:
             self.assertGenerationFails(f'''
-#if {condition}
-[Swift] enum class WebKit::E : uint8_t {{
-    A,
-}}
-#endif
-''', rf'\[Swift\] WebKit::E: .*cannot be evaluated in Swift: {name} is not available there')
-        # Swift does not see every macro that is true for C++, so conditions must not choose what is decoded.
-        for condition in ['ENABLE(MODEL_ELEMENT_STAGE_MODE)', '!ENABLE(A)', 'defined(SOMETHING)']:
-            self.assertGenerationFails(f'''
 [Swift] struct WebKit::S {{
-    uint32_t a;
 #if {condition}
-    uint32_t b;
+    uint32_t value;
 #endif
 }}
-''', r'\[Swift\] WebKit::S: member b: types marked \[Swift\] cannot have conditional members')
-            self.assertGenerationFails(f'''
-class WebKit::Base {{
-#if {condition}
-    uint32_t b;
-#endif
-}}
-[Swift] class WebKit::Derived : WebKit::Base {{
-    uint32_t a;
-}}
-''', r'\[Swift\] WebKit::Derived: member b: types marked \[Swift\] cannot have conditional members')
-            for enum_attributes in ['Swift', 'Swift, OptionSet']:
-                self.assertGenerationFails(f'''
-[{enum_attributes}] enum class WebKit::E : uint8_t {{
+''', rf'member value: .*cannot be evaluated in Swift: {name} is not available there')
+        self.assertGenerationFails('''
+[Swift] enum class WebKit::E : uint8_t {
     A,
-#if {condition}
+#if !RELEASE_LOG_DISABLED
     B,
 #endif
-    C,
-}}
-''', r'\[Swift\] WebKit::E: value B: enums marked \[Swift\] cannot have conditional values')
-        self.assertGenerationFails('''
-#if ENABLE(A)
-[Swift] struct WebKit::S {
-    uint32_t value;
 }
-#else
-[Swift] struct WebKit::S {
-    uint64_t value;
-}
-#endif
-''', r'WebKit::S cannot be marked \[Swift\] and be described more than once')
-        self.assertGenerationFails('''
-#if !ENABLE(A)
-[Swift] struct WebKit::S {
-    uint32_t value;
-}
-#else
-struct WebKit::S {
-    uint64_t value;
-}
-#endif
-''', r'WebKit::S cannot be marked \[Swift\] and be described more than once')
-        swift = generate_swift('''
-[Swift] struct WebKit::S {
-    uint32_t value;
-#if ENABLE(A)
-    [NotSerialized] uint32_t cache;
-#endif
-}
-''')
-        self.assertIn('    struct S: Sendable, Equatable {\n        var value: UInt32\n    }\n', swift)
+''', r'value B: .*RELEASE_LOG_DISABLED is not available there')
 
     def test_enums(self):
         self.assertGenerationFails('''
@@ -477,6 +465,13 @@ struct WebKit::S {
     A
 }
 ''', r'the underlying type of an OptionSet marked \[Swift\] must be unsigned')
+        self.assertGenerationFails('''
+[Swift] enum class WebKit::E : uint8_t {
+#if ENABLE(A)
+    A,
+#endif
+}
+''', r'must have at least one value that is not conditional')
         self.assertGenerationFails('''
 [Swift] enum class WebKit::E : uint8_t {
     URL,
