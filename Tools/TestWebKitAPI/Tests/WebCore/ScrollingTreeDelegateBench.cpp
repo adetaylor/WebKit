@@ -72,7 +72,7 @@ TEST(ScrollingTreeDelegateBench, RubberBandAtEdge)
 
 TEST(ScrollingTreeDelegateBench, ScrollSnapGesture)
 {
-    runScrollingTreeShape(scrollSnapGestureShape, "ScrollSnapGesture", 1450, 0x66842425ab9cfba3ull);
+    runScrollingTreeShape(scrollSnapGestureShape, "ScrollSnapGesture", 1450, 0x96e12673249f71b3ull);
 }
 
 TEST(ScrollingTreeDelegateBench, StateCommits)
@@ -82,7 +82,7 @@ TEST(ScrollingTreeDelegateBench, StateCommits)
 
 TEST(ScrollingTreeDelegateBench, MixedSession)
 {
-    runScrollingTreeShape(mixedSessionShape, "MixedSession", 2000, 0x327f3ada241707d3ull);
+    runScrollingTreeShape(mixedSessionShape, "MixedSession", 2000, 0x44d939df2c21b0a4ull);
 }
 
 TEST(ScrollingTreeDelegateBench, DiscreteWheelSnap)
@@ -108,6 +108,11 @@ TEST(ScrollingTreeDelegateBench, WheelEvent)
 TEST(ScrollingTreeDelegateBench, DisplayRefresh)
 {
     runScrollingTreeShape(displayRefreshShape, "DisplayRefresh", 2600, 0x599dab7d2ae56305ull);
+}
+
+TEST(ScrollingTreeDelegateBench, Latching)
+{
+    runScrollingTreeShape(latchingShape, "Latching", 1400, 0x6e4281951d5d5a23ull);
 }
 
 } // namespace TestWebKitAPI
