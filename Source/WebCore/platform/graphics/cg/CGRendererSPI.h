@@ -54,9 +54,9 @@
 // The CoreGraphics calls CGRenderer.swift makes through C: those that take a pointer or a null, which Swift would pass
 // unsafely. The SPI itself is PAL's.
 
-#include "CGRendererSwiftBridge.h"
 #include <CoreGraphics/CoreGraphics.h>
 #include <CoreText/CoreText.h>
+#include <WebCore/CGRendererSwiftBridge.h>
 #include <algorithm>
 #include <pal/spi/cg/CoreGraphicsSPI.h>
 
