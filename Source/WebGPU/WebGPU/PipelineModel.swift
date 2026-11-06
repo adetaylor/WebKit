@@ -88,6 +88,8 @@ struct PerStage<T> {
     }
 }
 
+extension PerStage: Equatable where T: Equatable {}
+
 /// The buffer types of bind group layout entries, including the argument types the implementation adds.
 ///
 /// Error messages print the raw values, and LayoutBinding.layoutEquals(_:) treats every type after readOnlyStorage as
