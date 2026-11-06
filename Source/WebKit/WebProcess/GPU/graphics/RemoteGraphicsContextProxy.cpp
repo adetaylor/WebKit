@@ -33,6 +33,7 @@
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
+#include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"
 #endif
 #include "RemoteImageBufferProxy.h"
@@ -280,7 +281,7 @@ void RemoteGraphicsContextProxy::clipOut(const Path& path)
 {
     sendPendingDrawsIfNecessary();
     updateStateForClipOut(path);
-    send(Messages::RemoteGraphicsContext::ClipOutToPath(path));
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(ClipOutToPath, (path), (RemoteCGRendererPath { path }));
 }
 
 void RemoteGraphicsContextProxy::clipPath(const Path& path, WindRule rule)
@@ -289,12 +290,12 @@ void RemoteGraphicsContextProxy::clipPath(const Path& path, WindRule rule)
     updateStateForClipPath(path);
     if (RefPtr impl = path.asImpl(); impl && !impl->isTransient()) {
         if (auto identifier = recordResourceUse(*impl)) {
-            send(Messages::RemoteGraphicsContext::ClipCachedPath(*identifier, rule));
+            SEND_RENDERER_MESSAGE(ClipCachedPath, *identifier, rule);
             return;
         }
     }
 
-    send(Messages::RemoteGraphicsContext::ClipPath(path, rule));
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(ClipPath, (path, rule), (RemoteCGRendererPath { path }, rule));
 }
 
 void RemoteGraphicsContextProxy::clipTransformedPath(const AffineTransform& pathTransform, const Path& path, WindRule rule)
@@ -525,7 +526,7 @@ void RemoteGraphicsContextProxy::drawPath(const Path& path)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::DrawPath(path));
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(DrawPath, (path), (RemoteCGRendererPath { path }));
 }
 
 void RemoteGraphicsContextProxy::drawFocusRing(const Path& path, float outlineWidth, const Color& color, float zoomFactor)
@@ -572,12 +573,12 @@ void RemoteGraphicsContextProxy::fillPath(const Path& path)
 
     if (RefPtr impl = path.asImpl(); impl && !impl->isTransient()) {
         if (auto identifier = recordResourceUse(*impl)) {
-            send(Messages::RemoteGraphicsContext::FillCachedPath(*identifier));
+            SEND_RENDERER_MESSAGE(FillCachedPath, *identifier);
             return;
         }
     }
 
-    send(Messages::RemoteGraphicsContext::FillPath(path));
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(FillPath, (path), (RemoteCGRendererPath { path }));
 }
 
 void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, RequiresClipToRect requiresClipToRect)
@@ -703,7 +704,7 @@ void RemoteGraphicsContextProxy::strokePath(const Path& path)
     }
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::StrokePath(path));
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(StrokePath, (path), (RemoteCGRendererPath { path }));
 }
 
 void RemoteGraphicsContextProxy::strokeRect(const FloatRect& rect, float width)
