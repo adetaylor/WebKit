@@ -113,6 +113,28 @@ using MutableSpanInt64 = std::span<int64_t>;
 using MutableSpanFloat = std::span<float>;
 using MutableSpanDouble = std::span<double>;
 
+class LentBytes;
+
+// Where the bytes of a std::span<const uint8_t> argument lie in their message, which SwiftDecoder decodes past so that
+// generated Swift can decode the arguments after them before it lends them, with SwiftDecoder::lentBytes().
+class LentBytesPosition {
+public:
+    LentBytesPosition() = default;
+
+private:
+    friend class SwiftDecoder;
+    friend class LentBytes;
+
+    LentBytesPosition(size_t offset, size_t size)
+        : m_offset(offset)
+        , m_size(size)
+    {
+    }
+
+    size_t m_offset { 0 };
+    size_t m_size { 0 };
+};
+
 // The primitive decoders of the Decoder of a message whose Swift receiver takes Swift types, lent to
 // generated Swift. A failed decode returns false and invalidates the decoder. Values are returned
 // through out parameters because Swift would import std::optional<uint64_t> as Optional<UInt> on Linux.
@@ -202,6 +224,20 @@ public:
     // it is malformed.
     WebCore::SharedBuffer* WTF_NULLABLE decodeSharedBuffer() SWIFT_RETURNS_RETAINED;
 
+    // Decodes past a std::span<const uint8_t>, as its ArgumentCoder does, and stores where its bytes are.
+    [[nodiscard]] bool decodeLentBytesPosition(LentBytesPosition& position)
+    {
+        auto& decoder = borrowed();
+        auto bytes = decoder.decode<std::span<const uint8_t>>();
+        if (!bytes)
+            return false;
+        position = { decoder.currentBufferOffset() - bytes->size(), bytes->size() };
+        return true;
+    }
+
+    // Lends the bytes at that position, for as long as this decoder is lent.
+    LentBytes lentBytes(const LentBytesPosition&) const LIFETIME_BOUND;
+
     size_t remainingByteCount() const
     {
         auto& decoder = borrowed();
@@ -242,6 +278,64 @@ private:
         return true;
     }
 } SWIFT_NONESCAPABLE;
+
+// The bytes of a std::span<const uint8_t> argument of a message, lent to its Swift handler while the message is
+// dispatched. They are in the message's buffer, which the sender can still write to (a stream connection's buffer is
+// shared with it), so Swift reaches them only by copying them, and must use only its copy: two copies may differ.
+//
+// Like SwiftDecoder, this reaches the decoder only through the lease of its lend, so using it, or a copy of it, after
+// the dispatch, or on another thread, crashes; it holds no pointer to the bytes. Swift has no way to keep a pointer
+// to them either: copyTo() writes them into memory the caller owns, and span() is only for C++.
+class LentBytes : public NonEscapableBorrow<Decoder> {
+public:
+    size_t size() const { return bytes().size(); }
+
+    // Copies the bytes into destination, which must be exactly as large.
+    void copyTo(WTF::MutableSpanUInt8 destination NOESCAPE) const
+    {
+        auto source = bytes();
+        RELEASE_ASSERT(destination.size() == source.size());
+        memcpySpan(destination, source);
+    }
+
+    // One of the bytes, for copying them one at a time where Swift has no MutableSpan.
+    uint8_t byteAt(size_t index) const
+    {
+        auto source = bytes();
+        RELEASE_ASSERT(index < source.size());
+        return source[index];
+    }
+
+#if !defined(__swift__)
+    // For C++ that a Swift handler passes this to, during the call: the bytes, which last as long as the lend.
+    std::span<const uint8_t> span() const LIFETIME_BOUND { return bytes(); }
+#endif
+
+private:
+    friend class SwiftDecoder;
+
+    LentBytes(const SwiftDecoder& decoder LIFETIME_BOUND, const LentBytesPosition& position)
+        : NonEscapableBorrow(decoder)
+        , m_offset(position.m_offset)
+        , m_size(position.m_size)
+    {
+    }
+
+    std::span<const uint8_t> bytes() const
+    {
+        auto buffer = borrowed().span();
+        RELEASE_ASSERT(m_offset <= buffer.size() && m_size <= buffer.size() - m_offset);
+        return buffer.subspan(m_offset, m_size);
+    }
+
+    size_t m_offset;
+    size_t m_size;
+} SWIFT_NONESCAPABLE;
+
+inline LentBytes SwiftDecoder::lentBytes(const LentBytesPosition& position) const
+{
+    return LentBytes { *this, position };
+}
 
 // An argument of a message whose Swift receiver takes Swift types, which has no Swift form yet, so its own ArgumentCoder
 // decodes it into this holder. Generated Swift passes the holder to the receiver, which passes it on to the C++ that

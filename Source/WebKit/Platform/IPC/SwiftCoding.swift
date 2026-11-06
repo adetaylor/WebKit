@@ -627,4 +627,34 @@ enum IPCCoding {
     }
 }
 
+// The bytes of a std::span<const uint8_t> message argument, lent to its handler during dispatch. The sender can change
+// them while they are lent, so a handler uses them only as a copy, in memory of its own.
+extension IPC.LentBytes {
+    /// A copy of the bytes.
+    func copied() -> [UInt8] {
+        var bytes: [UInt8] = []
+        copyBytes(into: &bytes)
+        return bytes
+    }
+
+    /// Replaces the contents of `storage` with a copy of the bytes, keeping its capacity, so that a handler can copy each
+    /// message's bytes into the same storage.
+    func copyBytes(into storage: inout [UInt8]) {
+        let count = size()
+        if storage.count > count {
+            storage.removeLast(storage.count - count)
+        } else if storage.count < count {
+            storage.append(contentsOf: repeatElement(0, count: count - storage.count))
+        }
+        guard #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) else {
+            for index in 0..<count {
+                storage[index] = byteAt(index)
+            }
+            return
+        }
+        var destination = storage.mutableSpan
+        copyTo(&destination)
+    }
+}
+
 #endif // ENABLE_SWIFT_IPC_RECEIVERS
