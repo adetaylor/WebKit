@@ -69,6 +69,8 @@
 
 #if ENABLE_ENCRYPTED_MEDIA
 
+public import WebCoreSwiftSupport
+
 /// WTF's base64 and base64url (wtf/text/Base64.cpp), with the same results for every input and option.
 public enum WTFBase64 {
     /// OptionSet<WTF::Base64DecodeOption>.
@@ -116,6 +118,16 @@ public enum WTFBase64 {
     /// WTF::base64URLDecode() of UTF-16 code units.
     public static func urlDecode(_ input: Span<UInt16>) -> ContiguousArray<UInt8>? {
         decodeCodeUnits(input, .url)
+    }
+
+    /// WTF::base64Decode() of UTF-16 code units, inline or not.
+    public static func decode(_ input: InlineCodeUnits, options: DecodeOptions = []) -> ContiguousArray<UInt8>? {
+        input.withSpan { decodeCodeUnits($0, options) }
+    }
+
+    /// WTF::base64URLDecode() of UTF-16 code units, inline or not.
+    public static func urlDecode(_ input: InlineCodeUnits) -> ContiguousArray<UInt8>? {
+        input.withSpan { decodeCodeUnits($0, .url) }
     }
 
     /// WTF::base64Encode(), in ASCII.

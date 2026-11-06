@@ -527,8 +527,8 @@ public final class ClearKeySession {
             guard let key = key.object,
                 let keyType = key.string("kty"), keyType.equalsIgnoringASCIICase("oct"),
                 let keyID = key.string("kid"), let keyValue = key.string("k"),
-                let keyIDBytes = WTFBase64.urlDecode(keyID.codeUnits.span),
-                let keyValueBytes = WTFBase64.urlDecode(keyValue.codeUnits.span)
+                let keyIDBytes = WTFBase64.urlDecode(keyID.storage),
+                let keyValueBytes = WTFBase64.urlDecode(keyValue.storage)
             else {
                 return nil
             }

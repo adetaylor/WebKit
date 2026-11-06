@@ -31,28 +31,39 @@
 
 #if ENABLE_ENCRYPTED_MEDIA
 
+public import WebCoreSwiftSupport
+
 /// A string as WTF::String holds one: UTF-16 code units, which may include unpaired surrogates.
 public struct EMEJSONString: Hashable, Sendable {
-    /// The code units.
-    public let codeUnits: ContiguousArray<UInt16>
+    /// The code units, inline when short.
+    public let storage: InlineCodeUnits
+
+    /// The code units, copied into an array.
+    public var codeUnits: ContiguousArray<UInt16> {
+        storage.array
+    }
 
     /// A string of these code units.
     public init(_ codeUnits: ContiguousArray<UInt16>) {
-        self.codeUnits = codeUnits
+        storage = InlineCodeUnits(codeUnits)
+    }
+
+    init(storage: InlineCodeUnits) {
+        self.storage = storage
     }
 
     /// An ASCII literal.
     public init(_ literal: StaticString) {
-        self.codeUnits = ContiguousArray(literal.description.utf16)
+        storage = InlineCodeUnits(literal.description.utf16)
     }
 
     /// Whether the string is an ASCII literal, which compares without allocating when it is short.
     public func equals(_ literal: StaticString) -> Bool {
         let bytes = literal.description.utf8
-        guard codeUnits.count == bytes.count else {
+        guard storage.count == bytes.count else {
             return false
         }
-        for (codeUnit, byte) in zip(codeUnits, bytes) where codeUnit != UInt16(byte) {
+        for (codeUnit, byte) in zip(storage, bytes) where codeUnit != UInt16(byte) {
             return false
         }
         return true
@@ -61,10 +72,10 @@ public struct EMEJSONString: Hashable, Sendable {
     /// WTF::equalLettersIgnoringASCIICase(string, lowercaseLiteral), which lowercases with toASCIILowerUnchecked().
     public func equalsIgnoringASCIICase(_ lowercaseLiteral: StaticString) -> Bool {
         let literal = lowercaseLiteral.description.utf16
-        guard codeUnits.count == literal.count else {
+        guard storage.count == literal.count else {
             return false
         }
-        for (codeUnit, literalCodeUnit) in zip(codeUnits, literal) where codeUnit | 0x20 != literalCodeUnit {
+        for (codeUnit, literalCodeUnit) in zip(storage, literal) where codeUnit | 0x20 != literalCodeUnit {
             return false
         }
         return true
@@ -168,6 +179,10 @@ public struct EMEJSONObject: Sendable {
             return positions[name]
         }
         return members.firstIndex { $0.name == name }
+    }
+
+    fileprivate mutating func reserveCapacity(_ capacity: Int) {
+        members.reserveCapacity(capacity)
     }
 
     fileprivate mutating func set(_ name: EMEJSONString, _ value: EMEJSONValue) {
@@ -463,17 +478,11 @@ public enum EMEJSON {
 
     // decodeString() of a string token's contents.
     private static func decodeString(_ data: Span<UInt8>, _ range: Range<Int>) -> EMEJSONString? {
-        if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *), !contains(data, range, 0x5C) {
-            // No escapes: the characters are the code units, written in place.
-            var output = ContiguousArray<UInt16>(repeating: 0, count: range.count)
-            var codeUnits = output.mutableSpan
-            for index in range {
-                codeUnits[index - range.lowerBound] = UInt16(data[index])
-            }
-            return EMEJSONString(output)
+        if !contains(data, range, 0x5C) {
+            // No escapes: the characters are the code units.
+            return EMEJSONString(storage: InlineCodeUnits(latin1: data, range))
         }
-        var output = ContiguousArray<UInt16>()
-        output.reserveCapacity(range.count)
+        var output = InlineCodeUnits()
         var position = range.lowerBound
         while position < range.upperBound {
             var character = UInt16(data[position])
@@ -522,7 +531,7 @@ public enum EMEJSON {
             }
             output.append(character)
         }
-        return EMEJSONString(output)
+        return EMEJSONString(storage: output)
     }
 
     private static func contains(_ data: Span<UInt8>, _ range: Range<Int>, _ character: UInt8) -> Bool {
@@ -588,6 +597,7 @@ public enum EMEJSON {
             return (.string(value), tokenEnd)
         case .arrayBegin:
             var array: [EMEJSONValue] = []
+            array.reserveCapacity(4)
             var position = tokenEnd
             var (next, _, nextEnd) = parseToken(data, from: position)
             while next != .arrayEnd {
@@ -610,6 +620,7 @@ public enum EMEJSON {
             return (.array(array), nextEnd)
         case .objectBegin:
             var object = EMEJSONObject()
+            object.reserveCapacity(4)
             var (next, nextStart, nextEnd) = parseToken(data, from: tokenEnd)
             while next != .objectEnd {
                 guard next == .string, nextEnd - nextStart >= 2, let name = decodeString(data, nextStart + 1..<nextEnd - 1) else {

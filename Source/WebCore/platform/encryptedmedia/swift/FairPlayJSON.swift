@@ -39,7 +39,7 @@ public enum FairPlayJSON {
             guard let sinf = entry.string else {
                 continue
             }
-            payloads.append(WTFBase64.decode(sinf.codeUnits.span, options: [.validatePadding, .ignoreWhitespace]))
+            payloads.append(WTFBase64.decode(sinf.storage, options: [.validatePadding, .ignoreWhitespace]))
         }
         return payloads
     }
@@ -98,7 +98,7 @@ public enum FairPlayJSON {
     private static func cencResponseEntry(_ entry: EMEJSONValue) -> CencResponseEntry {
         guard let object = entry.object,
             let keyIDString = object.string("keyID"),
-            let keyID = WTFBase64.decode(keyIDString.codeUnits.span)
+            let keyID = WTFBase64.decode(keyIDString.storage)
         else {
             return .noKeyID
         }
@@ -113,7 +113,7 @@ public enum FairPlayJSON {
             }
             return .error(keyID: keyID, code: code)
         }
-        guard let payloadString = payload?.string, let payloadBytes = WTFBase64.decode(payloadString.codeUnits.span) else {
+        guard let payloadString = payload?.string, let payloadBytes = WTFBase64.decode(payloadString.storage) else {
             return .keyIDOnly(keyID: keyID)
         }
         return .payload(keyID: keyID, payload: payloadBytes)
