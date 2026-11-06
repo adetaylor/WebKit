@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "Attribute.h"
+#include <WebCore/Attribute.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/unicode/CharacterNames.h>
 
