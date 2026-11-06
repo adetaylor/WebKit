@@ -643,6 +643,7 @@ public:
     {
         auto index = m_session->addRoot(setup);
         m_hostLayers.clear();
+        m_scrollingLayers.clear();
         addScrollbars(index, setup.viewport);
         return index;
     }
@@ -711,6 +712,12 @@ private:
         RetainPtr horizontal = adoptNS([[CALayer alloc] init]);
         [horizontal setBounds:CGRectMake(0, 0, viewport.width(), scrollbarThickness)];
         setHostLayers(index, vertical.get(), horizontal.get());
+        if (m_scrollingLayers.size() <= index)
+            m_scrollingLayers.resize(index + 1);
+        RetainPtr container = adoptNS([[CALayer alloc] init]);
+        [container setBounds:CGRectMake(0, 0, viewport.width(), viewport.height())];
+        m_scrollingLayers[index] = { WTF::move(container), adoptNS([[CALayer alloc] init]) };
+        m_pendingScrollingLayers.push_back(index);
     }
 
     // As RemoteScrollingCoordinatorProxyMac connects a commit's layers before the tree takes it.
@@ -723,6 +730,13 @@ private:
             node->setVerticalScrollbarLayer(m_hostLayers[index][0].get());
             node->setHorizontalScrollbarLayer(m_hostLayers[index][1].get());
         }
+        for (auto index : std::exchange(m_pendingScrollingLayers, { })) {
+            RefPtr node = dynamicDowncast<ScrollingStateScrollingNode>(stateTree.stateNodeForID(m_session->nodeIDAt(index)));
+            if (!node)
+                continue;
+            node->setScrollContainerLayer(m_scrollingLayers[index][0].get());
+            node->setScrolledContentsLayer(m_scrollingLayers[index][1].get());
+        }
     }
 
     Digest& m_digest;
@@ -733,6 +747,8 @@ private:
     std::optional<UIProcessSession> m_session;
     std::vector<std::array<RetainPtr<CALayer>, 2>> m_hostLayers;
     std::vector<unsigned> m_pendingHostLayers;
+    std::vector<std::array<RetainPtr<CALayer>, 2>> m_scrollingLayers;
+    std::vector<unsigned> m_pendingScrollingLayers;
     bool m_observing { true };
 };
 
