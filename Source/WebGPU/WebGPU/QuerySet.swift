@@ -105,8 +105,8 @@ public final class QuerySetImpl: GPUObjectReference {
 
     // The encoder retains the Metal buffers, not the query set.
     func setCommandEncoder(_ encoder: CommandEncoderImpl) {
-        if !tracking.contains(encoder) {
-            _ = tracking.add(encoder)
+        if !tracking.contains(encoder) && tracking.add(encoder) {
+            encoder.trackQuerySet(self)
         }
         encoder.addBuffer(backingVisibilityBuffer)
         encoder.addCounterSampleBuffer(backingCounterSampleBuffer)

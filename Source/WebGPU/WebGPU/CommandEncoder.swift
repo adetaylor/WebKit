@@ -2909,10 +2909,11 @@ public final class CommandEncoderImpl: GPUObjectReference {
     let serial = commandEncoderSerials.wrappingAdd(1, ordering: .relaxed).newValue
     private(set) var state: EncoderState = .open
 
-    // The buffers and textures this encoder used, held until clearTracking(). Views, external textures and query sets
-    // only record the encoder.
+    // The buffers, textures, views and query sets this encoder used, held until clearTracking().
     private var trackedBuffers: [BufferImpl] = []
     private var trackedTextures: [TextureImpl] = []
+    private var trackedTextureViews: [TextureViewImpl] = []
+    private var trackedQuerySets: [QuerySetImpl] = []
     // The external textures that recorded this encoder in pendingUsers, and the planes it used, until clearTracking().
     // Weak, so that an external texture's Impl, which holds its Device, dies when its callers let go of it.
     private var trackedExternalTextures = WeakImplList<ExternalTextureImpl>()
@@ -3617,6 +3618,14 @@ public final class CommandEncoderImpl: GPUObjectReference {
         trackedTextures.append(impl)
     }
 
+    func trackTextureView(_ impl: TextureViewImpl) {
+        trackedTextureViews.append(impl)
+    }
+
+    func trackQuerySet(_ impl: QuerySetImpl) {
+        trackedQuerySets.append(impl)
+    }
+
     func trackExternalTexture(_ impl: ExternalTextureImpl) {
         trackedExternalTextures.add(impl)
     }
@@ -3637,10 +3646,14 @@ public final class CommandEncoderImpl: GPUObjectReference {
     func clearTracking() {
         let buffers = trackedBuffers
         let textures = trackedTextures
+        let textureViews = trackedTextureViews
+        let querySets = trackedQuerySets
         let externalTextures = trackedExternalTextures.values
         let planes = retainedExternalTexturePlanes
         trackedBuffers = []
         trackedTextures = []
+        trackedTextureViews = []
+        trackedQuerySets = []
         trackedExternalTextures.removeAll()
         retainedExternalTexturePlanes = []
         for impl in buffers {
@@ -3649,10 +3662,16 @@ public final class CommandEncoderImpl: GPUObjectReference {
         for impl in textures {
             impl.tracking.remove(self)
         }
+        for impl in textureViews {
+            impl.tracking.remove(self)
+        }
+        for impl in querySets {
+            impl.tracking.remove(self)
+        }
         for impl in externalTextures {
             impl.pendingUsers.remove(self)
         }
-        withExtendedLifetime((buffers, textures, externalTextures, planes)) {}
+        withExtendedLifetime((buffers, textures, textureViews, querySets, externalTextures, planes)) {}
     }
 
     func addSampler(_ sampler: SamplerImpl) {

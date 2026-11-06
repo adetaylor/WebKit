@@ -125,8 +125,8 @@ public final class TextureViewImpl: GPUObjectReference {
 
     // TextureView::setCommandEncoder: the encoder holds the parent texture, not the view.
     func setCommandEncoder(_ encoder: CommandEncoderImpl) {
-        if !tracking.contains(encoder) {
-            _ = tracking.add(encoder)
+        if !tracking.contains(encoder) && tracking.add(encoder) {
+            encoder.trackTextureView(self)
         }
         parentImpl.setCommandEncoder(encoder)
         if parentImpl.isDestroyed() && !parentImpl.isCanvasBacking() {
