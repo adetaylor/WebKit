@@ -38,6 +38,7 @@ namespace WebKit {
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 class RemoteCGRenderer;
 class RemoteCGRendererLineStrokes;
+class RemoteCGRendererPath;
 class RemoteCGRendererPathSegment;
 #endif
 
@@ -53,9 +54,15 @@ public:
     bool drawsInto(const WebCore::ImageBuffer& imageBuffer) const final { return &imageBuffer == m_imageBuffer.ptr(); }
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    // RemoteCGRenderer's path segments, which its Swift handlers decline for a gradient, as RemoteGraphicsContext draws them.
+    // RemoteCGRenderer's paths and path segments, which its Swift handlers decline for a gradient, as RemoteGraphicsContext
+    // draws them.
     void fillPathSegment(const RemoteCGRendererPathSegment&);
     void strokePathSegment(const RemoteCGRendererPathSegment&);
+    void fillPath(const RemoteCGRendererPath&);
+    void strokePath(const RemoteCGRendererPath&);
+    void drawPath(const RemoteCGRendererPath&);
+    void clipPath(const RemoteCGRendererPath&, WebCore::WindRule);
+    void clipOutToPath(const RemoteCGRendererPath&);
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

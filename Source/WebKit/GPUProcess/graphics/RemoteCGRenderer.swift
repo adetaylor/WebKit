@@ -82,9 +82,12 @@ private func bezierCurveSegment(_ curve: WebCore.PathDataBezierCurve) -> CGRende
 final class RemoteCGRenderer {
     typealias State = CGRendererCore
 
+    private let resources: WebKit.RemoteCGRendererResources
+
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
-    init() {
+    init(resources: WebKit.RemoteCGRendererResources) {
+        self.resources = resources
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
@@ -290,6 +293,64 @@ final class RemoteCGRenderer {
 
     func strokePathSegment(state: inout CGRendererCore, segment: WebKit.RemoteCGRendererPathSegment) -> Bool {
         state.receiveStrokePathSegment(segment.values())
+    }
+
+    // RemoteGraphicsContext's path handlers, and GraphicsContextCG's draws of an empty path, which draw nothing.
+
+    func fillPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) -> Bool {
+        fill(&state, path)
+    }
+
+    func strokePath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) -> Bool {
+        if path.isEmpty() {
+            return true
+        }
+        if path.isSingleDataLine() {
+            return state.receiveStrokePathSegment(path.singleSegmentValues())
+        }
+        guard state.receiveStrokesWithoutGradient() else {
+            return false
+        }
+        state.receiveStrokePath(path.platformPath())
+        return true
+    }
+
+    func drawPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) -> Bool {
+        if path.isEmpty() {
+            return true
+        }
+        return state.receiveDrawPath { path.platformPath() }
+    }
+
+    func clipPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath, windRule: WebCore.WindRule) {
+        state.receiveClip { context in path.clip(context, windRule) }
+    }
+
+    func clipOutToPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) {
+        state.receiveClip { context in path.clipOut(context) }
+    }
+
+    func fillCachedPath(state: inout CGRendererCore, identifier: WebKit.RemotePathImplIdentifier) throws(InvalidMessage) -> Bool {
+        let path = resources.cachedPath(identifier)
+        try messageCheck { path.isValid() }
+        return fill(&state, path)
+    }
+
+    func clipCachedPath(state: inout CGRendererCore, identifier: WebKit.RemotePathImplIdentifier, windRule: WebCore.WindRule) throws(InvalidMessage) {
+        let path = resources.cachedPath(identifier)
+        try messageCheck { path.isValid() }
+        state.receiveClip { context in path.clip(context, windRule) }
+    }
+
+    private func fill(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) -> Bool {
+        if path.isEmpty() {
+            return true
+        }
+        guard state.receiveFillsWithoutGradient() else {
+            return false
+        }
+        state.receiveFillPath(path.platformPath())
+        return true
     }
 }
 

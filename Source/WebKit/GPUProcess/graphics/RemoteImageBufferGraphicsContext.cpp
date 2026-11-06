@@ -35,7 +35,9 @@
 #include "HandleMessage.h"
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
+#include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"
+#include "RemoteCGRendererResources.h"
 #include "WebKit-Swift.h"
 #endif
 
@@ -76,7 +78,8 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
             cgContext().addSwiftRendererLender();
             m_isSwiftRendererLender = true;
         }
-        m_cgRenderer = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRenderer>(RemoteCGRenderer::init());
+        Ref resources = RemoteCGRendererResources::create(m_renderingBackend);
+        m_cgRenderer = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRenderer>(RemoteCGRenderer::init(resources.ptr()));
         Ref forwarder = m_cgRenderer->getMessageReceiver();
         forwarder->setStateLender(*this);
         streamConnection.startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
@@ -161,6 +164,13 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(StrokeQuadCurve, &RemoteGraphicsContext::strokeQuadCurve)
     HANDLE_CG_RENDERER_MESSAGE(StrokeBezierCurve, &RemoteGraphicsContext::strokeBezierCurve)
     HANDLE_CG_RENDERER_MESSAGE(StrokePathSegment, &RemoteImageBufferGraphicsContext::strokePathSegment)
+    HANDLE_CG_RENDERER_MESSAGE(FillPath, &RemoteImageBufferGraphicsContext::fillPath)
+    HANDLE_CG_RENDERER_MESSAGE(StrokePath, &RemoteImageBufferGraphicsContext::strokePath)
+    HANDLE_CG_RENDERER_MESSAGE(DrawPath, &RemoteImageBufferGraphicsContext::drawPath)
+    HANDLE_CG_RENDERER_MESSAGE(ClipPath, &RemoteImageBufferGraphicsContext::clipPath)
+    HANDLE_CG_RENDERER_MESSAGE(ClipOutToPath, &RemoteImageBufferGraphicsContext::clipOutToPath)
+    HANDLE_CG_RENDERER_MESSAGE(FillCachedPath, &RemoteGraphicsContext::fillCachedPath)
+    HANDLE_CG_RENDERER_MESSAGE(ClipCachedPath, &RemoteGraphicsContext::clipCachedPath)
 #undef HANDLE_CG_RENDERER_MESSAGE
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
@@ -194,6 +204,31 @@ void RemoteImageBufferGraphicsContext::fillPathSegment(const RemoteCGRendererPat
 void RemoteImageBufferGraphicsContext::strokePathSegment(const RemoteCGRendererPathSegment& segment)
 {
     RemoteGraphicsContext::strokePathSegment(segment.segment());
+}
+
+void RemoteImageBufferGraphicsContext::fillPath(const RemoteCGRendererPath& path)
+{
+    RemoteGraphicsContext::fillPath(path.path());
+}
+
+void RemoteImageBufferGraphicsContext::strokePath(const RemoteCGRendererPath& path)
+{
+    RemoteGraphicsContext::strokePath(path.path());
+}
+
+void RemoteImageBufferGraphicsContext::drawPath(const RemoteCGRendererPath& path)
+{
+    RemoteGraphicsContext::drawPath(path.path());
+}
+
+void RemoteImageBufferGraphicsContext::clipPath(const RemoteCGRendererPath& path, WindRule rule)
+{
+    RemoteGraphicsContext::clipPath(path.path(), rule);
+}
+
+void RemoteImageBufferGraphicsContext::clipOutToPath(const RemoteCGRendererPath& path)
+{
+    RemoteGraphicsContext::clipOutToPath(path.path());
 }
 
 #endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

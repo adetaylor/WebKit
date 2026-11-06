@@ -52,7 +52,9 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "RemoteCGRendererLineStrokes.h"
+#include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"
+#include "RemoteCGRendererResources.h"
 #include "RemoteCGRendererMessages.h"
 #endif
 

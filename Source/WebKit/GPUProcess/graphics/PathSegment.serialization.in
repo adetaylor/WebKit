@@ -142,4 +142,9 @@ header: "RemoteCGRendererPathSegment.h"
 [AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererPathSegment {
     WebCore::PathSegment segment();
 };
+
+header: "RemoteCGRendererPath.h"
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererPath {
+    Vector<WebCore::PathSegment> segments();
+};
 #endif
