@@ -35,6 +35,26 @@ async function runTest() {
             const repeatReply = streamConnection.sendSyncMessage(streamTesterID, IPC.messages.IPCSwiftStreamTester_RepeatTextSwift.name, [{ type: 'String', value: 'ab' }, { type: 'uint32_t', value: 3 }]);
             assert_equals(repeatReply.arguments[0].value, 'ababab', `RepeatTextSwift for ${processTarget}`);
 
+            // Lent bytes in the stream buffer, and out of stream: more than its 512 bytes.
+            for (const size of [0, 16, 300, 2000]) {
+                const bytes = Array.from({ length: size }, (_, index) => (index * 7 + size) & 0xFF);
+                const salt = 5 + size;
+                const tail = 0xFFFFFFF0 - size;
+                let digest = salt;
+                const mix = value => { digest = (Math.imul(digest, 31) + value) >>> 0; };
+                for (let copy = 0; copy < 2; ++copy) {
+                    mix(size);
+                    bytes.forEach(mix);
+                }
+                mix(tail);
+                const reply = streamConnection.sendSyncMessage(streamTesterID, IPC.messages.IPCSwiftStreamTester_DigestLentBytesSwift.name, [
+                    { type: 'uint32_t', value: salt },
+                    { type: 'Vector', value: bytes.map(value => [{ type: 'uint8_t', value }]) },
+                    { type: 'uint32_t', value: tail },
+                ]);
+                assert_equals(reply.arguments[0].value, digest, `DigestLentBytesSwift of ${size} bytes for ${processTarget}`);
+            }
+
             let sumReply;
             const asyncReplyID = streamConnection.sendWithAsyncReply(streamTesterID, IPC.messages.IPCSwiftStreamTester_Add.name, [{ type: 'uint32_t', value: 40 }, { type: 'uint32_t', value: 2 }], message => {
                 sumReply = message;

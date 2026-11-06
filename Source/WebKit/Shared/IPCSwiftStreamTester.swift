@@ -153,6 +153,24 @@ final class IPCSwiftStreamTester {
         return digest
     }
 
+    // Copies the bytes twice, into a fresh array and into storage reused from the last message, to digest both copies.
+    private var lentBytesStorage: [UInt8] = []
+
+    func digestLentBytesSwift(salt: UInt32, bytes: IPC.LentBytes, tail: UInt32) -> UInt32 {
+        let copy = bytes.copied()
+        bytes.copyBytes(into: &lentBytesStorage)
+        var digest = salt
+        func mix(_ value: Int) {
+            digest = digest &* 31 &+ UInt32(truncatingIfNeeded: value)
+        }
+        mix(copy.count)
+        copy.forEach { mix(Int($0)) }
+        mix(lentBytesStorage.count)
+        lentBytesStorage.forEach { mix(Int($0)) }
+        digest = digest &* 31 &+ tail
+        return digest
+    }
+
     func takeRecordedDigestSwift(connection: IPC.StreamServerConnection) -> UInt32 {
         takeRecordedDigest(connection: connection)
     }

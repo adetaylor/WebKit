@@ -148,6 +148,8 @@
     [Legacy] MessageParam LibWebRTCCodecsProxy.DecodeFrame data
     [Legacy] MessageParam LibWebRTCCodecsProxy.SetDecoderFormatDescription description
 
+    [DebugOnly] MessageParam IPCSwiftStreamTester.DigestLentBytesSwift bytes
+
     [Legacy] MessageParam NetworkRTCProvider.SendToSocket data
     [Legacy] MessageParam NetworkSocketChannel.SendData data
     [Legacy] MessageParam NetworkSocketChannel.SendString message
