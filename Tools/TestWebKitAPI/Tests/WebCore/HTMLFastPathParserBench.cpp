@@ -151,13 +151,13 @@ static Ref<Element> createContext(HTMLDocument& document, const QualifiedName& c
     return context;
 }
 
-static void runBenchmark(ASCIILiteral name, const String& source, const QualifiedName& contextTag, unsigned iterations, uint64_t expectedChecksum)
+static void runBenchmark(ASCIILiteral name, const String& source, const LazyNeverDestroyed<const HTMLQualifiedName>& contextTag, unsigned iterations, uint64_t expectedChecksum)
 {
     ProcessWarming::initializeNames();
 
     auto settings = Settings::create(nullptr);
     auto document = HTMLDocument::create(nullptr, settings.get(), aboutBlankURL());
-    auto context = createContext(document, contextTag);
+    auto context = createContext(document, contextTag.get());
 
     auto parse = [&](DocumentFragment& fragment) {
         return tryFastParsingHTMLFragment(source, document, fragment, context, { ParserContentPolicy::AllowScriptingContent });
@@ -194,13 +194,13 @@ static void runBenchmark(ASCIILiteral name, const String& source, const Qualifie
 // innerHTML set to a prefix, then to the prefix plus a suffix. The second set clones the nodes the first one parsed
 // and parses only the suffix (CachedSetInnerHTML). The checksum covers both sets' results and a dump of the tree
 // they leave.
-static void runCachedSetInnerHTMLBenchmark(ASCIILiteral name, const String& prefix, const String& source, const QualifiedName& contextTag, unsigned iterations, uint64_t expectedChecksum)
+static void runCachedSetInnerHTMLBenchmark(ASCIILiteral name, const String& prefix, const String& source, const LazyNeverDestroyed<const HTMLQualifiedName>& contextTag, unsigned iterations, uint64_t expectedChecksum)
 {
     ProcessWarming::initializeNames();
 
     auto settings = Settings::create(nullptr);
     auto document = HTMLDocument::create(nullptr, settings.get(), aboutBlankURL());
-    auto context = createContext(document, contextTag);
+    auto context = createContext(document, contextTag.get());
     // The elements of a document without a frame use the null custom element registry, which keeps innerHTML off the
     // fast path.
     context->clearUsesNullCustomElementRegistry();
