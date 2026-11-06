@@ -315,7 +315,8 @@ public final class BindGroupImpl: GPUObjectReference {
 
     @_spi(WebKitGPU)
     public func updateExternalTextures(_ externalTexture: ExternalTextureImpl) -> Bool {
-        guard renderBundleConsumerCount == 0, let layoutImpl, !externalTexture.hasPendingUsers() else {
+        guard renderBundleConsumerCount == 0, let layoutImpl, externalTexture.deviceImpl === deviceImpl, !externalTexture.hasPendingUsers()
+        else {
             return false
         }
 
@@ -1270,6 +1271,10 @@ private struct BindGroupCreation {
     ) -> Bool {
         guard case .externalTexture = layoutEntry.layout else {
             reportError("Expected external texture but it was not present in the bind group layout")
+            return false
+        }
+        if externalTexture.deviceImpl !== deviceImpl {
+            reportError("External texture was created from a different device")
             return false
         }
 
