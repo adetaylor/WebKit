@@ -274,6 +274,10 @@
 		07EB34D73037F52600B217DD /* JavaScriptEvaluationDecodingGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07EB34D63037F52600B217DD /* JavaScriptEvaluationDecodingGraph.swift */; };
 		07EB34D93037F60700B217DD /* JavaScriptEvaluationCodableValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07EB34D83037F60700B217DD /* JavaScriptEvaluationCodableValue.swift */; };
 		07EB34DB30380D7E00B217DD /* WebPage+NewCodable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07EB34DA30380D7E00B217DD /* WebPage+NewCodable.swift */; };
+		07D1FE3E79C141B7B597EEBA /* MomentumEventDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A47D568741C4422A6AFB870 /* MomentumEventDispatcher.swift */; };
+		18772EF8BB8046AF8CEA0E0B /* RemoteScrollingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53F7D37F98834053BBF8310E /* RemoteScrollingCoordinator.swift */; };
+		D38F0AEA0C334076B96BECFA /* RemoteLayerTreeEventDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47AFDCDB4E3D4351A86B3250 /* RemoteLayerTreeEventDispatcher.swift */; };
+		15F91CB834EE4CD8B8B66EC5 /* RemoteScrollingCoordinatorProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64A3CFA4D7034F308B3207B9 /* RemoteScrollingCoordinatorProxy.swift */; };
 		07F0337C30107D3900B69551 /* WKFastScrollTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F0337B30107D3900B69551 /* WKFastScrollTracker.swift */; };
 		07F0337E3B2E1A0044AABBCC /* WKDirectionalScrollLockTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F0337D3B2E1A0044AABBCC /* WKDirectionalScrollLockTracker.swift */; };
 		07F327F22CB09B74006D9918 /* _WKTextPreview.h in Headers */ = {isa = PBXBuildFile; fileRef = 07F327F02CB085A4006D9918 /* _WKTextPreview.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -3796,6 +3800,8 @@
 		0F23ADDF2B7D240C00E6199B /* AsyncPDFRenderer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AsyncPDFRenderer.mm; sourceTree = "<group>"; };
 		0F25C49F29A5DF8E00D2CF5A /* RemoteLayerTreeEventDispatcher.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RemoteLayerTreeEventDispatcher.mm; sourceTree = "<group>"; };
 		0F25C4A029A5DF8E00D2CF5A /* RemoteLayerTreeEventDispatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteLayerTreeEventDispatcher.h; sourceTree = "<group>"; };
+		47AFDCDB4E3D4351A86B3250 /* RemoteLayerTreeEventDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteLayerTreeEventDispatcher.swift; sourceTree = "<group>"; };
+		64A3CFA4D7034F308B3207B9 /* RemoteScrollingCoordinatorProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteScrollingCoordinatorProxy.swift; sourceTree = "<group>"; };
 		0F2E0DF628F0CD35006B9079 /* RemoteScrollingCoordinatorProxyMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RemoteScrollingCoordinatorProxyMac.mm; sourceTree = "<group>"; };
 		0F2E0DF728F0CD35006B9079 /* RemoteScrollingCoordinatorProxyMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteScrollingCoordinatorProxyMac.h; sourceTree = "<group>"; };
 		0F2E0DF828F0D04D006B9079 /* RemoteLayerTreeDrawingAreaProxyMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RemoteLayerTreeDrawingAreaProxyMac.mm; sourceTree = "<group>"; };
@@ -5368,6 +5374,8 @@
 		2DE9B13B2231F77C005287B7 /* _WKTextInputContextInternal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _WKTextInputContextInternal.h; sourceTree = "<group>"; };
 		2DEAC5CE1AC368BB00A195D8 /* _WKFindOptions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _WKFindOptions.h; sourceTree = "<group>"; };
 		2DEE709D2755A46800FBF864 /* MomentumEventDispatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MomentumEventDispatcher.h; sourceTree = "<group>"; };
+		2A47D568741C4422A6AFB870 /* MomentumEventDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentumEventDispatcher.swift; sourceTree = "<group>"; };
+		53F7D37F98834053BBF8310E /* RemoteScrollingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteScrollingCoordinator.swift; sourceTree = "<group>"; };
 		2DEE709E2755A46800FBF864 /* MomentumEventDispatcher.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MomentumEventDispatcher.cpp; sourceTree = "<group>"; };
 		2DF9593418A42412009785A1 /* ViewGestureControllerIOS.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ViewGestureControllerIOS.mm; sourceTree = "<group>"; };
 		2DF9EEE31A781FB400B6CFBE /* APIFrameInfo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = APIFrameInfo.cpp; sourceTree = "<group>"; };
@@ -12071,6 +12079,7 @@
 				0F59478D187B3B3A00437857 /* RemoteScrollingCoordinator.h */,
 				0F59478E187B3B3A00437857 /* RemoteScrollingCoordinator.messages.in */,
 				0F59478F187B3B3A00437857 /* RemoteScrollingCoordinator.mm */,
+				53F7D37F98834053BBF8310E /* RemoteScrollingCoordinator.swift */,
 			);
 			path = RemoteLayerTree;
 			sourceTree = "<group>";
@@ -12110,6 +12119,7 @@
 				71722EAF2EA919E9004218E6 /* RemoteProgressBasedTimelineRegistry.h */,
 				0F594794187B3B6000437857 /* RemoteScrollingCoordinatorProxy.cpp */,
 				0F594795187B3B6000437857 /* RemoteScrollingCoordinatorProxy.h */,
+				64A3CFA4D7034F308B3207B9 /* RemoteScrollingCoordinatorProxy.swift */,
 				0F594796187B3B6000437857 /* RemoteScrollingTree.cpp */,
 				0F594797187B3B6000437857 /* RemoteScrollingTree.h */,
 			);
@@ -16309,6 +16319,7 @@
 				9B033E71252580F300501071 /* IPCTestingAPI.h */,
 				2DEE709E2755A46800FBF864 /* MomentumEventDispatcher.cpp */,
 				2DEE709D2755A46800FBF864 /* MomentumEventDispatcher.h */,
+				2A47D568741C4422A6AFB870 /* MomentumEventDispatcher.swift */,
 				7C387433172F5615001BD88A /* PageBanner.cpp */,
 				7CF47FF917275C57008ACB91 /* PageBanner.h */,
 				2D819B99186275B3001F03D1 /* ViewGestureGeometryCollector.cpp */,
@@ -17919,6 +17930,7 @@
 				0F2E0DF828F0D04D006B9079 /* RemoteLayerTreeDrawingAreaProxyMac.mm */,
 				0F25C4A029A5DF8E00D2CF5A /* RemoteLayerTreeEventDispatcher.h */,
 				0F25C49F29A5DF8E00D2CF5A /* RemoteLayerTreeEventDispatcher.mm */,
+				47AFDCDB4E3D4351A86B3250 /* RemoteLayerTreeEventDispatcher.swift */,
 				0F2E0DF728F0CD35006B9079 /* RemoteScrollingCoordinatorProxyMac.h */,
 				0F2E0DF628F0CD35006B9079 /* RemoteScrollingCoordinatorProxyMac.mm */,
 				0FF7CE8A2901FDAC00EA62D6 /* RemoteScrollingTreeMac.h */,
@@ -22467,6 +22479,7 @@
 				AD00CE0C2E1A000000000004 /* MessageCheck.swift in Sources */,
 				3625771CD7ED2C7CCF7238E1 /* MockPhoneNumberPossessionManager.swift in Sources */,
 				EBA8D3B627A5E33F00CB7900 /* MockPushServiceConnection.mm in Sources */,
+				07D1FE3E79C141B7B597EEBA /* MomentumEventDispatcher.swift in Sources */,
 				57B826452304F14000B72EB0 /* NearFieldSoftLink.mm in Sources */,
 				C1C1B30F2540F50D00D9100B /* NetworkConnectionToWebProcessMac.mm in Sources */,
 				41E242E026E0C908009A8C64 /* NetworkRTCUtilitiesCocoa.mm in Sources */,
@@ -22487,8 +22500,11 @@
 				DD5697CE2DC06F7700050321 /* rdar150228472.swift in Sources */,
 				9B1229CE23FF25F2008CA751 /* RemoteAudioDestinationManager.cpp in Sources */,
 				2D72A1FA212BF46E00517A20 /* RemoteLayerTreeDrawingArea.mm in Sources */,
+				D38F0AEA0C334076B96BECFA /* RemoteLayerTreeEventDispatcher.swift in Sources */,
 				2DC18FB4218A6E9E0025A88D /* RemoteLayerTreeViews.mm in Sources */,
 				0701789E23BE9CFC005F0FAA /* RemoteMediaPlayerMIMETypeCache.cpp in Sources */,
+				18772EF8BB8046AF8CEA0E0B /* RemoteScrollingCoordinator.swift in Sources */,
+				15F91CB834EE4CD8B8B66EC5 /* RemoteScrollingCoordinatorProxy.swift in Sources */,
 				1AF572302D690813008266F2 /* RemoteScrollingTreeCocoa.mm in Sources */,
 				0738ABBD304BD9CA00987FFB /* RunJavaScriptParameters.swift in Sources */,
 				0782B70C304680930011880F /* RunJavaScriptResult.swift in Sources */,
