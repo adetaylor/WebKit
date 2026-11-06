@@ -1015,7 +1015,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
 
     // The per-resource loop of setBindGroup, of a draw after a split, and of bundle replay.
     // `list` returns a container's MTLResources, read from its owner's mtlResources one at a time.
-    @inline(__always)
+    @inline(always)
     private func useAndTrack(_ resources: ResourceSet, _ list: (Int) -> [any MTLResource]) {
         resources.forEachDistinctImpl { impl in
             impl.setCommandEncoder(parentImpl)
@@ -1196,7 +1196,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         return length < binding.offset ? 0 : length - binding.offset
     }
 
-    @inline(__always)
+    @inline(always)
     private func minimumVertexInstanceCounts(_ pipelineImpl: RenderPipelineImpl) -> VertexInstanceBounds {
         minimumVertexInstanceCount(pipelineImpl, bufferSize: vertexBufferSize)
     }

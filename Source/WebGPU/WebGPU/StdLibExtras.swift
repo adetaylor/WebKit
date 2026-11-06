@@ -38,7 +38,7 @@ extension Int {
     ///
     /// On arm64_32 (watchOS) Int is 32 bits, so a value of 2^31 or more is passed as its bit pattern, the NSUInteger the
     /// callee reads, where Int(value) would trap. Elsewhere this is Int(value).
-    @inline(__always)
+    @inline(always)
     init(nsUInteger value: UInt32) {
         self.init(truncatingIfNeeded: value)
     }

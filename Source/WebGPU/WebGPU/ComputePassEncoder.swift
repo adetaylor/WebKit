@@ -852,7 +852,7 @@ private struct DispatchUsageMap {
     }
 
     // The slot holding (key, subresource), or the free slot where it would go. `slots` is never full.
-    @inline(__always)
+    @inline(always)
     private func slotIndex(_ key: UInt64, _ subresource: UInt64) -> Int {
         let mask = slots.count - 1
         var index = Int(truncatingIfNeeded: wtfIntHash(key ^ (subresource &* 0x9e37_79b9_7f4a_7c15))) & mask

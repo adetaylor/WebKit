@@ -58,7 +58,7 @@ struct BindGroupLayoutImplList: RandomAccessCollection {
         count
     }
 
-    @inline(__always)
+    @inline(always)
     mutating func append(_ impl: BindGroupLayoutImpl) {
         switch storage {
         case .none:
@@ -378,7 +378,7 @@ private struct StageResourceCounts {
         storageTextures &+= counts.storageTextures[stage]
     }
 
-    @inline(__always)
+    @inline(always)
     func errorExceeding(_ limits: WebGPU.Limits, _ stage: Stage) -> String? {
         let maxStorageBuffers = stage.layoutStorageBufferLimit(limits)
         let maxStorageTextures = stage.layoutStorageTextureLimit(limits)
@@ -420,7 +420,7 @@ private func validateBindGroupLayouts(_ layouts: borrowing BindGroupLayoutImplLi
 }
 
 /// Sets `hasDynamicOffsets` once every layout passed.
-@inline(__always)
+@inline(always)
 private func errorValidatingBindGroupLayouts(
     _ layouts: borrowing BindGroupLayoutImplList,
     _ deviceImpl: DeviceImpl,

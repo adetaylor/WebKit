@@ -346,13 +346,13 @@ struct GroupIndexOrder: Sequence {
     }
 
     var isEmpty: Bool {
-        @inline(__always)
+        @inline(always)
         get {
             presentMask == 0
         }
     }
 
-    @inline(__always)
+    @inline(always)
     func contains(_ key: UInt32) -> Bool {
         key < 32 && presentMask & (1 << key) != 0
     }
@@ -374,7 +374,7 @@ struct GroupIndexOrder: Sequence {
     }
 
     /// HashSet::add; returns isNewEntry.
-    @inline(__always)
+    @inline(always)
     @discardableResult
     mutating func add(_ key: UInt32) -> Bool {
         precondition(key < 32)
@@ -417,7 +417,7 @@ struct GroupIndexOrder: Sequence {
     }
 
     /// HashSet::remove.
-    @inline(__always)
+    @inline(always)
     @discardableResult
     mutating func remove(_ key: UInt32) -> Bool {
         if !contains(key) {
@@ -523,20 +523,20 @@ struct GroupIndexedTable<Value> {
 
     /// nil for an absent or out-of-range group.
     subscript(group: UInt32) -> Value? {
-        @inline(__always)
+        @inline(always)
         get {
             order.contains(group) ? slots[Int(group)] : nil
         }
     }
 
     var isEmpty: Bool {
-        @inline(__always)
+        @inline(always)
         get {
             order.isEmpty
         }
     }
 
-    @inline(__always)
+    @inline(always)
     func contains(_ group: UInt32) -> Bool {
         order.contains(group)
     }
@@ -549,7 +549,7 @@ struct GroupIndexedTable<Value> {
         slots[Int(group)] = value
     }
 
-    @inline(__always)
+    @inline(always)
     @discardableResult
     mutating func remove(_ group: UInt32) -> Bool {
         if !order.remove(group) {
@@ -585,14 +585,14 @@ struct BindGroupTable {
     private var impls = GroupIndexedTable<BindGroupImpl>()
 
     var order: GroupIndexOrder {
-        @inline(__always)
+        @inline(always)
         get {
             impls.order
         }
     }
 
     subscript(group: UInt32) -> BindGroupImpl? {
-        @inline(__always)
+        @inline(always)
         get {
             impls[group]
         }
@@ -600,7 +600,7 @@ struct BindGroupTable {
 
     /// Whether `impl` is already the group's bind group, which makes set() a no-op (a read, so callers can skip the
     /// modify access).
-    @inline(__always)
+    @inline(always)
     func holds(_ group: UInt32, _ impl: BindGroupImpl) -> Bool {
         impls[group] === impl
     }
@@ -1009,7 +1009,7 @@ struct ResourceSet {
     }
 
     /// Each distinct Impl once, in first-use order.
-    @inline(__always)
+    @inline(always)
     func forEachDistinctImpl(_ body: (TrackedImpl) -> Void) {
         if let distinctImplsIfRepeated {
             for impl in distinctImplsIfRepeated {
@@ -1303,7 +1303,7 @@ func isValidToUse(_ objectIsValid: Bool, _ objectDevice: DeviceImpl, with target
 ///
 /// `boundGroup` reads the encoder's bind group at an index, so that the encoder's table is not copied; inlined, it needs
 /// no closure context.
-@inline(__always)
+@inline(always)
 func errorValidatingBindGroupCompatibility(_ layout: PipelineLayoutImpl, _ boundGroup: (UInt32) -> BindGroupImpl?) -> String? {
     if !layout.isValid() {
         return "pipeline layout is not valid"
@@ -1399,7 +1399,7 @@ struct VertexInstanceBounds {
 
 /// The vertex and instance bounds of the bound vertex buffers, order-independent (min and or); inlined so that
 /// `bufferSize` needs no closure context.
-@inline(__always)
+@inline(always)
 func minimumVertexInstanceCount(
     _ pipeline: RenderPipelineImpl?,
     bufferSize: (UInt32) -> UInt64
