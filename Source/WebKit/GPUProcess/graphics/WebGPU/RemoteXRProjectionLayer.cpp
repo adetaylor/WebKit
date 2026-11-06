@@ -89,6 +89,7 @@ void RemoteXRProjectionLayer::endFrame()
 
 void RemoteXRProjectionLayer::destroy()
 {
+    m_layer->destroy();
 }
 
 void RemoteXRProjectionLayer::stopListeningForIPC()
