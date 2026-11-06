@@ -2178,9 +2178,9 @@ template<> bool isValidEnum<Namespace::SwiftEnum>(uint8_t value)
 static_assert(sizeof(std::underlying_type_t<Namespace::SwiftBoolEnum>) == sizeof(bool), "IPCTypes.SwiftBoolEnum in GeneratedSerializers.swift has the size of the underlying type in .serialization.in");
 static_assert(!static_cast<bool>(Namespace::SwiftBoolEnum::No), "IPCTypes.SwiftBoolEnum in GeneratedSerializers.swift numbers values in .serialization.in order");
 static_assert(static_cast<bool>(Namespace::SwiftBoolEnum::Yes) == 1, "IPCTypes.SwiftBoolEnum in GeneratedSerializers.swift numbers values in .serialization.in order");
-template<> bool isValidEnum<Namespace::SwiftBoolEnum>(bool value)
+template<> bool isValidEnum<Namespace::SwiftBoolEnum>(uint8_t value)
 {
-    switch (static_cast<uint8_t>(value)) {
+    switch (value) {
     case 0:
     case 1:
         return true;
