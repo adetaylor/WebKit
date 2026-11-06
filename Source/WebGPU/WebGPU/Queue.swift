@@ -1407,6 +1407,22 @@ public final class QueueImpl: GPUObjectReference {
         return backingTemporaryBuffer
     }
 
+    // `size` bytes to write the contents of for a staged copy: a buffer of their own from largeBufferSize on, otherwise a
+    // range of the temporary buffer.
+    private func reserveStagingRange(_ deviceImpl: DeviceImpl, _ size: UInt64) -> (buffer: any MTLBuffer, offset: UInt64)? {
+        if size >= largeBufferSize {
+            guard let buffer = deviceImpl.safeCreateBuffer(UInt(size), true) else {
+                return nil
+            }
+            return (buffer, 0)
+        }
+        let offset = reserveTemporaryBufferRange(deviceImpl, size)
+        guard let backingTemporaryBuffer else {
+            return nil
+        }
+        return (backingTemporaryBuffer, offset)
+    }
+
     // Returns where `dataSize` bytes go in the temporary buffer, replacing the buffer first if they do not fit.
     private func reserveTemporaryBufferRange(_ deviceImpl: DeviceImpl, _ dataSize: UInt64) -> UInt64 {
         if temporaryBufferNeedsReplacement(dataSize) {
@@ -2155,8 +2171,12 @@ public final class QueueImpl: GPUObjectReference {
             break
         }
 
-        // The compressed rows below, repacked; from then on the writes read these instead of `data`.
+        // nil unless the texture is written on the CPU.
+        let cpuWriteStorage = isIdle() && options.isEmpty && !clearWasNeeded ? writeStorage(storageMode(mtlTexture)) : nil
+        // The compressed rows below, repacked; from then on the writes read these instead of `data`. They go straight
+        // into the staging range the copy reads, unless the texture is written on the CPU.
         var repacked: ContiguousArray<UInt8> = []
+        var repackedStaging: (buffer: any MTLBuffer, offset: UInt64)?
         var isRepacked = false
         guard
             let newBytesPerRow = checkedProduct(
@@ -2182,9 +2202,7 @@ public final class QueueImpl: GPUObjectReference {
             guard let newDataSize = checkedProduct(UInt32.self, UInt64(newBytesPerImage), UInt64(maxZ)) else {
                 return false
             }
-            repacked = ContiguousArray(repeating: 0, count: Int(newDataSize))
             isRepacked = true
-            dataLayoutOffset = 0
 
             let verticalOffset = checkedProduct(UInt64.self, UInt64(maxY != 0 ? (maxY - 1) : 0), UInt64(bytesPerRow))
             assert(maxZ != 0)
@@ -2223,24 +2241,42 @@ public final class QueueImpl: GPUObjectReference {
                 guard let checkedNewBytesSum, let checkedBytesSum else {
                     return false
                 }
-                if Int(checkedNewBytesSum) > repacked.count || Int(checkedBytesSum) > data.count {
+                if checkedNewBytesSum > newDataSize || Int(checkedBytesSum) > data.count {
                     let y = maxY - 1
                     let z = maxZ - 1
                     deviceImpl.generateAValidationError(
-                        "y(\(y)) * newBytesPerRow(\(newBytesPerRow)) + z(\(z)) * newBytesPerImage(\(newBytesPerImage)) + newBytesPerRow(\(newBytesPerRow)) > newData.size()(\(repacked.count)) || y(\(y)) * bytesPerRow(\(bytesPerRow)) + z(\(z)) * bytesPerImage(\(bytesPerImage)) + newBytesPerRow(\(newBytesPerRow)) > dataSize(\(data.count)), copySize \(widthForMetal), \(heightForMetal), \(depthForMetal), textureSize \(logicalSize.width), \(logicalSize.height), \(logicalSize.depthOrArrayLayers), offset \(dataLayout.offset)"
+                        "y(\(y)) * newBytesPerRow(\(newBytesPerRow)) + z(\(z)) * newBytesPerImage(\(newBytesPerImage)) + newBytesPerRow(\(newBytesPerRow)) > newDataSize(\(newDataSize)) || y(\(y)) * bytesPerRow(\(bytesPerRow)) + z(\(z)) * bytesPerImage(\(bytesPerImage)) + newBytesPerRow(\(newBytesPerRow)) > dataSize(\(data.count)), copySize \(widthForMetal), \(heightForMetal), \(depthForMetal), textureSize \(logicalSize.width), \(logicalSize.height), \(logicalSize.depthOrArrayLayers), offset \(dataLayout.offset)"
                     )
                     return false
                 }
             }
 
+            guard let copiedBytesPerImage = checkedProduct(UInt32.self, UInt64(maxY), UInt64(newBytesPerRow)),
+                copiedBytesPerImage <= newBytesPerImage
+            else {
+                return false
+            }
+            let staging: (buffer: any MTLBuffer, offset: UInt64)?
+            if cpuWriteStorage == .cpu {
+                staging = nil
+                repacked = ContiguousArray(repeating: 0, count: Int(newDataSize))
+            } else {
+                guard let range = reserveStagingRange(deviceImpl, UInt64(newDataSize)) else {
+                    return false
+                }
+                staging = range
+            }
             var repackedBytes = repacked.mutableSpan
             for z in 0..<maxZ {
+                let zTimesBytesPerImage = checkedProduct(UInt32.self, UInt64(z), UInt64(bytesPerImage))
+                let zTimesNewBytesPerImage = checkedProduct(UInt32.self, UInt64(z), UInt64(newBytesPerImage))
+                guard let zTimesBytesPerImage, let zTimesNewBytesPerImage else {
+                    return false
+                }
                 for y in 0..<maxY {
                     let yTimesBytesPerRow = checkedProduct(UInt32.self, UInt64(y), UInt64(bytesPerRow))
                     let yTimesNewBytesPerRow = checkedProduct(UInt32.self, UInt64(y), UInt64(newBytesPerRow))
-                    let zTimesBytesPerImage = checkedProduct(UInt32.self, UInt64(z), UInt64(bytesPerImage))
-                    let zTimesNewBytesPerImage = checkedProduct(UInt32.self, UInt64(z), UInt64(newBytesPerImage))
-                    guard let yTimesBytesPerRow, let yTimesNewBytesPerRow, let zTimesBytesPerImage, let zTimesNewBytesPerImage else {
+                    guard let yTimesBytesPerRow, let yTimesNewBytesPerRow else {
                         return false
                     }
                     let checkedYPlusZPlusOffset = checkedSum(
@@ -2255,15 +2291,36 @@ public final class QueueImpl: GPUObjectReference {
                     }
                     let destinationStart = Int(checkedNewYPlusNewZ)
                     let sourceStart = Int(checkedYPlusZPlusOffset)
-                    for byte in 0..<Int(newBytesPerRow) {
-                        repackedBytes[destinationStart + byte] = data[sourceStart + byte]
+                    if let staging {
+                        WebGPU.Metal.copyBytesToBuffer(
+                            staging.buffer,
+                            staging.offset &+ UInt64(destinationStart),
+                            data.extracting(sourceStart..<(sourceStart + Int(newBytesPerRow)))
+                        )
+                    } else {
+                        for byte in 0..<Int(newBytesPerRow) {
+                            repackedBytes[destinationStart + byte] = data[sourceStart + byte]
+                        }
                     }
                 }
+                // The rest of each image is zero, as in a new array.
+                guard let paddingOffset = checkedSum(UInt32.self, UInt64(zTimesNewBytesPerImage), UInt64(copiedBytesPerImage)) else {
+                    return false
+                }
+                if let staging {
+                    WebGPU.Metal.zeroBufferContents(
+                        staging.buffer,
+                        staging.offset &+ UInt64(paddingOffset),
+                        UInt64(newBytesPerImage - copiedBytesPerImage)
+                    )
+                }
             }
+            repackedStaging = staging
 
             bytesPerRow = UInt(newBytesPerRow)
-            dataByteSize = repacked.count
+            dataByteSize = Int(newDataSize)
             bytesPerImage = UInt(newBytesPerImage)
+            dataLayoutOffset = 0
         }
 
         let repackedBytes = repacked
@@ -2272,8 +2329,8 @@ public final class QueueImpl: GPUObjectReference {
         var skippedLayer = false
         // FIXME(PERFORMANCE): Instead of checking whether or not the whole queue is idle,
         // we could detect whether this specific resource is idle, if we tracked every resource.
-        if isIdle() && options.isEmpty && !clearWasNeeded {
-            switch writeStorage(storageMode(mtlTexture)) {
+        if let cpuWriteStorage {
+            switch cpuWriteStorage {
             case .cpu:
                 switch textureDimension {
                 case WebGPU.TextureDimension._1d:
@@ -2394,12 +2451,14 @@ public final class QueueImpl: GPUObjectReference {
         // FIXME(PERFORMANCE): Suballocate, so the common case doesn't need to hit the kernel.
         // FIXME(PERFORMANCE): Should this temporary buffer really be shared?
         let newBufferSize = UInt(dataByteSize) &- UInt(dataLayoutOffset)
-        let noCopy = UInt64(newBufferSize) >= largeBufferSize
+        let noCopy = !isRepacked && UInt64(newBufferSize) >= largeBufferSize
         var temporaryBufferOffset: UInt64 = 0
         let stagedBuffer: (any MTLBuffer)?
-        if isRepacked {
-            // The repacked bytes are copied, even into a buffer of their own: nothing else would keep them alive.
-            stagedBuffer = newTemporaryBuffer(deviceImpl, bytes: source, aliasing: nil, from: 0, noCopy, &temporaryBufferOffset)
+        if let repackedStaging {
+            stagedBuffer = repackedStaging.buffer
+            temporaryBufferOffset = repackedStaging.offset
+        } else if isRepacked {
+            stagedBuffer = newTemporaryBuffer(deviceImpl, bytes: source, aliasing: nil, from: 0, false, &temporaryBufferOffset)
         } else {
             stagedBuffer = newTemporaryBuffer(
                 deviceImpl,
