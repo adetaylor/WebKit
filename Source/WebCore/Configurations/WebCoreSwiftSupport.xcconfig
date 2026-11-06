@@ -1,0 +1,42 @@
+// Copyright (C) 2026 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
+// WebCoreSwiftSupport, pure Swift value types that WebCoreEME, WebCore's Swift and WebKit's Swift import: a static
+// library that WebCore.xcconfig force-loads into WebCore.framework. Its .swiftmodule is in BUILT_PRODUCTS_DIR, where they
+// find it, as they find WebCoreEME's.
+
+PRODUCT_NAME = WebCoreSwiftSupport;
+PRODUCT_MODULE_NAME = WebCoreSwiftSupport;
+EXECUTABLE_PREFIX = lib;
+INSTALL_PATH = $(WK_LIBRARY_INSTALL_PATH);
+SKIP_INSTALL = YES;
+SWIFT_INSTALL_OBJC_HEADER = NO;
+SWIFT_LIBRARY_LEVEL = spi;
+
+OTHER_SWIFT_FLAGS = $(inherited) -Werror DeprecatedDeclaration -Werror SendableClosureCaptures;
+SWIFT_OBJC_INTEROP_MODE = objcxx;
+_SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP = YES;
+SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+SWIFT_ENABLE_COMPILE_CACHE = NO;
+SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+SWIFT_STRICT_CONCURRENCY = complete;

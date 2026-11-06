@@ -7762,6 +7762,7 @@
 		49C1635FCC3E3B7CC587E3D0 /* MediaParsersShellSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = AAAB94B92BC9B2EB0915B92B /* MediaParsersShellSupport.h */; };
 		775E7BAFBD32A53BA638B389 /* ClearKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F018E46D469610AC3EB99C13 /* ClearKey.swift */; };
 		2850C0A1CFA003BA772EB328 /* EMEJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AA0CA104B921C41005D089 /* EMEJSON.swift */; };
+		56759EF7876846CA9E8DBF9A /* InlineCodeUnits.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */; };
 		2864471973C91B99A8CA75F2 /* FairPlayJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4889F0AD39348BEE46025B8 /* FairPlayJSON.swift */; };
 /* End PBXBuildFile section */
 
@@ -7846,6 +7847,20 @@
 			proxyType = 1;
 			remoteGlobalIDString = 6BFD483C9DA6BD1DAA1A0702;
 			remoteInfo = WebCoreEME;
+		};
+		D14340713C7141E6A93C8F5D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D88C08B2320B4F72A5CB6C32;
+			remoteInfo = WebCoreSwiftSupport;
+		};
+		1036992B78C74D09B2F8D996 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D88C08B2320B4F72A5CB6C32;
+			remoteInfo = WebCoreSwiftSupport;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -24484,6 +24499,9 @@
 		C4889F0AD39348BEE46025B8 /* FairPlayJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairPlayJSON.swift; sourceTree = "<group>"; };
 		4F4A48944E9FAF0D83AF02E5 /* libWebCoreEME.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreEME.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		36C6603487B474AAF23D6DD1 /* WebCoreEME.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreEME.xcconfig; sourceTree = "<group>"; };
+		D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineCodeUnits.swift; sourceTree = "<group>"; };
+		94CDFAEFBEDE4ED5A8F0C190 /* libWebCoreSwiftSupport.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreSwiftSupport.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreSwiftSupport.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -24529,6 +24547,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7BCDFF38326D45F89E489E6B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -24549,6 +24574,7 @@
 			children = (
 				417DA6D013734E02007C57FB /* libWebCoreTestSupport.dylib */,
 				4F4A48944E9FAF0D83AF02E5 /* libWebCoreEME.a */,
+				94CDFAEFBEDE4ED5A8F0C190 /* libWebCoreSwiftSupport.a */,
 				93F19B1A08245E5A001E9ABC /* WebCore.framework */,
 			);
 			name = Products;
@@ -26901,6 +26927,7 @@
 				5355E8DD1F9680420031E08C /* GenerateUnifiedSources.xcconfig */,
 				1CDD45E50BA9C84600F90147 /* WebCore.xcconfig */,
 				36C6603487B474AAF23D6DD1 /* WebCoreEME.xcconfig */,
+				125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */,
 				4181707D1386EDF20057AAA4 /* WebCoreTestSupport.xcconfig */,
 			);
 			path = Configurations;
@@ -40042,6 +40069,7 @@
 				59C77F101054591C00506104 /* mock */,
 				656B84D70AEA1CE900A095B4 /* network */,
 				1A2E6E560CC551E0004A2062 /* sql */,
+				C45FCA9C91C041FD978295A2 /* swift */,
 				B2C3D9EC0D006C1D00EF6F26 /* text */,
 				41763D0B2ACAFA3600283035 /* video-codecs */,
 				E1EE8B6B2412B2A700E794D6 /* xr */,
@@ -44645,6 +44673,22 @@
 				DE738D2A6BEF14456A1FBD03 /* WTFCompatParsing.swift */,
 			);
 			path = "media-parsers";
+			sourceTree = "<group>";
+		};
+		C45FCA9C91C041FD978295A2 /* swift */ = {
+			isa = PBXGroup;
+			children = (
+				F62C4AD56F5C4317AA92C6C9 /* support */,
+			);
+			path = swift;
+			sourceTree = "<group>";
+		};
+		F62C4AD56F5C4317AA92C6C9 /* support */ = {
+			isa = PBXGroup;
+			children = (
+				D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */,
+			);
+			path = support;
 			sourceTree = "<group>";
 		};
 		882B18213B3E36BEA8C5BCB5 /* swift */ = {
@@ -51254,6 +51298,7 @@
 			);
 			dependencies = (
 				E44ACA1E9D6583760E8C5A30 /* PBXTargetDependency */,
+				75CFDC86318F426C9E7BB2F6 /* PBXTargetDependency */,
 				DD041FF109D9E3250010AF2A /* PBXTargetDependency */,
 				5355E8DB1F967ED30031E08C /* PBXTargetDependency */,
 				DD453DA32EC47E9B00C1D6A8 /* PBXTargetDependency */,
@@ -51275,10 +51320,27 @@
 			);
 			dependencies = (
 				EED96AAC0F43BF47B12933F6 /* PBXTargetDependency */,
+				2B3720ACEF724F2D81B99DC2 /* PBXTargetDependency */,
 			);
 			name = WebCoreEME;
 			productName = WebCoreEME;
 			productReference = 4F4A48944E9FAF0D83AF02E5 /* libWebCoreEME.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		D88C08B2320B4F72A5CB6C32 /* WebCoreSwiftSupport */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FB720E96E20445A6AD6207ED /* Build configuration list for PBXNativeTarget "WebCoreSwiftSupport" */;
+			buildPhases = (
+				CFD4752108B143D383EEA19D /* Sources */,
+				7BCDFF38326D45F89E489E6B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WebCoreSwiftSupport;
+			productName = WebCoreSwiftSupport;
+			productReference = 94CDFAEFBEDE4ED5A8F0C190 /* libWebCoreSwiftSupport.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
@@ -51328,6 +51390,7 @@
 				93F198A508245E59001E9ABC /* WebCore */,
 				5355E8D11F967E9D0031E08C /* Generate Unified Sources */,
 				6BFD483C9DA6BD1DAA1A0702 /* WebCoreEME */,
+				D88C08B2320B4F72A5CB6C32 /* WebCoreSwiftSupport */,
 				DD041FBE09D9DDBE0010AF2A /* Derived Sources */,
 				417DA6CF13734E02007C57FB /* WebCoreTestSupport */,
 				5325BDC621DFF33700A0DEE1 /* Apply Configuration to XCFileLists */,
@@ -52740,6 +52803,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CFD4752108B143D383EEA19D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				56759EF7876846CA9E8DBF9A /* InlineCodeUnits.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -52782,6 +52853,16 @@
 			isa = PBXTargetDependency;
 			target = 6BFD483C9DA6BD1DAA1A0702 /* WebCoreEME */;
 			targetProxy = E1C65FC675AE97C8DBB9CED4 /* PBXContainerItemProxy */;
+		};
+		2B3720ACEF724F2D81B99DC2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D88C08B2320B4F72A5CB6C32 /* WebCoreSwiftSupport */;
+			targetProxy = D14340713C7141E6A93C8F5D /* PBXContainerItemProxy */;
+		};
+		75CFDC86318F426C9E7BB2F6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D88C08B2320B4F72A5CB6C32 /* WebCoreSwiftSupport */;
+			targetProxy = 1036992B78C74D09B2F8D996 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -52995,6 +53076,27 @@
 			};
 			name = Production;
 		};
+		41A11A5CE2CB4D9CA8C4F2C9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		617314FE063A427B96B3AA06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		4DC21EC555CF4F7EAD84C311 /* Production */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */;
+			buildSettings = {
+			};
+			name = Production;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -53074,6 +53176,16 @@
 				4702E37D130D9EBCDFD013AD /* Debug */,
 				D87E59AB09F71D4F2F98120A /* Release */,
 				15EE10CB6EB43ED8E80010E5 /* Production */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Production;
+		};
+		FB720E96E20445A6AD6207ED /* Build configuration list for PBXNativeTarget "WebCoreSwiftSupport" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				41A11A5CE2CB4D9CA8C4F2C9 /* Debug */,
+				617314FE063A427B96B3AA06 /* Release */,
+				4DC21EC555CF4F7EAD84C311 /* Production */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Production;
