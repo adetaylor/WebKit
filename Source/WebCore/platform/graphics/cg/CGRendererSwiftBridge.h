@@ -30,6 +30,7 @@
 #include <CoreGraphics/CoreGraphics.h>
 #include <WebCore/PathSegment.h>
 #include <WebCore/PlatformExportMacros.h>
+#include <WebCore/RasterDrawingOptions.h>
 #include <WebCore/WindRule.h>
 #include <span>
 #include <stdint.h>
@@ -251,12 +252,40 @@ WEBCORE_EXPORT CGMutablePathRef _Nonnull CGRendererCreatePath(CGRendererPathSegm
 // would make first.
 WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyPlatformPath(const WebCore::PathImpl&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 
+// What the renderer's drawNativeImage() takes of an image draw's options, and whether the renderer draws the image at all: it
+// doesn't do the iOS family's pixel alignment of images yet, nor limit an image's dynamic range (tone mapping) or invert it
+// (AX), which GraphicsContextCG::drawNativeImage() draws in C++.
+struct CGRendererImageOptions {
+    WebCore::CompositeOperator compositeOperator;
+    WebCore::BlendMode blendMode;
+    WebCore::InterpolationQuality interpolationQuality;
+    uint8_t orientation;
+    float headroom;
+    bool rendererDraws;
+};
+WEBCORE_EXPORT CGRendererImageOptions CGRendererImageOptionsFor(WebCore::RasterDrawingOptions);
+
+// The image of a Swift receiver's image draw, as its C++ finds it: whether the identifier names an image (found), whether the
+// receiver leaves the draw to C++ (declines: an image buffer drawn into itself), the image's size and headroom, and for an
+// image buffer its resolution scale, which scales the source rect.
+struct CGRendererImageFacts {
+    float width;
+    float height;
+    float headroom;
+    float resolutionScale;
+    bool found;
+    bool declines;
+};
+
 // Testing only: a message of RemoteCGRenderer's and its arguments (GraphicsContextCG::applyReceiverMessageForTesting()).
 struct CGRendererReceiverTestMessage {
     uint8_t message; // GraphicsContextCG::ReceiverMessageForTesting.
     float values[6]; // A rect is x, y, width, height; a transform a, b, c, d, tx, ty; a line x1, y1, x2, y2.
     uint32_t integers[2]; // A packed colour, an enum's raw value, a Boolean.
-    CGRendererPathSegment segment; // A single-segment path's.
+    CGRendererPathSegment segment; // A single-segment path's; an image draw's destination and source or tile rects, then a
+                                   // pattern's transform a and d.
+    CGRendererImageFacts imageFacts; // An image draw's.
+    CGRendererImageOptions imageOptions;
 };
 
 // WebCore's process-wide CGColor for an sRGBA8 color (cachedCGColor()).

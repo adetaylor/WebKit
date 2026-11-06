@@ -390,13 +390,13 @@ void GraphicsContextCG::addSwiftRendererLender()
     ++m_swiftRendererLenders;
 }
 
-bool GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverTestMessage& message, const Path* path)
+bool GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverTestMessage& message, const Path* path, CGImageRef image)
 {
     RetainPtr<CGPathRef> platformPath = path ? path->platformPath() : nullptr;
     bool handled;
     {
         auto lend = lendSwiftRenderer(*this);
-        handled = lend.state().applyReceiverMessageForTesting(message, platformPath.get());
+        handled = lend.state().applyReceiverMessageForTesting(message, platformPath.get(), image);
     }
     if (handled)
         return true;
@@ -544,16 +544,10 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
     if (!image)
         return;
 
-// The renderer doesn't do the iOS family's pixel alignment of images yet: it can't be checked against the C++ here. Nor does it
-// limit an image's dynamic range (tone mapping) or invert it (AX); the C++ below draws those.
 #if HAVE(SUPPORT_HDR_DISPLAY_APIS) && !PLATFORM(IOS_FAMILY)
-    bool rendererDraws = !(options.dynamicRangeLimit() == PlatformDynamicRangeLimit::standard() && options.drawsHDRContent() == DrawsHDRContent::Yes);
-#if ENABLE(AX_CUSTOM_COLOR_MODE)
-    rendererDraws = rendererDraws && options.invertContent() == InvertContent::No;
-#endif
-    if (rendererDraws) {
+    if (auto rendererOptions = CGRendererImageOptionsFor(options); rendererOptions.rendererDraws) {
         FloatSize imageSize = nativeImage.size();
-        auto result = SWIFT_RENDERER(drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), nativeImage.headroom(), options.headroom()));
+        auto result = SWIFT_RENDERER(drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), rendererOptions.compositeOperator, rendererOptions.blendMode, rendererOptions.interpolationQuality, rendererOptions.orientation, nativeImage.headroom(), rendererOptions.headroom));
         if (result)
             return;
     }
@@ -749,6 +743,20 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
 }
 
 } // namespace WebCore
+
+CGRendererImageOptions CGRendererImageOptionsFor(WebCore::RasterDrawingOptions options)
+{
+    // The renderer's pixel alignment of images for the iOS family can't be checked against the C++ here.
+#if HAVE(SUPPORT_HDR_DISPLAY_APIS) && !PLATFORM(IOS_FAMILY)
+    bool rendererDraws = !(options.dynamicRangeLimit() == WebCore::PlatformDynamicRangeLimit::standard() && options.drawsHDRContent() == WebCore::DrawsHDRContent::Yes);
+#if ENABLE(AX_CUSTOM_COLOR_MODE)
+    rendererDraws = rendererDraws && options.invertContent() == WebCore::InvertContent::No;
+#endif
+#else
+    bool rendererDraws = false;
+#endif
+    return { options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), options.headroom(), rendererDraws };
+}
 
 CGImageRef CGRendererCopyImageBufferImage(WebCore::ImageBuffer& imageBuffer, float& headroom)
 {

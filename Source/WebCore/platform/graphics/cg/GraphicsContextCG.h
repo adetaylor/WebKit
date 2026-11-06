@@ -189,10 +189,12 @@ public:
         SetImageInterpolationQuality, SetShouldAntialias, SetShouldSmoothFonts, SetShouldSubpixelQuantizeFonts, SetLineCap,
         SetLineJoin, SetMiterLimit, Clip, ClipOut, ResetClip, DrawLine, FillRect, FillEllipse, StrokeRect, StrokeEllipse,
         ClearRect, ApplyStrokePattern, ApplyFillPattern, FillPathSegment, StrokePathSegment, DrawPathSegment, DrawRect,
-        StrokeLinesWithColorAndThickness, FillPath, StrokePath, DrawPath
+        StrokeLinesWithColorAndThickness, FillPath, StrokePath, DrawPath, DrawNativeImage, DrawPattern
     };
-    // The path is FillPath's, StrokePath's or DrawPath's.
-    WEBCORE_EXPORT bool applyReceiverMessageForTesting(const CGRendererReceiverTestMessage&, const Path* = nullptr) __attribute__((availability(swift, unavailable)));
+    // The path is FillPath's, StrokePath's or DrawPath's; the image DrawNativeImage's or DrawPattern's.
+    WEBCORE_EXPORT bool applyReceiverMessageForTesting(const CGRendererReceiverTestMessage&, const Path* = nullptr, CGImageRef = nullptr) __attribute__((availability(swift, unavailable)));
+    // The image of an image buffer that this draws (nativeImageForDrawing()), for a Swift receiver's draw of one.
+    RefPtr<NativeImage> nativeImageForSwiftReceiver(ImageBuffer& imageBuffer) __attribute__((availability(swift, unavailable))) { return nativeImageForDrawing(imageBuffer); }
     // Testing only: the renderer's saved levels, which include those only a Swift receiver saved.
     WEBCORE_EXPORT unsigned rendererSavedLevelCountForTesting() const __attribute__((availability(swift, unavailable)));
     void addSwiftRendererLender() __attribute__((availability(swift, unavailable)));

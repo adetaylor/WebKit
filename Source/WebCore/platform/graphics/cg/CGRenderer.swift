@@ -2950,6 +2950,80 @@ extension CGRendererCore {
         clip(context)
     }
 
+    // GraphicsContextCG::drawNativeImage() of the image a receiver found: false where the C++ draws it. An image buffer's image
+    // has its source rect scaled by the buffer's resolution scale, as GraphicsContext::drawImageBuffer() scales it.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawNativeImage(
+        _ image: CGImage,
+        _ facts: CGRendererImageFacts,
+        _ destination: CGRect,
+        _ source: CGRect,
+        _ options: CGRendererImageOptions
+    ) -> Bool {
+        guard options.rendererDraws else {
+            return false
+        }
+        let scale = facts.resolutionScale
+        return drawNativeImage(
+            image,
+            facts.width,
+            facts.height,
+            Float(destination.origin.x),
+            Float(destination.origin.y),
+            Float(destination.size.width),
+            Float(destination.size.height),
+            Float(source.origin.x) * scale,
+            Float(source.origin.y) * scale,
+            Float(source.size.width) * scale,
+            Float(source.size.height) * scale,
+            options.compositeOperator,
+            options.blendMode,
+            options.interpolationQuality,
+            options.orientation,
+            facts.headroom,
+            options.headroom
+        ) != 0
+    }
+
+    // GraphicsContextCG::drawPattern() of the image a receiver found, whose tile rect is scaled as receiveDrawNativeImage()'s
+    // source rect is.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawPattern(
+        _ image: CGImage,
+        _ facts: CGRendererImageFacts,
+        _ destination: CGRect,
+        _ tile: CGRect,
+        _ patternA: Double,
+        _ patternD: Double,
+        _ phase: CGPoint,
+        _ spacing: CGSize,
+        _ options: CGRendererImageOptions
+    ) {
+        let scale = facts.resolutionScale
+        drawPattern(
+            image,
+            facts.width,
+            facts.height,
+            Float(destination.origin.x),
+            Float(destination.origin.y),
+            Float(destination.size.width),
+            Float(destination.size.height),
+            Float(tile.origin.x) * scale,
+            Float(tile.origin.y) * scale,
+            Float(tile.size.width) * scale,
+            Float(tile.size.height) * scale,
+            patternA,
+            patternD,
+            Float(phase.x),
+            Float(phase.y),
+            Float(spacing.width),
+            Float(spacing.height),
+            options.compositeOperator,
+            options.blendMode,
+            options.interpolationQuality
+        )
+    }
+
     // RemoteGraphicsContext::strokeLinesWithColorAndThickness(): each line in its stroke color and thickness, which are set
     // only where they differ from the line before's.
     @_expose(!Cxx)
@@ -2989,7 +3063,7 @@ extension CGRendererCore {
     // Testing only: what RemoteCGRenderer's handler does for the message (GraphicsContextCG::applyReceiverMessageForTesting());
     // false where it declines it.
     @_expose(Cxx)
-    mutating func applyReceiverMessageForTesting(_ message: CGRendererReceiverTestMessage, _ path: CGPath?) -> Bool {
+    mutating func applyReceiverMessageForTesting(_ message: CGRendererReceiverTestMessage, _ path: CGPath?, _ image: CGImage?) -> Bool {
         let v = message.values
         let i = message.integers
         let rect = CGRect(x: CGFloat(v.0), y: CGFloat(v.1), width: CGFloat(v.2), height: CGFloat(v.3))
@@ -3057,6 +3131,28 @@ extension CGRendererCore {
                 return false
             }
             return receiveDrawPath { path }
+        case 41, 42:
+            // An image the caller found, as RemoteCGRenderer's image handlers find one; nil draws nothing.
+            guard let image else {
+                return true
+            }
+            let s = message.segment.values
+            let destination = CGRect(x: CGFloat(s.0), y: CGFloat(s.1), width: CGFloat(s.2), height: CGFloat(s.3))
+            let source = CGRect(x: CGFloat(s.4), y: CGFloat(s.5), width: CGFloat(s.6), height: CGFloat(s.7))
+            if message.message == 41 {
+                return receiveDrawNativeImage(image, message.imageFacts, destination, source, message.imageOptions)
+            }
+            receiveDrawPattern(
+                image,
+                message.imageFacts,
+                destination,
+                source,
+                Double(s.8),
+                Double(s.9),
+                CGPoint(x: CGFloat(v.0), y: CGFloat(v.1)),
+                CGSize(width: CGFloat(v.2), height: CGFloat(v.3)),
+                message.imageOptions
+            )
         default: break
         }
         return true
