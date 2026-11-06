@@ -155,11 +155,14 @@ public final class BufferImpl: GPUObjectReference {
     // containers these plain flags are read without a dynamic exclusivity check.
     private var drawIndexedCacheHasEntries = false
     private var hasSkippedValidationEncoders = false
+    private var hasPendingIndexWriteEncoders = false
     // The bind groups and render bundles that hold the buffer.
     private var bindGroupHolders = WeakImplList<BindGroupImpl>()
     private var renderBundleHolders = WeakImplList<RenderBundleImpl>()
     // The encoders that skipped validating a draw with this index buffer.
     private var skippedValidationEncoders = EncoderTracking()
+    // The encoders that recorded a write to the buffer that their command buffers have not committed yet.
+    private var pendingIndexWriteEncoders = EncoderTracking()
     // The command buffer this buffer was last cleared for, so that several failed validations sharing one command
     // buffer do not each capture a "prior" copy and queue a restore of it.
     private var clearedForCommandBuffer: ObjectIdentifier?
@@ -487,8 +490,8 @@ public final class BufferImpl: GPUObjectReference {
     }
 
     func canSkipDrawIndexedValidation(_ key: DrawIndexKey, vertexCount: UInt32) -> DrawIndexValidationEntry? {
-        guard let entry = drawIndexedCache.value(forKey: key), entry.indexContentsGeneration == backingIndexContentsGeneration,
-            entry.vertexCount <= vertexCount
+        guard !hasPendingRecordedIndexWrite(), let entry = drawIndexedCache.value(forKey: key),
+            entry.indexContentsGeneration == backingIndexContentsGeneration, entry.vertexCount <= vertexCount
         else {
             return nil
         }
@@ -496,6 +499,10 @@ public final class BufferImpl: GPUObjectReference {
     }
 
     func drawIndexedValidated(_ key: DrawIndexKey, vertexCount: UInt32, validationGeneration: UInt64) {
+        if hasPendingRecordedIndexWrite() {
+            return
+        }
+
         let maxCacheSize = 1_000_000
         if drawIndexedCache.count > maxCacheSize {
             clearDrawIndexedCache()
@@ -534,7 +541,26 @@ public final class BufferImpl: GPUObjectReference {
             return
         }
         indirectBufferInvalidated(nil)
+        _ = pendingIndexWriteEncoders.add(encoder)
+        hasPendingIndexWriteEncoders = true
         encoder.addCommitAction(.indirectBufferInvalidated(WeakBufferAndEncoder(buffer: self, encoder: encoder)))
+    }
+
+    /// The commit action indirectBufferInvalidated(by:) queued.
+    func indirectBufferInvalidatedAtCommit(by encoder: CommandEncoderImpl) {
+        pendingIndexWriteEncoders.remove(encoder)
+        hasPendingIndexWriteEncoders = !pendingIndexWriteEncoders.isEmpty
+        indirectBufferInvalidated(encoder)
+    }
+
+    /// Whether an encoder that is still alive recorded a write to the buffer that its command buffer has not committed.
+    private func hasPendingRecordedIndexWrite() -> Bool {
+        if !hasPendingIndexWriteEncoders {
+            return false
+        }
+        let liveCount = pendingIndexWriteEncoders.liveCount()
+        hasPendingIndexWriteEncoders = liveCount != 0
+        return liveCount != 0
     }
 
     func indirectBufferInvalidatedWithoutEncoder() {

@@ -3701,7 +3701,7 @@ public final class CommandEncoderImpl: GPUObjectReference {
             switch action {
             case .indirectBufferInvalidated(let pair):
                 if let buffer = pair.buffer, let encoder = pair.encoder {
-                    buffer.indirectBufferInvalidated(encoder)
+                    buffer.indirectBufferInvalidatedAtCommit(by: encoder)
                 }
             case .rebindBundleSamplers(let bundleImpl):
                 result = bundleImpl.rebindSamplersIfNeeded() && result
