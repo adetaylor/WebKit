@@ -28,7 +28,9 @@
 #include <CoreAudio/CoreAudioTypes.h>
 #include <cstdint>
 #include <span>
+#include <wtf/Assertions.h>
 #include <wtf/Compiler.h>
+#include <wtf/MainThread.h>
 #include <wtf/SequenceLocked.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/SwiftBridging.h>
@@ -89,6 +91,14 @@ static_assert(sizeof(CARingBufferTrackRenderResult) == 16);
 // spans.
 void mixFloatingPointSamples(std::span<uint8_t> destination NOESCAPE, size_t destinationOffset, std::span<const uint8_t> source NOESCAPE, size_t sourceOffset, size_t sampleCount, bool isDouble);
 
+#if !defined(__swift__)
+// C++ makes the views below only off the main thread (rdar://191664699).
+ALWAYS_INLINE void assertMakingAudioViewOffMainThread()
+{
+    ASSERT(!isMainThread());
+}
+#endif
+
 // A ring, for a fetch: its geometry, the bounds the C++ read from it and its channels.
 class SWIFT_NONCOPYABLE SWIFT_NONESCAPABLE SWIFT_SAFE CARingBufferReadView {
 public:
@@ -98,6 +108,7 @@ public:
         , m_storedBounds(storedBounds)
         , m_channels(channels)
     {
+        assertMakingAudioViewOffMainThread();
     }
 #endif
     CARingBufferReadView(const CARingBufferReadView&) = delete;
@@ -122,6 +133,7 @@ public:
         , m_bounds(&bounds)
         , m_channels(channels)
     {
+        assertMakingAudioViewOffMainThread();
     }
 #endif
     CARingBufferWriteView(const CARingBufferWriteView&) = delete;
@@ -144,6 +156,7 @@ public:
     explicit AudioBufferListView(::AudioBufferList* list)
         : m_list(list)
     {
+        assertMakingAudioViewOffMainThread();
     }
 #endif
     AudioBufferListView(const AudioBufferListView&) = delete;
@@ -170,6 +183,7 @@ public:
     explicit ConstAudioBufferListView(const ::AudioBufferList* list)
         : m_list(list)
     {
+        assertMakingAudioViewOffMainThread();
     }
 #endif
     ConstAudioBufferListView(const ConstAudioBufferListView&) = delete;
@@ -193,6 +207,7 @@ public:
     explicit FloatSamplesView(std::span<float> samples)
         : m_bytes(asWritableBytes(samples))
     {
+        assertMakingAudioViewOffMainThread();
     }
 #endif
     FloatSamplesView(const FloatSamplesView&) = delete;

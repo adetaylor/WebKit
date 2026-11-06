@@ -99,256 +99,278 @@ static CARingBuffer::TimeBounds makeBounds(uint64_t start, uint64_t end)
     return { start, end };
 }
 
+// WebKit makes the audio views only off the main thread.
+static void runOffMainThread(Function<void()>&& function)
+{
+    Thread::create("CARingBufferTest"_s, WTF::move(function))->waitForCompletion();
+}
+
 TEST_F(CARingBufferTest, Basics)
 {
-    const size_t capacity = 32;
+    runOffMainThread([&] {
+        const size_t capacity = 32;
 
-    setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
+        setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
 
-    auto fetchBounds = ringBuffer().getFetchTimeBounds();
-    EXPECT_EQ(fetchBounds, makeBounds(0, 0));
+        auto fetchBounds = ringBuffer().getFetchTimeBounds();
+        EXPECT_EQ(fetchBounds, makeBounds(0, 0));
 
-    std::array<float, capacity> sourceBuffer;
-    for (size_t i = 0; i < capacity; i++)
-        sourceBuffer[i] = i + 0.5;
+        std::array<float, capacity> sourceBuffer;
+        for (size_t i = 0; i < capacity; i++)
+            sourceBuffer[i] = i + 0.5;
 
-    setListDataBuffer(sourceBuffer);
+        setListDataBuffer(sourceBuffer);
 
-    // Fill the first half of the buffer ...
-    uint64_t sampleCount = capacity / 2;
-    CARingBuffer::Error err = ringBuffer().store(&bufferList(), sampleCount, 0);
-    EXPECT_EQ(err, CARingBuffer::Error::Ok);
+        // Fill the first half of the buffer ...
+        uint64_t sampleCount = capacity / 2;
+        CARingBuffer::Error err = ringBuffer().store(&bufferList(), sampleCount, 0);
+        EXPECT_EQ(err, CARingBuffer::Error::Ok);
 
-    fetchBounds = ringBuffer().getFetchTimeBounds();
-    EXPECT_EQ(fetchBounds, makeBounds(0, sampleCount));
+        fetchBounds = ringBuffer().getFetchTimeBounds();
+        EXPECT_EQ(fetchBounds, makeBounds(0, sampleCount));
 
-    std::array<float, capacity> scratchBuffer;
-    setListDataBuffer(scratchBuffer);
+        std::array<float, capacity> scratchBuffer;
+        setListDataBuffer(scratchBuffer);
 
-    ringBuffer().fetch(&bufferList(), sampleCount, 0);
-    EXPECT_TRUE(!memcmp(sourceBuffer.data(), scratchBuffer.data(), sampleCount * description().sampleWordSize()));
+        ringBuffer().fetch(&bufferList(), sampleCount, 0);
+        EXPECT_TRUE(!memcmp(sourceBuffer.data(), scratchBuffer.data(), sampleCount * description().sampleWordSize()));
 
-    // ... and the second half.
-    err = ringBuffer().store(&bufferList(), capacity / 2, capacity / 2);
-    EXPECT_EQ(err, CARingBuffer::Error::Ok);
+        // ... and the second half.
+        err = ringBuffer().store(&bufferList(), capacity / 2, capacity / 2);
+        EXPECT_EQ(err, CARingBuffer::Error::Ok);
 
-    fetchBounds = ringBuffer().getFetchTimeBounds();
-    EXPECT_EQ(fetchBounds, makeBounds(0, capacity));
+        fetchBounds = ringBuffer().getFetchTimeBounds();
+        EXPECT_EQ(fetchBounds, makeBounds(0, capacity));
 
-    zeroSpan(std::span { scratchBuffer }.first(sampleCount));
-    ringBuffer().fetch(&bufferList(), sampleCount, 0);
-    EXPECT_TRUE(!memcmp(sourceBuffer.data(), scratchBuffer.data(), sampleCount * description().sampleWordSize()));
+        zeroSpan(std::span { scratchBuffer }.first(sampleCount));
+        ringBuffer().fetch(&bufferList(), sampleCount, 0);
+        EXPECT_TRUE(!memcmp(sourceBuffer.data(), scratchBuffer.data(), sampleCount * description().sampleWordSize()));
 
-    // Force the buffer to wrap around
-    err = ringBuffer().store(&bufferList(), capacity, capacity - 1);
-    EXPECT_EQ(err, CARingBuffer::Error::Ok);
+        // Force the buffer to wrap around
+        err = ringBuffer().store(&bufferList(), capacity, capacity - 1);
+        EXPECT_EQ(err, CARingBuffer::Error::Ok);
 
-    fetchBounds = ringBuffer().getFetchTimeBounds();
-    EXPECT_EQ(fetchBounds, makeBounds(capacity - 1, capacity - 1 + capacity));
+        fetchBounds = ringBuffer().getFetchTimeBounds();
+        EXPECT_EQ(fetchBounds, makeBounds(capacity - 1, capacity - 1 + capacity));
 
-    // Make sure it returns an error when asked to store too much ...
-    err = ringBuffer().store(&bufferList(), capacity * 3, capacity / 2);
-    EXPECT_EQ(err, CARingBuffer::Error::TooMuch);
+        // Make sure it returns an error when asked to store too much ...
+        err = ringBuffer().store(&bufferList(), capacity * 3, capacity / 2);
+        EXPECT_EQ(err, CARingBuffer::Error::TooMuch);
 
-    // ... and doesn't modify the buffer
-    fetchBounds = ringBuffer().getFetchTimeBounds();
-    EXPECT_EQ(fetchBounds, makeBounds(capacity - 1, capacity - 1 + capacity));
+        // ... and doesn't modify the buffer
+        fetchBounds = ringBuffer().getFetchTimeBounds();
+        EXPECT_EQ(fetchBounds, makeBounds(capacity - 1, capacity - 1 + capacity));
+    });
 }
 
 TEST_F(CARingBufferTest, SmallBufferListForFetch)
 {
-    const int capacity = 32;
-    const int halfCapacity = capacity / 2;
-    setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
+    runOffMainThread([&] {
+        const int capacity = 32;
+        const int halfCapacity = capacity / 2;
+        setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
 
-    std::array<float, capacity> sourceBuffer;
-    for (int i = 0; i < capacity; i++)
-        sourceBuffer[i] = i + 0.5;
-    setListDataBuffer(sourceBuffer);
-    CARingBuffer::Error err = ringBuffer().store(&bufferList(), capacity, 0);
-    EXPECT_EQ(err, CARingBuffer::Error::Ok);
+        std::array<float, capacity> sourceBuffer;
+        for (int i = 0; i < capacity; i++)
+            sourceBuffer[i] = i + 0.5;
+        setListDataBuffer(sourceBuffer);
+        CARingBuffer::Error err = ringBuffer().store(&bufferList(), capacity, 0);
+        EXPECT_EQ(err, CARingBuffer::Error::Ok);
 
-    std::array<float, halfCapacity> destinationBuffer;
-    setListDataBuffer(destinationBuffer);
-    int bufferCount = bufferList().mNumberBuffers;
-    EXPECT_GE(bufferCount, 1);
-    size_t listDataByteSizeBeforeFetch = bufferList().mBuffers[0].mDataByteSize;
+        std::array<float, halfCapacity> destinationBuffer;
+        setListDataBuffer(destinationBuffer);
+        int bufferCount = bufferList().mNumberBuffers;
+        EXPECT_GE(bufferCount, 1);
+        size_t listDataByteSizeBeforeFetch = bufferList().mBuffers[0].mDataByteSize;
 
-    ringBuffer().fetch(&bufferList(), capacity, 0);
-    EXPECT_LE(bufferList().mBuffers[0].mDataByteSize, listDataByteSizeBeforeFetch);
+        ringBuffer().fetch(&bufferList(), capacity, 0);
+        EXPECT_LE(bufferList().mBuffers[0].mDataByteSize, listDataByteSizeBeforeFetch);
+    });
 }
 
 TEST_F(CARingBufferTest, StoreWithShortSourceKeepsUnwrittenFramesSilent)
 {
-    const size_t capacity = 1024;
-    const size_t storedFrames = 160;
-    const size_t writtenFrames = 154;
+    runOffMainThread([&] {
+        const size_t capacity = 1024;
+        const size_t storedFrames = 160;
+        const size_t writtenFrames = 154;
 
-    setup(16000, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
+        setup(16000, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
 
-    std::array<float, storedFrames> sourceBuffer;
-    for (size_t i = 0; i < storedFrames; i++)
-        sourceBuffer[i] = 0.25;
-    std::array<float, storedFrames> readBuffer;
+        std::array<float, storedFrames> sourceBuffer;
+        for (size_t i = 0; i < storedFrames; i++)
+            sourceBuffer[i] = 0.25;
+        std::array<float, storedFrames> readBuffer;
 
-    size_t notSilentFrames = 0;
-    for (int iteration = 0; iteration < 64; iteration++) {
-        {
-            Vector<Vector<uint8_t>> dirtyBuffers;
-            for (int i = 0; i < 16; i++) {
-                Vector<uint8_t> dirtyBuffer;
-                dirtyBuffer.grow(capacity * sizeof(float));
-                dirtyBuffer.fill(0xFF);
-                dirtyBuffers.append(WTF::move(dirtyBuffer));
+        size_t notSilentFrames = 0;
+        for (int iteration = 0; iteration < 64; iteration++) {
+            {
+                Vector<Vector<uint8_t>> dirtyBuffers;
+                for (int i = 0; i < 16; i++) {
+                    Vector<uint8_t> dirtyBuffer;
+                    dirtyBuffer.grow(capacity * sizeof(float));
+                    dirtyBuffer.fill(0xFF);
+                    dirtyBuffers.append(WTF::move(dirtyBuffer));
+                }
+            }
+
+            auto ringBuffer = InProcessCARingBuffer::allocate(description(), capacity);
+            ASSERT_TRUE(ringBuffer);
+
+            setListDataBuffer(sourceBuffer);
+            bufferList().mBuffers[0].mDataByteSize = writtenFrames * description().bytesPerFrame();
+            EXPECT_EQ(ringBuffer->store(&bufferList(), storedFrames, 0), CARingBuffer::Error::Ok);
+            EXPECT_EQ(ringBuffer->getFetchTimeBounds(), makeBounds(0, storedFrames));
+
+            readBuffer.fill(1);
+            setListDataBuffer(readBuffer);
+            ringBuffer->fetch(&bufferList(), storedFrames, 0);
+
+            for (size_t i = 0; i < writtenFrames; i++)
+                EXPECT_EQ(readBuffer[i], 0.25) << "Written frame differs at index " << i;
+            for (size_t i = writtenFrames; i < storedFrames; i++) {
+                if (readBuffer[i])
+                    notSilentFrames++;
             }
         }
-
-        auto ringBuffer = InProcessCARingBuffer::allocate(description(), capacity);
-        ASSERT_TRUE(ringBuffer);
-
-        setListDataBuffer(sourceBuffer);
-        bufferList().mBuffers[0].mDataByteSize = writtenFrames * description().bytesPerFrame();
-        EXPECT_EQ(ringBuffer->store(&bufferList(), storedFrames, 0), CARingBuffer::Error::Ok);
-        EXPECT_EQ(ringBuffer->getFetchTimeBounds(), makeBounds(0, storedFrames));
-
-        readBuffer.fill(1);
-        setListDataBuffer(readBuffer);
-        ringBuffer->fetch(&bufferList(), storedFrames, 0);
-
-        for (size_t i = 0; i < writtenFrames; i++)
-            EXPECT_EQ(readBuffer[i], 0.25) << "Written frame differs at index " << i;
-        for (size_t i = writtenFrames; i < storedFrames; i++) {
-            if (readBuffer[i])
-                notSilentFrames++;
-        }
-    }
-    EXPECT_EQ(notSilentFrames, 0u);
+        EXPECT_EQ(notSilentFrames, 0u);
+    });
 }
 
 TEST_F(CARingBufferTest, FetchTimeBoundsInMiddleCorrect)
 {
-    const size_t capacity = 32;
-    setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
-    std::array<float, capacity> sourceBuffer = { };
-    setListDataBuffer(sourceBuffer);
-    EXPECT_EQ(makeBounds(0u, 0u), ringBuffer().getFetchTimeBounds());
+    runOffMainThread([&] {
+        const size_t capacity = 32;
+        setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
+        std::array<float, capacity> sourceBuffer = { };
+        setListDataBuffer(sourceBuffer);
+        EXPECT_EQ(makeBounds(0u, 0u), ringBuffer().getFetchTimeBounds());
 
-    ringBuffer().store(&bufferList(), 32, 55);
-    EXPECT_EQ(makeBounds(55u, 55u + 32u), ringBuffer().getFetchTimeBounds());
+        ringBuffer().store(&bufferList(), 32, 55);
+        EXPECT_EQ(makeBounds(55u, 55u + 32u), ringBuffer().getFetchTimeBounds());
 
-    ringBuffer().store(&bufferList(), 5, 57);
-    EXPECT_EQ(makeBounds(55u, 57u + 5u), ringBuffer().getFetchTimeBounds());
+        ringBuffer().store(&bufferList(), 5, 57);
+        EXPECT_EQ(makeBounds(55u, 57u + 5u), ringBuffer().getFetchTimeBounds());
 
-    ringBuffer().store(&bufferList(), 32, 60);
-    EXPECT_EQ(makeBounds(60u, 60u + 32u), ringBuffer().getFetchTimeBounds());
+        ringBuffer().store(&bufferList(), 32, 60);
+        EXPECT_EQ(makeBounds(60u, 60u + 32u), ringBuffer().getFetchTimeBounds());
+    });
 }
 
 TEST_F(CARingBufferTest, FetchTimeBoundsInvalid)
 {
-    const size_t capacity = 32;
-    setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
-    std::array<float, capacity> sourceBuffer = { };
-    setListDataBuffer(sourceBuffer);
-    EXPECT_EQ(makeBounds(0u, 0u), ringBuffer().getFetchTimeBounds());
+    runOffMainThread([&] {
+        const size_t capacity = 32;
+        setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
+        std::array<float, capacity> sourceBuffer = { };
+        setListDataBuffer(sourceBuffer);
+        EXPECT_EQ(makeBounds(0u, 0u), ringBuffer().getFetchTimeBounds());
 
-    ringBuffer().store(&bufferList(), 8, 0);
-    EXPECT_EQ(makeBounds(0u, 8u), ringBuffer().getFetchTimeBounds());
+        ringBuffer().store(&bufferList(), 8, 0);
+        EXPECT_EQ(makeBounds(0u, 8u), ringBuffer().getFetchTimeBounds());
 
-    auto& boundsBuffer = ringBuffer().timeBoundsBufferForTesting();
-    boundsBuffer.store({ 1u, 3u });
-    EXPECT_EQ(makeBounds(1u, 3u), ringBuffer().getFetchTimeBounds());
+        auto& boundsBuffer = ringBuffer().timeBoundsBufferForTesting();
+        boundsBuffer.store({ 1u, 3u });
+        EXPECT_EQ(makeBounds(1u, 3u), ringBuffer().getFetchTimeBounds());
 
-    boundsBuffer.store({ 3u, 3u });
-    EXPECT_EQ(makeBounds(3u, 3u), ringBuffer().getFetchTimeBounds());
+        boundsBuffer.store({ 3u, 3u });
+        EXPECT_EQ(makeBounds(3u, 3u), ringBuffer().getFetchTimeBounds());
 
-    boundsBuffer.store({ 4u, 3u });
-    EXPECT_EQ(makeBounds(4u, 4u), ringBuffer().getFetchTimeBounds());
+        boundsBuffer.store({ 4u, 3u });
+        EXPECT_EQ(makeBounds(4u, 4u), ringBuffer().getFetchTimeBounds());
 
-    boundsBuffer.store({ 5u, 5u + 32u });
-    EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
+        boundsBuffer.store({ 5u, 5u + 32u });
+        EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
 
-    boundsBuffer.store({ 5u, 5u + 33u });
-    EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
+        boundsBuffer.store({ 5u, 5u + 33u });
+        EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
 
-    boundsBuffer.store({ 5u, 5u + 34u });
-    EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
+        boundsBuffer.store({ 5u, 5u + 34u });
+        EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
 
-    boundsBuffer.store({ 5u, std::numeric_limits<uint64_t>::max() - 1u });
-    EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
+        boundsBuffer.store({ 5u, std::numeric_limits<uint64_t>::max() - 1u });
+        EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
 
-    boundsBuffer.store({ std::numeric_limits<uint64_t>::max() - 1u, std::numeric_limits<uint64_t>::max() });
-    EXPECT_EQ(makeBounds(std::numeric_limits<uint64_t>::max() - 32u, std::numeric_limits<uint64_t>::max()), ringBuffer().getFetchTimeBounds());
+        boundsBuffer.store({ std::numeric_limits<uint64_t>::max() - 1u, std::numeric_limits<uint64_t>::max() });
+        EXPECT_EQ(makeBounds(std::numeric_limits<uint64_t>::max() - 32u, std::numeric_limits<uint64_t>::max()), ringBuffer().getFetchTimeBounds());
+    });
 }
 
 TEST_F(CARingBufferTest, StoreOfFewerBytesThanFramesLeavesTheRestSilent)
 {
-    const size_t capacity = 32;
-    setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
-    std::array<float, capacity> sourceBuffer;
-    sourceBuffer.fill(1);
-    setListDataBuffer(sourceBuffer);
-    EXPECT_EQ(ringBuffer().store(&bufferList(), capacity, 0), CARingBuffer::Ok);
+    runOffMainThread([&] {
+        const size_t capacity = 32;
+        setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
+        std::array<float, capacity> sourceBuffer;
+        sourceBuffer.fill(1);
+        setListDataBuffer(sourceBuffer);
+        EXPECT_EQ(ringBuffer().store(&bufferList(), capacity, 0), CARingBuffer::Ok);
 
-    // 8 frames from a buffer that holds 4, over frames the ring held before.
-    sourceBuffer.fill(2);
-    bufferList().mBuffers[0].mDataByteSize = 4 * sizeof(float);
-    EXPECT_EQ(ringBuffer().store(&bufferList(), 8, capacity), CARingBuffer::Ok);
+        // 8 frames from a buffer that holds 4, over frames the ring held before.
+        sourceBuffer.fill(2);
+        bufferList().mBuffers[0].mDataByteSize = 4 * sizeof(float);
+        EXPECT_EQ(ringBuffer().store(&bufferList(), 8, capacity), CARingBuffer::Ok);
 
-    std::array<float, 8> destinationBuffer;
-    destinationBuffer.fill(-1);
-    setListDataBuffer(destinationBuffer);
-    EXPECT_TRUE(ringBuffer().fetchIfHasEnoughData(&bufferList(), 8, capacity));
-    for (size_t i = 0; i < 4; ++i)
-        EXPECT_EQ(destinationBuffer[i], 2) << "at frame " << i;
-    for (size_t i = 4; i < 8; ++i)
-        EXPECT_EQ(destinationBuffer[i], 0) << "at frame " << i;
+        std::array<float, 8> destinationBuffer;
+        destinationBuffer.fill(-1);
+        setListDataBuffer(destinationBuffer);
+        EXPECT_TRUE(ringBuffer().fetchIfHasEnoughData(&bufferList(), 8, capacity));
+        for (size_t i = 0; i < 4; ++i)
+            EXPECT_EQ(destinationBuffer[i], 2) << "at frame " << i;
+        for (size_t i = 4; i < 8; ++i)
+            EXPECT_EQ(destinationBuffer[i], 0) << "at frame " << i;
+    });
 }
 
 TEST_F(CARingBufferTest, StoreCopiesAsMuchOfEachBufferAsItHolds)
 {
-    const size_t capacity = 32;
-    setup(44100, 2, CAAudioStreamDescription::PCMFormat::Float32, false, capacity);
-    std::array<float, 2 * capacity> samples;
-    samples.fill(1);
-    auto& list = bufferList();
-    list.mNumberBuffers = 2;
-    list.mBuffers[0] = { 1, capacity * sizeof(float), samples.data() };
-    list.mBuffers[1] = { 1, 4 * sizeof(float), samples.data() + capacity };
-    EXPECT_EQ(ringBuffer().store(&list, 8, 0), CARingBuffer::Ok);
+    runOffMainThread([&] {
+        const size_t capacity = 32;
+        setup(44100, 2, CAAudioStreamDescription::PCMFormat::Float32, false, capacity);
+        std::array<float, 2 * capacity> samples;
+        samples.fill(1);
+        auto& list = bufferList();
+        list.mNumberBuffers = 2;
+        list.mBuffers[0] = { 1, capacity * sizeof(float), samples.data() };
+        list.mBuffers[1] = { 1, 4 * sizeof(float), samples.data() + capacity };
+        EXPECT_EQ(ringBuffer().store(&list, 8, 0), CARingBuffer::Ok);
 
-    samples.fill(-1);
-    list.mBuffers[0].mDataByteSize = 8 * sizeof(float);
-    list.mBuffers[1].mDataByteSize = 8 * sizeof(float);
-    EXPECT_TRUE(ringBuffer().fetchIfHasEnoughData(&list, 8, 0));
-    for (size_t i = 0; i < 8; ++i)
-        EXPECT_EQ(samples[i], 1) << "at frame " << i;
-    for (size_t i = 0; i < 4; ++i)
-        EXPECT_EQ(samples[capacity + i], 1) << "at frame " << i;
-    for (size_t i = 4; i < 8; ++i)
-        EXPECT_EQ(samples[capacity + i], 0) << "at frame " << i;
+        samples.fill(-1);
+        list.mBuffers[0].mDataByteSize = 8 * sizeof(float);
+        list.mBuffers[1].mDataByteSize = 8 * sizeof(float);
+        EXPECT_TRUE(ringBuffer().fetchIfHasEnoughData(&list, 8, 0));
+        for (size_t i = 0; i < 8; ++i)
+            EXPECT_EQ(samples[i], 1) << "at frame " << i;
+        for (size_t i = 0; i < 4; ++i)
+            EXPECT_EQ(samples[capacity + i], 1) << "at frame " << i;
+        for (size_t i = 4; i < 8; ++i)
+            EXPECT_EQ(samples[capacity + i], 0) << "at frame " << i;
+    });
 }
 
 TEST_F(CARingBufferTest, FetchSilencesTheFramesTheRingDoesNotHoldInEveryBuffer)
 {
-    const size_t capacity = 32;
-    setup(44100, 2, CAAudioStreamDescription::PCMFormat::Float32, false, capacity);
-    std::array<float, 2 * capacity> samples;
-    samples.fill(1);
-    auto& list = bufferList();
-    list.mNumberBuffers = 2;
-    list.mBuffers[0] = { 1, capacity * sizeof(float), samples.data() };
-    list.mBuffers[1] = { 1, capacity * sizeof(float), samples.data() + capacity };
-    EXPECT_EQ(ringBuffer().store(&list, 10, 0), CARingBuffer::Ok);
+    runOffMainThread([&] {
+        const size_t capacity = 32;
+        setup(44100, 2, CAAudioStreamDescription::PCMFormat::Float32, false, capacity);
+        std::array<float, 2 * capacity> samples;
+        samples.fill(1);
+        auto& list = bufferList();
+        list.mNumberBuffers = 2;
+        list.mBuffers[0] = { 1, capacity * sizeof(float), samples.data() };
+        list.mBuffers[1] = { 1, capacity * sizeof(float), samples.data() + capacity };
+        EXPECT_EQ(ringBuffer().store(&list, 10, 0), CARingBuffer::Ok);
 
-    // Frames [0, 20), into a first buffer that ends before the frames the ring doesn't hold.
-    samples.fill(-1);
-    list.mBuffers[0].mDataByteSize = 4 * sizeof(float);
-    list.mBuffers[1].mDataByteSize = 20 * sizeof(float);
-    ringBuffer().fetch(&list, 20, 0);
-    for (size_t i = 0; i < 10; ++i)
-        EXPECT_EQ(samples[capacity + i], 1) << "at frame " << i;
-    for (size_t i = 10; i < 20; ++i)
-        EXPECT_EQ(samples[capacity + i], 0) << "at frame " << i;
+        // Frames [0, 20), into a first buffer that ends before the frames the ring doesn't hold.
+        samples.fill(-1);
+        list.mBuffers[0].mDataByteSize = 4 * sizeof(float);
+        list.mBuffers[1].mDataByteSize = 20 * sizeof(float);
+        ringBuffer().fetch(&list, 20, 0);
+        for (size_t i = 0; i < 10; ++i)
+            EXPECT_EQ(samples[capacity + i], 1) << "at frame " << i;
+        for (size_t i = 10; i < 20; ++i)
+            EXPECT_EQ(samples[capacity + i], 0) << "at frame " << i;
+    });
 }
 
 // FIXME when rdar://151622059 is resolved.
@@ -358,35 +380,37 @@ TEST_F(CARingBufferTest, DISABLED_FetchTimeBoundsConsistent)
 TEST_F(CARingBufferTest, FetchTimeBoundsConsistent)
 #endif
 {
-    const size_t capacity = 32;
-    setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
-    std::array<float, capacity> sourceBuffer = { };
-    setListDataBuffer(sourceBuffer);
+    runOffMainThread([&] {
+        const size_t capacity = 32;
+        setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
+        std::array<float, capacity> sourceBuffer = { };
+        setListDataBuffer(sourceBuffer);
 
-    std::atomic<bool> done = false;
-    auto thread = Thread::create("FetchTimeBoundsConsistent test"_s, [&] {
-        uint64_t i = 0;
-        while (!done) {
-            ringBuffer().store(&bufferList(), 1, i);
-            i += 1;
-        }
-    }, ThreadType::Audio, Thread::QOS::UserInteractive);
-    auto threadCleanup = makeScopeExit([&] {
-        thread->waitForCompletion();
-    });
-    CARingBuffer::TimeBounds maxBounds { };
+        std::atomic<bool> done = false;
+        auto thread = Thread::create("FetchTimeBoundsConsistent test"_s, [&] {
+            uint64_t i = 0;
+            while (!done) {
+                ringBuffer().store(&bufferList(), 1, i);
+                i += 1;
+            }
+        }, ThreadType::Audio, Thread::QOS::UserInteractive);
+        auto threadCleanup = makeScopeExit([&] {
+            thread->waitForCompletion();
+        });
+        CARingBuffer::TimeBounds maxBounds { };
 #if !defined(NDEBUG)
-    for (int i = 0; i < 100000; ++i) {
+        for (int i = 0; i < 100000; ++i) {
 #else
-    for (int i = 0; i < 10000000; ++i) {
+        for (int i = 0; i < 10000000; ++i) {
 #endif
-        auto fetchBounds = ringBuffer().getFetchTimeBounds();
-        EXPECT_LE(fetchBounds.startFrame, fetchBounds.endFrame);
-        EXPECT_LE(maxBounds.startFrame, fetchBounds.startFrame);
-        EXPECT_LE(maxBounds.endFrame, fetchBounds.endFrame);
-        maxBounds = fetchBounds;
-    }
-    done = true;
+            auto fetchBounds = ringBuffer().getFetchTimeBounds();
+            EXPECT_LE(fetchBounds.startFrame, fetchBounds.endFrame);
+            EXPECT_LE(maxBounds.startFrame, fetchBounds.startFrame);
+            EXPECT_LE(maxBounds.endFrame, fetchBounds.endFrame);
+            maxBounds = fetchBounds;
+        }
+        done = true;
+    });
 }
 
 template <typename type>
@@ -459,22 +483,30 @@ public:
 
 TEST_F(CARingBufferTest, FloatMixing)
 {
-    MixingTest<float>::run(*this);
+    runOffMainThread([&] {
+        MixingTest<float>::run(*this);
+    });
 }
 
 TEST_F(CARingBufferTest, DoubleMixing)
 {
-    MixingTest<double>::run(*this);
+    runOffMainThread([&] {
+        MixingTest<double>::run(*this);
+    });
 }
 
 TEST_F(CARingBufferTest, Int32Mixing)
 {
-    MixingTest<int32_t>::run(*this);
+    runOffMainThread([&] {
+        MixingTest<int32_t>::run(*this);
+    });
 }
 
 TEST_F(CARingBufferTest, Int16Mixing)
 {
-    MixingTest<int16_t>::run(*this);
+    runOffMainThread([&] {
+        MixingTest<int16_t>::run(*this);
+    });
 }
 
 }
