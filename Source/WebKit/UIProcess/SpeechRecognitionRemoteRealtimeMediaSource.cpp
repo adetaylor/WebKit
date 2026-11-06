@@ -50,6 +50,9 @@ SpeechRecognitionRemoteRealtimeMediaSource::SpeechRecognitionRemoteRealtimeMedia
     , m_identifier(identifier)
     , m_clientIdentifier(clientIdentifier)
     , m_manager(manager)
+#if PLATFORM(COCOA)
+    , m_queue(WorkQueue::create("SpeechRecognitionRemoteRealtimeMediaSource"_s))
+#endif
 {
     manager.addSource(*this, captureDevice);
 }
@@ -76,12 +79,27 @@ void SpeechRecognitionRemoteRealtimeMediaSource::stopProducingData()
 
 void SpeechRecognitionRemoteRealtimeMediaSource::setStorage(ConsumerSharedCARingBuffer::Handle&& handle, const WebCore::CAAudioStreamDescription& description)
 {
-    m_buffer = nullptr;
-    m_ringBuffer = ConsumerSharedCARingBuffer::map(description, WTF::move(handle));
-    if (!m_ringBuffer)
+    auto ringBuffer = ConsumerSharedCARingBuffer::map(description, WTF::move(handle));
+    m_frameCount = ringBuffer ? std::optional { ringBuffer->frameCount() } : std::nullopt;
+    m_queue->dispatch([protectedThis = Ref { *this }, ringBuffer = WTF::move(ringBuffer), description] mutable {
+        protectedThis->m_buffer = nullptr;
+        protectedThis->m_ringBuffer = WTF::move(ringBuffer);
+        if (!protectedThis->m_ringBuffer)
+            return;
+        protectedThis->m_description = description;
+        protectedThis->m_buffer = makeUnique<WebCore::WebAudioBufferList>(description);
+    });
+}
+
+void SpeechRecognitionRemoteRealtimeMediaSource::fetchAndDeliverSamples(MediaTime time, uint64_t numberOfFrames)
+{
+    assertIsCurrent(m_queue.get());
+    if (!m_buffer)
         return;
-    m_description = description;
-    m_buffer = makeUnique<WebCore::WebAudioBufferList>(description);
+
+    m_buffer->setSampleCount(numberOfFrames);
+    m_ringBuffer->fetch(m_buffer->list(), numberOfFrames, time.timeValue());
+    audioSamplesAvailable(time, *m_buffer, *m_description, numberOfFrames);
 }
 
 #endif
@@ -89,24 +107,25 @@ void SpeechRecognitionRemoteRealtimeMediaSource::setStorage(ConsumerSharedCARing
 std::optional<uint32_t> SpeechRecognitionRemoteRealtimeMediaSource::audioBufferFrameCount() const
 {
 #if PLATFORM(COCOA)
-    if (m_ringBuffer)
-        return m_ringBuffer->frameCount();
-#endif
+    return m_frameCount;
+#else
     return std::nullopt;
+#endif
 }
 
 void SpeechRecognitionRemoteRealtimeMediaSource::remoteAudioSamplesAvailable(MediaTime time, uint64_t numberOfFrames)
 {
 #if PLATFORM(COCOA)
-    if (!m_buffer) {
+    if (!m_frameCount) {
         LOG_ERROR("Buffer for remote source is null");
         captureFailed();
         return;
     }
 
-    m_buffer->setSampleCount(numberOfFrames);
-    m_ringBuffer->fetch(m_buffer->list(), numberOfFrames, time.timeValue());
-    audioSamplesAvailable(time, *m_buffer, *m_description, numberOfFrames);
+    // Fetched off the main thread; SpeechRecognitionCaptureSourceImpl hands the main thread a copy.
+    m_queue->dispatch([protectedThis = Ref { *this }, time, numberOfFrames] {
+        protectedThis->fetchAndDeliverSamples(time, numberOfFrames);
+    });
 #else
     UNUSED_PARAM(time);
     UNUSED_PARAM(numberOfFrames);
