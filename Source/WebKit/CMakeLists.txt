@@ -998,26 +998,11 @@ endif ()
 if (SWIFT_REQUIRED)
     set(WebKit_SWIFT_INTEROP_SOURCES
         Shared/IPCTester.cpp
-        UIProcess/ProvisionalPageProxy.cpp
-        UIProcess/RemotePageProxy.cpp
-        UIProcess/WebBackForwardList.cpp
-        UIProcess/WebPageProxy.cpp
-        UIProcess/Automation/WebAutomationSession.cpp
         WebProcess/WebPage/IPCTestingAPI.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebBackForwardListMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
     )
-    if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
-        list(APPEND WebKit_SWIFT_INTEROP_SOURCES UIProcess/ViewGestureController.cpp)
-    endif ()
     if (APPLE)
         list(APPEND WebKit_SWIFT_INTEROP_SOURCES
-            UIProcess/API/ios/WKWebViewIOS.mm
-            UIProcess/API/mac/WKWebViewMac.mm
-            UIProcess/ios/ViewGestureControllerIOS.mm
-            UIProcess/mac/ViewGestureControllerMac.mm
-            UIProcess/mac/WebViewImpl.mm
-
             UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
         )
     endif ()
@@ -1040,6 +1025,10 @@ if (SWIFT_REQUIRED)
     # One batch per core repeats that work for each core and competes with the
     # C++ compiles for memory, so use fewer, larger batches.
     webkit_target_add_swift_options(WebKit "-driver-batch-count 4")
+    if (ENABLE_BACK_FORWARD_LIST_SWIFT)
+        # WebBackForwardList.swift implements C++ member functions with @cxx @implementation.
+        webkit_target_add_swift_options(WebKit "-enable-experimental-feature CxxImplementation")
+    endif ()
 endif ()
 
 if (WebKit_PUBLIC_FRAMEWORK_HEADERS)
@@ -1555,11 +1544,7 @@ list(APPEND WebKit_SOURCES
 )
 
 if (ENABLE_BACK_FORWARD_LIST_SWIFT)
-    set_source_files_properties(
-        ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
-        PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
-        ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
         ${WEBKIT_DIR}/Platform/Logging.swift
         ${WEBKIT_DIR}/Shared/API/APIArray.swift
         ${WEBKIT_DIR}/UIProcess/WebBackForwardList.swift

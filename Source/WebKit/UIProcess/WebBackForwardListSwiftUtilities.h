@@ -27,21 +27,27 @@
 
 #include "BrowsingContextGroup.h"
 #include "Logging.h"
+#include "SessionState.h"
 #include "WebBackForwardListFrameItem.h"
 #include "WebBackForwardListItem.h"
-#include "WebBackForwardListMessages.h"
 #include "WebFrameProxy.h"
 #include "WebProcessProxy.h"
 #include <cstdint>
 #include <wtf/Function.h>
 #include <wtf/Markable.h>
-#include <wtf/RefCountable.h>
 #include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/Vector.h>
 #include <wtf/WeakPtr.h>
 
 #if ENABLE(BACK_FORWARD_LIST_SWIFT)
+
+// Swift can't name a template specialization.
+namespace WebKit {
+using RefFrameState = Ref<FrameState>;
+using RefPtrFrameState = RefPtr<FrameState>;
+using VectorRefFrameState = Vector<Ref<FrameState>>;
+}
 
 // Workaround for rdar://162358154
 using SpanConstChar = std::span<const char>;
@@ -67,8 +73,6 @@ inline WebKit::WebFrameProxy* webFrameForFrameID(WebCore::FrameIdentifier frameI
 {
     return WebKit::WebFrameProxy::webFrame(frameID);
 }
-
-using WebBackForwardListItemFilter = WTF::RefCountable<WTF::Function<bool (WebKit::WebBackForwardListItem&)>>;
 
 // Workaround for rdar://168057355
 inline WebKit::FrameState* getFrameState(WebKit::WebBackForwardListFrameItem& item)

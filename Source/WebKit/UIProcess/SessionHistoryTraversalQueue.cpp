@@ -42,7 +42,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(SessionHistoryTraversalQueue);
 
 // A web process can name a frame's entry only by its frame item identifier: the UI process files the first entry of a
 // cross-process iframe under its parent's back/forward item, whose identifier the iframe's process never learns.
-static RefPtr<WebBackForwardListFrameItem> frameItemInBackForwardList(WebBackForwardListWrapper& backForwardList, WebCore::BackForwardFrameItemIdentifier frameItemID)
+static RefPtr<WebBackForwardListFrameItem> frameItemInBackForwardList(WebBackForwardList& backForwardList, WebCore::BackForwardFrameItemIdentifier frameItemID)
 {
     for (int32_t direction : { -1, 1 }) {
         for (int32_t delta = direction < 0 ? 0 : 1; RefPtr item = backForwardList.itemAtDeltaFromCurrentIndex(delta, AllowSkippingBackForwardItems::No); delta += direction) {
@@ -56,7 +56,7 @@ static RefPtr<WebBackForwardListFrameItem> frameItemInBackForwardList(WebBackFor
 // A frame's session history entry is part of every back/forward item made while it was current. Like the
 // disambiguate-* WPTs expect, a traversal to it goes to the nearest of those items, and to none when the item at
 // baseDelta holds it.
-static std::optional<int32_t> deltaToNearestItemContaining(WebBackForwardListWrapper& backForwardList, WebCore::BackForwardFrameItemIdentifier frameItemID, int32_t baseDelta)
+static std::optional<int32_t> deltaToNearestItemContaining(WebBackForwardList& backForwardList, WebCore::BackForwardFrameItemIdentifier frameItemID, int32_t baseDelta)
 {
     RefPtr frameItem = frameItemInBackForwardList(backForwardList, frameItemID);
     if (!frameItem)
@@ -72,7 +72,7 @@ static std::optional<int32_t> deltaToNearestItemContaining(WebBackForwardListWra
     return std::nullopt;
 }
 
-static std::optional<int32_t> deltaToItem(WebBackForwardListWrapper& backForwardList, WebBackForwardListItem& targetItem)
+static std::optional<int32_t> deltaToItem(WebBackForwardList& backForwardList, WebBackForwardListItem& targetItem)
 {
     for (int32_t direction : { -1, 1 }) {
         for (int32_t delta = direction < 0 ? 0 : 1; RefPtr item = backForwardList.itemAtDeltaFromCurrentIndex(delta, AllowSkippingBackForwardItems::No); delta += direction) {
@@ -163,7 +163,7 @@ void SessionHistoryTraversalQueue::scheduleFlush()
 void SessionHistoryTraversalQueue::flush()
 {
     Ref pageProxy = m_pageProxy;
-    Ref backForwardList = pageProxy->backForwardListWrapper();
+    Ref backForwardList = pageProxy->backForwardList();
     while (!m_pendingTraversals.isEmpty()) {
         int32_t baseDelta = 0;
         RefPtr<WebBackForwardListItem> committedItem;

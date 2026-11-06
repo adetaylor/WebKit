@@ -32,7 +32,7 @@
 #import <wtf/AlignedStorage.h>
 
 @implementation WKBackForwardList {
-    AlignedStorage<WebKit::WebBackForwardListWrapper> _list;
+    AlignedStorage<WebKit::WebBackForwardList> _list;
 }
 
 WK_OBJECT_DISABLE_DISABLE_KVC_IVAR_ACCESS;
@@ -42,11 +42,7 @@ WK_OBJECT_DISABLE_DISABLE_KVC_IVAR_ACCESS;
     if (WebCoreObjCScheduleDeallocateOnMainRunLoop(WKBackForwardList.class, self))
         return;
 
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-    protect(*_list)->~WebBackForwardListWrapper();
-#else
     protect(*_list)->~WebBackForwardList();
-#endif
 
     [super dealloc];
 }

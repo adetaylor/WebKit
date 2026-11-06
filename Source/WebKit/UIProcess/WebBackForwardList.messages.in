@@ -23,8 +23,7 @@
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
-    DispatchedTo=UI,
-    SwiftReceiverBuildEnabledBy=BACK_FORWARD_LIST_SWIFT
+    DispatchedTo=UI
 ]
 messages -> WebBackForwardList {
     BackForwardAddItem(Ref<WebKit::FrameState> navigatedFrameState)

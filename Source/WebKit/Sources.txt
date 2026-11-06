@@ -568,7 +568,7 @@ UIProcess/Automation/BidiStorageAgent.cpp @no-unify-when(bundle<=8)
 UIProcess/Automation/BidiUserContext.cpp @no-unify-when(bundle<=8)
 UIProcess/Automation/InspectorPassthroughChannel.cpp @no-unify-when(bundle<=8)
 UIProcess/Automation/SimulatedInputDispatcher.cpp @no-unify-when(bundle<=8)
-UIProcess/Automation/WebAutomationSession.cpp @no-unify-when(bundle<=8) @cost:8
+UIProcess/Automation/WebAutomationSession.cpp @no-unify
 UIProcess/Automation/WebDriverBidiProcessor.cpp @no-unify-when(bundle<=8)
 
 UIProcess/Downloads/DownloadProxy.cpp

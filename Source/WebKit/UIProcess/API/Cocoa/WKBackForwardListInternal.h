@@ -30,7 +30,7 @@
 
 namespace WebKit {
 
-template<> struct WrapperTraits<WebBackForwardListWrapper> {
+template<> struct WrapperTraits<WebBackForwardList> {
     using WrapperClass = WKBackForwardList;
 };
 

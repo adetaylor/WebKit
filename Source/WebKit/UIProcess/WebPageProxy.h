@@ -55,10 +55,6 @@
 #include "DisplayLinkObserverID.h"
 #endif
 
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-#include "WebBackForwardList.h"
-#include "WebBackForwardListMessages.h"
-#endif
 
 #if PLATFORM(GTK) || PLATFORM(WPE)
 #include "InputMethodState.h"
@@ -597,12 +593,7 @@ class VisitedLinkStore;
 class WebAuthenticatorCoordinatorProxy;
 class WebAutomationSession;
 class WebBackForwardCache;
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-class WebBackForwardListWrapper;
-#else
 class WebBackForwardList;
-using WebBackForwardListWrapper = WebBackForwardList;
-#endif
 class WebBackForwardListFrameItem;
 class WebBackForwardListItem;
 class WebBackForwardList;
@@ -878,14 +869,7 @@ public:
     RemoteScrollingCoordinatorProxy* scrollingCoordinatorProxy() const { return m_scrollingCoordinatorProxy.get(); }
 #endif
 
-    WebBackForwardListWrapper& backForwardListWrapper() { return m_backForwardList; }
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-    WebBackForwardList& backForwardList() const { return m_backForwardList->getImpl(); }
-    WebBackForwardListMessageForwarder& backForwardListMessageReceiver() const;
-#else
     WebBackForwardList& backForwardList() const { return m_backForwardList; }
-    WebBackForwardList& backForwardListMessageReceiver() const { return m_backForwardList; }
-#endif
 
     bool addsVisitedLinks() const { return m_addsVisitedLinks; }
     void setAddsVisitedLinks(bool addsVisitedLinks) { m_addsVisitedLinks = addsVisitedLinks; }
@@ -4228,7 +4212,7 @@ private:
 
     bool m_initialCapitalizationEnabled { false };
     std::optional<double> m_cpuLimit;
-    const Ref<WebBackForwardListWrapper> m_backForwardList;
+    const Ref<WebBackForwardList> m_backForwardList;
 
     bool m_maintainsInactiveSelection { false };
 

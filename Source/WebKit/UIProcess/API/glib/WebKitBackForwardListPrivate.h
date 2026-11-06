@@ -28,7 +28,7 @@
 #include "WebBackForwardList.h"
 #include "WebKitBackForwardList.h"
 
-WebKitBackForwardList* webkitBackForwardListCreate(WebKit::WebBackForwardListWrapper*);
+WebKitBackForwardList* webkitBackForwardListCreate(WebKit::WebBackForwardList*);
 WebKitBackForwardListItem* webkitBackForwardListItemGetOrCreate(WebKit::WebBackForwardListItem*);
 WebKit::WebBackForwardListItem* webkitBackForwardListItemGetItem(WebKitBackForwardListItem*);
 void webkitBackForwardListChanged(WebKitBackForwardList*, WebKit::WebBackForwardListItem* webAddedItem, const Vector<Ref<WebKit::WebBackForwardListItem>>&);
