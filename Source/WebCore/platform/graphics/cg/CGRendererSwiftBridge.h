@@ -28,6 +28,7 @@
 // The values GraphicsContextCG passes to CGRenderer.swift.
 
 #include <CoreGraphics/CoreGraphics.h>
+#include <WebCore/PathSegment.h>
 #include <WebCore/PlatformExportMacros.h>
 #include <span>
 #include <stdint.h>
@@ -217,11 +218,35 @@ struct CGRendererStateSnapshot {
     uint32_t pendingCxxRestores;
 };
 
+// The alternatives of PathSegment::Data, in its order (PathCG.cpp checks).
+enum class CGRendererPathSegmentKind : uint8_t {
+    MoveTo, LineTo, QuadCurveTo, BezierCurveTo, ArcTo, Arc, ClosedArc, Ellipse, EllipseInRect, Rect, RoundedRect,
+    ContinuousRoundedRect, DataLine, DataQuadCurve, DataBezierCurve, DataArc, CloseSubpath
+};
+
+// A path's single segment as plain values, since Swift can't switch on PathSegment's variant: the floats of the segment's
+// members in the order they are declared (a FloatRoundedRect is its rect, then its radii from the top left, each width then
+// height). flag is an arc's or an ellipse's counterclockwise direction, or a rounded rect's PreferBezier strategy.
+struct CGRendererPathSegment {
+    float values[12];
+    CGRendererPathSegmentKind kind;
+    bool flag;
+};
+
+// The plain values of a message's PathSegment, for a Swift receiver, and the PathSegment of them.
+WEBCORE_EXPORT CGRendererPathSegment CGRendererPathSegmentValues(WebCore::PathSegment);
+WEBCORE_EXPORT WebCore::PathSegment CGRendererPathSegmentFromValues(CGRendererPathSegment) __attribute__((availability(swift, unavailable)));
+
+// The CGPath that Path makes (PathCG) for a path of just the segment. Swift's CGMutablePath methods add with an identity
+// transform rather than none, which changes what CG stores for -0, infinities and NaN.
+CGMutablePathRef _Nonnull CGRendererCreatePath(CGRendererPathSegment) CF_RETURNS_RETAINED;
+
 // Testing only: a message of RemoteCGRenderer's and its arguments (GraphicsContextCG::applyReceiverMessageForTesting()).
 struct CGRendererReceiverTestMessage {
     uint8_t message; // GraphicsContextCG::ReceiverMessageForTesting.
     float values[6]; // A rect is x, y, width, height; a transform a, b, c, d, tx, ty; a line x1, y1, x2, y2.
     uint32_t integers[2]; // A packed colour, an enum's raw value, a Boolean.
+    CGRendererPathSegment segment; // A single-segment path's.
 };
 
 // WebCore's process-wide CGColor for an sRGBA8 color (cachedCGColor()).

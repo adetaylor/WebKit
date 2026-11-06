@@ -30,6 +30,7 @@
 #include <WebCore/FloatRoundedRect.h>
 #include <WebCore/PathElement.h>
 #include <WebCore/RotationDirection.h>
+#include <wtf/SwiftBridging.h>
 
 namespace WTF {
 class TextStream;
@@ -300,7 +301,8 @@ struct PathDataLine {
 
     FloatPoint start() const { return { m_values[0], m_values[1] }; }
     void setStart(FloatPoint p) { m_values[0] = p.x(); m_values[1] = p.y(); }
-    FloatPoint end() const { return { m_values[2], m_values[3] }; }
+    // Swift takes an end() to be a sequence's iterator.
+    FloatPoint end() const SWIFT_RETURNS_INDEPENDENT_VALUE SWIFT_NAME(endPoint()) { return { m_values[2], m_values[3] }; }
     void setEnd(FloatPoint p) { m_values[2] = p.x(); m_values[3] = p.y(); }
     std::span<const float, 4> span() const LIFETIME_BOUND { return m_values; }
     static constexpr bool canApplyElements = true;

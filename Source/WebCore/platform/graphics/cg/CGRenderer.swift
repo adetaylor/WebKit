@@ -44,6 +44,29 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Copyright (C) 2021-2024 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE_WEBCORE_SWIFT && USE_CG
 
@@ -660,6 +683,12 @@ private enum CGRendererSideTable {
     static let sourceLimit = 4
 }
 
+// The stroke color and thickness of the line before, for receiveStrokeLinesWithColorAndThickness().
+private struct CGRendererLineStroke {
+    var color: UInt32? = nil
+    var thickness: Float? = nil
+}
+
 // The CGColors of the last few packed colors this renderer set. A context is used by one thread at a time.
 private struct CGRendererColorCache {
     private var keys: (UInt32, UInt32, UInt32, UInt32) = (0, 0, 0, 0)
@@ -770,6 +799,21 @@ private struct CGRendererColorCache {
 
     private mutating func platformColor(_ brush: CGRendererBrush) -> CGColor {
         platformColor(packed: brush.packedColor, slot: brush.platformColorSlot)
+    }
+
+    // fillColor() == strokeColor(), as far as the colors drawn go: C++ also compares flags this state doesn't have, which don't
+    // change what CG draws.
+    private func fillAndStrokeColorsAreEqual() -> Bool {
+        let fill = state.fill
+        let stroke = state.stroke
+        if fill.platformColorSlot == 0 || stroke.platformColorSlot == 0 {
+            return fill.platformColorSlot == stroke.platformColorSlot && fill.packedColor == stroke.packedColor
+        }
+        let a = platformColors[Int(fill.platformColorSlot) - 1].data
+        let b = platformColors[Int(stroke.platformColorSlot) - 1].data
+        return a.c1 == b.c1 && a.c2 == b.c2 && a.c3 == b.c3 && a.alpha == b.alpha && a.packedColor == b.packedColor
+            && a.colorSpace == b.colorSpace && a.form == b.form && a.isSemantic == b.isSemantic
+            && a.usesFunctionSerialization == b.usesFunctionSerialization
     }
 
     private mutating func platformColorSlot(_ cgColor: CGColor, _ color: CGRendererColorData) -> UInt32 {
@@ -2813,6 +2857,83 @@ extension CGRendererCore {
         strokeEllipse(rect)
     }
 
+    // A path of one segment, which GraphicsContextCG::fillPath() fills through its CGPath.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillPathSegment(_ segment: CGRendererPathSegment) -> Bool {
+        guard fillsWithoutGradient() else {
+            return false
+        }
+        fillPath(CGRendererCreatePath(segment))
+        return true
+    }
+
+    // GraphicsContextCG::strokePath() and strokeLine(), which stroke a line as a line segment.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveStrokePathSegment(_ segment: CGRendererPathSegment) -> Bool {
+        guard strokesWithoutGradient() else {
+            return false
+        }
+        if segment.kind == .DataLine {
+            let v = segment.values
+            strokeLineSegment(v.0, v.1, v.2, v.3)
+        } else {
+            strokePath(CGRendererCreatePath(segment))
+        }
+        return true
+    }
+
+    // GraphicsContextCG::drawPath(), which fills and strokes in one draw.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawPathSegment(_ segment: CGRendererPathSegment) -> Bool {
+        guard fillsWithoutGradient() && strokesWithoutGradient() else {
+            return false
+        }
+        hasDrawn = true
+        if drawsPath() {
+            drawPath(CGRendererCreatePath(segment))
+        }
+        return true
+    }
+
+    // GraphicsContextCG::drawEllipse(), which draws the path of the ellipse in the rect.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawEllipse(_ rect: CGRect) -> Bool {
+        let values = (Float(rect.origin.x), Float(rect.origin.y), Float(rect.size.width), Float(rect.size.height), Float(0), Float(0), Float(0), Float(0), Float(0), Float(0), Float(0), Float(0))
+        return receiveDrawPathSegment(CGRendererPathSegment(values: values, kind: .EllipseInRect, flag: false))
+    }
+
+    // GraphicsContextCG::drawRect(), whose border takes the stroke color as the fill's unless the two are the same color.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawRect(_ rect: CGRect, _ borderThickness: Float) {
+        drawRect(rect, borderThickness, !fillAndStrokeColorsAreEqual())
+    }
+
+    // RemoteGraphicsContext::strokeLinesWithColorAndThickness(): each line in its stroke color and thickness, which are set
+    // only where they differ from the line before's.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveStrokeLinesWithColorAndThickness(_ lines: Span<WebCore.PathDataLineColorThickness>) {
+        var previous = CGRendererLineStroke()
+        for index in lines.indices {
+            let line = lines[index]
+            let start = line.line.start()
+            let end = line.line.endPoint()
+            strokeLine(start.x(), start.y(), end.x(), end.y(), line.color.value, line.thickness, &previous)
+        }
+    }
+
+    // A line of receiveStrokeLinesWithColorAndThickness(), after those whose color and thickness are previous.
+    private mutating func strokeLine(_ x1: Float, _ y1: Float, _ x2: Float, _ y2: Float, _ color: UInt32, _ thickness: Float, _ previous: inout CGRendererLineStroke) {
+        if previous.color != color {
+            receiveSetStrokePackedColor(color)
+            previous.color = color
+        }
+        if previous.thickness != thickness {
+            receiveSetStrokeThickness(cxxMax(thickness, 0))
+            previous.thickness = thickness
+        }
+        strokeLineSegment(x1, y1, x2, y2)
+    }
+
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveApplyFillPattern() {
         applyFillPattern()
@@ -2867,6 +2988,18 @@ extension CGRendererCore {
         case 30: receiveClearRect(rect)
         case 31: receiveApplyStrokePattern()
         case 32: receiveApplyFillPattern()
+        case 33: return receiveFillPathSegment(message.segment)
+        case 34: return receiveStrokePathSegment(message.segment)
+        case 35: return receiveDrawPathSegment(message.segment)
+        case 36: receiveDrawRect(rect, v.4)
+        case 37:
+            // One or two lines (the segment's flag), each four values and a thickness, in the segment's values.
+            let s = message.segment.values
+            var previous = CGRendererLineStroke()
+            strokeLine(s.0, s.1, s.2, s.3, i.0, s.4, &previous)
+            if message.segment.flag {
+                strokeLine(s.5, s.6, s.7, s.8, i.1, s.9, &previous)
+            }
         default: break
         }
         return true

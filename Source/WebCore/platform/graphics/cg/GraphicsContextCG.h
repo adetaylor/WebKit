@@ -181,15 +181,17 @@ public:
     static SwiftRendererLend lendSwiftRenderer(GraphicsContextCG&) __attribute__((availability(swift, unavailable)));
 
     // Testing only, for the differential harness: lends the renderer to what RemoteCGRenderer's handler for the message does,
-    // then draws a message the handler declines as RemoteGraphicsContext's handler would.
+    // then draws a rect or ellipse the handler declines as RemoteGraphicsContext's handler would. Returns false where the
+    // handler declines a path segment, for the caller to draw it.
     enum class ReceiverMessageForTesting : uint8_t {
         Save, Restore, Translate, Rotate, Scale, SetCTM, ConcatCTM, SetFillPackedColor, SetStrokePackedColor,
         SetStrokePackedColorAndThickness, SetFillRule, SetStrokeThickness, SetStrokeStyle, SetCompositeMode, SetAlpha,
         SetImageInterpolationQuality, SetShouldAntialias, SetShouldSmoothFonts, SetShouldSubpixelQuantizeFonts, SetLineCap,
         SetLineJoin, SetMiterLimit, Clip, ClipOut, ResetClip, DrawLine, FillRect, FillEllipse, StrokeRect, StrokeEllipse,
-        ClearRect, ApplyStrokePattern, ApplyFillPattern
+        ClearRect, ApplyStrokePattern, ApplyFillPattern, FillPathSegment, StrokePathSegment, DrawPathSegment, DrawRect,
+        StrokeLinesWithColorAndThickness
     };
-    WEBCORE_EXPORT void applyReceiverMessageForTesting(const CGRendererReceiverTestMessage&) __attribute__((availability(swift, unavailable)));
+    WEBCORE_EXPORT bool applyReceiverMessageForTesting(const CGRendererReceiverTestMessage&) __attribute__((availability(swift, unavailable)));
     // Testing only: the renderer's saved levels, which include those only a Swift receiver saved.
     WEBCORE_EXPORT unsigned rendererSavedLevelCountForTesting() const __attribute__((availability(swift, unavailable)));
     void addSwiftRendererLender() __attribute__((availability(swift, unavailable)));

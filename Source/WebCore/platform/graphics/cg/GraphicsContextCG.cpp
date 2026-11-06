@@ -390,7 +390,7 @@ void GraphicsContextCG::addSwiftRendererLender()
     ++m_swiftRendererLenders;
 }
 
-void GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverTestMessage& message)
+bool GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverTestMessage& message)
 {
     bool handled;
     {
@@ -398,7 +398,7 @@ void GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverT
         handled = lend.state().applyReceiverMessageForTesting(message);
     }
     if (handled)
-        return;
+        return true;
     FloatRect rect { message.values[0], message.values[1], message.values[2], message.values[3] };
     switch (static_cast<ReceiverMessageForTesting>(message.message)) {
     case ReceiverMessageForTesting::FillRect:
@@ -414,8 +414,9 @@ void GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverT
         strokeEllipse(rect);
         break;
     default:
-        break;
+        return false;
     }
+    return true;
 }
 
 unsigned GraphicsContextCG::rendererSavedLevelCountForTesting() const

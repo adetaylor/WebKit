@@ -680,4 +680,183 @@ void addToCGContextPath(CGContextRef context, const Path& path)
 
 } // namespace WebCore
 
+template<typename Segment> static constexpr bool isPathSegmentKind(CGRendererPathSegmentKind kind)
+{
+    return static_cast<size_t>(kind) == WTF::alternativeIndexV<Segment, WebCore::PathSegment::Data>;
+}
+static_assert(isPathSegmentKind<WebCore::PathMoveTo>(CGRendererPathSegmentKind::MoveTo));
+static_assert(isPathSegmentKind<WebCore::PathLineTo>(CGRendererPathSegmentKind::LineTo));
+static_assert(isPathSegmentKind<WebCore::PathQuadCurveTo>(CGRendererPathSegmentKind::QuadCurveTo));
+static_assert(isPathSegmentKind<WebCore::PathBezierCurveTo>(CGRendererPathSegmentKind::BezierCurveTo));
+static_assert(isPathSegmentKind<WebCore::PathArcTo>(CGRendererPathSegmentKind::ArcTo));
+static_assert(isPathSegmentKind<WebCore::PathArc>(CGRendererPathSegmentKind::Arc));
+static_assert(isPathSegmentKind<WebCore::PathClosedArc>(CGRendererPathSegmentKind::ClosedArc));
+static_assert(isPathSegmentKind<WebCore::PathEllipse>(CGRendererPathSegmentKind::Ellipse));
+static_assert(isPathSegmentKind<WebCore::PathEllipseInRect>(CGRendererPathSegmentKind::EllipseInRect));
+static_assert(isPathSegmentKind<WebCore::PathRect>(CGRendererPathSegmentKind::Rect));
+static_assert(isPathSegmentKind<WebCore::PathRoundedRect>(CGRendererPathSegmentKind::RoundedRect));
+static_assert(isPathSegmentKind<WebCore::PathContinuousRoundedRect>(CGRendererPathSegmentKind::ContinuousRoundedRect));
+static_assert(isPathSegmentKind<WebCore::PathDataLine>(CGRendererPathSegmentKind::DataLine));
+static_assert(isPathSegmentKind<WebCore::PathDataQuadCurve>(CGRendererPathSegmentKind::DataQuadCurve));
+static_assert(isPathSegmentKind<WebCore::PathDataBezierCurve>(CGRendererPathSegmentKind::DataBezierCurve));
+static_assert(isPathSegmentKind<WebCore::PathDataArc>(CGRendererPathSegmentKind::DataArc));
+static_assert(isPathSegmentKind<WebCore::PathCloseSubpath>(CGRendererPathSegmentKind::CloseSubpath));
+static_assert(WTF::VariantSizeV<WebCore::PathSegment::Data> == static_cast<size_t>(CGRendererPathSegmentKind::CloseSubpath) + 1);
+
+CGRendererPathSegment CGRendererPathSegmentValues(WebCore::PathSegment segment)
+{
+    using namespace WebCore;
+    CGRendererPathSegment values { };
+    std::span valuesSpan { values.values };
+    size_t count = 0;
+    auto append = [&](std::initializer_list<float> floats) {
+        for (auto value : floats)
+            valuesSpan[count++] = value;
+    };
+    auto appendPoint = [&](const FloatPoint& point) {
+        append({ point.x(), point.y() });
+    };
+    auto appendRect = [&](const FloatRect& rect) {
+        append({ rect.x(), rect.y(), rect.width(), rect.height() });
+    };
+    auto appendArc = [&](const PathArc& arc) {
+        appendPoint(arc.center);
+        append({ arc.radius, arc.startAngle, arc.endAngle });
+        values.flag = arc.direction == RotationDirection::Counterclockwise;
+    };
+    values.kind = static_cast<CGRendererPathSegmentKind>(segment.data().index());
+    WTF::switchOn(segment.data(),
+        [&](const PathMoveTo& moveTo) {
+            appendPoint(moveTo.point);
+        },
+        [&](const PathLineTo& lineTo) {
+            appendPoint(lineTo.point);
+        },
+        [&](const PathQuadCurveTo& quadTo) {
+            appendPoint(quadTo.controlPoint);
+            appendPoint(quadTo.endPoint);
+        },
+        [&](const PathBezierCurveTo& bezierTo) {
+            appendPoint(bezierTo.controlPoint1);
+            appendPoint(bezierTo.controlPoint2);
+            appendPoint(bezierTo.endPoint);
+        },
+        [&](const PathArcTo& arcTo) {
+            appendPoint(arcTo.controlPoint1);
+            appendPoint(arcTo.controlPoint2);
+            append({ arcTo.radius });
+        },
+        [&](const PathArc& arc) {
+            appendArc(arc);
+        },
+        [&](const PathClosedArc& closedArc) {
+            appendArc(closedArc.arc);
+        },
+        [&](const PathEllipse& ellipse) {
+            appendPoint(ellipse.center);
+            append({ ellipse.radiusX, ellipse.radiusY, ellipse.rotation, ellipse.startAngle, ellipse.endAngle });
+            values.flag = ellipse.direction == RotationDirection::Counterclockwise;
+        },
+        [&](const PathEllipseInRect& ellipseInRect) {
+            appendRect(ellipseInRect.rect);
+        },
+        [&](const PathRect& rect) {
+            appendRect(rect.rect);
+        },
+        [&](const PathRoundedRect& roundedRect) {
+            appendRect(roundedRect.roundedRect.rect());
+            auto& radii = roundedRect.roundedRect.radii();
+            for (auto& radius : { radii.topLeft(), radii.topRight(), radii.bottomLeft(), radii.bottomRight() })
+                append({ radius.width(), radius.height() });
+            values.flag = roundedRect.strategy == PathRoundedRect::Strategy::PreferBezier;
+        },
+        [&](const PathContinuousRoundedRect& continuousRoundedRect) {
+            appendRect(continuousRoundedRect.rect);
+            append({ continuousRoundedRect.cornerWidth, continuousRoundedRect.cornerHeight });
+        },
+        [&](const PathDataLine& line) {
+            appendPoint(line.start());
+            appendPoint(line.end());
+        },
+        [&](const PathDataQuadCurve& curve) {
+            appendPoint(curve.start);
+            appendPoint(curve.controlPoint);
+            appendPoint(curve.endPoint);
+        },
+        [&](const PathDataBezierCurve& curve) {
+            appendPoint(curve.start);
+            appendPoint(curve.controlPoint1);
+            appendPoint(curve.controlPoint2);
+            appendPoint(curve.endPoint);
+        },
+        [&](const PathDataArc& arc) {
+            appendPoint(arc.start);
+            appendPoint(arc.controlPoint1);
+            appendPoint(arc.controlPoint2);
+            append({ arc.radius });
+        },
+        [&](const PathCloseSubpath&) {
+        });
+    return values;
+}
+
+WebCore::PathSegment CGRendererPathSegmentFromValues(CGRendererPathSegment values)
+{
+    using namespace WebCore;
+    std::span v { values.values };
+    auto point = [&](size_t index) {
+        return FloatPoint { v[index], v[index + 1] };
+    };
+    auto rect = [&](size_t index) {
+        return FloatRect { v[index], v[index + 1], v[index + 2], v[index + 3] };
+    };
+    auto direction = values.flag ? RotationDirection::Counterclockwise : RotationDirection::Clockwise;
+    auto arc = PathArc { point(0), v[2], v[3], v[4], direction };
+    switch (values.kind) {
+    case CGRendererPathSegmentKind::MoveTo:
+        return PathSegment { PathMoveTo { point(0) } };
+    case CGRendererPathSegmentKind::LineTo:
+        return PathSegment { PathLineTo { point(0) } };
+    case CGRendererPathSegmentKind::QuadCurveTo:
+        return PathSegment { PathQuadCurveTo { point(0), point(2) } };
+    case CGRendererPathSegmentKind::BezierCurveTo:
+        return PathSegment { PathBezierCurveTo { point(0), point(2), point(4) } };
+    case CGRendererPathSegmentKind::ArcTo:
+        return PathSegment { PathArcTo { point(0), point(2), v[4] } };
+    case CGRendererPathSegmentKind::Arc:
+        return PathSegment { arc };
+    case CGRendererPathSegmentKind::ClosedArc:
+        return PathSegment { PathClosedArc { arc } };
+    case CGRendererPathSegmentKind::Ellipse:
+        return PathSegment { PathEllipse { point(0), v[2], v[3], v[4], v[5], v[6], direction } };
+    case CGRendererPathSegmentKind::EllipseInRect:
+        return PathSegment { PathEllipseInRect { rect(0) } };
+    case CGRendererPathSegmentKind::Rect:
+        return PathSegment { PathRect { rect(0) } };
+    case CGRendererPathSegmentKind::RoundedRect:
+        return PathSegment { PathRoundedRect { FloatRoundedRect { rect(0), { v[4], v[5] }, { v[6], v[7] }, { v[8], v[9] }, { v[10], v[11] } },
+            values.flag ? PathRoundedRect::Strategy::PreferBezier : PathRoundedRect::Strategy::PreferNative } };
+    case CGRendererPathSegmentKind::ContinuousRoundedRect:
+        return PathSegment { PathContinuousRoundedRect { rect(0), v[4], v[5] } };
+    case CGRendererPathSegmentKind::DataLine:
+        return PathSegment { PathDataLine { point(0), point(2) } };
+    case CGRendererPathSegmentKind::DataQuadCurve:
+        return PathSegment { PathDataQuadCurve { point(0), point(2), point(4) } };
+    case CGRendererPathSegmentKind::DataBezierCurve:
+        return PathSegment { PathDataBezierCurve { point(0), point(2), point(4), point(6) } };
+    case CGRendererPathSegmentKind::DataArc:
+        return PathSegment { PathDataArc { point(0), point(2), point(4), v[6] } };
+    case CGRendererPathSegmentKind::CloseSubpath:
+        break;
+    }
+    return PathSegment { PathCloseSubpath { } };
+}
+
+CGMutablePathRef CGRendererCreatePath(CGRendererPathSegment segment)
+{
+    RetainPtr path = adoptCF(CGPathCreateMutable());
+    WebCore::addToCGPath(path.get(), CGRendererPathSegmentFromValues(segment));
+    return path.leakRef();
+}
+
 #endif // USE(CG)
