@@ -50,8 +50,8 @@ final class TestWithStreamSwiftLentStateWeakRef {
     @used
     func dispatchSetValues(
         state: inout TestWithStreamSwiftLentState.State,
-        value: sending UInt32,
-        scale: sending Float
+        value: UInt32,
+        scale: Float
     ) -> IPC.SwiftLentStateDispatch {
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
@@ -70,8 +70,8 @@ final class TestWithStreamSwiftLentStateWeakRef {
     @used
     func dispatchDraw(
         state: inout TestWithStreamSwiftLentState.State,
-        rect: sending WebCore.FloatRect,
-        clip: sending Bool
+        rect: WebCore.FloatRect,
+        clip: Bool
     ) -> IPC.SwiftLentStateDispatch {
         do throws(InvalidMessage) {
             let handled = try mayThrowInvalidMessage(
