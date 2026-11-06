@@ -301,6 +301,13 @@ private func prepareComputePipeline(
     _ layoutImpl: PipelineLayoutImpl,
     _ isReplacingPipeline: Bool
 ) -> PendingComputePipeline {
+    // The module's checked module is kept until the pipeline is prepared.
+    guard let checkedModuleUse = shaderModuleImpl.useCheckedModule() else {
+        return PendingComputePipeline(failure: nil)
+    }
+    defer {
+        withExtendedLifetime(checkedModuleUse) {}
+    }
     let limits = deviceImpl.capabilities.limits
     let label = descriptor.label
     let entryPoint = descriptor.entryPoint ?? shaderModuleImpl.defaultComputeEntryPoint

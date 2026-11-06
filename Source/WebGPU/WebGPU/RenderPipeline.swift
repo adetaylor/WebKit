@@ -705,8 +705,12 @@ final class RenderPipelineBuilder {
             }
         }
 
-        if !vertexModuleImpl.isValid() {
+        // The modules' checked modules are kept until the pipeline is prepared.
+        guard let vertexModuleUse = vertexModuleImpl.useCheckedModule() else {
             return PendingRenderPipeline(errorMessage: "Vertex module is not valid")
+        }
+        defer {
+            withExtendedLifetime(vertexModuleUse) {}
         }
         if vertexModuleImpl.deviceImpl !== deviceImpl {
             return PendingRenderPipeline(errorMessage: "Vertex module was created with a different device")
@@ -755,11 +759,16 @@ final class RenderPipelineBuilder {
         var colorAttachmentCount: UInt32 = 0
         var fragmentEntryPoint: Name?
         var fragmentReflection: EntryPointReflection?
+        var fragmentModuleUse: CheckedModuleUse?
+        defer {
+            withExtendedLifetime(fragmentModuleUse) {}
+        }
         if hasFragment {
             guard let fragmentModuleImpl else {
                 preconditionFailure("C++ sets the fragment module of a descriptor with a fragment state")
             }
-            if !fragmentModuleImpl.isValid() {
+            fragmentModuleUse = fragmentModuleImpl.useCheckedModule()
+            if fragmentModuleUse == nil {
                 return PendingRenderPipeline(errorMessage: "Fragment module is invalid")
             }
             if fragmentModuleImpl.deviceImpl !== deviceImpl {

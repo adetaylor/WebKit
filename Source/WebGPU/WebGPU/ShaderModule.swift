@@ -52,11 +52,34 @@ final class CheckedModuleBox {
     }
 }
 
+/// What a valid module was checked from, which checks again the same.
+@_implementationOnly private struct ModuleSource {
+    let text: SourceText
+    let configuration: Configuration
+}
+
+/// Keeps a module's checked module until it is released.
+final class CheckedModuleUse {
+    private let moduleImpl: ShaderModuleImpl
+
+    fileprivate init(_ moduleImpl: ShaderModuleImpl) {
+        self.moduleImpl = moduleImpl
+    }
+
+    deinit {
+        moduleImpl.endCheckedModuleUse()
+    }
+}
+
 // One per GPUShaderModule, held by its Swift callers, and holding the Device. Pipeline creation reads the reflection and compiles through it directly.
 @_spi(WebKitGPU)
 public final class ShaderModuleImpl: GPUObjectReference {
     // nil == invalid shader module.
-    private let checkedModule: CheckedModuleBox?
+    private let source: ModuleSource?
+    // The checked module while a pipeline is being created from it. It is many times the size of the source, so it is
+    // checked again from the source the next time.
+    private var checkedModule: CheckedModuleBox?
+    private var checkedModuleUseCount = 0
     // Errors first, then warnings; getCompilationInfo reports them in that order.
     private let messages: [Message]
     private let errorCount: Int
@@ -70,14 +93,16 @@ public final class ShaderModuleImpl: GPUObjectReference {
     // Declared last, so that the device outlives the rest of the module.
     let deviceImpl: DeviceImpl
 
-    init(
+    // `source` is what `checkedModule` was checked from; both or neither.
+    fileprivate init(
         checkedModule: CheckedModuleBox?,
+        source: ModuleSource?,
         errors: [CompilationMessage],
         warnings: [CompilationMessage],
         deviceImpl: DeviceImpl
     ) {
         self.deviceImpl = deviceImpl
-        self.checkedModule = checkedModule
+        self.source = checkedModule != nil ? source : nil
         messages = (errors + warnings).map(Message.init)
         errorCount = errors.count
 
@@ -103,7 +128,42 @@ public final class ShaderModuleImpl: GPUObjectReference {
     }
 
     public func isValid() -> Bool {
-        checkedModule != nil
+        source != nil
+    }
+
+    /// Keeps the checked module, checking the source again first if it was released, until the use goes. nil for an
+    /// invalid module.
+    func useCheckedModule() -> CheckedModuleUse? {
+        guard let source else {
+            return nil
+        }
+        if checkedModule == nil {
+            var checked: CheckedModuleBox?
+            WebGPU.Metal.runOnWGSLCompileThread {
+                // The source passed this check when the module was created, so it passes again.
+                switch staticCheck(source.text, configuration: source.configuration) {
+                case .failure:
+                    break
+                case .success(let module):
+                    checked = CheckedModuleBox(module)
+                }
+            }
+            guard let checked else {
+                assertionFailure("a valid module's source failed its check")
+                return nil
+            }
+            checkedModule = checked
+        }
+        checkedModuleUseCount += 1
+        return CheckedModuleUse(self)
+    }
+
+    fileprivate func endCheckedModuleUse() {
+        precondition(checkedModuleUseCount > 0)
+        checkedModuleUseCount -= 1
+        if checkedModuleUseCount == 0 {
+            checkedModule = nil
+        }
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo: errors first, then warnings. What
@@ -150,7 +210,7 @@ public final class ShaderModuleImpl: GPUObjectReference {
         deviceState: DeviceState
     ) -> EntryPointCompilation {
         guard let checkedModule else {
-            preconditionFailure("compile() on an invalid shader module")
+            preconditionFailure("compile() on a shader module without a use of its checked module")
         }
         var compilation: EntryPointCompilation?
         WebGPU.Metal.runOnWGSLCompileThread {
@@ -179,7 +239,7 @@ public final class ShaderModuleImpl: GPUObjectReference {
     // On the WGSL compile thread, with the overrides compile() resolved.
     func evaluateWorkgroupSize(entryPoint: Name, overrides: ResolvedOverrides) -> WorkgroupExtent? {
         guard let checkedModule else {
-            preconditionFailure("evaluateWorkgroupSize() on an invalid shader module")
+            preconditionFailure("evaluateWorkgroupSize() on a shader module without a use of its checked module")
         }
         var size: WorkgroupExtent?
         WebGPU.Metal.runOnWGSLCompileThread {
@@ -416,7 +476,13 @@ private func createShaderModuleImpl(_ deviceImpl: DeviceImpl, source: SourceText
             checkedModule = CheckedModuleBox(module)
         }
     }
-    let impl = ShaderModuleImpl(checkedModule: checkedModule, errors: errors, warnings: warnings, deviceImpl: deviceImpl)
+    let impl = ShaderModuleImpl(
+        checkedModule: checkedModule,
+        source: ModuleSource(text: source, configuration: configuration),
+        errors: errors,
+        warnings: warnings,
+        deviceImpl: deviceImpl
+    )
     if !impl.isValid() {
         deviceImpl.generateAValidationError(impl.compilationErrorMessage())
     }
@@ -424,7 +490,7 @@ private func createShaderModuleImpl(_ deviceImpl: DeviceImpl, source: SourceText
 }
 
 func makeInvalidShaderModuleImpl(_ deviceImpl: DeviceImpl) -> ShaderModuleImpl {
-    ShaderModuleImpl(checkedModule: nil, errors: [], warnings: [], deviceImpl: deviceImpl)
+    ShaderModuleImpl(checkedModule: nil, source: nil, errors: [], warnings: [], deviceImpl: deviceImpl)
 }
 
 @_spi(WebKitGPU)
