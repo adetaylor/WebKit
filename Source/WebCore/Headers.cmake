@@ -1694,6 +1694,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     html/parser/HTMLEntityParser.h
     html/parser/HTMLEntityTable.h
     html/parser/HTMLInputStream.h
+    html/parser/HTMLMetaCharsetParser.h
     html/parser/HTMLNameCache.h
     html/parser/HTMLParserIdioms.h
     html/parser/HTMLParserOptions.h
@@ -1703,6 +1704,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     html/parser/HTMLToken.h
     html/parser/HTMLTokenizer.h
     html/parser/InputStreamPreprocessor.h
+    html/parser/HTMLSrcsetParser.h
 
     html/shadow/TextControlInnerElements.h
     html/shadow/TextPlaceholderElement.h
