@@ -25,9 +25,9 @@
  
 #pragma once
 
-#include "DecodedDataDocumentParser.h"
-#include "ParserContentPolicy.h"
-#include "Timer.h"
+#include <WebCore/DecodedDataDocumentParser.h>
+#include <WebCore/ParserContentPolicy.h>
+#include <WebCore/Timer.h>
 #include <wtf/text/TextPosition.h>
 
 namespace WebCore {

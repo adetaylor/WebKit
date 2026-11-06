@@ -26,8 +26,8 @@
 
 #pragma once
 
-#include "HTMLResourcePreloader.h"
-#include "HTMLToken.h"
+#include <WebCore/HTMLResourcePreloader.h>
+#include <WebCore/HTMLToken.h>
 #include <wtf/Vector.h>
 
 #include <wtf/SwiftBridging.h>

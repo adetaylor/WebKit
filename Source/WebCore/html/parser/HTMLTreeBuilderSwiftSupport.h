@@ -25,24 +25,24 @@
 
 #pragma once
 
-#include "Attribute.h"
-#include "CustomElementRegistry.h"
-#include "Document.h"
-#include "ElementInlines.h"
-#include "FormAssociatedElement.h"
-#include "HTMLElement.h"
-#include "HTMLFormElement.h"
-#include "HTMLImageElement.h"
-#include "HTMLNames.h"
-#include "HTMLPictureElement.h"
-#include "HTMLTemplateElement.h"
-#include "NodeName.h"
-#include "ShadowRoot.h"
-#include "ShadowRootMode.h"
-#include "SlotAssignmentMode.h"
-#include "TagName.h"
-#include "Text.h"
-#include "TreeScopeInlines.h"
+#include <WebCore/Attribute.h>
+#include <WebCore/CustomElementRegistry.h>
+#include <WebCore/Document.h>
+#include <WebCore/ElementInlines.h>
+#include <WebCore/FormAssociatedElement.h>
+#include <WebCore/HTMLElement.h>
+#include <WebCore/HTMLFormElement.h>
+#include <WebCore/HTMLImageElement.h>
+#include <WebCore/HTMLNames.h>
+#include <WebCore/HTMLPictureElement.h>
+#include <WebCore/HTMLTemplateElement.h>
+#include <WebCore/NodeName.h>
+#include <WebCore/ShadowRoot.h>
+#include <WebCore/ShadowRootMode.h>
+#include <WebCore/SlotAssignmentMode.h>
+#include <WebCore/TagName.h>
+#include <WebCore/Text.h>
+#include <WebCore/TreeScopeInlines.h>
 
 // What HTMLTreeBuilder.swift needs from C++ that it cannot spell itself: casts, the names it compares and makes
 // attributes with (HTMLNames and the other name tables are not visible to Swift), and HTMLConstructionSite.cpp's

@@ -26,11 +26,11 @@
 
 #pragma once
 
-#include "HTMLInputStream.h"
-#include "HTMLScriptRunnerHost.h"
-#include "HTMLTokenizer.h"
-#include "PendingScriptClient.h"
-#include "ScriptableDocumentParser.h"
+#include <WebCore/HTMLInputStream.h>
+#include <WebCore/HTMLScriptRunnerHost.h>
+#include <WebCore/HTMLTokenizer.h>
+#include <WebCore/PendingScriptClient.h>
+#include <WebCore/ScriptableDocumentParser.h>
 #include <wtf/CheckedRef.h>
 
 namespace WebCore {

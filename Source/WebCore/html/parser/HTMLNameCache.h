@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "QualifiedName.h"
+#include <WebCore/QualifiedName.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/Vector.h>
 #include <wtf/text/AtomString.h>

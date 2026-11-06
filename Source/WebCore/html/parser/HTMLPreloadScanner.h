@@ -26,19 +26,19 @@
 
 #pragma once
 
-#include "CSSPreloadScanner.h"
-#include "HTMLTokenizer.h"
-#include "SegmentedString.h"
+#include <WebCore/CSSPreloadScanner.h>
+#include <WebCore/HTMLTokenizer.h>
+#include <WebCore/SegmentedString.h>
 #include <memory>
 #include <wtf/TZoneMalloc.h>
 
-#include "HTMLImageElement.h"
-#include "LinkIconType.h"
-#include "LinkRelAttribute.h"
-#include "ReferrerPolicy.h"
-#include "RequestPriority.h"
-#include "ScriptElement.h"
-#include "ShadowRootMode.h"
+#include <WebCore/HTMLImageElement.h>
+#include <WebCore/LinkIconType.h>
+#include <WebCore/LinkRelAttribute.h>
+#include <WebCore/ReferrerPolicy.h>
+#include <WebCore/RequestPriority.h>
+#include <WebCore/ScriptElement.h>
+#include <WebCore/ShadowRootMode.h>
 #include <wtf/SwiftBridging.h>
 
 namespace WebCore {

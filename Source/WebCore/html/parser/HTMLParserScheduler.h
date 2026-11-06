@@ -25,15 +25,15 @@
 
 #pragma once
 
-#include "NestingLevelIncrementer.h"
-#include "Timer.h"
+#include <WebCore/NestingLevelIncrementer.h>
+#include <WebCore/Timer.h>
 #include <wtf/CheckedPtr.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
 #include <wtf/RefPtr.h>
 #include <wtf/TZoneMalloc.h>
 
 #if PLATFORM(IOS_FAMILY)
-#include "WebCoreThread.h"
+#include <WebCore/WebCoreThread.h>
 #endif
 
 namespace WebCore {

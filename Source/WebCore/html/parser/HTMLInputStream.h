@@ -25,8 +25,8 @@
 
 #pragma once
 
-#include "CSSTokenizerInputStream.h"
-#include "SegmentedString.h"
+#include <WebCore/CSSTokenizerInputStream.h>
+#include <WebCore/SegmentedString.h>
 #include <wtf/text/OrdinalNumber.h>
 
 namespace WebCore {

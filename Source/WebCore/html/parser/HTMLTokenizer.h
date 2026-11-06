@@ -26,13 +26,13 @@
 
 #pragma once
 
-#include "HTMLParserOptions.h"
-#include "HTMLToken.h"
-#include "InputStreamPreprocessor.h"
+#include <WebCore/HTMLParserOptions.h>
+#include <WebCore/HTMLToken.h>
+#include <WebCore/InputStreamPreprocessor.h>
 
 #include <wtf/SwiftBridging.h>
 
-#include "TagName.h"
+#include <WebCore/TagName.h>
 
 namespace WebCore {
 
