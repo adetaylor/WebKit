@@ -33,7 +33,9 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "HandleMessage.h"
+#include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
+#include "RemoteCGRendererPathSegment.h"
 #include "WebKit-Swift.h"
 #endif
 
@@ -144,6 +146,21 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(ClearRect, &RemoteGraphicsContext::clearRect)
     HANDLE_CG_RENDERER_MESSAGE(ApplyStrokePattern, &RemoteGraphicsContext::applyStrokePattern)
     HANDLE_CG_RENDERER_MESSAGE(ApplyFillPattern, &RemoteGraphicsContext::applyFillPattern)
+    HANDLE_CG_RENDERER_MESSAGE(DrawRect, &RemoteGraphicsContext::drawRect)
+    HANDLE_CG_RENDERER_MESSAGE(DrawEllipse, &RemoteGraphicsContext::drawEllipse)
+    HANDLE_CG_RENDERER_MESSAGE(FillLine, &RemoteGraphicsContext::fillLine)
+    HANDLE_CG_RENDERER_MESSAGE(FillArc, &RemoteGraphicsContext::fillArc)
+    HANDLE_CG_RENDERER_MESSAGE(FillClosedArc, &RemoteGraphicsContext::fillClosedArc)
+    HANDLE_CG_RENDERER_MESSAGE(FillQuadCurve, &RemoteGraphicsContext::fillQuadCurve)
+    HANDLE_CG_RENDERER_MESSAGE(FillBezierCurve, &RemoteGraphicsContext::fillBezierCurve)
+    HANDLE_CG_RENDERER_MESSAGE(FillPathSegment, &RemoteImageBufferGraphicsContext::fillPathSegment)
+    HANDLE_CG_RENDERER_MESSAGE(StrokeLine, &RemoteGraphicsContext::strokeLine)
+    HANDLE_CG_RENDERER_MESSAGE(StrokeLinesWithColorAndThickness, &RemoteImageBufferGraphicsContext::strokeLines)
+    HANDLE_CG_RENDERER_MESSAGE(StrokeArc, &RemoteGraphicsContext::strokeArc)
+    HANDLE_CG_RENDERER_MESSAGE(StrokeClosedArc, &RemoteGraphicsContext::strokeClosedArc)
+    HANDLE_CG_RENDERER_MESSAGE(StrokeQuadCurve, &RemoteGraphicsContext::strokeQuadCurve)
+    HANDLE_CG_RENDERER_MESSAGE(StrokeBezierCurve, &RemoteGraphicsContext::strokeBezierCurve)
+    HANDLE_CG_RENDERER_MESSAGE(StrokePathSegment, &RemoteImageBufferGraphicsContext::strokePathSegment)
 #undef HANDLE_CG_RENDERER_MESSAGE
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
@@ -162,6 +179,21 @@ void RemoteImageBufferGraphicsContext::setStrokePackedColorValue(uint32_t color)
 void RemoteImageBufferGraphicsContext::setStrokePackedColorValueAndThickness(uint32_t color, float thickness)
 {
     setStrokePackedColorAndThickness(WebCore::PackedColor::RGBA { color }, thickness);
+}
+
+void RemoteImageBufferGraphicsContext::strokeLines(const RemoteCGRendererLineStrokes& lines)
+{
+    strokeLinesWithColorAndThickness(lines.span());
+}
+
+void RemoteImageBufferGraphicsContext::fillPathSegment(const RemoteCGRendererPathSegment& segment)
+{
+    RemoteGraphicsContext::fillPathSegment(segment.segment());
+}
+
+void RemoteImageBufferGraphicsContext::strokePathSegment(const RemoteCGRendererPathSegment& segment)
+{
+    RemoteGraphicsContext::strokePathSegment(segment.segment());
 }
 
 #endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

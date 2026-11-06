@@ -35,6 +35,45 @@ private func cgAffineTransform(_ transform: WebCore.AffineTransform) -> CGAffine
     CGAffineTransform(a: transform.a(), b: transform.b(), c: transform.c(), d: transform.d(), tx: transform.e(), ty: transform.f())
 }
 
+// The segment of the Path that RemoteGraphicsContext's handler makes of the message's.
+private func lineSegment(_ line: WebCore.PathDataLine) -> CGRendererPathSegment {
+    let start = line.start()
+    let end = line.endPoint()
+    return CGRendererPathSegment(values: (start.x(), start.y(), end.x(), end.y(), 0, 0, 0, 0, 0, 0, 0, 0), kind: .DataLine, flag: false)
+}
+
+private func arcSegment(_ arc: WebCore.PathArc, _ kind: CGRendererPathSegmentKind) -> CGRendererPathSegment {
+    let center = arc.center
+    return CGRendererPathSegment(
+        values: (center.x(), center.y(), arc.radius, arc.startAngle, arc.endAngle, 0, 0, 0, 0, 0, 0, 0),
+        kind: kind,
+        flag: arc.direction == .Counterclockwise
+    )
+}
+
+private func quadCurveSegment(_ curve: WebCore.PathDataQuadCurve) -> CGRendererPathSegment {
+    let start = curve.start
+    let control = curve.controlPoint
+    let end = curve.endPoint
+    return CGRendererPathSegment(
+        values: (start.x(), start.y(), control.x(), control.y(), end.x(), end.y(), 0, 0, 0, 0, 0, 0),
+        kind: .DataQuadCurve,
+        flag: false
+    )
+}
+
+private func bezierCurveSegment(_ curve: WebCore.PathDataBezierCurve) -> CGRendererPathSegment {
+    let start = curve.start
+    let control1 = curve.controlPoint1
+    let control2 = curve.controlPoint2
+    let end = curve.endPoint
+    return CGRendererPathSegment(
+        values: (start.x(), start.y(), control1.x(), control1.y(), control2.x(), control2.y(), end.x(), end.y(), 0, 0, 0, 0),
+        kind: .DataBezierCurve,
+        flag: false
+    )
+}
+
 // Receives the RemoteCGRenderer messages of an image buffer's context, on its stream connection's work queue, and draws
 // them with the context's Swift CG renderer, as RemoteGraphicsContext and GraphicsContextCG would. The context lends each
 // handler its renderer, stored in place, as the handler's state; a draw the renderer declines goes back to the context,
@@ -185,6 +224,72 @@ final class RemoteCGRenderer {
 
     func applyFillPattern(state: inout CGRendererCore) {
         state.receiveApplyFillPattern()
+    }
+
+    func drawRect(state: inout CGRendererCore, rect: WebCore.FloatRect, borderThickness: Float) {
+        state.receiveDrawRect(cgRect(rect), borderThickness)
+    }
+
+    func drawEllipse(state: inout CGRendererCore, rect: WebCore.FloatRect) -> Bool {
+        state.receiveDrawEllipse(cgRect(rect))
+    }
+
+    func fillLine(state: inout CGRendererCore, line: WebCore.PathDataLine) -> Bool {
+        state.receiveFillPathSegment(lineSegment(line))
+    }
+
+    func fillArc(state: inout CGRendererCore, arc: WebCore.PathArc) -> Bool {
+        state.receiveFillPathSegment(arcSegment(arc, .Arc))
+    }
+
+    func fillClosedArc(state: inout CGRendererCore, closedArc: WebCore.PathClosedArc) -> Bool {
+        state.receiveFillPathSegment(arcSegment(closedArc.arc, .ClosedArc))
+    }
+
+    func fillQuadCurve(state: inout CGRendererCore, curve: WebCore.PathDataQuadCurve) -> Bool {
+        state.receiveFillPathSegment(quadCurveSegment(curve))
+    }
+
+    func fillBezierCurve(state: inout CGRendererCore, curve: WebCore.PathDataBezierCurve) -> Bool {
+        state.receiveFillPathSegment(bezierCurveSegment(curve))
+    }
+
+    func fillPathSegment(state: inout CGRendererCore, segment: WebKit.RemoteCGRendererPathSegment) -> Bool {
+        state.receiveFillPathSegment(segment.values())
+    }
+
+    func strokeLine(state: inout CGRendererCore, line: WebCore.PathDataLine) -> Bool {
+        state.receiveStrokePathSegment(lineSegment(line))
+    }
+
+    func strokeLinesWithColorAndThickness(state: inout CGRendererCore, lines: WebKit.RemoteCGRendererLineStrokes) {
+        let span: Span<WebCore.PathDataLineColorThickness> = lines.span()
+        state.receiveStrokeLinesWithColorAndThickness(span)
+    }
+
+    func strokeArc(state: inout CGRendererCore, arc: WebCore.PathArc) -> Bool {
+        #if HAVE_CGCONTEXT_STROKE_ARC
+        // GraphicsContextCG strokes it with CGContextStrokeArc(), which the renderer doesn't call yet.
+        return false
+        #else
+        return state.receiveStrokePathSegment(arcSegment(arc, .Arc))
+        #endif
+    }
+
+    func strokeClosedArc(state: inout CGRendererCore, closedArc: WebCore.PathClosedArc) -> Bool {
+        state.receiveStrokePathSegment(arcSegment(closedArc.arc, .ClosedArc))
+    }
+
+    func strokeQuadCurve(state: inout CGRendererCore, curve: WebCore.PathDataQuadCurve) -> Bool {
+        state.receiveStrokePathSegment(quadCurveSegment(curve))
+    }
+
+    func strokeBezierCurve(state: inout CGRendererCore, curve: WebCore.PathDataBezierCurve) -> Bool {
+        state.receiveStrokePathSegment(bezierCurveSegment(curve))
+    }
+
+    func strokePathSegment(state: inout CGRendererCore, segment: WebKit.RemoteCGRendererPathSegment) -> Bool {
+        state.receiveStrokePathSegment(segment.values())
     }
 }
 

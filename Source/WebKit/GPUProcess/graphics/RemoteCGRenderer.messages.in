@@ -26,7 +26,8 @@
 # directly (RemoteCGRenderer.swift), which RemoteImageBufferGraphicsContext lends each handler. They share the stream and
 # the destination with the image buffer's RemoteGraphicsContext, which takes the rest, so they stay in order with them.
 # The renderer declines some draws, which go back to RemoteImageBufferGraphicsContext.
-# They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t.
+# They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t, the line
+# strokes, which the GPU process copies out of the message, and path segments, which it decodes into plain values.
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
@@ -69,6 +70,21 @@ messages -> RemoteCGRenderer Stream {
     ClearRect
     ApplyStrokePattern
     ApplyFillPattern
+    DrawRect
+    DrawEllipse SwiftMayDecline
+    FillLine SwiftMayDecline
+    FillArc SwiftMayDecline
+    FillClosedArc SwiftMayDecline
+    FillQuadCurve SwiftMayDecline
+    FillBezierCurve SwiftMayDecline
+    FillPathSegment(WebKit::RemoteCGRendererPathSegment segment) StreamBatched SwiftMayDecline
+    StrokeLine SwiftMayDecline
+    StrokeLinesWithColorAndThickness(WebKit::RemoteCGRendererLineStrokes lines) StreamBatched
+    StrokeArc SwiftMayDecline
+    StrokeClosedArc SwiftMayDecline
+    StrokeQuadCurve SwiftMayDecline
+    StrokeBezierCurve SwiftMayDecline
+    StrokePathSegment(WebKit::RemoteCGRendererPathSegment segment) StreamBatched SwiftMayDecline
 }
 
 #endif

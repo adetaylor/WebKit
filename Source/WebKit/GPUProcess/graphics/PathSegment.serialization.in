@@ -131,3 +131,15 @@ header: <WebCore/PathSegment.h>
 };
 
 using WebCore::PathSegment::Data = Variant<WebCore::PathMoveTo, WebCore::PathLineTo, WebCore::PathQuadCurveTo, WebCore::PathBezierCurveTo, WebCore::PathArcTo, WebCore::PathArc, WebCore::PathClosedArc, WebCore::PathEllipse, WebCore::PathEllipseInRect, WebCore::PathRect, WebCore::PathRoundedRect, WebCore::PathContinuousRoundedRect, WebCore::PathDataLine, WebCore::PathDataQuadCurve, WebCore::PathDataBezierCurve, WebCore::PathDataArc, WebCore::PathCloseSubpath>;
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+header: "RemoteCGRendererLineStrokes.h"
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererLineStrokes {
+    std::span<const WebCore::PathDataLineColorThickness> span();
+};
+
+header: "RemoteCGRendererPathSegment.h"
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererPathSegment {
+    WebCore::PathSegment segment();
+};
+#endif

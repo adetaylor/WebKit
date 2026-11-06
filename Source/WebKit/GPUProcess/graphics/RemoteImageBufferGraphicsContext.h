@@ -37,6 +37,8 @@ namespace WebKit {
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 class RemoteCGRenderer;
+class RemoteCGRendererLineStrokes;
+class RemoteCGRendererPathSegment;
 #endif
 
 // RemoteGraphicsContext playing back the IPC GraphicsContext drawing commands to a GraphicsContext of an ImageBuffer.
@@ -49,6 +51,12 @@ public:
 
     void drawImageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier, const WebCore::FloatRect& destinationRect, const WebCore::FloatRect& srcRect, WebCore::RasterDrawingOptions) final;
     bool drawsInto(const WebCore::ImageBuffer& imageBuffer) const final { return &imageBuffer == m_imageBuffer.ptr(); }
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // RemoteCGRenderer's path segments, which its Swift handlers decline for a gradient, as RemoteGraphicsContext draws them.
+    void fillPathSegment(const RemoteCGRendererPathSegment&);
+    void strokePathSegment(const RemoteCGRendererPathSegment&);
+#endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     // RemoteCGRenderer's handlers' state, the context's renderer, which the context lends for one message. The context is
@@ -69,6 +77,7 @@ private:
     void setFillPackedColorValue(uint32_t);
     void setStrokePackedColorValue(uint32_t);
     void setStrokePackedColorValueAndThickness(uint32_t, float);
+    void strokeLines(const RemoteCGRendererLineStrokes&);
 #endif
 
     const Ref<WebCore::ImageBuffer> m_imageBuffer;
