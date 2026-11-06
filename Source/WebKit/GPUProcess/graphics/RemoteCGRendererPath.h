@@ -87,7 +87,7 @@ public:
         return m_segment;
     }
 
-    CGPathRef _Nonnull platformPath() const CF_RETURNS_RETAINED SWIFT_RETURNS_INDEPENDENT_VALUE
+    CGPathRef _Nonnull copyPlatformPath() const CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)))
     {
         switch (m_kind) {
         case Kind::Missing:
@@ -124,6 +124,13 @@ private:
     CGRendererPathSegment m_segment { };
     RefPtr<const WebCore::PathImpl> m_impl;
 };
+
+// The path's CGPath, for Swift, which takes what a C++ method returns as unretained whatever its annotation, and what a
+// function returns as the function says.
+inline CGPathRef _Nonnull copyPlatformPath(const RemoteCGRendererPath& path) CF_RETURNS_RETAINED
+{
+    return path.copyPlatformPath();
+}
 
 } // namespace WebKit
 

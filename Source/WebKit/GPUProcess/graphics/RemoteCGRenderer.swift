@@ -311,7 +311,7 @@ final class RemoteCGRenderer {
         guard state.receiveStrokesWithoutGradient() else {
             return false
         }
-        state.receiveStrokePath(path.platformPath())
+        state.receiveStrokePath(WebKit.copyPlatformPath(path))
         return true
     }
 
@@ -319,7 +319,7 @@ final class RemoteCGRenderer {
         if path.isEmpty() {
             return true
         }
-        return state.receiveDrawPath { path.platformPath() }
+        return state.receiveDrawPath { WebKit.copyPlatformPath(path) }
     }
 
     func clipPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath, windRule: WebCore.WindRule) {
@@ -349,7 +349,7 @@ final class RemoteCGRenderer {
         guard state.receiveFillsWithoutGradient() else {
             return false
         }
-        state.receiveFillPath(path.platformPath())
+        state.receiveFillPath(WebKit.copyPlatformPath(path))
         return true
     }
 }
